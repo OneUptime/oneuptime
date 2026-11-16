@@ -476,7 +476,7 @@ describe("the email", () => {
     expect(content.emailEnvelope.vars["hasMoreAttempts"]).toBe("false");
   });
 
-  test("marks an owner as the owner, and a project owner as not", () => {
+  test("marks an owner as the owner, and a Project Owner as not", () => {
     expect(
       build(makeCall(), { isOwner: true }).emailEnvelope.vars["isOwner"],
     ).toBe("true");

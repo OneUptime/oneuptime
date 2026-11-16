@@ -389,7 +389,11 @@ describe("the rest of the Components guide points to Switch / Case", () => {
         page.indexOf("\n## Conditions\n"),
         page.indexOf(`\n${HEADING}\n`),
       );
-      const intro: Array<string> = linesWith(conditions, "**If / Else**");
+      // The step's name, as the canvas draws it (#8359).
+      const intro: Array<string> = linesWith(
+        conditions,
+        `**${drawnDashboardLabel(language, "If / Else")}**`,
+      );
 
       expect({
         language,

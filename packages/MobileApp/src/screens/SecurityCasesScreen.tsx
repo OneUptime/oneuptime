@@ -293,7 +293,7 @@ export default function SecurityCasesScreen(): React.JSX.Element {
           ) : isDenied ? (
             <EmptyState
               title="No access to security cases"
-              subtitle="Your role in this project does not include Security Events. A project admin can give you a Security role."
+              subtitle="Your role in this project does not include Security Events. A Project Admin can give you a Security role."
               icon="access"
             />
           ) : (

@@ -20,6 +20,7 @@ import {
   getDatabaseOwnCollectorSetupGuide,
   resolveDatabaseAgentSystem,
 } from "../../Pages/Database/Utils/DocumentationMarkdown";
+import { DATABASE_DOCUMENTATION_TRANSLATIONS } from "../../Pages/Database/Utils/DocumentationTranslations";
 
 /*
  * The Database Agent install guide with the viewer's ingestion key filled
@@ -108,8 +109,16 @@ const DatabaseDocumentationCard: FunctionComponent<ComponentProps> = (
       options={props.database ? undefined : DATABASE_AGENT_SYSTEM_OPTIONS}
       optionsLayout="pills"
       initialOption={props.database ? undefined : DEFAULT_DATABASE_AGENT_SYSTEM}
-      keyStepDescription="The agent sends the database's engine metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+      keyStepDescription={translationKey(
+        "The agent sends the database's engine metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+      )}
       getContent={getContent}
+      /*
+       * Every guide the card draws reads in the reader's language (#8341,
+       * #8746): the product page's, a row's agent guide and the
+       * own-collector guide of an engine the agent has no config for.
+       */
+      translations={DATABASE_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

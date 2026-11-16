@@ -188,6 +188,7 @@ type FakeRow = Record<string, unknown>;
  */
 interface ServiceInternals {
   findOneBy: MockFn;
+  findRowsAndHoldUpdateToThem: MockFn;
   updateColumnsByIdWithoutHooks: MockFn;
   onBeforeUpdate: (updateBy: unknown) => Promise<unknown>;
   onUpdateSuccess: (
@@ -245,6 +246,24 @@ const newServer: () => TelemetryIngestionKeyServiceClass =
         }
 
         return null;
+      });
+
+    /*
+     * The rows an update writes, as its hook reads them: a key turned back
+     * on has its project's billing checked, which Common Test's config.env
+     * turns on (BILLING_ENABLED). Read from the table by the update's id,
+     * apart from findOneBy, whose reads the lookups count.
+     */
+    internalsOf(server).findRowsAndHoldUpdateToThem = jest
+      .fn()
+      .mockImplementation(async (updateBy: unknown): Promise<unknown> => {
+        const id: unknown = (updateBy as { query: Record<string, unknown> })
+          .query["_id"];
+        const row: FakeRow | undefined = id
+          ? table.get((id as ObjectID).toString())
+          : undefined;
+
+        return row ? [row] : [];
       });
 
     return server;

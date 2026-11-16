@@ -7,6 +7,7 @@ import ResolvedStateUtil, {
   ResolvedStateList,
 } from "Common/Utils/ResolvedState";
 import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { getNotYetInStateText } from "../../Utils/EventOverview";
 
 export interface EpisodeTimingState {
@@ -153,7 +154,7 @@ export function getEpisodeTiming(input: EpisodeTimingInput): EpisodeTiming {
 
   const startedAt: Date | undefined = input.startedAt;
 
-  let timeToAcknowledge: string = "-";
+  let timeToAcknowledge: string = EMPTY_VALUE_MARK;
 
   if (!firstAcknowledgedAt) {
     timeToAcknowledge = getNotYetInStateText(input.list, acknowledgedStateName);
@@ -161,7 +162,7 @@ export function getEpisodeTiming(input: EpisodeTimingInput): EpisodeTiming {
     timeToAcknowledge = getEventDurationText(startedAt, firstAcknowledgedAt);
   }
 
-  let timeToResolve: string = "-";
+  let timeToResolve: string = EMPTY_VALUE_MARK;
 
   if (!firstResolvedAt) {
     timeToResolve = getNotYetInStateText(input.list, resolvedStateName);

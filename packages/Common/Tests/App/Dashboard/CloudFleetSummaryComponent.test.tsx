@@ -565,7 +565,7 @@ describe("CloudFleetSummary in the reader's language", () => {
     expect(sublabels).toEqual([
       "2 melden nicht",
       "2 Umgebungen getrennt",
-      "in den letzten 24 Stunden",
+      "in den letzten 24\u00A0Stunden",
       "in den letzten 15\u00A0Min. gesehen",
     ]);
   });

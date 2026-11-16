@@ -157,7 +157,7 @@ describe("a date in OneUptime AI's table", () => {
     expect(time).toHaveAttribute("dateTime", THIS_YEAR_ISO);
     expect(cell).toHaveAttribute(
       "title",
-      "Oct 07 2026, 02:05 PM BST · 15 days ago",
+      "Oct 07 2026, 02:05 PM BST · 15\u00A0days ago",
     );
     // One line, never cut: no clamp, no zone and no year in the cell.
     expect(cell).toHaveClass("whitespace-nowrap");
@@ -238,7 +238,7 @@ describe("a date in OneUptime AI's table", () => {
     expect(text).not.toContain("2026");
     expect(text).toBe(OneUptimeDate.getDateAsCompactLocalString(THIS_YEAR_ISO));
     // And how long ago it was, under the pointer, in German.
-    expect(cell.getAttribute("title")).toContain("vor 15 Tagen");
+    expect(cell.getAttribute("title")).toContain("vor 15\u00A0Tagen");
   });
 });
 

@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,
@@ -679,10 +680,8 @@ describe("SecurityEventsEmptyState", () => {
     test("reads the project's record once, by project, one row", async () => {
       await renderEmptyState();
 
-      const getList: jest.SpiedFunction<typeof ModelAPI.getList> =
-        ModelAPI.getList as unknown as jest.SpiedFunction<
-          typeof ModelAPI.getList
-        >;
+      const getList: SpyInstance<typeof ModelAPI.getList> =
+        ModelAPI.getList as unknown as SpyInstance<typeof ModelAPI.getList>;
 
       expect(getList).toHaveBeenCalledTimes(1);
 
@@ -743,7 +742,7 @@ describe("SecurityEventsEmptyState", () => {
       expect(
         screen.getByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-status`)
           .textContent,
-      ).toBe("Checked 2 minutes ago. No security event found yet.");
+      ).toBe("Checked 2\u00A0minutes ago. No security event found yet.");
       // Not asked to turn on what is on.
       expect(
         within(card("logs")).queryByRole("button", {
@@ -784,7 +783,7 @@ describe("SecurityEventsEmptyState", () => {
       );
 
       expect(failure.textContent).toBe(
-        "The last check failed: Could not read this project's logs: the query took longer than 30 seconds.",
+        "The last check failed: Could not read this project's logs: the query took longer than 30\u00A0seconds.",
       );
       expect(failure).toHaveClass("bg-amber-50", "text-amber-800");
       // After what Your logs says of itself, before its one action.

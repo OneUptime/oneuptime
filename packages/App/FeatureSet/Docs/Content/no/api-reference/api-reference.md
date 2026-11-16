@@ -95,6 +95,8 @@ En ressurs med eiere - en monitor, en hendelse, en vaktpolicy og enhver annen me
 
 `select` nevner feltene som skal returneres, og `_id` kommer alltid med. `sort` ordner dem, `ASC` eller `DESC`; uten sortering kommer de nyeste først. En liste returnerer 10 poster med mindre du setter `limit`, opptil 10 000, og `skip` hopper først over så mange: fortsett å øke `skip` med `limit` til du har `count` av dem. Legg til `?output-type=csv` i en listeforespørsel for å få CSV i stedet for JSON.
 
+Rekkefølgen til et felt kan også si hvor postene uten en verdi i det havner: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` setter de nyeste først og dem uten verdi sist, og `FIRST` setter dem først. En relasjon til én post sorterer etter et felt i posten den nevner: `{ "incidentSeverity": { "order": "ASC" } }` viser hendelser i rekkefølgen til alvorlighetsgradene deres. En relasjon som bare får en retning, som i `{ "incidentSeverity": "DESC" }`, avvises med en `400` som i stedet nevner et felt å sortere etter, og det samme gjør en relasjon til mange poster, som `labels` for en hendelse: hver hendelse har en liste av dem, og en liste har ikke én verdi å sette hendelser i rekkefølge etter. Å sortere etter et felt krever også tillatelse til å lese det, gjennom en relasjon som på selve ressursen: en sortering etter et felt du ikke har lov til å lese, avvises med en `422`.
+
 For eksempel monitorene der navnet inneholder «checkout», opprettet siden starten av 2026, de nyeste først:
 
 ```bash
@@ -156,7 +158,7 @@ I OneUptime Cloud fungerer et prosjekts API-nøkler bare mens prosjektet er på 
 
 Ingenting slettes eller slås av. Nøklene og tilkoblingene beholdes, og de fungerer fullt ut igjen, slik de er, så snart prosjektet er tilbake på abonnementet: ingen nye nøkler å lage, ingenting å sette opp igjen i identitetsleverandøren. En abonnementsendring trer i kraft innen et minutt.
 
-Under **Growth** viser **Prosjektinnstillinger** > **Avansert** > **API-nøkler** nøklene prosjektet fortsatt har, og sier at de har stoppet, så hvem som helst av dem kan slettes (tilbakekalles) på alle abonnementer. Å opprette eller endre nøkler krever **Growth**. **Prosjektinnstillinger** > **Fakturering og fakturaer** > **Fakturering** oppgir hvor mange API-nøkler et lavere abonnement stopper og hvor mange SCIM-tilkoblinger det begrenser, på hvert abonnement du kan velge, og hva prosjektets abonnement har stoppet; prosjektets eiere får en e-post når en abonnementsendring stopper dem. Eierne av prosjekter som allerede lå under disse abonnementene da dette begynte, får én e-post som sier hva som har stoppet, og hvordan det slås på igjen.
+Under **Growth** viser **Prosjektinnstillinger** > **Avansert** > **API-nøkler** nøklene prosjektet fortsatt har, og sier at de har stoppet, så hvem som helst av dem kan slettes (tilbakekalles) på alle abonnementer. Å opprette eller endre nøkler krever **Growth**. **Prosjektinnstillinger** > **Fakturering og fakturaer** > **Fakturering** oppgir hvor mange API-nøkler et lavere abonnement stopper og hvor mange SCIM-tilkoblinger det begrenser, på hvert abonnement du kan velge, og hva prosjektets abonnement har stoppet; Prosjekteiere får en e-post når en abonnementsendring stopper dem. Eierne av prosjekter som allerede lå under disse abonnementene da dette begynte, får én e-post som sier hva som har stoppet, og hvordan det slås på igjen.
 
 Bare et prosjekts API-nøkler og SCIM-tilkoblinger berøres. Personer berøres ikke: innlogging i dashbordet, og MCP-klienter som er koblet til ved innlogging, fungerer som før. Inntaksnøkler for telemetri, sondenøkler og agentnøkler er ikke API-nøkler og fortsetter å fungere. Selvdriftede installasjoner har ingen abonnementer, så for dem endres ingenting.
 
@@ -252,7 +254,7 @@ Et felt som er på eller av - `isEnabled`, `isVisibleOnStatusPage`, `isArchived`
 isVisibleOnStatusPage must be true or false.
 ```
 
-En oppdatering som skriver en posts verdier slik de allerede er, endrer ingenting: den starter ikke postens **On Update**-arbeidsflyter, sender ikke liveoppdateringer og legger ikke til en oppføring i revisjonsloggen. `false` skrevet over `false` regnes som samme verdi, og det samme gjør `"false"` skrevet over `false`, et tall skrevet som tekst, et tidspunkt skrevet som samme øyeblikk i et annet format og etiketter skrevet som de samme etikettene i vilkårlig rekkefølge. Når en oppdatering endrer noen verdier og skriver andre tilbake slik de er, viser revisjonsloggoppføringen bare verdiene som ble endret, og en arbeidsflyts **Fields to watch** hører bare dem.
+En oppdatering som skriver en posts verdier slik de allerede er, endrer ingenting: den starter ikke postens **On Update**-arbeidsflyter, sender ikke liveoppdateringer og legger ikke til en oppføring i revisjonsloggen. `false` skrevet over `false` regnes som samme verdi, og det samme gjør `"false"` skrevet over `false`, et tall skrevet som tekst, et tidspunkt skrevet som samme øyeblikk i et annet format og etiketter skrevet som de samme etikettene i vilkårlig rekkefølge. Når en oppdatering endrer noen verdier og skriver andre tilbake slik de er, viser revisjonsloggoppføringen bare verdiene som ble endret, og en arbeidsflyts **Felt som overvåkes** hører bare dem.
 
 ### Hvor et prosjekt ble kjøpt
 

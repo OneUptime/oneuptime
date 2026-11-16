@@ -56,21 +56,21 @@ Clique na métrica no **Visualizador**. O explorador abre com uma consulta, `a`,
 
 ### Escolher como agregá-la
 
-Em **Aggregate by**, escolha como os valores de cada ponto do gráfico são combinados: Avg, que é o padrão, Sum, Min, Max, Count, ou um percentil, P50, P75, P90, P95 ou P99. O percentil de uma métrica de histograma, como a duração de uma requisição, é calculado a partir dos buckets dela.
+Em **Agregar por**, escolha como os valores de cada ponto do gráfico são combinados: Avg, que é o padrão, Sum, Min, Max, Count, ou um percentil, P50, P75, P90, P95 ou P99. O percentil de uma métrica de histograma, como a duração de uma requisição, é calculado a partir dos buckets dela.
 
 ### Filtrá-la e agrupá-la
 
-Abra **Filters & grouping**. **Filter by attributes** mantém os pontos de dados cujos atributos correspondem, como uma `http.route` específica, e **Agrupar por** desenha uma linha por valor dos atributos que você escolher, como uma linha por host.
+Abra **Filtros e agrupamento**. **Filtrar por atributos** mantém os pontos de dados cujos atributos correspondem, como uma `http.route` específica, e **Agrupar por** desenha uma linha por valor dos atributos que você escolher, como uma linha por host.
 
 ### Ajustar o gráfico
 
-Abra **Display Settings** para escolher o **Chart type** (linha, área ou barras), desenhar um **Warning Threshold** e um **Critical Threshold** no gráfico, ou ativar **Convert to per-second rate**.
+Abra **Configurações de exibição** para escolher o **Tipo de gráfico** (linha, área ou barras), desenhar um **Limite de aviso** e um **Limite crítico** no gráfico, ou ativar **Converter em taxa por segundo**.
 :::
 
 > [!TIP]
-> Um contador que só cresce, como `system.disk.io`, é mais fácil de ler como taxa. Ative **Convert to per-second rate** para mostrar a rapidez com que ele muda, em vez do total acumulado; o explorador sugere isso quando reconhece um contador assim.
+> Um contador que só cresce, como `system.disk.io`, é mais fácil de ler como taxa. Ative **Converter em taxa por segundo** para mostrar a rapidez com que ele muda, em vez do total acumulado; o explorador sugere isso quando reconhece um contador assim.
 
-Cada consulta desenha o próprio gráfico. Para desenhar uma consulta no mesmo gráfico que a anterior, ative **Overlay with previous query** nas **Display Settings** dela.
+Cada consulta desenha o próprio gráfico. Para desenhar uma consulta no mesmo gráfico que a anterior, ative **Sobrepor à consulta anterior** nas **Configurações de exibição** dela.
 
 ## Combinar consultas com uma fórmula
 
@@ -195,7 +195,7 @@ Reinicie o collector. Cada serviço cujos traces passam por ele passa então a e
 ## Solução de problemas
 
 :::details O gráfico de um contador só sobe
-É um contador cumulativo. Ative **Convert to per-second rate** nas **Display Settings** da consulta.
+É um contador cumulativo. Ative **Converter em taxa por segundo** nas **Configurações de exibição** da consulta.
 :::
 
 :::details A lista diz que nenhuma métrica foi encontrada

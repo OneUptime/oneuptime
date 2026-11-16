@@ -118,7 +118,7 @@ inboundEmail:
 
 Poi applicale: esegui `npm run start` con Docker Compose, che ricrea i container con i nuovi valori, oppure aggiorna la release Helm su Kubernetes.
 
-### Crea un monitor Incoming Email
+### Crea un monitor Email in arrivo
 
 [Crea un monitor Incoming Email](/docs/monitor/incoming-email-monitor#creare-un-monitor-di-email-in-arrivo). La sua pagina **Panoramica** mostra il suo indirizzo, ad esempio `monitor-abc123def456@inbound.yourdomain.com`, e i suoi criteri decidono quali email creano un avviso e quali lo risolvono.
 
@@ -137,7 +137,7 @@ Invia un'email all'indirizzo del monitor, con un oggetto che corrisponda ai suoi
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | Il sottodominio configurato per le email in arrivo. Le email in arrivo sono disattivate finché non è impostato. | Sì | Vuoto |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Secret a cui deve corrispondere l'ultimo segmento dell'URL del webhook: `/incoming-email/sendgrid/YOUR_SECRET`. Ogni email viene rifiutata finché è vuoto o è un segnaposto. | Sì | Vuoto |
 
-Su che cosa può basarsi un monitor Incoming Email – l'oggetto, il mittente, il corpo, il destinatario e se un'email è arrivata in tempo – è spiegato in [Tipi di filtro disponibili](/docs/monitor/incoming-email-monitor#tipi-di-filtro-disponibili).
+Su che cosa può basarsi un monitor Email in arrivo – l'oggetto, il mittente, il corpo, il destinatario e se un'email è arrivata in tempo – è spiegato in [Tipi di filtro disponibili](/docs/monitor/incoming-email-monitor#tipi-di-filtro-disponibili).
 
 ## Risoluzione dei problemi
 
@@ -156,7 +156,7 @@ Su che cosa può basarsi un monitor Incoming Email – l'oggetto, il mittente, i
 
 :::details Il monitor non crea avvisi
 1. **Verifica i criteri:** controlla che i tuoi criteri di creazione degli avvisi corrispondano al contenuto dell'email, e prova prima con stringhe esatte prima di usare i pattern.
-2. **Controlla il monitor:** assicurati che non sia disattivato e che il suo tipo sia Incoming Email.
+2. **Controlla il monitor:** assicurati che non sia disattivato e che il suo tipo sia Email in arrivo.
 3. **Rivedi il riepilogo del monitor:** controlla se l'email è stata ricevuta ed elaborata, e leggi i log di valutazione per vedere come hanno corrisposto i criteri.
 :::
 

@@ -95,7 +95,7 @@ Wilt u velden in de body aanspreken (`{{requestBody.status}}` in een incidenttit
 | `application/json` | De geparste JSON. |
 | `application/x-www-form-urlencoded` | Het geparste formulier. Sleutels tussen vierkante haken worden genest (`alerts[0][status]=firing`), en elke waarde is een tekenreeks. |
 | `text/plain` | De geparste JSON, als de tekst een JSON-object of -array is: zo stuurt Amazon SNS zijn berichten. Elke andere tekst is een lege body. |
-| Alles anders, of geen | Een lege body (`{}`), dus elke verwijzing naar `requestBody` levert niets op. |
+| Alles anders, of geen | Een lege body (`{}`), dus geen enkele verwijzing naar `requestBody` wordt opgelost, en een sjabloon laat die letterlijk staan. |
 
 Bodies tot 50 MB worden geaccepteerd; een grotere wordt geweigerd met een `413`. Comprimeer de body niet met `Content-Encoding: gzip`: dan wordt hij niet als JSON opgeslagen, en worden paden erin niet opgelost.
 
@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Bij elke aanvraag een geheim vereisen
 
-Iedereen die de URL van een monitor heeft, kan er verzoeken naartoe sturen. Een projecteigenaar of -beheerder kan elke monitor voor inkomende aanvragen in het project daarnaast een van de eigen geheimen van het project laten vereisen, wie de monitor ook heeft ingesteld: zet **Bij elke aanvraag een geheim vereisen** aan. Een verzoek zonder geheim wordt geweigerd met `401` en de reden, voordat het als heartbeat telt, als laatste verzoek van de monitor wordt bewaard of criteria bereikt. Een verzoek met een geheim gaat door naar de eigen criteria van de monitor, zoals voorheen.
+Iedereen die de URL van een monitor heeft, kan er verzoeken naartoe sturen. Een Projecteigenaar of Projectbeheerder kan elke monitor voor inkomende aanvragen in het project daarnaast een van de eigen geheimen van het project laten vereisen, wie de monitor ook heeft ingesteld: zet **Bij elke aanvraag een geheim vereisen** aan. Een verzoek zonder geheim wordt geweigerd met `401` en de reden, voordat het als heartbeat telt, als laatste verzoek van de monitor wordt bewaard of criteria bereikt. Een verzoek met een geheim gaat door naar de eigen criteria van de monitor, zoals voorheen.
 
 :::steps
 ### Een geheim aanmaken
@@ -201,6 +201,10 @@ Ga naar **Monitoren → Instellingen → Geheimen voor inkomende aanvragen** en 
 ### Het vanaf elke afzender versturen
 
 Stuur het geheim mee in de header `X-OneUptime-Secret`, of als Bearer-token in de header `Authorization`, afhankelijk van wat je afzender kan instellen.
+
+### De vergeten afzenders vinden
+
+Zodra het project een geheim heeft, controleert OneUptime elk verzoek erop, zonder er al een te weigeren. **Aanvragen zonder geheim**, op dezelfde pagina, toont elke monitor voor inkomende aanvragen die in de afgelopen 24 uur een verzoek zonder geldig geheim kreeg, en waarom: er werd geen geheim meegestuurd, of een verkeerd. Pas die afzenders aan. Een monitor waarvan de afzenders zijn aangepast, toont bij **Laatst met geheim** een later tijdstip dan bij **Laatst zonder geheim**, en verdwijnt binnen 24 uur van de lijst.
 
 ### De vereiste aanzetten
 
@@ -429,6 +433,10 @@ De `200` wordt verstuurd voordat het verzoek wordt gecontroleerd, dus hij bewijs
 
 :::details Mijn afzender krijgt een 401
 Het project vereist bij elke aanvraag een geheim, en het verzoek stuurde er geen mee, of een dat niet van het project is: het antwoord zegt welke van de twee. Stuur een van de geheimen van het project mee in de header `X-OneUptime-Secret` of als Bearer-token, zoals [Bij elke aanvraag een geheim vereisen](#bij-elke-aanvraag-een-geheim-vereisen) laat zien. Een geweigerd verzoek bereikt de monitor nooit.
+:::
+
+:::details De monitor krijgt geen verzoeken meer sinds er een geheim vereist is
+Zijn afzenders sturen geen geheim mee, of een verkeerd, dus elk verzoek dat ze sturen wordt geweigerd. Een regel onder de **Heartbeat URL** van de monitor zegt wanneer het laatste geweigerde verzoek kwam, en **Aanvragen zonder geheim** toont elke monitor die er in de afgelopen 24 uur een kreeg, en waarom. Stuur vanaf die afzenders een van de geheimen van het project mee, zoals [Bij elke aanvraag een geheim vereisen](#bij-elke-aanvraag-een-geheim-vereisen) laat zien.
 :::
 
 :::details De monitor gaat nooit offline als de heartbeats uitblijven

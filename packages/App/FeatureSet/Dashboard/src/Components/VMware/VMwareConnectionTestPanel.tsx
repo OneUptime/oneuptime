@@ -68,11 +68,11 @@ const CertificateDetails: FunctionComponent<{
   const rows: Array<{ label: string; value: string }> = [
     {
       label: translator.translateText("Issued to") as string,
-      value: props.certificate.subject || "—",
+      value: props.certificate.subject,
     },
     {
       label: translator.translateText("Issued by") as string,
-      value: props.certificate.issuer || "—",
+      value: props.certificate.issuer,
     },
   ];
 

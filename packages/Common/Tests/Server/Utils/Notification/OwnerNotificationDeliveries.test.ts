@@ -1,5 +1,6 @@
 import User from "../../../../Models/DatabaseModels/User";
 import OwnerNotificationDeliveryService from "../../../../Server/Services/OwnerNotificationDeliveryService";
+import ProjectService from "../../../../Server/Services/ProjectService";
 import UserService from "../../../../Server/Services/UserService";
 import logger from "../../../../Server/Utils/Logger";
 import OwnerNotificationDeliveries, {
@@ -12,6 +13,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import Name from "../../../../Types/Name";
 import {
   OwnerNotificationDeliveryStatus,
+  OwnerNotificationFeedStatus,
   OwnerNotificationKind,
 } from "../../../../Types/Notification/OwnerNotificationDelivery";
 import ObjectID from "../../../../Types/ObjectID";
@@ -29,7 +31,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { Mock } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 
 type Notify = (delivery: OwnerNotificationDelivery) => Promise<void>;
 
@@ -158,6 +160,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [CAROL, ALICE, BOB],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       expect(idsOf(delivery.owners)).toEqual(idsOf([CAROL, ALICE, BOB]));
@@ -200,6 +203,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE, nobody, ALICE, makeUser(idOf(ALICE)), BOB],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       expect(idsOf(delivery.owners)).toEqual(idsOf([ALICE, BOB]));
@@ -212,6 +216,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [],
           isProjectOwners: true,
+          writesFeedItem: false,
         });
 
       expect(delivery.owners).toEqual([]);
@@ -225,6 +230,7 @@ describe("OwnerNotificationDeliveries", () => {
         notification: created(),
         owners: [ALICE],
         isProjectOwners: true,
+        writesFeedItem: false,
       });
 
       expect(table.rows[0]!.isProjectOwner).toBe(true);
@@ -236,6 +242,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE, BOB],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       const sent: Array<string> = [];
@@ -246,6 +253,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE, BOB, CAROL],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       expect(table.rows).toHaveLength(3);
@@ -258,6 +266,7 @@ describe("OwnerNotificationDeliveries", () => {
         notification: created(),
         owners: [ALICE, BOB],
         isProjectOwners: false,
+        writesFeedItem: false,
       });
 
       const again: OwnerNotificationDelivery =
@@ -265,6 +274,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       expect(idsOf(again.owners)).toEqual(idsOf([ALICE, BOB]));
@@ -286,6 +296,7 @@ describe("OwnerNotificationDeliveries", () => {
         },
         owners: [ALICE],
         isProjectOwners: false,
+        writesFeedItem: false,
       });
 
       const secondReminder: OwnerNotificationDelivery =
@@ -297,6 +308,7 @@ describe("OwnerNotificationDeliveries", () => {
           },
           owners: [ALICE],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       const otherIncident: OwnerNotificationDelivery =
@@ -304,6 +316,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(OTHER_INCIDENT_ID),
           owners: [ALICE],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       // The same incident's Created notification is another kind again.
@@ -312,6 +325,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       expect(table.rows).toHaveLength(4);
@@ -329,6 +343,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE, BOB],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       expect(idsOf(delivery.owners)).toEqual(idsOf([ALICE, BOB]));
@@ -357,6 +372,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       const sent: Array<string> = [];
@@ -378,6 +394,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       const during: Array<Record<string, OwnerNotificationDeliveryStatus>> = [];
@@ -397,6 +414,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       const sent: Array<string> = [];
@@ -412,12 +430,14 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE, BOB, CAROL],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
       const second: OwnerNotificationDelivery =
         await OwnerNotificationDeliveries.plan({
           notification: created(),
           owners: [ALICE, BOB, CAROL],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       table.interleave(true);
@@ -446,6 +466,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE, BOB],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       const sent: Array<string> = [];
@@ -475,6 +496,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE, BOB],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       expect(again.owners).toEqual([]);
@@ -487,6 +509,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       table.failWith("startTelling", new Error("connection terminated"));
@@ -510,6 +533,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       table.failWith("finishTelling", new Error("connection terminated"));
@@ -548,6 +572,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE, BOB, CAROL],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       const sent: Array<string> = [];
@@ -574,6 +599,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       await delivery.tell(ALICE, sender([], ALICE));
@@ -595,6 +621,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: notification,
           owners: owners,
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       const sent: Array<string> = [];
@@ -686,6 +713,7 @@ describe("OwnerNotificationDeliveries", () => {
         notification: created(),
         owners: [ALICE],
         isProjectOwners: true,
+        writesFeedItem: false,
       });
 
       now = minutesLater(5);
@@ -755,6 +783,7 @@ describe("OwnerNotificationDeliveries", () => {
           notification: created(),
           owners: [ALICE, BOB],
           isProjectOwners: false,
+          writesFeedItem: false,
         });
 
       // The worker stops in Alice's send: it never returns.
@@ -1024,6 +1053,541 @@ describe("OwnerNotificationDeliveries", () => {
           return delivery.notification.eventId.toString();
         }),
       ).toEqual([OTHER_INCIDENT_ID.toString(), INCIDENT_ID.toString()]);
+    });
+  });
+
+  /*
+   * THE FEED ITEM (#8510). A job that writes a feed item naming whom its
+   * notification reached plans with writesFeedItem, and says when it wrote
+   * it: a run that told every owner and stopped before the feed item leaves
+   * it to a later run, which writes it from whom the rows say was told.
+   */
+  describe("the feed item", () => {
+    // A run of a job that writes a feed item: told `told`, and stopped before the feed.
+    async function toldAndStoppedBeforeTheFeed(
+      owners: Array<User>,
+      told: Array<User>,
+      notification: OwnerNotificationOf = created(),
+    ): Promise<Array<string>> {
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.plan({
+          notification: notification,
+          owners: owners,
+          isProjectOwners: false,
+          writesFeedItem: true,
+        });
+
+      const sent: Array<string> = [];
+
+      for (const owner of told) {
+        await delivery.tell(owner, sender(sent, owner));
+      }
+
+      return sent;
+    }
+
+    // A job's notify: tells whom it is to, and writes the feed item when it should.
+    function feedWriter(sent: Array<string>): {
+      notify: Mock<Notify>;
+      deliveries: Array<OwnerNotificationDelivery>;
+      feedItems: Array<Array<string>>;
+    } {
+      const deliveries: Array<OwnerNotificationDelivery> = [];
+      const feedItems: Array<Array<string>> = [];
+
+      return {
+        deliveries: deliveries,
+        feedItems: feedItems,
+        notify: jest.fn<Notify>(
+          async (delivery: OwnerNotificationDelivery): Promise<void> => {
+            deliveries.push(delivery);
+
+            if (!delivery.hasWorkToDo) {
+              return;
+            }
+
+            const told: Array<string> = await tellEveryone(delivery, sent);
+
+            if (!delivery.isFeedItemToWrite) {
+              return;
+            }
+
+            feedItems.push([...idsOf(delivery.toldEarlier), ...told]);
+            await delivery.feedItemWritten();
+          },
+        ),
+      };
+    }
+
+    test("a notification that writes one keeps it as still to write until the job says it is written", async () => {
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.plan({
+          notification: created(),
+          owners: [ALICE, BOB],
+          isProjectOwners: false,
+          writesFeedItem: true,
+        });
+
+      expect(table.feedStatusOf(INCIDENT_ID)).toBe(
+        OwnerNotificationFeedStatus.Pending,
+      );
+
+      const sent: Array<string> = [];
+      await tellEveryone(delivery, sent);
+
+      expect(delivery.isFeedItemToWrite).toBe(true);
+      expect(table.feedStatusOf(INCIDENT_ID)).toBe(
+        OwnerNotificationFeedStatus.Pending,
+      );
+
+      await delivery.feedItemWritten();
+
+      expect(table.feedStatusOf(INCIDENT_ID)).toBe(
+        OwnerNotificationFeedStatus.Written,
+      );
+    });
+
+    test("a notification that writes none keeps nothing of it, and no later run takes it up", async () => {
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.plan({
+          notification: created(),
+          owners: [ALICE],
+          isProjectOwners: false,
+          writesFeedItem: false,
+        });
+
+      await tellEveryone(delivery, []);
+      expect(table.feedStatusOf(INCIDENT_ID)).toBeNull();
+
+      now = minutesLater(30);
+      const { notify } = feedWriter([]);
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentCreated],
+        notify: notify,
+      });
+
+      expect(notify).not.toHaveBeenCalled();
+    });
+
+    test("one a run that told every owner left unwritten is written by a later run, once, naming them all", async () => {
+      const sent: Array<string> = await toldAndStoppedBeforeTheFeed(
+        [ALICE, BOB, CAROL],
+        [ALICE, BOB, CAROL],
+      );
+
+      now = minutesLater(OwnerNotificationDeliveries.RESUME_AFTER_MINUTES);
+
+      const { notify, deliveries, feedItems } = feedWriter(sent);
+
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentCreated],
+        notify: notify,
+      });
+
+      expect(notify).toHaveBeenCalledTimes(1);
+      expect(deliveries[0]!.isFeedLeftUnwritten).toBe(true);
+      expect(deliveries[0]!.owners).toEqual([]);
+      expect(idsOf(deliveries[0]!.toldEarlier)).toEqual(
+        idsOf([ALICE, BOB, CAROL]),
+      );
+      expect(feedItems).toEqual([idsOf([ALICE, BOB, CAROL])]);
+      // Nobody is told again.
+      expect(sent).toEqual(idsOf([ALICE, BOB, CAROL]));
+      expect(table.feedStatusOf(INCIDENT_ID)).toBe(
+        OwnerNotificationFeedStatus.Written,
+      );
+
+      // And no run after it writes it again.
+      now = minutesLater(60);
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentCreated],
+        notify: notify,
+      });
+      expect(notify).toHaveBeenCalledTimes(1);
+    });
+
+    test("one whose owners a later run told is written by that run, naming those the stopped run told too", async () => {
+      const sent: Array<string> = await toldAndStoppedBeforeTheFeed(
+        [ALICE, BOB, CAROL],
+        [ALICE],
+      );
+
+      now = minutesLater(OwnerNotificationDeliveries.RESUME_AFTER_MINUTES);
+      const { notify, feedItems } = feedWriter(sent);
+
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentCreated],
+        notify: notify,
+      });
+
+      expect(feedItems).toEqual([idsOf([ALICE, BOB, CAROL])]);
+      expect(table.feedStatusOf(INCIDENT_ID)).toBe(
+        OwnerNotificationFeedStatus.Written,
+      );
+
+      now = minutesLater(60);
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentCreated],
+        notify: notify,
+      });
+      expect(notify).toHaveBeenCalledTimes(1);
+    });
+
+    test("is left while a row of the notification moved moments ago: the run that told them may be writing it", async () => {
+      await toldAndStoppedBeforeTheFeed([ALICE, BOB], [ALICE]);
+
+      // Bob is told a minute on: the run is still at it.
+      now = minutesLater(1);
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.plan({
+          notification: created(),
+          owners: [BOB],
+          isProjectOwners: false,
+          writesFeedItem: true,
+        });
+      await tellEveryone(delivery, []);
+
+      now = minutesLater(
+        1 + OwnerNotificationDeliveries.RESUME_AFTER_MINUTES - 1,
+      );
+      const { notify } = feedWriter([]);
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentCreated],
+        notify: notify,
+      });
+      expect(notify).not.toHaveBeenCalled();
+
+      now = minutesLater(1 + OwnerNotificationDeliveries.RESUME_AFTER_MINUTES);
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentCreated],
+        notify: notify,
+      });
+      expect(notify).toHaveBeenCalledTimes(1);
+    });
+
+    test("is left while an owner is still to be told: the run that tells them writes it", async () => {
+      await toldAndStoppedBeforeTheFeed([ALICE, BOB], [ALICE]);
+
+      now = minutesLater(30);
+      const findFeeds: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        OwnerNotificationDeliveryService,
+        "takeUpFeedItemLeftUnwritten",
+      );
+      const { notify, deliveries } = feedWriter([]);
+
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentCreated],
+        notify: notify,
+      });
+
+      // Bob's notification, taken up as owners left to be told - not as a feed item alone.
+      expect(notify).toHaveBeenCalledTimes(1);
+      expect(deliveries[0]!.isFeedLeftUnwritten).toBe(false);
+      expect(idsOf(deliveries[0]!.owners)).toEqual(idsOf([BOB]));
+      expect(findFeeds).not.toHaveBeenCalled();
+    });
+
+    test("two later runs at once: one writes it", async () => {
+      await toldAndStoppedBeforeTheFeed([ALICE, BOB], [ALICE, BOB]);
+
+      now = minutesLater(OwnerNotificationDeliveries.RESUME_AFTER_MINUTES);
+      table.interleave(true);
+
+      const { notify, feedItems } = feedWriter([]);
+
+      await Promise.all([
+        OwnerNotificationDeliveries.resume({
+          kinds: [OwnerNotificationKind.IncidentCreated],
+          notify: notify,
+        }),
+        OwnerNotificationDeliveries.resume({
+          kinds: [OwnerNotificationKind.IncidentCreated],
+          notify: notify,
+        }),
+      ]);
+
+      expect(notify).toHaveBeenCalledTimes(1);
+      expect(feedItems).toEqual([idsOf([ALICE, BOB])]);
+    });
+
+    test("one that fails to write is written by a later run, and given up after ATTEMPTS_AT_MOST runs set out, saying so", async () => {
+      await toldAndStoppedBeforeTheFeed([ALICE], [ALICE]);
+
+      const failing: Mock<Notify> = jest.fn<Notify>(async (): Promise<void> => {
+        throw new Error("the feed refused it");
+      });
+
+      for (
+        let run: number = 1;
+        run <= OwnerNotificationDeliveries.ATTEMPTS_AT_MOST + 1;
+        run++
+      ) {
+        now = minutesLater(
+          run * OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+        );
+        await OwnerNotificationDeliveries.resume({
+          kinds: [OwnerNotificationKind.IncidentCreated],
+          notify: failing,
+        });
+      }
+
+      // The run that told her and stopped, then two more that set out to write it.
+      expect(failing).toHaveBeenCalledTimes(
+        OwnerNotificationDeliveries.ATTEMPTS_AT_MOST - 1,
+      );
+      expect(table.feedStatusOf(INCIDENT_ID)).toBe(
+        OwnerNotificationFeedStatus.NotWritten,
+      );
+      expect(
+        errors.mock.calls.some((call: Array<unknown>): boolean => {
+          return String(call[0]).includes("Gave up writing the feed item of");
+        }),
+      ).toBe(true);
+    });
+
+    test("one whose owners were all not told is not written: nobody was told", async () => {
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.plan({
+          notification: created(),
+          owners: [ALICE],
+          isProjectOwners: false,
+          writesFeedItem: true,
+        });
+
+      await delivery.tell(ALICE, async (): Promise<void> => {
+        throw new Error("smtp connection reset");
+      });
+
+      now = minutesLater(OwnerNotificationDeliveries.RESUME_AFTER_MINUTES);
+      const { notify } = feedWriter([]);
+
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentCreated],
+        notify: notify,
+      });
+
+      expect(notify).not.toHaveBeenCalled();
+      expect(table.feedStatusOf(INCIDENT_ID)).toBe(
+        OwnerNotificationFeedStatus.NotWritten,
+      );
+    });
+
+    test("one of a record gone is not written, and no later run takes it up", async () => {
+      await toldAndStoppedBeforeTheFeed([ALICE], [ALICE]);
+
+      now = minutesLater(OwnerNotificationDeliveries.RESUME_AFTER_MINUTES);
+      const gone: Mock<Notify> = jest.fn<Notify>(
+        async (delivery: OwnerNotificationDelivery): Promise<void> => {
+          await delivery.giveUp("the incident is gone");
+        },
+      );
+
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentCreated],
+        notify: gone,
+      });
+
+      expect(gone).toHaveBeenCalledTimes(1);
+      expect(table.feedStatusOf(INCIDENT_ID)).toBe(
+        OwnerNotificationFeedStatus.NotWritten,
+      );
+
+      now = minutesLater(60);
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentCreated],
+        notify: gone,
+      });
+      expect(gone).toHaveBeenCalledTimes(1);
+    });
+
+    test("rows written before it was kept - no feed status - are never taken up", async () => {
+      await toldAndStoppedBeforeTheFeed([ALICE], [ALICE]);
+
+      for (const row of table.rows) {
+        row.feedStatus = null;
+      }
+
+      now = minutesLater(30);
+      const { notify } = feedWriter([]);
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentCreated],
+        notify: notify,
+      });
+
+      expect(notify).not.toHaveBeenCalled();
+    });
+
+    test("saying it is written, when that fails, is logged and never throws: a later run writes it again", async () => {
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.plan({
+          notification: created(),
+          owners: [ALICE],
+          isProjectOwners: false,
+          writesFeedItem: true,
+        });
+      await tellEveryone(delivery, []);
+
+      table.failWith("settleFeedItem", new Error("connection reset"));
+      await expect(delivery.feedItemWritten()).resolves.toBeUndefined();
+      table.failWith("settleFeedItem", null);
+
+      expect(
+        errors.mock.calls.some((call: Array<unknown>): boolean => {
+          return String(call[0]).includes("A later run writes it again.");
+        }),
+      ).toBe(true);
+
+      now = minutesLater(OwnerNotificationDeliveries.RESUME_AFTER_MINUTES);
+      const { notify, feedItems } = feedWriter([]);
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentCreated],
+        notify: notify,
+      });
+      expect(feedItems).toEqual([idsOf([ALICE])]);
+    });
+
+    test("takes up only the kinds of its own job", async () => {
+      await toldAndStoppedBeforeTheFeed([ALICE], [ALICE]);
+
+      now = minutesLater(30);
+      const { notify } = feedWriter([]);
+      await OwnerNotificationDeliveries.resume({
+        kinds: [OwnerNotificationKind.IncidentStateChanged],
+        notify: notify,
+      });
+
+      expect(notify).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("planForOwnersOf", () => {
+    test("plans for the record's owners", async () => {
+      jest.spyOn(ProjectService, "getOwners").mockResolvedValue([CAROL]);
+
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.planForOwnersOf({
+          notification: created(),
+          findOwners: async (): Promise<Array<User>> => {
+            return [ALICE, BOB];
+          },
+          writesFeedItem: true,
+        });
+
+      expect(idsOf(delivery.owners)).toEqual(idsOf([ALICE, BOB]));
+      expect(delivery.isProjectOwners).toBe(false);
+      expect(table.feedStatusOf(INCIDENT_ID)).toBe(
+        OwnerNotificationFeedStatus.Pending,
+      );
+    });
+
+    test("plans for the project's owners, in its place, when the record has none", async () => {
+      jest.spyOn(ProjectService, "getOwners").mockResolvedValue([CAROL]);
+
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.planForOwnersOf({
+          notification: created(),
+          findOwners: async (): Promise<Array<User>> => {
+            return [];
+          },
+          writesFeedItem: false,
+        });
+
+      expect(idsOf(delivery.owners)).toEqual(idsOf([CAROL]));
+      expect(delivery.isProjectOwners).toBe(true);
+      expect(Object.keys(table.statusesOf(INCIDENT_ID))).toEqual(
+        idsOf([CAROL]),
+      );
+    });
+
+    /*
+     * A job telling of a page of records of one project reads the project's
+     * owners once for all of them (OwnerNotificationBacklog, issue #7974),
+     * and hands that read in.
+     */
+    test("reads the project's owners through the read it is handed, not ProjectService", async () => {
+      const getOwners: SpyInstance<typeof ProjectService.getOwners> = jest
+        .spyOn(ProjectService, "getOwners")
+        .mockResolvedValue([ALICE]);
+      const findProjectOwners: Mock<() => Promise<Array<User>>> = jest.fn(
+        async (): Promise<Array<User>> => {
+          return [CAROL];
+        },
+      );
+
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.planForOwnersOf({
+          notification: created(),
+          findOwners: async (): Promise<Array<User>> => {
+            return [];
+          },
+          findProjectOwners: findProjectOwners,
+          writesFeedItem: false,
+        });
+
+      expect(findProjectOwners).toHaveBeenCalledTimes(1);
+      expect(getOwners).not.toHaveBeenCalled();
+      expect(idsOf(delivery.owners)).toEqual(idsOf([CAROL]));
+      expect(delivery.isProjectOwners).toBe(true);
+    });
+
+    test("never reads the project's owners for a record that has its own", async () => {
+      const findProjectOwners: Mock<() => Promise<Array<User>>> = jest.fn(
+        async (): Promise<Array<User>> => {
+          return [CAROL];
+        },
+      );
+
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.planForOwnersOf({
+          notification: created(),
+          findOwners: async (): Promise<Array<User>> => {
+            return [ALICE];
+          },
+          findProjectOwners: findProjectOwners,
+          writesFeedItem: false,
+        });
+
+      expect(findProjectOwners).not.toHaveBeenCalled();
+      expect(idsOf(delivery.owners)).toEqual(idsOf([ALICE]));
+      expect(delivery.isProjectOwners).toBe(false);
+    });
+
+    test("tells nobody, and says so, when the project's owners cannot be read either", async () => {
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.planForOwnersOf({
+          notification: created(),
+          findOwners: async (): Promise<Array<User>> => {
+            return [];
+          },
+          findProjectOwners: async (): Promise<Array<User>> => {
+            throw new Error("connection reset");
+          },
+          writesFeedItem: true,
+        });
+
+      expect(delivery.owners).toEqual([]);
+      expect(delivery.isProjectOwners).toBe(false);
+      expect(table.rows).toEqual([]);
+    });
+
+    test("tells nobody, and says so, when the owners cannot be read", async () => {
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.planForOwnersOf({
+          notification: created(),
+          findOwners: async (): Promise<Array<User>> => {
+            throw new Error("connection reset");
+          },
+          writesFeedItem: true,
+        });
+
+      expect(delivery.owners).toEqual([]);
+      expect(delivery.hasWorkToDo).toBe(false);
+      expect(table.rows).toEqual([]);
+      expect(
+        errors.mock.calls.some((call: Array<unknown>): boolean => {
+          return String(call[0]).includes("Telling nobody.");
+        }),
+      ).toBe(true);
     });
   });
 });

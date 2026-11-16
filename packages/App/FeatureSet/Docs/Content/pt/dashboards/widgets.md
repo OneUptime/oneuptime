@@ -49,25 +49,25 @@ Estes quatro widgets leem uma consulta de métricas, montada como o explorador d
 
 ### Gráfico
 
-Uma série temporal de uma ou mais consultas de métricas no intervalo de tempo do painel. **Chart Type** a desenha como gráfico de linhas, de barras, de áreas, de áreas empilhadas ou de pizza. **Additional Queries** sobrepõe mais métricas nos mesmos eixos, e **Formulas** as combina com `+`, `-`, `*`, `/`, `%`, `^` e parênteses, como em `(1 - a) * 100`. As configurações de exibição de cada consulta adicionam uma legenda e uma unidade, uma cor, linhas de aviso e críticas, e uma taxa por segundo para contadores que só crescem.
+Uma série temporal de uma ou mais consultas de métricas no intervalo de tempo do painel. **Tipo de gráfico** a desenha como gráfico de linhas, de barras, de áreas, de áreas empilhadas ou de pizza. **Consultas adicionais** sobrepõe mais métricas nos mesmos eixos, e **Fórmulas** as combina com `+`, `-`, `*`, `/`, `%`, `^` e parênteses, como em `(1 - a) * 100`. As configurações de exibição de cada consulta adicionam uma legenda e uma unidade, uma cor, linhas de aviso e críticas, e uma taxa por segundo para contadores que só crescem.
 
 Use-o quando a forma da linha conta a história: latência, erros, vazão ou tamanho de uma fila.
 
 ### Valor
 
-Um número grande com um minigráfico: o valor da consulta no intervalo de tempo inteiro, somado para uma soma ou uma contagem, o maior para um máximo, o menor para um mínimo, e a média nos outros casos. Uma seta compara a segunda metade do intervalo com a primeira, cada metade calculada da mesma forma, colorida conforme **Trend Direction**: se um valor maior é melhor ou pior, ou deduzido do nome da métrica. Aponte para a seta para ver o valor de cada metade, e para o minigráfico para ler o valor e a hora de qualquer ponto. **Warning Threshold** deixa o fundo amarelo e **Critical Threshold** vermelho quando o valor os atinge.
+Um número grande com um minigráfico: o valor da consulta no intervalo de tempo inteiro, somado para uma soma ou uma contagem, o maior para um máximo, o menor para um mínimo, e a média nos outros casos. Uma seta compara a segunda metade do intervalo com a primeira, cada metade calculada da mesma forma, colorida conforme **Direção da tendência**: se um valor maior é melhor ou pior, ou deduzido do nome da métrica. Aponte para a seta para ver o valor de cada metade, e para o minigráfico para ler o valor e a hora de qualquer ponto. **Limite de aviso** deixa o fundo amarelo e **Limite crítico** vermelho quando o valor os atinge.
 
 Use-o quando um número responde à pergunta: a taxa de erros, a latência P95 ou as requisições atendidas hoje.
 
 ### Medidor
 
-Um mostrador entre um mínimo e um máximo, 0 e 100 se você não os definir, com uma zona amarela a partir de **Warning Threshold** e uma zona vermelha a partir de **Critical Threshold**.
+Um mostrador entre um mínimo e um máximo, 0 e 100 se você não os definir, com uma zona amarela a partir de **Limite de aviso** e uma zona vermelha a partir de **Limite crítico**.
 
 Use-o quando o valor vive numa faixa conhecida: uso de CPU ou de disco em porcentagem, ou a capacidade de uma fila.
 
 ### Tabela
 
-Valores de métricas como linhas. **Group By Attributes** dá uma linha por valor, como uma por `host.name`; sem isso, cada linha é um intervalo de tempo. **Metrics & Columns** define as colunas: métricas, e fórmulas sobre elas, como a disponibilidade em porcentagem. Quando você agrupa, **Reduce across time** transforma a série de cada linha em um único valor: o último valor, a média, a soma, o mínimo ou o máximo.
+Valores de métricas como linhas. **Agrupar por atributos** dá uma linha por valor, como uma por `host.name`; sem isso, cada linha é um intervalo de tempo. **Métricas e colunas** define as colunas: métricas, e fórmulas sobre elas, como a disponibilidade em porcentagem. Quando você agrupa, **Reduzir ao longo do tempo** transforma a série de cada linha em um único valor: o último valor, a média, a soma, o mínimo ou o máximo.
 
 Ative **Colorir por limites** em uma coluna para colorir seus valores: um valor que atinge o **Limite de aviso** fica âmbar, com um triângulo, e um que atinge o **Limite crítico** fica vermelho e em negrito, com um círculo. Uma coluna de porcentagem começa em 80 e 90. Para uma coluna em que os valores baixos são o problema, como o espaço livre em disco, escolha **Menor é pior** em **Direção**.
 
@@ -120,11 +120,11 @@ O widget recarrega sempre que o painel é atualizado, então um widget que busca
 
 #### Permissões
 
-**Run JavaScript** (ligado por padrão) executa o seu script. Desligue-o para renderizar só a marcação e os estilos: o script fica então totalmente fora do widget, em vez de apenas bloqueado.
+**Executar JavaScript** (ligado por padrão) executa o seu script. Desligue-o para renderizar só a marcação e os estilos: o script fica então totalmente fora do widget, em vez de apenas bloqueado.
 
-**Open links in a new tab** (ligado por padrão) permite que os links e `window.open` abram uma aba do navegador. Os links sempre abrem numa nova aba; o widget nunca consegue fazer o próprio painel navegar.
+**Abrir links em uma nova aba** (ligado por padrão) permite que os links e `window.open` abram uma aba do navegador. Os links sempre abrem numa nova aba; o widget nunca consegue fazer o próprio painel navegar.
 
-**Allow forms to submit** (desligado por padrão) permite que um `<form>` dentro do widget seja enviado.
+**Permitir o envio de formulários** (desligado por padrão) permite que um `<form>` dentro do widget seja enviado.
 
 Quem pode editar o painel decide o que este widget executa, e todos que veem o painel o executam: num painel público, isso inclui visitantes anônimos. Trate o acesso de edição a um painel com um widget HTML como trataria o acesso a qualquer outro código que você publica.
 
@@ -160,7 +160,7 @@ Um único objetivo de nível de serviço, desenhado como um único número ou co
 
 **Configurações**: qual SLO, ou o SLO escolhido numa variável do painel; qual dos seus três números (SLI, Error Budget Remaining ou Burn Rate); a exibição Tile ou Gráfico; e um título opcional.
 
-- **Tile** mostra o número atual, mais uma segunda linha quando houver: a meta abaixo do SLI, os minutos restantes abaixo do orçamento de erros. Uma etiqueta de status colore o conjunto.
+- **Bloco** mostra o número atual, mais uma segunda linha quando houver: a meta abaixo do SLI, os minutos restantes abaixo do orçamento de erros. Uma etiqueta de status colore o conjunto.
 - **Gráfico** desenha o mesmo número ao longo do intervalo de tempo do painel, com a meta marcada como uma linha tracejada na série do SLI. O histórico é gravado a cada poucos minutos pelo worker de avaliação, então um SLO recém-criado aparece vazio no gráfico até ser avaliado pela primeira vez.
 
 Use-o quando o painel responde a "estamos cumprindo o que prometemos?" e não a "o que está acontecendo agora?".

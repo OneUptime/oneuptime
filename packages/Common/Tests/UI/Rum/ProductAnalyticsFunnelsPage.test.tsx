@@ -564,15 +564,15 @@ describe("ProductAnalyticsFunnels", () => {
       ),
     ).toBeInTheDocument();
     expect(openProductAnalyticsOptions(windowPicker)).toEqual([
-      "Within 1 hour",
-      "Within 1 day",
-      "Within 7 days",
-      "Within 14 days",
-      "Within 30 days",
+      "Within 1\u00A0hour",
+      "Within 1\u00A0day",
+      "Within 7\u00A0days",
+      "Within 14\u00A0days",
+      "Within 30\u00A0days",
     ]);
 
     fireEvent.keyDown(windowPicker, { key: "Escape" });
-    await chooseProductAnalyticsOption(windowPicker, "Within 1 hour");
+    await chooseProductAnalyticsOption(windowPicker, "Within 1\u00A0hour");
 
     await waitFor(() => {
       expect(lastFunnelRequest()["windowMs"]).toBe(HOUR_MS);

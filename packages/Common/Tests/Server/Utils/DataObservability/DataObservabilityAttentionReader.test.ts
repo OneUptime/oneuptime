@@ -991,7 +991,7 @@ describe("a private alert is its owners' and the project's owners' and admins'",
     expect(privateCheck(attention.items)?.alert?.number).toBe("ALT-8");
   });
 
-  test("a project admin sees it", async () => {
+  test("a Project Admin sees it", async () => {
     expect(privateCheck((await read(PROJECT_ADMIN)).items)?.alert?.number).toBe(
       "ALT-8",
     );

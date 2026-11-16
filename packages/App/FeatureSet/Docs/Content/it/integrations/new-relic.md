@@ -43,7 +43,7 @@ Poi [configura New Relic](#configurare-new-relic) perché invii i suoi problemi 
 
 ### Cosa fa il flusso di lavoro
 
-Dopo il trigger **Webhook**, il passo **Check With JavaScript** `read-event-1` legge lo `state` che New Relic invia, e **Incident From Another Tool**, o **Alert From Another Tool** nel modello degli avvisi, fa ciò che significa, tramite l'ID del problema. L'incidente conserva l'ID nel suo campo personalizzato `newRelicIssueId`.
+Dopo il trigger **Webhook**, il passo **Verifica con JavaScript** `read-event-1` legge lo `state` che New Relic invia, e **Incidente da un altro strumento**, o **Avviso da un altro strumento** nel modello degli avvisi, fa ciò che significa, tramite l'ID del problema. L'incidente conserva l'ID nel suo campo personalizzato `newRelicIssueId`.
 
 | Cosa invia New Relic | Cosa fa il flusso di lavoro |
 | --- | --- |
@@ -151,7 +151,7 @@ curl -X POST "<url>" \
 
 Si apre un incidente intitolato `New Relic: High CPU on checkout-service`, e le policy di reperibilità che hai scelto vengono chiamate. Invia la stessa richiesta con `isAcknowledged` impostato su `true`, e l'incidente viene riconosciuto. Invialo con `state` impostato su `CLOSED`, e l'incidente si risolve.
 
-Poi prova da New Relic: apri il messaggio webhook del workflow New Relic e fai clic su **Send test notification**. Per vedere che è arrivato, apri **Registri → Esecuzioni** del flusso di lavoro di OneUptime.
+Poi prova da New Relic: apri il messaggio webhook del workflow New Relic e fai clic su **Send test notification**. Per vedere che è arrivato, apri **Log → Esecuzioni** del flusso di lavoro di OneUptime.
 
 ## Risoluzione dei problemi
 
@@ -162,7 +162,7 @@ Poi prova da New Relic: apri il messaggio webhook del workflow New Relic e fai c
 :::
 
 :::details Il flusso di lavoro gira, ma non apre nulla
-Apri l'esecuzione in **Registri → Esecuzioni**. La voce `read-event-1` nei suoi **Passaggi** dice perché ha preso **No**.
+Apri l'esecuzione in **Log → Esecuzioni**. La voce `read-event-1` nei suoi **Passaggi** dice perché ha preso **No**.
 
 - `New Relic named no issue ID`: lascia la riga `"id": {{ json issueId }},` nel payload.
 - `is in no state`: lascia la riga `"state": {{ json state }},` nel payload.
@@ -175,7 +175,7 @@ Apri l'esecuzione in **Registri → Esecuzioni**. La voce `read-event-1` nei suo
 
 :::details Gli incidenti si aprono ma non vengono mai risolti
 - Il workflow in New Relic deve avere **Closed** attivo in **Notify when**.
-- Apri l'esecuzione della chiusura in **Registri → Esecuzioni**: il suo ultimo passo dice perché. L'`id` della chiusura deve essere quello del problema, quindi lascia `"id": {{ json issueId }},` così com'è nel payload.
+- Apri l'esecuzione della chiusura in **Log → Esecuzioni**: il suo ultimo passo dice perché. L'`id` della chiusura deve essere quello del problema, quindi lascia `"id": {{ json issueId }},` così com'è nel payload.
 :::
 
 :::details I reperibili vengono chiamati per troppi problemi

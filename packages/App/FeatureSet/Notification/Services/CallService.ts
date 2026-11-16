@@ -1,3 +1,4 @@
+import { getCallIdStatusMessage } from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
 import {
   CallDefaultCostInCentsPerMinute,
   CallHighRiskCostInCentsPerMinute,
@@ -691,7 +692,7 @@ export default class CallService {
         }
 
         callLog.status = CallStatus.Success;
-        callLog.statusMessage = "Call ID: " + twillioCall.sid;
+        callLog.statusMessage = getCallIdStatusMessage(twillioCall.sid);
 
         logger.debug("Call ID: " + twillioCall.sid);
       }

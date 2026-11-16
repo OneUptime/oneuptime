@@ -32,7 +32,7 @@ En grupp personer i ett projekt, vars behörigheter avgör vad medlemmarna får 
 
 Se [Användare, team och behörigheter](/docs/permissions/index).
 
-### Övervakning
+### Monitor
 
 Kontrollerar en sak som du kör, till exempel en webbplats, ett API, en server eller ett Kubernetes-kluster, och avgör om den fungerar. När dess kriterier matchar ändrar den sin status och kan deklarera en incident eller skapa ett larm.
 
@@ -224,7 +224,7 @@ Se [Topologi](/docs/telemetry/topology).
 
 Ett tillförlitlighetsmål för det du övervakar, till exempel tillgängligt 99,9 % av tiden under 30 dagar. OneUptime mäter varje SLO mot dess monitorer var 5:e minut.
 
-Kallas även: **Service Level Objective**. Se [SLO:er – Översikt](/docs/slo/introduction).
+Kallas även: **Tjänstenivåmål**. Se [SLO:er – Översikt](/docs/slo/introduction).
 
 ### Felbudget
 
@@ -294,7 +294,7 @@ Se [Loggutforskare](/docs/telemetry/logs-explorer).
 
 Talen som dina tjänster och din infrastruktur rapporterar över tid, till exempel antal förfrågningar, latens, CPU och ködjup.
 
-Se [Måttutforskare](/docs/telemetry/metrics-explorer).
+Se [Mätvärdesutforskare](/docs/telemetry/metrics-explorer).
 
 ### Spår
 

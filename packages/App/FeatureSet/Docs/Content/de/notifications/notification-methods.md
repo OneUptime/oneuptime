@@ -102,7 +102,7 @@ Der Tab **Push-Benachrichtigungen** listet Ihre **Geräte für Push-Benachrichti
 - **Ein Telefon.** Installieren Sie die App OneUptime On-Call, verbinden Sie sie mit Ihrem OneUptime, melden Sie sich an und erlauben Sie Benachrichtigungen: Das Telefon trägt sich selbst in diese Liste ein. Siehe [Apps – Übersicht](/docs/mobile-desktop-apps/index).
 - **Dieser Browser.** Klicken Sie auf **Gerät registrieren**, tragen Sie unter **Gerätename** einen Namen ein, und erlauben Sie Benachrichtigungen, wenn der Browser fragt.
 - **Testbenachrichtigung** in der Zeile eines Geräts sendet sofort einen Push dorthin.
-- **Kritische Warnungen** zeigt, ob die Alarme des Telefons den Lautlosmodus und „Nicht stören“ durchbrechen. Das wird in der App eingeschaltet, nie hier, und ein Browser kann es nicht. Siehe [Kritische Bereitschaftswarnungen](/docs/self-hosted/push-notifications#kritische-bereitschaftsalarme-stummmodus-durchbrechen).
+- **Kritische Warnungen** zeigt, ob die Warnungen des Telefons den Lautlosmodus und „Nicht stören“ durchbrechen. Das wird in der App eingeschaltet, nie hier, und ein Browser kann es nicht. Siehe [Kritische Bereitschaftswarnungen](/docs/self-hosted/push-notifications#kritische-bereitschaftsalarme-stummmodus-durchbrechen).
 - An ein Gerät mit der Markierung **Keine Benachrichtigungen** wird nichts gesendet. Öffnen Sie die App auf diesem Telefon, oder registrieren Sie den Browser erneut, dann ist es wieder dabei.
 
 ## Webhooks

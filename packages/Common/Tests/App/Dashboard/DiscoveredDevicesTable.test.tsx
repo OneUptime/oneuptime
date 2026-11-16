@@ -1101,7 +1101,7 @@ describe("a card narrower than the rows", () => {
       "MAC Address00:1a:2b:3c:4d:01",
     ]);
     expect(foldedIn(cellOf(camera, "Gi1/0/5 · VLAN 20"))).toEqual([
-      "Last Seen2 minutes ago",
+      "Last Seen2\u00A0minutes ago",
     ]);
     expect(stateOf(CAMERA_ID)).toBe("Discovered only");
 

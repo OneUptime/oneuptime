@@ -226,6 +226,7 @@ const DashboardKeyboardShortcuts: FunctionComponent = (): ReactElement => {
     <KeyboardShortcutsModal
       groups={groups}
       title={t("keyboardShortcuts.title", "Keyboard shortcuts")}
+      isTitleTranslated={true}
       description={t(
         "keyboardShortcuts.description",
         "Work faster without leaving the keyboard.",

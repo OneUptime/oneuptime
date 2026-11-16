@@ -1,4 +1,4 @@
-# Syntetisk overvåking
+# Syntetisk monitor
 
 En syntetisk monitor styrer webappen din i en ekte nettleser, etter en tidsplan, med et Playwright-skript du skriver selv: den åpner sider, fyller ut skjemaer og klikker seg gjennom en brukerreise, og den mislykkes når reisen gjør det. Bruk den til å fange feil som en oppetidskontroll ikke ser — en pålogging som ikke lenger virker, en betalingsknapp som ikke gjør noe, et dashbord som aldri blir ferdig med å laste.
 
@@ -41,7 +41,7 @@ Nettleserne er Chromium og Firefox.
 ## Før du begynner
 
 - En **sonde** som når webappen din. Bruk en [egendefinert sonde](/docs/probe/custom-probe) for en app inne i nettverket ditt. Sondens Docker-bilde inneholder Chromium og Firefox; en sonde som kjører utenfor Docker, må ha dem installert.
-- Alle passord og tokener reisen trenger, lagret som [overvåkingshemmeligheter](/docs/monitor/monitor-secrets).
+- Alle passord og tokener reisen trenger, lagret som [monitorhemmeligheter](/docs/monitor/monitor-secrets).
 
 ## Opprett en syntetisk monitor
 
@@ -64,7 +64,7 @@ Klikk på **Test monitor** for å kjøre skriptet én gang fra en sonde, og sjek
 
 ### Gå gjennom kriteriene
 
-Monitoren starter med to kriterier: den er frakoblet og erklærer en hendelse når en kjøring mislykkes, og online når ingen gjør det. Endre dem, eller legg til dine egne — se [Kriterier](#kriterier) — og klikk deretter på **Neste**.
+Monitoren starter med to kriterier: den er offline og erklærer en hendelse når en kjøring mislykkes, og online når ingen gjør det. Endre dem, eller legg til dine egne — se [Kriterier](#kriterier) — og klikk deretter på **Neste**.
 
 ### Velg sonder, og opprett
 
@@ -120,7 +120,7 @@ Syntetiske skript kjører ikke i Node.js-prosessen til sonden. Verdier krysser k
 
 `page.waitForNavigation(...)`, `page.setDefaultTimeout(...)` og `page.setDefaultNavigationTimeout(...)` støttes. `page.waitForEvent(...)` venter på `dialog`, `domcontentloaded`, `load`, `popup`, `request`, `requestfailed`, `requestfinished` og `response`. Evalueringsfunksjoner som gis til metoder som `page.evaluate()`, kjøres i den overvåkede nettlesersiden, aldri i sondeprosessen. Hver kjøring kan bruke opptil åtte sider.
 
-Nettlesertillatelser er begrenset til geolokasjon og varsler. Utklippstavle, kamera, mikrofon, MIDI, lokale skrifter og andre tillatelser for vertens enheter er ikke tilgjengelige for overvåkingsskript.
+Nettlesertillatelser er begrenset til geolokasjon og varslinger. Utklippstavle, kamera, mikrofon, MIDI, lokale skrifter og andre tillatelser for vertens enheter er ikke tilgjengelige for monitorskript.
 
 ### Hva skriptet returnerer
 
@@ -171,7 +171,7 @@ return {
 ```
 :::
 
-## Bruk av overvåkingshemmeligheter
+## Bruk av monitorhemmeligheter
 
 Henvis til en hemmelighet som `{{monitorSecrets.NAME}}` hvor som helst i skriptet. OneUptime erstatter henvisningen med verdien til hemmeligheten, som ren tekst, før skriptet når sonden. Sett derfor en hemmelighet i anførselstegn for å bruke den som en streng, og la den stå uten anførselstegn for å bruke den som et tall eller en boolsk verdi:
 
@@ -184,7 +184,7 @@ const retryLimit = {{monitorSecrets.RetryLimit}};
 const verbose = {{monitorSecrets.Verbose}};
 ```
 
-Se [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets) for å opprette en hemmelighet og velge hvilke monitorer som kan bruke den.
+Se [Monitorhemmeligheter](/docs/monitor/monitor-secrets) for å opprette en hemmelighet og velge hvilke monitorer som kan bruke den.
 
 ## Egendefinerte målinger
 
@@ -294,7 +294,7 @@ Sonden kjører utenfor Docker-bildet sitt, uten Chromium eller Firefox installer
 ## Neste trinn
 
 :::cards
-- [Egendefinert kode-overvåking](/docs/monitor/custom-code-monitor): Sjekk API-er med et skript, uten nettleser.
+- [Egendefinert kode-monitor](/docs/monitor/custom-code-monitor): Sjekk API-er med et skript, uten nettleser.
 - [Vis et skjermbilde](/docs/monitor/incident-alert-templating#vis-et-skjermbilde): Sett skjermbildet fra den mislykkede kjøringen inn i hendelsen.
-- [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Hold påloggingsinformasjon utenfor skriptet ditt.
+- [Monitorhemmeligheter](/docs/monitor/monitor-secrets): Hold påloggingsinformasjon utenfor skriptet ditt.
 :::

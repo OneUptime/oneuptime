@@ -3,7 +3,7 @@
 En tjeneste uten internettilgang kan likevel sende heartbeats til en [overvåker for innkommende forespørsler](/docs/monitor/incoming-request-monitor). Den sender dem i stedet til en [egendefinert sonde](/docs/probe/custom-probe) i sitt eget nettverk, og sonden sender dem videre til OneUptime.
 
 :::cards
-- [Slik fungerer det](#slik-fungerer-det): Fra tjenesten din, gjennom sonden, til overvåkeren.
+- [Slik fungerer det](#slik-fungerer-det): Fra tjenesten din, gjennom sonden, til monitoren.
 - [Slå på lytteren](#slå-på-lytteren): Én innstilling på sonden, for Docker, Docker Compose eller Kubernetes.
 - [Send forespørsler til sonden](#send-forespørsler-til-sonden): Endre URL-en tjenesten din sender til, og ingenting annet.
 - [Feilsøking](#feilsøking): Hva sonden logger når en forespørsel ikke kommer gjennom.
@@ -24,7 +24,7 @@ flowchart TB
 1. **Tjenesten din sender forespørselen til sonden.** Den samme `GET` eller `POST`, med den samme hemmelige nøkkelen, som den ville sendt til OneUptime, til en port sonden lytter på.
 2. **Sonden svarer med en gang.** Den svarer `200` før den sender forespørselen videre, så tjenesten din aldri venter på OneUptime.
 3. **Sonden sender den videre.** Den sender forespørselen videre til OneUptime med metode, headere og body, og legger til en header `OneUptime-Probe-Id` som nevner sonden.
-4. **OneUptime leser den som vanlig.** Overvåkerens kriterier ser forespørselen som om tjenesten hadde sendt den direkte.
+4. **OneUptime leser den som vanlig.** Monitorens kriterier ser forespørselen som om tjenesten hadde sendt den direkte.
 
 Lytteren kjører på sin egen port, atskilt fra sondens helsesjekker, så du kan åpne den for det private nettverket ditt uten å åpne noe annet.
 
@@ -42,7 +42,7 @@ Kan tjenestene dine allerede nå `https://oneuptime.com` (eller den selvhostede 
 ## Før du begynner
 
 - **En egendefinert sonde som kjører.** **Status** for den viser **Tilkoblet**. Se [Egendefinerte sonder](/docs/probe/custom-probe) for å installere en.
-- **En overvåker for innkommende forespørsler.** Heartbeat-URL-en dens inneholder den hemmelige nøkkelen tjenesten din sender: se [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor).
+- **En overvåker for innkommende forespørsler.** Heartbeat-URL-en dens inneholder den hemmelige nøkkelen tjenesten din sender: se [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor).
 - **En port på sondens vert som tjenestene dine kan nå.** Eksemplene bruker `3875`.
 
 ## Slå på lytteren
@@ -163,7 +163,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | Svaret | `200` med et tomt JSON-objekt (`{}`), sendt før forespørselen sendes videre. Som hos OneUptime sendes det uansett hva som skjer etterpå: også en feil hemmelig nøkkel får det. |
 | Metoder | `POST` sendes videre som `POST`. `GET`, og `HEAD`, sendes videre som `GET`. Andre metoder får `404` fra sonden. |
 | Headere | Alle unntatt hop-by-hop-headerne (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) og `Content-Encoding`, siden sonden videresender bodyen ukomprimert. Sonden legger til `OneUptime-Probe-Id`. |
-| Body | JSON- og skjema-bodyer på opptil 50 MB, og JSON sendt som ren tekst (slik Amazon SNS sender den), som når du sender direkte til OneUptime. Som der kommer enhver annen body tom frem til overvåkeren. |
+| Body | JSON- og skjema-bodyer på opptil 50 MB, og JSON sendt som ren tekst (slik Amazon SNS sender den), som når du sender direkte til OneUptime. Som der kommer enhver annen body tom frem til monitoren. |
 | Nye forsøk | Når en videresending feiler, prøver sonden igjen opptil `PROBE_INGRESS_FORWARD_RETRY_LIMIT` ganger og venter 2 s, så 4 s, så 8 s, og aldri mer enn 15 s. Deretter logger den feilen og forkaster forespørselen. |
 | Proxyer | Videresendingen går gjennom sondens proxy når `HTTP_PROXY_URL` eller `HTTPS_PROXY_URL` er satt. |
 | Hvor den går | `ONEUPTIME_URL` etterfulgt av `/incoming-request-ingest/incoming-request/<secret-key>`. |
@@ -196,20 +196,20 @@ Sonden kunne ikke nå OneUptime, heller ikke etter de nye forsøkene. Sjekk sond
 :::
 
 :::details Sonden logger `Probe ingress: probe ID not available, forwarding without it`
-Sonden er ikke ferdig med å koble til OneUptime ennå, så den sender forespørselen videre uten headeren `OneUptime-Probe-Id`. Forespørselen når likevel frem til overvåkeren.
+Sonden er ikke ferdig med å koble til OneUptime ennå, så den sender forespørselen videre uten headeren `OneUptime-Probe-Id`. Forespørselen når likevel frem til monitoren.
 :::
 
-:::details Overvåkeren får forespørslene, men ikke gjennom sonden
+:::details Monitoren får forespørslene, men ikke gjennom sonden
 Tjenesten din sender fortsatt til den offentlige URL-en. Sjekk at den sender til `http://<probe-host>:<port>/...`: et DNS-navn eller en oppføring i `/etc/hosts` som peker et annet sted, er den vanlige årsaken.
 :::
 
-:::details Overvåkeren får ingenting, og sonden logger ingenting
+:::details Monitoren får ingenting, og sonden logger ingenting
 Forespørselen nådde aldri sonden. Sjekk at tjenesten når sondens vert på porten: en brannmurregel, en port som ikke er publisert, eller en Kubernetes-Service som ikke velger sondens pod.
 :::
 
 ## Neste steg
 
 :::cards
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Bestem hva som teller som et sunt heartbeat.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Bestem hva som teller som et sunt heartbeat.
 - [Egendefinerte sonder](/docs/probe/custom-probe): Installer sonden, og se hver innstilling den leser.
 :::

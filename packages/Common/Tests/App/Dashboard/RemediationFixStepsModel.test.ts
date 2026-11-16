@@ -737,7 +737,8 @@ describe("whether it recovered", () => {
     ).toMatchObject({
       tone: "live",
       title: "Watching for recovery…",
-      summary: "OneUptime checks for up to 10 minutes whether it recovers.",
+      summary:
+        "OneUptime checks for up to 10\u00A0minutes whether it recovers.",
       isSummaryWritten: false,
       at: null,
     });
@@ -745,7 +746,7 @@ describe("whether it recovered", () => {
       verified(AutoRemediationVerificationStatus.Pending, {
         verificationWindowMinutes: 1,
       }).summary,
-    ).toBe("OneUptime checks for up to 1 minute whether it recovers.");
+    ).toBe("OneUptime checks for up to 1\u00A0minute whether it recovers.");
     expect(verified(AutoRemediationVerificationStatus.Pending).summary).toBe(
       null,
     );

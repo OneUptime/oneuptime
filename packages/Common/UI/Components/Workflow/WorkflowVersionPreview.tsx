@@ -257,6 +257,7 @@ const WorkflowVersionPreview: FunctionComponent<ComponentProps> = (
       title={translator.translateTemplate(WorkflowVersionCopy.versionTitle, {
         number: translator.formatNumber(props.versionNumber),
       })}
+      isTitleTranslated={true}
       description={props.description}
       modalWidth={ModalWidth.Large}
       onClose={props.onClose}

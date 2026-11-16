@@ -174,8 +174,12 @@ export default class QueryPermission {
     }
   }
 
-  // Whether `held` may read one column of a record reached by a relation.
-  private static canReadRelatedColumn(data: {
+  /*
+   * Whether `held` may read one column of a record reached by a relation -
+   * for a filter through the relation here, and for a sort through it
+   * (SortValidator.checkSortPermission).
+   */
+  public static canReadRelatedColumn(data: {
     relatedModel: BaseModel;
     column: string;
     held: HeldPermissions;
@@ -544,7 +548,7 @@ export default class QueryPermission {
   }
 
   // Who may read one column of a related model, as a refusal names them.
-  private static getRelatedReadPermissions(
+  public static getRelatedReadPermissions(
     relatedModel: BaseModel,
     column: string,
   ): Array<Permission> {

@@ -1,4 +1,6 @@
 import { splitCapitalRunsBeforeWords } from "Common/Utils/CapitalRuns";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
@@ -8,11 +10,11 @@ import { readAuditLogChange } from "Common/Utils/AuditLog/AuditLogTypedValues";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
 import { getAuditLogActionLabel } from "Common/Types/AuditLog/AuditLogActionLabel";
 import {
-  AUDIT_LOG_SESSION_FIELD_LABELS,
   AUDIT_LOG_SESSION_FIELDS,
   AUDIT_LOG_SESSION_TIME_FIELDS,
   AuditLogSessionField,
   getSessionEntryValueInLanguage,
+  getSessionFieldLabel,
   isSessionAuditLogAction,
   readSessionEntryFields,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
@@ -136,7 +138,7 @@ const formatScalar: (value: JSONValue | undefined) => string = (
   value: JSONValue | undefined,
 ): string => {
   if (value === null || value === undefined || value === "") {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (typeof value === "boolean") {
     return value ? "true" : "false";
@@ -173,9 +175,12 @@ export interface SessionDetailRow {
 export const readSessionDetailRows: (
   changes: unknown,
   translator?: Translator | undefined,
+  // The entry's action: a failed sign-in calls some fields its own way.
+  action?: string | undefined,
 ) => Array<SessionDetailRow> = (
   changes: unknown,
   translator?: Translator | undefined,
+  action?: string | undefined,
 ): Array<SessionDetailRow> => {
   const fields: Map<AuditLogSessionField, string> =
     readSessionEntryFields(changes);
@@ -188,7 +193,7 @@ export const readSessionDetailRows: (
       continue;
     }
 
-    const label: string = AUDIT_LOG_SESSION_FIELD_LABELS[field];
+    const label: string = getSessionFieldLabel({ field, action });
 
     rows.push({
       field: field,
@@ -265,6 +270,7 @@ export const AUDIT_LOG_CHANGES_DESCRIPTIONS: Readonly<{
   deleted: string;
   downloaded: string;
   signIn: string;
+  signInFailed: string;
   sessionEnd: string;
 }> = {
   details: translationKey("Change details"),
@@ -272,6 +278,7 @@ export const AUDIT_LOG_CHANGES_DESCRIPTIONS: Readonly<{
   deleted: translationKey("Deleted snapshot"),
   downloaded: translationKey("What was downloaded"),
   signIn: translationKey("How and where they signed in"),
+  signInFailed: translationKey("Why and where the sign-in failed"),
   sessionEnd: translationKey("How the session ended"),
 };
 
@@ -297,9 +304,15 @@ export const AUDIT_LOG_NO_FIELD_CHANGES: string = translationKey(
 export const getSessionDetailsDescription: (action: string) => string = (
   action: string,
 ): string => {
-  return action === AuditLogAction.SignIn
-    ? AUDIT_LOG_CHANGES_DESCRIPTIONS.signIn
-    : AUDIT_LOG_CHANGES_DESCRIPTIONS.sessionEnd;
+  if (action === AuditLogAction.SignIn) {
+    return AUDIT_LOG_CHANGES_DESCRIPTIONS.signIn;
+  }
+
+  if (action === AuditLogAction.SignInFailed) {
+    return AUDIT_LOG_CHANGES_DESCRIPTIONS.signInFailed;
+  }
+
+  return AUDIT_LOG_CHANGES_DESCRIPTIONS.sessionEnd;
 };
 
 /*
@@ -346,7 +359,7 @@ const renderValue: (
   if (value === null || value === undefined || value === "") {
     return (
       <span className="italic text-gray-400">
-        {translator.translateText("empty") || "empty"}
+        {translator.translateText("empty")}
       </span>
     );
   }
@@ -361,7 +374,7 @@ const renderValue: (
 
   return (
     <span className="text-gray-900 whitespace-pre-wrap break-words">
-      {formatScalar(value)}
+      {getValueOrQuietDash(formatScalar(value))}
     </span>
   );
 };
@@ -389,6 +402,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
     const sessionRows: Array<SessionDetailRow> = readSessionDetailRows(
       props.changes,
       translator,
+      props.action,
     );
 
     return (
@@ -420,7 +434,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                       {row.label}
                     </dt>
                     <dd className="text-sm text-gray-900 break-words sm:col-span-2">
-                      {row.value}
+                      {getValueOrQuietDash(row.value)}
                     </dd>
                   </div>
                 );
@@ -511,7 +525,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-2 md:gap-3 items-start">
                       <div>
                         <div className="text-[10px] uppercase tracking-wide text-red-600 font-semibold mb-1">
-                          {translator.translateText("Before") || "Before"}
+                          {translator.translateText("Before")}
                         </div>
                         <div className="rounded-md border border-red-100 bg-red-50/60 px-3 py-2 text-sm">
                           {renderValue(row.oldValue, translator)}
@@ -526,7 +540,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                       </div>
                       <div>
                         <div className="text-[10px] uppercase tracking-wide text-emerald-600 font-semibold mb-1">
-                          {translator.translateText("After") || "After"}
+                          {translator.translateText("After")}
                         </div>
                         <div className="rounded-md border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-sm">
                           {renderValue(row.newValue, translator)}

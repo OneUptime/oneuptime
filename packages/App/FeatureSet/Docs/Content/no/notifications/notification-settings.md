@@ -1,6 +1,6 @@
-# Varselinnstillinger
+# Varslingsinnstillinger
 
-Varselinnstillinger avgjør hvilke oppdateringer som når deg om det du eier, som en hendelse, en overvåking eller en statusside, og om dine egne vakter, og via hvilke kanaler. De tilkaller deg aldri: å tilkalle er vaktreglenes jobb. Du setter dem opp under **Brukerinnstillinger → Varselinnstillinger**, med én bryter per hendelse og kanal.
+Varslingsinnstillinger avgjør hvilke oppdateringer som når deg om det du eier, som en hendelse, en monitor eller en statusside, og om dine egne vakter, og via hvilke kanaler. De tilkaller deg aldri: å tilkalle er vaktreglenes jobb. Du setter dem opp under **Brukerinnstillinger → Varslingsinnstillinger**, med én bryter per hendelse og kanal.
 
 :::cards
 - [Slik virker innstillingene](#slik-virker-innstillingene): Én bryter per hendelse og kanal, sendt til hver verifisert metode.
@@ -21,7 +21,7 @@ flowchart TB
 - Hver rad er en hendelse, og hver kolonne en kanal: E-post, SMS, Anrop, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost og Webhook. Slack, Microsoft Teams og Mattermost er bare kolonner når prosjektet har koblet dem til.
 - En kanal som er slått på, sender til hver verifisert metode du har på den i dette prosjektet, ikke bare til én.
 - En kanal som er slått på uten en verifisert metode bak seg, sender ingenting. **Your setup checklist** sier fra om det under **Staying informed**.
-- En oppdatering går til eierne av tingen: personene som er oppført som eiere, og medlemmene av eierteamene dens. Har en ting ingen eiere, går den i stedet til prosjektets eiere. En hendelse om å ha blitt lagt til som eier går bare til personen som ble lagt til.
+- En oppdatering går til eierne av tingen: personene som er oppført som eiere, og medlemmene av eierteamene dens. Har en ting ingen eiere, går den i stedet til Prosjekteiere. En hendelse om å ha blitt lagt til som eier går bare til personen som ble lagt til. Stopper OneUptime mens den sender en oppdatering til eierne av en ting, får personene den ennå ikke hadde nådd, den når OneUptime er tilbake, noen minutter forsinket, og ingen får den to ganger.
 - Sikkerhetssaker har ingen eiere. En ny sak går til alle som kan se prosjektets saker, på prioriteten hver av dem velger, og en tildelt sak går til personene den er tildelt. Se [Sikkerhetssaker](/docs/telemetry/security-cases#varslinger).
 - Hver e-post til eiere slutter med en lenke, "Manage notification preferences", tilbake til denne siden.
 
@@ -30,7 +30,7 @@ flowchart TB
 :::steps
 ### Åpne innstillingene dine
 
-Gå til **Brukerinnstillinger → Varselinnstillinger**. Fanene er **Hendelser**, **Varsler**, **Overvåking**, **Statussider**, **Planlagt vedlikehold**, **Vakt** og **Sikkerhet**.
+Gå til **Brukerinnstillinger → Varslingsinnstillinger**. Fanene er **Hendelser**, **Varsler**, **Overvåking**, **Statussider**, **Planlagt vedlikehold**, **Vakt** og **Sikkerhet**.
 
 ### Finn hendelsen
 
@@ -49,23 +49,23 @@ Når du blir medlem av et prosjekt, er disse hendelsene slått på, via e-post. 
 | --- | --- | --- |
 | **Hendelser** | **Hendelse opprettet**, **Hendelsestilstand endret**, **Påminnelse om hendelse**, **SLA for hendelse brutt**, **Hendelsesepisode opprettet**, **Tilstand for hendelsesepisode endret**, **Hendelse lagt til i hendelsesepisode** | **Hendelsesnotat publisert**, **Lagt til som hendelseseier**, **Tildelt en hendelse**, **Notat for hendelsesepisode publisert**, **Lagt til som hendelsesepisode-eier** |
 | **Varsler** | **Varsel opprettet**, **Varseltilstand endret**, **Påminnelse om varsel**, **Varselepisode opprettet**, **Tilstand for varselepisode endret**, **Varsel lagt til i varselepisode** | **Varselnotat publisert**, **Lagt til som varseleier**, **Notat for varselepisode publisert**, **Lagt til som varselepisode-eier** |
-| **Overvåking** | **Sondestatus endret for overvåkingen din**, **Overvåking har ingen aktive sonder**, **SLO-status endret**, **Lagt til som SLO-eier**, **Unntak tildelt meg**, **Sondestatus endret**, **Lagt til som sonde-eier** | **Overvåking opprettet**, **Overvåkingsstatus endret**, **Lagt til som overvåkingseier**, **AI-agentstatus endret**, **Lagt til som AI-agenteier** |
+| **Overvåking** | **Sondestatus endret for monitoren din**, **Monitor har ingen aktive sonder**, **SLO-status endret**, **Lagt til som SLO-eier**, **Unntak tildelt meg**, **Sondestatus endret**, **Lagt til som sonde-eier** | **Monitor opprettet**, **Monitorstatus endret**, **Lagt til som monitoreier**, **AI-agentstatus endret**, **Lagt til som AI-agenteier** |
 | **Statussider** | **Mitt offentlige notat godkjent eller avvist**, og også via push: **Offentlig notat venter på min godkjenning** | **Statusside opprettet**, **Statusside-kunngjøring publisert**, **Lagt til som statussideeier** |
 | **Planlagt vedlikehold** | **Påminnelse om vedlikehold** | **Vedlikeholdshendelse opprettet**, **Vedlikeholdstilstand endret**, **Vedlikeholdsnotat publisert**, **Lagt til som vedlikeholdseier** |
-| **Vakt** | **Du går på vakt**, **Du er neste på vakt**, **Du går av vakt**, **Lagt til i vakttjeneste-retningslinje**, **Fjernet fra vaktordning-retningslinje**, **Tapt anrop**, og også via push: **Før vakten min starter**, **Min kommende vakt blir tildelt noen andre** | Ingen |
+| **Vakt** | **Du går på vakt**, **Du er neste på vakt**, **Du går av vakt**, **Lagt til i vaktpolicy**, **Fjernet fra vaktpolicy**, **Tapt anrop**, og også via push: **Før vakten min starter**, **Min kommende vakt blir tildelt noen andre** | Ingen |
 | **Sikkerhet** | Også via push: **Ny sikkerhetssak** (saker med prioritet High og Kritisk), **Sikkerhetssak tildelt meg**, **Playbook-trinn venter på min godkjenning**, **Responsmål for sikkerhetssak**, **Oppgave i sikkerhetssak tildelt meg**, **En hunt fant sikkerhetshendelser** | Ingen |
 
 > [!IMPORTANT]
-> **Overvåkingsstatus endret** starter slått av. Vil du vite når en overvåking du eier går ned eller kommer opp igjen, slår du den på på fanen **Overvåking**.
+> **Monitorstatus endret** starter slått av. Vil du vite når en overvåking du eier går ned eller kommer opp igjen, slår du den på på fanen **Overvåking**.
 
 ## Vaktene dine
 
 Fanen **Vakt** handler om deg, ikke om det du eier:
 
 - **Du går på vakt**, **Du er neste på vakt** og **Du går av vakt** følger turene dine i vaktplanene du er med i.
-- **Lagt til i vakttjeneste-retningslinje** og **Fjernet fra vaktordning-retningslinje** forteller deg når en vaktpolicy begynner eller slutter å nevne deg.
+- **Lagt til i vaktpolicy** og **Fjernet fra vaktpolicy** forteller deg når en vaktpolicy begynner eller slutter å nevne deg.
 - **Før vakten min starter** sender påminnelser på tidspunktene du velger under **Brukerinnstillinger → Kalender → Kalenderfeed**, og **Min kommende vakt blir tildelt noen andre** forteller deg når noen andre dekker en vakt du er blitt minnet på. Se [Kalenderfeeder](/docs/on-call/calendar-feeds#påminnelser-og-meldinger-om-ny-tildeling).
-- **Tapt anrop**, på kortet **Retningslinjer for innkommende anrop**, forteller eierne av en policy for innkommende anrop at en som ringte, ikke nådde noen. Se [Policy for innkommende anrop](/docs/on-call/incoming-call-policy#tapte-anrop).
+- **Tapt anrop**, på kortet **Policyer for innkommende anrop**, forteller eierne av en policy for innkommende anrop at en som ringte, ikke nådde noen. Se [Policy for innkommende anrop](/docs/on-call/incoming-call-policy#tapte-anrop).
 
 ## Sikkerhetssaker
 
@@ -91,18 +91,18 @@ Se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#god
 Disse bryterne avgjør hvilke oppdateringer som når deg, ikke hvor mange e-poster de blir. **Brukerinnstillinger → E-postinnstillinger** har to kort for det, begge bare for deg, i dette prosjektet:
 
 - **Email Rollup** samler en bølge av oppdateringer i én e-post: de første kommer fortsatt én og én, resten samlet noen minutter senere.
-- **Fewer routine emails** slår med **Reduce routine emails** av e-postene om notater, nye eiere, nye overvåkinger og statussider, tillegg i episoder og endringer i vaktpolicyer.
+- **Fewer routine emails** slår med **Reduce routine emails** av e-postene om notater, nye eiere, nye monitorer og statussider, tillegg i episoder og endringer i vaktpolicyer.
 
-Se [Varseloppsummering](/docs/emails/notification-rollup).
+Se [Varslingsoppsummering](/docs/emails/notification-rollup).
 
 ## Feilsøking
 
 :::details En bryter er på, men ingenting kommer
-Sjekk at du har en verifisert metode på den kanalen under **Brukerinnstillinger → Varselmetoder**. For SMS, anrop, WhatsApp og Telegram må prosjektet også ha slått på kanalen.
+Sjekk at du har en verifisert metode på den kanalen under **Brukerinnstillinger → Varslingsmetoder**. For SMS, anrop, WhatsApp og Telegram må prosjektet også ha slått på kanalen.
 :::
 
-:::details Jeg eier en overvåking, men får aldri vite når den går ned
-**Overvåkingsstatus endret** starter slått av. Slå på en kanal for den, på fanen **Overvåking**.
+:::details Jeg eier en monitor, men får aldri vite når den går ned
+**Monitorstatus endret** starter slått av. Slå på en kanal for den, på fanen **Overvåking**.
 :::
 
 :::details Jeg får fortsatt e-poster etter at jeg slo av alt
@@ -112,8 +112,8 @@ Tilkallinger følger vaktreglene dine, ikke disse bryterne, og e-poster om pålo
 ## Neste steg
 
 :::cards
-- [Varselmetoder](/docs/notifications/notification-methods): Legg til metodene innstillingene dine sender til.
+- [Varslingsmetoder](/docs/notifications/notification-methods): Legg til metodene innstillingene dine sender til.
 - [Slik når man meg](/docs/notifications/on-call-rules): Bestem hvordan en tilkalling når deg.
-- [Varseloppsummering](/docs/emails/notification-rollup): Færre, fyldigere e-poster under en bølge.
+- [Varslingsoppsummering](/docs/emails/notification-rollup): Færre, fyldigere e-poster under en bølge.
 - [Slik når OneUptime deg](/docs/notifications/index): Hvordan metoder, regler og innstillinger henger sammen.
 :::

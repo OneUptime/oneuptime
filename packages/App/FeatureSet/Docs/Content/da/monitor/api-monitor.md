@@ -55,7 +55,7 @@ Angiv endpointets fulde URL under **API-URL**, som `https://api.example.com/heal
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Overvågningstestresultat** viser, hvad API'et svarede.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser, hvad API'et svarede.
 
 ### Gennemgå kriterierne
 
@@ -181,7 +181,7 @@ En ny API-monitor starter med to kriterier, så den virker uden ændringer:
 - **Offline** — API'et svarer ikke eller svarer med en statuskode på `400` eller derover (eller under `200`). Monitoren markeres som **Offline**, og der oprettes en hændelse. Hændelsen løser sig selv, når API'et er tilbage.
 - **Oppe** — API'et svarer med en hvilken som helst statuskode `2xx` eller `3xx`, som `200`, `201`, `202` eller `204`. Monitoren markeres som **I drift**.
 
-På listen over kriterier er de navngivet efter monitoren: _Check if (name) is offline_ og _Check if (name) is online_.
+På listen over kriterier er de navngivet efter monitoren: "Tjek, om _monitornavn_ er offline" og "Tjek, om _monitornavn_ er online".
 
 Et endpoint, der svarer `201 Created` eller `204 No Content`, tæller altså som oppe. Hvis kun én statuskode betyder sund for dig, så ret begge kriterier på monitorens side **Konfiguration → Kriterier**: for eksempel **Svarstatuskode** / **Lig med** / `200` i online-kriteriet og **Ikke lig med** / `200` i offline-kriteriet, i stedet for de to statuskodefiltre, hvert af dem har. For også at tjekke, hvad API'et returnerer, tilføjer du et filter **Svarets brødtekst** eller **JavaScript-udtryk** til offline-kriteriet.
 

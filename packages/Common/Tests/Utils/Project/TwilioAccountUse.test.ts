@@ -62,7 +62,7 @@ describe("a call the project's config, used for SMS only, does not make", () => 
       `The OneUptime server's administrator can add one in ${SERVER_TWILIO_SETTINGS_PAGE}`,
     );
     expect(message).toContain(
-      `a project owner, a project admin or someone with Edit Call and SMS can use this project's config for calls and SMS in ${PROJECT_TWILIO_SETTINGS_PAGE}.`,
+      `a Project Owner, a Project Admin or someone with Edit Call and SMS can use this project's config for calls and SMS in ${PROJECT_TWILIO_SETTINGS_PAGE}.`,
     );
     // Not "add one": the project has one.
     expect(message).not.toContain("can add this project's own");
@@ -160,7 +160,7 @@ describe("who may change what a project's config is used for", () => {
       "Edit Call and SMS",
     );
     expect(WHO_MAY_EDIT_A_PROJECT_TWILIO_ACCOUNT).toBe(
-      `a project owner, a project admin or someone with ${permissionTitle(Permission.EditProjectCallSMSConfig)}`,
+      `a Project Owner, a Project Admin or someone with ${permissionTitle(Permission.EditProjectCallSMSConfig)}`,
     );
   });
 

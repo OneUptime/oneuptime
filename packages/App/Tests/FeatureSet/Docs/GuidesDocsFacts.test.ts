@@ -11,6 +11,7 @@ import { formatProjectBalanceAmount } from "Common/Utils/Project/ProjectBalance"
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 
 /*
  * What the guides (#6821) say about the product, held to the product.
@@ -219,6 +220,7 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
   });
 
   it("says what Cloud's balance starts at, and what it must be above before a number is added", () => {
+    // The docs write an amount with a plain space; the page holds it (#8826).
     const floor: number = numberConstant(
       ON_CALL_SETUP,
       "PHONE_BALANCE_FLOOR_IN_USD_CENTS",
@@ -228,13 +230,13 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
       "defaultValue: 0,",
     );
     expect(PAGING).toContain(
-      `which starts at ${formatProjectBalanceAmount(0)}`,
+      `which starts at ${withPlainSpaces(formatProjectBalanceAmount(0))}`,
     );
     expect(PAGING).toContain(
-      `above ${formatProjectBalanceAmount(floor)} first`,
+      `above ${withPlainSpaces(formatProjectBalanceAmount(floor))} first`,
     );
     expect(PAGING).toContain(
-      `if the balance is ${formatProjectBalanceAmount(floor)} or less`,
+      `if the balance is ${withPlainSpaces(formatProjectBalanceAmount(floor))} or less`,
     );
   });
 

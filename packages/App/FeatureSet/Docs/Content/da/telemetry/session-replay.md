@@ -54,7 +54,7 @@ Tilføj ét script-tag til hver side, du vil optage.
 :::steps
 ### Opret en Browser-nøgle
 
-Under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** skal du klikke på **Opret ingestion-nøgle**, vælge **Browser** som **Nøgletype** og angive dit sites oprindelser under **Tilladte oprindelser**. Kopiér derefter nøglens **Hemmelig nøgle**. [Browseropsætning](/docs/rum/browser-setup#sæt-det-op) viser hver skærm.
+Under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** skal du klikke på **Opret indtagelsesnøgle**, vælge **Browser** som **Nøgletype** og angive dit sites oprindelser under **Tilladte oprindelser**. Kopiér derefter nøglens **Hemmelig nøgle**. [Browseropsætning](/docs/rum/browser-setup#sæt-det-op) viser hver skærm.
 
 ### Tilføj script-tagget
 
@@ -866,7 +866,7 @@ Det daglige par bærer kun `projectId`: dets tal er projektets, og intet i et da
 
 **Hvornår alarmer åbner og løses.** En overskridelse skrives ved den næste kørsel hvert 5. minut, så en alarm åbner inden for omkring 6 minutter. Den løses 10 til 15 minutter efter, at værdien igen er faldet under tærsklen, når den sidste aflæsning på eller over den har forladt vinduet på 15 minutter: de daglige alarmer af sig selv omkring 00:10–00:15 UTC, de månedlige på samme tidspunkt den 1. i måneden, eller 10 til 15 minutter efter, at budgettet er hævet. En daglig grænse, der bruges op i de sidste minutter før 00:00 UTC, giver måske slet ingen alarm: dagen slutter, før den næste kørsel kan skrive den.
 
-**Opbevaring og forbrug.** Disse serier opbevares lige så længe som monitormetrikker: **30 dage** som standard, sat på en selvhostet installation af **Opbevaring af overvågningsmålinger (dage)** i Admin Dashboards indstillinger for **Dataopbevaring**. De tæller ikke som telemetriforbrug. Metriknavne, der starter med `oneuptime.rum.session.replay.`, uanset store og små bogstaver, er reserveret til dem: metrikker, som dine egne applikationer sender under sådan et navn, eller omdøber til et med en regel i en metrikpipeline, smides væk ved indtagelse, og en optageregel kan ikke gemmes med sådan et navn som output.
+**Opbevaring og forbrug.** Disse serier opbevares lige så længe som monitormetrikker: **30 dage** som standard, sat på en selvhostet installation af **Opbevaring af monitormetrikker (dage)** i Admin Dashboards indstillinger for **Dataopbevaring**. De tæller ikke som telemetriforbrug. Metriknavne, der starter med `oneuptime.rum.session.replay.`, uanset store og små bogstaver, er reserveret til dem: metrikker, som dine egne applikationer sender under sådan et navn, eller omdøber til et med en regel i en metrikpipeline, smides væk ved indtagelse, og en optageregel kan ikke gemmes med sådan et navn som output.
 
 ## Frustrationssignaler
 

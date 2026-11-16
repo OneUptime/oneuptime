@@ -54,7 +54,7 @@ flowchart TB
 | **Beskyttede entiteter** | Playbooks | De brugere og værter, som ingen playbook inddæmmer |
 | **Indstillinger** | AI | Om OneUptime AI vurderer hver ny sag |
 | **Forbindelser** | Connections | Dine logs, de sikkerhedsprodukter, OneUptime henter fra, og de SIEM'er, det sender til |
-| **Opsætningsvejledning** | Connections | Kodestykker til at sende begivenheder, udfyldt med din ingestion-nøgle |
+| **Opsætningsvejledning** | Connections | Kodestykker til at sende begivenheder, udfyldt med din indtagelsesnøgle |
 | **Sagsprioriteter** | Indstillinger | Hvor presserende en sag er: projektets egne prioriteter, den mest presserende først |
 | **Responsmål** | Indstillinger | Hvor hurtigt en sag med hver prioritet skal tages og inddæmmes |
 | **Sagsstatusser** | Indstillinger | De trin, en sag går igennem, og hvad en sag i hvert trin tæller som |
@@ -67,7 +67,7 @@ flowchart TB
 
 ## Før du begynder
 
-Sikkerhedsdata kan kun læses af rollerne Projektejer og Projektadministrator og af de tre Security-roller; andre roller ser intet i Security Events. Se [Roller](/docs/permissions/reference#roller).
+Sikkerhedsdata kan kun læses af rollerne Projektejer og Projektadministrator og af de tre Security-roller; andre roller ser intet i Sikkerhedshændelser. Se [Roller](/docs/permissions/reference#roller).
 
 | Rolle | Hvad den kan |
 | --- | --- |
@@ -78,9 +78,9 @@ Sikkerhedsdata kan kun læses af rollerne Projektejer og Projektadministrator og
 ## Send sikkerhedsbegivenheder
 
 :::steps
-### Opret en ingestion-nøgle
+### Opret en indtagelsesnøgle
 
-Åbn **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**, og klik på **Opret ingestion-nøgle**. Sikkerhedsbegivenheder bruger de samme nøgler som resten af din telemetri.
+Åbn **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**, og klik på **Opret indtagelsesnøgle**. Sikkerhedsbegivenheder bruger de samme nøgler som resten af din telemetri.
 
 ### Send dine begivenheder
 
@@ -571,10 +571,10 @@ level: high
 - **Eksportér værdier** henter en listes værdier som en CSV-fil med kolonnerne `value`, `note` og `expires`, som **Importér værdier** læser igen. En fil, hvis første linje nævner disse kolonner, giver hver værdi sin note, og hvornår den udløber: en dato som `2026-12-31` eller en dato og et klokkeslæt i UTC.
 - En liste kan i stedet læses fra en fil på en https-adresse, igen **Hver time**, **Hver 6. time** eller **Hver dag**: Vælg **En fil på en adresse** under **Flere felter**, når du opretter den. Hver læsning gør listen til det, filen indeholder, læst som en import læser den. En mislykket læsning ændrer ingen værdier, og listens side siger hvorfor, og **Læs nu** læser den med det samme.
 - I stedet for at vedligeholde værdier kan en liste med IP-adresser, filhashes, domæner eller URL'er følge et feed med trusselsinformation: Dens værdier er så feedets aktive indikatorer af listens type, holdt opdateret, efterhånden som feedet læses.
-- `expand` bruges alene, fordi listens værdier afgør, hvordan de matcher. Et felt med flere værdier, som `observables`, matcher, når en af dem er på listen. **Læses af** nævner de regler, Security Events-monitorer og hunts, der læser hver liste, og under en regels YAML nævner dens formular de lister, reglen læser.
+- `expand` bruges alene, fordi listens værdier afgør, hvordan de matcher. Et felt med flere værdier, som `observables`, matcher, når en af dem er på listen. **Læses af** nævner de regler, Sikkerhedshændelser-monitorer og hunts, der læser hver liste, og under en regels YAML nævner dens formular de lister, reglen læser.
 - En regel nævner en liste uanset store og små bogstaver. En regel, en monitor eller en hunt, der nævner en liste, projektet ikke har, afvises, når du gemmer den, og en liste, som en af dem læser, kan ikke omdøbes eller slettes, før intet læser den.
 - En ændring af en liste når alle regler, der læser den, ved reglens næste kørsel. Korrelationsregler og **Kør på tidligere hændelser** læser også lister.
-- En Security Events-monitor læser lister i sin **Filtrér efter overvågningslister**, og en søgning under **Begivenheder** eller i en hunt læser en som `user:%vip_users%`. Et minus foran, som i `-ip:%admin_addresses%`, beholder de hændelser, hvis felt ikke står på listen.
+- En Sikkerhedshændelser-monitor læser lister i sin **Filtrér efter overvågningslister**, og en søgning under **Begivenheder** eller i en hunt læser en som `user:%vip_users%`. Et minus foran, som i `-ip:%admin_addresses%`, beholder de hændelser, hvis felt ikke står på listen.
 - En liste rummer højst 5.000 værdier, heraf højst 100 med `*` og 100 intervaller, og et projekt har højst 200 lister: Følg et feed med trusselsinformation for en længere liste. Den, der må oprette, redigere eller slette detektionsregler, må gøre det samme med lister, og den, der må redigere detektionsregler, tilføjer, ændrer og fjerner deres værdier. Alle Security-roller kan læse dem, og hver ændring gemmes i projektets revisionslog.
 
 ### Kør på tidligere hændelser
@@ -589,7 +589,7 @@ level: high
 
 ## Monitorer for sikkerhedsbegivenheder
 
-En monitor for sikkerhedsbegivenheder tæller de begivenheder, der matcher dens filtre, over et glidende vindue og kører de sædvanlige monitorkriterier på optællingen: den ændrer monitorens status, åbner advarsler eller hændelser og tilkalder vagthavende. Opret en under **Overvågninger → Opret monitor** med **Sikkerhedshændelser** som type; den vises der sammen med dine andre monitorer.
+En monitor for sikkerhedsbegivenheder tæller de begivenheder, der matcher dens filtre, over et glidende vindue og kører de sædvanlige monitorkriterier på optællingen: den ændrer monitorens status, åbner advarsler eller hændelser og tilkalder vagthavende. Opret en under **Monitorer → Opret monitor** med **Sikkerhedshændelser** som type; den vises der sammen med dine andre monitorer.
 
 Dens formular viser **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** og **Begivenhedsklasse**. **Filtrer efter tjeneste**, **Filtrér efter attributter** og **Filtrér efter overvågningslister** venter under **Flere felter**, hvis overskrift viser dem, en monitor bruger. **Filtrér efter overvågningslister** beholder de hændelser, hvis felt står eller ikke står på en af dine [overvågningslister](#overvågningslister). Dens kriterier tjekker **Antal sikkerhedshændelser**.
 

@@ -602,7 +602,7 @@ describe("an amphora's page", () => {
       await screen.findByTestId("openstack-amphora-explanation"),
     ).toHaveTextContent(/nearly at its end/);
     expect(attentionRowsOf("openstack-amphora-attention")).toEqual([
-      "This amphora: Its certificate expires in 10 days",
+      "This amphora: Its certificate expires in 10\u00A0days",
     ]);
   });
 
@@ -633,7 +633,7 @@ describe("an amphora's page", () => {
       await screen.findByTestId("openstack-amphora-explanation"),
     ).toHaveTextContent(/nearly at its end, or past it/);
     expect(attentionRowsOf("openstack-amphora-attention")).toEqual([
-      "This amphora: Its certificate expired 3 days ago",
+      "This amphora: Its certificate expired 3\u00A0days ago",
     ]);
   });
 

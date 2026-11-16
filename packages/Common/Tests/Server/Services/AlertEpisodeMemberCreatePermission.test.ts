@@ -120,7 +120,7 @@ describe("AlertEpisodeMember first-member create permissions", () => {
     jest.restoreAllMocks();
   });
 
-  test("a project admin can create the first member after the service stamps it notified", async () => {
+  test("a Project Admin can create the first member after the service stamps it notified", async () => {
     const input: CreateBy<AlertEpisodeMember> = createBy();
     const result: OnCreate<AlertEpisodeMember> =
       await callOnBeforeCreate(input);

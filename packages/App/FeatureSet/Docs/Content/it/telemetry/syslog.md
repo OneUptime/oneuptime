@@ -91,7 +91,7 @@ curl \
   }'
 ```
 
-Un `200` indica che il messaggio è stato accettato. Apri **Prodotti → Registri**: il log compare nel servizio `production-web` con il corpo `502 on /api/login`, la gravità `Error` e gli attributi descritti in [Attributi estratti](#attributi-estratti).
+Un `200` indica che il messaggio è stato accettato. Apri **Prodotti → Log**: il log compare nel servizio `production-web` con il corpo `502 on /api/login`, la gravità `Error` e gli attributi descritti in [Attributi estratti](#attributi-estratti).
 
 ## Inoltrare da rsyslog
 
@@ -135,7 +135,7 @@ sudo rsyslogd -N1
 sudo systemctl restart rsyslog
 ```
 
-`rsyslogd -N1` convalida la configurazione senza avviare rsyslog. Dopo il riavvio, i nuovi messaggi compaiono in **Prodotti → Registri** nel servizio `rsyslog-demo`.
+`rsyslogd -N1` convalida la configurazione senza avviare rsyslog. Dopo il riavvio, i nuovi messaggi compaiono in **Prodotti → Log** nel servizio `rsyslog-demo`.
 :::
 
 L'azione inoltra ogni messaggio gestito da rsyslog: programmi locali, il journal di systemd quando rsyslog lo legge, e tutto ciò che riceve dalla rete.
@@ -198,7 +198,7 @@ OneUptime aggiunge automaticamente i seguenti attributi a ogni voce di log:
 | `syslog.structured.*` | Ogni parametro dei dati strutturati, appiattito | `syslog.structured.env_32473.host` = `web-01` |
 | `syslog.raw` | Il messaggio originale, per la tracciabilità | l'intera riga |
 
-Questi attributi diventano ricercabili nell'explorer **Prodotti → Registri**, ad esempio `@syslog.severity.name:error` o `@syslog.hostname:web-01`. Vedi [Sintassi di ricerca](/docs/telemetry/search-syntax).
+Questi attributi diventano ricercabili nell'explorer **Prodotti → Log**, ad esempio `@syslog.severity.name:error` o `@syslog.hostname:web-01`. Vedi [Sintassi di ricerca](/docs/telemetry/search-syntax).
 
 Il messaggio in sé resta nel corpo del log. Un messaggio nel formato di un produttore di rete viene letto più a fondo: le coppie `key=value` di un firewall Sophos o FortiGate (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`) diventano attributi `sophos.*` e `fortigate.*`, e ciò che è successo diventa un [evento di rete](/docs/monitor/network-events). Per qualsiasi altro formato `key=value`, aggiungi un processore **Key=Value Parser** in una [pipeline dei log](/docs/telemetry/log-pipelines#keyvalue-parser) per trasformare le coppie in attributi.
 

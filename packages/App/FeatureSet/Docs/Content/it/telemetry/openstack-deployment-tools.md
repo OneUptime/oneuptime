@@ -41,11 +41,11 @@ Qualsiasi strumento con un Alertmanager può avere incidenti da subito: un avvis
 :::steps
 ### Crea il monitor
 
-Crea un monitor Incoming Request come indica [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#ricevere-gli-avvisi-con-un-monitor), e copia il suo **Heartbeat URL**. È l'indirizzo `<secret key>` nel receiver di ogni strumento qui sotto.
+Crea un monitor Richiesta in arrivo come indica [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#ricevere-gli-avvisi-con-un-monitor), e copia il suo **Heartbeat URL**. È l'indirizzo `<secret key>` nel receiver di ogni strumento qui sotto.
 
 ### Collegalo al cloud
 
-Apri **Panoramica → Risorse collegate** del monitor e aggiungi il cloud OpenStack. Ogni incidente compare poi nella pagina **Incidenti** di quel cloud: le impostazioni di un monitor Incoming Request non nominano nessun cloud, quindi l'Alertmanager di ogni cloud ha bisogno di un monitor proprio. Il cloud compare in quell'elenco quando arrivano i suoi primi dati, quindi fallo dopo i passaggi qui sotto, oppure aggiungi prima il cloud in **OpenStack → Tutti i cloud**.
+Apri **Panoramica → Risorse collegate** del monitor e aggiungi il cloud OpenStack. Ogni incidente compare poi nella pagina **Incidenti** di quel cloud: le impostazioni di un monitor Richiesta in arrivo non nominano nessun cloud, quindi l'Alertmanager di ogni cloud ha bisogno di un monitor proprio. Il cloud compare in quell'elenco quando arrivano i suoi primi dati, quindi fallo dopo i passaggi qui sotto, oppure aggiungi prima il cloud in **OpenStack → Tutti i cloud**.
 :::
 
 Alertmanager, alla versione fissata da Kolla-Ansible, è stato registrato mentre inviava esattamente questa struttura, e ciò che ha inviato ha aperto un incidente su un OneUptime in esecuzione, che il suo stato `resolved` ha risolto.
@@ -119,7 +119,7 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/install-logs.sh
 sudo bash install-logs.sh files
 ```
 
-Anche il Fluentd di Kolla può inoltrare, con un output in `/etc/kolla/config/fluentd/output/*.conf` come descrive [Fluentd](/docs/telemetry/fluentd), ma quei record arrivano in **Registri** sotto il nome di un servizio, e non nelle pagine del cloud.
+Anche il Fluentd di Kolla può inoltrare, con un output in `/etc/kolla/config/fluentd/output/*.conf` come descrive [Fluentd](/docs/telemetry/fluentd), ma quei record arrivano in **Log** sotto il nome di un servizio, e non nelle pagine del cloud.
 
 ### Chi ha fatto cosa su Kolla-Ansible
 
@@ -268,7 +268,7 @@ conf:
 
 Apri **OpenStack → Tutti i cloud**, fai clic su **Connetti cloud** e indica l'indirizzo di Keystone, una application credential e la sonda da usare. Una sonda parla con un cloud solo in HTTPS. Poi segui **Kubernetes → Documentazione** per il cluster su cui girano i chart: i suoi pod, i loro log e i suoi nodi arrivano alle pagine Kubernetes.
 
-Per avere i log di quei servizi anche nella pagina **Registri** di questo cloud, con ogni stack trace in un unico record, indica il cloud nei valori dell'agente, con i namespace in cui girano i suoi servizi:
+Per avere i log di quei servizi anche nella pagina **Log** di questo cloud, con ogni stack trace in un unico record, indica il cloud nei valori dell'agente, con i namespace in cui girano i suoi servizi:
 
 ```yaml title="Kubernetes agent values"
 logs:
@@ -346,7 +346,7 @@ kube_prometheus_stack_helm_values:
 
 Apri **OpenStack → Tutti i cloud**, fai clic su **Connetti cloud** e indica l'indirizzo di Keystone, una application credential e la sonda da usare. Una sonda parla con un cloud solo in HTTPS. Poi segui **Kubernetes → Documentazione** per il cluster su cui gira Atmosphere.
 
-Per avere i log di quei servizi anche nella pagina **Registri** di questo cloud, con ogni stack trace in un unico record, indica il cloud nei valori dell'agente, con i namespace in cui girano i suoi servizi:
+Per avere i log di quei servizi anche nella pagina **Log** di questo cloud, con ogni stack trace in un unico record, indica il cloud nei valori dell'agente, con i namespace in cui girano i suoi servizi:
 
 ```yaml title="Kubernetes agent values"
 logs:
@@ -456,7 +456,7 @@ spec:
 
 Apri **OpenStack → Tutti i cloud**, fai clic su **Connetti cloud** e indica l'indirizzo di Keystone, una application credential e la sonda da usare. Una sonda parla con un cloud solo in HTTPS. Poi segui **Kubernetes → Documentazione** sul cluster che esegue il piano di controllo, con **Red Hat OpenShift** selezionato, che imposta `preset=openshift`.
 
-Per avere i log di quei servizi anche nella pagina **Registri** di questo cloud, con ogni stack trace in un unico record, indica il cloud nei valori dell'agente, con i namespace in cui girano i suoi servizi:
+Per avere i log di quei servizi anche nella pagina **Log** di questo cloud, con ogni stack trace in un unico record, indica il cloud nei valori dell'agente, con i namespace in cui girano i suoi servizi:
 
 ```yaml title="Kubernetes agent values"
 logs:

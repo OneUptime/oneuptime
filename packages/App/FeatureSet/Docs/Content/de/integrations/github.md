@@ -15,7 +15,7 @@ OneUptime arbeitet auf zwei Arten mit [GitHub](https://github.com) zusammen. Ver
 flowchart TB
     app["Die GitHub-App"] --> repos["Ihre Repositories,<br/>importiert"]
     repos --> pr["Pull Requests mit<br/>Korrekturen von<br/>OneUptime-KI"]
-    declared["Vorfall erklärt"] --> workflow["Arbeitsablauf:<br/>On Create Incident"]
+    declared["Vorfall erklärt"] --> workflow["Arbeitsablauf:<br/>Bei Erstellung:<br/>Vorfall"]
     workflow -->|"POST issues"| issue["GitHub-Issue"]
 ```
 
@@ -62,11 +62,11 @@ Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen**, d
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Block **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Auslöser: Seine **Fields to pass on** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallsnummer mit Präfix**.
+Klicken Sie auf den gestrichelten Block **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **Bei Erstellung: Vorfall**. Klicken Sie auf den Auslöser: Seine **Weiterzugebende Felder** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallsnummer mit Präfix**.
 
 ### Das Issue öffnen
 
-Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen Block **API Post (JSON)** hinzu und verbinden Sie den Punkt **Erfolg** des Auslösers damit. Setzen Sie seine **URL** auf `https://api.github.com/repos/your-org/your-repo/issues`, mit dem Besitzer und dem Namen Ihres Repositorys. Setzen Sie unter **Weitere Felder** seine **Anfrage-Header** auf:
+Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen Block **API-Aufruf POST (JSON)** hinzu und verbinden Sie den Punkt **Erfolg** des Auslösers damit. Setzen Sie seine **URL** auf `https://api.github.com/repos/your-org/your-repo/issues`, mit dem Besitzer und dem Namen Ihres Repositorys. Setzen Sie unter **Weitere Felder** seine **Anfrage-Header** auf:
 
 ```json
 {
@@ -88,7 +88,7 @@ Und seinen **Anfragetext** auf:
 
 ### Testen und dann einschalten
 
-Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API Post (JSON)** zeigt eine Antwort `201` mit dem neuen Issue, mit seiner `number` und seiner `html_url`. Schalten Sie dann oben im **Editor** **Aktiviert** ein.
+Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API-Aufruf POST (JSON)** zeigt eine Antwort `201` mit dem neuen Issue, mit seiner `number` und seiner `html_url`. Schalten Sie dann oben im **Editor** **Aktiviert** ein.
 :::
 
 Das Issue bleibt offen, wenn der Vorfall behoben ist, denn die Nacharbeit überdauert den Vorfall meist. Für Tickets, die in beide Richtungen mit dem Vorfall Schritt halten, siehe [Jira](/docs/integrations/jira).
@@ -97,11 +97,11 @@ Das Issue bleibt offen, wenn der Vorfall behoben ist, denn die Nacharbeit überd
 
 - **GitHub Enterprise Server.** Senden Sie die Anfrage stattdessen an Ihren Server: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. Ein Server an einer privaten Netzwerkadresse braucht ein selbst gehostetes OneUptime, dessen Administrator es erlaubt: siehe [Ausgehender Netzwerkzugriff](/docs/workflows/configuration#ausgehender-netzwerkzugriff).
 - **Zuweisen.** Fügen Sie dem Text `"assignees": ["octocat"]` oder `"milestone": 3` hinzu. GitHub verwirft Labels, Zuweisungen und Meilensteine wortlos, wenn das Token nicht in das Repository pushen darf.
-- **Nur manche Vorfälle.** Setzen Sie einen Block **If / Else** zwischen den Auslöser und den API-Block und öffnen Sie Issues nur auf seiner Seite **Ja**, zum Beispiel für einen Schweregrad.
+- **Nur manche Vorfälle.** Setzen Sie einen Block **Wenn / Sonst** zwischen den Auslöser und den API-Block und öffnen Sie Issues nur auf seiner Seite **Ja**, zum Beispiel für einen Schweregrad.
 
 ## Fehlerbehebung
 
-Der Schritt **API Post (JSON)** nimmt **Fehler**, wenn GitHub die Anfrage ablehnt. Seine **Response Status** und **Antworttext** im Lauf sagen, warum.
+Der Schritt **API-Aufruf POST (JSON)** nimmt **Fehler**, wenn GitHub die Anfrage ablehnt. Seine **Antwortstatus** und **Antworttext** im Lauf sagen, warum.
 
 :::details GitHub antwortet 401
 Das Token ist falsch, abgelaufen oder widerrufen. Erstellen Sie ein neues und ersetzen Sie den Inhalt von `GITHUB_TOKEN`.

@@ -1798,7 +1798,8 @@ describe("every catalog engine's Documentation tab", () => {
       serverAddress: "acme.prod.example.com",
     });
 
-    expect(markdown).toContain("OneUptime does not know AcmeDB's engine yet");
+    // Its name as the data reported it, in a code span (#8780).
+    expect(markdown).toContain("OneUptime does not know `AcmeDB`'s engine yet");
     expect(markdown).toContain("value: acmedb");
   });
 

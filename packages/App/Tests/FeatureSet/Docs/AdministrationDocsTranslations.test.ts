@@ -136,6 +136,12 @@ const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
 // \s takes the no-break spaces French and others group digits with.
 const DIGIT_GROUP: RegExp = /(\d)[\s.,'٬](\d{3})(?!\d)/g;
 const DECIMAL_MARK: RegExp = /(\d)[,٫](\d)/g;
+/*
+ * A name a digit is part of, which states no number: Korean names
+ * two-factor authentication "2단계 인증" (two-step authentication), as its
+ * Dashboard does (#8774).
+ */
+const NAME_WITH_A_DIGIT: RegExp = /2단계 인증/g;
 const RIGHT_ARROW: string = "→";
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 const LINK_TARGET: RegExp = /\]\([^)\s]*\)/g;
@@ -270,10 +276,14 @@ function withoutDigitGroups(text: string): string {
   return joined;
 }
 
-// The numbers a text states, code left out.
+// The numbers a text states, code and names left out.
 function numbersIn(text: string): Array<string> {
   return Array.from(
-    withoutDigitGroups(toLatinDigits(text.replace(INLINE_CODE_SPAN, " ")))
+    withoutDigitGroups(
+      toLatinDigits(
+        text.replace(INLINE_CODE_SPAN, " ").replace(NAME_WITH_A_DIGIT, " "),
+      ),
+    )
       .replace(DECIMAL_MARK, "$1.$2")
       .matchAll(NUMBER),
   )
@@ -1227,8 +1237,9 @@ describe("the helpers, on these pages' shapes", () => {
     // A card's edit button is drawn from "Edit {{itemName}}".
     expect(dashboardLabels(PROJECT_SETTINGS)).toContain("Edit Project");
     expect(drawnActionLabel("de", "Edit Project")).not.toBe("Edit Project");
-    // The Enterprise Edition's settings button no locale words is kept.
-    expect(dashboardLabels(AUDIT_LOGS)).not.toContain(
+    // The Enterprise Edition's settings button, which every locale words (1f243552949), is drawn.
+    expect(dashboardLabels(AUDIT_LOGS)).toContain("Edit Audit Log Settings");
+    expect(drawnActionLabel("de", "Edit Audit Log Settings")).not.toBe(
       "Edit Audit Log Settings",
     );
   });
@@ -1240,6 +1251,9 @@ describe("the helpers, on these pages' shapes", () => {
       "15",
     ]);
     expect(numbersIn("۱٬۰۰۰ دلار و ۰٫۱۰")).toEqual(["0.10", "1000"]);
+    // Korean's two-factor authentication is a name, and Level 2 a number.
+    expect(numbersIn("관리자가 2단계 인증을 재설정")).toEqual([]);
+    expect(numbersIn("2단계: 앱 연결")).toEqual(["2"]);
   });
 
   it("find an untranslated line of prose, but not a line of names or code", () => {

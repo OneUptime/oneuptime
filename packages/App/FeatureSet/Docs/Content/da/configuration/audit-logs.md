@@ -43,7 +43,7 @@ Gå til **Projektindstillinger → Auditlogs → Indstillinger**. **Auditlogs** 
 
 ### Rediger indstillingerne
 
-Klik på **Edit Audit Log Settings**.
+Klik på **Rediger indstillinger for auditlogs**.
 
 ### Slå den til
 
@@ -65,10 +65,10 @@ En ændring af disse indstillinger træder i kraft inden for et minut.
 | Kolonne | Hvad den viser |
 | --- | --- |
 | **Hvornår** | Hvor længe siden, med dato og klokkeslæt. |
-| **Handling** | `Create`, `Update` eller `Delete`, `Download` for en pakkeopsamlingsfil, som nogen har downloadet, eller `Sign In`, `Sign Out`, `Session Timeout` eller `Session Revoked` for en session. |
+| **Handling** | `Create`, `Update` eller `Delete`, `Download` for en pakkeopsamlingsfil, som nogen har downloadet, eller `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` eller `Session Revoked` for et login eller en session. |
 | **Ressource** | Ressourcens navn, som åbner den, så længe den findes, og dens type. |
 | **Aktør** | Hvem der foretog ændringen: en person, en API-nøgle, en arbejdsgang eller `System` for en ændring, OneUptime selv foretog. En persons ændring via en MCP-klient nævner hvilken. |
-| **Ændringer** | Hvor mange felter der blev ændret, eller registreret ved en oprettelse eller sletning. For en session, hvordan den loggede ind, eller hvorfor den sluttede. Klik for at se hvert felt. |
+| **Ændringer** | Hvor mange felter der blev ændret, eller registreret ved en oprettelse eller sletning. For et login eller en session, hvordan der blev logget ind, hvorfor det mislykkedes, eller hvorfor sessionen sluttede. Klik for at se hvert felt. |
 
 Filtrér efter **Ressourcetype**, **Ressourcenavn**, **Handling**, **Bruger-e-mail** eller **Tid**. En ændring viser kun de felter, der blev ændret, før og efter, og en gemning, der ikke ændrer noget, tilføjer ingen post.
 
@@ -86,7 +86,7 @@ Alt, hvad folk opretter, ændrer eller sletter i et projekt, registreres: monito
 | Registreringer af kørsler | Hver af dem er allerede registreringen af en arbejdsgangskørsel, en vagteskalering, en scanning, en import eller en AI-kørsel. |
 | Det, agenter og telemetri rapporterer | Fundne ressourcer, målinger og forbrug ændrer sig ved hver rapport, ikke fordi nogen har ændret dem. |
 | Aktivitetsfeeds | Et feed viser ændringer, som auditloggen allerede registrerer. |
-| OneUptimes arbejdstilstand | Sessioner for læsere af statussider, jobs i kø og anden tilstand, som OneUptime holder, mens det arbejder. |
+| OneUptimes arbejdstilstand | Jobs i kø og anden tilstand, som OneUptime holder, mens det arbejder. |
 | En persons egen notifikationsopsætning | Hver persons adresser, numre og personlige vagtregler er kun deres egne. |
 | En persons egne præferencer | De produkter, hver person fastgør til sin egen øverste bjælke, er kun deres egne, og kun de ser dem. |
 
@@ -114,13 +114,18 @@ Hver gang et medlem af projektet logger ind på OneUptime, registrerer auditlogg
 | Handling | Hvornår det registreres |
 | --- | --- |
 | `Sign In` | Nogen logger ind: med en adgangskode eller et login-link, en adgangsnøgle, Google, Microsoft, Vercel eller single sign-on. |
+| `Sign-In Failed` | Nogen forsøger at logge ind på en eksisterende konto og mislykkes: en forkert adgangskode, godkendelseskode, backupkode eller sikkerhedsnøgle, en blokeret eller ubekræftet konto, eller et single sign-on, som OneUptime afviste. |
 | `Sign Out` | Personen logger ud. |
 | `Session Timeout` | OneUptime afslutter sessionen, fordi tiden er gået: den inaktivitetsperiode eller sessionslængde, en serveradministrator har angivet, eller 30 dage uden brug. |
-| `Session Revoked` | OneUptime afslutter sessionen, fordi adgangskoden blev ændret, kontoen blev blokeret, eller en serveradministrator nulstillede eller krævede totrinsgodkendelse. |
+| `Session Revoked` | OneUptime afslutter sessionen, fordi adgangskoden blev ændret, kontoen blev blokeret, eller en serveradministrator nulstillede eller krævede tofaktorgodkendelse. |
 
 En posts **Ressource** er sessionen, navngivet efter den enhed, den loggede ind fra, for eksempel `Chrome 130 on macOS`. Postens **Aktør** er den person, sessionen tilhører, så filtrering efter **Bruger-e-mail** finder alle deres logins og sessioner. Detaljerne viser, hvordan personen loggede ind og med hvilken anden faktor, IP-adressen og stedet, og for en afsluttet session, hvornår den loggede ind, hvornår den sidst blev brugt, og hvornår den udløb. Et projekts egen SSO-udbyder nævnes kun i det projekts auditlog.
 
-Logins og sessioner registreres, uanset om projektet gemmer systemhændelser. En udløbet sessionslængde eller 30 dage uden brug registreres inden for få minutter. En udløbet inaktivitetsperiode i browseren registreres inden for 35 minutter, uanset om personen kommer tilbage. I mobilappen registreres den, næste gang appen kontakter OneUptime.
+En `Sign-In Failed`-post handler om forsøget og er navngivet efter den enhed, det kom fra. Postens **Aktør** er den konto, forsøget blev gjort på: den, der gjorde forsøget, har ikke bevist, at vedkommende er den person. Detaljerne viser, hvorfor det mislykkedes, hvordan der blev forsøgt at logge ind, IP-adressen og stedet, men aldrig hvad der blev indtastet. Et forsøg på en e-mailadresse, som ingen konto har, registreres ikke, og at et forsøg registreres, ændrer hverken, hvad login-siden svarer, eller hvor hurtigt. For at en strøm af forsøg ikke kan fylde auditloggen, registreres de første 10 mislykkede forsøg på en konto inden for en time enkeltvis. Resten tælles, og kontoens næste post viser, hvor mange forsøg den står for, og hvornår det første af dem blev gjort.
+
+Læserne af en privat statusside registreres også, kun i statussidens projekt: hvert login med en adgangskode, et login-link eller statussidens single sign-on, hver udlogning, og hver session, som OneUptime afslutter, fordi læserens adgangskode blev ændret, eller fordi statussiden ikke længere accepterer den måde, den loggede ind på. Deres poster findes også på statussidens egen side **Auditlogs**. Deres **Aktør** er læseren, vist med e-mailadressen, og deres **Ressource** er læserens session.
+
+Logins og sessioner registreres, uanset om projektet gemmer systemhændelser. En udløbet sessionslængde eller 30 dage uden brug registreres inden for få minutter. En udløbet inaktivitetsperiode i browseren, eller i en version af mobilappen nyere end 1.6.0, registreres inden for 35 minutter, uanset om personen kommer tilbage. I mobilappen version 1.6.0 og tidligere registreres den, næste gang appen kontakter OneUptime.
 
 ## Hvor længe poster gemmes
 

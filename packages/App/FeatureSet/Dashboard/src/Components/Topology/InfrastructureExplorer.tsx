@@ -62,6 +62,7 @@ import {
   collectionNameTerms,
   compareNames,
   describeInfrastructureNode,
+  getInfrastructureNodeName,
   getInfrastructurePath,
   infrastructureSearchTerms,
   isContainerNode,
@@ -303,6 +304,15 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
   const { translateString } = useTranslateValue();
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
+  };
+  /*
+   * A node's name as drawn: a category's and an unnamed resource's in the
+   * reader's words, any other as it was reported (#8260).
+   */
+  const nameOf: (node: InfrastructureNode) => string = (
+    node: InfrastructureNode,
+  ): string => {
+    return getInfrastructureNodeName(node, t);
   };
   /*
    * Every text with a name or a number in it is one sentence of its own
@@ -930,8 +940,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     }
     const containers: Array<string> = summary.containerChildren.get(id) || [];
     const expanded: boolean = isExpanded(node);
-    const treeName: string =
-      node.kind === "category" ? t(node.name) : node.name;
+    const treeName: string = nameOf(node);
     const selected: boolean = effectiveScopeId === id;
     /*
      * A level with thousands of containers lists the first ones and offers
@@ -990,7 +999,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             onClick={() => {
               openScope(id);
             }}
-            title={node.name}
+            title={treeName}
           >
             <span
               style={{ color: colorForNode(node) }}
@@ -1190,11 +1199,11 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 aria-label={
                   container
                     ? translator.translateTemplate("Open {{name}}", {
-                        name: node.name,
+                        name: nameOf(node),
                       })
                     : translator.translateTemplate(
                         "View details for {{name}}",
-                        { name: node.name },
+                        { name: nameOf(node) },
                       )
                 }
                 onClick={(event: React.MouseEvent) => {
@@ -1202,7 +1211,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                   openNode(id);
                 }}
               >
-                {node.name}
+                {nameOf(node)}
               </button>
               <span className="mt-0.5 block text-xs text-gray-500">
                 {searching && parent && parent.kind !== "category"
@@ -1210,7 +1219,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                       [
                         kindText,
                         translator.translateTemplate("in {{name}}", {
-                          name: parent.name,
+                          name: nameOf(parent),
                         }),
                       ],
                       translator,
@@ -2068,12 +2077,12 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                           node.id === effectiveScopeId ? "location" : undefined
                         }
                         className="max-w-xs truncate rounded text-gray-600 hover:text-indigo-600 focus:ring-2 focus:ring-indigo-500"
-                        title={node.name}
+                        title={nameOf(node)}
                         onClick={() => {
                           openScope(node.id);
                         }}
                       >
-                        {node.kind === "category" ? t(node.name) : node.name}
+                        {nameOf(node)}
                       </button>
                     </React.Fragment>
                   );
@@ -2103,9 +2112,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                       {searching
                         ? t("Search results")
                         : scope
-                          ? scope.kind === "category"
-                            ? t(scope.name)
-                            : scope.name
+                          ? nameOf(scope)
                           : t("All infrastructure")}
                     </h3>
                     <p role="status" className="mt-0.5 text-xs text-gray-500">

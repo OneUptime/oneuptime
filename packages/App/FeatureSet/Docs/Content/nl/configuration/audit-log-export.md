@@ -1,6 +1,6 @@
 # Export van auditlogboek
 
-Stuur het auditlogboek, zodra het wordt vastgelegd, naar opslag of een dienst naar keuze: Amazon S3 of S3-compatibele opslag, Google Cloud Storage, Azure Blob Storage, een webhook of syslog. Bewaar de vermeldingen daar zo lang als uw compliancecontroles vragen, en doorzoek ze in uw SIEM. De eigenaren en beheerders van een project exporteren het auditlogboek ervan vanuit de projectinstellingen, en master-admins exporteren dat van alle projecten vanuit het Admin Dashboard. Het hoort in OneUptime Cloud bij het Enterprise-abonnement, en bij de Enterprise Edition als u zelf host.
+Stuur het auditlogboek, zodra het wordt vastgelegd, naar opslag of een dienst naar keuze: Amazon S3 of S3-compatibele opslag, Google Cloud Storage, Azure Blob Storage, een webhook of syslog. Bewaar de vermeldingen daar zo lang als uw compliancecontroles vragen, en doorzoek ze in uw SIEM. De Projecteigenaren en Projectbeheerders exporteren het auditlogboek van een project vanuit de projectinstellingen, en master-admins exporteren dat van alle projecten vanuit het Admin Dashboard. Het hoort in OneUptime Cloud bij het Enterprise-abonnement, en bij de Enterprise Edition als u zelf host.
 
 :::cards
 - [Een export instellen](#een-export-instellen): Een bestemming kiezen, testen en opslaan.
@@ -140,7 +140,7 @@ Elke vermelding is één JSON-object, met de sleutels altijd in deze volgorde:
 | `id` | De id van de vermelding. Dezelfde vermelding die twee keer wordt verzonden, heeft dezelfde id. |
 | `createdAt` | Wanneer de wijziging is vastgelegd, in UTC. |
 | `projectId` | Het project waarin de wijziging is gedaan. |
-| `action` | `Create`, `Update`, `Delete` of `Download`, of voor een sessie `SignIn`, `SignOut`, `SessionTimeout` of `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` of `Download`, of voor een aanmelding of een sessie `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` of `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Wat er is gewijzigd. |
 | `rootResourceType`, `rootResourceId` | De resource waartoe het behoort, zoals een SLO voor zijn regel. |
 | `userId`, `userName`, `userEmail`, `userType` | Wie de wijziging heeft gedaan. |
@@ -173,11 +173,11 @@ Een nieuwe export verzendt versie 2. Een export die vóór versie 2 is opgeslage
 
 ## Als een bestemming faalt
 
-Een batch wordt drie keer geprobeerd, met een paar seconden ertussen, waarna de export wacht voordat hij het opnieuw probeert: een minuut, dan twee, vier enzovoort, tot een uur. De rij zegt **Mislukt**, en **Fout bekijken** toont wat de bestemming antwoordde en wanneer de volgende poging is.
+Een batch wordt drie keer geprobeerd, met een paar seconden ertussen, waarna de export wacht voordat hij het opnieuw probeert: een minuut, dan twee, vier enzovoort, tot een uur. De rij zegt **Mislukt**, en **Fout bekijken** toont wat de bestemming antwoordde, wanneer de volgende poging is, en vanaf wanneer de vermeldingen die wachten op verzending worden verwijderd, of, zodra dat moment voorbij is, sinds wanneer ze worden verwijderd.
 
 Er wordt niets overgeslagen: de vermeldingen wachten in het auditlogboek, en de volgende levering die lukt, haalt de achterstand in vanaf de oudste. Elke vermelding wordt toch verwijderd zodra ze ouder is dan de bewaartermijn waarmee ze is vastgelegd, verzonden of niet, dus herstel een mislukte export binnen die tijd. Een langere bewaartermijn bewaart alleen de vermeldingen die na de wijziging worden vastgelegd langer.
 
-Een mislukte export mailt de mensen die hem kunnen herstellen: de eigenaren van het project bij de export van een project, en alle master-admins bij die van de instantie. De eerste e-mail gaat na 30 minuten met fouten, met wat de bestemming antwoordde. Een tweede gaat een dag voordat de eerste van de vermeldingen die de export niet heeft verzonden wordt verwijderd, met vanaf wanneer vermeldingen verloren gaan. Is dat moment al voorbij, zoals wanneer **Exporteren vanaf** verder teruggaat dan de bewaartermijn, dan gaat de tweede e-mail na 30 minuten in plaats van de eerste, en meldt die dat er nu vermeldingen verloren gaan. Elke e-mail gaat één keer zolang de fouten duren, en een levering die lukt zet beide terug.
+Een mislukte export mailt de mensen die hem kunnen herstellen: de Projecteigenaren bij de export van een project, en alle master-admins bij die van de instantie. De eerste e-mail gaat na 30 minuten met fouten, met wat de bestemming antwoordde. Een tweede gaat een dag voordat de eerste van de vermeldingen die de export niet heeft verzonden wordt verwijderd, met vanaf wanneer vermeldingen verloren gaan. Is dat moment al voorbij, zoals wanneer **Exporteren vanaf** verder teruggaat dan de bewaartermijn, dan gaat de tweede e-mail na 30 minuten in plaats van de eerste, en meldt die dat er nu vermeldingen verloren gaan. Elke e-mail gaat één keer zolang de fouten duren, en een levering die lukt zet beide terug.
 
 Om een export te pauzeren, kiest u **Uitzetten** in het menu van zijn rij: hij houdt zijn plaats, en **Inschakelen** verstuurt wat er in de tussentijd is vastgelegd. In OneUptime Cloud stopt een project dat het Enterprise-abonnement verlaat met exporteren, en zijn exports wachten onder de upgradekaart, waar ze kunnen worden uitgeschakeld of verwijderd. Als u zelf host, stopt het exporteren zolang de licentie geen auditlogboeken omvat, en gaat het verder waar het was gebleven zodra een licentie ze omvat.
 

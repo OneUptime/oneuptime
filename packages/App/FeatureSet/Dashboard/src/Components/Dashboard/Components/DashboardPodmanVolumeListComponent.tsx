@@ -151,8 +151,8 @@ const DashboardPodmanVolumeListComponentElement: FunctionComponent<
     (v: PodmanResource): HoneycombTile => {
       const id: string = (v._id as string) || "";
       const name: string = (v.name as string) || getUnnamedText();
-      const driverScope: string = (v.state as string) || "—";
-      const hostName: string = (v.podmanHost?.name as string) || "—";
+      const driverScope: string | undefined = v.state as string;
+      const hostName: string | undefined = v.podmanHost?.name as string;
 
       return {
         id: id || name,
@@ -172,8 +172,8 @@ const DashboardPodmanVolumeListComponentElement: FunctionComponent<
   const rows: Array<ReactElement> = volumes.map((v: PodmanResource) => {
     const id: string = (v._id as string) || "";
     const name: string = (v.name as string) || getUnnamedText();
-    const driverScope: string = (v.state as string) || "—";
-    const hostName: string = (v.podmanHost?.name as string) || "—";
+    const driverScope: string | undefined = v.state as string;
+    const hostName: string | undefined = v.podmanHost?.name as string;
 
     return (
       <tr

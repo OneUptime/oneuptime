@@ -497,10 +497,14 @@ function expectEvery(written: Array<WrittenCookie>, secure: boolean): void {
   }
 }
 
-// A sign-in's cookies: the session's two tokens and what the dashboards read.
+/*
+ * A sign-in's cookies: the session's two tokens, which session the browser
+ * holds for its sign-out (issue #8638), and what the dashboards read.
+ */
 const SESSION_COOKIES: Array<string> = [
   CookieUtil.getUserTokenKey(),
   CookieUtil.getRefreshTokenKey(),
+  CookieUtil.getSessionSignOutKey(),
   "user-id",
   "user-email",
   "user-name",
@@ -541,6 +545,43 @@ describe("POST /login with the right password", () => {
     expectEvery(
       await invoke("/login", BEHIND_A_PROXY, { body: credentials() }),
       true,
+    );
+  });
+
+  /*
+   * Which session the browser holds, for its sign-out after a renewal whose
+   * answer was lost (issue #8638): out of a page's reach, never sent by a
+   * request another site starts, sent to POST /identity/logout and nothing
+   * else, and for as long as the refresh token beside it.
+   */
+  it("sets the sign-out cookie as strictly as the refresh token's own, or more, and for as long", async () => {
+    const written: Array<WrittenCookie> = await invoke(
+      "/login",
+      TLS_AT_THE_INGRESS,
+      { body: credentials() },
+    );
+
+    const signOut: WrittenCookie = written.find((cookie: WrittenCookie) => {
+      return cookie.name === CookieUtil.getSessionSignOutKey();
+    })!;
+    const refresh: WrittenCookie = written.find((cookie: WrittenCookie) => {
+      return cookie.name === CookieUtil.getRefreshTokenKey();
+    })!;
+
+    expect(signOut.options).toEqual({
+      path: "/identity/logout",
+      sameSite: "strict",
+      httpOnly: true,
+      secure: true,
+      maxAge: refresh.options["maxAge"],
+    });
+    expect(refresh.options).toEqual(
+      expect.objectContaining({
+        path: "/",
+        sameSite: "lax",
+        httpOnly: true,
+        secure: true,
+      }),
     );
   });
 
@@ -596,7 +637,35 @@ describe("POST /logout", () => {
     [CookieUtil.getUserTokenKey()]: "access-token",
     [CookieUtil.getRefreshTokenKey()]: "refresh-token",
     "user-id": USER_ID,
+    // Sent to the sign-out only, on its own path (issue #8638).
+    [CookieUtil.getSessionSignOutKey()]: "sign-out-cookie",
   };
+
+  it("clears the sign-out cookie on the path it was set on, Secure over TLS", async () => {
+    const written: Array<WrittenCookie> = await invoke(
+      "/logout",
+      TLS_AT_THE_INGRESS,
+      { cookies: signedIn },
+    );
+
+    expect(
+      written.filter((cookie: WrittenCookie) => {
+        return cookie.name === CookieUtil.getSessionSignOutKey();
+      }),
+    ).toEqual([
+      {
+        name: CookieUtil.getSessionSignOutKey(),
+        value: "",
+        cleared: true,
+        options: {
+          path: "/identity/logout",
+          sameSite: "strict",
+          httpOnly: true,
+          secure: true,
+        },
+      },
+    ]);
+  });
 
   it("over TLS, clears every cookie the browser sent with Secure, as it was set", async () => {
     const written: Array<WrittenCookie> = await invoke(

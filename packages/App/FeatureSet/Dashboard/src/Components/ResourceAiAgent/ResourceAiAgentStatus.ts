@@ -111,7 +111,7 @@ export const RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS: number =
 export const RESOURCE_AI_AGENT_PAGE_TITLE: string = translationKey("AI agent");
 
 export const RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT: string = translationKey(
-  "Ask a project owner or admin.",
+  "Ask a Project Owner or Project Admin.",
 );
 
 export function getResourceAiAgentPageSubtitle(

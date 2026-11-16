@@ -18,7 +18,7 @@ flowchart TB
     OU --> V["VMware 页面、监视器、告警和 AI"]
 ```
 
-探测器每隔几分钟使用您保存的账户登录 vCenter，读取清单、性能计数器和 vSAN 统计信息，并将其发送到 OneUptime。这些数据的到达方式与 VMware 代理的完全相同，因此每个 VMware 页面、[VMware 监视器](/docs/monitor/vmware-monitor)、告警模板和 OneUptime AI 都以相同方式读取它们。探测器在两次收集之间保持 vCenter 会话，因此 vCenter 的事件日志不会被登录记录填满。
+探测器每隔几分钟使用您保存的账户登录 vCenter，读取清单、性能计数器和 vSAN 统计信息，并将其发送到 OneUptime。这些数据的到达方式与 VMware 代理的完全相同，因此每个 VMware 页面、[VMware 监视器](/docs/monitor/vmware-monitor)、警报模板和 OneUptime AI 都以相同方式读取它们。探测器在两次收集之间保持 vCenter 会话，因此 vCenter 的事件日志不会被登录记录填满。
 
 ## 探测器还是代理？
 
@@ -125,7 +125,7 @@ vCenter 出示的是其自有证书颁发机构签发的证书。将显示的指
 ## 后续步骤
 
 :::cards
-- [VMware 监视器](/docs/monitor/vmware-monitor)：针对主机、虚拟机、数据存储和集群的告警。
+- [VMware 监视器](/docs/monitor/vmware-monitor)：针对主机、虚拟机、数据存储和集群的警报。
 - [自定义探测器](/docs/probe/custom-probe)：在 vCenter 网络中运行探测器。
 - [VMware 代理](/docs/telemetry/vmware)：改用代理收集 vCenter。
 :::

@@ -16,9 +16,9 @@ Skicka OneUptime-incidenter till [PagerDuty](https://www.pagerduty.com). Ett arb
 
 ```mermaid title="Två arbetsflöden, en PagerDuty-incident"
 flowchart TB
-    declared["Incident deklarerad"] --> create["Arbetsflöde 1:<br/>On Create Incident"]
+    declared["Incident deklarerad"] --> create["Arbetsflöde 1:<br/>Vid skapande: Incident"]
     create -->|"trigger"| pd["PagerDuty-incident"]
-    resolved["Incident löst"] --> update["Arbetsflöde 2:<br/>On Update Incident"]
+    resolved["Incident löst"] --> update["Arbetsflöde 2:<br/>Vid uppdatering:<br/>Incident"]
     update -->|"resolve"| pd
 ```
 
@@ -48,11 +48,11 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **On Create Incident**. Klicka på utlösaren: dess **Fields to pass on** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning**.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Vid skapande: Incident**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning**.
 
 ### Skicka trigger-händelsen
 
-Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block och koppla utlösarens **Framgång**-punkt till det. Ställ in **URL** på `https://events.pagerduty.com/v2/enqueue` och **Begärandekropp** på:
+Klicka på **Lägg till komponent**, lägg till ett **API-anrop POST (JSON)**-block och koppla utlösarens **Framgång**-punkt till det. Ställ in **URL** på `https://events.pagerduty.com/v2/enqueue` och **Begärandekropp** på:
 
 ```json
 {
@@ -72,7 +72,7 @@ Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block oc
 
 ### Testa det och slå sedan på det
 
-Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API Post (JSON)** visar ett `202`-svar med `"status": "success"`, och PagerDuty skapar en incident. Slå sedan på **Aktiverad** högst upp i **Byggare**.
+Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API-anrop POST (JSON)** visar ett `202`-svar med `"status": "success"`, och PagerDuty skapar en incident. Slå sedan på **Aktiverad** högst upp i **Byggare**.
 :::
 
 Blocket skickar JSON, så det behöver ingen `Content-Type`-rubrik. PagerDutys `severity` är en av `critical`, `error`, `warning` och `info`: se [Koppla allvarlighetsgrader](#koppla-allvarlighetsgrader) för att skicka varje incidents egen.
@@ -82,9 +82,9 @@ Blocket skickar JSON, så det behöver ingen `Content-Type`-rubrik. PagerDutys `
 Ett arbetsflöde har en utlösare, så det krävs ett andra arbetsflöde för att lösa den, som startar när en incidents status ändras.
 
 :::steps
-### Lägg till utlösaren On Update Incident
+### Lägg till utlösaren ”Vid uppdatering: Incident”
 
-Skapa ett arbetsflöde som heter `Resolve PagerDuty incidents` och välj **On Update Incident** som utlösare. Klicka på **Lägg till fält** i **Fields to watch** och välj **Current Incident State**, så att det bara körs när statusen ändras. Fråga i **Fields to pass on** om den nya statusen är en löst status: klicka på **Lägg till fält**, öppna **Current Incident State** och välj **Is Resolved State**. Eller klicka på **Redigera som JSON** och ersätt JSON:en med:
+Skapa ett arbetsflöde som heter `Resolve PagerDuty incidents` och välj **Vid uppdatering: Incident** som utlösare. Klicka på **Lägg till fält** i **Fält att bevaka** och välj **Current Incident State**, så att det bara körs när statusen ändras. Fråga i **Fält att skicka vidare** om den nya statusen är en löst status: klicka på **Lägg till fält**, öppna **Current Incident State** och välj **Is Resolved State**. Eller klicka på **Redigera som JSON** och ersätt JSON:en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -92,11 +92,11 @@ Skapa ett arbetsflöde som heter `Resolve PagerDuty incidents` och välj **On Up
 
 ### Kontrollera att incidenten är löst
 
-Lägg till ett **If / Else**-block efter utlösaren. Ställ in **Värde att kontrollera** på `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` och **Jämförelse** på **är sant**.
+Lägg till ett **Om / Annars**-block efter utlösaren. Ställ in **Värde att kontrollera** på `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` och **Jämförelse** på **är sant**.
 
 ### Skicka resolve-händelsen
 
-Lägg till ett **API Post (JSON)**-block efter **Ja**-sidan, med samma **URL** och denna **Begärandekropp**:
+Lägg till ett **API-anrop POST (JSON)**-block efter **Ja**-sidan, med samma **URL** och denna **Begärandekropp**:
 
 ```json
 {
@@ -115,10 +115,10 @@ Att kontrollera `isResolvedState` i stället för namnet på en status fortsätt
 
 ## Koppla allvarlighetsgrader
 
-För att skicka varje incidents allvarlighetsgrad lägger du till ett **Run Custom JavaScript**-block mellan utlösaren och **API Post (JSON)**-blocket och läser dess svar i innehållet.
+För att skicka varje incidents allvarlighetsgrad lägger du till ett **Kör egen JavaScript**-block mellan utlösaren och **API-anrop POST (JSON)**-blocket och läser dess svar i innehållet.
 
-1. Klicka på **Lägg till fält** i utlösarens **Fields to pass on**, öppna **Incidentallvar** och välj **Namn**.
-2. Ställ in blockets **Arguments** på `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` och dess **JavaScript-kod** på:
+1. Klicka på **Lägg till fält** i utlösarens **Fält att skicka vidare**, öppna **Incidentallvar** och välj **Namn**.
+2. Ställ in blockets **Argument** på `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` och dess **JavaScript-kod** på:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -138,7 +138,7 @@ Namnen ovan är de tre allvarlighetsgrader som ett nytt projekt börjar med. Anv
 ## Felsökning
 
 :::details PagerDuty svarar 400
-Svarets innehåll säger vad PagerDuty nekade, och körningens **API Post (JSON)**-steg visar det. Oftast är routing key inte en integrationsnyckel för Events API v2: kopiera den igen från tjänstens **Integrations**. En händelse utan `summary`, `source` eller `severity` nekas också.
+Svarets innehåll säger vad PagerDuty nekade, och körningens **API-anrop POST (JSON)**-steg visar det. Oftast är routing key inte en integrationsnyckel för Events API v2: kopiera den igen från tjänstens **Integrations**. En händelse utan `summary`, `source` eller `severity` nekas också.
 :::
 
 :::details Resolve-händelsen stänger ingenting
@@ -146,7 +146,7 @@ Båda händelserna måste ha exakt samma `dedup_key`. Kontrollera att båda inne
 :::
 
 :::details Arbetsflödet körs aldrig
-Kontrollera att det är påslaget: **Aktiverad**, högst upp i dess **Byggare**. Öppna sedan **Loggar → Körningar**: en körning som tog **Nej**-sidan av **If / Else**-blocket är en uppdatering som inte var en lösning.
+Kontrollera att det är påslaget: **Aktiverad**, högst upp i dess **Byggare**. Öppna sedan **Loggar → Körningar**: en körning som tog **Nej**-sidan av **Om / Annars**-blocket är en uppdatering som inte var en lösning.
 :::
 
 :::details PagerDuty visar en referens i stället för ett värde

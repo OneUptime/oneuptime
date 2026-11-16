@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Postmortem rules - which resolved incidents OneUptime AI drafts a
@@ -1213,4 +1214,18 @@ test.describe("the LLM provider a rule drafts with", () => {
       });
     }
   }
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return language === "en" ? PAGE_PATH : `${PAGE_PATH}?lang=${language}`;
+  },
 });

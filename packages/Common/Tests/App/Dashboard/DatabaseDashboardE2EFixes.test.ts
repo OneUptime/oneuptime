@@ -139,7 +139,7 @@ describe("the Overview header's liveness pill", () => {
         expect(label).not.toContain(word);
       }
     }
-    expect(DATABASE_LIVENESS_DESCRIPTION).toContain("30 minutes");
+    expect(DATABASE_LIVENESS_DESCRIPTION).toContain("30\u00A0minutes");
     expect(getDatabaseLivenessStatus("not a date", NOW)).toBe(
       DatabaseLivenessStatus.NeverSeen,
     );

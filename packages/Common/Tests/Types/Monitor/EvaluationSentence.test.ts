@@ -158,8 +158,12 @@ describe("EvaluationSentence", () => {
       );
 
       expect(isWhollyWorded(sentence, chinese)).toBe(true);
+      /*
+       * The part starts with Chinese words of its own, so it meets "预期"
+       * with no space between them (#8532); the figure keeps its space.
+       */
       expect(wordEvaluationSentence(sentence, chinese)).toBe(
-        "响应状态码为 200。（预期 大于 499）。",
+        "响应状态码为 200。（预期大于 499）。",
       );
     });
 
@@ -290,7 +294,7 @@ describe("EvaluationSentence", () => {
           translatablePluralSentence(forms, 7, { label: "CPU" }),
           german,
         ),
-      ).toBe("CPU in den letzten 7 Minuten");
+      ).toBe("CPU in den letzten 7\u00A0Minuten");
     });
 
     test("a time is written where it is read, in the reader's language", () => {

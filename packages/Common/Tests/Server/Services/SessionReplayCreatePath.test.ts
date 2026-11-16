@@ -217,7 +217,7 @@ describe("RumSessionErasureRequestService create path", () => {
       };
     };
 
-  it("produces a model a project admin is allowed to create", async () => {
+  it("produces a model a Project Admin is allowed to create", async () => {
     /*
      * onBeforeCreate runs BEFORE checkCreatePermissions, so anything it
      * writes onto the model is checked against the caller's create ACL as
@@ -326,7 +326,7 @@ describe("RumSessionPinService create path", () => {
     };
   };
 
-  it("produces a model a project admin is allowed to create", async () => {
+  it("produces a model a Project Admin is allowed to create", async () => {
     const createBy: CreateBy<RumSessionPin> = buildCreateBy();
 
     const onCreate: OnCreate<RumSessionPin> =

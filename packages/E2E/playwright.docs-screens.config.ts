@@ -34,6 +34,9 @@ export default defineConfig({
     },
   ],
   use: {
+    // One zone whatever the machine's (Tests/Ops/E2EConfigsPinTheirZone.test.js).
+    timezoneId: "Europe/London",
+    locale: "en-GB",
     actionTimeout: 15000,
     // A run draws hundreds of pages: a trace of each would be gigabytes. A shot that fails says why in its result.
     trace: "off",

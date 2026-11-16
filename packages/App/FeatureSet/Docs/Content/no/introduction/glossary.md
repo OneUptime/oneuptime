@@ -32,7 +32,7 @@ En gruppe personer i et prosjekt, der tillatelsene avgjør hva medlemmene kan gj
 
 Se [Brukere, team og tillatelser](/docs/permissions/index).
 
-### Overvåking
+### Monitor
 
 Sjekker én ting du kjører, for eksempel et nettsted, et API, en server eller en Kubernetes-klynge, og avgjør om den virker. Når kriteriene treffer, endrer den status og kan erklære en hendelse eller opprette et varsel.
 
@@ -46,7 +46,7 @@ Også kalt: **Overvåkingskriterier**, **Monitorkriterier**, **Monitor Steps**. 
 
 ### Monitorstatus
 
-Det en monitor er akkurat nå. Hvert nytt prosjekt har tre monitorstatuser, **I drift**, **Redusert** og **Frakoblet**, og du kan legge til dine egne.
+Det en monitor er akkurat nå. Hvert nytt prosjekt har tre monitorstatuser, **I drift**, **Redusert** og **Offline**, og du kan legge til dine egne.
 
 Se [Kriterier og statuser](/docs/monitor/criteria-and-statuses).
 
@@ -78,7 +78,7 @@ Også kalt: **Hendelsesepisode**, **Varselsepisode**. Se [Episoder](/docs/incide
 
 Avgjør hvem som tilkalles om en hendelse, et varsel eller en episode, og hvem som er neste hvis ingen bekrefter. Nivåene er eskaleringsregler.
 
-Også kalt: **Vakttjeneste**, **On-Call Duty Policy**, **Vakt**, `OnCallDutyPolicy`. Se [Vaktretningslinjer](/docs/on-call/policies).
+Også kalt: **Vakttjeneste**, **On-Call Duty Policy**, **Vakt**, `OnCallDutyPolicy`. Se [Vaktpolicyer](/docs/on-call/policies).
 
 ### Eskaleringsregel
 
@@ -98,11 +98,11 @@ Også kalt: **Rotation**, **Vaktplan for vaktpolicy**. Se [Vaktplaner](/docs/on-
 
 Se [Vaktplaner](/docs/on-call/schedules#lag).
 
-### Varselmetode
+### Varslingsmetode
 
 En adresse OneUptime kan nå deg på i et prosjekt: en e-postadresse, et telefonnummer for SMS eller anrop, Slack- eller Microsoft Teams-kontoen din eller OneUptime-appen på telefonen din. Hver person legger til sine egne under **Brukerinnstillinger**.
 
-Se [Varselmetoder](/docs/notifications/notification-methods).
+Se [Varslingsmetoder](/docs/notifications/notification-methods).
 
 ### Slik når man meg
 
@@ -170,7 +170,7 @@ Se [Verter](/docs/telemetry/hosts).
 
 Svitsjene, ruterne, brannmurene og tilgangspunktene dine, og alt annet med en adresse på nettverket ditt, enten det snakker SNMP eller ikke.
 
-Se [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor).
+Se [Monitor for nettverksenhet](/docs/monitor/network-device-monitor).
 
 ### Sky
 
@@ -224,7 +224,7 @@ Se [Topologi](/docs/telemetry/topology).
 
 Et pålitelighetsmål for det du overvåker, for eksempel tilgjengelig 99,9 % av tiden over 30 dager. OneUptime måler hvert SLO mot monitorene sine hvert 5. minutt.
 
-Også kalt: **Service Level Objective**. Se [SLO-er – Oversikt](/docs/slo/introduction).
+Også kalt: **Tjenestenivåmål**. Se [SLO-er – Oversikt](/docs/slo/introduction).
 
 ### Feilbudsjett
 
@@ -286,7 +286,7 @@ Også kalt: **Sak**. Se [Sikkerhetssaker og playbooks (SOAR)](/docs/telemetry/se
 
 ### Logger
 
-Linjene tjenestene, vertene og agentene dine skriver, som du søker gjennom i loggutforskeren og følger med på via en logg-overvåking.
+Linjene tjenestene, vertene og agentene dine skriver, som du søker gjennom i loggutforskeren og følger med på via en logg-monitor.
 
 Se [Loggutforsker](/docs/telemetry/logs-explorer).
 
@@ -394,7 +394,7 @@ Se [Skjemaer – oversikt](/docs/forms/index).
 
 Tjenesten `oneuptime-infrastructure-agent` bak en Server / VM-monitor: den rapporterer én maskins CPU, minne, disker og prosesser hvert 30. sekund, signert med monitorens hemmelige nøkkel.
 
-Se [Server- / VM-overvåking](/docs/monitor/server-monitor).
+Se [Server- / VM-monitor](/docs/monitor/server-monitor).
 
 ### Kubernetes-agent
 
@@ -452,11 +452,11 @@ Hvert nivå har sine egne: **Prosjektinnstillinger** for hele prosjektet, **Bruk
 
 Se [Prosjektinnstillinger](/docs/configuration/project-settings).
 
-### Retningslinje
+### Policy
 
 Oftest en **Vaktpolicy**: hvem som tilkalles, og hvem som er neste. En policy for innkommende anrop gir teamet ditt et telefonnummer som ringer den som har vakt, og en feilbudsjettpolicy skriver ned hva teamet ditt gjør når budsjettet til et SLO tar slutt.
 
-Se [Vaktretningslinjer](/docs/on-call/policies).
+Se [Vaktpolicyer](/docs/on-call/policies).
 
 ### Mal
 
@@ -482,11 +482,11 @@ Under **Hendelser** og **Varsler** velger vaktregler vaktpolicyene en ny hendels
 
 Se [Hendelsesinnstillinger og automatisering](/docs/incidents/settings#vaktregler-for-hendelser) og [Slik når man meg](/docs/notifications/on-call-rules).
 
-### Varselinnstillinger
+### Varslingsinnstillinger
 
-Under **Brukerinnstillinger**: hvilke oppdateringer du får om det du eier, og på hvilke kanaler. Prosjektets brytere for SMS og anrop, meldingssaldoen og prosjektets egen SMTP og Twilio het også varselinnstillinger: De heter nå **Varslingskanaler**, under **Prosjektinnstillinger**.
+Under **Brukerinnstillinger**: hvilke oppdateringer du får om det du eier, og på hvilke kanaler. Prosjektets brytere for SMS og anrop, meldingssaldoen og prosjektets egen SMTP og Twilio het også varslingsinnstillinger: De heter nå **Varslingskanaler**, under **Prosjektinnstillinger**.
 
-Se [Varselinnstillinger](/docs/notifications/notification-settings).
+Se [Varslingsinnstillinger](/docs/notifications/notification-settings).
 
 ## Neste steg
 

@@ -19,6 +19,8 @@ import {
   TelemetrySortDirection,
 } from "./TelemetryIngestionUtils";
 import URL from "Common/Types/API/URL";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Green, Gray500 } from "Common/Types/BrandColors";
@@ -43,6 +45,8 @@ import ResizableHeaderCell, {
   ColumnResize,
 } from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import { formatList, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -66,13 +70,14 @@ const StatTile: FunctionComponent<{
   value: string;
   hint?: string | undefined;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-3">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        {props.label}
+        {translator.translateText(props.label) || props.label}
       </div>
       <div className="mt-1 text-xl font-semibold tabular-nums text-gray-900">
-        {props.value}
+        {getFigure(props.value)}
       </div>
       {props.hint ? (
         <div
@@ -194,6 +199,7 @@ const SortableHeader: FunctionComponent<{
  * capacity conversation with one customer.
  */
 const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [data, setData] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -300,8 +306,9 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
     if (!view.connected) {
       return (
         <div className="text-sm text-gray-500">
-          ClickHouse is not reachable from this instance, so per-project
-          ingestion cannot be measured.
+          {translator.translateText(
+            "ClickHouse is not reachable from this instance, so per-project ingestion cannot be measured.",
+          )}
         </div>
       );
     }
@@ -321,10 +328,15 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm text-gray-600">
-            {formatCount(summary.lastHour)} telemetry rows from{" "}
-            {summary.projectCount.toLocaleString()}{" "}
-            {summary.projectCount === 1 ? "project" : "projects"} in the last
-            hour
+            {translator.translatePlural(
+              {
+                one: "{{rows}} telemetry rows from {{count}} project in the last hour",
+                other:
+                  "{{rows}} telemetry rows from {{count}} projects in the last hour",
+              },
+              summary.projectCount,
+              { rows: formatCount(summary.lastHour) },
+            )}
           </div>
           <Statusbubble
             text={isIngesting ? "Ingesting" : "Idle"}
@@ -339,7 +351,9 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
             value={summary.projectCount.toLocaleString()}
             hint={
               summary.topProject
-                ? `Top: ${projectDisplayName(summary.topProject)}`
+                ? translator.translateTemplate("Top: {{project}}", {
+                    project: projectDisplayName(summary.topProject),
+                  })
                 : undefined
             }
           />
@@ -380,10 +394,12 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                     {signal.telemetryType}
                   </span>
                   <span className="tabular-nums text-gray-900">
-                    {formatCount(signal.lastDay)}
+                    {getValueOrQuietDash(formatCount(signal.lastDay))}
                   </span>
                   <span className="text-xs text-gray-500">
-                    ({formatPercent(percent)} of 24h)
+                    {translator.translateTemplate("({{share}} of 24h)", {
+                      share: formatPercent(percent),
+                    })}
                   </span>
                 </div>
               );
@@ -394,9 +410,10 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
         {view.unavailableSignals.length > 0 ? (
           <Alert
             type={AlertType.WARNING}
-            title={`Could not read ${view.unavailableSignals.join(
-              ", ",
-            )} on this instance — those columns show "—" rather than zero.`}
+            title={translator.translateTemplate(
+              'Could not read {{signals}} on this instance — those columns show "—" rather than zero.',
+              { signals: formatList(view.unavailableSignals, translator) },
+            )}
           />
         ) : (
           <></>
@@ -405,11 +422,20 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
         {view.truncated ? (
           <Alert
             type={AlertType.INFO}
-            title={`Only the ${
+            title={
               view.maxProjectsPerSignal === null
-                ? "top"
-                : `top ${view.maxProjectsPerSignal.toLocaleString()}`
-            } projects per signal are listed. Smaller projects are not shown and are not included in the totals above.`}
+                ? (translator.translateText(
+                    "Only the top projects per signal are listed. Smaller projects are not shown and are not included in the totals above.",
+                  ) as string)
+                : translator.translatePlural(
+                    {
+                      one: "Only the top {{count}} project per signal is listed. Smaller projects are not shown and are not included in the totals above.",
+                      other:
+                        "Only the top {{count}} projects per signal are listed. Smaller projects are not shown and are not included in the totals above.",
+                    },
+                    view.maxProjectsPerSignal,
+                  )
+            }
           />
         ) : (
           <></>
@@ -417,7 +443,9 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
 
         {view.projects.length === 0 ? (
           <div className="rounded-lg border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
-            No project ingested telemetry in the last 24 hours.
+            {translator.translateText(
+              "No project ingested telemetry in the last 24 hours.",
+            )}
           </div>
         ) : (
           <>
@@ -435,7 +463,11 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
 
             {visibleProjects.length === 0 ? (
               <div className="rounded-lg border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
-                No project matches &quot;{searchText}&quot;.
+                {translator.translateTemplate(
+                  'No project matches "{{search}}".',
+                  { search: searchText },
+                  { setsValuesApart: true },
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -450,7 +482,7 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                         label="Project"
                         resize={projectColumns.getResize(
                           "project",
-                          "Project",
+                          translator.translateText("Project") as string,
                           ColumnWidthKind.Name,
                         )}
                         align="left"
@@ -494,7 +526,7 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                         label="Total (24h)"
                         resize={projectColumns.getResize(
                           "total",
-                          "Total (24h)",
+                          translator.translateText("Total (24h)") as string,
                           ColumnWidthKind.Whole,
                         )}
                         isActive={
@@ -511,17 +543,17 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                         className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
                         resize={projectColumns.getResize(
                           "share",
-                          "Share",
+                          translator.translateText("Share") as string,
                           ColumnWidthKind.Whole,
                         )}
                       >
-                        <span>Share</span>
+                        <span>{translator.translateText("Share")}</span>
                       </ResizableHeaderCell>
                       <SortableHeader
                         label="Last hour"
                         resize={projectColumns.getResize(
                           "lastHour",
-                          "Last hour",
+                          translator.translateText("Last hour") as string,
                           ColumnWidthKind.Whole,
                         )}
                         isActive={
@@ -537,7 +569,7 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                         label="Last minute"
                         resize={projectColumns.getResize(
                           "lastMinute",
-                          "Last minute",
+                          translator.translateText("Last minute") as string,
                           ColumnWidthKind.Whole,
                         )}
                         isActive={
@@ -564,7 +596,8 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                                 className="truncate font-medium text-gray-900"
                                 title={projectDisplayName(project)}
                               >
-                                {project.projectName || "Unnamed project"}
+                                {project.projectName ||
+                                  translator.translateText("Unnamed project")}
                               </div>
                               <div
                                 className="truncate font-mono text-xs text-gray-400"
@@ -585,13 +618,17 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                                     key={telemetryType}
                                     className="whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums text-gray-700"
                                   >
-                                    {formatCount(counts.lastDay)}
+                                    {getValueOrQuietDash(
+                                      formatCount(counts.lastDay),
+                                    )}
                                   </td>
                                 );
                               },
                             )}
                             <td className="whitespace-nowrap px-3 py-2 text-right text-sm font-semibold tabular-nums text-gray-900">
-                              {formatCount(project.lastDay)}
+                              {getValueOrQuietDash(
+                                formatCount(project.lastDay),
+                              )}
                             </td>
                             <td className="px-3 py-2">
                               <ShareBar
@@ -602,10 +639,14 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                               />
                             </td>
                             <td className="whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums text-gray-700">
-                              {formatCount(project.lastHour)}
+                              {getValueOrQuietDash(
+                                formatCount(project.lastHour),
+                              )}
                             </td>
                             <td className="whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums text-gray-700">
-                              {formatCount(project.lastMinute)}
+                              {getValueOrQuietDash(
+                                formatCount(project.lastMinute),
+                              )}
                             </td>
                           </tr>
                         );
@@ -619,10 +660,9 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
         )}
 
         <div className="text-xs text-gray-500">
-          Counts use each signal&apos;s telemetry timestamp (event time), which
-          tracks live ingestion, and cover the last 24 hours. A project deleted
-          while its telemetry is still inside the retention window keeps
-          contributing rows and is listed by its id.
+          {translator.translateText(
+            "Counts use each signal's telemetry timestamp (event time), which tracks live ingestion, and cover the last 24 hours. A project deleted while its telemetry is still inside the retention window keeps contributing rows and is listed by its id.",
+          )}
         </div>
       </div>
     );

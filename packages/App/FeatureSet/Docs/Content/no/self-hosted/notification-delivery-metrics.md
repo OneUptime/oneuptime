@@ -78,11 +78,11 @@ Dette gjelder hver måling OneUptime sender om seg selv. En backend som selv les
 
 | Måling | Type | Enhet | Hva den svarer på |
 | --- | --- | --- | --- |
-| `notification.trigger.count` | Teller | `1` | Hvor mange poster som krevde varsler |
+| `notification.trigger.count` | Teller | `1` | Hvor mange poster som krevde varslinger |
 | `notification.send.count` | Teller | `1` | Hvordan det gikk med hver melding som ble gitt til en leverandør |
 | `notification.send.duration` | Histogram | `ms` | Hvor lang tid leverandøren brukte på å ta imot den |
 | `notification.time_to_send` | Histogram | `ms` | Hvor lenge etter utløseren en tilkalling nådde leverandøren sin |
-| `notification.send.lag` | Histogram | `ms` | Hvor lenge etter forfallstidspunktet et senere sendt varsel nådde leverandøren sin |
+| `notification.send.lag` | Histogram | `ms` | Hvor lenge etter forfallstidspunktet en senere sendt varsling nådde leverandøren sin |
 | `notification.delivery.count` | Teller | `1` | Hvordan meldingene leverandørene tok imot endte |
 | `notification.delivery.duration` | Histogram | `ms` | Hvor lenge etter at leverandøren tok imot den en melding endte |
 
@@ -107,7 +107,7 @@ Hver attributt har én av noen få faste verdier, aldri et prosjekt, en person, 
 | `notification.channel` | `email`, `sms`, `call`, `whatsapp`, `telegram`, `push`, `webhook`, `slack`, `microsoft_teams`, `mattermost`, `custom_channel` |
 | `notification.provider` | `twilio`, `sms_and_call_gateway`, `smtp`, `sendgrid`, `amazon_ses`, `mailgun`, `postmark`, `resend`, `microsoft_graph`, `expo`, `push_relay`, `web_push`, `meta_whatsapp`, `telegram_bot_api`, `slack`, `microsoft_teams`, `mattermost`, `webhook`, `custom_channel`, eller `none` når ingenting ble gitt til noen |
 | `notification.provider.config` | `global` for installasjonens egen konto og innstillinger; `project` for et prosjekts egen Twilio-konto, SMTP-server, webhook eller arbeidsområdetilkobling, der det er prosjektets sak å rette feilene |
-| `notification.on_call_page` | `true` for et varsel fra en vakttilkalling, ellers `false` |
+| `notification.on_call_page` | `true` for en varsling fra en vakttilkalling, ellers `false` |
 | `outcome` | `success`, `failure` eller `not_sent`, som nedenfor |
 | `notification.destination` | Slack, Microsoft Teams og Mattermost: `direct_message` til én person, `channel` for et innlegg i en kanal eller en Teams-gruppechat, `incoming_webhook` for en innkommende webhook, for eksempel en statussideabonnents. Webhooks: `status_page_subscriber` for en statussideabonnents egen webhook. Utelatt for en persons webhook og for alle andre kanaler |
 | `notification.custom_channel.id`, `notification.custom_channel.name` | Bare egendefinerte kanaler: kanalens ID, og navnet dens kuttet til 100 tegn |
@@ -142,7 +142,7 @@ Statuser kommer bare der leverandøren kan melde dem:
 
 ### Tid til sending
 
-`notification.time_to_send` løper fra en tilkallings utløser til leverandøren tar imot varselet. Den måler bare varslene som forfaller når tilkallingen starter: personene i den første eskaleringsregelen, etter vaktreglene deres som ikke venter på noe, og ethvert nivå tilkallingen går videre til med en gang fordi den ikke nådde noen. Ventetider som vaktkonfigurasjonen ber om, er ikke plattformens forsinkelse, så de er utelatt: de står i [sendeforsinkelse](#sendeforsinkelse). Bare varsler som leverandøren tok imot, måles; en feil vises i `notification.send.count`.
+`notification.time_to_send` løper fra en tilkallings utløser til leverandøren tar imot varslingen. Den måler bare varslingene som forfaller når tilkallingen starter: personene i den første eskaleringsregelen, etter vaktreglene deres som ikke venter på noe, og ethvert nivå tilkallingen går videre til med en gang fordi den ikke nådde noen. Ventetider som vaktkonfigurasjonen ber om, er ikke plattformens forsinkelse, så de er utelatt: de står i [sendeforsinkelse](#sendeforsinkelse). Bare varslinger som leverandøren tok imot, måles; en feil vises i `notification.send.count`.
 
 | Attributt | Verdier |
 | --- | --- |
@@ -161,16 +161,16 @@ For en innkommende forespørsel løper tiden fra den siste forespørselen endepu
 
 ### Sendeforsinkelse
 
-`notification.send.lag` løper fra øyeblikket et senere sendt varsel forfalt, til leverandøren tar imot det. To workers sender disse, én gang i minuttet hver, så en worker som er i rute viser opptil omtrent ett minutt, og en som har kommet på etterskudd viser hvor mye.
+`notification.send.lag` løper fra øyeblikket en senere sendt varsling forfalt, til leverandøren tar imot det. To workers sender disse, én gang i minuttet hver, så en worker som er i rute viser opptil omtrent ett minutt, og en som har kommet på etterskudd viser hvor mye.
 
 | `notification.schedule` | Forfaller når |
 | --- | --- |
 | `rule_wait` | En persons vaktregel som venter, for eksempel "ring meg etter 10 minutter": så lenge etter at personen ble tilkalt. Aldri før workeren sist gikk gjennom reglene deres, så en regel som legges til eller endres senere, forfaller fra da. |
 | `repeat` | En push som gjentas til noen bekrefter: hver gang intervallet løper ut. |
 | `escalation` | Et senere eskaleringsnivå: når nivået før har fullført ventetiden sin, eller med en gang når en person gir tilkallingen videre. |
-| `policy_repeat` | Retningslinjen som starter på nytt fra første nivå: når ventetiden på det siste nivået har løpt ut. |
+| `policy_repeat` | Policyen som starter på nytt fra første nivå: når ventetiden på det siste nivået har løpt ut. |
 
-Den bærer også `notification.channel`, `notification.trigger.type` og, for egendefinerte kanaler, `notification.custom_channel.id` og `notification.custom_channel.name`. Et varsel som forfaller når tilkallingen starter, er aldri med i den, heller ikke når en worker startet tilkallingen for sent, etter en pause eller som en ny tilkalling: det er i tid til sending.
+Den bærer også `notification.channel`, `notification.trigger.type` og, for egendefinerte kanaler, `notification.custom_channel.id` og `notification.custom_channel.name`. En varsling som forfaller når tilkallingen starter, er aldri med i den, heller ikke når en worker startet tilkallingen for sent, etter en pause eller som en ny tilkalling: det er i tid til sending.
 
 ### Histogrammenes buckets
 
@@ -193,10 +193,10 @@ Fire mål de fleste installasjoner kan love, hvert bygd av én eller to spørrin
 
 :::steps
 1. Åpne prosjektets [Målingsutforsker](/docs/telemetry/metrics-explorer), og klikk på målets første måling. Spørringen dens er `a`.
-2. Velg aggregeringen dens under **Aggregate by**. Åpne deretter **Filters & grouping**, og legg til hver av betingelsene dens under **Filter by attributes**.
+2. Velg aggregeringen dens under **Aggreger etter**. Åpne deretter **Filtre og gruppering**, og legg til hver av betingelsene dens under **Filtrer etter attributter**.
 3. For en ny spørring klikker du **Legg til måling** og setter opp `b` på samme måte.
 4. For en formel klikker du **Legg til formel** og skriver den i **Formel**.
-5. For å få beskjed når målet ikke nås, klikker du **Handlinger → Opprett monitor fra denne visningen** og varsler når verdien går forbi målet: se [Målingsovervåking](/docs/monitor/metrics-monitor).
+5. For å få beskjed når målet ikke nås, klikker du **Handlinger → Opprett monitor fra denne visningen** og varsler når verdien går forbi målet: se [Målingsmonitor](/docs/monitor/metrics-monitor).
 :::
 
 For å følge et mål over 30 dager med et feilbudsjett, knytt den monitoren til en [SLO](/docs/slo/introduction): den teller tiden målet ikke ble nådd.
@@ -222,9 +222,9 @@ Formelen `$b / $a * 100` er andelen som feilet, og målet holder så lenge den h
 
 Målet holder så lenge `a` holder seg på eller under 30000. Tilkallinger som startes senere, måles fra starten eller fra da de forfalt, ikke fra en utløser, så de er utelatt. Grupper etter `notification.page.start` for å se monitorenes kø (`monitor_data_received`) atskilt fra resten, eller etter `notification.channel` for å finne en treg kanal.
 
-### Senere sendte varsler går ut innen 90 sekunder
+### Senere sendte varslinger går ut innen 90 sekunder
 
-99 % av varslene som sendes etter en ventetid, når leverandøren sin innen 90 sekunder etter forfallstidspunktet.
+99 % av varslingene som sendes etter en ventetid, når leverandøren sin innen 90 sekunder etter forfallstidspunktet.
 
 | Spørring | Måling | Aggregering | Betingelser |
 | --- | --- | --- | --- |
@@ -246,7 +246,7 @@ Formelen `$b / $a * 100` er andelen som ikke ble levert. Teleoperatører og avsl
 ## Feilsøking
 
 :::details Ingen varslingsmålinger kommer inn
-Kontroller at `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` og `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` begge er angitt, og i Docker Compose at `DISABLE_TELEMETRY_FOR_APP` er `false`, og start deretter OneUptime på nytt. Når OneUptime starter, logger det en advarsel hvis det ikke kan lese en header, eller hvis det ikke sender noe. En måling dukker først opp når noe er registrert, så send et varsel først.
+Kontroller at `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` og `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` begge er angitt, og i Docker Compose at `DISABLE_TELEMETRY_FOR_APP` er `false`, og start deretter OneUptime på nytt. Når OneUptime starter, logger det en advarsling hvis det ikke kan lese en header, eller hvis det ikke sender noe. En måling dukker først opp når noe er registrert, så send en varsling først.
 :::
 
 :::details Et antall bare vokser, eller en persentil rører seg knapt
@@ -261,7 +261,7 @@ Endelige statuser kommer fra leverandørene, senere, og bare der de kan melde de
 
 :::cards
 - [Målingsutforsker](/docs/telemetry/metrics-explorer): Vis, kombiner og sammenlign enhver måling.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle når et mål ikke nås.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle når et mål ikke nås.
 - [Twilio-integrasjon](/docs/self-hosted/twilio-integration): La Twilio melde hva som nådde telefonen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Ventetidene sendeforsinkelsen regnes fra.
 :::

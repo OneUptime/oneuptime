@@ -132,7 +132,7 @@ Em **Regra**, informe um **Nome**, como "Fast burn". Uma regra nova fica ligada;
 
 ### Definir a janela de consumo
 
-Em **Janela de consumo**, defina o **Limite da taxa de consumo** (por exemplo `14.4`), a **Janela longa (minutos)** e a **Janela curta (minutos)**, e se quiser a **Supressão de novo disparo (minutos)**.
+Em **Janela de consumo**, defina o **Limite da taxa de consumo** (por exemplo `14.4`), a **Janela longa (minutos)** e a **Janela curta (minutos)**, e se quiser a **Supressão de novo disparo (minutos)**. A regra de um SLO de requisições também aceita um **Mínimo de requisições**, por exemplo `100`: a regra ignora uma janela longa que tenha menos requisições do que isso. A regra de um SLO de métrica aceita um **Mínimo de eventos** do mesmo jeito, contado nos eventos da métrica dele.
 
 ### Escolher o que ela declara
 
@@ -151,10 +151,12 @@ O OneUptime confere os números de uma regra quando você a salva:
 | **Janela curta (minutos)** | Maior que 0. |
 | **Janela longa (minutos)** | Mais longa que a janela curta. |
 | **Supressão de novo disparo (minutos)** | 0 ou mais. Vazio significa a duração da janela longa. |
+| **Mínimo de requisições** | Um número inteiro, 0 ou mais. Vazio significa sem mínimo. |
+| **Mínimo de eventos** | Um número inteiro, 0 ou mais. Vazio significa sem mínimo. |
 
 Toda resposta a **Quando dispara** abre algo. A API recusa uma regra que não criaria nenhum alerta nem declararia nenhum incidente, porque seria verificada a cada avaliação sem nunca declarar nada.
 
-A tabela de regras mostra, para cada regra, o limite, as janelas e a supressão, o que ela declara (e se o alerta ou o incidente só se resolve à mão, ou é privado), as severidades, as políticas de plantão, os proprietários e os rótulos.
+A tabela de regras mostra, para cada regra, o limite, as janelas e a supressão, o que ela declara (e se o alerta ou o incidente só se resolve à mão, ou é privado), as severidades, as políticas de plantão, os proprietários e os rótulos. Em um SLO de requisições, ela também mostra o mínimo de cada regra abaixo das janelas dela.
 
 > [!TIP]
 > Um bom ponto de partida: mantenha as três regras padrão, envie a regra de consumo rápido para a política de plantão que aciona as pessoas, com severidade alta, deixe a regra de consumo lento gerar um alerta de severidade mais baixa para o horário comercial e deixe a regra de vazamento lento como um ticket para a equipe responsável. Se sua equipe trabalha com incidentes, escolha **Declarar um incidente** para a regra de consumo rápido, ou **Ambos** para receber também um alerta.
@@ -276,7 +278,7 @@ As regras de taxa de consumo ficam em silêncio enquanto algum dos monitores do 
 :::
 
 :::details Existe um número mínimo de amostras?
-Não para SLOs medidos pela disponibilidade dos monitores. A disponibilidade é medida em segundos, então cada segundo da janela é uma amostra e não há um caso de pouco tráfego contra o qual se proteger. Um número mínimo de amostras só importa para SLIs baseados em eventos, que ainda não estão disponíveis.
+Não para SLOs medidos pela disponibilidade dos monitores. A disponibilidade é medida em segundos, então cada segundo da janela é uma amostra e não há um caso de pouco tráfego contra o qual se proteger. A regra de um SLO de requisições tem um: defina o **Mínimo de requisições** dela, e a regra ignora uma janela longa com menos requisições do que isso, para que uma hora tranquila com uma requisição com falha em cinco não acione ninguém.
 :::
 
 ## Próximos passos

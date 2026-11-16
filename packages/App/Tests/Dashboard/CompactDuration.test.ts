@@ -11,16 +11,20 @@ import path from "path";
  * Close) say their durations in the reader's language: "51 min" and
  * "4 h 24 min" in English, as they always have, "4 ч 24 мин" in Russian,
  * "4 時間 24 分" in Japanese - not English unit names on a translated page.
+ * Every language holds each number to its unit with a no-break space, the
+ * English too, so a narrow tile never ends a line with "4" (#8303).
  */
 describe("formatCompactDurationInMinutes", () => {
   test("English keeps the overview's own text, word for word", () => {
-    expect(formatCompactDurationInMinutes(51, "en")).toBe("51 min");
-    expect(formatCompactDurationInMinutes(264, "en")).toBe("4 h 24 min");
-    expect(formatCompactDurationInMinutes(240, "en-GB")).toBe("4 h");
-    expect(formatCompactDurationInMinutes(24 * 60 * 3 + 300, "en")).toBe(
-      "3 d 5 h",
+    expect(formatCompactDurationInMinutes(51, "en")).toBe("51\u00A0min");
+    expect(formatCompactDurationInMinutes(264, "en")).toBe(
+      "4\u00A0h 24\u00A0min",
     );
-    expect(formatCompactDurationInMinutes(51, undefined)).toBe("51 min");
+    expect(formatCompactDurationInMinutes(240, "en-GB")).toBe("4\u00A0h");
+    expect(formatCompactDurationInMinutes(24 * 60 * 3 + 300, "en")).toBe(
+      "3\u00A0d 5\u00A0h",
+    );
+    expect(formatCompactDurationInMinutes(51, undefined)).toBe("51\u00A0min");
   });
 
   test("no value is a dash in every language", () => {
@@ -29,15 +33,19 @@ describe("formatCompactDurationInMinutes", () => {
   });
 
   test("other languages use their own short unit names, the two largest units", () => {
-    expect(formatCompactDurationInMinutes(264, "ru")).toBe("4 ч 24 мин");
-    expect(formatCompactDurationInMinutes(51, "ru")).toBe("51 мин");
-    expect(formatCompactDurationInMinutes(264, "ja")).toBe("4 時間 24 分");
+    expect(formatCompactDurationInMinutes(264, "ru")).toBe(
+      "4\u00A0ч 24\u00A0мин",
+    );
+    expect(formatCompactDurationInMinutes(51, "ru")).toBe("51\u00A0мин");
+    expect(formatCompactDurationInMinutes(264, "ja")).toBe(
+      "4\u00A0時間 24\u00A0分",
+    );
     expect(formatCompactDurationInMinutes(264, "ko")).toBe("4시간 24분");
 
     // German: hours and minutes by their German abbreviations.
     const german: string = formatCompactDurationInMinutes(264, "de");
-    expect(german).toContain("4 Std.");
-    expect(german).toContain("24 Min.");
+    expect(german).toContain("4\u00A0Std.");
+    expect(german).toContain("24\u00A0Min.");
     expect(german).not.toContain(" h ");
 
     // Days and hours, never a third unit.
@@ -46,7 +54,7 @@ describe("formatCompactDurationInMinutes", () => {
       "ru",
     );
     expect(russianDays).toContain("3");
-    expect(russianDays).toContain("5 ч");
+    expect(russianDays).toContain("5\u00A0ч");
     expect(russianDays).not.toContain("мин");
   });
 

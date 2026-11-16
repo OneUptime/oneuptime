@@ -1,4 +1,4 @@
-# Nettverksenhets-overvåking
+# Monitor for nettverksenhet
 
 Overvåk svitsjer, rutere, brannmurer, tilgangspunkter, PDU-er, kameraer og skrivere: alt som har en adresse på nettverket ditt, enten det snakker SNMP eller ikke.
 
@@ -68,7 +68,7 @@ Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Enheter**,
 | --- | --- |
 | **Topologi** | **Enhetstopologi**, **Oppdagede enheter**, **Latensmatrise**, **Lokasjonslenker**, **Enhetslenker** |
 | **Regler** | **Regler for automatisk import**, **Regler for lokasjonstildeling**, **Navneregler**, **Eierregler**, **Etikettregler**, **Lenkeregler** |
-| **Innstillinger** | **Varslingsretningslinjer**, **SNMP-påloggingsinformasjon**, **Enhetsroller**, **Lokasjonstyper**, **Adressenavn**, **Maler for OID-innsamling** |
+| **Innstillinger** | **Varslingspolicyer**, **SNMP-påloggingsinformasjon**, **Enhetsroller**, **Lokasjonstyper**, **Adressenavn**, **Maler for OID-innsamling** |
 | **Avansert** | **SNMP-walk**, **Arkiverte enheter** |
 
 ## Legg til en nettverksenhet
@@ -109,7 +109,7 @@ En enhets detaljer — navn, beskrivelse, rolle, lokasjon, etiketter og adresser
 | Beskrivelse | Fritekst. | Nei |
 | Device Role | Kjernesvitsj, aksessvitsj, brannmur og så videre. Bestemmer enhetens nivå på kartet og avgrenser varslingspolicyer. | Nei |
 | MAC-adresse | Enhetens egen MAC. Kartet bruker den til å plassere en enhet som verken snakker LLDP eller CDP, på svitsjporten som lærte den; se [Enheter med bare ping og svitsjporten deres](#enheter-med-bare-ping-og-svitsjporten-deres). Læres som regel inn for deg fra en ruters ARP-tabell. | Nei |
-| Opprett også en Ping-overvåking for hendelser | Sonden pinger allerede enheten og gir den en status; en Ping-monitor er det som gjør mislykkede ping til en hendelse. Kryss av, så opprettes en på vertsnavnet, bundet til enheten, når du lagrer. Den teller mot abonnementet ditt, og hendelsene dens er slått av til du slår dem på fra monitorens side. | Nei |
+| Opprett også en Ping-monitor for hendelser | Sonden pinger allerede enheten og gir den en status; en Ping-monitor er det som gjør mislykkede ping til en hendelse. Kryss av, så opprettes en på vertsnavnet, bundet til enheten, når du lagrer. Den teller mot abonnementet ditt, og hendelsene dens er slått av til du slår dem på fra monitorens side. | Nei |
 
 Når du krysser av for Ping-monitoren, vises **Ping from probes**, monitorens egne sonder. De må nå enhetens nettverk; la feltet stå tomt for å bruke prosjektets standardsonder. Bruk heller [varslingspolicyer](#varslingspolicyer) for å varsle om mange enheter samtidig.
 
@@ -196,10 +196,10 @@ Hvert sted som viser en enhet — listen Enheter, en lokasjons Enheter-side, ove
 | --- | --- | --- |
 | **Foreldet** | Ingen polling er forsøkt på godt over enhetens intervall. | Kontroller at enhetens sonde er online og henger med flåten sin. |
 | **Ingen sonde** | Enheten polles av en sonde, men har ingen, eller pollingen er slått av. | Tildel en sonde som kan nå den; ingenting poller den før det. |
-| **Ingen overvåking** | Enheten bruker [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), og ingenting er bundet. | Bind en monitor, eller bytt den tilbake til polling med sonde. |
+| **Ingen monitor** | Enheten bruker [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), og ingenting er bundet. | Bind en monitor, eller bytt den tilbake til polling med sonde. |
 | **SNMP failing** | Oppe på ping, men det siste SNMP-walket feilet. | Kontroller påloggingsinformasjonen, SNMP-agenten eller en ACL. |
 | **Overvåking slått av** | Overvåkingen av den bundne monitoren er slått av, så enheten viser **Venter** i stedet for statusen monitoren ble stående med. | Slå på overvåkingen av monitoren igjen, eller bind en annen monitor. |
-| **Overvåking arkivert** | Den bundne monitoren er arkivert, så enheten viser **Venter** i stedet for statusen monitoren ble stående med. | Hent monitoren ut av arkivet, eller bind en annen monitor. |
+| **Monitor arkivert** | Den bundne monitoren er arkivert, så enheten viser **Venter** i stedet for statusen monitoren ble stående med. | Hent monitoren ut av arkivet, eller bind en annen monitor. |
 
 Listen **Enheter** har et filter **SNMP** med tre verdier: **OK** (det siste walket lyktes), **Feiler** (det siste walket feilet) og **Not configured** (bare ping, ingen påloggingsinformasjon eller aldri pollet). "Hvilke enheter har påloggingsinformasjon som har sluttet å virke" er ett klikk unna. Listens kolonne **Interfaces (Up / Down)** viser **Ingen SNMP** i stedet for `0 / 0` for en enhet som pinges og aldri walkes: null fungerende porter ville vært en annen påstand, og en feil påstand.
 
@@ -256,14 +256,14 @@ En [nettverkslokasjon](/docs/monitor/network-sites#standardverdier-for-overvåki
 
 ## Overstyringen med bundet monitor
 
-Noe utstyr kan ingen sonde nå eller pinge på en nyttig måte: en enhet bak en NAT, en appliance der helsen bedre vurderes med en HTTP-sjekk, en tjeneste der det virkelige signalet er en portsjekk. For dem har **Rediger innstillinger** på enhetens side **Innstillinger** en **Monitoring Method**:
+Noe utstyr kan ingen sonde nå eller pinge på en nyttig måte: en enhet bak en NAT, en appliance der helsen bedre vurderes med en HTTP-sjekk, en tjeneste der det virkelige signalet er en portsjekk. For dem har **Rediger innstillinger** på enhetens side **Innstillinger** en **Overvåkingsmetode**:
 
 | Metode | Hva den betyr |
 | --- | --- |
 | **Sonde** | Standard. Pinges av den tildelte sonden etter dens tidsplan, og walkes via SNMP når den har påloggingsinformasjon. |
-| **Bound monitor** | Statusen til en eksisterende monitor er denne enhetens status. |
+| **Bundet monitor** | Statusen til en eksisterende monitor er denne enhetens status. |
 
-Å bytte en enhet til **Bound monitor** stopper pollingen av den. Sonden, intervallet og pollingbryteren forsvinner fra kortet **Polling & Data Collection**, enhetens gamle pollingresultater slettes, og statusen kommer fra monitoren du binder. Det er valgfritt å binde en: til du gjør det, viser enheten **Venter**, merket med **Ingen overvåking**.
+Å bytte en enhet til **Bundet monitor** stopper pollingen av den. Sonden, intervallet og pollingbryteren forsvinner fra kortet **Polling & Data Collection**, enhetens gamle pollingresultater slettes, og statusen kommer fra monitoren du binder. Det er valgfritt å binde en: til du gjør det, viser enheten **Venter**, merket med **Ingen monitor**.
 
 Å bytte tilbake til **Sonde** gjenoppretter pollingen og ber om en sonde. En monitor som var bundet, forblir bundet og fortsetter å varsle; den bestemmer bare ikke lenger enhetens status.
 
@@ -632,7 +632,7 @@ Hver vert en skanning finner, importeres som en sondepollet enhet, med skanninge
 - Verter som svarte på SNMP, importeres med adressen som svarte som vertsnavn, navnet valgt som beskrevet nedenfor, og påloggingsinformasjonen som svarte, så en v3-skanning importerer enheter som er klare for v3-walk og begynner å samle inn grensesnitt og inventar med en gang.
 - Verter som svarte på ping, men ikke på SNMP — hver vert en [ICMP-skanning](#icmp-skanninger) finner, og vertene en SNMP-skanning ikke kunne identifisere — importeres uten påloggingsinformasjon. Sonden pinger dem etter tidsplanen deres; legg til påloggingsinformasjon senere, på enheten eller som en profil på den eller lokasjonen, så begynner den samme sonden også å walke dem.
 
-En vert som allerede er registrert som enhet, er merket **Allerede lagt til** og importeres aldri to ganger. Polling gir hver importert enhet en status; for å få vite når en går ned, gir du den en monitor: velg **Én overvåking for hver enhet** når du importerer, eller la en [varslingspolicy](#varslingspolicyer) gi én til hver enhet den dekker.
+En vert som allerede er registrert som enhet, er merket **Allerede lagt til** og importeres aldri to ganger. Polling gir hver importert enhet en status; for å få vite når en går ned, gir du den en monitor: velg **Én monitor for hver enhet** når du importerer, eller la en [varslingspolicy](#varslingspolicyer) gi én til hver enhet den dekker.
 
 Når vertene du importerer, omfatter SNMP-verter, tilbyr trinnet **Overvåking** i importen bryteren **Bruk hver SNMP-verts produsentmal ved første polling (anbefalt)**, slått på som standard: hver importert SNMP-enhet får [produsentmalen](#produsentenes-helsemaler) som passer til det første walket rapporterer, helse-OID-ene og SNMP-tabellene, akkurat som enheter en automatisk importregel henter inn. En enhet der produsenten ikke har noen mal, blir stående som den er. Slå av bryteren for en batch som skal starte uten.
 
@@ -641,7 +641,7 @@ Når vertene du importerer, omfatter SNMP-verter, tilbyr trinnet **Overvåking**
 **Se gjennom resultater** åpner skanningens verter, de som er funnet så langt hvis den fortsatt kjører, i en dialog som importerer dem i tre trinn:
 
 1. Trinnet **Velg enheter** viser hver vert under navnet enheten får, med adressen og produsenten; alle verter som ikke er lagt til ennå, er valgt fra start. Søk etter navn, DNS-navn, adresse eller produsent, eller skriv inn et subnett (`10.48.11.0/24`) eller et oktettområde (`10.48.11-12.0-255`) for å vise vertene i det. **Svar** (**SNMP** eller **Ingen SNMP**) og **Navn** (**Med navn** eller **Bare adresse**) snevrer inn listen ytterligere. Avmerkingsboksen over listen velger eller fjerner alle viste verter, på alle sider, og bare de valgte vertene listen viser, importeres.
-2. Trinnet **Overvåking** spør med **Sjekk hvert** hvor ofte skanningens sonde sjekker enhetene, som blir hver enhets **Polling Interval (Minutes)**, og hvem som får vite det når en går ned. **Bare status** importerer dem med en status og uten monitor. **Én overvåking for hver enhet** gir hver en monitor fra malen du velger under **Overvåkingsmal**: monitoren fra en nettverksenhetsmal leser enhetens spørringer, og monitoren fra en Ping-, IP-, Port- eller NTP-mal sjekker enhetens egen adresse fra skanningens sonde etter malens plan. Maler av andre typer kan ikke sjekke en enhet og vises ikke; **Administrer maler** åpner malene dine i en ny fane, og en mal du legger til der, står i listen når du kommer tilbake. Før importen viser trinnet hva hver av malens kontroller utløser: en hendelse, et varsel eller bare monitorens status. Kontrollene i en nettverksenhetsmal som leser et SNMP-walk, står under **Bare SNMP-enheter**, fordi verter som bare svarte på ping, pinges, men walkes ikke, før de har SNMP-påloggingsinformasjon; når alle vertene bare svarte på ping, samles de kontrollene på én linje. Malen **Network device alert pack (recommended)** tilbys først, og et prosjekt som ikke har den ennå, får den når du importerer. Sammendraget ved siden av valgene sier hva importen vil opprette, også hvor mange enheter abonnementet ditt ikke har plass til å overvåke.
+2. Trinnet **Overvåking** spør med **Sjekk hvert** hvor ofte skanningens sonde sjekker enhetene, som blir hver enhets **Polling Interval (Minutes)**, og hvem som får vite det når en går ned. **Bare status** importerer dem med en status og uten monitor. **Én monitor for hver enhet** gir hver en monitor fra malen du velger under **Monitormal**: monitoren fra en nettverksenhetsmal leser enhetens spørringer, og monitoren fra en Ping-, IP-, Port- eller NTP-mal sjekker enhetens egen adresse fra skanningens sonde etter malens plan. Maler av andre typer kan ikke sjekke en enhet og vises ikke; **Administrer maler** åpner malene dine i en ny fane, og en mal du legger til der, står i listen når du kommer tilbake. Før importen viser trinnet hva hver av malens kontroller utløser: en hendelse, et varsel eller bare monitorens status. Kontrollene i en nettverksenhetsmal som leser et SNMP-walk, står under **Bare SNMP-enheter**, fordi verter som bare svarte på ping, pinges, men walkes ikke, før de har SNMP-påloggingsinformasjon; når alle vertene bare svarte på ping, samles de kontrollene på én linje. Malen **Network device alert pack (recommended)** tilbys først, og et prosjekt som ikke har den ennå, får den når du importerer. Sammendraget ved siden av valgene sier hva importen vil opprette, også hvor mange enheter abonnementet ditt ikke har plass til å overvåke.
 3. Trinnet **Importer** teller enheter og monitorer hver for seg, etter hvert som hver opprettes, finnes fra før eller mislykkes. Til slutt lenker det til det som ble opprettet, og viser under årsaken hver vert det ikke importerte, og hver enhet det importerte uten monitoren sin. Et nytt forsøk prøver bare de mislykkede vertene igjen og oppretter aldri noe to ganger. **Stopp importen** stopper etter verten som importeres nå, og beholder det som ble opprettet.
 
 Importen kjører på serveren og handler på dine vegne: hver enhet og hver monitor opprettes med dine tillatelser, og det du ikke har lov til å opprette, vises med årsaken. Du kan lukke dialogen når som helst: skanningens rad viser hvor langt importen har kommet, og **Vis fremdrift** åpner den igjen. **Importer flere enheter** begynner på nytt med vertene som er igjen. Én import tar opptil 5 000 verter; importer en større skanning i deler, etter subnett eller etter hva vertene svarte på. Et prosjekts importer kjører én om gangen: en som bestilles mens en annen kjører, venter på den.
@@ -655,13 +655,13 @@ En oppdaget vert får navn etter det første av disse den har:
 3. Det omvendte DNS-navnet, PTR-oppføringen sonden slår opp etter skanningen.
 4. IP-adressen.
 
-Enhetens egne navn kommer først fordi det er navnene eierne bruker: en Windows-vert som heter `WB0024KDS03`, beholder det navnet også når den omvendte sonen kaller den `wb-0024-kds03.wbhq.com`. Det omvendte DNS-navnet beholdes også: **Se gjennom resultater** viser det ved siden av adressen, og enheten beholder det som sitt **DNS Name**. NetBIOS kutter et datamaskinnavn til 15 tegn, så et NetBIOS-navn som er starten på et lengre omvendt DNS-navn (`WB-0024-KITCHEN` for `wb-0024-kitchen-display-03.wbhq.com`), viker for det omvendte DNS-navnet.
+Enhetens egne navn kommer først fordi det er navnene eierne bruker: en Windows-vert som heter `WB0024KDS03`, beholder det navnet også når den omvendte sonen kaller den `wb-0024-kds03.wbhq.com`. Det omvendte DNS-navnet beholdes også: **Se gjennom resultater** viser det ved siden av adressen, og enheten beholder det som sitt **DNS-navn**. NetBIOS kutter et datamaskinnavn til 15 tegn, så et NetBIOS-navn som er starten på et lengre omvendt DNS-navn (`WB-0024-KITCHEN` for `wb-0024-kitchen-display-03.wbhq.com`), viker for det omvendte DNS-navnet.
 
 **Se gjennom resultater** viser navnet en enhet kommer til å få, og den får det samme navnet enten du importerer den der eller en [automatisk importregel](#importer-automatisk-med-automatiske-importregler) gjør det. Enhetens vertsnavn er alltid IP-adressen. Så lenge en enhets navn fortsatt er det discovery ga den, viser oversikten hvor navnet kom fra som **Navnekilde**.
 
 **Gi enheter navn etter det korte vertsnavnet** kutter et fullt kvalifisert navn til den første etiketten: `core-sw-01.corp.example.com` importeres som `core-sw-01`. Det gjelder et omvendt DNS-navn og et `sysName` som er et fullt kvalifisert vertsnavn; alt annet (`Core Switch`, `ubuntu-22.04`, en IP-adresse) blir stående som det er. Det endrer bare hva enhetene heter, så det trengs ingen ny skanning: **Se gjennom resultater** og automatiske importregler bruker det neste gang de gir en vert navn, og enheter som allerede er importert, beholder navnene sine.
 
-En enhet som er importert fra en vert med et omvendt DNS-navn, beholder hele navnet som sitt **DNS Name**, enten skanningen bruker korte navn eller ikke. Det vises på enhetens oversikt, søket i listen **Enheter** finner det, og lokasjonstildelingsregler matcher vertsnavnmønstre mot det, så en regel `*.store-0660.corp.example.com` fortsetter å plassere en enhet som har mistet domenet i navnet. Et NetBIOS-navn lagres aldri som DNS Name: verten rapporterer det om seg selv, og det er ikke en DNS-oppføring.
+En enhet som er importert fra en vert med et omvendt DNS-navn, beholder hele navnet som sitt **DNS-navn**, enten skanningen bruker korte navn eller ikke. Det vises på enhetens oversikt, søket i listen **Enheter** finner det, og lokasjonstildelingsregler matcher vertsnavnmønstre mot det, så en regel `*.store-0660.corp.example.com` fortsetter å plassere en enhet som har mistet domenet i navnet. Et NetBIOS-navn lagres aldri som DNS Name: verten rapporterer det om seg selv, og det er ikke en DNS-oppføring.
 
 > [!WARNING]
 > Etikett- og eierregler matcher på enhetens navn. Et mønster som er skrevet for DNS-navn (`*.wbhq.com`) eller fulle navn (`*.corp.example.com`), treffer ikke en enhet som har sitt eget navn eller det korte navnet. Lokasjonstildelingsregler prøver også DNS Name, så de fortsetter å treffe.
@@ -764,7 +764,7 @@ Polling gir deg status, inventar og diagrammer. Hendelser, varsler og utkallinge
 
 ### Varslingspolicyer
 
-**Nettverk → Innstillinger → Varslingsretningslinjer** er der en flåtes varsling skrives ned én gang. En policy sier hvilke enheter (et omfang av lokasjoner, enhetsroller og etiketter) og hva de varsler om (en monitormal for nettverksenheter), så "hver lagersvitsj oppretter en hendelse når den blir utilgjengelig" er én rad i stedet for to hundre monitorer.
+**Nettverk → Innstillinger → Varslingspolicyer** er der en flåtes varsling skrives ned én gang. En policy sier hvilke enheter (et omfang av lokasjoner, enhetsroller og etiketter) og hva de varsler om (en monitormal for nettverksenheter), så "hver lagersvitsj oppretter en hendelse når den blir utilgjengelig" er én rad i stedet for to hundre monitorer.
 
 ```mermaid title="Hva en varslingspolicy vedlikeholder"
 flowchart TB
@@ -795,7 +795,7 @@ Når det ikke finnes noen policyer ennå, tilbyr siden **Create the recommended 
 
 ### Én enhet om gangen
 
-Åpne enhetens side og klikk på **Opprett monitor** på kortet **Monitors alerting on this device**. Monitorskjemaet åpner med typen Network Device og enheten valgt, og den [anbefalte varslingspakken](#anbefalt-varslingspakke) fylt ut: gå gjennom den, sett alvorlighetsgrader og vaktpolicyer, og lagre.
+Åpne enhetens side og klikk på **Opprett monitor** på kortet **Monitors alerting on this device**. Monitorskjemaet åpner med typen Nettverksenhet og enheten valgt, og den [anbefalte varslingspakken](#anbefalt-varslingspakke) fylt ut: gå gjennom den, sett alvorlighetsgrader og vaktpolicyer, og lagre.
 
 De fleste svitsjer, rutere, brannmurer og skrivere har også et nettgrensesnitt på sin egen adresse. **Overvåk nettgrensesnitt**, på det samme kortet, åpner en **Nettsted**-monitor for det: `https://` på enhetens adresse, med **Tillat selvsignerte sertifikater** slått på, siden en enhets nettgrensesnitt nesten alltid har et, kontrollert fra enhetens egen sonde og med navn etter enheten. Endre URL-en hvis grensesnittet svarer på `http`, på en annen port eller under en sti, og lagre deretter. Kortet viser monitoren så lenge navnet inneholder enhetens navn og URL-en er på enhetens adresse; den endrer ikke enhetens status.
 
@@ -819,7 +819,7 @@ Enhetens sider **Hendelser** og **Varsler**, under **Aktivitet** i menyen, viser
 
 Hvis prosjektet ditt definerer egendefinerte monitorfelt — produsent, konfigurasjonselement, ansvarlig tjeneste, hva enn CMDB-en din trenger — kan en monitormal fylle dem ut. Åpne malen fra **Monitorer → Innstillinger → Maler** og angi **Standardverdier for egendefinerte felt**.
 
-Hver monitor som deretter lages fra den malen, får de verdiene med seg: de du oppretter med **Opprett overvåking fra mal**, og de en automatisk importregel eller en varslingspolicy oppretter når en [discovery-skanning](#finn-enheter-med-en-nettverksskanning) henter inn tusen enheter på én gang.
+Hver monitor som deretter lages fra den malen, får de verdiene med seg: de du oppretter med **Opprett monitor fra mal**, og de en automatisk importregel eller en varslingspolicy oppretter når en [discovery-skanning](#finn-enheter-med-en-nettverksskanning) henter inn tusen enheter på én gang.
 
 - Et felt som står tomt i malen, er ikke en standardverdi: hver monitor fortsetter å fylle det ut selv, så en mal kan sette produsenten for en hel svitsjflåte mens konfigurasjonselementet forblir per enhet.
 - Standardverdier gjelder når en monitor opprettes, ikke for monitorer som allerede finnes. **Synkroniser egendefinerte felt til tilknyttede monitorer**, på det samme kortet, skyver dem ut til de eksisterende monitorene. Den overskriver feltene malen setter, inkludert verdier som er skrevet inn for hånd, og bekreftelsen navngir de feltene først; felt malen lar stå tomme, røres aldri.
@@ -1036,7 +1036,7 @@ Når du har dratt enheter, bytter en bryter øverst på kartet mellom **Tilpasse
 
 ### Eksporter kartet som PDF
 
-**Eksporter PDF**, øverst på kartet, laster ned kartet du ser på som en PDF du kan legge ved en vurdering, en endringsforespørsel eller en hendelsesgjennomgang, eller lese frakoblet. Hver visning av enhetskartet har den: **Enhetstopologi**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**.
+**Eksporter PDF**, øverst på kartet, laster ned kartet du ser på som en PDF du kan legge ved en vurdering, en endringsforespørsel eller en hendelsesgjennomgang, eller lese offline. Hver visning av enhetskartet har den: **Enhetstopologi**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**.
 
 PDF-en inneholder:
 
@@ -1097,7 +1097,7 @@ Enhetens oversikt har et kort **Koblet til** som navngir svitsjen, porten og VLA
 En enhet viser **Venter** så lenge ingenting har rapportert om den ennå. Les tillegget ved siden av statusen:
 
 - **Ingen sonde**: tildel en sonde, eller slå **Polling Enabled** på igjen. Ingenting poller enheten før du gjør det.
-- **Ingen overvåking**: enheten har [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor) uten noe bundet. Bind en monitor, eller bruk **Switch to Probe Polling** slik at sonden pinger den.
+- **Ingen monitor**: enheten har [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor) uten noe bundet. Bind en monitor, eller bruk **Switch to Probe Polling** slik at sonden pinger den.
 - Ingen tillegg i det hele tatt: enheten har en sonde og venter på første polling. I en stor flåte deler en sonde ut et begrenset antall enheter per syklus, så den første pollingen kan ta lengre tid enn enhetens intervall.
 
 Hvis en enhet med bare ping blir stående som Venter i timevis mens enheter med påloggingsinformasjon på den samme sonden går fint, sjekk den sondens versjon. En sonde fra før polling med ping først kan ikke pinge en enhet, og å gi den en enhet uten påloggingsinformasjon ville fått den til å walke med en standard-community og rapportere en frisk enhet som Down. Derfor holder serveren tilbake enheter med bare ping fra en gammel sonde og logger én advarsel per batch som navngir sonden og hvor mange enheter den holdt tilbake. De enhetene blir stående som Venter, synlig ventende og aldri feilaktig Down, til sonden oppgraderes; da rapporterer de ved neste syklus uten at noe annet må gjøres.

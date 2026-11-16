@@ -151,7 +151,7 @@ Välj de **Sonder** som når databasen och ett **Övervakningsintervall**, och k
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | Hur länge det väntas på att en anslutning upprättas. |
 | **Statement Timeout (ms)** | `15000` | `60000` | Den hårda gränsen för hur länge frågan får köras. |
-| **Max Rows** | `100` | `1000` | Den övre gränsen för hur många rader som läses tillbaka från databasen. |
+| **Max antal rader** | `100` | `1000` | Den övre gränsen för hur många rader som läses tillbaka från databasen. |
 
 Ett värde över maximum sänks till maximum.
 
@@ -231,7 +231,7 @@ Lägg till kriterier för att avgöra när monitorn anses vara online, försämr
 | **SQL-frågefel** | Frågans felmeddelande. Larma när det är (eller inte är) tomt, eller matchar en viss sträng. |
 | **JavaScript-uttryck** | Utvärdera ett eget JavaScript-uttryck över `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` och `isOnline`. Se [JavaScript-uttryck](/docs/monitor/javascript-expression#monitorer-för-sql-frågor). |
 
-Numeriska tröskelvärden är heltal: skriv `10`, inte `10.5`. SQL Query-filter kan inte utvärderas över en tidsperiod; varje kontroll står för sig själv.
+Numeriska tröskelvärden är heltal: skriv `10`, inte `10.5`. SQL-fråga-filter kan inte utvärderas över en tidsperiod; varje kontroll står för sig själv.
 
 En ny SQL-frågemonitor börjar med två kriterier: **SQL är online** är falskt — monitorn blir offline och deklarerar en incident som löser sig själv — och **SQL är online** är sant, vilket markerar den som online. **Lägg till kriterier** lägger till ett längst ned; dra det ovanför online-kriteriet, eftersom kriterierna kontrolleras uppifrån och det första som matchar avgör.
 

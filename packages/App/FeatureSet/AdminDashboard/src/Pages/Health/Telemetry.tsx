@@ -5,6 +5,7 @@ import { getAdminDashboardPlugins } from "../../Enterprise/Plugins";
 import EnterpriseHealthUpgrade from "./EnterpriseHealthUpgrade";
 import HealthPage from "./HealthPage";
 import Route from "Common/Types/API/Route";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -23,8 +24,10 @@ const HealthTelemetry: FunctionComponent = (): ReactElement => {
         renderUpsell={(): ReactElement => {
           return (
             <EnterpriseHealthUpgrade
-              featureName="Telemetry ingestion"
-              featureDescription="Live log, metric and trace ingestion for this instance — throughput and footprint per signal, and the same windows split by project."
+              featureName={translationKey("Telemetry ingestion")}
+              featureDescription={translationKey(
+                "Live log, metric and trace ingestion for this instance — throughput and footprint per signal, and the same windows split by project.",
+              )}
             />
           );
         }}

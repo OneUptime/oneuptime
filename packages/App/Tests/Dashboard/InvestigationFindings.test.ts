@@ -91,7 +91,7 @@ describe("buildInvestigationFindings", () => {
 
     expect(findings[0]?.severity).toBe("critical");
     expect(findings[0]?.text).toContain("Deploy: v2.31.0");
-    expect(findings[0]?.text).toContain("3 minutes before");
+    expect(findings[0]?.text).toContain("3\u00A0minutes before");
     // The concurrent incident trails as info.
     expect(
       findings.find((finding: InvestigationFinding) => {

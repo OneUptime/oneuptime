@@ -138,10 +138,14 @@ const dotOf: (card: HTMLElement) => HTMLElement = (
 };
 
 describe("formatStepDuration", () => {
+  /*
+   * The product's own milliseconds (formatMilliseconds, #8455): "12 ms", its
+   * figure held to its unit, as every other duration under a second reads.
+   */
   test("keeps sub-second steps in milliseconds", () => {
-    expect(formatStepDuration(0)).toBe("0ms");
-    expect(formatStepDuration(1)).toBe("1ms");
-    expect(formatStepDuration(999)).toBe("999ms");
+    expect(formatStepDuration(0)).toBe("0\u00A0ms");
+    expect(formatStepDuration(1)).toBe("1\u00A0ms");
+    expect(formatStepDuration(999)).toBe("999\u00A0ms");
   });
 
   test("switches to seconds at a second", () => {
@@ -700,7 +704,8 @@ describe("StepTraceViewer", () => {
         steps: [aStep({ durationInMs: undefined as unknown as number })],
       });
 
-      expect(screen.getByText("0ms")).toBeInTheDocument();
+      // Testing Library reads the no-break space as a space.
+      expect(screen.getByText("0 ms")).toBeInTheDocument();
     });
   });
 
@@ -748,7 +753,8 @@ describe("StepTraceViewer", () => {
         screen.queryByTestId("workflow-run-step-error"),
       ).not.toBeInTheDocument();
       expect(outcomeOf(stepCards()[0]!)).toHaveTextContent(
-        "Took Error → which led to Step 2 Log log-1",
+        // The words a screen reader hears, then the arrow and the steps they lead to (#8570).
+        "Took Error which led to → Step 2 Log log-1",
       );
     });
 

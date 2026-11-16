@@ -208,14 +208,14 @@ Los propietarios reciben un correo por defecto. Cada persona puede elegir otros 
 
 Los registros de llamadas entrantes están disponibles como disparadores de flujos de trabajo:
 
-- **On Create Incoming Call Log** se ejecuta cuando entra una llamada.
-- **On Update Incoming Call Log** se ejecuta a medida que avanza la llamada. La actualización que define **Ended At** es el final de la llamada.
+- **Al crear Registro de llamadas entrantes** se ejecuta cuando entra una llamada.
+- **Al actualizar Registro de llamadas entrantes** se ejecuta a medida que avanza la llamada. La actualización que define **Ended At** es el final de la llamada.
 
 Para actuar solo sobre las llamadas perdidas, por ejemplo para publicarlas en Slack o Microsoft Teams o abrir una incidencia:
 
 :::steps
-1. Añade el disparador **On Update Incoming Call Log**. Pon **Fields to watch** en **Ended At** y selecciona los campos que quieras usar, como **Status**, **Caller Phone Number** y **Routing Phone Number**.
-2. Añade un paso **If / Else**. Comprueba el **Status** del disparador, con la comparación **no es igual a** y `Completed`.
+1. Añade el disparador **Al actualizar Registro de llamadas entrantes**. Pon **Campos que vigilar** en **Ended At** y selecciona los campos que quieras usar, como **Status**, **Caller Phone Number** y **Routing Phone Number**.
+2. Añade un paso **Si / Si no**. Comprueba el **Status** del disparador, con la comparación **no es igual a** y `Completed`.
 3. Conecta tus pasos al puerto **Sí**.
 :::
 

@@ -1599,7 +1599,7 @@ describe("set_up_paging", () => {
       );
 
     expect(refused?.refusal).toBe(AIToolRefusal.Permission);
-    expect(refused?.toldModel).toContain("a project admin can set up paging");
+    expect(refused?.toldModel).toContain("a Project Admin can set up paging");
   });
 
   test("nobody to page is not proposed", async () => {

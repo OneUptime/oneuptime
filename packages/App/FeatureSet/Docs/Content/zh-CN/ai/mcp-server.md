@@ -337,9 +337,9 @@ curl https://oneuptime.com/mcp/tools
 
 **`oneuptime_whoami`** 工具返回您的凭据所属的项目（其 ID 和名称）。对于已登录的客户端，它还会说明以谁的身份登录以及是否可以进行更改。这是代理了解自身处境的理想首次调用，并且由于创建工具会从凭据中获取 `projectId`，代理永远不必传递项目 ID。
 
-**`get_data_table_freshness`** 工具在智能体使用数据之前，告诉它 Data Observability 监视的某张表是否新鲜：按表自身的节奏判断是新鲜还是延迟、最后一次变更的时间、未关闭的告警，以及写入该表的每条管道最近一次运行的结果。`table` 传入 `schema.table`、仅表名或其 ID。它不做任何更改。
+**`get_data_table_freshness`** 工具在智能体使用数据之前，告诉它 Data Observability 监视的某张表是否新鲜：按表自身的节奏判断是新鲜还是延迟、最后一次变更的时间、未关闭的警报，以及写入该表的每条管道最近一次运行的结果。`table` 传入 `schema.table`、仅表名或其 ID。它不做任何更改。
 
-**`get_data_table_lineage`** 工具在智能体更改某张表或信任其数据之前，告诉它 Data Observability 监视的这张表由什么构建、由它构建了什么：延迟、被删除、有未关闭的告警或其管道上次运行失败的上游和下游表，由近及远，每张表都附上相隔几步，然后是其余的表、从外部加载其来源的管道，以及基于它构建的 BI 仪表板。它每个方向走三步，用 `depth` 最多五步。`table` 的传法与 `get_data_table_freshness` 相同。它不做任何更改。
+**`get_data_table_lineage`** 工具在智能体更改某张表或信任其数据之前，告诉它 Data Observability 监视的这张表由什么构建、由它构建了什么：延迟、被删除、有未关闭的警报或其管道上次运行失败的上游和下游表，由近及远，每张表都附上相隔几步，然后是其余的表、从外部加载其来源的管道，以及基于它构建的 BI 仪表板。它每个方向走三步，用 `depth` 最多五步。`table` 的传法与 `get_data_table_freshness` 相同。它不做任何更改。
 
 ## 查询遥测
 
@@ -360,6 +360,8 @@ curl https://oneuptime.com/mcp/tools
 运算符有 `EqualTo`、`NotEqual`、`IsNull`、`NotNull`、`EqualToOrNull`、`GreaterThan`、`LessThan`、`GreaterThanOrEqual`、`LessThanOrEqual`、`InBetween`、`Search` 和 `Includes`。排序值为 `"ASC"` 或 `"DESC"`。
 
 `list_` 和 `count_` 工具接受任意字段，这样工具列表就小到客户端可以一次加载。要查看资源的字段、每个字段的含义以及它接受的运算符，代理会用资源或它的某个工具（例如 `Incident` 或 `list_incidents`）调用 `oneuptime_describe_resource`。
+
+事件、监视器以及其他各类记录的其余 `list_` 工具，排序方式与 API 相同：字段接受一个方向，或接受 `{ "direction": "DESC", "nulls": "LAST" }`，把该字段没有值的记录放在最后；指向一条记录的关系按其所指定记录的某个字段排序，如 `{ "incidentSeverity": { "order": "ASC" } }`。`oneuptime_describe_resource` 会把每个这样的关系标记为 `sort`，并在 `sortBy` 下列出可用来排序的字段。
 
 ## 字段选择和分页
 

@@ -95,6 +95,7 @@ import {
 } from "../../../Utils/Project/NotificationChannels";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
+import { withNumbersKeptWithUnits } from "../../../Types/NoBreakSpaces";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -134,7 +135,7 @@ function worded(
 const SMS_NOT_VERIFIED_KEY: string =
   "This SMS method is not verified, so the test can't use it.";
 const CALLS_OFF_KEY: string =
-  "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.";
+  "Phone calls are off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.";
 const NOT_A_MEMBER_KEY: string = "{{name}} is not a member of this project.";
 const NO_VERIFIED_METHOD_KEY: string =
   "{{name}} has no verified notification method.";
@@ -316,9 +317,14 @@ function textOf(element: HTMLElement): string {
   return withoutIsolateMarks(element.textContent || "");
 }
 
-// What a plural's sentence says before and after its count.
+/*
+ * What a plural's sentence says before and after its count.
+ * The words around the count, as the page sets them: the count held to its word (#8770).
+ */
 function aroundCount(language: string, key: string): [string, string] {
-  const [before, after] = worded(language, key).split("{{count}}");
+  const [before, after] = withNumbersKeptWithUnits(worded(language, key), key, {
+    durationWords: true,
+  }).split("{{count}}");
 
   return [before!, after!];
 }
@@ -640,7 +646,7 @@ interface OwnLine {
 }
 
 const WHO_CAN_ADD_BALANCE_KEY: string =
-  "A project owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.";
+  "A Project Owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.";
 
 const OWN_LINES: Record<string, OwnLine> = {
   refusedWithWords: {
@@ -711,13 +717,13 @@ const OWN_LINES: Record<string, OwnLine> = {
   },
   balanceUsedUp: {
     english:
-      "This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+      "This project's balance is used up. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     channel: OnCallPageChannel.SMS,
     keys: ["This project's balance is used up.", WHO_CAN_ADD_BALANCE_KEY],
   },
   balanceLessThanCost: {
     english:
-      "This project's balance (0.05 USD) is less than this call costs (0.35 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+      "This project's balance (0.05 USD) is less than this call costs (0.35 USD). A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     channel: OnCallPageChannel.Call,
     keys: [
       "This project's balance ({{balance}}) is less than this call costs ({{cost}}).",
@@ -730,7 +736,7 @@ const OWN_LINES: Record<string, OwnLine> = {
       "This project is not connected to Slack. Please go to Project Settings and connect the account.",
     channel: OnCallPageChannel.Slack,
     keys: [
-      "This project is not connected to {{workspace}}, so nothing was sent there. A project admin can connect it in Project Settings → Workspace → {{workspace}}.",
+      "This project is not connected to {{workspace}}, so nothing was sent there. A Project Admin can connect it in Project Settings → Workspace → {{workspace}}.",
     ],
     values: { workspace: "Slack" },
   },

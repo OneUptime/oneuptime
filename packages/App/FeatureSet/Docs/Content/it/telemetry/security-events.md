@@ -54,7 +54,7 @@ Apri **Prodotti → Eventi di sicurezza**, sotto **Sicurezza**. Il suo menu ha u
 | **Entità protette** | Playbooks | Gli utenti e gli host a cui nessun playbook applica il contenimento |
 | **Impostazioni** | IA | Se OneUptime AI classifica ogni nuovo caso |
 | **Connessioni** | Connections | I tuoi log, i prodotti di sicurezza che OneUptime interroga e i SIEM a cui invia |
-| **Guida alla configurazione** | Connections | Frammenti per inviare eventi, compilati con la tua chiave di ingestione |
+| **Guida alla configurazione** | Connections | Frammenti per inviare eventi, compilati con la tua chiave di acquisizione |
 | **Priorità dei casi** | Impostazioni | Quanto è urgente un caso: le priorità del progetto, la più urgente prima |
 | **Obiettivi di risposta** | Impostazioni | Quanto in fretta un caso di ogni priorità deve essere preso in carico e contenuto |
 | **Stati dei casi** | Impostazioni | I passaggi che un caso attraversa, e come conta un caso in ciascuno |
@@ -78,9 +78,9 @@ I dati di sicurezza li leggono solo i ruoli Proprietario del progetto e Amminist
 ## Inviare eventi di sicurezza
 
 :::steps
-### Crea una chiave di ingestione
+### Crea una chiave di acquisizione
 
-Apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e fai clic su **Crea chiave di ingestione**. Gli eventi di sicurezza usano le stesse chiavi del resto della tua telemetria.
+Apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e fai clic su **Crea chiave di acquisizione**. Gli eventi di sicurezza usano le stesse chiavi del resto della tua telemetria.
 
 ### Invia i tuoi eventi
 
@@ -545,7 +545,7 @@ Un'eccezione è qualcosa che una regola salta perché te lo aspetti, come uno sc
 - Ogni eccezione dice perché nel suo **Motivo**, che vede chiunque legga l'elenco, e conserva chi l'ha aggiunta e quando. Un'entità o un valore può avere una data in **Scade il**, dopo la quale la regola lo vede di nuovo; una finestra temporale finisce da sé.
 - **Stato** dice a che punto è ciascuna: **Attivo**, **In arrivo** per una finestra non ancora iniziata, **Scaduto** o **Terminato**. Sotto il nome di una regola in **Regole di rilevamento**, una riga conta le sue eccezioni attive, e **Visualizza eccezioni** nella riga della regola apre l'elenco filtrato su di essa.
 - Gli eventi saltati vengono tolti prima che la regola conti qualcosa, quindi non contano mai per la sua **Soglia di corrispondenze** e non aprono casi, avvisi, incidenti né risultanze. Le eccezioni valgono per ogni esecuzione della regola, correlazioni comprese, e per **Esegui su eventi passati**, ma mai per un attacco di prova, che verifica che gli eventi arrivino.
-- Una regola ha al massimo 100 eccezioni. Chi può modificare le regole di rilevamento le aggiunge, le cambia e le rimuove, ogni ruolo Security può leggerle, e ogni modifica resta nel registro di audit del progetto.
+- Una regola ha al massimo 100 eccezioni. Chi può modificare le regole di rilevamento le aggiunge, le cambia e le rimuove, ogni ruolo Security può leggerle, e ogni modifica resta nel log di audit del progetto.
 
 ### Elenchi di controllo
 
@@ -574,8 +574,8 @@ level: high
 - `expand` si usa da solo, perché sono i valori dell'elenco a dire come corrispondono. Un campo che contiene più valori, come `observables`, corrisponde quando uno di essi è nell'elenco. **Letto da** nomina le regole, i monitor Security Events e le cacce che leggono ogni elenco, e sotto lo YAML di una regola il suo modulo nomina gli elenchi che la regola legge.
 - Una regola nomina un elenco senza badare a maiuscole e minuscole. Una regola, un monitor o una caccia che nomina un elenco che il progetto non ha viene rifiutato al salvataggio, e un elenco che uno di loro legge non può essere rinominato né eliminato finché qualcosa lo legge.
 - Una modifica a un elenco raggiunge ogni regola che lo legge alla prossima esecuzione della regola. Anche le regole di correlazione e **Esegui su eventi passati** leggono gli elenchi.
-- Un monitor Security Events legge gli elenchi nel suo **Filtra per elenchi di controllo**, e una ricerca in **Eventi** o in una caccia ne legge uno come `user:%vip_users%`. Un segno meno davanti, come in `-ip:%admin_addresses%`, tiene gli eventi il cui campo non è nell'elenco.
-- Un elenco contiene al massimo 5.000 valori, di cui al massimo 100 con `*` e 100 intervalli, e un progetto ha al massimo 200 elenchi: per un elenco più lungo, segui un feed di threat intel. Chi può creare, modificare o eliminare le regole di rilevamento può fare lo stesso con gli elenchi, e chi può modificare le regole di rilevamento aggiunge, cambia e rimuove i loro valori. Ogni ruolo Security può leggerli, e ogni modifica resta nel registro di audit del progetto.
+- Un monitor Eventi di sicurezza legge gli elenchi nel suo **Filtra per elenchi di controllo**, e una ricerca in **Eventi** o in una caccia ne legge uno come `user:%vip_users%`. Un segno meno davanti, come in `-ip:%admin_addresses%`, tiene gli eventi il cui campo non è nell'elenco.
+- Un elenco contiene al massimo 5.000 valori, di cui al massimo 100 con `*` e 100 intervalli, e un progetto ha al massimo 200 elenchi: per un elenco più lungo, segui un feed di threat intel. Chi può creare, modificare o eliminare le regole di rilevamento può fare lo stesso con gli elenchi, e chi può modificare le regole di rilevamento aggiunge, cambia e rimuove i loro valori. Ogni ruolo Security può leggerli, e ogni modifica resta nel log di audit del progetto.
 
 ### Esegui su eventi passati
 

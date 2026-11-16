@@ -71,7 +71,7 @@ import {
   toLatinDigits,
 } from "./DocsTranslationChecks";
 import { anchorInLanguage } from "./NetworkDocsLabels";
-import { isStepNameOnPage } from "./DocsWorkflowStepNames";
+import { RECORD_STEP_TITLES, isStepNameOnPage } from "./DocsWorkflowStepNames";
 import { leadOf } from "./InventoryAndApiDocsSupport";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { describe, expect, it } from "@jest/globals";
@@ -251,6 +251,19 @@ function keptStepNames(page: string): Array<string> {
   });
 }
 
+/*
+ * A record step's title the page names, built from its model's name: drawn
+ * as the sentence it was built from in the reader's words (#8642), and held
+ * to it by WorkflowStepNamesAsDrawnDocs (#8708). No Dashboard label.
+ */
+function isRecordStepOnPage(page: string, name: string): boolean {
+  return (
+    listed(STEP_NAMES, page).includes(name) &&
+    RECORD_STEP_TITLES.has(name) &&
+    isStepNameOnPage(page, name)
+  );
+}
+
 // The bold words a page keeps as written in every language.
 function keptBold(page: string): Array<string> {
   return [
@@ -282,6 +295,7 @@ function accountedFor(page: string, span: string): boolean {
   return (
     isCodeSpan(span) ||
     keptBold(page).includes(span) ||
+    isRecordStepOnPage(page, span) ||
     templateLabelNames(page).includes(span) ||
     listed(PROSE, page).includes(span)
   );
@@ -1180,7 +1194,7 @@ describe("the Integrations Overview's catalog, in every language", () => {
     sv: { alert: "larm", incident: "incident" },
     ru: { alert: "оповещени", incident: "инцидент" },
     ja: { alert: "アラート", incident: "インシデント" },
-    ko: { alert: "알림", incident: "인시던트" },
+    ko: { alert: "경고", incident: "인시던트" },
     "zh-CN": { alert: "警报", incident: "事件" },
     "zh-TW": { alert: "警示", incident: "事件" },
     hi: { alert: "अलर्ट", incident: "घटना" },

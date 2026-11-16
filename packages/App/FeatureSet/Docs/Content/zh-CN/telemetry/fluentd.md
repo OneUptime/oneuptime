@@ -82,6 +82,10 @@ Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent �
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -100,6 +104,8 @@ Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent �
 
 `json_array true` 让缓冲区的每个块都以一个 JSON 数组发送，`flush_interval 10s` 则每 10 秒发送一次缓冲区。`chunk_limit_size 900k` 让每个请求都小于 1 MB，这是 OneUptime 在这个端点上接受的上限。
 
+`@type file` 把尚未发送的批次保存在 `path` 指定的文件夹中，因此重启 Fluentd 不会丢失其中任何一批；内存中的缓冲区（Fluentd 的默认设置）会丢失其中保存的内容。Fluentd 的用户必须能写入该文件夹：`/var/log/fluent` 是 fluent-package 的，`/var/log/td-agent` 是 td-agent 的，`/fluentd/log` 是 `fluent/fluentd` 镜像的。`total_limit_size 512m` 让那里最多保存 512 MB；满了之后，Fluentd 在发出一批数据之前不再接收记录。
+
 `retryable_response_codes 429,502,503,504` 会在 OneUptime 繁忙（`429`）或正在重启（`502`、`503`、`504`）时重新发送一批数据；没有这一项，Fluentd 遇到 `503` 以外的任何响应都会丢弃这批数据。`retry_max_interval 30s` 让两次重试之间最多等待 30 秒，`retry_timeout 72h` 则会丢弃 72 小时后仍无法发送的一批数据。`record_transformer` 过滤器把 Fluentd 给每条记录的时间作为 `fluentd_time` 加入记录：HTTP 输出只发送记录本身，而 OneUptime 从记录中读取日志的时间。
 
 ### 重启 Fluentd
@@ -113,7 +119,7 @@ Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent �
 
 ## 完整示例
 
-这份配置在端口 `24224` 上通过 Fluentd 的 forward 协议接收记录，并把它们全部发送到 OneUptime：
+这份配置在端口 `24224` 上通过 Fluentd 的 forward 协议只接收来自本主机的记录，并把它们全部发送到 OneUptime：
 
 ```text title="fluentd.conf"
 ####
@@ -125,7 +131,8 @@ Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent �
 <source>
   @type forward
   port 24224
-  bind 0.0.0.0
+  # This host alone: see "Take records from other hosts" to open it
+  bind 127.0.0.1
 </source>
 
 # Send the time Fluentd gave each event: the HTTP output sends only the record
@@ -155,6 +162,10 @@ Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent �
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -171,7 +182,61 @@ Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent �
 </label>
 ```
 
-要把不同的来源作为不同的服务发送，请为每个标签使用一个 `<match>` 段，并各自设置 `x-oneuptime-service-name`。
+`bind 127.0.0.1` 只接收来自本主机的记录，例如 Docker 的 `fluentd` 日志驱动发往 `localhost:24224` 的记录。要把不同的来源作为不同的服务发送，请为每个标签使用一个 `<match>` 段，并各自设置 `x-oneuptime-service-name` 和缓冲区的 `path`：两个缓冲区使用同一路径时，Fluentd 无法启动。
+
+## 接收来自其他主机的记录
+
+使用 `bind 0.0.0.0` 而没有 `<security>` 部分时，任何能访问端口 `24224` 的人都可以用你的摄取密钥向 OneUptime 发送日志。要接收其他主机上 Fluentd 或 Fluent Bit 的记录，请在所有地址上监听，要求每个发送方提供共享密钥，并使用 TLS。把完整示例的 `<source>` 部分替换为：
+
+```text title="fluentd.conf on this host"
+<source>
+  @type forward
+  port 24224
+  bind 0.0.0.0
+  <transport tls>
+    cert_path /etc/fluent/certs/fluentd.crt
+    private_key_path /etc/fluent/certs/fluentd.key
+  </transport>
+  <security>
+    self_hostname fluentd.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+</source>
+```
+
+`cert_path` 和 `private_key_path` 是本主机名称（这里是 `fluentd.example.com`）的证书及其私钥，Fluentd 的用户必须能读取它们。私钥没有密码短语时 Fluentd 会发出警告；`private_key_passphrase` 用来设置密码短语。把 `YOUR_SHARED_KEY` 换成一个很长的随机密钥，例如用 `openssl rand -base64 32` 生成的，并给每个发送方设置同一个：
+
+```text title="fluentd.conf on each sender"
+<match **>
+  @type forward
+  transport tls
+  # The certificate of the authority that signed this host's; not needed for a public one
+  tls_cert_path /etc/fluent/certs/ca.crt
+  <security>
+    self_hostname app-1.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+  <server>
+    host fluentd.example.com
+    port 24224
+  </server>
+  <buffer>
+    @type file
+    path /var/log/fluent/buffer/forward
+  </buffer>
+</match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
+```
+
+Fluent Bit 的 `forward` 输出接受同样的设置：`Shared_Key`、`Self_Hostname`、`tls On` 和 `tls.ca_file`。
+
+没有密钥或不使用 TLS 的发送方会被拒绝。密钥本身从不经过网络：双方各自证明自己持有它。没有 TLS，主机之间网络上的任何人都能读取这些记录。只在主机防火墙中对发送数据的主机开放端口 `24224`。如果 Fluentd 通过日志指南的 Docker Compose 文件运行，也要在那里把端口发布到所有地址（`"24224:24224"`），并把证书所在的文件夹挂载到容器中。
 
 ## 如何读取记录
 
@@ -209,11 +274,15 @@ Fluentd 日志会像其他日志一样经过你的[日志管道](/docs/telemetry
 :::
 
 :::details Fluentd 记录了 `429`、`502`、`503` 或 `504`
-OneUptime 繁忙或正在重启。像上面的配置那样在 `<match>` 部分加上 `retryable_response_codes 429,502,503,504`，Fluentd 就会保留这批数据并重新发送；没有这一项，Fluentd 会丢弃这批数据。
+OneUptime 繁忙或正在重启。像上面的配置那样在 `<match>` 部分加上 `retryable_response_codes 429,502,503,504`，Fluentd 就会保留这批数据并重新发送；没有这一项，Fluentd 会丢弃这批数据。在 `<buffer>` 部分加上 `@type file`，Fluentd 重启时也会保留这批数据。
 :::
 
 :::details 日志显示的是 OneUptime 收到它们的时间，而不是它们自己的时间
-OneUptime 从日志的记录中读取它的时间，而 Fluentd 的 HTTP 输出只发送记录本身。`<parse>` 部分会把 `time` 字段从记录中取出：请在其中加上 `keep_time_key true`。再加上上面配置中的 `record_transformer` 过滤器：它把 Fluentd 给每条记录的时间作为 `fluentd_time` 加入记录。
+OneUptime 从日志的记录中读取它的时间，而 Fluentd 的 HTTP 输出只发送记录本身。`<parse>` 部分会把 `time` 字段作为事件时间从记录中取出：请在其中加上 `time_key fluentd_time`，让它不读取任何记录的时间，并保留 `time` 原样。再加上上面配置中的 `record_transformer` 过滤器：它把 Fluentd 给每条记录的时间作为 `fluentd_time` 加入记录。
+:::
+
+:::details `time` 为 `null`、`true`、列表或对象的 JSON 行始终没有到达
+Fluentd 的 `json` 解析器把一行的 `time` 字段读作事件时间，并且会在没有任何警告的情况下丢弃 `time` 既不是文本也不是数字的行。像上面一样在它的 `<parse>` 部分加上 `time_key fluentd_time`：这样 Fluentd 会把 `time` 原样留在记录中。有了上面的 `record_transformer` 过滤器，OneUptime 会按 Fluentd 读取它的时间 `fluentd_time` 存储日志；没有它，则按 OneUptime 收到它的时间存储。
 :::
 
 :::details 日志归到了 `Fluentd` 服务下
@@ -232,5 +301,5 @@ OneUptime 从记录中 `message`、`log`、`msg`、`body` 或 `text` 里最先�
 - [日志管道](/docs/telemetry/log-pipelines): 解析并丰富 Fluentd 发送的日志。
 - [搜索语法](/docs/telemetry/search-syntax): 在日志浏览器中查找日志。
 - [Fluent Bit](/docs/telemetry/fluentbit): 一个通过 OpenTelemetry 发送的更轻量的代理。
-- [日志监控](/docs/monitor/logs-monitor): 出现匹配的日志时发出告警。
+- [日志监控](/docs/monitor/logs-monitor): 出现匹配的日志时发出警报。
 :::

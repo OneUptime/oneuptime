@@ -3,6 +3,8 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * A Ceph cluster's pages, in a browser, against the offline fixture
@@ -539,19 +541,80 @@ test.describe("the OSDs list", () => {
     await openList(page, "osds", "osd.0", "lang=fa");
     /*
      * "3 / 4 ms" read "ms 4 / 3" on a right-to-left page, and "1.5 TiB /
-     * 3.8 TiB (38.0%)" lost its first number to the line's other end.
+     * 3.8 TiB (38.0%)" lost its first number to the line's other end. The
+     * latencies are written in Persian now, each held to its unit (#8788):
+     * they read right to left, each number before its unit; the sizes stay
+     * as written, left to right.
      */
-    for (const figure of ["3 / 4 ms", "1.5 TiB / 3.8 TiB (38.0%)"]) {
+    const persianMilliseconds: (figure: string) => string = (
+      figure: string,
+    ): string => {
+      return withUnit(
+        figure,
+        PERSIAN["{{value}} ms"]!.replace("{{value}} ", ""),
+      );
+    };
+    for (const figure of [
+      {
+        text: `${persianMilliseconds("۳")} / ${persianMilliseconds("۴")}`,
+        direction: "rtl",
+      },
+      { text: "1.5 TiB / 3.8 TiB (38.0%)", direction: "ltr" },
+    ]) {
       const cell: Locator = rowNamed(page, "osd.0")
         .locator('span[dir="auto"]')
-        .filter({ hasText: figure })
+        .filter({ hasText: figure.text })
         .first();
       await expect(cell).toBeVisible();
       expect(
-        await cell.evaluate((element: Element): string => {
-          return getComputedStyle(element).direction;
-        }),
-      ).toBe("ltr");
+        await cell.evaluate(
+          (element: Element): { direction: string; numberFirst: boolean } => {
+            const direction: string = getComputedStyle(element).direction;
+            const walker: TreeWalker = document.createTreeWalker(
+              element,
+              NodeFilter.SHOW_TEXT,
+            );
+            const texts: Array<Text> = [];
+            for (
+              let node: Node | null = walker.nextNode();
+              node;
+              node = walker.nextNode()
+            ) {
+              if ((node.textContent || "").trim()) {
+                texts.push(node as Text);
+              }
+            }
+            const boxOf: (text: Text, at: number) => DOMRect = (
+              text: Text,
+              at: number,
+            ): DOMRect => {
+              const range: Range = document.createRange();
+              range.setStart(text, at);
+              range.setEnd(text, at + 1);
+              return range.getBoundingClientRect();
+            };
+            const firstText: Text = texts[0]!;
+            const lastText: Text = texts[texts.length - 1]!;
+            // Its first character, a digit, drawn where its direction starts.
+            const first: DOMRect = boxOf(
+              firstText,
+              firstText.data.search(/\S/),
+            );
+            const last: DOMRect = boxOf(
+              lastText,
+              lastText.data.trimEnd().length - 1,
+            );
+            return {
+              direction,
+              numberFirst:
+                direction === "rtl"
+                  ? first.right > last.right
+                  : first.left < last.left,
+            };
+          },
+        ),
+        figure.text,
+      ).toEqual({ direction: figure.direction, numberFirst: true });
     }
     await expect
       .poll(async (): Promise<number> => {
@@ -909,4 +972,20 @@ test.describe("the fixture's reads", () => {
       });
     expect(kinds.sort()).toEqual(["Mon", "Osd", "Pool"]);
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en"
+      ? CLUSTER_PATH
+      : `${CLUSTER_PATH}?lang=${language}`;
+  },
 });

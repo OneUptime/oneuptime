@@ -60,7 +60,7 @@ No aplicativo, abra **Configurações do usuário → Métodos de notificação*
 Clique em **Registrar Dispositivo**, mantenha o valor sugerido em **Nome do dispositivo**, por exemplo `Chrome on Linux`, ou altere-o, e clique de novo em **Registrar Dispositivo**. Quando o navegador perguntar se o OneUptime pode mostrar notificações, escolha **Permitir**.
 
 ### Enviar um teste
-Na caixa de diálogo **Browser Registered**, clique em **Send Test Notification**. A sua área de trabalho a mostra pelo serviço de notificações dela; se nada aparecer, veja [Solução de problemas](#solução-de-problemas).
+Na caixa de diálogo **Navegador registrado**, clique em **Enviar notificação de teste**. A sua área de trabalho a mostra pelo serviço de notificações dela; se nada aparecer, veja [Solução de problemas](#solução-de-problemas).
 :::
 
 Um navegador não consegue tocar apesar do Não Perturbe da sua área de trabalho. Para acionamentos que precisam acordar você, use o aplicativo móvel com alertas críticos: veja [Instalação no Android](/docs/mobile-desktop-apps/android-installation#tocar-mesmo-no-modo-silencioso).

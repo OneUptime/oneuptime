@@ -452,7 +452,7 @@ describe("shared calendar feeds: the real permission gate", () => {
       }
     });
 
-    it("refuses another user's status even when the caller is a project owner", async () => {
+    it("refuses another user's status even when the caller is a Project Owner", async () => {
       await expect(
         ModelPermission.checkReadQueryPermission(
           UserOnCallCalendarFeed,

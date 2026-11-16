@@ -1,6 +1,6 @@
 # Discord
 
-Publica un mensaje en un canal de [Discord](https://discord.com) cuando se abre un incidente, para que quienes siguen ese canal se enteren al momento. El paso de flujo de trabajo **Send Message to Discord** de OneUptime publica a través del webhook del canal, y una plantilla lista para usar crea todo el flujo de trabajo por ti. Esta integración es **saliente**: OneUptime publica en el canal y no lee lo que se dice allí.
+Publica un mensaje en un canal de [Discord](https://discord.com) cuando se abre un incidente, para que quienes siguen ese canal se enteren al momento. El paso de flujo de trabajo **Enviar mensaje a Discord** de OneUptime publica a través del webhook del canal, y una plantilla lista para usar crea todo el flujo de trabajo por ti. Esta integración es **saliente**: OneUptime publica en el canal y no lee lo que se dice allí.
 
 :::cards
 - [Cómo funciona](#cómo-funciona): Lo que hace el flujo de trabajo cuando se abre un incidente.
@@ -13,8 +13,8 @@ Publica un mensaje en un canal de [Discord](https://discord.com) cuando se abre 
 
 ```mermaid title="De un incidente a un mensaje de Discord"
 flowchart TB
-    declared["Incidente declarado"] --> trigger["On Create Incident"]
-    trigger --> step["Send Message<br/>to Discord"]
+    declared["Incidente declarado"] --> trigger["Al crear Incidente"]
+    trigger --> step["Enviar mensaje<br/>a Discord"]
     step -->|"Éxito"| channel["Mensaje en<br/>tu canal"]
     step -->|"Error"| failed["La ejecución falla<br/>y dice por qué"]
 ```
@@ -48,13 +48,13 @@ Empieza desde la plantilla, que crea todo el flujo de trabajo por ti, o desde ce
 3. Deja el nombre **Notify Discord on new incident** o cámbialo, y haz clic en **Siguiente**.
 4. Pega la URL en **Discord Webhook URL** y haz clic en **Crear flujo de trabajo**.
 
-El flujo de trabajo se abre en el **Constructor** con dos pasos: **On Create Incident** y **Send Message to Discord**, que publica el número, el título, la gravedad y el estado del incidente. La URL se guarda como la variable secreta `discordWebhookUrl` del flujo de trabajo.
+El flujo de trabajo se abre en el **Constructor** con dos pasos: **Al crear Incidente** y **Enviar mensaje a Discord**, que publica el número, el título, la gravedad y el estado del incidente. La URL se guarda como la variable secreta `discordWebhookUrl` del flujo de trabajo.
 @tab Desde cero
 1. Guarda la URL como variable global secreta: ve a **Flujos de trabajo → Variables globales**, haz clic en **Crear Variable del flujo de trabajo**, ponle el nombre `DISCORD_WEBHOOK_URL` y haz clic en **Siguiente**. Pega la URL en **Contenido**, activa **Secreto** y haz clic en **Crear Variable del flujo de trabajo**.
 2. Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo**, elige **Empezar desde cero**, ponle nombre al flujo de trabajo y haz clic en **Crear flujo de trabajo**.
-3. En el **Constructor**, haz clic en **Elige qué inicia este flujo de trabajo** y elige **On Create Incident** en **Populares**. Haz clic en el disparador: sus **Fields to pass on** empiezan con **Título**, así que haz clic en **Añadir campo** y elige los demás campos que muestra tu mensaje, por ejemplo **Número de incidente con prefijo**.
-4. Haz clic en **Añadir componente**, busca `discord` y haz clic en **Send Message to Discord**. Conecta la salida **Éxito** del disparador a este paso.
-5. Haz clic en el paso nuevo. En **Discord Incoming Webhook URL**, haz clic en **{ }** y elige `DISCORD_WEBHOOK_URL` en **Variables globales**. En **Texto del mensaje**, escribe el mensaje e inserta los campos del incidente con **{ }**.
+3. En el **Constructor**, haz clic en **Elige qué inicia este flujo de trabajo** y elige **Al crear Incidente** en **Populares**. Haz clic en el disparador: sus **Campos que pasar** empiezan con **Título**, así que haz clic en **Añadir campo** y elige los demás campos que muestra tu mensaje, por ejemplo **Número de incidente con prefijo**.
+4. Haz clic en **Añadir componente**, busca `discord` y haz clic en **Enviar mensaje a Discord**. Conecta la salida **Éxito** del disparador a este paso.
+5. Haz clic en el paso nuevo. En **URL del webhook entrante de Discord**, haz clic en **{ }** y elige `DISCORD_WEBHOOK_URL` en **Variables globales**. En **Texto del mensaje**, escribe el mensaje e inserta los campos del incidente con **{ }**.
 :::
 
 Un mensaje hecho desde cero lee los campos del incidente con referencias como estas:
@@ -75,7 +75,7 @@ Para probarlo sin abrir un incidente, haz clic en **Ejecutar flujo de trabajo** 
 
 - **Dar formato con el Markdown de Discord.** El texto se envía tal como se escribe, así que el Markdown de Discord funciona en él: los asteriscos alrededor de una palabra la ponen en negrita, y una URL aparece como un enlace.
 - **Tener en cuenta el límite de 2.000 caracteres.** Discord acepta mensajes de hasta 2.000 caracteres. Uno más largo se recorta, y termina con "… (truncated — see OneUptime for the full text)", en lugar de rechazarse.
-- **Publicar más que incidentes nuevos.** Crea otro flujo de trabajo sobre **On Update Incident** para los cambios de estado, o sobre **On Create Alert** para las alertas, con el mismo paso. Para publicar solo algunos incidentes, pon un bloque **If / Else** antes del paso.
+- **Publicar más que incidentes nuevos.** Crea otro flujo de trabajo sobre **Al actualizar Incidente** para los cambios de estado, o sobre **Al crear Alerta** para las alertas, con el mismo paso. Para publicar solo algunos incidentes, pon un bloque **Si / Si no** antes del paso.
 - **Solo las direcciones de Discord.** El paso publica en una URL `https` de `discord.com` o `discordapp.com`, y no sigue redirecciones, así que una URL que apunta a cualquier otro sitio detiene la ejecución.
 
 ## Solución de problemas
@@ -91,7 +91,7 @@ Discord limita cada cuánto puede publicar un webhook. Una ráfaga de incidentes
 :::
 
 :::details La ejecución se detiene con "Discord Webhook URL must be an https URL on discord.com or discordapp.com"
-**Discord Incoming Webhook URL** contiene algo distinto de un webhook de Discord, o la variable que lee está vacía. Vuelve a pegar la URL de **Copy Webhook URL**.
+**URL del webhook entrante de Discord** contiene algo distinto de un webhook de Discord, o la variable que lee está vacía. Vuelve a pegar la URL de **Copy Webhook URL**.
 :::
 
 ## Próximos pasos

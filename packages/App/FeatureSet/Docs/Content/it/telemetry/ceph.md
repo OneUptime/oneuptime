@@ -163,7 +163,7 @@ Le soglie degli OSD sono quelle predefinite di Ceph. Un cluster impostato con al
 
 ## Facoltativo — Inviare il log del cluster Ceph
 
-L'agent può seguire `/var/log/ceph/ceph.log` e inviarlo a OneUptime, riempiendo la pagina **Registro del cluster** del cluster. È disattivato per impostazione predefinita perché l'agent deve girare su un host che ha il log del cluster: per impostazione predefinita, un host monitor.
+L'agent può seguire `/var/log/ceph/ceph.log` e inviarlo a OneUptime, riempiendo la pagina **Log del cluster** del cluster. È disattivato per impostazione predefinita perché l'agent deve girare su un host che ha il log del cluster: per impostazione predefinita, un host monitor.
 
 :::steps
 ### Attiva il receiver
@@ -265,7 +265,7 @@ sudo chmod 600 ceph/ceph.client.oneuptime-ai.keyring
 docker compose up -d
 ```
 
-Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#cluster-ceph).
+Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents#cluster-ceph).
 
 ## Risoluzione dei problemi
 
@@ -307,6 +307,6 @@ OneUptime registra un cluster Ceph tramite il suo `ceph.cluster.name`, che l'age
 :::cards
 - [Monitor Ceph](/docs/monitor/ceph-monitor): Avvisi su stato, OSD, placement group, capacità, crash e operazioni lente.
 - [Agent Proxmox](/docs/telemetry/proxmox): Usi Ceph sotto Proxmox VE? Monitora anche il cluster.
-- [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA Ceph e come funzionano le correzioni.
+- [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA Ceph e come funzionano le correzioni.
 - [Collector OpenTelemetry sull'host](/docs/telemetry/host-otel-collector): La vista del sistema operativo di ogni host Ceph.
 :::

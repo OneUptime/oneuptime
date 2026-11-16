@@ -1,6 +1,6 @@
 # Slack 整合
 
-將你自行託管的 OneUptime 連接到 Slack。你用伺服器產生的資訊清單建立一個 Slack 應用程式，把應用程式的認證資訊交給 OneUptime，再把每個專案連接到一個工作區。之後，OneUptime 會把事件、警示和排定的維護發布到你的頻道，團隊可以直接在 Slack 中處理它們。
+將你自行託管的 OneUptime 連接到 Slack。你用伺服器產生的資訊清單建立一個 Slack 應用程式，把應用程式的認證資訊交給 OneUptime，再把每個專案連接到一個工作區。之後，OneUptime 會把事件、警示和排定維護發布到你的頻道，團隊可以直接在 Slack 中處理它們。
 
 本頁面向執行 OneUptime 伺服器的人員。Slack 連接後，通知規則依專案設定：請參閱 [Slack](/docs/workspace-connections/slack)。
 

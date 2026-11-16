@@ -7,6 +7,7 @@ Et udgivelsestjek spørger et SLO "er det sikkert at fortsætte med at rulle den
 - [Argo Rollouts](#argo-rollouts): En analyse, der afbryder udrulningen.
 - [Flagger](#flagger): En webhook, der standser canaryen.
 - [GitHub Actions](#github-actions): Et trin, der ruller tilbage efter en udrulning.
+- [Slå et feature flag fra](#slå-et-feature-flag-fra): En arbejdsgang, der slår et flag fra, når SLO'et bruger sit fejlbudget for hurtigt.
 :::
 
 ## Sådan fungerer det
@@ -42,6 +43,7 @@ Ved en forbrugsrate på 1 ramte vinduet præcis SLO'ets mål, så standardværdi
 Hvad tjekket læser, afhænger af, hvad SLO'et måler:
 
 - Et [anmodnings-SLO](/docs/slo/request-slos) bedømmes ud fra dets tjenesters anmodninger i vinduet, læst fra deres spans, efterhånden som de ankommer. Tilføj `serviceVersion` for kun at bedømme den nye versions anmodninger: OneUptime matcher værdien mod spannenes ressourceattribut `service.version`, som et OpenTelemetry-SDK sætter ud fra `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2`. Så bedømmes canaryen på sine egne anmodninger og udvandes ikke af den gamle versions.
+- Et [metrik-SLO](/docs/slo/request-slos#sloer-ud-fra-en-metrik) bedømmes ud fra metrikkens begivenheder i vinduet, talt på samme måde som dets SLI tæller dem, så `minimumRequestCount`, `goodRequestCount` og `totalRequestCount` er begivenheder. Med `serviceVersion` tæller kun de af metrikkens punkter, hvis ressourceattribut `service.version` har den værdi: Et OpenTelemetry-SDK sætter den på sine metrikker, ligesom det gør på sine spans.
 - Et SLO for monitoroppetid bedømmes ud fra dets monitorers statustidslinjer over vinduet. `minimumRequestCount` gælder ikke for det, og et tjek med `serviceVersion` afvises: Monitorer har ingen versioner.
 
 ## Før du begynder
@@ -126,7 +128,7 @@ Svarets felter:
 | `deploymentsAllowed` og `errorBudgetPolicyTier` | Om SLO'ets fejlbudgetpolitik tillader udrulninger, og det niveau, SLO'et er i. |
 | `checkedAt` | Hvornår tjekket blev målt. |
 
-Et SLO, der ikke kan måles – et anmodnings-SLO uden tjenester, et latens-SLO uden grænse, et SLO for monitoroppetid uden monitorer – får svaret HTTP 400 og besked om, hvad der skal rettes, så en udrulning stopper på en tydelig fejl i stedet for et gæt. På en selvhostet installation skal du bruge installationens egen adresse i stedet for oneuptime.com.
+Et SLO, der ikke kan måles – et anmodnings-SLO uden tjenester, et latens-SLO uden grænse, et metrik-SLO uden en tællelig metrik, et SLO for monitoroppetid uden monitorer – får svaret HTTP 400 og besked om, hvad der skal rettes, så en udrulning stopper på en tydelig fejl i stedet for et gæt. På en selvhostet installation skal du bruge installationens egen adresse i stedet for oneuptime.com.
 
 ## Argo Rollouts
 
@@ -256,6 +258,37 @@ jobs:
 ```
 
 Trinnet fejler ved et nej og ved ethvert svar uden `isSafeToContinue: true` – et forkert ID, en nøgle, der ikke kan læse SLO'et, slet intet svar – så pipelinen aldrig fortsætter på et svar, den ikke fik. Sæt `service.version` til committet (`${{ github.sha }}`), når tjenesten starter, så tjekket kun bedømmer den nye version.
+
+## Slå et feature flag fra
+
+En udgivelse bag et feature flag rulles tilbage ved at slå flaget fra. Det kan en arbejdsgang gøre for dig: Når en af SLO'ets [forbrugsrateregler](/docs/slo/burn-rate-alerts) udløser sin advarsel eller erklærer sin hændelse, slår arbejdsgangen flaget fra i LaunchDarkly eller Unleash. En dårlig udrulning er dermed rullet tilbage på få minutter, uden at nogen skal gribe ind.
+
+:::steps
+### Kopiér forbrugsratereglens ID
+
+Åbn SLO'et, og gå til **Forbrugsrateregler**. Åbn menuen for den regel, der skal slå flaget fra, og vælg **Vis ID**. En regel for hurtigt forbrug egner sig bedst, fordi den udløser inden for få minutter efter en dårlig udrulning.
+
+### Opret arbejdsgangen fra en skabelon
+
+Åbn **Arbejdsgange**, og klik på **Opret arbejdsgang**. Under **Eller start fra en skabelon** vælger du kategorien **SLOs** og derefter skabelonen til din flagtjeneste:
+
+| Skabelon | Hvad den beder om |
+| --- | --- |
+| **Turn a LaunchDarkly flag off when an SLO burns too fast** | Et API-adgangstoken, der må opdatere flaget, og nøglerne til LaunchDarkly-projektet, flaget og miljøet. |
+| **Turn an Unleash flag off when an SLO burns too fast** | Din Unleash-adresse, et token til en tjenestekonto eller et personligt adgangstoken samt flagets projekt, navn og miljø. |
+
+Indsæt reglens ID i **Burn Rate Rule ID**, udfyld resten, og opret arbejdsgangen.
+
+### Slå arbejdsgangen til
+
+Arbejdsgange oprettes slået fra. Når du er klar, slår du **Aktiveret** til øverst i arbejdsgangens **Bygger**.
+:::
+
+Arbejdsgangen starter, hver gang en forbrugsrateregel i projektet udløser en advarsel eller erklærer en hændelse. Blokken **Hvis / Ellers** lader den kun fortsætte for den regel, hvis ID du indsatte, og det næste trin kalder flagtjenesten: hos LaunchDarkly instruktionen `turnFlagOff` med en kommentar, der nævner reglen og SLO'et, eller hos Unleash `off` for miljøet. Begge slår flaget fra for alle i det miljø, uanset flagets targeting. Afviser flagtjenesten kaldet, fejler kørslen, og dens log fortæller hvorfor. Reglens advarsel tilkalder stadig folk, som den altid gør.
+
+**Kør arbejdsgang** i **Bygger** kører arbejdsgangen, som om den regel, du vælger, lige havde udløst, så den slår flaget fra for alvor. Prøv det først med et flag i et testmiljø.
+
+For en anden flagtjeneste eller en LaunchDarkly-instans med egen adresse starter du fra en af de to skabeloner og ændrer kaldet i dens API-trin til et kald, der slår flaget fra for alle i miljøet. Vælg et kald, der ligesom disse to også tilsidesætter segmenter og targetingregler, ellers bliver flaget ved med at være slået til gennem en gradvis udrulning.
 
 ## Næste trin
 

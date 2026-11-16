@@ -259,6 +259,12 @@ import {
   buildPingMonitorDescription,
 } from "../../../Utils/NetworkDiscovery/PingMonitorBuilder";
 import SnmpVendorTemplateUtil from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 /*
  * Below the imports on purpose: the jest.mock factories above are hoisted,

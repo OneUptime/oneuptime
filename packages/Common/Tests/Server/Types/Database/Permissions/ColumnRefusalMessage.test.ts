@@ -15,6 +15,7 @@ import ColumnRefusalMessage, {
 import ColumnWriteRefusedException from "../../../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import QueryPermission from "../../../../../Server/Types/Database/Permissions/QueryPermission";
 import SelectPermission from "../../../../../Server/Types/Database/Permissions/SelectPermission";
+import SortValidator from "../../../../../Server/Types/Database/Permissions/SortValidator";
 import { ColumnAccessControl } from "../../../../../Types/BaseDatabase/AccessControl";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AnalyticsTableColumn from "../../../../../Types/AnalyticsDatabase/TableColumn";
@@ -105,6 +106,10 @@ describe("ColumnRefusalMessage: the words", () => {
       "query",
       "No permission allows it: the column cannot be filtered on through the API.",
     ],
+    [
+      "sort",
+      "No permission allows it: a list cannot be sorted by the column through the API.",
+    ],
   ])(
     "a column nobody may %s says so, plainly",
     (operation: string, sentence: string) => {
@@ -115,7 +120,7 @@ describe("ColumnRefusalMessage: the words", () => {
     },
   );
 
-  test.each(["create", "update", "select", "query"])(
+  test.each(["create", "update", "select", "query", "sort"])(
     "a column some may %s names them, in the list's order, as their titles",
     (operation: string) => {
       expect(
@@ -279,6 +284,36 @@ describe("every gate refuses a column in those words", () => {
     expect(error).toBeInstanceOf(NotAuthorizedException);
     expect(error.message).toBe(
       `You do not have permissions to query on - fileId. ${NO_PERMISSION_ALLOWS.query}`,
+    );
+  });
+
+  // An order says what a column holds, so a sort is refused as a filter is (#8839).
+  test("sort, Postgres", () => {
+    const error: Error = refusal(() => {
+      SortValidator.checkSortPermission({
+        modelType: PacketCapture,
+        query: {} as never,
+        sort: { fileId: "ASC" },
+        props: caller([Permission.ProjectOwner]),
+      });
+    });
+
+    expect(error).toBeInstanceOf(NotAuthorizedException);
+    expect(error.message).toBe(
+      `You do not have permissions to sort on - fileId. ${NO_PERMISSION_ALLOWS.sort}`,
+    );
+  });
+
+  test("sort through a relation names the related record and the relation", () => {
+    expect(
+      ColumnRefusalMessage.getRelationSortRefusal({
+        column: "key",
+        relatedModelName: "Probe",
+        relationColumn: "probe",
+        permissions: [Permission.ProjectOwner, Permission.ProjectAdmin],
+      }),
+    ).toBe(
+      "You do not have permissions to sort on - key of Probe through probe. You need one of these permissions: Project Owner, Project Admin.",
     );
   });
 

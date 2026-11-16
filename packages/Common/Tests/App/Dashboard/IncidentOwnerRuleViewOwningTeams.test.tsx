@@ -154,7 +154,7 @@ const PLATFORM: string = "2a3b4c5d-6e7f-4a8b-9c9d-0e1f2a3b4c5d";
 const RULE_URL: string = `/dashboard/${PROJECT_ID}/incidents/settings/owner-rules/${RULE_ID}`;
 
 const OVERSIGHT_OWNS_IT: string =
-  "This rule belongs to Oversight: only its members, with its permissions, and project admins can change it.";
+  "This rule belongs to Oversight: only its members, with its permissions, and Project Admins can change it.";
 
 function row(permission: Permission, teamId?: string): UserPermission {
   return {
@@ -330,7 +330,7 @@ describe("an incident owner rule's own page", () => {
     });
 
     expect(hover(editButton()!)).toHaveTextContent(
-      "This rule belongs to Oversight and Payments: only their members, with their permissions, and project admins can change it.",
+      "This rule belongs to Oversight and Payments: only their members, with their permissions, and Project Admins can change it.",
     );
   });
 
@@ -348,7 +348,7 @@ describe("an incident owner rule's own page", () => {
     expect(deleteButton()).not.toBeDisabled();
   });
 
-  test("so can a project admin, who is on none of the teams", async () => {
+  test("so can a Project Admin, who is on none of the teams", async () => {
     rowsForTest = [row(Permission.ProjectAdmin, PLATFORM)];
     owningTeamRowsForTest = [owningTeam(OVERSIGHT, "Oversight")];
 

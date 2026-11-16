@@ -1,6 +1,6 @@
 # Microsoft Teams 통합
 
-자체 호스팅 OneUptime을 Microsoft Teams에 연결합니다. Microsoft Entra ID에 앱을 등록하고, 그 앱용 Azure Bot을 만들고, 앱의 자격 증명을 OneUptime에 넣은 다음, 서버가 생성하는 Teams 앱 패키지를 설치합니다. 그러면 OneUptime이 알림과 인시던트를 채널과 채팅에 게시하고, 팀은 Teams에서 바로 대응할 수 있습니다.
+자체 호스팅 OneUptime을 Microsoft Teams에 연결합니다. Microsoft Entra ID에 앱을 등록하고, 그 앱용 Azure Bot을 만들고, 앱의 자격 증명을 OneUptime에 넣은 다음, 서버가 생성하는 Teams 앱 패키지를 설치합니다. 그러면 OneUptime이 경고와 인시던트를 채널과 채팅에 게시하고, 팀은 Teams에서 바로 대응할 수 있습니다.
 
 이 페이지는 OneUptime 서버를 운영하는 사람을 위한 것입니다. Teams를 연결한 뒤 알림 규칙은 프로젝트별로 설정합니다. [Microsoft Teams](/docs/workspace-connections/microsoft-teams)를 참고하세요.
 
@@ -28,7 +28,7 @@ sequenceDiagram
     B->>O: 콜백
     O->>E: Microsoft<br/>Graph 토큰 받기
     Note over O,AB: 연결된 후
-    O->>AB: 알림 카드 게시,<br/>아웃바운드 HTTPS
+    O->>AB: 경고 카드 게시,<br/>아웃바운드 HTTPS
     AB->>O: POST /api/microsoft-bot/messages
 ```
 
@@ -229,7 +229,7 @@ Microsoft는 [자체 호스팅 봇에 공개적으로 접근 가능한 HTTPS 엔
 | Microsoft에서 OneUptime으로 | `POST /api/microsoft-bot/messages` | 봇 메시지, 대화 설치 이벤트, 카드 작업 |
 | 사용자 브라우저에서 OneUptime으로 | `/api/microsoft-teams/auth` 및 `/api/microsoft-teams/admin-consent/callback` | 로그인 및 관리자 동의 리디렉션 |
 
-앱 등록이 `/api/microsoft-teams/auth`와 `/api/microsoft-teams/admin-consent/callback`으로 보내는 리디렉션은 사용자의 브라우저를 거쳐 돌아옵니다. 그 브라우저는 예를 들어 회사 네트워크나 VPN을 통해 OneUptime에 도달할 수 있어야 합니다. 봇 메시지와 카드 작업은 Microsoft 서버에서 오므로 별도로 도달 가능한 ingress가 필요합니다. 아웃바운드 알림 전달만으로는 인바운드 연결이 확인되지 않습니다.
+앱 등록이 `/api/microsoft-teams/auth`와 `/api/microsoft-teams/admin-consent/callback`으로 보내는 리디렉션은 사용자의 브라우저를 거쳐 돌아옵니다. 그 브라우저는 예를 들어 회사 네트워크나 VPN을 통해 OneUptime에 도달할 수 있어야 합니다. 봇 메시지와 카드 작업은 Microsoft 서버에서 오므로 별도로 도달 가능한 ingress가 필요합니다. 아웃바운드 경고 전달만으로는 인바운드 연결이 확인되지 않습니다.
 
 ### 비공개 배포에서 봇 엔드포인트 게시하기
 
@@ -280,16 +280,16 @@ Microsoft는 Bot Framework 인바운드 트래픽에 대한 고정 IP 허용 목
 
 이런 증상은 대개 **Azure Bot Service가 인증된 활동을 메시징 엔드포인트로 전달하지 못한다**는 뜻입니다. 라우팅, 봇 인증, 프로젝트 구성을 확인하세요.
 
-헷갈리는 점은 알림 카드는 여전히 Teams에 도착하기 때문에 통합이 거의 정상처럼 보인다는 것입니다. 실제로는 그렇지 않습니다. 두 방향은 독립적이며 그중 하나만 동작하고 있습니다.
+헷갈리는 점은 경고 카드는 여전히 Teams에 도착하기 때문에 통합이 거의 정상처럼 보인다는 것입니다. 실제로는 그렇지 않습니다. 두 방향은 독립적이며 그중 하나만 동작하고 있습니다.
 
 | 방향 | 이동 방식 | Azure가 여러분에게 도달해야 하나요? |
 | --- | --- | --- |
-| OneUptime이 채널에 알림 카드를 게시 | OneUptime이 클라이언트 비밀로 인증해 Microsoft를 호출 | **아니요** |
+| OneUptime이 채널에 경고 카드를 게시 | OneUptime이 클라이언트 비밀로 인증해 Microsoft를 호출 | **아니요** |
 | 그 카드의 버튼을 누름 | Azure Bot Service가 `/api/microsoft-bot/messages`로 POST | **예** |
 | 봇에 `help`를 보냄 | Azure Bot Service가 `/api/microsoft-bot/messages`로 POST | **예** |
 | 채팅이 **Microsoft Teams Chats**에 등록됨 | Azure Bot Service가 봇 활동을 `/api/microsoft-bot/messages`로 POST | **예** |
 
-따라서 알림이 도착한다는 사실은 그 아웃바운드 전송만 확인해 줄 뿐, 모든 Graph 권한이나 인바운드 봇 엔드포인트를 확인해 주지는 않습니다. 대화형 기능은 인바운드 봇 활동이 성공적으로 처리되어야 동작합니다.
+따라서 경고가 도착한다는 사실은 그 아웃바운드 전송만 확인해 줄 뿐, 모든 Graph 권한이나 인바운드 봇 엔드포인트를 확인해 주지는 않습니다. 대화형 기능은 인바운드 봇 활동이 성공적으로 처리되어야 동작합니다.
 
 OneUptime은 앱 설치, 대화에 봇 추가, 그 채팅에서 봇에 보낸 메시지 같은 봇 활동으로 채팅을 등록합니다. 이 활동은 모두 같은 인바운드 엔드포인트로 들어옵니다. 앱을 추가하고 메시지를 보낸 뒤에도 **Microsoft Teams Chats** 목록이 비어 있다면 그 프로젝트에 등록된 채팅이 없다는 뜻입니다. 인바운드 요청, 인증 오류, 테넌트와 프로젝트의 매핑을 확인하세요. **Refresh Chats**를 클릭하면 OneUptime이 저장한 채팅을 다시 읽고, 저장된 각 그룹 채팅의 이름을 Microsoft에서 다시 읽습니다.
 

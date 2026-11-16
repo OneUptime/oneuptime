@@ -12,8 +12,8 @@ Ogni volta che un flusso di lavoro viene eseguito, OneUptime salva un resoconto 
 
 | Pagina                                               | Cosa vedi                                                                                          |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Flussi di lavoro → Registri → Esecuzioni**         | Ogni esecuzione di ogni flusso di lavoro del progetto. Filtra per nome del flusso di lavoro, stato e data.         |
-| **Flusso di lavoro → Registri → Esecuzioni**         | Solo le esecuzioni di questo flusso di lavoro. Qui c'è un filtro **ID esecuzione** invece di un filtro per flussi di lavoro. |
+| **Flussi di lavoro → Log → Esecuzioni**         | Ogni esecuzione di ogni flusso di lavoro del progetto. Filtra per nome del flusso di lavoro, stato e data.         |
+| **Flusso di lavoro → Log → Esecuzioni**         | Solo le esecuzioni di questo flusso di lavoro. Qui c'è un filtro **ID esecuzione** invece di un filtro per flussi di lavoro. |
 | **Una singola esecuzione**                           | Si apre con il pulsante **Visualizza log** su una riga: le righe in sé non sono cliccabili.         |
 
 Avviare un'esecuzione dal **Costruttore** apre la stessa vista **Esecuzione del flusso di lavoro**, che già segue l'esecuzione, così la vedi accadere invece di doverla cercare dopo.
@@ -47,9 +47,9 @@ stateDiagram-v2
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Programmato**                     | Il trigger è scattato e l'esecuzione è in coda in attesa di un esecutore. Di solito una frazione di secondo. Un'esecuzione ancora programmata dopo 5 minuti fallisce: nessuno l'ha presa in carico.                                                                   |
 | **In esecuzione**                   | Il flusso di lavoro è in corso.                                                                                                                                                                                                                                               |
-| **In attesa**                       | L'esecuzione è ferma su un blocco **Sleep** e riprenderà da sola. Mentre attende non occupa nessun worker.                                                                                                                                                           |
+| **In attesa**                       | L'esecuzione è ferma su un blocco **Pausa** e riprenderà da sola. Mentre attende non occupa nessun worker.                                                                                                                                                           |
 | **Eseguito**                        | L'esecuzione è arrivata alla fine senza errori. È lo stato di successo: la pillola dice **Eseguito**, non «Riuscito».                                                                                                                                                 |
-| **Errore**                          | Un blocco ha fermato l'esecuzione, o è fallito senza nulla collegato alla sua uscita **Errore**. Si usa anche quando un'esecuzione in coda non viene mai presa in carico, quando si perde la ripresa di un'esecuzione in pausa, quando un'espressione di pianificazione non può essere risolta e quando il flusso di lavoro è stato disattivato o archiviato mentre l'esecuzione attendeva su un blocco **Sleep**. |
+| **Errore**                          | Un blocco ha fermato l'esecuzione, o è fallito senza nulla collegato alla sua uscita **Errore**. Si usa anche quando un'esecuzione in coda non viene mai presa in carico, quando si perde la ripresa di un'esecuzione in pausa, quando un'espressione di pianificazione non può essere risolta e quando il flusso di lavoro è stato disattivato o archiviato mentre l'esecuzione attendeva su un blocco **Pausa**. |
 | **Tempo scaduto**                   | L'esecuzione è durata più del consentito: 2 minuti per impostazione predefinita. Vedi [Quanto può durare un'esecuzione](/docs/workflows/configuration#quanto-può-durare-unesecuzione).                                                                                       |
 | **Esecuzione oltre il piano attuale** | Il progetto ha esaurito le esecuzioni dei flussi di lavoro degli ultimi 30 giorni, oppure l'abbonamento non è pagato. L'esecuzione viene registrata ma non eseguita. Solo OneUptime Cloud.                                                                                   |
 
@@ -81,7 +81,7 @@ Alcune esecuzioni si leggono in modo diverso:
 - **Un'esecuzione di prova.** Un'esecuzione che qualcuno ha avviato con **Esegui flusso di lavoro** o **Run just this step** mentre il flusso di lavoro era disattivato dice **Esecuzione di prova** in cima, con chi l'ha avviata, ed entrambi gli elenchi delle esecuzioni la contrassegnano come **Esecuzione di prova** accanto al suo stato. I suoi blocchi sono stati eseguiti davvero; solo il trigger del flusso di lavoro era in pausa. Filtra per **Esecuzione di prova** per elencare solo le esecuzioni di prova, o solo le altre.
 - **Una prova di un solo passaggio.** Un'esecuzione avviata con **Run just this step** dice **Only this step ran** in cima. I passaggi precedenti non sono stati eseguiti, quindi i valori che legge da essi mancano (aspettati un avviso **Did not resolve** per quelli), e i passaggi successivi dicono **(not run in this test)**. Usa **Esegui flusso di lavoro** per provare tutto il percorso.
 - **Un'esecuzione fermata tra due passaggi.** Se l'esecuzione si è fermata per un motivo che nessun passaggio spiega — ha esaurito il tempo tra due passaggi, o è fallita prima del primo passaggio —, il percorso termina con **The run stopped here** e il motivo.
-- **Un'esecuzione in pausa.** Un'esecuzione che attende su un blocco **Sleep** termina con **Sleeping** e l'ora in cui riprenderà da sola; i passaggi dopo lo Sleep dicono **(not run yet)**.
+- **Un'esecuzione in pausa.** Un'esecuzione che attende su un blocco **Pausa** termina con **Sleeping** e l'ora in cui riprenderà da sola; i passaggi dopo lo Sleep dicono **(not run yet)**.
 
 L'ID sotto il titolo di ogni passaggio è esattamente ciò che va in un riferimento `{{local.components.<id>.returnValues.…}}`, il che rende questo il modo più rapido per scrivere bene un riferimento.
 
@@ -89,7 +89,7 @@ I valori mostrati sono quelli che il blocco ha ricevuto, dopo la compilazione de
 
 ### La scheda Full Log
 
-Il registro grezzo, riga per riga, scritto dall'esecutore, compreso ciò che i blocchi hanno registrato da soli, come il valore di un blocco **Registro** o il `console.log` di uno script. Usalo quando la scheda Passaggi non spiega l'errore.
+Il log grezzo, riga per riga, scritto dall'esecutore, compreso ciò che i blocchi hanno registrato da soli, come il valore di un blocco **Log** o il `console.log` di uno script. Usalo quando la scheda Passaggi non spiega l'errore.
 
 ## Copiare e scaricare un'esecuzione
 
@@ -97,8 +97,8 @@ In cima alla vista **Esecuzione del flusso di lavoro**, accanto al pulsante di c
 
 | Download                                | Cosa ottieni                                                                                                                                                                                                                           |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Scarica log**                         | Un file `.txt` con il registro completo esattamente come l'ha scritto l'esecutore, per quanto lungo, sotto una breve intestazione: il nome e l'ID del flusso di lavoro, l'ID dell'esecuzione, il suo stato e quando è stata programmata, avviata e completata. |
-| **Scarica l'esecuzione come JSON**      | Un file `.json` con le stesse informazioni come dati, i passaggi mostrati dalla scheda **Passaggi** (ciò che ognuno ha ricevuto e restituito, e quale uscita ha preso) e il registro come elenco di righe. I passaggi hanno la stessa forma in cui l'API restituisce lo `stepTrace` di un'esecuzione e, come nella scheda **Passaggi**, sono gli ultimi 100 dell'esecuzione. Il registro è sempre completo. |
+| **Scarica log**                         | Un file `.txt` con il log completo esattamente come l'ha scritto l'esecutore, per quanto lungo, sotto una breve intestazione: il nome e l'ID del flusso di lavoro, l'ID dell'esecuzione, il suo stato e quando è stata programmata, avviata e completata. |
+| **Scarica l'esecuzione come JSON**      | Un file `.json` con le stesse informazioni come dati, i passaggi mostrati dalla scheda **Passaggi** (ciò che ognuno ha ricevuto e restituito, e quale uscita ha preso) e il log come elenco di righe. I passaggi hanno la stessa forma in cui l'API restituisce lo `stepTrace` di un'esecuzione e, come nella scheda **Passaggi**, sono gli ultimi 100 dell'esecuzione. Il log è sempre completo. |
 
 Gli stessi due download si trovano nel menu **⋯** di ogni esecuzione in entrambi gli elenchi delle esecuzioni, così puoi salvare un'esecuzione senza aprirla. Un'esecuzione avviata dal **Costruttore** si può copiare o scaricare mentre è ancora in corso; ottieni ciò che ha registrato fino a quel momento.
 
@@ -110,11 +110,11 @@ Un download non contiene nulla che tu non possa già leggere nell'esecuzione. I 
 
 :::details Il mio flusso di lavoro non è partito
 1. Assicurati che il flusso di lavoro sia **Abilitato**: l'interruttore si trova in cima al suo **Costruttore**, che lo segnala sopra la tela quando il flusso di lavoro è disattivato. I nuovi flussi di lavoro partono disabilitati, e mentre un flusso di lavoro è disattivato il suo trigger non lo avvia: lo fanno solo **Esegui flusso di lavoro** e **Run just this step**, come esecuzioni di prova. Una chiamata webhook verso di esso riceve HTTP 400 con un messaggio che spiega come attivarlo.
-2. Per un trigger di evento OneUptime, verifica che l'evento sia davvero avvenuto: apri il record e controlla la sua cronologia. Un trigger **On Update** con **Fields to watch** scatta solo quando cambia uno di quei campi.
+2. Per un trigger di evento OneUptime, verifica che l'evento sia davvero avvenuto: apri il record e controlla la sua cronologia. Un trigger **On Update** con **Campi da osservare** scatta solo quando cambia uno di quei campi.
 3. Per un trigger webhook, verifica che l'altro sistema invii all'URL giusto. La maggior parte degli strumenti registra quando invia un webhook: controlla lì.
 4. Per un trigger pianificato, verifica che l'espressione cron corrisponda all'ora che ti aspetti. Le pianificazioni girano in UTC.
 
-Se l'esecuzione compare, con lo stato **Esecuzione oltre il piano attuale**, il progetto ha esaurito le esecuzioni dei flussi di lavoro degli ultimi 30 giorni, oppure l'abbonamento non è pagato. Il registro dell'esecuzione indica il conteggio e il limite del tuo piano. Questo vale solo per OneUptime Cloud.
+Se l'esecuzione compare, con lo stato **Esecuzione oltre il piano attuale**, il progetto ha esaurito le esecuzioni dei flussi di lavoro degli ultimi 30 giorni, oppure l'abbonamento non è pagato. Il log dell'esecuzione indica il conteggio e il limite del tuo piano. Questo vale solo per OneUptime Cloud.
 :::
 
 :::details Un blocco successivo non è mai stato eseguito
@@ -150,7 +150,7 @@ Le esecuzioni registrate prima dell'introduzione del tracciamento dei passaggi n
 ## Prossimi passi
 
 :::cards
-- [Configurazione e sicurezza](/docs/workflows/configuration): Limiti di tempo, limiti di piano e cosa viene nascosto nei registri.
+- [Configurazione e sicurezza](/docs/workflows/configuration): Limiti di tempo, limiti di piano e cosa viene nascosto nei log.
 - [Variabili](/docs/workflows/variables): La sintassi dei riferimenti usata dai tuoi blocchi.
 - [Componenti](/docs/workflows/components): Cosa restituisce ogni blocco e quando prende ciascuna uscita.
 :::

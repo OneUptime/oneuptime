@@ -25,7 +25,7 @@ flowchart TB
     calls --> tabs["Unterhaltungen,<br/>Aufrufe und Alarme"]
 ```
 
-Die Chats kommen so an wie die KI-Aufrufe Ihrer Apps, also gelten Scrub-Regeln, Drop-Filter, Aufbewahrung und die KI-Alarme für sie. Die Tools werden pro Lizenz bezahlt, daher tragen diese Aufrufe weder Tokens noch Kosten. Eine Frage, die eine Stunde lang keine Antwort hat, kommt für sich allein an, sodass auch ein Chat erscheint, den die KI nie beantwortet hat.
+Die Chats kommen so an wie die KI-Aufrufe Ihrer Apps, also gelten Scrub-Regeln, Drop-Filter, Aufbewahrung und die KI-Warnungen für sie. Die Tools werden pro Lizenz bezahlt, daher tragen diese Aufrufe weder Tokens noch Kosten. Eine Frage, die eine Stunde lang keine Antwort hat, kommt für sich allein an, sodass auch ein Chat erscheint, den die KI nie beantwortet hat.
 
 ## Bevor Sie beginnen
 
@@ -97,7 +97,7 @@ Füllen Sie **Verzeichnis-ID (Tenant)**, **Anwendungs-ID (Client)** und **Client
 
 | Einstellung | Was sie bewirkt |
 | --- | --- |
-| **Wer Unterhaltungen lesen kann** | **Projektinhaber und Admins**, die Voreinstellung: Niemand sonst im Projekt sieht diese Unterhaltungen oder die KI-Aufrufe, aus denen sie bestehen, irgendwo in OneUptime. **Alle, die KI-Aufrufe lesen dürfen**: alle, die die Traces des Projekts lesen dürfen. |
+| **Wer Unterhaltungen lesen kann** | **Projektinhaber und Projektadministratoren**, die Voreinstellung: Niemand sonst im Projekt sieht diese Unterhaltungen oder die KI-Aufrufe, aus denen sie bestehen, irgendwo in OneUptime. **Alle, die KI-Aufrufe lesen dürfen**: alle, die die Traces des Projekts lesen dürfen. |
 | **Geschriebenes behalten** | An, die Voreinstellung: Fragen und Antworten werden behalten. Aus: OneUptime behält, wer gefragt hat, wann, mit welchem Modell und in welcher App, aber nicht die Worte. |
 
 Eine Änderung daran, wer lesen darf, gilt innerhalb einer Minute. **Geschriebenes behalten** auszuschalten gilt für die danach gelesenen Chats; was vorher behalten wurde, bleibt bis zum Ende seiner Aufbewahrung.
@@ -139,7 +139,7 @@ Erteilen Sie bei Copilot die Administratorzustimmung für die Graph-Berechtigung
 :::
 
 :::details Jemand sieht die Unterhaltungen nicht
-**Wer Unterhaltungen lesen kann** steht auf **Projektinhaber und Admins**. Ein Inhaber oder Admin kann es mit **Bearbeiten** in der Zeile der Verbindung ändern.
+**Wer Unterhaltungen lesen kann** steht auf **Projektinhaber und Projektadministratoren**. Ein Projektinhaber oder Projektadministrator kann es mit **Bearbeiten** in der Zeile der Verbindung ändern.
 :::
 
 :::details Die Unterhaltungen zeigen, wer gefragt hat, aber keine Worte

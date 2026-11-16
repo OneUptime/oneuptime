@@ -53,7 +53,7 @@
       "signIn": "Войти с ключом доступа",
       "inProgress": "Завершите или отмените вход с ключом доступа, прежде чем использовать пароль.",
       "helpTitle": "Ещё не пользовались ключами доступа?",
-      "help": "Ключ доступа позволяет входить по отпечатку пальца, распознаванию лица или PIN-коду устройства вместо пароля. Чтобы добавить его, войдите с паролем или через SSO, затем откройте Профиль пользователя → Безопасность → Passkeys.",
+      "help": "Ключ доступа позволяет входить по отпечатку пальца, распознаванию лица или PIN-коду устройства вместо пароля. Чтобы добавить его, войдите с паролем или через SSO, затем откройте Профиль пользователя → Безопасность → Ключи доступа.",
       "preparing": "Подготовка ключа доступа…",
       "waiting": "Проверьте устройство",
       "waitingDescription": "Следуйте указаниям браузера или менеджера паролей.",
@@ -255,7 +255,7 @@
     "complete": "Ключ доступа проверен. Вернитесь в приложение, чтобы завершить вход.",
     "returnToApp": "Вернуться в приложение",
     "cancel": "Отменить и вернуться в приложение",
-    "setup": "Создайте ключ доступа в веб-панели: Профиль пользователя → Безопасность → Passkeys."
+    "setup": "Создайте ключ доступа в веб-панели: Профиль пользователя → Безопасность → Ключи доступа."
   },
   "mcpAuthorize": {
     "title": "Подключение MCP-клиента",
@@ -556,6 +556,12 @@
   "Try again in a moment.": "Повторите попытку чуть позже.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Повторите попытку. Если ошибка повторится, обратитесь в поддержку OneUptime и сообщите этот код:",
   "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Повторите попытку. Если ошибка повторится, сообщите этот код тому, кто управляет вашим сервером OneUptime:",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Отправленные данные оказались слишком большими, и сервер их не принял, поэтому действие не выполнено. Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Отправленные данные больше 50 МБ, которые OneUptime принимает за один запрос, поэтому действие не выполнено. Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
+  "What was sent was too large for the server to accept.": "Отправленные данные оказались слишком большими, и сервер их не принял.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Отправленные данные больше 50 МБ, которые OneUptime принимает за один запрос.",
+  "Try again with less at once, such as a smaller file.": "Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Если их отклонил прокси перед OneUptime, увеличьте ограничение этого прокси на размер запроса до 50 МБ — столько, сколько принимает сам OneUptime (в nginx это client_max_body_size 50M).",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Эта форма недоступна. Возможно, она отключена или ссылка устарела.",
   "This form can only be opened from an allowed network.": "Эту форму можно открыть только из разрешённой сети.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "Слишком много отправок из вашей сети. Подождите несколько минут и повторите попытку.",
@@ -631,9 +637,5 @@
     "note": "Примечание",
     "tip": "Совет",
     "warning": "Предупреждение"
-  },
-  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Отправленные данные оказались слишком большими, и сервер их не принял, поэтому действие не выполнено. Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
-  "What was sent was too large for the server to accept.": "Отправленные данные оказались слишком большими, и сервер их не принял.",
-  "Try again with less at once, such as a smaller file.": "Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
-  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Если их отклонил прокси перед OneUptime, увеличьте ограничение этого прокси на размер запроса до 50 МБ — столько, сколько принимает сам OneUptime (в nginx это client_max_body_size 50M)."
+  }
 }

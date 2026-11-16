@@ -99,7 +99,9 @@ export const INSTALLATION_TEST_QUERY_PARAM: string = "rumApplicationId";
  * word for word, as a unit test reads them. The panel hands its reader's
  * translator in, and every sentence is looked up whole with it.
  */
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 // The page where ingestion keys are made, as the guide's link names it.
 const INGESTION_KEYS_PATH: string =

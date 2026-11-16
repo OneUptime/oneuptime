@@ -233,7 +233,7 @@ pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
 
 ## Opzionale — Inviare i log dei servizi Proxmox
 
-Per impostazione predefinita l'agent invia solo metriche, quindi la pagina **Registri** del cluster resta vuota. I servizi di Proxmox VE scrivono i log nel journal di systemd con otto unità: `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd` e `qmeventd`. Il `otel-collector-config.yaml` incluso contiene un receiver `journald` commentato proprio per queste unità, collegato a una pipeline `logs` commentata che applica `proxmox.cluster.name`, così i log finiscono sul tuo cluster.
+Per impostazione predefinita l'agent invia solo metriche, quindi la pagina **Log** del cluster resta vuota. I servizi di Proxmox VE scrivono i log nel journal di systemd con otto unità: `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd` e `qmeventd`. Il `otel-collector-config.yaml` incluso contiene un receiver `journald` commentato proprio per queste unità, collegato a una pipeline `logs` commentata che applica `proxmox.cluster.name`, così i log finiscono sul tuo cluster.
 
 :::steps
 ### Esegui l'agent su un nodo
@@ -385,7 +385,7 @@ Il `docker-compose.yml` dell'agent esegue anche l'**Agente IA Proxmox**, `oneupt
 - Come l'exporter, non verifica il certificato autofirmato dell'API a meno che tu non imposti `PVE_VERIFY_SSL=true` o punti `PVE_CA_FILE` alla CA del cluster (`/etc/pve/pve-root-ca.pem`, montata nel container).
 - Gira come UID 1000 senza capability e con un file system radice in sola lettura, e non legge mai `/access`, non apre mai una console e non modifica mai la configurazione. Elimina il servizio `oneuptime-proxmox-ai-agent` da `docker-compose.yml` se non usi OneUptime AI.
 
-Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#cluster-proxmox). Il README dell'agent riporta i comandi `pveum` esatti per un token per le correzioni.
+Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents#cluster-proxmox). Il README dell'agent riporta i comandi `pveum` esatti per un token per le correzioni.
 
 ## Risoluzione dei problemi
 
@@ -437,7 +437,7 @@ Il push nativo non invia lo stato HA, l'avvio al boot, la copertura dei backup n
 :::details I risultati dei backup non compaiono mai
 1. Controlla la versione di Proxmox VE: le destinazioni webhook richiedono la 8.3 o successiva (`pveversion`).
 2. Controlla che la destinazione e il suo matcher esistano: `pvesh get /cluster/notifications/endpoints/webhook` e `pvesh get /cluster/notifications/matchers` elencano entrambi `oneuptime`.
-3. Invia una notifica di prova con `pvesh create /cluster/notifications/targets/oneuptime/test`. Compare nella pagina **Registri** del cluster entro un minuto; se non compare, la chiave o l'URL nella destinazione sono errati.
+3. Invia una notifica di prova con `pvesh create /cluster/notifications/targets/oneuptime/test`. Compare nella pagina **Log** del cluster entro un minuto; se non compare, la chiave o l'URL nella destinazione sono errati.
 4. Controlla il nome del cluster nei secret della destinazione: un nome che OneUptime non conosce registra un secondo cluster.
 :::
 
@@ -446,6 +446,6 @@ Il push nativo non invia lo stato HA, l'avvio al boot, la copertura dei backup n
 :::cards
 - [Monitor Proxmox](/docs/monitor/proxmox-monitor): Ricevere avvisi su nodi, guest, storage, HA, backup e replica.
 - [Agent Ceph](/docs/telemetry/ceph): Monitorare lo storage Ceph sotto il tuo cluster Proxmox.
-- [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA Proxmox e come funzionano le correzioni.
+- [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA Proxmox e come funzionano le correzioni.
 - [Collector OpenTelemetry sull'host](/docs/telemetry/host-otel-collector): La vista a livello di sistema operativo di ogni nodo.
 :::

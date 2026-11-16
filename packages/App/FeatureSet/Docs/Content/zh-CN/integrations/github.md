@@ -15,7 +15,7 @@ OneUptime 以两种方式与 [GitHub](https://github.com) 配合使用。通过 
 flowchart TB
     app["GitHub App"] --> repos["导入的存储库"]
     repos --> pr["来自 OneUptime<br/>AI 的修复<br/>pull request"]
-    declared["事件已宣布"] --> workflow["工作流：<br/>On Create Incident"]
+    declared["事件已宣布"] --> workflow["工作流：<br/>创建事件时"]
     workflow -->|"POST issues"| issue["GitHub issue"]
 ```
 
@@ -25,7 +25,7 @@ flowchart TB
 
 | 方式 | 作用 | 需要什么 |
 | --- | --- | --- |
-| GitHub App | 导入你的存储库。OneUptime AI 会在其中打开修复异常、慢跟踪以及其调查所发现原因的 pull request，并回应 issue 和 pull request 中的提及。 | 一个用于安装该应用的组织或账户。在 OneUptime Cloud 上需要 **Growth** 计划。 |
+| GitHub App | 导入你的存储库。OneUptime AI 会在其中打开修复异常、慢追踪以及其调查所发现原因的 pull request，并回应 issue 和 pull request 中的提及。 | 一个用于安装该应用的组织或账户。在 OneUptime Cloud 上需要 **Growth** 计划。 |
 | 工作流 | 为每个事件在你选择的存储库中打开一个 GitHub issue。 | 一个能创建 issue 的 GitHub 令牌，以及一个由两个块组成的工作流。 |
 
 ## 连接你的存储库
@@ -62,11 +62,11 @@ flowchart TB
 
 ### 添加触发器
 
-点击虚线的 **选择启动此工作流的方式** 块，然后选择 **On Create Incident**。点击触发器：它的 **Fields to pass on** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述** 和 **Incident Number With Prefix**。
+点击虚线的 **选择启动此工作流的方式** 块，然后选择 **创建事件时**。点击触发器：它的 **要传递的字段** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述** 和 **Incident Number With Prefix**。
 
 ### 打开 issue
 
-点击 **添加组件**，添加一个 **API Post (JSON)** 块，然后把触发器的 **成功** 点连接到它。把它的 **URL** 设为 `https://api.github.com/repos/your-org/your-repo/issues`，并换成你的存储库的所有者和名称。在 **更多字段** 下，把它的 **请求标头** 设为：
+点击 **添加组件**，添加一个 **API 调用 POST (JSON)** 块，然后把触发器的 **成功** 点连接到它。把它的 **URL** 设为 `https://api.github.com/repos/your-org/your-repo/issues`，并换成你的存储库的所有者和名称。在 **更多字段** 下，把它的 **请求标头** 设为：
 
 ```json
 {
@@ -88,7 +88,7 @@ flowchart TB
 
 ### 测试，然后启用
 
-点击 **运行工作流**，在 **事件** 中选择一个测试事件，然后运行它。**API Post (JSON)** 步骤会显示一个包含新 issue 的 `201` 响应，其中带有它的 `number` 和 `html_url`。然后在 **生成器** 顶部打开 **已启用**。
+点击 **运行工作流**，在 **事件** 中选择一个测试事件，然后运行它。**API 调用 POST (JSON)** 步骤会显示一个包含新 issue 的 `201` 响应，其中带有它的 `number` 和 `html_url`。然后在 **生成器** 顶部打开 **已启用**。
 :::
 
 事件解决后 issue 仍保持打开，因为后续工作通常比事件持续得更久。如需与事件双向保持同步的工单，请参阅 [Jira](/docs/integrations/jira)。
@@ -97,11 +97,11 @@ flowchart TB
 
 - **GitHub Enterprise Server。** 改为把请求发送到你的服务器：`https://your-github-host/api/v3/repos/your-org/your-repo/issues`。位于私有网络地址上的服务器需要一个由管理员允许这样做的自托管 OneUptime：请参阅 [出站网络访问](/docs/workflows/configuration#出站网络访问)。
 - **指派它。** 在正文中添加 `"assignees": ["octocat"]` 或 `"milestone": 3`。当令牌无法推送到存储库时，GitHub 会悄无声息地丢弃标签、指派人和里程碑。
-- **只针对部分事件。** 在触发器和 API 块之间放一个 **If / Else** 块，只在它的 **是** 一侧打开 issue，例如只针对某一种严重程度。
+- **只针对部分事件。** 在触发器和 API 块之间放一个 **如果 / 否则** 块，只在它的 **是** 一侧打开 issue，例如只针对某一种严重程度。
 
 ## 故障排除
 
-当 GitHub 拒绝请求时，**API Post (JSON)** 步骤会走 **错误**。运行中的 **Response Status** 和 **响应主体** 会说明原因。
+当 GitHub 拒绝请求时，**API 调用 POST (JSON)** 步骤会走 **错误**。运行中的 **响应状态** 和 **响应主体** 会说明原因。
 
 :::details GitHub 返回 401
 令牌错误、已过期或已被吊销。请创建一个新令牌，并替换 `GITHUB_TOKEN` 的内容。

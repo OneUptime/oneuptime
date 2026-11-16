@@ -39,7 +39,7 @@ import {
  * Measured, not assumed (OneUptime issue #8392). Against 245,000 stores -
  * 180,000 of kinds no worker samples (telemetry, RDS, DynamoDB, Redshift),
  * 25,000 switched off or of a suspended project, 500 due and scannable -
- * this statement is one sequential read of the table from cache: 5,878
+ * this statement was one sequential read of the table from cache: 5,878
  * buffers, 71 ms, every five minutes, writing nothing but the 50 it
  * claims. The probes' set-aside does not fit this range:
  *
@@ -56,8 +56,31 @@ import {
  *
  * A probe's claims run per probe, from every replica, several times a
  * minute, over a range of that probe's own: there the set-aside pays. Here
- * the read stays, until the table is large enough that a range of only
- * the kinds a worker samples is worth an index of its own.
+ * it does not.
+ *
+ * What does: a range of only the kinds a worker samples (OneUptime issue
+ * #8450). DataStore has an index of ("kind", "nextContentScanAt") over the
+ * stores no probe scans, and with it Postgres reads this statement as a
+ * bitmap of `kind = ANY($2) AND (nextContentScanAt IS NULL OR <= $1)`: each
+ * sampled kind's due rows, and none of the telemetry and unsampled cloud
+ * kinds that are most of the table. The statement is the same; the plan is
+ * not. Measured on the fixture above (25,000 refused split evenly between
+ * switched off and suspended, Postgres 15, cached), with the claim's own
+ * write of the 50 it holds - about 2,800 buffers either way - included:
+ *
+ * - 245,000 stores: 52 ms and 7,986 buffers before, 11 ms and 3,561
+ *   after. All 25,000 refused stores switched off: 66 to 10 ms; all of
+ *   suspended projects: 70 to 18 ms.
+ * - 2,450,000 stores: 626 ms and 56,177 buffers before, 126 ms and 9,797
+ *   after. The read no longer grows with the stores no worker samples,
+ *   only with the due stores of the kinds it does.
+ * - The index costs a write too: 4 to 10% more buffers for an insert or a
+ *   write no HOT update can take, none for one that can. It moves no
+ *   store's HOT updates, since its columns are indexed already.
+ *
+ * Reading each kind apart (unnest the kinds, a LATERAL range of each) was
+ * slower, 244 ms at 245,000: the planner read "never scanned" by a
+ * sequential scan of the table for each kind.
  *
  * The scan reads the same rule again for the store it was handed
  * (isDataStoreContentScannableByWorkers) before it reads any content, so

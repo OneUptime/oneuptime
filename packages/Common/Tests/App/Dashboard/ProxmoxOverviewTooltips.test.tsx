@@ -206,6 +206,8 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import ProxmoxResource from "../../../Models/DatabaseModels/ProxmoxResource";
 import ValueFormatter from "../../../Utils/ValueFormatter";
+// What a page draws holds a duration's figure to its word (#8811).
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -631,7 +633,7 @@ describe("Proxmox cluster overview: every metric has an (i)", () => {
       await renderOverview();
 
       expect(await tooltipTextOf(infoButton(title, index))).toBe(
-        PROXMOX_METRIC_DESCRIPTIONS[key],
+        withDurationWordsHeld(PROXMOX_METRIC_DESCRIPTIONS[key]),
       );
     },
   );
@@ -1034,8 +1036,9 @@ describe("Proxmox cluster overview: the descriptions match what the page compute
 
     const guests: HTMLElement = cardOf(infoButton("Guests", 0));
     expect(guests).toHaveTextContent("3/3");
+    // toHaveTextContent collapses the rate's no-break space (#8457) to a space.
     expect(guests).toHaveTextContent(
-      `running · net ${ValueFormatter.formatValue(3000, "By/s")}`,
+      `running · net ${ValueFormatter.formatValue(3000, "By/s").replace(/\u00A0/g, " ")}`,
     );
   });
 
@@ -1090,7 +1093,7 @@ describe("Proxmox cluster overview: the descriptions match what the page compute
       "ok=1",
       "failed=1",
       "not-in-job=1",
-      "newest=30 minutes ago",
+      "newest=30\u00A0minutes ago",
     ]);
     expect(within(card).queryByTestId("proxmox-backups-card-setup")).toBeNull();
     // db's failed backup needs a look too.

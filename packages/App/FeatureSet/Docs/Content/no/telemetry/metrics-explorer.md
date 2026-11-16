@@ -56,21 +56,21 @@ Klikk på målingen i **Leser**. Utforskeren åpnes med én spørring, `a`, for 
 
 ### Velg hvordan den aggregeres
 
-Under **Aggregate by** velger du hvordan verdiene i hvert punkt i diagrammet kombineres: Avg, som er standard, Sum, Min, Max, Count eller en persentil, P50, P75, P90, P95 eller P99. En persentil av en histogrammåling, som varigheten til en forespørsel, regnes ut fra bøttene.
+Under **Aggreger etter** velger du hvordan verdiene i hvert punkt i diagrammet kombineres: Avg, som er standard, Sum, Min, Max, Count eller en persentil, P50, P75, P90, P95 eller P99. En persentil av en histogrammåling, som varigheten til en forespørsel, regnes ut fra bøttene.
 
 ### Filtrer og grupper den
 
-Åpne **Filters & grouping**. **Filter by attributes** beholder datapunktene der attributtene passer, som én bestemt `http.route`, og **Grupper etter** tegner én linje per verdi av attributtene du velger, som én linje per vert.
+Åpne **Filtre og gruppering**. **Filtrer etter attributter** beholder datapunktene der attributtene passer, som én bestemt `http.route`, og **Grupper etter** tegner én linje per verdi av attributtene du velger, som én linje per vert.
 
 ### Juster diagrammet
 
-Åpne **Display Settings** for å velge **Chart type** (linje, område eller søyler), tegne en **Warning Threshold** og en **Critical Threshold** i diagrammet, eller slå på **Convert to per-second rate**.
+Åpne **Visningsinnstillinger** for å velge **Diagramtype** (linje, område eller søyler), tegne en **Varselsterskel** og en **Kritisk terskel** i diagrammet, eller slå på **Gjør om til rate per sekund**.
 :::
 
 > [!TIP]
-> En teller som bare øker, som `system.disk.io`, leses best som en rate. Slå på **Convert to per-second rate** for å vise hvor fort den endrer seg i stedet for den løpende summen; utforskeren foreslår det når den kjenner igjen en slik teller.
+> En teller som bare øker, som `system.disk.io`, leses best som en rate. Slå på **Gjør om til rate per sekund** for å vise hvor fort den endrer seg i stedet for den løpende summen; utforskeren foreslår det når den kjenner igjen en slik teller.
 
-Hver spørring tegner sitt eget diagram. For å tegne en spørring i samme diagram som den forrige slår du på **Overlay with previous query** i dens **Display Settings**.
+Hver spørring tegner sitt eget diagram. For å tegne en spørring i samme diagram som den forrige slår du på **Legg over forrige spørring** i dens **Visningsinnstillinger**.
 
 ## Kombiner spørringer med en formel
 
@@ -102,7 +102,7 @@ Dra over et diagram for å zoome inn på et øyeblikk, og dobbeltklikk for å zo
 
 ## Bruk det du har vist i diagrammet
 
-- **Handlinger → Opprett monitor fra denne visningen** åpner en ny målingsmonitor der disse spørringene og formlene allerede er fylt inn. Se [Målingsovervåking](/docs/monitor/metrics-monitor).
+- **Handlinger → Opprett monitor fra denne visningen** åpner en ny målingsmonitor der disse spørringene og formlene allerede er fylt inn. Se [Målingsmonitor](/docs/monitor/metrics-monitor).
 - **Handlinger → Add to dashboard** legger diagrammet til et dashbord du velger. Du trenger tillatelse til å redigere det dashbordet.
 - **Kopier lenke** kopierer en lenke til nøyaktig denne visningen: spørringer, formler og tidsintervall.
 - **Lagrede visninger** tar vare på visningen under et navn for alle i prosjektet. **Leser** har egne lagrede visninger for søket og filtrene sine. Lagrede visninger fungerer som i [Loggutforsker](/docs/telemetry/logs-explorer#lagre-en-visning).
@@ -195,7 +195,7 @@ Start collectoren på nytt. Hver tjeneste med spor som går gjennom den, sender 
 ## Feilsøking
 
 :::details Diagrammet til en teller bare stiger
-Det er en kumulativ teller. Slå på **Convert to per-second rate** i spørringens **Display Settings**.
+Det er en kumulativ teller. Slå på **Gjør om til rate per sekund** i spørringens **Visningsinnstillinger**.
 :::
 
 :::details Listen sier at ingen målinger ble funnet
@@ -209,7 +209,7 @@ Filtrer **Leser** etter den **Tjeneste** og utvid tidsintervallet. Mangler de fo
 ## Neste steg
 
 :::cards
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Få varsel når en måling krysser en grense.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Få varsel når en måling krysser en grense.
 - [Opprette et dashbord](/docs/dashboards/authoring): Sett diagrammene dine side om side.
 - [Søkesyntaks](/docs/telemetry/search-syntax): Hvert filter søkefeltet forstår.
 :::

@@ -46,25 +46,28 @@ describe("getEventDurationText", () => {
     [0, "less than a minute"],
     [1, "less than a minute"],
     [59, "less than a minute"],
-    [MINUTE, "1 minute"],
-    [2 * MINUTE, "2 minutes"],
-    [45 * MINUTE, "45 minutes"],
-    [59 * MINUTE, "59 minutes"],
-    [HOUR, "1 hour"],
-    [HOUR + MINUTE, "1 hour, 1 minute"],
-    [HOUR + 5 * MINUTE, "1 hour, 5 minutes"],
-    [HOUR + 30 * MINUTE, "1 hour, 30 minutes"],
-    [2 * HOUR, "2 hours"],
-    [2 * HOUR + 5 * MINUTE, "2 hours, 5 minutes"],
-    [23 * HOUR + 59 * MINUTE, "23 hours, 59 minutes"],
-    [DAY, "1 day"],
-    [DAY + MINUTE, "1 day, 1 minute"],
-    [DAY + HOUR, "1 day, 1 hour"],
-    [DAY + HOUR + 2 * MINUTE, "1 day, 1 hour, 2 minutes"],
-    [2 * DAY + 3 * HOUR, "2 days, 3 hours"],
-    [2 * DAY + 3 * HOUR + 4 * MINUTE, "2 days, 3 hours, 4 minutes"],
-    [3 * DAY + 2 * HOUR, "3 days, 2 hours"],
-    [45 * DAY, "45 days"],
+    [MINUTE, "1\u00A0minute"],
+    [2 * MINUTE, "2\u00A0minutes"],
+    [45 * MINUTE, "45\u00A0minutes"],
+    [59 * MINUTE, "59\u00A0minutes"],
+    [HOUR, "1\u00A0hour"],
+    [HOUR + MINUTE, "1\u00A0hour, 1\u00A0minute"],
+    [HOUR + 5 * MINUTE, "1\u00A0hour, 5\u00A0minutes"],
+    [HOUR + 30 * MINUTE, "1\u00A0hour, 30\u00A0minutes"],
+    [2 * HOUR, "2\u00A0hours"],
+    [2 * HOUR + 5 * MINUTE, "2\u00A0hours, 5\u00A0minutes"],
+    [23 * HOUR + 59 * MINUTE, "23\u00A0hours, 59\u00A0minutes"],
+    [DAY, "1\u00A0day"],
+    [DAY + MINUTE, "1\u00A0day, 1\u00A0minute"],
+    [DAY + HOUR, "1\u00A0day, 1\u00A0hour"],
+    [DAY + HOUR + 2 * MINUTE, "1\u00A0day, 1\u00A0hour, 2\u00A0minutes"],
+    [2 * DAY + 3 * HOUR, "2\u00A0days, 3\u00A0hours"],
+    [
+      2 * DAY + 3 * HOUR + 4 * MINUTE,
+      "2\u00A0days, 3\u00A0hours, 4\u00A0minutes",
+    ],
+    [3 * DAY + 2 * HOUR, "3\u00A0days, 2\u00A0hours"],
+    [45 * DAY, "45\u00A0days"],
   ])("formats a %i-second duration as %s", (seconds: number, text: string) => {
     expect(durationOf(seconds)).toBe(text);
   });
@@ -94,14 +97,14 @@ describe("getEventDurationText", () => {
     const earlierDate: Date = new Date(startDate.getTime() - 90 * 60 * 1000);
 
     expect(getEventDurationText(startDate, earlierDate)).toBe(
-      "1 hour, 30 minutes",
+      "1\u00A0hour, 30\u00A0minutes",
     );
   });
 
   it("does not round a partial minute up", () => {
-    expect(durationOf(119)).toBe("1 minute");
-    expect(durationOf(HOUR - 1)).toBe("59 minutes");
-    expect(durationOf(DAY - 1)).toBe("23 hours, 59 minutes");
+    expect(durationOf(119)).toBe("1\u00A0minute");
+    expect(durationOf(HOUR - 1)).toBe("59\u00A0minutes");
+    expect(durationOf(DAY - 1)).toBe("23\u00A0hours, 59\u00A0minutes");
   });
 
   it("does not depend on the order of the two dates", () => {

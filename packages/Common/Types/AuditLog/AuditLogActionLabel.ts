@@ -23,6 +23,7 @@ export const AUDIT_LOG_ACTION_LABELS: Readonly<Record<AuditLogAction, string>> =
     [AuditLogAction.Delete]: translationKey("Delete"),
     [AuditLogAction.Download]: translationKey("Download"),
     [AuditLogAction.SignIn]: translationKey("Sign In"),
+    [AuditLogAction.SignInFailed]: translationKey("Sign-In Failed"),
     [AuditLogAction.SignOut]: translationKey("Sign Out"),
     [AuditLogAction.SessionTimeout]: translationKey("Session Timeout"),
     [AuditLogAction.SessionRevoked]: translationKey("Session Revoked"),

@@ -1,6 +1,6 @@
 # Sikkerhedssager og playbooks (SOAR)
 
-Security Events gør det, som dine detektionsregler, din trusselsintelligens og dine forbundne sikkerhedsprodukter finder, til sager: én sag for hver ting, der er værd at undersøge, med alle detektioner om den samme bruger, vært eller adresse samlet i den. Analytikere behandler sagerne i en kø, og playbooks reagerer på dem, af sig selv eller med et klik.
+Sikkerhedshændelser gør det, som dine detektionsregler, din trusselsintelligens og dine forbundne sikkerhedsprodukter finder, til sager: én sag for hver ting, der er værd at undersøge, med alle detektioner om den samme bruger, vært eller adresse samlet i den. Analytikere behandler sagerne i en kø, og playbooks reagerer på dem, af sig selv eller med et klik.
 
 :::cards
 - [Hvor sager kommer fra](#hvor-sager-kommer-fra): Detektionsregler, trusselsintelligens, forbundne produkter, entitetsrisiko og personer.
@@ -303,7 +303,7 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Contain | Bloker offentlig adgang til datalagre | Blokerer offentlig adgang til hver bucket eller storage account, sagen handler om, gennem dens cloudforbindelse |
 | Contain | Tilbagekald deling af datalager | Stopper delingen uden for jeres konti af snapshots af hver database, sagen handler om, gennem dens cloudforbindelse |
 | Automate | Send a webhook | Sender sagen som JSON til en URL |
-| Automate | Run a workflow | Starter et OneUptime-arbejdsgang med sagen som input |
+| Automate | Run a workflow | Starter en OneUptime-arbejdsgang med sagen som input |
 | Automate | Run a runbook | Starter en af dine OneUptime-runbooks med sagen som input |
 | Automate | Fix the code with AI | Beder OneUptime AI om en pull request, der retter de undtagelser, sagens anmodninger udløste |
 | Flow control | Stop kørslen | Afslutter kørslen der som udført: trinnene efter det kører ikke |

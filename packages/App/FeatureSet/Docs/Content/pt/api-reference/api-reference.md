@@ -95,6 +95,8 @@ Um recurso com proprietários - um monitor, um incidente, uma política de plant
 
 `select` cita os campos a devolver, e `_id` sempre volta. `sort` os ordena, `ASC` ou `DESC`; sem ordenação, os mais recentes vêm primeiro. Uma lista devolve 10 registros, a menos que você defina `limit`, até 10.000, e `skip` pula essa quantidade antes: continue aumentando `skip` por `limit` até ter `count` deles. Adicione `?output-type=csv` a uma requisição de lista para receber CSV em vez de JSON.
 
+A ordem de um campo também pode dizer para onde vão os registros sem valor nele: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` coloca os mais recentes primeiro e os que não têm nenhum por último, e `FIRST` os coloca primeiro. Uma relação com um registro ordena por um campo do registro que ela cita: `{ "incidentSeverity": { "order": "ASC" } }` lista os incidentes na ordem das suas gravidades. Uma relação que recebe só uma direção, como em `{ "incidentSeverity": "DESC" }`, é recusada com um `400` que cita um campo pelo qual ordenar em vez disso, e o mesmo acontece com uma relação com muitos registros, como as `labels` de um incidente: cada incidente tem uma lista delas, e uma lista não tem um único valor pelo qual pôr os incidentes em ordem. Ordenar por um campo também exige permissão para lê-lo, por uma relação como no próprio recurso: uma ordenação por um campo que você não pode ler é recusada com um `422`.
+
 Por exemplo, os monitores cujo nome contém “checkout”, criados desde o início de 2026, os mais recentes primeiro:
 
 ```bash
@@ -156,7 +158,7 @@ No OneUptime Cloud, as chaves de API de um projeto só funcionam enquanto o proj
 
 Nada é excluído ou desativado. As chaves e as conexões são mantidas e voltam a funcionar por completo, como estão, assim que o projeto volta ao plano: nenhuma chave nova para criar, nada para configurar de novo no seu provedor de identidade. Uma mudança de plano entra em vigor em até um minuto.
 
-Abaixo do **Growth**, **Configurações do projeto** > **Avançado** > **Chaves de API** lista as chaves que o projeto ainda tem e diz que elas pararam, então qualquer uma delas pode ser excluída (revogada) em qualquer plano. Criar ou alterar chaves exige o **Growth**. **Configurações do projeto** > **Cobrança e faturas** > **Cobrança** informa quantas chaves de API um plano inferior para e quantas conexões SCIM ele limita, em cada plano que você pode escolher, e o que o plano do projeto parou; os proprietários do projeto recebem um e-mail quando uma mudança de plano as para. Os proprietários de projetos que já estavam abaixo desses planos quando isso começou recebem um único e-mail dizendo o que parou e como reativar.
+Abaixo do **Growth**, **Configurações do projeto** > **Avançado** > **Chaves de API** lista as chaves que o projeto ainda tem e diz que elas pararam, então qualquer uma delas pode ser excluída (revogada) em qualquer plano. Criar ou alterar chaves exige o **Growth**. **Configurações do projeto** > **Cobrança e faturas** > **Cobrança** informa quantas chaves de API um plano inferior para e quantas conexões SCIM ele limita, em cada plano que você pode escolher, e o que o plano do projeto parou; os Proprietários do projeto recebem um e-mail quando uma mudança de plano as para. Os proprietários de projetos que já estavam abaixo desses planos quando isso começou recebem um único e-mail dizendo o que parou e como reativar.
 
 Só as chaves de API e as conexões SCIM de um projeto são afetadas. As pessoas não: entrar no painel, e os clientes MCP conectados por login, funcionam como antes. Chaves de ingestão de telemetria, chaves de sonda e chaves de agente não são chaves de API e continuam funcionando. As instalações auto-hospedadas não têm planos, então nada muda para elas.
 
@@ -252,7 +254,7 @@ Um campo que está ligado ou desligado - `isEnabled`, `isVisibleOnStatusPage`, `
 isVisibleOnStatusPage must be true or false.
 ```
 
-Uma atualização que grava os valores de um registro como eles já estão não muda nada: não inicia os workflows **On Update** do registro, não envia atualizações ao vivo nem adiciona uma entrada ao registro de auditoria. `false` gravado sobre `false` conta como o mesmo valor, assim como `"false"` gravado sobre `false`, um número escrito como texto, um horário escrito como o mesmo instante em outro formato e rótulos escritos como os mesmos rótulos em qualquer ordem. Quando uma atualização altera alguns valores e grava outros de volta como estão, a sua entrada no registro de auditoria lista só os valores que mudaram, e o **Fields to watch** de um workflow só ouve esses.
+Uma atualização que grava os valores de um registro como eles já estão não muda nada: não inicia os workflows **On Update** do registro, não envia atualizações ao vivo nem adiciona uma entrada ao registro de auditoria. `false` gravado sobre `false` conta como o mesmo valor, assim como `"false"` gravado sobre `false`, um número escrito como texto, um horário escrito como o mesmo instante em outro formato e rótulos escritos como os mesmos rótulos em qualquer ordem. Quando uma atualização altera alguns valores e grava outros de volta como estão, a sua entrada no registro de auditoria lista só os valores que mudaram, e o **Campos a observar** de um workflow só ouve esses.
 
 ### Onde um projeto foi comprado
 

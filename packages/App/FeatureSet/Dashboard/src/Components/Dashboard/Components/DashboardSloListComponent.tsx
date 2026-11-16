@@ -1,4 +1,5 @@
 import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -107,8 +108,6 @@ const BURN_RATE_TONE_CLASS_NAME: Record<SloBurnRateTone, string> = {
   [SloBurnRateTone.Elevated]: "text-amber-700 font-semibold",
   [SloBurnRateTone.Critical]: "text-red-600 font-semibold",
 };
-
-const MISSING_VALUE: string = "—";
 
 type GetSloRouteFunction = (sloId: string) => Route | undefined;
 
@@ -372,9 +371,9 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
         tooltip: {
           title: name,
           details: [
-            { label: "SLI", value: display.sli || MISSING_VALUE },
-            { label: "Error budget", value: display.budget || MISSING_VALUE },
-            { label: "Burn rate", value: display.burnRate || MISSING_VALUE },
+            { label: "SLI", value: display.sli },
+            { label: "Error budget", value: display.budget },
+            { label: "Burn rate", value: display.burnRate },
           ],
         },
       };
@@ -437,7 +436,7 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
           </td>
           <td className="px-3 py-2 text-right">
             <div className="text-xs font-medium text-gray-900 tabular-nums">
-              {display.sli || MISSING_VALUE}
+              {getValueOrQuietDash(display.sli, { isSmall: true })}
             </div>
             {display.target ? (
               <div className="text-[10px] text-gray-400 tabular-nums whitespace-nowrap">
@@ -477,7 +476,7 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
                 )}
               </div>
               <span className="text-xs font-medium text-gray-900 tabular-nums w-14 text-right">
-                {display.budget || MISSING_VALUE}
+                {getValueOrQuietDash(display.budget, { isSmall: true })}
               </span>
             </div>
             {display.budgetTime ? (
@@ -493,7 +492,7 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
               BURN_RATE_TONE_CLASS_NAME[display.burnRateTone]
             }`}
           >
-            {display.burnRate || MISSING_VALUE}
+            {getValueOrQuietDash(display.burnRate, { isSmall: true })}
           </td>
         </tr>
       );

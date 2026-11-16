@@ -559,9 +559,9 @@ export class AIBillingService extends BaseService {
         "AI Balance Recharge Successful for project - " + (project.name || ""),
         `We have successfully recharged your AI balance for project - ${
           project.name || ""
-        } by ${amountInUSD} USD. Your current balance is ${
+        } by ${amountInUSD}\u00A0USD. Your current balance is ${
           updatedAmount / 100
-        } USD.${
+        }\u00A0USD.${
           project.billingMarketplace
             ? ` It is billed through ${CloudMarketplaceUtil.getDisplayName(project.billingMarketplace)}.`
             : ""

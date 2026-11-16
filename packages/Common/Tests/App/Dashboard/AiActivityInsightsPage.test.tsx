@@ -123,6 +123,8 @@ import {
   toBody,
 } from "./AiActivityInsightsFixtures";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+// A text matcher folds the page's no-break spaces (#8770): compare its words.
+import { withPlainSpaces } from "../../../Types/NoBreakSpaces";
 
 jest.mock("react-i18next", () => {
   return {
@@ -1251,7 +1253,7 @@ describe("the cluster's AI Insights page", () => {
       ).toHaveTextContent("01 Sep30 Sep");
       expect(
         within(trend).getByRole("img", {
-          name: "5 investigations in the last 7 days (2 the 7 days before).",
+          name: "5 investigations in the last 7\u00A0days (2 the 7\u00A0days before).",
         }),
       ).toBeInTheDocument();
       expect(
@@ -1909,7 +1911,9 @@ describe("every resource with a resource AI agent", () => {
       expect(postsTo(K8S_INSIGHTS_ROUTE)).toHaveLength(0);
 
       expect(
-        screen.getByText(getAiInsightsPageSubtitle(descriptor.noun)),
+        screen.getByText(
+          withPlainSpaces(getAiInsightsPageSubtitle(descriptor.noun)),
+        ),
       ).toBeInTheDocument();
       expect(
         screen.getByText(
@@ -1974,7 +1978,9 @@ describe("every resource with a resource AI agent", () => {
 
       const empty: HTMLElement = await findTestId("ai-insights-empty");
       expect(
-        within(empty).getByText(getAiInsightsEmptyDescription(descriptor.noun)),
+        within(empty).getByText(
+          withPlainSpaces(getAiInsightsEmptyDescription(descriptor.noun)),
+        ),
       ).toBeInTheDocument();
       expect(
         document.getElementById(`${descriptor.commandsTableId}-insights-empty`),
@@ -2169,10 +2175,10 @@ describe("the page, given any scope", () => {
     openHarness();
 
     expect(
-      await findText(getAiInsightsEmptyDescription("widget")),
+      await findText(withPlainSpaces(getAiInsightsEmptyDescription("widget"))),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(getAiInsightsPageSubtitle("widget")),
+      screen.getByText(withPlainSpaces(getAiInsightsPageSubtitle("widget"))),
     ).toBeInTheDocument();
     expect(hrefOf(screen.getByText("Open AI Logs"))).toBe(LOGS.toString());
     expect(hrefOf(screen.getByTestId("ai-insights-logs-link"))).toBe(

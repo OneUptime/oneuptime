@@ -1,6 +1,6 @@
 # Telegram
 
-Envoyez un message à une discussion, un groupe ou un canal [Telegram](https://telegram.org) quand une alerte se déclenche ou qu'un incident s'ouvre. L'étape de flux de travail **Send Message to Telegram** de OneUptime l'envoie au nom d'un bot que vous créez, et un modèle prêt à l'emploi construit le flux de travail pour les alertes. Cette intégration est **sortante** : le bot envoie des messages et ne lit pas ce qui se dit dans la discussion.
+Envoyez un message à une discussion, un groupe ou un canal [Telegram](https://telegram.org) quand une alerte se déclenche ou qu'un incident s'ouvre. L'étape de flux de travail **Envoyer un message à Telegram** de OneUptime l'envoie au nom d'un bot que vous créez, et un modèle prêt à l'emploi construit le flux de travail pour les alertes. Cette intégration est **sortante** : le bot envoie des messages et ne lit pas ce qui se dit dans la discussion.
 
 :::cards
 - [Fonctionnement](#fonctionnement): Ce que fait le flux de travail quand une alerte se déclenche.
@@ -13,8 +13,8 @@ Envoyez un message à une discussion, un groupe ou un canal [Telegram](https://t
 
 ```mermaid title="D'une alerte à un message Telegram"
 flowchart TB
-    fired["Alerte levée"] --> trigger["On Create Alert"]
-    trigger --> step["Send Message<br/>to Telegram"]
+    fired["Alerte levée"] --> trigger["À la création :<br/>Alerte"]
+    trigger --> step["Envoyer un<br/>message à Telegram"]
     step -->|"Succès"| chat["Message dans<br/>votre discussion"]
     step -->|"Erreur"| failed["L'exécution échoue<br/>et dit pourquoi"]
 ```
@@ -51,15 +51,15 @@ Partez du modèle, qui construit tout le flux de travail pour les alertes, ou de
 1. Ouvrez **Flux de travail** et cliquez sur **Créer un flux de travail**.
 2. Tapez `Telegram` dans **Rechercher des modèles…**, cliquez sur **Tell Telegram when an alert fires**, puis sur **Utiliser ce modèle**.
 3. Gardez le nom **Notify Telegram on new alert** ou changez-le, et cliquez sur **Suivant**.
-4. Collez le jeton dans **Telegram Bot Token** et l'ID dans **Telegram Chat ID**, et cliquez sur **Créer un flux de travail**.
+4. Collez le jeton dans **Jeton du bot Telegram** et l'ID dans **Telegram Chat ID**, et cliquez sur **Créer un flux de travail**.
 
-Le flux de travail s'ouvre dans le **Constructeur** avec deux étapes : **On Create Alert**, et **Send Message to Telegram**, qui envoie le numéro, le titre, la gravité et l'état de l'alerte. Le jeton est enregistré comme variable secrète `telegramBotToken` du flux de travail, et l'ID comme `telegramChatId`.
+Le flux de travail s'ouvre dans le **Constructeur** avec deux étapes : **À la création : Alerte**, et **Envoyer un message à Telegram**, qui envoie le numéro, le titre, la gravité et l'état de l'alerte. Le jeton est enregistré comme variable secrète `telegramBotToken` du flux de travail, et l'ID comme `telegramChatId`.
 @tab De zéro
 1. Enregistrez le jeton comme variable globale secrète : allez dans **Flux de travail → Variables globales**, cliquez sur **Créer : Variable de flux de travail**, nommez-la `TELEGRAM_BOT_TOKEN`, et cliquez sur **Suivant**. Collez le jeton dans **Contenu**, activez **Secret**, et cliquez sur **Créer : Variable de flux de travail**.
 2. Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, choisissez **Partir de zéro**, nommez le flux de travail, et cliquez sur **Créer un flux de travail**.
-3. Dans le **Constructeur**, cliquez sur **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Alert** sous **Populaires**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez les autres champs que votre message affiche, par exemple **Numéro d'alerte avec préfixe**.
-4. Cliquez sur **Ajouter un composant**, cherchez `telegram`, et cliquez sur **Send Message to Telegram**. Reliez la sortie **Succès** du déclencheur à cette étape.
-5. Cliquez sur la nouvelle étape. Dans **Telegram Bot Token**, cliquez sur **{ }** et choisissez `TELEGRAM_BOT_TOKEN` sous **Variables globales**. Saisissez l'ID de la discussion dans **Chat ID**, écrivez le message dans **Texte du message**, et insérez les champs de l'alerte avec **{ }**.
+3. Dans le **Constructeur**, cliquez sur **Choisissez ce qui démarre ce flux de travail** et choisissez **À la création : Alerte** sous **Populaires**. Cliquez sur le déclencheur : ses **Champs à transmettre** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez les autres champs que votre message affiche, par exemple **Numéro d'alerte avec préfixe**.
+4. Cliquez sur **Ajouter un composant**, cherchez `telegram`, et cliquez sur **Envoyer un message à Telegram**. Reliez la sortie **Succès** du déclencheur à cette étape.
+5. Cliquez sur la nouvelle étape. Dans **Jeton du bot Telegram**, cliquez sur **{ }** et choisissez `TELEGRAM_BOT_TOKEN` sous **Variables globales**. Saisissez l'ID de la discussion dans **ID du chat**, écrivez le message dans **Texte du message**, et insérez les champs de l'alerte avec **{ }**.
 :::
 
 Un message construit de zéro lit les champs de l'alerte avec des références comme celles-ci :
@@ -80,7 +80,7 @@ Pour tester sans lever d'alerte, cliquez sur **Exécuter le flux de travail** et
 
 - **Texte brut.** L'étape envoie le texte tel qu'il est saisi, sans la mise en forme de Telegram : `*` et `_` s'affichent donc tels quels.
 - **Tenir compte de la limite de 4 096 caractères.** Telegram accepte les messages de 4 096 caractères au plus. Un message plus long est coupé, et se termine par "… (truncated — see OneUptime for the full text)", au lieu d'être refusé.
-- **Les incidents aussi.** Construisez le même flux de travail sur **On Create Incident**, ou sur **On Update Incident** pour les changements d'état. Pour n'envoyer que certaines alertes, placez un bloc **If / Else** avant l'étape.
+- **Les incidents aussi.** Construisez le même flux de travail sur **À la création : Incident**, ou sur **À la mise à jour : Incident** pour les changements d'état. Pour n'envoyer que certaines alertes, placez un bloc **Si / Sinon** avant l'étape.
 - **La forme du jeton est vérifiée.** Un jeton qui n'a pas la forme `123456789:ABCdef…` arrête l'exécution avant tout envoi, et le jeton n'est jamais écrit dans le journal.
 
 ## Dépannage
@@ -88,7 +88,7 @@ Pour tester sans lever d'alerte, cliquez sur **Exécuter le flux de travail** et
 Quand l'étape prend **Erreur**, l'exécution échoue, et l'entrée de l'étape dans les **Étapes** de l'exécution donne la raison de Telegram. Le bot doit être dans la discussion : vérifiez-le d'abord.
 
 :::details Telegram répond "Bad Request: chat not found"
-Le **Chat ID** est faux, ou le bot ne voit pas la discussion : ajoutez le bot au groupe, faites-en un administrateur du canal, ou demandez à la personne de commencer une discussion avec le bot. L'ID d'un groupe commence par `-`.
+Le **ID du chat** est faux, ou le bot ne voit pas la discussion : ajoutez le bot au groupe, faites-en un administrateur du canal, ou demandez à la personne de commencer une discussion avec le bot. L'ID d'un groupe commence par `-`.
 :::
 
 :::details Telegram répond "Forbidden: bot was blocked by the user" ou "bot is not a member"

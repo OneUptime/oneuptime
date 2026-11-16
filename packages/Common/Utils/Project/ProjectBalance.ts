@@ -61,7 +61,7 @@ export const PROJECT_BALANCE_RECHARGE_PERMISSIONS: ReadonlyArray<Permission> = [
  * may switch a paid channel on, and not add to the balance it spends.
  */
 export const WHO_CAN_ADD_PROJECT_BALANCE: string =
-  "a project owner or someone with Manage Billing";
+  "a Project Owner or someone with Manage Billing";
 
 export type ProjectBalanceAutoRechargeColumn =
   | "enableAutoRechargeSmsOrCallBalance"
@@ -202,7 +202,7 @@ export const getProjectBalanceTooLowMessage: (
  */
 export const INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE: string = `Numbers for incoming calls are verified by SMS, and this project's balance is too low to send SMS. ${getProjectBalanceWhoCanAddSentence(ProjectBalanceType.SmsOrCall)}`;
 
-// An amount of money, as the balance pages show it: "0.05 USD".
+// An amount of money, as the balance pages show it: "0.05 USD", held to its unit (#8826).
 export const formatProjectBalanceAmount: (
   amountInUSDCents: number,
 ) => string = (amountInUSDCents: number): string => {
@@ -210,7 +210,7 @@ export const formatProjectBalanceAmount: (
     ? amountInUSDCents
     : 0;
 
-  return `${(cents / 100).toFixed(2)} USD`;
+  return `${(cents / 100).toFixed(2)}\u00A0USD`;
 };
 
 /*
@@ -349,4 +349,4 @@ export const PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE: string = `Au
 
 // Why they get it, and how often - last.
 export const PROJECT_AI_CREDITS_USED_UP_OWNER_FREQUENCY_SENTENCE: string =
-  "Project owners get this email once each time the AI credits run out.";
+  "Project Owners get this email once each time the AI credits run out.";

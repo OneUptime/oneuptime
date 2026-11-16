@@ -35,11 +35,11 @@ Du trenger en telemetri-inntaksnøkkel av typen **Server**. Hvis du ikke har en 
 
 Gå til **Produkter → Prosjektinnstillinger**, åpne **Telemetri og APM** i sidemenyen, og velg **Inntaksnøkler**.
 
-![Listen «Inntaksnøkler», med «Opprett ingestion-nøkkel» uthevet](screen:ingestion-keys)
+![Listen «Inntaksnøkler», med «Opprett inntaksnøkkel» uthevet](screen:ingestion-keys)
 
 ### Opprett en nøkkel
 
-Klikk på **Opprett ingestion-nøkkel**. Dialogen har allerede fylt ut nøkkelens navn og valgt **Server** (den typen nøkkel en applikasjon eller en collector sender med), så klikk på **Opprett ingestion-nøkkel** for å opprette den, eller gi den et nytt navn først.
+Klikk på **Opprett inntaksnøkkel**. Dialogen har allerede fylt ut nøkkelens navn og valgt **Server** (den typen nøkkel en applikasjon eller en collector sender med), så klikk på **Opprett inntaksnøkkel** for å opprette den, eller gi den et nytt navn først.
 
 ### Kopier hemmeligheten
 
@@ -297,7 +297,7 @@ For .NET-profileren setter du `DD_TRACE_DEBUG=1` på applikasjonen i ett minutt:
 
 ### Én funksjon
 
-Klikk på en funksjon for å åpne panelet: andelen som **Egen**, **Totalt** og **Koden din**, **Hvem kaller den** og **Hva den kaller**, en lenke til filen og linjen i repositoryet ditt når et er koblet til, og **Uthev i flammegrafen**. For en funksjon fra et bibliotek eller kjøretiden nevner panelet funksjonen i din egen kode som kaller den, der en endring kan gjøre den billigere. En lenke under andelene setter opp et varsel om funksjonens andel, over det den tar i dag: se [Profil-overvåking](/docs/monitor/profiles-monitor).
+Klikk på en funksjon for å åpne panelet: andelen som **Egen**, **Totalt** og **Koden din**, **Hvem kaller den** og **Hva den kaller**, en lenke til filen og linjen i repositoryet ditt når et er koblet til, og **Uthev i flammegrafen**. For en funksjon fra et bibliotek eller kjøretiden nevner panelet funksjonen i din egen kode som kaller den, der en endring kan gjøre den billigere. En lenke under andelene setter opp et varsel om funksjonens andel, over det den tar i dag: se [Profil-monitor](/docs/monitor/profiles-monitor).
 
 Når en funksjon i din egen kode tar minst 5 % av profilens tid eller minne, eller andelen har vokst med 3 poeng eller mer siden tidsvinduet den sammenlignes med, tilbyr panelet **Fiks med AI**: OneUptime AI starter en oppgave i repositoryet som inneholder funksjonen, med profilen som bevis, og åpner en pull request som du går gjennom (se [Code](/docs/ai/ai-agent)). OneUptime AI leser også profiler i svarene og undersøkelsene sine, så du kan spørre hvilke funksjoner som bruker mest CPU-tid.
 
@@ -309,7 +309,7 @@ Når en funksjon i din egen kode tar minst 5 % av profilens tid eller minne, ell
 | --- | --- |
 | **Flammegraf** | Hver stolpe er en funksjon i kallstakken, og bredden er proporsjonal med tiden eller ressursene den brukte. Klikk på en funksjon for å zoome inn og se hvem som kaller den, og hvem den kaller. |
 | **Top functions** | Profilens funksjoner, sortert etter egen eller total tid. **Bare koden min** skjuler biblioteksrammer. |
-| **Diff vs. baseline** | Profilen sammenlignet med en tidligere periode (**vs. for 1 time siden**, **vs. i går** eller **vs. forrige uke**), med funksjonene under **Størst forverring** og **Størst forbedring**. |
+| **Forskjell fra baseline** | Profilen sammenlignet med en tidligere periode (**vs. for 1 time siden**, **vs. i går** eller **vs. forrige uke**), med funksjonene under **Størst forverring** og **Størst forbedring**. |
 
 **Last ned pprof** lagrer profilen for lokale verktøy som `go tool pprof`.
 
@@ -361,7 +361,7 @@ Profiler oppbevares like lenge som prosjektets telemetri: **Prosjektinnstillinge
 ## Neste trinn
 
 :::cards
-- [Profil-overvåking](/docs/monitor/profiles-monitor): Få varsel på profilene tjenestene dine sender, etter antall og type.
+- [Profil-monitor](/docs/monitor/profiles-monitor): Få varsel på profilene tjenestene dine sender, etter antall og type.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send sporene profilene dine kobles til.
 - [Kubernetes-agent](/docs/telemetry/kubernetes-agent): Profiler en hel klynge med agentens eBPF-profiler.
 :::

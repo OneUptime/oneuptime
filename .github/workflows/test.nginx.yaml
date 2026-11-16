@@ -33,3 +33,46 @@ jobs:
       # nginx.conf. They use node:test and node:assert only, so no npm install
       # is needed and the job stays a few seconds long.
       - run: cd packages/Nginx && npm run test
+
+  # The tests that run only inside the ingress image (RUN_NGINX_IMAGE_TESTS=1).
+  # With PROVISION_SSL, envsubst-on-templates.sh writes the primary's
+  # placeholder certificate to /etc/nginx/certs/ServerCerts, which only the
+  # image has, so the job above, on the runner, skips them ("set
+  # RUN_NGINX_IMAGE_TESTS=1"), and nothing ran the script's own PROVISION_SSL
+  # path - the placeholder certificate, the primary's 7850 listens and their
+  # IPv6 twins, nginx -t on the result - in CI (#8286).
+  #
+  # This builds the ingress image's own base stage (packages/Nginx/Dockerfile.tpl
+  # --target base: the nginx, njs, bash, openssl and Node.js the image ships,
+  # so there is no second nginx tag to keep in step) and runs every Nginx test
+  # in it, as root, with the checkout mounted whole (the tests read Home, App
+  # and Common) and read-only: the image-only tests, and the nginx -t and
+  # real-nginx ones the runner skips when it has no nginx. No npm install: the
+  # tests use node:test and node:assert only. A job of its own, beside the
+  # quick one above. Tests/Ops/NginxImageTestsInCi.test.js holds it to this.
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      # The nginx base is a Docker Hub image: pull it through mirror.gcr.io
+      # (.github/actions/docker-hub-mirror).
+      - uses: ./.github/actions/docker-hub-mirror
+      # The Node.js donor stage is public.ecr.aws's node image, whose
+      # anonymous quota a busy CI window exhausts: seed it first, from Docker
+      # Hub if ECR will not serve it (Scripts/GHA/warm_base_images.sh).
+      - name: Warm the base images the ingress image builds FROM
+        run: bash ./Scripts/GHA/warm_base_images.sh ./packages/Nginx/Dockerfile.tpl
+      # The Dockerfile.tpl holds no gomplate template up to its base stage, so
+      # it builds as it is, without Scripts/Install/configure.sh.
+      - name: Build the ingress image's base stage
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 15
+          max_attempts: 3
+          command: docker build --target base -t oneuptime-nginx-base:test -f ./packages/Nginx/Dockerfile.tpl .
+      - name: Run the Nginx tests inside it, with RUN_NGINX_IMAGE_TESTS=1
+        timeout-minutes: 10
+        run: docker run --rm --user root --volume "$PWD:/repo:ro" --workdir /repo/packages/Nginx --env RUN_NGINX_IMAGE_TESTS=1 oneuptime-nginx-base:test npm run test

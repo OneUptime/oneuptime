@@ -1,3 +1,4 @@
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { SettingsAction, getSettingsAction } from "../InvestigationNotStarted";
@@ -1188,8 +1189,11 @@ function PreventiveInsightsCard(props: {
 
 function Stat(props: {
   label: string;
-  // A count, or text that stands in for one ("12 of 40", "—").
-  value: number | string;
+  /*
+   * A count, or text that stands in for one ("12 of 40"). A count the
+   * reader may not see is no value: the figure's quiet dash (#8264).
+   */
+  value?: number | string | undefined;
   detail?: string | undefined;
   testId: string;
 }): ReactElement {
@@ -1203,7 +1207,7 @@ function Stat(props: {
       <dd className="mt-0.5 text-lg font-semibold text-gray-900">
         {typeof props.value === "number"
           ? translator.formatNumber(props.value)
-          : props.value}
+          : getFigure(props.value)}
       </dd>
       {props.detail ? (
         <dd className="text-xs text-gray-500">{props.detail}</dd>
@@ -1566,7 +1570,6 @@ function ActivityCard(props: {
             {insights.fixesHidden ? (
               <Stat
                 label="Fixes"
-                value="—"
                 detail={translator.translateText("Not shown to your role")}
                 testId="ai-insights-stat-fixes"
               />

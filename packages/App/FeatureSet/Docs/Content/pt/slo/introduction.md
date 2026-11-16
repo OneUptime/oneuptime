@@ -45,11 +45,11 @@ Você precisa de uma função que possa criar SLOs: Proprietário do projeto, Ad
 :::steps
 ### Abrir os SLOs
 
-Abra **SLOs** no menu **Produtos** da barra superior. Ele fica no primeiro grupo, ao lado de monitores e incidentes. Clique em **Criar: Service Level Objective**.
+Abra **SLOs** no menu **Produtos** da barra superior. Ele fica no primeiro grupo, ao lado de monitores e incidentes. Clique em **Criar: Objetivo de nível de serviço**.
 
 ### Escolher o que ele mede
 
-Em **O que mede**, mantenha **Disponibilidade dos monitores** para medir a parcela do tempo em que os monitores estão disponíveis. Para medir as requisições de serviços em vez disso, escolha **Sucesso das requisições** ou **Latência das requisições** e escolha os **Serviços**: veja [SLOs de requisições e latência](/docs/slo/request-slos). Clique em **Próximo**.
+Em **O que mede**, mantenha **Disponibilidade dos monitores** para medir a parcela do tempo em que os monitores estão disponíveis. Para medir as requisições de serviços em vez disso, escolha **Sucesso das requisições** ou **Latência das requisições** e escolha os **Serviços**: veja [SLOs de requisições e latência](/docs/slo/request-slos). Escolha **Métrica** para contar os eventos bons de um contador ou de um histograma que seus serviços enviam: veja [SLOs a partir de uma métrica](/docs/slo/request-slos#slos-a-partir-de-uma-métrica). Clique em **Próximo**.
 
 ### Dar um nome e definir uma meta
 
@@ -61,7 +61,7 @@ Informe um **Nome**, por exemplo "API Availability", e uma **Meta (%)**: a parce
 
 ### Salvar o SLO
 
-Clique em **Criar: Service Level Objective**. O OneUptime abre o novo SLO. A **Visão geral** de um SLO de disponibilidade dos monitores mostra **Choose what this SLO measures**, porque ele ainda não tem monitores.
+Clique em **Criar: Objetivo de nível de serviço**. O OneUptime abre o novo SLO. A **Visão geral** de um SLO de disponibilidade dos monitores mostra **Choose what this SLO measures**, porque ele ainda não tem monitores.
 
 ### Associar monitores
 
@@ -202,7 +202,7 @@ A página **Configurações** reúne como um SLO mede, um cartão para cada cois
 
 | Cartão | O que você muda | Bom saber |
 | --- | --- | --- |
-| **O que mede** | **O que mede**, **Serviços** e **Limite de latência (ms)**, com **Editar o que mede**. | Depois de uma mudança, um SLO de requisições conta as requisições de novo desde o início. |
+| **O que mede** | **O que mede**, **Serviços**, **Limite de latência (ms)**, **Filtro de requisições** e **Métrica**, com **Editar o que mede**. | Depois de uma mudança, um SLO de requisições conta as requisições de novo desde o início. |
 | **Objetivo** | **Meta (%)** e **Limite de risco (%)**, com **Editar objetivo**. | Mostra a indisponibilidade que a meta permite, por exemplo "43 min 12 s de inatividade por janela de 30 dias". |
 | **Período de conformidade** | **Tipo de janela**, **Janela (dias)** e **Fuso horário**, com **Editar período**. | As regras de taxa de consumo mantêm seus limites quando a janela muda, então revise-as depois. |
 | **Cálculo de inatividade** | **Modo de vários monitores** e **Status de monitor de indisponibilidade**, com **Editar cálculo de inatividade**. | Só SLOs de disponibilidade dos monitores. Sem nenhum status, contam todos os status não operacionais, inclusive os adicionados depois. |
@@ -291,6 +291,8 @@ Um banner no topo das páginas do SLO diz o que o impede de medir:
 | **Nenhum serviço escolhido** | Um SLO de requisições não tem serviços, então não tem requisições para contar. | Escolha os serviços dele em **Configurações** → **O que mede**. |
 | **Nenhum limite de latência** | Um SLO de latência das requisições não tem limite, então nenhuma requisição pode contar como rápida o suficiente. | Defina o **Limite de latência (ms)** em **Configurações** → **O que mede**. |
 | **Aguardando requisições** | Nenhum dos serviços de um SLO de requisições atendeu uma requisição na janela ainda. | Confira se os serviços enviam traços ao OneUptime. Os números aparecem depois da próxima avaliação que contar uma requisição. |
+| **Nenhuma métrica para contar** | Um SLO de métrica não tem uma métrica que possa contar: nenhuma foi escolhida, ou falta definir como os eventos bons dele se distinguem dos outros. | Escolha a métrica, e a condição ou o valor dos eventos bons dela, em **Configurações** → **O que mede**. |
+| **Aguardando a métrica dele** | Nenhum dos serviços de um SLO de métrica enviou um evento da métrica dele na janela ainda. | Confira se os serviços enviam a métrica ao OneUptime, com o nome que o SLO conta. Os números aparecem depois da próxima avaliação que contar um evento. |
 
 ## Próximos passos
 

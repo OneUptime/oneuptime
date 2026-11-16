@@ -9,6 +9,7 @@ import {
   getAllCephMetricCategories,
   CephMetricDefinition,
   CephMetricCategory,
+  getCephMetricCategoryLabel,
 } from "Common/Types/Monitor/CephMetricCatalog";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -34,8 +35,11 @@ const CephMetricPicker: FunctionComponent<ComponentProps> = (
         },
       );
 
+      // The group's heading, a key of the catalog's (#8653).
+      const heading: string = getCephMetricCategoryLabel(category);
+
       return {
-        label: category,
+        label: translator.translateText(heading) || heading,
         options: categoryMetrics.map((m: CephMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,

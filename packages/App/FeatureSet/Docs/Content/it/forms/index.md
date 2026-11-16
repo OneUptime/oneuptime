@@ -97,10 +97,10 @@ In **Condividi**, copia il link e invialo alle persone che devono usare il modul
 | **Domini personalizzati** | I domini propri del modulo, come `report.acme.com`, con i loro record DNS e certificati. Vedi [Domini personalizzati](/docs/forms/sharing-and-security#domini-personalizzati). |
 | **Invii** | Ogni invio fatto tramite il modulo, il più recente per primo, con le sue risposte e ciò che ha creato. |
 | **Duplica modulo** | In **Avanzato**: una copia del modulo, con un nome scelto per te, con le sue domande, i modelli, le impostazioni All'invio, il branding, il messaggio di ringraziamento e la lista degli IP consentiti, e un link proprio. La copia parte disattivata e si apre nel suo editor. |
-| **Registri di audit** | In **Avanzato**: ogni modifica fatta al modulo, ai suoi domini personalizzati e ai suoi invii, chi l'ha fatta e quando. |
+| **Log di audit** | In **Avanzato**: ogni modifica fatta al modulo, ai suoi domini personalizzati e ai suoi invii, chi l'ha fatta e quando. |
 | **Elimina modulo** | L'eliminazione del modulo, in **Avanzato**. I suoi invii vengono eliminati con lui; gli incidenti e gli eventi che ha creato no. |
 
-La sezione **Sviluppatori** del menu del modulo contiene le sue pagine Terraform, API e assistente AI, come per ogni altra risorsa.
+La sezione **Sviluppatori** del menu del modulo contiene le sue pagine Terraform, API e assistente IA, come per ogni altra risorsa.
 
 ## Moduli e modelli di incidente
 
@@ -257,7 +257,7 @@ La risposta a una domanda di file sono i file così come sono stati salvati, cia
 
 ### Flussi di lavoro
 
-I moduli hanno i componenti dei flussi di lavoro generati: **On Create Form**, **On Update Form** e così via. Per agire su ciò che un modulo ha creato, usa **On Create Incident** o **On Create Maintenance Event**.
+I moduli hanno i componenti dei flussi di lavoro generati: **Alla creazione: Modulo**, **All'aggiornamento: Modulo** e così via. Per agire su ciò che un modulo ha creato, usa **Alla creazione: Incidente** o **Alla creazione: Evento di manutenzione**.
 
 ### Gli endpoint propri della pagina pubblica
 

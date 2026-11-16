@@ -1,4 +1,5 @@
 import Route from "Common/Types/API/Route";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import IconProp from "Common/Types/Icon/IconProp";
 import { MessageQueueTopologyResponse } from "Common/Types/MessageQueue/MessageQueueTopology";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
@@ -70,7 +71,9 @@ import {
 import useMessageQueueBrokerHeadlines, {
   MessageQueueHeadlineEntry,
 } from "./UseMessageQueueBrokerHeadlines";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * THE QUEUES TOPOLOGY: how messages flow between the project's services and
@@ -538,7 +541,7 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
         translator,
       );
     }
-    return "—";
+    return EMPTY_VALUE_MARK;
   };
 
   const renderTable: () => ReactElement = (): ReactElement => {
@@ -665,7 +668,9 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
                               {row.node.label}
                             </button>
                             <span className="mt-0.5 block text-xs text-gray-500">
-                              {row.node.subtitle}
+                              {getValueOrQuietDash(row.node.subtitle, {
+                                isSmall: true,
+                              })}
                             </span>
                           </span>
                         </div>
@@ -677,28 +682,34 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
                         {serviceNames(row.consumers)}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                        {formatMessageQueueTopologyRate(
-                          queue.published,
-                          windowSeconds,
-                          translator,
+                        {getValueOrQuietDash(
+                          formatMessageQueueTopologyRate(
+                            queue.published,
+                            windowSeconds,
+                            translator,
+                          ),
                         )}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                        {formatMessageQueueTopologyRate(
-                          queue.consumed,
-                          windowSeconds,
-                          translator,
+                        {getValueOrQuietDash(
+                          formatMessageQueueTopologyRate(
+                            queue.consumed,
+                            windowSeconds,
+                            translator,
+                          ),
                         )}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                        {formatMessageQueueTopologyErrorRate(
-                          queue.spans,
-                          queue.errors,
-                          translator,
+                        {getValueOrQuietDash(
+                          formatMessageQueueTopologyErrorRate(
+                            queue.spans,
+                            queue.errors,
+                            translator,
+                          ),
                         )}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                        {waitingCell(row.node)}
+                        {getValueOrQuietDash(waitingCell(row.node))}
                       </td>
                       <td className="px-5 py-3 text-right">
                         <button
@@ -908,7 +919,7 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
                     {node.label}
                   </span>
                   <span className="block truncate text-xs text-gray-500">
-                    {node.subtitle}
+                    {getValueOrQuietDash(node.subtitle, { isSmall: true })}
                   </span>
                 </span>
               </button>

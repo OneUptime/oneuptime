@@ -170,7 +170,7 @@ const OpenStackHypervisorUsage: FunctionComponent<{
           iconColor="blue"
           value={
             load.cpuPercent === null
-              ? "—"
+              ? undefined
               : formatOpenStackPercent(load.cpuPercent, {
                   language: translator.language,
                 })
@@ -200,7 +200,7 @@ const OpenStackHypervisorUsage: FunctionComponent<{
           iconColor="violet"
           value={
             load.memoryPercent === null
-              ? "—"
+              ? undefined
               : formatOpenStackPercent(load.memoryPercent, {
                   language: translator.language,
                 })

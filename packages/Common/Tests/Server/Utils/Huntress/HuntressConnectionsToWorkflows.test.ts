@@ -950,7 +950,7 @@ describe("a project whose plan runs no workflows", () => {
       `Huntress incident reports no longer open incidents or page anyone in Acme. Huntress is now set up with a workflow, and workflows need the ${HUNTRESS_WORKFLOW_PLAN} plan or above, but Acme is on the Free plan.`,
       `Upgrade the project in Project Settings &gt; Billing and Invoices &gt; Billing, and its Huntress reports open incidents again. <br/> <a href="${billingLinkOf(PROJECT_A)}">${billingLinkOf(PROJECT_A)}</a>`,
       "There is nothing to change in Huntress: your Huntress connection became the workflow &quot;Acme SOC&quot;, which receives Huntress&#39;s reports at the same address, signed with the same secret, and does what the connection did.",
-      "Project owners get this email once.",
+      "Project Owners get this email once.",
     ]);
     expect(emails[0]!.message).not.toContain("\n");
     expect(HUNTRESS_WORKFLOW_PLAN).toBe(PlanType.Growth);

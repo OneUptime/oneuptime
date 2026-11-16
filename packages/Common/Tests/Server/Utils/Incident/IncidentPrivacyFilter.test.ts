@@ -73,7 +73,7 @@ describe("shouldBypassIncidentPrivacy", () => {
     expect(shouldBypassIncidentPrivacy({ isMasterAdmin: true })).toBe(true);
   });
 
-  test("project owners and admins bypass the filter", () => {
+  test("Project Owners and Project Admins bypass the filter", () => {
     expect(
       shouldBypassIncidentPrivacy(
         propsWithProjectPermission(Permission.ProjectOwner),

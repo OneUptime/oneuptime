@@ -14,6 +14,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * ANSWERING AN OBSERVER'S PAGE, END TO END (OnCallObserverPage).
@@ -60,14 +61,12 @@ async function startObserverRun(): Promise<OnCallDutyPolicyExecutionLog> {
 
 describe("an observer answers their page", () => {
   test("the incident stays as it was: not acknowledged, no state written", async () => {
-    const acknowledgeIncident: jest.SpiedFunction<
+    const acknowledgeIncident: SpyInstance<
       typeof IncidentService.acknowledgeIncident
     > = jest.spyOn(
       IncidentService,
       "acknowledgeIncident",
-    ) as unknown as jest.SpiedFunction<
-      typeof IncidentService.acknowledgeIncident
-    >;
+    ) as unknown as SpyInstance<typeof IncidentService.acknowledgeIncident>;
 
     await startObserverRun();
 

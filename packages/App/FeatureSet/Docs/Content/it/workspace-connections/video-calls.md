@@ -44,7 +44,7 @@ Una chiamata viene avviata una volta per incidente per ogni luogo in cui si tien
 
 Dichiarare un incidente non aspetta mai un provider di videochiamate. La chiamata viene avviata dopo la creazione dell'incidente, quindi un provider lento o in errore non ritarda mai l'incidente né le sue notifiche di reperibilità.
 
-Se il provider rifiuta (un segreto scaduto, un permesso mancante, un host eliminato), il feed dell'incidente dice che la chiamata della regola non è potuta partire, con il motivo del provider, così i responder sanno di avviarne una dalla pagina dell'incidente. L'esecuzione della regola compare nei registri di notifica del workspace come **Avvia videochiamata**, e la riga della connessione in **Impostazioni del progetto** > **Area di lavoro** > **Videochiamate** mostra l'errore finché una chiamata non riparte.
+Se il provider rifiuta (un segreto scaduto, un permesso mancante, un host eliminato), il feed dell'incidente dice che la chiamata della regola non è potuta partire, con il motivo del provider, così i responder sanno di avviarne una dalla pagina dell'incidente. L'esecuzione della regola compare nei log di notifica del workspace come **Avvia videochiamata**, e la riga della connessione in **Impostazioni del progetto** > **Area di lavoro** > **Videochiamate** mostra l'errore finché una chiamata non riparte.
 
 ### Incidenti privati
 
@@ -150,7 +150,7 @@ Ottenere, aggiungere, sostituire e rimuovere una trascrizione, farla rileggere e
 
 ### Cosa legge OneUptime AI
 
-Leggere una trascrizione è lavoro di AI come un'indagine: viene eseguito solo mentre l'AI è attiva per il progetto, e conta nell'uso dell'AI e nei limiti giornalieri del progetto (vedi [Controllo dei costi](/docs/ai/ai-sre#controllo-dei-costi)). Una trascrizione lunga viene letta in parti. Quando l'AI è disattivata, la trascrizione viene conservata e la scheda dice che non è stata letta. Rimuovere una trascrizione rimuove ciò che OneUptime AI vi ha letto, e mantiene la causa principale dell'incidente. Anche una bozza di post-mortem dell'AI legge ciò che si è detto nelle chiamate dell'incidente (vedi [Post-mortem](/docs/incidents/postmortems)).
+Leggere una trascrizione è lavoro di IA come un'indagine: viene eseguito solo mentre l'IA è attiva per il progetto, e conta nell'uso dell'IA e nei limiti giornalieri del progetto (vedi [Controllo dei costi](/docs/ai/ai-sre#controllo-dei-costi)). Una trascrizione lunga viene letta in parti. Quando l'IA è disattivata, la trascrizione viene conservata e la scheda dice che non è stata letta. Rimuovere una trascrizione rimuove ciò che OneUptime AI vi ha letto, e mantiene la causa principale dell'incidente. Anche una bozza di post-mortem dell'IA legge ciò che si è detto nelle chiamate dell'incidente (vedi [Post-mortem](/docs/incidents/postmortems)).
 
 ## Provider
 
@@ -309,7 +309,7 @@ OneUptime non è riuscito a mettere la riunione nel calendario del suo organizza
 :::
 
 :::details OneUptime AI non è riuscita a leggere una trascrizione
-La scheda dice perché: l'AI è disattivata per il progetto, il progetto ha raggiunto un limite giornaliero di AI, o il [provider LLM](/docs/ai/llm-provider) del progetto ha rifiutato. Una volta risolto, **Riprova** sulla scheda la rilegge.
+La scheda dice perché: l'IA è disattivata per il progetto, il progetto ha raggiunto un limite giornaliero di IA, o il [provider LLM](/docs/ai/llm-provider) del progetto ha rifiutato. Una volta risolto, **Riprova** sulla scheda la rilegge.
 :::
 
 ## Passaggi successivi

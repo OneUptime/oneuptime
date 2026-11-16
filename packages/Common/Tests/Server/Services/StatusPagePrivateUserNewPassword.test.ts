@@ -20,6 +20,14 @@ import { FindOperator } from "typeorm";
  * which would otherwise count against whichever test writes as a teammate first.
  */
 import "../../../Server/Types/Database/Permissions/OwnerTableRegistry";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/workflow/model/*/status-page-private-user/on-update"]);
 
 /*
  * ---------------------------------------------------------------------------

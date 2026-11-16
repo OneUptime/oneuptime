@@ -402,9 +402,10 @@ export default class HostCollectorConfigPolicy {
     if (Buffer.byteLength(text, "utf8") > HOST_COLLECTOR_CONFIG_MAX_BYTES) {
       checker.add(
         "",
+        // The form draws this: the figure held to its unit (#8720).
         `The config is larger than ${Math.round(
           HOST_COLLECTOR_CONFIG_MAX_BYTES / 1024,
-        )} KB.`,
+        )}\u00A0KB.`,
       );
       return HostCollectorConfigPolicy.result(checker);
     }

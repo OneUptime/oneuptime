@@ -83,7 +83,7 @@ const MOST_WORDS: number = 4;
 const DAY_NAME: string =
   "A day's name, not a noun the sentences share: whether it takes a capital standing alone is its language's own rule - CLDR's contextTransforms capitalise one in es, fr, it, pt, ru and nl and never in da, no and sv - which toLabelTerm's capital in every language is not.";
 const STARTS_WITH_A_CODE: string =
-  "Starts with a code that is written lower-case in every language (https, pprof, kubectl), which toLabelTerm would capitalise.";
+  "Starts with a code that is written lower-case in every language (https, pprof), which toLabelTerm would capitalise. kubectl needs no entry: toLabelTerm keeps the names written all in lower case (#8252).";
 
 const NOT_NOUN_KEYS: Readonly<Record<string, string>> = {
   Mon: DAY_NAME,
@@ -102,7 +102,6 @@ const NOT_NOUN_KEYS: Readonly<Record<string, string>> = {
   Sunday: DAY_NAME,
   "Copy https link": STARTS_WITH_A_CODE,
   "Download pprof": STARTS_WITH_A_CODE,
-  "Edit the kubectl allowlist": STARTS_WITH_A_CODE,
 };
 
 /*

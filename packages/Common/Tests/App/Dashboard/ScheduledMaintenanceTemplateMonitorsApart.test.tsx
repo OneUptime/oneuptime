@@ -187,6 +187,17 @@ import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
 import { ModalWidth } from "../../../UI/Components/Modal/Modal";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * A read the form makes once a monitor is picked that these tests leave
+ * unanswered: the status pages that list the picked monitors, for its
+ * status page suggestions (useStatusPagesListingMonitors), sent after the
+ * pick and so within a test or after it, depending on the machine. Refused
+ * at once, as the network refused it, and taken as a read the suggestions
+ * could not make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/status-page/listing-monitors"]);
 
 const TEMPLATE_ID: string = "a1b2c3d4-0000-4000-8000-0000000000aa";
 const MONITOR_ID: string = "33333333-3333-4333-8333-000000000001";

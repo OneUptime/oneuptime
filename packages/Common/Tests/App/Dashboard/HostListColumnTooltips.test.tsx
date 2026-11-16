@@ -110,6 +110,8 @@ import {
   HOST_METRIC_DESCRIPTIONS,
   HostMetric,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/HostMetricDescriptions";
+// A tooltip draws a duration's figure held to its word (#8811).
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 const D: Record<HostMetric, string> = HOST_METRIC_DESCRIPTIONS;
 
@@ -232,7 +234,7 @@ describe("Host Processes list", () => {
       await settle();
 
       expect(await explanationOnHover(infoButtonsFor(label)[0]!)).toBe(
-        D[key as HostMetric],
+        withDurationWordsHeld(D[key as HostMetric]),
       );
       expectNotNestedInControl(infoButtonsFor(label)[0]!);
       expect(headerCell(label)).toHaveTextContent(label);
@@ -330,7 +332,7 @@ describe("Host Services list", () => {
       await settle();
 
       expect(await explanationOnHover(infoButtonsFor(label)[0]!)).toBe(
-        D[key as HostMetric],
+        withDurationWordsHeld(D[key as HostMetric]),
       );
     },
   );
@@ -340,7 +342,7 @@ describe("Host Services list", () => {
     await settle();
 
     expect(await explanationOnFocus(infoButtonsFor("Status")[0]!)).toBe(
-      D.serviceListStatus,
+      withDurationWordsHeld(D.serviceListStatus),
     );
   });
 
@@ -442,7 +444,7 @@ describe("Host Systemd Units list", () => {
       await settle();
 
       expect(await explanationOnHover(infoButtonsFor(label)[0]!)).toBe(
-        D[key as HostMetric],
+        withDurationWordsHeld(D[key as HostMetric]),
       );
       expectNotNestedInControl(infoButtonsFor(label)[0]!);
     },

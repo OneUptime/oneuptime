@@ -432,7 +432,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.LongText,
     title: "Finance / Accounting Email",
     description:
-      "Invoices, receipts and billing related notifications will be sent to these emails in addition to project owner. Separate multiple emails with a comma.",
+      "Invoices, receipts and billing related notifications will be sent to these emails in addition to Project Owner. Separate multiple emails with a comma.",
     example: "accounting@example.com, finance@example.com",
   })
   @Column({
@@ -2293,7 +2293,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Date,
     title: "Daily AI Token Limit Reached At",
     description:
-      "Internal: when the project's daily AI token limit last stopped OneUptime AI - the first time on that UTC day. The project's owners are emailed then, once a day.",
+      "Internal: when the project's daily AI token limit last stopped OneUptime AI - the first time on that UTC day. Project Owners are emailed then, once a day.",
   })
   @Column({
     nullable: true,
@@ -2312,7 +2312,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Date,
     title: "Daily AI Spend Limit Reached At",
     description:
-      "Internal: when the project's daily AI spend limit last stopped OneUptime AI - the first time on that UTC day. The project's owners are emailed then, once a day.",
+      "Internal: when the project's daily AI spend limit last stopped OneUptime AI - the first time on that UTC day. Project Owners are emailed then, once a day.",
   })
   @Column({
     nullable: true,
@@ -2342,7 +2342,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Date,
     title: "Plan Cut-off Notice Sent At",
     description:
-      "Internal: when the project's owners were last emailed that its plan stops its API keys or limits its SCIM connections.",
+      "Internal: when the Project Owners were last emailed that its plan stops its API keys or limits its SCIM connections.",
   })
   @Column({
     nullable: true,

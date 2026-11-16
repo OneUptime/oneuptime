@@ -142,7 +142,7 @@ Elke monitor is een actieve monitor, die net als elke andere wordt gefactureerd 
 
 Klik op **Open in OneUptime** bij de resource, of op een van de links ervan in Vercel, en je bent bij OneUptime aangemeld met het e-mailadres van je Vercel-account. De eerste keer kom je in het project van de resource: als beheerder als je eigenaar of lid van het Vercel-team bent, en als lid als je een van de alleen-lezen-rollen van het team hebt.
 
-Bestaat er al een OneUptime-account met dat e-mailadres, dan meld je je bij dat account aan. Een account met tweestapsverificatie aan, of een account van een OneUptime-beheerder, meldt zich in plaats daarvan aan met zijn wachtwoord. Je zit hoe dan ook in het project.
+Bestaat er al een OneUptime-account met dat e-mailadres, dan meld je je bij dat account aan. Een account met tweefactorauthenticatie aan, of een account van een OneUptime-beheerder, meldt zich in plaats daarvan aan met zijn wachtwoord. Je zit hoe dan ook in het project.
 
 ## Abonnementen en facturering
 

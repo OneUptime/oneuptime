@@ -1,21 +1,21 @@
 # Databasetilstands-monitor
 
-Database Health-monitoren forbinder til PostgreSQL, MySQL eller Microsoft SQL Server efter en tidsplan og rapporterer serverens egne helbredssignaler — luft i forbindelserne, blokerede sessioner, replikeringsforsinkelse, cache-hitrate, databasestørrelse, transaktions-ID-wraparound og en god snes flere — så du kan sende advarsler på dem, ligesom du sender en advarsel, når et websted er nede.
+Databasesundhed-monitoren forbinder til PostgreSQL, MySQL eller Microsoft SQL Server efter en tidsplan og rapporterer serverens egne helbredssignaler — luft i forbindelserne, blokerede sessioner, replikeringsforsinkelse, cache-hitrate, databasestørrelse, transaktions-ID-wraparound og en god snes flere — så du kan sende advarsler på dem, ligesom du sender en advarsel, når et websted er nede.
 
 Du skriver ingen SQL. Sonden kører et fast sæt skrivebeskyttede katalogforespørgsler, valgt efter databasemotor, og rapporterer et lille sæt navngivne tal.
 
 :::cards
 - [Opret en overvågningsbruger](#opret-en-overvågningsbruger): De rettigheder, hver motor har brug for. Det er det trin, der betyder mest.
-- [Opret monitoren](#opret-en-database-health-monitor): Ret en sonde mod databasen, og vælg, hvad der skal indsamles.
+- [Opret monitoren](#opret-en-databasesundhed-monitor): Ret en sonde mod databasen, og vælg, hvad der skal indsamles.
 - [Indsamlede metrikker](#indsamlede-metrikker): Hver serie med de motorer, der rapporterer den.
 - [Opsæt kriterier](#opsæt-kriterier): Send advarsler om forbindelser, blokeringer, forsinkelse og wraparound.
 :::
 
-## Database Health eller SQL Query?
+## Databasesundhed eller SQL-forespørgsel?
 
 De to monitortyper til databaser besvarer forskellige spørgsmål og er beregnet til at blive brugt sammen.
 
-| | Database Health | [SQL Query](/docs/monitor/sql-monitor) |
+| | Databasesundhed | [SQL Query](/docs/monitor/sql-monitor) |
 |---|---|---|
 | Spørgsmål, den besvarer | "Er selve databasen sund?" | "Er mine data, som jeg forventer?" |
 | Forespørgsel | Indbygget, pr. motor, skrivebeskyttet | Din egen |
@@ -23,7 +23,7 @@ De to monitortyper til databaser besvarer forskellige spørgsmål og er beregnet
 | Typisk advarsel | Brugte forbindelser over 90 % | Mere end 50 annullerede ordrer inden for de seneste fem minutter |
 | Nødvendige rettigheder | Læseadgang til statistik/DMV'er — se [Opret en overvågningsbruger](#opret-en-overvågningsbruger) | `SELECT` på de tabeller, din forespørgsel rører |
 
-Hvis du vil sende en advarsel om en forretningsbetingelse, så brug SQL Query-monitoren. Hvis du vil vide, at serveren er ved at løbe tør for forbindelser, før forretningsbetingelsen overhovedet får mulighed for at fejle, så brug denne.
+Hvis du vil sende en advarsel om en forretningsbetingelse, så brug SQL-forespørgsel-monitoren. Hvis du vil vide, at serveren er ved at løbe tør for forbindelser, før forretningsbetingelsen overhovedet får mulighed for at fejle, så brug denne.
 
 ## Understøttede databaser
 
@@ -37,7 +37,7 @@ Azure SQL Database og Azure SQL Managed Instance forbinder som **Microsoft SQL S
 
 PostgreSQL- og MySQL-kompatible motorer, der taler den samme wire-protokol, virker som regel, men kan have færre statistikvisninger; så rapporteres de berørte metrikker som utilgængelige i stedet for at blive indsamlet. Kun de tre motorer ovenfor er officielt testet.
 
-Hver database, som dine applikationer, klynger og værter bruger — disse tre motorer og mange flere — får også sin egen side med motorens metrikker, logs og de tjenester, der kalder den: se [Databaser](/docs/telemetry/databases). Når den vært og port, en Database Health-monitor forbinder til, er et af en databases endpoints, vises monitorens advarsler og hændelser også på den databases side (se [Advarsler på en database](/docs/telemetry/databases#alarmer-på-en-database)).
+Hver database, som dine applikationer, klynger og værter bruger — disse tre motorer og mange flere — får også sin egen side med motorens metrikker, logs og de tjenester, der kalder den: se [Databaser](/docs/telemetry/databases). Når den vært og port, en Databasesundhed-monitor forbinder til, er et af en databases endpoints, vises monitorens advarsler og hændelser også på den databases side (se [Advarsler på en database](/docs/telemetry/databases#alarmer-på-en-database)).
 
 ## Sådan virker det
 
@@ -85,7 +85,7 @@ GRANT pg_monitor TO oneuptime_health;
 `pg_monitor` er en indbygget rolle (PostgreSQL 10 og nyere), der giver læseadgang til statistik- og overvågningsvisningerne. Den giver ingen adgang til dine tabeller.
 
 > [!IMPORTANT]
-> **Hvorfor `pg_monitor` ikke er valgfri på PostgreSQL.** Uden den fejler `pg_stat_activity` ikke — forespørgslen lykkes og returnerer kun overvågningssessionens egen række. Antallet af forbindelser ville stå på `1`, blokerede sessioner på `0` og replikeringsforsinkelsen på `0`, for evigt, på en server, der i virkeligheden brænder. Derfor kontrollerer sonden, **før** den kører de forespørgsler, at loginnet er medlem af `pg_monitor` (eller `pg_read_all_stats`) eller er superbruger. Er det ingen af delene, rapporterer sonden grupperne Connections, Activity og Locks som utilgængelige sammen med den `GRANT`, du har brug for. At rapportere ingenting er det ærlige svar; at rapportere `1` er ikke.
+> **Hvorfor `pg_monitor` ikke er valgfri på PostgreSQL.** Uden den fejler `pg_stat_activity` ikke — forespørgslen lykkes og returnerer kun overvågningssessionens egen række. Antallet af forbindelser ville stå på `1`, blokerede sessioner på `0` og replikeringsforsinkelsen på `0`, for evigt, på en server, der i virkeligheden brænder. Derfor kontrollerer sonden, **før** den kører de forespørgsler, at loginnet er medlem af `pg_monitor` (eller `pg_read_all_stats`) eller er superbruger. Er det ingen af delene, rapporterer sonden grupperne **Forbindelser**, **Aktivitet** og **Låse og blokeringer** som utilgængelige sammen med den `GRANT`, du har brug for. At rapportere ingenting er det ærlige svar; at rapportere `1` er ikke.
 
 På en administreret tjeneste, hvor `pg_monitor` ikke er tilgængelig, dækker `pg_read_all_stats` de samme visninger. På Amazon RDS er `GRANT rds_superuser` ikke nødvendig — `GRANT pg_monitor TO oneuptime_health;` virker som medlem af `rds_superuser`.
 
@@ -102,7 +102,7 @@ GRANT SELECT ON mydb.* TO 'oneuptime_health'@'%';
 FLUSH PRIVILEGES;
 ```
 
-MySQL's `performance_schema` skal være slået til (`performance_schema = ON`, standard siden 5.6). Når den er slået fra, rapporteres grupperne Connections, Throughput og Locks som utilgængelige, og løsningen er en genstart af serveren, ikke en rettighed.
+MySQL's `performance_schema` skal være slået til (`performance_schema = ON`, standard siden 5.6). Når den er slået fra, rapporteres grupperne **Forbindelser**, **Gennemløb** og **Låse og blokeringer** som utilgængelige, og løsningen er en genstart af serveren, ikke en rettighed.
 
 ### Microsoft SQL Server og Azure SQL Managed Instance
 
@@ -121,7 +121,7 @@ CREATE USER oneuptime_health FOR LOGIN oneuptime_health;
 Kørt fra en hvilken som helst anden database fejler `GRANT VIEW SERVER STATE` med Msg 4621, "Permissions at the server scope can only be granted when the current database is master".
 
 > [!WARNING]
-> **Læseadgang til dine tabeller er ikke nok.** Et login, der kun kan læse data — `db_datareader` eller en anden rolle med "læseadgang" — kan forbinde og får databasestørrelsen og intet andet. SQL Server afviser de visninger, monitoren læser, med `The user does not have permission to perform this action.` (Msg 297). Meddelelsen før den nævner, hvad der blev afvist: Msg 300 `VIEW SERVER STATE` (`VIEW SERVER PERFORMANCE STATE` på 2022) for servervisningerne, herunder transaktionslogpladsen og den ledige plads i tempdb, eller Msg 262 `VIEW DATABASE STATE` (`VIEW DATABASE PERFORMANCE STATE` på 2022) for replikeringsvisningen. Monitoren forbliver online, rapporterer, at grupperne Connections, Activity, Throughput, Locks, Storage og Replication mangler en rettighed, og viser den `GRANT`, der står ovenfor, ved siden af. `VIEW SERVER STATE` dækker dem alle.
+> **Læseadgang til dine tabeller er ikke nok.** Et login, der kun kan læse data — `db_datareader` eller en anden rolle med "læseadgang" — kan forbinde og får databasestørrelsen og intet andet. SQL Server afviser de visninger, monitoren læser, med `The user does not have permission to perform this action.` (Msg 297). Meddelelsen før den nævner, hvad der blev afvist: Msg 300 `VIEW SERVER STATE` (`VIEW SERVER PERFORMANCE STATE` på 2022) for servervisningerne, herunder transaktionslogpladsen og den ledige plads i tempdb, eller Msg 262 `VIEW DATABASE STATE` (`VIEW DATABASE PERFORMANCE STATE` på 2022) for replikeringsvisningen. Monitoren forbliver online, rapporterer, at grupperne **Forbindelser**, **Aktivitet**, **Gennemløb**, **Låse og blokeringer**, **Lagerplads** og **Replikering** mangler en rettighed, og viser den `GRANT`, der står ovenfor, ved siden af. `VIEW SERVER STATE` dækker dem alle.
 >
 > To visninger afviser ikke: uden rettigheden viser `sys.dm_exec_sessions` og `sys.dm_exec_requests` stille og roligt kun monitorens egen session. Monitoren læser dem aldrig alene — altid sammen med en visning, der afviser — så en manglende rettighed kan aldrig blive registreret som "1 forbindelse".
 
@@ -151,11 +151,11 @@ En indesluttet databasebruger (`CREATE USER oneuptime_health WITH PASSWORD = '..
 
 Sonden genkender Azure SQL Database på `SERVERPROPERTY('EngineEdition')` og ikke på versionen — Azure SQL Database rapporterer `12.0.2000.8`, uanset hvad den faktisk kører, hvilket læses som SQL Server 2014. Derfor viser monitorens **Motor** `Azure SQL Database 12.0.2000.8`, og en manglende rettighed vises som Azure-sætningen ovenfor, aldrig som `VIEW SERVER STATE`.
 
-- **Replikering indsamles ikke på Azure SQL Database.** Azure SQL Database har ingen `sys.dm_hadr_database_replica_states`, så gruppen Replication springes over der i stedet for at blive rapporteret som fejlet ved hver kontrol. Azures egne replikavisninger (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) læses endnu ikke.
-- **Forbindelser gælder pr. database.** Med `VIEW DATABASE STATE` viser Azure SQL Database kun den overvågede databases sessioner, så Connections tæller den database og ikke den logiske server. Overvåg hver database, du holder øje med.
-- **I en elastisk pulje er TempDB Free Space puljens.** Databaserne i en pulje deler én tempdb.
+- **Replikering indsamles ikke på Azure SQL Database.** Azure SQL Database har ingen `sys.dm_hadr_database_replica_states`, så gruppen **Replikering** springes over der i stedet for at blive rapporteret som fejlet ved hver kontrol. Azures egne replikavisninger (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) læses endnu ikke.
+- **Forbindelser gælder pr. database.** Med `VIEW DATABASE STATE` viser Azure SQL Database kun den overvågede databases sessioner, så **Forbindelser** tæller den database og ikke den logiske server. Overvåg hver database, du holder øje med.
+- **I en elastisk pulje er "Ledig plads i TempDB" puljens.** Databaserne i en pulje deler én tempdb.
 
-## Opret en Database Health-monitor
+## Opret en Databasesundhed-monitor
 
 :::steps
 ### Start en ny monitor
@@ -191,21 +191,21 @@ Vælg de **Sonder**, der kan nå databasen, og et **Overvågningsinterval**, og 
 | **Vært** | Databaseværten, som sonden kan nå (for eksempel `db.internal`). |
 | **Port** | Databasens port. |
 | **Databasenavn** | Den database, der forbindes til. Metrikker på databaseniveau (størrelse, cache-hitrate, udskrivning til midlertidige filer) rapporteres for denne database; metrikker på serverniveau (forbindelser, oppetid, replikering) for hele serveren — undtagen på Azure SQL Database, hvor forbindelser kun tælles for den overvågede database. |
-| **Godkendelse** | Kun Microsoft SQL Server: **Brugernavn og adgangskode**, standardvalget, eller **Windows Integrated Authentication**, som logger på som sondeprocessen. Se [Integreret Windows-godkendelse](/docs/monitor/sql-monitor#integreret-windows-godkendelse) på siden om SQL Query-monitoren — opsætningen er den samme. |
+| **Godkendelse** | Kun Microsoft SQL Server: **Brugernavn og adgangskode**, standardvalget, eller **Windows Integrated Authentication**, som logger på som sondeprocessen. Se [Integreret Windows-godkendelse](/docs/monitor/sql-monitor#integreret-windows-godkendelse) på siden om SQL-forespørgsel-monitoren — opsætningen er den samme. |
 | **Brugernavn** | Overvågningsbrugeren. Påkrævet, medmindre du bruger integreret Windows-godkendelse. |
 | **Adgangskode** | Adgangskoden. Henvis til en [monitorhemmelighed](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for at skrive den i klartekst (se [Brug en monitorhemmelighed](#brug-en-monitorhemmelighed-til-adgangskoden)). |
 | **Use SSL/TLS** | Forbind over TLS. Når det er slået til, kan du slå **Verify server certificate** fra for et selvsigneret certifikat. |
 
 ### Flere felter
 
-**Metric Groups** ligger her: hvilke grupper der kører, blandt Connections, Aktivitet, Throughput, Locks and Blocking, Lagerplads, Replication og Vedligeholdelse. Alle er slået til som standard; se [Metrikgrupper](#metrikgrupper). Monitorens detaljer viser dem som **Collected Metric Groups**.
+**Metric Groups** ligger her: hvilke grupper der kører, blandt Forbindelser, Aktivitet, Gennemløb, Låse og blokeringer, Lagerplads, Replikering og Vedligeholdelse. Alle er slået til som standard; se [Metrikgrupper](#metrikgrupper). Monitorens detaljer viser dem som **Collected Metric Groups**.
 
 | Felt | Standard | Maksimum | Hvad det begrænser |
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | Hvor længe der ventes på at oprette en forbindelse. |
 | **Statement Timeout (ms)** | `10000` | `60000` | Loftet for hver enkelt katalogforespørgsel. |
 
-Standardtimeouten for sætninger er bevidst strammere end SQL Query-monitorens: disse forespørgsler svarer på millisekunder på en sund server, så hvis `pg_stat_activity` tager ti sekunder, er det nyttige signal "denne server er i problemer", ikke længere ventetid. En værdi over maksimum sænkes til maksimum.
+Standardtimeouten for sætninger er bevidst strammere end SQL-forespørgsel-monitorens: disse forespørgsler svarer på millisekunder på en sund server, så hvis `pg_stat_activity` tager ti sekunder, er det nyttige signal "denne server er i problemer", ikke længere ventetid. En værdi over maksimum sænkes til maksimum.
 
 ## Brug en monitorhemmelighed til adgangskoden
 
@@ -221,17 +221,17 @@ Hemmeligheden slås op på serveren, før konfigurationen gives videre til en so
 
 ## Metrikgrupper
 
-En gruppe er én enhed, som du slår til eller fra, og den enhed, en manglende rettighed rapporteres for. Grupperne findes, så en manglende rettighed koster dig én gruppe i stedet for hele monitoren. En gruppes sætninger kører én ad gangen, så en gruppe kan være delvist indsamlet: Den står så både i `collectedGroups` og i `unavailableGroups`. Det almindelige tilfælde er SQL Servers gruppe Storage for et login uden `VIEW SERVER STATE` — databasestørrelsen indsamles, logpladsen og den ledige plads i tempdb gør ikke.
+En gruppe er én enhed, som du slår til eller fra, og den enhed, en manglende rettighed rapporteres for. Grupperne findes, så en manglende rettighed koster dig én gruppe i stedet for hele monitoren. En gruppes sætninger kører én ad gangen, så en gruppe kan være delvist indsamlet: Den står så både i `collectedGroups` og i `unavailableGroups`. Det almindelige tilfælde er SQL Servers gruppe **Lagerplads** for et login uden `VIEW SERVER STATE` — databasestørrelsen indsamles, logpladsen og den ledige plads i tempdb gør ikke.
 
 | Gruppe | Hvad den indsamler | Kræver |
 |---|---|---|
 | Forbindelser | Antal forbindelser, det konfigurerede loft, afbrudte forbindelsesforsøg, serverens oppetid | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Activity | Længst kørende forespørgsel, længst åbne transaktion, åbne transaktioner | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
+| Aktivitet | Længst kørende forespørgsel, længst åbne transaktion, åbne transaktioner | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
 | Gennemløb | Transaktioner, forespørgsler, cache-hitrate, disklæsninger og -skrivninger, I/O-tid | PostgreSQL: intet ud over `CONNECT`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Locks | Blokerede sessioner, låseventetider, deadlocks, ventetider på tabellåse | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Storage | Databasestørrelse, udskrivning til midlertidige filer, logplads, ledig plads i tempdb | PostgreSQL: intet ud over `CONNECT`. MySQL: `SELECT` på databasen. SQL Server: intet for databasestørrelsen; `VIEW SERVER STATE` for logplads og ledig plads i tempdb |
-| Replication | Forbundne replikaer, replikeringsforsinkelse i sekunder og bytes, inaktive slots, gendannelsestilstand | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`; indsamles ikke på Azure SQL Database |
-| Maintenance | Luft til transaktions-ID-wraparound, døde tupler, tabeller, som autovacuum aldrig har behandlet, checkpoints | PostgreSQL: `pg_monitor` |
+| Låse og blokeringer | Blokerede sessioner, låseventetider, deadlocks, ventetider på tabellåse | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| Lagerplads | Databasestørrelse, udskrivning til midlertidige filer, logplads, ledig plads i tempdb | PostgreSQL: intet ud over `CONNECT`. MySQL: `SELECT` på databasen. SQL Server: intet for databasestørrelsen; `VIEW SERVER STATE` for logplads og ledig plads i tempdb |
+| Replikering | Forbundne replikaer, replikeringsforsinkelse i sekunder og bytes, inaktive slots, gendannelsestilstand | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`; indsamles ikke på Azure SQL Database |
+| Vedligeholdelse | Luft til transaktions-ID-wraparound, døde tupler, tabeller, som autovacuum aldrig har behandlet, checkpoints | PostgreSQL: `pg_monitor` |
 
 På Azure SQL Database skal du læse `VIEW DATABASE STATE`, hvor denne tabel siger `VIEW SERVER STATE` — eller `##MS_ServerStateReader##` på Basic, S0, S1 og elastiske puljer. Se [Azure SQL Database](#azure-sql-database).
 
@@ -249,13 +249,13 @@ At fjerne markeringen fra alle grupper er ikke en måde at indsamle ingenting p�
 | Hvad fejler | Monitorstatus | Hvad du ser |
 |---|---|---|
 | **Forbindelsen** eller testforespørgslen — forkerte loginoplysninger, afvist forbindelse, TLS-fejl, timeout ved forbindelse | **Offline** | `Database Is Online` er false, og den hændelse og den vagtpolitik, du har knyttet til den, udløses. |
-| **En gruppe** — en manglende rettighed, en slået-fra `performance_schema`, en timeout for en sætning | **Forbliver online** | De metrikker, gruppen ikke kunne læse, **mangler** — de er ikke nul. Der tegnes ingen graflinje, ingen tærskel på de serier kan matche, og ingen hændelse kan opstå fra dem. Kontrollen registrerer ét indsamlingsproblem, der nævner gruppen, årsagen og — hvor der er en — den præcise `GRANT`, der skal køres; det vises i monitorens oversigt og tælles med i **Metric Groups Failed**. |
-| **Motoren kan slet ikke levere en metrik** — standard-MySQL har ingen deadlock-tæller; SQL Server lader som standard sit forbindelsesloft være ubegrænset, så en "brugt procent" ville være meningsløs | **Forbliver online** | Metrikken mangler bare. Det er **ikke** et indsamlingsproblem, tæller ikke med i Metric Groups Failed og skal ikke rettes. Se kolonnen Engines under [Indsamlede metrikker](#indsamlede-metrikker). |
+| **En gruppe** — en manglende rettighed, en slået-fra `performance_schema`, en timeout for en sætning | **Forbliver online** | De metrikker, gruppen ikke kunne læse, **mangler** — de er ikke nul. Der tegnes ingen graflinje, ingen tærskel på de serier kan matche, og ingen hændelse kan opstå fra dem. Kontrollen registrerer ét indsamlingsproblem, der nævner gruppen, årsagen og — hvor der er en — den præcise `GRANT`, der skal køres; det vises i monitorens oversigt og tælles med i **Mislykkede metrikgrupper**. |
+| **Motoren kan slet ikke levere en metrik** — standard-MySQL har ingen deadlock-tæller; SQL Server lader som standard sit forbindelsesloft være ubegrænset, så en "brugt procent" ville være meningsløs | **Forbliver online** | Metrikken mangler bare. Det er **ikke** et indsamlingsproblem, tæller ikke med i **Mislykkede metrikgrupper** og skal ikke rettes. Se kolonnen Engines under [Indsamlede metrikker](#indsamlede-metrikker). |
 
 Mangler betyder altid mangler. En værdi, der ikke er målt, rapporteres aldrig som `0`, for en graf med opdigtede nuller er værre end et hul — et hul kan du se.
 
 > [!TIP]
-> Brug `Database Collection Error` eller en tærskel på **Metric Groups Failed** for at få besked om tabt overblik. Gør begge til advarsler frem for hændelser: en tilbagekaldt rettighed er en sag i køen, ikke et vagtkald.
+> Brug `Database Collection Error` eller en tærskel på **Mislykkede metrikgrupper** for at få besked om tabt overblik. Gør begge til advarsler frem for hændelser: en tilbagekaldt rettighed er en sag i køen, ikke et vagtkald.
 
 ### "The user does not have permission to perform this action"
 
@@ -264,7 +264,7 @@ Det er SQL Servers meddelelse (Msg 297) for et login, der kan forbinde, men ikke
 - **SQL Server eller Azure SQL Managed Instance** — `GRANT VIEW SERVER STATE TO oneuptime_health;`, kørt i `master` (monitoren viser den som `GRANT VIEW SERVER STATE TO [<monitoring_login>]; -- run in master`).
 - **Azure SQL Database** — `GRANT VIEW DATABASE STATE TO oneuptime_health;`, kørt i den overvågede database; på Basic, S0, S1 og elastiske puljer i stedet medlemskab af `##MS_ServerStateReader##`. Se [Azure SQL Database](#azure-sql-database).
 
-Databasestørrelsen bliver ved med at blive indsamlet i mellemtiden, fordi det er den eneste metrik i gruppen Storage, som ethvert login kan læse.
+Databasestørrelsen bliver ved med at blive indsamlet i mellemtiden, fordi det er den eneste metrik i gruppen **Lagerplads**, som ethvert login kan læse.
 
 ## Indsamlede metrikker
 
@@ -274,104 +274,104 @@ Enogfyrre serier fordelt på otte kategorier. Engines viser de motorer, der fakt
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Forbindelser | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Forbindelser | PostgreSQL, MySQL, SQL Server |
+| **Oppetid** (s) | `oneuptime.monitor.database.uptime.seconds` | Forbindelser | PostgreSQL, MySQL, SQL Server |
+| **Mislykkede metrikgrupper** | `oneuptime.monitor.database.metric.groups.failed` | Forbindelser | PostgreSQL, MySQL, SQL Server |
 
 ### Forbindelser
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | Forbindelser | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | Forbindelser | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Forbindelser | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Forbindelser | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Forbindelser | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Forbindelser | MySQL |
+| **Forbindelser** | `oneuptime.monitor.database.connections.total` | Forbindelser | PostgreSQL, MySQL, SQL Server |
+| **Aktive forbindelser** | `oneuptime.monitor.database.connections.active` | Forbindelser | PostgreSQL, MySQL, SQL Server |
+| **Maksimalt antal forbindelser** | `oneuptime.monitor.database.connections.max` | Forbindelser | PostgreSQL, MySQL |
+| **Brugte forbindelser** (%) | `oneuptime.monitor.database.connections.used.percent` | Forbindelser | PostgreSQL, MySQL |
+| **Inaktiv i transaktion** | `oneuptime.monitor.database.connections.idle.in.transaction` | Forbindelser | PostgreSQL |
+| **Afbrudte forbindelsesforsøg** | `oneuptime.monitor.database.connections.aborted.total` | Forbindelser | MySQL |
 
 ### Gennemløb
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | Gennemløb | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | Gennemløb | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Gennemløb | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Gennemløb | PostgreSQL |
-| **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **Transaktioner** | `oneuptime.monitor.database.transactions.total` | Gennemløb | PostgreSQL, SQL Server |
+| **Forespørgsler** | `oneuptime.monitor.database.queries.total` | Gennemløb | MySQL, SQL Server |
+| **Langsomme forespørgsler** | `oneuptime.monitor.database.queries.slow.total` | Gennemløb | MySQL |
+| **Andel af rollbacks** (%) | `oneuptime.monitor.database.rollback.percent` | Gennemløb | PostgreSQL |
+| **Længst kørende forespørgsel** (s) | `oneuptime.monitor.database.query.longest.seconds` | Aktivitet | PostgreSQL, MySQL, SQL Server |
+| **Længst åbne transaktion** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Aktivitet | PostgreSQL, MySQL, SQL Server |
+| **Åbne transaktioner** | `oneuptime.monitor.database.transaction.open.count` | Aktivitet | MySQL |
 
 ### Låse og blokeringer
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Blocked Sessions** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Lock Waits** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Deadlocks** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **Table Lock Waits** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **Blokerede sessioner** | `oneuptime.monitor.database.sessions.blocked` | Låse og blokeringer | PostgreSQL, MySQL, SQL Server |
+| **Låseventetider** | `oneuptime.monitor.database.locks.waiting` | Låse og blokeringer | PostgreSQL, MySQL, SQL Server |
+| **Deadlocks** | `oneuptime.monitor.database.deadlocks.total` | Låse og blokeringer | PostgreSQL, SQL Server |
+| **Ventetider på tabellåse** | `oneuptime.monitor.database.table.locks.waited.total` | Låse og blokeringer | MySQL |
 
-Standard-MySQL har ingen som helst deadlock-tæller, og derfor findes Deadlocks kun på PostgreSQL og SQL Server.
+Standard-MySQL har ingen som helst deadlock-tæller, og derfor findes **Deadlocks** kun på PostgreSQL og SQL Server.
 
 ### Cache og I/O
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Gennemløb | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Gennemløb | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Gennemløb | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Gennemløb | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Gennemløb | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Gennemløb | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Gennemløb | SQL Server |
+| **Cache-hitrate** (%) | `oneuptime.monitor.database.cache.hit.percent` | Gennemløb | PostgreSQL, MySQL, SQL Server |
+| **Disklæsninger** | `oneuptime.monitor.database.disk.reads.total` | Gennemløb | PostgreSQL, MySQL, SQL Server |
+| **Diskskrivninger** | `oneuptime.monitor.database.disk.writes.total` | Gennemløb | MySQL, SQL Server |
+| **I/O-læsetid** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Gennemløb | PostgreSQL, SQL Server |
+| **I/O-skrivetid** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Gennemløb | PostgreSQL, SQL Server |
+| **Sidelevetid** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Gennemløb | SQL Server |
+| **Ventende hukommelsestildelinger** | `oneuptime.monitor.database.memory.grants.pending` | Gennemløb | SQL Server |
 
 PostgreSQL måler kun læse- og skrivetid for I/O, når `track_io_timing` er slået til. Den er slået fra som standard, og så rapporterer PostgreSQL begge som `0` — på PostgreSQL betyder et fladt nul i de to serier derfor som regel "ikke målt", ikke "hurtig". Det er en serverindstilling, ikke et rettighedsproblem.
 
-### Lagring
+### Lagerplads
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Database Size** (bytes) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **Temp Bytes Written** (bytes) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **Temp Disk Tables** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **Log Space Used** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **TempDB Free Space** (bytes) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **Databasestørrelse** (bytes) | `oneuptime.monitor.database.size.bytes` | Lagerplads | PostgreSQL, MySQL, SQL Server |
+| **Skrevne midlertidige bytes** (bytes) | `oneuptime.monitor.database.temp.bytes.total` | Lagerplads | PostgreSQL |
+| **Midlertidige tabeller på disk** | `oneuptime.monitor.database.temp.disk.tables.total` | Lagerplads | MySQL |
+| **Brugt logplads** (%) | `oneuptime.monitor.database.log.space.used.percent` | Lagerplads | SQL Server |
+| **Ledig plads i TempDB** (bytes) | `oneuptime.monitor.database.tempdb.free.bytes` | Lagerplads | SQL Server |
 
 ### Replikering
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Connected Replicas** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Replication Lag** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **Replication Lag (Bytes)** (bytes) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **Is In Recovery** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **Inactive Replication Slots** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **Forbundne replikaer** | `oneuptime.monitor.database.replica.count` | Replikering | PostgreSQL, SQL Server |
+| **Replikeringsforsinkelse** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replikering | PostgreSQL, MySQL |
+| **Replikeringsforsinkelse (bytes)** (bytes) | `oneuptime.monitor.database.replication.lag.bytes` | Replikering | PostgreSQL, SQL Server |
+| **I gendannelse** | `oneuptime.monitor.database.is.in.recovery` | Replikering | PostgreSQL |
+| **Inaktive replikeringsslots** | `oneuptime.monitor.database.replication.slots.inactive` | Replikering | PostgreSQL |
 
 Replikeringsmetrikker rapporteres fra den side af forbindelsen, monitoren er forbundet til. Ret en monitor mod den primære server for at se forbundne replikaer og sendekøen; ret en mod hver standby for at se, hvor langt bagud netop den standby faktisk er.
 
-Forsinkelsen i sekunder står på nul på en inaktiv primær server, selv når en replika er langt bagud, fordi intet nyt er blevet skrevet. **Replication Lag (Bytes)** har ikke den blinde vinkel, så send advarsler på begge.
+Forsinkelsen i sekunder står på nul på en inaktiv primær server, selv når en replika er langt bagud, fordi intet nyt er blevet skrevet. **Replikeringsforsinkelse (bytes)** har ikke den blinde vinkel, så send advarsler på begge.
 
 ### Vedligeholdelse
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Transaction ID Used** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **Dead Tuples** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **Tables Never Autovacuumed** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **Requested Checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **Timed Checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **Brugte transaktions-id'er** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Vedligeholdelse | PostgreSQL |
+| **Døde tupler** | `oneuptime.monitor.database.dead.tuples` | Vedligeholdelse | PostgreSQL |
+| **Tabeller aldrig kørt med autovacuum** | `oneuptime.monitor.database.tables.never.autovacuumed` | Vedligeholdelse | PostgreSQL |
+| **Anmodede checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Vedligeholdelse | PostgreSQL |
+| **Planlagte checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Vedligeholdelse | PostgreSQL |
 
 > [!IMPORTANT]
-> **Transaction ID Used** fortjener et kriterium på hver PostgreSQL-monitor, du opretter. PostgreSQL afviser alle skrivninger, når værdien når 100 %, gendannelse kræver en vacuum i enkeltbrugertilstand med databasen nede, og næsten ingen holder øje med den. Send en advarsel i god tid før afgrunden — 80 % giver dages luft på de fleste arbejdsbelastninger.
+> **Brugte transaktions-id'er** fortjener et kriterium på hver PostgreSQL-monitor, du opretter. PostgreSQL afviser alle skrivninger, når værdien når 100 %, gendannelse kræver en vacuum i enkeltbrugertilstand med databasen nede, og næsten ingen holder øje med den. Send en advarsel i god tid før afgrunden — 80 % giver dages luft på de fleste arbejdsbelastninger.
 
-Tællere, der ender på `total`, er kumulative siden serverens start. Sammenlign to tidspunkter for at få en rate; en enkelt værdi giver kun mening i forhold til dens egen historik, og den nulstilles, når serveren genstarter (hvilket **Uptime** viser dig).
+Tællere, der ender på `total`, er kumulative siden serverens start. Sammenlign to tidspunkter for at få en rate; en enkelt værdi giver kun mening i forhold til dens egen historik, og den nulstilles, når serveren genstarter (hvilket **Oppetid** viser dig).
 
-**Cache Hit Ratio** og **Rollback Ratio** beregnes ved hver kontrol ud fra, hvor meget deres tællere har flyttet sig siden monitorens forrige kontrol, ikke siden serverens start, så en cache, der begynder at fejle, ses med det samme. Den første kontrol efter at sonden starter, og den første efter at serveren genstarter, har ingen af dem.
+**Cache-hitrate** og **Andel af rollbacks** beregnes ved hver kontrol ud fra, hvor meget deres tællere har flyttet sig siden monitorens forrige kontrol, ikke siden serverens start, så en cache, der begynder at fejle, ses med det samme. Den første kontrol efter at sonden starter, og den første efter at serveren genstarter, har ingen af dem.
 
 ## Opsæt kriterier
 
 | Filtertype | Hvad den kontrollerer |
 |---|---|
 | **Database er online** | Om databasen kunne nås, og testforespørgslen lykkedes. Det er det offline-kriterium, monitoren oprettes med, og den eneste kontrol, der afspejler tilgængeligheden. |
-| **Databasemetrik** | Vælg en metrik, og sammenlign den: Større end, Mindre end, Større end eller lig med, Mindre end eller lig med, Lig med eller Ikke lig med. Metrikvælgeren tilbyder kun de metrikker, din valgte motor kan levere, så du kan ikke bygge et kriterium, der for altid forbliver uopfyldt (én undtagelse: de Replication-metrikker, der tilbydes for Microsoft SQL Server, indsamles aldrig på Azure SQL Database). Hvis metrikken ikke blev indsamlet ved en kontrol — gruppen fejlede, eller motoren rapporterer den ikke — matcher filteret ikke, og det matcher heller ikke som "false": det springes over. Et rettighedsproblem kan ikke tilkalde nogen. |
+| **Databasemetrik** | Vælg en metrik, og sammenlign den: Større end, Mindre end, Større end eller lig med, Mindre end eller lig med, Lig med eller Ikke lig med. Metrikvælgeren tilbyder kun de metrikker, din valgte motor kan levere, så du kan ikke bygge et kriterium, der for altid forbliver uopfyldt (én undtagelse: metrikkerne i gruppen **Replikering**, der tilbydes for Microsoft SQL Server, indsamles aldrig på Azure SQL Database). Hvis metrikken ikke blev indsamlet ved en kontrol — gruppen fejlede, eller motoren rapporterer den ikke — matcher filteret ikke, og det matcher heller ikke som "false": det springes over. Et rettighedsproblem kan ikke tilkalde nogen. |
 | **Indsamlingsfejl for database** | Oversigten over kontrollens indsamlingsproblemer, én "gruppe: meddelelse" pr. utilgængelig gruppe. Send en advarsel, når den ikke er tom, for at opdage tabt overblik, eller brug Indeholder til at holde øje med én bestemt gruppe. |
 | **JavaScript-udtryk** | Fuld kontrol. Se [JavaScript-udtryk](/docs/monitor/javascript-expression). |
 
@@ -381,7 +381,7 @@ Tærskler er heltal. Skriv `90`, ikke `90.5` — procenter og sekunder sammenlig
 
 ### Variabler til JavaScript-udtryk
 
-For en Database Health-monitor har udtrykket adgang til:
+For en Databasesundhed-monitor har udtrykket adgang til:
 
 | Variabel | Type | Beskrivelse |
 |---|---|---|
@@ -409,14 +409,14 @@ Til en tærskel på en enkelt metrik bør du vælge **Databasemetrik** frem for 
 | Rækkefølge | Kriterier | Filter |
 |---|---|---|
 | 1 | **Offline** | `Database Is Online` er `false`. |
-| 2 | **Forringet** | `Database Metric` → Connections Used er større end `90`, evalueret over 5 minutter med All Values, så en enkelt spids ikke tilkalder nogen. |
-| 3 | **Forringet** | `Database Metric` → Transaction ID Used er større end `80`. |
-| 4 | **Forringet** | `Database Metric` → Blocked Sessions er større end `0`, over 5 minutter. |
+| 2 | **Forringet** | `Database Metric` → **Brugte forbindelser** er større end `90`, evalueret over 5 minutter med All Values, så en enkelt spids ikke tilkalder nogen. |
+| 3 | **Forringet** | `Database Metric` → **Brugte transaktions-id'er** er større end `80`. |
+| 4 | **Forringet** | `Database Metric` → **Blokerede sessioner** er større end `0`, over 5 minutter. |
 | 5 | **Online** | `Database Is Online` er `true`. |
 
 Kriterier evalueres oppefra og ned, og det første match vinder, så placér de advarende kriterier først og det sunde sidst.
 
-Knyt en vagtpolitik til offline-kriteriet, og lad alt, der er afledt af **Metric Groups Failed** eller `Database Collection Error`, være en advarsel uden tilknyttet vagtpolitik.
+Knyt en vagtpolitik til offline-kriteriet, og lad alt, der er afledt af **Mislykkede metrikgrupper** eller `Database Collection Error`, være en advarsel uden tilknyttet vagtpolitik.
 
 ## Det skal du være opmærksom på
 
@@ -433,19 +433,19 @@ Knyt en vagtpolitik til offline-kriteriet, og lad alt, der er afledt af **Metric
 Offline betyder, at sonden ikke kunne forbinde, eller at testforespørgslen fejlede: værten eller porten kan ikke nås fra sonden, loginnet blev afvist, TLS fejlede, eller forbindelsen fik timeout. Monitorens oversigt viser fejlen. Kontrollér, at sonden kan nå databasen (en sonde, som OneUptime hoster, kræver en offentlig adresse; brug ellers en [brugerdefineret sonde](/docs/probe/custom-probe)), kontrollér brugernavnet og adgangskoden eller dens monitorhemmelighed, og slå **Verify server certificate** fra for et selvsigneret certifikat. Klik derefter på **Test monitor** for at kontrollere igen.
 :::
 
-:::details Connections, Activity og Locks mangler på PostgreSQL
+:::details **Forbindelser**, **Aktivitet** og **Låse og blokeringer** mangler på PostgreSQL
 Loginnet er hverken medlem af `pg_monitor` eller `pg_read_all_stats` og er ikke superbruger, så sonden springer de grupper over i stedet for at registrere forkerte tal. Kør `GRANT pg_monitor TO oneuptime_health;` som beskrevet under [PostgreSQL](#postgresql).
 :::
 
-:::details Connections, Throughput og Locks mangler på MySQL
+:::details **Forbindelser**, **Gennemløb** og **Låse og blokeringer** mangler på MySQL
 Enten mangler loginnet `SELECT` på `performance_schema`, eller også er `performance_schema` slået fra på serveren; monitorens oversigt viser MySQL's meddelelse. Ved en manglende rettighed skal du køre sætningerne under [MySQL](#mysql). En slået-fra `performance_schema` kræver `performance_schema = ON` i serverens konfiguration og en genstart.
 :::
 
-:::details I/O Read Time og I/O Write Time er altid 0 på PostgreSQL
+:::details **I/O-læsetid** og **I/O-skrivetid** er altid 0 på PostgreSQL
 PostgreSQL måler dem kun, når `track_io_timing` er slået til, og den er slået fra som standard. Slå den til i serverens konfiguration eller i parametergruppen for din administrerede tjeneste for at se rigtige værdier. Det er ikke en manglende rettighed.
 :::
 
-:::details Metric Groups Failed er over 0 ved hver kontrol
+:::details **Mislykkede metrikgrupper** er over 0 ved hver kontrol
 En gruppe kan ikke indsamles ved nogen kontrol, så det samme indsamlingsproblem gentager sig. Monitorens oversigt nævner gruppen, årsagen og den `GRANT`, der løser det. Kør rettigheden, eller slå, hvis du ikke kan få den, gruppen fra under **Flere felter → Metric Groups**, så problemet holder op med at gentage sig.
 :::
 

@@ -5,6 +5,7 @@ import os from "os";
 import path from "path";
 import {
   createRuntimeLocalesPlugin,
+  getLocaleModule,
   getMarkedLocale,
   getPluralOneFormKeys,
   getRuntimeLocale,
@@ -884,6 +885,100 @@ describe("getMarkedLocale: a locale shipped whole, with its marks", () => {
   });
 });
 
+/*
+ * What the bundle carries of a locale (#8650): one default export, the
+ * locale's JSON handed to JSON.parse. Through esbuild's json loader a lazily
+ * imported locale kept a named export per key, every key written three
+ * times: German's unminified chunk was 17.5 MB for 6.1 MB of words.
+ */
+const LOCALE_MODULE_HEAD: string = "export default JSON.parse(";
+const LOCALE_MODULE_TAIL: string = ");\n";
+
+// The locale a module's string literal holds, read back as JSON twice.
+function localeInModule(source: string): unknown {
+  expect(source.startsWith(LOCALE_MODULE_HEAD)).toBe(true);
+  expect(source.endsWith(LOCALE_MODULE_TAIL)).toBe(true);
+
+  return JSON.parse(
+    JSON.parse(
+      source.slice(LOCALE_MODULE_HEAD.length, -LOCALE_MODULE_TAIL.length),
+    ) as string,
+  );
+}
+
+// What the module's default export evaluates to, run as JavaScript.
+function evaluateLocaleModule(source: string): unknown {
+  // eslint-disable-next-line no-new-func
+  return new Function(
+    `return ${source.slice("export default ".length)}`,
+  )() as unknown;
+}
+
+describe("getLocaleModule: what the bundle carries of a locale", () => {
+  const TRICKY: RuntimeLocaleTree = {
+    common: { save: "Speichern", nested: { deeper: "tiefer" } },
+    "Delete {{itemName}}": "{{itemName}} löschen",
+    'Say "hello" and \\back\\slash': 'Sag "hallo" und \\Rück\\strich',
+    "Line\nbreak and\ttab": "Zeilen\numbruch",
+    "Persian ذخیره, Japanese 保存, an arrow →, an emoji 🚀": "✓",
+    "A line separator \u2028 and a paragraph one \u2029": "\u2028\u2029",
+    "{{count}} monitors_one": "{{count}} Monitor",
+  };
+
+  test("is one default export: the locale's JSON handed to JSON.parse", () => {
+    const source: string = getLocaleModule(TRICKY);
+
+    expect(source.startsWith(LOCALE_MODULE_HEAD)).toBe(true);
+    expect(source.endsWith(LOCALE_MODULE_TAIL)).toBe(true);
+    // One statement: no named export, no other declaration.
+    expect(source.match(/\bexport\b/g)).toEqual(["export"]);
+    expect(source.split("\n").filter(Boolean)).toHaveLength(1);
+  });
+
+  test("gives back every key and value as they were, run as JavaScript", () => {
+    const source: string = getLocaleModule(TRICKY);
+
+    expect(localeInModule(source)).toEqual(TRICKY);
+    expect(evaluateLocaleModule(source)).toEqual(TRICKY);
+    // In the same order, which is the order the tooling writes.
+    expect(
+      Object.keys(evaluateLocaleModule(source) as Record<string, unknown>),
+    ).toEqual(Object.keys(TRICKY));
+  });
+
+  test("keeps a __proto__ key an entry of its own, as JSON does", () => {
+    const tree: RuntimeLocaleTree = JSON.parse(
+      '{"__proto__": "Prototyp", "Save": "Speichern"}',
+    ) as RuntimeLocaleTree;
+    const evaluated: Record<string, unknown> = evaluateLocaleModule(
+      getLocaleModule(tree),
+    ) as Record<string, unknown>;
+
+    expect(Object.prototype.hasOwnProperty.call(evaluated, "__proto__")).toBe(
+      true,
+    );
+    expect(Object.getPrototypeOf(evaluated)).toBe(Object.prototype);
+    expect(Object.keys(evaluated)).toEqual(["__proto__", "Save"]);
+  });
+
+  test("writes each key once, and adds a few dozen bytes to the JSON", () => {
+    const sentence: string =
+      "Monitors that check a website every minute from three probes";
+    const source: string = getLocaleModule({
+      [sentence]: "Monitore, die eine Website jede Minute prüfen",
+    });
+
+    expect(source.split(sentence)).toHaveLength(2);
+    expect(source.length).toBeLessThan(
+      JSON.stringify({ [sentence]: "x" }).length + 100 + 60,
+    );
+  });
+
+  test("an empty locale is an empty object", () => {
+    expect(evaluateLocaleModule(getLocaleModule({}))).toEqual({});
+  });
+});
+
 describe("createRuntimeLocalesPlugin", () => {
   test("is an esbuild plugin named for what it does", () => {
     const plugin: { name: string; setup: unknown } = createRuntimeLocalesPlugin(
@@ -1059,6 +1154,11 @@ function makeFixture(): Fixture {
       );
       return imported.default;
     };
+
+    // What a lazy locale's module exports, by name.
+    export const exportsOf = async (code: string): Promise<Array<string>> => {
+      return Object.keys(await import(\`../Locales/\${code}.json\`));
+    };
     `,
   );
 
@@ -1068,7 +1168,7 @@ function makeFixture(): Fixture {
     import en from "./Locales/en.json";
     import settings from "./Data/settings.json";
     import otherEnglish from "./Other/Locales/en.json";
-    export { load } from "./Utils/Loader";
+    export { exportsOf, load } from "./Utils/Loader";
     export const english: unknown = en;
     export const data: unknown = settings;
     export const other: unknown = otherEnglish;
@@ -1148,6 +1248,8 @@ interface FixtureBuild {
   error: string;
   english: unknown;
   lazy: Record<string, unknown>;
+  // Each lazy locale's module exports, by name.
+  exported: Record<string, Array<string>>;
   data: unknown;
   other: unknown;
   outputs: Array<OutputSummary>;
@@ -1234,8 +1336,10 @@ function buildFixture(
       fs.writeFileSync(path.join(outdir, "package.json"), '{"type":"module"}');
       const bundle = await import(url.pathToFileURL(path.join(outdir, "Index.js")).href);
       const lazy = {};
+      const exported = {};
       for (const code of ["de", "ja"]) {
         lazy[code] = await bundle.load(code);
+        exported[code] = await bundle.exportsOf(code);
       }
 
       console.log(JSON.stringify({
@@ -1243,6 +1347,7 @@ function buildFixture(
         error: "",
         english: bundle.english,
         lazy: lazy,
+        exported: exported,
         data: bundle.data,
         other: bundle.other,
         outputs: summarize(result.metafile, process.cwd()),
@@ -1380,6 +1485,32 @@ describe("bundling a fixture for real", () => {
       ["de", true],
       ["ja", false],
     ]);
+  });
+
+  test("a lazy locale's module exports its locale alone, as its default (#8650)", () => {
+    expect(production.exported).toEqual({ de: ["default"], ja: ["default"] });
+  });
+
+  test("a lazy chunk names each key once, and weighs about the words it ships", () => {
+    for (const code of ["de", "ja"]) {
+      const chunk: string = outputWithLocale(production.outputs, code).text;
+      const words: number = Buffer.byteLength(
+        JSON.stringify(production.lazy[code]),
+      );
+
+      /*
+       * "Save" ships in both: written once, never as a variable's or an
+       * export's name as well (the minifier picks the string's quotes).
+       */
+      expect([code, (chunk.match(/\bSave\b/g) || []).length]).toEqual([
+        code,
+        1,
+      ]);
+      expect([code, Buffer.byteLength(chunk) <= words * 1.1 + 200]).toEqual([
+        code,
+        true,
+      ]);
+    }
   });
 
   test("other JSON, a Locales directory elsewhere included, is left to esbuild", () => {
@@ -2108,6 +2239,27 @@ describe("the Dashboard's own build", () => {
     expect(englishBytes).toBeLessThan(sourceBytes / 50);
   });
 
+  /*
+   * #8650: a lazy chunk weighs about the words it ships. Through the json
+   * loader each kept a named export for every key that is a name, and each
+   * letter outside ASCII was a six-byte escape: Persian's chunk was 16.3 MB
+   * for 8.1 MB of words, Russian's 15.4 for 7.3, German's 6.3 for 6.2.
+   */
+  test("each lazy chunk weighs about the words it ships, written as they are", () => {
+    const heavy: Array<string> = [];
+
+    for (const code of LAZY_CODES) {
+      const chunk: DashboardOutput = outputWithLocale(built.outputs, code);
+      const words: number = Buffer.byteLength(JSON.stringify(runtime[code]));
+
+      if (chunk.bytes > words * 1.1) {
+        heavy.push(`${code}: ${chunk.bytes} bytes for ${words} of words`);
+      }
+    }
+
+    expect(heavy).toEqual([]);
+  });
+
   test("no other locale is in the entry bundle, and each is a chunk of its own", () => {
     const closure: Array<DashboardOutput> = entryClosure(
       built.outputs,
@@ -2126,16 +2278,42 @@ describe("the Dashboard's own build", () => {
 });
 
 /*
- * The Admin Dashboard's build (#8068): its Utils/i18n.ts bundles all
- * eighteen locales, and each ships whole, with a mark beside each "_one"
- * form its language's same-as-English list names (AdminDashboard/i18n/
- * Progress/<code>.json) - Portuguese "{{count}} monitor", which it reads at
- * 0 as well as at 1.
+ * The Admin Dashboard's build (#8068, #8146). Its Utils/i18n.ts bundled all
+ * eighteen locales whole, about 4.2 MB of the entry chunk. It loads them as
+ * the Dashboard does now: English in the entry chunk, without its identity
+ * entries and its plural "_one" forms; every other language a chunk of its
+ * own, behind Utils/I18nLocaleLoader's dynamic import, without the strings
+ * English reads the same - and with a mark beside each "_one" form its
+ * language's same-as-English list names (AdminDashboard/i18n/Progress/
+ * <code>.json): Portuguese "{{count}} monitor", which it reads at 0 as well
+ * as at 1.
  */
 describe("the Admin Dashboard's own build", () => {
+  interface AdminOutput extends OutputShape {
+    bytes: number;
+  }
+
   interface AdminBuild {
     plugins: Array<string>;
+    outputs: Array<AdminOutput>;
   }
+
+  /*
+   * en.json's share of the entry bundle: its nested keys - the Admin's
+   * pages read most of their words as t("pages...."), about 34 KB of them -
+   * and the few texts it words apart from their key. The whole file is about
+   * 280 KB, and all eighteen came to about 4.2 MB of the entry chunk.
+   */
+  const ENGLISH_ENTRY_BUDGET_BYTES: number = 48 * 1024;
+
+  // What esbuild names the output of an entry point read from stdin.
+  const STDIN_ENTRY: string = "stdin.js";
+
+  const ADMIN_LAZY_CODES: Array<string> = ADMIN_DASHBOARD_CODES.filter(
+    (code: string): boolean => {
+      return code !== ADMIN_DASHBOARD_ENGLISH;
+    },
+  );
 
   let built: AdminBuild;
   let shipped: Record<string, RuntimeLocaleTree> = {};
@@ -2167,19 +2345,16 @@ describe("the Admin Dashboard's own build", () => {
 
   /*
    * Runs the shipped esbuild.config.js with build() swapped for a probe, as
-   * the Dashboard's block does, then builds every locale file with the
-   * config it produced, imported the way Utils/i18n.ts imports them.
+   * the Dashboard's block does, then builds the real locale files with the
+   * config it produced: English imported the way Utils/i18n.ts imports it,
+   * every other language through the real Utils/I18nLocaleLoader, each read
+   * back from the built bundle.
    */
   beforeAll(() => {
     const probeDir: string = makeTempDir("oneuptime-admin-locales-");
     const preload: string = path.join(probeDir, "probe.js");
     const outdir: string = path.join(probeDir, "out");
     const shippedPath: string = path.join(probeDir, "shipped.json");
-    const names: Record<string, string> = {};
-
-    for (const code of ADMIN_DASHBOARD_CODES) {
-      names[code] = `locale_${code.replace(/[^a-z]/gi, "_")}`;
-    }
 
     writeFile(
       preload,
@@ -2193,16 +2368,11 @@ describe("the Admin Dashboard's own build", () => {
       `,
     );
 
-    const entry: string = [
-      ...ADMIN_DASHBOARD_CODES.map((code: string): string => {
-        return `import ${names[code]} from "../Locales/${code}.json";`;
-      }),
-      `export const locales: Record<string, unknown> = { ${ADMIN_DASHBOARD_CODES.map(
-        (code: string): string => {
-          return `${JSON.stringify(code)}: ${names[code]}`;
-        },
-      ).join(", ")} };`,
-    ].join("\n");
+    const entry: string = `
+      import en from "../Locales/en.json";
+      export { loadLocaleResource } from "./I18nLocaleLoader";
+      export const english: unknown = en;
+    `;
 
     const script: string = `
       require(${JSON.stringify(path.join(ADMIN_DASHBOARD_DIRECTORY, "esbuild.config.js"))});
@@ -2212,6 +2382,7 @@ describe("the Admin Dashboard's own build", () => {
       const esbuild = require(require.resolve("esbuild", {
         paths: [${JSON.stringify(UI_DIR)}],
       }));
+      ${SUMMARIZE_OUTPUTS}
 
       (async function () {
         const config = globalThis.__adminBuilds[0];
@@ -2232,15 +2403,27 @@ describe("the Admin Dashboard's own build", () => {
           logLevel: "silent",
         });
         delete build.entryPoints;
+        // Chunks import each other through publicPath; relative, node finds them.
         delete build.publicPath;
 
-        await esbuild.build(build);
+        const result = await esbuild.build(build);
         fs.writeFileSync(path.join(outdir, "package.json"), '{"type":"module"}');
         const bundle = await import(url.pathToFileURL(path.join(outdir, "stdin.js")).href);
-        fs.writeFileSync(${JSON.stringify(shippedPath)}, JSON.stringify(bundle.locales));
+
+        const shipped = { en: bundle.english };
+        for (const code of ${JSON.stringify(ADMIN_LAZY_CODES)}) {
+          shipped[code] = await bundle.loadLocaleResource(code);
+        }
+        fs.writeFileSync(${JSON.stringify(shippedPath)}, JSON.stringify(shipped));
 
         console.log(JSON.stringify({
           plugins: config.plugins.map(function (plugin) { return plugin.name; }),
+          outputs: summarize(result.metafile, process.cwd()).map(function (output) {
+            const bytes = Buffer.byteLength(output.text);
+            delete output.text;
+            output.bytes = bytes;
+            return output;
+          }),
         }));
       })().catch(function (error) {
         console.error(error);
@@ -2269,55 +2452,88 @@ describe("the Admin Dashboard's own build", () => {
     expect(built.plugins).toContain(RUNTIME_LOCALES_PLUGIN_NAME);
   });
 
-  test("English ships as en.json holds it, its _one forms and identity entries too", () => {
+  test("English ships exactly what getRuntimeLocale() keeps of en.json: no identity entry, no _one form", () => {
     const english: RuntimeLocaleTree = readSourceLocale(
       ADMIN_DASHBOARD_ENGLISH,
     );
+    const ships: RuntimeLocaleTree = shipped[
+      ADMIN_DASHBOARD_ENGLISH
+    ] as RuntimeLocaleTree;
 
-    expect(treeDifferences(shipped[ADMIN_DASHBOARD_ENGLISH], english)).toEqual(
-      [],
+    expect(
+      treeDifferences(
+        ships,
+        getRuntimeLocale({
+          language: ADMIN_DASHBOARD_ENGLISH,
+          fallbackLanguage: ADMIN_DASHBOARD_ENGLISH,
+          locale: english,
+        }),
+      ),
+    ).toEqual([]);
+    // The nested keys the pages read with t("pages.settings.sso.cardTitle") are all there.
+    expect(Object.keys(ships)).toEqual(
+      expect.arrayContaining(["pages", "breadcrumbs", "sideMenu", "navbar"]),
     );
     expect(getPluralOneFormKeys(english).length).toBeGreaterThan(50);
-    expect(marksIn(shipped[ADMIN_DASHBOARD_ENGLISH] || {})).toEqual({});
+    expect(
+      getPluralOneFormKeys(english).filter((key: string): boolean => {
+        return Object.prototype.hasOwnProperty.call(ships, key);
+      }),
+    ).toEqual([]);
+    expect(marksIn(ships)).toEqual({});
   });
 
-  test.each(
-    ADMIN_DASHBOARD_CODES.filter((code: string): boolean => {
-      return code !== ADMIN_DASHBOARD_ENGLISH;
-    }),
-  )(
-    "%s ships its whole file, and a mark for each form its list names",
+  test.each(ADMIN_LAZY_CODES)(
+    "%s ships its translations, every _one form it reads, and a mark for each form its list names",
     (code: string) => {
+      const english: RuntimeLocaleTree = readSourceLocale(
+        ADMIN_DASHBOARD_ENGLISH,
+      );
       const locale: RuntimeLocaleTree = readSourceLocale(code);
       const ships: RuntimeLocaleTree = shipped[code] as RuntimeLocaleTree;
 
       expect(
         treeDifferences(
           ships,
-          getMarkedLocale({
+          getRuntimeLocale({
             language: code,
             fallbackLanguage: ADMIN_DASHBOARD_ENGLISH,
             locale: locale,
-            fallback: readSourceLocale(ADMIN_DASHBOARD_ENGLISH),
+            fallback: english,
             sameAsEnglish: readAdminDashboardSameAsEnglish(code),
           }),
         ),
       ).toEqual([]);
 
-      // Without its marks, the file exactly: nothing dropped, in its order.
-      const withoutMarks: RuntimeLocaleTree = {};
+      // Smaller than its file: what English reads the same is left out.
+      expect([
+        code,
+        Object.keys(ships).length < Object.keys(locale).length,
+      ]).toEqual([code, true]);
 
-      for (const key of Object.keys(ships)) {
-        if (!key.endsWith(SAME_AS_ENGLISH_MARK)) {
-          withoutMarks[key] = ships[key] as string | RuntimeLocaleTree;
-        }
-      }
+      /*
+       * A language with a "one" form ships every "_one" form, its own or the
+       * English the full files would fall back to. One without ships none
+       * read as English.
+       */
+      const misshipped: Array<string> = getPluralOneFormKeys(english).filter(
+        (key: string): boolean => {
+          return usesPluralOneForm(code)
+            ? ships[key] !==
+                (typeof locale[key] === "string" ? locale[key] : english[key])
+            : ships[key] === english[key];
+        },
+      );
 
-      expect(treeDifferences(withoutMarks, locale)).toEqual([]);
+      expect([code, misshipped]).toEqual([code, []]);
     },
   );
 
-  // The forms #8068 found, and French's minutes and instances, which it reads at 0.
+  /*
+   * The forms #8068 found, French's minutes and instances, which it reads at
+   * 0, and the Enterprise health pages' one node, which Danish, Dutch and
+   * Norwegian write as English does (#8599, #8728).
+   */
   test("the one forms the Admin's languages word as English does ship with their marks", () => {
     const marks: Record<string, Record<string, unknown>> = {};
 
@@ -2336,6 +2552,7 @@ describe("the Admin Dashboard's own build", () => {
     expect(marks).toEqual({
       da: {
         [markOf("{{count}} monitors")]: "{{count}} monitor",
+        [markOf("{{count}} nodes")]: "{{count}} node",
         [markOf("{{count}} people")]: "{{count}} person",
       },
       es: { [markOf("{{count}} monitors")]: "{{count}} monitor" },
@@ -2344,11 +2561,13 @@ describe("the Admin Dashboard's own build", () => {
         [markOf("{{count}} minutes")]: "{{count}} minute",
       },
       nl: {
+        [markOf("{{count}} nodes")]: "{{count}} node",
         [markOf("{{count}} products")]: "{{count}} product",
         [markOf("{{count}} projects")]: "{{count}} project",
       },
       no: {
         [markOf("{{count}} monitors")]: "{{count}} monitor",
+        [markOf("{{count}} nodes")]: "{{count}} node",
         [markOf("{{count}} people")]: "{{count}} person",
       },
       pt: { [markOf("{{count}} monitors")]: "{{count}} monitor" },
@@ -2364,5 +2583,68 @@ describe("the Admin Dashboard's own build", () => {
     expect(
       portugueseKeys[portugueseKeys.indexOf("{{count}} monitors_one") + 1],
     ).toBe(markOf("{{count}} monitors"));
+  });
+
+  test("en.json's share of the entry bundle stays within its budget", () => {
+    const englishBytes: number = entryClosure(
+      built.outputs,
+      STDIN_ENTRY,
+    ).reduce((total: number, output: AdminOutput): number => {
+      return total + (output.locales[ADMIN_DASHBOARD_ENGLISH] || 0);
+    }, 0);
+    const sourceBytes: number = fs.statSync(
+      path.join(
+        ADMIN_DASHBOARD_LOCALES_DIRECTORY,
+        `${ADMIN_DASHBOARD_ENGLISH}.json`,
+      ),
+    ).size;
+
+    expect(englishBytes).toBeGreaterThan(0);
+    expect(englishBytes).toBeLessThanOrEqual(ENGLISH_ENTRY_BUDGET_BYTES);
+    expect(englishBytes).toBeLessThan(sourceBytes / 5);
+  });
+
+  /*
+   * What a page load downloads is the entry chunk and what it imports: the
+   * reader's language comes as one chunk more, and a switch fetches the
+   * next (AdminLazyLocalesInTheBrowser proves what the page asks for).
+   */
+  test("no other locale is in the entry bundle, and each is a chunk of its own", () => {
+    const closure: Array<AdminOutput> = entryClosure(
+      built.outputs,
+      STDIN_ENTRY,
+    );
+
+    expect(localesIn(closure)).toEqual([ADMIN_DASHBOARD_ENGLISH]);
+
+    for (const code of ADMIN_LAZY_CODES) {
+      const chunk: AdminOutput = outputWithLocale(built.outputs, code);
+
+      expect([code, Object.keys(chunk.locales)]).toEqual([code, [code]]);
+      expect([code, closure.includes(chunk)]).toEqual([code, false]);
+    }
+  });
+
+  test("the entry bundle is a fraction of the eighteen files it used to carry", () => {
+    const entryBytes: number = entryClosure(built.outputs, STDIN_ENTRY).reduce(
+      (total: number, output: AdminOutput): number => {
+        return total + output.bytes;
+      },
+      0,
+    );
+    const everyFile: number = ADMIN_DASHBOARD_CODES.reduce(
+      (total: number, code: string): number => {
+        return (
+          total +
+          fs.statSync(
+            path.join(ADMIN_DASHBOARD_LOCALES_DIRECTORY, `${code}.json`),
+          ).size
+        );
+      },
+      0,
+    );
+
+    expect(everyFile).toBeGreaterThan(3 * 1024 * 1024);
+    expect(entryBytes).toBeLessThan(everyFile / 20);
   });
 });

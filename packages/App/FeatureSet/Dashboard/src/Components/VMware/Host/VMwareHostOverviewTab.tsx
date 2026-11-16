@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import Route from "Common/Types/API/Route";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
@@ -150,7 +151,7 @@ interface ChartWindow {
 
 function formatBytesPerSecond(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   return ValueFormatter.formatValue(value, "By/s", {
@@ -415,7 +416,10 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           title="Disk latency"
           icon={IconProp.Database}
           iconColor="amber"
-          value={formatVMwareMilliseconds(tiles.highestDiskLatencyMs)}
+          value={formatVMwareMilliseconds(
+            tiles.highestDiskLatencyMs,
+            translator,
+          )}
           sublabel={
             tiles.highestDiskLatencyMs !== null ? "slowest disk" : undefined
           }
@@ -544,7 +548,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           syncId={syncId}
           yLegend="ms"
           yFormatter={(value: number): string => {
-            return formatVMwareMilliseconds(value);
+            return formatVMwareMilliseconds(value, translator);
           }}
           loading={isLoading}
           description={VMWARE_METRIC_DESCRIPTIONS.hostPageDiskLatencyChart}

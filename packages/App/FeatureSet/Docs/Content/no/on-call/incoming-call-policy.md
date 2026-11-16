@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Legg til Twilio-kontoen din
 
-Gå til **Prosjektinnstillinger** > **Varsler** > **Varslingskanaler**, og åpne **Flere innstillinger**. Klikk på **Opprett Twilio-konfigurasjon** i kortet **Twilio-konfigurasjon**, og fyll ut skjemaet:
+Gå til **Prosjektinnstillinger** > **Varslinger** > **Varslingskanaler**, og åpne **Flere innstillinger**. Klikk på **Opprett Twilio-konfigurasjon** i kortet **Twilio-konfigurasjon**, og fyll ut skjemaet:
 
 - **Navn** og **Beskrivelse**: hva kontoen brukes til, for eksempel "Supportlinje".
 - **Twilio-konto-SID**: fra Twilio Console. Den starter med `AC`.
@@ -48,7 +48,7 @@ Gå til **Prosjektinnstillinger** > **Varsler** > **Varslingskanaler**, og åpne
 
 ### Opprett policyen
 
-Gå til **Vakt** > **Retningslinjer for innkommende anrop**, og klikk på **Opprett Retningslinjer for innkommende anrop**. Gi den et **Navn**, for eksempel "Supportlinje"; **Beskrivelse** og **Etiketter** er valgfrie, under **Flere felt**. Den nye policyen åpnes på sin **Oversikt**.
+Gå til **Vakt** > **Policyer for innkommende anrop**, og klikk på **Opprett Policy for innkommende anrop**. Gi den et **Navn**, for eksempel "Supportlinje"; **Beskrivelse** og **Etiketter** er valgfrie, under **Flere felt**. Den nye policyen åpnes på sin **Oversikt**.
 
 ### Velg Twilio-kontoen
 
@@ -77,7 +77,7 @@ Når alle tre stegene er fullført, blir kortet til **Telefonnumre og Twilio-kon
 2. OneUptime ringer personen den første eskaleringsregelen nevner: den personen, eller den som har vakt i regelens vaktplan i det øyeblikket, brukeroverstyringer medregnet. Telefonen deres viser policyens nummer som innringer.
 3. Svarer de innen regelens **Ringetid**, settes innringeren over, og anropsloggen registrerer hvem som svarte.
 4. Hvis ikke, hører innringeren "Connecting you to the next available engineer.", og personen i neste regel ringes.
-5. Etter den siste regelen avgjør policyens **Gjentakelsesretningslinje**: **Ring igjen fra den første regelen** ringer hver regel igjen, så mange ganger til som den sier, og **Avslutt anropet** gjør det ikke. Deretter hører innringeren **Melding ved ingen svar**, og anropet avsluttes.
+5. Etter den siste regelen avgjør policyens **Gjentakelsespolicy**: **Ring igjen fra den første regelen** ringer hver regel igjen, så mange ganger til som den sier, og **Avslutt anropet** gjør det ikke. Deretter hører innringeren **Melding ved ingen svar**, og anropet avsluttes.
 
 ```mermaid title="Forespørslene bak ett anrop"
 sequenceDiagram
@@ -153,21 +153,21 @@ For å frigi et nummer klikker du på **Frigi nummer** ved siden av det og bekre
 En regel ringer en person på nummeret personen har verifisert for innkommende anrop i dette prosjektet, og hopper over alle som ikke har et. Hver person legger til sitt eget:
 
 :::steps
-1. Åpne **Brukerinnstillinger** > **Retningslinjer for innkommende anrop** > **Innkommende telefonnumre**. **Retningslinjer for innkommende anrop** er en del av sidemenyen som starter sammenslått.
+1. Åpne **Brukerinnstillinger** > **Policy for innkommende anrop** > **Innkommende telefonnumre**. **Policy for innkommende anrop** er en del av sidemenyen som starter sammenslått.
 2. Klikk på **Legg til Telefonnummer for innkommende anropsruting** i kortet **Telefonnumre for innkommende anropsruting**, og skriv inn nummeret med landskode, for eksempel `+15551234567`.
 3. Skriv inn den 6-sifrede koden OneUptime sender til nummeret på SMS under **Verifiseringskode**, og klikk på **Verifiser**. **Send en ny kode** sender en ny.
 :::
 
-Hver person kan ha ett verifisert nummer per prosjekt. For å endre det sletter du først det gamle nummeret. Disse numrene er atskilt fra telefonnumrene under **Varselmetoder**, som vaktvarsler bruker. Se [Varselmetoder](/docs/notifications/notification-methods).
+Hver person kan ha ett verifisert nummer per prosjekt. For å endre det sletter du først det gamle nummeret. Disse numrene er atskilt fra telefonnumrene under **Varslingsmetoder**, som vaktvarslinger bruker. Se [Varslingsmetoder](/docs/notifications/notification-methods).
 
-Numre for innkommende anrop verifiseres på SMS, så **SMS** må først være slått på for prosjektet. En Prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår det på i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varslingskanaler**.
+Numre for innkommende anrop verifiseres på SMS, så **SMS** må først være slått på for prosjektet. En Prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår det på i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varslinger > Varslingskanaler**.
 
 ## Talemeldinger og innstillinger for policyen
 
 Åpne policyen og velg **Innstillinger** under **Avansert** i sidemenyen. Siden har tre kort:
 
 - **Besvar anrop**: **Besvar anrop til numrene til denne policyen** lagres så snart du slår den om. Slått av hører innringere at linjen ikke er tilgjengelig, og ingen blir ringt opp; numrene, reglene og anropsloggene beholdes. Før den slås av, spør siden først, med **Slutt å besvare anrop**. Så lenge den er slått av, sier policyens **Oversikt** det, med **Besvar anrop igjen** for å slå den på igjen.
-- **Gjentakelsesretningslinje**: hva som skjer når ingen svarer etter den siste regelen. **Rediger** spør **Hvis ingen svarer etter den siste regelen**: **Avslutt anropet**, eller **Ring igjen fra den første regelen** og **Hvor mange ganger til?**.
+- **Gjentakelsespolicy**: hva som skjer når ingen svarer etter den siste regelen. **Rediger** spør **Hvis ingen svarer etter den siste regelen**: **Avslutt anropet**, eller **Ring igjen fra den første regelen** og **Hvor mange ganger til?**.
 - **Talemeldinger**: hva innringere hører. **Rediger meldinger** endrer dem.
 
 | Innstilling | Hva den gjør | For en ny policy |
@@ -200,22 +200,22 @@ Et anrop er tapt når det avsluttes uten å nå noen: statusen er **Ingen svar**
 
 Når et anrop er tapt, gir OneUptime beskjed til policyens eiere: brukerne og medlemmene av teamene som er lagt til på policyens side **Eiere**. Har policyen ingen eiere, får Prosjekteiere beskjed i stedet.
 
-Varselet sier hvem som ringte, hvilket nummer de ringte, hvorfor ingen svarte, og hvem som ble ringt og hvordan hvert forsøk endte. Det lenker til anropet i anropsloggen.
+Varslingen sier hvem som ringte, hvilket nummer de ringte, hvorfor ingen svarte, og hvem som ble ringt og hvordan hvert forsøk endte. Det lenker til anropet i anropsloggen.
 
-Eiere får e-post som standard. Hver person kan velge andre kanaler (SMS, anrop, push og mer) eller slå det av i **Brukerinnstillinger** > **Varselinnstillinger**, under **Vakt** > **Retningslinjer for innkommende anrop** > **Tapt anrop**. Se [Varselinnstillinger](/docs/notifications/notification-settings).
+Eiere får e-post som standard. Hver person kan velge andre kanaler (SMS, anrop, push og mer) eller slå det av i **Brukerinnstillinger** > **Varslingsinnstillinger**, under **Vakt** > **Policyer for innkommende anrop** > **Tapt anrop**. Se [Varslingsinnstillinger](/docs/notifications/notification-settings).
 
 ### Reager på tapte anrop i en arbeidsflyt
 
 Logger for innkommende anrop er tilgjengelige som utløsere i arbeidsflyter:
 
-- **On Create Incoming Call Log** kjører når et anrop kommer inn.
-- **On Update Incoming Call Log** kjører etter hvert som anropet skrider frem. Oppdateringen som setter **Ended At**, er slutten på anropet.
+- **Ved oppretting: Incoming Call Logg** kjører når et anrop kommer inn.
+- **Ved oppdatering: Incoming Call Logg** kjører etter hvert som anropet skrider frem. Oppdateringen som setter **Ended At**, er slutten på anropet.
 
 For å reagere bare på tapte anrop, for eksempel for å legge dem ut i Slack eller Microsoft Teams eller åpne en sak:
 
 :::steps
-1. Legg til utløseren **On Update Incoming Call Log**. Sett **Fields to watch** til **Ended At**, og velg feltene du vil bruke, for eksempel **Status**, **Caller Phone Number** og **Routing Phone Number**.
-2. Legg til et steg **If / Else**. Sjekk utløserens **Status**, med sammenligningen **er ikke lik** og `Completed`.
+1. Legg til utløseren **Ved oppdatering: Incoming Call Logg**. Sett **Felt som overvåkes** til **Ended At**, og velg feltene du vil bruke, for eksempel **Status**, **Caller Phone Number** og **Routing Phone Number**.
+2. Legg til et steg **Hvis / Ellers**. Sjekk utløserens **Status**, med sammenligningen **er ikke lik** og `Completed`.
 3. Koble stegene dine til porten **Ja**.
 :::
 
@@ -259,7 +259,7 @@ En regel som opprettes gjennom API-et uten `escalateAfterSeconds`, ringer i 20 s
 :::
 
 :::details Anropet besvares, men ingen ringes
-Anropsloggen sier **Mislyktes**. Sjekk at **Besvar anrop** er slått på under policyens **Innstillinger**, at vaktplanen i hver regel har noen på vakt akkurat nå, og at personene reglene ringer, har et verifisert nummer under **Brukerinnstillinger** > **Retningslinjer for innkommende anrop** > **Innkommende telefonnumre**, i dette prosjektet. Regler ringer bare medlemmer av prosjektet.
+Anropsloggen sier **Mislyktes**. Sjekk at **Besvar anrop** er slått på under policyens **Innstillinger**, at vaktplanen i hver regel har noen på vakt akkurat nå, og at personene reglene ringer, har et verifisert nummer under **Brukerinnstillinger** > **Policy for innkommende anrop** > **Innkommende telefonnumre**, i dette prosjektet. Regler ringer bare medlemmer av prosjektet.
 :::
 
 :::details Anrop havner i talepostkassen
@@ -275,13 +275,13 @@ Kontoen kan bare endres mens policyen ikke har telefonnumre: siden sier "Remove 
 :::
 
 :::details Koden til en ingeniørs nummer kommer ikke frem
-SMS må være slått på for prosjektet. På OneUptime Cloud betaler et prosjekt uten sin egen standard-Twilio-konfigurasjon for SMS-ene fra saldoen sin, som må være over 1 USD. Koder kan bruke et minutt på å komme frem; klikk på **Send en ny kode** for å sende en ny, og **Prosjektinnstillinger** > **Varsler** > **Varsellogger** viser hva som skjedde med den.
+SMS må være slått på for prosjektet. På OneUptime Cloud betaler et prosjekt uten sin egen standard-Twilio-konfigurasjon for SMS-ene fra saldoen sin, som må være over 1 USD. Koder kan bruke et minutt på å komme frem; klikk på **Send en ny kode** for å sende en ny, og **Prosjektinnstillinger** > **Varslinger** > **Varslingslogger** viser hva som skjedde med den.
 :::
 
 ## Neste steg
 
 :::cards
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan en vaktretningslinje varsler folk, nivå for nivå.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan en vaktpolicy varsler folk, nivå for nivå.
 - [Vaktplaner](/docs/on-call/schedules): Bygg rotasjonene reglene dine ringer.
 - [Arbeidsflyter](/docs/workflows/index): Reager på tapte anrop: legg dem ut i en kanal eller åpne en sak.
 - [Twilio-integrasjon for SMS og tale](/docs/self-hosted/twilio-integration): Sett opp Twilio for en selvdriftet installasjon.

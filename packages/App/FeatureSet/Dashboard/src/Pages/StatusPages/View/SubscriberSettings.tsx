@@ -37,7 +37,10 @@ import {
 import Color from "Common/Types/Color";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import { getSubscriberNotificationEventTypeOptions } from "../../../Components/StatusPage/SubscriberNotificationEventTypeOptions";
+import {
+  getSubscriberNotificationEventTypeOptions,
+  getSubscriberNotificationEventTypeText,
+} from "../../../Components/StatusPage/SubscriberNotificationEventTypeOptions";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -572,7 +575,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
             },
             title: "Event Type",
             type: FieldType.Dropdown,
-            // Each as its name, as the Event Type column draws it.
+            // Each in the reader's words, as the Event Type column draws it.
             filterDropdownOptions: getSubscriberNotificationEventTypeOptions(),
           },
           {
@@ -619,10 +622,13 @@ const StatusPageSubscriberSettings: FunctionComponent<
             getElement: (
               item: StatusPageSubscriberNotificationTemplateStatusPage,
             ): ReactElement => {
+              // In the words the Event Type filter offers it in.
               return (
                 <span>
-                  {item.statusPageSubscriberNotificationTemplate?.eventType ||
-                    translator.translateText("Unknown")}
+                  {getSubscriberNotificationEventTypeText(
+                    translator,
+                    item.statusPageSubscriberNotificationTemplate?.eventType,
+                  )}
                 </span>
               );
             },

@@ -55,8 +55,8 @@ import UserModel from "Common/Models/DatabaseModels/User";
 import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
-import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -672,14 +672,30 @@ API.get = async () => ({ data: { data: [], count: 0 } });
  * separators i18next reads in a key (the "." and ":" of a sentence) are
  * turned off, as the Dashboard's own setup does.
  */
+/*
+ * English, the fallback, is in the bundle; German and Persian are each a
+ * chunk of its own, loaded only by a page drawn in that language, as the
+ * Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as the
+ * Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: language,
-  fallbackLng: language,
-  resources: {
-    en: { translation: {} },
-    de: { translation: DE },
-    fa: { translation: FA },
-  },
+  fallbackLng: "en",
+  resources: await localeResources({
+    language: language,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,

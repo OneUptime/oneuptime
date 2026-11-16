@@ -1,6 +1,6 @@
 # VMware 에이전트
 
-OneUptime VMware 에이전트는 VMware vSphere의 vCenter Server, ESXi 호스트, 가상 머신, 데이터스토어, 클러스터, 리소스 풀, vSAN을 모니터링합니다. 표준 OpenTelemetry Collector로, 그 [`vcenter` 리시버](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver)가 읽기 전용 사용자로 vSphere API를 읽고, 모든 메트릭에 vCenter 이름을 붙여 OneUptime으로 보냅니다. vCenter에 플러그인을 설치하지 않으며 VM 안에도 아무것도 설치하지 않습니다. 들어오는 데이터에 대해서는 [VMware 모니터](/docs/monitor/vmware-monitor)가 알림을 보냅니다.
+OneUptime VMware 에이전트는 VMware vSphere의 vCenter Server, ESXi 호스트, 가상 머신, 데이터스토어, 클러스터, 리소스 풀, vSAN을 모니터링합니다. 표준 OpenTelemetry Collector로, 그 [`vcenter` 리시버](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver)가 읽기 전용 사용자로 vSphere API를 읽고, 모든 메트릭에 vCenter 이름을 붙여 OneUptime으로 보냅니다. vCenter에 플러그인을 설치하지 않으며 VM 안에도 아무것도 설치하지 않습니다. 들어오는 데이터에 대해서는 [VMware 모니터](/docs/monitor/vmware-monitor)가 경고를 보냅니다.
 
 :::cards
 - [에이전트 설치](#에이전트-설치): 읽기 전용 사용자를 만든 다음 설치 스크립트, Docker Compose, systemd 중 하나를 사용합니다.
@@ -18,7 +18,7 @@ flowchart TB
     vsphere["vCenter Server<br/>또는 ESXi 호스트"]
     collector["Collector,<br/>vcenter 리시버"] -->|"2분마다<br/>인벤토리 읽기"| vsphere
     collector -->|"OTLP"| oneuptime["OneUptime"]
-    oneuptime -->|"인시던트나 알림을<br/>조사"| ai["VMware AI 에이전트"]
+    oneuptime -->|"인시던트나 경고를<br/>조사"| ai["VMware AI 에이전트"]
     ai -->|"읽기 전용<br/>govc 명령"| vsphere
 ```
 
@@ -246,7 +246,7 @@ AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있�
 
 **개요** 페이지는 먼저 "이 vCenter가 정상인가"에 답합니다. 헤더는 데이터가 들어오고 있는지, vCenter가 어떤 상태인지 보여 줍니다. **정상**, 무언가 확인이 필요한 동안은 **저하됨**, 무언가 지금 바로 사람이 필요한 동안은 **비정상**, vCenter가 연결 끊김 상태인 동안에는 마지막 보고가 더 이상 사실이 아니므로 **상태: 알 수 없음**입니다. 칩은 데이터센터, 클러스터, 전체 중 vCenter가 연결할 수 있는 ESXi 호스트, 전체 중 전원이 켜진 VM, 템플릿, 데이터스토어를 세며, 데이터센터를 제외한 모든 칩은 해당 목록을 엽니다.
 
-다음은 **확인 필요**입니다. 사람이 필요한 모든 것을 가장 급한 것부터, 각각 이유와 함께 해당 페이지로 한 번에 갈 수 있게 보여 줍니다. vCenter가 연결할 수 없는 ESXi 호스트, 90% 넘게 찬 데이터스토어, 호스트가 메모리를 디스크로 스와핑하는 VM은 심각합니다. 90% 넘게 바쁜 호스트, 80% 넘게 찬 데이터스토어, 빈 CPU를 기다리거나 호스트가 메모리를 회수하는 VM, 유효하지 않은 호스트가 있거나 호스트 하나를 잃을 만큼의 메모리가 없는 클러스터, 그리고 vCenter가 각 데이터센터에서 세는 알람은 확인이 필요합니다. 각 임계값은 해당 [알림 템플릿](/docs/monitor/vmware-monitor#미리-만든-알림-템플릿)이 발생하는 값입니다. 확인이 필요한 것이 없으면 카드가 없습니다.
+다음은 **확인 필요**입니다. 사람이 필요한 모든 것을 가장 급한 것부터, 각각 이유와 함께 해당 페이지로 한 번에 갈 수 있게 보여 줍니다. vCenter가 연결할 수 없는 ESXi 호스트, 90% 넘게 찬 데이터스토어, 호스트가 메모리를 디스크로 스와핑하는 VM은 심각합니다. 90% 넘게 바쁜 호스트, 80% 넘게 찬 데이터스토어, 빈 CPU를 기다리거나 호스트가 메모리를 회수하는 VM, 유효하지 않은 호스트가 있거나 호스트 하나를 잃을 만큼의 메모리가 없는 클러스터, 그리고 vCenter가 각 데이터센터에서 세는 알람은 확인이 필요합니다. 각 임계값은 해당 [경고 템플릿](/docs/monitor/vmware-monitor#미리-만든-경고-템플릿)이 발생하는 값입니다. 확인이 필요한 것이 없으면 카드가 없습니다.
 
 그 아래에는 유효한 호스트, 용량으로 가중한 호스트 CPU와 메모리, 가장 꽉 찬 데이터스토어, VM의 최악의 CPU 레디 시간과 그 차트, 각 호스트의 상태와 부하를 해당 페이지로 한 번에 갈 수 있게 보여 주는 **ESXi 호스트**, 그리고 상위 소비자가 있습니다.
 
@@ -270,14 +270,14 @@ vCenter는 호스트가 연결되어 실행 중인 동안에만 호스트의 CPU
 
 **호스트** 목록은 각 호스트의 상태와 그 아래에 확인이 필요한 이유, 그리고 90%를 넘으면 호박색이 되는 CPU와 메모리를 보여 줍니다. 호스트를 선택하면 해당 호스트의 페이지가 열립니다. 이 페이지는 VMware 밖의 호스트 페이지가 답하는 질문에, vCenter가 하이퍼바이저에 대해 아는 정보로 답합니다.
 
-- **개요**: 호스트와 호스트에서 실행되는 VM의 **확인 필요**, 선택한 시간 범위의 CPU, 메모리, 가장 느린 디스크의 지연 시간, 네트워크 처리량을 타일과 차트로 보여 줍니다(차트 위를 드래그하면 확대됩니다). 호스트에서 열려 있는 인시던트와 알림, 물리 CPU를 기다리는 VM을 표시한 가장 바쁜 가상 머신, 패킷 오류와 느린 디스크를 표시한 물리 네트워크 어댑터와 스토리지 디바이스, 켜져 있는 호스트 알림, 그리고 호스트의 세부 정보도 보여 줍니다.
+- **개요**: 호스트와 호스트에서 실행되는 VM의 **확인 필요**, 선택한 시간 범위의 CPU, 메모리, 가장 느린 디스크의 지연 시간, 네트워크 처리량을 타일과 차트로 보여 줍니다(차트 위를 드래그하면 확대됩니다). 호스트에서 열려 있는 인시던트와 경고, 물리 CPU를 기다리는 VM을 표시한 가장 바쁜 가상 머신, 패킷 오류와 느린 디스크를 표시한 물리 네트워크 어댑터와 스토리지 디바이스, 켜져 있는 호스트 경고, 그리고 호스트의 세부 정보도 보여 줍니다.
 - **가상 머신**: 호스트의 VM과 템플릿을 상태, 리소스 풀, CPU Ready, CPU, 메모리와 함께 보여 줍니다.
 - **메트릭**: 호스트의 CPU, 메모리, 네트워크, 디스크 시계열을 네트워크 어댑터와 스토리지 디바이스별 차트로 보여 주며, 각 차트는 메트릭 탐색기에서 열 수 있습니다.
 - **로그**: 호스트가 보내기 시작한 이후의 호스트 자체 syslog입니다([ESXi syslog 보내기](#선택-사항-esxi-syslog-보내기) 참조). 그전까지는 이 호스트나 클러스터 전체가 에이전트로 보내도록 하는 명령을 탭에 보여 줍니다. 프로브가 수집하는 vCenter에는 syslog가 없습니다. 프로브는 syslog를 받지 않기 때문입니다.
 
 vCenter가 호스트 보고를 멈추면 페이지가 탭 위에 이를 알리고, vCenter가 마지막으로 보고한 시점을 함께 보여 줍니다. 보고 없이 15분이 지나면 호스트가 인벤토리에서 빠지며, 이때 페이지는 이를 알리고 이전 메트릭을 계속 보여 줍니다.
 
-여섯 가지 호스트 알림(응답하지 않는 호스트, CPU 및 메모리 포화, 높은 디스크 지연 시간, 네트워크 패킷 오류, 패킷 삭제)은 각각 vCenter의 모든 호스트를 감시하고 임계값을 넘는 호스트마다 발생합니다. 호스트 페이지의 **호스트 알림** 카드는 어떤 알림이 켜져 있는지 보여 주고, 그 버튼은 빠진 알림을 이미 선택한 상태로 vCenter의 **권장 사항**을 엽니다. 그곳에서 한 번 만들면 모든 호스트에 적용됩니다.
+여섯 가지 호스트 경고(응답하지 않는 호스트, CPU 및 메모리 포화, 높은 디스크 지연 시간, 네트워크 패킷 오류, 패킷 삭제)은 각각 vCenter의 모든 호스트를 감시하고 임계값을 넘는 호스트마다 발생합니다. 호스트 페이지의 **호스트 경고** 카드는 어떤 경고가 켜져 있는지 보여 주고, 그 버튼은 빠진 경고를 이미 선택한 상태로 vCenter의 **권장 사항**을 엽니다. 그곳에서 한 번 만들면 모든 호스트에 적용됩니다.
 
 ### 가상 머신
 
@@ -285,17 +285,17 @@ vCenter가 호스트 보고를 멈추면 페이지가 탭 위에 이를 알리�
 
 전원이 꺼진 가상 머신과 템플릿도 목록에 나옵니다. vCenter는 전원이 켜진 VM에 대해서만 CPU 카운터를 보고하므로, 이들의 CPU 열에는 오해를 부르는 0 대신 N/A가 표시됩니다.
 
-VM 페이지는 VM이 무엇을 하고 있는지(**실행 중**, **전원 꺼짐**, **템플릿**, 또는 vCenter가 호스트에 연결할 수 없는 동안 **연결 끊김**)와 어디에서 실행되는지 보여 주며, 호스트와 클러스터로 한 번에 갈 수 있습니다. **개요**에는 VM의 **확인 필요**, CPU, CPU 레디, 메모리, 디스크, VM에서 열려 있는 인시던트와 알림, 일곱 가지 VM 알림 중 켜져 있는 것, 그리고 세부 정보가 있습니다. **메트릭**에는 차트가 있습니다.
+VM 페이지는 VM이 무엇을 하고 있는지(**실행 중**, **전원 꺼짐**, **템플릿**, 또는 vCenter가 호스트에 연결할 수 없는 동안 **연결 끊김**)와 어디에서 실행되는지 보여 주며, 호스트와 클러스터로 한 번에 갈 수 있습니다. **개요**에는 VM의 **확인 필요**, CPU, CPU 레디, 메모리, 디스크, VM에서 열려 있는 인시던트와 경고, 일곱 가지 VM 경고 중 켜져 있는 것, 그리고 세부 정보가 있습니다. **메트릭**에는 차트가 있습니다.
 
 ### 데이터스토어
 
 ![각 데이터스토어의 사용 용량과 전체 용량, 사용률 막대를 나열하는 데이터스토어 페이지](/docs/static/images/VMwareDatastores.png)
 
-데이터스토어 페이지는 얼마나 찼는지(90%를 넘으면 빨간색, 80%를 넘으면 호박색), 얼마나 비어 있는지, 그리고 계속 늘어나는 동안에는 가득 찰 때까지 남은 일수를 보여 줍니다. 데이터스토어에서 열려 있는 인시던트와 알림, 그리고 두 가지 용량 알림 중 켜져 있는 것도 보여 줍니다.
+데이터스토어 페이지는 얼마나 찼는지(90%를 넘으면 빨간색, 80%를 넘으면 호박색), 얼마나 비어 있는지, 그리고 계속 늘어나는 동안에는 가득 찰 때까지 남은 일수를 보여 줍니다. 데이터스토어에서 열려 있는 인시던트와 경고, 그리고 두 가지 용량 경고 중 켜져 있는 것도 보여 줍니다.
 
 ### 클러스터
 
-클러스터 페이지는 클러스터가 **정상**, **저하됨**, **비정상** 중 어느 상태인지 보여 줍니다. 유효한 호스트 수, 호스트가 쓰는 유효 CPU와 메모리의 비율, 그리고 가장 큰 호스트의 VM을 다른 호스트가 넘겨받을 수 있는지(**호스트 장애**)입니다. **확인 필요**에는 호스트와 그 VM도 포함되며, **ESXi 호스트** 탭과 **가상 머신** 탭이 이들을 나열하고, **클러스터 알림**은 세 가지 알림 중 켜져 있는 것을 보여 줍니다.
+클러스터 페이지는 클러스터가 **정상**, **저하됨**, **비정상** 중 어느 상태인지 보여 줍니다. 유효한 호스트 수, 호스트가 쓰는 유효 CPU와 메모리의 비율, 그리고 가장 큰 호스트의 VM을 다른 호스트가 넘겨받을 수 있는지(**호스트 장애**)입니다. **확인 필요**에는 호스트와 그 VM도 포함되며, **ESXi 호스트** 탭과 **가상 머신** 탭이 이들을 나열하고, **클러스터 경고**는 세 가지 경고 중 켜져 있는 것을 보여 줍니다.
 
 데이터를 읽을 수 없는 페이지는 **다시 시도**와 함께 그렇다고 알려 주며, 목록은 표 안에서 **새로고침**과 함께 알려 줍니다.
 
@@ -424,9 +424,9 @@ sudo rm -r /opt/oneuptime-vmware-agent
 
 ## AI 에이전트
 
-에이전트의 `docker-compose.yml`은 **VMware AI 에이전트**(`oneuptime-vmware-ai-agent`, 이미지 `oneuptime/resource-ai-agent:release`)도 실행합니다. OneUptime AI가 이 vCenter의 인시던트나 알림을 조사하는 동안 이를 통해 읽기 전용 `govc` 명령(`govc vm.info web-01`, `govc events -n 50 /DC/vm/web-01`, `govc metric.sample -n 12 /DC/vm/web-01 cpu.usage.average`)을 실행하고, 허용한 경우에만 VM 전원을 다시 켜는 등의 수정을 적용합니다. Collector와 마찬가지로 `VMWARE_VCENTER_NAME`이라는 이름의 vCenter로 등록되며, OneUptime에서 vCenter의 **AI → AI 에이전트** 페이지에 표시됩니다.
+에이전트의 `docker-compose.yml`은 **VMware AI 에이전트**(`oneuptime-vmware-ai-agent`, 이미지 `oneuptime/resource-ai-agent:release`)도 실행합니다. OneUptime AI가 이 vCenter의 인시던트나 경고를 조사하는 동안 이를 통해 읽기 전용 `govc` 명령(`govc vm.info web-01`, `govc events -n 50 /DC/vm/web-01`, `govc metric.sample -n 12 /DC/vm/web-01 cpu.usage.average`)을 실행하고, 허용한 경우에만 VM 전원을 다시 켜는 등의 수정을 적용합니다. Collector와 마찬가지로 `VMWARE_VCENTER_NAME`이라는 이름의 vCenter로 등록되며, OneUptime에서 vCenter의 **AI → AI 에이전트** 페이지에 표시됩니다.
 
-- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 vCenter의 인시던트와 알림을 조사하며, vCenter의 **개요** 페이지에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
+- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 vCenter의 인시던트와 경고를 조사하며, vCenter의 **개요** 페이지에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
 - **vSphere 역할이 넘을 수 없는 한계입니다.** 조사는 Collector의 **Read-Only** 사용자(`VCENTER_USERNAME` / `VCENTER_PASSWORD`)로 로그인하며, 이 사용자는 읽기 외에는 아무것도 할 수 없습니다. 수정에는 VM 전원을 켜고, 끄고, 재설정할 수 있는 역할(`VirtualMachine.Interact.PowerOn`, `PowerOff`, `Reset`)을 가진 AI 에이전트 전용 사용자가 필요합니다. 그 역할은 AI가 수정해도 되는 폴더에만 부여하고 `ONEUPTIME_AI_VCENTER_USERNAME` / `ONEUPTIME_AI_VCENTER_PASSWORD`로 설정하세요.
 - `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하지 않는 한 **읽기 전용**입니다. `ONEUPTIME_AI_WRITE_TARGETS`(VM 및 호스트 이름 또는 인벤토리 경로)는 수정이 건드릴 수 있는 범위를 제한합니다. `VCENTER_ENDPOINT`의 호스트 이름을 딴 VM(보통 vCenter 어플라이언스)은 절대 바꾸지 않으며, 어플라이언스는 그 이름으로만 알아봅니다. `VCENTER_ENDPOINT`가 IP 주소이거나 어플라이언스의 VM 이름이 다르다면, 그 VM을 에이전트가 실행되는 VM과 함께 `ONEUPTIME_AI_PROTECTED_TARGETS`에 넣으세요. `ONEUPTIME_AI_FIXES`(같은 `.env`에 있음)는 수정이 실행되는 방식을 정합니다. `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나이며, AI 에이전트 페이지에 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)).
 - 검증을 건너뛰지 않고 vCenter 인증서를 검증하려면 그 CA를 컨테이너에 마운트하고 `VCENTER_CA_FILE`을 설정하세요. 데이터센터가 여러 개인 vCenter에서는 `GOVC_DATACENTER`를 설정하세요.
@@ -516,7 +516,7 @@ vSphere에는 자체 OpenTelemetry 푸시가 없으므로 에이전트(또는 `v
 ## 다음 단계
 
 :::cards
-- [VMware 모니터](/docs/monitor/vmware-monitor): 호스트, VM, 데이터스토어, 클러스터, 데이터센터, vSAN에 대해 알림을 보냅니다.
+- [VMware 모니터](/docs/monitor/vmware-monitor): 호스트, VM, 데이터스토어, 클러스터, 데이터센터, vSAN에 대해 경고를 보냅니다.
 - [에이전트 없는 VMware](/docs/telemetry/vmware-agentless): 대신 프로브가 vCenter를 수집하게 합니다.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): VMware AI 에이전트가 실행할 수 있는 명령과 수정이 동작하는 방식.
 - [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector): VM 안이나 에이전트 머신을 운영체제 관점에서 봅니다.

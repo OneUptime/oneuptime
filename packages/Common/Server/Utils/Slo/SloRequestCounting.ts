@@ -1,4 +1,4 @@
-import { SpanStatus } from "../../../Models/AnalyticsModels/Span";
+import Span, { SpanStatus } from "../../../Models/AnalyticsModels/Span";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -28,6 +28,22 @@ import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../AnalyticsDatabase/QuerySettingsHelper";
 import logger, { LogAttributes } from "../Logger";
 import crypto from "crypto";
+import Query from "../../Types/AnalyticsDatabase/Query";
+import { predicateToQueryValue } from "../../../Types/Telemetry/TelemetrySearchQuery";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import {
+  getSloRequestFilterError,
+  normalizeSloRequestFilter,
+  ParsedSloRequestFilter,
+  parseSloRequestFilter,
+  SloRequestFilterTerm,
+} from "../../../Utils/Slo/SloRequestFilter";
+import {
+  getSloMetricQueryFingerprintParts,
+  normalizeSloMetricQueryConfig,
+  SloMetricQueryConfig,
+} from "../../../Utils/Slo/SloMetricSli";
+import SloMetricCounting from "./SloMetricCounting";
 
 /*
  * COUNTING A REQUEST SLO'S REQUESTS - the server half of
@@ -67,6 +83,17 @@ export interface SloRequestCountingConfig {
   serviceIds: Array<ObjectID>;
   // Request Latency only.
   latencyThresholdInMilliseconds?: number | undefined | null;
+  /*
+   * Which of the services' requests count, as a traces search (#8444):
+   * `@http.route:/checkout* -@http.route:/health`. Empty counts them all.
+   */
+  requestFilter?: string | undefined | null;
+  /*
+   * A Metric SLO's metric (#8445): its good and total events are counted
+   * from its services' metric points (SloMetricCounting) in place of their
+   * spans, in the same steps, into the same history.
+   */
+  metricQueryConfig?: SloMetricQueryConfig | JSONObject | undefined | null;
 }
 
 // What an evaluation counted, and the sums it needs.
@@ -100,6 +127,24 @@ export default class SloRequestCounting {
         ? Number(config.latencyThresholdInMilliseconds) || null
         : null;
 
+    /*
+     * A filter changes which requests count, so it starts the counting
+     * again (#8444). It joins the fingerprint only when there is one: an SLO
+     * with no filter keeps the fingerprint it had, and its counts.
+     */
+    const requestFilter: string | null = normalizeSloRequestFilter(
+      config.requestFilter,
+    );
+
+    /*
+     * A Metric SLO counts what its metric says (#8445): another metric,
+     * kind, good condition, value or filter starts the counting again.
+     */
+    const metric: SloMetricQueryConfig | null =
+      config.sliType === SliType.Metric
+        ? normalizeSloMetricQueryConfig(config.metricQueryConfig)
+        : null;
+
     return crypto
       .createHash("sha256")
       .update(
@@ -108,9 +153,22 @@ export default class SloRequestCounting {
           sliType: config.sliType,
           serviceIds: serviceIds,
           latencyThresholdInMilliseconds: threshold,
+          ...(requestFilter ? { requestFilter: requestFilter } : {}),
+          ...(metric
+            ? { metric: getSloMetricQueryFingerprintParts(metric) }
+            : {}),
         }),
       )
       .digest("hex");
+  }
+
+  // A Metric SLO's configuration as the metric counting reads it.
+  public static getMetricQueryConfig(
+    config: SloRequestCountingConfig,
+  ): SloMetricQueryConfig {
+    return SloMetricCounting.getCountableConfig(
+      normalizeSloMetricQueryConfig(config.metricQueryConfig),
+    );
   }
 
   /*
@@ -198,6 +256,17 @@ export default class SloRequestCounting {
     range: SloRequestCountingRange;
     serviceVersion?: string | null | undefined;
   }): Promise<SloRequestCounts> {
+    // A Metric SLO's events are its metric's (#8445).
+    if (data.config.sliType === SliType.Metric) {
+      return SloMetricCounting.countRecent({
+        projectId: data.projectId,
+        serviceIds: data.config.serviceIds,
+        config: SloRequestCounting.getMetricQueryConfig(data.config),
+        range: data.range,
+        serviceVersion: data.serviceVersion,
+      });
+    }
+
     const result: Results = await SpanService.executeQuery(
       SloRequestCounting.buildRecentCountStatement(data),
     );
@@ -299,6 +368,55 @@ export default class SloRequestCounting {
         }}`,
       );
     }
+
+    SloRequestCounting.appendRequestFilterTerms(
+      statement,
+      data.config.requestFilter,
+    );
+  }
+
+  /*
+   * The SLO's request filter (#8444), term by term: each one compiled by
+   * the span table's own statement generator, as the Traces explorer's
+   * query is - so a glob, a list, a comparison or a leading "-" means here
+   * what it means there, and every value is a typed parameter. Each
+   * fragment opens with its own AND. A filter that cannot be read is
+   * refused rather than ignored: counting every request while the SLO says
+   * it counts some would be a wrong SLI.
+   */
+  public static appendRequestFilterTerms(
+    statement: Statement,
+    requestFilter: string | undefined | null,
+  ): void {
+    const parsed: ParsedSloRequestFilter = parseSloRequestFilter(requestFilter);
+
+    if (parsed.error) {
+      throw new BadDataException(
+        getSloRequestFilterError(requestFilter) || "Invalid request filter.",
+      );
+    }
+
+    for (const term of parsed.terms) {
+      statement.append(SloRequestCounting.toTermStatement(term));
+    }
+  }
+
+  private static toTermStatement(term: SloRequestFilterTerm): Statement {
+    const query: Query<Span> = term.isAttribute
+      ? ({
+          attributes: {
+            [term.key]: predicateToQueryValue(term.predicate),
+          },
+        } as unknown as Query<Span>)
+      : ({
+          name: predicateToQueryValue(term.predicate),
+        } as unknown as Query<Span>);
+
+    const fragment: Statement =
+      SpanService.statementGenerator.toWhereStatement(query);
+
+    return SQL`
+        `.append(fragment);
   }
 
   public static async countRange(data: {
@@ -306,6 +424,16 @@ export default class SloRequestCounting {
     config: SloRequestCountingConfig;
     range: SloRequestCountingRange;
   }): Promise<StepCounts> {
+    // A Metric SLO's events are its metric's, in the same steps (#8445).
+    if (data.config.sliType === SliType.Metric) {
+      return SloMetricCounting.countRange({
+        projectId: data.projectId,
+        serviceIds: data.config.serviceIds,
+        config: SloRequestCounting.getMetricQueryConfig(data.config),
+        range: data.range,
+      });
+    }
+
     const counts: StepCounts = new Map<number, SloRequestCounts>();
 
     for (const stepStart of listRequestStepStarts(data.range)) {

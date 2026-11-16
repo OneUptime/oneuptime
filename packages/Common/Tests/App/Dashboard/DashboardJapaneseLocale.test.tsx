@@ -38,6 +38,7 @@ import {
   goTo,
   setViewportWidth,
 } from "./SideMenuHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
 
 /*
  * The Dashboard in Japanese, read from the real locale files.
@@ -264,6 +265,13 @@ afterAll(() => {
   setViewportWidth(ORIGINAL_WIDTH);
 });
 
+/*
+ * The products menu reads which products the project has on
+ * (/project-products). These tests are about its words, so that read is
+ * left unanswered: refused at once, and the menu lists every product.
+ */
+refuseRequestsTo(["/project-products"]);
+
 describe("the products menu in Japanese", () => {
   test("names and describes the products in Japanese", () => {
     render(withJapanese(<DashboardNavbar show={true} />));
@@ -388,13 +396,13 @@ describe("counts in Japanese", () => {
         { one: "{{count}} minute", other: "{{count}} minutes" },
         1,
       ),
-    ).toBe("1 分");
+    ).toBe("1\u00A0分");
     expect(
       translator.translatePlural(
         { one: "{{count}} minute", other: "{{count}} minutes" },
         1500,
       ),
-    ).toBe("1,500 分");
+    ).toBe("1,500\u00A0分");
   });
 });
 

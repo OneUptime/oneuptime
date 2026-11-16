@@ -1,4 +1,8 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  formatRelativeAmount,
+  RelativeDateUnit,
+} from "Common/Types/DateLanguage";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 /*
  * When the status page refreshes itself, and how it says how old what you are
  * looking at is.
@@ -18,7 +22,7 @@ export interface RelativeTimeParts {
    * expects: format(-5, "minute") is "5 minutes ago".
    */
   value: number;
-  unit: Intl.RelativeTimeFormatUnit;
+  unit: RelativeDateUnit;
 }
 
 export default class StatusPageLiveRefreshUtil {
@@ -83,7 +87,9 @@ export default class StatusPageLiveRefreshUtil {
    * hand written "{{total}} minutes ago" key does not (Russian alone needs
    * three forms). A runtime without it - or a locale tag it rejects - falls
    * back to English rather than throwing on a page whose whole job is to be
-   * up when other things are not.
+   * up when other things are not. The number is held to its unit ("vor
+   * 12\u00A0Sekunden", "12\u00A0seconds ago", #8456), as DateLanguage
+   * writes every relative time.
    */
   public static formatRelativeTime(data: {
     secondsAgo: number;
@@ -91,16 +97,15 @@ export default class StatusPageLiveRefreshUtil {
   }): string {
     const parts: RelativeTimeParts = this.getRelativeTimeParts(data.secondsAgo);
 
-    try {
-      const formatter: Intl.RelativeTimeFormat = new Intl.RelativeTimeFormat(
-        getNumberLocale(data.locale || "en"),
-        { numeric: "auto" },
-      );
-
-      return formatter.format(parts.value, parts.unit);
-    } catch {
-      return this.formatRelativeTimeInEnglish(parts);
-    }
+    return (
+      formatRelativeAmount({
+        count: Math.abs(parts.value),
+        unit: parts.unit,
+        isFuture: parts.value > 0,
+        locale: data.locale || "en",
+        numeric: "auto",
+      }) || this.formatRelativeTimeInEnglish(parts)
+    );
   }
 
   private static formatRelativeTimeInEnglish(parts: RelativeTimeParts): string {
@@ -112,7 +117,7 @@ export default class StatusPageLiveRefreshUtil {
 
     const unit: string = magnitude === 1 ? parts.unit : `${parts.unit}s`;
 
-    return `${magnitude} ${unit} ago`;
+    return `${magnitude}${NO_BREAK_SPACE}${unit} ago`;
   }
 
   /*

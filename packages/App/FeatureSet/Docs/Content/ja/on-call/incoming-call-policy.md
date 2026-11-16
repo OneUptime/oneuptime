@@ -208,14 +208,14 @@ Twilio はメッセージを音声合成で読み上げるため、聞こえて�
 
 着信の通話ログは、ワークフローのトリガーとして使えます。
 
-- **On Create Incoming Call Log** は、通話が届いたときに実行されます。
-- **On Update Incoming Call Log** は、通話の進行に合わせて実行されます。 **Ended At** を設定する更新が通話の終了です。
+- **着信ログの作成時** は、通話が届いたときに実行されます。
+- **着信ログの更新時** は、通話の進行に合わせて実行されます。 **Ended At** を設定する更新が通話の終了です。
 
 不在着信にだけ対応するには（Slack や Microsoft Teams に投稿したり、チケットを作成したりする場合など）:
 
 :::steps
-1. **On Update Incoming Call Log** トリガーを追加します。 **Fields to watch** を **Ended At** に設定し、 **Status** 、 **Caller Phone Number** 、 **Routing Phone Number** など、使いたいフィールドを選びます。
-2. **If / Else** ステップを追加します。トリガーの **Status** を、比較 **と等しくない** と `Completed` で確認します。
+1. **着信ログの更新時** トリガーを追加します。 **監視するフィールド** を **Ended At** に設定し、 **Status** 、 **Caller Phone Number** 、 **Routing Phone Number** など、使いたいフィールドを選びます。
+2. **条件分岐** ステップを追加します。トリガーの **Status** を、比較 **と等しくない** と `Completed` で確認します。
 3. 自分のステップを **はい** ポートにつなぎます。
 :::
 

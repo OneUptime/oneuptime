@@ -309,7 +309,7 @@ Cuando una función de su propio código ocupa al menos el 5 % del tiempo o la m
 | --- | --- |
 | **Gráfico de llamas** | Cada barra es una función de la pila de llamadas, y su anchura es proporcional al tiempo o los recursos que consumió. Haga clic en una función para ampliarla y ver quién la llama y a quién llama. |
 | **Funciones principales** | Las funciones del perfil, ordenadas por tiempo propio o total. **Solo mi código** oculta los frames de bibliotecas. |
-| **Diff vs. baseline** | El perfil comparado con un periodo anterior (**vs. hace 1 hora**, **vs. ayer** o **vs. la semana pasada**), con las funciones **Más empeorados** y **Más mejorados**. |
+| **Diferencia con la referencia** | El perfil comparado con un periodo anterior (**vs. hace 1 hora**, **vs. ayer** o **vs. la semana pasada**), con las funciones **Más empeorados** y **Más mejorados**. |
 
 **Descargar pprof** guarda el perfil para herramientas locales como `go tool pprof`.
 
@@ -350,7 +350,7 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 
 ### Ver lo que hizo
 
-- **Productos → Perfiles → IA → Análisis** muestra el código lento encontrado, cada hallazgo con sus pruebas y **Abrir en Perfiles**.
+- **Productos → Perfiles → IA → Hallazgos** muestra el código lento encontrado, cada hallazgo con sus pruebas y **Abrir en Perfiles**.
 - **Productos → Perfiles → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una y lo que encontró cada investigación.
 - En Código, la tarea indica que OneUptime la inició, con un enlace a su hallazgo, y la pull request explica por qué se abrió.
 

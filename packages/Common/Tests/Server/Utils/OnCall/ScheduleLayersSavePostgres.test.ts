@@ -3,6 +3,7 @@ import Semaphore, {
   SemaphoreMutex,
 } from "../../../../Server/Infrastructure/Semaphore";
 import AuditLogService from "../../../../Server/Services/AuditLogService";
+import DatabaseService from "../../../../Server/Services/DatabaseService";
 import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallCalendarFeedCache from "../../../../Server/Infrastructure/OnCallCalendarFeedCache";
 import OnCallShiftChangeListeners from "../../../../Server/Utils/OnCall/OnCallShiftChangeListeners";
@@ -356,6 +357,11 @@ describePostgres(
         .mockResolvedValue(undefined as never);
       jest
         .spyOn(OnCallShiftChangeListeners, "notify")
+        .mockResolvedValue(undefined as never);
+
+      // Workflows run elsewhere.
+      jest
+        .spyOn(DatabaseService.prototype, "onTriggerWorkflow")
         .mockResolvedValue(undefined as never);
 
       // The audit log is ClickHouse's: counted here.

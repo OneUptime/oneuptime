@@ -43,7 +43,7 @@ Allez dans **Paramètres du projet → Journaux d'audit → Paramètres**. **Jou
 
 ### Modifier les paramètres
 
-Cliquez sur **Edit Audit Log Settings**.
+Cliquez sur **Modifier les paramètres des journaux d'audit**.
 
 ### L'activer
 
@@ -65,10 +65,10 @@ Une modification de ces paramètres s'applique en moins d'une minute.
 | Colonne | Ce qu'elle montre |
 | --- | --- |
 | **Quand** | Il y a combien de temps, avec la date et l'heure. |
-| **Action** | `Create`, `Update` ou `Delete`, `Download` pour un fichier de capture de paquets que quelqu'un a téléchargé, ou `Sign In`, `Sign Out`, `Session Timeout` ou `Session Revoked` pour une session. |
+| **Action** | `Create`, `Update` ou `Delete`, `Download` pour un fichier de capture de paquets que quelqu'un a téléchargé, ou `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` ou `Session Revoked` pour une connexion ou une session. |
 | **Ressource** | Le nom de la ressource, qui l'ouvre tant qu'elle existe, et son type. |
 | **Acteur** | Qui a fait la modification : une personne, une clé API, un flux de travail, ou `System` pour une modification que OneUptime a faite de lui-même. La modification d'une personne faite via un client MCP indique lequel. |
-| **Modifications** | Combien de champs ont changé, ou ont été capturés pour une création ou une suppression. Pour une session, comment elle s'est connectée ou pourquoi elle s'est terminée. Cliquez dessus pour voir chaque champ. |
+| **Modifications** | Combien de champs ont changé, ou ont été capturés pour une création ou une suppression. Pour une connexion ou une session, comment la personne s'est connectée, pourquoi la connexion a échoué ou pourquoi la session s'est terminée. Cliquez dessus pour voir chaque champ. |
 
 Filtrez par **Type de ressource**, **Nom de la ressource**, **Action**, **E-mail de l'utilisateur** ou **Heure**. Une modification ne liste que les champs qui ont changé, avant et après, et un enregistrement qui ne change rien n'ajoute aucune entrée.
 
@@ -86,7 +86,7 @@ Tout ce que les personnes créent, modifient ou suppriment dans un projet est en
 | Traces d'exécutions | Chacune est déjà la trace d'une exécution de flux de travail, d'une escalade d'astreinte, d'une analyse, d'une importation ou d'une exécution d'IA. |
 | Ce que signalent les agents et la télémétrie | Les ressources découvertes, les relevés et l'utilisation changent à chaque rapport, pas parce que quelqu'un les a modifiés. |
 | Flux d'activité | Un flux affiche des modifications que le journal d'audit enregistre déjà. |
-| L'état de travail de OneUptime | Les sessions des lecteurs des pages de statut, les tâches en attente et les autres états que OneUptime conserve pendant son travail. |
+| L'état de travail de OneUptime | Les tâches en attente et les autres états que OneUptime conserve pendant son travail. |
 | La configuration des notifications propre à une personne | Les adresses, les numéros et les règles d'astreinte personnelles de chaque personne n'appartiennent qu'à elle. |
 | Les préférences propres à une personne | Les produits que chaque personne épingle dans sa propre barre supérieure n'appartiennent qu'à elle, et elle seule les voit. |
 
@@ -114,13 +114,18 @@ Chaque fois qu'un membre du projet se connecte à OneUptime, le journal d'audit 
 | Action | Quand elle est enregistrée |
 | --- | --- |
 | `Sign In` | Quelqu'un se connecte : avec un mot de passe ou un lien de connexion, une clé d'accès, Google, Microsoft, Vercel ou l'authentification unique. |
+| `Sign-In Failed` | Quelqu'un tente de se connecter à un compte existant et échoue : un mot de passe, un code d'authentification, un code de secours ou une clé de sécurité erronés, un compte bloqué ou non vérifié, ou une authentification unique que OneUptime a refusée. |
 | `Sign Out` | La personne se déconnecte. |
 | `Session Timeout` | OneUptime met fin à la session à son échéance : le délai d'inactivité ou la durée de session fixés par un administrateur du serveur, ou 30 jours sans utilisation. |
 | `Session Revoked` | OneUptime met fin à la session parce que le mot de passe a changé, que le compte a été bloqué, ou qu'un administrateur du serveur a réinitialisé ou exigé l'authentification à deux facteurs. |
 
 La **Ressource** d'une entrée est la session, nommée d'après l'appareil depuis lequel elle s'est connectée, par exemple `Chrome 130 on macOS`. Son **Acteur** est la personne à qui appartient la session, donc filtrer par **E-mail de l'utilisateur** trouve toutes ses connexions et sessions. Ses détails indiquent comment la personne s'est connectée et avec quel second facteur, l'adresse IP et la localisation, et, pour une session terminée, quand elle s'est connectée, quand elle a été utilisée pour la dernière fois et quand elle a expiré. Le fournisseur SSO propre à un projet n'est nommé que dans le journal d'audit de ce projet.
 
-Les connexions et les sessions sont enregistrées que le projet stocke ou non les événements système. Une durée de session ou 30 jours sans utilisation sont enregistrés dans les minutes qui suivent leur échéance. Un délai d'inactivité dans le navigateur est enregistré dans les 35 minutes qui suivent son échéance, que la personne revienne ou non. Dans l'application mobile, il est enregistré quand l'application contacte de nouveau OneUptime.
+Une entrée `Sign-In Failed` porte sur la tentative et est nommée d'après l'appareil d'où elle vient. Son **Acteur** est le compte visé par la tentative : son auteur n'a pas prouvé qu'il est cette personne. Ses détails indiquent pourquoi elle a échoué, comment la personne a tenté de se connecter, l'adresse IP et la localisation, jamais ce qui a été saisi. Une tentative sur une adresse e-mail qui n'appartient à aucun compte n'est pas enregistrée, et enregistrer une tentative ne change ni ce que répond la page de connexion ni la vitesse à laquelle elle répond. Pour qu'un afflux de tentatives ne puisse pas remplir le journal d'audit, les 10 premières tentatives échouées sur un compte en une heure sont enregistrées une par une. Les suivantes sont comptées, et l'entrée suivante du compte indique combien de tentatives elle représente et quand la première d'entre elles a eu lieu.
+
+Les lecteurs d'une page de statut privée sont aussi enregistrés, dans le projet de la page de statut uniquement : chaque connexion avec un mot de passe, un lien de connexion ou l'authentification unique de la page de statut, chaque déconnexion, et chaque session à laquelle OneUptime met fin parce que le mot de passe du lecteur a changé ou que la page de statut n'accepte plus la façon dont elle s'est connectée. Leurs entrées figurent aussi sur la page **Journaux d'audit** propre à la page de statut. Leur **Acteur** est le lecteur, par son adresse e-mail, et leur **Ressource** est la session du lecteur.
+
+Les connexions et les sessions sont enregistrées que le projet stocke ou non les événements système. Une durée de session ou 30 jours sans utilisation sont enregistrés dans les minutes qui suivent leur échéance. Un délai d'inactivité dans le navigateur, ou dans une version de l'application mobile plus récente que la 1.6.0, est enregistré dans les 35 minutes qui suivent son échéance, que la personne revienne ou non. Dans la version 1.6.0 et les versions antérieures de l'application mobile, il est enregistré quand l'application contacte de nouveau OneUptime.
 
 ## Combien de temps les entrées sont conservées
 

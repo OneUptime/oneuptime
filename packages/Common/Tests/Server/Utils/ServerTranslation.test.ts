@@ -112,7 +112,7 @@ describe("getServerTranslator", () => {
 
     expect(SERVER_LOCALES["fr"]?.["{{count}} minutes_one"]).toBe(MINUTES.one);
     expect(getServerTranslator("fr").translatePlural(MINUTES, 0)).toBe(
-      "0 minute",
+      "0\u00A0minute",
     );
     expect(getServerTranslator("fr").translatePlural(MINUTES, 1)).toBe(
       "1 minute",
@@ -122,9 +122,9 @@ describe("getServerTranslator", () => {
     );
     expect(
       describeOnCallAcknowledgementTimeout(0, getServerTranslator("fr")),
-    ).toBe("0 minute");
+    ).toBe("0\u00A0minute");
     expect(getRecordWordsTranslator("fr")?.translatePlural(MINUTES, 0)).toBe(
-      "0 minute",
+      "0\u00A0minute",
     );
   });
 

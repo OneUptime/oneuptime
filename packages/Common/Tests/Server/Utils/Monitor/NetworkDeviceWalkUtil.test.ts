@@ -35,6 +35,8 @@ import {
 import TransceiverHealthUtil from "../../../../Utils/NetworkDevice/TransceiverHealthUtil";
 import logger from "../../../../Server/Utils/Logger";
 import OnCallPageTiming from "../../../../Server/Utils/OnCall/OnCallPageTiming";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import ExceptionMessages from "../../../../Types/Exception/ExceptionMessages";
 
 /*
  * NetworkDeviceWalkUtil is the server half of device-owned polling: the
@@ -360,26 +362,27 @@ describe("NetworkDeviceWalkUtil.processWalkResult — happy path", () => {
 
     /*
      * Persisting first would make the delta baseline the walk itself —
-     * every rate would compute to zero.
+     * every rate would compute to zero. It is persisted by the inventory
+     * sync, with the poll's verdict (issue #7393).
      */
     expect(rateSpy.mock.invocationCallOrder[0]).toBeLessThan(
-      deviceUpdateSpy.mock.invocationCallOrder[0] as number,
+      inventorySpy.mock.invocationCallOrder[0] as number,
     );
   });
 
-  test("a walk with interfaces persists itself as the next delta baseline", async () => {
+  test("a walk with interfaces persists itself as the next delta baseline, through the inventory sync's verdict statement", async () => {
     mockPipeline();
     const snmpResponse: SnmpMonitorResponse = buildSnmpResponse();
 
     await runWalk(snmpResponse);
 
-    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
-    const updateArgs: JSONObject = deviceUpdateSpy.mock.calls[0][0];
-    expect((updateArgs["id"] as ObjectID).toString()).toBe(DEVICE_ID);
+    // No device write of its own: it rides with the verdict (issue #7393).
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(inventorySpy).toHaveBeenCalledTimes(1);
+    const inventoryArgs: JSONObject = inventorySpy.mock.calls[0][0];
+    expect((inventoryArgs["deviceId"] as ObjectID).toString()).toBe(DEVICE_ID);
 
-    const lastWalkLog: JSONObject = (updateArgs["data"] as JSONObject)[
-      "lastWalkLog"
-    ] as JSONObject;
+    const lastWalkLog: JSONObject = inventoryArgs["lastWalkLog"] as JSONObject;
     const storedResponse: JSONObject = lastWalkLog[
       "snmpResponse"
     ] as JSONObject;
@@ -764,6 +767,82 @@ describe("NetworkDeviceWalkUtil.processWalkResult — fault isolation", () => {
 
     expect(monitorResourceSpy).toHaveBeenCalledTimes(2);
     expect(synthesized(1).monitorId.toString()).toBe(later!.id!.toString());
+  });
+
+  /*
+   * A monitor paused, archived or disabled after the fan-out read it is
+   * refused by MonitorResource. Nothing anyone can act on: logged at debug,
+   * never at error, and the next monitor is still evaluated (issue #8069).
+   */
+  test.each([
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+    ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+    ExceptionMessages.MonitorDisabled,
+    ExceptionMessages.MonitorArchived,
+    ExceptionMessages.MonitorNotFound,
+  ])(
+    "a monitor refused mid-check ('%s') is logged at debug, not error, and the next is evaluated",
+    async (refusal: string) => {
+      const first: Monitor = buildMonitor({ steps: [buildStep(DEVICE_ID)] });
+      const second: Monitor = buildMonitor({ steps: [buildStep(DEVICE_ID)] });
+      mockPipeline({ monitors: [first, second] });
+
+      const errorSpy: jest.SpyInstance = jest
+        .spyOn(logger, "error")
+        .mockImplementation(() => {
+          return undefined;
+        });
+      const debugSpy: jest.SpyInstance = jest
+        .spyOn(logger, "debug")
+        .mockImplementation(() => {
+          return undefined;
+        });
+
+      monitorResourceSpy.mockRejectedValueOnce(new BadDataException(refusal));
+
+      await expect(runWalk(buildSnmpResponse())).resolves.toBeUndefined();
+
+      const [earlier, later] = [first, second].sort(
+        (a: Monitor, b: Monitor) => {
+          return a.id!.toString().localeCompare(b.id!.toString());
+        },
+      );
+
+      expect(monitorResourceSpy).toHaveBeenCalledTimes(2);
+      expect(synthesized(1).monitorId.toString()).toBe(later!.id!.toString());
+      expect(errorSpy).not.toHaveBeenCalled();
+
+      const refusalLines: Array<string> = debugSpy.mock.calls
+        .map((call: Array<unknown>): string => {
+          return String(call[0]);
+        })
+        .filter((line: string): boolean => {
+          return line.includes(refusal);
+        });
+
+      expect(refusalLines).toHaveLength(1);
+      expect(refusalLines[0]).toContain(earlier!.id!.toString());
+    },
+  );
+
+  test("any other evaluation failure is still logged at error, and the next is evaluated", async () => {
+    const first: Monitor = buildMonitor({ steps: [buildStep(DEVICE_ID)] });
+    const second: Monitor = buildMonitor({ steps: [buildStep(DEVICE_ID)] });
+    mockPipeline({ monitors: [first, second] });
+
+    const errorSpy: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    const failure: Error = new Error("Acquire mutex timeout");
+
+    monitorResourceSpy.mockRejectedValueOnce(failure);
+
+    await expect(runWalk(buildSnmpResponse())).resolves.toBeUndefined();
+
+    expect(monitorResourceSpy).toHaveBeenCalledTimes(2);
+    expect(errorSpy).toHaveBeenCalledWith(failure, expect.anything());
   });
 });
 

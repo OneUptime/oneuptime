@@ -764,7 +764,7 @@ describe("what the uptime and status page tools bring reads whole", () => {
         { intervalSeconds: 300 },
         german,
       ),
-    ).toBe("alle 5 Minuten");
+    ).toBe("alle 5\u00A0Minuten");
   });
 
   test("a monitor says its type, how often it is checked and where", () => {

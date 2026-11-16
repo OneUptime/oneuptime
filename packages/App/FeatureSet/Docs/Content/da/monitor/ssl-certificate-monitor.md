@@ -50,7 +50,7 @@ Indtast det websted, hvis certifikat skal kontrolleres, i **Websteds-URL**, for 
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Overvågningstestresultat** viser det certifikat, sonden fik, med dets udsteder og udløbsdato.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser det certifikat, sonden fik, med dets udsteder og udløbsdato.
 
 ### Gennemgå kriterierne
 
@@ -93,8 +93,8 @@ Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, e
 
 En ny SSL-certifikat-monitor starter med tre kriterier, så den advarer dig, før et certifikat udløber, uden nogen opsætning:
 
-1. **Certifikatet er ikke gyldigt** — certifikatet er udløbet, tilbagekaldt af sin udsteder, selvsigneret, udstedt til et andet værtsnavn eller af en udsteder, der ikke er tillid til, eller kunne ikke kontrolleres, fordi endpointet ikke svarede. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitor name_ certificate is not valid". Dens grundårsag fortæller, hvilket af disse tilfælde det var, og for et tilbagekaldt certifikat, hvornår og hvorfor udstederen tilbagekaldte det. Hændelsen løser sig selv, så snart certifikatet er gyldigt igen.
-2. **Certifikatet udløber snart** — certifikatet er gyldigt, men udløber om 14 dage eller mindre. Der oprettes en **advarsel** med navnet "_monitor name_ certificate expires soon".
+1. **Certifikatet er ikke gyldigt** — certifikatet er udløbet, tilbagekaldt af sin udsteder, selvsigneret, udstedt til et andet værtsnavn eller af en udsteder, der ikke er tillid til, eller kunne ikke kontrolleres, fordi endpointet ikke svarede. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "Certifikatet for _monitornavn_ er ugyldigt". Dens grundårsag fortæller, hvilket af disse tilfælde det var, og for et tilbagekaldt certifikat, hvornår og hvorfor udstederen tilbagekaldte det. Hændelsen løser sig selv, så snart certifikatet er gyldigt igen.
+2. **Certifikatet udløber snart** — certifikatet er gyldigt, men udløber om 14 dage eller mindre. Der oprettes en **advarsel** med navnet "Certifikatet for _monitornavn_ udløber snart".
 3. **Certifikatet er gyldigt** — monitoren markeres som **I drift**.
 
 Advarslen "udløber snart" er en advarsel, ikke en hændelse: den vises ikke på dine statussider, den tilkalder ingen, medmindre du føjer en vagtpolitik til den, og den ændrer ikke monitorens status. Den bruger dit projekts anden advarselsalvorlighed, **Lav** i et nyt projekt. Når det fornyede certifikat bliver opfanget, er monitoren tilbage på "Certifikatet er gyldigt", og advarslen løser sig selv.
@@ -108,7 +108,7 @@ Monitorer, der blev oprettet, før OneUptime indførte denne advarsel, har intet
 
 1. Åbn **Konfiguration → Kriterier** på monitoren, og klik på **Rediger kriterier**.
 2. Klik på **Tilføj kriterier**. Sæt dets filter til **Certifikatet er gyldigt** / **Sand**, klik på **Tilføj filter**, og sæt det andet til **Dage til udløb** / **Mindre end eller lig med** / `14`. Lad **Matchbetingelse** stå på **Alle** (den vises under filtrene, så snart der er to).
-3. Slå **Når filtre matcher, oprettes en advarsel.** til under **Handlinger**, og lad **Når filtre matcher, ændres overvågningsstatus.** være slået fra, så det opretter en advarsel og ikke ændrer monitorens status.
+3. Slå **Når filtre matcher, oprettes en advarsel.** til under **Handlinger**, og lad **Når filtre matcher, ændres monitorstatus.** være slået fra, så det opretter en advarsel og ikke ændrer monitorens status.
 4. Træk det nye kriterium op over det kriterium, der markerer monitoren som online, og gem derefter.
 :::
 

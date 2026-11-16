@@ -38,7 +38,7 @@ export const PROJECT_BALANCE_CARD_DESCRIPTIONS: Readonly<
       "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Recharge it, or turn on Auto Recharge so it never runs out.",
     ),
     forEveryoneElse: translationKey(
-      "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
+      "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
     ),
   },
   [ProjectBalanceType.AI]: {
@@ -46,7 +46,7 @@ export const PROJECT_BALANCE_CARD_DESCRIPTIONS: Readonly<
       "AI features are paid from this balance, in USD. Recharge it, or turn on Auto Recharge so it never runs out.",
     ),
     forEveryoneElse: translationKey(
-      "AI features are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
+      "AI features are paid from this balance, in USD. A Project Owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
     ),
   },
 };
@@ -71,7 +71,7 @@ export const AUTO_RECHARGE_FAILED_DESCRIPTIONS: Readonly<
       "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or recharge the balance now.",
     ),
     forEveryoneElse: translationKey(
-      "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.",
+      "It tries again within an hour. A Project Owner or someone with Manage Billing can recharge the balance.",
     ),
   },
   [ProjectBalanceType.AI]: {
@@ -79,7 +79,7 @@ export const AUTO_RECHARGE_FAILED_DESCRIPTIONS: Readonly<
       "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add AI credits now.",
     ),
     forEveryoneElse: translationKey(
-      "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.",
+      "It tries again within an hour. A Project Owner or someone with Manage Billing can add AI credits.",
     ),
   },
 };
@@ -132,7 +132,7 @@ export const RECHARGE_BALANCE_LOCKED_TEMPLATE: string = translationKey(
  * AI Investigation card), for someone who may not add them.
  */
 export const WHO_CAN_ADD_AI_CREDITS: string = translationKey(
-  "A project owner or someone with Manage Billing can add AI credits.",
+  "A Project Owner or someone with Manage Billing can add AI credits.",
 );
 
 /*

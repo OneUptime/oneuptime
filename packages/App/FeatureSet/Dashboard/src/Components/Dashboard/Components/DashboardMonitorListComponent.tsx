@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import DashboardMonitorListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardMonitorListComponent";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
@@ -49,6 +50,7 @@ import useDashboardListWidgetSort, {
   DashboardListWidgetSort,
 } from "../Utils/UseDashboardListWidgetSort";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
+import { getMonitorTypeTitleInLanguage } from "../../Monitor/MonitorTypeTitle";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardMonitorListComponent;
@@ -79,6 +81,23 @@ export const getMonitorListStatusName: (
     StateListType.MonitorStatus,
     status.text,
   );
+};
+
+/*
+ * A row's type, in its Type column and its tile's tooltip: the name the
+ * type picker gives it, in the reader's words ("SSL-Zertifikat"), as the
+ * Monitors list's Monitor Type column says it - never the stored English
+ * value (#8294). A monitor with no type keeps the dash it always had.
+ */
+export const getMonitorListTypeText: (
+  monitor: Monitor,
+  translator: Translator,
+) => string = (monitor: Monitor, translator: Translator): string => {
+  if (!monitor.monitorType) {
+    return EMPTY_VALUE_MARK;
+  }
+
+  return getMonitorTypeTitleInLanguage(monitor.monitorType, translator);
 };
 
 const COLUMNS: Array<ResourceListColumn> = [
@@ -220,7 +239,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
       // Disabled, in gray, when the monitor's monitoring is off.
       const status: MonitorListRowStatus = getMonitorListRowStatus(monitor);
       const statusName: string = getMonitorListStatusName(status, translator);
-      const monitorType: string = (monitor.monitorType as string) || "—";
+      const monitorType: string = getMonitorListTypeText(monitor, translator);
 
       const detailRoute: Route | undefined = monitorId
         ? RouteUtil.populateRouteParams(
@@ -250,7 +269,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
       const status: MonitorListRowStatus = getMonitorListRowStatus(monitor);
       const statusName: string = getMonitorListStatusName(status, translator);
       const statusColor: Color | null = status.color;
-      const monitorType: string = (monitor.monitorType as string) || "—";
+      const monitorType: string = getMonitorListTypeText(monitor, translator);
       const name: string =
         (monitor.name as string) || getUnnamedText(translator);
 

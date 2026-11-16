@@ -1,6 +1,6 @@
 # Google SecOps
 
-把 [Google SecOps](https://cloud.google.com/security/products/security-operations)（原 Chronicle）的警报和检测导入 OneUptime 的安全事件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的内容呼叫值班人员。
+把 [Google SecOps](https://cloud.google.com/security/products/security-operations)（原 Chronicle）的警报和检测导入 OneUptime 的安全事件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的内容呼叫值班人员。
 
 :::cards
 - [选择连接方式](#选择连接方式): SOAR playbook Webhook、托管连接器，或 UDM 转发。
@@ -255,11 +255,11 @@ OneUptime 也可以把发现的内容发送到 Google SecOps，让您的团队�
 
 ### 选择发送的内容
 
-在 **发送内容** 下保留 **仅检测结果**，即您的规则和威胁情报发现的内容以及已连接产品发出的告警，或选择 **所有安全事件**。点击 **开始发送**。
+在 **发送内容** 下保留 **仅检测结果**，即您的规则和威胁情报发现的内容以及已连接产品发出的警报，或选择 **所有安全事件**。点击 **开始发送**。
 :::
 
 - 目标只发送保存之后到达的事件，绝不发送项目的历史记录，并且每分钟发送一次新事件。
-- OneUptime 从 Google SecOps 导入的告警绝不会被发送回去。
+- OneUptime 从 Google SecOps 导入的警报绝不会被发送回去。
 - 当 Google SecOps 没有响应或拒绝一批事件时，目标会保留其位置，并在下一次运行时重试。其 **状态** 显示为 **失败**，**查看错误** 会显示 Google SecOps 的答复。
 
 ## 故障排除

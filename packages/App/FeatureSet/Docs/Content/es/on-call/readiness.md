@@ -69,7 +69,7 @@ Después, un aviso indica cuántos recordatorios se enviaron, se omitieron o fal
 
 ## El correo semanal de preparación
 
-Una vez por semana, OneUptime revisa cada proyecto que tiene una política de guardia. Cuando alguien en él está **Inaccesible** o **Necesita configuración**, los propietarios del proyecto reciben un correo que enumera a esas personas en dos grupos, quienes no pueden recibir ningún aviso y quienes son localizables con huecos, hasta 20 nombres cada uno, con un enlace a la página Preparación.
+Una vez por semana, OneUptime revisa cada proyecto que tiene una política de guardia. Cuando alguien en él está **Inaccesible** o **Necesita configuración**, los Propietarios del proyecto reciben un correo que enumera a esas personas en dos grupos, quienes no pueden recibir ningún aviso y quienes son localizables con huecos, hasta 20 nombres cada uno, con un enlace a la página Preparación.
 
 Una semana en la que todos están listos no envía nada, así que el correo siempre significa que hay algo que arreglar. Cuando alguien no puede recibir ningún aviso, su asunto empieza por `[Action Required]`.
 
@@ -100,7 +100,7 @@ La lista solo contiene a personas a las que una política de guardia puede avisa
 :::
 
 :::details Los propietarios nunca reciben el correo semanal
-Solo se envía en una semana en la que alguien está **Inaccesible** o **Necesita configuración**, y solo a los propietarios del proyecto.
+Solo se envía en una semana en la que alguien está **Inaccesible** o **Necesita configuración**, y solo a los Propietarios del proyecto.
 :::
 
 ## Próximos pasos

@@ -432,7 +432,7 @@ describe("which view it opens on", () => {
     expect(drawnSteps()).toEqual([
       { wait: "At once", methods: ["SMS: +15550100"] },
       // The method's name as the cards below name it: "Phone call", never the shared "Call" (#7178).
-      { wait: "After 5 minutes", methods: ["Phone call: +15550100"] },
+      { wait: "After 5\u00A0minutes", methods: ["Phone call: +15550100"] },
     ]);
 
     // Numbered down the line.
@@ -611,7 +611,7 @@ describe("moving between the ladder and the grid", () => {
     fireEvent.click(screen.getByTestId("modal-footer-close-button"));
 
     expect(pageView()).toBe("ladder");
-    expect(drawnSteps()[1]!.wait).toBe("After 10 minutes");
+    expect(drawnSteps()[1]!.wait).toBe("After 10\u00A0minutes");
     expect(screen.queryByText("Leave without saving?")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("paging-ladder-open-grid"));
@@ -677,16 +677,16 @@ describe("changing the steps", () => {
       }),
     ).toEqual([
       "At once",
-      "After 5 minutes",
-      "After 10 minutes",
-      "After 15 minutes",
-      "After 30 minutes",
-      "After 60 minutes",
+      "After 5\u00A0minutes",
+      "After 10\u00A0minutes",
+      "After 15\u00A0minutes",
+      "After 30\u00A0minutes",
+      "After 60\u00A0minutes",
     ]);
 
     fireEvent.click(screen.getByTestId("paging-ladder-wait-option-10"));
 
-    expect(drawnSteps()[1]!.wait).toBe("After 10 minutes");
+    expect(drawnSteps()[1]!.wait).toBe("After 10\u00A0minutes");
     expect(screen.getByTestId("paging-ladder-unsaved")).toHaveTextContent(
       "You have unsaved changes",
     );
@@ -815,8 +815,8 @@ describe("changing the steps", () => {
 
     expect(drawnSteps()).toEqual([
       { wait: "At once", methods: ["SMS: +15550100"] },
-      { wait: "After 5 minutes", methods: ["Phone call: +15550100"] },
-      { wait: "After 10 minutes", methods: ["Email: me@example.com"] },
+      { wait: "After 5\u00A0minutes", methods: ["Phone call: +15550100"] },
+      { wait: "After 10\u00A0minutes", methods: ["Email: me@example.com"] },
     ]);
 
     givenRules(
@@ -851,7 +851,7 @@ describe("changing the steps", () => {
     renderPage();
     await screen.findByTestId("paging-ladder");
 
-    expect(drawnSteps()[1]!.wait).toBe("After 60 minutes");
+    expect(drawnSteps()[1]!.wait).toBe("After 60\u00A0minutes");
     expect(
       screen.queryByTestId("paging-ladder-add-step"),
     ).not.toBeInTheDocument();

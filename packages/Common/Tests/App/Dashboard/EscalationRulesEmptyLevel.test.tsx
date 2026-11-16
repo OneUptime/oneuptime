@@ -393,9 +393,9 @@ describe("an empty level between two that page", () => {
     expect(summaryTimings()).toEqual([
       "Immediately",
       `skipped: ${SKIPPED_LEVEL_TIMING}`,
-      "After 5 min",
+      "After 5\u00A0min",
     ]);
-    expect(toFinalLevel()).toBe("5 min");
+    expect(toFinalLevel()).toBe("5\u00A0min");
   });
 });
 
@@ -424,8 +424,8 @@ describe("a level whose schedule has nobody on call right now", () => {
     expect(
       within(cards[0]!).queryByTestId("escalation-rule-no-responders"),
     ).not.toBeInTheDocument();
-    expect(summaryTimings()).toEqual(["Immediately", "After 5 min"]);
-    expect(toFinalLevel()).toBe("5 min");
+    expect(summaryTimings()).toEqual(["Immediately", "After 5\u00A0min"]);
+    expect(toFinalLevel()).toBe("5\u00A0min");
   });
 });
 

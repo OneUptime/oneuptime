@@ -9,6 +9,7 @@ import {
   resolveSetupGuideOption,
   shellQuote,
 } from "../../../Components/SetupGuide/SetupGuide";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How the devices' readings reach OneUptime. There is no agent to install:
@@ -194,10 +195,11 @@ function getKeyStep(data: IoTSetupGuideOptions): SetupGuideKeyStep {
     return {
       description:
         "Devices authenticate to the MQTT endpoint with this key as their password. Pick an existing key or create a new one — the snippets below update to use it.",
-      endpointLabel: "MQTT WebSocket URL",
+      endpointLabel: translationKey("MQTT WebSocket URL"),
       endpointValue: getIoTMqttWebSocketUrl(data.oneuptimeUrl),
-      endpointHint:
+      endpointHint: translationKey(
         "Send the ingestion token below as the MQTT password — the username is ignored.",
+      ),
     };
   }
 
@@ -495,9 +497,11 @@ const OPTIONAL_DEVICE_ATTRIBUTES: Array<IoTAttribute> = [
 ];
 
 function getModelTopic(method: IoTIngestionMethod): SetupGuideTopic {
-  const title: string = "How OneUptime models IoT";
-  const summary: string =
-    "Fleets and devices, and the attributes that identify and classify them.";
+  // Both ways share the topic's title and summary: keys of their own (#8341).
+  const title: string = translationKey("How OneUptime models IoT");
+  const summary: string = translationKey(
+    "Fleets and devices, and the attributes that identify and classify them.",
+  );
 
   if (isMqtt(method)) {
     return {

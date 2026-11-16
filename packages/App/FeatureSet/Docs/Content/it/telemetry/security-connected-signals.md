@@ -1,12 +1,12 @@
 # Segnali collegati
 
-Un caso di sicurezza dice quali utenti, host e indirizzi riguarda. Segnali collegati dice quali di questi OneUptime conosce già - i tuoi host, host di container, cluster Kubernetes, cloud OpenStack, dispositivi di rete, risorse cloud, funzioni serverless, servizi, i monitor che li controllano e membri - e cosa succedeva su ciascuno attorno al caso: i suoi registri, tracce e metriche, gli incidenti e gli avvisi aperti su di esso, i monitor che lo controllano e cosa vi è cambiato. Li cerca anche nei tuoi registri e nelle tue tracce: l'indirizzo di un attaccante nel registro degli accessi di un server web, un'email trapelata nell'errore di un'applicazione. Al contrario, la pagina di un host, di un cluster, di una risorsa cloud, di un servizio, di un monitor o di un membro dice cosa ha trovato Security Events su di esso.
+Un caso di sicurezza dice quali utenti, host e indirizzi riguarda. Segnali collegati dice quali di questi OneUptime conosce già - i tuoi host, host di container, cluster Kubernetes, cloud OpenStack, dispositivi di rete, risorse cloud, funzioni serverless, servizi, i monitor che li controllano e membri - e cosa succedeva su ciascuno attorno al caso: i suoi log, tracce e metriche, gli incidenti e gli avvisi aperti su di esso, i monitor che lo controllano e cosa vi è cambiato. Li cerca anche nei tuoi log e nelle tue tracce: l'indirizzo di un attaccante nel log degli accessi di un server web, un'email trapelata nell'errore di un'applicazione. Al contrario, la pagina di un host, di un cluster, di una risorsa cloud, di un servizio, di un monitor o di un membro dice cosa ha trovato Eventi di sicurezza su di esso.
 
 :::cards
 - [Dove lo vedi](#dove-lo-vedi): La pagina di un caso, la scheda di un evento, la pagina di un'entità e le pagine di ciò che nominano.
 - [Come si abbina un valore](#come-si-abbina-un-valore): Cosa conta come lo stesso record e cosa lo è solo forse.
 - [Cosa mostra ogni record](#cosa-mostra-ogni-record): I suoi segnali attorno al caso e ciò che è aperto su di esso.
-- [Nei tuoi registri e nelle tue tracce](#nei-tuoi-registri-e-nelle-tue-tracce): Dove un indirizzo, un dominio o un'email che nomina compare nelle tue righe di registro e nei tuoi span.
+- [Nei tuoi log e nelle tue tracce](#nei-tuoi-log-e-nelle-tue-tracce): Dove un indirizzo, un dominio o un'email che nomina compare nelle tue righe di log e nei tuoi span.
 - [Chi vede cosa](#chi-vede-cosa): Ogni record viene letto con il ruolo di chi legge.
 :::
 
@@ -50,7 +50,7 @@ Ogni utente, host e indirizzo che un caso o un evento nomina viene cercato tra i
 | Un host, un indirizzo IP pubblico o l'host di un URL che un monitor controlla | Quel monitor | Esatto |
 | Un indirizzo IP privato che un monitor controlla | Quel monitor | Possibile |
 | L'email di un membro | Quel membro | Esatto |
-| Il record con cui è stata inviata una riga di registro, per gli eventi letti dai tuoi registri | Quell'host, cluster, cloud OpenStack, risorsa cloud, funzione serverless o servizio | Esatto |
+| Il record con cui è stata inviata una riga di log, per gli eventi letti dai tuoi log | Quell'host, cluster, cloud OpenStack, risorsa cloud, funzione serverless o servizio | Esatto |
 | Un semplice nome utente, un hash di file o un processo | Niente: nessun record è indicizzato in base a loro | - |
 
 - Una possibile corrispondenza mostra **Possibile corrispondenza** accanto al suo nome e dice perché. Non viene mai contata nella pagina del record, e un incidente che il caso dichiara non viene mai collegato a essa.
@@ -59,8 +59,8 @@ Ogni utente, host e indirizzo che un caso o un evento nomina viene cercato tra i
 
 ## Cosa mostra ogni record
 
-- I suoi segnali, ciascuno aperto sul record e sull'intervallo del caso: **Registri**, **Tracce** e **Metriche**, le **Eccezioni** di un servizio, gli **Eventi Kubernetes** di un cluster, la **Topologia** del record e il suo elemento in **Inventario** quando l'inventario ne ha uno.
-- Gli incidenti e gli avvisi aperti ora su di esso e i monitor che lo controllano, ciascuno con la propria pagina. Un monitor mostra il suo stato accanto al nome, e i suoi **Registri** sono ciò che ha visto a ogni controllo.
+- I suoi segnali, ciascuno aperto sul record e sull'intervallo del caso: **Log**, **Tracce** e **Metriche**, le **Eccezioni** di un servizio, gli **Eventi Kubernetes** di un cluster, la **Topologia** del record e il suo elemento in **Inventario** quando l'inventario ne ha uno.
+- Gli incidenti e gli avvisi aperti ora su di esso e i monitor che lo controllano, ciascuno con la propria pagina. Un monitor mostra il suo stato accanto al nome, e i suoi **Log** sono ciò che ha visto a ogni controllo.
 - Le pianificazioni di reperibilità di un membro, con **Reperibile ora** accanto a quelle per cui è reperibile adesso, e i team di cui fa parte.
 - Cosa vi è cambiato nell'intervallo: i deploy di un servizio, i rollout di un cluster e le correzioni di un host.
 
@@ -71,26 +71,26 @@ Ogni utente, host e indirizzo che un caso o un evento nomina viene cercato tra i
 | La pagina di un'entità | 30 minuti prima e dopo il suo ultimo evento di sicurezza |
 | La scheda **Sicurezza** di un record | Gli ultimi 7 giorni |
 
-## Nei tuoi registri e nelle tue tracce
+## Nei tuoi log e nelle tue tracce
 
-Sotto i record, Segnali collegati cerca nei tuoi registri e nelle tue tracce, sulla stessa finestra, i valori che nomina che possono significare una sola cosa: un indirizzo IP (tranne `127.0.0.1` e gli altri che ogni macchina ha), un nome completo di host o di dominio, un'email, un URL, l'ID di una risorsa cloud e l'hash di un file. Un nome host semplice, il nome semplice di un utente e un processo non vengono mai cercati: una riga di registro può contenerli per qualsiasi motivo. Vengono cercati al massimo 10 valori.
+Sotto i record, Segnali collegati cerca nei tuoi log e nelle tue tracce, sulla stessa finestra, i valori che nomina che possono significare una sola cosa: un indirizzo IP (tranne `127.0.0.1` e gli altri che ogni macchina ha), un nome completo di host o di dominio, un'email, un URL, l'ID di una risorsa cloud e l'hash di un file. Un nome host semplice, il nome semplice di un utente e un processo non vengono mai cercati: una riga di log può contenerli per qualsiasi motivo. Vengono cercati al massimo 10 valori.
 
 | Dove | Nomina un valore quando |
 | --- | --- |
-| Il messaggio di una riga di registro | Contiene il valore intero, maiuscole o minuscole che siano: `10.0.0.1` in `from 10.0.0.1:52144`, mai in `10.0.0.12` o `110.0.0.1` |
-| Un attributo di una riga di registro o di uno span | Il suo valore è esattamente il valore: come scritto, in minuscolo o in maiuscolo, o un indirizzo IPv6 nella sua forma breve |
+| Il messaggio di una riga di log | Contiene il valore intero, maiuscole o minuscole che siano: `10.0.0.1` in `from 10.0.0.1:52144`, mai in `10.0.0.12` o `110.0.0.1` |
+| Un attributo di una riga di log o di uno span | Il suo valore è esattamente il valore: come scritto, in minuscolo o in maiuscolo, o un indirizzo IPv6 nella sua forma breve |
 
-- Ogni valore trovato mostra quante righe di registro e quanti span lo nominano, dove si trovava in essi - **Nel messaggio** o un attributo per la sua chiave -, ciascuno dei quali apre **Registri** o **Tracce** su quelle righe o quegli span e sulla finestra, e i record che li hanno inviati, prima quelli che ne hanno inviati di più.
+- Ogni valore trovato mostra quante righe di log e quanti span lo nominano, dove si trovava in essi - **Nel messaggio** o un attributo per la sua chiave -, ciascuno dei quali apre **Log** o **Tracce** su quelle righe o quegli span e sulla finestra, e i record che li hanno inviati, prima quelli che ne hanno inviati di più.
 - Un attributo di risorsa, come `resource.host.name`, dice solo quale record ha inviato una riga, e non viene mai contato.
-- I valori cercati che nessuno dei due nomina sono elencati in **Non è nei tuoi registri né nelle tue tracce**.
-- Vengono cercati con il tuo ruolo: i registri o le tracce che il tuo ruolo non può leggere vengono indicati e non cercati; quelli che al momento non è stato possibile cercare lo dicono, con **Riprova**. Una ricerca che dura più di 15 secondi viene interrotta, e lo dice.
+- I valori cercati che nessuno dei due nomina sono elencati in **Non è nei tuoi log né nelle tue tracce**.
+- Vengono cercati con il tuo ruolo: i log o le tracce che il tuo ruolo non può leggere vengono indicati e non cercati; quelli che al momento non è stato possibile cercare lo dicono, con **Riprova**. Una ricerca che dura più di 15 secondi viene interrotta, e lo dice.
 
 ## Chi vede cosa
 
 - Segnali collegati e la scheda **Sicurezza** di un record richiedono un ruolo che può leggere gli eventi di sicurezza: Amministratore della sicurezza, Membro della sicurezza, Visualizzatore della sicurezza, Proprietario del progetto o Amministratore del progetto. Nessun altro vede dati di sicurezza in alcuna pagina. Vedi [Ruoli](/docs/permissions/reference#ruoli).
 - La scheda **Sicurezza** di un incidente richiede un ruolo che può leggere i casi di sicurezza.
 - Ogni record viene letto con il tuo ruolo, e così ciò che contiene: un ruolo che non può leggere le pianificazioni di reperibilità non vede quelle di un membro. Un tipo di record che il tuo ruolo non può leggere viene omesso, e la pagina lo dice; uno che non è stato possibile leggere al momento lo dice anch'esso, con **Riprova**.
-- La pagina di un record mostra la sua scheda **Sicurezza** solo in un progetto che usa Security Events: uno che ha ricevuto un evento di sicurezza negli ultimi 7 giorni.
+- La pagina di un record mostra la sua scheda **Sicurezza** solo in un progetto che usa Eventi di sicurezza: uno che ha ricevuto un evento di sicurezza negli ultimi 7 giorni.
 
 ## Incidenti che un caso dichiara
 
@@ -98,7 +98,7 @@ Sotto i record, Segnali collegati cerca nei tuoi registri e nelle tue tracce, su
 
 ## OneUptime AI
 
-Il triage di un caso da parte di OneUptime AI legge i suoi segnali collegati: cosa è aperto e cosa è cambiato sugli host, sui servizi, sui monitor e sui membri che il caso nomina, le pianificazioni di reperibilità e i team di un membro, e dove compaiono i suoi valori nei tuoi registri e nelle tue tracce. L'indagine su un incidente legge il caso di sicurezza che lo ha dichiarato e i casi aperti che nominano ciò che colpisce. Vedi [OneUptime AI nella sicurezza](/docs/telemetry/security-ai).
+Il triage di un caso da parte di OneUptime AI legge i suoi segnali collegati: cosa è aperto e cosa è cambiato sugli host, sui servizi, sui monitor e sui membri che il caso nomina, le pianificazioni di reperibilità e i team di un membro, e dove compaiono i suoi valori nei tuoi log e nelle tue tracce. L'indagine su un incidente legge il caso di sicurezza che lo ha dichiarato e i casi aperti che nominano ciò che colpisce. Vedi [OneUptime AI nella sicurezza](/docs/telemetry/security-ai).
 
 ## Risoluzione dei problemi
 
@@ -106,12 +106,12 @@ Il triage di un caso da parte di OneUptime AI legge i suoi segnali collegati: co
 Controlla che il caso nomini l'host come l'host nomina se stesso, o nomini un indirizzo pubblico che ha solo quell'host. Un nome breve, come `web-1` per `web-1.acme.internal`, è elencato come possibile corrispondenza, e un semplice nome utente, un hash di file o un processo non viene cercato affatto. Un URL viene cercato solo tra i monitor che controllano il suo host.
 :::
 
-:::details Un indirizzo che il caso nomina non è nei suoi registri e nelle sue tracce
-Viene cercata solo la finestra del caso, e solo nei registri e nelle tracce che il tuo ruolo può leggere. Un messaggio nomina un indirizzo solo se lo contiene intero: `10.0.0.12` è un altro indirizzo, anche se la ricerca nei messaggi dell'esploratore Registri trova anche quello. Un attributo lo nomina solo quando il suo valore è esattamente l'indirizzo, e un attributo di risorsa mai.
+:::details Un indirizzo che il caso nomina non è nei suoi log e nelle sue tracce
+Viene cercata solo la finestra del caso, e solo nei log e nelle tracce che il tuo ruolo può leggere. Un messaggio nomina un indirizzo solo se lo contiene intero: `10.0.0.12` è un altro indirizzo, anche se la ricerca nei messaggi dell'esploratore Log trova anche quello. Un attributo lo nomina solo quando il suo valore è esattamente l'indirizzo, e un attributo di risorsa mai.
 :::
 
 :::details L'host giusto è elencato come possibile corrispondenza
-Una possibile corrispondenza non viene mai contata né collegata, perché un nome che due macchine condividono non ti dica mai qualcosa su quella sbagliata. Fai nominare l'host dai tuoi registri e rilevamenti con il nome che riporta.
+Una possibile corrispondenza non viene mai contata né collegata, perché un nome che due macchine condividono non ti dica mai qualcosa su quella sbagliata. Fai nominare l'host dai tuoi log e rilevamenti con il nome che riporta.
 :::
 
 :::details La pagina di un host non ha la scheda Sicurezza
@@ -130,7 +130,7 @@ Ogni record viene letto con il tuo ruolo. Chiedi a un Proprietario del progetto 
 
 :::cards
 - [Casi di sicurezza e playbook](/docs/telemetry/security-cases): Gestire un caso e dichiararne un incidente.
-- [Eventi di sicurezza (SIEM)](/docs/telemetry/security-events): Gli eventi dietro un caso e i registri da cui vengono letti.
+- [Eventi di sicurezza (SIEM)](/docs/telemetry/security-events): Gli eventi dietro un caso e i log da cui vengono letti.
 - [Rischio delle entità (avvisi basati sul rischio)](/docs/telemetry/security-entity-risk): La pagina di un'entità, il suo rischio e dove OneUptime la conosce.
 - [OneUptime AI nella sicurezza](/docs/telemetry/security-ai): Come un triage legge ciò che un caso nomina.
 :::

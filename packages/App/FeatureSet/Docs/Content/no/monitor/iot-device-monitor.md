@@ -1,4 +1,4 @@
-# IoT-enhets-overvåking
+# IoT-enhetsmonitor
 
 En IoT-enhetsmonitor følger med på én flåte av enheter og sier fra når en enhet går offline, batteriet blir svakt, signalet svekkes, den blir overopphetet, eller CPU-en forblir opptatt. Den leser `iot_*`-målingene enhetene dine sender til OneUptime over OpenTelemetry eller MQTT, så ingenting sjekkes utenfra, og ingen sonde er involvert.
 
@@ -44,7 +44,7 @@ flowchart TB
 
 Gå til **Monitorer**, og klikk på **Opprett monitor**.
 
-### Velg IoT Device
+### Velg IoT-enhet
 
 Klikk på **Flere monitortyper** under **Monitortype**, og velg **IoT-enhet** under **Infrastruktur**, eller skriv `iot` i søkefeltet. Skriv inn et **Navn** - det brukes i titlene på hendelser og varsler - og klikk på **Neste**.
 
@@ -82,7 +82,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **IoT Metric** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på målingens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler setter sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggreger etter**, **Filtrer etter attributter**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
 Filtrene virker sammen: med en **Device ID** og en **Enhetstype** samsvarer en enhet av en annen type ikke med noe.
 
@@ -95,7 +95,7 @@ Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet -
 | Mal | Kategori | Alvorlighetsgrad | Overvåker | Utløser når | Gjenoppretter når |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Tilgjengelighet | Kritisk | `iot_device_up`, Min per `device.id`, siste 30 minutter | En måling er under 1, eller en registrert enhet sender ingenting i hele vinduet | Tilbake på 1 |
-| Low Battery | Power | Advarsel | `iot_battery_percent`, Avg per `device.id`, siste 5 minutter | Under 20 % | Ved 22 % eller mer |
+| Low Battery | Strøm | Advarsel | `iot_battery_percent`, Avg per `device.id`, siste 5 minutter | Under 20 % | Ved 22 % eller mer |
 | Weak Signal | Tilkobling | Advarsel | `iot_signal_strength_dbm`, Avg per `device.id`, siste 5 minutter | Under -100 dBm | Ved -90 dBm eller mer |
 | High Temperature | Miljø | Kritisk | `iot_temperature_celsius`, Max per `device.id`, siste 5 minutter | Over 70 °C | Ved 63 °C eller mindre |
 | High CPU Usage | System | Advarsel | `iot_cpu_usage_ratio`, Avg per `device.id`, siste 5 minutter | Over 0.9 (90 % av CPU-en) | Ved 0.81 eller mindre |
@@ -118,7 +118,7 @@ Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet -
 
 En registrert enhet beholdes også som offline i flåtens inventar, mens en uregistrert fjernes etter 15 minutter med stillhet. Deteksjon av stillhet krever regelen **Treat As Zero** for manglende data på kriteriet for `iot_device_up`, som Device Offline-monitorer opprettet fra malen har. En Device Offline-monitor som ble opprettet før enhetsregistrering fantes, må få den satt manuelt eller opprettes på nytt fra malen.
 
-**Device Offline** vurderer hver enhet ut fra den siste målingen, så en enhet som meldte seg nede og deretter oppe igjen, er oppe ved neste kontroll. En Device Offline-monitor som forblir frakoblet til målingen om nede er 30 minutter gammel, ble opprettet før malen gjorde dette: velg malen på nytt under **Hva det skal varsles om** for å oppdatere den.
+**Device Offline** vurderer hver enhet ut fra den siste målingen, så en enhet som meldte seg nede og deretter oppe igjen, er oppe ved neste kontroll. En Device Offline-monitor som forblir offline til målingen om nede er 30 minutter gammel, ble opprettet før malen gjorde dette: velg malen på nytt under **Hva det skal varsles om** for å oppdatere den.
 
 > [!NOTE]
 > En uregistrert enhet som blir taus uten en Last Will eller en gatewayrapport, slutter bare å sende data, og en monitor som grupperer per enhet, kan ikke peke den ut. Registrer enhetene dine, eller gi en kritisk enhet sin egen monitor (**Custom Metric**, med dens **Device ID**), og sett **Hvis ingen data** til **Utløser**. Deteksjon av stillhet krever også at minst én annen enhet i flåten fortsatt rapporterer: en flåte som blir helt mørk, for eksempel under et gatewaybrudd, sender ut én hendelse for monitoren, ikke én per enhet.
@@ -160,11 +160,11 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Samsvarer når | Så |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Frakoblet** og erklærer hendelsen "_monitor name_ is offline", som løser seg selv når monitoren kommer seg. |
-| 2 | Check if _monitor name_ is online | Den første spørringen har data | Markerer monitoren som **I drift**. |
+| 1 | Sjekk om _monitornavn_ er offline | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Offline** og erklærer hendelsen "_monitornavn_ er offline", som løser seg selv når monitoren kommer seg. |
+| 2 | Sjekk om _monitornavn_ er tilkoblet | Den første spørringen har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren offline. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Terraform
 
@@ -224,6 +224,6 @@ Malene leser `iot_*`-målingsnavnene nøyaktig og grupperer etter etiketten `dev
 
 :::cards
 - [IoT-enheter](/docs/telemetry/iot-devices): Send enhetsmålinger over OpenTelemetry eller MQTT.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på hvilken som helst måling, ikke bare IoT-målinger.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle på hvilken som helst måling, ikke bare IoT-målinger.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett enhetens ID i hendelsestitler.
 :::

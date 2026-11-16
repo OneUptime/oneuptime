@@ -64,8 +64,8 @@ Ein Plan, dessen Rotationen zwei Personen gleichzeitig in Bereitschaft setzen, w
 
 ## Was nicht übernommen wird
 
-- **Alarme, Vorfälle und ihr Verlauf.** OneUptime beginnt mit Ihrer Einrichtung, nicht mit Ihren vergangenen Alarmen.
-- **Integrationen, Heartbeats, Alarmrichtlinien und Routing-Regeln.** Richten Sie stattdessen Ihre Monitore und Alarmquellen auf OneUptime aus, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
+- **Warnungen, Vorfälle und ihr Verlauf.** OneUptime beginnt mit Ihrer Einrichtung, nicht mit Ihren vergangenen Warnungen.
+- **Integrationen, Heartbeats, Warnungsrichtlinien und Routing-Regeln.** Richten Sie stattdessen Ihre Monitore und Warnungsquellen auf OneUptime aus, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
 - **Plan-Überschreibungen und bereits beendete Rotationen.** Legen Sie die Überschreibungen, die Sie noch brauchen, nach dem Import in OneUptime an.
 - **Die Benachrichtigungsregeln der einzelnen Personen.** Personen wählen in ihren eigenen **Benutzereinstellungen**, wie sie alarmiert werden, sobald sie ihre Einladung annehmen.
 - **Schritte, für die OneUptime keine genaue Entsprechung hat.** Eine Regel, die alarmiert, wer als Nächstes Bereitschaft hat, oder die Admins eines Teams, wird als das Nächstliegende übernommen, das OneUptime hat, und die Vorschau sagt, was sich ändert.
@@ -90,8 +90,8 @@ Eingeladene Personen nehmen ihre Einladung an und fügen dann eine Telefonnummer
 ### Ihre Vorfallnummern fortsetzen
 Wenn Ihr Team Vorfälle bei ihrer Nummer nennt, lassen Sie die Nummern von OneUptime nach Ihrer letzten in Opsgenie beginnen: Setzen Sie unter **Vorfälle** > **Einstellungen** > **Nummerierung** auf der Karte **Nächste Nummer** die **Nächste Vorfallnummer** auf die Nummer danach. Eine Nummer bezeichnet dann nie zwei verschiedene Vorfälle.
 
-### Alarme an OneUptime senden
-Richten Sie Ihre Monitore und die Tools, die Alarme auslösen, auf OneUptime aus, und alarmieren Sie sich zum Test einmal selbst.
+### Warnungen an OneUptime senden
+Richten Sie Ihre Monitore und die Tools, die Warnungen auslösen, auf OneUptime aus, und alarmieren Sie sich zum Test einmal selbst.
 
 ### Die Alarmierung in Opsgenie ausschalten
 Sobald OneUptime die richtigen Personen alarmiert, schalten Sie die Benachrichtigungen in Opsgenie aus, damit niemand doppelt alarmiert wird.

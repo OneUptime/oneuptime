@@ -998,7 +998,13 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
                 Number.isFinite(validUntilMillis) &&
                 validUntilMillis <= Date.now()
               ) {
-                return <Pill color={Yellow} text="Expired" />;
+                /*
+                 * An indicator's own Expired (MeaningKeys): worded to
+                 * agree with its Active and Revoked, as a token's is not.
+                 */
+                return (
+                  <Pill color={Yellow} text="Expired (threat indicator)" />
+                );
               }
 
               return <Pill color={Green} text="Active" />;

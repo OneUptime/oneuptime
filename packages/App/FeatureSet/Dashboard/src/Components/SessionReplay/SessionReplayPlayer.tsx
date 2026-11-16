@@ -253,7 +253,9 @@ const SHELL_NOTICE_MS: number = 4000;
  * built once per manifest - are kept as their wording (a ComposedValue)
  * and composed when drawn; ENGLISH writes the English the state keeps.
  */
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 /* A manifest failure, or the shell's own failure with its wording. */
 type ReplayShellFailure = ReplayManifestFailure & {
@@ -2669,9 +2671,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
     return {
       sessionId: newer.sessionId,
-      description: describeReplayUserSession(newer, Date.now()),
+      description: describeReplayUserSession(newer, Date.now(), translator),
     };
-  }, [adjacentUserSessions]);
+  }, [adjacentUserSessions, translator.language]);
 
   const nextUserSession: ReplayNextUserSession | null = nextUserSessionFacts
     ? {

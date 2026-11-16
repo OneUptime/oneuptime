@@ -1,4 +1,10 @@
 import VMwareResourceModel from "Common/Models/DatabaseModels/VMwareResource";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
@@ -1094,7 +1100,7 @@ export const VMWARE_DISK_LATENCY_GAUGE_THRESHOLDS: {
  */
 export function formatVMwarePerSecond(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   if (value === 0) {
@@ -1122,14 +1128,23 @@ export function formatVMwarePerSecond(value: number | null): string {
   return "<0.01/s";
 }
 
-export function formatVMwareMilliseconds(value: number | null): string {
+/*
+ * A disk's latency, for the Overview's tile, its chart and the device
+ * tables: whole from 100 ms up, to a tenth below, a trailing ".0" dropped.
+ * Written by formatMilliseconds, in the reader's digits and their own unit
+ * ("12,5 ms" in German, "۱۲٫۵ میلی‌ثانیه" in Persian), and held to it with a
+ * no-break space, so a narrow tile or cell never ends a line with "12.5"
+ * and starts the next with "ms" (#8803). Without a translator, the page's.
+ */
+export function formatVMwareMilliseconds(
+  value: number | null,
+  translator?: Translator,
+): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
-  if (value >= 100) {
-    return `${Math.round(value)} ms`;
-  }
-
-  return `${Number(value.toFixed(1))} ms`;
+  return formatMilliseconds(translator || getGlobalTranslator(), value, {
+    maximumFractionDigits: value >= 100 ? 0 : 1,
+  });
 }

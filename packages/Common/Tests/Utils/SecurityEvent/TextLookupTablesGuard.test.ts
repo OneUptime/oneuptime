@@ -1,11 +1,15 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { listSourceFiles, toRelativePath } from "../../ForeignHiddenRuleGuard";
+import { toRelativePath } from "../../ForeignHiddenRuleGuard";
 import {
   findPlainTableReads,
   PlainTableRead,
 } from "../../Helpers/TextLookupTableScan";
+import {
+  OUTSIDE_TEXT_CODE,
+  listOutsideTextFiles,
+} from "../../Helpers/OutsideTextCode";
 import lookupTable, {
   readOwnValue,
   writeOwnValue,
@@ -50,33 +54,8 @@ import {
 const COMMON_ROOT: string = path.resolve(__dirname, "..", "..", "..");
 const PACKAGES_ROOT: string = path.resolve(COMMON_ROOT, "..");
 
-// The code that reads text from outside OneUptime, by directory or file.
-const SCANNED: ReadonlyArray<string> = [
-  "Common/Utils/SecurityEvent",
-  "Common/Server/Utils/SecurityEvent",
-  "Common/Types/SecurityEvent",
-  "Common/Types/Telemetry/TelemetrySearchQuery.ts",
-  "Common/UI/Components/LogsViewer/components/LogSearchBar.tsx",
-  "Common/UI/Components/TelemetryViewer/components/TelemetrySearchBar.tsx",
-  "App/FeatureSet/Dashboard/src/Utils/ExceptionsSearchQuery.ts",
-  // A PromQL query, as the dashboards, Grafana and the metric monitors write it.
-  "Common/Utils/PromQL",
-  "Common/Server/Utils/PromQL",
-  // A grok pattern a project's people write, and the log lines it parses.
-  "Common/Utils/Grok",
-  // The keys a log line's key=value pairs name.
-  "Common/Utils/Log",
-  /*
-   * Telemetry ingest (issue #8221): a level, a severity, a trap's OID, a
-   * resource type, a service name and a libvirt domain, as a sender wrote
-   * them. Fluent's severity table, Vercel's levels, the SNMP trap names,
-   * the syslog service cache, GCP's resource types and the OpenStack
-   * domains were read plainly here.
-   */
-  "App/FeatureSet/Telemetry/Services",
-  "App/FeatureSet/Telemetry/Utils",
-  "Common/Server/Utils/Telemetry",
-];
+// The code that reads text from outside OneUptime (Helpers/OutsideTextCode).
+const SCANNED: ReadonlyArray<string> = OUTSIDE_TEXT_CODE;
 
 interface ReadByKnownKeys {
   // packages-relative, with "/".
@@ -126,20 +105,7 @@ export const TABLES_READ_BY_KNOWN_KEYS: ReadonlyArray<ReadByKnownKeys> = [
 ];
 
 function scannedFiles(): Array<string> {
-  const files: Array<string> = [];
-
-  for (const entry of SCANNED) {
-    const full: string = path.join(PACKAGES_ROOT, entry);
-
-    if (fs.existsSync(full) && fs.statSync(full).isFile()) {
-      files.push(full);
-      continue;
-    }
-
-    files.push(...listSourceFiles(full));
-  }
-
-  return files;
+  return listOutsideTextFiles(PACKAGES_ROOT);
 }
 
 interface FoundRead extends PlainTableRead {

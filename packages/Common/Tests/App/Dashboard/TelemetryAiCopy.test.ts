@@ -195,10 +195,10 @@ describe("the Profiler's AI section", () => {
     expect(describeTelemetryAiRuleTiming(null)).toBe("Right away");
     expect(describeTelemetryAiRuleTiming(0)).toBe("Right away");
     expect(describeTelemetryAiRuleTiming(1)).toBe(
-      "If still found after 1 minute",
+      "If still found after 1\u00A0minute",
     );
     expect(describeTelemetryAiRuleTiming(60)).toBe(
-      "If still found after 60 minutes",
+      "If still found after 60\u00A0minutes",
     );
     expect(copy.timing[InvestigationRuleTiming.AfterWait].title).toBe(
       "Only if still found after a wait",

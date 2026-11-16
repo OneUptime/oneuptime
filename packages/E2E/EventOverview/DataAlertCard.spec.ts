@@ -12,6 +12,7 @@ import path from "path";
 import { cardBodyMisfits } from "../SuiteHelpers/CardBodyFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * An alert's Data card (Components/DataObservability/DataAlertLineage):
@@ -65,6 +66,19 @@ const STARTED_ACKNOWLEDGED: string =
   "That alert was open first, on what this one's table or pipeline is built from, so this alert started acknowledged: nobody was paged twice.";
 const NO_CHANGES: string =
   "No deploy or other change of these services in the day before the alert.";
+/*
+ * Written By: both services that write the table, last seen first, how long
+ * ago each was seen held to its unit by a no-break space (#8669), which a
+ * pattern matches as written.
+ */
+const WRITTEN_BY: Array<RegExp> = [
+  new RegExp(
+    `^payments-webhooks\\s*4,120 writes, 37 failed, in the hour last seen ${withUnit(15, "minutes")} ago$`,
+  ),
+  new RegExp(
+    `^checkout-api\\s*860 writes, 0 failed, in the hour last seen ${withUnit(30, "minutes")} ago$`,
+  ),
+];
 
 const CAUSE_TABLE_CARD: string = `table:${uuid("8b000000", 1)}`;
 const TABLE_CARD: string = `table:${uuid("8b000000", 2)}`;
@@ -333,10 +347,9 @@ test.describe("an alert's Data card", () => {
     await expect(cause).toContainText(STARTED_ACKNOWLEDGED);
 
     // Written By: both services that write the table, last seen first.
-    await expect(part(card, "Written By").locator("dd > div")).toHaveText([
-      /^payments-webhooks\s*4,120 writes, 37 failed, in the hour last seen 15 minutes ago$/,
-      /^checkout-api\s*860 writes, 0 failed, in the hour last seen 30 minutes ago$/,
-    ]);
+    await expect(part(card, "Written By").locator("dd > div")).toHaveText(
+      WRITTEN_BY,
+    );
 
     // Changes Around It: payments-webhooks' deploy, eight minutes before.
     const changes: Locator = part(card, "Changes Around It");
@@ -363,10 +376,9 @@ test.describe("an alert's Data card", () => {
     await expect(
       part(card, "Caused Upstream").getByRole("link", { name: CAUSE_NAME }),
     ).toBeVisible();
-    await expect(part(card, "Written By").locator("dd > div")).toHaveText([
-      /^payments-webhooks\s*4,120 writes, 37 failed, in the hour last seen 15 minutes ago$/,
-      /^checkout-api\s*860 writes, 0 failed, in the hour last seen 30 minutes ago$/,
-    ]);
+    await expect(part(card, "Written By").locator("dd > div")).toHaveText(
+      WRITTEN_BY,
+    );
 
     // The changes were asked for, and refused.
     expect(await reads(page, CHANGE_EVENTS)).toHaveLength(1);

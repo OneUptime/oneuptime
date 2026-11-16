@@ -49,7 +49,7 @@ Open **SLOs** from the **Products** menu in the top bar. It is in the first grou
 
 ### Choose what it measures
 
-Under **What It Measures**, keep **Monitor uptime** to measure the share of time monitors are up. Pick **Request success** or **Request latency** to measure the requests of services instead, and pick their **Services**: see [Request and Latency SLOs](/docs/slo/request-slos). Click **Next**.
+Under **What It Measures**, keep **Monitor uptime** to measure the share of time monitors are up. Pick **Request success** or **Request latency** to measure the requests of services instead, and pick their **Services**: see [Request and Latency SLOs](/docs/slo/request-slos). Pick **Metric** to count the good events in a counter or a histogram your services send: see [SLOs from a metric](/docs/slo/request-slos#slos-from-a-metric). Click **Next**.
 
 ### Name it and set a target
 
@@ -202,7 +202,7 @@ The **Settings** page holds how an SLO measures, one card each:
 
 | Card | What you change | Worth knowing |
 | --- | --- | --- |
-| **What It Measures** | **What It Measures**, **Services** and **Latency Threshold (ms)**, with **Edit What It Measures**. | A request SLO counts its requests again from the start after a change. |
+| **What It Measures** | **What It Measures**, **Services**, **Latency Threshold (ms)**, **Request Filter** and **Metric**, with **Edit What It Measures**. | A request SLO counts its requests again from the start after a change. |
 | **Objective** | **Target (%)** and **At-Risk Threshold (%)**, with **Edit Objective**. | Shows the downtime the objective allows, for example "43m 12s of downtime per 30-day window". |
 | **Compliance Period** | **Window Type**, **Window (Days)** and **Timezone**, with **Edit Period**. | Burn rate rules keep their thresholds when the window changes, so review them afterwards. |
 | **Downtime Calculation** | **Multi Monitor Mode** and **Downtime Monitor Statuses**, with **Edit Downtime Calculation**. | Monitor uptime SLOs only. Empty statuses count every non-operational status, including ones added later. |
@@ -291,6 +291,8 @@ A banner at the top of the SLO's pages says what stops it from measuring:
 | **No services chosen** | A request SLO has no services, so it has no requests to count. | Choose its services in **Settings** → **What It Measures**. |
 | **No latency threshold** | A Request Latency SLO has no threshold, so no request can count as fast enough. | Set the **Latency Threshold (ms)** in **Settings** → **What It Measures**. |
 | **Waiting for requests** | None of a request SLO's services has served a request in its window yet. | Check that the services send traces to OneUptime. Numbers appear after the next evaluation that counts a request. |
+| **No metric to count** | A Metric SLO has no metric it can count: none is chosen, or how its good events are told apart is missing. | Choose the metric, and its good condition or value, in **Settings** → **What It Measures**. |
+| **Waiting for its metric** | None of a Metric SLO's services has sent an event of its metric in its window yet. | Check that the services send the metric to OneUptime, under the name the SLO counts. Numbers appear after the next evaluation that counts an event. |
 
 ## Next steps
 

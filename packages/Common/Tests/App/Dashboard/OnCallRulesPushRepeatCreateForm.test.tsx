@@ -162,6 +162,18 @@ import ModelForm, {
   ModelField,
 } from "../../../UI/Components/Forms/ModelForm";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+import { stubDashboardCustomNotificationChannels } from "./CustomNotificationChannelsStub";
+
+// The custom channels that are on, answered here rather than over the network: none.
+beforeEach((): void => {
+  stubDashboardCustomNotificationChannels();
+});
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(PROJECT_ID_STRING);
 const currentUserId: ObjectID = new ObjectID(CURRENT_USER_ID_STRING);
@@ -380,7 +392,7 @@ describe("adding a push rule through the create form", () => {
     await pickMethod(user, IPHONE_OPTION);
     await pickOption(user, repeatField()!, "Every 5 minutes");
 
-    expect(repeatFieldPick()).toBe("Every 5 minutes");
+    expect(repeatFieldPick()).toBe("Every 5\u00A0minutes");
 
     await pickNotifyImmediately(user);
 

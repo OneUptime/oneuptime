@@ -896,7 +896,7 @@ describe("reading the facts", () => {
       NO_DEVICE_MONITOR_TEMPLATE_REASON,
     );
     expect(NO_DEVICE_MONITOR_TEMPLATE_REASON).toBe(
-      "This project has no Network Device, Ping, IP, Port or NTP monitor template, and you may not create one. Ask a project owner or admin to create the recommended one under Network > Settings > Alert Policies, or another under Monitors > Settings > Templates.",
+      "This project has no Network Device, Ping, IP, Port or NTP monitor template, and you may not create one. Ask a Project Owner or Project Admin to create the recommended one under Network > Settings > Alert Policies, or another under Monitors > Settings > Templates.",
     );
   });
 

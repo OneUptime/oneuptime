@@ -123,7 +123,7 @@ Les **Règles de propriétaire** ajoutent des utilisateurs et des équipes propr
 
 ## Règles de confidentialité et de runbook
 
-Les **Règles de confidentialité** rendent privées les nouvelles alertes qui correspondent, avant que quoi que ce soit d'autre ne s'exécute : seuls leurs propriétaires et les administrateurs et propriétaires du projet peuvent les voir. Une règle a deux étapes : **Correspondance**, les alertes qu'elle rend privées, puis **Nom**, déjà rempli avec « Rendre les alertes privées ». Voir [Alertes privées](/docs/alerts/index#alertes-privées).
+Les **Règles de confidentialité** rendent privées les nouvelles alertes qui correspondent, avant que quoi que ce soit d'autre ne s'exécute : seuls leurs propriétaires et les Administrateurs du projet et Propriétaires du projet peuvent les voir. Une règle a deux étapes : **Correspondance**, les alertes qu'elle rend privées, puis **Nom**, déjà rempli avec « Rendre les alertes privées ». Voir [Alertes privées](/docs/alerts/index#alertes-privées).
 
 Les **Règles de runbook** lancent un runbook quand une nouvelle alerte correspond, sauf si l'alerte a été créée résolue. Voir [Règles de runbook](/docs/runbooks/rules).
 
@@ -178,7 +178,7 @@ La carte **Prochain numéro** en dessous fixe le numéro que recevront la procha
 
 ## Flux de travail
 
-Chaque modèle d'alerte a des déclencheurs et des actions de flux de travail, nommés d'après lui : **On Create Alert**, **On Update Alert**, **On Create or Update Alert** et **On Delete Alert**, de même pour **Épisode d'alerte**, **Chronologie des états de l'alerte** et les autres, et des actions comme **Create One Alert** et **Update One Alert**. Les définitions de champs personnalisés d'alerte sont la seule exception : elles n'ont pas de déclencheurs de flux de travail. Voir [Présentation des flux de travail](/docs/workflows/index).
+Chaque modèle d'alerte a des déclencheurs et des actions de flux de travail, nommés d'après lui : **À la création : Alerte**, **À la mise à jour : Alerte**, **À la création ou à la mise à jour : Alerte** et **À la suppression : Alerte**, de même pour **Épisode d'alerte**, **Chronologie des états de l'alerte** et les autres, et des actions comme **Créer : Alerte (un seul)** et **Mettre à jour : Alerte (un seul)**. Les définitions de champs personnalisés d'alerte sont la seule exception : elles n'ont pas de déclencheurs de flux de travail. Voir [Présentation des flux de travail](/docs/workflows/index).
 
 ## Qui peut les modifier
 

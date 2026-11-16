@@ -85,15 +85,15 @@ La scheda **Custom Metric** offre queste metriche, raggruppate per tipo di risor
 
 | Categoria | Metriche |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Nodo | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Carico di lavoro | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| Piano di controllo | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| Pod | Consumo CPU del Pod, Utilizzo memoria del Pod, Fase del Pod (codice), Utilizzo del file system del Pod, Utilizzo del limite di memoria del Pod, Utilizzo del limite CPU del Pod, I/O di rete del Pod (cumulativo, entrambe le direzioni) |
+| Nodo | Consumo CPU del nodo, CPU allocabile del nodo, Utilizzo della memoria del nodo, Working set della memoria del nodo, Utilizzo del filesystem del nodo, Memoria allocabile del nodo, Condizione Ready del nodo, Condizione MemoryPressure del nodo, Condizione DiskPressure del nodo, Condizione PIDPressure del nodo, File system disponibile del nodo |
+| Container | Riavvii del container, Riavvii del container (aumento), Limite CPU del container, Richiesta CPU del container, Limite di memoria del container, Richiesta di memoria del container, Container pronto |
+| Carico di lavoro | Repliche disponibili del Deployment, Repliche desiderate del Deployment, Nodi desiderati del DaemonSet, Nodi pianificati in modo errato del DaemonSet, Nodi pronti del DaemonSet, Repliche desiderate dello StatefulSet, Repliche pronte dello StatefulSet, Pod non riusciti del Job, Pod non riusciti del Job (aumento), Pod riusciti del Job |
+| HPA | Repliche attuali dell'HPA, Repliche desiderate dell'HPA, Repliche massime dell'HPA, Repliche minime dell'HPA |
+| Piano di controllo | etcd ha un leader, Richieste in corso del server API, Pod in attesa dello scheduler |
 
 > [!NOTE]
-> **Pod CPU Usage** e **Node CPU Usage** sono espresse in core, non in percentuale: `0.18` equivale a 0,18 di un core. **Pod Phase (Code)** è un codice (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): aggregatelo con Massimo o Minimo, mai con Somma. Le metriche del piano di controllo arrivano solo quando la raccolta del piano di controllo da parte dell'agente è attiva. **Node Ready Condition** vale 1 con Ready, 0 con NotReady e -1 con Unknown, ciò che segnala un nodo caduto: avvisa sotto 1. **Container Restarts** è il contatore progressivo dei riavvii del container; **Container Restarts (Increase)** è ciò che l'agente invia con ogni campione: i riavvii dal suo campione precedente del container, quindi la sua somma su una finestra dà i riavvii avvenuti in essa. Porta ciò che porta **Container Restarts**, compresi i nomi dei carichi di lavoro del pod del container, ma non l'ID del container, che cambia a ogni riavvio. **Job Failed Pods** è il contatore progressivo dei pod falliti di un Job; **Job Failed Pods (Increase)** è ciò che l'agente invia con ogni campione: i pod del Job falliti dal suo campione precedente del Job, quindi la sua somma su una finestra dà i fallimenti avvenuti in essa. Porta ciò che porta **Job Failed Pods**: il nome e il namespace del Job.
+> **Consumo CPU del Pod** e **Consumo CPU del nodo** sono espresse in core, non in percentuale: `0.18` equivale a 0,18 di un core. **Fase del Pod (codice)** è un codice (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): aggregatelo con Massimo o Minimo, mai con Somma. Le metriche del piano di controllo arrivano solo quando la raccolta del piano di controllo da parte dell'agente è attiva. **Condizione Ready del nodo** vale 1 con Ready, 0 con NotReady e -1 con Unknown, ciò che segnala un nodo caduto: avvisa sotto 1. **Riavvii del container** è il contatore progressivo dei riavvii del container; **Riavvii del container (aumento)** è ciò che l'agente invia con ogni campione: i riavvii dal suo campione precedente del container, quindi la sua somma su una finestra dà i riavvii avvenuti in essa. Porta ciò che porta **Riavvii del container**, compresi i nomi dei carichi di lavoro del pod del container, ma non l'ID del container, che cambia a ogni riavvio. **Pod non riusciti del Job** è il contatore progressivo dei pod falliti di un Job; **Pod non riusciti del Job (aumento)** è ciò che l'agente invia con ogni campione: i pod del Job falliti dal suo campione precedente del Job, quindi la sua somma su una finestra dà i fallimenti avvenuti in essa. Porta ciò che porta **Pod non riusciti del Job**: il nome e il namespace del Job.
 
 ## Criteri di monitoraggio
 
@@ -191,7 +191,7 @@ I cluster si registrano da soli a partire dai dati dell'agente, con il `clusterN
 :::
 
 :::details Una soglia di CPU non scatta mai
-**Pod CPU Usage** e **Node CPU Usage** sono espresse in core, non in percentuale, quindi una soglia di `80` significa 80 core. Impostate la soglia in core, oppure partite da **High Node CPU Utilization** o da **Pod CPU Saturating Container Limit**, che confrontano una percentuale.
+**Consumo CPU del Pod** e **Consumo CPU del nodo** sono espresse in core, non in percentuale, quindi una soglia di `80` significa 80 core. Impostate la soglia in core, oppure partite da **High Node CPU Utilization** o da **Pod CPU Saturating Container Limit**, che confrontano una percentuale.
 :::
 
 :::details CrashLoopBackOff Detection non è scattato per un riavvio
@@ -206,7 +206,7 @@ Il modello scatta quando un pod di un Job fallisce in 15 minuti, e si risolve qu
 
 :::cards
 - [Agente Kubernetes (installazione Helm)](/docs/monitor/kubernetes-agent): Installare, aggiornare e regolare l'agente con Helm.
-- [Agent Kubernetes](/docs/telemetry/kubernetes-agent): Filtri per namespace, metriche del piano di controllo, filtri di gravità dei log e l'agente AI.
+- [Agent Kubernetes](/docs/telemetry/kubernetes-agent): Filtri per namespace, metriche del piano di controllo, filtri di gravità dei log e l'agente IA.
 - [Monitor metriche](/docs/monitor/metrics-monitor): Avvisare su qualsiasi metrica, comprese le metriche personalizzate ed eBPF dell'agente.
 - [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating): Mettere il pod o il nodo in violazione nei titoli degli incidenti.
 :::

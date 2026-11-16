@@ -14,7 +14,9 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
  * Without a translator the words below read in English, word for word, as
  * they always have; the Replay Policy page hands its reader's translator in.
  */
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 // A retention, as the read view and the Limits step's choices say it: "30 days".
 const RETENTION_DAYS: PluralTemplate = {

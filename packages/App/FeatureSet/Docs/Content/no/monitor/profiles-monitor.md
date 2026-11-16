@@ -1,4 +1,4 @@
-# Profil-overvåking
+# Profil-monitor
 
 En profilmonitor leser de kontinuerlige profilene som tjenestene dine sender til OneUptime, og varsler om to ting: en funksjon som tar en større andel av tiden enn den burde, som en parser som ble tyngre etter en utrulling, og profiler som slutter å komme fra en tjeneste. Hvert minutt måler den hvor mye av tidsvinduet som gikk gjennom funksjonen du oppgir, teller profilene som samsvarer med filtrene, og endrer monitorens status, oppretter et varsel eller erklærer en hendelse når kriteriene dine er oppfylt.
 
@@ -46,7 +46,7 @@ I **Konfigurasjon av profilmonitor** setter du **Funksjon** til funksjonen som s
 
 ### Angi kriteriene
 
-En monitor som er startet fra **Opprett monitor**, har to kriterier: frakoblet, med en hendelse, når **Antall profiler** er 0, og tilkoblet når det er over 0. For å bli varslet om funksjonen legger du til et filter **Funksjonsandel (i %)**: se [Kriterier](#kriterier).
+En monitor som er startet fra **Opprett monitor**, har to kriterier: offline, med en hendelse, når **Antall profiler** er 0, og tilkoblet når det er over 0. For å bli varslet om funksjonen legger du til et filter **Funksjonsandel (i %)**: se [Kriterier](#kriterier).
 
 ### Opprett monitoren
 
@@ -139,7 +139,7 @@ Når utrullingen får `parseOrder` til å ta 45 % av CPU-tiden, utløser neste e
 Checkout-tjenesten kjører et Pyroscope-SDK som laster opp CPU-profiler. Du vil ha en hendelse når de uteblir i fem minutter:
 
 - `profileTypes`: `["cpu"]`, `telemetryServiceIds`: checkout-tjenesten, `lastXSecondsOfProfiles`: `300`
-- Kriterium 1: **Antall profiler** **Lik** `0`: sett monitoren som frakoblet og erklær en hendelse
+- Kriterium 1: **Antall profiler** **Lik** `0`: sett monitoren som offline og erklær en hendelse
 - Kriterium 2: **Antall profiler** **Større enn** `0`: sett monitoren som tilkoblet
 
 Mens SDK-et laster opp, teller hver evaluering noen profiler, og kriterium 2 holder monitoren tilkoblet. Når tjenesten rulles ut uten SDK-et, faller antallet til 0 fem minutter etter den siste opplastingen, kriterium 1 samsvarer, og hendelsen erklæres. Den første opplastingen etter rettingen bringer antallet over 0 igjen, og hendelsen løser seg selv hvis **Løs hendelse automatisk** er slått på for den.
@@ -159,6 +159,6 @@ Ingen ramme i vinduet inneholder funksjonsteksten. Åpne funksjonen i profilerer
 :::cards
 - [Profiler](/docs/telemetry/profiles): Send profiler, og les dem i profilereren.
 - [Monitortrinn](/docs/terraform/monitor-steps): Send trinnets konfigurasjon fra Terraform.
-- [Trase-overvåking](/docs/monitor/traces-monitor): Bli varslet om mislykkede spans.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Bli varslet om CPU, minne og andre målinger.
+- [Trase-monitor](/docs/monitor/traces-monitor): Bli varslet om mislykkede spans.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Bli varslet om CPU, minne og andre målinger.
 :::

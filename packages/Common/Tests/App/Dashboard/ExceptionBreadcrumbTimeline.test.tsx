@@ -107,11 +107,12 @@ describe("BreadcrumbTimeline", () => {
       });
     };
 
+    // Each figure held to its unit by a no-break space (#8302).
     expect(times()).toEqual([
-      "-880 ms",
-      "-640 ms",
-      "-410 ms → -380 ms",
-      "-120 ms",
+      "-880\u00A0ms",
+      "-640\u00A0ms",
+      "-410\u00A0ms → -380\u00A0ms",
+      "-120\u00A0ms",
       "at exception",
     ]);
 

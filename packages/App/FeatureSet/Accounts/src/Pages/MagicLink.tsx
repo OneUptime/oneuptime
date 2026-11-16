@@ -183,6 +183,7 @@ const MagicLinkPage: () => JSX.Element = () => {
                 <p>{t("magicLink.notReceived")}</p>
                 <Button
                   title={t("magicLink.sendAnother")}
+                  isTitleTranslated={true}
                   buttonStyle={ButtonStyleType.OUTLINE}
                   dataTestId={MAGIC_LINK_SEND_ANOTHER_TEST_ID}
                   style={{ width: "100%", marginInlineStart: "0px" }}

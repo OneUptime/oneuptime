@@ -1,6 +1,6 @@
 # VMware-agent
 
-OneUptimes VMware-agent overvåker VMware vSphere: vCenter Server, ESXi-verter, virtuelle maskiner, datastores, klynger, ressurspooler og vSAN. Den er en vanlig OpenTelemetry Collector der [`vcenter`-mottakeren](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) leser vSphere-API-et med en skrivebeskyttet bruker, stempler hver måling med navnet på vCenter-et ditt og sender den til OneUptime: ingen plugin på vCenter og ingenting inne i VM-ene. [VMware-overvåkere](/docs/monitor/vmware-monitor) varsler ut fra det som kommer inn.
+OneUptimes VMware-agent overvåker VMware vSphere: vCenter Server, ESXi-verter, virtuelle maskiner, datastores, klynger, ressurspooler og vSAN. Den er en vanlig OpenTelemetry Collector der [`vcenter`-mottakeren](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) leser vSphere-API-et med en skrivebeskyttet bruker, stempler hver måling med navnet på vCenter-et ditt og sender den til OneUptime: ingen plugin på vCenter og ingenting inne i VM-ene. [VMware-monitorer](/docs/monitor/vmware-monitor) varsler ut fra det som kommer inn.
 
 :::cards
 - [Installer agenten](#installer-agenten): En skrivebeskyttet bruker, deretter installasjonsskriptet, Docker Compose eller systemd.
@@ -219,7 +219,7 @@ Ved hvert `VCENTER_COLLECTION_INTERVAL` går mottakeren gjennom hele vSphere-inv
 | Datastore | + `vcenter.datastore.name` | `vcenter.datastore.disk.usage`, `vcenter.datastore.disk.utilization` |
 | Ressurspool | + `vcenter.resource_pool.name`, `vcenter.resource_pool.inventory_path` | `vcenter.resource_pool.cpu.usage` / `.cpu.shares`, `vcenter.resource_pool.memory.usage` / `.memory.shares` / `.memory.ballooned` / `.memory.swapped` / `.memory.granted` |
 
-Tellings- og kapasitetsmålinger fordeles over **datapunktattributter**, som er nøyaktig det du filtrerer og grupperer etter i overvåkingskriterier:
+Tellings- og kapasitetsmålinger fordeles over **datapunktattributter**, som er nøyaktig det du filtrerer og grupperer etter i monitorkriterier:
 
 | Attributt | Verdier | Båret av |
 | --- | --- | --- |
@@ -232,7 +232,7 @@ Tellings- og kapasitetsmålinger fordeles over **datapunktattributter**, som er 
 | `cpu_reservation_type` | `total` / `used` | `vcenter.host.cpu.reserved` |
 | `type` | Minne: `guest` / `host` / `overhead`, `private` / `shared`; vSAN: `read` / `write` / `unmap` | Minneserier for ressurspooler, vSAN-latens og -operasjoner |
 
-Enhetene er mottakerens egne OTLP-enheter, som OneUptime skalerer for visning: `MHz` for CPU-bruk og -kapasitet, `%` for utnyttelse og CPU ready, `MiBy` for minne i verter, VM-er og ressurspooler, `By` for minne i klynger og datasentre og all diskplass, `ms` for disklatens i verter og VM-er, og `us` (mikrosekunder) for vSAN-latens. I overvåkingskriterier får identitetsattributtene prefikset `resource.` (`resource.vcenter.host.name`, `resource.vmware.vcenter.name`), mens datapunktattributter står uten prefiks (`disk_state`, `power_state`, `status`).
+Enhetene er mottakerens egne OTLP-enheter, som OneUptime skalerer for visning: `MHz` for CPU-bruk og -kapasitet, `%` for utnyttelse og CPU ready, `MiBy` for minne i verter, VM-er og ressurspooler, `By` for minne i klynger og datasentre og all diskplass, `ms` for disklatens i verter og VM-er, og `us` (mikrosekunder) for vSAN-latens. I monitorkriterier får identitetsattributtene prefikset `resource.` (`resource.vcenter.host.name`, `resource.vmware.vcenter.name`), mens datapunktattributter står uten prefiks (`disk_state`, `power_state`, `status`).
 
 `vcenter.host.memory.capacity` er av som standard upstream; den medfølgende konfigurasjonen slår den på, fordi OneUptime deler på den for minneutnyttelsen til verter. En kommentar i `otel-collector-config.yaml` lister opp de andre valgfrie målingene (`vcenter.vm.cpu.time`, `vcenter.vm.memory.granted`, `vcenter.host.memory.active`, `vcenter.host.memory.ballooned`, `vcenter.host.memory.granted`, `vcenter.vm.network.broadcast.packet.rate`, `vcenter.vm.network.multicast.packet.rate`): Slå på hvilken som helst av dem på samme måte.
 
@@ -516,7 +516,7 @@ vSphere har ingen egen OpenTelemetry-push, så agenten (eller en hvilken som hel
 ## Neste trinn
 
 :::cards
-- [VMware-overvåking](/docs/monitor/vmware-monitor): Varsle om verter, VM-er, datastores, klynger, datasentre og vSAN.
+- [VMware-monitor](/docs/monitor/vmware-monitor): Varsle om verter, VM-er, datastores, klynger, datasentre og vSAN.
 - [VMware uten agent](/docs/telemetry/vmware-agentless): La en sonde samle inn vCenter-et i stedet.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Hva VMware-AI-agenten kan kjøre, og hvordan rettinger fungerer.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Operativsystemets visning inne i VM-ene, eller av agentens maskin.

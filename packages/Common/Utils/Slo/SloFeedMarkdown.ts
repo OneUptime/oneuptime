@@ -4,6 +4,12 @@ import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
 import FeedMarkdown, { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
 import { formatSloPolicyTierThreshold } from "./SloErrorBudgetPolicy";
 import { formatRequestBudget } from "./SloRequestSli";
+import {
+  getSloMetricQueryFingerprintParts,
+  normalizeSloMetricQueryConfig,
+  SloMetricKind,
+  SloMetricQueryConfig,
+} from "./SloMetricSli";
 
 /*
  * The words of the SLO feed.
@@ -522,6 +528,11 @@ export enum SloFeedValueKind {
   EntityList = "EntityList",
   // A foreign key column whose name is read from `relationProperty`.
   EntityReference = "EntityReference",
+  /*
+   * A Metric SLO's metric (#8445): compared as the counting reads it, and
+   * written as its name and what makes an event good.
+   */
+  Metric = "Metric",
 }
 
 export interface SloFeedColumn {
@@ -648,6 +659,10 @@ export const isSloFeedValueEqual: IsSloFeedValueEqualFunction = (
         normalizeSloFeedBoolean(beforeValue) ===
         normalizeSloFeedBoolean(afterValue)
       );
+    case SloFeedValueKind.Metric:
+      return (
+        getSloFeedMetricKey(beforeValue) === getSloFeedMetricKey(afterValue)
+      );
     default:
       // Text kinds: an empty string and a null are both "not set".
       return (
@@ -728,12 +743,66 @@ export const formatSloFeedValue: FormatSloFeedValueFunction = (
     }
     case SloFeedValueKind.Opaque:
       return String(value ?? "").trim() ? mdText`_set_` : emptyText;
+    case SloFeedValueKind.Metric:
+      return formatSloFeedMetric(value) || emptyText;
     default: {
       const text: MarkdownText = formatSloFeedText(value);
 
       return text.isEmpty() ? emptyText : text;
     }
   }
+};
+
+/*
+ * A Metric SLO's metric as the counting reads it, so two configurations
+ * that count the same events are the same value; "" for none.
+ */
+export const getSloFeedMetricKey: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  const config: SloMetricQueryConfig | null =
+    normalizeSloMetricQueryConfig(value);
+
+  return config
+    ? JSON.stringify(getSloMetricQueryFingerprintParts(config))
+    : "";
+};
+
+/*
+ * `http_requests_total`, good when `@http.response.status_code:<500`;
+ * `http.server.request.duration`, good at or under 0.3, only
+ * `@http.route:/checkout*`. Null for no metric.
+ */
+export const formatSloFeedMetric: (value: unknown) => MarkdownText | null = (
+  value: unknown,
+): MarkdownText | null => {
+  const config: SloMetricQueryConfig | null =
+    normalizeSloMetricQueryConfig(value);
+
+  if (!config || !config.metricName) {
+    return null;
+  }
+
+  const parts: Array<MarkdownText> = [FeedMarkdown.code(config.metricName)];
+
+  if (config.kind === SloMetricKind.Counter && config.goodFilter) {
+    parts.push(mdText`good when ${FeedMarkdown.code(config.goodFilter)}`);
+  }
+
+  if (
+    config.kind === SloMetricKind.Histogram &&
+    config.goodAtOrUnder !== undefined
+  ) {
+    parts.push(
+      mdText`good at or under ${formatSloFeedNumber(config.goodAtOrUnder)}`,
+    );
+  }
+
+  if (config.filter) {
+    parts.push(mdText`only ${FeedMarkdown.code(config.filter)}`);
+  }
+
+  return FeedMarkdown.join(parts, ", ");
 };
 
 export type GetSloFeedColumnChangesFunction = (data: {
@@ -911,6 +980,19 @@ export const SLO_FEED_UPDATE_COLUMNS: Array<SloFeedColumn> = [
     column: "latencyThresholdInMilliseconds",
     title: "Latency threshold",
     kind: SloFeedValueKind.Milliseconds,
+  },
+  // Which of the services' requests count (#8444): a traces search.
+  {
+    column: "requestFilter",
+    title: "Request filter",
+    kind: SloFeedValueKind.LongText,
+    emptyText: mdText`every request`,
+  },
+  // What a Metric SLO counts (#8445).
+  {
+    column: "metricQueryConfig",
+    title: "Metric",
+    kind: SloFeedValueKind.Metric,
   },
 ];
 
@@ -1397,9 +1479,10 @@ export const SLO_BURN_RATE_RULE_FEED_COLUMNS: Array<SloFeedColumn> = [
     kind: SloFeedValueKind.Minutes,
     emptyText: mdText`_default_`,
   },
+  // A request SLO's rule's Minimum Requests, as the rule form names it (#8442).
   {
     column: "minimumSampleCount",
-    title: "Minimum sample count",
+    title: "Minimum requests",
     kind: SloFeedValueKind.Count,
   },
   {

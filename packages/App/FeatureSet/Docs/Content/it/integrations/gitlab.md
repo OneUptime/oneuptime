@@ -10,17 +10,17 @@ Apri una issue [GitLab](https://gitlab.com) per ogni incidente di OneUptime, cos
 :::
 
 > [!NOTE]
-> L'AI di OneUptime lavora anche nei repository GitLab: collegali in Codice con un token di accesso, e apre una merge request per ogni correzione. Vedi [Collegare un repository](/docs/ai/ai-agent#collegare-un-repository).
+> L'IA di OneUptime lavora anche nei repository GitLab: collegali in Codice con un token di accesso, e apre una merge request per ogni correzione. Vedi [Collegare un repository](/docs/ai/ai-agent#collegare-un-repository).
 
 ## Come funziona
 
 ```mermaid title="Un flusso di lavoro, una issue GitLab"
 flowchart TB
-    declared["Incidente dichiarato"] --> workflow["Flusso di lavoro:<br/>On Create Incident"]
+    declared["Incidente dichiarato"] --> workflow["Flusso di lavoro:<br/>Alla creazione:<br/>Incidente"]
     workflow -->|"POST issues"| issue["Issue GitLab"]
 ```
 
-Il flusso di lavoro viene eseguito una volta per ogni nuovo incidente. Il suo blocco **API Post (JSON)** invia il titolo e la descrizione dell'incidente alle issue del progetto, firmati con un token di accesso.
+Il flusso di lavoro viene eseguito una volta per ogni nuovo incidente. Il suo blocco **Chiamata API POST (JSON)** invia il titolo e la descrizione dell'incidente alle issue del progetto, firmati con un token di accesso.
 
 ## Prima di iniziare
 
@@ -47,11 +47,11 @@ Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Par
 
 ### Aggiungere il trigger
 
-Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Incident**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione** e **Incident Number With Prefix**.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **Alla creazione: Incidente**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione** e **Incident Number With Prefix**.
 
 ### Aprire la issue
 
-Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://gitlab.com/api/v4/projects/12345678/issues`, con l'ID del tuo progetto al posto di `12345678`. In **Altri campi**, imposta le sue **Intestazioni della richiesta** su:
+Fai clic su **Aggiungi componente**, aggiungi un blocco **Chiamata API POST (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://gitlab.com/api/v4/projects/12345678/issues`, con l'ID del tuo progetto al posto di `12345678`. In **Altri campi**, imposta le sue **Intestazioni della richiesta** su:
 
 ```json
 {
@@ -71,7 +71,7 @@ E il suo **Corpo della Richiesta** su:
 
 ### Provarlo, poi attivarlo
 
-Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passo **API Post (JSON)** mostra una risposta `201` con la nuova issue, con il suo `iid` e il suo `web_url`. Poi attiva **Abilitato** in cima al **Costruttore**.
+Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passo **Chiamata API POST (JSON)** mostra una risposta `201` con la nuova issue, con il suo `iid` e il suo `web_url`. Poi attiva **Abilitato** in cima al **Costruttore**.
 :::
 
 Il blocco invia JSON, quindi non ha bisogno di un'intestazione `Content-Type`. GitLab crea le etichette che non ha ancora visto, quindi `incident` e `oneuptime` non richiedono alcuna preparazione. La issue resta aperta quando l'incidente viene risolto, perché il lavoro che ne segue di solito dura più dell'incidente.
@@ -81,11 +81,11 @@ Il blocco invia JSON, quindi non ha bisogno di un'intestazione `Content-Type`. G
 - **Un tuo GitLab.** Invia invece la richiesta al tuo server: `https://gitlab.example.com/api/v4/projects/12345678/issues`. Un server su un indirizzo di rete privato ha bisogno di un OneUptime self-hosted il cui amministratore lo consenta: vedi [Accesso alla rete in uscita](/docs/workflows/configuration#accesso-alla-rete-in-uscita).
 - **Il percorso del progetto al posto del suo ID.** Il percorso funziona al posto dell'ID, con la sua `/` scritta come `%2F`: `projects/your-group%2Fyour-project/issues`. L'URL viene inviato esattamente come è scritto, quindi codificalo tu.
 - **Assegnala.** Aggiungi `"assignee_ids": [42]` o `"due_date": "2026-12-31"` al corpo, oppure `"confidential": true` per mostrarla solo ai membri del progetto.
-- **Solo alcuni incidenti.** Metti un blocco **If / Else** tra il trigger e il blocco API, e apri issue solo sul suo lato **Sì**, per esempio per una gravità.
+- **Solo alcuni incidenti.** Metti un blocco **Se / Altrimenti** tra il trigger e il blocco API, e apri issue solo sul suo lato **Sì**, per esempio per una gravità.
 
 ## Risoluzione dei problemi
 
-Il passo **API Post (JSON)** prende **Errore** quando GitLab rifiuta la richiesta. I suoi **Response Status** e **Corpo della Risposta** nell'esecuzione dicono perché.
+Il passo **Chiamata API POST (JSON)** prende **Errore** quando GitLab rifiuta la richiesta. I suoi **Stato della risposta** e **Corpo della Risposta** nell'esecuzione dicono perché.
 
 :::details GitLab risponde 401
 Il token è sbagliato, scaduto o revocato. Creane uno nuovo e sostituisci il contenuto di `GITLAB_TOKEN`.

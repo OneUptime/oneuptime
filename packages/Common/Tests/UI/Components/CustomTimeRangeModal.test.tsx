@@ -227,7 +227,7 @@ describe("CustomTimeRangeModal", () => {
 
       expect(
         screen.getByTestId("custom-time-range-summary").textContent,
-      ).toContain("3 hours");
+      ).toContain("3\u00A0hours");
     });
 
     test("replaces the summary with an error when the window is invalid", () => {
@@ -252,7 +252,7 @@ describe("CustomTimeRangeModal", () => {
 
       expect(
         screen.getByTestId("custom-time-range-summary").textContent,
-      ).toContain("1 hour");
+      ).toContain("1\u00A0hour");
     });
   });
 

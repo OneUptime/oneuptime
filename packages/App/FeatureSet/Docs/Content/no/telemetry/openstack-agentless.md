@@ -48,7 +48,7 @@ Et stoppet Octavia-API er `up 0` for en sonde, noe agentens eksportør ikke kan 
 | Innlogginger til Keystone | Én i et tokens levetid, vanligvis en time | Én per skraping |
 | En vanlig `reader` på ett prosjekt | Det prosjektets instanser, volumer og nettverk | Det prosjektets volumer og nettverk, og ingen instanser |
 
-Begge sender de samme seriene, så sidene og overvåkerne fungerer med begge. En sonde sender også det bare en innebygd klient kan lese: en instans' adresser, oppgavetilstand og feilmelding, avbildet den startet fra, om en operatør tvang en Nova-tjeneste ned, hvilke nettverk en DHCP-agent betjener, hvilken pool som holder et volum, når en instans, et volum eller et bilde sist ble endret, og statusen til hver volum-snapshot og sikkerhetskopi. Cinder sier bare hvilken pool som holder et volum til en legitimasjon den behandler som admin. På en sky som kjører [Heat eller Magnum](/docs/telemetry/openstack#heat-og-magnum) sender den også hvorfor en stack eller en klynge feilet, hvilke instanser og volumer en stack eier, hver klynges prosjekt, mal og Kubernetes-versjon, og om hver av Heats motorer og Magnums conductorer er oppe.
+Begge sender de samme seriene, så sidene og monitorene fungerer med begge. En sonde sender også det bare en innebygd klient kan lese: en instans' adresser, oppgavetilstand og feilmelding, avbildet den startet fra, om en operatør tvang en Nova-tjeneste ned, hvilke nettverk en DHCP-agent betjener, hvilken pool som holder et volum, når en instans, et volum eller et bilde sist ble endret, og statusen til hver volum-snapshot og sikkerhetskopi. Cinder sier bare hvilken pool som holder et volum til en legitimasjon den behandler som admin. På en sky som kjører [Heat eller Magnum](/docs/telemetry/openstack#heat-og-magnum) sender den også hvorfor en stack eller en klynge feilet, hvilke instanser og volumer en stack eier, hver klynges prosjekt, mal og Kubernetes-versjon, og om hver av Heats motorer og Magnums conductorer er oppe.
 
 Velg agenten for tjenestelogger, for AI-agenten, for det skyen hviler på og hver instans' faktiske bruk, for en sky der API-ene bare snakker vanlig HTTP, slik DevStack og Kolla-Ansible gjør som standard, eller for en sky så stor at den må [leses fra databasene sine](/docs/telemetry/openstack-very-large-clouds#databaseveien). Velg en sonde for alt annet: det er ingenting å installere, og den leser mer av det Nova og Cinder sier. [Svært store OpenStack-skyer](/docs/telemetry/openstack-very-large-clouds) sier hva hver av dem koster ved enhver størrelse.
 
@@ -91,7 +91,7 @@ En sky med sin egen sertifikatutsteder presenterer et sertifikat sonden ikke sto
 Velg regionene som skal leses, gi skyen et navn og klikk **Koble til sky**. Skyens side åpnes.
 :::
 
-Skyens **Oversikt** viser et **Datainnsamling**-kort. Det viser **Kontrollerer** til første innsamling, som starter innen et minutt, deretter **Samler inn**, og sidene fylles ut. Når noen tjenester ble lest og en annen ikke, sier det hvilken. Hvis ingen sonde kommer for skyen på 15 minutter, fordi den er frakoblet eller for gammel, vises **Samler ikke inn** og det sies fra om det, uansett hva siste innsamling fant.
+Skyens **Oversikt** viser et **Datainnsamling**-kort. Det viser **Kontrollerer** til første innsamling, som starter innen et minutt, deretter **Samler inn**, og sidene fylles ut. Når noen tjenester ble lest og en annen ikke, sier det hvilken. Hvis ingen sonde kommer for skyen på 15 minutter, fordi den er offline eller for gammel, vises **Samler ikke inn** og det sies fra om det, uansett hva siste innsamling fant.
 
 Når ingen sonde får samle inn skyen, viser kortet straks **Samler ikke inn**, med årsaken og hva som må endres: ingen legitimasjon er lagret, Keystones adresse mangler, ingen sonde er satt til å samle den inn, sonden dens får ikke samle den inn (en delt sonde på OneUptime Cloud, eller et annet prosjekts), eller sonden dens er frakoblet. **Neste innsamling** er tidspunktet en sonde samler den inn neste gang, **Står for tur nå** mens den venter på en, **Forsinket** når ingen har kommet på 15 minutter, og **Ikke planlagt** mens ingen sonde får samle den inn. En arkivert sky samles fortsatt inn.
 
@@ -272,7 +272,7 @@ Skyen svarte for sakte for dette intervallet. Samle inn sjeldnere, eller sjekk l
 :::
 
 :::details Sonden plukket ikke dette opp
-Sonden er frakoblet, eller kjører en OneUptime-versjon eldre enn OpenStack-innsamling. Sjekk at den er tilkoblet på siden **Sonder**, og oppdater den. En skys kort sier dette også når en innsamling er 15 minutter forsinket, uansett hvordan siste innsamling gikk, og går tilbake av seg selv når sonden gjør det.
+Sonden er offline, eller kjører en OneUptime-versjon eldre enn OpenStack-innsamling. Sjekk at den er tilkoblet på siden **Sonder**, og oppdater den. En skys kort sier dette også når en innsamling er 15 minutter forsinket, uansett hvordan siste innsamling gikk, og går tilbake av seg selv når sonden gjør det.
 :::
 
 :::details Denne skyen er for stor til å samle inn fra en sonde

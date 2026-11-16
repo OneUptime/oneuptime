@@ -93,24 +93,24 @@ describe("the Telegram setup guide's end-to-end test", () => {
 
   test("says exactly who can switch Telegram on, and where", () => {
     expect(TELEGRAM_PROJECT_SWITCH_STEP).toContain(
-      "a project owner, a **Billing Admin** or someone with **Manage Billing** turns **Telegram** on in **Project Settings → Notifications → Notification Channels**.",
+      "a Project Owner, a **Billing Admin** or someone with **Manage Billing** turns **Telegram** on in **Project Settings → Notifications → Notification Channels**.",
     );
     expect(TELEGRAM_PROJECT_SWITCH_STEP).toContain(
       "It starts off in every project, and until it is on nobody in the project can link a Telegram account.",
     );
   });
 
-  test("names the people the switch's update permissions let in, and no project admin", () => {
-    // "a project owner, a Billing Admin or someone with Manage Billing"
+  test("names the people the switch's update permissions let in, and no Project Admin", () => {
+    // "a Project Owner, a Billing Admin or someone with Manage Billing"
     expect(
       PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS.map(getPermissionTitle),
     ).toEqual(["Project Owner", "Billing Admin", "Manage Billing"]);
 
-    expect(TELEGRAM_PROJECT_SWITCH_STEP).toContain("project owner");
+    expect(TELEGRAM_PROJECT_SWITCH_STEP).toContain("Project Owner");
     expect(TELEGRAM_PROJECT_SWITCH_STEP).toContain("**Billing Admin**");
     expect(TELEGRAM_PROJECT_SWITCH_STEP).toContain("**Manage Billing**");
     expect(TELEGRAM_PROJECT_SWITCH_STEP.toLowerCase()).not.toContain(
-      "project admin",
+      "Project Admin",
     );
   });
 
@@ -167,7 +167,11 @@ describe("the rest of the guide", () => {
       'import { buildTelegramSetupMarkdown } from "./TelegramSetupGuide";',
     );
     expect(page).toContain("/notification/telegram/webhook");
-    expect(page).toContain("<MarkdownViewer text={telegramSetupMarkdown} />");
+    // In the reader's language, laid out the way it reads (#8677).
+    expect(page).toContain("text={telegramSetupMarkdown}");
+    expect(page).toContain(
+      "readingDirection={getReadingDirection(translator.language)}",
+    );
     // One guide: the page no longer keeps a copy of its own.
     expect(page).not.toContain("### 3. Test end-to-end");
   });

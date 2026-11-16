@@ -1,6 +1,6 @@
 # Export av granskningslogg
 
-Skicka granskningsloggen, allt eftersom den registreras, till lagring eller en tjänst du väljer: Amazon S3 eller S3-kompatibel lagring, Google Cloud Storage, Azure Blob Storage, en webhook eller syslog. Behåll posterna där så länge dina efterlevnadsgranskningar kräver, och sök i dem i ditt SIEM. Ett projekts ägare och administratörer exporterar dess granskningslogg från projektinställningarna, och master admins exporterar alla projekts från Admin Dashboard. Den ingår i Enterprise-planen i OneUptime Cloud och i Enterprise Edition när du kör självhostat.
+Skicka granskningsloggen, allt eftersom den registreras, till lagring eller en tjänst du väljer: Amazon S3 eller S3-kompatibel lagring, Google Cloud Storage, Azure Blob Storage, en webhook eller syslog. Behåll posterna där så länge dina efterlevnadsgranskningar kräver, och sök i dem i ditt SIEM. Projektägare och Projektadministratörer exporterar ett projekts granskningslogg från projektinställningarna, och master admins exporterar alla projekts från Admin Dashboard. Den ingår i Enterprise-planen i OneUptime Cloud och i Enterprise Edition när du kör självhostat.
 
 :::cards
 - [Konfigurera en export](#konfigurera-en-export): Välj ett mål, testa det, spara det.
@@ -140,7 +140,7 @@ Varje post är ett JSON-objekt, med nycklarna alltid i den här ordningen:
 | `id` | Postens ID. Samma post, skickad två gånger, har samma ID. |
 | `createdAt` | När ändringen registrerades, i UTC. |
 | `projectId` | Projektet där ändringen gjordes. |
-| `action` | `Create`, `Update`, `Delete` eller `Download`, eller för en session `SignIn`, `SignOut`, `SessionTimeout` eller `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` eller `Download`, eller för en inloggning eller en session `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` eller `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Vad som ändrades. |
 | `rootResourceType`, `rootResourceId` | Resursen den hör till, till exempel ett SLO för dess regel. |
 | `userId`, `userName`, `userEmail`, `userType` | Vem som gjorde ändringen. |
@@ -173,11 +173,11 @@ En ny export skickar version 2. En export som sparades före version 2 fortsätt
 
 ## När ett mål misslyckas
 
-En batch försöks tre gånger med några sekunders mellanrum, och sedan väntar exporten innan den försöker igen: en minut, sedan två, fyra och så vidare, upp till en timme. Raden säger **Misslyckas**, och **Visa fel** visar vad målet svarade och när nästa försök kommer.
+En batch försöks tre gånger med några sekunders mellanrum, och sedan väntar exporten innan den försöker igen: en minut, sedan två, fyra och så vidare, upp till en timme. Raden säger **Misslyckas**, och **Visa fel** visar vad målet svarade, när nästa försök kommer, och från när posterna som väntar på att skickas börjar tas bort, eller, när den tidpunkten har passerat, sedan när de tas bort.
 
 Inget hoppas över: Posterna väntar i granskningsloggen, och nästa leverans som lyckas tar igen från den äldsta. Varje post tas ändå bort när den är äldre än lagringstiden den registrerades med, skickad eller inte, så åtgärda en export som misslyckas inom den tiden. En längre lagringstid gäller bara poster som registreras efter att du ändrar den.
 
-En export som misslyckas skickar e-post till dem som kan åtgärda den: projektets ägare för ett projekts export, och alla master admins för instansens. Det första mejlet går efter 30 minuter av fel, med vad målet svarade. Ett andra går en dag innan den första av posterna som exporten inte har skickat tas bort, med när poster börjar gå förlorade. Har den tidpunkten redan passerat, som när **Exportera från** går längre tillbaka än lagringstiden, går det andra mejlet i stället för det första efter 30 minuter och säger att poster går förlorade nu. Varje mejl skickas en gång medan felen pågår, och en leverans som lyckas nollställer båda.
+En export som misslyckas skickar e-post till dem som kan åtgärda den: Projektägare för ett projekts export, och alla master admins för instansens. Det första mejlet går efter 30 minuter av fel, med vad målet svarade. Ett andra går en dag innan den första av posterna som exporten inte har skickat tas bort, med när poster börjar gå förlorade. Har den tidpunkten redan passerat, som när **Exportera från** går längre tillbaka än lagringstiden, går det andra mejlet i stället för det första efter 30 minuter och säger att poster går förlorade nu. Varje mejl skickas en gång medan felen pågår, och en leverans som lyckas nollställer båda.
 
 Välj **Stäng av** i radens meny för att pausa en export: Den behåller sin plats, och **Slå på** skickar det som registrerats under tiden. I OneUptime Cloud slutar ett projekt som lämnar Enterprise-planen att exportera, och dess exporter väntar under uppgraderingskortet, där de kan stängas av eller tas bort. När du kör självhostat stoppar exporten så länge licensen inte omfattar granskningsloggar, och fortsätter där den slutade så snart en licens gör det.
 

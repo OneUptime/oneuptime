@@ -113,7 +113,7 @@ Ingen af de projekter, den e-mail er medlem af, har sat single sign-on op, eller
 :::
 
 :::details En sikkerhedsnøgle er din eneste anden faktor
-Appen kan ikke bruge en sikkerhedsnøgle. Log ind med en af dine backupkoder, eller tilføj en godkendelsesapp til din konto i dashboardet: se [Slå totrinsgodkendelse til](/docs/introduction/your-account#slå-totrinsgodkendelse-til).
+Appen kan ikke bruge en sikkerhedsnøgle. Log ind med en af dine backupkoder, eller tilføj en godkendelsesapp til din konto i dashboardet: se [Slå tofaktorgodkendelse til](/docs/introduction/your-account#slå-tofaktorgodkendelse-til).
 :::
 
 :::details Login med adgangsnøgle mislykkes

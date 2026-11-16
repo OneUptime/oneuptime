@@ -355,7 +355,7 @@ eBPF इंस्ट्रूमेंटेशन भी चालू होन
 
 | विकल्प | डिफ़ॉल्ट | यह क्या जोड़ता है |
 | --- | --- | --- |
-| `hostMetrics.enabled` | चालू | `/proc` और `/sys` से हर नोड के OS मेट्रिक्स: डिस्क I/O कतारें, फ़ाइल सिस्टम inode, नेटवर्क इंटरफ़ेस त्रुटियाँ, पेजिंग और लोड एवरेज। नोड कलेक्टर में चलता है, बिना अतिरिक्त पॉड के। |
+| `hostMetrics.enabled` | चालू | `/proc` और `/sys` से हर नोड के OS मेट्रिक्स: डिस्क I/O क्यू, फ़ाइल सिस्टम inode, नेटवर्क इंटरफ़ेस त्रुटियाँ, पेजिंग और लोड एवरेज। नोड कलेक्टर में चलता है, बिना अतिरिक्त पॉड के। |
 | `kubeletstats.utilizationMetrics.enabled` | चालू | कंटेनर और पॉड का CPU और मेमोरी, उनके request और limit के प्रतिशत के रूप में, जिन्हें Pod CPU Saturating Container Limit और Pod Memory Saturating Container Limit टेम्पलेट पढ़ते हैं। बिना limit (या request) वाले कंटेनर को इनमें से कोई सीरीज़ नहीं मिलती, और पॉड को तभी जब उसके हर कंटेनर में यह हो। |
 | `kubeletstats.volumeMetrics.enabled` | चालू | हर PVC की खाली और कुल जगह (`k8s.volume.available`, `k8s.volume.capacity`), आपके अपने चार्ट और मेट्रिक मॉनिटर के लिए: कोई बिल्ट-इन टेम्पलेट इसे नहीं पढ़ता। हर पॉड के हर PVC के लिए एक सीरीज़। |
 | `cadvisor.enabled` | चालू | हर kubelet के `/metrics/cadvisor` से CPU थ्रॉटलिंग और OOM किल: `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total` और `container_oom_events_total`, और कुछ नहीं। |

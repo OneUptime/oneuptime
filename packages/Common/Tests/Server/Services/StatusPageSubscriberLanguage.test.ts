@@ -161,7 +161,7 @@ describe("the text messages about a subscription", () => {
       translator: getServerTranslator("de"),
     });
 
-    expect(german).toContain("innerhalb von 24 Stunden");
+    expect(german).toContain("innerhalb von 24\u00A0Stunden");
     expect(german.endsWith(" https://status.acme.com/confirm/1")).toBe(true);
 
     // Persian writes the hours in its own digits, as its sentences do.

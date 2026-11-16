@@ -4,7 +4,7 @@ En vagtpolitik afgør, hvem der tilkaldes om en hændelse eller advarsel, og hve
 
 :::cards
 - [Opret en politik](#opret-en-politik): Et navn, og hvem der tilkaldes først.
-- [Hvad der kører en politik](#hvad-der-kører-en-politik): Regler, skabeloner, overvågninger, chat og dig selv.
+- [Hvad der kører en politik](#hvad-der-kører-en-politik): Regler, skabeloner, monitorer, chat og dig selv.
 - [Udførelseslogs](#udførelseslogs): Hver kørsel, regel for regel, og hvorfor den stoppede.
 - [Arkiver eller slet en politik](#arkiver-eller-slet-en-politik): Tag en politik ud af drift.
 :::
@@ -30,7 +30,7 @@ En politik tilkalder ingen, før noget kører den. Hver hændelse, advarsel og e
 
 | Hvad | Hvordan politikken tilføjes | Læs mere |
 | --- | --- | --- |
-| Selve posten | Feltet **Vagtpolitik**, når en hændelse eller advarsel oprettes, en hændelsesskabelon eller den sammenfoldede del **Vagt** i en overvågnings kriterier | [Opret en hændelse](/docs/incidents/declaring-incidents) |
+| Selve posten | Feltet **Vagtpolitik**, når en hændelse eller advarsel oprettes, en hændelsesskabelon eller den sammenfoldede del **Vagt** i en monitor kriterier | [Opret en hændelse](/docs/incidents/declaring-incidents) |
 | Vagtregler | **Hændelser → Regler → Vagtregler** og **Advarsler → Regler → Vagtregler** tilføjer politikkerne fra hver regel, der matcher | [Vagtregler for hændelser](/docs/incidents/settings#vagtregler-for-hændelser) |
 | Grupperingsregler | En grupperingsregel kører sine politikker, når den åbner en episode | [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes) |
 | Manuelt | **Udfør vagtpolitik**, i menuen **Handlinger** i et feed, eller på en besked i Slack eller Microsoft Teams | [Hændelsens feed](/docs/incidents/notes-owners-and-feed#hændelsens-feed) |
@@ -52,7 +52,7 @@ En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører a
 **Grundlæggende** er åben; de andre sektioner starter foldet sammen, indtil du klikker på dem.
 
 - **Oversigt** viser **Detaljer om vagtpolitik** og derefter **Politikken i overblik**: hvor mange niveauer og modtagere politikken har, hvor lang tid der går til dens sidste niveau, og hvor ofte den gentages. **Modtagernes parathed** siger, om alle, den kan tilkalde, kan nås nu, og **Vagtpolitikkens feed** viser, hvad der er ændret: personer, teams og vagtplaner, der er tilføjet eller fjernet, tilsidesættelser og overdragelser. Dens regler for Slack, Microsoft Teams og Mattermost slår dem op i dine kanaler, et vagtskifte i én linje: se [Vagtbeskeder](/docs/workspace-connections/slack#vagtbeskeder).
-- **Ejere** er de personer og teams, der er ansvarlige for politikken. Når et tilkald fra den ikke finder en regel for nogen eller ikke kan leveres, får de en e-mail; en politik uden ejere sender i stedet en e-mail til projektets ejere.
+- **Ejere** er de personer og teams, der er ansvarlige for politikken. Når et tilkald fra den ikke finder en regel for nogen eller ikke kan leveres, får de en e-mail; en politik uden ejere sender i stedet en e-mail til Projektejere.
 - **Notifikationslogs** viser hver besked, politikken har sendt, med en fane pr. kanal.
 - **Brugertilsidesættelser** dækker kun for folk i denne politik. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
 - **Indstillinger** har **Eksportér Vagtpolitik** og kortet, der arkiverer politikken.

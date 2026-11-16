@@ -1,21 +1,21 @@
 # مانیتور سلامت پایگاه داده
 
-مانیتور Database Health طبق یک زمان‌بندی به PostgreSQL، MySQL یا Microsoft SQL Server وصل می‌شود و نشانه‌های سلامت خودِ سرور را گزارش می‌کند — حاشیهٔ اتصال‌ها، نشست‌های مسدودشده، تأخیر تکثیر، نسبت برخورد حافظهٔ نهان، اندازهٔ پایگاه داده، دورزدن شناسهٔ تراکنش و حدود سی مورد دیگر — تا بتوانید برای آن‌ها هشدار بگذارید، همان‌طور که برای از دسترس افتادن یک وب‌سایت هشدار می‌گذارید.
+مانیتور سلامت پایگاه داده طبق یک زمان‌بندی به PostgreSQL، MySQL یا Microsoft SQL Server وصل می‌شود و نشانه‌های سلامت خودِ سرور را گزارش می‌کند — حاشیهٔ اتصال‌ها، نشست‌های مسدودشده، تأخیر تکثیر، نسبت برخورد حافظهٔ نهان، اندازهٔ پایگاه داده، دورزدن شناسهٔ تراکنش و حدود سی مورد دیگر — تا بتوانید برای آن‌ها هشدار بگذارید، همان‌طور که برای از دسترس افتادن یک وب‌سایت هشدار می‌گذارید.
 
 لازم نیست SQL بنویسید. پراب مجموعه‌ای ثابت از کوئری‌های کاتالوگ فقط‌خواندنی را اجرا می‌کند که بر اساس موتور انتخاب شده‌اند، و چند عدد نام‌دار را گزارش می‌کند.
 
 :::cards
 - [ساختن کاربر پایش](#ساختن-کاربر-پایش): مجوزهایی که هر موتور نیاز دارد. مهم‌ترین گام همین است.
-- [ساختن مانیتور](#ساختن-یک-مانیتور-database-health): یک پراب را به سمت پایگاه داده بگیرید و انتخاب کنید چه چیزی گردآوری شود.
+- [ساختن مانیتور](#ساختن-یک-مانیتور-سلامت-پایگاه-داده): یک پراب را به سمت پایگاه داده بگیرید و انتخاب کنید چه چیزی گردآوری شود.
 - [متریک‌های گردآوری‌شده](#متریکهای-گردآوریشده): همهٔ سری‌ها، همراه با موتورهایی که آن‌ها را گزارش می‌کنند.
 - [تنظیم معیارها](#تنظیم-معیارها): برای اتصال‌ها، مسدودشدن، تأخیر و دورزدن شناسه هشدار بگذارید.
 :::
 
-## Database Health یا SQL Query؟
+## سلامت پایگاه داده یا پرس‌وجوی SQL؟
 
 این دو نوع مانیتور پایگاه داده به پرسش‌های متفاوتی پاسخ می‌دهند و برای استفادهٔ هم‌زمان ساخته شده‌اند.
 
-| | Database Health | [SQL Query](/docs/monitor/sql-monitor) |
+| | سلامت پایگاه داده | [SQL Query](/docs/monitor/sql-monitor) |
 |---|---|---|
 | پرسشی که پاسخ می‌دهد | «آیا خودِ پایگاه داده سالم است؟» | «آیا داده‌های من همانی است که انتظار دارم؟» |
 | کوئری | داخلی، جدا برای هر موتور، فقط‌خواندنی | کوئری خودتان |
@@ -23,7 +23,7 @@
 | هشدار معمول | اتصال‌های در حال استفاده بالای ۹۰٪ | بیش از ۵۰ سفارش لغوشده در پنج دقیقهٔ گذشته |
 | مجوزهای لازم | دسترسی خواندن آمار/DMVها — [ساختن کاربر پایش](#ساختن-کاربر-پایش) را ببینید | `SELECT` روی جدول‌هایی که کوئری شما با آن‌ها سروکار دارد |
 
-اگر می‌خواهید برای یک شرط کسب‌وکاری هشدار بگذارید، از مانیتور SQL Query استفاده کنید. اگر می‌خواهید پیش از آنکه شرط کسب‌وکاری اصلاً فرصت خراب شدن پیدا کند بدانید که اتصال‌های سرور رو به اتمام است، از این مانیتور استفاده کنید.
+اگر می‌خواهید برای یک شرط کسب‌وکاری هشدار بگذارید، از مانیتور پرس‌وجوی SQL استفاده کنید. اگر می‌خواهید پیش از آنکه شرط کسب‌وکاری اصلاً فرصت خراب شدن پیدا کند بدانید که اتصال‌های سرور رو به اتمام است، از این مانیتور استفاده کنید.
 
 ## پایگاه‌های داده‌ای که پشتیبانی می‌شوند
 
@@ -37,7 +37,7 @@ Azure SQL Database و Azure SQL Managed Instance به‌عنوان **Microsoft S
 
 موتورهای سازگار با PostgreSQL و MySQL که همان پروتکل ارتباطی را به کار می‌برند معمولاً کار می‌کنند، ولی ممکن است نماهای آماری کمتری داشته باشند؛ در این صورت متریک‌های مربوط به‌جای گردآوری شدن، «در دسترس نیست» گزارش می‌شوند. فقط سه موتور بالا رسماً آزموده شده‌اند.
 
-هر پایگاه داده‌ای که برنامه‌ها، خوشه‌ها و میزبان‌های شما به کار می‌برند — این سه موتور و بسیاری موتورهای دیگر — صفحهٔ خودش را هم دارد، با متریک‌های موتور، لاگ‌ها و سرویس‌هایی که آن را فراخوانی می‌کنند: [پایگاه‌های داده](/docs/telemetry/databases) را ببینید. وقتی میزبان و پورتی که یک مانیتور Database Health به آن وصل می‌شود یکی از نقطه‌های پایانی یک پایگاه داده باشد، هشدارها و حادثه‌های مانیتور در صفحهٔ آن پایگاه داده هم نشان داده می‌شوند ([هشدارهای یک پایگاه داده](/docs/telemetry/databases#هشدارها-روی-یک-پایگاه-داده) را ببینید).
+هر پایگاه داده‌ای که برنامه‌ها، خوشه‌ها و میزبان‌های شما به کار می‌برند — این سه موتور و بسیاری موتورهای دیگر — صفحهٔ خودش را هم دارد، با متریک‌های موتور، لاگ‌ها و سرویس‌هایی که آن را فراخوانی می‌کنند: [پایگاه‌های داده](/docs/telemetry/databases) را ببینید. وقتی میزبان و پورتی که یک مانیتور سلامت پایگاه داده به آن وصل می‌شود یکی از نقطه‌های پایانی یک پایگاه داده باشد، هشدارها و حادثه‌های مانیتور در صفحهٔ آن پایگاه داده هم نشان داده می‌شوند ([هشدارهای یک پایگاه داده](/docs/telemetry/databases#هشدارها-روی-یک-پایگاه-داده) را ببینید).
 
 ## چگونه کار می‌کند
 
@@ -85,7 +85,7 @@ GRANT pg_monitor TO oneuptime_health;
 `pg_monitor` یک نقش داخلی است (PostgreSQL 10 و تازه‌تر) که دسترسی خواندن به نماهای آماری و پایشی می‌دهد. هیچ دسترسی‌ای به جدول‌های شما نمی‌دهد.
 
 > [!IMPORTANT]
-> **چرا `pg_monitor` در PostgreSQL اختیاری نیست.** بدون آن، `pg_stat_activity` شکست نمی‌خورد — کوئری موفق می‌شود و فقط ردیف خودِ نشست پایش را برمی‌گرداند. آن‌وقت شمار اتصال‌ها برای همیشه `1`، نشست‌های مسدودشده `0` و تأخیر تکثیر `0` نشان داده می‌شود، روی سروری که در واقع آتش گرفته است. برای همین پراب **پیش از** اجرای آن کوئری‌ها بررسی می‌کند که ورود عضو `pg_monitor` (یا `pg_read_all_stats`) باشد یا ابرکاربر باشد. اگر هیچ‌کدام نباشد، پراب گروه‌های Connections، Activity و Locks را «در دسترس نیست» گزارش می‌کند، همراه با `GRANT`ی که لازم دارید. گزارش ندادن هیچ چیز پاسخ صادقانه است؛ گزارش دادن `1` نیست.
+> **چرا `pg_monitor` در PostgreSQL اختیاری نیست.** بدون آن، `pg_stat_activity` شکست نمی‌خورد — کوئری موفق می‌شود و فقط ردیف خودِ نشست پایش را برمی‌گرداند. آن‌وقت شمار اتصال‌ها برای همیشه `1`، نشست‌های مسدودشده `0` و تأخیر تکثیر `0` نشان داده می‌شود، روی سروری که در واقع آتش گرفته است. برای همین پراب **پیش از** اجرای آن کوئری‌ها بررسی می‌کند که ورود عضو `pg_monitor` (یا `pg_read_all_stats`) باشد یا ابرکاربر باشد. اگر هیچ‌کدام نباشد، پراب گروه‌های **اتصال‌ها**، **فعالیت** و **قفل‌ها و انسداد** را «در دسترس نیست» گزارش می‌کند، همراه با `GRANT`ی که لازم دارید. گزارش ندادن هیچ چیز پاسخ صادقانه است؛ گزارش دادن `1` نیست.
 
 در سرویس مدیریت‌شده‌ای که `pg_monitor` در دسترس نیست، `pg_read_all_stats` همان نماها را پوشش می‌دهد. در Amazon RDS به `GRANT rds_superuser` نیازی نیست — `GRANT pg_monitor TO oneuptime_health;` به‌عنوان عضو `rds_superuser` کار می‌کند.
 
@@ -102,7 +102,7 @@ GRANT SELECT ON mydb.* TO 'oneuptime_health'@'%';
 FLUSH PRIVILEGES;
 ```
 
-`performance_schema` در MySQL باید روشن باشد (`performance_schema = ON`، که از نسخهٔ 5.6 پیش‌فرض است). اگر خاموش باشد، گروه‌های Connections، Throughput و Locks «در دسترس نیست» گزارش می‌شوند و راه‌حل، راه‌اندازی دوبارهٔ سرور است، نه یک مجوز.
+`performance_schema` در MySQL باید روشن باشد (`performance_schema = ON`، که از نسخهٔ 5.6 پیش‌فرض است). اگر خاموش باشد، گروه‌های **اتصال‌ها**، **توان عملیاتی** و **قفل‌ها و انسداد** «در دسترس نیست» گزارش می‌شوند و راه‌حل، راه‌اندازی دوبارهٔ سرور است، نه یک مجوز.
 
 ### Microsoft SQL Server و Azure SQL Managed Instance
 
@@ -121,7 +121,7 @@ CREATE USER oneuptime_health FOR LOGIN oneuptime_health;
 اگر `GRANT VIEW SERVER STATE` از هر پایگاه دادهٔ دیگری اجرا شود، با Msg 4621 شکست می‌خورد: «Permissions at the server scope can only be granted when the current database is master».
 
 > [!WARNING]
-> **دسترسی خواندن به جدول‌هایتان کافی نیست.** ورودی که فقط می‌تواند داده بخواند — `db_datareader` یا هر نقش «دسترسی خواندن» دیگری — می‌تواند وصل شود و اندازهٔ پایگاه داده را می‌گیرد، و نه هیچ چیز دیگر. SQL Server نماهایی را که مانیتور می‌خواند با `The user does not have permission to perform this action.` (Msg 297) رد می‌کند. پیامِ پیش از آن می‌گوید چه چیزی رد شده است: Msg 300 `VIEW SERVER STATE` (در 2022 `VIEW SERVER PERFORMANCE STATE`) برای نماهای سرور، از جمله فضای لاگ تراکنش و فضای آزاد tempdb، یا Msg 262 `VIEW DATABASE STATE` (در 2022 `VIEW DATABASE PERFORMANCE STATE`) برای نمای تکثیر. مانیتور آنلاین می‌ماند، گزارش می‌کند که گروه‌های Connections، Activity، Throughput، Locks، Storage و Replication مجوز کم دارند، و `GRANT` بالا را کنارشان نشان می‌دهد. `VIEW SERVER STATE` همهٔ آن‌ها را پوشش می‌دهد.
+> **دسترسی خواندن به جدول‌هایتان کافی نیست.** ورودی که فقط می‌تواند داده بخواند — `db_datareader` یا هر نقش «دسترسی خواندن» دیگری — می‌تواند وصل شود و اندازهٔ پایگاه داده را می‌گیرد، و نه هیچ چیز دیگر. SQL Server نماهایی را که مانیتور می‌خواند با `The user does not have permission to perform this action.` (Msg 297) رد می‌کند. پیامِ پیش از آن می‌گوید چه چیزی رد شده است: Msg 300 `VIEW SERVER STATE` (در 2022 `VIEW SERVER PERFORMANCE STATE`) برای نماهای سرور، از جمله فضای لاگ تراکنش و فضای آزاد tempdb، یا Msg 262 `VIEW DATABASE STATE` (در 2022 `VIEW DATABASE PERFORMANCE STATE`) برای نمای تکثیر. مانیتور آنلاین می‌ماند، گزارش می‌کند که گروه‌های **اتصال‌ها**، **فعالیت**، **توان عملیاتی**، **قفل‌ها و انسداد**، **ذخیره‌سازی** و **تکثیر** مجوز کم دارند، و `GRANT` بالا را کنارشان نشان می‌دهد. `VIEW SERVER STATE` همهٔ آن‌ها را پوشش می‌دهد.
 >
 > دو نما رد نمی‌کنند: بدون این مجوز، `sys.dm_exec_sessions` و `sys.dm_exec_requests` بی‌سروصدا فقط نشست خودِ مانیتور را نشان می‌دهند. مانیتور هرگز آن‌ها را به‌تنهایی نمی‌خواند — همیشه همراه نمایی که رد می‌کند — پس نبود یک مجوز هرگز به‌صورت «۱ اتصال» ثبت نمی‌شود.
 
@@ -151,11 +151,11 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 پراب Azure SQL Database را از روی `SERVERPROPERTY('EngineEdition')` می‌شناسد، نه از روی نسخه‌اش — Azure SQL Database هر چه واقعاً اجرا کند `12.0.2000.8` را گزارش می‌دهد که مثل SQL Server 2014 خوانده می‌شود. برای همین **موتور** مانیتور `Azure SQL Database 12.0.2000.8` را نشان می‌دهد، و نبود مجوز به‌صورت دستور Azure بالا نشان داده می‌شود، هرگز به‌صورت `VIEW SERVER STATE`.
 
-- **تکثیر در Azure SQL Database گردآوری نمی‌شود.** Azure SQL Database نمای `sys.dm_hadr_database_replica_states` را ندارد، پس گروه Replication آنجا نادیده گرفته می‌شود، به‌جای اینکه در هر بررسی شکست‌خورده گزارش شود. نماهای تکثیر خودِ Azure (`sys.dm_database_replica_states`، `sys.dm_geo_replication_link_status`) هنوز خوانده نمی‌شوند.
-- **اتصال‌ها برای هر پایگاه داده جدا شمرده می‌شوند.** با `VIEW DATABASE STATE`، Azure SQL Database فقط نشست‌های پایگاه دادهٔ پایش‌شده را نشان می‌دهد، پس Connections همان پایگاه داده را می‌شمارد، نه سرور منطقی را. هر پایگاه داده‌ای را که برایتان مهم است جداگانه پایش کنید.
-- **در یک استخر کشسان، TempDB Free Space مقدار کل استخر است.** پایگاه‌های دادهٔ یک استخر یک tempdb مشترک دارند.
+- **تکثیر در Azure SQL Database گردآوری نمی‌شود.** Azure SQL Database نمای `sys.dm_hadr_database_replica_states` را ندارد، پس گروه **تکثیر** آنجا نادیده گرفته می‌شود، به‌جای اینکه در هر بررسی شکست‌خورده گزارش شود. نماهای تکثیر خودِ Azure (`sys.dm_database_replica_states`، `sys.dm_geo_replication_link_status`) هنوز خوانده نمی‌شوند.
+- **اتصال‌ها برای هر پایگاه داده جدا شمرده می‌شوند.** با `VIEW DATABASE STATE`، Azure SQL Database فقط نشست‌های پایگاه دادهٔ پایش‌شده را نشان می‌دهد، پس **اتصال‌ها** همان پایگاه داده را می‌شمارد، نه سرور منطقی را. هر پایگاه داده‌ای را که برایتان مهم است جداگانه پایش کنید.
+- **در یک استخر کشسان، «فضای آزاد TempDB» مقدار کل استخر است.** پایگاه‌های دادهٔ یک استخر یک tempdb مشترک دارند.
 
-## ساختن یک مانیتور Database Health
+## ساختن یک مانیتور سلامت پایگاه داده
 
 :::steps
 ### یک مانیتور تازه را آغاز کنید
@@ -191,21 +191,21 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **میزبان** | میزبان پایگاه داده که از پراب در دسترس است (برای نمونه `db.internal`). |
 | **پورت** | پورت پایگاه داده. |
 | **نام پایگاه داده** | پایگاه داده‌ای که به آن وصل می‌شوید. متریک‌های سطح پایگاه داده (اندازه، نسبت برخورد حافظهٔ نهان، سرریز به فایل‌های موقت) برای همین پایگاه داده گزارش می‌شوند؛ متریک‌های سطح سرور (اتصال‌ها، زمان کارکرد، تکثیر) برای کل سرور — جز در Azure SQL Database که اتصال‌ها فقط برای پایگاه دادهٔ پایش‌شده شمرده می‌شوند. |
-| **احراز هویت** | فقط Microsoft SQL Server: **نام کاربری و رمز عبور**، که پیش‌فرض است، یا **احراز هویت یکپارچه Windows**، که با هویت فرایند پراب وارد می‌شود. [احراز هویت یکپارچهٔ ویندوز](/docs/monitor/sql-monitor#احراز-هویت-یکپارچه-windows) را در صفحهٔ مانیتور SQL Query ببینید — راه‌اندازی یکسان است. |
+| **احراز هویت** | فقط Microsoft SQL Server: **نام کاربری و رمز عبور**، که پیش‌فرض است، یا **احراز هویت یکپارچه Windows**، که با هویت فرایند پراب وارد می‌شود. [احراز هویت یکپارچهٔ ویندوز](/docs/monitor/sql-monitor#احراز-هویت-یکپارچه-windows) را در صفحهٔ مانیتور پرس‌وجوی SQL ببینید — راه‌اندازی یکسان است. |
 | **نام کاربری** | کاربر پایش. الزامی است، مگر اینکه از احراز هویت یکپارچهٔ ویندوز استفاده کنید. |
 | **رمز عبور** | رمز عبور. به‌جای تایپ کردنش به‌صورت متن ساده، با `{{monitorSecrets.name}}` به یک [راز مانیتور](/docs/monitor/monitor-secrets) ارجاع دهید ([استفاده از راز مانیتور](#استفاده-از-راز-مانیتور-برای-رمز-عبور) را ببینید). |
 | **استفاده از SSL/TLS** | اتصال از راه TLS. وقتی روشن است، می‌توانید برای یک گواهی خودامضا **تأیید گواهی سرور** را خاموش کنید. |
 
 ### فیلدهای بیشتر
 
-**گروه‌های متریک** هم اینجاست: کدام گروه‌ها اجرا شوند، از میان Connections، فعالیت، Throughput، Locks and Blocking، ذخیره‌سازی، Replication و تعمیر و نگهداری. همه به‌طور پیش‌فرض روشن‌اند؛ [گروه‌های متریک](#گروههای-متریک) را ببینید. جزئیات مانیتور آن‌ها را با عنوان **گروه‌های متریک جمع‌آوری‌شده** فهرست می‌کند.
+**گروه‌های متریک** هم اینجاست: کدام گروه‌ها اجرا شوند، از میان اتصال‌ها، فعالیت، توان عملیاتی، قفل‌ها و انسداد، ذخیره‌سازی، تکثیر و تعمیر و نگهداری. همه به‌طور پیش‌فرض روشن‌اند؛ [گروه‌های متریک](#گروههای-متریک) را ببینید. جزئیات مانیتور آن‌ها را با عنوان **گروه‌های متریک جمع‌آوری‌شده** فهرست می‌کند.
 
 | فیلد | پیش‌فرض | بیشینه | چه چیزی را محدود می‌کند |
 |---|---|---|---|
 | **مهلت اتصال (ms)** | `10000` | `30000` | مدت انتظار برای برقرار شدن اتصال. |
 | **مهلت اجرای دستور (ms)** | `10000` | `60000` | سقف زمان هر کوئری کاتالوگ. |
 
-مهلت پیش‌فرض دستورها عمداً از مانیتور SQL Query تنگ‌تر است: این کوئری‌ها روی یک سرور سالم در چند میلی‌ثانیه پاسخ می‌دهند، پس اگر `pg_stat_activity` ده ثانیه طول بکشد، نشانهٔ مفید این است که «این سرور گرفتار است»، نه انتظار بیشتر. مقداری بالاتر از بیشینه تا بیشینه پایین آورده می‌شود.
+مهلت پیش‌فرض دستورها عمداً از مانیتور پرس‌وجوی SQL تنگ‌تر است: این کوئری‌ها روی یک سرور سالم در چند میلی‌ثانیه پاسخ می‌دهند، پس اگر `pg_stat_activity` ده ثانیه طول بکشد، نشانهٔ مفید این است که «این سرور گرفتار است»، نه انتظار بیشتر. مقداری بالاتر از بیشینه تا بیشینه پایین آورده می‌شود.
 
 ## استفاده از راز مانیتور برای رمز عبور
 
@@ -221,17 +221,17 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ## گروه‌های متریک
 
-گروه واحدی است که روشن یا خاموشش می‌کنید، و واحدی که نبود یک مجوز برایش گزارش می‌شود. گروه‌ها برای این هستند که نبود یک مجوز فقط یک گروه را از شما بگیرد، نه کل مانیتور را. دستورهای یک گروه یکی‌یکی اجرا می‌شوند، پس یک گروه می‌تواند بخشی‌اش گردآوری شده باشد: در این صورت هم در `collectedGroups` و هم در `unavailableGroups` می‌آید. حالت رایج، گروه Storage در SQL Server برای ورودی بدون `VIEW SERVER STATE` است — اندازهٔ پایگاه داده گردآوری می‌شود، ولی فضای لاگ و فضای آزاد tempdb نه.
+گروه واحدی است که روشن یا خاموشش می‌کنید، و واحدی که نبود یک مجوز برایش گزارش می‌شود. گروه‌ها برای این هستند که نبود یک مجوز فقط یک گروه را از شما بگیرد، نه کل مانیتور را. دستورهای یک گروه یکی‌یکی اجرا می‌شوند، پس یک گروه می‌تواند بخشی‌اش گردآوری شده باشد: در این صورت هم در `collectedGroups` و هم در `unavailableGroups` می‌آید. حالت رایج، گروه **ذخیره‌سازی** در SQL Server برای ورودی بدون `VIEW SERVER STATE` است — اندازهٔ پایگاه داده گردآوری می‌شود، ولی فضای لاگ و فضای آزاد tempdb نه.
 
 | گروه | چه گردآوری می‌کند | نیاز دارد |
 |---|---|---|
 | اتصال‌ها | شمار اتصال‌ها، سقف پیکربندی‌شده، اتصال‌های نیمه‌کاره‌مانده، زمان کارکرد سرور | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Activity | طولانی‌ترین کوئری در حال اجرا، طولانی‌ترین تراکنش باز، تراکنش‌های باز | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
+| فعالیت | طولانی‌ترین کوئری در حال اجرا، طولانی‌ترین تراکنش باز، تراکنش‌های باز | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
 | توان عملیاتی | تراکنش‌ها، کوئری‌ها، نسبت برخورد حافظهٔ نهان، خواندن و نوشتن دیسک، زمان I/O | PostgreSQL: چیزی جز `CONNECT` لازم نیست. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Locks | نشست‌های مسدودشده، انتظار برای قفل، بن‌بست‌ها، انتظار برای قفل جدول | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Storage | اندازهٔ پایگاه داده، سرریز به فایل‌های موقت، فضای لاگ، فضای آزاد tempdb | PostgreSQL: چیزی جز `CONNECT` لازم نیست. MySQL: `SELECT` روی پایگاه داده. SQL Server: برای اندازهٔ پایگاه داده چیزی لازم نیست؛ برای فضای لاگ و فضای آزاد tempdb `VIEW SERVER STATE` |
-| Replication | رونوشت‌های متصل، تأخیر تکثیر بر حسب ثانیه و بایت، اسلات‌های غیرفعال، وضعیت بازیابی | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`؛ در Azure SQL Database گردآوری نمی‌شود |
-| Maintenance | حاشیهٔ باقی‌مانده تا دورزدن شناسهٔ تراکنش، تاپل‌های مرده، جدول‌هایی که autovacuum هرگز سراغشان نرفته، چک‌پوینت‌ها | PostgreSQL: `pg_monitor` |
+| قفل‌ها و انسداد | نشست‌های مسدودشده، انتظار برای قفل، بن‌بست‌ها، انتظار برای قفل جدول | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| ذخیره‌سازی | اندازهٔ پایگاه داده، سرریز به فایل‌های موقت، فضای لاگ، فضای آزاد tempdb | PostgreSQL: چیزی جز `CONNECT` لازم نیست. MySQL: `SELECT` روی پایگاه داده. SQL Server: برای اندازهٔ پایگاه داده چیزی لازم نیست؛ برای فضای لاگ و فضای آزاد tempdb `VIEW SERVER STATE` |
+| تکثیر | رونوشت‌های متصل، تأخیر تکثیر بر حسب ثانیه و بایت، اسلات‌های غیرفعال، وضعیت بازیابی | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`؛ در Azure SQL Database گردآوری نمی‌شود |
+| تعمیر و نگهداری | حاشیهٔ باقی‌مانده تا دورزدن شناسهٔ تراکنش، تاپل‌های مرده، جدول‌هایی که autovacuum هرگز سراغشان نرفته، چک‌پوینت‌ها | PostgreSQL: `pg_monitor` |
 
 در Azure SQL Database، هر جا این جدول `VIEW SERVER STATE` می‌گوید، `VIEW DATABASE STATE` بخوانید — یا در Basic، S0، S1 و استخرهای کشسان `##MS_ServerStateReader##`. [Azure SQL Database](#azure-sql-database) را ببینید.
 
@@ -249,13 +249,13 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | چه چیزی شکست می‌خورد | وضعیت مانیتور | آنچه می‌بینید |
 |---|---|---|
 | **اتصال**، یا کوئری آزمایشی — اعتبارنامهٔ نادرست، اتصال ردشده، شکست TLS، پایان مهلت اتصال | **آفلاین** | `Database Is Online` برابر false است، و هر حادثه و سیاست آنکالی که به آن وصل کرده‌اید فعال می‌شود. |
-| **یک گروه** — نبود مجوز، `performance_schema` خاموش، پایان مهلت دستور | **آنلاین می‌ماند** | متریک‌هایی که آن گروه نتوانسته بخواند **غایب‌اند**، نه صفر. هیچ خطی در نمودار کشیده نمی‌شود، هیچ آستانه‌ای روی آن سری‌ها جور نمی‌شود، و هیچ حادثه‌ای از آن‌ها برنمی‌خیزد. بررسی یک مشکل گردآوری ثبت می‌کند که نام گروه، دلیل و — اگر باشد — `GRANT` دقیقی را که باید اجرا شود در بر دارد؛ این در خلاصهٔ مانیتور نشان داده می‌شود و در **Metric Groups Failed** شمرده می‌شود. |
-| **موتور اصلاً نمی‌تواند متریک را فراهم کند** — MySQL استاندارد شمارندهٔ بن‌بست ندارد؛ SQL Server به‌طور پیش‌فرض سقف اتصال خود را نامحدود می‌گذارد، پس «درصد استفاده‌شده» معنایی ندارد | **آنلاین می‌ماند** | متریک فقط وجود ندارد. این **یک مشکل گردآوری نیست**، در Metric Groups Failed شمرده نمی‌شود و چیزی هم برای درست کردن نیست. ستون Engines را در [متریک‌های گردآوری‌شده](#متریکهای-گردآوریشده) ببینید. |
+| **یک گروه** — نبود مجوز، `performance_schema` خاموش، پایان مهلت دستور | **آنلاین می‌ماند** | متریک‌هایی که آن گروه نتوانسته بخواند **غایب‌اند**، نه صفر. هیچ خطی در نمودار کشیده نمی‌شود، هیچ آستانه‌ای روی آن سری‌ها جور نمی‌شود، و هیچ حادثه‌ای از آن‌ها برنمی‌خیزد. بررسی یک مشکل گردآوری ثبت می‌کند که نام گروه، دلیل و — اگر باشد — `GRANT` دقیقی را که باید اجرا شود در بر دارد؛ این در خلاصهٔ مانیتور نشان داده می‌شود و در **گروه‌های متریک ناموفق** شمرده می‌شود. |
+| **موتور اصلاً نمی‌تواند متریک را فراهم کند** — MySQL استاندارد شمارندهٔ بن‌بست ندارد؛ SQL Server به‌طور پیش‌فرض سقف اتصال خود را نامحدود می‌گذارد، پس «درصد استفاده‌شده» معنایی ندارد | **آنلاین می‌ماند** | متریک فقط وجود ندارد. این **یک مشکل گردآوری نیست**، در **گروه‌های متریک ناموفق** شمرده نمی‌شود و چیزی هم برای درست کردن نیست. ستون Engines را در [متریک‌های گردآوری‌شده](#متریکهای-گردآوریشده) ببینید. |
 
 غایب همیشه یعنی غایب. مقداری که اندازه‌گیری نشده هرگز `0` گزارش نمی‌شود، چون نموداری پر از صفرهای ساختگی از یک جای خالی بدتر است — جای خالی را دست‌کم می‌توانید ببینید.
 
 > [!TIP]
-> برای هشدار دربارهٔ از دست رفتن دید، از `Database Collection Error` یا یک آستانه روی **Metric Groups Failed** استفاده کنید. هر دو را هشدار بگذارید نه حادثه: مجوزی که پس گرفته شده یک تیکت است، نه یک فراخوان آنکال.
+> برای هشدار دربارهٔ از دست رفتن دید، از `Database Collection Error` یا یک آستانه روی **گروه‌های متریک ناموفق** استفاده کنید. هر دو را هشدار بگذارید نه حادثه: مجوزی که پس گرفته شده یک تیکت است، نه یک فراخوان آنکال.
 
 ### "The user does not have permission to perform this action"
 
@@ -264,114 +264,114 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 - **SQL Server یا Azure SQL Managed Instance** — `GRANT VIEW SERVER STATE TO oneuptime_health;`، اجراشده در `master` (مانیتور آن را به‌صورت `GRANT VIEW SERVER STATE TO [<monitoring_login>]; -- run in master` نشان می‌دهد).
 - **پایگاه داده Azure SQL** — `GRANT VIEW DATABASE STATE TO oneuptime_health;`، اجراشده در پایگاه دادهٔ پایش‌شده؛ در Basic، S0، S1 و استخرهای کشسان، به‌جایش عضویت در `##MS_ServerStateReader##`. [Azure SQL Database](#azure-sql-database) را ببینید.
 
-در این میان اندازهٔ پایگاه داده همچنان گردآوری می‌شود، چون تنها متریک گروه Storage است که هر ورودی می‌تواند بخواند.
+در این میان اندازهٔ پایگاه داده همچنان گردآوری می‌شود، چون تنها متریک گروه **ذخیره‌سازی** است که هر ورودی می‌تواند بخواند.
 
 ## متریک‌های گردآوری‌شده
 
 چهل‌ویک سری در هشت دسته. ستون Engines موتورهایی را نام می‌برد که واقعاً می‌توانند آن سری را فراهم کنند؛ در هر موتور دیگری آن سری فقط وجود ندارد. ستون Group گروه گردآوری‌ای است که سری به آن تعلق دارد — همان چیزی که روشن و خاموشش می‌کنید و همان چیزی که با هم از دست می‌رود.
 
-### دسترس‌پذیری
+### در دسترس بودن
 
 | متریک | سری | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | اتصال‌ها | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | اتصال‌ها | PostgreSQL, MySQL, SQL Server |
+| **مدت روشن بودن** (s) | `oneuptime.monitor.database.uptime.seconds` | اتصال‌ها | PostgreSQL, MySQL, SQL Server |
+| **گروه‌های متریک ناموفق** | `oneuptime.monitor.database.metric.groups.failed` | اتصال‌ها | PostgreSQL, MySQL, SQL Server |
 
 ### اتصال‌ها
 
 | متریک | سری | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | اتصال‌ها | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | اتصال‌ها | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | اتصال‌ها | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | اتصال‌ها | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | اتصال‌ها | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | اتصال‌ها | MySQL |
+| **اتصال‌ها** | `oneuptime.monitor.database.connections.total` | اتصال‌ها | PostgreSQL, MySQL, SQL Server |
+| **اتصال‌های فعال** | `oneuptime.monitor.database.connections.active` | اتصال‌ها | PostgreSQL, MySQL, SQL Server |
+| **حداکثر اتصال‌ها** | `oneuptime.monitor.database.connections.max` | اتصال‌ها | PostgreSQL, MySQL |
+| **اتصال‌های استفاده‌شده** (%) | `oneuptime.monitor.database.connections.used.percent` | اتصال‌ها | PostgreSQL, MySQL |
+| **بیکار در تراکنش** | `oneuptime.monitor.database.connections.idle.in.transaction` | اتصال‌ها | PostgreSQL |
+| **اتصال‌های لغوشده** | `oneuptime.monitor.database.connections.aborted.total` | اتصال‌ها | MySQL |
 
 ### توان عملیاتی
 
 | متریک | سری | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | توان عملیاتی | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | توان عملیاتی | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | توان عملیاتی | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | توان عملیاتی | PostgreSQL |
-| **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **تراکنش‌ها** | `oneuptime.monitor.database.transactions.total` | توان عملیاتی | PostgreSQL, SQL Server |
+| **کوئری‌ها** | `oneuptime.monitor.database.queries.total` | توان عملیاتی | MySQL, SQL Server |
+| **کوئری‌های کند** | `oneuptime.monitor.database.queries.slow.total` | توان عملیاتی | MySQL |
+| **نسبت بازگردانی** (%) | `oneuptime.monitor.database.rollback.percent` | توان عملیاتی | PostgreSQL |
+| **طولانی‌ترین کوئری در حال اجرا** (s) | `oneuptime.monitor.database.query.longest.seconds` | فعالیت | PostgreSQL, MySQL, SQL Server |
+| **طولانی‌ترین تراکنش باز** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | فعالیت | PostgreSQL, MySQL, SQL Server |
+| **تراکنش‌های باز** | `oneuptime.monitor.database.transaction.open.count` | فعالیت | MySQL |
 
-### قفل‌ها و مسدودشدن
+### قفل‌ها و انسداد
 
 | متریک | سری | Group | Engines |
 |---|---|---|---|
-| **Blocked Sessions** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Lock Waits** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Deadlocks** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **Table Lock Waits** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **نشست‌های مسدودشده** | `oneuptime.monitor.database.sessions.blocked` | قفل‌ها و انسداد | PostgreSQL, MySQL, SQL Server |
+| **انتظارهای قفل** | `oneuptime.monitor.database.locks.waiting` | قفل‌ها و انسداد | PostgreSQL, MySQL, SQL Server |
+| **بن‌بست‌ها** | `oneuptime.monitor.database.deadlocks.total` | قفل‌ها و انسداد | PostgreSQL, SQL Server |
+| **انتظارهای قفل جدول** | `oneuptime.monitor.database.table.locks.waited.total` | قفل‌ها و انسداد | MySQL |
 
-MySQL استاندارد هیچ نوع شمارندهٔ بن‌بستی ارائه نمی‌کند، برای همین Deadlocks فقط در PostgreSQL و SQL Server هست.
+MySQL استاندارد هیچ نوع شمارندهٔ بن‌بستی ارائه نمی‌کند، برای همین **بن‌بست‌ها** فقط در PostgreSQL و SQL Server هست.
 
 ### حافظهٔ نهان و I/O
 
 | متریک | سری | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | توان عملیاتی | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | توان عملیاتی | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | توان عملیاتی | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | توان عملیاتی | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | توان عملیاتی | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | توان عملیاتی | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | توان عملیاتی | SQL Server |
+| **نسبت برخورد حافظهٔ نهان** (%) | `oneuptime.monitor.database.cache.hit.percent` | توان عملیاتی | PostgreSQL, MySQL, SQL Server |
+| **خواندن‌های دیسک** | `oneuptime.monitor.database.disk.reads.total` | توان عملیاتی | PostgreSQL, MySQL, SQL Server |
+| **نوشتن‌های دیسک** | `oneuptime.monitor.database.disk.writes.total` | توان عملیاتی | MySQL, SQL Server |
+| **زمان خواندن I/O** (ms) | `oneuptime.monitor.database.io.read.time.ms` | توان عملیاتی | PostgreSQL, SQL Server |
+| **زمان نوشتن I/O** (ms) | `oneuptime.monitor.database.io.write.time.ms` | توان عملیاتی | PostgreSQL, SQL Server |
+| **عمر مورد انتظار صفحه** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | توان عملیاتی | SQL Server |
+| **اعطاهای حافظهٔ در انتظار** | `oneuptime.monitor.database.memory.grants.pending` | توان عملیاتی | SQL Server |
 
 PostgreSQL زمان خواندن و نوشتن I/O را فقط وقتی اندازه می‌گیرد که `track_io_timing` روشن باشد. این گزینه به‌طور پیش‌فرض خاموش است و در این حالت PostgreSQL هر دو را `0` گزارش می‌کند — پس در PostgreSQL صفرِ ثابت در این دو سری معمولاً یعنی «اندازه‌گیری نشده»، نه «سریع». این یک تنظیم سرور است، نه مشکل مجوز.
 
-### فضای ذخیره‌سازی
+### ذخیره‌سازی
 
 | متریک | سری | Group | Engines |
 |---|---|---|---|
-| **Database Size** (بایت) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **Temp Bytes Written** (بایت) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **Temp Disk Tables** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **Log Space Used** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **TempDB Free Space** (بایت) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **اندازه پایگاه داده** (بایت) | `oneuptime.monitor.database.size.bytes` | ذخیره‌سازی | PostgreSQL, MySQL, SQL Server |
+| **بایت‌های موقت نوشته‌شده** (بایت) | `oneuptime.monitor.database.temp.bytes.total` | ذخیره‌سازی | PostgreSQL |
+| **جدول‌های موقت روی دیسک** | `oneuptime.monitor.database.temp.disk.tables.total` | ذخیره‌سازی | MySQL |
+| **فضای گزارش استفاده‌شده** (%) | `oneuptime.monitor.database.log.space.used.percent` | ذخیره‌سازی | SQL Server |
+| **فضای آزاد TempDB** (بایت) | `oneuptime.monitor.database.tempdb.free.bytes` | ذخیره‌سازی | SQL Server |
 
 ### تکثیر
 
 | متریک | سری | Group | Engines |
 |---|---|---|---|
-| **Connected Replicas** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Replication Lag** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **Replication Lag (Bytes)** (بایت) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **Is In Recovery** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **Inactive Replication Slots** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **رونوشت‌های متصل** | `oneuptime.monitor.database.replica.count` | تکثیر | PostgreSQL, SQL Server |
+| **عقب‌ماندگی تکثیر** (s) | `oneuptime.monitor.database.replication.lag.seconds` | تکثیر | PostgreSQL, MySQL |
+| **عقب‌ماندگی تکثیر (بایت)** (بایت) | `oneuptime.monitor.database.replication.lag.bytes` | تکثیر | PostgreSQL, SQL Server |
+| **در حال بازیابی** | `oneuptime.monitor.database.is.in.recovery` | تکثیر | PostgreSQL |
+| **اسلات‌های تکثیر غیرفعال** | `oneuptime.monitor.database.replication.slots.inactive` | تکثیر | PostgreSQL |
 
 متریک‌های تکثیر از همان سمتی از پیوند گزارش می‌شوند که مانیتور به آن وصل است. یک مانیتور را به سمت سرور اصلی بگیرید تا رونوشت‌های متصل و صف ارسال را ببینید؛ برای هر سرور آماده‌به‌کار هم یک مانیتور بگذارید تا ببینید همان سرور واقعاً چقدر عقب است.
 
-تأخیر بر حسب ثانیه روی یک سرور اصلی بیکار صفر نشان داده می‌شود، حتی وقتی یک رونوشت خیلی عقب است، چون چیز تازه‌ای نوشته نشده است. **Replication Lag (Bytes)** این نقطهٔ کور را ندارد، پس برای هر دو هشدار بگذارید.
+تأخیر بر حسب ثانیه روی یک سرور اصلی بیکار صفر نشان داده می‌شود، حتی وقتی یک رونوشت خیلی عقب است، چون چیز تازه‌ای نوشته نشده است. **عقب‌ماندگی تکثیر (بایت)** این نقطهٔ کور را ندارد، پس برای هر دو هشدار بگذارید.
 
 ### تعمیر و نگهداری
 
 | متریک | سری | Group | Engines |
 |---|---|---|---|
-| **Transaction ID Used** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **Dead Tuples** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **Tables Never Autovacuumed** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **Requested Checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **Timed Checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **شناسه‌های تراکنش استفاده‌شده** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | تعمیر و نگهداری | PostgreSQL |
+| **تاپل‌های مرده** | `oneuptime.monitor.database.dead.tuples` | تعمیر و نگهداری | PostgreSQL |
+| **جدول‌هایی که هرگز autovacuum نشده‌اند** | `oneuptime.monitor.database.tables.never.autovacuumed` | تعمیر و نگهداری | PostgreSQL |
+| **نقاط بازرسی درخواستی** | `oneuptime.monitor.database.checkpoints.requested.total` | تعمیر و نگهداری | PostgreSQL |
+| **نقاط بازرسی زمان‌بندی‌شده** | `oneuptime.monitor.database.checkpoints.timed.total` | تعمیر و نگهداری | PostgreSQL |
 
 > [!IMPORTANT]
-> **Transaction ID Used** سزاوار یک معیار روی هر مانیتور PostgreSQL است که می‌سازید. وقتی به ۱۰۰٪ برسد PostgreSQL همهٔ نوشتن‌ها را رد می‌کند، بازیابی به یک vacuum در حالت تک‌کاربره با پایگاه دادهٔ خاموش نیاز دارد، و تقریباً هیچ‌کس آن را زیر نظر ندارد. خیلی پیش از لبهٔ پرتگاه هشدار بگذارید — ۸۰٪ در بیشتر بارهای کاری چند روز حاشیه می‌دهد.
+> **شناسه‌های تراکنش استفاده‌شده** سزاوار یک معیار روی هر مانیتور PostgreSQL است که می‌سازید. وقتی به ۱۰۰٪ برسد PostgreSQL همهٔ نوشتن‌ها را رد می‌کند، بازیابی به یک vacuum در حالت تک‌کاربره با پایگاه دادهٔ خاموش نیاز دارد، و تقریباً هیچ‌کس آن را زیر نظر ندارد. خیلی پیش از لبهٔ پرتگاه هشدار بگذارید — ۸۰٪ در بیشتر بارهای کاری چند روز حاشیه می‌دهد.
 
-شمارنده‌هایی که به `total` ختم می‌شوند از زمان راه‌اندازی سرور تجمعی‌اند. برای به دست آوردن نرخ، دو نقطهٔ زمانی را مقایسه کنید؛ یک مقدار تنها فقط در برابر تاریخچهٔ خودش معنا دارد، و با راه‌اندازی دوبارهٔ سرور به صفر برمی‌گردد (چیزی که **Uptime** به شما نشان می‌دهد).
+شمارنده‌هایی که به `total` ختم می‌شوند از زمان راه‌اندازی سرور تجمعی‌اند. برای به دست آوردن نرخ، دو نقطهٔ زمانی را مقایسه کنید؛ یک مقدار تنها فقط در برابر تاریخچهٔ خودش معنا دارد، و با راه‌اندازی دوبارهٔ سرور به صفر برمی‌گردد (چیزی که **مدت روشن بودن** به شما نشان می‌دهد).
 
-**Cache Hit Ratio** و **Rollback Ratio** در هر بررسی از مقدار حرکت شمارنده‌هایشان از بررسی قبلی مانیتور به دست می‌آیند، نه از زمان راه‌اندازی سرور، پس کشی که شروع به خطا کردن می‌کند فوراً دیده می‌شود. نخستین بررسی پس از راه‌اندازی پراب، و نخستین بررسی پس از راه‌اندازی دوبارهٔ سرور، هیچ‌کدام از این دو را ندارند.
+**نسبت برخورد حافظهٔ نهان** و **نسبت بازگردانی** در هر بررسی از مقدار حرکت شمارنده‌هایشان از بررسی قبلی مانیتور به دست می‌آیند، نه از زمان راه‌اندازی سرور، پس کشی که شروع به خطا کردن می‌کند فوراً دیده می‌شود. نخستین بررسی پس از راه‌اندازی پراب، و نخستین بررسی پس از راه‌اندازی دوبارهٔ سرور، هیچ‌کدام از این دو را ندارند.
 
 ## تنظیم معیارها
 
 | نوع فیلتر | چه چیزی را بررسی می‌کند |
 |---|---|
 | **آنلاین بودن پایگاه داده** | اینکه پایگاه داده در دسترس بود و کوئری آزمایشی موفق شد یا نه. این همان معیار آفلاینی است که مانیتور با آن ساخته می‌شود، و تنها بررسی‌ای که دسترس‌پذیری را نشان می‌دهد. |
-| **متریک پایگاه داده** | یک متریک برگزینید، سپس مقایسه‌اش کنید: بزرگ‌تر از، کوچک‌تر از، بزرگ‌تر یا برابر با، کوچک‌تر یا برابر با، برابر با یا نابرابر با. انتخابگر متریک فقط متریک‌هایی را پیشنهاد می‌دهد که موتور انتخاب‌شدهٔ شما می‌تواند فراهم کند، پس نمی‌توانید معیاری بسازید که برای همیشه برآورده‌نشده بماند (یک استثنا: متریک‌های Replication که برای Microsoft SQL Server پیشنهاد می‌شوند، در Azure SQL Database هرگز گردآوری نمی‌شوند). اگر متریک در یک بررسی گردآوری نشده باشد — گروه شکست خورده، یا موتور آن را گزارش نمی‌کند — فیلتر جور نمی‌شود، و به‌صورت «false» هم جور نمی‌شود: نادیده گرفته می‌شود. یک مشکل مجوز نمی‌تواند کسی را فرابخواند. |
+| **متریک پایگاه داده** | یک متریک برگزینید، سپس مقایسه‌اش کنید: بزرگ‌تر از، کوچک‌تر از، بزرگ‌تر یا برابر با، کوچک‌تر یا برابر با، برابر با یا نابرابر با. انتخابگر متریک فقط متریک‌هایی را پیشنهاد می‌دهد که موتور انتخاب‌شدهٔ شما می‌تواند فراهم کند، پس نمی‌توانید معیاری بسازید که برای همیشه برآورده‌نشده بماند (یک استثنا: متریک‌های **تکثیر** که برای Microsoft SQL Server پیشنهاد می‌شوند، در Azure SQL Database هرگز گردآوری نمی‌شوند). اگر متریک در یک بررسی گردآوری نشده باشد — گروه شکست خورده، یا موتور آن را گزارش نمی‌کند — فیلتر جور نمی‌شود، و به‌صورت «false» هم جور نمی‌شود: نادیده گرفته می‌شود. یک مشکل مجوز نمی‌تواند کسی را فرابخواند. |
 | **خطای جمع‌آوری پایگاه داده** | خلاصهٔ مشکلات گردآوری در بررسی، یک «گروه: پیام» برای هر گروه در دسترس نبوده. وقتی خالی نیست هشدار بگذارید تا از دست رفتن دید را بفهمید، یا از «شامل است» استفاده کنید تا یک گروه خاص را زیر نظر بگیرید. |
 | **عبارت JavaScript** | کنترل کامل. [عبارت‌های JavaScript](/docs/monitor/javascript-expression) را ببینید. |
 
@@ -381,7 +381,7 @@ PostgreSQL زمان خواندن و نوشتن I/O را فقط وقتی اندا
 
 ### متغیرهای عبارت JavaScript
 
-برای یک مانیتور Database Health، عبارت به این متغیرها دسترسی دارد:
+برای یک مانیتور سلامت پایگاه داده، عبارت به این متغیرها دسترسی دارد:
 
 | متغیر | نوع | شرح |
 |---|---|---|
@@ -409,14 +409,14 @@ PostgreSQL زمان خواندن و نوشتن I/O را فقط وقتی اندا
 | ترتیب | معیار | فیلتر |
 |---|---|---|
 | ۱ | **آفلاین** | `Database Is Online` برابر `false` است. |
-| ۲ | **کاهش کارایی** | `Database Metric` ← Connections Used بزرگ‌تر از `90` است، که در ۵ دقیقه با All Values ارزیابی می‌شود تا یک جهش تکی کسی را فرانخواند. |
-| ۳ | **کاهش کارایی** | `Database Metric` ← Transaction ID Used بزرگ‌تر از `80` است. |
-| ۴ | **کاهش کارایی** | `Database Metric` ← Blocked Sessions در ۵ دقیقه بزرگ‌تر از `0` است. |
+| ۲ | **کاهش کارایی** | `Database Metric` ← **اتصال‌های استفاده‌شده** بزرگ‌تر از `90` است، که در ۵ دقیقه با All Values ارزیابی می‌شود تا یک جهش تکی کسی را فرانخواند. |
+| ۳ | **کاهش کارایی** | `Database Metric` ← **شناسه‌های تراکنش استفاده‌شده** بزرگ‌تر از `80` است. |
+| ۴ | **کاهش کارایی** | `Database Metric` ← **نشست‌های مسدودشده** در ۵ دقیقه بزرگ‌تر از `0` است. |
 | ۵ | **آنلاین** | `Database Is Online` برابر `true` است. |
 
 معیارها از بالا به پایین ارزیابی می‌شوند و نخستین جور شدن برنده است، پس معیارهای هشدار را اول و معیار سالم را آخر بگذارید.
 
-یک سیاست آنکال به معیار آفلاین وصل کنید، و هر چیزی را که از **Metric Groups Failed** یا `Database Collection Error` برمی‌آید به‌صورت هشداری بدون سیاست آنکال باقی بگذارید.
+یک سیاست آنکال به معیار آفلاین وصل کنید، و هر چیزی را که از **گروه‌های متریک ناموفق** یا `Database Collection Error` برمی‌آید به‌صورت هشداری بدون سیاست آنکال باقی بگذارید.
 
 ## نکته‌هایی که باید در نظر گرفت
 
@@ -433,19 +433,19 @@ PostgreSQL زمان خواندن و نوشتن I/O را فقط وقتی اندا
 آفلاین یعنی پراب نتوانسته وصل شود یا کوئری آزمایشی شکست خورده است: میزبان یا پورت از پراب در دسترس نیست، ورود رد شده، TLS شکست خورده یا مهلت اتصال تمام شده است. خلاصهٔ مانیتور خطا را نشان می‌دهد. بررسی کنید که پراب به پایگاه داده دسترسی داشته باشد (پرابی که OneUptime میزبانی می‌کند به نشانی عمومی نیاز دارد؛ وگرنه از یک [پراب سفارشی](/docs/probe/custom-probe) استفاده کنید)، نام کاربری و رمز عبور یا راز مانیتور آن را بررسی کنید، و برای یک گواهی خودامضا **تأیید گواهی سرور** را خاموش کنید. سپس روی **آزمایش مانیتور** کلیک کنید تا دوباره بررسی شود.
 :::
 
-:::details در PostgreSQL گروه‌های Connections، Activity و Locks غایب‌اند
+:::details در PostgreSQL گروه‌های **اتصال‌ها**، **فعالیت** و **قفل‌ها و انسداد** غایب‌اند
 ورود نه عضو `pg_monitor` است و نه `pg_read_all_stats`، و ابرکاربر هم نیست، پس پراب به‌جای ثبت عددهای نادرست آن گروه‌ها را نادیده می‌گیرد. `GRANT pg_monitor TO oneuptime_health;` را همان‌طور که در [PostgreSQL](#postgresql) آمده اجرا کنید.
 :::
 
-:::details در MySQL گروه‌های Connections، Throughput و Locks غایب‌اند
+:::details در MySQL گروه‌های **اتصال‌ها**، **توان عملیاتی** و **قفل‌ها و انسداد** غایب‌اند
 یا ورود روی `performance_schema` مجوز `SELECT` ندارد، یا `performance_schema` روی سرور خاموش است؛ خلاصهٔ مانیتور پیام MySQL را نشان می‌دهد. برای نبود مجوز، دستورهای [MySQL](#mysql) را اجرا کنید. `performance_schema` خاموش به `performance_schema = ON` در پیکربندی سرور و یک راه‌اندازی دوباره نیاز دارد.
 :::
 
-:::details در PostgreSQL مقدار I/O Read Time و I/O Write Time همیشه 0 است
+:::details در PostgreSQL مقدار **زمان خواندن I/O** و **زمان نوشتن I/O** همیشه 0 است
 PostgreSQL آن‌ها را فقط وقتی اندازه می‌گیرد که `track_io_timing` روشن باشد، و این گزینه به‌طور پیش‌فرض خاموش است. برای دیدن مقدارهای واقعی، آن را در پیکربندی سرور یا در گروه پارامترهای سرویس مدیریت‌شده‌تان روشن کنید. این نبود مجوز نیست.
 :::
 
-:::details Metric Groups Failed در هر بررسی بالای 0 است
+:::details **گروه‌های متریک ناموفق** در هر بررسی بالای 0 است
 گروهی در هیچ بررسی‌ای گردآوری نمی‌شود، پس همان مشکل گردآوری تکرار می‌شود. خلاصهٔ مانیتور نام گروه، دلیل و `GRANT`ی را که مشکل را برطرف می‌کند نشان می‌دهد. مجوز را اجرا کنید، یا اگر نمی‌توانید آن را بگیرید، آن گروه را زیر **فیلدهای بیشتر ← گروه‌های متریک** خاموش کنید تا مشکل دیگر تکرار نشود.
 :::
 

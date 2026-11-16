@@ -230,7 +230,7 @@ describe("describeDetectionRuleShape", () => {
 
   test("each kind, said for a person", () => {
     expect(sentence(SEQUENCE)).toBe(
-      "Fires when Failed sign-in → Successful sign-in happen in this order for the same principalIp within 10 minutes.",
+      "Fires when Failed sign-in → Successful sign-in happen in this order for the same principalIp within 10\u00A0minutes.",
     );
 
     expect(
@@ -245,7 +245,7 @@ correlation:
 ---
 ${FAILED}`),
     ).toBe(
-      "Fires when 10 events happen for the same principalIp / principalUser within 1 hour.",
+      "Fires when 10 events happen for the same principalIp / principalUser within 1\u00A0hour.",
     );
 
     expect(
@@ -258,7 +258,7 @@ correlation:
     gte: 50
 ---
 ${FAILED}`),
-    ).toBe("Fires when 50 events happen within 30 seconds.");
+    ).toBe("Fires when 50 events happen within 30\u00A0seconds.");
 
     expect(
       sentence(`title: Spraying
@@ -273,7 +273,7 @@ correlation:
 ---
 ${FAILED}`),
     ).toBe(
-      "Fires when the same principalIp shows 5 different principalUser values within 10 minutes.",
+      "Fires when the same principalIp shows 5 different principalUser values within 10\u00A0minutes.",
     );
 
     expect(
@@ -288,7 +288,7 @@ ${FAILED}
 ---
 ${SUCCEEDED}`),
     ).toBe(
-      "Fires when Failed sign-in and Successful sign-in all happen for the same principalUser within 2 hours, in any order.",
+      "Fires when Failed sign-in and Successful sign-in all happen for the same principalUser within 2\u00A0hours, in any order.",
     );
 
     expect(
@@ -311,7 +311,7 @@ detection:
     a: b
   condition: selection`),
     ).toBe(
-      "Fires when 2 of Failed sign-in, Successful sign-in and Third happen within 5 minutes, in any order.",
+      "Fires when 2 of Failed sign-in, Successful sign-in and Third happen within 5\u00A0minutes, in any order.",
     );
 
     expect(
@@ -326,7 +326,7 @@ correlation:
 ---
 ${SUCCEEDED}`),
     ).toBe(
-      "Fires the first time a principalUser shows a principalIp it has not shown in 2 weeks.",
+      "Fires the first time a principalUser shows a principalIp it has not shown in 2\u00A0weeks.",
     );
   });
 
@@ -334,13 +334,13 @@ ${SUCCEEDED}`),
     const translator: ReturnType<typeof getGlobalTranslator> =
       getGlobalTranslator();
 
-    expect(formatTimespan(1, translator)).toBe("1 second");
-    expect(formatTimespan(90, translator)).toBe("90 seconds");
-    expect(formatTimespan(120, translator)).toBe("2 minutes");
-    expect(formatTimespan(3600, translator)).toBe("1 hour");
-    expect(formatTimespan(86400, translator)).toBe("1 day");
-    expect(formatTimespan(30 * 86400, translator)).toBe("30 days");
-    expect(formatTimespan(14 * 86400, translator)).toBe("2 weeks");
+    expect(formatTimespan(1, translator)).toBe("1\u00A0second");
+    expect(formatTimespan(90, translator)).toBe("90\u00A0seconds");
+    expect(formatTimespan(120, translator)).toBe("2\u00A0minutes");
+    expect(formatTimespan(3600, translator)).toBe("1\u00A0hour");
+    expect(formatTimespan(86400, translator)).toBe("1\u00A0day");
+    expect(formatTimespan(30 * 86400, translator)).toBe("30\u00A0days");
+    expect(formatTimespan(14 * 86400, translator)).toBe("2\u00A0weeks");
   });
 });
 
@@ -405,7 +405,7 @@ describe("DetectionRuleSummary and DetectionRuleTypeLabel", () => {
       { kind: "rule", text: "Successful sign-in" },
       { kind: "text", text: " happen in this order for the same " },
       { kind: "field", text: "principalIp" },
-      { kind: "text", text: " within 10 minutes." },
+      { kind: "text", text: " within 10\u00A0minutes." },
     ]);
     // The plain sentence is the parts' words, marks and all left out.
     expect(

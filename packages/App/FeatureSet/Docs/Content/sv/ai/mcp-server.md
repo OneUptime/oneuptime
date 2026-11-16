@@ -38,7 +38,7 @@ Servern är tillståndslös: den utfärdar inga sessions-id:n och varje begäran
 - **Larm**: kvittera och lösa larm, lägga till anteckningar och hantera larmens tillstånd och allvarlighetsgrader.
 - **Team och jour**: hantera team och jourpolicyer.
 - **Statussidor**: hantera statussidor och publicera meddelanden.
-- **Planerat underhåll**: skapa och hantera underhållshändelser.
+- **Schemalagt underhåll**: skapa och hantera underhållshändelser.
 - **Telemetri**: fråga efter loggar, mätvärden, spår, undantag, monitorloggar, säkerhetshändelser med mera, endast läsning.
 
 Det finns verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för 54 sorters poster, verktyg för att lista och räkna för 9 sorters telemetri, och verktyg gjorda för incidenthantering. Skrivskyddade verktyg har `readOnlyHint`, varje verktyg som ändrar något har `destructiveHint`, och bara verktygen för publika statussidor har `openWorldHint`, så att en klient själv kan köra skrivskyddade anrop och fråga dig före varje ändring. Ett misslyckat verktygsanrop kommer tillbaka som ett verktygsresultat (`isError: true`) med en `statusCode`, detaljerna och ett förslag, inte som ett fel i MCP-protokollet, så att agenten kan läsa felet och rätta sig själv.
@@ -361,6 +361,8 @@ Operatorerna är `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `G
 
 Verktygen `list_` och `count_` tar vilket fält som helst, så att listan över verktyg är liten nog för att en klient ska kunna läsa in den på en gång. För att se en resurs fält, vad varje fält betyder och vilka operatorer det tar anropar en agent `oneuptime_describe_resource` med resursen eller ett av dess verktyg, till exempel `Incident` eller `list_incidents`.
 
+De andra `list_`-verktygen, för incidenter, monitorer och alla andra sorters poster, sorterar som API:et gör: ett fält tar en riktning, eller `{ "direction": "DESC", "nulls": "LAST" }` för att sätta posterna utan värde i det sist, och en relation till en post sorterar efter ett fält i posten den namnger, som i `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` markerar varje sådan relation med `sort` och namnger fälten den sorterar efter under `sortBy`.
+
 ## Fältval och sidindelning
 
 Verktygen `get_` och `list_` tar en valfri `select`-array med fältnamn. Som standard returneras alla läsbara fält utom de tunga (JSON, mycket lång text och HTML-kolumner), som måste begäras i `select`.
@@ -483,7 +485,7 @@ MCP-servern är tillståndslös: den varken utfärdar eller spårar sessions-id:
 | Incidenter | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Action Item, Postmortem Status |
 | Larm | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Statussidor | Status Page, Status Page Announcement |
-| Planerat underhåll | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| Schemalagt underhåll | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Team och jour | Team, On-Call Policy |
 | Etiketter | Label |
 | Säkerhet | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

@@ -11,6 +11,7 @@ import {
   getDockerSwarmSetupGuide,
   resolveDockerSwarmInstallMethod,
 } from "../../Pages/DockerSwarm/Utils/DocumentationMarkdown";
+import { DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS } from "../../Pages/DockerSwarm/Utils/DocumentationTranslations";
 
 export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
@@ -42,6 +43,7 @@ const DockerSwarmDocumentationCard: FunctionComponent<ComponentProps> = (
           clusterName: props.clusterName,
         });
       }}
+      translations={DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

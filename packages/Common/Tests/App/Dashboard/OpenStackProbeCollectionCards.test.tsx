@@ -793,7 +793,7 @@ describe("the Overview's Data Collection card", () => {
           "Collected by Datacenter probe from https://keystone.example.com:5000, every 5 minutes. No agent runs for it.",
         ),
       ).toBeInTheDocument();
-      expect(screen.getByTestId("openstack-next-collection")).toHaveTextContent(
+      expect(screen.getByTestId("openstack-next-collection").textContent).toBe(
         OneUptimeDate.fromNow(dueAt),
       );
     });

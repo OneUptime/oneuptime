@@ -46,7 +46,7 @@ Ankündigungen werden unter [Abonnenten & Ankündigungen](/docs/status-pages/sub
 - **Ein Zeitplan.** Eine wiederkehrende Vorlage erstellt nach einem Zeitplan, etwa jede Woche oder jeden Monat, ein neues Ereignis, ohne dass jemand das Formular öffnet.
 - **Ein Formular.** Ein Formular, dessen Einreichungen Wartungsereignisse erstellen, macht aus einer Änderungsanfrage ein Ereignis. Siehe [Was eine Einreichung erstellt](/docs/forms/on-submit#wie-aus-einer-einreichung-ein-wartungsereignis-wird).
 - **Chat.** `/oneuptime maintenance` in Slack oder `maintenance`, an den OneUptime-Bot in Microsoft Teams geschrieben, öffnet das Formular in Ihrem Chat-Tool. Siehe [Slack](/docs/workspace-connections/slack#vorfälle-und-wartungen-aus-slack-erstellen).
-- **Code.** Die API unter `/api/scheduled-maintenance`, die Terraform-Ressource `oneuptime_scheduled_maintenance_event` und der Schritt **Create One Maintenance Event** eines Workflows.
+- **Code.** Die API unter `/api/scheduled-maintenance`, die Terraform-Ressource `oneuptime_scheduled_maintenance_event` und der Schritt **Wartungsereignis erstellen (einzeln)** eines Workflows.
 
 ## Wo die Wartung im Dashboard liegt
 

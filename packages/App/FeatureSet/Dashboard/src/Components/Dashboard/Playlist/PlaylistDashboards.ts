@@ -2,6 +2,7 @@ import {
   DashboardPlaylistDashboard,
   isSameDashboardId,
 } from "Common/Types/Dashboard/DashboardPlaylist";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import {
   DurationTextPart,
   formatDurationText,
@@ -220,8 +221,9 @@ export function getPlaylistIntervalParts(
   return parts;
 }
 
+// "30 seconds", the number held to its word (#8669).
 function writeEnglishPart(part: DurationTextPart): string {
-  return `${part.count} ${part.unit}${part.count === 1 ? "" : "s"}`;
+  return `${part.count}${NO_BREAK_SPACE}${part.unit}${part.count === 1 ? "" : "s"}`;
 }
 
 /*

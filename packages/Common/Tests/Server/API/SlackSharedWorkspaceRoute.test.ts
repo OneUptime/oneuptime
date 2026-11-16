@@ -1686,7 +1686,7 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
 
       expect(timelines).toEqual([]);
       expect(answers()).toEqual([
-        "You do not have permission to resolve this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
+        "You do not have permission to resolve this incident: your access in this project does not include this incident. Ask a Project Admin for access to it.",
       ]);
     });
 
@@ -1721,7 +1721,7 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
 
       expect(timelines).toHaveLength(1);
       expect(answers()).toEqual([
-        "You do not have permission to resolve this incident: this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner.",
+        "You do not have permission to resolve this incident: this incident is private, so only its owners, Project Owners and Project Admins can see it. Ask one of them to add you as an owner.",
       ]);
     });
 

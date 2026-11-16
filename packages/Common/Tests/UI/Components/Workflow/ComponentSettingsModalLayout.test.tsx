@@ -69,6 +69,16 @@ import getJestMockFunction from "../../../MockType";
 import { describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import { refuseRequestsTo } from "../../../Helpers/RealNetworkRequests";
+
+/*
+ * A read the Huntress step's panel makes that these tests leave
+ * unanswered: its workflow's webhook facts - whether a signing secret is
+ * set, the last request and the last error (HuntressTriggerPanel). Refused
+ * at once, as the network refused it, and taken as a read the panel could
+ * not make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/workflow/*/get-item"]);
 
 /*
  * The steps opened for something that is not one of their settings, and the

@@ -1,4 +1,4 @@
-# Unntak-overvåking
+# Unntak-monitor
 
 En unntaksmonitor teller innenfor et tidsvindu unntakene tjenestene dine rapporterer til OneUptime som samsvarer med filtrene dine (melding, unntakstype, miljø, tjeneste). Når antallet oppfyller kriteriene dine, endrer den monitorens status, oppretter et varsel eller erklærer en hendelse. Bruk den til å bli varslet om hvert nytt krasj i produksjon, om én unntakstype eller om en plutselig økning i feil.
 
@@ -41,7 +41,7 @@ Under **Monitortype** klikker du på **Flere monitortyper** og velger **Unntak**
 
 ### Velg hva monitoren skal fortelle deg om
 
-Under **Hva skal denne overvåkingen fortelle deg om?** velger du **Hvilket som helst unntak** eller **For mange unntak**. Hvert valg fyller ut regelen, som du kan endre lenger ned. Velg **Noe annet** for å sette den opp selv. **Et nytt unntak**, **Et løst unntak kommer tilbake** og **Unntakene topper seg** varsler ved et unntak som ses for første gang, ved et som kom tilbake etter at du løste det, og ved en økning langt over det som er normalt for den timen i uken.
+Under **Hva skal denne monitoren fortelle deg om?** velger du **Hvilket som helst unntak** eller **For mange unntak**. Hvert valg fyller ut regelen, som du kan endre lenger ned. Velg **Noe annet** for å sette den opp selv. **Et nytt unntak**, **Et løst unntak kommer tilbake** og **Unntakene topper seg** varsler ved et unntak som ses for første gang, ved et som kom tilbake etter at du løste det, og ved en økning langt over det som er normalt for den timen i uken.
 
 ### Velg unntakene som skal telles
 
@@ -132,7 +132,7 @@ Kriteriene til en unntaksmonitor har fire slags **Filtertype**: **Antall unntak*
 
 Avviksvilkårene har ingen **Verdi**. Velg en **Følsomhet** (Lav, Middels, som er standard, eller Høy) og, i de egne kriteriene, et **Grunnlinjevindu** på 14 (standard), 28, 60 eller 90 dager. Bare **Antall unntak** har dem: se [Topper sammenlignet med det normale](#topper-sammenlignet-med-det-normale).
 
-En unntaksmonitor som er opprettet i Opprett monitor, starter med regelen for det du valgte under **Hva skal denne overvåkingen fortelle deg om?**:
+En unntaksmonitor som er opprettet i Opprett monitor, starter med regelen for det du valgte under **Hva skal denne monitoren fortelle deg om?**:
 
 | Valg | Regel | Hva som skjer |
 | --- | --- | --- |
@@ -146,7 +146,7 @@ En unntaksmonitor som er opprettet via API-et eller Terraform uten kriterier, st
 
 | Kriterium | Filter | Virkning |
 | --- | --- | --- |
-| Check if … has exceptions | **Antall unntak** **Større enn** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
+| Check if … has exceptions | **Antall unntak** **Større enn** `0` | Setter monitoren som offline og erklærer en hendelse som løses automatisk |
 | Check if … has no exceptions | **Antall unntak** **Lik** `0` | Setter monitoren som tilkoblet |
 
 ## Nye, tilbakevendte og stigende unntak
@@ -188,7 +188,7 @@ Du vil ha en hendelse hver gang API-et kaster et unntak i produksjon, og ingenti
 | `TimeoutError` × 2 | ingen | Aktivt | Nei: intet miljø |
 | `NullReferenceException` × 4 | `production` | Løst etter at de oppsto | Nei: løst |
 
-**Antall unntak** er 3, så **Mer enn** `0` samsvarer: monitoren blir frakoblet, og en hendelse erklæres. Når det har gått fem minutter uten noe aktivt produksjonsunntak, slutter regelen å samsvare, monitoren går tilbake til standardstatusen sin, og hendelsen løser seg selv.
+**Antall unntak** er 3, så **Mer enn** `0` samsvarer: monitoren blir offline, og en hendelse erklæres. Når det har gått fem minutter uten noe aktivt produksjonsunntak, slutter regelen å samsvare, monitoren går tilbake til standardstatusen sin, og hendelsen løser seg selv.
 
 ## Feilsøking
 
@@ -211,8 +211,8 @@ Se på **Statustidslinje**: Den viser det forventede området, antallet som tren
 ## Neste steg
 
 :::cards
-- [Trase-overvåking](/docs/monitor/traces-monitor): Bli varslet om mislykkede spans og endepunkter.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Bli varslet om loggmengde og -innhold.
+- [Trase-monitor](/docs/monitor/traces-monitor): Bli varslet om mislykkede spans og endepunkter.
+- [Logg-monitor](/docs/monitor/logs-monitor): Bli varslet om loggmengde og -innhold.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Skriv nyttige titler og beskrivelser for varsler.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send unntak til OneUptime.
 :::

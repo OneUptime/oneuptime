@@ -43,7 +43,7 @@ flowchart TB
 :::steps
 ### Opprett en inntaksnøkkel
 
-I OneUptime åpner du **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**, klikker på **Opprett ingestion-nøkkel** og kopierer nøkkelen. OTLP-basis-URL-en din er `https://oneuptime.com/otlp`, eller `https://YOUR-ONEUPTIME-HOST/otlp` hvis du drifter OneUptime selv.
+I OneUptime åpner du **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**, klikker på **Opprett inntaksnøkkel** og kopierer nøkkelen. OTLP-basis-URL-en din er `https://oneuptime.com/otlp`, eller `https://YOUR-ONEUPTIME-HOST/otlp` hvis du drifter OneUptime selv.
 
 ### Opprett destinasjonen i Cursor
 
@@ -189,5 +189,5 @@ Det er `cursor.user.id`, som leses når Cursor ikke sender `cursor.user.email`. 
 - [AI-kodeassistenter](/docs/telemetry/ai-coding-assistants): Slik tilordnes forbruk på tvers av alle kodeassistenter.
 - [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts#cursor): Les et Cursor-teams forbruk og det Cursor tok betalt, med en administrator-API-nøkkel.
 - [AI-gatewayer](/docs/telemetry/ai-gateways): Fullstendige traces og prompter for modellkallene dine egne apper gjør.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på `cursor.cost.usage`, `cursor.token.usage` eller `cursor.tool.calls`.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle på `cursor.cost.usage`, `cursor.token.usage` eller `cursor.tool.calls`.
 :::

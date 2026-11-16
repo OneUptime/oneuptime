@@ -225,7 +225,13 @@ const LayerUser: FunctionComponent<ComponentProps> = (
 
   // Every row's locked "Skip until..." is described by the one reason.
   const skipLockedReasonId: string = useId();
-  const skipLockedReason: string | null = props.skipLockedReason || null;
+  /*
+   * In the reader's words, looked up once, here, for the tooltip and the
+   * screen reader alike: the tooltip looked it up a second time (#8423).
+   */
+  const skipLockedReason: string | null = props.skipLockedReason
+    ? translator.translateText(props.skipLockedReason) || props.skipLockedReason
+    : null;
 
   const isBusy: boolean = Boolean(props.isDisabled);
 
@@ -328,6 +334,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     return (
       <Tooltip
         text={skipLockedReason}
+        isTextTranslated={true}
         isShownOnPress={true}
         isTriggerAlreadyDescribed={true}
       >
@@ -647,7 +654,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
 
       {skipLockedReason && (
         <span id={skipLockedReasonId} hidden={true}>
-          {translator.translateText(skipLockedReason)}
+          {skipLockedReason}
         </span>
       )}
 

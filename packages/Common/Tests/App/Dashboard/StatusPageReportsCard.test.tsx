@@ -590,8 +590,12 @@ describe("switching reports on", () => {
     expect(lines[StatusPageReportsCopy.nextReportTitle]).toContain(
       shownDate("2026-10-12T08:00:00.000Z"),
     );
-    expect(lines[StatusPageReportsCopy.howOftenTitle]).toBe("Every 2 weeks");
-    expect(lines[StatusPageReportsCopy.coversTitle]).toBe("A rolling 14 days");
+    expect(lines[StatusPageReportsCopy.howOftenTitle]).toBe(
+      "Every 2\u00A0weeks",
+    );
+    expect(lines[StatusPageReportsCopy.coversTitle]).toBe(
+      "A rolling 14\u00A0days",
+    );
   });
 
   test("a switch the server refuses moves back, says why, and shows no schedule", async () => {

@@ -217,7 +217,7 @@ const NetworkOverview: FunctionComponent<{
           title="Addresses used"
           icon={IconProp.Globe}
           iconColor="blue"
-          value={percent === null ? "—" : formatOpenStackPercent(percent)}
+          value={percent === null ? undefined : formatOpenStackPercent(percent)}
           sublabel={
             percent === null ? "Not reported" : getOpenStackAddressesText(row)
           }
@@ -230,7 +230,7 @@ const NetworkOverview: FunctionComponent<{
           title="Addresses free"
           icon={IconProp.SquareStack}
           iconColor="emerald"
-          value={free === null ? "—" : formatOpenStackCount(free)}
+          value={free === null ? undefined : formatOpenStackCount(free)}
           sublabel={
             getOpenStackFactNumber(row, "ipsTotal") === null
               ? "Not reported"

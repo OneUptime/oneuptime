@@ -46,6 +46,7 @@ const UninstallWorkspaceConfirm: FunctionComponent<ComponentProps> = (
       title={translator.translateTemplate(UNINSTALL_WORKSPACE_TITLE, {
         workspace: props.workspaceName,
       })}
+      isTitleTranslated={true}
       description={translator.translateTemplate(UNINSTALL_WORKSPACE_WARNING, {
         workspace: props.workspaceName,
       })}

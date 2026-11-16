@@ -208,14 +208,14 @@ Twilio 以文字轉語音朗讀這些訊息，因此請依您希望聽到的樣�
 
 來電通話日誌可用作工作流程觸發條件：
 
-- **On Create Incoming Call Log** 會在來電到達時執行。
-- **On Update Incoming Call Log** 會隨著通話進行而執行。設定 **Ended At** 的那次更新就是通話結束。
+- **建立Incoming Call 日誌時** 會在來電到達時執行。
+- **更新Incoming Call 日誌時** 會隨著通話進行而執行。設定 **Ended At** 的那次更新就是通話結束。
 
 若只要處理未接來電，例如把它們發布到 Slack 或 Microsoft Teams，或建立工單：
 
 :::steps
-1. 新增 **On Update Incoming Call Log** 觸發條件。將 **Fields to watch** 設為 **Ended At** ，並選擇要使用的欄位，例如 **Status** 、 **Caller Phone Number** 和 **Routing Phone Number** 。
-2. 新增一個 **If / Else** 步驟。用比較 **不等於** 和 `Completed` 檢查觸發條件的 **Status** 。
+1. 新增 **更新Incoming Call 日誌時** 觸發條件。將 **要關注的欄位** 設為 **Ended At** ，並選擇要使用的欄位，例如 **Status** 、 **Caller Phone Number** 和 **Routing Phone Number** 。
+2. 新增一個 **如果 / 否則** 步驟。用比較 **不等於** 和 `Completed` 檢查觸發條件的 **Status** 。
 3. 把您的步驟連接到 **是** 連接埠。
 :::
 

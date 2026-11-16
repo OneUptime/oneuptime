@@ -108,17 +108,18 @@ export interface SessionReplayBudgetSweepOptions {
   dailyByteLimit: number;
 
   /*
-   * Checked between pages. The job passes `() => mutex.isAcquired`, so a
-   * sweep stops early once it knows it lost its lock - which it learns at
-   * the lock's next refresh. The deadline is what keeps a sweep out of the
-   * next tick's way; this only ends a lockless one sooner.
+   * Checked between pages. The job passes "the run's deadline has not
+   * passed" (RunCron, JobDeadline), so a sweep stops early once its run lost
+   * its lease - another run may hold the lock then - or ran out of its time
+   * limit. The deadline below is what keeps a sweep out of the next tick's
+   * way; this only ends one sooner.
    */
   shouldContinue?: (() => boolean) | undefined;
 
   /*
-   * Stop between pages once this passes. The job's timeout cannot cancel a
-   * sweep, and a sweep still writing when the next tick starts would stamp
-   * stale rows with a time that is no longer "now".
+   * Stop between pages once this passes: before the next tick, so a sweep
+   * never stamps rows with a time that is no longer "now" while the next one
+   * starts.
    */
   deadline?: Date | undefined;
 }

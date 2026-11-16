@@ -53,6 +53,8 @@ export interface ComponentProps {
   timezoneNoteTemplate?: string | undefined;
   // The button that adds a weekly window, when "Add Restriction Time" is not its name.
   addWindowTitle?: string | undefined;
+  // The addWindowTitle is in the reader's words already, drawn as given (Button's isTitleTranslated).
+  isAddWindowTitleTranslated?: boolean | undefined;
 }
 
 /*
@@ -374,6 +376,10 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
             {/** show add button */}
             <Button
               title={props.addWindowTitle || "Add Restriction Time"}
+              isTitleTranslated={
+                Boolean(props.addWindowTitle) &&
+                props.isAddWindowTitleTranslated
+              }
               buttonStyle={ButtonStyleType.NORMAL}
               icon={IconProp.Add}
               onClick={() => {

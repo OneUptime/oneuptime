@@ -173,7 +173,7 @@ describe("the folded More settings header", () => {
     });
     expect(
       getDiscoveredDeviceRetentionFoldedItem(7, translatorFor("de")),
-    ).toMatchObject({ isSet: true, value: "7 Tage" });
+    ).toMatchObject({ isSet: true, value: "7\u00A0Tage" });
   });
 });
 
@@ -234,7 +234,7 @@ describe("digits", () => {
 
   test("German writes them as written in English", () => {
     expect(getDiscoveredDeviceRetentionText(30, translatorFor("de"))).toBe(
-      "30 Tage",
+      "30\u00A0Tage",
     );
     expect(getDiscoveredDeviceRetentionText(0, translatorFor("de"))).toBe(
       "Nie",

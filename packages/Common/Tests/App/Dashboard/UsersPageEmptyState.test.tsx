@@ -111,6 +111,7 @@ import {
   buildModelTableEmptyState,
 } from "../../../UI/Components/ModelTable/ModelTableEmptyState";
 import { TableEmptyStateKind } from "../../../UI/Components/Table/TableEmptyState";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
 import { getJestSpyOn } from "../../Spy";
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -165,6 +166,8 @@ beforeEach(() => {
   capturedTableProps = null;
   getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
   getJestSpyOn(ModelAPI, "count").mockResolvedValue(0);
+  // The server's global config, answered here rather than over the network.
+  standInForGlobalConfig();
 });
 
 afterEach(() => {

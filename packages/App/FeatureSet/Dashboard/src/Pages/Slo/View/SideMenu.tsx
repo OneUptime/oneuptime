@@ -28,7 +28,7 @@ import React, {
 } from "react";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
-import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
+import { isEventSliType } from "Common/Utils/Slo/SloRequestSli";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
@@ -46,7 +46,7 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-  const measuresRequests: boolean = isRequestSliType(props.sliType);
+  const measuresRequests: boolean = isEventSliType(props.sliType);
 
   /*
    * The Alerts and Incidents badges count what is still OPEN, which takes the

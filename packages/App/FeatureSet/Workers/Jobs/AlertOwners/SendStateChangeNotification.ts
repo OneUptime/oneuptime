@@ -1,5 +1,8 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerNotificationBacklog, {
+  OwnerNotificationPage,
+} from "../../Utils/OwnerNotificationBacklog";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -11,7 +14,9 @@ import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import Text from "Common/Types/Text";
 import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
-import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
+import LinkedAffectedResources, {
+  LinkedAffectedResource,
+} from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertStateTimelineService from "Common/Server/Services/AlertStateTimelineService";
@@ -32,6 +37,7 @@ import UserService from "Common/Server/Services/UserService";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
@@ -91,7 +97,7 @@ const ALERT_SELECT: Select<Alert> = {
 RunCron(
   "AlertOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8199) - told first, exactly
@@ -122,80 +128,155 @@ RunCron(
           alertStateTimeline: alertStateTimeline,
           alert: alert,
           delivery: delivery,
+          page: new OwnerNotificationPage(),
         });
       },
     });
 
-    // get all scheduled events of all the projects.
-
-    const alertStateTimelines: Array<AlertStateTimeline> =
-      await AlertStateTimelineService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: STATE_TIMELINE_SELECT,
-      });
-
-    for (const alertStateTimeline of alertStateTimelines) {
-      const alertId: ObjectID = alertStateTimeline.alertId!;
-
-      if (!alertId) {
-        continue;
-      }
-
-      // get alert
-
-      const alert: Alert | null = await readAlert(alertId);
-
-      if (!alert) {
-        continue;
-      }
-
-      /*
-       * Whom it is to tell, written before the take: a worker stopped from
-       * here on leaves them to be told by a later run, and one stopped
-       * before the take leaves the state change to be read again.
-       */
-      const delivery: OwnerNotificationDelivery = await planOwnersOfStateChange(
-        {
-          alertStateTimeline: alertStateTimeline,
-          alert: alert,
-        },
-      );
-
-      await AlertStateTimelineService.updateOneById({
-        id: alertStateTimeline.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      try {
-        await notifyOwnersOfStateChange({
-          alertStateTimeline: alertStateTimeline,
-          alert: alert,
-          delivery: delivery,
+    /*
+     * Every state change nobody has been told about yet, a page at a time,
+     * oldest first, each taken by one run alone and told by the run that
+     * took it; the run stops at its deadline and the next carries on
+     * (OwnerNotificationBacklog, issue #7974).
+     */
+    await OwnerNotificationBacklog.forEachToNotify<AlertStateTimeline>({
+      jobName: "AlertOwner:SendStateChangeEmail",
+      service: AlertStateTimelineService,
+      notYetNotified: {
+        isOwnerNotified: false,
+      },
+      notified: {
+        isOwnerNotified: true,
+      },
+      select: STATE_TIMELINE_SELECT,
+      deadline: deadline,
+      readPage: readAlertsOfPage,
+      notify: async (input: {
+        record: AlertStateTimeline;
+        page: OwnerNotificationPage;
+        take: () => Promise<boolean>;
+      }): Promise<void> => {
+        await notifyOfStateChange({
+          alertStateTimeline: input.record,
+          page: input.page,
+          take: input.take,
         });
-      } catch (e) {
-        logger.error("Error in sending alert state change notification", {
-          projectId: alert.projectId?.toString(),
-          alertId: alert.id?.toString(),
-        });
-        logger.error(e, {
-          projectId: alert.projectId?.toString(),
-          alertId: alert.id?.toString(),
-        });
-      }
-    }
+      },
+    });
   },
 );
+
+/*
+ * One state change read by the run: whom it tells planned, the state change
+ * taken, and - when this run took it - its owners told.
+ */
+async function notifyOfStateChange(data: {
+  alertStateTimeline: AlertStateTimeline;
+  page: OwnerNotificationPage;
+  take: () => Promise<boolean>;
+}): Promise<void> {
+  const alertStateTimeline: AlertStateTimeline = data.alertStateTimeline;
+  const alertId: ObjectID | undefined = alertStateTimeline.alertId;
+
+  const alert: Alert | null = alertId
+    ? await data.page.once(alertKey(alertId), (): Promise<Alert | null> => {
+        return readAlert(alertId);
+      })
+    : null;
+
+  /*
+   * The alert is gone: nobody can be told of its state change. Taken all
+   * the same, so no run reads it again.
+   */
+  if (!alert) {
+    await data.take();
+    return;
+  }
+
+  /*
+   * Whom it is to tell, written before the take: a worker stopped from
+   * here on leaves them to be told by a later run, and one stopped before
+   * the take leaves the state change to be read again.
+   */
+  const delivery: OwnerNotificationDelivery = await planOwnersOfStateChange({
+    alertStateTimeline: alertStateTimeline,
+    alert: alert,
+    page: data.page,
+  });
+
+  // Taken by another run first, or gone: that run tells the owners.
+  if (!(await data.take())) {
+    return;
+  }
+
+  try {
+    await notifyOwnersOfStateChange({
+      alertStateTimeline: alertStateTimeline,
+      alert: alert,
+      delivery: delivery,
+      page: data.page,
+    });
+  } catch (e) {
+    logger.error("Error in sending alert state change notification", {
+      projectId: alert.projectId?.toString(),
+      alertId: alert.id?.toString(),
+    });
+    logger.error(e, {
+      projectId: alert.projectId?.toString(),
+      alertId: alert.id?.toString(),
+    });
+  }
+}
+
+function alertKey(alertId: ObjectID): string {
+  return `alert:${alertId.toString()}`;
+}
+
+/*
+ * The alerts of a page's state changes, in one query: each is read once
+ * however many of its state changes the page has.
+ */
+async function readAlertsOfPage(
+  alertStateTimelines: Array<AlertStateTimeline>,
+  page: OwnerNotificationPage,
+): Promise<void> {
+  const alertIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+  for (const alertStateTimeline of alertStateTimelines) {
+    if (alertStateTimeline.alertId) {
+      alertIds.set(
+        alertStateTimeline.alertId.toString(),
+        alertStateTimeline.alertId,
+      );
+    }
+  }
+
+  if (alertIds.size === 0) {
+    return;
+  }
+
+  const alerts: Array<Alert> = await AlertService.findBy({
+    query: {
+      _id: QueryHelper.any(Array.from(alertIds.values())),
+    },
+    select: ALERT_SELECT,
+    limit: alertIds.size,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  /*
+   * One not found - gone since its state change was read - is read on its
+   * own when a record asks for it, as it would be without the page.
+   */
+  for (const each of alerts) {
+    if (each.id) {
+      page.prime<Alert | null>(alertKey(each.id), each);
+    }
+  }
+}
 
 async function readAlert(alertId: ObjectID): Promise<Alert | null> {
   return await AlertService.findOneById({
@@ -216,19 +297,29 @@ async function readAlert(alertId: ObjectID): Promise<Alert | null> {
 async function planOwnersOfStateChange(data: {
   alertStateTimeline: AlertStateTimeline;
   alert: Alert;
+  // Each read once for every state change of the page.
+  page: OwnerNotificationPage;
 }): Promise<OwnerNotificationDelivery> {
   let owners: Array<User> = [];
   let isProjectOwners: boolean = false;
 
   try {
-    owners = await AlertService.findOwners(data.alert.id!);
+    owners = await data.page.once(
+      `owners:${data.alert.id!.toString()}`,
+      (): Promise<Array<User>> => {
+        return AlertService.findOwners(data.alert.id!);
+      },
+    );
 
     if (owners.length === 0) {
       isProjectOwners = true;
 
       // find project owners.
-      owners = await ProjectService.getOwners(
-        data.alertStateTimeline.projectId!,
+      owners = await data.page.once(
+        `projectOwners:${data.alertStateTimeline.projectId!.toString()}`,
+        (): Promise<Array<User>> => {
+          return ProjectService.getOwners(data.alertStateTimeline.projectId!);
+        },
       );
     }
   } catch (e) {
@@ -249,6 +340,7 @@ async function planOwnersOfStateChange(data: {
     },
     owners: owners,
     isProjectOwners: isProjectOwners,
+    writesFeedItem: true,
   });
 }
 
@@ -261,12 +353,14 @@ async function notifyOwnersOfStateChange(data: {
   alertStateTimeline: AlertStateTimeline;
   alert: Alert;
   delivery: OwnerNotificationDelivery;
+  // What the state changes of one page read once, for all of them.
+  page: OwnerNotificationPage;
 }): Promise<void> {
   const alertStateTimeline: AlertStateTimeline = data.alertStateTimeline;
   const alert: Alert = data.alert;
   const delivery: OwnerNotificationDelivery = data.delivery;
 
-  if (delivery.owners.length === 0) {
+  if (!delivery.hasWorkToDo) {
     return;
   }
 
@@ -297,16 +391,24 @@ async function notifyOwnersOfStateChange(data: {
       });
 
     if (previousTimeline?.alertStateId) {
-      previousState = await AlertStateService.findOneById({
-        id: previousTimeline.alertStateId,
-        props: {
-          isRoot: true,
+      const previousStateId: ObjectID = previousTimeline.alertStateId;
+
+      // A project's few states, each read once for the page.
+      previousState = await data.page.once(
+        `alertState:${previousStateId.toString()}`,
+        (): Promise<AlertState | null> => {
+          return AlertStateService.findOneById({
+            id: previousStateId,
+            props: {
+              isRoot: true,
+            },
+            select: {
+              name: true,
+              color: true,
+            },
+          });
         },
-        select: {
-          name: true,
-          color: true,
-        },
-      });
+      );
 
       /*
        * Calculate how long the alert was in the previous state
@@ -350,11 +452,17 @@ async function notifyOwnersOfStateChange(data: {
    * name), then everything else the Affected Resources card lists.
    */
   const resourcesAffected: string = LinkedAffectedResources.getText({
-    resources: await LinkedAffectedResources.readForAlert({
-      service: AlertService,
-      projectId: alert.projectId!,
-      alertId: alert.id!,
-    }),
+    // Read once for every state change of the alert on the page.
+    resources: await data.page.once(
+      `resourcesAffected:${alert.id!.toString()}`,
+      (): Promise<Array<LinkedAffectedResource>> => {
+        return LinkedAffectedResources.readForAlert({
+          service: AlertService,
+          projectId: alert.projectId!,
+          alertId: alert.id!,
+        });
+      },
+    ),
     seriesSummary: SeriesLabelDisplay.buildInlineSummary(alert.seriesLabels),
     fallback: "",
   });
@@ -547,8 +655,12 @@ async function notifyOwnersOfStateChange(data: {
     }
   }
 
-  // Every owner was told already: the run that told them said so.
-  if (!delivery.hasSetOutToTellAnyone) {
+  /*
+   * Written by the run that set out to tell the owners, or by the one
+   * that took up the feed item a run that told them all left unwritten
+   * (#8510): a run that found every owner told already writes none.
+   */
+  if (!delivery.isFeedItemToWrite) {
     return;
   }
 
@@ -572,4 +684,6 @@ async function notifyOwnersOfStateChange(data: {
       sendWorkspaceNotification: false,
     },
   });
+
+  await delivery.feedItemWritten();
 }

@@ -181,7 +181,7 @@ Un monitor de API nuevo empieza con dos criterios, así que funciona sin cambiar
 - **Sin conexión** — la API no responde, o responde con un código de estado de `400` o superior (o inferior a `200`). El monitor se marca como **Sin conexión** y se crea un incidente. El incidente se resuelve solo cuando la API vuelve.
 - **En línea** — la API responde con cualquier código de estado `2xx` o `3xx`, como `200`, `201`, `202` o `204`. El monitor se marca como **Operativo**.
 
-En la lista de criterios llevan el nombre del monitor: _Check if (name) is offline_ y _Check if (name) is online_.
+En la lista de criterios llevan el nombre del monitor: «Comprobar si _nombre del monitor_ está sin conexión» y «Comprobar si _nombre del monitor_ está en línea».
 
 Así que un endpoint que responde `201 Created` o `204 No Content` cuenta como disponible. Si para usted solo un código de estado significa que está sano, cambie ambos criterios en la página **Configuración → Criterios** del monitor: por ejemplo **Código de estado de respuesta** / **Igual a** / `200` en el criterio en línea y **Distinto de** / `200` en el de sin conexión, en lugar de los dos filtros de código de estado que tiene cada uno. Para comprobar también lo que devuelve la API, añada un filtro **Cuerpo de la respuesta** o **Expresión de JavaScript** al criterio de sin conexión.
 

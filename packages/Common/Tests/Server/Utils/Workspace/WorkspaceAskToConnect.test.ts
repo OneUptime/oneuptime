@@ -764,7 +764,7 @@ describe("the message", () => {
     const markdown: string = markdownOf(message.blocks);
 
     expect(markdown).toContain(
-      "👋 A project admin asks you to connect your Microsoft Teams account to OneUptime.",
+      "👋 A Project Admin asks you to connect your Microsoft Teams account to OneUptime.",
     );
     expect(markdown).toContain(
       "go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**",

@@ -505,7 +505,7 @@ describe("an edit form before the permission snapshot has landed", () => {
   });
 });
 
-describe("an edit form for a project owner, who may read the key", () => {
+describe("an edit form for a Project Owner, who may read the key", () => {
   beforeEach(() => {
     capturedSelect = null;
     savedModels = [];

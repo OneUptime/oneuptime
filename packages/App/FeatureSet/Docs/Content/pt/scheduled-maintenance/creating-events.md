@@ -90,7 +90,7 @@ No momento em que você clica em **Criar evento de manutenção**, o OneUptime p
 5. **As regras de runbook iniciam** os runbooks que correspondem ao evento.
 6. **Os lembretes são agendados**, quando uma regra de lembrete corresponde, para os proprietários dele.
 
-Em até um minuto após a publicação, que é imediata a menos que você tenha escolhido um **Publicar em**, os assinantes das páginas de status dele são avisados de que foi agendado, a menos que você tenha desativado **Quando o evento é agendado**. O gatilho de workflow **On Create Maintenance Event** inicia qualquer workflow construído sobre ele, e os proprietários ficam sabendo se ativaram essa notificação: veja [Configurações de notificação](/docs/notifications/notification-settings).
+Em até um minuto após a publicação, que é imediata a menos que você tenha escolhido um **Publicar em**, os assinantes das páginas de status dele são avisados de que foi agendado, a menos que você tenha desativado **Quando o evento é agendado**. O gatilho de workflow **Ao criar: Evento de manutenção** inicia qualquer workflow construído sobre ele, e os proprietários ficam sabendo se ativaram essa notificação: veja [Configurações de notificação](/docs/notifications/notification-settings).
 
 ## Publicar mais tarde
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | A chave **Quando o evento é agendado**. Os outros dois momentos têm campos próprios.      |
 | `publishOnStatusPageAt`                               | Quando o evento é publicado nas páginas de status dele e os assinantes dele são avisados de que está agendado. Omitido, imediatamente. |
 
-O mesmo evento como código é o recurso do Terraform `oneuptime_scheduled_maintenance_event`: veja [Exemplos](/docs/terraform/examples#manutenção-programada). Um workflow cria um com a etapa **Create One Maintenance Event**, e `/oneuptime maintenance` abre o formulário no Slack: veja [Slack](/docs/workspace-connections/slack#criar-incidentes-e-manutenções-pelo-slack).
+O mesmo evento como código é o recurso do Terraform `oneuptime_scheduled_maintenance_event`: veja [Exemplos](/docs/terraform/examples#manutenção-programada). Um workflow cria um com a etapa **Criar: Evento de manutenção (um registro)**, e `/oneuptime maintenance` abre o formulário no Slack: veja [Slack](/docs/workspace-connections/slack#criar-incidentes-e-manutenções-pelo-slack).
 
 ## Solução de problemas
 

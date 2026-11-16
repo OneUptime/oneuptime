@@ -11,7 +11,7 @@ OneUptime sin OpenStack-agent overvåker en OpenStack-sky: tjenestene og agenten
 - [Forbruk](#forbruk): Hvem som bruker hva, hva det utgjør med dine priser eller slik CloudKitty vurderte det, og hva som kan frigjøres.
 - [Statussider og varsling av prosjekter](#statussider-og-varsling-av-prosjekter): En side per region i ett steg, og varsling av bare de prosjektene en feil rammer.
 - [Tjenestelogger](#tjenestelogger): Tolket, med en forespørsel fulgt på tvers av tjenester.
-- [Livssyklushendelser](#livssyklushendelser): Instanshandlinger i feeden og på diagrammer, fra varsler eller en sonde.
+- [Livssyklushendelser](#livssyklushendelser): Instanshandlinger i feeden og på diagrammer, fra varslinger eller en sonde.
 - [Hvem gjorde hva](#hvem-gjorde-hva): Revisjonsspor inn i sikkerhetshendelser.
 - [Spor en forespørsel](#spor-forespørsler-gjennom-kontrollplanet): Én signert forespørsel, fulgt gjennom kontrollplanet.
 - [Sjekk skyen utenfra](#sjekk-skyen-utenfra): Om noen faktisk kan starte en instans, fra en sonde utenfor skyen.
@@ -1067,7 +1067,7 @@ En sky skriver svært mye ingen leser. Første gang et prosjekts OpenStack-logge
 | --- | --- | --- | --- |
 | **OpenStack: DEBUG lines** | Hver `DEBUG`-linje. Det er der en skys hemmeligheter har lekket | Med `debug = True`, det meste en sky skriver: 85 til 87 % av linjene og 70 til 76 % av bytene på testskyene våre, på tvers av tre utgaver. Ingenting med `debug = False` | Detaljene du slår på `debug` for å lese. Slå denne av mens du feilsøker en tjeneste |
 | **OpenStack: health checks** | En lastbalanserer som ber hvert API om `/` eller `/healthcheck`: en linje hvert par sekunder, per API, per kontroller | Ved én sjekk hvert 2. sekund, 43 200 linjer i døgnet for hvert API på hver kontroller. Med de 220 til 490 bytene disse linjene var på testskyene våre er det 10 til 21 MB i døgnet. Dette er regnestykke ut fra størrelsen på en linje: testskyene våre har ingen lastbalanserer | Ingenting en person leser. Den samme linjen fra en person ser lik ut |
-| **OpenStack: routine notifications** | `metrics.update`, og hver `*.exists` og `*.usage`. Se [Livssyklushendelser](#livssyklushendelser) | Ikke målt: opptakene våre er for korte til å romme mange. Det vokser med antall instanser | Ingenting som sier at noe endret seg. Slå denne av for å beholde hvert varsel |
+| **OpenStack: routine notifications** | `metrics.update`, og hver `*.exists` og `*.usage`. Se [Livssyklushendelser](#livssyklushendelser) | Ikke målt: opptakene våre er for korte til å romme mange. Det vokser med antall instanser | Ingenting som sier at noe endret seg. Slå denne av for å beholde hver varsling |
 
 Disse filtrene matcher bare det OneUptime leste fra en skys logger, så ingenting annet i et prosjekt røres.
 
@@ -1079,7 +1079,7 @@ oslo.log maskerer mye selv, men ikke alt: testskyenes Cinder skrev `connection_i
 
 ## Livssyklushendelser
 
-«Hva endret seg like før dette?» er det første spørsmålet i enhver hendelse, og OpenStack sier det gjennom varslene sine: instanser migrert, en hypervisor deaktivert, et volum frakoblet. De går til en meldingsbuss ingen leser, og å koble en konsument til en RabbitMQ i produksjon er en risiko operatører med rette avslår. Så OneUptime ber ikke om noen konsument. oslo.messagings `log`-driver skriver hvert varsel som JSON, med passord maskert, til tjenestens egen logg, og [loggprofilen](#installer-loggprofilen) bærer det.
+«Hva endret seg like før dette?» er det første spørsmålet i enhver hendelse, og OpenStack sier det gjennom varslingene sine: instanser migrert, en hypervisor deaktivert, et volum frakoblet. De går til en meldingsbuss ingen leser, og å koble en konsument til en RabbitMQ i produksjon er en risiko operatører med rette avslår. Så OneUptime ber ikke om noen konsument. oslo.messagings `log`-driver skriver hver varsling som JSON, med passord maskert, til tjenestens egen logg, og [loggprofilen](#installer-loggprofilen) bærer det.
 
 Hver av dem blir:
 
@@ -1088,7 +1088,7 @@ Hver av dem blir:
 - Det faktiske tidspunktet en dels tilstand endret seg, i stedet for når neste innsamling la merke til det.
 - For det som feilet, varslene **Instance Action Failed** og **Scheduling Failed**, hver med årsaken den gir.
 
-### Slå på varsler
+### Slå på varslinger
 
 Hver tjeneste tar den samme innstillingen, og Nova en til, fordi den som standard er `unversioned`:
 
@@ -1114,11 +1114,11 @@ En sky som sender disse til Ceilometer også kan navngi to: `driver` kan settes 
 
 La `notify_on_state_change` stå som den er. Den legger bare til `instance.update`-linjer, som er [trinn på veien](#hva-som-beholdes), og Novas andre hendelser sier allerede når en dels tilstand endret seg.
 
-### Uten varsler
+### Uten varslinger
 
-En sky hvis konfigurasjon ikke er din å endre kan fortsatt ha feilede handlinger. En [sonde](/docs/telemetry/openstack-agentless) leser `os-instance-actions` for instansene som endret seg siden den sist så, og sier hver ting som varselet Nova ville sendt, med årsaken Nova gir. Det koster ett kall per instans som endret seg, noen få per innsamling på det meste, og en rolig sky ingen i det hele tatt. Den blir stille så snart skyens egne varsler kommer inn, så ingenting sies to ganger.
+En sky hvis konfigurasjon ikke er din å endre kan fortsatt ha feilede handlinger. En [sonde](/docs/telemetry/openstack-agentless) leser `os-instance-actions` for instansene som endret seg siden den sist så, og sier hver ting som varslingen Nova ville sendt, med årsaken Nova gir. Det koster ett kall per instans som endret seg, noen få per innsamling på det meste, og en rolig sky ingen i det hele tatt. Den blir stille så snart skyens egne varslinger kommer inn, så ingenting sies to ganger.
 
-Nova beholder disse bare per instans, og uten en post som endret seg tar ingenting dem opp. En feilet volumtilkobling kan la instansen stå som den var, så en sonde kan ikke se den. Varsler kan.
+Nova beholder disse bare per instans, og uten en post som endret seg tar ingenting dem opp. En feilet volumtilkobling kan la instansen stå som den var, så en sonde kan ikke se den. Varslinger kan.
 
 Nova kan også avskrive en bygging uten noe på handlingen: på testskyene våre lot en bygging som feilet på compute-verten handlingen se fin ut og la årsaken i instansens fault. Så den nyeste handlingen til en instans i `ERROR` teller som feilet, med den faulten som årsak.
 
@@ -1149,11 +1149,11 @@ notification_opt_out = identity.authenticate.pending
 driver = log
 ```
 
-Navngi `notification_opt_out` selv. Keystones dokumentasjon sier at hver innlogging utelates som standard. På Epoxy, Flamingo og Hibiscus sender dens egen standard mislykkede innlogginger og utelater de som lyktes: 24 feil innlogginger sendte 24 varsler, enten brukeren fantes eller ikke, og vellykkede innlogginger sendte ingen. Å navngi `pending` alene sender en linje for hver innlogging, mislykket eller ikke. **OpenStack admin credential used from a new address** leser de som lyktes. For å sende bare mislykkede innlogginger, legg til `identity.authenticate.success`, og den deteksjonen leser da det revisjonsfilteret så.
+Navngi `notification_opt_out` selv. Keystones dokumentasjon sier at hver innlogging utelates som standard. På Epoxy, Flamingo og Hibiscus sender dens egen standard mislykkede innlogginger og utelater de som lyktes: 24 feil innlogginger sendte 24 varslinger, enten brukeren fantes eller ikke, og vellykkede innlogginger sendte ingen. Å navngi `pending` alene sender en linje for hver innlogging, mislykket eller ikke. **OpenStack admin credential used from a new address** leser de som lyktes. For å sende bare mislykkede innlogginger, legg til `identity.authenticate.success`, og den deteksjonen leser da det revisjonsfilteret så.
 
 ### Slå på revisjonsfilteret
 
-Keystones varsler dekker identitet. For hvem som gjorde hva gjennom Nova, Neutron, Cinder og Glance, registrerer keystonemiddlewares revisjonsfilter hvert kall. Det settes i tjenestens paste-fil, med en map-fil fra pyCADF, i `etc/pycadf` under Python-miljøet tjenesten kjører i:
+Keystones varslinger dekker identitet. For hvem som gjorde hva gjennom Nova, Neutron, Cinder og Glance, registrerer keystonemiddlewares revisjonsfilter hvert kall. Det settes i tjenestens paste-fil, med en map-fil fra pyCADF, i `etc/pycadf` under Python-miljøet tjenesten kjører i:
 
 ```ini title="api-paste.ini"
 [filter:audit]
@@ -1194,7 +1194,7 @@ Disse seks [deteksjonene](/docs/telemetry/security-events) kommer fra regelbibli
 | **OpenStack failed logins burst** | Ti eller flere mislykkede innlogginger fra én adresse på fem minutter |
 | **OpenStack role granted on a protected project** | En rolle gitt på `admin` eller `service`. Legg til dine egne prosjekter i regelens liste. Den leser et prosjekts navn, så den trenger skyens inventar |
 | **OpenStack admin credential used from a new address** | Kontoen `admin` brukt fra en adresse den ikke har brukt på tretti dager: en innlogging, en endring eller et kall gjennom revisjonsfilteret. Bak en lastbalanserer som ikke sender videre klientens adresse er hver adresse lastbalansererens |
-| **OpenStack application credential created** | En ble laget. Keystones varsel leses likt for en som er ubegrenset, så denne utløses for hver og sier det. `openstack application credential show` sier hvilken det var |
+| **OpenStack application credential created** | En ble laget. Keystones varsling leses likt for en som er ubegrenset, så denne utløses for hver og sier det. `openstack application credential show` sier hvilken det var |
 | **OpenStack security group opened to the world** | `0.0.0.0/0`, `::/0` eller ingen adresse i det hele tatt, innkommende, på en sensitiv port eller hver port |
 | **OpenStack public image published** | Et image sett offentlig for første gang på tretti dager. En endring av ett som allerede er kjent forblir stille, fordi Glance sier hva et image er og ikke hva det var. Så ett gjort privat og offentlig igjen innen de tretti dagene sies ikke to ganger |
 
@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+Å arkivere skyen slår ingenting av dette av. En arkivert sky er bare skjult i listene: den samles fortsatt inn, og API-sjekkene og livssykluskontrollen fortsetter å kjøre. Slå av en kontroll for å stoppe den.
+
 ## AI-agent
 
 Agentens `docker-compose.yml` kjører også **OpenStack KI-agent**, `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`). Mens OneUptime KI undersøker en hendelse eller et varsel på denne skyen, kjører den skrivebeskyttede `openstack`-kommandoer gjennom den — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — og viser til det den kjørte. Det finnes ingen `openstack`-binærfil i agenten og ikke noe skall: hver kommando blir ett `GET` til tjenesten som svarer på den, med agentens egen legitimasjon. Agenten registrerer seg med den samme `OPENSTACK_CLOUD_NAME` collectoren rapporterer, så den betjener denne skyen.
@@ -1641,7 +1643,7 @@ Skyens **AI-agent**-side tilbyr en kjørebok for hver av disse, som du kan legge
 
 ### Rettelser fra en arbeidsflyt
 
-En arbeidsflyt kan starte fra et OpenStack-varsel og foreslå en rettelse: trinnet **Propose an OpenStack fix** tar varselet eller hendelsen, og kommandoen. Det går gjennom den samme policyen, det samme skriveomfanget og den samme lesingen av hva en endring rører som en rettelse OneUptime KI foreslår, det trenger ingen KI-modell, og en person godkjenner det på varselet. En arbeidsflyt kan ikke gjøre endringen selv eller godkjenne det den foreslår, uansett hva skyens rettelsesmodus er. Malen **Propose taking a failing OpenStack compute service out of scheduling** er et sted å begynne.
+En arbeidsflyt kan starte fra et OpenStack-varsel og foreslå en rettelse: trinnet **Foreslå en OpenStack-retting** tar varselet eller hendelsen, og kommandoen. Det går gjennom den samme policyen, det samme skriveomfanget og den samme lesingen av hva en endring rører som en rettelse OneUptime KI foreslår, det trenger ingen KI-modell, og en person godkjenner det på varselet. En arbeidsflyt kan ikke gjøre endringen selv eller godkjenne det den foreslår, uansett hva skyens rettelsesmodus er. Malen **Propose taking a failing OpenStack compute service out of scheduling** er et sted å begynne.
 
 ## Kjør som en systemd-tjeneste
 
@@ -1799,7 +1801,7 @@ OneUptime leser oslo.logs egne formater. En sky som endret `logging_context_form
 :::
 
 :::details Feeden forblir tom
-Hver tjeneste trenger `driver = log` og en omstart, og Nova `notification_format = versioned` i tillegg: se [Slå på varsler](#slå-på-varsler). For å sjekke en tjeneste, grep loggen dens etter `oslo.messaging.notification`. Hvis det ikke er noe, se på `default_log_levels`: et nivå over `INFO` for `oslo.messaging` demper de fleste av dem. En sky hvis konfigurasjon ikke er din å endre kan bruke en [sonde](#uten-varsler).
+Hver tjeneste trenger `driver = log` og en omstart, og Nova `notification_format = versioned` i tillegg: se [Slå på varslinger](#slå-på-varslinger). For å sjekke en tjeneste, grep loggen dens etter `oslo.messaging.notification`. Hvis det ikke er noe, se på `default_log_levels`: et nivå over `INFO` for `oslo.messaging` demper de fleste av dem. En sky hvis konfigurasjon ikke er din å endre kan bruke en [sonde](#uten-varslinger).
 :::
 
 ## Neste steg

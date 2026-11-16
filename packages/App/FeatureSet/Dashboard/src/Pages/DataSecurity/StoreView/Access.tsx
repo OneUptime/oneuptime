@@ -156,10 +156,12 @@ const DataStoreAccessPage: FunctionComponent<
                 <div className="text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
                   {item.isPublic ? (
                     translator.translateText("Anyone on the internet")
-                  ) : (
+                  ) : item.principalName || item.principal ? (
                     <IsolatedText
-                      text={item.principalName || item.principal || "—"}
+                      text={item.principalName || item.principal || ""}
                     />
+                  ) : (
+                    <TableEmptyValue />
                   )}
                 </div>
                 {showsPrincipal(item) ? (

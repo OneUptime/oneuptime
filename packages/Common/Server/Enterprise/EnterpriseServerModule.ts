@@ -6,6 +6,8 @@ import type {
 import type BillingProvider from "../Types/Billing/BillingProvider";
 import type BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import type { SessionAuditEvent } from "../../Types/AuditLog/AuditLogSessionEvent";
+import type { SignInFailureAuditEvent } from "../../Types/AuditLog/AuditLogSignInFailure";
+import type { StatusPageSessionAuditEvent } from "../../Types/AuditLog/AuditLogStatusPageSession";
 import type DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import type { ProductBranding } from "../../Types/Branding/ProductBranding";
 import type { JSONObject } from "../../Types/JSON";
@@ -86,6 +88,24 @@ export interface AuditLogRecorder {
    * that ends many sessions.
    */
   recordSessionEvents(events: Array<SessionAuditEvent>): Promise<void>;
+
+  /*
+   * Failed sign-ins on existing accounts (issue #6788): each recorded in
+   * every project the account's person is a member of that records audit
+   * logs, as a session event is (Types/AuditLog/AuditLogSignInFailure).
+   * Core hands over only the attempts its bound let through
+   * (Server/Utils/AuditLog/FailedSignInAuditLog).
+   */
+  recordSignInFailures(events: Array<SignInFailureAuditEvent>): Promise<void>;
+
+  /*
+   * A private status page's readers' sessions (issue #6790): a sign-in, a
+   * sign-out, a session revoked - each recorded in the status page's
+   * project only (Types/AuditLog/AuditLogStatusPageSession).
+   */
+  recordStatusPageSessionEvents(
+    events: Array<StatusPageSessionAuditEvent>,
+  ): Promise<void>;
 
   invalidateProjectSettings(projectId: ObjectID): void;
 }

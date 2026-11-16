@@ -55,7 +55,7 @@ Poi [configura Datadog](#configurare-datadog) perché invii i suoi avvisi a quel
 
 ### Cosa fa il flusso di lavoro
 
-Dopo il trigger **Webhook**, il passo **Check With JavaScript** `read-event-1` legge la `transition` che Datadog invia, e **Incident From Another Tool**, o **Alert From Another Tool** nel modello degli avvisi, fa ciò che significa, tramite la chiave di ciclo dell'avviso. Datadog tiene quella chiave dal momento in cui un avviso scatta finché non rientra, e la volta successiva che scatta la chiave è nuova, quindi ogni volta ha un incidente tutto suo. L'incidente conserva la chiave nel suo campo personalizzato `datadogAlertCycleKey`.
+Dopo il trigger **Webhook**, il passo **Verifica con JavaScript** `read-event-1` legge la `transition` che Datadog invia, e **Incidente da un altro strumento**, o **Avviso da un altro strumento** nel modello degli avvisi, fa ciò che significa, tramite la chiave di ciclo dell'avviso. Datadog tiene quella chiave dal momento in cui un avviso scatta finché non rientra, e la volta successiva che scatta la chiave è nuova, quindi ogni volta ha un incidente tutto suo. L'incidente conserva la chiave nel suo campo personalizzato `datadogAlertCycleKey`.
 
 | Transizione | Cosa fa il flusso di lavoro |
 | --- | --- |
@@ -82,7 +82,7 @@ Un nuovo incidente chiama le policy di reperibilità che hai scelto quando il su
 Con gravità tue, P1, P2 e nessuna priorità vanno alla più grave, P3 a quella di mezzo, e P4 e P5 alla meno grave.
 
 - Per mappare una priorità su una delle tue per nome, modifica `SEVERITY_BY_NAME` nel passo `read-event-1`, ad esempio `{ P3: 'Minor Incident' }`.
-- Per chiamare i reperibili anche per P3, imposta **Confronta con** del passo `if-page-1` **If / Else** a `3`.
+- Per chiamare i reperibili anche per P3, imposta **Confronta con** del passo `if-page-1` **Se / Altrimenti** a `3`.
 
 ## Ricevere gli avvisi con un monitor
 
@@ -200,7 +200,7 @@ curl -X POST "<url>" \
 
 Con il modello, si apre un incidente intitolato `Datadog: High CPU`, e le policy di reperibilità che hai scelto vengono chiamate. Con il monitor, si apre un incidente intitolato `[Triggered] High CPU`. Invia la stessa richiesta con `transition` impostato su `Recovered`, e l'incidente si risolve.
 
-Poi prova da Datadog: apri un monitor che menziona il webhook, fai clic su **Test Notifications** e invia la sua notifica **Alert**. Per vedere che è arrivata, apri **Registri → Esecuzioni** del flusso di lavoro, o la timeline del monitor di OneUptime.
+Poi prova da Datadog: apri un monitor che menziona il webhook, fai clic su **Test Notifications** e invia la sua notifica **Alert**. Per vedere che è arrivata, apri **Log → Esecuzioni** del flusso di lavoro, o la timeline del monitor di OneUptime.
 
 ## Risoluzione dei problemi
 
@@ -211,7 +211,7 @@ Poi prova da Datadog: apri un monitor che menziona il webhook, fai clic su **Tes
 :::
 
 :::details Il flusso di lavoro gira, ma non apre nulla
-Apri l'esecuzione in **Registri → Esecuzioni**. La voce `read-event-1` nei suoi **Passaggi** dice perché ha preso **No**.
+Apri l'esecuzione in **Log → Esecuzioni**. La voce `read-event-1` nei suoi **Passaggi** dice perché ha preso **No**.
 
 - `Datadog named no alert cycle key`: aggiungi `"alert_cycle_key": "$ALERT_CYCLE_KEY"` al payload del webhook in Datadog.
 - `Datadog named no transition`: aggiungi `"transition": "$ALERT_TRANSITION"` al payload del webhook in Datadog.
@@ -225,14 +225,14 @@ Apri l'esecuzione in **Registri → Esecuzioni**. La voce `read-event-1` nei suo
 
 :::details Gli incidenti si aprono ma non vengono mai risolti
 - Il monitor di Datadog deve notificare al webhook anche i suoi rientri. Un messaggio che menziona il webhook solo per gli avvisi, dentro una condizione, non invia alcun rientro.
-- Con il modello, apri l'esecuzione del rientro in **Registri → Esecuzioni**: il suo ultimo passo dice perché. L'`alert_cycle_key` del rientro deve essere quello dell'avviso, quindi lascia `$ALERT_CYCLE_KEY` così com'è nel payload.
+- Con il modello, apri l'esecuzione del rientro in **Log → Esecuzioni**: il suo ultimo passo dice perché. L'`alert_cycle_key` del rientro deve essere quello dell'avviso, quindi lascia `$ALERT_CYCLE_KEY` così com'è nel payload.
 - Con il monitor, l'incidente del criterio ha bisogno di **Risoluzione automatica dell'incidente**, in **Altri campi**.
 - **Value that means recovered** deve essere esattamente `Recovered`. Il confronto distingue maiuscole e minuscole.
 - L'`alert_key` del rientro deve essere quello dell'avviso: lascia `$ALERT_ID $ALERT_SCOPE` così com'è nel payload.
 :::
 
 :::details Un campo mostra il nome di una variabile, o niente
-Datadog compila solo le variabili che valgono per l'evento. Invia una notifica di prova, poi guarda cosa è arrivato: nella timeline del monitor, o per un flusso di lavoro in **Registri → Esecuzioni**.
+Datadog compila solo le variabili che valgono per l'evento. Invia una notifica di prova, poi guarda cosa è arrivato: nella timeline del monitor, o per un flusso di lavoro in **Log → Esecuzioni**.
 :::
 
 :::details Tutti gli avvisi di un monitor finiscono in un solo incidente

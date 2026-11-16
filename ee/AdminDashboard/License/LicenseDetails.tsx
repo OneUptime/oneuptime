@@ -3,6 +3,7 @@ import {
   LicenseSnapshot,
 } from "Common/UI/Components/EditionLabel/LicenseDetails";
 import { SeatTone } from "Common/UI/Components/EditionLabel/LicenseSeatUsage";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -31,6 +32,9 @@ import {
   USERS_OVER_LIMIT,
 } from "./LicenseDetailsCopy";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+
+// A release's version, as OneUptime writes it everywhere: v14.2.0.
+const VERSION_PREFIX: string = "v";
 
 /*
  * The Enterprise license details: the seat usage card and the instances on
@@ -526,15 +530,17 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
               <span
                 className={`text-3xl font-semibold leading-none tabular-nums ${
                   typeof effectiveUserCount !== "number"
-                    ? "text-gray-300"
+                    ? ""
                     : seatTone === "breached"
                       ? "text-red-700"
                       : "text-gray-900"
                 }`}
               >
-                {typeof effectiveUserCount === "number"
-                  ? translator.formatNumber(effectiveUserCount)
-                  : "—"}
+                {typeof effectiveUserCount === "number" ? (
+                  translator.formatNumber(effectiveUserCount)
+                ) : (
+                  <EmptyFigure />
+                )}
               </span>
               <span className="text-sm tabular-nums text-gray-500">
                 {typeof userLimit === "number" && userLimit > 0
@@ -812,7 +818,8 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
                                   )
                             }
                           >
-                            v{displayVersion}
+                            {VERSION_PREFIX}
+                            {displayVersion}
                           </span>
                         )}
                       </div>

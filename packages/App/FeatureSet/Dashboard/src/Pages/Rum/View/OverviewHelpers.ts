@@ -152,7 +152,8 @@ export function describeRecordingHealthRow(health: {
 export const PAGE_LOAD_SPAN_NAME: string = "documentLoad";
 
 export interface TileText {
-  value: string;
+  // None, and the tile draws the figure's quiet dash (#8262).
+  value?: string | undefined;
   sublabel: string;
 }
 
@@ -176,11 +177,11 @@ export function describePageLoadsTile(input: {
   eventsTotal: number | null;
 }): TileText {
   if (input.failed) {
-    return { value: "—", sublabel: "could not load" };
+    return { value: undefined, sublabel: "could not load" };
   }
 
   if (!input.stats) {
-    return { value: "—", sublabel: "full page loads" };
+    return { value: undefined, sublabel: "full page loads" };
   }
 
   if (input.stats.count <= 0) {
@@ -223,11 +224,11 @@ export function describePageLoadTimeTile(input: {
   failed: boolean;
 }): TileText {
   if (input.failed) {
-    return { value: "—", sublabel: "could not load" };
+    return { value: undefined, sublabel: "could not load" };
   }
 
   if (!input.stats || input.stats.count <= 0) {
-    return { value: "—", sublabel: "no page loads" };
+    return { value: undefined, sublabel: "no page loads" };
   }
 
   return {
@@ -292,15 +293,15 @@ export function describeExceptionsTile(input: {
   isNotSetUp?: boolean | undefined;
 }): TileText {
   if (!input.exceptions) {
-    return { value: "—", sublabel: "reported by your app" };
+    return { value: undefined, sublabel: "reported by your app" };
   }
 
   if (input.exceptions.failed) {
-    return { value: "—", sublabel: "could not load" };
+    return { value: undefined, sublabel: "could not load" };
   }
 
   if (input.isNotSetUp && input.exceptions.total === 0) {
-    return { value: "—", sublabel: "not set up" };
+    return { value: undefined, sublabel: "not set up" };
   }
 
   return {

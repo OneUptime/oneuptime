@@ -25,7 +25,7 @@ sequenceDiagram
 
 - **Sonden ansluter utåt.** Varje förfrågan går från sonden till `ONEUPTIME_URL` över HTTPS. Ingenting utifrån behöver nå sonden.
 - **Den kontrollerar bara sina egna monitorer.** Sonden ber OneUptime om de monitorer den är tillagd i, kontrollerar var och en när det är dags och skickar tillbaka resultatet. OneUptime avgör utifrån resultaten om en monitors status ändras.
-- **OneUptime håller koll på att den körs.** Varje förfrågan från sonden räknas som ett livstecken, och sonden skickar minst en per minut. Efter ungefär tre minuter utan någon visar sonden **Frånkopplad**, och dess ägare får besked. Har en sond inga ägare får projektets ägare besked. För att larmas som vid vilket avbrott som helst, med en incident tills sonden är tillbaka, lägger du till en [sondstatusmonitor](/docs/monitor/probe-status-monitor): **Övervaka den här sonden** på sondens sida skapar en.
+- **OneUptime håller koll på att den körs.** Varje förfrågan från sonden räknas som ett livstecken, och sonden skickar minst en per minut. Efter ungefär tre minuter utan någon visar sonden **Frånkopplad**, och dess ägare får besked. Har en sond inga ägare får Projektägare besked. För att larmas som vid vilket avbrott som helst, med en incident tills sonden är tillbaka, lägger du till en [sondstatusmonitor](/docs/monitor/probe-status-monitor): **Övervaka den här sonden** på sondens sida skapar en.
 
 ## Innan du börjar
 
@@ -201,7 +201,7 @@ spec:
 Det här går via proxyn:
 
 - **Sondens egna förfrågningar till OneUptime.**
-- **Monitorernas HTTP-kontroller**: Website-, API-, External Status Page-, Custom Code-, SSL-certifikat-, syntetiska och domänmonitorer. SSL-certifikat- och syntetiska monitorer använder `HTTPS_PROXY_URL`, eller `HTTP_PROXY_URL` när bara den är satt.
+- **Monitorernas HTTP-kontroller**: Website-, API-, Extern statussida-, Custom Code-, SSL-certifikat-, syntetiska och domänmonitorer. SSL-certifikat- och syntetiska monitorer använder `HTTPS_PROXY_URL`, eller `HTTP_PROXY_URL` när bara den är satt.
 - **Inte de andra kontrollerna.** Ping, Port, DNS, SNMP och de andra kontrollerna som inte är HTTP ansluter direkt.
 
 En post i `NO_PROXY` är ett värdnamn (`api.internal`), en domän med punkt eller `*.` först för varje namn under den (`.internal.example.com`), vilken som helst av dem med en `:port`, eller `*` för allt. IP-intervall läses inte: ange varje adress. Namnen med små bokstäver `http_proxy`, `https_proxy` och `no_proxy`, samt `HTTP_PROXY` och `HTTPS_PROXY`, fungerar också.
@@ -287,8 +287,8 @@ Sonden läser sina inställningar från sin miljö när den startar: ändra en o
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgräns för syntetiska monitorers skript, i millisekunder. |
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Sätt till `true` för att köra Chromium i syntetiska monitorer inuti sin egen sandlåda. Slå bara på den när sondens container körs med en seccomp-profil som tillåter sandlådan, till exempel Playwrights: utan en kan Chromium inte starta. Så länge den är avslagen loggar sonden en varning vid start. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgräns för Custom Code-monitorers skript, i millisekunder. |
-| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Sätt till `true` för att Website-, API-, External Status Page- och Custom Code-monitorer på den här sonden ska få nå privata adresser. Se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access). |
-| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL Certificate-, Website- och API-monitorer på den här sonden frågar ett certifikats utfärdare om den har återkallat certifikatet, som webbläsare gör. Sätt till `false` för att sluta fråga, till exempel på en sond utan internetåtkomst. En utfärdare som sonden inte når räknas aldrig som en återkallelse: sonden väntar några sekunder på varje responder den inte når, ungefär en gång var 5:e minut. Se [Övervakning av SSL-certifikat](/docs/monitor/ssl-certificate-monitor). |
+| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Sätt till `true` för att Website-, API-, Extern statussida- och Custom Code-monitorer på den här sonden ska få nå privata adresser. Se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access). |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL-certifikat-, Website- och API-monitorer på den här sonden frågar ett certifikats utfärdare om den har återkallat certifikatet, som webbläsare gör. Sätt till `false` för att sluta fråga, till exempel på en sond utan internetåtkomst. En utfärdare som sonden inte når räknas aldrig som en återkallelse: sonden väntar några sekunder på varje responder den inte når, ungefär en gång var 5:e minut. Se [Övervakning av SSL-certifikat](/docs/monitor/ssl-certificate-monitor). |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Hur många nätverksenheter sonden pollar samtidigt. Höj den för en sond som pollar många enheter. |
 
 Gränserna som en syntetisk monitor körs inom (hur många samtidigt, deras minne och deras disk) finns på sidan [Syntetisk övervakning](/docs/monitor/synthetic-monitor).

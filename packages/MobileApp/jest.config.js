@@ -43,6 +43,21 @@ const sharedProjectConfig = {
     "<rootDir>/src/**/*.test.tsx",
   ],
   /*
+   * A suite that holds the app's copy of the server's words to Common's
+   * imports the Common module (sessionEnded, clientRenewAhead and
+   * sessionIdleTimeout read Common/Types/Exception/SessionEndedException).
+   * Babel compiles it with this app's preset, which requires its helpers
+   * from @babel/runtime; Jest looks for them from the Common file's folder,
+   * where CI installs nothing (it installs this app's node_modules only).
+   * The helpers are this app's.
+   */
+  moduleNameMapper: {
+    "^@babel/runtime/(.*)$": path.join(
+      __dirname,
+      "node_modules/@babel/runtime/$1",
+    ),
+  },
+  /*
    * The shared setup file lives under __tests__ so it sits with the tests it
    * serves; without this it would be collected as a (empty) test suite and
    * fail the run.

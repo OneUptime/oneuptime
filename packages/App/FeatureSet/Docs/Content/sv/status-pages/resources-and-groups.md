@@ -65,7 +65,7 @@ Dialogrutan **Add a monitor to {group}** öppnas. Den består av en sida.
 
 ### Välj monitorn
 
-Välj den i **Övervakning** (platshållare **Välj övervakning**). **Visningsnamn**, texten som besökarna läser, fylls i med monitorns namn och följer med när du väljer en annan monitor, tills du skriver ett eget namn. Det lagras separat från monitorns eget namn, så att byta namn här ändrar ingenting i övervakningen.
+Välj den i **Monitor** (platshållare **Välj övervakning**). **Visningsnamn**, texten som besökarna läser, fylls i med monitorns namn och följer med när du väljer en annan monitor, tills du skriver ett eget namn. Det lagras separat från monitorns eget namn, så att byta namn här ändrar ingenting i övervakningen.
 
 ### Ange visningsalternativen, om du vill
 
@@ -79,7 +79,7 @@ Klicka på **Lägg till monitor**. Raden visas i gruppen och på statussidan.
 I en rutnätsgrupp ber dialogrutan också om raden och kolumnen som monitorn ska stå i, ovanför **Fler fält**; se [Listlayout eller rutnätslayout](#listlayout-eller-rutnätslayout).
 
 > [!TIP]
-> För att visa flera kontroller som en rad lägger du till en [monitorgrupp](/docs/monitor/monitor-groups). Med reglaget **Monitorgrupper** aktiverat (**Projektinställningar** > **Avancerad** > **Funktionsflaggor**, som sparas så snart du slår om det) står det en länk under listrutan: **Lägg till en monitorgrupp i stället.** Klicka på den så blir **Övervakning** till **Monitorgrupp** (**Välj övervakningsgrupp**); **Lägg till en monitor i stället.** växlar tillbaka.
+> För att visa flera kontroller som en rad lägger du till en [monitorgrupp](/docs/monitor/monitor-groups). Med reglaget **Monitorgrupper** aktiverat (**Projektinställningar** > **Avancerad** > **Funktionsflaggor**, som sparas så snart du slår om det) står det en länk under listrutan: **Lägg till en monitorgrupp i stället.** Klicka på den så blir **Monitor** till **Monitorgrupp** (**Välj monitorgrupp**); **Lägg till en monitor i stället.** växlar tillbaka.
 
 ### Lägg till flera på en gång
 
@@ -121,7 +121,7 @@ Grupper har sina egna varianter av de här reglagen (se nedan), så en grupp kan
 
 Färgerna på historikdiagrammets staplar anges under **Fler inställningar** på sidan **Varumärke**, och vilka monitorstatusar som räknas som "nere" under **Räknas som driftstopp**, på kortet **Vad din statussida visar** under **Avancerade inställningar**; båda beskrivs i [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains).
 
-Varje stapel är en dag. Peka på en stapel eller klicka på den (tryck på den på en telefon, eller tryck Enter med tangentbordet) för att läsa dagen: dess upptid, hur länge varje status varade, incidenterna som deklarerades den dagen och det planerade underhållet som pågick under den, var och en med en länk till sin egen sida. En dag med planerat underhåll har ett blått band överst på sin stapel, och medan en händelse pågår står det "Under underhåll" bredvid namnet på varje resurs för dess monitorer. Underhåll ändrar varken en stapels färg eller upptiden, som kommer från monitorns statusar: för att hålla planerat arbete utanför upptiden väljer du för händelsen under **Ändra övervakningsstatus till** en status som inte är en av sidans statusar under **Räknas som driftstopp**. Se [Vad en händelse påverkar](/docs/scheduled-maintenance/index#vad-en-händelse-påverkar).
+Varje stapel är en dag. Peka på en stapel eller klicka på den (tryck på den på en telefon, eller tryck Enter med tangentbordet) för att läsa dagen: dess upptid, hur länge varje status varade, incidenterna som deklarerades den dagen och det schemalagda underhållet som pågick under den, var och en med en länk till sin egen sida. En dag med schemalagt underhåll har ett blått band överst på sin stapel, och medan en händelse pågår står det "Under underhåll" bredvid namnet på varje resurs för dess monitorer. Underhåll ändrar varken en stapels färg eller upptiden, som kommer från monitorns statusar: för att hålla planerat arbete utanför upptiden väljer du för händelsen under **Ändra övervakningsstatus till** en status som inte är en av sidans statusar under **Räknas som driftstopp**. Se [Vad en händelse påverkar](/docs/scheduled-maintenance/index#vad-en-händelse-påverkar).
 
 Varje stapel är en dag i läsarens egen tidszon, samma som sidan visar alla andra tider i, så den sista stapeln är läsarens i dag. En monitorgrupps stapel visar hur länge gruppen själv var i varje status den dagen: i varje ögonblick har gruppen den sämsta statusen bland sina monitorer, så en dags statusar summeras till den tid då minst en av dess monitorer kontrollerades, och aldrig till mer än dagen.
 

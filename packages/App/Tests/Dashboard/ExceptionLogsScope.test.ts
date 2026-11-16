@@ -55,7 +55,7 @@ describe("getExceptionLogsViewerScopes", () => {
       expect(scope.window?.endTime.getTime()).toBe(
         OCCURRED_AT.getTime() + EXCEPTION_LOG_WINDOW_MS,
       );
-      expect(scope.description).toContain("5 minutes either side");
+      expect(scope.description).toContain("5\u00A0minutes either side");
     }
   });
 

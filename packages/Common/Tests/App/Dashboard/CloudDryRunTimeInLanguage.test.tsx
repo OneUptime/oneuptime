@@ -120,15 +120,15 @@ describe("a dry run's time", () => {
     );
 
     expect(headline()).toBe(
-      "Dry run 5 minutes ago: this change would run. Nothing was changed.",
+      "Dry run 5\u00A0minutes ago: this change would run. Nothing was changed.",
     );
   });
 
   test.each<[string, string, string]>([
-    ["de", "vor 5 Minuten", "vor 2 Stunden"],
-    ["fa", "۵ دقیقه پیش", "۲ ساعت پیش"],
-    ["ja", "5 分前", "2 時間前"],
-    ["ru", "5 минут назад", "2 часа назад"],
+    ["de", "vor 5\u00A0Minuten", "vor 2\u00A0Stunden"],
+    ["fa", "۵\u00A0دقیقه پیش", "۲\u00A0ساعت پیش"],
+    ["ja", "5\u00A0分前", "2\u00A0時間前"],
+    ["ru", "5\u00A0минут назад", "2\u00A0часа назад"],
   ])(
     "in %s, as the reader's language writes it",
     async (language: string, fiveMinutes: string, twoHours: string) => {
@@ -172,7 +172,7 @@ describe("a dry run's time", () => {
     ] as Array<[AiRemediationDryRunStatus, string]>) {
       render(<CloudDryRunNote dryRun={dryRun(status, 3)} now={NOW} />);
 
-      expect(headline()).toBe(sentence("de", key, "vor 3 Minuten"));
+      expect(headline()).toBe(sentence("de", key, "vor 3\u00A0Minuten"));
       cleanup();
     }
   });
@@ -188,7 +188,7 @@ describe("a dry run's time", () => {
     );
 
     expect(headline()).toBe(
-      sentence("de", CLOUD_DRY_RUN_COPY.wouldRun, "vor 5 Minuten"),
+      sentence("de", CLOUD_DRY_RUN_COPY.wouldRun, "vor 5\u00A0Minuten"),
     );
   });
 
@@ -199,7 +199,7 @@ describe("a dry run's time", () => {
         now={NOW}
       />,
     );
-    expect(headline()).toContain("5 minutes ago");
+    expect(headline()).toContain("5\u00A0minutes ago");
 
     await inLanguage("ja");
     view.rerender(
@@ -210,7 +210,7 @@ describe("a dry run's time", () => {
     );
 
     expect(headline()).toBe(
-      sentence("ja", CLOUD_DRY_RUN_COPY.wouldRun, "5 分前"),
+      sentence("ja", CLOUD_DRY_RUN_COPY.wouldRun, "5\u00A0分前"),
     );
   });
 });
@@ -221,19 +221,21 @@ describe("OneUptimeDate.fromNow from a given moment", () => {
 
     expect(OneUptimeDate.fromNow(date, NOW)).toBe("an hour ago");
     expect(OneUptimeDate.fromNow(new Date(before(5)), NOW)).toBe(
-      "5 minutes ago",
+      "5\u00A0minutes ago",
     );
     expect(
       OneUptimeDate.fromNow(new Date(NOW.getTime() + 3 * 86_400_000), NOW),
-    ).toBe("in 3 days");
+    ).toBe("in 3\u00A0days");
 
     await inLanguage("de");
-    expect(OneUptimeDate.fromNow(date, NOW)).toBe("vor 1 Stunde");
+    expect(OneUptimeDate.fromNow(date, NOW)).toBe("vor 1\u00A0Stunde");
   });
 
   test("without one, from now, as it always was", () => {
     jest.useFakeTimers({ now: NOW, doNotFake: ["nextTick", "setImmediate"] });
 
-    expect(OneUptimeDate.fromNow(new Date(before(5)))).toBe("5 minutes ago");
+    expect(OneUptimeDate.fromNow(new Date(before(5)))).toBe(
+      "5\u00A0minutes ago",
+    );
   });
 });

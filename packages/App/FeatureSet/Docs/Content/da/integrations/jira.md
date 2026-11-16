@@ -86,9 +86,9 @@ Hver skabelon til advarsler er bygget som sin tvilling til hændelser, trin for 
 
 **Monitorer udløser selv advarsler, og det kan blive mange.** **Create a Jira issue when an alert is created** opretter en sag for hver eneste. Medmindre hver advarsel fortjener en sag, så sæt en betingelse foran Jira-trinnet. For kun at oprette sager for advarsler med High:
 
-1. Åbn arbejdsgangens **Bygger**, og tilføj en **If / Else**-blok.
+1. Åbn arbejdsgangens **Bygger**, og tilføj en **Hvis / Ellers**-blok.
 2. Sæt **Værdi, der skal tjekkes** til `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Sammenligning** til **er lig med** og **Sammenlign med** til `High`.
-3. Fjern linjen fra `alert-on-create-1` til `prepare-issue-1` ved at trække dens ende væk fra punktet (se [Ryd op](/docs/workflows/authoring#ryd-op)). Forbind triggerens **Succes** med **If / Else**-blokken og dens **Ja** med `prepare-issue-1`.
+3. Fjern linjen fra `alert-on-create-1` til `prepare-issue-1` ved at trække dens ende væk fra punktet (se [Ryd op](/docs/workflows/authoring#ryd-op)). Forbind triggerens **Succes** med **Hvis / Ellers**-blokken og dens **Ja** med `prepare-issue-1`.
 
 En advarsel, der tager **Nej**-siden, afslutter kørslen der, og der oprettes ingen sag for den.
 
@@ -126,7 +126,7 @@ En Atlassian-**tjenestekonto** virker også. En organisationsadministrator opret
 1. Åbn **Arbejdsgange → Opret arbejdsgang**. Vælg **Jira** i kategorilisten under **Eller start fra en skabelon**, eller skriv `Jira` i **Søg i skabeloner…**, og klik på den skabelon, du vil have. Den åbnes og viser, hvad den gør, og hvilke indstillinger den vil bede om. Klik på **Brug denne skabelon**.
 2. **Navn** udfyldes ud fra skabelonen. Skift det, hvis du vil.
 3. **Konfigurer** beder om værdierne ovenfor. De gemmes som arbejdsgangens egne variabler under **Arbejdsgangsvariabler** i dens menu. API-tokenet gemmes som en hemmelighed: det skjules i **Protokoller → Kørsler** og bruges kun i `Authorization`-headeren i Jira-kaldene.
-4. Klik på **Opret arbejdsgang**. Hver arbejdsgang oprettes slået fra: slå **Aktiveret** til øverst i dets **Bygger**.
+4. Klik på **Opret arbejdsgang**. Hver arbejdsgang oprettes slået fra: slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
 Start med **Create a Jira issue when an incident is declared**, eller **Create a Jira issue when an alert is created** til advarsler: alle andre skabeloner OneUptime → Jira af samme slags finder sagen via den etiket, som denne tilføjer. Slå den til, erklær en testhændelse eller opret en testadvarsel, og åbn arbejdsgangens **Protokoller → Kørsler**. Kørslen bør slutte som **Udført**, og **Svarets brødtekst** i dens sidste trin, `create-issue-1`, nævner den nye sag.
@@ -137,7 +137,7 @@ Hver arbejdsgang har sin egen kopi af disse værdier. Når du udskifter tokenet,
 
 Skabelonerne Jira → OneUptime, fire til hændelser og fire til advarsler, starter fra en [Webhook-trigger](/docs/workflows/triggers#webhook), så Jira skal have at vide, hvor det skal sende sine begivenheder hen. Gør det i denne rækkefølge:
 
-1. Opret arbejdsgangen, og **slå den til først**. En arbejdsgang, der er slået fra, svarer Jira med `400`, og Jira prøver ikke en levering igen, der blev afvist med en `4xx`. Begivenheder, der sendes, før du slår det til, går tabt og sættes ikke i kø.
+1. Opret arbejdsgangen, og **slå den til først**. En arbejdsgang, der er slået fra, svarer Jira med `400`, og Jira prøver ikke en levering igen, der blev afvist med en `4xx`. Begivenheder, der sendes, før du slår den til, går tabt og sættes ikke i kø.
 2. Åbn arbejdsgangens **Bygger**, klik på triggerblokken **Webhook** (`webhook-1`), og klik på **Kopiér URL** øverst i dens indstillinger. URL'en ser sådan ud:
 
    ```text
@@ -183,7 +183,7 @@ Før du stoler på det:
 Hver kørsels **Trin** siger, hvad skabelonen gjorde, så åbn kørslen i **Protokoller → Kørsler** og se, hvordan den sluttede:
 
 - **Udført**: den gjorde sit arbejde, og dens sidste trin nævner sagen, hændelsen eller advarslen.
-- **Udført**, med trinnet **Check With JavaScript** på **Nej**: den sprang begivenheden over med vilje, og trinnet siger hvorfor: sagen er ikke forbundet med en post af denne slags, noten kom fra Jira, posten er privat, eller der er ingen Jira-status knyttet til den nye tilstand.
+- **Udført**, med trinnet **Tjek med JavaScript** på **Nej**: den sprang begivenheden over med vilje, og trinnet siger hvorfor: sagen er ikke forbundet med en post af denne slags, noten kom fra Jira, posten er privat, eller der er ingen Jira-status knyttet til den nye tilstand.
 - **Fejl**: et trin mislykkedes, og dets post under **Trin** siger hvorfor. Ved et Jira-kald indeholder den Jiras svar.
 - **Fejl** ved `link-issue-1`: en skabelon, der opretter en post ud fra en Jira-sag, oprettede den, men Jira tog ikke imod forbindelsesetiketterne, så de andre skabeloner kan ikke finde den endnu. Tilføj etiketterne i hånden.
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Ændr, hvad en skabelon gør
 
-Åbn arbejdsgangens **Bygger**, og klik på den blok, du vil ændre. De indstillinger, du mest sandsynligt vil ændre, er konstanter øverst i et script, **JavaScript-kode** i en **Check With JavaScript**-blok, lige under den fælles hjælpeblok. Versionerne til hændelser og til advarsler af en skabelon har de samme konstanter i de samme blokke:
+Åbn arbejdsgangens **Bygger**, og klik på den blok, du vil ændre. De indstillinger, du mest sandsynligt vil ændre, er konstanter øverst i et script, **JavaScript-kode** i en **Tjek med JavaScript**-blok, lige under den fælles hjælpeblok. Versionerne til hændelser og til advarsler af en skabelon har de samme konstanter i de samme blokke:
 
 | Konstant | Skabelon og blok | Hvad den styrer |
 | --- | --- | --- |
@@ -271,14 +271,14 @@ Private noter og redigeringskommentarer markeres som interne af `properties`-pos
 ### Begrænsninger
 
 - **Kun Jira Cloud.** Skabelonerne kalder Jira Clouds REST API v3 med Basic-godkendelse. Data Center har ingen v3 og tager et personligt adgangstoken som `Bearer`, så hver API-blok har brug for ændringerne i [Jira Data Center](#jira-data-center): stier som `/rest/api/2/...`, almindelige strenge i stedet for brødtekster i Atlassian Document Format og headeren. Blokkene `find-issue-1` ændrer sig mest: Data Center har ingen `/search/jql`, så de skal i stedet lave en `POST` til `/rest/api/2/search`.
-- **Hændelser erklæret fra Jira er stille.** De oprettes skjult fra dine statussider uden at give statussidernes abonnenter besked, fordi en sags tekst ikke er skrevet til kunder. For at vise en slår du **Synlig på statussiden** til på hændelsens side **Indstillinger** (se [Hold en hændelse væk fra statussiden](/docs/incidents/states-and-severities#hold-en-hændelse-væk-fra-statussiden)), eller slår **Show On Status Pages** til under **Flere felter** i skabelonens `incident-from-another-tool-1`-blok.
+- **Hændelser erklæret fra Jira er stille.** De oprettes skjult fra dine statussider uden at give statussidernes abonnenter besked, fordi en sags tekst ikke er skrevet til kunder. For at vise en slår du **Synlig på statussiden** til på hændelsens side **Indstillinger** (se [Hold en hændelse væk fra statussiden](/docs/incidents/states-and-severities#hold-en-hændelse-væk-fra-statussiden)), eller slår **Vis på statussider** til under **Flere felter** i skabelonens `incident-from-another-tool-1`-blok.
 - **Private hændelser og advarsler bliver i OneUptime.** Skabelonerne OneUptime → Jira springer dem over, og hver overspringning står i **Protokoller → Kørsler**. For at sende dem alligevel sætter du `SYNC_PRIVATE_INCIDENTS` eller `SYNC_PRIVATE_ALERTS` til `true`. At gøre en post privat senere stopper synkroniseringen fra da af, men tager ikke det tilbage, som Jira allerede har. Skabelonerne Jira → OneUptime kontrollerer det ikke, så kommentarer, redigeringer og statusændringer på en forbundet sag når stadig en privat post.
 - **Intet går baglæns.** At genåbne en Jira-sag ændrer intet i OneUptime, og en status i kategorien To Do svarer ikke til nogen tilstand. Se [Rækkefølgen er en reel begrænsning](/docs/incidents/states-and-severities#rækkefølgen-er-en-reel-begrænsning-ikke-en-visningspræference). Overgangsskabelonerne flytter heller aldrig en sag til en tidligere statuskategori.
 - **Hver advarsel får en sag.** Bortset fra private advarsler opretter skabelonen til advarsler, der opretter sager, en sag for hver advarsel, også hver advarsel, en monitor udløser. [Hvad der er anderledes for advarsler](#hvad-der-er-anderledes-for-advarsler) viser, hvordan du tilføjer en betingelse.
 - **De første sekunder kan misse sagen.** Jiras søgning halter et øjeblik efter, at en sag ændres, så en note, en tilstandsændring eller en redigering i de første sekunder efter, at en post er oprettet, kan misse den nye sag og ende med overspringningen `No Jira issue is labelled …`. Den kørsel prøves ikke igen. Det samme gælder lige efter, at en post er oprettet fra Jira, indtil dens etiketter er tilføjet.
 - **Privat og offentlig betyder noget forskelligt i Jira.** I et Jira Service Management-projekt bliver private noter og redigeringskommentarer, som indeholder grundårsagen og afhjælpningen, til interne kommentarer, mens en hændelses offentlige noter bliver til kommentarer, som kunden kan se. I enhver anden slags projekt er de alle almindelige kommentarer, som alle, der kan se sagen, kan læse.
 - **Redigeringskommentarer følger gemninger, ikke ændringer.** Detaljeformularerne for hændelser og advarsler sender titlen og alvorligheden, hver gang de gemmes, så hvis du gemmer en efter kun at have ændret dens etiketter eller dens indstilling for privat, sendes der også en kommentar med de samme værdier som den forrige. Triggeren giver arbejdsgangen posten, som den ser ud nu, ikke hvad der ændrede sig.
-- **Formatering følger ikke med over.** Noter sendes til Jira som almindelig tekst, så Markdown kommer frem som sine rå tegn. Jiras formaterede tekst kommer ind i OneUptime som den wikimarkering, Jiras webhooks sender, f.eks. `*bold*`, og læses præcis, som den blev skrevet: et billede, et link, HTML, et diagram eller en chatomtale som `<!channel>`, der er skrevet i en sag, en kommentar, en status eller et navn, vises som sine tegn og gør intet, fordi en usynlig word joiner sættes efter det tegn, der ville starte det. En kopi af teksten beholder word joineren. Linket til sagen går til det websted, arbejdsgangens **Jira Site URL** angiver. En arbejdsgang beholder de scripts, den blev oprettet med, så en arbejdsgang oprettet ud fra en ældre version af en skabelon skriver tekst, som den version gjorde: opret det igen ud fra skabelonen for at få dette.
+- **Formatering følger ikke med over.** Noter sendes til Jira som almindelig tekst, så Markdown kommer frem som sine rå tegn. Jiras formaterede tekst kommer ind i OneUptime som den wikimarkering, Jiras webhooks sender, f.eks. `*bold*`, og læses præcis, som den blev skrevet: et billede, et link, HTML, et diagram eller en chatomtale som `<!channel>`, der er skrevet i en sag, en kommentar, en status eller et navn, vises som sine tegn og gør intet, fordi en usynlig word joiner sættes efter det tegn, der ville starte det. En kopi af teksten beholder word joineren. Linket til sagen går til det websted, arbejdsgangens **Jira Site URL** angiver. En arbejdsgang beholder de scripts, den blev oprettet med, så en arbejdsgang oprettet ud fra en ældre version af en skabelon skriver tekst, som den version gjorde: opret den igen ud fra skabelonen for at få dette.
 - **Arbejdsgange oprettet før Jira Site URL linker til sagen på det websted, begivenheden angiver.** En arbejdsgang beholder de scripts og indstillinger, den blev oprettet med, så en arbejdsgang til oprettelse fra sag, kommentarer eller sagsændringer, der blev lavet, før dens skabelon bad om **Jira Site URL**, tager stadig sagslinkets websted fra sagens adresse i begivenheden. For at linke til dit eget websted opretter du arbejdsgangen igen ud fra skabelonen, som beder om **Jira Site URL**. Slå den nye arbejdsgang til, indsæt dens webhook-URL i Jira-webhooken i stedet for den gamle (hver arbejdsgang har sin egen URL), og slet derefter den gamle arbejdsgang.
 - **Et forkert eller udløbet token siger det sjældent.** På dit websteds URL svarer Jira på et kald, den ikke kan godkende, som den ville svare en anonym besøgende, ikke med en `401`. Så et forkert eller udløbet token viser sig som oprettelsesskabelonens `The target project doesn't exist or you don't have permission to create issues in it` (en `400`), som `Issue does not exist or you do not have permission to see it` (en `404`) eller som overspringningen `No Jira issue is labelled oneuptime-incident-<id>, or the Jira credentials cannot see it.` En ren `401` er mest det, adressen `api.atlassian.com` svarer. For at teste værdien sender du den til `/rest/api/3/myself`: den svarer med kontoens navn og e-mail, når værdien virker, og `401`, når den ikke gør.
 
@@ -306,8 +306,8 @@ Tokens udløber som standard efter et år og fornyes ikke. For at slippe for at 
 ### Opret en Jira-sag for hver hændelse
 
 :::steps
-1. Opret en arbejdsgang fra bunden med navnet `Incidents to Jira`. Klik på den stiplede blok, og tilføj triggeren **On Create Incident**. Dens **Fields to pass on** starter med **Titel**: klik på **Tilføj felt**, og vælg **Beskrivelse** og **Hændelsesnummer**. ID'et sendes altid videre. Lad dens **Identifier** være `incident-on-create-1`.
-2. Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **Identifier** til `create-issue`, dens **URL** til `{{global.variables.JIRA_URL}}/rest/api/3/issue` og, under **Flere felter**, dens **Anmodningsheadere** til `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
+1. Opret en arbejdsgang fra bunden med navnet `Incidents to Jira`. Klik på den stiplede blok, og tilføj triggeren **Ved oprettelse: Hændelse**. Dens **Felter, der sendes videre** starter med **Titel**: klik på **Tilføj felt**, og vælg **Beskrivelse** og **Hændelsesnummer**. ID'et sendes altid videre. Lad dens **Identifier** være `incident-on-create-1`.
+2. Klik på **Tilføj komponent**, tilføj en **API-kald POST (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **Identifier** til `create-issue`, dens **URL** til `{{global.variables.JIRA_URL}}/rest/api/3/issue` og, under **Flere felter**, dens **Anmodningsheadere** til `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Sæt dens **Anmodningsbrødtekst** til sagen, og erstat `OPS` og `Bug` med din projektnøgle og en sagstype i det projekt:
 
    ```json
@@ -371,7 +371,7 @@ Hver halvdel af en tovejssynkronisering har brug for, at ét system gemmer det a
 
 En Jira-administrator kan i stedet tilføje et kort brugerdefineret tekstfelt, f.eks. med navnet OneUptime Incident ID, som du sætter som `"customfield_10050": "{{local.components.incident-on-create-1.returnValues.model._id}}"`. Det er nemmere at læse tilbage end en etiket.
 
-For at give alle i Jira en vej tilbage tilføjer du efter `create-issue` en **API Post (JSON)**-blok, der sender et fjernlink til `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink`:
+For at give alle i Jira en vej tilbage tilføjer du efter `create-issue` en **API-kald POST (JSON)**-blok, der sender et fjernlink til `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink`:
 
 ```json
 {
@@ -383,16 +383,16 @@ For at give alle i Jira en vej tilbage tilføjer du efter `create-issue` en **AP
 }
 ```
 
-Klik til dette på **Tilføj felt** i triggerens **Fields to pass on**, vælg **Projekt-ID**, og behold `.value`: en kolonne, der indeholder en anden posts ID, kommer frem som `{"_type": "ObjectID", "value": "..."}`. `globalId` gør kaldet sikkert at gentage: Jira opdaterer det link, der har det, i stedet for at tilføje et nyt.
+Klik til dette på **Tilføj felt** i triggerens **Felter, der sendes videre**, vælg **Projekt-ID**, og behold `.value`: en kolonne, der indeholder en anden posts ID, kommer frem som `{"_type": "ObjectID", "value": "..."}`. `globalId` gør kaldet sikkert at gentage: Jira opdaterer det link, der har det, i stedet for at tilføje et nyt.
 
 ### Kommentér og lav overgange, mens hændelsen skrider frem
 
 Byg dette som en anden arbejdsgang, så en fejl her aldrig forhindrer, at der oprettes sager.
 
 :::steps
-1. Opret en arbejdsgang med navnet `Incident updates to Jira`, med triggeren **On Update Incident**. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**. Klik på **Tilføj felt** i **Fields to pass on**, åbn **Current Incident State**, og vælg **Navn**.
-2. Tilføj en **If / Else**-blok: **Værdi, der skal tjekkes** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Sammenligning** **er lig med**, **Sammenlign med** `Resolved` eller navnet på din løste tilstand.
-3. Find sagen efter dens **Ja**-side med en **API Post (JSON)**-blok, hvis **Identifier** er `find-issue`, og som sender til `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
+1. Opret en arbejdsgang med navnet `Incident updates to Jira`, med triggeren **Ved opdatering: Hændelse**. Klik på **Tilføj felt** i **Felter, der holdes øje med**, og vælg **Current Incident State**. Klik på **Tilføj felt** i **Felter, der sendes videre**, åbn **Current Incident State**, og vælg **Navn**.
+2. Tilføj en **Hvis / Ellers**-blok: **Værdi, der skal tjekkes** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Sammenligning** **er lig med**, **Sammenlign med** `Resolved` eller navnet på din løste tilstand.
+3. Find sagen efter dens **Ja**-side med en **API-kald POST (JSON)**-blok, hvis **Identifier** er `find-issue`, og som sender til `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
    ```json
    {
@@ -407,8 +407,8 @@ Byg dette som en anden arbejdsgang, så en fejl her aldrig forhindrer, at der op
 
 Send JQL'en i brødteksten i stedet for at lægge den i URL'en: en URL sendes præcis, som den er skrevet, uden at blive kodet for dig, og JQL er fuld af mellemrum, anførselstegn og `=`-tegn. En forespørgsel skal være afgrænset, og derfor er `project =`-delen med. På Cloud er endpointet `/rest/api/3/search/jql`; det ældre `/rest/api/3/search` findes ikke længere.
 
-- **Kommentar**: en **API Post (JSON)**-blok til `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, med et dokument som sin `body`: `{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`.
-- **Overgang**: en **API Get (JSON)**-blok på `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` viser de overgange, der er åbne fra sagens status, hver med et `id`, et `name` og den status, den fører til, `to`. En **API Post (JSON)**-blok til samme URL med `{"transition": {"id": "31"}}` udfører en og svarer `204`.
+- **Kommentar**: en **API-kald POST (JSON)**-blok til `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, med et dokument som sin `body`: `{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`.
+- **Overgang**: en **API-kald GET (JSON)**-blok på `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` viser de overgange, der er åbne fra sagens status, hver med et `id`, et `name` og den status, den fører til, `to`. En **API-kald POST (JSON)**-blok til samme URL med `{"transition": {"id": "31"}}` udfører en og svarer `204`.
 
 Et overgangs-ID hører til sagens Jira-arbejdsgang, så en Jira-administrator, der redigerer den arbejdsgang, kan ødelægge et fastkodet ID. At læse listen, når arbejdsgangen kører, som skabelonerne gør, undgår det.
 
@@ -425,7 +425,7 @@ Byg først den modtagende arbejdsgang:
 
    En selvhostet installation bruger sin egen vært. Behandl URL'en som en adgangskode: alle, der har den, kan starte arbejdsgangen. Hvis den slipper ud, så klik på **Nulstil URL** samme sted, og den gamle URL holder op med at virke med det samme.
 
-3. Tilføj fra triggeren en **Update One Incident**-blok. Sæt dens **Forespørgsel** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` og dens **Data (JSON Object)** til ændringen, f.eks. et nyt `currentIncidentStateId`. En **Find One Incident State**-blok med forespørgslen `{"name": "Resolved"}` giver dig det ID som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Tilføj fra triggeren en **Opdater Hændelse (én post)**-blok. Sæt dens **Forespørgsel** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` og dens **Data (JSON-objekt)** til ændringen, f.eks. et nyt `currentIncidentStateId`. En **Find Hændelsesstatus (én post)**-blok med forespørgslen `{"name": "Resolved"}` giver dig det ID som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Slå det til, og få derefter Jira til at kalde det, fra en automatiseringsregel eller fra en webhook:
 
@@ -443,17 +443,17 @@ Slå det til, og få derefter Jira til at kalde det, fra en automatiseringsregel
    }
    ```
 
-   Med en etiket i stedet for et brugerdefineret felt sender du `"labels": "{{issue.labels}}"` og trækker ID'et ud med en **Run Custom JavaScript**-blok.
+   Med en etiket i stedet for et brugerdefineret felt sender du `"labels": "{{issue.labels}}"` og trækker ID'et ud med en **Kør egen JavaScript**-blok.
 
 4. Slå reglen til, og flyt en testsag til Done. Tjek reglens revisionslog i Jira og **Protokoller → Kørsler** i OneUptime.
 
-For at være sikker på, at en anmodning kommer fra din regel, tilføjer du en ekstra header, `X-OneUptime-Secret`, med en værdi, du selv finder på, og bruger handlingens indstilling **Hide** på den. Sæt i arbejdsgangen en **If / Else**-blok før opdateringen: **Værdi, der skal tjekkes** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Sammenligning** **er lig med** og **Sammenlign med** den samme værdi, gemt i en hemmelig global variabel.
+For at være sikker på, at en anmodning kommer fra din regel, tilføjer du en ekstra header, `X-OneUptime-Secret`, med en værdi, du selv finder på, og bruger handlingens indstilling **Hide** på den. Sæt i arbejdsgangen en **Hvis / Ellers**-blok før opdateringen: **Værdi, der skal tjekkes** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Sammenligning** **er lig med** og **Sammenlign med** den samme værdi, gemt i en hemmelig global variabel.
 
 Send web request kalder kun portene 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900 og 9900. Jira Cloud trækker regelkørsler fra en månedlig kvote, der afhænger af dit abonnement, så en regel på hver overgang i et travlt projekt løber op.
 @tab Jira webhook
 1. Gå som Jira-administrator til **Settings → System → WebHooks** (under **Advanced**), og klik på **Create a WebHook**.
 2. Indsæt arbejdsgangens URL, sæt flueben ved **Issue updated**, og angiv et JQL-filter, f.eks. `project = OPS AND labels = oneuptime`.
-3. Læs Jiras egen payload i arbejdsgangen: `issue` indeholder sagen, og `changelog.items` indeholder hvert ændret felt, før og efter. Ved en statusændring tager du det element, hvis `field` er `status`. En **Run Custom JavaScript**-blok er den nemmeste måde at læse det på.
+3. Læs Jiras egen payload i arbejdsgangen: `issue` indeholder sagen, og `changelog.items` indeholder hvert ændret felt, før og efter. Ved en statusændring tager du det element, hvis `field` er `status`. En **Kør egen JavaScript**-blok er den nemmeste måde at læse det på.
 
 En webhook kan have en hemmelighed, og så signerer Jira brødteksten i en `X-Hub-Signature`-header. En arbejdsgang kan ikke kontrollere den, fordi Webhook-triggeren videregiver en brødtekst, der allerede er læst som JSON. Jira prøver en mislykket levering igen op til fem gange, så arbejdsgangen skal kunne klare den samme begivenhed to gange.
 :::
@@ -466,17 +466,17 @@ Start med skabelonerne til advarsler i [Start fra en skabelon](#start-fra-en-ska
 
 | Hændelse | Advarsel |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | Ingen: advarsler har ingen offentlige noter |
+| **Ved oprettelse: Hændelse** (`incident-on-create-1`) | **Ved oprettelse: Advarsel** (`alert-on-create-1`) |
+| **Ved opdatering: Hændelse** (`incident-on-update-1`) | **Ved opdatering: Advarsel** (`alert-on-update-1`) |
+| **Ved oprettelse: Intern hændelsesnote** | **Ved oprettelse: Intern note for advarsel** |
+| **Ved oprettelse: Offentlig hændelsesnote** | Ingen: advarsler har ingen offentlige noter |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Find Hændelsesstatus (én post)** | **Find Advarselsstatus (én post)** |
+| **Opdater Hændelse (én post)** | **Opdater Advarsel (én post)** |
 | Etiket `oneuptime-incident-<incident id>` | Etiket `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
-En arbejdsgang har præcis én trigger, så hændelser og advarsler skal have én arbejdsgang hver. For at udføre det samme Jira-arbejde for begge bygger du det én gang i en arbejdsgang med en **Manuel**-trigger og starter det fra begge med en **Execute Workflow**-blok.
+En arbejdsgang har præcis én trigger, så hændelser og advarsler skal have én arbejdsgang hver. For at udføre det samme Jira-arbejde for begge bygger du det én gang i en arbejdsgang med en **Manuel**-trigger og starter det fra begge med en **Kør en anden arbejdsgang**-blok.
 
 ## Jira Data Center
 
@@ -532,7 +532,7 @@ Tjek basis-URL'en og API-versionen: `/rest/api/3/...` på Cloud, `/rest/api/2/..
 :::
 
 :::details 429 Too Many Requests
-Jira begrænser, hvor hurtigt du kalder den. Svaret indeholder `Retry-After` i sekunder. Skrivninger til én sag er stramt begrænset, så en arbejdsgang, der kommenterer og laver en overgang hurtigt efter hinanden, kan ramme grænsen. Sæt en **Sleep**-blok mellem kaldene, eller flyt massearbejde til en planlagt arbejdsgang.
+Jira begrænser, hvor hurtigt du kalder den. Svaret indeholder `Retry-After` i sekunder. Skrivninger til én sag er stramt begrænset, så en arbejdsgang, der kommenterer og laver en overgang hurtigt efter hinanden, kan ramme grænsen. Sæt en **Pause**-blok mellem kaldene, eller flyt massearbejde til en planlagt arbejdsgang.
 :::
 
 :::details Overgangskaldet svarer 400
@@ -544,7 +544,7 @@ Tjek porten først: Jira kalder kun sine tilladte porte. Send derefter selv en a
 :::
 
 :::details Arbejdsgangen kører, men hændelsen ændrer sig ikke
-En **Update One Incident**-blok rapporterer `Items Updated: 0`, når dens forespørgsel ikke matchede noget, og det er en succes, ikke en fejl. Kontrollér, at ID'et i anmodningen virkelig er OneUptime-hændelsens, og at du forespørger på `_id`.
+En **Opdater Hændelse (én post)**-blok rapporterer `Items Updated: 0`, når dens forespørgsel ikke matchede noget, og det er en succes, ikke en fejl. Kontrollér, at ID'et i anmodningen virkelig er OneUptime-hændelsens, og at du forespørger på `_id`.
 :::
 
 :::details En reference vises, som den er skrevet, i en Jira-sag

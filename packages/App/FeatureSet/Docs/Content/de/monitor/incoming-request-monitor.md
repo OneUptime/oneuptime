@@ -95,7 +95,7 @@ Wenn Sie Felder im Body ansprechen wollen — `{{requestBody.status}}` in einem 
 | `application/json` | Das geparste JSON. |
 | `application/x-www-form-urlencoded` | Das geparste Formular. Schlüssel in eckigen Klammern werden verschachtelt (`alerts[0][status]=firing`), und jeder Wert ist eine Zeichenkette. |
 | `text/plain` | Das geparste JSON, wenn der Text ein JSON-Objekt oder -Array ist: So sendet Amazon SNS seine Nachrichten. Jeder andere Text ergibt einen leeren Body. |
-| Alles andere oder keiner | Ein leerer Body (`{}`), jeder Verweis auf `requestBody` ergibt also nichts. |
+| Alles andere oder keiner | Ein leerer Body (`{}`), sodass kein Verweis auf `requestBody` aufgelöst wird, und eine Vorlage gibt ihn wörtlich aus. |
 
 Bodys bis 50 MB werden angenommen; ein größerer wird mit `413` abgelehnt. Komprimieren Sie den Body nicht mit `Content-Encoding: gzip`: Er wird dann nicht als JSON gespeichert, und Pfade darin werden nicht aufgelöst.
 
@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Bei jeder Anfrage ein Geheimnis verlangen
 
-Wer die URL eines Monitors hat, kann ihm Anfragen senden. Ein Projektinhaber oder -administrator kann jeden Monitor für eingehende Anfragen im Projekt zusätzlich eines der eigenen Geheimnisse des Projekts verlangen lassen, egal wer den Monitor eingerichtet hat: Aktivieren Sie **Bei jeder Anfrage ein Geheimnis verlangen**. Eine Anfrage ohne Geheimnis wird mit `401` und dem Grund abgelehnt, bevor sie als Heartbeat zählt, als letzte Anfrage des Monitors gespeichert wird oder Kriterien erreicht. Eine Anfrage mit Geheimnis geht wie bisher an die eigenen Kriterien des Monitors.
+Wer die URL eines Monitors hat, kann ihm Anfragen senden. Ein Projektinhaber oder Projektadministrator kann jeden Monitor für eingehende Anfragen im Projekt zusätzlich eines der eigenen Geheimnisse des Projekts verlangen lassen, egal wer den Monitor eingerichtet hat: Aktivieren Sie **Bei jeder Anfrage ein Geheimnis verlangen**. Eine Anfrage ohne Geheimnis wird mit `401` und dem Grund abgelehnt, bevor sie als Heartbeat zählt, als letzte Anfrage des Monitors gespeichert wird oder Kriterien erreicht. Eine Anfrage mit Geheimnis geht wie bisher an die eigenen Kriterien des Monitors.
 
 :::steps
 ### Ein Geheimnis erstellen
@@ -201,6 +201,10 @@ Gehen Sie zu **Monitore → Einstellungen → Geheimnisse für eingehende Anfrag
 ### Es von jedem Absender senden
 
 Senden Sie das Geheimnis im Header `X-OneUptime-Secret` oder als Bearer-Token im Header `Authorization`, je nachdem, was Ihr Absender setzen kann.
+
+### Die vergessenen Absender finden
+
+Sobald das Projekt ein Geheimnis hat, prüft OneUptime jede Anfrage darauf, ohne schon eine abzulehnen. **Anfragen ohne Geheimnis** auf derselben Seite listet jeden Monitor für eingehende Anfragen, der in den letzten 24 Stunden eine Anfrage ohne gültiges Geheimnis erhalten hat, und warum: Es wurde keines gesendet oder ein falsches. Stellen Sie diese Absender um. Ein Monitor, dessen Absender umgestellt sind, zeigt unter **Zuletzt mit Geheimnis** eine spätere Zeit als unter **Zuletzt ohne Geheimnis** und verschwindet innerhalb von 24 Stunden aus der Liste.
 
 ### Die Anforderung aktivieren
 
@@ -429,6 +433,10 @@ Die `200` wird gesendet, bevor die Anfrage geprüft wird, sie beweist also nicht
 
 :::details Mein Absender bekommt 401
 Das Projekt verlangt bei jeder Anfrage ein Geheimnis, und die Anfrage hat keines gesendet oder eines, das nicht zum Projekt gehört: Die Antwort sagt, was davon zutrifft. Senden Sie eines der Geheimnisse des Projekts im Header `X-OneUptime-Secret` oder als Bearer-Token, wie [Bei jeder Anfrage ein Geheimnis verlangen](#bei-jeder-anfrage-ein-geheimnis-verlangen) zeigt. Eine abgelehnte Anfrage erreicht den Monitor nie.
+:::
+
+:::details Der Monitor bekommt keine Anfragen mehr, seit ein Geheimnis verlangt wird
+Seine Absender senden kein Geheimnis oder ein falsches, daher wird jede ihrer Anfragen abgelehnt. Eine Zeile unter der **Heartbeat-URL** des Monitors sagt, wann die letzte abgelehnte Anfrage kam, und **Anfragen ohne Geheimnis** listet jeden Monitor, der in den letzten 24 Stunden eine bekommen hat, und warum. Senden Sie von diesen Absendern eines der Geheimnisse des Projekts, wie [Bei jeder Anfrage ein Geheimnis verlangen](#bei-jeder-anfrage-ein-geheimnis-verlangen) zeigt.
 :::
 
 :::details Der Monitor geht nie offline, wenn die Heartbeats ausbleiben

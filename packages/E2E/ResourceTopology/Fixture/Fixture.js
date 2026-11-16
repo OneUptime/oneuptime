@@ -35,9 +35,8 @@ import {
 import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
-import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import VMwareLayout from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Layout";
@@ -716,7 +715,11 @@ async function handleApi(method, options) {
   ) {
     if (failuresLeft > 0) {
       failuresLeft--;
-      return new HTTPErrorResponse(500, { message: "Could not read this." }, {});
+      return new HTTPErrorResponse(
+        500,
+        { message: "Could not read this." },
+        {},
+      );
     }
     const rows = estate.openstackRows;
     const hosts = {};
@@ -819,14 +822,30 @@ function subscribe() {
 Realtime.listenToAnalyticsModelEvent = subscribe;
 Realtime.listenToModelEvent = subscribe;
 
+/*
+ * English, the fallback, is in the bundle; German and Persian are each a
+ * chunk of its own, loaded only by a page drawn in that language, as the
+ * Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as the
+ * Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: LANGUAGE,
   fallbackLng: "en",
-  resources: {
-    en: { translation: en },
-    de: { translation: de },
-    fa: { translation: fa },
-  },
+  resources: await localeResources({
+    language: LANGUAGE,
+    english: en,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
 });
 // Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.

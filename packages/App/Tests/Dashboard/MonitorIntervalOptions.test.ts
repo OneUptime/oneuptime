@@ -221,7 +221,7 @@ describe("getMonitoringIntervalOptions: the interval a monitor has stays on the 
       "*/3 * * * *",
       ...ALL_VALUES.slice(2),
     ]);
-    expect(options[2]!.label).toBe("Every 3 minutes");
+    expect(options[2]!.label).toBe("Every 3\u00A0minutes");
   });
 
   test("an hourly cron the list does not have goes between every hour and every day", () => {
@@ -240,7 +240,7 @@ describe("getMonitoringIntervalOptions: the interval a monitor has stays on the 
         monitorType: MonitorType.Website,
         currentInterval: "0 */6 * * *",
       })[7],
-    ).toBe("Every 6 hours");
+    ).toBe("Every 6\u00A0hours");
   });
 
   test("a cron longer than every week goes last", () => {
@@ -322,8 +322,12 @@ describe("getMonitoringIntervalLabel", () => {
   });
 
   test("puts an interval the list does not have in words, instead of nothing", () => {
-    expect(getMonitoringIntervalLabel("*/3 * * * *")).toBe("Every 3 minutes");
-    expect(getMonitoringIntervalLabel("0 */6 * * *")).toBe("Every 6 hours");
+    expect(getMonitoringIntervalLabel("*/3 * * * *")).toBe(
+      "Every 3\u00A0minutes",
+    );
+    expect(getMonitoringIntervalLabel("0 */6 * * *")).toBe(
+      "Every 6\u00A0hours",
+    );
   });
 
   test("reads an old spelling as the option it means", () => {

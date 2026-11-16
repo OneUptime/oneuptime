@@ -1,10 +1,10 @@
-# Mått för aviseringsleverans
+# Mätvärden för aviseringsleverans
 
 OneUptime registrerar hur det går för aviseringarna det skickar: hur många incidenter och larm som kräver dem, om varje meddelande nådde sin leverantör, hur lång tid ett jourlarm tog på sig att gå ut och om det nådde telefonen. Skicka OneUptimes egen telemetri till ett OneUptime-projekt, eller till valfri OpenTelemetry-backend, för att sätta leveransmål för de människor din installation betjänar och kontrollera att du håller dem.
 
 :::cards
 - [Slå på dem](#slå-på-dem): Två inställningar, och utan dem registreras ingenting.
-- [Måtten](#måtten): Sju mått, från utlösaren till telefonen.
+- [Mätvärdena](#mätvärdena): Sju mätvärden, från utlösaren till telefonen.
 - [Så tidsmäts ett larm](#så-tidsmäts-ett-larm): Vad tid till sändning och sändningsfördröjning räknas från.
 - [SLO:er att börja med](#sloer-att-börja-med): Fyra mål, fråga för fråga.
 :::
@@ -29,7 +29,7 @@ Varje meddelande räknas i `notification.send.count`, på varje kanal, inte bara
 
 ## Slå på dem
 
-Ingenting registreras förrän OneUptime har en OpenTelemetry-exportör: utan en kostar måtten ingenting och sparas ingenstans. Rikta den mot ett OneUptime-projekt, med en Server-[intagningsnyckel](/docs/telemetry/ingestion-keys) från det projektet, eller mot valfri backend som tar emot OTLP över HTTP.
+Ingenting registreras förrän OneUptime har en OpenTelemetry-exportör: utan en kostar mätvärdena ingenting och sparas ingenstans. Rikta den mot ett OneUptime-projekt, med en Server-[intagningsnyckel](/docs/telemetry/ingestion-keys) från det projektet, eller mot valfri backend som tar emot OTLP över HTTP.
 
 :::tabs
 @tab Kubernetes
@@ -48,11 +48,11 @@ DISABLE_TELEMETRY_FOR_APP=false
 Ange dem i `config.env` och kör sedan `npm start`. `DISABLE_TELEMETRY_FOR_APP` är `true` som standard, och då skickas ingenting.
 :::
 
-OneUptime behöver både slutpunkten och huvudena: utan ett huvud skickar det ingenting. Skriv varje huvud som `name=value` och skilj flera åt med `;`. Ett värde får innehålla `=`. OneUptime lägger själv till `/v1/metrics` på slutpunkten, och samma inställningar skickar också dess egna spår och loggar. Varje mått dyker upp så snart OneUptime registrerar det första gången: `notification.send.count` med det första skickade meddelandet.
+OneUptime behöver både slutpunkten och huvudena: utan ett huvud skickar det ingenting. Skriv varje huvud som `name=value` och skilj flera åt med `;`. Ett värde får innehålla `=`. OneUptime lägger själv till `/v1/metrics` på slutpunkten, och samma inställningar skickar också dess egna spår och loggar. Varje mätvärde dyker upp så snart OneUptime registrerar det första gången: `notification.send.count` med det första skickade meddelandet.
 
 ### Skicka deltor till ett OneUptime-projekt
 
-OneUptime skickar räknare och histogram som OpenTelemetry gör som standard: varje punkt innehåller den löpande summan sedan den serverprocessen startade. Måttutforskaren summerar punkterna i varje steg i ett diagram, så den läser antal och percentiler för ett tidsintervall exakt bara från deltor, punkter som innehåller det som hänt sedan den förra. När måtten går till ett OneUptime-projekt, skicka deltor:
+OneUptime skickar räknare och histogram som OpenTelemetry gör som standard: varje punkt innehåller den löpande summan sedan den serverprocessen startade. Mätvärdesutforskaren summerar punkterna i varje steg i ett diagram, så den läser antal och percentiler för ett tidsintervall exakt bara från deltor, punkter som innehåller det som hänt sedan den förra. När mätvärdena går till ett OneUptime-projekt, skicka deltor:
 
 :::tabs
 @tab Kubernetes
@@ -72,11 +72,11 @@ services:
 Skapa den bredvid `docker-compose.yml`, eller lägg till detta i den du har, och kör sedan `npm start`.
 :::
 
-Det gäller varje mått som OneUptime skickar om sig självt. En backend som själv läser löpande summor, som Prometheus, behöver ingen ändring.
+Det gäller varje mätvärde som OneUptime skickar om sig självt. En backend som själv läser löpande summor, som Prometheus, behöver ingen ändring.
 
-## Måtten
+## Mätvärdena
 
-| Mått | Typ | Enhet | Vad det svarar på |
+| Mätvärde | Typ | Enhet | Vad det svarar på |
 | --- | --- | --- | --- |
 | `notification.trigger.count` | Räknare | `1` | Hur många poster som krävde aviseringar |
 | `notification.send.count` | Räknare | `1` | Hur det gick för varje meddelande som lämnades till en leverantör |
@@ -187,13 +187,13 @@ En percentil beräknas från bucketarna och ritas som mitten av den bucket den h
 
 ## SLO:er att börja med
 
-Fyra mål som de flesta installationer kan lova, vart och ett byggt av en eller två frågor i måttutforskaren i projektet som tar emot måtten. De läser ett tidsintervall exakt när måtten kommer fram som deltor: se [Skicka deltor till ett OneUptime-projekt](#skicka-deltor-till-ett-oneuptime-projekt).
+Fyra mål som de flesta installationer kan lova, vart och ett byggt av en eller två frågor i mätvärdesutforskaren i projektet som tar emot mätvärdena. De läser ett tidsintervall exakt när mätvärdena kommer fram som deltor: se [Skicka deltor till ett OneUptime-projekt](#skicka-deltor-till-ett-oneuptime-projekt).
 
-### Bygg ett i måttutforskaren
+### Bygg ett i mätvärdesutforskaren
 
 :::steps
-1. Öppna projektets [Måttutforskare](/docs/telemetry/metrics-explorer) och klicka på målets första mått. Dess fråga är `a`.
-2. Välj dess aggregering under **Aggregate by**. Öppna sedan **Filters & grouping** och lägg till vart och ett av dess villkor under **Filter by attributes**.
+1. Öppna projektets [Mätvärdesutforskare](/docs/telemetry/metrics-explorer) och klicka på målets första mätvärden. Dess fråga är `a`.
+2. Välj dess aggregering under **Aggregera efter**. Öppna sedan **Filter och gruppering** och lägg till vart och ett av dess villkor under **Filtrera på attribut**.
 3. För en andra fråga klickar du på **Lägg till mätvärde** och ställer in `b` på samma sätt.
 4. För en formel klickar du på **Lägg till formel** och skriver den i **Formel**.
 5. För att få veta när målet missas klickar du på **Åtgärder → Skapa monitor från den här vyn** och larmar när värdet passerar målet: se [Metrikövervakning](/docs/monitor/metrics-monitor).
@@ -205,7 +205,7 @@ För att följa ett mål över 30 dagar med en felbudget kopplar du den monitorn
 
 Högst 1 % av de jour-SMS som skickas via installationens eget Twilio-konto misslyckas, så 99 % tas emot.
 
-| Fråga | Mått | Aggregering | Villkor |
+| Fråga | Mätvärde | Aggregering | Villkor |
 | --- | --- | --- | --- |
 | `a` | `notification.send.count` | **Summa** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Summa** | Samma, med `outcome = failure` |
@@ -216,7 +216,7 @@ Formeln `$b / $a * 100` är andelen som misslyckades, och målet håller så lä
 
 95 % av jourlarmen når sin leverantör inom 30 sekunder efter sin utlösare.
 
-| Fråga | Mått | Aggregering | Villkor |
+| Fråga | Mätvärde | Aggregering | Villkor |
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
@@ -226,7 +226,7 @@ Målet håller så länge `a` ligger på eller under 30000. Larm som startas sen
 
 99 % av aviseringarna som skickas efter en väntetid når sin leverantör inom 90 sekunder efter förfallotiden.
 
-| Fråga | Mått | Aggregering | Villkor |
+| Fråga | Mätvärde | Aggregering | Villkor |
 | --- | --- | --- | --- |
 | `a` | `notification.send.lag` | **P99** | — |
 
@@ -236,7 +236,7 @@ Målet håller så länge `a` ligger på eller under 90000. Gruppera efter `noti
 
 Högst 5 % av de jour-SMS som Twilio tog emot för installationens eget konto levereras inte.
 
-| Fråga | Mått | Aggregering | Villkor |
+| Fråga | Mätvärde | Aggregering | Villkor |
 | --- | --- | --- | --- |
 | `a` | `notification.delivery.count` | **Summa** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global` |
 | `b` | `notification.delivery.count` | **Summa** | Samma, med `outcome != delivered` |
@@ -245,12 +245,12 @@ Formeln `$b / $a * 100` är andelen som inte levererades. Operatörer och avstä
 
 ## Felsökning
 
-:::details Inga aviseringsmått kommer fram
-Kontrollera att `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` och `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` båda är angivna, och i Docker Compose att `DISABLE_TELEMETRY_FOR_APP` är `false`, och starta sedan om OneUptime. När OneUptime startar loggar det en varning om det inte kan läsa ett huvud, eller om det inte skickar något. Ett mått dyker upp först när något har registrerats, så skicka en avisering först.
+:::details Inga aviseringsmätvärden kommer fram
+Kontrollera att `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` och `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` båda är angivna, och i Docker Compose att `DISABLE_TELEMETRY_FOR_APP` är `false`, och starta sedan om OneUptime. När OneUptime startar loggar det en varning om det inte kan läsa ett huvud, eller om det inte skickar något. Ett mätvärde dyker upp först när något har registrerats, så skicka en avisering först.
 :::
 
 :::details Ett antal bara växer, eller en percentil rör sig knappt
-Måtten kommer fram som löpande summor. Skicka deltor: se [Skicka deltor till ett OneUptime-projekt](#skicka-deltor-till-ett-oneuptime-projekt).
+Mätvärdena kommer fram som löpande summor. Skicka deltor: se [Skicka deltor till ett OneUptime-projekt](#skicka-deltor-till-ett-oneuptime-projekt).
 :::
 
 :::details Inga slutliga statusar kommer fram
@@ -260,7 +260,7 @@ Slutliga statusar kommer från leverantörerna, senare, och bara där de kan rap
 ## Nästa steg
 
 :::cards
-- [Måttutforskare](/docs/telemetry/metrics-explorer): Rita, kombinera och jämför valfritt mått.
+- [Mätvärdesutforskare](/docs/telemetry/metrics-explorer): Rita, kombinera och jämför valfritt mätvärden.
 - [Metrikövervakning](/docs/monitor/metrics-monitor): Larma när ett mål missas.
 - [Twilio-integration](/docs/self-hosted/twilio-integration): Låt Twilio rapportera vad som nådde telefonen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Väntetiderna som sändningsfördröjningen räknas från.

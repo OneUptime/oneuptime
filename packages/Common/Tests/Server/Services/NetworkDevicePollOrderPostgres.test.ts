@@ -2,6 +2,7 @@ import Entities from "../../../Models/DatabaseModels/Index";
 import NetworkInterface from "../../../Models/DatabaseModels/NetworkInterface";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import NetworkDeviceService, {
+  NetworkDevicePollDetails,
   NetworkDevicePollVerdict,
 } from "../../../Server/Services/NetworkDeviceService";
 import NetworkEndpointService, {
@@ -86,7 +87,49 @@ const LOCK_TIMEOUT_MS: number = 3000;
 interface Poll {
   receivedAt: Date;
   processedAt: Date;
-  verdict: NetworkDevicePollVerdict;
+  // Null for a monitor-backed device: only its details are written.
+  verdict: NetworkDevicePollVerdict | null;
+  // Its rate baseline and snapshots (issue #7393).
+  details?: NetworkDevicePollDetails | undefined;
+}
+
+interface DetailsRow {
+  lastWalkLog: { monitoredAt?: string } | null;
+  snmpTableSnapshot: Array<{ tableId?: string }> | null;
+  transceiverSnapshot: Array<{ serialNumber?: string }> | null;
+}
+
+/*
+ * What a poll received at `receivedAt` read: its rate baseline, stamped with
+ * its receipt time, and snapshots that say which poll they came from.
+ */
+function detailsOf(receivedAt: Date): NetworkDevicePollDetails {
+  return {
+    lastWalkLog: {
+      snmpResponse: {
+        interfaces: [
+          {
+            interfaceIndex: 1,
+            inOctets: receivedAt.getTime() % 1000000,
+            outOctets: 2000,
+          },
+        ],
+      },
+      monitoredAt: receivedAt.toISOString(),
+    },
+    snmpTableSnapshot: [
+      {
+        tableId: `radios-${receivedAt.toISOString()}`,
+        rows: [],
+      } as never,
+    ],
+    transceiverSnapshot: [
+      {
+        interfaceIndex: 1,
+        serialNumber: `SFP-${receivedAt.toISOString()}`,
+      } as never,
+    ],
+  };
 }
 
 interface DeviceRow {
@@ -111,8 +154,11 @@ interface InterfaceRow {
 
 interface EndpointRow {
   macAddress: string;
+  attachedNetworkDeviceId: string | null;
   attachedInterfaceIndex: number | null;
+  ipAddress: string | null;
   lastSeenAt: Date | null;
+  attachmentSeenAt: Date | null;
   updatedAt: Date;
 }
 
@@ -208,7 +254,35 @@ describePostgres(
         receivedAt: poll.receivedAt,
         processedAt: poll.processedAt,
         verdict: poll.verdict,
+        details: poll.details,
       });
+    };
+
+    const readDetails: (id: ObjectID) => Promise<DetailsRow> = async (
+      id: ObjectID,
+    ): Promise<DetailsRow> => {
+      const rows: Array<DetailsRow> = await database.query(
+        `SELECT "lastWalkLog", "snmpTableSnapshot", "transceiverSnapshot"
+         FROM "${schema}"."NetworkDevice" WHERE "_id" = $1`,
+        [id.toString()],
+      );
+
+      expect(rows).toHaveLength(1);
+      return rows[0]!;
+    };
+
+    // The details a poll received at `receivedAt` left on the device.
+    const expectDetailsOf: (row: DetailsRow, receivedAt: Date) => void = (
+      row: DetailsRow,
+      receivedAt: Date,
+    ): void => {
+      expect(row.lastWalkLog?.monitoredAt).toBe(receivedAt.toISOString());
+      expect(row.snmpTableSnapshot?.[0]?.tableId).toBe(
+        `radios-${receivedAt.toISOString()}`,
+      );
+      expect(row.transceiverSnapshot?.[0]?.serialNumber).toBe(
+        `SFP-${receivedAt.toISOString()}`,
+      );
     };
 
     // The verdict columns a poll leaves on a device that held no newer one.
@@ -216,8 +290,8 @@ describePostgres(
       row: DeviceRow,
       poll: Poll,
     ): void => {
-      expect(row.isReachable).toBe(poll.verdict.isReachable);
-      expect(row.isSnmpReachable).toBe(poll.verdict.isSnmpReachable);
+      expect(row.isReachable).toBe(poll.verdict?.isReachable);
+      expect(row.isSnmpReachable).toBe(poll.verdict?.isSnmpReachable);
       expect(iso(row.lastPollReceivedAt)).toBe(iso(poll.receivedAt));
       expect(iso(row.lastPolledAt)).toBe(iso(poll.processedAt));
     };
@@ -352,11 +426,39 @@ describePostgres(
       });
     };
 
+    // A router's ARP read of an endpoint: an address, and no port.
+    const readArp: (data: {
+      deviceId: ObjectID;
+      macAddress: string;
+      ipAddress: string;
+      receivedAt: Date;
+    }) => Promise<EndpointWriteCounts> = (data: {
+      deviceId: ObjectID;
+      macAddress: string;
+      ipAddress: string;
+      receivedAt: Date;
+    }): Promise<EndpointWriteCounts> => {
+      return NetworkEndpointService.upsertDiscoveredEndpoints({
+        projectId: PROJECT_ID,
+        deviceId: data.deviceId,
+        attachments: [],
+        ipBindings: [
+          {
+            macAddress: data.macAddress,
+            ipAddress: data.ipAddress,
+            routerInterfaceIndex: 1,
+          },
+        ],
+        now: data.receivedAt,
+      });
+    };
+
     const readEndpoint: (macAddress: string) => Promise<EndpointRow> = async (
       macAddress: string,
     ): Promise<EndpointRow> => {
       const rows: Array<EndpointRow> = await database.query(
-        `SELECT "macAddress", "attachedInterfaceIndex", "lastSeenAt", "updatedAt"
+        `SELECT "macAddress", "attachedNetworkDeviceId", "attachedInterfaceIndex",
+                "ipAddress", "lastSeenAt", "attachmentSeenAt", "updatedAt"
          FROM "${schema}"."NetworkEndpoint"
          WHERE "projectId" = $1 AND "macAddress" = $2 AND "deletedAt" IS NULL`,
         [PROJECT_ID.toString(), macAddress],
@@ -765,6 +867,193 @@ describePostgres(
       });
     });
 
+    /*
+     * Issue #7393: a poll's rate baseline and its SNMP table and transceiver
+     * snapshots ride in the verdict's statement, under its guard. They were
+     * writes of their own: an older poll's snapshots, written through the
+     * hooked write after a newer poll's, stood until the next poll, and its
+     * baseline was judged only by its own times.
+     */
+    describe("the poll's details: its rate baseline and snapshots", () => {
+      test("two polls processed in reverse order leave the newer one's", async () => {
+        const deviceId: ObjectID = await insertDevice();
+
+        expect(
+          await write(deviceId, {
+            receivedAt: NEWER_RECEIVED_AT,
+            processedAt: PROCESSED_AT,
+            verdict: UP_AND_WALKED,
+            details: detailsOf(NEWER_RECEIVED_AT),
+          }),
+        ).toBe(true);
+        expect(
+          await write(deviceId, {
+            receivedAt: OLDER_RECEIVED_AT,
+            processedAt: LATER_PROCESSED_AT,
+            verdict: UP_AND_WALKED,
+            details: detailsOf(OLDER_RECEIVED_AT),
+          }),
+        ).toBe(false);
+
+        expectDetailsOf(await readDetails(deviceId), NEWER_RECEIVED_AT);
+      });
+
+      test("processed in order, the newer one's replace the older one's", async () => {
+        const deviceId: ObjectID = await insertDevice();
+
+        await write(deviceId, {
+          receivedAt: OLDER_RECEIVED_AT,
+          processedAt: PROCESSED_AT,
+          verdict: UP_AND_WALKED,
+          details: detailsOf(OLDER_RECEIVED_AT),
+        });
+        expectDetailsOf(await readDetails(deviceId), OLDER_RECEIVED_AT);
+
+        await write(deviceId, {
+          receivedAt: NEWER_RECEIVED_AT,
+          processedAt: LATER_PROCESSED_AT,
+          verdict: UP_AND_WALKED,
+          details: detailsOf(NEWER_RECEIVED_AT),
+        });
+        expectDetailsOf(await readDetails(deviceId), NEWER_RECEIVED_AT);
+      });
+
+      test("a poll with none leaves them; an empty snapshot clears one", async () => {
+        const deviceId: ObjectID = await insertDevice();
+
+        await write(deviceId, {
+          receivedAt: OLDER_RECEIVED_AT,
+          processedAt: PROCESSED_AT,
+          verdict: UP_AND_WALKED,
+          details: detailsOf(OLDER_RECEIVED_AT),
+        });
+        // A ping-only poll: no baseline, no tables, no optics.
+        await write(deviceId, {
+          receivedAt: NEWER_RECEIVED_AT,
+          processedAt: LATER_PROCESSED_AT,
+          verdict: { isReachable: true, isSnmpReachable: null },
+          details: {},
+        });
+        expectDetailsOf(await readDetails(deviceId), OLDER_RECEIVED_AT);
+
+        await write(deviceId, {
+          receivedAt: new Date(NEWER_RECEIVED_AT.getTime() + 5 * MINUTE),
+          processedAt: LATER_PROCESSED_AT,
+          verdict: UP_AND_WALKED,
+          details: { snmpTableSnapshot: [] },
+        });
+        const row: DetailsRow = await readDetails(deviceId);
+        expect(row.snmpTableSnapshot).toEqual([]);
+        expect(row.lastWalkLog?.monitoredAt).toBe(
+          OLDER_RECEIVED_AT.toISOString(),
+        );
+      });
+
+      test.each([
+        ["the newer one commits first: the older one's never land", "newer"],
+        [
+          "the older one commits first: the newer one's are written over them",
+          "older",
+        ],
+      ])(
+        "two polls written at once: %s",
+        async (_label: string, first: string) => {
+          const deviceId: ObjectID = await insertDevice();
+          const newer: Poll = {
+            receivedAt: NEWER_RECEIVED_AT,
+            processedAt: PROCESSED_AT,
+            verdict: UP_AND_WALKED,
+            details: detailsOf(NEWER_RECEIVED_AT),
+          };
+          const older: Poll = {
+            receivedAt: OLDER_RECEIVED_AT,
+            processedAt: PROCESSED_AT,
+            verdict: UP_AND_WALKED,
+            details: detailsOf(OLDER_RECEIVED_AT),
+          };
+          const [holding, waiting] =
+            first === "newer" ? [newer, older] : [older, newer];
+
+          const held: { commit: () => Promise<void> } = await writeHeldOpen(
+            deviceId,
+            holding,
+          );
+
+          const waitingWrite: Promise<boolean> = write(deviceId, waiting);
+
+          try {
+            await waitUntilAWriteWaits();
+          } finally {
+            await held.commit();
+          }
+
+          expect(await waitingWrite).toBe(waiting === newer);
+          expectDetailsOf(await readDetails(deviceId), NEWER_RECEIVED_AT);
+        },
+      );
+
+      /*
+       * A monitor-backed device's bound monitor owns its health, so a poll
+       * that reaches one - claimed before it was switched - writes none of
+       * the verdict. Its details are inventory, and are written, under the
+       * same guard.
+       */
+      test("a monitor-backed device gets them and no verdict, and an older poll's never land", async () => {
+        const deviceId: ObjectID = await insertDevice();
+
+        expect(
+          await write(deviceId, {
+            receivedAt: NEWER_RECEIVED_AT,
+            processedAt: PROCESSED_AT,
+            verdict: null,
+            details: detailsOf(NEWER_RECEIVED_AT),
+          }),
+        ).toBe(true);
+
+        const row: DeviceRow = await readDevice(deviceId);
+        expect(row.isReachable).toBeNull();
+        expect(row.isSnmpReachable).toBeNull();
+        expect(row.lastPolledAt).toBeNull();
+        expect(row.lastSeenAt).toBeNull();
+        expect(iso(row.lastPollReceivedAt)).toBe(iso(NEWER_RECEIVED_AT));
+        expectDetailsOf(await readDetails(deviceId), NEWER_RECEIVED_AT);
+
+        expect(
+          await write(deviceId, {
+            receivedAt: OLDER_RECEIVED_AT,
+            processedAt: LATER_PROCESSED_AT,
+            verdict: null,
+            details: detailsOf(OLDER_RECEIVED_AT),
+          }),
+        ).toBe(false);
+        expectDetailsOf(await readDetails(deviceId), NEWER_RECEIVED_AT);
+      });
+
+      test("never written to a deleted device, nor one of another project", async () => {
+        const deleted: ObjectID = await insertDevice({ deletedAt: new Date() });
+        const elsewhere: ObjectID = await insertDevice({
+          projectId: OTHER_PROJECT_ID,
+        });
+
+        for (const id of [deleted, elsewhere]) {
+          expect(
+            await write(id, {
+              receivedAt: NEWER_RECEIVED_AT,
+              processedAt: PROCESSED_AT,
+              verdict: UP_AND_WALKED,
+              details: detailsOf(NEWER_RECEIVED_AT),
+            }),
+          ).toBe(false);
+
+          expect(await readDetails(id)).toEqual({
+            lastWalkLog: null,
+            snmpTableSnapshot: null,
+            transceiverSnapshot: null,
+          });
+        }
+      });
+    });
+
     describe("the device's interfaces", () => {
       test("an older walk leaves the interfaces a newer walk wrote, and adds the ones it did not report", async () => {
         const deviceId: ObjectID = await insertDevice();
@@ -875,12 +1164,14 @@ describePostgres(
       });
 
       /*
-       * Several sources share an endpoint's lastSeenAt - forwarding tables,
-       * ARP tables, controllers - so who it is attached to is decided by
-       * their precedence, not by time. What time decides is that the last
-       * sighting never goes back.
+       * OneUptime issue #7541. The endpoint moved from port 3 to port 7
+       * between the two walks, and the newer walk was processed first. The
+       * older walk used to say something new - another port - and moved the
+       * endpoint back to the port it left, until the switch's next walk. Now
+       * the row keeps when its switch last saw it there (attachmentSeenAt),
+       * and the switch's older walk writes nothing.
        */
-      test("an older walk never takes an endpoint's last sighting back", async () => {
+      test("two walks of a switch processed in reverse order, the endpoint on another port in each, leave the newer port", async () => {
         const deviceId: ObjectID = await insertDevice();
 
         await walkEndpoint({
@@ -889,6 +1180,199 @@ describePostgres(
           interfaceIndex: 7,
           receivedAt: NEWER_RECEIVED_AT,
         });
+        const before: EndpointRow = await readEndpoint(MAC);
+
+        const counts: EndpointWriteCounts = await walkEndpoint({
+          deviceId,
+          macAddress: MAC,
+          interfaceIndex: 3,
+          receivedAt: OLDER_RECEIVED_AT,
+        });
+
+        expect(counts).toEqual({ written: 0, skipped: 0 });
+        const after: EndpointRow = await readEndpoint(MAC);
+        expect(after).toEqual(before);
+        expect(after.attachedInterfaceIndex).toBe(7);
+        expect(iso(after.attachmentSeenAt)).toBe(iso(NEWER_RECEIVED_AT));
+        expect(iso(after.lastSeenAt)).toBe(iso(NEWER_RECEIVED_AT));
+      });
+
+      test("processed in order, the newer walk moves the endpoint and stamps its own time with the port", async () => {
+        const deviceId: ObjectID = await insertDevice();
+
+        await walkEndpoint({
+          deviceId,
+          macAddress: MAC,
+          interfaceIndex: 3,
+          receivedAt: OLDER_RECEIVED_AT,
+        });
+        expect(iso((await readEndpoint(MAC)).attachmentSeenAt)).toBe(
+          iso(OLDER_RECEIVED_AT),
+        );
+
+        const counts: EndpointWriteCounts = await walkEndpoint({
+          deviceId,
+          macAddress: MAC,
+          interfaceIndex: 7,
+          receivedAt: NEWER_RECEIVED_AT,
+        });
+
+        expect(counts.written).toBe(1);
+        const after: EndpointRow = await readEndpoint(MAC);
+        expect(after.attachedInterfaceIndex).toBe(7);
+        expect(iso(after.attachmentSeenAt)).toBe(iso(NEWER_RECEIVED_AT));
+      });
+
+      /*
+       * Why the attachment needs a time of its own: the router's ARP read
+       * at 10:06 moves the endpoint's lastSeenAt past the switch's walk
+       * received at 10:05, and a guard on lastSeenAt would refuse that walk
+       * the port it should win.
+       */
+      test("a router's ARP read in between does not stop the switch's newer walk from moving it", async () => {
+        const switchId: ObjectID = await insertDevice();
+        const routerId: ObjectID = await insertDevice();
+
+        await walkEndpoint({
+          deviceId: switchId,
+          macAddress: MAC,
+          interfaceIndex: 3,
+          receivedAt: OLDER_RECEIVED_AT,
+        });
+        await readArp({
+          deviceId: routerId,
+          macAddress: MAC,
+          ipAddress: "10.0.12.40",
+          receivedAt: new Date(NEWER_RECEIVED_AT.getTime() + MINUTE),
+        });
+
+        const afterArp: EndpointRow = await readEndpoint(MAC);
+        expect(afterArp.attachedNetworkDeviceId).toBe(switchId.toString());
+        expect(afterArp.ipAddress).toBe("10.0.12.40");
+        expect(iso(afterArp.attachmentSeenAt)).toBe(iso(OLDER_RECEIVED_AT));
+
+        await walkEndpoint({
+          deviceId: switchId,
+          macAddress: MAC,
+          interfaceIndex: 7,
+          receivedAt: NEWER_RECEIVED_AT,
+        });
+
+        const after: EndpointRow = await readEndpoint(MAC);
+        expect(after.attachedNetworkDeviceId).toBe(switchId.toString());
+        expect(after.attachedInterfaceIndex).toBe(7);
+        expect(after.ipAddress).toBe("10.0.12.40");
+        expect(iso(after.attachmentSeenAt)).toBe(iso(NEWER_RECEIVED_AT));
+        // The router's later sighting stands as the last one.
+        expect(iso(after.lastSeenAt)).toBe(
+          iso(new Date(NEWER_RECEIVED_AT.getTime() + MINUTE)),
+        );
+      });
+
+      /*
+       * The update asks the question again of the row as Postgres reads it,
+       * in its own WHERE: the older walk read the row before the newer walk
+       * wrote it, and is written after.
+       */
+      test("an older walk that read the row before a newer walk wrote it still leaves the newer port", async () => {
+        const deviceId: ObjectID = await insertDevice();
+
+        await walkEndpoint({
+          deviceId,
+          macAddress: MAC,
+          interfaceIndex: 3,
+          receivedAt: new Date(OLDER_RECEIVED_AT.getTime() - 5 * MINUTE),
+        });
+
+        // What the older walk read: the row as the first walk left it.
+        const staleRead: Array<unknown> = await NetworkEndpointService.findBy({
+          query: { projectId: PROJECT_ID, macAddress: MAC },
+          select: {
+            _id: true,
+            macAddress: true,
+            attachedNetworkDeviceId: true,
+            attachedInterfaceIndex: true,
+            attachedPortName: true,
+            vlanId: true,
+            ipAddress: true,
+            siteId: true,
+            hostname: true,
+            attachmentSource: true,
+            attachmentSeenAt: true,
+            firstSeenAt: true,
+            lastSeenAt: true,
+          },
+          limit: 10,
+          skip: 0,
+          props: { isRoot: true },
+        });
+        expect(staleRead).toHaveLength(1);
+
+        await walkEndpoint({
+          deviceId,
+          macAddress: MAC,
+          interfaceIndex: 7,
+          receivedAt: NEWER_RECEIVED_AT,
+        });
+
+        jest
+          .spyOn(NetworkEndpointService, "findBy")
+          .mockResolvedValueOnce(staleRead as never);
+
+        const counts: EndpointWriteCounts = await walkEndpoint({
+          deviceId,
+          macAddress: MAC,
+          interfaceIndex: 5,
+          receivedAt: OLDER_RECEIVED_AT,
+        });
+
+        // Decided against the stale read it was a move; the row said no.
+        expect(counts).toEqual({ written: 0, skipped: 1 });
+        const after: EndpointRow = await readEndpoint(MAC);
+        expect(after.attachedInterfaceIndex).toBe(7);
+        expect(iso(after.attachmentSeenAt)).toBe(iso(NEWER_RECEIVED_AT));
+      });
+
+      test("another switch's older walk still takes the port by precedence, with its own time", async () => {
+        const accessId: ObjectID = await insertDevice();
+        const otherId: ObjectID = await insertDevice();
+
+        await walkEndpoint({
+          deviceId: accessId,
+          macAddress: MAC,
+          interfaceIndex: 7,
+          receivedAt: NEWER_RECEIVED_AT,
+        });
+
+        const counts: EndpointWriteCounts = await walkEndpoint({
+          deviceId: otherId,
+          macAddress: MAC,
+          interfaceIndex: 3,
+          receivedAt: OLDER_RECEIVED_AT,
+        });
+
+        expect(counts.written).toBe(1);
+        const after: EndpointRow = await readEndpoint(MAC);
+        expect(after.attachedNetworkDeviceId).toBe(otherId.toString());
+        expect(after.attachedInterfaceIndex).toBe(3);
+        expect(iso(after.attachmentSeenAt)).toBe(iso(OLDER_RECEIVED_AT));
+        // Its last sighting never goes back.
+        expect(iso(after.lastSeenAt)).toBe(iso(NEWER_RECEIVED_AT));
+      });
+
+      test("a row written before the column is judged as before, and gets its time from the write", async () => {
+        const deviceId: ObjectID = await insertDevice();
+
+        await walkEndpoint({
+          deviceId,
+          macAddress: MAC,
+          interfaceIndex: 7,
+          receivedAt: NEWER_RECEIVED_AT,
+        });
+        await database.query(
+          `UPDATE "${schema}"."NetworkEndpoint" SET "attachmentSeenAt" = NULL WHERE "macAddress" = $1`,
+          [MAC],
+        );
 
         const counts: EndpointWriteCounts = await walkEndpoint({
           deviceId,
@@ -898,9 +1382,10 @@ describePostgres(
         });
 
         expect(counts.written).toBe(1);
-        expect(iso((await readEndpoint(MAC)).lastSeenAt)).toBe(
-          iso(NEWER_RECEIVED_AT),
-        );
+        const after: EndpointRow = await readEndpoint(MAC);
+        expect(after.attachedInterfaceIndex).toBe(3);
+        expect(iso(after.attachmentSeenAt)).toBe(iso(OLDER_RECEIVED_AT));
+        expect(iso(after.lastSeenAt)).toBe(iso(NEWER_RECEIVED_AT));
       });
     });
   },

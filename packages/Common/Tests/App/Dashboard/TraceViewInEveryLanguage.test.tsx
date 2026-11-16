@@ -319,6 +319,7 @@ import {
   createTranslator,
   translatableTerm,
 } from "../../../UI/Utils/TranslateTemplate";
+import { withPlainSpaces } from "../../../Types/NoBreakSpaces";
 
 jest.setTimeout(180000);
 
@@ -2018,10 +2019,13 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
 
     // When it starts, the offset where the language puts it.
     const starts: Element = Array.from(timing.querySelectorAll("dd"))[2]!;
+    // textOf reads every space as a plain one, the held "150 ms" too.
     expect(textOf(starts)).toBe(
-      sentence(language, "{{offset}} into the trace", {
-        offset: `+${formatDurationNano(150 * MS)}`,
-      }),
+      withPlainSpaces(
+        sentence(language, "{{offset}} into the trace", {
+          offset: `+${formatDurationNano(150 * MS)}`,
+        }),
+      ),
     );
     expect(
       within(timing).getByTitle(
@@ -2098,12 +2102,15 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
     expect(events[0]).toHaveTextContent(counted(language, ATTRIBUTE_COUNT, 1));
     expect(events[0]).toHaveTextContent(word(language, "Event attributes"));
     expect(
+      // getByTitle reads a title's spaces as plain ones.
       within(events[0]!).getByTitle(
-        sentence(language, "{{offset}} from the start of the trace", {
-          offset: `+${formatDurationNano(170 * MS)}`,
-        }),
+        withPlainSpaces(
+          sentence(language, "{{offset}} from the start of the trace", {
+            offset: `+${formatDurationNano(170 * MS)}`,
+          }),
+        ),
       ),
-    ).toHaveTextContent(`+${formatDurationNano(20 * MS)}`);
+    ).toHaveTextContent(withPlainSpaces(`+${formatDurationNano(20 * MS)}`));
     expect(events[1]).toHaveTextContent(
       sentence(language, "Exception: {{name}}", {
         name: "could not serialize access",

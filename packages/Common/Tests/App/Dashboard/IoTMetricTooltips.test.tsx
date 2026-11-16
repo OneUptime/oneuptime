@@ -255,6 +255,8 @@ import {
   expectReadableDescriptionRecord,
   expectTitleExplained,
 } from "./MetricDescriptionRules";
+// A tooltip draws a duration's figure held to its word (#8811).
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -476,7 +478,7 @@ async function tooltipTextOf(button: HTMLElement): Promise<string> {
 
 async function expectExplained(title: string, key: IoTMetric): Promise<void> {
   expect(await tooltipTextOf(infoButton(title))).toBe(
-    IOT_METRIC_DESCRIPTIONS[key],
+    withDurationWordsHeld(IOT_METRIC_DESCRIPTIONS[key]),
   );
 }
 

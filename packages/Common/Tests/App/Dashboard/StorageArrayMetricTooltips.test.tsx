@@ -315,6 +315,8 @@ import {
   expectTitleExplained,
 } from "./MetricDescriptionRules";
 import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
+// What a page draws holds a duration's figure to its word (#8811).
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -705,7 +707,7 @@ async function expectExplained(
   key: StorageArrayMetric,
 ): Promise<void> {
   expect(await tooltipTextOf(infoButton(title))).toBe(
-    STORAGE_ARRAY_METRIC_DESCRIPTIONS[key],
+    withDurationWordsHeld(STORAGE_ARRAY_METRIC_DESCRIPTIONS[key]),
   );
 }
 

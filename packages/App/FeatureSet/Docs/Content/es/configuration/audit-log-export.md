@@ -1,6 +1,6 @@
 # Exportación del registro de auditoría
 
-Envíe el registro de auditoría, a medida que se registra, al almacenamiento o al servicio que elija: Amazon S3 o un almacenamiento compatible con S3, Google Cloud Storage, Azure Blob Storage, un webhook o syslog. Conserve allí las entradas tanto tiempo como lo exijan sus revisiones de cumplimiento, y búsquelas en su SIEM. Los propietarios y administradores de un proyecto exportan su registro de auditoría desde los ajustes del proyecto, y los administradores maestros exportan el de todos los proyectos desde el Admin Dashboard. Forma parte del plan Enterprise en OneUptime Cloud, y de la Enterprise Edition cuando lo aloja usted mismo.
+Envíe el registro de auditoría, a medida que se registra, al almacenamiento o al servicio que elija: Amazon S3 o un almacenamiento compatible con S3, Google Cloud Storage, Azure Blob Storage, un webhook o syslog. Conserve allí las entradas tanto tiempo como lo exijan sus revisiones de cumplimiento, y búsquelas en su SIEM. Los Propietarios del proyecto y los Administradores del proyecto exportan el registro de auditoría de un proyecto desde sus ajustes, y los administradores maestros exportan el de todos los proyectos desde el Admin Dashboard. Forma parte del plan Enterprise en OneUptime Cloud, y de la Enterprise Edition cuando lo aloja usted mismo.
 
 :::cards
 - [Configurar una exportación](#configurar-una-exportación): Elegir un destino, probarlo y guardarlo.
@@ -140,7 +140,7 @@ Cada entrada es un objeto JSON, con sus claves siempre en este orden:
 | `id` | El id de la entrada. La misma entrada enviada dos veces tiene el mismo id. |
 | `createdAt` | Cuándo se registró el cambio, en UTC. |
 | `projectId` | El proyecto en el que se hizo el cambio. |
-| `action` | `Create`, `Update`, `Delete` o `Download`, o para una sesión `SignIn`, `SignOut`, `SessionTimeout` o `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` o `Download`, o para un inicio de sesión o una sesión `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` o `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Qué se cambió. |
 | `rootResourceType`, `rootResourceId` | El recurso al que pertenece, como un SLO para su regla. |
 | `userId`, `userName`, `userEmail`, `userType` | Quién hizo el cambio. |
@@ -173,11 +173,11 @@ Una exportación nueva envía la versión 2. Una exportación guardada antes de 
 
 ## Cuando un destino falla
 
-Un lote se intenta tres veces, con pocos segundos de diferencia, y luego la exportación espera antes de volver a intentarlo: un minuto, luego dos, cuatro y así sucesivamente, hasta una hora. Su fila dice **Fallando**, y **Ver error** muestra qué respondió el destino y cuándo se intentará de nuevo.
+Un lote se intenta tres veces, con pocos segundos de diferencia, y luego la exportación espera antes de volver a intentarlo: un minuto, luego dos, cuatro y así sucesivamente, hasta una hora. Su fila dice **Fallando**, y **Ver error** muestra qué respondió el destino, cuándo se intentará de nuevo y a partir de cuándo las entradas pendientes de envío empiezan a eliminarse, o, una vez pasado ese momento, desde cuándo se están eliminando.
 
 Nada se omite: las entradas esperan en el registro de auditoría, y la siguiente entrega que funcione se pone al día desde la más antigua. Aun así, cada entrada se elimina en cuanto es más antigua que la retención con la que se registró, se haya enviado o no, así que corrija una exportación que falla dentro de ese plazo. Una retención más larga solo conserva más tiempo las entradas registradas después de cambiarla.
 
-Una exportación que falla envía un correo a quienes pueden corregirla: a los propietarios del proyecto en la exportación de un proyecto, y a todos los administradores maestros en la de la instancia. El primer correo llega tras 30 minutos de fallos, con lo que respondió el destino. Un segundo llega un día antes de que se elimine la primera de las entradas que la exportación no ha enviado, con el momento en que empiezan a perderse entradas. Si ese momento ya pasó, como cuando **Exportar desde** se remonta más atrás que la retención, el segundo correo llega en lugar del primero, a los 30 minutos, y dice que ya se están perdiendo entradas. Cada uno se envía una vez mientras duran los fallos, y una entrega que funciona reinicia ambos.
+Una exportación que falla envía un correo a quienes pueden corregirla: a los Propietarios del proyecto en la exportación de un proyecto, y a todos los administradores maestros en la de la instancia. El primer correo llega tras 30 minutos de fallos, con lo que respondió el destino. Un segundo llega un día antes de que se elimine la primera de las entradas que la exportación no ha enviado, con el momento en que empiezan a perderse entradas. Si ese momento ya pasó, como cuando **Exportar desde** se remonta más atrás que la retención, el segundo correo llega en lugar del primero, a los 30 minutos, y dice que ya se están perdiendo entradas. Cada uno se envía una vez mientras duran los fallos, y una entrega que funciona reinicia ambos.
 
 Para pausar una exportación, elija **Desactivar** en el menú de su fila: conserva su posición, y **Activar** envía lo que se registró mientras tanto. En OneUptime Cloud, un proyecto que deja el plan Enterprise deja de exportar, y sus exportaciones esperan bajo la tarjeta de mejora, donde se pueden desactivar o eliminar. Si lo aloja usted mismo, la exportación se detiene mientras la licencia no incluya los registros de auditoría, y continúa desde donde se detuvo en cuanto una los incluya.
 

@@ -118,8 +118,8 @@ Un criterio solo dispara cuando la condición se cumple para **cada** valor de s
 | Plantilla                      | Categoría    | Gravedad    | Vigila                                                                                          | Dispara cuando                                                                                                                                   |
 | ------------------------------ | ------------ | ----------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Array Stopped Reporting        | Disponibilidad | Crítico     | `purefa_info`, Count, últimos 10 minutos                                                        | Sin datos durante toda la ventana — el Storage Array Agent se detuvo, perdió su conexión con OneUptime o le revocaron el token, o la cabina dejó de responderle; se recupera cuando vuelven a llegar datos |
-| Critical Array Alert           | Array Health | Crítico     | `purefa_alerts_open` filtrada a `severity=critical`, Max por `summary`, últimos 5 minutos       | > 0 — la cabina tiene una alerta crítica abierta (un componente averiado, una emergencia de capacidad, un fallo de replicación). Un incidente por alerta; se recupera cuando la alerta se cierra |
-| Warning Array Alert            | Array Health | Advertencia | `purefa_alerts_open` filtrada a `severity=warning`, Max por `summary`, últimos 5 minutos        | > 0 — la cabina tiene una alerta de advertencia abierta. Un incidente por alerta; se recupera cuando la alerta se cierra                          |
+| Critical Array Alert           | Salud de la cabina | Crítico     | `purefa_alerts_open` filtrada a `severity=critical`, Max por `summary`, últimos 5 minutos       | > 0 — la cabina tiene una alerta crítica abierta (un componente averiado, una emergencia de capacidad, un fallo de replicación). Un incidente por alerta; se recupera cuando la alerta se cierra |
+| Warning Array Alert            | Salud de la cabina | Advertencia | `purefa_alerts_open` filtrada a `severity=warning`, Max por `summary`, últimos 5 minutos        | > 0 — la cabina tiene una alerta de advertencia abierta. Un incidente por alerta; se recupera cuando la alerta se cierra                          |
 | Capacity Above 80%             | Capacidad    | Advertencia | `purefa_array_space_utilization`, Max, últimos 15 minutos                                       | > 80 — el primer umbral de capacidad del propio Pure; se recupera en ≤ 72                                                                        |
 | Capacity Above 90%             | Capacidad    | Crítico     | `purefa_array_space_utilization`, Max, últimos 5 minutos                                        | > 90 — la cabina está a punto de rechazar escrituras; se recupera en ≤ 81                                                                        |
 | High Read Latency              | Rendimiento  | Advertencia | `purefa_array_performance_latency_usec` filtrada a `dimension=usec_per_read_op`, Avg, últimos 10 minutos  | > 5000 µs (5 ms) — las lecturas de un FlashArray suelen completarse muy por debajo de 1 ms; se recupera en ≤ 4500                     |
@@ -135,8 +135,8 @@ Un criterio solo dispara cuando la condición se cumple para **cada** valor de s
 | Plantilla                    | Categoría    | Gravedad    | Vigila                                                                                                         | Dispara cuando                                                                                                      |
 | ---------------------------- | ------------ | ----------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Array Stopped Reporting      | Disponibilidad | Crítico     | `purefb_info`, Count, últimos 10 minutos                                                                       | Sin datos durante toda la ventana — el agente, su exportador o el FlashBlade dejó de responder; se recupera cuando vuelven a llegar datos |
-| Critical Array Alert         | Array Health | Crítico     | `purefb_alerts_open` filtrada a `severity=critical`, Max por `summary`, últimos 5 minutos                      | > 0 — el FlashBlade tiene una alerta crítica abierta. Un incidente por alerta; se recupera cuando la alerta se cierra |
-| Warning Array Alert          | Array Health | Advertencia | `purefb_alerts_open` filtrada a `severity=warning`, Max por `summary`, últimos 5 minutos                       | > 0 — el FlashBlade tiene una alerta de advertencia abierta. Un incidente por alerta; se recupera cuando la alerta se cierra |
+| Critical Array Alert         | Salud de la cabina | Crítico     | `purefb_alerts_open` filtrada a `severity=critical`, Max por `summary`, últimos 5 minutos                      | > 0 — el FlashBlade tiene una alerta crítica abierta. Un incidente por alerta; se recupera cuando la alerta se cierra |
+| Warning Array Alert          | Salud de la cabina | Advertencia | `purefb_alerts_open` filtrada a `severity=warning`, Max por `summary`, últimos 5 minutos                       | > 0 — el FlashBlade tiene una alerta de advertencia abierta. Un incidente por alerta; se recupera cuando la alerta se cierra |
 | Capacity Above 80%           | Capacidad    | Advertencia | `purefb_array_space_utilization` filtrada a `type=array`, Max, últimos 15 minutos                              | > 80; se recupera en ≤ 72                                                                                           |
 | Capacity Above 90%           | Capacidad    | Crítico     | `purefb_array_space_utilization` filtrada a `type=array`, Max, últimos 5 minutos                               | > 90 — las escrituras fallan para todos los clientes cuando se llena; se recupera en ≤ 81                           |
 | Hardware Component Unhealthy | Hardware     | Crítico     | `purefb_hardware_health`, Min por `name`, últimos 5 minutos                                                    | < 1 — una blade, un módulo de fabric, una fuente de alimentación o un ventilador no está en buen estado (una ranura sin usar informa 2). Un incidente por componente; se recupera en ≥ 1 |
@@ -157,14 +157,14 @@ No hay plantilla para la latencia de cada volumen, porque el umbral correcto dep
 
 El agente envía todo lo que exporta la cabina; las series de abajo son el catálogo que ofrece el formulario del monitor. Cada valor es un gauge que calcula la propia cabina - las latencias son microsegundos por operación y el rendimiento es por segundo -, así que no hace falta calcular tasas. **Filtro** es el filtro de etiqueta que da a la serie el significado que indica su fila; el formulario lo aplica por usted.
 
-### Array Health
+### Salud de la cabina
 
 | Métrica              | Filtro | Plataforma | Unidad  | Descripción                                                                                                                                                       |
 | -------------------- | ------ | ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_alerts_open` | —      | FlashArray | `count` | Una serie por cada alerta abierta en la cabina (valor 1), con las etiquetas `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` y `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | Una serie por cada alerta abierta en el FlashBlade (valor 1), con las etiquetas `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` y `kburl` (el artículo de la base de conocimiento de Pure) |
 
-### Capacity
+### Capacidad
 
 | Métrica                                   | Filtro                       | Plataforma | Unidad  | Descripción                                                                                                                           |
 | ----------------------------------------- | ---------------------------- | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -177,7 +177,7 @@ El agente envía todo lo que exporta la cabina; las series de abajo son el catá
 | `purefb_array_space_bytes`                | `type=array`, `space=empty`  | FlashBlade | `bytes` | Capacidad sin usar del FlashBlade                                                                                                     |
 | `purefb_array_space_data_reduction_ratio` | `type=array`                 | FlashBlade | `ratio` | Reducción de datos en todo el FlashBlade                                                                                              |
 
-### Performance
+### Rendimiento
 
 | Métrica                                    | Filtro                                         | Plataforma | Unidad    | Descripción                                                                                                  |
 | ------------------------------------------ | ---------------------------------------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------ |
@@ -198,7 +198,7 @@ El agente envía todo lo que exporta la cabina; las series de abajo son el catá
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Bytes leídos por segundo en todos los protocolos                                                             |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Bytes escritos por segundo en todos los protocolos                                                          |
 
-### Volumes
+### Volúmenes
 
 | Métrica                                     | Filtro                           | Plataforma | Unidad    | Descripción                                                   |
 | ------------------------------------------- | -------------------------------- | ---------- | --------- | ------------------------------------------------------------- |
@@ -222,7 +222,7 @@ El agente envía todo lo que exporta la cabina; las series de abajo son el catá
 | `purefa_host_performance_throughput_iops` | `dimension=reads_per_sec`     | FlashArray | `ops/s` | Operaciones de lectura por segundo de cada host                                                                                                |
 | `purefa_host_performance_throughput_iops` | `dimension=writes_per_sec`    | FlashArray | `ops/s` | Operaciones de escritura por segundo de cada host                                                                                              |
 
-### Replication
+### Replicación
 
 | Métrica                                              | Filtro                                 | Plataforma | Unidad    | Descripción                                                                                                                                                  |
 | ---------------------------------------------------- | -------------------------------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -241,7 +241,7 @@ El agente envía todo lo que exporta la cabina; las series de abajo son el catá
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Errores por segundo en cada interfaz Ethernet y Fibre Channel — los errores sostenidos suelen indicar un cable, un óptico o un puerto de switch defectuoso                                                    |
 | `purefb_hardware_health`                      | —                                | FlashBlade | —          | Salud de cada componente de hardware (blades, módulos de fabric, fuentes de alimentación, ventiladores, ...): 1 = en buen estado, 2 = sin usar, 0 = en mal estado. Tome el mínimo por `name`                   |
 
-### File Systems
+### Sistemas de archivos
 
 | Métrica                                        | Filtro                        | Plataforma | Unidad  | Descripción                                                                                  |
 | ---------------------------------------------- | ----------------------------- | ---------- | ------- | -------------------------------------------------------------------------------------------- |
@@ -287,8 +287,8 @@ Un monitor que no construye a partir de una plantilla empieza con dos criterios:
 
 | Orden | Criterio | Coincide cuando | Entonces |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | La primera consulta no tiene datos en toda la ventana | Marca el monitor como **Sin conexión** y declara el incidente «_monitor name_ is offline», que se resuelve solo cuando el monitor se recupera. |
-| 2 | Check if _monitor name_ is online | La primera consulta tiene datos | Marca el monitor como **Operativo**. |
+| 1 | Comprobar si _nombre del monitor_ está sin conexión | La primera consulta no tiene datos en toda la ventana | Marca el monitor como **Sin conexión** y declara el incidente «_nombre del monitor_ está sin conexión», que se resuelve solo cuando el monitor se recupera. |
+| 2 | Comprobar si _nombre del monitor_ está en línea | La primera consulta tiene datos | Marca el monitor como **Operativo**. |
 
 > [!IMPORTANT]
 > Un valor de `0` son datos, así que una métrica que suele valer cero, como los reinicios o los errores, no deja el monitor fuera de línea. Para recibir alertas sobre un valor, empiece con una plantilla o añada un criterio con un umbral. Cuando no llega ningún dato y no se cumple ningún criterio, el monitor conserva su estado y los incidentes abiertos siguen abiertos: el silencio no es una recuperación. El tiempo en que OneUptime no recibía datos nunca cuenta como falta de datos: una comprobación cuya ventana lo incluye espera, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).

@@ -317,7 +317,7 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
                   <div
                     data-testid={`${props.testId}-option-private`}
                     title={translator.translateText(
-                      "Private: only its owners, project admins and project owners can see it.",
+                      "Private: only its owners, Project Admins and Project Owners can see it.",
                     )}
                     className={PILL_CLASS_NAME}
                   >

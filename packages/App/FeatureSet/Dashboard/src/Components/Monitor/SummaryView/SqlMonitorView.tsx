@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorResponse";
@@ -36,7 +37,7 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
 
   const scalarValue: string =
     sqlResponse?.scalarValue === null || sqlResponse?.scalarValue === undefined
-      ? "-"
+      ? EMPTY_VALUE_MARK
       : String(sqlResponse.scalarValue);
 
   const probeAttempts: Array<ProbeAttempt> =

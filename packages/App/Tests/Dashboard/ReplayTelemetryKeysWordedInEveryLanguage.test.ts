@@ -12,6 +12,7 @@ import {
   getLocaleStatus,
   LocaleStatus,
 } from "../../FeatureSet/Dashboard/scripts/i18n/LocaleStatus";
+import { OAUTH2_TOKEN_STATUS_LABELS } from "../../FeatureSet/Dashboard/src/Components/Workflow/WorkflowVariableTokenStatusLabels";
 
 /*
  * SESSION REPLAY, USER FLOWS, TELEMETRY, TRACE PIPELINES, TEAMS, USERS,
@@ -645,10 +646,14 @@ describe("the translated docs quote these labels as each language's Dashboard dr
  * worded.
  */
 
-// The Access Token card on a variable's page: its pill and the line under it.
+/*
+ * The Access Token card on a variable's page: its pill and the line under it.
+ * Not fetched yet and Valid are the token's own meaning keys, which English
+ * reads as the bare words (WorkflowVariableTokenStatus, #8659).
+ */
 const TOKEN_CARD_KEYS: Array<string> = [
-  "Not fetched yet",
-  "Valid",
+  "Not fetched yet (OAuth token)",
+  "Valid (OAuth token)",
   "Expired",
   "No expiry reported",
   "Refresh failed",
@@ -874,15 +879,12 @@ describe("what the UI review found on these screens", () => {
 
       expect({
         language,
-        absent: [
-          "Valid",
-          "Expired",
-          "Not fetched yet",
-          "No expiry reported",
-          "Refresh failed",
-        ].filter((label: string): boolean => {
-          return !text.includes(`| **${locale[label]}**`);
-        }),
+        // The pill's own keys, as it looks them up.
+        absent: Object.values(OAUTH2_TOKEN_STATUS_LABELS).filter(
+          (label: string): boolean => {
+            return !text.includes(`| **${locale[label]}**`);
+          },
+        ),
       }).toEqual({ language, absent: [] });
     }
   });

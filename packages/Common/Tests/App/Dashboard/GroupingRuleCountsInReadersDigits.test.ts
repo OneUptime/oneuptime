@@ -98,16 +98,16 @@ describe("formatGroupingDuration", () => {
     const english: GroupingRuleTranslateFunction = translateIn("en");
 
     expect(formatGroupingDuration({ minutes: 30, translate: english })).toBe(
-      "30 minutes",
+      "30\u00A0minutes",
     );
     expect(formatGroupingDuration({ minutes: 120, translate: english })).toBe(
-      "2 hours",
+      "2\u00A0hours",
     );
     expect(formatGroupingDuration({ minutes: 4320, translate: english })).toBe(
-      "3 days",
+      "3\u00A0days",
     );
     expect(formatGroupingDuration({ minutes: 1, translate: english })).toBe(
-      "1 minute",
+      "1\u00A0minute",
     );
   });
 
@@ -128,7 +128,7 @@ describe("formatGroupingDuration", () => {
   test("a long window of minutes takes the reader's grouping", () => {
     expect(
       formatGroupingDuration({ minutes: 1501, translate: translateIn("en") }),
-    ).toBe("1,501 minutes");
+    ).toBe("1,501\u00A0minutes");
     expect(
       formatGroupingDuration({ minutes: 1501, translate: persian }),
     ).toContain("۱٬۵۰۱");
@@ -193,12 +193,12 @@ describe("a rule's summary, as the Grouping column draws it", () => {
     });
 
     expect(summary.timing).toBe(
-      "New incidents join while they arrive within 30 minutes of the last one",
+      "New incidents join while they arrive within 30\u00A0minutes of the last one",
     );
     expect(summary.details).toEqual(
       expect.arrayContaining([
         "Opens an episode once 3 matching incidents are ongoing",
-        "Reopens episodes resolved in the last 2 hours",
+        "Reopens episodes resolved in the last 2\u00A0hours",
       ]),
     );
   });
@@ -208,9 +208,9 @@ describe("the form's callbacks, outside React", () => {
   test("translateGroupingRuleText writes English with no i18next set up, its counts as before", () => {
     expect(
       translateGroupingRuleText(GROUPING_SUMMARY_COPY.minutes, { count: 30 }),
-    ).toBe("30 minutes");
+    ).toBe("30\u00A0minutes");
     expect(translateGroupingRuleText(GROUPING_SUMMARY_COPY.minute)).toBe(
-      "1 minute",
+      "1\u00A0minute",
     );
   });
 });

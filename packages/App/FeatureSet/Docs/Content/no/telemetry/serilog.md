@@ -33,11 +33,11 @@ Sinken samler logghendelser og sender dem i bakgrunnen. Hver navngitte egenskap 
 
 Gå til **Produkter → Prosjektinnstillinger**, åpne **Telemetri og APM** i sidemenyen, og velg **Inntaksnøkler**.
 
-![Listen «Inntaksnøkler», med «Opprett ingestion-nøkkel» uthevet](screen:ingestion-keys)
+![Listen «Inntaksnøkler», med «Opprett inntaksnøkkel» uthevet](screen:ingestion-keys)
 
 ### Opprett en nøkkel
 
-Klikk på **Opprett ingestion-nøkkel**. Dialogen har allerede fylt inn navnet på nøkkelen og valgt **Server** – den typen nøkkel en applikasjon eller en collector sender med – så klikk på **Opprett ingestion-nøkkel** for å opprette den, eller gi den nytt navn først.
+Klikk på **Opprett inntaksnøkkel**. Dialogen har allerede fylt inn navnet på nøkkelen og valgt **Server** – den typen nøkkel en applikasjon eller en collector sender med – så klikk på **Opprett inntaksnøkkel** for å opprette den, eller gi den nytt navn først.
 
 ### Kopier hemmeligheten
 
@@ -285,6 +285,6 @@ Har du spørsmål eller trenger hjelp, kan du skrive til oss på support@oneupti
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send også traces og målinger fra .NET.
 - [Loggpipelines](/docs/telemetry/log-pipelines): Tolk og berik loggene når de kommer inn.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Varsle når samsvarende logger dukker opp.
+- [Logg-monitor](/docs/monitor/logs-monitor): Varsle når samsvarende logger dukker opp.
 - [Søkesyntaks](/docs/telemetry/search-syntax): Filtrer på Serilog-egenskapene dine.
 :::

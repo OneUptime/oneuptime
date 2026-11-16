@@ -11,8 +11,8 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import "Common/UI/Styles/Theme.css";
 import SnmpWalkCard from "../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpWalkCard";
-import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
-import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import EN from "../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../SuiteHelpers/FixtureLocales";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceDiagnostic";
@@ -54,14 +54,30 @@ if (params.get("theme") === "dark") {
   document.documentElement.classList.add("dark");
 }
 
+/*
+ * English, the fallback, is in the bundle; Japanese and German are each a
+ * chunk of its own, loaded only by a page drawn in that language, as the
+ * Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as the
+ * Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  ja: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/ja.json");
+  },
+  de: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: language,
-  fallbackLng: language,
-  resources: {
-    en: { translation: {} },
-    ja: { translation: JA },
-    de: { translation: DE },
-  },
+  fallbackLng: "en",
+  resources: await localeResources({
+    language: language,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,

@@ -35,11 +35,11 @@ U hebt een telemetrie-ingestiesleutel van het type **Server** nodig. Hebt u er n
 
 Ga naar **Producten → Projectinstellingen**, open **Telemetrie & APM** in het zijmenu en kies **Ingestiesleutels**.
 
-![De lijst "Ingestiesleutels", met "Inname-sleutel aanmaken" omcirkeld](screen:ingestion-keys)
+![De lijst "Ingestiesleutels", met "Ingestiesleutel aanmaken" omcirkeld](screen:ingestion-keys)
 
 ### Een sleutel aanmaken
 
-Klik op **Inname-sleutel aanmaken**. In het dialoogvenster is de naam van de sleutel al ingevuld en **Server** gekozen (het soort sleutel waarmee een applicatie of een collector verstuurt), dus klik op **Inname-sleutel aanmaken** om hem aan te maken, of geef hem eerst een andere naam.
+Klik op **Ingestiesleutel aanmaken**. In het dialoogvenster is de naam van de sleutel al ingevuld en **Server** gekozen (het soort sleutel waarmee een applicatie of een collector verstuurt), dus klik op **Ingestiesleutel aanmaken** om hem aan te maken, of geef hem eerst een andere naam.
 
 ### Het geheim kopiëren
 
@@ -309,7 +309,7 @@ Wanneer een functie van uw eigen code minstens 5% van de tijd of het geheugen va
 | --- | --- |
 | **Flame graph** | Elke balk is een functie in de aanroepstack, en de breedte is evenredig aan de verbruikte tijd of resources. Klik op een functie om in te zoomen en de aanroepers en aangeroepen functies te zien. |
 | **Top functions** | De functies in het profiel, gerangschikt op eigen of totale tijd. **Alleen mijn code** verbergt bibliotheekframes. |
-| **Diff vs. baseline** | Het profiel vergeleken met een eerdere periode (**t.o.v. 1 uur geleden**, **t.o.v. gisteren** of **t.o.v. vorige week**), met de functies onder **Grootste achteruitgang** en **Grootste verbetering**. |
+| **Verschil met de baseline** | Het profiel vergeleken met een eerdere periode (**t.o.v. 1 uur geleden**, **t.o.v. gisteren** of **t.o.v. vorige week**), met de functies onder **Grootste achteruitgang** en **Grootste verbetering**. |
 
 **pprof downloaden** slaat het profiel op voor lokale tools zoals `go tool pprof`.
 

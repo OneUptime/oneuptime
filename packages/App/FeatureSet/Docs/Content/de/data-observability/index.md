@@ -68,7 +68,7 @@ Das Menü folgt den Fragen, die Sie an Ihre Daten stellen. Sein erster Abschnitt
 
 ## Was es kostet
 
-In OneUptime Cloud sind die ersten 100 Tabellen eines Projekts kostenlos. Jede weitere Tabelle kostet 1 $ im Monat, ab 1.000 Tabellen 0,25 $. Views sind kostenlos, ebenso die Tabellen einer Datenbank, die Sie nicht mehr überwachen. Eine Prüfung mit Alarm wird als aktiver Monitor abgerechnet. **Datenbanken** und **Übersicht** zeigen, wie viele Tabellen Ihr Projekt überwacht und was sie kosten, und [Preise](https://oneuptime.com/pricing) hat einen Rechner.
+In OneUptime Cloud sind die ersten 100 Tabellen eines Projekts kostenlos. Jede weitere Tabelle kostet 1 $ im Monat, ab 1.000 Tabellen 0,25 $. Views sind kostenlos, ebenso die Tabellen einer Datenbank, die Sie nicht mehr überwachen. Eine Prüfung mit Warnung wird als aktiver Monitor abgerechnet. **Datenbanken** und **Übersicht** zeigen, wie viele Tabellen Ihr Projekt überwacht und was sie kosten, und [Preise](https://oneuptime.com/pricing) hat einen Rechner.
 
 Eine selbst gehostete OneUptime-Installation zahlt nichts für Tabellen.
 

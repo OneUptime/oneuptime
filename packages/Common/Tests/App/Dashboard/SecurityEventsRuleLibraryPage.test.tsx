@@ -503,7 +503,7 @@ describe("whether the project sends what each rule reads", () => {
       screen.getByTestId(`rule-library-data-status-${SHADOW_COPIES.id}`),
     ).toHaveAttribute(
       "title",
-      "No events of this kind arrived in the last 7 days. The rule runs, but finds nothing until they do.",
+      "No events of this kind arrived in the last 7\u00A0days. The rule runs, but finds nothing until they do.",
     );
   });
 

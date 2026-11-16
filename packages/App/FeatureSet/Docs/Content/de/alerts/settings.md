@@ -123,7 +123,7 @@ Der Vorfall übernimmt Titel, Beschreibung, Monitor, betroffene Ressourcen und B
 
 ## Datenschutz- und Runbook-Regeln
 
-**Datenschutzregeln** machen passende neue Warnungen privat, bevor irgendetwas anderes läuft: Nur ihre Eigentümer sowie die Admins und Eigentümer des Projekts können sie sehen. Eine Regel hat zwei Schritte: **Übereinstimmung**, die Warnungen, die sie privat macht, dann **Name**, schon ausgefüllt mit „Warnungen privat machen“. Siehe [Private Warnungen](/docs/alerts/index#private-warnungen).
+**Datenschutzregeln** machen passende neue Warnungen privat, bevor irgendetwas anderes läuft: Nur ihre Eigentümer sowie die Projektadministratoren und Projektinhaber können sie sehen. Eine Regel hat zwei Schritte: **Übereinstimmung**, die Warnungen, die sie privat macht, dann **Name**, schon ausgefüllt mit „Warnungen privat machen“. Siehe [Private Warnungen](/docs/alerts/index#private-warnungen).
 
 **Runbook-Regeln** starten ein Runbook, wenn eine neue Warnung zutrifft, es sei denn, die Warnung wurde behoben erstellt. Siehe [Runbook-Regeln](/docs/runbooks/rules).
 
@@ -178,7 +178,7 @@ Die Karte **Nächste Nummer** darunter legt die Nummer fest, die die nächste Wa
 
 ## Workflows
 
-Jedes Warnungsmodell hat Workflow-Auslöser und -Aktionen, nach ihm benannt: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** und **On Delete Alert**, dasselbe für **Warnungsepisode**, **Statuszeitachse der Warnung** und die anderen, sowie Aktionen wie **Create One Alert** und **Update One Alert**. Die Definitionen benutzerdefinierter Felder für Warnungen sind die einzige Ausnahme: Sie haben keine Workflow-Auslöser. Siehe [Workflows – Übersicht](/docs/workflows/index).
+Jedes Warnungsmodell hat Workflow-Auslöser und -Aktionen, nach ihm benannt: **Bei Erstellung: Warnung**, **Bei Aktualisierung: Warnung**, **Bei Erstellung oder Aktualisierung: Warnung** und **Bei Löschung: Warnung**, dasselbe für **Warnungsepisode**, **Statuszeitachse der Warnung** und die anderen, sowie Aktionen wie **Warnung erstellen (einzeln)** und **Warnung aktualisieren (einzeln)**. Die Definitionen benutzerdefinierter Felder für Warnungen sind die einzige Ausnahme: Sie haben keine Workflow-Auslöser. Siehe [Workflows – Übersicht](/docs/workflows/index).
 
 ## Wer das ändern kann
 

@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
@@ -12,6 +13,9 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import { translationKey } from "Common/Types/Translator";
+import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -47,10 +51,10 @@ const bytesToReadable: (value: unknown) => string = (
   const bytes: number | null = toNumberOrNull(value);
 
   if (bytes === null) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (bytes === 0) {
-    return "0 B";
+    return "0\u00A0B";
   }
 
   const units: Array<string> = ["B", "KB", "MB", "GB", "TB", "PB"];
@@ -61,16 +65,17 @@ const bytesToReadable: (value: unknown) => string = (
   const scaled: number = bytes / Math.pow(1024, exponent);
   const decimals: number = scaled >= 10 || exponent === 0 ? 0 : 1;
 
-  return `${scaled.toFixed(decimals)} ${units[exponent]}`;
+  // The figure held to its unit by a no-break space (#8720).
+  return `${scaled.toFixed(decimals)}\u00A0${units[exponent]}`;
 };
 
 const formatPercent: (value: unknown) => string = (value: unknown): string => {
   const percent: number | null = toNumberOrNull(value);
-  return percent === null ? "—" : `${percent.toFixed(1)}%`;
+  return percent === null ? EMPTY_VALUE_MARK : `${percent.toFixed(1)}%`;
 };
 
 const humanize: (value: unknown) => string = (value: unknown): string => {
-  const raw: string = String(value || "OneUptime Health event");
+  const raw: string = String(value || "");
   return raw
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/[_-]+/g, " ")
@@ -80,6 +85,77 @@ const humanize: (value: unknown) => string = (value: unknown): string => {
     .replace(/^./, (character: string): string => {
       return character.toUpperCase();
     });
+};
+
+/*
+ * Each kind of work and each outcome the server records
+ * (InstanceHealthLogEventType, InstanceHealthLogStatus), by name in the
+ * reader's language (#8555). One a newer server records that this list does
+ * not name yet is spelled out from its value, as written.
+ */
+const EVENT_TYPE_NAMES: Record<string, string> = {
+  ClickHouseCapacityNotification: translationKey(
+    "ClickHouse Capacity Notification",
+  ),
+  ClickHouseDataPruning: translationKey("ClickHouse Data Pruning"),
+  RedisMemoryNotification: translationKey("Valkey Memory Notification"),
+  RedisConnectionSaturationNotification: translationKey(
+    "Valkey Connection Saturation Notification",
+  ),
+  RedisKeyEvictionNotification: translationKey(
+    "Valkey Key Eviction Notification",
+  ),
+  RedisPersistenceFailureNotification: translationKey(
+    "Valkey Persistence Failure Notification",
+  ),
+  PostgresStorageNotification: translationKey(
+    "PostgreSQL Storage Notification",
+  ),
+  PostgresConnectionSaturationNotification: translationKey(
+    "PostgreSQL Connection Saturation Notification",
+  ),
+  PostgresWraparoundNotification: translationKey(
+    "PostgreSQL Wraparound Notification",
+  ),
+  PostgresReplicationSlotNotification: translationKey(
+    "PostgreSQL Replication Slot Notification",
+  ),
+};
+
+const STATUS_NAMES: Record<string, string> = {
+  NotificationActive: translationKey("Notification Active"),
+  Resolved: translationKey("Resolved"),
+  Running: translationKey("Running"),
+  WaitingForReclaim: translationKey("Waiting for Reclaim"),
+  Succeeded: translationKey("Succeeded"),
+  Partial: translationKey("Partial"),
+  TargetUnreachable: translationKey("Target Unreachable"),
+  Failed: translationKey("Failed"),
+};
+
+// An entry with no status of its own is one the server recorded.
+const RECORDED: string = translationKey("Recorded");
+
+const getEventTypeName: (
+  eventType: unknown,
+  translator: Translator,
+) => string = (eventType: unknown, translator: Translator): string => {
+  const name: string | undefined = EVENT_TYPE_NAMES[String(eventType || "")];
+
+  if (name) {
+    return translator.translateText(name) || name;
+  }
+
+  if (!eventType) {
+    return translator.translateText("OneUptime Health event") as string;
+  }
+
+  return humanize(eventType);
+};
+
+// The status's name, for the status bubble to look up.
+const getStatusName: (status: string) => string = (status: string): string => {
+  return STATUS_NAMES[status] || humanize(status);
 };
 
 const getStatusColor: (status: string) => Color = (status: string): Color => {
@@ -125,6 +201,7 @@ const hasMetadata: (value: unknown) => boolean = (value: unknown): boolean => {
 };
 
 const InstanceHealthLogs: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [logs, setLogs] = useState<JSONArray>([]);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -204,13 +281,15 @@ const InstanceHealthLogs: FunctionComponent = (): ReactElement => {
           <ComponentLoader />
         ) : logs.length === 0 ? (
           <div className="text-sm text-gray-500">
-            No OneUptime Health work has been recorded yet.
+            {translator.translateText(
+              "No OneUptime Health work has been recorded yet.",
+            )}
           </div>
         ) : (
           <div className="space-y-3">
             {logs.map((value: unknown, index: number): ReactElement => {
               const log: JSONObject = asObject(value);
-              const status: string = String(log["status"] || "Recorded");
+              const status: string = String(log["status"] || RECORDED);
               const before: number | null = toNumberOrNull(
                 log["capacityBeforePercent"],
               );
@@ -238,20 +317,46 @@ const InstanceHealthLogs: FunctionComponent = (): ReactElement => {
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-gray-900">
-                        {humanize(log["eventType"])}
+                        {getEventTypeName(log["eventType"], translator)}
                       </div>
                       <div className="text-xs text-gray-500 mt-0.5">
-                        Recorded {formatDateTime(log["createdAt"])}
-                        {log["completedAt"]
-                          ? ` · Completed ${formatDateTime(log["completedAt"])}`
-                          : ""}
-                        {log["nextCheckAt"]
-                          ? ` · Next check ${formatDateTime(log["nextCheckAt"])}`
-                          : ""}
+                        {formatInline(
+                          [
+                            translator.translateTemplate(
+                              "Recorded {{time}}",
+                              { time: formatDateTime(log["createdAt"]) },
+                              { setsValuesApart: true },
+                            ),
+                            ...(log["completedAt"]
+                              ? [
+                                  translator.translateTemplate(
+                                    "Completed {{time}}",
+                                    {
+                                      time: formatDateTime(log["completedAt"]),
+                                    },
+                                    { setsValuesApart: true },
+                                  ),
+                                ]
+                              : []),
+                            ...(log["nextCheckAt"]
+                              ? [
+                                  translator.translateTemplate(
+                                    "Next check {{time}}",
+                                    {
+                                      time: formatDateTime(log["nextCheckAt"]),
+                                    },
+                                    { setsValuesApart: true },
+                                  ),
+                                ]
+                              : []),
+                          ],
+                          translator,
+                        )}
                       </div>
                     </div>
                     <Statusbubble
-                      text={humanize(status)}
+                      text={getStatusName(status)}
+                      isUserContent={false}
                       color={getStatusColor(status)}
                       shouldAnimate={false}
                     />
@@ -272,20 +377,38 @@ const InstanceHealthLogs: FunctionComponent = (): ReactElement => {
                   freed !== null ? (
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-3">
                       {before !== null
-                        ? renderMetric("Capacity before", formatPercent(before))
+                        ? renderMetric(
+                            translator.translateText(
+                              "Capacity before",
+                            ) as string,
+                            formatPercent(before),
+                          )
                         : null}
                       {after !== null
-                        ? renderMetric("Capacity after", formatPercent(after))
+                        ? renderMetric(
+                            translator.translateText(
+                              "Capacity after",
+                            ) as string,
+                            formatPercent(after),
+                          )
                         : null}
                       {threshold !== null
-                        ? renderMetric("Trigger", formatPercent(threshold))
+                        ? renderMetric(
+                            translator.translateText("Trigger") as string,
+                            formatPercent(threshold),
+                          )
                         : null}
                       {target !== null
-                        ? renderMetric("Target", formatPercent(target))
+                        ? renderMetric(
+                            translator.translateText("Target") as string,
+                            formatPercent(target),
+                          )
                         : null}
                       {freed !== null
                         ? renderMetric(
-                            "Estimated space freed",
+                            translator.translateText(
+                              "Estimated space freed",
+                            ) as string,
                             bytesToReadable(freed),
                           )
                         : null}
@@ -297,7 +420,7 @@ const InstanceHealthLogs: FunctionComponent = (): ReactElement => {
                   {hasMetadata(metadata) ? (
                     <details className="mt-3">
                       <summary className="cursor-pointer text-xs font-medium text-gray-600">
-                        Work details
+                        {translator.translateText("Work details")}
                       </summary>
                       <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-gray-50 border border-gray-200 p-3 text-xs text-gray-700 whitespace-pre-wrap break-all">
                         {JSON.stringify(metadata, null, 2)}

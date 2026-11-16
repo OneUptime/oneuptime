@@ -6,7 +6,7 @@ RUM 애플리케이션 개요의 **Core Web Vitals** 카드는 LCP, INP, CLS, FC
 - [보내기](#앱에서-보내기): web-vitals 라이브러리의 값을 OpenTelemetry 메트릭으로 전달합니다.
 - [OneUptime이 읽는 이름](#oneuptime이-인식하는-메트릭-이름): 각 지표가 도착할 수 있는 메트릭 이름.
 - [싱글 페이지 앱](#싱글-페이지-앱): 페이지 로드마다 하나가 아니라 뷰마다 하나의 INP.
-- [지표 알림](#지표로-알림-받기): 나쁜 지표를 위한 기성 모니터.
+- [지표 경고](#지표로-경고-받기): 나쁜 지표를 위한 기성 모니터.
 :::
 
 ## 작동 방식
@@ -269,7 +269,7 @@ useEffect(() => startView(toRoutePattern(pathname)), [pathname]);
 얻게 되는 것:
 
 - 개요의 **INP by route**. `app.route`를 기준으로 느린 순서대로 표시됩니다. OneUptime은 OpenTelemetry의 `url.template`도 읽습니다.
-- 알림용 경로 필터. 메트릭 모니터에서 `web_vital.inp`를 `app.route`로 필터링하면 `/checkout` 같은 흐름 하나를 따로 지켜볼 수 있습니다.
+- 경고용 경로 필터. 메트릭 모니터에서 `web_vital.inp`를 `app.route`로 필터링하면 `/checkout` 같은 흐름 하나를 따로 지켜볼 수 있습니다.
 - **Core Web Vitals** 카드의 앱 전체 INP는 그대로 작동합니다. 같은 메트릭이며, 이제 페이지 로드마다 하나가 아니라 뷰마다 값 하나가 될 뿐입니다.
 
 여기에 필요한 상호 작용 ID는 Chromium 계열 브라우저가 보고합니다. Safari는 보고하지 않으며, 그래서 `onINP`도 Safari에서는 아무것도 보고하지 않습니다. Chrome의 실험적인 Soft Navigations API가 이를 기본으로 처리하는 것을 목표로 하지만 아직 정식으로 제공되지 않습니다. 이 도우미는 지금 바로 쓸 수 있습니다.
@@ -290,7 +290,7 @@ histogram.record(metric.value, {
 
 경로 패턴 대신 구체적인 URL을 기록하면 상품 페이지마다 시계열이 하나씩 생겨 **메트릭** 페이지가 느려지고 저장 비용이 커집니다. 사용자 ID, 세션 ID, 화면 크기도 마찬가지입니다.
 
-## 지표로 알림 받기
+## 지표로 경고 받기
 
 애플리케이션의 **권장 사항** 페이지는 지표마다 기성 모니터를 제공합니다. 각 모니터는 메트릭의 5분 평균을 읽고, Google의 나쁨 기준에 이르면 발생합니다.
 
@@ -302,7 +302,7 @@ histogram.record(metric.value, {
 | **Slow First Contentful Paint** | `web_vital.fcp` | 3000밀리초 | **경고** |
 | **Slow Time to First Byte** | `web_vital.ttfb` | 1800밀리초 | **경고** |
 
-이 모니터는 `web_vital.*` 이름만 읽습니다. 앱이 다른 이름으로 지표를 보낸다면 만들어진 모니터의 메트릭을 수정하세요. 경로 하나에 대해 알림을 받으려면 모니터에 `app.route` 필터를 추가하세요. 이 메트릭 중 어느 것으로든 직접 모니터를 만들 수도 있습니다. [메트릭 모니터](/docs/monitor/metrics-monitor)를 참고하세요.
+이 모니터는 `web_vital.*` 이름만 읽습니다. 앱이 다른 이름으로 지표를 보낸다면 만들어진 모니터의 메트릭을 수정하세요. 경로 하나에 대해 경고를 받으려면 모니터에 `app.route` 필터를 추가하세요. 이 메트릭 중 어느 것으로든 직접 모니터를 만들 수도 있습니다. [메트릭 모니터](/docs/monitor/metrics-monitor)를 참고하세요.
 
 ## 문제 해결
 
@@ -329,7 +329,7 @@ histogram.record(metric.value, {
 
 :::cards
 - [브라우저 설정](/docs/rum/browser-setup): 이 지표가 실려 가는 트레이스, 로그, 메트릭 파이프라인.
-- [메트릭 모니터](/docs/monitor/metrics-monitor): 앱 전체나 경로 하나에 대해 어떤 지표로든 알림을 받습니다.
+- [메트릭 모니터](/docs/monitor/metrics-monitor): 앱 전체나 경로 하나에 대해 어떤 지표로든 경고를 받습니다.
 - [세션 리플레이](/docs/telemetry/session-replay): 코드 없이 녹화에서 뷰별 INP를 확인합니다.
 - [RUM 문제 해결](/docs/rum/troubleshooting): 문제가 흔히 생기는 순서대로 정리한 모든 확인 사항.
 :::

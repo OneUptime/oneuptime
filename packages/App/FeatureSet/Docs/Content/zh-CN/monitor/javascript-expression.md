@@ -46,7 +46,7 @@ flowchart TB
 
 ## 各监视器类型的变量
 
-JavaScript 表达式适用于 Website、API、传入请求、Incoming Email、SQL Query 和 Database Health 监视器。
+JavaScript 表达式适用于 Website、API、传入请求、传入邮件、SQL 查询 和 数据库健康状况 监视器。
 
 ### 网站和 API 监视器
 
@@ -163,7 +163,7 @@ JavaScript 表达式适用于 Website、API、传入请求、Incoming Email、SQ
 ## 后续步骤
 
 :::cards
-- [事件与告警模板](/docs/monitor/incident-alert-templating): 在事件标题和描述中使用相同的占位符。
+- [事件与警报模板](/docs/monitor/incident-alert-templating): 在事件标题和描述中使用相同的占位符。
 - [API 监控](/docs/monitor/api-monitor): 检查 HTTP 端点及其响应。
 - [入站请求监控](/docs/monitor/incoming-request-monitor): 评估其他系统发送给您的请求。
 :::

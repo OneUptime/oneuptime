@@ -257,7 +257,7 @@ La réponse à une question de fichiers, ce sont les fichiers tels qu'ils ont é
 
 ### Flux de travail
 
-Les formulaires ont les composants de flux de travail générés : **On Create Form**, **On Update Form**, etc. Pour agir sur ce qu'un formulaire a créé, utilisez **On Create Incident** ou **On Create Maintenance Event**.
+Les formulaires ont les composants de flux de travail générés : **À la création : Formulaire**, **À la mise à jour : Formulaire**, etc. Pour agir sur ce qu'un formulaire a créé, utilisez **À la création : Incident** ou **À la création : Événement de maintenance**.
 
 ### Les points de terminaison propres à la page publique
 

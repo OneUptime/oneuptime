@@ -393,7 +393,7 @@ describe("ReplayHeader in the reader's language", () => {
     // The grant that shows it, by the roles screen's title, filled in place (#7096).
     expect(screen.getByTestId("replay-header-user")).toHaveAttribute(
       "title",
-      '⟦Your role cannot read end-user identity. Ask a project admin for the "Watch Session Replays" permission.⟧',
+      '⟦Your role cannot read end-user identity. Ask a Project Admin for the "Watch Session Replays" permission.⟧',
     );
 
     rerender(
@@ -573,9 +573,22 @@ describe("ReplayControls in the reader's language", () => {
       "⟦Playback speed⟧",
     );
 
-    expect(textsNotLookedUp(screen.getByTestId("replay-controls"), [])).toEqual(
-      [],
+    /*
+     * The seek buttons' label, "10 Sek.": a duration in the reader's units,
+     * worded once by the controls and drawn as given - the button looked it
+     * up a second time (#8423).
+     */
+    const seekLabel: string =
+      screen.getByTestId("replay-seek-back").textContent?.trim() || "";
+
+    expect(seekLabel.replace(/\s/g, " ")).toBe("10 Sek.");
+    expect(screen.getByTestId("replay-seek-forward").textContent).toContain(
+      seekLabel,
     );
+
+    expect(
+      textsNotLookedUp(screen.getByTestId("replay-controls"), [seekLabel]),
+    ).toEqual([]);
   });
 
   it("words the waits: the first footage, a seek to its time, and the long wait", () => {
@@ -709,7 +722,7 @@ describe("ReplayTimeline in the reader's language", () => {
     expect(gapLabel).toBe(
       `⟦${formatReplayDurationInLanguage(18000, MARKED)} missing⟧`,
     );
-    expect(gap).toHaveTextContent(gapLabel);
+    expect(gap.textContent).toContain(gapLabel);
     expect(gap).toHaveAttribute("aria-label", `⟦Recording gap: ${gapLabel}⟧`);
 
     const [idle, background] = screen.getAllByTestId("timeline-idle-band");
@@ -844,7 +857,9 @@ describe("ReplayTabSwitcher in the reader's language", () => {
       }) as HTMLElement;
     const thirtySeconds: string = formatReplayDurationInLanguage(30000, MARKED);
 
-    expect(watched).toHaveTextContent(`⟦Tab 3⟧ · /page-3 · ${thirtySeconds}`);
+    expect(watched.textContent).toContain(
+      `⟦Tab 3⟧ · /page-3 · ${thirtySeconds}`,
+    );
     expect(watched).toHaveAttribute(
       "title",
       `⟦⟦⟦Tab 3⟧ (closed)⟧ · /page-3 · ⟦opened 0:40⟧ · ${thirtySeconds} — switch to this tab; the playhead stays where it is⟧`,

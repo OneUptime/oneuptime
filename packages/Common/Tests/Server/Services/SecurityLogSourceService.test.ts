@@ -103,8 +103,8 @@ describe("SecurityLogSourceService, through the whole write", () => {
   });
 
   test.each<[string, Array<Permission>]>([
-    ["a project owner", [Permission.ProjectOwner]],
-    ["a project admin", [Permission.ProjectAdmin]],
+    ["a Project Owner", [Permission.ProjectOwner]],
+    ["a Project Admin", [Permission.ProjectAdmin]],
     ["a security admin", [Permission.SecurityAdmin]],
   ])(
     "%s turns it on: on, and reading from now",

@@ -45,6 +45,15 @@ import {
 } from "./OpenStackPartHarness";
 
 /*
+ * A size as toHaveTextContent reads the page: its whitespace collapsed to
+ * plain spaces, the no-break space a figure is held to its unit with
+ * (#8457) among them.
+ */
+const readBytes: (bytes: number) => string = (bytes: number): string => {
+  return formatOpenStackBytes(bytes).replace(/\u00A0/g, " ");
+};
+
+/*
  * THE PAGES, ON WHAT REAL CLOUDS REALLY SAID. Every recorded release's real instances, through both
  * real exporters and the path a real batch takes, then through the real pages: a CPU-burning instance
  * shows on its own page, and names itself on its hypervisor's. All that is stood in for is ClickHouse:
@@ -264,7 +273,7 @@ describe.each(CASES)(
       test("shows what the guest uses of its memory, nowhere near the flavor's size that the balloon reads", async () => {
         const usage: HTMLElement = await openBurner();
         expect(usage).toHaveTextContent(
-          `of ${formatOpenStackBytes(128 * MIB)} from its flavor`,
+          `of ${readBytes(128 * MIB)} from its flavor`,
         );
         // Not 128 MiB, which is what libvirt's memory_usage_bytes says of every instance.
         expect(within(usage).queryByText("128 MiB")).toBeNull();

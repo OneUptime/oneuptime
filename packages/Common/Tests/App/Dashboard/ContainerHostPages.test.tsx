@@ -306,6 +306,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 interface RuntimeCase {
   slug: "docker" | "podman";
@@ -448,7 +449,7 @@ describe.each(RUNTIMES)(
         }),
       ).toEqual(["container:worker", "container:billing"]);
       expect(rows[0]!.severity).toBe("critical");
-      expect(rows[0]!.text).toContain("6 restarts in 15 minutes");
+      expect(rows[0]!.text).toContain("6 restarts in 15\u00A0minutes");
       expect(rows[1]!.severity).toBe("warning");
       expect(rows[1]!.text).toContain("Stopped reporting");
       expect(rows[1]!.text).toContain("acme/billing:4");
@@ -527,7 +528,7 @@ describe.each(RUNTIMES)(
           (row: { text: string }): boolean => {
             return (
               row.text.includes("Memory 91% used") ||
-              row.text.includes("1 restart in 15 minutes")
+              row.text.includes("1 restart in 15\u00A0minutes")
             );
           },
         ),
@@ -625,7 +626,7 @@ describe.each(RUNTIMES)(
         {
           key: "container:worker",
           severity: "critical",
-          text: expect.stringContaining("6 restarts in 15 minutes"),
+          text: expect.stringContaining("6 restarts in 15\u00A0minutes"),
         },
       ]);
       expect(
@@ -781,7 +782,7 @@ describe.each(RUNTIMES)(
         .closest("div.rounded-xl") as HTMLElement;
       expect(
         (restarts.querySelector("div.text-2xl")?.textContent || "").trim(),
-      ).toBe("—");
+      ).toBe(QUIET_DASH_TEXT);
       // A count nobody sent has no window to name.
       expect(restarts).not.toHaveTextContent("in the last 15 minutes");
     });

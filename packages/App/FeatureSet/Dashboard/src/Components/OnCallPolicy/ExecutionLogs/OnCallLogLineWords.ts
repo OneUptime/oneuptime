@@ -1,5 +1,12 @@
 import { getResultLineSentence } from "../../OnCallTestPage/OnCallTestPageWords";
 import OneUptimeDate from "Common/Types/Date";
+import { describeOnCallAcknowledgementTimeout } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import {
+  OnCallLogLine,
+  OnCallLogLineCode,
+  readOnCallLogLine,
+} from "Common/Types/OnCallDutyPolicy/OnCallLogLine";
+import { CallOutcomeLine } from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
 import {
   OnCallPolicyRunLine,
   OnCallPolicyRunLineCode,
@@ -27,7 +34,10 @@ import UserNotificationEventType from "Common/Types/UserNotification/UserNotific
 import NotificationMethodUtil, {
   ColumnValueReader,
 } from "Common/UI/Utils/NotificationMethodUtil";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
+import { joinSentences } from "Common/UI/Utils/SentenceSeparator";
 import {
+  PluralTemplate,
   TemplateValue,
   translatableTerm,
   translationKey,
@@ -217,6 +227,669 @@ export const RUN_RECORD_RESOLVED_SENTENCES: Readonly<
     "Execution completed because the alert episode was resolved.",
   ),
 };
+
+/*
+ * THE REST OF A LOG'S OWN LINES (OnCallLogLine, #8434), in the reader's
+ * words: a run on its way, a direct page's, a page again's, a run or a
+ * page that timed out or ran out of tries, a step skipped because the page
+ * was escalated, a person's page, a notification that went out or was
+ * acknowledged. A log is read later, so each says what happened then; a
+ * real page's never says "test", and a test page's own paging lines are
+ * worded on a test page's row only.
+ */
+export const LOG_OWN_LINE_SENTENCES: Readonly<{
+  runScheduled: string;
+  runStarted: string;
+  runPagingStarted: string;
+  runTimedOut: string;
+  runNeverStarted: string;
+  directPageNobodyPaged: string;
+  directPageTimedOut: string;
+  directPageNeverStarted: string;
+  pagingAgain: string;
+  testPageSentToFirstLevel: string;
+  levelSkippedByEscalation: string;
+  skippedAsEscalated: string;
+  directPageNobodyToPage: string;
+  pageSent: string;
+  pageEscalated: string;
+  pageTimedOut: string;
+  notificationAcknowledged: string;
+  notificationEscalatedFrom: string;
+  emailSent: string;
+  pushSent: string;
+  telegramSent: string;
+  whatsAppSent: string;
+  workspaceMessageSent: string;
+  sentWithMessageId: string;
+  callPlaced: string;
+  lastTryFailedWith: string;
+}> = {
+  runScheduled: translationKey("Scheduled to start."),
+  runStarted: translationKey("Execution started."),
+  runPagingStarted: translationKey("Paging started."),
+  runTimedOut: translationKey("Timed out: this run did not finish starting."),
+  runNeverStarted: translationKey("Timed out: this run never started."),
+  directPageNobodyPaged: translationKey("Nobody was paged."),
+  directPageTimedOut: translationKey("Paging timed out."),
+  directPageNeverStarted: translationKey(
+    "Paging never started and was timed out.",
+  ),
+  pagingAgain: translationKey(
+    "Paging again ({{number}} of {{max}}): still not resolved {{duration}} after it was acknowledged.",
+  ),
+  testPageSentToFirstLevel: translationKey(
+    "Test page sent to the first escalation level.",
+  ),
+  levelSkippedByEscalation: translationKey(
+    "Skipped: the page was escalated past this level.",
+  ),
+  skippedAsEscalated: translationKey(
+    "Skipped because they escalated this page.",
+  ),
+  directPageNobodyToPage: translationKey(
+    "Skipped because there was nobody to page.",
+  ),
+  pageSent: translationKey("Notifications sent to this person."),
+  pageEscalated: translationKey("Escalated: could not take this page."),
+  pageTimedOut: translationKey("Timed out: this page did not finish starting."),
+  notificationAcknowledged: translationKey(
+    "The page was acknowledged from this notification.",
+  ),
+  notificationEscalatedFrom: translationKey(
+    "Escalated from this notification.",
+  ),
+  emailSent: translationKey(
+    "Email sent. OneUptime does not track whether it was delivered: if it did not arrive, the address may be wrong, the sending domain may be blocked, or it may be in spam.",
+  ),
+  pushSent: translationKey("Push notification sent."),
+  telegramSent: translationKey("Telegram message sent."),
+  whatsAppSent: translationKey("WhatsApp message sent."),
+  workspaceMessageSent: translationKey("Message sent on {{name}}."),
+  sentWithMessageId: translationKey("Sent with message ID {{id}}."),
+  callPlaced: translationKey("Call placed with call ID {{id}}."),
+  lastTryFailedWith: translationKey("The last try failed with: {{error}}"),
+};
+
+// A direct page's run: how many people it paged.
+export const LOG_DIRECT_PAGE_PAGED: PluralTemplate = {
+  one: "{{count}} person was paged.",
+  other: "{{count}} people were paged.",
+};
+
+// A test page's run, paging: to how many people it was sent.
+export const LOG_TEST_PAGE_SENT: PluralTemplate = {
+  one: "Test page sent to {{count}} person.",
+  other: "Test page sent to {{count}} people.",
+};
+
+// A person's page that did not finish starting, handed over to be sent.
+export const LOG_PAGE_HANDED_OVER: PluralTemplate = {
+  one: "This page did not finish starting within {{count}} minute, so its notifications were sent from then on.",
+  other:
+    "This page did not finish starting within {{count}} minutes, so its notifications were sent from then on.",
+};
+
+/*
+ * A run, or a person's page, that ran out of tries (OnCallPolicyRunRetry):
+ * how many tries, over how long, and what stopped. The error's own words
+ * and what to do follow, each a sentence of its own.
+ */
+export const LOG_RUN_OUT_OF_TRIES_WAITING: PluralTemplate = {
+  one: "OneUptime tried {{count}} time in {{duration}} to start this run, and it failed, so nobody was paged.",
+  other:
+    "OneUptime tried {{count}} times in {{duration}} to start this run, and every try failed, so nobody was paged.",
+};
+
+export const LOG_RUN_OUT_OF_TRIES_PAGING: PluralTemplate = {
+  one: "OneUptime tried {{count}} time in {{duration}} to move this run on, and it failed, so it stopped paging.",
+  other:
+    "OneUptime tried {{count}} times in {{duration}} to move this run on, and every try failed, so it stopped paging.",
+};
+
+export const LOG_PAGE_OUT_OF_TRIES: PluralTemplate = {
+  one: "OneUptime tried {{count}} time in {{duration}} to send this page's notifications, and it failed, so it stopped.",
+  other:
+    "OneUptime tried {{count}} times in {{duration}} to send this page's notifications, and every try failed, so it stopped.",
+};
+
+// What to do once a run ran out of tries, by the record it pages about.
+export const LOG_RUN_OUT_OF_TRIES_NEXT: Readonly<
+  Record<OnCallPolicyRunRecordKind, string>
+> = {
+  [OnCallPolicyRunRecordKind.Incident]: translationKey(
+    "If the incident still needs somebody, page them again.",
+  ),
+  [OnCallPolicyRunRecordKind.Alert]: translationKey(
+    "If the alert still needs somebody, page them again.",
+  ),
+  [OnCallPolicyRunRecordKind.IncidentEpisode]: translationKey(
+    "If the incident episode still needs somebody, page them again.",
+  ),
+  [OnCallPolicyRunRecordKind.AlertEpisode]: translationKey(
+    "If the alert episode still needs somebody, page them again.",
+  ),
+};
+
+// What to do once a person's page ran out of tries, by its record.
+export const LOG_PAGE_OUT_OF_TRIES_NEXT: Readonly<
+  Record<OnCallPolicyRunRecordKind, string>
+> = {
+  [OnCallPolicyRunRecordKind.Incident]: translationKey(
+    "If the incident still needs this person, page them again.",
+  ),
+  [OnCallPolicyRunRecordKind.Alert]: translationKey(
+    "If the alert still needs this person, page them again.",
+  ),
+  [OnCallPolicyRunRecordKind.IncidentEpisode]: translationKey(
+    "If the incident episode still needs this person, page them again.",
+  ),
+  [OnCallPolicyRunRecordKind.AlertEpisode]: translationKey(
+    "If the alert episode still needs this person, page them again.",
+  ),
+};
+
+/*
+ * THE LAST OF A LOG'S OWN LINES (#8551): a person's page that ended, or
+ * was acknowledged or seen, a notification an observer saw or the stuck
+ * check settled, a provider's delivery report, an email sent without its
+ * images.
+ */
+export const LOG_PAGE_LINE_SENTENCES: Readonly<{
+  pageOverPageAcknowledged: string;
+  pageOverPageAgainAcknowledged: string;
+  pageNamesNoRecord: string;
+  pageNoLongerProjectMember: string;
+  notificationSeenAsObserver: string;
+  providerReported: string;
+  providerMessageId: string;
+  providerErrorCode: string;
+  providerError: string;
+  emailSentWithoutImages: string;
+  emailDeliveryNotTracked: string;
+}> = {
+  pageOverPageAcknowledged: translationKey(
+    "Execution completed because this page was acknowledged.",
+  ),
+  pageOverPageAgainAcknowledged: translationKey(
+    "Execution completed because this page again was acknowledged.",
+  ),
+  pageNamesNoRecord: translationKey(
+    "Execution completed because this page names no incident, alert or episode.",
+  ),
+  pageNoLongerProjectMember: translationKey(
+    "Stopped because this person is no longer a member of the project. Their remaining notification rules were not run.",
+  ),
+  notificationSeenAsObserver: translationKey(
+    "Marked as seen, paged as an observer.",
+  ),
+  providerReported: translationKey("The provider reported: {{status}}."),
+  providerMessageId: translationKey("Message ID: {{id}}."),
+  providerErrorCode: translationKey("Provider error code: {{code}}."),
+  providerError: translationKey("Provider error: {{error}}"),
+  emailSentWithoutImages: translationKey(
+    "Email sent without its images, which the mail service refused: {{answer}}",
+  ),
+  emailDeliveryNotTracked: translationKey(
+    "OneUptime does not track whether it was delivered.",
+  ),
+};
+
+// A provider's delivery report, by the status it says (SmsStatus, WhatsAppStatus).
+export const LOG_PROVIDER_STATUS_SENTENCES: Readonly<Record<string, string>> = {
+  Delivered: translationKey("The provider delivered it."),
+  Undelivered: translationKey("The provider could not deliver it."),
+  Failed: translationKey("The provider could not send it."),
+  Sent: translationKey("The provider sent it."),
+  Read: translationKey("The person read it."),
+};
+
+// A person's page that stopped because its record was acknowledged.
+export const LOG_PAGE_RECORD_ACKNOWLEDGED_SENTENCES: Readonly<
+  Record<OnCallPolicyRunRecordKind, string>
+> = {
+  [OnCallPolicyRunRecordKind.Incident]: translationKey(
+    "Execution completed because the incident was acknowledged.",
+  ),
+  [OnCallPolicyRunRecordKind.Alert]: translationKey(
+    "Execution completed because the alert was acknowledged.",
+  ),
+  [OnCallPolicyRunRecordKind.IncidentEpisode]: translationKey(
+    "Execution completed because the incident episode was acknowledged.",
+  ),
+  [OnCallPolicyRunRecordKind.AlertEpisode]: translationKey(
+    "Execution completed because the alert episode was acknowledged.",
+  ),
+};
+
+// A person's page that stopped because its record was deleted.
+export const LOG_PAGE_RECORD_DELETED_SENTENCES: Readonly<
+  Record<OnCallPolicyRunRecordKind, string>
+> = {
+  [OnCallPolicyRunRecordKind.Incident]: translationKey(
+    "Execution completed because the incident was deleted.",
+  ),
+  [OnCallPolicyRunRecordKind.Alert]: translationKey(
+    "Execution completed because the alert was deleted.",
+  ),
+  [OnCallPolicyRunRecordKind.IncidentEpisode]: translationKey(
+    "Execution completed because the incident episode was deleted.",
+  ),
+  [OnCallPolicyRunRecordKind.AlertEpisode]: translationKey(
+    "Execution completed because the alert episode was deleted.",
+  ),
+};
+
+// A person's page they acknowledged from one of its notifications.
+export const LOG_PAGE_ACKNOWLEDGED_BY_SENTENCES: Readonly<
+  Record<OnCallPolicyRunRecordKind, string>
+> = {
+  [OnCallPolicyRunRecordKind.Incident]: translationKey(
+    "{{name}} acknowledged the incident.",
+  ),
+  [OnCallPolicyRunRecordKind.Alert]: translationKey(
+    "{{name}} acknowledged the alert.",
+  ),
+  [OnCallPolicyRunRecordKind.IncidentEpisode]: translationKey(
+    "{{name}} acknowledged the incident episode.",
+  ),
+  [OnCallPolicyRunRecordKind.AlertEpisode]: translationKey(
+    "{{name}} acknowledged the alert episode.",
+  ),
+};
+
+// An observer's page they said they have seen.
+export const LOG_PAGE_SEEN_BY_OBSERVER_SENTENCES: Readonly<
+  Record<OnCallPolicyRunRecordKind, string>
+> = {
+  [OnCallPolicyRunRecordKind.Incident]: translationKey(
+    "Seen by {{name}}, paged as an observer. The incident is not acknowledged by this.",
+  ),
+  [OnCallPolicyRunRecordKind.Alert]: translationKey(
+    "Seen by {{name}}, paged as an observer. The alert is not acknowledged by this.",
+  ),
+  [OnCallPolicyRunRecordKind.IncidentEpisode]: translationKey(
+    "Seen by {{name}}, paged as an observer. The incident episode is not acknowledged by this.",
+  ),
+  [OnCallPolicyRunRecordKind.AlertEpisode]: translationKey(
+    "Seen by {{name}}, paged as an observer. The alert episode is not acknowledged by this.",
+  ),
+};
+
+/*
+ * How a call ended (CallOutcome, #8576): answered - for how long, when
+ * Twilio said - rang out, busy or declined, or not connected; after the
+ * call's id when Twilio gave one.
+ */
+export const LOG_CALL_OUTCOME_SENTENCES: Readonly<
+  Record<CallOutcomeLine, string>
+> = {
+  [CallOutcomeLine.Answered]: translationKey("The call was answered."),
+  [CallOutcomeLine.RangOut]: translationKey(
+    "The call was not answered: it rang out.",
+  ),
+  [CallOutcomeLine.Busy]: translationKey(
+    "The call was not answered: the line was busy, or the call was declined.",
+  ),
+  [CallOutcomeLine.NotConnected]: translationKey(
+    "The call could not be connected.",
+  ),
+};
+
+export const LOG_CALL_ANSWERED_AND_LASTED: PluralTemplate = {
+  one: "The call was answered and lasted {{count}} second.",
+  other: "The call was answered and lasted {{count}} seconds.",
+};
+
+export const LOG_CALL_ID: string = translationKey("Call ID: {{id}}.");
+
+// A call's line, its id first: "Call ID: CA…. The call was answered."
+function getCallEndedSentence(
+  translator: Translator,
+  line: OnCallLogLine,
+): string | null {
+  if (!line.callOutcome) {
+    return null;
+  }
+
+  const outcome: string =
+    line.callOutcome === CallOutcomeLine.Answered && line.seconds !== undefined
+      ? translator.translatePlural(LOG_CALL_ANSWERED_AND_LASTED, line.seconds)
+      : translator.translateTemplate(
+          LOG_CALL_OUTCOME_SENTENCES[line.callOutcome],
+        );
+
+  return joinSentences([
+    line.id
+      ? translator.translateTemplate(
+          LOG_CALL_ID,
+          { id: line.id },
+          { setsValuesApart: true },
+        )
+      : "",
+    outcome,
+  ]);
+}
+
+// A notification the stuck check settled, by the minutes it waited.
+export const LOG_NOTIFICATION_STUCK: PluralTemplate = {
+  one: "Sending did not finish within {{count}} minute, so this notification may not have been sent.",
+  other:
+    "Sending did not finish within {{count}} minutes, so this notification may not have been sent.",
+};
+
+// A provider's delivery report: its status, its id and error, each a sentence.
+function getProviderDeliverySentence(
+  translator: Translator,
+  line: OnCallLogLine,
+): string | null {
+  if (!line.status) {
+    return null;
+  }
+
+  const statusSentence: string | undefined =
+    LOG_PROVIDER_STATUS_SENTENCES[line.status];
+
+  return joinSentences([
+    statusSentence
+      ? translator.translateTemplate(statusSentence)
+      : translator.translateTemplate(
+          LOG_PAGE_LINE_SENTENCES.providerReported,
+          { status: translator.translateText(line.status) || line.status },
+          { setsValuesApart: true },
+        ),
+    line.id
+      ? translator.translateTemplate(
+          LOG_PAGE_LINE_SENTENCES.providerMessageId,
+          { id: line.id },
+          { setsValuesApart: true },
+        )
+      : "",
+    line.errorCode
+      ? translator.translateTemplate(
+          LOG_PAGE_LINE_SENTENCES.providerErrorCode,
+          { code: line.errorCode },
+          { setsValuesApart: true },
+        )
+      : "",
+    line.words
+      ? translator.translateTemplate(
+          LOG_PAGE_LINE_SENTENCES.providerError,
+          { error: errorInSentence(line.words) },
+          { setsValuesApart: true },
+        )
+      : "",
+  ]);
+}
+
+// A person's page's or a notification's line from #8551, in the reader's words.
+function getPageLineSentence(
+  translator: Translator,
+  line: OnCallLogLine,
+): string | null {
+  switch (line.code) {
+    case OnCallLogLineCode.PageOverPageAcknowledged:
+      return translator.translateTemplate(
+        LOG_PAGE_LINE_SENTENCES.pageOverPageAcknowledged,
+      );
+    case OnCallLogLineCode.PageOverPageAgainAcknowledged:
+      return translator.translateTemplate(
+        LOG_PAGE_LINE_SENTENCES.pageOverPageAgainAcknowledged,
+      );
+    case OnCallLogLineCode.PageNamesNoRecord:
+      return translator.translateTemplate(
+        LOG_PAGE_LINE_SENTENCES.pageNamesNoRecord,
+      );
+    case OnCallLogLineCode.PageNoLongerProjectMember:
+      return translator.translateTemplate(
+        LOG_PAGE_LINE_SENTENCES.pageNoLongerProjectMember,
+      );
+    case OnCallLogLineCode.NotificationSeenAsObserver:
+      return translator.translateTemplate(
+        LOG_PAGE_LINE_SENTENCES.notificationSeenAsObserver,
+      );
+    case OnCallLogLineCode.PageRecordAcknowledged:
+      return line.recordKind
+        ? translator.translateTemplate(
+            LOG_PAGE_RECORD_ACKNOWLEDGED_SENTENCES[line.recordKind],
+          )
+        : null;
+    case OnCallLogLineCode.PageRecordResolved:
+      return line.recordKind
+        ? translator.translateTemplate(
+            RUN_RECORD_RESOLVED_SENTENCES[line.recordKind],
+          )
+        : null;
+    case OnCallLogLineCode.PageRecordDeleted:
+      return line.recordKind
+        ? translator.translateTemplate(
+            LOG_PAGE_RECORD_DELETED_SENTENCES[line.recordKind],
+          )
+        : null;
+    case OnCallLogLineCode.PageAcknowledgedBy:
+      return line.recordKind && line.name
+        ? translator.translateTemplate(
+            LOG_PAGE_ACKNOWLEDGED_BY_SENTENCES[line.recordKind],
+            { name: line.name },
+            { setsValuesApart: true },
+          )
+        : null;
+    case OnCallLogLineCode.PageSeenByObserver:
+      return line.recordKind && line.name
+        ? translator.translateTemplate(
+            LOG_PAGE_SEEN_BY_OBSERVER_SENTENCES[line.recordKind],
+            { name: line.name },
+            { setsValuesApart: true },
+          )
+        : null;
+    case OnCallLogLineCode.NotificationStuck:
+      return line.minutes
+        ? translator.translatePlural(LOG_NOTIFICATION_STUCK, line.minutes)
+        : null;
+    case OnCallLogLineCode.ProviderDelivery:
+      return getProviderDeliverySentence(translator, line);
+    case OnCallLogLineCode.CallEnded:
+      return getCallEndedSentence(translator, line);
+    case OnCallLogLineCode.EmailSentWithoutImages:
+      return line.words
+        ? joinSentences([
+            translator.translateTemplate(
+              LOG_PAGE_LINE_SENTENCES.emailSentWithoutImages,
+              { answer: line.words },
+              { setsValuesApart: true },
+            ),
+            translator.translateTemplate(
+              LOG_PAGE_LINE_SENTENCES.emailDeliveryNotTracked,
+            ),
+          ])
+        : null;
+    default:
+      return null;
+  }
+}
+
+// The codes each one whole sentence of LOG_OWN_LINE_SENTENCES.
+const WHOLE_LINE_SENTENCES: Readonly<
+  Partial<Record<OnCallLogLineCode, keyof typeof LOG_OWN_LINE_SENTENCES>>
+> = {
+  [OnCallLogLineCode.RunScheduled]: "runScheduled",
+  [OnCallLogLineCode.RunStarted]: "runStarted",
+  [OnCallLogLineCode.RunPagingStarted]: "runPagingStarted",
+  [OnCallLogLineCode.RunTimedOut]: "runTimedOut",
+  [OnCallLogLineCode.RunNeverStarted]: "runNeverStarted",
+  [OnCallLogLineCode.DirectPageNobodyPaged]: "directPageNobodyPaged",
+  [OnCallLogLineCode.DirectPageTimedOut]: "directPageTimedOut",
+  [OnCallLogLineCode.DirectPageNeverStarted]: "directPageNeverStarted",
+  [OnCallLogLineCode.LevelSkippedByEscalation]: "levelSkippedByEscalation",
+  [OnCallLogLineCode.SkippedAsEscalated]: "skippedAsEscalated",
+  [OnCallLogLineCode.DirectPageNobodyToPage]: "directPageNobodyToPage",
+  [OnCallLogLineCode.PageSent]: "pageSent",
+  [OnCallLogLineCode.PageEscalated]: "pageEscalated",
+  [OnCallLogLineCode.PageTimedOut]: "pageTimedOut",
+  [OnCallLogLineCode.NotificationAcknowledged]: "notificationAcknowledged",
+  [OnCallLogLineCode.NotificationEscalatedFrom]: "notificationEscalatedFrom",
+  [OnCallLogLineCode.EmailSent]: "emailSent",
+  [OnCallLogLineCode.PushSent]: "pushSent",
+  [OnCallLogLineCode.TelegramSent]: "telegramSent",
+  [OnCallLogLineCode.WhatsAppSent]: "whatsAppSent",
+};
+
+// The lines only a test page's run writes: worded on a test page's row only.
+const TEST_PAGE_ONLY_LOG_CODES: ReadonlyArray<OnCallLogLineCode> = [
+  OnCallLogLineCode.TestPageSent,
+  OnCallLogLineCode.TestPageSentToFirstLevel,
+];
+
+// "less than a minute", "37 minutes": how long the tries went on.
+function getTriesDuration(translator: Translator, minutes: number): string {
+  return minutes > 0
+    ? translator.translatePlural(
+        { one: "{{count}} minute", other: "{{count}} minutes" },
+        minutes,
+      )
+    : translator.translateText("less than a minute") || "less than a minute";
+}
+
+// A run's or a page's line once it ran out of tries, its sentences joined.
+function getOutOfTriesSentence(
+  translator: Translator,
+  line: OnCallLogLine,
+): string | null {
+  if (!line.tries) {
+    return null;
+  }
+
+  const isPage: boolean = line.code === OnCallLogLineCode.PageOutOfTries;
+  const what: PluralTemplate = isPage
+    ? LOG_PAGE_OUT_OF_TRIES
+    : line.wasWaiting
+      ? LOG_RUN_OUT_OF_TRIES_WAITING
+      : LOG_RUN_OUT_OF_TRIES_PAGING;
+  const next: string | undefined = line.recordKind
+    ? (isPage ? LOG_PAGE_OUT_OF_TRIES_NEXT : LOG_RUN_OUT_OF_TRIES_NEXT)[
+        line.recordKind
+      ]
+    : undefined;
+
+  return joinSentences([
+    translator.translatePlural(
+      what,
+      line.tries,
+      { duration: getTriesDuration(translator, line.minutes || 0) },
+      { setsValuesApart: true },
+    ),
+    line.words
+      ? translator.translateTemplate(
+          LOG_OWN_LINE_SENTENCES.lastTryFailedWith,
+          { error: errorInSentence(line.words) },
+          { setsValuesApart: true },
+        )
+      : "",
+    next ? translator.translateTemplate(next) : "",
+  ]);
+}
+
+/*
+ * One of the rest of a log's own lines (OnCallLogLine), in the reader's
+ * words; null when it has none for this kind of page.
+ */
+export function getOnCallLogOwnLineSentence(
+  translator: Translator,
+  data: {
+    line: OnCallLogLine | null | undefined;
+    // A test page's row: its own paging lines are worded there only.
+    isTestPage: boolean;
+  },
+): string | null {
+  const line: OnCallLogLine | null | undefined = data.line;
+
+  if (!line) {
+    return null;
+  }
+
+  if (TEST_PAGE_ONLY_LOG_CODES.includes(line.code) && !data.isTestPage) {
+    return null;
+  }
+
+  const whole: keyof typeof LOG_OWN_LINE_SENTENCES | undefined =
+    WHOLE_LINE_SENTENCES[line.code];
+
+  if (whole) {
+    return translator.translateTemplate(LOG_OWN_LINE_SENTENCES[whole]);
+  }
+
+  switch (line.code) {
+    case OnCallLogLineCode.DirectPagePaged:
+      return line.count !== undefined
+        ? translator.translatePlural(LOG_DIRECT_PAGE_PAGED, line.count)
+        : null;
+    case OnCallLogLineCode.TestPageSent:
+      return line.count !== undefined
+        ? translator.translatePlural(LOG_TEST_PAGE_SENT, line.count)
+        : null;
+    case OnCallLogLineCode.TestPageSentToFirstLevel:
+      return translator.translateTemplate(
+        LOG_OWN_LINE_SENTENCES.testPageSentToFirstLevel,
+      );
+    case OnCallLogLineCode.PagingAgain:
+      return line.pageAgainNumber && line.pagesAgainAtMost && line.minutes
+        ? translator.translateTemplate(
+            LOG_OWN_LINE_SENTENCES.pagingAgain,
+            {
+              number: translator.formatNumber(line.pageAgainNumber),
+              max: translator.formatNumber(line.pagesAgainAtMost),
+              duration: describeOnCallAcknowledgementTimeout(
+                line.minutes,
+                translator,
+              ),
+            },
+            { setsValuesApart: true },
+          )
+        : null;
+    case OnCallLogLineCode.PageHandedOver:
+      return line.minutes
+        ? translator.translatePlural(LOG_PAGE_HANDED_OVER, line.minutes)
+        : null;
+    case OnCallLogLineCode.RunOutOfTries:
+    case OnCallLogLineCode.PageOutOfTries:
+      return getOutOfTriesSentence(translator, line);
+    case OnCallLogLineCode.WorkspaceMessageSent:
+      return line.name
+        ? translator.translateTemplate(
+            LOG_OWN_LINE_SENTENCES.workspaceMessageSent,
+            { name: line.name },
+            { setsValuesApart: true },
+          )
+        : null;
+    case OnCallLogLineCode.SentWithMessageId:
+    case OnCallLogLineCode.CallPlaced:
+      return line.id
+        ? translator.translateTemplate(
+            line.code === OnCallLogLineCode.CallPlaced
+              ? LOG_OWN_LINE_SENTENCES.callPlaced
+              : LOG_OWN_LINE_SENTENCES.sentWithMessageId,
+            { id: line.id },
+            { setsValuesApart: true },
+          )
+        : null;
+    default:
+      return getPageLineSentence(translator, line);
+  }
+}
+
+// A row's line, read as one of a log's own lines, in the reader's words.
+function getOwnLineWords(
+  translator: Translator,
+  row: {
+    statusMessage?: string | undefined;
+    userNotificationEventType?: UserNotificationEventType | undefined;
+  },
+): string | null {
+  return getOnCallLogOwnLineSentence(translator, {
+    line: readOnCallLogLine(row.statusMessage),
+    isTestPage: isTestPageRow(row),
+  });
+}
 
 /*
  * The lines only a test page writes: a real page's row never says them,
@@ -477,7 +1150,9 @@ export function getOnCallLogNotificationWords(
         channel: getOnCallLogNotificationChannel(row),
       }),
       isTestPage: isTestPageRow(row),
-    }) ?? getWordedLine(translator, row.statusMessage)
+    }) ??
+    getOwnLineWords(translator, row) ??
+    getWordedLine(translator, row.statusMessage)
   );
 }
 
@@ -504,7 +1179,9 @@ export function getOnCallLogStepWords(
         scheduleName: row.scheduleName || undefined,
       }),
       isTestPage: isTestPageRow(row),
-    }) ?? getWordedLine(translator, row.statusMessage)
+    }) ??
+    getOwnLineWords(translator, row) ??
+    getWordedLine(translator, row.statusMessage)
   );
 }
 
@@ -526,5 +1203,9 @@ export function getOnCallRunWords(
         readOnCallPolicyRunLine(run.statusMessage),
       );
 
-  return sentence ?? getWordedLine(translator, run.statusMessage);
+  return (
+    sentence ??
+    getOwnLineWords(translator, run) ??
+    getWordedLine(translator, run.statusMessage)
+  );
 }

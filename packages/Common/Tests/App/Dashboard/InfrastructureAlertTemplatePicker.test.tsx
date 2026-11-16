@@ -280,9 +280,10 @@ describe("each infrastructure type's Quick Setup picker", () => {
 
         expect(row).toHaveAttribute("role", "radio");
         expect(within(row).getByText(template.name)).toBeInTheDocument();
+        // toHaveTextContent collapses a figure's no-break space (#8457) to a space.
         expect(
           within(row).getByTestId(`alert-template-summary-${template.id}`),
-        ).toHaveTextContent(template.summary);
+        ).toHaveTextContent(template.summary.replace(/\u00A0/g, " "));
         expect(
           within(row).getByTestId(`alert-template-severity-${template.id}`),
         ).toHaveTextContent(template.severity);

@@ -55,7 +55,7 @@ Derefter [konfigurerer du Datadog](#konfigurer-datadog) til at sende sine advars
 
 ### Hvad arbejdsgangen gør
 
-Efter triggeren **Webhook** læser trinnet **Check With JavaScript** `read-event-1` den `transition`, Datadog sender, og **Incident From Another Tool**, eller **Alert From Another Tool** i advarselsskabelonen, gør det, den betyder, ud fra advarslens cyklusnøgle. Datadog beholder den nøgle fra det øjeblik, en advarsel udløses, til den kommer sig, og næste gang den udløses, er nøglen ny, så hver gang får sin egen hændelse. Hændelsen gemmer nøglen i sit brugerdefinerede felt `datadogAlertCycleKey`.
+Efter triggeren **Webhook** læser trinnet **Tjek med JavaScript** `read-event-1` den `transition`, Datadog sender, og **Hændelse fra et andet værktøj**, eller **Advarsel fra et andet værktøj** i advarselsskabelonen, gør det, den betyder, ud fra advarslens cyklusnøgle. Datadog beholder den nøgle fra det øjeblik, en advarsel udløses, til den kommer sig, og næste gang den udløses, er nøglen ny, så hver gang får sin egen hændelse. Hændelsen gemmer nøglen i sit brugerdefinerede felt `datadogAlertCycleKey`.
 
 | Transition | Hvad arbejdsgangen gør |
 | --- | --- |
@@ -82,7 +82,7 @@ En ny hændelse kalder de vagtpolitikker op, du valgte, når dens monitor er P1 
 Med egne alvorligheder går P1, P2 og ingen prioritet til din mest alvorlige, P3 til den midterste, og P4 og P5 til din mindst alvorlige.
 
 - For at knytte en prioritet til en af dine efter navn skal du redigere `SEVERITY_BY_NAME` i trinnet `read-event-1`, f.eks. `{ P3: 'Minor Incident' }`.
-- For også at kalde op for P3 skal du sætte **Sammenlign med** i trinnet `if-page-1` **If / Else** til `3`.
+- For også at kalde op for P3 skal du sætte **Sammenlign med** i trinnet `if-page-1` **Hvis / Ellers** til `3`.
 
 ## Modtag advarsler med en monitor
 
@@ -207,7 +207,7 @@ Test derefter fra Datadog: åbn en monitor, der nævner webhooken, klik på **Te
 :::details Intet kommer frem til OneUptime
 - Kontrollér, at Datadog-monitorens besked nævner `@webhook-oneuptime`, stavet som webhooken hedder.
 - Monitoren svarer `200` med det samme, før den kontrollerer noget, også ved en forkert hemmelig nøgle. Tjek monitorens tidslinje for at se, om advarsler kommer frem.
-- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dets **Bygger**.
+- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
 :::details Arbejdsgangen kører, men åbner intet

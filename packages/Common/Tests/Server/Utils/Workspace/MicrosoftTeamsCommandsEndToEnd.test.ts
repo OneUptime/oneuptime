@@ -827,7 +827,7 @@ describe("oncall: who is on call right now, as a card that reads each moment in 
     const delivery: Delivery = await deliver(message("oncall"));
 
     expect(answerOf(delivery.posts[0])).toBe(
-      "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
+      "Your OneUptime account is not a member of this project. Ask a Project Admin to invite you, then try again.",
     );
     expect(findBy).not.toHaveBeenCalled();
   });
@@ -1058,7 +1058,7 @@ describe("the 'show' lists: read as the member who typed them, never as OneUptim
     const delivery: Delivery = await deliver(message("active incidents"));
 
     expect(answerOf(delivery.posts[0])).toBe(
-      "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
+      "Your OneUptime account is not a member of this project. Ask a Project Admin to invite you, then try again.",
     );
     expect(findBy).not.toHaveBeenCalled();
   });
@@ -1078,7 +1078,7 @@ describe("the 'show' lists: read as the member who typed them, never as OneUptim
     const delivery: Delivery = await deliver(message("show active incidents"));
 
     expect(answerOf(delivery.posts[0])).toBe(
-      "You do not have permission to see the incidents in this project. Ask a project admin for access to them.",
+      "You do not have permission to see the incidents in this project. Ask a Project Admin for access to them.",
     );
   });
 
@@ -1526,7 +1526,7 @@ describe("the welcome when the app is added", () => {
     const delivery: Delivery = await deliver(botAdded("groupChat"));
 
     expect(texts(delivery.posts[0])[1]).toBe(
-      "To get started, a project admin connects your organization in OneUptime, under **Project Settings → Workspace → Microsoft Teams**.",
+      "To get started, a Project Admin connects your organization in OneUptime, under **Project Settings → Workspace → Microsoft Teams**.",
     );
     expect(cardOf(delivery.posts[0])["actions"]).toEqual([
       {

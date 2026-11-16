@@ -1533,7 +1533,7 @@ describe("the edition pill above the page", () => {
     await openPageWithPill();
 
     expect(pill()).toHaveAccessibleName(
-      "Enterprise Edition (Trial, 10 days left), Add license",
+      "Enterprise Edition (Trial, 10\u00A0days left), Add license",
     );
 
     respondWith(adminPayload());

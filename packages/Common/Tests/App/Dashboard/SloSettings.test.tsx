@@ -55,6 +55,14 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import User from "../../../UI/Utils/User";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/monitor-status/get-list"]);
 
 jest.mock("react-i18next", () => {
   return {
@@ -1132,5 +1140,109 @@ describe("SLO Settings page - a request SLO", () => {
     expect(
       screen.queryByText("A request served within this counts as fast enough."),
     ).toBeNull();
+    // Nor a request filter (#8444).
+    expect(screen.queryByText("Every request of its services")).toBeNull();
+  });
+
+  // Which of the services' requests count (#8444).
+  test("names its request filter as written, and what it does", async () => {
+    serveSlo({
+      ...REQUEST_SLO,
+      requestFilter: "@http.route:/checkout* -@http.route:/health",
+    });
+    openSettings();
+
+    const code: HTMLElement = await screen.findByTestId(
+      "slo-settings-request-filter",
+    );
+
+    expect(code.tagName).toBe("CODE");
+    expect(code).toHaveTextContent(
+      "@http.route:/checkout* -@http.route:/health",
+    );
+    await findText("Only the requests that match this traces search count.");
+  });
+
+  test("with no request filter, says it counts every request of its services", async () => {
+    serveSlo(REQUEST_SLO);
+    openSettings();
+
+    await findText("Every request of its services");
+    expect(screen.queryByTestId("slo-settings-request-filter")).toBeNull();
+  });
+  /*
+   * A Metric SLO (#8445): its services, then its metric - the name, what
+   * makes an event good and which of its series count, each under the
+   * title the form asks it with, as written - and no downtime to calculate.
+   */
+  const METRIC_SLO: SloFields = {
+    sliType: SliType.Metric,
+    services: REQUEST_SLO["services"],
+    metricQueryConfig: {
+      metricName: "http.server.request.duration",
+      kind: "Histogram",
+      goodAtOrUnder: 0.3,
+      filter: "-@http.route:/health",
+    },
+  };
+
+  test("a Metric SLO names its metric, its value and its filter, in code", async () => {
+    serveSlo(METRIC_SLO);
+    openSettings();
+
+    const name: HTMLElement = await screen.findByTestId(
+      "slo-settings-metric-name",
+    );
+
+    expect(name.tagName).toBe("CODE");
+    expect(name).toHaveTextContent("http.server.request.duration");
+    expect(
+      screen.getByTestId("slo-settings-metric-goodAtOrUnder"),
+    ).toHaveTextContent("0.3");
+    expect(screen.getByTestId("slo-settings-metric-filter")).toHaveTextContent(
+      "-@http.route:/health",
+    );
+    await findText("Good At Or Under");
+    await findText("Metric Filter");
+    // Its services, as a request SLO's.
+    await findText("checkout");
+    // No request filter or downtime: those are a request's or a monitor's.
+    expect(screen.queryByText("Every request of its services")).toBeNull();
+    expect(screen.queryByText("Downtime Calculation")).toBeNull();
+  });
+
+  test("a Metric SLO's counter names its good condition", async () => {
+    serveSlo({
+      ...METRIC_SLO,
+      metricQueryConfig: {
+        metricName: "http_requests_total",
+        kind: "Counter",
+        goodFilter: "@http.response.status_code:<500",
+      },
+    });
+    openSettings();
+
+    expect(
+      await screen.findByTestId("slo-settings-metric-goodFilter"),
+    ).toHaveTextContent("@http.response.status_code:<500");
+    await findText("Good When");
+  });
+
+  test("a Metric SLO with no metric says so", async () => {
+    serveSlo({ ...METRIC_SLO, metricQueryConfig: null });
+    openSettings();
+
+    await findText("No metric chosen");
+    expect(screen.queryByTestId("slo-settings-metric")).toBeNull();
+  });
+
+  test("a Metric SLO's error budget is in events", async () => {
+    serveSlo({ ...METRIC_SLO, targetPercentage: 99.9 });
+    openSettings();
+
+    await findText("0.1% of events: 1 bad event in every 1,000");
+    await findText(
+      "The bad events this objective allows before it is breached.",
+    );
   });
 });

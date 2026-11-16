@@ -30,7 +30,9 @@ import StatusPagePrivateUserSessionService, {
   SessionMetadata as StatusPageSessionMetadata,
 } from "Common/Server/Services/StatusPagePrivateUserSessionService";
 import CookieUtil from "Common/Server/Utils/Cookie";
-import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import JSONWebToken, {
+  StatusPageSessionToSignOut,
+} from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -60,10 +62,21 @@ import {
   STATUS_PAGE_MAGIC_LINK_INVALID_MESSAGE,
   STATUS_PAGE_MAGIC_LINK_LOGIN_ROUTE,
 } from "Common/Types/StatusPage/StatusPageMagicLink";
+import {
+  STATUS_PAGE_SESSION_REFRESH_TOKEN_EXPIRED_REASON,
+  STATUS_PAGE_SESSION_SIGNED_OUT_REASON,
+} from "Common/Types/AuditLog/AuditLogStatusPageSession";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 
 const router: ExpressRouter = Express.getRouter();
 
 const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
+
+/*
+ * Why a session a reader signed out of ended, as the session records it -
+ * and as the audit log reads it, a Sign Out (issue #6790).
+ */
+const SIGNED_OUT_REASON: string = STATUS_PAGE_SESSION_SIGNED_OUT_REASON;
 
 type MasterPasswordAuthInput = {
   req: ExpressRequest;
@@ -168,6 +181,8 @@ type FinalizeStatusPageLoginInput = {
   req: ExpressRequest;
   res: ExpressResponse;
   user: StatusPagePrivateUser;
+  // How the reader signed in: the audit log says it (issue #6790).
+  signInMethod: SignInMethod;
 };
 
 const finalizeStatusPageLogin: (data: FinalizeStatusPageLoginInput) => Promise<{
@@ -179,7 +194,7 @@ const finalizeStatusPageLogin: (data: FinalizeStatusPageLoginInput) => Promise<{
   sessionMetadata: StatusPageSessionMetadata;
   accessToken: string;
 }> => {
-  const { req, res, user } = data;
+  const { req, res, user, signInMethod } = data;
 
   if (!user.projectId) {
     throw new BadDataException(
@@ -201,6 +216,8 @@ const finalizeStatusPageLogin: (data: FinalizeStatusPageLoginInput) => Promise<{
       ipAddress: getClientIp(req),
       userAgent: headerValueToString(req.headers["user-agent"]),
       ...extractDeviceInfo(req),
+      signIn: { method: signInMethod },
+      requestOrigin: RequestOriginUtil.fromRequest(req),
     });
 
   const accessToken: string = CookieUtil.setStatusPagePrivateUserCookie({
@@ -238,17 +255,68 @@ router.post(
       const refreshToken: string | undefined =
         CookieUtil.getRefreshTokenFromExpressRequest(req, statusPageId);
 
-      if (refreshToken) {
-        await StatusPagePrivateUserSessionService.revokeSessionByRefreshToken(
-          refreshToken,
-          {
-            reason: "User logged out",
-          },
-        );
+      const hasEndedSession: boolean = refreshToken
+        ? await StatusPagePrivateUserSessionService.revokeSessionByRefreshToken(
+            refreshToken,
+            {
+              reason: SIGNED_OUT_REASON,
+              requestOrigin: RequestOriginUtil.fromRequest(req),
+            },
+          )
+        : false;
+
+      /*
+       * The refresh token matched no live session: a renewal whose answer
+       * never reached the browser may have rotated it - the refresh token
+       * is rotated at every renewal and only the new one kept - and the
+       * session would stay signed in though its reader signed out
+       * (issue #8671). The page's sign-out cookie still names it
+       * (CookieUtil.setStatusPagePrivateUserCookie): signed for that and
+       * nothing else, sent only to this page's sign-out, read from the
+       * cookie only, and ending only that live session of that reader on
+       * this page.
+       */
+      if (!hasEndedSession) {
+        const sessionSignOutToken: string | undefined =
+          CookieUtil.getStatusPageSessionSignOutTokenFromExpressRequest(
+            req,
+            statusPageId,
+          );
+        let sessionToSignOut: StatusPageSessionToSignOut | null = null;
+
+        if (sessionSignOutToken) {
+          try {
+            sessionToSignOut =
+              JSONWebToken.decodeStatusPageSessionToSignOut(
+                sessionSignOutToken,
+              );
+          } catch {
+            // Not a sign-out cookie OneUptime signed, or one that ran out.
+            sessionToSignOut = null;
+          }
+        }
+
+        if (
+          sessionToSignOut &&
+          sessionToSignOut.statusPageId.toString() === statusPageId.toString()
+        ) {
+          await StatusPagePrivateUserSessionService.revokeLiveSessionOfPrivateUser(
+            {
+              statusPageId: sessionToSignOut.statusPageId,
+              statusPagePrivateUserId: sessionToSignOut.userId,
+              sessionId: sessionToSignOut.sessionId,
+            },
+            {
+              reason: SIGNED_OUT_REASON,
+              requestOrigin: RequestOriginUtil.fromRequest(req),
+            },
+          );
+        }
       }
 
       CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
       CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey(statusPageId));
+      CookieUtil.removeStatusPageSessionSignOutCookie(res, statusPageId);
       CookieUtil.removeStatusPageMasterPasswordCookie(res, statusPageId);
 
       return Response.sendEmptySuccessResponse(req, res);
@@ -441,7 +509,7 @@ router.post(
           statusPageId,
           revoke: {
             sessionId: session.id,
-            reason: "Refresh token expired",
+            reason: STATUS_PAGE_SESSION_REFRESH_TOKEN_EXPIRED_REASON,
           },
           message: "Session expired. Please login again.",
         });
@@ -1165,6 +1233,7 @@ router.post(
         req,
         res,
         user,
+        signInMethod: SignInMethod.SignInLink,
       });
 
       // Who signed in - their id, address and page - and nothing else.
@@ -1275,6 +1344,7 @@ router.post(
           req,
           res,
           user: alreadySavedUser,
+          signInMethod: SignInMethod.Password,
         });
 
         const sanitizedUser: StatusPagePrivateUser | null =

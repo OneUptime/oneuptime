@@ -67,6 +67,7 @@ import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 
 /*
  * Docs overhaul task 19: the Slack, Microsoft Teams and Video Calls pages,
@@ -402,8 +403,6 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   [VIDEO]: [...PROVIDER_CONSOLES, ...BRANDS, ...CALL_MESSAGE_BUTTONS],
   [BUILDING]: [],
   [ON_SUBMIT]: [
-    // A workflow component, as the workflow builder names it.
-    "On Create Incident",
     // A state's name as the project stores it.
     "Scheduled",
     // The private note, word for word as the server writes it.
@@ -412,6 +411,15 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Application Outage",
   ],
   [SHARING]: [...PLANS],
+};
+
+/*
+ * A record step a page names, which the workflow builder draws as the
+ * sentence it was built from, in the reader's words (#8642): a page names it
+ * so (drawnStepName, #8708).
+ */
+const RECORD_STEPS: Record<string, Array<string>> = {
+  [ON_SUBMIT]: ["On Create Incident"],
 };
 
 /*
@@ -1445,6 +1453,7 @@ describe("the lists this test keeps", () => {
         ...keysOf(ACCOUNTS_LABELS, page),
         ...listed(PROSE, page),
         ...listed(PROSE_LEADS, page),
+        ...listed(RECORD_STEPS, page),
       ];
       const unlisted: Array<string> = boldLabels(englishPage(page)).filter(
         (span: string): boolean => {
@@ -1776,6 +1785,18 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
       ];
 
       expect(missing).toEqual([]);
+    });
+
+    it("names a record step as this language's workflow builder draws it", () => {
+      const translated: string = readPage(language, entry.page);
+
+      for (const step of listed(RECORD_STEPS, entry.page)) {
+        expect(boldLabels(englishPage(entry.page))).toContain(step);
+        expect({ step, named: true }).toEqual({
+          step,
+          named: translated.includes(`**${drawnStepName(language, step)}**`),
+        });
+      }
     });
 
     it("keeps in English what stays English: roles, permissions, plans, other apps' and consoles' names", () => {

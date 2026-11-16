@@ -6,7 +6,7 @@ Hjem er den første siden du ser i et prosjekt. Den viser med et blikk om noe tr
 - [Hva Hjem viser](#hva-hjem-viser): Om noe er galt, hva som trenger deg, hva prosjektet inneholder og alle produktene.
 - [Finn frem](#finn-frem): Menyen Produkter og linjene øverst på hver side.
 - [Søk](#søk-etter-en-side-en-innstilling-eller-en-handling): Finn enhver side, innstilling eller handling ved å skrive navnet.
-- [Hurtigtaster](#hurtigtaster): Gå til Hjem, Overvåkere eller Hendelser med to taster.
+- [Hurtigtaster](#hurtigtaster): Gå til Hjem, Monitorer eller Hendelser med to taster.
 :::
 
 ## Hva Hjem viser
@@ -38,7 +38,7 @@ Linjen øverst nevner det mest presserende som er åpent, i en farge som passer:
 
 Ved siden av sier Hjem når den sist leste prosjektet, og **Oppdater** leser det på nytt. Når du kommer tilbake til en fane med Hjem etter ett minutt eller mer, oppdaterer den seg selv.
 
-Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din første overvåker**, som åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**. Bare de som har lov til å opprette monitorer, ser den.
+Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din første monitor**, som åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**. Bare de som har lov til å opprette monitorer, ser den.
 
 ### De fem tallene
 
@@ -56,18 +56,18 @@ Et tall over null viser **Krever oppmerksomhet**, eller **Pågår** og **Budsjet
 
 ### Velkomstsjekklisten
 
-Første gang en Prosjekteier eller Prosjektadministrator åpner Hjem i et nytt prosjekt, spør kortet **Hva vil du gjøre først?** Kryss av for ett eller flere mål, for eksempel **Vite når nettstedet eller API-et mitt er nede** eller **Jeg ser meg bare rundt**, og klikk på **Fortsett**: sjekklisten inneholder da stegene disse målene trenger. **Hopp over** gir de fire stegene alle prosjekter får. For å svare på nytt senere klikker du på **Endre** i sjekklisten. Et prosjekt som allerede bruker overvåkere, telemetri eller vakt, blir ikke spurt.
+Første gang en Prosjekteier eller Prosjektadministrator åpner Hjem i et nytt prosjekt, spør kortet **Hva vil du gjøre først?** Kryss av for ett eller flere mål, for eksempel **Vite når nettstedet eller API-et mitt er nede** eller **Jeg ser meg bare rundt**, og klikk på **Fortsett**: sjekklisten inneholder da stegene disse målene trenger. **Hopp over** gir de fire stegene alle prosjekter får. For å svare på nytt senere klikker du på **Endre** i sjekklisten. Et prosjekt som allerede bruker monitorer, telemetri eller vakt, blir ikke spurt.
 
 Hvert steg krysser seg selv av når tingen virker, ikke når en post finnes, og alle som setter opp prosjektet ser den samme listen, på alle enheter:
 
 | Steg | Fullført når | Åpner |
 | --- | --- | --- |
 | **Importer fra verktøyet du bruker nå** | En import fra et annet verktøy er fullført. | **Importer fra et annet verktøy** |
-| **Opprett din første overvåker** | Den første sjekken kommer inn. | Det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**, eller listen **Monitorer** for den som ikke kan opprette overvåkere. |
+| **Opprett din første monitor** | Den første sjekken kommer inn. | Det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**, eller listen **Monitorer** for den som ikke kan opprette monitorer. |
 | **Koble til en server eller en klynge** | De første målingene kommer inn. | **Verter** |
 | **Send de første loggene, målingene eller sporene dine** | Prosjektets første logger, målinger, spor, unntak eller profiler kommer inn. | Det veiledede oppsettet **Send logger, målinger og spor, og få deretter varsler** |
 | **Sett opp en vaktpolicy** | Et testvarsel blir kvittert, et varsel når noen, eller en vaktregel kjører en policy som kan nå noen. | Det veiledede oppsettet **Varsle rett person når noe går ned** |
-| **Publiser en statusside** | En statusside viser en overvåker. | Det veiledede oppsettet **Publiser en statusside**, eller listen **Statussider** for den som ikke kan opprette statussider. |
+| **Publiser en statusside** | En statusside viser en monitor. | Det veiledede oppsettet **Publiser en statusside**, eller listen **Statussider** for den som ikke kan opprette statussider. |
 | **Inviter teamet ditt** | Noen godtar invitasjonen din. | **Brukere** |
 
 Steget du skal ta først, er merket med **Neste steg**. På Free-abonnementet i OneUptime Cloud, som har én person, sier **Inviter teamet ditt** at det trenger Growth-abonnementet, og åpner **Fakturering**. På en selvhostet server som ennå ikke kan sende e-post, ser serverens administratorer først **Denne serveren kan ikke sende e-post ennå**; det åpner administrasjonsdashbordet.
@@ -99,7 +99,7 @@ Når noe i prosjektets oppsett ville hindre at folk blir varslet, slutter **Krev
 
 ### Prosjektet ditt
 
-**Prosjektet ditt** teller prosjektets **Monitorer**, **Statussider**, **Vaktretningslinjer**, **SLOs**, **Tjenester**, **Dashbord** og **Arbeidsflyter**, uten de arkiverte. Hver rad åpner listen sin. En type som prosjektet ikke har noen av, viser **Konfigurer** i stedet for et tall.
+**Prosjektet ditt** teller prosjektets **Monitorer**, **Statussider**, **Vaktpolicyer**, **SLOs**, **Tjenester**, **Dashbord** og **Arbeidsflyter**, uten de arkiverte. Hver rad åpner listen sin. En type som prosjektet ikke har noen av, viser **Konfigurer** i stedet for et tall.
 
 **Kommende vedlikehold** viser de neste tre planlagte vedlikeholdsvinduene, det tidligste først. Den utelates når ingenting er planlagt.
 
@@ -109,7 +109,7 @@ Når noe i prosjektets oppsett ville hindre at folk blir varslet, slutter **Krev
 
 ## Finn frem
 
-Alt i OneUptime ligger under **Produkter** i topplinjen. Menyen viser gruppene sine som radene i én liste, og åpner alltid med den første av dem, det grunnleggende, utvidet: Overvåkere, Hendelser, Varsler, Vakt, Statussider, Planlagt vedlikehold og SLOs. Hver annen gruppe (Observerbarhet, Sikkerhet, AI, Kode, Ressurser, Infrastruktur, Sky, Dashbord og automatisering og Innstillinger) er slått sammen til en rad i den samme listen. Hver rad nevner produktene i gruppen og sier hvor mange det er. Klikk på en rad for å utvide eller slå den sammen, eller gå til den med piltastene og trykk **Enter**.
+Alt i OneUptime ligger under **Produkter** i topplinjen. Menyen viser gruppene sine som radene i én liste, og åpner alltid med den første av dem, det grunnleggende, utvidet: Monitorer, Hendelser, Varsler, Vakt, Statussider, Planlagt vedlikehold og SLOs. Hver annen gruppe (Observerbarhet, Sikkerhet, AI, Kode, Ressurser, Infrastruktur, Sky, Dashbord og automatisering og Innstillinger) er slått sammen til en rad i den samme listen. Hver rad nevner produktene i gruppen og sier hvor mange det er. Klikk på en rad for å utvide eller slå den sammen, eller gå til den med piltastene og trykk **Enter**.
 
 - **Søk finner alt.** Skriv i menyens søkefelt for å finne ethvert produkt etter navn, etter hva det gjør, eller etter et kjent ord som `k8s` eller `RUM`. Søket ser også inni de sammenslåtte gruppene.
 - **Du starter der du er.** Gruppen til siden du er på, utvides av seg selv, og produktene du nylig har åpnet, står øverst.
@@ -148,7 +148,7 @@ Over tittelen på hver side viser et spor som *Prosjekt › Docker › Innstilli
 
 Trykk **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klikk på søkeikonet i topplinjen, og begynn å skrive. Søket finner:
 
-- **Hver side i menyene**, under navnet menyen gir den: API-nøkler, Faresone, Vaktplaner, Hendelsesalvor, dine egne Varselmetoder. Hvert resultat sier hvor det ligger, for eksempel *Prosjektinnstillinger › Avansert*, slik at sider med samme navn (Egendefinerte felt under Hendelser, Varsler og Monitorer) er lette å skille fra hverandre.
+- **Hver side i menyene**, under navnet menyen gir den: API-nøkler, Faresone, Vaktplaner, Hendelsesalvor, dine egne Varslingsmetoder. Hvert resultat sier hvor det ligger, for eksempel *Prosjektinnstillinger › Avansert*, slik at sider med samme navn (Egendefinerte felt under Hendelser, Varsler og Monitorer) er lette å skille fra hverandre.
 - **Innstillingene på en side**, under navnet kortet eller bryteren deres viser: *Krev SSO for innlogging* finner SSO, og *Egendefinerte SMTP-konfigurasjoner* finner Varslingskanaler. Skriv navnet på engelsk eller på ditt eget språk.
 - **Handlinger**, etter hva du vil gjøre: Erklær hendelse, Opprett monitor eller Delete Project, som åpner Faresone. En handling som endrer noe, tilbys bare dem som har lov til å utføre den.
 - **Monitorene, hendelsene, varslene, statussidene og vaktpolicyene dine**, etter navn, og hendelser og varsler også etter nummer, for eksempel `INC-42`. Hvert resultat for en hendelse eller et varsel begynner med nummeret, så to med samme tittel kan skilles fra hverandre.
@@ -157,7 +157,7 @@ Trykk **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klikk på søke
 Søket leser det du skriver slik du mener det:
 
 - Store og små bokstaver, aksenter, mellomrom og bindestreker spiller ingen rolle: *on-call*, *on call* og *oncall* finner de samme sidene, og ordene kan stå i hvilken som helst rekkefølge.
-- Det kjenner andre ord for mange sider, på engelsk: *pager* eller *escalation* for Vaktretningslinjer, *rota* for Vaktplaner, *2fa* for totrinnsbekreftelse, *delete project* for Faresone.
+- Det kjenner andre ord for mange sider, på engelsk: *pager* eller *escalation* for Vaktpolicyer, *rota* for Vaktplaner, *2fa* for tofaktorautentisering, *delete project* for Faresone.
 - Legg til produktets navn for å snevre inn et søk: *incident custom fields* finner siden Egendefinerte felt under Hendelser.
 - En liten skrivefeil, som *incidnet*, finner likevel det du mente når ingenting treffer slik det er skrevet.
 
@@ -182,7 +182,7 @@ Trykk `g` og deretter en bokstav for å gå rett til et produkt. Trykk bokstaven
 | Taster | Går til |
 | --- | --- |
 | `g` deretter `h` | Hjem |
-| `g` deretter `m` | Overvåkere |
+| `g` deretter `m` | Monitorer |
 | `g` deretter `i` | Hendelser |
 | `g` deretter `a` | Varsler |
 | `g` deretter `o` | Vakt |

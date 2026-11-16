@@ -22,6 +22,7 @@ import {
   getEventErrorBudget,
   getRequestCountingWindowFill,
   getSettledRequestStepEnd,
+  isEventSliType,
   isRequestSliType,
   listRequestStepStarts,
   planRequestCounting,
@@ -609,5 +610,29 @@ describe("request budget words", () => {
         remainingEvents: Number.POSITIVE_INFINITY,
       }),
     ).toBe("");
+  });
+});
+
+/*
+ * An SLO counted in events (#8445): a request SLO from traces, or a Metric
+ * SLO from a metric. Its budget is in events, never minutes.
+ */
+describe("isEventSliType", () => {
+  test("is a request SLI or a metric, never monitor uptime", () => {
+    expect(isEventSliType(SliType.RequestSuccess)).toBe(true);
+    expect(isEventSliType(SliType.RequestLatency)).toBe(true);
+    expect(isEventSliType(SliType.Metric)).toBe(true);
+    expect(isEventSliType(SliType.MonitorUptime)).toBe(false);
+    expect(isEventSliType(undefined)).toBe(false);
+    expect(isEventSliType(null)).toBe(false);
+  });
+
+  test("a Metric SLO's budget is in bad events, in the singular or the plural", () => {
+    expect(
+      formatRequestBudget({ sliType: SliType.Metric, remainingEvents: 1234 }),
+    ).toBe("1,234 bad events");
+    expect(
+      formatRequestBudget({ sliType: SliType.Metric, remainingEvents: 1 }),
+    ).toBe("1 bad event");
   });
 });

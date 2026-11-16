@@ -169,6 +169,7 @@ import {
   AZURE_MONITOR_OPEN_RESOURCE,
   AZURE_MONITOR_SECTION_TITLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AppPlatforms/CloudAppAzureMonitorCard";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const MINUTE_MS: number = 60 * 1000;
 const APP_ID: string = "76000000-0000-4000-8000-000000000001";
@@ -520,7 +521,7 @@ describe("once the subscription is connected", () => {
     expect(tileOf(tiles, "Response time").value).toBe("250\u00A0ms");
     // 90 s of CPU reads as a duration, not "90.00 s".
     expect(tileOf(tiles, "CPU time").value).toBe("1m 30s");
-    expect(tileOf(tiles, "Memory").value).toBe("512 MiB");
+    expect(tileOf(tiles, "Memory").value).toBe("512\u00A0MiB");
 
     // Read under the names the connection stores them by.
     expect(new Set(mockReads.metricNames)).toEqual(
@@ -715,7 +716,7 @@ describe("an app that sends traces, names its instances and its version", () => 
 
     expect(requests).toEqual(
       expect.objectContaining({
-        value: "—",
+        value: QUIET_DASH_TEXT,
         note: null,
         sublabel: "could not load",
       }),

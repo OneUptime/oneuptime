@@ -125,11 +125,11 @@ Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e
 
 ### Verificare che la notifica stia scattando
 
-Fai clic su **Aggiungi componente**, aggiungi un blocco **If / Else** e collegaci il punto **Uscita** del trigger. Imposta **Valore da verificare** su `{{local.components.webhook-1.returnValues.request-body.status}}`, **Confronto** su **è uguale a** e **Confronta con** su `firing`.
+Fai clic su **Aggiungi componente**, aggiungi un blocco **Se / Altrimenti** e collegaci il punto **Uscita** del trigger. Imposta **Valore da verificare** su `{{local.components.webhook-1.returnValues.request-body.status}}`, **Confronto** su **è uguale a** e **Confronta con** su `firing`.
 
 ### Dichiarare l'incidente
 
-Aggiungi un blocco **Create One Incident** e collegaci il lato **Sì** del blocco **If / Else**. In **Modello di incidente**, scegli un modello che imposti la gravità e le policy di reperibilità da chiamare (vedi [Modelli di incidenti](/docs/incidents/settings#modelli-di-incidenti)). In **JSON Object**, imposta ciò che arriva da Grafana:
+Aggiungi un blocco **Crea: Incidente (un record)** e collegaci il lato **Sì** del blocco **Se / Altrimenti**. In **Modello di incidente**, scegli un modello che imposti la gravità e le policy di reperibilità da chiamare (vedi [Modelli di incidenti](/docs/incidents/settings#modelli-di-incidenti)). In **Oggetto JSON**, imposta ciò che arriva da Grafana:
 
 ```json
 {
@@ -138,14 +138,14 @@ Aggiungi un blocco **Create One Incident** e collegaci il lato **Sì** del blocc
 }
 ```
 
-Senza un modello, **JSON Object** deve contenere anche `incidentSeverityId`, l'ID di una delle gravità d'incidente del progetto.
+Senza un modello, **Oggetto JSON** deve contenere anche `incidentSeverityId`, l'ID di una delle gravità d'incidente del progetto.
 
 ### Attivare il flusso di lavoro
 
 Attiva **Abilitato** in cima al **Costruttore**. Un flusso di lavoro disattivato risponde a Grafana con `400`.
 :::
 
-Un'esecuzione gestisce una notifica, quindi dichiara un solo incidente, qualunque sia il numero di avvisi della notifica. Una notifica `resolved` prende il lato **No** del blocco **If / Else**, dove non è collegato nulla, quindi l'esecuzione finisce lì. Per un incidente per avviso, risolto al rientro, usa il monitor.
+Un'esecuzione gestisce una notifica, quindi dichiara un solo incidente, qualunque sia il numero di avvisi della notifica. Una notifica `resolved` prende il lato **No** del blocco **Se / Altrimenti**, dove non è collegato nulla, quindi l'esecuzione finisce lì. Per un incidente per avviso, risolto al rientro, usa il monitor.
 
 ## Risoluzione dei problemi
 
@@ -166,7 +166,7 @@ Hai raggruppato per un'etichetta che è uguale per tutti gli avvisi di una notif
 :::
 
 :::details L'incidente mostra un riferimento invece di un valore
-Un riferimento a un campo che la notifica non ha viene lasciato com'è scritto, parentesi graffe comprese. Confronta il nome del campo con ciò che ha inviato Grafana: per un flusso di lavoro, apri l'esecuzione in **Registri → Esecuzioni** e confrontala con ciò che ha ricevuto il trigger.
+Un riferimento a un campo che la notifica non ha viene lasciato com'è scritto, parentesi graffe comprese. Confronta il nome del campo con ciò che ha inviato Grafana: per un flusso di lavoro, apri l'esecuzione in **Log → Esecuzioni** e confrontala con ciò che ha ricevuto il trigger.
 :::
 
 La guida di [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#risoluzione-dei-problemi) copre altri casi, e valgono anche per le notifiche di Grafana.

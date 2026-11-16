@@ -129,6 +129,7 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
         title={translator.translateTemplate("Importing {{itemsName}}", {
           itemsName: translatableTerm(pluralName),
         })}
+        isTitleTranslated={true}
         description={translator.translateTemplate(
           "Please wait while your {{itemsName}} are being imported.",
           { itemsName: translatableTerm(pluralName, { inSentence: true }) },
@@ -228,6 +229,7 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
         template: "Import {{itemsName}}",
         itemName: pluralName,
       })}
+      isTitleTranslated={true}
       description={translator.translateTemplate(
         "Upload a {{itemName}} JSON export, or paste it below, to create new {{itemsName}} here. Owners, labels and linked resources are not included.",
         {

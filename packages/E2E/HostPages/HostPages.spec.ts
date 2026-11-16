@@ -4,7 +4,9 @@ import fsPromises from "fs/promises";
 import path from "path";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * The Hosts product's pages, in a browser, against the offline fixture
@@ -640,9 +642,9 @@ test.describe("the Hosts list", () => {
       // German's own percent, as the tiles write theirs (#7106).
       fill(GERMAN, "{{mount}} {{percent}} full", {
         mount: "/var/lib/postgresql",
-        percent: "96\u00A0%",
+        percent: withUnit(96, "%"),
       }),
-      fill(GERMAN, "Memory {{percent}} used", { percent: "92\u00A0%" }),
+      fill(GERMAN, "Memory {{percent}} used", { percent: withUnit(92, "%") }),
     ]);
     await expect(
       attentionRow(card, HOST_IDS["web03"]!).getByTestId(
@@ -1186,7 +1188,7 @@ test.describe("a host's Overview", () => {
       (await page.getByText(upSince.trim()).first().textContent()) || "",
     );
     expect(uptime).toBe(
-      fill(PERSIAN, "Up {{duration}}", { duration: "۴۱ روز" }),
+      fill(PERSIAN, "Up {{duration}}", { duration: withUnit("۴۱", "روز") }),
     );
     expect(uptime).not.toMatch(LATIN_DIGIT);
     const interval: Locator = page.getByRole("combobox", {
@@ -1196,7 +1198,11 @@ test.describe("a host's Overview", () => {
       withoutIsolateMarks(
         (await interval.locator("option:checked").textContent()) || "",
       ),
-    ).toBe(fill(PERSIAN, "Every {{interval}}", { interval: "۳۰ ثانیه" }));
+    ).toBe(
+      fill(PERSIAN, "Every {{interval}}", {
+        interval: withUnit("۳۰", "ثانیه"),
+      }),
+    );
     for (const option of await interval.locator("option").allTextContents()) {
       expect(option).not.toMatch(LATIN_DIGIT);
     }
@@ -1207,4 +1213,18 @@ test.describe("a host's Overview", () => {
     await expectNoSidewaysScroll(page);
     await screenshot(page, "host-overview-persian-phone");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? HOSTS_PATH : `${HOSTS_PATH}?lang=${language}`;
+  },
 });

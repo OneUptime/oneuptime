@@ -102,6 +102,8 @@ const SourceLink: FunctionComponent<{
     <Link
       to={props.route}
       title={props.hint}
+      // Each hint is worded by the section, so the link draws it as given.
+      isTitleTranslated={true}
       dataTestId={props.testId}
       className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
     >

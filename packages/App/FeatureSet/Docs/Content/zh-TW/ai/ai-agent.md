@@ -274,7 +274,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 | **全域 Runner** | 撰寫變更並開啟拉取請求，但不建置也不測試它：由你的儲存庫自己的 CI 檢查這次變更。 |
 | 你的某個 Runner | 還會在你掌控的主機上，依儲存庫的 `AGENTS.md` 所說的方式建置並測試這次變更。 |
 
-只有儲存庫工作所在的 Runner 才會收到它的任務和它的權杖。在 **運行手冊 → Runbook 代理程式** 下關閉 **使用全域 Runner** 的專案中，每個儲存庫都需要專案自己的某個 Runner：儲存庫選擇的 Runner，或專案的預設 Runner。Runner 的頁面會列出在它上面工作的儲存庫。
+只有儲存庫工作所在的 Runner 才會收到它的任務和它的權杖。在 **運行手冊 → Runner** 下關閉 **使用全域 Runner** 的專案中，每個儲存庫都需要專案自己的某個 Runner：儲存庫選擇的 Runner，或專案的預設 Runner。Runner 的頁面會列出在它上面工作的儲存庫。
 
 ### 執行你自己的 Runner
 
@@ -283,7 +283,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 :::steps
 ### 建立 Runner
 
-在 **運行手冊 → Runbook 代理程式** 下建立一個 Runner，然後點選它所在列的 **顯示設定說明**。該命令中嵌有 Runner 的秘密金鑰，只有專案擁有者、專案管理員或操作手冊管理員可以讀取。它看起來像這樣：
+在 **運行手冊 → Runner** 下建立一個 Runner，然後點選它所在列的 **顯示設定說明**。該命令中嵌有 Runner 的秘密金鑰，只有專案擁有者、專案管理員或運行手冊管理員可以讀取。它看起來像這樣：
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \
@@ -299,7 +299,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 檢查它是否已連線
 
-一兩分鐘內，Runner 會在 **運行手冊 → Runbook 代理程式** 頁面上顯示為已連線。如果沒有，請查看容器的日誌（`docker logs oneuptime-runner`），找出憑證或網路錯誤。
+一兩分鐘內，Runner 會在 **運行手冊 → Runner** 頁面上顯示為已連線。如果沒有，請查看容器的日誌（`docker logs oneuptime-runner`），找出憑證或網路錯誤。
 :::
 
 任何執行容器的方式都可以（Docker Compose、Kubernetes 等），只要它有這些變數，並且能透過 HTTPS 連到你的 OneUptime 執行個體：
@@ -353,5 +353,5 @@ heartbeat 沉默超過 12 分鐘的執行，如果什麼都沒有推送、任務
 :::cards
 - [GitHub App](/docs/ai/github-app): 直接在 GitHub 中請求變更、修訂或審查。
 - [AI SRE](/docs/ai/ai-sre): 修正任務可以把其分析變成拉取請求的調查。
-- [Runbook 代理程式](/docs/runbooks/agents): 執行每次修正執行的 worker。
+- [Runner](/docs/runbooks/agents): 執行每次修正執行的 worker。
 :::

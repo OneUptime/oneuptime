@@ -46,6 +46,7 @@ import {
   placeholdersOf,
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
+import { withNumbersKeptWithUnits } from "../../../Types/NoBreakSpaces";
 
 /*
  * A RUN THAT DID NOT FINISH, AND ITS ATTEMPTS, IN THE READER'S LANGUAGE
@@ -61,7 +62,7 @@ import {
 
 // Every word the retries, the attempts and Try again added to the Dashboard.
 const WORDS: Array<string> = [
-  "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
+  "A Project Owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
   "Add an LLM provider in Project Settings > AI > LLM Providers, then try again.",
   "Attempt {{number}}",
   "Attempt {{number}} of {{count}}",
@@ -129,6 +130,13 @@ function word(words: Record<string, string>, key: string): string {
   });
 
   return value!;
+}
+
+// The wording as the Translator sets it, a duration's figure held to its word (#8770).
+function drawnWord(words: Record<string, string>, key: string): string {
+  return withNumbersKeptWithUnits(word(words, key), key, {
+    durationWords: true,
+  });
 }
 
 interface StepEvent {
@@ -449,7 +457,10 @@ describe("the failure's words, by language", () => {
     expect(describeAttemptEnd(TIMED_OUT, dashboardTranslator("de"))).toBe(
       fill(word(DE, "Did not finish: {{cause}} Trying again at {{time}}."), {
         cause: fill(
-          word(DE, "The LLM provider did not answer within {{count}} seconds."),
+          drawnWord(
+            DE,
+            "The LLM provider did not answer within {{count}} seconds.",
+          ),
           { count: "120" },
         ),
         time: "14:05",
@@ -536,7 +547,7 @@ describe("the failure's words, in Arabic", () => {
         },
         arabic,
       ).whatHappened,
-    ).toBe("لم يُجب موفّر LLM خلال 120 ث.");
+    ).toBe("لم يُجب موفّر LLM خلال 120\u00A0ث.");
   });
 
   test("the notice's heading, its buttons and its links to the settings are Arabic too", () => {
@@ -559,7 +570,10 @@ describe("the failure's words, in Arabic", () => {
     expect(describeAttemptEnd(TIMED_OUT, arabic)).toBe(
       fill(word(AR, "Did not finish: {{cause}} Trying again at {{time}}."), {
         cause: fill(
-          word(AR, "The LLM provider did not answer within {{count}} seconds."),
+          drawnWord(
+            AR,
+            "The LLM provider did not answer within {{count}} seconds.",
+          ),
           { count: "120" },
         ),
         time: "14:05",

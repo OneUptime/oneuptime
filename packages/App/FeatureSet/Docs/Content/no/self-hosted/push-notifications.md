@@ -1,4 +1,4 @@
-# Push-varsler
+# Push-varslinger
 
 OneUptime varsler folk på telefonen via mobilappen **OneUptime On-Call**, og i nettleseren via Web Push. Mobile pusher går gjennom **Expo Push**: En selvhostet instans sender dem som standard gjennom push-reléet til OneUptime, så den trenger utgående nettverkstilgang til reléet og ingen egne påloggingsdetaljer for Expo, Apple eller Google.
 
@@ -33,9 +33,9 @@ flowchart TB
     PushService --> Browser
 ```
 
-Mobilappen til OneUptime registrerer et Expo Push-token hos backend. Backend sender varsler gjennom push-reléet til OneUptime, eller direkte til Expo når `EXPO_ACCESS_TOKEN` er konfigurert. Expo videresender meldingene til Apple APNs eller Google FCM for levering til enheten.
+Mobilappen til OneUptime registrerer et Expo Push-token hos backend. Backend sender varslinger gjennom push-reléet til OneUptime, eller direkte til Expo når `EXPO_ACCESS_TOKEN` er konfigurert. Expo videresender meldingene til Apple APNs eller Google FCM for levering til enheten.
 
-Web Push-varsler bruker fortsatt VAPID-nøkler og Web Push-protokollen.
+Web Push-varslinger bruker fortsatt VAPID-nøkler og Web Push-protokollen.
 
 ## Selvhostet oppsett
 
@@ -108,13 +108,13 @@ En selvhostet OneUptime-server videresender pusher for andre servere bare med `P
 
 For Web Push tillater du de faktiske vertene for abonnementsendepunktene til nettleserne teamet ditt bruker. OneUptime godtar `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` og `push.apple.com`, inkludert underdomenene deres. Typiske eksempler er `updates.push.services.mozilla.com` og `web.push.apple.com`. [Nettleserens push-abonnement](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) gir målet; å tillate bare Expo eller reléet til OneUptime gjør ikke Web Push mulig.
 
-Tillat DNS-oppslag og utgående TLS fra OneUptime-prosessen som sender varsler. Klareringslageret dens må validere sertifikatet til målet, og proxyer må slippe API-forespørsler gjennom uten interaktiv autentisering. Push-leverandører kaller ingen webhook på OneUptime-serveren din, så serveren kan forbli privat når brukernes enheter når den via en VPN eller en annen privat tilkobling. En server uten tilgang til reléet sitt eller eksterne push-tjenester kan ikke levere disse varslene.
+Tillat DNS-oppslag og utgående TLS fra OneUptime-prosessen som sender varslinger. Klareringslageret dens må validere sertifikatet til målet, og proxyer må slippe API-forespørsler gjennom uten interaktiv autentisering. Push-leverandører kaller ingen webhook på OneUptime-serveren din, så serveren kan forbli privat når brukernes enheter når den via en VPN eller en annen privat tilkobling. En server uten tilgang til reléet sitt eller eksterne push-tjenester kan ikke levere disse varslingene.
 
 Enhetenes tilkobling er et eget krav. iOS-enheter trenger tilgang til APNs, vanligvis TCP 5223 med TCP 443 som reserve; se [Apples gjeldende nettverkskrav](https://support.apple.com/en-us/102266) for målområder. Android-enheter trenger tilgang til FCM på TCP 5228–5230 og 443; bruk [Googles gjeldende veiledning om verter og brannmurer](https://firebase.google.com/docs/cloud-messaging/network-configuration). Disse enhetsportene trenger ikke åpnes innkommende på OneUptime, og serverens mobile flyt bruker reléet eller Expo i stedet for å koble seg direkte til APNs/FCM.
 
 :::steps
-1. Kontroller DNS og HTTPS fra containeren eller poden som sender varsler, til målet for leveringsmåten din: reléet, Expo eller push-tjenesten til en nettleser.
-2. Send en test fra **Brukerinnstillinger > Varselmetoder > Push-varsler** med **Testvarsel**, og bekreft at den kommer frem til en registrert enhet. Test hver nettleser for seg for Web Push.
+1. Kontroller DNS og HTTPS fra containeren eller poden som sender varslinger, til målet for leveringsmåten din: reléet, Expo eller push-tjenesten til en nettleser.
+2. Send en test fra **Brukerinnstillinger > Varslingsmetoder > Push-varslinger** med **Testvarsling**, og bekreft at den kommer frem til en registrert enhet. Test hver nettleser for seg for Web Push.
 3. Se etter feil fra reléet, Expo eller Web Push i loggene til OneUptime; en vellykket innsending til API-et alene bekrefter ikke levering på enheten.
 :::
 
@@ -122,13 +122,13 @@ For mobile pusher leser OneUptime også leveringskvitteringen fra Expo omtrent 1
 
 ## Slå av push for hele serveren
 
-Hvis ingenting får forlate nettverket ditt gjennom Expo, push-reléet eller push-tjenesten til en nettleser, kan en hovedadministrator slå av push i **Admin Dashboard > Innstillinger > Push-varsler**: Slå av **Send push notifications**, og bekreft.
+Hvis ingenting får forlate nettverket ditt gjennom Expo, push-reléet eller push-tjenesten til en nettleser, kan en hovedadministrator slå av push i **Admin Dashboard > Innstillinger > Push-varslinger**: Slå av **Send push notifications**, og bekreft.
 
 Mens push er slått av:
 
 - Ingenting pushes til telefoner eller nettlesere, i noe prosjekt.
-- Ingen enhet kan registreres. Fanen **Push-varsler** til hver person under **Brukerinnstillinger > Varselmetoder** sier at push er slått av, og vaktregler tilbyr ingen push-enheter.
-- Et varsel gjennom en push-regel sendes ikke. Vaktloggen til personen sier `Push notification not sent: Push notifications are turned off on this server.`
+- Ingen enhet kan registreres. Fanen **Push-varslinger** til hver person under **Brukerinnstillinger > Varslingsmetoder** sier at push er slått av, og vaktregler tilbyr ingen push-enheter.
+- En varsling gjennom en push-regel sendes ikke. Vaktloggen til personen sier `Push notification not sent: Push notifications are turned off on this server.`
 - Beredskapen teller push-enheter som ubrukelige, og reserveløsningen hopper over dem. Den som bare har en push-enhet som verifisert metode, vises som utilgjengelig.
 
 For fortsatt å nå folk på telefonen kan du legge til en [egendefinert kanal](/docs/self-hosted/custom-notification-channels) for din egen app eller gateway. Hver OneUptime-server leser bryteren på nytt innen 10 sekunder etter en endring. Når push slås på igjen, registreres enhetene på nytt fra mobilappen neste gang den starter, eller fra nettleseren.
@@ -137,7 +137,7 @@ For fortsatt å nå folk på telefonen kan du legge til en [egendefinert kanal](
 
 Som standard følger en push-varsling telefonen: En telefon på lydløs forblir stille, og Ikke forstyrr holder varslingen tilbake. For den som har vakt, er det feil standard klokka tre om natta, så mobilappen tilbyr en innstilling per enhet – **Settings > Notifications > Critical On-Call Alerts** – som lar *bare vaktvarsler* spille av en lyd gjennom begge.
 
-Omfanget er bevisst smalt. Bare varsler som en varslingsregel for vakt lager, er aktuelle. Eierabonnementer, meldinger om nye notater, oppdateringer om tilstandsendringer og monitorvarsler eskaleres aldri, uansett hva denne innstillingen sier.
+Omfanget er bevisst smalt. Bare varslinger som en varslingsregel for vakt lager, er aktuelle. Eierabonnementer, meldinger om nye notater, oppdateringer om tilstandsendringer og monitorvarslinger eskaleres aldri, uansett hva denne innstillingen sier.
 
 ```mermaid title="Når et vaktvarsel ringer gjennom lydløs modus"
 flowchart TB
@@ -160,7 +160,7 @@ Fire ting må alle være oppfylt for at et varsel skal overstyre lydløs modus. 
 
 1. **Personen har slått det på for den enheten.** Lagret per enhet, av som standard, i `UserPush.isCriticalAlertEnabled`. Telefonen og nettbrettet til en person er separate valg. Versjoner av appen nyere enn 1.6.0 rapporterer det på nytt hver gang de åpnes, som slått av så lenge telefonens egne innstillinger ikke tillater kritiske varsler, slik at enhetslisten viser hva telefonen faktisk vil gjøre.
 2. **Vaktregelen som sendte varselet, ber om det.** Under **Brukerinnstillinger > Slik når man meg** står hver regel som varsler en telefon, på «Kritisk varsel», som er standard, eller på «Normal», som følger lydinnstillingene på telefonen – slik kan en person bli vekket av en kritisk hendelse og varslet stille om en mindre. Lagret per regel i `UserNotificationRule.pushNotificationLevel`.
-3. **Serveren merker varselet som kritisk.** Den sender den kritiske lyd-payloaden til APNs pluss `interruptionLevel: critical` for iOS, og bruker en kritisk varslingskanal for Android: `oncall_critical`, eller den valgte alarmens egen kanal (se [Velge alarmlyd](#velge-alarmlyd)).
+3. **Serveren merker varslingen som kritisk.** Den sender den kritiske lyd-payloaden til APNs pluss `interruptionLevel: critical` for iOS, og bruker en kritisk varslingskanal for Android: `oncall_critical`, eller den valgte alarmens egen kanal (se [Velge alarmlyd](#velge-alarmlyd)).
 4. **Operativsystemet tillater det**, og det er her de to plattformene skiller seg.
 
 :::tabs
@@ -191,30 +191,30 @@ To mekanismer er i spill, og de dekker ulike tilfeller:
 Android fryser innstillingene til en kanal når kanalen opprettes første gang, så de kan ikke endres med en appoppdatering – bare ved å levere en ny kanal-ID.
 :::
 
-For å sjekke at det virker, sender du et testvarsel til enheten fra **Brukerinnstillinger > Varselmetoder > Push-varsler**. Når enheten har kritiske varsler slått på, sendes også testen som et kritisk varsel – så sett telefonen på lydløs først, og du hører om et ekte varsel ville nådd deg. Den samme listen viser om hver enhet har kritiske varsler slått på, og for en telefon som ikke har det, hvordan du slår dem på.
+For å sjekke at det virker, sender du en testvarsling til enheten fra **Brukerinnstillinger > Varslingsmetoder > Push-varslinger**. Når enheten har kritiske varsler slått på, sendes også testen som et kritisk varsel – så sett telefonen på lydløs først, og du hører om et ekte varsel ville nådd deg. Den samme listen viser om hver enhet har kritiske varsler slått på, og for en telefon som ikke har det, hvordan du slår dem på.
 
 ### Velge alarmlyd
 
 Et kritisk varsel spiller telefonens egen lyd for kritiske varsler, med mindre personen velger en annen. I appen tilbyr **Settings > Notifications > Alarm sound**, som vises når Critical On-Call Alerts er slått på, fem kraftigere alarmer laget for å vekke folk: Klaxon, Siren, Digital alarm, Smoke alarm og Rising alarm, som starter svakt og blir stadig høyere. Hver av dem kan spilles av før den velges. Valget hører til enheten og lagres i `UserPush.criticalAlertSound`, og testvarselet spiller den også.
 
 - **iOS**: Varselet oppgir lyden, og iOS spiller den fra appen gjennom lydløs modus med lydstyrken som er valgt på samme skjerm: 25 %, 50 %, 75 % eller 100 %, som er standard. Lydstyrken lagres i `UserPush.criticalAlertVolume`.
-- **Android**: Hver alarm har sin egen varslingskanal (`oncall_critical_klaxon`, `oncall_critical_siren` og så videre), fordi Android fastsetter lyden til en kanal når kanalen opprettes. Serveren sender varselet på kanalen til den valgte alarmen, og den spilles med alarmvolumet på telefonen.
+- **Android**: Hver alarm har sin egen varslingskanal (`oncall_critical_klaxon`, `oncall_critical_siren` og så videre), fordi Android fastsetter lyden til en kanal når kanalen opprettes. Serveren sender varslingen på kanalen til den valgte alarmen, og den spilles med alarmvolumet på telefonen.
 
 En enhet beholder systemlyden til den kjører en versjon av appen som tilbyr valget, så en eldre app får aldri tilsendt en alarm den ikke har.
 
 ### Gjenta et varsel til det bekreftes
 
-En push-regel kan sende varselet sitt på nytt til noen bekrefter det. Under **Brukerinnstillinger > Slik når man meg** angir du **Gjenta til det bekreftes** når du legger til en push-regel, eller endrer det senere i regelens rad: hvert minutt, eller hvert 2., 3., 5., 10., 15. eller 30. minutt. Varselet sendes på nytt med det intervallet, høyst 10 ganger til, og stopper så snart hendelsen, varselet eller episoden er bekreftet. En tilkalling som fortsetter etter en bekreftelse, som en ny varsling, gjentas til noen den har tilkalt, svarer, eller hendelsen, varselet eller episoden er løst: [Når flere retningslinjer tilkaller](/docs/on-call/policies#når-flere-retningslinjer-tilkaller) nevner dem. Lagret per regel i `UserNotificationRule.repeatEveryMinutes`, der 0, som er standard, sender varselet én gang.
+En push-regel kan sende varselet sitt på nytt til noen bekrefter det. Under **Brukerinnstillinger > Slik når man meg** angir du **Gjenta til det bekreftes** når du legger til en push-regel, eller endrer det senere i regelens rad: hvert minutt, eller hvert 2., 3., 5., 10., 15. eller 30. minutt. Varselet sendes på nytt med det intervallet, høyst 10 ganger til, og stopper så snart hendelsen, varselet eller episoden er bekreftet. En tilkalling som fortsetter etter en bekreftelse, som en ny varsling, gjentas til noen den har tilkalt, svarer, eller hendelsen, varselet eller episoden er løst: [Når flere policyer tilkaller](/docs/on-call/policies#når-flere-policyer-tilkaller) nevner dem. Lagret per regel i `UserNotificationRule.repeatEveryMinutes`, der 0, som er standard, sender varselet én gang.
 
 ## Feilsøking
 
-### Push-varsler kommer ikke frem
+### Push-varslinger kommer ikke frem
 
-- Sørg for at mobilappen er bygget med EAS Build (Expo Go støtter ikke push-varsler)
+- Sørg for at mobilappen er bygget med EAS Build (Expo Go støtter ikke push-varslinger)
 - Kontroller at enheten er registrert i tabellen `UserPush` i databasen din
 - Sjekk serverloggene til OneUptime for feil fra Expo Push API
 - Bekreft at enheten har en aktiv internettforbindelse og at varslingstillatelser er slått på
-- Sjekk **Brukerinnstillinger > Varselmetoder > Push-varsler**: En enhet merket **Mottar ikke varsler** har sluttet å motta dem og må registreres på nytt (se nedenfor)
+- Sjekk **Brukerinnstillinger > Varslingsmetoder > Push-varslinger**: En enhet merket **Mottar ikke varslinger** har sluttet å motta dem og må registreres på nytt (se nedenfor)
 
 ### Ingen bryter for Critical Alerts i iOS-innstillingene
 
@@ -224,7 +224,7 @@ En push-regel kan sende varselet sitt på nytt til noen bekrefter det. Under **B
 
 ### Kritiske varsler overstyrer ikke lydløs modus
 
-- Sjekk at bryteren er på for **den** enheten – innstillingen gjelder per enhet, og en ny installasjon eller en ny telefon satt opp fra bunnen av oppretter en ny enhetsregistrering (en telefon satt opp fra en sikkerhetskopi av den gamle tar over registreringen til den gamle telefonen så snart den ikke lenger mottar varsler, med innstillingen appen hadde)
+- Sjekk at bryteren er på for **den** enheten – innstillingen gjelder per enhet, og en ny installasjon eller en ny telefon satt opp fra bunnen av oppretter en ny enhetsregistrering (en telefon satt opp fra en sikkerhetskopi av den gamle tar over registreringen til den gamle telefonen så snart den ikke lenger mottar varslinger, med innstillingen appen hadde)
 - Sjekk vaktregelen for den alvorlighetsgraden under **Brukerinnstillinger > Slik når man meg**: en push-regel på «Normal» følger lydinnstillingene på telefonen, uansett hva bryteren på enheten sier
 - **iOS**: Bekreft at bygget har Apples entitlement for kritiske varsler (se ovenfor), og at Critical Alerts er tillatt under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: Bekreft at appen har tilgang til Ikke forstyrr under Settings > Notifications > Do Not Disturb access
@@ -233,20 +233,20 @@ En push-regel kan sende varselet sitt på nytt til noen bekrefter det. Under **B
 
 ### Pusher merket «ikke levert»
 
-At Expo godtar en push, betyr ikke at den nådde enheten: Apple eller Google kan fortsatt avvise den. OneUptime leser leveringskvitteringen for hver mobil push omtrent 15 minutter etter sending, gjennom push-reléet når `EXPO_ACCESS_TOKEN` ikke er satt. Når kvitteringen melder en feil, endres push-loggen og vakttidslinjen til varselet fra sendt til **Push notification not delivered**, med feilkoden fra Expo:
+At Expo godtar en push, betyr ikke at den nådde enheten: Apple eller Google kan fortsatt avvise den. OneUptime leser leveringskvitteringen for hver mobil push omtrent 15 minutter etter sending, gjennom push-reléet når `EXPO_ACCESS_TOKEN` ikke er satt. Når kvitteringen melder en feil, endres push-loggen og vakttidslinjen til varslingen fra sendt til **Push notification not delivered**, med feilkoden fra Expo:
 
 - `DeviceNotRegistered`: Mobilappen er fjernet fra enheten, eller push-tokenet er ikke lenger gyldig. Se neste avsnitt.
-- `MessageRateExceeded`: Det ble sendt for mange varsler til enheten på kort tid. Senere pusher til den sendes som vanlig.
-- `MessageTooBig`: Varselet var større enn push-tjenester godtar. OneUptime forkorter varsler så de passer, så dette bør ikke skje; si fra hvis det gjør det.
+- `MessageRateExceeded`: Det ble sendt for mange varslinger til enheten på kort tid. Senere pusher til den sendes som vanlig.
+- `MessageTooBig`: Varslingen var større enn push-tjenester godtar. OneUptime forkorter varslinger så de passer, så dette bør ikke skje; si fra hvis det gjør det.
 - `InvalidCredentials` eller `MismatchSenderId`: Push-påloggingsdetaljene til Expo-prosjektet som sendte pushen, er ikke gyldige. Med `EXPO_ACCESS_TOKEN` sjekker du push-påloggingsdetaljene til Expo-prosjektet ditt; med standardreléet kontakter du støtten til OneUptime.
 
 Når Expo avviser en push med en gang, gir push-loggen årsaken umiddelbart. Gjennom push-reléet virker dette også: Reléet sender feilkoden fra Expo videre i stedet for å svare med en serverfeil.
 
 ### «DeviceNotRegistered»-feil i loggene
 
-Expo melder `DeviceNotRegistered` når mobilappen er fjernet fra enheten eller enhetens push-token ikke lenger er gyldig. Vanligvis står det i leveringskvitteringen til en push, som OneUptime leser omtrent 15 minutter etter pushen, og noen ganger avviser Expo pushen med en gang. Uansett slutter OneUptime å sende til den enheten. Den merkes som at den ikke mottar varsler i stedet for å bli slettet, så varslingsreglene blir værende, og push-loggen og vakttidslinjen til varselet som ikke kom frem, sier hvorfor. **Brukerinnstillinger > Varselmetoder > Push-varsler** viser den som **Mottar ikke varsler**. Eierens andre enheter og varselmetoder varsles fortsatt.
+Expo melder `DeviceNotRegistered` når mobilappen er fjernet fra enheten eller enhetens push-token ikke lenger er gyldig. Vanligvis står det i leveringskvitteringen til en push, som OneUptime leser omtrent 15 minutter etter pushen, og noen ganger avviser Expo pushen med en gang. Uansett slutter OneUptime å sende til den enheten. Den merkes som at den ikke mottar varslinger i stedet for å bli slettet, så varslingsreglene blir værende, og push-loggen og vakttidslinjen til varslingen som ikke kom frem, sier hvorfor. **Brukerinnstillinger > Varslingsmetoder > Push-varslinger** viser den som **Mottar ikke varslinger**. Eierens andre enheter og varslingsmetoder varsles fortsatt.
 
-For å få enheten tilbake åpner du mobilappen på den mens du er pålogget. Appen registrerer seg på nytt, noe som fornyer push-tokenet hos Expo, og enheten mottar varsler igjen med reglene sine. Er appen fjernet, installerer du den på nytt og logger på. En kvittering for en push som ble sendt før appen registrerte seg på nytt, merker ikke enheten. Når en oppdatert mobilapp settes opp på en ny telefon fra en sikkerhetskopi av den gamle, forteller den OneUptime push-tokenet den hadde før; hvis enheten til den gamle telefonen ikke lenger mottar varsler, tar den nye telefonen den over med reglene sine.
+For å få enheten tilbake åpner du mobilappen på den mens du er pålogget. Appen registrerer seg på nytt, noe som fornyer push-tokenet hos Expo, og enheten mottar varslinger igjen med reglene sine. Er appen fjernet, installerer du den på nytt og logger på. En kvittering for en push som ble sendt før appen registrerte seg på nytt, merker ikke enheten. Når en oppdatert mobilapp settes opp på en ny telefon fra en sikkerhetskopi av den gamle, forteller den OneUptime push-tokenet den hadde før; hvis enheten til den gamle telefonen ikke lenger mottar varslinger, tar den nye telefonen den over med reglene sine.
 
 Gjennom push-reléet (ingen `EXPO_ACCESS_TOKEN`) virker dette på samme måte: Reléet melder `DeviceNotRegistered` når det sender en push, og leser leveringskvitteringene instansen din spør det om.
 
@@ -256,8 +256,8 @@ Hvis ingenting av dette hjelper, kontakter du oss på [hello@oneuptime.com](mail
 
 :::cards
 - [Mobilapper](/docs/mobile-desktop-apps/index): Installer appen OneUptime On-Call og logg på.
-- [Feilsøking for mobilappen](/docs/mobile-desktop-apps/faq-troubleshooting): Løs problemer med pålogging og varsler på telefonen.
+- [Feilsøking for mobilappen](/docs/mobile-desktop-apps/faq-troubleshooting): Løs problemer med pålogging og varslinger på telefonen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem som varsles, og når.
 - [Tilgang til privat nettverk](/docs/self-hosted/private-network-access): Hva serveren din kan nå i ditt eget nettverk.
-- [Målinger for varslingslevering](/docs/self-hosted/notification-delivery-metrics): Tell pushvarslene Apple og Google tar imot, og dem de avviser.
+- [Målinger for varslingslevering](/docs/self-hosted/notification-delivery-metrics): Tell pushvarslingene Apple og Google tar imot, og dem de avviser.
 :::

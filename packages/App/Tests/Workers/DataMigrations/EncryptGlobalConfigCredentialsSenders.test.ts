@@ -9,7 +9,7 @@ import {
   OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import SSRFProtection from "Common/Server/Utils/SSRFProtection";
+import { approveEveryWebhookAddress } from "Common/Tests/Server/TestingUtils/WebhookAddressCheck";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import CallRequest from "Common/Types/Call/CallRequest";
 import { CallAndSmsProvider } from "Common/Types/CallAndSMS/CallAndSmsProvider";
@@ -111,7 +111,18 @@ jest.mock("Common/Server/Utils/Express", () => {
 });
 
 jest.mock("Common/Server/Utils/DataSource/EgressGuard", () => {
-  return { __esModule: true, default: { assertHostnameAllowed: jest.fn() } };
+  const actual: {
+    default: { createPinnedLookup: (...args: Array<unknown>) => unknown };
+  } = jest.requireActual("Common/Server/Utils/DataSource/EgressGuard");
+
+  return {
+    __esModule: true,
+    default: {
+      assertHostnameAllowed: jest.fn(),
+      // The gateway's requests dial the address their check approved (SafeWebhookRequest).
+      createPinnedLookup: actual.default.createPinnedLookup,
+    },
+  };
 });
 
 jest.mock("nodemailer", () => {
@@ -299,9 +310,7 @@ beforeEach(() => {
   jest
     .spyOn(API, "post")
     .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}) as never);
-  jest
-    .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-    .mockResolvedValue(undefined as never);
+  approveEveryWebhookAddress();
   jest.spyOn(SignedWebhookPost, "sleep").mockResolvedValue();
 
   sendMail = jest.fn<SendMail>();

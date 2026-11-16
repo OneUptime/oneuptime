@@ -713,7 +713,7 @@ describe("getRemediationFixSteps: the plan step of a fix with a round", () => {
 
     expect(waiting.tone).toBe("live");
     expect(waiting.summary).toBe(
-      `Did not finish: The LLM provider did not answer within 90 seconds. Trying again at ${formatAiRunTime(nextAttemptAt)}.`,
+      `Did not finish: The LLM provider did not answer within 90\u00A0seconds. Trying again at ${formatAiRunTime(nextAttemptAt)}.`,
     );
     // Nothing checked yet: nothing to open.
     expect(waiting.hasDetails).toBe(false);

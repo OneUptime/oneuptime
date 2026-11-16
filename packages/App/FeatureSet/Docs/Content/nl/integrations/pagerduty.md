@@ -16,9 +16,9 @@ Stuur OneUptime-incidenten naar [PagerDuty](https://www.pagerduty.com). Eén wor
 
 ```mermaid title="Twee workflows, één PagerDuty-incident"
 flowchart TB
-    declared["Incident gemeld"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Incident gemeld"] --> create["Workflow 1:<br/>Bij aanmaken: Incident"]
     create -->|"trigger"| pd["PagerDuty-incident"]
-    resolved["Incident opgelost"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Incident opgelost"] --> update["Workflow 2:<br/>Bij bijwerken:<br/>Incident"]
     update -->|"resolve"| pd
 ```
 
@@ -48,11 +48,11 @@ Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul begin
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Incident**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Bij aanmaken: Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
 
 ### De trigger-gebeurtenis sturen
 
-Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Succes**-punt van de trigger ermee. Stel de **URL** in op `https://events.pagerduty.com/v2/enqueue` en de **Verzoeklichaam** op:
+Klik op **Component toevoegen**, voeg een **API-aanroep POST (JSON)**-blok toe en verbind de **Succes**-punt van de trigger ermee. Stel de **URL** in op `https://events.pagerduty.com/v2/enqueue` en de **Verzoeklichaam** op:
 
 ```json
 {
@@ -72,7 +72,7 @@ Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbin
 
 ### Testen en daarna aanzetten
 
-Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API Post (JSON)** toont een `202`-antwoord met `"status": "success"`, en PagerDuty opent een incident. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
+Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API-aanroep POST (JSON)** toont een `202`-antwoord met `"status": "success"`, en PagerDuty opent een incident. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
 :::
 
 Het blok stuurt JSON, dus het heeft geen `Content-Type`-header nodig. De `severity` van PagerDuty is een van `critical`, `error`, `warning` en `info`: zie [Ernstniveaus toewijzen](#ernstniveaus-toewijzen) om die van elk incident mee te sturen.
@@ -82,9 +82,9 @@ Het blok stuurt JSON, dus het heeft geen `Content-Type`-header nodig. De `severi
 Een workflow heeft één trigger, dus voor het oplossen is een tweede workflow nodig, die start wanneer de status van een incident verandert.
 
 :::steps
-### De trigger On Update Incident toevoegen
+### De trigger "Bij bijwerken: Incident" toevoegen
 
-Maak een workflow met de naam `Resolve PagerDuty incidents` en kies **On Update Incident** als trigger. Klik in **Fields to watch** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Fields to pass on** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
+Maak een workflow met de naam `Resolve PagerDuty incidents` en kies **Bij bijwerken: Incident** als trigger. Klik in **Velden om te volgen** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Velden om door te geven** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -92,11 +92,11 @@ Maak een workflow met de naam `Resolve PagerDuty incidents` en kies **On Update 
 
 ### Controleren dat het incident is opgelost
 
-Voeg na de trigger een **If / Else**-blok toe. Stel **Te controleren waarde** in op `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` en **Vergelijking** op **is waar**.
+Voeg na de trigger een **Als / Anders**-blok toe. Stel **Te controleren waarde** in op `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` en **Vergelijking** op **is waar**.
 
 ### De resolve-gebeurtenis sturen
 
-Voeg na de **Ja**-kant een **API Post (JSON)**-blok toe, met dezelfde **URL** en deze **Verzoeklichaam**:
+Voeg na de **Ja**-kant een **API-aanroep POST (JSON)**-blok toe, met dezelfde **URL** en deze **Verzoeklichaam**:
 
 ```json
 {
@@ -115,10 +115,10 @@ Controleren op `isResolvedState` in plaats van op de naam van een status blijft 
 
 ## Ernstniveaus toewijzen
 
-Om de ernst van elk incident mee te sturen, voeg je tussen de trigger en het **API Post (JSON)**-blok een **Run Custom JavaScript**-blok toe, en lees je het antwoord ervan in de body.
+Om de ernst van elk incident mee te sturen, voeg je tussen de trigger en het **API-aanroep POST (JSON)**-blok een **Eigen JavaScript uitvoeren**-blok toe, en lees je het antwoord ervan in de body.
 
-1. Klik in de **Fields to pass on** van de trigger op **Veld toevoegen**, open **Ernst van incident** en kies **Naam**.
-2. Stel de **Arguments** van het blok in op `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, en de **JavaScript-code** op:
+1. Klik in de **Velden om door te geven** van de trigger op **Veld toevoegen**, open **Ernst van incident** en kies **Naam**.
+2. Stel de **Argumenten** van het blok in op `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, en de **JavaScript-code** op:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -138,7 +138,7 @@ De namen hierboven zijn de drie ernstniveaus waarmee een nieuw project begint. G
 ## Problemen oplossen
 
 :::details PagerDuty antwoordt 400
-De body van het antwoord zegt wat PagerDuty weigerde, en de stap **API Post (JSON)** van de uitvoering toont dat. Meestal is de routing key geen Events API v2-integratiesleutel: kopieer hem opnieuw uit de **Integrations** van de service. Een gebeurtenis zonder `summary`, `source` of `severity` wordt ook geweigerd.
+De body van het antwoord zegt wat PagerDuty weigerde, en de stap **API-aanroep POST (JSON)** van de uitvoering toont dat. Meestal is de routing key geen Events API v2-integratiesleutel: kopieer hem opnieuw uit de **Integrations** van de service. Een gebeurtenis zonder `summary`, `source` of `severity` wordt ook geweigerd.
 :::
 
 :::details De resolve-gebeurtenis sluit niets
@@ -146,7 +146,7 @@ Beide gebeurtenissen moeten precies dezelfde `dedup_key` hebben. Controleer of b
 :::
 
 :::details De workflow draait nooit
-Controleer of hij aan staat: **Ingeschakeld**, bovenaan zijn **Bouwer**. Open daarna **Logboeken → Uitvoeringen**: een uitvoering die de **Nee**-kant van het **If / Else**-blok nam, is een update die geen oplossing was.
+Controleer of hij aan staat: **Ingeschakeld**, bovenaan zijn **Bouwer**. Open daarna **Logboeken → Uitvoeringen**: een uitvoering die de **Nee**-kant van het **Als / Anders**-blok nam, is een update die geen oplossing was.
 :::
 
 :::details PagerDuty toont een verwijzing in plaats van een waarde

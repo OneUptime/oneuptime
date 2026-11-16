@@ -83,6 +83,10 @@ export const SLO_OVERVIEW_SELECT: Select<ServiceLevelObjective> = {
     name: true,
   },
   latencyThresholdInMilliseconds: true,
+  // Which of the services' requests count (#8444).
+  requestFilter: true,
+  // A Metric SLO's metric, for the hero's line under its services (#8445).
+  metricQueryConfig: true,
   goodEventCount: true,
   totalEventCount: true,
   errorBudgetTotalEvents: true,

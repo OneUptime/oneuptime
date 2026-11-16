@@ -482,7 +482,7 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
                                 "Everyone who can read AI calls",
                               )
                             : translator.translateText(
-                                "Project owners and admins",
+                                "Project Owners and Project Admins",
                               )}
                         </div>
                         {item.storeConversationText === false ? (
@@ -508,6 +508,7 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
           title={translator.translateTemplate("Test {{name}}", {
             name: testItem.name || "",
           })}
+          isTitleTranslated={true}
           description="A small read with the saved settings. Nothing is imported or stored."
           modalWidth={ModalWidth.Medium}
           closeButtonText="Close"

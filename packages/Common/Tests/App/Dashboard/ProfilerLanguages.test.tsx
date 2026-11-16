@@ -323,16 +323,16 @@ describe("windows and deploy times", () => {
         isCustom: false,
         translator: translatorFor("de"),
       }),
-    ).toBe("die letzten 7 Tage");
+    ).toBe("die letzten 7\u00A0Tage");
     expect(
       formatWindow({ ...thirtyMinutes, translator: translatorFor("de") }),
-    ).toBe("die letzten 30 Minuten");
+    ).toBe("die letzten 30\u00A0Minuten");
     expect(
       formatWindow({ ...thirtyMinutes, translator: translatorFor("ru") }),
-    ).toBe("последние 30 минут");
+    ).toBe("последние 30\u00A0минут");
     expect(
       formatWindow({ ...thirtyMinutes, translator: translatorFor("nl") }),
-    ).toBe("de afgelopen 30 minuten");
+    ).toBe("de afgelopen 30\u00A0minuten");
   });
 
   test("a deploy's time, as long ago as it was", () => {
@@ -344,21 +344,21 @@ describe("windows and deploy times", () => {
         now: NOW,
         translator: translatorFor("fr"),
       }),
-    ).toBe("il y a 40 minutes");
+    ).toBe("il y a 40\u00A0minutes");
     expect(
       formatAgo({
         time: fortyMinutesAgo,
         now: NOW,
         translator: translatorFor("ru"),
       }),
-    ).toBe("40 минут назад");
+    ).toBe("40\u00A0минут назад");
     expect(
       formatAgo({
         time: new Date(NOW.getTime() - 2 * 24 * 60 * 60 * 1000),
         now: NOW,
         translator: translatorFor("de"),
       }),
-    ).toBe("2 Tage her");
+    ).toBe("2\u00A0Tage her");
   });
 });
 

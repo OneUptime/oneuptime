@@ -325,7 +325,7 @@ describe("the preview of a file question", () => {
         .map((element: HTMLElement): string => {
           return element.textContent || "";
         }),
-    ).toEqual(["PNG · 8 B"]);
+    ).toEqual(["PNG · 8\u00A0B"]);
     expect(createMock).not.toHaveBeenCalled();
 
     await act(async () => {

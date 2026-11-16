@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+Archiver le cloud ne désactive rien de tout cela. Un cloud archivé est seulement masqué dans les listes : il est toujours collecté, et ses vérifications d'API et son contrôle du cycle de vie continuent de s'exécuter. Désactivez un contrôle pour l'arrêter.
+
 ## Agent IA
 
 Le `docker-compose.yml` de l'agent exécute aussi l'**Agent IA OpenStack**, `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`). Pendant que l'IA de OneUptime investigue un incident ou une alerte sur ce cloud, elle exécute par son intermédiaire des commandes `openstack` en lecture seule — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — et cite ce qu'elle a exécuté. Il n'y a pas de binaire `openstack` dans l'agent et pas de shell : chaque commande devient un `GET` vers le service qui y répond, avec l'identifiant propre à l'agent. L'agent s'enregistre avec le même `OPENSTACK_CLOUD_NAME` que celui que rapporte le collector, il sert donc ce cloud.
@@ -1641,7 +1643,7 @@ La page **Agent IA** du cloud propose un runbook pour chacune de ces défaillanc
 
 ### Correctifs à partir d'un flux de travail
 
-Un flux de travail peut partir d'une alerte OpenStack et proposer un correctif : l'étape **Propose an OpenStack fix** prend l'alerte ou l'incident, et la commande. Elle passe par la même politique, la même portée d'écriture et la même lecture de ce qu'une modification touche qu'un correctif proposé par l'IA de OneUptime, n'a besoin d'aucun modèle d'IA, et une personne l'approuve sur l'alerte. Un flux de travail ne peut ni effectuer la modification lui-même ni approuver ce qu'il propose, quel que soit le mode de correctif du cloud. Le modèle **Propose taking a failing OpenStack compute service out of scheduling** est un point de départ.
+Un flux de travail peut partir d'une alerte OpenStack et proposer un correctif : l'étape **Proposer un correctif OpenStack** prend l'alerte ou l'incident, et la commande. Elle passe par la même politique, la même portée d'écriture et la même lecture de ce qu'une modification touche qu'un correctif proposé par l'IA de OneUptime, n'a besoin d'aucun modèle d'IA, et une personne l'approuve sur l'alerte. Un flux de travail ne peut ni effectuer la modification lui-même ni approuver ce qu'il propose, quel que soit le mode de correctif du cloud. Le modèle **Propose taking a failing OpenStack compute service out of scheduling** est un point de départ.
 
 ## Exécuter comme service systemd
 

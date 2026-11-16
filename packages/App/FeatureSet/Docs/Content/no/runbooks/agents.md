@@ -196,7 +196,7 @@ Workerens samlede ventevindu er `claim timeout + execution timeout + a few secon
 
 To ting å huske når du senker claim timeout:
 
-- Runneren ber om arbeid i en polling-syklus (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, 5 sekunder som standard). En claim timeout kortere enn én syklus kan utløpe før en helt frisk Runner i det hele tatt har sett jobben, og trinnet feiler da med samme melding som en frakoblet Runner gir.
+- Runneren ber om arbeid i en polling-syklus (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, 5 sekunder som standard). En claim timeout kortere enn én syklus kan utløpe før en helt frisk Runner i det hele tatt har sett jobben, og trinnet feiler da med samme melding som en offline Runner gir.
 - En Runner kjører én jobb om gangen som standard (`ONEUPTIME_RUNNER_CONCURRENCY`). Mens et langt trinn opptar den, venter andre trinn som peker mot samme Runner, ut sine egne claim timeouts. Hvis du øker en execution timeout til minutter, øker du claim timeout tilsvarende på trinnene som deler den Runneren, eller gir dem en annen Runner.
 
 ### Lease og heartbeat
@@ -230,7 +230,7 @@ Det eneste dette ikke kan fortelle deg, er hvor langt et skript kom før Workere
 
 ### Ingen agent tilkoblet
 
-Hvis den valgte Runneren er frakoblet når trinnet kjører, venter jobben som `Pending` til claim timeout er gått, og så feiler trinnet med "No runbook agent picked up this step before the wait window expired." Siden **Runbook-agenter** er stedet der du kontrollerer dekningen før du kjører et runbook på ordentlig. Et trinn på en global Runner feiler i stedet med "No global Runner picked up this step before the wait window expired."
+Hvis den valgte Runneren er offline når trinnet kjører, venter jobben som `Pending` til claim timeout er gått, og så feiler trinnet med "No runbook agent picked up this step before the wait window expired." Siden **Runbook-agenter** er stedet der du kontrollerer dekningen før du kjører et runbook på ordentlig. Et trinn på en global Runner feiler i stedet med "No global Runner picked up this step before the wait window expired."
 
 ### Grense for output
 

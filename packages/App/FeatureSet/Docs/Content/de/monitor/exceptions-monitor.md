@@ -53,7 +53,7 @@ Legen Sie in **Zu überwachende Ausnahmen** die Felder **Meldung enthält**, **A
 
 ### Festlegen, wann alarmiert wird
 
-Wählen Sie in **Wann alarmieren** eine **Bedingung**, die **Anzahl der Ausnahmen** und ein **Zeitfenster**. Der Satz darunter gibt die Regel in einfachen Worten wieder. Das Diagramm darunter zählt die passenden Ausnahmen in jedem Fenster der letzten Stunden, zeichnet die Zahl der Regel als Linie ein und sagt, wie oft die Regel alarmiert hätte. Seine Schaltfläche schlägt eine Zahl vor, die die Regel in dieser Zeit nicht überschritten hätte. **Alarm bei** legt fest, was die Regel vergleicht: **Ausnahmen**, **Neue Ausnahmen**, **Zurückgekommene Ausnahmen** oder **Ein Anstieg über das Übliche**. Das Diagramm wird nur für **Ausnahmen** gezeichnet. Mit **Ungewöhnlich hoch**, wie es **Ausnahmen steigen sprunghaft** einrichtet, gibt es keine Zahl einzugeben: Wählen Sie stattdessen eine **Empfindlichkeit**.
+Wählen Sie in **Wann alarmieren** eine **Bedingung**, die **Anzahl der Ausnahmen** und ein **Zeitfenster**. Der Satz darunter gibt die Regel in einfachen Worten wieder. Das Diagramm darunter zählt die passenden Ausnahmen in jedem Fenster der letzten Stunden, zeichnet die Zahl der Regel als Linie ein und sagt, wie oft die Regel alarmiert hätte. Seine Schaltfläche schlägt eine Zahl vor, die die Regel in dieser Zeit nicht überschritten hätte. **Warnung bei** legt fest, was die Regel vergleicht: **Ausnahmen**, **Neue Ausnahmen**, **Zurückgekommene Ausnahmen** oder **Ein Anstieg über das Übliche**. Das Diagramm wird nur für **Ausnahmen** gezeichnet. Mit **Ungewöhnlich hoch**, wie es **Ausnahmen steigen sprunghaft** einrichtet, gibt es keine Zahl einzugeben: Wählen Sie stattdessen eine **Empfindlichkeit**.
 
 ### Wählen, was passiert
 

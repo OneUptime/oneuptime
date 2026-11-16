@@ -19,6 +19,10 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * is shown: a hidden one is sent as it was, so an untouched form saves the
  * record as it holds it. A value the record holds is always kept, and a
  * field not so marked keeps null as before.
+ *
+ * Blank text is nothing too (#8183): a fresh server's SMTP From Name is "",
+ * written so by UpdateGlobalConfigFromEnv, and the field starts on the
+ * product's name.
  */
 
 const TIMEOUT: number = 30000;
@@ -170,6 +174,114 @@ describe("a field not so marked", () => {
       });
 
       expect(screen.getByPlaceholderText("587")).toHaveValue("587");
+    },
+    TIMEOUT,
+  );
+});
+
+/*
+ * A text field, as the server's From Name: required, its default the
+ * product's name.
+ */
+function nameFields(data: {
+  startsOnDefaultWhenEmpty?: boolean;
+}): Fields<FormValues<any>> {
+  return [
+    {
+      field: { fromName: true },
+      title: "From Name",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: "Company, Inc.",
+      defaultValue: "OneUptime",
+      ...(data.startsOnDefaultWhenEmpty
+        ? { startsOnDefaultWhenEmpty: true }
+        : {}),
+    },
+  ];
+}
+
+async function drawName(data: {
+  initialValues: FormValues<any>;
+  startsOnDefaultWhenEmpty?: boolean;
+}): Promise<MockFunction> {
+  const onSubmit: MockFunction = getJestMockFunction();
+
+  render(
+    <BasicForm
+      id="name-form"
+      name="Name form"
+      fields={nameFields(data)}
+      initialValues={data.initialValues}
+      onSubmit={onSubmit}
+      submitButtonText="Save"
+    />,
+  );
+
+  await act(async () => {
+    await Promise.resolve();
+  });
+
+  return onSubmit;
+}
+
+describe("blank text is nothing too (#8183)", () => {
+  test.each([
+    ["empty", ""],
+    ["spaces", "   "],
+    ["a tab and a line break", "\t\n"],
+    ["null", null],
+  ])(
+    "a text field the record holds as %s starts on its default, and saves it",
+    async (_label: string, held: string | null) => {
+      const onSubmit: MockFunction = await drawName({
+        initialValues: { fromName: held },
+        startsOnDefaultWhenEmpty: true,
+      });
+
+      expect(screen.getByPlaceholderText("Company, Inc.")).toHaveValue(
+        "OneUptime",
+      );
+
+      await save();
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalled();
+      });
+      expect(
+        (onSubmit.mock.calls[0]![0] as Record<string, unknown>)["fromName"],
+      ).toBe("OneUptime");
+    },
+    TIMEOUT,
+  );
+
+  test(
+    "a name the record holds is kept, spaces inside it and all",
+    async () => {
+      await drawName({
+        initialValues: { fromName: " Acme Status " },
+        startsOnDefaultWhenEmpty: true,
+      });
+
+      expect(screen.getByPlaceholderText("Company, Inc.")).toHaveValue(
+        " Acme Status ",
+      );
+    },
+    TIMEOUT,
+  );
+
+  test(
+    "a field not so marked keeps its blank text: the form says it is required",
+    async () => {
+      const onSubmit: MockFunction = await drawName({
+        initialValues: { fromName: "" },
+      });
+
+      expect(screen.getByPlaceholderText("Company, Inc.")).toHaveValue("");
+
+      await save();
+
+      expect(onSubmit).not.toHaveBeenCalled();
     },
     TIMEOUT,
   );

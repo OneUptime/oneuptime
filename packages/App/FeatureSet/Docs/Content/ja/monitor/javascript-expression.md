@@ -46,7 +46,7 @@ flowchart TB
 
 ## モニターの種類ごとの変数
 
-JavaScript の式は、Website、API、Incoming Request、Incoming Email、SQL Query、Database Health の各モニターで使えます。
+JavaScript の式は、Website、API、受信リクエスト、受信メール、SQL クエリ、データベースのヘルス の各モニターで使えます。
 
 ### ウェブサイトと API のモニター
 

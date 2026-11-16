@@ -53,8 +53,13 @@ export interface StateSettingsNameCellProps {
    */
   stateList: StateListType;
   color: Color;
-  // What OneUptime does with this row, when it is a built-in one.
+  /*
+   * What OneUptime does with this row, when it is a built-in one: English,
+   * looked up here - unless isBuiltInTooltipTranslated says the page put it
+   * in the reader's words already, and it is drawn as given (#8423).
+   */
   builtInTooltip?: string | undefined;
+  isBuiltInTooltipTranslated?: boolean | undefined;
 }
 
 /*
@@ -72,7 +77,9 @@ export const StateSettingsNameCell: FunctionComponent<
     StateSettingsSharedCopy.builtInTag;
 
   const builtInTooltip: string | undefined = props.builtInTooltip
-    ? translateString(props.builtInTooltip) || props.builtInTooltip
+    ? props.isBuiltInTooltipTranslated
+      ? props.builtInTooltip
+      : translateString(props.builtInTooltip) || props.builtInTooltip
     : undefined;
 
   /*

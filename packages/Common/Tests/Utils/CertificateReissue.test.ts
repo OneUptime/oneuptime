@@ -142,7 +142,7 @@ describe("CertificateReissueUtil.getTimeRemainingText", () => {
     );
 
     expect(CertificateReissueUtil.getTimeRemainingText(requestedAt, NOW)).toBe(
-      "2 hours 30 minutes",
+      "2\u00A0hours 30\u00A0minutes",
     );
   });
 
@@ -155,7 +155,7 @@ describe("CertificateReissueUtil.getTimeRemainingText", () => {
         ),
         NOW,
       ),
-    ).toBe("1 hour");
+    ).toBe("1\u00A0hour");
 
     expect(
       CertificateReissueUtil.getTimeRemainingText(
@@ -165,7 +165,7 @@ describe("CertificateReissueUtil.getTimeRemainingText", () => {
         ),
         NOW,
       ),
-    ).toBe("1 minute");
+    ).toBe("1\u00A0minute");
   });
 
   test("omits an hours part that is zero", () => {
@@ -177,7 +177,7 @@ describe("CertificateReissueUtil.getTimeRemainingText", () => {
       NOW,
     );
 
-    expect(text).toBe("20 minutes");
+    expect(text).toBe("20\u00A0minutes");
     expect(text).not.toContain("hour");
   });
 
@@ -205,7 +205,7 @@ describe("CertificateReissueUtil.getCooldownMessage", () => {
 
     expect(message).toContain("Let's Encrypt");
     expect(message).toContain(
-      `${CertificateReissueUtil.COOLDOWN_IN_HOURS} hours`,
+      `${CertificateReissueUtil.COOLDOWN_IN_HOURS}\u00A0hours`,
     );
     expect(message).toContain(
       CertificateReissueUtil.getTimeRemainingText(hoursAgo(1), NOW),

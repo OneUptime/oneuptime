@@ -220,9 +220,10 @@ describe("a slot in a sentence read right to left", () => {
     });
   });
 
+  // The minutes' word holds to the slot drawn before it (#8770).
   test("an empty half stays empty, with no mark to draw", () => {
     expect(
       translateTemplateAround(WAIT, "minutes", {}, { setsSlotApart: false }),
-    ).toEqual({ before: "", after: " دقیقه صبر کن" });
+    ).toEqual({ before: "", after: "\u00A0دقیقه صبر کن" });
   });
 });

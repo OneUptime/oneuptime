@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * The AI context (issue #5198), end to end in a browser, on the real pages
@@ -844,4 +845,18 @@ test.describe("what a run read, in its details", () => {
 
     await shoot(page, "run-dialog-fa");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Persian and Japanese whole, parsed on every page load of every
+ * test. English is in the bundle now, and each other language a chunk of its
+ * own, loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js),
+ * built as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa", "ja"],
+  address: (language: string): string => {
+    return language === "en" ? "/" : `/?lang=${language}`;
+  },
 });

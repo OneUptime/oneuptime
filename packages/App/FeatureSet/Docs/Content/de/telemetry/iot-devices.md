@@ -5,7 +5,7 @@ OneUptime überwacht Flotten von IoT-Geräten — Sensoren, Gateways, Controller
 :::cards
 - [Sendeweg wählen](#sendeweg-wählen): Ein OpenTelemetry-SDK, ein Gateway-Collector oder MQTT.
 - [Metriken über MQTT senden](#metriken-über-mqtt-senden): Topics, Zugangsdaten pro Gerät und Last Will.
-- [Metrikkonventionen](#metrikkonventionen): Die `iot_*`-Namen, die OneUptime darstellt und für Alarme nutzt.
+- [Metrikkonventionen](#metrikkonventionen): Die `iot_*`-Namen, die OneUptime darstellt und für Warnungen nutzt.
 - [Fehlerbehebung](#fehlerbehebung): Fehlende Flotten, fehlende Geräte, Wechsel auf offline.
 :::
 
@@ -163,7 +163,7 @@ Geräte senden dann OTLP an das Gateway, zum Beispiel mit `OTEL_EXPORTER_OTLP_EN
 
 ## Metriken über MQTT senden
 
-OneUptime hat einen eigenen MQTT-Endpunkt; Geräte, die MQTT sprechen, veröffentlichen Messwerte daher direkt dorthin, ohne SDK, Collector oder Bridge. Was über MQTT ankommt, durchläuft dieselbe Pipeline wie OTLP: Flotten werden angelegt, das Inventar wird aktualisiert, und jeder IoT-Monitor und jede Alarmvorlage funktioniert genauso.
+OneUptime hat einen eigenen MQTT-Endpunkt; Geräte, die MQTT sprechen, veröffentlichen Messwerte daher direkt dorthin, ohne SDK, Collector oder Bridge. Was über MQTT ankommt, durchläuft dieselbe Pipeline wie OTLP: Flotten werden angelegt, das Inventar wird aktualisiert, und jeder IoT-Monitor und jede Warnungsvorlage funktioniert genauso.
 
 ### Endpunkte
 
@@ -177,7 +177,7 @@ OneUptime hat einen eigenen MQTT-Endpunkt; Geräte, die MQTT sprechen, veröffen
 - **Mit dem Ingestion-Schlüssel**: Senden Sie ihn als MQTT-Passwort. Der Benutzername wird ignoriert; hat Ihr Client nur ein Feld für den Benutzernamen, tragen Sie den Schlüssel dort ein. Das passt zu einem Gateway, das für viele Geräte veröffentlicht.
 - **Mit Zugangsdaten pro Gerät**: empfohlen für Geräte, die sich direkt verbinden. Öffnen Sie die Seite **Geräteregister** der Flotte und registrieren Sie das Gerät, mit der **Geräte-ID**, die es als `device.id` verwendet. Der **MQTT-Benutzername** des Geräts ist sein Benutzername und sein **MQTT-Passwort (Secret)** sein Passwort.
 
-Zugangsdaten eines Geräts können nur unter dessen eigenen Topics `oneuptime/<fleet>/<device>/` veröffentlichen. Sie können ein Gerät widerrufen, ohne den Rest der Flotte anzutasten: Schalten Sie seinen Schalter **Aktiviert** aus oder löschen Sie es, und ein verbundenes Gerät wird innerhalb weniger Sekunden getrennt. Ein registriertes Gerät, das verstummt, bleibt als offline im Inventar, und die Alarmvorlage Device Offline löst für es aus, auch wenn es ohne Last Will ausfällt.
+Zugangsdaten eines Geräts können nur unter dessen eigenen Topics `oneuptime/<fleet>/<device>/` veröffentlichen. Sie können ein Gerät widerrufen, ohne den Rest der Flotte anzutasten: Schalten Sie seinen Schalter **Aktiviert** aus oder löschen Sie es, und ein verbundenes Gerät wird innerhalb weniger Sekunden getrennt. Ein registriertes Gerät, das verstummt, bleibt als offline im Inventar, und die Warnungsvorlage Device Offline löst für es aus, auch wenn es ohne Last Will ausfällt.
 
 OneUptime lehnt falsche Zugangsdaten bei CONNECT mit Rückgabecode 4 ab (falscher Benutzername oder falsches Passwort), sodass ein falsch konfiguriertes Gerät sichtbar scheitert. Browser-Schlüssel werden über MQTT abgelehnt. Ein Client, der sich mit dem Ingestion-Schlüssel verbunden hat, wird innerhalb weniger Sekunden getrennt, sobald der Schlüssel ausgeschaltet wird, abläuft, sein Geheimnis zurückgesetzt bekommt oder gelöscht wird, und beim erneuten Verbinden abgelehnt.
 
@@ -195,7 +195,7 @@ Ein Telemetrie-Payload kann außerdem `"attributes"` enthalten, eine Map von Zei
 
 ### Offline-Erkennung mit Last Will
 
-Registrieren Sie einen MQTT-Last-Will auf `oneuptime/<fleet>/<device>/status` mit dem Payload `offline`. Fällt das Gerät aus oder verschwindet es aus dem Netzwerk, veröffentlicht OneUptime für es `iot_device_up = 0` in dem Moment, in dem seine Sitzung endet; das löst die mitgelieferte Alarmvorlage Device Offline aus und markiert das Gerät im Inventar als ausgefallen, ohne Polling. Veröffentlichen Sie nach dem Verbinden `online` auf demselben Topic, damit das Gerät wieder als verfügbar erscheint. Jeder Messwert, den das Gerät veröffentlicht, zählt ebenfalls als verfügbar, sodass ein Gerät, das weiter Messwerte sendet, verfügbar bleibt, ohne seinen Status erneut zu veröffentlichen.
+Registrieren Sie einen MQTT-Last-Will auf `oneuptime/<fleet>/<device>/status` mit dem Payload `offline`. Fällt das Gerät aus oder verschwindet es aus dem Netzwerk, veröffentlicht OneUptime für es `iot_device_up = 0` in dem Moment, in dem seine Sitzung endet; das löst die mitgelieferte Warnungsvorlage Device Offline aus und markiert das Gerät im Inventar als ausgefallen, ohne Polling. Veröffentlichen Sie nach dem Verbinden `online` auf demselben Topic, damit das Gerät wieder als verfügbar erscheint. Jeder Messwert, den das Gerät veröffentlicht, zählt ebenfalls als verfügbar, sodass ein Gerät, das weiter Messwerte sendet, verfügbar bleibt, ohne seinen Status erneut zu veröffentlichen.
 
 ### Beispiele
 
@@ -268,7 +268,7 @@ client.publish(
 - Die Ingestion erfolgt mindestens einmal. Verwenden Sie QoS 1, damit OneUptime jede Veröffentlichung bestätigt; ein erneutes Senden mit QoS 1 oder 2 nach einer verlorenen Bestätigung kann doppelte Datenpunkte erzeugen.
 - Eine Veröffentlichung über 128 KB oder mit mehr als 100 Metriken wird verworfen, und ein Paket, das mehr als das angibt, schließt die Verbindung.
 - Eine Veröffentlichung außerhalb dieser Topics oder mit fehlerhaftem Payload wird angenommen und verworfen, weil MQTT 3.1.1 keinen Fehler pro Nachricht kennt. OneUptime protokolliert eine Warnung mit dem Grund (`MQTT: dropped publish to …`).
-- Halten Sie am WebSocket-Endpunkt das MQTT-Keepalive unter 5 Minuten. Der Ingress schließt einen WebSocket, der 300 Sekunden lang untätig ist, was den Last Will und einen falschen Alarm Device Offline auslöst. Die Standardwerte der Client-Bibliotheken (60 Sekunden für `mqtt` und `paho-mqtt`) sind in Ordnung, und der TCP-Endpunkt hat keine solche Grenze.
+- Halten Sie am WebSocket-Endpunkt das MQTT-Keepalive unter 5 Minuten. Der Ingress schließt einen WebSocket, der 300 Sekunden lang untätig ist, was den Last Will und eine falsche Warnung Device Offline auslöst. Die Standardwerte der Client-Bibliotheken (60 Sekunden für `mqtt` und `paho-mqtt`) sind in Ordnung, und der TCP-Endpunkt hat keine solche Grenze.
 
 ## Metrikkonventionen
 
@@ -336,7 +336,7 @@ OneUptime lehnt falsche Zugangsdaten bei CONNECT mit Rückgabecode 4 ab. Prüfen
 :::
 
 :::details Geräte springen auf offline, obwohl sie laufen
-Am WebSocket-Endpunkt schließt der Ingress eine Verbindung, die 300 Sekunden lang untätig ist, was den Last Will und einen falschen Alarm Device Offline auslöst. Halten Sie das MQTT-Keepalive unter 5 Minuten: Die Standardwerte der Client-Bibliotheken von 60 Sekunden sind in Ordnung.
+Am WebSocket-Endpunkt schließt der Ingress eine Verbindung, die 300 Sekunden lang untätig ist, was den Last Will und eine falsche Warnung Device Offline auslöst. Halten Sie das MQTT-Keepalive unter 5 Minuten: Die Standardwerte der Client-Bibliotheken von 60 Sekunden sind in Ordnung.
 :::
 
 :::details Messwerte erscheinen nicht in den Diagrammen der Flotte

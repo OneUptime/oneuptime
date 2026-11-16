@@ -9,6 +9,7 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Adding a resource the way a host is added, in a real browser: the real
@@ -694,4 +695,18 @@ test("Create Queue opens the queue's guide for its messaging system", async ({
   await expect(guide.getByRole("link", { name: "View queue" })).toBeVisible();
 
   await screenshot(page, "queue-added-guide");
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return language === "en" ? KUBERNETES : `${KUBERNETES}?lang=${language}`;
+  },
 });

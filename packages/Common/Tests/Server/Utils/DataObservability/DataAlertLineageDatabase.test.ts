@@ -217,7 +217,7 @@ afterEach(() => {
 });
 
 describe("the alert's own row", () => {
-  test("a project admin: the alert by id, the project's own, read as OneUptime, with no clause", async () => {
+  test("a Project Admin: the alert by id, the project's own, read as OneUptime, with no clause", async () => {
     const findOne: ReturnType<typeof jest.spyOn> = jest
       .spyOn(DataAlertService, "findOneBy")
       .mockResolvedValue(
@@ -444,7 +444,7 @@ describe("the alerts it caused", () => {
     expect(call.props).toEqual({ isRoot: true });
   });
 
-  test("a project admin: every one, by the alert it is a consequence of", async () => {
+  test("a Project Admin: every one, by the alert it is a consequence of", async () => {
     const findBy: ReturnType<typeof jest.spyOn> = jest
       .spyOn(DataAlertService, "findBy")
       .mockResolvedValue([] as never);

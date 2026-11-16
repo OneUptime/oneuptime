@@ -11,7 +11,7 @@
 
 ## 它们在哪里运行
 
-日志的规则位于 **日志 → 设置**，Span 的规则位于 **跟踪 → 设置**。记录到达时，OneUptime 按以下顺序运行它们：
+日志的规则位于 **日志 → 设置**，Span 的规则位于 **追踪 → 设置**。记录到达时，OneUptime 按以下顺序运行它们：
 
 ```mermaid title="日志或 Span 到达时会发生什么"
 flowchart TB
@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### 打开丢弃过滤器
 
-前往 **日志 → 设置 → 丢弃过滤器**；对于 Span，前往 **跟踪 → 设置 → 丢弃过滤器**。
+前往 **日志 → 设置 → 丢弃过滤器**；对于 Span，前往 **追踪 → 设置 → 丢弃过滤器**。
 
 ### 匹配记录
 
@@ -81,7 +81,7 @@ severityText = 'Debug' AND body LIKE 'healthcheck'
 :::steps
 ### 打开清理规则
 
-前往 **日志 → 设置 → 清理规则**；对于 Span，前往 **跟踪 → 设置 → 清理规则**。
+前往 **日志 → 设置 → 清理规则**；对于 Span，前往 **追踪 → 设置 → 清理规则**。
 
 ### 选择要查找的内容
 
@@ -158,6 +158,6 @@ Hash:   Payment failed for [HASHED:8c87b489]
 :::cards
 - [日志管道](/docs/telemetry/log-pipelines): 解析并丰富你保留的日志。
 - [日志浏览器](/docs/telemetry/logs-explorer): 搜索已存储的内容。
-- [跟踪浏览器](/docs/telemetry/traces-explorer): 跟踪你保留的 Span。
+- [追踪浏览器](/docs/telemetry/traces-explorer): 追踪你保留的 Span。
 - [数据保留](/docs/telemetry/data-retention): 决定它们保留多长时间。
 :::

@@ -92,7 +92,7 @@ describe("liveness", () => {
       ["Never seen", "neutral"],
     ]);
     expect(getMessageQueueLivenessDescription()).toContain(
-      `${MESSAGE_QUEUE_LIVE_WINDOW_MINUTES} minutes`,
+      `${MESSAGE_QUEUE_LIVE_WINDOW_MINUTES}\u00A0minutes`,
     );
   });
 
@@ -109,7 +109,7 @@ describe("liveness", () => {
         MESSAGE_QUEUE_LATE_METRIC_MINUTES,
     );
     expect(getMessageQueueLivenessDescription()).toBe(
-      `Seen recently: in the last ${MESSAGE_QUEUE_LIVE_WINDOW_MINUTES} minutes, discovery found spans or broker metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of telemetry, and over the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES} minutes of cloud monitoring metrics, which arrive late.`,
+      `Seen recently: in the last ${MESSAGE_QUEUE_LIVE_WINDOW_MINUTES}\u00A0minutes, discovery found spans or broker metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES}\u00A0minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES}\u00A0minutes of telemetry, and over the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES}\u00A0minutes of cloud monitoring metrics, which arrive late.`,
     );
     // It never claims the telemetry itself is that recent.
     expect(getMessageQueueLivenessDescription()).not.toContain(
@@ -180,7 +180,9 @@ describe("the numbers", () => {
     expect(formatMessageQueueDurationMsInLanguage(0.85, english)).toBe(
       "850\u00A0µs",
     );
-    expect(formatMessageQueueDurationMsInLanguage(12.3, english)).toBe("12\u00A0ms");
+    expect(formatMessageQueueDurationMsInLanguage(12.3, english)).toBe(
+      "12\u00A0ms",
+    );
     expect(formatMessageQueueDurationMsInLanguage(1250, english)).toBe(
       "1.25\u00A0s",
     );

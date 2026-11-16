@@ -1,4 +1,4 @@
-# Docker-overvåking
+# Docker-monitor
 
 En Docker-monitor overvåker containerne på én Docker-vert og sier fra når en container går varm, går tom for minne eller sitter fast i en krasjløkke. Den leser målingene som OneUptimes Docker-agent sender fra verten, så ingenting undersøkes utenfra: installer agenten, og opprett deretter monitoren fra en mal eller din egen spørring.
 
@@ -42,7 +42,7 @@ flowchart TB
 
 Gå til **Monitorer** og klikk på **Opprett monitor**.
 
-### Velg Docker Container
+### Velg Docker-container
 
 Klikk på **Flere monitortyper** under **Monitortype**, og velg **Docker-container** under **Infrastruktur**, eller skriv `docker` i søkefeltet. Skriv inn et **Navn** – det brukes i titler på hendelser og varsler – og klikk på **Neste**.
 
@@ -80,7 +80,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **Container-bilde** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.container.image.name`, for eksempel `nginx:latest`. |
 | **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på målingens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler angir sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggreger etter**, **Filtrer etter attributter**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
 ## Ferdige varslingsmaler
 
@@ -116,7 +116,7 @@ Med mindre tabellen sier noe annet, utløses et kriterium bare når betingelsen 
 > `container.restarts` bare vokser også, helt til en manuell omstart eller en gjenopprettet container starter den på nytt fra 0, så agenten sender også `container.restarts.increase` med hver måling: omstartene siden dens forrige måling av containeren. **Container Restart Loop** legger dem sammen, så den teller hver omstart, uansett hvor langt det er mellom målingene, og en manuell omstart teller ikke. Docker melder en container den holder på å starte på nytt som kjørende, så agenten fortsetter å måle en container i en omstartsløkke mellom kjøringene. En eldre agent sender ikke `container.restarts.increase`: [oppgrader den](/docs/telemetry/docker-host#oppgradere-agenten) først. En monitor som ble laget fra malen før det, leser hvor mye `container.restarts` vokste innenfor hvert minutt, og går dermed glipp av omtrent halvparten av omstartene i en løkke: slett den og opprett malen på nytt.
 
 > [!CAUTION]
-> `container.uptime` finnes bare for kjørende containere. En container som stopper og forblir stoppet, sender ingen data, så **Container Restarted (Low Uptime)** fanger omstarter og nye utrullinger, ikke en permanent nedstengning. En container som er ment å kjøre i mindre enn to minutter, forblir i varslingstilstand hele levetiden. For en tjeneste som må holde seg oppe, bør du også overvåke det den leverer – for eksempel med en [API-overvåking](/docs/monitor/api-monitor).
+> `container.uptime` finnes bare for kjørende containere. En container som stopper og forblir stoppet, sender ingen data, så **Container Restarted (Low Uptime)** fanger omstarter og nye utrullinger, ikke en permanent nedstengning. En container som er ment å kjøre i mindre enn to minutter, forblir i varslingstilstand hele levetiden. For en tjeneste som må holde seg oppe, bør du også overvåke det den leverer – for eksempel med en [API-monitor](/docs/monitor/api-monitor).
 
 ## Innsamlede målinger
 
@@ -187,11 +187,11 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Samsvarer når | Deretter |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Frakoblet** og erklærer hendelsen «_monitor name_ is offline», som løser seg selv når monitoren kommer seg. |
-| 2 | Check if _monitor name_ is online | Den første spørringen har data | Markerer monitoren som **I drift**. |
+| 1 | Sjekk om _monitornavn_ er offline | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Offline** og erklærer hendelsen «_monitornavn_ er offline», som løser seg selv når monitoren kommer seg. |
+| 2 | Sjekk om _monitornavn_ er tilkoblet | Den første spørringen har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren offline. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Innsamlede logger
 
@@ -304,7 +304,7 @@ Den leser `container.restarts.increase`, som en eldre agent ikke sender: [oppgra
 
 :::cards
 - [Docker-agent](/docs/telemetry/docker-host): Installer, oppgrader og feilsøk agenten denne monitoren leser.
-- [Podman-overvåking](/docs/monitor/podman-monitor): Den samme monitoren for Podman-verter.
-- [Docker Swarm-overvåking](/docs/monitor/docker-swarm-monitor): Overvåk oppgavene i en Swarm-klynge.
+- [Podman-monitor](/docs/monitor/podman-monitor): Den samme monitoren for Podman-verter.
+- [Docker Swarm-monitor](/docs/monitor/docker-swarm-monitor): Overvåk oppgavene i en Swarm-klynge.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 :::

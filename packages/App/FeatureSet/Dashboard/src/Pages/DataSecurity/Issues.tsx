@@ -180,7 +180,6 @@ const DataSecurityIssuesPage: FunctionComponent<
             title: "Status",
             type: FieldType.Dropdown,
             filterDropdownOptions: getIssueStatusOptions(
-              translator,
               ALL_DATA_SECURITY_ISSUE_STATUSES,
             ),
           },

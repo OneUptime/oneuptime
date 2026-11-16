@@ -1,6 +1,6 @@
-# SSL-sertifikat-overvåking
+# SSL-sertifikat-monitor
 
-En SSL-sertifikatmonitor sjekker TLS-sertifikatene som nettstedene og tjenestene dine presenterer, slik en nettleser gjør, og varsler deg før de utløper. Den tar også monitoren frakoblet når et sertifikat ikke lenger er gyldig: utløpt, tilbakekalt av utstederen, selvsignert, utstedt for et annet vertsnavn eller fra en utsteder som nettlesere ikke stoler på.
+En SSL-sertifikatmonitor sjekker TLS-sertifikatene som nettstedene og tjenestene dine presenterer, slik en nettleser gjør, og varsler deg før de utløper. Den tar også monitoren offline når et sertifikat ikke lenger er gyldig: utløpt, tilbakekalt av utstederen, selvsignert, utstedt for et annet vertsnavn eller fra en utsteder som nettlesere ikke stoler på.
 
 :::cards
 - [Opprett monitoren](#opprett-en-ssl-sertifikatmonitor): Seks trinn i dashbordet.
@@ -50,11 +50,11 @@ Angi nettstedet som skal få sertifikatet sitt sjekket, i **Nettsted-URL**, som 
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser sertifikatet sonden fikk, med utstederen og utløpsdatoen.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser sertifikatet sonden fikk, med utstederen og utløpsdatoen.
 
 ### Gå gjennom kriteriene
 
-**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når sertifikatet ikke er gyldig, et varsel når det utløper om 14 dager eller mindre. Endre dem ved behov, og klikk så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): offline når sertifikatet ikke er gyldig, et varsel når det utløper om 14 dager eller mindre. Endre dem ved behov, og klikk så på **Neste**.
 
 ### Velg sonder og opprett
 
@@ -93,22 +93,22 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny SSL-sertifikatmonitor starter med tre kriterier, så den varsler deg før et sertifikat utløper, helt uten oppsett:
 
-1. **Sertifikatet er ikke gyldig** — sertifikatet er utløpt, tilbakekalt av utstederen, selvsignert, utstedt for et annet vertsnavn eller av en utsteder det ikke er tillit til, eller kunne ikke sjekkes fordi endepunktet ikke svarte. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitor name_ certificate is not valid". Rotårsaken forteller hvilket av disse tilfellene det var, og for et tilbakekalt sertifikat, når og hvorfor utstederen tilbakekalte det. Hendelsen løser seg selv når sertifikatet er gyldig igjen.
-2. **Sertifikatet utløper snart** — sertifikatet er gyldig, men utløper om 14 dager eller mindre. Det opprettes et **varsel** med navnet "_monitor name_ certificate expires soon".
+1. **Sertifikatet er ikke gyldig** — sertifikatet er utløpt, tilbakekalt av utstederen, selvsignert, utstedt for et annet vertsnavn eller av en utsteder det ikke er tillit til, eller kunne ikke sjekkes fordi endepunktet ikke svarte. Monitoren merkes som **Offline**, og det opprettes en hendelse med navnet "Sertifikatet for _monitornavn_ er ugyldig". Rotårsaken forteller hvilket av disse tilfellene det var, og for et tilbakekalt sertifikat, når og hvorfor utstederen tilbakekalte det. Hendelsen løser seg selv når sertifikatet er gyldig igjen.
+2. **Sertifikatet utløper snart** — sertifikatet er gyldig, men utløper om 14 dager eller mindre. Det opprettes et **varsel** med navnet "Sertifikatet for _monitornavn_ utløper snart".
 3. **Sertifikatet er gyldig** — monitoren merkes som **I drift**.
 
-Varselet "utløper snart" er et varsel, ikke en hendelse: det vises ikke på statussidene dine, det tilkaller ingen med mindre du legger til en vaktretningslinje på det, og det endrer ikke monitorens status. Det bruker prosjektets andre varselalvorlighetsgrad, **Lav** i et nytt prosjekt. Når det fornyede sertifikatet blir plukket opp, er monitoren tilbake på "Sertifikatet er gyldig", og varselet løser seg selv.
+Varselet "utløper snart" er et varsel, ikke en hendelse: det vises ikke på statussidene dine, det tilkaller ingen med mindre du legger til en vaktpolicy på det, og det endrer ikke monitorens status. Det bruker prosjektets andre varselalvorlighetsgrad, **Lav** i et nytt prosjekt. Når det fornyede sertifikatet blir plukket opp, er monitoren tilbake på "Sertifikatet er gyldig", og varselet løser seg selv.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Derfor står "utløper snart" over "er gyldig": et sertifikat som er i ferd med å utløpe, er fortsatt gyldig, så det ville samsvare med begge.
 
-For å bli varslet tidligere endrer du verdien til filteret **Dager til utløp** i kriteriet "utløper snart", for eksempel til `30`. For å få noen tilkalt i stedet åpner du kriteriets **Handlinger**: slå på **Når filtre samsvarer, erklær en hendelse.**, eller behold varselet og legg til en vaktretningslinje på det under **Vaktretningslinjer**.
+For å bli varslet tidligere endrer du verdien til filteret **Dager til utløp** i kriteriet "utløper snart", for eksempel til `30`. For å få noen tilkalt i stedet åpner du kriteriets **Handlinger**: slå på **Når filtre samsvarer, erklær en hendelse.**, eller behold varselet og legg til en vaktpolicy på det under **Vaktpolicyer**.
 
 :::details Legg til varselet på en monitor som ble opprettet før det fantes
 Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke noe kriterium "utløper snart". Slik legger du det til:
 
 1. Åpne **Konfigurasjon → Kriterier** på monitoren, og klikk på **Rediger kriterier**.
 2. Klikk på **Legg til kriterier**. Sett filteret til **Er gyldig sertifikat** / **Sann**, klikk på **Legg til filter**, og sett det andre til **Dager til utløp** / **Mindre enn eller lik** / `14`. La **Samsvarsbetingelse** stå på **Alle** (den vises under filtrene så snart det er to).
-3. Slå på **Når filtre samsvarer, opprett et varsel.** under **Handlinger**, og la **Når filtre samsvarer, endre overvåkerstatus.** være slått av, så det oppretter et varsel og ikke endrer monitorens status.
+3. Slå på **Når filtre samsvarer, opprett et varsel.** under **Handlinger**, og la **Når filtre samsvarer, endre monitorstatus.** være slått av, så det oppretter et varsel og ikke endrer monitorens status.
 4. Dra det nye kriteriet over kriteriet som merker monitoren som tilkoblet, og lagre så.
 :::
 
@@ -118,7 +118,7 @@ Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke no
 | --- | --- | --- | --- |
 | Varsle en måned i forveien | **Dager til utløp** | **Mindre enn eller lik** | `30` |
 | Tilkall noen den siste dagen | **Timer til utløp** | **Mindre enn** | `24` |
-| Frakoblet først når sertifikatet er utløpt | **Er utløpt sertifikat** | **Sann** | — |
+| Offline først når sertifikatet er utløpt | **Er utløpt sertifikat** | **Sann** | — |
 | Marker et selvsignert sertifikat | **Er selvsignert sertifikat** | **Sann** | — |
 | Tilkall sikkerhetsteamet når utstederen tilbakekaller sertifikatet | **Er tilbakekalt sertifikat** | **Sann** | — |
 
@@ -138,16 +138,16 @@ Hendelsens rotårsak forteller hvorfor. En vanlig årsak er en server som sender
 :::
 
 :::details Jeg overvåker en intern tjeneste med et selvsignert sertifikat
-Et selvsignert sertifikat er aldri gyldig, så standardkriteriene holder monitoren frakoblet. **Er selvsignert sertifikat**, **Er utløpt sertifikat** og **Dager til utløp** fungerer fortsatt for det, så bygg kriteriene på dem. På **Konfigurasjon → Kriterier**:
+Et selvsignert sertifikat er aldri gyldig, så standardkriteriene holder monitoren offline. **Er selvsignert sertifikat**, **Er utløpt sertifikat** og **Dager til utløp** fungerer fortsatt for det, så bygg kriteriene på dem. På **Konfigurasjon → Kriterier**:
 
-1. Klikk på **Legg til filter** i kriteriet "ikke gyldig", sett det nye filteret til **Er selvsignert sertifikat** / **Usann**, og sett **Samsvarsbetingelse** til **Alle**. Kriteriet tar fortsatt monitoren frakoblet når endepunktet ikke svarer, eller sertifikatet er feil på en annen måte.
-2. Legg til et kriterium med **Er utløpt sertifikat** / **Sann** som merker monitoren som **Frakoblet** og erklærer en hendelse, og dra det helt øverst.
+1. Klikk på **Legg til filter** i kriteriet "ikke gyldig", sett det nye filteret til **Er selvsignert sertifikat** / **Usann**, og sett **Samsvarsbetingelse** til **Alle**. Kriteriet tar fortsatt monitoren offline når endepunktet ikke svarer, eller sertifikatet er feil på en annen måte.
+2. Legg til et kriterium med **Er utløpt sertifikat** / **Sann** som merker monitoren som **Offline** og erklærer en hendelse, og dra det helt øverst.
 3. Erstatt **Er gyldig sertifikat** / **Sann** med **Er utløpt sertifikat** / **Usann** i kriteriet "utløper snart", så varselet også dekker det selvsignerte sertifikatet.
 
 Så lenge sertifikatet er gjeldende, samsvarer ingen kriterier, og monitoren viser standardstatusen sin, **I drift**.
 :::
 
-:::details Monitoren er frakoblet med "could not be checked because the endpoint is not reachable"
+:::details Monitoren er offline med "could not be checked because the endpoint is not reachable"
 Sonden kunne ikke åpne en TLS-tilkobling til verten og porten. Sjekk porten i URL-en, og at en brannmur slipper sondene gjennom. En vert på et privat nettverk trenger en [egendefinert sonde](/docs/probe/custom-probe).
 :::
 
@@ -160,8 +160,8 @@ En [egendefinert sonde](/docs/probe/custom-probe) uten internettilgang kan ikke 
 ## Neste steg
 
 :::cards
-- [Nettsted-overvåking](/docs/monitor/website-monitor): Sjekk at selve nettstedet svarer.
-- [Domene-overvåking](/docs/monitor/domain-monitor): Bli varslet før domenets registrering utløper.
+- [Nettsted-monitor](/docs/monitor/website-monitor): Sjekk at selve nettstedet svarer.
+- [Domene-monitor](/docs/monitor/domain-monitor): Bli varslet før domenets registrering utløper.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem som blir tilkalt av varslene og hendelsene.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

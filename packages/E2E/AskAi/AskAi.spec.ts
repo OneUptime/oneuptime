@@ -11,7 +11,12 @@ import fs from "fs/promises";
 import path from "path";
 import { inflateSync } from "zlib";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { withSpacesShown, withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import {
+  dashboardWord,
+  expectPageLoadsOnlyItsLanguage,
+} from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Ask AI beside the page, in real Chromium, against the offline fixture
@@ -116,9 +121,13 @@ interface Box {
 // A monospace family, as the Dashboard writes code.
 const MONOSPACE: RegExp = /mono|Menlo|Consolas|Courier/i;
 
-// A table's date under the pointer: the whole of it, and how long ago it was.
-const WHOLE_DATE_UNDER_THE_POINTER: RegExp =
-  /^Oct 27 2026, 02:57 PM \S+ · 3 minutes ago$/;
+/*
+ * A table's date under the pointer: the whole of it, and how long ago it
+ * was, the number held to its unit (#8669).
+ */
+const WHOLE_DATE_UNDER_THE_POINTER: RegExp = new RegExp(
+  `^Oct 27 2026, 02:57 PM \\S+ · ${withUnit(3, "minutes")} ago$`,
+);
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 
@@ -1606,11 +1615,18 @@ test.describe("what an answer carries fits where it is drawn", () => {
       for (const label of labels) {
         expect(label, label.text).toEqual({ text: label.text, lines: 1 });
       }
+      // Each value held to its unit, as read (#8717).
       expect(
         labels.map((label: { text: string; lines: number }): string => {
           return label.text;
         }),
-      ).toEqual(expect.arrayContaining(["650 ms", "1.3 s", "2.6 s"]));
+      ).toEqual(
+        expect.arrayContaining([
+          withUnit(650, "ms"),
+          withUnit(1.3, "s"),
+          withUnit(2.6, "s"),
+        ]),
+      );
     });
   }
 
@@ -1808,7 +1824,10 @@ test.describe("what an answer carries fits where it is drawn", () => {
 
       if (view.lang === "de") {
         expect(date.text).toContain("Okt.");
-        expect(date.title).toContain("vor 3 Minuten");
+        // The number held to its unit, as Intl's relative time is (#8456).
+        expect(withSpacesShown(date.title)).toContain(
+          withSpacesShown(`vor ${withUnit(3, "Minuten")}`),
+        );
       } else {
         expect(date.text).toBe("Oct 27, 2:57 PM");
         expect(date.title).toMatch(WHOLE_DATE_UNDER_THE_POINTER);
@@ -4273,7 +4292,10 @@ test.describe("monitors looked up, and the monitors table", () => {
           filled(words, "Off - not checked"),
         ]);
 
-        // None of OneUptime's words left in English.
+        /*
+         * None of OneUptime's words left in English - but a word the
+         * language writes as English does, as German says Monitor (#8628).
+         */
         for (const card of [offline, disabled]) {
           const text: string = await wordsOf(card);
           for (const english of [
@@ -4283,7 +4305,9 @@ test.describe("monitors looked up, and the monitors table", () => {
             "Off - not checked",
             "Incoming Request",
             "Type",
-          ]) {
+          ].filter((english: string): boolean => {
+            return filled(words, english) !== english;
+          })) {
             expect(text, `${language} ${width}: ${text}`).not.toContain(
               english,
             );
@@ -4536,8 +4560,10 @@ const READ_CARD_DATA: Array<string> = [
 
 /*
  * The words in Latin letters an Arabic page keeps: names the Arabic
- * Dashboard writes in them (SLO, SLI, API, URL, IP, the time zone), and
- * Deployments, which its locale keeps in English (i18n/Progress/ar.json).
+ * Dashboard writes in them (SLO, SLI, API, URL, IP, the time zone - the
+ * browser's UTC, named as it is since #8475, where moment's guess read
+ * GMT), and Deployments, which its locale keeps in English
+ * (i18n/Progress/ar.json).
  */
 const ARABIC_LATIN_WORDS: Array<string> = [
   "SLO",
@@ -4545,7 +4571,7 @@ const ARABIC_LATIN_WORDS: Array<string> = [
   "API",
   "URL",
   "IP",
-  "GMT",
+  "UTC",
   "Deployments",
 ];
 
@@ -4734,8 +4760,9 @@ test.describe("every card a read leaves", () => {
       'Pages on-call schedule "Payments weekly rotation", then escalates after 30 minutes',
       "Pages no one",
       "On call now: Ana Souza",
-      "Oct 26 2026, 13:00 GMT",
-      "Nov 02 2026, 13:00 GMT",
+      // In the browser's zone, UTC, as the export's header names it (#8475).
+      "Oct 26 2026, 13:00 UTC",
+      "Nov 02 2026, 13:00 UTC",
       "Jonas Müller",
       "3: Checkout (monitor: Checkout API), Payments (monitor group: Payments stack), Backups - not monitored",
       "IP Address: 203.0.113.7, User: ana@acme.example.com",
@@ -5092,4 +5119,37 @@ test.describe("a setup plan", () => {
     await expectNothingScrollsSideways(page);
     await screenshot(page, "setup-done-390-fa");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8366). It imported
+ * German, Persian and Arabic whole, 23 MB of JSON in every page's scripts,
+ * parsed on every page load of every test. English is in the bundle now, and
+ * each other language a chunk of its own, loaded only by a page drawn in it
+ * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
+ * (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+test.describe("the page's language, loaded as the Dashboard loads it", () => {
+  for (const language of ["en", "de", "fa", "ar"]) {
+    test(`a page in ${language} loads its own locale and no other, in its words`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await expectPageLoadsOnlyItsLanguage(
+        page,
+        {
+          address: (code: string): string => {
+            return code === "en" ? "/" : `/?lang=${code}`;
+          },
+          ready: (shown: Page, code: string): Locator => {
+            return shown.getByTestId("fixture-page").getByRole("button", {
+              name: dashboardWord(code, "Ask AI"),
+            });
+          },
+        },
+        language,
+      );
+    });
+  }
 });

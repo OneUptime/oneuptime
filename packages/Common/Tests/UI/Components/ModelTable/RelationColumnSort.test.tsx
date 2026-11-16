@@ -108,6 +108,10 @@ import {
 } from "../../../../UI/Components/ModelTable/ColumnSort";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import AnalyticsLog from "../../../../Models/AnalyticsModels/Log";
+import AnalyticsModels from "../../../../Models/AnalyticsModels/Index";
+import AnalyticsBaseModel from "../../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import DatabaseModels from "../../../../Models/DatabaseModels/Index";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
@@ -459,7 +463,7 @@ describe("the order the server is asked for", () => {
     ).toEqual({ _id: ASC });
   });
 
-  test("an analytics list keeps the key it is sorted by, whatever it is", () => {
+  test("an analytics list keeps a key its model has", () => {
     expect(
       getColumnSortForRead<AnalyticsLog>({
         model: new AnalyticsLog(),
@@ -468,14 +472,89 @@ describe("the order the server is asked for", () => {
         relationSorts: new Map(),
       }),
     ).toEqual({ time: DESC });
-    expect(
-      getColumnSortForRead<AnalyticsLog>({
-        model: new AnalyticsLog(),
-        sortBy: "attributes.region",
-        sortOrder: ASC,
-        relationSorts: new Map(),
-      }),
-    ).toEqual({ "attributes.region": ASC });
+  });
+
+  /*
+   * A link or a saved view made before a column was renamed or removed, or
+   * an address someone edited, can name a column the model no longer has:
+   * the server refuses an order by it (#8141), so the whole list would fail
+   * to load (#8841). An attribute of a telemetry record is no column either,
+   * and cannot order a list yet (#8140).
+   */
+  test("a column the model no longer has, as an old link or saved view names it, is read in the list's own order", () => {
+    for (const staleKey of ["oldColumn", "nope", "constructor", "__proto__"]) {
+      expect(
+        getColumnSortForRead<Incident>({
+          model: new Incident(),
+          sortBy: staleKey,
+          sortOrder: DESC,
+          relationSorts: new Map(),
+        }),
+      ).toEqual({});
+    }
+
+    for (const staleKey of ["attributes.region", "oldColumn", "nope"]) {
+      expect(
+        getColumnSortForRead<AnalyticsLog>({
+          model: new AnalyticsLog(),
+          sortBy: staleKey,
+          sortOrder: ASC,
+          relationSorts: new Map(),
+        }),
+      ).toEqual({});
+    }
+  });
+
+  test("every column of every model is still sorted by itself, both ways - and only a key no model has is dropped", () => {
+    let columns: number = 0;
+
+    for (const modelType of DatabaseModels as Array<{ new (): BaseModel }>) {
+      const model: BaseModel = new modelType();
+
+      for (const column of model.getTableColumns().columns) {
+        if (model.isEntityColumn(column)) {
+          continue;
+        }
+
+        for (const sortOrder of [ASC, DESC]) {
+          columns++;
+
+          expect([
+            model.tableName,
+            column,
+            getColumnSortForRead<BaseModel>({
+              model: model,
+              sortBy: column,
+              sortOrder: sortOrder,
+              relationSorts: new Map(),
+            }),
+          ]).toEqual([model.tableName, column, { [column]: sortOrder }]);
+        }
+      }
+    }
+
+    for (const modelType of AnalyticsModels as Array<{
+      new (): AnalyticsBaseModel;
+    }>) {
+      const model: AnalyticsBaseModel = new modelType();
+
+      for (const column of model.getTableColumns()) {
+        columns++;
+
+        expect([
+          model.tableName,
+          column.key,
+          getColumnSortForRead<AnalyticsBaseModel>({
+            model: model,
+            sortBy: column.key,
+            sortOrder: DESC,
+            relationSorts: new Map(),
+          }),
+        ]).toEqual([model.tableName, column.key, { [column.key]: DESC }]);
+      }
+    }
+
+    expect(columns).toBeGreaterThan(10000);
   });
 
   test("a new object every time: the reads add their tie-break to it", () => {
@@ -1111,5 +1190,25 @@ describe("a list's relation headers sort the whole list", () => {
 
     expect(calls[0]?.sort).toEqual({});
     expect(header("Labels")).not.toHaveAttribute("aria-sort");
+  });
+
+  test("a list opened sorted by a column its model no longer has - from an old link or saved view - still loads, in its own order (#8841)", async () => {
+    const calls: Array<ListCall> = [];
+
+    renderIncidents(calls, {
+      sortBy: "oldColumn",
+      sortOrder: SortOrder.Descending,
+    } as unknown as Partial<BaseModelTableProps<Incident>>);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Checkout is down")).not.toBeNull();
+    });
+
+    expect(calls[0]?.sort).toEqual({});
+
+    // No header reads as the one the list is sorted by.
+    for (const title of ["Severity", "State", "Created By", "Labels"]) {
+      expect(["none", null]).toContain(header(title).getAttribute("aria-sort"));
+    }
   });
 });

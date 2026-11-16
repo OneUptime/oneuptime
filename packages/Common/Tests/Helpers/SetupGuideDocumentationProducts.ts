@@ -5,8 +5,42 @@ import { DOCKER_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pa
 import { DOCKER_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Docker/Utils/DocumentationTranslations";
 import { PODMAN_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationMarkdown";
 import { PODMAN_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationTranslations";
+import { DOCKER_SWARM_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
+import { DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationTranslations";
+import { CEPH_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
+import { CEPH_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationTranslations";
+import { IOT_INGESTION_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationMarkdown";
+import { IOT_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationTranslations";
+import { KUBERNETES_PLATFORMS } from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import { KUBERNETES_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationTranslations";
+import { STORAGE_ARRAY_PLATFORMS } from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
+import { STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationTranslations";
+import { OPENSTACK_CONNECT_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationMarkdown";
+import { OPENSTACK_DEPLOYMENT_TOOLS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
+import { OPENSTACK_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationTranslations";
+import { PROXMOX_CONNECT_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
+import { PROXMOX_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationTranslations";
+import { VMWARE_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import { VMWARE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationTranslations";
+import { DATABASE_AGENT_SYSTEM_OPTIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
+import { DATABASE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationTranslations";
+import { HOST_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
+import { HOST_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationTranslations";
+import { MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
+import { MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
+  getMessageQueueSetupGuideWays,
+  getProxmoxSetupGuideWays,
+  getDatabaseSetupGuideWays,
+  getHostSetupGuideWays,
+  getVMwareSetupGuideWays,
+  getStorageArraySetupGuideWays,
+  getKubernetesSetupGuideWays,
+  getIoTSetupGuideWays,
+  getOpenStackSetupGuideWays,
+  getCephSetupGuideWays,
+  getDockerSwarmSetupGuideWays,
   getDockerSetupGuideWays,
   getPodmanSetupGuideWays,
 } from "./SetupGuideWays";
@@ -57,9 +91,15 @@ function product(data: {
   ways: () => Array<SetupGuideWay>;
   options: ReadonlyArray<SetupGuideOption>;
   dashboardWords: ReadonlyArray<string>;
+  // Components/<cardDirectory>/DocumentationCard.tsx; the product's name if unset.
+  cardDirectory?: string;
+  // A card kept elsewhere, as a path from the Dashboard's src.
+  cardPath?: string;
 }): SetupGuideDocumentationProduct {
+  const { cardDirectory, cardPath, ...rest } = data;
+
   return {
-    ...data,
+    ...rest,
     translationsDirectory: path.join(
       DASHBOARD_SOURCE,
       `Pages/${data.name}/DocumentationTranslations`,
@@ -70,7 +110,8 @@ function product(data: {
     ),
     cardFile: path.join(
       DASHBOARD_SOURCE,
-      `Components/${data.name}/DocumentationCard.tsx`,
+      cardPath ||
+        `Components/${cardDirectory || data.name}/DocumentationCard.tsx`,
     ),
   };
 }
@@ -109,6 +150,251 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "Podman",
         ...CONTAINER_HOST_WORDS,
         "Collect logs from every container (k8s-file log driver)",
+      ],
+    }),
+    product({
+      name: "DockerSwarm",
+      translations: DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS",
+      ways: getDockerSwarmSetupGuideWays,
+      options: DOCKER_SWARM_INSTALL_METHODS,
+      dashboardWords: [
+        "Docker Swarm",
+        "AI",
+        "AI agent",
+        "The OneUptime AI agent",
+        "Node Name",
+      ],
+    }),
+    product({
+      name: "Ceph",
+      translations: CEPH_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "CEPH_DOCUMENTATION_TRANSLATIONS",
+      ways: getCephSetupGuideWays,
+      options: CEPH_INSTALL_METHODS,
+      dashboardWords: [
+        "Ceph",
+        "Cluster Log",
+        "Cluster Health",
+        "OSD",
+        "Pool",
+        "Placement Groups",
+        "Agent Version",
+        "OneUptime AI agent",
+        "AI",
+        "AI agent",
+      ],
+    }),
+    product({
+      name: "IoT",
+      translations: IOT_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "IOT_DOCUMENTATION_TRANSLATIONS",
+      ways: getIoTSetupGuideWays,
+      options: IOT_INGESTION_METHODS,
+      dashboardWords: [
+        "IoT",
+        "Devices",
+        "Metrics",
+        "Fleet",
+        "Device",
+        "Device Registry",
+        "Metric conventions",
+        "MQTT topics and payloads",
+      ],
+    }),
+    product({
+      name: "Kubernetes",
+      translations: KUBERNETES_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "KUBERNETES_DOCUMENTATION_TRANSLATIONS",
+      ways: getKubernetesSetupGuideWays,
+      options: KUBERNETES_PLATFORMS,
+      dashboardWords: [
+        "Kubernetes",
+        "AI",
+        "Agent",
+        "Application traces",
+        "Network flows",
+        "Upgrade or uninstall the agent",
+        "GKE Autopilot",
+        "EKS Fargate",
+        "OpenShift",
+        "Red Hat OpenShift",
+      ],
+    }),
+    product({
+      name: "StorageArray",
+      translations: STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS",
+      ways: getStorageArraySetupGuideWays,
+      options: STORAGE_ARRAY_PLATFORMS,
+      dashboardWords: [
+        "Storage Arrays",
+        "Logs",
+        "Agent Version",
+        "FlashArray, older Purity",
+        "Volumes",
+        "Hosts",
+        "Directories",
+      ],
+    }),
+    product({
+      name: "OpenStack",
+      translations: OPENSTACK_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "OPENSTACK_DOCUMENTATION_TRANSLATIONS",
+      ways: getOpenStackSetupGuideWays,
+      // The card asks how OpenStack is deployed, then how to install the agent.
+      options: [...OPENSTACK_DEPLOYMENT_TOOLS, ...OPENSTACK_CONNECT_METHODS],
+      dashboardWords: [
+        "OpenStack",
+        "All Clouds",
+        "Connect Cloud",
+        "Control Plane",
+        "Overview",
+        "Linked Resources",
+        "Incidents",
+        "Heartbeat URL",
+        "Logs",
+        "Security Events",
+        "Connections",
+        "Find security events in your logs",
+        "Services",
+        "Hypervisors",
+        "Domains",
+        "Images",
+        "Volumes",
+        "Settings",
+        "Real usage per instance",
+        "Agent Version",
+        "Full view",
+        "Infrastructure only",
+        "Project view",
+        "Kubernetes",
+        "Documentation",
+        "Not sure, or something else",
+        "Red Hat OpenShift",
+        "What the agent collects, and what it costs your cloud",
+      ],
+    }),
+    product({
+      name: "Proxmox",
+      translations: PROXMOX_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "PROXMOX_DOCUMENTATION_TRANSLATIONS",
+      ways: getProxmoxSetupGuideWays,
+      options: PROXMOX_CONNECT_METHODS,
+      dashboardWords: [
+        "Proxmox",
+        "Logs",
+        "Recommendations",
+        "AI",
+        "AI agent",
+        "Agent Version",
+        "OneUptime AI agent",
+        "Offline",
+        "Disconnected",
+        "Remove Node",
+        "Install script",
+        "Docker Compose",
+        "Storage",
+        "Backup coverage",
+        "Replication",
+      ],
+    }),
+    product({
+      name: "VMware",
+      translations: VMWARE_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "VMWARE_DOCUMENTATION_TRANSLATIONS",
+      ways: getVMwareSetupGuideWays,
+      options: VMWARE_INSTALL_METHODS,
+      dashboardWords: [
+        "VMware",
+        "Agent Version",
+        "OneUptime AI agent",
+        "AI",
+        "AI agent",
+        // The vSphere objects the inventory table names, as the pages do.
+        "Datacenter",
+        "Cluster",
+        "ESXi host",
+        "Datastore",
+        "Resource pool",
+        // The guide's own topics, named from other topics.
+        "How VM power state is worked out",
+        "vCenter rejects the login",
+        "x509 or other TLS errors",
+      ],
+    }),
+    product({
+      name: "Database",
+      cardDirectory: "DatabaseServer",
+      translations: DATABASE_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "DATABASE_DOCUMENTATION_TRANSLATIONS",
+      ways: getDatabaseSetupGuideWays,
+      // The card asks which engine the reader runs.
+      options: DATABASE_AGENT_SYSTEM_OPTIONS,
+      dashboardWords: [
+        "Databases",
+        "Engine metrics",
+        "Logs",
+        "Documentation",
+        "AI",
+        "AI agent",
+        "The files the agent runs",
+        // A database's own tab: its Metrics tab and the chart's button.
+        "This database",
+        "Metrics",
+        "Create monitor",
+      ],
+    }),
+    product({
+      name: "Host",
+      translations: HOST_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "HOST_DOCUMENTATION_TRANSLATIONS",
+      ways: getHostSetupGuideWays,
+      options: HOST_INSTALL_METHODS,
+      dashboardWords: [
+        "Hosts",
+        "Inventory",
+        "Details",
+        "Overview",
+        "Metrics",
+        "Processes",
+        "Logs",
+        "Systemd Units",
+        "Services",
+        "AI",
+        "AI agent",
+        "Agent Version",
+        "Kubernetes",
+        "Nodes",
+        // The guide's own topics, named from other topics.
+        "Record the serial number, make, model and firmware version",
+        "Enable the Systemd Units tab",
+        "Enable the Windows Services tab",
+      ],
+    }),
+    product({
+      name: "MessageQueue",
+      cardPath: "Pages/MessageQueue/Utils/MessageQueueDocumentationCard.tsx",
+      translations: MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS",
+      ways: getMessageQueueSetupGuideWays,
+      // The card asks which messaging system the reader runs.
+      options: MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS,
+      dashboardWords: [
+        "Queues",
+        "Broker health",
+        "Metrics",
+        "Traces",
+        "Create monitor",
+        "Server",
+        "Browser",
+        // The guide's own topic, named from another topic.
+        "If the broker is Apache ActiveMQ",
+        // A queue's own tab: its Overview's sections and its header's state.
+        "Overview",
+        "Producers",
+        "Consumers",
+        "Seen recently",
       ],
     }),
   ];

@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ConnectSyncToolModal from "../../Components/DataObservability/ConnectSyncToolModal";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -29,8 +30,14 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  CompactDurationOptions,
+  formatCompactDuration,
+} from "../../Utils/Milliseconds";
 import React, { FunctionComponent, ReactElement, useState } from "react";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * How a run stands, at a glance.
@@ -63,28 +70,38 @@ export function formatRunDuration(
   seconds: number | undefined | null,
 ): string {
   if (seconds === undefined || seconds === null) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
 
+  /*
+   * In the reader's units and digits ("۴ دقیقه ۱۲ ثانیه"; #8455). A run
+   * reported to the millisecond keeps its decimals, as it always read.
+   */
+  const asReported: CompactDurationOptions = {
+    decimals: 3,
+    dropTrailingZeros: true,
+  };
+
   if (seconds < 60) {
-    return translator.translateTemplate("{{count}}s", { count: seconds });
+    return formatCompactDuration(translator, { seconds }, asReported);
   }
 
   if (seconds < 3600) {
-    return translator.translateTemplate("{{minutes}}m {{seconds}}s", {
-      minutes: Math.floor(seconds / 60),
-      seconds: seconds % 60,
-    });
+    return formatCompactDuration(
+      translator,
+      { minutes: Math.floor(seconds / 60), seconds: seconds % 60 },
+      asReported,
+    );
   }
 
   if (seconds < 86400) {
-    return translator.translateTemplate("{{hours}}h {{minutes}}m", {
+    return formatCompactDuration(translator, {
       hours: Math.floor(seconds / 3600),
       minutes: Math.floor((seconds % 3600) / 60),
     });
   }
 
-  return translator.translateTemplate("{{days}}d {{hours}}h", {
+  return formatCompactDuration(translator, {
     days: Math.floor(seconds / 86400),
     hours: Math.floor((seconds % 86400) / 3600),
   });
@@ -323,9 +340,11 @@ const DataObservabilityPipelinesPage: FunctionComponent<
                         : "text-gray-700"
                     }`}
                   >
-                    {formatRunDuration(
-                      translator,
-                      pipeline.lastRunDurationInSeconds,
+                    {getValueOrQuietDash(
+                      formatRunDuration(
+                        translator,
+                        pipeline.lastRunDurationInSeconds,
+                      ),
                     )}
                   </span>
                   {pipeline.typicalRunDurationInSeconds ? (

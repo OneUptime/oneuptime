@@ -197,6 +197,7 @@ import WorkspaceSummaryTable from "../../../../App/FeatureSet/Dashboard/src/Comp
 import WorkspaceNotificationSummaryType from "../../../Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { WorkspaceSummaryTestChannel } from "../../../Types/Workspace/NotificationSummary/WorkspaceSummaryTestChannel";
+import { withNumbersKeptWithUnits } from "../../../Types/NoBreakSpaces";
 
 const NOT_FOUND: (name: string) => string = (name: string): string => {
   return `The Slack channel ${name} was not found. If it is a private channel, invite OneUptime's bot to it in Slack.`;
@@ -818,10 +819,13 @@ describe("in the reader's language", () => {
       expect(
         within(confirm).getByTestId("confirm-modal-description").textContent,
       ).toBe(
-        words[`${CONFIRM_DESCRIPTION}_one`]!.replace(
-          "{{name}}",
-          "Daily incidents",
+        // As the page sets it: the count held to its word (#8770).
+        withNumbersKeptWithUnits(
+          words[`${CONFIRM_DESCRIPTION}_one`]!,
+          CONFIRM_DESCRIPTION,
+          { durationWords: true },
         )
+          .replace("{{name}}", "Daily incidents")
           .replace("{{workspace}}", "Slack")
           .replace("{{count}}", "1"),
       );

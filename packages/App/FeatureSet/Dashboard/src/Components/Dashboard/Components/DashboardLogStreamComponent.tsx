@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import DashboardLogStreamComponent from "Common/Types/Dashboard/DashboardComponents/DashboardLogStreamComponent";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import AnalyticsModelAPI, {
   ListResult,
@@ -284,7 +285,7 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
                     style={{ fontSize: "11px" }}
                     title={time.title}
                   >
-                    {time.label}
+                    {getValueOrQuietDash(time.label, { isSmall: true })}
                   </span>
                 )}
                 {/*

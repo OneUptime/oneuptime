@@ -951,7 +951,7 @@ describe("Execute On-Call Policy pickers ask first, then offer what the member m
             .messageBlocks[0] as WorkspacePayloadMarkdown
         ).text,
       ).toBe(
-        "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a project admin for access to one.",
+        "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a Project Admin for access to one.",
       );
     },
   );

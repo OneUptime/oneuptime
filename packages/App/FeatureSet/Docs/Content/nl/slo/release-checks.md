@@ -7,6 +7,7 @@ Een releasecontrole vraagt een SLO "is het veilig om deze release verder uit te 
 - [Argo Rollouts](#argo-rollouts): Een analyse die de uitrol afbreekt.
 - [Flagger](#flagger): Een webhook die de canary stopzet.
 - [GitHub Actions](#github-actions): Een stap die na een implementatie terugdraait.
+- [Een feature flag uitzetten](#een-feature-flag-uitzetten): Een workflow die een flag uitzet als de SLO zijn foutbudget te snel verbruikt.
 :::
 
 ## Zo werkt het
@@ -42,6 +43,7 @@ Bij een verbruikssnelheid van 1 haalde het venster precies het doel van de SLO, 
 Wat de controle leest, hangt af van wat de SLO meet:
 
 - Een [SLO voor aanvragen](/docs/slo/request-slos) wordt beoordeeld op de aanvragen van zijn services in het venster, gelezen uit hun spans zodra die binnenkomen. Voeg `serviceVersion` toe om alleen de aanvragen van de nieuwe versie te beoordelen: OneUptime vergelijkt die waarde met het resource-attribuut `service.version` van de spans, dat een OpenTelemetry-SDK instelt vanuit `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2`. Zo wordt de canary beoordeeld op zijn eigen aanvragen, zonder dat die van de oude versie het beeld verdunnen.
+- Een [SLO voor een metriek](/docs/slo/request-slos#slos-op-basis-van-een-metriek) wordt beoordeeld op de gebeurtenissen van zijn metriek in het venster, geteld zoals zijn SLI ze telt, dus `minimumRequestCount`, `goodRequestCount` en `totalRequestCount` zijn gebeurtenissen. Met `serviceVersion` tellen alleen de punten van de metriek waarvan het resource-attribuut `service.version` die waarde heeft: een OpenTelemetry-SDK zet het op zijn metrieken net als op zijn spans.
 - Een SLO voor monitorbeschikbaarheid wordt beoordeeld op de statustijdlijnen van zijn monitoren over het venster. `minimumRequestCount` geldt er niet voor, en een controle met `serviceVersion` wordt geweigerd: monitoren hebben geen versies.
 
 ## Voordat u begint
@@ -126,7 +128,7 @@ De velden van het antwoord:
 | `deploymentsAllowed` en `errorBudgetPolicyTier` | Of het foutbudgetbeleid van de SLO implementaties toestaat, en in welk niveau de SLO zit. |
 | `checkedAt` | Wanneer de controle is gemeten. |
 
-Een SLO die niet kan worden gemeten – een SLO voor aanvragen zonder services, een SLO voor latentie zonder drempel, een SLO voor monitorbeschikbaarheid zonder monitoren – krijgt als antwoord HTTP 400 en wat er moet worden opgelost, zodat een uitrol stopt op een duidelijke fout in plaats van op een gok. Gebruik op een zelfgehoste installatie het eigen adres van die installatie in plaats van oneuptime.com.
+Een SLO die niet kan worden gemeten – een SLO voor aanvragen zonder services, een SLO voor latentie zonder drempel, een SLO voor een metriek zonder telbare metriek, een SLO voor monitorbeschikbaarheid zonder monitoren – krijgt als antwoord HTTP 400 en wat er moet worden opgelost, zodat een uitrol stopt op een duidelijke fout in plaats van op een gok. Gebruik op een zelfgehoste installatie het eigen adres van die installatie in plaats van oneuptime.com.
 
 ## Argo Rollouts
 
@@ -256,6 +258,37 @@ jobs:
 ```
 
 De stap mislukt bij een nee, en bij elk antwoord zonder `isSafeToContinue: true` – een verkeerde ID, een sleutel die de SLO niet kan lezen, helemaal geen antwoord – zodat de pipeline nooit doorgaat op een antwoord dat hij niet heeft gekregen. Stel `service.version` bij het starten van de service in op de commit (`${{ github.sha }}`), zodat de controle alleen de nieuwe versie beoordeelt.
+
+## Een feature flag uitzetten
+
+Een release achter een feature flag draait u terug door de flag uit te zetten. Een workflow kan dat voor u doen: als een [regel voor verbruikssnelheid](/docs/slo/burn-rate-alerts) van de SLO zijn waarschuwing geeft of zijn incident meldt, zet de workflow de flag uit in LaunchDarkly of Unleash. Een slechte uitrol is dan binnen enkele minuten ongedaan gemaakt, zonder dat iemand hoeft in te grijpen.
+
+:::steps
+### De ID van de regel voor verbruikssnelheid kopiëren
+
+Open de SLO en ga naar **Verbruikssnelheidsregels**. Open het menu van de regel die de flag moet uitzetten en kies **ID weergeven**. Een regel voor snel verbruik past hier het best, omdat die binnen enkele minuten na een slechte uitrol afgaat.
+
+### De workflow maken vanuit een sjabloon
+
+Open **Workflows** en klik op **Workflow maken**. Kies onder **Of begin met een sjabloon** de categorie **SLOs** en daarna het sjabloon van uw flagdienst:
+
+| Sjabloon | Waar het om vraagt |
+| --- | --- |
+| **Turn a LaunchDarkly flag off when an SLO burns too fast** | Een API-toegangstoken dat de flag mag bijwerken, en de sleutels van het LaunchDarkly-project, de flag en de omgeving. |
+| **Turn an Unleash flag off when an SLO burns too fast** | Uw Unleash-adres, een token van een serviceaccount of een persoonlijk toegangstoken, en het project, de naam en de omgeving van de flag. |
+
+Plak de ID van de regel in **Burn Rate Rule ID**, vul de rest in en maak de workflow aan.
+
+### De workflow inschakelen
+
+Workflows worden uitgeschakeld aangemaakt. Zodra u er klaar voor bent, zet u **Ingeschakeld** aan, bovenaan de **Bouwer** van de workflow.
+:::
+
+De workflow start telkens als een regel voor verbruikssnelheid in het project een waarschuwing geeft of een incident meldt. Het blok **Als / Anders** laat hem alleen doorgaan voor de regel waarvan u de ID hebt geplakt, en de volgende stap roept de flagdienst aan: bij LaunchDarkly de instructie `turnFlagOff`, met een opmerking die de regel en de SLO noemt, of bij Unleash `off` voor de omgeving. Beide zetten de flag uit voor iedereen in die omgeving, ongeacht de targeting. Weigert de flagdienst de aanroep, dan mislukt de uitvoering, en het logboek ervan zegt waarom. De waarschuwing van de regel roept nog steeds mensen op, zoals altijd.
+
+**Workflow uitvoeren** in de **Bouwer** voert de workflow uit alsof de regel die u kiest net is afgegaan, dus de flag gaat echt uit. Probeer het eerst met een flag in een testomgeving.
+
+Voor een andere flagdienst, of een LaunchDarkly-instantie met een eigen adres, begint u met een van beide sjablonen en vervangt u de aanroep in de API-stap ervan door een aanroep die de flag uitzet voor iedereen in de omgeving. Kies een aanroep die, net als deze twee, ook segmenten en targetingregels overschrijft, anders blijft de flag via een geleidelijke uitrol aanstaan.
 
 ## Volgende stappen
 

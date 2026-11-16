@@ -299,7 +299,7 @@ describe("in German, the same page in German", () => {
       "Vorfall INC-42 noch nicht behoben: Checkout is down",
     );
     expect(words.body).toBe(
-      "Vorfall INC-42 (Checkout is down) in Acme ist 1 Stunde 30 Minuten nach der Bestätigung noch nicht behoben. Tippen Sie für Details.",
+      "Vorfall INC-42 (Checkout is down) in Acme ist 1\u00A0Stunde 30\u00A0Minuten nach der Bestätigung noch nicht behoben. Tippen Sie für Details.",
     );
   });
 

@@ -368,7 +368,7 @@ describe.each(ARCHIVABLE_MODELS)(
         ).not.toThrow();
       });
 
-      test("a project admin may archive it", () => {
+      test("a Project Admin may archive it", () => {
         expect(
           updateWith(archivable, { isArchived: true }, [
             Permission.ProjectAdmin,
@@ -388,7 +388,7 @@ describe.each(ARCHIVABLE_MODELS)(
         },
       );
 
-      test("nobody can forge who archived it or when, not even a project owner", () => {
+      test("nobody can forge who archived it or when, not even a Project Owner", () => {
         expect(
           updateWith(archivable, { archivedAt: new Date() }, [
             Permission.ProjectOwner,

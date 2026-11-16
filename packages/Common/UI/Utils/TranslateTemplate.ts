@@ -10,6 +10,7 @@ import {
   TemplateValues,
   TermOptions,
   Translator,
+  TranslatorOptions,
 } from "../../Types/Translator";
 
 /*
@@ -25,14 +26,17 @@ import {
 
 export * from "../../Types/Translator";
 
+const ON_A_PAGE: TranslatorOptions = { drawsOnPage: true };
+
 /*
  * The translator for the global i18next instance - the one each front end
  * initializes in its Utils/i18n.ts. Before (or without) that, it answers in
- * English.
+ * English. A page's translator: its English holds a duration's figure to
+ * its word too ("Every 5\u00A0minutes", drawsOnPage, #8770).
  */
 export const getGlobalTranslator: () => Translator = (): Translator => {
   if (!i18next.isInitialized) {
-    return createTranslator(undefined, DEFAULT_LANGUAGE);
+    return createTranslator(undefined, DEFAULT_LANGUAGE, ON_A_PAGE);
   }
 
   return createTranslator(
@@ -46,6 +50,7 @@ export const getGlobalTranslator: () => Translator = (): Translator => {
       return typeof translated === "string" ? translated : undefined;
     },
     i18next.resolvedLanguage || i18next.language || DEFAULT_LANGUAGE,
+    ON_A_PAGE,
   );
 };
 

@@ -33,7 +33,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **For instansens og et prosjekts budsjetter: Admin Dashboard.** På en selvhostet installasjon er det bare instansadministratoren som angir dem. Et prosjekts eiere og administratorer ser budsjettene, men kan ikke endre dem.
+- **For instansens og et prosjekts budsjetter: Admin Dashboard.** På en selvhostet installasjon er det bare instansadministratoren som angir dem. Prosjekteiere og Prosjektadministratorer ser et prosjekts budsjetter, men kan ikke endre dem.
 - **For en nøkkels eget budsjett: en rolle som redigerer inntaksnøkler.** Prosjekteier eller Prosjektadministrator, eller en egendefinert rolle med tillatelsen Edit Ingestion Key.
 - **For å se budsjettene: en rolle som ser prosjektets forbruk.** Rollene som ser siden [Telemetriforbruk](/docs/telemetry/usage), ser budsjettene der.
 
@@ -113,7 +113,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## Advarselen og tilbakestillingen
 
-- **Advarselen.** Når et daglig budsjett passerer advarselsterskelen, 80 % med mindre instansadministratoren endrer den, får prosjektets eiere en e-post, og utforskerne viser et banner over dataene for det signalet. De får én e-post til når budsjettet er brukt opp. Hvert budsjett sender hver e-post høyst én gang om dagen.
+- **Advarselen.** Når et daglig budsjett passerer advarselsterskelen, 80 % med mindre instansadministratoren endrer den, får Prosjekteiere en e-post, og utforskerne viser et banner over dataene for det signalet. De får én e-post til når budsjettet er brukt opp. Hvert budsjett sender hver e-post høyst én gang om dagen.
 - **Tilbakestillingen.** Hver budsjettdag begynner på nytt kl. 00:00 UTC, med mindre instansadministratoren endrer det. Kortet **Advarsel og tilbakestilling** angir **Advarselsterskel (%)**, fra 1 til 99, **Tilbakestillingstidspunkt**, som HH:MM, og **Tidssone for tilbakestilling**: klikk på **Rediger advarsel og tilbakestilling**.
 - **Sommertid.** Tilbakestillingen følger klokken i tidssonen, så budsjettdagen da klokkene stilles om, er én time kortere eller lengre. Et tilbakestillingstidspunkt som klokkene hopper over, inntreffer like lenge etter hoppet.
 - **En endret tilbakestilling starter en ny dag.** Når tilbakestillingstidspunktet eller tidssonen endres, starter en ny budsjettdag med en gang, der ingenting er telt ennå.
@@ -188,5 +188,5 @@ OneUptime kan ikke nå Valkey, der budsjettene telles. Til det kan det, lagres t
 - [Telemetriforbruk](/docs/telemetry/usage): Se hva hvert prosjekt og hver tjeneste sender.
 - [Drop-filtre og scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Slutt å lagre telemetrien du ikke trenger.
 - [Inntaksnøkler](/docs/telemetry/ingestion-keys): En nøkkel for hver avsender, slik at hver kan ha et budsjett.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Bli varslet om budsjettmålingene.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Bli varslet om budsjettmålingene.
 :::

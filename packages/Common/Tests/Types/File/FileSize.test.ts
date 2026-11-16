@@ -15,30 +15,30 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  */
 describe("formatFileSize", () => {
   test("a file under a kilobyte is counted in bytes, never 0.1 KB", () => {
-    expect(formatFileSize(0)).toBe("0 B");
-    expect(formatFileSize(66)).toBe("66 B");
-    expect(formatFileSize(100)).toBe("100 B");
-    expect(formatFileSize(1023)).toBe("1023 B");
+    expect(formatFileSize(0)).toBe("0\u00A0B");
+    expect(formatFileSize(66)).toBe("66\u00A0B");
+    expect(formatFileSize(100)).toBe("100\u00A0B");
+    expect(formatFileSize(1023)).toBe("1023\u00A0B");
   });
 
   test("whole kilobytes under a megabyte, never a decimal", () => {
-    expect(formatFileSize(1024)).toBe("1 KB");
-    expect(formatFileSize(2048)).toBe("2 KB");
-    expect(formatFileSize(48213)).toBe("47 KB");
-    expect(formatFileSize(245760)).toBe("240 KB");
+    expect(formatFileSize(1024)).toBe("1\u00A0KB");
+    expect(formatFileSize(2048)).toBe("2\u00A0KB");
+    expect(formatFileSize(48213)).toBe("47\u00A0KB");
+    expect(formatFileSize(245760)).toBe("240\u00A0KB");
     // Just under a megabyte rounds to the kilobyte, not to "1 MB".
-    expect(formatFileSize(1024 * 1024 - 1)).toBe("1024 KB");
+    expect(formatFileSize(1024 * 1024 - 1)).toBe("1024\u00A0KB");
   });
 
   test("one decimal from a megabyte on, none when it is whole", () => {
-    expect(formatFileSize(1024 * 1024)).toBe("1 MB");
-    expect(formatFileSize(1.5 * 1024 * 1024)).toBe("1.5 MB");
-    expect(formatFileSize(2516582)).toBe("2.4 MB");
-    expect(formatFileSize(10 * 1024 * 1024)).toBe("10 MB");
+    expect(formatFileSize(1024 * 1024)).toBe("1\u00A0MB");
+    expect(formatFileSize(1.5 * 1024 * 1024)).toBe("1.5\u00A0MB");
+    expect(formatFileSize(2516582)).toBe("2.4\u00A0MB");
+    expect(formatFileSize(10 * 1024 * 1024)).toBe("10\u00A0MB");
   });
 
   test("a fraction of a byte is a whole byte down", () => {
-    expect(formatFileSize(640.9)).toBe("640 B");
+    expect(formatFileSize(640.9)).toBe("640\u00A0B");
   });
 
   test("no size to say for what is not one", () => {
@@ -96,16 +96,16 @@ describe("formatFileSize in the reader's language", () => {
         return formatFileSize(bytes, { language: "en" });
       }),
     ).toEqual([
-      "0 B",
-      "100 B",
-      "1023 B",
-      "1 KB",
-      "47 KB",
-      "240 KB",
-      "1 MB",
-      "1.5 MB",
-      "2.4 MB",
-      "10 MB",
+      "0\u00A0B",
+      "100\u00A0B",
+      "1023\u00A0B",
+      "1\u00A0KB",
+      "47\u00A0KB",
+      "240\u00A0KB",
+      "1\u00A0MB",
+      "1.5\u00A0MB",
+      "2.4\u00A0MB",
+      "10\u00A0MB",
     ]);
   });
 
@@ -115,16 +115,16 @@ describe("formatFileSize in the reader's language", () => {
         return formatFileSize(bytes, { language: "fa" });
       }),
     ).toEqual([
-      "۰ B",
-      "۱۰۰ B",
-      "۱٬۰۲۳ B",
-      "۱ KB",
-      "۴۷ KB",
-      "۲۴۰ KB",
-      "۱ MB",
-      "۱٫۵ MB",
-      "۲٫۴ MB",
-      "۱۰ MB",
+      "۰\u00A0B",
+      "۱۰۰\u00A0B",
+      "۱٬۰۲۳\u00A0B",
+      "۱\u00A0KB",
+      "۴۷\u00A0KB",
+      "۲۴۰\u00A0KB",
+      "۱\u00A0MB",
+      "۱٫۵\u00A0MB",
+      "۲٫۴\u00A0MB",
+      "۱۰\u00A0MB",
     ]);
 
     for (const bytes of SIZES) {
@@ -137,18 +137,20 @@ describe("formatFileSize in the reader's language", () => {
 
   test("German with its own decimal comma and grouping", () => {
     expect(formatFileSize(1.5 * 1024 * 1024, { language: "de" })).toBe(
-      "1,5 MB",
+      "1,5\u00A0MB",
     );
-    expect(formatFileSize(2516582, { language: "de" })).toBe("2,4 MB");
-    expect(formatFileSize(1023, { language: "de" })).toBe("1.023 B");
-    expect(formatFileSize(48213, { language: "de" })).toBe("47 KB");
-    expect(formatFileSize(10 * 1024 * 1024, { language: "de" })).toBe("10 MB");
+    expect(formatFileSize(2516582, { language: "de" })).toBe("2,4\u00A0MB");
+    expect(formatFileSize(1023, { language: "de" })).toBe("1.023\u00A0B");
+    expect(formatFileSize(48213, { language: "de" })).toBe("47\u00A0KB");
+    expect(formatFileSize(10 * 1024 * 1024, { language: "de" })).toBe(
+      "10\u00A0MB",
+    );
   });
 
   test("Arabic keeps the Latin digits it writes by choice", () => {
-    expect(formatFileSize(48213, { language: "ar" })).toBe("47 KB");
+    expect(formatFileSize(48213, { language: "ar" })).toBe("47\u00A0KB");
     expect(formatFileSize(1.5 * 1024 * 1024, { language: "ar" })).toBe(
-      "1.5 MB",
+      "1.5\u00A0MB",
     );
 
     for (const bytes of SIZES) {
@@ -161,12 +163,12 @@ describe("formatFileSize in the reader's language", () => {
   test("without a language, the page's: what every list of files on a Persian page says", () => {
     setDateDisplayLanguage("fa");
 
-    expect(formatFileSize(48213)).toBe("۴۷ KB");
-    expect(formatCustomFieldFileSize(48213)).toBe("۴۷ KB");
+    expect(formatFileSize(48213)).toBe("۴۷\u00A0KB");
+    expect(formatCustomFieldFileSize(48213)).toBe("۴۷\u00A0KB");
 
     setDateDisplayLanguage("en");
 
-    expect(formatFileSize(48213)).toBe("47 KB");
+    expect(formatFileSize(48213)).toBe("47\u00A0KB");
   });
 
   test("still no size for what is not one, in any language", () => {

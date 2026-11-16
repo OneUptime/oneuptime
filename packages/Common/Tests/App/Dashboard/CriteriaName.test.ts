@@ -575,6 +575,38 @@ describe("when a name is generated, and when it is the user's", () => {
     ).toBe(false);
   });
 
+  /*
+   * Code that draws a figure holds it to its unit with a no-break space
+   * (#8457); a criteria's name is data instead, stored on the monitor and
+   * matched against what its filters give, so it keeps the plain space a
+   * name saved before was written with, and still follows its filters.
+   */
+  test("a name with a unit keeps its plain space, so a name saved before still follows its filters", () => {
+    const withUnit: Array<CriteriaFilter> = [
+      filter({
+        checkOn: CheckOn.MetricValue,
+        value: 500,
+        metricMonitorOptions: {
+          metricAlias: "latency",
+          metricAggregationType: EvaluateOverTimeType.Average,
+          thresholdUnit: "ms",
+        },
+      }),
+    ];
+    const name: string = CriteriaNameUtil.getNameFromFilters({
+      filters: withUnit,
+    });
+
+    expect(name).toBe("latency is above 500 ms");
+    expect(name).not.toContain("\u00A0");
+    expect(
+      CriteriaNameUtil.isNameFromFilters({
+        name: "latency is above 500 ms",
+        filters: withUnit,
+      }),
+    ).toBe(true);
+  });
+
   test("a generated name follows the filters", () => {
     expect(
       CriteriaNameUtil.getNameAfterFiltersChange({

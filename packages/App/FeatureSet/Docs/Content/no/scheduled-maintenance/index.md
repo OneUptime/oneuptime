@@ -46,7 +46,7 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 - **En tidsplan.** En gjentakende mal oppretter en ny hendelse etter en tidsplan, for eksempel hver uke eller hver måned, uten at noen åpner skjemaet.
 - **Et skjema.** Et skjema der innsendinger oppretter vedlikeholdshendelser, gjør en endringsforespørsel om til en hendelse. Se [Hva en innsending oppretter](/docs/forms/on-submit#slik-blir-en-innsending-til-en-vedlikeholdshendelse).
 - **Chat.** `/oneuptime maintenance` i Slack, eller `maintenance` skrevet til OneUptime-boten i Microsoft Teams, åpner skjemaet i chatverktøyet ditt. Se [Slack](/docs/workspace-connections/slack#opprett-hendelser-og-vedlikehold-fra-slack).
-- **Kode.** API-et på `/api/scheduled-maintenance`, Terraform-ressursen `oneuptime_scheduled_maintenance_event` og trinnet **Create One Maintenance Event** i en arbeidsflyt.
+- **Kode.** API-et på `/api/scheduled-maintenance`, Terraform-ressursen `oneuptime_scheduled_maintenance_event` og trinnet **Opprett Vedlikeholdshendelse (én post)** i en arbeidsflyt.
 
 ## Hvor vedlikehold ligger i dashbordet
 
@@ -70,12 +70,12 @@ Listen viser **Nummer for planlagt vedlikehold**, **Tittel**, **Nåværende tils
 
 Mens en hendelse pågår, behandler OneUptime avbruddet den planlegger, som forventet:
 
-- **Monitorene dens sjekkes ikke.** Hver monitor under **Monitorer** slutter å bli sjekket, og sidene til hver av dem viser **Denne overvåkingen er deaktivert**. Hvis du har valgt en **Endre overvåkingsstatus til**, viser monitorene den statusen, også på statussidene dine. Når hendelsen slutter eller slettes, gjenopptas sjekkene, og hver monitor går tilbake til "operativ", med mindre en annen pågående hendelse fortsatt holder den.
+- **Monitorene dens sjekkes ikke.** Hver monitor under **Monitorer** slutter å bli sjekket, og sidene til hver av dem viser **Denne monitoren er deaktivert**. Hvis du har valgt en **Endre monitorstatus til**, viser monitorene den statusen, også på statussidene dine. Når hendelsen slutter eller slettes, gjenopptas sjekkene, og hver monitor går tilbake til "operativ", med mindre en annen pågående hendelse fortsatt holder den.
 - **De andre ressursene dens holder seg stille.** En telemetrimonitor som overvåker mange verter, klynger, databaser eller tjenester, med én serie hver, oppretter ingen hendelse eller varsel for en serie der hendelsen dekker ressursen, mens de andre seriene fortsetter å varsle. Monitorene til en skyressurs som hendelsen dekker, som de anbefalte, oppretter ingen hendelse eller varsel i det hele tatt.
 - **Nettverkslokasjoner og SLO-er holder igjen.** En nettverkslokasjon som hendelsen dekker, slutter å regne det planlagte avbruddet sitt mot lokasjonene over den, og forbruksratereglene til en SLO utløser ingenting så lenge en av monitorene dens er i vedlikehold. Se [Nettverkslokasjoner](/docs/monitor/network-sites#planlagt-vedlikehold-for-nettverkslokasjoner) og [Forbruksratevarsler og -hendelser](/docs/slo/burn-rate-alerts#planlagt-vedlikehold).
 - **Statussidene dine viser den.** Hendelsen vises på statussidene du har valgt, først som kommende, så som pågående og så som over, så lenge **Synlig på statussiden** er slått på i **Innstillinger** for den, og fra **Publiser den** for den hvis du har valgt et. Når den har startet, viser oppetidshistorikken på disse sidene for hver ressurs monitorene står på den på hver dag vinduet berører, og de ressursene viser «Under vedlikehold» mens den pågår; monitorens oppetidshistorikk i dashbordet viser den på samme måte. Se [Oppetidsprosenter og historikkdiagrammer](/docs/status-pages/resources-and-groups#oppetidsprosenter-og-historikkdiagrammer).
 - **Abonnentene får høre om den.** Som standard får abonnentene på disse sidene beskjed når den planlegges, når den starter og når den slutter, og en påminnelse før start hvis du setter opp påminnelser. Se [Vedlikeholdshendelser](/docs/status-pages/subscribers#vedlikeholdshendelser).
-- **Teamet ditt får høre om den.** Eierne får beskjed slik [varselinnstillingene](/docs/notifications/notification-settings) deres sier, og Slack-, Microsoft Teams- og Mattermost-reglene under **Arbeidsområde** poster den i kanalene dine.
+- **Teamet ditt får høre om den.** Eierne får beskjed slik [varslingsinnstillingene](/docs/notifications/notification-settings) deres sier, og Slack-, Microsoft Teams- og Mattermost-reglene under **Arbeidsområde** poster den i kanalene dine.
 
 ## En hendelses egne sider
 
@@ -85,7 +85,7 @@ Mens en hendelse pågår, behandler OneUptime avbruddet den planlegger, som forv
 | ----------------- | --------------------------------------------------------------------------------------------- |
 | **Oversikt** | **Oversikt**, **Tilstandstidslinje**, **Beskrivelse**, **Runbooks** |
 | **Team** | **Eiere** |
-| **Varsler**        | **Varsellogger** og **AI-logger**: hver melding som er sendt om hendelsen, og hva AI har gjort for den |
+| **Varslinger**        | **Varslingslogger** og **AI-logger**: hver melding som er sendt om hendelsen, og hva AI har gjort for den |
 | **Notater**       | **Private notater** og **Offentlige notater**                                                  |
 | **Utvikler**      | **Terraform**, **API**, **CLI** og **AI-assistenter**: hendelsen styrt fra kode                |
 | **Avansert**      | **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger**, **Slett vedlikeholdshendelse**             |

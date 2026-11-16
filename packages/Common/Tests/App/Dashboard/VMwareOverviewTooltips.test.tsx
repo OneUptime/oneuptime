@@ -205,6 +205,17 @@ import {
   inventoryRow,
   vcenterModel,
 } from "./VMwareTooltipHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo([
+  "/resource-ai-access/status",
+  "/vmware-resource/inventory-summary/*",
+]);
 
 const PROJECT_ID: string = "22222222-2222-4222-8222-222222222222";
 const VCENTER_ID: string = "11111111-1111-4111-8111-111111111111";

@@ -113,6 +113,8 @@ const NOT_SECRETS: Record<string, string> = {
   "ApiKeyCustomRole.apiKey":
     "the relation to the API key row: recorded as the row's id and name, never the key",
   "ApiKeyCustomRole.apiKeyId": "the API key row's id, not the key",
+  "Monitor.incomingRequestWithoutSecretReason":
+    "why the monitor's last request without a valid secret had none: No Secret or Wrong Secret, never what it sent",
   "StatusPage.enableMasterPassword": "a switch",
   "OpenStackCloud.isCredentialSet":
     "a switch saying whether a credential is saved",

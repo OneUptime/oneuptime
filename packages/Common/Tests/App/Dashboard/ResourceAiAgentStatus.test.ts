@@ -876,7 +876,7 @@ describe("the card's sentence", () => {
       ),
     ).toBe(getResourceAiAgentSilentText(DOCKER));
     expect(getResourceAiAgentSilentText(DOCKER)).toBe(
-      "The Docker AI agent has not checked in for over 5 minutes. Check its logs:",
+      "The Docker AI agent has not checked in for over 5\u00A0minutes. Check its logs:",
     );
 
     expect(

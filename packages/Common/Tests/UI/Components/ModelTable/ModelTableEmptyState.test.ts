@@ -717,9 +717,9 @@ describe("buildNoAccessState", () => {
 
     expect(props.kind).toBe(TableEmptyStateKind.NoAccess);
     expect(props.title).toBe(NO_ACCESS_TITLE);
-    expect(NO_ACCESS_DESCRIPTION).toBe("Ask a project admin for access.");
+    expect(NO_ACCESS_DESCRIPTION).toBe("Ask a Project Admin for access.");
     expect(props.description).toBe(
-      "You need this permission: Read Monitor. Ask a project admin for access.",
+      "You need this permission: Read Monitor. Ask a Project Admin for access.",
     );
     expect(props.actions).toBeUndefined();
   });

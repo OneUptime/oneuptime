@@ -11,7 +11,7 @@ Wat je moet weten voordat je een workflow op echt verkeer loslaat: hoe je hem ve
 
 ## Een workflow aan- of uitzetten
 
-Elke workflow heeft een schakelaar **Ingeschakeld** bovenaan de **Bouwer** en op de pagina **Overzicht**. Staat hij uit, dan is zijn trigger gepauzeerd — webhook-aanroepen, binnenkomende e-mail, geplande tijden, OneUptime-gebeurtenissen en de **Execute Workflow**-stappen van andere workflows starten hem niet. **Workflow uitvoeren** en **Run just this step** wel: een uitvoering die je zelf start terwijl de workflow uit staat, is een **Testrun**. Nieuwe workflows beginnen uitgeschakeld.
+Elke workflow heeft een schakelaar **Ingeschakeld** bovenaan de **Bouwer** en op de pagina **Overzicht**. Staat hij uit, dan is zijn trigger gepauzeerd — webhook-aanroepen, binnenkomende e-mail, geplande tijden, OneUptime-gebeurtenissen en de **Andere workflow uitvoeren**-stappen van andere workflows starten hem niet. **Workflow uitvoeren** en **Run just this step** wel: een uitvoering die je zelf start terwijl de workflow uit staat, is een **Testrun**. Nieuwe workflows beginnen uitgeschakeld.
 
 Gebruik deze schakelaar als je «klaar voor gebruik»-sein:
 
@@ -22,14 +22,14 @@ Gebruik deze schakelaar als je «klaar voor gebruik»-sein:
 4. Zet **Ingeschakeld** aan als hij klaar is: vanaf dan gaat zijn trigger af bij echte gebeurtenissen.
 :::
 
-Een workflow uitzetten voorkomt dat zijn trigger nieuwe uitvoeringen start. Een uitvoering die al loopt, maakt haar werk af, maar een uitvoering die zijn trigger startte en die op een **Sleep**-blok wacht, wordt bij het ontwaken geannuleerd. Testruns gaan door. Om er meerdere tegelijk aan of uit te zetten, selecteer je ze in de lijst **Workflows** en kies je **Inschakelen** of **Uitschakelen** onder **Bulkacties**.
+Een workflow uitzetten voorkomt dat zijn trigger nieuwe uitvoeringen start. Een uitvoering die al loopt, maakt haar werk af, maar een uitvoering die zijn trigger startte en die op een **Pauze**-blok wacht, wordt bij het ontwaken geannuleerd. Testruns gaan door. Om er meerdere tegelijk aan of uit te zetten, selecteer je ze in de lijst **Workflows** en kies je **Inschakelen** of **Uitschakelen** onder **Bulkacties**.
 
 ## Een workflow archiveren
 
 Archiveer een workflow die je niet meer nodig hebt maar wilt bewaren. Een gearchiveerde workflow:
 
-- **Draait nooit**, door geen enkele trigger. Handmatige uitvoeringen en **Run just this step**, webhook-aanroepen, schema's, OneUptime-gebeurtenissen, binnenkomende e-mail en **Execute Workflow**-stappen van andere workflows worden allemaal geweigerd. Een webhook-aanroep van een gearchiveerde workflow krijgt een fout die zegt dat de workflow gearchiveerd is.
-- **Stopt wachtende uitvoeringen.** Een uitvoering die in een **Sleep**-stap slaapt, wordt bij het ontwaken geannuleerd, en een uitvoering die in de wachtrij stond maar nog niet was gestart, eindigt met "Workflow was archived before this run started, so it did not run."
+- **Draait nooit**, door geen enkele trigger. Handmatige uitvoeringen en **Run just this step**, webhook-aanroepen, schema's, OneUptime-gebeurtenissen, binnenkomende e-mail en **Andere workflow uitvoeren**-stappen van andere workflows worden allemaal geweigerd. Een webhook-aanroep van een gearchiveerde workflow krijgt een fout die zegt dat de workflow gearchiveerd is.
+- **Stopt wachtende uitvoeringen.** Een uitvoering die in een **Pauze**-stap slaapt, wordt bij het ontwaken geannuleerd, en een uitvoering die in de wachtrij stond maar nog niet was gestart, eindigt met "Workflow was archived before this run started, so it did not run."
 - **Verdwijnt uit de lijst met workflows.** Je vindt hem onder **Workflows → Geavanceerd → Gearchiveerd**.
 - **Houdt alles.** Zijn stappen, variabelen, eigenaren, labels en uitvoeringsgeschiedenis blijven zoals ze waren.
 
@@ -81,7 +81,7 @@ Klik in de lijst **Workflows** op **JSON importeren** en kies een bestand dat is
 Het bestand bevat de naam, de beschrijving, de inschakelstatus en de graaf van de workflow. Het bevat bewust niet:
 
 - **De geheime sleutel van de webhook.** Bij het aanmaken van de workflow wordt een nieuwe gegenereerd, dus een geïmporteerde workflow heeft een andere webhook-URL — kopieer die uit de Webhook-trigger van de nieuwe workflow. Alles wat het origineel aanriep, moet worden omgezet.
-- **Het adres voor binnenkomende e-mail.** Een geïmporteerde workflow met een Incoming Email-trigger krijgt een eigen adres — kopieer het uit de trigger van de nieuwe workflow. Alles wat het origineel mailde, moet het nieuwe adres krijgen.
+- **Het adres voor binnenkomende e-mail.** Een geïmporteerde workflow met een Inkomende e-mail-trigger krijgt een eigen adres — kopieer het uit de trigger van de nieuwe workflow. Alles wat het origineel mailde, moet het nieuwe adres krijgen.
 - **Globale variabelen.** Een blok dat `{{global.variables.MY_SECRET}}` leest, houdt die verwijzing, maar de waarde staat niet in het bestand. Maak de variabelen aan in het doelproject voordat je de geïmporteerde workflow uitvoert.
 - **Eigenaren en labels.** De label- en eigenaarsregels van je project worden op de geïmporteerde workflow toegepast, net alsof je hem met de hand had gemaakt.
 
@@ -96,18 +96,18 @@ Webhook-triggers geven je een unieke URL. Iedereen die de URL kent, kan hem aanr
 - Behandel de URL als een wachtwoord. Deel hem niet openbaar en zet hem niet in een openbare repository. De Webhook-trigger verbergt de geheime sleutel van de URL totdat je op **Tonen** klikt, en **URL kopiëren** kopieert de URL zonder hem te tonen.
 - Lekt de URL uit, klik dan op de Webhook-trigger in de **Bouwer** en daarna op **URL opnieuw instellen**. De workflow krijgt een nieuwe URL en de oude werkt meteen niet meer.
 - Zegt de trigger dat zijn URL eindigt op de ID van de workflow, stel hem dan opnieuw in. Workflows die zijn gemaakt voordat webhook-URL's een eigen geheime sleutel hadden, gebruiken in plaats daarvan de ID van de workflow, en iedereen die de workflow kan openen, kan die zien.
-- Vraag bij gevoelige workflows het aanroepende systeem om een gedeeld token in een header mee te sturen (zoals `X-Webhook-Token`) en controleer dat met een **If / Else**-blok voordat er iets belangrijks gebeurt. Sla het verwachte token op als geheime variabele.
+- Vraag bij gevoelige workflows het aanroepende systeem om een gedeeld token in een header mee te sturen (zoals `X-Webhook-Token`) en controleer dat met een **Als / Anders**-blok voordat er iets belangrijks gebeurt. Sla het verwachte token op als geheime variabele.
 - Kies bij heel gevoelige workflows liever een OneUptime-gebeurtenistrigger en een handmatige importstap dan een openbare webhook.
 
 Alleen mensen die de workflow mogen bewerken — **Projecteigenaar**, **Projectbeheerder**, **Workflowbeheerder** of **Edit Workflow** — kunnen de webhook-URL zien of opnieuw instellen. Iedereen met de URL kan de workflow vanaf elke plek starten, zonder in te loggen, dus alle anderen zien een notitie die zegt wie ze kunnen vragen. Dat geldt ook voor een **Workflowlid**, die de workflow handmatig uitvoert vanuit de **Bouwer**.
 
 ## Beveiliging van binnenkomende e-mail
 
-De Incoming Email-trigger geeft de workflow een eigen adres, en iedereen die het adres kent, kan ernaar mailen. Het deel vóór de `@` is de geheime sleutel van de workflow, dus behandel het adres als een wachtwoord:
+De Inkomende e-mail-trigger geeft de workflow een eigen adres, en iedereen die het adres kent, kan ernaar mailen. Het deel vóór de `@` is de geheime sleutel van de workflow, dus behandel het adres als een wachtwoord:
 
 - Publiceer het niet en zet het niet in een openbare repository. De trigger verbergt de sleutel totdat je op **Tonen** klikt, en **Adres kopiëren** kopieert het adres zonder het te tonen.
-- Lekt het adres uit, klik dan op de Incoming Email-trigger in de **Bouwer** en daarna op **Adres opnieuw instellen**. De workflow krijgt een nieuw adres, en e-mail naar het oude wordt vanaf dan genegeerd.
-- Iedereen kan elke willekeurige afzender op een e-mail zetten, dus **Van** bewijst niet wie hem stuurde. Controleer met een **If / Else**-blok iets wat alleen de echte afzender weet — een token in het onderwerp of in een header — voordat een workflow iets belangrijks doet. Sla het verwachte token op als geheime variabele.
+- Lekt het adres uit, klik dan op de Inkomende e-mail-trigger in de **Bouwer** en daarna op **Adres opnieuw instellen**. De workflow krijgt een nieuw adres, en e-mail naar het oude wordt vanaf dan genegeerd.
+- Iedereen kan elke willekeurige afzender op een e-mail zetten, dus **Van** bewijst niet wie hem stuurde. Controleer met een **Als / Anders**-blok iets wat alleen de echte afzender weet — een token in het onderwerp of in een header — voordat een workflow iets belangrijks doet. Sla het verwachte token op als geheime variabele.
 - De sleutel wordt afgeschermd in alles wat de uitvoering ontvangt — **Aan**, **CC**, de headers en de bodies —, omdat het logboek van de uitvoering zichtbaar is voor iedereen die de uitvoeringen van de workflow kan lezen.
 
 Alleen mensen die de workflow mogen bewerken — **Projecteigenaar**, **Projectbeheerder**, **Workflowbeheerder** of **Edit Workflow** — kunnen het adres zien of opnieuw instellen. Alle anderen zien een notitie die zegt wie ze kunnen vragen.
@@ -120,27 +120,27 @@ Welke adressen een blok mag bereiken, hangt af van het blok:
 
 | Blokken                                                    | Loopback, link-local, cloudmetadata                                           | Privénetwerkadressen                                                                                                                      |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **API**- en **Mattermost**-blokken, en verzoeken van **Run Custom JavaScript** | Geweigerd, tenzij de exacte host in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` staat | Geweigerd, tenzij een beheerder van een zelf gehoste installatie ze toestaat met `ALLOW_PRIVATE_NETWORK_WEBHOOKS` of `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** en OAuth 2.0-token-URL's           | Geweigerd                                                                     | Geweigerd in OneUptime Cloud. Toegestaan op een zelf gehoste installatie, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` is         |
+| **API**- en **Mattermost**-blokken, en verzoeken van **Eigen JavaScript uitvoeren** | Geweigerd, tenzij de exacte host in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` staat | Geweigerd, tenzij een beheerder van een zelf gehoste installatie ze toestaat met `ALLOW_PRIVATE_NETWORK_WEBHOOKS` of `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| **E-mail versturen**, **IRC** en OAuth 2.0-token-URL's           | Geweigerd                                                                     | Geweigerd in OneUptime Cloud. Toegestaan op een zelf gehoste installatie, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` is         |
 | Slack, Microsoft Teams, Discord en Telegram                | Geweigerd                                                                     | Geweigerd: elk stuurt alleen naar de adressen van de eigen dienst                                                                         |
 
 Zie [Toegang tot privénetwerken](/docs/self-hosted/private-network-access) voor hoe een beheerder van een zelf gehoste installatie ze openzet.
 
 ## AI-componenten
 
-**Generate Text with AI** stuurt één verzoek naar een LLM: de standaard-LLM-provider van het project, of de globale provider van de installatie als het project er geen heeft. Stel providers in onder **Projectinstellingen → AI → LLM-providers**, en zet nooit de API-sleutel van een provider of een eigen endpoint in een workflow.
+**Tekst genereren met AI** stuurt één verzoek naar een LLM: de standaard-LLM-provider van het project, of de globale provider van de installatie als het project er geen heeft. Stel providers in onder **Projectinstellingen → AI → LLM-providers**, en zet nooit de API-sleutel van een provider of een eigen endpoint in een workflow.
 
 Wat de provider ontvangt, en wat het model ermee kan:
 
-- **Alleen wat jij in het blok zet.** OneUptime stuurt een vaste veiligheidsinstructie en daarna de **System Instructions**, de **Prompt** en de **Context** van het blok, met hun verwijzingen ingevuld. **Context** komt als laatste, na een markering, en de veiligheidsinstructie vertelt het model dat alles na de markering onbetrouwbare gegevens zijn, ook tekst die op instructies lijkt.
+- **Alleen wat jij in het blok zet.** OneUptime stuurt een vaste veiligheidsinstructie en daarna de **Systeeminstructies**, de **Prompt** en de **Context** van het blok, met hun verwijzingen ingevuld. **Context** komt als laatste, na een markering, en de veiligheidsinstructie vertelt het model dat alles na de markering onbetrouwbare gegevens zijn, ook tekst die op instructies lijkt.
 - **Verder niets.** De gegevens van de trigger, de geschiedenis van de workflow, de uitvoer van andere blokken, projectrecords, telemetrie en geheimen worden nooit meegestuurd. Ze verlaten OneUptime alleen als je er in een van die drie instellingen naar verwijst.
 - **Tekst, en geen tools.** Het model kan OneUptime niet opvragen, geen HTTP-verzoeken doen en geen gegevens wijzigen. Extra parameters van een provider laten alleen een toegestane lijst van velden voor het afstemmen van de generatie door: ze kunnen de berichten niet vervangen, geen tools, webzoekfuncties of andere gegevensbronnen toevoegen, niets anders dan tekst of meerdere antwoorden vragen, niet streamen, de provider het verzoek niet laten bewaren en de uitvoerlimiet van het blok niet verhogen. Velden die OneUptime niet kent, worden weggegooid.
 - **Het model kiest je beheerder.** Moet de generatie offline blijven, kies dan een model dat aan de kant van de provider niets uit zichzelf ophaalt.
 
 Wat er wordt gelogd:
 
-- Het logboek van de uitvoering schermt de **System Instructions**, de **Prompt**, de **Context** en de **Antwoord** van het blok af. Latere blokken kunnen ze tijdens de uitvoering wel gebruiken, en een blok waarin je er een invoegt, logt het volgens zijn eigen regels, dus wie er een invoegt, kiest ervoor het daar te tonen.
-- De provider, het model, het aantal tokens, de **LLM Log ID** en een veilige foutmelding blijven zichtbaar, voor beheer en facturering. De ruwe fout van een provider blijft uit elk logboek, omdat een provider daarin het verzoek kan herhalen.
+- Het logboek van de uitvoering schermt de **Systeeminstructies**, de **Prompt**, de **Context** en de **Antwoord** van het blok af. Latere blokken kunnen ze tijdens de uitvoering wel gebruiken, en een blok waarin je er een invoegt, logt het volgens zijn eigen regels, dus wie er een invoegt, kiest ervoor het daar te tonen.
+- De provider, het model, het aantal tokens, de **LLM-logboek-ID** en een veilige foutmelding blijven zichtbaar, voor beheer en facturering. De ruwe fout van een provider blijft uit elk logboek, omdat een provider daarin het verzoek kan herhalen.
 - Elke aanroep staat onder **Projectinstellingen → AI → AI-logboeken** met provider, model, status, tokens, kosten en facturering, zonder de prompt, het antwoord of de ruwe fout.
 
 Wat het blok nodig heeft, en wat het kost:
@@ -151,9 +151,9 @@ Wat het blok nodig heeft, en wat het kost:
 
 | Limiet                                                       | Waarde                                                                    |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **System Instructions**, **Prompt** en **Context** samen     | 50.000 tekens                                                             |
+| **Systeeminstructies**, **Prompt** en **Context** samen     | 50.000 tekens                                                             |
 | **Temperatuur**                                              | Van `0` tot `1`                                                           |
-| **Maximum Output Tokens**                                    | Van `1` tot `4096`, standaard `1024`                                      |
+| **Maximaal aantal uitvoertokens**                                    | Van `1` tot `4096`, standaard `1024`                                      |
 | Eén verzoek                                                  | Eén poging, hooguit 60 seconden                                           |
 | Gelijktijdige aanroepen                                      | 3 per project. Meer nemen **Fout**, en een latere uitvoering kan het opnieuw proberen. |
 
@@ -196,7 +196,7 @@ De stappen die OneUptime-records lezen en wijzigen — de componenten Find, Crea
   - een feedvermelding bewerken of verwijderen (de feeds van incidenten, waarschuwingen, episodes, monitoren, bereikbaarheidsbeleid en gepland onderhoud);
   - een meldingslogboek schrijven (de logboeken van sms, oproepen, e-mail, WhatsApp, Telegram, pushmeldingen, webhooks en werkruimteberichten);
   - waarden die OneUptime zelf instelt als er dingen gebeuren: of de CNAME van een eigen domein is geverifieerd, de beschermingsschakelaars van een team (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), welke incidentrol de primaire is en of die kan worden verwijderd, of een eigenaar of lid is gewaarschuwd, tijden en aantallen van herinneringen, wie nu en hierna dienst heeft in een rooster, de voortgang van een bereikbaarheidsuitvoering, de huidige burn rate en het error budget van een SLO, een monitor die is gepauzeerd door een incident of een onderhoudsgebeurtenis, het wachtwoordresettoken en de laatste aanmelding van een privégebruiker van een statuspagina, de gegevens die een dienst over zichzelf meldt (versie, runtime, cloud), en de laatste uitvoering van een detectieregel of een dreigingsfeed;
-  - een incident melden vanuit een sjabloon door `createdIncidentTemplateId` naar **Create One Incident** te sturen — kies in plaats daarvan het sjabloon onder de instelling **Incidentsjabloon** van de stap: de stap meldt het incident dan vanuit dat sjabloon, als Projectbeheerder, en legt het sjabloon vast;
+  - een incident melden vanuit een sjabloon door `createdIncidentTemplateId` naar **Incident aanmaken (één record)** te sturen — kies in plaats daarvan het sjabloon onder de instelling **Incidentsjabloon** van de stap: de stap meldt het incident dan vanuit dat sjabloon, als Projectbeheerder, en legt het sjabloon vast;
   - wijzigen bij welk record een record hoort nadat het is aangemaakt, zoals de monitor waarvoor een eigenaarsrij geldt of het incident waarbij een notitie staat.
 - **Als niemand.** Een record dat een workflow aanmaakt, noemt geen maker, en het auditlogboek noemt de workflow, met zijn naam van dat moment, als degene die de wijziging deed.
 
@@ -220,24 +220,24 @@ Het venster schuift mee: elke uitvoering die het project vastlegt, handmatig of 
 
 | Limiet                                                       | Standaard          | Instelling bij zelf hosten      |
 | ------------------------------------------------------------ | ------------------ | ------------------------------- |
-| Een uitvoering, vanaf de start of vanaf het ontwaken na een **Sleep** | 2 minuten  | `WORKFLOW_TIMEOUT_IN_MS`        |
-| Een **Run Custom JavaScript**-blok                           | 5 seconden         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| Een **Sleep**-blok                                           | Hooguit 30 dagen   | —                               |
+| Een uitvoering, vanaf de start of vanaf het ontwaken na een **Pauze** | 2 minuten  | `WORKFLOW_TIMEOUT_IN_MS`        |
+| Een **Eigen JavaScript uitvoeren**-blok                           | 5 seconden         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| Een **Pauze**-blok                                           | Hooguit 30 dagen   | —                               |
 
-De uitvoerder controleert de deadline vóór en na elk blok en markeert een uitvoering die te laat is als **Time-out** zodra hij weer aan zet is. Hij kan een blok niet halverwege onderbreken, dus blokken die op het netwerk wachten, hebben eigen tijdslimieten: een verzoek van Generate Text with AI geeft het na hooguit 60 seconden op, en een OAuth 2.0-tokenverzoek na 20. Wachten op een **Sleep**-blok telt niet mee voor de tijd van een uitvoering: de uitvoering wordt opzijgezet en krijgt bij het ontwaken weer 2 verse minuten.
+De uitvoerder controleert de deadline vóór en na elk blok en markeert een uitvoering die te laat is als **Time-out** zodra hij weer aan zet is. Hij kan een blok niet halverwege onderbreken, dus blokken die op het netwerk wachten, hebben eigen tijdslimieten: een verzoek van Generate Text with AI geeft het na hooguit 60 seconden op, en een OAuth 2.0-tokenverzoek na 20. Wachten op een **Pauze**-blok telt niet mee voor de tijd van een uitvoering: de uitvoering wordt opzijgezet en krijgt bij het ontwaken weer 2 verse minuten.
 
 ## Limiet op het aanroepen van andere workflows
 
-Met het component **Execute Workflow** kan de ene workflow een andere starten. Om lussen te voorkomen waarin workflow A B start, die A weer start, wordt een keten van workflows die elkaar starten geweigerd als die zou terugkeren naar een workflow die er al in zit, of dieper zou gaan dan 10 workflows. Het **Execute Workflow**-blok neemt dan zijn uitgang **Fout**, en de fout toont de keten.
+Met het component **Andere workflow uitvoeren** kan de ene workflow een andere starten. Om lussen te voorkomen waarin workflow A B start, die A weer start, wordt een keten van workflows die elkaar starten geweigerd als die zou terugkeren naar een workflow die er al in zit, of dieper zou gaan dan 10 workflows. Het **Andere workflow uitvoeren**-blok neemt dan zijn uitgang **Fout**, en de fout toont de keten.
 
-Heb je echt een lange keten nodig (zoals een taak die per uitvoering één item verwerkt), dan is het meestal eenvoudiger om binnen één workflow een lus te maken met **Run Custom JavaScript**.
+Heb je echt een lange keten nodig (zoals een taak die per uitvoering één item verwerkt), dan is het meestal eenvoudiger om binnen één workflow een lus te maken met **Eigen JavaScript uitvoeren**.
 
 ## Wanneer workflows niet het juiste gereedschap zijn
 
 Een paar gevallen waarin je beter iets anders kunt gebruiken:
 
 - **Zware berekeningen of grote datasets** — workflows zijn bedoeld voor licht koppelwerk, niet voor rekenwerk. Voer zwaar werk uit in je eigen infrastructuur en laat een workflow het starten.
-- **Langlopend actief rekenwerk** — een uitvoering heeft standaard 2 minuten. Gebruik voor passief wachten zoals «doe A, wacht twee uur, doe B» het component **Sleep**; dat zet de uitvoering opzij en hervat haar later zonder een worker bezet te houden.
+- **Langlopend actief rekenwerk** — een uitvoering heeft standaard 2 minuten. Gebruik voor passief wachten zoals «doe A, wacht twee uur, doe B» het component **Pauze**; dat zet de uitvoering opzij en hervat haar later zonder een worker bezet te houden.
 - **Stapsgewijze incidentrespons met mensen erbij** — daarvoor zijn [Runbooks](/docs/runbooks/index). Workflows zijn voor automatisering zonder toezicht.
 
 ## Volgende stappen

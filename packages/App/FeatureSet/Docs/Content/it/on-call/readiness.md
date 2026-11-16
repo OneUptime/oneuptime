@@ -69,7 +69,7 @@ Un banner indica poi quanti promemoria sono stati inviati, saltati o non riuscit
 
 ## L'e-mail settimanale sulla prontezza
 
-Una volta a settimana, OneUptime controlla ogni progetto che ha una policy di reperibilità. Quando qualcuno è **Irraggiungibile** o **Da configurare**, i proprietari del progetto ricevono un'e-mail che elenca queste persone in due gruppi, chi non può essere avvisato affatto e chi è raggiungibile con lacune, fino a 20 nomi ciascuno, con un link alla pagina Prontezza.
+Una volta a settimana, OneUptime controlla ogni progetto che ha una policy di reperibilità. Quando qualcuno è **Irraggiungibile** o **Da configurare**, i Proprietari del progetto ricevono un'e-mail che elenca queste persone in due gruppi, chi non può essere avvisato affatto e chi è raggiungibile con lacune, fino a 20 nomi ciascuno, con un link alla pagina Prontezza.
 
 Una settimana in cui tutti sono pronti non invia niente, quindi l'e-mail significa sempre che c'è qualcosa da sistemare. Quando qualcuno non può essere avvisato affatto, il suo oggetto inizia con `[Action Required]`.
 
@@ -100,7 +100,7 @@ L'elenco contiene solo persone che una policy di reperibilità può avvisare. Ne
 :::
 
 :::details I proprietari non ricevono mai l'e-mail settimanale
-Viene inviata solo in una settimana in cui qualcuno è **Irraggiungibile** o **Da configurare**, e solo ai proprietari del progetto.
+Viene inviata solo in una settimana in cui qualcuno è **Irraggiungibile** o **Da configurare**, e solo ai Proprietari del progetto.
 :::
 
 ## Passi successivi

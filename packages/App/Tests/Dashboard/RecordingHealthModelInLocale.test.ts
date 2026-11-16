@@ -45,7 +45,10 @@ const marking: Translator = createTranslator((text: string): string => {
   return `${OPEN}${text}${CLOSE}`;
 }, "de");
 
-const english: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+// A page's English, as the module's own fallback is (#8811).
+const english: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 // A number as German writes it: "143", "1.234.567".
 const GERMAN_NUMBER: RegExp = /^\d{1,3}(\.\d{3})*$/;

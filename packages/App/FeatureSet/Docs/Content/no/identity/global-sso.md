@@ -44,20 +44,20 @@ Logg inn som master-admin, og åpne Admin Dashboard med **Admin-innstillinger** 
 
 :::tabs
 @tab SAML
-På siden til leverandøren viser kortet **Identity Provider URLs** **ACS URL (Assertion Consumer Service / Reply URL)** og **Issuer (Entity ID)**. Lim inn begge i identitetsleverandøren din (Okta, Microsoft Entra ID, OneLogin, JumpCloud og andre).
+På siden til leverandøren viser kortet **URL-ene til identitetsleverandøren** **ACS URL (Assertion Consumer Service / Reply URL)** og **Issuer (Entity ID)**. Lim inn begge i identitetsleverandøren din (Okta, Microsoft Entra ID, OneLogin, JumpCloud og andre).
 @tab OpenID Connect
-På siden til leverandøren viser kortet **Identity Provider URL** **Redirect URI (Callback URL)**. Legg den til i identitetsleverandørens tillatte redirect-URI-er.
+På siden til leverandøren viser kortet **URL-en til identitetsleverandøren** **Redirect URI (Callback URL)**. Legg den til i identitetsleverandørens tillatte redirect-URI-er.
 :::
 
 ### Slå på leverandøren
 
-En ny leverandør starter avslått. Klikk på **Edit Configuration** på siden til leverandøren, og slå på **Aktivert**.
+En ny leverandør starter avslått. Klikk på **Rediger konfigurasjon** på siden til leverandøren, og slå på **Aktivert**.
 
 Å slå på en global leverandør legger den bare til blant påloggingssidens valg for enkel pålogging — den håndhever aldri SSO og stenger ingen ute, så det er trygt å slå den på, teste den og slå den av igjen om nødvendig. Så lenge hele instansen krever SSO, tilbyr påloggingssiden likevel bare leverandørene som er slått på: test en leverandør før du krever SSO.
 
 ### Test leverandøren
 
-Bruk lenken i kortet **Test this SSO provider** (**Test this OIDC provider** for OpenID Connect) til å gjennomføre en fullstendig pålogging via identitetsleverandøren din. **Test innlogging** i leverandørens rad på **Enkel pålogging** starter den samme påloggingen i en ny fane. Du trenger ikke knytte til prosjekter først: testen logger deg inn i prosjektene du allerede er med i. Leverandøren må være slått på for at lenken skal virke.
+Bruk lenken i kortet **Test denne SSO-leverandøren** (**Test denne OIDC-leverandøren** for OpenID Connect) til å gjennomføre en fullstendig pålogging via identitetsleverandøren din. **Test innlogging** i leverandørens rad på **Enkel pålogging** starter den samme påloggingen i en ny fane. Du trenger ikke knytte til prosjekter først: testen logger deg inn i prosjektene du allerede er med i. Leverandøren må være slått på for at lenken skal virke.
 :::
 
 ## Slik logger brukere inn
@@ -78,7 +78,7 @@ flowchart TB
 
 - **Ingen prosjekter tilknyttet (alle prosjekter / invitasjon først):** Brukere kan logge inn med leverandøren og nå **alle prosjekter de allerede er medlem av**. Nye brukere opprettes **ikke** automatisk — en bruker må først inviteres til et prosjekt. Bruk dette for SSO i hele virksomheten når medlemskap styres et annet sted.
 
-- **Prosjekter knyttet til (automatisk klargjøring):** Åpne leverandøren og bruk tabellen **Attached Projects** for å knytte til ett eller flere prosjekter, hvert med et sett standardteam. Brukere som logger inn blir **automatisk klargjort** inn i disse prosjektene og lagt til i standardteamene ved første innlogging. Et prosjekt du knytter til, starter med medlemsteamet sitt; velg andre team hvis nye brukere skal starte med annen tilgang. Legg til ett prosjekt + team om gangen for å bygge listen; for å endre en tilknytning, slett den og legg den til på nytt.
+- **Prosjekter knyttet til (automatisk klargjøring):** Åpne leverandøren og bruk tabellen **Tilknyttede prosjekter** for å knytte til ett eller flere prosjekter, hvert med et sett standardteam. Brukere som logger inn blir **automatisk klargjort** inn i disse prosjektene og lagt til i standardteamene ved første innlogging. Et prosjekt du knytter til, starter med medlemsteamet sitt; velg andre team hvis nye brukere skal starte med annen tilgang. Legg til ett prosjekt + team om gangen for å bygge listen; for å endre en tilknytning, slett den og legg den til på nytt.
 
 En person som allerede er medlem av et tilknyttet prosjekt, beholder teamene sine der.
 
@@ -100,8 +100,8 @@ Med **Alle prosjekter** oppfyller pålogging med leverandøren SSO-kravet i alle
 
 Så lenge hele instansen krever SSO:
 
-- Påloggingssiden tilbyr bare SSO: en knapp for hver global leverandør som er slått på, og ikke passord, tilgangsnøkkel, lenke på e-post, Google- eller Microsoft-pålogging eller registrering. Den beholder oppslaget via e-post, som finner et prosjekts egen leverandør, bare så lenge et prosjekt har en.
-- OneUptime avviser et passord, en tilgangsnøkkel, en lenke på e-post, en Google- eller Microsoft-pålogging og en registrering med "This server requires single sign-on (SSO). Sign in with SSO instead." Bare en master-admins passord eller tilgangsnøkkel logger fortsatt vedkommende inn. Folk får kontoen sin ved å logge inn med SSO eller gjennom en invitasjon.
+- Påloggingssiden tilbyr bare SSO: en knapp for hver global leverandør som er slått på, og ikke passord, passnøkkel, lenke på e-post, Google- eller Microsoft-pålogging eller registrering. Den beholder oppslaget via e-post, som finner et prosjekts egen leverandør, bare så lenge et prosjekt har en.
+- OneUptime avviser et passord, en passnøkkel, en lenke på e-post, en Google- eller Microsoft-pålogging og en registrering med "This server requires single sign-on (SSO). Sign in with SSO instead." Bare en master-admins passord eller passnøkkel logger fortsatt vedkommende inn. Folk får kontoen sin ved å logge inn med SSO eller gjennom en invitasjon.
 - Den som allerede er logget inn med passord, logger inn med SSO for å åpne et prosjekt. Vedkommende havner på prosjektets side for enkel pålogging, som tilbyr prosjektets egne leverandører og de globale leverandørene som logger folk inn i det.
 - Master-admins logger inn med passordet sitt på `/accounts/admin-login`, en adresse påloggingssiden ikke lenker til. Kortet **Krev SSO** viser hele adressen under bryteren som **Innlogging for hovedadministratorer**: ta vare på den, så du kan slå av kravet hvis identitetsleverandøren din slutter å virke.
 
@@ -162,7 +162,7 @@ Hvert svar fra identitetsleverandøren din logger inn bare én gang, og bare inn
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-Hele instansen krever SSO, og dette var en pålogging med passord, tilgangsnøkkel, en lenke på e-post, Google eller Microsoft, eller en registrering. Logg heller inn med en av SSO-knappene på påloggingssiden. En master-admin logger inn med passordet sitt på `/accounts/admin-login`; for å la alle logge inn med passord igjen slår vedkommende av **Krev SSO for innlogging** på **Enkel pålogging**.
+Hele instansen krever SSO, og dette var en pålogging med passord, passnøkkel, en lenke på e-post, Google eller Microsoft, eller en registrering. Logg heller inn med en av SSO-knappene på påloggingssiden. En master-admin logger inn med passordet sitt på `/accounts/admin-login`; for å la alle logge inn med passord igjen slår vedkommende av **Krev SSO for innlogging** på **Enkel pålogging**.
 :::
 
 ## Neste steg

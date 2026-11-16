@@ -25,7 +25,7 @@ Etiketter och ägare är det du filtrerar och grupperar resurser efter, de avgö
 
 ## Var du hittar reglerna
 
-Varje produkt med etiketter och ägare har båda sorterna under sina **Inställningar** (för incidenter, larm, planerat underhåll och Datasäkerhet under **Regler**): monitorer, incidenter och incidentepisoder, larm och larmepisoder, underhållshändelser, statussidor, tjänster, värdar, Kubernetes-kluster, Docker-värdar, Docker Swarm-kluster, Podman-värdar, Proxmox-kluster, OpenStack-moln, VMware vCenter, Ceph-kluster, lagringsmatriser, databaser, datalager, tabeller, köer, IoT-flottor, serverlösa funktioner, molnresurser, RUM-applikationer, instrumentpaneler, jourpolicyer, jourscheman, policyer för inkommande samtal, arbetsflöden, runbooks, nätverksenheter och SLO:er.
+Varje produkt med etiketter och ägare har båda sorterna under sina **Inställningar** (för incidenter, larm, schemalagt underhåll och Datasäkerhet under **Regler**): monitorer, incidenter och incidentepisoder, larm och larmepisoder, underhållshändelser, statussidor, tjänster, värdar, Kubernetes-kluster, Docker-värdar, Docker Swarm-kluster, Podman-värdar, Proxmox-kluster, OpenStack-moln, VMware vCenter, Ceph-kluster, lagringsmatriser, databaser, datalager, tabeller, köer, IoT-flottor, serverlösa funktioner, molnresurser, RUM-applikationer, instrumentpaneler, jourpolicyer, jourscheman, policyer för inkommande samtal, arbetsflöden, runbooks, nätverksenheter och SLO:er.
 
 Etikettregler för monitorer finns till exempel under **Monitorer → Inställningar → Etikettregler**, och etikettregler för incidenter under **Incidenter → Regler → Etikettregler**. **Inställningar** och **Regler** är hopfällda i sidomenyn från början: klicka på avsnittets rubrik för att öppna det. Sidorna för incidenter och larm har en flik **Incidentregler** (eller **Larmregler**) och en flik **Episodregler**.
 
@@ -57,7 +57,7 @@ I steget **Etiketter** väljer du **Etiketter att lägga till**. I en ägarregel
 I det sista steget klickar du på knappen som är uppkallad efter regeln igen, till exempel **Skapa Monitor Label Rule**. Regeln är aktiverad från början, och listan visar den med en grön märkning **Aktiverad**.
 :::
 
-En ny regel måste lägga till något: minst en etikett (eller ägare) eller, i en regel för incidenter, larm eller planerat underhåll, något som den ärver (se nedan). För att pausa en regel utan att ta bort den stänger du av **Aktiverad** i dess redigeringsformulär; listan visar då en röd märkning **Inaktiverad**. På en ägarregel för incidenter eller larm räcker det också med ett team under **Skaparens team**.
+En ny regel måste lägga till något: minst en etikett (eller ägare) eller, i en regel för incidenter, larm eller schemalagt underhåll, något som den ärver (se nedan). För att pausa en regel utan att ta bort den stänger du av **Aktiverad** i dess redigeringsformulär; listan visar då en röd märkning **Inaktiverad**. På en ägarregel för incidenter eller larm räcker det också med ett team under **Skaparens team**.
 
 ### Oavsett hur regeln skapas
 
@@ -66,10 +66,10 @@ Detsamma gäller för en regel som skapas via API:t, Terraform, ett arbetsflöde
 | Regel | Meddelande |
 | --- | --- |
 | Etikettregel | This label rule adds nothing. Choose at least one label in Labels to Add. |
-| Etikettregel för incidenter, larm eller planerat underhåll | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
+| Etikettregel för incidenter, larm eller schemalagt underhåll | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | Ägarregel | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
 | Ägarregel för incidenter eller larm | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
-| Ägarregel för planerat underhåll | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| Ägarregel för schemalagt underhåll | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
 - **API**: sätt `labelsToAdd` (eller `ownerUsers` / `ownerTeams`) till minst en post i projektet, eller en av regelns brytare `inheritLabelsFrom…` (`inheritOwnersFrom…`) till `true`, en JSON-boolean. På en ägarregel för incidenter eller larm räcker det också med ett team i `creatorTeams`.
 - **Terraform**: en resurs för en etikett- eller ägarregel som inte lägger till något misslyckas vid `terraform apply` med meddelandet ovan. Ge den `labels_to_add` (eller `owner_users` / `owner_teams`) eller slå på en av dess arvsbrytare.
@@ -78,7 +78,7 @@ Regler som du redan har påverkas inte: se [Redigera en regel](#redigera-en-rege
 
 ## Ärv etiketter och ägare
 
-Regler för incidenter, larm och planerat underhåll kan också föra vidare det som resurserna som en händelse berör bär. Under **Etiketter att lägga till** (eller **Ägare**) innehåller det hopfällda avsnittet **Ärv etiketter** (eller **Ärv ägare**) sex brytare:
+Regler för incidenter, larm och schemalagt underhåll kan också föra vidare det som resurserna som en händelse berör bär. Under **Etiketter att lägga till** (eller **Ägare**) innehåller det hopfällda avsnittet **Ärv etiketter** (eller **Ärv ägare**) sex brytare:
 
 - **Ärv etiketter från monitorer**: varje etikett på incidentens monitorer sätts också på incidenten. Ett larm har en monitor, så i en larmregel heter brytaren **Ärv etiketter från övervakning** (och i en ägarregel för larm **Ärv ägare från övervakning**).
 - **Ärv etiketter från värdar**, **Ärv etiketter från Kubernetes-kluster**, **Ärv etiketter från Docker-värdar**, **Inherit Labels From Podman Hosts** och **Ärv etiketter från tjänster** gör samma sak för de resurserna.
@@ -91,7 +91,7 @@ En regel som ärver kan lämna **Etiketter att lägga till** (eller **Ägare**) 
 | --- | --- |
 | **Ärv etiketter från monitorer** | _Ärv etiketter från: monitorer_ |
 | **Ärv etiketter från monitorer** och **Ärv etiketter från värdar** | _Ärv etiketter från: monitorer, värdar_ |
-| **Ärv etiketter från övervakning**, i en larmregel | _Ärv etiketter från: övervakning_ |
+| **Ärv etiketter från övervakning**, i en larmregel | _Ärv etiketter från: monitor_ |
 
 Namnet följer brytarna tills du väljer en etikett (då får regeln namn efter sina etiketter) eller skriver ett eget namn.
 

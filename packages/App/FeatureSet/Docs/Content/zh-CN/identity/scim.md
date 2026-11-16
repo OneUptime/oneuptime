@@ -52,12 +52,12 @@ SCIM 和 [SSO](/docs/identity/sso) 是相互独立的：SCIM 决定谁在项目�
 
    - 输入 **名称**。**默认团队** 默认是项目的成员团队：新用户会被添加到这些团队
    - 在 **更多字段** 中，**自动预配用户**（在您的 IdP 中分配用户时添加用户）和 **自动取消预配用户**（在您的 IdP 中取消分配用户时移除用户）处于开启状态，**启用推送组** 处于关闭状态。如有需要，请在那里更改
-   - 保存。显示用于 IdP 配置的 **SCIM Base URL** 和 **Bearer Token** 的对话框会立即打开
+   - 保存。显示用于 IdP 配置的 **SCIM 基础 URL** 和 **Bearer 令牌** 的对话框会立即打开
 
 3. **配置您的身份提供商**
 
-   - 使用对话框中的 **SCIM Base URL**。在 OneUptime Cloud 上，它是 `https://oneuptime.com/identity/scim/v2/<scim-id>`；自托管部署会显示其自己的主机
-   - 使用对话框中的 **Bearer Token** 配置 Bearer 令牌身份验证。如果您的身份提供商改为要求 OAuth 2.0 客户端凭据，请使用同一对话框中的 [OAuth 2.0 客户端凭据](#oauth-20-客户端凭据)
+   - 使用对话框中的 **SCIM 基础 URL**。在 OneUptime Cloud 上，它是 `https://oneuptime.com/identity/scim/v2/<scim-id>`；自托管部署会显示其自己的主机
+   - 使用对话框中的 **Bearer 令牌** 配置 Bearer 令牌身份验证。如果您的身份提供商改为要求 OAuth 2.0 客户端凭据，请使用同一对话框中的 [OAuth 2.0 客户端凭据](#oauth-20-客户端凭据)
    - 映射用户属性（电子邮件为必填项）。[连接您的身份提供商](#连接您的身份提供商) 中提供了 Microsoft Entra ID 和 Okta 的详细信息
 :::
 
@@ -80,15 +80,15 @@ sequenceDiagram
 
 ### OAuth 2.0 客户端凭据
 
-有些身份提供商不保存 Bearer 令牌，而是要求提供 OAuth 2.0 客户端凭据。每个连接，无论属于项目还是状态页面，都在显示其 **SCIM Base URL** 的同一个对话框中、**OAuth 2.0 Client Credentials** 下方提供这些凭据：
+有些身份提供商不保存 Bearer 令牌，而是要求提供 OAuth 2.0 客户端凭据。每个连接，无论属于项目还是状态页面，都在显示其 **SCIM 基础 URL** 的同一个对话框中、**OAuth 2.0 客户端凭据** 下方提供这些凭据：
 
-- **Token Endpoint**：您的身份提供商获取访问令牌的地址。所有连接都相同：在 OneUptime Cloud 上为 `https://oneuptime.com/identity/scim/oauth/token`。
-- **Client ID**：连接的 ID。
-- **Client Secret**：点击 **Make Client Secret**，并立即复制密钥。OneUptime 只保存其哈希值，无法再次显示它。密钥的有效期为一年。
+- **令牌端点**：您的身份提供商获取访问令牌的地址。所有连接都相同：在 OneUptime Cloud 上为 `https://oneuptime.com/identity/scim/oauth/token`。
+- **客户端 ID**：连接的 ID。
+- **客户端密钥**：点击 **创建客户端密钥**，并立即复制密钥。OneUptime 只保存其哈希值，无法再次显示它。密钥的有效期为一年。
 
 您的身份提供商把客户端 ID 和密钥发送到令牌端点，获得一个有效期为一小时的访问令牌。连接的 Bearer 令牌会继续同时有效。
 
-要替换密钥，请点击 **Make New Client Secret**。之前的密钥会一直有效，直到过期或您点击 **Delete Previous Secret** 为止，因此可以在不中断预配的情况下把新密钥交给您的身份提供商：等它开始使用新密钥后，再删除旧密钥。密钥过期或被删除时，用它签发的访问令牌会立即失效。可以更改连接 Bearer 令牌的人，也可以创建和删除其密钥：对于项目，是项目所有者；对于状态页面，是可以编辑其单点登录的人。
+要替换密钥，请点击 **创建新的客户端密钥**。之前的密钥会一直有效，直到过期或您点击 **删除之前的密钥** 为止，因此可以在不中断预配的情况下把新密钥交给您的身份提供商：等它开始使用新密钥后，再删除旧密钥。密钥过期或被删除时，用它签发的访问令牌会立即失效。可以更改连接 Bearer 令牌的人，也可以创建和删除其密钥：对于项目，是项目所有者；对于状态页面，是可以编辑其单点登录的人。
 
 ## 状态页面 SCIM
 
@@ -105,11 +105,11 @@ sequenceDiagram
 2. **配置 SCIM 设置**
 
    - 输入 **名称**。在 **更多字段** 中，**自动预配用户**（在您的 IdP 中分配时添加私有用户）和 **自动取消预配用户**（在您的 IdP 中取消分配时删除私有用户）处于开启状态。如有需要，请在那里更改
-   - 保存。显示用于 IdP 配置的 **SCIM Base URL** 和 **Bearer Token** 的对话框会立即打开
+   - 保存。显示用于 IdP 配置的 **SCIM 基础 URL** 和 **Bearer 令牌** 的对话框会立即打开
 
 3. **配置您的身份提供商**
 
-   - 使用对话框中的 **SCIM Base URL**。在 OneUptime Cloud 上，它是 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>`
+   - 使用对话框中的 **SCIM 基础 URL**。在 OneUptime Cloud 上，它是 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>`
    - 使用显示的令牌配置 Bearer 令牌身份验证，或者使用同一对话框中的 [OAuth 2.0 客户端凭据](#oauth-20-客户端凭据)
    - 映射用户属性（电子邮件为必填项）
 :::
@@ -159,7 +159,7 @@ Microsoft Entra 应用程序库中的 OneUptime 应用用于单点登录。要�
    - **自动预配用户** 和 **自动取消预配用户**：已开启，位于 **更多字段** 中
    - **启用推送组**：位于 **更多字段** 中；如果您想通过 Entra ID 组管理团队成员，请开启它
 6. 保存配置
-7. 从打开的对话框中复制 **SCIM Base URL** 和 **Bearer Token**——在 Entra ID 中需要它们
+7. 从打开的对话框中复制 **SCIM 基础 URL** 和 **Bearer 令牌**——在 Entra ID 中需要它们
 
 #### 在 Entra ID 中创建企业应用程序
 
@@ -173,7 +173,7 @@ Microsoft Entra 应用程序库中的 OneUptime 应用用于单点登录。要�
 
 1. 在您的 OneUptime 企业应用程序中前往 **Provisioning**，点击 **Get started**
 2. 将 **Provisioning Mode** 设为 **Automatic**
-3. 在 **Admin Credentials** 下，将 **Tenant URL** 设为 OneUptime 的 **SCIM Base URL**（例如 `https://oneuptime.com/identity/scim/v2/<scim-id>`），将 **Secret Token** 设为 **Bearer Token**
+3. 在 **Admin Credentials** 下，将 **Tenant URL** 设为 OneUptime 的 **SCIM 基础 URL**（例如 `https://oneuptime.com/identity/scim/v2/<scim-id>`），将 **Secret Token** 设为 **Bearer 令牌**
 4. 点击 **Test Connection** 验证配置，然后点击 **Save**
 
 #### 在 Entra ID 中映射用户属性
@@ -237,7 +237,7 @@ Okta 提供支持 SCIM 的灵活身份管理。您需要：
    - **自动预配用户** 和 **自动取消预配用户**：已开启，位于 **更多字段** 中
    - **启用推送组**：位于 **更多字段** 中；如果您想通过 Okta 组管理团队成员，请开启它
 6. 保存配置
-7. 从打开的对话框中复制 **SCIM Base URL** 和 **Bearer Token**——在 Okta 中需要它们
+7. 从打开的对话框中复制 **SCIM 基础 URL** 和 **Bearer 令牌**——在 Okta 中需要它们
 
 #### 创建或打开 Okta 应用程序
 
@@ -249,18 +249,18 @@ Okta 提供支持 SCIM 的灵活身份管理。您需要：
 #### 在 Okta 中开启 SCIM 预配
 
 1. 前往您的 OneUptime 应用程序的 **General** 选项卡
-2. 在 **App Settings** 部分点击 **Edit**。对于从 Okta Integration Network 添加的应用程序，将 **OneUptime SCIM Connection ID** 设为 **SCIM Base URL** 的最后一部分，即 `<scim-id>`。对于您自己创建的应用程序，在 **Provisioning** 下选择 **SCIM**。点击 **Save**
+2. 在 **App Settings** 部分点击 **Edit**。对于从 Okta Integration Network 添加的应用程序，将 **OneUptime SCIM Connection ID** 设为 **SCIM 基础 URL** 的最后一部分，即 `<scim-id>`。对于您自己创建的应用程序，在 **Provisioning** 下选择 **SCIM**。点击 **Save**
 3. 应用程序现在有了 **Provisioning** 选项卡
 
 #### 将 Okta 连接到 OneUptime
 
 1. 在 **Provisioning** 选项卡上点击 **Integration**，然后点击 **Configure API Integration**，并勾选 **Enable API integration**
-2. 对于从 Okta Integration Network 添加的应用程序，将 OneUptime 的 **Bearer Token** 作为 **API Token** 输入。对于您自己创建的应用程序，配置以下内容：
-   - **SCIM connector base URL**：OneUptime 的 **SCIM Base URL**（例如 `https://oneuptime.com/identity/scim/v2/<scim-id>`）
+2. 对于从 Okta Integration Network 添加的应用程序，将 OneUptime 的 **Bearer 令牌** 作为 **API Token** 输入。对于您自己创建的应用程序，配置以下内容：
+   - **SCIM connector base URL**：OneUptime 的 **SCIM 基础 URL**（例如 `https://oneuptime.com/identity/scim/v2/<scim-id>`）
    - **Unique identifier field for users**：`userName`
    - **Supported provisioning actions**：Import New Users and Profile Updates、Push New Users、Push Profile Updates，如果使用基于组的预配，还有 Push Groups
    - **Authentication Mode**：**HTTP Header**
-   - **Authorization**：OneUptime 的 **Bearer Token**。OneUptime 需要 `Authorization: Bearer <token>` 请求头；如果 Okta 已在字段前显示 Bearer 一词，只需输入令牌
+   - **Authorization**：OneUptime 的 **Bearer 令牌**。OneUptime 需要 `Authorization: Bearer <token>` 请求头；如果 Okta 已在字段前显示 Bearer 一词，只需输入令牌
 3. 点击 **Test API Credentials** 验证连接，然后点击 **Save**
 
 #### 选择 Okta 预配的内容
@@ -305,14 +305,14 @@ OneUptime 的 SCIM 实现遵循 SCIM v2.0 规范，可与任何兼容的身份�
 
 | 设置 | 值 |
 | --- | --- |
-| SCIM Base URL | OneUptime 的 **SCIM Base URL**：项目为 `https://oneuptime.com/identity/scim/v2/<scim-id>`，状态页面为 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` |
+| SCIM Base URL | OneUptime 的 **SCIM 基础 URL**：项目为 `https://oneuptime.com/identity/scim/v2/<scim-id>`，状态页面为 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` |
 | 身份验证 | HTTP Bearer 令牌，或 [OAuth 2.0 客户端凭据](#oauth-20-客户端凭据) |
 | 唯一用户标识符 | `userName`，必须是有效的电子邮件地址 |
 | 操作 | 在项目 SCIM 和状态页面 SCIM 中，对 Users 执行 GET、POST、PUT、PATCH 和 DELETE。Groups 仅在项目 SCIM 中受支持。 |
 
 ## SCIM API 参考
 
-路径相对于连接的 **SCIM Base URL**。
+路径相对于连接的 **SCIM 基础 URL**。
 
 | 端点                     | 方法                    | 说明                                      |
 | ------------------------ | ----------------------- | ----------------------------------------- |
@@ -401,7 +401,7 @@ OneUptime 的 SCIM 实现遵循 SCIM v2.0 规范，可与任何兼容的身份�
 先查看 **项目设置** > **安全** > **SCIM**（或状态页面的 **SCIM** 页面）中的 **日志** 选项卡。它会列出您的身份提供商发送的 SCIM 请求及其状态，**查看详情** 会显示请求以及 OneUptime 的响应。
 
 :::details Entra ID: Test Connection 失败
-请检查 **Tenant URL** 是否与 OneUptime 显示的 **SCIM Base URL** 完全一致，以及 **Secret Token** 是否为当前的 **Bearer Token**。执行 **重置 Bearer 令牌** 后，旧令牌将不再有效。
+请检查 **Tenant URL** 是否与 OneUptime 显示的 **SCIM 基础 URL** 完全一致，以及 **Secret Token** 是否为当前的 **Bearer 令牌**。执行 **重置 Bearer 令牌** 后，旧令牌将不再有效。
 :::
 
 :::details Okta: API 凭据测试失败，或请求收到 401 Unauthorized

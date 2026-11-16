@@ -2,6 +2,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { expectPageLoadsOnlyItsLanguage } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * The reading direction, in real Chromium. A Persian page sets <html
@@ -2812,14 +2813,15 @@ test.describe("code in a sentence read from the right", () => {
         NAMES_HELP_IDS,
       );
 
-      // Arabic words all three; Persian leaves the authenticator in English.
+      /*
+       * Both languages word all three. Persian left the authenticator's
+       * help in English until 7ef63100d98 worded it (#8658).
+       */
       expect(
         starts.map((start: SentenceStart): string => {
           return start.testId;
         }),
-      ).toEqual(
-        language === "fa" ? ["names-smtp", "names-provider"] : NAMES_HELP_IDS,
-      );
+      ).toEqual(NAMES_HELP_IDS);
       expect(starts).toEqual(
         starts.map((start: SentenceStart): SentenceStart => {
           return {
@@ -3011,6 +3013,39 @@ test.describe("screens for review", () => {
         fullPage: true,
         animations: "disabled",
       });
+    });
+  }
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8366). It imported
+ * Arabic, German, Persian and Korean whole, 30 MB of JSON in every page's
+ * scripts, parsed on every page load of every test. English is in the bundle
+ * now, and each other language a chunk of its own, loaded only by a page
+ * drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships
+ * it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+test.describe("the page's language, loaded as the Dashboard loads it", () => {
+  for (const language of ["en", "ar", "de", "fa", "ko"]) {
+    test(`a page in ${language} loads its own locale and no other`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await expectPageLoadsOnlyItsLanguage(
+        page,
+        {
+          address: (code: string): string => {
+            return `/reading-direction?${code === "en" ? "" : `lang=${code}`}`;
+          },
+          ready: (shown: Page, code: string): Locator => {
+            return shown
+              .locator(`html[lang='${code}']`)
+              .getByTestId("section-dates");
+          },
+        },
+        language,
+      );
     });
   }
 });

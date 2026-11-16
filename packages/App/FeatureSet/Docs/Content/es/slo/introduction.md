@@ -49,7 +49,7 @@ Abre **SLO** desde el menú **Productos** de la barra superior. Está en el prim
 
 ### Elegir qué mide
 
-En **Qué mide**, deja **Disponibilidad de monitores** para medir la parte del tiempo en la que los monitores están disponibles. Para medir en su lugar las solicitudes de unos servicios, elige **Éxito de solicitudes** o **Latencia de solicitudes** y selecciona sus **Servicios**: consulta [SLO de solicitudes y latencia](/docs/slo/request-slos). Haz clic en **Siguiente**.
+En **Qué mide**, deja **Disponibilidad de monitores** para medir la parte del tiempo en la que los monitores están disponibles. Para medir en su lugar las solicitudes de unos servicios, elige **Éxito de solicitudes** o **Latencia de solicitudes** y selecciona sus **Servicios**: consulta [SLO de solicitudes y latencia](/docs/slo/request-slos). Elige **Métrica** para contar los eventos buenos de un contador o un histograma que envían tus servicios: consulta [SLO a partir de una métrica](/docs/slo/request-slos#slo-a-partir-de-una-métrica). Haz clic en **Siguiente**.
 
 ### Ponerle nombre y fijar un objetivo
 
@@ -202,7 +202,7 @@ La página **Ajustes** reúne cómo mide un SLO, una tarjeta para cada cosa:
 
 | Tarjeta | Qué cambias | Conviene saber |
 | --- | --- | --- |
-| **Qué mide** | **Qué mide**, **Servicios** y **Umbral de latencia (ms)**, con **Editar qué mide**. | Tras un cambio, un SLO de solicitudes vuelve a contar sus solicitudes desde el principio. |
+| **Qué mide** | **Qué mide**, **Servicios**, **Umbral de latencia (ms)**, **Filtro de solicitudes** y **Métrica**, con **Editar qué mide**. | Tras un cambio, un SLO de solicitudes vuelve a contar sus solicitudes desde el principio. |
 | **Objetivo** | **Objetivo (%)** y **Umbral de riesgo (%)**, con **Editar objetivo**. | Muestra el tiempo de inactividad que permite el objetivo, por ejemplo «43 min 12 s de tiempo de inactividad por ventana de 30 días». |
 | **Periodo de cumplimiento** | **Tipo de ventana**, **Ventana (días)** y **Zona horaria**, con **Editar periodo**. | Las reglas de tasa de consumo conservan sus umbrales cuando cambia la ventana, así que revísalas después. |
 | **Cálculo del tiempo de inactividad** | **Modo de varios monitores** y **Estados de monitor de tiempo de inactividad**, con **Editar cálculo del tiempo de inactividad**. | Solo en los SLO de disponibilidad de monitores. Sin estados se cuentan todos los estados no operativos, incluidos los que se añadan después. |
@@ -291,6 +291,8 @@ Un aviso en la parte superior de las páginas del SLO dice qué le impide medir:
 | **No se eligieron servicios** | Un SLO de solicitudes no tiene servicios, así que no tiene solicitudes que contar. | Elige sus servicios en **Ajustes** → **Qué mide**. |
 | **No hay umbral de latencia** | Un SLO de latencia de solicitudes no tiene umbral, así que ninguna solicitud puede contar como lo bastante rápida. | Fija el **Umbral de latencia (ms)** en **Ajustes** → **Qué mide**. |
 | **Esperando solicitudes** | Ninguno de los servicios de un SLO de solicitudes ha servido todavía una solicitud en su ventana. | Comprueba que los servicios envían trazas a OneUptime. Las cifras aparecen tras la siguiente evaluación que cuenta una solicitud. |
+| **No hay métrica que contar** | Un SLO de métrica no tiene ninguna métrica que pueda contar: no se ha elegido ninguna, o falta cómo se distinguen sus eventos buenos. | Elige la métrica, y su condición o su valor de evento bueno, en **Ajustes** → **Qué mide**. |
+| **Esperando su métrica** | Ninguno de los servicios de un SLO de métrica ha enviado todavía un evento de su métrica en su ventana. | Comprueba que los servicios envían la métrica a OneUptime, con el nombre que cuenta el SLO. Las cifras aparecen tras la siguiente evaluación que cuenta un evento. |
 
 ## Próximos pasos
 

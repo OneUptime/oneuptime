@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
@@ -186,7 +187,7 @@ const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 };
@@ -195,7 +196,7 @@ const formatInt: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return Math.round(value).toString();
 };
@@ -301,7 +302,7 @@ const CephClusterOverview: FunctionComponent<
     value: number | null,
   ): string => {
     if (value === null || !isFinite(value)) {
-      return "—";
+      return EMPTY_VALUE_MARK;
     }
     return translator.formatNumber(Math.round(value));
   };
@@ -1117,7 +1118,7 @@ const CephClusterOverview: FunctionComponent<
           description={CEPH_METRIC_DESCRIPTIONS.osdsUp}
           icon={IconProp.Database}
           iconColor="emerald"
-          value={osdTotal > 0 ? `${osdUp}/${osdTotal}` : "—"}
+          value={osdTotal > 0 ? `${osdUp}/${osdTotal}` : undefined}
           sublabel={
             osdTotal > 0
               ? translator.translateTemplate("{{in}} in", {
@@ -1139,7 +1140,7 @@ const CephClusterOverview: FunctionComponent<
               ? `${monsInQuorum || 0}/${monsTotal}`
               : cluster.monCount
                 ? String(cluster.monCount)
-                : "—"
+                : undefined
           }
           sublabel="monitor daemons"
         />

@@ -399,6 +399,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
               title={translator.translateTemplate("Select all {{count}}", {
                 count: translator.formatNumber(selectableShownCount),
               })}
+              isTitleTranslated={true}
               dataTestId="discovered-host-select-shown"
               buttonStyle={ButtonStyleType.LINK}
               buttonSize={ButtonSize.ExtraSmall}

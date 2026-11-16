@@ -147,7 +147,7 @@ afterEach(() => {
 
 describe("a key's copy of a role's permission is the role's", () => {
   test.each(["onBeforeUpdate", "onBeforeDelete"])(
-    "%s refuses a copy, even for a project owner, naming the role",
+    "%s refuses a copy, even for a Project Owner, naming the role",
     async (hook: string) => {
       getJestSpyOn(
         ApiKeyPermissionService,

@@ -21,25 +21,25 @@ Para adicionar o gatilho, clique no bloco tracejado **Escolha o que inicia este 
 | Rodar em um agendamento recorrente             | **Agendamento**             |
 | Que outro sistema envie dados                  | **Webhook**                 |
 | Iniciar a partir de um e-mail                  | **E-mail recebido**          |
-| Agir sobre os relatórios de incidente do Huntress | **Huntress Incident Report** |
+| Agir sobre os relatórios de incidente do Huntress | **Relatório de incidente do Huntress** |
 | Reagir a algo dentro do OneUptime              | **Evento do OneUptime**     |
 
-Um workflow só pode ter um gatilho. Se você precisa de duas formas de iniciar a mesma automação, monte a lógica compartilhada em um workflow com um gatilho **Manual** e inicie-o a partir de dois workflows «invólucro» leves com um bloco **Execute Workflow**.
+Um workflow só pode ter um gatilho. Se você precisa de duas formas de iniciar a mesma automação, monte a lógica compartilhada em um workflow com um gatilho **Manual** e inicie-o a partir de dois workflows «invólucro» leves com um bloco **Executar outro fluxo de trabalho**.
 
 ## Manual
 
-Rode o workflow quando quiser: clique em **Executar fluxo de trabalho** na página **Construtor**, preencha o **JSON** do gatilho, clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. Outro workflow também pode iniciá-lo, com um bloco **Execute Workflow**.
+Rode o workflow quando quiser: clique em **Executar fluxo de trabalho** na página **Construtor**, preencha o **JSON** do gatilho, clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. Outro workflow também pode iniciá-lo, com um bloco **Executar outro fluxo de trabalho**.
 
 Bom para: automações de um clique para as quais você quer um botão, como «girar esta chave» ou «enviar um alerta de teste», e lógica que você compartilha entre workflows.
 
 **Returns**: **JSON** — aquilo com que a execução foi iniciada.
 
 - A partir de **Executar fluxo de trabalho**, é o JSON que você digitou. Para ler um campo dele, acrescente o nome do campo à referência, como em `{{local.components.manual-1.returnValues.value.name}}`.
-- A partir de um bloco **Execute Workflow**, cada chave dos **Arguments** do bloco é um valor próprio. Com `{"customerId": "42"}`, um bloco seguinte lê `{{local.components.manual-1.returnValues.customerId}}`, onde `manual-1` é o ID do gatilho Manual.
+- A partir de um bloco **Executar outro fluxo de trabalho**, cada chave dos **Argumentos** do bloco é um valor próprio. Com `{"customerId": "42"}`, um bloco seguinte lê `{{local.components.manual-1.returnValues.customerId}}`, onde `manual-1` é o ID do gatilho Manual.
 
 ## Schedule
 
-Rode o workflow em um agendamento recorrente. Defina a frequência em **Schedule at**: escolha um dos **Common schedules**, escreva uma expressão de **Custom cron** ou escolha uma **Variável** que contenha uma. Abaixo do campo, o agendamento é descrito em palavras, com as **Próximas execuções**.
+Rode o workflow em um agendamento recorrente. Defina a frequência em **Agendar para**: escolha um dos **Common schedules**, escreva uma expressão de **Custom cron** ou escolha uma **Variável** que contenha uma. Abaixo do campo, o agendamento é descrito em palavras, com as **Próximas execuções**.
 
 Bom para: limpeza noturna, sincronização de hora em hora, relatórios semanais.
 
@@ -93,7 +93,7 @@ sequenceDiagram
 | Valor                    | O que contém                                                                                                          |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | **Cabeçalhos da Requisição**      | Todos os cabeçalhos da requisição, pelo nome em minúsculas, como `content-type`.                                      |
-| **Request Query Params** | Os parâmetros da query string da URL, pelo nome.                                                                      |
+| **Parâmetros de consulta da requisição** | Os parâmetros da query string da URL, pelo nome.                                                                      |
 | **Corpo da Requisição**         | O corpo que quem chamou enviou. Um corpo JSON, enviado com `Content-Type: application/json`, pode ser lido campo a campo, assim como JSON enviado como texto simples, como o Amazon SNS o envia. |
 
 Leia um campo acrescentando o nome dele à referência, como em `{{local.components.webhook-1.returnValues.request-body.message}}`.
@@ -117,7 +117,7 @@ O OneUptime dá ao workflow um endereço de e-mail próprio. Cada e-mail enviado
 
 Bom para: agir sobre e-mails de sistemas que não conseguem chamar um webhook — alertas de ferramentas de monitoramento antigas, avisos de status de um fornecedor, o relatório que um job noturno manda por e-mail.
 
-Para obter o endereço, clique no gatilho Incoming Email no canvas. O endereço fica no topo das configurações dele, com um botão **Copiar endereço**. Passe-o para o que deve iniciar o workflow: uma ferramenta que só sabe enviar e-mail, as configurações de notificação de um fornecedor ou uma regra de encaminhamento na sua própria caixa de correio.
+Para obter o endereço, clique no gatilho E-mail recebido no canvas. O endereço fica no topo das configurações dele, com um botão **Copiar endereço**. Passe-o para o que deve iniciar o workflow: uma ferramenta que só sabe enviar e-mail, as configurações de notificação de um fornecedor ou uma regra de encaminhamento na sua própria caixa de correio.
 
 Cada e-mail inicia a sua própria execução. O e-mail chega ao workflow quer o endereço esteja em Para ou em Cc, quer seja uma cópia oculta ou passe por uma regra de encaminhamento. Um e-mail que cita o endereço duas vezes inicia uma única execução.
 
@@ -130,16 +130,16 @@ Cada e-mail inicia a sua própria execução. O e-mail chega ao workflow quer o 
 | **CC**          | Todos os destinatários em cópia, em uma linha.                                                          |
 | **Assunto**     | O assunto.                                                                                              |
 | **Corpo**        | O texto simples do e-mail.                                                                              |
-| **HTML Body**   | O HTML do e-mail, quando houver. Body e HTML Body são cortados em 1 MB cada.                            |
-| **Headers**     | Todos os cabeçalhos do e-mail, pelo nome em minúsculas, como `message-id`.                              |
+| **Corpo HTML**   | O HTML do e-mail, quando houver. Body e HTML Body são cortados em 1 MB cada.                            |
+| **Cabeçalhos**     | Todos os cabeçalhos do e-mail, pelo nome em minúsculas, como `message-id`.                              |
 | **Anexos** | O nome, o tipo e o tamanho de cada arquivo anexado. Os arquivos em si não são guardados.                |
-| **Received At** | Quando o OneUptime recebeu o e-mail.                                                                    |
+| **Recebido em** | Quando o OneUptime recebeu o e-mail.                                                                    |
 
 Depois que chega um e-mail, o seletor de valores de cada bloco após o gatilho sabe o que ele continha: lista cada cabeçalho e cada anexo do e-mail, com o seu conteúdo, para você escolher `headers.message-id` em vez de digitar um caminho. Até lá, ele avisa que nenhum e-mail chegou ainda ao endereço. Veja [Usar valores de blocos anteriores](/docs/workflows/authoring#usar-valores-de-blocos-anteriores).
 
 Para testar o workflow sem enviar um e-mail, clique em **Executar fluxo de trabalho** na página **Construtor** e preencha um remetente, um assunto e um corpo. Os valores que você deixar de fora chegam vazios.
 
-O e-mail só inicia o workflow enquanto ele está ligado. E-mail para um workflow desligado é ignorado, assim como e-mail para um workflow cujo gatilho não é mais Incoming Email.
+O e-mail só inicia o workflow enquanto ele está ligado. E-mail para um workflow desligado é ignorado, assim como e-mail para um workflow cujo gatilho não é mais E-mail recebido.
 
 ### Mantenha o endereço em sigilo
 
@@ -159,7 +159,7 @@ O OneUptime dá ao workflow uma URL própria para o Huntress, o serviço de dete
 
 Bom para: abrir um incidente para cada relatório de incidente do Huntress, acionar o plantão e acompanhar o relatório até o fechamento. O modelo **Open an incident for each Huntress incident report** faz as três coisas.
 
-Para conectar o Huntress, clique no gatilho **Huntress Incident Report** no canvas: ele mostra a URL a passar para o Huntress, salva o segredo de assinatura do endpoint e diz quando o Huntress alcançou o workflow pela última vez. Uma solicitação que não está assinada com esse segredo não inicia nada, então a URL não é uma senha. Veja [Huntress](/docs/integrations/huntress) para a configuração no Huntress, os valores que o gatilho retorna e suas configurações.
+Para conectar o Huntress, clique no gatilho **Relatório de incidente do Huntress** no canvas: ele mostra a URL a passar para o Huntress, salva o segredo de assinatura do endpoint e diz quando o Huntress alcançou o workflow pela última vez. Uma solicitação que não está assinada com esse segredo não inicia nada, então a URL não é uma senha. Veja [Huntress](/docs/integrations/huntress) para a configuração no Huntress, os valores que o gatilho retorna e suas configurações.
 
 ## Gatilhos de eventos do OneUptime
 
@@ -172,7 +172,7 @@ Quase tudo no OneUptime — monitores, incidentes, alertas, eventos de manutenç
 
 É assim que você monta «quando X acontecer no OneUptime, faça Y» sem precisar ficar verificando em um loop.
 
-**On Update** pode ser restrito a alguns campos com **Fields to watch**: aí ele só dispara quando uma atualização muda um deles, para qualquer valor — desligar uma chave ou limpar um campo conta. **On Create or Update** tem o mesmo **Fields to watch**, só para as atualizações dele: todo registro novo ainda o dispara.
+**On Update** pode ser restrito a alguns campos com **Campos a observar**: aí ele só dispara quando uma atualização muda um deles, para qualquer valor — desligar uma chave ou limpar um campo conta. **On Create or Update** tem o mesmo **Campos a observar**, só para as atualizações dele: todo registro novo ainda o dispara.
 
 ```mermaid title="Quando um gatilho On Update dispara"
 flowchart TB
@@ -185,11 +185,11 @@ flowchart TB
     field -->|"Não"| nothing
 ```
 
-**On Create**, **On Update** e **On Create or Update** repassam o registro ao próximo bloco, com os campos que você escolhe no **Fields to pass on** do gatilho. Por exemplo, o gatilho **Incident → On Create** repassa o novo incidente, então o próximo bloco pode ler o título, a descrição, a gravidade ou qualquer outro campo que você selecionou, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Um campo que você não selecionou chega vazio. O mesmo vale para um campo em que o registro não tem nada, como o monitor de um alerta que nenhum monitor gerou.
+**On Create**, **On Update** e **On Create or Update** repassam o registro ao próximo bloco, com os campos que você escolhe no **Campos a repassar** do gatilho. Por exemplo, o gatilho **Incident → On Create** repassa o novo incidente, então o próximo bloco pode ler o título, a descrição, a gravidade ou qualquer outro campo que você selecionou, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Um campo que você não selecionou chega vazio. O mesmo vale para um campo em que o registro não tem nada, como o monitor de um alerta que nenhum monitor gerou.
 
-**On Create or Update** também repassa **O que aconteceu**: `created` quando um registro novo iniciou a execução, e `updated` quando foi uma alteração, como em `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Para tratar os dois casos de forma diferente, compare-o em um bloco **If / Else**, ou siga um caminho para cada um com **Switch / Case**.
+**On Create or Update** também repassa **O que aconteceu**: `created` quando um registro novo iniciou a execução, e `updated` quando foi uma alteração, como em `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Para tratar os dois casos de forma diferente, compare-o em um bloco **Se / Senão**, ou siga um caminho para cada um com **Escolha / Caso**.
 
-Um salvamento o dispara uma vez. O que o OneUptime preenche enquanto cria um registro faz parte da criação, então um registro novo o dispara uma vez, como `created`. As alterações que o OneUptime faz depois, como vincular o canal do Slack de um incidente, são atualizações como qualquer outra: para deixá-las de fora, adicione a **Fields to watch** só os campos que importam para você.
+Um salvamento o dispara uma vez. O que o OneUptime preenche enquanto cria um registro faz parte da criação, então um registro novo o dispara uma vez, como `created`. As alterações que o OneUptime faz depois, como vincular o canal do Slack de um incidente, são atualizações como qualquer outra: para deixá-las de fora, adicione a **Campos a observar** só os campos que importam para você.
 
 **On Delete** repassa só o ID do registro excluído: o registro já não existe quando o workflow roda, então os outros campos dele não podem ser lidos.
 

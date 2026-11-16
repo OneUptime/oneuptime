@@ -674,6 +674,8 @@ describe("the real frontends", () => {
     "sourcemap",
     "minify",
     "keepNames",
+    // Letters outside ASCII written as they are (#8650).
+    "charset",
     "treeShaking",
     "splitting",
     "publicPath",

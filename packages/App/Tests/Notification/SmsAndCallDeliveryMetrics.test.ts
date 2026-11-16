@@ -12,7 +12,7 @@ import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTi
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import MessagingBalance from "Common/Server/Utils/Billing/MessagingBalance";
 import CustomChannelActionToken from "Common/Server/Utils/OnCall/CustomChannelActionToken";
-import SSRFProtection from "Common/Server/Utils/SSRFProtection";
+import { approveEveryWebhookAddress } from "Common/Tests/Server/TestingUtils/WebhookAddressCheck";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import CallRequest from "Common/Types/Call/CallRequest";
@@ -248,9 +248,7 @@ beforeEach(() => {
     .mockResolvedValue(
       new HTTPResponse<JSONObject>(200, {}, {}) as never,
     ) as unknown as SpyInstance<typeof API.post>;
-  jest
-    .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-    .mockResolvedValue(undefined as never);
+  approveEveryWebhookAddress();
   jest.spyOn(SignedWebhookPost, "sleep").mockResolvedValue(undefined as never);
 
   project = new Project();

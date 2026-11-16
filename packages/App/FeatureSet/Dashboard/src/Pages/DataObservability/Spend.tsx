@@ -1,4 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import AppLink from "../../Components/AppLink/AppLink";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import PageMap from "../../Utils/PageMap";
@@ -26,7 +28,9 @@ import React, {
 } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * What the project's warehouses spent over the last day: Snowflake credits
@@ -67,7 +71,7 @@ const Stat: FunctionComponent<{
         {props.title}
       </div>
       <div className="mt-1 text-xl font-semibold text-gray-900">
-        {props.value}
+        {getFigure(props.value)}
       </div>
     </div>
   );
@@ -116,7 +120,7 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           : "",
       ]
         .filter(Boolean)
-        .join(" · ") || "-"
+        .join(" · ") || EMPTY_VALUE_MARK
     );
   };
 
@@ -183,7 +187,9 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                               {team.team}
                             </span>
                             <span className="text-end text-gray-600">
-                              {spendOf(team.credits, team.bytesBilled)}
+                              {getValueOrQuietDash(
+                                spendOf(team.credits, team.bytesBilled),
+                              )}
                             </span>
                           </li>
                         );
@@ -240,9 +246,11 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                               )}
                             </span>
                             <span className="ms-auto text-gray-600">
-                              {spendOf(
-                                table.credits || 0,
-                                table.bytesBilled || 0,
+                              {getValueOrQuietDash(
+                                spendOf(
+                                  table.credits || 0,
+                                  table.bytesBilled || 0,
+                                ),
                               )}
                             </span>
                           </li>

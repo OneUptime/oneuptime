@@ -10,6 +10,7 @@ import StartAndEndDate, {
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { withPlainSpaces } from "../../../Types/NoBreakSpaces";
 
 /*
  * The time range picker's quick buttons on the day London's clocks went back
@@ -29,11 +30,12 @@ const HOUR: number = 60 * 60 * 1000;
 const NOW: string = "2026-10-25T03:49:30.500Z";
 const END: string = "2026-10-25T03:49:00.000Z";
 
+// Each button's name, its figure held to its word as the page draws it (#8811).
 const QUICK_RANGES: Array<[string, number]> = [
-  ["1 day", 24],
-  ["1 week", 7 * 24],
-  ["2 weeks", 14 * 24],
-  ["3 weeks", 21 * 24],
+  ["1\u00A0day", 24],
+  ["1\u00A0week", 7 * 24],
+  ["2\u00A0weeks", 14 * 24],
+  ["3\u00A0weeks", 21 * 24],
 ];
 
 const picker: (
@@ -71,7 +73,7 @@ describe("the time range picker's quick buttons, the day the clocks go back", ()
   });
 
   for (const [name, hours] of QUICK_RANGES) {
-    test(`${name} sets the ${hours} hours up to now, and lights up`, () => {
+    test(`${withPlainSpaces(name)} sets the ${hours} hours up to now, and lights up`, () => {
       jest
         .spyOn(OneUptimeDate, "getCurrentDate")
         .mockReturnValue(new Date(NOW));

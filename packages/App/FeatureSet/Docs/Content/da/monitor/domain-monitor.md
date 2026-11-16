@@ -60,7 +60,7 @@ Indtast **Domænenavn**, for eksempel `example.com`. Lad **Opslagsmetode** stå 
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Overvågningstestresultat** viser den registreringspost, sonden læste, og om RDAP eller WHOIS svarede.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser den registreringspost, sonden læste, og om RDAP eller WHOIS svarede.
 
 ### Gennemgå kriterierne
 
@@ -122,8 +122,8 @@ Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, e
 
 En ny domæne-monitor starter med tre kriterier, så den advarer dig, før en registrering udløber, uden nogen opsætning:
 
-1. **Domænekontrollen mislykkedes** — registreringen er udløbet, eller dens registreringsdata kunne ikke læses. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitor name_ domain check failed". Hændelsen løser sig selv, så snart registreringen kan læses og er gældende igen.
-2. **Domænet udløber snart** — registreringen er ikke udløbet, men udløber om 30 dage eller mindre. Der oprettes en **advarsel** med navnet "_monitor name_ domain expires soon".
+1. **Domænekontrollen mislykkedes** — registreringen er udløbet, eller dens registreringsdata kunne ikke læses. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "Domænekontrol for _monitornavn_ mislykkedes". Hændelsen løser sig selv, så snart registreringen kan læses og er gældende igen.
+2. **Domænet udløber snart** — registreringen er ikke udløbet, men udløber om 30 dage eller mindre. Der oprettes en **advarsel** med navnet "Domænet _monitornavn_ udløber snart".
 3. **Domænet er ikke udløbet** — monitoren markeres som **I drift**.
 
 Advarslen "udløber snart" er en advarsel, ikke en hændelse: den vises ikke på dine statussider, den tilkalder ingen, medmindre du føjer en vagtpolitik til den, og den ændrer ikke monitorens status. Den bruger dit projekts anden advarselsalvorlighed, **Lav** i et nyt projekt. Så snart fornyelsen vises i registreringsposten, løser advarslen sig selv. Et register, der ikke offentliggør nogen udløbsdato, giver ikke advarslen noget at gå efter, så den forbliver tavs.
@@ -137,7 +137,7 @@ Monitorer, der blev oprettet, før OneUptime indførte denne advarsel, har intet
 
 1. Åbn **Konfiguration → Kriterier** på monitoren, og klik på **Rediger kriterier**.
 2. Klik på **Tilføj kriterier**. Sæt dets filter til **Domænet er udløbet** / **Falsk**, klik på **Tilføj filter**, og sæt det andet til **Dage til domænets udløb** / **Mindre end eller lig med** / `30`. Lad **Matchbetingelse** stå på **Alle** (den vises under filtrene, så snart der er to).
-3. Slå **Når filtre matcher, oprettes en advarsel.** til under **Handlinger**, og lad **Når filtre matcher, ændres overvågningsstatus.** være slået fra, så det opretter en advarsel og ikke ændrer monitorens status.
+3. Slå **Når filtre matcher, oprettes en advarsel.** til under **Handlinger**, og lad **Når filtre matcher, ændres monitorstatus.** være slået fra, så det opretter en advarsel og ikke ændrer monitorens status.
 4. Træk det nye kriterium op over det kriterium, der markerer monitoren som online, og gem derefter.
 :::
 

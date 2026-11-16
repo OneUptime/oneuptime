@@ -84,7 +84,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
-import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 
 const PROJECT_ID = "10000000-0000-4000-8000-0000000000a1";
 const USER_ID = "30000000-0000-4000-8000-0000000000c1";
@@ -759,13 +760,27 @@ API.get = async () => {
  * separators i18next reads in a key (the "." and ":" of a sentence) are
  * turned off, as the Dashboard's own setup does.
  */
+/*
+ * English, the fallback, is in the bundle; German is a chunk of its own,
+ * loaded only by a page drawn in that language, as the Dashboard loads a
+ * locale (src/Utils/I18nLocaleLoader.ts), and built as the Dashboard ships
+ * them (server.js, SuiteHelpers/FixtureLocalesBuild.js). Imported whole,
+ * they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: language,
-  fallbackLng: language,
-  resources: {
-    en: { translation: {} },
-    de: { translation: DE },
-  },
+  fallbackLng: "en",
+  resources: await localeResources({
+    language: language,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,

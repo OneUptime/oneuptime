@@ -164,7 +164,7 @@ describe("StepTimeoutInput", () => {
     const help: HTMLElement = screen.getByText(
       /Leave blank to use the default/i,
     );
-    expect(help.textContent).toContain("30 seconds");
+    expect(help.textContent).toContain("30\u00A0seconds");
     expect(help.textContent).toContain("1–3600");
   });
 
@@ -199,7 +199,7 @@ describe("StepTimeoutInput", () => {
     fireEvent.change(input, { target: { value: "0.5" } });
 
     const alert: HTMLElement = screen.getByRole("alert");
-    expect(alert.textContent).toContain("Minimum is 1 second.");
+    expect(alert.textContent).toContain("Minimum is 1\u00A0second.");
     expect(alert.textContent).toContain("clamped");
     expect(input.getAttribute("aria-invalid")).toBe("true");
   });
@@ -218,7 +218,7 @@ describe("StepTimeoutInput", () => {
     fireEvent.change(input, { target: { value: "0" } });
 
     expect(screen.getByRole("alert").textContent).toContain(
-      "Timeout must be greater than 0 seconds.",
+      "Timeout must be greater than 0\u00A0seconds.",
     );
   });
 

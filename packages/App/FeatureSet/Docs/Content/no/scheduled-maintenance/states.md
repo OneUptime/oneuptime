@@ -72,9 +72,9 @@ Knappene i overskriften er oppkalt etter tilstandene dine. Mens hendelsen venter
 
 En hendelse starter når den går fra en tilstand der den venter, til **Pågående**, eller rett til en egen tilstand plassert mellom **Pågående** og **Avsluttet**. Da:
 
-- **Monitorene dens slutter å bli sjekket**, og går over til **Endre overvåkingsstatus til**, hvis den har en. En monitor du legger til hendelsen mens den pågår, går også over.
+- **Monitorene dens slutter å bli sjekket**, og går over til **Endre monitorstatus til**, hvis den har en. En monitor du legger til hendelsen mens den pågår, går også over.
 - **Statussidene dens viser den som pågående**, og abonnentene får beskjed: i tide hvis **Når hendelsen starter** er på, og manuelt slik **Varsle statussideabonnenter** i dialogen sier.
-- **Eierne får beskjed**, hvis de har slått på varselet om tilstandsendring, og hendelsen vises under **Pågående vedlikeholdshendelser**.
+- **Eierne får beskjed**, hvis de har slått på varslingen om tilstandsendring, og hendelsen vises under **Pågående vedlikeholdshendelser**.
 
 En hendelse avsluttes når den går fra en tilstand der den pågår, til **Avsluttet**, **Fullført** eller en egen tilstand plassert etter **Avsluttet**. Da sjekkes monitorene igjen og går tilbake til "operativ", med mindre en annen pågående hendelse fortsatt holder dem, og abonnentene får beskjed på samme måte: i tide hvis **Når hendelsen slutter** er på, og manuelt slik dialogen sier.
 
@@ -142,7 +142,7 @@ Arkiver en status du selv har laget som teamet ditt ikke lenger skal bruke, i st
 
 ## Tilstandstidslinjen
 
-Siden **Tilstandstidslinje** for hendelsen er registeret over hver tilstand den har vært i. Kortet tegner dem som en tidslinje: et bånd med hver tilstand så lang som den varte, og under det hver endring, den nyeste først. **Tabell**, i overskriften på kortet, viser dem som rader i stedet, med **Status for planlagt vedlikehold**, **Begynner den**, **Slutter den**, **Varighet**, om abonnentene skulle varsles, og hvordan varselet gikk.
+Siden **Tilstandstidslinje** for hendelsen er registeret over hver tilstand den har vært i. Kortet tegner dem som en tidslinje: et bånd med hver tilstand så lang som den varte, og under det hver endring, den nyeste først. **Tabell**, i overskriften på kortet, viser dem som rader i stedet, med **Status for planlagt vedlikehold**, **Begynner den**, **Slutter den**, **Varighet**, om abonnentene skulle varsles, og hvordan varslingen gikk.
 
 I dashbordet kan rader legges til og slettes, men ikke redigeres, og en hendelse beholder alltid minst én. Gjennom API-et kan `startsAt` for en rad rettes, og hver måling som er beregnet ut fra tidslinjen, følger med. Sletter du den nyeste raden, går hendelsen tilbake til tilstanden i raden før.
 

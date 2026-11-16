@@ -57,9 +57,21 @@ import { NUMBER_PREFIX_COLUMNS } from "Common/Utils/Project/NumberPrefix";
 import StateMoveUtil, { StateMoveRecord } from "Common/Utils/StateMove";
 import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
 import { STATE_LISTS, StateListType } from "Common/Utils/StateOrder";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import BaseModelComponent from "Common/Types/Workflow/Components/BaseModel";
+import ComponentMetadata from "Common/Types/Workflow/Component";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+
+// The workflow steps the builder makes for an alert, titled as it draws them.
+function alertStepTitles(): Array<string> {
+  return BaseModelComponent.getComponents(new Alert()).map(
+    (component: ComponentMetadata): string => {
+      return component.title;
+    },
+  );
+}
 
 /*
  * Docs overhaul task 32: the Alerts pages - the overview, alert states and
@@ -1189,15 +1201,9 @@ describe("where alerts come from", () => {
     const alertModel: string = readCommonSource(
       "Models/DatabaseModels/Alert.ts",
     );
-    const workflowComponents: string = readCommonSource(
-      "Types/Workflow/Components/BaseModel.ts",
-    );
-
     expect(alertModel).toContain('@CrudApiEndpoint(new Route("/alert"))');
     expect(alertModel).toContain('singularName: "Alert"');
-    expect(workflowComponents).toContain(
-      "title: `Create One ${model.singularName}`",
-    );
+    expect(alertStepTitles()).toContain("Create One Alert");
     expect(sources).toContain(
       "`/api/alert`, the `oneuptime_alert` Terraform resource, and a workflow's **Create One Alert** step.",
     );
@@ -1608,10 +1614,10 @@ describe("responding to an alert", () => {
     const model: string = readCommonSource("Models/DatabaseModels/Alert.ts");
 
     expect(model).toContain(
-      "If true, this alert is only visible to its owners (users in 'owner users' and members of 'owner teams'), project admins, and project owners.",
+      "If true, this alert is only visible to its owners (users in 'owner users' and members of 'owner teams'), Project Admins, and Project Owners.",
     );
     expect(section(page, "## Private alerts")).toContain(
-      "A private alert is seen only by its owners, the owner users and the members of its owner teams, and by your project's admins and owners.",
+      "A private alert is seen only by its owners, the owner users and the members of its owner teams, and by Project Admins and Project Owners.",
     );
   });
 
@@ -1746,7 +1752,7 @@ describe("who hears about an alert", () => {
     }
 
     expect(hears).toContain(
-      "An alert with no owners notifies the project's owners instead.",
+      "An alert with no owners notifies the Project Owners instead.",
     );
   });
 
@@ -1898,8 +1904,14 @@ describe("alert states and severities", () => {
       "Components/EventView/EventStateKinds.ts",
     );
 
-    expect(changeState).toContain('translationKey("Acknowledge Alert")');
-    expect(changeState).toContain('translationKey("Resolve Alert")');
+    // Looked up as written, by key or straight through the translator.
+    for (const title of ["Acknowledge Alert", "Resolve Alert"]) {
+      expect(changeState).toMatch(
+        new RegExp(
+          `(translationKey|translator\\.translateText)\\("${title}"\\)`,
+        ),
+      );
+    }
     expect(changeState).toContain(
       'translator.translateTemplate("Mark Alert as {{state}}", {',
     );
@@ -3093,20 +3105,15 @@ describe("alert rules and settings", () => {
       readCommonSource("Models/DatabaseModels/AlertCustomField.ts"),
     ).not.toContain("@EnableWorkflow(");
 
-    const components: string = readCommonSource(
-      "Types/Workflow/Components/BaseModel.ts",
-    );
-
     for (const verb of [
       "On Create",
       "On Update",
       "On Create or Update",
       "On Delete",
+      "Update One",
     ]) {
-      expect(components).toContain(`${verb} \${model.singularName}`);
+      expect(alertStepTitles()).toContain(`${verb} Alert`);
     }
-
-    expect(components).toContain("`Update One ${model.singularName}`");
     expect(section(page, "## Workflows")).toContain(
       "Alert custom field definitions are the one exception: they have no workflow triggers.",
     );

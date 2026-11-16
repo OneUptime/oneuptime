@@ -3,6 +3,10 @@ import IncidentSeverityService from "../../../Server/Services/IncidentSeveritySe
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import logger from "../../../Server/Utils/Logger";
+import JobDeadline from "../../../Server/Utils/JobDeadline";
+import Semaphore, {
+  SemaphoreMutex,
+} from "../../../Server/Infrastructure/Semaphore";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
@@ -103,6 +107,7 @@ import RunCron from "../../../../App/FeatureSet/Workers/Utils/Cron";
 import {
   JOB_NAME,
   backfillSeverity,
+  backfillSeveritiesUntilDeadline,
   buildResponderIntents,
   findRecentlyCreatedSeverities,
   MirroredRule,
@@ -658,6 +663,134 @@ describe("the sweep is registered under the name both severity services enqueue"
  * cost minutes of latency instead of a permanently uncovered severity.
  * =========================================================================
  */
+
+/*
+ * ========================================================================= *
+ * One sweep at a time, and the run's deadline (issue #8103).
+ *
+ * RunCron runs one sweep at a time under its lease, and the sweep keeps its
+ * single-flight lock beside it: a duplicated rule is a page sent twice, and
+ * the lease lapses half a minute past the time limit even while an await of
+ * the run has not returned. Once the run's deadline has passed - its time
+ * limit, or its lease lost - no further severity is started; the ones it did
+ * not reach are still inside the lookback window for the next tick.
+ * =========================================================================
+ */
+
+describe("the sweep stops between severities at the run's deadline", () => {
+  test("backfills every severity while the deadline has not passed", async () => {
+    const backfilled: Array<string> = [];
+
+    const reached: number = await backfillSeveritiesUntilDeadline({
+      severities: [incidentSeverity(SEV_NEW), alertSeverity(ALERT_SEV_NEW)],
+      deadline: new JobDeadline(),
+      backfill: async (severity: NewSeverity): Promise<void> => {
+        backfilled.push(severity.id.toString());
+      },
+    });
+
+    expect(reached).toBe(2);
+    expect(backfilled).toEqual([SEV_NEW.toString(), ALERT_SEV_NEW.toString()]);
+  });
+
+  test("stops before the next severity once the deadline has passed", async () => {
+    const deadline: JobDeadline = new JobDeadline();
+    const backfilled: Array<string> = [];
+
+    const reached: number = await backfillSeveritiesUntilDeadline({
+      severities: [incidentSeverity(SEV_NEW), alertSeverity(ALERT_SEV_NEW)],
+      deadline: deadline,
+      backfill: async (severity: NewSeverity): Promise<void> => {
+        // The time limit runs out while the first severity is backfilled.
+        deadline.end();
+        backfilled.push(severity.id.toString());
+      },
+    });
+
+    // The severity in flight finished; the next was never started.
+    expect(reached).toBe(1);
+    expect(backfilled).toEqual([SEV_NEW.toString()]);
+  });
+
+  test("a deadline that passed before the sweep backfills nothing", async () => {
+    const deadline: JobDeadline = new JobDeadline();
+    deadline.end(new Error("its lease lapsed"));
+    const backfill: jest.Mock = jest.fn();
+
+    const reached: number = await backfillSeveritiesUntilDeadline({
+      severities: [incidentSeverity(SEV_NEW)],
+      deadline: deadline,
+      backfill: backfill as unknown as (severity: NewSeverity) => Promise<void>,
+    });
+
+    expect(reached).toBe(0);
+    expect(backfill).not.toHaveBeenCalled();
+  });
+
+  test("one severity that throws is logged, and the next is still backfilled", async () => {
+    const backfilled: Array<string> = [];
+
+    await backfillSeveritiesUntilDeadline({
+      severities: [incidentSeverity(SEV_NEW), alertSeverity(ALERT_SEV_NEW)],
+      deadline: new JobDeadline(),
+      backfill: async (severity: NewSeverity): Promise<void> => {
+        if (severity.kind === "incident") {
+          throw new Error("bad project data");
+        }
+
+        backfilled.push(severity.id.toString());
+      },
+    });
+
+    expect(backfilled).toEqual([ALERT_SEV_NEW.toString()]);
+    expect(loggerErrorSpy).toHaveBeenCalled();
+  });
+
+  /*
+   * The registered run: it takes the single-flight lock, reads the window,
+   * and hands the run's deadline on - an ended one backfills nothing, and
+   * the lock is still given back.
+   */
+  test("the registered run keeps its lock, and hands the run's deadline to the loop", async () => {
+    const runFunction: (deadline?: JobDeadline) => Promise<void> = (
+      RunCron as unknown as jest.Mock
+    ).mock.calls[0]![2] as (deadline?: JobDeadline) => Promise<void>;
+
+    const mutex: SemaphoreMutex = {
+      identifier: "severity-backfill-sweep",
+    } as unknown as SemaphoreMutex;
+    const lockSpy: jest.SpyInstance = jest
+      .spyOn(Semaphore, "lock")
+      .mockResolvedValue(mutex as never);
+    const releaseSpy: jest.SpyInstance = jest
+      .spyOn(Semaphore, "release")
+      .mockResolvedValue(undefined as never);
+
+    jest
+      .spyOn(IncidentSeverityService, "findAllBy")
+      .mockResolvedValue([incidentSeverityRow(SEV_NEW, PROJECT_ID)] as never);
+    jest
+      .spyOn(AlertSeverityService, "findAllBy")
+      .mockResolvedValue([] as never);
+
+    const deadline: JobDeadline = new JobDeadline();
+    deadline.end();
+
+    await runFunction(deadline);
+
+    expect(lockSpy).toHaveBeenCalledTimes(1);
+    expect(lockSpy.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        key: EXPECTED_JOB_NAME,
+        acquireAttemptsLimit: 1,
+      }),
+    );
+    // The window was read, and nothing was backfilled: no rule written.
+    expect(IncidentSeverityService.findAllBy).toHaveBeenCalledTimes(1);
+    expect(ruleCreateSpy).not.toHaveBeenCalled();
+    expect(releaseSpy).toHaveBeenCalledWith(mutex);
+  });
+});
 
 describe("findRecentlyCreatedSeverities", () => {
   let incidentFindAllBySpy: jest.SpyInstance;

@@ -1,6 +1,6 @@
 # Casos de segurança e playbooks (SOAR)
 
-O Security Events transforma o que as suas regras de detecção, a inteligência de ameaças e os produtos de segurança conectados encontram em casos: um caso para cada coisa que vale a pena investigar, com todas as detecções sobre o mesmo usuário, host ou endereço agrupadas nele. Os analistas tratam os casos em uma fila, e os playbooks respondem a eles, sozinhos ou com um clique.
+O Eventos de segurança transforma o que as suas regras de detecção, a inteligência de ameaças e os produtos de segurança conectados encontram em casos: um caso para cada coisa que vale a pena investigar, com todas as detecções sobre o mesmo usuário, host ou endereço agrupadas nele. Os analistas tratam os casos em uma fila, e os playbooks respondem a eles, sozinhos ou com um clique.
 
 :::cards
 - [De onde vêm os casos](#de-onde-vêm-os-casos): Regras de detecção, inteligência de ameaças, produtos conectados, risco de entidades e pessoas.

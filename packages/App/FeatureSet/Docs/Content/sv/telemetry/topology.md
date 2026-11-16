@@ -51,12 +51,12 @@ Varje tjänst visar sin status, beräknad från de anrop den tog emot under de s
 | Status | När |
 | --- | --- |
 | **Felfri** | Högst 1 % av de mottagna anropen misslyckades. |
-| **Some errors** | Mer än 1 % och mindre än 5 % misslyckades. |
-| **High error rate** | 5 % eller mer misslyckades. |
-| **Entry point** | Den tog inte emot några anrop, men gjorde några: en webbfrontend eller ett schemalagt jobb. |
-| **No calls observed** | Den varken gjorde eller tog emot något anrop. |
+| **Några fel** | Mer än 1 % och mindre än 5 % misslyckades. |
+| **Hög felfrekvens** | 5 % eller mer misslyckades. |
+| **Ingångspunkt** | Den tog inte emot några anrop, men gjorde några: en webbfrontend eller ett schemalagt jobb. |
+| **Inga anrop observerade** | Den varken gjorde eller tog emot något anrop. |
 
-En tjänst med en aktiv incident eller larm visar i stället hur många, och precis som en tjänst med **Some errors** eller en **High error rate** räknas den som en som kräver uppmärksamhet.
+En tjänst med en aktiv incident eller larm visar i stället hur många, och precis som en tjänst med status **Några fel** eller **Hög felfrekvens** räknas den som en som kräver uppmärksamhet.
 
 :::steps
 ### Hitta tjänsterna som kräver uppmärksamhet

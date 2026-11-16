@@ -100,8 +100,9 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+type AnyMock = Mock<(...args: Array<any>) => any>;
 
 const monitorResource: AnyMock =
   MonitorResourceUtil.monitorResource as unknown as AnyMock;

@@ -95,7 +95,7 @@ Se volete raggiungere campi all'interno del corpo (`{{requestBody.status}}` in u
 | `application/json` | Il JSON analizzato. |
 | `application/x-www-form-urlencoded` | Il modulo analizzato. Le chiavi tra parentesi quadre si annidano (`alerts[0][status]=firing`), e ogni valore è una stringa. |
 | `text/plain` | Il JSON analizzato, quando il testo è un oggetto o un array JSON: è così che Amazon SNS invia i suoi messaggi. Qualsiasi altro testo è un corpo vuoto. |
-| Qualsiasi altro, o nessuno | Un corpo vuoto (`{}`), quindi ogni riferimento a `requestBody` non dà nulla. |
+| Qualsiasi altro, o nessuno | Un corpo vuoto (`{}`), quindi nessun riferimento a `requestBody` si risolve, e un modello lo lascia così com'è. |
 
 Sono accettati corpi fino a 50 MB; uno più grande viene rifiutato con un `413`. Non comprimete il corpo con `Content-Encoding: gzip`: non verrebbe salvato come JSON, e i percorsi al suo interno non si risolverebbero.
 
@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Richiedere un segreto a ogni richiesta
 
-Chiunque abbia l'URL di un monitor può inviargli richieste. Un proprietario o un amministratore del progetto può far richiedere in più a ogni monitor di richieste in arrivo del progetto uno dei segreti propri del progetto, chiunque abbia configurato il monitor: attivate **Richiedi un segreto a ogni richiesta**. Una richiesta senza segreto viene rifiutata con `401` e il motivo, prima di contare come heartbeat, di essere conservata come ultima richiesta del monitor o di raggiungere qualsiasi criterio. Una richiesta con un segreto prosegue verso i criteri propri del monitor, come prima.
+Chiunque abbia l'URL di un monitor può inviargli richieste. Un Proprietario del progetto o un Amministratore del progetto può far richiedere in più a ogni monitor di richieste in arrivo del progetto uno dei segreti propri del progetto, chiunque abbia configurato il monitor: attivate **Richiedi un segreto a ogni richiesta**. Una richiesta senza segreto viene rifiutata con `401` e il motivo, prima di contare come heartbeat, di essere conservata come ultima richiesta del monitor o di raggiungere qualsiasi criterio. Una richiesta con un segreto prosegue verso i criteri propri del monitor, come prima.
 
 :::steps
 ### Create un segreto
@@ -201,6 +201,10 @@ Andate in **Monitor → Impostazioni → Segreti per richieste in arrivo** e cre
 ### Inviatelo da ogni mittente
 
 Inviate il segreto nell'intestazione `X-OneUptime-Secret`, o come token Bearer nell'intestazione `Authorization`, secondo ciò che il vostro mittente sa impostare.
+
+### Trovate i mittenti dimenticati
+
+Non appena il progetto ha un segreto, OneUptime controlla ogni richiesta, senza ancora rifiutarne nessuna. **Richieste senza segreto**, nella stessa pagina, elenca ogni monitor di richieste in arrivo che ha ricevuto una richiesta senza un segreto valido nelle ultime 24 ore, e perché: non ne è stato inviato nessuno, o ne è stato inviato uno errato. Correggete quei mittenti. Un monitor i cui mittenti sono stati corretti mostra in **Ultima con segreto** un orario successivo a quello in **Ultima senza segreto**, ed esce dall'elenco entro 24 ore.
 
 ### Attivate il requisito
 
@@ -389,7 +393,7 @@ Amazon SNS e Azure Event Grid non inviano nulla a un nuovo endpoint finché qual
 | Amazon SNS | `UnsubscribeConfirmation`, quando la sottoscrizione viene eliminata | **Ripristina sottoscrizione** | Due giorni |
 | Azure Event Grid | `SubscriptionValidationEvent`, per una nuova sottoscrizione di eventi tramite webhook | **Convalida sottoscrizione** | 10 minuti |
 
-Il pulsante resta finché non arriva la prossima richiesta del monitor, anche dopo che avete aperto il link. Quando il tempo del link è scaduto, la scheda spiega invece come ottenerne uno nuovo. Se nel frattempo sono arrivate richieste più recenti, aprite **Registri di monitoraggio** e fate clic su **Visualizza riepilogo** nella riga della richiesta.
+Il pulsante resta finché non arriva la prossima richiesta del monitor, anche dopo che avete aperto il link. Quando il tempo del link è scaduto, la scheda spiega invece come ottenerne uno nuovo. Se nel frattempo sono arrivate richieste più recenti, aprite **Log di monitoraggio** e fate clic su **Visualizza riepilogo** nella riga della richiesta.
 
 Il link, e il token che contiene, vengono conservati senza mascheramento ovunque sia conservata la richiesta: i suoi dettagli, i suoi log e gli incidenti e gli avvisi che apre. Il link non può fare altro che avviare le consegne a questo monitor. Conta solo un link all'indirizzo del servizio stesso: qualsiasi altro viene mascherato come di consueto e non riceve alcun pulsante.
 
@@ -431,6 +435,10 @@ Il `200` viene inviato prima che la richiesta sia convalidata, quindi non dimost
 Il progetto richiede un segreto a ogni richiesta, e la richiesta non ne ha inviato nessuno, o ne ha inviato uno che non è del progetto: la risposta dice quale dei due. Inviate uno dei segreti del progetto nell'intestazione `X-OneUptime-Secret` o come token Bearer, come mostra [Richiedere un segreto a ogni richiesta](#richiedere-un-segreto-a-ogni-richiesta). Una richiesta rifiutata non raggiunge mai il monitor.
 :::
 
+:::details Il monitor non riceve più richieste da quando è richiesto un segreto
+I suoi mittenti non inviano alcun segreto, o ne inviano uno errato, quindi ogni loro richiesta viene rifiutata. Una riga sotto l'**Heartbeat URL** del monitor dice quando è arrivata l'ultima richiesta rifiutata, e **Richieste senza segreto** elenca ogni monitor che ne ha ricevuta una nelle ultime 24 ore, e perché. Inviate uno dei segreti del progetto da quei mittenti, come mostra [Richiedere un segreto a ogni richiesta](#richiedere-un-segreto-a-ogni-richiesta).
+:::
+
 :::details Il monitor non va mai offline quando gli heartbeat si fermano
 Solo un criterio **Richiesta in arrivo** (**Non ricevuto in minuti**) può accorgersi del silenzio. Aggiungetene uno se manca, e trascinatelo sopra i criteri predefiniti: il criterio online predefinito corrisponde all'ultima richiesta a ogni controllo in background, e decide il primo criterio che corrisponde.
 :::
@@ -444,7 +452,7 @@ Nomi e valori delle intestazioni vengono confrontati per intero. Indicate il val
 :::
 
 :::details Amazon SNS dice che la sottoscrizione è in attesa di conferma
-Fate clic su **Conferma sottoscrizione** nella scheda **Riepilogo del monitor** della **Panoramica** del monitor. Se nel frattempo sono arrivate richieste più recenti, aprite **Registri di monitoraggio** e fate clic su **Visualizza riepilogo** nella riga della conferma. Con **Conserva il contenuto della richiesta** disattivato, il monitor non conserva alcun corpo, quindi nemmeno il link: attivatelo nelle **Impostazioni** del monitor, e l'ultima richiesta viene mostrata di nuovo con il suo link.
+Fate clic su **Conferma sottoscrizione** nella scheda **Riepilogo del monitor** della **Panoramica** del monitor. Se nel frattempo sono arrivate richieste più recenti, aprite **Log di monitoraggio** e fate clic su **Visualizza riepilogo** nella riga della conferma. Con **Conserva il contenuto della richiesta** disattivato, il monitor non conserva alcun corpo, quindi nemmeno il link: attivatelo nelle **Impostazioni** del monitor, e l'ultima richiesta viene mostrata di nuovo con il suo link.
 :::
 
 :::details Il mittente riceve un 500

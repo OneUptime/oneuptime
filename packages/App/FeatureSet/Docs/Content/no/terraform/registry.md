@@ -25,7 +25,7 @@ flowchart TB
 | Hva | Hvor |
 | --- | --- |
 | Provideren, for Linux, macOS, Windows, FreeBSD, OpenBSD og Solaris | Lastes ned av `terraform init` og `tofu init`, med sjekksummer som OneUptime signerer |
-| Referansen for hver ressurs og datakilde, med hvert av attributtene | Registerets dokumentasjon, gruppert etter produkt: overvåkere, statussider, hendelser, vakt og de andre |
+| Referansen for hver ressurs og datakilde, med hvert av attributtene | Registerets dokumentasjon, gruppert etter produkt: monitorer, statussider, hendelser, vakt og de andre |
 | En guide til å bruke provideren med OpenTofu | Registerets guider |
 | Hver versjon, nyeste først | Registerets versjonsliste |
 
@@ -101,7 +101,7 @@ Provideren genereres fra OneUptime-API-et i [OneUptimes hovedrepositorium](https
 ## Neste steg
 
 :::cards
-- [Selv-hostet oppsett](/docs/terraform/self-hosted): Versjonsintervallet for din egen OneUptime, og et speil for frakoblede maskiner.
+- [Selv-hostet oppsett](/docs/terraform/self-hosted): Versjonsintervallet for din egen OneUptime, og et speil for offline maskiner.
 - [OpenTofu](/docs/terraform/opentofu): Den samme provideren og konfigurasjonen, med `tofu`.
 - [Komplett guide](/docs/terraform/complete-guide): Autentisering, prosjektoppsett, datakilder, state og oppgraderinger.
 - [Feilsøking](/docs/terraform/troubleshooting): Vanlige feil og hvordan du retter dem.

@@ -224,7 +224,7 @@ Vedi [Topologia](/docs/telemetry/topology).
 
 Un obiettivo di affidabilità per ciò che monitori, come essere disponibile il 99,9% del tempo su 30 giorni. OneUptime misura ogni SLO rispetto ai suoi monitor ogni 5 minuti.
 
-Altri nomi: **Service Level Objective**. Vedi [Panoramica degli SLO](/docs/slo/introduction).
+Altri nomi: **Obiettivo del livello di servizio**. Vedi [Panoramica degli SLO](/docs/slo/introduction).
 
 ### Budget di errore
 
@@ -266,9 +266,9 @@ Altri nomi: **Tracciamento delle eccezioni**, `/telemetry-exception`. Vedi [Ecce
 
 ### Insight IA
 
-Problemi che OneUptime trova nella tua telemetria prima che scatti qualsiasi avviso: eccezioni nuove o in aumento, picchi di log di errore, tracce più lente, derive delle metriche e deploy che hanno peggiorato le cose. Gli insight non avvisano mai nessuno e non aprono mai incidenti; attendono in una casella finché qualcuno non li guarda. La pagina **Informazioni** nella sezione IA di un prodotto o di un record è ciò che OneUptime AI ha imparato lì.
+Problemi che OneUptime trova nella tua telemetria prima che scatti qualsiasi avviso: eccezioni nuove o in aumento, picchi di log di errore, tracce più lente, derive delle metriche e deploy che hanno peggiorato le cose. Gli insight non avvisano mai nessuno e non aprono mai incidenti; attendono in una casella finché qualcuno non li guarda. La pagina **Insight** nella sezione IA di un prodotto o di un record è ciò che OneUptime AI ha imparato lì.
 
-Altri nomi: **Informazioni**. Vedi [AI SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo).
+Altri nomi: **Insight**. Vedi [AI SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo).
 
 ### Eventi di sicurezza
 
@@ -284,7 +284,7 @@ Altri nomi: **Caso**. Vedi [Casi di sicurezza e playbook (SOAR)](/docs/telemetry
 
 ## Telemetria e dashboard
 
-### Registri
+### Log
 
 Le righe che scrivono i tuoi servizi, host e agenti, in cui cerchi con l'esploratore log e che tieni sotto controllo con un monitor log.
 
@@ -312,7 +312,7 @@ Altri nomi: **Profili di prestazioni**, **Profilazione continua**. Vedi [Profili
 
 Le conversazioni delle tue app e dei tuoi agenti di IA: ogni chiamata a un modello, con token, costo, latenza, prompt e risposta, ricostruita dagli span OpenTelemetry che la tua app invia.
 
-Altri nomi: **Osservabilità AI / LLM**. Vedi [Osservabilità IA / LLM](/docs/telemetry/ai-llm-observability).
+Altri nomi: **Osservabilità IA / LLM**. Vedi [Osservabilità IA / LLM](/docs/telemetry/ai-llm-observability).
 
 ### Osservabilità dei dati
 

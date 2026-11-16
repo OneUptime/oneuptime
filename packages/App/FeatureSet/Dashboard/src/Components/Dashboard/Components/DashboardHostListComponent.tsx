@@ -193,7 +193,7 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
       const status: string =
         (host.otelCollectorStatus as string) || "disconnected";
       const isConnected: boolean = status === "connected";
-      const osType: string = (host.osType as string) || "—";
+      const osType: string | undefined = host.osType as string;
       const osVersion: string = (host.osVersion as string) || "";
       const cpuCores: number | undefined = host.cpuCores as number | undefined;
       const totalMemory: number | undefined = host.totalMemoryBytes as
@@ -249,7 +249,7 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
     const status: string =
       (host.otelCollectorStatus as string) || "disconnected";
     const isConnected: boolean = status === "connected";
-    const osType: string = (host.osType as string) || "—";
+    const osType: string | undefined = host.osType as string;
     const osVersion: string = (host.osVersion as string) || "";
     const cpuCores: number | undefined = host.cpuCores as number | undefined;
     const totalMemory: number | undefined = host.totalMemoryBytes as

@@ -21,25 +21,25 @@ För att lägga till utlösaren klickar du på det streckade blocket **Välj vad
 | Köra enligt ett återkommande schema            | **Schema**                  |
 | Låta ett annat system skicka in data           | **Webhook**                 |
 | Börja från ett e-postmeddelande                | **Inkommande e-post**          |
-| Agera på incidentrapporter från Huntress       | **Huntress Incident Report** |
+| Agera på incidentrapporter från Huntress       | **Huntress-incidentrapport** |
 | Reagera på något i OneUptime                   | **OneUptime-händelse**      |
 
-Ett arbetsflöde kan bara ha en utlösare. Behöver du två sätt att starta samma automatisering bygger du den gemensamma logiken i ett arbetsflöde med en **Manuell**-utlösare och startar det från två tunna ”omslags”-arbetsflöden med ett **Execute Workflow**-block.
+Ett arbetsflöde kan bara ha en utlösare. Behöver du två sätt att starta samma automatisering bygger du den gemensamma logiken i ett arbetsflöde med en **Manuell**-utlösare och startar det från två tunna ”omslags”-arbetsflöden med ett **Kör ett annat arbetsflöde**-block.
 
 ## Manual
 
-Kör arbetsflödet när du vill: klicka på **Kör arbetsflöde** på sidan **Byggare**, fyll i utlösarens **JSON**, klicka på **Kör arbetsflödet manuellt** och bekräfta med **Kör**. Ett annat arbetsflöde kan också starta det med ett **Execute Workflow**-block.
+Kör arbetsflödet när du vill: klicka på **Kör arbetsflöde** på sidan **Byggare**, fyll i utlösarens **JSON**, klicka på **Kör arbetsflödet manuellt** och bekräfta med **Kör**. Ett annat arbetsflöde kan också starta det med ett **Kör ett annat arbetsflöde**-block.
 
 Bra för: automatisering med ett klick som du vill ha en knapp för, som ”rotera den här nyckeln” eller ”skicka ett testlarm”, och logik som du delar mellan arbetsflöden.
 
 **Returns**: **JSON** — det körningen startades med.
 
 - Från **Kör arbetsflöde** är det JSON:en du skrev. För att läsa ett fält i den lägger du till fältets namn i referensen, som i `{{local.components.manual-1.returnValues.value.name}}`.
-- Från ett **Execute Workflow**-block är varje nyckel i blockets **Arguments** ett eget värde. Med `{"customerId": "42"}` läser ett senare block `{{local.components.manual-1.returnValues.customerId}}`, där `manual-1` är Manual-utlösarens ID.
+- Från ett **Kör ett annat arbetsflöde**-block är varje nyckel i blockets **Argument** ett eget värde. Med `{"customerId": "42"}` läser ett senare block `{{local.components.manual-1.returnValues.customerId}}`, där `manual-1` är Manual-utlösarens ID.
 
 ## Schedule
 
-Kör arbetsflödet enligt ett återkommande schema. Ange hur ofta i **Schedule at**: välj ett av **Common schedules**, skriv ett **Custom cron**-uttryck eller välj en **Variabel** som innehåller ett. Under fältet beskrivs schemat i ord, tillsammans med **Nästa körningar**.
+Kör arbetsflödet enligt ett återkommande schema. Ange hur ofta i **Schemalägg kl.**: välj ett av **Common schedules**, skriv ett **Custom cron**-uttryck eller välj en **Variabel** som innehåller ett. Under fältet beskrivs schemat i ord, tillsammans med **Nästa körningar**.
 
 Bra för: städning på natten, synkronisering varje timme, veckorapporter.
 
@@ -93,7 +93,7 @@ sequenceDiagram
 | Värde                    | Vad det innehåller                                                                                                     |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | **Begärandehuvuden**      | Varje header i förfrågan, med namn i gemener, som `content-type`.                                                      |
-| **Request Query Params** | Frågeparametrarna i URL:en, efter namn.                                                                                |
+| **Frågeparametrar i begäran** | Frågeparametrarna i URL:en, efter namn.                                                                                |
 | **Begärandekropp**         | Bodyn som anroparen skickade. En JSON-body, skickad med `Content-Type: application/json`, kan läsas fält för fält, och det gäller även JSON som skickas som ren text, så som Amazon SNS skickar den. |
 
 Läs ett enskilt fält genom att lägga till dess namn i referensen, som i `{{local.components.webhook-1.returnValues.request-body.message}}`.
@@ -117,7 +117,7 @@ OneUptime ger arbetsflödet en egen e-postadress. Varje e-postmeddelande som ski
 
 Bra för: att agera på e-post från system som inte kan anropa en webhook — larm från äldre övervakningsverktyg, en leverantörs statusmeddelanden, rapporten ett nattligt jobb skickar ut.
 
-För att få adressen klickar du på Incoming Email-utlösaren på arbetsytan. Adressen står högst upp i dess inställningar, med en knapp **Kopiera adress**. Ge den till det som ska starta arbetsflödet: ett verktyg som bara kan skicka e-post, en leverantörs aviseringsinställningar eller en vidarebefordringsregel i din egen brevlåda.
+För att få adressen klickar du på Inkommande e-post-utlösaren på arbetsytan. Adressen står högst upp i dess inställningar, med en knapp **Kopiera adress**. Ge den till det som ska starta arbetsflödet: ett verktyg som bara kan skicka e-post, en leverantörs aviseringsinställningar eller en vidarebefordringsregel i din egen brevlåda.
 
 Varje e-postmeddelande startar en egen körning. Meddelandet når arbetsflödet oavsett om adressen står i Till eller Kopia, är en hemlig kopia eller nås via en vidarebefordringsregel. Ett meddelande som nämner adressen två gånger startar en körning.
 
@@ -130,10 +130,10 @@ Varje e-postmeddelande startar en egen körning. Meddelandet når arbetsflödet 
 | **CC**          | Alla som meddelandet skickades som kopia till, på en rad.                                                |
 | **Ämne**     | Ämnesraden.                                                                                              |
 | **Brödtext**        | Meddelandets oformaterade text.                                                                          |
-| **HTML Body**   | Meddelandets HTML, när det har någon. Body och HTML Body kapas vardera vid 1 MB.                         |
-| **Headers**     | Varje header i meddelandet, med namn i gemener, som `message-id`.                                        |
+| **HTML-brödtext**   | Meddelandets HTML, när det har någon. Body och HTML Body kapas vardera vid 1 MB.                         |
+| **Rubriker**     | Varje header i meddelandet, med namn i gemener, som `message-id`.                                        |
 | **Bilagor** | Namn, typ och storlek för varje bilaga. Själva filerna sparas inte.                                      |
-| **Received At** | När OneUptime tog emot meddelandet.                                                                      |
+| **Mottaget** | När OneUptime tog emot meddelandet.                                                                      |
 
 När ett e-postmeddelande har kommit vet värdeväljaren i varje block efter utlösaren vad det innehöll: den visar varje header och varje bilaga meddelandet hade, med innehållet, så att du kan välja `headers.message-id` i stället för att skriva en sökväg. Fram till dess säger den att inget e-postmeddelande har nått adressen ännu. Se [Använd värden från tidigare block](/docs/workflows/authoring#använd-värden-från-tidigare-block).
 
@@ -159,7 +159,7 @@ OneUptime ger arbetsflödet en egen URL för Huntress, tjänsten för managed de
 
 Bra för: att öppna en incident för varje incidentrapport från Huntress, larma jouren och följa rapporten tills den stängs. Mallen **Open an incident for each Huntress incident report** gör alla tre.
 
-För att ansluta Huntress klickar du på utlösaren **Huntress Incident Report** på arbetsytan: den visar URL:en du ger Huntress, sparar slutpunktens signeringshemlighet och visar när Huntress senast nådde arbetsflödet. En förfrågan som inte är signerad med den hemligheten startar ingenting, så URL:en är inget lösenord. Se [Huntress](/docs/integrations/huntress) för konfigurationen i Huntress, värdena utlösaren returnerar och dess inställningar.
+För att ansluta Huntress klickar du på utlösaren **Huntress-incidentrapport** på arbetsytan: den visar URL:en du ger Huntress, sparar slutpunktens signeringshemlighet och visar när Huntress senast nådde arbetsflödet. En förfrågan som inte är signerad med den hemligheten startar ingenting, så URL:en är inget lösenord. Se [Huntress](/docs/integrations/huntress) för konfigurationen i Huntress, värdena utlösaren returnerar och dess inställningar.
 
 ## Utlösare för OneUptime-händelser
 
@@ -172,7 +172,7 @@ Nästan allt i OneUptime — monitorer, incidenter, larm, underhållshändelser,
 
 Så bygger du ”när X händer i OneUptime, gör Y” utan att behöva kontrollera saker i en loop.
 
-**On Update** kan begränsas till vissa fält med **Fields to watch**: då aktiveras den bara när en uppdatering ändrar något av dem, till vilket värde som helst — att slå av en brytare eller tömma ett fält räknas. **On Create or Update** har samma **Fields to watch**, bara för sina uppdateringar: varje ny post aktiverar den ändå.
+**On Update** kan begränsas till vissa fält med **Fält att bevaka**: då aktiveras den bara när en uppdatering ändrar något av dem, till vilket värde som helst — att slå av en brytare eller tömma ett fält räknas. **On Create or Update** har samma **Fält att bevaka**, bara för sina uppdateringar: varje ny post aktiverar den ändå.
 
 ```mermaid title="När en On Update-utlösare aktiveras"
 flowchart TB
@@ -185,11 +185,11 @@ flowchart TB
     field -->|"Nej"| nothing
 ```
 
-**On Create**, **On Update** och **On Create or Update** skickar posten vidare till nästa block, med de fält du väljer i utlösarens **Fields to pass on**. Till exempel skickar utlösaren **Incident → On Create** den nya incidenten vidare, så att nästa block kan läsa dess titel, beskrivning, allvarlighetsgrad eller vilket annat fält du har valt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ett fält du inte valde kommer fram tomt. Detsamma gäller ett fält där posten inte har något, som monitorn för ett larm som ingen monitor har utlöst.
+**On Create**, **On Update** och **On Create or Update** skickar posten vidare till nästa block, med de fält du väljer i utlösarens **Fält att skicka vidare**. Till exempel skickar utlösaren **Incident → On Create** den nya incidenten vidare, så att nästa block kan läsa dess titel, beskrivning, allvarlighetsgrad eller vilket annat fält du har valt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ett fält du inte valde kommer fram tomt. Detsamma gäller ett fält där posten inte har något, som monitorn för ett larm som ingen monitor har utlöst.
 
-**On Create or Update** skickar också vidare **Vad som hände**: `created` när en ny post startade körningen, och `updated` när en ändring gjorde det, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. För att hantera de två olika jämför du det i ett **If / Else**-block, eller tar en väg för vardera med **Switch / Case**.
+**On Create or Update** skickar också vidare **Vad som hände**: `created` när en ny post startade körningen, och `updated` när en ändring gjorde det, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. För att hantera de två olika jämför du det i ett **Om / Annars**-block, eller tar en väg för vardera med **Val / Fall**.
 
-En sparning aktiverar den en gång. Det som OneUptime fyller i medan den skapar en post hör till skapandet, så en ny post aktiverar den en gång, som `created`. Ändringar som OneUptime gör senare, som att koppla en incidents Slack-kanal, är uppdateringar som alla andra: för att hålla dem utanför lägger du bara till de fält som spelar roll för dig i **Fields to watch**.
+En sparning aktiverar den en gång. Det som OneUptime fyller i medan den skapar en post hör till skapandet, så en ny post aktiverar den en gång, som `created`. Ändringar som OneUptime gör senare, som att koppla en incidents Slack-kanal, är uppdateringar som alla andra: för att hålla dem utanför lägger du bara till de fält som spelar roll för dig i **Fält att bevaka**.
 
 **On Delete** skickar bara vidare ID:t för den borttagna posten: posten är borta när arbetsflödet körs, så dess övriga fält kan inte läsas.
 
@@ -201,7 +201,7 @@ För att testa en händelseutlösare utan att vänta på händelsen klickar du p
 | ----------------------------------------- | ----------------------------------------------------------------------------------------- |
 | **Incident**                              | Reagera när en incident deklareras, uppdateras (kvitterad, löst) eller tas bort.         |
 | **Larm**                                  | Samma tre händelser, för larm.                                                            |
-| **Övervakning**                           | Reagera när en monitor läggs till, redigeras eller tas bort.                              |
+| **Monitor**                           | Reagera när en monitor läggs till, redigeras eller tas bort.                              |
 | **Underhållshändelse**         | Meddela ett underhållsfönster automatiskt när det schemaläggs.                            |
 | **Statussideprenumerant**                | Välkomna någon som prenumererar på en statussida.                                         |
 | **Jourpolicy**                            | Synkronisera ändringar i policyn med ett annat jourschemasystem.                          |

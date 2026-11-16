@@ -132,7 +132,7 @@ Geben Sie unter **Regel** einen **Name** ein, etwa „Fast burn“. Eine neue Re
 
 ### Das Burn-Zeitfenster festlegen
 
-Legen Sie unter **Burn-Zeitfenster** den **Burn-Rate-Schwellenwert** fest (zum Beispiel `14.4`), das **Langes Zeitfenster (Minuten)** und das **Kurzes Zeitfenster (Minuten)**, und optional die **Unterdrückung erneuter Auslösung (Minuten)**.
+Legen Sie unter **Burn-Zeitfenster** den **Burn-Rate-Schwellenwert** fest (zum Beispiel `14.4`), das **Langes Zeitfenster (Minuten)** und das **Kurzes Zeitfenster (Minuten)**, und optional die **Unterdrückung erneuter Auslösung (Minuten)**. Bei der Regel eines Anfrage-SLO kommt die **Mindestanzahl Anfragen** hinzu, zum Beispiel `100`: Die Regel überspringt ein langes Zeitfenster, das weniger Anfragen enthält als angegeben. Bei der Regel eines Metrik-SLO kommt auf dieselbe Weise die **Mindestanzahl Ereignisse** hinzu, gezählt in den Ereignissen seiner Metrik.
 
 ### Festlegen, was sie meldet
 
@@ -151,10 +151,12 @@ OneUptime prüft die Zahlen einer Regel beim Speichern:
 | **Kurzes Zeitfenster (Minuten)** | Größer als 0. |
 | **Langes Zeitfenster (Minuten)** | Länger als das kurze Zeitfenster. |
 | **Unterdrückung erneuter Auslösung (Minuten)** | 0 oder mehr. Leer bedeutet die Länge des langen Zeitfensters. |
+| **Mindestanzahl Anfragen** | Eine ganze Zahl, 0 oder mehr. Leer bedeutet kein Minimum. |
+| **Mindestanzahl Ereignisse** | Eine ganze Zahl, 0 oder mehr. Leer bedeutet kein Minimum. |
 
 Jede Antwort auf **Wenn sie auslöst** öffnet etwas. Die API lehnt eine Regel ab, die weder eine Warnung erstellen noch einen Vorfall melden würde, denn sie würde bei jeder Auswertung geprüft und nie etwas melden.
 
-Die Regeltabelle zeigt für jede Regel ihren Schwellenwert, ihre Zeitfenster und die Unterdrückung, was sie meldet (und ob die Warnung oder der Vorfall nur von Hand aufgelöst wird oder privat ist), ihre Schweregrade, Bereitschaftsrichtlinien, Eigentümer und Beschriftungen.
+Die Regeltabelle zeigt für jede Regel ihren Schwellenwert, ihre Zeitfenster und die Unterdrückung, was sie meldet (und ob die Warnung oder der Vorfall nur von Hand aufgelöst wird oder privat ist), ihre Schweregrade, Bereitschaftsrichtlinien, Eigentümer und Beschriftungen. Bei einem Anfrage-SLO nennt sie unter den Zeitfenstern jeder Regel außerdem ihr Minimum.
 
 > [!TIP]
 > Ein guter Anfang: Behalten Sie die drei Standardregeln, schicken Sie die Fast-Burn-Regel mit hohem Schweregrad an Ihre alarmierende Bereitschaftsrichtlinie, lassen Sie die Slow-Burn-Regel eine Warnung mit niedrigerem Schweregrad für die Arbeitszeit auslösen, und belassen Sie die Slow-Leak-Regel als Ticket für das zuständige Team. Arbeitet Ihr Team alles über Vorfälle ab, wählen Sie bei der Fast-Burn-Regel **Vorfall melden**, oder **Beide**, um zusätzlich eine Warnung zu bekommen.
@@ -276,7 +278,7 @@ Burn-Rate-Regeln bleiben still, solange einer der Monitore des SLO in einem lauf
 :::
 
 :::details Gibt es eine Mindestanzahl an Stichproben?
-Nicht für SLOs, die aus der Verfügbarkeit von Monitoren gemessen werden. Verfügbarkeit wird in Sekunden gemessen, jede Sekunde im Zeitfenster ist also eine Stichprobe, und es gibt keinen Fall mit wenig Verkehr, gegen den man sich absichern müsste. Eine Mindestanzahl an Stichproben ist nur für SLIs auf Basis von Ereignissen wichtig, die es noch nicht gibt.
+Nicht für SLOs, die aus der Verfügbarkeit von Monitoren gemessen werden. Verfügbarkeit wird in Sekunden gemessen, jede Sekunde im Zeitfenster ist also eine Stichprobe, und es gibt keinen Fall mit wenig Verkehr, gegen den man sich absichern müsste. Die Regel eines Anfrage-SLO hat eine: Legen Sie ihre **Mindestanzahl Anfragen** fest, dann überspringt die Regel ein langes Zeitfenster, das weniger Anfragen enthält als angegeben, sodass eine ruhige Stunde, in der eine von fünf Anfragen fehlschlägt, niemanden alarmiert.
 :::
 
 ## Nächste Schritte

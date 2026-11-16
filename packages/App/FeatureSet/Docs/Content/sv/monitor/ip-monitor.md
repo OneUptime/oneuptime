@@ -98,7 +98,7 @@ Med två eller fler filter avgör **Matchningsvillkor** om **Alla** måste match
 
 En ny IP-monitor börjar med två kriterier:
 
-- **Offline** — adressen svarar inte på någon av ekobegärandena, eller kan inte nås alls, efter alla återförsök. Monitorn markeras som **Offline** och en incident som heter "_monitor name_ is offline" skapas. Incidenten löser sig själv när adressen svarar igen.
+- **Offline** — adressen svarar inte på någon av ekobegärandena, eller kan inte nås alls, efter alla återförsök. Monitorn markeras som **Offline** och en incident som heter "_monitornamn_ är offline" skapas. Incidenten löser sig själv när adressen svarar igen.
 - **Uppe** — adressen svarar. Monitorn markeras som **Fungerar**.
 
 Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad som händer. När inget matchar visar monitorn sin standardstatus: **Fungerar**, om du inte väljer en annan under **Fler fält** under kriterierna.

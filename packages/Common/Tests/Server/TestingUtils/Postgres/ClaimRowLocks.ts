@@ -2,11 +2,13 @@ import { expect, jest } from "@jest/globals";
 import { isPostgresLockContentionError } from "../../../../Server/Utils/Database/PostgresLockContention";
 import ObjectID from "../../../../Types/ObjectID";
 import { DataSource, QueryRunner } from "typeorm";
+import { PostgresQueryRunner } from "typeorm/driver/postgres/PostgresQueryRunner";
 
 /*
  * Row locks, for the opt-in Postgres suites of the probes' claims: VMware
  * vCenters, OpenStack clouds and checks, and data stores (OneUptime issues
- * #7194 and #7390).
+ * #7194 and #7390), and the on-demand jobs a probe is handed - monitor
+ * tests, device diagnostics, packet captures and connection tests (#7392).
  *
  * A claim locks the rows it hands out FOR NO KEY UPDATE SKIP LOCKED, and
  * moves them on in the same self-committing statement. Each suite proves
@@ -226,4 +228,68 @@ export async function expectClaimLocksHoldOnlyTheRow(data: {
   );
 
   expect(references[0]!.count).toBe("1");
+}
+
+// Transaction control, as TypeORM sends it.
+const TRANSACTION_CONTROL: RegExp =
+  /^\s*(START TRANSACTION|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE SAVEPOINT)\b/i;
+
+/*
+ * Every statement `run` sends to Postgres, in order, transaction control
+ * included: counted at PostgresQueryRunner.query, which every statement
+ * TypeORM sends goes through - a manager's query, a repository's, and the
+ * START TRANSACTION and COMMIT of a transaction (OneUptime issue #7392).
+ */
+export async function statementsSentBy<T>(
+  run: () => Promise<T>,
+): Promise<{ result: T; statements: Array<string> }> {
+  const statements: Array<string> = [];
+  const realQuery: PostgresQueryRunner["query"] =
+    PostgresQueryRunner.prototype.query;
+
+  PostgresQueryRunner.prototype.query = function (
+    this: PostgresQueryRunner,
+    ...args: Parameters<PostgresQueryRunner["query"]>
+  ): ReturnType<PostgresQueryRunner["query"]> {
+    statements.push(String(args[0]));
+    return realQuery.apply(this, args);
+  };
+
+  try {
+    return { result: await run(), statements: statements };
+  } finally {
+    PostgresQueryRunner.prototype.query = realQuery;
+  }
+}
+
+/*
+ * A claim is one self-committing statement: no transaction around it, and
+ * one statement that locks the rows it hands out (FOR NO KEY UPDATE SKIP
+ * LOCKED) and moves them on. The claims of on-demand probe jobs used to take
+ * four round trips - START TRANSACTION, SELECT ... FOR UPDATE, an UPDATE of
+ * the ids, COMMIT - on every probe tick, even with nothing to hand out.
+ *
+ * `statements` is what statementsSentBy recorded of the claim. Answers the
+ * claim statement.
+ */
+export function expectOneSelfCommittingClaim(
+  statements: Array<string>,
+): string {
+  expect(
+    statements.filter((statement: string): boolean => {
+      return TRANSACTION_CONTROL.test(statement);
+    }),
+  ).toEqual([]);
+
+  const claims: Array<string> = statements.filter(
+    (statement: string): boolean => {
+      return statement.includes("SKIP LOCKED");
+    },
+  );
+
+  expect(claims).toHaveLength(1);
+  expect(claims[0]).toContain("FOR NO KEY UPDATE OF");
+  expect(claims[0]).not.toContain("FOR UPDATE OF");
+
+  return claims[0]!;
 }

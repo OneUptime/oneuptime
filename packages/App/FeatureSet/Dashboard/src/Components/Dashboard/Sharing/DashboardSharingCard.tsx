@@ -478,6 +478,7 @@ const DashboardSharingCard: FunctionComponent<ComponentProps> = (
           }}
           isLocked={Boolean(pending) || Boolean(passwordDialog) || isSaving}
           lockedReason={gate.isAllowed ? undefined : gate.disabledReason}
+          isLockedReasonTranslated={true}
           status={
             saved === current && !pending && !passwordDialog ? (
               <span className="inline-flex items-center gap-1 text-emerald-700">
