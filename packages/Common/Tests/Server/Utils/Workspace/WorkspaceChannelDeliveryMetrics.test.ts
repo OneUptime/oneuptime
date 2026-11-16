@@ -64,6 +64,7 @@ import {
 } from "../../../../Server/Utils/Workspace/WorkspaceBase";
 import OperatorSlackNotice from "../../../../Server/Utils/OperatorSlackNotice";
 import SSRFProtection from "../../../../Server/Utils/SSRFProtection";
+import { approveEveryWebhookAddress } from "../../TestingUtils/WebhookAddressCheck";
 import logger from "../../../../Server/Utils/Logger";
 import { NotificationProviderConfig } from "../../../../Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import { MicrosoftTeamsChat } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -1187,9 +1188,7 @@ describe("MattermostUtil.sendMessage: a post a channel", () => {
   beforeEach(() => {
     posted = [];
 
-    jest
-      .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-      .mockResolvedValue(undefined);
+    approveEveryWebhookAddress();
     jest
       .spyOn(MattermostUtil, "getChannel")
       .mockImplementation(
@@ -1357,9 +1356,7 @@ describe("incoming webhooks: a status page subscriber's, the operator's", () => 
       .mockResolvedValue(
         new HTTPResponse<JSONObject>(200, {}, {}) as unknown as never,
       );
-    jest
-      .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-      .mockResolvedValue(undefined);
+    approveEveryWebhookAddress();
   });
 
   describe("Slack", () => {
@@ -1538,7 +1535,7 @@ describe("incoming webhooks: a status page subscriber's, the operator's", () => 
 
     test("an address OneUptime may not reach: a failure, never posted", async () => {
       jest
-        .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
+        .spyOn(SSRFProtection, "validateAndResolveWebhookTarget")
         .mockRejectedValue(
           new BadDataException("Mattermost webhook URL is not allowed."),
         );

@@ -547,6 +547,174 @@ export default class SloRequestCounting {
       statement.append(`total${index}`);
     });
 
+    SloRequestCounting.appendCountedSteps(statement, {
+      projectId: data.projectId,
+      sloId: data.sloId,
+      readFrom: data.readFrom,
+      readTo: data.readTo,
+      excludedRanges: data.excludedRanges,
+    });
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: SLO_REQUEST_COUNT_TIME_LIMIT_SECONDS,
+        timeoutOverflowMode: "throw",
+      }),
+    );
+
+    return statement;
+  }
+
+  /*
+   * The counted steps' sums over each range [from, to) - an SLO's monthly
+   * report reads one per month - from SloHistory, as
+   * buildWindowSumsStatement reads a window: the newest counts of every
+   * step that has both. The caller keeps each range inside what the
+   * current counting covers (firstAccumulatedBucketStartAt to
+   * lastAccumulatedBucketEndAt).
+   */
+  public static buildRangeSumsStatement(data: {
+    projectId: ObjectID;
+    sloId: ObjectID;
+    ranges: Array<SloRequestCountingRange>;
+  }): Statement {
+    const statement: Statement = SQL`SELECT `;
+
+    // A fresh condition for each sum: a statement's parameters are its own.
+    const inRange: (range: SloRequestCountingRange) => Statement = (
+      range: SloRequestCountingRange,
+    ): Statement => {
+      return SQL`bucketStart >= ${{
+        type: TableColumnType.Date,
+        value: range.from,
+      }} AND bucketStart < ${{
+        type: TableColumnType.Date,
+        value: range.to,
+      }}`;
+    };
+
+    data.ranges.forEach(
+      (range: SloRequestCountingRange, index: number): void => {
+        statement.append(index === 0 ? "sumIf(good, " : ", sumIf(good, ");
+        statement.append(inRange(range));
+        statement.append(`) AS good${index}, sumIf(total, `);
+        statement.append(inRange(range));
+        statement.append(`) AS total${index}`);
+      },
+    );
+
+    const { readFrom, readTo } = SloRequestCounting.getReadSpan(data.ranges);
+
+    SloRequestCounting.appendCountedSteps(statement, {
+      projectId: data.projectId,
+      sloId: data.sloId,
+      readFrom: readFrom,
+      readTo: readTo,
+      excludedRanges: [],
+    });
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: SLO_REQUEST_COUNT_TIME_LIMIT_SECONDS,
+        timeoutOverflowMode: "throw",
+      }),
+    );
+
+    return statement;
+  }
+
+  /*
+   * One sum per range, in the ranges' order. A range that holds no time
+   * sums to zero, and when none does nothing is read at all.
+   */
+  public static async readRangeSums(data: {
+    projectId: ObjectID;
+    sloId: ObjectID;
+    ranges: Array<SloRequestCountingRange>;
+  }): Promise<Array<SloRequestCounts>> {
+    const empty: Array<SloRequestCounts> = data.ranges.map(
+      (): SloRequestCounts => {
+        return { goodCount: 0, totalCount: 0 };
+      },
+    );
+
+    const ranges: Array<SloRequestCountingRange> = data.ranges.filter(
+      (range: SloRequestCountingRange): boolean => {
+        return range.from.getTime() < range.to.getTime();
+      },
+    );
+
+    if (ranges.length === 0) {
+      return empty;
+    }
+
+    const result: Results = await SloHistoryService.executeQuery(
+      SloRequestCounting.buildRangeSumsStatement({
+        projectId: data.projectId,
+        sloId: data.sloId,
+        ranges: ranges,
+      }),
+    );
+
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const row: JSONObject | undefined = (response.data || [])[0];
+
+    if (!row) {
+      return empty;
+    }
+
+    let readIndex: number = 0;
+
+    return data.ranges.map((range: SloRequestCountingRange) => {
+      if (range.from.getTime() >= range.to.getTime()) {
+        return { goodCount: 0, totalCount: 0 };
+      }
+
+      const index: number = readIndex++;
+
+      return {
+        goodCount: toCount(row[`good${index}`]),
+        totalCount: toCount(row[`total${index}`]),
+      };
+    });
+  }
+
+  // The earliest start and the latest end of the ranges.
+  private static getReadSpan(ranges: Array<SloRequestCountingRange>): {
+    readFrom: Date;
+    readTo: Date;
+  } {
+    let readFrom: number = Infinity;
+    let readTo: number = -Infinity;
+
+    for (const range of ranges) {
+      readFrom = Math.min(readFrom, range.from.getTime());
+      readTo = Math.max(readTo, range.to.getTime());
+    }
+
+    return { readFrom: new Date(readFrom), readTo: new Date(readTo) };
+  }
+
+  /*
+   * FROM the counted steps of [readFrom, readTo), less the excluded ranges:
+   * each step's newest good and total counts (argMax by version, so a step
+   * counted again reads its latest counts), and only the steps that have
+   * both rows - a step missing one is left out rather than read as all good
+   * or all bad.
+   */
+  private static appendCountedSteps(
+    statement: Statement,
+    data: {
+      projectId: ObjectID;
+      sloId: ObjectID;
+      readFrom: Date;
+      readTo: Date;
+      excludedRanges: Array<SloRequestCountingRange>;
+    },
+  ): void {
     statement.append(
       SQL`
       FROM (
@@ -611,15 +779,6 @@ export default class SloRequestCounting {
         }}) > 0
       )`,
     );
-
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: SLO_REQUEST_COUNT_TIME_LIMIT_SECONDS,
-        timeoutOverflowMode: "throw",
-      }),
-    );
-
-    return statement;
   }
 
   public static async readWindowSums(data: {

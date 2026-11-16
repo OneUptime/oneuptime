@@ -6,43 +6,90 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import Dictionary from "Common/Types/Dictionary";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import { JSONObject } from "Common/Types/JSON";
 
 /*
- * DeviceMonitorLookupUtil.monitorWatchesDevice is pure, but the module also
- * imports ModelAPI (for getMonitorsWatchingDevice), and ModelAPI transitively
+ * The module imports ModelAPI, API and Common/UI/Config, and each of them
  * loads Common/UI/Config, which reads `window` at import time and throws in
- * this node test environment. Mocking the ModelAPI module keeps the import
- * graph browser-free and doubles as the seam for testing the client-side
- * filtering that getMonitorsWatchingDevice layers on top of the API call.
+ * this node test environment. Mocking them keeps the import graph
+ * browser-free and doubles as the seam these tests drive: API.post is the
+ * server's answer to "which Network Device monitors watch this device"
+ * (NetworkDeviceWatchingMonitorsAPI, issue #8101), ModelAPI.getList the
+ * Monitor reads, ModelAPI.getItem the device's own row.
  */
+jest.mock("Common/UI/Config", () => {
+  const { default: MockURL } = jest.requireActual("Common/Types/API/URL") as {
+    default: { fromString: (value: string) => unknown };
+  };
+  return {
+    __esModule: true,
+    APP_API_URL: MockURL.fromString("http://localhost/api"),
+  };
+});
+
 jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
       getList: jest.fn(),
       getItem: jest.fn(),
+      getCommonHeaders: jest.fn(),
     },
   };
 });
 
+jest.mock("Common/UI/Utils/API/API", () => {
+  return {
+    __esModule: true,
+    default: {
+      post: jest.fn(),
+    },
+  };
+});
+
+import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import DeviceMonitorLookupUtil, {
   DeviceBinding,
+  NETWORK_DEVICE_WATCHING_MONITORS_ROUTE,
+  WATCHING_MONITORS_PER_READ,
   WEB_UI_MONITOR_CANDIDATES_LIMIT,
+  getWatchingMonitorsRoute,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceMonitorLookupUtil";
 
 const getListMock: jest.Mock = ModelAPI.getList as unknown as jest.Mock;
 const getItemMock: jest.Mock = ModelAPI.getItem as unknown as jest.Mock;
+const getCommonHeadersMock: jest.Mock =
+  ModelAPI.getCommonHeaders as unknown as jest.Mock;
+const postMock: jest.Mock = API.post as unknown as jest.Mock;
 
 /*
- * The two lists the lookup reads: the project's Network Device monitors
- * (filtered by their steps), and the monitors a discovery import made for
- * this device from a Ping, IP, Port or NTP template (issue #5145), found by
- * their provenance. A test sets the first; the second is madeForDevice.
+ * The project header ModelAPI stamps on every request: without it the
+ * route has no project to read the device in.
  */
+const TENANT_HEADERS: Dictionary<string> = {
+  tenantid: "3f1b6b0e-0000-4000-8000-0000000000ff",
+};
+
+/*
+ * What the lookup reads:
+ *
+ *  - `watchedBy`: the Network Device monitors the server says watch the
+ *    device. API.post answers their ids, and the Monitor read by those ids
+ *    answers the monitors themselves;
+ *  - `madeForDevice`: the monitors a discovery import made for this device
+ *    from a Ping, IP, Port or NTP template (issue #5145), found by their
+ *    provenance.
+ */
+let watchedBy: Array<Monitor> = [];
 let madeForDevice: Array<Monitor> = [];
 
 function isMadeForDeviceQuery(request: {
@@ -53,12 +100,38 @@ function isMadeForDeviceQuery(request: {
   );
 }
 
-function answerNetworkDeviceMonitors(result: {
-  data: Array<Monitor>;
-  count: number;
-  skip: number;
-  limit: number;
-}): void {
+// The Monitor read of the watching monitors, by the ids the server named.
+function isWatchingQuery(request: {
+  query?: Record<string, unknown>;
+}): boolean {
+  return Boolean(request.query && "_id" in request.query);
+}
+
+function idsOf(request: { query?: Record<string, unknown> }): Array<string> {
+  return ((request.query!["_id"] as Includes).values as Array<string>).map(
+    (id: string): string => {
+      return id.toString();
+    },
+  );
+}
+
+function answerWatchingIds(ids: Array<unknown>): void {
+  postMock.mockResolvedValue(
+    new HTTPResponse<JSONObject>(200, { monitorIds: ids } as JSONObject, {}),
+  );
+}
+
+// The server names `monitors`, and the Monitor read by id answers them.
+function answerWatching(monitors: Array<Monitor>): void {
+  watchedBy = monitors;
+  answerWatchingIds(
+    monitors.map((monitor: Monitor): string => {
+      return monitor._id!.toString();
+    }),
+  );
+}
+
+function answerLists(): void {
   getListMock.mockImplementation(
     async (request: { query?: Record<string, unknown> }) => {
       if (isMadeForDeviceQuery(request)) {
@@ -70,38 +143,69 @@ function answerNetworkDeviceMonitors(result: {
         };
       }
 
-      return result;
+      if (isWatchingQuery(request)) {
+        const asked: Array<string> = idsOf(request);
+        const found: Array<Monitor> = watchedBy.filter(
+          (monitor: Monitor): boolean => {
+            return asked.includes(monitor._id!.toString());
+          },
+        );
+        return { data: found, count: found.length, skip: 0, limit: 100 };
+      }
+
+      return { data: [], count: 0, skip: 0, limit: 100 };
     },
   );
+}
+
+function watchingReads(): Array<{
+  query: Record<string, unknown>;
+  limit: number;
+  skip: number;
+  select: Record<string, unknown>;
+  sort: Record<string, unknown>;
+}> {
+  return getListMock.mock.calls
+    .map((call: Array<unknown>) => {
+      return call[0] as {
+        query: Record<string, unknown>;
+        limit: number;
+        skip: number;
+        select: Record<string, unknown>;
+        sort: Record<string, unknown>;
+      };
+    })
+    .filter((request: { query: Record<string, unknown> }): boolean => {
+      return isWatchingQuery(request);
+    });
+}
+
+function resetLookup(): void {
+  getListMock.mockReset();
+  getItemMock.mockReset();
+  postMock.mockReset();
+  getCommonHeadersMock.mockReset();
+  getCommonHeadersMock.mockReturnValue(TENANT_HEADERS);
+  watchedBy = [];
+  madeForDevice = [];
+  answerWatching([]);
+  answerLists();
 }
 
 const DEVICE_ID: ObjectID = new ObjectID(
   "3f1b6b0e-0000-4000-8000-0000000000aa",
 );
-const OTHER_DEVICE_ID: ObjectID = new ObjectID(
-  "3f1b6b0e-0000-4000-8000-0000000000bb",
-);
 
-function stepWatching(networkDeviceId: string | undefined): MonitorStep {
-  const step: MonitorStep = new MonitorStep();
-  step.data!.networkDeviceMonitor = {
-    networkDeviceId: networkDeviceId,
-    monitorInterfaces: true,
-    oids: [],
-  };
-  return step;
-}
-
-function stepWithoutDeviceMonitor(): MonitorStep {
-  // A fresh step: data exists but networkDeviceMonitor is undefined.
-  return new MonitorStep();
-}
-
-function malformedStep(): MonitorStep {
-  // A step whose data never hydrated — the util must tolerate it.
-  const step: MonitorStep = new MonitorStep();
-  step.data = undefined;
-  return step;
+/*
+ * A Network Device monitor as the read by id answers it: the card's columns,
+ * no steps - the server already said it watches the device.
+ */
+function networkDeviceMonitor(id: string, name: string): Monitor {
+  const monitor: Monitor = new Monitor();
+  monitor._id = id;
+  monitor.name = name;
+  monitor.monitorType = MonitorType.NetworkDevice;
+  return monitor;
 }
 
 /**
@@ -158,140 +262,134 @@ function monitorWithSteps(steps: Array<MonitorStep>): Monitor {
   return monitor;
 }
 
-describe("DeviceMonitorLookupUtil.monitorWatchesDevice", () => {
-  test("matches a monitor whose step references the device", () => {
-    const monitor: Monitor = monitorWithSteps([
-      stepWatching(DEVICE_ID.toString()),
+/*
+ * Which Network Device monitors watch the device, as the server answers
+ * (POST /network-device/:id/watching-monitors, issue #8101): the request,
+ * and what is made of its answer.
+ */
+describe("DeviceMonitorLookupUtil.fetchWatchingMonitorIds", () => {
+  beforeEach(() => {
+    resetLookup();
+  });
+
+  test("asks the device's own route, with the project header", async () => {
+    await DeviceMonitorLookupUtil.fetchWatchingMonitorIds(DEVICE_ID);
+
+    expect(postMock).toHaveBeenCalledTimes(1);
+
+    const options: {
+      url: URL;
+      data: JSONObject;
+      headers: Dictionary<string>;
+    } = postMock.mock.calls[0]![0] as {
+      url: URL;
+      data: JSONObject;
+      headers: Dictionary<string>;
+    };
+
+    /*
+     * The route the server mounts (NetworkDeviceWatchingMonitorsAPI's
+     * WATCHING_MONITORS_PATH, pinned to the same string in its own test).
+     */
+    expect(NETWORK_DEVICE_WATCHING_MONITORS_ROUTE).toBe(
+      "/network-device/:networkDeviceId/watching-monitors",
+    );
+    expect(getWatchingMonitorsRoute(DEVICE_ID)).toBe(
+      `/network-device/${DEVICE_ID.toString()}/watching-monitors`,
+    );
+    expect(options.url.toString()).toBe(
+      `http://localhost/api/network-device/${DEVICE_ID.toString()}/watching-monitors`,
+    );
+    expect(options.data).toEqual({});
+    expect(options.headers).toEqual(TENANT_HEADERS);
+  });
+
+  test("answers the ids the server names, each once", async () => {
+    answerWatchingIds([
+      "9f1b6b0e-0000-4000-8000-00000000aa01",
+      "9f1b6b0e-0000-4000-8000-00000000aa02",
+      "9f1b6b0e-0000-4000-8000-00000000aa01",
     ]);
 
-    expect(
-      DeviceMonitorLookupUtil.monitorWatchesDevice(monitor, DEVICE_ID),
-    ).toBe(true);
+    await expect(
+      DeviceMonitorLookupUtil.fetchWatchingMonitorIds(DEVICE_ID),
+    ).resolves.toEqual([
+      "9f1b6b0e-0000-4000-8000-00000000aa01",
+      "9f1b6b0e-0000-4000-8000-00000000aa02",
+    ]);
   });
 
-  test("rejects a monitor watching a different device", () => {
-    const monitor: Monitor = monitorWithSteps([
-      stepWatching(OTHER_DEVICE_ID.toString()),
+  test("an entry that is not an id is dropped, never asked about", async () => {
+    answerWatchingIds([
+      "9f1b6b0e-0000-4000-8000-00000000aa03",
+      "core-sw-01",
+      "",
+      42,
+      null,
+      { _id: "9f1b6b0e-0000-4000-8000-00000000aa04" },
     ]);
 
-    expect(
-      DeviceMonitorLookupUtil.monitorWatchesDevice(monitor, DEVICE_ID),
-    ).toBe(false);
+    await expect(
+      DeviceMonitorLookupUtil.fetchWatchingMonitorIds(DEVICE_ID),
+    ).resolves.toEqual(["9f1b6b0e-0000-4000-8000-00000000aa03"]);
   });
 
-  test("matches when any one of several steps references the device", () => {
-    const monitor: Monitor = monitorWithSteps([
-      stepWatching(OTHER_DEVICE_ID.toString()),
-      stepWatching(DEVICE_ID.toString()),
-    ]);
+  test("an answer with no list names no monitor", async () => {
+    for (const body of [
+      {},
+      { monitorIds: "not-a-list" },
+      { monitorIds: null },
+    ]) {
+      postMock.mockResolvedValue(
+        new HTTPResponse<JSONObject>(200, body as JSONObject, {}),
+      );
 
-    expect(
-      DeviceMonitorLookupUtil.monitorWatchesDevice(monitor, DEVICE_ID),
-    ).toBe(true);
+      await expect(
+        DeviceMonitorLookupUtil.fetchWatchingMonitorIds(DEVICE_ID),
+      ).resolves.toEqual([]);
+    }
   });
 
-  test("rejects a monitor with no monitorSteps at all", () => {
-    const monitor: Monitor = new Monitor();
+  test("a refused request is thrown, for the card to say so", async () => {
+    const refusal: HTTPErrorResponse = new HTTPErrorResponse(
+      404,
+      { message: "This network device does not exist." },
+      {},
+    );
+    postMock.mockResolvedValue(refusal);
 
-    expect(
-      DeviceMonitorLookupUtil.monitorWatchesDevice(monitor, DEVICE_ID),
-    ).toBe(false);
-  });
-
-  test("rejects a monitor whose monitorSteps never hydrated data", () => {
-    const monitor: Monitor = new Monitor();
-    const monitorSteps: MonitorSteps = new MonitorSteps();
-    monitorSteps.data = undefined;
-    monitor.monitorSteps = monitorSteps;
-
-    expect(
-      DeviceMonitorLookupUtil.monitorWatchesDevice(monitor, DEVICE_ID),
-    ).toBe(false);
-  });
-
-  test("rejects an empty steps array", () => {
-    expect(
-      DeviceMonitorLookupUtil.monitorWatchesDevice(
-        monitorWithSteps([]),
-        DEVICE_ID,
-      ),
-    ).toBe(false);
-  });
-
-  test("tolerates a step with no data (does not throw, does not match)", () => {
-    expect(
-      DeviceMonitorLookupUtil.monitorWatchesDevice(
-        monitorWithSteps([malformedStep()]),
-        DEVICE_ID,
-      ),
-    ).toBe(false);
-  });
-
-  test("tolerates a step without a networkDeviceMonitor section", () => {
-    expect(
-      DeviceMonitorLookupUtil.monitorWatchesDevice(
-        monitorWithSteps([stepWithoutDeviceMonitor()]),
-        DEVICE_ID,
-      ),
-    ).toBe(false);
-  });
-
-  test("a networkDeviceMonitor with no device id does not match", () => {
-    expect(
-      DeviceMonitorLookupUtil.monitorWatchesDevice(
-        monitorWithSteps([stepWatching(undefined)]),
-        DEVICE_ID,
-      ),
-    ).toBe(false);
-  });
-
-  test("still finds the match after malformed sibling steps", () => {
-    const monitor: Monitor = monitorWithSteps([
-      malformedStep(),
-      stepWithoutDeviceMonitor(),
-      stepWatching(DEVICE_ID.toString()),
-    ]);
-
-    expect(
-      DeviceMonitorLookupUtil.monitorWatchesDevice(monitor, DEVICE_ID),
-    ).toBe(true);
+    await expect(
+      DeviceMonitorLookupUtil.fetchWatchingMonitorIds(DEVICE_ID),
+    ).rejects.toBe(refusal);
   });
 });
 
 describe("DeviceMonitorLookupUtil.getMonitorsWatchingDevice", () => {
   beforeEach(() => {
-    getListMock.mockReset();
-    madeForDevice = [];
-    getItemMock.mockReset();
+    resetLookup();
     // Default: the device has nothing bound, which is the pre-#3447 world.
     getItemMock.mockResolvedValue(deviceRow({}));
   });
 
-  test("filters the fetched list down to monitors watching the device", async () => {
-    const watching: Monitor = monitorWithSteps([
-      stepWatching(DEVICE_ID.toString()),
-    ]);
-    const other: Monitor = monitorWithSteps([
-      stepWatching(OTHER_DEVICE_ID.toString()),
-    ]);
-    const malformed: Monitor = monitorWithSteps([malformedStep()]);
-
-    answerNetworkDeviceMonitors({
-      data: [watching, other, malformed],
-      count: 3,
-      skip: 0,
-      limit: 100,
-    });
+  test("lists the monitors the server says watch the device", async () => {
+    const watching: Monitor = networkDeviceMonitor(
+      "9f1b6b0e-0000-4000-8000-00000000ab01",
+      "core-sw-01 health",
+    );
+    answerWatching([watching]);
 
     const result: Array<Monitor> =
       await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID);
 
-    expect(result).toHaveLength(1);
-    expect(result[0]).toBe(watching);
+    expect(result).toEqual([watching]);
   });
 
-  test("reads the Network Device monitors, and the ones made for this device, nothing else", async () => {
-    answerNetworkDeviceMonitors({ data: [], count: 0, skip: 0, limit: 100 });
+  test("reads the watching monitors by id, and the ones made for this device - never the project's every Network Device monitor", async () => {
+    const watching: Monitor = networkDeviceMonitor(
+      "9f1b6b0e-0000-4000-8000-00000000ab02",
+      "core-sw-01 health",
+    );
+    answerWatching([watching]);
 
     await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID);
 
@@ -303,12 +401,34 @@ describe("DeviceMonitorLookupUtil.getMonitorsWatchingDevice", () => {
       },
     );
 
-    const watchers: Record<string, unknown> | undefined = queries.find(
-      (query: Record<string, unknown>): boolean => {
-        return !("autoProvisionedNetworkDeviceId" in query);
-      },
-    );
-    expect(watchers).toEqual({ monitorType: MonitorType.NetworkDevice });
+    /*
+     * THE REGRESSION (#8101): every Monitor read names the monitors it
+     * wants, by id or by provenance. The project-wide list of Network
+     * Device monitors, steps and all, is gone.
+     */
+    for (const query of queries) {
+      expect("_id" in query || "autoProvisionedNetworkDeviceId" in query).toBe(
+        true,
+      );
+    }
+
+    const reads: ReturnType<typeof watchingReads> = watchingReads();
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!.query["_id"]).toBeInstanceOf(Includes);
+    expect(idsOf(reads[0]!)).toEqual([watching._id!.toString()]);
+    expect(reads[0]!.query["monitorType"]).toBe(MonitorType.NetworkDevice);
+    expect(reads[0]!.limit).toBe(1);
+    expect(reads[0]!.skip).toBe(0);
+    expect(reads[0]!.sort).toEqual({ name: SortOrder.Ascending });
+    // The card's columns - no step JSON any more.
+    expect(reads[0]!.select["monitorSteps"]).toBeUndefined();
+    expect(reads[0]!.select).toMatchObject({
+      _id: true,
+      name: true,
+      monitorType: true,
+      networkAlertPolicyId: true,
+      currentMonitorStatus: { name: true, color: true },
+    });
 
     const madeFor: Record<string, unknown> | undefined = queries.find(
       (query: Record<string, unknown>): boolean => {
@@ -327,17 +447,137 @@ describe("DeviceMonitorLookupUtil.getMonitorsWatchingDevice", () => {
     ]);
   });
 
-  test("returns an empty array when nothing in the project watches the device", async () => {
-    answerNetworkDeviceMonitors({
-      data: [monitorWithSteps([stepWatching(OTHER_DEVICE_ID.toString())])],
-      count: 1,
-      skip: 0,
-      limit: 100,
-    });
+  test("a device nothing watches reads no watching monitor at all", async () => {
+    answerWatching([]);
 
     await expect(
       DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID),
     ).resolves.toEqual([]);
+
+    expect(watchingReads()).toHaveLength(0);
+  });
+
+  test("a monitor that sorts past what one list page held is still found (it used to be missed past LIMIT_PER_PROJECT)", async () => {
+    /*
+     * The old read listed the project's Network Device monitors by name,
+     * one page of LIMIT_PER_PROJECT, and kept the ones whose steps named
+     * the device: a watcher whose name sorted after the first page's was
+     * never seen. The server names it now, so where it would sort in the
+     * project no longer matters.
+     */
+    const lastByName: Monitor = networkDeviceMonitor(
+      "9f1b6b0e-0000-4000-8000-00000000ab03",
+      "zz-last-by-name",
+    );
+    answerWatching([lastByName]);
+
+    getListMock.mockImplementation(
+      async (request: { query?: Record<string, unknown>; limit: number }) => {
+        if (isWatchingQuery(request)) {
+          return {
+            data: idsOf(request).includes(lastByName._id!.toString())
+              ? [lastByName]
+              : [],
+            count: 1,
+            skip: 0,
+            limit: request.limit,
+          };
+        }
+
+        // A project of more Network Device monitors than a page holds.
+        if (request.query?.["monitorType"] === MonitorType.NetworkDevice) {
+          return {
+            data: Array.from({ length: LIMIT_PER_PROJECT }, (): Monitor => {
+              return networkDeviceMonitor(
+                ObjectID.generate().toString(),
+                "aa-earlier",
+              );
+            }),
+            count: LIMIT_PER_PROJECT + 1,
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+          };
+        }
+
+        return { data: [], count: 0, skip: 0, limit: 100 };
+      },
+    );
+
+    await expect(
+      DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID),
+    ).resolves.toEqual([lastByName]);
+  });
+
+  test("a device watched by more monitors than one read names is read in pieces, every one listed, in name order", async () => {
+    const count: number = WATCHING_MONITORS_PER_READ + 2;
+    const many: Array<Monitor> = Array.from(
+      { length: count },
+      (_value: unknown, index: number): Monitor => {
+        // Named so that name order is the reverse of the server's order.
+        return networkDeviceMonitor(
+          ObjectID.generate().toString(),
+          `watcher-${String(count - index).padStart(4, "0")}`,
+        );
+      },
+    );
+    answerWatching(many);
+
+    const result: Array<Monitor> =
+      await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID);
+
+    expect(
+      watchingReads().map(
+        (read: { query: Record<string, unknown> }): number => {
+          return idsOf(read).length;
+        },
+      ),
+    ).toEqual([WATCHING_MONITORS_PER_READ, 2]);
+    expect(result).toHaveLength(count);
+    expect(
+      result.map((monitor: Monitor): string => {
+        return monitor.name!;
+      }),
+    ).toEqual(
+      many
+        .map((monitor: Monitor): string => {
+          return monitor.name!;
+        })
+        .sort(),
+    );
+  });
+
+  test("a failed lookup is thrown, as a failed Monitor list was: the card says so rather than that nothing alerts", async () => {
+    const refusal: HTTPErrorResponse = new HTTPErrorResponse(
+      500,
+      { message: "The server could not answer." },
+      {},
+    );
+    postMock.mockResolvedValue(refusal);
+
+    await expect(
+      DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID),
+    ).rejects.toBe(refusal);
+  });
+
+  test("a failed read of the watching monitors is thrown too", async () => {
+    answerWatching([
+      networkDeviceMonitor(
+        "9f1b6b0e-0000-4000-8000-00000000ab04",
+        "core-sw-01 health",
+      ),
+    ]);
+    getListMock.mockImplementation(
+      async (request: { query?: Record<string, unknown> }) => {
+        if (isWatchingQuery(request)) {
+          throw new Error("You do not have permission to read monitors.");
+        }
+        return { data: [], count: 0, skip: 0, limit: 100 };
+      },
+    );
+
+    await expect(
+      DeviceMonitorLookupUtil.getDeviceMonitorContext(DEVICE_ID),
+    ).rejects.toThrow("You do not have permission to read monitors.");
   });
 });
 
@@ -355,9 +595,7 @@ describe("DeviceMonitorLookupUtil.getMonitorsWatchingDevice", () => {
  */
 describe("DeviceMonitorLookupUtil.getDeviceBinding", () => {
   beforeEach(() => {
-    getListMock.mockReset();
-    madeForDevice = [];
-    getItemMock.mockReset();
+    resetLookup();
   });
 
   test("returns the monitor bound to the device", async () => {
@@ -440,10 +678,7 @@ describe("DeviceMonitorLookupUtil.getDeviceBinding", () => {
 
 describe("DeviceMonitorLookupUtil - the bound monitor joins the list", () => {
   beforeEach(() => {
-    getListMock.mockReset();
-    madeForDevice = [];
-    getItemMock.mockReset();
-    answerNetworkDeviceMonitors({ data: [], count: 0, skip: 0, limit: 100 });
+    resetLookup();
     getItemMock.mockResolvedValue(deviceRow({}));
   });
 
@@ -471,10 +706,10 @@ describe("DeviceMonitorLookupUtil - the bound monitor joins the list", () => {
       "9f1b6b0e-0000-4000-8000-00000000ce03",
       "ping-core-ap",
     );
-    const watching: Monitor = monitorWithSteps([
-      stepWatching(DEVICE_ID.toString()),
-    ]);
-    watching._id = "9f1b6b0e-0000-4000-8000-00000000ce04";
+    const watching: Monitor = networkDeviceMonitor(
+      "9f1b6b0e-0000-4000-8000-00000000ce04",
+      "core-ap health",
+    );
 
     getItemMock.mockResolvedValue(
       deviceRow({
@@ -482,12 +717,7 @@ describe("DeviceMonitorLookupUtil - the bound monitor joins the list", () => {
         monitor: bound,
       }),
     );
-    answerNetworkDeviceMonitors({
-      data: [watching],
-      count: 1,
-      skip: 0,
-      limit: 100,
-    });
+    answerWatching([watching]);
 
     const result: Array<Monitor> =
       await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID);
@@ -502,10 +732,7 @@ describe("DeviceMonitorLookupUtil - the bound monitor joins the list", () => {
     const sharedId: string = "9f1b6b0e-0000-4000-8000-00000000ce05";
 
     const bound: Monitor = boundPingMonitor(sharedId, "dual-role");
-    const watching: Monitor = monitorWithSteps([
-      stepWatching(DEVICE_ID.toString()),
-    ]);
-    watching._id = sharedId;
+    const watching: Monitor = networkDeviceMonitor(sharedId, "dual-role");
 
     getItemMock.mockResolvedValue(
       deviceRow({
@@ -513,12 +740,7 @@ describe("DeviceMonitorLookupUtil - the bound monitor joins the list", () => {
         monitor: bound,
       }),
     );
-    answerNetworkDeviceMonitors({
-      data: [watching],
-      count: 1,
-      skip: 0,
-      limit: 100,
-    });
+    answerWatching([watching]);
 
     const result: Array<Monitor> =
       await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID);
@@ -531,20 +753,13 @@ describe("DeviceMonitorLookupUtil - the bound monitor joins the list", () => {
     expect(result[0]).toBe(bound);
   });
 
-  test("an SNMP device with nothing bound behaves exactly as before", async () => {
-    const watching: Monitor = monitorWithSteps([
-      stepWatching(DEVICE_ID.toString()),
-    ]);
-    const other: Monitor = monitorWithSteps([
-      stepWatching(OTHER_DEVICE_ID.toString()),
-    ]);
+  test("an SNMP device with nothing bound lists the monitors watching it, as before", async () => {
+    const watching: Monitor = networkDeviceMonitor(
+      "9f1b6b0e-0000-4000-8000-00000000ce07",
+      "core-sw-01 health",
+    );
 
-    answerNetworkDeviceMonitors({
-      data: [watching, other],
-      count: 2,
-      skip: 0,
-      limit: 100,
-    });
+    answerWatching([watching]);
 
     const result: Array<Monitor> =
       await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID);
@@ -600,11 +815,8 @@ describe("DeviceMonitorLookupUtil - the monitors a discovery import made for the
   }
 
   beforeEach(() => {
-    getListMock.mockReset();
-    getItemMock.mockReset();
-    madeForDevice = [];
+    resetLookup();
     getItemMock.mockResolvedValue(deviceRow({}));
-    answerNetworkDeviceMonitors({ data: [], count: 0, skip: 0, limit: 100 });
   });
 
   test("a Ping monitor made for the device is listed, though nothing names the device in its steps", async () => {
@@ -625,10 +837,10 @@ describe("DeviceMonitorLookupUtil - the monitors a discovery import made for the
       "9f1b6b0e-0000-4000-8000-00000000ce12",
       "ping-core-ap",
     );
-    const watching: Monitor = monitorWithSteps([
-      stepWatching(DEVICE_ID.toString()),
-    ]);
-    watching._id = "9f1b6b0e-0000-4000-8000-00000000ce13";
+    const watching: Monitor = networkDeviceMonitor(
+      "9f1b6b0e-0000-4000-8000-00000000ce13",
+      "core-ap health",
+    );
     const port: Monitor = addressMonitor(
       "9f1b6b0e-0000-4000-8000-00000000ce14",
       "WB0024KDS03 - Printer port",
@@ -641,12 +853,7 @@ describe("DeviceMonitorLookupUtil - the monitors a discovery import made for the
         monitor: bound,
       }),
     );
-    answerNetworkDeviceMonitors({
-      data: [watching],
-      count: 1,
-      skip: 0,
-      limit: 100,
-    });
+    answerWatching([watching]);
     madeForDevice = [port];
 
     const result: Array<Monitor> =
@@ -737,9 +944,8 @@ describe("DeviceMonitorLookupUtil - the device's web UI monitor", () => {
   }
 
   beforeEach(() => {
-    getListMock.mockReset();
-    getItemMock.mockReset();
-    madeForDevice = [];
+    // Nothing watches the device: the server names no monitor.
+    resetLookup();
     webUiCandidates = [WEB_UI, PORTAL];
     failWebUiRead = false;
     getItemMock.mockResolvedValue(

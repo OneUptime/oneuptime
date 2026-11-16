@@ -161,6 +161,7 @@ Sidan **SLOs** visar varje SLO som inte är arkiverat, med status, SLI, återst�
 | --- | --- |
 | **Översikt** | Statusen, nyckeltalen, felbudgetens förbrukning, senaste aktiviteten, öppna larm och incidenter och reglerna för förbrukningstakt. |
 | **Mätvärden** | SLO:ets `oneuptime.slo.*`-metriker, dess långsiktiga felbudgethistorik och metrikerna för de incidenter och larm som påverkar det. Se [SLO-metriker och -instrumentpaneler](/docs/slo/metrics). |
+| **Månadsrapport** | Hur SLO:et klarade sig varje kalendermånad och över hela perioden. Se [Månadsrapporten](#månadsrapporten). |
 | **Incidenter** | De incidenter som dess regler för förbrukningstakt och dess felbudgetpolicy har deklarerat. Märket räknar de öppna. |
 | **Larm** | De larm som dess regler för förbrukningstakt och dess felbudgetpolicy har utlöst. Märket räknar de öppna. |
 | **Feed** | Vad som har hänt med SLO:et, som en tidslinje. Se [SLO-flöde och granskningsloggar](/docs/slo/feed-and-audit-logs). |
@@ -209,6 +210,31 @@ Sidan **Inställningar** samlar hur ett SLO mäter, med ett kort för varje sak:
 | **Arkivera SLO** | **Arkivera** eller **Avarkivera**. | Se [Arkivera ett SLO](#arkivera-ett-slo). |
 
 Efter en ändring av vad det mäter, målet, perioden eller beräkningen av driftstopp utvärderar OneUptime SLO:et igen vid nästa körning.
+
+### Månadsrapporten
+
+**Månadsrapport** visar hur SLO:et klarade sig i varje kalendermånad de senaste **3 månader**, **6 månader**, **9 månader** eller **12 månader**, eller under ett kalenderår. Varje månad visar sin SLI, sitt driftstopp (för ett begärande-SLO de misslyckade eller långsamma begärandena, för ett mätvärdes-SLO de underkända händelserna), den andel av felbudgeten den använde och sitt resultat:
+
+| Resultat | Vad det betyder |
+| --- | --- |
+| Uppfyllt | Månaden är slut och dess SLI nådde målet. |
+| Ej uppnått | Månaden är slut och nådde inte målet, eller månaden pågår fortfarande och har redan mer driftstopp än hela månaden tillåter. |
+| I fas | Månaden pågår fortfarande och dess SLI hittills når målet. |
+| Under målet | Månaden pågår fortfarande och dess SLI hittills ligger under målet. |
+| Inga data | Ingenting mättes den månaden. |
+
+Raden **Totalt** mäter hela perioden som en. Ett SLO med flera monitorer får också en tabell **Per monitor**: varje monitors egen SLI i varje månad, med den monitor som kostade SLO:et mest först. **Ladda ner CSV** sparar rapporten som en fil för ett kalkylblad.
+
+Inget extra sparas för rapporten. Varje månad beräknas från monitorernas statushistorik när du öppnar den, med SLO:ets monitorer, driftstoppsstatusar och mål som de är nu, så den sträcker sig tillbaka till innan SLO:et skapades. Ett begärande-SLO:s månader kommer från de begäranden som OneUptime räknade för det, och ett mätvärdes-SLO:s från händelserna i dess mätvärde, som OneUptime sparar i 400 dagar. Månaderna följer SLO:ets tidszon, eller UTC när det inte har någon.
+
+API:et svarar med samma rapport:
+
+```bash
+curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/monthly-report?months=12" \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Be med `months` om 1 till 24 månader som slutar med den aktuella månaden, eller om ett kalenderår med `year`, till exempel `year=2025`.
 
 ## Arkivera ett SLO
 

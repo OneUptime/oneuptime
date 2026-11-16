@@ -1,8 +1,32 @@
+import AuditLogService from "./AuditLogService";
 import DatabaseService from "./DatabaseService";
 import StatusPagePrivateUserService from "./StatusPagePrivateUserService";
 import StatusPageService from "./StatusPageService";
+import { OnUpdate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
+import UpdateBy from "../Types/Database/UpdateBy";
+import UserAgentDevice from "../Utils/RequestOrigin/UserAgentDevice";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Model from "../../Models/DatabaseModels/StatusPagePrivateUserSession";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
+import StatusPagePrivateUser from "../../Models/DatabaseModels/StatusPagePrivateUser";
+import AuditLogAction from "../../Types/AuditLog/AuditLogAction";
+import { SessionEventAuditLogAction } from "../../Types/AuditLog/AuditLogSessionEvent";
+import {
+  readStatusPageSessionEnd,
+  STATUS_PAGE_SESSION_SIGN_IN_NO_LONGER_ACCEPTED_REASON,
+  StatusPageSessionAuditEvent,
+  StatusPageSessionEnd,
+} from "../../Types/AuditLog/AuditLogStatusPageSession";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import RequestOrigin from "../../Types/RequestOrigin";
+import {
+  readSessionSignIn,
+  readSessionSignInOrigin,
+  SessionSignIn,
+  SessionSignInOrigin,
+  toSessionSignInInfo,
+} from "../../Types/UserSession/SessionSignIn";
 import StatusPageOidc from "../../Models/DatabaseModels/StatusPageOidc";
 import StatusPageSso from "../../Models/DatabaseModels/StatusPageSso";
 import ObjectID from "../../Types/ObjectID";
@@ -55,6 +79,14 @@ export interface CreateSessionOptions {
   deviceOS?: string | undefined;
   deviceBrowser?: string | undefined;
   additionalInfo?: JSONObject | undefined;
+  /*
+   * How the reader signed in (Types/UserSession/SessionSignIn), and where
+   * from (RequestOriginUtil.fromRequest): the session keeps both, and the
+   * audit log says them at its sign-in and again when it ends (issue
+   * #6790).
+   */
+  signIn?: SessionSignIn | undefined;
+  requestOrigin?: RequestOrigin | undefined;
 }
 
 export interface RenewSessionOptions {
@@ -76,6 +108,11 @@ export interface TouchSessionOptions {
 
 export interface RevokeSessionOptions {
   reason?: string | undefined;
+  /*
+   * Where the request that ended it came from - a sign-out's - for the
+   * audit log's entry about it.
+   */
+  requestOrigin?: RequestOrigin | undefined;
 }
 
 export interface ExchangeLoginCodeOptions {
@@ -93,7 +130,53 @@ export const STATUS_PAGE_LOGIN_CODE_TTL_MINUTES: number = 5;
 
 // Why a session that no longer counts was ended, as the session records it.
 export const SIGN_IN_NO_LONGER_ACCEPTED_REASON: string =
-  "Its sign-in is no longer accepted by the status page";
+  STATUS_PAGE_SESSION_SIGN_IN_NO_LONGER_ACCEPTED_REASON;
+
+/*
+ * A session a revocation is about to end, as the audit log's entry about
+ * its end needs it (onBeforeUpdate reads them, onUpdateSuccess records).
+ */
+interface RevocationCarryForward {
+  endingSessions: Array<Model>;
+}
+
+// A reader's session, and what happened to it, for the audit log.
+export interface SessionEventToRecord {
+  session: Model;
+  action: SessionEventAuditLogAction;
+  // Why it ended (readStatusPageSessionEnd). Not on a sign-in.
+  endReason?: string | undefined;
+  /*
+   * The address of the request the entry is about - the sign-in's, the
+   * sign-out's - or none, for the last one the session was used from.
+   */
+  ipAddress?: string | undefined;
+}
+
+// The columns an entry about a reader's session is built from.
+const SESSION_AUDIT_SELECT: {
+  _id: true;
+  projectId: true;
+  statusPageId: true;
+  statusPagePrivateUserId: true;
+  isRevoked: true;
+  createdAt: true;
+  lastActiveAt: true;
+  additionalInfo: true;
+  ipAddress: true;
+  userAgent: true;
+} = {
+  _id: true,
+  projectId: true,
+  statusPageId: true,
+  statusPagePrivateUserId: true,
+  isRevoked: true,
+  createdAt: true,
+  lastActiveAt: true,
+  additionalInfo: true,
+  ipAddress: true,
+  userAgent: true,
+};
 
 // A session no SSO provider signed in: a password sign-in, or one from before sessions named their provider.
 const SESSION_NAMES_NO_PROVIDER_SQL: string =
@@ -144,6 +227,21 @@ export class Service extends DatabaseService<Model> {
 
       // Password sign-in and both SSO callbacks issue their session here.
       await this.recordSuccessfulSignIn(options);
+
+      /*
+       * The sign-in, in the status page's project's audit log (issue
+       * #6790) - unless this is an SSO login code, which signs nobody in
+       * until it is exchanged (exchangeLoginCode). Never fails the sign-in.
+       */
+      if (!this.isLoginCodeSession(createdSession)) {
+        await this.recordSessionEvents([
+          {
+            session: createdSession,
+            action: AuditLogAction.SignIn,
+            ipAddress: options.requestOrigin?.ipAddress,
+          },
+        ]);
+      }
 
       return {
         session: createdSession,
@@ -500,6 +598,18 @@ export class Service extends DatabaseService<Model> {
       statusPagePrivateUserId: session.statusPagePrivateUserId,
     });
 
+    /*
+     * The code is exchanged: the reader is signed in now, with the provider
+     * the code's session keeps. Never fails the sign-in.
+     */
+    await this.recordSessionEvents([
+      {
+        session: session,
+        action: AuditLogAction.SignIn,
+        ipAddress: options.ipAddress,
+      },
+    ]);
+
     return {
       session,
       refreshToken,
@@ -554,10 +664,24 @@ export class Service extends DatabaseService<Model> {
         revokedAt: OneUptimeDate.getCurrentDate(),
         revokedReason: options?.reason ?? null,
       },
-      props: {
-        isRoot: true,
-      },
+      props: Service.getRevocationProps(options),
     });
+  }
+
+  /*
+   * A revocation is OneUptime's own write, and carries where the request
+   * that asked for it came from, for the audit log's entry about it.
+   */
+  private static getRevocationProps(
+    options: RevokeSessionOptions | undefined,
+  ): DatabaseCommonInteractionProps {
+    const props: DatabaseCommonInteractionProps = { isRoot: true };
+
+    if (options?.requestOrigin) {
+      props.requestOrigin = options.requestOrigin;
+    }
+
+    return props;
   }
 
   // Ends the live session a refresh token belongs to, and answers whether there was one.
@@ -642,10 +766,254 @@ export class Service extends DatabaseService<Model> {
       },
       limit: LIMIT_MAX,
       skip: 0,
-      props: {
-        isRoot: true,
-      },
+      props: Service.getRevocationProps(options),
     });
+  }
+
+  /*
+   * The sessions a revocation is about to end, read before it writes them
+   * (and the revocation held to exactly those rows), so the audit log can
+   * say what each one was once it has ended (issue #6790). One revoked
+   * already ended before, and its end was recorded then; an SSO login code
+   * not yet exchanged never signed anybody in.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    if (updateBy.data.isRevoked !== true) {
+      return { updateBy, carryForward: null };
+    }
+
+    const sessions: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      SESSION_AUDIT_SELECT,
+    );
+
+    const carryForward: RevocationCarryForward = {
+      endingSessions: sessions.filter((session: Model): boolean => {
+        return Boolean(
+          session.id && !session.isRevoked && !this.isLoginCodeSession(session),
+        );
+      }),
+    };
+
+    return { updateBy, carryForward };
+  }
+
+  /*
+   * A reader's session that is revoked - signed out, a new password, a
+   * sign-in the page no longer accepts - goes into the status page's
+   * project's audit log as its end (issue #6790). Every revocation is an
+   * update through this service (revokeSessionById,
+   * revokeAllSessionsByPrivateUserId), so this is where they all pass.
+   * Never fails the revocation.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    if (onUpdate.updateBy.data.isRevoked !== true) {
+      return onUpdate;
+    }
+
+    try {
+      const updated: Set<string> = new Set(
+        updatedItemIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+      const endingSessions: Array<Model> = (
+        (onUpdate.carryForward as RevocationCarryForward | null | undefined)
+          ?.endingSessions || []
+      ).filter((session: Model): boolean => {
+        return updated.has(session.id!.toString());
+      });
+      const end: StatusPageSessionEnd = readStatusPageSessionEnd(
+        onUpdate.updateBy.data.revokedReason,
+      );
+
+      await this.recordSessionEvents(
+        endingSessions.map((session: Model): SessionEventToRecord => {
+          return {
+            session: session,
+            action: end.action,
+            endReason: end.reason,
+            // A sign-out's own address; any other end, the session's last.
+            ipAddress:
+              end.action === AuditLogAction.SignOut
+                ? onUpdate.updateBy.props.requestOrigin?.ipAddress
+                : undefined,
+          };
+        }),
+      );
+    } catch (err) {
+      logger.warn(
+        "StatusPagePrivateUserSessionService: failed to record the end of sessions",
+      );
+      logger.warn(err);
+    }
+
+    return onUpdate;
+  }
+
+  /*
+   * Readers' session events, into their status pages' projects' audit logs
+   * (AuditLogService.recordStatusPageSessionEvents): how and from where each
+   * signed in, as the session keeps it, and each reader by their address.
+   * Only where something records audit logs, and never throws.
+   */
+  private async recordSessionEvents(
+    sessions: Array<SessionEventToRecord>,
+  ): Promise<void> {
+    try {
+      if (sessions.length === 0 || !AuditLogService.hasRecorder()) {
+        return;
+      }
+
+      const readerEmails: Map<string, string> = await this.findReaderEmails(
+        sessions.map((item: SessionEventToRecord): ObjectID | undefined => {
+          return item.session.statusPagePrivateUserId;
+        }),
+      );
+
+      const events: Array<StatusPageSessionAuditEvent> = [];
+
+      for (const item of sessions) {
+        const event: StatusPageSessionAuditEvent | null = Service.toAuditEvent({
+          ...item,
+          readerEmail: item.session.statusPagePrivateUserId
+            ? readerEmails.get(item.session.statusPagePrivateUserId.toString())
+            : undefined,
+        });
+
+        if (event) {
+          events.push(event);
+        }
+      }
+
+      await AuditLogService.recordStatusPageSessionEvents(events);
+    } catch (err) {
+      logger.warn(
+        "StatusPagePrivateUserSessionService: failed to record session events",
+      );
+      logger.warn(err);
+    }
+  }
+
+  // The address each reader signs in with, by their id.
+  private async findReaderEmails(
+    readerIds: Array<ObjectID | undefined>,
+  ): Promise<Map<string, string>> {
+    const ids: Array<ObjectID> = [];
+    const seen: Set<string> = new Set();
+
+    for (const readerId of readerIds) {
+      if (readerId && !seen.has(readerId.toString())) {
+        seen.add(readerId.toString());
+        ids.push(readerId);
+      }
+    }
+
+    const emails: Map<string, string> = new Map();
+
+    if (ids.length === 0) {
+      return emails;
+    }
+
+    const readers: Array<StatusPagePrivateUser> =
+      await StatusPagePrivateUserService.findBy({
+        query: { _id: QueryHelper.any(ids) },
+        select: { _id: true, email: true },
+        limit: ids.length,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    for (const reader of readers) {
+      if (reader.id && reader.email) {
+        emails.set(reader.id.toString(), reader.email.toString());
+      }
+    }
+
+    return emails;
+  }
+
+  /*
+   * The audit log's event for a reader's session: how and where it signed
+   * in, as the session keeps it - so its end, read from the same row, says
+   * the same - or null for a row that does not say whose page it is.
+   */
+  public static toAuditEvent(
+    data: SessionEventToRecord & { readerEmail?: string | undefined },
+  ): StatusPageSessionAuditEvent | null {
+    const session: Model = data.session;
+
+    if (!session.id || !session.projectId || !session.statusPageId) {
+      return null;
+    }
+
+    const origin: SessionSignInOrigin = readSessionSignInOrigin(
+      session.additionalInfo,
+    );
+
+    const event: StatusPageSessionAuditEvent = {
+      action: data.action,
+      sessionId: session.id,
+      projectId: session.projectId,
+      statusPageId: session.statusPageId,
+      readerEmail: data.readerEmail,
+      signIn: readSessionSignIn(session.additionalInfo),
+      device: origin.device || Service.describeDevice(session.userAgent),
+      location: origin.location,
+      ipAddress: data.ipAddress || session.ipAddress || undefined,
+    };
+
+    if (data.action !== AuditLogAction.SignIn) {
+      event.endReason = data.endReason;
+
+      if (session.createdAt) {
+        event.signedInAt = new Date(session.createdAt);
+      }
+
+      if (session.lastActiveAt) {
+        event.lastActiveAt = new Date(session.lastActiveAt);
+      }
+    }
+
+    return event;
+  }
+
+  // A device in a few words ("Chrome 130 on macOS"), read off a User-Agent.
+  private static describeDevice(
+    userAgent: string | null | undefined,
+  ): string | undefined {
+    if (!userAgent) {
+      return undefined;
+    }
+
+    return UserAgentDevice.describe(
+      UserAgentDevice.read({ userAgent: userAgent }),
+    );
+  }
+
+  /*
+   * Where a sign-in came from: what the request said (RequestOriginUtil), or
+   * the device its User-Agent describes when the caller handed no request
+   * over. Only words OneUptime spells out (UserAgentDevice).
+   */
+  private static getSignInOrigin(
+    options: CreateSessionOptions,
+  ): SessionSignInOrigin {
+    if (options.requestOrigin) {
+      return {
+        device: options.requestOrigin.device,
+        location: options.requestOrigin.location,
+      };
+    }
+
+    return { device: Service.describeDevice(options.userAgent) };
   }
 
   private async recordSuccessfulSignIn(
@@ -743,8 +1111,18 @@ export class Service extends DatabaseService<Model> {
       session.ipAddress = ipAddress;
     }
 
+    /*
+     * How the reader signed in and from where, kept for the audit log's
+     * entries about the session (Types/UserSession/SessionSignIn): its
+     * sign-in says them, and so does its end, whenever that comes. A login
+     * code keeps them for the session it is exchanged for.
+     */
     session.additionalInfo = {
       ...(options.additionalInfo || {}),
+      ...toSessionSignInInfo({
+        signIn: options.signIn,
+        origin: Service.getSignInOrigin(options),
+      }),
     } as JSONObject;
 
     return session;

@@ -117,6 +117,14 @@ export interface RequestOptions {
   // Per-request proxy agent support (Probe supplies these instead of mutating global axios defaults)
   httpAgent?: HttpAgent | undefined;
   httpsAgent?: HttpsAgent | undefined;
+  /*
+   * Send with Node's http adapter, whichever adapter axios would pick on its
+   * own. It is the only one that uses httpAgent / httpsAgent, so a caller
+   * whose agents dial only the address it validated (SafeWebhookRequest)
+   * asks for it: any other adapter would dial whatever the name resolves to
+   * by then.
+   */
+  useNodeHttpAdapter?: boolean | undefined;
   skipAuthRefresh?: boolean | undefined;
   hasAttemptedAuthRefresh?: boolean | undefined;
   onUploadProgress?: ((event: AxiosProgressEvent) => void) | undefined;
@@ -572,6 +580,16 @@ export default class API {
       url.addQueryParams(params);
     }
 
+    /*
+     * The query parameters go on the URL that is sent. A dispatch URL used to
+     * leave them on the reporting URL alone, so a guarded caller's parameters
+     * never reached the server.
+     */
+    const dispatchUrl: string | undefined =
+      options?.dispatchUrl === undefined
+        ? undefined
+        : API.addQueryParamsToDispatchUrl(options.dispatchUrl, params);
+
     const requestStartedAtInMs: number = Date.now();
     let attempts: number = 0;
 
@@ -604,7 +622,7 @@ export default class API {
       // Identical on every attempt, so build it once.
       const axiosOptions: AxiosRequestConfig = {
         method: method,
-        url: options?.dispatchUrl ?? url.toString(),
+        url: dispatchUrl ?? url.toString(),
         headers: finalHeaders,
         data: finalBody,
       };
@@ -619,7 +637,7 @@ export default class API {
 
       if (options?.sameServerRedirectsOnly) {
         axiosOptions.beforeRedirect = getSameServerRedirectCheck(
-          options?.dispatchUrl ?? url.toString(),
+          dispatchUrl ?? url.toString(),
         );
       }
 
@@ -658,6 +676,10 @@ export default class API {
       }
       if (options?.httpsAgent) {
         axiosOptions.httpsAgent = options.httpsAgent;
+      }
+
+      if (options?.useNodeHttpAdapter) {
+        axiosOptions.adapter = "http";
       }
 
       if (options?.onUploadProgress) {
@@ -885,6 +907,30 @@ export default class API {
 
       return errorResponse;
     }
+  }
+
+  /*
+   * A dispatch URL with the request's query parameters set on it, each one
+   * replacing a parameter of the same name, as URL.addQueryParams does. The
+   * rest of the URL - its host above all - is the one the caller validated.
+   */
+  private static addQueryParamsToDispatchUrl(
+    dispatchUrl: string,
+    params: Dictionary<string> | undefined,
+  ): string {
+    const names: Array<string> = Object.keys(params || {});
+
+    if (!params || names.length === 0) {
+      return dispatchUrl;
+    }
+
+    const withParams: globalThis.URL = new globalThis.URL(dispatchUrl);
+
+    for (const name of names) {
+      withParams.searchParams.set(name, params[name] ?? "");
+    }
+
+    return withParams.href;
   }
 
   private static async readBudgetedResponseBody(

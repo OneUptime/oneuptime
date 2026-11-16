@@ -28,7 +28,7 @@
         },
         "host": {
             "type": "string",
-            "description": "Domain name or IP where OneUptime server is hosted"
+            "description": "Domain name or IP where OneUptime server is hosted, with :port when people open it on one. An IPv6 address goes in brackets, quoted in a values file: \"[2001:db8::1]\" or \"[2001:db8::1]:8080\"."
         },
         "httpProtocol": {
             "type": "string",

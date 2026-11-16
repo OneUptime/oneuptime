@@ -1244,6 +1244,8 @@
   "Copy Error": "Kopiér fejl",
   "Full error message": "Hele fejlmeddelelsen",
   "Next try: {{time}}": "Næste forsøg: {{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "Poster, der venter på at blive sendt, begynder at blive slettet fra omkring {{time}}.",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "Siden omkring {{time}} bliver poster, der venter på at blive sendt, slettet.",
   "Needs a valid Enterprise license that includes audit logs.": "Kræver en gyldig Enterprise-licens, der omfatter auditlogs.",
   "Paused": "Sat på pause",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "Intet sendes, mens den er slået fra. Den beholder sin plads: når den slås til igen, sender den, hvad der blev registreret i mellemtiden.",
