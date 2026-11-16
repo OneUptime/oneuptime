@@ -4,7 +4,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import React from "react";
 import i18n from "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import french from "../../../../App/FeatureSet/Accounts/src/Locales/fr.json";
-import PasswordRequirements from "../../../../App/FeatureSet/Accounts/src/Components/PasswordRequirements/PasswordRequirements";
+import PasswordRequirements from "../../../UI/Components/PasswordRequirements/PasswordRequirements";
 
 const VALID_PASSWORD: string = "violet river lantern";
 

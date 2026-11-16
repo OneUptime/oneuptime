@@ -31,6 +31,34 @@ export const INCOMPLETE_VERIFICATION_LINK_MESSAGE: string =
 export const INCOMPLETE_RESET_LINK_MESSAGE: string =
   "This password reset link is incomplete. Open the link from the email again, or ask for a new one on the Forgot Password page.";
 
+/*
+ * A reset-password link the server turned down, on OneUptime's Reset Password
+ * page and a status page's. Each says what happened and what to do next, and
+ * the page offers Request a New Link for either (#9123): the server answers
+ * with exactly these words, and the page tells them from a refused password
+ * by them.
+ */
+export const RESET_LINK_MESSAGES: {
+  invalid: string;
+  expired: string;
+} = {
+  invalid:
+    "This password reset link has already been used or is not valid. Ask for a new link.",
+  expired:
+    "This password reset link has expired. Reset links work for one day. Ask for a new link.",
+};
+
+// Whether a refused reset is about the link, which only a new link fixes.
+export const isResetLinkRefusal: (message: string) => boolean = (
+  message: string,
+): boolean => {
+  return (
+    message === RESET_LINK_MESSAGES.invalid ||
+    message === RESET_LINK_MESSAGES.expired ||
+    message === INCOMPLETE_RESET_LINK_MESSAGE
+  );
+};
+
 // A sign-up with an email address that already has an account.
 export const getAccountAlreadyExistsMessage: (email: string) => string = (
   email: string,

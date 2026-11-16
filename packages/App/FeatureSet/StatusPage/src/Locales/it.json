@@ -343,9 +343,16 @@
     "resetPassword": {
       "description": "Crea una nuova password per il tuo account {{statusPageName}}.",
       "instructions": "Inserisci la tua nuova password e la aggiorneremo.",
-      "success": "La tua password è stata aggiornata. Effettua l'accesso.",
       "submit": "Reimposta password",
-      "knowPassword": "Conosci la tua password?"
+      "knowPassword": "Conosci la tua password?",
+      "successTitle": "La tua password è stata reimpostata",
+      "successDescription": "Accedi con la nuova password.",
+      "loginButton": "Accedi",
+      "linkExpiredTitle": "Questo link di reimpostazione è scaduto",
+      "linkExpiredDescription": "I link di reimpostazione valgono un giorno. Richiedi un nuovo link e te lo invieremo via email.",
+      "linkInvalidTitle": "Questo link di reimpostazione non funziona più",
+      "linkInvalidDescription": "Potrebbe essere già stato usato, oppure ne è stata copiata solo una parte. Richiedi un nuovo link e te lo invieremo via email.",
+      "requestNewLinkButton": "Richiedi un nuovo link"
     },
     "magicLink": {
       "title": "Accedi con un link",
@@ -482,5 +489,22 @@
   },
   "No options available": "Nessuna opzione disponibile",
   "No matches found": "Nessuna corrispondenza trovata",
-  "{{eventType}} state changed to {{state}}": "{{eventType}}: stato cambiato in {{state}}"
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: stato cambiato in {{state}}",
+  "Use at least {{minimum}} characters.": "Usa almeno {{minimum}} caratteri.",
+  "Try a few unrelated words.": "Prova con alcune parole non correlate.",
+  "Password meets requirements": "La password soddisfa i requisiti",
+  "Password must be at least 15 characters.": "La password deve contenere almeno 15 caratteri.",
+  "Password cannot be more than 100 characters.": "La password non può superare i 100 caratteri.",
+  "Choose a less predictable password. Try a few unrelated words.": "Scegli una password meno prevedibile. Prova con alcune parole non correlate.",
+  "Password cannot be blank.": "La password non può contenere solo spazi.",
+  "Password is required.": "La password è obbligatoria.",
+  "Password must be a string.": "La password deve essere una stringa di testo.",
+  "Between {{minimum}} and {{maximum}} characters": "Tra {{minimum}} e {{maximum}} caratteri",
+  "Avoid common or repeated patterns": "Evita sequenze comuni o ripetute",
+  "Password length": "Lunghezza della password",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minimo {{minimum}} caratteri",
+  "Complete:": "Soddisfatto:",
+  "Incomplete:": "Non soddisfatto:",
+  "Special character included (optional)": "Carattere speciale incluso (facoltativo)",
+  "Special characters are optional. Try !, @, # or $.": "I caratteri speciali sono facoltativi. Prova !, @, # o $."
 }

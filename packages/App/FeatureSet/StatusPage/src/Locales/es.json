@@ -343,9 +343,16 @@
     "resetPassword": {
       "description": "Cree una nueva contraseña para su cuenta de {{statusPageName}}.",
       "instructions": "Introduzca su nueva contraseña y la actualizaremos.",
-      "success": "Su contraseña ha sido actualizada. Inicie sesión.",
       "submit": "Restablecer contraseña",
-      "knowPassword": "¿Conoce su contraseña?"
+      "knowPassword": "¿Conoce su contraseña?",
+      "successTitle": "Se ha restablecido tu contraseña",
+      "successDescription": "Inicia sesión con tu nueva contraseña.",
+      "loginButton": "Iniciar sesión",
+      "linkExpiredTitle": "Este enlace de restablecimiento ha caducado",
+      "linkExpiredDescription": "Los enlaces de restablecimiento sirven durante un día. Pide un enlace nuevo y te lo enviaremos por correo electrónico.",
+      "linkInvalidTitle": "Este enlace de restablecimiento ya no funciona",
+      "linkInvalidDescription": "Puede que ya se haya usado o que solo se haya copiado una parte. Pide un enlace nuevo y te lo enviaremos por correo electrónico.",
+      "requestNewLinkButton": "Pedir un enlace nuevo"
     },
     "magicLink": {
       "title": "Iniciar sesión con un enlace",
@@ -482,5 +489,22 @@
   },
   "No options available": "No hay opciones disponibles",
   "No matches found": "No se encontraron coincidencias",
-  "{{eventType}} state changed to {{state}}": "{{eventType}}: estado cambiado a {{state}}"
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: estado cambiado a {{state}}",
+  "Use at least {{minimum}} characters.": "Usa al menos {{minimum}} caracteres.",
+  "Try a few unrelated words.": "Prueba con varias palabras sin relación entre sí.",
+  "Password meets requirements": "La contraseña cumple los requisitos",
+  "Password must be at least 15 characters.": "La contraseña debe tener al menos 15 caracteres.",
+  "Password cannot be more than 100 characters.": "La contraseña no puede tener más de 100 caracteres.",
+  "Choose a less predictable password. Try a few unrelated words.": "Elige una contraseña menos predecible. Prueba con varias palabras sin relación entre sí.",
+  "Password cannot be blank.": "La contraseña no puede contener solo espacios.",
+  "Password is required.": "La contraseña es obligatoria.",
+  "Password must be a string.": "La contraseña debe ser una cadena de texto.",
+  "Between {{minimum}} and {{maximum}} characters": "Entre {{minimum}} y {{maximum}} caracteres",
+  "Avoid common or repeated patterns": "Evita patrones comunes o repetidos",
+  "Password length": "Longitud de la contraseña",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / {{minimum}} caracteres como mínimo",
+  "Complete:": "Cumplido:",
+  "Incomplete:": "No cumplido:",
+  "Special character included (optional)": "Carácter especial incluido (opcional)",
+  "Special characters are optional. Try !, @, # or $.": "Los caracteres especiales son opcionales. Prueba !, @, # o $."
 }

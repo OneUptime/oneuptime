@@ -23,6 +23,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import Exception from "Common/Types/Exception/Exception";
 import HashedString from "Common/Types/HashedString";
 import ObjectID from "Common/Types/ObjectID";
+import { PASSWORD_RULE_MESSAGES } from "Common/Types/Password";
 import Permission, { UserPermission } from "Common/Types/Permission";
 import { STATUS_PAGE_MAGIC_LINK_INVALID_MESSAGE } from "Common/Types/StatusPage/StatusPageMagicLink";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
@@ -123,7 +124,7 @@ const OTHER_REFRESH_TOKEN: string = "2c3d4e5f-6a7b-4c8d-9eaf-1a2b3c4d5e6f";
 const LOGIN_CODE: string = "9c4fab7d-5e6a-4f8b-bc23-d4e5f6a7b8c9";
 
 const INVALID_RESET_LINK_MESSAGE: string =
-  "Invalid link. Please go to forgot password page again and request a new link.";
+  "This password reset link has already been used or is not valid. Ask for a new link.";
 const SESSION_ENDED_MESSAGE: string = "Session expired. Please login again.";
 const LOGIN_CODE_REFUSED_MESSAGE: string = "Login code is invalid or expired.";
 
@@ -843,5 +844,55 @@ describe("POST /reset-password", () => {
     );
     expect(sessionOf(SESSION_ID)["isRevoked"]).toBe(false);
     expect(sendMail).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The one password rule (#9123). A status page's reset link used to store
+ * any password at all: the server checked nothing, and the form asked for six
+ * characters.
+ */
+describe("POST /reset-password keeps the one password rule", () => {
+  it.each([
+    ["the six characters the form used to take", "abc123", "tooShort"],
+    ["a predictable password", "password123456789", "predictable"],
+  ])(
+    "refuses %s, and changes nothing",
+    async (_case: string, password: string, refusal: string) => {
+      const answer: Answer = await resetPassword(password);
+
+      expect(errorMessage(answer)).toBe(
+        PASSWORD_RULE_MESSAGES[refusal as keyof typeof PASSWORD_RULE_MESSAGES],
+      );
+      expect(readerOf(READER_ID)["password"]).toBe("the old password's hash");
+      // The link still works, so the reader can try a better password.
+      expect(readerOf(READER_ID)["resetPasswordToken"]).toBe(
+        await hashOf(`${READER_ID.toString()}${RESET_TOKEN}`),
+      );
+      expect(sessionOf(SESSION_ID)["isRevoked"]).toBe(false);
+      expect(sendMail).not.toHaveBeenCalled();
+    },
+  );
+
+  it("says a dead link is dead before it judges the password", async () => {
+    readerOf(READER_ID)["resetPasswordToken"] = await hashOf(
+      "a different reset token",
+    );
+
+    const answer: Answer = await resetPassword("abc123");
+
+    expect(errorMessage(answer)).toBe(INVALID_RESET_LINK_MESSAGE);
+  });
+
+  it("refuses a weak password a teammate sets through the API", async () => {
+    await expect(
+      StatusPagePrivateUserService.updateOneById({
+        id: READER_ID,
+        data: { password: new HashedString("abc123") } as never,
+        props: teammateProps(),
+      }),
+    ).rejects.toThrow(PASSWORD_RULE_MESSAGES.tooShort);
+
+    expect(readerOf(READER_ID)["password"]).toBe("the old password's hash");
   });
 });

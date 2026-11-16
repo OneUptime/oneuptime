@@ -343,9 +343,16 @@
     "resetPassword": {
       "description": "Create a new password for your {{statusPageName}} account.",
       "instructions": "Please enter your new password and we will have it updated.",
-      "success": "Your password has been updated. Please log in.",
       "submit": "Reset Password",
-      "knowPassword": "Know your password?"
+      "knowPassword": "Know your password?",
+      "successTitle": "Your password has been reset",
+      "successDescription": "Log in with your new password.",
+      "loginButton": "Log In",
+      "linkExpiredTitle": "This reset link has expired",
+      "linkExpiredDescription": "Reset links work for one day. Ask for a new link and we will email it to you.",
+      "linkInvalidTitle": "This reset link no longer works",
+      "linkInvalidDescription": "It may have been used already, or only part of it was copied. Ask for a new link and we will email it to you.",
+      "requestNewLinkButton": "Request a New Link"
     },
     "magicLink": {
       "title": "Log in with a link",
@@ -482,5 +489,22 @@
   },
   "No options available": "No options available",
   "No matches found": "No matches found",
-  "{{eventType}} state changed to {{state}}": "{{eventType}} state changed to {{state}}"
+  "{{eventType}} state changed to {{state}}": "{{eventType}} state changed to {{state}}",
+  "Use at least {{minimum}} characters.": "Use at least {{minimum}} characters.",
+  "Try a few unrelated words.": "Try a few unrelated words.",
+  "Password meets requirements": "Password meets requirements",
+  "Password must be at least 15 characters.": "Password must be at least 15 characters.",
+  "Password cannot be more than 100 characters.": "Password cannot be more than 100 characters.",
+  "Choose a less predictable password. Try a few unrelated words.": "Choose a less predictable password. Try a few unrelated words.",
+  "Password cannot be blank.": "Password cannot be blank.",
+  "Password is required.": "Password is required.",
+  "Password must be a string.": "Password must be a string.",
+  "Between {{minimum}} and {{maximum}} characters": "Between {{minimum}} and {{maximum}} characters",
+  "Avoid common or repeated patterns": "Avoid common or repeated patterns",
+  "Password length": "Password length",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / {{minimum}} characters minimum",
+  "Complete:": "Complete:",
+  "Incomplete:": "Incomplete:",
+  "Special character included (optional)": "Special character included (optional)",
+  "Special characters are optional. Try !, @, # or $.": "Special characters are optional. Try !, @, # or $."
 }
