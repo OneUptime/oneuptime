@@ -84,14 +84,14 @@ Een nieuw wachtwoord meldt elk apparaat af bij uw account, en elke al verzonden 
 3. Volg de melding van uw browser om de passkey op te slaan.
 :::
 
-Kies de volgende keer **Inloggen met een passkey** op de inlogpagina.
+Kies de volgende keer **Meer manieren om in te loggen** → **Inloggen met een passkey** op de inlogpagina.
 
 ### Inloggen met een gemailde link
 
 U kunt inloggen met een link in plaats van uw wachtwoord. U hoeft niets in te stellen.
 
 :::steps
-1. Kies op de inlogpagina **Stuur mij een inloglink**.
+1. Kies op de inlogpagina **Meer manieren om in te loggen** → **Stuur mij een inloglink**.
 2. Voer uw e-mailadres in en klik op **Stuur mij een inloglink**. De pagina toont dan **Controleer uw e-mail**.
 3. Open de link in de e-mail en klik op **Inloggen**.
 :::

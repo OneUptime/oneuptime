@@ -84,14 +84,14 @@ Un nouveau mot de passe déconnecte tous les appareils de votre compte, et tout 
 3. Suivez l'invite de votre navigateur pour enregistrer la clé d'accès.
 :::
 
-La prochaine fois, choisissez **Se connecter avec une clé d’accès** sur la page de connexion.
+La prochaine fois, choisissez **Autres moyens de se connecter** → **Se connecter avec une clé d’accès** sur la page de connexion.
 
 ### Se connecter avec un lien envoyé par e-mail
 
 Vous pouvez vous connecter avec un lien au lieu de votre mot de passe. Il n'y a rien à configurer.
 
 :::steps
-1. Sur la page de connexion, choisissez **M'envoyer un lien de connexion**.
+1. Sur la page de connexion, choisissez **Autres moyens de se connecter** → **M'envoyer un lien de connexion**.
 2. Saisissez votre adresse e-mail et cliquez sur **M'envoyer un lien de connexion**. La page affiche alors **Consultez vos e-mails**.
 3. Ouvrez le lien dans l'e-mail et cliquez sur **Se connecter**.
 :::

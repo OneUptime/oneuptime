@@ -84,14 +84,14 @@ Ett nytt lösenord loggar ut alla enheter från ditt konto, och varje återstäl
 3. Följ webbläsarens uppmaning för att spara passnyckeln.
 :::
 
-Nästa gång väljer du **Logga in med en passnyckel** på inloggningssidan.
+Nästa gång väljer du **Fler sätt att logga in** → **Logga in med en passnyckel** på inloggningssidan.
 
 ### Logga in med en länk via e-post
 
 Du kan logga in med en länk i stället för ditt lösenord. Det finns inget att ställa in.
 
 :::steps
-1. Välj **Skicka en inloggningslänk till mig** på inloggningssidan.
+1. Välj **Fler sätt att logga in** → **Skicka en inloggningslänk till mig** på inloggningssidan.
 2. Ange din e-postadress och klicka på **Skicka en inloggningslänk till mig**. Sidan visar sedan **Kolla din e-post**.
 3. Öppna länken i e-postmeddelandet och klicka på **Logga in**.
 :::
