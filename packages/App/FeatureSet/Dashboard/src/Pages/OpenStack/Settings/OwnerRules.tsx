@@ -1,3 +1,4 @@
+import { getOwnerRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -21,26 +22,17 @@ import OpenStackRuleScopeText, {
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const openStackCloudOwnerDocumentation: string = `
-### How OpenStack Cloud Owner Rules Work
+const openStackCloudOwnerDocumentation: string = getOwnerRuleHelpMarkdown({
+  nouns: { singular: "OpenStack cloud", plural: "OpenStack clouds" },
+  topics: [
+    {
+      title: "By Project and Domain",
+      markdown: `A rule with no project or domain owns whole clouds. Give it an **OpenStack Project ID** or an **OpenStack Domain ID** and it adds no owner to the cloud: it adds its owners to every alert and incident a monitor opens that reaches that project or domain, on the clouds its other conditions allow.
 
-OpenStack Cloud Owner Rules add owner users and teams to an OpenStack cloud automatically when it matches your criteria — without anyone having to remember to assign owners.
-
-### Match Criteria
-
-A rule matches an OpenStack cloud only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **OpenStack Cloud Labels** — any-of (M2M)
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
-
-### By project and domain
-
-A rule with no project or domain owns whole clouds. Give it an **OpenStack Project ID** or **OpenStack Domain ID** and it adds nothing to the cloud: it adds its owners to every alert and incident a monitor opens that reaches that project or domain, on the clouds its other conditions allow. A project's page and the Domains page write these for you, and they match by ID, so a rename breaks nothing.
-`;
+A project's page and the **Domains** page fill these in for you. They match by ID, so renaming a project or a domain breaks nothing.`,
+    },
+  ],
+});
 
 const OpenStackCloudOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

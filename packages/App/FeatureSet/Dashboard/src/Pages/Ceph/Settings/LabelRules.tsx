@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,22 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const cephClusterLabelDocumentation: string = `
-### How Ceph Cluster Label Rules Work
-
-Ceph Cluster Label Rules attach labels to a Ceph cluster automatically when it matches your criteria — so you don't have to remember to tag new Ceph clusters.
-
-### Match Criteria
-
-A rule matches a Ceph cluster only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Ceph Cluster Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the Ceph cluster. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
+const cephClusterLabelDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "Ceph cluster", plural: "Ceph clusters" },
+});
 
 const CephClusterLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

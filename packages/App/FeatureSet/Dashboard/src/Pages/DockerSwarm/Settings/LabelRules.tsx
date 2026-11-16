@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,22 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const dockerSwarmClusterLabelDocumentation: string = `
-### How Docker Swarm Cluster Label Rules Work
-
-Docker Swarm Cluster Label Rules attach labels to a Docker Swarm cluster automatically when it matches your criteria — so you don't have to remember to tag new Docker Swarm clusters.
-
-### Match Criteria
-
-A rule matches a Docker Swarm cluster only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Docker Swarm Cluster Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the Docker Swarm cluster. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
+const dockerSwarmClusterLabelDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "Docker Swarm cluster", plural: "Docker Swarm clusters" },
+});
 
 const DockerSwarmClusterLabelRulesPage: FunctionComponent<
   RuleSettingsPageProps

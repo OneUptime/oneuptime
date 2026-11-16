@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,26 +18,15 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const databaseServerLabelDocumentation: string = `
-### How Database Label Rules Work
-
-Database Label Rules attach labels to a database automatically when it matches your criteria — so you don't have to remember to tag new databases.
-
-### Match Criteria
-
-A rule matches a database only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Database Labels** (prerequisite) — any-of
-- **Database Name**, **Database Description** — text, or a regular expression or \`*\` wildcard pattern
-
-### Matching Discovered Databases
-
-Discovered databases are named after their engine and endpoint (\`PostgreSQL db.prod:5432\`), so the condition **Database Name** starts with \`PostgreSQL\` matches every PostgreSQL database.
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the database. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
+const databaseServerLabelDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "database", plural: "databases" },
+  topics: [
+    {
+      title: "Matching Discovered Databases",
+      markdown: `A database OneUptime discovers is named after its engine and endpoint, such as \`PostgreSQL db.prod:5432\`. So **Database Name** starts with \`PostgreSQL\` matches every PostgreSQL database.`,
+    },
+  ],
+});
 
 const DatabaseServerLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

@@ -21,6 +21,10 @@ import {
   getRuleCriteriaSummaryText,
   RULE_CRITERIA_SUMMARY_MATCHES_NOTHING,
 } from "../../../../UI/Components/RuleCriteria/RuleCriteriaSummary";
+import {
+  getLabelRuleHelpMarkdown,
+  getOwnerRuleHelpMarkdown,
+} from "../../../../../App/FeatureSet/Dashboard/src/Utils/Help/ResourceRuleHelp";
 import IncidentOnCallRule from "../../../../Models/DatabaseModels/IncidentOnCallRule";
 import HostLabelRule from "../../../../Models/DatabaseModels/HostLabelRule";
 import RunbookRule from "../../../../Models/DatabaseModels/RunbookRule";
@@ -122,7 +126,7 @@ function extractMatchCriteriaHelpMarkdown(source: string): Array<string> {
       const markdown: string = node.getText(sourceFile).slice(1, -1);
 
       if (
-        markdown.match(/^#{3,4} Match Criteria(?: \(Filtering\))?$/m) !== null
+        markdown.match(/^#{2,4} Match Criteria(?: \(Filtering\))?$/m) !== null
       ) {
         result.push(markdown);
       }
@@ -133,6 +137,29 @@ function extractMatchCriteriaHelpMarkdown(source: string): Array<string> {
 
   visit(sourceFile);
   return result;
+}
+
+/*
+ * The help a resource's label and owner rule pages write with the shared
+ * helpers (Dashboard Utils/Help/ResourceRuleHelp, #8889): one document per
+ * call, each with the Match Criteria topic the table rewrites.
+ */
+const SHARED_RULE_HELP_CALL: RegExp =
+  /\b(getLabelRuleHelpMarkdown|getOwnerRuleHelpMarkdown)\(\{/g;
+
+function getSharedRuleHelpMarkdown(source: string): Array<string> {
+  return Array.from(source.matchAll(SHARED_RULE_HELP_CALL)).map(
+    (match: RegExpMatchArray): string => {
+      const nouns: { singular: string; plural: string } = {
+        singular: "resource",
+        plural: "resources",
+      };
+
+      return match[1] === "getLabelRuleHelpMarkdown"
+        ? getLabelRuleHelpMarkdown({ nouns: nouns })
+        : getOwnerRuleHelpMarkdown({ nouns: nouns });
+    },
+  );
 }
 
 describe("rule criteria table integration", () => {
@@ -350,9 +377,12 @@ More details stay here.
     );
     const helpMarkdown: Array<string> = helpFormFiles.flatMap(
       (filePath: string): Array<string> => {
-        return extractMatchCriteriaHelpMarkdown(
-          fs.readFileSync(filePath, "utf8"),
-        );
+        const source: string = fs.readFileSync(filePath, "utf8");
+
+        return [
+          ...extractMatchCriteriaHelpMarkdown(source),
+          ...getSharedRuleHelpMarkdown(source),
+        ];
       },
     );
 

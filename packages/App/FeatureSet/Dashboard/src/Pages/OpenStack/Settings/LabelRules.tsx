@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -21,26 +22,17 @@ import OpenStackRuleScopeText, {
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const openStackCloudLabelDocumentation: string = `
-### How OpenStack Cloud Label Rules Work
+const openStackCloudLabelDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "OpenStack cloud", plural: "OpenStack clouds" },
+  topics: [
+    {
+      title: "By Project and Domain",
+      markdown: `A rule with no project or domain labels whole clouds. Give it an **OpenStack Project ID** or an **OpenStack Domain ID** and it labels no cloud: it adds its labels to every alert and incident a monitor opens that reaches that project or domain, on the clouds its other conditions allow.
 
-OpenStack Cloud Label Rules attach labels to an OpenStack cloud automatically when it matches your criteria — so you don't have to remember to tag new OpenStack clouds.
-
-### Match Criteria
-
-A rule matches an OpenStack cloud only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **OpenStack Cloud Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the OpenStack cloud. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-
-### By project and domain
-
-A rule with no project or domain labels whole clouds. Give it an **OpenStack Project ID** or **OpenStack Domain ID** and it adds nothing to the cloud: it adds its labels to every alert and incident a monitor opens that reaches that project or domain, on the clouds its other conditions allow. A project's page and the Domains page write these for you, and they match by ID, so a rename breaks nothing.
-`;
+A project's page and the **Domains** page fill these in for you. They match by ID, so renaming a project or a domain breaks nothing.`,
+    },
+  ],
+});
 
 const OpenStackCloudLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
