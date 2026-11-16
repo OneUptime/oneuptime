@@ -2,9 +2,12 @@ import "../TestingUtils/Init";
 import AnalyticsModels from "../../../Models/AnalyticsModels/Index";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Log from "../../../Models/AnalyticsModels/Log";
+import RumSession from "../../../Models/AnalyticsModels/RumSession";
 import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import Span from "../../../Models/AnalyticsModels/Span";
 import AnalyticsDatabaseService from "../../../Server/Services/AnalyticsDatabaseService";
+import AnalyticsModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
+import ColumnRefusalMessage from "../../../Server/Types/Database/Permissions/ColumnRefusalMessage";
 import LogService from "../../../Server/Services/LogService";
 import { ClickhouseAppInstance } from "../../../Server/Infrastructure/ClickhouseDatabase";
 import StatementGenerator from "../../../Server/Utils/AnalyticsDatabase/StatementGenerator";
@@ -18,6 +21,11 @@ import {
   DashboardWidgetSortChoice,
 } from "../../../Types/Dashboard/DashboardWidgetSort";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
 import {
   DashboardWidgetListReadStep,
   DashboardWidgetListSortColumn,
@@ -241,5 +249,187 @@ describe("the columns a telemetry list sorts by are its model's", () => {
         }),
       ).toBe(true);
     }
+  });
+});
+
+/*
+ * A TELEMETRY LIST'S SORT IS HELD TO THE READ OF EACH COLUMN IT NAMES
+ * (#8839), as its select is: where each row falls in the order says what it
+ * holds. A session's identified user is read only by those who may watch a
+ * replay, though more may list the sessions.
+ */
+describe("a telemetry list's sort is held to the caller's read of each column it names", () => {
+  const PROJECT_ID: ObjectID = ObjectID.generate();
+
+  const personWith: (
+    permissions: Array<Permission>,
+  ) => DatabaseCommonInteractionProps = (
+    permissions: Array<Permission>,
+  ): DatabaseCommonInteractionProps => {
+    return {
+      userId: ObjectID.generate(),
+      userType: UserType.User,
+      tenantId: PROJECT_ID,
+      userTenantAccessPermission: {
+        [PROJECT_ID.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: PROJECT_ID,
+          permissions: permissions.map((permission: Permission) => {
+            return {
+              _type: "UserPermission",
+              permission: permission,
+              labelIds: [],
+              isBlockPermission: false,
+            };
+          }),
+        },
+      },
+    };
+  };
+
+  const sortRefusalOf: (
+    modelType: AnalyticsModelType,
+    sort: unknown,
+    props: DatabaseCommonInteractionProps,
+  ) => Error | null = (
+    modelType: AnalyticsModelType,
+    sort: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): Error | null => {
+    try {
+      AnalyticsModelPermission.checkSortPermission(modelType, sort, props);
+      return null;
+    } catch (error) {
+      return error as Error;
+    }
+  };
+
+  test.each([Permission.TelemetryAdmin, Permission.ReadRumSessionReplay])(
+    "a session's identified user orders no list for %s, who may list sessions but not read it",
+    (permission: Permission) => {
+      expect(new RumSession().getReadPermissions()).toContain(permission);
+
+      const refusal: Error | null = sortRefusalOf(
+        RumSession,
+        { identifiedUserLabel: SortOrder.Ascending },
+        personWith([permission]),
+      );
+
+      expect(refusal).toBeInstanceOf(NotAuthorizedException);
+      expect(refusal!.message).toBe(
+        ColumnRefusalMessage.getSortRefusal({
+          column: "identifiedUserLabel",
+          permissions: new RumSession().getTableColumn("identifiedUserLabel")!
+            .accessControl!.read,
+        }),
+      );
+    },
+  );
+
+  test.each([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ReadRumSessionReplayPayload,
+  ])("it orders sessions for %s, who may read it", (permission: Permission) => {
+    expect(
+      sortRefusalOf(
+        RumSession,
+        { identifiedUserLabel: SortOrder.Ascending },
+        personWith([permission]),
+      ),
+    ).toBeNull();
+  });
+
+  test("root and a master admin still sort by it", () => {
+    for (const props of [
+      { isRoot: true },
+      { isMasterAdmin: true },
+    ] as Array<DatabaseCommonInteractionProps>) {
+      expect(
+        sortRefusalOf(
+          RumSession,
+          { identifiedUserLabel: SortOrder.Ascending },
+          props,
+        ),
+      ).toBeNull();
+    }
+  });
+
+  test("a column the list's readers may all read, and the ids and times, sort for each of them", () => {
+    for (const permission of new RumSession().getReadPermissions()) {
+      for (const sort of [
+        { [new RumSession().defaultSortColumn]: SortOrder.Descending },
+        { _id: SortOrder.Ascending },
+        { createdAt: SortOrder.Descending },
+      ]) {
+        expect([
+          permission,
+          sortRefusalOf(RumSession, sort, personWith([permission])),
+        ]).toEqual([permission, null]);
+      }
+    }
+  });
+
+  test("every telemetry list's own order sorts for every reader of it", () => {
+    for (const modelType of AnalyticsModels as Array<AnalyticsModelType>) {
+      const model: AnalyticsBaseModel = new modelType();
+
+      for (const permission of model.getReadPermissions()) {
+        expect([
+          model.tableName,
+          permission,
+          sortRefusalOf(
+            modelType,
+            { [model.defaultSortColumn]: SortOrder.Descending },
+            personWith([permission]),
+          ),
+        ]).toEqual([model.tableName, permission, null]);
+      }
+    }
+  });
+
+  test.each([
+    [DashboardComponentType.TraceList, Span],
+    [DashboardComponentType.SecurityEventsList, SecurityEvent],
+  ] as Array<[DashboardComponentType, AnalyticsModelType]>)(
+    "every order the %s widget reads, for every reader of its rows",
+    (componentType: DashboardComponentType, modelType: AnalyticsModelType) => {
+      const spec: DashboardWidgetListSortSpec | null =
+        getDashboardWidgetSortSpec(componentType);
+
+      for (const permission of new modelType().getReadPermissions()) {
+        for (const column of (spec as DashboardWidgetListSortSpec).columns) {
+          for (const direction of [
+            DashboardWidgetSortDirection.Ascending,
+            DashboardWidgetSortDirection.Descending,
+          ]) {
+            for (const step of getDashboardWidgetListReadSteps({
+              componentType: componentType,
+              choice: {
+                column: (column as DashboardWidgetListSortColumn).key,
+                direction: direction,
+              },
+              query: {},
+            }) as Array<DashboardWidgetListReadStep>) {
+              expect([
+                permission,
+                column.key,
+                sortRefusalOf(modelType, step.sort, personWith([permission])),
+              ]).toEqual([permission, column.key, null]);
+            }
+          }
+        }
+      }
+    },
+  );
+
+  test("a column the model does not have is left to the sort statement, which refuses it as bad data", () => {
+    expect(
+      sortRefusalOf(
+        RumSession,
+        { nope: SortOrder.Ascending },
+        personWith([Permission.TelemetryAdmin]),
+      ),
+    ).toBeNull();
   });
 });

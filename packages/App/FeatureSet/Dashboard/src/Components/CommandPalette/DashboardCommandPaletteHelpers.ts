@@ -179,6 +179,15 @@ export interface PageSearchCommandDescriptor {
   title: string;
   // Its English title, when that is not the title: searched as the title.
   titleAliases: Array<string>;
+  /*
+   * The key its title is looked up by, as the index writes it: a page's or
+   * a setting's name, or an action's template, which titleValues fill once
+   * it is translated ("Import from {{tool}}", { tool: "PagerDuty" }). Ask
+   * AI's page catalog keeps them, so its Go to button and its chip draw
+   * the title in the reader's language (#8834).
+   */
+  titleKey: string;
+  titleValues?: Record<string, string> | undefined;
   // Other words for it ("pager", "2fa"), never shown.
   keywords: Array<string>;
   // Where it lives, in the reader's language: ["Project Settings", "Advanced"].
@@ -435,6 +444,7 @@ export function buildPageSearchCommandDescriptors(
             id: pageCommandId,
             title,
             titleAliases: englishUnlessShown(title, page.title),
+            titleKey: page.title,
             keywords: page.keywords || [],
             breadcrumb,
             breadcrumbKeywords,
@@ -482,6 +492,10 @@ export function buildPageSearchCommandDescriptors(
             id: slugifyPaletteCommandId("page-action", action.id),
             title: actionTitle,
             titleAliases: englishUnlessShown(actionTitle, englishActionTitle),
+            titleKey: action.title,
+            ...(action.titleValues
+              ? { titleValues: { ...action.titleValues } }
+              : {}),
             keywords: action.keywords || [],
             breadcrumb: onPageBreadcrumb,
             breadcrumbKeywords: [
@@ -525,6 +539,7 @@ export function buildPageSearchCommandDescriptors(
             ),
             title: settingTitle,
             titleAliases: englishUnlessShown(settingTitle, setting.name),
+            titleKey: setting.name,
             keywords: [],
             breadcrumb: onPageBreadcrumb,
             breadcrumbKeywords: [

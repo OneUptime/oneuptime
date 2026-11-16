@@ -1154,7 +1154,11 @@ export default class AnalyticsDatabaseService<
         );
       }
 
-      // Every row carries the columns the aggregate groups by.
+      /*
+       * Every row carries the columns the aggregate groups by, and the rows
+       * come in the order its sort asks for: both are held to the caller's
+       * read (#8839).
+       */
       const result: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
@@ -1168,6 +1172,8 @@ export default class AnalyticsDatabaseService<
             aggregateBy.groupBy,
           ),
           aggregateBy.props,
+          undefined,
+          aggregateBy.sort,
         );
 
       aggregateBy.query = result.query;
@@ -1317,6 +1323,9 @@ export default class AnalyticsDatabaseService<
     findBy: FindBy<TBaseModel>,
   ): Promise<Array<TBaseModel>> {
     try {
+      // The order the caller asked for, before the model's own is put in.
+      const askedSort: Sort<TBaseModel> | undefined = findBy.sort;
+
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
         /*
          * Default sort uses the model's declared `defaultSortColumn`
@@ -1368,7 +1377,8 @@ export default class AnalyticsDatabaseService<
 
       /*
        * A group by is checked with the select: toFindStatement selects its
-       * columns in place of the select.
+       * columns in place of the select. The sort is held to the caller's
+       * read of each column it names, as the select is (#8839).
        */
       const result: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
@@ -1380,6 +1390,8 @@ export default class AnalyticsDatabaseService<
             onBeforeFind.groupBy,
           ),
           onBeforeFind.props,
+          undefined,
+          askedSort,
         );
 
       onBeforeFind.query = result.query;

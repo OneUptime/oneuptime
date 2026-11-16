@@ -1,6 +1,11 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
+import Query from "../Query";
 import ColumnPermissions from "./ColumnPermission";
+import ColumnRefusalMessage from "./ColumnRefusalMessage";
 import OwnedScopePermission from "./OwnedScopePermission";
+import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
+import QueryPermission from "./QueryPermission";
+import RelationListPermission from "./RelationListPermission";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -16,6 +21,10 @@ import {
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../../../Types/HeldPermissions";
 
 /*
  * A LIST'S SORT, CHECKED AGAINST ITS MODEL BEFORE THE DATABASE SEES IT
@@ -66,9 +75,10 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
  * Through a relation, the related fields any reader of the relation may
  * read (canReadOnRelationQuery).
  *
- * Who may sort by what is not decided here: a field the caller cannot read
- * sorts as it did before this check, and the columns kept to their owners
- * are refused by OwnedScopePermission.checkSortOnColumnsKeptToOwners.
+ * Who may sort by what is checkSortPermission's (#8839): a sort is held to
+ * the read of every column it names, as a select and a filter are, and the
+ * columns kept to their owners are refused by OwnedScopePermission
+ * .checkSortOnColumnsKeptToOwners.
  */
 
 // The directions TypeORM reads as written.
@@ -160,6 +170,247 @@ export default class SortValidator {
         props: data.props,
       },
       data.sort as Dictionary<unknown>,
+    );
+  }
+
+  /*
+   * A SORT READS THE COLUMNS IT ORDERS BY (#8839).
+   *
+   * Where each record falls in an order says what it holds: next to records
+   * whose values the caller knows, the order tells whether each hidden value
+   * comes before or after them, one guess at a time. So a sort is held to
+   * the read of every column it names, as a select and a filter are:
+   *
+   *   - a column of the list's own model: one the caller may read, as a
+   *     select is held (ColumnPermission) - the ids and times every select
+   *     may name pass, as there;
+   *   - a column only its own user reads (@OwnerOnlyColumn): only when the
+   *     read is pinned to the caller's own records, as a select of it is
+   *     (OwnerOnlyColumnPermission);
+   *   - through a relation, a column of the related record: one any reader
+   *     of the relation may read (canReadOnRelationQuery), or one the caller
+   *     may read on the related model - never by a workflow's step when the
+   *     related model holds credentials - as a filter through the relation
+   *     is (QueryPermission.checkRelationFilterPermission).
+   *
+   * A column kept to its owners is refused by OwnedScopePermission
+   * .checkSortOnColumnsKeptToOwners, before this. Asked of every read by
+   * BasePermission.checkPermissions, beside the select's check and with the
+   * same query and caller: in a read across projects once for each project,
+   * whose own permissions decide (TenantPermission) - a project where the
+   * caller may not read the column is left out, as one whose select they
+   * may not read is. Root and a master admin pass, as they pass every check.
+   *
+   * A field the model does not have, or a sort of another shape, is left to
+   * checkSort, which refuses it as bad data.
+   */
+  public static checkSortPermission(data: {
+    modelType: DatabaseBaseModelType;
+    // The read's query, scoped to the caller's records as a select reads it.
+    query: Query<BaseModel>;
+    sort: unknown;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    if (
+      data.props.isRoot ||
+      data.props.isMasterAdmin ||
+      !SortValidator.isPlainObject(data.sort)
+    ) {
+      return;
+    }
+
+    const model: BaseModel = new data.modelType();
+    const fields: Dictionary<unknown> = data.sort as Dictionary<unknown>;
+
+    const named: Array<string> = Object.keys(fields).filter(
+      (field: string): boolean => {
+        return fields[field] !== undefined;
+      },
+    );
+
+    if (named.length === 0) {
+      return;
+    }
+
+    const readable: Array<string> =
+      ColumnPermissions.getModelColumnsByPermissions(
+        data.modelType,
+        ColumnPermissions.getColumnCheckRows(data.props),
+        DatabaseRequestType.Read,
+      ).columns;
+
+    const alwaysReadable: Array<string> =
+      ColumnPermissions.getExcludedColumnNames();
+
+    for (const field of named) {
+      const column: TableColumnMetadata | undefined = getTableColumn(
+        model,
+        field,
+      ) as TableColumnMetadata | undefined;
+
+      // Not a field of the model: checkSort refuses it.
+      if (!column) {
+        continue;
+      }
+
+      if (!alwaysReadable.includes(field) && !readable.includes(field)) {
+        throw new NotAuthorizedException(
+          ColumnRefusalMessage.getSortRefusal({
+            column: field,
+            permissions: model.getColumnAccessControlFor(field)?.read || [],
+          }),
+        );
+      }
+
+      SortValidator.checkOwnerOnlySort({
+        listModelType: data.modelType,
+        model: model,
+        field: field,
+        query: data.query,
+        props: data.props,
+      });
+
+      const value: unknown = fields[field];
+
+      if (
+        column.type === TableColumnType.Entity &&
+        column.modelType &&
+        SortValidator.isPlainObject(value)
+      ) {
+        SortValidator.checkRelationSortPermission({
+          listModelType: data.modelType,
+          relationPath: field,
+          relatedModelType: column.modelType,
+          fields: value as Dictionary<unknown>,
+          held: HeldPermissionsUtil.fromRows({
+            rows: ColumnPermissions.getColumnCheckRows(data.props),
+          }),
+          query: data.query,
+          props: data.props,
+        });
+      }
+    }
+  }
+
+  /*
+   * Through a relation: each column of the related record the sort names,
+   * held to the read a filter through the relation is held to - and a
+   * relation of the related record's, a level deeper, the same way.
+   */
+  private static checkRelationSortPermission(data: {
+    listModelType: DatabaseBaseModelType;
+    // The relations walked to reach the related record: "monitor.currentMonitorStatus".
+    relationPath: string;
+    relatedModelType: DatabaseBaseModelType;
+    fields: Dictionary<unknown>;
+    held: HeldPermissions;
+    query: Query<BaseModel>;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    const relatedModel: BaseModel = new data.relatedModelType();
+
+    const alwaysReadable: Array<string> =
+      ColumnPermissions.getExcludedColumnNames();
+
+    for (const relatedField of Object.keys(data.fields)) {
+      const value: unknown = data.fields[relatedField];
+
+      if (value === undefined) {
+        continue;
+      }
+
+      const column: TableColumnMetadata | undefined = getTableColumn(
+        relatedModel,
+        relatedField,
+      ) as TableColumnMetadata | undefined;
+
+      // Not a field of the related record: checkSort refuses it.
+      if (!column) {
+        continue;
+      }
+
+      SortValidator.checkOwnerOnlySort({
+        listModelType: data.listModelType,
+        model: relatedModel,
+        field: relatedField,
+        query: data.query,
+        props: data.props,
+        relationPath: data.relationPath,
+      });
+
+      if (
+        !alwaysReadable.includes(relatedField) &&
+        !column.canReadOnRelationQuery &&
+        (!QueryPermission.canReadRelatedColumn({
+          relatedModel: relatedModel,
+          column: relatedField,
+          held: data.held,
+        }) ||
+          RelationListPermission.isReadWithheldFromWorkflow(
+            data.relatedModelType,
+            data.props,
+          ))
+      ) {
+        throw new NotAuthorizedException(
+          ColumnRefusalMessage.getRelationSortRefusal({
+            column: relatedField,
+            relatedModelName: SortValidator.getSingularName(relatedModel),
+            relationColumn: data.relationPath,
+            permissions: QueryPermission.getRelatedReadPermissions(
+              relatedModel,
+              relatedField,
+            ),
+          }),
+        );
+      }
+
+      if (
+        column.type === TableColumnType.Entity &&
+        column.modelType &&
+        SortValidator.isPlainObject(value)
+      ) {
+        SortValidator.checkRelationSortPermission({
+          ...data,
+          relationPath: `${data.relationPath}.${relatedField}`,
+          relatedModelType: column.modelType,
+          fields: value as Dictionary<unknown>,
+        });
+      }
+    }
+  }
+
+  /*
+   * A column only its own user reads (@OwnerOnlyColumn) orders a list only
+   * when the read is pinned to the caller's own records - the list's own
+   * rows decide, through a relation too, as for a select of it
+   * (OwnerOnlyColumnPermission.checkSelectPermission, checkRelationSelect).
+   */
+  private static checkOwnerOnlySort(data: {
+    listModelType: DatabaseBaseModelType;
+    // The model the column is of: the list's, or a related record's.
+    model: BaseModel;
+    field: string;
+    query: Query<BaseModel>;
+    props: DatabaseCommonInteractionProps;
+    relationPath?: string | undefined;
+  }): void {
+    if (
+      !isOwnerOnlyColumn(data.model, data.field) ||
+      OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+        data.listModelType,
+        data.query,
+        data.props,
+      )
+    ) {
+      return;
+    }
+
+    const where: string = data.relationPath
+      ? ` of ${SortValidator.getSingularName(data.model)} through ${data.relationPath}`
+      : "";
+
+    throw new NotAuthorizedException(
+      `You do not have permissions to sort on - ${data.field}${where}. This column belongs to the user it was created for, so a list can be sorted by it only when the query is restricted to your own records.`,
     );
   }
 
