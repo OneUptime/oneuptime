@@ -11,6 +11,7 @@ import {
   roundTableValue,
 } from "Common/Utils/Dashboard/TableThresholds";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * A dashboard's metric tables colored by thresholds (issue #5231), in a real
@@ -1615,4 +1616,18 @@ test.describe("metric tables on a public dashboard", () => {
 
     await shoot(page, testInfo, "public-dark");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Persian and Arabic whole, parsed on every page load of every test.
+ * English is in the bundle now, and each other language a chunk of its own,
+ * loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built
+ * as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa", "ar"],
+  address: (language: string): string => {
+    return language === "en" ? APP_PATH : `${APP_PATH}?lang=${language}`;
+  },
 });

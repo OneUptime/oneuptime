@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * "Create a new section for rules and have monitor rules there. The section
@@ -745,4 +746,20 @@ test.describe("in German and in dark mode", () => {
 
     await screenshot(page, "dark-slo-burn-rate-rules");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, French and Persian whole, parsed on every page load of every test.
+ * English is in the bundle now, and each other language a chunk of its own,
+ * loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built
+ * as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fr", "fa"],
+  address: (language: string): string => {
+    return language === "en"
+      ? STATUS_PAGE_PATH
+      : `${STATUS_PAGE_PATH}?lang=${language}`;
+  },
 });

@@ -761,7 +761,7 @@ test.describe("a case's evidence", () => {
     });
     expect(metas).toEqual([
       "https://acme-commerce.okta.example/admin/users?filter=sprayed",
-      "okta-system-log-2026-10-14.json · 470.8 KB",
+      `okta-system-log-2026-10-14.json · ${withUnit("470.8", "KB")}`,
     ]);
     await expect(page.getByTestId("security-case-evidence-sha256")).toHaveText(
       "9f2c1a7e…9c0d",
@@ -776,7 +776,7 @@ test.describe("a case's evidence", () => {
      */
     expect(await addedLines(page)).toEqual([
       "Added by Diego Alvarez an hour ago",
-      "Added by Maya Chen 3 hours ago",
+      `Added by Maya Chen ${withUnit(3, "hours")} ago`,
     ]);
     // The table's header names one column: Evidence.
     const header: Locator = page
@@ -877,7 +877,7 @@ test.describe("a case's evidence", () => {
     });
     expect(metas).toEqual([
       "https://acme-commerce.okta.example/admin/users?filter=sprayed",
-      "okta-system-log-2026-10-14.json · 470.8 KB",
+      `okta-system-log-2026-10-14.json · ${withUnit("470.8", "KB")}`,
     ]);
   });
 
@@ -954,7 +954,7 @@ test.describe("a case's evidence", () => {
       // Each piece of evidence says who added it and when, at every width.
       expect(await addedLines(page), `added lines at ${width}`).toEqual([
         "Added by Diego Alvarez an hour ago",
-        "Added by Maya Chen 3 hours ago",
+        `Added by Maya Chen ${withUnit(3, "hours")} ago`,
       ]);
 
       /*

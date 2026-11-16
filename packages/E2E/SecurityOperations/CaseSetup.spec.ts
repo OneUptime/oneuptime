@@ -9,6 +9,7 @@ import fs from "fs/promises";
 import path from "path";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withSpacesShown, withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * A project's own case setup on the Security Operations fixture
@@ -2353,6 +2354,16 @@ test.describe("in the reader's language", () => {
     }
     await expect(times).toHaveCount(2);
     await expect(times.filter({ hasText: /ago|[0-9]/ })).toHaveCount(0);
+    // The count keeps its unit on its line, as in English (#8302).
+    expect(
+      withSpacesShown(
+        await times
+          .filter({ hasText: "۲۰ دقیقه پیش" })
+          .evaluate((element: Element): string => {
+            return element.firstChild?.textContent || "";
+          }),
+      ),
+    ).toBe(withSpacesShown(`${withUnit("۲۰", "دقیقه")} پیش`));
 
     // Where each word and each digit of "۲۰ دقیقه پیش" is drawn.
     const drawn: Array<{ text: string; left: number; right: number }> =
@@ -2384,7 +2395,8 @@ test.describe("in the reader's language", () => {
             const pieces: Array<{ text: string; left: number; right: number }> =
               [];
             let start: number = 0;
-            for (const word of content.split(" ")) {
+            // A word ends at a space or at the no-break space after the count.
+            for (const word of content.split(/[ \u00A0]/)) {
               pieces.push(boxOf(start, start + word.length));
               start += word.length + 1;
             }
