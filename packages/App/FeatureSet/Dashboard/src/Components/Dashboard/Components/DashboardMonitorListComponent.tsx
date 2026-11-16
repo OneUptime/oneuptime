@@ -75,7 +75,7 @@ export const getMonitorListStatusName: (
   status: MonitorListRowStatus,
   translator: Translator,
 ): string => {
-  if (status.isProductWords) {
+  if (status.isProductWords || status.isMonitoringOff) {
     return translator.translateText(status.text) || status.text;
   }
 
