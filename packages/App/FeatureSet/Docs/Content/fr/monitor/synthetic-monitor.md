@@ -156,6 +156,11 @@ return {
 
 Une exécution conserve jusqu'à 20 captures d'écran, chacune jusqu'à 10 Mo et 50 Mo au total. Une capture peut aussi apparaître dans l'incident ou l'alerte qu'ouvre une exécution en échec — sur sa page et dans les e-mails qui en parlent — en la plaçant dans la description d'incident ou d'alerte du moniteur. Voir [Afficher une capture d'écran](/docs/monitor/incident-alert-templating#afficher-une-capture-décran).
 
+Les captures d'écran d'une vérification sont conservées dans les journaux du moniteur lui-même, pas dans les journaux d'un incident ou d'une alerte, ni dans les changements de statut d'un moniteur : ceux-ci conservent le reste de la vérification, et chaque exécution dont les captures ont été omises l'indique (`areScreenshotsOmitted`). Les captures déjà enregistrées à ces endroits sont effacées après la mise à jour par une tâche qui s'exécute toutes les heures, petit à petit, jusqu'à ce qu'il n'en reste plus.
+
+> [!NOTE]
+> Sur une installation auto-hébergée, PostgreSQL réutilise l'espace laissé par les captures effacées, mais ne le rend pas au disque. Pour réduire la base de données une fois qu'elles sont effacées, exécutez `VACUUM FULL` sur les plus grosses tables pendant une fenêtre de maintenance, car il verrouille chaque table pendant qu'il la réécrit, ou utilisez `pg_repack`, qui ne le fait pas.
+
 :::details Renvoyer des captures d'écran (ancienne méthode)
 Pour la rétrocompatibilité, vous pouvez aussi renvoyer des captures d'écran dans la valeur de retour du script. Les captures renvoyées ainsi ne sont conservées **que** si le script se termine normalement — elles sont perdues s'il lève une erreur. Préférez le canal parallèle décrit plus haut quand vous voulez des preuves des échecs.
 

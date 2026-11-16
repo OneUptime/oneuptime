@@ -9,6 +9,7 @@ import IncidentStateTimelineService from "../../../Server/Services/IncidentState
 import ScheduledMaintenancePublicNoteService from "../../../Server/Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceStateTimelineService from "../../../Server/Services/ScheduledMaintenanceStateTimelineService";
 import UserService from "../../../Server/Services/UserService";
+import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import StateChangePublicNote from "../../../Server/Utils/StatusPage/StateChangePublicNote";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
 import Incident from "../../../Models/DatabaseModels/Incident";
@@ -871,4 +872,80 @@ describe("what an incident state change with a public note saves", () => {
       notes.inserts[0]!["shouldStatusPageSubscribersBeNotifiedOnNoteCreated"],
     ).toBe(false);
   });
+
+  /*
+   * Whether a change's subscribers were told is OneUptime's record of it
+   * (#8907): a member's own "sent" and its message - a script's, a row read
+   * and sent back - are dropped before the hooks run, and the change is
+   * queued, sent by its note, or skipped, as the change says.
+   */
+  function changeClaimingItWasSent(): IncidentStateTimeline {
+    const change: IncidentStateTimeline = incidentStateChange(true);
+    change.subscriberNotificationStatus =
+      StatusPageSubscriberNotificationStatus.Success;
+    change.subscriberNotificationStatusMessage =
+      "Sent to all 1,284 subscribers.";
+    return change;
+  }
+
+  test("a member's own 'sent' on a change with no note is dropped: the change is queued for subscribers", async () => {
+    await IncidentStateTimelineService.create({
+      data: changeClaimingItWasSent(),
+      props: memberProps({ allow: [Permission.IncidentMember] }),
+    });
+
+    expect(timelines.inserts).toHaveLength(1);
+    expect(timelines.inserts[0]!["subscriberNotificationStatus"]).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
+    expect(
+      timelines.inserts[0]!["subscriberNotificationStatusMessage"],
+    ).toBeUndefined();
+    expect(notes.inserts).toEqual([]);
+  });
+
+  test("a member's own 'sent' on a change with Notify off is dropped too: skipped, saying why in OneUptime's words", async () => {
+    const change: IncidentStateTimeline = changeClaimingItWasSent();
+    change.shouldStatusPageSubscribersBeNotified = false;
+
+    await IncidentStateTimelineService.create({
+      data: change,
+      props: memberProps({ allow: [Permission.IncidentMember] }),
+    });
+
+    expect(timelines.inserts[0]!["subscriberNotificationStatus"]).toBe(
+      StatusPageSubscriberNotificationStatus.Skipped,
+    );
+    expect(timelines.inserts[0]!["subscriberNotificationStatusMessage"]).toBe(
+      "Notifications skipped as subscribers are not to be notified for this incident state change.",
+    );
+  });
+
+  test.each([
+    "subscriberNotificationStatus",
+    "subscriberNotificationStatusMessage",
+  ])(
+    "someone who may change the state but not read the timeline is refused for sending %s, by its name, and nothing is saved",
+    async (column: string) => {
+      const change: IncidentStateTimeline = incidentStateChange(true);
+      (change as unknown as Record<string, unknown>)[column] =
+        StatusPageSubscriberNotificationStatus.Success;
+
+      const error: unknown = await rejectionOf(
+        IncidentStateTimelineService.create({
+          data: change,
+          props: memberProps({
+            allow: [
+              Permission.CreateIncidentStateTimeline,
+              Permission.ReadProjectIncident,
+            ],
+          }),
+        }),
+      );
+
+      expect(error).toBeInstanceOf(ColumnWriteRefusedException);
+      expect((error as ColumnWriteRefusedException).columnName).toBe(column);
+      expect(timelines.inserts).toEqual([]);
+    },
+  );
 });

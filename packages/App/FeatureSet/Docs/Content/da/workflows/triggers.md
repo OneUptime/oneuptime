@@ -73,6 +73,8 @@ curl -X POST "https://oneuptime.example.com/workflow/trigger/<secret key>" \
 
 URL'en accepterer både `GET` og `POST`. Kalderen får en hurtig kvittering, `{"status": "Scheduled"}` — selve arbejdsgangen kører i baggrunden, så kalderen ser aldrig, hvad den gør. Et kald til en arbejdsgang, der er slået fra eller arkiveret, afvises med HTTP 400 og årsagen.
 
+Azure Event Grid, Slack, Microsoft Graph og Okta tjekker en URL, før de leverer noget til den. URL'en besvarer hvert tjek, som dens tjeneste forventer, sådan som [URL'en for en monitor af indgående anmodninger gør](/docs/monitor/incoming-request-monitor#tjenester-der-tjekker-urlen-først), og et tjek starter ingen kørsel. Mens arbejdsgangen er slået fra eller arkiveret, afvises et tjek som et kald.
+
 ```mermaid title="Hvad der sker, når noget kalder webhook-URL'en"
 sequenceDiagram
     participant Caller as Dit værktøj
@@ -94,7 +96,7 @@ sequenceDiagram
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | **Anmodningsheadere**      | Hver header i forespørgslen, ved navn med små bogstaver, som `content-type`.                                          |
 | **Forespørgselsparametre i anmodningen** | Forespørgselsparametrene i URL'en, ved navn.                                                                          |
-| **Anmodningsbrødtekst**         | Den body, kalderen sendte. En JSON-body, sendt med `Content-Type: application/json`, kan læses felt for felt, og det kan JSON sendt som ren tekst også, som Amazon SNS sender den. |
+| **Anmodningsbrødtekst**         | Den body, kalderen sendte. En JSON-body, sendt med `Content-Type: application/json` eller en `+json`-type som Azure Event Grids CloudEvents, kan læses felt for felt, og det kan JSON sendt som ren tekst også, som Amazon SNS sender den. Al anden ren tekst er selve teksten. |
 
 Læs et enkelt felt ved at tilføje dets navn til referencen, som i `{{local.components.webhook-1.returnValues.request-body.message}}`.
 

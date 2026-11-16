@@ -86,6 +86,8 @@ Fate clic su **Aggiungi formula** e scrivete la **Formula** con le variabili del
 
 Una variabile si può scrivere con o senza il suo `$`, in maiuscolo o minuscolo. Una formula che nomina una query non definita lo segnala invece di disegnare.
 
+Una query che conta ciò che è successo, la somma o il conteggio di un contatore o di un istogramma, non ha alcun punto dati in un passo in cui non è successo nulla, quindi una formula la legge come 0 lì: `$b / $a * 100` disegna 0 in un passo senza errori. Un indicatore, una media o un percentile senza punto dati è sconosciuto, e la formula tralascia quel passo. Tralascia anche un passo in cui nessuna delle sue query ha un punto dati, e uno terminato meno di un minuto fa, i cui ultimi punti dati potrebbero essere ancora in arrivo.
+
 ## Esplorare intorno a un grafico
 
 I pulsanti sopra i grafici lavorano sull'intervallo di tempo che state guardando:

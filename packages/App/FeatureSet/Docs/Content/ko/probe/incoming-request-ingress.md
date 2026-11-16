@@ -160,10 +160,10 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 
 | 항목 | 프로브의 처리 |
 | --- | --- |
-| 응답 | 빈 JSON 객체(`{}`)와 함께 `200`을, 요청을 전달하기 전에 보냅니다. OneUptime처럼 이후에 무슨 일이 생기든 보내므로, 잘못된 비밀 키도 이 응답을 받습니다. |
+| 응답 | 빈 JSON 객체(`{}`)와 함께 `200`을, 요청을 전달하기 전에 보냅니다. OneUptime처럼 이후에 무슨 일이 생기든 보내므로, 잘못된 비밀 키도 이 응답을 받습니다. 서비스의 URL 확인도 이 응답을 받습니다. OneUptime 자체는 이 확인에 서비스가 기대하는 대로 응답하므로, Slack, Microsoft Graph, Okta, Azure Event Grid는 OneUptime 자체의 URL로 보내세요. |
 | 메서드 | `POST`는 `POST`로 전달합니다. `GET`과 `HEAD`는 `GET`으로 전달합니다. 다른 메서드에는 프로브가 `404`를 돌려줍니다. |
 | 헤더 | 홉 단위 헤더(`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`)와 `Content-Encoding`을 제외한 모두. 프로브는 본문을 압축하지 않은 채로 전달합니다. 프로브는 `OneUptime-Probe-Id`를 추가합니다. |
-| 본문 | 최대 50 MB의 JSON 및 폼 본문과, 일반 텍스트로 보낸 JSON(Amazon SNS가 이렇게 보냅니다)으로, OneUptime에 직접 보낼 때와 같습니다. 직접 보낼 때처럼 그 밖의 본문은 비어 있는 채로 모니터에 도착합니다. |
+| 본문 | 최대 50 MB의 JSON, 폼, 일반 텍스트, `+json` 본문으로, OneUptime에 직접 보낼 때와 같습니다. 일반 텍스트나 `+json` 본문은 도착한 그대로 `Content-Type` 과 함께 전달됩니다. 직접 보낼 때처럼 그 밖의 본문은 비어 있는 채로 모니터에 도착합니다. |
 | 재시도 | 전달에 실패하면 프로브는 최대 `PROBE_INGRESS_FORWARD_RETRY_LIMIT`번 다시 시도하며 2초, 4초, 8초를 기다리고 15초를 넘지 않습니다. 그다음 실패를 기록하고 요청을 버립니다. |
 | 프록시 | `HTTP_PROXY_URL`이나 `HTTPS_PROXY_URL`이 설정되어 있으면 전달은 프로브의 프록시를 거칩니다. |
 | 전달 대상 | `ONEUPTIME_URL` 뒤에 `/incoming-request-ingest/incoming-request/<secret-key>`를 붙인 주소. |

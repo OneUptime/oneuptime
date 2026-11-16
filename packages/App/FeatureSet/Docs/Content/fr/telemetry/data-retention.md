@@ -94,6 +94,7 @@ Les services, les hôtes, les clusters Kubernetes, les hôtes Docker et Podman, 
 | Journaux des moniteurs, une ligne par vérification | 1 jour, sauf changement | Sur une installation auto-hébergée, **Rétention des journaux du moniteur (jours)** dans l'Admin Dashboard |
 | Métriques des moniteurs, et les métriques que les SLO enregistrent | 30 jours, sauf changement | Sur une installation auto-hébergée, **Rétention des métriques du moniteur (jours)** dans l'Admin Dashboard |
 | [Utilisation de la télémétrie](/docs/telemetry/usage), un compte par ressource, signal et jour | 120 jours, sauf changement | Sur une installation auto-hébergée, **Rétention de l'utilisation de la télémétrie (jours)** dans l'Admin Dashboard |
+| Incidents et alertes résolus, avec leurs chronologies, leurs notes et leurs fichiers | Jusqu'à ce que le projet choisisse une durée | **Incidents → Paramètres → Rétention des données** et **Alertes → Paramètres → Rétention des données** : voir [Rétention des données](/docs/incidents/settings#rétention-des-données). Sur une installation auto-hébergée, **Conserver au maximum** dans l'Admin Dashboard soumet tous les projets à une limite |
 
 ## Ce que coûte la rétention
 

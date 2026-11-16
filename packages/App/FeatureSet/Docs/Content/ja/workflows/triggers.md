@@ -73,6 +73,8 @@ curl -X POST "https://oneuptime.example.com/workflow/trigger/<secret key>" \
 
 URL は `GET` と `POST` の両方を受け付けます。呼び出し元にはすぐに確認応答 `{"status": "Scheduled"}` が返ります。ワークフロー自体はバックグラウンドで実行されるため、呼び出し元がその処理内容を見ることはありません。オフまたはアーカイブ済みのワークフローへの呼び出しは、HTTP 400 と理由とともに拒否されます。
 
+Azure Event Grid、Slack、Microsoft Graph、Okta は、URL に何かを配信する前にその URL を確認します。URL はどの確認にもそのサービスが期待するとおりに応答します。これは [受信リクエスト モニターの URL と同じです](/docs/monitor/incoming-request-monitor#先に-url-を確認するサービス)。確認によって実行が始まることはありません。ワークフローがオフまたはアーカイブ済みの間は、確認も呼び出しと同じように拒否されます。
+
 ```mermaid title="何かが Webhook URL を呼び出したときに起きること"
 sequenceDiagram
     participant Caller as あなたのツール
@@ -94,7 +96,7 @@ sequenceDiagram
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | **リクエストヘッダー**      | リクエストのすべてのヘッダー。`content-type` のように小文字の名前で表されます。                                         |
 | **リクエストのクエリパラメーター** | URL のクエリパラメーター。名前で表されます。                                                                           |
-| **リクエストボディ**         | 呼び出し元が送った本文。`Content-Type: application/json` で送られた JSON の本文は、フィールドごとに読めます。Amazon SNS のようにプレーンテキストとして送られた JSON も同じように読めます。 |
+| **リクエストボディ**         | 呼び出し元が送った本文。 `Content-Type: application/json` 、または Azure Event Grid の CloudEvents のような `+json` 型で送られた JSON の本文は、フィールドごとに読めます。Amazon SNS のようにプレーンテキストとして送られた JSON も同じように読めます。それ以外のプレーンテキストは、そのテキスト自体になります。 |
 
 1 つのフィールドを読むには、`{{local.components.webhook-1.returnValues.request-body.message}}` のように、その名前を参照に付け加えます。
 

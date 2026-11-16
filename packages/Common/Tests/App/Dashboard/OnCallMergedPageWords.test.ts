@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
@@ -14,7 +16,9 @@ import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import { readOnCallLogLine } from "../../../Types/OnCallDutyPolicy/OnCallLogLine";
 import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import {
+  OnCallPageCoverKind,
   getOnCallPageMergeTakenOverMessage,
+  getOnCallPageMergedLine,
   getOnCallPageMergedMessage,
 } from "../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
@@ -24,8 +28,8 @@ import {
 } from "../../../UI/Utils/TranslateTemplate";
 
 /*
- * A PAGE MERGED INTO THE PERSON'S OPEN PAGE FROM ANOTHER POLICY'S RUN, IN
- * THE DASHBOARD (issue #7837, OnCallPageMerge).
+ * A PAGE MERGED INTO THE PERSON'S OPEN PAGE FROM ANOTHER RUN, IN THE
+ * DASHBOARD (issues #7837, #8859, OnCallPageMerge).
  *
  * The Execution Timeline's line for them and User Settings > On-Call Logs'
  * page of theirs are stored "Already Paged" and read so - a pill, and a
@@ -38,6 +42,32 @@ import {
  */
 
 type Locale = Record<string, string>;
+
+const LOCALES_DIRECTORY: string = path.resolve(
+  __dirname,
+  "../../../../App/FeatureSet/Dashboard/src/Locales",
+);
+
+// Each Dashboard language's word for an on-call policy, as its locale words it.
+const POLICY_WORDS: Record<string, string> = {
+  ar: "سياسة",
+  da: "politik",
+  de: "Richtlinie",
+  es: "política",
+  fa: "سیاست",
+  fr: "politique",
+  hi: "नीति",
+  it: "policy",
+  ja: "ポリシー",
+  ko: "정책",
+  nl: "beleid",
+  no: "policy",
+  pt: "política",
+  ru: "политик",
+  sv: "policy",
+  "zh-CN": "策略",
+  "zh-TW": "策略",
+};
 
 const translatorFor: (locale: Locale, language: string) => Translator = (
   locale: Locale,
@@ -120,6 +150,107 @@ describe("a merged page's line, in the reader's words", () => {
       ],
     );
   });
+});
+
+/*
+ * MERGED INTO A DIRECT PAGE (#8859): a page Jane sent from a chat, or a
+ * workflow's - each line in its own words, never as a policy's, and the
+ * take-over of a merged workflow's page saying it pages them directly.
+ */
+describe("a page merged into a direct page, in the reader's words", () => {
+  const JANE: string = getOnCallPageMergedLine({
+    kind: OnCallPageCoverKind.PersonPage,
+    name: "Jane Doe",
+  });
+  const NIGHTLY: string = getOnCallPageMergedLine({
+    kind: OnCallPageCoverKind.WorkflowPage,
+    name: "Nightly Checks",
+  });
+  const TAKEN_OVER_DIRECTLY: string = getOnCallPageMergeTakenOverMessage({
+    policyName: "Payments",
+    isDirectPage: true,
+  });
+
+  test("in English, as the server writes it", () => {
+    expect(wordsOf(ENGLISH, JANE)).toBe(
+      "Already paged directly about this by Jane Doe, so not paged again.",
+    );
+    expect(wordsOf(ENGLISH, NIGHTLY)).toBe(
+      "Already paged about this through the workflow Nightly Checks, so not paged again.",
+    );
+    expect(wordsOf(ENGLISH, TAKEN_OVER_DIRECTLY)).toBe(
+      "Their page from Payments is over, so they are paged directly now.",
+    );
+    expect(
+      wordsOf(
+        ENGLISH,
+        getOnCallPageMergeTakenOverMessage({
+          policyName: null,
+          isDirectPage: true,
+        }),
+      ),
+    ).toBe(
+      "Their page from another on-call policy is over, so they are paged directly now.",
+    );
+  });
+
+  test("in German and Persian, the name as written and none of the server's English", () => {
+    for (const translator of [GERMAN, PERSIAN]) {
+      const jane: string | null = wordsOf(translator, JANE);
+      const nightly: string | null = wordsOf(translator, NIGHTLY);
+      const takenOver: string | null = wordsOf(translator, TAKEN_OVER_DIRECTLY);
+
+      expect(jane).toContain("Jane Doe");
+      expect(jane).not.toContain("Already paged");
+      expect(nightly).toContain("Nightly Checks");
+      expect(nightly).not.toContain("workflow");
+      expect(takenOver).toContain("Payments");
+      expect(takenOver).not.toContain("is over");
+    }
+
+    expect(wordsOf(GERMAN, NIGHTLY)).toContain("Arbeitsablauf");
+    expect(wordsOf(PERSIAN, NIGHTLY)).toContain("گردش کاری");
+  });
+
+  test("a direct page's line and a policy's are worded apart", () => {
+    expect(wordsOf(GERMAN, JANE)).not.toBe(
+      wordsOf(GERMAN, getOnCallPageMergedMessage({ policyName: "Jane Doe" })),
+    );
+    expect(wordsOf(GERMAN, TAKEN_OVER_DIRECTLY)).not.toBe(
+      wordsOf(
+        GERMAN,
+        getOnCallPageMergeTakenOverMessage({ policyName: "Payments" }),
+      ),
+    );
+  });
+
+  /*
+   * "Their page from {{name}} is over" names whatever the merged page stood
+   * on - a policy, Jane, a workflow - so no language may word the name as a
+   * policy's: Russian said "Вызов политикой {{name}}", "the page by the
+   * policy Jane Doe".
+   */
+  test.each(Object.entries(POLICY_WORDS))(
+    "%s words the take-over line's name as no policy's",
+    (code: string, policyWord: string) => {
+      const locale: Locale = JSON.parse(
+        fs.readFileSync(path.join(LOCALES_DIRECTORY, `${code}.json`), "utf8"),
+      ) as Locale;
+
+      for (const key of [
+        "Their page from {{name}} is over, so this policy pages them now.",
+        "Their page from {{name}} is over, so they are paged directly now.",
+      ]) {
+        const words: string = locale[key] || "";
+        const beforeName: string = words.slice(0, words.indexOf("{{name}}"));
+
+        expect(words).toContain("{{name}}");
+        expect(beforeName.toLowerCase()).not.toContain(
+          policyWord.toLowerCase(),
+        );
+      }
+    },
+  );
 });
 
 describe("its status, as the pills and the Status filters read it", () => {

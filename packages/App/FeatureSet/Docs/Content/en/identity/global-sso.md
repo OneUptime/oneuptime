@@ -102,7 +102,7 @@ While the whole instance requires SSO:
 
 - The sign-in page offers only SSO: a button for each global provider that is on, and no password, passkey, emailed link, Google or Microsoft sign-in, or sign-up. It keeps the email lookup that finds a project's own provider only while some project has one.
 - OneUptime refuses a password, a passkey, an emailed link, a Google or Microsoft sign-in and a sign-up with "This server requires single sign-on (SSO). Sign in with SSO instead." Only a master admin's password or passkey still signs them in. People get their account by signing in with SSO or by an invitation.
-- Someone already signed in with a password signs in with SSO to open a project. They land on the project's single sign-on page, which offers the project's own providers and the global providers that sign people in to it.
+- Someone already signed in with a password signs in with SSO to open a project. They land on the project's single sign-on page, which offers the project's own providers and the global providers that sign people in to it. The **Require SSO** card says how many people are still signed in without SSO, and **Sign them out** ends their sessions on every device at once. Master admins stay signed in.
 - Master admins sign in with their password at `/accounts/admin-login`, which the sign-in page does not link to. The **Require SSO** card shows the whole address under the switch, as **Master admin sign-in**: keep it, to turn the requirement off if your identity provider stops working.
 
 Turning **Require SSO for Login** on needs an SSO provider that signs people in, so nobody is locked out by it:

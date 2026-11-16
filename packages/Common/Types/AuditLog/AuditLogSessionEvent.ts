@@ -149,6 +149,9 @@ export const SESSION_END_CAUSE_DESCRIPTIONS: Readonly<
   [SessionEndCause.TwoFactorReset]: translationKey(
     "Two-factor authentication reset by a server admin",
   ),
+  [SessionEndCause.SignedInWithoutSso]: translationKey(
+    "Signed out by a server admin because single sign-on is required",
+  ),
   [SessionEndCause.Other]: translationKey("Session ended"),
 };
 

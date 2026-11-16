@@ -1,6 +1,7 @@
 import ScheduledMaintenanceTemplateService from "../../../Server/Services/ScheduledMaintenanceTemplateService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import logger from "../../../Server/Utils/Logger";
 import ScheduledMaintenanceTemplate from "../../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -41,7 +42,9 @@ import {
  * time whenever an update leaves a template not recurring, and keeps none on
  * a template created without the switch; the schedule itself stays, and
  * turning the switch back on schedules the next event again, at the
- * schedule's next time after now.
+ * schedule's next time after now. Nobody may give a new template a next
+ * time of their own (#8907): it is dropped, or refused to someone who may
+ * not read templates.
  *
  * This runs the whole update and create - the hooks, the permission checks
  * on what the hooks leave, the write - against a table in memory, as each
@@ -497,11 +500,9 @@ describe("the job's own write of the next time", () => {
 });
 
 describe("creating a template", () => {
-  async function create(
+  function newTemplate(
     fields: Record<string, unknown>,
-  ): Promise<StoredRow | undefined> {
-    useTable([]);
-
+  ): ScheduledMaintenanceTemplate {
     const template: ScheduledMaintenanceTemplate =
       new ScheduledMaintenanceTemplate();
 
@@ -513,15 +514,106 @@ describe("creating a template", () => {
       ...fields,
     });
 
+    return template;
+  }
+
+  async function create(
+    fields: Record<string, unknown>,
+    props: DatabaseCommonInteractionProps = member([Permission.ProjectOwner]),
+  ): Promise<StoredRow | undefined> {
+    useTable([]);
+
     await ScheduledMaintenanceTemplateService.create({
-      data: template,
-      props: member([Permission.ProjectOwner]),
+      data: newTemplate(fields),
+      props: props,
     });
 
     expect(table.inserts).toHaveLength(1);
 
     return table.inserts[0];
   }
+
+  // A recurring template whose first event is created in two days.
+  const RECURRING_SCHEDULE: () => Record<string, unknown> = (): Record<
+    string,
+    unknown
+  > => {
+    return {
+      isRecurringEvent: true,
+      firstEventScheduledAt: daysFromNow(2),
+      firstEventStartsAt: daysFromNow(4),
+      firstEventEndsAt: daysFromNow(5),
+      recurringInterval: weekly(),
+    };
+  };
+
+  /*
+   * When the next event is created is the schedule's to say, never the
+   * creator's (#8907): nobody may create the column, so a time a member
+   * sends - one that would put the first event off, or bring it forward -
+   * is dropped before the hooks run, and the service works out the
+   * schedule's own.
+   */
+  // Who may create a template and read it.
+  const CREATORS: Array<[string, Array<Permission>]> = [
+    ["a Project Owner", [Permission.ProjectOwner]],
+    ["a Project Admin", [Permission.ProjectAdmin]],
+    ["a project member", [Permission.ProjectMember]],
+    ["a scheduled maintenance admin", [Permission.ScheduledMaintenanceAdmin]],
+    ["a scheduled maintenance member", [Permission.ScheduledMaintenanceMember]],
+    [
+      "someone who may create and read templates",
+      [
+        Permission.CreateScheduledMaintenanceTemplate,
+        Permission.ReadScheduledMaintenanceTemplate,
+      ],
+    ],
+  ];
+
+  test.each(CREATORS)(
+    "with Recurring Event on, a next time %s sends is not kept: the schedule's own is",
+    async (_who: string, permissions: Array<Permission>) => {
+      const row: StoredRow | undefined = await create(
+        { ...RECURRING_SCHEDULE(), scheduleNextEventAt: daysFromNow(60) },
+        member(permissions),
+      );
+
+      expect((row?.["scheduleNextEventAt"] as Date).toISOString()).toBe(
+        daysFromNow(2).toISOString(),
+      );
+    },
+  );
+
+  test("someone who may create templates but not read them is refused for sending a next time, by its name, and nothing is saved", async () => {
+    useTable([]);
+
+    const error: unknown = await refusalOf(
+      ScheduledMaintenanceTemplateService.create({
+        data: newTemplate({
+          ...RECURRING_SCHEDULE(),
+          scheduleNextEventAt: daysFromNow(60),
+        }),
+        props: member([Permission.CreateScheduledMaintenanceTemplate]),
+      }),
+    );
+
+    expect(error).toBeInstanceOf(ColumnWriteRefusedException);
+    expect((error as ColumnWriteRefusedException).columnName).toBe(
+      "scheduleNextEventAt",
+    );
+    expect(table.inserts).toEqual([]);
+  });
+
+  test("the same member creates one with no next time sent: the schedule's own is kept", async () => {
+    const row: StoredRow | undefined = await create(
+      RECURRING_SCHEDULE(),
+      member([Permission.CreateScheduledMaintenanceTemplate]),
+    );
+
+    expect((row?.["scheduleNextEventAt"] as Date).toISOString()).toBe(
+      daysFromNow(2).toISOString(),
+    );
+  });
 
   test("without Recurring Event keeps no next time it is sent", async () => {
     const row: StoredRow | undefined = await create({

@@ -22,6 +22,11 @@ import path from "path";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
+import API from "../../../UI/Utils/API/API";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../Types/JSON";
+import { SESSIONS_WITHOUT_SSO_ROUTE } from "../../../Types/SSO/SessionsWithoutSso";
 
 /*
  * Admin Dashboard > Settings > Single Sign-On's Require SSO card, in every
@@ -300,6 +305,22 @@ describe("Settings > Single Sign-On: the Require SSO card in every language", ()
     });
 
     getJestSpyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+
+    /*
+     * While SSO is required the card asks who is still signed in without it
+     * (SessionsWithoutSso, #6116): nobody, here.
+     */
+    getJestSpyOn(API, "fetch").mockImplementation(
+      async (options: unknown): Promise<unknown> => {
+        const url: string = String((options as { url: unknown }).url);
+
+        if (url.endsWith(SESSIONS_WITHOUT_SSO_ROUTE)) {
+          return new HTTPResponse<JSONObject>(200, { peopleCount: 0 }, {});
+        }
+
+        return new HTTPErrorResponse(500, { message: "Not in this test." }, {});
+      },
+    );
   });
 
   afterEach(() => {

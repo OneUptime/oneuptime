@@ -7,6 +7,9 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import WebhookVerificationProvider, {
+  WebhookVerificationProviderUtil,
+} from "Common/Types/Monitor/IncomingMonitor/WebhookVerificationProvider";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorService from "Common/Server/Services/MonitorService";
@@ -281,6 +284,14 @@ export async function processIncomingRequestFromQueue(
         ? new ObjectID(jobData.receivedViaProbeId)
         : undefined,
   };
+
+  // The service the endpoint answered this request's handshake for (#8429).
+  const answeredVerification: WebhookVerificationProvider | undefined =
+    WebhookVerificationProviderUtil.fromValue(jobData.answeredVerification);
+
+  if (answeredVerification) {
+    incomingRequest.answeredVerification = answeredVerification;
+  }
 
   // process probe response here.
   try {

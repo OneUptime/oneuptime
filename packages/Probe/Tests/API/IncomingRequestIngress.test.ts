@@ -6,13 +6,24 @@ process.env["PROBE_ID"] = "11111111-2222-3333-4444-555555555555";
 process.env["PROBE_INGRESS_FORWARD_RETRY_LIMIT"] = "2";
 
 import {
+  afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
   jest,
   test,
 } from "@jest/globals";
+import WebhookRequestBody from "Common/Server/Middleware/WebhookRequestBody";
+import {
+  createExpressApp,
+  ExpressApplication,
+  ExpressJson,
+  ExpressRequest,
+  ExpressResponse,
+  ExpressUrlEncoded,
+} from "Common/Server/Utils/Express";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Headers from "Common/Types/API/Headers";
@@ -469,17 +480,30 @@ describe("the body it passes on", () => {
   });
 
   /*
-   * A device that posts text/plain is not a device to reject. Wrapping the
-   * text under a known key keeps it addressable by an incoming-request
-   * criterion instead of arriving as an unparseable body.
+   * A text the listener holds as text is forwarded as its bytes, for
+   * OneUptime to read as the text it is (#8430): it used to be wrapped as
+   * { _raw }, which no monitor would have read as the text it was sent as.
    */
-  test("wraps a plain-text body under _raw", async () => {
+  test("forwards a text body as the bytes of the text", async () => {
     const spy: ApiFetchSpy = mockForwardSucceeds();
 
     await callIngress({ body: "backup finished" });
     await flush();
 
-    expect(readForward(spy)["data"]).toEqual({ _raw: "backup finished" });
+    const data: unknown = readForward(spy)["data"];
+
+    expect(Buffer.isBuffer(data)).toBe(true);
+    expect((data as Buffer).toString("utf8")).toBe("backup finished");
+  });
+
+  test("forwards the bytes it read as they are", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+    const bytes: Buffer = Buffer.from("café", "latin1");
+
+    await callIngress({ body: bytes });
+    await flush();
+
+    expect(readForward(spy)["data"]).toBe(bytes);
   });
 
   test("forwards an empty object for a body-less request", async () => {
@@ -799,10 +823,11 @@ describe("the listener, over HTTP", () => {
   /*
    * Amazon SNS posts its subscription confirmations and notifications as
    * JSON labelled text/plain, and OneUptime reads that as the JSON it is
-   * (PlainTextJsonBody, #7723): so does the listener, so a topic pointed
-   * at the probe reaches the monitor as it would have directly.
+   * (WebhookRequestBody, #7723). The listener passes the text on as it
+   * came, with its Content-Type, so a topic pointed at the probe reaches
+   * the monitor as it would have directly.
    */
-  test("forwards JSON sent as text/plain, as Amazon SNS sends it, parsed", async () => {
+  test("forwards JSON sent as text/plain, as Amazon SNS sends it, as the text that came, with its type", async () => {
     const spy: ApiFetchSpy = mockForwardSucceeds();
     const confirmation: Record<string, string> = {
       Type: "SubscriptionConfirmation",
@@ -821,11 +846,18 @@ describe("the listener, over HTTP", () => {
       body: JSON.stringify(confirmation),
     });
 
+    const forward: Record<string, unknown> = await forwarded(spy);
+
     expect(answer.statusCode).toBe(200);
-    expect((await forwarded(spy))["data"]).toEqual(confirmation);
+    expect((forward["data"] as Buffer).toString("utf8")).toBe(
+      JSON.stringify(confirmation),
+    );
+    expect((forward["headers"] as Headers)["content-type"]).toBe(
+      "text/plain; charset=UTF-8",
+    );
   });
 
-  test("inflates gzip JSON sent as text/plain, and forwards it parsed", async () => {
+  test("inflates gzip JSON sent as text/plain, and forwards the text uncompressed", async () => {
     const spy: ApiFetchSpy = mockForwardSucceeds();
 
     await send({
@@ -834,10 +866,24 @@ describe("the listener, over HTTP", () => {
       body: zlib.gzipSync(JSON.stringify({ status: "healthy" })),
     });
 
-    expect((await forwarded(spy))["data"]).toEqual({ status: "healthy" });
+    const forward: Record<string, unknown> = await forwarded(spy);
+
+    expect((forward["data"] as Buffer).toString("utf8")).toBe(
+      JSON.stringify({ status: "healthy" }),
+    );
+    expect(
+      Object.keys(forward["headers"] as Headers).map((name: string) => {
+        return name.toLowerCase();
+      }),
+    ).not.toContain("content-encoding");
   });
 
-  test("forwards plain text empty, as OneUptime would read it", async () => {
+  /*
+   * #8430: OneUptime reads plain text as the text it is, so the listener
+   * forwards it - as the bytes that came, with the Content-Type that came,
+   * so OneUptime decodes it in the charset the device named.
+   */
+  test("forwards plain text as the text it is, as OneUptime reads it", async () => {
     const spy: ApiFetchSpy = mockForwardSucceeds();
 
     const answer: Answer = await send({
@@ -846,21 +892,79 @@ describe("the listener, over HTTP", () => {
       body: "backup finished",
     });
 
+    const forward: Record<string, unknown> = await forwarded(spy);
+
     expect(answer.statusCode).toBe(200);
-    expect((await forwarded(spy))["data"]).toEqual({});
+    expect((forward["data"] as Buffer).toString("utf8")).toBe(
+      "backup finished",
+    );
+    expect((forward["headers"] as Headers)["content-type"]).toBe("text/plain");
+  });
+
+  test("forwards text in another charset as its own bytes, with the charset it names", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+    const latin1: Buffer = Buffer.from("café: sauvegarde échouée", "latin1");
+
+    await send({
+      method: "POST",
+      headers: { "Content-Type": "text/plain; charset=iso-8859-1" },
+      body: latin1,
+    });
+
+    const forward: Record<string, unknown> = await forwarded(spy);
+
+    expect((forward["data"] as Buffer).equals(latin1)).toBe(true);
+    expect((forward["headers"] as Headers)["content-type"]).toBe(
+      "text/plain; charset=iso-8859-1",
+    );
+  });
+
+  test("forwards a CloudEvent, as Azure Event Grid delivers it, as the JSON text that came", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+    const event: string = JSON.stringify({
+      specversion: "1.0",
+      type: "Microsoft.Storage.BlobCreated",
+      id: "9aeb0fdf-c01e-0131-0922-9eb54906e209",
+    });
+
+    await send({
+      method: "POST",
+      headers: {
+        "Content-Type": "application/cloudevents+json; charset=utf-8",
+      },
+      body: event,
+    });
+
+    expect(((await forwarded(spy))["data"] as Buffer).toString("utf8")).toBe(
+      event,
+    );
+  });
+
+  test("answers 200 to a large plain-text body and forwards all of it", async () => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+    const body: Buffer = Buffer.alloc(200 * 1024, "a");
+
+    const answer: Answer = await send({
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: body,
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect(((await forwarded(spy))["data"] as Buffer).equals(body)).toBe(true);
   });
 
   /*
-   * OneUptime reads only JSON and form bodies, and JSON sent as text/plain,
-   * so any other body reaches the monitor empty. The listener used to read
+   * OneUptime reads only JSON, form, text/plain and +json bodies, so any
+   * other body reaches the monitor empty. The listener used to read
    * application/octet-stream too, under express.raw's 100 KB default: a
    * larger one was answered 413, not the 200 a device is promised, and was
    * never forwarded at all.
    */
   test.each([
     ["application/octet-stream", 200 * 1024],
-    ["text/plain", 200 * 1024],
     ["application/octet-stream", 16],
+    ["application/xml", 16],
   ])(
     "answers 200 to a %s body of %i bytes and forwards it empty, as OneUptime would read it",
     async (contentType: string, size: number) => {
@@ -927,4 +1031,185 @@ describe("isRefusalNotWorthRetrying", () => {
       expect(isRefusalNotWorthRetrying(status)).toBe(false);
     }
   });
+});
+
+/*
+ * What the probe forwards, read by the reader OneUptime's endpoint reads
+ * with (WebhookRequestBody), reads exactly as the request sent to OneUptime
+ * directly: a text as its text in the charset it named, JSON sent as text as
+ * its JSON, a CloudEvent as its JSON (#8430, #8429).
+ */
+describe("a request relayed through the probe, as OneUptime reads it", () => {
+  let listener: http.Server;
+  let listenerPort: number = 0;
+  let oneUptime: http.Server;
+  let oneUptimePort: number = 0;
+
+  interface Sent {
+    headers: Record<string, string>;
+    body: Buffer | string;
+  }
+
+  type PostFunction = (
+    port: number,
+    path: string,
+    request: Sent,
+  ) => Promise<string>;
+
+  const post: PostFunction = (
+    port: number,
+    path: string,
+    request: Sent,
+  ): Promise<string> => {
+    return new Promise(
+      (resolve: (body: string) => void, reject: (err: Error) => void) => {
+        const outgoing: http.ClientRequest = http.request(
+          {
+            host: "127.0.0.1",
+            port: port,
+            method: "POST",
+            path: path,
+            headers: request.headers,
+          },
+          (response: http.IncomingMessage) => {
+            const chunks: Array<Buffer> = [];
+            response.on("data", (chunk: Buffer) => {
+              chunks.push(chunk);
+            });
+            response.on("end", () => {
+              resolve(Buffer.concat(chunks).toString("utf8"));
+            });
+          },
+        );
+        outgoing.on("error", reject);
+        outgoing.write(request.body);
+        outgoing.end();
+      },
+    );
+  };
+
+  // What OneUptime's endpoint reads of a request: its body, as JSON.
+  type ReadFunction = (request: Sent) => Promise<unknown>;
+
+  const readDirectly: ReadFunction = async (
+    request: Sent,
+  ): Promise<unknown> => {
+    return JSON.parse(
+      await post(oneUptimePort, "/incoming-request/key", request),
+    );
+  };
+
+  const readThroughProbe: ReadFunction = async (
+    request: Sent,
+  ): Promise<unknown> => {
+    const spy: ApiFetchSpy = mockForwardSucceeds();
+
+    await post(listenerPort, "/heartbeat/key", request);
+
+    for (let i: number = 0; i < 200 && spy.mock.calls.length === 0; i++) {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 5);
+      });
+    }
+
+    const forward: Record<string, unknown> = readForward(spy);
+    const data: unknown = forward["data"];
+
+    jest.restoreAllMocks();
+
+    // As the forward sends it: bytes as they are, JSON stringified.
+    return JSON.parse(
+      await post(oneUptimePort, "/incoming-request/key", {
+        headers: forward["headers"] as Record<string, string>,
+        body: Buffer.isBuffer(data) ? data : JSON.stringify(data),
+      }),
+    );
+  };
+
+  beforeAll(async () => {
+    listener = createIngressApp().listen(0, "127.0.0.1");
+    await new Promise((resolve: (value: unknown) => void) => {
+      listener.once("listening", resolve);
+    });
+    listenerPort = (listener.address() as AddressInfo).port;
+
+    // OneUptime's endpoint, as StartServer and the route read a body.
+    const app: ExpressApplication = createExpressApp();
+    app.use(ExpressJson({ limit: "50mb" }));
+    app.use(ExpressUrlEncoded({ extended: true, limit: "50mb" }));
+    app.post(
+      "/incoming-request/:secretkey",
+      WebhookRequestBody.getReader("50mb"),
+      (req: ExpressRequest, res: ExpressResponse) => {
+        res.json(req.body);
+      },
+    );
+
+    oneUptime = app.listen(0, "127.0.0.1");
+    await new Promise((resolve: (value: unknown) => void) => {
+      oneUptime.once("listening", resolve);
+    });
+    oneUptimePort = (oneUptime.address() as AddressInfo).port;
+  });
+
+  afterAll(async () => {
+    jest.restoreAllMocks();
+    await new Promise((resolve: (value: unknown) => void) => {
+      listener.close(resolve);
+    });
+    await new Promise((resolve: (value: unknown) => void) => {
+      oneUptime.close(resolve);
+    });
+  });
+
+  test.each([
+    [
+      "plain text",
+      {
+        headers: { "content-type": "text/plain" },
+        body: "backup failed: error 42",
+      },
+      "backup failed: error 42",
+    ],
+    [
+      "text in another charset",
+      {
+        headers: { "content-type": "text/plain; charset=iso-8859-1" },
+        body: Buffer.from("café: sauvegarde échouée", "latin1"),
+      },
+      "café: sauvegarde échouée",
+    ],
+    [
+      "JSON sent as text/plain, as Amazon SNS sends it",
+      {
+        headers: { "content-type": "text/plain; charset=UTF-8" },
+        body: JSON.stringify({ Type: "Notification", Message: "ALARM" }),
+      },
+      { Type: "Notification", Message: "ALARM" },
+    ],
+    [
+      "a CloudEvent, as Azure Event Grid delivers it",
+      {
+        headers: {
+          "content-type": "application/cloudevents+json; charset=utf-8",
+        },
+        body: JSON.stringify({ specversion: "1.0", id: "1", type: "a.b" }),
+      },
+      { specversion: "1.0", id: "1", type: "a.b" },
+    ],
+    [
+      "JSON",
+      {
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ status: "healthy" }),
+      },
+      { status: "healthy" },
+    ],
+  ])(
+    "%s reads the same as when sent directly",
+    async (_label: string, request: Sent, expected: unknown) => {
+      expect(await readDirectly(request)).toEqual(expected);
+      expect(await readThroughProbe(request)).toEqual(expected);
+    },
+  );
 });

@@ -135,6 +135,7 @@ import RedactPersonalDataInProductAnalyticsPages from "./RedactPersonalDataInPro
 import ReadHashRoutesInProductAnalyticsEntryPages from "./ReadHashRoutesInProductAnalyticsEntryPages";
 import ScrubProductAnalyticsAddresses from "./ScrubProductAnalyticsAddresses";
 import ScrubSessionReplayAddresses from "./ScrubSessionReplayAddresses";
+import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
@@ -1197,6 +1198,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * before the last slot AddAuditLogMcpClientColumns asserts for itself.
    */
   new ResolveWhatMonitorsTurnedOffWouldHaveResolved(),
+  /*
+   * The private keys of the certificates customers uploaded for their status
+   * page, dashboard and form domains, stored as plaintext before the column
+   * was kept encrypted at rest and write-only: each encrypted in place, in
+   * raw SQL, only while it still holds the value read. Idempotent; a key not
+   * encrypted yet still reads as itself meanwhile. Before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new EncryptUploadedCertificateKeys(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
