@@ -289,7 +289,20 @@ Para el perfilador .NET, defina `DD_TRACE_DEBUG=1` en la aplicación durante un 
 | --- | --- |
 | **Adónde va el tiempo de CPU** | Todos los perfiles del intervalo, combinados en un solo gráfico de llamas. Cuanto más ancho es un marco, mayor es su proporción. Haga clic en un marco para ampliarlo. |
 | **Funciones** | Las funciones que más ocupan, ordenadas por **Propio** (el tiempo en el propio código de la función), **Total** (con todo lo que llama) o **Tu código** (sus propias funciones, cada una con el código de biblioteca y de tiempo de ejecución al que llama: el tiempo que un cambio en ella puede recuperar). |
-| **Servicios que se están perfilando** | Cada servicio perfilado, los más ocupados primero. Los hilos del kernel que muestrea el perfilador eBPF quedan ocultos. |
+| **Servicios que se están perfilando** | Cada servicio perfilado, los más ocupados primero, cada uno con adónde va su propio tiempo: el código propio que más ocupa. Con varios servicios y ninguno elegido, esta tarjeta aparece primero. Los hilos del kernel que muestrea el perfilador eBPF quedan ocultos. |
+
+### Cómo leer un gráfico de llamas
+
+Un gráfico de llamas combina todos los perfiles del intervalo en una sola imagen. Cada barra es una función: cuanto más ancha, mayor es su parte del tiempo, y las barras de debajo son las funciones a las que llama. **Cómo leer esto**, junto al título del gráfico, lo explica en la propia página.
+
+- **Propio** es el tiempo en el código propio de una función, y **Total** suma todo lo que llama. Una barra ancha con poco debajo hace el trabajo ella misma: empiece por ahí.
+- Los colores indican de quién es el código de una barra: **Tu código** (naranja), **Biblioteca** (azul), **Tiempo de ejecución** (gris), **Sistema** (morado) y **Sin símbolos** (gris claro). La lista junto al gráfico usa las mismas palabras.
+- Una barra muestra el nombre corto de una función, como `aggregate.(*Builder).Sum`. Pase el puntero por encima para ver el nombre completo, su archivo y sus partes propia y total.
+- Haga clic en una barra para ampliarla y pulse Esc para volver.
+
+### Código sin símbolos
+
+El código nativo compilado sin símbolos llega al perfilador solo como direcciones, como `0x270675`. El gráfico de llamas las agrupa en una sola barra **Sin símbolos** bajo la función que las llamó, e indica debajo del gráfico qué parte no tiene símbolos. Para ver esas funciones por su nombre, conserve los símbolos del binario: no los elimine (en Go, quite `-ldflags="-s -w"`; en C, C++ y Rust, compile con información de depuración), o instale su paquete de símbolos de depuración donde se ejecuta el perfilador.
 
 ### Comparar dos intervalos
 

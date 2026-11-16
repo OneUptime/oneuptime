@@ -289,7 +289,20 @@ Zet bij de .NET-profiler een minuut lang `DD_TRACE_DEBUG=1` op de applicatie: da
 | --- | --- |
 | **Waar de CPU-tijd heen gaat** | Alle profielen in het tijdvenster, samengevoegd tot één flame graph. Hoe breder een frame, hoe groter het aandeel. Klik op een frame om in te zoomen. |
 | **Functies** | De functies die het meest innemen, gerangschikt op **Eigen** (de tijd in de eigen code van de functie), **Totaal** (met alles wat ze aanroept) of **Uw code** (uw eigen functies, elk met de bibliotheek- en runtimecode die ze aanroept: de tijd die een wijziging eraan kan terugwinnen). |
-| **Geprofileerde services** | Elke geprofileerde service, de drukste eerst. Kernelthreads die de eBPF-profiler samplet, worden verborgen. |
+| **Geprofileerde services** | Elke geprofileerde service, de drukste eerst, elk met waar de eigen tijd heen gaat: de eigen code die het meest inneemt. Met meerdere services en geen gekozen staat deze kaart bovenaan. Kernelthreads die de eBPF-profiler samplet, worden verborgen. |
+
+### Een flame graph lezen
+
+Een flame graph voegt alle profielen in het tijdvenster samen tot één beeld. Elke balk is een functie: hoe breder, hoe groter het aandeel in de tijd, en de balken eronder zijn de functies die ze aanroept. **Zo lees je dit**, naast de titel van de grafiek, legt het uit op de pagina.
+
+- **Eigen** is de tijd in de eigen code van een functie, en **Totaal** telt alles op wat ze aanroept. Een brede balk met weinig eronder doet het werk zelf: begin daar.
+- De kleuren zeggen van wie de code van een balk is: **Uw code** (oranje), **Bibliotheek** (blauw), **Runtime** (grijs), **Systeem** (paars) en **Geen symbolen** (lichtgrijs). De lijst naast de grafiek gebruikt dezelfde woorden.
+- Een balk toont de korte naam van een functie, zoals `aggregate.(*Builder).Sum`. Beweeg erover voor de volledige naam, het bestand en de eigen en totale aandelen.
+- Klik op een balk om in te zoomen en druk op Esc om terug uit te zoomen.
+
+### Code zonder symbolen
+
+Native code die zonder symbolen is gebouwd, bereikt de profiler alleen als adressen, zoals `0x270675`. De flame graph groepeert ze tot één balk **Geen symbolen** onder de functie die ze aanriep, en zegt onder de grafiek hoeveel ervan geen symbolen heeft. Om die functies bij naam te zien, behoudt u de symbolen van het binaire bestand: strip het niet (laat voor Go `-ldflags="-s -w"` weg; bouw voor C, C++ en Rust met debuginformatie), of installeer het debugsymboolpakket waar de profiler draait.
 
 ### Twee tijdvensters vergelijken
 
