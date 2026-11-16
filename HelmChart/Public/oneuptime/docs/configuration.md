@@ -881,6 +881,22 @@ not the only thing guarding the token.
 | `onCallCalendarFeed.rateLimit.perTokenPerWindow` | Requests one token may make from one client address per window.                     | `60`    |
 | `onCallCalendarFeed.rateLimit.perIpPerWindow` | Requests one client address may make across all tokens per window.                    | `3000`  |
 
+## OneUptime's own telemetry
+
+OneUptime can send its own traces, metrics and logs to a OneUptime project, or
+to any backend that takes OTLP over HTTP. Every workload that sends them (the
+app, the worker, the probes, the global Runner and the rest) gets these
+settings. See
+[Notification Delivery Metrics](https://oneuptime.com/docs/self-hosted/notification-delivery-metrics).
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `openTelemetryExporter.endpoint` | The OTLP endpoint, such as `https://oneuptime.example.com/otlp`. OneUptime adds `/v1/traces`, `/v1/metrics` and `/v1/logs` itself. | `nil` |
+| `openTelemetryExporter.headers` | The headers it is sent with, each `name=value`, separated by `;`, or by `,` as in `OTEL_EXPORTER_OTLP_HEADERS`, such as `x-oneuptime-token=<a Server ingestion key>`. A signal is sent only with a header: one set here, or one set in `OTEL_EXPORTER_OTLP_HEADERS` or that signal's `OTEL_EXPORTER_OTLP_<SIGNAL>_HEADERS` (with `extraEnv`), which the exporters send as well. | `nil` |
+| `openTelemetryExporter.metricsTemporality` | How its counters and histograms are sent: empty, the OpenTelemetry default, for running totals; `delta` for what happened since the last point, which a OneUptime project reads exactly. Sets `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE`. Keep it empty for a backend that reads running totals itself, such as Prometheus. | `nil` |
+| `openTelemetryExporter.kubernetesClusterName` | Reported as `k8s.cluster.name`, so its pods group under this cluster in Topology. | `nil` |
+| `openTelemetryExporter.captureAiMessageContent` | Record what OneUptime AI's own calls said, prompts and answers included (`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`). | `false` |
+
 ## Other
 
 | Parameter                          | Description                              | Default |

@@ -1986,7 +1986,8 @@ openTelemetryExporter:
   # values are percent-decoded as that standard says (%20 is a space); end the
   # setting with ';' to send a value exactly as written, or one that holds ','.
   # Nothing is exported without a header; one OneUptime cannot read is logged
-  # as a warning at startup.
+  # as a warning at startup. Headers set in OTEL_EXPORTER_OTLP_HEADERS (with
+  # extraEnv) count too: the exporters send them as well, under these.
   # The chart hands the value to every pod exactly as set. In a values file,
   # put a value that holds ': ' or ' #' in quotes: YAML reads those itself
   # before the chart sees the value.
