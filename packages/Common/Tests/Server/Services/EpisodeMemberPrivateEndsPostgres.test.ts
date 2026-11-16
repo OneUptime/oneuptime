@@ -244,10 +244,10 @@ describePostgres(
        * written for real; what the episode's would post to Slack and
        * Microsoft Teams is kept to be read.
        */
+      jest
+        .spyOn(DatabaseService.prototype, "onTriggerWorkflow")
+        .mockResolvedValue(undefined);
       for (const kind of KINDS) {
-        jest
-          .spyOn(kind.service, "onTriggerWorkflow")
-          .mockResolvedValue(undefined);
         jest
           .spyOn(kind.service, "onTriggerRealtime")
           .mockResolvedValue(undefined);
