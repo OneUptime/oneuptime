@@ -503,7 +503,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 ### روشن کردن پایش Control Plane
 
-صفحه **Control Plane** خوشه نمودارهای etcd، سرور API، زمان‌بند و مدیر کنترلرها را می‌کشد. `controlPlane.enabled` را روشن کنید تا عامل، سرور API را همان‌جا که درون هر خوشه‌ای پاسخ می‌دهد، یعنی `https://kubernetes.default.svc:443/metrics`، با توکن حساب سرویس خودش بخواند:
+صفحهٔ **صفحه کنترل** خوشه نمودارهای etcd، سرور API، زمان‌بند و مدیر کنترلرها را می‌کشد. `controlPlane.enabled` را روشن کنید تا عامل، سرور API را همان‌جا که درون هر خوشه‌ای پاسخ می‌دهد، یعنی `https://kubernetes.default.svc:443/metrics`، با توکن حساب سرویس خودش بخواند:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -563,7 +563,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### روشن کردن متریک‌های CoreDNS
 
-زبانه **CoreDNS** در صفحه **Control Plane** نمودارهای پرس‌وجوهای DNS، تأخیر، حافظه نهان و ارسال را می‌کشد. گردآوری آن‌ها به‌طور پیش‌فرض خاموش است:
+زبانه **CoreDNS** در صفحهٔ **صفحه کنترل** نمودارهای پرس‌وجوهای DNS، تأخیر، حافظه نهان و ارسال را می‌کشد. گردآوری آن‌ها به‌طور پیش‌فرض خاموش است:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -590,7 +590,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### متریک‌هایی که عامل گردآوری نمی‌کند
 
-برخی نمودارها متریک‌هایی را نشان می‌دهند که عامل برداشتی برایشان ندارد: **kube-proxy** در صفحه **Control Plane**؛ **Cilium** (با Hubble) در صفحه **Service Mesh**؛ و در زبانه‌های Istio و Linkerd، control plane خود meshها (**istiod**، و مؤلفه‌های identity، destination و proxy-injector در Linkerd). این نمودارها وقتی پر می‌شوند که آن متریک‌ها از راه دیگری به OneUptime برسند، برای نمونه از [OpenTelemetry Collector](/docs/telemetry/open-telemetry) خودتان که آن‌ها را برداشت می‌کند، با ویژگی منبع `k8s.cluster.name` که روی نام خوشه (`clusterName` عامل) تنظیم شده باشد. خوشه‌هایی که بدون kube-proxy اجرا می‌شوند اصلاً متریک kube-proxy ندارند.
+برخی نمودارها متریک‌هایی را نشان می‌دهند که عامل برداشتی برایشان ندارد: **kube-proxy** در صفحهٔ **صفحه کنترل**؛ **Cilium** (با Hubble) در صفحه **Service Mesh**؛ و در زبانه‌های Istio و Linkerd، control plane خود meshها (**istiod**، و مؤلفه‌های identity، destination و proxy-injector در Linkerd). این نمودارها وقتی پر می‌شوند که آن متریک‌ها از راه دیگری به OneUptime برسند، برای نمونه از [OpenTelemetry Collector](/docs/telemetry/open-telemetry) خودتان که آن‌ها را برداشت می‌کند، با ویژگی منبع `k8s.cluster.name` که روی نام خوشه (`clusterName` عامل) تنظیم شده باشد. خوشه‌هایی که بدون kube-proxy اجرا می‌شوند اصلاً متریک kube-proxy ندارند.
 
 ### روشن کردن مشاهده‌پذیری هزینه
 

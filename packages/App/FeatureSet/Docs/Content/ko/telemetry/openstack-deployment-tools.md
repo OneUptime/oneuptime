@@ -84,8 +84,8 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 `kolla-ansible post-deploy`가 작성하는 `source /etc/kolla/admin-openrc.sh`로 admin으로 로그인합니다.
 
-- **Full view**는 Cinder에 한 가지 변경이 필요합니다. Kolla-Ansible의 템플릿이 이미 Nova, Neutron, Glance, Placement의 `[keystone_authtoken]`에 `service_type`을 설정하지만, Cinder는 `volume`으로 설정하는 반면 카탈로그는 `block-storage`라고 하며, 둘이 일치하지 않으면 keystonemiddleware는 액세스 규칙으로 제한된 자격 증명을 `401`로 거부합니다. `/etc/kolla/config/cinder.conf`의 `[keystone_authtoken]`에 `service_type = block-storage`를 추가한 다음 `kolla-ansible reconfigure -i <inventory> --tags cinder`를 실행하세요.
-- **Infrastructure only**는 `/etc/kolla/config/nova/policy.yaml`에 오버라이드를 넣으며, `neutron`, `keystone`, `placement`도 마찬가지로 이미 있는 내용과 병합됩니다. `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`로 적용하세요.
+- **전체 보기**는 Cinder에 한 가지 변경이 필요합니다. Kolla-Ansible의 템플릿이 이미 Nova, Neutron, Glance, Placement의 `[keystone_authtoken]`에 `service_type`을 설정하지만, Cinder는 `volume`으로 설정하는 반면 카탈로그는 `block-storage`라고 하며, 둘이 일치하지 않으면 keystonemiddleware는 액세스 규칙으로 제한된 자격 증명을 `401`로 거부합니다. `/etc/kolla/config/cinder.conf`의 `[keystone_authtoken]`에 `service_type = block-storage`를 추가한 다음 `kolla-ansible reconfigure -i <inventory> --tags cinder`를 실행하세요.
+- **인프라 전용**는 `/etc/kolla/config/nova/policy.yaml`에 오버라이드를 넣으며, `neutron`, `keystone`, `placement`도 마찬가지로 이미 있는 내용과 병합됩니다. `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`로 적용하세요.
 
 ### Kolla-Ansible의 클라우드가 의존하는 것 감시
 
@@ -161,8 +161,8 @@ OpenStack-Ansible는 서비스 로그를 journald에 보관하고 자체 Prometh
 
 유틸리티 컨테이너에서 admin으로 로그인합니다. `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`를 실행한 뒤 `. ~/openrc`를 실행하세요. 이 컨테이너에는 아래 명령이 사용하는 `curl`이 없으므로 먼저 `apt-get install -y curl`을 실행하세요.
 
-- **Full view**는 Cinder에 한 가지 변경이 필요합니다. OpenStack-Ansible의 롤이 이미 `[keystone_authtoken]`에 `service_type`을 설정하지만, Cinder는 `volumev3`으로 설정하는 반면 카탈로그는 `block-storage`라고 하며, 둘이 일치하지 않으면 keystonemiddleware는 액세스 규칙으로 제한된 자격 증명을 `401`로 거부합니다. `/etc/openstack_deploy/user_variables.yml`의 `cinder_cinder_conf_overrides`에서 `keystone_authtoken` 아래에 `service_type: block-storage`를 설정한 다음 `openstack-ansible openstack.osa.cinder --tags cinder-config`를 실행하세요.
-- **Infrastructure only**는 `/etc/openstack_deploy/user_variables.yml`의 `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides`, `placement_policy_overrides`로 오버라이드를 지정합니다. 각각 해당 플레이북과 태그로 적용하세요. 예: `openstack-ansible openstack.osa.nova --tags nova-policy-override`. 나중에 하나를 제거하면 파일이 없어지는 대신 빈 파일이 남으므로 아무것도 실패하지 않습니다.
+- **전체 보기**는 Cinder에 한 가지 변경이 필요합니다. OpenStack-Ansible의 롤이 이미 `[keystone_authtoken]`에 `service_type`을 설정하지만, Cinder는 `volumev3`으로 설정하는 반면 카탈로그는 `block-storage`라고 하며, 둘이 일치하지 않으면 keystonemiddleware는 액세스 규칙으로 제한된 자격 증명을 `401`로 거부합니다. `/etc/openstack_deploy/user_variables.yml`의 `cinder_cinder_conf_overrides`에서 `keystone_authtoken` 아래에 `service_type: block-storage`를 설정한 다음 `openstack-ansible openstack.osa.cinder --tags cinder-config`를 실행하세요.
+- **인프라 전용**는 `/etc/openstack_deploy/user_variables.yml`의 `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides`, `placement_policy_overrides`로 오버라이드를 지정합니다. 각각 해당 플레이북과 태그로 적용하세요. 예: `openstack-ansible openstack.osa.nova --tags nova-policy-override`. 나중에 하나를 제거하면 파일이 없어지는 대신 빈 파일이 남으므로 아무것도 실패하지 않습니다.
 
 ### OpenStack-Ansible의 클라우드가 의존하는 것 감시
 
