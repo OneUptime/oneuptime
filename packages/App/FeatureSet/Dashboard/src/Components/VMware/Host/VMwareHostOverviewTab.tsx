@@ -416,7 +416,10 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           title="Disk latency"
           icon={IconProp.Database}
           iconColor="amber"
-          value={formatVMwareMilliseconds(tiles.highestDiskLatencyMs)}
+          value={formatVMwareMilliseconds(
+            tiles.highestDiskLatencyMs,
+            translator,
+          )}
           sublabel={
             tiles.highestDiskLatencyMs !== null ? "slowest disk" : undefined
           }
@@ -545,7 +548,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           syncId={syncId}
           yLegend="ms"
           yFormatter={(value: number): string => {
-            return formatVMwareMilliseconds(value);
+            return formatVMwareMilliseconds(value, translator);
           }}
           loading={isLoading}
           description={VMWARE_METRIC_DESCRIPTIONS.hostPageDiskLatencyChart}

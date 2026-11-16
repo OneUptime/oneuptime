@@ -1055,7 +1055,7 @@ describe("formatEvidenceArguments", () => {
       {
         key: "createdWithinHours",
         label: "Time window",
-        value: "Created within the last 24 hours",
+        value: "Created within the last 24\u00A0hours",
       },
       { key: "limit", label: "Limit", value: "20" },
       { key: "skip", label: "Skip", value: "0" },
@@ -1068,25 +1068,25 @@ describe("formatEvidenceArguments", () => {
         argumentsFor("search_incidents", { createdWithinHours: 2160 }),
         "Time window",
       ),
-    ).toBe("Created within the last 90 days");
+    ).toBe("Created within the last 90\u00A0days");
     expect(
       valueOf(
         argumentsFor("top_exceptions", { lastSeenWithinHours: 48 }),
         "Time window",
       ),
-    ).toBe("Last seen within the last 2 days");
+    ).toBe("Last seen within the last 2\u00A0days");
     expect(
       valueOf(
         argumentsFor("query_incidents", { createdWithinHours: 36 }),
         "Time window",
       ),
-    ).toBe("Created within the last 36 hours");
+    ).toBe("Created within the last 36\u00A0hours");
     expect(
       valueOf(
         argumentsFor("query_incidents", { createdWithinHours: 50 }),
         "Time window",
       ),
-    ).toBe("Created within the last 50 hours");
+    ).toBe("Created within the last 50\u00A0hours");
   });
 
   test("uses the singular for one hour or day", () => {
@@ -1095,13 +1095,13 @@ describe("formatEvidenceArguments", () => {
         argumentsFor("query_incidents", { createdWithinHours: 1 }),
         "Time window",
       ),
-    ).toBe("Created within the last 1 hour");
+    ).toBe("Created within the last 1\u00A0hour");
     expect(
       valueOf(
         argumentsFor("query_status_page_announcements", { withinDays: 1 }),
         "Time window",
       ),
-    ).toBe("Within the last 1 day");
+    ).toBe("Within the last 1\u00A0day");
   });
 
   test("describes the other window arguments", () => {
@@ -1110,28 +1110,28 @@ describe("formatEvidenceArguments", () => {
         argumentsFor("top_exceptions", { lastSeenWithinHours: 6 }),
         "Time window",
       ),
-    ).toBe("Last seen within the last 6 hours");
+    ).toBe("Last seen within the last 6\u00A0hours");
     expect(
       argumentsFor("query_scheduled_maintenance", {
         pastDays: 7,
         upcomingDays: 3,
       }),
     ).toEqual([
-      { key: "pastDays", label: "Past", value: "7 days" },
-      { key: "upcomingDays", label: "Upcoming", value: "3 days" },
+      { key: "pastDays", label: "Past", value: "7\u00A0days" },
+      { key: "upcomingDays", label: "Upcoming", value: "3\u00A0days" },
     ]);
     expect(
       valueOf(
         argumentsFor("query_ai_insights", { lookbackDays: 7 }),
         "Looking back",
       ),
-    ).toBe("7 days");
+    ).toBe("7\u00A0days");
     expect(
       valueOf(
         argumentsFor("baseline_anomaly", { windowDays: 14 }),
         "Baseline window",
       ),
-    ).toBe("14 days");
+    ).toBe("14\u00A0days");
   });
 
   test("formats metric queries", () => {
