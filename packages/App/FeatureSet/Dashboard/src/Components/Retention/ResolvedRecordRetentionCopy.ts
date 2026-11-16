@@ -4,6 +4,7 @@ import {
   ResolvedRecordKind,
   isResolvedRecordRetentionOn,
 } from "Common/Types/Retention/ResolvedRecordRetention";
+import { DueRecordsCountAnswer } from "Common/Types/Retention/ResolvedRecordRetentionAnswers";
 import {
   PluralTemplate,
   translationKey,
@@ -26,7 +27,17 @@ import {
  *     brought back. Lengthening it, or Never, saves at once: it deletes
  *     nothing.
  *   - The incidents card has one more line while a length is picked: "Keep
- *     incidents with a completed postmortem", on unless turned off.
+ *     incidents with a completed postmortem", on unless turned off, and
+ *     under it, while it is on, which postmortem statuses keep an incident
+ *     (issue #6945): Completed unless a Project Owner or Admin adds the
+ *     project's own, such as Published. Taking one out asks first.
+ *   - Every question before something is deleted says how many it deletes
+ *     now (issue #6943): "This deletes 4,512 incidents now." - or nothing
+ *     when it could not be counted.
+ *   - While the server holds every project to a maximum (issue #6941,
+ *     Admin Dashboard > Settings > Data Retention), the pick shows the
+ *     length the project really keeps them for, Never and the longer
+ *     lengths are locked, and a line says the server's maximum.
  *
  * Kept free of React so the card, the pages and their tests read these
  * exact strings. Every string is a whole sentence or a whole name, wrapped in
@@ -44,6 +55,21 @@ export const RESOLVED_RECORD_RETENTION_SETTING_TEST_ID: string =
 
 export const KEEP_COMPLETED_POSTMORTEMS_TEST_ID: string =
   "resolved-record-retention-keep-postmortems";
+
+export const KEPT_POSTMORTEM_STATUSES_TEST_ID: string =
+  "resolved-record-retention-kept-statuses";
+
+export const RESOLVED_RECORD_RETENTION_COUNT_TEST_ID: string =
+  "resolved-record-retention-count";
+
+export const RESOLVED_RECORD_RETENTION_MAXIMUM_TEST_ID: string =
+  "resolved-record-retention-server-maximum";
+
+// The project column the incidents card's statuses pick writes (issue #6945).
+export type KeptPostmortemStatusesColumn = "keepIncidentsInPostmortemStatusIds";
+
+export const KEPT_POSTMORTEM_STATUSES_COLUMN: KeptPostmortemStatusesColumn =
+  "keepIncidentsInPostmortemStatusIds";
 
 // The project columns a card reads and writes.
 export type ResolvedRecordRetentionColumn =
@@ -74,6 +100,17 @@ export interface ResolvedRecordRetentionKindCopy {
   confirmInDays: PluralTemplate;
   confirmInYears: PluralTemplate;
   /*
+   * Under the pick while the server holds every project to a maximum
+   * (issue #6941): "{{length}}" is the maximum as the pick says it.
+   */
+  serverMaximum: string;
+  // How many a change deletes now (issue #6943), under the question.
+  deletesNow: PluralTemplate;
+  // The count stopped at its bound: at least that many.
+  deletesAtLeastNow: PluralTemplate;
+  // While the count is on its way.
+  counting: string;
+  /*
    * Whether the card offers to keep incidents with a completed postmortem
    * (Project.keepIncidentsWithCompletedPostmortem): incidents only.
    */
@@ -84,20 +121,30 @@ export interface ResolvedRecordRetentionKindCopy {
 export const ResolvedRecordRetentionCopy: {
   label: string;
   never: string;
+  nothingToDeleteYet: string;
   keepPostmortemsTitle: string;
   keepPostmortemsOnDescription: string;
   keepPostmortemsOffDescription: string;
   keepPostmortemsOffConfirmTitle: string;
   keepPostmortemsOffConfirmDescription: string;
   keepPostmortemsOffConfirmButton: string;
+  keptStatusesLabel: string;
+  keptStatusesDescription: string;
+  keptStatusesPlaceholder: string;
+  keptStatusesKeepOne: string;
+  keptStatusesConfirmTitle: string;
+  keptStatusesConfirmDescription: string;
 } = {
   label: translationKey("Delete after"),
   never: translationKey("Never"),
+  // A change that deletes nothing now (issue #6943).
+  nothingToDeleteYet: translationKey("Nothing is old enough to delete yet."),
   keepPostmortemsTitle: translationKey(
     "Keep incidents with a completed postmortem",
   ),
+  // Issue #6945: completed means one of the statuses chosen under it.
   keepPostmortemsOnDescription: translationKey(
-    "An incident whose postmortem is completed stays, however long ago it was resolved.",
+    "An incident whose postmortem is in one of the statuses below stays, however long ago it was resolved.",
   ),
   keepPostmortemsOffDescription: translationKey(
     "Incidents are deleted whether or not their postmortem is completed.",
@@ -110,6 +157,28 @@ export const ResolvedRecordRetentionCopy: {
     "Resolved incidents older than the length picked are deleted within the hour, even when their postmortem is completed. They can't be brought back.",
   ),
   keepPostmortemsOffConfirmButton: translationKey("Delete them too"),
+  /*
+   * Which postmortem statuses keep an incident (issue #6945), under the
+   * switch while it is on: the project's Completed status unless a Project
+   * Owner or Admin chooses others.
+   */
+  keptStatusesLabel: translationKey(
+    "Postmortem statuses that keep an incident",
+  ),
+  keptStatusesDescription: translationKey(
+    "Add your own statuses that mean a postmortem is written, such as Published.",
+  ),
+  keptStatusesPlaceholder: translationKey("Choose postmortem statuses"),
+  keptStatusesKeepOne: translationKey(
+    "Keep at least one status, or turn off keeping incidents with a completed postmortem.",
+  ),
+  // Asked before a status is taken out: incidents in it are deleted then.
+  keptStatusesConfirmTitle: translationKey(
+    "Delete incidents in this postmortem status too?",
+  ),
+  keptStatusesConfirmDescription: translationKey(
+    "Resolved incidents older than the length picked are deleted within the hour when their postmortem is in a status you take out. They can't be brought back.",
+  ),
 };
 
 export const INCIDENT_RETENTION_COPY: ResolvedRecordRetentionKindCopy = {
@@ -137,6 +206,18 @@ export const INCIDENT_RETENTION_COPY: ResolvedRecordRetentionKindCopy = {
     other:
       "Incidents resolved more than {{count}} years ago are deleted within the hour, with their timeline, notes and logs. Status pages stop showing them, and they can't be brought back.",
   },
+  serverMaximum: translationKey(
+    "Your server keeps resolved incidents for at most {{length}}.",
+  ),
+  deletesNow: {
+    one: "This deletes {{count}} incident now.",
+    other: "This deletes {{count}} incidents now.",
+  },
+  deletesAtLeastNow: {
+    one: "This deletes more than {{count}} incident now.",
+    other: "This deletes more than {{count}} incidents now.",
+  },
+  counting: translationKey("Counting the incidents this deletes…"),
   offersPostmortemKeep: true,
 };
 
@@ -165,6 +246,18 @@ export const ALERT_RETENTION_COPY: ResolvedRecordRetentionKindCopy = {
     other:
       "Alerts resolved more than {{count}} years ago are deleted within the hour, with their timeline, notes and logs. They can't be brought back.",
   },
+  serverMaximum: translationKey(
+    "Your server keeps resolved alerts for at most {{length}}.",
+  ),
+  deletesNow: {
+    one: "This deletes {{count}} alert now.",
+    other: "This deletes {{count}} alerts now.",
+  },
+  deletesAtLeastNow: {
+    one: "This deletes more than {{count}} alert now.",
+    other: "This deletes more than {{count}} alerts now.",
+  },
+  counting: translationKey("Counting the alerts this deletes…"),
   offersPostmortemKeep: false,
 };
 
@@ -259,6 +352,63 @@ export const getResolvedRecordRetentionConfirmation: (
     length.unit === "years" ? copy.confirmInYears : copy.confirmInDays,
     length.count,
   );
+};
+
+/*
+ * How many a change deletes now, as the question says it (issue #6943):
+ * "This deletes 4,512 incidents now.", "This deletes more than 10,000
+ * incidents now." when the count stopped at its bound, "Nothing is old
+ * enough to delete yet." for none - or nothing at all for a count that
+ * failed, so the question is asked without one rather than with a wrong one.
+ */
+export const getResolvedRecordRetentionCountText: (
+  copy: ResolvedRecordRetentionKindCopy,
+  answer: DueRecordsCountAnswer | null,
+  translator: Translator,
+) => string | null = (
+  copy: ResolvedRecordRetentionKindCopy,
+  answer: DueRecordsCountAnswer | null,
+  translator: Translator,
+): string | null => {
+  if (!answer) {
+    return null;
+  }
+
+  if (answer.count === 0) {
+    return (
+      translator.translateText(
+        ResolvedRecordRetentionCopy.nothingToDeleteYet,
+      ) || ResolvedRecordRetentionCopy.nothingToDeleteYet
+    );
+  }
+
+  return translator.translatePlural(
+    answer.isAtLeast ? copy.deletesAtLeastNow : copy.deletesNow,
+    answer.count,
+  );
+};
+
+/*
+ * The line under the pick while the server holds every project to a
+ * maximum: "Your server keeps resolved incidents for at most 1 year." - or
+ * nothing, with no maximum.
+ */
+export const getResolvedRecordRetentionServerMaximumText: (
+  copy: ResolvedRecordRetentionKindCopy,
+  maximumInDays: number | undefined,
+  translator: Translator,
+) => string | null = (
+  copy: ResolvedRecordRetentionKindCopy,
+  maximumInDays: number | undefined,
+  translator: Translator,
+): string | null => {
+  if (maximumInDays === undefined) {
+    return null;
+  }
+
+  return translator.translateTemplate(copy.serverMaximum, {
+    length: getResolvedRecordRetentionText(maximumInDays, translator),
+  });
 };
 
 // The sentence under the postmortem switch, for where it is.
