@@ -287,8 +287,9 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+        {/* A div, not a p: an Icon draws a div around its svg. */}
         {props.minutes ? (
-          <p
+          <div
             data-testid="guided-setup-minutes"
             className={`flex items-center gap-1.5 text-xs text-gray-500 ${
               outcomeSteps.length > 0
@@ -303,7 +304,7 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
                 props.minutes,
               )}
             </span>
-          </p>
+          </div>
         ) : (
           <></>
         )}

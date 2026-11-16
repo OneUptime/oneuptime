@@ -231,6 +231,11 @@ describe("the top of the path", () => {
   test("says how many steps are done, and about how many minutes are left of the ones the plan allows", async () => {
     await renderPath();
 
+    // The clock is an Icon, which draws a div: no paragraph on the path holds one.
+    expect(
+      screen.getByTestId("getting-started").querySelectorAll("p div"),
+    ).toHaveLength(0);
+
     const progress: HTMLElement = screen.getByTestId(
       "getting-started-progress",
     );

@@ -769,8 +769,9 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
               }
               size={ProgressBarSize.Small}
             />
+            {/* A div, not a p: an Icon draws a div around its svg. */}
             {minutesLeft > 0 ? (
-              <p
+              <div
                 data-testid="getting-started-minutes-left"
                 className="mt-2 flex items-center gap-1.5 text-xs text-gray-500"
               >
@@ -781,7 +782,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                     minutesLeft,
                   )}
                 </span>
-              </p>
+              </div>
             ) : (
               <></>
             )}

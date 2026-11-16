@@ -429,6 +429,11 @@ describe("What do you want to do first?", () => {
 
     fireEvent.click(goalBox(ProjectGoal.Uptime));
 
+    // Its clock is an Icon, which draws a div: no paragraph holds one.
+    expect(
+      screen.getByTestId("welcome-question").querySelectorAll("p div"),
+    ).toHaveLength(0);
+
     // Uptime: a monitor and who is told.
     expect(screen.getByTestId("welcome-question-plan-steps")).toHaveTextContent(
       "2 steps to set up",

@@ -289,7 +289,8 @@ const GoalQuestion: FunctionComponent<ComponentProps> = (
           <></>
         )}
         <div className="flex flex-col gap-3 border-t border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <p
+          {/* A div, not a p: an Icon draws a div around its svg. */}
+          <div
             data-testid="welcome-question-plan"
             aria-live="polite"
             className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600"
@@ -321,7 +322,7 @@ const GoalQuestion: FunctionComponent<ComponentProps> = (
                 {translator.translateText(WELCOME_QUESTION_COPY.pickHint)}
               </span>
             )}
-          </p>
+          </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
             {props.isChange ? (
               <Button

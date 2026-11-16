@@ -408,6 +408,10 @@ describe("what the setup sets up, beside its steps", () => {
     expect(screen.getByTestId("guided-setup-minutes")).toHaveTextContent(
       /^About 3\sminutes$/,
     );
+    // Its clock is an Icon, which draws a div: no paragraph holds one.
+    expect(
+      screen.getByTestId(GUIDED_SETUP_ASIDE_TEST_ID).querySelectorAll("p div"),
+    ).toHaveLength(0);
   });
 
   test("sits beside the steps from lg up, the steps as wide as they were", () => {
