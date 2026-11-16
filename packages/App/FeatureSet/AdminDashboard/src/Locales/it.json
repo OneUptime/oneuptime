@@ -4014,7 +4014,7 @@
   "No key yet. Create one for scripts and tools that call the API as a master admin.": "Nessuna chiave ancora. Creane una per gli script e gli strumenti che chiamano l'API come amministratore principale.",
   "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "È impostata una chiave. È stata mostrata una volta, quando è stata creata: viene conservato solo il suo hash, quindi non può essere mostrata di nuovo. Se l'hai persa, reimpostala.",
   "Create Key": "Crea chiave",
-  "Reset Key": "Reimposta chiave",
+  "Reset Key": "Reimposta la chiave",
   "Requests with the key are accepted.": "Le richieste con la chiave vengono accettate.",
   "Reset Master API Key?": "Reimpostare la chiave API master?",
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "La chiave attuale smette subito di funzionare, per ogni script e strumento che la usa. La nuova chiave viene mostrata una volta.",

@@ -4013,7 +4013,7 @@
   "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Kopieer de inhoud van het sjabloon hieronder precies — inclusief leestekens en spaties — wanneer je elk sjabloon in Meta aanmaakt. De lijst met variabelen toont elke tijdelijke aanduiding die in WhatsApp Manager moet worden ingesteld.",
   "No key yet. Create one for scripts and tools that call the API as a master admin.": "Nog geen sleutel. Maak er een voor scripts en tools die de API als hoofdbeheerder aanroepen.",
   "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "Er is een sleutel ingesteld. Die werd één keer getoond, toen hij werd gemaakt: alleen de hash ervan wordt bewaard, dus hij kan niet opnieuw worden getoond. Bent u hem kwijt, stel hem dan opnieuw in.",
-  "Create Key": "Sleutel maken",
+  "Create Key": "Sleutel aanmaken",
   "Reset Key": "Sleutel opnieuw instellen",
   "Requests with the key are accepted.": "Verzoeken met de sleutel worden geaccepteerd.",
   "Reset Master API Key?": "Master API-sleutel opnieuw instellen?",
