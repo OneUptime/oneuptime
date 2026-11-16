@@ -55979,5 +55979,13 @@
   "Already paged about this by {{name}}, so not paged again.": "Уже вызван по этому поводу политикой {{name}}, поэтому повторно не вызывается.",
   "Merged Into On-Call Log ID": "ID журнала дежурства, с которым объединено",
   "Their page from another on-call policy is over, so this policy pages them now.": "Вызов другой политикой дежурства завершён, поэтому теперь вызывает эта политика.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Вызов политикой {{name}} завершён, поэтому теперь вызывает эта политика."
+  "Their page from {{name}} is over, so this policy pages them now.": "Вызов политикой {{name}} завершён, поэтому теперь вызывает эта политика.",
+  "First Approved Plan Fingerprint": "Отпечаток плана, одобренного первым",
+  "Runs AI Code Fixes": "Выполняет исправления кода от ИИ",
+  "They hold riskier changes, so each runs once someone else approves it too.": "В них есть более рискованные изменения, поэтому каждое выполнится, когда его одобрит кто-то ещё.",
+  "They hold riskier changes, so each runs once someone else approves it too._one": "В нём есть более рискованное изменение, поэтому оно выполнится, когда его одобрит кто-то ещё.",
+  "{{count}} fixes you approved first are waiting for someone else's approval": "Исправления, которые вы одобрили первым, ждут одобрения другого человека: {{count}}",
+  "{{count}} fixes you approved first are waiting for someone else's approval_one": "Исправление, которое вы одобрили первым, ждёт одобрения другого человека",
+  "{{count}} more you approved first wait for someone else's approval.": "Ещё исправления, которые вы одобрили первым, ждут одобрения другого человека: {{count}}.",
+  "{{count}} more you approved first wait for someone else's approval._one": "Ещё исправления, которые вы одобрили первым, ждут одобрения другого человека: {{count}}."
 }

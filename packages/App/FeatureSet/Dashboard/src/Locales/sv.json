@@ -55979,5 +55979,13 @@
   "Already paged about this by {{name}}, so not paged again.": "Redan larmad om detta av {{name}}, så inte larmad igen.",
   "Merged Into On-Call Log ID": "ID för jourloggen som detta slogs ihop med",
   "Their page from another on-call policy is over, so this policy pages them now.": "Larmet från en annan jourpolicy är över, så den här policyn larmar nu själv.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Larmet från {{name}} är över, så den här policyn larmar nu själv."
+  "Their page from {{name}} is over, so this policy pages them now.": "Larmet från {{name}} är över, så den här policyn larmar nu själv.",
+  "First Approved Plan Fingerprint": "Fingeravtryck för den först godkända planen",
+  "Runs AI Code Fixes": "Kör AI-kodkorrigeringar",
+  "They hold riskier changes, so each runs once someone else approves it too.": "De innehåller riskablare ändringar, så var och en körs först när någon annan också godkänner den.",
+  "They hold riskier changes, so each runs once someone else approves it too._one": "Den innehåller en riskablare ändring, så den körs först när någon annan också godkänner den.",
+  "{{count}} fixes you approved first are waiting for someone else's approval": "{{count}} åtgärder som du godkände först väntar på någon annans godkännande",
+  "{{count}} fixes you approved first are waiting for someone else's approval_one": "En åtgärd som du godkände först väntar på någon annans godkännande",
+  "{{count}} more you approved first wait for someone else's approval.": "{{count}} åtgärder till som du godkände först väntar på någon annans godkännande.",
+  "{{count}} more you approved first wait for someone else's approval._one": "{{count}} åtgärd till som du godkände först väntar på någon annans godkännande."
 }

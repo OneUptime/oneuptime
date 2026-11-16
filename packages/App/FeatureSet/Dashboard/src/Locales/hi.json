@@ -55979,5 +55979,13 @@
   "Already paged about this by {{name}}, so not paged again.": "इसके लिए {{name}} ने पहले ही पेज कर दिया है, इसलिए दोबारा पेज नहीं किया गया।",
   "Merged Into On-Call Log ID": "जिस ऑन-कॉल लॉग में मिलाया गया उसकी ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "किसी अन्य ऑन-कॉल नीति का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।"
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।",
+  "First Approved Plan Fingerprint": "पहले स्वीकृत योजना का फ़िंगरप्रिंट",
+  "Runs AI Code Fixes": "AI कोड सुधार चलाता है",
+  "They hold riskier changes, so each runs once someone else approves it too.": "इनमें जोखिम भरे बदलाव हैं, इसलिए हर एक तभी चलेगा जब कोई और भी इसे स्वीकृत करे।",
+  "They hold riskier changes, so each runs once someone else approves it too._one": "इसमें एक जोखिम भरा बदलाव है, इसलिए यह तभी चलेगा जब कोई और भी इसे स्वीकृत करे।",
+  "{{count}} fixes you approved first are waiting for someone else's approval": "आपके सबसे पहले स्वीकृत किए गए {{count}} सुधार किसी और की मंज़ूरी का इंतज़ार कर रहे हैं",
+  "{{count}} fixes you approved first are waiting for someone else's approval_one": "आपका सबसे पहले स्वीकृत किया गया एक सुधार किसी और की मंज़ूरी का इंतज़ार कर रहा है",
+  "{{count}} more you approved first wait for someone else's approval.": "आपके सबसे पहले स्वीकृत किए गए {{count}} और सुधार किसी और की मंज़ूरी का इंतज़ार कर रहे हैं।",
+  "{{count}} more you approved first wait for someone else's approval._one": "आपका सबसे पहले स्वीकृत किया गया {{count}} और सुधार किसी और की मंज़ूरी का इंतज़ार कर रहा है।"
 }

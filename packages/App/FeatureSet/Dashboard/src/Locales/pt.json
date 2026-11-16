@@ -55979,5 +55979,13 @@
   "Already paged about this by {{name}}, so not paged again.": "Já chamado sobre isto por {{name}}, então não foi chamado de novo.",
   "Merged Into On-Call Log ID": "ID do registro de plantão em que foi mesclado",
   "Their page from another on-call policy is over, so this policy pages them now.": "A chamada de outra política de plantão terminou, então esta política chama agora por conta própria.",
-  "Their page from {{name}} is over, so this policy pages them now.": "A chamada de {{name}} terminou, então esta política chama agora por conta própria."
+  "Their page from {{name}} is over, so this policy pages them now.": "A chamada de {{name}} terminou, então esta política chama agora por conta própria.",
+  "First Approved Plan Fingerprint": "Impressão digital do plano aprovado primeiro",
+  "Runs AI Code Fixes": "Executa correções de código por IA",
+  "They hold riskier changes, so each runs once someone else approves it too.": "Contêm mudanças mais arriscadas, então cada uma roda quando outra pessoa também a aprova.",
+  "They hold riskier changes, so each runs once someone else approves it too._one": "Contém uma mudança mais arriscada, então roda quando outra pessoa também a aprova.",
+  "{{count}} fixes you approved first are waiting for someone else's approval": "{{count}} correções que você aprovou primeiro aguardam a aprovação de outra pessoa",
+  "{{count}} fixes you approved first are waiting for someone else's approval_one": "Uma correção que você aprovou primeiro aguarda a aprovação de outra pessoa",
+  "{{count}} more you approved first wait for someone else's approval.": "Mais {{count}} correções que você aprovou primeiro aguardam a aprovação de outra pessoa.",
+  "{{count}} more you approved first wait for someone else's approval._one": "Mais {{count}} correção que você aprovou primeiro aguarda a aprovação de outra pessoa."
 }

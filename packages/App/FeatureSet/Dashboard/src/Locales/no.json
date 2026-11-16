@@ -55979,5 +55979,13 @@
   "Already paged about this by {{name}}, so not paged again.": "Allerede kalt opp om dette av {{name}}, så ikke kalt opp igjen.",
   "Merged Into On-Call Log ID": "ID for vaktloggen dette ble slått sammen med",
   "Their page from another on-call policy is over, so this policy pages them now.": "Oppkallingen fra en annen vaktpolicy er over, så denne policyen kaller opp selv nå.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Oppkallingen fra {{name}} er over, så denne policyen kaller opp selv nå."
+  "Their page from {{name}} is over, so this policy pages them now.": "Oppkallingen fra {{name}} er over, så denne policyen kaller opp selv nå.",
+  "First Approved Plan Fingerprint": "Fingeravtrykk av planen som ble godkjent først",
+  "Runs AI Code Fixes": "Kjører AI-koderettinger",
+  "They hold riskier changes, so each runs once someone else approves it too.": "De inneholder mer risikable endringer, så hver kjører først når noen andre også godkjenner den.",
+  "They hold riskier changes, so each runs once someone else approves it too._one": "Den inneholder en mer risikabel endring, så den kjører først når noen andre også godkjenner den.",
+  "{{count}} fixes you approved first are waiting for someone else's approval": "{{count}} rettinger du godkjente først, venter på godkjenning fra noen andre",
+  "{{count}} fixes you approved first are waiting for someone else's approval_one": "En retting du godkjente først, venter på godkjenning fra noen andre",
+  "{{count}} more you approved first wait for someone else's approval.": "{{count}} rettinger til som du godkjente først, venter på godkjenning fra noen andre.",
+  "{{count}} more you approved first wait for someone else's approval._one": "{{count}} retting til som du godkjente først, venter på godkjenning fra noen andre."
 }

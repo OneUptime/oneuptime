@@ -55979,5 +55979,13 @@
   "Already paged about this by {{name}}, so not paged again.": "پیش‌تر {{name}} برای این فراخوانده بود، پس دوباره فراخوانده نشد.",
   "Merged Into On-Call Log ID": "شناسه گزارش آنکالی که در آن ادغام شد",
   "Their page from another on-call policy is over, so this policy pages them now.": "فراخوانی سیاست آنکال دیگر تمام شده است، پس این سیاست اکنون خودش فرامی‌خواند.",
-  "Their page from {{name}} is over, so this policy pages them now.": "فراخوانی {{name}} تمام شده است، پس این سیاست اکنون خودش فرامی‌خواند."
+  "Their page from {{name}} is over, so this policy pages them now.": "فراخوانی {{name}} تمام شده است، پس این سیاست اکنون خودش فرامی‌خواند.",
+  "First Approved Plan Fingerprint": "اثر انگشت طرحی که نخست تأیید شد",
+  "Runs AI Code Fixes": "اصلاح‌های کد هوش مصنوعی را اجرا می‌کند",
+  "They hold riskier changes, so each runs once someone else approves it too.": "این‌ها تغییرهای پرخطرتری دارند، پس هر کدام وقتی اجرا می‌شود که کس دیگری هم آن را تأیید کند.",
+  "They hold riskier changes, so each runs once someone else approves it too._one": "این اصلاح تغییری پرخطرتر دارد، پس وقتی اجرا می‌شود که کس دیگری هم آن را تأیید کند.",
+  "{{count}} fixes you approved first are waiting for someone else's approval": "{{count}} اصلاح که شما نخست تأیید کردید منتظر تأیید کس دیگری است",
+  "{{count}} fixes you approved first are waiting for someone else's approval_one": "یک اصلاح که شما نخست تأیید کردید منتظر تأیید کس دیگری است",
+  "{{count}} more you approved first wait for someone else's approval.": "{{count}} اصلاح دیگر که شما نخست تأیید کردید منتظر تأیید کس دیگری است.",
+  "{{count}} more you approved first wait for someone else's approval._one": "{{count}} اصلاح دیگر که شما نخست تأیید کردید منتظر تأیید کس دیگری است."
 }

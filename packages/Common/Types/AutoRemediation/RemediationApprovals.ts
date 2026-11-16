@@ -165,6 +165,25 @@ export function getWaitingFirstApprovedAt(suggestion: {
 }
 
 /*
+ * Whether a fix waits for someone else's approval as a reader sees it: it
+ * still waits, and the reader gave its first approval - the first of the two
+ * a riskier fix needs - so theirs is not the approval it waits for. AI
+ * Insights says so instead of "waiting for your approval".
+ */
+export function isWaitingForOthersApproval(data: {
+  suggestion: {
+    status?: AutoRemediationSuggestionStatus | string | undefined;
+    firstApprovedByUserId?: { toString: () => string } | string | undefined;
+  };
+  readerUserId?: { toString: () => string } | string | null | undefined;
+}): boolean {
+  return (
+    data.suggestion.status === AutoRemediationSuggestionStatus.Suggested &&
+    isSameApprover(data.suggestion.firstApprovedByUserId, data.readerUserId)
+  );
+}
+
+/*
  * WHAT A PRESS OF APPROVE DOES TO A FIX, AS THE PERSON WAS SHOWN IT.
  *
  * A Slack dialog can be left open, a Microsoft Teams approval card is a

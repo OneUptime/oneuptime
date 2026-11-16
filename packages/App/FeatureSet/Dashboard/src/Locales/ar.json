@@ -55979,5 +55979,13 @@
   "Already paged about this by {{name}}, so not paged again.": "استدعاه {{name}} بالفعل لهذا الأمر، لذا لم يُستدعَ مرة أخرى.",
   "Merged Into On-Call Log ID": "معرّف سجل المناوبة الذي دُمج فيه",
   "Their page from another on-call policy is over, so this policy pages them now.": "انتهى استدعاء سياسة المناوبة الأخرى، لذا تستدعي هذه السياسة الآن بنفسها.",
-  "Their page from {{name}} is over, so this policy pages them now.": "انتهى استدعاء {{name}}، لذا تستدعي هذه السياسة الآن بنفسها."
+  "Their page from {{name}} is over, so this policy pages them now.": "انتهى استدعاء {{name}}، لذا تستدعي هذه السياسة الآن بنفسها.",
+  "First Approved Plan Fingerprint": "بصمة الخطة التي تمت الموافقة عليها أولًا",
+  "Runs AI Code Fixes": "يشغّل إصلاحات التعليمات البرمجية بالذكاء الاصطناعي",
+  "They hold riskier changes, so each runs once someone else approves it too.": "فيها تغييرات أكثر خطورة، لذا يعمل كل منها بمجرد أن يوافق عليه شخص آخر أيضًا.",
+  "They hold riskier changes, so each runs once someone else approves it too._one": "فيه تغيير أكثر خطورة، لذا يعمل بمجرد أن يوافق عليه شخص آخر أيضًا.",
+  "{{count}} fixes you approved first are waiting for someone else's approval": "إصلاحات وافقت عليها أولًا تنتظر موافقة شخص آخر (العدد: {{count}})",
+  "{{count}} fixes you approved first are waiting for someone else's approval_one": "إصلاح وافقت عليه أولًا ينتظر موافقة شخص آخر",
+  "{{count}} more you approved first wait for someone else's approval.": "{{count}} من الإصلاحات الأخرى التي وافقت عليها أولًا تنتظر موافقة شخص آخر.",
+  "{{count}} more you approved first wait for someone else's approval._one": "{{count}} إصلاح آخر وافقت عليه أولًا ينتظر موافقة شخص آخر."
 }

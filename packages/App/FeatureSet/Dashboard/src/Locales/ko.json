@@ -55979,5 +55979,13 @@
   "Already paged about this by {{name}}, so not paged again.": "이 건으로 {{name}}에서 이미 호출되었으므로 다시 호출하지 않았습니다.",
   "Merged Into On-Call Log ID": "병합된 온콜 로그 ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "다른 온콜 정책의 호출이 끝났으므로 이제 이 정책이 직접 호출합니다.",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}}의 호출이 끝났으므로 이제 이 정책이 직접 호출합니다."
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}}의 호출이 끝났으므로 이제 이 정책이 직접 호출합니다.",
+  "First Approved Plan Fingerprint": "먼저 승인된 계획의 지문",
+  "Runs AI Code Fixes": "AI 코드 수정 실행",
+  "They hold riskier changes, so each runs once someone else approves it too.": "더 위험한 변경이 포함되어 있어, 다른 사람도 승인하면 각각 실행됩니다.",
+  "They hold riskier changes, so each runs once someone else approves it too._one": "It holds a riskier change, so it runs once someone else approves it too.",
+  "{{count}} fixes you approved first are waiting for someone else's approval": "먼저 승인한 수정 {{count}}건이 다른 사람의 승인을 기다리고 있습니다",
+  "{{count}} fixes you approved first are waiting for someone else's approval_one": "A fix you approved first is waiting for someone else's approval",
+  "{{count}} more you approved first wait for someone else's approval.": "먼저 승인한 수정 {{count}}건이 더 다른 사람의 승인을 기다리고 있습니다.",
+  "{{count}} more you approved first wait for someone else's approval._one": "{{count}} more you approved first waits for someone else's approval."
 }

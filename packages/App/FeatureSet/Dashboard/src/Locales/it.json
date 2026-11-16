@@ -55979,5 +55979,13 @@
   "Already paged about this by {{name}}, so not paged again.": "Già chiamato per questo da {{name}}, quindi non chiamato di nuovo.",
   "Merged Into On-Call Log ID": "ID del log di reperibilità in cui è stato unito",
   "Their page from another on-call policy is over, so this policy pages them now.": "La chiamata di un'altra policy di reperibilità è terminata, quindi ora chiama questa policy.",
-  "Their page from {{name}} is over, so this policy pages them now.": "La chiamata di {{name}} è terminata, quindi ora chiama questa policy."
+  "Their page from {{name}} is over, so this policy pages them now.": "La chiamata di {{name}} è terminata, quindi ora chiama questa policy.",
+  "First Approved Plan Fingerprint": "Impronta del piano approvato per primo",
+  "Runs AI Code Fixes": "Esegue le correzioni di codice con l'IA",
+  "They hold riskier changes, so each runs once someone else approves it too.": "Contengono modifiche più rischiose, quindi ognuna viene eseguita quando anche un'altra persona la approva.",
+  "They hold riskier changes, so each runs once someone else approves it too._one": "Contiene una modifica più rischiosa, quindi viene eseguita quando anche un'altra persona la approva.",
+  "{{count}} fixes you approved first are waiting for someone else's approval": "{{count}} correzioni che hai approvato per primo attendono l'approvazione di un'altra persona",
+  "{{count}} fixes you approved first are waiting for someone else's approval_one": "Una correzione che hai approvato per primo attende l'approvazione di un'altra persona",
+  "{{count}} more you approved first wait for someone else's approval.": "Altre {{count}} correzioni che hai approvato per primo attendono l'approvazione di un'altra persona.",
+  "{{count}} more you approved first wait for someone else's approval._one": "{{count}} altra correzione che hai approvato per primo attende l'approvazione di un'altra persona."
 }

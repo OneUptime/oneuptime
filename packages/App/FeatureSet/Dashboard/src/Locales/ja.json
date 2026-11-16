@@ -55979,5 +55979,13 @@
   "Already paged about this by {{name}}, so not paged again.": "これについては {{name}} からすでに呼び出されているため、再度呼び出されませんでした。",
   "Merged Into On-Call Log ID": "統合先のオンコールログの ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "別のオンコールポリシーからの呼び出しが終了したため、このポリシーが代わりに呼び出します。",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} からの呼び出しが終了したため、このポリシーが代わりに呼び出します。"
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} からの呼び出しが終了したため、このポリシーが代わりに呼び出します。",
+  "First Approved Plan Fingerprint": "最初に承認されたプランのフィンガープリント",
+  "Runs AI Code Fixes": "AI のコード修正を実行",
+  "They hold riskier changes, so each runs once someone else approves it too.": "より危険な変更を含むため、ほかの誰かも承認すると、それぞれ実行されます。",
+  "They hold riskier changes, so each runs once someone else approves it too._one": "It holds a riskier change, so it runs once someone else approves it too.",
+  "{{count}} fixes you approved first are waiting for someone else's approval": "あなたが最初に承認した {{count}} 件の修正が、ほかの人の承認を待っています",
+  "{{count}} fixes you approved first are waiting for someone else's approval_one": "A fix you approved first is waiting for someone else's approval",
+  "{{count}} more you approved first wait for someone else's approval.": "あなたが最初に承認したほかの {{count}} 件は、ほかの人の承認を待っています。",
+  "{{count}} more you approved first wait for someone else's approval._one": "{{count}} more you approved first waits for someone else's approval."
 }

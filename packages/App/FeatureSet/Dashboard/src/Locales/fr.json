@@ -55979,5 +55979,13 @@
   "Already paged about this by {{name}}, so not paged again.": "Déjà appelé à ce sujet par {{name}}, donc pas appelé à nouveau.",
   "Merged Into On-Call Log ID": "ID du journal d'astreinte dans lequel il a été fusionné",
   "Their page from another on-call policy is over, so this policy pages them now.": "L'appel d'une autre politique d'astreinte est terminé, donc cette politique appelle elle-même maintenant.",
-  "Their page from {{name}} is over, so this policy pages them now.": "L'appel de {{name}} est terminé, donc cette politique appelle elle-même maintenant."
+  "Their page from {{name}} is over, so this policy pages them now.": "L'appel de {{name}} est terminé, donc cette politique appelle elle-même maintenant.",
+  "First Approved Plan Fingerprint": "Empreinte du plan approuvé en premier",
+  "Runs AI Code Fixes": "Exécute les corrections de code par IA",
+  "They hold riskier changes, so each runs once someone else approves it too.": "Ils contiennent des modifications plus risquées : chacun s'exécute une fois qu'une autre personne l'a aussi approuvé.",
+  "They hold riskier changes, so each runs once someone else approves it too._one": "Il contient une modification plus risquée : il s'exécute une fois qu'une autre personne l'a aussi approuvé.",
+  "{{count}} fixes you approved first are waiting for someone else's approval": "{{count}} correctifs que vous avez approuvés en premier attendent l'approbation d'une autre personne",
+  "{{count}} fixes you approved first are waiting for someone else's approval_one": "Un correctif que vous avez approuvé en premier attend l'approbation d'une autre personne",
+  "{{count}} more you approved first wait for someone else's approval.": "{{count}} autres correctifs que vous avez approuvés en premier attendent l'approbation d'une autre personne.",
+  "{{count}} more you approved first wait for someone else's approval._one": "{{count}} autre correctif que vous avez approuvé en premier attend l'approbation d'une autre personne."
 }
