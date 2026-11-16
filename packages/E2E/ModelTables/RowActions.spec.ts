@@ -38,6 +38,7 @@ const MINOR: string = "43000000-0000-4000-8000-000000000003";
 const ALERT: string = "44000000-0000-4000-8000-000000000010";
 const ALERT_RESOLVED: string = "45000000-0000-4000-8000-000000000003";
 const CHECKOUT_MONITOR: string = "60000000-0000-4000-8000-000000000002";
+const MARKETING_MONITOR: string = "60000000-0000-4000-8000-000000000003";
 const FAILOVER_RUNBOOK: string = "90000000-0000-4000-8000-000000000002";
 
 // What the lists' durations are measured against.
@@ -60,6 +61,7 @@ interface FixtureRecord {
     data: Record<string, unknown>;
   }>;
   creates: Array<{ tableName: string; data: Record<string, unknown> }>;
+  usedByReads: Array<{ recordKind: string; recordId: string }>;
   unmodelled: Array<string>;
 }
 
@@ -725,6 +727,18 @@ test.describe("a monitor's row", () => {
     await expect(dialog.getByTestId("row-archive-name")).toHaveText(
       "Marketing Website",
     );
+
+    /*
+     * It reads what still uses the monitor before anything happens (#7435):
+     * nothing here does, so the question says nothing more.
+     */
+    await expect
+      .poll(async (): Promise<FixtureRecord["usedByReads"]> => {
+        return (await fixture(page)).usedByReads;
+      })
+      .toEqual([{ recordKind: "monitor", recordId: MARKETING_MONITOR }]);
+    await expect(dialog.getByTestId("used-by-checking")).toHaveCount(0);
+    await expect(dialog.getByTestId("used-by-impact")).toHaveCount(0);
 
     await submit(dialog);
 
