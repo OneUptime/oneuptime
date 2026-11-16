@@ -63,7 +63,7 @@ Fold **Sikkerhed** ud i sidemenuen i **Brugerprofil**. Afsnittet har tre sider.
 | Side | Hvad den bruges til |
 | --- | --- |
 | **Adgangskodeadministration** | Sæt en ny adgangskode. |
-| **Passkeys** | Log ind uden adgangskode, med dit fingeraftryk, dit ansigt, din skærmlås eller en sikkerhedsnøgle. |
+| **Adgangsnøgler** | Log ind uden adgangskode, med dit fingeraftryk, dit ansigt, din skærmlås eller en sikkerhedsnøgle. |
 | **Tofaktorgodkendelse** | Bed om et andet trin efter din adgangskode eller et link sendt på e-mail: en kode fra en app eller en sikkerhedsnøgle. |
 
 ### Skift din adgangskode
@@ -79,8 +79,8 @@ En ny adgangskode logger alle enheder ud af din konto, og ethvert nulstillingsli
 ### Tilføj en adgangsnøgle
 
 :::steps
-1. Åbn **Sikkerhed → Passkeys**, og klik på **Add Passkey**.
-2. Giv den et navn, du kan genkende, for eksempel din enhed eller din adgangskodeadministrator, og klik på **Create Passkey**.
+1. Åbn **Sikkerhed → Adgangsnøgler**, og klik på **Tilføj adgangsnøgle**.
+2. Giv den et navn, du kan genkende, for eksempel din enhed eller din adgangskodeadministrator, og klik på **Opret adgangsnøgle**.
 3. Følg din browsers anvisning for at gemme adgangsnøglen.
 :::
 
@@ -108,11 +108,11 @@ Tofaktorgodkendelse gælder, når du logger ind med din adgangskode eller et lin
 :::steps
 ### Tilføj en godkendelsesapp
 
-Åbn **Sikkerhed → Tofaktorgodkendelse**. Under **Authenticator apps** tilføjer du en app og giver den et navn. Scan QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, indtast den sekscifrede kode, den viser, og klik på **Verify and finish**. Vil du hellere bruge en USB- eller NFC-nøgle, tilføjer du den under **Security keys**.
+Åbn **Sikkerhed → Tofaktorgodkendelse**. Under **Godkendelsesapps** tilføjer du en app og giver den et navn. Scan QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, indtast den sekscifrede kode, den viser, og klik på **Bekræft og afslut**. Vil du hellere bruge en USB- eller NFC-nøgle, tilføjer du den under **Sikkerhedsnøgler**.
 
 ### Gem dine backupkoder
 
-Første gang du tilføjer en app, en nøgle eller en adgangsnøgle, viser OneUptime **Your backup codes**. Hver kode logger dig ind én gang, hvis du mister din app eller nøgle. Kopiér eller download dem, sæt flueben ved, at du har gemt dem, og klik på **Færdig**.
+Første gang du tilføjer en app, en nøgle eller en adgangsnøgle, viser OneUptime **Dine backupkoder**. Hver kode logger dig ind én gang, hvis du mister din app eller nøgle. Kopiér eller download dem, sæt flueben ved, at du har gemt dem, og klik på **Færdig**.
 
 ### Slå den til
 
@@ -120,7 +120,7 @@ Første gang du tilføjer en app, en nøgle eller en adgangsnøgle, viser OneUpt
 :::
 
 > [!TIP]
-> Er du ved at løbe tør for backupkoder? **Regenerate codes** på samme side giver dig et nyt sæt, og de gamle koder holder op med at virke med det samme.
+> Er du ved at løbe tør for backupkoder? **Generér nye koder** på samme side giver dig et nyt sæt, og de gamle koder holder op med at virke med det samme.
 
 ## Dine projekter
 

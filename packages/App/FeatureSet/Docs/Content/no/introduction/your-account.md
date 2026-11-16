@@ -63,7 +63,7 @@ Utvid **Sikkerhet** i sidemenyen til **Brukerprofil**. Delen har tre sider.
 | Side | Hva den brukes til |
 | --- | --- |
 | **Passordadministrasjon** | Angi et nytt passord. |
-| **Passkeys** | Logg inn uten passord, med fingeravtrykk, ansikt, skjermlås eller en sikkerhetsnøkkel. |
+| **Passnøkler** | Logg inn uten passord, med fingeravtrykk, ansikt, skjermlås eller en sikkerhetsnøkkel. |
 | **Tofaktorautentisering** | Be om et andre steg etter passordet eller en lenke på e-post: en kode fra en app, eller en sikkerhetsnøkkel. |
 
 ### Bytt passord
@@ -79,8 +79,8 @@ Et nytt passord logger alle enheter ut av kontoen din, og enhver tilbakestilling
 ### Legg til en passnøkkel
 
 :::steps
-1. Åpne **Sikkerhet → Passkeys**, og klikk på **Add Passkey**.
-2. Gi den et navn du kjenner igjen, for eksempel enheten eller passordbehandleren din, og klikk på **Create Passkey**.
+1. Åpne **Sikkerhet → Passnøkler**, og klikk på **Legg til passnøkkel**.
+2. Gi den et navn du kjenner igjen, for eksempel enheten eller passordbehandleren din, og klikk på **Opprett passnøkkel**.
 3. Følg nettleserens melding for å lagre passnøkkelen.
 :::
 
@@ -108,11 +108,11 @@ Tofaktorautentisering gjelder når du logger inn med passordet ditt eller en len
 :::steps
 ### Legg til en autentiseringsapp
 
-Åpne **Sikkerhet → Tofaktorautentisering**. Under **Authenticator apps** legger du til en app og gir den et navn. Skann QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, skriv inn den sekssifrede koden den viser, og klikk på **Verify and finish**. Vil du heller bruke en USB- eller NFC-nøkkel, legger du den til under **Security keys**.
+Åpne **Sikkerhet → Tofaktorautentisering**. Under **Autentiseringsapper** legger du til en app og gir den et navn. Skann QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, skriv inn den sekssifrede koden den viser, og klikk på **Bekreft og fullfør**. Vil du heller bruke en USB- eller NFC-nøkkel, legger du den til under **Sikkerhetsnøkler**.
 
 ### Ta vare på reservekodene dine
 
-Første gang du legger til en app, en nøkkel eller en passnøkkel, viser OneUptime **Your backup codes**. Hver kode logger deg inn én gang hvis du mister appen eller nøkkelen. Kopier eller last dem ned, kryss av for at du har tatt vare på dem, og klikk på **Ferdig**.
+Første gang du legger til en app, en nøkkel eller en passnøkkel, viser OneUptime **Reservekodene dine**. Hver kode logger deg inn én gang hvis du mister appen eller nøkkelen. Kopier eller last dem ned, kryss av for at du har tatt vare på dem, og klikk på **Ferdig**.
 
 ### Slå den på
 
@@ -120,7 +120,7 @@ Første gang du legger til en app, en nøkkel eller en passnøkkel, viser OneUpt
 :::
 
 > [!TIP]
-> Holder reservekodene på å ta slutt? **Regenerate codes** på samme side gir deg et nytt sett, og de gamle kodene slutter å virke med en gang.
+> Holder reservekodene på å ta slutt? **Generer nye koder** på samme side gir deg et nytt sett, og de gamle kodene slutter å virke med en gang.
 
 ## Prosjektene dine
 

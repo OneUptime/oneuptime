@@ -79,8 +79,8 @@ Een nieuw wachtwoord meldt elk apparaat af bij uw account, en elke al verzonden 
 ### Een passkey toevoegen
 
 :::steps
-1. Open **Beveiliging → Passkeys** en klik op **Add Passkey**.
-2. Geef hem een naam die u herkent, zoals uw apparaat of wachtwoordbeheerder, en klik op **Create Passkey**.
+1. Open **Beveiliging → Passkeys** en klik op **Passkey toevoegen**.
+2. Geef hem een naam die u herkent, zoals uw apparaat of wachtwoordbeheerder, en klik op **Passkey aanmaken**.
 3. Volg de melding van uw browser om de passkey op te slaan.
 :::
 
@@ -108,11 +108,11 @@ Tweefactorauthenticatie geldt wanneer u met uw wachtwoord of een gemailde link i
 :::steps
 ### Een authenticator-app toevoegen
 
-Open **Beveiliging → Tweefactorauthenticatie**. Voeg onder **Authenticator apps** een app toe en geef die een naam. Scan de QR-code met een app zoals 1Password, Google Authenticator of Microsoft Authenticator, voer de 6-cijferige code in die ze toont, en klik op **Verify and finish**. Wilt u liever een USB- of NFC-sleutel gebruiken, voeg die dan toe onder **Security keys**.
+Open **Beveiliging → Tweefactorauthenticatie**. Voeg onder **Authenticator-apps** een app toe en geef die een naam. Scan de QR-code met een app zoals 1Password, Google Authenticator of Microsoft Authenticator, voer de 6-cijferige code in die ze toont, en klik op **Verifiëren en afronden**. Wilt u liever een USB- of NFC-sleutel gebruiken, voeg die dan toe onder **Beveiligingssleutels**.
 
 ### Uw back-upcodes bewaren
 
-De eerste keer dat u een app, een sleutel of een passkey toevoegt, toont OneUptime **Your backup codes**. Elke code laat u één keer inloggen als u uw app of sleutel kwijtraakt. Kopieer of download ze, vink het vakje aan dat u ze hebt bewaard, en klik op **Klaar**.
+De eerste keer dat u een app, een sleutel of een passkey toevoegt, toont OneUptime **Uw back-upcodes**. Elke code laat u één keer inloggen als u uw app of sleutel kwijtraakt. Kopieer of download ze, vink het vakje aan dat u ze hebt bewaard, en klik op **Klaar**.
 
 ### Haar inschakelen
 
@@ -120,7 +120,7 @@ Klik bovenaan de pagina op **Tweefactorauthenticatie inschakelen** en bevestig. 
 :::
 
 > [!TIP]
-> Raken uw back-upcodes op? **Regenerate codes** op dezelfde pagina geeft u een nieuwe set, en de oude codes werken meteen niet meer.
+> Raken uw back-upcodes op? **Codes opnieuw genereren** op dezelfde pagina geeft u een nieuwe set, en de oude codes werken meteen niet meer.
 
 ## Uw projecten
 

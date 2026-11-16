@@ -116,8 +116,8 @@ Ingen av prosjektene den e-postadressen er medlem av, har satt opp single sign-o
 Appen kan ikke bruke en sikkerhetsnøkkel. Logg inn med en av reservekodene dine, eller legg til en autentiseringsapp på kontoen din i dashbordet: se [Slå på tofaktorautentisering](/docs/introduction/your-account#slå-på-tofaktorautentisering).
 :::
 
-:::details Innlogging med tilgangsnøkkel mislykkes
-Tilgangsnøkler krever at adressen til ditt OneUptime begynner med `https://`, og en tilgangsnøkkel du har lagt til for dette OneUptime: se [Legg til en tilgangsnøkkel](/docs/introduction/your-account#legg-til-en-passnøkkel). Trykk på **Change Server** på innloggingsskjermen for å bruke en annen server.
+:::details Innlogging med passnøkkel mislykkes
+Passnøkler krever at adressen til ditt OneUptime begynner med `https://`, og en passnøkkel du har lagt til for dette OneUptime: se [Legg til en passnøkkel](/docs/introduction/your-account#legg-til-en-passnøkkel). Trykk på **Change Server** på innloggingsskjermen for å bruke en annen server.
 :::
 
 ### Varslinger
