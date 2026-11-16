@@ -325,7 +325,7 @@ Las correcciones tienen los mismos cuatro modos que en un clúster de Kubernetes
 - **Desactivado**: la IA solo investiga.
 - **Pedir aprobación**: después del análisis de causa raíz, OneUptime AI diagnostica con comandos de lectura y compone el plan más pequeño que aborda la causa, por ejemplo `docker restart web`. El plan aparece en el incidente o en la alerta con su justificación, el efecto esperado y la reversión; una persona lo aprueba con un clic, y OneUptime ejecuta exactamente esos comandos.
 - **Automático**: los cambios seguros (**SafeWrite**) se ejecutan solos; un cambio más arriesgado (**RiskyWrite**) se propone para su aprobación, salvo que la lista de comandos permitidos del recurso nombre exactamente su forma.
-- **Omitir aprobación**: cada cambio que permite la política, incluidos los más arriesgados, se ejecuta solo. Lo que siempre necesita a una persona sigue esperando a una.
+- **Omitir aprobación**: cada cambio que permite la política, incluidos los más arriesgados, se ejecuta solo. Lo que siempre necesita a una persona sigue esperando a una. Si el proyecto pide que dos personas aprueben una corrección más arriesgada, un cambio más arriesgado se propone en su lugar para que lo aprueben.
 
 Después de ejecutarse una corrección, OneUptime vigila los monitores del incidente o de la alerta. Si no se recuperan, se ejecuta la reversión del plan y OneUptime AI compone un plan más, con el intento fallido delante: como máximo dos rondas por incidente o alerta. En modo **Automático**, esa segunda ronda pide aprobación; en **Omitir aprobación**, también se ejecuta sola. Las correcciones desatendidas tienen un cortacircuitos de tres por recurso y hora: por encima de eso, o mientras otra ronda desatendida de OneUptime AI siga cambiando o verificando el mismo recurso, una ronda propone su plan para su aprobación en lugar de ejecutarlo.
 
@@ -342,7 +342,7 @@ Un incidente o una alerta recibe un único carril de corrección de IA. Cuando e
 
 Algunos cambios más arriesgados **siempre necesitan a una persona** en todos los modos, incluido Omitir aprobación, y ninguna entrada de la lista de permitidos cambia eso; en las tablas de abajo aparecen marcados como tales.
 
-Un proyecto también puede pedir que dos personas aprueben una corrección que contiene un cambio más arriesgado: consulta [Dos personas aprueban una corrección más arriesgada](/docs/ai/ai-sre#dos-personas-aprueban-una-corrección-más-arriesgada).
+Un proyecto también puede pedir que dos personas aprueben una corrección que contiene un cambio más arriesgado; entonces ningún cambio más arriesgado se ejecuta por su cuenta, ni con la lista de permitidos ni con Omitir aprobación: consulta [Dos personas aprueban una corrección más arriesgada](/docs/ai/ai-sre#dos-personas-aprueban-una-corrección-más-arriesgada).
 
 ### Correcciones en hosts de Docker y Podman
 

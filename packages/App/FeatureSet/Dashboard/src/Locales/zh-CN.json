@@ -45896,7 +45896,7 @@
   "Turn on Your logs, on the Security Events {{connections}} page.": "Turn on Your logs, on the Security Events {{connections}} page.",
   "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.": "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.",
   "Limits on how much OneUptime AI uses each day and in each run, and how many people approve its riskier fixes.": "限制 OneUptime AI 每天以及每次运行的使用量，以及批准其风险较高修复的人数。",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "包含风险较高变更（例如停止某个对象或将其缩放到零）的修复，只有在两个不同的人批准后才会运行。",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, and any fix through MCP servers run only once two different people approve them. OneUptime AI never makes such a change without asking.": "包含风险较高变更（例如停止某个对象或将其缩放到零）的修复，以及通过 MCP 服务器进行的任何修复，只有在两个不同的人批准后才会运行。OneUptime AI 绝不会不经询问就做出这样的更改。",
   "Two people approve riskier fixes": "风险较高的修复由两人批准",
   "First Approved At": "首次批准时间",
   "First Approved From": "首次批准来源",

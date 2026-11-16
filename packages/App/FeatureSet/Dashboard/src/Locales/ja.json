@@ -45896,7 +45896,7 @@
   "Turn on Your logs, on the Security Events {{connections}} page.": "Turn on Your logs, on the Security Events {{connections}} page.",
   "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.": "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.",
   "Limits on how much OneUptime AI uses each day and in each run, and how many people approve its riskier fixes.": "OneUptime AI が 1 日あたりと 1 回の実行あたりに使用する量の上限と、リスクの高い修正を承認する人数です。",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "停止やゼロへのスケールなど、リスクの高い変更を含む修正は、2 人の異なるユーザーが承認するまで実行されません。",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, and any fix through MCP servers run only once two different people approve them. OneUptime AI never makes such a change without asking.": "停止やゼロへのスケールなど、リスクの高い変更を含む修正と、MCP サーバー経由の修正は、2 人の異なるユーザーが承認するまで実行されません。OneUptime AI がそのような変更を確認なしに行うことはありません。",
   "Two people approve riskier fixes": "リスクの高い修正は 2 人が承認",
   "First Approved At": "最初の承認日時",
   "First Approved From": "最初に承認した場所",

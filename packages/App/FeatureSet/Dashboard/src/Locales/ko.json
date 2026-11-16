@@ -45896,7 +45896,7 @@
   "Turn on Your logs, on the Security Events {{connections}} page.": "Turn on Your logs, on the Security Events {{connections}} page.",
   "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.": "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.",
   "Limits on how much OneUptime AI uses each day and in each run, and how many people approve its riskier fixes.": "OneUptime AI가 하루에, 그리고 실행마다 사용하는 양의 한도와 위험이 큰 수정을 승인하는 사람 수입니다.",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "중지나 0으로 스케일링처럼 위험이 큰 변경이 포함된 수정은 서로 다른 두 사람이 승인해야만 실행됩니다.",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, and any fix through MCP servers run only once two different people approve them. OneUptime AI never makes such a change without asking.": "중지나 0으로 스케일링처럼 위험이 큰 변경이 포함된 수정과 MCP 서버를 통한 모든 수정은 서로 다른 두 사람이 승인해야만 실행됩니다. OneUptime AI는 그런 변경을 묻지 않고 하지 않습니다.",
   "Two people approve riskier fixes": "위험이 큰 수정은 두 사람이 승인",
   "First Approved At": "첫 승인 일시",
   "First Approved From": "첫 승인 위치",

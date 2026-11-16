@@ -45896,7 +45896,7 @@
   "Turn on Your logs, on the Security Events {{connections}} page.": "Turn on Your logs, on the Security Events {{connections}} page.",
   "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.": "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.",
   "Limits on how much OneUptime AI uses each day and in each run, and how many people approve its riskier fixes.": "Gränser för hur mycket OneUptime AI använder varje dag och i varje körning, och hur många personer som godkänner dess riskablare åtgärder.",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "En åtgärd med en riskablare ändring, till exempel att stoppa något eller skala det till noll, körs först när två olika personer har godkänt den.",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, and any fix through MCP servers run only once two different people approve them. OneUptime AI never makes such a change without asking.": "En åtgärd med en riskablare ändring, till exempel att stoppa något eller skala det till noll, och varje åtgärd via MCP-servrar körs först när två olika personer har godkänt dem. OneUptime AI gör aldrig en sådan ändring utan att fråga.",
   "Two people approve riskier fixes": "Två personer godkänner riskablare åtgärder",
   "First Approved At": "Först godkänd",
   "First Approved From": "Först godkänd från",

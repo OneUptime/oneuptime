@@ -45896,7 +45896,7 @@
   "Turn on Your logs, on the Security Events {{connections}} page.": "در صفحه {{connections}} رویدادهای امنیتی، «لاگ‌های شما» را روشن کنید.",
   "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.": "«لاگ‌های شما» روشن است: OneUptime هر دقیقه لاگ‌های جدید این پروژه را برای یافتن رویدادهای امنیتی می‌خواند. صفحه {{connections}} رویدادهای امنیتی را ببینید.",
   "Limits on how much OneUptime AI uses each day and in each run, and how many people approve its riskier fixes.": "محدودیت‌هایی بر میزان مصرف OneUptime AI در هر روز و در هر اجرا، و تعداد افرادی که اصلاح‌های پرخطرتر آن را تأیید می‌کنند.",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "اصلاحی که تغییری پرخطرتر دارد، مثل متوقف کردن چیزی یا مقیاس دادن آن به صفر، فقط وقتی اجرا می‌شود که دو نفر مختلف آن را تأیید کنند.",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, and any fix through MCP servers run only once two different people approve them. OneUptime AI never makes such a change without asking.": "اصلاحی که تغییری پرخطرتر دارد، مثل متوقف کردن چیزی یا مقیاس دادن آن به صفر، و هر اصلاحی از طریق سرورهای MCP فقط وقتی اجرا می‌شوند که دو نفر مختلف آن‌ها را تأیید کنند. OneUptime AI هرگز چنین تغییری را بدون پرسیدن انجام نمی‌دهد.",
   "Two people approve riskier fixes": "تأیید اصلاح‌های پرخطرتر توسط دو نفر",
   "First Approved At": "زمان نخستین تأیید",
   "First Approved From": "محل نخستین تأیید",

@@ -325,7 +325,7 @@ Korrekturen haben dieselben vier Modi wie auf einem Kubernetes-Cluster – `ONEU
 - **Aus** – die KI untersucht nur.
 - **Genehmigung anfordern** – nach der Ursachenanalyse diagnostiziert OneUptime AI mit Lesebefehlen und stellt den kleinsten Plan zusammen, der die Ursache angeht, zum Beispiel `docker restart web`. Der Plan erscheint am Vorfall oder an der Warnung mit seiner Begründung, der erwarteten Wirkung und dem Rollback; ein Mensch genehmigt ihn mit einem Klick, und OneUptime führt genau diese Befehle aus.
 - **Automatisch** – sichere Änderungen (**SafeWrite**) laufen von selbst; eine riskantere Änderung (**RiskyWrite**) wird zur Genehmigung vorgeschlagen, es sei denn, die Befehls-Zulassungsliste der Ressource nennt genau ihre Form.
-- **Genehmigung umgehen** – jede Änderung, die die Richtlinie erlaubt, riskantere eingeschlossen, läuft von selbst. Was immer einen Menschen braucht, wartet weiterhin auf einen.
+- **Genehmigung umgehen** – jede Änderung, die die Richtlinie erlaubt, riskantere eingeschlossen, läuft von selbst. Was immer einen Menschen braucht, wartet weiterhin auf einen. Verlangt das Projekt, dass zwei Personen eine riskantere Korrektur genehmigen, wird eine riskantere Änderung stattdessen zu ihrer Genehmigung vorgeschlagen.
 
 Nachdem eine Korrektur gelaufen ist, beobachtet OneUptime die Monitore des Vorfalls oder der Warnung. Erholen sie sich nicht, läuft der Rollback des Plans, und OneUptime AI stellt einen weiteren Plan zusammen, mit dem gescheiterten Versuch vor Augen – höchstens zwei Runden pro Vorfall oder Warnung. Im Modus **Automatisch** fragt diese zweite Runde nach Genehmigung; bei **Genehmigung umgehen** läuft auch sie von selbst. Unbeaufsichtigte Korrekturen sind durch einen Schutzschalter auf drei pro Ressource und Stunde begrenzt: Darüber hinaus, oder solange eine andere unbeaufsichtigte Runde von OneUptime AI dieselbe Ressource noch ändert oder überprüft, schlägt eine Runde ihren Plan zur Genehmigung vor, statt ihn auszuführen.
 
@@ -342,7 +342,7 @@ Ein Vorfall oder eine Warnung bekommt eine einzige KI-Korrekturspur. Ist er oder
 
 Einige riskantere Änderungen **brauchen immer einen Menschen**, in jedem Modus, Genehmigung umgehen eingeschlossen, und kein Eintrag der Zulassungsliste ändert das – sie sind in den Tabellen unten entsprechend gekennzeichnet.
 
-Ein Projekt kann außerdem verlangen, dass zwei Personen eine Korrektur genehmigen, die eine riskantere Änderung enthält: siehe [Zwei Personen genehmigen eine riskantere Korrektur](/docs/ai/ai-sre#zwei-personen-genehmigen-eine-riskantere-korrektur).
+Ein Projekt kann außerdem verlangen, dass zwei Personen eine Korrektur genehmigen, die eine riskantere Änderung enthält; dann läuft keine riskantere Änderung von selbst, auch nicht über die Zulassungsliste oder Genehmigung umgehen: siehe [Zwei Personen genehmigen eine riskantere Korrektur](/docs/ai/ai-sre#zwei-personen-genehmigen-eine-riskantere-korrektur).
 
 ### Korrekturen auf Docker- und Podman-Hosts
 
