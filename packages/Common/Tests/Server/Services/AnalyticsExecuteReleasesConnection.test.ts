@@ -85,7 +85,10 @@ const server: http.Server = http.createServer(
         return;
       }
 
-      if (body.includes("NoSuchTable")) {
+      // An insert's statement is a URL parameter; any other is the body.
+      const statement: string = params["query"] || body;
+
+      if (statement.includes("NoSuchTable")) {
         response.statusCode = 404;
         response.setHeader("X-ClickHouse-Exception-Code", "60");
         response.end(
@@ -343,5 +346,117 @@ describe("AnalyticsDatabaseService.executeAndReadText", () => {
     ).resolves.toBe(true);
 
     expect(poolState()).toEqual({ inUse: 0, free: 1, queued: 0 });
+  });
+});
+
+/*
+ * insertJsonRows writes its body in pieces (JsonEachRowBody) and sends it
+ * through exec(), where it used to hand the rows to client.insert(), which
+ * joined them into one string: the request must be the one insert() sent -
+ * the same statement and settings, the same body once ungzipped - and its
+ * connection given back.
+ */
+describe("AnalyticsDatabaseService.insertJsonRows", () => {
+  const ROWS: Array<Record<string, unknown>> = Array.from(
+    { length: 300 },
+    (_unused: unknown, i: number) => {
+      return {
+        _id: `id-${i}`,
+        name: i % 7 === 0 ? `métrica ${i} 🚀` : `metric-${i}`,
+        attributes: { "host.name": "web-01", i: i, line: "a\nb" },
+        value: i * 1.5,
+      };
+    },
+  );
+
+  // Every URL parameter but the per-request id, and the response's encoding.
+  function comparable(request: ReceivedRequest): ReceivedRequest {
+    const params: Record<string, string> = { ...request.params };
+    delete params["query_id"];
+    delete params["enable_http_compression"];
+    return { ...request, params: params };
+  }
+
+  test("sends what client.insert() sent: the statement, the settings, the body", async () => {
+    await within(
+      5_000,
+      service.insertJsonRows(ROWS as never, {
+        dedupToken: "fanin:MutableMetricItem:1",
+        clickhouseSettings: { distributed_foreground_insert: 1 },
+      }),
+    );
+
+    await within(
+      5_000,
+      client.insert({
+        table: "MutableMetricItem",
+        values: ROWS,
+        format: "JSONEachRow",
+        clickhouse_settings: {
+          async_insert: 1,
+          wait_for_async_insert: 0,
+          async_insert_deduplicate: 1,
+          insert_deduplication_token: "fanin:MutableMetricItem:1",
+          distributed_foreground_insert: 1,
+        },
+      }),
+    );
+
+    expect(received).toHaveLength(2);
+
+    const sent: ReceivedRequest = received[0]!;
+
+    expect(comparable(sent)).toEqual(comparable(received[1]!));
+    expect(sent.params["query"]).toBe(
+      "INSERT INTO MutableMetricItem FORMAT JSONEachRow",
+    );
+    expect(sent.params["insert_deduplication_token"]).toBe(
+      "fanin:MutableMetricItem:1",
+    );
+    expect(sent.body).toBe(
+      ROWS.map((row: Record<string, unknown>) => {
+        return JSON.stringify(row) + "\n";
+      }).join(""),
+    );
+    expect(poolState()).toEqual({ inUse: 0, free: 1, queued: 0 });
+  });
+
+  test("inserts one after another on a pool of one connection", async () => {
+    for (let i: number = 0; i < 5; i++) {
+      await within(5_000, service.insertJsonRows(ROWS as never));
+      expect(poolState()).toEqual({ inUse: 0, free: 1, queued: 0 });
+    }
+
+    expect(received).toHaveLength(5);
+  });
+
+  test("an insert ClickHouse refuses fails, and gives its connection back", async () => {
+    const database: ClickhouseDatabase = {
+      getDataSource: (): ClickHouseClient => {
+        return client;
+      },
+      getDatasourceOptions: (): { database: string } => {
+        return { database: "oneuptime" };
+      },
+    } as unknown as ClickhouseDatabase;
+    const refused: AnalyticsDatabaseService<MutableMetric> =
+      new AnalyticsDatabaseService<MutableMetric>({
+        modelType: MutableMetric,
+        database: database,
+        ingestDatabase: database,
+      });
+    (refused.model as unknown as { tableName: string }).tableName =
+      "NoSuchTable";
+
+    await expect(
+      within(5_000, refused.insertJsonRows(ROWS as never)),
+    ).rejects.toThrow("NoSuchTable does not exist");
+
+    expect(poolState()).toEqual({ inUse: 0, free: 1, queued: 0 });
+  });
+
+  test("no rows, no request", async () => {
+    await service.insertJsonRows([]);
+    expect(received).toHaveLength(0);
   });
 });

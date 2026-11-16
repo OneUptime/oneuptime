@@ -53,6 +53,7 @@ import Query from "../Types/AnalyticsDatabase/Query";
 import { OwnedThroughMetadata } from "../../Types/Database/AccessControl/OwnedThrough";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import StreamUtil from "../Utils/Stream";
+import JsonEachRowBody from "../Utils/AnalyticsDatabase/JsonEachRowBody";
 import BaseService from "./BaseService";
 import {
   ClickHouseSettings,
@@ -382,12 +383,23 @@ export default class AnalyticsDatabaseService<
     }
 
     try {
-      await client.insert({
-        table: tableName,
-        values: rows,
-        format: "JSONEachRow",
+      /*
+       * What client.insert({ table, values: rows, format: "JSONEachRow" })
+       * sends - the statement, the settings, the same body bytes - but with
+       * the body written in pieces rather than as one string of every row
+       * (JsonEachRowBody). Rows that cannot be written throw here, before
+       * a request is made, as they did in the client's encoder.
+       */
+      const body: Array<Buffer> = JsonEachRowBody.encode(rows);
+
+      const result: ExecResult<Stream> = (await client.exec({
+        query: `INSERT INTO ${tableName} FORMAT JSONEachRow`,
+        values: JsonEachRowBody.toStream(body),
         clickhouse_settings: clickhouseSettings,
-      });
+      })) as ExecResult<Stream>;
+
+      // Read to its end, so the connection goes back to the pool.
+      await JsonEachRowBody.drain(result.stream);
 
       logger.debug(
         `ClickHouse insert succeeded for table ${tableName} at ${OneUptimeDate.toString(OneUptimeDate.getCurrentDate())}`,
