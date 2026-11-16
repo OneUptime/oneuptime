@@ -62,13 +62,23 @@ import {
 } from "./RemediationChatWords";
 import ProductBrandingText from "../ProductBrandingText";
 import {
+  getCountedFirstApproverId,
   getFixApprovalsNeeded,
   readTwoApprovalsRule,
 } from "./RemediationApprovalsNeeded";
+import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import User from "../../../Models/DatabaseModels/User";
+import UserService from "../../Services/UserService";
+import WorkspaceNotificationText from "../Workspace/WorkspaceNotificationText";
 import {
   decodeRemediationApprovalStep,
   RemediationApprovalStep,
 } from "../../../Types/AutoRemediation/RemediationApprovals";
+import WorkspaceLiveMessageKey from "../../../Types/Workspace/WorkspaceLiveMessageKey";
+import WorkspaceLiveMessage from "../../../Models/DatabaseModels/WorkspaceLiveMessage";
+import WorkspaceLiveMessageService from "../../Services/WorkspaceLiveMessageService";
+import AutoRemediationSuggestionService from "../../Services/AutoRemediationSuggestionService";
+import WorkspaceLiveMessages from "../Workspace/LiveMessages/WorkspaceLiveMessages";
 
 /*
  * A FIX THAT WAITS FOR APPROVAL, WHERE THE TEAM IS.
@@ -136,6 +146,46 @@ export interface RemediationChatApprovals {
    */
   step?: RemediationApprovalStep | undefined;
 }
+
+/*
+ * Who someone is, as a fix's message names them: their name, else their
+ * email. Null when it cannot be read - the message then says "Someone".
+ */
+async function readPersonName(userId: ObjectID): Promise<string | null> {
+  try {
+    const user: User | null = await UserService.findOneById({
+      id: userId,
+      select: { name: true, email: true },
+      props: { isRoot: true },
+    });
+
+    return (
+      user?.name?.toString().trim() || user?.email?.toString().trim() || null
+    );
+  } catch (error) {
+    logger.debug(
+      `RemediationChatMessage: could not read the name of who acted on a fix: ${error}`,
+    );
+    return null;
+  }
+}
+
+/*
+ * How a fix stands, as its message in the chats says it (refreshKeptMessages):
+ * it waits for approval; the first of the two a riskier fix needs is in,
+ * from someone it names; someone approved it (after whose first, where it
+ * needed two); someone dismissed it. A name is left out when it could not
+ * be read.
+ */
+export type RemediationFixMessageState =
+  | { kind: "waiting" }
+  | { kind: "firstApproved"; firstApproverName?: string | undefined }
+  | {
+      kind: "approved";
+      approverName?: string | undefined;
+      firstApproverName?: string | undefined;
+    }
+  | { kind: "dismissed"; dismisserName?: string | undefined };
 
 /*
  * The pages of the incidents and alerts a fix's track records name, by
@@ -290,6 +340,41 @@ export function describeChangeTarget(
 }
 
 export default class RemediationChatMessage {
+  // The key a fix's messages are kept under, wherever they were posted.
+  public static getLiveMessageKey(suggestionId: ObjectID): string {
+    return WorkspaceLiveMessageKey.forRemediationFix(suggestionId);
+  }
+
+  /*
+   * What a feed entry that carries a fix's message posts with
+   * (FeedWorkspaceNotification): the fix's blocks, appended to the entry,
+   * and the key the posts are kept under, so a person approving or
+   * dismissing the fix edits them in place (refreshKeptMessages). Nothing
+   * when there are no blocks to append.
+   */
+  public static withFixMessage(data: {
+    suggestionId?: ObjectID | null | undefined;
+    appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+  }): {
+    appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+    keepPostsAs?: string | undefined;
+  } {
+    if (!data.appendMessageBlocks || data.appendMessageBlocks.length === 0) {
+      return {};
+    }
+
+    return {
+      appendMessageBlocks: data.appendMessageBlocks,
+      ...(data.suggestionId
+        ? {
+            keepPostsAs: RemediationChatMessage.getLiveMessageKey(
+              data.suggestionId,
+            ),
+          }
+        : {}),
+    };
+  }
+
   // "<fix id>:<fingerprint>", and ":<step>" on a dialog's Approve.
   public static encodeActionValue(value: RemediationActionValue): string {
     const fix: string = `${value.suggestionId.toString()}${ACTION_VALUE_SEPARATOR}${value.fingerprint}`;
@@ -855,6 +940,8 @@ export default class RemediationChatMessage {
    */
   public static async getApprovalBlocks(
     fix: RemediationChatFix,
+    // How it stands, once someone acted on it; left out, it waits.
+    state: RemediationFixMessageState = { kind: "waiting" },
   ): Promise<Array<MessageBlocksByWorkspaceType>> {
     try {
       const value: string = RemediationChatMessage.encodeActionValue({
@@ -867,21 +954,31 @@ export default class RemediationChatMessage {
       const runLinks: TrackRecordRunLinks =
         await RemediationChatMessage.getTrackRecordRunLinks(fix);
 
-      const buttons: Array<WorkspaceMessagePayloadButton> = [
-        {
-          _type: "WorkspaceMessagePayloadButton",
-          title: REMEDIATION_CHAT_WORDS.reviewAndApprove,
-          value,
-          actionId: SlackActionType.ViewApproveRemediation,
-          isPrimary: true,
-        },
-        {
-          _type: "WorkspaceMessagePayloadButton",
-          title: REMEDIATION_CHAT_WORDS.dismiss,
-          value,
-          actionId: SlackActionType.DismissRemediation,
-        },
-      ];
+      /*
+       * A fix that waits - for its first approval, or its second - keeps
+       * Review and approve and Dismiss; one that was approved or dismissed
+       * keeps only View in OneUptime: its buttons would do nothing now.
+       */
+      const isWaiting: boolean =
+        state.kind === "waiting" || state.kind === "firstApproved";
+
+      const buttons: Array<WorkspaceMessagePayloadButton> = isWaiting
+        ? [
+            {
+              _type: "WorkspaceMessagePayloadButton",
+              title: REMEDIATION_CHAT_WORDS.reviewAndApprove,
+              value,
+              actionId: SlackActionType.ViewApproveRemediation,
+              isPrimary: true,
+            },
+            {
+              _type: "WorkspaceMessagePayloadButton",
+              title: REMEDIATION_CHAT_WORDS.dismiss,
+              value,
+              actionId: SlackActionType.DismissRemediation,
+            },
+          ]
+        : [];
 
       if (viewUrl) {
         buttons.push({
@@ -893,15 +990,21 @@ export default class RemediationChatMessage {
         });
       }
 
-      const buttonsBlock: WorkspacePayloadButtons = {
-        _type: "WorkspacePayloadButtons",
-        buttons,
-      };
+      const buttonsBlock: WorkspacePayloadButtons | null =
+        buttons.length > 0
+          ? {
+              _type: "WorkspacePayloadButtons",
+              buttons,
+            }
+          : null;
 
-      // Nothing runs until two people approve a fix that needs two.
+      // What pressing does now, or what came of the fix.
       const note: WorkspacePayloadContext = {
         _type: "WorkspacePayloadContext",
-        text: getApprovalMessageNote(fix.approvalsNeeded || 1),
+        text: RemediationChatMessage.describeMessageNote({
+          approvalsNeeded: fix.approvalsNeeded || 1,
+          state,
+        }).toString(),
       };
 
       return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams].map(
@@ -912,7 +1015,7 @@ export default class RemediationChatMessage {
               workspaceType,
               runLinks,
             ),
-            buttonsBlock,
+            ...(buttonsBlock ? [buttonsBlock] : []),
             note,
           ];
 
@@ -925,6 +1028,244 @@ export default class RemediationChatMessage {
       );
       return [];
     }
+  }
+
+  /*
+   * The quiet line under a fix's buttons, as the fix stands: what pressing
+   * Review and approve does while it waits (two people where it needs two);
+   * once the first of two approvals is in, whose it was and that someone
+   * else's runs it - so the message never reads as if one more press from
+   * anyone runs it; once it was approved or dismissed, who did. Names are
+   * text, never markdown (mdText).
+   */
+  public static describeMessageNote(data: {
+    approvalsNeeded: number;
+    state: RemediationFixMessageState;
+  }): MarkdownText {
+    const state: RemediationFixMessageState = data.state;
+
+    switch (state.kind) {
+      case "firstApproved":
+        return state.firstApproverName
+          ? mdText`**${capped(state.firstApproverName, 120)}** approved this fix first. It runs once someone else approves it too. Review and approve shows the whole fix before you do.`
+          : mdText`Someone approved this fix first. It runs once someone else approves it too. Review and approve shows the whole fix before you do.`;
+      case "approved":
+        if (!state.approverName) {
+          return mdText`✅ This fix was approved.`;
+        }
+
+        return state.firstApproverName
+          ? mdText`✅ **${capped(state.approverName, 120)}** approved this fix, after **${capped(state.firstApproverName, 120)}** approved it first.`
+          : mdText`✅ **${capped(state.approverName, 120)}** approved this fix.`;
+      case "dismissed":
+        return state.dismisserName
+          ? mdText`**${capped(state.dismisserName, 120)}** dismissed this fix.`
+          : mdText`This fix was dismissed.`;
+      default:
+        return mdText`${getApprovalMessageNote(data.approvalsNeeded)}`;
+    }
+  }
+
+  /*
+   * How a fix stands, as its message says it, from its row as it is now:
+   * the first of two approvals that counts (for the plan it holds) names
+   * who gave it; an approval names who gave it, and whose came first; a
+   * dismissal names who dismissed it. Null for a fix its message has
+   * nothing new to say of: still being planned, run without asking, or
+   * found to have nothing that applies.
+   */
+  public static async getMessageState(
+    suggestion: Pick<
+      AutoRemediationSuggestion,
+      | "status"
+      | "approvedByUserId"
+      | "dismissedByUserId"
+      | "firstApprovedByUserId"
+      | "firstApprovedPlanFingerprint"
+      | "suggestionType"
+      | "commandPlan"
+      | "mcpToolCallPlan"
+      | "runbookId"
+    >,
+  ): Promise<RemediationFixMessageState | null> {
+    const firstApproverId: ObjectID | undefined =
+      getCountedFirstApproverId(suggestion);
+
+    switch (suggestion.status) {
+      case AutoRemediationSuggestionStatus.Suggested:
+        return firstApproverId
+          ? {
+              kind: "firstApproved",
+              firstApproverName:
+                (await readPersonName(firstApproverId)) || undefined,
+            }
+          : { kind: "waiting" };
+      case AutoRemediationSuggestionStatus.Approved: {
+        const approverId: ObjectID | undefined =
+          suggestion.approvedByUserId || undefined;
+        const isSomeoneElseFirst: boolean = Boolean(
+          firstApproverId &&
+            approverId &&
+            firstApproverId.toString().toLowerCase() !==
+              approverId.toString().toLowerCase(),
+        );
+
+        return {
+          kind: "approved",
+          approverName: approverId
+            ? (await readPersonName(approverId)) || undefined
+            : undefined,
+          firstApproverName:
+            isSomeoneElseFirst && firstApproverId
+              ? (await readPersonName(firstApproverId)) || undefined
+              : undefined,
+        };
+      }
+      case AutoRemediationSuggestionStatus.Dismissed:
+        return {
+          kind: "dismissed",
+          dismisserName: suggestion.dismissedByUserId
+            ? (await readPersonName(suggestion.dismissedByUserId)) || undefined
+            : undefined,
+        };
+      default:
+        return null;
+    }
+  }
+
+  /*
+   * Edits a fix's message in every place it was posted and kept (its feed
+   * entry's blocks as they were, then the fix's, as it now stands): the
+   * first of two approvals names who gave it, so its buttons never read as
+   * if one press runs it; an approval or a dismissal takes Review and
+   * approve and Dismiss away and says who acted. How it stands is read
+   * from the fix's row with its messages held, so two edits racing (a
+   * first approval, then the second) always end on the newer. Best effort
+   * and never throws: a message that cannot be edited still says what it
+   * said, and the record's feed says the rest.
+   */
+  public static async refreshKeptMessages(data: {
+    suggestionId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const messageKey: string = RemediationChatMessage.getLiveMessageKey(
+      data.suggestionId,
+    );
+
+    try {
+      await WorkspaceLiveMessages.withLock(
+        messageKey,
+        async (): Promise<void> => {
+          const kept: Array<WorkspaceLiveMessage> =
+            await WorkspaceLiveMessageService.findByMessageKey({
+              projectId: data.projectId,
+              messageKey,
+            });
+
+          if (kept.length === 0) {
+            return;
+          }
+
+          const suggestion: AutoRemediationSuggestion | null =
+            await AutoRemediationSuggestionService.findOneBy({
+              query: { _id: data.suggestionId, projectId: data.projectId },
+              select: {
+                _id: true,
+                projectId: true,
+                incidentId: true,
+                alertId: true,
+                status: true,
+                approvedByUserId: true,
+                dismissedByUserId: true,
+                firstApprovedByUserId: true,
+                firstApprovedPlanFingerprint: true,
+                suggestionType: true,
+                commandPlan: true,
+                mcpToolCallPlan: true,
+                runbookId: true,
+                runbookNameSnapshot: true,
+                runbookTrackRecord: true,
+                verificationWindowMinutes: true,
+              },
+              props: { isRoot: true },
+            });
+
+          const fix: RemediationChatFix | null = suggestion
+            ? RemediationChatMessage.fromSuggestion(suggestion)
+            : null;
+
+          const state: RemediationFixMessageState | null = suggestion
+            ? await RemediationChatMessage.getMessageState(suggestion)
+            : null;
+
+          if (!fix || !state) {
+            return;
+          }
+
+          // A fix that still waits says what a press does now, as its post did.
+          if (state.kind === "waiting") {
+            fix.approvalsNeeded =
+              await RemediationChatMessage.readApprovalsNeeded(fix);
+          }
+
+          const blocksByWorkspaceType: Array<MessageBlocksByWorkspaceType> =
+            await RemediationChatMessage.getApprovalBlocks(fix, state);
+
+          for (const keptMessage of kept) {
+            const appended: Array<WorkspaceMessageBlock> | undefined =
+              blocksByWorkspaceType.find(
+                (blocks: MessageBlocksByWorkspaceType): boolean => {
+                  return blocks.workspaceType === keptMessage.workspaceType;
+                },
+              )?.messageBlocks;
+
+            if (!appended) {
+              continue;
+            }
+
+            const messageBlocks: Array<WorkspaceMessageBlock> = [
+              ...(keptMessage.messageData?.leadBlocks || []),
+              ...appended,
+            ];
+
+            await WorkspaceLiveMessages.updateKept({
+              keptMessage,
+              messageBlocks,
+              text: WorkspaceNotificationText.fromBlocks(messageBlocks),
+            });
+          }
+        },
+      );
+    } catch (error) {
+      logger.error(
+        `RemediationChatMessage: could not update the messages of suggestion ${data.suggestionId.toString()} in place: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * How many approvals a fix needs now, as its proposal's message says it:
+   * two for a riskier command plan or a fix through MCP servers where the
+   * project asks for two (read now; unknown, one), one otherwise.
+   */
+  public static async readApprovalsNeeded(
+    fix: Pick<
+      RemediationChatFix,
+      "projectId" | "suggestionType" | "commandPlan"
+    >,
+  ): Promise<number> {
+    if (fix.suggestionType === AutoRemediationSuggestionType.Runbook) {
+      return 1;
+    }
+
+    return getFixApprovalsNeeded({
+      project: {
+        requireTwoApprovalsForRiskierFixes:
+          (await readTwoApprovalsRule(fix.projectId)) === true,
+      },
+      suggestionType: fix.suggestionType,
+      plan: fix.commandPlan,
+    });
   }
 
   /*

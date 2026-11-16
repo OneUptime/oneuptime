@@ -1,4 +1,5 @@
 import ObjectID from "../ObjectID";
+import { WorkspaceMessageBlock } from "./WorkspaceMessagePayload";
 
 /*
  * What a message OneUptime keeps up to date in a Slack or Microsoft Teams
@@ -24,6 +25,14 @@ export enum WorkspaceLiveMessageKind {
    * run's own key (OnCallPolicyRunMessage).
    */
   OnCallPageRequest = "OnCallPageRequest",
+  /*
+   * A fix OneUptime AI proposes for approval: its message in every place it
+   * was posted (with the record's feed entry above its changes and
+   * buttons), edited as people act on it - the first of two approvals, the
+   * approval that runs it, a dismissal - so its buttons and its note never
+   * read as if nothing happened (RemediationChatMessage).
+   */
+  RemediationFix = "RemediationFix",
 }
 
 // How an on-call policy run's message told the run's ending, the first time.
@@ -52,6 +61,12 @@ export interface WorkspaceLiveMessageData {
   isPageRequestPlace?: boolean | undefined;
   // A page request place: the OneUptime user who paged from there.
   pagedByUserId?: string | undefined;
+  /*
+   * A message posted with a record's feed entry above what it is about (a
+   * fix's changes and buttons): the entry's own blocks, as they were
+   * posted, which an edit keeps while it rewrites what follows them.
+   */
+  leadBlocks?: Array<WorkspaceMessageBlock> | undefined;
 }
 
 // Where in a workspace a live message sits.
@@ -86,5 +101,10 @@ export default class WorkspaceLiveMessageKey {
     recordId: ObjectID,
   ): string {
     return `${WorkspaceLiveMessageKind.OnCallPageRequest}:${recordType}:${recordId.toString()}`;
+  }
+
+  // The messages of a fix that waits for approval, by its suggestion's id.
+  public static forRemediationFix(suggestionId: ObjectID): string {
+    return `${WorkspaceLiveMessageKind.RemediationFix}:${suggestionId.toString().toLowerCase()}`;
   }
 }

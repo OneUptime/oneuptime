@@ -4,6 +4,7 @@ import RemediationApproval, {
 } from "../../../../Server/Utils/AutoRemediation/RemediationApproval";
 import { getRemediationPlanFingerprint } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import CommandPlanExecutor from "../../../../Server/Utils/AutoRemediation/CommandPlanExecutor";
+import RemediationChatMessage from "../../../../Server/Utils/AutoRemediation/RemediationChatMessage";
 import WorkspaceRemediationActions, {
   RemediationApprovalDialog,
 } from "../../../../Server/Utils/Workspace/WorkspaceRemediationActions";
@@ -275,6 +276,8 @@ let firstWrite: jest.SpyInstance;
 let secondWrite: jest.SpyInstance;
 let singleWrite: jest.SpyInstance;
 let feed: jest.SpyInstance;
+// The fix's message in the chats, edited in place as it stands now.
+let refreshMessages: jest.SpyInstance;
 // Set to make the next first-approval write lose to another press, as the WHERE would.
 let beforeFirstWrite: (() => void) | null;
 
@@ -392,6 +395,9 @@ beforeEach(() => {
   execute = jest
     .spyOn(CommandPlanExecutor, "executeApprovedPlan")
     .mockResolvedValue(undefined as never);
+  refreshMessages = jest
+    .spyOn(RemediationChatMessage, "refreshKeptMessages")
+    .mockResolvedValue(undefined) as unknown as jest.SpyInstance;
   jest
     .spyOn(ProjectService, "findOneById")
     .mockImplementation(async (): Promise<never> => {
@@ -770,6 +776,117 @@ describe("a riskier fix where the project asks two people to approve one", () =>
 
     expect(firstWrite).toHaveBeenCalledTimes(1);
     expect(execute).not.toHaveBeenCalled();
+  });
+});
+
+describe("the fix's message in Slack and Microsoft Teams, edited as people act on it", () => {
+  const THIS_FIX: { suggestionId: ObjectID; projectId: ObjectID } = {
+    suggestionId: SUGGESTION_ID,
+    projectId: PROJECT_ID,
+  };
+
+  test.each(EVERYWHERE)(
+    "from %s: a first approval edits the fix's message, after it was recorded",
+    async (where: Where) => {
+      let firstApproverWhenEdited: string = "";
+
+      refreshMessages.mockImplementation(async (): Promise<void> => {
+        // Read as the fix stands: the first approval is in when it edits.
+        firstApproverWhenEdited = String(row["firstApprovedByUserId"]);
+      });
+
+      await approveFrom(where, member(MAYA_ID));
+
+      expect(refreshMessages).toHaveBeenCalledTimes(1);
+      expect(refreshMessages).toHaveBeenCalledWith(THIS_FIX);
+      expect(firstApproverWhenEdited).toBe(MAYA_ID.toString());
+      expect(row["status"]).toBe(AutoRemediationSuggestionStatus.Suggested);
+    },
+  );
+
+  test.each(EVERYWHERE)(
+    "from %s: the second approval edits it again, once the fix is approved",
+    async (where: Where) => {
+      await approveFrom("Dashboard", member(MAYA_ID));
+      refreshMessages.mockClear();
+
+      let statusWhenEdited: unknown = null;
+
+      refreshMessages.mockImplementation(async (): Promise<void> => {
+        statusWhenEdited = row["status"];
+      });
+
+      await approveFrom(where, member(SAM_ID));
+
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(refreshMessages).toHaveBeenCalledTimes(1);
+      expect(refreshMessages).toHaveBeenCalledWith(THIS_FIX);
+      expect(statusWhenEdited).toBe(AutoRemediationSuggestionStatus.Approved);
+    },
+  );
+
+  test("a lone approval, where one runs the fix, edits it once", async () => {
+    isRuleOn = false;
+
+    await approveFrom("Dashboard", member(MAYA_ID));
+
+    expect(singleWrite).toHaveBeenCalledTimes(1);
+    expect(refreshMessages).toHaveBeenCalledTimes(1);
+    expect(refreshMessages).toHaveBeenCalledWith(THIS_FIX);
+  });
+
+  test.each(EVERYWHERE)(
+    "from %s: a refused press - the first approver pressing again - edits nothing",
+    async (where: Where) => {
+      await approveFrom("Dashboard", member(MAYA_ID));
+      refreshMessages.mockClear();
+
+      expect(
+        await refusalOf(approveFrom(where, member(MAYA_ID))),
+      ).toBeInstanceOf(BadDataException);
+
+      expect(refreshMessages).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a press refused before anything is recorded edits nothing", async () => {
+    expect(
+      await refusalOf(approveFrom("Dashboard", blockedOnProd(MAYA_ID))),
+    ).not.toBeNull();
+
+    expect(firstWrite).not.toHaveBeenCalled();
+    expect(refreshMessages).not.toHaveBeenCalled();
+  });
+
+  test("a dismissal edits it, after the fix is dismissed", async () => {
+    await approveFrom("Dashboard", member(MAYA_ID));
+    refreshMessages.mockClear();
+
+    await RemediationApproval.dismiss({
+      props: member(SAM_ID),
+      suggestionId: SUGGESTION_ID.toString(),
+    });
+
+    expect(row["status"]).toBe(AutoRemediationSuggestionStatus.Dismissed);
+    expect(refreshMessages).toHaveBeenCalledTimes(1);
+    expect(refreshMessages).toHaveBeenCalledWith(THIS_FIX);
+  });
+
+  test("an edit that fails, or never ends, neither holds up nor fails the approval", async () => {
+    refreshMessages.mockRejectedValue(new Error("Slack is down"));
+
+    await expect(
+      approveFrom("Dashboard", member(MAYA_ID)),
+    ).resolves.toMatchObject({ isWaitingForSecondApproval: true });
+
+    refreshMessages.mockReturnValue(new Promise<void>((): void => {}));
+
+    await expect(
+      approveFrom("Dashboard", member(SAM_ID)),
+    ).resolves.toMatchObject({
+      status: AutoRemediationSuggestionStatus.Approved,
+    });
+    expect(execute).toHaveBeenCalledTimes(1);
   });
 });
 

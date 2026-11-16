@@ -153,6 +153,7 @@ import {
   isRemediationPlanFingerprint,
 } from "../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import { getFixApprovalStep } from "./RemediationApprovalsNeeded";
+import RemediationChatMessage from "./RemediationChatMessage";
 import {
   ALREADY_APPROVED_FIRST_MESSAGE,
   decodeRemediationApprovalStep,
@@ -1137,6 +1138,33 @@ async function assertMayPress(data: {
 }
 
 /*
+ * The fix's messages in Slack and Microsoft Teams, edited where they were
+ * posted to say how it stands now (RemediationChatMessage
+ * .refreshKeptMessages, which reads it from the fix's row): the first of
+ * two approvals names who gave it, so its buttons never read as if one
+ * approval runs it; an approval or a dismissal takes the buttons away and
+ * says who acted. Detached - an approval never waits on a chat - and best
+ * effort.
+ */
+function refreshFixMessages(suggestion: AutoRemediationSuggestion): void {
+  const suggestionId: ObjectID | null = suggestion.id || null;
+  const projectId: ObjectID | null = suggestion.projectId || null;
+
+  if (!suggestionId || !projectId) {
+    return;
+  }
+
+  RemediationChatMessage.refreshKeptMessages({
+    suggestionId,
+    projectId,
+  }).catch((error: unknown) => {
+    logger.error(
+      `RemediationApproval: could not update the messages of suggestion ${suggestionId.toString()}: ${error}`,
+    );
+  });
+}
+
+/*
  * "1 command" / "3 commands", and the verb that goes with them.
  */
 function describeCommandCount(count: number): string {
@@ -1685,6 +1713,9 @@ export default class RemediationApproval {
         pingWorkspace: true,
       });
 
+      // Its message says a second approval is needed now, and whose came first.
+      refreshFixMessages(suggestion);
+
       return approved({
         suggestionId: suggestion.id!.toString(),
         status: AutoRemediationSuggestionStatus.Suggested,
@@ -1753,6 +1784,9 @@ export default class RemediationApproval {
     const firstName: string | null = firstApprovedByUserId
       ? await getApproverName(new ObjectID(firstApprovedByUserId))
       : null;
+
+    // Its message no longer offers what it can no longer do, and says who approved it.
+    refreshFixMessages(suggestion);
 
     const afterFirst: MarkdownText = firstApprovedByUserId
       ? firstName
@@ -2131,6 +2165,9 @@ export default class RemediationApproval {
       userId: props.userId!,
       pingWorkspace: alreadyExecutedCount > 0,
     });
+
+    // Its message offers no Approve any more, and says who dismissed it.
+    refreshFixMessages(suggestion);
 
     return {
       suggestionId: suggestion.id!.toString(),
