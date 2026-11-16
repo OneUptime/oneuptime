@@ -731,7 +731,7 @@ test("a read-only member reads the explanation without its button, under the tab
   // The table keeps its own button, locked, and says why in words a phone shows.
   await expect(page.getByTestId("empty-table-create-button")).toBeDisabled();
   await expect(page.getByTestId("table-empty-state-note")).toHaveText(
-    "You don't have permission to create these. Ask a project admin for access.",
+    "You don't have permission to create these. Ask a Project Admin for access.",
   );
 
   await screenshot(page, "monitors-first-run-viewer-1440");

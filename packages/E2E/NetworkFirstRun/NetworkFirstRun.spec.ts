@@ -390,7 +390,7 @@ test("someone who may add a probe but not read its key is told who can", async (
 
   const modal: Locator = dialog(page);
   await expect(modal.getByTestId("add-probe-key-hidden")).toHaveText(
-    "Only project owners and admins can see a probe's key. Ask one of them to run Network probe: it is under Monitors → Settings → Probes.",
+    "Only Project Owners and Project Admins can see a probe's key. Ask one of them to run Network probe: it is under Monitors → Settings → Probes.",
   );
   await expect(modal.getByTestId("add-probe-command")).toHaveCount(0);
 
