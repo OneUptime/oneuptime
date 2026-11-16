@@ -5,6 +5,7 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * A runbook's Triggers page in a browser, against the offline fixture
@@ -96,7 +97,8 @@ function preview(page: Page): Locator {
 const GERMAN_WEEKDAY: RegExp = /(Mo|Di|Mi|Do|Fr)\., \d+\. /;
 /*
  * "in 2 Stunden", "in 1 Tag", "in 4 Tagen", "in 25 Minuten". "in 1 Tag" is
- * what a Sunday before 09:00 says of Monday's run.
+ * what a Sunday before 09:00 says of Monday's run. The number is held to
+ * its unit by a no-break space (#8456), which a pattern matches as written.
  */
 const GERMAN_HOW_FAR: RegExp = new RegExp(
   `in \\d+${NO_BREAK_SPACE}(Minuten?|Stunden?|Tag(?:en)?)`,
