@@ -199,7 +199,7 @@ I formati di output e le dimensioni degli elenchi non vengono salvati qui: passa
 :::
 
 :::details Il messaggio «API error (400): Invalid API Key»
-La chiave non è una chiave API di OneUptime, è scaduta oppure è stata reimpostata. Copiala di nuovo dalla sua pagina in **Impostazioni del progetto → Avanzato → Chiavi API**, dove c'è anche la sua data sotto **Scade**, e accedi di nuovo con lo stesso nome di contesto. Il comando termina con il codice `2`.
+La chiave non è una chiave API di OneUptime, è scaduta oppure è stata reimpostata. Trovala in **Impostazioni del progetto → Avanzato → Chiavi API** da come finisce, e controlla la sua data sotto **Scade**. Una chiave che non hai più non può essere mostrata di nuovo: reimpostala nella sua pagina, e accedi di nuovo con quella nuova con lo stesso nome di contesto. Il comando termina con il codice `2`.
 :::
 
 :::details Il messaggio «API error (402): API keys need the Growth plan»

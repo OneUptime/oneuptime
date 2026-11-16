@@ -14,7 +14,7 @@ Procure na tabela abaixo a mensagem que o Terraform exibiu, ou o que você viu a
 | Mensagem ou sintoma | O que fazer |
 | --- | --- |
 | `Missing API Key` | Dê ao provider a chave dele: veja [`Missing API Key` ou `Invalid API Key`](#missing-api-key-ou-invalid-api-key) |
-| `Invalid API Key` | Copie a chave de novo, ou crie uma nova: veja [`Missing API Key` ou `Invalid API Key`](#missing-api-key-ou-invalid-api-key) |
+| `Invalid API Key` | Confira a chave, ou redefina-a para obter uma nova: veja [`Missing API Key` ou `Invalid API Key`](#missing-api-key-ou-invalid-api-key) |
 | `ProjectId required` | Use uma chave de API do projeto, não uma chave mestra: veja [`ProjectId required`](#projectid-required) |
 | `You do not have permissions to create Monitor` | Dê à chave a permissão que a mensagem nomeia: veja [Falta uma permissão à chave](#falta-uma-permissão-à-chave) |
 | `API keys need the Growth plan` | Volte o projeto para o plano Growth: veja [Pagamento necessário](#pagamento-necessário) |
@@ -60,7 +60,7 @@ O provider nomeia o que estava fazendo: `Unable to create monitor` e `Unable to 
 
 `Missing API Key` para o provider antes que ele faça qualquer requisição: nem `api_key` no bloco do provider nem a variável de ambiente `ONEUPTIME_API_KEY` estão definidas. Exporte a variável no shell em que você executa o Terraform, ou passe a chave em uma variável marcada como `sensitive`.
 
-`Invalid API Key` é a resposta do OneUptime a uma chave que ele não conhece: uma chave digitada errado, expirada ou excluída, ou uma de outro OneUptime que não aquele para o qual `oneuptime_url` aponta. Copie a chave de novo da página dela em **Configurações do projeto → Avançado → Chaves de API**, ou crie uma nova.
+`Invalid API Key` é a resposta do OneUptime a uma chave que ele não conhece: uma chave digitada errado, expirada ou excluída, ou uma de outro OneUptime que não aquele para o qual `oneuptime_url` aponta. Confira-a com o jeito como a chave termina na página dela em **Configurações do projeto → Avançado → Chaves de API**, ou redefina-a ali para obter uma nova.
 
 ### `ProjectId required`
 

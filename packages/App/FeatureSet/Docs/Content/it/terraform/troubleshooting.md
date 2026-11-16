@@ -14,7 +14,7 @@ Cerca nella tabella qui sotto il messaggio che Terraform ha stampato, o ciò che
 | Messaggio o sintomo | Cosa fare |
 | --- | --- |
 | `Missing API Key` | Dai al provider la sua chiave: vedi [`Missing API Key` o `Invalid API Key`](#missing-api-key-o-invalid-api-key) |
-| `Invalid API Key` | Copia di nuovo la chiave, o creane una nuova: vedi [`Missing API Key` o `Invalid API Key`](#missing-api-key-o-invalid-api-key) |
+| `Invalid API Key` | Controlla la chiave, o reimpostala per averne una nuova: vedi [`Missing API Key` o `Invalid API Key`](#missing-api-key-o-invalid-api-key) |
 | `ProjectId required` | Usa una chiave API del progetto, non una chiave master: vedi [`ProjectId required`](#projectid-required) |
 | `You do not have permissions to create Monitor` | Dai alla chiave l'autorizzazione che il messaggio nomina: vedi [Alla chiave manca un'autorizzazione](#alla-chiave-manca-unautorizzazione) |
 | `API keys need the Growth plan` | Riporta il progetto al piano Growth: vedi [Pagamento richiesto](#pagamento-richiesto) |
@@ -60,7 +60,7 @@ Il provider nomina ciò che stava facendo: `Unable to create monitor` e `Unable 
 
 `Missing API Key` ferma il provider prima che faccia qualsiasi richiesta: né `api_key` nel blocco del provider né la variabile d'ambiente `ONEUPTIME_API_KEY` sono impostate. Esporta la variabile nella shell in cui esegui Terraform, oppure passa la chiave in una variabile contrassegnata come `sensitive`.
 
-`Invalid API Key` è la risposta di OneUptime a una chiave che non conosce: una chiave scritta male, scaduta o eliminata, oppure una di un'altra istanza OneUptime rispetto a quella a cui punta `oneuptime_url`. Copia di nuovo la chiave dalla sua pagina in **Impostazioni del progetto → Avanzato → Chiavi API**, oppure creane una nuova.
+`Invalid API Key` è la risposta di OneUptime a una chiave che non conosce: una chiave scritta male, scaduta o eliminata, oppure una di un'altra istanza OneUptime rispetto a quella a cui punta `oneuptime_url`. Confrontala con come finisce la chiave nella sua pagina in **Impostazioni del progetto → Avanzato → Chiavi API**, oppure reimpostala lì per averne una nuova.
 
 ### `ProjectId required`
 

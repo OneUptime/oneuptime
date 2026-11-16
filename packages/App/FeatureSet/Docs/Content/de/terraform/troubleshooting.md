@@ -14,7 +14,7 @@ Suchen Sie die Meldung, die Terraform ausgegeben hat, oder das, was Sie beobacht
 | Meldung oder Symptom | Was zu tun ist |
 | --- | --- |
 | `Missing API Key` | Geben Sie dem Provider seinen Schlüssel: siehe [`Missing API Key` oder `Invalid API Key`](#missing-api-key-oder-invalid-api-key) |
-| `Invalid API Key` | Kopieren Sie den Schlüssel erneut, oder legen Sie einen neuen an: siehe [`Missing API Key` oder `Invalid API Key`](#missing-api-key-oder-invalid-api-key) |
+| `Invalid API Key` | Prüfen Sie den Schlüssel, oder setzen Sie ihn zurück, um einen neuen zu erhalten: siehe [`Missing API Key` oder `Invalid API Key`](#missing-api-key-oder-invalid-api-key) |
 | `ProjectId required` | Verwenden Sie einen API-Schlüssel des Projekts, keinen Master-Schlüssel: siehe [`ProjectId required`](#projectid-required) |
 | `You do not have permissions to create Monitor` | Geben Sie dem Schlüssel die Berechtigung, die die Meldung nennt: siehe [Dem Schlüssel fehlt eine Berechtigung](#dem-schlüssel-fehlt-eine-berechtigung) |
 | `API keys need the Growth plan` | Bringen Sie das Projekt zurück auf den Tarif Growth: siehe [Zahlung erforderlich](#zahlung-erforderlich) |
@@ -60,7 +60,7 @@ Der Provider nennt, was er gerade tat: `Unable to create monitor` und `Unable to
 
 `Missing API Key` hält den Provider an, bevor er irgendeine Anfrage stellt: Weder `api_key` im Provider-Block noch die Umgebungsvariable `ONEUPTIME_API_KEY` ist gesetzt. Exportieren Sie die Variable in der Shell, in der Sie Terraform ausführen, oder übergeben Sie den Schlüssel in einer als `sensitive` markierten Variablen.
 
-`Invalid API Key` ist die Antwort von OneUptime auf einen Schlüssel, den es nicht kennt: einen vertippten, abgelaufenen oder gelöschten, oder einen einer anderen OneUptime-Instanz als der, auf die `oneuptime_url` zeigt. Kopieren Sie den Schlüssel erneut von seiner Seite unter **Projekteinstellungen → Erweitert → API-Schlüssel**, oder legen Sie einen neuen an.
+`Invalid API Key` ist die Antwort von OneUptime auf einen Schlüssel, den es nicht kennt: einen vertippten, abgelaufenen oder gelöschten, oder einen einer anderen OneUptime-Instanz als der, auf die `oneuptime_url` zeigt. Vergleichen Sie ihn damit, wie der Schlüssel auf seiner Seite unter **Projekteinstellungen → Erweitert → API-Schlüssel** endet, oder setzen Sie ihn dort zurück, um einen neuen zu erhalten.
 
 ### `ProjectId required`
 

@@ -14,7 +14,7 @@ Cherchez dans le tableau ci-dessous le message que Terraform a affiché, ou ce q
 | Message ou symptôme | Que faire |
 | --- | --- |
 | `Missing API Key` | Donnez sa clé au fournisseur : voir [`Missing API Key` ou `Invalid API Key`](#missing-api-key-ou-invalid-api-key) |
-| `Invalid API Key` | Recopiez la clé, ou créez-en une nouvelle : voir [`Missing API Key` ou `Invalid API Key`](#missing-api-key-ou-invalid-api-key) |
+| `Invalid API Key` | Vérifiez la clé, ou réinitialisez-la pour en obtenir une nouvelle : voir [`Missing API Key` ou `Invalid API Key`](#missing-api-key-ou-invalid-api-key) |
 | `ProjectId required` | Utilisez une clé API du projet, pas une clé maîtresse : voir [`ProjectId required`](#projectid-required) |
 | `You do not have permissions to create Monitor` | Donnez à la clé la permission que nomme le message : voir [Il manque une permission à la clé](#il-manque-une-permission-à-la-clé) |
 | `API keys need the Growth plan` | Ramenez le projet au forfait Growth : voir [Paiement requis](#paiement-requis) |
@@ -60,7 +60,7 @@ Le fournisseur nomme ce qu'il faisait : `Unable to create monitor` et `Unable to
 
 `Missing API Key` arrête le fournisseur avant qu'il ne fasse la moindre requête : ni `api_key` dans le bloc du fournisseur, ni la variable d'environnement `ONEUPTIME_API_KEY` ne sont définies. Exportez la variable dans le shell où vous exécutez Terraform, ou passez la clé dans une variable marquée `sensitive`.
 
-`Invalid API Key` est la réponse de OneUptime à une clé qu'il ne connaît pas : une clé mal tapée, expirée ou supprimée, ou une clé d'un autre OneUptime que celui vers lequel pointe `oneuptime_url`. Recopiez la clé depuis sa page sous **Paramètres du projet → Avancé → Clés API**, ou créez-en une nouvelle.
+`Invalid API Key` est la réponse de OneUptime à une clé qu'il ne connaît pas : une clé mal tapée, expirée ou supprimée, ou une clé d'un autre OneUptime que celui vers lequel pointe `oneuptime_url`. Comparez-la à la façon dont la clé se termine sur sa page sous **Paramètres du projet → Avancé → Clés API**, ou réinitialisez-la là pour en obtenir une nouvelle.
 
 ### `ProjectId required`
 
