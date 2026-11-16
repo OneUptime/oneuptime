@@ -2357,6 +2357,60 @@ export default class Monitor extends BaseModel {
   })
   public telemetryMonitorLastMonitorAt?: Date = undefined;
 
+  /*
+   * When something first measured the monitor: a probe's check result, a
+   * heartbeat, an email or a server agent's report that arrived, or an
+   * evaluation of its telemetry, its network device or the probes it
+   * watches. Stamped once, by MonitorResourceUtil.monitorResource
+   * (Server/Utils/Monitor/MonitorFirstMeasured); a heartbeat sweep that
+   * only judges what has not arrived measures nothing and stamps nothing.
+   *
+   * NULL while nothing has. Until then the status the monitor holds is the
+   * operational one every monitor is created in (MonitorService), which no
+   * check stands behind, so the Monitors list, the Monitor List widget and
+   * status pages say it is waiting for its first check instead of
+   * Operational (Utils/Monitor/MonitorFirstCheck, issue #8899).
+   *
+   * A manual monitor holds the time it was created (MonitorService
+   * .onCreateSuccess): nothing checks it, and its status is the one a person
+   * sets, from the start. So "measured" is one column to ask a list for -
+   * the Monitor List widget's "operational" filter asks it NOT NULL - and
+   * the rule that reads a row never takes a manual monitor for one that is
+   * waiting, stamped or not.
+   *
+   * A monitor measured before this column existed was stamped by the
+   * upgrade (BackfillMonitorFirstMeasuredAt) with the time it was created:
+   * the upgrade knows it had been measured, not when first, and its first
+   * check came after that. Its history stays as measured as it always was.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "First Measured At",
+    description:
+      "When a check result, heartbeat, email, agent report or evaluation first reached this monitor. Empty while nothing has measured it yet: its status is then only the one every monitor is created in. A manual monitor, whose status a person sets, holds the time it was created.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public firstMeasuredAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
