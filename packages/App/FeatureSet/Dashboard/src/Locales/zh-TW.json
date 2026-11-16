@@ -55932,5 +55932,6 @@
   "This deletes {{count}} incidents now.": "此操作現在會刪除 {{count}} 個事件。",
   "This deletes {{count}} incidents now._one": "此操作現在會刪除 {{count}} 個事件。",
   "Your server keeps resolved alerts for at most {{length}}.": "你的伺服器最多將已解決的警示保留 {{length}}。",
-  "Your server keeps resolved incidents for at most {{length}}.": "你的伺服器最多將已解決的事件保留 {{length}}。"
+  "Your server keeps resolved incidents for at most {{length}}.": "你的伺服器最多將已解決的事件保留 {{length}}。",
+  "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "已解決的舊事件，若其事後分析處於你移除的狀態，會在一小時內被刪除。這些事件無法復原。"
 }

@@ -55932,5 +55932,6 @@
   "This deletes {{count}} incidents now.": "Сейчас будет удалено инцидентов: {{count}}.",
   "This deletes {{count}} incidents now._one": "Сейчас будет удалён {{count}} инцидент.",
   "Your server keeps resolved alerts for at most {{length}}.": "Ваш сервер хранит оповещения максимум {{length}} после их устранения.",
-  "Your server keeps resolved incidents for at most {{length}}.": "Ваш сервер хранит инциденты максимум {{length}} после их устранения."
+  "Your server keeps resolved incidents for at most {{length}}.": "Ваш сервер хранит инциденты максимум {{length}} после их устранения.",
+  "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "Старые устранённые инциденты, чей постмортем находится в статусе, который вы убираете, удаляются в течение часа. Восстановить их нельзя."
 }

@@ -311,7 +311,7 @@ describe("the words, in English", () => {
       "Delete incidents in this postmortem status too?",
     );
     expect(ResolvedRecordRetentionCopy.keptStatusesConfirmDescription).toMatch(
-      /deleted within the hour .* can't be brought back\.$/,
+      /deleted within the hour\. They can't be brought back\.$/,
     );
     expect(ResolvedRecordRetentionCopy.keptStatusesKeepOne).toMatch(
       /turn off keeping incidents with a completed postmortem\.$/,

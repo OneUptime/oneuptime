@@ -55932,5 +55932,6 @@
   "This deletes {{count}} incidents now.": "Dadurch werden jetzt {{count}} Vorfälle gelöscht.",
   "This deletes {{count}} incidents now._one": "Dadurch wird jetzt {{count}} Vorfall gelöscht.",
   "Your server keeps resolved alerts for at most {{length}}.": "Ihr Server bewahrt behobene Warnungen höchstens {{length}} auf.",
-  "Your server keeps resolved incidents for at most {{length}}.": "Ihr Server bewahrt behobene Vorfälle höchstens {{length}} auf."
+  "Your server keeps resolved incidents for at most {{length}}.": "Ihr Server bewahrt behobene Vorfälle höchstens {{length}} auf.",
+  "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "Alte behobene Vorfälle, deren Postmortem einen Status hat, den Sie abwählen, werden innerhalb einer Stunde gelöscht. Sie sind nicht wiederherstellbar."
 }

@@ -55932,5 +55932,6 @@
   "This deletes {{count}} incidents now.": "この変更により、現時点で {{count}} 件のインシデントが削除されます。",
   "This deletes {{count}} incidents now._one": "この変更により、現時点で {{count}} 件のインシデントが削除されます。",
   "Your server keeps resolved alerts for at most {{length}}.": "お使いのサーバーでは、解決済みのアラートは最長 {{length}} 保持されます。",
-  "Your server keeps resolved incidents for at most {{length}}.": "お使いのサーバーでは、解決済みのインシデントは最長 {{length}} 保持されます。"
+  "Your server keeps resolved incidents for at most {{length}}.": "お使いのサーバーでは、解決済みのインシデントは最長 {{length}} 保持されます。",
+  "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "ポストモーテムが選択から外したステータスにある、解決済みの古いインシデントは 1 時間以内に削除されます。元に戻すことはできません。"
 }

@@ -55932,5 +55932,6 @@
   "This deletes {{count}} incidents now.": "Det här tar bort {{count}} incidenter nu.",
   "This deletes {{count}} incidents now._one": "Det här tar bort {{count}} incident nu.",
   "Your server keeps resolved alerts for at most {{length}}.": "Din server behåller lösta larm i högst {{length}}.",
-  "Your server keeps resolved incidents for at most {{length}}.": "Din server behåller lösta incidenter i högst {{length}}."
+  "Your server keeps resolved incidents for at most {{length}}.": "Din server behåller lösta incidenter i högst {{length}}.",
+  "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "Gamla lösta incidenter vars efteranalys har en status som du väljer bort tas bort inom en timme. De kan inte återställas."
 }

@@ -55932,5 +55932,6 @@
   "This deletes {{count}} incidents now.": "Hiermee worden nu {{count}} incidenten verwijderd.",
   "This deletes {{count}} incidents now._one": "Hiermee wordt nu {{count}} incident verwijderd.",
   "Your server keeps resolved alerts for at most {{length}}.": "Uw server bewaart opgeloste waarschuwingen maximaal {{length}}.",
-  "Your server keeps resolved incidents for at most {{length}}.": "Uw server bewaart opgeloste incidenten maximaal {{length}}."
+  "Your server keeps resolved incidents for at most {{length}}.": "Uw server bewaart opgeloste incidenten maximaal {{length}}.",
+  "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "Oude opgeloste incidenten met een postmortem in een status die u weghaalt, worden binnen een uur verwijderd. Ze kunnen niet worden teruggehaald."
 }

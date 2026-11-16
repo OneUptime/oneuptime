@@ -55932,5 +55932,6 @@
   "This deletes {{count}} incidents now.": "این کار اکنون {{count}} حادثه را حذف می‌کند.",
   "This deletes {{count}} incidents now._one": "این کار اکنون {{count}} حادثه را حذف می‌کند.",
   "Your server keeps resolved alerts for at most {{length}}.": "سرور شما هشدارهای برطرف‌شده را حداکثر {{length}} نگه می‌دارد.",
-  "Your server keeps resolved incidents for at most {{length}}.": "سرور شما حوادث برطرف‌شده را حداکثر {{length}} نگه می‌دارد."
+  "Your server keeps resolved incidents for at most {{length}}.": "سرور شما حوادث برطرف‌شده را حداکثر {{length}} نگه می‌دارد.",
+  "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "حوادث برطرف‌شدهٔ قدیمی که گزارش پس از حادثه‌شان در وضعیتی است که کنارش می‌گذارید، ظرف یک ساعت حذف می‌شوند. امکان بازگرداندن آن‌ها وجود ندارد."
 }

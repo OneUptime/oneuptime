@@ -55932,5 +55932,6 @@
   "This deletes {{count}} incidents now.": "Dette sletter {{count}} hendelser nå.",
   "This deletes {{count}} incidents now._one": "Dette sletter {{count}} hendelse nå.",
   "Your server keeps resolved alerts for at most {{length}}.": "Serveren din oppbevarer løste varsler i høyst {{length}}.",
-  "Your server keeps resolved incidents for at most {{length}}.": "Serveren din oppbevarer løste hendelser i høyst {{length}}."
+  "Your server keeps resolved incidents for at most {{length}}.": "Serveren din oppbevarer løste hendelser i høyst {{length}}.",
+  "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "Gamle løste hendelser med en etteranalyse i en status du velger bort, slettes innen en time. De kan ikke gjenopprettes."
 }

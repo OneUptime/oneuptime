@@ -55932,5 +55932,6 @@
   "This deletes {{count}} incidents now.": "سيحذف هذا الآن {{count}} من الحوادث.",
   "This deletes {{count}} incidents now._one": "سيحذف هذا الآن {{count}} حادثة.",
   "Your server keeps resolved alerts for at most {{length}}.": "لا يحتفظ خادمك بالتنبيهات التي تم حلها أكثر من المدة القصوى ({{length}}).",
-  "Your server keeps resolved incidents for at most {{length}}.": "لا يحتفظ خادمك بالحوادث التي تم حلها أكثر من المدة القصوى ({{length}})."
+  "Your server keeps resolved incidents for at most {{length}}.": "لا يحتفظ خادمك بالحوادث التي تم حلها أكثر من المدة القصوى ({{length}}).",
+  "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "تُحذف خلال ساعة الحوادث القديمة التي تم حلها، إذا كان تقرير ما بعد الحادثة الخاص بها في حالة تزيلها. ولا يمكن استعادتها."
 }

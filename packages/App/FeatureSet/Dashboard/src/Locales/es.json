@@ -55932,5 +55932,6 @@
   "This deletes {{count}} incidents now.": "Esto elimina ahora {{count}} incidentes.",
   "This deletes {{count}} incidents now._one": "Esto elimina ahora {{count}} incidente.",
   "Your server keeps resolved alerts for at most {{length}}.": "Tu servidor conserva las alertas resueltas durante {{length}} como máximo.",
-  "Your server keeps resolved incidents for at most {{length}}.": "Tu servidor conserva los incidentes resueltos durante {{length}} como máximo."
+  "Your server keeps resolved incidents for at most {{length}}.": "Tu servidor conserva los incidentes resueltos durante {{length}} como máximo.",
+  "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "Los incidentes resueltos antiguos cuyo post mortem está en un estado que quitas se eliminan en menos de una hora. No se pueden recuperar."
 }

@@ -55932,5 +55932,6 @@
   "This deletes {{count}} incidents now.": "이 변경으로 지금 인시던트 {{count}}개가 삭제됩니다.",
   "This deletes {{count}} incidents now._one": "이 변경으로 지금 인시던트 {{count}}개가 삭제됩니다.",
   "Your server keeps resolved alerts for at most {{length}}.": "사용 중인 서버는 해결된 경고를 최대 {{length}} 동안 보존합니다.",
-  "Your server keeps resolved incidents for at most {{length}}.": "사용 중인 서버는 해결된 인시던트를 최대 {{length}} 동안 보존합니다."
+  "Your server keeps resolved incidents for at most {{length}}.": "사용 중인 서버는 해결된 인시던트를 최대 {{length}} 동안 보존합니다.",
+  "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "포스트모템이 선택에서 뺀 상태에 있는 해결된 오래된 인시던트는 1시간 이내에 삭제됩니다. 되돌릴 수 없습니다."
 }

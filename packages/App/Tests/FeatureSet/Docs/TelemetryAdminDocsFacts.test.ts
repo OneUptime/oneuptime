@@ -1496,8 +1496,18 @@ describe("Data Retention (telemetry/data-retention)", () => {
       `Leave empty for ${TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS} days.`,
     );
 
+    // The limit on resolved incidents and alerts, a card of its own (#6941).
+    const limits: string = readPackageFile(
+      "App/FeatureSet/AdminDashboard/src/Pages/Settings/DataRetention/ResolvedRecordRetentionLimitsCopy.ts",
+    );
+
     for (const label of ADMIN_DASHBOARD_LABELS[DATA_RETENTION] || []) {
-      expect(admin).toContain(`title: "${label}",`);
+      expect({
+        label,
+        isDrawn:
+          admin.includes(`title: "${label}",`) ||
+          limits.includes(`translationKey("${label}")`),
+      }).toEqual({ label, isDrawn: true });
       expect(adminDashboardLabel("en", label)).toBe(label);
     }
 
@@ -1512,6 +1522,8 @@ describe("Data Retention (telemetry/data-retention)", () => {
       "1 day unless changed",
       "30 days unless changed",
       `${TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS} days unless changed`,
+      // Every project starts at Never (Types/Retention/ResolvedRecordRetention).
+      "Until the project picks a length",
     ]);
   });
 

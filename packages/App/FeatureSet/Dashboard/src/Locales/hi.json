@@ -55932,5 +55932,6 @@
   "This deletes {{count}} incidents now.": "इससे अभी {{count}} घटनाएं हट जाएंगी।",
   "This deletes {{count}} incidents now._one": "इससे अभी {{count}} घटना हट जाएगी।",
   "Your server keeps resolved alerts for at most {{length}}.": "आपका सर्वर सुलझाए गए अलर्ट अधिकतम {{length}} तक रखता है।",
-  "Your server keeps resolved incidents for at most {{length}}.": "आपका सर्वर सुलझाई गई घटनाएं अधिकतम {{length}} तक रखता है।"
+  "Your server keeps resolved incidents for at most {{length}}.": "आपका सर्वर सुलझाई गई घटनाएं अधिकतम {{length}} तक रखता है।",
+  "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "सुलझाई गई पुरानी घटनाएं, जिनका पोस्टमॉर्टम ऐसी स्थिति में है जिसे आप हटा देते हैं, एक घंटे के भीतर हटा दी जाती हैं। उन्हें वापस नहीं लाया जा सकता।"
 }
