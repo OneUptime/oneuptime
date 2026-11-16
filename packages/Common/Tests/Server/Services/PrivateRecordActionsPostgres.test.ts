@@ -1,14 +1,27 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
 import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import RunbookExecution from "../../../Models/DatabaseModels/RunbookExecution";
+import BaseAPI from "../../../Server/API/BaseAPI";
+import CommonAPI from "../../../Server/API/CommonAPI";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import AlertService from "../../../Server/Services/AlertService";
 import CallLogService from "../../../Server/Services/CallLogService";
+import DataSecurityIssueService from "../../../Server/Services/DataSecurityIssueService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import EmailLogService from "../../../Server/Services/EmailLogService";
+import FormSubmissionService from "../../../Server/Services/FormSubmissionService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import LlmLogService from "../../../Server/Services/LlmLogService";
+import RumSessionPinService from "../../../Server/Services/RumSessionPinService";
+import RumSessionReplayViewService from "../../../Server/Services/RumSessionReplayViewService";
+import SecurityCaseService from "../../../Server/Services/SecurityCaseService";
+import { QuerySecurityCasesTool } from "../../../Server/Utils/AI/Toolbox/SecurityCaseTools";
+import { ToolExecutionResult } from "../../../Server/Utils/AI/Toolbox/ToolTypes";
+import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
+import Response from "../../../Server/Utils/Response";
+import SecurityCaseValues from "../../../Server/Utils/SecurityCase/SecurityCaseValues";
 import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyExecutionLogTimelineService from "../../../Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
 import PushNotificationLogService from "../../../Server/Services/PushNotificationLogService";
@@ -19,21 +32,30 @@ import WebhookLogService from "../../../Server/Services/WebhookLogService";
 import WhatsAppLogService from "../../../Server/Services/WhatsAppLogService";
 import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
-import {
+import PrivateRecordPermission, {
   PrivateRecordColumn,
   PrivateRecordKind,
 } from "../../../Server/Types/Database/Permissions/PrivateRecordPermission";
-import PrivateRecordReadFilter from "../../../Server/Utils/Permission/PrivateRecordReadFilter";
+import QueryHelper from "../../../Server/Types/Database/QueryHelper";
+import QueryUtil from "../../../Server/Types/Database/QueryUtil";
+import PrivateRecordReadFilter, {
+  PrivateRecordRelation,
+} from "../../../Server/Utils/Permission/PrivateRecordReadFilter";
 import PrivateRecordWriteCheck from "../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 import RunbookPrivateRecordAccess from "../../../Server/Utils/Runbook/RunbookPrivateRecordAccess";
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Search from "../../../Types/BaseDatabase/Search";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import UserType from "../../../Types/UserType";
+import { getJestSpyOn } from "../../Spy";
 import {
   afterAll,
   afterEach,
@@ -71,7 +93,14 @@ import { DataSource, Logger } from "typeorm";
  *     one naming a public record, or none, is read as before;
  *   - a page, a run or a fix about a private incident is started only
  *     through the teams that own it and the people named as its owners
- *     (PrivateRecordWriteCheck.reaches, RunbookPrivateRecordAccess).
+ *     (PrivateRecordWriteCheck.reaches, RunbookPrivateRecordAccess);
+ *   - through every relation the rule holds (#9102: a Data Security
+ *     issue's incident, a security case's, a form submission's, a session
+ *     replay's, a public alert's private episode, a runner job's run...), a
+ *     select reads the related record, and a filter on its columns matches
+ *     it, only for those who see it - by the rule itself for every such
+ *     relation, and through the services, a count, a sort, the API's list
+ *     and OneUptime AI's read of a security case for the models #9102 names.
  *
  * Opt in with RUN_POSTGRES_PRIVATE_RECORD_ACTIONS_TESTS=true against a
  * database the registered migrations have been applied to, e.g.
@@ -138,6 +167,27 @@ const PARTS: Array<Part> = [
   },
   { name: "an AI request log", service: asService(LlmLogService) },
 ];
+
+// A relation the rule holds (PrivateRecordReadFilter.getRelations), of a model.
+interface HeldRelation {
+  name: string;
+  modelType: { new (): BaseModel };
+  relation: PrivateRecordRelation;
+}
+
+const HELD_RELATIONS: Array<HeldRelation> = Entities.flatMap(
+  (modelType: { new (): BaseModel }): Array<HeldRelation> => {
+    return PrivateRecordReadFilter.getRelations(modelType).map(
+      (relation: PrivateRecordRelation): HeldRelation => {
+        return {
+          name: `${new modelType().tableName}.${relation.relation}`,
+          modelType: modelType,
+          relation: relation,
+        };
+      },
+    );
+  },
+);
 
 type SqlRow = Record<string, unknown>;
 
@@ -257,6 +307,15 @@ describePostgres(
           ...PARTS.map((part: Part): string => {
             return part.service.getModel().tableName as string;
           }),
+          // Each model holding a relation, and the records it reaches.
+          ...HELD_RELATIONS.flatMap((held: HeldRelation): Array<string> => {
+            return [
+              new held.modelType().tableName as string,
+              new held.relation.relatedModelType().tableName as string,
+            ];
+          }),
+          // What OneUptime AI's read of a security case reads beside it.
+          "SecurityDetection",
         ]),
       );
 
@@ -427,6 +486,7 @@ describePostgres(
     async function seedRecord(
       kind: PrivateRecordKind,
       isPrivate: boolean,
+      values: SqlRow = {},
     ): Promise<string> {
       const id: string = ObjectID.generate().toString();
 
@@ -434,6 +494,7 @@ describePostgres(
         _id: id,
         projectId: projectId.toString(),
         isPrivate: isPrivate,
+        ...values,
       });
       await insert(kind.ownerTeamTable, {
         _id: ObjectID.generate().toString(),
@@ -864,6 +925,672 @@ describePostgres(
             ),
           }),
         ).toBe(true);
+      });
+    });
+
+    /*
+     * THROUGH A RELATION (#9102). A row that names a private record without
+     * being a part of it - a Data Security issue's incident, a public
+     * alert's private episode, a runner job's run - is read by whoever may
+     * read it, and before this a join handed them the record's columns.
+     */
+    describe("a private record read through a relation", () => {
+      // The readers who see the private records, and those who do not.
+      function seers(): Array<[string, DatabaseCommonInteractionProps]> {
+        return [
+          ["the owning team's member", viewer(memberId)],
+          ["the person named as its owner", viewer(namedOwnerId)],
+          [
+            "a Project Admin",
+            propsOf([grant(Permission.ProjectAdmin)], adminId),
+          ],
+          [
+            "a Project Owner",
+            propsOf([grant(Permission.ProjectOwner)], adminId),
+          ],
+        ];
+      }
+
+      function others(): Array<[string, DatabaseCommonInteractionProps]> {
+        return [
+          ["another member", viewer(otherId)],
+          ["an invitee who has not accepted", viewer(invitedId)],
+          [
+            "an API key",
+            propsOf([grant(Permission.Viewer)], null, UserType.API),
+          ],
+          ["a workflow's step", workflowStep()],
+        ];
+      }
+
+      function isRequired(table: string, column: string): boolean {
+        return (required[table] || []).some((each: RequiredColumn): boolean => {
+          return each.name === column;
+        });
+      }
+
+      /*
+       * A record of `relatedModelType` - a private record of its kind, or a
+       * part naming one by its first key - private or public. Returns its ID.
+       */
+      async function seedRelated(
+        relatedModelType: { new (): BaseModel },
+        isPrivate: boolean,
+        values: SqlRow = {},
+      ): Promise<string> {
+        const table: string = new relatedModelType().tableName as string;
+        const kind: PrivateRecordKind | null =
+          PrivateRecordPermission.getKind(table);
+
+        if (kind) {
+          return await seedRecord(kind, isPrivate, values);
+        }
+
+        const id: string = ObjectID.generate().toString();
+        const row: SqlRow = { _id: id, projectId: projectId.toString() };
+
+        for (const [
+          index,
+          column,
+        ] of PrivateRecordPermission.getPrivateRecordColumns(
+          relatedModelType,
+        ).entries()) {
+          row[column.column] =
+            index === 0
+              ? await seedRecord(column.kind, isPrivate)
+              : isRequired(table, column.column)
+                ? ObjectID.generate().toString()
+                : null;
+        }
+
+        await insert(table, { ...row, ...values });
+
+        return id;
+      }
+
+      // A row of the model holding `held`, linked to `relatedId`. Returns its ID.
+      async function seedLinked(
+        held: HeldRelation,
+        relatedId: string,
+        values: SqlRow = {},
+      ): Promise<string> {
+        const model: BaseModel = new held.modelType();
+        const metadata: TableColumnMetadata = model.getTableColumnMetadata(
+          held.relation.relation,
+        );
+        const id: string = ObjectID.generate().toString();
+
+        await insert(model.tableName as string, {
+          _id: id,
+          projectId: projectId.toString(),
+          [metadata.manyToOneRelationColumn as string]: relatedId,
+          ...values,
+        });
+
+        return id;
+      }
+
+      test("every relation the rule holds is to one record, which these tests read", () => {
+        expect(HELD_RELATIONS.length).toBeGreaterThan(0);
+
+        for (const held of HELD_RELATIONS) {
+          expect({ name: held.name, isList: held.relation.isList }).toEqual({
+            name: held.name,
+            isList: false,
+          });
+        }
+      });
+
+      describe.each(HELD_RELATIONS)("$name", (held: HeldRelation) => {
+        async function seedBoth(): Promise<{
+          toPrivate: string;
+          toPublic: string;
+        }> {
+          return {
+            toPrivate: await seedLinked(
+              held,
+              await seedRelated(held.relation.relatedModelType, true),
+            ),
+            toPublic: await seedLinked(
+              held,
+              await seedRelated(held.relation.relatedModelType, false),
+            ),
+          };
+        }
+
+        // The rows read as OneUptime, with the related record's creation time.
+        async function readLinked(
+          ids: Array<string>,
+        ): Promise<Array<BaseModel>> {
+          return await database.getRepository(held.modelType).find({
+            where: { _id: QueryHelper.any(ids) } as never,
+            relations: { [held.relation.relation]: true } as never,
+            select: {
+              _id: true,
+              [held.relation.relation]: { _id: true, createdAt: true },
+            } as never,
+          });
+        }
+
+        test("a select reads the related record only for those who see it", async () => {
+          const { toPrivate, toPublic } = await seedBoth();
+
+          const relatedOf: (
+            props: DatabaseCommonInteractionProps,
+          ) => Promise<Record<string, boolean>> = async (
+            props: DatabaseCommonInteractionProps,
+          ): Promise<Record<string, boolean>> => {
+            const rows: Array<BaseModel> = await readLinked([
+              toPrivate,
+              toPublic,
+            ]);
+
+            // Every row came back with its related record from the join.
+            expect(rows).toHaveLength(2);
+
+            await PrivateRecordReadFilter.keepSeenRelatedRecords({
+              modelType: held.modelType,
+              rows: rows,
+              select: { [held.relation.relation]: { createdAt: true } },
+              props: props,
+            });
+
+            const shown: Record<string, boolean> = {};
+
+            for (const row of rows) {
+              shown[row._id!.toString() === toPrivate ? "private" : "public"] =
+                Boolean(
+                  (row as unknown as Record<string, unknown>)[
+                    held.relation.relation
+                  ],
+                );
+            }
+
+            return shown;
+          };
+
+          for (const [who, props] of seers()) {
+            expect({ who, shown: await relatedOf(props) }).toEqual({
+              who,
+              shown: { private: true, public: true },
+            });
+          }
+
+          for (const [who, props] of others()) {
+            expect({ who, shown: await relatedOf(props) }).toEqual({
+              who,
+              shown: { private: false, public: true },
+            });
+          }
+        });
+
+        test("a filter on the related record's columns matches only the ones the reader sees", async () => {
+          const { toPrivate, toPublic } = await seedBoth();
+
+          const matched: (
+            props: DatabaseCommonInteractionProps,
+          ) => Promise<Array<string>> = async (
+            props: DatabaseCommonInteractionProps,
+          ): Promise<Array<string>> => {
+            const query: Record<string, unknown> = QueryUtil.serializeQuery(
+              held.modelType,
+              PrivateRecordReadFilter.addToRelationFilters(
+                held.modelType,
+                {
+                  _id: QueryHelper.any([toPrivate, toPublic]),
+                  [held.relation.relation]: {
+                    createdAt: QueryHelper.notNull(),
+                  },
+                },
+                props,
+              ) as never,
+            ) as Record<string, unknown>;
+
+            const rows: Array<BaseModel> = await database
+              .getRepository(held.modelType)
+              .find({ where: query as never, select: { _id: true } as never });
+
+            return rows
+              .map((row: BaseModel): string => {
+                return row._id!.toString() === toPrivate ? "private" : "public";
+              })
+              .sort();
+          };
+
+          for (const [who, props] of seers()) {
+            expect({ who, matched: await matched(props) }).toEqual({
+              who,
+              matched: ["private", "public"],
+            });
+          }
+
+          for (const [who, props] of others()) {
+            expect({ who, matched: await matched(props) }).toEqual({
+              who,
+              matched: ["public"],
+            });
+          }
+        });
+      });
+
+      /*
+       * The models #9102 names, and a public record in a private episode,
+       * read as the API reads them: through their own services, with every
+       * permission check, the read rule of each and the query serializer.
+       */
+      interface ThroughService {
+        name: string;
+        service: DatabaseService<BaseModel>;
+        relation: string;
+      }
+
+      const THROUGH_SERVICES: Array<ThroughService> = [
+        {
+          name: "a Data Security issue's incident",
+          service: asService(DataSecurityIssueService),
+          relation: "incident",
+        },
+        {
+          name: "a Data Security issue's alert",
+          service: asService(DataSecurityIssueService),
+          relation: "alert",
+        },
+        {
+          name: "a security case's incident",
+          service: asService(SecurityCaseService),
+          relation: "incident",
+        },
+        {
+          name: "a form submission's incident",
+          service: asService(FormSubmissionService),
+          relation: "incident",
+        },
+        {
+          name: "a session replay pin's incident",
+          service: asService(RumSessionPinService),
+          relation: "incident",
+        },
+        {
+          name: "a session replay pin's alert",
+          service: asService(RumSessionPinService),
+          relation: "alert",
+        },
+        {
+          name: "a session replay view's incident",
+          service: asService(RumSessionReplayViewService),
+          relation: "linkedIncident",
+        },
+        {
+          name: "a public alert's private episode",
+          service: asService(AlertService),
+          relation: "alertEpisode",
+        },
+        {
+          name: "a public incident's private episode",
+          service: asService(IncidentService),
+          relation: "incidentEpisode",
+        },
+      ];
+
+      // A reader of these models: Viewer, and what the other products ask for.
+      function reader(who: ObjectID | null): DatabaseCommonInteractionProps {
+        return propsOf(
+          [
+            grant(Permission.Viewer),
+            grant(Permission.SecurityViewer),
+            grant(Permission.ReadFormSubmission),
+            grant(Permission.ReadRumSessionReplay),
+            grant(Permission.ReadRumSessionReplayAudit),
+          ],
+          who,
+          who ? UserType.User : UserType.API,
+        );
+      }
+
+      function serviceSeers(): Array<[string, DatabaseCommonInteractionProps]> {
+        return [
+          ["the owning team's member", reader(memberId)],
+          ["the person named as its owner", reader(namedOwnerId)],
+          [
+            "a Project Admin",
+            propsOf([grant(Permission.ProjectAdmin)], adminId),
+          ],
+        ];
+      }
+
+      function serviceOthers(): Array<
+        [string, DatabaseCommonInteractionProps]
+      > {
+        return [
+          ["another member", reader(otherId)],
+          ["an invitee who has not accepted", reader(invitedId)],
+          ["an API key", reader(null)],
+        ];
+      }
+
+      const SECRET_TITLE: string = "Secret: the payments database is down";
+      const PUBLIC_TITLE: string = "Public: slow checkout";
+
+      describe.each(THROUGH_SERVICES)("$name", (through: ThroughService) => {
+        const held: () => HeldRelation = (): HeldRelation => {
+          return HELD_RELATIONS.find((candidate: HeldRelation): boolean => {
+            return (
+              candidate.modelType === through.service.modelType &&
+              candidate.relation.relation === through.relation
+            );
+          })!;
+        };
+
+        async function seedBoth(): Promise<{
+          toPrivate: string;
+          toPublic: string;
+        }> {
+          // A public row of the private kinds (a public alert in an episode).
+          const ownValues: SqlRow =
+            PrivateRecordPermission.isPrivateRecordModel(
+              through.service.modelType as { new (): BaseModel },
+            )
+              ? { isPrivate: false }
+              : {};
+
+          return {
+            toPrivate: await seedLinked(
+              held(),
+              await seedRelated(held().relation.relatedModelType, true, {
+                title: SECRET_TITLE,
+              }),
+              ownValues,
+            ),
+            toPublic: await seedLinked(
+              held(),
+              await seedRelated(held().relation.relatedModelType, false, {
+                title: PUBLIC_TITLE,
+              }),
+              ownValues,
+            ),
+          };
+        }
+
+        // The title each row shows of its related record, by row.
+        async function titles(
+          props: DatabaseCommonInteractionProps,
+          ids: { toPrivate: string; toPublic: string },
+        ): Promise<Record<string, string | null>> {
+          const rows: Array<BaseModel> = await through.service.findBy({
+            query: { _id: QueryHelper.any([ids.toPrivate, ids.toPublic]) },
+            select: {
+              _id: true,
+              [through.relation]: { title: true },
+            } as never,
+            skip: 0,
+            limit: 10,
+            props: props,
+          });
+
+          const shown: Record<string, string | null> = {};
+
+          for (const row of rows) {
+            const related: unknown = (
+              row as unknown as Record<string, unknown>
+            )[through.relation];
+
+            shown[
+              row._id!.toString() === ids.toPrivate ? "private" : "public"
+            ] = related
+              ? ((related as Record<string, unknown>)["title"] as string)
+              : null;
+          }
+
+          return shown;
+        }
+
+        test("its title is selected only by those who see the record; everyone else reads the row without it", async () => {
+          const ids: { toPrivate: string; toPublic: string } = await seedBoth();
+
+          for (const [who, props] of serviceSeers()) {
+            expect({ who, shown: await titles(props, ids) }).toEqual({
+              who,
+              shown: { private: SECRET_TITLE, public: PUBLIC_TITLE },
+            });
+          }
+
+          for (const [who, props] of serviceOthers()) {
+            expect({ who, shown: await titles(props, ids) }).toEqual({
+              who,
+              shown: { private: null, public: PUBLIC_TITLE },
+            });
+          }
+        });
+
+        test("a filter or a count on its title finds it only for those who see it", async () => {
+          await seedBoth();
+
+          const found: (
+            props: DatabaseCommonInteractionProps,
+          ) => Promise<{ found: number; counted: number }> = async (
+            props: DatabaseCommonInteractionProps,
+          ): Promise<{ found: number; counted: number }> => {
+            const query: Record<string, unknown> = {
+              [through.relation]: { title: new Search("payments database") },
+            };
+
+            return {
+              found: (
+                await through.service.findBy({
+                  query: query as never,
+                  select: { _id: true },
+                  skip: 0,
+                  limit: 10,
+                  props: props,
+                })
+              ).length,
+              counted: (
+                await through.service.countBy({
+                  query: query as never,
+                  props: props,
+                })
+              ).toNumber(),
+            };
+          };
+
+          for (const [who, props] of serviceSeers()) {
+            expect({ who, ...(await found(props)) }).toEqual({
+              who,
+              found: 1,
+              counted: 1,
+            });
+          }
+
+          for (const [who, props] of serviceOthers()) {
+            expect({ who, ...(await found(props)) }).toEqual({
+              who,
+              found: 0,
+              counted: 0,
+            });
+          }
+        });
+
+        test("a sort by its title is refused to everyone who does not see every private record", async () => {
+          await seedBoth();
+
+          const sort: (
+            props: DatabaseCommonInteractionProps,
+          ) => Promise<void> = async (
+            props: DatabaseCommonInteractionProps,
+          ): Promise<void> => {
+            await through.service.findBy({
+              query: {},
+              select: { _id: true },
+              sort: {
+                [through.relation]: { title: SortOrder.Ascending },
+              } as never,
+              skip: 0,
+              limit: 10,
+              props: props,
+            });
+          };
+
+          for (const [who, props] of serviceOthers()) {
+            let refusal: unknown = null;
+
+            try {
+              await sort(props);
+            } catch (error) {
+              refusal = error;
+            }
+
+            expect({
+              who,
+              refused: refusal instanceof NotAuthorizedException,
+            }).toEqual({ who, refused: true });
+          }
+
+          // The owning team's member, who sees this one, may not see every one.
+          await expect(sort(reader(memberId))).rejects.toBeInstanceOf(
+            NotAuthorizedException,
+          );
+
+          await sort(propsOf([grant(Permission.ProjectAdmin)], adminId));
+          await sort(propsOf([grant(Permission.ProjectOwner)], adminId));
+        });
+      });
+
+      test("the API's list of Data Security issues leaves out the private incident's title", async () => {
+        const dataSecurityIssue: HeldRelation = HELD_RELATIONS.find(
+          (candidate: HeldRelation): boolean => {
+            return (
+              candidate.modelType === DataSecurityIssue &&
+              candidate.relation.relation === "incident"
+            );
+          },
+        )!;
+
+        const toPrivate: string = await seedLinked(
+          dataSecurityIssue,
+          await seedRelated(dataSecurityIssue.relation.relatedModelType, true, {
+            title: SECRET_TITLE,
+          }),
+        );
+
+        const api: BaseAPI<BaseModel, DatabaseService<BaseModel>> = new BaseAPI(
+          DataSecurityIssue as unknown as { new (): BaseModel },
+          asService(DataSecurityIssueService),
+        );
+
+        const listOf: (
+          props: DatabaseCommonInteractionProps,
+          body: Record<string, unknown>,
+        ) => Promise<Array<BaseModel>> = async (
+          props: DatabaseCommonInteractionProps,
+          body: Record<string, unknown>,
+        ): Promise<Array<BaseModel>> => {
+          const propsSpy: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+            CommonAPI,
+            "getDatabaseCommonInteractionProps",
+          ).mockResolvedValue(props as never);
+          const sent: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+            Response,
+            "sendEntityArrayResponse",
+          ).mockImplementation((() => {
+            return undefined;
+          }) as never);
+
+          try {
+            await api.getList(
+              {
+                method: "POST",
+                params: {},
+                query: {},
+                headers: {},
+                body: body,
+              } as unknown as ExpressRequest,
+              {} as ExpressResponse,
+            );
+
+            return sent.mock.calls[0]![2] as Array<BaseModel>;
+          } finally {
+            propsSpy.mockRestore();
+            sent.mockRestore();
+          }
+        };
+
+        const body: Record<string, unknown> = {
+          query: JSONFunctions.serialize({}),
+          select: JSONFunctions.serialize({
+            _id: true,
+            incident: { title: true },
+          }),
+        };
+
+        const asMember: Array<BaseModel> = await listOf(reader(memberId), body);
+        const asOther: Array<BaseModel> = await listOf(reader(otherId), body);
+
+        expect((asMember[0] as DataSecurityIssue).incident?.title).toBe(
+          SECRET_TITLE,
+        );
+        expect(
+          asOther.map((row: BaseModel) => {
+            return row._id!.toString();
+          }),
+        ).toEqual([toPrivate]);
+        expect((asOther[0] as DataSecurityIssue).incident).toBeUndefined();
+        expect((asOther[0] as DataSecurityIssue).incidentId?.toString()).toBe(
+          (asMember[0] as DataSecurityIssue).incidentId?.toString(),
+        );
+
+        // Filtered by the title, through the API: nothing for the other member.
+        const filtered: Record<string, unknown> = {
+          query: JSONFunctions.serialize({
+            incident: { title: new Search("payments") },
+          }),
+          select: JSONFunctions.serialize({ _id: true }),
+        };
+
+        expect(await listOf(reader(otherId), filtered)).toEqual([]);
+        expect(await listOf(reader(memberId), filtered)).toHaveLength(1);
+      });
+
+      test("OneUptime AI's read of a security case names its private incident only to those who see it", async () => {
+        const securityCase: HeldRelation = HELD_RELATIONS.find(
+          (candidate: HeldRelation): boolean => {
+            return candidate.modelType === SecurityCaseService.modelType;
+          },
+        )!;
+
+        const caseId: string = await seedLinked(
+          securityCase,
+          await seedRelated(securityCase.relation.relatedModelType, true, {
+            title: SECRET_TITLE,
+          }),
+        );
+
+        // The project's case statuses and priorities: none, and none written.
+        const values: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+          SecurityCaseValues,
+          "getForProject",
+        ).mockResolvedValue({ priorities: [], statuses: [] } as never);
+
+        const read: (
+          props: DatabaseCommonInteractionProps,
+        ) => Promise<string> = async (
+          props: DatabaseCommonInteractionProps,
+        ): Promise<string> => {
+          const result: ToolExecutionResult =
+            await QuerySecurityCasesTool.execute(
+              { securityCaseId: caseId },
+              { projectId: projectId, props: props },
+            );
+
+          return result.dataForLlm;
+        };
+
+        try {
+          expect(await read(reader(memberId))).toContain(SECRET_TITLE);
+          expect(await read(reader(otherId))).not.toContain(SECRET_TITLE);
+          expect(await read(reader(otherId))).not.toContain("payments");
+        } finally {
+          values.mockRestore();
+        }
       });
     });
   },
