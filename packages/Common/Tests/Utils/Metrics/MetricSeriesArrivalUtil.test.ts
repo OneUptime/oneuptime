@@ -220,3 +220,91 @@ describe("MetricSeriesArrivalUtil.combine: a formula's arrival from its queries'
     expect(fresh).toEqual(copy);
   });
 });
+
+/*
+ * A formula that reads a counting query's missing points as 0 (#6761,
+ * MetricZeroFill): the counting query sends nothing while nothing happens,
+ * so its silence is never the formula's going stale.
+ */
+describe("MetricSeriesArrivalUtil.combineForFormula", () => {
+  const fresh: MetricSeriesArrival = {
+    sinceNewestArrivalMs: 20 * SECOND,
+    lagMs: 30 * SECOND,
+    arrivalIntervalMs: MINUTE,
+  };
+  const quiet: MetricSeriesArrival = {
+    sinceNewestArrivalMs: 9 * MINUTE,
+    lagMs: 10 * SECOND,
+    arrivalIntervalMs: 4 * MINUTE,
+  };
+  const late: MetricSeriesArrival = {
+    sinceNewestArrivalMs: 40 * SECOND,
+    lagMs: 11 * MINUTE,
+    arrivalIntervalMs: 5 * MINUTE,
+  };
+
+  test("the variables it needs a point of time it, as combine does: a quiet count leaves it fresh", () => {
+    expect(
+      MetricSeriesArrivalUtil.combineForFormula({
+        read: [fresh],
+        filled: [quiet],
+      }),
+    ).toEqual(fresh);
+    expect(
+      MetricSeriesArrivalUtil.combineForFormula({
+        read: [fresh, late],
+        filled: [quiet],
+      }),
+    ).toEqual(MetricSeriesArrivalUtil.combine([fresh, late]));
+  });
+
+  test("needing a variable whose arrivals were not read, it was not behind", () => {
+    expect(
+      MetricSeriesArrivalUtil.combineForFormula({
+        read: [null],
+        filled: [quiet],
+      }),
+    ).toBeNull();
+  });
+
+  test("of counts only, it is as fresh as the freshest of them", () => {
+    expect(
+      MetricSeriesArrivalUtil.combineForFormula({
+        read: [],
+        filled: [quiet, late],
+      }),
+    ).toEqual(late);
+  });
+
+  test("of counts only, one not read leaves it fresh", () => {
+    expect(
+      MetricSeriesArrivalUtil.combineForFormula({
+        read: [],
+        filled: [quiet, null],
+      }),
+    ).toBeNull();
+  });
+
+  test("with nothing filled, it is combine", () => {
+    expect(
+      MetricSeriesArrivalUtil.combineForFormula({
+        read: [fresh, quiet],
+        filled: [],
+      }),
+    ).toEqual(MetricSeriesArrivalUtil.combine([fresh, quiet]));
+    expect(
+      MetricSeriesArrivalUtil.combineForFormula({ read: [], filled: [] }),
+    ).toBeNull();
+  });
+
+  test("it never hands back an arrival it reads", () => {
+    const combined: MetricSeriesArrival | null =
+      MetricSeriesArrivalUtil.combineForFormula({
+        read: [],
+        filled: [late],
+      });
+
+    expect(combined).toEqual(late);
+    expect(combined).not.toBe(late);
+  });
+});

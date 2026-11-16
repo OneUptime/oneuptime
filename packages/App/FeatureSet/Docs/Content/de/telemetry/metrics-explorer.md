@@ -86,6 +86,8 @@ Klicken Sie auf **Formel hinzufügen** und schreiben Sie die **Formel** mit den 
 
 Eine Variable lässt sich mit oder ohne ihr `$` schreiben, in beliebiger Groß- und Kleinschreibung. Eine Formel, die eine nicht definierte Abfrage nennt, meldet das, statt etwas zu zeichnen.
 
+Eine Abfrage, die zählt, was geschah, die Summe oder die Anzahl eines Zählers oder eines Histogramms, hat in einem Schritt, in dem nichts geschah, keinen Datenpunkt, also liest eine Formel sie dort als 0: `$b / $a * 100` zeichnet in einem Schritt ohne Fehlschlag 0. Ein Messwert, ein Durchschnitt oder ein Perzentil ohne Datenpunkt ist unbekannt, und die Formel lässt diesen Schritt aus. Sie lässt auch einen Schritt aus, in dem keine ihrer Abfragen einen Datenpunkt hat, und einen, der vor weniger als einer Minute endete und dessen letzte Datenpunkte noch unterwegs sein können.
+
 ## Rund um ein Diagramm erkunden
 
 Die Schaltflächen über den Diagrammen arbeiten mit dem Zeitraum, den Sie gerade sehen:

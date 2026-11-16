@@ -97,7 +97,7 @@ Ju längre fönstret är, desto bredare är varje tidsintervall, så en datapunk
 ## Så utvärderas den
 
 - **Varje minut.** En metrikmonitor kontrolleras inte av sonder, så den har inget intervall att ange och ingen sida **Sonder och intervall**.
-- **Först frågor, sedan formler.** Varje fråga returnerar en datapunkt per tidsintervall i tidsintervallet, med sin **Aggregera efter**. Formler räknas ut för varje intervall från frågornas datapunkter.
+- **Först frågor, sedan formler.** Varje fråga returnerar en datapunkt per tidsintervall i tidsintervallet, med sin **Aggregera efter**. Formler räknas ut för varje intervall från frågornas datapunkter. En fråga som räknar det som hände, summan eller antalet av en räknare eller ett histogram, räknar 0 i ett intervall där den inte har någon datapunkt, när intervallet har varit slut i en minut, så en andel misslyckanden är 0% där inget misslyckades. En mätare, ett medelvärde eller en percentil utan datapunkt är okänd, och formeln utelämnar det intervallet.
 - **Sedan regelns mått.** Regeln reducerar datapunkterna för sitt mätvärde till det som den jämför med sitt värde, som **Mätt som** säger:
 
 | Mätt som | I de egna kriterierna | Villkoret kontrolleras mot… |

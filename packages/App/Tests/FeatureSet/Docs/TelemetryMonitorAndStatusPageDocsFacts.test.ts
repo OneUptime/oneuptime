@@ -108,6 +108,7 @@ import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/Adva
 import CertificateReissueUtil from "Common/Utils/CertificateReissue";
 import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import MetricZeroFill from "Common/Utils/Metrics/MetricZeroFill";
 import TelemetryMonitorWindow, {
   DEFAULT_TELEMETRY_MONITOR_WINDOW_MS,
 } from "Common/Utils/Monitor/TelemetryMonitorWindow";
@@ -2319,6 +2320,38 @@ describe("the Metrics monitor", () => {
     );
     expect(METRICS).toContain(
       "Each query and formula gets a variable — `a`, `b`, `c` and so on — in the order you add them.",
+    );
+  });
+
+  /*
+   * Issue #6761: the worker's formulas read a query counting what happened
+   * as 0 in a bucket it has no data point in, once the bucket has been over
+   * for a minute (MetricZeroFill), so a failure share reads 0% where nothing
+   * failed - and a gauge, an average or a percentile leaves its bucket out.
+   */
+  it("says how a formula reads a count with no data point in a bucket, as the worker reads it", () => {
+    expect(METRICS).toContain(
+      "Formulas are worked out for each bucket from the queries' data points. A query that counts what happened, the sum or the count of a counter or a histogram, counts 0 in a bucket it has no data point in, once the bucket has been over for a minute, so a failure share reads 0% where nothing failed. A gauge, an average or a percentile with no data point is unknown, and the formula leaves that bucket out.",
+    );
+
+    // "over for a minute": the ingest queue's normal lag.
+    expect(MetricZeroFill.SETTLE_MS).toBe(60 * 1000);
+
+    const worker: string = oneLine(
+      readSource(
+        "App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts",
+      ),
+    );
+
+    // Every metric-backed reader evaluates its formulas with the catalog's word.
+    expect(worker).toContain(
+      "select: { name: true, unit: true, isMonotonic: true, aggregationTemporality: true, },",
+    );
+    expect(worker).toContain("zeroFill: input.zeroFill,");
+    expect(
+      worker.split("zeroFill: zeroFill,").length - 1,
+    ).toBeGreaterThanOrEqual(
+      MonitorTypeHelper.getMetricBackedMonitorTypes().length,
     );
   });
 });

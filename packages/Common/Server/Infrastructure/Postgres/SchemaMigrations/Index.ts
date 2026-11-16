@@ -1021,6 +1021,7 @@ import { AddUserOnCallLogMergedInto1809180370000 } from "./1809180370000-AddUser
 import { MasterApiKeyHashedColumn1809180790100 } from "./1809180790100-MasterApiKeyHashedColumn";
 import { RemoveSampleProject1809180800000 } from "./1809180800000-RemoveSampleProject";
 import { AddRunnerCanRunCodeFixes1809180900000 } from "./1809180900000-AddRunnerCanRunCodeFixes";
+import { AddResolvedRecordRetentionServerLimits1809181000000 } from "./1809181000000-AddResolvedRecordRetentionServerLimits";
 
 export default [
   InitialMigration,
@@ -2046,4 +2047,5 @@ export default [
   MasterApiKeyHashedColumn1809180790100,
   RemoveSampleProject1809180800000,
   AddRunnerCanRunCodeFixes1809180900000,
+  AddResolvedRecordRetentionServerLimits1809181000000,
 ];

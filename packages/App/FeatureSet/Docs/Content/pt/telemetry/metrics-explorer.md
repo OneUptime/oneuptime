@@ -86,6 +86,8 @@ Clique em **Adicionar fórmula** e escreva a **Fórmula** com as variáveis das 
 
 Uma variável pode ser escrita com ou sem o `$`, em maiúsculas ou minúsculas. Uma fórmula que cita uma consulta que você não definiu avisa isso em vez de desenhar.
 
+Uma consulta que conta o que aconteceu, a soma ou a contagem de um contador ou de um histograma, não tem nenhum ponto de dados em um passo em que nada aconteceu, então uma fórmula a lê como 0 ali: `$b / $a * 100` desenha 0 em um passo sem falha. Um medidor, uma média ou um percentil sem ponto de dados é desconhecido, e a fórmula deixa esse passo de fora. Ela também deixa de fora um passo em que nenhuma das suas consultas tem um ponto de dados, e um que terminou há menos de um minuto, cujos últimos pontos de dados ainda podem estar chegando.
+
 ## Explorar em torno de um gráfico
 
 Os botões acima dos gráficos trabalham no intervalo de tempo que você está vendo:

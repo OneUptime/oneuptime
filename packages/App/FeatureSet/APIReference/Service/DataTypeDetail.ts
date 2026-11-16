@@ -3161,8 +3161,13 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         name: "metricViewConfig",
         type: "object",
         required: true,
+        /*
+         * How a formula reads a query with no data point in a bucket is
+         * the worker's (MetricZeroFill, issue #6761): what an API caller's
+         * monitor alerts on.
+         */
         description:
-          "The metric query configuration. Contains 'queryConfigs' (array of metric queries with name, query, and formula) and 'formulaConfigs' (array of formulas that combine queries).",
+          "The metric query configuration. Contains 'queryConfigs' (array of metric queries with name, query, and formula) and 'formulaConfigs' (array of formulas that combine queries, bucket by bucket). A formula reads a query that counts what happened - the Sum or Count of a counter or a histogram, as the metric's type says - as 0 in a bucket it has no data point in, once the bucket has been over for a minute, so a failure share is 0% where nothing failed. Any other query with no data point in a bucket - a gauge, an average, a percentile - leaves the bucket out of the formula.",
       },
       {
         name: "rollingTime",

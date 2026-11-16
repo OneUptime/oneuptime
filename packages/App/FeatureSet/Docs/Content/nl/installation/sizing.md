@@ -82,6 +82,8 @@ De opslag groeit **lineair met de bewaartermijn**: een venster van 90 dagen kost
 
 PostgreSQL slaat uw configuratie en operationele status op, geen telemetrie, dus het groeit langzaam en blijft klein naast ClickHouse. Zelfs grote installaties blijven meestal in de tientallen GB. Het standaardvolume van **25 Gi** volstaat voor kleine installaties; reken op 50–100 GB voor grotere, met ruimte voor de geschiedenis van incidenten en alerts.
 
+Opgeloste incidenten en waarschuwingen blijven tot elk project kiest hoelang het ze bewaart. Om alle projecten aan een limiet te houden, stelt u **Maximaal bewaren** in onder **Admin Dashboard → Instellingen → Gegevensbewaring**: zie [Een limiet voor de hele server](/docs/incidents/settings#een-limiet-voor-de-hele-server).
+
 Met veel replica's van app, workers en sondes kunnen de databaseverbindingen opraken vóór de opslag. Elke pod opent standaard tot 50 verbindingen, en de meegeleverde PostgreSQL staat er 500 toe. Precies daarvoor bevat de chart een optionele connection pooler **PgBouncer** (`pgbouncer.enabled`): zet die aan voor installaties met veel replica's.
 
 ## Valkey – cache, wachtrijen en sessies

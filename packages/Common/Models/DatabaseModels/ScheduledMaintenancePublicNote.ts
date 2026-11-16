@@ -474,15 +474,17 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
   })
   public attachments?: Array<File> = undefined;
 
+  /*
+   * Whether the subscribers were told about the note, and how it went
+   * (subscriberNotificationStatusMessage below): OneUptime's record of the
+   * notification, so nobody may give a new note either (#8907). The create
+   * decides it from shouldStatusPageSubscribersBeNotifiedOnNoteCreated -
+   * queued, or skipped saying why - and the job that sends it writes the
+   * rest. Editors may still write it back to Pending: that is how the
+   * dashboard sends it again (SubscriberNotificationResendAccess).
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
-      Permission.CreateScheduledMaintenancePublicNote,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -522,14 +524,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
-      Permission.CreateScheduledMaintenancePublicNote,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

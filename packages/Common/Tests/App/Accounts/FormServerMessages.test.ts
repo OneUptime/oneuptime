@@ -18,6 +18,7 @@ import {
   FORM_SUBMIT_FAILED_MESSAGE,
 } from "../../../Server/Services/FormService";
 import { FORM_NO_SEVERITY_MESSAGE } from "../../../Server/Utils/Form/IncidentFormTarget";
+import { MALWARE_SCAN_UNAVAILABLE_MESSAGE } from "../../../Server/Utils/MalwareScan/MalwareScanner";
 import FormMessage from "../../../../App/FeatureSet/Accounts/src/Utils/FormMessage";
 
 /*
@@ -83,6 +84,11 @@ describe("each sentence the page knows is the server's, byte for byte", () => {
       FORM_FILES_RATE_LIMIT_MESSAGE,
     ],
     [
+      "files that cannot be scanned for malware right now (503)",
+      FormMessage.FilesNotChecked,
+      MALWARE_SCAN_UNAVAILABLE_MESSAGE,
+    ],
+    [
       "too many files in one response (400, and the page's own check)",
       FormMessage.TooManyFiles,
       FORM_SUBMISSION_TOO_MANY_FILES_MESSAGE,
@@ -127,6 +133,7 @@ describe("each sentence the page knows is the server's, byte for byte", () => {
         FORM_TOTAL_RATE_LIMIT_MESSAGE,
         FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
         FORM_FILES_RATE_LIMIT_MESSAGE,
+        MALWARE_SCAN_UNAVAILABLE_MESSAGE,
         FORM_SUBMISSION_TOO_MANY_FILES_MESSAGE,
         FORM_SUBMISSION_FILES_TOO_LARGE_MESSAGE,
         FormMessage.CaptchaMissing,

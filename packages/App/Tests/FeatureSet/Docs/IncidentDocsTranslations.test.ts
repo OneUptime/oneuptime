@@ -141,7 +141,18 @@ const PROSE: Record<string, Array<string>> = {
     "High",
     "Low",
   ],
-  "incidents/settings": ["Rename", "name", "resolved", "Add"],
+  "incidents/settings": [
+    "Rename",
+    "name",
+    "resolved",
+    "Add",
+    /*
+     * Data retention's example of a postmortem status a project adds itself
+     * (#6945), worded as the card's own hint words it - not the message
+     * queue's count the Dashboard's "Published" key is.
+     */
+    "Published",
+  ],
 };
 
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;

@@ -11,7 +11,17 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
+  CertificatePair,
+  makeCertificatePair,
+} from "../TestingUtils/UploadedCertificates";
+import {
+  UPLOADED_CERTIFICATE_MISSING_MESSAGE,
+  UPLOADED_CERTIFICATE_SELECT,
+  UPLOADED_KEY_DOES_NOT_MATCH_MESSAGE,
+} from "../../../Server/Utils/CustomDomain/UploadedCertificate";
+import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -63,6 +73,15 @@ type Hooks = {
 };
 
 const hooks: Hooks = FormDomainService as unknown as Hooks;
+
+// A certificate for the domain and its key, and another certificate's key.
+let pair: CertificatePair;
+let otherPair: CertificatePair;
+
+beforeAll(async () => {
+  pair = await makeCertificatePair("report.acme.com");
+  otherPair = await makeCertificatePair("other.acme.com");
+}, 60_000);
 
 // The name each kind of custom domain has, for the conflict lookups.
 let statusPageNames: Array<string> = [];
@@ -355,22 +374,128 @@ describe("adding a form domain", () => {
       create({
         subdomain: "report",
         isCustomCertificate: true,
-        customCertificate: "-----BEGIN CERTIFICATE-----",
+        customCertificate: pair.certificate,
       }),
     );
 
-    expect(withoutKey.message).toBe(
-      "Custom certificate or private key is missing",
-    );
+    expect(withoutKey.message).toBe(UPLOADED_CERTIFICATE_MISSING_MESSAGE);
 
     await expect(
+      create({
+        subdomain: "report",
+        isCustomCertificate: true,
+        customCertificate: pair.certificate,
+        customCertificateKey: pair.privateKey,
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test("an uploaded certificate's key is the one it was issued for", async () => {
+    const mismatched: Error = await refusal(
+      create({
+        subdomain: "report",
+        isCustomCertificate: true,
+        customCertificate: pair.certificate,
+        customCertificateKey: otherPair.privateKey,
+      }),
+    );
+
+    expect(mismatched).toBeInstanceOf(BadDataException);
+    expect(mismatched.message).toBe(UPLOADED_KEY_DOES_NOT_MATCH_MESSAGE);
+  });
+
+  test("the placeholders the dialog shows are no certificate", async () => {
+    const placeholders: Error = await refusal(
       create({
         subdomain: "report",
         isCustomCertificate: true,
         customCertificate: "-----BEGIN CERTIFICATE-----",
         customCertificateKey: "-----BEGIN PRIVATE KEY-----",
       }),
+    );
+
+    expect(placeholders).toBeInstanceOf(BadDataException);
+  });
+});
+
+describe("an edit of a form domain's uploaded certificate", () => {
+  type StoredRow = Record<string, unknown>;
+
+  function holdRows(rows: Array<StoredRow>): ReturnType<typeof jest.spyOn> {
+    return jest
+      .spyOn(
+        FormDomainService as unknown as {
+          findRowsAndHoldUpdateToThem: (
+            updateBy: unknown,
+            select: unknown,
+          ) => Promise<Array<StoredRow>>;
+        },
+        "findRowsAndHoldUpdateToThem",
+      )
+      .mockResolvedValue(rows as never);
+  }
+
+  function update(data: Record<string, unknown>): Promise<unknown> {
+    return hooks.onBeforeUpdate({
+      query: { _id: ObjectID.generate().toString() },
+      data: data,
+      props: { tenantId: PROJECT_ID, userId: USER_ID },
+    });
+  }
+
+  test("turning it on without a key, with none stored, is refused", async () => {
+    holdRows([{ isCustomCertificate: false }]);
+
+    const error: Error = await refusal(
+      update({
+        isCustomCertificate: true,
+        customCertificate: pair.certificate,
+      }),
+    );
+
+    expect(error.message).toBe(UPLOADED_CERTIFICATE_MISSING_MESSAGE);
+  });
+
+  test("a renewed certificate keeps the stored key, read from the rows the edit writes", async () => {
+    const held: ReturnType<typeof jest.spyOn> = holdRows([
+      {
+        isCustomCertificate: true,
+        customCertificate: pair.certificate,
+        customCertificateKey: pair.privateKey,
+      },
+    ]);
+
+    await expect(
+      update({ customCertificate: pair.certificate }),
     ).resolves.toBeDefined();
+
+    expect(held).toHaveBeenCalledTimes(1);
+    expect(held.mock.calls[0]![1]).toEqual(UPLOADED_CERTIFICATE_SELECT);
+  });
+
+  test("a key that is not the stored certificate's is refused", async () => {
+    holdRows([
+      {
+        isCustomCertificate: true,
+        customCertificate: pair.certificate,
+        customCertificateKey: pair.privateKey,
+      },
+    ]);
+
+    const error: Error = await refusal(
+      update({ customCertificateKey: otherPair.privateKey }),
+    );
+
+    expect(error.message).toBe(UPLOADED_KEY_DOES_NOT_MATCH_MESSAGE);
+  });
+
+  test("an edit that leaves the certificate alone reads no row", async () => {
+    const held: ReturnType<typeof jest.spyOn> = holdRows([]);
+
+    await expect(update({ isCustomCertificate: false })).resolves.toBeDefined();
+    await expect(update({})).resolves.toBeDefined();
+
+    expect(held).not.toHaveBeenCalled();
   });
 });
 
