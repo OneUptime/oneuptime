@@ -1192,6 +1192,32 @@ describe("npm run doctor", () => {
     expect(result.certificates).toEqual([]);
   });
 
+  test.each([
+    "<your-address>",
+    "http://oneuptime.example.com/",
+    "0.0.0.0",
+    "[oneuptime.example.com]",
+  ])(
+    "HOST=%s, which npm start stops on, is never asked for from outside",
+    async (host) => {
+      const result = await runDoctor({
+        config: healthyConfig([`HOST=${host}`]),
+      });
+
+      expect(result.code).toBe(1);
+      expect(
+        result.network.requests.map((entry) => {
+          return entry.url;
+        }),
+      ).toEqual([
+        `http://localhost${READY_PATH}`,
+        `http://localhost${DOCTOR_PATH}`,
+      ]);
+      expect(result.certificates).toEqual([]);
+      expect(result.output).toContain(`  ✗ HOST in config.env is ${host}`);
+    },
+  );
+
   test("an IPv6 HOST in brackets is asked for from outside at its own address, and its certificate is not asked for", async () => {
     const result = await runDoctor({
       config: healthyConfig([

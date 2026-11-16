@@ -250,9 +250,10 @@ const isIpAddress = (hostname) => {
  *
  * The rest of the shape, from the same rule: brackets hold an IPv6 address
  * and nothing else, closed, with nothing after them but ":port"; only an IPv6
- * address has two colons; a port is a number from 1 to 65535. The app reads
- * any other HOST as no address at all and does not start ("Hostname ... is
- * not in valid format").
+ * address has two colons; a port is a number from 1 to 65535, after an
+ * address. The app refuses most other HOSTs as it starts ("Hostname ... is
+ * not in valid format", "Port is not in valid format"), and builds no link
+ * that opens from the rest (":8080" is http://:8080/...).
  */
 
 // An IPv6 address, written as a web address can hold one: hex digits, colons and dots, no zone.
