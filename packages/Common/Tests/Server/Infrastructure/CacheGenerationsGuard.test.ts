@@ -43,6 +43,8 @@ const GENERATION_CACHES: ReadonlyArray<string> = [
   "Server/Services/TelemetryIngestionKeyService.ts",
   // Each IoT device credential, for the MQTT broker's every publish (#8371).
   "Server/Services/IoTDeviceCredentialService.ts",
+  // Each project's rules, for every incident and alert created (#6085).
+  "Server/Utils/Rules/RuleSetCache.ts",
 ];
 
 // Pieces of the scheme that live in CacheGenerations alone.

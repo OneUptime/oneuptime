@@ -205,6 +205,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/AI/AiAffectedResourceLinksPostgres.test.ts --forceExit
 
+      # #6085: the rules every incident and alert create runs are kept by
+      # project until any of them changes (RuleSetCache). The reads taken off
+      # the engines themselves hand out what Postgres has after every kind of
+      # write - a rule created, renamed, turned off, its lists changed,
+      # deleted, written without hooks; a label, monitor, team, person,
+      # severity or runbook deleted, with the database's own ON DELETE rules
+      # on structure-only copies of the migrated tables and their foreign
+      # keys - and a create while nothing changed reads no rule.
+      - name: Test the rules kept between creates, on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RULE_SET_CACHE_TESTS: "true"
+          RULE_SET_CACHE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RULE_SET_CACHE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RULE_SET_CACHE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/RuleSetCachePostgres.test.ts --forceExit
+
       # The daily AI limit's owner notice (one conditional UPDATE decides the
       # once-a-day email, even when servers race) and the catch-up that
       # investigates the incidents and alerts the limit skipped (its jsonb

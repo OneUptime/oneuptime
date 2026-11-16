@@ -120,11 +120,26 @@ runs every Worker job's body twice in a process of its own and prints CPU
 and Postgres, ClickHouse and Valkey calls per run, runs per hour from its
 schedule, and CPU seconds an hour. A whole run took longer than 20 minutes
 on the seeded stack - a job that runs until its two-minute timeout sets the
-pace - so a name filter (`... job-cost.json monitor`) measures the jobs it
-names. The jobs do what they do in production (send
+pace - so a name filter (`... job-cost.json monitor`, or several,
+comma-separated: `... job-cost.json AIInsight,Incident`) measures the jobs
+it names. The jobs do what they do in production (send
 notifications, delete rows): run it only against this kit's stack.
 `monitor-cost.js` does the same for one monitor check (`--sql` lists every
 statement of one).
+
+What a change does to the jobs it touches, before and after:
+
+```sh
+bash make-baseline.sh                     # the merge base with origin/main
+bash ab-job.sh AIInsight:ScanForInsights 3 2
+                                          # those jobs, 3 runs a side, 2 rounds
+```
+
+`ab-job.sh` runs `job-cost.js` with the names on the baseline and on this
+checkout in turn, round after round, and `ab-job-summary.py` prints each
+job's CPU per run on both sides (each round, their mean and the change) and
+its Postgres, ClickHouse and Valkey calls per run - minutes, not the twenty
+and more a whole run takes.
 
 ## Settings of the datastores themselves
 

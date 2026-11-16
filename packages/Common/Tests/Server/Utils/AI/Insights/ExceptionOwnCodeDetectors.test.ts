@@ -13,7 +13,6 @@ import TelemetryException from "../../../../../Models/DatabaseModels/TelemetryEx
 import Service from "../../../../../Models/DatabaseModels/Service";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
-import PositiveNumber from "../../../../../Types/PositiveNumber";
 
 /*
  * Where an exception was raised in the application's own code
@@ -339,13 +338,15 @@ describe("ExceptionSpikeDetector: where your code raised it", () => {
         { id: spiking, stackTrace: NODE_STACK },
       ] as unknown as Array<TelemetryException>);
     jest
-      .spyOn(ExceptionInstanceService, "countBy")
-      // fp-1: 50 in the last hour against 24 over the day before - a spike.
-      .mockResolvedValueOnce(new PositiveNumber(50))
-      .mockResolvedValueOnce(new PositiveNumber(24))
-      // fp-2: 5 against 100 - no spike.
-      .mockResolvedValueOnce(new PositiveNumber(5))
-      .mockResolvedValueOnce(new PositiveNumber(100));
+      .spyOn(ExceptionInstanceService, "countPerValueInWindows")
+      .mockResolvedValue(
+        new Map<string, Array<number>>([
+          // fp-1: 50 in the last hour against 24 over the day before - a spike.
+          ["fp-1", [50, 24]],
+          // fp-2: 5 against 100 - no spike.
+          ["fp-2", [5, 100]],
+        ]),
+      );
     jest
       .spyOn(ServiceService, "findOneById")
       .mockResolvedValue({ name: "payments" } as unknown as Service);
@@ -388,8 +389,8 @@ describe("ExceptionSpikeDetector: where your code raised it", () => {
         },
       ] as unknown as Array<TelemetryException>);
     jest
-      .spyOn(ExceptionInstanceService, "countBy")
-      .mockResolvedValue(new PositiveNumber(1));
+      .spyOn(ExceptionInstanceService, "countPerValueInWindows")
+      .mockResolvedValue(new Map<string, Array<number>>([["fp-1", [1, 1]]]));
 
     expect(
       await new ExceptionSpikeDetector().detect({ projectId, now }),
