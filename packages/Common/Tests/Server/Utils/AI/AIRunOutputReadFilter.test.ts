@@ -238,13 +238,15 @@ describe.each(READERS)("$who", (reader: Reader) => {
   );
   const run: string = runAliasIn(condition.sql);
 
-  test("reads a row naming no run, or one naming a run they may read", () => {
+  test("reads a row naming no run, or one naming a run they may read: that run, looked up by its key", () => {
     expect(condition.sql).toMatch(
       new RegExp(
-        `^\\(COLUMN IS NULL OR COLUMN IN \\(SELECT "${run}"\\."_id" FROM "AIRun" "${run}" WHERE \\(`,
+        `^\\(COLUMN IS NULL OR EXISTS \\(SELECT 1 FROM "AIRun" "${run}" WHERE "${run}"\\."_id" = COLUMN AND \\(`,
       ),
     );
     expect(condition.sql.endsWith("))")).toBe(true);
+    // Never every run the caller may read, gathered first.
+    expect(condition.sql).not.toMatch(/COLUMN IN \(SELECT/);
   });
 
   test("reads what a CodeFix run did, as the run is the project's", () => {
@@ -296,14 +298,16 @@ describe.each(READERS)("$who", (reader: Reader) => {
       (_record: string, column: string, table: string) => {
         const key: string = `"${run}"."${column}"`;
 
-        expect(condition.sql).toContain(
-          `AND (${key} IS NULL OR (${key} IN (SELECT "record`,
+        // No record, or one that exists - a record that is gone, none - ...
+        expect(condition.sql).toMatch(
+          new RegExp(
+            `AND \\(${escapeRegExp(key)} IS NULL OR \\(EXISTS \\(SELECT 1 FROM "${table}" "(aiRunRecord\\w+)" WHERE "\\1"\\."_id" = ${escapeRegExp(key)}\\) AND `,
+          ),
         );
-        expect(condition.sql).toContain(`FROM "${table}" "record`);
+        // ... and is no private one they do not see.
         expect(condition.sql).toContain(
-          `NOT EXISTS (SELECT 1 FROM "${table}" pr WHERE pr."_id" = "record`,
+          `(${key} IS NULL OR NOT EXISTS (SELECT 1 FROM "${table}" pr WHERE pr."_id" = ${key} AND pr."isPrivate" = TRUE`,
         );
-        expect(condition.sql).toContain(`pr."isPrivate" = TRUE`);
       },
     );
 

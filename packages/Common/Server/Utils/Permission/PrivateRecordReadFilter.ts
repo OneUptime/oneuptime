@@ -272,32 +272,6 @@ export default class PrivateRecordReadFilter {
   }
 
   /*
-   * A key naming records of `relatedModelType` - an incident or an alert an
-   * AI run was about (AIRunOutputReadFilter) - kept to the keys naming a
-   * record that exists and the caller sees (getSeenConditions): `(alias IN
-   * (SELECT ...))`. A key naming a record that is gone names none the caller
-   * sees, and an empty key none at all: the caller writes what one means.
-   * Undefined for a caller who sees every private record, who is not
-   * narrowed - a record that is gone included.
-   */
-  public static getSeenKeyCondition(data: {
-    relatedModelType: { new (): BaseModel };
-    props: DatabaseCommonInteractionProps;
-  }): FindWhereProperty<any> | undefined {
-    if (shouldBypassRecordPrivacy(data.props)) {
-      return undefined;
-    }
-
-    return PrivateRecordReadFilter.getKeyCondition({
-      relatedModelType: data.relatedModelType,
-      props: data.props,
-      writeSql: (_alias: string, seenRecords: string): string => {
-        return seenRecords;
-      },
-    });
-  }
-
-  /*
    * A condition on a key naming records of `relatedModelType`, written by
    * `writeSql` from the key's alias and the SQL of "the key names a record
    * that exists and the caller sees" (getSeenConditions) - `(alias IN

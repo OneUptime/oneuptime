@@ -313,7 +313,7 @@ describe.each(
           await countedQuery(rule.service, props),
         ]) {
           expect(sqlOf(query[rule.column])).toMatch(
-            /^\(COLUMN IS NULL OR COLUMN IN \(SELECT "aiRun\w+"\."_id" FROM "AIRun" "aiRun\w+" WHERE /,
+            /^\(COLUMN IS NULL OR EXISTS \(SELECT 1 FROM "AIRun" "(aiRun\w+)" WHERE "\1"\."_id" = COLUMN AND /,
           );
         }
 

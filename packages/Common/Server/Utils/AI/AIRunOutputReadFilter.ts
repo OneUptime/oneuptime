@@ -6,6 +6,9 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
 import Text from "../../../Types/Text";
+import PrivateRecordPermission, {
+  PrivateRecordKind,
+} from "../../Types/Database/Permissions/PrivateRecordPermission";
 import QueryUtil from "../../Types/Database/QueryUtil";
 import PrivateRecordReadFilter from "../Permission/PrivateRecordReadFilter";
 import { combineWithPrivacyClause } from "../PrivacyFilterUtil";
@@ -45,9 +48,11 @@ import { FindOperator, Raw } from "typeorm";
  * else's to read. An API key and a workflow's step read no chat's: no
  * person asked. Root and server admins read every one.
  *
- * Written as the runs the caller may read, `key IN (SELECT ... FROM
- * "AIRun")`, on the key naming the run: a row naming no run is not
- * narrowed by it.
+ * Written on the key naming the run, as a lookup of that run by its primary
+ * key - `key IS NULL OR EXISTS (SELECT 1 FROM "AIRun" ... WHERE _id = key
+ * AND ...)` - and of the incident or alert it is about by theirs: a row
+ * naming no run is not narrowed by it, and a read never gathers every run
+ * or every record the caller may read first.
  */
 
 /*
@@ -117,30 +122,44 @@ export default class AIRunOutputReadFilter {
     const conditions: Array<string> = [`(${readBy.join(" OR ")})`];
 
     for (const key of AI_RUN_RECORD_KEYS) {
-      const seen: FindWhereProperty<any> | undefined =
-        PrivateRecordReadFilter.getSeenKeyCondition({
-          relatedModelType: key.recordModelType,
+      const kind: PrivateRecordKind = PrivateRecordPermission.getKind(
+        new key.recordModelType().tableName,
+      )!;
+
+      // No record of the kind, or one that is no private one they do not see.
+      const notUnseen: FindWhereProperty<any> | undefined =
+        PrivateRecordReadFilter.getOptionalRecordReadRaw({
+          kind: kind,
           props: props,
         });
 
       // Those who see every private record read a run about any of them.
-      if (!seen) {
+      if (!notUnseen) {
         continue;
       }
 
       const operator: FindOperator<unknown> =
-        seen as unknown as FindOperator<unknown>;
+        notUnseen as unknown as FindOperator<unknown>;
       const column: string = `"${run}"."${key.column}"`;
+      const record: string = `aiRunRecord${Text.generateRandomText(10)}`;
 
       Object.assign(parameters, operator.objectLiteralParameters || {});
 
+      /*
+       * A record that is gone names none the caller sees: nothing says any
+       * more whether it was private.
+       */
       conditions.push(
-        `(${column} IS NULL OR ${(operator.getSql as (alias: string) => string)(column)})`,
+        `(${column} IS NULL OR (EXISTS (SELECT 1 FROM "${kind.tableName}" "${record}" WHERE "${record}"."_id" = ${column}) AND ${(operator.getSql as (alias: string) => string)(column)}))`,
       );
     }
 
+    /*
+     * Asked of each row's own run, by its primary key - never by gathering
+     * every run, or every incident, the caller may read first.
+     */
     return Raw((alias: string): string => {
-      return `(${alias} IS NULL OR ${alias} IN (SELECT "${run}"."_id" FROM "AIRun" "${run}" WHERE ${conditions.join(" AND ")}))`;
+      return `(${alias} IS NULL OR EXISTS (SELECT 1 FROM "AIRun" "${run}" WHERE "${run}"."_id" = ${alias} AND ${conditions.join(" AND ")}))`;
     }, parameters);
   }
 

@@ -1099,7 +1099,7 @@ describe("a Runner job", () => {
 
       expect(Object.keys(query).sort()).toEqual(["aiRunId", "status"]);
       expect(sqlOf(query["aiRunId"])).toMatch(
-        /^\(COLUMN IS NULL OR COLUMN IN \(SELECT "aiRun\w+"\."_id" FROM "AIRun" "aiRun\w+" WHERE /,
+        /^\(COLUMN IS NULL OR EXISTS \(SELECT 1 FROM "AIRun" "(aiRun\w+)" WHERE "\1"\."_id" = COLUMN AND /,
       );
       // No private record is out of their sight.
       expect(sqlOf(query["aiRunId"])).not.toContain(`FROM "Incident"`);
