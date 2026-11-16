@@ -92,29 +92,38 @@ const SetupHealthRecordFindings: FunctionComponent<ComponentProps> = (
     ModelAction.Create,
   ).isAllowed;
 
-  const load: () => Promise<void> = useCallback(async (): Promise<void> => {
-    const request: number = ++requestRef.current;
+  /*
+   * The record's findings; worked out again (`refresh`) after a fix made
+   * here, so the one fixed is gone rather than read from the minute-old
+   * answer. A dismissal needs no refresh: the dismissals are read on every
+   * ask.
+   */
+  const load: (refresh: boolean) => Promise<void> = useCallback(
+    async (refresh: boolean): Promise<void> => {
+      const request: number = ++requestRef.current;
 
-    try {
-      const read: Array<SetupHealthFinding> =
-        await SetupHealthApi.getRecordFindings({
-          kind: props.recordKind,
-          id: recordId,
-        });
+      try {
+        const read: Array<SetupHealthFinding> =
+          await SetupHealthApi.getRecordFindings(
+            { kind: props.recordKind, id: recordId },
+            { refresh: refresh },
+          );
 
-      if (request === requestRef.current) {
-        setFindings(read);
+        if (request === requestRef.current) {
+          setFindings(read);
+        }
+      } catch {
+        // A line that could not be read says nothing: the page is the record's.
+        if (request === requestRef.current) {
+          setFindings([]);
+        }
       }
-    } catch {
-      // A line that could not be read says nothing: the page is the record's.
-      if (request === requestRef.current) {
-        setFindings([]);
-      }
-    }
-  }, [props.recordKind, recordId]);
+    },
+    [props.recordKind, recordId],
+  );
 
   useEffect(() => {
-    void load();
+    void load(false);
   }, [load]);
 
   const shown: Array<SetupHealthFinding> = getRecordLineFindings(
@@ -157,7 +166,7 @@ const SetupHealthRecordFindings: FunctionComponent<ComponentProps> = (
                 <SetupHealthQuickFixButton
                   finding={finding}
                   onApplied={() => {
-                    void load();
+                    void load(true);
                   }}
                 />
                 <FindingFix finding={finding} />
@@ -196,7 +205,7 @@ const SetupHealthRecordFindings: FunctionComponent<ComponentProps> = (
           }}
           onDismissed={() => {
             setDismissTarget(null);
-            void load();
+            void load(false);
           }}
         />
       ) : (

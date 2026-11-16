@@ -1653,6 +1653,39 @@ describe("SetupHealthService", () => {
       ).toHaveLength(1);
     });
 
+    test("a refresh works the project's findings out again, as the page's Recheck does", async () => {
+      const record: { kind: SetupHealthRecordKind; id: string } = {
+        kind: SetupHealthRecordKind.OnCallDutyPolicy,
+        id: SECONDARY,
+      };
+
+      await SetupHealthService.getForRecord({
+        projectId: PROJECT_ID,
+        props: CALLER,
+        record: record,
+      });
+      await SetupHealthService.getForRecord({
+        projectId: PROJECT_ID,
+        props: CALLER,
+        record: record,
+      });
+
+      expect(
+        reads["OnCallReadinessService.getReadinessForProject"]!.mock.calls,
+      ).toHaveLength(1);
+
+      await SetupHealthService.getForRecord({
+        projectId: PROJECT_ID,
+        props: CALLER,
+        record: record,
+        refresh: true,
+      });
+
+      expect(
+        reads["OnCallReadinessService.getReadinessForProject"]!.mock.calls,
+      ).toHaveLength(2);
+    });
+
     test("a status page's page is handed its own findings and its custom domains'", async () => {
       const forRecord: SetupHealthRecordAnswer =
         await SetupHealthService.getForRecord({

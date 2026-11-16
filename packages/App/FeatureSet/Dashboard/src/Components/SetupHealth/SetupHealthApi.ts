@@ -49,6 +49,7 @@ export function getSetupHealthSummaryUrl(): URL {
 
 export function getSetupHealthRecordUrl(
   record: Pick<SetupHealthRecord, "kind" | "id">,
+  options?: { refresh?: boolean | undefined },
 ): URL {
   const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
     `${SETUP_HEALTH_API_PATH}/record`,
@@ -56,6 +57,10 @@ export function getSetupHealthRecordUrl(
 
   url.addQueryParam("kind", record.kind);
   url.addQueryParam("id", record.id);
+
+  if (options?.refresh) {
+    url.addQueryParam("refresh", "true");
+  }
 
   return url;
 }
@@ -163,8 +168,11 @@ export default class SetupHealthApi {
   // One record's open findings, as the person may see them.
   public static async getRecordFindings(
     record: Pick<SetupHealthRecord, "kind" | "id">,
+    options?: { refresh?: boolean | undefined },
   ): Promise<Array<SetupHealthFinding>> {
-    const body: JSONValue = await getJson(getSetupHealthRecordUrl(record));
+    const body: JSONValue = await getJson(
+      getSetupHealthRecordUrl(record, options),
+    );
 
     if (!isSetupHealthRecordAnswer(body)) {
       throw new SetupHealthApiError("Couldn't read the setup health.");

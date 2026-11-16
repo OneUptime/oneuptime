@@ -32,6 +32,7 @@ import SetupHealthRecordFindings, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupHealth/SetupHealthRecordFindings";
 import SetupHealthView from "../../../../App/FeatureSet/Dashboard/src/Components/SetupHealth/SetupHealthView";
 import { RECORD_LINE_LOOK } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupHealth/SetupHealthLook";
+import SetupHealthQuickFixApi from "../../../../App/FeatureSet/Dashboard/src/Components/SetupHealth/SetupHealthQuickFix";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -43,6 +44,7 @@ import {
   SETUP_HEALTH_WORDS,
   SetupHealthAnswer,
   SetupHealthCheck,
+  SetupHealthEventKind,
   SetupHealthFinding,
   SetupHealthFix,
   SetupHealthLevel,
@@ -140,6 +142,17 @@ describe("the record's line, as data", () => {
     ).toMatch(
       new RegExp(`/setup-health/record\\?kind=OnCallDutyPolicy&id=${POLICY}$`),
     );
+    // Worked out again only when asked: after a fix made from the line.
+    expect(
+      getSetupHealthRecordUrl(
+        { kind: SetupHealthRecordKind.StatusPage, id: STATUS_PAGE },
+        { refresh: true },
+      ).toString(),
+    ).toMatch(
+      new RegExp(
+        `/setup-health/record\\?kind=StatusPage&id=${STATUS_PAGE}&refresh=true$`,
+      ),
+    );
   });
 
   test("only an answer with findings and a time is drawn", () => {
@@ -223,10 +236,13 @@ describe("the record's line on its page", () => {
       "setup-health-record-finding",
     );
 
-    expect(getRecordFindings).toHaveBeenCalledWith({
-      kind: SetupHealthRecordKind.OnCallDutyPolicy,
-      id: POLICY,
-    });
+    expect(getRecordFindings).toHaveBeenCalledWith(
+      {
+        kind: SetupHealthRecordKind.OnCallDutyPolicy,
+        id: POLICY,
+      },
+      { refresh: false },
+    );
     expect(within(line).getByTestId("setup-health-sentence").textContent).toBe(
       POLICY_NOT_RUN.sentence,
     );
@@ -361,6 +377,52 @@ describe("the record's line on its page", () => {
       expect(screen.queryByTestId("setup-health-record")).toBeNull();
     });
     expect(getRecordFindings).toHaveBeenCalledTimes(2);
+  });
+
+  test("a fix made from the line works the record's findings out again, so the one fixed is gone", async () => {
+    const MONITOR: string = "68127297-0000-4000-8000-0000000000a1";
+    const pagesNobody: SetupHealthFinding = makeSetupHealthFinding({
+      check: SetupHealthCheck.MonitorPagesNobody,
+      level: SetupHealthLevel.WorthFixing,
+      subject: SetupHealthEventKind.Incident,
+      record: {
+        kind: SetupHealthRecordKind.Monitor,
+        id: MONITOR,
+        name: "Checkout API",
+      },
+      fix: SetupHealthFix.IncidentOnCallRules,
+      words: SETUP_HEALTH_WORDS.monitorPagesNobody.incident,
+      values: { monitor: "Checkout API" },
+    });
+
+    getRecordFindings.mockResolvedValue([pagesNobody]);
+    jest
+      .spyOn(SetupHealthQuickFixApi, "getPolicies")
+      .mockResolvedValue([{ id: POLICY, name: "Primary" }]);
+    const create: SpyInstance<typeof SetupHealthQuickFixApi.createOnCallRule> =
+      jest
+        .spyOn(SetupHealthQuickFixApi, "createOnCallRule")
+        .mockResolvedValue(undefined as never);
+    renderLine({ kind: SetupHealthRecordKind.Monitor, id: MONITOR });
+
+    fireEvent.click(await screen.findByTestId("setup-health-quick-fix"));
+    await screen.findByTestId("setup-health-quick-fix-change");
+
+    getRecordFindings.mockResolvedValue([]);
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(create).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(getRecordFindings).toHaveBeenLastCalledWith(
+        { kind: SetupHealthRecordKind.Monitor, id: MONITOR },
+        { refresh: true },
+      );
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("setup-health-record")).toBeNull();
+    });
   });
 
   test("someone who may not dismiss is not offered Dismiss", async () => {

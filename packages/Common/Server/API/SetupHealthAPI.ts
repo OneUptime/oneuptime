@@ -28,7 +28,8 @@ import {
  *
  *   GET /setup-health[?refresh=true]   the findings, and the dismissed ones
  *   GET /setup-health/summary          the counts, for Home's line
- *   GET /setup-health/record?kind=&id= one record's open findings, for the
+ *   GET /setup-health/record?kind=&id=[&refresh=true]
+ *                                      one record's open findings, for the
  *                                      line at the top of its page (#7297)
  *
  * A signed-in member of the project (or a key of it); each is handed the
@@ -159,6 +160,7 @@ router.get(
           projectId: projectId,
           props: props,
           record: record,
+          refresh: isRefreshRequested(req),
         });
 
       return Response.sendJsonObjectResponse(

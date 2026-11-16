@@ -313,9 +313,12 @@ export default class SetupHealthService {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
     record: Pick<SetupHealthRecord, "kind" | "id">;
+    // Work it out again now: after a fix made from the record's page.
+    refresh?: boolean | undefined;
   }): Promise<SetupHealthRecordAnswer> {
     const computed: ProjectFindings = await this.getProjectFindings({
       projectId: data.projectId,
+      refresh: data.refresh,
     });
 
     const about: Array<SetupHealthFinding> = getSetupHealthFindingsForRecord(

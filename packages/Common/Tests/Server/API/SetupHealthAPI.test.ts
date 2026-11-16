@@ -250,8 +250,22 @@ describe("GET /setup-health/record", () => {
       projectId: PROJECT,
       props: PROPS,
       record: { kind: SetupHealthRecordKind.OnCallDutyPolicy, id: POLICY },
+      refresh: false,
     });
     expect(getForCaller).not.toHaveBeenCalled();
+  });
+
+  test("refresh=true works the record's findings out again, after a fix made from its page", async () => {
+    await call({
+      path: path,
+      query: {
+        kind: SetupHealthRecordKind.StatusPage,
+        id: POLICY,
+        refresh: "true",
+      },
+    });
+
+    expect(getForRecord.mock.calls[0]![0]).toMatchObject({ refresh: true });
   });
 
   test.each([
