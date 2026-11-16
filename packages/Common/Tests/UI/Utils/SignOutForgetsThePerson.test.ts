@@ -87,6 +87,8 @@ const THE_BROWSERS_OWN: Record<string, string> = {
   "oneuptime-reference-theme": "dark",
   // The answer on the cookie banner.
   cookiesAccepted: "false",
+  // The sign-in page's "More ways to sign in", left open.
+  "oneuptime-sign-in-more-ways-open": "true",
 };
 
 const DASHBOARD_ID: string = "11111111-1111-4111-8111-111111111111";
