@@ -47,7 +47,7 @@ Clique em **Salvar alterações**, que aparece assim que algo muda. As mesmas re
 
 **Teste suas chamadas**, no pé da página, envia a você uma chamada de teste por elas.
 
-Quando uma gravidade merece outra coisa, **Diferente para algumas gravidades**, abaixo das etapas, abre as abas e os cartões descritos abaixo. Um cartão que difere da sua sequência é marcado com **Difere da sequência**, e a sequência diz o que cada um faz no lugar. Se suas regras já diferem, a página abre nos cartões, com **Usar uma só sequência para tudo**: ao salvar, ela primeiro nomeia os cartões que perdem a diferença. Uma gravidade que seu projeto arquivou mantém as próprias regras.
+Quando uma gravidade merece outra coisa, **Diferente para algumas gravidades**, o botão ao lado do título, abre as abas e os cartões descritos abaixo. Um cartão que difere da sua sequência é marcado com **Difere da sequência**. A página continua abrindo nas suas etapas e lista abaixo delas cada cartão que difere e o que ele faz no lugar. **Salvar alterações** deixa esses cartões como estão; **Usar esta sequência para cada gravidade**, no fim dessa lista, dá a eles também a sua sequência, depois de nomear os cartões que perdem a diferença. Uma gravidade que seu projeto arquivou mantém as próprias regras.
 
 Uma política de plantão decide quem é chamado e quando vem o próximo nível. Como você é contatado é esta sequência, para cada política que chama você.
 
