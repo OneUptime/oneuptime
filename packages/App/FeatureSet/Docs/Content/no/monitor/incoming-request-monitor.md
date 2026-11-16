@@ -194,6 +194,8 @@ Invoke-RestMethod -Method Post `
 
 Alle som har URL-en til en monitor, kan sende den forespørsler. En Prosjekteier eller Prosjektadministrator kan få alle monitorer av innkommende forespørsler i prosjektet til også å kreve en av prosjektets egne hemmeligheter, uansett hvem som satte opp monitoren: slå på **Krev en hemmelighet ved hver forespørsel**. En forespørsel uten hemmelighet avvises med `401` og årsaken, før den teller som heartbeat, lagres som monitorens siste forespørsel eller når noen kriterier. En forespørsel med hemmelighet går videre til monitorens egne kriterier, som før.
 
+Prosjekteiere og Prosjektadministratorer administrerer hemmelighetene og bryteren, og det gjør også en egendefinert rolle med tillatelsene Create, Read, Edit og Delete Incoming Request Secret: Read viser verdiene til hemmelighetene, og Edit slår også bryteren av og på.
+
 :::steps
 ### Opprett en hemmelighet
 
@@ -201,7 +203,7 @@ Gå til **Monitorer → Innstillinger → Hemmeligheter for innkommende forespø
 
 ### Send den fra alle avsendere
 
-Send hemmeligheten i headeren `X-OneUptime-Secret`, eller som Bearer-token i headeren `Authorization`, avhengig av hva avsenderen din kan sette.
+Send hemmeligheten i headeren `X-OneUptime-Secret`, eller som Bearer-token i headeren `Authorization`, avhengig av hva avsenderen din kan sette. En avsender som ikke selv kan sette en header, kan i stedet signere hver forespørsel med hemmeligheten: se [Signer forespørsler med hemmeligheten](#signer-forespørsler-med-hemmeligheten).
 
 ### Finn avsenderne du har glemt
 
@@ -209,7 +211,7 @@ Så snart prosjektet har en hemmelighet, sjekker OneUptime hver forespørsel for
 
 ### Slå på kravet
 
-Slå på **Krev en hemmelighet ved hver forespørsel**. Kravet kan ikke slås på mens prosjektet ikke har noen hemmelighet, så ingen avsender avvises ved en feil.
+Slå på **Krev en hemmelighet ved hver forespørsel**. Kravet kan ikke slås på mens prosjektet ikke har noen hemmelighet, så ingen avsender avvises ved en feil. Før kravet slås på, oppgis det hvor mange monitorer av innkommende forespørsler som har fått en forespørsel uten gyldig hemmelighet de siste 24 timene, hvis noen: Avsenderne deres avvises fra da av.
 :::
 
 ```bash
@@ -223,8 +225,40 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 OneUptime lagrer aldri hemmeligheten: Den fjerner headeren fra forespørselen og maskerer et Bearer-token som er en av prosjektets hemmeligheter, før den lagrer noe.
 
+En adresse som sender en monitor mer enn 10 ulike feil hemmeligheter på 15 minutter, avvises deretter med `429` for hver hemmelighet den sender, riktig eller feil, til tidspunktet headeren `Retry-After` oppgir, høyst 15 minutter. Avsendere på andre adresser påvirkes ikke, og en avsender som fortsetter å sende én gammel hemmelighet, får fortsatt den `401` som sier hva som er galt.
+
 > [!TIP]
-> For å bytte ut en hemmelighet uten å avvise noen, opprett en ny, flytt avsenderne dine til den, og slett den gamle når **Sist brukt** slutter å endre seg. Alle prosjektets hemmeligheter godtas, og den siste kan ikke slettes mens kravet er slått på.
+> For å bytte ut en hemmelighet uten å avvise noen, opprett en ny, flytt avsenderne dine til den, og slett den gamle når **Sist brukt** slutter å endre seg. Alle prosjektets hemmeligheter godtas med mindre de er begrenset til andre monitorer, og den siste som dekker en monitor, kan ikke slettes mens kravet er slått på.
+
+### Signer forespørsler med hemmeligheten
+
+En avsender kan signere hver forespørsel med hemmeligheten i stedet for å sende den, og det er tryggere: Ingenting hemmelig sendes, og en forespørsel noen har fanget opp, kan ikke sendes på nytt senere. Foretrekk det overalt der en avsender kan signere. OneUptime sjekker disse signaturene, hver en HMAC-SHA256 i hex med hemmeligheten som nøkkel:
+
+| Avsender | Header | Hva som signeres |
+| --- | --- | --- |
+| Din egen kode | `X-OneUptime-Signature: t=<time>,v1=<signature>` | `<time>.<body>` |
+| GitHub-webhooks | `X-Hub-Signature-256` | Bodyen |
+| Slack | `X-Slack-Signature`, med `X-Slack-Request-Timestamp` | `v0:<time>:<body>` |
+| Stripe | `Stripe-Signature` | `<time>.<body>` |
+
+`<time>` er tidspunktet forespørselen ble signert, i sekunder siden 1970. En signatur som er mer enn 5 minutter fra OneUptimes klokke, avvises, og det samme gjør en signert forespørsel som sendes en gang til; GitHubs signatur har ingen tid, så OneUptime husker hver av dem i ett døgn. For GitHub gir du webhooken en av prosjektets hemmeligheter som secret. Slack og Stripe lager sin egen signeringshemmelighet: Opprett prosjektets hemmelighet med den verdien under **Flere felt**.
+
+```bash
+body='{"status":"healthy"}'
+t=$(date +%s)
+sig=$(printf '%s.%s' "$t" "$body" | openssl dgst -sha256 -hmac "YOUR_PROJECT_SECRET" | sed 's/^.* //')
+
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Content-Type: application/json" \
+  -H "X-OneUptime-Signature: t=$t,v1=$sig" \
+  -d "$body"
+```
+
+En hemmelighet i URL-ens query string godtas ikke: Proxyer og tilgangslogger lagrer hele URL-er ved siden av monitorens egen nøkkel. En sondes inngangsport for innkommende forespørsler videresender bodyen til en signert forespørsel slik den kom, så signaturen holder også den veien.
+
+### Begrens en hemmelighet til bestemte monitorer
+
+En hemmelighet godtas av alle monitorer av innkommende forespørsler i prosjektet med mindre du begrenser den, slik et prosjekt gjør der hver leietaker sender sin egen hemmelighet: Velg under **Flere felt** enten **Bestemte monitorer** eller **Monitorer med etiketter**. Alle andre monitorer avviser den med `401`, slik de avviser en feil hemmelighet, og **Forespørsler uten hemmelighet** oppgir årsaken som **Hemmelighet ikke for denne monitoren**. Så lenge kravet er slått på, beholder prosjektet minst én hemmelighet som dekker en monitor.
 
 ## Overvåkingskriterier
 
@@ -449,7 +483,11 @@ Event Grid validerer et endepunkt som sender en kode tilbake til Event Grid, ell
 :::
 
 :::details Avsenderen min får en 401
-Prosjektet krever en hemmelighet ved hver forespørsel, og forespørselen sendte ingen, eller en som ikke er prosjektets: Svaret sier hvilken. Send en av prosjektets hemmeligheter i headeren `X-OneUptime-Secret` eller som Bearer-token, slik [Krev en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel) viser. En avvist forespørsel når aldri monitoren.
+Prosjektet krever en hemmelighet ved hver forespørsel, og forespørselen sendte ingen, eller en som ikke er prosjektets: Svaret sier hvilken. Send en av prosjektets hemmeligheter i headeren `X-OneUptime-Secret` eller som Bearer-token, slik [Krev en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel) viser. En avvist forespørsel når aldri monitoren. Den får også `401` med en av prosjektets hemmeligheter som er begrenset til andre monitorer, og for en signert forespørsel der signaturen er mer enn 5 minutter gammel, er sendt før, eller er laget med en annen hemmelighet eller over en body som endret seg underveis.
+:::
+
+:::details Avsenderen min får en 429
+Adressen dens har sendt en monitor mer enn 10 ulike feil hemmeligheter eller signaturer på 15 minutter, så hver forespørsel med en hemmelighet som den sender til den monitoren, avvises til tidspunktet i headeren `Retry-After`. En avsender som signerer med en feil hemmelighet, lager en ny feil signatur hver gang og havner raskt her: Gi den en hemmelighet som monitoren godtar, slik [Krev en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel) viser, så godtas forespørslene dens når tiden er ute.
 :::
 
 :::details Monitoren får ikke lenger forespørsler etter at en hemmelighet ble påkrevd

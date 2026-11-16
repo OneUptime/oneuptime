@@ -16,7 +16,9 @@ import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useLiveRefresh from "Common/UI/Utils/UseLiveRefresh";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   getLineDirection,
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
@@ -42,6 +44,11 @@ import React, {
  */
 
 export const UPCOMING_MAINTENANCE_LIMIT: number = 3;
+
+// What the card shows: a change to an event can move it in or out.
+export const UPCOMING_MAINTENANCE_LIVE_MODEL_TYPES: ReadonlyArray<{
+  new (): BaseModel;
+}> = [ScheduledMaintenance];
 
 export const fetchUpcomingMaintenance: (
   projectId: ObjectID,
@@ -142,6 +149,28 @@ const UpcomingMaintenance: FunctionComponent<ComponentProps> = (
     string | null
   >(null);
 
+  /*
+   * Bumped when a maintenance event of the project changes (#8963): one
+   * scheduled, moved, or starting at its time - which takes it from here to
+   * Needs attention's maintenance in progress, read again beside it
+   * (UseHomeOverview). Read again as Refresh reads it, keeping what is on
+   * screen; at most once every few seconds, never while the tab is hidden.
+   */
+  const [liveRefreshKey, setLiveRefreshKey] = useState<number>(0);
+
+  useLiveRefresh({
+    modelTypes: UPCOMING_MAINTENANCE_LIVE_MODEL_TYPES,
+    isEnabled: true,
+    getTenantId: (): ObjectID => {
+      return props.projectId;
+    },
+    refresh: async (): Promise<void> => {
+      setLiveRefreshKey((key: number): number => {
+        return key + 1;
+      });
+    },
+  });
+
   useEffect(() => {
     let isCurrent: boolean = true;
 
@@ -171,7 +200,7 @@ const UpcomingMaintenance: FunctionComponent<ComponentProps> = (
     return () => {
       isCurrent = false;
     };
-  }, [projectIdString, props.refreshKey]);
+  }, [projectIdString, props.refreshKey, liveRefreshKey]);
 
   /*
    * Nothing coming up, or a role that may not read maintenance: the card is

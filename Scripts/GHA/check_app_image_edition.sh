@@ -337,6 +337,9 @@ Promise.resolve()
   .catch(fail);
 JS
 
+# node's flags are npm start's. Its heap is the one npm start gives a container
+# without a memory limit, as this one has none (8096 MB; with a limit, three
+# quarters of it: Tests/Ops/NodeImageHeapLimit.test.js).
 PROBE_COMMAND=(
 	docker run --rm --network none -w /usr/src/app
 	-e BILLING_ENABLED=false

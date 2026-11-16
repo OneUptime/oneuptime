@@ -102,6 +102,8 @@ Beyond the datastores, size the stateless workloads. Each runs with **no resourc
 | Ingress gateway | `nginx` | Request volume |
 | Telemetry writer, when turned on | `telemetryWriter` | Not with load: it batches every telemetry insert into ClickHouse, so it is sized to what ClickHouse can take |
 
+Each runs Node.js, which sizes its heap to the memory limit of its container (`resources.limits.memory`): 75% of the limit, at least 256 MB and at most 8096 MB. Without a limit, the heap can grow to 8096 MB. The rest of the limit is for the memory Node.js uses outside its heap. To choose the heap yourself, set `NODE_OPTIONS` to `--max-old-space-size=` followed by a size in MB, in the service's `extraEnv` (with Docker Compose, in the service's `environment`, in an override file). It takes precedence over the size the limit gives.
+
 The chart bundles **KEDA**, so the app, workers, probes and the global Runner can scale on their queue backlog. Turn on `keda.enabled` together with each service's own `keda.enabled` (`app.keda.enabled`, for example). On a cluster that has no KEDA yet, the first install takes an extra pass: see the chart's [KEDA guide](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md). Services that KEDA does not manage can use a CPU or memory autoscaler instead (`autoscaling`).
 
 ## Starting tiers

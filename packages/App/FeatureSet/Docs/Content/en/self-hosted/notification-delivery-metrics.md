@@ -6,7 +6,7 @@ OneUptime records how the notifications it sends go: how many incidents and aler
 - [Turn them on](#turn-them-on): Two settings, and nothing is recorded without them.
 - [The metrics](#the-metrics): Seven metrics, from the trigger to the phone.
 - [How a page is timed](#how-a-page-is-timed): What time to send and send lag start from.
-- [SLOs to start from](#slos-to-start-from): Four objectives, query by query.
+- [SLOs to start from](#slos-to-start-from): Five objectives, query by query.
 :::
 
 ## How it works
@@ -151,7 +151,7 @@ Statuses arrive only where the provider can report them:
 | --- | --- |
 | `monitor_data_received` | When OneUptime received the data that tripped the monitor: an incoming request, a server agent's report, an incoming email, a probe's check, an SNMP trap or a network device poll. It includes the time the data waited in the queue to be evaluated. |
 | `record_created` | When the incident, alert or episode was created: by a telemetry monitor, a rule or a person, and for a check of absence, such as a heartbeat that stopped. |
-| `page_started` | When a page started later: a person, a workflow or a rule that now matches started it, or it is a direct page. For a page held by its on-call rule or by OneUptime AI, when its hold ran out, or when it started if that was sooner. For a page again, when its acknowledgement timeout ran out. So a worker that got to either late shows in the time. |
+| `page_started` | When a page started later: a person, a workflow or a rule that now matches started it, or it is a direct page. For a page held by its on-call rule or by OneUptime AI, when its hold ran out, or when it started if that was sooner. For a page again, when its acknowledgement timeout ran out, or when its policy was last changed if that came later: a timeout cut so short that it had already run out is timed from the cut. So a worker that got to either late shows in the time. |
 
 For an incoming request, the time runs from the latest request the endpoint received, so it can read a little short.
 
@@ -183,7 +183,7 @@ A percentile is worked out from the buckets, and drawn as the middle of the buck
 
 ## SLOs to start from
 
-Four objectives most installations can promise, each built from one or two queries in the metrics explorer of the project that receives the metrics. They read a time range exactly once the metrics arrive as deltas: see [Send deltas to a OneUptime project](#send-deltas-to-a-oneuptime-project).
+Five objectives most installations can promise, each built from one or two queries in the metrics explorer of the project that receives the metrics. They read a time range exactly once the metrics arrive as deltas: see [Send deltas to a OneUptime project](#send-deltas-to-a-oneuptime-project).
 
 ### Build one in the metrics explorer
 
@@ -216,7 +216,17 @@ The formula `$b / $a * 100` is the share that failed, and the objective holds wh
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-The objective holds while `a` stays at or below 30000. Pages started later are timed from when they started or were due, not from a trigger, so they are left out. Group by `notification.page.start` to see the monitors' queue (`monitor_data_received`) apart from the rest, or by `notification.channel` to find a slow channel.
+The objective holds while `a` stays at or below 30000. Pages started later are timed from when they started or were due, not from a trigger, so they are left out: the next objective covers them. Group by `notification.page.start` to see the monitors' queue (`monitor_data_received`) apart from the rest, or by `notification.channel` to find a slow channel.
+
+### Pages started later go out within 2 minutes
+
+95% of the pages started later reach their provider within 2 minutes of being due: a held page, a page again, and a page a person, a workflow or a rule started.
+
+| Query | Metric | Aggregation | Conditions |
+| --- | --- | --- | --- |
+| `a` | `notification.time_to_send` | **P95** | `notification.page.start = page_started` |
+
+The objective holds while `a` stays at or below 120000. A held page or a page again waits for the next run of a worker that runs once a minute, so up to a minute of its time is spent on that wait, and a worker that fell behind adds more.
 
 ### Notifications sent later go out within 90 seconds
 

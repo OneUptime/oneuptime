@@ -250,6 +250,7 @@ const FIX_WORDS: Readonly<Record<SetupHealthFix, string>> = {
   [SetupHealthFix.WorkspaceNotificationRules]: translationKey(
     "Add Notification Rule",
   ),
+  [SetupHealthFix.TelemetryIngestionKey]: translationKey("Open Ingestion Key"),
 };
 
 /*
@@ -275,6 +276,8 @@ const FIX_PAGES: Readonly<Partial<Record<SetupHealthFix, PageMap>>> = {
   [SetupHealthFix.StatusPageResources]: PageMap.STATUS_PAGE_VIEW_RESOURCES,
   [SetupHealthFix.StatusPageDomains]: PageMap.STATUS_PAGE_VIEW_DOMAINS,
   [SetupHealthFix.ProjectOwners]: PageMap.TEAMS,
+  [SetupHealthFix.TelemetryIngestionKey]:
+    PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
 };
 
 const WORKSPACE_RULE_PAGES: Readonly<Record<WorkspaceType, PageMap>> = {
@@ -330,6 +333,8 @@ const RECORD_PAGES: Readonly<Partial<Record<SetupHealthRecordKind, PageMap>>> =
     [SetupHealthRecordKind.OnCallDutyPolicySchedule]:
       PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
     [SetupHealthRecordKind.StatusPage]: PageMap.STATUS_PAGE_VIEW,
+    [SetupHealthRecordKind.TelemetryIngestionKey]:
+      PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
   };
 
 // Where a record a finding reaches is opened; null for one with no page.

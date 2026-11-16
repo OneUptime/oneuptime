@@ -396,7 +396,17 @@ ENV TS_NODE_TRANSPILE_ONLY=1
 # this container's only process (PID 1) and gets SIGTERM itself, which
 # GracefulShutdown handles. Tests/Ops/NodeImageStartCommand.test.js keeps this
 # CMD the same as the start script.
-CMD [ "sh", "-c", "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
+#
+# The script first sizes node's heap to the container's memory limit: three
+# quarters of it (cgroup v2's memory.max, of the process's own cgroup or the
+# one at /sys/fs/cgroup, or cgroup v1's memory.limit_in_bytes), at least 256 MB
+# and at most 8096 MB, and 8096 MB when the container has no limit. A fixed
+# 8096 MB let V8 grow the heap past a smaller limit, where the kernel killed
+# the container instead of V8 collecting harder; the quarter left is for what
+# node holds beside the heap. An operator's own --max-old-space-size in
+# NODE_OPTIONS comes after this one and wins. Every image's start script opens
+# with the same rule (Tests/Ops/NodeImageHeapLimit.test.js).
+CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
 
 # ---------------------------------------------------------------------------
 # community-pruned: community-build with only what the Community Edition runs,
@@ -443,7 +453,8 @@ ENV IS_ENTERPRISE_EDITION=false
 USER node
 # Types were checked at build time; see the enterprise stage above.
 ENV TS_NODE_TRANSPILE_ONLY=1
-# Run the app through sh, not npm, so node is the container's only process;
-# see the enterprise stage above.
-CMD [ "sh", "-c", "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
+# Run the app through sh, not npm, so node is the container's only process,
+# with a heap sized to the container's memory limit; see the enterprise stage
+# above.
+CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
 {{ end }}

@@ -434,6 +434,53 @@ describe("a process that stops after the page again's run is written, before its
     expect(pagesAgainInFlight()).toEqual({});
   });
 
+  /*
+   * Issue #6847: a page again whose timeout was cut past its moment is due
+   * from the cut. Its process stopped, the start a later tick keeps for it
+   * is timed from the cut too - the moment the page again it stands for
+   * would have been timed from - and never from the moment that had passed.
+   */
+  test("a timeout cut past its moment: the start a later tick keeps is timed from the cut, as its page again would have been", async () => {
+    await world.startRun();
+    world.advance(5);
+    await world.acknowledgeInDashboard(DANA);
+    world.advance(1);
+    await world.escalationTick();
+
+    // At 03:17 the timeout is cut to 10 minutes: by it, the clock ran out at 03:15.
+    world.advance(11);
+    world.changePolicy({ acknowledgementTimeoutInMinutes: 10 });
+    const cutAt: number = world.clock.getTime();
+
+    stopsAtRedis = (namespace: string): boolean => {
+      return namespace === LEVELS_NAMESPACE;
+    };
+
+    expect(pagedAgain(await tick())).toEqual([]);
+    expect(world.pagesAgain()).toHaveLength(1);
+    const run: OnCallDutyPolicyExecutionLog = world.pagesAgain()[0]!;
+
+    // What is kept in flight already says when it was due.
+    const inFlight: Record<string, { dueAt: number }> =
+      pagesAgainInFlight() as Record<string, { dueAt: number }>;
+    expect(
+      Object.values(inFlight).map((claim: { dueAt: number }) => {
+        return claim.dueAt;
+      }),
+    ).toEqual([cutAt]);
+
+    world.advance(2);
+    expect(pagedAgain(await tick())).toEqual([]);
+
+    expect(startKeptFor(run)).toMatchObject({
+      stopped: true,
+      firstUserIds: [DANA.toString()],
+      pageStart: { startedAt: cutAt },
+      pageAgain: { minutes: 10 },
+    });
+    expect(world.pagesAgain()).toHaveLength(1);
+  });
+
   test("one whose process stopped before it kept the run's id is found by its record and number, and its start kept - no second page again", async () => {
     await acknowledgedAndLeft();
     // The third write of the page again in flight is the one with its run's id.

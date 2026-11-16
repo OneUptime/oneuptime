@@ -26,7 +26,10 @@ import IncidentService from "../../Services/IncidentService";
 import IncidentStateService from "../../Services/IncidentStateService";
 import GlobalConfigService from "../../Services/GlobalConfigService";
 import ProjectService from "../../Services/ProjectService";
+import GlobalCache from "../../Infrastructure/GlobalCache";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import OneUptimeDate from "../../../Types/Date";
+import JobDeadline from "../JobDeadline";
 import logger from "../Logger";
 import { QueryRunner } from "typeorm";
 
@@ -102,13 +105,29 @@ import { QueryRunner } from "typeorm";
  * HOW MUCH, HOW OFTEN
  *
  * Hourly. The projects that keep resolved records for a while are read a
- * page at a time; each gets at most MAX_RETENTION_BATCHES_PER_PROJECT
- * batches of RETENTION_BATCH_SIZE a run, so a project turning retention on
- * with years of incidents drains over a few runs without holding up the
- * rest, and a run stops starting work once its time budget is spent. A
- * batch is any rows due, in no order: every one of them goes, and a read
- * that may stop at the batch's last row costs a project with a long history
- * far less than sorting all of it every batch.
+ * page at a time, in id order; each gets at most
+ * MAX_RETENTION_BATCHES_PER_PROJECT batches of RETENTION_BATCH_SIZE a run,
+ * so a project turning retention on with years of incidents drains over a
+ * few runs without holding up the rest, and a run stops starting work once
+ * its time budget is spent, or the job's deadline - its time limit, or a
+ * lost lock - has passed. A batch is any rows due, in no order: every one of
+ * them goes, and a read that may stop at the batch's last row costs a
+ * project with a long history far less than sorting all of it every batch.
+ *
+ * WHERE A RUN STARTS (issue #8896)
+ *
+ * Where the last run stopped: after the last project it started work on,
+ * kept in the cache (GlobalCache) for each kind. A run reads the projects
+ * after it, then wraps around to the first project and reads up to it, so
+ * every project gets its turn, however often runs are cut short. Under a
+ * server maximum every live project is due, Never included: with thousands
+ * of projects a run that started from the first one every hour would reach
+ * the same projects every time, and the ones after them never. The place is
+ * kept as each project starts, so a run that dies part way is not repeated
+ * from the start, and a project whose purge takes a whole run is not
+ * started first again: it gets its next turn once every other project has
+ * had one. If the place is lost (the cache is flushed, or it expired) the
+ * next run starts from the first project, which costs time only.
  *
  * Every row a cascade reaches is found by an index - the columns that point
  * at an incident, an alert or an episode got the ones they lacked in
@@ -166,9 +185,12 @@ export interface ResolvedRecordRetentionSummary
   extends ResolvedRecordRetentionResult {
   // Projects that keep resolved records for a while, and were worked on.
   projects: number;
-  // Projects whose work failed: logged, and tried again next run.
+  // Projects whose work failed: logged, and tried again on their next turn.
   failedProjects: number;
-  // The time budget ran out before every project was worked on.
+  /*
+   * The time budget ran out, or the job's deadline passed, before every
+   * project was worked on: the next run starts where this one stopped.
+   */
   isCutShort: boolean;
 }
 
@@ -263,6 +285,17 @@ export const RETENTION_COUNT_UP_TO: number = 10000;
 // The longest a count may take before the question is asked without it.
 export const RETENTION_COUNT_TIMEOUT_MS: number = 5000;
 
+// Where each kind's walk of the projects got to: in the cache, under the kind.
+export const RETENTION_CURSOR_CACHE_NAMESPACE: string =
+  "resolved-record-retention-cursor";
+
+/*
+ * How long the cache keeps where a walk got to. Every run writes it again,
+ * so it only runs out when the job has not run for that long; the next run
+ * then starts from the first project.
+ */
+export const RETENTION_CURSOR_EXPIRES_IN_DAYS: number = 30;
+
 // Collects a statement's parameters, numbering them as Postgres does.
 class StatementParams {
   public readonly values: Array<unknown> = [];
@@ -297,14 +330,16 @@ export function getRetentionCutoff(data: {
 
 /*
  * Projects that keep the kind's resolved records for a while - at least the
- * shortest choice; 0 keeps every one - after `afterProjectId`, in id order.
- * With a server maximum every project keeps them a while, Never included,
- * so every live project is read: each one's own setting, which
- * findDueProjects holds to the maximum.
+ * shortest choice; 0 keeps every one - after `afterProjectId` and up to
+ * `throughProjectId` (it included), in id order. With a server maximum
+ * every project keeps them a while, Never included, so every live project
+ * is read: each one's own setting, which findDueProjects holds to the
+ * maximum.
  */
 export function buildDueProjectsStatement(data: {
   kind: ResolvedRecordKind;
   afterProjectId?: string | undefined;
+  throughProjectId?: string | undefined;
   limit: number;
   maximumInDays?: number | undefined;
 }): ResolvedRecordRetentionStatement {
@@ -320,6 +355,10 @@ export function buildDueProjectsStatement(data: {
 
   if (data.afterProjectId) {
     filters.push(`p."_id" > ${params.add(data.afterProjectId)}::uuid`);
+  }
+
+  if (data.throughProjectId) {
+    filters.push(`p."_id" <= ${params.add(data.throughProjectId)}::uuid`);
   }
 
   const isIncident: boolean = data.kind === ResolvedRecordKind.Incident;
@@ -626,6 +665,59 @@ export default class ResolvedRecordRetention {
 
   public static now: () => Date = (): Date => {
     return new Date();
+  };
+
+  /*
+   * Where the kind's last run stopped: the last project it started work on,
+   * or undefined to start from the first project - also when the cache
+   * cannot be read, or holds no project's id.
+   */
+  public static readCursor: (
+    kind: ResolvedRecordKind,
+  ) => Promise<string | undefined> = async (
+    kind: ResolvedRecordKind,
+  ): Promise<string | undefined> => {
+    try {
+      const projectId: string = String(
+        (await GlobalCache.getString(RETENTION_CURSOR_CACHE_NAMESPACE, kind)) ||
+          "",
+      );
+
+      return ObjectID.isValidUUID(projectId) ? projectId : undefined;
+    } catch (error) {
+      logger.debug(
+        `${kind} retention: where the last run stopped could not be read from the cache; this run starts from the first project.`,
+      );
+      logger.debug(error);
+      return undefined;
+    }
+  };
+
+  // Keeps the last project a run started work on, as far as the cache allows.
+  public static saveCursor: (
+    kind: ResolvedRecordKind,
+    projectId: string,
+  ) => Promise<void> = async (
+    kind: ResolvedRecordKind,
+    projectId: string,
+  ): Promise<void> => {
+    try {
+      await GlobalCache.setString(
+        RETENTION_CURSOR_CACHE_NAMESPACE,
+        kind,
+        projectId,
+        {
+          expiresInSeconds: OneUptimeDate.getSecondsInDays(
+            RETENTION_CURSOR_EXPIRES_IN_DAYS,
+          ),
+        },
+      );
+    } catch (error) {
+      logger.debug(
+        `${kind} retention: where this run got to could not be kept in the cache; the next run starts from the first project.`,
+      );
+      logger.debug(error);
+    }
   };
 
   /*
@@ -973,12 +1065,15 @@ export default class ResolvedRecordRetention {
 
   /*
    * Every project that keeps the kind's resolved records for a while, as far
-   * as the time budget goes. One project's failure is logged and the rest
-   * go on: it is tried again next run.
+   * as the time budget and the deadline go, starting after the project the
+   * last run stopped at and wrapping around to the first (see WHERE A RUN
+   * STARTS). One project's failure is logged and the rest go on: it is tried
+   * again on its next turn.
    */
   public static async run(data: {
     kind: ResolvedRecordKind;
     timeBudgetMs?: number | undefined;
+    deadline?: JobDeadline | undefined;
   }): Promise<ResolvedRecordRetentionSummary> {
     const budgetMs: number = data.timeBudgetMs ?? RETENTION_TIME_BUDGET_MS;
     const startedAt: number = this.now().getTime();
@@ -992,7 +1087,10 @@ export default class ResolvedRecordRetention {
     };
 
     const isOutOfTime: () => boolean = (): boolean => {
-      return this.now().getTime() - startedAt >= budgetMs;
+      return (
+        Boolean(data.deadline?.hasPassed()) ||
+        this.now().getTime() - startedAt >= budgetMs
+      );
     };
 
     // The server's maximum, read once a run: every project is held to it.
@@ -1000,49 +1098,68 @@ export default class ResolvedRecordRetention {
       await this.getServerLimits(data.kind)
     ).maximumInDays;
 
-    let afterProjectId: string | undefined = undefined;
-    let isLastPage: boolean = false;
+    /*
+     * A full pass, in id order: the projects after the one the last run
+     * stopped at, then - wrapping around - those from the first up to it.
+     * With no place kept, one leg from the first project.
+     */
+    const stoppedAt: string | undefined = await this.readCursor(data.kind);
 
-    while (!isLastPage) {
-      const page: DueRetentionProjectsPage = await this.findDueProjects({
-        kind: data.kind,
-        afterProjectId: afterProjectId,
-        maximumInDays: maximumInDays,
-      });
+    const legs: Array<{
+      afterProjectId?: string | undefined;
+      throughProjectId?: string | undefined;
+    }> = stoppedAt
+      ? [{ afterProjectId: stoppedAt }, { throughProjectId: stoppedAt }]
+      : [{}];
 
-      for (const project of page.projects) {
-        if (isOutOfTime()) {
-          summary.isCutShort = true;
-          return summary;
+    for (const leg of legs) {
+      let afterProjectId: string | undefined = leg.afterProjectId;
+      let isLastPage: boolean = false;
+
+      while (!isLastPage) {
+        const page: DueRetentionProjectsPage = await this.findDueProjects({
+          kind: data.kind,
+          afterProjectId: afterProjectId,
+          throughProjectId: leg.throughProjectId,
+          maximumInDays: maximumInDays,
+        });
+
+        for (const project of page.projects) {
+          if (isOutOfTime()) {
+            summary.isCutShort = true;
+            return summary;
+          }
+
+          summary.projects += 1;
+
+          // The next run starts after the last project this one started.
+          await this.saveCursor(data.kind, project.projectId);
+
+          try {
+            const result: ResolvedRecordRetentionResult =
+              await this.purgeProject({
+                kind: data.kind,
+                projectId: project.projectId,
+                retentionInDays: project.retentionInDays,
+                keepCompletedPostmortems: project.keepCompletedPostmortems,
+                keptPostmortemStatusIds: project.keptPostmortemStatusIds,
+                isOutOfTime: isOutOfTime,
+              });
+
+            summary.records += result.records;
+            summary.episodes += result.episodes;
+          } catch (error) {
+            summary.failedProjects += 1;
+            logger.error(
+              `${data.kind} retention: deleting the resolved ${data.kind === ResolvedRecordKind.Incident ? "incidents" : "alerts"} project ${project.projectId} no longer keeps failed. It is tried again on its next turn.`,
+            );
+            logger.error(error);
+          }
         }
 
-        summary.projects += 1;
-
-        try {
-          const result: ResolvedRecordRetentionResult = await this.purgeProject(
-            {
-              kind: data.kind,
-              projectId: project.projectId,
-              retentionInDays: project.retentionInDays,
-              keepCompletedPostmortems: project.keepCompletedPostmortems,
-              keptPostmortemStatusIds: project.keptPostmortemStatusIds,
-              isOutOfTime: isOutOfTime,
-            },
-          );
-
-          summary.records += result.records;
-          summary.episodes += result.episodes;
-        } catch (error) {
-          summary.failedProjects += 1;
-          logger.error(
-            `${data.kind} retention: deleting the resolved ${data.kind === ResolvedRecordKind.Incident ? "incidents" : "alerts"} project ${project.projectId} no longer keeps failed. It is tried again next run.`,
-          );
-          logger.error(error);
-        }
+        isLastPage = !page.nextAfterProjectId;
+        afterProjectId = page.nextAfterProjectId;
       }
-
-      isLastPage = !page.nextAfterProjectId;
-      afterProjectId = page.nextAfterProjectId;
     }
 
     return summary;
@@ -1050,19 +1167,22 @@ export default class ResolvedRecordRetention {
 
   /*
    * One page of the projects that keep the kind's resolved records for a
-   * while - each for its own length, held to the server's maximum - and
-   * where the next page starts: after the last project the page read,
-   * whether or not it is worked on, or nowhere when the page was not full.
+   * while - each for its own length, held to the server's maximum - after
+   * `afterProjectId` and up to `throughProjectId`, and where the next page
+   * starts: after the last project the page read, whether or not it is
+   * worked on, or nowhere when the page was not full.
    */
   public static async findDueProjects(data: {
     kind: ResolvedRecordKind;
     afterProjectId?: string | undefined;
+    throughProjectId?: string | undefined;
     maximumInDays?: number | undefined;
   }): Promise<DueRetentionProjectsPage> {
     const statement: ResolvedRecordRetentionStatement =
       buildDueProjectsStatement({
         kind: data.kind,
         afterProjectId: data.afterProjectId,
+        throughProjectId: data.throughProjectId,
         limit: RETENTION_PROJECTS_PER_PAGE,
         maximumInDays: data.maximumInDays,
       });

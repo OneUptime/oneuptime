@@ -26,6 +26,7 @@ import {
   isWhoIsToldPersonPagedAtOnce,
 } from "../../../Types/Monitor/WhoIsTold";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import { getWhoCanTurnOnSentence } from "../../../Utils/Project/NotificationChannels";
 import {
   OnCallTestPageNotPagedCode,
   OnCallTestPageReachedThroughCode,
@@ -1208,6 +1209,37 @@ describe("a break's sentence", () => {
       expect(message.length).toBeGreaterThan(20);
       expect(message.endsWith(".")).toBe(true);
     }
+  });
+
+  /*
+   * A channel costs money, so its switch is billing: a Project Admin may
+   * not flip it. The sentence said "A Project Owner or Project Admin turns
+   * it on", and began "phone call is off" in lower case.
+   */
+  test("a channel switched off says who may turn it on, as the switch's own permissions say, and starts with a capital", () => {
+    const call: string = getWhoIsToldBreakMessage({
+      kind: WhoIsToldBreakKind.ChannelOff,
+      fix: WhoIsToldFix.ProjectNotificationSettings,
+      channel: OnCallPageChannel.Call,
+    });
+
+    expect(call).toBe(
+      `Phone call is off in this project, so pages that use it are not sent. ${getWhoCanTurnOnSentence("it")}`,
+    );
+    expect(call).not.toContain("Project Admin");
+    expect(
+      getWhoIsToldBreakMessage({
+        kind: WhoIsToldBreakKind.ChannelOff,
+        fix: WhoIsToldFix.ProjectNotificationSettings,
+        channel: OnCallPageChannel.SMS,
+      }),
+    ).toMatch(/^SMS is off in this project/);
+    expect(
+      getWhoIsToldBreakMessage({
+        kind: WhoIsToldBreakKind.ChannelOff,
+        fix: WhoIsToldFix.ProjectNotificationSettings,
+      }),
+    ).toMatch(/^A channel is off in this project/);
   });
 
   test("the server's break names the channel it can't send by", () => {

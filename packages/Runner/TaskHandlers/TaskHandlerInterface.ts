@@ -1,6 +1,7 @@
 import ObjectID from "Common/Types/ObjectID";
 import TaskLogger from "../Utils/TaskLogger";
 import BackendAPI, {
+  OpenedPullRequest,
   RecordPullRequestOptions,
   RepositoryToken,
 } from "../Utils/BackendAPI";
@@ -9,7 +10,9 @@ import {
   CodeTaskOutcomeReport,
 } from "Common/Types/AI/CodeTask";
 import PullRequestOpener from "../Utils/PullRequestOpener";
-import { PullRequestResult } from "../Utils/PullRequestCreator";
+import PullRequestCreator, {
+  PullRequestResult,
+} from "../Utils/PullRequestCreator";
 import PushedBranches, { PushedBranch } from "../Utils/PushedBranches";
 import RepositoryManager from "../Utils/RepositoryManager";
 import { VerificationOutcome } from "../Utils/BuildVerification";
@@ -227,10 +230,80 @@ export abstract class BaseTaskHandler implements TaskHandler {
       return null;
     }
 
-    await this.log(
-      context,
-      `Opening the ${PullRequestOpener.getPullRequestTerm(data.token)}...`,
-    );
+    const prResult: PullRequestResult = await this.openPullRequest(context, {
+      repositoryId: data.repositoryId,
+      token: data.token,
+      baseBranch: data.baseBranch,
+      headBranch: data.headBranch,
+      title: data.title,
+      body: data.body,
+      verification: data.verification,
+    });
+
+    return prResult.htmlUrl;
+  }
+
+  /*
+   * Open the pull (or merge) request of a branch this task pushed, and
+   * record it:
+   *
+   *   - where OneUptime opens it (the token's answer said so:
+   *     RepositoryToken.opensPullRequestOnServer), by asking OneUptime,
+   *     which opens it with what the repository is connected with and
+   *     records it - the token this Runner pushed with may not be able to
+   *     open one, and needs not (issue #8916);
+   *   - otherwise - an older server, or a Git server only this Runner
+   *     reaches - with the token, where the repository's host takes pull
+   *     requests (PullRequestOpener), recorded after
+   *     (recordOpenedPullRequest).
+   */
+  protected async openPullRequest(
+    context: TaskContext,
+    data: {
+      repositoryId: string;
+      token: RepositoryToken;
+      baseBranch: string;
+      headBranch: string;
+      title: string;
+      body: string;
+      verification: VerificationOutcome;
+    },
+  ): Promise<PullRequestResult> {
+    const term: string = PullRequestOpener.getPullRequestTerm(data.token);
+
+    if (data.token.opensPullRequestOnServer) {
+      await this.log(context, `Asking OneUptime to open the ${term}...`);
+
+      const opened: OpenedPullRequest =
+        await context.backendAPI.openPullRequest({
+          taskId: context.taskId.toString(),
+          codeRepositoryId: data.repositoryId,
+          headRefName: data.headBranch,
+          baseRefName: data.baseBranch,
+          title: data.title,
+          body: PullRequestCreator.truncateBody(data.body),
+          runnerVerificationStatus: data.verification.status,
+          runnerVerificationSummary: data.verification.summary,
+        });
+
+      await this.log(
+        context,
+        opened.isNew
+          ? `OneUptime opened the ${term}: ${opened.htmlUrl}`
+          : `The ${term} was open already: ${opened.htmlUrl}`,
+      );
+
+      return {
+        id: opened.id,
+        number: opened.number,
+        url: opened.htmlUrl,
+        htmlUrl: opened.htmlUrl,
+        state: "open",
+        title: opened.title,
+      };
+    }
+
+    await this.log(context, `Opening the ${term}...`);
 
     const prResult: PullRequestResult = await new PullRequestOpener(
       context.logger,
@@ -258,7 +331,7 @@ export abstract class BaseTaskHandler implements TaskHandler {
       runnerVerificationSummary: data.verification.summary,
     });
 
-    return prResult.htmlUrl;
+    return prResult;
   }
 
   /*

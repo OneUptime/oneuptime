@@ -19,7 +19,8 @@ import path from "path";
  * '{"_type":"HashedString","value":"..."}'. DatabaseService no longer writes
  * that, and reads through it for encrypted columns; this migration rewrites
  * the envelopes already in the table to the string they hold — including
- * the unencrypted webhook signing secret, which nothing else can repair.
+ * the webhook signing secret, stored as written then (and encrypted since
+ * #8989, after this has run), which nothing else can repair.
  *
  * No Postgres here: what is pinned is which columns are repaired, the exact
  * statement each one gets, and that one failure does not stop the rest. The
@@ -215,14 +216,20 @@ describe("RepairHashedStringEnvelopeSecrets", () => {
       }
     });
 
-    test("all but the webhook signing secret are encrypted columns", () => {
+    /*
+     * The webhook signing secret was the one stored as written. It is
+     * encrypted too since #8989, by EncryptProjectCredentials, which runs
+     * after this and encrypts the string this unwraps.
+     */
+    test("every column it repairs is an encrypted column, the webhook signing secret included", () => {
       for (const secretColumns of SECRET_COLUMNS_WRITTEN_FROM_PASSWORD_FIELDS) {
         const model: BaseModel = modelOf(secretColumns.service);
 
         for (const column of secretColumns.columns) {
-          expect(model.getEncryptedColumns().columns.includes(column)).toBe(
-            !(model.tableName === "UserWebhook" && column === "secret"),
-          );
+          expect([
+            `${model.tableName}.${column}`,
+            model.getEncryptedColumns().columns.includes(column),
+          ]).toEqual([`${model.tableName}.${column}`, true]);
         }
       }
     });

@@ -33,8 +33,9 @@ import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
  * tree with every call drawn, a picked pod's line to its node, the keys
  * moving through the tree, a page read from right to left drawn mirrored, a
  * large estate staying quick, the small print going when zoomed far out,
- * the list a phone gets, dark mode, German and Persian - with screenshots of
- * each in output/playwright/resource-topology-ui.
+ * the list a phone gets, a part Tab reaches on a phone's map panned fully
+ * onto its canvas, dark mode, German and Persian - with screenshots of each
+ * in output/playwright/resource-topology-ui.
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
@@ -1630,6 +1631,103 @@ test.describe("on a phone, in dark mode and in German", () => {
     await screenshot(page, "vmware-390-dark");
     await openTopology(page, "host", "theme=dark");
     await screenshot(page, "host-390-dark");
+  });
+
+  /*
+   * A phone's map, zoomed in to read, leaves most parts off the canvas. Tab
+   * still reaches each one, and the map pans it in, fully inside the canvas
+   * (#6958). Chromium scrolls React Flow's box to show the part before it
+   * tells of the focus; left alone, that scroll slid the drawing and the
+   * zoom buttons out of their corner.
+   */
+  test("on a phone's map, Tab onto a part off the canvas brings it fully inside, and the zoom buttons stay put", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openTopology(page, "vmware", "view=map");
+    await expect(byTestId(page, "resource-topology-canvas")).toBeVisible();
+    await mapScale(page);
+
+    /*
+     * Zoomed in a step, with React Flow's own button: the whole drawing was
+     * framed to fit, so a step in puts its edges off the canvas while a part
+     * still fits on it (24px in from the edge it came past, or centred where
+     * the canvas has less room than that).
+     */
+    await page.locator(".react-flow__controls-zoomin").click();
+    await page.waitForTimeout(400);
+
+    const controls: Locator = page.locator(".react-flow__controls");
+    const controlsBefore: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } = await boxOf(controls);
+    // The parts the zoom put off the canvas, wholly or in part, that fit on it.
+    const offCanvas: Array<string> = await page.evaluate((): Array<string> => {
+      const canvas: DOMRect = document
+        .querySelector('[data-testid="resource-topology-canvas"]')!
+        .getBoundingClientRect();
+
+      return Array.from(
+        document.querySelectorAll(
+          '[data-testid^="resource-topology-select-"], [data-testid^="resource-topology-chip-"]',
+        ),
+      )
+        .filter((element: Element): boolean => {
+          const box: DOMRect = element.getBoundingClientRect();
+          const fits: boolean =
+            box.width <= canvas.width && box.height <= canvas.height;
+
+          return (
+            fits &&
+            (box.left < canvas.left ||
+              box.top < canvas.top ||
+              box.right > canvas.right ||
+              box.bottom > canvas.bottom)
+          );
+        })
+        .map((element: Element): string => {
+          return element.getAttribute("data-testid") || "";
+        });
+    });
+
+    expect(offCanvas.length).toBeGreaterThan(0);
+
+    // Tab on from the resource's card until the keyboard reaches one of them.
+    await byTestId(page, "resource-topology-select-vcenter").focus();
+
+    let reached: string | null = null;
+
+    for (let step: number = 0; step < 80 && !reached; step++) {
+      await page.keyboard.press("Tab");
+
+      const focused: string | null = await page.evaluate((): string | null => {
+        return document.activeElement?.getAttribute("data-testid") || null;
+      });
+
+      if (focused && offCanvas.includes(focused)) {
+        reached = focused;
+      }
+    }
+
+    expect(reached).not.toBeNull();
+    expect(await isInsideCanvas(page, byTestId(page, reached!))).toBe(true);
+    // React Flow's box never scrolled: the map was panned instead.
+    expect(
+      await page.evaluate((): Array<number> => {
+        const flow: Element = document.querySelector(".react-flow")!;
+
+        return [flow.scrollLeft, flow.scrollTop];
+      }),
+    ).toEqual([0, 0]);
+    // The zoom buttons are where they were.
+    expect(await boxOf(controls)).toEqual(controlsBefore);
+
+    await screenshot(page, "vmware-390-map-tab-to-a-part");
   });
 
   test("dark mode draws every map on dark surfaces", async ({

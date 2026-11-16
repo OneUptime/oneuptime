@@ -304,6 +304,8 @@ function resourceRoundRow(
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.CommandPlan,
     commandPlan: { commands } as JSONObject,
     verificationWindowMinutes: 15,

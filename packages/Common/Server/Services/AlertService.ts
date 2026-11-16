@@ -443,6 +443,14 @@ export class Service extends ProjectReferencesService<Model> {
     return { findBy, carryForward: null };
   }
 
+  /*
+   * The read hook keeps a private alert to its owners, by its private
+   * switch (its owners are rows of their own). See DatabaseService.
+   */
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return ["isPrivate"];
+  }
+
   @CaptureSpan()
   public override async countBy(
     countBy: CountBy<Model>,

@@ -1,4 +1,9 @@
 import ProjectElement from "../../Components/Project/Project";
+import {
+  OnCallPolicyWithProject,
+  groupOnCallPoliciesByProject,
+  readOnDutyEscalationRules,
+} from "../../Utils/MyOnCallPolicies";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -16,10 +21,6 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
-import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
-import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
-import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "Common/Models/DatabaseModels/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -42,13 +43,6 @@ import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-
-interface OnCallPolicyWithProject {
-  project: Project;
-  escalationRulesByUser: Array<OnCallDutyPolicyEscalationRuleUser>;
-  escalationRulesByTeam: Array<OnCallDutyPolicyEscalationRuleTeam>;
-  escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule>;
-}
 
 type AssignmentType = "user" | "team" | "schedule";
 
@@ -77,8 +71,18 @@ const MyOnCallPolicies: FunctionComponent<
       setIsLoading(true);
       setError("");
 
-      const projectsResult: ListResult<Project> =
-        await ModelAPI.getList<Project>({
+      /*
+       * Two requests side by side, however many projects (#8124): the
+       * person's projects, for their names, and what they are on duty for
+       * in every project they may open, in one answer across projects. It
+       * used to ask each project in turn: someone in 100 projects waited
+       * for 100 requests, one after another.
+       */
+      const [projectsResult, onDutyResponse]: [
+        ListResult<Project>,
+        HTTPResponse<JSONObject> | HTTPErrorResponse,
+      ] = await Promise.all([
+        ModelAPI.getList<Project>({
           modelType: Project,
           query: {},
           limit: 100,
@@ -96,76 +100,35 @@ const MyOnCallPolicies: FunctionComponent<
               "/project/list-user-projects",
             ),
           },
-        });
+        }),
+        API.get<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/${new OnCallDutyPolicy().crudApiPath}/current-on-duty-escalation-policies`,
+          ),
+          data: {},
+          headers: ModelAPI.getCommonHeaders({ isMultiTenantRequest: true }),
+        }),
+      ]);
 
-      const projects: Array<Project> = projectsResult.data;
-      const onCallData: Array<OnCallPolicyWithProject> = [];
-
-      for (const project of projects) {
-        if (!project._id) {
-          continue;
-        }
-
-        try {
-          const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-            await API.get<JSONObject>({
-              url: URL.fromString(APP_API_URL.toString()).addRoute(
-                `/${new OnCallDutyPolicy().crudApiPath}/current-on-duty-escalation-policies`,
-              ),
-              data: {},
-              headers: {
-                ...ModelAPI.getCommonHeaders(),
-                tenantid: project._id.toString(),
-              },
-            });
-
-          if (response.isSuccess()) {
-            const result: JSONObject = response.jsonData as JSONObject;
-
-            const escalationRulesByUser: Array<OnCallDutyPolicyEscalationRuleUser> =
-              DatabaseBaseModel.fromJSONArray(
-                result["escalationRulesByUser"] as Array<JSONObject>,
-                OnCallDutyPolicyEscalationRuleUser,
-              ) as Array<OnCallDutyPolicyEscalationRuleUser>;
-
-            const escalationRulesByTeam: Array<OnCallDutyPolicyEscalationRuleTeam> =
-              DatabaseBaseModel.fromJSONArray(
-                result["escalationRulesByTeam"] as Array<JSONObject>,
-                OnCallDutyPolicyEscalationRuleTeam,
-              ) as Array<OnCallDutyPolicyEscalationRuleTeam>;
-
-            const escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
-              DatabaseBaseModel.fromJSONArray(
-                result["escalationRulesBySchedule"] as Array<JSONObject>,
-                OnCallDutyPolicyEscalationRuleSchedule,
-              ) as Array<OnCallDutyPolicyEscalationRuleSchedule>;
-
-            if (
-              escalationRulesByUser.length > 0 ||
-              escalationRulesByTeam.length > 0 ||
-              escalationRulesBySchedule.length > 0
-            ) {
-              onCallData.push({
-                project,
-                escalationRulesByUser,
-                escalationRulesByTeam,
-                escalationRulesBySchedule,
-              });
-            }
-          }
-        } catch {
-          // Continue with other projects if one fails
-        }
+      if (onDutyResponse.isFailure()) {
+        throw onDutyResponse;
       }
 
-      setOnCallPoliciesByProject(onCallData);
+      setOnCallPoliciesByProject(
+        groupOnCallPoliciesByProject({
+          projects: projectsResult.data,
+          rules: readOnDutyEscalationRules(
+            onDutyResponse.jsonData as JSONObject,
+          ),
+        }),
+      );
       setIsLoading(false);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "An error occurred while fetching on-call policies",
-      );
+      /*
+       * Said as it is, never as "not on call": a failed read is not an
+       * answer, and this page is where people check whether they are.
+       */
+      setError(API.getFriendlyMessage(err));
       setIsLoading(false);
     }
   };
@@ -290,7 +253,14 @@ const MyOnCallPolicies: FunctionComponent<
   if (error) {
     return (
       <Page title={"My On-Call Policies"} breadcrumbLinks={breadcrumbLinks}>
-        <ErrorMessage message={error} />
+        <ErrorMessage
+          message={error}
+          onRefreshClick={() => {
+            fetchOnCallPolicies().catch(() => {
+              // handled in the function
+            });
+          }}
+        />
       </Page>
     );
   }

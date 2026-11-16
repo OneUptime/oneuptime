@@ -75,6 +75,24 @@ jest.mock(
   },
 );
 
+/*
+ * The group's uptime summary (issue #6886): none here, as from a server
+ * that predates it, so the page draws from the group's rows - what these
+ * tests are about. MonitorGroupUptimeSummary.test.tsx draws it from the
+ * server's days.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupUptimeSummaryAPI",
+  () => {
+    return {
+      __esModule: true,
+      fetchMonitorGroupUptimeSummary: async (): Promise<null> => {
+        return null;
+      },
+    };
+  },
+);
+
 interface MockDetailField {
   title?: string;
   getElement?: (item: unknown) => ReactElement;

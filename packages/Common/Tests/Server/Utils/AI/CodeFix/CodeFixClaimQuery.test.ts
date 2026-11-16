@@ -189,6 +189,60 @@ describe("CodeFixClaimQuery.getCondition", () => {
     ).toContain(`"repository"."repositoryHostedAt" = $5`);
   });
 
+  /*
+   * #8912: a global Runner that pushes with the token OneUptime makes for
+   * each run takes a GitLab repository's runs too - only while GitLab has
+   * not refused to make the repository one - and never a Forgejo, Gitea or
+   * Git repository's. An older one, which declares nothing, keeps to GitHub.
+   */
+  test("on OneUptime Cloud a global Runner that pushes with a token made for its run also takes GitLab repositories GitLab made no refusal for", () => {
+    const condition: CodeFixClaimCondition = CodeFixClaimQuery.getCondition({
+      worker: { kind: CodeWorkerKind.GlobalRunner, id: AGENT_ID },
+      claimableTaskTypes: TASK_TYPES,
+      keepsConnectionRepositoriesOff: true,
+      pushesWithRunTokens: true,
+    });
+
+    expect(condition.condition).toContain(
+      `("repository"."_id" IS NULL OR "repository"."repositoryHostedAt" IS NULL OR "repository"."repositoryHostedAt" = $5 OR ("repository"."repositoryHostedAt" = $6 AND "repository"."mintedTokenRefusedAt" IS NULL))`,
+    );
+    expect(condition.parameters[4]).toBe(CodeRepositoryType.GitHub);
+    expect(condition.parameters[5]).toBe(CodeRepositoryType.GitLab);
+    expect(condition.parameters).toHaveLength(6);
+    expect(condition.parameters).not.toContain(CodeRepositoryType.Forgejo);
+    expect(condition.parameters).not.toContain(CodeRepositoryType.Git);
+
+    // The count it is scaled on reads the same runs.
+    expect(
+      CodeFixClaimQuery.getCountStatement({
+        worker: { kind: CodeWorkerKind.GlobalRunner, id: AGENT_ID },
+        claimableTaskTypes: TASK_TYPES,
+        keepsConnectionRepositoriesOff: true,
+        pushesWithRunTokens: true,
+      }).sql,
+    ).toContain(`"repository"."mintedTokenRefusedAt" IS NULL`);
+  });
+
+  test("an older global Runner, which pushes with no token made for its run, keeps to GitHub; and off OneUptime Cloud nothing changes", () => {
+    expect(
+      CodeFixClaimQuery.getCondition({
+        worker: { kind: CodeWorkerKind.GlobalRunner, id: AGENT_ID },
+        claimableTaskTypes: TASK_TYPES,
+        keepsConnectionRepositoriesOff: true,
+        pushesWithRunTokens: false,
+      }).condition,
+    ).not.toContain(`"mintedTokenRefusedAt"`);
+
+    expect(
+      CodeFixClaimQuery.getCondition({
+        worker: { kind: CodeWorkerKind.GlobalRunner, id: AGENT_ID },
+        claimableTaskTypes: TASK_TYPES,
+        keepsConnectionRepositoriesOff: false,
+        pushesWithRunTokens: true,
+      }).condition,
+    ).not.toContain(`"repositoryHostedAt"`);
+  });
+
   test("elsewhere, and for every worker but a global Runner, the host is never read", () => {
     expect(conditionFor(CodeWorkerKind.GlobalRunner).condition).not.toContain(
       `"repositoryHostedAt"`,

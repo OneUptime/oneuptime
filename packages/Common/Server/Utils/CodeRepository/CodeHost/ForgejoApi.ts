@@ -94,6 +94,12 @@ const MAX_TREE_PAGES: number = 100;
 const MAX_BRANCH_PAGES: number = 6;
 
 /*
+ * At most this many pages of open pull requests are read for the one a
+ * branch already has (findOpenPullRequest): the newest 250.
+ */
+const MAX_OPEN_PULL_REQUEST_PAGES: number = 5;
+
+/*
  * At most this many pages of a commit's history are read to find a fix in
  * it, where the server cannot compare commits: 500 commits.
  */
@@ -1186,6 +1192,66 @@ export default class ForgejoApi {
             ? PullRequestState.Closed
             : PullRequestState.Open,
     };
+  }
+
+  /*
+   * The open pull request from one branch of the repository into another,
+   * or null when there is none: what OneUptime finds when the server says
+   * one is open already (409), so asking again for a fix's pull request
+   * answers with the one it opened rather than failing. Read from the
+   * repository's open pull requests, newest first, a few pages deep.
+   */
+  public async findOpenPullRequest(data: {
+    owner: string;
+    name: string;
+    headBranch: string;
+    baseBranch: string;
+  }): Promise<CodeHostOpenedPullRequest | null> {
+    for (let page: number = 1; page <= MAX_OPEN_PULL_REQUEST_PAGES; page++) {
+      const answer: CodeHostApiAnswer = await this.client.getJson(
+        `${ForgejoApi.repositoryPath(data.owner, data.name)}/pulls`,
+        {
+          state: "open",
+          sort: "newest",
+          page,
+          limit: FORGEJO_PAGE_SIZE,
+        },
+      );
+
+      const pullRequests: Array<unknown> = Array.isArray(answer.json)
+        ? (answer.json as Array<unknown>)
+        : [];
+
+      for (const raw of pullRequests) {
+        const pullRequest: CodeHostPullRequestDetails | null =
+          ForgejoApi.readPullRequest(raw);
+
+        if (
+          !pullRequest ||
+          !pullRequest.isOpen ||
+          pullRequest.isFromFork ||
+          pullRequest.headRefName !== data.headBranch ||
+          pullRequest.baseRefName !== data.baseBranch
+        ) {
+          continue;
+        }
+
+        const id: number = Number((raw as JSONObject)["id"]);
+
+        return {
+          id: Number.isSafeInteger(id) && id > 0 ? id : pullRequest.number,
+          number: pullRequest.number,
+          htmlUrl: pullRequest.htmlUrl,
+          state: PullRequestState.Open,
+        };
+      }
+
+      if (pullRequests.length < FORGEJO_PAGE_SIZE) {
+        break;
+      }
+    }
+
+    return null;
   }
 
   /*

@@ -156,6 +156,8 @@ function rowFor(
     resourceId: CLOUD_ID,
     ruleNameSnapshot: 'Workflow "Page and propose"',
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.CommandPlan,
     verificationWindowMinutes: 15,
     commandPlan: AiRemediationCommandPlanUtil.toJSON({

@@ -102,6 +102,8 @@ PostgreSQL은 텔레메트리가 아니라 구성과 운영 상태를 저장하�
 | 인그레스 게이트웨이 | `nginx` | 요청량 |
 | 텔레메트리 라이터(켠 경우) | `telemetryWriter` | 부하에 따라 커지지 않습니다. 모든 텔레메트리 삽입을 ClickHouse로 묶어 보내므로 ClickHouse가 감당할 수 있는 양에 맞춰 사이징합니다 |
 
+모두 Node.js로 실행되며, Node.js는 힙 크기를 컨테이너의 메모리 제한(`resources.limits.memory`)에 맞춥니다. 제한의 75%이며, 최소 256 MB, 최대 8096 MB입니다. 제한이 없으면 힙은 8096 MB까지 커질 수 있습니다. 제한의 나머지는 Node.js가 힙 밖에서 쓰는 메모리를 위한 것입니다. 힙 크기를 직접 정하려면 `NODE_OPTIONS`를 `--max-old-space-size=` 뒤에 MB 단위 크기를 붙인 값으로 서비스의 `extraEnv`에서 설정하세요(Docker Compose에서는 오버라이드 파일에서 서비스의 `environment`에 설정합니다). 이 값이 제한에서 정해지는 크기보다 우선합니다.
+
 차트에는 **KEDA**가 포함되어 있어, 앱, 워커, 프로브, 글로벌 Runner가 큐에 쌓인 작업량에 따라 확장될 수 있습니다. `keda.enabled`와 함께 각 서비스의 `keda.enabled`(예: `app.keda.enabled`)를 켜세요. 아직 KEDA가 없는 클러스터에서는 첫 설치에 추가 단계가 필요합니다. 차트의 [KEDA 가이드](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md)를 참고하세요. KEDA가 관리하지 않는 서비스는 대신 CPU나 메모리 기반 자동 확장기(`autoscaling`)를 쓸 수 있습니다.
 
 ## 시작 단계
