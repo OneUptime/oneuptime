@@ -55981,5 +55981,9 @@
   "Already paged about this through the workflow {{name}}, so not paged again.": "Hierover al opgeroepen via de workflow {{name}}, dus niet opnieuw opgeroepen.",
   "Already paged directly about this by {{name}}, so not paged again.": "Hierover al rechtstreeks opgeroepen door {{name}}, dus niet opnieuw opgeroepen.",
   "Their page from another on-call policy is over, so they are paged directly now.": "De oproep van een ander bereikbaarheidsbeleid is voorbij, dus ze worden nu rechtstreeks opgeroepen.",
-  "Their page from {{name}} is over, so they are paged directly now.": "De oproep van {{name}} is voorbij, dus ze worden nu rechtstreeks opgeroepen."
+  "Their page from {{name}} is over, so they are paged directly now.": "De oproep van {{name}} is voorbij, dus ze worden nu rechtstreeks opgeroepen.",
+  "{{names}} are paged, so aren't emailed as Project Owners too.": "{{names}} worden opgeroepen en krijgen daarom niet ook de e-mail als Projecteigenaren.",
+  "{{names}} are paged, so aren't emailed as Project Owners too._one": "{{names}} wordt opgeroepen en krijgt daarom niet ook de e-mail als Projecteigenaar.",
+  "{{names}} are paged, so aren't emailed as owners too.": "{{names}} worden opgeroepen en krijgen daarom niet ook de e-mail als eigenaren.",
+  "{{names}} are paged, so aren't emailed as owners too._one": "{{names}} wordt opgeroepen en krijgt daarom niet ook de e-mail als eigenaar."
 }

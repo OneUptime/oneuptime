@@ -55981,5 +55981,9 @@
   "Already paged about this through the workflow {{name}}, so not paged again.": "Allerede kaldt om dette via arbejdsgangen {{name}}, så ikke kaldt igen.",
   "Already paged directly about this by {{name}}, so not paged again.": "Allerede kaldt direkte om dette af {{name}}, så ikke kaldt igen.",
   "Their page from another on-call policy is over, so they are paged directly now.": "Opkaldet fra en anden vagtpolitik er slut, så de kaldes nu direkte.",
-  "Their page from {{name}} is over, so they are paged directly now.": "Opkaldet fra {{name}} er slut, så de kaldes nu direkte."
+  "Their page from {{name}} is over, so they are paged directly now.": "Opkaldet fra {{name}} er slut, så de kaldes nu direkte.",
+  "{{names}} are paged, so aren't emailed as Project Owners too.": "{{names}} tilkaldes, så de får ikke også besked på e-mail som projektejere.",
+  "{{names}} are paged, so aren't emailed as Project Owners too._one": "{{names}} tilkaldes, så vedkommende får ikke også besked på e-mail som projektejer.",
+  "{{names}} are paged, so aren't emailed as owners too.": "{{names}} tilkaldes, så de får ikke også besked på e-mail som ejere.",
+  "{{names}} are paged, so aren't emailed as owners too._one": "{{names}} tilkaldes, så vedkommende får ikke også besked på e-mail som ejer."
 }

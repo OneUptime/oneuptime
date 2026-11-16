@@ -92,6 +92,12 @@ import WhoIsToldService, {
   pickSeverity,
 } from "../../../Server/Services/WhoIsToldService";
 import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
+import OneUptimeDate from "../../../Types/Date";
+import OnCallRuleWhenToPage from "../../../Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
+import RestrictionTimes, {
+  RestrictionType,
+} from "../../../Types/OnCallDutyPolicy/RestrictionTimes";
+import moment from "moment-timezone";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
@@ -1311,6 +1317,20 @@ function benOf(result: WhoIsToldResult): WhoIsToldPerson {
   return ben!;
 }
 
+/*
+ * Who an event's Created email names, without the person-by-person list the
+ * resolver keeps for its reader (WhoIsToldOwners.recipients, #8860).
+ */
+function withoutRecipients(
+  owners: WhoIsToldEvent["owners"],
+): WhoIsToldEvent["owners"] {
+  const named: WhoIsToldEvent["owners"] = { ...owners };
+
+  delete named.recipients;
+
+  return named;
+}
+
 async function resolve(): Promise<WhoIsToldResult> {
   return await WhoIsToldService.resolve({
     projectId: PROJECT_ID,
@@ -1368,7 +1388,7 @@ describe("WhoIsToldService", () => {
     expect(event.kind).toBe(OnCallTestPageRecordKind.Incident);
     expect(event.title).toBe("Checkout API is down");
     expect(event.severityName).toBe("Critical");
-    expect(event.owners).toEqual({
+    expect(withoutRecipients(event.owners)).toEqual({
       source: WhoIsToldOwnersSource.ProjectOwners,
       userNames: ["Owner One"],
       teamNames: [],
@@ -1391,6 +1411,8 @@ describe("WhoIsToldService", () => {
         channels: [OnCallPageChannel.SMS, OnCallPageChannel.Email],
         isFallback: false,
         isReachable: true,
+        // Her text goes out at once; her email waits five minutes (#8860).
+        channelsAtOnce: [OnCallPageChannel.SMS],
       },
       {
         userId: BEN,
@@ -1403,6 +1425,7 @@ describe("WhoIsToldService", () => {
         channels: [OnCallPageChannel.Push],
         isFallback: true,
         isReachable: true,
+        channelsAtOnce: [OnCallPageChannel.Push],
       },
     ]);
     expect(event.policies[0]!.notPaged).toEqual([]);
@@ -1445,7 +1468,7 @@ describe("WhoIsToldService", () => {
 
     const event: WhoIsToldEvent = firstEvent(await resolve());
 
-    expect(event.owners).toEqual({
+    expect(withoutRecipients(event.owners)).toEqual({
       source: WhoIsToldOwnersSource.Named,
       userNames: ["Ben Ito", "Ana Lopez"],
       teamNames: ["Platform"],
@@ -1460,7 +1483,7 @@ describe("WhoIsToldService", () => {
       }),
     );
 
-    expect(firstEvent(await resolve()).owners).toEqual({
+    expect(withoutRecipients(firstEvent(await resolve()).owners)).toEqual({
       source: WhoIsToldOwnersSource.Named,
       userNames: ["Ana Lopez"],
       teamNames: [],
@@ -1483,7 +1506,7 @@ describe("WhoIsToldService", () => {
       );
       world.projectMemberIds = [ANA, CARA, DAN];
 
-      expect(firstEvent(await resolve()).owners).toEqual({
+      expect(withoutRecipients(firstEvent(await resolve()).owners)).toEqual({
         source: WhoIsToldOwnersSource.Named,
         userNames: ["Ana Lopez", "Cara Diaz"],
         teamNames: [],
@@ -1497,7 +1520,7 @@ describe("WhoIsToldService", () => {
       world.deviceOwners = { ownerUserIds: ids([DAN]), ownerTeamIds: [] };
       world.projectMemberIds = [ANA, CARA];
 
-      expect(firstEvent(await resolve()).owners).toEqual({
+      expect(withoutRecipients(firstEvent(await resolve()).owners)).toEqual({
         source: WhoIsToldOwnersSource.ProjectOwners,
         userNames: ["Owner One"],
         teamNames: [],
@@ -1510,7 +1533,7 @@ describe("WhoIsToldService", () => {
       );
       world.teamMemberIds = { [PLATFORM_TEAM]: [], [SRE_TEAM]: [CARA] };
 
-      expect(firstEvent(await resolve()).owners).toEqual({
+      expect(withoutRecipients(firstEvent(await resolve()).owners)).toEqual({
         source: WhoIsToldOwnersSource.Named,
         userNames: [],
         teamNames: ["Checkout SRE"],
@@ -1524,7 +1547,7 @@ describe("WhoIsToldService", () => {
       world.teamMemberIds = { [PLATFORM_TEAM]: [BEN, DAN] };
       world.projectMemberIds = [ANA, CARA];
 
-      expect(firstEvent(await resolve()).owners).toEqual({
+      expect(withoutRecipients(firstEvent(await resolve()).owners)).toEqual({
         source: WhoIsToldOwnersSource.ProjectOwners,
         userNames: ["Owner One"],
         teamNames: [],
@@ -1539,7 +1562,7 @@ describe("WhoIsToldService", () => {
       world.teamMemberIds = { [PLATFORM_TEAM]: [DAN] };
       world.projectMemberIds = [DAN];
 
-      expect(firstEvent(await resolve()).owners).toEqual({
+      expect(withoutRecipients(firstEvent(await resolve()).owners)).toEqual({
         source: WhoIsToldOwnersSource.Named,
         userNames: [],
         teamNames: ["Platform"],
@@ -1566,7 +1589,7 @@ describe("WhoIsToldService", () => {
 
       const event: WhoIsToldEvent = firstEvent(await resolve());
 
-      expect(event.owners).toEqual({
+      expect(withoutRecipients(event.owners)).toEqual({
         source: WhoIsToldOwnersSource.OwnerRules,
         userNames: ["Ana Lopez"],
         teamNames: ["Checkout SRE"],
@@ -1595,7 +1618,7 @@ describe("WhoIsToldService", () => {
 
       const event: WhoIsToldEvent = firstEvent(await resolve());
 
-      expect(event.owners).toEqual({
+      expect(withoutRecipients(event.owners)).toEqual({
         source: WhoIsToldOwnersSource.OwnerRules,
         userNames: [],
         teamNames: ["Checkout SRE"],
@@ -1623,7 +1646,7 @@ describe("WhoIsToldService", () => {
       world.projectMemberIds = [ANA, CARA];
       world.teamMemberIds = { [PLATFORM_TEAM]: [BEN], [SRE_TEAM]: [CARA] };
 
-      expect(firstEvent(await resolve()).owners).toEqual({
+      expect(withoutRecipients(firstEvent(await resolve()).owners)).toEqual({
         source: WhoIsToldOwnersSource.Named,
         userNames: ["Ana Lopez"],
         teamNames: ["Checkout SRE"],
@@ -1671,7 +1694,7 @@ describe("WhoIsToldService", () => {
 
       expect(
         events(result).map((event: WhoIsToldEvent): unknown => {
-          return event.owners;
+          return withoutRecipients(event.owners);
         }),
       ).toEqual([
         {
@@ -1712,7 +1735,7 @@ describe("WhoIsToldService", () => {
 
     const event: WhoIsToldEvent = firstEvent(await resolve());
 
-    expect(event.owners).toEqual({
+    expect(withoutRecipients(event.owners)).toEqual({
       source: WhoIsToldOwnersSource.Named,
       userNames: ["Ana Lopez", "Cara Diaz"],
       teamNames: ["Checkout SRE"],
@@ -2130,6 +2153,8 @@ describe("WhoIsToldService", () => {
         channels: [OnCallPageChannel.Email],
         isFallback: true,
         isReachable: true,
+        // What the fallback picks goes out as the page starts (#8860).
+        channelsAtOnce: [OnCallPageChannel.Email],
       });
       expect(result.breaks).toEqual([]);
     });
@@ -2996,7 +3021,7 @@ describe("WhoIsToldService", () => {
 
       const event: WhoIsToldEvent = firstEvent(await resolve());
 
-      expect(event.owners).toEqual({
+      expect(withoutRecipients(event.owners)).toEqual({
         source: WhoIsToldOwnersSource.OwnerRules,
         userNames: ["Ben Ito"],
         teamNames: ["Checkout SRE"],
@@ -3060,7 +3085,7 @@ describe("WhoIsToldService", () => {
 
       const event: WhoIsToldEvent = firstEvent(await resolve());
 
-      expect(event.owners).toEqual({
+      expect(withoutRecipients(event.owners)).toEqual({
         source: WhoIsToldOwnersSource.ProjectOwners,
         userNames: ["Owner One"],
         teamNames: [],
@@ -3130,7 +3155,7 @@ describe("WhoIsToldService", () => {
 
       const event: WhoIsToldEvent = firstEvent(await resolve());
 
-      expect(event.owners).toEqual({
+      expect(withoutRecipients(event.owners)).toEqual({
         source: WhoIsToldOwnersSource.Named,
         userNames: ["Ana Lopez", "Ben Ito"],
         teamNames: ["Checkout SRE"],
@@ -3155,7 +3180,7 @@ describe("WhoIsToldService", () => {
         }),
       ];
 
-      expect(firstEvent(await resolve()).owners).toEqual({
+      expect(withoutRecipients(firstEvent(await resolve()).owners)).toEqual({
         source: WhoIsToldOwnersSource.OwnerRules,
         userNames: ["Ben Ito"],
         teamNames: [],
@@ -3193,7 +3218,7 @@ describe("WhoIsToldService", () => {
 
       const event: WhoIsToldEvent = firstEvent(await resolve());
 
-      expect(event.owners).toEqual({
+      expect(withoutRecipients(event.owners)).toEqual({
         source: WhoIsToldOwnersSource.OwnerRules,
         userNames: ["Dan Okafor"],
         teamNames: [],
@@ -3298,7 +3323,7 @@ describe("WhoIsToldService", () => {
       ]);
       expect(alert!.kind).toBe(OnCallTestPageRecordKind.Alert);
       expect(alert!.title).toBe("Checkout API is slow");
-      expect(alert!.owners).toEqual({
+      expect(withoutRecipients(alert!.owners)).toEqual({
         source: WhoIsToldOwnersSource.OwnerRules,
         userNames: ["Cara Diaz"],
         teamNames: [],
@@ -3552,10 +3577,16 @@ describe("WhoIsToldService", () => {
         { id: OWNER_RULE, name: "" },
       ]);
       expect(JSON.stringify(result)).not.toContain("Checkout monitors");
+      /*
+       * Ben, whom the rule adds, is on Primary's first level, reached at
+       * once by what the fallback picks: the page tells him, and the
+       * Created email leaves him out (#8860).
+       */
       expect(firstEvent(result).owners).toEqual({
         source: WhoIsToldOwnersSource.OwnerRules,
-        userNames: ["Ben Ito"],
+        userNames: [],
         teamNames: [],
+        pagedOwners: [{ userId: BEN, name: "Ben Ito" }],
       });
     });
 
@@ -3656,6 +3687,308 @@ describe("WhoIsToldService", () => {
       expect(firstEvent(shown).statusPages[0]!.name).toBe("Payments status");
       // Worked out once: every caller after the first is handed the kept answer.
       expect(MonitorService.findOneBy).toHaveBeenCalledTimes(4);
+    });
+  });
+
+  /*
+   * AN OWNER THE PAGE REACHES FIRST IS NOT EMAILED AS AN OWNER TOO (#8860).
+   *
+   * The owners' Created email leaves out an owner the record's on-call page
+   * reached already (OwnersReachedByAPage, #7987): one a policy's first
+   * level pages at once, by a notification that goes out then. The resolver
+   * keeps who the email is addressed to, person by person, and whether each
+   * policy pages at once and each person's first notifications; each reader
+   * is handed whom the email still tells, and whom the page tells first.
+   *
+   * Primary's first level pages Ana - a text at once, an email after five
+   * minutes - and Ben, whose fallback push goes out at once.
+   */
+  describe("an owner the page reaches first (#8860)", () => {
+    const LONDON: string = "Europe/London";
+
+    async function forCaller(): Promise<WhoIsToldResult> {
+      return await WhoIsToldService.getForMonitor({
+        projectId: PROJECT_ID,
+        monitorId: MONITOR_ID,
+        props: CALLER,
+      });
+    }
+
+    function ownedBy(data: {
+      userIds?: Array<string>;
+      teamIds?: Array<string>;
+      onCallPolicyIds?: Array<string>;
+    }): void {
+      world.monitorSteps = opensIncidents(
+        incidentTemplate({
+          ownerUserIds: ids(data.userIds || []),
+          ownerTeamIds: ids(data.teamIds || []),
+          ...(data.onCallPolicyIds
+            ? { onCallPolicyIds: ids(data.onCallPolicyIds) }
+            : {}),
+        }),
+      );
+    }
+
+    // A daily window, set on a winter day.
+    function daily(from: string, to: string): RestrictionTimes {
+      const hours: RestrictionTimes = new RestrictionTimes();
+      hours.restictionType = RestrictionType.Daily;
+      hours.dayRestrictionTimes = {
+        startTime: moment
+          .tz(`2026-01-15 ${from}`, "YYYY-MM-DD HH:mm", LONDON)
+          .toDate(),
+        endTime: moment
+          .tz(`2026-01-15 ${to}`, "YYYY-MM-DD HH:mm", LONDON)
+          .toDate(),
+      };
+      return hours;
+    }
+
+    // Primary's rule, set to page when it says - at night in London.
+    function ruleThatPages(whenToPage: OnCallRuleWhenToPage): void {
+      const held: IncidentOnCallRule = rule(RULE, "Every incident", [PRIMARY]);
+      held.whenToPage = whenToPage;
+      held.workingHours = daily("09:00", "17:00");
+      held.workingHoursTimezone = LONDON;
+      world.incidentRules = [held];
+
+      jest
+        .spyOn(OneUptimeDate, "getCurrentDate")
+        .mockReturnValue(
+          moment.tz("2026-11-16 02:00", "YYYY-MM-DD HH:mm", LONDON).toDate(),
+        );
+    }
+
+    test("an owner the first level pages at once is left out of the Created email, and named as paged", async () => {
+      ownedBy({ userIds: [ANA, CARA] });
+
+      const owners: WhoIsToldEvent["owners"] = firstEvent(
+        await forCaller(),
+      ).owners;
+
+      expect(owners).toEqual({
+        source: WhoIsToldOwnersSource.Named,
+        userNames: ["Cara Diaz"],
+        teamNames: [],
+        pagedOwners: [{ userId: ANA, name: "Ana Lopez" }],
+      });
+    });
+
+    test("the resolver keeps whom the email is addressed to, by id, and how the policy and its people page", async () => {
+      ownedBy({ userIds: [ANA, CARA], teamIds: [SRE_TEAM] });
+
+      const event: WhoIsToldEvent = firstEvent(await resolve());
+
+      expect(event.owners.recipients).toEqual([
+        { userId: ANA, name: "Ana Lopez", isNamed: true, teamNames: [] },
+        {
+          userId: CARA,
+          name: "Cara Diaz",
+          isNamed: true,
+          teamNames: ["Checkout SRE"],
+        },
+      ]);
+      expect(event.policies[0]!.pagesAtOnce).toBe(true);
+      expect(
+        event.policies[0]!.people.map(
+          (person: WhoIsToldPerson): [string, unknown] => {
+            return [person.name, person.channelsAtOnce];
+          },
+        ),
+      ).toEqual([
+        ["Ana Lopez", [OnCallPageChannel.SMS]],
+        ["Ben Ito", [OnCallPageChannel.Push]],
+      ]);
+    });
+
+    test("the one-person project: its Project Owner, on call, is paged - and the email reaches nobody", async () => {
+      jest
+        .spyOn(ProjectService, "getOwners")
+        .mockResolvedValue([
+          withId(user("Ana Lopez", "ana@example.com"), ANA),
+        ] as never);
+
+      expect(firstEvent(await forCaller()).owners).toEqual({
+        source: WhoIsToldOwnersSource.ProjectOwners,
+        userNames: [],
+        teamNames: [],
+        pagedOwners: [{ userId: ANA, name: "Ana Lopez" }],
+      });
+    });
+
+    test("a rule that pages only during working hours, outside them, holds the page: she is still emailed", async () => {
+      ownedBy({ userIds: [ANA, CARA] });
+      ruleThatPages(OnCallRuleWhenToPage.WorkingHours);
+
+      const result: WhoIsToldResult = await forCaller();
+
+      expect(firstEvent(result).policies[0]!.pagesAtOnce).toBe(false);
+      expect(firstEvent(result).owners).toEqual({
+        source: WhoIsToldOwnersSource.Named,
+        userNames: ["Ana Lopez", "Cara Diaz"],
+        teamNames: [],
+      });
+    });
+
+    test("a rule set to After OneUptime AI may hold the page: she is still emailed", async () => {
+      ownedBy({ userIds: [ANA] });
+      ruleThatPages(OnCallRuleWhenToPage.AfterOneUptimeAI);
+
+      const owners: WhoIsToldEvent["owners"] = firstEvent(
+        await forCaller(),
+      ).owners;
+
+      expect(owners.userNames).toEqual(["Ana Lopez"]);
+      expect(owners.pagedOwners).toBeUndefined();
+    });
+
+    test("a policy the criteria names pages at once, whatever a rule holds", async () => {
+      ownedBy({ userIds: [ANA], onCallPolicyIds: [PRIMARY] });
+      ruleThatPages(OnCallRuleWhenToPage.WorkingHours);
+
+      const result: WhoIsToldResult = await forCaller();
+
+      expect(firstEvent(result).policies[0]!.pagesAtOnce).toBe(true);
+      expect(firstEvent(result).owners.pagedOwners).toEqual([
+        { userId: ANA, name: "Ana Lopez" },
+      ]);
+    });
+
+    test.each<[string, Partial<OnCallTestPagePreviewPerson>]>([
+      [
+        "she opted out of pages of this severity",
+        { hasNoRule: true, isOptedOut: true, methods: [] },
+      ],
+      [
+        "her one rule's method is not verified",
+        {
+          methods: [
+            {
+              channel: OnCallPageChannel.SMS,
+              notifyAfterMinutes: 0,
+              isVerified: false,
+              canAcknowledge: true,
+            },
+          ],
+        },
+      ],
+      [
+        "her first rule waits five minutes",
+        {
+          methods: [
+            {
+              channel: OnCallPageChannel.SMS,
+              notifyAfterMinutes: 5,
+              isVerified: true,
+              canAcknowledge: true,
+            },
+          ],
+        },
+      ],
+    ])(
+      "%s: she is still emailed as an owner",
+      async (
+        _name: string,
+        overrides: Partial<OnCallTestPagePreviewPerson>,
+      ) => {
+        ownedBy({ userIds: [ANA] });
+        world.previews[ANA] = preview(overrides);
+
+        const owners: WhoIsToldEvent["owners"] = firstEvent(
+          await forCaller(),
+        ).owners;
+
+        expect(owners.userNames).toEqual(["Ana Lopez"]);
+        expect(owners.pagedOwners).toBeUndefined();
+      },
+    );
+
+    test("with no rule and the project's fallback off, nothing is sent: she is still emailed", async () => {
+      ownedBy({ userIds: [ANA] });
+      world.previews[ANA] = preview({ hasNoRule: true, methods: [] });
+      world.project.disableOnCallNotificationFallback = true;
+
+      expect(firstEvent(await forCaller()).owners.userNames).toEqual([
+        "Ana Lopez",
+      ]);
+    });
+
+    test("her first notification is a text, and the project has texts off: she is still emailed", async () => {
+      ownedBy({ userIds: [ANA] });
+      world.project.enableSmsNotifications = false;
+
+      const result: WhoIsToldResult = await forCaller();
+
+      expect(firstEvent(result).policies[0]!.people[0]!.channelsAtOnce).toEqual(
+        [],
+      );
+      expect(firstEvent(result).owners.pagedOwners).toBeUndefined();
+    });
+
+    test("an owner on a later level only - not on the first - is still emailed", async () => {
+      ownedBy({ userIds: [DAN] });
+
+      expect(firstEvent(await forCaller()).owners).toEqual({
+        source: WhoIsToldOwnersSource.Named,
+        userNames: ["Dan Okafor"],
+        teamNames: [],
+      });
+    });
+
+    test("owners through a team: each member the page reaches first is left out, and the team stays while the email reaches one of them", async () => {
+      ownedBy({ teamIds: [PLATFORM_TEAM, SRE_TEAM] });
+
+      expect(firstEvent(await forCaller()).owners).toEqual({
+        source: WhoIsToldOwnersSource.Named,
+        userNames: [],
+        // Ana and Ben, Platform's members, are paged; Cara is not.
+        teamNames: ["Checkout SRE"],
+        pagedOwners: [
+          { userId: ANA, name: "Ana Lopez" },
+          { userId: BEN, name: "Ben Ito" },
+        ],
+      });
+    });
+
+    test("a policy the caller may not read says nothing of whom it pages: she reads as emailed, as before", async () => {
+      ownedBy({ userIds: [ANA, CARA] });
+      world.callerPolicies = "refused";
+
+      const result: WhoIsToldResult = await forCaller();
+
+      expect(firstEvent(result).owners).toEqual({
+        source: WhoIsToldOwnersSource.Named,
+        userNames: ["Ana Lopez", "Cara Diaz"],
+        teamNames: [],
+      });
+      expect(firstEvent(result).policies[0]!.pagesAtOnce).toBeUndefined();
+    });
+
+    test("whom the email is addressed to never leaves the server, whatever the caller reads", async () => {
+      ownedBy({ userIds: [ANA, CARA], teamIds: [SRE_TEAM] });
+
+      expect(JSON.stringify(await forCaller())).not.toContain("recipients");
+
+      world.callerPolicies = "refused";
+
+      expect(JSON.stringify(await forCaller())).not.toContain("recipients");
+    });
+
+    test("a status change's owners are told of it all the same: never left out", async () => {
+      jest
+        .spyOn(MonitorService, "findOwners")
+        .mockResolvedValue([
+          withId(user("Ana Lopez", "ana@example.com"), ANA),
+        ] as never);
+
+      const result: WhoIsToldResult = await forCaller();
+
+      expect(result.criteria[1]!.statusOwners).toEqual({
+        source: WhoIsToldOwnersSource.MonitorOwners,
+        userNames: ["Ana Lopez"],
+        teamNames: [],
+      });
     });
   });
 });

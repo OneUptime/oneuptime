@@ -55981,5 +55981,9 @@
   "Already paged about this through the workflow {{name}}, so not paged again.": "Уже вызван по этому поводу через рабочий процесс {{name}}, поэтому повторно не вызывается.",
   "Already paged directly about this by {{name}}, so not paged again.": "Уже вызван по этому поводу напрямую пользователем {{name}}, поэтому повторно не вызывается.",
   "Their page from another on-call policy is over, so they are paged directly now.": "Вызов другой политикой дежурства завершён, поэтому теперь вызывается напрямую.",
-  "Their page from {{name}} is over, so they are paged directly now.": "Вызов от {{name}} завершён, поэтому теперь вызывается напрямую."
+  "Their page from {{name}} is over, so they are paged directly now.": "Вызов от {{name}} завершён, поэтому теперь вызывается напрямую.",
+  "{{names}} are paged, so aren't emailed as Project Owners too.": "{{names}} получают вызов, поэтому не получают ещё и письмо как владельцы проекта.",
+  "{{names}} are paged, so aren't emailed as Project Owners too._one": "{{names}} получает вызов, поэтому не получает ещё и письмо как владелец проекта.",
+  "{{names}} are paged, so aren't emailed as owners too.": "{{names}} получают вызов, поэтому не получают ещё и письмо как владельцы.",
+  "{{names}} are paged, so aren't emailed as owners too._one": "{{names}} получает вызов, поэтому не получает ещё и письмо как владелец."
 }

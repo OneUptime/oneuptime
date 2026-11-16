@@ -55981,5 +55981,9 @@
   "Already paged about this through the workflow {{name}}, so not paged again.": "پیش‌تر از طریق گردش کاری {{name}} برای این فراخوانده شده بود، پس دوباره فراخوانده نشد.",
   "Already paged directly about this by {{name}}, so not paged again.": "پیش‌تر {{name}} مستقیماً برای این فراخوانده بود، پس دوباره فراخوانده نشد.",
   "Their page from another on-call policy is over, so they are paged directly now.": "فراخوانی سیاست آنکال دیگر تمام شده است، پس اکنون مستقیماً فراخوانده می‌شود.",
-  "Their page from {{name}} is over, so they are paged directly now.": "فراخوانی {{name}} تمام شده است، پس اکنون مستقیماً فراخوانده می‌شود."
+  "Their page from {{name}} is over, so they are paged directly now.": "فراخوانی {{name}} تمام شده است، پس اکنون مستقیماً فراخوانده می‌شود.",
+  "{{names}} are paged, so aren't emailed as Project Owners too.": "{{names}} فراخوانده می‌شوند، پس به‌عنوان مالکان پروژه هم ایمیل نمی‌گیرند.",
+  "{{names}} are paged, so aren't emailed as Project Owners too._one": "{{names}} فراخوانده می‌شود، پس به‌عنوان مالک پروژه هم ایمیل نمی‌گیرد.",
+  "{{names}} are paged, so aren't emailed as owners too.": "{{names}} فراخوانده می‌شوند، پس به‌عنوان مالک هم ایمیل نمی‌گیرند.",
+  "{{names}} are paged, so aren't emailed as owners too._one": "{{names}} فراخوانده می‌شود، پس به‌عنوان مالک هم ایمیل نمی‌گیرد."
 }

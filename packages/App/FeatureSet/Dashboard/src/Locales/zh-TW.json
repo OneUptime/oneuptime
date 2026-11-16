@@ -55981,5 +55981,9 @@
   "Already paged about this through the workflow {{name}}, so not paged again.": "工作流程 {{name}} 已為此呼叫過，因此不再重複呼叫。",
   "Already paged directly about this by {{name}}, so not paged again.": "{{name}} 已為此直接呼叫過，因此不再重複呼叫。",
   "Their page from another on-call policy is over, so they are paged directly now.": "另一個待命策略的呼叫已結束，因此現在直接呼叫。",
-  "Their page from {{name}} is over, so they are paged directly now.": "{{name}} 的呼叫已結束，因此現在直接呼叫。"
+  "Their page from {{name}} is over, so they are paged directly now.": "{{name}} 的呼叫已結束，因此現在直接呼叫。",
+  "{{names}} are paged, so aren't emailed as Project Owners too.": "{{names}} 會被呼叫，因此不會再以專案擁有者身分收到電子郵件。",
+  "{{names}} are paged, so aren't emailed as Project Owners too._one": "{{names}} 會被呼叫，因此不會再以專案擁有者身分收到電子郵件。",
+  "{{names}} are paged, so aren't emailed as owners too.": "{{names}} 會被呼叫，因此不會再以擁有者身分收到電子郵件。",
+  "{{names}} are paged, so aren't emailed as owners too._one": "{{names}} 會被呼叫，因此不會再以擁有者身分收到電子郵件。"
 }

@@ -14,6 +14,7 @@ import {
   getBreakSentence,
   getChannelName,
   getFixLink,
+  getPagedOwnersSentence,
   getWhoIsToldSeverityValue,
   getWhoIsToldSummary,
   OPENS_CHAIN_LINES,
@@ -335,6 +336,11 @@ const EventBlock: FunctionComponent<{
   const translator: Translator = useTranslator();
   const event: WhoIsToldEvent = props.event;
   const isAlert: boolean = event.kind === OnCallTestPageRecordKind.Alert;
+  // Owners the page reaches first, whom the Created email leaves out (#8860).
+  const pagedOwnersLine: string | null = getPagedOwnersSentence(
+    event.owners,
+    translator,
+  );
 
   const policyLabel: ReactElement = props.isFirstPolicyLabel ? (
     <DefinedTerm term={GlossaryTerm.OnCallPolicy}>
@@ -375,6 +381,21 @@ const EventBlock: FunctionComponent<{
       </ChainRow>
       <ChainRow label={translator.translateText("Emails") || "Emails"}>
         <span dir="auto">{ownersText(event.owners, translator)}</span>
+        {/*
+         * An owner the page reaches first is not emailed as an owner too
+         * (#8860): said under whom the email reaches, so "Nobody" there
+         * never reads as nobody being told.
+         */}
+        {pagedOwnersLine ? (
+          <p
+            className="mt-0.5 text-xs text-gray-500"
+            data-testid="who-is-told-paged-owners"
+          >
+            {pagedOwnersLine}
+          </p>
+        ) : (
+          <></>
+        )}
       </ChainRow>
       {event.ownerRules.length > 0 ? (
         <ChainRow

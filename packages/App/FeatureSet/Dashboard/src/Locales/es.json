@@ -55981,5 +55981,9 @@
   "Already paged about this through the workflow {{name}}, so not paged again.": "Ya avisado de esto a través del flujo de trabajo {{name}}, así que no se avisa de nuevo.",
   "Already paged directly about this by {{name}}, so not paged again.": "Ya avisado de esto directamente por {{name}}, así que no se avisa de nuevo.",
   "Their page from another on-call policy is over, so they are paged directly now.": "El aviso de otra política de guardia terminó, así que ahora se le avisa directamente.",
-  "Their page from {{name}} is over, so they are paged directly now.": "El aviso de {{name}} terminó, así que ahora se le avisa directamente."
+  "Their page from {{name}} is over, so they are paged directly now.": "El aviso de {{name}} terminó, así que ahora se le avisa directamente.",
+  "{{names}} are paged, so aren't emailed as Project Owners too.": "{{names}} reciben un aviso, así que no reciben también el correo como Propietarios del proyecto.",
+  "{{names}} are paged, so aren't emailed as Project Owners too._one": "{{names}} recibe un aviso, así que no recibe también el correo como Propietario del proyecto.",
+  "{{names}} are paged, so aren't emailed as owners too.": "{{names}} reciben un aviso, así que no reciben también el correo como propietarios.",
+  "{{names}} are paged, so aren't emailed as owners too._one": "{{names}} recibe un aviso, así que no recibe también el correo como propietario."
 }
