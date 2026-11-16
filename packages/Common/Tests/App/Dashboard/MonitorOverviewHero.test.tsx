@@ -400,7 +400,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     runState: MonitorOverviewRunState.Paused,
     badge: "Disabled",
     badgeTone: "neutral",
-    secondary: ["Probes Not Enabled"],
+    secondary: ["No Probe Enabled"],
     headline: "Monitoring is turned off",
     hasExplanation: true,
     lastKnown: "Last recorded status: Operational",
@@ -455,7 +455,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
       }),
     },
     runState: MonitorOverviewRunState.NotChecking,
-    badge: "Probes Not Enabled",
+    badge: "No Probe Enabled",
     badgeTone: "danger",
     secondary: [],
     headline: "Every probe is turned off for this monitor",
@@ -475,7 +475,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
       }),
     },
     runState: MonitorOverviewRunState.NotChecking,
-    badge: "Probes Not Enabled",
+    badge: "No Probe Enabled",
     badgeTone: "danger",
     secondary: [],
     headline: "No probes are attached to this monitor",
@@ -491,7 +491,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
       probeFlags: { isNoProbeEnabled: true, isAllProbesDisconnected: false },
     },
     runState: MonitorOverviewRunState.NotChecking,
-    badge: "Probes Not Enabled",
+    badge: "No Probe Enabled",
     badgeTone: "danger",
     secondary: [],
     headline: "Nothing is checking this monitor",
@@ -933,14 +933,14 @@ describe("MonitorOverviewHero layout", () => {
     expect(overdue).toHaveClass("text-amber-700");
   });
 
-  test('"Probes Not Enabled" is on the page when no probe is enabled', () => {
+  test('"No Probe Enabled" is on the page when no probe is enabled', () => {
     renderHero({
       presentation: presentationFor(MonitorType.API, {
         probeFlags: { isNoProbeEnabled: true, isAllProbesDisconnected: false },
       }),
     });
 
-    expect(screen.getByText("Probes Not Enabled")).toBeInTheDocument();
+    expect(screen.getByText("No Probe Enabled")).toBeInTheDocument();
   });
 
   test("the facts are a labelled definition list, in order, owners last", () => {

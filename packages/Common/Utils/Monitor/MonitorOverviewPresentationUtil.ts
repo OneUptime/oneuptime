@@ -1398,7 +1398,7 @@ export default class MonitorOverviewPresentationUtil {
          */
         if (context.isNoProbeEnabled) {
           secondaryBadges.push({
-            text: t.translateTemplate("Probes Not Enabled"),
+            text: t.translateTemplate("No Probe Enabled"),
             tone: "danger",
           });
         } else if (context.isAllProbesDisconnected) {
@@ -1660,7 +1660,7 @@ export default class MonitorOverviewPresentationUtil {
     }
 
     const badge: MonitorOverviewBadge = {
-      text: t.translateTemplate("Probes Not Enabled"),
+      text: t.translateTemplate("No Probe Enabled"),
       tone: "danger",
     };
     const manageProbes: MonitorOverviewCallToAction = {

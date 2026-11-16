@@ -316,7 +316,7 @@ export default function MonitorDetailScreen({
 
   /*
    * What the web says of the monitor (utils/monitorHealth): its status, or
-   * why no check stands behind it - Disabled, Probes Not Enabled, Probes
+   * why no check stands behind it - Disabled, No Probe Enabled, Probes
    * Disconnected, or for a monitor nothing has checked yet Paused, No
    * results yet or Waiting for data - with a banner that says what next.
    */

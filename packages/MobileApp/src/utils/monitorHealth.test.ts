@@ -365,7 +365,7 @@ describe("getMonitorRowStatus: what a row says (#8961)", () => {
       ),
     ).toEqual({
       kind: "NoProbeEnabled",
-      text: "Probes Not Enabled",
+      text: "No Probe Enabled",
       isProductWords: true,
       tone: "danger",
     });

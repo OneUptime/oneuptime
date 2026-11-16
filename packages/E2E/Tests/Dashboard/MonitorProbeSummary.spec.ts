@@ -507,7 +507,7 @@ test.describe("Monitor summary probe picker", () => {
       { waitUntil: "domcontentloaded" },
     );
 
-    await expect(page.getByText("Probes Not Enabled").first()).toBeVisible({
+    await expect(page.getByText("No Probe Enabled").first()).toBeVisible({
       timeout: 90000,
     });
   });

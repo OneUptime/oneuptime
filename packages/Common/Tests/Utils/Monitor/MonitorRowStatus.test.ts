@@ -452,7 +452,7 @@ describe("MonitorRowStatus: what a row says", () => {
     });
     expect(
       rowStatus(newRow({ isNoProbeEnabledOnThisMonitor: true })),
-    ).toMatchObject({ text: "Probes Not Enabled", color: Red500 });
+    ).toMatchObject({ text: "No Probe Enabled", color: Red500 });
     expect(
       rowStatus(newRow({ isAllProbesDisconnectedFromThisMonitor: true })),
     ).toMatchObject({ text: "Probes Disconnected", color: Red500 });

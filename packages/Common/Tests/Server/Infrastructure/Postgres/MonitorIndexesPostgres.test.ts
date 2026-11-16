@@ -596,8 +596,8 @@ describePostgres("Monitor's indexes, on Postgres", () => {
     });
 
     test.each([
-      ["Probe Disconnected", "isAllProbesDisconnectedFromThisMonitor"],
-      ["Probe Disabled", "isNoProbeEnabledOnThisMonitor"],
+      ["Probes Disconnected", "isAllProbesDisconnectedFromThisMonitor"],
+      ["No Probe Enabled", "isNoProbeEnabledOnThisMonitor"],
       ["Disabled", "disableActiveMonitoring"],
     ])(
       "the Monitors menu's %s count reads only its partial index",

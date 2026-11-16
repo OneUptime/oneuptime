@@ -1,7 +1,7 @@
 /*
  * https://github.com/OneUptime/oneuptime/issues/2486
  *
- * A monitor carries two probe flags that drive the "Probes Not Enabled" and
+ * A monitor carries two probe flags that drive the "No Probe Enabled" and
  * "Probe Disconnected" banners and the owner notifications behind them:
  *
  *   - isNoProbeEnabledOnThisMonitor: no MonitorProbe row of the monitor is

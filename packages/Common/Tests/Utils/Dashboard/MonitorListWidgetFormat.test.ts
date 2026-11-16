@@ -469,7 +469,7 @@ describe("what a row says a monitor's status is", () => {
         isNoProbeEnabledOnThisMonitor: true,
         currentMonitorStatus: { name: "Operational", color: GREEN },
       }),
-    ).toMatchObject({ text: "Probes Not Enabled", isMonitoringOff: false });
+    ).toMatchObject({ text: "No Probe Enabled", isMonitoringOff: false });
     expect(
       getMonitorListRowStatus({
         isAllProbesDisconnectedFromThisMonitor: true,
