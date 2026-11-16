@@ -26,7 +26,7 @@ I OneUptime ligger allt i ett projekt: dina monitorer, incidenter, jourpolicyer,
 :::steps
 ### Börja ett nytt projekt
 
-Första gången du loggar in visar OneUptime **Inga projekt**. Klicka på **Skapa nytt projekt**. Om någon redan har bjudit in dig till ett projekt accepterar du i stället inbjudan på samma sida.
+Första gången du loggar in visar OneUptime **Inga projekt ännu**. Klicka på **Skapa projekt**. Om någon redan har bjudit in dig till ett projekt accepterar du i stället inbjudan på samma sida.
 
 ### Ge det ett namn
 
