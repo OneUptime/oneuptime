@@ -824,6 +824,8 @@ describe("find_dashboard_page's chip", () => {
       "top errors",
       "API Keys",
       "Create Monitor",
+      "Import from PagerDuty",
+      "Create Maintenance Event",
     ]) {
       const result: ToolExecutionResult = await FindDashboardPageTool.execute(
         { query },
@@ -835,5 +837,87 @@ describe("find_dashboard_page's chip", () => {
         result.citationLabel,
       );
     }
+  });
+});
+
+/*
+ * A TITLE FILLED WITH ANOTHER PRODUCT'S NAME (#8834). Search names each
+ * importer's action "Import from {{tool}}" filled with the tool's name.
+ * The model reads the filled English; the citation keeps the template and
+ * the name, so its button and its chip say the template in the reader's
+ * language with the name as written.
+ */
+describe("find_dashboard_page and a title filled with another product's name", () => {
+  test.each([
+    ["PagerDuty", "PagerDuty"],
+    ["Opsgenie", "OpsGenie"],
+    ["Uptime Kuma", "UptimeKuma"],
+  ])(
+    'tells the model "Import from %s", and its citation keeps the template and the name',
+    async (tool: string, source: string) => {
+      const result: ToolExecutionResult = await FindDashboardPageTool.execute(
+        { query: `Import from ${tool}` },
+        MEMBER,
+      );
+      const pages: Array<JSONObject> = (
+        JSON.parse(result.dataForLlm) as JSONObject
+      )["pages"] as Array<JSONObject>;
+
+      expect(pages[0]).toEqual({
+        title: `Import from ${tool}`,
+        where: "Project Settings > Advanced > Import from another tool",
+        kind: "action",
+      });
+      expect(result.citationTarget?.params).toEqual({
+        path: `/dashboard/:projectId/settings/import?from=search&tool=${source}`,
+        title: `Import from ${tool}`,
+        titleKey: "Import from {{tool}}",
+        titleValues: JSON.stringify({ tool }),
+      });
+      expect(result.citationWords?.values?.["path"]).toEqual({
+        menuPath: [
+          "Project Settings",
+          "Advanced",
+          "Import from another tool",
+          "Import from {{tool}}",
+        ],
+        values: { tool },
+      });
+      expect(result.citationLabel).toBe(
+        `Page: Project Settings > Advanced > Import from another tool > Import from ${tool}`,
+      );
+      // The template and its values are the button's: never the model's.
+      expect(result.dataForLlm).not.toContain("{{");
+      expect(result.dataForLlm).not.toContain("titleValues");
+    },
+  );
+
+  test("a page whose title is its key keeps no values", async () => {
+    const result: ToolExecutionResult = await FindDashboardPageTool.execute(
+      { query: "Create Maintenance Event" },
+      MEMBER,
+    );
+
+    expect(result.citationTarget?.params).toEqual({
+      path: "/dashboard/:projectId/scheduled-maintenance-events/create",
+      title: "Create Maintenance Event",
+    });
+    expect(result.citationWords?.values?.["path"]).toEqual({
+      menuPath: ["Scheduled Maintenance", "Create Maintenance Event"],
+    });
+  });
+
+  test('"Create Scheduled Maintenance", Search\'s name for it, still finds the page its button calls Create Maintenance Event', async () => {
+    const result: ToolExecutionResult = await FindDashboardPageTool.execute(
+      { query: "Create Scheduled Maintenance" },
+      MEMBER,
+    );
+
+    expect(result.citationTarget?.params?.["path"]).toBe(
+      "/dashboard/:projectId/scheduled-maintenance-events/create",
+    );
+    expect(result.citationLabel).toBe(
+      "Page: Scheduled Maintenance > Create Maintenance Event",
+    );
   });
 });

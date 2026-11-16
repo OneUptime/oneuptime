@@ -304,3 +304,153 @@ describe("a question about the Traces explorer's Insights tab ends with a link t
     },
   );
 });
+
+/*
+ * THE PAGES THAT READ IN ENGLISH IN EVERY LANGUAGE (#8834).
+ *
+ * An importer's action is titled "Import from {{tool}}" filled with the
+ * tool's name, and the catalog kept only the filled English, which no
+ * locale holds: "Zu Import from PagerDuty". The scheduled maintenance
+ * create page was titled "Create Scheduled Maintenance", which only
+ * Search's own action says, under a nested key no flat lookup reads. The
+ * one keeps its template and the tool's name now, the other is named as
+ * its page's own button names it, "Create Maintenance Event".
+ */
+describe("an importer's action and the maintenance create page, in the reader's language (#8834)", () => {
+  test.each([
+    [
+      "en",
+      "Go to Import from PagerDuty",
+      "Page: Project Settings > Advanced > Import from another tool > Import from PagerDuty",
+    ],
+    [
+      "de",
+      "Zu Import aus PagerDuty",
+      "Seite: Projekteinstellungen > Erweitert > Import aus anderem Tool > Import aus PagerDuty",
+    ],
+    [
+      "ar",
+      "انتقل إلى الاستيراد من PagerDuty",
+      "الصفحة: إعدادات المشروع > متقدم > الاستيراد من أداة أخرى > الاستيراد من PagerDuty",
+    ],
+    [
+      "ja",
+      "PagerDuty からインポート へ移動",
+      "ページ: プロジェクト設定 > 詳細 > 別のツールからインポート > PagerDuty からインポート",
+    ],
+  ])(
+    'in %s "Import from PagerDuty" reads %p on its button and %p on its chip',
+    async (language: string, button: string, chip: string) => {
+      await i18next.changeLanguage(language);
+
+      const cited: AIChatCitation = await citationFor({
+        query: "Import from PagerDuty",
+      });
+
+      render(
+        <AskAiPageButtons
+          text="Bring your schedules over from PagerDuty [C2]."
+          citations={[cited]}
+        />,
+      );
+
+      const drawn: HTMLElement = screen.getByRole("button");
+
+      expect(withoutIsolateMarks(drawn.textContent || "")).toBe(button);
+      fireEvent.click(drawn);
+      expect(navigateMock).toHaveBeenCalledWith(cited.target);
+      cleanup();
+
+      expect(chipLabel(cited)).toBe(chip);
+      // The product's name as written, in every language.
+      expect(chip).toContain("PagerDuty");
+      // What the model reads stays English.
+      expect(cited.label).toBe(
+        "Page: Project Settings > Advanced > Import from another tool > Import from PagerDuty",
+      );
+    },
+  );
+
+  test.each([
+    [
+      "en",
+      "Go to Create Maintenance Event",
+      "Page: Scheduled Maintenance > Create Maintenance Event",
+    ],
+    [
+      "de",
+      "Zu Wartungsereignis erstellen",
+      "Seite: Geplante Wartung > Wartungsereignis erstellen",
+    ],
+    [
+      "ar",
+      "انتقل إلى إنشاء حدث صيانة",
+      "الصفحة: الصيانة المجدولة > إنشاء حدث صيانة",
+    ],
+    [
+      "ja",
+      "メンテナンスイベントを作成 へ移動",
+      "ページ: 定期メンテナンス > メンテナンスイベントを作成",
+    ],
+  ])(
+    "in %s the maintenance create page reads %p on its button and %p on its chip",
+    async (language: string, button: string, chip: string) => {
+      await i18next.changeLanguage(language);
+
+      // Asked as the docs and Search's own action name it.
+      const cited: AIChatCitation = await citationFor({
+        query: "Create Scheduled Maintenance",
+      });
+
+      render(
+        <AskAiPageButtons
+          text="Schedule it from here [C2]."
+          citations={[cited]}
+        />,
+      );
+
+      expect(
+        withoutIsolateMarks(screen.getByRole("button").textContent || ""),
+      ).toBe(button);
+      cleanup();
+
+      expect(chipLabel(cited)).toBe(chip);
+      expect(cited.label).toBe(
+        "Page: Scheduled Maintenance > Create Maintenance Event",
+      );
+    },
+  );
+
+  test.each(["de", "ar", "ja"])(
+    "in %s each importer's action reads its template in the reader's language, with its tool's name",
+    async (language: string) => {
+      const words: Record<string, string> =
+        readDashboardLocaleAsDrawn(language);
+
+      await i18next.changeLanguage(language);
+
+      for (const tool of ["Opsgenie", "Splunk On-Call", "Uptime Kuma"]) {
+        const cited: AIChatCitation = await citationFor({
+          query: `Import from ${tool}`,
+        });
+
+        render(
+          <AskAiPageButtons text={`Go [C2].`} citations={[cited]} />,
+        );
+
+        const text: string = withoutIsolateMarks(
+          screen.getByRole("button").textContent || "",
+        );
+
+        expect(text).toBe(
+          words["Go to {{page}}"]!.replace(
+            "{{page}}",
+            words["Import from {{tool}}"]!.replace("{{tool}}", tool),
+          ),
+        );
+        expect(text).not.toContain("Import from");
+        cleanup();
+      }
+    },
+  );
+});

@@ -122,7 +122,8 @@ export const ASK_AI_HOW_DO_I_QUESTIONS: ReadonlyArray<AskAiHowDoIQuestion> = [
   {
     question: "How do I schedule maintenance?",
     docsPage: "scheduled-maintenance/creating-events",
-    dashboardPage: "Create Scheduled Maintenance",
+    // As the page's own button and the docs name it (#8834).
+    dashboardPage: "Create Maintenance Event",
     dashboardPath: "/dashboard/:projectId/scheduled-maintenance-events/create",
   },
   {

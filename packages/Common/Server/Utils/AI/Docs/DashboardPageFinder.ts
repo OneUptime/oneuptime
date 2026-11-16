@@ -43,6 +43,13 @@ export interface AIDashboardPage {
    * ..." button draws it, in the reader's language.
    */
   titleKey?: string | undefined;
+  /*
+   * Where titleKey is a template, what fills it once it is translated:
+   * another product's name, the same in every language - "Import from
+   * {{tool}}" with { tool: "PagerDuty" } for "Import from PagerDuty"
+   * (#8834). Only the button and the chip read it.
+   */
+  titleValues?: Record<string, string> | undefined;
   // Where it is, as Search shows it: ["Project Settings", "Advanced"].
   where: Array<string>;
   keywords?: Array<string> | undefined;
