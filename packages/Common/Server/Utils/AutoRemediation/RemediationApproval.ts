@@ -165,6 +165,12 @@ import {
 } from "../../../Types/AutoRemediation/RemediationApprovals";
 import User from "../../../Models/DatabaseModels/User";
 import UserService from "../../Services/UserService";
+import IncidentService from "../../Services/IncidentService";
+import AlertService from "../../Services/AlertService";
+import DatabaseService from "../../Services/DatabaseService";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
+import PrivateRecordWriteCheck from "../Permission/PrivateRecordWriteCheck";
 
 // What an approval, a dry run or a dismissal answers, as the routes send it.
 export type RemediationApprovalResult = JSONObject;
@@ -264,6 +270,65 @@ export async function findAccessibleSuggestion(
   }
 
   return suggestion.id;
+}
+
+/*
+ * What "You do not have permission to ..." says of each press on a fix, in
+ * the refusal of a fix for a private incident or alert
+ * (assertReachesFixSubject).
+ */
+export const APPROVE_FIX_ACTION: string = "approve this fix";
+export const DRY_RUN_FIX_ACTION: string = "dry-run this fix";
+export const DISMISS_FIX_ACTION: string = "dismiss this fix";
+
+/*
+ * A FIX FOR A PRIVATE INCIDENT OR ALERT IS ACTED ON ONLY THROUGH ITS OWNERS
+ * (#8913). Approving a fix, dry-running it again and dismissing it each ask
+ * the permission to start runbook executions (assertCanExecuteRunbooks,
+ * assertCanDismissFixes); on a fix for a private incident or alert that
+ * permission counts only through the teams that own the record, as a
+ * person named its owner, or as a Project Owner or Admin - as every change
+ * of a private record does (PrivateRecordPermission). Another team's
+ * permission reaches none of it: a member whose team that owns the incident
+ * may only view it is refused, saying why, and nothing runs, is checked or
+ * is written. The person reads the fix first (findAccessibleSuggestion,
+ * through the record's privacy), so a record they do not see is answered
+ * as missing before this. A Slack or Microsoft Teams press comes here too.
+ */
+export async function assertReachesFixSubject(data: {
+  props: DatabaseCommonInteractionProps;
+  suggestion: Pick<AutoRemediationSuggestion, "incidentId" | "alertId">;
+  action: string;
+}): Promise<void> {
+  let subject: {
+    service: DatabaseService<DatabaseBaseModel>;
+    id: ObjectID;
+  } | null = null;
+
+  if (data.suggestion.incidentId) {
+    subject = {
+      service: IncidentService as unknown as DatabaseService<DatabaseBaseModel>,
+      id: data.suggestion.incidentId,
+    };
+  } else if (data.suggestion.alertId) {
+    subject = {
+      service: AlertService as unknown as DatabaseService<DatabaseBaseModel>,
+      id: data.suggestion.alertId,
+    };
+  }
+
+  if (!subject) {
+    return;
+  }
+
+  await PrivateRecordWriteCheck.assertReaches({
+    modelType: RunbookExecution,
+    type: DatabaseRequestType.Create,
+    recordService: subject.service,
+    recordId: subject.id,
+    props: data.props,
+    action: data.action,
+  });
 }
 
 /*
@@ -1615,6 +1680,19 @@ export default class RemediationApproval {
     }
 
     /*
+     * A fix for a private incident or alert only through the teams that own
+     * it (assertReachesFixSubject): after the permission itself, so someone
+     * who may not run fixes at all is told that first.
+     */
+    assertCanExecuteRunbooks(props, suggestion.projectId);
+
+    await assertReachesFixSubject({
+      props,
+      suggestion,
+      action: APPROVE_FIX_ACTION,
+    });
+
+    /*
      * What the fix runs, checked as it is now - its kind's own checks -
      * and the project as read, for its two-approvals rule:
      *
@@ -1973,6 +2051,13 @@ export default class RemediationApproval {
 
     assertCanExecuteRunbooks(props, suggestion.projectId);
 
+    // A fix for a private record, only through its owners. See the helper.
+    await assertReachesFixSubject({
+      props,
+      suggestion,
+      action: DRY_RUN_FIX_ACTION,
+    });
+
     const plan: AiRemediationCommandPlan | null =
       AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
 
@@ -2051,6 +2136,13 @@ export default class RemediationApproval {
     }
 
     assertCanDismissFixes(props, suggestion.projectId);
+
+    // A fix for a private record, only through its owners. See the helper.
+    await assertReachesFixSubject({
+      props,
+      suggestion,
+      action: DISMISS_FIX_ACTION,
+    });
 
     /*
      * From a message, only the fix it showed, while it waits: a fix that

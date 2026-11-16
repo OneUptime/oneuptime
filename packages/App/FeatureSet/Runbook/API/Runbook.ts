@@ -42,6 +42,7 @@ import {
 import RunRunbook from "../Services/RunRunbook";
 import RunbookRunAccess from "Common/Server/Utils/Runbook/RunbookRunAccess";
 import { RunbookStarterClass } from "Common/Server/Utils/Runbook/RunbookStarter";
+import RunbookPrivateRecordAccess from "Common/Server/Utils/Runbook/RunbookPrivateRecordAccess";
 
 export default class RunbookAPI {
   public router!: ExpressRouter;
@@ -257,6 +258,20 @@ export default class RunbookAPI {
       });
 
       /*
+       * A run linked to a private incident or alert is started only with the
+       * permissions of the teams that own it, of the people named as its
+       * owners, and of Project Owners and Admins (#8913): the record was
+       * read above as the caller's, so one they do not see was answered as
+       * missing; one they see but their teams that own it may not run
+       * runbooks for is refused here, saying why, and nothing runs.
+       */
+      await RunbookPrivateRecordAccess.assertMayStartFor({
+        props: props,
+        incidentId: execution.incidentId,
+        alertId: execution.alertId,
+      });
+
+      /*
        * Written as OneUptime - the run permissions let the caller start it,
        * not the model's create permission - but in their name, so the audit
        * log says who started the run, not System.
@@ -393,6 +408,9 @@ export default class RunbookAPI {
             runbookId: true,
             status: true,
             stepExecutions: true,
+            // The private record it may be linked to. See assertMayAdvanceRunOf.
+            incidentId: true,
+            alertId: true,
           },
           props: { isRoot: true },
         });
@@ -409,7 +427,7 @@ export default class RunbookAPI {
       await assertMayAdvanceRunOf({
         databaseProps: props,
         projectId,
-        runbookId: execution.runbookId,
+        execution: execution,
       });
 
       if (
@@ -473,21 +491,28 @@ export default class RunbookAPI {
  * A run is moved along - a step completed or skipped, the run cancelled - by
  * whoever may run its runbook (RunbookRunAccess). A run whose runbook is
  * gone is left to the run permissions alone: there are no labels left to
- * weigh.
+ * weigh. A run linked to a private incident or alert is moved along only
+ * through the teams that own it (RunbookPrivateRecordAccess, #8913), and is
+ * answered as missing to someone who does not see the record.
  */
 async function assertMayAdvanceRunOf(data: {
   databaseProps: DatabaseCommonInteractionProps;
   projectId: ObjectID;
-  runbookId: ObjectID | undefined;
+  execution: RunbookExecution;
 }): Promise<void> {
-  if (!data.runbookId) {
+  await RunbookPrivateRecordAccess.assertMayAdvance({
+    props: data.databaseProps,
+    execution: data.execution,
+  });
+
+  if (!data.execution.runbookId) {
     return;
   }
 
   await RunbookRunAccess.assertMayAdvance({
     databaseProps: data.databaseProps,
     projectId: data.projectId,
-    runbookId: data.runbookId,
+    runbookId: data.execution.runbookId,
   });
 }
 
@@ -562,6 +587,9 @@ async function advanceStep(args: {
         status: true,
         stepExecutions: true,
         version: true,
+        // The private record it may be linked to. See assertMayAdvanceRunOf.
+        incidentId: true,
+        alertId: true,
       },
       props: { isRoot: true },
     });
@@ -578,7 +606,7 @@ async function advanceStep(args: {
   await assertMayAdvanceRunOf({
     databaseProps: args.databaseProps,
     projectId: args.projectId,
-    runbookId: execution.runbookId,
+    execution: execution,
   });
 
   const stepExecutions: RunbookStepExecutionState[] =

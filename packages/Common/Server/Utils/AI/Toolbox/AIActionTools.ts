@@ -28,6 +28,7 @@ import RunbookRuleEngineService from "../../../Services/RunbookRuleEngineService
 import RunbookTriggerType from "../../../../Types/Runbook/RunbookTriggerType";
 import { assertCanExecuteRunbooks } from "../../Runbook/RunbookExecutePermission";
 import RunbookRunAccess from "../../Runbook/RunbookRunAccess";
+import RunbookPrivateRecordAccess from "../../Runbook/RunbookPrivateRecordAccess";
 import logger from "../../Logger";
 import WorkspaceMemberActions, {
   WorkspaceEventType,
@@ -511,6 +512,17 @@ export const RunRunbookTool: ObservabilityTool = {
           "Incident not found (or you do not have access to it).",
         );
       }
+
+      /*
+       * A run for a private incident, only with the permissions of the
+       * teams that own it, of its named owners and of Project Owners and
+       * Admins, as the dashboard's Run Runbook asks (#8913): refused here,
+       * saying why, before anything runs.
+       */
+      await RunbookPrivateRecordAccess.assertMayStartFor({
+        props: ctx.props,
+        incidentId: incidentId,
+      });
     }
 
     const execution: RunbookExecution | null =

@@ -49,6 +49,7 @@ import ScheduledMaintenanceStateService from "../../Services/ScheduledMaintenanc
 import ScheduledMaintenanceStateTimelineService from "../../Services/ScheduledMaintenanceStateTimelineService";
 import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
+import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import type { OnCallPersonPageRecordKind } from "../OnCall/OnCallPersonPageAnswer";
 import WorkspaceActionAuthorization, {
@@ -878,6 +879,13 @@ export default class WorkspaceMemberActions {
    * log the dashboard's Execute On-Call Policy creates, triggered by the
    * record. The log service pages from there; an archived policy pages no
    * one and says so on the log (OnCallDutyPolicyArchive).
+   *
+   * A page about a private incident, alert or episode is made only with the
+   * permissions of the teams that own it, of the people named as its
+   * owners, and of Project Owners and Admins (#8913): the create holds it
+   * to that (DatabaseService.checkNamedPrivateRecords), and it is asked
+   * here first, so the member - from Slack, Microsoft Teams, Mattermost or
+   * OneUptime AI - is told why in the chat's own words, and nobody is paged.
    */
   @CaptureSpan()
   public static async executeOnCallPolicy(data: {
@@ -889,6 +897,17 @@ export default class WorkspaceMemberActions {
       event: data.event,
       props: data.props,
     });
+
+    if (event.type !== WorkspaceEventType.ScheduledMaintenance) {
+      await WorkspaceActionAuthorization.assertReachesPrivateRecord({
+        props: data.props,
+        modelType: OnCallDutyPolicyExecutionLog,
+        type: DatabaseRequestType.Create,
+        service: this.getEventResource(event).service,
+        id: event.id,
+        action: `execute an on-call policy for this ${this.getNoun(event.type)}`,
+      });
+    }
 
     const executionLog: OnCallDutyPolicyExecutionLog =
       new OnCallDutyPolicyExecutionLog();
