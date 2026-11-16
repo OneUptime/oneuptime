@@ -736,10 +736,14 @@ describe("the budget is asked before each resource, scope and metric too", () =>
 
     jest
       .spyOn(TelemetryUtil, "getPrefixedScopeAttributes")
-      .mockImplementation((scope: JSONObject | undefined) => {
-        advance(milliseconds);
-        return real(scope);
-      });
+      .mockImplementation(
+        (
+          scope: Parameters<typeof TelemetryUtil.getPrefixedScopeAttributes>[0],
+        ) => {
+          advance(milliseconds);
+          return real(scope);
+        },
+      );
   }
 
   // Six resources with no scopes: only the resource loop can hand back.
