@@ -289,7 +289,20 @@ För .NET-profileraren sätter du `DD_TRACE_DEBUG=1` på applikationen i en minu
 | --- | --- |
 | **Vart CPU-tiden går** | Alla profiler i tidsfönstret, sammanslagna till ett flamdiagram. Ju bredare en ram är, desto större andel har den. Klicka på en ram för att zooma in. |
 | **Funktioner** | Funktionerna som tar mest, sorterade efter **Egen** (tiden i funktionens egen kod), **Totalt** (med allt den anropar) eller **Din kod** (dina egna funktioner, var och en med biblioteks- och körtidskoden den anropar: den tid en ändring i dem kan vinna tillbaka). |
-| **Profilerade tjänster** | Varje profilerad tjänst, mest belastade först. Kärntrådar som eBPF-profileraren samplar döljs. |
+| **Profilerade tjänster** | Varje profilerad tjänst, mest belastade först, var och en med vart dess egen tid går: dess egen kod som tar mest. Med flera tjänster och ingen vald kommer det här kortet först. Kärntrådar som eBPF-profileraren samplar döljs. |
+
+### Så läser du ett flamdiagram
+
+Ett flamdiagram slår ihop alla profiler i tidsfönstret till en bild. Varje stapel är en funktion: ju bredare den är, desto större andel av tiden har den, och staplarna under den är funktionerna den anropar. **Så läser du den**, bredvid diagrammets rubrik, förklarar det på sidan.
+
+- **Egen** är tiden i funktionens egen kod, och **Totalt** lägger till allt den anropar. En bred stapel med lite under sig gör arbetet själv: börja där.
+- Färgerna visar vems kod en stapel är: **Din kod** (orange), **Bibliotek** (blå), **Körtid** (grå), **System** (lila) och **Inga symboler** (ljusgrå). Listan bredvid diagrammet använder samma ord.
+- En stapel visar en funktions korta namn, till exempel `aggregate.(*Builder).Sum`. Håll pekaren över den för att se hela namnet, filen och andelarna egen och totalt.
+- Klicka på en stapel för att zooma in och tryck på Esc för att zooma ut igen.
+
+### Kod utan symboler
+
+Nativ kod som byggts utan symboler når profileraren bara som adresser, till exempel `0x270675`. Flamdiagrammet samlar dem i en stapel **Inga symboler** under funktionen som anropade dem och visar under diagrammet hur stor del som saknar symboler. För att se funktionerna med namn behåller du binärfilens symboler: ta inte bort dem (för Go: utelämna `-ldflags="-s -w"`; för C, C++ och Rust: bygg med felsökningsinformation), eller installera dess paket med felsökningssymboler där profileraren körs.
 
 ### Jämför två tidsfönster
 
