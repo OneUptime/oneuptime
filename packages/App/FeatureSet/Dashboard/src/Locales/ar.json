@@ -56439,5 +56439,9 @@
   "{{itemName}} started": "تم بدء {{itemName}}",
   "No commands you can see.": "لا توجد أوامر يمكنك رؤيتها.",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "الأوامر التي شُغّلت هنا ولا تظهر في القائمة: {{count}}. شُغّلت لدردشات ذكاء اصطناعي أو حوادث أو تنبيهات لا يمكنك فتحها.",
-  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} أمر شُغّل هنا لا يظهر في القائمة: شُغّل لدردشة ذكاء اصطناعي أو حادث أو تنبيه لا يمكنك فتحه."
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} أمر شُغّل هنا لا يظهر في القائمة: شُغّل لدردشة ذكاء اصطناعي أو حادث أو تنبيه لا يمكنك فتحه.",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "يمكن لكل من لديه حق الوصول إلى المستودع رؤية طلب السحب هذا، مع التغيير ووصفه.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "يمكن لكل من لديه حق الوصول إلى المستودع رؤية طلب السحب هذا، مع التغيير ووصفه. لا يُذكر فيه هذا التنبيه الخاص.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "يمكن لكل من لديه حق الوصول إلى المستودع رؤية طلب السحب هذا، مع التغيير ووصفه. لا تُذكر فيه هذه الحادثة الخاصة.",
+  "Only someone who may approve fixes can open this pull request.": "لا يمكن فتح طلب السحب هذا إلا لمن يحق له الموافقة على الإصلاحات."
 }

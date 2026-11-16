@@ -56439,5 +56439,9 @@
   "{{itemName}} started": "{{itemName}} startet",
   "No commands you can see.": "Ingen kommandoer du kan se.",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} kommandoer som ble kjørt her, vises ikke: de ble kjørt for AI-chatter, hendelser eller varsler du ikke kan åpne.",
-  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} kommando som ble kjørt her, vises ikke: den ble kjørt for en AI-chat, en hendelse eller et varsel du ikke kan åpne."
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} kommando som ble kjørt her, vises ikke: den ble kjørt for en AI-chat, en hendelse eller et varsel du ikke kan åpne.",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "Alle med tilgang til kodelageret kan se denne pull requesten, med endringen og beskrivelsen av den.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Alle med tilgang til kodelageret kan se denne pull requesten, med endringen og beskrivelsen av den. Dette private varselet nevnes ikke i den.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Alle med tilgang til kodelageret kan se denne pull requesten, med endringen og beskrivelsen av den. Denne private hendelsen nevnes ikke i den.",
+  "Only someone who may approve fixes can open this pull request.": "Bare den som kan godkjenne rettinger, kan åpne denne pull requesten."
 }

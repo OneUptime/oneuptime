@@ -56439,5 +56439,9 @@
   "{{itemName}} started": "Avviato: {{itemName}}",
   "No commands you can see.": "Nessun comando che puoi vedere.",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} comandi eseguiti qui non sono elencati: sono stati eseguiti per chat IA, incidenti o avvisi che non puoi aprire.",
-  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} comando eseguito qui non è elencato: è stato eseguito per una chat IA, un incidente o un avviso che non puoi aprire."
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} comando eseguito qui non è elencato: è stato eseguito per una chat IA, un incidente o un avviso che non puoi aprire.",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "Chiunque abbia accesso al repository può vedere questa pull request, con la modifica e la sua descrizione.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Chiunque abbia accesso al repository può vedere questa pull request, con la modifica e la sua descrizione. Questo avviso privato non vi è menzionato.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Chiunque abbia accesso al repository può vedere questa pull request, con la modifica e la sua descrizione. Questo incidente privato non vi è menzionato.",
+  "Only someone who may approve fixes can open this pull request.": "Solo chi può approvare le correzioni può aprire questa pull request."
 }

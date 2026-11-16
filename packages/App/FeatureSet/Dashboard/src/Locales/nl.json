@@ -56439,5 +56439,9 @@
   "{{itemName}} started": "{{itemName}} gestart",
   "No commands you can see.": "Geen opdrachten die u kunt zien.",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} opdrachten die hier zijn uitgevoerd, staan niet in de lijst: ze zijn uitgevoerd voor AI-chats, incidenten of waarschuwingen die u niet kunt openen.",
-  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} opdracht die hier is uitgevoerd, staat niet in de lijst: die is uitgevoerd voor een AI-chat, een incident of een waarschuwing die u niet kunt openen."
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} opdracht die hier is uitgevoerd, staat niet in de lijst: die is uitgevoerd voor een AI-chat, een incident of een waarschuwing die u niet kunt openen.",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "Iedereen met toegang tot de repository kan deze pull request zien, met de wijziging en de beschrijving ervan.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Iedereen met toegang tot de repository kan deze pull request zien, met de wijziging en de beschrijving ervan. Deze waarschuwing is privé en wordt er niet in genoemd.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Iedereen met toegang tot de repository kan deze pull request zien, met de wijziging en de beschrijving ervan. Dit incident is privé en wordt er niet in genoemd.",
+  "Only someone who may approve fixes can open this pull request.": "Alleen wie oplossingen mag goedkeuren, kan deze pull request openen."
 }

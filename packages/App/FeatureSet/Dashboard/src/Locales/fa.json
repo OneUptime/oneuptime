@@ -56439,5 +56439,9 @@
   "{{itemName}} started": "{{itemName}} آغاز شد",
   "No commands you can see.": "دستوری که بتوانید ببینید وجود ندارد.",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} دستوری که اینجا اجرا شده‌اند در فهرست نیستند: برای گفتگوهای هوش مصنوعی، حادثه‌ها یا هشدارهایی اجرا شده‌اند که نمی‌توانید باز کنید.",
-  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} دستوری که اینجا اجرا شده است در فهرست نیست: برای گفتگوی هوش مصنوعی، حادثه یا هشداری اجرا شده است که نمی‌توانید باز کنید."
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} دستوری که اینجا اجرا شده است در فهرست نیست: برای گفتگوی هوش مصنوعی، حادثه یا هشداری اجرا شده است که نمی‌توانید باز کنید.",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "همهٔ کسانی که به مخزن دسترسی دارند می‌توانند این pull request را همراه با تغییر و توضیحات آن ببینند.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "همهٔ کسانی که به مخزن دسترسی دارند می‌توانند این pull request را همراه با تغییر و توضیحات آن ببینند. این هشدار خصوصی در آن ذکر نمی‌شود.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "همهٔ کسانی که به مخزن دسترسی دارند می‌توانند این pull request را همراه با تغییر و توضیحات آن ببینند. این حادثهٔ خصوصی در آن ذکر نمی‌شود.",
+  "Only someone who may approve fixes can open this pull request.": "فقط کسی که اجازهٔ تأیید اصلاح‌ها را دارد می‌تواند این pull request را باز کند."
 }

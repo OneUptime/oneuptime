@@ -56439,5 +56439,9 @@
   "{{itemName}} started": "已開始{{itemName}}",
   "No commands you can see.": "沒有你可以檢視的指令。",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "此處執行的 {{count}} 個指令未列出：它們是為你無法開啟的 AI 聊天、事件或警示執行的。",
-  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "此處執行的 {{count}} 個指令未列出：它是為你無法開啟的 AI 聊天、事件或警示執行的。"
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "此處執行的 {{count}} 個指令未列出：它是為你無法開啟的 AI 聊天、事件或警示執行的。",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "所有有權存取儲存庫的人都可以看到此提取要求，包括變更及其描述。",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "所有有權存取儲存庫的人都可以看到此提取要求，包括變更及其描述。其中不會提及此私人警示。",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "所有有權存取儲存庫的人都可以看到此提取要求，包括變更及其描述。其中不會提及此私人事件。",
+  "Only someone who may approve fixes can open this pull request.": "只有可以核准修正的人才能開啟此提取要求。"
 }

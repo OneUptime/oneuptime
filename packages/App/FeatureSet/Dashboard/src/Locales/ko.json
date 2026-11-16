@@ -56439,5 +56439,9 @@
   "{{itemName}} started": "{{itemName}} 시작됨",
   "No commands you can see.": "볼 수 있는 명령이 없습니다.",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "여기서 실행된 명령 {{count}}개는 목록에 표시되지 않습니다. 열 수 없는 AI 채팅, 인시던트 또는 경고를 위해 실행된 명령입니다.",
-  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "여기서 실행된 명령 {{count}}개는 목록에 표시되지 않습니다. 열 수 없는 AI 채팅, 인시던트 또는 경고를 위해 실행된 명령입니다."
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "여기서 실행된 명령 {{count}}개는 목록에 표시되지 않습니다. 열 수 없는 AI 채팅, 인시던트 또는 경고를 위해 실행된 명령입니다.",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "저장소에 접근할 수 있는 모든 사람이 이 풀 리퀘스트의 변경 내용과 설명을 볼 수 있습니다.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "저장소에 접근할 수 있는 모든 사람이 이 풀 리퀘스트의 변경 내용과 설명을 볼 수 있습니다. 이 비공개 경고는 언급되지 않습니다.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "저장소에 접근할 수 있는 모든 사람이 이 풀 리퀘스트의 변경 내용과 설명을 볼 수 있습니다. 이 비공개 인시던트는 언급되지 않습니다.",
+  "Only someone who may approve fixes can open this pull request.": "수정을 승인할 수 있는 사람만 이 풀 리퀘스트를 열 수 있습니다."
 }

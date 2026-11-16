@@ -12,6 +12,7 @@ import {
   DECLARED_CODE_DIALOG_TRY_AGAIN,
   DECLARED_CODE_REASON_WORDS,
   getDeclaredCodeLiveChangeNote,
+  getDeclaredCodeWhoSeesNote,
   getStartingRepositoryId,
   isDeclaredCodeReadRetryable,
 } from "./DeclaredCodeChangeWords";
@@ -146,7 +147,13 @@ export function readDeclaredCodeOwner(
       ? (object["target"] as Record<string, unknown>)
       : null;
 
+  // A fix of a private record: its pull request leaves the record out.
+  const privateRecord: unknown = object["privateRecord"];
+
   return {
+    ...(privateRecord === "incident" || privateRecord === "alert"
+      ? { privateRecord: privateRecord }
+      : {}),
     sequence: typeof object["sequence"] === "number" ? object["sequence"] : 0,
     managedAsCode:
       typeof object["managedAsCode"] === "string"
@@ -566,6 +573,27 @@ const DeclaredCodeChangeDialog: FunctionComponent<ComponentProps> = (
                 command: props.command,
                 suggestionStatus: props.suggestionStatus,
               }),
+            )}
+          </p>
+        </div>
+
+        {/*
+          Who reads the pull request once it is open (#9165): everyone with
+          access to the repository - and, for a private record's fix, that
+          it leaves the record out.
+        */}
+        <div
+          className="flex items-start gap-2 text-xs leading-5 text-gray-600"
+          data-testid={`${DECLARED_CODE_DIALOG_TEST_ID}-who-sees`}
+          data-private-record={owner.privateRecord || ""}
+        >
+          <Icon
+            icon={IconProp.Eye}
+            className="mt-0.5 h-4 w-4 flex-none text-gray-400"
+          />
+          <p className="min-w-0">
+            {translator.translateText(
+              getDeclaredCodeWhoSeesNote(owner.privateRecord),
             )}
           </p>
         </div>

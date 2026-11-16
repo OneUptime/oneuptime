@@ -56439,5 +56439,9 @@
   "{{itemName}} started": "{{itemName}} शुरू किया गया",
   "No commands you can see.": "ऐसा कोई कमांड नहीं जिसे आप देख सकें।",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "यहाँ चलाए गए {{count}} कमांड सूची में नहीं हैं: वे ऐसे AI चैट, घटनाओं या अलर्ट के लिए चलाए गए थे जिन्हें आप नहीं खोल सकते।",
-  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "यहाँ चलाया गया {{count}} कमांड सूची में नहीं है: वह ऐसे AI चैट, घटना या अलर्ट के लिए चलाया गया था जिसे आप नहीं खोल सकते।"
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "यहाँ चलाया गया {{count}} कमांड सूची में नहीं है: वह ऐसे AI चैट, घटना या अलर्ट के लिए चलाया गया था जिसे आप नहीं खोल सकते।",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "रिपॉजिटरी तक पहुंच रखने वाला हर व्यक्ति यह पुल रिक्वेस्ट, उसके बदलाव और विवरण के साथ, देख सकता है।",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "रिपॉजिटरी तक पहुंच रखने वाला हर व्यक्ति यह पुल रिक्वेस्ट, उसके बदलाव और विवरण के साथ, देख सकता है। इसमें इस निजी अलर्ट का उल्लेख नहीं होता।",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "रिपॉजिटरी तक पहुंच रखने वाला हर व्यक्ति यह पुल रिक्वेस्ट, उसके बदलाव और विवरण के साथ, देख सकता है। इसमें इस निजी घटना का उल्लेख नहीं होता।",
+  "Only someone who may approve fixes can open this pull request.": "यह पुल रिक्वेस्ट केवल वही व्यक्ति खोल सकता है जिसे सुधार स्वीकृत करने की अनुमति हो।"
 }
