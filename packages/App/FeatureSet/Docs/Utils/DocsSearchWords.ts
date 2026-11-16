@@ -3264,32 +3264,99 @@ export interface DocsVocabularyMatch {
 }
 
 /*
+ * The words of a vocabulary: how many pages hold each, by the word - or,
+ * as a docs index builds one (DocsIndexBuilder), the words already sorted
+ * with those counts by their place, which the index's entries are numbered
+ * by too (DocsIndexPostings).
+ */
+export type DocsVocabularyWords =
+  | ReadonlyMap<string, number>
+  | {
+      sorted: ReadonlyArray<string>;
+      pageCounts: ArrayLike<number>;
+    };
+
+/*
  * Every word a language's docs hold, with how many pages hold it, laid out
  * to find the words a typed word starts or nearly spells.
+ *
+ * The words are one sorted list, and a word's place in it is its number:
+ * how many pages hold it is a typed array by that number, the words of
+ * each length a typed array of those numbers (#8818). A word the index
+ * lists that no page holds - one only a nav group or a section's heading
+ * says - has 0 pages: the vocabulary does not have it.
  */
 export class DocsVocabulary {
-  private readonly sorted: Array<string>;
-  private readonly byLength: Map<number, Array<string>> = new Map();
-  private readonly pageCounts: Map<string, number>;
+  private readonly sorted: ReadonlyArray<string>;
+  private readonly pageCounts: ArrayLike<number>;
+  // The places of the words pages hold, by their length in characters, in sorted order.
+  private readonly byLength: Map<number, Uint32Array> = new Map();
 
-  public constructor(pageCounts: Map<string, number>) {
-    this.pageCounts = pageCounts;
-    this.sorted = Array.from(pageCounts.keys()).sort();
+  public constructor(words: DocsVocabularyWords) {
+    if (DocsVocabulary.isByWord(words)) {
+      const sorted: Array<string> = Array.from(words.keys()).sort();
 
-    for (const term of this.sorted) {
+      this.sorted = sorted;
+      this.pageCounts = Uint32Array.from(sorted, (term: string): number => {
+        return words.get(term) || 0;
+      });
+    } else {
+      this.sorted = words.sorted;
+      this.pageCounts = words.pageCounts;
+    }
+
+    const places: Map<number, Array<number>> = new Map();
+
+    this.sorted.forEach((term: string, place: number): void => {
+      if (this.pageCounts[place]! === 0) {
+        return;
+      }
+
       const length: number = Array.from(term).length;
-      const sameLength: Array<string> = this.byLength.get(length) || [];
-      sameLength.push(term);
-      this.byLength.set(length, sameLength);
+      const sameLength: Array<number> = places.get(length) || [];
+
+      sameLength.push(place);
+      places.set(length, sameLength);
+    });
+
+    for (const [length, sameLength] of places) {
+      this.byLength.set(length, Uint32Array.from(sameLength));
     }
   }
 
+  private static isByWord(
+    words: DocsVocabularyWords,
+  ): words is ReadonlyMap<string, number> {
+    return words instanceof Map;
+  }
+
+  // How many words it lists, the ones no page holds too.
+  public get size(): number {
+    return this.sorted.length;
+  }
+
+  // The word at `place` in sorted order.
+  public termAt(place: number): string {
+    return this.sorted[place]!;
+  }
+
+  // The place of `term` in sorted order: its number in the index. -1 for a word it does not list.
+  public positionOf(term: string): number {
+    const place: number = this.firstAtOrAfter(term);
+
+    return place < this.sorted.length && this.sorted[place] === term
+      ? place
+      : -1;
+  }
+
   public has(term: string): boolean {
-    return this.pageCounts.has(term);
+    return this.pagesHolding(term) > 0;
   }
 
   public pagesHolding(term: string): number {
-    return this.pageCounts.get(term) || 0;
+    const place: number = this.positionOf(term);
+
+    return place < 0 ? 0 : this.pageCounts[place]!;
   }
 
   // The words that start with `start` (itself not included), most used first.
@@ -3301,29 +3368,23 @@ export class DocsVocabulary {
       return [];
     }
 
-    let low: number = 0;
-    let high: number = this.sorted.length;
-
-    while (low < high) {
-      const middle: number = (low + high) >> 1;
-      if (this.sorted[middle]! < start) {
-        low = middle + 1;
-      } else {
-        high = middle;
-      }
-    }
-
     const matches: Array<DocsVocabularyMatch> = [];
 
-    for (let i: number = low; i < this.sorted.length; i++) {
-      const term: string = this.sorted[i]!;
+    for (
+      let place: number = this.firstAtOrAfter(start);
+      place < this.sorted.length;
+      place++
+    ) {
+      const term: string = this.sorted[place]!;
 
       if (!term.startsWith(start)) {
         break;
       }
 
-      if (term !== start) {
-        matches.push({ term, pages: this.pagesHolding(term), distance: 0 });
+      const pages: number = this.pageCounts[place]!;
+
+      if (term !== start && pages > 0) {
+        matches.push({ term, pages, distance: 0 });
       }
     }
 
@@ -3350,7 +3411,9 @@ export class DocsVocabulary {
     const matches: Array<DocsVocabularyMatch> = [];
 
     for (let size: number = length - max; size <= length + max; size++) {
-      for (const term of this.byLength.get(size) || []) {
+      for (const place of this.byLength.get(size) || []) {
+        const term: string = this.sorted[place]!;
+
         // A typo is rarely the first letter, and keeping it cuts out near-misses ("hello" is not "help").
         if (term === word || !term.startsWith(first)) {
           continue;
@@ -3359,7 +3422,7 @@ export class DocsVocabulary {
         const distance: number | null = isWithinEditDistance(word, term, max);
 
         if (distance !== null) {
-          matches.push({ term, pages: this.pagesHolding(term), distance });
+          matches.push({ term, pages: this.pageCounts[place]!, distance });
         }
       }
     }
@@ -3373,6 +3436,23 @@ export class DocsVocabulary {
         );
       })
       .slice(0, limit);
+  }
+
+  // The first place whose word sorts at or after `term`.
+  private firstAtOrAfter(term: string): number {
+    let low: number = 0;
+    let high: number = this.sorted.length;
+
+    while (low < high) {
+      const middle: number = (low + high) >> 1;
+      if (this.sorted[middle]! < term) {
+        low = middle + 1;
+      } else {
+        high = middle;
+      }
+    }
+
+    return low;
   }
 
   private static mostUsed(

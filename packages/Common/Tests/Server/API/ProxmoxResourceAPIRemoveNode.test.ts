@@ -1005,16 +1005,19 @@ describe("ProxmoxResourceAPI remove-node", () => {
 
     /*
      * What a lookup's condition on the cluster's id says: the id it names,
-     * and the labels a team's block leaves out (the "NOT IN" condition the
-     * label rule adds), whatever the shape - a plain id, or the id and the
-     * block's condition together.
+     * the labels a team's block leaves out (the "NOT IN" condition the
+     * label rule adds), and the labels a grant limited to labels keeps it
+     * to (the "IN" condition on the label join table, #8113; null when
+     * there is none), whatever the shape - a plain id, or the id and the
+     * rules' conditions together.
      */
     function idConditions(idFilter: unknown): {
       id: string | null;
       blockedLabelIds: Array<string>;
+      permittedLabelIds: Array<string> | null;
     } {
       if (typeof idFilter === "string") {
-        return { id: idFilter, blockedLabelIds: [] };
+        return { id: idFilter, blockedLabelIds: [], permittedLabelIds: null };
       }
 
       const parts: Array<FindOperator<unknown>> = [];
@@ -1038,6 +1041,7 @@ describe("ProxmoxResourceAPI remove-node", () => {
 
       let id: string | null = null;
       const blockedLabelIds: Array<string> = [];
+      let permittedLabelIds: Array<string> | null = null;
 
       for (const part of parts) {
         if (part.type === "equal") {
@@ -1046,22 +1050,24 @@ describe("ProxmoxResourceAPI remove-node", () => {
         }
 
         const sql: string = part.getSql ? part.getSql("id") : "";
-        const values: Array<unknown> = Object.values(
+        const values: Array<string> = Object.values(
           part.objectLiteralParameters || {},
-        ).flat();
+        )
+          .flat()
+          .map((value: unknown): string => {
+            return String(value);
+          });
 
-        if (sql.includes("NOT IN (SELECT")) {
-          blockedLabelIds.push(
-            ...values.map((value: unknown): string => {
-              return String(value);
-            }),
-          );
+        if (sql.includes('NOT IN (SELECT "ProxmoxClusterLabel"')) {
+          blockedLabelIds.push(...values);
+        } else if (sql.includes('IN (SELECT "ProxmoxClusterLabel"')) {
+          permittedLabelIds = [...(permittedLabelIds || []), ...values];
         } else if (values.length === 1) {
-          id = String(values[0]);
+          id = values[0]!;
         }
       }
 
-      return { id, blockedLabelIds };
+      return { id, blockedLabelIds, permittedLabelIds };
     }
 
     /*
@@ -1107,10 +1113,20 @@ describe("ProxmoxResourceAPI remove-node", () => {
 
     /*
      * The labels a lookup query is narrowed to, or null when it is not.
-     * The real check adds { labels: { _id: <operator over the permitted
-     * ids> } } for a label-scoped grant.
+     * The real check keeps a label-scoped grant's clusters by a condition
+     * on the cluster's id against the label join table (#8113); without
+     * the join table's names it adds { labels: { _id: <operator over the
+     * permitted ids> } }.
      */
     function permittedLabelIds(query: JSONObject): Array<string> | null {
+      const onId: Array<string> | null = idConditions(
+        query["_id"],
+      ).permittedLabelIds;
+
+      if (onId) {
+        return onId;
+      }
+
       const predicate: unknown = query["labels"];
       if (predicate === undefined || predicate === null) {
         return null;
@@ -1147,11 +1163,12 @@ describe("ProxmoxResourceAPI remove-node", () => {
     /*
      * The cluster as the database holds it, served the way each lookup
      * would serve it. The scoped lookup (findOneBy) applies the label
-     * predicate the real check adds: it finds the row only when one of
+     * condition the real check adds: it finds the row only when one of
      * its labels is permitted, and labels selected through it come back
-     * narrowed to the permitted ones, as with a filtered join. That
-     * narrowing is what once hid a blocked label from the per-row check,
-     * so it is kept here. The root load (findOneById) has every label.
+     * narrowed to the permitted ones, as with the filtered join it once
+     * was. That narrowing is what once hid a blocked label from the
+     * per-row check, so it is kept here: the check must load the labels
+     * itself. The root load (findOneById) has every label.
      */
     function storeCluster(labelIds: Array<ObjectID>): void {
       findOneBy.mockImplementation(
@@ -1161,6 +1178,7 @@ describe("ProxmoxResourceAPI remove-node", () => {
           const conditions: {
             id: string | null;
             blockedLabelIds: Array<string>;
+            permittedLabelIds: Array<string> | null;
           } = idConditions(query["_id"]);
           if (conditions.id !== clusterId.toString()) {
             return null;

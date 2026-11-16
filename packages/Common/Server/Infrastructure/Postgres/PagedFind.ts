@@ -1,5 +1,6 @@
 import {
   FindManyOptions,
+  FindOperator,
   ObjectLiteral,
   Repository,
   SelectQueryBuilder,
@@ -34,8 +35,9 @@ import TypeOrmPatchVersion from "./TypeOrmPatchVersion";
  *    page of records. DatabaseService always orders by the primary key last,
  *    so the order has no ties for the two plans to break differently.
  *  - A read of the first page that names its record by primary key - a
- *    findOneById with relations selected. At most one record matches, so the
- *    query that returns all its joined rows is the page.
+ *    findOneById with relations selected, also when the permission checks
+ *    add conditions on the id beside it (And). At most one record matches,
+ *    so the query that returns all its joined rows is the page.
  *
  * A read that joins a to-many relation only to SELECT it - a list's Labels
  * or Monitors column - keeps two queries, but not TypeORM's first one.
@@ -450,7 +452,12 @@ export default class PagedFind {
   /*
    * Whether the find names one record by its whole primary key: one where
    * (not a list of alternatives) giving the single primary column a plain
-   * value, so at most one record matches whatever else it asks.
+   * value, so at most one record matches whatever else it asks - or that
+   * value with more conditions on the column beside it, all of which must
+   * hold (And): a read by id that the permission checks narrow by
+   * conditions on the record's own id (the labels a grant is limited to, a
+   * block with labels, the records the caller owns) is
+   * `_id: And(Equal(id), ...)`, and still names one record.
    */
   public static namesOneRecordByPrimaryKey<TEntity extends ObjectLiteral>(
     metadata: EntityMetadata | undefined,
@@ -469,6 +476,37 @@ export default class PagedFind {
     const primaryKey: string = metadata.primaryColumns[0]!.propertyName;
     const value: unknown = (where as Record<string, unknown>)[primaryKey];
 
-    return typeof value === "string" && value.length > 0;
+    return PagedFind.isOneValue(value);
+  }
+
+  /*
+   * Whether a condition on a column holds for one value of it at most: the
+   * value itself, `Equal(value)`, or an And() one of whose parts is.
+   */
+  private static isOneValue(condition: unknown): boolean {
+    if (typeof condition === "string") {
+      return condition.length > 0;
+    }
+
+    if (!(condition instanceof FindOperator)) {
+      return false;
+    }
+
+    if (condition.type === "equal") {
+      return (
+        typeof condition.value === "string" &&
+        (condition.value as string).length > 0
+      );
+    }
+
+    if (condition.type === "and" && Array.isArray(condition.value)) {
+      return (condition.value as Array<unknown>).some(
+        (part: unknown): boolean => {
+          return PagedFind.isOneValue(part);
+        },
+      );
+    }
+
+    return false;
   }
 }

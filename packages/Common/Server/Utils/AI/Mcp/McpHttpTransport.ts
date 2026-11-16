@@ -29,6 +29,10 @@ import McpClientError from "./McpClientError";
  *     and the other always-blocked ranges are refused everywhere; private
  *     ranges are refused on OneUptime Cloud and allowed on a self-hosted
  *     OneUptime, as for every other target a project member types;
+ *   - behind an outbound proxy (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY, apart
+ *     from NO_PROXY's hosts) the request goes through it, as every axios
+ *     request of the server does, the address checked first
+ *     (createPinnedAgentsForNodeHttp);
  *   - a redirect is never followed: an answer in the 3xx range is a
  *     failure, so a checked server cannot bounce OneUptime somewhere else;
  *   - the body is cut off at `maxResponseBytes`: reading more fails the
@@ -335,7 +339,7 @@ export default class GuardedMcpHttpTransport implements McpHttpTransport {
     let pinned: { url: URL } & PinnedAgents;
 
     try {
-      pinned = await DataSourceEgressGuard.assertUrlAllowedAndPin(
+      pinned = await DataSourceEgressGuard.assertUrlAllowedAndPinForNodeHttp(
         request.url,
         this.egressOptions,
       );

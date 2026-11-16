@@ -5,7 +5,7 @@ import path from "path";
 /*
  * The copy that orients a new user in a very large product: what each item in
  * the Products menu is for, what each core list page holds, the Home
- * "How OneUptime works" strip and the Getting Started checklist.
+ * "How OneUptime works" strip and dialog, and the Getting Started checklist.
  *
  * Copy fails quietly. A locale missing a key shows English (or a raw key) to
  * that user, a rewritten English string silently orphans its translations,
@@ -329,6 +329,9 @@ describe("core list pages explain what they hold", () => {
 describe("Home orientation copy", () => {
   const FILES: Array<Array<string>> = [
     ["Components", "Home", "HowOneUptimeWorks.tsx"],
+    // How OneUptime works, the dialog Help, Home and Search open (#8891).
+    ["Components", "Home", "HowOneUptimeWorksDialog.tsx"],
+    ["Components", "Home", "HowOneUptimeWorksOverview.tsx"],
     ["Components", "Home", "GettingStarted.tsx"],
     ["Components", "Home", "WelcomeChecklist", "WelcomeChecklistCatalog.ts"],
   ];
@@ -353,9 +356,20 @@ describe("Home orientation copy", () => {
         "What do you want to do first?",
         "Know when my website or API is down",
         "Back to setup",
+        // The dialog's overview: its line, its first section and its steps.
+        "Everything OneUptime does, and how it fits together.",
+        "How it fits together",
+        "Detect",
+        "Respond",
+        "Communicate",
+        "Improve",
+        "Open an incident when users are affected, or an alert for your team, and page whoever is on call.",
+        "The servers, containers, clusters, storage and networks you run yourself.",
+        "Next: {{section}}",
+        "Products",
       ]),
     );
-    expect(literals.length).toBeGreaterThanOrEqual(50);
+    expect(literals.length).toBeGreaterThanOrEqual(70);
   });
 
   test("every English literal is a key in en.json that maps to itself", () => {

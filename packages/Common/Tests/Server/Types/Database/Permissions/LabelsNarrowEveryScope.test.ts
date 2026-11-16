@@ -24,7 +24,10 @@ import {
   PermissionRows,
 } from "../../../../../UI/Utils/GrantablePermission";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
-import { withLabelJoinTables } from "../../../TestingUtils/LabelJoinTables";
+import {
+  getLabelsKeptTo,
+  withLabelJoinTables,
+} from "../../../TestingUtils/LabelJoinTables";
 import {
   afterEach,
   beforeEach,
@@ -234,13 +237,7 @@ describe("the records a read reaches", () => {
       DatabaseRequestType.Read,
     )) as Query<Incident>;
 
-    return sortedIds(
-      ((query as unknown as { labels?: Array<ObjectID> }).labels || []).map(
-        (labelId: ObjectID): string => {
-          return labelId.toString();
-        },
-      ),
-    );
+    return sortedIds(getLabelsKeptTo(Incident, query));
   }
 
   test("an All row with labels reaches only the incidents carrying them", async () => {

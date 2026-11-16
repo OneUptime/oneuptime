@@ -63,7 +63,7 @@ REST 리소스는 세 가지이며, 각각 [OneUptime API](/docs/api-reference/a
 
 ### 키 복사
 
-키의 페이지에서 **API 키**를 복사하고 작업에서 쓸 수 있게 합니다.
+키를 만들 때 OneUptime이 한 번만 보여 준 키를 사용하고, 작업에서 쓸 수 있게 합니다.
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"

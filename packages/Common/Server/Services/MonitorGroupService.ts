@@ -17,7 +17,9 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnDelete } from "../Types/Database/Hooks";
 import StatusPageResourceService from "./StatusPageResourceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import FrozenMonitorResources from "../../Utils/StatusPage/FrozenMonitorResources";
+import FrozenMonitorResources, {
+  MONITOR_NOT_MONITORED_YET_SELECT,
+} from "../../Utils/StatusPage/FrozenMonitorResources";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorService from "./MonitorService";
 import MonitorGroupMonitoring, {
@@ -468,6 +470,12 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
             currentMonitorStatusId: true,
             isArchived: true,
             ...MONITORING_OFF_SELECT,
+            /*
+             * Whether anything has measured each member yet: a status page
+             * draws a group none of whose monitors has been checked as Not
+             * monitored yet (FrozenMonitorResources, issue #8899).
+             */
+            ...MONITOR_NOT_MONITORED_YET_SELECT,
           },
         },
         props: {

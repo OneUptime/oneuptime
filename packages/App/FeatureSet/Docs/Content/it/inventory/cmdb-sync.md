@@ -63,7 +63,7 @@ Un'esportazione in sola lettura ha bisogno di una sola autorizzazione, **Read In
 
 ### Copiare la chiave
 
-Copia la **Chiave API** dalla pagina della chiave e rendila disponibile al tuo job:
+Usa la chiave che OneUptime ti ha mostrato una sola volta, quando l'hai creata, e rendila disponibile al tuo job:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"

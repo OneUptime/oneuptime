@@ -95,6 +95,8 @@ flowchart TB
 
 De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te verbergen, klik je op **Verbergen**: hij is dan alleen voor jou verborgen, op elk apparaat, en er blijft een regel met **Tonen** en **Hoe OneUptime werkt**. Wie als lid in het project is uitgenodigd, ziet de checklist niet. **Hoe OneUptime werkt** blijft in elk project één klik verwijderd: open het via **Hulp** of met de knop naast **Verken OneUptime**.
 
+**Hoe OneUptime werkt** opent op **Hoe het in elkaar grijpt**: de vier stappen die een probleem doorloopt, **Detecteren**, **Reageren**, **Communiceren** en **Verbeteren**, elk met de producten die die stap doen. Daarna volgen de categorieën van het menu **Producten**, elk met zijn producten en waarvoor elk dient: kies er een, of ga naar de volgende met de pijltjestoetsen of **Volgende**. Klik op een product om het te openen. Producten die je project verbergt, staan er niet in.
+
 ### Vraagt aandacht
 
 **Vraagt aandacht** toont bij naam wat de getallen tellen: de open incidenten, de open waarschuwingen, de monitoren die niet operationeel zijn, de SLO's in gevaar en het lopende onderhoud, het dringendste eerst. Elke rij toont de ernst of status, zegt wanneer een incident of waarschuwing begon en wanneer het onderhoud eindigt, en opent het item. Van elke soort staan er hooguit vijf, met **Alle tonen** voor de rest, dat dezelfde lijst opent als het getal ervan. Als er niets openstaat, staat er **Niets vraagt je aandacht**.

@@ -95,6 +95,8 @@ flowchart TB
 
 Checklistan försvinner för alla när varje steg är klart. För att dölja den tidigare klickar du på **Dölj**: den döljs då bara för dig, på alla enheter, och en rad blir kvar med **Visa den** och **Så fungerar OneUptime**. Den som har bjudits in till projektet som medlem ser inte checklistan. **Så fungerar OneUptime** finns kvar ett klick bort, i alla projekt: öppna det från **Hjälp** eller med knappen bredvid **Utforska OneUptime**.
 
+**Så fungerar OneUptime** öppnar med **Så hänger det ihop**: de fyra steg ett problem går igenom, **Upptäck**, **Reagera**, **Kommunicera** och **Förbättra**, vart och ett med de produkter som gör det. Sedan kommer kategorierna i menyn **Produkter**, var och en med sina produkter och vad varje produkt är till för: välj en, eller gå vidare med piltangenterna eller **Nästa**. Klicka på en produkt för att öppna den. Produkter som ditt projekt döljer är utelämnade.
+
 ### Kräver uppmärksamhet
 
 **Kräver uppmärksamhet** listar med namn det som siffrorna räknar: de öppna incidenterna, de öppna larmen, monitorerna som inte fungerar, SLO:erna i riskzonen och underhållet som pågår, det mest brådskande först. Varje rad visar sin allvarlighetsgrad eller status, säger när en incident eller larm började och när ett underhåll slutar, och öppnar posten. Varje typ visar upp till fem, med **Visa alla** för resten, som öppnar samma lista som dess siffra. När inget är öppet står det **Inget kräver din uppmärksamhet**.

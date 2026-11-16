@@ -14,7 +14,7 @@ Zoek in de tabel hieronder de melding op die Terraform toonde, of wat je zag geb
 | Melding of symptoom | Wat te doen |
 | --- | --- |
 | `Missing API Key` | Geef de provider zijn sleutel: zie [`Missing API Key` of `Invalid API Key`](#missing-api-key-of-invalid-api-key) |
-| `Invalid API Key` | Kopieer de sleutel opnieuw, of maak een nieuwe aan: zie [`Missing API Key` of `Invalid API Key`](#missing-api-key-of-invalid-api-key) |
+| `Invalid API Key` | Controleer de sleutel, of stel hem opnieuw in voor een nieuwe: zie [`Missing API Key` of `Invalid API Key`](#missing-api-key-of-invalid-api-key) |
 | `ProjectId required` | Gebruik een API-sleutel van het project, geen mastersleutel: zie [`ProjectId required`](#projectid-required) |
 | `You do not have permissions to create Monitor` | Geef de sleutel de machtiging die de melding noemt: zie [De sleutel mist een machtiging](#de-sleutel-mist-een-machtiging) |
 | `API keys need the Growth plan` | Zet het project terug op het Growth-abonnement: zie [Betaling vereist](#betaling-vereist) |
@@ -60,7 +60,7 @@ De provider noemt wat hij aan het doen was: `Unable to create monitor` en `Unabl
 
 `Missing API Key` stopt de provider voordat hij een verzoek doet: noch `api_key` in het provider-blok, noch de omgevingsvariabele `ONEUPTIME_API_KEY` is ingesteld. Exporteer de variabele in de shell waarin je Terraform uitvoert, of geef de sleutel mee in een variabele die als `sensitive` is gemarkeerd.
 
-`Invalid API Key` is het antwoord van OneUptime op een sleutel die het niet kent: een verkeerd getypte, verlopen of verwijderde sleutel, of een sleutel van een andere OneUptime dan die waar `oneuptime_url` naar wijst. Kopieer de sleutel opnieuw van zijn pagina onder **Projectinstellingen → Geavanceerd → API-sleutels**, of maak een nieuwe aan.
+`Invalid API Key` is het antwoord van OneUptime op een sleutel die het niet kent: een verkeerd getypte, verlopen of verwijderde sleutel, of een sleutel van een andere OneUptime dan die waar `oneuptime_url` naar wijst. Vergelijk hem met hoe de sleutel eindigt op zijn pagina onder **Projectinstellingen → Geavanceerd → API-sleutels**, of stel hem daar opnieuw in voor een nieuwe.
 
 ### `ProjectId required`
 

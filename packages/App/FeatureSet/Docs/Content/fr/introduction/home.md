@@ -95,6 +95,8 @@ flowchart TB
 
 La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la masquer plus tôt, cliquez sur **Masquer** : elle n'est masquée que pour vous, sur chaque appareil, et une ligne reste avec **Afficher** et **Comment fonctionne OneUptime**. Les personnes invitées dans le projet comme membres ne voient pas la liste. **Comment fonctionne OneUptime** reste à un clic, dans n'importe quel projet : ouvrez-le depuis **Aide**, ou avec le bouton à côté de **Explorer OneUptime**.
 
+**Comment fonctionne OneUptime** s'ouvre sur **Comment tout s'articule** : les quatre étapes par lesquelles passe un problème, **Détecter**, **Réagir**, **Communiquer** et **Améliorer**, chacune avec les produits qui s'en chargent. Viennent ensuite les catégories du menu **Produits**, chacune avec ses produits et ce à quoi sert chacun : choisissez-en une, ou passez à la suivante avec les flèches du clavier ou **Suivant**. Cliquez sur un produit pour l'ouvrir. Les produits que votre projet masque n'y figurent pas.
+
 ### Attention requise
 
 **Attention requise** liste par leur nom ce que les nombres comptent : les incidents ouverts, les alertes ouvertes, les moniteurs non opérationnels, les SLO à risque et les maintenances en cours, les plus urgents d'abord. Chaque ligne affiche sa gravité ou son état, indique quand un incident ou une alerte a commencé et quand une maintenance se termine, et ouvre l'élément. Chaque type en montre jusqu'à cinq, avec **Tout afficher** pour le reste, qui ouvre la même liste que son nombre. Quand rien n'est ouvert, la section affiche **Rien ne nécessite votre attention**.

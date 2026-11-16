@@ -3,6 +3,7 @@ import https from "https";
 import { Readable } from "stream";
 import DataSourceEgressGuard, {
   EgressGuardOptions,
+  GuardedNodeHttpAgents,
 } from "Common/Server/Utils/DataSource/EgressGuard";
 import OutboundUserAgent from "Common/Server/Utils/OutboundUserAgent";
 import Dictionary from "Common/Types/Dictionary";
@@ -18,9 +19,11 @@ import { BackupStorageError } from "./BackupStorage";
  * without ever being held in memory.
  *
  * In production every socket's address goes through the egress guard
- * (createGuardedLookup: the address checked is the address dialed), no
- * redirect is followed, and a socket that sends nothing for the idle
- * timeout is closed. Tests hand the clients a transport of their own.
+ * (createGuardedAgentsForNodeHttp: the address checked is the address
+ * dialed, or behind an outbound proxy, the host is checked before the
+ * proxy is asked for it), no redirect is followed, and a socket that sends
+ * nothing for the idle timeout is closed. Tests hand the clients a
+ * transport of their own.
  */
 
 export type BackupHttpMethod = "GET" | "PUT" | "POST" | "DELETE" | "HEAD";
@@ -71,24 +74,22 @@ function lowerHeaders(headers: http.IncomingHttpHeaders): Dictionary<string> {
 }
 
 /*
- * The production transport: node's http/https with the egress guard's
- * lookup on every socket, keep-alive between requests to one storage, and
- * the idle timeout. A refused address throws an EgressGuardException,
- * which the clients turn into a sentence (describeTransportError).
+ * The production transport: node's http/https on the egress guard's
+ * agents (createGuardedAgentsForNodeHttp: every socket's address checked,
+ * the address checked the address dialed), keep-alive between requests to
+ * one storage, and the idle timeout. Behind an outbound proxy (HTTPS_PROXY,
+ * HTTP_PROXY, ALL_PROXY, apart from NO_PROXY's hosts) a request goes
+ * through it, as every axios request of the server does, its host checked
+ * first (#8932). A refused address throws an EgressGuardException, which
+ * the clients turn into a sentence (describeTransportError).
  */
 export function createGuardedBackupTransport(
   egressOptions: EgressGuardOptions,
 ): BackupHttpTransport {
-  const lookup: ReturnType<typeof DataSourceEgressGuard.createGuardedLookup> =
-    DataSourceEgressGuard.createGuardedLookup(egressOptions);
-  const httpAgent: http.Agent = new http.Agent({
-    keepAlive: true,
-    lookup: lookup as never,
-  });
-  const httpsAgent: https.Agent = new https.Agent({
-    keepAlive: true,
-    lookup: lookup as never,
-  });
+  const agents: GuardedNodeHttpAgents =
+    DataSourceEgressGuard.createGuardedAgentsForNodeHttp(egressOptions, {
+      keepAlive: true,
+    });
 
   return (request: BackupHttpRequest): Promise<BackupHttpResponse> => {
     return new Promise<BackupHttpResponse>(
@@ -127,7 +128,7 @@ export function createGuardedBackupTransport(
             port: url.port || (isHttps ? 443 : 80),
             path: `${url.pathname}${url.search}`,
             headers,
-            agent: isHttps ? httpsAgent : httpAgent,
+            agent: agents.agentFor(url),
           },
           (incoming: http.IncomingMessage) => {
             incoming.setTimeout(
