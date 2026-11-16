@@ -21,8 +21,9 @@ import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
  *
  * Pure: the people, the policy and how a moment reads where the line goes
  * - each reader's own zone in Slack and Microsoft Teams
- * (WorkspaceMessageTime), the schedule's zone in the policy's feed - are
- * handed in.
+ * (WorkspaceMessageTime), words in the schedule's zone in Mattermost and in
+ * the policy's feed - are handed in. Each workspace's names and moments
+ * come from OnCallChatByWorkspace.
  */
 
 // How a moment reads where the line goes.

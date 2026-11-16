@@ -26,6 +26,10 @@ import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil
 import logger, { LogAttributes } from "../Utils/Logger";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
+import OnCallChatByWorkspace, {
+  OnCallChatTextByWorkspaceType,
+  OnCallChatWriter,
+} from "../Utils/OnCall/OnCallChatByWorkspace";
 import OnCallChatText from "../Utils/OnCall/OnCallChatText";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
 
@@ -176,6 +180,26 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         )
       ).toString();
 
+      const chatPolicy: MarkdownText = OnCallChatText.policy({
+        name: createdModel.onCallDutyPolicy?.name || "",
+        link: policyLink,
+      });
+
+      const addedUserId: ObjectID = createdModel.user!.id!;
+
+      // Each workspace's line names them as it knows them (issue #7967).
+      const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
+        await new OnCallChatByWorkspace({
+          projectId: projectId!,
+        }).write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+          return OnCallChatText.policyChange({
+            emoji: "👨🏻‍💻",
+            isAdded: true,
+            what: mdText`**${await writer.nameOf(addedUserId)}**`,
+            policy: chatPolicy,
+          });
+        });
+
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
         onCallDutyPolicyId: onCallDutyPolicyId,
         projectId: projectId!,
@@ -188,11 +212,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           emoji: "👨🏻‍💻",
           isAdded: true,
           what: mdText`**${addedUserMarkdown}**`,
-          policy: OnCallChatText.policy({
-            name: createdModel.onCallDutyPolicy?.name || "",
-            link: policyLink,
-          }),
+          policy: chatPolicy,
         }).toString(),
+        chatInfoByWorkspaceType: chatInfoByWorkspaceType,
         userId: createdModel.createdByUserId! || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -277,6 +299,26 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
             )
           ).toString();
 
+          const chatPolicy: MarkdownText = OnCallChatText.policy({
+            name: onCallDutyPolicyName || "",
+            link: policyLink,
+          });
+
+          // Each workspace's line names them as it knows them (#7967).
+          const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
+            await new OnCallChatByWorkspace({
+              projectId: projectId,
+            }).write(
+              async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+                return OnCallChatText.policyChange({
+                  emoji: "👨🏻‍💻",
+                  isAdded: false,
+                  what: mdText`**${await writer.nameOf(userId)}**`,
+                  policy: chatPolicy,
+                });
+              },
+            );
+
           await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
             onCallDutyPolicyId: onCallDutyPolicyId,
             projectId: projectId,
@@ -295,11 +337,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
               emoji: "👨🏻‍💻",
               isAdded: false,
               what: mdText`**${user.name.toString()}**`,
-              policy: OnCallChatText.policy({
-                name: onCallDutyPolicyName || "",
-                link: policyLink,
-              }),
+              policy: chatPolicy,
             }).toString(),
+            chatInfoByWorkspaceType: chatInfoByWorkspaceType,
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,

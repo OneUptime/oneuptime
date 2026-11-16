@@ -3,10 +3,8 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Timezone from "../../../Types/Timezone";
 import { NotificationRuleUpdateKind } from "../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
-import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { OnCallDutyPolicyFeedEventType } from "../../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
-import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -15,11 +13,14 @@ import OnCallDutyPolicyEscalationRuleScheduleService from "../../Services/OnCall
 import OnCallDutyPolicyFeedService from "../../Services/OnCallDutyPolicyFeedService";
 import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
 import UserService from "../../Services/UserService";
-import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Logger";
-import WorkspaceUtil from "../Workspace/Workspace";
 import WorkspaceMessageTime from "../Workspace/WorkspaceMessageTime";
+import OnCallChatByWorkspace, {
+  OnCallChatTextByWorkspaceType,
+  OnCallChatWriter,
+  OnCallNameOf,
+} from "./OnCallChatByWorkspace";
 import OnCallChatText, { OnCallMomentText } from "./OnCallChatText";
 
 /*
@@ -49,9 +50,12 @@ import OnCallChatText, { OnCallMomentText } from "./OnCallChatText";
  *
  * The person on call is named as each workspace knows them: "@ana" where
  * they connected their account there (WorkspaceUtil
- * .getUserStringForWorkspace), their OneUptime name otherwise. A moment
- * reads in each reader's own zone in Slack and Microsoft Teams, in UTC in
- * Mattermost, and in the schedule's zone in the policy's feed.
+ * .getUserStringForWorkspace), their OneUptime name otherwise - as every
+ * other on-call line names them (OnCallChatByWorkspace). A moment reads in
+ * each reader's own zone in Slack and Microsoft Teams, in words in the
+ * schedule's zone in Mattermost ("until Sat, Nov 14 at 5:50 PM EST", issue
+ * #7970) - UTC for a schedule set in none - and in the schedule's zone in
+ * the policy's feed.
  *
  * Never throws: the roster refresh that calls this must go on to store the
  * new roster.
@@ -106,9 +110,6 @@ export interface OnCallChatPost {
   alsoWantedUpdateKinds?: Array<NotificationRuleUpdateKind> | undefined;
   notWantedUpdateKinds?: Array<NotificationRuleUpdateKind> | undefined;
 }
-
-// How a person is named in a line.
-type NameOf = (userId: ObjectID) => Promise<MarkdownText>;
 
 export default class OnCallHandoffPosts {
   // Whether two roster users are the same person (nobody and nobody are).
@@ -235,7 +236,7 @@ export default class OnCallHandoffPosts {
     line: OnCallChatLine;
     handoff: OnCallHandoff;
     policy: MarkdownText;
-    nameOf: NameOf;
+    nameOf: OnCallNameOf;
     moment: OnCallMomentText;
   }): Promise<MarkdownText> {
     const handoff: OnCallHandoff = data.handoff;
@@ -412,8 +413,8 @@ export default class OnCallHandoffPosts {
 
   /*
    * A line in each channel whose rules want one (getChatPosts): the person
-   * named as each connected workspace knows them, moments in each
-   * reader's own zone.
+   * named as each connected workspace knows them, moments in each reader's
+   * own zone - in Mattermost, in the schedule's (OnCallChatByWorkspace).
    */
   private static async postToChannels(data: {
     handoff: OnCallHandoff;
@@ -426,92 +427,42 @@ export default class OnCallHandoffPosts {
       return;
     }
 
-    const workspaceTypes: Array<WorkspaceType> = (
-      (await WorkspaceProjectAuthTokenService.getProjectAuths({
-        projectId: handoff.projectId,
-      })) || []
-    )
-      .filter((projectAuth: WorkspaceProjectAuthToken): boolean => {
-        return Boolean(projectAuth.authToken && projectAuth.workspaceType);
-      })
-      .map((projectAuth: WorkspaceProjectAuthToken): WorkspaceType => {
-        return projectAuth.workspaceType!;
-      });
+    // Each person's name in each workspace, asked once for all the lines.
+    const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+      projectId: handoff.projectId,
+      timezone: handoff.scheduleTimezone,
+    });
 
     // Nothing connected: nowhere to post.
-    if (workspaceTypes.length === 0) {
+    if ((await chat.getWorkspaceTypes()).length === 0) {
       return;
     }
-
-    // Each person's name in each workspace, asked once for all the lines.
-    const names: Map<string, MarkdownText> = new Map<string, MarkdownText>();
-
-    const nameIn: (workspaceType: WorkspaceType | null) => NameOf = (
-      workspaceType: WorkspaceType | null,
-    ): NameOf => {
-      return async (userId: ObjectID): Promise<MarkdownText> => {
-        const key: string = `${workspaceType || ""}:${userId.toString()}`;
-        const known: MarkdownText | undefined = names.get(key);
-
-        if (known) {
-          return known;
-        }
-
-        const name: string = workspaceType
-          ? (
-              await WorkspaceUtil.getUserStringForWorkspace({
-                userId: userId,
-                projectId: handoff.projectId,
-                workspaceType: workspaceType,
-              })
-            ).trim()
-          : (
-              await UserService.getUserMarkdownString({
-                userId: userId,
-                projectId: handoff.projectId,
-              })
-            ).toString();
-
-        const markdown: MarkdownText = name
-          ? FeedMarkdown.asMarkdown(name)
-          : mdText`Somebody`;
-
-        names.set(key, markdown);
-
-        return markdown;
-      };
-    };
-
-    // Each reader's own zone (Slack, Microsoft Teams); UTC in Mattermost.
-    const moment: OnCallMomentText = (date: Date): MarkdownText => {
-      return WorkspaceMessageTime.dateAndTime(date);
-    };
 
     for (const post of posts) {
       // One message failing must not keep the others from their channels.
       try {
-        const markdownByWorkspaceType: Partial<Record<WorkspaceType, string>> =
-          {};
-
-        for (const workspaceType of workspaceTypes) {
-          markdownByWorkspaceType[workspaceType] = (
-            await this.getLine({
-              line: post.line,
-              handoff: handoff,
-              policy: data.policy,
-              nameOf: nameIn(workspaceType),
-              moment: moment,
-            })
-          ).toString();
-        }
+        const markdownByWorkspaceType: OnCallChatTextByWorkspaceType =
+          await chat.write(
+            (writer: OnCallChatWriter): Promise<MarkdownText> => {
+              return this.getLine({
+                line: post.line,
+                handoff: handoff,
+                policy: data.policy,
+                nameOf: writer.nameOf,
+                moment: writer.moment,
+              });
+            },
+          );
 
         // For a workspace that has no line of its own: OneUptime's names.
         const line: MarkdownText = await this.getLine({
           line: post.line,
           handoff: handoff,
           policy: data.policy,
-          nameOf: nameIn(null),
-          moment: moment,
+          nameOf: chat.nameIn(null),
+          moment: (date: Date): MarkdownText => {
+            return WorkspaceMessageTime.dateAndTime(date);
+          },
         });
 
         if (line.isEmpty()) {

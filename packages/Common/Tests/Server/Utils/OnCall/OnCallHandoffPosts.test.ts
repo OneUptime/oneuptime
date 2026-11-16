@@ -23,6 +23,7 @@ import MattermostUtil from "../../../../Server/Utils/Workspace/Mattermost/Matter
 import WorkspaceUtil from "../../../../Server/Utils/Workspace/Workspace";
 import WorkspaceMessageTime from "../../../../Server/Utils/Workspace/WorkspaceMessageTime";
 import URL from "../../../../Types/API/URL";
+import OneUptimeDate from "../../../../Types/Date";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../../Types/ObjectID";
 import Timezone from "../../../../Types/Timezone";
@@ -278,7 +279,7 @@ describe("the lines an on-call channel hears", () => {
     expect(line).toContain(`(${POLICY_LINK})`);
   });
 
-  test("a moment reads in each reader's own zone in Slack and Teams, and in UTC in Mattermost", () => {
+  test("a moment written for each reader's own zone: Slack's and Teams' own, and UTC in a Mattermost post that knows no zone", () => {
     const line: string = OnCallChatText.nowOnCall({
       person: mdText`@ana`,
       policy: POLICY,
@@ -978,6 +979,114 @@ describe("posting a policy's handoff", () => {
     await expect(OnCallHandoffPosts.post(handoff())).resolves.toBeUndefined();
     expect(rows).toHaveLength(0);
     expect(sends).toHaveLength(0);
+  });
+
+  /*
+   * MATTERMOST READS A HAND-OFF IN THE SCHEDULE'S ZONE, IN WORDS (#7970).
+   *
+   * Slack and Microsoft Teams show each moment in each reader's own zone.
+   * Mattermost cannot, and its line read "until 2026-11-14 at 22:50 UTC":
+   * a team in New York converted it in their heads at every hand-off. Its
+   * line now says the moment as the policy's feed does, on the clock of the
+   * zone the schedule's hand-offs are set in.
+   */
+  describe("Mattermost's line reads in the schedule's zone (#7970)", () => {
+    beforeEach(() => {
+      // Friday 13 November 2026: the hand-off is this year.
+      jest
+        .spyOn(OneUptimeDate, "getCurrentDate")
+        .mockReturnValue(new Date("2026-11-13T12:00:00.000Z"));
+      connect([
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+        WorkspaceType.Mattermost,
+      ]);
+    });
+
+    function lineIn(workspaceType: WorkspaceType, index: number = 0): string {
+      return sends[index]!.markdownByWorkspaceType?.[workspaceType] || "";
+    }
+
+    test("REGRESSION: a schedule in New York reads EST, in words - the issue's own line", async () => {
+      await OnCallHandoffPosts.post(handoff());
+
+      expect(lineIn(WorkspaceType.Mattermost)).toBe(
+        `📞 @ana is now on call for [Payments](${POLICY_LINK}) until Sat, Nov 14 at 5:50 PM EST, then [Bob](https://oneuptime.test/users/bob).`,
+      );
+
+      // As Mattermost posts it: no UTC, no moment left to convert.
+      const posted: string = MattermostUtil.getMessageText(
+        lineIn(WorkspaceType.Mattermost),
+      );
+
+      expect(posted).toContain("until Sat, Nov 14 at 5:50 PM EST, then");
+      expect(posted).not.toContain("UTC");
+      expect(posted).not.toContain("2026-11-14");
+      expect(posted).not.toContain("{{");
+    });
+
+    test("Slack and Microsoft Teams keep each reader's own zone", async () => {
+      await OnCallHandoffPosts.post(handoff());
+
+      for (const workspaceType of [
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+      ]) {
+        expect(lineIn(workspaceType)).toContain(
+          "until {{DATE(2026-11-14T22:50:00Z, SHORT)}} at {{TIME(2026-11-14T22:50:00Z)}}, then",
+        );
+        expect(lineIn(workspaceType)).not.toContain("EST");
+      }
+    });
+
+    test("a schedule set in no zone still reads in UTC - in words", async () => {
+      await OnCallHandoffPosts.post(handoff({ scheduleTimezone: null }));
+
+      expect(lineIn(WorkspaceType.Mattermost)).toContain(
+        "until Sat, Nov 14 at 10:50 PM UTC, then",
+      );
+      // The feed, in the zone it always used for one: UTC.
+      expect(rows[0]!.feedInfoInMarkdown).toMatch(/Nov 14 2026, .*UTC/);
+    });
+
+    test("every line of the hand-off: who is next, and nobody on call, read in the zone too", async () => {
+      await OnCallHandoffPosts.post(handoff());
+
+      // Now on call then next, now on call, next on call.
+      expect(sends).toHaveLength(3);
+      expect(lineIn(WorkspaceType.Mattermost, 1)).toBe(
+        `📞 @ana is now on call for [Payments](${POLICY_LINK}) until Sat, Nov 14 at 5:50 PM EST.`,
+      );
+      expect(lineIn(WorkspaceType.Mattermost, 2)).toBe(
+        `➡️ [Bob](https://oneuptime.test/users/bob) is next on call for [Payments](${POLICY_LINK}), from Sat, Nov 14 at 5:50 PM EST.`,
+      );
+
+      sends = [];
+
+      await OnCallHandoffPosts.post(
+        handoff({ currentUserId: null, handoffAt: null }),
+      );
+
+      expect(lineIn(WorkspaceType.Mattermost)).toBe(
+        `⚠️ Nobody is on call for [Payments](${POLICY_LINK}) until Sat, Nov 14 at 5:50 PM EST, when [Bob](https://oneuptime.test/users/bob) takes over.`,
+      );
+    });
+
+    test("the line for a workspace with no line of its own keeps the moments every workspace converts", async () => {
+      await OnCallHandoffPosts.post(handoff());
+
+      expect(sends[0]!.feedInfoInMarkdown).toContain(
+        "until {{DATE(2026-11-14T22:50:00Z, SHORT)}} at {{TIME(2026-11-14T22:50:00Z)}}",
+      );
+    });
+
+    test("only the on-call lines change: any other Mattermost post still reads a moment in UTC", () => {
+      expect(
+        MattermostUtil.getMessageText(
+          "Acknowledged at {{TIME(2026-11-14T22:50:00Z)}} by Ana.",
+        ),
+      ).toBe("Acknowledged at 22:50 UTC by Ana.");
+    });
   });
 });
 
