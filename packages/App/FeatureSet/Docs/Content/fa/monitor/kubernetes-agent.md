@@ -363,7 +363,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `auditLogs.enabled` | خاموش | لاگ ممیزی Kubernetes، `/var/log/kubernetes/audit.log`: هر درخواست به API، از سوی چه کسی، روی چه چیزی. فقط خوشه‌های خودمدیریت: خوشه‌های مدیریت‌شده (EKS، GKE، AKS، DOKS) آن را به ارائه‌دهنده ابر می‌فرستند. |
 | `csi.enabled` | خاموش | متریک‌های درایورهای ذخیره‌سازی CSI، از پادهایی با برچسب `app=csi-driver` یا `app.kubernetes.io/component=csi-driver`: زمان‌های attach و detach حجم، شکست‌های تأمین، IOPS. |
 | `coreDns.enabled` | خاموش | متریک‌های CoreDNS روی `:9153/metrics`: نرخ پرس‌وجو، تأخیر، برخوردهای حافظه نهان و خطاها. |
-| `controlPlane.enabled` | خاموش | سرور API در نشانی‌اش درون خوشه، و etcd، زمان‌بند و controller manager در نقطه‌های پایانی‌ای که فهرست می‌کنید ([روشن کردن پایش Control Plane](/docs/telemetry/kubernetes-agent#روشن-کردن-پایش-control-plane)). فقط خوشه‌های خودمدیریت: خوشه‌های مدیریت‌شده آن‌ها را در دسترس نمی‌گذارند. |
+| `controlPlane.enabled` | خاموش | سرور API در نشانی‌اش درون خوشه، و etcd، زمان‌بند و controller manager در نقطه‌های پایانی‌ای که فهرست می‌کنید ([روشن کردن پایش صفحه کنترل](/docs/telemetry/kubernetes-agent#روشن-کردن-پایش-صفحه-کنترل)). فقط خوشه‌های خودمدیریت: خوشه‌های مدیریت‌شده آن‌ها را در دسترس نمی‌گذارند. |
 | `cost.enabled` | خاموش | هزینه هر بار کاری. [مشاهده‌پذیری هزینه Kubernetes](/docs/telemetry/kubernetes-cost) را ببینید. |
 
 ## گزینه‌های رایج

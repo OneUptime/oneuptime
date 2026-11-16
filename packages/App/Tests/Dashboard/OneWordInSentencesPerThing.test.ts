@@ -246,6 +246,49 @@ describe("the check of the sentences", () => {
     expect(disconnected.english.test("Not connected")).toBe(false);
   });
 
+  test("holds the prose and headings to the Dashboard's word for the control plane and engine metrics, not only the bold labels (#8812)", () => {
+    const persian: SentenceRule = ruleOf("fa", "Control Plane");
+    const danish: SentenceRule = ruleOf("da", "Engine metrics");
+    const dutch: SentenceRule = ruleOf("nl", "Engine metrics");
+
+    expect(persian.english.test("Turn on control plane monitoring")).toBe(true);
+    expect(persian.english.test("A worker or control-plane node")).toBe(true);
+    expect(persian.dropped.test("### روشن کردن پایش Control Plane")).toBe(true);
+    expect(persian.dropped.test("گره‌های control-plane")).toBe(true);
+    expect(persian.dropped.test("### روشن کردن پایش صفحه کنترل")).toBe(false);
+    // Code is no word: a script's name and a resource's kind.
+    expect(persian.dropped.test("OpenStackControlPlane")).toBe(false);
+
+    expect(danish.english.test("Engine Metrics Last Received")).toBe(true);
+    expect(danish.english.test("an engine metric")).toBe(true);
+    for (const text of [
+      "Engine metrics viser Afbrudt",
+      "Engine-metrikker viser Afbrudt",
+      "en engine-metrik",
+    ]) {
+      expect({ text, dropped: danish.dropped.test(text) }).toEqual({
+        text,
+        dropped: true,
+      });
+    }
+    expect(danish.dropped.test("Motormetrikker viser Afbrudt")).toBe(false);
+    expect(danish.word.test("en motormetrik")).toBe(true);
+
+    for (const text of [
+      "Enginemetrics gestopt",
+      "de enginemetrieken",
+      "Engine-metrics komen altijd",
+      "Engine metrics toont",
+    ]) {
+      expect({ text, dropped: dutch.dropped.test(text) }).toEqual({
+        text,
+        dropped: true,
+      });
+    }
+    expect(dutch.dropped.test("Engine-metrieken toont")).toBe(false);
+    expect(dutch.word.test("een engine-metriek")).toBe(true);
+  });
+
   test("reads a plural form's key by its English", () => {
     expect(englishOf("Sync Criteria to {{count}} Linked Monitors_one")).toBe(
       "Sync Criteria to {{count}} Linked Monitors",
