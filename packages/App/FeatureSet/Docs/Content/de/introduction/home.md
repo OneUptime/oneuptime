@@ -89,6 +89,8 @@ flowchart TB
 
 Die Checkliste verschwindet für alle, sobald jeder Schritt erledigt ist. Um sie früher auszublenden, klicken Sie auf **Ausblenden**: Sie ist dann nur für Sie ausgeblendet, auf jedem Gerät, und eine Zeile bleibt mit **Anzeigen** und **So funktioniert OneUptime**. Wer als Mitglied in das Projekt eingeladen wurde, sieht die Checkliste nicht. **So funktioniert OneUptime** bleibt in jedem Projekt einen Klick entfernt: Öffnen Sie es über **Hilfe** oder mit der Schaltfläche neben **OneUptime erkunden**.
 
+**So funktioniert OneUptime** öffnet sich mit **Wie alles zusammenhängt**: den vier Schritten, die ein Problem durchläuft, **Erkennen**, **Reagieren**, **Informieren** und **Verbessern**, jeder mit den Produkten, die ihn übernehmen. Danach folgen die Kategorien des Menüs **Produkte**, jede mit ihren Produkten und wofür jedes da ist: Wählen Sie eine aus, oder gehen Sie mit den Pfeiltasten oder **Weiter** zur nächsten. Klicken Sie auf ein Produkt, um es zu öffnen. Produkte, die Ihr Projekt ausblendet, fehlen dort.
+
 ### Erfordert Aufmerksamkeit
 
 **Erfordert Aufmerksamkeit** führt mit Namen auf, was die Zahlen zählen: die offenen Vorfälle, die offenen Warnungen, die nicht betriebsbereiten Monitore, die gefährdeten SLOs und die laufenden Wartungen, das Dringendste zuerst. Jede Zeile zeigt ihren Schweregrad oder Status, sagt, wann ein Vorfall oder eine Warnung begonnen hat und wann eine Wartung endet, und öffnet den Eintrag. Von jeder Art erscheinen bis zu fünf, mit **Alle anzeigen** für den Rest: Es öffnet dieselbe Liste wie die Zahl dieser Art. Wenn nichts offen ist, steht dort **Nichts erfordert Ihre Aufmerksamkeit**.
