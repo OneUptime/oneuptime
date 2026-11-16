@@ -56017,5 +56017,7 @@
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "민감해 보이는 키의 값은 속성과 JSON 로그 본문에서 [REDACTED]로 바뀝니다.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "스팬에서 마스킹할 부분: 스팬 이름, 속성 값과 링크 속성 값, 이벤트 속성 값 또는 상태 메시지와 이벤트 이름까지 포함한 전체.",
   "Signed out by a server admin because single sign-on is required": "싱글 사인온(SSO)이 필요하여 서버 관리자가 로그아웃함",
-  "In short": "요약"
+  "In short": "요약",
+  "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "이 SLO의 오류 예산이 너무 빨리 소진되면 경고를 받거나 인시던트를 선언합니다.",
+  "Set a reliability target, and know before you miss it.": "안정성 목표를 정하고, 목표를 놓치기 전에 미리 확인하세요."
 }

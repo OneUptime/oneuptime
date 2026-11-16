@@ -56017,5 +56017,7 @@
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "看起來敏感的鍵，其值會在屬性與 JSON 日誌內文中替換為 [REDACTED]。",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "要清除跨度的哪些部分：跨度名稱、屬性值與鏈路屬性值、事件屬性值，或全部（包括狀態訊息與事件名稱）。",
   "Signed out by a server admin because single sign-on is required": "因需要單一登入 (SSO)，已被伺服器管理員登出",
-  "In short": "簡而言之"
+  "In short": "簡而言之",
+  "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "當此 SLO 的錯誤預算消耗過快時，接收警示或宣告事件。",
+  "Set a reliability target, and know before you miss it.": "設定可靠性目標，並在未能達成之前提前得知。"
 }

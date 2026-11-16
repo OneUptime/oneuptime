@@ -56017,5 +56017,7 @@
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "看起来敏感的键，其值会在属性和 JSON 日志正文中替换为 [REDACTED]。",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "要清理跨度的哪些部分：跨度名称、属性值和链路属性值、事件属性值，或全部（包括状态消息和事件名称）。",
   "Signed out by a server admin because single sign-on is required": "因需要单点登录 (SSO)，已被服务器管理员登出",
-  "In short": "简而言之"
+  "In short": "简而言之",
+  "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "当此 SLO 的错误预算消耗过快时，接收警报或声明事件。",
+  "Set a reliability target, and know before you miss it.": "设定可靠性目标，并在未能达成之前提前知晓。"
 }

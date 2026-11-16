@@ -56017,5 +56017,7 @@
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Значения ключей, которые выглядят конфиденциальными, заменяются на [REDACTED] в атрибутах и в теле лога в формате JSON.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Какие части спана очищать: имя спана, значения атрибутов и атрибутов связей, значения атрибутов событий или всё, включая сообщение о статусе и названия событий.",
   "Signed out by a server admin because single sign-on is required": "Сеанс завершён администратором сервера: требуется единый вход (SSO)",
-  "In short": "Коротко"
+  "In short": "Коротко",
+  "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "Получайте оповещение или объявляйте инцидент, когда бюджет ошибок этого SLO расходуется слишком быстро.",
+  "Set a reliability target, and know before you miss it.": "Задайте цель надёжности и узнайте заранее, если можете её не выполнить."
 }

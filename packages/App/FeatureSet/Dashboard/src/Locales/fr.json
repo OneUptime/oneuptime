@@ -56017,5 +56017,7 @@
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Les valeurs des clés qui semblent sensibles, dans les attributs et dans un corps de journal JSON, sont remplacées par [REDACTED].",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Quelles parties du span masquer : le nom du span, les valeurs d'attributs et d'attributs de lien, les valeurs d'attributs d'événement, ou toutes, message d'état et noms d'événement compris.",
   "Signed out by a server admin because single sign-on is required": "Déconnecté par un administrateur du serveur, car l'authentification unique (SSO) est requise",
-  "In short": "En bref"
+  "In short": "En bref",
+  "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "Recevez une alerte, ou déclarez un incident, quand le budget d'erreur de ce SLO se consomme trop vite.",
+  "Set a reliability target, and know before you miss it.": "Fixez un objectif de fiabilité et soyez prévenu avant de le manquer."
 }

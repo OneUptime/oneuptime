@@ -56017,5 +56017,7 @@
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Värdena för nycklar som ser känsliga ut ersätts med [REDACTED] i attribut och i en loggkropp i JSON.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Vilka delar av spannet som ska maskeras: spannamn, värden för attribut och länkattribut, händelseattributvärden eller alla, även statusmeddelandet och händelsenamnen.",
   "Signed out by a server admin because single sign-on is required": "Utloggad av en serveradministratör eftersom enkel inloggning (SSO) krävs",
-  "In short": "Kort sagt"
+  "In short": "Kort sagt",
+  "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "Få ett larm, eller deklarera en incident, när den här SLO:ns felbudget förbrukas för snabbt.",
+  "Set a reliability target, and know before you miss it.": "Sätt ett tillförlitlighetsmål och få veta innan du missar det."
 }

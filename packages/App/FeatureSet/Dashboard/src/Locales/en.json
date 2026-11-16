@@ -56017,5 +56017,7 @@
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.",
   "Signed out by a server admin because single sign-on is required": "Signed out by a server admin because single sign-on is required",
-  "In short": "In short"
+  "In short": "In short",
+  "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "Get alerted, or open an incident, when this SLO's error budget burns too fast.",
+  "Set a reliability target, and know before you miss it.": "Set a reliability target, and know before you miss it."
 }

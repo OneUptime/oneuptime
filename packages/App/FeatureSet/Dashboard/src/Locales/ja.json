@@ -56017,5 +56017,7 @@
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "機密情報に見えるキーの値は、属性と JSON のログ本文で [REDACTED] に置き換えられます。",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "スパンのどの部分をスクラブするか：スパン名、属性値とリンク属性値、イベント属性値、またはすべて（ステータスメッセージとイベント名も含む）。",
   "Signed out by a server admin because single sign-on is required": "シングルサインオン（SSO）必須のため、サーバー管理者によるサインアウト",
-  "In short": "要点"
+  "In short": "要点",
+  "Get alerted, or open an incident, when this SLO's error budget burns too fast.": "この SLO のエラーバジェットの消費が速すぎるときに、アラートを受け取るか、インシデントを宣言します。",
+  "Set a reliability target, and know before you miss it.": "信頼性の目標を設定し、達成できなくなる前に知ることができます。"
 }
