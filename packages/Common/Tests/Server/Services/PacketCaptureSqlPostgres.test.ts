@@ -358,23 +358,31 @@ describePostgres("packet capture SQL against Postgres", () => {
       );
     });
 
-    test("hands out no more than the slots the probe has", async () => {
-      await insertCapture({ createdMinutesAgo: 3 });
-      await insertCapture({ createdMinutesAgo: 2 });
-      await insertCapture({ createdMinutesAgo: 1 });
+    test("hands out no more than the slots the probe has, the oldest first", async () => {
+      const first: ObjectID = await insertCapture({ createdMinutesAgo: 3 });
+      const second: ObjectID = await insertCapture({ createdMinutesAgo: 2 });
+      const third: ObjectID = await insertCapture({ createdMinutesAgo: 1 });
 
       expect(
-        await PacketCaptureService.claimPendingForProbe({
-          probeId: probeId,
-          limit: 2,
+        (
+          await PacketCaptureService.claimPendingForProbe({
+            probeId: probeId,
+            limit: 2,
+          })
+        ).map((job: PacketCaptureJob): string => {
+          return job.id;
         }),
-      ).toHaveLength(2);
+      ).toEqual([first.toString(), second.toString()]);
       expect(
-        await PacketCaptureService.claimPendingForProbe({
-          probeId: probeId,
-          limit: 2,
+        (
+          await PacketCaptureService.claimPendingForProbe({
+            probeId: probeId,
+            limit: 2,
+          })
+        ).map((job: PacketCaptureJob): string => {
+          return job.id;
         }),
-      ).toHaveLength(1);
+      ).toEqual([third.toString()]);
       expect(
         await PacketCaptureService.claimPendingForProbe({
           probeId: probeId,
