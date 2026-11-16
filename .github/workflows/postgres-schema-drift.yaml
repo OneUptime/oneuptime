@@ -2672,6 +2672,27 @@ jobs:
           Tests/Server/Infrastructure/Postgres/AddAlertAndIncidentListIndexesPostgres.test.ts
           --forceExit
 
+      # #8113: a grant limited to labels, and a filter by labels, are a
+      # condition on the record's own id rather than a join through its
+      # labels. Every list, page, order, count, read by id and update of
+      # alerts, incidents and monitors runs twice through the real services
+      # and permission pipeline - the code as it was, frozen in the suite, and
+      # as it is - for a matrix of grants, blocks, Owned scopes and filters,
+      # and must reach the same records; and none outside the reader's labels.
+      # Clones the migrated tables into an isolated schema.
+      - name: Test label-limited lists before and after on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_LABEL_LIMITED_LIST_TESTS: "true"
+          LABEL_LIMITED_LIST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LABEL_LIMITED_LIST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LABEL_LIMITED_LIST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/LabelLimitedListsPostgres.test.ts
+          --forceExit
+
       # The Network Overview counts the fleet in one scan
       # (NetworkDeviceService.getFleetScan) where it ran four reads: the
       # summary strip's numbers, the health buckets, the vendor breakdown and
