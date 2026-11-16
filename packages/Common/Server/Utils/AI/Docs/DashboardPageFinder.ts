@@ -16,6 +16,15 @@ import DashboardPagesData from "./DashboardPages.json";
  * them, in English. App's AIDashboardPagesCatalog test fails when the two
  * part, and writes this file again when run with
  * UPDATE_AI_DASHBOARD_PAGES=1.
+ *
+ * Every text the model reads or the finder searches - a page's title,
+ * where it is, its other names - is its English as the Dashboard draws it.
+ * The index names a few pages by a key that names its meaning (Common/
+ * Types/MeaningKeys): the explorers' tab is "Insights (explorer
+ * analytics)", which English draws as "Insights". The model is told
+ * "Insights", never the note to translators (#8817), and the key is kept
+ * beside it, in titleKey, for the "Go to ..." button alone, which draws
+ * the tab's own word in the reader's language (AskAiPageButtons).
  */
 
 export enum AIDashboardPageKind {
@@ -25,7 +34,15 @@ export enum AIDashboardPageKind {
 }
 
 export interface AIDashboardPage {
+  // Its English title, as the Dashboard draws it: what the model reads and the finder searches.
   title: string;
+  /*
+   * The locale key its title is looked up by, where that is not the title:
+   * a key that names its meaning, "Insights (explorer analytics)" for
+   * "Insights". Never shown to the model nor searched: only the "Go to
+   * ..." button draws it, in the reader's language.
+   */
+  titleKey?: string | undefined;
   // Where it is, as Search shows it: ["Project Settings", "Advanced"].
   where: Array<string>;
   keywords?: Array<string> | undefined;
