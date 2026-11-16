@@ -1100,6 +1100,16 @@ why: ""
   value: {{ include "oneuptime.envValue" $.Values.vapid.privateKey }}
   {{- end }}
 
+{{- /*
+Malware scanning (clamav): the in-cluster ClamAV when clamav.enabled, else a
+clamd of your own at clamav.host, else none - and then nothing is scanned.
+*/}}
+- name: CLAMAV_HOST
+  value: {{ ternary (printf "%s-clamav" $.Release.Name) (default "" ($.Values.clamav).host) (($.Values.clamav).enabled | default false) | quote }}
+
+- name: CLAMAV_PORT
+  value: {{ ternary 3310 (($.Values.clamav).port | default 3310) (($.Values.clamav).enabled | default false) | toString | quote }}
+
 - name: EXPO_ACCESS_TOKEN
   value: {{ default "" $.Values.expo.accessToken | quote }}
 

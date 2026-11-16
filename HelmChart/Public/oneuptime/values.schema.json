@@ -1699,7 +1699,7 @@
                 },
                 "overrides": {
                   "type": "object",
-                  "description": "Image references that replace the ones the chart builds, by image (app, nginx, probe, runner, home, test, postgres, clickhouse, clickhouseKeeper, valkey, pgbouncer, vllm, kubectl): a full reference, or {registry, repository, tag | digest}.",
+                  "description": "Image references that replace the ones the chart builds, by image (app, nginx, probe, runner, home, test, postgres, clickhouse, clickhouseKeeper, valkey, pgbouncer, vllm, clamav, kubectl): a full reference, or {registry, repository, tag | digest}.",
                   "additionalProperties": {
                     "oneOf": [
                       {
@@ -5497,6 +5497,74 @@
                         }
                     },
                     "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "clamav": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "host": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "port": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "repository": {
+                            "type": "string"
+                        },
+                        "tag": {
+                            "type": [
+                                "string",
+                                "number"
+                            ]
+                        },
+                        "pullPolicy": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "resources": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "nodeSelector": {
+                    "type": "object"
+                },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "tolerations": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "containerSecurityContext": {
+                    "type": "object"
                 }
             },
             "additionalProperties": false
