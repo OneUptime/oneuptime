@@ -1,16 +1,22 @@
 /*
- * A WORKFLOW'S WEBHOOK TRIGGER READS AMAZON SNS'S MESSAGES.
+ * A WORKFLOW'S WEBHOOK TRIGGER READS AMAZON SNS'S MESSAGES, PLAIN TEXT AND
+ * CLOUDEVENTS.
  *
- * https://github.com/OneUptime/oneuptime/issues/7723
+ * https://github.com/OneUptime/oneuptime/issues/7723: Amazon SNS posts every
+ * message to an HTTPS subscription - the subscription confirmation, then
+ * every notification - as JSON labelled "Content-Type: text/plain;
+ * charset=UTF-8". The Webhook trigger read only JSON and form bodies, so a
+ * topic pointed at a workflow started it with an empty Request Body: no
+ * field for the next block to read, not even the SubscribeURL a workflow
+ * could confirm the subscription with. It reads JSON sent as text/plain as
+ * the JSON it is (WebhookRequestBody).
  *
- * Amazon SNS posts every message to an HTTPS subscription - the
- * subscription confirmation, then every notification - as JSON labelled
- * "Content-Type: text/plain; charset=UTF-8". The Webhook trigger read only
- * JSON and form bodies, so a topic pointed at a workflow started it with an
- * empty Request Body: no field for the next block to read, not even the
- * SubscribeURL a workflow could confirm the subscription with. It now reads
- * JSON sent as text/plain as the JSON it is (PlainTextJsonBody); any other
- * text still arrives empty.
+ * https://github.com/OneUptime/oneuptime/issues/8430: any other text started
+ * it with an empty Request Body too. It is the text now.
+ *
+ * https://github.com/OneUptime/oneuptime/issues/8429: Azure Event Grid's
+ * CloudEvents arrive as application/cloudevents+json, which was empty as
+ * well. Read as its JSON.
  *
  * The real trigger, over HTTP, behind the JSON parser StartServer runs for
  * every route: only WorkflowService is spied on, so no database is touched.
@@ -143,9 +149,35 @@ describe("a workflow's Webhook trigger", () => {
     ).toBe("SubscriptionConfirmation");
   });
 
-  test("still starts it with an empty body for plain text", async () => {
+  test("starts it with the text, for plain text", async () => {
     const values: JSONObject = await trigger(
       { "content-type": "text/plain" },
+      "backup finished",
+    );
+
+    expect(values["request-body"]).toBe("backup finished");
+  });
+
+  test("starts it with the event, for a CloudEvent Azure Event Grid delivers", async () => {
+    const event: JSONObject = {
+      specversion: "1.0",
+      type: "Microsoft.Resources.ResourceWriteSuccess",
+      source: "/subscriptions/11111111-2222-3333-4444-555555555555",
+      id: "831e1650-001e-001b-66ab-eeb76e069631",
+      data: { operationName: "Microsoft.Compute/virtualMachines/write" },
+    };
+
+    const values: JSONObject = await trigger(
+      { "content-type": "application/cloudevents+json; charset=utf-8" },
+      JSON.stringify(event),
+    );
+
+    expect(values["request-body"]).toEqual(event);
+  });
+
+  test("still starts it with an empty body for a body of another type", async () => {
+    const values: JSONObject = await trigger(
+      { "content-type": "application/octet-stream" },
       "backup finished",
     );
 

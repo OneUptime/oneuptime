@@ -73,6 +73,8 @@ curl -X POST "https://oneuptime.example.com/workflow/trigger/<secret key>" \
 
 URL은 `GET` 과 `POST` 를 모두 받습니다. 호출한 쪽은 빠른 확인 응답 `{"status": "Scheduled"}` 를 받습니다. 워크플로 자체는 백그라운드에서 실행되므로, 호출한 쪽은 워크플로가 무엇을 하는지 보지 못합니다. 꺼져 있거나 보관된 워크플로를 호출하면 HTTP 400과 이유와 함께 거부됩니다.
 
+Azure Event Grid, Slack, Microsoft Graph, Okta는 URL에 무엇이든 전송하기 전에 그 URL을 확인합니다. URL은 [수신 요청 모니터의 URL처럼](/docs/monitor/incoming-request-monitor#먼저-url을-확인하는-서비스) 각 확인에 그 서비스가 기대하는 대로 응답하며, 확인으로 실행이 시작되지는 않습니다. 워크플로가 꺼져 있거나 보관된 동안에는 확인도 호출처럼 거부됩니다.
+
 ```mermaid title="무언가가 웹훅 URL을 호출할 때 일어나는 일"
 sequenceDiagram
     participant Caller as 사용하는 도구
@@ -94,7 +96,7 @@ sequenceDiagram
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | **요청 헤더**      | 요청의 모든 헤더. `content-type` 처럼 소문자 이름으로 표시됩니다.                                                      |
 | **요청 쿼리 매개변수** | URL의 쿼리 매개변수. 이름으로 표시됩니다.                                                                              |
-| **요청 본문**         | 호출한 쪽이 보낸 본문. `Content-Type: application/json` 으로 보낸 JSON 본문은 필드별로 읽을 수 있습니다. Amazon SNS가 보내는 것처럼 일반 텍스트로 보낸 JSON도 마찬가지입니다. |
+| **요청 본문**         | 호출한 쪽이 보낸 본문. `Content-Type: application/json` 이나 Azure Event Grid의 CloudEvents 같은 `+json` 유형으로 보낸 JSON 본문은 필드별로 읽을 수 있습니다. Amazon SNS가 보내는 것처럼 일반 텍스트로 보낸 JSON도 마찬가지입니다. 그 밖의 일반 텍스트는 텍스트 그대로입니다. |
 
 필드 하나를 읽으려면 `{{local.components.webhook-1.returnValues.request-body.message}}` 처럼 참조에 그 이름을 덧붙입니다.
 

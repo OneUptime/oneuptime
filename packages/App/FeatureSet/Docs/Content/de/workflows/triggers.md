@@ -73,6 +73,8 @@ curl -X POST "https://oneuptime.example.com/workflow/trigger/<secret key>" \
 
 Die URL nimmt `GET` und `POST` an. Der Aufrufer bekommt eine schnelle Bestätigung, `{"status": "Scheduled"}` – der Workflow selbst läuft im Hintergrund, der Aufrufer sieht also nie, was er tut. Ein Aufruf eines Workflows, der ausgeschaltet oder archiviert ist, wird mit HTTP 400 und dem Grund abgelehnt.
 
+Azure Event Grid, Slack, Microsoft Graph und Okta prüfen eine URL, bevor sie ihr etwas zustellen. Die URL beantwortet jede Prüfung so, wie ihr Dienst es erwartet, wie es die [URL einer Eingehende-Anfrage-Überwachung tut](/docs/monitor/incoming-request-monitor#dienste-die-die-url-zuerst-prüfen), und eine Prüfung startet keinen Lauf. Solange der Workflow ausgeschaltet oder archiviert ist, wird eine Prüfung wie ein Aufruf abgelehnt.
+
 ```mermaid title="Was passiert, wenn etwas die Webhook-URL aufruft"
 sequenceDiagram
     participant Caller as Ihr Tool
@@ -94,7 +96,7 @@ sequenceDiagram
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | **Anfrage-Header**      | Jeden Header der Anfrage, nach Namen in Kleinbuchstaben, etwa `content-type`.                                        |
 | **Abfrageparameter der Anfrage** | Die Abfrageparameter in der URL, nach Namen.                                                                         |
-| **Anfragetext**         | Den Body, den der Aufrufer gesendet hat. Ein JSON-Body, gesendet mit `Content-Type: application/json`, lässt sich Feld für Feld lesen, ebenso JSON, das als reiner Text gesendet wird, wie Amazon SNS es sendet. |
+| **Anfragetext**         | Den Body, den der Aufrufer gesendet hat. Ein JSON-Body, gesendet mit `Content-Type: application/json` oder einem `+json`-Typ wie den CloudEvents von Azure Event Grid, lässt sich Feld für Feld lesen, ebenso JSON, das als reiner Text gesendet wird, wie Amazon SNS es sendet. Jeder andere reine Text ist der Text selbst. |
 
 Lesen Sie ein Feld, indem Sie seinen Namen an den Verweis anhängen, wie in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
