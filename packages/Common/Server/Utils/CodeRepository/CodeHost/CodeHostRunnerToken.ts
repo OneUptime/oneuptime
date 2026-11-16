@@ -16,6 +16,10 @@ import {
   CodeWorker,
   CodeWorkerKind,
 } from "../../../../Types/Runner/CodeRepositoryRunner";
+import RunnerCodeFixCapability, {
+  RunnerCodeFixCapabilityUtil,
+} from "../../../../Types/Runner/RunnerCodeFixCapability";
+import ObjectID from "../../../../Types/ObjectID";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import DataSourceEgressGuard from "../../DataSource/EgressGuard";
 import logger from "../../Logger";
@@ -24,6 +28,9 @@ import CodeHostAccess, {
   CodeHostConnectionSummary,
 } from "./CodeHostAccess";
 import { CodeHostHttpError, CodeHostTransport } from "./CodeHostHttp";
+import CodeRepositoryMintedTokens, {
+  CodeRepositoryMintOutcome,
+} from "./CodeRepositoryMintedTokens";
 import ForgejoApi from "./ForgejoApi";
 import GitLabApi from "./GitLabApi";
 import GitSmartHttp from "./GitSmartHttp";
@@ -32,26 +39,49 @@ import {
   getRepositoryNotReachableMessage,
 } from "../../AI/CodeTask/CodeTaskGate";
 import GlobalRunnerRepositoryTokens from "../../Runner/GlobalRunnerRepositoryTokens";
-import { GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL } from "../../../../Types/Runner/GlobalRunnerRepositoryTokens";
+import {
+  GLOBAL_RUNNER_GITLAB_TOKEN_NOT_MINTED_REFUSAL,
+  GLOBAL_RUNNER_TOO_OLD_FOR_GITLAB_REFUSAL,
+  GlobalRunnerKeptOffReason,
+  getGlobalRunnerKeptOffRefusal,
+} from "../../../../Types/Runner/GlobalRunnerRepositoryTokens";
 
 /*
  * WHAT A RUNNER IS HANDED TO WORK IN A REPOSITORY THAT IS NOT ON GITHUB.
  *
  * A GitHub repository's token is minted for one run from the GitHub App.
- * A GitLab, Forgejo, Gitea or Git repository's is the one its connection
- * holds (CodeRepositoryConnection), so it goes, with where to use it, only
- * to a Runner that may work in the repository (the route has asked) and
- * that can (the hosts it says it supports), and only while:
+ * A GitLab, Forgejo, Gitea or Git repository is reached through its
+ * connection (CodeRepositoryConnection), so a Runner is handed a token for
+ * it, with where to use it, only when it may work in the repository (the
+ * route has asked) and can (the hosts it says it supports), and only while:
  *
  *   - the connection is the repository's project's and was not refused;
  *   - the Runner can reach the server: a server only a private network
  *     reaches goes to one of the project's own Runners, never a global one;
  *   - the server still takes the token, when OneUptime can ask it (a token
  *     that expired is caught here, with what to do, before the Runner
- *     clones anything - and the repository shows as not connected);
- *   - and, on OneUptime Cloud, the Runner is the project's own: a global
- *     Runner there runs every customer's JavaScript steps, and is never
- *     handed a connection's token (Types/Runner/GlobalRunnerRepositoryTokens).
+ *     clones anything - and the repository shows as not connected).
+ *
+ * Which token (issues #8912 and #8916):
+ *
+ *   - a Runner that has OneUptime open its pull requests
+ *     (RunnerCodeFixCapability.ServerOpensPullRequests), on a host
+ *     OneUptime's server reaches, never needs the host's API: OneUptime opens
+ *     the pull or merge request itself, with the connection's token, which
+ *     stays on the server (serverOpensPullRequest);
+ *   - so on GitLab it is handed a project access token OneUptime makes for
+ *     the run alone instead of the connection's own: the one project,
+ *     write_repository, the Developer role, ending within a day and revoked
+ *     when the run ends (CodeRepositoryMintedTokens). Where GitLab makes
+ *     none for this repository, its own Runner is handed the connection's
+ *     token, as before;
+ *   - Forgejo, Gitea and Git make no narrower token from the one OneUptime
+ *     holds, so their Runner is still handed the connection's.
+ *
+ * Where global Runners never hold a connection's own token - OneUptime
+ * Cloud, or a self-hosted multi-tenant install with the rule on - a global
+ * Runner is handed only the token made for its run: GitLab's, never the
+ * connection's (Types/Runner/GlobalRunnerRepositoryTokens).
  */
 
 export const RUNNER_TOO_OLD_FOR_CODE_HOST_MESSAGE: (
@@ -60,13 +90,42 @@ export const RUNNER_TOO_OLD_FOR_CODE_HOST_MESSAGE: (
   return `This Runner is older than ${hostName} repositories in Code. Update it to the latest version to work in this repository.`;
 };
 
+/*
+ * What a global Runner is told when GitLab could not be asked for its run's
+ * token just now: nothing is kept, and the next attempt asks again.
+ */
+export const GITLAB_TOKEN_UNAVAILABLE_MESSAGE: (reason: string) => string = (
+  reason: string,
+): string => {
+  return `OneUptime could not ask GitLab for the short-lived token this fix pushes with (${reason}). Try again in a few minutes.`;
+};
+
+// What a Runner pushing with a token OneUptime made signs in to GitLab as.
+export const MINTED_TOKEN_GIT_USERNAME: string = "oauth2";
+
+/*
+ * How long a connection's own token is said to be good for, which does not
+ * end on its own: the run's hour, as GitHub's is.
+ */
+const CONNECTION_TOKEN_SAID_GOOD_FOR_MS: number = 60 * 60 * 1000;
+
 export interface CodeHostRunnerGrant {
   token: string;
+  // When the Runner should treat the token as ended.
+  expiresAt: Date;
   // What git clones and pushes: the repository's HTTPS address.
   cloneUrl: string;
   organizationName: string;
   repositoryName: string;
   codeHost: CodeHostRunnerInfo;
+  /*
+   * Whether OneUptime opens the run's pull (or merge) request, which the
+   * Runner then asks for (/ai-agent-data/open-pull-request) instead of
+   * opening it with the token.
+   */
+  serverOpensPullRequest: boolean;
+  // Whether the token is one OneUptime made for this run (GitLab's).
+  isMintedForRun: boolean;
 }
 
 export type CodeHostRunnerDecision =
@@ -91,35 +150,65 @@ export default class CodeHostRunnerToken {
   }
 
   /*
-   * Whether the Runner gets the repository's token, and with what. The
-   * route has already decided the Runner may work in the repository (its
-   * Runner setting in Code) and that the repository is its project's.
+   * Whether the Runner gets a token for the repository, and which, with
+   * what. The route has already decided the Runner may work in the
+   * repository (its Runner setting in Code), that the repository is its
+   * project's, and which run the token is for (runId: one the worker holds,
+   * or null for a worker that names none, which is older than tokens made
+   * for a run).
    */
   @CaptureSpan()
   public static async decide(data: {
     repository: CodeRepository;
     worker: CodeWorker;
     supportedCodeHosts: Array<CodeRepositoryType>;
+    // What the Runner says it can do (RUNNER_CODE_FIX_CAPABILITIES_FIELD).
+    capabilities?: ReadonlyArray<RunnerCodeFixCapability> | undefined;
+    // The run the token is for, when the worker named one it holds.
+    runId?: ObjectID | null | undefined;
     // Test seam: how the server asks the Git server whether it takes the token.
     transport?: CodeHostTransport | undefined;
+    now?: Date | undefined;
   }): Promise<CodeHostRunnerDecision> {
     const repository: CodeRepository = data.repository;
+    const now: Date = data.now || new Date();
     const type: CodeRepositoryType = CodeHost.readType(
       repository.repositoryHostedAt,
     );
+    const isGlobalRunner: boolean =
+      data.worker.kind === CodeWorkerKind.GlobalRunner;
+    const keepsConnectionTokensOff: boolean =
+      isGlobalRunner &&
+      GlobalRunnerRepositoryTokens.keepsConnectionTokensOffGlobalRunners();
+    const opensPullRequestsThroughServer: boolean =
+      RunnerCodeFixCapabilityUtil.has(
+        data.capabilities,
+        RunnerCodeFixCapability.ServerOpensPullRequests,
+      );
 
     /*
-     * Asked before the connection is read: on OneUptime Cloud a global
-     * Runner is never handed a connection's token, so it is never even
-     * looked up for one.
+     * Asked before the connection is read: where global Runners never hold
+     * a connection's own token, a Forgejo, Gitea or Git repository's is
+     * never even looked up for one, and a GitLab repository's only for a
+     * global Runner that pushes with the token made for its run.
      */
-    if (
-      data.worker.kind === CodeWorkerKind.GlobalRunner &&
-      GlobalRunnerRepositoryTokens.isRepositoryKeptOff(
-        repository.repositoryHostedAt,
-      )
-    ) {
-      return { refusal: GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL };
+    if (keepsConnectionTokensOff) {
+      const reason: GlobalRunnerKeptOffReason | null =
+        GlobalRunnerRepositoryTokens.getKeptOffReason({
+          repositoryHostedAt: repository.repositoryHostedAt,
+          mintedTokenRefusedAt: repository.mintedTokenRefusedAt,
+        });
+
+      if (reason) {
+        return { refusal: getGlobalRunnerKeptOffRefusal(reason) };
+      }
+
+      if (
+        type === CodeRepositoryType.GitLab &&
+        (!opensPullRequestsThroughServer || !data.runId)
+      ) {
+        return { refusal: GLOBAL_RUNNER_TOO_OLD_FOR_GITLAB_REFUSAL };
+      }
     }
 
     if (!data.supportedCodeHosts.includes(type)) {
@@ -159,10 +248,7 @@ export default class CodeHostRunnerToken {
     const isReachableFromServer: boolean =
       connection.isReachableFromServer !== false;
 
-    if (
-      !isReachableFromServer &&
-      data.worker.kind === CodeWorkerKind.GlobalRunner
-    ) {
+    if (!isReachableFromServer && isGlobalRunner) {
       return { refusal: CODE_TASK_REPOSITORY_NEEDS_OWN_RUNNER_MESSAGE };
     }
 
@@ -187,6 +273,9 @@ export default class CodeHostRunnerToken {
       return { refusal: getRepositoryNotReachableMessage(undefined) };
     }
 
+    const transport: CodeHostTransport =
+      data.transport || CodeHostAccess.getTransport();
+
     /*
      * Ask the server whether it still takes the token, where OneUptime may:
      * an expired token fails here, with what to do, rather than in the
@@ -194,9 +283,6 @@ export default class CodeHostRunnerToken {
      * now (it did not answer) is left to the Runner.
      */
     if (isReachableFromServer) {
-      const transport: CodeHostTransport =
-        data.transport || CodeHostAccess.getTransport();
-
       try {
         await CodeHostRunnerToken.checkToken({
           type,
@@ -225,14 +311,109 @@ export default class CodeHostRunnerToken {
       }
     }
 
+    /*
+     * OneUptime opens the pull (or merge) request where its server reaches
+     * the host and the Runner asks it to: the Runner then needs no API.
+     */
+    const serverOpensPullRequest: boolean =
+      opensPullRequestsThroughServer &&
+      isReachableFromServer &&
+      CodeHost.can(type, CodeHostCapability.PullRequests);
+
+    let token: string = credentials.token;
+    let username: string =
+      credentials.username || connection.accountLogin || "oauth2";
+    let expiresAt: Date = new Date(
+      now.getTime() + CONNECTION_TOKEN_SAID_GOOD_FOR_MS,
+    );
+    let isMintedForRun: boolean = false;
+
+    /*
+     * GitLab: a token made for the run, on the one project, that can push
+     * and nothing more - asked for wherever OneUptime opens the merge
+     * request, unless GitLab refused this repository lately (its own
+     * Runner asks again once the refusal is old; a global Runner that is
+     * never handed the connection's token waits for the connection's token
+     * to be replaced).
+     */
+    if (
+      type === CodeRepositoryType.GitLab &&
+      serverOpensPullRequest &&
+      data.runId &&
+      (keepsConnectionTokensOff ||
+        !CodeRepositoryMintedTokens.isRefusalHolding(
+          repository.mintedTokenRefusedAt,
+          now,
+        ))
+    ) {
+      let outcome: CodeRepositoryMintOutcome;
+
+      try {
+        outcome = await CodeRepositoryMintedTokens.mintForRun({
+          repository,
+          connection,
+          runId: data.runId,
+          workerId: new ObjectID(data.worker.id.toString()),
+          transport,
+          now,
+        });
+      } catch (error) {
+        if (error instanceof CodeHostHttpError && error.isCredentialRefusal()) {
+          await CodeRepositoryConnectionService.markRefused(connection);
+
+          return {
+            refusal: getRepositoryNotReachableMessage({
+              ...summary,
+              state: CodeHostConnectionState.TokenRefused,
+            }),
+          };
+        }
+
+        throw error;
+      }
+
+      if (outcome.kind === "minted") {
+        token = outcome.minted.token;
+        username = MINTED_TOKEN_GIT_USERNAME;
+        expiresAt = outcome.minted.expiresAt;
+        isMintedForRun = true;
+      } else if (keepsConnectionTokensOff) {
+        return {
+          refusal:
+            outcome.kind === "refused"
+              ? `${GLOBAL_RUNNER_GITLAB_TOKEN_NOT_MINTED_REFUSAL} GitLab said: ${outcome.reason}`
+              : GITLAB_TOKEN_UNAVAILABLE_MESSAGE(outcome.reason),
+        };
+      } else {
+        logger.debug(
+          `GitLab made no short-lived token for repository ${repository.id?.toString()} (${outcome.reason}); its Runner is handed the connection's token.`,
+        );
+      }
+    }
+
+    /*
+     * Never the connection's own token to a global Runner where they are
+     * kept off: only a token made for its run gets this far for one.
+     */
+    if (keepsConnectionTokensOff && !isMintedForRun) {
+      return {
+        refusal: getGlobalRunnerKeptOffRefusal(
+          GlobalRunnerKeptOffReason.ConnectionToken,
+        ),
+      };
+    }
+
     const apiPath: string | undefined = CODE_HOST_API_PATHS[type];
 
     return {
       grant: {
-        token: credentials.token,
+        token,
+        expiresAt,
         cloneUrl,
         organizationName,
         repositoryName,
+        serverOpensPullRequest,
+        isMintedForRun,
         codeHost: {
           type,
           hostUrl,
@@ -242,7 +423,7 @@ export default class CodeHostRunnerToken {
               ? CodeHostAccess.getGitWebUrl(repositoryUrl)
               : repositoryUrl ||
                 `${hostUrl}/${organizationName}/${repositoryName}`,
-          username: credentials.username || connection.accountLogin || "oauth2",
+          username,
           projectId:
             type === CodeRepositoryType.GitLab
               ? repository.gitLabProjectId || null
@@ -254,7 +435,7 @@ export default class CodeHostRunnerToken {
            * Cloud.
            */
           isPrivateNetworkAllowed:
-            data.worker.kind !== CodeWorkerKind.GlobalRunner ||
+            !isGlobalRunner ||
             !DataSourceEgressGuard.shouldBlockPrivateAddresses(),
         },
       },

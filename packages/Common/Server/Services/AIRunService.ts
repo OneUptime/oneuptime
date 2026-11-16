@@ -314,6 +314,14 @@ export class Service extends DatabaseService<Model> {
      * for a Runner that can do it instead of failing in one that cannot.
      */
     supportedTaskTypes?: Array<CodeFixTaskType> | null | undefined;
+    /*
+     * Whether the claiming Runner pushes with a token OneUptime makes for
+     * its run, and has OneUptime open its pull requests
+     * (RunnerCodeFixCapability.ServerOpensPullRequests): only such a
+     * global Runner takes a GitLab repository's runs where global Runners
+     * never hold a connection's own token (CodeFixClaimQuery).
+     */
+    pushesWithRunTokens?: boolean | undefined;
   }): Promise<Model | null> {
     const maxClaimAttempts: number = 5;
 
@@ -333,6 +341,7 @@ export class Service extends DatabaseService<Model> {
           worker: data.worker,
           projectId: data.projectId,
           claimableTaskTypes,
+          pushesWithRunTokens: data.pushesWithRunTokens,
         });
 
       if (!candidateId) {
@@ -494,8 +503,10 @@ export class Service extends DatabaseService<Model> {
   /*
    * The claim's facts with this install's rule for global Runners and the
    * repositories whose token is their connection's own: on OneUptime Cloud
-   * a global Runner takes none of their runs (GlobalRunnerRepositoryTokens).
-   * The claim and the queue count read it the same way.
+   * a global Runner takes none of their runs - a GitLab repository's only
+   * while GitLab makes it a token for each run, and only a Runner that
+   * pushes with one takes them (GlobalRunnerRepositoryTokens). The claim and
+   * the queue count read it the same way.
    */
   public static withRepositoryTokenRule(
     facts: CodeFixClaimQueryFacts,
