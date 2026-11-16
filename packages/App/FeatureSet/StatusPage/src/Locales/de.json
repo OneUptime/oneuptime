@@ -506,5 +506,6 @@
   "Complete:": "Erfüllt:",
   "Incomplete:": "Nicht erfüllt:",
   "Special character included (optional)": "Sonderzeichen enthalten (optional)",
-  "Special characters are optional. Try !, @, # or $.": "Sonderzeichen sind optional. Probiere !, @, # oder $."
+  "Special characters are optional. Try !, @, # or $.": "Sonderzeichen sind optional. Probiere !, @, # oder $.",
+  "Dismiss": "Ausblenden"
 }

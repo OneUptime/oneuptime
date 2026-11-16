@@ -34,6 +34,9 @@ jest.mock("../../../UI/Utils/API/API", () => {
       get: (...args: Array<unknown>) => {
         return getMock(...args);
       },
+      getFriendlyMessage: (err: unknown): string => {
+        return (err as { message?: string } | undefined)?.message || "";
+      },
     },
   };
 });
@@ -327,6 +330,7 @@ describe("dashboard header on-call requests", () => {
       oldRequest.reject(new Error("Old project failed"));
     });
 
+    openNotifications();
     expect(
       screen.queryByText("header.onCallPoliciesFetchError"),
     ).not.toBeInTheDocument();
@@ -383,11 +387,38 @@ describe("dashboard header on-call requests", () => {
       render(header(project(PROJECT_A)));
       await act(async () => {});
 
+      // Not a dialog over the page: a line in the bell (#9120).
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      openNotifications();
       expect(
         screen.getByText("header.onCallPoliciesFetchError"),
       ).toBeInTheDocument();
+      // Why, as the server or the page said it, not dropped.
+      expect(
+        screen.getByTestId("on-call-lookup-failed-reason"),
+      ).toHaveTextContent("Request failed");
     },
   );
+
+  test("Try again looks the policies up again and clears the line once they are read", async () => {
+    getMock.mockRejectedValueOnce(new Error("Request failed"));
+    render(header(project(PROJECT_A)));
+    await act(async () => {});
+
+    openNotifications();
+    expect(screen.getByTestId("on-call-lookup-failed")).toBeInTheDocument();
+
+    getMock.mockResolvedValueOnce(responseForPolicies([POLICY_A]));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("on-call-lookup-try-again"));
+    });
+
+    expect(getMock).toHaveBeenCalledTimes(2);
+    expect(
+      screen.queryByTestId("on-call-lookup-failed"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("header.onDutyOne:1")).toBeInTheDocument();
+  });
 
   test("continues to suppress the expected SSO authorization error", async () => {
     getMock.mockResolvedValueOnce(
@@ -396,6 +427,7 @@ describe("dashboard header on-call requests", () => {
     render(header(project(PROJECT_A)));
     await act(async () => {});
 
+    openNotifications();
     expect(
       screen.queryByText("header.onCallPoliciesFetchError"),
     ).not.toBeInTheDocument();
@@ -418,6 +450,7 @@ describe("dashboard header on-call requests", () => {
     await act(async () => {});
 
     expect(onSsoAuthorizationRequired).toHaveBeenCalledTimes(1);
+    openNotifications();
     expect(
       screen.queryByText("header.onCallPoliciesFetchError"),
     ).not.toBeInTheDocument();
@@ -432,6 +465,7 @@ describe("dashboard header on-call requests", () => {
     await act(async () => {});
 
     expect(onSsoAuthorizationRequired).not.toHaveBeenCalled();
+    openNotifications();
     expect(
       screen.getByText("header.onCallPoliciesFetchError"),
     ).toBeInTheDocument();

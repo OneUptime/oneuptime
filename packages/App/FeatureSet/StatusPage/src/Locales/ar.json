@@ -506,5 +506,6 @@
   "Complete:": "مكتمل:",
   "Incomplete:": "غير مكتمل:",
   "Special character included (optional)": "تتضمن حرفًا خاصًا (اختياري)",
-  "Special characters are optional. Try !, @, # or $.": "الأحرف الخاصة اختيارية. جرّب ! أو @ أو # أو $."
+  "Special characters are optional. Try !, @, # or $.": "الأحرف الخاصة اختيارية. جرّب ! أو @ أو # أو $.",
+  "Dismiss": "إخفاء"
 }

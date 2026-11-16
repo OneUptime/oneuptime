@@ -506,5 +506,6 @@
   "Complete:": "已符合：",
   "Incomplete:": "未符合：",
   "Special character included (optional)": "已包含特殊字元（選填）",
-  "Special characters are optional. Try !, @, # or $.": "特殊字元為選填項目。可以試試 !、@、# 或 $。"
+  "Special characters are optional. Try !, @, # or $.": "特殊字元為選填項目。可以試試 !、@、# 或 $。",
+  "Dismiss": "隱藏"
 }

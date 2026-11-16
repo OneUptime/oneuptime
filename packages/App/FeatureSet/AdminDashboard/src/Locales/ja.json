@@ -4144,5 +4144,16 @@
   "Complete:": "達成済み：",
   "Incomplete:": "未達成：",
   "Special character included (optional)": "記号が含まれています（任意）",
-  "Special characters are optional. Try !, @, # or $.": "記号の使用は任意です。!、@、#、$ などを使ってみてください。"
+  "Special characters are optional. Try !, @, # or $.": "記号の使用は任意です。!、@、#、$ などを使ってみてください。",
+  "Changes saved": "変更を保存しました",
+  "{{itemName}} added": "{{itemName}}を追加しました",
+  "{{itemName}} attached": "{{itemName}}を添付しました",
+  "{{itemName}} connected": "{{itemName}}を接続しました",
+  "{{itemName}} created": "{{itemName}}を作成しました",
+  "{{itemName}} declared": "{{itemName}}を宣言しました",
+  "{{itemName}} deleted": "{{itemName}}を削除しました",
+  "{{itemName}} invited": "{{itemName}}を招待しました",
+  "{{itemName}} linked": "{{itemName}}をリンクしました",
+  "{{itemName}} removed": "{{itemName}}を外しました",
+  "{{itemName}} started": "{{itemName}}を開始しました"
 }

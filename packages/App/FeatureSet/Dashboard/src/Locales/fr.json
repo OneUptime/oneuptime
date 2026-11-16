@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/mois facturé annuellement"
   },
   "header": {
-    "errorTitleOnCallPolicies": "Erreur de chargement des politiques d'astreinte",
-    "onCallPoliciesFetchError": "Quelque chose ne va pas, nous ne pouvons pas récupérer les politiques d'astreinte pour lesquelles vous êtes de service. Rechargez la page pour réessayer.",
+    "onCallPoliciesFetchError": "Impossible de vérifier pour quelles politiques d'astreinte vous êtes de garde.",
     "incidentsActiveOne": "{{count}} Incident actif",
     "incidentsActiveOther": "{{count}} Incidents actifs",
     "incidentsTooltip": "Voir tous les incidents actifs",
@@ -56420,5 +56419,17 @@
   "{{count}} more further upstream_one": "{{count}} autre plus en amont",
   "{{count}} more further downstream": "{{count}} autres plus en aval",
   "{{count}} more further downstream_one": "{{count}} autre plus en aval",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} de ce graphe est du code sans symboles, donc ses fonctions n'ont pas de nom."
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} de ce graphe est du code sans symboles, donc ses fonctions n'ont pas de nom.",
+  "Couldn't pin {{product}}.": "Impossible d'épingler {{product}}.",
+  "Couldn't unpin {{product}}.": "Impossible de désépingler {{product}}.",
+  "{{itemName}} added": "Ajouté : {{itemName}}",
+  "{{itemName}} attached": "Joint : {{itemName}}",
+  "{{itemName}} connected": "Connecté : {{itemName}}",
+  "{{itemName}} created": "Créé : {{itemName}}",
+  "{{itemName}} declared": "Déclaré : {{itemName}}",
+  "{{itemName}} deleted": "Supprimé : {{itemName}}",
+  "{{itemName}} invited": "Invité : {{itemName}}",
+  "{{itemName}} linked": "Lié : {{itemName}}",
+  "{{itemName}} removed": "Retiré : {{itemName}}",
+  "{{itemName}} started": "Démarré : {{itemName}}"
 }

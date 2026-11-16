@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/mo billed yearly"
   },
   "header": {
-    "errorTitleOnCallPolicies": "Error loading on-call policies",
-    "onCallPoliciesFetchError": "Something isnt right, we are unable to fetch on-call policies that you are on duty for. Reload the page to try again.",
+    "onCallPoliciesFetchError": "Couldn't check which on-call policies you're on duty for.",
     "incidentsActiveOne": "{{count}} Active Incident",
     "incidentsActiveOther": "{{count}} Active Incidents",
     "incidentsTooltip": "View all active incidents",
@@ -56420,5 +56419,17 @@
   "{{count}} more further upstream_one": "{{count}} more further upstream",
   "{{count}} more further downstream": "{{count}} more further downstream",
   "{{count}} more further downstream_one": "{{count}} more further downstream",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} of this graph is code without symbols, so its functions have no names."
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} of this graph is code without symbols, so its functions have no names.",
+  "Couldn't pin {{product}}.": "Couldn't pin {{product}}.",
+  "Couldn't unpin {{product}}.": "Couldn't unpin {{product}}.",
+  "{{itemName}} added": "{{itemName}} added",
+  "{{itemName}} attached": "{{itemName}} attached",
+  "{{itemName}} connected": "{{itemName}} connected",
+  "{{itemName}} created": "{{itemName}} created",
+  "{{itemName}} declared": "{{itemName}} declared",
+  "{{itemName}} deleted": "{{itemName}} deleted",
+  "{{itemName}} invited": "{{itemName}} invited",
+  "{{itemName}} linked": "{{itemName}} linked",
+  "{{itemName}} removed": "{{itemName}} removed",
+  "{{itemName}} started": "{{itemName}} started"
 }

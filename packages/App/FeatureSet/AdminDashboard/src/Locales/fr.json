@@ -4144,5 +4144,16 @@
   "Complete:": "Respecté :",
   "Incomplete:": "Non respecté :",
   "Special character included (optional)": "Caractère spécial inclus (facultatif)",
-  "Special characters are optional. Try !, @, # or $.": "Les caractères spéciaux sont facultatifs. Essayez !, @, # ou $."
+  "Special characters are optional. Try !, @, # or $.": "Les caractères spéciaux sont facultatifs. Essayez !, @, # ou $.",
+  "Changes saved": "Modifications enregistrées",
+  "{{itemName}} added": "Ajouté : {{itemName}}",
+  "{{itemName}} attached": "Joint : {{itemName}}",
+  "{{itemName}} connected": "Connecté : {{itemName}}",
+  "{{itemName}} created": "Créé : {{itemName}}",
+  "{{itemName}} declared": "Déclaré : {{itemName}}",
+  "{{itemName}} deleted": "Supprimé : {{itemName}}",
+  "{{itemName}} invited": "Invité : {{itemName}}",
+  "{{itemName}} linked": "Lié : {{itemName}}",
+  "{{itemName}} removed": "Retiré : {{itemName}}",
+  "{{itemName}} started": "Démarré : {{itemName}}"
 }

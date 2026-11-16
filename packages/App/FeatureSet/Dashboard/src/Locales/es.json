@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/mes facturado anualmente"
   },
   "header": {
-    "errorTitleOnCallPolicies": "Error al cargar las políticas de guardia",
-    "onCallPoliciesFetchError": "Algo no va bien, no podemos obtener las políticas de guardia para las que está de servicio. Recargue la página para volver a intentarlo.",
+    "onCallPoliciesFetchError": "No se pudo comprobar para qué políticas de guardia está de servicio.",
     "incidentsActiveOne": "{{count}} incidente activo",
     "incidentsActiveOther": "{{count}} incidentes activos",
     "incidentsTooltip": "Ver todos los incidentes activos",
@@ -56420,5 +56419,17 @@
   "{{count}} more further upstream_one": "{{count}} más aguas arriba",
   "{{count}} more further downstream": "{{count}} más aguas abajo",
   "{{count}} more further downstream_one": "{{count}} más aguas abajo",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "El {{share}} de este gráfico es código sin símbolos, por lo que sus funciones no tienen nombre."
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "El {{share}} de este gráfico es código sin símbolos, por lo que sus funciones no tienen nombre.",
+  "Couldn't pin {{product}}.": "No se pudo fijar {{product}}.",
+  "Couldn't unpin {{product}}.": "No se pudo dejar de fijar {{product}}.",
+  "{{itemName}} added": "Añadido: {{itemName}}",
+  "{{itemName}} attached": "Adjuntado: {{itemName}}",
+  "{{itemName}} connected": "Conectado: {{itemName}}",
+  "{{itemName}} created": "Creado: {{itemName}}",
+  "{{itemName}} declared": "Declarado: {{itemName}}",
+  "{{itemName}} deleted": "Eliminado: {{itemName}}",
+  "{{itemName}} invited": "Invitado: {{itemName}}",
+  "{{itemName}} linked": "Vinculado: {{itemName}}",
+  "{{itemName}} removed": "Quitado: {{itemName}}",
+  "{{itemName}} started": "Iniciado: {{itemName}}"
 }

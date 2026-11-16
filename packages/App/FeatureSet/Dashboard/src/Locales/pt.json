@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/mês cobrado anualmente"
   },
   "header": {
-    "errorTitleOnCallPolicies": "Erro ao carregar políticas de plantão",
-    "onCallPoliciesFetchError": "Algo não está certo, não conseguimos buscar as políticas de plantão para as quais você está de plantão. Recarregue a página para tentar novamente.",
+    "onCallPoliciesFetchError": "Não foi possível verificar para quais políticas de plantão você está de serviço.",
     "incidentsActiveOne": "{{count}} Incidente ativo",
     "incidentsActiveOther": "{{count}} Incidentes ativos",
     "incidentsTooltip": "Ver todos os incidentes ativos",
@@ -56420,5 +56419,17 @@
   "{{count}} more further upstream_one": "Mais {{count}} mais acima no fluxo",
   "{{count}} more further downstream": "Mais {{count}} mais abaixo no fluxo",
   "{{count}} more further downstream_one": "Mais {{count}} mais abaixo no fluxo",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} deste gráfico é código sem símbolos, por isso as suas funções não têm nome."
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} deste gráfico é código sem símbolos, por isso as suas funções não têm nome.",
+  "Couldn't pin {{product}}.": "Não foi possível fixar {{product}}.",
+  "Couldn't unpin {{product}}.": "Não foi possível desafixar {{product}}.",
+  "{{itemName}} added": "Adicionado: {{itemName}}",
+  "{{itemName}} attached": "Anexado: {{itemName}}",
+  "{{itemName}} connected": "Conectado: {{itemName}}",
+  "{{itemName}} created": "Criado: {{itemName}}",
+  "{{itemName}} declared": "Declarado: {{itemName}}",
+  "{{itemName}} deleted": "Excluído: {{itemName}}",
+  "{{itemName}} invited": "Convidado: {{itemName}}",
+  "{{itemName}} linked": "Vinculado: {{itemName}}",
+  "{{itemName}} removed": "Removido: {{itemName}}",
+  "{{itemName}} started": "Iniciado: {{itemName}}"
 }

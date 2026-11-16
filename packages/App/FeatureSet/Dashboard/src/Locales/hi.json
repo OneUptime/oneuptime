@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/माह वार्षिक बिलिंग"
   },
   "header": {
-    "errorTitleOnCallPolicies": "ऑन-कॉल नीतियां लोड करने में त्रुटि",
-    "onCallPoliciesFetchError": "कुछ सही नहीं है, हम उन ऑन-कॉल नीतियों को प्राप्त नहीं कर पा रहे हैं जिनके लिए आप ड्यूटी पर हैं। पुनः प्रयास करने के लिए पृष्ठ को पुनः लोड करें।",
+    "onCallPoliciesFetchError": "यह जाँचा नहीं जा सका कि आप किन ऑन-कॉल नीतियों के लिए ड्यूटी पर हैं।",
     "incidentsActiveOne": "{{count}} सक्रिय घटना",
     "incidentsActiveOther": "{{count}} सक्रिय घटनाएं",
     "incidentsTooltip": "सभी सक्रिय घटनाएं देखें",
@@ -56420,5 +56419,17 @@
   "{{count}} more further upstream_one": "{{count}} और अपस्ट्रीम में आगे",
   "{{count}} more further downstream": "{{count}} और डाउनस्ट्रीम में आगे",
   "{{count}} more further downstream_one": "{{count}} और डाउनस्ट्रीम में आगे",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "इस ग्राफ़ का {{share}} बिना सिंबल वाला कोड है, इसलिए इसके फ़ंक्शन के नाम नहीं हैं।"
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "इस ग्राफ़ का {{share}} बिना सिंबल वाला कोड है, इसलिए इसके फ़ंक्शन के नाम नहीं हैं।",
+  "Couldn't pin {{product}}.": "{{product}} को पिन नहीं किया जा सका।",
+  "Couldn't unpin {{product}}.": "{{product}} को अनपिन नहीं किया जा सका।",
+  "{{itemName}} added": "{{itemName}} जोड़ा गया",
+  "{{itemName}} attached": "{{itemName}} संलग्न किया गया",
+  "{{itemName}} connected": "{{itemName}} कनेक्ट किया गया",
+  "{{itemName}} created": "{{itemName}} बनाया गया",
+  "{{itemName}} declared": "{{itemName}} घोषित किया गया",
+  "{{itemName}} deleted": "{{itemName}} हटाया गया",
+  "{{itemName}} invited": "{{itemName}} को आमंत्रित किया गया",
+  "{{itemName}} linked": "{{itemName}} लिंक किया गया",
+  "{{itemName}} removed": "{{itemName}} सूची से हटाया गया",
+  "{{itemName}} started": "{{itemName}} शुरू किया गया"
 }

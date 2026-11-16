@@ -4144,5 +4144,16 @@
   "Complete:": "पूरी हुई:",
   "Incomplete:": "पूरी नहीं हुई:",
   "Special character included (optional)": "विशेष चिह्न शामिल है (वैकल्पिक)",
-  "Special characters are optional. Try !, @, # or $.": "विशेष चिह्न वैकल्पिक हैं। !, @, # या $ आज़माएँ।"
+  "Special characters are optional. Try !, @, # or $.": "विशेष चिह्न वैकल्पिक हैं। !, @, # या $ आज़माएँ।",
+  "Changes saved": "बदलाव सहेजे गए",
+  "{{itemName}} added": "{{itemName}} जोड़ा गया",
+  "{{itemName}} attached": "{{itemName}} संलग्न किया गया",
+  "{{itemName}} connected": "{{itemName}} कनेक्ट किया गया",
+  "{{itemName}} created": "{{itemName}} बनाया गया",
+  "{{itemName}} declared": "{{itemName}} घोषित किया गया",
+  "{{itemName}} deleted": "{{itemName}} हटाया गया",
+  "{{itemName}} invited": "{{itemName}} को आमंत्रित किया गया",
+  "{{itemName}} linked": "{{itemName}} लिंक किया गया",
+  "{{itemName}} removed": "{{itemName}} सूची से हटाया गया",
+  "{{itemName}} started": "{{itemName}} शुरू किया गया"
 }

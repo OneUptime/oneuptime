@@ -506,5 +506,6 @@
   "Complete:": "충족:",
   "Incomplete:": "미충족:",
   "Special character included (optional)": "특수 문자 포함됨 (선택 사항)",
-  "Special characters are optional. Try !, @, # or $.": "특수 문자는 선택 사항입니다. !, @, # 또는 $를 사용해 보세요."
+  "Special characters are optional. Try !, @, # or $.": "특수 문자는 선택 사항입니다. !, @, # 또는 $를 사용해 보세요.",
+  "Dismiss": "숨기기"
 }

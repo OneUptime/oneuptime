@@ -506,5 +506,6 @@
   "Complete:": "Выполнено:",
   "Incomplete:": "Не выполнено:",
   "Special character included (optional)": "Специальный символ добавлен (необязательно)",
-  "Special characters are optional. Try !, @, # or $.": "Специальные символы необязательны. Попробуйте !, @, # или $."
+  "Special characters are optional. Try !, @, # or $.": "Специальные символы необязательны. Попробуйте !, @, # или $.",
+  "Dismiss": "Скрыть"
 }

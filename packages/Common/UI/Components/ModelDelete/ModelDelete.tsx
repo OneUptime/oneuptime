@@ -30,10 +30,12 @@ import {
   getRecordNumberColumns,
 } from "../../../Utils/Project/RecordNumber";
 import {
+  translatableTerm,
   translateNamedAction,
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import Toast, { ITEM_DELETED } from "../../Utils/Toast";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -87,6 +89,12 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * nothing to say yet.
    */
   deleteLock?: PermissionGateResult | undefined;
+  /*
+   * A delete says "Nightly Backup deleted" in the corner, on the page it
+   * goes to next (Toast, #9120). Leave it out where that page says so
+   * itself.
+   */
+  hideDeleteToast?: boolean | undefined;
 }
 
 /*
@@ -247,6 +255,14 @@ const ModelDelete: <TBaseModel extends BaseModel>(
           id: props.modelId,
         });
       }
+      if (!props.hideDeleteToast) {
+        Toast.success(
+          translator.translateTemplate(ITEM_DELETED, {
+            itemName: shownName || translatableTerm(typeLabel),
+          }),
+        );
+      }
+
       props.onDeleteSuccess?.();
     } catch (err) {
       setError(API.getFriendlyMessage(err));

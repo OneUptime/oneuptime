@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/월 연간 청구"
   },
   "header": {
-    "errorTitleOnCallPolicies": "온콜 정책 로딩 오류",
-    "onCallPoliciesFetchError": "문제가 발생했습니다. 담당 중인 온콜 정책을 가져올 수 없습니다. 페이지를 새로 고쳐 다시 시도하세요.",
+    "onCallPoliciesFetchError": "담당 중인 온콜 정책을 확인할 수 없습니다.",
     "incidentsActiveOne": "{{count}}개의 활성 인시던트",
     "incidentsActiveOther": "{{count}}개의 활성 인시던트",
     "incidentsTooltip": "모든 활성 인시던트 보기",
@@ -56420,5 +56419,17 @@
   "{{count}} more further upstream_one": "상위에 {{count}}개 더",
   "{{count}} more further downstream": "하위에 {{count}}개 더",
   "{{count}} more further downstream_one": "하위에 {{count}}개 더",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "이 그래프의 {{share}}는 심볼이 없는 코드라서 함수 이름이 없습니다."
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "이 그래프의 {{share}}는 심볼이 없는 코드라서 함수 이름이 없습니다.",
+  "Couldn't pin {{product}}.": "{{product}} 고정에 실패했습니다.",
+  "Couldn't unpin {{product}}.": "{{product}} 고정 해제에 실패했습니다.",
+  "{{itemName}} added": "{{itemName}} 추가됨",
+  "{{itemName}} attached": "{{itemName}} 첨부됨",
+  "{{itemName}} connected": "{{itemName}} 연결됨",
+  "{{itemName}} created": "{{itemName}} 생성됨",
+  "{{itemName}} declared": "{{itemName}} 선언됨",
+  "{{itemName}} deleted": "{{itemName}} 삭제됨",
+  "{{itemName}} invited": "{{itemName}} 초대됨",
+  "{{itemName}} linked": "{{itemName}} 연결됨",
+  "{{itemName}} removed": "{{itemName}} 제거됨",
+  "{{itemName}} started": "{{itemName}} 시작됨"
 }

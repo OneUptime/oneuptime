@@ -35,6 +35,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import Toast, { CHANGES_SAVED } from "../../Utils/Toast";
 import React, {
   ReactElement,
   useEffect,
@@ -48,6 +49,11 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   modelDetailProps: ModeDetailProps<TBaseModel>;
   isEditable?: undefined | boolean;
   onSaveSuccess?: undefined | ((item: TBaseModel) => void);
+  /*
+   * A save says "Changes saved" in the corner (Toast, #9120). Leave it out
+   * where the page says so itself, in its own words.
+   */
+  hideSaveToast?: undefined | boolean;
   editButtonText?: undefined | string;
   /*
    * The edit button's icon: a pencil by default. A card whose button adds
@@ -438,6 +444,16 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
             setShowModal(false);
             // Read the record again, so the card shows what was just saved.
             readAgain();
+
+            /*
+             * The dialog closed and the card read again: without a word, the
+             * person could not tell a save from a Cancel (#9120).
+             */
+            if (!props.hideSaveToast) {
+              Toast.success(
+                translator.translateText(CHANGES_SAVED) || CHANGES_SAVED,
+              );
+            }
 
             /*
              * And so does the record's page header. A save can rename the

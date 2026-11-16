@@ -4144,5 +4144,16 @@
   "Complete:": "Complete:",
   "Incomplete:": "Incomplete:",
   "Special character included (optional)": "Special character included (optional)",
-  "Special characters are optional. Try !, @, # or $.": "Special characters are optional. Try !, @, # or $."
+  "Special characters are optional. Try !, @, # or $.": "Special characters are optional. Try !, @, # or $.",
+  "Changes saved": "Changes saved",
+  "{{itemName}} added": "{{itemName}} added",
+  "{{itemName}} attached": "{{itemName}} attached",
+  "{{itemName}} connected": "{{itemName}} connected",
+  "{{itemName}} created": "{{itemName}} created",
+  "{{itemName}} declared": "{{itemName}} declared",
+  "{{itemName}} deleted": "{{itemName}} deleted",
+  "{{itemName}} invited": "{{itemName}} invited",
+  "{{itemName}} linked": "{{itemName}} linked",
+  "{{itemName}} removed": "{{itemName}} removed",
+  "{{itemName}} started": "{{itemName}} started"
 }

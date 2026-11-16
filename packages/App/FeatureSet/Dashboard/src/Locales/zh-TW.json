@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/月 按年計費"
   },
   "header": {
-    "errorTitleOnCallPolicies": "載入待命策略發生錯誤",
-    "onCallPoliciesFetchError": "發生錯誤,我們無法取得您正在待命的待命策略。請重新載入頁面以再次嘗試。",
+    "onCallPoliciesFetchError": "無法檢查您正在待命的待命策略。",
     "incidentsActiveOne": "{{count}} 個進行中事件",
     "incidentsActiveOther": "{{count}} 個進行中事件",
     "incidentsTooltip": "檢視所有進行中事件",
@@ -56420,5 +56419,17 @@
   "{{count}} more further upstream_one": "更上游還有 {{count}} 個",
   "{{count}} more further downstream": "更下游還有 {{count}} 個",
   "{{count}} more further downstream_one": "更下游還有 {{count}} 個",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "此圖中 {{share}} 是沒有符號的程式碼，因此其函式沒有名稱。"
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "此圖中 {{share}} 是沒有符號的程式碼，因此其函式沒有名稱。",
+  "Couldn't pin {{product}}.": "無法釘選{{product}}。",
+  "Couldn't unpin {{product}}.": "無法取消釘選{{product}}。",
+  "{{itemName}} added": "已新增{{itemName}}",
+  "{{itemName}} attached": "已附加{{itemName}}",
+  "{{itemName}} connected": "已連線{{itemName}}",
+  "{{itemName}} created": "已建立{{itemName}}",
+  "{{itemName}} declared": "已宣告{{itemName}}",
+  "{{itemName}} deleted": "已刪除{{itemName}}",
+  "{{itemName}} invited": "已邀請{{itemName}}",
+  "{{itemName}} linked": "已連結{{itemName}}",
+  "{{itemName}} removed": "已移除{{itemName}}",
+  "{{itemName}} started": "已開始{{itemName}}"
 }

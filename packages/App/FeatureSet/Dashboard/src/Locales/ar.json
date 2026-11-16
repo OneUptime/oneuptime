@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/شهر، يُفوتر سنويًا"
   },
   "header": {
-    "errorTitleOnCallPolicies": "خطأ في تحميل سياسات المناوبة",
-    "onCallPoliciesFetchError": "حدث خطأ ما، وتعذّر علينا جلب سياسات المناوبة التي أنت مناوب فيها. أعد تحميل الصفحة للمحاولة مرة أخرى.",
+    "onCallPoliciesFetchError": "تعذّر التحقق من سياسات المناوبة التي أنت مناوب فيها.",
     "incidentsActiveOne": "{{count}} حادثة نشطة",
     "incidentsActiveOther": "الحوادث النشطة: {{count}}",
     "incidentsTooltip": "عرض كل الحوادث النشطة",
@@ -56420,5 +56419,17 @@
   "{{count}} more further upstream_one": "{{count}} أخرى أبعد في المصدر",
   "{{count}} more further downstream": "{{count}} أخرى أبعد في المصب",
   "{{count}} more further downstream_one": "{{count}} أخرى أبعد في المصب",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} من هذا الرسم تعليمات برمجية بلا رموز، لذا لا أسماء لدوالّها."
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} من هذا الرسم تعليمات برمجية بلا رموز، لذا لا أسماء لدوالّها.",
+  "Couldn't pin {{product}}.": "تعذّر تثبيت {{product}}.",
+  "Couldn't unpin {{product}}.": "تعذّر إلغاء تثبيت {{product}}.",
+  "{{itemName}} added": "تمت إضافة {{itemName}}",
+  "{{itemName}} attached": "تم إرفاق {{itemName}}",
+  "{{itemName}} connected": "تم توصيل {{itemName}}",
+  "{{itemName}} created": "تم إنشاء {{itemName}}",
+  "{{itemName}} declared": "تم إعلان {{itemName}}",
+  "{{itemName}} deleted": "تم حذف {{itemName}}",
+  "{{itemName}} invited": "تمت دعوة {{itemName}}",
+  "{{itemName}} linked": "تم ربط {{itemName}}",
+  "{{itemName}} removed": "تمت إزالة {{itemName}}",
+  "{{itemName}} started": "تم بدء {{itemName}}"
 }
