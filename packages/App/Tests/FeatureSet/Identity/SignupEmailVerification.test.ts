@@ -19,6 +19,8 @@ import {
 } from "Common/Server/Utils/Express";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import { PASSWORD_RULE_MESSAGES } from "Common/Types/Password";
+import { RESET_LINK_MESSAGES } from "Common/Types/Accounts/SignInMessages";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -1341,7 +1343,7 @@ describe("POST /reset-password -- the other emailed proof of the mailbox", () =>
 
     await invoke("/reset-password", resetBody());
 
-    expect(refusalMessage()).toContain("Expired link.");
+    expect(refusalMessage()).toContain("has expired");
     expect(userUpdateOneById).not.toHaveBeenCalled();
   });
 
@@ -1350,7 +1352,78 @@ describe("POST /reset-password -- the other emailed proof of the mailbox", () =>
 
     await invoke("/reset-password", resetBody());
 
-    expect(refusalMessage()).toContain("Invalid link.");
+    expect(refusalMessage()).toContain("has already been used or is not valid");
     expect(userUpdateOneById).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The one password rule (#9123). The reset route used to store any password
+ * at all, quietly undoing the rule sign-up set: it asked the rule nothing.
+ */
+describe("POST /reset-password keeps the one password rule", () => {
+  const resetWith: (password: string) => unknown = (
+    password: string,
+  ): unknown => {
+    return {
+      data: {
+        resetPasswordToken: "55555555-5555-4555-8555-555555555555",
+        password: { _type: "HashedString", value: password },
+      },
+    };
+  };
+
+  it.each([
+    ["six characters", "abc123", PASSWORD_RULE_MESSAGES.tooShort],
+    ["fourteen characters", "violet river l", PASSWORD_RULE_MESSAGES.tooShort],
+    [
+      "a predictable password",
+      "password123456789",
+      PASSWORD_RULE_MESSAGES.predictable,
+    ],
+  ])(
+    "refuses %s, and changes nothing",
+    async (_case: string, password: string, refusal: string) => {
+      userFindOneBy.mockResolvedValue({
+        ...storedUser(),
+        resetPasswordExpires: OneUptimeDate.getOneDayAfter(),
+      });
+
+      await invoke("/reset-password", resetWith(password));
+
+      expect(refusalMessage()).toBe(refusal);
+      expect(userUpdateOneById).not.toHaveBeenCalled();
+      expect(revokeAllSessionsByUserId).not.toHaveBeenCalled();
+    },
+  );
+
+  it("says an expired link is expired before it judges the password", async () => {
+    userFindOneBy.mockResolvedValue({
+      ...storedUser(),
+      resetPasswordExpires: OneUptimeDate.getSomeDaysAgo(2),
+    });
+
+    await invoke("/reset-password", resetWith("abc123"));
+
+    expect(refusalMessage()).toBe(RESET_LINK_MESSAGES.expired);
+  });
+
+  it("says a link that matches no account is not valid", async () => {
+    userFindOneBy.mockResolvedValue(null);
+
+    await invoke("/reset-password", resetWith("violet river lantern"));
+
+    expect(refusalMessage()).toBe(RESET_LINK_MESSAGES.invalid);
+  });
+
+  it("stores a password that keeps the rule", async () => {
+    userFindOneBy.mockResolvedValue({
+      ...storedUser(),
+      resetPasswordExpires: OneUptimeDate.getOneDayAfter(),
+    });
+
+    await invoke("/reset-password", resetWith("violet river lantern"));
+
+    expect(userUpdateOneById).toHaveBeenCalledTimes(1);
   });
 });

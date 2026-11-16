@@ -1,9 +1,8 @@
 import {
   getPasswordValidationError,
-  getSignupPasswordValidationError,
-  isPredictableSignupPassword,
+  isPredictablePassword,
   MAXIMUM_PASSWORD_LENGTH,
-  MINIMUM_SIGNUP_PASSWORD_LENGTH,
+  MINIMUM_PASSWORD_LENGTH,
 } from "../../Types/Password";
 import { describe, expect, test } from "@jest/globals";
 
@@ -11,7 +10,7 @@ describe("signup password pattern feedback", () => {
   test.each(["", " ", "\t\n", "\u00a0\u2003"])(
     "does not mark the pattern requirement complete for blank input (%p)",
     (value: string) => {
-      expect(isPredictableSignupPassword(value)).toBe(true);
+      expect(isPredictablePassword(value)).toBe(true);
     },
   );
 
@@ -35,11 +34,9 @@ describe("signup password pattern feedback", () => {
   ])(
     "identifies %s before reaching the minimum length",
     (_label: string, value: string) => {
-      expect(Array.from(value).length).toBeLessThan(
-        MINIMUM_SIGNUP_PASSWORD_LENGTH,
-      );
-      expect(isPredictableSignupPassword(value)).toBe(true);
-      expect(getSignupPasswordValidationError(value)).toBe(
+      expect(Array.from(value).length).toBeLessThan(MINIMUM_PASSWORD_LENGTH);
+      expect(isPredictablePassword(value)).toBe(true);
+      expect(getPasswordValidationError(value)).toBe(
         "Password must be at least 15 characters.",
       );
     },
@@ -54,8 +51,8 @@ describe("signup password pattern feedback", () => {
   ])(
     "can complete the pattern requirement for %s while length is unfinished",
     (_label: string, value: string) => {
-      expect(isPredictableSignupPassword(value)).toBe(false);
-      expect(getSignupPasswordValidationError(value)).toBe(
+      expect(isPredictablePassword(value)).toBe(false);
+      expect(getPasswordValidationError(value)).toBe(
         "Password must be at least 15 characters.",
       );
     },
@@ -63,8 +60,8 @@ describe("signup password pattern feedback", () => {
 
   test("keeps maximum-length errors ahead of pattern errors", () => {
     const value: string = "a".repeat(MAXIMUM_PASSWORD_LENGTH + 1);
-    expect(isPredictableSignupPassword(value)).toBe(true);
-    expect(getSignupPasswordValidationError(value)).toBe(
+    expect(isPredictablePassword(value)).toBe(true);
+    expect(getPasswordValidationError(value)).toBe(
       "Password cannot be more than 100 characters.",
     );
   });
@@ -74,9 +71,7 @@ describe("signup password policy", () => {
   test.each([undefined, null, ""])(
     "requires a password (%p)",
     (value: unknown) => {
-      expect(getSignupPasswordValidationError(value)).toBe(
-        "Password is required.",
-      );
+      expect(getPasswordValidationError(value)).toBe("Password is required.");
     },
   );
 
@@ -89,7 +84,7 @@ describe("signup password policy", () => {
     {},
     { value: "a long enough password" },
   ])("rejects non-string input (%p)", (value: unknown) => {
-    expect(getSignupPasswordValidationError(value)).toBe(
+    expect(getPasswordValidationError(value)).toBe(
       "Password must be a string.",
     );
   });
@@ -97,7 +92,7 @@ describe("signup password policy", () => {
   test.each([" ", "\t\n", " ".repeat(15), " ".repeat(101)])(
     "rejects whitespace-only input (%p)",
     (value: string) => {
-      expect(getSignupPasswordValidationError(value)).toBe(
+      expect(getPasswordValidationError(value)).toBe(
         "Password cannot be blank.",
       );
     },
@@ -106,23 +101,23 @@ describe("signup password policy", () => {
   test.each(["a", "sample", "password", "Password123!", "birch lake sun"])(
     "rejects short passwords (%p)",
     (value: string) => {
-      expect(getSignupPasswordValidationError(value)).toBe(
-        `Password must be at least ${MINIMUM_SIGNUP_PASSWORD_LENGTH} characters.`,
+      expect(getPasswordValidationError(value)).toBe(
+        `Password must be at least ${MINIMUM_PASSWORD_LENGTH} characters.`,
       );
     },
   );
 
   test("accepts exactly 15 characters without requiring mixed character types", () => {
     const value: string = "birch lake suns";
-    expect(Array.from(value)).toHaveLength(MINIMUM_SIGNUP_PASSWORD_LENGTH);
-    expect(getSignupPasswordValidationError(value)).toBeNull();
+    expect(Array.from(value)).toHaveLength(MINIMUM_PASSWORD_LENGTH);
+    expect(getPasswordValidationError(value)).toBeNull();
   });
 
   test("accepts exactly the maximum and rejects the next character", () => {
     const value: string = "violet river lantern".repeat(5);
     expect(value).toHaveLength(MAXIMUM_PASSWORD_LENGTH);
-    expect(getSignupPasswordValidationError(value)).toBeNull();
-    expect(getSignupPasswordValidationError(value + "!")).toBe(
+    expect(getPasswordValidationError(value)).toBeNull();
+    expect(getPasswordValidationError(value + "!")).toBe(
       `Password cannot be more than ${MAXIMUM_PASSWORD_LENGTH} characters.`,
     );
   });
@@ -155,8 +150,8 @@ describe("signup password policy", () => {
     "    password    ",
     "🔒".repeat(15),
   ])("rejects obvious predictable patterns (%p)", (value: string) => {
-    expect(isPredictableSignupPassword(value)).toBe(true);
-    expect(getSignupPasswordValidationError(value)).toBe(
+    expect(isPredictablePassword(value)).toBe(true);
+    expect(getPasswordValidationError(value)).toBe(
       "Choose a less predictable password. Try a few unrelated words.",
     );
   });
@@ -172,34 +167,34 @@ describe("signup password policy", () => {
     "🌍🍋🎈🐢🌊🍂🪁🦉🚲🎸🍄🧭🐬🌻a",
     "a password manager picked this phrase",
   ])("accepts long passwords and passphrases (%p)", (value: string) => {
-    expect(isPredictableSignupPassword(value)).toBe(false);
-    expect(getSignupPasswordValidationError(value)).toBeNull();
+    expect(isPredictablePassword(value)).toBe(false);
+    expect(getPasswordValidationError(value)).toBeNull();
   });
 
   test("counts emoji as single characters at both length boundaries", () => {
     const short: string = "🎈birch lake su";
     expect(short.length).toBe(15);
     expect(Array.from(short)).toHaveLength(14);
-    expect(getSignupPasswordValidationError(short)).toBe(
+    expect(getPasswordValidationError(short)).toBe(
       "Password must be at least 15 characters.",
     );
-    expect(getSignupPasswordValidationError(short + "n")).toBeNull();
+    expect(getPasswordValidationError(short + "n")).toBeNull();
     const maximum: string =
       "🎈" + "violet river lantern ".repeat(5).slice(0, 99);
     expect(Array.from(maximum)).toHaveLength(100);
-    expect(getSignupPasswordValidationError(maximum)).toBeNull();
-    expect(getSignupPasswordValidationError(maximum + "🌿")).toBe(
+    expect(getPasswordValidationError(maximum)).toBeNull();
+    expect(getPasswordValidationError(maximum + "🌿")).toBe(
       "Password cannot be more than 100 characters.",
     );
   });
 
   test("does not include the submitted password in error messages", () => {
     const secret: string = "Password123!";
-    expect(getSignupPasswordValidationError(secret)).not.toContain(secret);
+    expect(getPasswordValidationError(secret)).not.toContain(secret);
   });
 
-  test("preserves the existing policy for other password flows", () => {
-    expect(getPasswordValidationError("sample")).toBeNull();
-    expect(getSignupPasswordValidationError("sample")).not.toBeNull();
+  // One rule (#9123): a reset or Set Password no longer takes six characters.
+  test("is the rule for every password, not only sign-up's", () => {
+    expect(getPasswordValidationError("sample")).not.toBeNull();
   });
 });

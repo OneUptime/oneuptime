@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "Nulstil din adgangskode",
     "subtitle": "Indtast venligst din nye adgangskode, og vi opdaterer den.",
-    "successMessage": "Din adgangskode er blevet opdateret. Log venligst ind.",
     "submitButton": "Nulstil adgangskode",
     "knowPasswordPrompt": "Kender du din adgangskode?",
-    "loginLink": "Log ind."
+    "loginLink": "Log ind.",
+    "successTitle": "Din adgangskode er nulstillet",
+    "successDescription": "Log ind med din nye adgangskode.",
+    "signInButton": "Log ind",
+    "linkExpiredTitle": "Dette nulstillingslink er udløbet",
+    "linkExpiredDescription": "Nulstillingslinks virker i én dag. Bed om et nyt link, så sender vi det til dig på e-mail.",
+    "linkInvalidTitle": "Dette nulstillingslink virker ikke længere",
+    "linkInvalidDescription": "Det er måske allerede brugt, eller kun en del af det blev kopieret. Bed om et nyt link, så sender vi det til dig på e-mail.",
+    "requestNewLinkButton": "Bed om et nyt link"
   },
   "sso": {
     "title": "Log ind med SSO",
