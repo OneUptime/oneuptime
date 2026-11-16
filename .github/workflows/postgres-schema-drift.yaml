@@ -1473,6 +1473,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/PublicNoteApprovalRequestPostgres.test.ts --forceExit
 
+      # #7975: how many Postgres statements an anonymous status page view
+      # sends - its HTML's SEO row, the app's settings, the overview, the
+      # favicon - and each image and each list a page's tabs read, counted
+      # through TypeORM's query log on clones of every table they read. A
+      # first view stays within the budget it had; every view after it, and
+      # a browser asking for an image it has (304), reads nothing; a view in
+      # another pod never builds the overview or a list again; and a page
+      # made private, here or in another pod, is refused from what is kept.
+      - name: Test the Postgres statements a status page view sends, on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_STATUS_PAGE_VIEW_STATEMENT_TESTS: "true"
+          STATUS_PAGE_VIEW_STATEMENT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          STATUS_PAGE_VIEW_STATEMENT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          STATUS_PAGE_VIEW_STATEMENT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/StatusPagePublicViewStatementsPostgres.test.ts --forceExit
+
       # Clones the migrated User, Project, StatusPage and
       # StatusPageHistoryChartBarColorRule tables (with the rules' foreign
       # keys) into an isolated schema, and makes a new status page's
