@@ -160,38 +160,43 @@ export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
       values: FormValues<TEntity>,
       customElementProps: CustomElementProps,
     ): ReactElement => {
+      const builder: ReactElement = (
+        <RuleCriteriaBuilder
+          fields={legacyFields}
+          legacyValues={values as unknown as Record<string, unknown>}
+          value={(values as { criteria?: RuleCriteria }).criteria}
+          error={customElementProps.error}
+          requiresCondition={requiresCondition}
+          subject={subject}
+          onChange={(criteria: RuleCriteria): void => {
+            customElementProps.onChange?.(criteria);
+          }}
+        />
+      );
+
       /*
        * A rule OneUptime switched off because every record a list of it
-       * was limited to was deleted says so here, where what it applies to
-       * is chosen again (#9066). The Edit form reads the note without
-       * sending it (ModelTable's alsoReadColumns).
+       * was limited to was deleted says so here, above what it applies to,
+       * where that is chosen again (#9066). The Edit form reads the note
+       * without sending it (ModelTable's alsoReadColumns). Every other
+       * rule's field is the builder alone.
        */
       const emptiedLimits: Array<RuleEmptiedLimit> =
         getRuleEmptiedLimits(values);
 
+      if (emptiedLimits.length === 0) {
+        return builder;
+      }
+
       return (
         <>
-          {emptiedLimits.length > 0 ? (
-            <div className="mb-4">
-              <RuleEmptiedLimitsAlert
-                model={model}
-                emptiedLimits={emptiedLimits}
-              />
-            </div>
-          ) : (
-            <></>
-          )}
-          <RuleCriteriaBuilder
-            fields={legacyFields}
-            legacyValues={values as unknown as Record<string, unknown>}
-            value={(values as { criteria?: RuleCriteria }).criteria}
-            error={customElementProps.error}
-            requiresCondition={requiresCondition}
-            subject={subject}
-            onChange={(criteria: RuleCriteria): void => {
-              customElementProps.onChange?.(criteria);
-            }}
-          />
+          <div className="mb-4">
+            <RuleEmptiedLimitsAlert
+              model={model}
+              emptiedLimits={emptiedLimits}
+            />
+          </div>
+          {builder}
         </>
       );
     },
