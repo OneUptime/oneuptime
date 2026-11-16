@@ -1,8 +1,10 @@
 // Must stay the first import: the client's URLs are built from HOST on load.
 import { DASHBOARD_ORIGIN } from "./DashboardHost";
 import FakeAxiosServer, {
+  FakeReply,
   FakeTransport,
   Gate,
+  RENEWED_SESSION,
   SentRequest,
   createGate,
   settle,
@@ -177,7 +179,7 @@ describe("A request that comes back 401 because the session lapsed", () => {
         { status: 401, data: NOT_AUTHENTICATED_BODY },
         { status: 200, data: { count: 3 } },
       ])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await BaseAPI.post<JSONObject>({
@@ -236,7 +238,7 @@ describe("A request that comes back 401 because the session lapsed", () => {
         { status: 401, data: NOT_AUTHENTICATED_BODY },
         { status: 200, data: { ok: true } },
       ])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await BaseAPI.fetch<JSONObject>({
@@ -254,7 +256,7 @@ describe("A request that comes back 401 because the session lapsed", () => {
 
     server
       .on(HTTPMethod.POST, url, [{ status: 401 }, { status: 200 }])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await BaseAPI.post<JSONObject>({ url: URL.fromString(url) });
 
@@ -276,7 +278,7 @@ describe("A request that comes back 401 because the session lapsed", () => {
         { status: 401, data: NOT_AUTHENTICATED_BODY },
         { status: 401, data: NOT_AUTHENTICATED_BODY },
       ])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await BaseAPI.post<JSONObject>({ url: URL.fromString(url) });
@@ -330,7 +332,7 @@ describe("Many requests lapsing at once", () => {
     });
 
     server.on(HTTPMethod.POST, REFRESH_URL, [
-      { status: 200, gate: refreshGate.promise },
+      { ...RENEWED_SESSION, gate: refreshGate.promise },
     ]);
 
     const pending: Promise<
@@ -397,7 +399,7 @@ describe("Many requests lapsing at once", () => {
     server
       .on(HTTPMethod.POST, first, [{ status: 401 }, { status: 200 }])
       .on(HTTPMethod.POST, straggler, [{ status: 401 }, { status: 200 }])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await BaseAPI.post<JSONObject>({ url: URL.fromString(first) });
 
@@ -498,7 +500,7 @@ describe("A refresh the server refuses", () => {
         { status: 401 },
         { status: 200, data: { ok: true } },
       ])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 401 }, { status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 401 }, RENEWED_SESSION]);
 
     const refused: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await BaseAPI.post<JSONObject>({ url: URL.fromString(url) });
@@ -527,7 +529,7 @@ describe("A refresh that fails for a reason a retry can fix", () => {
         { status: 401 },
         { status: 200, data: { ok: true } },
       ])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 503 }, { status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 503 }, RENEWED_SESSION]);
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await BaseAPI.post<JSONObject>({ url: URL.fromString(url) });
@@ -571,7 +573,7 @@ describe("A refresh that fails for a reason a retry can fix", () => {
       .on(HTTPMethod.POST, url, [{ status: 401 }, { status: 200 }])
       .on(HTTPMethod.POST, REFRESH_URL, [
         { networkErrorCode: "ECONNRESET" },
-        { status: 200 },
+        RENEWED_SESSION,
       ]);
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -598,7 +600,7 @@ describe("A refresh that fails for a reason a retry can fix", () => {
         { networkErrorCode: "ECONNREFUSED" },
         { networkErrorCode: "ECONNREFUSED" },
         { networkErrorCode: "ECONNREFUSED" },
-        { status: 200 },
+        RENEWED_SESSION,
       ]);
 
     await expect(
@@ -631,6 +633,117 @@ describe("A refresh that fails for a reason a retry can fix", () => {
     expect(refreshRequests()).toHaveLength(3);
     expect(logoutSpy).not.toHaveBeenCalled();
     expect(navigateSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A REFRESH ANSWERED 200 WITHOUT A RENEWED SESSION (issue #8838).
+ *
+ * The server answers a renewal it made with the session's new tokens beside
+ * the cookies it sets. A 200 without them - a proxy, a captive portal, an
+ * error page - renewed nothing: the cookies did not change. It used to count
+ * as a refresh: the request was replayed on the same expired cookies, every
+ * tab was told the session was fresh, and the activity and the time without
+ * use it carried were noted as reported though the server never heard them.
+ * Now it is a refresh that got no answer.
+ */
+describe("A refresh answered 200 without a renewed session", () => {
+  const UNREADABLE_REFRESH_ANSWERS: Array<[string, FakeReply]> = [
+    ["no body", { status: 200 }],
+    ["an empty object", { status: 200, data: {} }],
+    ["the fixtures' { data: [] }", { status: 200, data: { data: [] } }],
+    ["a list", { status: 200, data: [] }],
+    [
+      "an HTML page",
+      {
+        status: 200,
+        data: "<html><body>Sign in to the Wi-Fi</body></html>" as unknown as JSONObject,
+      },
+    ],
+    [
+      "no access token",
+      { status: 200, data: { refreshToken: "renewed-refresh-token" } },
+    ],
+    [
+      "no refresh token",
+      { status: 200, data: { accessToken: "renewed-access-token" } },
+    ],
+    [
+      "empty tokens",
+      { status: 200, data: { accessToken: "", refreshToken: " " } },
+    ],
+  ];
+
+  test.each(UNREADABLE_REFRESH_ANSWERS)(
+    "%s: the request that needed it rejects, nobody is logged out, nothing is marked refreshed, and the next refresh with the tokens recovers",
+    async (_label: string, answer: FakeReply) => {
+      const url: string = endpoint("/incident/get-list");
+
+      // Refused while the cookies are the old ones, served once they are renewed.
+      server
+        .on(HTTPMethod.POST, url, [
+          { status: 401 },
+          { status: 401 },
+          { status: 200 },
+        ])
+        .on(HTTPMethod.POST, REFRESH_URL, [answer, RENEWED_SESSION]);
+
+      await expect(
+        BaseAPI.post<JSONObject>({ url: URL.fromString(url) }),
+      ).rejects.toBeInstanceOf(APIException);
+
+      // Asked once - a 200 is no error to retry - and the request not replayed.
+      expect(refreshRequests()).toHaveLength(1);
+      expect(server.requestsTo(HTTPMethod.POST, url)).toHaveLength(1);
+      expect(logoutSpy).not.toHaveBeenCalled();
+      expect(navigateSpy).not.toHaveBeenCalled();
+      expect(localStorage.getItem(SESSION_REFRESHED_AT_KEY)).toBeNull();
+
+      // The network back: the next refresh goes out, and the request is served.
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await BaseAPI.post<JSONObject>({ url: URL.fromString(url) });
+
+      expect(response.statusCode).toBe(200);
+      expect(refreshRequests()).toHaveLength(2);
+      expect(localStorage.getItem(SESSION_REFRESHED_AT_KEY)).not.toBeNull();
+    },
+  );
+
+  test("refreshSession() called directly resolves false, as for no answer, and logs nobody out", async () => {
+    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200, data: {} }]);
+
+    await expect(BaseAPI.refreshSession()).resolves.toBe(false);
+
+    expect(logoutSpy).not.toHaveBeenCalled();
+    expect(localStorage.getItem(SESSION_REFRESHED_AT_KEY)).toBeNull();
+  });
+
+  test("another tab is not told the session is fresh: its own refresh goes out", async () => {
+    server.on(HTTPMethod.POST, REFRESH_URL, [
+      { status: 200, data: { data: [] } },
+      RENEWED_SESSION,
+    ]);
+
+    await expect(BaseAPI.refreshSession()).resolves.toBe(false);
+    await expect(BaseAPI.refreshSession()).resolves.toBe(true);
+
+    expect(refreshRequests()).toHaveLength(2);
+  });
+
+  test("the server's answer - both tokens, whatever else it holds - is a renewed session", async () => {
+    server.on(HTTPMethod.POST, REFRESH_URL, [
+      {
+        status: 200,
+        data: {
+          accessToken: "renewed-access-token",
+          refreshToken: "renewed-refresh-token",
+          refreshTokenExpiresAt: "2026-12-16T09:00:00.000Z",
+          somethingNew: true,
+        },
+      },
+    ]);
+
+    await expect(BaseAPI.refreshSession()).resolves.toBe(true);
   });
 });
 
@@ -675,7 +788,7 @@ describe("Statuses that are not a lapsed session", () => {
 
 describe("BaseAPI.refreshSession()", () => {
   test("returns true on a 2xx and stamps the time it happened", async () => {
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await expect(BaseAPI.refreshSession()).resolves.toBe(true);
 
@@ -709,7 +822,7 @@ describe("BaseAPI.refreshSession()", () => {
   });
 
   test("a second call right after a successful one is free", async () => {
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await expect(BaseAPI.refreshSession()).resolves.toBe(true);
 
@@ -721,7 +834,7 @@ describe("BaseAPI.refreshSession()", () => {
   });
 
   test("once the window has passed it refreshes again", async () => {
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }, { status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION, RENEWED_SESSION]);
 
     await expect(BaseAPI.refreshSession()).resolves.toBe(true);
 
@@ -743,7 +856,7 @@ describe("BaseAPI.refreshSession()", () => {
   test("a stamp from the future is ignored", async () => {
     localStorage.setItem(SESSION_REFRESHED_AT_KEY, String(nowInMs + 60_000));
 
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await expect(BaseAPI.refreshSession()).resolves.toBe(true);
 
@@ -753,7 +866,7 @@ describe("BaseAPI.refreshSession()", () => {
   test("a stamp that is not a time is ignored", async () => {
     localStorage.setItem(SESSION_REFRESHED_AT_KEY, "not-a-number");
 
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await expect(BaseAPI.refreshSession()).resolves.toBe(true);
 
@@ -794,7 +907,7 @@ describe("BaseAPI.refreshSession()", () => {
         originalSetItem.call(window.localStorage, key, value);
       });
 
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await expect(BaseAPI.refreshSession()).resolves.toBe(true);
 
@@ -805,7 +918,7 @@ describe("BaseAPI.refreshSession()", () => {
     const refreshGate: Gate = createGate();
 
     server.on(HTTPMethod.POST, REFRESH_URL, [
-      { status: 200, gate: refreshGate.promise },
+      { ...RENEWED_SESSION, gate: refreshGate.promise },
     ]);
 
     const results: Promise<Array<boolean>> = Promise.all([
@@ -845,7 +958,7 @@ describe("BaseAPI.refreshSession()", () => {
   });
 
   test("the refresh is a bodiless POST to the identity service's refresh-token route", async () => {
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await BaseAPI.refreshSession();
 
@@ -888,7 +1001,7 @@ describe("BaseAPI.refreshSession() across tabs", () => {
       requestsMadeInsideLock.push(isInsideLock);
     };
 
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await expect(BaseAPI.refreshSession()).resolves.toBe(true);
 
@@ -951,7 +1064,7 @@ describe("BaseAPI.refreshSession() across tabs", () => {
 
     server
       .on(HTTPMethod.POST, url, [{ status: 401 }, { status: 200 }])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await BaseAPI.post<JSONObject>({ url: URL.fromString(url) });
@@ -970,7 +1083,7 @@ describe("BaseAPI.refreshSession() across tabs", () => {
       (window.navigator as unknown as { locks?: LockManager }).locks,
     ).toBeUndefined();
 
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await expect(BaseAPI.refreshSession()).resolves.toBe(true);
 
@@ -980,7 +1093,7 @@ describe("BaseAPI.refreshSession() across tabs", () => {
   test("a lock manager without request() is treated as no lock manager", async () => {
     setNavigatorLocks({} as unknown as LockManager);
 
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await expect(BaseAPI.refreshSession()).resolves.toBe(true);
 
@@ -1020,7 +1133,7 @@ describe("Sessions are named, and the name is what is shared", () => {
     const refreshGate: Gate = createGate();
 
     server.on(HTTPMethod.POST, REFRESH_URL, [
-      { status: 200, gate: refreshGate.promise },
+      { ...RENEWED_SESSION, gate: refreshGate.promise },
     ]);
 
     const results: Promise<Array<boolean>> = Promise.all([
@@ -1041,9 +1154,9 @@ describe("Sessions are named, and the name is what is shared", () => {
 
     server
       .on(HTTPMethod.POST, REFRESH_URL, [
-        { status: 200, gate: refreshGate.promise },
+        { ...RENEWED_SESSION, gate: refreshGate.promise },
       ])
-      .on(HTTPMethod.POST, OTHER_REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, OTHER_REFRESH_URL, [RENEWED_SESSION]);
 
     const dashboard: Promise<boolean> = BaseAPI.refreshSession();
 

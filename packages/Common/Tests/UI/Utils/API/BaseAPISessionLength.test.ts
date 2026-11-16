@@ -1,6 +1,10 @@
 // Must stay the first import: the client's URLs are built from HOST on load.
 import { DASHBOARD_ORIGIN } from "./DashboardHost";
-import FakeAxiosServer, { FakeTransport, SentRequest } from "./FakeAxiosServer";
+import FakeAxiosServer, {
+  RENEWED_SESSION,
+  FakeTransport,
+  SentRequest,
+} from "./FakeAxiosServer";
 import BaseAPI from "../../../../UI/Utils/API/API";
 import { IDENTITY_URL } from "../../../../UI/Config";
 import Navigation from "../../../../UI/Utils/Navigation";
@@ -166,7 +170,7 @@ describe("a renewal says how long the person has not used OneUptime", () => {
         { status: 401, data: NOT_AUTHENTICATED_BODY },
         { status: 200, data: { count: 1 } },
       ])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await requestIncidents();
@@ -182,7 +186,7 @@ describe("a renewal says how long the person has not used OneUptime", () => {
     UserActivity.install();
     nowInMs += 42 * 1000;
 
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await expect(BaseAPI.refreshSession()).resolves.toBe(true);
     expect(refreshRequests()[0]!.data).toEqual({
@@ -191,7 +195,7 @@ describe("a renewal says how long the person has not used OneUptime", () => {
   });
 
   test("a page that does not notice activity says nothing: the server counts from the last renewal", async () => {
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await BaseAPI.refreshSession();
 
@@ -202,7 +206,7 @@ describe("a renewal says how long the person has not used OneUptime", () => {
     UserActivity.install();
     nowInMs += 60 * 1000;
 
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await StatusPageClient.refreshSession();
 
@@ -244,7 +248,7 @@ describe("a renewal after the browser stood closed says how long it stood closed
         { status: 401, data: NOT_AUTHENTICATED_BODY },
         { status: 200, data: { count: 1 } },
       ])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await requestIncidents();
 
@@ -259,7 +263,7 @@ describe("a renewal after the browser stood closed says how long it stood closed
   });
 
   test("a renewal that went through forgets it: the next renewal says only how long it has been", async () => {
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }, { status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION, RENEWED_SESSION]);
 
     await expect(BaseAPI.refreshSession()).resolves.toBe(true);
 
@@ -279,7 +283,7 @@ describe("a renewal after the browser stood closed says how long it stood closed
       { networkErrorCode: "ECONNREFUSED" },
       { networkErrorCode: "ECONNREFUSED" },
       { networkErrorCode: "ECONNREFUSED" },
-      { status: 200 },
+      RENEWED_SESSION,
     ]);
 
     await expect(BaseAPI.refreshSession()).resolves.toBe(false);
@@ -332,7 +336,7 @@ describe("a renewal after the browser stood closed says how long it stood closed
       );
     };
 
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }, { status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION, RENEWED_SESSION]);
 
     await BaseAPI.refreshSession();
 
@@ -351,7 +355,7 @@ describe("a renewal after the browser stood closed says how long it stood closed
   });
 
   test("a status page's session says neither: it is not a sign-in to OneUptime", async () => {
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await StatusPageClient.refreshSession();
 
@@ -468,7 +472,7 @@ describe("a session the server ended for its length or its idle timeout", () => 
       ])
       .on(HTTPMethod.POST, REFRESH_URL, [
         { networkErrorCode: "ECONNRESET" },
-        { status: 200 },
+        RENEWED_SESSION,
       ]);
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =

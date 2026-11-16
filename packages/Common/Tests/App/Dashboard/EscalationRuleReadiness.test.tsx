@@ -164,6 +164,7 @@ import type RealBaseAPI from "../../../UI/Utils/API/API";
 import Navigation from "../../../UI/Utils/Navigation";
 import User from "../../../UI/Utils/User";
 import FakeAxiosServer, {
+  RENEWED_SESSION,
   FakeTransport,
   SentRequest,
 } from "../../UI/Utils/API/FakeAxiosServer";
@@ -1780,7 +1781,7 @@ describe("Sending the reminder after the session lapsed", () => {
           },
         },
       ])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     const statuses: SetupReminderStatuses = await requestSetupReminders([
       USER_ALEX,
@@ -1828,7 +1829,7 @@ describe("Sending the reminder after the session lapsed", () => {
           },
         },
       ])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     const statuses: SetupReminderStatuses = await requestSetupReminders([
       USER_ALEX,
