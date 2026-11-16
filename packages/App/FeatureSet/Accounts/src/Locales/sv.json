@@ -53,7 +53,7 @@
       "signIn": "Logga in med en passnyckel",
       "inProgress": "Slutför eller avbryt inloggningen med passnyckel innan du använder lösenordet.",
       "helpTitle": "Är passnycklar nytt för dig?",
-      "help": "Med en passnyckel loggar du in med ditt fingeravtryck, ditt ansikte eller enhetens PIN-kod i stället för ett lösenord. För att lägga till en loggar du in med ditt lösenord eller SSO och öppnar sedan Användarprofil → Säkerhet → Passkeys.",
+      "help": "Med en passnyckel loggar du in med ditt fingeravtryck, ditt ansikte eller enhetens PIN-kod i stället för ett lösenord. För att lägga till en loggar du in med ditt lösenord eller SSO och öppnar sedan Användarprofil → Säkerhet → Passnycklar.",
       "preparing": "Förbereder din passnyckel…",
       "waiting": "Titta på din enhet",
       "waitingDescription": "Följ anvisningarna från webbläsaren eller lösenordshanteraren.",
@@ -255,7 +255,7 @@
     "complete": "Din passnyckel har verifierats. Gå tillbaka till appen för att slutföra inloggningen.",
     "returnToApp": "Tillbaka till appen",
     "cancel": "Avbryt och återgå till appen",
-    "setup": "Skapa en passnyckel i webbpanelen under Användarprofil → Säkerhet → Passkeys."
+    "setup": "Skapa en passnyckel i webbpanelen under Användarprofil → Säkerhet → Passnycklar."
   },
   "mcpAuthorize": {
     "title": "Anslut en MCP-klient",
