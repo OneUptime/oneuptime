@@ -22,6 +22,8 @@ import IncidentEpisode from "../../../../Models/DatabaseModels/IncidentEpisode";
 import AlertEpisode from "../../../../Models/DatabaseModels/AlertEpisode";
 import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
+import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import Log from "../../../../Models/AnalyticsModels/Log";
 import ExceptionInstance from "../../../../Models/AnalyticsModels/ExceptionInstance";
@@ -56,9 +58,22 @@ describe("which lists keep themselves current", () => {
     ]);
   });
 
+  /*
+   * A monitor's status and its probes' state change on their own, and a
+   * maintenance event starts and ends at the times it was scheduled for:
+   * the Not Operational, Probe Disconnected and Ongoing lists follow them
+   * without a reload (#6918).
+   */
+  test("the lists of monitors and of maintenance events hear every change", () => {
+    expect(getLiveRowEventTypes(new Monitor())).toEqual(ALL_EVENTS);
+    expect(getLiveRowEventTypes(new ScheduledMaintenance())).toEqual(
+      ALL_EVENTS,
+    );
+  });
+
   test("a table whose changes the server does not announce stays as loaded", () => {
-    expect(getLiveRowEventTypes(new Monitor())).toEqual([]);
     expect(getLiveRowEventTypes(new StatusPage())).toEqual([]);
+    expect(getLiveRowEventTypes(new MonitorStatus())).toEqual([]);
   });
 
   test("an analytics table pages through its own time range, even one that announces", () => {
@@ -125,6 +140,8 @@ describe("which lists keep themselves current", () => {
         "Incident",
         "IncidentEpisode",
         "IncidentPostmortemActionItem",
+        "Monitor",
+        "ScheduledMaintenance",
         "SecurityCase",
         "SecurityCaseTask",
         "SecurityPlaybookRun",

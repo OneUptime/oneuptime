@@ -120,6 +120,21 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   icon: IconProp.Clock,
   tableName: "ScheduledMaintenance",
   tableDescription: "Manage maintenance events for your project",
+  /*
+   * A maintenance event starts and ends on its own, at the times it was
+   * scheduled for (the workers move its state), and the menus count the
+   * ones in progress (Ongoing Maintenance Events, the Scheduled Maintenance
+   * count of a resource's menu) beside the lists that show them. So every
+   * event created, changed or deleted is announced, and those counts and
+   * lists follow at once (UseLiveCount, UseLiveRows) instead of waiting for
+   * a reload (#6918). Events are written a few times in their life - a
+   * state change, a notification sent - so this costs next to nothing.
+   */
+  enableRealtimeEventsOn: {
+    create: true,
+    update: true,
+    delete: true,
+  },
 })
 export default class ScheduledMaintenance extends BaseModel {
   @ColumnAccessControl({
