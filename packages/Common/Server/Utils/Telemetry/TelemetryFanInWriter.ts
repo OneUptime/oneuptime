@@ -37,6 +37,13 @@ export { type ClickHouseSettings } from "@clickhouse/client";
  * large combined inserts through a small per-pod semaphore, so ClickHouse
  * sees (pods × maxConcurrentInserts) queries regardless of job concurrency.
  *
+ * When a table is inserted: once its rows reach maxBatchRows; else once its
+ * first row has waited lingerMs, if an insert slot is free; else - every
+ * slot busy - with the next slot that frees, or at maxWaitMs. Jobs wait for
+ * their rows' insert (below), holding their worker slots, so the wait is a
+ * job's: with 5 s waits one App finished no more than ~22 OTLP batches a
+ * second at TELEMETRY_CONCURRENCY 100, CPU half idle (#6086).
+ *
  * Delivery semantics — ack-after-accept with per-job retry idempotence:
  * - submit() resolves with a `flushed` promise that settles only when
  *   ClickHouse has ACCEPTED the rows (or the insert definitively failed).
@@ -145,6 +152,14 @@ export interface FanInWriterOptions {
   maxBatchRowsByTable?: Record<string, number> | undefined;
   /** Max time rows sit buffered before a flush is forced, ms. */
   maxWaitMs: number;
+  /**
+   * How long a table's first buffered row waits for more to join it before
+   * the table is inserted, ms - when an insert slot is free. When every slot
+   * is busy the rows keep gathering until one frees (or maxWaitMs passes),
+   * so a slow ClickHouse gets fewer, fuller inserts. Unset: maxWaitMs, the
+   * writer's behaviour before it had one.
+   */
+  lingerMs?: number | undefined;
   /** Per-pod cap on concurrent ClickHouse inserts across all tables. */
   maxConcurrentInserts: number;
   /**
@@ -227,7 +242,16 @@ type TableBuffer = {
   target: FanInInsertTarget;
   submissions: Array<PendingSubmission>;
   rowCount: number;
+  /*
+   * Armed when the buffer's first row arrives: its linger, then - if every
+   * insert slot was busy - the rest of maxWaitMs.
+   */
   timer: NodeJS.Timeout | null;
+  /*
+   * Past its linger, but every insert slot was busy: it goes with the next
+   * slot that frees, or at maxWaitMs, whichever comes first.
+   */
+  waitsForSlot: boolean;
 };
 
 type CapacityWaiter = {
@@ -336,6 +360,18 @@ export function readFanInWriterOptionsFromEnv(): FanInWriterOptions {
       ),
     },
     maxWaitMs: readPositiveInt("TELEMETRY_FANIN_MAX_WAIT_MS", 5000),
+    /*
+     * A job holds its worker slot until ClickHouse has its rows, so a job
+     * waits as long as its rows do. With every table waiting the whole
+     * maxWaitMs, one App's TELEMETRY_CONCURRENCY (100) jobs could finish no
+     * more than about 100 / 4.5 s = 22 OTLP batches a second while the CPU
+     * sat half idle (#6086). Rows now wait lingerMs, and the full maxWaitMs
+     * only while every insert slot is busy. That is still at most five
+     * inserts a second per table and pod, which ClickHouse's async-insert
+     * buffer gathers into parts anyway: it flushes that buffer at least
+     * every 200 ms itself (async_insert_busy_timeout_max_ms).
+     */
+    lingerMs: readPositiveInt("TELEMETRY_FANIN_LINGER_MS", 200),
     maxConcurrentInserts: readPositiveInt(
       "TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS",
       4,
@@ -369,6 +405,8 @@ export class TelemetryFanInWriter {
   private capacityWaiters: Set<CapacityWaiter> = new Set();
   private activeInserts: number = 0;
   private insertSlotWaiters: Array<() => void> = [];
+  // Tables past their linger, waiting for a free insert slot, oldest first.
+  private tablesWaitingForSlot: Set<string> = new Set();
   private inFlightDispatches: Set<Promise<void>> = new Set();
   /*
    * Submits that have been called but have not yet buffered their rows
@@ -489,6 +527,7 @@ export class TelemetryFanInWriter {
           submissions: [],
           rowCount: 0,
           timer: null,
+          waitsForSlot: false,
         };
         this.buffers.set(tableName, buffer);
       }
@@ -534,20 +573,12 @@ export class TelemetryFanInWriter {
 
       if (buffer.rowCount >= this.getMaxBatchRows(tableName)) {
         this.cutAndDispatch(tableName, false);
-      } else if (!buffer.timer) {
-        buffer.timer = setTimeout(() => {
-          const timedBuffer: TableBuffer | undefined =
-            this.buffers.get(tableName);
-          if (timedBuffer) {
-            timedBuffer.timer = null;
-          }
-          this.cutAndDispatch(tableName, true);
-        }, this.options.maxWaitMs);
-        /*
-         * Never keep the process alive just for a pending flush timer —
-         * graceful shutdown drains buffers explicitly.
-         */
-        buffer.timer.unref?.();
+      }
+
+      if (buffer.rowCount > 0 && !buffer.timer && !buffer.waitsForSlot) {
+        this.armTimer(buffer, this.getLingerMs(), () => {
+          this.onLingerElapsed(tableName);
+        });
       }
 
       return { flushed };
@@ -654,7 +685,89 @@ export class TelemetryFanInWriter {
     const next: (() => void) | undefined = this.insertSlotWaiters.shift();
     if (next) {
       next();
+      return;
     }
+
+    /*
+     * No batch was waiting for the slot: hand it to the table that has
+     * waited longest past its linger, with every row it gathered meanwhile.
+     */
+    for (const tableName of this.tablesWaitingForSlot) {
+      this.cutAndDispatch(tableName, true);
+      return;
+    }
+  }
+
+  /*
+   * Whether a batch cut now would get an insert slot straight away: fewer
+   * inserts are in flight than the cap, and no batch already cut waits for
+   * a slot.
+   */
+  private hasFreeInsertSlot(): boolean {
+    return (
+      this.activeInserts + this.insertSlotWaiters.length <
+      this.options.maxConcurrentInserts
+    );
+  }
+
+  // lingerMs, never past maxWaitMs (and maxWaitMs when unset).
+  private getLingerMs(): number {
+    const lingerMs: number | undefined = this.options.lingerMs;
+
+    if (typeof lingerMs !== "number" || !(lingerMs > 0)) {
+      return this.options.maxWaitMs;
+    }
+
+    return Math.min(lingerMs, this.options.maxWaitMs);
+  }
+
+  private armTimer(
+    buffer: TableBuffer,
+    delayMs: number,
+    onElapsed: () => void,
+  ): void {
+    buffer.timer = setTimeout(
+      () => {
+        buffer.timer = null;
+        onElapsed();
+      },
+      Math.max(0, delayMs),
+    );
+    /*
+     * Never keep the process alive just for a pending flush timer —
+     * graceful shutdown drains buffers explicitly.
+     */
+    buffer.timer.unref?.();
+  }
+
+  /*
+   * A table's first row has waited lingerMs. Insert the table now if an
+   * insert slot is free (or the row has also waited maxWaitMs). Otherwise
+   * every slot is busy - ClickHouse is slow, or the pod is inserting a lot
+   * - and inserting now would only queue a thin batch behind them: keep
+   * gathering rows, and go with the next slot that frees, or at maxWaitMs.
+   */
+  private onLingerElapsed(tableName: string): void {
+    const buffer: TableBuffer | undefined = this.buffers.get(tableName);
+
+    if (!buffer || buffer.rowCount === 0) {
+      return;
+    }
+
+    // The linger timer was armed when the buffer's first row arrived.
+    const lingerMs: number = this.getLingerMs();
+
+    if (lingerMs >= this.options.maxWaitMs || this.hasFreeInsertSlot()) {
+      this.cutAndDispatch(tableName, true);
+      return;
+    }
+
+    buffer.waitsForSlot = true;
+    this.tablesWaitingForSlot.add(tableName);
+
+    this.armTimer(buffer, this.options.maxWaitMs - lingerMs, () => {
+      this.cutAndDispatch(tableName, true);
+    });
   }
 
   /*
@@ -725,9 +838,14 @@ export class TelemetryFanInWriter {
       });
     }
 
-    if (buffer.rowCount === 0 && buffer.timer) {
-      clearTimeout(buffer.timer);
-      buffer.timer = null;
+    if (buffer.rowCount === 0) {
+      if (buffer.timer) {
+        clearTimeout(buffer.timer);
+        buffer.timer = null;
+      }
+
+      buffer.waitsForSlot = false;
+      this.tablesWaitingForSlot.delete(tableName);
     }
   }
 

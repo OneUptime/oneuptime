@@ -131,7 +131,10 @@ goes through the same steps in order, from installing the chart to a test page.
   background merges still get query slots — e.g. at the defaults, stay at or
   below ~15 telemetry-ingesting replicas, or lower the per-pod insert cap as
   you add replicas. Batch size and flush latency are tunable via
-  `worker.telemetryFanInMaxBatchRows` / `worker.telemetryFanInMaxWaitMs`, and
+  `worker.telemetryFanInMaxBatchRows`, `worker.telemetryFanInLingerMs` (how
+  long rows wait for more before an insert, 200 ms; each ingest job waits as
+  long) and `worker.telemetryFanInMaxWaitMs` (the most they wait, while every
+  insert slot is busy), and
   the per-pod ClickHouse pools via `worker.clickhouseMaxOpenConnections` /
   `worker.clickhouseIngestMaxOpenConnections` (the same keys exist under
   `app:` for setups that run ingestion on the app pods). Telemetry inserts
