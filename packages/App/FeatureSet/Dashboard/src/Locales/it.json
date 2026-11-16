@@ -55907,5 +55907,11 @@
   "BullMQ": "BullMQ",
   "Google Cloud Pub/Sub": "Google Cloud Pub/Sub",
   "JMS": "JMS",
-  "NATS": "NATS"
+  "NATS": "NATS",
+  "Already Paged": "Già chiamato",
+  "Already paged about this by another on-call policy, so not paged again.": "Già chiamato per questo da un'altra policy di reperibilità, quindi non chiamato di nuovo.",
+  "Already paged about this by {{name}}, so not paged again.": "Già chiamato per questo da {{name}}, quindi non chiamato di nuovo.",
+  "Merged Into On-Call Log ID": "ID del log di reperibilità in cui è stato unito",
+  "Their page from another on-call policy is over, so this policy pages them now.": "La chiamata di un'altra policy di reperibilità è terminata, quindi ora chiama questa policy.",
+  "Their page from {{name}} is over, so this policy pages them now.": "La chiamata di {{name}} è terminata, quindi ora chiama questa policy."
 }

@@ -55907,5 +55907,11 @@
   "BullMQ": "BullMQ",
   "Google Cloud Pub/Sub": "Google Cloud Pub/Sub",
   "JMS": "JMS",
-  "NATS": "NATS"
+  "NATS": "NATS",
+  "Already Paged": "استُدعي مسبقًا",
+  "Already paged about this by another on-call policy, so not paged again.": "استدعته سياسة مناوبة أخرى بالفعل لهذا الأمر، لذا لم يُستدعَ مرة أخرى.",
+  "Already paged about this by {{name}}, so not paged again.": "استدعاه {{name}} بالفعل لهذا الأمر، لذا لم يُستدعَ مرة أخرى.",
+  "Merged Into On-Call Log ID": "معرّف سجل المناوبة الذي دُمج فيه",
+  "Their page from another on-call policy is over, so this policy pages them now.": "انتهى استدعاء سياسة المناوبة الأخرى، لذا تستدعي هذه السياسة الآن بنفسها.",
+  "Their page from {{name}} is over, so this policy pages them now.": "انتهى استدعاء {{name}}، لذا تستدعي هذه السياسة الآن بنفسها."
 }

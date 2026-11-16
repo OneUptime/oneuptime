@@ -55907,5 +55907,11 @@
   "BullMQ": "BullMQ",
   "Google Cloud Pub/Sub": "Google Cloud Pub/Sub",
   "JMS": "JMS",
-  "NATS": "NATS"
+  "NATS": "NATS",
+  "Already Paged": "Уже вызван",
+  "Already paged about this by another on-call policy, so not paged again.": "Уже вызван по этому поводу другой политикой дежурства, поэтому повторно не вызывается.",
+  "Already paged about this by {{name}}, so not paged again.": "Уже вызван по этому поводу политикой {{name}}, поэтому повторно не вызывается.",
+  "Merged Into On-Call Log ID": "ID журнала дежурства, с которым объединено",
+  "Their page from another on-call policy is over, so this policy pages them now.": "Вызов другой политикой дежурства завершён, поэтому теперь вызывает эта политика.",
+  "Their page from {{name}} is over, so this policy pages them now.": "Вызов политикой {{name}} завершён, поэтому теперь вызывает эта политика."
 }
