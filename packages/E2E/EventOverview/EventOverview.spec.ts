@@ -3492,9 +3492,12 @@ const FAILED_CAUSE: string =
   "The LLM provider could not be reached, or was too busy to answer.";
 const FAILED_FIX: string =
   "Check that the LLM provider is up and that OneUptime can reach it, then try again.";
-// The fixture's refusal of Try again (?fail=investigation-try-again).
+/*
+ * The fixture's refusal of Try again (?fail=investigation-try-again), the
+ * role named as the role picker draws it (#8520).
+ */
 const TRY_AGAIN_REFUSAL: string =
-  "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.";
+  "OneUptime AI is switched off for this project. A Project Owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.";
 // ?ai=retrying tries again two minutes after the pinned clock.
 const RETRY_TIME: string = "(6:22 PM|18:22)";
 
@@ -3834,7 +3837,7 @@ const WAITING_ALERT_DESCRIPTION: string =
   "An AI rule makes OneUptime AI wait 10 minutes, so alerts resolved by then are not investigated.";
 // InvestigationRuleWait's refusal when the project's own daily limit is reached.
 const DAILY_LIMIT_REFUSAL: string =
-  "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.";
+  "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A Project Owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.";
 
 function waitingBody(page: Page): Locator {
   return investigationCard(page).getByTestId("investigation-waiting");
@@ -6955,12 +6958,13 @@ const INCIDENT_NOTE_WITH_ASK: string =
   "This applies to new incidents only, not to this one. You can still ask OneUptime AI about it.";
 const INCIDENT_NOTE_AI_OFF: string =
   "This applies to new incidents only, not to this one.";
+// Who can, each role named as the role picker draws it (#8520).
 const WHO_CAN_CHANGE_INCIDENT_SETTINGS: string =
-  "A project owner or admin can make these changes in Incidents → AI → Settings.";
+  "A Project Owner or Project Admin can make these changes in Incidents → AI → Settings.";
 const WHO_CAN_CHANGE_INCIDENT_RULES: string =
-  "A project owner or admin, or someone who may edit AI rules, can change them in Incidents → AI → Settings.";
+  "A Project Owner or Project Admin, or someone who may edit AI rules, can change them in Incidents → AI → Settings.";
 const WHO_CAN_TURN_AI_ON: string =
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.";
+  "A Project Owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.";
 
 interface AiOffStepRow {
   step: string | null;
@@ -18030,14 +18034,15 @@ test.describe("time to acknowledge after paging", () => {
       INCIDENT_PAGE.statBar,
       ACKNOWLEDGED_TILE,
     );
+    // Read as written: each number held to its unit (#8669).
     expect(
       lines.map((line: StatTileLine): string => {
         return line.text;
       }),
     ).toEqual([
       "Acknowledged in",
-      "3 minutes",
-      "2 minutes after paging",
+      withUnit(3, "minutes"),
+      `${withUnit(2, "minutes")} after paging`,
       "Sep 14 2026, 06:04 PM UTC",
     ]);
     const [, value, note, date] = lines;
@@ -18075,8 +18080,8 @@ test.describe("time to acknowledge after paging", () => {
       ),
     ).toEqual([
       "Acknowledged in",
-      "2 minutes",
-      "1 minute after paging",
+      withUnit(2, "minutes"),
+      `${withUnit(1, "minute")} after paging`,
       "Sep 14 2026, 06:08 PM UTC",
     ]);
     expect(await measurementRows(page)).toEqual([
@@ -18161,7 +18166,7 @@ test.describe("time to acknowledge after paging", () => {
           INCIDENT_PAGE.statBar,
           ACKNOWLEDGED_TILE,
         );
-        expect(note!.text).toBe("2 minutes after paging");
+        expect(note!.text).toBe(`${withUnit(2, "minutes")} after paging`);
         // Its own colour in both themes: quieter than the value, not the date's.
         expect(note!.color).not.toBe(value!.color);
         expect(note!.color).not.toBe(date!.color);

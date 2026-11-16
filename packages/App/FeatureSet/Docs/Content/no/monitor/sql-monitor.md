@@ -172,7 +172,7 @@ SQL Server må ha et passende service principal name `MSSQLSvc`, klokkene på so
 
 Spørringen må være **én skrivebeskyttet setning**. Den må starte med `SELECT`, `WITH`, `VALUES` eller `TABLE`. Et avsluttende semikolon er tillatt; flere setninger er ikke det. Skrive- og DDL-nøkkelord avvises hvor som helst i spørringen — også `INTO`, så `SELECT … INTO` avvises også.
 
-Sonden sjekker spørringen ved hver kontroll, ikke når du lagrer. En spørring som bryter disse reglene, blir lagret, og deretter mislykkes hver kontroll med "Only read-only queries are allowed (must start with SELECT, WITH, VALUES, or TABLE)." — standardkriteriene setter monitoren som frakoblet.
+Sonden sjekker spørringen ved hver kontroll, ikke når du lagrer. En spørring som bryter disse reglene, blir lagret, og deretter mislykkes hver kontroll med "Only read-only queries are allowed (must start with SELECT, WITH, VALUES, or TABLE)." — standardkriteriene setter monitoren som offline.
 
 Hold spørringene billige og avgrensede — de kjører ved hver kontroll, så foretrekk indekserte kolonner og smale tidsvinduer. Denne spørringen teller bestillingene som er kansellert de siste fem minuttene:
 
@@ -220,7 +220,7 @@ OneUptime løser opp hemmeligheten på serveren før konfigurasjonen gis videre 
 
 ## Sett opp kriterier
 
-Legg til kriterier for å avgjøre når monitoren regnes som online, redusert eller frakoblet. Disse kontrollene er tilgjengelige for en SQL-spørring-monitor:
+Legg til kriterier for å avgjøre når monitoren regnes som online, redusert eller offline. Disse kontrollene er tilgjengelige for en SQL-spørring-monitor:
 
 | Filtertype | Hva den sjekker |
 |---|---|
@@ -233,7 +233,7 @@ Legg til kriterier for å avgjøre når monitoren regnes som online, redusert el
 
 Numeriske terskler er heltall: skriv `10`, ikke `10.5`. SQL-spørring-filtre kan ikke evalueres over en tidsperiode; hver kontroll står for seg selv.
 
-En ny SQL-spørring-monitor starter med to kriterier: **SQL er tilkoblet** er usann — monitoren blir frakoblet og erklærer en hendelse som løser seg selv — og **SQL er tilkoblet** er sann, som markerer den som online. **Legg til kriterier** legger til ett nederst; dra det over online-kriteriet, fordi kriteriene sjekkes ovenfra, og det første som samsvarer, avgjør.
+En ny SQL-spørring-monitor starter med to kriterier: **SQL er tilkoblet** er usann — monitoren blir offline og erklærer en hendelse som løser seg selv — og **SQL er tilkoblet** er sann, som markerer den som online. **Legg til kriterier** legger til ett nederst; dra det over online-kriteriet, fordi kriteriene sjekkes ovenfra, og det første som samsvarer, avgjør.
 
 ### Eksempel: varsle når kanselleringer skyter i været
 
@@ -242,7 +242,7 @@ Med spørringen ovenfor:
 | Kriterium | Filter |
 |---|---|
 | **Redusert** | `SQL Query Scalar Value` er større enn `10`. |
-| **Frakoblet** | `SQL Query Scalar Value` er større enn `50`, eller `SQL Is Online` er `false`. |
+| **Offline** | `SQL Query Scalar Value` er større enn `50`, eller `SQL Is Online` er `false`. |
 
 Knytt en vaktpolicy til kriteriet slik at de riktige personene blir tilkalt. En SQL-spørring-monitor har ingen egne malvariabler: tittelen på en hendelse kan nevne monitoren med `{{monitorName}}`, men kan ikke sitere resultatet av spørringen.
 
@@ -253,7 +253,7 @@ Knytt en vaktpolicy til kriteriet slik at de riktige personene blir tilkalt. En 
 - Hvis resultatet avkortes fordi det overskred Max Rows, viser kontrollsammendraget **Rader avkortet**: "Ja (resultatet er begrenset)". Øk Max Rows bare hvis du trenger det; større resultatsett koster mer minne på sonden.
 - Skriving og DDL avvises alltid. Hvis du må teste en skrivevei, er det ikke det denne monitoren er til.
 - Foretrekk en monitorhemmelighet fremfor et passord i ren tekst, slik at påloggingsinformasjonen forblir kryptert når den er lagret.
-- En kontroll der spørringen mislykkes, prøves igjen et sekund senere, opptil tre ganger til, før den rapporterer feilen, slik at et kort tilkoblingsbrudd ikke gjør monitoren frakoblet. På en selvhostet sonde bestemmer `PROBE_MONITOR_RETRY_LIMIT` hvor mange ganger.
+- En kontroll der spørringen mislykkes, prøves igjen et sekund senere, opptil tre ganger til, før den rapporterer feilen, slik at et kort tilkoblingsbrudd ikke gjør monitoren offline. På en selvhostet sonde bestemmer `PROBE_MONITOR_RETRY_LIMIT` hvor mange ganger.
 
 ## Feilsøking
 

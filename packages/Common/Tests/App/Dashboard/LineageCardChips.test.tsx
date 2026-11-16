@@ -899,7 +899,7 @@ describe("a second chip left too little room (#6957)", () => {
 
     expect(chips(`table:${LEDGER}`).map(withoutIsolateMarks)).toEqual([
       "Diese Warnung",
-      "1 offener Alarm",
+      "1 offene Warnung",
     ]);
 
     const row: HTMLElement = drawChips(`table:${LEDGER}`, false);
@@ -918,7 +918,7 @@ describe("a second chip left too little room (#6957)", () => {
     fireEvent.mouseEnter(words);
 
     expect(withoutIsolateMarks(words.getAttribute("title") || "")).toBe(
-      "1 offener Alarm",
+      "1 offene Warnung",
     );
     expect(row).not.toHaveAttribute("title");
   });

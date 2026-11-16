@@ -529,7 +529,7 @@ describe("the tool handler, reached without the HTTP gate", () => {
 
     it("is, for a 403 with an API key, to grant the key the permission", async () => {
       expect(await suggestionFor(API_KEY, 403)).toBe(
-        "The API key lacks permission for this operation. Ask a project admin to grant the relevant permission to the key.",
+        "The API key lacks permission for this operation. Ask a Project Admin to grant the relevant permission to the key.",
       );
     });
 
@@ -537,7 +537,7 @@ describe("the tool handler, reached without the HTTP gate", () => {
       const suggestion: string = await suggestionFor(READ_ONLY, 403);
 
       expect(suggestion).toBe(
-        "The signed-in user lacks permission for this operation in this project. Ask a project admin to grant their team the relevant permission.",
+        "The signed-in user lacks permission for this operation in this project. Ask a Project Admin to grant their team the relevant permission.",
       );
       expect(suggestion).not.toContain("API key");
     });

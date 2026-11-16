@@ -54,15 +54,23 @@ function englishOf(key: string): string {
   return key.replace(PLURAL_FORM, "");
 }
 
-// The strings of `rule.language` whose English names the thing and still say the dropped word.
+/*
+ * The strings of `rule.language` whose English names the thing and still say
+ * the dropped word. A string still in English is the i18n ratchet's, not
+ * this rule's: Italian's untranslated "Generate with AI" is not an Italian
+ * word for AI (#8768).
+ */
 function stillDropped(rule: SentenceRule): Array<string> {
   const words: Record<string, string> = readDashboardLocale(rule.language);
+  const english: Record<string, string> = readDashboardLocale("en");
 
   return Object.keys(words).filter((key: string): boolean => {
     const value: unknown = words[key];
 
     return (
       typeof value === "string" &&
+      value !== key &&
+      value !== english[key] &&
       rule.english.test(englishOf(key)) &&
       !(rule.except && rule.except.test(englishOf(key))) &&
       rule.dropped.test(value.replace(NOT_WORDS, " "))
@@ -131,6 +139,156 @@ describe("the check of the sentences", () => {
     ).toBe(false);
   });
 
+  const ruleOf: (language: string, thing: string) => SentenceRule = (
+    language: string,
+    thing: string,
+  ): SentenceRule => {
+    return RULES.find((rule: SentenceRule) => {
+      return rule.language === language && rule.thing === thing;
+    })!;
+  };
+
+  test("lets Italian say IA and keep the names that say AI as written (#8768)", () => {
+    const italian: SentenceRule = ruleOf("it", "AI");
+
+    expect(italian.dropped.test("Avvia un'indagine AI")).toBe(true);
+    expect(italian.dropped.test("le correzioni di codice AI")).toBe(true);
+    expect(italian.dropped.test("Avvia un'indagine IA")).toBe(false);
+    // Names: the product's, other products', code's, the permissions', and labels drawn in English.
+    for (const name of [
+      "Chiedi a OneUptime AI",
+      "AI SRE",
+      "Se Ask AI ha letto il file",
+      "il vecchio AI Agent",
+      "Google Vertex AI",
+      "Vercel AI SDK",
+      "Azure AI Inference",
+      "AI Search Service",
+      "Zoom AI Companion",
+      "JetBrains AI",
+      "Il modello Nemo di Mistral AI",
+      "Azure.AI.OpenAI",
+      "Microsoft.Extensions.AI",
+      "Edit AI Rule",
+      "Generate with AI",
+    ]) {
+      expect({ name, dropped: italian.dropped.test(name) }).toEqual({
+        name,
+        dropped: false,
+      });
+    }
+    // A runbook's AI step and the workflow builder's AI section, which every Dashboard draws in English.
+    for (const english of [
+      "### AI",
+      "## AI",
+      "AI",
+      "| AI | The OneUptime Worker | A call to the project's LLM provider. |",
+      "Manual, JavaScript, HTTP request, Bash, SSH, kubectl and AI.",
+      "Bash, SSH, kubectl or AI), a title",
+    ]) {
+      expect({ english, except: italian.docsExcept!.test(english) }).toEqual({
+        english,
+        except: true,
+      });
+    }
+    expect(italian.docsExcept!.test("Start an AI investigation.")).toBe(false);
+  });
+
+  test("lets Chinese, German and Swedish say an alert one way, and keep the words that name something else (#8769)", () => {
+    const chinese: SentenceRule = ruleOf("zh-CN", "Alerts");
+    const german: SentenceRule = ruleOf("de", "Alerts");
+    const swedish: SentenceRule = ruleOf("sv", "Alerts");
+
+    expect(chinese.dropped.test("新告警")).toBe(true);
+    expect(chinese.dropped.test("新警报")).toBe(false);
+    // A warning alert, 警告警报, holds 告警 across its two words.
+    expect(chinese.dropped.test("警告警报")).toBe(false);
+
+    expect(german.dropped.test("Ein offener Alarm")).toBe(true);
+    expect(german.dropped.test("Alarmvorlagen")).toBe(true);
+    expect(german.dropped.test("Eine offene Warnung")).toBe(false);
+    // Paging, alarmieren and its Alarmierung, stays.
+    expect(german.dropped.test("Niemand wird alarmiert")).toBe(false);
+    expect(german.dropped.test("Alarmierung")).toBe(false);
+    // An English that names an alarm too keeps the German Alarm for it.
+    expect(german.except!.test("Alarm sound for critical alerts")).toBe(true);
+    expect(german.except!.test("Alertmanager alerts")).toBe(true);
+    expect(german.except!.test("Create Alert")).toBe(false);
+
+    expect(swedish.dropped.test("Nya aviseringar")).toBe(true);
+    expect(swedish.dropped.test("Nya larm")).toBe(false);
+    // A notification is avisering, so a text that names one too keeps it.
+    expect(swedish.except!.test("Alert notification settings")).toBe(true);
+    expect(swedish.except!.test("Turn on critical alerts")).toBe(true);
+    expect(swedish.except!.test("Create Alert")).toBe(false);
+  });
+
+  test("lets Norwegian and Arabic give Offline, Disconnected and Not connected each its own word (#8767, #8781)", () => {
+    const norwegian: SentenceRule = ruleOf("no", "Offline");
+    const disconnected: SentenceRule = ruleOf("ar", "Disconnected");
+    const notConnected: SentenceRule = ruleOf("ar", "Not connected");
+
+    expect(norwegian.dropped.test("Noden er frakoblet")).toBe(true);
+    expect(norwegian.dropped.test("Noden er offline")).toBe(false);
+    // A text that names Disconnected too keeps Frakoblet for it.
+    expect(norwegian.except!.test("Offline or disconnected nodes")).toBe(true);
+    expect(norwegian.except!.test("Offline nodes")).toBe(false);
+
+    expect(disconnected.dropped.test("الوكيل غير متصل")).toBe(true);
+    expect(disconnected.word.test("الوكيل منقطع الاتصال")).toBe(true);
+    expect(notConnected.dropped.test("Slack غير متصل")).toBe(true);
+    expect(notConnected.word.test("Slack غير مرتبط")).toBe(true);
+    // Each reads only its own state: a text naming two of them is worded by hand.
+    expect(disconnected.except!.test("Offline or disconnected")).toBe(true);
+    expect(notConnected.except!.test("Not connected or disconnected")).toBe(
+      true,
+    );
+    expect(disconnected.english.test("Not connected")).toBe(false);
+  });
+
+  test("holds the prose and headings to the Dashboard's word for the control plane and engine metrics, not only the bold labels (#8812)", () => {
+    const persian: SentenceRule = ruleOf("fa", "Control Plane");
+    const danish: SentenceRule = ruleOf("da", "Engine metrics");
+    const dutch: SentenceRule = ruleOf("nl", "Engine metrics");
+
+    expect(persian.english.test("Turn on control plane monitoring")).toBe(true);
+    expect(persian.english.test("A worker or control-plane node")).toBe(true);
+    expect(persian.dropped.test("### روشن کردن پایش Control Plane")).toBe(true);
+    expect(persian.dropped.test("گره‌های control-plane")).toBe(true);
+    expect(persian.dropped.test("### روشن کردن پایش صفحه کنترل")).toBe(false);
+    // Code is no word: a script's name and a resource's kind.
+    expect(persian.dropped.test("OpenStackControlPlane")).toBe(false);
+
+    expect(danish.english.test("Engine Metrics Last Received")).toBe(true);
+    expect(danish.english.test("an engine metric")).toBe(true);
+    for (const text of [
+      "Engine metrics viser Afbrudt",
+      "Engine-metrikker viser Afbrudt",
+      "en engine-metrik",
+    ]) {
+      expect({ text, dropped: danish.dropped.test(text) }).toEqual({
+        text,
+        dropped: true,
+      });
+    }
+    expect(danish.dropped.test("Motormetrikker viser Afbrudt")).toBe(false);
+    expect(danish.word.test("en motormetrik")).toBe(true);
+
+    for (const text of [
+      "Enginemetrics gestopt",
+      "de enginemetrieken",
+      "Engine-metrics komen altijd",
+      "Engine metrics toont",
+    ]) {
+      expect({ text, dropped: dutch.dropped.test(text) }).toEqual({
+        text,
+        dropped: true,
+      });
+    }
+    expect(dutch.dropped.test("Engine-metrieken toont")).toBe(false);
+    expect(dutch.word.test("een engine-metriek")).toBe(true);
+  });
+
   test("reads a plural form's key by its English", () => {
     expect(englishOf("Sync Criteria to {{count}} Linked Monitors_one")).toBe(
       "Sync Criteria to {{count}} Linked Monitors",
@@ -178,6 +336,13 @@ describe("a thing's sentences in each language", () => {
 const DOCS_CONTENT: string = path.resolve(
   __dirname,
   "../../FeatureSet/Docs/Content",
+);
+
+// The rules of the languages the docs are written in.
+const DOCS_RULES: ReadonlyArray<SentenceRule> = RULES.filter(
+  (rule: SentenceRule): boolean => {
+    return fs.existsSync(path.join(DOCS_CONTENT, rule.language));
+  },
 );
 
 // What a docs line quotes: code, a link, a bold label, a quote or an address.
@@ -290,7 +455,11 @@ function docsLinesStillDropped(rule: SentenceRule): Array<string> {
         );
       };
 
-      if (inFence) {
+      /*
+       * A line still the English line word for word (a table row of names)
+       * is not translated yet: the translations' ratchet holds it.
+       */
+      if (inFence || line === englishLine) {
         return;
       }
 
@@ -344,6 +513,19 @@ describe("a thing's docs in each language", () => {
     );
   });
 
+  // The docs are read in fewer languages than the Dashboard: Arabic has none.
+  test("hold every rule of a language the docs are read in", () => {
+    expect(DOCS_RULES.length).toBeGreaterThan(10);
+    expect(
+      RULES.filter((rule: SentenceRule): boolean => {
+        return !DOCS_RULES.includes(rule);
+      }).map((rule: SentenceRule): string => {
+        return rule.language;
+      }),
+    ).not.toContain("it");
+    expect(fs.existsSync(path.join(DOCS_CONTENT, "ar"))).toBe(false);
+  });
+
   test("read the docs navigation's titles by their English", () => {
     expect(navTitles("it")["Audit Logs"]).toBe("Log di audit");
     expect(navTitles("no")["Website Monitor"]).toBe("Nettsted-monitor");
@@ -351,7 +533,7 @@ describe("a thing's docs in each language", () => {
   });
 
   test.each(
-    RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
+    DOCS_RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
       return [rule.language, rule.thing, rule];
     }),
   )(
@@ -362,7 +544,7 @@ describe("a thing's docs in each language", () => {
   );
 
   test.each(
-    RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
+    DOCS_RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
       return [rule.language, rule.thing, rule];
     }),
   )(
@@ -484,6 +666,20 @@ describe("the single keys and the titles", () => {
     // Norwegian's two-factor authentication, as its account docs now say it too (#8701).
     ["no", "Two Factor Authentication", "Tofaktorautentisering"],
     ["no", "Enable Two Factor Authentication", "Aktiver tofaktorautentisering"],
+    // The Security page's label, English in twelve languages until #8774, in each one's word.
+    ["no", "Two-factor authentication", "Tofaktorautentisering"],
+    ["da", "Two-factor authentication", "Tofaktorgodkendelse"],
+    ["fr", "Two-factor authentication", "Authentification à deux facteurs"],
+    ["hi", "Two-factor authentication", "दो-कारक प्रमाणीकरण"],
+    ["it", "Two-factor authentication", "Autenticazione a due fattori"],
+    ["ko", "Two-factor authentication", "2단계 인증"],
+    ["ko", "Two Factor Authentication", "2단계 인증"],
+    ["nl", "Two-factor authentication", "Tweefactorauthenticatie"],
+    ["pt", "Two-factor authentication", "Autenticação de dois fatores"],
+    ["ru", "Two-factor authentication", "Двухфакторная аутентификация"],
+    ["sv", "Two-factor authentication", "Tvåfaktorsautentisering"],
+    ["zh-CN", "Two-factor authentication", "双因素身份验证"],
+    ["zh-TW", "Two-factor authentication", "雙重驗證"],
     // Norwegian's noun alone, which is also its verb (it monitors).
     ["no", "Assign Monitor", "Tildel monitor"],
     [
@@ -498,5 +694,94 @@ describe("the single keys and the titles", () => {
     ],
   ])("%s words %p as %p", (language: string, key: string, word: string) => {
     expect(readDashboardLocale(language)[key]).toBe(word);
+  });
+});
+
+/*
+ * THE STATES A PAGE DRAWS SIDE BY SIDE READ APART (#8767, #8781).
+ *
+ * A Proxmox node that stopped reporting is Offline; a cluster whose
+ * connection dropped is Disconnected; an integration never linked is Not
+ * connected. Norwegian said Offline and Disconnected both Frakoblet, and
+ * Arabic all three غير متصل, so a page told a node's state from a cluster's
+ * with one word. In every language the Dashboard is read in, the four keys
+ * read four ways.
+ */
+const STATES_DRAWN_TOGETHER: ReadonlyArray<string> = [
+  "Online",
+  "Offline",
+  "Disconnected",
+  "Not connected",
+];
+
+function statesSharingAWord(words: Record<string, string>): Array<string> {
+  const seen: Map<string, string> = new Map<string, string>();
+  const shared: Array<string> = [];
+
+  for (const key of STATES_DRAWN_TOGETHER) {
+    const value: string | undefined = words[key];
+
+    if (value === undefined) {
+      continue;
+    }
+
+    if (seen.has(value)) {
+      shared.push(`${seen.get(value)} = ${key}: ${value}`);
+    } else {
+      seen.set(value, key);
+    }
+  }
+
+  return shared;
+}
+
+const DASHBOARD_LOCALE_LANGUAGES: Array<string> = fs
+  .readdirSync(
+    path.resolve(__dirname, "../../FeatureSet/Dashboard/src/Locales"),
+  )
+  .filter((file: string): boolean => {
+    return file.endsWith(".json");
+  })
+  .map((file: string): string => {
+    return file.replace(/\.json$/, "");
+  });
+
+describe("the states a page draws side by side", () => {
+  test.each(DASHBOARD_LOCALE_LANGUAGES)(
+    "%s words Online, Offline, Disconnected and Not connected four ways",
+    (language: string) => {
+      expect({
+        language,
+        shared: statesSharingAWord(readDashboardLocale(language)),
+      }).toEqual({ language, shared: [] });
+    },
+  );
+
+  test("Norwegian and Arabic word them as #8767 settled", () => {
+    expect(readDashboardLocale("no")["Offline"]).toBe("Offline");
+    expect(readDashboardLocale("no")["Disconnected"]).toBe("Frakoblet");
+    expect(readDashboardLocale("ar")["Offline"]).toBe("غير متصل");
+    expect(readDashboardLocale("ar")["Disconnected"]).toBe("منقطع الاتصال");
+    expect(readDashboardLocale("ar")["Not connected"]).toBe("غير مرتبط");
+  });
+
+  // What the check would see if two states went back to one word.
+  test("finds two states that share a word (negative control)", () => {
+    expect(
+      statesSharingAWord({
+        Online: "Online",
+        Offline: "Frakoblet",
+        Disconnected: "Frakoblet",
+        "Not connected": "Ikke tilkoblet",
+      }),
+    ).toEqual(["Offline = Disconnected: Frakoblet"]);
+    expect(
+      statesSharingAWord({
+        Online: "En línea",
+        Offline: "Sin conexión",
+        Disconnected: "Desconectado",
+        "Not connected": "No conectado",
+      }),
+    ).toEqual([]);
   });
 });

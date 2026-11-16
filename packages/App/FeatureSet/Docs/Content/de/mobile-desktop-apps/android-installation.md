@@ -82,7 +82,7 @@ Ihre Bereitschaftsregeln entscheiden, welche Alarme an das Telefon gehen und wie
 
 ## Den Stummmodus durchbrechen
 
-Standardmäßig richtet sich ein Bereitschaftsalarm nach den Toneinstellungen des Telefons: Ein stummgeschaltetes Telefon bleibt still, und „Bitte nicht stören“ hält den Alarm zurück. Kritische Warnungen lassen Bereitschaftsalarme beides durchbrechen. Sie sind aus, bis Sie sie einschalten, für jedes Telefon einzeln.
+Standardmäßig richtet sich ein Bereitschaftsalarm nach den Toneinstellungen des Telefons: Ein stummgeschaltetes Telefon bleibt still, und „Bitte nicht stören“ hält die Warnung zurück. Kritische Warnungen lassen Bereitschaftsalarme beides durchbrechen. Sie sind aus, bis Sie sie einschalten, für jedes Telefon einzeln.
 
 ```mermaid title="Ob ein Bereitschaftsalarm unter Android durchklingelt"
 flowchart TB
@@ -109,7 +109,7 @@ Android öffnet seine Liste **Zugriff auf „Bitte nicht stören“**. Schalten 
 Tippen Sie unter dem Schalter auf **Alarm sound**. Neben dem eigenen Ton des Telefons bietet die App Klaxon, Siren, Digital alarm, Smoke alarm und Rising alarm, der leise beginnt und immer lauter wird. Tippen Sie neben einem Ton auf Wiedergabe, um ihn anzuhören. Ein kritischer Alarm spielt mit der Weckerlautstärke des Telefons, lassen Sie diese also aufgedreht.
 :::
 
-Nur Bereitschaftsalarme klingeln durch, und nur aus Bereitschaftsregeln, die auf **Kritische Warnung** stehen, der Voreinstellung. Eine Regel auf **Normal** folgt den Einstellungen des Telefons, egal was der Schalter sagt, sodass Sie bei einem kritischen Vorfall geweckt und bei einem kleinen leise alarmiert werden können. Senden Sie bei stummgeschaltetem Telefon eine **Testbenachrichtigung**, um zu hören, was ein Alarm tun wird.
+Nur Bereitschaftsalarme klingeln durch, und nur aus Bereitschaftsregeln, die auf **Kritische Warnung** stehen, der Voreinstellung. Eine Regel auf **Normal** folgt den Einstellungen des Telefons, egal was der Schalter sagt, sodass Sie bei einem kritischen Vorfall geweckt und bei einem kleinen leise alarmiert werden können. Senden Sie bei stummgeschaltetem Telefon eine **Testbenachrichtigung**, um zu hören, was eine Warnung tun wird.
 
 ## Verhindern, dass Alarme verspätet ankommen
 

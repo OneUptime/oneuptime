@@ -16,6 +16,8 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withSpacesShown, withUnit } from "../SuiteHelpers/NoBreakSpaces";
+import { drawnTextOf, heardTextOf } from "../SuiteHelpers/QuietDash";
 
 /*
  * Renders the real Security Events and Security Events > Connections pages
@@ -1109,9 +1111,18 @@ async function tileLayouts(page: Page): Promise<Array<TileLayout>> {
     (elements: Array<Element>): Array<TileLayout> => {
       return elements.map((element: Element): TileLayout => {
         const rect: DOMRect = element.getBoundingClientRect();
+        // The name's box: the button, or the plain name a tile without one draws.
         const name: HTMLElement = (element.querySelector(
           "[data-provider-tile]",
         ) || element.querySelector("p")) as HTMLElement;
+        /*
+         * The words it shows: the button's visible name, never the sentence
+         * only a screen reader reads, which takes no room (#8620, #8794).
+         */
+        const shown: HTMLElement =
+          (name.querySelector(
+            ':scope > [aria-hidden="true"]',
+          ) as HTMLElement | null) || name;
         const lineHeight: number = parseFloat(
           getComputedStyle(name).lineHeight,
         );
@@ -1126,9 +1137,11 @@ async function tileLayouts(page: Page): Promise<Array<TileLayout>> {
             width: rect.width,
             height: rect.height,
           },
-          nameLines: Math.round(
-            name.getBoundingClientRect().height / lineHeight,
-          ),
+          // An inline name has a box on each line it is drawn on.
+          nameLines:
+            shown === name
+              ? Math.round(name.getBoundingClientRect().height / lineHeight)
+              : shown.getClientRects().length,
           nameClipped: name.scrollWidth > name.clientWidth + 1,
         };
       });
@@ -1147,7 +1160,9 @@ interface NameFit {
 /*
  * Each tile's name measured on one line against the column it sits in, in
  * this browser's own text metrics. Only the visible title is measured: the
- * button also holds a screen-reader-only "Connect " that takes no space.
+ * button also holds the sentence a screen reader reads, "Connect {{provider}}"
+ * (sr-only), which takes no space; the name it shows is its aria-hidden part
+ * (#8620, #8794).
  */
 async function nameFits(page: Page): Promise<Array<NameFit>> {
   return tiles(page).evaluateAll((elements: Array<Element>): Array<NameFit> => {
@@ -1155,15 +1170,9 @@ async function nameFits(page: Page): Promise<Array<NameFit>> {
       const name: HTMLElement = (element.querySelector(
         "[data-provider-tile]",
       ) || element.querySelector("p")) as HTMLElement;
-      const title: string = Array.from(name.childNodes)
-        .filter((node: ChildNode): boolean => {
-          return node.nodeType === Node.TEXT_NODE;
-        })
-        .map((node: ChildNode): string => {
-          return node.textContent || "";
-        })
-        .join("")
-        .trim();
+      const shown: Element =
+        name.querySelector(':scope > [aria-hidden="true"]') || name;
+      const title: string = (shown.textContent || "").trim();
       const style: CSSStyleDeclaration = getComputedStyle(name);
       const probe: HTMLSpanElement = document.createElement("span");
       probe.style.font = style.font;
@@ -1505,7 +1514,17 @@ test.describe("connections empty state", () => {
     );
 
     for (const item of PROVIDERS) {
-      await expect(tileButton(page, item)).toHaveText(`Connect ${item.title}`);
+      /*
+       * A screen reader hears one sentence, the product where the reader's
+       * language puts it; the tile shows the product alone (#8620, #8794).
+       */
+      await expect(tileButton(page, item)).toHaveAccessibleName(
+        `Connect ${item.title}`,
+      );
+      expect(await drawnTextOf(tileButton(page, item))).toBe(item.title);
+      expect(await heardTextOf(tileButton(page, item))).toBe(
+        `Connect ${item.title}`,
+      );
       await expect(tileButton(page, item)).toBeVisible();
       await expect(tileCategory(page, item)).toHaveText(item.category);
       const link: Locator = guideLink(page, item);
@@ -2183,12 +2202,17 @@ test.describe("connections: your logs and your SIEM", () => {
     await expect(cloudAuditStatus(page)).toHaveText(
       "Checked 2 minutes ago. Last security event found 2 minutes ago. Found in the last check: 7",
     );
+    // As read, each time held to its unit (#8794), its spaces shown in a failure.
     expect(
-      await cloudAuditStatus(page).evaluate((element: Element): string => {
-        return element.textContent || "";
-      }),
+      withSpacesShown(
+        await cloudAuditStatus(page).evaluate((element: Element): string => {
+          return element.textContent || "";
+        }),
+      ),
     ).toBe(
-      "Checked 2 minutes ago. Last security event found 2 minutes ago. Found in the last check: 7",
+      withSpacesShown(
+        `Checked ${withUnit(2, "minutes")} ago. Last security event found ${withUnit(2, "minutes")} ago. Found in the last check: 7`,
+      ),
     );
     await expect(cloudAuditSwitch(page)).toHaveAttribute(
       "aria-checked",

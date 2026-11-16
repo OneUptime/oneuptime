@@ -4,7 +4,7 @@ OneUptime verweigert bestimmte ausgehende Anfragen an Hosts, die in einen privat
 
 > Webhook URL resolves to a private, loopback, or link-local address and is not allowed
 
-Für das gehostete Produkt ist diese Voreinstellung richtig: Dort kann sich jeder registrieren, und ein Webhook-Ziel ist nicht vertrauenswürdige Eingabe. Auf einer selbst gehosteten Instanz steht sie etwas Alltäglichem im Weg: einen Alarm an ein selbst gehostetes Mattermost, Jira oder Ticketsystem zu senden, das nur in Ihrem eigenen Netzwerk existiert.
+Für das gehostete Produkt ist diese Voreinstellung richtig: Dort kann sich jeder registrieren, und ein Webhook-Ziel ist nicht vertrauenswürdige Eingabe. Auf einer selbst gehosteten Instanz steht sie etwas Alltäglichem im Weg: eine Warnung an ein selbst gehostetes Mattermost, Jira oder Ticketsystem zu senden, das nur in Ihrem eigenen Netzwerk existiert.
 
 Diese Seite erklärt, wie Sie das bewusst und eng begrenzt erlauben. Drei Schalter entscheiden darüber, jeder für seine eigene Art von Verbindung, und sie werden auf verschiedenen Maschinen konfiguriert:
 
@@ -59,7 +59,7 @@ Diese Ziele sind abgedeckt, weil das Ziel eine URL ist, die ein authentifizierte
 - **API**-Komponenten in Workflows (GET / POST / PUT / PATCH / DELETE)
 - Die **Mattermost**-Komponente in Workflows
 - HTTP-Anfragen der Workflow-Komponente **Custom JavaScript**
-- Projekt-Webhook-Benachrichtigungen (Incidents, Alarme, Monitore, Bereitschaft, geplante Wartung, Statusseiten-Ereignisse)
+- Projekt-Webhook-Benachrichtigungen (Incidents, Warnungen, Monitore, Bereitschaft, geplante Wartung, Statusseiten-Ereignisse)
 - **Benutzer-Webhooks** der Bereitschaft
 - Webhook-Abonnenten von Statusseiten, die Ihr Team im Dashboard, mit einem API-Schlüssel oder per Workflow hinzufügt
 

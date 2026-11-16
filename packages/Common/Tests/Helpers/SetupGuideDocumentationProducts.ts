@@ -26,8 +26,11 @@ import { DATABASE_AGENT_SYSTEM_OPTIONS } from "../../../App/FeatureSet/Dashboard
 import { DATABASE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationTranslations";
 import { HOST_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
 import { HOST_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationTranslations";
+import { MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
+import { MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
+  getMessageQueueSetupGuideWays,
   getProxmoxSetupGuideWays,
   getDatabaseSetupGuideWays,
   getHostSetupGuideWays,
@@ -90,8 +93,10 @@ function product(data: {
   dashboardWords: ReadonlyArray<string>;
   // Components/<cardDirectory>/DocumentationCard.tsx; the product's name if unset.
   cardDirectory?: string;
+  // A card kept elsewhere, as a path from the Dashboard's src.
+  cardPath?: string;
 }): SetupGuideDocumentationProduct {
-  const { cardDirectory, ...rest } = data;
+  const { cardDirectory, cardPath, ...rest } = data;
 
   return {
     ...rest,
@@ -105,7 +110,8 @@ function product(data: {
     ),
     cardFile: path.join(
       DASHBOARD_SOURCE,
-      `Components/${cardDirectory || data.name}/DocumentationCard.tsx`,
+      cardPath ||
+        `Components/${cardDirectory || data.name}/DocumentationCard.tsx`,
     ),
   };
 }
@@ -364,6 +370,31 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "Record the serial number, make, model and firmware version",
         "Enable the Systemd Units tab",
         "Enable the Windows Services tab",
+      ],
+    }),
+    product({
+      name: "MessageQueue",
+      cardPath: "Pages/MessageQueue/Utils/MessageQueueDocumentationCard.tsx",
+      translations: MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS",
+      ways: getMessageQueueSetupGuideWays,
+      // The card asks which messaging system the reader runs.
+      options: MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS,
+      dashboardWords: [
+        "Queues",
+        "Broker health",
+        "Metrics",
+        "Traces",
+        "Create monitor",
+        "Server",
+        "Browser",
+        // The guide's own topic, named from another topic.
+        "If the broker is Apache ActiveMQ",
+        // A queue's own tab: its Overview's sections and its header's state.
+        "Overview",
+        "Producers",
+        "Consumers",
+        "Seen recently",
       ],
     }),
   ];

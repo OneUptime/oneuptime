@@ -1,5 +1,6 @@
 import Entities from "../../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
+import DatabaseService from "../../../../Server/Services/DatabaseService";
 import ResolvedRecordRetention, {
   ResolvedRecordRetentionResult,
   ResolvedRecordRetentionSummary,
@@ -114,6 +115,11 @@ describePostgres(
       jest
         .spyOn(PostgresAppInstance, "getDataSource")
         .mockReturnValue(database);
+
+      // Workflows run elsewhere.
+      jest
+        .spyOn(DatabaseService.prototype, "onTriggerWorkflow")
+        .mockResolvedValue(undefined as never);
     });
 
     afterAll(async () => {

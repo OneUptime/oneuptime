@@ -195,7 +195,7 @@ Tre inställningar till gör ärendena till ditt projekts egna, under **Produkte
 - **Anteckningsmallar**: färdig text för anteckningarna ditt team skriver i ärende efter ärende, till exempel en checklista för begränsning eller en överlämning till nästa skift. På ett ärendes **Privata anteckningar** lägger redigerarens meny **Mallar** in en i anteckningen, som du kan redigera innan den publiceras, och **Hantera mallar** öppnar listan.
 - **Numrering**: texten framför ärendenumren, `CASE-` i `CASE-42` om du inte väljer en egen, och numret som nästa ärende får. Byter du från ett annat verktyg? Börja efter dess sista ärendenummer, så att ett nummer aldrig betyder två ärenden. Ett nytt prefix eller en ny start gäller bara nya ärenden, och en start måste vara högre än det högsta numret hittills.
 
-En Säkerhetsadministratör hanterar de anpassade fälten och anteckningsmallarna, och en Säkerhetsmedlem fyller i ett ärendes fält; på OneUptime Cloud kräver de Growth-planen eller högre. Numreringen ställs in av en Projektägare eller Projektadministratör, precis som för incidenter och aviseringar.
+En Säkerhetsadministratör hanterar de anpassade fälten och anteckningsmallarna, och en Säkerhetsmedlem fyller i ett ärendes fält; på OneUptime Cloud kräver de Growth-planen eller högre. Numreringen ställs in av en Projektägare eller Projektadministratör, precis som för incidenter och larm.
 
 ## Aviseringar
 

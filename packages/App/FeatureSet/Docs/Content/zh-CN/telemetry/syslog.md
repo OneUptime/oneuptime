@@ -251,5 +251,5 @@ OneUptime 会自动为每条日志添加以下属性：
 :::cards
 - [日志管道](/docs/telemetry/log-pipelines): 把 `key=value` 消息解析成属性。
 - [日志记录规则](/docs/telemetry/log-recording-rules): 把 syslog 中的数字变成指标。
-- [日志监控](/docs/monitor/logs-monitor): 收到匹配的 syslog 消息时发出告警。
+- [日志监控](/docs/monitor/logs-monitor): 收到匹配的 syslog 消息时发出警报。
 :::

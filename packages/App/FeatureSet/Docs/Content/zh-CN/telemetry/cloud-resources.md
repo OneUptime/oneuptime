@@ -625,9 +625,9 @@ stateDiagram-v2
 | `CLOUD_RESOURCE_AUTO_ARCHIVE_DAYS` | `7` | 资源被归档前没有指标的天数（至少 1） |
 | `CLOUD_RESOURCE_AUTO_CREATE_BUDGET` | `5000` | 在发现过程停止创建更多资源之前，一个项目可以拥有的在线资源数（`0` 表示关闭发现） |
 
-## 针对资源设置告警
+## 针对资源设置警报
 
-[已连接账户](/docs/telemetry/cloud-accounts)中的资源会在其 **建议** 选项卡上获得 OneUptime 为其类型推荐的监视器，每个都可一步创建。要针对它报告的其他任何指标设置告警：
+[已连接账户](/docs/telemetry/cloud-accounts)中的资源会在其 **建议** 选项卡上获得 OneUptime 为其类型推荐的监视器，每个都可一步创建。要针对它报告的其他任何指标设置警报：
 
 :::steps
 1. 打开资源及其 **指标** 选项卡，其中列出了提供商上报的关于该资源的每个指标。

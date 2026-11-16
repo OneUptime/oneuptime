@@ -1,6 +1,7 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import AlertEpisodeMemberService from "../../../Server/Services/AlertEpisodeMemberService";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpisodeMemberService";
 import ObjectID from "../../../Types/ObjectID";
 import { DataSource } from "typeorm";
@@ -75,6 +76,11 @@ describePostgres("episode member delete against a migrated Postgres", () => {
 
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
+
+    // Workflows run elsewhere.
+    jest
+      .spyOn(DatabaseService.prototype, "onTriggerWorkflow")
+      .mockResolvedValue(undefined as never);
   });
 
   afterAll(async () => {

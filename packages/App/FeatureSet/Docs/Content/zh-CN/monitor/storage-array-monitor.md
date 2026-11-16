@@ -1,12 +1,12 @@
 # 存储阵列监控
 
-存储阵列监视器监视一个存储阵列，并在阵列自身发出告警、空间不足、变慢、丢失硬件或主机路径，或复制落后时通知你。它支持 Pure Storage FlashArray 和 Pure Storage FlashBlade，读取阵列自身导出的指标——Pure 的 `purefa_*` 和 `purefb_*` 序列——这些指标由 OneUptime Storage Array Agent 采集。
+存储阵列监视器监视一个存储阵列，并在阵列自身发出警报、空间不足、变慢、丢失硬件或主机路径，或复制落后时通知你。它支持 Pure Storage FlashArray 和 Pure Storage FlashBlade，读取阵列自身导出的指标——Pure 的 `purefa_*` 和 `purefb_*` 序列——这些指标由 OneUptime Storage Array Agent 采集。
 
 :::cards
 - [创建监视器](#创建存储阵列监视器): 在仪表板中的六个步骤。
-- [模板](#预置告警模板): 二十个现成的告警，每个卷、主机或组件一个事件。
+- [模板](#预置警报模板): 二十个现成的警报，每个卷、主机或组件一个事件。
 - [Pure 序列的工作方式](#pure-序列的结构): 一个指标名称，多个数值。
-- [指标](#采集的指标): 监视器可以据以告警的每个序列。
+- [指标](#采集的指标): 监视器可以据以警报的每个序列。
 :::
 
 ## 工作原理
@@ -43,7 +43,7 @@ flowchart TB
 
 ### 选择存储阵列
 
-在 **监视器类型** 下点击 **更多监视器类型**，然后在 **基础设施** 下选择 **存储阵列**，或在搜索框中输入 `storage`。输入 **名称**(它会用在事件和告警标题中)，然后点击 **下一步**。
+在 **监视器类型** 下点击 **更多监视器类型**，然后在 **基础设施** 下选择 **存储阵列**，或在搜索框中输入 `storage`。输入 **名称**(它会用在事件和警报标题中)，然后点击 **下一步**。
 
 ### 选择阵列
 
@@ -51,9 +51,9 @@ flowchart TB
 
 ### 选择要监视的内容
 
-新监视器从 **告警内容** 下的 **Array Stopped Reporting** 开始。要监视其他内容：
+新监视器从 **警报内容** 下的 **Array Stopped Reporting** 开始。要监视其他内容：
 
-- **更改**：选择另一个 [模板](#预置告警模板)。它会设置指标、标签过滤器、聚合、时间范围和阈值，并用自己的条件替换下面的条件。你仍然可以修改 **时间范围**。
+- **更改**：选择另一个 [模板](#预置警报模板)。它会设置指标、标签过滤器、聚合、时间范围和阈值，并用自己的条件替换下面的条件。你仍然可以修改 **时间范围**。
 - **Custom Metric**（在 **更多字段** 下）：从 **Storage Array Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。[过滤器](#监视器设置) 可以把它缩小到一个卷、主机、Pod、组件、文件系统或存储桶。
 - **高级**（在 **更多字段** 下）：在 **选择指标** 下自己构建查询和公式，例如用 `purefa_array_space_bytes` 过滤到 `space=capacity`，减去同一指标过滤到 `space=empty`，得到已用容量。用对象的标签 **分组依据**，即可分别判断每个对象。
 
@@ -63,7 +63,7 @@ flowchart TB
 
 ### 创建监视器
 
-点击 **创建监视器**。OneUptime 会打开监视器的页面，并每分钟评估一次。它发出的事件和告警也会列在阵列的 **事件** 和 **警报** 页面上。
+点击 **创建监视器**。OneUptime 会打开监视器的页面，并每分钟评估一次。它发出的事件和警报也会列在阵列的 **事件** 和 **警报** 页面上。
 :::
 
 > [!TIP]
@@ -98,7 +98,7 @@ Pure 把多个数值放在 **一个** 指标名称上，并用一个标签区分
 
 | 序列 | 状态标签 | 每个序列对应 |
 | --- | --- | --- |
-| `purefa_alerts_open` | `severity`，并带有 `summary`、`code` 和 `component_type` | 一个未关闭的告警 |
+| `purefa_alerts_open` | `severity`，并带有 `summary`、`code` 和 `component_type` | 一个未关闭的警报 |
 | `purefa_hw_component_status` | `component_status` | 一个硬件组件 |
 | `purefa_host_connectivity_info` | `status`，并带有 `details` | 一台主机 |
 | `purefa_drive_capacity_bytes` | `component_status`(值为驱动器的容量) | 一个驱动器 |
@@ -107,19 +107,19 @@ Pure 把多个数值放在 **一个** 指标名称上，并用一个标签区分
 
 在监视器过滤器和分组键中，代理的属性以 `resource.` 开头(`resource.storage.array.name`、`resource.storage.system`)，而 Pure 自己的标签不以它开头(`name`、`host`、`component_name`、`dimension`、`space`、`severity`)。
 
-## 预置告警模板
+## 预置警报模板
 
-OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBlade——**告警内容** 列表会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
+OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBlade——**警报内容** 列表会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
 
-只有当条件对窗口中的 **每个** 值都成立时，条件才会触发。在容量、延迟、滞后或比率阈值上触发的监视器，只有越过阈值 10% 后才会恢复，因此在阈值附近徘徊的值不会来回切换。告警、硬件和连接模板在某个状态在其整个 5 分钟窗口内都出现后才会触发，并在状态消失约 5 分钟后恢复。
+只有当条件对窗口中的 **每个** 值都成立时，条件才会触发。在容量、延迟、滞后或比率阈值上触发的监视器，只有越过阈值 10% 后才会恢复，因此在阈值附近徘徊的值不会来回切换。警报、硬件和连接模板在某个状态在其整个 5 分钟窗口内都出现后才会触发，并在状态消失约 5 分钟后恢复。
 
 ### FlashArray
 
 | 模板 | 类别 | 严重程度 | 监视内容 | 触发条件 |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 可用性 | 严重 | `purefa_info`，Count，过去 10 分钟 | 整个窗口内都没有数据 — Storage Array Agent 已停止、失去了通往 OneUptime 的路由或令牌被撤销，或者阵列不再响应它；再次收到数据时恢复 |
-| Critical Array Alert | 阵列健康状况 | 严重 | `purefa_alerts_open` 过滤到 `severity=critical`，按 `summary` 取 Max，过去 5 分钟 | > 0 — 阵列有一个未关闭的严重告警(组件故障、容量紧急、复制失败)。每个告警一个事件；告警关闭时恢复 |
-| Warning Array Alert | 阵列健康状况 | 警告 | `purefa_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — 阵列有一个未关闭的警告级告警。每个告警一个事件；告警关闭时恢复 |
+| Critical Array Alert | 阵列健康状况 | 严重 | `purefa_alerts_open` 过滤到 `severity=critical`，按 `summary` 取 Max，过去 5 分钟 | > 0 — 阵列有一个未关闭的严重警报(组件故障、容量紧急、复制失败)。每个警报一个事件；警报关闭时恢复 |
+| Warning Array Alert | 阵列健康状况 | 警告 | `purefa_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — 阵列有一个未关闭的警告级警报。每个警报一个事件；警报关闭时恢复 |
 | Capacity Above 80% | 容量 | 警告 | `purefa_array_space_utilization`，Max，过去 15 分钟 | > 80 — Pure 自己的第一个容量阈值；≤ 72 时恢复 |
 | Capacity Above 90% | 容量 | 严重 | `purefa_array_space_utilization`，Max，过去 5 分钟 | > 90 — 阵列即将拒绝写入；≤ 81 时恢复 |
 | High Read Latency | 性能 | 警告 | `purefa_array_performance_latency_usec` 过滤到 `dimension=usec_per_read_op`，Avg，过去 10 分钟 | > 5000 µs (5 ms) — FlashArray 的读取通常远低于 1 ms；≤ 4500 时恢复 |
@@ -135,23 +135,23 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | 模板 | 类别 | 严重程度 | 监视内容 | 触发条件 |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 可用性 | 严重 | `purefb_info`，Count，过去 10 分钟 | 整个窗口内都没有数据 — 代理、其导出器或 FlashBlade 不再响应；再次收到数据时恢复 |
-| Critical Array Alert | 阵列健康状况 | 严重 | `purefb_alerts_open` 过滤到 `severity=critical`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的严重告警。每个告警一个事件；告警关闭时恢复 |
-| Warning Array Alert | 阵列健康状况 | 警告 | `purefb_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的警告级告警。每个告警一个事件；告警关闭时恢复 |
+| Critical Array Alert | 阵列健康状况 | 严重 | `purefb_alerts_open` 过滤到 `severity=critical`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的严重警报。每个警报一个事件；警报关闭时恢复 |
+| Warning Array Alert | 阵列健康状况 | 警告 | `purefb_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的警告级警报。每个警报一个事件；警报关闭时恢复 |
 | Capacity Above 80% | 容量 | 警告 | `purefb_array_space_utilization` 过滤到 `type=array`，Max，过去 15 分钟 | > 80；≤ 72 时恢复 |
 | Capacity Above 90% | 容量 | 严重 | `purefb_array_space_utilization` 过滤到 `type=array`，Max，过去 5 分钟 | > 90 — 写满时每个客户端的写入都会失败；≤ 81 时恢复 |
 | Hardware Component Unhealthy | 硬件 | 严重 | `purefb_hardware_health`，按 `name` 取 Min，过去 5 分钟 | < 1 — 某个刀片、交换模块、电源或风扇不健康(未使用的插槽报告 2)。每个组件一个事件；≥ 1 时恢复 |
 | High Read Latency | 性能 | 警告 | `purefb_array_performance_latency_usec` 过滤到 `dimension=usec_per_read_op` 和 `protocol=all`，Avg，过去 10 分钟 | > 10000 µs (10 ms)，跨所有协议；≤ 9000 时恢复 |
 | File System Near Full | 文件系统 | 警告 | `purefb_file_systems_space_bytes` 过滤到 `space=available_ratio`，按 `name` 取 Min，过去 15 分钟 | < 0.1 — 文件系统预配大小的剩余不足 10%。每个文件系统一个事件；≥ 0.11 时恢复 |
 
-**严重程度** 是选择器显示的标签。模板创建的事件和告警以项目中最严重的事件和告警严重程度开始；可以在条件中修改。
+**严重程度** 是选择器显示的标签。模板创建的事件和警报以项目中最严重的事件和警报严重程度开始；可以在条件中修改。
 
 - **Array Stopped Reporting** 统计平台的标识序列(`purefa_info` 或 `purefb_info`)，代理采集的每个端点在每次采集时都会导出该序列。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
-- **未关闭的告警和硬件状态使用 Max**，因为这类序列只在告警未关闭或组件处于该状态时才存在，所以状态在整个 5 分钟窗口内都出现后才会越过阈值。
+- **未关闭的警报和硬件状态使用 Max**，因为这类序列只在警报未关闭或组件处于该状态时才存在，所以状态在整个 5 分钟窗口内都出现后才会越过阈值。
 - **每个按对象的模板都按对象自身的标签分组**(`summary`、`component_name`、`host`、`local_pod`、`name`)，因此每个受影响的对象各触发一个事件，并且事件中会写出该对象。
 - **延迟模板使用 Avg**，对阵列自身计算的每次操作平均值取平均；容量模板对阵列自身的利用率百分比取 **最大**。延迟固定以微秒为单位，容量固定以百分比为单位。
 - **Hardware Component Unhealthy 按组件使用 Min**：组件健康时其健康值为 1，不健康时降到 0。
 
-没有针对每个卷延迟的模板，因为合适的阈值取决于工作负载：请从目录中按 `name` 分组自行构建。容量预测需要的是增长趋势而不是阈值，而驱动器磨损没有可以告警的序列。
+没有针对每个卷延迟的模板，因为合适的阈值取决于工作负载：请从目录中按 `name` 分组自行构建。容量预测需要的是增长趋势而不是阈值，而驱动器磨损没有可以警报的序列。
 
 ## 采集的指标
 
@@ -161,14 +161,14 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 
 | 指标 | 过滤器 | 平台 | 单位 | 描述 |
 | --- | --- | --- | --- | --- |
-| `purefa_alerts_open` | — | FlashArray | `count` | 阵列上每个未关闭的告警一个序列(值为 1)，带有标签 `severity`(`critical`、`warning`、`info`、`hidden`)、`category`、`code`、`component_type` 和 `summary` |
-| `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade 上每个未关闭的告警一个序列(值为 1)，带有标签 `severity`(`info`、`warning`、`critical`)、`code`、`component_name`、`component_type`、`summary` 和 `kburl`(Pure 知识库文章) |
+| `purefa_alerts_open` | — | FlashArray | `count` | 阵列上每个未关闭的警报一个序列(值为 1)，带有标签 `severity`(`critical`、`warning`、`info`、`hidden`)、`category`、`code`、`component_type` 和 `summary` |
+| `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade 上每个未关闭的警报一个序列(值为 1)，带有标签 `severity`(`info`、`warning`、`critical`)、`code`、`component_name`、`component_type`、`summary` 和 `kburl`(Pure 知识库文章) |
 
 ### 容量
 
 | 指标 | 过滤器 | 平台 | 单位 | 描述 |
 | --- | --- | --- | --- | --- |
-| `purefa_array_space_utilization` | — | FlashArray | `%` | 阵列可用容量中已使用的比例。Pure 自己会在 80%、90% 和 100% 时发出容量告警 |
+| `purefa_array_space_utilization` | — | FlashArray | `%` | 阵列可用容量中已使用的比例。Pure 自己会在 80%、90% 和 100% 时发出容量警报 |
 | `purefa_array_space_bytes` | `space=capacity` | FlashArray | `bytes` | 阵列的可用容量 |
 | `purefa_array_space_bytes` | `space=empty` | FlashArray | `bytes` | 未使用的容量——关注其趋势可以预测阵列何时写满 |
 | `purefa_array_space_bytes` | `space=snapshots` | FlashArray | `bytes` | 仅由快照占用的物理空间；快速增长通常意味着某个保护组保留的快照比计划的多 |
@@ -291,7 +291,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | 2 | 检查 _监视器名称_ 是否在线 | 第一个查询有数据 | 把监视器标记为 **运行正常**。 |
 
 > [!IMPORTANT]
-> 值为 `0` 也是数据，因此经常为零的指标（例如重启次数或错误数）不会让监视器离线。要针对某个值告警，请从模板开始，或添加带阈值的条件。当完全没有数据到达且没有任何条件匹配时，监视器保持原有状态，未解决的事件也保持打开：沉默不等于恢复。OneUptime 自身未接收数据的时间从不算作无数据：窗口包含这段时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
+> 值为 `0` 也是数据，因此经常为零的指标（例如重启次数或错误数）不会让监视器离线。要针对某个值警报，请从模板开始，或添加带阈值的条件。当完全没有数据到达且没有任何条件匹配时，监视器保持原有状态，未解决的事件也保持打开：沉默不等于恢复。OneUptime 自身未接收数据的时间从不算作无数据：窗口包含这段时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ## Terraform
 
@@ -331,7 +331,7 @@ monitor_steps = [{
 阵列会根据代理的数据自行注册。请检查代理是否在运行并发送数据(请参阅 [Storage Array Agent 指南](/docs/telemetry/storage-arrays))，以及是否设置了 `STORAGE_ARRAY_NAME`。
 :::
 
-:::details 告警或硬件模板从不触发
+:::details 警报或硬件模板从不触发
 这正是健康的情况。`purefa_alerts_open`、`purefa_hw_component_status`、`purefa_drive_capacity_bytes` 和 `purefa_host_connectivity_info` 把状态放在标签中，而过滤到不良状态的序列(`severity=critical`、`component_status=failed`)只在有对象处于该状态时才存在。要查看模板背后的序列，请在 **指标** 页面上不加过滤器运行它的查询。
 :::
 
@@ -352,6 +352,6 @@ Pure 把读、写、镜像写、SAN、队列和 QoS 数值放在同一个指标�
 :::cards
 - [存储阵列代理](/docs/telemetry/storage-arrays): 安装发送指标的代理。
 - [Ceph 监控](/docs/monitor/ceph-monitor): 用于 Ceph 存储集群的同类监视器。
-- [指标监控](/docs/monitor/metrics-monitor): 对任何来源的任何指标发出告警。
+- [指标监控](/docs/monitor/metrics-monitor): 对任何来源的任何指标发出警报。
 - [事件概览](/docs/incidents/index): 条件声明事件之后会发生什么。
 :::

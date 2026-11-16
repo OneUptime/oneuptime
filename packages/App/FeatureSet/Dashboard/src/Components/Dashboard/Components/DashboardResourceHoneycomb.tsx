@@ -310,13 +310,25 @@ const Hex: FunctionComponent<HexProps> = (props: HexProps): ReactElement => {
          * on an Arabic or Persian board is cut at its own end, so tiles
          * whose names share an end still differ. Words that read the
          * board's way are drawn as they were.
+         *
+         * Most tiles draw no words, and their line stays empty: not the
+         * quiet dash a widget line draws for a value that is missing
+         * (#8262), which on a tile's colour was a grey mark nobody could
+         * read.
          */}
-        <DashboardWidgetLine
-          as="span"
-          text={tile.label || ""}
-          className="truncate text-center"
-          style={{ maxWidth: `${width * 0.8}px`, pointerEvents: "none" }}
-        />
+        {tile.label ? (
+          <DashboardWidgetLine
+            as="span"
+            text={tile.label}
+            className="truncate text-center"
+            style={{ maxWidth: `${width * 0.8}px`, pointerEvents: "none" }}
+          />
+        ) : (
+          <span
+            className="truncate text-center"
+            style={{ maxWidth: `${width * 0.8}px`, pointerEvents: "none" }}
+          />
+        )}
       </div>
       {hasKeyboardFocus && (
         <svg

@@ -1,6 +1,6 @@
 # Microsoft-Teams-Integration
 
-Verbinden Sie Ihr selbst gehostetes OneUptime mit Microsoft Teams. Sie registrieren eine App in Microsoft Entra ID, erstellen dafür einen Azure Bot, geben OneUptime die Zugangsdaten der App und installieren das Teams-App-Paket, das Ihr Server erstellt. OneUptime veröffentlicht dann Alarme und Vorfälle in Ihren Kanälen und Chats, und Ihr Team bearbeitet sie direkt in Teams.
+Verbinden Sie Ihr selbst gehostetes OneUptime mit Microsoft Teams. Sie registrieren eine App in Microsoft Entra ID, erstellen dafür einen Azure Bot, geben OneUptime die Zugangsdaten der App und installieren das Teams-App-Paket, das Ihr Server erstellt. OneUptime veröffentlicht dann Warnungen und Vorfälle in Ihren Kanälen und Chats, und Ihr Team bearbeitet sie direkt in Teams.
 
 Diese Seite richtet sich an alle, die den OneUptime-Server betreiben. Sobald Teams verbunden ist, werden Benachrichtigungsregeln pro Projekt eingerichtet: siehe [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
@@ -69,7 +69,7 @@ Wählen Sie **Register** und fügen Sie dann eine zweite Web-Redirect-URI hinzu,
 - **User.Read** - Erforderlich, um während des OAuth-Ablaufs die Profilinformationen des angemeldeten Benutzers (Anzeigename, E-Mail) abzurufen
 - **Team.ReadBasic.All** - Erforderlich, um die Teams aufzulisten, in denen der Benutzer Mitglied ist, wenn das zu verbindende Team ausgewählt wird
 - **Channel.ReadBasic.All** - Erforderlich, um Kanalinformationen zu lesen und Kanäle in Teams für die Zustellung von Benachrichtigungen aufzulisten
-- **ChannelMessage.Send** - Erforderlich, um Alarm- und Vorfallsbenachrichtigungen an Teams-Kanäle zu senden
+- **ChannelMessage.Send** - Erforderlich, um Warnung- und Vorfallsbenachrichtigungen an Teams-Kanäle zu senden
 
 **Anwendungsberechtigungen hinzufügen** (beim Handeln als die App selbst, ohne angemeldeten Benutzer):
 
@@ -229,7 +229,7 @@ Microsoft verlangt einen [öffentlich erreichbaren HTTPS-Endpunkt für einen sel
 | Microsoft zu OneUptime | `POST /api/microsoft-bot/messages` | Bot-Nachrichten, Installationsereignisse von Unterhaltungen und Kartenaktionen |
 | Browser der Nutzer zu OneUptime | `/api/microsoft-teams/auth` und `/api/microsoft-teams/admin-consent/callback` | Weiterleitungen für Anmeldung und Administratorzustimmung |
 
-Die Weiterleitungen der App-Registrierung zu `/api/microsoft-teams/auth` und `/api/microsoft-teams/admin-consent/callback` laufen über den Browser des Nutzers zurück. Dieser Browser muss OneUptime erreichen, zum Beispiel über Ihr Firmennetz oder VPN. Bot-Nachrichten und Kartenaktionen kommen von den Servern von Microsoft und brauchen einen eigenen erreichbaren Ingress. Ausgehende Alarmzustellung allein bestätigt keine eingehende Konnektivität.
+Die Weiterleitungen der App-Registrierung zu `/api/microsoft-teams/auth` und `/api/microsoft-teams/admin-consent/callback` laufen über den Browser des Nutzers zurück. Dieser Browser muss OneUptime erreichen, zum Beispiel über Ihr Firmennetz oder VPN. Bot-Nachrichten und Kartenaktionen kommen von den Servern von Microsoft und brauchen einen eigenen erreichbaren Ingress. Ausgehende Warnungszustellung allein bestätigt keine eingehende Konnektivität.
 
 ### Den Bot-Endpunkt aus einer privaten Installation veröffentlichen
 
@@ -280,16 +280,16 @@ Beginnen Sie mit diesen Prüfungen:
 
 Diese Symptome bedeuten oft, dass **Azure Bot Service keine authentifizierten Aktivitäten an Ihren Messaging-Endpunkt zustellen kann**. Prüfen Sie Routing, Bot-Authentifizierung und Projektkonfiguration.
 
-Das Verwirrende ist, dass Alarmkarten weiterhin in Teams ankommen, wodurch die Integration weitgehend gesund aussieht. Das ist sie nicht — die beiden Richtungen sind unabhängig, und nur eine davon funktioniert:
+Das Verwirrende ist, dass Warnungskarten weiterhin in Teams ankommen, wodurch die Integration weitgehend gesund aussieht. Das ist sie nicht — die beiden Richtungen sind unabhängig, und nur eine davon funktioniert:
 
 | Richtung | Wie sie läuft | Muss Azure Sie erreichen? |
 | --- | --- | --- |
-| OneUptime veröffentlicht eine Alarmkarte in einem Kanal | OneUptime ruft Microsoft auf und authentifiziert sich mit Ihrem Client Secret | **Nein** |
+| OneUptime veröffentlicht eine Warnungskarte in einem Kanal | OneUptime ruft Microsoft auf und authentifiziert sich mit Ihrem Client Secret | **Nein** |
 | Sie tippen auf eine Schaltfläche dieser Karte | Azure Bot Service sendet einen POST an `/api/microsoft-bot/messages` | **Ja** |
 | Sie schreiben dem Bot `help` | Azure Bot Service sendet einen POST an `/api/microsoft-bot/messages` | **Ja** |
 | Ein Chat wird unter **Microsoft Teams-Chats** registriert | Azure Bot Service sendet eine Bot-Aktivität per POST an `/api/microsoft-bot/messages` | **Ja** |
 
-Ein funktionierender Alarm bestätigt also genau diesen ausgehenden Versand; er bestätigt weder jede Graph-Berechtigung noch den eingehenden Bot-Endpunkt. Interaktive Funktionen brauchen eine erfolgreiche Verarbeitung eingehender Bot-Aktivitäten.
+Eine funktionierende Warnung bestätigt also genau diesen ausgehenden Versand; er bestätigt weder jede Graph-Berechtigung noch den eingehenden Bot-Endpunkt. Interaktive Funktionen brauchen eine erfolgreiche Verarbeitung eingehender Bot-Aktivitäten.
 
 OneUptime erfasst Chats aus Bot-Aktivitäten, etwa wenn die App installiert, der Bot zur Unterhaltung hinzugefügt oder ihm in diesem Chat eine Nachricht gesendet wird. Alle kommen über denselben eingehenden Endpunkt. Eine leere Liste **Microsoft Teams-Chats**, nachdem Sie die App hinzugefügt und ihr geschrieben haben, bedeutet, dass für dieses Projekt kein Chat erfasst wurde; prüfen Sie eingehende Anfragen, Authentifizierungsfehler und die Zuordnung von Tenant und Projekt. Ein Klick auf **Chats aktualisieren** liest die gespeicherten Chats von OneUptime neu und liest den Namen jedes gespeicherten Gruppenchats erneut von Microsoft.
 

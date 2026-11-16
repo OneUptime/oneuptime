@@ -225,7 +225,7 @@ Klicka på rubriken för en kolumn för att sortera en lista eller en tabell eft
 | Ett tal | Högsta först | Lägsta först |
 | Text | A till Ö | Ö till A |
 
-Sämst följer projektets egen ordning: en monitorstatus efter dess prioritet, allvarlighetsgrad och tillstånd för en incident eller en avisering efter den ordning du har dem i, och en resurs som är nere, inte redo eller avstängd före en frisk. En pods fas sorteras Failed, sedan Unknown, sedan Pending, sedan Running och Succeeded. En SLO:s SLI och felbudget, och en Proxmox-gästs VMID, sorteras med de lägsta först.
+Sämst följer projektets egen ordning: en monitorstatus efter dess prioritet, allvarlighetsgrad och tillstånd för en incident eller ett larm efter den ordning du har dem i, och en resurs som är nere, inte redo eller avstängd före en frisk. En pods fas sorteras Failed, sedan Unknown, sedan Pending, sedan Running och Succeeded. En SLO:s SLI och felbudget, och en Proxmox-gästs VMID, sorteras med de lägsta först.
 
 Hela listan sorteras, inte bara raderna på skärmen: en lista som visar 25 rader, sorterad med de sämsta först, visar de 25 sämsta av alla. Rader som är lika behåller widgetens egen ordning. En kolumn som en lista inte kan sorteras efter i sin helhet, som meddelandet i en säkerhetshändelse, sorterar inte.
 

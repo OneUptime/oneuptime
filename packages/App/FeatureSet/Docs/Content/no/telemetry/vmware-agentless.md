@@ -61,7 +61,7 @@ Navnet er som standard vCenters vertsnavn. Klikk på **Koble til vCenter** for �
 
 **Oversikt** for vCenter-en viser et kort **Datainnsamling**. Det viser **Kontrollerer** fram til den første innsamlingen, som starter innen ett minutt, deretter **Samler inn**, og inventaret fylles ut.
 
-Hvis ingen sonde kommer for vCenter-en på 20 minutter, fordi den er frakoblet eller for gammel, viser kortet **Samler ikke inn** og det sies fra om det, uansett hva siste innsamling fant. Når ingen sonde får samle inn vCenter-en, viser kortet straks **Samler ikke inn**, med årsaken og hva som må endres: ikke noe passord er lagret, vCenters adresse eller brukernavn mangler, ingen sonde er satt til å samle den inn, sonden dens får ikke samle den inn (en delt sonde på OneUptime Cloud, eller et annet prosjekts), eller sonden dens er frakoblet. **Neste innsamling** er tidspunktet en sonde samler den inn neste gang, **Står for tur nå** mens den venter på en, **Forsinket** når ingen har kommet på 20 minutter, og **Ikke planlagt** mens ingen sonde får samle den inn. En arkivert vCenter samles fortsatt inn.
+Hvis ingen sonde kommer for vCenter-en på 20 minutter, fordi den er offline eller for gammel, viser kortet **Samler ikke inn** og det sies fra om det, uansett hva siste innsamling fant. Når ingen sonde får samle inn vCenter-en, viser kortet straks **Samler ikke inn**, med årsaken og hva som må endres: ikke noe passord er lagret, vCenters adresse eller brukernavn mangler, ingen sonde er satt til å samle den inn, sonden dens får ikke samle den inn (en delt sonde på OneUptime Cloud, eller et annet prosjekts), eller sonden dens er frakoblet. **Neste innsamling** er tidspunktet en sonde samler den inn neste gang, **Står for tur nå** mens den venter på en, **Forsinket** når ingen har kommet på 20 minutter, og **Ikke planlagt** mens ingen sonde får samle den inn. En arkivert vCenter samles fortsatt inn.
 
 ## Sertifikater
 
@@ -115,7 +115,7 @@ Sondens nettverk kan ikke nå vCenter på TCP 443. Tillat trafikken gjennom bran
 :::
 
 :::details Sonden plukket ikke opp dette
-Sonden er frakoblet, eller kjører en OneUptime-versjon som er eldre enn VMware-innsamling. Kontroller at den er tilkoblet i tabellen **Egendefinerte sonder**, og oppdater den.
+Sonden er offline, eller kjører en OneUptime-versjon som er eldre enn VMware-innsamling. Kontroller at den er tilkoblet i tabellen **Egendefinerte sonder**, og oppdater den.
 :::
 
 :::details Denne vCenter er for stor til å samles inn av en sonde

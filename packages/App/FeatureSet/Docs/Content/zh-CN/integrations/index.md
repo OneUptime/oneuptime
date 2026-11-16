@@ -1,6 +1,6 @@
 # 集成概述
 
-OneUptime 可以与你的团队已经在用的工具配合使用。告警工具在 OneUptime 中创建事件，OneUptime 则在其他工具中创建工单、呼叫值班人员并发送聊天消息。有些工具通过表单连接，有些通过现成的工作流模板连接。其他任何带有 Webhook 或 API 的工具，都可以通过你自己构建的工作流连接。
+OneUptime 可以与你的团队已经在用的工具配合使用。警报工具在 OneUptime 中创建事件，OneUptime 则在其他工具中创建工单、呼叫值班人员并发送聊天消息。有些工具通过表单连接，有些通过现成的工作流模板连接。其他任何带有 Webhook 或 API 的工具，都可以通过你自己构建的工作流连接。
 
 :::cards
 - [选择连接方式](#选择连接方式): 四种连接方式，以及各自的适用场景。
@@ -29,21 +29,21 @@ flowchart TB
 | --- | --- | --- |
 | 内置连接 | OneUptime 自己连接的工具。只需填写表单，无需构建任何东西。 | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[安全事件](/docs/telemetry/security-events) 连接 |
 | 工作流模板 | 双向保持同步的工单工具、监控问题、安全事件报告，以及聊天消息。选择一个模板并填写几项设置即可。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)、[Huntress](/docs/integrations/huntress)、[Zabbix](/docs/integrations/zabbix)、[Datadog](/docs/integrations/datadog)、[New Relic](/docs/integrations/new-relic) |
-| 入站请求监视器 | 发送 Webhook 的告警工具。无需工作流，每条告警对应一个事件，通知值班人员，并在告警恢复时解决。 | [Zabbix](/docs/integrations/zabbix)、[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)、[Grafana](/docs/integrations/grafana) |
+| 入站请求监视器 | 发送 Webhook 的警报工具。无需工作流，每条警报对应一个事件，通知值班人员，并在警报恢复时解决。 | [Zabbix](/docs/integrations/zabbix)、[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)、[Grafana](/docs/integrations/grafana) |
 | 你自己构建的工作流 | 任何带有 Webhook 或 REST API 的工具，以及你自己的任何逻辑。 | [PagerDuty](/docs/integrations/pagerduty)、[Opsgenie](/docs/integrations/opsgenie)、[ServiceNow](/docs/integrations/servicenow) |
 
 从表格顶部开始看：越靠上的方式，需要维护的东西越少。
 
 ## 目录
 
-### 监控与告警工具
+### 监控与警报工具
 
 | 工具 | 方向 | 作用 |
 | --- | --- | --- |
 | [Zabbix](/docs/integrations/zabbix) | 双向 | 把 Zabbix 问题转为事件或警报，在恢复时解决它们，并从 OneUptime 确认或关闭这些问题。 |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 入站 | 把 Alertmanager 通知转为事件。 |
-| [Grafana](/docs/integrations/grafana) | 入站 | 把 Grafana 告警转为事件。 |
-| [Datadog](/docs/integrations/datadog) | 入站 | 把 Datadog 监控告警转为事件或警报，并在恢复时解决它们。 |
+| [Grafana](/docs/integrations/grafana) | 入站 | 把 Grafana 警报转为事件。 |
+| [Datadog](/docs/integrations/datadog) | 入站 | 把 Datadog 监控警报转为事件或警报，并在恢复时解决它们。 |
 | [New Relic](/docs/integrations/new-relic) | 入站 | 把 New Relic 问题转为事件或警报，并在问题关闭时解决它们。 |
 
 ### 安全工具
@@ -77,7 +77,7 @@ flowchart TB
 | 工具 | 方向 | 作用 |
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | 出站 | 为每个 OneUptime 事件触发一个 PagerDuty 事件，并随该事件一起解决。 |
-| [Opsgenie](/docs/integrations/opsgenie) | 出站 | 为每个 OneUptime 事件创建一个 Opsgenie 告警，并随该事件一起关闭。 |
+| [Opsgenie](/docs/integrations/opsgenie) | 出站 | 为每个 OneUptime 事件创建一个 Opsgenie 警报，并随该事件一起关闭。 |
 
 ### 聊天工具
 
@@ -112,7 +112,7 @@ flowchart TB
 
 ### 入站：另一个工具把数据发送到 OneUptime
 
-对于告警工具，先从 [入站请求监视器](/docs/monitor/incoming-request-monitor#接收来自其他系统的告警) 开始：它为每条告警创建一个事件，并在恢复时解决，无需构建任何东西。需要自己的逻辑时，再构建工作流：
+对于警报工具，先从 [入站请求监视器](/docs/monitor/incoming-request-monitor#接收来自其他系统的警报) 开始：它为每条警报创建一个事件，并在恢复时解决，无需构建任何东西。需要自己的逻辑时，再构建工作流：
 
 :::steps
 1. 打开 **工作流**，点击 **创建工作流**，然后点击 **从零开始**。为工作流命名，然后点击 **创建工作流**。
@@ -181,7 +181,7 @@ printf '%s' 'you@example.com:your_api_token' | base64 | tr -d '\n'
 
 :::cards
 - [工作流概览](/docs/workflows/index): 工作流如何运行，以及如何构建你的第一个工作流。
-- [入站请求监控](/docs/monitor/incoming-request-monitor): 无需工作流即可接收任何工具的告警。
+- [入站请求监控](/docs/monitor/incoming-request-monitor): 无需工作流即可接收任何工具的警报。
 - [Jira](/docs/integrations/jira): 一个完整的双向集成，从模板开始。
 - [工作流变量](/docs/workflows/variables): 在块之间传递数据，并让密钥不出现在块中。
 :::

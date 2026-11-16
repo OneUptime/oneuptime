@@ -56,10 +56,10 @@ Der Bericht zählt, was erstellt und nicht übernommen wurde, und listet jedes E
 | --- | --- | --- |
 | Uptime, SSL and heartbeat checks | Monitore | Jede Prüfung wird zu einem Monitor derselben Art, mit derselben Adresse, demselben Intervall und Timeout und dem Text, den eine Seite enthalten soll oder nicht enthalten darf. |
 
-- **HTTP- und HEAD-Prüfungen** werden zu Website-Monitoren, oder zu API-Monitoren, wenn sie Daten senden oder Header mitschicken. StatusCake nennt die Statuscodes, die einen Alarm auslösen: Jeder andere Code gilt auch in OneUptime als verfügbar.
+- **HTTP- und HEAD-Prüfungen** werden zu Website-Monitoren, oder zu API-Monitoren, wenn sie Daten senden oder Header mitschicken. StatusCake nennt die Statuscodes, die eine Warnung auslösen: Jeder andere Code gilt auch in OneUptime als verfügbar.
 - **Ping- und TCP-Prüfungen** werden zu Ping- und Port-Monitoren. **SMTP- und SSH-Prüfungen** werden zu Port-Monitoren auf ihrem Port: OneUptime prüft, ob der Port antwortet, nicht die Kommunikation darauf.
 - **DNS-Prüfungen** werden zu DNS-Monitoren, die denselben Server fragen.
-- **SSL-Prüfungen** werden zu SSL-Zertifikat-Monitoren, die so weit im Voraus warnen wie der erste Alarm. Eine Uptime-Prüfung mit SSL-Alarmen erhält ebenfalls einen.
+- **SSL-Prüfungen** werden zu SSL-Zertifikat-Monitoren, die so weit im Voraus warnen wie die erste Warnung. Eine Uptime-Prüfung mit SSL-Warnungen erhält ebenfalls einen.
 - **Heartbeat-Prüfungen** werden zu Monitoren für eingehende Anfragen, die ausfallen, wenn für den Zeitraum keine Anfrage gekommen ist. Jeder hat in OneUptime eine neue Adresse.
 
 Jeder Monitor wird von den Sonden Ihres Projekts geprüft, so wie einer, den Sie selbst erstellen. Ein Intervall, das OneUptime nicht anbietet, wird zum nächstgelegenen, das es anbietet, und ein Timeout über einer Minute zu einer Minute. Die Vorschau sagt, wenn sich eines davon ändert.
@@ -67,7 +67,7 @@ Jeder Monitor wird von den Sonden Ihres Projekts geprüft, so wie einer, den Sie
 ## Was nicht übernommen wird
 
 - **Verfügbarkeitsverlauf, Antwortzeiten und Vorfälle.** OneUptime beginnt mit den Prüfungen, wenn der Import fertig ist.
-- **Alarmkontakte und Integrationen.** Legen Sie in OneUptime fest, wer benachrichtigt wird, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
+- **Warnungskontakte und Integrationen.** Legen Sie in OneUptime fest, wer benachrichtigt wird, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
 - **Passwörter und Header, die ein Geheimnis enthalten können.** Ein Monitor, der sich anmeldet oder einen `Authorization`-, Cookie- oder Token-Header sendet, wird ohne ihn übernommen: Fügen Sie ihn mit einem [Monitor-Geheimnis](/docs/monitor/monitor-secrets) hinzu.
 - **Die Adressen, die eine DNS-Prüfung erwartet.** Fügen Sie sie in OneUptime als Kriterien hinzu.
 - **Page-Speed-, Domain- und Server-Prüfungen.** OneUptime hat eine eigene [Domain-Überwachung](/docs/monitor/domain-monitor) und Server-Überwachung, die Sie stattdessen einrichten.

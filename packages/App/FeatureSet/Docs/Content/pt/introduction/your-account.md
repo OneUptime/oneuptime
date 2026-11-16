@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Seu perfil](#seu-perfil): Seu nome, seu e-mail, seu fuso horário, seu idioma e sua foto.
-- [Entrar com segurança](#entrar-com-segurança): Sua senha, os links de acesso, suas chaves de acesso e a autenticação em dois fatores.
+- [Entrar com segurança](#entrar-com-segurança): Sua senha, os links de acesso, suas chaves de acesso e a autenticação de dois fatores.
 - [Seus projetos](#seus-projetos): Trocar de projeto, criar um e aceitar convites.
 - [Configurações do usuário](#o-que-cada-projeto-guarda-para-você): Como o OneUptime contata você em cada projeto.
 :::
@@ -63,8 +63,8 @@ Expanda **Segurança** no menu lateral de **Perfil do usuário**. Ela tem três 
 | Página | Para que serve |
 | --- | --- |
 | **Gerenciamento de senhas** | Definir uma senha nova. |
-| **Passkeys** | Entrar sem senha, com sua digital, seu rosto, o bloqueio de tela ou uma chave de segurança. |
-| **Two-factor authentication** | Pedir uma segunda etapa depois da senha ou de um link enviado por e-mail: um código de um aplicativo, ou uma chave de segurança. |
+| **Chaves de acesso** | Entrar sem senha, com sua digital, seu rosto, o bloqueio de tela ou uma chave de segurança. |
+| **Autenticação de dois fatores** | Pedir uma segunda etapa depois da senha ou de um link enviado por e-mail: um código de um aplicativo, ou uma chave de segurança. |
 
 ### Mudar sua senha
 
@@ -79,8 +79,8 @@ Uma nova senha desconecta todos os dispositivos da sua conta, e qualquer link de
 ### Adicionar uma chave de acesso
 
 :::steps
-1. Abra **Segurança → Passkeys** e clique em **Add Passkey**.
-2. Dê a ela um nome que você reconheça, como seu dispositivo ou seu gerenciador de senhas, e clique em **Create Passkey**.
+1. Abra **Segurança → Chaves de acesso** e clique em **Adicionar chave de acesso**.
+2. Dê a ela um nome que você reconheça, como seu dispositivo ou seu gerenciador de senhas, e clique em **Criar chave de acesso**.
 3. Siga o aviso do navegador para salvar a chave de acesso.
 :::
 
@@ -96,31 +96,31 @@ Você pode entrar com um link em vez da sua senha. Não há nada para configurar
 3. Abra o link do e-mail e clique em **Entrar**.
 :::
 
-O link funciona uma vez, por 15 minutos, e um link mais recente o substitui. Você pode abri-lo em outro dispositivo, e é nele que você entra. Se você usa a autenticação em dois fatores, o OneUptime continua pedindo a sua segunda etapa.
+O link funciona uma vez, por 15 minutos, e um link mais recente o substitui. Você pode abri-lo em outro dispositivo, e é nele que você entra. Se você usa a autenticação de dois fatores, o OneUptime continua pedindo a sua segunda etapa.
 
 > [!NOTE]
 > Os administradores principais de uma instalação auto-hospedada podem desativar os links de acesso com **Permitir entrar com um link enviado por e-mail**, em **Admin Dashboard > Configurações > Autenticação**. Os links já enviados deixam então de funcionar. Enquanto o servidor exigir SSO, a página de login oferece apenas SSO.
 
-### Ativar a autenticação em dois fatores
+### Ativar a autenticação de dois fatores
 
-A autenticação em dois fatores vale quando você entra com sua senha ou com um link enviado por e-mail. Adicione primeiro uma segunda etapa, e depois ative-a.
+A autenticação de dois fatores vale quando você entra com sua senha ou com um link enviado por e-mail. Adicione primeiro uma segunda etapa, e depois ative-a.
 
 :::steps
 ### Adicionar um aplicativo autenticador
 
-Abra **Segurança → Two-factor authentication**. Em **Authenticator apps**, adicione um aplicativo e dê um nome a ele. Escaneie o código QR com um aplicativo como 1Password, Google Authenticator ou Microsoft Authenticator, digite o código de 6 dígitos que ele mostra e clique em **Verify and finish**. Para usar uma chave USB ou NFC, adicione-a em **Security keys**.
+Abra **Segurança → Autenticação de dois fatores**. Em **Apps autenticadores**, adicione um aplicativo e dê um nome a ele. Escaneie o código QR com um aplicativo como 1Password, Google Authenticator ou Microsoft Authenticator, digite o código de 6 dígitos que ele mostra e clique em **Verificar e concluir**. Para usar uma chave USB ou NFC, adicione-a em **Chaves de segurança**.
 
 ### Guardar seus códigos de backup
 
-Na primeira vez que você adiciona um aplicativo, uma chave ou uma chave de acesso, o OneUptime mostra **Your backup codes**. Cada código permite entrar uma vez se você perder o aplicativo ou a chave. Copie-os ou baixe-os, marque a caixa dizendo que você os guardou e clique em **Concluído**.
+Na primeira vez que você adiciona um aplicativo, uma chave ou uma chave de acesso, o OneUptime mostra **Seus códigos de backup**. Cada código permite entrar uma vez se você perder o aplicativo ou a chave. Copie-os ou baixe-os, marque a caixa dizendo que você os guardou e clique em **Concluído**.
 
 ### Ativar
 
-No topo da página, clique em **Enable two-factor authentication** e confirme. O cartão agora mostra **Habilitado**. A partir do seu próximo login com senha ou com um link enviado por e-mail, o OneUptime pede a sua segunda etapa.
+No topo da página, clique em **Ativar a autenticação de dois fatores** e confirme. O cartão agora mostra **Habilitado**. A partir do seu próximo login com senha ou com um link enviado por e-mail, o OneUptime pede a sua segunda etapa.
 :::
 
 > [!TIP]
-> Seus códigos de backup estão acabando? **Regenerate codes** na mesma página dá a você um conjunto novo, e os códigos antigos param de funcionar na hora.
+> Seus códigos de backup estão acabando? **Gerar novos códigos** na mesma página dá a você um conjunto novo, e os códigos antigos param de funcionar na hora.
 
 ## Seus projetos
 
@@ -163,7 +163,7 @@ Entrar de novo envia um link novo: confira também sua pasta de spam. Se você n
 :::
 
 :::details Perdi meu aplicativo autenticador
-Na segunda etapa do login, escolha **Perdeu o acesso ao seu autenticador?** e digite um dos seus códigos de backup. Depois abra **Segurança → Two-factor authentication** e adicione seu novo aplicativo. Sem códigos de backup, peça a um administrador da sua instalação do OneUptime para redefinir a autenticação em dois fatores da sua conta.
+Na segunda etapa do login, escolha **Perdeu o acesso ao seu autenticador?** e digite um dos seus códigos de backup. Depois abra **Segurança → Autenticação de dois fatores** e adicione seu novo aplicativo. Sem códigos de backup, peça a um administrador da sua instalação do OneUptime para redefinir a autenticação de dois fatores da sua conta.
 :::
 
 :::details O login pede que eu espere antes de tentar outro código

@@ -204,6 +204,6 @@ severity:error AND service:api      # identical
 :::cards
 - [放大时间范围](/docs/telemetry/charts-and-time-ranges): 把浏览器聚焦到关键时刻。
 - [日志管道](/docs/telemetry/log-pipelines): 把日志行的各部分变成可以搜索的属性。
-- [日志监控](/docs/monitor/logs-monitor): 你搜索的日志出现时发出告警。
+- [日志监控](/docs/monitor/logs-monitor): 你搜索的日志出现时发出警报。
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 发送可供搜索的日志、指标和追踪。
 :::

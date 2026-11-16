@@ -205,7 +205,9 @@ function keysOf(content: SetupGuideContent): Array<string> {
  * The locale key a title is: itself, or - for a title the guide fills in
  * with translateTemplate, in the reader's language where it is drawn
  * ('Host shows up as "docker-host" or a container ID') - the template it
- * fills.
+ * fills. Of the templates the text fits, the one with the most words of
+ * its own: "A refused key, or metrics that arrive 11 to 17 minutes late."
+ * fills its own sentence's template, not "{{from}} to {{to}}".
  */
 function keyOf(text: string): string {
   const english: Record<string, string> = readDashboardLocale("en");
@@ -214,20 +216,24 @@ function keyOf(text: string): string {
     return text;
   }
 
-  const template: string | undefined = Object.keys(english).find(
-    (key: string): boolean => {
-      if (!key.includes("{{")) {
-        return false;
-      }
-      const pattern: string = key
-        .split(/\{\{\s*[\w.]+\s*\}\}/)
-        .map(escapeRegExp)
-        .join(".+");
-      return new RegExp(`^${pattern}$`).test(text);
-    },
-  );
+  let best: { key: string; literal: number } | undefined = undefined;
 
-  return template || text;
+  for (const key of Object.keys(english)) {
+    if (!key.includes("{{")) {
+      continue;
+    }
+    const literals: Array<string> = key.split(/\{\{\s*[\w.]+\s*\}\}/);
+    const pattern: string = literals.map(escapeRegExp).join(".+");
+    if (!new RegExp(`^${pattern}$`).test(text)) {
+      continue;
+    }
+    const literal: number = literals.join("").length;
+    if (!best || literal > best.literal) {
+      best = { key, literal };
+    }
+  }
+
+  return best ? best.key : text;
 }
 
 function codeBlocks(text: string): Array<string> {

@@ -16,6 +16,7 @@ import {
   recordDrawnBoxes,
   waitForFrames,
 } from "../SuiteHelpers/DrawnBoxes";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Click-to-sort on a dashboard's list and table widgets (issue #5082), in a
@@ -2182,4 +2183,18 @@ test.describe("each widget is drawn once, at its own size", () => {
     );
     await expectEachDrawnOnce(page);
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return language === "en" ? APP_PATH : `${APP_PATH}?lang=${language}`;
+  },
 });

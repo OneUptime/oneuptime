@@ -6,7 +6,7 @@ OneUptime overvåker flåter av IoT-enheter — sensorer, gatewayer, kontrollere
 - [Velg hvordan du sender](#velg-hvordan-du-sender): En OpenTelemetry SDK, en gateway-collector eller MQTT.
 - [Sende målinger via MQTT](#sende-målinger-via-mqtt): Emner, legitimasjon per enhet og Last Will.
 - [Målingskonvensjoner](#målingskonvensjoner): `iot_*`-navnene OneUptime viser grafer for og varsler på.
-- [Feilsøking](#feilsøking): Manglende flåter, manglende enheter, uventede frakoblinger.
+- [Feilsøking](#feilsøking): Manglende flåter, manglende enheter, uventede bytter til offline.
 :::
 
 ## Slik fungerer det
@@ -43,7 +43,7 @@ Over MQTT setter emnet flåten og enheten for deg.
 | --- | --- | --- |
 | [OpenTelemetry SDK](#sende-målinger-via-opentelemetry-sdk) | Enheten kjører en OpenTelemetry SDK og når OneUptime selv. | En inntaksnøkkel på enheten. |
 | [OpenTelemetry Collector](#sende-målinger-via-en-opentelemetry-collector) | Mange enheter rapporterer gjennom en gateway. | En gateway som kjører collectoren. |
-| [MQTT](#sende-målinger-via-mqtt) | Enheten snakker allerede MQTT, eller skal rapportere frakoblet i det øyeblikket den faller ut. | Enhver MQTT-klient som kobler til over WebSocket. |
+| [MQTT](#sende-målinger-via-mqtt) | Enheten snakker allerede MQTT, eller skal rapportere offline i det øyeblikket den faller ut. | Enhver MQTT-klient som kobler til over WebSocket. |
 
 ## Før du begynner
 
@@ -177,7 +177,7 @@ OneUptime har sitt eget MQTT-endepunkt, så enheter som snakker MQTT, publiserer
 - **Med inntaksnøkkelen**: send den som MQTT-passord. Brukernavnet ignoreres; hvis klienten din bare har et felt for brukernavn, legg nøkkelen der. Dette passer en gateway som publiserer for mange enheter.
 - **Med legitimasjon per enhet**: anbefales for enheter som kobler til direkte. Åpne flåtens side **Enhetsregister** og registrer enheten, med **Device ID** den bruker som `device.id`. Enhetens **MQTT Username** er brukernavnet, og **MQTT Password (Secret)** er passordet.
 
-En enhets legitimasjon kan bare publisere under sine egne `oneuptime/<fleet>/<device>/`-emner. Du kan tilbakekalle én enhet uten å røre resten av flåten: slå av bryteren **Aktivert**, eller slett den, så kobles en tilkoblet enhet fra innen noen sekunder. En registrert enhet som blir stille, blir værende i inventaret som frakoblet, og varslingsmalen Device Offline utløses for den, selv om den dør uten Last Will.
+En enhets legitimasjon kan bare publisere under sine egne `oneuptime/<fleet>/<device>/`-emner. Du kan tilbakekalle én enhet uten å røre resten av flåten: slå av bryteren **Aktivert**, eller slett den, så kobles en tilkoblet enhet fra innen noen sekunder. En registrert enhet som blir stille, blir værende i inventaret som offline, og varslingsmalen Device Offline utløses for den, selv om den dør uten Last Will.
 
 OneUptime avviser feil legitimasjon ved CONNECT med returkode 4 (feil brukernavn eller passord), så en feilkonfigurert enhet feiler synlig. Nettlesernøkler avvises over MQTT. En klient som koblet til med inntaksnøkkelen, kobles fra innen noen sekunder når nøkkelen slås av, utløper, får hemmeligheten tilbakestilt eller slettes, og avvises når den kobler til igjen.
 
@@ -193,7 +193,7 @@ Publiser under det faste prefikset `oneuptime/`. Flåte- og enhetssegmentene kan
 
 En telemetrinyttelast kan også ha `"attributes"`, et kart med strenger som stemples på hvert datapunkt (bruk det for `iot.device.kind`, `iot.device.type`, `iot.device.firmware` eller dine egne etiketter), og `"timestamp"`, i ISO 8601 eller i Unix-sekunder eller -millisekunder. Begge er valgfrie: uten `timestamp` brukes tidspunktet OneUptime mottar målingen.
 
-### Frakoblingsdeteksjon med Last Will
+### Offline-deteksjon med Last Will
 
 Registrer en MQTT Last Will på `oneuptime/<fleet>/<device>/status` med nyttelasten `offline`. Hvis enheten dør eller faller ut av nettverket, publiserer OneUptime `iot_device_up = 0` for den i det øyeblikket økten avsluttes, noe som utløser den innebygde varslingsmalen Device Offline og merker enheten som nede i inventaret, uten polling. Publiser `online` til det samme emnet etter tilkobling, slik at enheten vises som oppe igjen. Alle målinger enheten publiserer teller også som oppe, så en enhet som fortsetter å sende målinger, forblir oppe uten å publisere statusen sin igjen.
 
@@ -335,7 +335,7 @@ For MQTT, koble til `wss://your-oneuptime-host.example.com/mqtt`, eller eksponer
 OneUptime avviser feil legitimasjon ved CONNECT med returkode 4. Sjekk at passordet er en gyldig inntaksnøkkel som ikke er deaktivert eller utløpt, eller, for en registrert enhet, legitimasjonens secret med **MQTT Username** som brukernavn. Nettlesernøkler avvises over MQTT.
 :::
 
-:::details Enheter veksler til frakoblet mens de kjører
+:::details Enheter veksler til offline mens de kjører
 På WebSocket-endepunktet lukker ingressen en tilkobling som er inaktiv i 300 sekunder, noe som utløser Last Will og et falskt Device Offline-varsel. Hold MQTT-keepalive under 5 minutter: standardverdiene i klientbibliotekene på 60 sekunder er greie.
 :::
 
@@ -348,7 +348,7 @@ På WebSocket-endepunktet lukker ingressen en tilkobling som er inaktiv i 300 se
 ## Neste trinn
 
 :::cards
-- [IoT-enhetsmonitor](/docs/monitor/iot-device-monitor): Varsle når en enhet går frakoblet, får lavt batteri eller blir overopphetet.
+- [IoT-enhetsmonitor](/docs/monitor/iot-device-monitor): Varsle når en enhet går offline, får lavt batteri eller blir overopphetet.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Hvordan OneUptime tar imot OTLP fra en hvilken som helst SDK eller collector.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Overvåk selve en Linux-, macOS- eller Windows-gateway.
 :::

@@ -14,6 +14,7 @@ import {
   getMessageQueueSetupGuide,
   resolveMessageQueueGuideSystem,
 } from "./DocumentationMarkdown";
+import { MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS } from "./DocumentationTranslations";
 
 /*
  * The Queues setup guide with the viewer's ingestion key filled in, on the
@@ -77,6 +78,13 @@ const MessageQueueDocumentationCard: FunctionComponent<ComponentProps> = (
         return TelemetryIngestionKeyType.Server;
       }}
       getContent={getContent}
+      /*
+       * Every guide the card draws reads in the reader's language (#8341,
+       * #8798): the product page's, and a queue's own tab with its
+       * identity, its broker's address and a system the catalog does not
+       * know.
+       */
+      translations={MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

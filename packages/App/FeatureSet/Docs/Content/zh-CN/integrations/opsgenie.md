@@ -1,11 +1,11 @@
 # Opsgenie
 
-把 OneUptime 事件发送到 [Opsgenie](https://www.atlassian.com/software/opsgenie)。声明 OneUptime 事件时，一个工作流创建 Opsgenie 告警；OneUptime 事件被解决时，第二个工作流关闭它。在 Opsgenie 仍负责呼叫你的团队、OneUptime 负责监控你的系统期间，请使用这种方式。
+把 OneUptime 事件发送到 [Opsgenie](https://www.atlassian.com/software/opsgenie)。声明 OneUptime 事件时，一个工作流创建 Opsgenie 警报；OneUptime 事件被解决时，第二个工作流关闭它。在 Opsgenie 仍负责呼叫你的团队、OneUptime 负责监控你的系统期间，请使用这种方式。
 
 :::cards
 - [保存 API 密钥](#保存-api-密钥): 让 Opsgenie 的密钥不出现在工作流中。
-- [创建 Opsgenie 告警](#为每个事件创建-opsgenie-告警): 一个工作流，两个块。
-- [关闭它们](#关闭-opsgenie-告警): 第二个工作流，跟随事件的状态。
+- [创建 Opsgenie 警报](#为每个事件创建-opsgenie-警报): 一个工作流，两个块。
+- [关闭它们](#关闭-opsgenie-警报): 第二个工作流，跟随事件的状态。
 - [故障排除](#故障排除): Opsgenie 拒绝请求时。
 :::
 
@@ -22,11 +22,11 @@ flowchart TB
     update -->|"按 alias 关闭"| og
 ```
 
-两个工作流都调用 [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api)。第一个工作流为告警设置一个由 OneUptime 事件 ID 生成的 `alias`，第二个工作流按这个 alias 关闭告警。
+两个工作流都调用 [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api)。第一个工作流为警报设置一个由 OneUptime 事件 ID 生成的 `alias`，第二个工作流按这个 alias 关闭警报。
 
 ## 开始之前
 
-- 一个 Opsgenie **API** 集成及其 **API Key**。在 Opsgenie 的 **Settings → Integrations** 下添加；如果要把告警发送给某个团队，则在该团队的 **Integrations** 下添加。
+- 一个 Opsgenie **API** 集成及其 **API Key**。在 Opsgenie 的 **Settings → Integrations** 下添加；如果要把警报发送给某个团队，则在该团队的 **Integrations** 下添加。
 - 你的 Opsgenie 区域。在 `app.eu.opsgenie.com` 登录的欧洲账户使用 `api.eu.opsgenie.com`，其他所有账户使用 `api.opsgenie.com`。
 - 在 OneUptime 中创建工作流和全局变量的权限。在 OneUptime Cloud 上，工作流需要 **Growth** 或更高的套餐。
 
@@ -40,7 +40,7 @@ flowchart TB
 
 密钥变量在运行日志中会被替换为 `[REDACTED]`，因此密钥永远不会出现在运行中。
 
-## 为每个事件创建 Opsgenie 告警
+## 为每个事件创建 Opsgenie 警报
 
 :::steps
 ### 创建工作流
@@ -51,7 +51,7 @@ flowchart TB
 
 点击虚线的 **选择启动此工作流的方式** 块，选择 **创建事件时**。点击该触发器：它的 **要传递的字段** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述**。
 
-### 创建告警
+### 创建警报
 
 点击 **添加组件**，添加一个 **API 调用 POST (JSON)** 块，并把触发器的 **成功** 点连接到它。把它的 **URL** 设为 `https://api.opsgenie.com/v2/alerts`，在欧洲则设为 `https://api.eu.opsgenie.com/v2/alerts`。在 **更多字段** 下，把 **请求标头** 设为：
 
@@ -73,12 +73,12 @@ flowchart TB
 
 ### 测试，然后启用
 
-点击 **运行工作流**，在 **事件** 中选择一个测试事件，然后运行。**API 调用 POST (JSON)** 步骤会显示 `202` 响应，片刻之后告警会出现在 Opsgenie 中。然后在 **生成器** 顶部打开 **已启用**。
+点击 **运行工作流**，在 **事件** 中选择一个测试事件，然后运行。**API 调用 POST (JSON)** 步骤会显示 `202` 响应，片刻之后警报会出现在 Opsgenie 中。然后在 **生成器** 顶部打开 **已启用**。
 :::
 
 Opsgenie 的认证方式是单词 `GenieKey`、一个空格，然后是密钥。Opsgenie 把 `message` 限制为 130 个字符，它的优先级从 `P1` 到 `P5`：要发送每个事件自己的优先级，请参见 [映射优先级](#映射优先级)。
 
-## 关闭 Opsgenie 告警
+## 关闭 Opsgenie 警报
 
 一个工作流只有一个触发器，因此关闭需要第二个工作流，在事件状态变化时启动。
 
@@ -95,7 +95,7 @@ Opsgenie 的认证方式是单词 `GenieKey`、一个空格，然后是密钥。
 
 在触发器之后添加一个 **如果 / 否则** 块。把 **要检查的值** 设为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**比较** 设为 **为真**。
 
-### 关闭告警
+### 关闭警报
 
 在 **是** 一侧之后添加一个 **API 调用 POST (JSON)** 块，使用相同的 **请求标头** 和以下 **URL**：
 
@@ -107,10 +107,10 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 
 ### 启用
 
-打开 **已启用**，然后在 OneUptime 中解决一个测试事件。Opsgenie 会关闭它的告警。
+打开 **已启用**，然后在 OneUptime 中解决一个测试事件。Opsgenie 会关闭它的警报。
 :::
 
-`identifierType=alias` 告诉 Opsgenie，地址是按 alias 而不是按告警自己的 ID 来指定告警的。
+`identifierType=alias` 告诉 Opsgenie，地址是按 alias 而不是按警报自己的 ID 来指定警报的。
 
 ## 映射优先级
 
@@ -141,10 +141,10 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 :::
 
 :::details 关闭时返回 404
-没有带该 alias 的告警。两个工作流必须以相同的方式生成 alias，即 `oneuptime-` 加事件的 `_id`，并且 URL 必须以 `?identifierType=alias` 结尾。
+没有带该 alias 的警报。两个工作流必须以相同的方式生成 alias，即 `oneuptime-` 加事件的 `_id`，并且 URL 必须以 `?identifierType=alias` 结尾。
 :::
 
-:::details 步骤显示 202，但告警从未出现
+:::details 步骤显示 202，但警报从未出现
 Opsgenie 在处理请求之前就回应 `202`，因此之后被拒绝的请求仍然显示 `202`。请在 Opsgenie 的日志中查找该请求，了解它被拒绝的原因，例如集成已被关闭。
 :::
 

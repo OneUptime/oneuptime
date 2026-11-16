@@ -1,6 +1,7 @@
 import { expect, Locator, Page, Route, test, TestInfo } from "@playwright/test";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Dashboard playlists (issue #5235) in a real browser: Dashboards ->
@@ -1508,4 +1509,18 @@ test.describe("at a phone's width", () => {
       Math.abs(exit!.y + exit!.height / 2 - (title!.y + title!.height / 2)),
     ).toBeLessThan(6);
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Japanese and Persian whole, parsed on every page load of every
+ * test. English is in the bundle now, and each other language a chunk of its
+ * own, loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js),
+ * built as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? LIST_PATH : `${LIST_PATH}?lang=${language}`;
+  },
 });

@@ -27,7 +27,7 @@
     "enabled": "مفعّل",
     "disabled": "معطّل",
     "connected": "متصل",
-    "disconnected": "غير متصل",
+    "disconnected": "منقطع الاتصال",
     "allSupportedLanguages": "جميع اللغات المدعومة"
   },
   "language": {
@@ -3236,7 +3236,7 @@
   "Datastore health notifications for ClickHouse, PostgreSQL and Valkey, plus automatic ClickHouse pruning work performed by this instance.": "إشعارات صحة مخازن البيانات ClickHouse وPostgreSQL وValkey، إضافةً إلى عمل التنظيف التلقائي لـ ClickHouse الذي نفّذته هذه النسخة.",
   "Diagnostic Logs": "سجلات التشخيص",
   "Whether this instance has fully applied the migrations shipped in this build. A 'pending' count means the schema is behind the running code.": "ما إذا كانت هذه النسخة قد طبّقت كل عمليات الترحيل المضمّنة في هذا الإصدار. يعني عدد «قيد الانتظار» أن المخطط متأخر عن التعليمات البرمجية العاملة.",
-  "Disconnected": "غير متصل",
+  "Disconnected": "منقطع الاتصال",
   "Query Console": "وحدة الاستعلام",
   "Background Queues": "قوائم الانتظار في الخلفية",
   "Instance Overview": "نظرة عامة على النسخة",

@@ -1,7 +1,6 @@
 /** @timezone UTC */
 
 import "@testing-library/jest-dom";
-import { NO_BREAK_SPACE } from "../../../../Types/NoBreakSpaces";
 import {
   afterEach,
   beforeEach,
@@ -424,10 +423,15 @@ describe("in a CSV export", () => {
         false,
       );
 
+    /*
+     * The column holds each figure to its unit with a no-break space, as the
+     * table draws it; a CSV writes the plain space a spreadsheet splits at
+     * (TableColumnsToCsv.withPlainSpaces).
+     */
     expect(lines[0]).toBe("Ends At,Duration");
-    expect(lines[1]).toBe(",2\u00A0mins 54 secs");
+    expect(lines[1]).toBe(",2 mins 54 secs");
     expect(lines[2]).toBe(
-      `${TableColumnsToCsv.escapeCsvValue(finishedEnd)},3${NO_BREAK_SPACE}mins 46${NO_BREAK_SPACE}secs`,
+      `${TableColumnsToCsv.escapeCsvValue(finishedEnd)},3 mins 46 secs`,
     );
   });
 });

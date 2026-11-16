@@ -186,6 +186,142 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     word: /tofaktor/i,
     dropped: /totrinn/i,
   },
+  /*
+   * Seven more languages named two-factor authentication two or three ways
+   * (#8774). Each now says the word the Dashboard's Two Factor
+   * Authentication page is named with, and Korean the one its Dashboard,
+   * Admin Dashboard and docs say 49 times to the page title's 10. Google's
+   * own 2-Step Verification, on the Google Workspace page, keeps Google's
+   * name for it.
+   */
+  {
+    // Tofaktorgodkendelse (the page, the Admin Dashboard) over totrinsgodkendelse (the docs).
+    language: "da",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /tofaktor/i,
+    dropped: /totrins|to-faktor/i,
+  },
+  {
+    // दो-कारक प्रमाणीकरण over the transliterated टू-फ़ैक्टर ऑथेंटिकेशन and दो-चरणीय प्रमाणीकरण.
+    language: "hi",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /दो-कारक/,
+    dropped: /टू[- ]फ़?ैक्टर|टू फैक्टर|दो-चरणीय/,
+  },
+  {
+    language: "ko",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /2단계 인증/,
+    dropped: /이중 인증/,
+  },
+  {
+    // Tweefactorauthenticatie (the page, the Admin Dashboard) over tweestapsverificatie (the docs).
+    language: "nl",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /tweefactor/i,
+    dropped: /tweestaps|tweefactor-authenticatie/i,
+  },
+  {
+    // 双因素身份验证 (the page, the docs) over 双重身份验证 (the Admin Dashboard) and 双因素认证.
+    language: "zh-CN",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /双因素身份验证|双因素验证码/,
+    dropped: /双重(?:身份)?验证|双因素认证/,
+  },
+  {
+    language: "zh-TW",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /雙重驗證/,
+    dropped: /雙因素驗證/,
+  },
+  {
+    // "de dois fatores", as the Dashboard says it, over the docs' "em dois fatores".
+    language: "pt",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /de dois fatores/i,
+    dropped: /em dois fatores/i,
+  },
+  /*
+   * The Security pages around it read in English in those languages, and
+   * named a passkey and a backup code two ways once they were translated
+   * (#8796): the Dashboard's passkey errors said "passkey" (and Traditional
+   * Chinese 通行金鑰) where the sign-in page and the docs say each
+   * language's word for it; the Chinese docs said 备用码 and 備用碼 where
+   * the sign-in page, the Admin Dashboard and the Dashboard say 备用代码
+   * and 備用代碼; the Norwegian app docs called a passkey "tilgangsnøkkel",
+   * Norwegian's word for an AWS access key, and the Swedish ones "passkey".
+   * Each now says the sign-in page's word.
+   */
+  {
+    language: "da",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /adgangsnøgle/i,
+    dropped: /\bpasskey/i,
+  },
+  {
+    language: "fr",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /clés? d['’]accès/i,
+    dropped: /\bpasskey/i,
+  },
+  {
+    language: "no",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /passnøk(?:kel|ler)/i,
+    dropped: /\bpasskey|tilgangsnøk/i,
+  },
+  {
+    language: "pt",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /chaves? de acesso/i,
+    dropped: /\bpasskey/i,
+  },
+  {
+    language: "ru",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /ключ(?:и|а|ом|ей|ам|ами|ах)? доступа/i,
+    dropped: /\bpasskey/i,
+  },
+  {
+    language: "sv",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /passnyck(?:el|lar)/i,
+    dropped: /\bpasskey/i,
+  },
+  {
+    language: "zh-TW",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /通行密鑰/,
+    dropped: /通行金鑰/,
+  },
+  {
+    language: "zh-CN",
+    thing: "Backup codes",
+    english: /\bbackup codes?\b/i,
+    word: /备用代码/,
+    dropped: /备用码/,
+  },
+  {
+    language: "zh-TW",
+    thing: "Backup codes",
+    english: /\bbackup codes?\b/i,
+    word: /備用代碼/,
+    dropped: /備用碼/,
+  },
   {
     // Runner, declined as its other strings decline it: Runner-а, Runner-ы.
     language: "ru",
@@ -204,5 +340,144 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     word: /Runner/,
     dropped: /代理|執行器/,
     docsEnglish: /\bRunners?\b/,
+  },
+  /*
+   * A node or a host that stopped reporting is Offline, and a cluster or an
+   * agent whose connection dropped is Disconnected: two states the Proxmox
+   * pages draw side by side. Norwegian said both Frakoblet; Offline is now
+   * offline, as Online is Online, and Frakoblet stays Disconnected's (#8767).
+   */
+  {
+    language: "no",
+    thing: "Offline",
+    english: /\boffline\b/i,
+    except: /disconnect|not connected/i,
+    word: /offline/i,
+    dropped: /frakobl/i,
+  },
+  // Arabic said غير متصل for all three: Offline keeps it (#8767).
+  {
+    language: "ar",
+    thing: "Disconnected",
+    english: /disconnect/i,
+    except: /\boffline\b|not connected/i,
+    word: /منقطع/,
+    dropped: /غير متصل/,
+  },
+  {
+    language: "ar",
+    thing: "Not connected",
+    english: /not connected/i,
+    except: /\boffline\b|disconnect/i,
+    word: /غير مرتبط/,
+    dropped: /غير متصل/,
+  },
+  /*
+   * Italian spelled the abbreviation two ways: IA, as its AI key and the
+   * AI agent's pages do, and AI (Agente AI di OneUptime). It says IA. Names
+   * stay as written: the product's, OneUptime AI and AI SRE, and Ask AI and
+   * the AI Agent, which every language's docs name in English; other
+   * products' (Vertex AI, Vercel AI SDK, Azure AI Inference, Azure's AI
+   * Search, Zoom AI Companion, JetBrains AI, Mistral AI) and code's
+   * (Microsoft.Extensions.AI); and the permissions', which every language
+   * keeps in English (Edit AI Rule, Read AI Agent Task), as are the labels
+   * the Italian Dashboard still draws in English (Generate with AI) and a
+   * runbook's AI step, which its editor draws in English (#8768).
+   */
+  {
+    language: "it",
+    thing: "AI",
+    english: /\bAI\b/,
+    word: /\bIA\b/,
+    dropped:
+      /(?<!OneUptime |Vertex |Vercel |Azure |JetBrains |Mistral |Acme |Ask |with |\.)\bAI\b(?! (?:SDK|Companion|Inference|Agent|Rule|SRE|Search))(?!\.\w)/,
+    // A runbook's AI step and the workflow builder's AI section: their headings, their links, their table rows, the list of step types.
+    docsExcept: /^#{1,6} AI$|^AI$|^\| AI \||kubectl,? (?:and|or) AI\b/,
+  },
+  /*
+   * An alert, as the Dashboard says it in most strings (#8769): Simplified
+   * Chinese 警报, not 告警; Swedish larm, not avisering, the word Swedish
+   * says a notification with, so a text that names a notification too
+   * keeps it.
+   */
+  {
+    language: "zh-CN",
+    thing: "Alerts",
+    english: /\balert/i,
+    word: /警报/,
+    // 警告警报, a warning alert, holds 告警 across its two words.
+    dropped: /(?<!警)告警/,
+  },
+  /*
+   * German says an alert eine Warnung, as 2,000 of its strings and the docs
+   * 3,500 times do; the noun der Alarm goes. The verb alarmieren and its
+   * Alarmierung (paging) stay, and so does a real alarm the English names
+   * (an optic's alarm threshold, the phone's alarm sound, a CloudWatch alarm).
+   */
+  {
+    language: "de",
+    thing: "Alerts",
+    english: /\balerts?\b/i,
+    except: /alertmanager|\balarm/i,
+    word: /Warnung/,
+    dropped: /\bAlarm(?!ier)/,
+  },
+  {
+    language: "sv",
+    thing: "Alerts",
+    english: /\balert/i,
+    except:
+      /notif|notify|notified|remind|notice|announce|\bpush|critical alert/i,
+    word: /\blarm/i,
+    dropped: /\bavisering/i,
+  },
+  {
+    /*
+     * Its Broker health section, its broker metrics and its docs say
+     * بروکر; the Queues pages' broker column and picker said کارگزار, so
+     * one setup guide named the broker both ways (#8799).
+     */
+    language: "fa",
+    thing: "Brokers",
+    english: /\bbrokers?\b/i,
+    word: /بروکر/,
+    dropped: /کارگزار/,
+  },
+  /*
+   * The docs suites hold a page's bold labels to its Dashboard's words, but
+   * the same names still read otherwise in headings and prose (#8812).
+   * Persian names the control plane صفحه کنترل, as its Dashboard's Control
+   * Plane and Control plane do: the Kubernetes and OpenStack pages and
+   * cards, and the control plane they read. (Code such as
+   * control-plane-targets.py and OpenStackControlPlane is no word.)
+   */
+  {
+    language: "fa",
+    thing: "Control Plane",
+    english: /\bcontrol[ -]plane/i,
+    word: /صفحه کنترل/,
+    dropped: /\bcontrol[ -]plane/i,
+  },
+  /*
+   * A database's engine metrics: Danish calls an engine Motor, so they are
+   * motormetrikker, not engine-metrikker; Dutch keeps Engine and says
+   * Metrieken, so engine-metrieken, not enginemetrics, enginemetrieken or
+   * engine-metrics. A monitor template's name, Engine Metrics Stopped,
+   * reads as every language writes it, in bold, which the docs suites hold
+   * to the template (#8812).
+   */
+  {
+    language: "da",
+    thing: "Engine metrics",
+    english: /\bengine metrics?\b/i,
+    word: /motormetrik/i,
+    dropped: /\bengine[ -]?metri/i,
+  },
+  {
+    language: "nl",
+    thing: "Engine metrics",
+    english: /\bengine metrics?\b/i,
+    word: /engine-metrie[kc]/i,
+    dropped: /\bengine ?metri|\bengine-metrics/i,
   },
 ];

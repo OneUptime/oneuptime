@@ -6,7 +6,7 @@ Sehen Sie, was Ihre KI-Anbieterkonten verbraucht haben und was es gekostet hat, 
 - [Ein Konto verbinden](#ein-konto-verbinden): Anbieter wählen, Zugangsdaten einfügen, testen und verbinden.
 - [Was jeder Anbieter liefert](#was-jeder-anbieter-liefert): Kosten, Tokens und Anfragen, und wie jeder Anbieter sie gruppiert.
 - [Die Nutzung ansehen](#die-nutzung-ansehen): Nach Modell, Person, Projekt oder Ressource, API-Schlüssel und Verbindung.
-- [Budgets und Alarme](#budgets-und-alarme): Ein Tagesbudget auf die Rechnung und Alarme auf die Metriken.
+- [Budgets und Warnungen](#budgets-und-warnungen): Ein Tagesbudget auf die Rechnung und Warnungen auf die Metriken.
 :::
 
 ## So funktioniert es
@@ -164,9 +164,9 @@ Im Enterprise-Tarif kann Cursor seine Nutzung auch laufend senden, mit seinem Op
 
 **Anbieterkonten** und **Deine KI-Aufrufe** werden nie addiert. Ein Aufruf, den Ihre App mit einem Schlüssel eines verbundenen Kontos macht, steckt in beiden, also würde er beim Addieren doppelt gezählt.
 
-## Budgets und Alarme
+## Budgets und Warnungen
 
-Ein Budget zählt das eine oder das andere. Erstellen Sie unter **Budgets** ein Budget und setzen Sie **Ausgaben zählen aus** auf **Anbieterkonten**: Es zählt, was den verbundenen Konten für den UTC-Tag berechnet wurde, eingegrenzt durch **LLM-Anbieter (optional)** und **LLM-Modell (optional)**, wenn Sie sie setzen. Anbieter melden die Nutzung eines Tages Minuten bis Stunden später, also budgetieren Sie für Alarme innerhalb von Minuten stattdessen **Deine KI-Aufrufe**.
+Ein Budget zählt das eine oder das andere. Erstellen Sie unter **Budgets** ein Budget und setzen Sie **Ausgaben zählen aus** auf **Anbieterkonten**: Es zählt, was den verbundenen Konten für den UTC-Tag berechnet wurde, eingegrenzt durch **LLM-Anbieter (optional)** und **LLM-Modell (optional)**, wenn Sie sie setzen. Anbieter melden die Nutzung eines Tages Minuten bis Stunden später, also budgetieren Sie für Warnungen innerhalb von Minuten stattdessen **Deine KI-Aufrufe**.
 
 Die Nutzung jedes Kontos wird als drei Metriken gespeichert, die Sie auf einem [Dashboard](/docs/dashboards/index) darstellen oder mit einem [Metriken-Überwachung](/docs/monitor/metrics-monitor) überwachen können:
 
@@ -234,7 +234,7 @@ Gemeldete Kosten sind die Zahl des Anbieters vor Steuern, Gutschriften und Rabat
 ## Nächste Schritte
 
 :::cards
-- [KI- / LLM-Observability](/docs/telemetry/ai-llm-observability): Unterhaltungen, Alarme und Kosten der eigenen KI-Aufrufe Ihrer Apps.
+- [KI- / LLM-Observability](/docs/telemetry/ai-llm-observability): Unterhaltungen, Warnungen und Kosten der eigenen KI-Aufrufe Ihrer Apps.
 - [KI-Tools im Unternehmen](/docs/telemetry/ai-company-tools): Was Ihre Leute Claude Enterprise und Microsoft 365 Copilot fragen.
 - [KI-Gateways](/docs/telemetry/ai-gateways): Jeden Modellaufruf über LiteLLM, Portkey oder OpenRouter tracen.
 - [Metriken-Überwachung](/docs/monitor/metrics-monitor): Auf die Anbietermetriken alarmieren.

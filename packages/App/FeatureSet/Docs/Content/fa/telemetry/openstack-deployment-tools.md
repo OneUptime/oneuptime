@@ -20,8 +20,8 @@
 
 | ابزار | خوانده شده از | واقعاً اجرا شده |
 | --- | --- | --- |
-| Kolla-Ansible | سورس آن، در master و `stable/2026.1` | دستورهای این راهنما، روی یک all-in-one واقعی در `stable/2026.1` با Open vSwitch: عامل روی اعتبارنامه **Full view**، بدون Docker، روی exporter خود Kolla-Ansible و روی exporter خودتان در نسخه پین‌شده و در 1.7.0، exporter عامل روی اعتبارنامه **Infrastructure only**، هدف‌های خوانده‌شده از `prometheus.yml` واقعی آن، و پروفایل لاگ‌ها. با توقف واقعی Memcached در آنجا، Alertmanager آن یک webhook با وضعیت firing و سپس یک webhook با وضعیت resolved ارسال کرد، و آنچه ارسال کرد، وقتی به یک OneUptime در حال اجرا فرستاده شد، یک حادثه را روی ابر درست و روی هیچ ابر دیگری باز کرد و آن را حل کرد |
-| OpenStack-Ansible | سورس و مستندات آن | دستورهای این راهنما، روی یک all-in-one واقعی در `stable/2026.1`، در کانتینرهای LXC: عامل روی اعتبارنامه **Full view**، exporter عامل روی اعتبارنامه **Infrastructure only** با policy overrideهایش، تنظیمات RabbitMQ و HAProxy همراه با خواندن هر کدام توسط عامل، و پروفایل لاگ‌ها روی journal |
+| Kolla-Ansible | سورس آن، در master و `stable/2026.1` | دستورهای این راهنما، روی یک all-in-one واقعی در `stable/2026.1` با Open vSwitch: عامل روی اعتبارنامه **نمای کامل**، بدون Docker، روی exporter خود Kolla-Ansible و روی exporter خودتان در نسخه پین‌شده و در 1.7.0، exporter عامل روی اعتبارنامه **فقط زیرساخت**، هدف‌های خوانده‌شده از `prometheus.yml` واقعی آن، و پروفایل لاگ‌ها. با توقف واقعی Memcached در آنجا، Alertmanager آن یک webhook با وضعیت firing و سپس یک webhook با وضعیت resolved ارسال کرد، و آنچه ارسال کرد، وقتی به یک OneUptime در حال اجرا فرستاده شد، یک حادثه را روی ابر درست و روی هیچ ابر دیگری باز کرد و آن را حل کرد |
+| OpenStack-Ansible | سورس و مستندات آن | دستورهای این راهنما، روی یک all-in-one واقعی در `stable/2026.1`، در کانتینرهای LXC: عامل روی اعتبارنامه **نمای کامل**، exporter عامل روی اعتبارنامه **فقط زیرساخت** با policy overrideهایش، تنظیمات RabbitMQ و HAProxy همراه با خواندن هر کدام توسط عامل، و پروفایل لاگ‌ها روی journal |
 | OpenStack-Helm | مقادیر chart آن | هیچ چیز روی OpenStack-Helm. پراب و عامل Kubernetes هر کدام به‌تنهایی آزمایش شدند |
 | Atmosphere | مستندات و سورس آن | هیچ چیز روی Atmosphere. پراب و عامل Kubernetes هر کدام به‌تنهایی آزمایش شدند |
 | Canonical Sunbeam | مستندات Canonical، و سورس charmهای آن | هیچ چیز روی Sunbeam. مستندات خود Sunbeam charm مربوط به exporter را ذکر نمی‌کنند |
@@ -84,8 +84,8 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 با `source /etc/kolla/admin-openrc.sh`، که `kolla-ansible post-deploy` آن را می‌نویسد، به‌عنوان admin وارد شوید.
 
-- **Full view** به یک تغییر نیاز دارد، در Cinder. templateهای Kolla-Ansible از قبل `service_type` را زیر `[keystone_authtoken]` در Nova، Neutron، Glance و Placement تنظیم می‌کنند، اما Cinder آن `volume` می‌گوید و کاتالوگش `block-storage`، و keystonemiddleware اعتبارنامه‌ای را که با قواعد دسترسی محدود شده با `401` رد می‌کند مگر اینکه این دو یکی باشند. `service_type = block-storage` را زیر `[keystone_authtoken]` در `/etc/kolla/config/cinder.conf` اضافه کنید، سپس `kolla-ansible reconfigure -i <inventory> --tags cinder` را اجرا کنید.
-- **Infrastructure only** overrideهایش را در `/etc/kolla/config/nova/policy.yaml` می‌گیرد، و همین برای `neutron`، `keystone` و `placement`، ادغام‌شده با هر چیزی که از قبل آنجا هست. آن‌ها را با `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement` اعمال کنید.
+- **نمای کامل** به یک تغییر نیاز دارد، در Cinder. templateهای Kolla-Ansible از قبل `service_type` را زیر `[keystone_authtoken]` در Nova، Neutron، Glance و Placement تنظیم می‌کنند، اما Cinder آن `volume` می‌گوید و کاتالوگش `block-storage`، و keystonemiddleware اعتبارنامه‌ای را که با قواعد دسترسی محدود شده با `401` رد می‌کند مگر اینکه این دو یکی باشند. `service_type = block-storage` را زیر `[keystone_authtoken]` در `/etc/kolla/config/cinder.conf` اضافه کنید، سپس `kolla-ansible reconfigure -i <inventory> --tags cinder` را اجرا کنید.
+- **فقط زیرساخت** overrideهایش را در `/etc/kolla/config/nova/policy.yaml` می‌گیرد، و همین برای `neutron`، `keystone` و `placement`، ادغام‌شده با هر چیزی که از قبل آنجا هست. آن‌ها را با `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement` اعمال کنید.
 
 ### آنچه ابر Kolla-Ansible بر آن بنا شده را پایش کنید
 
@@ -96,7 +96,7 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/control-plane-targets.
 sudo cat /etc/kolla/prometheus-server/prometheus.yml | python3 control-plane-targets.py --region RegionOne
 ```
 
-آنچه چاپ می‌کند را به `.env` عامل اضافه کنید، سپس در پوشه عامل `docker compose up -d` را اجرا کنید. هر exporter روی شبکه API گوش می‌دهد، پس ماشین عامل به مسیری به آنجا نیاز دارد. کارت **Control Plane** ابر سپس می‌گوید هر کدام در چه وضعی است، و صریحاً می‌گوید کدام‌ها پایش نمی‌شوند.
+آنچه چاپ می‌کند را به `.env` عامل اضافه کنید، سپس در پوشه عامل `docker compose up -d` را اجرا کنید. هر exporter روی شبکه API گوش می‌دهد، پس ماشین عامل به مسیری به آنجا نیاز دارد. کارت **صفحه کنترل** ابر سپس می‌گوید هر کدام در چه وضعی است، و صریحاً می‌گوید کدام‌ها پایش نمی‌شوند.
 
 | می‌خواند | پورت | تنظیم |
 | --- | --- | --- |
@@ -161,8 +161,8 @@ OpenStack-Ansible لاگ‌های سرویس‌هایش را در journald نگ�
 
 از کانتینر utility به‌عنوان admin وارد شوید: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`، سپس `. ~/openrc`. `curl` ندارد، که دستورهای زیر از آن استفاده می‌کنند، پس ابتدا `apt-get install -y curl` را آنجا اجرا کنید.
 
-- **Full view** به یک تغییر نیاز دارد، در Cinder. roleهای OpenStack-Ansible از قبل `service_type` را زیر `[keystone_authtoken]` تنظیم می‌کنند، اما Cinder آن `volumev3` می‌گوید و کاتالوگش `block-storage`، و keystonemiddleware اعتبارنامه‌ای را که با قواعد دسترسی محدود شده با `401` رد می‌کند مگر اینکه این دو یکی باشند. `service_type: block-storage` را زیر `keystone_authtoken` در `cinder_cinder_conf_overrides` در `/etc/openstack_deploy/user_variables.yml` تنظیم کنید، سپس `openstack-ansible openstack.osa.cinder --tags cinder-config` را اجرا کنید.
-- **Infrastructure only** overrideهایش را به‌صورت `nova_policy_overrides`، `neutron_policy_overrides`، `keystone_policy_overrides` و `placement_policy_overrides` در `/etc/openstack_deploy/user_variables.yml` می‌گیرد. هر کدام را با playbook و tag مخصوص خودش اعمال کنید، مانند `openstack-ansible openstack.osa.nova --tags nova-policy-override`. برداشتن بعدی یکی از آن‌ها به‌جای هیچ، یک فایل خالی به جا می‌گذارد، پس چیزی شکست نمی‌خورد.
+- **نمای کامل** به یک تغییر نیاز دارد، در Cinder. roleهای OpenStack-Ansible از قبل `service_type` را زیر `[keystone_authtoken]` تنظیم می‌کنند، اما Cinder آن `volumev3` می‌گوید و کاتالوگش `block-storage`، و keystonemiddleware اعتبارنامه‌ای را که با قواعد دسترسی محدود شده با `401` رد می‌کند مگر اینکه این دو یکی باشند. `service_type: block-storage` را زیر `keystone_authtoken` در `cinder_cinder_conf_overrides` در `/etc/openstack_deploy/user_variables.yml` تنظیم کنید، سپس `openstack-ansible openstack.osa.cinder --tags cinder-config` را اجرا کنید.
+- **فقط زیرساخت** overrideهایش را به‌صورت `nova_policy_overrides`، `neutron_policy_overrides`، `keystone_policy_overrides` و `placement_policy_overrides` در `/etc/openstack_deploy/user_variables.yml` می‌گیرد. هر کدام را با playbook و tag مخصوص خودش اعمال کنید، مانند `openstack-ansible openstack.osa.nova --tags nova-policy-override`. برداشتن بعدی یکی از آن‌ها به‌جای هیچ، یک فایل خالی به جا می‌گذارد، پس چیزی شکست نمی‌خورد.
 
 ### آنچه ابر OpenStack-Ansible بر آن بنا شده را پایش کنید
 
@@ -193,7 +193,7 @@ haproxy_stats_ssl: false
 openstack-ansible openstack.osa.haproxy
 ```
 
-**MariaDB و Memcached:** OpenStack-Ansible برای هیچ‌کدام exporter ندارد. [mysqld_exporter](https://github.com/prometheus/mysqld_exporter) و [memcached_exporter](https://github.com/prometheus/memcached_exporter) را خودتان اجرا کنید و آن‌ها را به‌صورت `OPENSTACK_MARIADB_TARGETS` و `OPENSTACK_MEMCACHED_TARGETS` نام ببرید، یا کنارشان بگذارید: کارت **Control Plane** ابر آن‌گاه می‌گوید پایش نمی‌شوند، نه اینکه سالم‌اند.
+**MariaDB و Memcached:** OpenStack-Ansible برای هیچ‌کدام exporter ندارد. [mysqld_exporter](https://github.com/prometheus/mysqld_exporter) و [memcached_exporter](https://github.com/prometheus/memcached_exporter) را خودتان اجرا کنید و آن‌ها را به‌صورت `OPENSTACK_MARIADB_TARGETS` و `OPENSTACK_MEMCACHED_TARGETS` نام ببرید، یا کنارشان بگذارید: کارت **صفحه کنترل** ابر آن‌گاه می‌گوید پایش نمی‌شوند، نه اینکه سالم‌اند.
 
 ### لاگ‌های سرویس در OpenStack-Ansible
 
@@ -243,7 +243,7 @@ openstack-ansible openstack.osa.nova
 
 ## OpenStack-Helm
 
-OpenStack-Helm chartهایی برای Prometheus، Alertmanager و exporterها ارائه می‌دهد، و اینکه در حال اجرا باشند با شماست. control plane آن در Kubernetes اجرا می‌شود، پس یک پراب APIها را می‌خواند و عامل Kubernetes podها را می‌بیند.
+OpenStack-Helm chartهایی برای Prometheus، Alertmanager و exporterها ارائه می‌دهد، و اینکه در حال اجرا باشند با شماست. صفحه کنترل آن در Kubernetes اجرا می‌شود، پس یک پراب APIها را می‌خواند و عامل Kubernetes podها را می‌بیند.
 
 ### آنچه در OpenStack-Helm فعال است را ارسال کنید
 
@@ -428,7 +428,7 @@ bash install.sh
 
 ## Red Hat OpenStack on OpenShift
 
-Telemetry Operator آن exporter مربوط به Prometheus در Ceilometer و یک monitoring stack با Alertmanager را روی OpenShift اجرا می‌کند. پریست OpenShift عامل Kubernetes control plane را پایش می‌کند، و exporter مربوط به Ceilometer می‌گوید نودهای compute چه می‌کنند.
+Telemetry Operator آن exporter مربوط به Prometheus در Ceilometer و یک monitoring stack با Alertmanager را روی OpenShift اجرا می‌کند. پریست OpenShift عامل Kubernetes صفحه کنترل را پایش می‌کند، و exporter مربوط به Ceilometer می‌گوید نودهای compute چه می‌کنند.
 
 ### آنچه در Red Hat OpenStack on OpenShift فعال است را ارسال کنید
 
@@ -452,9 +452,9 @@ spec:
           sendResolved: true
 ```
 
-### APIها و control plane را بخوانید
+### APIها و صفحه کنترل را بخوانید
 
-**OpenStack** > **همه ابرها** را باز کنید، روی **اتصال ابر** کلیک کنید، و آدرس Keystone، یک application credential و پرابی که باید استفاده شود را به آن بدهید. پراب فقط با HTTPS با ابر صحبت می‌کند. سپس **Kubernetes** > **مستندات** را روی کلاستری که control plane را اجرا می‌کند دنبال کنید، با انتخاب **Red Hat OpenShift**، که `preset=openshift` را تنظیم می‌کند.
+**OpenStack** > **همه ابرها** را باز کنید، روی **اتصال ابر** کلیک کنید، و آدرس Keystone، یک application credential و پرابی که باید استفاده شود را به آن بدهید. پراب فقط با HTTPS با ابر صحبت می‌کند. سپس **Kubernetes** > **مستندات** را روی کلاستری که صفحه کنترل را اجرا می‌کند دنبال کنید، با انتخاب **Red Hat OpenShift**، که `preset=openshift` را تنظیم می‌کند.
 
 برای اینکه لاگ‌های آن سرویس‌ها در صفحه **لاگ‌ها**ی این ابر هم باشند، با هر stack trace به‌صورت یک رکورد، ابر را در مقادیر عامل نام ببرید، همراه با namespaceهایی که سرویس‌هایش در آن اجرا می‌شوند:
 

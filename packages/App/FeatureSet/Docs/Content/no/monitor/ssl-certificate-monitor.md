@@ -1,6 +1,6 @@
 # SSL-sertifikat-monitor
 
-En SSL-sertifikatmonitor sjekker TLS-sertifikatene som nettstedene og tjenestene dine presenterer, slik en nettleser gjør, og varsler deg før de utløper. Den tar også monitoren frakoblet når et sertifikat ikke lenger er gyldig: utløpt, tilbakekalt av utstederen, selvsignert, utstedt for et annet vertsnavn eller fra en utsteder som nettlesere ikke stoler på.
+En SSL-sertifikatmonitor sjekker TLS-sertifikatene som nettstedene og tjenestene dine presenterer, slik en nettleser gjør, og varsler deg før de utløper. Den tar også monitoren offline når et sertifikat ikke lenger er gyldig: utløpt, tilbakekalt av utstederen, selvsignert, utstedt for et annet vertsnavn eller fra en utsteder som nettlesere ikke stoler på.
 
 :::cards
 - [Opprett monitoren](#opprett-en-ssl-sertifikatmonitor): Seks trinn i dashbordet.
@@ -54,7 +54,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **K
 
 ### Gå gjennom kriteriene
 
-**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når sertifikatet ikke er gyldig, et varsel når det utløper om 14 dager eller mindre. Endre dem ved behov, og klikk så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): offline når sertifikatet ikke er gyldig, et varsel når det utløper om 14 dager eller mindre. Endre dem ved behov, og klikk så på **Neste**.
 
 ### Velg sonder og opprett
 
@@ -93,7 +93,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny SSL-sertifikatmonitor starter med tre kriterier, så den varsler deg før et sertifikat utløper, helt uten oppsett:
 
-1. **Sertifikatet er ikke gyldig** — sertifikatet er utløpt, tilbakekalt av utstederen, selvsignert, utstedt for et annet vertsnavn eller av en utsteder det ikke er tillit til, eller kunne ikke sjekkes fordi endepunktet ikke svarte. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "Sertifikatet for _monitornavn_ er ugyldig". Rotårsaken forteller hvilket av disse tilfellene det var, og for et tilbakekalt sertifikat, når og hvorfor utstederen tilbakekalte det. Hendelsen løser seg selv når sertifikatet er gyldig igjen.
+1. **Sertifikatet er ikke gyldig** — sertifikatet er utløpt, tilbakekalt av utstederen, selvsignert, utstedt for et annet vertsnavn eller av en utsteder det ikke er tillit til, eller kunne ikke sjekkes fordi endepunktet ikke svarte. Monitoren merkes som **Offline**, og det opprettes en hendelse med navnet "Sertifikatet for _monitornavn_ er ugyldig". Rotårsaken forteller hvilket av disse tilfellene det var, og for et tilbakekalt sertifikat, når og hvorfor utstederen tilbakekalte det. Hendelsen løser seg selv når sertifikatet er gyldig igjen.
 2. **Sertifikatet utløper snart** — sertifikatet er gyldig, men utløper om 14 dager eller mindre. Det opprettes et **varsel** med navnet "Sertifikatet for _monitornavn_ utløper snart".
 3. **Sertifikatet er gyldig** — monitoren merkes som **I drift**.
 
@@ -118,7 +118,7 @@ Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke no
 | --- | --- | --- | --- |
 | Varsle en måned i forveien | **Dager til utløp** | **Mindre enn eller lik** | `30` |
 | Tilkall noen den siste dagen | **Timer til utløp** | **Mindre enn** | `24` |
-| Frakoblet først når sertifikatet er utløpt | **Er utløpt sertifikat** | **Sann** | — |
+| Offline først når sertifikatet er utløpt | **Er utløpt sertifikat** | **Sann** | — |
 | Marker et selvsignert sertifikat | **Er selvsignert sertifikat** | **Sann** | — |
 | Tilkall sikkerhetsteamet når utstederen tilbakekaller sertifikatet | **Er tilbakekalt sertifikat** | **Sann** | — |
 
@@ -138,16 +138,16 @@ Hendelsens rotårsak forteller hvorfor. En vanlig årsak er en server som sender
 :::
 
 :::details Jeg overvåker en intern tjeneste med et selvsignert sertifikat
-Et selvsignert sertifikat er aldri gyldig, så standardkriteriene holder monitoren frakoblet. **Er selvsignert sertifikat**, **Er utløpt sertifikat** og **Dager til utløp** fungerer fortsatt for det, så bygg kriteriene på dem. På **Konfigurasjon → Kriterier**:
+Et selvsignert sertifikat er aldri gyldig, så standardkriteriene holder monitoren offline. **Er selvsignert sertifikat**, **Er utløpt sertifikat** og **Dager til utløp** fungerer fortsatt for det, så bygg kriteriene på dem. På **Konfigurasjon → Kriterier**:
 
-1. Klikk på **Legg til filter** i kriteriet "ikke gyldig", sett det nye filteret til **Er selvsignert sertifikat** / **Usann**, og sett **Samsvarsbetingelse** til **Alle**. Kriteriet tar fortsatt monitoren frakoblet når endepunktet ikke svarer, eller sertifikatet er feil på en annen måte.
-2. Legg til et kriterium med **Er utløpt sertifikat** / **Sann** som merker monitoren som **Frakoblet** og erklærer en hendelse, og dra det helt øverst.
+1. Klikk på **Legg til filter** i kriteriet "ikke gyldig", sett det nye filteret til **Er selvsignert sertifikat** / **Usann**, og sett **Samsvarsbetingelse** til **Alle**. Kriteriet tar fortsatt monitoren offline når endepunktet ikke svarer, eller sertifikatet er feil på en annen måte.
+2. Legg til et kriterium med **Er utløpt sertifikat** / **Sann** som merker monitoren som **Offline** og erklærer en hendelse, og dra det helt øverst.
 3. Erstatt **Er gyldig sertifikat** / **Sann** med **Er utløpt sertifikat** / **Usann** i kriteriet "utløper snart", så varselet også dekker det selvsignerte sertifikatet.
 
 Så lenge sertifikatet er gjeldende, samsvarer ingen kriterier, og monitoren viser standardstatusen sin, **I drift**.
 :::
 
-:::details Monitoren er frakoblet med "could not be checked because the endpoint is not reachable"
+:::details Monitoren er offline med "could not be checked because the endpoint is not reachable"
 Sonden kunne ikke åpne en TLS-tilkobling til verten og porten. Sjekk porten i URL-en, og at en brannmur slipper sondene gjennom. En vert på et privat nettverk trenger en [egendefinert sonde](/docs/probe/custom-probe).
 :::
 

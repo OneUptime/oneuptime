@@ -155,9 +155,9 @@ const TRANSLATION: SetupGuideTranslation = {
   "- **Silent-death offline detection** — a registered device stays in the inventory as offline when it stops reporting, instead of vanishing, even if it dies without a Last Will.":
     "- **静默故障离线检测**：已注册的设备停止上报后，会以离线状态留在清单中，而不是消失，即使它在没有 Last Will 的情况下停止运行也是如此。",
   "Register an MQTT **Last Will** on `oneuptime/<fleet>/<device>/status` with payload `offline` — if the device dies, OneUptime publishes `iot_device_up = 0` on its behalf the moment the session drops, which trips the stock Device Offline alert template with no polling. Publish `online` to the same topic after connecting so the device shows as up again; the example in step 2 does both. Any reading the device publishes counts as up too, so a device that keeps sending readings stays up without publishing its status again. The status topic also accepts `1`/`0`, `true`/`false` and `up`/`down`.":
-    "在 `oneuptime/<fleet>/<device>/status` 上注册一个 MQTT **Last Will**，负载为 `offline`：如果设备停止运行，OneUptime 会在会话断开的那一刻代它发布 `iot_device_up = 0`，从而无需轮询就触发内置的 Device Offline 告警模板。连接后向同一主题发布 `online`，设备就会重新显示为在线；第 2 步中的示例两者都做了。设备发布的任何读数也都算作在线，所以持续发送读数的设备无需再次发布状态就会保持在线。状态主题还接受 `1`/`0`、`true`/`false` 以及 `up`/`down`。",
+    "在 `oneuptime/<fleet>/<device>/status` 上注册一个 MQTT **Last Will**，负载为 `offline`：如果设备停止运行，OneUptime 会在会话断开的那一刻代它发布 `iot_device_up = 0`，从而无需轮询就触发内置的 Device Offline 警报模板。连接后向同一主题发布 `online`，设备就会重新显示为在线；第 2 步中的示例两者都做了。设备发布的任何读数也都算作在线，所以持续发送读数的设备无需再次发布状态就会保持在线。状态主题还接受 `1`/`0`、`true`/`false` 以及 `up`/`down`。",
   "Keep the MQTT keepalive **under 5 minutes** on the WebSocket endpoint (client-library defaults of 60 s are fine) — idle WebSocket connections are closed after 300 seconds, which would fire the Last Will and a false offline alert.":
-    "在 WebSocket 端点上，请将 MQTT keepalive 保持在 **5 分钟以内**（客户端库默认的 60 秒即可）：空闲的 WebSocket 连接会在 300 秒后关闭，这会触发 Last Will 以及错误的离线告警。",
+    "在 WebSocket 端点上，请将 MQTT keepalive 保持在 **5 分钟以内**（客户端库默认的 60 秒即可）：空闲的 WebSocket 连接会在 300 秒后关闭，这会触发 Last Will 以及错误的离线警报。",
   "Publish under the fixed `oneuptime/` prefix. The fleet and device segments must not contain `/`, `+` or `#` or start with `$`, and are limited to 100 characters.":
     "在固定前缀 `oneuptime/` 下发布。设备群和设备段不能包含 `/`、`+` 或 `#`，也不能以 `$` 开头，并且限制为 100 个字符。",
   "| Topic | Payload |": "| 主题 | 负载 |",
@@ -190,7 +190,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Publish `iot_device_info` (identity-only) or a `status` message for devices that have not yet reported readings, so they still show up in the inventory.":
     "2. 对尚未上报读数的设备，发布 `iot_device_info`（仅身份信息）或一条 `status` 消息，让它们仍然出现在清单中。",
   "On the WebSocket endpoint, idle connections are closed after 300 seconds, which fires the Last Will and a false Device Offline alert. Keep the MQTT keepalive under 5 minutes — client-library defaults of 60 s are fine.":
-    "在 WebSocket 端点上，空闲连接会在 300 秒后关闭，这会触发 Last Will 以及错误的 Device Offline 告警。请将 MQTT keepalive 保持在 5 分钟以内；客户端库默认的 60 秒即可。",
+    "在 WebSocket 端点上，空闲连接会在 300 秒后关闭，这会触发 Last Will 以及错误的 Device Offline 警报。请将 MQTT keepalive 保持在 5 分钟以内；客户端库默认的 60 秒即可。",
   "Replace `sensor-001` with the device's id — OneUptime adds the device to the fleet **`fleet-1`** from the topic. The Last Will reports the device offline the moment its connection drops; devices that connect directly are better off with their own credential (both under Advanced).":
     "将 `sensor-001` 替换为设备的 id：OneUptime 会根据主题把设备加入设备群 **`fleet-1`**。连接一断开，Last Will 就会报告设备离线；直接连接的设备最好使用自己的凭据（两者都在“高级”中）。",
 };

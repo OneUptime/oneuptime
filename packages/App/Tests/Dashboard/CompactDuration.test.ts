@@ -11,6 +11,8 @@ import path from "path";
  * Close) say their durations in the reader's language: "51 min" and
  * "4 h 24 min" in English, as they always have, "4 ч 24 мин" in Russian,
  * "4 時間 24 分" in Japanese - not English unit names on a translated page.
+ * Every language holds each number to its unit with a no-break space, the
+ * English too, so a narrow tile never ends a line with "4" (#8303).
  */
 describe("formatCompactDurationInMinutes", () => {
   test("English keeps the overview's own text, word for word", () => {
