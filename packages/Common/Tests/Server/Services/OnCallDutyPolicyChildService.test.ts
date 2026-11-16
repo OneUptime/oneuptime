@@ -603,9 +603,7 @@ describe.each(CHILDREN)(
         ]),
       );
 
-      await expect(fixture.service.create(request)).resolves.toBe(
-        request.data,
-      );
+      await expect(fixture.service.create(request)).resolves.toBe(request.data);
       expect(request.data.createdByUserId).toBeUndefined();
     });
 
@@ -620,9 +618,7 @@ describe.each(CHILDREN)(
         deletedByUser: someoneElse,
       });
 
-      await expect(fixture.service.create(request)).resolves.toBe(
-        request.data,
-      );
+      await expect(fixture.service.create(request)).resolves.toBe(request.data);
 
       const sent: Record<string, unknown> = request.data as unknown as Record<
         string,
@@ -664,9 +660,7 @@ describe.each(CHILDREN)(
 
       await fixture.service.create(request);
 
-      expect(request.data.createdByUserId?.toString()).toBe(
-        USER_ID.toString(),
-      );
+      expect(request.data.createdByUserId?.toString()).toBe(USER_ID.toString());
     });
   },
 );
