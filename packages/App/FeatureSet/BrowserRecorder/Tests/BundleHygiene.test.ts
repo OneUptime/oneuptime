@@ -162,11 +162,13 @@ describe("bundle hygiene", (): void => {
      * 97650 gzip after, 96723 before), 100 KB since frustration signals an
      * application defines itself (2026-11-09, issue #6443: 101329 gzip
      * after, 99229 before), 103 KB since product analytics events
-     * (2026-11-10, issue #6444: 104156 gzip after, 101329 before);
-     * esbuild.config.js carries the measurements and the itemised reasons.
-     * Asserted here as well as there on purpose - see the loader note below.
+     * (2026-11-10, issue #6444: 104156 gzip after, 101329 before), 105 KB
+     * since Retry-After is read as RFC 9110 writes it (2026-11-16, issue
+     * #8928: 106276 gzip after, 105353 before); esbuild.config.js carries
+     * the measurements and the itemised reasons. Asserted here as well as
+     * there on purpose - see the loader note below.
      */
-    expect(recorderGzip).toBeLessThanOrEqual(103 * 1024);
+    expect(recorderGzip).toBeLessThanOrEqual(105 * 1024);
     expect(loaderGzip).toBeGreaterThan(0);
 
     /*
@@ -246,9 +248,11 @@ describe("bundle hygiene", (): void => {
      * since the scrubber keeps a mobile app's address, redacts a JSON Web
      * Token and a twice-escaped address, and a page pattern reads "/café"
      * (2026-11-15, issues #8384, #8385, #8195: 352794 bytes after, 352562
-     * before); esbuild.config.js carries the measurements and the reasons.
+     * before), 348 KB since Retry-After is read as RFC 9110 writes it
+     * (2026-11-16, issue #8928: 354855 bytes after, 352802 before);
+     * esbuild.config.js carries the measurements and the reasons.
      */
-    expect(recorderBundle.length).toBeLessThan(346 * 1024);
+    expect(recorderBundle.length).toBeLessThan(348 * 1024);
   });
 
   /*
@@ -351,6 +355,9 @@ describe("common allow-list resolver", (): void => {
       `  ["package-from-common", { path: "typeorm", resolveDir: rum, importer: p.join(rum, "ChunkMath.ts") }],`,
       `  ["package-from-src", { path: "rrweb", resolveDir: src, importer: p.join(src, "Recorder.ts") }],`,
       `  ["relative-inside-src", { path: "./Chunker", resolveDir: src, importer: p.join(src, "Recorder.ts") }],`,
+      `  ["relative-allowed-retry-after", { path: "../RetryAfter", resolveDir: rum, importer: p.join(rum, "ChunkMath.ts") }],`,
+      `  ["relative-escape-beside-retry-after", { path: "../API", resolveDir: rum, importer: p.join(rum, "ChunkMath.ts") }],`,
+      `  ["package-from-retry-after", { path: "axios", resolveDir: p.join(config.COMMON_ROOT, "Utils"), importer: p.join(config.COMMON_ROOT, "Utils", "RetryAfter.ts") }],`,
       `];`,
       `const out = {};`,
       `for (const [name, args] of cases) { out[name] = Boolean(config.resolveCommonEscape(args)); }`,
@@ -378,6 +385,10 @@ describe("common allow-list resolver", (): void => {
     { name: "package-from-common", blocked: true },
     { name: "package-from-src", blocked: false },
     { name: "relative-inside-src", blocked: false },
+    // The one file outside Rum that may be inlined, and nothing beside it.
+    { name: "relative-allowed-retry-after", blocked: false },
+    { name: "relative-escape-beside-retry-after", blocked: true },
+    { name: "package-from-retry-after", blocked: true },
   ];
 
   /*
