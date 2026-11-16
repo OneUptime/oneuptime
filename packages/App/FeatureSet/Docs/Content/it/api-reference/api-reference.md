@@ -95,6 +95,8 @@ Una risorsa con proprietari - un monitor, un incidente, una policy di reperibili
 
 `select` nomina i campi da restituire, e `_id` torna sempre. `sort` li ordina, `ASC` o `DESC`; senza ordinamento, i più recenti vengono per primi. Un elenco restituisce 10 record se non imposti `limit`, fino a 10.000, e `skip` ne salta prima altrettanti: continua ad aumentare `skip` di `limit` finché non ne hai `count`. Aggiungi `?output-type=csv` a una richiesta di elenco per avere CSV invece di JSON.
 
+L'ordine di un campo può anche dire dove vanno i record senza un valore in esso: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` mette prima i più recenti e in fondo quelli che non ne hanno, e `FIRST` li mette prima. Una relazione con un record ordina per un campo del record che nomina: `{ "incidentSeverity": { "order": "ASC" } }` elenca gli incidenti nell'ordine delle loro gravità. Una relazione che riceve solo una direzione, come in `{ "incidentSeverity": "DESC" }`, viene rifiutata con un `400` che nomina invece un campo per cui ordinare, e così una relazione con molti record, come le `labels` di un incidente: ogni incidente ne ha un elenco, e un elenco non ha un unico valore per cui mettere in ordine gli incidenti. Ordinare per un campo richiede anche il permesso di leggerlo, attraverso una relazione come sulla risorsa stessa: un ordinamento per un campo che non puoi leggere viene rifiutato con un `422`.
+
 Per esempio, i monitor il cui nome contiene «checkout», creati dall'inizio del 2026, i più recenti per primi:
 
 ```bash

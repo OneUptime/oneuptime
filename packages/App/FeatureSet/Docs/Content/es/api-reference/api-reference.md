@@ -95,6 +95,8 @@ Un recurso con propietarios - un monitor, un incidente, una política de guardia
 
 `select` nombra los campos que se devuelven, y `_id` siempre vuelve. `sort` los ordena, `ASC` o `DESC`; sin orden, los más recientes van primero. Una lista devuelve 10 registros salvo que fijes `limit`, hasta 10 000, y `skip` se salta antes esa cantidad: sigue aumentando `skip` en `limit` hasta tener `count` de ellos. Añade `?output-type=csv` a una solicitud de lista para obtener CSV en lugar de JSON.
 
+El orden de un campo también puede decir adónde van los registros sin valor en él: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` pone primero los más recientes y al final los que no tienen ninguno, y `FIRST` los pone primero. Una relación con un registro ordena por un campo del registro que nombra: `{ "incidentSeverity": { "order": "ASC" } }` lista los incidentes en el orden de sus gravedades. Una relación que recibe solo una dirección, como en `{ "incidentSeverity": "DESC" }`, se rechaza con un `400` que nombra un campo por el que ordenar en su lugar, y lo mismo una relación con muchos registros, como las `labels` de un incidente: cada incidente tiene una lista de ellas, y una lista no tiene un único valor por el que poner los incidentes en orden. Ordenar por un campo también requiere permiso para leerlo, a través de una relación igual que en el propio recurso: un orden por un campo que no puedes leer se rechaza con un `422`.
+
 Por ejemplo, los monitores cuyo nombre contiene «checkout», creados desde el inicio de 2026, los más recientes primero:
 
 ```bash

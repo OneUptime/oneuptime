@@ -511,36 +511,76 @@ describe("every documented model's query, sort and select", () => {
     expect(problems).toEqual([]);
   });
 
-  test("lists the readable fields of a sortable type as sort fields, each ASC or DESC", () => {
+  /*
+   * Each sort field refers to SortFieldOrder (ASC or DESC, or { direction,
+   * nulls }), and each relation of one record somebody may read to its
+   * related model's RelationSortSchema (#8840). ModelSchemaSort holds
+   * every form of both to what the API takes.
+   */
+  test("lists the readable fields of a sortable type as sort fields, and the readable relations of one record", () => {
     const problems: Array<string> = [];
 
     for (const modelType of DOCUMENTED_MODELS) {
-      const sortable: Array<string> = Object.entries(readableColumns(modelType))
-        .filter(([, column]: [string, TableColumnMetadata]): boolean => {
-          return ModelSchema.getSortableTypes().includes(column.type);
-        })
-        .map(([key]: [string, TableColumnMetadata]): string => {
-          return key;
-        });
-      const properties: JSONObject = propertiesOf(
-        schemaOf(modelType, "SortSchema"),
-      );
+      const model: DatabaseBaseModel = new modelType();
+      const readable: Record<string, TableColumnMetadata> =
+        readableColumns(modelType);
+      const expected: Array<string> = [];
 
-      if (Object.keys(properties).join(",") !== sortable.join(",")) {
-        problems.push(`${tableOf(modelType)}SortSchema`);
+      for (const [key, column] of Object.entries(getTableColumns(model))) {
+        if (
+          readable[key] &&
+          ModelSchema.getSortableTypes().includes(column.type)
+        ) {
+          expected.push(`${key}:SortFieldOrder`);
+          continue;
+        }
+
+        if (
+          column.type === TableColumnType.Entity &&
+          column.modelType &&
+          !column.hideColumnInDocumentation &&
+          (model.getColumnAccessControlFor(key)?.read || []).length > 0 &&
+          ModelSchema.getRelationSortFields(
+            column.modelType as DatabaseBaseModelType,
+          ).length > 0
+        ) {
+          expected.push(
+            `${key}:${new column.modelType().tableName}RelationSortSchema`,
+          );
+        }
       }
 
-      for (const [key, property] of Object.entries(properties)) {
-        if (
-          JSON.stringify(resolve(property as JSONObject)["enum"]) !==
-          JSON.stringify([SortOrder.Ascending, SortOrder.Descending])
-        ) {
-          problems.push(`${tableOf(modelType)}SortSchema ${key}`);
-        }
+      const listed: Array<string> = Object.entries(
+        propertiesOf(schemaOf(modelType, "SortSchema")),
+      ).map(([key, property]: [string, JSONValue]): string => {
+        return `${key}:${String((property as JSONObject)["$ref"]).replace("#/components/schemas/", "")}`;
+      });
+
+      if (listed.join(",") !== expected.join(",")) {
+        problems.push(`${tableOf(modelType)}SortSchema`);
       }
     }
 
     expect(problems).toEqual([]);
+
+    const fieldOrder: JSONObject = SCHEMAS["SortFieldOrder"] as JSONObject;
+    const variants: Array<JSONObject> = fieldOrder[
+      "anyOf"
+    ] as Array<JSONObject>;
+
+    expect(resolve(variants[0] as JSONObject)["enum"]).toEqual([
+      SortOrder.Ascending,
+      SortOrder.Descending,
+    ]);
+    expect(variants[1]).toMatchObject({
+      type: "object",
+      properties: {
+        direction: { $ref: "#/components/schemas/SortOrder" },
+        nulls: { type: "string", enum: ["FIRST", "LAST"] },
+      },
+      required: ["direction"],
+      additionalProperties: false,
+    });
   });
 
   test("lists no field nobody may read: an incident's deletedByUserId, which the API refuses", () => {
