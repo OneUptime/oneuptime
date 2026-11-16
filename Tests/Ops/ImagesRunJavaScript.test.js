@@ -507,6 +507,50 @@ describe("LoadedModules' check of a running server", () => {
     ]);
   });
 
+  test("refuses an inspector that is another process's (a server on the host's network)", async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-loaded-"));
+    const entry = path.join(directory, "Index.js");
+    fs.writeFileSync(entry, 'console.log("up"); setInterval(() => {}, 1000);\n');
+    const otherPort = await freePort();
+    const serverPort = await freePort();
+    const other = spawn(
+      process.execPath,
+      [`--inspect=127.0.0.1:${otherPort}`, "-e", 'console.log("up"); setInterval(() => {}, 1000);'],
+      { stdio: ["ignore", "pipe", "ignore"] },
+    );
+    const server = spawn(process.execPath, [`--inspect-port=${serverPort}`, entry], {
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    try {
+      await Promise.all(
+        [other, server].map((child) => {
+          return new Promise((resolve) => {
+            child.stdout.once("data", resolve);
+          });
+        }),
+      );
+      const run = spawnSync(process.execPath, ["-e", CHECK_SCRIPT], {
+        encoding: "utf8",
+        timeout: 60000,
+        env: {
+          ...process.env,
+          LOADED_MODULES_ENTRY: entry,
+          LOADED_MODULES_PORT: String(otherPort),
+        },
+      });
+      const { report, problem } = parseReport(`${run.stdout}${run.stderr}`);
+
+      expect(report).toBeNull();
+      expect(problem).toBe(
+        `the inspector on 127.0.0.1:${otherPort} is process ${other.pid}'s, not the server's (${server.pid})`,
+      );
+    } finally {
+      other.kill("SIGKILL");
+      server.kill("SIGKILL");
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   test("says so when no node process runs the entry", () => {
     const run = spawnSync(process.execPath, ["-e", CHECK_SCRIPT], {
       encoding: "utf8",

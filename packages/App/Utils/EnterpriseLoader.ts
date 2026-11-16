@@ -224,12 +224,18 @@ export default class EnterpriseLoader {
    * not count as "Enterprise present".
    */
   public static findEntryFile(directory: string): string | null {
+    const entry: string = path.join(directory, ENTRY_FILE);
     let entryFile: string;
 
     try {
-      entryFile = require.resolve(path.join(directory, ENTRY_FILE));
+      entryFile = require.resolve(entry);
     } catch {
       // No entry this process could load.
+      return null;
+    }
+
+    // ee's entry itself, compiled or not: not an Index.json or Index/ folder.
+    if (entryFile !== `${entry}.js` && entryFile !== `${entry}.ts`) {
       return null;
     }
 

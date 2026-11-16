@@ -12,11 +12,13 @@
  * (`docker exec`, or `docker compose exec`), as the server's user. It finds
  * the server's process (the node whose last argument is its entry, Index.js),
  * opens the server's inspector with SIGUSR1 (on 127.0.0.1:9229, in the
- * container's own network), lists every module the server's require() loaded
- * (Module._cache), and prints one line: "LOADED_MODULES <json>", or
- * "LOADED_MODULES_FAILED <why>". The inspector stays open on the loopback
- * address of the container until it stops: it is for containers a test
- * starts.
+ * container's own network; LOADED_MODULES_PORT for a server started with
+ * --inspect-port, as one on the host's network must be), checks that the
+ * inspector it reached is the server's own (by its pid), lists every module
+ * the server's require() loaded (Module._cache), and prints one line:
+ * "LOADED_MODULES <json>", or "LOADED_MODULES_FAILED <why>". The inspector
+ * stays open on the loopback address until the server stops: it is for
+ * containers a test starts.
  *
  * Used by AppImageRuntime.test.js and RunnerImageRuntime.test.js on the
  * images they boot, and tested in ImagesRunJavaScript.test.js on a local
@@ -76,7 +78,7 @@ if (server === null) {
       });
     }
   };
-  const EXPRESSION = 'JSON.stringify(Object.keys(process.getBuiltinModule("module")._cache))';
+  const EXPRESSION = 'JSON.stringify({ pid: process.pid, modules: Object.keys(process.getBuiltinModule("module")._cache) })';
   debuggerUrl()
     .then((url) => {
       return new Promise((resolve, reject) => {
@@ -103,7 +105,13 @@ if (server === null) {
       });
     })
     .then(
-      (modules) => {
+      (answer) => {
+        // On a host network, another process may hold the port.
+        if (answer.pid !== server) {
+          fail("the inspector on 127.0.0.1:" + port + " is process " + answer.pid + "'s, not the server's (" + server + ")");
+          return;
+        }
+        const modules = answer.modules;
         finish(
           "LOADED_MODULES " +
             JSON.stringify({

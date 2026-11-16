@@ -56,14 +56,20 @@ Test" workflow provides both:
   `AppImageRuntime.test.js`, which starts `oneuptime/app:<tag>` from
   `docker-compose.yml` with its PostgreSQL, ClickHouse and Valkey (a project of
   its own, removed with its volumes) and has it serve its frontends, the docs,
-  the API reference, an install script and an API flow. The Build workflow's
-  App job tags the Community image it built `oneuptime/app:ci-runtime` and runs
-  it so, and the suite checks that it does.
+  the API reference, an install script and an API flow, and asks the running
+  App over its inspector what it loaded: only JavaScript, no ts-node and no
+  TypeScript (`Utils/LoadedModules.js`). The Build workflow's App job tags the
+  Community image it built `oneuptime/app:ci-runtime` and runs it so, and the
+  suite checks that it does.
 - **docker, and the Runner image.** `RUN_RUNNER_IMAGE_RUNTIME_TESTS=1` with
   `RUNNER_IMAGE=<tag>` turns on `RunnerImageRuntime.test.js`, which starts
-  the built Runner image against a stand-in OneUptime server and has it run a
-  JavaScript and a Bash step. The Build workflow's Runner job builds the image
-  as `oneuptime-runner:ci` and runs it so, and the suite checks that it does.
+  the built Runner image against a stand-in OneUptime server, has it run a
+  JavaScript and a Bash step, and asks it what it loaded, as the App suite
+  does. The Build workflow's Runner job builds the image as
+  `oneuptime-runner:ci` and runs it so, and the suite checks that it does.
+  On a machine where others run Docker too, `OPS_RUNTIME_NAME_PREFIX` starts
+  the names of what both suites create (default `oneuptime-ops` for the App's
+  project, `oneuptime` for the Runner's container).
 - **docker, for the Node.js images' heap.** `NodeImageHeapLimit.test.js` runs
   every service's start script up to node under sh, bash and (where it is
   installed) BusyBox, against cgroup files it writes for each case. With
@@ -1367,6 +1373,24 @@ exactly as it was, with no staging directory behind. With
 `RUN_NPM_CLI_UPDATE_TESTS=1` it also updates a real npm 12.0.2 (which bundles
 all four vulnerable packages) and uses the result for a real install, and runs
 the script inside `node:26-alpine3.24` through the real `.dockerignore`.
+
+### `ImagesRunJavaScript.test.js`
+
+Every server image (the App in both editions, Home, the ingress sidecar, the
+Probe, the Runner and the test server) runs the JavaScript its build compiled
+(`packages/Common/Server/Utils/TsNode/Precompile.js`), and no process of it
+loads TypeScript or ts-node. From the files that make each image: its start
+script (and the App's migrate script) execs node on the entry's `.js`, with
+`PrecompiledSourceMaps.js` first; nothing its production build runs or sets
+starts ts-node or sets a `TS_NODE_` variable; its build compiles the package
+and Common after the type-check, where its `/usr/src` comes from; the images
+that prune (App, Runner, ingress) prune ts-node and TypeScript and fail when
+either is still there (the check runs here on trees with and without them);
+ts-node is a development package of every server; the Enterprise image
+compiles `ee/` with the App's tsconfig; the Iron Bank images, the Helm chart,
+docker-compose and the release workflows' edition check start them that way.
+It also runs `Utils/LoadedModules.js`'s inspector check, which the App's and
+the Runner's runtime suites run inside their images, on local processes.
 
 ### `ContainerImageHardening.test.js`
 

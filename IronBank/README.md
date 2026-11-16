@@ -39,7 +39,10 @@ OneUptime release (linux/amd64, on Docker Hub) by digest. Each Dockerfile
 copies what that image adds onto an Iron Bank base image of the same
 distribution. It then installs the same Alpine or Debian packages and sets the
 release's environment, user, entrypoint and start command again. Because the
-distributions match, what the release compiled runs unchanged.
+distributions match, what the release compiled runs unchanged: its native
+modules, and the JavaScript its build compiled from OneUptime's TypeScript
+(the start command runs `Index.js` after Common's `PrecompiledSourceMaps.js`;
+no Iron Bank image loads TypeScript or ts-node).
 
 `/usr/src` is copied from a `shipped` stage: the release with its test
 directories (`/usr/src/Common/Tests`, `/usr/src/app/Tests`) removed, so that no
@@ -99,6 +102,14 @@ image on Docker Hub:
 ```bash
 node Scripts/IronBank/PinRelease.js --project Probe --version 14.0.102
 ```
+
+It refuses, pinning and with `--check`, a release whose own start command
+runs another file than the project's Dockerfile does. The App's, the Probe's
+and the Runner's Dockerfiles start `Index.js`, which only releases built since
+the images compile their JavaScript ship; earlier releases started `Index.ts`
+through ts-node, so they cannot be pinned under these Dockerfiles. Until such a
+release is published, the Preflight's pin of the latest release fails with
+that message, and the committed pins wait for one.
 
 ## What CI does: the Iron Bank Preflight workflow
 
