@@ -53,6 +53,7 @@ const anotherTabOpens: (pageId: string) => void = (pageId: string): void => {
 
 interface StatusPageAPIInternals {
   getRefreshSessionUrl: () => URL | null;
+  isSessionRenewalAnswer: (data: unknown) => boolean;
   getSessionName: () => string;
   getLoginRoute: () => Route;
   getForbiddenRoute: () => Route;
@@ -514,6 +515,45 @@ describe("what a tab's requests name", () => {
       new globalThis.URL(internals.getRefreshSessionUrl()!.toString()).pathname,
     ).toBe(`/status-page-identity-api/refresh-token/${PAGE_A}`);
     expect(internals.getSessionName()).toBe(`status-page-${PAGE_A}`);
+  });
+
+  /*
+   * Its renewal answers the reader's entity with the new access token under
+   * _miscData.token (StatusPageAuthentication's /refresh-token/:statuspageid);
+   * a 200 without it renewed nothing (issue #8838).
+   */
+  test("its renewal's answer is the reader with a new token; a 200 without one renewed nothing", () => {
+    expect(
+      internals.isSessionRenewalAnswer({
+        _id: "reader",
+        email: "reader@example.com",
+        _miscData: { token: "renewed-status-page-token" },
+      }),
+    ).toBe(true);
+
+    for (const data of [
+      undefined,
+      null,
+      "",
+      "<html></html>",
+      {},
+      { data: [] },
+      [],
+      { _miscData: {} },
+      { _miscData: { token: "" } },
+      { _miscData: { token: 42 } },
+      { _miscData: [] },
+      // The Dashboard's answer is not the status page's.
+      { accessToken: "access", refreshToken: "refresh" },
+    ]) {
+      expect({
+        data,
+        isRenewal: internals.isSessionRenewalAnswer(data),
+      }).toEqual({
+        data,
+        isRenewal: false,
+      });
+    }
   });
 
   test("its sign-in and forbidden pages are its own page's", () => {

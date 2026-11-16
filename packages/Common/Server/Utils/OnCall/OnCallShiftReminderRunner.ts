@@ -8,9 +8,9 @@ import UserOnCallShiftReminderLogService, {
 } from "../../Services/UserOnCallShiftReminderLogService";
 import DatabaseConfig from "../../DatabaseConfig";
 import GlobalCache from "../../Infrastructure/GlobalCache";
-import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
+import JobDeadline from "../JobDeadline";
 import logger from "../Logger";
 import PushNotificationUtil from "../PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "../WhatsAppTemplateUtil";
@@ -131,12 +131,15 @@ export const SHIFT_REMINDER_LEAD_TEXT_TOLERANCE_MINUTES: number = 5;
 export const SHIFT_REMINDER_LOG_RETENTION_DAYS: number = 30;
 export const SHIFT_REMINDER_LOG_DELETE_BATCH_SIZE: number = 100;
 
-// Sweep lock. The lock must outlive the job timeout (runJobWithTimeout races).
-export const SHIFT_REMINDER_SWEEP_LOCK_NAMESPACE: string = "Workers.Cron";
+/*
+ * The sweep's time limit. RunCron runs one sweep at a time (CronLock) and
+ * hands it a deadline that passes at this limit, or when the run's lease is
+ * lost; the sweep stops between projects once it has, holding the watermark
+ * so the next tick re-covers the window (runSweep). No lock of its own: the
+ * UNIQUE ledger already makes every reminder exactly-once.
+ */
 export const SHIFT_REMINDER_JOB_TIMEOUT_MS: number =
   OneUptimeDate.convertMinutesToMilliseconds(10);
-export const SHIFT_REMINDER_SWEEP_LOCK_TIMEOUT_MS: number =
-  OneUptimeDate.convertMinutesToMilliseconds(12);
 
 const MILLISECONDS_PER_MINUTE: number = 60 * 1000;
 
@@ -182,6 +185,12 @@ export interface ShiftReminderSweepStats {
   missingSettings: number;
   truncatedSchedules: number;
   errors: number;
+  /*
+   * Whether the run's deadline - its time limit, or its lease lost - stopped
+   * the sweep before its last project. Like a failure, it holds the
+   * watermark, so the next tick re-covers the window.
+   */
+  stoppedAtDeadline: boolean;
 }
 
 export interface ShiftReminderChangePassStats {
@@ -277,45 +286,12 @@ export default class OnCallShiftReminderRunner {
   // -- Cron entry points ------------------------------------------------
 
   /**
-   * The five-minute cron body: one sweep under a cross-replica lock. A held
-   * lock (or an unreachable Redis) skips the tick — the holder is already
-   * covering the same window, and the watermark makes the next tick catch
-   * up anything this one would have done.
-   */
-  @CaptureSpan()
-  public static async runSweepUnderLock(options?: {
-    now?: Date | undefined;
-  }): Promise<ShiftReminderSweepStats | null> {
-    let mutex: SemaphoreMutex | null = null;
-
-    try {
-      mutex = await Semaphore.lock({
-        key: SHIFT_REMINDER_JOB_NAME,
-        namespace: SHIFT_REMINDER_SWEEP_LOCK_NAMESPACE,
-        lockTimeout: SHIFT_REMINDER_SWEEP_LOCK_TIMEOUT_MS,
-        acquireAttemptsLimit: 1,
-      });
-    } catch (err) {
-      logger.debug(
-        `${SHIFT_REMINDER_JOB_NAME}: could not acquire the sweep lock; a sweep is already in flight (or Redis is unavailable). Skipping this run: ${err}`,
-      );
-      return null;
-    }
-
-    try {
-      return await OnCallShiftReminderRunner.runSweep(options);
-    } finally {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(
-          `${SHIFT_REMINDER_JOB_NAME}: error releasing the sweep lock: ${err}`,
-        );
-      }
-    }
-  }
-
-  /**
+   * The five-minute cron body. One sweep at a time is RunCron's (CronLock):
+   * a tick that finds the previous sweep still going skips, and the
+   * watermark makes the next tick catch up anything it would have done. The
+   * sweep takes no lock of its own - the UNIQUE ledger is what keeps a
+   * reminder from going out twice.
+   *
    * One sweep: every due (user, shift, lead) inside
    * (lookbackFrom + lead, now + lead], claimed and sent once. Never throws
    * for one user's or one project's bad data; throws only when the reminder
@@ -331,10 +307,16 @@ export default class OnCallShiftReminderRunner {
    * no-op for everything that did send — the UNIQUE ledger turns it into
    * "already sent" — and the 30-minute lookback cap bounds a project that
    * keeps failing.
+   *
+   * A sweep whose `deadline` passes - its time limit, or its lease lost -
+   * stops between projects, and holds the watermark exactly as a failure
+   * does: the projects it did not reach are swept by the next tick, and the
+   * ones it did come back "already sent".
    */
   @CaptureSpan()
   public static async runSweep(options?: {
     now?: Date | undefined;
+    deadline?: JobDeadline | undefined;
   }): Promise<ShiftReminderSweepStats> {
     const now: Date = options?.now || OneUptimeDate.getCurrentDate();
     const watermark: Date | null =
@@ -363,6 +345,7 @@ export default class OnCallShiftReminderRunner {
       missingSettings: 0,
       truncatedSchedules: 0,
       errors: 0,
+      stoppedAtDeadline: false,
     };
 
     const reminders: Array<UserOnCallShiftReminder> =
@@ -397,6 +380,12 @@ export default class OnCallShiftReminderRunner {
       await OnCallShiftReminderRunner.getDashboardUrl();
 
     for (const plan of plans.values()) {
+      // Between projects, never inside one: a project in flight finishes.
+      if (options?.deadline?.hasPassed()) {
+        stats.stoppedAtDeadline = true;
+        break;
+      }
+
       try {
         await OnCallShiftReminderRunner.sweepProject({
           plan,
@@ -421,11 +410,18 @@ export default class OnCallShiftReminderRunner {
      * before its send (a failed stamp is caught inside deliver, precisely so
      * that "sent" and "swept" cannot disagree here).
      */
-    stats.watermarkWrittenAt = stats.errors > 0 ? lookbackFrom : now;
+    stats.watermarkWrittenAt =
+      stats.errors > 0 || stats.stoppedAtDeadline ? lookbackFrom : now;
 
     if (stats.errors > 0) {
       logger.warn(
         `${SHIFT_REMINDER_JOB_NAME}: ${stats.errors} failure(s) this tick; holding the watermark at ${lookbackFrom.toISOString()} so the next tick re-covers this window.`,
+      );
+    }
+
+    if (stats.stoppedAtDeadline) {
+      logger.warn(
+        `${SHIFT_REMINDER_JOB_NAME}: the run's deadline passed before every project was swept; holding the watermark at ${lookbackFrom.toISOString()} so the next tick re-covers this window.`,
       );
     }
 

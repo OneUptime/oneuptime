@@ -58,9 +58,9 @@ const translators: Record<string, Translator> = {
 
 describe("a span's duration in the trace explorer", () => {
   test("English without a translator, as the tests and an unset page read it", () => {
-    expect(formatDurationNano(1284e6)).toBe("1.28 s");
+    expect(formatDurationNano(1284e6)).toBe("1.28\u00A0s");
     expect(formatDurationNano(125 * SECOND)).toBe("2m 5s");
-    expect(formatDurationNano(-5)).toBe("0 ms");
+    expect(formatDurationNano(-5)).toBe("0\u00A0ms");
     expect(
       SpanUtil.getSpanDurationAsString({
         divisibilityFactor: MILLISECONDS,
@@ -73,7 +73,7 @@ describe("a span's duration in the trace explorer", () => {
         divisibilityFactor: MILLISECONDS,
         spanDurationInUnixNano: 0,
       }),
-    ).toBe("0 ms");
+    ).toBe("0\u00A0ms");
   });
 
   test("in German, Arabic and Persian, with the page's translator", () => {
@@ -99,13 +99,13 @@ describe("a span's duration in the trace explorer", () => {
       fa: `۲${NB}دقیقه ۵${NB}ثانیه`,
     });
     expect(said(1.72 * SECOND)).toEqual({
-      en: "1.72 s",
+      en: "1.72\u00A0s",
       de: `1,72${NB}Sek.`,
       ar: `1.72${NB}ث`,
       fa: `۱٫۷۲${NB}ثانیه`,
     });
     expect(said(0)).toEqual({
-      en: "0 ms",
+      en: "0\u00A0ms",
       de: `0${NB}ms`,
       ar: `0${NB}ملي${NB}ث`,
       fa: `۰${NB}میلی‌ثانیه`,

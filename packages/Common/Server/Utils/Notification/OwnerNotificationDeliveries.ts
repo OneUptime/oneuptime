@@ -443,6 +443,12 @@ export default class OwnerNotificationDeliveries {
   public static async planForOwnersOf(data: {
     notification: OwnerNotificationOf;
     findOwners: () => Promise<Array<User>>;
+    /*
+     * The project's owners, read here (ProjectService.getOwners) when not
+     * given. A job telling of many records of one project hands a read it
+     * makes once for all of them (OwnerNotificationBacklog, issue #7974).
+     */
+    findProjectOwners?: (() => Promise<Array<User>>) | undefined;
     writesFeedItem: boolean;
   }): Promise<OwnerNotificationDelivery> {
     let owners: Array<User> = [];
@@ -453,7 +459,12 @@ export default class OwnerNotificationDeliveries {
 
       if (owners.length === 0) {
         isProjectOwners = true;
-        owners = await ProjectService.getOwners(data.notification.projectId);
+
+        if (data.findProjectOwners) {
+          owners = await data.findProjectOwners();
+        } else {
+          owners = await ProjectService.getOwners(data.notification.projectId);
+        }
       }
     } catch (error) {
       logger.error(

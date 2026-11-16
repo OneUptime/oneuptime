@@ -16,6 +16,7 @@ import {
   PROJECT_BALANCE_SETTINGS_PAGE,
   PROJECT_BALANCE_SETTINGS_PATH,
   ProjectBalanceType,
+  readProjectBalanceMessageNotSentReason,
   WHO_CAN_ADD_PROJECT_BALANCE,
 } from "../../../Utils/Project/ProjectBalance";
 import {
@@ -269,13 +270,13 @@ describe("what the server says when a method's code cannot be paid for", () => {
 
 describe("amounts", () => {
   test.each([
-    [0, "0.00 USD"],
-    [5, "0.05 USD"],
-    [10, "0.10 USD"],
-    [100, "1.00 USD"],
-    [1234, "12.34 USD"],
-    [Number.NaN, "0.00 USD"],
-    [Number.POSITIVE_INFINITY, "0.00 USD"],
+    [0, "0.00\u00A0USD"],
+    [5, "0.05\u00A0USD"],
+    [10, "0.10\u00A0USD"],
+    [100, "1.00\u00A0USD"],
+    [1234, "12.34\u00A0USD"],
+    [Number.NaN, "0.00\u00A0USD"],
+    [Number.POSITIVE_INFINITY, "0.00\u00A0USD"],
   ])("%s cents reads %s", (cents: number, expected: string) => {
     expect(formatProjectBalanceAmount(cents)).toBe(expected);
   });
@@ -297,7 +298,7 @@ describe("why one message was not sent", () => {
           costInUSDCents: 10,
         }),
       ).toBe(
-        `This project's balance (0.05 USD) is less than ${message} costs (0.10 USD).`,
+        `This project's balance (0.05\u00A0USD) is less than ${message} costs (0.10\u00A0USD).`,
       );
     },
   );
@@ -323,7 +324,7 @@ describe("why one message was not sent", () => {
         costInUSDCents: 35,
       }),
     ).toBe(
-      "This project's balance (0.20 USD) is less than this call costs (0.35 USD). A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+      "This project's balance (0.20\u00A0USD) is less than this call costs (0.35\u00A0USD). A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
     expect(
       getProjectBalanceMessageNotSentReason({
@@ -434,4 +435,56 @@ describe("every sentence said to whoever asked", () => {
       expect(sentence).toMatch(/\.$/);
     },
   );
+});
+
+/*
+ * A message's log keeps why it was not sent, and a test page reads it back
+ * for its amounts (OnCallTestPageLine). Written now, each amount is held to
+ * "USD" by a no-break space, as the page draws it (#8826); a row stored
+ * before still reads back, its amounts as it wrote them.
+ */
+describe("a not-sent reason read back from a message's log", () => {
+  const whoCanAdd: string = getProjectBalanceWhoCanAddSentence(
+    ProjectBalanceType.SmsOrCall,
+  );
+
+  test("written now: its amounts held", () => {
+    const written: string = getProjectBalanceMessageNotSentReason({
+      channel: ProjectNotificationChannel.SMS,
+      balanceInUSDCents: 5,
+      costInUSDCents: 10,
+    });
+
+    expect(written).toBe(
+      `This project's balance (0.05\u00A0USD) is less than this SMS costs (0.10\u00A0USD). ${whoCanAdd}`,
+    );
+    expect(
+      readProjectBalanceMessageNotSentReason({
+        statusMessage: written,
+        channel: ProjectNotificationChannel.SMS,
+      }),
+    ).toEqual({
+      isUsedUp: false,
+      balance: "0.05\u00A0USD",
+      cost: "0.10\u00A0USD",
+    });
+  });
+
+  test("stored before the amounts were held: still read, as it was written", () => {
+    expect(
+      readProjectBalanceMessageNotSentReason({
+        statusMessage: `This project's balance (0.05 USD) is less than this SMS costs (0.10 USD). ${whoCanAdd}`,
+        channel: ProjectNotificationChannel.SMS,
+      }),
+    ).toEqual({ isUsedUp: false, balance: "0.05 USD", cost: "0.10 USD" });
+  });
+
+  test("negative control: another line is no reason", () => {
+    expect(
+      readProjectBalanceMessageNotSentReason({
+        statusMessage: "This project's balance (0.05 USD) is fine.",
+        channel: ProjectNotificationChannel.SMS,
+      }),
+    ).toBeNull();
+  });
 });

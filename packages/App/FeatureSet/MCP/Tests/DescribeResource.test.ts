@@ -61,6 +61,7 @@ interface DescribedField {
   description?: string;
   filter?: boolean;
   sort?: boolean;
+  sortBy?: Array<string>;
   large?: boolean;
   writeOnly?: boolean;
 }
@@ -89,15 +90,6 @@ const JSON_TYPE: string = TableColumnType.JSON;
 
 // The column types, database and telemetry, that hold a number.
 const NUMERIC_TYPE: RegExp = /Number|UInt|Decimal|Port/;
-
-// The database number columns the helper sorts on beyond the sort schema.
-const NUMBER_COLUMN_TYPES: Array<TableColumnType> = [
-  TableColumnType.SmallNumber,
-  TableColumnType.SmallPositiveNumber,
-  TableColumnType.PositiveNumber,
-  TableColumnType.BigNumber,
-  TableColumnType.BigPositiveNumber,
-];
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 
@@ -482,24 +474,32 @@ describe("what it says of a database resource is what the API does", () => {
           .sort(),
       ]).toEqual([
         tool.name,
-        [
-          ...new Set([
-            ...getSchemaFieldNames(
-              ModelSchema.getSortModelSchema({ modelType }),
-            ),
-            // And the number columns the sort schema leaves out.
-            ...Object.keys(columns).filter((name: string): boolean => {
-              return NUMBER_COLUMN_TYPES.includes(
-                (columns[name] as TableColumnMetadata).type,
-              );
-            }),
-          ]),
-        ]
+        getSchemaFieldNames(ModelSchema.getSortModelSchema({ modelType }))
           .filter((name: string): boolean => {
             return readable.includes(name);
           })
           .sort(),
       ]);
+
+      /*
+       * A relation marked sort names the fields of its record the REST
+       * API's relation sort does (#8840), and nothing else does.
+       */
+      for (const [name, field] of Object.entries(fields)) {
+        const column: TableColumnMetadata = columns[
+          name
+        ] as TableColumnMetadata;
+
+        expect([tool.name, name, field.sortBy]).toEqual([
+          tool.name,
+          name,
+          field.sort && column.type === TableColumnType.Entity
+            ? ModelSchema.getRelationSortFields(
+                column.modelType as DatabaseBaseModelType,
+              )
+            : undefined,
+        ]);
+      }
     }
   });
 
@@ -532,9 +532,26 @@ describe("what it says of a database resource is what the API does", () => {
     }).toThrow('Invalid ID for "labels"');
   });
 
-  test("sorts on a number the sort schema leaves out, as the API does: a severity's order", () => {
+  test("sorts on a number, as the API and its sort schema do: a severity's order", () => {
     expect(describeResource("Incident Severity").fields["order"]).toMatchObject(
       { type: "Small Number", filter: true, sort: true },
+    );
+  });
+
+  test("sorts an incident by its severity's fields, and says how a sort through a relation is written", () => {
+    const { fields, usage }: Description = describeResource("Incident");
+
+    expect(fields["incidentSeverity"]).toMatchObject({
+      type: "Entity",
+      sort: true,
+      sortBy: expect.arrayContaining(["name", "order", "createdAt"]),
+    });
+    // A relation of many records sorts nothing.
+    expect(fields["labels"]?.sort).toBeUndefined();
+    expect(fields["labels"]?.sortBy).toBeUndefined();
+
+    expect(usage["sort"]).toBe(
+      'Pass {"<field>": "ASC" or "DESC"}, or {"<field>": {"direction": "DESC", "nulls": "LAST"}} to say where records with no value go (FIRST or LAST). A relation marked sort sorts by one of the fields its sortBy names: {"<relation>": {"<field>": "ASC"}}. Use fields marked sort.',
     );
   });
 
@@ -665,6 +682,10 @@ describe("what it says of telemetry is what the API does", () => {
         expect.arrayContaining(["GreaterThan", "LessThan", "InBetween"]),
       );
       expect(usage["time"]).toContain(`always filter on ${timeColumn}`);
+      // ClickHouse is asked a direction alone (StatementGenerator).
+      expect(usage["sort"]).toBe(
+        'Pass {"<field>": "ASC" or "DESC"}. Use fields marked sort.',
+      );
       expect(tool.description).toContain(`always filter on ${timeColumn}`);
       expect(tool.inputSchema.properties?.["sort"]?.description).toContain(
         `{"${timeColumn}":"DESC"}`,

@@ -19,7 +19,7 @@ import { escapeRegExp } from "Common/Utils/RegExpEscape";
  */
 
 const mockAddJob: jest.Mock = jest.fn().mockResolvedValue(undefined as never);
-const mockRunSweepUnderLock: jest.Mock = jest.fn();
+const mockRunSweep: jest.Mock = jest.fn();
 const mockDeleteOldLogs: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Infrastructure/Queue", () => {
@@ -47,7 +47,7 @@ jest.mock("Common/Server/Utils/OnCall/OnCallShiftReminderRunner", () => {
     __esModule: true,
     ...actual,
     default: {
-      runSweepUnderLock: mockRunSweepUnderLock,
+      runSweep: mockRunSweep,
       deleteOldLogs: mockDeleteOldLogs,
     },
   };
@@ -174,7 +174,7 @@ describe("DeleteOldShiftReminderLogs - what the registered function does", () =>
     expect(mockDeleteOldLogs.mock.calls[0]).toEqual([
       { retentionDays: SHIFT_REMINDER_LOG_RETENTION_DAYS },
     ]);
-    expect(mockRunSweepUnderLock).not.toHaveBeenCalled();
+    expect(mockRunSweep).not.toHaveBeenCalled();
   });
 
   test("awaits the deletion, so a failed run is a failed job", async () => {

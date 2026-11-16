@@ -4,6 +4,7 @@ import {
   ROLLUP_JOB_TIMEOUT_MS,
 } from "Common/Server/Utils/EmailRollup/EmailRollupConstants";
 import EmailRollupFlushRunner from "Common/Server/Utils/EmailRollup/EmailRollupFlushRunner";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 
@@ -29,12 +30,13 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
  * due on the next scheduled tick.
  *
  * The timeout is four minutes: above the sweep's own three-minute wall-clock
- * budget so a healthy tick is never killed part way through a bucket, and
+ * budget so a healthy tick is never stopped part way through its buckets, and
  * below JobDictionary's five-minute default so it is a deliberate number
- * rather than an inherited one. The sweep lock inside the runner is five
- * minutes and so outlives it, which is required rather than sloppy -
- * QueueWorker.runJobWithTimeout races the job body, it does not cancel it, so
- * a timed-out tick is still running when the next one starts.
+ * rather than an inherited one. RunCron runs one sweep at a time (CronLock)
+ * and hands it its deadline, which passes at that limit or when the run's
+ * lease is lost; the sweep stops between buckets once it has (issue #8103).
+ * The runner takes no lock of its own: the claim insert, not a lock, is what
+ * makes a rollup exactly-once.
  */
 RunCron(
   ROLLUP_JOB_NAME,
@@ -43,10 +45,10 @@ RunCron(
     runOnStartup: false,
     timeoutInMS: ROLLUP_JOB_TIMEOUT_MS,
   },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     logger.debug(`Starting cron job: ${ROLLUP_JOB_NAME}`);
 
-    await EmailRollupFlushRunner.runSweepUnderLock();
+    await EmailRollupFlushRunner.runSweep({ deadline: deadline });
 
     logger.debug(`Completed cron job: ${ROLLUP_JOB_NAME}`);
   },

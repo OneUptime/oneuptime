@@ -191,6 +191,13 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "stampTelemetryMonitorsScheduled Monitor": Why.Bookkeeping,
     },
+  /*
+   * The owner notification jobs' take: a state change marked as told
+   * (isOwnerNotified), by the run that tells its owners (issue #7974).
+   */
+  "packages/App/FeatureSet/Workers/Utils/OwnerNotificationBacklog.ts": {
+    "OwnerNotificationBacklog.take *": Why.Bookkeeping,
+  },
   "packages/Common/Server/API/DataObservabilityAPI.ts": {
     "(module) DataStore": Why.Recorded,
   },
@@ -314,9 +321,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
      * A poll's verdict (#7389): reachability, when the device last answered
      * and its interface counts, as each poll reports them, in the one
      * compare-and-set statement that keeps an older poll's verdict from
-     * standing over a newer one's. Every column it sets is one entries leave
-     * out (reported, or a last...At stamp); the scan cannot read a SET built
-     * from a list.
+     * standing over a newer one's - and, since #7393, the poll's rate
+     * baseline and its SNMP table and transceiver snapshots with it. Every
+     * column it sets is one entries leave out (reported, OneUptime's own, or
+     * a last...At stamp); the scan cannot read a SET built from a list.
      */
     "Service.writePollVerdict NetworkDevice": Why.Reported,
   },

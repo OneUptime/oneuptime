@@ -47,7 +47,10 @@ export interface TelemetryUsageMeterSummary {
 export default class TelemetryUsageMeter {
   public static async meterAllProjects(options: {
     deadline: Date;
-    // False once the run should stop - its lock was lost.
+    /*
+     * False once the run should stop - it lost its lock or its lease, or
+     * ran out of its time limit (RunCron's deadline).
+     */
     shouldContinue: () => boolean;
   }): Promise<TelemetryUsageMeterSummary> {
     const summary: TelemetryUsageMeterSummary = {

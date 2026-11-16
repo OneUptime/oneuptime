@@ -2,6 +2,7 @@
 import { DASHBOARD_ORIGIN } from "../UI/Utils/API/DashboardHost";
 import FakeAxiosServer, {
   FakeTransport,
+  RENEWED_SESSION,
   SentRequest,
 } from "../UI/Utils/API/FakeAxiosServer";
 import BaseAPI from "../../UI/Utils/API/API";
@@ -123,7 +124,7 @@ describe("A BaseAPI instance refreshes a lapsed session like BaseAPI does", () =
           { status: 401 },
           { status: 200, data: { replayed: true } },
         ])
-        .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+        .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
       const api: BaseAPI = new BaseAPI(
         Protocol.HTTPS,
@@ -147,7 +148,7 @@ describe("A BaseAPI instance refreshes a lapsed session like BaseAPI does", () =
   test("an instance made with BaseAPI.fromURL is a BaseAPI, and refreshes too", async () => {
     server
       .on(HTTPMethod.GET, RESOURCE_URL, [{ status: 401 }, { status: 200 }])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     const api: BaseAPI = BaseAPI.fromURL(
       URL.fromString(`${DASHBOARD_ORIGIN}/api`),
@@ -239,7 +240,7 @@ describe("The most-derived class is the one that answers", () => {
   test("an instance of a BaseAPI subclass refreshes at the subclass's URL", async () => {
     server
       .on(HTTPMethod.PUT, RESOURCE_URL, [{ status: 401 }, { status: 200 }])
-      .on(HTTPMethod.POST, STATUS_PAGE_REFRESH_URL, [{ status: 200 }]);
+      .on(HTTPMethod.POST, STATUS_PAGE_REFRESH_URL, [RENEWED_SESSION]);
 
     const api: StatusPageLikeAPI = new StatusPageLikeAPI(
       Protocol.HTTPS,

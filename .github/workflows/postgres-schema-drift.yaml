@@ -2929,7 +2929,8 @@ jobs:
 
       # Clones the migrated PacketCapture, File and Probe tables into an
       # isolated schema and runs packet capture's hand-written SQL: a probe
-      # claims only its own Pending captures (FOR UPDATE SKIP LOCKED), hears
+      # claims only its own Pending captures (one statement, FOR NO KEY
+      # UPDATE SKIP LOCKED), hears
       # only its own stops, settles only its own captures, and the server
       # counts the packets in the uploaded file; Stop from the dashboard, the
       # stale capture sweep and the retention sweep (files included).
@@ -3223,6 +3224,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MonitorTestProbeResponsePostgres.test.ts --forceExit
 
+      # Clones the migrated MonitorTest and NetworkDeviceDiagnostic tables
+      # into an isolated schema and runs a probe's claims of its monitor tests
+      # and device diagnostics: each one self-committing statement (no
+      # transaction, one round trip), FOR NO KEY UPDATE SKIP LOCKED - a row
+      # another writer holds is skipped at once, claims at once hand out each
+      # row once, a row that names a claimed one is still written - with the
+      # monitor test's ten-minute re-claim and the diagnostic's claim window.
+      - name: Test the claims of a probe's on-demand jobs on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ON_DEMAND_PROBE_JOB_CLAIM_TESTS: "true"
+          ON_DEMAND_PROBE_JOB_CLAIM_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ON_DEMAND_PROBE_JOB_CLAIM_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ON_DEMAND_PROBE_JOB_CLAIM_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OnDemandProbeJobClaimsPostgres.test.ts --forceExit
+
       # An installation that ran its bundled probes on the keys the repository
       # ships, upgraded: a probe row holding a shipped key is refused though
       # the database matches it, and a probe coming back under its new key
@@ -3425,7 +3445,11 @@ jobs:
       # stopped before an owner's send, during it and before the take, then
       # started again, and two of them at once on connections of their own,
       # on the real delivery service and a copy of the migrated
-      # OwnerNotificationDelivery table: each owner is told once.
+      # OwnerNotificationDelivery table: each owner is told once. #7974: the
+      # state change jobs' backlog - a page at a time, oldest first, each
+      # status change taken by one statement, by one of two runs at once,
+      # and a run stopped at its deadline - on a copy of the migrated
+      # MonitorStatusTimeline table.
       - name: Test the owner notification jobs stopped and started again on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/App
@@ -3436,7 +3460,9 @@ jobs:
           OWNER_NOTIFICATION_JOB_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Workers/Jobs/OwnerNotificationJobsPostgres.test.ts --forceExit
+          Tests/Workers/Jobs/OwnerNotificationJobsPostgres.test.ts
+          Tests/Workers/Utils/OwnerNotificationBacklogPostgres.test.ts
+          --forceExit
 
       # A bundled global probe upgraded from the key the repository ships, end
       # to end: HTTP requests to the probe registration, heartbeat and

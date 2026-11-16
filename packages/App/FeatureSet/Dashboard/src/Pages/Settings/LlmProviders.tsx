@@ -277,7 +277,8 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         return <Pill text="Free" color={Green} />;
                       }
 
-                      return <span>${formattedCost} USD</span>;
+                      // The cost held to its unit (#8826).
+                      return <span>{`$${formattedCost}\u00A0USD`}</span>;
                     },
                   },
                 ]

@@ -361,6 +361,8 @@ Os operadores são `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, 
 
 As ferramentas `list_` e `count_` aceitam qualquer campo, o que mantém a lista de ferramentas pequena o bastante para um cliente carregá-la de uma só vez. Para ver os campos de um recurso, o que cada um significa e quais operadores aceita, um agente chama `oneuptime_describe_resource` com o recurso ou uma de suas ferramentas, como `Incident` ou `list_incidents`.
 
+As outras ferramentas `list_`, de incidentes, monitores e todo outro tipo de registro, ordenam como a API faz: um campo recebe uma direção, ou `{ "direction": "DESC", "nulls": "LAST" }` para pôr por último os registros sem valor nele, e uma relação com um registro ordena por um campo do registro que ela cita, como em `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` marca cada uma dessas relações com `sort` e cita os campos pelos quais ela ordena em `sortBy`.
+
 ## Seleção de campos e paginação
 
 As ferramentas `get_` e `list_` recebem um array `select` opcional de nomes de campos. Por padrão, todo campo legível volta, exceto os pesados (colunas JSON, de texto muito longo e HTML), que precisam ser pedidos em `select`.

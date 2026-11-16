@@ -260,17 +260,17 @@ const HOSTILE_TEXT: string = [
 
 describe("OperatorSlackNotice.formatUsd", () => {
   test.each([
-    [20, "$20 USD"],
-    [0, "$0 USD"],
-    [-0, "$0 USD"],
-    [20.5, "$20.50 USD"],
-    [21.5, "$21.50 USD"],
-    [0.01, "$0.01 USD"],
-    [2015 / 100, "$20.15 USD"],
-    [0.1 + 0.2, "$0.30 USD"],
-    [1000000, "$1000000 USD"],
-    [-1.5, "-$1.50 USD"],
-    [-20, "-$20 USD"],
+    [20, "$20\u00A0USD"],
+    [0, "$0\u00A0USD"],
+    [-0, "$0\u00A0USD"],
+    [20.5, "$20.50\u00A0USD"],
+    [21.5, "$21.50\u00A0USD"],
+    [0.01, "$0.01\u00A0USD"],
+    [2015 / 100, "$20.15\u00A0USD"],
+    [0.1 + 0.2, "$0.30\u00A0USD"],
+    [1000000, "$1000000\u00A0USD"],
+    [-1.5, "-$1.50\u00A0USD"],
+    [-20, "-$20\u00A0USD"],
   ])("%p reads %p", (amount: number, expected: string) => {
     expect(OperatorSlackNotice.formatUsd(amount)).toBe(expected);
   });
@@ -300,8 +300,8 @@ describe("OperatorSlackNotice.getBalanceRefilledText", () => {
       "*AI Balance Refilled:*",
       "*Project Name:* Kerberos Compliance Platform",
       `*Project ID:* ${PROJECT_ID.toString()}`,
-      "*Refill Amount:* $20 USD",
-      "*Current Balance:* $21.50 USD",
+      "*Refill Amount:* $20\u00A0USD",
+      "*Current Balance:* $21.50\u00A0USD",
       "*Recharge Type:* Manual",
       "*Project Created By:* Jane Doe (jane@acme.example)",
     ]);
@@ -399,7 +399,7 @@ describe("OperatorSlackNotice.getBalanceRefilledText", () => {
           refill({ amountInUSD: 20, currentBalanceInUSD: -1.5 }),
         ),
       ),
-    ).toContain("*Current Balance:* -$1.50 USD");
+    ).toContain("*Current Balance:* -$1.50\u00A0USD");
   });
 
   test("a project's name is text: it notifies nobody and links nowhere", () => {
@@ -440,9 +440,9 @@ describe("OperatorSlackNotice.getBalanceAdjustedText", () => {
       "*AI Balance Adjusted:*",
       "*Project Name:* Kerberos Compliance Platform",
       `*Project ID:* ${PROJECT_ID.toString()}`,
-      "*Adjustment:* Added $10 USD",
-      "*Previous Balance:* $25 USD",
-      "*New Balance:* $35 USD",
+      "*Adjustment:* Added $10\u00A0USD",
+      "*Previous Balance:* $25\u00A0USD",
+      "*New Balance:* $35\u00A0USD",
       "*Adjusted By:* Ops Admin (ops@oneuptime.example)",
       "*Reason:* Goodwill credit agreed on ticket 4821",
     ]);
@@ -463,9 +463,13 @@ describe("OperatorSlackNotice.getBalanceAdjustedText", () => {
   );
 
   test.each([
-    [BalanceAdjustmentType.Add, 1000, "*Adjustment:* Added $10 USD"],
-    [BalanceAdjustmentType.Deduct, 250, "*Adjustment:* Deducted $2.50 USD"],
-    [BalanceAdjustmentType.Set, 0, "*Adjustment:* Set to $0 USD"],
+    [BalanceAdjustmentType.Add, 1000, "*Adjustment:* Added $10\u00A0USD"],
+    [
+      BalanceAdjustmentType.Deduct,
+      250,
+      "*Adjustment:* Deducted $2.50\u00A0USD",
+    ],
+    [BalanceAdjustmentType.Set, 0, "*Adjustment:* Set to $0\u00A0USD"],
   ])(
     "%s %p cents reads %p",
     (

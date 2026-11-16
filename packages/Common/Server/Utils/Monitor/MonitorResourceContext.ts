@@ -44,7 +44,60 @@ import SeriesResourceLinker, {
  * thing for exactly four cluster types (Proxmox / Ceph / Docker Swarm /
  * IoT) with a hand-rolled findOneBy per identifier.
  */
+
+/*
+ * What the incidents and alerts one evaluation opens are about, beyond
+ * their series: the resources the monitor's config names
+ * (resolveResourceContextForMonitor) and those someone linked it to by hand
+ * (resolveLinkedResourcesForMonitor). Each is read the first time a record
+ * is really created, and once for every incident and alert of the
+ * evaluation (issue #8118): one that opens an incident and an alert used to
+ * read both twice, once per creator - a dozen statements for the linked
+ * resources alone - and an evaluation that opens nothing reads neither.
+ *
+ * Both creators only read what is handed back (SeriesResourceLinker merges
+ * it into each record), so one answer serves them all.
+ */
+export interface MonitorRecordResources {
+  getResourceContext: () => Promise<SeriesResolvedResourceIds>;
+  getLinkedResources: () => Promise<SeriesResolvedResourceIds>;
+}
+
 export default class MonitorResourceContextUtil {
+  /*
+   * The record resources of one evaluation of `monitor`, each read at most
+   * once and only when first asked for (MonitorRecordResources).
+   */
+  public static forEvaluation(input: {
+    monitor: Monitor;
+  }): MonitorRecordResources {
+    let resourceContext: Promise<SeriesResolvedResourceIds> | null = null;
+    let linkedResources: Promise<SeriesResolvedResourceIds> | null = null;
+
+    return {
+      getResourceContext: (): Promise<SeriesResolvedResourceIds> => {
+        if (!resourceContext) {
+          resourceContext =
+            MonitorResourceContextUtil.resolveResourceContextForMonitor({
+              monitor: input.monitor,
+            });
+        }
+
+        return resourceContext;
+      },
+      getLinkedResources: (): Promise<SeriesResolvedResourceIds> => {
+        if (!linkedResources) {
+          linkedResources =
+            MonitorResourceContextUtil.resolveLinkedResourcesForMonitor({
+              monitor: input.monitor,
+            });
+        }
+
+        return linkedResources;
+      },
+    };
+  }
+
   /*
    * Resolve the resource rows the monitor's configuration names.
    *
