@@ -340,7 +340,7 @@ Opløste tilladelser caches pr. bruger og projekt og opdateres, når teammedlems
 
 En hændelse, en advarsel eller en episode, der er markeret som privat, kan kun ses af dens ejere — de personer, der er angivet som dens ejere, og medlemmerne af dens ejerteams, der har accepteret deres invitation — og af Projektejere og Projektadministratorer.
 
-En sådan post ændres kun med tilladelserne fra de teams, der ejer den, og fra de personer, der er angivet som dens ejere. Den, der er angivet som ejer, handler på den med alle de tilladelser, vedkommende har. Alle andre handler kun på den med tilladelserne fra deres teams, der ejer den, hver med sit eget omfang og sine egne labels: et andet teams tilladelse når ingen privat post, som det team ikke ejer. Det gælder alt, hvad der gøres ved posten og det, der hører til den — at redigere den, ændre dens tilstand, dens noter, ejere, roller, labels, tilknyttede advarsler, episodemedlemmer og opkald, og at slette den — fra dashboardet, API'et, massehandlinger, Slack, Microsoft Teams eller OneUptime AI. Projektejere og Projektadministratorer ændrer enhver privat post, og det gør arbejdsgangstrin også, da de handler som Projektadministrator; en API-nøgle gør det kun med `ProjectOwner` eller `ProjectAdmin`.
+En sådan post ændres kun med tilladelserne fra de teams, der ejer den, og fra de personer, der er angivet som dens ejere. Den, der er angivet som ejer, handler på den med alle de tilladelser, vedkommende har. Alle andre handler kun på den med tilladelserne fra deres teams, der ejer den, hver med sit eget omfang og sine egne labels: et andet teams tilladelse når ingen privat post, som det team ikke ejer. Det gælder alt, hvad der gøres ved posten og det, der hører til den — at redigere den, ændre dens tilstand, dens noter, ejere, roller, labels, tilknyttede advarsler, episodemedlemmer og opkald, og at slette den — fra dashboardet, API'et, massehandlinger, Slack, Microsoft Teams eller OneUptime AI. Projektejere og Projektadministratorer ændrer enhver privat post, og en API-nøgle gør det kun med `ProjectOwner` eller `ProjectAdmin`.
 
 | En person i team 1 og team 2 | En privat hændelse, som team 2 ejer | En offentlig hændelse, som team 2 ejer |
 | --- | --- | --- |
@@ -349,6 +349,12 @@ En sådan post ændres kun med tilladelserne fra de teams, der ejer den, og fra 
 | Team 2 har også `IncidentMember` | Ændrer den via team 2 | Ændrer den via begge teams |
 
 Et team, der ejer private poster, men ikke har nogen tilladelser, et team, der kun bruges til at samle personer, lader sine medlemmer se dem og ændre ingen af dem. På en privat posts side er en ændring, som personens teams, der ejer den, ikke må foretage, låst og siger hvorfor. For at give lov til den skal du give et team, der ejer den, tilladelsen, gøre et team med tilladelsen til ejer eller gøre personen til ejer.
+
+Det, der gøres i forbindelse med en privat post, følger samme regel: at tilkalde nogen om den (**Udfør vagtpolitik**, **Tilkald nu** og tilkaldelse fra Slack, Microsoft Teams, Mattermost eller OneUptime AI), at starte en runbook for den eller føre den kørsel videre, og at godkende, prøvekøre eller afvise en rettelse, som OneUptime AI har foreslået for den. Hver af dem kræver sin egen tilladelse, f.eks. at tilkalde via vagtpolitikker eller at starte runbook-kørsler, og på en privat post låner kun de teams, der ejer den, den ud, ud over de personer, der er navngivet som dens ejere. Alle andre afvises med begrundelsen, og intet tilkaldes, køres eller ændres.
+
+Det, der gøres og sendes om en privat post, læses kun af dem, der må læse posten: dens kørsler af vagtpolitikker, dens runbook-kørsler, de rettelser, der er foreslået for den, og logfilerne over de e-mails, SMS'er, opkald, push-notifikationer, chatbeskeder, webhooks og AI-forespørgsler, OneUptime har sendt om den. De personer, der tilkaldes om den, ser stadig deres tilkaldelse.
+
+Arbejdsgange handler ikke på private poster. Trinene i en arbejdsgang handler som Projektadministrator, men låner aldrig dens adgang til at se private hændelser, advarsler og episoder: de finder ingen, ændrer ingen og føjer intet til en, og en arbejdsgang starter ikke på en eller på noget, der hører til en. Se [Hvad arbejdsgangstrin må gøre](/docs/workflows/configuration#hvad-arbejdsgangstrin-må-gøre).
 
 ### Regler, der tilhører teams
 

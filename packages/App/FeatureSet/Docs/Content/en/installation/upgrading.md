@@ -1740,19 +1740,37 @@ working mail server.
   that own it.** Someone on a team that may change incidents and on another
   team that owns a private incident and may only view it could change that
   incident through the first team: edit it, change its state, add notes,
-  owners and roles, and delete it, from the dashboard, the API, bulk
-  actions, Slack, Microsoft Teams and OneUptime AI. Now a private record is
-  changed only with the permissions of the teams that own it, each with its
-  own scope and labels, and of the people named as its owners, and the same
-  goes for its notes, owners, state history, roles, links, episode members
-  and calls. Its state history, public notes, roles, SLA and measurements
-  are now read, like its other parts, only by those who may read it.
-  Project Owners and Project Admins, and workflow steps, change every private
-  record as before. A team that owns private records but holds no
-  permissions lets its members see them and change none of them, and a
-  pending invitation no longer shows a team's private records. Give the
+  owners and roles, and delete it, from the dashboard, the API, bulk actions,
+  Slack, Microsoft Teams and OneUptime AI. Now a private record is changed
+  only with the permissions of the teams that own it, each with its own scope
+  and labels, and of the people named as its owners, and the same goes for its
+  notes, owners, state history, roles, links, episode members and calls. Its
+  state history, public notes, roles, SLA and measurements are now read, like
+  its other parts, only by those who may read it. Project Owners and Project
+  Admins change every private record as before; workflow steps no longer see
+  or change one (see the next note). A team that owns private records but
+  holds no permissions lets its members see them and change none of them, and
+  a pending invitation no longer shows a team's private records. Give the
   teams that own private records the permissions their members should act
   with, or make those members owners. See
+  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+- **What is done about a private record follows its owners too, and workflows
+  don't act on private records.** Paging about a private incident, alert or
+  episode (**Execute On-Call Policy**, **Page now**, and paging from Slack,
+  Microsoft Teams, Mattermost or OneUptime AI), starting a runbook linked to
+  it or moving that run along, and approving, dry-running or dismissing a fix
+  OneUptime AI proposed for it now take their permission from the teams that
+  own it, the people named as its owners, or Project Owners and Project
+  Admins, as a change of it does. Anyone else is refused with the reason, and
+  on the record's page those buttons are locked saying why. Its on-call policy
+  runs, runbook runs and fixes, and the logs of the email, SMS, calls, push
+  notifications, WhatsApp, Telegram, Slack and Microsoft Teams messages,
+  webhooks and AI requests about it, are now read only by those who may read
+  it. Workflow steps no longer see or change a private record, nor anything of
+  one, and a workflow no longer starts on one. Give the teams that own private
+  records the paging and runbook permissions their members should act with,
+  and move what a workflow did with private records to a person, or to the
+  record's own on-call and notification rules. See
   [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
@@ -1771,6 +1789,7 @@ What changes for an existing workflow:
 - A **Create One Incident** step that declared from a template by sending `createdIncidentTemplateId` is refused. Pick the template under the step's **Incident Template** setting instead, and take `createdIncidentTemplateId` out of its **JSON Object**. The step then declares the incident from the template the way the dashboard does — everything the step sets wins, a state included — adds the template's owners, and records the template. The run log of a step still sending the column points to the setting. See [Declaring an incident from a template](/docs/workflows/components#declaring-an-incident-from-a-template).
 - A step that selects who created a probe or an AI agent is refused.
 - A step that names an SMTP server, a call and SMS provider, SNMP credentials, a video call connection, an API key or a runbook credential is refused - one that sets a status page's SMTP server, say, or grants an API key a permission. A step is never lent the read of settings that hold credentials: a person who may read them has to make that change. A step that keeps the one a record names already, or clears it, is not refused.
+- A step no longer finds, changes or adds anything to a private incident, alert or episode, and a workflow no longer starts on one, or on anything that belongs to one, such as its notes, a page about it or a runbook run linked to it. A step is never lent the sight of private records: whoever builds a workflow decides where what its steps read goes. Move what such a workflow did to a person, or to the record's own on-call and notification rules. See [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
 - On OneUptime Cloud, a step that creates or changes what the project's plan doesn't include is refused with the plan it needs, as the dashboard is.
 - An Update step no longer writes the project: a record stays in its project, as before.
 
