@@ -556,11 +556,15 @@ export default class DeclaredCodeChanges {
     let context: Array<CodeTaskContextItem> = [];
 
     try {
-      context = await CodeTaskContextBuilder.build({
-        inputs,
-        projectId,
-        props: data.props,
-      });
+      // A private record's fix: nothing to read into the task.
+      context =
+        inputs.length > 0
+          ? await CodeTaskContextBuilder.build({
+              inputs,
+              projectId,
+              props: data.props,
+            })
+          : [];
     } catch (error) {
       // The request says what to change; the record only adds why.
       logger.debug(

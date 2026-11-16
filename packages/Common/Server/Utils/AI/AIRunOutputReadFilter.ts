@@ -297,13 +297,12 @@ export default class AIRunOutputReadFilter {
     }
 
     const named: Record<string, unknown> = {};
-    const conditions: Array<string> = AIRunOutputReadFilter.writeAboutConditions(
-      {
+    const conditions: Array<string> =
+      AIRunOutputReadFilter.writeAboutConditions({
         run: data.alias,
         props: data.props,
         parameters: named,
-      },
-    );
+      });
 
     if (conditions.length === 0) {
       return null;
@@ -356,9 +355,8 @@ export default class AIRunOutputReadFilter {
     props: DatabaseCommonInteractionProps;
     parameters: Record<string, unknown>;
   }): Array<string> {
-    const conditions: Array<string> = AIRunOutputReadFilter.writeOwnConditions(
-      data,
-    );
+    const conditions: Array<string> =
+      AIRunOutputReadFilter.writeOwnConditions(data);
 
     const task: KeyCondition | null = AIRunOutputReadFilter.getTaskKeyCondition(
       data.props,
@@ -380,27 +378,23 @@ export default class AIRunOutputReadFilter {
   }): Array<string> {
     const conditions: Array<string> = [];
 
-    const written: Array<{ column: string; condition: KeyCondition | null }> =
-      [
-        ...AI_RUN_RECORD_KEYS.map((key: AIRunRecordKey) => {
-          return {
-            column: key.column,
-            condition: AIRunOutputReadFilter.getRecordKeyCondition(
-              key,
-              data.props,
-            ),
-          };
-        }),
-        ...AI_RUN_PART_KEYS.map((key: AIRunPartKey) => {
-          return {
-            column: key.column,
-            condition: AIRunOutputReadFilter.getPartKeyCondition(
-              key,
-              data.props,
-            ),
-          };
-        }),
-      ];
+    const written: Array<{ column: string; condition: KeyCondition | null }> = [
+      ...AI_RUN_RECORD_KEYS.map((key: AIRunRecordKey) => {
+        return {
+          column: key.column,
+          condition: AIRunOutputReadFilter.getRecordKeyCondition(
+            key,
+            data.props,
+          ),
+        };
+      }),
+      ...AI_RUN_PART_KEYS.map((key: AIRunPartKey) => {
+        return {
+          column: key.column,
+          condition: AIRunOutputReadFilter.getPartKeyCondition(key, data.props),
+        };
+      }),
+    ];
 
     for (const key of written) {
       if (!key.condition) {
@@ -523,13 +517,11 @@ export default class AIRunOutputReadFilter {
   ): KeyCondition | null {
     const task: string = `aiRunTask${Text.generateRandomText(10)}`;
     const parameters: Record<string, unknown> = {};
-    const conditions: Array<string> = AIRunOutputReadFilter.writeOwnConditions(
-      {
-        run: task,
-        props: props,
-        parameters: parameters,
-      },
-    );
+    const conditions: Array<string> = AIRunOutputReadFilter.writeOwnConditions({
+      run: task,
+      props: props,
+      parameters: parameters,
+    });
 
     if (conditions.length === 0) {
       return null;
