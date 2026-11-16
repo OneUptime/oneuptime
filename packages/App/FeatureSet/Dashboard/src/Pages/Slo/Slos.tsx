@@ -9,6 +9,8 @@ import {
   SLO_CREATE_FORM_STEPS,
   SLO_CREATE_INITIAL_VALUES,
 } from "./SloFormFields";
+// The Metric SLO fields' controls, for the create form.
+import "./SloMetricQueryFieldElements";
 import SloStatusPill from "../../Components/Slo/SloStatusPill";
 import SloStatusSummaryCards from "../../Components/Slo/SloStatusSummaryCards";
 import {

@@ -9,6 +9,8 @@ import {
   SLO_CREATE_FORM_STEPS,
   SLO_CREATE_INITIAL_VALUES,
 } from "../../Slo/SloFormFields";
+// The Metric SLO fields' controls, for the create form.
+import "../../Slo/SloMetricQueryFieldElements";
 import useSloBulkActions, {
   SLO_OWNER_RESOURCE_ID_FIELD,
   SloBulkActionsResult,
