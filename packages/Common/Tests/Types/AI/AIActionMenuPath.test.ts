@@ -68,9 +68,9 @@ describe("aiActionMenuPath", () => {
 
 describe("describeAIActionMenuPath", () => {
   test("reads in English as the Dashboard draws each name, a key that names its meaning as its word", () => {
-    expect(describeAIActionMenuPath(aiActionMenuPath(NOTIFICATION_METHODS))).toBe(
-      "User Settings > Alerts & Notifications > Notification Methods",
-    );
+    expect(
+      describeAIActionMenuPath(aiActionMenuPath(NOTIFICATION_METHODS)),
+    ).toBe("User Settings > Alerts & Notifications > Notification Methods");
     expect(
       describeAIActionMenuPath(
         aiActionMenuPath(["Logs", "Insights (explorer analytics)"]),
@@ -86,7 +86,11 @@ describe("describeAIActionMenuPath", () => {
     );
     expect(
       describeAIActionMenuPath(
-        aiActionMenuPath(["Logs", "Insights (explorer analytics)", "Kubernetes"]),
+        aiActionMenuPath([
+          "Logs",
+          "Insights (explorer analytics)",
+          "Kubernetes",
+        ]),
         german,
       ),
     ).toBe("Logs > Einblicke > Kubernetes");

@@ -651,9 +651,7 @@ describe("find_dashboard_page cites the page the model names by its place", () =
 
     expect(Object.keys(properties).sort()).toEqual(["place", "query"]);
     expect(schema["required"]).toEqual(["query"]);
-    expect(FindDashboardPageTool.description).toContain(
-      "its where as place",
-    );
+    expect(FindDashboardPageTool.description).toContain("its where as place");
   });
 
   test.each([
@@ -669,10 +667,11 @@ describe("find_dashboard_page cites the page the model names by its place", () =
         query: `${area} Insights`,
       });
       const listed: Array<{ title: string; where: string }> = pagesOf(first);
-      const theTab: { title: string; where: string } | undefined =
-        listed.find((page: { where: string }): boolean => {
+      const theTab: { title: string; where: string } | undefined = listed.find(
+        (page: { where: string }): boolean => {
           return page.where === area;
-        });
+        },
+      );
 
       expect(theTab).toEqual({ title: "Insights", where: area, kind: "page" });
       expect(

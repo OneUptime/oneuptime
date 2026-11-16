@@ -501,10 +501,7 @@ export const FindDashboardPageTool: ObservabilityTool = {
        * a turn's history, stays English (#8831).
        */
       ...citationSentence(AI_TOOL_CITATIONS.dashboardPage, {
-        path: aiActionMenuPath([
-          ...first.where,
-          first.titleKey ?? first.title,
-        ]),
+        path: aiActionMenuPath([...first.where, first.titleKey ?? first.title]),
       }),
       citationTarget: {
         type: AIChatCitationTargetType.DashboardPage,

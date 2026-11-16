@@ -170,11 +170,9 @@ const searchedNotShown: (
   return [...descriptor.titleAliases, ...descriptor.breadcrumbKeywords];
 };
 
-const NOTES: ReadonlyArray<string> = MEANING_KEYS.map(
-  (key: string): string => {
-    return key.slice(withMeaningKeyAsItsWord(key).length).trim();
-  },
-);
+const NOTES: ReadonlyArray<string> = MEANING_KEYS.map((key: string): string => {
+  return key.slice(withMeaningKeyAsItsWord(key).length).trim();
+});
 
 describe("englishOfIndexName", () => {
   test("reads a key that names its meaning as its word, and any other name as it is", () => {

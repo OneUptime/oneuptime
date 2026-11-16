@@ -234,7 +234,9 @@ describe("a Dashboard page's chip under Sources (#8831)", () => {
       rowCount: 1,
     };
 
-    expect(chipLabel(saved)).toBe("Seite: User Settings > Notification Methods");
+    expect(chipLabel(saved)).toBe(
+      "Seite: User Settings > Notification Methods",
+    );
   });
 });
 
