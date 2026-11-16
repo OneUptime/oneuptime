@@ -243,6 +243,8 @@ Arkiver en statusside for å ta den offline uten å slette den. En arkivert stat
 
 For å arkivere en statusside åpner du den og går til **Avansert → Avanserte innstillinger → Arkiver statusside**. For å arkivere flere velger du dem i listen **Statussider** og velger **Arkiver**. For å hente tilbake en åpner du **Statussider → Avansert → Arkivert**, velger den og velger **Fjern fra arkivet**, eller du åpner den og klikker på **Fjern fra arkivet** i banneret øverst på sidene dens.
 
+**Oversikt** for en statusside har kortet **Vises nå**: de åpne hendelsene og det kommende eller pågående vedlikeholdet som besøkende ser på den akkurat nå. Når du arkiverer eller sletter siden, på dens egne sider eller fra listen, sies det først hva besøkende ikke lenger ville se.
+
 ## Neste steg
 
 :::cards

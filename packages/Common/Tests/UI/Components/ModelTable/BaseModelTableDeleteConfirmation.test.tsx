@@ -313,6 +313,55 @@ describe("getDeleteConfirmation", () => {
     expect(findButtons("Delete")).toHaveLength(1);
   });
 
+  /*
+   * What still uses the row (a list's Used by, #7435) goes under the
+   * table's own question, which keeps its words and what the row takes with
+   * it: the confirmation adds, and replaces nothing.
+   */
+  test("details go under the table's own question, which stays whole", async () => {
+    renderTable({
+      getDeleteConfirmation: async (): Promise<DeleteConfirmation> => {
+        return {
+          details: (
+            <p data-testid="still-in-use">3 status pages show this monitor.</p>
+          ),
+        };
+      },
+    });
+
+    await clickRemove(0);
+
+    const description: HTMLElement = await waitForDialog();
+
+    expect(description).toHaveTextContent(
+      "Are you sure you want to delete Checkout API?",
+    );
+    expect(screen.getByTestId("delete-confirmation-details")).toContainElement(
+      screen.getByTestId("still-in-use"),
+    );
+    // The question comes first, the details after it.
+    expect(description.textContent?.indexOf("Are you sure")).toBeLessThan(
+      description.textContent?.indexOf("3 status pages") ?? -1,
+    );
+    expect(screen.getByText("Delete Monitor")).toBeInTheDocument();
+    expect(findButtons("Delete")).toHaveLength(1);
+  });
+
+  test("a confirmation with neither words nor details is the table's own", async () => {
+    renderTable({
+      getDeleteConfirmation: async (): Promise<DeleteConfirmation> => {
+        return {};
+      },
+    });
+
+    await clickRemove(0);
+
+    expect(await waitForDialog()).toHaveTextContent(
+      "Are you sure you want to delete Checkout API?",
+    );
+    expect(screen.queryByTestId("delete-confirmation-details")).toBeNull();
+  });
+
   test("accepts an element as well as a string", async () => {
     renderTable({
       getDeleteConfirmation: async (): Promise<DeleteConfirmation> => {

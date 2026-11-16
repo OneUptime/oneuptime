@@ -92,6 +92,8 @@ Dans une liste, les étiquettes d'un enregistrement s'affichent les unes sous le
 
 Pour retirer une étiquette, archivez-la depuis le menu **⋯** de sa ligne au lieu de la supprimer. Tout ce qui a l'étiquette la conserve, et vous pouvez toujours filtrer par celle-ci, mais personne ne peut plus l'ajouter à quoi que ce soit : chaque sélecteur d'étiquettes l'exclut, et l'API, Terraform et MCP la refusent. La boîte de dialogue liste les règles et permissions configurées pour utiliser l'étiquette, qui continuent à l'utiliser tant que vous ne les modifiez pas. Les étiquettes archivées sont listées à part, dans la section repliée **Étiquettes archivées**, où **Désarchiver** en remet une. **Supprimer** liste d'abord tout ce dont l'étiquette serait retirée, et propose **Archiver plutôt**.
 
+**Utilisé par**, dans le menu de la ligne d'une étiquette, compte les enregistrements de chaque type qui portent l'étiquette, et les ouvre une page à la fois. Les enregistrements que vous ne pouvez pas ouvrir sont comptés, pas nommés.
+
 ## Notifications
 
 **Paramètres du projet → Notifications** contient la façon dont le projet envoie ses notifications :

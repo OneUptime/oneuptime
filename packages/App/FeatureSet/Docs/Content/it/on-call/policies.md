@@ -57,6 +57,8 @@ Aprite una policy dall'elenco. Il suo menu laterale contiene tutto ciò che la r
 - **Sostituzioni utente** sostituisce persone solo in questa policy. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
 - **Impostazioni** contiene **Esporta: Policy di reperibilità** e la scheda che archivia la policy.
 
+**Cosa attiva questa policy**, nella **Panoramica**, elenca le regole di reperibilità, i monitor i cui criteri attivano la policy, i modelli e le altre regole che la attivano, e i flussi di lavoro che lo fanno, ciascuno con un link. Una regola disattivata mostra **Disattivato**. Se nulla attiva la policy, la scheda lo dice: non chiama nessuno finché qualcosa non la attiva. Eliminare o archiviare la policy lo dice prima. Ciò che non puoi aprire viene contato, non nominato.
+
 ## Ripetere una policy
 
 Quando l'attesa dell'ultimo livello scade senza che nessuno riconosca, una policy si ferma, a meno che non si ripeta. Per scegliere, aprite la pagina **Regole di escalation** della policy e fate clic su **Modifica** nella scheda **Criterio di ripetizione** sotto le regole. **Modifica criterio di ripetizione** chiede **Se nessuno riconosce dopo l'ultimo livello**:
@@ -93,7 +95,7 @@ Nessuno perde un avviso per essere stato avvisato una volta sola. Quell'unico av
 
 Alcuni avvisi continuano dopo il riconoscimento, finché non risponde qualcuno che hanno avvisato o finché non viene risolto: un nuovo avviso, un avviso agli osservatori, un avviso che qualcuno ha mandato a delle persone da Slack o Microsoft Teams, e una policy avviata a mano.
 
-Una policy avviata a mano è una policy avviata con **Esegui policy di reperibilità**, o da un avviso da Slack o Microsoft Teams che la nomina. Avvisa livello per livello come qualsiasi esecuzione, chiamate e notifiche push ripetute comprese, e il riconoscimento dell'incidente da parte di qualcun altro non la ferma: è così che si avvisa un altro team per un incidente di cui qualcuno si sta già occupando. Chi ha ricevuto il suo avviso risponde dal messaggio dell'avviso, con una chiamata o un SMS, o riconoscendo personalmente l'incidente; una volta riconosciuto l'incidente, la sua pagina gli offre **Riconosci di nuovo**. **Escala** la passa al livello successivo. Su un incidente, un avviso o un episodio risolto non viene avviato nulla, e vi viene detto perché. Le sue notifiche dicono chi ha avviato quale policy, e riportano il messaggio inviato con un avviso da Slack o Microsoft Teams.
+Una policy avviata a mano è una policy avviata con **Esegui policy di reperibilità**, o da un avviso da Slack o Microsoft Teams che la nomina. Avvisa livello per livello come qualsiasi esecuzione, chiamate e notifiche push ripetute comprese, e il riconoscimento dell'incidente da parte di qualcun altro non la ferma: è così che si avvisa un altro team per un incidente di cui qualcuno si sta già occupando. Chi ha ricevuto il suo avviso risponde dal messaggio dell'avviso, con una chiamata o un SMS, o riconoscendo personalmente l'incidente; una volta riconosciuto l'incidente, la sua pagina gli offre **Riconosci di nuovo**. **Escala** la passa al livello successivo. Su un incidente, un avviso o un episodio risolto non viene avviato nulla, e vi viene detto perché: la dashboard disattiva **Esegui policy di reperibilità** e ne mostra il motivo. Le sue notifiche dicono chi ha avviato quale policy, e riportano il messaggio inviato con un avviso da Slack o Microsoft Teams.
 
 ## Log di esecuzione
 

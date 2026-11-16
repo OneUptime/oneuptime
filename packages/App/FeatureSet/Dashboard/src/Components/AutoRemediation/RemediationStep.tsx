@@ -107,7 +107,13 @@ import {
   REMEDIATION_ROUND_TRY_AGAIN_PATH,
   RemediationRoundTryAgainRefusal,
 } from "Common/Types/AutoRemediation/RemediationRound";
-import { getRiskierRemediationCommands } from "Common/Types/AutoRemediation/RemediationApprovals";
+import {
+  encodeRemediationApprovalStep,
+  getRiskierRemediationCommands,
+  isRiskierWhateverItChanges,
+  RemediationApprovalStepKind,
+} from "Common/Types/AutoRemediation/RemediationApprovals";
+import { getRemediationPlanFingerprint } from "Common/Types/AutoRemediation/RemediationPlanFingerprint";
 import UserUtil from "Common/UI/Utils/User";
 import RemediationFixStepList, {
   getRemediationFixStepDetailsId,
@@ -235,6 +241,25 @@ export interface RemediationStepCodeFix {
 interface RoundTriedAgain {
   suggestionId: string;
   count: number;
+}
+
+// A press on a fix that has its answer: whose fix, which press, how many so far.
+interface ActionAnswered {
+  suggestionId: string;
+  action: RemediationSuggestionAction;
+  count: number;
+}
+
+/*
+ * The id of a fix's action button (Approve, Approve & Run, its dry run,
+ * Dismiss fix, Save as Runbook): where the keyboard goes back to when a
+ * press is answered and the button is still offered.
+ */
+export function getRemediationFixActionButtonId(
+  idPrefix: string,
+  action: RemediationSuggestionAction,
+): string {
+  return `${idPrefix}-${action}-button`;
 }
 
 /*
@@ -499,14 +524,19 @@ function readReaderUserId(): string {
 
 /*
  * A riskier fix that waits for approval - a command plan holding a riskier
- * change, or one somebody approved first - for which the project's
- * two-approvals rule is worth reading.
+ * change, a fix through MCP servers, or one somebody approved first - for
+ * which the project's two-approvals rule is worth reading.
  */
 function isRiskierFixWaiting(suggestion: AutoRemediationSuggestion): boolean {
-  if (
-    suggestion.status !== AutoRemediationSuggestionStatus.Suggested ||
-    suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan
-  ) {
+  if (suggestion.status !== AutoRemediationSuggestionStatus.Suggested) {
+    return false;
+  }
+
+  if (isRiskierWhateverItChanges(suggestion.suggestionType)) {
+    return true;
+  }
+
+  if (suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan) {
     return false;
   }
 
@@ -695,6 +725,10 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
    * step's title (useEffect below).
    */
   const [tryAgainAnswerCount, setTryAgainAnswerCount] = useState<number>(0);
+  // The last press on a fix that has its answer, for where the keyboard goes.
+  const [actionAnswered, setActionAnswered] = useState<ActionAnswered | null>(
+    null,
+  );
   const tryAgainButtonId: string = useId();
   // What each folded fix's Review and approve opens is named after this.
   const fixDetailsIdPrefix: string = useId();
@@ -1224,13 +1258,41 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
   const performAction: (
     suggestion: AutoRemediationSuggestion,
     action: RemediationSuggestionAction,
+    options?: { isFirstOfTwoApprovals?: boolean | undefined },
   ) => Promise<void> = async (
     suggestion: AutoRemediationSuggestion,
     action: RemediationSuggestionAction,
+    options?: { isFirstOfTwoApprovals?: boolean | undefined },
   ): Promise<void> => {
     const suggestionId: string | undefined = suggestion.id?.toString();
     if (!suggestionId) {
       return;
+    }
+
+    /*
+     * An approval names what it approves (RemediationApproval): the
+     * fingerprint of the fix this card shows - a fix that changed since is
+     * not approved - and, where its press only records the first of two
+     * approvals ("Approve"), that it does: if someone else approved first
+     * meanwhile, or the rule was turned off, the press would run the fix,
+     * and the server does nothing instead. Every other press runs the fix
+     * or records a first approval, which the answer says.
+     */
+    const body: JSONObject = { suggestionId };
+
+    if (action === "approve") {
+      body["expectedPlanFingerprint"] = getRemediationPlanFingerprint({
+        suggestionType: suggestion.suggestionType,
+        commandPlan: suggestion.commandPlan || null,
+        mcpToolCallPlan: suggestion.mcpToolCallPlan || null,
+        runbookId: suggestion.runbookId || null,
+      });
+
+      if (options?.isFirstOfTwoApprovals) {
+        body["expectedApprovalStep"] = encodeRemediationApprovalStep({
+          kind: RemediationApprovalStepKind.First,
+        });
+      }
     }
 
     /*
@@ -1258,7 +1320,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
           url: URL.fromString(APP_API_URL.toString()).addRoute(
             `/auto-remediation/${action}`,
           ),
-          data: { suggestionId },
+          data: body,
           headers: ModelAPI.getCommonHeaders(),
         });
 
@@ -1326,8 +1388,75 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
       setBusySuggestionId("");
       setBusyAction(null);
       isActionInFlightRef.current = false;
+      // Where the keyboard goes now that the press is answered (below).
+      setActionAnswered((previous: ActionAnswered | null): ActionAnswered => {
+        return {
+          suggestionId,
+          action,
+          count: (previous?.count || 0) + 1,
+        };
+      });
     }
   };
+
+  /*
+   * Once a press of Approve, Approve & Run, Dismiss fix or a dry run has its
+   * answer, the keyboard stays on its fix, as it does after Try again. The
+   * pressed button goes away (an approved or dismissed fix offers none) or is
+   * locked while it works, and the focus fell to the top of the page with
+   * nothing said of what changed (#6422). It goes to the title of the step
+   * the press made - the run of an approved fix, the first of two approvals,
+   * the dismissal - or else to the fix's plan, so the new lines are read
+   * from there. A button still offered keeps it, and a reader who has moved
+   * on meanwhile keeps their place.
+   */
+  useEffect(() => {
+    if (!actionAnswered) {
+      return;
+    }
+
+    const active: Element | null = document.activeElement;
+
+    if (active && active !== document.body) {
+      return;
+    }
+
+    // The pressed button, while it is still offered (a refused press, a dry run).
+    const pressed: HTMLElement | null = document.getElementById(
+      getRemediationFixActionButtonId(
+        `${fixDetailsIdPrefix}-${actionAnswered.suggestionId}`,
+        actionAnswered.action,
+      ),
+    );
+
+    if (pressed && !(pressed as HTMLButtonElement).disabled) {
+      pressed.focus();
+      return;
+    }
+
+    const stepKinds: Array<RemediationFixStepKind> =
+      actionAnswered.action === "approve"
+        ? ["run", "firstApproval", "approval", "plan"]
+        : actionAnswered.action === "dismiss"
+          ? ["approval", "plan"]
+          : ["plan"];
+
+    for (const kind of stepKinds) {
+      const title: HTMLElement | null = document.getElementById(
+        getRemediationFixStepTitleId(
+          `${fixDetailsIdPrefix}-${actionAnswered.suggestionId}`,
+          kind,
+        ),
+      );
+
+      if (title) {
+        title.focus();
+        return;
+      }
+    }
+
+    stepHeadingRef.current?.focus();
+  }, [actionAnswered, fixDetailsIdPrefix]);
 
   /*
    * Try again: OneUptime AI decides again, now, with the project's settings
@@ -1916,6 +2045,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
 
             {isApproveShown ? (
               <Button
+                id={getRemediationFixActionButtonId(stepsIdPrefix, "approve")}
                 title={isFirstOfTwoApprovals ? "Approve" : "Approve & Run"}
                 icon={IconProp.Check}
                 buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
@@ -1924,7 +2054,9 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                 isLoading={isBusy && busyAction === "approve"}
                 dataTestId="remediation-approve-button"
                 onClick={() => {
-                  performAction(suggestion, "approve").catch(() => {
+                  performAction(suggestion, "approve", {
+                    isFirstOfTwoApprovals,
+                  }).catch(() => {
                     // handled inside performAction
                   });
                 }}
@@ -1935,6 +2067,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
 
             {isDryRunShown && dryRunTitle ? (
               <Button
+                id={getRemediationFixActionButtonId(stepsIdPrefix, "dry-run")}
                 title={dryRunTitle}
                 icon={IconProp.Search}
                 buttonStyle={ButtonStyleType.OUTLINE}
@@ -1961,6 +2094,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
             */}
             {isDismissShown ? (
               <Button
+                id={getRemediationFixActionButtonId(stepsIdPrefix, "dismiss")}
                 title={REMEDIATION_FIX_DISMISS}
                 icon={IconProp.Close}
                 dataTestId="remediation-dismiss-button"
@@ -1979,6 +2113,10 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
 
             {isSaveAsRunbookShown ? (
               <Button
+                id={getRemediationFixActionButtonId(
+                  stepsIdPrefix,
+                  "save-as-runbook",
+                )}
                 title="Save as Runbook"
                 icon={IconProp.BookOpen}
                 buttonStyle={ButtonStyleType.OUTLINE}

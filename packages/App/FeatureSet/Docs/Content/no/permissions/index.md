@@ -103,6 +103,8 @@ Rollen du velger, blir teamets første tillatelse, for alle ressursene i prosjek
 
 Hvor du finner det: åpne et team fra **Team** for å komme til **Medlemmer** og **Tillatelser**; de egendefinerte rollene og **Blokker tillatelser** ligger under **Flere innstillinger** nederst på siden Tillatelser, der den sammenfoldede overskriften viser hvor mange av hver teamet har.
 
+Siden til et team har kortet **Brukes av**: vaktpolicyene der eskaleringsreglene varsler teamet, og alt teamet eier, fra monitorer og statussider til SLO-er, dashbord, infrastruktur og hendelser. Når du sletter et team, på siden dets eller fra listen, sies dette først: policyene slutter å varsle medlemmene, og teamet eier dem ikke lenger. Det du ikke kan åpne, telles, men navngis ikke.
+
 ## Tillatelser
 
 En tillatelse er én evne. Det finnes to måter å dele dem ut på, og begge ligger på teamets fane **Tillatelser**.

@@ -1,5 +1,10 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import {
+  UsedByListActions,
+  getUsedByListActions,
+} from "../../Components/UsedBy/UsedByListActions";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
+import {
   STATUS_PAGES_IMPORT_OFFER,
   withToolImportOffer,
 } from "../../Components/ToolImport/ToolImportOffer";
@@ -58,9 +63,18 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
       resourceIdField: "statusPageId",
     });
 
+  /*
+   * A row's Delete and Archive, and the bulk ones, say what still uses
+   * the records first (#7435).
+   */
+  const usedBy: UsedByListActions<StatusPage> =
+    getUsedByListActions<StatusPage>(UsedByRecordKind.StatusPage);
+
   // Archived status pages leave this list; they are on the Archived page.
   const { archiveBulkActions, archiveRowActions } =
     useBulkArchiveActions<StatusPage>({
+      archiveConfirmDetails: usedBy.archiveConfirmDetails,
+      getArchiveConfirmationDetails: usedBy.getArchiveConfirmationDetails,
       modelType: StatusPage,
       singularName: STATUS_PAGE_ARCHIVE_COPY.singularName,
       pluralName: STATUS_PAGE_ARCHIVE_COPY.pluralName,
@@ -170,6 +184,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
         userPreferencesKey="status-page-table"
         customFieldsModelType={StatusPageCustomField}
         isDeleteable={true}
+        getDeleteConfirmation={usedBy.getDeleteConfirmation}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
@@ -179,6 +194,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
             ...ownerBulkActions,
             ...archiveBulkActions,
           ],
+          deleteConfirmationDetails: usedBy.deleteConfirmationDetails,
         }}
         name="Status Pages"
         isViewable={true}

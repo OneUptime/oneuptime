@@ -1,3 +1,4 @@
+import ProjectService from "../../../../Server/Services/ProjectService";
 import RemediationCommandToolkit, {
   INLINE_COMMAND_STEP_ID_PREFIX,
   RemediationCommandNeedingApproval,
@@ -43,6 +44,14 @@ import GitOpsInspector from "../../../../Server/Utils/AI/Remediation/GitOpsInspe
  * the changes themselves.
  */
 beforeEach(() => {
+  /*
+   * The project does not ask two people to approve a riskier fix: what
+   * this suite pins runs as it always has (RemediationCommandToolsTwoApprovals
+   * pins the rule turned on).
+   */
+  jest
+    .spyOn(ProjectService, "findOneById")
+    .mockResolvedValue({ requireTwoApprovalsForRiskierFixes: false } as never);
   jest.spyOn(GitOpsInspector, "inspectCommand").mockResolvedValue(null);
   jest.spyOn(GitOpsInspector, "captureRevertWatch").mockResolvedValue(null);
 });

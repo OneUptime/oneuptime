@@ -6,7 +6,7 @@ OneUptime legt vast hoe de meldingen verlopen die het verstuurt: hoeveel inciden
 - [Inschakelen](#inschakelen): Twee instellingen, en zonder die wordt niets vastgelegd.
 - [De metrics](#de-metrics): Zeven metrics, van de aanleiding tot de telefoon.
 - [Hoe een oproep wordt getimed](#hoe-een-oproep-wordt-getimed): Waar de verzendtijd en de verzendvertraging vanaf tellen.
-- [SLO's om mee te beginnen](#slos-om-mee-te-beginnen): Vier doelen, query voor query.
+- [SLO's om mee te beginnen](#slos-om-mee-te-beginnen): Vijf doelen, query voor query.
 :::
 
 ## Zo werkt het
@@ -151,7 +151,7 @@ Statussen komen alleen binnen waar de provider ze kan melden:
 | --- | --- |
 | `monitor_data_received` | Wanneer OneUptime de gegevens ontving die de monitor deden afgaan: een inkomend verzoek, het rapport van een serveragent, een inkomende e-mail, de controle van een sonde, een SNMP-trap of een poll van een netwerkapparaat. Inclusief de tijd die de gegevens in de wachtrij wachtten om te worden beoordeeld. |
 | `record_created` | Wanneer het incident, de waarschuwing of de episode werd aangemaakt: door een telemetriemonitor, een regel of een persoon, en bij een controle op afwezigheid, zoals een heartbeat die stopte. |
-| `page_started` | Wanneer een oproep later begon: een persoon, een workflow of een regel die nu overeenkomt startte hem, of het is een directe oproep. Voor een oproep die zijn bereikbaarheidsregel of OneUptime AI vasthield, wanneer de pauze afliep, of wanneer hij begon als dat eerder was. Voor een nieuwe oproep, wanneer de time-out na bevestiging afliep. Zo is een worker die een van beide te laat oppakte te zien in de tijd. |
+| `page_started` | Wanneer een oproep later begon: een persoon, een workflow of een regel die nu overeenkomt startte hem, of het is een directe oproep. Voor een oproep die zijn bereikbaarheidsregel of OneUptime AI vasthield, wanneer de pauze afliep, of wanneer hij begon als dat eerder was. Voor een nieuwe oproep, wanneer de time-out na bevestiging afliep, of wanneer zijn beleid het laatst werd gewijzigd, als dat later was: een time-out die zo is ingekort dat hij al was afgelopen, wordt getimed vanaf de wijziging. Zo is een worker die een van beide te laat oppakte te zien in de tijd. |
 
 Bij een inkomend verzoek loopt de tijd vanaf het laatste verzoek dat het endpoint ontving, dus die kan iets te kort uitvallen.
 
@@ -183,7 +183,7 @@ Een percentiel wordt uit de buckets berekend, en getekend als het midden van de 
 
 ## SLO's om mee te beginnen
 
-Vier doelen die de meeste installaties kunnen beloven, elk opgebouwd uit een of twee query's in de metriekverkenner van het project dat de metrics ontvangt. Ze lezen een tijdsbereik exact af zodra de metrics als delta's binnenkomen: zie [Delta's naar een OneUptime-project sturen](#deltas-naar-een-oneuptime-project-sturen).
+Vijf doelen die de meeste installaties kunnen beloven, elk opgebouwd uit een of twee query's in de metriekverkenner van het project dat de metrics ontvangt. Ze lezen een tijdsbereik exact af zodra de metrics als delta's binnenkomen: zie [Delta's naar een OneUptime-project sturen](#deltas-naar-een-oneuptime-project-sturen).
 
 ### Er een opbouwen in de metriekverkenner
 
@@ -216,7 +216,17 @@ De formule `$b / $a * 100` is het aandeel dat mislukte, en het doel wordt gehaal
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-Het doel wordt gehaald zolang `a` op of onder 30000 blijft. Oproepen die later zijn gestart, worden getimed vanaf hun start of het moment dat ze verschuldigd waren, niet vanaf een aanleiding, dus die blijven buiten beschouwing. Groepeer op `notification.page.start` om de wachtrij van de monitors (`monitor_data_received`) los van de rest te zien, of op `notification.channel` om een traag kanaal te vinden.
+Het doel wordt gehaald zolang `a` op of onder 30000 blijft. Oproepen die later zijn gestart, worden getimed vanaf hun start of het moment dat ze verschuldigd waren, niet vanaf een aanleiding, dus die blijven buiten beschouwing: het volgende doel dekt ze. Groepeer op `notification.page.start` om de wachtrij van de monitors (`monitor_data_received`) los van de rest te zien, of op `notification.channel` om een traag kanaal te vinden.
+
+### Later gestarte oproepen vertrekken binnen 2 minuten
+
+95% van de oproepen die later zijn gestart, bereikt zijn provider binnen 2 minuten nadat ze verschuldigd waren: een vastgehouden oproep, een nieuwe oproep en een oproep die een persoon, een workflow of een regel startte.
+
+| Query | Metric | Aggregatie | Voorwaarden |
+| --- | --- | --- | --- |
+| `a` | `notification.time_to_send` | **P95** | `notification.page.start = page_started` |
+
+Het doel wordt gehaald zolang `a` op of onder 120000 blijft. Een vastgehouden oproep of een nieuwe oproep wacht op de volgende run van een worker die eens per minuut draait, dus tot een minuut van zijn tijd gaat op aan dat wachten, en een worker die achterliep, voegt er meer aan toe.
 
 ### Later verstuurde meldingen vertrekken binnen 90 seconden
 

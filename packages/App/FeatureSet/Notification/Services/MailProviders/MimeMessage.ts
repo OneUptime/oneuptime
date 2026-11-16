@@ -2,6 +2,10 @@ import InlineImageAttachments from "./InlineImageAttachments";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
 import EmailPlainText from "Common/Server/Utils/Mail/EmailPlainText";
 import EmailMessage from "Common/Types/Email/EmailMessage";
+import {
+  getCcAddresses,
+  getReplyToAddress,
+} from "Common/Types/Email/EmailRecipients";
 import EmailServer from "Common/Types/Email/EmailServer";
 import MailComposer from "nodemailer/lib/mail-composer";
 
@@ -33,6 +37,9 @@ export default class MimeMessage {
     inlineImages: Array<EmailInlineImage>;
   }): Promise<Buffer> {
     const html: string = data.mail.body || "";
+    // Who is copied and where a reply goes (EmailRecipients, #8893).
+    const ccAddresses: Array<string> = getCcAddresses(data.mail);
+    const replyToAddress: string | null = getReplyToAddress(data.mail);
 
     const composer: MailComposer = new MailComposer({
       from: {
@@ -40,6 +47,8 @@ export default class MimeMessage {
         address: data.emailServer.fromEmail.toString(),
       },
       to: data.mail.toEmail.toString(),
+      ...(ccAddresses.length > 0 ? { cc: ccAddresses } : {}),
+      ...(replyToAddress ? { replyTo: replyToAddress } : {}),
       subject: MimeMessage.withoutLineBreaks(data.mail.subject || ""),
       text: EmailPlainText.fromHtml(html),
       html: html,

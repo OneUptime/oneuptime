@@ -103,13 +103,31 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `products/all_products_shown` | **Show every product** on Project Settings > Products | `hidden_count` | `ProductsSettings` |
 | `products/product_pinned` | Somebody pins a product to the nav bar, from its card in the products menu (`source` is `menu`) | `product`, `source`, `pin_count` (how many they have pinned now) | `DashboardNavbar` |
 | `products/product_unpinned` | Somebody unpins one | `product`, `source`, `pin_count` | Same |
-| `setup_health/opened` | Setup health is opened (#6812), with how many findings of each level it shows. Whether people open it says whether a weekly email of new findings is worth sending | `source` (`?from=` on its address: `home`, `search`; else `direct`), `pages_will_not_arrive_count`, `worth_fixing_count`, `suggestion_count`, `dismissed_count` | `SetupHealthView` |
-| `setup_health/fix_opened` | The fix of a finding is opened: which findings people act on, for the one-click fixes the issue leaves for later | `check`, `level` | `SetupHealthView` |
-| `setup_health/finding_dismissed` | A finding is dismissed for everyone in the project. The reason is never sent | `check`, `has_reason` | `SetupHealthView` |
+| `setup_health/opened` | Setup health is opened (#6812), with how many findings of each level it shows. Whether people open it says whether a weekly email of new findings is worth sending (#7298) | `source` (`?from=` on its address: `home`, `search`, `record` from the line at the top of a record's page; else `direct`), `pages_will_not_arrive_count`, `worth_fixing_count`, `suggestion_count`, `dismissed_count` | `SetupHealthView` |
+| `setup_health/fix_opened` | The fix of a finding is opened, on Setup Health or from the line at the top of a record's page: which findings people act on, and so which deserve a one-click fix | `check`, `level` | `SetupHealthFindingParts` |
+| `setup_health/fix_applied` | A finding is fixed in one click (#7299), once its dialog has said what will change: SMS, calls, WhatsApp or Telegram turned on, or an on-call rule made for a monitor that paged nobody | `check`, `level` | `SetupHealthQuickFixButton` |
+| `setup_health/finding_dismissed` | A finding is dismissed for everyone in the project. The reason is never sent | `check`, `has_reason` | `SetupHealthFindingParts` |
 | `setup_health/finding_restored` | A dismissed finding is restored | `check` | `SetupHealthView` |
 | `paging_ladder/saved` | A paging ladder is saved on How to Reach Me (#6820), by the person (`is_own`) or for a member. Whether people save one, and whether they replace differences, says whether the ladder is the view most people need | `is_own`, `step_count`, `replaced_card_count` (the cards that differed and now use the ladder) | `HowToReachMe` |
 | `paging_ladder/grid_opened` | Somebody opens the per-severity grid behind the ladder with "Different for Some Severities" | `is_own`, `differing_card_count` | `HowToReachMe` |
 | `used_by/list_opened` | The full list of what refers to a record is opened (#6813): a relation's "See all" on a record's Used by card, or a label's Used by on Settings > Labels. Whether people open it says whether the card's three rows are enough | `record_kind` (`monitor`, `on-call-schedule`, `service`, `status-page`, `team`, `label`), `relation` (the relation, or `all` for a label's whole list) | `UsedByDialog` |
+| `custom_domain/add_started` | **Add Custom Domain** is opened on a status page's, a dashboard's or a form's Custom Domains (#7024) | `kind` (`status_page`, `dashboard`, `form`) | `AddCustomDomainModal`, through `CustomDomainEvents` |
+| `custom_domain/project_domain_added` | Add Custom Domain adds the address's domain to the project, which did not have it yet. Its TXT record is the next step | `kind` | Same |
+| `custom_domain/record_checked` | **Check now** in DNS Setup looks up one of the domain's records: once for the TXT record while the project's domain is not verified, then once for the CNAME record. Never the domain, the record's name or its value | `kind`, `record` (`txt`, `cname`), `outcome` (`found`, `wrong_value`, `not_found`, `name_not_found`, `lookup_failed`), `check_number` (which Check now of the dialog, from 1), and for a CNAME `is_proxied` (no CNAME came back, but the name answers with addresses), `reached_one_uptime` and `http_status` (what answered a request that did not reach OneUptime) | `CustomDomainDnsSetupModal`, through `CustomDomainEvents` |
+| `custom_domain/verified` | Check now verifies the domain | `kind`, `certificate_status` (`issuing`, `issued`, `uploaded`, `failed`), `record_count` (2 when the TXT record had to be found first), `check_number` | Same |
+| `custom_domain/server_not_ready` | A self-hosted server says **This server is not ready for custom domains yet** in Add Custom Domain or DNS Setup, once per dialog. OneUptime Cloud checks nothing of the kind, so only a self-hosted server whose admin set up product analytics sends it | `kind`, `source` (`add`, `dns_setup`), `failed_checks` (the checks that failed, joined by a dot: `target_set`, `target_resolves`, `port80`, `port443`), `failed_count` | `CustomDomainServerReadinessNotice`, through `CustomDomainEvents` |
+
+### Putting a status page on its own domain
+
+The four customer reports about custom domains (#1521, #1664, #1692, #1774) were all about the same flow: from **Add Custom Domain** to a domain whose records are verified. Its events, in order:
+
+1. `custom_domain/add_started`: the dialog opened.
+2. `custom_domain/project_domain_added`: only when the project did not have the address's domain yet.
+3. `custom_domain/record_checked`, `record` `txt`: only when the project's domain is not verified yet, once per **Check now** until the TXT record is found.
+4. `custom_domain/record_checked`, `record` `cname`: once per Check now after that.
+5. `custom_domain/verified`.
+
+Where people stop is the step after the last one they reached. Split by `kind`, and read `outcome` and `check_number` for the records people struggle with: a CNAME that keeps coming back `not_found` with `is_proxied` is a DNS provider hiding it (#1664), and one with `reached_one_uptime` false and an `http_status` is a proxy in front of the server that does not pass the domain on (#1521). Nothing in these events names a domain, an address or a record's value. A domain verified later by the 15-minute check, after the dialog was closed, sends no `custom_domain/verified`.
 
 ### The Welcome checklist and its goals
 

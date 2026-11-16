@@ -220,7 +220,7 @@ OneUptime 知道你的程式碼在正式環境中做了什麼，因此它能用�
 | 程式碼所在位置 | 連接方式 | AI 在那裡做什麼 |
 | --- | --- | --- |
 | **GitHub** | OneUptime GitHub App，安裝在它選擇的儲存庫上。 | 本頁介紹的一切，以及來自 GitHub 的命令（請參閱 [GitHub App](/docs/ai/github-app)），以及每次[正式環境審查](#拉取請求的正式環境審查)的檢查。 |
-| **GitLab**，位於 GitLab.com 或你自己的 GitLab | 存取權杖：具有 `api` 和 `write_repository` 範圍、且角色至少為 Developer 的個人、群組或專案權杖。 | 任務和修正，每次變更都放在合併請求中；[正式環境審查](#拉取請求的正式環境審查)；分支選擇；堆疊追蹤或效能剖析經過的程式碼；一次部署的提交；修正是否已合併，以及發布後正式環境顯示了什麼。 |
+| **GitLab**，位於 GitLab.com 或你自己的 GitLab | 存取權杖：具有 `api` 和 `write_repository` 範圍、且角色至少為 Developer 的個人、群組或專案權杖。如果具有 Maintainer 角色，在自行管理的 GitLab 或 GitLab.com Premium 或 Ultimate 上，Runner 會改用 OneUptime 為該任務建立的短期權杖推送每個任務的分支。 | 任務和修正，每次變更都放在合併請求中；[正式環境審查](#拉取請求的正式環境審查)；分支選擇；堆疊追蹤或效能剖析經過的程式碼；一次部署的提交；修正是否已合併，以及發布後正式環境顯示了什麼。 |
 | **Forgejo 或 Gitea**，位於 Codeberg 或你自己的伺服器 | 對儲存庫和議題具有讀寫權限、對使用者具有讀取權限的存取權杖。 | 與 GitLab 相同，每次變更都放在拉取請求中。 |
 | **任何 Git 伺服器**，透過 HTTPS | 你複製儲存庫所用的位址、使用者名稱，以及能讀取儲存庫並向其推送的密碼或存取權杖。 | AI 複製儲存庫，把每次變更推送到新分支，並在回覆中說明是哪個分支：由你開啟拉取請求。在 Bitbucket 和 Azure DevOps 上，它會連結到開啟拉取請求的位置。 在 Azure DevOps（Services，或 Server 2019 及更新版本）上，OneUptime 也會用相同的憑證讀取程式碼：堆疊追蹤或效能剖析經過的程式碼，以及 OneUptime AI 讀取的檔案。 |
 
@@ -274,7 +274,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 | **全域 Runner** | 撰寫變更並開啟拉取請求，但不建置也不測試它：由你的儲存庫自己的 CI 檢查這次變更。 |
 | 你的某個 Runner | 還會在你掌控的主機上，依儲存庫的 `AGENTS.md` 所說的方式建置並測試這次變更。 |
 
-只有儲存庫工作所在的 Runner 才會收到它的任務和它的權杖。在 **運行手冊 → Runner** 下關閉 **使用全域 Runner** 的專案中，每個儲存庫都需要專案自己的某個 Runner：儲存庫選擇的 Runner，或專案的預設 Runner。Runner 的頁面會列出在它上面工作的儲存庫。
+只有儲存庫工作所在的 Runner 才會收到它的任務和它的權杖。每個任務的拉取請求由 OneUptime 自己開啟，因此 Runner 為 GitHub 儲存庫取得的權杖只能存取並推送到那一個儲存庫，不能開啟拉取請求；在 GitLab 允許 OneUptime 建立的情況下，它為 GitLab 儲存庫取得的權杖是為該任務建立的專案存取權杖：只能存取那一個專案，只能推送而不能呼叫任何 API，最遲於 UTC 次日結束時自動過期，並在任務結束時被撤銷。Forgejo、Gitea 或 Git 儲存庫的權杖是其連線自己的權杖。在 **運行手冊 → Runner** 下關閉 **使用全域 Runner** 的專案中，每個儲存庫都需要專案自己的某個 Runner：儲存庫選擇的 Runner，或專案的預設 Runner。Runner 的頁面會列出在它上面工作的儲存庫。
 
 ### 執行你自己的 Runner
 

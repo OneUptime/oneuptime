@@ -80,7 +80,7 @@ Con due o più condizioni, scegliete **Soddisfa tutte**, dove ognuna deve valere
 :::steps
 ### Scegliere gli avvisi
 
-Fate clic su **Crea: Alert On-Call Rule**. In **Corrispondenza**, **Tutti gli avvisi**, da cui parte una nuova regola, corrisponde a ogni nuovo avviso. Per restringerla, scegliete **Solo gli avvisi che soddisfano le condizioni** e aggiungete le condizioni che un avviso deve soddisfare.
+Fate clic su **Crea: Regola di reperibilità degli avvisi**. In **Corrispondenza**, **Tutti gli avvisi**, da cui parte una nuova regola, corrisponde a ogni nuovo avviso. Per restringerla, scegliete **Solo gli avvisi che soddisfano le condizioni** e aggiungete le condizioni che un avviso deve soddisfare.
 
 ### Scegliere le policy
 

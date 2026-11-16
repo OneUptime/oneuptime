@@ -1,10 +1,10 @@
 import {
   ADD_UPDATE_KIND_SQL,
-  AddCustomFieldsAndRemindersToUpdatesToPost1809181400026,
+  AddCustomFieldsAndRemindersToUpdatesToPost1809182480026,
   CUSTOM_FIELDS_EVENT_TYPES,
   REMINDERS_EVENT_TYPES,
   REMOVE_UPDATE_KIND_SQL,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181400026-AddCustomFieldsAndRemindersToUpdatesToPost";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182480026-AddCustomFieldsAndRemindersToUpdatesToPost";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleUpdates, {
@@ -14,7 +14,7 @@ import { describe, expect, test } from "@jest/globals";
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
- * AddCustomFieldsAndRemindersToUpdatesToPost1809181400026: the rules that
+ * AddCustomFieldsAndRemindersToUpdatesToPost1809182480026: the rules that
  * chose their updates before custom field edits and still-open reminders
  * had boxes of their own (#7937, #7938) get the new box wherever they
  * ticked the one it came out of, so they post what they did.
@@ -41,7 +41,7 @@ async function statementsFor(
     },
   } as unknown as QueryRunner;
 
-  await new AddCustomFieldsAndRemindersToUpdatesToPost1809181400026()[
+  await new AddCustomFieldsAndRemindersToUpdatesToPost1809182480026()[
     direction
   ](runner);
 
@@ -59,13 +59,13 @@ function eventTypesChoosing(kind: NotificationRuleUpdateKind): Array<string> {
   );
 }
 
-describe("AddCustomFieldsAndRemindersToUpdatesToPost1809181400026", () => {
+describe("AddCustomFieldsAndRemindersToUpdatesToPost1809182480026", () => {
   test("is registered, after every migration before it", () => {
     const migrations: Array<{ new (): MigrationInterface }> =
       SchemaMigrations as unknown as Array<{ new (): MigrationInterface }>;
 
     const index: number = migrations.indexOf(
-      AddCustomFieldsAndRemindersToUpdatesToPost1809181400026,
+      AddCustomFieldsAndRemindersToUpdatesToPost1809182480026,
     );
 
     expect(index).toBeGreaterThan(-1);
@@ -77,7 +77,7 @@ describe("AddCustomFieldsAndRemindersToUpdatesToPost1809181400026", () => {
     );
 
     expect(names[index]).toBe(
-      "AddCustomFieldsAndRemindersToUpdatesToPost1809181400026",
+      "AddCustomFieldsAndRemindersToUpdatesToPost1809182480026",
     );
 
     // Numbered after the one before it.

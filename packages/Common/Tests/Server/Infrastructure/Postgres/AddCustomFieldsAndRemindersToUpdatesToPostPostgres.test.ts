@@ -1,4 +1,4 @@
-import { AddCustomFieldsAndRemindersToUpdatesToPost1809181400026 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181400026-AddCustomFieldsAndRemindersToUpdatesToPost";
+import { AddCustomFieldsAndRemindersToUpdatesToPost1809182480026 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182480026-AddCustomFieldsAndRemindersToUpdatesToPost";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONObject } from "../../../../Types/JSON";
 import NotificationRuleUpdates from "../../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
@@ -138,7 +138,7 @@ const SEEDS: Array<RuleSeed> = [
 ];
 
 describePostgres(
-  "AddCustomFieldsAndRemindersToUpdatesToPost1809181400026 against Postgres",
+  "AddCustomFieldsAndRemindersToUpdatesToPost1809182480026 against Postgres",
   () => {
     const schema: string = `updates_to_post_${id().replace(/-/g, "")}`;
     let database: DataSource;
@@ -203,7 +203,7 @@ describePostgres(
     }
 
     test("each rule gets the new box where it ticked the old one, and keeps the rest of its JSON", async () => {
-      await new AddCustomFieldsAndRemindersToUpdatesToPost1809181400026().up(
+      await new AddCustomFieldsAndRemindersToUpdatesToPost1809182480026().up(
         runner,
       );
 
@@ -260,7 +260,7 @@ describePostgres(
         `SELECT "_id", "notificationRule" FROM "${schema}"."WorkspaceNotificationRule" ORDER BY "_id"`,
       );
 
-      await new AddCustomFieldsAndRemindersToUpdatesToPost1809181400026().up(
+      await new AddCustomFieldsAndRemindersToUpdatesToPost1809182480026().up(
         runner,
       );
 
@@ -272,7 +272,7 @@ describePostgres(
     });
 
     test("its down takes both boxes out of every list", async () => {
-      await new AddCustomFieldsAndRemindersToUpdatesToPost1809181400026().down(
+      await new AddCustomFieldsAndRemindersToUpdatesToPost1809182480026().down(
         runner,
       );
 

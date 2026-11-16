@@ -2862,6 +2862,29 @@ describe("AiActivityInsightsBuilder.build", () => {
       expect(waiting.tone).toBe(AiActivityInsightTone.Warning);
       expect(waiting.count).toBe(2);
       expect(waiting.subject!.id).toBe("newer");
+      // Nobody gave either its first approval: nothing to say of it.
+      expect(waiting).not.toHaveProperty("approvedFirstByReaderCount");
+    });
+
+    /*
+     * A fix the reader approved first waits for someone else's approval
+     * (#6422): the insight says how many of the waiting fixes those are.
+     */
+    test("fixes waiting for approval say how many the reader approved first", () => {
+      const waiting: AiActivityInsight = insightsOf(
+        build({
+          investigations: [run(hoursAgo(1), alert("a"))],
+          fixes: [
+            fix(hoursAgo(1), { alertId: "a", isFirstApprovedByReader: true }),
+            fix(hoursAgo(2), { alertId: "a", isFirstApprovedByReader: true }),
+            fix(hoursAgo(3), { alertId: "a" }),
+          ],
+        }),
+        AiActivityInsightKind.FixesAwaitingApproval,
+      )[0]!;
+
+      expect(waiting.count).toBe(3);
+      expect(waiting.approvedFirstByReaderCount).toBe(2);
     });
 
     test("fixes AI applied on its own, and how many held", () => {

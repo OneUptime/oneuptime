@@ -20,9 +20,11 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  *
  * Pinned: both are scheduled at all (RunCron registers as a side effect of
  * the import in Workers/Index.ts), hourly, never on startup, with room past
- * the run's own budget for its last delete; each runs its own kind; a run
- * that deleted nothing says nothing, one that did says how much, and a
- * failure is logged without failing the job - the next hour tries again.
+ * the run's own budget for its last delete; each runs its own kind, handed
+ * the run's deadline; a run that deleted nothing and finished says nothing,
+ * one that did says how much, one cut short says so - the next run starts
+ * where it stopped (issue #8896) - and a failure is logged without failing
+ * the job - the next hour tries again.
  */
 
 const mockAddJob: jest.Mock = jest.fn(() => {
@@ -75,6 +77,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
  * Imported AFTER the mocks and the bindings their factories close over: the
  * jobs register themselves when they are imported.
  */
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import { ResolvedRecordKind } from "Common/Types/Retention/ResolvedRecordRetention";
 import JobDictionary from "../../FeatureSet/Workers/Utils/JobDictionary";
@@ -177,7 +180,7 @@ describe.each(JOBS)("$name - wired into the worker", (job: Job) => {
 });
 
 describe.each(JOBS)("$name - what it runs", (job: Job) => {
-  test("runs the retention for its own kind, with the module's own budget", async () => {
+  test("runs the retention for its own kind, with the module's own budget and the run's deadline", async () => {
     const jobFunction: PromiseVoidFunction = JobDictionary.getJobFunction(
       job.name,
     );
@@ -185,10 +188,39 @@ describe.each(JOBS)("$name - what it runs", (job: Job) => {
     await jobFunction();
 
     expect(mockRun).toHaveBeenCalledTimes(1);
-    expect(mockRun).toHaveBeenCalledWith({ kind: job.kind });
+    expect(mockRun).toHaveBeenCalledWith({
+      kind: job.kind,
+      deadline: expect.any(JobDeadline),
+    });
   });
 
-  test("a run that deleted nothing says nothing", async () => {
+  /*
+   * The deadline RunCron hands the run passes with the queue job's: its
+   * time limit, or a lost lock. The retention stops starting projects then,
+   * and the next run starts where it stopped.
+   */
+  test("the deadline it hands the retention passes with the queue job's", async () => {
+    const queueDeadline: JobDeadline = new JobDeadline();
+
+    await (
+      JobDictionary.getJobFunction(job.name) as unknown as (
+        queueJob: unknown,
+        deadline: JobDeadline,
+      ) => Promise<void>
+    )(undefined, queueDeadline);
+
+    const handed: JobDeadline = (
+      mockRun.mock.calls[0]![0] as { deadline: JobDeadline }
+    ).deadline;
+
+    expect(handed.hasPassed()).toBe(false);
+
+    queueDeadline.end(new Error("The job ran out of time."));
+
+    expect(handed.hasPassed()).toBe(true);
+  });
+
+  test("a run that deleted nothing and finished says nothing", async () => {
     mockRun.mockResolvedValue(summary({ projects: 4 }) as never);
 
     await JobDictionary.getJobFunction(job.name)();
@@ -217,8 +249,34 @@ describe.each(JOBS)("$name - what it runs", (job: Job) => {
     expect(line).toContain(`deleted 250 resolved ${job.noun}`);
     expect(line).toContain("4 episodes");
     expect(line).toContain("across 3 projects");
-    expect(line).toContain("1 failed and are tried again next run");
-    expect(line).toContain("the rest wait for the next run");
+    expect(line).toContain("1 failed and are tried again on their next turn");
+    expect(line).toContain(
+      "the run was cut short, and the next one starts where it stopped",
+    );
+  });
+
+  // #8896: a run cut short used to say nothing when it had deleted nothing.
+  test("a run cut short says so, though it deleted nothing", async () => {
+    mockRun.mockResolvedValue(
+      summary({ projects: 2400, isCutShort: true }) as never,
+    );
+
+    await JobDictionary.getJobFunction(job.name)();
+
+    expect(mockedLogger.info).toHaveBeenCalledTimes(1);
+    expect(String(mockedLogger.info.mock.calls[0]![0])).toBe(
+      `${job.kind} retention: deleted 0 resolved ${job.noun} and 0 episodes kept past their project's retention, across 2400 projects; the run was cut short, and the next one starts where it stopped.`,
+    );
+  });
+
+  test("a run that finished says nothing of being cut short", async () => {
+    mockRun.mockResolvedValue(summary({ projects: 2, records: 5 }) as never);
+
+    await JobDictionary.getJobFunction(job.name)();
+
+    expect(String(mockedLogger.info.mock.calls[0]![0])).toBe(
+      `${job.kind} retention: deleted 5 resolved ${job.noun} and 0 episodes kept past their project's retention, across 2 projects.`,
+    );
   });
 
   test("a failure is logged, and the job does not fail: the next hour tries again", async () => {

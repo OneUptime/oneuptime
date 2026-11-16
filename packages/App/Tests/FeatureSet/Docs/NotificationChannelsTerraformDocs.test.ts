@@ -33,8 +33,9 @@ import { beforeAll, describe, expect, it } from "@jest/globals";
  *     must be able to read the token, and what takes a configuration's
  *     `id`.
  *   - emails/smtp.md, the Terraform paragraph: `oneuptime_smtp_config`, its
- *     sensitive credentials, the API key, and a status page's
- *     `smtp_config_id`.
+ *     sensitive credentials, which are write-only (#8989) - Terraform keeps
+ *     the values configured, and an older provider is told to upgrade -
+ *     and a status page's `smtp_config_id`.
  *
  * Held to the provider the generator builds from the real spec
  * (readProvider): a page cannot name an attribute the provider lacks, set
@@ -222,16 +223,25 @@ describe("the provider the pages describe", () => {
     );
     expect(sensitiveAttributes(resource(SMTP_RESOURCE))).toEqual(SMTP_SECRETS);
 
-    for (const name of [TWILIO_RESOURCE, SMTP_RESOURCE]) {
-      const dataSource: ProviderType = provider.dataSources.get(name)!;
-      const secrets: Array<string> =
-        name === TWILIO_RESOURCE ? TWILIO_SECRETS : SMTP_SECRETS;
+    expect(
+      sensitiveAttributes(provider.dataSources.get(TWILIO_RESOURCE)!),
+    ).toEqual(TWILIO_SECRETS);
 
-      expect(sensitiveAttributes(dataSource)).toEqual(secrets);
+    // Write-only (#8989): a lookup of a mail server reads none of them.
+    const smtpDataSource: ProviderType =
+      provider.dataSources.get(SMTP_RESOURCE)!;
+
+    expect(sensitiveAttributes(smtpDataSource)).toEqual([]);
+
+    for (const secret of SMTP_SECRETS) {
+      expect({
+        secret: secret,
+        looked: smtpDataSource.attributes.has(secret),
+      }).toEqual({ secret: secret, looked: false });
     }
   });
 
-  it("writes and reads back each credential, so a plan sees a token changed outside Terraform", () => {
+  it("writes and reads back the Twilio auth token, so a plan sees a token changed outside Terraform", () => {
     for (const secret of TWILIO_SECRETS) {
       const attribute: ProviderAttribute = attributeOf(
         resource(TWILIO_RESOURCE),
@@ -241,15 +251,27 @@ describe("the provider the pages describe", () => {
       expect(attribute.settable).toBe(true);
       expect(attribute.readBack).toBe(true);
     }
+  });
 
+  /*
+   * A project's SMTP credentials are write-only (#8989): the API never
+   * returns one, so the provider writes it and keeps the value configured.
+   */
+  it("writes each mail server credential, and keeps the value configured: none is read back", () => {
     for (const secret of SMTP_SECRETS) {
       const attribute: ProviderAttribute = attributeOf(
         resource(SMTP_RESOURCE),
         secret,
       );
 
-      expect(attribute.settable).toBe(true);
-      expect(attribute.readBack).toBe(true);
+      expect({ secret: secret, settable: attribute.settable }).toEqual({
+        secret: secret,
+        settable: true,
+      });
+      expect({ secret: secret, readBack: attribute.readBack }).toEqual({
+        secret: secret,
+        readBack: false,
+      });
     }
   });
 
@@ -539,7 +561,7 @@ describe("the Twilio page's Terraform section", () => {
 });
 
 describe("the SMTP page's Terraform paragraph", () => {
-  it("names the resource, the status page's attribute, the permission and the roles, and links the provider, in every language", () => {
+  it("names the resource, the status page's attribute and the upgrade an older provider needs, and links the provider, in every language", () => {
     for (const lang of DOCS_LANGUAGES) {
       const paragraph: string = smtpParagraph(lang);
 
@@ -549,15 +571,35 @@ describe("the SMTP page's Terraform paragraph", () => {
         `\`oneuptime_${SMTP_RESOURCE}\``,
         "`smtp_config_id`",
         "`id`",
-        "**Read SMTP Config**",
+        "`terraform init -upgrade`",
         "](/docs/terraform/index)",
-        ...ROLES.map((role: string): string => {
-          return `**${drawnDashboardLabel(lang, role)}**`;
-        }),
       ]) {
         expect({ lang: lang, named: paragraph.includes(named) }).toEqual({
           lang: lang,
           named: true,
+        });
+      }
+    }
+  });
+
+  /*
+   * Nobody reads a mail server's credentials back (#8989), so the page asks
+   * no role or permission of the API key for them, as it did when the
+   * provider read them.
+   */
+  it("asks the API key for no read of the credentials, in every language", () => {
+    for (const lang of DOCS_LANGUAGES) {
+      const paragraph: string = smtpParagraph(lang);
+
+      for (const asked of [
+        "**Read SMTP Config**",
+        ...ROLES.map((role: string): string => {
+          return `**${drawnDashboardLabel(lang, role)}**`;
+        }),
+      ]) {
+        expect({ lang: lang, asked: paragraph.includes(asked) }).toEqual({
+          lang: lang,
+          asked: false,
         });
       }
     }

@@ -16,18 +16,25 @@ import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageCha
 import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import {
   DOMAIN_VERIFICATION_GRACE_IN_MS,
+  INGESTION_KEY_HTTP_USE_RECORDED_SINCE,
+  INGESTION_KEY_UNUSED_AFTER_IN_DAYS,
+  INGESTION_KEY_USE_RECORDED_SINCE,
   MONITOR_OFF_FOR_LONG_IN_DAYS,
   SETUP_HEALTH_CHECK_ORDER,
   SETUP_HEALTH_LEVEL_ORDER,
   SETUP_HEALTH_LEVELS_ON_HOME,
+  SETUP_HEALTH_RECORD_KINDS_WITH_A_PAGE,
   SETUP_HEALTH_RESPONDER_REASON_ORDER,
   SETUP_HEALTH_WORDS,
+  SetupHealthCertificateReason,
   SetupHealthCheck,
   SetupHealthDismissal,
+  SetupHealthDomainFact,
   SetupHealthEventKind,
   SetupHealthFacts,
   SetupHealthFinding,
   SetupHealthFix,
+  SetupHealthIngestionKeyFact,
   SetupHealthLevel,
   SetupHealthMonitorFact,
   SetupHealthMonitorReason,
@@ -38,16 +45,21 @@ import {
   SetupHealthScheduleReason,
   applySetupHealthDismissals,
   compareSetupHealthFindings,
+  doesSetupHealthFindingConcernRecord,
   findSetupHealthDismissal,
   formatEnglishTime,
   formatEnglishUsd,
   getChainFindings,
+  getDomainCertificateReason,
   getSetupHealthCounts,
   getSetupHealthDismissalId,
   getSetupHealthFindingKey,
   getSetupHealthFindings,
+  getSetupHealthFindingsForRecord,
   getSetupHealthRecordIds,
+  isIngestionKeyNeverUsed,
   isSetupHealthFindingReadable,
+  isSetupHealthRecordKindWithAPage,
   makeSetupHealthFinding,
   redactSetupHealthFindings,
   usesPaidMessages,
@@ -91,6 +103,7 @@ function facts(overrides: Partial<SetupHealthFacts> = {}): SetupHealthFacts {
     owners: null,
     workspaces: [],
     telemetry: null,
+    ingestionKeys: [],
     ...overrides,
   };
 }
@@ -1482,6 +1495,197 @@ describe("status pages", () => {
   });
 });
 
+/*
+ * #7294: a verified custom domain whose free certificate does not serve it,
+ * by the states the Custom Domains page's Status column says it in.
+ */
+describe("a custom domain's certificate", () => {
+  const minutesAgo: (minutes: number) => string = (minutes: number): string => {
+    return new Date(
+      new Date(NOW).getTime() - minutes * 60 * 1000,
+    ).toISOString();
+  };
+
+  const verified: (
+    overrides: Partial<SetupHealthDomainFact>,
+  ) => SetupHealthDomainFact = (
+    overrides: Partial<SetupHealthDomainFact>,
+  ): SetupHealthDomainFact => {
+    return {
+      id: DOMAIN,
+      fullDomain: "status.acme.com",
+      statusPageId: STATUS_PAGE,
+      statusPageName: "Acme Status",
+      isCnameVerified: true,
+      createdAt: daysAgo(1),
+      isCustomCertificate: false,
+      certificate: { expiresAt: null, hasOrderFailed: true },
+      ...overrides,
+    };
+  };
+
+  function findingsFor(
+    domain: SetupHealthDomainFact,
+  ): Array<SetupHealthFinding> {
+    return getSetupHealthFindings(facts({ statusPageDomains: [domain] }));
+  }
+
+  test("a certificate whose order keeps failing a day on is worth fixing, on the status page's domains", () => {
+    const findings: Array<SetupHealthFinding> = findingsFor(verified({}));
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      check: SetupHealthCheck.StatusPageDomainCertificateFailed,
+      level: SetupHealthLevel.WorthFixing,
+      reason: SetupHealthCertificateReason.NotIssued,
+      record: {
+        kind: SetupHealthRecordKind.StatusPageDomain,
+        id: DOMAIN,
+        name: "status.acme.com",
+      },
+      related: [
+        {
+          kind: SetupHealthRecordKind.StatusPage,
+          id: STATUS_PAGE,
+          name: "Acme Status",
+        },
+      ],
+      fix: SetupHealthFix.StatusPageDomains,
+      fixRecordId: STATUS_PAGE,
+    });
+    expect(findings[0]!.sentence).toBe(
+      "status.acme.com doesn't open status page Acme Status over HTTPS yet: its free SSL certificate couldn't be issued.",
+    );
+  });
+
+  test("an expired certificate is worth fixing, however new the domain", () => {
+    const findings: Array<SetupHealthFinding> = findingsFor(
+      verified({
+        createdAt: minutesAgo(1),
+        certificate: { expiresAt: daysAgo(2), hasOrderFailed: true },
+      }),
+    );
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      check: SetupHealthCheck.StatusPageDomainCertificateFailed,
+      reason: SetupHealthCertificateReason.Expired,
+    });
+    expect(findings[0]!.sentence).toBe(
+      "status.acme.com doesn't open status page Acme Status over HTTPS: its SSL certificate expired and couldn't be renewed.",
+    );
+  });
+
+  test.each([
+    [
+      "a certificate in place",
+      { certificate: { expiresAt: daysAgo(-60), hasOrderFailed: false } },
+    ],
+    [
+      "a certificate in place whose last renewal failed: it still serves",
+      { certificate: { expiresAt: daysAgo(-10), hasOrderFailed: true } },
+    ],
+    [
+      "a certificate still being issued, with no failed order",
+      { certificate: { expiresAt: null, hasOrderFailed: false } },
+    ],
+    ["a certificate its owner uploaded", { isCustomCertificate: true }],
+    [
+      "a domain added a few minutes ago whose first order failed",
+      { createdAt: minutesAgo(10) },
+    ],
+    ["a certificate that could not be read", { certificate: null }],
+    ["a certificate that was not read", { certificate: undefined }],
+  ])(
+    "%s is no finding",
+    (_name: string, overrides: Partial<SetupHealthDomainFact>) => {
+      expect(findingsFor(verified(overrides))).toEqual([]);
+    },
+  );
+
+  test("a domain an hour and more after it was added, or with no date, is past the grace", () => {
+    expect(
+      getDomainCertificateReason(
+        verified({ createdAt: minutesAgo(61) }),
+        new Date(NOW).getTime(),
+      ),
+    ).toBe(SetupHealthCertificateReason.NotIssued);
+    expect(
+      getDomainCertificateReason(
+        verified({ createdAt: null }),
+        new Date(NOW).getTime(),
+      ),
+    ).toBe(SetupHealthCertificateReason.NotIssued);
+    expect(
+      getDomainCertificateReason(
+        verified({ createdAt: minutesAgo(59) }),
+        new Date(NOW).getTime(),
+      ),
+    ).toBeNull();
+  });
+
+  test("a domain waiting for its CNAME record says that, never that its certificate failed", () => {
+    const findings: Array<SetupHealthFinding> = findingsFor(
+      verified({ isCnameVerified: false }),
+    );
+
+    expect(
+      findings.map((finding: SetupHealthFinding): SetupHealthCheck => {
+        return finding.check;
+      }),
+    ).toEqual([SetupHealthCheck.StatusPageDomainNotVerified]);
+  });
+
+  test("it is read through the domain's status page, as the CNAME finding is", () => {
+    const finding: SetupHealthFinding = findingsFor(verified({}))[0]!;
+
+    expect(
+      isSetupHealthFindingReadable(finding, {
+        monitorIds: new Set<string>(),
+        policyIds: new Set<string>(),
+        scheduleIds: new Set<string>(),
+        statusPageIds: new Set<string>(),
+        ingestionKeyIds: new Set<string>(),
+        canReadResponders: true,
+      }),
+    ).toBe(false);
+    expect(
+      isSetupHealthFindingReadable(finding, {
+        monitorIds: new Set<string>(),
+        policyIds: new Set<string>(),
+        scheduleIds: new Set<string>(),
+        statusPageIds: new Set<string>([STATUS_PAGE]),
+        ingestionKeyIds: new Set<string>(),
+        canReadResponders: false,
+      }),
+    ).toBe(true);
+  });
+
+  test("two domains of one page are two findings, in name order", () => {
+    const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
+      facts({
+        statusPageDomains: [
+          verified({ id: "b", fullDomain: "status.zeta.com" }),
+          verified({
+            id: "a",
+            fullDomain: "status.alpha.com",
+            certificate: { expiresAt: daysAgo(1), hasOrderFailed: false },
+          }),
+        ],
+      }),
+    );
+
+    expect(
+      findings.map((finding: SetupHealthFinding): string => {
+        return `${finding.record.name}:${finding.reason}`;
+      }),
+    ).toEqual([
+      `status.alpha.com:${SetupHealthCertificateReason.Expired}`,
+      `status.zeta.com:${SetupHealthCertificateReason.NotIssued}`,
+    ]);
+  });
+});
+
 describe("the project", () => {
   test("one owner of a project of several people is a suggestion", () => {
     const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
@@ -1565,6 +1769,332 @@ describe("the project", () => {
 
   test("a new project with nothing in it has nothing to fix", () => {
     expect(getSetupHealthFindings(facts())).toEqual([]);
+  });
+});
+
+/*
+ * #7295: an ingestion key no data has arrived with, where its recorded use
+ * can say so (INGESTION_KEY_USE_RECORDED_SINCE).
+ */
+describe("ingestion keys", () => {
+  const KEY: string = "68120000-0000-4000-8000-0000000000f1";
+  // A day by which keys made after every ingest path stamped are a week old.
+  const LATER: string = "2026-12-10T12:00:00.000Z";
+
+  const daysBefore: (at: string, days: number) => string = (
+    at: string,
+    days: number,
+  ): string => {
+    return new Date(
+      new Date(at).getTime() - days * 24 * 60 * 60 * 1000,
+    ).toISOString();
+  };
+
+  const key: (
+    overrides: Partial<SetupHealthIngestionKeyFact>,
+  ) => SetupHealthIngestionKeyFact = (
+    overrides: Partial<SetupHealthIngestionKeyFact>,
+  ): SetupHealthIngestionKeyFact => {
+    return {
+      id: KEY,
+      name: "Production collector",
+      createdAt: daysBefore(LATER, 20),
+      lastUsedAt: null,
+      isDisabled: false,
+      expiresAt: null,
+      ...overrides,
+    };
+  };
+
+  function findingsFor(data: {
+    keys: Array<SetupHealthIngestionKeyFact>;
+    now?: string;
+    telemetry?: SetupHealthFacts["telemetry"];
+  }): Array<SetupHealthFinding> {
+    return getSetupHealthFindings(
+      facts({
+        now: data.now || LATER,
+        ingestionKeys: data.keys,
+        telemetry:
+          data.telemetry === undefined
+            ? { receivesTelemetry: true }
+            : data.telemetry,
+        // Watched: the telemetry finding is not what these tests are about.
+        monitors: [
+          monitorFact({ isTelemetryMonitor: true, isCheckedByProbes: false }),
+        ],
+      }),
+    );
+  }
+
+  test("a key made weeks ago that no data has arrived with is a suggestion, on its own page", () => {
+    const findings: Array<SetupHealthFinding> = findingsFor({
+      keys: [key({})],
+    });
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      check: SetupHealthCheck.IngestionKeyNeverUsed,
+      level: SetupHealthLevel.Suggestion,
+      record: {
+        kind: SetupHealthRecordKind.TelemetryIngestionKey,
+        id: KEY,
+        name: "Production collector",
+      },
+      fix: SetupHealthFix.TelemetryIngestionKey,
+      fixRecordId: KEY,
+      related: [],
+    });
+    expect(findings[0]!.sentence).toBe(
+      "No data has arrived with ingestion key Production collector since it was created.",
+    );
+  });
+
+  test.each([
+    ["used yesterday", { lastUsedAt: daysBefore(LATER, 1) }],
+    ["made yesterday", { createdAt: daysBefore(LATER, 1) }],
+    ["made exactly a week ago", { createdAt: daysBefore(LATER, 7) }],
+    ["switched off", { isDisabled: true }],
+    ["expired", { expiresAt: daysBefore(LATER, 2) }],
+    ["with no date", { createdAt: null }],
+  ])(
+    "a key %s is no finding",
+    (_name: string, overrides: Partial<SetupHealthIngestionKeyFact>) => {
+      expect(findingsFor({ keys: [key(overrides)] })).toEqual([]);
+    },
+  );
+
+  test("a key that expires later is still said to be unused", () => {
+    expect(
+      findingsFor({ keys: [key({ expiresAt: daysBefore(LATER, -30) })] }),
+    ).toHaveLength(1);
+  });
+
+  test("a key made before its use was recorded on every path is said to be unused only where no telemetry has ever arrived", () => {
+    // Made in October: gRPC and MQTT did not stamp yet.
+    const october: SetupHealthIngestionKeyFact = key({
+      createdAt: "2026-10-01T09:00:00.000Z",
+    });
+
+    expect(findingsFor({ keys: [october] })).toEqual([]);
+    expect(
+      findingsFor({ keys: [october], telemetry: { receivesTelemetry: false } }),
+    ).toHaveLength(1);
+    // The milestones could not be read: the stamp alone cannot say.
+    expect(findingsFor({ keys: [october], telemetry: null })).toEqual([]);
+  });
+
+  test("a key made before any use was recorded is never said to be unused", () => {
+    expect(
+      findingsFor({
+        keys: [key({ createdAt: "2026-08-01T09:00:00.000Z" })],
+        telemetry: { receivesTelemetry: false },
+      }),
+    ).toEqual([]);
+  });
+
+  test("the boundaries: made on the days the stamps began", () => {
+    const now: number = new Date(LATER).getTime();
+
+    expect(
+      isIngestionKeyNeverUsed({
+        key: key({ createdAt: INGESTION_KEY_USE_RECORDED_SINCE }),
+        now: now,
+        receivesNoTelemetry: false,
+      }),
+    ).toBe(true);
+    expect(
+      isIngestionKeyNeverUsed({
+        key: key({
+          createdAt: new Date(
+            new Date(INGESTION_KEY_USE_RECORDED_SINCE).getTime() - 1,
+          ).toISOString(),
+        }),
+        now: now,
+        receivesNoTelemetry: false,
+      }),
+    ).toBe(false);
+    expect(
+      isIngestionKeyNeverUsed({
+        key: key({ createdAt: INGESTION_KEY_HTTP_USE_RECORDED_SINCE }),
+        now: now,
+        receivesNoTelemetry: true,
+      }),
+    ).toBe(true);
+    expect(
+      isIngestionKeyNeverUsed({
+        key: key({
+          createdAt: new Date(
+            new Date(INGESTION_KEY_HTTP_USE_RECORDED_SINCE).getTime() - 1,
+          ).toISOString(),
+        }),
+        now: now,
+        receivesNoTelemetry: true,
+      }),
+    ).toBe(false);
+    expect(INGESTION_KEY_UNUSED_AFTER_IN_DAYS).toBe(7);
+  });
+
+  test("each unused key is one finding, in name order; a used one beside them is none", () => {
+    const findings: Array<SetupHealthFinding> = findingsFor({
+      keys: [
+        key({ id: "c", name: "Zeta" }),
+        key({ id: "b", name: "Used", lastUsedAt: daysBefore(LATER, 3) }),
+        key({ id: "a", name: "Alpha" }),
+      ],
+    });
+
+    expect(
+      findings.map((finding: SetupHealthFinding): string => {
+        return finding.record.name;
+      }),
+    ).toEqual(["Alpha", "Zeta"]);
+  });
+
+  test("it is shown only to people who may read the key", () => {
+    const finding: SetupHealthFinding = findingsFor({ keys: [key({})] })[0]!;
+    const readable: (ids: Array<string>) => SetupHealthReadable = (
+      ids: Array<string>,
+    ): SetupHealthReadable => {
+      return {
+        monitorIds: new Set<string>(),
+        policyIds: new Set<string>(),
+        scheduleIds: new Set<string>(),
+        statusPageIds: new Set<string>(),
+        ingestionKeyIds: new Set<string>(ids),
+        canReadResponders: true,
+      };
+    };
+
+    expect(isSetupHealthFindingReadable(finding, readable([]))).toBe(false);
+    expect(isSetupHealthFindingReadable(finding, readable([KEY]))).toBe(true);
+    expect(
+      getSetupHealthRecordIds(
+        [finding],
+        SetupHealthRecordKind.TelemetryIngestionKey,
+      ),
+    ).toEqual([KEY]);
+  });
+});
+
+/*
+ * #7297: what a record's own page says at the top - the findings about it,
+ * and for a status page those about its custom domains.
+ */
+describe("a record's own findings", () => {
+  const OTHER_PAGE: string = "68120000-0000-4000-8000-0000000000e9";
+
+  const all: Array<SetupHealthFinding> = getSetupHealthFindings(
+    facts({
+      policies: [
+        { id: PRIMARY, name: "Primary" },
+        { id: SECONDARY, name: "Secondary" },
+      ],
+      policyIdsRunByRules: [PRIMARY],
+      statusPages: [
+        { id: STATUS_PAGE, name: "Acme Status", resourceCount: 0 },
+        { id: OTHER_PAGE, name: "Internal", resourceCount: 3 },
+      ],
+      statusPageDomains: [
+        {
+          id: DOMAIN,
+          fullDomain: "status.acme.com",
+          statusPageId: STATUS_PAGE,
+          statusPageName: "Acme Status",
+          isCnameVerified: false,
+          createdAt: null,
+        },
+        {
+          id: "68120000-0000-4000-8000-0000000000e8",
+          fullDomain: "status.internal.com",
+          statusPageId: OTHER_PAGE,
+          statusPageName: "Internal",
+          isCnameVerified: false,
+          createdAt: null,
+        },
+      ],
+    }),
+  );
+
+  function checksFor(kind: SetupHealthRecordKind, id: string): Array<string> {
+    return getSetupHealthFindingsForRecord(all, { kind: kind, id: id }).map(
+      (finding: SetupHealthFinding): string => {
+        return `${finding.check}:${finding.record.name}`;
+      },
+    );
+  }
+
+  test("a policy's findings are the ones about it", () => {
+    expect(
+      checksFor(SetupHealthRecordKind.OnCallDutyPolicy, SECONDARY),
+    ).toEqual([`${SetupHealthCheck.PolicyNotRun}:Secondary`]);
+    expect(checksFor(SetupHealthRecordKind.OnCallDutyPolicy, PRIMARY)).toEqual(
+      [],
+    );
+  });
+
+  test("a status page's are its own and its custom domains', never another page's", () => {
+    expect(checksFor(SetupHealthRecordKind.StatusPage, STATUS_PAGE)).toEqual([
+      `${SetupHealthCheck.StatusPageShowsNoMonitor}:Acme Status`,
+      `${SetupHealthCheck.StatusPageDomainNotVerified}:status.acme.com`,
+    ]);
+    expect(checksFor(SetupHealthRecordKind.StatusPage, OTHER_PAGE)).toEqual([
+      `${SetupHealthCheck.StatusPageDomainNotVerified}:status.internal.com`,
+    ]);
+  });
+
+  test("a record of another kind with the same id has none of them", () => {
+    expect(checksFor(SetupHealthRecordKind.Monitor, SECONDARY)).toEqual([]);
+    expect(
+      checksFor(SetupHealthRecordKind.OnCallDutyPolicySchedule, STATUS_PAGE),
+    ).toEqual([]);
+  });
+
+  test("a monitor a policy finding reaches does not make it the monitor's", () => {
+    const policyForMonitor: SetupHealthFinding = makeSetupHealthFinding({
+      check: SetupHealthCheck.PolicyHasNoEscalationRules,
+      level: SetupHealthLevel.PagesWillNotArrive,
+      record: {
+        kind: SetupHealthRecordKind.OnCallDutyPolicy,
+        id: PRIMARY,
+        name: "Primary",
+      },
+      related: [
+        { kind: SetupHealthRecordKind.Monitor, id: CHECKOUT, name: "Checkout" },
+      ],
+      fix: SetupHealthFix.OnCallPolicy,
+      words: SETUP_HEALTH_WORDS.policyHasNoEscalationRules,
+      values: { policy: "Primary" },
+    });
+
+    expect(
+      doesSetupHealthFindingConcernRecord(policyForMonitor, {
+        kind: SetupHealthRecordKind.Monitor,
+        id: CHECKOUT,
+      }),
+    ).toBe(false);
+    expect(
+      doesSetupHealthFindingConcernRecord(policyForMonitor, {
+        kind: SetupHealthRecordKind.OnCallDutyPolicy,
+        id: PRIMARY,
+      }),
+    ).toBe(true);
+  });
+
+  test("only the kinds that have a page of their own are asked about", () => {
+    for (const kind of SETUP_HEALTH_RECORD_KINDS_WITH_A_PAGE) {
+      expect(isSetupHealthRecordKindWithAPage(kind)).toBe(true);
+    }
+
+    for (const kind of [
+      SetupHealthRecordKind.User,
+      SetupHealthRecordKind.Project,
+      SetupHealthRecordKind.StatusPageDomain,
+      "Incident",
+      "",
+    ]) {
+      expect(isSetupHealthRecordKindWithAPage(kind)).toBe(false);
+    }
   });
 });
 
@@ -1811,6 +2341,7 @@ describe("what one person may see", () => {
       policyIds: new Set<string>(),
       scheduleIds: new Set<string>(),
       statusPageIds: new Set<string>(),
+      ingestionKeyIds: new Set<string>(),
       canReadResponders: false,
       ...overrides,
     };
@@ -2080,6 +2611,67 @@ describe("the words", () => {
           placeholder: placeholder,
           filled: true,
         });
+      }
+
+      expect(finding.sentence).not.toContain("{{");
+    }
+  });
+
+  test("a custom domain's certificate and an unused ingestion key fill every placeholder they name", () => {
+    const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
+      facts({
+        now: "2026-12-10T12:00:00.000Z",
+        statusPageDomains: [
+          {
+            id: DOMAIN,
+            fullDomain: "status.acme.com",
+            statusPageId: STATUS_PAGE,
+            statusPageName: "Acme",
+            isCnameVerified: true,
+            createdAt: null,
+            isCustomCertificate: false,
+            certificate: { expiresAt: null, hasOrderFailed: true },
+          },
+          {
+            id: "68120000-0000-4000-8000-0000000000e7",
+            fullDomain: "status.beta.com",
+            statusPageId: STATUS_PAGE,
+            statusPageName: "Acme",
+            isCnameVerified: true,
+            createdAt: null,
+            isCustomCertificate: false,
+            certificate: {
+              expiresAt: "2026-12-01T00:00:00.000Z",
+              hasOrderFailed: false,
+            },
+          },
+        ],
+        ingestionKeys: [
+          {
+            id: "68120000-0000-4000-8000-0000000000f1",
+            name: "Collector",
+            createdAt: "2026-11-20T00:00:00.000Z",
+            lastUsedAt: null,
+            isDisabled: false,
+            expiresAt: null,
+          },
+        ],
+      }),
+    );
+
+    expect(
+      findings.map((finding: SetupHealthFinding): string => {
+        return `${finding.check}:${finding.reason}`;
+      }),
+    ).toEqual([
+      `${SetupHealthCheck.StatusPageDomainCertificateFailed}:${SetupHealthCertificateReason.NotIssued}`,
+      `${SetupHealthCheck.StatusPageDomainCertificateFailed}:${SetupHealthCertificateReason.Expired}`,
+      `${SetupHealthCheck.IngestionKeyNeverUsed}:`,
+    ]);
+
+    for (const finding of findings) {
+      for (const placeholder of getTemplatePlaceholders(finding.words)) {
+        expect(finding.values[placeholder]).toBeTruthy();
       }
 
       expect(finding.sentence).not.toContain("{{");

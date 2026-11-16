@@ -1,4 +1,5 @@
 import {
+  CUSTOM_DOMAINS_GUIDE_LINK_TEST_ID,
   CustomDomainCopy,
   CustomDomainInstallation,
   CustomDomainState,
@@ -30,6 +31,11 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  LEARN_MORE_LINK_CLASS_NAME,
+  getLearnMoreUrl,
+} from "Common/UI/Components/Link/LearnMoreLink";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -41,6 +47,7 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { PRODUCT_TEXT_CLASS_NAME } from "Common/UI/Utils/ProductText";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -85,6 +92,9 @@ import React, {
  *   - Check now and Reissue SSL change the domain, so they are for whoever
  *     may edit it, as the server holds it; anyone else sees them locked, with
  *     the permission they need.
+ *   - A kind with a step-by-step guide (status pages: Publish a Status
+ *     Page) links it after the card's description, at its first custom
+ *     domain step, beside View Documentation's reference page (#7021).
  */
 
 export interface ComponentProps {
@@ -252,6 +262,48 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
     [kind.parentColumn]: props.parentId,
   } as Query<CustomDomainModel>;
 
+  /*
+   * What the card is for, with the record to point a domain at - and, for a
+   * kind with a guide, the guide after it, in a new tab and in the reader's
+   * language. Without this kind's CNAME record there is nothing to set up
+   * here, and no guide either. Product words, as a card's own description
+   * is (PRODUCT_TEXT_CLASS_NAME); a div, as the link's icon is one.
+   */
+  const cardDescription: string | ReactElement = cnameRecord ? (
+    <div className={PRODUCT_TEXT_CLASS_NAME}>
+      {translator.translateTemplate(
+        installation.issuesFreeCertificates
+          ? kind.copy.cardDescription
+          : kind.copy.cardDescriptionWithoutFreeCertificates,
+        {
+          cnameRecord: cnameRecord,
+        },
+      )}
+      {kind.guideDocsPath ? (
+        <>
+          {" "}
+          <a
+            href={getLearnMoreUrl(kind.guideDocsPath, translator.language)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={LEARN_MORE_LINK_CLASS_NAME}
+            data-testid={CUSTOM_DOMAINS_GUIDE_LINK_TEST_ID}
+          >
+            {translator.translateText(CustomDomainCopy.guideLink)}
+            <Icon
+              icon={IconProp.ExternalLink}
+              className="h-3.5 w-3.5 flex-shrink-0"
+            />
+          </a>
+        </>
+      ) : (
+        <></>
+      )}
+    </div>
+  ) : (
+    CustomDomainCopy.cardDescriptionNotEnabled
+  );
+
   return (
     <Fragment>
       <ModelTable<CustomDomainModel>
@@ -269,16 +321,7 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
         documentationLink={Route.fromString(kind.docsPath)}
         cardProps={{
           title: "Custom Domains",
-          description: cnameRecord
-            ? translator.translateTemplate(
-                installation.issuesFreeCertificates
-                  ? kind.copy.cardDescription
-                  : kind.copy.cardDescriptionWithoutFreeCertificates,
-                {
-                  cnameRecord: cnameRecord,
-                },
-              )
-            : CustomDomainCopy.cardDescriptionNotEnabled,
+          description: cardDescription,
         }}
         refreshToggle={refreshToggle}
         onFetchSuccess={() => {

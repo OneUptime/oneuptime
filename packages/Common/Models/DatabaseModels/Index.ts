@@ -147,9 +147,6 @@ import InstanceHealthLog from "./InstanceHealthLog";
 import ProductFeedback from "./ProductFeedback";
 import InstanceReceivingPeriod from "./InstanceReceivingPeriod";
 import InstanceTokenSigningKey from "./InstanceTokenSigningKey";
-import GreenlockCertificate from "./GreenlockCertificate";
-// Greenlock
-import GreenlockChallenge from "./GreenlockChallenge";
 // Incidents
 import Incident from "./Incident";
 import IncidentFeed from "./IncidentFeed";
@@ -384,6 +381,7 @@ import ServiceOwnerTeam from "./ServiceOwnerTeam";
 import ServiceOwnerUser from "./ServiceOwnerUser";
 import CodeRepository from "./CodeRepository";
 import CodeRepositoryConnection from "./CodeRepositoryConnection";
+import CodeRepositoryMintedToken from "./CodeRepositoryMintedToken";
 // Short link.
 import ShortLink from "./ShortLink";
 // SMS
@@ -969,9 +967,6 @@ const AllModelTypes: Array<{
   BillingPaymentMethods,
   BillingInvoice,
 
-  GreenlockChallenge,
-  GreenlockCertificate,
-
   Workflow,
   WorkflowVariables,
   WorkflowLog,
@@ -1124,6 +1119,7 @@ const AllModelTypes: Array<{
   // Code Repository
   CodeRepository,
   CodeRepositoryConnection,
+  CodeRepositoryMintedToken,
 
   ProbeOwnerTeam,
   ProbeOwnerUser,

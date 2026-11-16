@@ -243,6 +243,8 @@ Arquive uma página de status para tirá-la do ar sem excluí-la. Uma página de
 
 Para arquivar uma página de status, abra-a e vá a **Avançado → Configurações avançadas → Arquivar: página de status**. Para arquivar várias, selecione-as na lista **Páginas de status** e escolha **Arquivar**. Para recuperar uma, abra **Páginas de status → Avançado → Arquivado**, selecione-a e escolha **Desarquivar**, ou abra-a e clique em **Desarquivar** no banner no topo das páginas dela.
 
+A **Visão geral** de uma página de status tem um cartão **Exibido agora**: os incidentes abertos e a manutenção próxima ou em andamento que os visitantes veem nela agora. Arquivar ou excluir a página, em suas próprias páginas ou pela lista, diz primeiro o que os visitantes deixariam de ver.
+
 ## Próximos passos
 
 :::cards

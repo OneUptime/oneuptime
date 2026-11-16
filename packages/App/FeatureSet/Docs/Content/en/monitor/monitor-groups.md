@@ -96,6 +96,8 @@ Each bar of the uptime graph, here and on a status page, is how long the group i
 
 The **Monitor Groups** list can filter groups by owner and label, set labels and owners on many groups at once, and export or import groups as JSON.
 
+The **Overview** also has a **Used by** card: the status pages that show the group, and the SLOs that measure its monitors. When no status page shows it, the card says so and links to the status pages. Deleting the group, on its page or from the list, says first which status pages show it.
+
 ## Turn monitoring off for a whole group
 
 The **Monitoring** card on a group's **Overview** turns monitoring off, or back on, for every monitor in the group at once.

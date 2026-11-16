@@ -102,6 +102,8 @@ Dimensioneer naast de gegevensopslagen ook de stateless workloads. Elk draait **
 | Ingress-gateway | `nginx` | Het aantal verzoeken |
 | Telemetry writer, wanneer aangezet | `telemetryWriter` | Niet met de belasting: hij bundelt elke telemetrie-insert in ClickHouse, dus hij wordt gedimensioneerd op wat ClickHouse aankan |
 
+Elk daarvan draait op Node.js, dat zijn heap afstemt op de geheugenlimiet van zijn container (`resources.limits.memory`): 75% van de limiet, minstens 256 MB en hoogstens 8096 MB. Zonder limiet kan de heap groeien tot 8096 MB. De rest van de limiet is voor het geheugen dat Node.js buiten zijn heap gebruikt. Wilt u de heap zelf kiezen, zet `NODE_OPTIONS` dan op `--max-old-space-size=` gevolgd door een grootte in MB, in de `extraEnv` van de service (met Docker Compose in de `environment` van de service, in een override-bestand). Dat gaat voor op de grootte die de limiet geeft.
+
 De chart levert **KEDA** mee, zodat de app, workers, sondes en de globale Runner kunnen schalen op hun wachtrijachterstand. Zet `keda.enabled` aan samen met de eigen `keda.enabled` van elke dienst (bijvoorbeeld `app.keda.enabled`). Op een cluster zonder KEDA heeft de eerste installatie een extra ronde nodig: zie de [KEDA-handleiding](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) van de chart. Diensten die KEDA niet beheert, kunnen in plaats daarvan een autoscaler op CPU of geheugen gebruiken (`autoscaling`).
 
 ## Startniveaus

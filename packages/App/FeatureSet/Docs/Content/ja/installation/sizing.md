@@ -102,6 +102,8 @@ PostgreSQL が保存するのはテレメトリではなく、設定と運用上
 | イングレスゲートウェイ | `nginx` | リクエスト量 |
 | テレメトリライター (有効にした場合) | `telemetryWriter` | 負荷では増えません。すべてのテレメトリの挿入を ClickHouse にまとめて送るため、ClickHouse が受け止められる量に合わせてサイジングします |
 
+いずれも Node.js で動き、Node.js はヒープの大きさをコンテナのメモリ上限（`resources.limits.memory`）に合わせます。上限の 75%、最小 256 MB、最大 8096 MB です。上限がない場合、ヒープは 8096 MB まで大きくなれます。上限の残りは、Node.js がヒープの外で使うメモリのためのものです。ヒープを自分で選ぶには、`NODE_OPTIONS` に `--max-old-space-size=` と MB 単位のサイズを、サービスの `extraEnv` で設定します（Docker Compose では、オーバーライドファイルでサービスの `environment` に設定します）。この値は、上限から決まるサイズより優先されます。
+
 チャートには **KEDA** が同梱されており、アプリ、ワーカー、プローブ、グローバル Runner をキューの滞留に応じてスケールできます。`keda.enabled` と、各サービス自身の `keda.enabled` (たとえば `app.keda.enabled`) をあわせて有効にしてください。まだ KEDA がないクラスターでは、最初のインストールに追加の手順が必要です。チャートの [KEDA ガイド](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md)を参照してください。KEDA が管理しないサービスは、代わりに CPU またはメモリのオートスケーラー (`autoscaling`) を使えます。
 
 ## 開始時の段階

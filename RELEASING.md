@@ -22,6 +22,7 @@ section says how to title a change.
   `node Scripts/Install/SyncPackageVersions.js` writes them and
   `node Scripts/Install/SyncPackageVersions.js --check` (run by the commit hook
   and by the release run) fails on any drift.
+- Please mention all the PR's you're including in the release in the Release PR. 
 - A push to the `release` branch starts the release run,
   `.github/workflows/release.yml` ("Push Release Images to Docker Hub and GitHub
   Container Registry"). It refuses a version that already has a GitHub release.

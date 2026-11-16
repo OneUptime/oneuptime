@@ -20,6 +20,10 @@ import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import Email from "Common/Types/Email";
 import EmailMessage, { EmailEnvelope } from "Common/Types/Email/EmailMessage";
+import {
+  getCcAddresses,
+  getReplyToAddress,
+} from "Common/Types/Email/EmailRecipients";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import MailTransportType, {
@@ -1312,6 +1316,14 @@ export default class MailService {
      */
     const text: string = EmailPlainText.fromHtml(mail.body);
 
+    /*
+     * Who is copied and where a reply goes (Give Feedback, #8893), as every
+     * transport reads them (EmailRecipients). nodemailer sends to the Cc
+     * addresses too, and writes both headers.
+     */
+    const ccAddresses: Array<string> = getCcAddresses(mail);
+    const replyToAddress: string | null = getReplyToAddress(mail);
+
     // Acquire connection slot to prevent overwhelming the server
     await TransporterPool.acquireConnection(options.emailServer);
 
@@ -1322,6 +1334,8 @@ export default class MailService {
             await mailer.sendMail({
               from: `${options.emailServer.fromName.toString()} <${options.emailServer.fromEmail.toString()}>`,
               to: mail.toEmail.toString(),
+              ...(ccAddresses.length > 0 ? { cc: ccAddresses } : {}),
+              ...(replyToAddress ? { replyTo: replyToAddress } : {}),
               subject: mail.subject,
               text: text,
               html: mail.body,
