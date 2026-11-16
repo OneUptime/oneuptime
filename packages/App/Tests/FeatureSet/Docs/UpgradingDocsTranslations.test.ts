@@ -343,6 +343,13 @@ const PROSE_LEADS: Array<string> = [
   "An install with a license key",
   "An install with no license",
   "If you use SCIM or audit logging, activate a license before the trial ends.",
+  // What you need to do for 15.
+  "If you read the master API key from the Admin Dashboard, copy it before you upgrade.",
+  "If Terraform or OpenTofu manages OneUptime, upgrade the provider with the server",
+  "Take the credentials 15 no longer gives out of your API scripts' reads.",
+  "If the server reaches the internet through a proxy, let the proxy reach your identity provider, calendars, MCP servers and backup storage.",
+  "Check the criteria of Incoming Request monitors whose senders post plain text.",
+  "Give the teams that own private incidents, alerts and episodes the permissions their members page and run runbooks with, and move workflows off private records.",
   "Air-gapped installs",
   "Decide which edition this install runs.",
   "On Helm, set the edition in your values file:",
@@ -1324,56 +1331,63 @@ describe.each(LANGUAGES)("the %s upgrade guide", (language: string) => {
   });
 
   /*
-   * Every note of "Other changes in 14", in the English order: the same
-   * code, the same pages linked and the same numbers, note by note, so no
-   * note is dropped, merged or cut short.
+   * Every note of "Other changes in 14" and of "Other changes in 15", in the
+   * English order: the same code, the same pages linked and the same
+   * numbers, note by note, so no note is dropped, merged or cut short.
    */
-  it("carries every note of the 13 → 14 changes, in order, with its code, links and numbers", () => {
-    const source: Array<string> = otherChangesItems("en");
-    const translated: Array<string> = otherChangesItems(language);
+  it.each([
+    [13, 14],
+    [14, 15],
+  ])(
+    "carries every note of the %i → %i changes, in order, with its code, links and numbers",
+    (_from: number, to: number) => {
+      const source: Array<string> = otherChangesItems("en", to);
+      const translated: Array<string> = otherChangesItems(language, to);
 
-    expect(translated.length).toBe(source.length);
+      expect(translated.length).toBe(source.length);
 
-    const problems: Array<string> = [];
+      const problems: Array<string> = [];
 
-    source.forEach((wrapped: string, index: number) => {
-      // A note wraps in English: a code span or a link may span two lines.
-      const note: string = unwrapped(wrapped);
-      const other: string = unwrapped(translated[index] || "");
-      const missingCode: Array<string> = missingFrom(
-        inlineCode(note),
-        inlineCode(other),
-      );
-      const extraCode: Array<string> = missingFrom(
-        inlineCode(other),
-        inlineCode(note),
-      );
-      const missingNumbers: Array<string> = missingFrom(
-        statedNumbers(note),
-        statedNumbers(other),
-      );
-
-      if (missingCode.length > 0 || extraCode.length > 0) {
-        problems.push(
-          `note ${index}: code missing ${JSON.stringify(missingCode)}, extra ${JSON.stringify(extraCode)}`,
+      source.forEach((wrapped: string, index: number) => {
+        // A note wraps in English: a code span or a link may span two lines.
+        const note: string = unwrapped(wrapped);
+        const other: string = unwrapped(translated[index] || "");
+        const missingCode: Array<string> = missingFrom(
+          inlineCode(note),
+          inlineCode(other),
         );
-      }
-
-      if (
-        JSON.stringify(linkedPages(note)) !== JSON.stringify(linkedPages(other))
-      ) {
-        problems.push(`note ${index}: links ${linkedPages(other).join(" ")}`);
-      }
-
-      if (missingNumbers.length > 0) {
-        problems.push(
-          `note ${index}: numbers missing ${JSON.stringify(missingNumbers)}`,
+        const extraCode: Array<string> = missingFrom(
+          inlineCode(other),
+          inlineCode(note),
         );
-      }
-    });
+        const missingNumbers: Array<string> = missingFrom(
+          statedNumbers(note),
+          statedNumbers(other),
+        );
 
-    expect(problems).toEqual([]);
-  });
+        if (missingCode.length > 0 || extraCode.length > 0) {
+          problems.push(
+            `note ${index}: code missing ${JSON.stringify(missingCode)}, extra ${JSON.stringify(extraCode)}`,
+          );
+        }
+
+        if (
+          JSON.stringify(linkedPages(note)) !==
+          JSON.stringify(linkedPages(other))
+        ) {
+          problems.push(`note ${index}: links ${linkedPages(other).join(" ")}`);
+        }
+
+        if (missingNumbers.length > 0) {
+          problems.push(
+            `note ${index}: numbers missing ${JSON.stringify(missingNumbers)}`,
+          );
+        }
+      });
+
+      expect(problems).toEqual([]);
+    },
+  );
 
   it("writes its cards with an ASCII ': ' after the link, to the English cards' pages", () => {
     const translated: Array<string> = cardLines(translatedPage(language));
