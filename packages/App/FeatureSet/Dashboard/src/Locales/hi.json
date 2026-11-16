@@ -55184,7 +55184,7 @@
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "\"{{rule}}\" को इस टीम से हटाया जाता है। इसे पूर्ववत नहीं किया जा सकता - इसे रखने के लिए, इसके बजाय इसे संपादित करें और नई गंभीरताएं चुनें।",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "\"{{rule}}\" की जांच इस टीम में किसी के लिए नहीं होगी। इसे पूर्ववत नहीं किया जा सकता - कुछ समय के लिए जांच रोकने के लिए, इसके बजाय इसे रोकें।",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "नियम बताता है कि इस टीम में हर किसी को क्या सेट करना है, जैसे गंभीर घटनाओं के लिए फ़ोन कॉल। नीचे दी गई किसी सिफ़ारिश से शुरू करें या अपना नियम बनाएं।",
-  "A rule says what everyone on this team must set up. Ask a project admin to add one.": "नियम बताता है कि इस टीम में हर किसी को क्या सेट करना है। किसी प्रोजेक्ट एडमिन से एक नियम जोड़ने के लिए कहें।",
+  "A rule says what everyone on this team must set up. Ask a Project Admin to add one.": "नियम बताता है कि इस टीम में हर किसी को क्या सेट करना है। किसी प्रोजेक्ट एडमिन से एक नियम जोड़ने के लिए कहें।",
   "API Server In-Flight Requests": "API सर्वर इन-फ़्लाइट अनुरोध",
   "Activate a license that includes it in the Admin Dashboard to change this again.": "इसे फिर से बदलने के लिए एडमिन डैशबोर्ड में ऐसा लाइसेंस सक्रिय करें जिसमें यह शामिल हो।",
   "Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "इसे फिर से बदलने के लिए एडमिन डैशबोर्ड में Enterprise लाइसेंस सक्रिय करें या नवीनीकृत करें।",

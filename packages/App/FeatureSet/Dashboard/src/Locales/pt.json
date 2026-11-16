@@ -55184,7 +55184,7 @@
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "“{{rule}}” é removida desta equipe. Isso não pode ser desfeito: para mantê-la, edite-a e escolha novas gravidades.",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "“{{rule}}” deixa de ser verificada para todos nesta equipe. Isso não pode ser desfeito: para parar de verificá-la por um tempo, pause-a.",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "Uma regra diz o que todos nesta equipe precisam ter configurado, como uma chamada para incidentes críticos. Comece por uma recomendação abaixo ou crie a sua.",
-  "A rule says what everyone on this team must set up. Ask a project admin to add one.": "Uma regra diz o que todos nesta equipe precisam ter configurado. Peça a um administrador do projeto para adicionar uma.",
+  "A rule says what everyone on this team must set up. Ask a Project Admin to add one.": "Uma regra diz o que todos nesta equipe precisam ter configurado. Peça a um Administrador do projeto para adicionar uma.",
   "API Server In-Flight Requests": "Solicitações em andamento do servidor de API",
   "Activate a license that includes it in the Admin Dashboard to change this again.": "Ative no painel de administração uma licença que inclua isso para poder alterar novamente.",
   "Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "Ative ou renove a licença Enterprise no painel de administração para poder alterar novamente.",

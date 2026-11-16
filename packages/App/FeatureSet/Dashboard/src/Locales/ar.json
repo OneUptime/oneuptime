@@ -55184,7 +55184,7 @@
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "تُزال القاعدة «{{rule}}» من هذا الفريق. لا يمكن التراجع عن ذلك، وللإبقاء عليها عدّلها بدلًا من ذلك واختر مستويات خطورة جديدة.",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "لن تُفحص القاعدة «{{rule}}» بعد الآن لأي أحد في هذا الفريق. لا يمكن التراجع عن ذلك، ولإيقاف فحصها مؤقتًا أوقفها مؤقتًا بدلًا من ذلك.",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "تحدد القاعدة ما يجب أن يُعدّه كل عضو في هذا الفريق، مثل مكالمة هاتفية عند الحوادث الحرجة. ابدأ من إحدى التوصيات أدناه أو أنشئ قاعدتك.",
-  "A rule says what everyone on this team must set up. Ask a project admin to add one.": "تحدد القاعدة ما يجب أن يُعدّه كل عضو في هذا الفريق. اطلب من أحد مسؤولي المشروع إضافة قاعدة.",
+  "A rule says what everyone on this team must set up. Ask a Project Admin to add one.": "تحدد القاعدة ما يجب أن يُعدّه كل عضو في هذا الفريق. اطلب من مسؤول المشروع إضافة قاعدة.",
   "API Server In-Flight Requests": "الطلبات قيد المعالجة في خادم API",
   "Activate a license that includes it in the Admin Dashboard to change this again.": "فعّل في لوحة الإدارة ترخيصًا يتضمن هذه الميزة لتتمكن من تغييرها مجددًا.",
   "Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "فعّل ترخيص المؤسسات أو جدّده في لوحة الإدارة لتتمكن من تغيير ذلك مجددًا.",

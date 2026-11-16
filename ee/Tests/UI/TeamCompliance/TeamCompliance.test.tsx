@@ -1841,7 +1841,7 @@ describe("who may change rules", () => {
     await renderPage(buildStatus());
 
     expect(screen.getByTestId("compliance-rules-empty")).toHaveTextContent(
-      "Ask a project admin to add one.",
+      "Ask a Project Admin to add one.",
     );
     expect(screen.queryByTestId("compliance-presets")).toBeNull();
     expect(screen.queryByTestId("compliance-rules-empty-add")).toBeNull();

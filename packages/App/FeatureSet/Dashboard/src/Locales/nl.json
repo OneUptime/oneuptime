@@ -55184,7 +55184,7 @@
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "‘{{rule}}’ wordt uit dit team verwijderd. Dit kan niet ongedaan worden gemaakt: wilt u de regel houden, bewerk hem dan en kies nieuwe ernstniveaus.",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "‘{{rule}}’ wordt voor niemand in dit team meer gecontroleerd. Dit kan niet ongedaan worden gemaakt: wilt u de controle even stoppen, pauzeer de regel dan.",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "Een regel bepaalt wat iedereen in dit team ingesteld moet hebben, zoals een oproep bij kritieke incidenten. Begin met een aanbeveling hieronder of maak er zelf een.",
-  "A rule says what everyone on this team must set up. Ask a project admin to add one.": "Een regel bepaalt wat iedereen in dit team ingesteld moet hebben. Vraag een projectbeheerder er een toe te voegen.",
+  "A rule says what everyone on this team must set up. Ask a Project Admin to add one.": "Een regel bepaalt wat iedereen in dit team ingesteld moet hebben. Vraag een Projectbeheerder er een toe te voegen.",
   "API Server In-Flight Requests": "Lopende aanvragen van de API-server",
   "Activate a license that includes it in the Admin Dashboard to change this again.": "Activeer in het beheerdashboard een licentie die dit omvat om dit weer te kunnen wijzigen.",
   "Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "Activeer of verleng de Enterprise-licentie in het beheerdashboard om dit weer te kunnen wijzigen.",

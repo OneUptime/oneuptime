@@ -55184,7 +55184,7 @@
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "「{{rule}}」はこのチームから削除されます。この操作は元に戻せません。ルールを残すには、代わりに編集して新しい重大度を選んでください。",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "「{{rule}}」はこのチームの誰に対してもチェックされなくなります。この操作は元に戻せません。しばらくチェックを止めるだけなら、代わりに一時停止してください。",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "ルールは、このチームの全員が設定しておくべきこと (重大なインシデントでの電話など) を定めます。下のおすすめから始めるか、独自に作成してください。",
-  "A rule says what everyone on this team must set up. Ask a project admin to add one.": "ルールは、このチームの全員が設定しておくべきことを定めます。プロジェクト管理者に追加を依頼してください。",
+  "A rule says what everyone on this team must set up. Ask a Project Admin to add one.": "ルールは、このチームの全員が設定しておくべきことを定めます。プロジェクト管理者に追加を依頼してください。",
   "API Server In-Flight Requests": "API サーバーの処理中のリクエスト",
   "Activate a license that includes it in the Admin Dashboard to change this again.": "これを再び変更するには、管理ダッシュボードでこの機能を含むライセンスを有効にしてください。",
   "Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "これを再び変更するには、管理ダッシュボードで Enterprise ライセンスを有効化または更新してください。",
