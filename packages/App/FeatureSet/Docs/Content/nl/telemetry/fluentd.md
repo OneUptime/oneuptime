@@ -31,11 +31,11 @@ Fluentd stuurt records in batches als JSON, met je ingestiesleutel in de header 
 
 Ga naar **Producten → Projectinstellingen**, open **Telemetrie & APM** in het zijmenu en kies **Ingestiesleutels**.
 
-![De lijst "Ingestiesleutels", met "Inname-sleutel aanmaken" omcirkeld](screen:ingestion-keys)
+![De lijst "Ingestiesleutels", met "Ingestiesleutel aanmaken" omcirkeld](screen:ingestion-keys)
 
 ### Een sleutel maken
 
-Klik op **Inname-sleutel aanmaken**. In het dialoogvenster is de naam van de sleutel al ingevuld en **Server** gekozen, het soort sleutel waarmee een applicatie of een collector stuurt. Klik dus op **Inname-sleutel aanmaken** om hem te maken, of geef hem eerst een andere naam.
+Klik op **Ingestiesleutel aanmaken**. In het dialoogvenster is de naam van de sleutel al ingevuld en **Server** gekozen, het soort sleutel waarmee een applicatie of een collector stuurt. Klik dus op **Ingestiesleutel aanmaken** om hem te maken, of geef hem eerst een andere naam.
 
 ### Het geheim kopiëren
 

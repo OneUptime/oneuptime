@@ -31,7 +31,7 @@ Utforskaren har fem flikar:
 | **Tittare** | Sök i, filtrera och läs loggar. Den öppnas på den senaste timmen, nyaste först, 100 loggar per sida. |
 | **Insikter** | Vad dina tjänster har loggat i ett tidsintervall, och vad som gick fel. |
 | **AI** | De felloggar, den saknade loggning och de brusiga loggar som OneUptime hittar i dina loggar, och vad OneUptime AI gjorde åt dem. Se [Hitta och åtgärda felloggar, saknade och brusiga loggar med AI](#hitta-och-åtgärda-felloggar-saknade-och-brusiga-loggar-med-ai). |
-| **Installationsguide** | Hur du skickar loggar med OpenTelemetry, Fluent Bit eller Fluentd med en av dina [inmatningsnycklar](/docs/telemetry/ingestion-keys). |
+| **Installationsguide** | Hur du skickar loggar med OpenTelemetry, Fluent Bit eller Fluentd med en av dina [intagningsnycklar](/docs/telemetry/ingestion-keys). |
 | **Inställningar** | Vad som händer med loggar när de kommer in: **Pipelines**, **Drop-filter**, **Scrub-regler** och **Inspelningsregler**. |
 
 ## Innan du börjar

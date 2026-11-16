@@ -774,14 +774,19 @@ export const AI_READ_ON_CALL_PAGE_STATUSES: ReadonlyArray<string> = [
   translationKey("Error"),
 ];
 
-// How a person's notification went (UserNotificationExecutionStatus).
+/*
+ * How a person's notification went (UserNotificationExecutionStatus), as
+ * people read it: one they escalated is stored "Passed On", the Escalate
+ * action's first name, and reads "Escalated", as the logs and their filters
+ * say it (getOnCallPageStatusLabel).
+ */
 export const AI_READ_NOTIFICATION_STATUSES: ReadonlyArray<string> = [
   translationKey("Scheduled"),
   translationKey("Started"),
   translationKey("Executing"),
   translationKey("Completed"),
   translationKey("Error"),
-  translationKey("Passed On"),
+  translationKey("Escalated"),
 ];
 
 /*

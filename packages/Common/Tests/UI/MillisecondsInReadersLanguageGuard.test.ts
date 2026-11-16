@@ -89,6 +89,15 @@ import {
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
+/*
+ * The Enterprise Edition's pages are read only where ee/ is checked out:
+ * the Common Test job deletes it before it runs, and the Enterprise Edition
+ * Test workflow (test.ee.yaml) runs this with it.
+ */
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(
+  path.join(REPOSITORY_ROOT, "ee"),
+);
+
 const DASHBOARD_SOURCE: string = path.join(
   REPOSITORY_ROOT,
   "packages/App/FeatureSet/Dashboard/src",
@@ -988,7 +997,9 @@ describe("durations in milliseconds, in the reader's language", () => {
 
     for (const scope of [
       ...SHARED_MONITOR_SUMMARY_SCOPE,
-      ...DASHBOARD_SCOPES,
+      ...DASHBOARD_SCOPES.filter((scope: string): boolean => {
+        return ENTERPRISE_PRESENT || !scope.startsWith("ee/");
+      }),
     ]) {
       expect({
         scope,

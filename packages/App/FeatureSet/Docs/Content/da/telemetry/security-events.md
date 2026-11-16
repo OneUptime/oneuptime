@@ -54,7 +54,7 @@ flowchart TB
 | **Beskyttede entiteter** | Playbooks | De brugere og værter, som ingen playbook inddæmmer |
 | **Indstillinger** | AI | Om OneUptime AI vurderer hver ny sag |
 | **Forbindelser** | Connections | Dine logs, de sikkerhedsprodukter, OneUptime henter fra, og de SIEM'er, det sender til |
-| **Opsætningsvejledning** | Connections | Kodestykker til at sende begivenheder, udfyldt med din ingestion-nøgle |
+| **Opsætningsvejledning** | Connections | Kodestykker til at sende begivenheder, udfyldt med din indtagelsesnøgle |
 | **Sagsprioriteter** | Indstillinger | Hvor presserende en sag er: projektets egne prioriteter, den mest presserende først |
 | **Responsmål** | Indstillinger | Hvor hurtigt en sag med hver prioritet skal tages og inddæmmes |
 | **Sagsstatusser** | Indstillinger | De trin, en sag går igennem, og hvad en sag i hvert trin tæller som |
@@ -78,9 +78,9 @@ Sikkerhedsdata kan kun læses af rollerne Projektejer og Projektadministrator og
 ## Send sikkerhedsbegivenheder
 
 :::steps
-### Opret en ingestion-nøgle
+### Opret en indtagelsesnøgle
 
-Åbn **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**, og klik på **Opret ingestion-nøgle**. Sikkerhedsbegivenheder bruger de samme nøgler som resten af din telemetri.
+Åbn **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**, og klik på **Opret indtagelsesnøgle**. Sikkerhedsbegivenheder bruger de samme nøgler som resten af din telemetri.
 
 ### Send dine begivenheder
 

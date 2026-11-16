@@ -31,7 +31,7 @@ L'esploratore ha cinque schede:
 | **Visualizzatore** | Cercare e filtrare gli span, e aprire le loro tracce. Si apre sull'ultima ora, prima i più recenti, 50 span per pagina. |
 | **Analisi** | Frequenza delle richieste, tassi di errore e latenza per servizio, e le richieste che meritano uno sguardo. |
 | **IA** | Le operazioni lente o che falliscono e il tracciamento mancante che OneUptime trova nelle vostre tracce, e ciò che OneUptime AI ha fatto al riguardo. Vedete [Trovare e correggere le operazioni lente o che falliscono con l'IA](#trovare-e-correggere-le-operazioni-lente-o-che-falliscono-con-lia). |
-| **Guida alla configurazione** | Come inviare tracce con OpenTelemetry, usando una delle vostre [chiavi di ingestione](/docs/telemetry/ingestion-keys). |
+| **Guida alla configurazione** | Come inviare tracce con OpenTelemetry, usando una delle vostre [chiavi di acquisizione](/docs/telemetry/ingestion-keys). |
 | **Impostazioni** | Che cosa succede agli span quando arrivano: **Pipeline**, **Filtri di scarto**, **Regole di mascheramento** e **Regole di registrazione**. |
 
 ## Prima di iniziare

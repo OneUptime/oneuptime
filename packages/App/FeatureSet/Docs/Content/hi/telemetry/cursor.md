@@ -43,7 +43,7 @@ flowchart TB
 :::steps
 ### इंजेशन कुंजी बनाएँ
 
-OneUptime में **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** खोलें, **इन्जेशन कुंजी बनाएँ** पर क्लिक करें और कुंजी कॉपी करें। आपका OTLP बेस URL `https://oneuptime.com/otlp` है, या अगर आप OneUptime खुद होस्ट करते हैं तो `https://YOUR-ONEUPTIME-HOST/otlp`।
+OneUptime में **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** खोलें, **इंजेशन कुंजी बनाएँ** पर क्लिक करें और कुंजी कॉपी करें। आपका OTLP बेस URL `https://oneuptime.com/otlp` है, या अगर आप OneUptime खुद होस्ट करते हैं तो `https://YOUR-ONEUPTIME-HOST/otlp`।
 
 ### Cursor में गंतव्य बनाएँ
 

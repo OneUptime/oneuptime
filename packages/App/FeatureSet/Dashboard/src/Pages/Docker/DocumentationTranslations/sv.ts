@@ -19,7 +19,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Replace `my-docker-host` with a name for this host, such as `prod-docker-01`. It is how the host appears in OneUptime, so keep it stable: a new name registers a new host.":
     "Ersätt `my-docker-host` med ett namn för den här värden, till exempel `prod-docker-01`. Det är så värden visas i OneUptime, så håll det stabilt: ett nytt namn registrerar en ny värd.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Välj en ingestion-nyckel i steg 1 för att fylla i `<YOUR_API_KEY>`.",
+    "Välj en intagningsnyckel i steg 1 för att fylla i `<YOUR_API_KEY>`.",
   "Look for this line in the logs:": "Leta efter den här raden i loggarna:",
   "Once the agent connects, the host appears automatically in the **Docker** section — usually within a minute or so. The OneUptime AI agent shows as Connected on the host's **AI → AI agent** page, and at the bottom of its **Overview**.":
     "Så snart agenten ansluter visas värden automatiskt i avsnittet **Docker**, oftast inom någon minut. OneUptimes AI-agent visas som Ansluten på värdens sida **AI → AI-agent** och längst ner i dess **Översikt**.",
@@ -28,7 +28,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Ja | URL:en till din OneUptime-instans (t.ex. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_SERVICE_TOKEN` | Yes | The telemetry ingestion key from step 1 |":
-    "| `ONEUPTIME_SERVICE_TOKEN` | Ja | Telemetrins ingestion-nyckel från steg 1 |",
+    "| `ONEUPTIME_SERVICE_TOKEN` | Ja | Telemetrins intagningsnyckel från steg 1 |",
   "| `DOCKER_HOST_NAME` | No | Friendly name for this host. Defaults to `docker-host` |":
     "| `DOCKER_HOST_NAME` | Nej | Ett lättigenkännligt namn för den här värden. Standard är `docker-host` |",
   "| `DOCKER_API_VERSION` | No | Docker Engine API version the agent speaks. Empty by default: the agent negotiates it with the daemon, so any Docker Engine from 20.10 on works. Set it only to pin a version (see Troubleshooting) |":
@@ -100,13 +100,13 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent's logs for errors: `docker logs oneuptime-docker-agent 2>&1 | grep -i error`":
     "2. Leta efter fel i agentens loggar: `docker logs oneuptime-docker-agent 2>&1 | grep -i error`",
   "3. Verify the OneUptime URL and ingestion key in the `docker run` command are correct.":
-    "3. Kontrollera att OneUptime-URL:en och ingestion-nyckeln i `docker run`-kommandot är rätt.",
+    "3. Kontrollera att OneUptime-URL:en och intagningsnyckeln i `docker run`-kommandot är rätt.",
   "4. Make sure the host can reach your OneUptime instance over the network.":
     "4. Se till att värden kan nå din OneUptime-instans över nätverket.",
   "Check that the Docker socket is mounted into the agent. Its image has no shell, so look from a throwaway container that shares its mounts:":
     "Kontrollera att Docker-socketen är monterad i agenten. Dess avbild har inget skal, så titta från en engångscontainer som delar dess monteringar:",
   "Then look for export errors in the agent's logs — `docker logs oneuptime-docker-agent 2>&1 | grep -i error` — and make sure the ingestion key is valid and has not expired.":
-    "Leta sedan efter exportfel i agentens loggar (`docker logs oneuptime-docker-agent 2>&1 | grep -i error`) och se till att ingestion-nyckeln är giltig och inte har gått ut.",
+    "Leta sedan efter exportfel i agentens loggar (`docker logs oneuptime-docker-agent 2>&1 | grep -i error`) och se till att intagningsnyckeln är giltig och inte har gått ut.",
   "Metrics arrive but the **Logs** tab is empty, or shows only the agent's own logs? Your containers are most likely not using the `json-file` log driver.":
     "Kommer det mätvärden, men fliken **Loggar** är tom eller visar bara agentens egna loggar? Dina containrar använder sannolikt inte loggdrivrutinen `json-file`.",
   "If step 1 shows `no files match the configured criteria`, or step 3 lists no files for your containers, they are not using `json-file`. Switch them (see **Collect logs from every container (json-file log driver)** under Advanced), then recreate each one — a container keeps the log driver it was created with:":
@@ -140,7 +140,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Add it to the agent's `environment:` list, e.g. `- DOCKER_API_VERSION=1.41`, and run `docker compose up -d`. Newer daemons still serve older API versions, so a pinned version keeps working after you upgrade Docker.":
     "Lägg till den i agentens lista `environment:`, t.ex. `- DOCKER_API_VERSION=1.41`, och kör `docker compose up -d`. Nyare daemoner betjänar fortfarande äldre API-versioner, så en låst version fortsätter att fungera efter att du har uppgraderat Docker.",
   "3. Verify the OneUptime URL and ingestion key in docker-compose.yml are correct.":
-    "3. Kontrollera att OneUptime-URL:en och ingestion-nyckeln i docker-compose.yml är rätt.",
+    "3. Kontrollera att OneUptime-URL:en och intagningsnyckeln i docker-compose.yml är rätt.",
   "The host's name comes from `DOCKER_HOST_NAME`. An agent started without it reports `docker-host`, so every host set up that way looks like the same host. Set `DOCKER_HOST_NAME` to a name of its own on each host and run `docker compose up -d` to recreate the agent with it.":
     "Värdens namn kommer från `DOCKER_HOST_NAME`. En agent som startats utan den rapporterar `docker-host`, så alla värdar som konfigurerats så ser ut som samma värd. Ge `DOCKER_HOST_NAME` ett eget namn på varje värd och kör `docker compose up -d` för att återskapa agenten med det.",
 };

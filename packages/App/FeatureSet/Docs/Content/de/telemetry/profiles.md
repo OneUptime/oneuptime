@@ -35,11 +35,11 @@ Sie brauchen einen Telemetrie-Ingestion-Schlüssel vom Typ **Server**. Falls Sie
 
 Gehen Sie zu **Produkte → Projekteinstellungen**, öffnen Sie im Seitenmenü **Telemetrie & APM** und wählen Sie **Ingestion-Schlüssel**.
 
-![Die Liste „Ingestion-Schlüssel“, „Aufnahmeschlüssel erstellen“ ist markiert](screen:ingestion-keys)
+![Die Liste „Ingestion-Schlüssel“, „Ingestion-Schlüssel erstellen“ ist markiert](screen:ingestion-keys)
 
 ### Einen Schlüssel erstellen
 
-Klicken Sie auf **Aufnahmeschlüssel erstellen**. Im Dialog ist der Name des Schlüssels bereits ausgefüllt und **Server** gewählt – die Art Schlüssel, mit der eine Anwendung oder ein Collector sendet –; klicken Sie also auf **Aufnahmeschlüssel erstellen**, um ihn anzulegen, oder benennen Sie ihn vorher um.
+Klicken Sie auf **Ingestion-Schlüssel erstellen**. Im Dialog ist der Name des Schlüssels bereits ausgefüllt und **Server** gewählt – die Art Schlüssel, mit der eine Anwendung oder ein Collector sendet –; klicken Sie also auf **Ingestion-Schlüssel erstellen**, um ihn anzulegen, oder benennen Sie ihn vorher um.
 
 ### Das Geheimnis kopieren
 

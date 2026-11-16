@@ -2722,7 +2722,7 @@
   "Deleting a team takes away the permissions it gave its members. Anyone for whom it was their only team loses access to the project.": "När du tar bort ett team förlorar medlemmarna de behörigheter det gav dem. Den som inte har något annat team förlorar åtkomsten till projektet.",
   "Deleting an API key stops anything that uses it from working.": "När du tar bort en API-nyckel slutar allt som använder den att fungera.",
   "Deleting a custom role takes its permissions from every team and API key that has it. The teams and keys themselves stay, with everything else they have.": "När en anpassad roll tas bort förlorar varje team och varje API-nyckel som har den dess behörigheter. Teamen och nycklarna själva finns kvar, med allt annat de har.",
-  "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.": "När du tar bort en inmatningsnyckel avvisar OneUptime telemetri som fortfarande skickas med den.",
+  "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.": "När du tar bort en intagningsnyckel avvisar OneUptime telemetri som fortfarande skickas med den.",
   "Deleting an announcement takes it off every status page that shows it.": "När du tar bort ett meddelande tas det bort från alla statussidor som visar det.",
   "Deleting a pipeline also deletes its processors.": "När du tar bort en pipeline tas även dess processorer bort.",
   "Deleting a form also deletes its submissions and custom domains. The incidents and events it created stay.": "När du tar bort ett formulär tas även dess inskick och anpassade domäner bort. De incidenter och händelser det har skapat finns kvar.",

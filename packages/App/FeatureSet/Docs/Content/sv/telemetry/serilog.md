@@ -33,11 +33,11 @@ Sinken samlar logghändelser och skickar dem i bakgrunden. Varje namngiven egens
 
 Gå till **Produkter → Projektinställningar**, öppna **Telemetri och APM** i sidomenyn och välj **Intagningsnycklar**.
 
-![Listan ”Intagningsnycklar”, med ”Skapa ingestion-nyckel” markerad](screen:ingestion-keys)
+![Listan ”Intagningsnycklar”, med ”Skapa intagningsnyckel” markerad](screen:ingestion-keys)
 
 ### Skapa en nyckel
 
-Klicka på **Skapa ingestion-nyckel**. Dialogen har redan fyllt i nyckelns namn och valt **Server** – den sortens nyckel som en applikation eller en collector skickar med – så klicka på **Skapa ingestion-nyckel** för att skapa den, eller byt namn på den först.
+Klicka på **Skapa intagningsnyckel**. Dialogen har redan fyllt i nyckelns namn och valt **Server** – den sortens nyckel som en applikation eller en collector skickar med – så klicka på **Skapa intagningsnyckel** för att skapa den, eller byt namn på den först.
 
 ### Kopiera hemligheten
 

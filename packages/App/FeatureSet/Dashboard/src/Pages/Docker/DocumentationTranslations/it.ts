@@ -19,7 +19,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Replace `my-docker-host` with a name for this host, such as `prod-docker-01`. It is how the host appears in OneUptime, so keep it stable: a new name registers a new host.":
     "Sostituisci `my-docker-host` con un nome per questo host, ad esempio `prod-docker-01`. È il nome con cui l'host appare in OneUptime, quindi mantienilo stabile: un nome nuovo registra un host nuovo.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Scegli una chiave di ingestione nel passaggio 1 per compilare `<YOUR_API_KEY>`.",
+    "Scegli una chiave di acquisizione nel passaggio 1 per compilare `<YOUR_API_KEY>`.",
   "Look for this line in the logs:": "Cerca questa riga nei log:",
   "Once the agent connects, the host appears automatically in the **Docker** section — usually within a minute or so. The OneUptime AI agent shows as Connected on the host's **AI → AI agent** page, and at the bottom of its **Overview**.":
     "Quando l'agente si connette, l'host appare automaticamente nella sezione **Docker**, di solito entro un minuto circa. L'agente IA di OneUptime risulta Connesso nella pagina **IA → Agente IA** dell'host e in fondo alla sua **Panoramica**.",
@@ -28,7 +28,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Sì | L'URL della tua istanza OneUptime (ad es. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_SERVICE_TOKEN` | Yes | The telemetry ingestion key from step 1 |":
-    "| `ONEUPTIME_SERVICE_TOKEN` | Sì | La chiave di ingestione della telemetria del passaggio 1 |",
+    "| `ONEUPTIME_SERVICE_TOKEN` | Sì | La chiave di acquisizione della telemetria del passaggio 1 |",
   "| `DOCKER_HOST_NAME` | No | Friendly name for this host. Defaults to `docker-host` |":
     "| `DOCKER_HOST_NAME` | No | Un nome descrittivo per questo host. Predefinito: `docker-host` |",
   "| `DOCKER_API_VERSION` | No | Docker Engine API version the agent speaks. Empty by default: the agent negotiates it with the daemon, so any Docker Engine from 20.10 on works. Set it only to pin a version (see Troubleshooting) |":
@@ -100,13 +100,13 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent's logs for errors: `docker logs oneuptime-docker-agent 2>&1 | grep -i error`":
     "2. Cerca errori nei log dell'agente: `docker logs oneuptime-docker-agent 2>&1 | grep -i error`",
   "3. Verify the OneUptime URL and ingestion key in the `docker run` command are correct.":
-    "3. Verifica che l'URL di OneUptime e la chiave di ingestione nel comando `docker run` siano corretti.",
+    "3. Verifica che l'URL di OneUptime e la chiave di acquisizione nel comando `docker run` siano corretti.",
   "4. Make sure the host can reach your OneUptime instance over the network.":
     "4. Assicurati che l'host possa raggiungere la tua istanza OneUptime in rete.",
   "Check that the Docker socket is mounted into the agent. Its image has no shell, so look from a throwaway container that shares its mounts:":
     "Verifica che il socket Docker sia montato nell'agente. La sua immagine non ha una shell, quindi controlla da un container usa e getta che ne condivida i montaggi:",
   "Then look for export errors in the agent's logs — `docker logs oneuptime-docker-agent 2>&1 | grep -i error` — and make sure the ingestion key is valid and has not expired.":
-    "Poi cerca errori di esportazione nei log dell'agente (`docker logs oneuptime-docker-agent 2>&1 | grep -i error`) e assicurati che la chiave di ingestione sia valida e non sia scaduta.",
+    "Poi cerca errori di esportazione nei log dell'agente (`docker logs oneuptime-docker-agent 2>&1 | grep -i error`) e assicurati che la chiave di acquisizione sia valida e non sia scaduta.",
   "Metrics arrive but the **Logs** tab is empty, or shows only the agent's own logs? Your containers are most likely not using the `json-file` log driver.":
     "Le metriche arrivano, ma la scheda **Log** è vuota o mostra solo i log dell'agente stesso? Molto probabilmente i tuoi container non usano il driver di log `json-file`.",
   "If step 1 shows `no files match the configured criteria`, or step 3 lists no files for your containers, they are not using `json-file`. Switch them (see **Collect logs from every container (json-file log driver)** under Advanced), then recreate each one — a container keeps the log driver it was created with:":
@@ -140,7 +140,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Add it to the agent's `environment:` list, e.g. `- DOCKER_API_VERSION=1.41`, and run `docker compose up -d`. Newer daemons still serve older API versions, so a pinned version keeps working after you upgrade Docker.":
     "Aggiungila all'elenco `environment:` dell'agente, ad es. `- DOCKER_API_VERSION=1.41`, ed esegui `docker compose up -d`. I daemon più recenti servono ancora le versioni precedenti dell'API, quindi una versione fissata continua a funzionare dopo l'aggiornamento di Docker.",
   "3. Verify the OneUptime URL and ingestion key in docker-compose.yml are correct.":
-    "3. Verifica che l'URL di OneUptime e la chiave di ingestione in docker-compose.yml siano corretti.",
+    "3. Verifica che l'URL di OneUptime e la chiave di acquisizione in docker-compose.yml siano corretti.",
   "The host's name comes from `DOCKER_HOST_NAME`. An agent started without it reports `docker-host`, so every host set up that way looks like the same host. Set `DOCKER_HOST_NAME` to a name of its own on each host and run `docker compose up -d` to recreate the agent with it.":
     "Il nome dell'host viene da `DOCKER_HOST_NAME`. Un agente avviato senza di esso riporta `docker-host`, quindi tutti gli host configurati così sembrano lo stesso host. Imposta `DOCKER_HOST_NAME` su un nome proprio per ogni host ed esegui `docker compose up -d` per ricreare l'agente con esso.",
 };

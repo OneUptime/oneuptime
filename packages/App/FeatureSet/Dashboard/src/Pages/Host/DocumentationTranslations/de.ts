@@ -16,7 +16,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Save this as `config.yaml` in the directory you will run `docker run` from — step 3 mounts it into the container.":
     "Speichern Sie dies als `config.yaml` in dem Verzeichnis, aus dem Sie `docker run` ausführen — Schritt 3 bindet die Datei in den Container ein.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Wählen Sie in Schritt 1 einen Aufnahmeschlüssel, um `<YOUR_API_KEY>` auszufüllen.",
+    "Wählen Sie in Schritt 1 einen Ingestion-Schlüssel, um `<YOUR_API_KEY>` auszufüllen.",
   "`--network host`, `--pid host`, and the `/hostfs` bind mount let the `hostmetrics` and `process` scrapers read CPU, memory, disk, and per-process information from the host kernel rather than the container. Without these, you'd only see metrics for the collector container itself.":
     "`--network host`, `--pid host` und die Bind-Einbindung `/hostfs` lassen die Scraper `hostmetrics` und `process` CPU-, Speicher-, Datenträger- und Prozessdaten aus dem Kernel des Hosts statt des Containers lesen. Ohne sie sähen Sie nur Metriken des Collector-Containers selbst.",
   "Open the **Hosts** list in OneUptime — your host appears automatically once the first metric batch lands (usually within 30 seconds). Not there? Check the collector:":
@@ -297,7 +297,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the collector's logs: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent`":
     "2. Prüfen Sie die Logs des Collectors: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent`",
   "3. Verify the OneUptime URL and ingestion key in the install command are correct.":
-    "3. Prüfen Sie, ob die OneUptime-URL und der Aufnahmeschlüssel im Installationsbefehl stimmen.",
+    "3. Prüfen Sie, ob die OneUptime-URL und der Ingestion-Schlüssel im Installationsbefehl stimmen.",
   "4. Make sure the cluster can reach your OneUptime instance over the network.":
     "4. Stellen Sie sicher, dass der Cluster Ihre OneUptime-Instanz über das Netzwerk erreicht.",
   "1. Check the AI agent's pod: `kubectl get pods -n oneuptime-agent -l component=ai-agent`":

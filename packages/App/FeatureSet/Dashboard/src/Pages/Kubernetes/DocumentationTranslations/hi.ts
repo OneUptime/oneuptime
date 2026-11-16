@@ -20,7 +20,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "`--set aiAgent.enabled=true` turns **AI investigations** on, as the chart does by default: OneUptime AI investigates incidents and alerts on this cluster with read-only kubectl, through the Kubernetes AI agent.":
     "`--set aiAgent.enabled=true` **एआई जाँच** चालू करता है, जैसा chart डिफ़ॉल्ट रूप से करता है: OneUptime AI, Kubernetes AI एजेंट के ज़रिए केवल-पढ़ने वाले kubectl से इस क्लस्टर की घटनाओं और अलर्ट की जाँच करता है।",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इन्जेशन कुंजी चुनें।",
+    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इंजेशन कुंजी चुनें।",
   "You should see:": "आपको यह दिखना चाहिए:",
   "The collector and the Kubernetes AI agent, plus one `-logs` and one `-ebpf` pod on every node. Once they are `Running`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.":
     "कलेक्टर और Kubernetes AI एजेंट, साथ ही हर नोड पर एक `-logs` और एक `-ebpf` पॉड। उनके `Running` होते ही क्लस्टर अपने-आप **Kubernetes** सेक्शन में दिखता है, आमतौर पर एक-दो मिनट के भीतर।",
@@ -134,7 +134,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the collector's logs: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent`":
     "2. कलेक्टर के लॉग जाँचें: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent`",
   "3. Verify the OneUptime URL and ingestion key in the install command are correct.":
-    "3. पुष्टि करें कि इंस्टॉल कमांड में OneUptime URL और इन्जेशन कुंजी सही हैं।",
+    "3. पुष्टि करें कि इंस्टॉल कमांड में OneUptime URL और इंजेशन कुंजी सही हैं।",
   "4. Make sure the cluster can reach your OneUptime instance over the network.":
     "4. पक्का करें कि क्लस्टर नेटवर्क पर आपके OneUptime इंस्टेंस तक पहुँच सकता है।",
   "1. Check the AI agent's pod: `kubectl get pods -n oneuptime-agent -l component=ai-agent`":

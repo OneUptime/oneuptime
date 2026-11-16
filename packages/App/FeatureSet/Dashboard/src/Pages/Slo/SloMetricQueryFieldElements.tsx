@@ -114,9 +114,10 @@ export const SloMetricNamePicker: FunctionComponent<
     names.unshift(props.value);
   }
 
+  // A metric's name as the telemetry sent it: drawn as written, never looked up.
   const options: Array<DropdownOption> = names.map(
     (name: string): DropdownOption => {
-      return { label: name, value: name };
+      return { label: name, value: name, isUserContent: true };
     },
   );
 

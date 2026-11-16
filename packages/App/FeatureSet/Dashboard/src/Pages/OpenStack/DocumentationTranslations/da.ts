@@ -95,7 +95,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Har du brug for dem, så brug en af de andre faner og agentens egen exporter. Du kan skifte mening senere: en cloud beholder sit navn, uanset hvad der læser den.",
   "The script asks for:": "Scriptet spørger om:",
   "- **OneUptime URL and ingestion key**, both shown in step 1. Pick a key there to have them filled in here.":
-    "- **OneUptime-URL og ingestion-nøgle**, begge vist i trin 1. Vælg en nøgle der for at få dem udfyldt her.",
+    "- **OneUptime-URL og indtagelsesnøgle**, begge vist i trin 1. Vælg en nøgle der for at få dem udfyldt her.",
   "- **Cloud name**: how the cloud appears in OneUptime. Keep it stable: a new name registers a new cloud.":
     "- **Cloudnavn**: hvordan cloud'en vises i OneUptime. Hold det stabilt: et nyt navn registrerer en ny cloud.",
   "- **Keystone auth URL**, such as `https://keystone.example.com:5000/v3`.":
@@ -265,7 +265,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Ja | URL'en til din OneUptime-instans (f.eks. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key: the one picked in step 1 |":
-    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Ingestion-nøgle til telemetri: den, du valgte i trin 1 |",
+    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Indtagelsesnøgle til telemetri: den, du valgte i trin 1 |",
   "| `OPENSTACK_CLOUD_NAME` | Yes | The cloud's name in OneUptime, stamped on every metric as the `openstack.cloud.name` resource attribute. Keep it stable: changing it registers a new cloud |":
     "| `OPENSTACK_CLOUD_NAME` | Ja | Cloud'ens navn i OneUptime, sat på hver metrik som ressourceattributten `openstack.cloud.name`. Hold det stabilt: ændres det, registreres en ny cloud |",
   "| `OPENSTACK_EXPORTER_CLOUDS` | Yes | The `clouds.yaml` entries to read, one per region and named for the region, in square brackets: `[RegionOne,RegionTwo]` |":
@@ -383,7 +383,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then delete `/opt/oneuptime-openstack-agent`, which holds the credential, and the application credential itself: `openstack application credential delete oneuptime-agent`.":
     "Slet derefter `/opt/oneuptime-openstack-agent`, som indeholder credential'en, og selve application credential'en: `openstack application credential delete oneuptime-agent`.",
   "`troubleshoot.sh` checks the whole chain, from DNS and TLS to Keystone, each service in the catalog and your ingestion key, and says what this credential can read and what each gap costs.":
-    "`troubleshoot.sh` tjekker hele kæden, fra DNS og TLS til Keystone, hver tjeneste i kataloget og din ingestion-nøgle, og siger, hvad denne credential kan læse, og hvad hvert hul koster.",
+    "`troubleshoot.sh` tjekker hele kæden, fra DNS og TLS til Keystone, hver tjeneste i kataloget og din indtagelsesnøgle, og siger, hvad denne credential kan læse, og hvad hvert hul koster.",
   "It needs `sudo` to read `clouds.yaml`, or it skips the credential checks. It ends with a verdict naming the most likely cause.":
     "Det skal bruge `sudo` for at læse `clouds.yaml`, ellers springer det credential-tjekkene over. Det slutter med en dom, der nævner den mest sandsynlige årsag.",
   "1. Check that the agent is running (in `/opt/oneuptime-openstack-agent`): `docker compose ps`":
@@ -391,7 +391,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent logs for errors: `docker compose logs oneuptime-openstack-agent | grep -i error`":
     "2. Tjek agentens logs for fejl: `docker compose logs oneuptime-openstack-agent | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
-    "3. Bekræft, at din OneUptime-URL og ingestion-nøgle er korrekte.",
+    "3. Bekræft, at din OneUptime-URL og indtagelsesnøgle er korrekte.",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":
     "4. Sørg for, at agentmaskinen kan nå OneUptime-instansen over netværket.",
   "A **Project view** credential can't read them, and neither can a role without the policy overrides: Nova, Neutron and Placement keep them for admins by default. Use **Full view**, or **Infrastructure only** with the files in `access/policy` merged into the file each service's `[oslo_policy] policy_file` names. `troubleshoot.sh` says which reads were refused.":
@@ -435,7 +435,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Both files hold secrets, so keep them to their owner. The exporter runs as uid 65532, and must be the one account that can read `clouds.yaml`. Then start the agent:":
     "Begge filer indeholder hemmeligheder, så hold dem for deres ejer. Exporteren kører som uid 65532 og skal være den eneste konto, der kan læse `clouds.yaml`. Start derefter agenten:",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Vælg en ingestion-nøgle i trin 1 for at udfylde `<YOUR_API_KEY>`.",
+    "Vælg en indtagelsesnøgle i trin 1 for at udfylde `<YOUR_API_KEY>`.",
   "A cloud is one Keystone, however many regions it has, and one agent reads them all. Add one `clouds.yaml` entry per region, and list them all in `OPENSTACK_EXPORTER_CLOUDS`. Each entry must be named for its region: the collector stamps that name on the exporter's series as `openstack.region.name`, because the series do not say which region they are from. Every list in OneUptime then filters by region.":
     "En cloud er én Keystone, uanset hvor mange regioner den har, og én agent læser dem alle. Tilføj én `clouds.yaml`-post pr. region, og angiv dem alle i `OPENSTACK_EXPORTER_CLOUDS`. Hver post skal være opkaldt efter sin region: collectoren sætter det navn på exporterens serier som `openstack.region.name`, fordi serierne ikke siger, hvilken region de kommer fra. Hver liste i OneUptime kan så filtreres efter region.",
   "The agent reads these from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the folder with `docker-compose.yml`.":

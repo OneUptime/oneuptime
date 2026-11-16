@@ -57,7 +57,7 @@ Ga naar **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. **Tel
 
 ### De sleutel een naam en een type geven
 
-Klik op **Inname-sleutel aanmaken**. Het dialoogvenster begint met de naam **Serversleutel** en het type **Server**. Kies het **Sleuteltype** en geef de sleutel een naam naar wat hem gaat gebruiken, zoals `checkout-collector`. Een **Beschrijving** staat onder **Geavanceerd**.
+Klik op **Ingestiesleutel aanmaken**. Het dialoogvenster begint met de naam **Serversleutel** en het type **Server**. Kies het **Sleuteltype** en geef de sleutel een naam naar wat hem gaat gebruiken, zoals `checkout-collector`. Een **Beschrijving** staat onder **Geavanceerd**.
 
 ### De origins van een browsersleutel toevoegen
 
@@ -65,10 +65,10 @@ Een **Browser**-sleutel vraagt om zijn **Toegestane origins** in de volgende sta
 
 ### De sleutel aanmaken en het geheim kopiëren
 
-Klik op **Inname-sleutel aanmaken**. De pagina van de sleutel opent: kopieer de **Geheime sleutel** en geef die aan uw afzenders.
+Klik op **Ingestiesleutel aanmaken**. De pagina van de sleutel opent: kopieer de **Geheime sleutel** en geef die aan uw afzenders.
 :::
 
-De **Installatiegids** van elk product begint met **Kies een inname-sleutel**, dat de sleutels toont die die gids kan gebruiken en er ter plekke een aanmaakt. De codefragmenten van de gids bevatten daarna die sleutel.
+De **Installatiegids** van elk product begint met **Kies een ingestiesleutel**, dat de sleutels toont die die gids kan gebruiken en er ter plekke een aanmaakt. De codefragmenten van de gids bevatten daarna die sleutel.
 
 ## Telemetrie met de sleutel verzenden
 

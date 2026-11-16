@@ -31,7 +31,7 @@ L'esploratore ha cinque schede:
 | **Visualizzatore** | Cercare, filtrare e leggere i log. Si apre sull'ultima ora, prima i più recenti, 100 log per pagina. |
 | **Analisi** | Che cosa hanno registrato i vostri servizi in un intervallo di tempo, e che cosa è andato storto. |
 | **IA** | I log di errore, i log mancanti e i log rumorosi che OneUptime trova nei vostri log, e ciò che OneUptime AI ha fatto al riguardo. Vedete [Trovare e correggere con l'IA i log di errore, mancanti o rumorosi](#trovare-e-correggere-con-lia-i-log-di-errore-mancanti-o-rumorosi). |
-| **Guida alla configurazione** | Come inviare log con OpenTelemetry, Fluent Bit o Fluentd, usando una delle vostre [chiavi di ingestione](/docs/telemetry/ingestion-keys). |
+| **Guida alla configurazione** | Come inviare log con OpenTelemetry, Fluent Bit o Fluentd, usando una delle vostre [chiavi di acquisizione](/docs/telemetry/ingestion-keys). |
 | **Impostazioni** | Che cosa succede ai log quando arrivano: **Pipeline**, **Filtri di scarto**, **Regole di mascheramento** e **Regole di registrazione**. |
 
 ## Prima di iniziare

@@ -50,9 +50,9 @@ flowchart TB
 
 1. Gå til **Produkter → Prosjektinnstillinger**.
 2. Åpne **Telemetri og APM** i sidemenyen, og velg **Inntaksnøkler**.
-3. Klikk på **Opprett ingestion-nøkkel**. Dialogen fyller inn et navn og velger nøkkeltypen **Server**, som en applikasjon eller en collector sender med. Gi den nytt navn om du vil, og klikk deretter på **Opprett ingestion-nøkkel**.
+3. Klikk på **Opprett inntaksnøkkel**. Dialogen fyller inn et navn og velger nøkkeltypen **Server**, som en applikasjon eller en collector sender med. Gi den nytt navn om du vil, og klikk deretter på **Opprett inntaksnøkkel**.
 
-![Listen «Inntaksnøkler», med «Opprett ingestion-nøkkel» uthevet](screen:ingestion-keys)
+![Listen «Inntaksnøkler», med «Opprett inntaksnøkkel» uthevet](screen:ingestion-keys)
 
 Den nye nøkkelen åpnes på sin egen side. Kopier **Hemmelig nøkkel** — det er tokenet du sender som `x-oneuptime-token`.
 

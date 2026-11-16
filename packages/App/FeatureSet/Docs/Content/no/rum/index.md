@@ -95,7 +95,7 @@ En applikasjon viser **Mottar data** så lenge telemetri kommer inn, og **Ingen 
 :::steps
 ### Opprett en inntaksnøkkel
 
-Åpne **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** og klikk på **Opprett ingestion-nøkkel**. En webapp trenger en **Nettleser**-nøkkel, som bare virker fra opprinnelsene du lister opp. En mobilapp trenger en **Server**-nøkkel, fordi et mobil-SDK ikke sender en `Origin`-header.
+Åpne **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** og klikk på **Opprett inntaksnøkkel**. En webapp trenger en **Nettleser**-nøkkel, som bare virker fra opprinnelsene du lister opp. En mobilapp trenger en **Server**-nøkkel, fordi et mobil-SDK ikke sender en `Origin`-header.
 
 ### Instrumenter appen din
 
