@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import {
   act,
   cleanup,
@@ -141,7 +142,7 @@ const given: (extra: Partial<ProjectProductsAnswer>) => void = (
 };
 
 let sent: Array<{ name: string; properties: Record<string, unknown> }>;
-let productOpened: jest.Mock;
+let productOpened: MockFunction;
 
 // Where the router is: a product opened in place moves it.
 const LocationProbe: () => ReactElement = (): ReactElement => {
@@ -313,7 +314,7 @@ beforeEach(async () => {
   ): void => {
     sent.push({ name: name, properties: properties || {} });
   }) as never);
-  productOpened = jest.fn();
+  productOpened = getJestMockFunction();
   document.addEventListener("click", cancelTheBrowsersOwnStep);
 });
 
