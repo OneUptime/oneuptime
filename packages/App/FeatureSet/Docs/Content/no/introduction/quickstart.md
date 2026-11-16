@@ -26,7 +26,7 @@ I OneUptime ligger alt i et prosjekt: monitorene, hendelsene, vaktpolicyene, sta
 :::steps
 ### Start et nytt prosjekt
 
-Første gang du logger inn, viser OneUptime **Ingen prosjekter**. Klikk på **Opprett nytt prosjekt**. Har noen allerede invitert deg til et prosjekt, godtar du heller invitasjonen på samme side.
+Første gang du logger inn, viser OneUptime **Ingen prosjekter ennå**. Klikk på **Opprett prosjekt**. Har noen allerede invitert deg til et prosjekt, godtar du heller invitasjonen på samme side.
 
 ### Gi det et navn
 

@@ -26,7 +26,7 @@ Everything in OneUptime lives in a project: your monitors, incidents, on-call po
 :::steps
 ### Start a new project
 
-The first time you sign in, OneUptime shows **No projects**. Click **Create New Project**. If someone already invited you to a project, accept the invitation on the same page instead.
+The first time you sign in, OneUptime shows **No projects yet**. Click **Create Project**. If someone already invited you to a project, accept the invitation on the same page instead.
 
 ### Name it
 

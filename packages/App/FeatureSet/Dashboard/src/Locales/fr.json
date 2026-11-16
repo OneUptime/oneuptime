@@ -56441,5 +56441,7 @@
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} commandes exécutées ici ne sont pas listées : elles ont été exécutées pour des chats IA, des incidents ou des alertes que vous ne pouvez pas ouvrir.",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} commande exécutée ici n'est pas listée : elle a été exécutée pour un chat IA, un incident ou une alerte que vous ne pouvez pas ouvrir.",
   "Test email report not sent": "Rapport de test par e-mail non envoyé",
-  "Test message not sent": "Message de test non envoyé"
+  "Test message not sent": "Message de test non envoyé",
+  "No projects yet": "Aucun projet pour l'instant",
+  "Welcome to OneUptime": "Bienvenue sur OneUptime"
 }
