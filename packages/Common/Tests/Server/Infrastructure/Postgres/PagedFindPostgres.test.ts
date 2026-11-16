@@ -3,10 +3,13 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorProbe from "../../../../Models/DatabaseModels/MonitorProbe";
 import PagedFind from "../../../../Server/Infrastructure/Postgres/PagedFind";
+import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import {
+  And,
   DataSource,
+  Equal,
   FindManyOptions,
   In,
   ObjectLiteral,
@@ -40,7 +43,11 @@ import {
  * deleted rows and without, and the queries it sends are held to two: the
  * ids, with no DISTINCT and no to-many join, then the rows of those ids.
  * A read that filters or orders through a to-many relation keeps TypeORM's
- * two queries, and its pages are held to TypeORM's too.
+ * two queries, and its pages are held to TypeORM's too. A read kept to some
+ * labels by a condition on the record's own id instead - how a grant limited
+ * to labels and a filter by labels are written (#8113) - takes its page's
+ * ids from the table, gives TypeORM's pages and the records the relation's
+ * filter kept, and read by its id is one query.
  *
  * Opt in with RUN_POSTGRES_PAGED_FIND_TESTS=true against a database the
  * registered migrations have run on: the table definitions are copied from
@@ -965,6 +972,172 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
         take: 10,
       }),
     ).toBeNull();
+  });
+
+  /*
+   * #8113: a grant limited to labels, and a filter by labels, keep the
+   * records by a condition on their own id - the records the label join
+   * table links to one of the labels, the label not deleted - in place of a
+   * filter through the labels relation (the test above). With no to-many
+   * join in its filter, such a list takes its page's ids from the table
+   * itself, and gives TypeORM's own pages: the same records, each with every
+   * label it carries.
+   */
+  function carriesOneOf(labels: Array<string>): unknown {
+    return QueryHelper.anyOfEntitiesInManyToMany({
+      values: labels,
+      joinTableName: "MonitorLabel",
+      ownerColumnName: "monitorId",
+      relationColumnName: "labelId",
+      relatedTable: {
+        tableName: "Label",
+        columnName: "_id",
+        deleteDateColumnName: "deletedAt",
+      },
+    });
+  }
+
+  test("monitors kept to some labels by a condition on their id, with their labels shown: their ids from the table, and TypeORM's pages", async () => {
+    const repository: Repository<Monitor> = database.getRepository(Monitor);
+    let compared: number = 0;
+
+    // The deleted label among them: it keeps no monitor, as through the relation.
+    for (const labels of [
+      labelIds.slice(0, 1),
+      labelIds.slice(1, 3),
+      [labelIds[4]!],
+      labelIds,
+    ]) {
+      const options: FindManyOptions<Monitor> = {
+        where: {
+          projectId: projectId,
+          _id: carriesOneOf(labels),
+        } as never,
+        select: {
+          _id: true,
+          createdAt: true,
+          name: true,
+          labels: { _id: true, name: true },
+          currentMonitorStatus: { _id: true, name: true },
+        } as never,
+        relations: { labels: true, currentMonitorStatus: true } as never,
+        order: { createdAt: "DESC", _id: "ASC" } as never,
+      };
+
+      compared += await expectSamePages({
+        target: Monitor,
+        options: options,
+        pageSizes: [1, 2, 5, 100],
+        total: 23,
+      });
+
+      expect(
+        PagedFind.createIdPageQueryBuilder(repository, {
+          ...options,
+          skip: 0,
+          take: 10,
+        }),
+      ).not.toBeNull();
+
+      // The same records the filter through the relation keeps.
+      const throughTheRelation: Array<string> = (
+        await repository.find({
+          where: {
+            projectId: projectId,
+            labels: { _id: In(labels) },
+          } as never,
+          select: { _id: true } as never,
+        })
+      )
+        .map((monitor: Monitor): string => {
+          return monitor.id!.toString();
+        })
+        .sort();
+      const onTheId: Array<string> = (
+        await repository.find({
+          where: options.where,
+          select: { _id: true } as never,
+        })
+      )
+        .map((monitor: Monitor): string => {
+          return monitor.id!.toString();
+        })
+        .sort();
+
+      expect(onTheId).toEqual(throughTheRelation);
+    }
+
+    expect(compared).toBeGreaterThan(20);
+  });
+
+  test("the queries a list kept to labels by its id sends: its ids from the table with no join, then their rows", async () => {
+    const repository: Repository<Monitor> = database.getRepository(Monitor);
+    const options: FindManyOptions<Monitor> = {
+      where: {
+        projectId: projectId,
+        _id: carriesOneOf(labelIds.slice(0, 3)),
+      } as never,
+      select: {
+        _id: true,
+        createdAt: true,
+        name: true,
+        labels: { _id: true, name: true },
+      } as never,
+      relations: { labels: true } as never,
+      order: { createdAt: "DESC", _id: "ASC" } as never,
+      skip: 1,
+      take: 3,
+    };
+
+    let paged: Array<Monitor> = [];
+    const queries: Array<string> = await recordQueries(async () => {
+      paged = await PagedFind.find(repository, options);
+    });
+
+    expect(normalized(paged)).toBe(normalized(await repository.find(options)));
+    expect(paged).toHaveLength(3);
+    expect(queries).toHaveLength(2);
+    expect(queries[0]).not.toContain("DISTINCT");
+    expect(queries[0]).not.toContain("JOIN");
+    expect(queries[0]).toContain('"MonitorLabel"."monitorId"');
+    expect(queries[0]).toContain("LIMIT 3 OFFSET 1");
+  });
+
+  test("a monitor read by its id under a condition on its id: one query, TypeORM's page", async () => {
+    const repository: Repository<Monitor> = database.getRepository(Monitor);
+    let found: number = 0;
+
+    for (const monitorId of monitorIds) {
+      const options: FindManyOptions<Monitor> = {
+        where: {
+          _id: And(Equal(monitorId), carriesOneOf(labelIds) as never),
+        } as never,
+        select: {
+          _id: true,
+          createdAt: true,
+          name: true,
+          labels: { _id: true, name: true },
+        } as never,
+        relations: { labels: true } as never,
+        order: { createdAt: "DESC", _id: "ASC" } as never,
+        skip: 0,
+        take: 1,
+      };
+
+      let paged: Array<Monitor> = [];
+      const queries: Array<string> = await recordQueries(async () => {
+        paged = await PagedFind.find(repository, options);
+      });
+
+      expect(normalized(paged)).toBe(
+        normalized(await repository.find(options)),
+      );
+      expect(queries).toHaveLength(1);
+      found += paged.length;
+    }
+
+    // The monitors that carry a label that is not deleted, and are not deleted.
+    expect(found).toBeGreaterThan(5);
   });
 
   test("a list ordered through a to-many relation: TypeORM's two queries, and its pages", async () => {
