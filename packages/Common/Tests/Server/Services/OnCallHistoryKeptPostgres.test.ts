@@ -2,7 +2,8 @@ import Entities from "../../../Models/DatabaseModels/Index";
 import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnlineDdl from "../../../Server/Infrastructure/Postgres/OnlineDdl";
 import { KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182510000-KeepOnCallHistoryWhenItsSettingsAreDeleted";
-import { KeepPersonWhenTheirPictureFileIsDeleted1809182520000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182520000-KeepPersonWhenTheirPictureFileIsDeleted";
+import { KeepOwnersWhenTheirPictureFileIsDeleted1809182520000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182520000-KeepOwnersWhenTheirPictureFileIsDeleted";
+import { KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182530000-KeepNotificationLogsWhenOnCallSettingsAreDeleted";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import OnCallDutyPolicyEscalationRuleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
@@ -33,29 +34,33 @@ import { DataSource, QueryRunner } from "typeorm";
 
 /*
  * ON-CALL HISTORY IS KEPT WHEN THE SETTINGS IT NAMES ARE DELETED (issue
- * #9036), AND A PERSON WHEN THEIR PICTURE'S FILE IS (#9069), ON POSTGRES.
+ * #9036), AND WHAT SHOWS A PICTURE WHEN ITS FILE IS (#9069), ON POSTGRES.
  *
  * Deleting an escalation rule deleted every run that last reached it, with
  * its timeline (ON DELETE CASCADE) - a run paging on that level too, so its
- * later levels were never paged. Deleting a schedule, a team, or the
- * account of somebody who once acknowledged a page did the same to runs and
- * their lines; deleting a person's picture's file deleted the person. Only
- * a database answers whether the keys now do what the models declare, so:
+ * later levels were never paged - and every log of every message its pages
+ * sent. Deleting a schedule, a team, or the account of somebody who once
+ * acknowledged a page did the same to runs, their lines and those logs;
+ * deleting a picture's file deleted the person, status page, dashboard,
+ * probe or AI agent that showed it. Only a database answers whether the
+ * keys now do what the models declare, so:
  *
  *   - on the migrated schema itself: every key from a run, its timeline, a
  *     person's page and its timeline to a rule, a schedule, a team or a
- *     person - and from a person to their picture - sets NULL, validated;
- *     a person's own page, and a run's policy, still cascade;
+ *     person, from a delivery log to a rule, a schedule or a team, and from
+ *     a picture to its file sets NULL, validated; a person's own page, and
+ *     a run's policy, still cascade;
  *   - on copies of those tables with those keys, real deletes: the rule,
  *     the schedule, the team, an acknowledger, a person covered for, a
- *     paged person, a picture - each keeps every row of history, the
- *     reference cleared - and a policy still takes its runs with it;
+ *     paged person, a picture's file - each keeps every row of history, and
+ *     every owner of a picture, the reference cleared - and a policy still
+ *     takes its runs with it;
  *   - a run paging on a deleted level, with the services' own SQL on that
  *     structure: its place written as the rule goes, its claim to move on
  *     given back, its hand-over, and its move on - which pages the level
  *     that moved up into the deleted one's place;
  *   - OnlineDdl.replaceForeignKey swaps a CASCADE key for SET NULL on a
- *     real table, rows and all, and does nothing the second time; the two
+ *     real table, rows and all, and does nothing the second time; the three
  *     migrations, run again on the migrated schema, change nothing.
  *
  * Opt in with RUN_POSTGRES_ON_CALL_HISTORY_KEPT_TESTS=true against a
@@ -87,16 +92,61 @@ const SETTINGS: Array<string> = [
   "User",
 ];
 
-// Every table cloned: the history, the settings it names, and their own.
+// Each message an on-call page sent, by the way it went out.
+const DELIVERY_LOGS: Array<string> = [
+  "CallLog",
+  "EmailLog",
+  "PushNotificationLog",
+  "SmsLog",
+  "TelegramLog",
+  "WebhookLog",
+  "WhatsAppLog",
+  "WorkspaceNotificationLog",
+];
+
+// What shows a picture, beside a person: "table.column" of each picture.
+const PICTURES: Array<string> = [
+  "StatusPage.faviconFileId",
+  "StatusPage.logoFileId",
+  "StatusPage.coverImageFileId",
+  "Dashboard.logoFileId",
+  "Dashboard.faviconFileId",
+  "Probe.iconFileId",
+  "AIAgent.iconFileId",
+];
+
+const PICTURE_OWNERS: Array<string> = [
+  "StatusPage",
+  "Dashboard",
+  "Probe",
+  "AIAgent",
+];
+
+/*
+ * Every table cloned: the history, the settings it names, their own, the
+ * delivery logs, and what shows a picture.
+ */
 const TABLES: Array<string> = [
   ...HISTORY,
   ...SETTINGS,
   "OnCallDutyPolicy",
   "File",
+  ...DELIVERY_LOGS,
+  ...PICTURE_OWNERS,
 ];
 
 // What the migrations made SET NULL: "table.column -> referenced table".
 const SET_NULL: Array<string> = [
+  ...DELIVERY_LOGS.flatMap((log: string): Array<string> => {
+    return [
+      `${log}.onCallDutyPolicyEscalationRuleId -> OnCallDutyPolicyEscalationRule`,
+      `${log}.onCallDutyPolicyScheduleId -> OnCallDutyPolicySchedule`,
+      `${log}.teamId -> Team`,
+    ];
+  }),
+  ...PICTURES.map((picture: string): string => {
+    return `${picture} -> File`;
+  }),
   "OnCallDutyPolicyExecutionLog.acknowledgedByTeamId -> Team",
   "OnCallDutyPolicyExecutionLog.acknowledgedByUserId -> User",
   "OnCallDutyPolicyExecutionLog.lastExecutedEscalationRuleId -> OnCallDutyPolicyEscalationRule",
@@ -620,15 +670,89 @@ describePostgres(
           await new KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000().up(
             queryRunner,
           );
-          await new KeepPersonWhenTheirPictureFileIsDeleted1809182520000().up(
+          await new KeepOwnersWhenTheirPictureFileIsDeleted1809182520000().up(
+            queryRunner,
+          );
+          await new KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000().up(
             queryRunner,
           );
         } finally {
           await queryRunner.release();
         }
 
-        // One read of the catalog for each of the sixteen keys, and no change.
-        expect(statements).toHaveLength(16);
+        // One read of the catalog for each of the keys, and no change.
+        expect(statements).toHaveLength(SET_NULL.length);
+        expect(SET_NULL).toHaveLength(15 + 8 + 24);
+      });
+
+      test("a delivery log's rule, schedule and team set NULL; its person and its policy still cascade", async () => {
+        const fromLogs: Array<string> = (await foreignKeysIn("public"))
+          .filter((row: ForeignKeyRow): boolean => {
+            return (
+              DELIVERY_LOGS.includes(row.owner) &&
+              [...SETTINGS, "OnCallDutyPolicy"].includes(row.target) &&
+              !["createdByUserId", "deletedByUserId"].includes(row.column_name)
+            );
+          })
+          .map((row: ForeignKeyRow): string => {
+            return `${describeKey(row)} ${row.on_delete}`;
+          })
+          .sort();
+
+        expect(fromLogs).toEqual(
+          DELIVERY_LOGS.flatMap((log: string): Array<string> => {
+            return [
+              `${log}.onCallDutyPolicyEscalationRuleId -> OnCallDutyPolicyEscalationRule n`,
+              `${log}.onCallDutyPolicyId -> OnCallDutyPolicy c`,
+              `${log}.onCallDutyPolicyScheduleId -> OnCallDutyPolicySchedule n`,
+              `${log}.teamId -> Team n`,
+              `${log}.userId -> User c`,
+            ];
+          }).sort(),
+        );
+      });
+
+      test("every picture's key to its file sets NULL - a dark-theme logo's and a form's too", async () => {
+        const toFiles: Array<string> = (
+          await database.query(
+            `SELECT owner.relname AS owner, attribute.attname AS column_name, constraint_row.confdeltype AS on_delete
+               FROM pg_constraint constraint_row
+               JOIN pg_class owner ON owner.oid = constraint_row.conrelid
+               JOIN pg_namespace namespace ON namespace.oid = owner.relnamespace
+               JOIN pg_attribute attribute ON attribute.attrelid = constraint_row.conrelid AND attribute.attnum = ANY(constraint_row.conkey)
+              WHERE constraint_row.contype = 'f'
+                AND namespace.nspname = 'public'
+                AND constraint_row.confrelid = 'public."File"'::regclass
+                AND attribute.attname ~ '^(profilePicture|logoFile|darkThemeLogoFile|faviconFile|iconFile|coverImageFile)'`,
+          )
+        )
+          .map(
+            (row: {
+              owner: string;
+              column_name: string;
+              on_delete: string;
+            }): string => {
+              return `${row.owner}.${row.column_name} ${row.on_delete}`;
+            },
+          )
+          .sort();
+
+        expect(toFiles).toEqual(
+          [
+            "AIAgent.iconFileId n",
+            "Dashboard.darkThemeLogoFileId n",
+            "Dashboard.faviconFileId n",
+            "Dashboard.logoFileId n",
+            "Form.faviconFileId n",
+            "Form.logoFileId n",
+            "Probe.iconFileId n",
+            "StatusPage.coverImageFileId n",
+            "StatusPage.darkThemeLogoFileId n",
+            "StatusPage.faviconFileId n",
+            "StatusPage.logoFileId n",
+            "User.profilePictureId n",
+          ].sort(),
+        );
       });
     });
 
@@ -814,6 +938,120 @@ describePostgres(
 
         expect(person).not.toBeNull();
         expect(person!["profilePictureId"]).toBeNull();
+      });
+
+      test("a status page's, a dashboard's, a probe's and an AI agent's picture files: each stays, its pictures cleared (issue #9069)", async () => {
+        const file: () => Promise<string> = (): Promise<string> => {
+          return insertRow("File", { name: "picture.png" });
+        };
+
+        const owners: Array<{
+          table: string;
+          id: string;
+          columns: Array<string>;
+        }> = [];
+
+        for (const table of PICTURE_OWNERS) {
+          const columns: Array<string> = PICTURES.filter(
+            (picture: string): boolean => {
+              return picture.startsWith(`${table}.`);
+            },
+          ).map((picture: string): string => {
+            return picture.split(".")[1]!;
+          });
+          const values: Dictionary<unknown> = {
+            projectId: projectId.toString(),
+            name: `${table} with pictures`,
+          };
+
+          for (const column of columns) {
+            values[column] = await file();
+          }
+
+          owners.push({
+            table: table,
+            id: await insertRow(table, values),
+            columns: columns,
+          });
+        }
+
+        expect(
+          owners.reduce((count: number, owner: { columns: Array<string> }) => {
+            return count + owner.columns.length;
+          }, 0),
+        ).toBe(PICTURES.length);
+
+        for (const owner of owners) {
+          const before: Dictionary<unknown> | null = await rowOf(
+            owner.table,
+            owner.id,
+          );
+
+          for (const column of owner.columns) {
+            await deleteRow("File", String(before![column]));
+          }
+
+          const after: Dictionary<unknown> | null = await rowOf(
+            owner.table,
+            owner.id,
+          );
+
+          expect({ owner: owner.table, kept: Boolean(after) }).toEqual({
+            owner: owner.table,
+            kept: true,
+          });
+
+          for (const column of owner.columns) {
+            expect({
+              picture: `${owner.table}.${column}`,
+              value: after![column],
+            }).toEqual({ picture: `${owner.table}.${column}`, value: null });
+          }
+        }
+      });
+
+      test("the rule, the schedule and the team a page went out through: every message's delivery log stays, them cleared", async () => {
+        const world: World = await seed();
+        const logs: Dictionary<string> = {};
+
+        for (const log of DELIVERY_LOGS) {
+          logs[log] = await insertRow(log, {
+            projectId: projectId.toString(),
+            onCallDutyPolicyId: world.policy,
+            onCallDutyPolicyEscalationRuleId: world.levelTwo,
+            onCallDutyPolicyScheduleId: world.schedule,
+            teamId: world.team,
+            userId: world.paged,
+          });
+        }
+
+        await deleteRow("OnCallDutyPolicyEscalationRule", world.levelTwo);
+        await deleteRow("OnCallDutyPolicySchedule", world.schedule);
+        await deleteRow("Team", world.team);
+
+        for (const log of DELIVERY_LOGS) {
+          const row: Dictionary<unknown> | null = await rowOf(log, logs[log]!);
+
+          expect({ log: log, kept: Boolean(row) }).toEqual({
+            log: log,
+            kept: true,
+          });
+          expect({
+            log: log,
+            rule: row!["onCallDutyPolicyEscalationRuleId"],
+            schedule: row!["onCallDutyPolicyScheduleId"],
+            team: row!["teamId"],
+            policy: row!["onCallDutyPolicyId"],
+            person: row!["userId"],
+          }).toEqual({
+            log: log,
+            rule: null,
+            schedule: null,
+            team: null,
+            policy: world.policy,
+            person: world.paged,
+          });
+        }
       });
 
       test("a policy still takes its rules, its runs and everything under them", async () => {

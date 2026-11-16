@@ -1,16 +1,29 @@
+import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
+import CallLog from "../../../../Models/DatabaseModels/CallLog";
+import Dashboard from "../../../../Models/DatabaseModels/Dashboard";
+import EmailLog from "../../../../Models/DatabaseModels/EmailLog";
 import File from "../../../../Models/DatabaseModels/File";
 import OnCallDutyPolicyEscalationRule from "../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimeline from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import OnCallDutyPolicySchedule from "../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import Probe from "../../../../Models/DatabaseModels/Probe";
+import PushNotificationLog from "../../../../Models/DatabaseModels/PushNotificationLog";
+import SmsLog from "../../../../Models/DatabaseModels/SmsLog";
+import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import Team from "../../../../Models/DatabaseModels/Team";
+import TelegramLog from "../../../../Models/DatabaseModels/TelegramLog";
 import User from "../../../../Models/DatabaseModels/User";
 import UserOnCallLog from "../../../../Models/DatabaseModels/UserOnCallLog";
 import UserOnCallLogTimeline from "../../../../Models/DatabaseModels/UserOnCallLogTimeline";
+import WebhookLog from "../../../../Models/DatabaseModels/WebhookLog";
+import WhatsAppLog from "../../../../Models/DatabaseModels/WhatsAppLog";
+import WorkspaceNotificationLog from "../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import { AddEscalationRuleOrderAndNameToOnCallTimeline1809182500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182500000-AddEscalationRuleOrderAndNameToOnCallTimeline";
 import { KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182510000-KeepOnCallHistoryWhenItsSettingsAreDeleted";
-import { KeepPersonWhenTheirPictureFileIsDeleted1809182520000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182520000-KeepPersonWhenTheirPictureFileIsDeleted";
+import { KeepOwnersWhenTheirPictureFileIsDeleted1809182520000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182520000-KeepOwnersWhenTheirPictureFileIsDeleted";
+import { KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182530000-KeepNotificationLogsWhenOnCallSettingsAreDeleted";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
@@ -23,9 +36,9 @@ import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs
 
 /*
  * ON-CALL HISTORY STAYS WHEN THE SETTINGS IT NAMES ARE DELETED (issue
- * #9036), AND A PERSON STAYS WHEN THEIR PICTURE'S FILE IS DELETED (#9069).
+ * #9036), AND WHAT SHOWS A PICTURE STAYS WHEN ITS FILE IS DELETED (#9069).
  *
- * Three migrations, pinned statement by statement against a stand-in query
+ * Four migrations, pinned statement by statement against a stand-in query
  * runner, OnlineDdl's own work recorded rather than run (OnlineDdl.test.ts
  * covers it; OnCallHistoryKeptPostgres.test.ts runs all of it on a real
  * Postgres):
@@ -37,7 +50,10 @@ import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs
  *     schedules, teams and people that paged, each handed to
  *     OnlineDdl.replaceForeignKey as the generator wrote its ADD, in a
  *     migration without a transaction, and nothing else run;
- *   - the one from a person to their picture's file, the same way;
+ *   - the eight from a person, a status page, a dashboard, a probe or an AI
+ *     agent to its picture's file, the same way;
+ *   - the twenty-four from the eight notification delivery logs to the
+ *     rule, schedule and team a page went out through, the same way;
  *   - each key's name is TypeORM's own for its table and column, and the
  *     model declares it SET NULL to the same table, so the schema drift
  *     check and these migrations agree;
@@ -134,11 +150,48 @@ const HISTORY_KEYS: Array<HistoryKey> = [
   },
 ];
 
-const PICTURE_KEY: HistoryKey = {
-  table: "User",
-  column: "profilePictureId",
-  references: "File",
-};
+// What the picture migration changes, in the order it changes them.
+const PICTURE_KEYS: Array<HistoryKey> = [
+  { table: "User", column: "profilePictureId", references: "File" },
+  { table: "StatusPage", column: "faviconFileId", references: "File" },
+  { table: "StatusPage", column: "logoFileId", references: "File" },
+  { table: "StatusPage", column: "coverImageFileId", references: "File" },
+  { table: "Dashboard", column: "logoFileId", references: "File" },
+  { table: "Dashboard", column: "faviconFileId", references: "File" },
+  { table: "Probe", column: "iconFileId", references: "File" },
+  { table: "AIAgent", column: "iconFileId", references: "File" },
+];
+
+// The notification delivery logs, in the order their migration goes.
+const DELIVERY_LOGS: Array<string> = [
+  "CallLog",
+  "EmailLog",
+  "PushNotificationLog",
+  "SmsLog",
+  "TelegramLog",
+  "WebhookLog",
+  "WhatsAppLog",
+  "WorkspaceNotificationLog",
+];
+
+// What the delivery log migration changes: each log's rule, schedule, team.
+const LOG_KEYS: Array<HistoryKey> = DELIVERY_LOGS.flatMap(
+  (table: string): Array<HistoryKey> => {
+    return [
+      {
+        table: table,
+        column: "onCallDutyPolicyEscalationRuleId",
+        references: "OnCallDutyPolicyEscalationRule",
+      },
+      {
+        table: table,
+        column: "onCallDutyPolicyScheduleId",
+        references: "OnCallDutyPolicySchedule",
+      },
+      { table: table, column: "teamId", references: "Team" },
+    ];
+  },
+);
 
 function keyName(key: HistoryKey): string {
   return namingStrategy.foreignKeyName(key.table, [key.column]);
@@ -200,6 +253,18 @@ const MODELS: Record<string, unknown> = {
   OnCallDutyPolicySchedule: OnCallDutyPolicySchedule,
   Team: Team,
   File: File,
+  StatusPage: StatusPage,
+  Dashboard: Dashboard,
+  Probe: Probe,
+  AIAgent: AIAgent,
+  CallLog: CallLog,
+  EmailLog: EmailLog,
+  PushNotificationLog: PushNotificationLog,
+  SmsLog: SmsLog,
+  TelegramLog: TelegramLog,
+  WebhookLog: WebhookLog,
+  WhatsAppLog: WhatsAppLog,
+  WorkspaceNotificationLog: WorkspaceNotificationLog,
 };
 
 function tableOf(model: unknown): string {
@@ -392,47 +457,101 @@ describe("KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000", () => {
   });
 });
 
-describe("KeepPersonWhenTheirPictureFileIsDeleted1809182520000", () => {
-  test("runs without a transaction, and hands its one key to OnlineDdl.replaceForeignKey", async () => {
-    const migration: KeepPersonWhenTheirPictureFileIsDeleted1809182520000 =
-      new KeepPersonWhenTheirPictureFileIsDeleted1809182520000();
+/*
+ * A migration that hands each of its keys to OnlineDdl.replaceForeignKey,
+ * and its down() that puts every cascade back: the same checks for each.
+ */
+function describeKeyReplacement(data: {
+  title: string;
+  create: () => {
+    transaction?: boolean | undefined;
+    up: (queryRunner: QueryRunner) => Promise<void>;
+    down: (queryRunner: QueryRunner) => Promise<void>;
+  };
+  keys: Array<HistoryKey>;
+  firstKeyName: string;
+}): void {
+  describe(data.title, () => {
+    test("runs without a transaction, as OnlineDdl requires", () => {
+      expect(data.create().transaction).toBe(false);
+    });
 
-    expect(migration.transaction).toBe(false);
+    test("hands each key, its ADD as generated, to OnlineDdl.replaceForeignKey - and runs nothing else", async () => {
+      const run: Run = await runOf(
+        (queryRunner: QueryRunner) => {
+          return data.create().up(queryRunner);
+        },
+        { isTransactionActive: false },
+      );
 
-    const run: Run = await runOf(
-      (queryRunner: QueryRunner) => {
-        return migration.up(queryRunner);
+      expect(run.replaced).toEqual(
+        data.keys.map((key: HistoryKey): string => {
+          return addStatement(key, "SET NULL");
+        }),
+      );
+      expect(run.statements).toEqual([]);
+    });
+
+    test("each key's name is TypeORM's own for its table and column", () => {
+      expect(keyName(data.keys[0]!)).toBe(data.firstKeyName);
+      expect(
+        new Set(
+          data.keys.map((key: HistoryKey): string => {
+            return keyName(key);
+          }),
+        ).size,
+      ).toBe(data.keys.length);
+    });
+
+    test.each(data.keys)(
+      "the model declares $column of $table SET NULL, to $references",
+      (key: HistoryKey) => {
+        expect(relationOf(key)).toEqual({
+          target: key.references,
+          onDelete: "SET NULL",
+        });
       },
-      { isTransactionActive: false },
     );
 
-    expect(run.replaced).toEqual([addStatement(PICTURE_KEY, "SET NULL")]);
-    expect(run.statements).toEqual([]);
-    expect(keyName(PICTURE_KEY)).toBe("FK_1f25f5fc0032f7014482d9c195e");
-  });
+    test("down() drops each key and puts it back with its cascade", async () => {
+      const run: Run = await runOf(
+        (queryRunner: QueryRunner) => {
+          return data.create().down(queryRunner);
+        },
+        { isTransactionActive: true },
+      );
 
-  test("the model declares the picture SET NULL, to File", () => {
-    expect(relationOf(PICTURE_KEY)).toEqual({
-      target: "File",
-      onDelete: "SET NULL",
+      const reversed: Array<HistoryKey> = [...data.keys].reverse();
+
+      expect(run.statements).toEqual([
+        ...reversed.map((key: HistoryKey): string => {
+          return `ALTER TABLE "${key.table}" DROP CONSTRAINT "${keyName(key)}"`;
+        }),
+        ...reversed.map((key: HistoryKey): string => {
+          return addStatement(key, "CASCADE");
+        }),
+      ]);
+      expect(run.replaced).toEqual([]);
     });
   });
+}
 
-  test("down() puts the cascade back", async () => {
-    const run: Run = await runOf(
-      (queryRunner: QueryRunner) => {
-        return new KeepPersonWhenTheirPictureFileIsDeleted1809182520000().down(
-          queryRunner,
-        );
-      },
-      { isTransactionActive: true },
-    );
+describeKeyReplacement({
+  title: "KeepOwnersWhenTheirPictureFileIsDeleted1809182520000",
+  create: () => {
+    return new KeepOwnersWhenTheirPictureFileIsDeleted1809182520000();
+  },
+  keys: PICTURE_KEYS,
+  firstKeyName: "FK_1f25f5fc0032f7014482d9c195e",
+});
 
-    expect(run.statements).toEqual([
-      `ALTER TABLE "User" DROP CONSTRAINT "${keyName(PICTURE_KEY)}"`,
-      addStatement(PICTURE_KEY, "CASCADE"),
-    ]);
-  });
+describeKeyReplacement({
+  title: "KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000",
+  create: () => {
+    return new KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000();
+  },
+  keys: LOG_KEYS,
+  firstKeyName: "FK_80d91b1551ba233574c0bcb622a",
 });
 
 describe("registration", () => {
@@ -441,7 +560,8 @@ describe("registration", () => {
     const ours: Array<unknown> = [
       AddEscalationRuleOrderAndNameToOnCallTimeline1809182500000,
       KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000,
-      KeepPersonWhenTheirPictureFileIsDeleted1809182520000,
+      KeepOwnersWhenTheirPictureFileIsDeleted1809182520000,
+      KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000,
     ];
 
     for (const migration of ours) {
@@ -454,8 +574,9 @@ describe("registration", () => {
 
     const first: number = registered.indexOf(ours[0]);
 
-    expect(registered.indexOf(ours[1])).toBe(first + 1);
-    expect(registered.indexOf(ours[2])).toBe(first + 2);
+    for (let index: number = 1; index < ours.length; index++) {
+      expect(registered.indexOf(ours[index])).toBe(first + index);
+    }
 
     const timestamps: Array<number> = registered.map((migration: unknown) => {
       return Number(
@@ -473,7 +594,10 @@ describe("registration", () => {
       new KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000().name,
     ).toBe("KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000");
     expect(
-      new KeepPersonWhenTheirPictureFileIsDeleted1809182520000().name,
-    ).toBe("KeepPersonWhenTheirPictureFileIsDeleted1809182520000");
+      new KeepOwnersWhenTheirPictureFileIsDeleted1809182520000().name,
+    ).toBe("KeepOwnersWhenTheirPictureFileIsDeleted1809182520000");
+    expect(
+      new KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000().name,
+    ).toBe("KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000");
   });
 });
