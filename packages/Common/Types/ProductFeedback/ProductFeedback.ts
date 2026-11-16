@@ -158,7 +158,9 @@ export const DEFAULT_GIVE_FEEDBACK_CATEGORY: GiveFeedbackCategory =
  * this file stays free of the UI. It returns the text unchanged. The
  * Dashboard's locale extractor reads this file for what it marks and
  * nothing else (a "keys" root of its SOURCE_ROOTS,
- * App/FeatureSet/Dashboard/scripts/i18n/ExtractStrings.ts).
+ * App/FeatureSet/Dashboard/scripts/i18n/ExtractStrings.ts), and so does the
+ * Admin Dashboard's locale guard (a catalog of AdminOwnPagesStrings): the
+ * Feedback page draws what it marks.
  */
 const translationKey: (text: string) => string = (text: string): string => {
   return text;
