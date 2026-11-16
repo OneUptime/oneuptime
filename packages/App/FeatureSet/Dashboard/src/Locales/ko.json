@@ -55183,7 +55183,7 @@
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "'{{rule}}' 규칙이 이 팀에서 제거됩니다. 이 작업은 되돌릴 수 없습니다. 규칙을 유지하려면 대신 편집해서 새 심각도를 선택하세요.",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "'{{rule}}' 규칙은 이 팀의 누구에게도 더 이상 확인되지 않습니다. 이 작업은 되돌릴 수 없습니다. 잠시 확인을 멈추려면 대신 일시 중지하세요.",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "규칙은 이 팀의 모든 구성원이 설정해야 하는 항목을 정합니다(예: 심각한 인시던트 시 전화). 아래 추천 항목에서 시작하거나 직접 만드세요.",
-  "A rule says what everyone on this team must set up. Ask a project admin to add one.": "규칙은 이 팀의 모든 구성원이 설정해야 하는 항목을 정합니다. 프로젝트 관리자에게 규칙 추가를 요청하세요.",
+  "A rule says what everyone on this team must set up. Ask a Project Admin to add one.": "규칙은 이 팀의 모든 구성원이 설정해야 하는 항목을 정합니다. 프로젝트 관리자에게 규칙 추가를 요청하세요.",
   "API Server In-Flight Requests": "API 서버 진행 중인 요청",
   "Activate a license that includes it in the Admin Dashboard to change this again.": "다시 변경하려면 관리 대시보드에서 이 기능이 포함된 라이선스를 활성화하세요.",
   "Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "다시 변경하려면 관리 대시보드에서 Enterprise 라이선스를 활성화하거나 갱신하세요.",

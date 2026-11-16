@@ -55183,7 +55183,7 @@
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "「{{rule}}」將從此團隊中移除。此操作無法復原：若要保留，請改為編輯它並選擇新的嚴重程度。",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "「{{rule}}」將不再對此團隊中的任何人進行檢查。此操作無法復原：若要暫時停止檢查，請改為暫停它。",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "規則規定此團隊中每個人必須設定的內容，例如在嚴重事件時致電。從下方的建議開始，或自行建立。",
-  "A rule says what everyone on this team must set up. Ask a project admin to add one.": "規則規定此團隊中每個人必須設定的內容。請專案管理員新增一條。",
+  "A rule says what everyone on this team must set up. Ask a Project Admin to add one.": "規則規定此團隊中每個人必須設定的內容。請專案管理員新增一條。",
   "API Server In-Flight Requests": "API 伺服器進行中的請求",
   "Activate a license that includes it in the Admin Dashboard to change this again.": "在管理儀表板中啟用包含此功能的授權，即可再次變更。",
   "Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "在管理儀表板中啟用或續訂 Enterprise 授權，即可再次變更。",

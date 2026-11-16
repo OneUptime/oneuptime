@@ -55183,7 +55183,7 @@
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.",
-  "A rule says what everyone on this team must set up. Ask a project admin to add one.": "A rule says what everyone on this team must set up. Ask a project admin to add one.",
+  "A rule says what everyone on this team must set up. Ask a Project Admin to add one.": "A rule says what everyone on this team must set up. Ask a Project Admin to add one.",
   "API Server In-Flight Requests": "API Server In-Flight Requests",
   "Activate a license that includes it in the Admin Dashboard to change this again.": "Activate a license that includes it in the Admin Dashboard to change this again.",
   "Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "Activate or renew the Enterprise license in the Admin Dashboard to change this again.",

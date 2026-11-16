@@ -55183,7 +55183,7 @@
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "Правило «{{rule}}» удаляется из этой команды. Это нельзя отменить: чтобы сохранить его, лучше измените его и выберите новые уровни серьёзности.",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "Правило «{{rule}}» больше не проверяется ни для кого в этой команде. Это нельзя отменить: чтобы на время прекратить проверку, лучше приостановите его.",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "Правило определяет, что должно быть настроено у каждого в этой команде, например звонок при критических инцидентах. Начните с рекомендации ниже или создайте своё.",
-  "A rule says what everyone on this team must set up. Ask a project admin to add one.": "Правило определяет, что должно быть настроено у каждого в этой команде. Попросите администратора проекта добавить его.",
+  "A rule says what everyone on this team must set up. Ask a Project Admin to add one.": "Правило определяет, что должно быть настроено у каждого в этой команде. Попросите Администратора проекта добавить его.",
   "API Server In-Flight Requests": "Запросы API-сервера в обработке",
   "Activate a license that includes it in the Admin Dashboard to change this again.": "Активируйте в панели администратора лицензию, которая это включает, чтобы снова это изменить.",
   "Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "Активируйте или продлите лицензию Enterprise в панели администратора, чтобы снова это изменить.",

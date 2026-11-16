@@ -55183,7 +55183,7 @@
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "«{{rule}}» fjernes fra dette teamet. Dette kan ikke angres – vil du beholde regelen, rediger den heller og velg nye alvorlighetsgrader.",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "«{{rule}}» kontrolleres ikke lenger for noen i dette teamet. Dette kan ikke angres – vil du stoppe kontrollen en stund, sett regelen heller på pause.",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "En regel sier hva alle i dette teamet må ha satt opp, for eksempel en oppringing ved kritiske hendelser. Start fra en anbefaling nedenfor, eller lag din egen.",
-  "A rule says what everyone on this team must set up. Ask a project admin to add one.": "En regel sier hva alle i dette teamet må ha satt opp. Be en prosjektadministrator om å legge til en.",
+  "A rule says what everyone on this team must set up. Ask a Project Admin to add one.": "En regel sier hva alle i dette teamet må ha satt opp. Be en Prosjektadministrator om å legge til en.",
   "API Server In-Flight Requests": "API-serverens pågående forespørsler",
   "Activate a license that includes it in the Admin Dashboard to change this again.": "Aktiver en lisens som inkluderer det, i administrasjonsdashbordet for å kunne endre dette igjen.",
   "Activate or renew the Enterprise license in the Admin Dashboard to change this again.": "Aktiver eller forny Enterprise-lisensen i administrasjonsdashbordet for å kunne endre dette igjen.",
