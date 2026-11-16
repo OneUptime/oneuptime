@@ -154,11 +154,17 @@ describe("the write-path line", () => {
     }
   });
 
-  test("a long output is read from its first line alone, in time in line with that line", () => {
-    const output: string = `${formatCloudWritePath({ state: "usable" })}\n${"x".repeat(2_000_000)}`;
-    const startedAt: number = Date.now();
+  test("a long output is read from its first line alone: what follows it, however long, changes nothing", () => {
+    const line: string = formatCloudWritePath({
+      state: "unusable",
+      problem: "another-account",
+    });
 
-    expect(readCloudWritePath(output)).toEqual({ state: "usable" });
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    expect(readCloudWritePath(`${line}\n${"x".repeat(2_000_000)}`)).toEqual({
+      state: "unusable",
+      problem: "another-account",
+    });
+    // A first line that runs on is too long to be one, whatever it starts with.
+    expect(readCloudWritePath(`${line}${" ".repeat(3000)}x`)).toBeNull();
   });
 });

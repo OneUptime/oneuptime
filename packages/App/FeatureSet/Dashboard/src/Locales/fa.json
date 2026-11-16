@@ -55927,7 +55927,7 @@
   "Wrong password": "رمز عبور نادرست",
   "{{count}} attempt": "{{count}} تلاش",
   "{{summary}} - view sign-in attempt details": "{{summary}} - دیدن جزئیات تلاش برای ورود",
-  "Attachment Seen At": "Attachment Seen At",
+  "Attachment Seen At": "زمان مشاهدهٔ اتصال",
   "Reads work, but changes will fail": "خواندن کار می‌کند، اما تغییرها شکست می‌خورند",
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "فرمان راه‌اندازی را دوباره اجرا کنید. تغییرها را به یک هویت نوشتن مخصوص خودشان می‌برد و هویت خود عامل فقط خواندن را نگه می‌دارد.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "فرمان راه‌اندازی را دوباره اجرا کنید. تغییرها را به یک نقش نوشتن مخصوص خودشان می‌برد که عامل برای هر تغییر با سیاستی فقط برای همان تغییر بر عهده می‌گیرد.",

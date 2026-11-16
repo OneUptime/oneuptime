@@ -6,8 +6,6 @@ import {
   GcpCloudAiAgentHost,
 } from "../ResourceAiAgent/CloudAiAgentNames";
 import {
-  AZURE_CLOUD_AI_AGENT_OS_DISK_GB,
-  AZURE_CLOUD_AI_AGENT_VM_SIZE,
   CLOUD_AI_AGENT_SIZES,
   CloudAiAgentSize,
   GCP_CLOUD_AI_AGENT_BOOT_DISK_GB,
@@ -80,6 +78,14 @@ export const AZURE_B1S_USD_PER_HOUR: number = 0.0104;
 export const AZURE_S4_DISK_USD_PER_MONTH: number = 1.54;
 export const AZURE_PUBLIC_IPV4_USD_PER_HOUR: number = 0.005;
 
+/*
+ * What the Azure VM's figure counts. Written out rather than composed: it
+ * names AZURE_CLOUD_AI_AGENT_VM_SIZE and AZURE_CLOUD_AI_AGENT_OS_DISK_GB as
+ * the setup command makes the VM, which the cost suite holds it to.
+ */
+export const AZURE_VM_COST_DESCRIPTION: string =
+  "One Standard_B1s VM running all month, with its 30 GiB Standard HDD disk and its public IPv4 address, at East US list prices. An Azure free account's first year covers 750 hours of B1s a month.";
+
 // An e2-micro VM, its standard disk and its external address, us-central1.
 export const GCP_E2_MICRO_USD_PER_HOUR: number = 0.008376;
 export const GCP_STANDARD_DISK_USD_PER_GB_MONTH: number = 0.04;
@@ -131,7 +137,8 @@ export function estimateCloudAiAgentMonthlyCost(
           CLOUD_AI_AGENT_HOURS_PER_MONTH +
           AZURE_S4_DISK_USD_PER_MONTH,
       ),
-      description: `One ${AZURE_CLOUD_AI_AGENT_VM_SIZE} VM running all month, with its ${AZURE_CLOUD_AI_AGENT_OS_DISK_GB} GiB Standard HDD disk and its public IPv4 address, at East US list prices. An Azure free account's first year covers 750 hours of B1s a month.`,
+      // As written: the VM's size and disk are the setup command's (CloudAiAgentCost.test pins them).
+      description: AZURE_VM_COST_DESCRIPTION,
     };
   }
 
