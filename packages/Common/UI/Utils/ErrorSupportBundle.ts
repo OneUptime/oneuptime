@@ -1,5 +1,11 @@
 import UrlScrubber from "../../Utils/Rum/UrlScrubber";
-import { AppVersion, GitSha, IS_ENTERPRISE_EDITION, env } from "../Config";
+import {
+  AppVersion,
+  GitSha,
+  IS_ENTERPRISE_EDITION,
+  VERSION,
+  env,
+} from "../Config";
 import downloadFile from "./DownloadFile";
 import React from "react";
 
@@ -531,7 +537,7 @@ export const collectErrorSupportBundleRuntimeDetails: CollectErrorSupportBundleR
     return {
       application: {
         appVersion: sanitizeSupportText(
-          AppVersion || env("VERSION") || "unknown",
+          AppVersion || VERSION || "unknown",
           MAX_RUNTIME_STRING_LENGTH,
         ),
         gitSha: sanitizeSupportText(

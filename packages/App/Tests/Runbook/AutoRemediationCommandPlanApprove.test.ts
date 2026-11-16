@@ -17,6 +17,7 @@ import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRe
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/AutoRemediationVerificationStatus";
 import { AiRemediationCommandExecutionStatus } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
+import { getRemediationPlanFingerprint } from "Common/Types/AutoRemediation/RemediationPlanFingerprint";
 import {
   KUBERNETES_AI_AGENT_DISPLAY_NAME,
   KubectlCommandTier,
@@ -365,8 +366,18 @@ function fakeSuggestion(
     commandPlan: validPlanJson(),
     verificationWindowMinutes: 15,
     ruleNameSnapshot: "High CPU on web tier",
+    // The row's version, which every write moves on.
+    version: 1,
     ...overrides,
   } as unknown as AutoRemediationSuggestion;
+}
+
+// What a first approval of the plan records: the plan's fingerprint then.
+function approvedFirstFingerprint(commandPlan: JSONObject): string {
+  return getRemediationPlanFingerprint({
+    suggestionType: AutoRemediationSuggestionType.CommandPlan,
+    commandPlan,
+  });
 }
 
 describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
@@ -1067,7 +1078,13 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
     });
 
     test("losing the CAS is a clean 400 and the plan is never handed to the executor", async () => {
-      casSpy.mockResolvedValue(0);
+      // Someone else's click claimed the plan first: read again, it is Approved.
+      casSpy.mockImplementation(async (): Promise<number> => {
+        suggestionFindSpy.mockResolvedValue(
+          fakeSuggestion({ status: AutoRemediationSuggestionStatus.Approved }),
+        );
+        return 0;
+      });
 
       const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
 
@@ -1199,6 +1216,8 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
       mockSuggestion({
         commandPlan: riskierPlanJson(),
         firstApprovedByUserId: USER_ID,
+        firstApprovedPlanFingerprint:
+          approvedFirstFingerprint(riskierPlanJson()),
       });
 
       const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
@@ -1215,6 +1234,8 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
       mockSuggestion({
         commandPlan: riskierPlanJson(),
         firstApprovedByUserId: OTHER_USER_ID,
+        firstApprovedPlanFingerprint:
+          approvedFirstFingerprint(riskierPlanJson()),
       });
 
       const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });

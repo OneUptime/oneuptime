@@ -1,8 +1,13 @@
 import {
   CHECK_IN_TOPIC,
+  DEFAULT_GIVE_FEEDBACK_CATEGORY,
   FEEDBACK_QUESTIONS_KEPT,
   FeedbackQuestionDecision,
-  GENERAL_FEEDBACK_TOPIC,
+  GIVE_FEEDBACK_CATEGORIES,
+  GIVE_FEEDBACK_CATEGORY_TITLES,
+  GiveFeedbackCategory,
+  GiveFeedbackDestination,
+  ONEUPTIME_SUPPORT_EMAIL,
   PRODUCT_FEEDBACK_DETAILS_MAX_LENGTH,
   PRODUCT_FEEDBACK_PAGE_MAX_LENGTH,
   PRODUCT_FEEDBACK_SUBMISSION_FIELDS,
@@ -12,11 +17,15 @@ import {
   ProductFeedbackTopicSummary,
   decideFeedbackQuestion,
   getFeedbackQuestionKey,
+  getGiveFeedbackDestination,
   getProductFeedbackTopicTitle,
   isCheckInDue,
+  isGiveFeedbackCategory,
+  isGiveFeedbackEmailed,
   isProductFeedbackKind,
   readAskedQuestions,
   readFeedbackQuestionKey,
+  readGiveFeedbackReceipt,
   readProductFeedbackSettings,
   readProductFeedbackSubmission,
   summarizeProductFeedback,
@@ -24,6 +33,7 @@ import {
   toFeedbackPage,
   toFeedbackTopic,
   toFeedbackVersion,
+  toGiveFeedbackCategory,
   withAskedQuestion,
 } from "../../../Types/ProductFeedback/ProductFeedback";
 import { JSONObject } from "../../../Types/JSON";
@@ -161,7 +171,8 @@ describe("what an answer is kept with, and nothing else", () => {
     );
     expect(submission).toEqual({
       kind: ProductFeedbackKind.General,
-      topic: GENERAL_FEEDBACK_TOPIC,
+      // Posted with no category: Other (GiveFeedbackCategory).
+      topic: GiveFeedbackCategory.Other,
       score: null,
       isPositive: null,
       details: "I could not find where to add a phone number.",
@@ -211,7 +222,27 @@ describe("what an answer is kept with, and nothing else", () => {
   test("Give feedback needs words", () => {
     expect(
       readProductFeedbackSubmission({ kind: "general", details: "  " }),
-    ).toMatch(/Write what you were trying to do/);
+    ).toBe("Write what you want to tell us, then send it again.");
+  });
+
+  test("Give feedback keeps what it is about as its topic, and Other for anything else (#8893)", () => {
+    for (const category of GIVE_FEEDBACK_CATEGORIES) {
+      expect(
+        read({ kind: "general", topic: category, details: "Words." }).topic,
+      ).toBe(category);
+    }
+
+    // A topic is a token: read in lower case.
+    expect(
+      read({ kind: "general", topic: "Broken", details: "Words." }).topic,
+    ).toBe(GiveFeedbackCategory.Broken);
+
+    // An older Dashboard posted where it was opened; a stranger, anything.
+    for (const topic of ["help", "phone_menu", "bug", undefined]) {
+      expect(
+        read({ kind: "general", topic: topic, details: "Words." }).topic,
+      ).toBe(GiveFeedbackCategory.Other);
+    }
   });
 
   test("a thumb carries no words and no score", () => {
@@ -435,6 +466,130 @@ describe("the settings the Dashboard reads", () => {
     );
     expect(readProductFeedbackSettings(null)).toBeNull();
   });
+
+  test("and where Give feedback goes, when the server says one it knows (#8893)", () => {
+    for (const destination of Object.values(GiveFeedbackDestination)) {
+      expect(
+        readProductFeedbackSettings({
+          isOn: true,
+          isAskingMe: true,
+          giveFeedbackGoesTo: destination,
+        }),
+      ).toEqual({
+        isOn: true,
+        isAskingMe: true,
+        giveFeedbackGoesTo: destination,
+      });
+    }
+
+    expect(
+      readProductFeedbackSettings({
+        isOn: true,
+        isAskingMe: true,
+        giveFeedbackGoesTo: "somewhere_else",
+      }),
+    ).toEqual({ isOn: true, isAskingMe: true });
+  });
+});
+
+describe("what Give feedback is about (#8893)", () => {
+  test("four kinds, broken first and picked when the dialog opens", () => {
+    expect(GIVE_FEEDBACK_CATEGORIES).toEqual([
+      GiveFeedbackCategory.Broken,
+      GiveFeedbackCategory.Confusing,
+      GiveFeedbackCategory.Idea,
+      GiveFeedbackCategory.Other,
+    ]);
+    expect(DEFAULT_GIVE_FEEDBACK_CATEGORY).toBe(GiveFeedbackCategory.Broken);
+  });
+
+  test("each named as the dialog offers it", () => {
+    expect(GIVE_FEEDBACK_CATEGORY_TITLES).toEqual({
+      broken: "Something's broken",
+      confusing: "Confusing",
+      idea: "Idea",
+      other: "Other",
+    });
+  });
+
+  test("a topic is a category, or Other", () => {
+    expect(toGiveFeedbackCategory("idea")).toBe(GiveFeedbackCategory.Idea);
+    expect(toGiveFeedbackCategory(" IDEA ")).toBe(GiveFeedbackCategory.Idea);
+    expect(toGiveFeedbackCategory("help")).toBe(GiveFeedbackCategory.Other);
+    expect(toGiveFeedbackCategory(42)).toBe(GiveFeedbackCategory.Other);
+    expect(isGiveFeedbackCategory("broken")).toBe(true);
+    expect(isGiveFeedbackCategory("help")).toBe(false);
+  });
+});
+
+describe("where Give feedback goes (#8893)", () => {
+  test("on OneUptime Cloud, the OneUptime team, whatever the admin address", () => {
+    for (const adminNotificationEmail of [null, "", "ops@acme.test"]) {
+      expect(
+        getGiveFeedbackDestination({
+          isOneUptimeCloud: true,
+          adminNotificationEmail: adminNotificationEmail,
+        }),
+      ).toBe(GiveFeedbackDestination.OneUptimeTeam);
+    }
+
+    expect(ONEUPTIME_SUPPORT_EMAIL).toBe("support@oneuptime.com");
+  });
+
+  test("on a self-hosted server, its admins: by email where it has an Admin Notification Email", () => {
+    expect(
+      getGiveFeedbackDestination({
+        isOneUptimeCloud: false,
+        adminNotificationEmail: "ops@acme.test",
+      }),
+    ).toBe(GiveFeedbackDestination.ServerAdminsByEmail);
+
+    for (const adminNotificationEmail of [null, undefined, "", "   "]) {
+      expect(
+        getGiveFeedbackDestination({
+          isOneUptimeCloud: false,
+          adminNotificationEmail: adminNotificationEmail,
+        }),
+      ).toBe(GiveFeedbackDestination.ServerAdmins);
+    }
+  });
+
+  test("only a server with nowhere to email emails nothing", () => {
+    expect(isGiveFeedbackEmailed(GiveFeedbackDestination.OneUptimeTeam)).toBe(
+      true,
+    );
+    expect(
+      isGiveFeedbackEmailed(GiveFeedbackDestination.ServerAdminsByEmail),
+    ).toBe(true);
+    expect(isGiveFeedbackEmailed(GiveFeedbackDestination.ServerAdmins)).toBe(
+      false,
+    );
+  });
+
+  test("the answer says whether it is emailed, and where a copy goes", () => {
+    expect(
+      readGiveFeedbackReceipt({
+        answerId: "x",
+        isEmailed: true,
+        copyTo: "ada@acme.test",
+      }),
+    ).toEqual({ isEmailed: true, copyTo: "ada@acme.test" });
+    expect(readGiveFeedbackReceipt({ isEmailed: true, copyTo: null })).toEqual({
+      isEmailed: true,
+      copyTo: null,
+    });
+    // Not emailed: no copy, whatever else it says.
+    expect(
+      readGiveFeedbackReceipt({ isEmailed: false, copyTo: "ada@acme.test" }),
+    ).toEqual({ isEmailed: false, copyTo: null });
+    // An older server, or nothing at all: nothing promised.
+    for (const value of [{ answerId: "x" }, null, "yes", [], 42]) {
+      expect(readGiveFeedbackReceipt(value)).toEqual({
+        isEmailed: false,
+        copyTo: null,
+      });
+    }
+  });
 });
 
 describe("the Admin Dashboard's summary", () => {
@@ -567,5 +722,26 @@ describe("what an answer was about, in words", () => {
         topic: "first_week",
       }),
     ).toBe("Is OneUptime set up the way you wanted?");
+  });
+
+  test("Give feedback by what it was about; one kept before #8893 as it was kept", () => {
+    expect(
+      getProductFeedbackTopicTitle({
+        kind: ProductFeedbackKind.General,
+        topic: "broken",
+      }),
+    ).toBe("Something's broken");
+    expect(
+      getProductFeedbackTopicTitle({
+        kind: ProductFeedbackKind.General,
+        topic: "idea",
+      }),
+    ).toBe("Idea");
+    expect(
+      getProductFeedbackTopicTitle({
+        kind: ProductFeedbackKind.General,
+        topic: "help",
+      }),
+    ).toBe("help");
   });
 });

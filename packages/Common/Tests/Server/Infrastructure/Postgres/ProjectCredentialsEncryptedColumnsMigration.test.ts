@@ -7,7 +7,7 @@ import DatabaseBaseModel from "../../../../Models/DatabaseModels/DatabaseBaseMod
 import ProjectSmtpConfig from "../../../../Models/DatabaseModels/ProjectSmtpConfig";
 import UserWebhook from "../../../../Models/DatabaseModels/UserWebhook";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { ProjectCredentialsEncryptedColumns1809181400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181400000-ProjectCredentialsEncryptedColumns";
+import { ProjectCredentialsEncryptedColumns1809182200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182200000-ProjectCredentialsEncryptedColumns";
 
 /*
  * A PROJECT'S CREDENTIALS GET ROOM FOR THEIR CIPHERTEXT (#8989): the
@@ -25,7 +25,7 @@ import { ProjectCredentialsEncryptedColumns1809181400000 } from "../../../../Ser
  *    migration registered before it, or it silently never runs.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809181400000";
+const MIGRATION_TIMESTAMP: string = "1809182200000";
 const MIGRATION_BASE_NAME: string = "ProjectCredentialsEncryptedColumns";
 const MIGRATION_FILE_NAME: string = `${MIGRATION_TIMESTAMP}-${MIGRATION_BASE_NAME}.ts`;
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
@@ -72,7 +72,7 @@ async function statementsOf(step: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new ProjectCredentialsEncryptedColumns1809181400000()[step](runner);
+  await new ProjectCredentialsEncryptedColumns1809182200000()[step](runner);
 
   return statements;
 }
@@ -183,7 +183,7 @@ describe("registering it", () => {
     expect(
       fs.existsSync(path.join(MIGRATION_DIRECTORY, MIGRATION_FILE_NAME)),
     ).toBe(true);
-    expect(new ProjectCredentialsEncryptedColumns1809181400000().name).toBe(
+    expect(new ProjectCredentialsEncryptedColumns1809182200000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
   });

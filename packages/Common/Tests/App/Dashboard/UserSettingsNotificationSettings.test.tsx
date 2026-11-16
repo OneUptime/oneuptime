@@ -33,6 +33,10 @@ import {
 } from "../../Helpers/SecurityCaseValues";
 import { stubDashboardSecurityCaseValues } from "./SecurityCaseValuesStub";
 import { stubDashboardCustomNotificationChannels } from "./CustomNotificationChannelsStub";
+import {
+  resetNotificationChannelReadiness,
+  stubNotificationChannelReadiness,
+} from "./NotificationChannelReadinessStub";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
 /*
@@ -47,6 +51,11 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
  * that the move did not strand anybody: the matrix reads and writes the
  * signed-in member's own rows, and the page says out loud where the volume
  * controls went.
+ *
+ * Every channel can reach the person here (NotificationChannelReadinessStub
+ * left alone), so every column is offered as before;
+ * NotificationSettingsEasierToUse.test.tsx has the channels that cannot, the
+ * "All events" switches, the tabs' summaries and "Saved".
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -95,6 +104,8 @@ describe("user settings > notification settings", () => {
      * column (NotificationSettingsCustomChannels.test.tsx has the column).
      */
     stubDashboardCustomNotificationChannels();
+    // Every channel has a verified method: every column is offered.
+    stubNotificationChannelReadiness();
     jest
       .spyOn(ModelAPI, "getCommonHeaders")
       .mockReturnValue({ tenantid: PROJECT_ID.toString() });
@@ -135,6 +146,7 @@ describe("user settings > notification settings", () => {
     jest.restoreAllMocks();
     ConnectedWorkspaces.setFetcher(null);
     ConnectedWorkspaces.reset();
+    resetNotificationChannelReadiness();
   });
 
   function renderPage(): void {
@@ -159,20 +171,26 @@ describe("user settings > notification settings", () => {
    * two controls that actually reduce the VOLUME are no longer on it. Without
    * this line the matrix reads as the whole story, and the only remedy on
    * offer is switching twenty-one events off by hand.
+   *
+   * It is the page's first line now (#8887): what the page is for, then the
+   * two pages it is mistaken for - How to Reach Me for on-call pages, Email
+   * Preferences for how much email - each a link.
    */
   describe("the pointer to Email Preferences", () => {
-    test("names what this page does not do, and links to the page that does", async () => {
+    test("says what this page does, and links to the page that sets how much email", async () => {
       renderPage();
       await findEventRow("Incident created");
 
-      expect(
-        screen.getByText(
-          "These switches decide which notifications reach you, not how much email they add up to.",
-        ),
-      ).toBeVisible();
+      const intro: HTMLElement = screen.getByTestId(
+        "notification-settings-intro",
+      );
 
-      const link: HTMLElement = screen.getByRole("link", {
-        name: "Reduce routine emails or change email rollup in Email Preferences",
+      expect(intro).toHaveTextContent(
+        "Choose which updates reach you, and on which channels. On-call pages follow How to Reach Me, and Email Preferences sets how much email you get.",
+      );
+
+      const link: HTMLElement = within(intro).getByRole("link", {
+        name: "Email Preferences",
       });
 
       expect(link).toHaveAttribute(
@@ -181,18 +199,58 @@ describe("user settings > notification settings", () => {
       );
     });
 
-    test("the link carries the real project id, not the :projectId template", async () => {
+    test("and to How to Reach Me, where on-call pages are set, and to its docs", async () => {
       renderPage();
       await findEventRow("Incident created");
 
-      const href: string = screen
-        .getByRole("link", {
-          name: "Reduce routine emails or change email rollup in Email Preferences",
-        })
-        .getAttribute("href")!;
+      const intro: HTMLElement = screen.getByTestId(
+        "notification-settings-intro",
+      );
 
-      expect(href).not.toContain(":projectId");
-      expect(href).toContain(PROJECT_ID.toString());
+      expect(
+        within(intro).getByRole("link", { name: "How to Reach Me" }),
+      ).toHaveAttribute(
+        "href",
+        `/dashboard/${PROJECT_ID.toString()}/user-settings/on-call-rules`,
+      );
+      expect(
+        within(intro).getByTestId("notification-settings-intro-learn-more"),
+      ).toHaveAttribute(
+        "href",
+        expect.stringContaining("/notifications/notification-settings"),
+      );
+    });
+
+    test("the links carry the real project id, not the :projectId template", async () => {
+      renderPage();
+      await findEventRow("Incident created");
+
+      for (const name of ["Email Preferences", "How to Reach Me"]) {
+        const href: string = within(
+          screen.getByTestId("notification-settings-intro"),
+        )
+          .getByRole("link", { name })
+          .getAttribute("href")!;
+
+        expect(href).not.toContain(":projectId");
+        expect(href).toContain(PROJECT_ID.toString());
+      }
+    });
+
+    test("the grey box that said what the switches do not do is gone", async () => {
+      renderPage();
+      await findEventRow("Incident created");
+
+      expect(
+        screen.queryByText(
+          "These switches decide which notifications reach you, not how much email they add up to.",
+        ),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          "Click any channel to switch it on or off. Changes save automatically.",
+        ),
+      ).not.toBeInTheDocument();
     });
 
     /*
@@ -286,7 +344,7 @@ describe("user settings > notification settings", () => {
       ).toBeVisible();
 
       const emailSwitch: HTMLElement = within(row).getByRole("switch", {
-        name: /^Email:/,
+        name: /^Email for /,
       });
       expect(emailSwitch).toHaveAttribute("aria-checked", "true");
 
@@ -335,7 +393,7 @@ describe("user settings > notification settings", () => {
         ),
       ).toBeVisible();
 
-      fireEvent.click(within(row).getByRole("switch", { name: /^Email:/ }));
+      fireEvent.click(within(row).getByRole("switch", { name: /^Email for / }));
 
       await waitFor(() => {
         expect(updateById).toHaveBeenCalledTimes(1);
@@ -392,7 +450,7 @@ describe("user settings > notification settings", () => {
 
       fireEvent.click(
         within(row).getByRole("switch", {
-          name: /^SMS:/,
+          name: /^SMS for /,
         }),
       );
 
@@ -434,7 +492,7 @@ describe("user settings > notification settings", () => {
       renderPage();
       const row: HTMLElement = await findEventRow("Incident note posted");
       const emailSwitch: HTMLElement = within(row).getByRole("switch", {
-        name: /^Email:/,
+        name: /^Email for /,
       });
 
       expect(emailSwitch).toHaveAttribute("aria-checked", "true");
@@ -451,14 +509,14 @@ describe("user settings > notification settings", () => {
         expect(
           within(
             screen.getByText("Incident note posted").closest("tr")!,
-          ).getByRole("switch", { name: /^Email:/ }),
+          ).getByRole("switch", { name: /^Email for / }),
         ).toHaveAttribute("aria-checked", "false");
       });
       /* The other channel on the same row is untouched. */
       expect(
         within(
           screen.getByText("Incident note posted").closest("tr")!,
-        ).getByRole("switch", { name: /^SMS:/ }),
+        ).getByRole("switch", { name: /^SMS for / }),
       ).toHaveAttribute("aria-checked", "true");
     });
 
@@ -469,7 +527,7 @@ describe("user settings > notification settings", () => {
 
       renderPage();
       const row: HTMLElement = await findEventRow("Incident note posted");
-      fireEvent.click(within(row).getByRole("switch", { name: /^Email:/ }));
+      fireEvent.click(within(row).getByRole("switch", { name: /^Email for / }));
 
       expect(
         await screen.findByText("Preference could not be saved"),
@@ -478,7 +536,7 @@ describe("user settings > notification settings", () => {
         expect(
           within(
             screen.getByText("Incident note posted").closest("tr")!,
-          ).getByRole("switch", { name: /^Email:/ }),
+          ).getByRole("switch", { name: /^Email for / }),
         ).toHaveAttribute("aria-checked", "true");
       });
     });
@@ -500,7 +558,7 @@ describe("user settings > notification settings", () => {
       ]) {
         expect(
           within(row).getByRole("switch", {
-            name: new RegExp(`^${channel}:`),
+            name: new RegExp(`^${channel} for `),
           }),
         ).toBeInTheDocument();
       }
@@ -537,6 +595,12 @@ describe("user settings > notification settings", () => {
       expect(headers).not.toContain("Teams");
     });
 
+    /*
+     * A switch's name is its channel and its event; whether it is on is
+     * the switch's own state (aria-checked), which a screen reader says
+     * after the name, so the name no longer repeats it ("On. Click to
+     * disable." read as "On. Click to disable, switch, on").
+     */
     test("its switches say Microsoft Teams, on and off, so a screen reader names the product", async () => {
       const created: UserNotificationSetting | undefined = rows.find(
         (row: UserNotificationSetting): boolean => {
@@ -552,12 +616,12 @@ describe("user settings > notification settings", () => {
 
       expect(
         within(await findEventRow("Incident created")).getByRole("switch", {
-          name: "Microsoft Teams: On. Click to disable.",
+          name: "Microsoft Teams for Incident created",
         }),
       ).toHaveAttribute("aria-checked", "true");
       expect(
         within(await findEventRow("Incident note posted")).getByRole("switch", {
-          name: "Microsoft Teams: Off. Click to enable.",
+          name: "Microsoft Teams for Incident note posted",
         }),
       ).toHaveAttribute("aria-checked", "false");
     });
@@ -570,7 +634,7 @@ describe("user settings > notification settings", () => {
       renderPage();
       const row: HTMLElement = await findEventRow("Incident note posted");
       fireEvent.click(
-        within(row).getByRole("switch", { name: /^Microsoft Teams:/ }),
+        within(row).getByRole("switch", { name: /^Microsoft Teams for / }),
       );
 
       await waitFor(() => {
@@ -622,11 +686,13 @@ describe("user settings > notification settings", () => {
         const row: HTMLElement = await findEventRow("Incident created");
 
         expect(
-          within(row).getByRole("switch", { name: new RegExp(`^${shown}:`) }),
+          within(row).getByRole("switch", {
+            name: new RegExp(`^${shown} for `),
+          }),
         ).toBeInTheDocument();
         expect(
           within(row).queryByRole("switch", {
-            name: new RegExp(`^${hidden}:`),
+            name: new RegExp(`^${hidden} for `),
           }),
         ).not.toBeInTheDocument();
         expect(
@@ -649,10 +715,10 @@ describe("user settings > notification settings", () => {
 
       expect(within(row).getAllByRole("switch")).toHaveLength(7);
       expect(
-        within(row).queryByRole("switch", { name: /^Slack:/ }),
+        within(row).queryByRole("switch", { name: /^Slack for / }),
       ).not.toBeInTheDocument();
       expect(
-        within(row).queryByRole("switch", { name: /^Microsoft Teams:/ }),
+        within(row).queryByRole("switch", { name: /^Microsoft Teams for / }),
       ).not.toBeInTheDocument();
     });
 
@@ -668,7 +734,7 @@ describe("user settings > notification settings", () => {
 
       expect(within(row).getAllByRole("switch")).toHaveLength(10);
       expect(
-        within(row).getByRole("switch", { name: /^Mattermost:/ }),
+        within(row).getByRole("switch", { name: /^Mattermost for / }),
       ).toBeInTheDocument();
     });
 
@@ -703,7 +769,7 @@ describe("user settings > notification settings", () => {
 
       renderPage();
       const row: HTMLElement = await findEventRow("Incident note posted");
-      fireEvent.click(within(row).getByRole("switch", { name: /^Email:/ }));
+      fireEvent.click(within(row).getByRole("switch", { name: /^Email for / }));
 
       await waitFor(() => {
         expect(updateById).toHaveBeenCalledTimes(1);
@@ -779,7 +845,7 @@ describe("user settings > notification settings", () => {
       const row: HTMLElement = await findEventRow("Incident created");
       /* No rows exist for the other project, so every cell reads as off. */
       expect(
-        within(row).getByRole("switch", { name: /^Email:/ }),
+        within(row).getByRole("switch", { name: /^Email for / }),
       ).toHaveAttribute("aria-checked", "false");
       expect(getList.mock.calls.length).toBeGreaterThan(0);
       for (const call of getList.mock.calls) {

@@ -61,12 +61,14 @@ export interface SuggestionTransitionSet {
  * The first of the two approvals a riskier fix needs where the project asks
  * two people to approve one (Project.requireTwoApprovalsForRiskierFixes):
  * who gave it (as ObjectID.toString(), like every id this update sets),
- * when, and where.
+ * when, where, and what it approved - the fix's fingerprint then
+ * (Types/AutoRemediation/RemediationPlanFingerprint).
  */
 export interface FirstApprovalSet {
   firstApprovedByUserId: string;
   firstApprovedAt: Date;
   firstApprovedFrom: AutoRemediationApprovalSource;
+  firstApprovedPlanFingerprint: string;
 }
 
 /*
@@ -169,25 +171,38 @@ export class Service extends DatabaseService<Model> {
    * 0 means another actor won the race. This is what makes double-approving
    * (and therefore double-starting a runbook) impossible; updateOneBy is
    * SELECT-then-save and cannot implement a claim.
+   *
+   * An approval names the row's version as it read it too (atVersion): every
+   * write of a row moves its version on (the @VersionColumn), so the claim
+   * lands only on the very row its checks read - the plan they approved,
+   * the first approval they counted - and never on one that changed between
+   * the read and the claim.
    */
   @CaptureSpan()
   public async attemptStatusTransition(data: {
     suggestionId: ObjectID;
     fromStatus: AutoRemediationSuggestionStatus;
     set: SuggestionTransitionSet;
+    atVersion?: number | undefined;
   }): Promise<number> {
     /*
      * The double cast stops TS from structurally exploring JSONObject
      * (commandPlan) against the entity type — a recursive type that trips
      * TS2589. The set is intentionally a raw column map.
      */
-    const queryBuilder: UpdateQueryBuilder<Model> = this.getRepository()
+    let queryBuilder: UpdateQueryBuilder<Model> = this.getRepository()
       .createQueryBuilder()
       .update(Model)
       .set(data.set as unknown as QueryDeepPartialEntity<Model>)
       .where('"_id" = :id', { id: data.suggestionId.toString() })
       .andWhere('"status" = :fromStatus', { fromStatus: data.fromStatus })
       .andWhere('"deletedAt" IS NULL');
+
+    if (data.atVersion !== undefined) {
+      queryBuilder = queryBuilder.andWhere('"version" = :version', {
+        version: data.atVersion,
+      });
+    }
 
     const result: UpdateResult = await queryBuilder.execute();
 
@@ -230,16 +245,20 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Records the first of two approvals (RemediationApproval): one
-   * conditional UPDATE whose WHERE carries both what makes it the first -
-   * the fix still waits for approval, and nobody approved it first yet - so
-   * of two first approvals at once exactly one is recorded, and the other
-   * person's press is read again as the second. The status stays
+   * conditional UPDATE whose WHERE carries what makes it the first - the
+   * fix still waits for approval, on the version the approval's checks
+   * read, and no first approval of this very fix is recorded (none at all,
+   * or one given to what the fix no longer runs: its fingerprint differs) -
+   * so of two first approvals at once exactly one is recorded, and the
+   * other person's press is read again as the second. The status stays
    * Suggested: nothing runs on one approval. Returns the rows changed; 0
-   * means the fix moved on, or someone approved it first meanwhile.
+   * means the fix changed, moved on, or someone approved it first
+   * meanwhile.
    */
   @CaptureSpan()
   public async attemptFirstApproval(data: {
     suggestionId: ObjectID;
+    atVersion: number;
     set: FirstApprovalSet;
   }): Promise<number> {
     const queryBuilder: UpdateQueryBuilder<Model> = this.getRepository()
@@ -250,7 +269,11 @@ export class Service extends DatabaseService<Model> {
       .andWhere('"status" = :status', {
         status: AutoRemediationSuggestionStatus.Suggested,
       })
-      .andWhere('"firstApprovedByUserId" IS NULL')
+      .andWhere('"version" = :version', { version: data.atVersion })
+      .andWhere(
+        '("firstApprovedByUserId" IS NULL OR "firstApprovedPlanFingerprint" IS DISTINCT FROM :planFingerprint)',
+        { planFingerprint: data.set.firstApprovedPlanFingerprint },
+      )
       .andWhere('"deletedAt" IS NULL');
 
     const result: UpdateResult = await queryBuilder.execute();
@@ -260,23 +283,29 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * The second of two approvals: attemptStatusTransition's claim
-   * (Suggested -> Approved, once), guarded as well on the first approval
-   * being the one the approver was shown and on it being someone else's -
-   * the WHERE says both, so neither a first approval taken back nor the
-   * first approver's own second press can ever run the fix. Returns the
-   * rows changed; 0 means someone else acted on the fix first.
+   * (Suggested -> Approved, once, on the version read), guarded as well on
+   * the first approval being the one the approver was shown, given to this
+   * very fix (its fingerprint), and someone else's - the WHERE says all of
+   * it, so neither a first approval taken back, nor one given to what the
+   * fix no longer runs, nor the first approver's own second press can ever
+   * run the fix. Returns the rows changed; 0 means someone else acted on
+   * the fix first, or it changed.
    */
   @CaptureSpan()
   public async attemptSecondApproval(data: {
     suggestionId: ObjectID;
+    atVersion: number;
     firstApprovedByUserId: string;
+    firstApprovedPlanFingerprint: string;
     set: SuggestionTransitionSet;
   }): Promise<number> {
     const approverId: string | undefined = data.set.approvedByUserId;
 
     if (
       !approverId ||
-      approverId.toLowerCase() === data.firstApprovedByUserId.toLowerCase()
+      approverId.trim().toLowerCase() ===
+        data.firstApprovedByUserId.trim().toLowerCase() ||
+      !data.firstApprovedPlanFingerprint
     ) {
       return 0;
     }
@@ -289,8 +318,12 @@ export class Service extends DatabaseService<Model> {
       .andWhere('"status" = :fromStatus', {
         fromStatus: AutoRemediationSuggestionStatus.Suggested,
       })
+      .andWhere('"version" = :version', { version: data.atVersion })
       .andWhere('"firstApprovedByUserId" = :firstApprovedByUserId', {
         firstApprovedByUserId: data.firstApprovedByUserId,
+      })
+      .andWhere('"firstApprovedPlanFingerprint" = :planFingerprint', {
+        planFingerprint: data.firstApprovedPlanFingerprint,
       })
       .andWhere('"firstApprovedByUserId" <> :approverId', { approverId })
       .andWhere('"deletedAt" IS NULL');

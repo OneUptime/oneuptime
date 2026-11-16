@@ -4,7 +4,7 @@ import {
   getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
-import EventLoop from "Common/Server/Utils/EventLoop";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import OneUptimeDate, { ExactUnixNano } from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
@@ -292,13 +292,22 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalProfilesProcessed: number = 0;
 
-      let resourceProfileCounter: number = 0;
+      /*
+       * The event loop is handed back by the time the work took, not every
+       * so many resources, scopes, profiles or samples: a profile's work
+       * grows with its samples and the stack, location and function tables
+       * each sample's stack is read from, so a count held the loop for as
+       * long as that many of the largest took. One budget for the batch,
+       * asked before each resource, scope, profile and sample
+       * (Common/Server/Utils/EventLoop.ts, #8925).
+       */
+      const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
+
       for (const resourceProfile of resourceProfiles) {
         try {
-          if (resourceProfileCounter % 25 === 0) {
-            await EventLoop.yieldToEventLoop();
+          if (eventLoopBudget.isSpent()) {
+            await eventLoopBudget.handBack();
           }
-          resourceProfileCounter++;
 
           const resourceAttributes_raw: JSONArray =
             ((resourceProfile["resource"] as JSONObject)?.[
@@ -450,13 +459,11 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
             continue;
           }
 
-          let scopeProfileCounter: number = 0;
           for (const scopeProfile of scopeProfiles) {
             try {
-              if (scopeProfileCounter % 50 === 0) {
-                await EventLoop.yieldToEventLoop();
+              if (eventLoopBudget.isSpent()) {
+                await eventLoopBudget.handBack();
               }
-              scopeProfileCounter++;
 
               const profileContainers: JSONArray = scopeProfile[
                 "profiles"
@@ -467,13 +474,11 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                 continue;
               }
 
-              let profileCounter: number = 0;
               for (const profileItem of profileContainers) {
                 try {
-                  if (profileCounter % 100 === 0) {
-                    await EventLoop.yieldToEventLoop();
+                  if (eventLoopBudget.isSpent()) {
+                    await eventLoopBudget.handBack();
                   }
-                  profileCounter++;
 
                   const projectId: ObjectID = (req as TelemetryRequest)
                     .projectId;
@@ -616,13 +621,11 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                   let firstSampleTraceId: string = "";
                   let firstSampleSpanId: string = "";
 
-                  let sampleCounter: number = 0;
                   for (const sample of samples) {
                     try {
-                      if (sampleCounter % 200 === 0) {
-                        await EventLoop.yieldToEventLoop();
+                      if (eventLoopBudget.isSpent()) {
+                        await eventLoopBudget.handBack();
                       }
-                      sampleCounter++;
 
                       const sampleObj: JSONObject = sample as JSONObject;
 

@@ -3122,6 +3122,45 @@ describe("ResourceAiAccessAPI", () => {
       });
     });
 
+    /*
+     * A fix that waits for the second of two approvals says when the first
+     * was given, so the page says what it waits for (#6422); a fix that no
+     * longer waits does not.
+     */
+    test("fixes: one that waits for its second approval says when it was approved first; one that moved on does not", async () => {
+      const waiting: ObjectID = ObjectID.generate();
+      const dismissed: ObjectID = ObjectID.generate();
+      const firstApprovedAt: Date = new Date("2026-09-01T00:05:00.000Z");
+
+      suggestionFind.mockImplementation(async () => {
+        return [
+          suggestion(waiting, 2, { firstApprovedAt }),
+          suggestion(dismissed, 3, { status: "Dismissed", firstApprovedAt }),
+        ];
+      });
+
+      await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
+
+      const logs: ResourceAiLogs = lastResponse() as unknown as ResourceAiLogs;
+      const firstApprovedAtOf: (id: ObjectID) => string | undefined = (
+        id: ObjectID,
+      ): string | undefined => {
+        return logs.fixes.find((fix: { id: string }) => {
+          return fix.id === id.toString();
+        })?.firstApprovedAt;
+      };
+
+      expect(firstApprovedAtOf(waiting)).toBe("2026-09-01T00:05:00.000Z");
+      expect(firstApprovedAtOf(dismissed)).toBeUndefined();
+      expect(
+        (
+          suggestionFind.mock.calls[0]![0] as {
+            select: Record<string, unknown>;
+          }
+        ).select["firstApprovedAt"],
+      ).toBe(true);
+    });
+
     test("counts commands of the last 30 days by kind, leaving the connection tests out", async () => {
       countSpy.mockImplementation(async (args: unknown) => {
         const query: Record<string, unknown> = (

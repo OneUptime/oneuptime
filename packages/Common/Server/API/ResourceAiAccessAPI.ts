@@ -74,6 +74,7 @@ import {
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AutoRemediationSuggestion from "../../Models/DatabaseModels/AutoRemediationSuggestion";
+import { getWaitingFirstApprovedAt } from "../../Types/AutoRemediation/RemediationApprovals";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../Models/DatabaseModels/Incident";
 import ResourceAiAgent from "../../Models/DatabaseModels/ResourceAiAgent";
@@ -2157,6 +2158,8 @@ const LOG_FIX_SELECT: Select<AutoRemediationSuggestion> = {
     name: true,
     email: true,
   },
+  // A fix that waits for its second approval says so (getWaitingFirstApprovedAt).
+  firstApprovedAt: true,
   incidentId: true,
   alertId: true,
 };
@@ -2258,6 +2261,7 @@ async function getLogFixes(data: {
         createdAt: toIsoString(suggestion.createdAt),
         approvedAt: toIsoString(suggestion.approvedAt),
         approvedByName: describeApprover(suggestion.approvedByUser),
+        firstApprovedAt: toIsoString(getWaitingFirstApprovedAt(suggestion)),
         incidentId: suggestion.incidentId?.toString(),
         alertId: suggestion.alertId?.toString(),
       };

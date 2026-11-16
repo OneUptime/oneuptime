@@ -622,6 +622,8 @@ const AlertEpisodeView: FunctionComponent<
           <AlertEpisodeFeedElement
             alertEpisodeId={modelId}
             refreshToken={contentRefreshToken}
+            // Execute On-Call Policy follows where the episode stands.
+            standing={timing.standing}
           />
         </div>
 

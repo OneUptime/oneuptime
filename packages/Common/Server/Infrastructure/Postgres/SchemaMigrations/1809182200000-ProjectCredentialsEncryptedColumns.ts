@@ -23,10 +23,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * sees nothing to generate. down() puts back the types as they were, which
  * holds only values that fit them, as before this ran.
  */
-export class ProjectCredentialsEncryptedColumns1809181400000
+export class ProjectCredentialsEncryptedColumns1809182200000
   implements MigrationInterface
 {
-  public name: string = "ProjectCredentialsEncryptedColumns1809181400000";
+  public name: string = "ProjectCredentialsEncryptedColumns1809182200000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

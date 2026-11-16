@@ -536,7 +536,7 @@ const RETIRED_UPCOMING_SHIFTS_KEYS: Array<string> = [
 
 // A date written by one of OneUptimeDate's own formatters, moment's English.
 const DATE_FORMATTING_CALL: RegExp =
-  /OneUptimeDate\.(?:toTimeString|getDateAs\w*|fromNow|getZoneAbbr\w*)/;
+  /OneUptimeDate\.(?:getDateAs\w*|fromNow|getZoneAbbr\w*)/;
 
 describe("Upcoming shifts card", () => {
   const card: string = readCode(

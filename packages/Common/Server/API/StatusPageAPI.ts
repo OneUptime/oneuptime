@@ -2059,8 +2059,15 @@ export default class StatusPageAPI extends BaseAPI<
                           })
                         : null;
 
-                      // nothing recorded: fall back to the rows, as a monitor does.
-                      if (uptimePercent === null) {
+                      /*
+                       * Merged and nothing recorded - its monitors not
+                       * checked yet, or off the whole range - is no uptime
+                       * (null), never the 100% the rows read that time as
+                       * (issue #8960). Only a group the merge left out falls
+                       * back to its rows, as a monitor the aggregate has
+                       * nothing for does.
+                       */
+                      if (!merged) {
                         const resourceStatusTimelines: Array<MonitorStatusTimeline> =
                           StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
                             {

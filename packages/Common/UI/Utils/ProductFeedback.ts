@@ -2,7 +2,7 @@ import API from "./API/API";
 import ModelAPI from "./ModelAPI/ModelAPI";
 import ProductEvents from "./ProductEvents";
 import UserUtil from "./User";
-import { APP_API_URL, VERSION } from "../Config";
+import { APP_API_URL, BILLING_ENABLED, VERSION } from "../Config";
 import User from "../../Models/DatabaseModels/User";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
@@ -15,9 +15,13 @@ import {
   PRODUCT_FEEDBACK_DETAILS_ROUTE,
   PRODUCT_FEEDBACK_ROUTE,
   PRODUCT_FEEDBACK_SETTINGS_ROUTE,
+  GiveFeedbackCategory,
+  GiveFeedbackDestination,
+  GiveFeedbackReceipt,
   ProductFeedbackKind,
   ProductFeedbackSettings,
   getFeedbackQuestionKey,
+  readGiveFeedbackReceipt,
   readProductFeedbackSettings,
   toFeedbackPage,
 } from "../../Types/ProductFeedback/ProductFeedback";
@@ -39,7 +43,11 @@ import { useSyncExternalStore } from "react";
  *   - submit() keeps an answer, with the page as a route with no ids and
  *     the product version - nothing else - and sends feedback/given
  *     (Types/Analytics/ProductEvent) where product analytics is set up:
- *     never the words.
+ *     never the words. giveFeedback() keeps Give feedback the same way,
+ *     and says what the server did with it: whether it is emailed to the
+ *     team that reads it, and where a copy is on its way (#8893). The
+ *     server adds who sent it, from who is signed in: the Dashboard posts
+ *     nothing more.
  *
  * None of them throws: feedback is never worth an error on the page.
  */
@@ -50,6 +58,17 @@ export interface ProductFeedbackAnswer {
   score?: number | null | undefined;
   isPositive?: boolean | null | undefined;
   details?: string | null | undefined;
+}
+
+// Give feedback, once kept: its id, and whether and where it is emailed.
+export interface GiveFeedbackSent extends GiveFeedbackReceipt {
+  answerId: string;
+}
+
+// An answer the server kept: its id, and what the server answered.
+interface KeptAnswer {
+  answerId: string;
+  answer: JSONObject;
 }
 
 type Listener = () => void;
@@ -99,6 +118,22 @@ export default class ProductFeedback {
     return ProductFeedback.settings?.isOn === true;
   }
 
+  /*
+   * Where Give feedback goes (GiveFeedbackDestination), for the dialog to
+   * say before anything is sent: as the server said, or - before it has,
+   * or from a server that does not say - what this frontend knows: the
+   * OneUptime team on OneUptime Cloud, and otherwise this server's admins
+   * in the Admin Dashboard, which claims nothing is emailed.
+   */
+  public static getGiveFeedbackDestination(): GiveFeedbackDestination {
+    return (
+      ProductFeedback.settings?.giveFeedbackGoesTo ||
+      (BILLING_ENABLED
+        ? GiveFeedbackDestination.OneUptimeTeam
+        : GiveFeedbackDestination.ServerAdmins)
+    );
+  }
+
   // Whether OneUptime may ask this person: the questions, and the thumbs.
   public static isAskingMe(): boolean {
     return (
@@ -120,12 +155,9 @@ export default class ProductFeedback {
     }
   }
 
+  // The release the server runs ("14.3.0"), or "" where it is not known (Config's VERSION).
   public static getVersion(): string {
-    try {
-      return VERSION.toString();
-    } catch {
-      return "";
-    }
+    return VERSION || "";
   }
 
   // Reads the settings from the server; on any failure, nothing is asked.
@@ -184,6 +216,39 @@ export default class ProductFeedback {
   public static async submit(
     answer: ProductFeedbackAnswer,
   ): Promise<string | null> {
+    return (await ProductFeedback.keep(answer))?.answerId ?? null;
+  }
+
+  /*
+   * Give feedback: what the person wrote, and what it is about (#8893).
+   * Kept as every answer is, and emailed by the server to the team that
+   * reads it; answers with what was done - whether it is emailed, and the
+   * address a copy is on its way to - or null when it could not be kept.
+   */
+  public static async giveFeedback(feedback: {
+    category: GiveFeedbackCategory;
+    details: string;
+  }): Promise<GiveFeedbackSent | null> {
+    const kept: KeptAnswer | null = await ProductFeedback.keep({
+      kind: ProductFeedbackKind.General,
+      topic: feedback.category,
+      details: feedback.details,
+    });
+
+    if (!kept) {
+      return null;
+    }
+
+    return {
+      answerId: kept.answerId,
+      ...readGiveFeedbackReceipt(kept.answer),
+    };
+  }
+
+  // Posts an answer (submit, giveFeedback): its id and the server's answer.
+  private static async keep(
+    answer: ProductFeedbackAnswer,
+  ): Promise<KeptAnswer | null> {
     if (!ProductFeedback.isOn()) {
       return null;
     }
@@ -230,7 +295,10 @@ export default class ProductFeedback {
         page: page,
       });
 
-      return typeof answerId === "string" ? answerId : "";
+      return {
+        answerId: typeof answerId === "string" ? answerId : "",
+        answer: (response.data as JSONObject | undefined) || {},
+      };
     } catch {
       return null;
     }

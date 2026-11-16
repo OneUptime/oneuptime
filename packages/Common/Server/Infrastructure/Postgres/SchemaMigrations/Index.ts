@@ -1025,7 +1025,12 @@ import { AddResolvedRecordRetentionServerLimits1809181000000 } from "./180918100
 import { AddMonitorFirstMeasuredAt1809181100000 } from "./1809181100000-AddMonitorFirstMeasuredAt";
 import { ApiKeyHashedColumn1809181200000 } from "./1809181200000-ApiKeyHashedColumn";
 import { AddMasterApiKeyCreatedByAndHint1809181300000 } from "./1809181300000-AddMasterApiKeyCreatedByAndHint";
-import { ProjectCredentialsEncryptedColumns1809181400000 } from "./1809181400000-ProjectCredentialsEncryptedColumns";
+import { AddFirstApprovedPlanFingerprint1809181730000 } from "./1809181730000-AddFirstApprovedPlanFingerprint";
+import { AddIncomingRequestSecretMonitorAccess1809181830000 } from "./1809181830000-AddIncomingRequestSecretMonitorAccess";
+import { DropOnCallExecutionLogStepIndexes1809182000000 } from "./1809182000000-DropOnCallExecutionLogStepIndexes";
+import { AddScheduleRosterRefreshDueAt1809182100000 } from "./1809182100000-AddScheduleRosterRefreshDueAt";
+import { AddScheduleRosterRefreshDueAtIndex1809182110000 } from "./1809182110000-AddScheduleRosterRefreshDueAtIndex";
+import { ProjectCredentialsEncryptedColumns1809182200000 } from "./1809182200000-ProjectCredentialsEncryptedColumns";
 
 export default [
   InitialMigration,
@@ -2055,5 +2060,10 @@ export default [
   AddMonitorFirstMeasuredAt1809181100000,
   ApiKeyHashedColumn1809181200000,
   AddMasterApiKeyCreatedByAndHint1809181300000,
-  ProjectCredentialsEncryptedColumns1809181400000,
+  AddFirstApprovedPlanFingerprint1809181730000,
+  AddIncomingRequestSecretMonitorAccess1809181830000,
+  DropOnCallExecutionLogStepIndexes1809182000000,
+  AddScheduleRosterRefreshDueAt1809182100000,
+  AddScheduleRosterRefreshDueAtIndex1809182110000,
+  ProjectCredentialsEncryptedColumns1809182200000,
 ];

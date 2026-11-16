@@ -100,6 +100,19 @@ jest.mock(
   },
 );
 
+// No uptime summary (issue #6886): the Overview reads the group's rows.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupUptimeSummaryAPI",
+  () => {
+    return {
+      __esModule: true,
+      fetchMonitorGroupUptimeSummary: (): Promise<null> => {
+        return Promise.resolve(null);
+      },
+    };
+  },
+);
+
 let mockTableProps: MonitorTableProps | undefined;
 let mockRows: Array<Monitor> = [];
 // How many times the table was mounted: once, unless the page was swapped out.

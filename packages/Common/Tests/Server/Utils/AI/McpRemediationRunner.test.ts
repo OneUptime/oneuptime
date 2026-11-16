@@ -16,6 +16,7 @@ import AIRunService from "../../../../Server/Services/AIRunService";
 import AutoRemediationRuleService from "../../../../Server/Services/AutoRemediationRuleService";
 import AutoRemediationSuggestionService from "../../../../Server/Services/AutoRemediationSuggestionService";
 import ExternalMcpServerService from "../../../../Server/Services/ExternalMcpServerService";
+import ProjectService from "../../../../Server/Services/ProjectService";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import Semaphore, {
@@ -95,6 +96,8 @@ let feedItems: Array<string> = [];
 let ruleRow: Record<string, unknown> | null = null;
 let servers: Array<ExternalMcpServer> = [];
 let autoExecutedInLastHour: number = 0;
+// Project.requireTwoApprovalsForRiskierFixes as each read gives it.
+let isTwoApprovalsRuleOn: boolean | "unreadable" = false;
 
 function storedServer(
   id: ObjectID,
@@ -203,6 +206,20 @@ beforeEach(() => {
   servers = [];
   autoExecutedInLastHour = 0;
   suggestionRow();
+  isTwoApprovalsRuleOn = false;
+
+  // Whether the project asks two people to approve a riskier fix: off unless a test says.
+  jest
+    .spyOn(ProjectService, "findOneById")
+    .mockImplementation(async (): Promise<never> => {
+      if (isTwoApprovalsRuleOn === "unreadable") {
+        throw new Error("the database is not reachable");
+      }
+
+      return {
+        requireTwoApprovalsForRiskierFixes: isTwoApprovalsRuleOn,
+      } as never;
+    });
 
   const realFromServer: typeof ExternalMcpServerConnection.fromServer =
     ExternalMcpServerConnection.fromServer.bind(ExternalMcpServerConnection);
@@ -502,6 +519,41 @@ describe("which servers a fix may use, and whether it asks", () => {
         .mode,
     ).toBe("Propose");
   });
+
+  /*
+   * Where the project asks two people to approve a riskier fix (#6421), a
+   * change through an MCP server is one: a rule that fixes without asking
+   * proposes its changes instead, for two approvals. A rule nobody could
+   * read proposes too.
+   */
+  test.each([true, "unreadable" as const])(
+    "a rule that fixes without asking proposes where the project asks two people to approve a riskier fix (rule: %s)",
+    async (rule: boolean | "unreadable") => {
+      suggestionRow({
+        autoRemediationRuleId: RULE_ID,
+        executionMode: AutoRemediationExecutionMode.FullAuto,
+      });
+      ruleRow = {
+        id: RULE_ID,
+        projectId: PROJECT_ID,
+        isEnabled: true,
+        executionMode: AutoRemediationExecutionMode.FullAuto,
+        externalMcpServers: [{ _id: SERVER_ID.toString() }],
+      };
+      isTwoApprovalsRuleOn = rule;
+
+      expect(
+        ((await McpRemediationRunner.getTarget(asSuggestion())) as McpFixTarget)
+          .mode,
+      ).toBe("Propose");
+      expect(ProjectService.findOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: PROJECT_ID,
+          select: { _id: true, requireTwoApprovalsForRiskierFixes: true },
+        }),
+      );
+    },
+  );
 
   test("a failed limit check proposes", async () => {
     suggestionRow({

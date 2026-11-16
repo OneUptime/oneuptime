@@ -108,6 +108,7 @@ flowchart TB
 - 在 `miscDataProps` 中帶 `firstLayerUsers` （依輪替順序排列的使用者 ID 清單）建立排程，會像儀表板一樣為它建立第一層：從現在開始全天候待命的 **Layer 1** 。 `firstLayerRotation` 以 `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}` 這樣的輪替指定每次待命時長；未提供時為一週。每個使用者都必須是專案成員，呼叫端必須有權建立層，否則不會建立排程。
 - 不帶它們建立的排程和以前一樣沒有層；Terraform 的排程資源不會傳送它們。
 - 不帶 `rotation` 建立的層和以往一樣每天交接。
+- 透過 API 或 Terraform 對排程的層和層中人員所做的變更會作為一次變更通知：在層半分鐘內沒有再變更後才計算誰在待命，開始待命、結束待命或下一位待命的人只會收到一次通知，而不是每寫入一個層或一個人就通知一次。每項變更一儲存，呼叫就會傳給層所安排的待命人員。
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \

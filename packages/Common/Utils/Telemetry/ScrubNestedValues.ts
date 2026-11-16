@@ -233,12 +233,24 @@ function scrubTextsAt(
   });
 }
 
+/*
+ * A text under no secret key, as a Sensitive Attribute Keys rule reads it:
+ * kept, or - when the caller reads JSON texts - read as one when it is the
+ * JSON text of a list or a map (Utils/Telemetry/ScrubJsonKeys.ts, #8993).
+ */
+type ReadJsonText = ((text: string) => string) | undefined;
+
 function scrubTextsUnderSensitiveKeysAt(
   value: unknown,
   isSensitiveKey: (key: string) => boolean,
   hideText: (text: string) => string,
   depth: number,
+  readJsonText: ReadJsonText,
 ): unknown {
+  if (typeof value === "string") {
+    return readJsonText === undefined ? value : readJsonText(value);
+  }
+
   if (!isNested(value)) {
     return value;
   }
@@ -268,69 +280,7 @@ function scrubTextsUnderSensitiveKeysAt(
       isSensitiveKey,
       hideText,
       depth + 1,
-    );
-  });
-}
-
-/*
- * A Sensitive Attribute Keys rule over a list or map read from its JSON
- * text, within the record's bounds: as scrubTextsUnderSensitiveKeysAt, each
- * list or map counting its values against the allowance. A part it cannot
- * read value by value - one nested deeper than SCRUB_MAX_VALUE_DEPTH, or one
- * holding more values than the record has left - is read as its JSON text:
- * hidden whole when that text names a secret, or sits under a key that
- * does, and kept as it is otherwise. `underSecret`: the value sits under a
- * key that names a secret, so every text of it is hidden.
- */
-function hideTextsUnderSensitiveKeysWithinAt(
-  value: unknown,
-  isSensitiveKey: (key: string) => boolean,
-  hideText: (text: string) => string,
-  depth: number,
-  allowance: ScrubNestedValuesAllowance,
-  underSecret: boolean,
-): unknown {
-  if (typeof value === "string") {
-    return underSecret ? hideText(value) : value;
-  }
-
-  if (!isNested(value)) {
-    return value;
-  }
-
-  const size: number = Array.isArray(value)
-    ? value.length
-    : Object.keys(value).length;
-
-  if (size === 0) {
-    return value;
-  }
-
-  if (depth >= SCRUB_MAX_VALUE_DEPTH || size > allowance.remaining) {
-    const text: string = toStoredText(value);
-
-    return underSecret || isSensitiveKey(text) ? hideText(text) : value;
-  }
-
-  allowance.remaining -= size;
-
-  // The value of a key-value pair whose key names a secret.
-  const isSensitivePair: boolean =
-    !underSecret &&
-    !Array.isArray(value) &&
-    isKeyValuePair(value) &&
-    isSensitiveKey(value["key"] as string);
-
-  return mapNested(value, (item: unknown, key: string | null): unknown => {
-    return hideTextsUnderSensitiveKeysWithinAt(
-      item,
-      isSensitiveKey,
-      hideText,
-      depth + 1,
-      allowance,
-      underSecret ||
-        (key !== null &&
-          ((isSensitivePair && key === "value") || isSensitiveKey(key))),
+      readJsonText,
     );
   });
 }
@@ -371,34 +321,6 @@ export default class ScrubNestedValuesUtil {
     } catch {
       return null;
     }
-  }
-
-  /*
-   * For a rule that reads keys (Sensitive Attribute Keys), over a list or
-   * map read from a JSON text - a structured log body: the value with the
-   * texts under each key that names a secret hidden, as
-   * scrubTextsUnderSensitiveKeys, read within the record's bounds. The
-   * value is stored as the JSON text it came as, so nothing in it is held
-   * as text first: a part past the bounds - nested deeper than
-   * SCRUB_MAX_VALUE_DEPTH, or past what `allowance` has left - is read as
-   * its JSON text, hidden whole when that text names a secret, and kept as
-   * it is when it names none. The allowance is counted down as the value is
-   * read; nothing is changed in place.
-   */
-  public static hideTextsUnderSensitiveKeysWithinBounds(
-    value: unknown,
-    isSensitiveKey: (key: string) => boolean,
-    hideText: (text: string) => string,
-    allowance: ScrubNestedValuesAllowance,
-  ): unknown {
-    return hideTextsUnderSensitiveKeysWithinAt(
-      value,
-      isSensitiveKey,
-      hideText,
-      0,
-      allowance,
-      false,
-    );
   }
 
   // Whether a value is a list or a map, which a rule reads inside.
@@ -468,14 +390,22 @@ export default class ScrubNestedValuesUtil {
    * so are numbers, true or false and empty values under one. Past
    * SCRUB_MAX_VALUE_DEPTH - never, once holdOversizedValuesAsText has run -
    * the rest of a value is read as its JSON text, and hidden whole when
-   * that text names a secret.
+   * that text names a secret. `readJsonText`: what becomes of a text under
+   * no such key - kept when left out (hideAttributeTextsUnderSensitiveKeys).
    */
   public static scrubTextsUnderSensitiveKeys(
     value: unknown,
     isSensitiveKey: (key: string) => boolean,
     hideText: (text: string) => string,
+    readJsonText?: ReadJsonText,
   ): unknown {
-    return scrubTextsUnderSensitiveKeysAt(value, isSensitiveKey, hideText, 0);
+    return scrubTextsUnderSensitiveKeysAt(
+      value,
+      isSensitiveKey,
+      hideText,
+      0,
+      readJsonText,
+    );
   }
 
   /*
@@ -504,15 +434,29 @@ export default class ScrubNestedValuesUtil {
    * JSON text (`heldAsText`: the keys holdOversizedValuesAsText returned)
    * cannot be read key by key, so it is hidden whole when its text names a
    * secret anywhere - rather than let a key inside it go unread.
+   * `keptKeys`: the map's own keys whose values are kept although their key
+   * names a secret - a record's own session or conversation id, which its
+   * column keeps (Utils/Telemetry/CorrelationIdAttributes). Only the map's
+   * own: the same key inside a list or a map value is read as any other.
+   * `readJsonText`: what becomes of a text under no secret key that arrived
+   * as text - the value itself, or one inside a list or a map value: the
+   * services read the keys of a JSON text in it (Utils/Telemetry/
+   * ScrubJsonKeys.ts, #8993). Kept when left out.
    */
   public static hideAttributeTextsUnderSensitiveKeys(
     attributes: Record<string, unknown>,
     isSensitiveKey: (key: string) => boolean,
     hideText: (text: string) => string,
     heldAsText: ReadonlySet<string>,
+    keptKeys?: ReadonlySet<string> | undefined,
+    readJsonText?: ReadJsonText,
   ): void {
     for (const key of Object.keys(attributes)) {
       const value: unknown = attributes[key];
+
+      if (keptKeys !== undefined && keptKeys.has(key)) {
+        continue;
+      }
 
       if (isSensitiveKey(key)) {
         if (typeof value === "string" || isNested(value)) {
@@ -523,8 +467,13 @@ export default class ScrubNestedValuesUtil {
       }
 
       if (typeof value === "string") {
-        if (heldAsText.has(key) && isSensitiveKey(value)) {
-          attributes[key] = hideText(value);
+        if (heldAsText.has(key)) {
+          // Too large to read value by value: hidden whole, or kept.
+          if (isSensitiveKey(value)) {
+            attributes[key] = hideText(value);
+          }
+        } else if (readJsonText !== undefined) {
+          attributes[key] = readJsonText(value);
         }
 
         continue;
@@ -536,6 +485,7 @@ export default class ScrubNestedValuesUtil {
           isSensitiveKey,
           hideText,
           0,
+          readJsonText,
         );
       }
     }

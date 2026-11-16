@@ -58,8 +58,10 @@ import User from "../../../Models/DatabaseModels/User";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import Email from "../../../Types/Email";
 import {
   FeedbackQuestionDecision,
+  GiveFeedbackDestination,
   ProductFeedbackKind,
 } from "../../../Types/ProductFeedback/ProductFeedback";
 
@@ -184,12 +186,14 @@ describe("the switches", () => {
     expect(await ProductFeedbackService.getSettings(USER_ID)).toEqual({
       isOn: true,
       isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.ServerAdmins,
     });
 
     user = makeUser({ disableFeedbackQuestions: true });
     expect(await ProductFeedbackService.getSettings(USER_ID)).toEqual({
       isOn: true,
       isAskingMe: false,
+      giveFeedbackGoesTo: GiveFeedbackDestination.ServerAdmins,
     });
 
     user = makeUser({});
@@ -197,6 +201,61 @@ describe("the switches", () => {
     expect(await ProductFeedbackService.getSettings(USER_ID)).toEqual({
       isOn: false,
       isAskingMe: false,
+      giveFeedbackGoesTo: GiveFeedbackDestination.ServerAdmins,
+    });
+  });
+});
+
+describe("where Give feedback goes (#8893)", () => {
+  test("on OneUptime Cloud, to the OneUptime team, whatever the admin address", async () => {
+    mockIsBillingEnabled = true;
+    config!.adminNotificationEmail = new Email("ops@acme.test");
+
+    expect(
+      (await ProductFeedbackService.getSettings(USER_ID)).giveFeedbackGoesTo,
+    ).toBe(GiveFeedbackDestination.OneUptimeTeam);
+  });
+
+  test("on a self-hosted server with an Admin Notification Email, to its admins by email", async () => {
+    config!.adminNotificationEmail = new Email("ops@acme.test");
+
+    expect(
+      (await ProductFeedbackService.getSettings(USER_ID)).giveFeedbackGoesTo,
+    ).toBe(GiveFeedbackDestination.ServerAdminsByEmail);
+  });
+
+  test("on a self-hosted server with none, kept for its admins and never emailed", async () => {
+    expect(
+      (await ProductFeedbackService.getSettings(USER_ID)).giveFeedbackGoesTo,
+    ).toBe(GiveFeedbackDestination.ServerAdmins);
+
+    // A server whose config row has never been read.
+    config = null;
+    expect(
+      (await ProductFeedbackService.getSettings(USER_ID)).giveFeedbackGoesTo,
+    ).toBe(GiveFeedbackDestination.ServerAdmins);
+  });
+
+  test("the server's switch and its admin address are read together, in one read", async () => {
+    config!.adminNotificationEmail = new Email("ops@acme.test");
+
+    expect(await ProductFeedbackService.getServerFeedbackSettings()).toEqual({
+      isOn: true,
+      adminNotificationEmail: "ops@acme.test",
+    });
+    expect(GlobalConfigService.findOneById).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        jest.mocked(GlobalConfigService.findOneById).mock.calls[0]![0] as {
+          select: Record<string, boolean>;
+        }
+      ).select,
+    ).toEqual({ disableProductFeedback: true, adminNotificationEmail: true });
+
+    config = null;
+    expect(await ProductFeedbackService.getServerFeedbackSettings()).toEqual({
+      isOn: true,
+      adminNotificationEmail: null,
     });
   });
 });
