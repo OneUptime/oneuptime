@@ -9,14 +9,7 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * The help dialog (#8889): what a list's help (?) and a "how it works"

@@ -315,7 +315,7 @@ const HelpModal: FunctionComponent<ComponentProps> = (
          * A little larger than the topics' text: it is the one part
          * everybody reads.
          */}
-        <div className="mt-1 [&_p:first-child]:mt-0 [&_p]:text-[15px] [&_p]:leading-7">
+        <div className="mt-1 [&_p:first-child]:mt-0 [&_p]:text-[15px] [&_p]:leading-6">
           <MarkdownViewer text={helpDocument.summary} />
         </div>
       </section>
