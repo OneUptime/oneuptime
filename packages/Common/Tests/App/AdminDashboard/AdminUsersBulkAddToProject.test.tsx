@@ -82,6 +82,27 @@ jest.mock("../../../UI/Utils/User", () => {
 });
 
 /*
+ * The Users page draws the security advisory notice above the table, which
+ * reads this installation's update status (GET /global-config/update-status)
+ * for a master admin of a self-hosted installation - which this reader is.
+ * The notice is not what this file is about (SecurityAdvisoryNotice.test.tsx
+ * is), so the page is told there is no status to draw rather than sending
+ * the read (#9083).
+ */
+jest.mock("../../../UI/Utils/UpdateStatus", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Utils/UpdateStatus",
+  ) as Record<string, unknown>;
+
+  return {
+    ...actual,
+    useUpdateStatus: (): null => {
+      return null;
+    },
+  };
+});
+
+/*
  * The real ModelTable would drag in the pager, the URL state and a live fetch.
  * What this file is about is the props the page hands it - here the bulk action
  * declarations - so a stand-in that records them is both enough and more
