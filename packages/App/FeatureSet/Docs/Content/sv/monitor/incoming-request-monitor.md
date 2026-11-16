@@ -194,6 +194,8 @@ Invoke-RestMethod -Method Post `
 
 Alla som har en monitors URL kan skicka begäranden till den. En Projektägare eller Projektadministratör kan låta varje monitor för inkommande begäranden i projektet även kräva en av projektets egna hemligheter, oavsett vem som satte upp monitorn: slå på **Kräv en hemlighet vid varje begäran**. En begäran utan hemlighet avvisas med `401` och orsaken, innan den räknas som heartbeat, sparas som monitorns senaste begäran eller når några kriterier. En begäran med hemlighet går vidare till monitorns egna kriterier, som tidigare.
 
+Projektägare och Projektadministratörer hanterar hemligheterna och reglaget, och det gör även en anpassad roll med behörigheterna Create, Read, Edit och Delete Incoming Request Secret: Read visar hemligheternas värden, och Edit slår också på och av reglaget.
+
 :::steps
 ### Skapa en hemlighet
 
@@ -201,7 +203,7 @@ Gå till **Monitorer → Inställningar → Hemligheter för inkommande begäran
 
 ### Skicka den från varje avsändare
 
-Skicka hemligheten i headern `X-OneUptime-Secret`, eller som Bearer-token i headern `Authorization`, beroende på vad din avsändare kan ange.
+Skicka hemligheten i headern `X-OneUptime-Secret`, eller som Bearer-token i headern `Authorization`, beroende på vad din avsändare kan ange. En avsändare som inte själv kan ange en header kan i stället signera varje begäran med hemligheten: se [Signera begäranden med hemligheten](#signera-begäranden-med-hemligheten).
 
 ### Hitta avsändarna du har missat
 
@@ -209,7 +211,7 @@ Så snart projektet har en hemlighet kontrollerar OneUptime varje begäran, utan
 
 ### Slå på kravet
 
-Slå på **Kräv en hemlighet vid varje begäran**. Kravet går inte att slå på så länge projektet saknar hemlighet, så att ingen avsändare avvisas av misstag.
+Slå på **Kräv en hemlighet vid varje begäran**. Kravet går inte att slå på så länge projektet saknar hemlighet, så att ingen avsändare avvisas av misstag. Innan kravet slås på visas hur många monitorer för inkommande begäranden som har fått en begäran utan giltig hemlighet de senaste 24 timmarna, om några: deras avsändare avvisas från och med då.
 :::
 
 ```bash
@@ -223,8 +225,40 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 OneUptime sparar aldrig hemligheten: den tar bort headern från begäran och maskerar en Bearer-token som är en av projektets hemligheter innan den sparar något.
 
+En adress som skickar mer än 10 olika felaktiga hemligheter till en monitor på 15 minuter avvisas sedan med `429` för varje hemlighet den skickar, rätt eller fel, fram till den tid som dess header `Retry-After` anger, högst 15 minuter. Avsändare på andra adresser påverkas inte, och en avsändare som fortsätter att skicka en gammal hemlighet får fortsatt den `401` som säger vad som är fel.
+
 > [!TIP]
 > För att byta ut en hemlighet utan att avvisa någon skapar du en andra, flyttar dina avsändare till den och tar sedan bort den gamla när dess **Senast använd** slutar ändras. Alla projektets hemligheter godtas, och den sista kan inte tas bort medan kravet är på.
+
+### Signera begäranden med hemligheten
+
+En avsändare kan signera varje begäran med hemligheten i stället för att skicka den, vilket är säkrare: inget hemligt skickas, och en begäran som någon har fångat upp kan inte skickas igen senare. Föredra det överallt där en avsändare kan signera. OneUptime kontrollerar de här signaturerna, var och en en HMAC-SHA256 i hex med hemligheten som nyckel:
+
+| Avsändare | Header | Vad som signeras |
+| --- | --- | --- |
+| Din egen kod | `X-OneUptime-Signature: t=<time>,v1=<signature>` | `<time>.<body>` |
+| GitHub-webhooks | `X-Hub-Signature-256` | Bodyn |
+| Slack | `X-Slack-Signature`, med `X-Slack-Request-Timestamp` | `v0:<time>:<body>` |
+| Stripe | `Stripe-Signature` | `<time>.<body>` |
+
+`<time>` är tidpunkten då begäran signerades, i sekunder sedan 1970. En signatur som ligger mer än 5 minuter från OneUptimes klocka avvisas, och det gör även en signerad begäran som skickas en andra gång; GitHubs signatur har ingen tid, så OneUptime kommer ihåg var och en i ett dygn. För GitHub ger du webhooken en av projektets hemligheter som secret. Slack och Stripe skapar sin egen signeringshemlighet: skapa projektets hemlighet med det värdet, under **Fler fält**.
+
+```bash
+body='{"status":"healthy"}'
+t=$(date +%s)
+sig=$(printf '%s.%s' "$t" "$body" | openssl dgst -sha256 -hmac "YOUR_PROJECT_SECRET" | sed 's/^.* //')
+
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Content-Type: application/json" \
+  -H "X-OneUptime-Signature: t=$t,v1=$sig" \
+  -d "$body"
+```
+
+En hemlighet i URL:ens query string godtas inte: proxyer och åtkomstloggar sparar hela URL:er, bredvid monitorns egen nyckel. En sonds ingress för inkommande förfrågningar vidarebefordrar en signerad begärans body som den kom, så signaturen håller även den vägen.
+
+### Begränsa en hemlighet till vissa monitorer
+
+En hemlighet godtas av varje monitor för inkommande begäranden i projektet om du inte begränsar den, som ett projekt gör där varje hyresgäst skickar sin egen hemlighet: välj under **Fler fält** antingen **Specifika monitorer** eller **Monitorer med etiketter**. Alla andra monitorer avvisar den med `401`, som de avvisar en felaktig hemlighet, och **Begäranden utan hemlighet** anger orsaken som **Hemlighet inte för den här monitorn**. Så länge kravet är på behåller projektet minst en hemlighet som täcker en monitor.
 
 ## Övervakningskriterier
 
@@ -449,7 +483,11 @@ Event Grid validerar en slutpunkt som skickar tillbaka en kod till den, eller va
 :::
 
 :::details Min avsändare får 401
-Projektet kräver en hemlighet vid varje begäran, och begäran skickade ingen, eller en som inte är projektets: svaret säger vilket. Skicka en av projektets hemligheter i headern `X-OneUptime-Secret` eller som Bearer-token, som [Kräv en hemlighet vid varje begäran](#kräv-en-hemlighet-vid-varje-begäran) visar. En avvisad begäran når aldrig monitorn.
+Projektet kräver en hemlighet vid varje begäran, och begäran skickade ingen, eller en som inte är projektets: svaret säger vilket. Skicka en av projektets hemligheter i headern `X-OneUptime-Secret` eller som Bearer-token, som [Kräv en hemlighet vid varje begäran](#kräv-en-hemlighet-vid-varje-begäran) visar. En avvisad begäran når aldrig monitorn. Den får också `401` med en av projektets hemligheter som är begränsad till andra monitorer, och för en signerad begäran vars signatur är äldre än 5 minuter, har skickats förut, eller gjordes med en annan hemlighet eller över en body som ändrades på vägen.
+:::
+
+:::details Min avsändare får 429
+Dess adress skickade mer än 10 olika felaktiga hemligheter eller signaturer till en monitor på 15 minuter, så varje begäran med en hemlighet som den skickar till den monitorn avvisas fram till tiden i dess header `Retry-After`. En avsändare som signerar med en felaktig hemlighet gör en ny felaktig signatur varje gång och hamnar snabbt här: ge den en hemlighet som monitorn godtar, som [Kräv en hemlighet vid varje begäran](#kräv-en-hemlighet-vid-varje-begäran) visar, så godtas dess begäranden när tiden har gått ut.
 :::
 
 :::details Monitorn får inga begäranden längre sedan en hemlighet krävs

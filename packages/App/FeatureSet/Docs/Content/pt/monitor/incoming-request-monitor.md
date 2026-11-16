@@ -194,6 +194,8 @@ Invoke-RestMethod -Method Post `
 
 Qualquer pessoa que tenha a URL de um monitor pode enviar requisições a ele. Um Proprietário do projeto ou Administrador do projeto pode fazer cada monitor de requisições recebidas do projeto exigir também um dos segredos do próprio projeto, não importa quem configurou o monitor: ative **Exigir um segredo em toda requisição**. Uma requisição sem nenhum é recusada com `401` e o motivo, antes de contar como heartbeat, de ser guardada como a última requisição do monitor ou de chegar a qualquer critério. Uma requisição com um segue para os critérios do próprio monitor, como antes.
 
+Os Proprietários do projeto e os Administradores do projeto gerenciam os segredos e o interruptor, assim como uma função personalizada com as permissões Create, Read, Edit e Delete Incoming Request Secret: Read mostra os valores dos segredos, e Edit também liga e desliga o interruptor.
+
 :::steps
 ### Crie um segredo
 
@@ -201,7 +203,7 @@ Vá em **Monitores → Configurações → Segredos de requisição recebida** e
 
 ### Envie-o de cada remetente
 
-Envie o segredo no cabeçalho `X-OneUptime-Secret`, ou como token Bearer no cabeçalho `Authorization`, conforme o que seu remetente conseguir definir.
+Envie o segredo no cabeçalho `X-OneUptime-Secret`, ou como token Bearer no cabeçalho `Authorization`, conforme o que seu remetente conseguir definir. Um remetente que não consegue definir um cabeçalho próprio pode, em vez disso, assinar cada requisição com o segredo: veja [Assinar as requisições com o segredo](#assinar-as-requisições-com-o-segredo).
 
 ### Encontre os remetentes que faltam
 
@@ -209,7 +211,7 @@ Assim que o projeto tem um segredo, o OneUptime verifica cada requisição, aind
 
 ### Ative a exigência
 
-Ative **Exigir um segredo em toda requisição**. A exigência não pode ser ativada enquanto o projeto não tiver nenhum segredo, para que nenhum remetente seja recusado por engano.
+Ative **Exigir um segredo em toda requisição**. A exigência não pode ser ativada enquanto o projeto não tiver nenhum segredo, para que nenhum remetente seja recusado por engano. Antes de ativar, ela diz quantos monitores de requisições recebidas receberam uma requisição sem um segredo válido nas últimas 24 horas, se houver: os remetentes deles são recusados a partir de então.
 :::
 
 ```bash
@@ -223,8 +225,40 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 O OneUptime nunca guarda o segredo: ele tira o cabeçalho da requisição e mascara um token Bearer que seja um dos segredos do projeto antes de guardar qualquer coisa.
 
+Um endereço que envia a um monitor mais de 10 segredos errados diferentes em 15 minutos é recusado em seguida com `429` para qualquer segredo que envie, certo ou errado, até a hora que o cabeçalho `Retry-After` indicar, no máximo 15 minutos. Remetentes em outros endereços não são afetados, e um remetente que continua enviando um segredo antigo continua recebendo o `401` que diz o que está errado.
+
 > [!TIP]
 > Para substituir um segredo sem recusar ninguém, crie um segundo, passe seus remetentes para ele e depois exclua o antigo quando o **Último uso** dele parar de mudar. Qualquer segredo do projeto é aceito, e o último não pode ser excluído enquanto a exigência estiver ativa.
+
+### Assinar as requisições com o segredo
+
+Um remetente pode assinar cada requisição com o segredo em vez de enviá-lo, o que é mais seguro: nada secreto trafega, e uma requisição que alguém capturou não pode ser enviada de novo depois. Prefira isso sempre que um remetente souber assinar. O OneUptime verifica estas assinaturas, cada uma um HMAC-SHA256 em hexadecimal com o segredo como chave:
+
+| Remetente | Cabeçalho | O que é assinado |
+| --- | --- | --- |
+| Seu próprio código | `X-OneUptime-Signature: t=<time>,v1=<signature>` | `<time>.<body>` |
+| Webhooks do GitHub | `X-Hub-Signature-256` | O corpo |
+| Slack | `X-Slack-Signature`, com `X-Slack-Request-Timestamp` | `v0:<time>:<body>` |
+| Stripe | `Stripe-Signature` | `<time>.<body>` |
+
+`<time>` é o momento em que a requisição foi assinada, em segundos desde 1970. Uma assinatura a mais de 5 minutos do relógio do OneUptime é recusada, assim como uma requisição assinada enviada uma segunda vez; a assinatura do GitHub não tem horário, então o OneUptime lembra cada uma por um dia. Para o GitHub, dê ao webhook um dos segredos do projeto como segredo dele. Slack e Stripe criam o próprio segredo de assinatura: crie o segredo do projeto com esse valor, em **Mais campos**.
+
+```bash
+body='{"status":"healthy"}'
+t=$(date +%s)
+sig=$(printf '%s.%s' "$t" "$body" | openssl dgst -sha256 -hmac "YOUR_PROJECT_SECRET" | sed 's/^.* //')
+
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Content-Type: application/json" \
+  -H "X-OneUptime-Signature: t=$t,v1=$sig" \
+  -d "$body"
+```
+
+Um segredo na query string da URL não é aceito: proxies e logs de acesso guardam as URLs inteiras, ao lado da chave do próprio monitor. O ingress de requisições recebidas de uma sonda encaminha o corpo de uma requisição assinada como ele chegou, então a assinatura vale também por esse caminho.
+
+### Limitar um segredo a alguns monitores
+
+Um segredo é aceito por todo monitor de requisições recebidas do projeto, a menos que você o limite, como faz um projeto cujos inquilinos enviam cada um o próprio segredo: em **Mais campos**, escolha **Monitores específicos** ou **Monitores com rótulos**. Qualquer outro monitor o recusa com `401`, como recusa um segredo errado, e **Requisições sem segredo** dá o motivo como **Segredo não vale para este monitor**. Enquanto a exigência estiver ativa, o projeto mantém pelo menos um segredo que cobre um monitor.
 
 ## Critérios de monitoramento
 
@@ -449,7 +483,11 @@ O `200` é enviado antes de a requisição ser validada, então não prova que e
 :::
 
 :::details Meu remetente recebe um 401
-O projeto exige um segredo em toda requisição, e a requisição não enviou nenhum, ou enviou um que não é do projeto: a resposta diz qual dos dois. Envie um dos segredos do projeto no cabeçalho `X-OneUptime-Secret` ou como token Bearer, como mostra [Exigir um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição). Uma requisição recusada nunca chega ao monitor.
+O projeto exige um segredo em toda requisição, e a requisição não enviou nenhum, ou enviou um que não é do projeto: a resposta diz qual dos dois. Envie um dos segredos do projeto no cabeçalho `X-OneUptime-Secret` ou como token Bearer, como mostra [Exigir um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição). Uma requisição recusada nunca chega ao monitor. Ela também recebe `401` com um dos segredos do projeto limitado a outros monitores, e uma requisição assinada cuja assinatura tem mais de 5 minutos, já foi enviada antes, ou foi feita com outro segredo ou sobre um corpo que mudou no caminho.
+:::
+
+:::details Meu remetente recebe um 429
+O endereço dele enviou a um monitor mais de 10 segredos ou assinaturas errados diferentes em 15 minutos, então toda requisição com um segredo que ele envia a esse monitor é recusada até a hora do cabeçalho `Retry-After`. Um remetente que assina com um segredo errado gera uma nova assinatura errada a cada vez e chega aqui rápido: dê a ele um segredo que o monitor aceite, como mostra [Exigir um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição), e as requisições dele são aceitas quando o tempo acabar.
 :::
 
 :::details O monitor parou de receber requisições depois que um segredo passou a ser exigido

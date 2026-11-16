@@ -194,6 +194,8 @@ Invoke-RestMethod -Method Post `
 
 Cualquiera que tenga la URL de un monitor puede enviarle solicitudes. Un Propietario del proyecto o Administrador del proyecto puede hacer que cada monitor de solicitudes entrantes del proyecto exija además uno de los secretos propios del proyecto, sin importar quién configuró el monitor: active **Exigir un secreto en cada solicitud**. Una solicitud sin ninguno se rechaza con `401` y el motivo, antes de contar como latido, de guardarse como la última solicitud del monitor o de llegar a ningún criterio. Una solicitud con uno sigue hacia los criterios propios del monitor, como antes.
 
+Los Propietarios del proyecto y los Administradores del proyecto gestionan los secretos y el interruptor, y también un rol personalizado con los permisos Create, Read, Edit y Delete Incoming Request Secret: Read muestra los valores de los secretos, y Edit además activa y desactiva el interruptor.
+
 :::steps
 ### Cree un secreto
 
@@ -201,7 +203,7 @@ Vaya a **Monitores → Ajustes → Secretos de solicitud entrante** y cree un se
 
 ### Envíelo desde cada remitente
 
-Envíe el secreto en la cabecera `X-OneUptime-Secret`, o como token Bearer en la cabecera `Authorization`, según lo que su remitente pueda establecer.
+Envíe el secreto en la cabecera `X-OneUptime-Secret`, o como token Bearer en la cabecera `Authorization`, según lo que su remitente pueda establecer. Un remitente que no puede establecer una cabecera propia puede firmar cada solicitud con el secreto en su lugar: consulte [Firmar las solicitudes con el secreto](#firmar-las-solicitudes-con-el-secreto).
 
 ### Encuentre los remitentes que faltan
 
@@ -209,7 +211,7 @@ En cuanto el proyecto tiene un secreto, OneUptime comprueba cada solicitud, toda
 
 ### Active el requisito
 
-Active **Exigir un secreto en cada solicitud**. No se puede activar mientras el proyecto no tenga ningún secreto, para que ningún remitente sea rechazado por error.
+Active **Exigir un secreto en cada solicitud**. No se puede activar mientras el proyecto no tenga ningún secreto, para que ningún remitente sea rechazado por error. Antes de activarse, indica cuántos monitores de solicitudes entrantes recibieron una solicitud sin un secreto válido en las últimas 24 horas, si los hay: sus remitentes se rechazan desde entonces.
 :::
 
 ```bash
@@ -223,8 +225,40 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 OneUptime nunca guarda el secreto: quita la cabecera de la solicitud y enmascara un token Bearer que sea uno de los secretos del proyecto antes de guardar nada.
 
+Una dirección que envía a un monitor más de 10 secretos incorrectos distintos en 15 minutos se rechaza después con `429` con cualquier secreto que envíe, correcto o no, hasta la hora que indica su cabecera `Retry-After`, como mucho 15 minutos. Los remitentes en otras direcciones no se ven afectados, y un remitente que sigue enviando un secreto antiguo sigue recibiendo el `401` que dice qué está mal.
+
 > [!TIP]
 > Para reemplazar un secreto sin rechazar a nadie, cree un segundo, pase sus remitentes a él y luego elimine el antiguo cuando su **Último uso** deje de cambiar. Se acepta cualquiera de los secretos del proyecto, y el último no se puede eliminar mientras el requisito esté activo.
+
+### Firmar las solicitudes con el secreto
+
+Un remitente puede firmar cada solicitud con el secreto en lugar de enviarlo, lo que es más seguro: no viaja nada secreto, y una solicitud que alguien capture no se puede volver a enviar más tarde. Prefiéralo siempre que un remitente pueda firmar. OneUptime comprueba estas firmas, cada una un HMAC-SHA256 en hexadecimal con el secreto como clave:
+
+| Remitente | Cabecera | Qué se firma |
+| --- | --- | --- |
+| Su propio código | `X-OneUptime-Signature: t=<time>,v1=<signature>` | `<time>.<body>` |
+| Webhooks de GitHub | `X-Hub-Signature-256` | El cuerpo |
+| Slack | `X-Slack-Signature`, con `X-Slack-Request-Timestamp` | `v0:<time>:<body>` |
+| Stripe | `Stripe-Signature` | `<time>.<body>` |
+
+`<time>` es el momento en que se firmó la solicitud, en segundos desde 1970. Se rechaza una firma a más de 5 minutos del reloj de OneUptime, y también una solicitud firmada enviada por segunda vez; la firma de GitHub no lleva hora, así que OneUptime recuerda cada una durante un día. Para GitHub, dé al webhook uno de los secretos del proyecto como su secreto. Slack y Stripe crean su propio secreto de firma: cree el secreto del proyecto con ese valor, en **Más campos**.
+
+```bash
+body='{"status":"healthy"}'
+t=$(date +%s)
+sig=$(printf '%s.%s' "$t" "$body" | openssl dgst -sha256 -hmac "YOUR_PROJECT_SECRET" | sed 's/^.* //')
+
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Content-Type: application/json" \
+  -H "X-OneUptime-Signature: t=$t,v1=$sig" \
+  -d "$body"
+```
+
+No se acepta un secreto en la cadena de consulta de la URL: los proxies y los registros de acceso guardan las URL completas, junto a la clave propia del monitor. El ingress de solicitudes entrantes de una sonda reenvía el cuerpo de una solicitud firmada tal como llegó, así que su firma también vale por ese camino.
+
+### Limitar un secreto a algunos monitores
+
+Cada monitor de solicitudes entrantes del proyecto acepta un secreto a menos que usted lo limite, como hace un proyecto cuyos inquilinos envían cada uno su propio secreto: en **Más campos**, elija **Monitores específicos** o **Monitores con etiquetas**. Cualquier otro monitor lo rechaza con `401`, como rechaza un secreto incorrecto, y **Solicitudes sin secreto** da como motivo **Secreto no válido para este monitor**. Mientras el requisito esté activo, el proyecto conserva al menos un secreto que cubre un monitor.
 
 ## Criterios de monitoreo
 
@@ -449,7 +483,11 @@ El `200` se envía antes de validar la solicitud, así que no demuestra que se h
 :::
 
 :::details Mi remitente recibe un 401
-El proyecto exige un secreto en cada solicitud, y la solicitud no envió ninguno, o envió uno que no es del proyecto: la respuesta indica cuál de los dos. Envíe uno de los secretos del proyecto en la cabecera `X-OneUptime-Secret` o como token Bearer, como muestra [Exigir un secreto en cada solicitud](#exigir-un-secreto-en-cada-solicitud). Una solicitud rechazada nunca llega al monitor.
+El proyecto exige un secreto en cada solicitud, y la solicitud no envió ninguno, o envió uno que no es del proyecto: la respuesta indica cuál de los dos. Envíe uno de los secretos del proyecto en la cabecera `X-OneUptime-Secret` o como token Bearer, como muestra [Exigir un secreto en cada solicitud](#exigir-un-secreto-en-cada-solicitud). Una solicitud rechazada nunca llega al monitor. También recibe `401` con uno de los secretos del proyecto limitado a otros monitores, y una solicitud firmada cuya firma tiene más de 5 minutos, ya se envió antes, o se hizo con otro secreto o sobre un cuerpo que cambió por el camino.
+:::
+
+:::details Mi remitente recibe un 429
+Su dirección envió a un monitor más de 10 secretos o firmas incorrectos distintos en 15 minutos, así que cada solicitud con un secreto que envía a ese monitor se rechaza hasta la hora de su cabecera `Retry-After`. Un remitente que firma con un secreto incorrecto genera una firma incorrecta nueva cada vez y llega aquí enseguida: dele un secreto que el monitor acepte, como muestra [Exigir un secreto en cada solicitud](#exigir-un-secreto-en-cada-solicitud), y sus solicitudes se aceptan cuando pase el tiempo.
 :::
 
 :::details El monitor dejó de recibir solicitudes desde que se exige un secreto

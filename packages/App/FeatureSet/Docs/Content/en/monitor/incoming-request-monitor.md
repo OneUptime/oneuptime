@@ -194,6 +194,8 @@ Invoke-RestMethod -Method Post `
 
 Anyone who has a monitor's URL can send it requests. A Project Owner or Project Admin can make every Incoming Request monitor in the project also require one of the project's own secrets, whoever set the monitor up: turn on **Require a secret on every request**. A request without one is refused with `401` and the reason, before it counts as a heartbeat, is kept as the monitor's latest request or reaches any criteria. A request with one goes on to the monitor's own criteria, as before.
 
+Project Owners and Project Admins manage the secrets and the switch, and so does a custom role with the Create, Read, Edit and Delete Incoming Request Secret permissions: Read shows the secrets' values, and Edit also turns the switch on and off.
+
 :::steps
 ### Create a secret
 
@@ -201,7 +203,7 @@ Go to **Monitors → Settings → Incoming Request Secrets** and create a secret
 
 ### Send it from every sender
 
-Send the secret in the `X-OneUptime-Secret` header, or as a bearer token in the `Authorization` header, whichever your sender can set.
+Send the secret in the `X-OneUptime-Secret` header, or as a bearer token in the `Authorization` header, whichever your sender can set. A sender that cannot set a header of its own can sign each request with the secret instead: see [Sign requests with the secret](#sign-requests-with-the-secret).
 
 ### Find the senders you missed
 
@@ -209,7 +211,7 @@ As soon as the project has a secret, OneUptime checks every request for one, wit
 
 ### Turn on the requirement
 
-Turn on **Require a secret on every request**. It cannot be turned on while the project has no secret, so no sender is refused by mistake.
+Turn on **Require a secret on every request**. It cannot be turned on while the project has no secret, so no sender is refused by mistake. Before it turns on, it names how many Incoming Request monitors got a request without a valid secret in the last 24 hours, if any: their senders are refused from then on.
 :::
 
 ```bash
@@ -223,8 +225,40 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 OneUptime never stores the secret: it takes the header off the request, and masks a bearer token that is one of the project's secrets, before it keeps anything.
 
+An address that sends one monitor more than 10 different wrong secrets in 15 minutes is refused with `429` for every secret it then sends, right or wrong, until the time its `Retry-After` header gives, at most 15 minutes. Senders at other addresses are not affected, and a sender that keeps sending one old secret keeps getting the `401` that says what is wrong.
+
 > [!TIP]
 > To replace a secret without refusing anyone, create a second one, move your senders to it, then delete the old one once its **Last Used** stops changing. Any of the project's secrets is accepted, and the last one cannot be deleted while the requirement is on.
+
+### Sign requests with the secret
+
+A sender can sign each request with the secret instead of sending it, which is safer: nothing secret travels, and a request someone captured cannot be sent again later. Prefer it wherever a sender can sign. OneUptime checks these signatures, each an HMAC-SHA256 in hex with the secret as its key:
+
+| Sender | Header | What is signed |
+| --- | --- | --- |
+| Your own code | `X-OneUptime-Signature: t=<time>,v1=<signature>` | `<time>.<body>` |
+| GitHub webhooks | `X-Hub-Signature-256` | The body |
+| Slack | `X-Slack-Signature`, with `X-Slack-Request-Timestamp` | `v0:<time>:<body>` |
+| Stripe | `Stripe-Signature` | `<time>.<body>` |
+
+`<time>` is when the request was signed, in seconds since 1970. A signature more than 5 minutes from OneUptime's clock is refused, and so is a signed request sent a second time; GitHub's signature has no time, so OneUptime remembers each one for a day. For GitHub, give the webhook one of the project's secrets as its secret. Slack and Stripe make their own signing secret: create the project's secret with that value, under **More fields**.
+
+```bash
+body='{"status":"healthy"}'
+t=$(date +%s)
+sig=$(printf '%s.%s' "$t" "$body" | openssl dgst -sha256 -hmac "YOUR_PROJECT_SECRET" | sed 's/^.* //')
+
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Content-Type: application/json" \
+  -H "X-OneUptime-Signature: t=$t,v1=$sig" \
+  -d "$body"
+```
+
+A secret in the URL's query string is not accepted: proxies and access logs keep whole URLs, beside the monitor's own key. A probe's incoming request ingress passes a signed request's body on as it came, so its signature holds there too.
+
+### Limit a secret to some monitors
+
+A secret is accepted by every Incoming Request monitor of the project unless you limit it, as a project whose tenants each send their own secret does: under **More fields**, pick **Specific monitors** or **Monitors with labels**. Any other monitor refuses it with `401`, as it refuses a wrong secret, and **Requests Without a Secret** gives the reason as **Secret not for this monitor**. While the requirement is on, the project keeps at least one secret that covers a monitor.
 
 ## Criteria
 
@@ -449,7 +483,11 @@ The `200` is sent before the request is validated, so it does not prove the requ
 :::
 
 :::details My sender gets a 401
-The project requires a secret on every request, and the request sent none, or one that is not the project's: the reply says which. Send one of the project's secrets in the `X-OneUptime-Secret` header or as a bearer token, as [Require a secret on every request](#require-a-secret-on-every-request) shows. A refused request never reaches the monitor.
+The project requires a secret on every request, and the request sent none, or one that is not the project's: the reply says which. Send one of the project's secrets in the `X-OneUptime-Secret` header or as a bearer token, as [Require a secret on every request](#require-a-secret-on-every-request) shows. A refused request never reaches the monitor. It gets `401` too with one of the project's secrets that is limited to other monitors, and for a signed request whose signature is more than 5 minutes old, was sent before, or was made with another secret or over a body that changed on the way.
+:::
+
+:::details My sender gets a 429
+Its address sent one monitor more than 10 different wrong secrets or signatures in 15 minutes, so every request it sends that monitor with a secret is refused until the time in its `Retry-After` header. A sender that signs with a wrong secret makes a new wrong signature every time, and gets here quickly: give it a secret the monitor accepts, as [Require a secret on every request](#require-a-secret-on-every-request) shows, and its requests are accepted once the time is up.
 :::
 
 :::details The monitor stopped getting requests after a secret was required

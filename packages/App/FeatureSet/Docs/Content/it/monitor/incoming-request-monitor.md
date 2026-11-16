@@ -194,6 +194,8 @@ Invoke-RestMethod -Method Post `
 
 Chiunque abbia l'URL di un monitor può inviargli richieste. Un Proprietario del progetto o un Amministratore del progetto può far richiedere in più a ogni monitor di richieste in arrivo del progetto uno dei segreti propri del progetto, chiunque abbia configurato il monitor: attivate **Richiedi un segreto a ogni richiesta**. Una richiesta senza segreto viene rifiutata con `401` e il motivo, prima di contare come heartbeat, di essere conservata come ultima richiesta del monitor o di raggiungere qualsiasi criterio. Una richiesta con un segreto prosegue verso i criteri propri del monitor, come prima.
 
+I Proprietari del progetto e gli Amministratori del progetto gestiscono i segreti e l'interruttore, e così un ruolo personalizzato con i permessi Create, Read, Edit e Delete Incoming Request Secret: Read mostra i valori dei segreti, ed Edit attiva e disattiva anche l'interruttore.
+
 :::steps
 ### Create un segreto
 
@@ -201,7 +203,7 @@ Andate in **Monitor → Impostazioni → Segreti per richieste in arrivo** e cre
 
 ### Inviatelo da ogni mittente
 
-Inviate il segreto nell'intestazione `X-OneUptime-Secret`, o come token Bearer nell'intestazione `Authorization`, secondo ciò che il vostro mittente sa impostare.
+Inviate il segreto nell'intestazione `X-OneUptime-Secret`, o come token Bearer nell'intestazione `Authorization`, secondo ciò che il vostro mittente sa impostare. Un mittente che non può impostare un'intestazione propria può invece firmare ogni richiesta con il segreto: vedete [Firmare le richieste con il segreto](#firmare-le-richieste-con-il-segreto).
 
 ### Trovate i mittenti dimenticati
 
@@ -209,7 +211,7 @@ Non appena il progetto ha un segreto, OneUptime controlla ogni richiesta, senza 
 
 ### Attivate il requisito
 
-Attivate **Richiedi un segreto a ogni richiesta**. Non si può attivare finché il progetto non ha alcun segreto, così nessun mittente viene rifiutato per errore.
+Attivate **Richiedi un segreto a ogni richiesta**. Non si può attivare finché il progetto non ha alcun segreto, così nessun mittente viene rifiutato per errore. Prima di attivarsi, indica quanti monitor di richieste in arrivo hanno ricevuto una richiesta senza un segreto valido nelle ultime 24 ore, se ce ne sono: i loro mittenti vengono rifiutati da quel momento.
 :::
 
 ```bash
@@ -223,8 +225,40 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 OneUptime non conserva mai il segreto: toglie l'intestazione dalla richiesta e maschera un token Bearer che sia uno dei segreti del progetto prima di conservare qualsiasi cosa.
 
+Un indirizzo che invia a un monitor più di 10 segreti errati diversi in 15 minuti viene poi rifiutato con `429` per qualsiasi segreto invii, giusto o sbagliato, fino all'ora indicata dalla sua intestazione `Retry-After`, al massimo 15 minuti. I mittenti ad altri indirizzi non ne risentono, e un mittente che continua a inviare un vecchio segreto continua a ricevere il `401` che dice cosa non va.
+
 > [!TIP]
 > Per sostituire un segreto senza rifiutare nessuno, createne un secondo, spostate i vostri mittenti su di esso, poi eliminate quello vecchio quando il suo **Ultimo utilizzo** smette di cambiare. Qualsiasi segreto del progetto viene accettato, e l'ultimo non si può eliminare finché il requisito è attivo.
+
+### Firmare le richieste con il segreto
+
+Un mittente può firmare ogni richiesta con il segreto invece di inviarlo, il che è più sicuro: non viaggia nulla di segreto, e una richiesta intercettata non può essere inviata di nuovo più tardi. Preferitelo ovunque un mittente sappia firmare. OneUptime controlla queste firme, ognuna un HMAC-SHA256 in esadecimale con il segreto come chiave:
+
+| Mittente | Intestazione | Cosa viene firmato |
+| --- | --- | --- |
+| Il vostro codice | `X-OneUptime-Signature: t=<time>,v1=<signature>` | `<time>.<body>` |
+| Webhook di GitHub | `X-Hub-Signature-256` | Il corpo |
+| Slack | `X-Slack-Signature`, con `X-Slack-Request-Timestamp` | `v0:<time>:<body>` |
+| Stripe | `Stripe-Signature` | `<time>.<body>` |
+
+`<time>` è il momento in cui la richiesta è stata firmata, in secondi dal 1970. Una firma a più di 5 minuti dall'orologio di OneUptime viene rifiutata, e così una richiesta firmata inviata una seconda volta; la firma di GitHub non contiene un'ora, quindi OneUptime ricorda ognuna per un giorno. Per GitHub, date al webhook uno dei segreti del progetto come segreto. Slack e Stripe creano un proprio segreto di firma: create il segreto del progetto con quel valore, in **Altri campi**.
+
+```bash
+body='{"status":"healthy"}'
+t=$(date +%s)
+sig=$(printf '%s.%s' "$t" "$body" | openssl dgst -sha256 -hmac "YOUR_PROJECT_SECRET" | sed 's/^.* //')
+
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Content-Type: application/json" \
+  -H "X-OneUptime-Signature: t=$t,v1=$sig" \
+  -d "$body"
+```
+
+Un segreto nella query string dell'URL non viene accettato: proxy e log di accesso conservano gli URL interi, accanto alla chiave propria del monitor. L'ingress richieste in arrivo di una sonda inoltra il corpo di una richiesta firmata così come è arrivato, quindi la sua firma vale anche passando da lì.
+
+### Limitare un segreto ad alcuni monitor
+
+Un segreto viene accettato da ogni monitor di richieste in arrivo del progetto a meno che non lo limitiate, come fa un progetto i cui tenant inviano ciascuno il proprio segreto: in **Altri campi**, scegliete **Monitor specifici** o **Monitor con etichette**. Ogni altro monitor lo rifiuta con `401`, come rifiuta un segreto errato, e **Richieste senza segreto** ne indica il motivo come **Segreto non valido per questo monitor**. Finché il requisito è attivo, il progetto mantiene almeno un segreto che copre un monitor.
 
 ## Criteri di monitoraggio
 
@@ -449,7 +483,11 @@ Il `200` viene inviato prima che la richiesta sia convalidata, quindi non dimost
 :::
 
 :::details Il mio mittente riceve un 401
-Il progetto richiede un segreto a ogni richiesta, e la richiesta non ne ha inviato nessuno, o ne ha inviato uno che non è del progetto: la risposta dice quale dei due. Inviate uno dei segreti del progetto nell'intestazione `X-OneUptime-Secret` o come token Bearer, come mostra [Richiedere un segreto a ogni richiesta](#richiedere-un-segreto-a-ogni-richiesta). Una richiesta rifiutata non raggiunge mai il monitor.
+Il progetto richiede un segreto a ogni richiesta, e la richiesta non ne ha inviato nessuno, o ne ha inviato uno che non è del progetto: la risposta dice quale dei due. Inviate uno dei segreti del progetto nell'intestazione `X-OneUptime-Secret` o come token Bearer, come mostra [Richiedere un segreto a ogni richiesta](#richiedere-un-segreto-a-ogni-richiesta). Una richiesta rifiutata non raggiunge mai il monitor. Riceve `401` anche con uno dei segreti del progetto limitato ad altri monitor, e per una richiesta firmata la cui firma ha più di 5 minuti, è già stata inviata, o è stata fatta con un altro segreto o su un corpo cambiato lungo il percorso.
+:::
+
+:::details Il mio mittente riceve un 429
+Il suo indirizzo ha inviato a un monitor più di 10 segreti o firme errati diversi in 15 minuti, quindi ogni richiesta con un segreto che invia a quel monitor viene rifiutata fino all'ora della sua intestazione `Retry-After`. Un mittente che firma con un segreto errato produce ogni volta una nuova firma errata e arriva presto qui: dategli un segreto che il monitor accetta, come mostra [Richiedere un segreto a ogni richiesta](#richiedere-un-segreto-a-ogni-richiesta), e le sue richieste vengono accettate quando il tempo è scaduto.
 :::
 
 :::details Il monitor non riceve più richieste da quando è richiesto un segreto
