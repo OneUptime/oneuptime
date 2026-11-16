@@ -183,6 +183,14 @@ describePostgres("a schedule's change held in Postgres", () => {
   });
 
   test("the Workers' read of what is due is one the partial index answers", async () => {
+    // The copy names its indexes itself (LIKE ... INCLUDING ALL).
+    const partial: Array<{ indexname: string }> = await database.query(
+      `SELECT indexname FROM pg_indexes WHERE schemaname = $1 AND tablename = 'OnCallDutyPolicySchedule' AND indexdef LIKE '%WHERE ("rosterRefreshDueAt" IS NOT NULL)%'`,
+      [schema],
+    );
+
+    expect(partial).toHaveLength(1);
+
     await database.query("SET enable_seqscan = off");
 
     try {
@@ -197,7 +205,9 @@ describePostgres("a schedule's change held in Postgres", () => {
             return row["QUERY PLAN"];
           })
           .join("\n"),
-      ).toMatch(/Index Scan using "?IDX_d242a03092195f79e2e425ea62"?/);
+      ).toMatch(
+        new RegExp(`Index Scan (?:using|on) "?${partial[0]!.indexname}"?`),
+      );
     } finally {
       await database.query("SET enable_seqscan = on");
     }
