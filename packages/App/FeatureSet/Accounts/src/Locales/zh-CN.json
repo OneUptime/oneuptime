@@ -91,8 +91,8 @@
       "lostAccessSecurityKey": "无法使用安全密钥？"
     },
     "twoFactorEnrolment": {
-      "title": "设置双重身份验证",
-      "subtitle": "您的管理员要求此账户使用双重身份验证。请立即设置以完成登录。",
+      "title": "设置双因素身份验证",
+      "subtitle": "您的管理员要求此账户使用双因素身份验证。请立即设置以完成登录。",
       "scanInstruction": "请使用 Google Authenticator、Microsoft Authenticator 或 1Password 等身份验证器应用扫描此二维码。",
       "codeFieldDescription": "请输入身份验证器应用显示的六位数验证码。",
       "submitButton": "验证并登录",

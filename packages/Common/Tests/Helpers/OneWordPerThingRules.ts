@@ -37,11 +37,42 @@
  * has a meaning of its own (a notification, the act of monitoring), so a
  * check reads the texts whose English names the thing, and only those: a
  * text whose English names the thing says the language's word and not the
- * dropped one. The Dashboard's and the Admin Dashboard's locale files and
- * the docs are held to these rules (OneWordInSentencesPerThing), and so is
- * every setup guide's words (SetupGuideDocumentationInLocale): one list,
- * so a rename reaches them all.
+ * dropped one. The Dashboard's locale files, the docs and every other app's
+ * locale folder (LOCALE_FOLDERS: the Admin Dashboard, the status pages, the
+ * sign-in pages, the public dashboards, the API reference and the server's
+ * emails and messages) are held to these rules (OneWordInSentencesPerThing),
+ * and so is every setup guide's words (SetupGuideDocumentationInLocale):
+ * one list, so a rename reaches them all.
  */
+
+/*
+ * The locale folders beside the Dashboard's that a rule reads (#8828). A
+ * thing the Dashboard names is named the same on a status page, a sign-in
+ * page or in an email, so a rule reads every folder unless it says
+ * otherwise in `folders`: a product's name, say, may rightly read otherwise
+ * on a public page than in the Dashboard. No rule narrows them yet.
+ */
+export type LocaleFolder =
+  | "Admin Dashboard"
+  | "Status page"
+  | "Sign-in pages"
+  | "Public dashboards"
+  | "API reference"
+  | "Server";
+
+// Each folder, from the packages directory.
+export const LOCALE_FOLDERS: Readonly<Record<LocaleFolder, string>> = {
+  "Admin Dashboard": "App/FeatureSet/AdminDashboard/src/Locales",
+  "Status page": "App/FeatureSet/StatusPage/src/Locales",
+  "Sign-in pages": "App/FeatureSet/Accounts/src/Locales",
+  "Public dashboards": "App/FeatureSet/PublicDashboard/src/Locales",
+  "API reference": "App/FeatureSet/APIReference/Locales",
+  Server: "Common/Server/Locales",
+};
+
+export const EVERY_LOCALE_FOLDER: ReadonlyArray<LocaleFolder> = Object.keys(
+  LOCALE_FOLDERS,
+) as Array<LocaleFolder>;
 
 export interface SentenceRule {
   language: string;
@@ -65,6 +96,16 @@ export interface SentenceRule {
    * a workflow's or a CI's runner in lower case.
    */
   docsEnglish?: RegExp;
+  /*
+   * The locale folders beside the Dashboard's it reads: every one
+   * (EVERY_LOCALE_FOLDER) unless it names fewer, with why.
+   */
+  folders?: ReadonlyArray<LocaleFolder>;
+}
+
+// The locale folders a rule reads.
+export function foldersOf(rule: SentenceRule): ReadonlyArray<LocaleFolder> {
+  return rule.folders || EVERY_LOCALE_FOLDER;
 }
 
 // English that names an ingestion key.
