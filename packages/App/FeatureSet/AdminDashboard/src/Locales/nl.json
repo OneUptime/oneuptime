@@ -515,7 +515,7 @@
         "magicLinkCardTitle": "Inloglinks",
         "magicLinkCardDescription": "Of mensen kunnen inloggen met een link die per e-mail wordt gestuurd, in plaats van hun wachtwoord te typen.",
         "magicLinkSwitchTitle": "Inloggen met een gemailde link toestaan",
-        "magicLinkSwitchOnDescription": "De inlogpagina biedt aan een link te e-mailen waarmee mensen inloggen. Tweestapsverificatie blijft gelden, en elke link werkt één keer, 15 minuten lang.",
+        "magicLinkSwitchOnDescription": "De inlogpagina biedt aan een link te e-mailen waarmee mensen inloggen. Tweefactorauthenticatie blijft gelden, en elke link werkt één keer, 15 minuten lang.",
         "magicLinkSwitchOffDescription": "Mensen loggen in met hun wachtwoord, een passkey of single sign-on. Links die al zijn verstuurd, werken niet meer.",
         "magicLinkWhileSsoRequired": "Zolang deze server single sign-on vereist, biedt de inlogpagina alleen SSO aan en verstuurt hij geen inloglinks.",
         "projectCreationCardTitle": "Project aanmaken",
