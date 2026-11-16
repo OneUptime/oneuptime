@@ -180,7 +180,9 @@ describe("the numbers", () => {
     expect(formatMessageQueueDurationMsInLanguage(0.85, english)).toBe(
       "850\u00A0µs",
     );
-    expect(formatMessageQueueDurationMsInLanguage(12.3, english)).toBe("12\u00A0ms");
+    expect(formatMessageQueueDurationMsInLanguage(12.3, english)).toBe(
+      "12\u00A0ms",
+    );
     expect(formatMessageQueueDurationMsInLanguage(1250, english)).toBe(
       "1.25\u00A0s",
     );
