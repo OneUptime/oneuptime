@@ -116,12 +116,13 @@ export interface CodeRepositoryCommands {
  *     with no project - a global AI agent, from before global Runners took
  *     its work - proves nothing here.
  *
- * What an identity may then do is held to its project, and a global
- * Runner's - it serves every project - to the run it claimed
- * (deniesAccessToRun): the details, the exception, the repositories and the
- * repository token of that run, never another's. Nor is it ever handed a
- * repository's own commands or the code agent's command tool
- * (getRepositoryCommands, getOfferedTools): it runs no command.
+ * What an identity may then do is held to its project, and to the run it
+ * claimed (deniesAccessToRun): the details, the exception, the repositories
+ * and the repository token of that run, never another's - a global Runner,
+ * which serves every project, and a project's own Runner or agent alike. A
+ * global Runner is never handed a repository's own commands or the code
+ * agent's command tool either (getRepositoryCommands, getOfferedTools): it
+ * runs no command.
  *
  * The Runner path is also where a Runner's code-fix capability is
  * enforced. A global Runner takes the code-fix work of every repository
@@ -461,23 +462,28 @@ export default class CodeFixAgentAuth {
   /*
    * Whether the identity may act for this run - or, true, it may not.
    *
-   * A project's Runner, or an AI agent of a project's own, may act for any
-   * code-fix run of its own project (deniesAccessToProject), as it always
-   * could: every one of them is its project's.
+   * Every identity acts only for the run it claimed (the claim writes its
+   * id on the run as aiAgentId), in a project it may act in
+   * (deniesAccessToProject): never for one another worker holds, one still
+   * waiting, or one of a project it took nothing from. A global Runner, a
+   * project's own Runner and an AI agent a project created before 12.0 are
+   * held alike: a key - a global Runner's, held on a host that runs every
+   * project's JavaScript steps, or one of the project Runners a team runs
+   * on several hosts - reaches the work it was handed, never every run of
+   * the projects it serves.
    *
-   * A global Runner serves every project, so it acts only for the run it
-   * claimed (the claim writes its id on the run as aiAgentId) - never for
-   * one another worker holds, one still waiting, or one of a project it
-   * took nothing from. What it is handed for the work (the run's details,
-   * its exception, its repositories and their tokens, a review posted for
-   * it) is handed only while it still holds the run (CodeFixRunAccess.Work:
-   * the run is Running); what it reports about the work it did (progress, a
-   * pull request it opened, how the run ended) only needs the run to be one
-   * it claimed (CodeFixRunAccess.Report), so a report it retries after the
-   * run ended is answered as before rather than refused. A global Runner's
-   * key - held on a host that runs every project's JavaScript steps, or on
-   * one a master admin started - therefore reaches only the work it was
-   * handed, never every project's runs, exceptions and repositories.
+   * What it is handed for the work (the run's details, its exception, its
+   * repositories and their tokens, a review posted for it) is handed only
+   * while it still holds the run (CodeFixRunAccess.Work: the run is
+   * Running); what it reports about the work it did (progress, a pull
+   * request it opened, how the run ended) only needs the run to be one it
+   * claimed (CodeFixRunAccess.Report), so a report it retries after the run
+   * ended is answered as before rather than refused.
+   *
+   * A request that names no run - from a Runner of a release before it sent
+   * its run, or from an AI agent a project created before 12.0 - is held to
+   * a run it claimed too, found by what it asks about (AIAgentDataAPI): the
+   * exception or the repository of a run it holds.
    *
    * Answered exactly like a missing run, so a probing key cannot tell
    * another worker's run from no run.
@@ -491,15 +497,7 @@ export default class CodeFixAgentAuth {
       return true;
     }
 
-    if (!CodeFixAgentAuth.isGlobalIdentity(identity)) {
-      return false;
-    }
-
-    if (
-      !run.projectId ||
-      !run.aiAgentId ||
-      run.aiAgentId.toString() !== identity.id.toString()
-    ) {
+    if (!CodeFixAgentAuth.isRunClaimedBy(identity, run)) {
       return true;
     }
 
@@ -508,6 +506,22 @@ export default class CodeFixAgentAuth {
     }
 
     return false;
+  }
+
+  /*
+   * Whether the identity claimed the run: the run is a project's, and the
+   * claim wrote the identity's id on it (aiAgentId). Whatever state it is in
+   * now.
+   */
+  public static isRunClaimedBy(
+    identity: CodeFixAgentIdentity,
+    run: CodeFixRunHoldFacts,
+  ): boolean {
+    return Boolean(
+      run.projectId &&
+        run.aiAgentId &&
+        run.aiAgentId.toString() === identity.id.toString(),
+    );
   }
 
   /*
