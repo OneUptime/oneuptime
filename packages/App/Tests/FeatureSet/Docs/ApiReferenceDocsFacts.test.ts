@@ -20,6 +20,8 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
+import BaseAPI from "Common/Server/API/BaseAPI";
+import { ExpressRequest } from "Common/Server/Utils/Express";
 import ColumnRefusalMessage from "Common/Server/Types/Database/Permissions/ColumnRefusalMessage";
 import UUIDColumnFilter, {
   EXAMPLE_UUID,
@@ -46,6 +48,7 @@ import LIMIT_MAX, {
   LIMIT_PER_PROJECT,
 } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import BadRequestException from "Common/Types/Exception/BadRequestException";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -480,6 +483,83 @@ describe("OneUptime API Reference: a request and its answer", () => {
     expect(section).toContain(
       "`select` names the fields to return, and `_id` always comes back. `sort` orders them, `ASC` or `DESC`; without one, the newest come first. A list returns 10 records unless you set `limit`, up to 10,000",
     );
+  });
+
+  /*
+   * #8114: a list's count can stop at a cap (BaseAPI.getList's countUpTo),
+   * which the dashboard's lists have asked for since they say "10,000+". The
+   * page says how to ask for it, how far the count then goes, and what the
+   * answer says - held to the code that reads it and the answer it writes.
+   */
+  it("caps a list's count when asked, and says when more match, as BaseAPI.getCountUpTo and getList do", () => {
+    const section: string = englishSection(
+      API_REFERENCE,
+      "### Filter, sort and page",
+    );
+    const getList: string = baseApiMethod("getList");
+    const listRequest: (data: {
+      query?: JSONObject;
+      body?: JSONObject;
+    }) => ExpressRequest = (data: {
+      query?: JSONObject;
+      body?: JSONObject;
+    }): ExpressRequest => {
+      return {
+        query: data.query || {},
+        body: data.body || {},
+      } as unknown as ExpressRequest;
+    };
+
+    expect(section).toContain(
+      'On a long list, counting every match takes time: add `countUpTo`, such as `10000`, and the count stops there, or at the end of the page if that is further. When more records match, `count` is where it stopped and the answer also carries `"isCountCapped": true`: with `"countUpTo": 1`, that says whether more records follow the page.',
+    );
+
+    // Asked for in the body or the query string, as skip and limit are.
+    expect(
+      BaseAPI.getCountUpTo(listRequest({ body: { countUpTo: 10000 } })),
+    ).toBe(10000);
+    expect(
+      BaseAPI.getCountUpTo(listRequest({ query: { countUpTo: "1" } })),
+    ).toBe(1);
+    // Not asked for: every match is counted, as before.
+    expect(BaseAPI.getCountUpTo(listRequest({}))).toBeUndefined();
+    expect(() => {
+      BaseAPI.getCountUpTo(listRequest({ body: { countUpTo: 0 } }));
+    }).toThrow(BadRequestException);
+
+    // The count stops at countUpTo, or at the end of the page if that is further.
+    expect(getList).toContain(
+      "const countUpTo: number | undefined = BaseAPI.getCountUpTo(req);",
+    );
+    expect(getList).toContain(
+      "Math.max(countUpTo, skip.toNumber() + limit.toNumber())",
+    );
+    expect(getList).toContain("upTo: countCap");
+
+    // More matched: the count is where it stopped, and the answer says so.
+    expect(getList).toContain(
+      "if (countCap !== undefined && count.toNumber() > countCap) {",
+    );
+    expect(getList).toContain("new PositiveNumber(countCap)");
+    expect(getList).toContain("{ isCountCapped: true }");
+
+    const capped: JSONObject = new ListData({
+      data: [],
+      count: new PositiveNumber(10000),
+      skip: new PositiveNumber(0),
+      limit: new PositiveNumber(DEFAULT_LIMIT),
+      isCountCapped: true,
+    }).toJSON();
+    const exact: JSONObject = new ListData({
+      data: [],
+      count: new PositiveNumber(240),
+      skip: new PositiveNumber(0),
+      limit: new PositiveNumber(DEFAULT_LIMIT),
+    }).toJSON();
+
+    expect(capped["isCountCapped"]).toBe(true);
+    expect(capped["count"]).toBe(10000);
+    expect(exact["isCountCapped"]).toBeUndefined();
   });
 
   it("answers a list as data and count, as CSV on request, with dates and IDs wrapped", () => {

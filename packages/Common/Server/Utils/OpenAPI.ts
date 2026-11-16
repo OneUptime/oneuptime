@@ -367,6 +367,13 @@ export default class OpenAPIUtil {
                   default: 0,
                   minimum: 0,
                 },
+                // BaseAPI.getCountUpTo; the cap is getList's countCap.
+                countUpTo: {
+                  type: "integer",
+                  description:
+                    "Count the matching items no further than this, or than the end of the page if that is further. When more match, count is where it stopped and isCountCapped is true. Leave it out to count every matching item.",
+                  minimum: 1,
+                },
               },
             },
           },
@@ -387,6 +394,11 @@ export default class OpenAPIUtil {
                     },
                   },
                   count: { type: "number" },
+                  isCountCapped: {
+                    type: "boolean",
+                    description:
+                      "True when the request set countUpTo and more items match than were counted: count is where the count stopped. Absent when count is exact.",
+                  },
                 },
               },
             },
