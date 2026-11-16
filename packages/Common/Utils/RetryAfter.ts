@@ -42,7 +42,8 @@
  * agents/ResourceAIAgent (Common/Utils/RetryAfter.ts, copied by their
  * npm run sync-common) and the React Native recorder
  * (packages/App/FeatureSet/MobileRecorder/src/RetryAfter.ts). Their parity
- * tests fail when a copy drifts.
+ * tests fail when a copy drifts. The browser recorder inlines it into a
+ * script every page of a customer's site loads, so it is kept small.
  */
 
 // The header's name, in the lower case Node and fetch give it.
@@ -75,51 +76,156 @@ export interface RetryAfterOptions {
   acceptHttpDate?: boolean | undefined;
 }
 
-// delay-seconds: 1*DIGIT, and only ASCII digits are DIGIT.
-const DELAY_SECONDS: RegExp = /^[0-9]+$/;
+// delay-seconds: 1*DIGIT. \d is the ASCII digits alone (no u flag).
+const DELAY_SECONDS: RegExp = /^\d+$/;
 
-// IMF-fixdate: day-name "," SP 2DIGIT SP month SP 4DIGIT SP time-of-day SP "GMT".
-const IMF_FIXDATE: RegExp =
-  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), ([0-9]{2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) ([0-9]{4}) ([0-9]{2}):([0-9]{2}):([0-9]{2}) GMT$/;
+const MONTHS: Array<string> =
+  "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
 
-// rfc850-date: day-name-l "," SP 2DIGIT "-" month "-" 2DIGIT SP time-of-day SP "GMT".
-const RFC_850_DATE: RegExp =
-  /^(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), ([0-9]{2})-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2}) GMT$/;
+// The parts the three shapes are written with (RFC 9110 section 5.6.7).
+const DAY_NAME: string = "(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)";
+const DAY_NAME_LONG: string = "(?:Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day";
+const MONTH: string = `(${MONTHS.join("|")})`;
+const TIME_OF_DAY: string = "(\\d\\d):(\\d\\d):(\\d\\d)";
 
-// asctime-date: day-name SP month SP ( 2DIGIT / ( SP DIGIT )) SP time-of-day SP 4DIGIT.
-const ASCTIME_DATE: RegExp =
-  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) ([0-9]{2}| [0-9]) ([0-9]{2}):([0-9]{2}):([0-9]{2}) ([0-9]{4})$/;
+// day-name "," SP 2DIGIT SP month SP 4DIGIT SP time-of-day SP "GMT".
+const IMF_FIXDATE: RegExp = new RegExp(
+  `^${DAY_NAME}, (\\d\\d) ${MONTH} (\\d{4}) ${TIME_OF_DAY} GMT$`,
+);
 
-const MONTHS: Array<string> = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
+// day-name-l "," SP 2DIGIT "-" month "-" 2DIGIT SP time-of-day SP "GMT".
+const RFC_850_DATE: RegExp = new RegExp(
+  `^${DAY_NAME_LONG}, (\\d\\d)-${MONTH}-(\\d\\d) ${TIME_OF_DAY} GMT$`,
+);
+
+// day-name SP month SP ( 2DIGIT / ( SP DIGIT )) SP time-of-day SP 4DIGIT.
+const ASCTIME_DATE: RegExp = new RegExp(
+  `^${DAY_NAME} ${MONTH} (\\d\\d| \\d) ${TIME_OF_DAY} (\\d{4})$`,
+);
 
 // How far ahead an RFC 850 date's two-digit year may land (section 5.6.7).
 const TWO_DIGIT_YEAR_LOOKAHEAD_YEARS: number = 50;
 
-// SP and HTAB: the whitespace RFC 9110 allows around a field's value.
-const SPACE_CODE: number = 32;
-const TAB_CODE: number = 9;
+/*
+ * A date written in UTC, as milliseconds since the epoch. Undefined for a
+ * time past 23:59:60 (60 is a leap second, which section 5.6.7 allows: it
+ * reads as the next minute's first) or a day the month does not have
+ * (31 Apr, 29 Feb 2023) - never the date it would roll over to. The fields
+ * are digits as written; a comparison with one that is missing (NaN) fails.
+ */
+function toUtcMs(
+  year: number,
+  month: string | undefined,
+  day: string | undefined,
+  hour: string | undefined,
+  minute: string | undefined,
+  second: string | undefined,
+): number | undefined {
+  const monthIndex: number = MONTHS.indexOf(month || "");
+  const dayOfMonth: number = Number(day);
+  // setUTCFullYear, not Date.UTC: Date.UTC reads a year below 100 as 19xx.
+  const date: Date = new Date(0);
+  date.setUTCFullYear(year, monthIndex, dayOfMonth);
 
-// A date's fields, as written: strings of digits, or undefined when absent.
-interface WrittenDate {
-  year: string | undefined;
-  month: string | undefined;
-  day: string | undefined;
-  hour: string | undefined;
-  minute: string | undefined;
-  second: string | undefined;
+  if (
+    monthIndex < 0 ||
+    date.getUTCMonth() !== monthIndex ||
+    date.getUTCDate() !== dayOfMonth ||
+    !(Number(hour) <= 23 && Number(minute) <= 59 && Number(second) <= 60)
+  ) {
+    return undefined;
+  }
+
+  date.setUTCHours(Number(hour), Number(minute), Number(second), 0);
+
+  return date.getTime();
+}
+
+/*
+ * An RFC 850 date's two-digit year is this century's, unless that is more
+ * than 50 years ahead: then it is the most recent year gone by with the
+ * same last two digits (RFC 9110 section 5.6.7).
+ */
+function readRfc850Date(
+  match: RegExpExecArray,
+  nowMs: number,
+): number | undefined {
+  const thisYear: number = new Date(nowMs).getUTCFullYear();
+  const lookaheadEnd: Date = new Date(nowMs);
+  lookaheadEnd.setUTCFullYear(thisYear + TWO_DIGIT_YEAR_LOOKAHEAD_YEARS);
+
+  let year: number = thisYear - (thisYear % 100) + Number(match[3]);
+  let atMs: number | undefined = toUtcMs(
+    year,
+    match[2],
+    match[1],
+    match[4],
+    match[5],
+    match[6],
+  );
+
+  if (atMs !== undefined && atMs > lookaheadEnd.getTime()) {
+    year -= 100;
+    atMs = toUtcMs(year, match[2], match[1], match[4], match[5], match[6]);
+  }
+
+  return atMs;
+}
+
+// SP and HTAB: the whitespace RFC 9110 allows around a field's value.
+function isSpace(code: number): boolean {
+  return code === 32 || code === 9;
+}
+
+/*
+ * A value's text, its surrounding spaces and tabs left out; undefined when
+ * it is not a string or a number, or nothing is left. Copies of a header
+ * sent more than once give their text only when they all agree.
+ */
+function toText(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    const copies: Array<string | undefined> = value.map(
+      (copy: unknown): string | undefined => {
+        return Array.isArray(copy) ? undefined : toText(copy);
+      },
+    );
+
+    return copies.every((copy: string | undefined): boolean => {
+      return copy === copies[0];
+    })
+      ? copies[0]
+      : undefined;
+  }
+
+  if (typeof value !== "string" && typeof value !== "number") {
+    return undefined;
+  }
+
+  const text: string = String(value);
+  let start: number = 0;
+  let end: number = text.length;
+
+  while (start < end && isSpace(text.charCodeAt(start))) {
+    start++;
+  }
+
+  while (end > start && isSpace(text.charCodeAt(end - 1))) {
+    end--;
+  }
+
+  return start < end ? text.slice(start, end) : undefined;
+}
+
+function readNow(nowMs: number | undefined): number {
+  return typeof nowMs === "number" && Number.isFinite(nowMs)
+    ? nowMs
+    : Date.now();
+}
+
+function readBound(bound: number | undefined, fallback: number): number {
+  return typeof bound === "number" && Number.isFinite(bound) && bound >= 0
+    ? bound
+    : fallback;
 }
 
 export default class RetryAfter {
@@ -135,45 +241,33 @@ export default class RetryAfter {
     value: unknown,
     options?: RetryAfterOptions | undefined,
   ): number | undefined {
-    const text: string | undefined = RetryAfter.toText(value);
+    const text: string | undefined = toText(value);
+    const asked: RetryAfterOptions = options || {};
+    let waitMs: number | undefined;
 
     if (text === undefined) {
       return undefined;
     }
 
-    let waitMs: number;
-
     if (DELAY_SECONDS.test(text)) {
       // Digits too many for a number read as Infinity: the ceiling.
       waitMs = Number(text) * 1000;
-    } else {
-      if (options?.acceptHttpDate === false) {
-        return undefined;
-      }
-
-      const nowMs: number = RetryAfter.readNow(options?.nowMs);
+    } else if (asked.acceptHttpDate !== false) {
+      const nowMs: number = readNow(asked.nowMs);
       const retryAtMs: number | undefined = RetryAfter.parseHttpDate(
         text,
         nowMs,
       );
 
-      if (retryAtMs === undefined) {
-        return undefined;
-      }
-
-      waitMs = retryAtMs - nowMs;
+      waitMs = retryAtMs === undefined ? undefined : retryAtMs - nowMs;
     }
 
-    const minMs: number = RetryAfter.readBound(
-      options?.minMs,
-      DEFAULT_RETRY_AFTER_MIN_MS,
-    );
-    const maxMs: number = RetryAfter.readBound(
-      options?.maxMs,
-      DEFAULT_RETRY_AFTER_MAX_MS,
-    );
-
-    return Math.min(Math.max(waitMs, minMs), maxMs);
+    return waitMs === undefined
+      ? undefined
+      : Math.min(
+          Math.max(waitMs, readBound(asked.minMs, DEFAULT_RETRY_AFTER_MIN_MS)),
+          readBound(asked.maxMs, DEFAULT_RETRY_AFTER_MAX_MS),
+        );
   }
 
   /*
@@ -251,186 +345,37 @@ export default class RetryAfter {
     value: string,
     nowMs?: number | undefined,
   ): number | undefined {
-    const imfFixdate: RegExpExecArray | null = IMF_FIXDATE.exec(value);
+    let match: RegExpExecArray | null = IMF_FIXDATE.exec(value);
 
-    if (imfFixdate) {
-      return RetryAfter.toUtcMs({
-        day: imfFixdate[1],
-        month: imfFixdate[2],
-        year: imfFixdate[3],
-        hour: imfFixdate[4],
-        minute: imfFixdate[5],
-        second: imfFixdate[6],
-      });
-    }
-
-    const rfc850Date: RegExpExecArray | null = RFC_850_DATE.exec(value);
-
-    if (rfc850Date) {
-      return RetryAfter.readRfc850Date(rfc850Date, RetryAfter.readNow(nowMs));
-    }
-
-    const asctimeDate: RegExpExecArray | null = ASCTIME_DATE.exec(value);
-
-    if (asctimeDate) {
-      return RetryAfter.toUtcMs({
-        month: asctimeDate[1],
-        // " 6" or "06": Number reads both as 6.
-        day: asctimeDate[2],
-        hour: asctimeDate[3],
-        minute: asctimeDate[4],
-        second: asctimeDate[5],
-        year: asctimeDate[6],
-      });
-    }
-
-    return undefined;
-  }
-
-  /*
-   * A two-digit year is this century's, unless that is more than 50 years
-   * ahead: then it is the most recent year gone by with the same last two
-   * digits (RFC 9110 section 5.6.7).
-   */
-  private static readRfc850Date(
-    match: RegExpExecArray,
-    nowMs: number,
-  ): number | undefined {
-    const thisYear: number = new Date(nowMs).getUTCFullYear();
-    const thisCentury: number = thisYear - (thisYear % 100);
-    const written: Omit<WrittenDate, "year"> = {
-      day: match[1],
-      month: match[2],
-      hour: match[4],
-      minute: match[5],
-      second: match[6],
-    };
-    const twoDigitYear: number = Number(match[3]);
-
-    const thisCenturyMs: number | undefined = RetryAfter.toUtcMs({
-      ...written,
-      year: String(thisCentury + twoDigitYear),
-    });
-
-    if (thisCenturyMs === undefined) {
-      return undefined;
-    }
-
-    const lookaheadEnd: Date = new Date(nowMs);
-    lookaheadEnd.setUTCFullYear(thisYear + TWO_DIGIT_YEAR_LOOKAHEAD_YEARS);
-
-    if (thisCenturyMs <= lookaheadEnd.getTime()) {
-      return thisCenturyMs;
-    }
-
-    return RetryAfter.toUtcMs({
-      ...written,
-      year: String(thisCentury - 100 + twoDigitYear),
-    });
-  }
-
-  /*
-   * A written date in UTC, as milliseconds since the epoch. Undefined for a
-   * time past 23:59:60 (60 is a leap second, which section 5.6.7 allows: it
-   * reads as the next minute's first) or a day the month does not have
-   * (31 Apr, 29 Feb 2023) - never the date it would roll over to.
-   */
-  private static toUtcMs(written: WrittenDate): number | undefined {
-    const year: number = Number(written.year);
-    const monthIndex: number = MONTHS.indexOf(written.month ?? "");
-    const day: number = Number(written.day);
-    const hour: number = Number(written.hour);
-    const minute: number = Number(written.minute);
-    const second: number = Number(written.second);
-
-    if (
-      !Number.isInteger(year) ||
-      monthIndex < 0 ||
-      !Number.isInteger(day) ||
-      !Number.isInteger(hour) ||
-      !Number.isInteger(minute) ||
-      !Number.isInteger(second) ||
-      day < 1 ||
-      hour > 23 ||
-      minute > 59 ||
-      second > 60
-    ) {
-      return undefined;
-    }
-
-    /*
-     * setUTCFullYear, not Date.UTC: Date.UTC reads a year below 100 as
-     * 1900 and more.
-     */
-    const date: Date = new Date(0);
-    date.setUTCFullYear(year, monthIndex, day);
-
-    if (date.getUTCMonth() !== monthIndex || date.getUTCDate() !== day) {
-      return undefined;
-    }
-
-    date.setUTCHours(hour, minute, second, 0);
-
-    return date.getTime();
-  }
-
-  /*
-   * A value's text, its surrounding spaces and tabs left out; undefined when
-   * it is not a string or a number, or nothing is left. Copies of a header
-   * sent more than once give their text only when they all agree.
-   */
-  private static toText(value: unknown): string | undefined {
-    if (Array.isArray(value)) {
-      const copies: Array<string | undefined> = value.map(
-        (copy: unknown): string | undefined => {
-          return Array.isArray(copy) ? undefined : RetryAfter.toText(copy);
-        },
+    if (match) {
+      return toUtcMs(
+        Number(match[3]),
+        match[2],
+        match[1],
+        match[4],
+        match[5],
+        match[6],
       );
-      const first: string | undefined = copies[0];
-
-      return first !== undefined &&
-        copies.every((copy: string | undefined): boolean => {
-          return copy === first;
-        })
-        ? first
-        : undefined;
     }
 
-    if (typeof value !== "string" && typeof value !== "number") {
-      return undefined;
+    match = RFC_850_DATE.exec(value);
+
+    if (match) {
+      return readRfc850Date(match, readNow(nowMs));
     }
 
-    const text: string = String(value);
-    let start: number = 0;
-    let end: number = text.length;
+    match = ASCTIME_DATE.exec(value);
 
-    while (start < end && RetryAfter.isSpace(text.charCodeAt(start))) {
-      start++;
-    }
-
-    while (end > start && RetryAfter.isSpace(text.charCodeAt(end - 1))) {
-      end--;
-    }
-
-    return start === end ? undefined : text.slice(start, end);
-  }
-
-  private static isSpace(code: number): boolean {
-    return code === SPACE_CODE || code === TAB_CODE;
-  }
-
-  private static readNow(nowMs: number | undefined): number {
-    return typeof nowMs === "number" && Number.isFinite(nowMs)
-      ? nowMs
-      : Date.now();
-  }
-
-  private static readBound(
-    bound: number | undefined,
-    fallback: number,
-  ): number {
-    return typeof bound === "number" && Number.isFinite(bound) && bound >= 0
-      ? bound
-      : fallback;
+    // asctime's day is " 6" or "06": Number reads both as 6.
+    return match
+      ? toUtcMs(
+          Number(match[6]),
+          match[1],
+          match[2],
+          match[3],
+          match[4],
+          match[5],
+        )
+      : undefined;
   }
 }
