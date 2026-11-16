@@ -486,6 +486,42 @@ describe("docs search, on the real docs", () => {
   );
 
   /*
+   * Each language names two-factor authentication with one word, the
+   * Dashboard's (#8774): a question with it opens Your Account's step
+   * first, and so does one with the other name readers say, which the
+   * docs no longer write ("이중 인증", 双重身份验证, 雙因素驗證, "टू-फ़ैक्टर").
+   */
+  test.each([
+    ["da", "Hvordan slår jeg tofaktorgodkendelse til?"],
+    ["nl", "Hoe zet ik tweefactorauthenticatie aan?"],
+    ["pt", "Como ativo a autenticação de dois fatores?"],
+    ["it", "Come attivo l'autenticazione a due fattori?"],
+    ["fr", "Comment activer l'authentification à deux facteurs ?"],
+    ["ru", "Как включить двухфакторную аутентификацию?"],
+    ["sv", "Hur slår jag på tvåfaktorsautentisering?"],
+    ["hi", "दो-कारक प्रमाणीकरण कैसे चालू करें?"],
+    ["hi", "टू-फ़ैक्टर ऑथेंटिकेशन कैसे चालू करें?"],
+    ["ko", "이중 인증은 어떻게 켜나요?"],
+    ["zh-CN", "如何开启双重身份验证？"],
+    ["zh-TW", "如何開啟雙因素驗證？"],
+  ] as Array<[string, string]>)(
+    '%s: "%s" opens Your Account\'s two-factor step first (#8774)',
+    async (language: string, question: string) => {
+      const found: string | undefined = urls(
+        await search(language, question),
+      )[0];
+
+      expect({ question, found }).toEqual({
+        question,
+        found: expect.stringMatching(
+          new RegExp(`^/docs/${language}/introduction/your-account#`),
+        ),
+      });
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  /*
    * Every question asked in another language than English, in the
    * search box as in Ask AI (AskAiHowDoIQuestions): its page is in the
    * first ten, but for the ones in NOT_IN_THE_BOX_FIRST_TEN.

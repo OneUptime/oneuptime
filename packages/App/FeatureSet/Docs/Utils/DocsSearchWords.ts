@@ -125,7 +125,8 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     uitval: ["incident"],
     outage: ["incident"],
     uptime: ["monitor"],
-    "2fa": ["tweestapsverificatie"],
+    "2fa": ["tweefactorauthenticatie"],
+    tweestapsverificatie: ["tweefactorauthenticatie"],
   },
   /*
    * A website is a "hjemmeside" or "hemsida" to most who ask, and a
@@ -134,10 +135,10 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
    * Website Monitor 99th (#7875).
    */
   /*
-   * Two-factor authentication is "totrinsgodkendelse" in the Danish docs,
-   * while many readers say "tofaktor..." (#8335). The Norwegian docs say
-   * "tofaktorautentisering", as the Norwegian Dashboard does (#8701), and
-   * read "totrinnsbekreftelse", which Google and banks say, as it.
+   * Two-factor authentication is "tofaktorgodkendelse" in Danish and
+   * "tofaktorautentisering" in Norwegian, in the Dashboard and the docs
+   * alike (#8701, #8774). A reader's "totrinsgodkendelse" or
+   * "totrinnsbekreftelse", which Google and banks say, is read as it.
    */
   da: {
     pager: ["vagt*"],
@@ -145,9 +146,9 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     outage: ["hændelse*"],
     uptime: ["overvågning*"],
     hjemmeside: ["websted"],
-    "2fa": ["totrinsgodkendelse"],
-    tofaktorgodkendelse: ["totrinsgodkendelse"],
-    tofaktorautentificering: ["totrinsgodkendelse"],
+    "2fa": ["tofaktorgodkendelse"],
+    totrinsgodkendelse: ["tofaktorgodkendelse"],
+    tofaktorautentificering: ["tofaktorgodkendelse"],
   },
   no: {
     pager: ["vakt*"],
@@ -196,6 +197,11 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     आउटेज: ["घटना"],
     uptime: ["मॉनिटर"],
     अपटाइम: ["मॉनिटर"],
+    // The docs and the Dashboard say "दो-कारक प्रमाणीकरण"; many readers say it in English letters (#8774).
+    "2fa": ["दो-कारक प्रमाणीकरण"],
+    "टू-फ़ैक्टर": ["दो-कारक"],
+    "टू-फैक्टर": ["दो-कारक"],
+    ऑथेंटिकेशन: ["प्रमाणीकरण"],
   },
   ja: {
     pager: ["オンコール"],
@@ -212,6 +218,8 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     outage: ["인시던트"],
     uptime: ["모니터"],
     "2fa": ["2단계 인증"],
+    // "이중 인증" (double authentication) is the docs' "2단계 인증" (#8774).
+    이중: ["2단계"],
   },
   "zh-CN": {
     pager: ["值班"],
@@ -220,6 +228,10 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     宕机: ["事件"],
     outage: ["事件"],
     uptime: ["监视器"],
+    // The docs and the Dashboard say "双因素身份验证" (#8774).
+    "2fa": ["双因素身份验证"],
+    双重身份验证: ["双因素身份验证"],
+    双因素认证: ["双因素身份验证"],
   },
   "zh-TW": {
     pager: ["待命"],
@@ -229,6 +241,7 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     outage: ["事件"],
     uptime: ["監測器"],
     "2fa": ["雙重驗證"],
+    雙因素驗證: ["雙重驗證"],
   },
 };
 

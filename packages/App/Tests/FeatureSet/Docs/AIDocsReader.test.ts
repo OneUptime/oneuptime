@@ -493,11 +493,15 @@ describe("the words a question and a page are compared by", () => {
     // A step's imperative and a question's infinitive meet (#8335).
     ["ru", "Как установить агент?", ["установ", "агент"]],
     ["hi", "मैं OneUptime का बैकअप कैसे लूँ?", ["oneuptim", "बैकअप"]],
-    // A Dutch verb's first part is read joined to the verb, never alone (#8698).
+    /*
+     * A Dutch verb's first part is read joined to the verb, never alone
+     * (#8698), and a reader's "tweestapsverificatie" as the Dashboard's
+     * "tweefactorauthenticatie" (#8774).
+     */
     [
       "nl",
       "Hoe zet ik tweestapsverificatie aan?",
-      ["zet", "tweestapsverificati"],
+      ["zet", "tweestapsverificati", "tweefactorauthenticati"],
     ],
     // A Spanish and a Portuguese "they" form meet the page (#8700).
     [
