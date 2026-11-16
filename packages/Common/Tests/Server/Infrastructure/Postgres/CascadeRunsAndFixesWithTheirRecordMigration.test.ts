@@ -15,7 +15,6 @@ import {
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import RunbookTriggerType from "../../../../Types/Runbook/RunbookTriggerType";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
 import {
   MigrationInterface,
   QueryRunner,
@@ -29,85 +28,61 @@ import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs
  *
  *   - CascadeRunsAndFixesWithTheirRecord: the run's and the fix's incident
  *     and alert keys go from ON DELETE SET NULL to ON DELETE CASCADE, each
- *     dropped as generated and added back through OnlineDdl (NOT VALID,
- *     then validated without blocking writers), in a migration without a
- *     transaction. A run that stopped part way is safe to run again: a key
- *     already replaced is not dropped again, and the rows a record deleted
- *     between a DROP and its ADD left naming it are deleted before the key
- *     is validated. The keys are exactly the ones the models declare
- *     CASCADE, so the schema drift check and the migration agree; down puts
- *     SET NULL back.
+ *     handed to OnlineDdl.replaceForeignKey as the generator wrote its ADD
+ *     (the DROP and the ADD swapped in one statement, NOT VALID, then
+ *     validated without blocking writers), in a migration without a
+ *     transaction. The migration drops no key itself. Before each, the rows
+ *     naming a record that is gone are deleted, so the validation passes on
+ *     a database that lost a key. The keys are exactly the ones the models
+ *     declare CASCADE, so the schema drift check and the migration agree;
+ *     down puts SET NULL back.
  *   - DeleteRunsAndFixesOfDeletedRecords: what already outlived its record
  *     - the fixes naming neither an incident nor an alert, the runs they
  *     started, the rule and auto-remediation runs naming no record - in one
  *     transaction, after the keys.
  *
- * Pinned against a fake QueryRunner whose catalog answers what each key's ON
- * DELETE is (confdeltype), with OnlineDdl.addForeignKey recorded rather than
- * run (OnlineDdl.test.ts covers it). CascadeRunsAndFixesWithTheirRecord
+ * Pinned against a fake QueryRunner, with OnlineDdl recorded rather than
+ * run (OnlineDdl.test.ts covers it: a key already replaced is not swapped
+ * again, one left NOT VALID is validated). CascadeRunsAndFixesWithTheirRecord
  * Postgres.test.ts runs both on a real database.
  */
 
 interface FakeRun {
   runner: QueryRunner;
-  // Every statement, catalog lookups as "<lookup NAME on TABLE>", in order.
+  // Every statement, the keys handed to OnlineDdl as "<replace STATEMENT>", in order.
   statements: Array<string>;
-  // The statements handed to OnlineDdl.addForeignKey, in order.
-  onlineAdds: Array<string>;
+  // The statements handed to OnlineDdl.replaceForeignKey, in order.
+  replaced: Array<string>;
 }
 
-let addForeignKey: SpyInstance<typeof OnlineDdl.addForeignKey>;
-
-/*
- * `onDelete` is what the catalog says each key does now: 'n' as the
- * migrations before left it, 'c' once replaced; missing names read as absent.
- */
-function fakeRun(onDelete: Record<string, string>): FakeRun {
+function fakeRun(): FakeRun {
   const statements: Array<string> = [];
-  const onlineAdds: Array<string> = [];
+  const replaced: Array<string> = [];
 
   const runner: QueryRunner = {
-    query: async (
-      sql: string,
-      parameters?: Array<unknown>,
-    ): Promise<unknown> => {
-      const statement: string = sql.replace(/\s+/g, " ").trim();
-
-      if (statement.includes("FROM pg_constraint")) {
-        // Scoped to the key's own table, resolved the way the DROP resolves it.
-        expect(statement).toContain("to_regclass($2)");
-
-        const name: string = String(parameters?.[0]);
-        statements.push(`<lookup ${name} on ${String(parameters?.[1])}>`);
-
-        return onDelete[name] ? [{ onDelete: onDelete[name] }] : [];
-      }
-
-      statements.push(statement);
+    query: async (sql: string): Promise<unknown> => {
+      statements.push(sql.replace(/\s+/g, " ").trim());
       return [];
     },
   } as unknown as QueryRunner;
 
-  addForeignKey = jest
-    .spyOn(OnlineDdl, "addForeignKey")
+  jest
+    .spyOn(OnlineDdl, "replaceForeignKey")
     .mockImplementation(
-      async (_queryRunner: QueryRunner, statement: string): Promise<void> => {
-        onlineAdds.push(statement);
-        statements.push(`<online ${statement}>`);
+      async (queryRunner: QueryRunner, statement: string): Promise<void> => {
+        expect(queryRunner).toBe(runner);
+        replaced.push(statement);
+        statements.push(`<replace ${statement}>`);
       },
     );
 
-  return { runner, statements, onlineAdds };
-}
-
-function everyKey(onDelete: string): Record<string, string> {
-  const states: Record<string, string> = {};
-
-  for (const link of RECORD_LINKS) {
-    states[link.constraintName] = onDelete;
+  for (const step of ["addForeignKey", "createIndex", "dropIndex"] as const) {
+    jest.spyOn(OnlineDdl, step).mockImplementation((async () => {
+      throw new Error(`OnlineDdl.${step} is not expected here.`);
+    }) as never);
   }
 
-  return states;
+  return { runner, statements, replaced };
 }
 
 function cascadeStatement(link: RecordLink): string {
@@ -136,11 +111,22 @@ describe("CascadeRunsAndFixesWithTheirRecord1809182600000", () => {
       "CascadeRunsAndFixesWithTheirRecord1809182600000",
     );
     expect(names).toContain("CascadeRunsAndFixesWithTheirRecord1809182600000");
-    expect(
-      names.indexOf("CascadeRunsAndFixesWithTheirRecord1809182600000"),
-    ).toBeGreaterThan(
-      names.indexOf("AddCustomFieldsAndRemindersToUpdatesToPost1809182480026"),
+    const index: number = names.indexOf(
+      "CascadeRunsAndFixesWithTheirRecord1809182600000",
     );
+
+    expect(index).toBeGreaterThan(0);
+
+    for (const name of names.slice(0, index)) {
+      const stamp: string | undefined = name.match(/(\d{13})$/)?.[1];
+
+      if (stamp) {
+        expect({ name, isEarlier: Number(stamp) < 1809182600000 }).toEqual({
+          name,
+          isEarlier: true,
+        });
+      }
+    }
   });
 
   test("runs without a transaction, as OnlineDdl requires", () => {
@@ -163,8 +149,8 @@ describe("CascadeRunsAndFixesWithTheirRecord1809182600000", () => {
     ]);
   });
 
-  test("each key is dropped as generated, the rows of records already gone deleted, then added back CASCADE through OnlineDdl", async () => {
-    const run: FakeRun = fakeRun(everyKey("n"));
+  test("each key's rows of records already gone are deleted, then the key is replaced CASCADE through OnlineDdl, as generated", async () => {
+    const run: FakeRun = fakeRun();
 
     await new CascadeRunsAndFixesWithTheirRecord1809182600000().up(run.runner);
 
@@ -172,58 +158,29 @@ describe("CascadeRunsAndFixesWithTheirRecord1809182600000", () => {
 
     for (const link of RECORD_LINKS) {
       expected.push(
-        `<lookup ${link.constraintName} on "${link.table}">`,
-        `ALTER TABLE "${link.table}" DROP CONSTRAINT IF EXISTS "${link.constraintName}"`,
         deleteOfDeletedRecords(link),
-        `<online ${cascadeStatement(link)}>`,
+        `<replace ${cascadeStatement(link)}>`,
       );
     }
 
     expect(run.statements).toEqual(expected);
-    expect(addForeignKey).toHaveBeenCalledTimes(4);
-
-    for (const call of addForeignKey.mock.calls) {
-      expect(call[0]).toBe(run.runner);
-    }
+    expect(run.replaced).toEqual(RECORD_LINKS.map(cascadeStatement));
   });
 
-  test("run again after a stop part way, a key already replaced is not dropped again, and OnlineDdl still sees it", async () => {
-    const states: Record<string, string> = everyKey("n");
-    const replaced: Array<string> = [
-      RECORD_LINKS[0]!.constraintName,
-      RECORD_LINKS[1]!.constraintName,
-    ];
-
-    for (const name of replaced) {
-      states[name] = "c";
-    }
-
-    const run: FakeRun = fakeRun(states);
+  test("drops no key itself: never a moment without one, in which a delete would leave a run or a fix naming nothing", async () => {
+    const run: FakeRun = fakeRun();
 
     await new CascadeRunsAndFixesWithTheirRecord1809182600000().up(run.runner);
 
-    const drops: Array<string> = run.statements.filter(
-      (statement: string): boolean => {
-        return statement.includes("DROP CONSTRAINT");
-      },
-    );
-
-    expect(drops).toHaveLength(2);
-
-    for (const name of replaced) {
-      expect(drops.join("\n")).not.toContain(name);
-    }
-
-    expect(run.onlineAdds).toEqual(RECORD_LINKS.map(cascadeStatement));
-  });
-
-  test("a key that is not there at all is added", async () => {
-    const run: FakeRun = fakeRun({});
-
-    await new CascadeRunsAndFixesWithTheirRecord1809182600000().up(run.runner);
-
-    // DROP IF EXISTS: nothing to drop is not an error.
-    expect(run.onlineAdds).toHaveLength(4);
+    expect(
+      run.statements.filter((statement: string): boolean => {
+        return (
+          !statement.startsWith("<replace ") &&
+          (statement.includes("DROP CONSTRAINT") ||
+            statement.includes("ADD CONSTRAINT"))
+        );
+      }),
+    ).toEqual([]);
   });
 
   test("the keys are exactly the run's and the fix's record keys the models declare CASCADE", () => {

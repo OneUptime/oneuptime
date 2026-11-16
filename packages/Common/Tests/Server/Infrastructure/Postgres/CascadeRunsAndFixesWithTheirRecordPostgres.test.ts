@@ -32,9 +32,10 @@ import { DataSource, QueryRunner } from "typeorm";
  *     schedule, a webhook or a security playbook naming no record, a run
  *     from before triggers were recorded, a rule's run for a maintenance
  *     event, and every run and fix still naming its record, stay;
- *   - a run or a fix naming a record deleted between a key's DROP and its
- *     ADD - a stop part way - is deleted before the key is validated, and
- *     the migration finishes;
+ *   - each key is swapped in one statement (OnlineDdl.replaceForeignKey):
+ *     a run naming a record deleted while its key was lost is deleted
+ *     before the key is validated, a key a stop part way left swapped but
+ *     NOT VALID is validated, and the migration finishes;
  *   - from then on, deleting an incident or an alert deletes its runs, their
  *     Runner jobs and its fixes;
  *   - run again, the migration changes nothing; down() puts SET NULL back.
@@ -410,8 +411,8 @@ describePostgres(
       });
 
       /*
-       * A stop part way: the alert key of the runs dropped, and an alert
-       * deleted before its replacement went in, leaving a run naming it.
+       * A database that lost the alert key of the runs, and an alert
+       * deleted since, leaving a run naming it.
        */
       await database.query(
         `ALTER TABLE "RunbookExecution" DROP CONSTRAINT "${RECORD_LINKS[1]!.constraintName}"`,
@@ -420,6 +421,17 @@ describePostgres(
         alertId: newId(),
         triggerType: RunbookTriggerType.Manual,
       });
+
+      /*
+       * A stop part way: the fix's alert key swapped already, CASCADE, but
+       * not validated yet.
+       */
+      await database.query(
+        `ALTER TABLE "AutoRemediationSuggestion" DROP CONSTRAINT "${RECORD_LINKS[3]!.constraintName}", ADD CONSTRAINT "${RECORD_LINKS[3]!.constraintName}" FOREIGN KEY ("alertId") REFERENCES "Alert"("_id") ON DELETE CASCADE ON UPDATE NO ACTION NOT VALID`,
+      );
+      expect((await keys())["AutoRemediationSuggestion.alertId"]).toBe(
+        "c (not valid)",
+      );
 
       await runMigrations();
 

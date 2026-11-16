@@ -17,15 +17,17 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * MCP or a workflow, by the retention purge, with its project. A run's
  * Runner jobs go with the run, as before.
  *
- * Generated as a DROP and an ADD of the same four constraints. The ADD
- * checks every run or fix, so each goes through OnlineDdl.addForeignKey:
- * added NOT VALID, then validated without blocking the tables' writers.
- * Safe to run again after a stop part way: a constraint already replaced (it
- * cascades) is not dropped again, and OnlineDdl validates one an earlier
- * run left unvalidated. A record deleted in the instant between a DROP and
- * its ADD leaves rows naming it, which the validation refuses: they are
- * deleted first (deleteRowsOfDeletedRecords), so a run that stopped on one
- * finishes the next time. DeleteRunsAndFixesOfDeletedRecords, after this,
+ * Generated as a DROP and an ADD of the same four constraints. Each is
+ * handed, its ADD as generated, to OnlineDdl.replaceForeignKey: dropped and
+ * added NOT VALID in one statement - an instant's ACCESS EXCLUSIVE on both
+ * tables, and never a moment without the key in which a delete could leave
+ * a run or a fix naming nothing - then validated without blocking either
+ * table. Safe to run again after a stop part way: a key already replaced is
+ * not swapped again, and one left NOT VALID is validated. Before each, the
+ * rows naming a record that is gone are deleted, as the key now deletes
+ * them (deleteRowsOfDeletedRecords): there are none while the key holds,
+ * but a database that lost it, or never validated it, would fail the
+ * validation on them. DeleteRunsAndFixesOfDeletedRecords, after this,
  * deletes the runs and fixes that lost their record before.
  */
 
@@ -69,34 +71,30 @@ export class CascadeRunsAndFixesWithTheirRecord1809182600000
 {
   public name: string = "CascadeRunsAndFixesWithTheirRecord1809182600000";
 
-  // OnlineDdl.addForeignKey validates outside a transaction.
+  // OnlineDdl.replaceForeignKey validates outside a transaction.
   public transaction: boolean = false;
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await this.dropUnlessReplaced(queryRunner, RECORD_LINKS[0]!);
     await this.deleteRowsOfDeletedRecords(queryRunner, RECORD_LINKS[0]!);
-    await OnlineDdl.addForeignKey(
+    await OnlineDdl.replaceForeignKey(
       queryRunner,
       `ALTER TABLE "RunbookExecution" ADD CONSTRAINT "FK_e7db3e611dbd7ab1d826808031e" FOREIGN KEY ("incidentId") REFERENCES "Incident"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
 
-    await this.dropUnlessReplaced(queryRunner, RECORD_LINKS[1]!);
     await this.deleteRowsOfDeletedRecords(queryRunner, RECORD_LINKS[1]!);
-    await OnlineDdl.addForeignKey(
+    await OnlineDdl.replaceForeignKey(
       queryRunner,
       `ALTER TABLE "RunbookExecution" ADD CONSTRAINT "FK_75204c7fb1e4318b1a9afa42753" FOREIGN KEY ("alertId") REFERENCES "Alert"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
 
-    await this.dropUnlessReplaced(queryRunner, RECORD_LINKS[2]!);
     await this.deleteRowsOfDeletedRecords(queryRunner, RECORD_LINKS[2]!);
-    await OnlineDdl.addForeignKey(
+    await OnlineDdl.replaceForeignKey(
       queryRunner,
       `ALTER TABLE "AutoRemediationSuggestion" ADD CONSTRAINT "FK_f5f825e9d20fd9c235182302134" FOREIGN KEY ("incidentId") REFERENCES "Incident"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
 
-    await this.dropUnlessReplaced(queryRunner, RECORD_LINKS[3]!);
     await this.deleteRowsOfDeletedRecords(queryRunner, RECORD_LINKS[3]!);
-    await OnlineDdl.addForeignKey(
+    await OnlineDdl.replaceForeignKey(
       queryRunner,
       `ALTER TABLE "AutoRemediationSuggestion" ADD CONSTRAINT "FK_b8f9bc9c1db4b135b648561671e" FOREIGN KEY ("alertId") REFERENCES "Alert"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
@@ -130,37 +128,14 @@ export class CascadeRunsAndFixesWithTheirRecord1809182600000
   }
 
   /*
-   * Drops the constraint as generated, unless an earlier run that stopped
-   * part way has already put its cascading replacement in (confdeltype
-   * 'c'). The DROP holds ACCESS EXCLUSIVE on the two tables for an instant;
-   * the wait for it is bounded by the migration's lock_timeout.
-   */
-  private async dropUnlessReplaced(
-    queryRunner: QueryRunner,
-    link: RecordLink,
-  ): Promise<void> {
-    const rows: Array<{ onDelete: string }> = await queryRunner.query(
-      `SELECT constraint_row.confdeltype AS "onDelete"
-         FROM pg_constraint constraint_row
-        WHERE constraint_row.conname = $1
-          AND constraint_row.conrelid = to_regclass($2)`,
-      [link.constraintName, `"${link.table}"`],
-    );
-
-    if (rows[0]?.onDelete === "c") {
-      return;
-    }
-
-    await queryRunner.query(
-      `ALTER TABLE "${link.table}" DROP CONSTRAINT IF EXISTS "${link.constraintName}"`,
-    );
-  }
-
-  /*
-   * The runs or fixes naming a record that no longer exists: none while a
-   * constraint holds the link, but a record deleted in the instant between
-   * the DROP and the ADD leaves its rows naming it, and the validation
-   * would refuse them. Deleted, as the constraint now deletes them.
+   * The runs or fixes naming a record that no longer exists: none while
+   * the key holds the link (it cleared them), but a database that lost the
+   * key, or never validated it, may hold some, and the validation would
+   * refuse them. Deleted, as the key now deletes them. A record deleted
+   * after this and before the swap leaves none while the old key holds: it
+   * clears the link. Without one, such a row fails the validation once,
+   * the new key in place NOT VALID; run again, it is deleted here and the
+   * key validated.
    */
   private async deleteRowsOfDeletedRecords(
     queryRunner: QueryRunner,
