@@ -18,6 +18,7 @@ import {
   toProductAnalyticsPage,
   toProductAnalyticsProperties,
 } from "Common/Types/Rum/ProductAnalyticsEvents";
+import RetryAfter from "Common/Utils/RetryAfter";
 import { debugLog, debugWarn } from "./Debug";
 
 /*
@@ -592,26 +593,21 @@ export default class ProductAnalytics {
       return;
     }
 
-    let retryAfterSeconds: number = 0;
-
-    if (status === 429 || status === 503) {
-      try {
-        retryAfterSeconds = Number.parseInt(
-          response.headers.get("retry-after") || "",
-          10,
-        );
-      } catch {
-        retryAfterSeconds = 0;
-      }
-    }
+    /*
+     * A 429's or a 503's Retry-After, as RFC 9110 writes it (Common's
+     * RetryAfter): whole seconds or an HTTP date, from one second to
+     * RETRY_AFTER_LIMIT_SECONDS. Anything else - parseInt read "1.5" as a
+     * second - is none, and the doubling applies.
+     */
+    const retryAfterMs: number =
+      status === 429 || status === 503
+        ? RetryAfter.msFromHeaders(response.headers, {
+            maxMs: RETRY_AFTER_LIMIT_SECONDS * 1000,
+          }) ?? 0
+        : 0;
 
     /* 409 (consent not given), 429, 5xx: the same batch later. */
-    this.retryLater(
-      now,
-      Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
-        ? Math.min(retryAfterSeconds, RETRY_AFTER_LIMIT_SECONDS) * 1000
-        : 0,
-    );
+    this.retryLater(now, retryAfterMs);
   }
 
   private retryLater(now: number, delayMs: number): void {

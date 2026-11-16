@@ -11,6 +11,7 @@ import ScheduleTimelineUtil, {
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import RetryAfter from "Common/Utils/RetryAfter";
 
 /*
  * The one call behind the schedule timeline.
@@ -34,20 +35,18 @@ const defaultSleep: SleepFunction = (milliseconds: number): Promise<void> => {
   });
 };
 
+/*
+ * The server's Retry-After, as RFC 9110 writes it (Common's RetryAfter):
+ * whole seconds or an HTTP-date, from a second - "0" is not a retry at
+ * once - to TIMELINE_MAX_RETRY_MS. TIMELINE_DEFAULT_RETRY_MS for anything
+ * else: Number() read "1.5" as a second and a half.
+ */
 export function getRetryDelayMilliseconds(response: HTTPErrorResponse): number {
-  const headers: Record<string, string | undefined> =
-    (response.headers as Record<string, string | undefined>) || {};
-
-  const raw: string | undefined =
-    headers["retry-after"] || headers["Retry-After"];
-
-  const seconds: number = raw !== undefined ? Number(raw) : Number.NaN;
-
-  if (Number.isFinite(seconds) && seconds > 0) {
-    return Math.min(TIMELINE_MAX_RETRY_MS, seconds * 1000);
-  }
-
-  return TIMELINE_DEFAULT_RETRY_MS;
+  return (
+    RetryAfter.msFromHeaders(response.headers, {
+      maxMs: TIMELINE_MAX_RETRY_MS,
+    }) ?? TIMELINE_DEFAULT_RETRY_MS
+  );
 }
 
 export default class ScheduleTimelineAPI {

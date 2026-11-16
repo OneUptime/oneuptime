@@ -6,6 +6,7 @@ import {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
 } from "../../../DataSource/HttpFetch";
+import RetryAfter from "../../../../../Utils/RetryAfter";
 import { redactLogString, redactLogValue } from "../../../LogRedaction";
 import ConnectorErrorMessage from "../../ConnectorErrorMessage";
 import { ConnectorTransport } from "../Types";
@@ -571,10 +572,12 @@ export default class MicrosoftDefenderXdrClient {
       hint +=
         "Microsoft Graph did not find the security alerts endpoint. Check the Cloud setting.";
     } else if (status === 429) {
-      const retryAfter: string = (response.headers || {})["retry-after"] || "";
-      hint += retryAfter
-        ? `Microsoft Graph throttled the request; it asked to retry after ${redactLogString(retryAfter)} seconds. The next poll retries the same window.`
-        : "Microsoft Graph throttled the request. The next poll retries the same window.";
+      const retryAfterSeconds: number | undefined =
+        MicrosoftDefenderXdrClient.readAskedSeconds(response);
+      hint +=
+        retryAfterSeconds !== undefined
+          ? `Microsoft Graph throttled the request; it asked to retry after ${retryAfterSeconds} seconds. The next poll retries the same window.`
+          : "Microsoft Graph throttled the request. The next poll retries the same window.";
     } else if (status >= 500) {
       hint +=
         "Microsoft Graph reported a server-side error. The next poll retries the same window.";
@@ -586,6 +589,22 @@ export default class MicrosoftDefenderXdrClient {
     hint = hint.trim();
 
     return hint ? ` — ${hint}` : "";
+  }
+
+  /*
+   * The seconds a 429's Retry-After asked for, as RFC 9110 writes it -
+   * whole seconds or an HTTP-date (Common's RetryAfter) - for the message
+   * alone: nothing waits on it, so it is said as asked, unbounded. A date
+   * reads as the seconds until it ("after Wed, 21 Oct ... seconds" did not
+   * read), and anything else as none.
+   */
+  private static readAskedSeconds(
+    response: DataSourceHttpResponse,
+  ): number | undefined {
+    return RetryAfter.secondsFromHeaders(response.headers, {
+      minMs: 0,
+      maxMs: Number.MAX_SAFE_INTEGER,
+    });
   }
 
   private static readGraphErrorCode(body: unknown): string {
