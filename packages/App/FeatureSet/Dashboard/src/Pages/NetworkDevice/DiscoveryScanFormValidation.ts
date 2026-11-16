@@ -5,6 +5,7 @@ import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import SnmpScanConfigUtil from "Common/Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import { MINIMUM_RESCAN_INTERVAL_IN_MINUTES } from "Common/Utils/NetworkDiscovery/RescanIntervalUtil";
 import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * Client-side validators for the "Create New Network Device Discovery Scan"
@@ -206,7 +207,7 @@ export const validateRescanInterval: RescanIntervalValidatorFunction = (
   }
 
   if (minutes < MINIMUM_RESCAN_INTERVAL_IN_MINUTES) {
-    return `Rescan Interval must be at least ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES} minutes.`;
+    return `Rescan Interval must be at least ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES}${NO_BREAK_SPACE}minutes.`;
   }
 
   return null;

@@ -226,5 +226,5 @@ OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=paymen
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 从任何应用程序发送追踪、日志和指标。
 - [队列](/docs/telemetry/queues): 你的函数发布消息和消费消息的队列与主题。
-- [追踪监控](/docs/monitor/traces-monitor): 针对函数的失败或缓慢调用发出告警。
+- [追踪监控](/docs/monitor/traces-monitor): 针对函数的失败或缓慢调用发出警报。
 :::

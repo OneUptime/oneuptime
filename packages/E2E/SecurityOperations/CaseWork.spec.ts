@@ -1070,9 +1070,12 @@ test.describe("a case with nothing on it yet", () => {
     const noTasks: Locator = page.getByTestId("security-case-tasks-empty");
     await expect(noTasks).toBeVisible({ timeout: 30000 });
     await expect(noTasks).toContainText("No tasks yet");
-    // As every empty list with a locked Create says it.
+    /*
+     * As every empty list with a locked Create says it, the role named as
+     * the role picker draws it (#8520).
+     */
     await expect(page.getByTestId("security-case-tasks-empty-note")).toHaveText(
-      "You don't have permission to create these. Ask a project admin for access.",
+      "You don't have permission to create these. Ask a Project Admin for access.",
     );
     await expect(page.getByTestId("security-case-task-add-input")).toHaveCount(
       0,

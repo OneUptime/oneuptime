@@ -58,7 +58,7 @@ Brug den måde, din konto logger ind på:
 - **Sign in with SSO**, hvis din organisation bruger single sign-on. Vælg din udbyder, eller indtast din arbejds-e-mail og tryk på **Continue**. En sikker browser åbner, og du er tilbage i appen, så snart du er logget ind.
 - **Sign in with a passkey**, når du har tilføjet en i dashboardet: se [Tilføj en adgangsnøgle](/docs/introduction/your-account#tilføj-en-adgangsnøgle). Din browser åbner for at bekræfte den og sender dig derefter tilbage.
 
-Med totrinsgodkendelse slået til indtaster du den sekscifrede kode fra din godkendelsesapp, eller en af dine backupkoder. En sikkerhedsnøgle kan ikke bruges i appen. Kræver din administrator totrinsgodkendelse, og har du ikke sat den op endnu, sætter appen først en godkendelsesapp op sammen med dig.
+Med tofaktorgodkendelse slået til indtaster du den sekscifrede kode fra din godkendelsesapp, eller en af dine backupkoder. En sikkerhedsnøgle kan ikke bruges i appen. Kræver din administrator tofaktorgodkendelse, og har du ikke sat den op endnu, sætter appen først en godkendelsesapp op sammen med dig.
 
 ### Tillad notifikationer
 Når Android spørger, om OneUptime On-Call må sende notifikationer, trykker du på **Tillad**. Android 13 og nyere spørger; ældre versioner tillader dem, så længe du ikke slår dem fra.

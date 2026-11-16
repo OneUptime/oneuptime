@@ -18,6 +18,8 @@ import {
   SLO_SLI_TYPE_NAMES,
   SLO_WINDOW_TYPE_DESCRIPTIONS,
 } from "../SloFormFields";
+// The Metric SLO fields' controls, for What It Measures.
+import "../SloMetricQueryFieldElements";
 import { describeRequestErrorBudgetInLanguage } from "../../../Components/Slo/SloRequestTextInLanguage";
 import {
   describeSloErrorBudget,

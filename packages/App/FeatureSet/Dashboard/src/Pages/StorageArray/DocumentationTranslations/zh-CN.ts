@@ -89,7 +89,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "This is the full `otel-collector-config.yaml` the agent runs; the `.env` file supplies the `${env:...}` values:":
     "这是代理运行的完整 `otel-collector-config.yaml`；`.env` 文件提供 `${env:...}` 的值：",
   "The agent ships metrics only until you turn on its syslog receivers. Arrays forward their alerts and audit events as syslog; the agent stamps `storage.array.name` on every line, so they land on this array's **Logs** page.":
-    "在你开启 syslog 接收器之前，代理只发送指标。阵列会把告警和审计事件作为 syslog 转发；代理会在每一行上标记 `storage.array.name`，所以它们会进入此阵列的 **日志** 页面。",
+    "在你开启 syslog 接收器之前，代理只发送指标。阵列会把警报和审计事件作为 syslog 转发；代理会在每一行上标记 `storage.array.name`，所以它们会进入此阵列的 **日志** 页面。",
   "1. In `otel-collector-config.yaml`, uncomment the `syslog/tcp` and `syslog/udp` receivers and the `logs` pipeline. Classic BSD syslog timestamps carry no time zone: set `location` to the array's time zone unless its clock runs on UTC.":
     "1. 在 `otel-collector-config.yaml` 中，取消注释 `syslog/tcp` 和 `syslog/udp` 接收器以及 `logs` 管道。传统 BSD syslog 时间戳不带时区：除非阵列的时钟运行在 UTC，否则请把 `location` 设为阵列所在的时区。",
   "2. In `docker-compose.yml`, uncomment the `ports:` block that publishes `5514/tcp` and `5514/udp`, and open the port on the machine's firewall for the array's management network.":
@@ -104,10 +104,10 @@ const TRANSLATION: SetupGuideTranslation = {
   "The array shows up tagged `team:storage` and `env:production`. Labels are matched case-insensitively, so an existing `Production` label is reused; labels added in the OneUptime UI are never removed by the agent.":
     "阵列会带着 `team:storage` 和 `env:production` 标签出现。标签匹配不区分大小写，因此会复用现有的 `Production` 标签；在 OneUptime 界面中添加的标签永远不会被代理删除。",
   "Every value is a gauge the FlashArray computes itself — latency per operation in microseconds, throughput per second. OneUptime's Storage Array pages, metric catalog and alert templates are built on:":
-    "每个值都是 FlashArray 自己计算的仪表值——延迟以每次操作的微秒计，吞吐量以每秒计。OneUptime 的存储阵列页面、指标目录和告警模板都基于：",
+    "每个值都是 FlashArray 自己计算的仪表值——延迟以每次操作的微秒计，吞吐量以每秒计。OneUptime 的存储阵列页面、指标目录和警报模板都基于：",
   "| Endpoint | Data |": "| 端点 | 数据 |",
   "| **Array** (`/metrics/array`) | `purefa_info`, capacity and data reduction (`purefa_array_space_*`), performance, open alerts (`purefa_alerts_open`), hardware components, drives, controllers and network interfaces |":
-    "| **阵列**（`/metrics/array`） | `purefa_info`、容量与数据缩减（`purefa_array_space_*`）、性能、未解决的告警（`purefa_alerts_open`）、硬件组件、驱动器、控制器和网络接口 |",
+    "| **阵列**（`/metrics/array`） | `purefa_info`、容量与数据缩减（`purefa_array_space_*`）、性能、未解决的警报（`purefa_alerts_open`）、硬件组件、驱动器、控制器和网络接口 |",
   "| **Volumes** (`/metrics/volumes`) | Latency, IOPS, bandwidth, space and data reduction per volume |":
     "| **卷**（`/metrics/volumes`） | 每个卷的延迟、IOPS、带宽、空间和数据缩减 |",
   "| **Hosts** (`/metrics/hosts`) | Connectivity, connected volumes, latency, IOPS and space per host |":
@@ -198,9 +198,9 @@ const TRANSLATION: SetupGuideTranslation = {
   "4. On the FlashBlade, as an administrator, add a syslog server `udp://<agent-host>:5514` (or `tcp://`) in its syslog settings.":
     "4. 在 FlashBlade 上，以管理员身份在其 syslog 设置中添加 syslog 服务器 `udp://<agent-host>:5514`（或 `tcp://`）。",
   "Every value is a gauge the FlashBlade computes itself — latency per operation in microseconds, throughput per second. OneUptime's Storage Array pages, metric catalog and alert templates are built on:":
-    "每个值都是 FlashBlade 自己计算的仪表值——延迟以每次操作的微秒计，吞吐量以每秒计。OneUptime 的存储阵列页面、指标目录和告警模板都基于：",
+    "每个值都是 FlashBlade 自己计算的仪表值——延迟以每次操作的微秒计，吞吐量以每秒计。OneUptime 的存储阵列页面、指标目录和警报模板都基于：",
   "| **Array** (`/metrics/array`) | `purefb_info`, capacity and data reduction (`purefb_array_space_*`), performance per protocol, open alerts (`purefb_alerts_open`), hardware health (`purefb_hardware_health`) |":
-    "| **阵列**（`/metrics/array`） | `purefb_info`、容量与数据缩减（`purefb_array_space_*`）、各协议的性能、未解决的告警（`purefb_alerts_open`）、硬件健康状况（`purefb_hardware_health`） |",
+    "| **阵列**（`/metrics/array`） | `purefb_info`、容量与数据缩减（`purefb_array_space_*`）、各协议的性能、未解决的警报（`purefb_alerts_open`）、硬件健康状况（`purefb_hardware_health`） |",
   "| **File systems** (`/metrics/filesystems`) | Space, data reduction and performance per file system |":
     "| **文件系统**（`/metrics/filesystems`） | 每个文件系统的空间、数据缩减和性能 |",
   "| **Object store** (`/metrics/objectstore`) | Space, quota, object counts and performance per bucket |":

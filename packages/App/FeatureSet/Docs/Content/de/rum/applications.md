@@ -1,6 +1,6 @@
 # Anwendungen verwalten
 
-OneUptime legt eine RUM-Anwendung an, sobald die Telemetrie Ihrer App zum ersten Mal eintrifft. Diese Seite behandelt, was Sie danach verwalten: den Namen der Anwendung, ihre Beschriftungen und Eigentümer, wie lange ihre Daten aufbewahrt werden, das Archivieren, wer sie sehen darf und Alarme.
+OneUptime legt eine RUM-Anwendung an, sobald die Telemetrie Ihrer App zum ersten Mal eintrifft. Diese Seite behandelt, was Sie danach verwalten: den Namen der Anwendung, ihre Beschriftungen und Eigentümer, wie lange ihre Daten aufbewahrt werden, das Archivieren, wer sie sehen darf und Warnungen.
 
 :::cards
 - [Wie eine Anwendung entsteht](#wie-eine-anwendung-entsteht): Über `service.name` zugeordnet, beim ersten Batch angelegt.
@@ -169,7 +169,7 @@ RUM-Telemetrie besteht aus gewöhnlichen Logs, Metriken und Traces, daher gibt e
 | --- | --- |
 | Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint und Slow Time to First Byte. Siehe [Core Web Vitals](/docs/rum/web-vitals). |
 | Fehler | Failed User Operations und Unhandled Browser Exceptions. |
-| Sitzungswiedergabe | Die vier [Alarme zum Speicherbudget](/docs/telemetry/session-replay#alarme-zum-speicherbudget), die warnen, bevor das Tageslimit des Projekts oder das Monatsbudget der Anwendung aufgebraucht ist. Sie werden angeboten, sobald die Anwendung eine Wiedergabe aufgezeichnet hat, das Monatspaar erst, wenn sie auch ein Monatsbudget hat. |
+| Sitzungswiedergabe | Die vier [Warnungen zum Speicherbudget](/docs/telemetry/session-replay#warnungen-zum-speicherbudget), die warnen, bevor das Tageslimit des Projekts oder das Monatsbudget der Anwendung aufgebraucht ist. Sie werden angeboten, sobald die Anwendung eine Wiedergabe aufgezeichnet hat, das Monatspaar erst, wenn sie auch ein Monatsbudget hat. |
 
 Um einen eigenen Monitor zu bauen, wählen Sie den, der das Signal liest:
 

@@ -18,7 +18,7 @@ flowchart TB
     OU --> V["VMware-Seiten,<br/>Monitore, Alarme und KI"]
 ```
 
-Alle paar Minuten meldet sich die Sonde mit dem gespeicherten Konto bei vCenter an, liest das Inventar, die Leistungszähler und die vSAN-Statistiken und sendet sie an OneUptime. Sie kommen genau so an wie die des VMware-Agents, sodass jede VMware-Seite, jeder [VMware-Monitor](/docs/monitor/vmware-monitor), jede Alarmvorlage und OneUptime AI sie gleich lesen. Die Sonde behält ihre vCenter-Sitzung zwischen den Erfassungen, damit sich das Ereignisprotokoll von vCenter nicht mit Anmeldungen füllt.
+Alle paar Minuten meldet sich die Sonde mit dem gespeicherten Konto bei vCenter an, liest das Inventar, die Leistungszähler und die vSAN-Statistiken und sendet sie an OneUptime. Sie kommen genau so an wie die des VMware-Agents, sodass jede VMware-Seite, jeder [VMware-Monitor](/docs/monitor/vmware-monitor), jede Warnungsvorlage und OneUptime AI sie gleich lesen. Die Sonde behält ihre vCenter-Sitzung zwischen den Erfassungen, damit sich das Ereignisprotokoll von vCenter nicht mit Anmeldungen füllt.
 
 ## Sonde oder Agent?
 
@@ -125,7 +125,7 @@ Seine Metriken sind größer, als ein Upload einer Sonde sein darf. Verwenden Si
 ## Nächste Schritte
 
 :::cards
-- [VMware-Monitor](/docs/monitor/vmware-monitor): Alarme zu Hosts, virtuellen Maschinen, Datenspeichern und Clustern.
+- [VMware-Monitor](/docs/monitor/vmware-monitor): Warnungen zu Hosts, virtuellen Maschinen, Datenspeichern und Clustern.
 - [Benutzerdefinierte Sonde](/docs/probe/custom-probe): Eine Sonde im Netzwerk von vCenter betreiben.
 - [VMware-Agent](/docs/telemetry/vmware): Ein vCenter stattdessen mit dem Agent erfassen.
 :::

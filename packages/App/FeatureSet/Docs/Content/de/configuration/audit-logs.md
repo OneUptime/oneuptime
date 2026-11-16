@@ -74,11 +74,11 @@ Filtern Sie nach **Ressourcentyp**, **Ressourcenname**, **Aktion**, **Benutzer-E
 
 Eine Ressource ohne eigenen Namen wird nach dem benannt, was sie in OneUptime benennt: eine Ausnahme nach ihrem Typ und dem Anfang ihrer Meldung, wobei IDs, Adressen und alles, was wie ein Geheimnis aussieht, maskiert werden, ein Runbook-Lauf nach seinem Runbook, die Telefonnummer einer Richtlinie für eingehende Anrufe nach der Nummer und eine Vorlage oder eine Domain nach ihrem eigenen Namen.
 
-Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen haben auch eine eigene Seite **Audit-Protokolle**, in einem eingeklappten Abschnitt ihres Seitenmenüs wie **Erweitert**. Sie listet nur die Einträge dieser Ressource, mit denen dessen, was zu ihr gehört: Die Seite eines SLO zeigt auch seine Regeln und Owners.
+Monitore, Vorfälle, Warnungen, Statusseiten, SLOs und viele andere Ressourcen haben auch eine eigene Seite **Audit-Protokolle**, in einem eingeklappten Abschnitt ihres Seitenmenüs wie **Erweitert**. Sie listet nur die Einträge dieser Ressource, mit denen dessen, was zu ihr gehört: Die Seite eines SLO zeigt auch seine Regeln und Owners.
 
 ## Was erfasst wird
 
-Alles, was Personen in einem Projekt anlegen, ändern oder löschen, wird erfasst: Monitore, Vorfälle, Alarme, Statusseiten, Workflows und ihre Schritte, Warteschlangen, Dashboards, Bereitschaftsrichtlinien, Teams und wer darin ist, API-Schlüssel und jede Einstellung. **Ressourcentyp** sagt, worum es in einem Eintrag geht, zum Beispiel `Monitor`, `Workflow` oder `Queue`.
+Alles, was Personen in einem Projekt anlegen, ändern oder löschen, wird erfasst: Monitore, Vorfälle, Warnungen, Statusseiten, Workflows und ihre Schritte, Warteschlangen, Dashboards, Bereitschaftsrichtlinien, Teams und wer darin ist, API-Schlüssel und jede Einstellung. **Ressourcentyp** sagt, worum es in einem Eintrag geht, zum Beispiel `Monitor`, `Workflow` oder `Queue`.
 
 | Nicht erfasst | Warum |
 | --- | --- |

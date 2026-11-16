@@ -126,7 +126,7 @@ Gli indirizzi che un blocco può raggiungere dipendono dal blocco:
 
 Vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access) per come un amministratore self-hosted li apre.
 
-## Componenti AI
+## Componenti IA
 
 **Genera testo con l'IA** invia una richiesta a un LLM: il provider LLM predefinito del progetto, o il provider globale dell'installazione quando il progetto non ne ha uno. Configura i provider in **Impostazioni del progetto → IA → Provider LLM**, e non mettere mai la chiave API di un provider o un tuo endpoint in un flusso di lavoro.
 

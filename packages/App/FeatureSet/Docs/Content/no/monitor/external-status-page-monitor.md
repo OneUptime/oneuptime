@@ -14,7 +14,7 @@ Den leser også statussider som er laget med OneUptime, ressurs for ressurs, og 
 
 ## Slik fungerer det
 
-Ved hver kontroll henter en sonde statussiden, finner ut hvilket format den bruker, og leser den samlede statusen, komponentene og de aktive hendelsene. Hvis du har valgt komponenter eller en komponentgruppe, teller bare de. Deretter avgjør kriteriene om monitoren er online eller frakoblet.
+Ved hver kontroll henter en sonde statussiden, finner ut hvilket format den bruker, og leser den samlede statusen, komponentene og de aktive hendelsene. Hvis du har valgt komponenter eller en komponentgruppe, teller bare de. Deretter avgjør kriteriene om monitoren er online eller offline.
 
 ```mermaid title="Én kontroll av en ekstern statusside"
 flowchart TB
@@ -82,7 +82,7 @@ Klikk på **Test monitor** for å hente siden én gang, og sjekk leverandøren, 
 
 ### Gå gjennom kriteriene
 
-Kriterietrinnet starter med [standardkriteriene](#standardkriterier), som markerer monitoren som frakoblet når leverandøren melder om en aktiv hendelse eller et driftsavbrudd innenfor avgrensningen. Endre dem hvis du trenger det, og klikk deretter på **Neste**.
+Kriterietrinnet starter med [standardkriteriene](#standardkriterier), som markerer monitoren som offline når leverandøren melder om en aktiv hendelse eller et driftsavbrudd innenfor avgrensningen. Endre dem hvis du trenger det, og klikk deretter på **Neste**.
 
 ### Velg sonder, og opprett
 
@@ -125,7 +125,7 @@ Filtrering på komponentgruppe støttes for leverandørene **Atlassian Statuspag
 
 ## Overvåkingskriterier
 
-Du kan konfigurere kriterier som avgjør når den eksterne tjenesten regnes som online eller frakoblet, ut fra:
+Du kan konfigurere kriterier som avgjør når den eksterne tjenesten regnes som online eller offline, ut fra:
 
 | Filtertype | Hva den sjekker | Filtervilkår |
 | --- | --- | --- |
@@ -145,7 +145,7 @@ Som standard oppretter OneUptime kriterier ut fra det som virkelig betyr noe for
 
 | Kriterium | Filtre | Virkning |
 | --- | --- | --- |
-| Offline | **Hvilken som helst** av: siden er ikke online; det finnes minst én aktiv hendelse innenfor avgrensningen; en komponent innenfor avgrensningen melder Redusert ytelse, Delvis driftsavbrudd, Større driftsavbrudd eller Fullt driftsavbrudd | Markerer monitoren som frakoblet og erklærer en hendelse, som løser seg selv når kriteriet slutter å samsvare |
+| Offline | **Hvilken som helst** av: siden er ikke online; det finnes minst én aktiv hendelse innenfor avgrensningen; en komponent innenfor avgrensningen melder Redusert ytelse, Delvis driftsavbrudd, Større driftsavbrudd eller Fullt driftsavbrudd | Markerer monitoren som offline og erklærer en hendelse, som løser seg selv når kriteriet slutter å samsvare |
 | Online | **Alle** av: siden er online; det finnes ingen aktive hendelser innenfor avgrensningen | Markerer monitoren som online |
 
 Fordi antallet aktive hendelser og statusene til komponentene tar hensyn til de valgte komponentene og gruppen, treffer disse standardkriteriene automatisk bare komponentene du bryr deg om.
@@ -251,11 +251,11 @@ Her er en liste over statussidene til populære tjenester. Mange av dem bruker A
 
 ## Feilsøking
 
-:::details Monitoren er frakoblet, men hendelsen gjelder en del av tjenesten jeg ikke bruker
+:::details Monitoren er offline, men hendelsen gjelder en del av tjenesten jeg ikke bruker
 Velg komponentene du er avhengig av i **Komponenter**, eller én gruppe i **Komponentgruppefilter**. Antallet aktive hendelser og statusene til komponentene teller da bare dem; en hendelse som ikke nevner noen komponent, teller ikke.
 :::
 
-:::details Monitoren blir aldri frakoblet, selv under et driftsavbrudd
+:::details Monitoren blir aldri offline, selv under et driftsavbrudd
 Et valgt navn samsvarer kanskje ikke med noe på siden, noe som ser friskt ut, eller siden får kanskje bare kontrollen av om den kan nås. Kjør **Test monitor**: den viser leverandøren og komponentene den fant, og nevner hver valgt komponent siden ikke viser.
 :::
 

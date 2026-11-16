@@ -1,6 +1,6 @@
 # Kubernetes-Agent
 
-Der OneUptime-Kubernetes-Agent ist ein Helm-Chart, das die Metriken, Ereignisse und Pod-Logs Ihres Clusters erfasst und, mit eBPF, die Traces, Request-Metriken, den Service-Graph und die Netzwerkflüsse jedes Pods, ohne Codeänderungen und ohne SDKs. Außerdem betreibt er den [Kubernetes-KI-Agent](#kubernetes-ki-agent), mit dem OneUptime AI lesendes `kubectl` ausführt, während sie einen Vorfall oder Alarm untersucht. Ein einziges `helm install` richtet ihn ein; [Kubernetes-Monitore](/docs/monitor/kubernetes-monitor) alarmieren anhand dessen, was er sendet.
+Der OneUptime-Kubernetes-Agent ist ein Helm-Chart, das die Metriken, Ereignisse und Pod-Logs Ihres Clusters erfasst und, mit eBPF, die Traces, Request-Metriken, den Service-Graph und die Netzwerkflüsse jedes Pods, ohne Codeänderungen und ohne SDKs. Außerdem betreibt er den [Kubernetes-KI-Agent](#kubernetes-ki-agent), mit dem OneUptime AI lesendes `kubectl` ausführt, während sie einen Vorfall oder eine Warnung untersucht. Ein einziges `helm install` richtet ihn ein; [Kubernetes-Monitore](/docs/monitor/kubernetes-monitor) alarmieren anhand dessen, was er sendet.
 
 > [!NOTE]
 > Diese Seite ist die vollständige Referenz des Agenten. Sie installieren ihn zum ersten Mal? [Kubernetes-Agent (Helm-Installation)](/docs/monitor/kubernetes-agent) führt Schritt für Schritt hindurch, mit einem Preset für Ihre Plattform.
@@ -8,7 +8,7 @@ Der OneUptime-Kubernetes-Agent ist ein Helm-Chart, das die Metriken, Ereignisse 
 :::cards
 - [Agent installieren](#agent-installieren): Vier Schritte mit Helm.
 - [Als Add-on für Amazon EKS installieren](#als-add-on-für-amazon-eks-installieren): Über die EKS-Konsole, ohne Helm.
-- [OpenShift](#openshift): Das Preset, die Security Context Constraints, die es anlegt, und die eigenen Alarme von OpenShift.
+- [OpenShift](#openshift): Das Preset, die Security Context Constraints, die es anlegt, und die eigenen Warnungen von OpenShift.
 - [Konfigurationsoptionen](#konfigurationsoptionen): Filter, Sampling, Control Plane, Service Mesh, Kosten und Labels.
 - [Kubernetes-KI-Agent](#kubernetes-ki-agent): Lesendes `kubectl` für OneUptime AI und Korrekturen, wenn Sie sie erlauben.
 - [Weniger senden](#die-erfasste-datenmenge-verringern): Die Hebel, nach Wirkung geordnet.
@@ -30,7 +30,7 @@ flowchart TB
 | Cluster-Collector | Deployment | Cluster-Metriken, Kubernetes-Ereignisse und die Spezifikationen von Pods, Knoten und Workloads, aus der Kubernetes-API. | Immer |
 | Node-Collector | DaemonSet | Pod-Logs aus `/var/log/pods`, Kubelet- und cAdvisor-Metriken und die Betriebssystemmetriken des Knotens. | Überall außer auf EKS Fargate |
 | eBPF-Instrumentierung (OBI) | DaemonSet | HTTP-, gRPC-, SQL- und Redis-Traces und Request-Metriken aller Pods sowie die Service-Map. | Standardmäßig, außer auf GKE Autopilot und EKS Fargate |
-| Kubernetes-KI-Agent | Deployment | Lesendes `kubectl` für OneUptime AI, während sie einen Vorfall oder Alarm untersucht. | Standardmäßig |
+| Kubernetes-KI-Agent | Deployment | Lesendes `kubectl` für OneUptime AI, während sie einen Vorfall oder eine Warnung untersucht. | Standardmäßig |
 | Log-Tailer | Deployment | Pod-Logs über die Kubernetes-API, wo der Node-Collector sie nicht lesen kann. | Mit den Presets `gke-autopilot`, `eks-fargate` und `openshift-restricted` |
 | Kosten-Engine und Poller | Deployments | Ausgaben pro Namespace, Workload und Pod. | Mit `cost.enabled=true` |
 
@@ -106,7 +106,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 ```
 :::
 
-**KI-Untersuchungen sind standardmäßig aktiviert.** `aiAgent.enabled=true` führt den [Kubernetes-KI-Agent](#kubernetes-ki-agent) neben dem Collector aus: Wird auf diesem Cluster ein Vorfall oder Alarm ausgelöst, untersucht OneUptime AI ihn mit lesendem `kubectl` (`get`, `describe`, `logs`, `events`, `top`) und ändert nichts. Korrekturen bleiben aus, bis Sie sie erlauben. Um ohne ihn zu installieren, verwenden Sie stattdessen `--set aiAgent.enabled=false`.
+**KI-Untersuchungen sind standardmäßig aktiviert.** `aiAgent.enabled=true` führt den [Kubernetes-KI-Agent](#kubernetes-ki-agent) neben dem Collector aus: Wird auf diesem Cluster ein Vorfall oder eine Warnung ausgelöst, untersucht OneUptime AI ihn mit lesendem `kubectl` (`get`, `describe`, `logs`, `events`, `top`) und ändert nichts. Korrekturen bleiben aus, bis Sie sie erlauben. Um ohne ihn zu installieren, verwenden Sie stattdessen `--set aiAgent.enabled=false`.
 
 ### Prüfen, ob die Pods laufen
 
@@ -249,7 +249,7 @@ Um all das zurückzubekommen, wechseln Sie als cluster-admin bei einem Upgrade m
 - **Routen** und **Dienste** unter **Netzwerk**: wo jede Route antwortet, wie sie TLS terminiert, an welche Dienste sie Datenverkehr sendet und zu welchem Anteil, und warum ein Router sie abgelehnt hat. Der TLS-Schlüssel einer Route verlässt den Cluster nie: Der Agent ersetzt ihn, bevor er die Route sendet.
 - **DeploymentConfigs** unter **Workloads** werden wie Deployments dargestellt: ihre Rollouts, CPU und Speicher ihrer Pods sowie die Ereignisse der ReplicationControllers und Pods, die sie ausführen.
 
-**Alarme zu Operatoren und Updates.** Die Seite **Empfehlungen** eines OpenShift-Clusters bietet **Cluster Operator Unavailable**, **Cluster Operator Degraded** und **Cluster Update Failing** an. Jeder davon ist ein Logs-Monitor über die Snapshots, die der Agent alle `resourceSpecs.interval` sendet. Er löst einen Alarm aus, sobald zwei Snapshots das melden, sodass ein Operator, der während eines Updates kurz umspringt, nichts auslöst, und er löst den Alarm auf, wenn ein Snapshot meldet, dass das Problem vorbei ist, niemals, weil der Agent nicht mehr sendet.
+**Warnungen zu Operatoren und Updates.** Die Seite **Empfehlungen** eines OpenShift-Clusters bietet **Cluster Operator Unavailable**, **Cluster Operator Degraded** und **Cluster Update Failing** an. Jeder davon ist ein Logs-Monitor über die Snapshots, die der Agent alle `resourceSpecs.interval` sendet. Er löst eine Warnung aus, sobald zwei Snapshots das melden, sodass ein Operator, der während eines Updates kurz umspringt, nichts auslöst, und er löst die Warnung auf, wenn ein Snapshot meldet, dass das Problem vorbei ist, niemals, weil der Agent nicht mehr sendet.
 
 **Die eigenen Alarme von OpenShift.** OpenShift bringt Prometheus und Alertmanager mit, samt Alarmen für seine Operatoren, etcd und die Knoten. Um für jeden davon einen Vorfall in OneUptime zu eröffnen, fügen Sie in der Webkonsole unter **Administration → Cluster Settings → Configuration → Alertmanager** einen Webhook-Empfänger für OneUptime hinzu, wie [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) beschreibt.
 
@@ -294,7 +294,7 @@ Der Agent sendet jedes Kubernetes-Ereignis des Clusters an OneUptime: aus jedem 
 
 Auf einem Bildschirm, der schmaler als 1024 Pixel ist, zeigt die Spalte **Ereignis** auch **Anzahl** und **Zuletzt gesehen**, die dort keine eigenen Spalten haben.
 
-### Ereignisse durchsuchen und Alarme erhalten
+### Ereignisse durchsuchen und Warnungen erhalten
 
 Jedes Ereignis ist auch ein Log. Eine Warnung wird mit dem Schweregrad **Warnung** gespeichert, und was das Ereignis sagt, steht in seinen Attributen:
 
@@ -309,7 +309,7 @@ Jedes Ereignis ist auch ein Log. Eine Warnung wird mit dem Schweregrad **Warnung
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Durchsuchen Sie sie unter **Protokolle**, oder verwerfen Sie unerwünschte mit einem Drop-Filter. Um benachrichtigt zu werden, wenn eines eintritt, schalten Sie **Warning Events** auf der Seite **Empfehlungen** des Clusters ein, oder wählen Sie **Alarm bei Warnungen einschalten** unten auf seiner Seite **Ereignisse**: ein [Logs-Monitor](/docs/monitor/logs-monitor) über die Warnungen des Clusters, der einen Alarm pro Objekt und Grund auslöst und ihn auflöst, sobald 5 Minuten ohne neue Warnung dazu vergangen sind. Um nur über einige Gründe benachrichtigt zu werden, fügen Sie seinem Filter `k8s.event.reason` hinzu.
+Durchsuchen Sie sie unter **Protokolle**, oder verwerfen Sie unerwünschte mit einem Drop-Filter. Um benachrichtigt zu werden, wenn eines eintritt, schalten Sie **Warning Events** auf der Seite **Empfehlungen** des Clusters ein, oder wählen Sie **Warnungen für Warning-Ereignisse einschalten** unten auf seiner Seite **Ereignisse**: ein [Logs-Monitor](/docs/monitor/logs-monitor) über die Warnungen des Clusters, die einen Warnung pro Objekt und Grund auslöst und ihn auflöst, sobald 5 Minuten ohne neue Warnung dazu vergangen sind. Um nur über einige Gründe benachrichtigt zu werden, fügen Sie seinem Filter `k8s.event.reason` hinzu.
 
 ## Konfigurationsoptionen
 
@@ -487,7 +487,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-Ihre Metriken sind nicht betroffen: Der Node-Collector läuft für Kubelet-, cAdvisor- und Host-Metriken weiter und hört nur auf, Pod-Logs zu lesen. Log-basierte Alarme hören auf, sonst nichts.
+Ihre Metriken sind nicht betroffen: Der Node-Collector läuft für Kubelet-, cAdvisor- und Host-Metriken weiter und hört nur auf, Pod-Logs zu lesen. Log-basierte Warnungen hören auf, sonst nichts.
 
 ### Einen bestimmten Log-Erfassungsmodus erzwingen
 
@@ -704,7 +704,7 @@ Das Einfügen des Headers bedeutet, Verkehr umzuschreiben, der bereits unterwegs
 
 ## Kubernetes-KI-Agent
 
-Wird auf diesem Cluster ein Vorfall oder Alarm ausgelöst, untersucht OneUptime AI ihn. Der **Kubernetes-KI-Agent** des Charts gibt ihr ein Terminal: Er führt lesendes `kubectl` aus, so wie es ein Bereitschaftsingenieur tun würde (den ausfallenden Pod beschreiben, seine Ereignisse lesen, die Logs des abstürzenden Containers verfolgen, die Knotenkapazität prüfen), und nennt jeden Befehl auf der Seite des Vorfalls.
+Wird auf diesem Cluster ein Vorfall oder eine Warnung ausgelöst, untersucht OneUptime AI ihn. Der **Kubernetes-KI-Agent** des Charts gibt ihr ein Terminal: Er führt lesendes `kubectl` aus, so wie es ein Bereitschaftsingenieur tun würde (den ausfallenden Pod beschreiben, seine Ereignisse lesen, die Logs des abstürzenden Containers verfolgen, die Knotenkapazität prüfen), und nennt jeden Befehl auf der Seite des Vorfalls.
 
 Der Agent ist **standardmäßig aktiv** und **schreibgeschützt**: ein kleines Deployment (`kubernetes-agent-ai-agent`, Pod-Label `component=ai-agent`, Image `oneuptime/kubernetes-ai-agent`), dessen ServiceAccount nur lesen darf. Er registriert sich mit demselben `oneuptime.apiKey` und `clusterName` wie der Collector, daher ist im Dashboard nichts einzurichten: Die Seite **KI-Agent** des Clusters (Kubernetes → Cluster → KI → Agent) zeigt ihn innerhalb einer Minute als verbunden an, und **Verbindung testen**, im Menü **⋯** neben diesem Status, führt `kubectl version` und `kubectl auth can-i --list` über ihn aus. Alles, was die KI damit getan hat, steht auf der Seite **KI-Protokolle** des Clusters (KI → Protokolle), und was über den Cluster wissenswert ist — die Probleme, die immer wiederkehren, und warum, der Knoten oder Workload hinter den meisten davon, was die KI behoben hat — auf der Seite **KI-Einblicke** (KI → Einblicke). Der Agent bringt ein festgelegtes kubectl mit (v1.36.6). Er ist kein Runner und erscheint nie unter Runbooks → Runners: OneUptime übergibt ihm nie Zugangsdaten, führt nie Runbooks auf ihm aus, und er wird nie als Befehls-Runner einer KI-Regel akzeptiert.
 
@@ -723,7 +723,7 @@ Verwenden Sie den Release-Namen und den Namespace, mit denen Sie den Agent insta
 
 Was OneUptime AI auf dem Cluster tun darf, wird im Chart mit zwei Werten festgelegt, und die Seite des KI-Agents des Clusters zeigt sie unter **Was die KI tun darf** an, ohne dass sie sich dort ändern lassen:
 
-- `aiAgent.investigation` — `true`: Die KI führt lesendes `kubectl` aus, während sie einen Vorfall oder Alarm auf dem Cluster untersucht. `false`: Sie untersucht trotzdem, mit den Daten, die OneUptime bereits hat.
+- `aiAgent.investigation` — `true`: Die KI führt lesendes `kubectl` aus, während sie einen Vorfall oder eine Warnung auf dem Cluster untersucht. `false`: Sie untersucht trotzdem, mit den Daten, die OneUptime bereits hat.
 - `aiAgent.fixes` — `off`, `ask-for-approval`, `automatic` oder `bypass-approval` (unten). Jede Stufe außer `off` gibt dem KI-Agent Schreibzugriff; `off` gibt keinen, und der Agent lehnt dann selbst jedes Schreiben ab.
 
 Der KI-Agent meldet beide an OneUptime, das sie auf den Cluster anwendet und eine anderswo vorgenommene Änderung ablehnt — über die Seite des KI-Agents, die API oder Terraform. **Ändern** auf dieser Seite zeigt den Befehl für die gewählte Option. Beide sind in `values.yaml` nicht gesetzt: Ein Release, das keinen von beiden setzt, lässt den Agent seine Standardwerte verwenden (Untersuchung an, Korrekturen aus), und OneUptime wendet diese nur auf einen Cluster an, dessen Einstellungen niemand auf seiner Seite des KI-Agents gewählt hat — dort gewählte Einstellungen bleiben, wie sie sind, und die Seite zeigt, wie man sie ins Chart überträgt.
@@ -1058,7 +1058,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Verschärfen Sie bei Bedarf: Erhöhen Sie `minSeverity` auf `ERROR`, fügen Sie den Bereichen einer Namespace-Regel `metrics` hinzu oder setzen Sie `ebpf.enabled=false`, wenn Sie bereits Traces aus OpenTelemetry-SDKs senden.
 
 > [!CAUTION]
-> Achten Sie darauf, was Sie kürzen. Manche Monitore hängen von bestimmten Signalen ab: `kubeletstats.utilizationMetrics` abzuschalten bringt die beiden Vorlagen zum Schweigen, die Pods an ihren Container-Limits messen, Logs abzuschalten entfernt log-basierte Alarme, und `cadvisor` oder `kubeletstats.volumeMetrics` abzuschalten entfernt die Serien zu Drosselung, OOM-Kills und PVCs, die Ihre eigenen Diagramme und Metrik-Monitore lesen können. `sampling.traces.percentage` entfernt keinen Monitor, verkleinert aber die spanbasierten (**Traces** auf `Span Count`, **Ausnahmen** auf `Exception Count`); passen Sie also deren Schwellen an. Kürzen Sie die Signale, nach denen Sie nicht handeln, nicht die, die ein Monitor beobachtet.
+> Achten Sie darauf, was Sie kürzen. Manche Monitore hängen von bestimmten Signalen ab: `kubeletstats.utilizationMetrics` abzuschalten bringt die beiden Vorlagen zum Schweigen, die Pods an ihren Container-Limits messen, Logs abzuschalten entfernt log-basierte Warnungen, und `cadvisor` oder `kubeletstats.volumeMetrics` abzuschalten entfernt die Serien zu Drosselung, OOM-Kills und PVCs, die Ihre eigenen Diagramme und Metrik-Monitore lesen können. `sampling.traces.percentage` entfernt keinen Monitor, verkleinert aber die spanbasierten (**Traces** auf `Span Count`, **Ausnahmen** auf `Exception Count`); passen Sie also deren Schwellen an. Kürzen Sie die Signale, nach denen Sie nicht handeln, nicht die, die ein Monitor beobachtet.
 
 ### Die Wirkung messen
 

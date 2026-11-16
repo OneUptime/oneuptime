@@ -3,6 +3,7 @@ import AlertEpisodeMemberService from "../../../Server/Services/AlertEpisodeMemb
 import AlertEpisodeOnCallRuleEngineService from "../../../Server/Services/AlertEpisodeOnCallRuleEngineService";
 import AlertEpisodeOwnerRuleEngineService from "../../../Server/Services/AlertEpisodeOwnerRuleEngineService";
 import AlertEpisodeService from "../../../Server/Services/AlertEpisodeService";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentEpisodeLabelRuleEngineService from "../../../Server/Services/IncidentEpisodeLabelRuleEngineService";
 import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpisodeMemberService";
 import IncidentEpisodeOnCallRuleEngineService from "../../../Server/Services/IncidentEpisodeOnCallRuleEngineService";
@@ -450,11 +451,11 @@ describePostgres(
        * The feed entries are written for real; what would be posted to Slack
        * and Microsoft Teams is kept to be read.
        */
+      jest
+        .spyOn(DatabaseService.prototype, "onTriggerWorkflow")
+        .mockResolvedValue(undefined as never);
       for (const kind of KINDS) {
         for (const service of [kind.memberService, kind.episodeService]) {
-          jest
-            .spyOn(service, "onTriggerWorkflow")
-            .mockResolvedValue(undefined as never);
           jest
             .spyOn(service, "onTriggerRealtime")
             .mockResolvedValue(undefined as never);

@@ -131,6 +131,6 @@ OneUptime AI 对案例的分诊会读取它的关联信号：案例所指的主�
 :::cards
 - [安全案例与剧本](/docs/telemetry/security-cases): 处理案例，并据此声明事件。
 - [安全事件(SIEM)](/docs/telemetry/security-events): 案例背后的事件，以及读取它们的日志。
-- [实体风险（基于风险的告警）](/docs/telemetry/security-entity-risk): 实体的页面、它的风险，以及它在 OneUptime 中的位置。
+- [实体风险（基于风险的警报）](/docs/telemetry/security-entity-risk): 实体的页面、它的风险，以及它在 OneUptime 中的位置。
 - [安全中的 OneUptime AI](/docs/telemetry/security-ai): 分诊如何读取案例所指的内容。
 :::

@@ -294,5 +294,5 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 :::cards
 - [主机监控](/docs/monitor/host-monitor): 用于新服务器的监视器，基于 OpenTelemetry 主机指标。
 - [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector): 从 Linux、macOS 和 Windows 发送主机指标和日志。
-- [事件与告警模板](/docs/monitor/incident-alert-templating): 在事件标题中加入 CPU、内存、磁盘和进程的详细信息。
+- [事件与警报模板](/docs/monitor/incident-alert-templating): 在事件标题中加入 CPU、内存、磁盘和进程的详细信息。
 :::

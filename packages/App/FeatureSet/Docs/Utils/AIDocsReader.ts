@@ -560,6 +560,32 @@ export const tokenizeQueryForDocs: (
 };
 
 /*
+ * The two words a compound of `language` is joined from, where it marks
+ * the joint (DocsWordEndings.compoundJoint), each read as a word is:
+ * German "eskalationsregeln" is "eskal" and "regeln" (#8775). None for a
+ * word that is no such compound.
+ */
+const compoundParts: (
+  word: string,
+  language?: string | undefined,
+) => Array<string> = (
+  word: string,
+  language?: string | undefined,
+): Array<string> => {
+  const own: DocsWordEndings | undefined =
+    language && hasOwn(DOCS_SEARCH_WORD_ENDINGS, language)
+      ? DOCS_SEARCH_WORD_ENDINGS[language]
+      : undefined;
+  const joint: RegExpExecArray | null = own?.compoundJoint?.exec(word) || null;
+
+  if (!joint) {
+    return [];
+  }
+
+  return [stemDocsWord(joint[1]!, language), stemDocsWord(joint[2]!, language)];
+};
+
+/*
  * The words of a page, or of what was typed, as the index of `language`
  * compares them (stemDocsWord): English's question words left out
  * (QUESTION_WORDS), Chinese and Japanese read in pairs of characters, and
@@ -600,7 +626,10 @@ export const tokenizeForDocs: (
         continue;
       }
 
-      terms.push(stemDocsWord(word, language));
+      terms.push(
+        stemDocsWord(word, language),
+        ...compoundParts(word, language),
+      );
     }
 
     terms.push(...joinedWords(words, language));

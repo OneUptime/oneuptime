@@ -41,6 +41,7 @@ import MonitorType from "../../Types/Monitor/MonitorType";
 import RestrictionTimes from "../../Types/OnCallDutyPolicy/RestrictionTimes";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { DeveloperDocsLivePick } from "./LiveData";
+import { NO_BREAK_SPACE } from "../../Types/NoBreakSpaces";
 
 /*
  * What the Developer pages know about each resource beyond its metadata:
@@ -1518,7 +1519,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     recipes: [
       {
         title: "Route calls to a schedule",
-        description: `Rings whoever is on call in one of your schedules, for ${DEFAULT_INCOMING_CALL_RING_SECONDS} seconds before the next rule.`,
+        description: `Rings whoever is on call in one of your schedules, for ${DEFAULT_INCOMING_CALL_RING_SECONDS}${NO_BREAK_SPACE}seconds before the next rule.`,
         scopes: ["view"],
         blocks: [
           {

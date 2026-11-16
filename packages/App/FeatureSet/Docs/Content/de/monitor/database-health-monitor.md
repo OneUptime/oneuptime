@@ -20,7 +20,7 @@ Die beiden Monitortypen für Datenbanken beantworten unterschiedliche Fragen und
 | Beantwortete Frage | „Ist die Datenbank selbst gesund?“ | „Sind meine Daten so, wie ich sie erwarte?“ |
 | Abfrage | Eingebaut, je Engine, schreibgeschützt | Ihre eigene |
 | Meldet | Benannte numerische Metriken (siehe [Erfasste Metriken](#erfasste-metriken)) | Zeilenanzahl, Skalarwert, erste Zeile, Ausführungszeit |
-| Typischer Alarm | Genutzte Verbindungen über 90 % | Mehr als 50 stornierte Bestellungen in den letzten fünf Minuten |
+| Typischer Warnung | Genutzte Verbindungen über 90 % | Mehr als 50 stornierte Bestellungen in den letzten fünf Minuten |
 | Benötigte Berechtigungen | Lesezugriff auf Statistiken/DMVs — siehe [Überwachungsbenutzer anlegen](#überwachungsbenutzer-anlegen) | `SELECT` auf die Tabellen, die Ihre Abfrage berührt |
 
 Wenn Sie bei einer fachlichen Bedingung alarmieren möchten, nutzen Sie den SQL-Abfrage-Monitor. Wenn Sie wissen möchten, dass dem Server die Verbindungen ausgehen, bevor die fachliche Bedingung überhaupt fehlschlagen kann, nutzen Sie diesen.
@@ -37,7 +37,7 @@ Azure SQL Database und Azure SQL Managed Instance verbinden sich als **Microsoft
 
 PostgreSQL- und MySQL-kompatible Engines, die dasselbe Wire-Protokoll sprechen, funktionieren meistens, stellen aber unter Umständen weniger Statistik-Views bereit; die betroffenen Metriken werden dann als nicht verfügbar gemeldet statt erfasst. Offiziell getestet sind nur die drei Engines oben.
 
-Jede Datenbank, die Ihre Anwendungen, Cluster und Hosts nutzen — diese drei Engines und viele weitere —, erhält außerdem eine eigene Seite mit ihren Engine-Metriken, Logs und den Diensten, die sie aufrufen: siehe [Datenbanken](/docs/telemetry/databases). Wenn Host und Port, mit denen sich ein Datenbank-Integritäts-Monitor verbindet, einer der Endpunkte einer Datenbank sind, erscheinen die Alarme und Vorfälle des Monitors auch auf der Seite dieser Datenbank (siehe [Alarme bei einer Datenbank](/docs/telemetry/databases#warnungen-zu-einer-datenbank)).
+Jede Datenbank, die Ihre Anwendungen, Cluster und Hosts nutzen — diese drei Engines und viele weitere —, erhält außerdem eine eigene Seite mit ihren Engine-Metriken, Logs und den Diensten, die sie aufrufen: siehe [Datenbanken](/docs/telemetry/databases). Wenn Host und Port, mit denen sich ein Datenbank-Integritäts-Monitor verbindet, einer der Endpunkte einer Datenbank sind, erscheinen die Warnungen und Vorfälle des Monitors auch auf der Seite dieser Datenbank (siehe [Warnungen bei einer Datenbank](/docs/telemetry/databases#warnungen-zu-einer-datenbank)).
 
 ## So funktioniert es
 
@@ -217,7 +217,7 @@ So wird das Passwort nie im Klartext am Monitor gespeichert:
 3. Geben Sie im Feld **Passwort** des Monitors `{{monitorSecrets.dbPassword}}` ein.
 :::
 
-Das Geheimnis wird serverseitig aufgelöst, bevor die Konfiguration an eine Sonde übergeben wird. Die Felder Host, Benutzername und Datenbankname akzeptieren denselben Verweis. Zugangsdaten werden nie in Logs, Monitor-Feeds oder Alarmvorlagen geschrieben.
+Das Geheimnis wird serverseitig aufgelöst, bevor die Konfiguration an eine Sonde übergeben wird. Die Felder Host, Benutzername und Datenbankname akzeptieren denselben Verweis. Zugangsdaten werden nie in Logs, Monitor-Feeds oder Warnungsvorlagen geschrieben.
 
 ## Metrikgruppen
 
@@ -235,7 +235,7 @@ Eine Gruppe ist eine Einheit, die Sie ein- oder ausschalten, und die Einheit, f�
 
 Lesen Sie auf Azure SQL Database `VIEW DATABASE STATE` überall dort, wo diese Tabelle `VIEW SERVER STATE` sagt — oder `##MS_ServerStateReader##` bei Basic, S0, S1 und Pools für elastische Datenbanken. Siehe [Azure SQL Database](#azure-sql-database).
 
-Eine Gruppe auszuschalten geschieht still: keine Metriken, kein Erfassungsproblem, kein Alarm. Das ist in zwei Fällen der richtige Schritt:
+Eine Gruppe auszuschalten geschieht still: keine Metriken, kein Erfassungsproblem, keine Warnung. Das ist in zwei Fällen der richtige Schritt:
 
 - **Sie bekommen die Berechtigung nicht.** Wenn Sie die Gruppe ausschalten, wiederholt sich das Erfassungsproblem nicht mehr bei jeder Prüfung.
 - **Die Abfragen sind zu teuer.** Auf MySQL ist **Speicher** der übliche Kandidat: Die Datenbankgröße entsteht durch Aufsummieren von `information_schema.TABLES`, was bei einem Schema mit Zehntausenden Tabellen nicht kostenlos ist und bei jeder Prüfung läuft. Schalten Sie die Gruppe aus oder setzen Sie diesen Monitor auf ein Intervall von fünf Minuten.
@@ -255,7 +255,7 @@ Alle Gruppen abzuwählen ist kein Weg, nichts zu erfassen — eine leere Liste w
 Fehlend bedeutet immer fehlend. Ein Wert, der nicht gemessen wurde, wird nie als `0` gemeldet, denn ein Diagramm aus erfundenen Nullen ist schlimmer als eine Lücke — eine Lücke können Sie sehen.
 
 > [!TIP]
-> Um bei verlorener Sicht zu alarmieren, nutzen Sie `Database Collection Error` oder einen Schwellenwert auf **Fehlgeschlagene Metrikgruppen**. Machen Sie aus beiden Alarme statt Vorfällen: Eine entzogene Berechtigung ist ein Ticket, kein Bereitschaftsruf.
+> Um bei verlorener Sicht zu alarmieren, nutzen Sie `Database Collection Error` oder einen Schwellenwert auf **Fehlgeschlagene Metrikgruppen**. Machen Sie aus beiden Warnungen statt Vorfällen: Eine entzogene Berechtigung ist ein Ticket, kein Bereitschaftsruf.
 
 ### "The user does not have permission to perform this action"
 
@@ -416,7 +416,7 @@ Für einen Schwellenwert auf eine einzelne Metrik greifen Sie zu **Datenbankmetr
 
 Kriterien werden von oben nach unten ausgewertet, und der erste Treffer gewinnt — führen Sie also die alarmierenden Kriterien zuerst auf und das gesunde zuletzt.
 
-Hängen Sie eine Bereitschaftsrichtlinie an das Offline-Kriterium und lassen Sie alles, was von **Fehlgeschlagene Metrikgruppen** oder `Database Collection Error` abgeleitet ist, als Alarm ohne Bereitschaftsrichtlinie.
+Hängen Sie eine Bereitschaftsrichtlinie an das Offline-Kriterium und lassen Sie alles, was von **Fehlgeschlagene Metrikgruppen** oder `Database Collection Error` abgeleitet ist, als Warnung ohne Bereitschaftsrichtlinie.
 
 ## Was zu beachten ist
 

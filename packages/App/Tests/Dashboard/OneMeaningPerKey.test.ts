@@ -694,11 +694,11 @@ describe("one meaning per key", () => {
         bare: "Upcoming",
       },
       "Not fetched yet (OAuth token)": {
-        file: "Components/Workflow/WorkflowVariableTokenStatus.tsx",
+        file: "Components/Workflow/WorkflowVariableTokenStatusLabels.ts",
         bare: "Not fetched yet",
       },
       "Valid (OAuth token)": {
-        file: "Components/Workflow/WorkflowVariableTokenStatus.tsx",
+        file: "Components/Workflow/WorkflowVariableTokenStatusLabels.ts",
         bare: "Valid",
       },
       "Not fetched yet (calendar feed)": {
@@ -749,7 +749,7 @@ describe("one meaning per key", () => {
 
     // The bare words stay the pages' that share them.
     expect(filesLookingUp("Expired")).toContain(
-      "Components/Workflow/WorkflowVariableTokenStatus.tsx",
+      "Components/Workflow/WorkflowVariableTokenStatusLabels.ts",
     );
     expect(filesLookingUp("Not fetched yet")).toContain(
       "Components/SessionReplay/ReplayCorrelationPanel.tsx",

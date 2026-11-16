@@ -71,7 +71,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 | Aufruf | Was er sendet |
 | --- | --- |
 | `track(name, properties?)` | Ein Ereignis, das **Ereignisse**, **Trichter** und **Benutzerbindung** zählen, und eine Markierung auf der Zeitleiste der Wiedergabe, wenn die Sitzung aufgezeichnet wird. `name` ≤ 64 Zeichen; ≤ 20 Eigenschaften mit Zeichenketten-, Zahlen- oder booleschen Werten, Schlüssel ≤ 40 Zeichen, Wert ≤ 200 Zeichen. |
-| `metric(name, value, attributes?)` | Eine Zahl, die Ihre Seite gemessen hat, als Punkt einer Metrik der Anwendung (siehe [Dashboards und Alarme](#dashboards-und-alarme)). `name` ≤ 100 Zeichen aus Buchstaben, Ziffern, `_`, `.`, `-` und `/`, beginnt mit einem Buchstaben und nicht mit `oneuptime.`; `value` eine endliche Zahl; `attributes` wie die Eigenschaften von `track()`. |
+| `metric(name, value, attributes?)` | Eine Zahl, die Ihre Seite gemessen hat, als Punkt einer Metrik der Anwendung (siehe [Dashboards und Warnungen](#dashboards-und-warnungen)). `name` ≤ 100 Zeichen aus Buchstaben, Ziffern, `_`, `.`, `-` und `/`, beginnt mit einem Buchstaben und nicht mit `oneuptime.`; `value` eine endliche Zahl; `attributes` wie die Eigenschaften von `track()`. |
 
 Bevor der Recorder geladen ist, legen Sie dieselben Aufrufe als `["track", name, properties]` und `["metric", name, value, attributes]` in `window.OneUptimeReplayQueue` ab (siehe [JavaScript-API](/docs/telemetry/session-replay#javascript-api)).
 
@@ -122,7 +122,7 @@ Jede Zeile ist eine Kohorte mit der Anzahl ihrer Personen, und jede Zelle der An
 - **Bearbeiten** benennt einen um, und **Löschen** löscht ihn für alle. **Ansicht zurücksetzen** schließt den geöffneten und behält, was die Seite zeigt.
 - Ein Link zu einem, der gelöscht wurde oder den Sie nicht sehen dürfen, sagt es, und die Seite öffnet sich ohne ihn.
 
-## Dashboards und Alarme
+## Dashboards und Warnungen
 
 Jedes Ereignis wird außerdem Minute für Minute als Metrik der Anwendung gezählt, und jeder Aufruf von `metric()` ist ein Punkt einer eigenen Metrik unter dem Namen, den er angibt. Stellen Sie sie auf der Seite **Metriken** der Anwendung dar, fügen Sie sie einem Dashboard hinzu oder lassen Sie einen Metriken-Monitor darauf alarmieren; **Metriken öffnen** unter **Alle Ereignisse** öffnet die Seite.
 

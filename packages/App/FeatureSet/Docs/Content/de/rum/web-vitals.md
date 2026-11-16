@@ -6,7 +6,7 @@ Die Karte **Core Web Vitals** in der Übersicht einer RUM-Anwendung zeigt LCP, I
 - [Senden](#aus-ihrer-app-senden): Die Werte der web-vitals-Bibliothek als OpenTelemetry-Metriken weitergeben.
 - [Namen, die OneUptime liest](#metriknamen-die-oneuptime-erkennt): Die Metriknamen, unter denen jede Kennzahl ankommen kann.
 - [Single-Page-Apps](#single-page-apps): INP für jede Ansicht statt eines Werts pro Seitenaufruf.
-- [Alarm für eine Kennzahl](#alarm-für-eine-kennzahl): Fertige Monitore für schlechte Werte.
+- [Warnung für eine Kennzahl](#warnung-für-eine-kennzahl): Fertige Monitore für schlechte Werte.
 :::
 
 ## So funktioniert es
@@ -290,7 +290,7 @@ histogram.record(metric.value, {
 
 Die konkrete URL statt des Routenmusters aufzuzeichnen erzeugt eine Zeitreihe pro Produktseite, was die Seite **Metriken** langsam und die Speicherrechnung hoch macht. Dasselbe gilt für Benutzer-IDs, Sitzungs-IDs und Bildschirmgrößen.
 
-## Alarm für eine Kennzahl
+## Warnung für eine Kennzahl
 
 Die Seite **Empfehlungen** der Anwendung bietet für jede Kennzahl einen fertigen Monitor. Jeder liest den Fünf-Minuten-Mittelwert seiner Metrik und löst aus, wenn er Googles Grenzwert für schlecht erreicht:
 

@@ -64,7 +64,7 @@ Dépliez **Sécurité** dans le menu latéral de **Profil utilisateur**. La sect
 | --- | --- |
 | **Gestion des mots de passe** | Définir un nouveau mot de passe. |
 | **Passkeys** | Se connecter sans mot de passe, avec votre empreinte digitale, votre visage, le verrouillage de votre écran ou une clé de sécurité. |
-| **Two-factor authentication** | Demander une deuxième étape après votre mot de passe ou un lien envoyé par e-mail : un code issu d'une application, ou une clé de sécurité. |
+| **Authentification à deux facteurs** | Demander une deuxième étape après votre mot de passe ou un lien envoyé par e-mail : un code issu d'une application, ou une clé de sécurité. |
 
 ### Changer votre mot de passe
 
@@ -108,7 +108,7 @@ L'authentification à deux facteurs s'applique quand vous vous connectez avec vo
 :::steps
 ### Ajouter une application d'authentification
 
-Ouvrez **Sécurité → Two-factor authentication**. Sous **Applications d'authentification**, ajoutez une application et donnez-lui un nom. Scannez le code QR avec une application comme 1Password, Google Authenticator ou Microsoft Authenticator, saisissez le code à 6 chiffres qu'elle affiche et cliquez sur **Verify and finish**. Pour utiliser plutôt une clé USB ou NFC, ajoutez-la sous **Security keys**.
+Ouvrez **Sécurité → Authentification à deux facteurs**. Sous **Applications d'authentification**, ajoutez une application et donnez-lui un nom. Scannez le code QR avec une application comme 1Password, Google Authenticator ou Microsoft Authenticator, saisissez le code à 6 chiffres qu'elle affiche et cliquez sur **Verify and finish**. Pour utiliser plutôt une clé USB ou NFC, ajoutez-la sous **Security keys**.
 
 ### Conserver vos codes de secours
 
@@ -163,7 +163,7 @@ Se connecter à nouveau envoie un nouveau lien : vérifiez aussi votre dossier d
 :::
 
 :::details J'ai perdu mon application d'authentification
-À la deuxième étape de la connexion, choisissez **Vous avez perdu l'accès à votre application d'authentification ?** et saisissez l'un de vos codes de secours. Ouvrez ensuite **Sécurité → Two-factor authentication** et ajoutez votre nouvelle application. Sans codes de secours, demandez à un administrateur de votre installation OneUptime de réinitialiser l'authentification à deux facteurs de votre compte.
+À la deuxième étape de la connexion, choisissez **Vous avez perdu l'accès à votre application d'authentification ?** et saisissez l'un de vos codes de secours. Ouvrez ensuite **Sécurité → Authentification à deux facteurs** et ajoutez votre nouvelle application. Sans codes de secours, demandez à un administrateur de votre installation OneUptime de réinitialiser l'authentification à deux facteurs de votre compte.
 :::
 
 :::details La connexion me demande d'attendre avant d'essayer un autre code

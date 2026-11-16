@@ -215,7 +215,7 @@ Live-läget följer bara de nyaste loggarna, så en ändring av sökningen, ett 
 
 :::cards
 - [Söksyntax](/docs/telemetry/search-syntax): Varje filter som sökrutan förstår.
-- [Loggövervakning](/docs/monitor/logs-monitor): Få en avisering när loggarna du söker efter dyker upp.
+- [Loggövervakning](/docs/monitor/logs-monitor): Få ett larm när loggarna du söker efter dyker upp.
 - [Loggpipelines](/docs/telemetry/log-pipelines): Gör delar av en loggrad till attribut du kan filtrera på.
 - [Spårutforskare](/docs/telemetry/traces-explorer): Följ en loggs förfrågan genom dina tjänster.
 :::

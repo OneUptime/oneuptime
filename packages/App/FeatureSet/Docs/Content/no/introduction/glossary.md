@@ -46,7 +46,7 @@ Også kalt: **Overvåkingskriterier**, **Monitorkriterier**, **Monitor Steps**. 
 
 ### Monitorstatus
 
-Det en monitor er akkurat nå. Hvert nytt prosjekt har tre monitorstatuser, **I drift**, **Redusert** og **Frakoblet**, og du kan legge til dine egne.
+Det en monitor er akkurat nå. Hvert nytt prosjekt har tre monitorstatuser, **I drift**, **Redusert** og **Offline**, og du kan legge til dine egne.
 
 Se [Kriterier og statuser](/docs/monitor/criteria-and-statuses).
 

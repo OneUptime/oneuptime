@@ -50,7 +50,7 @@ Klikk på **Test monitor** for å kjøre skriptet én gang fra en sonde, og sjek
 
 ### Gå gjennom kriteriene
 
-Monitoren starter med to kriterier: den er frakoblet og erklærer en hendelse når skriptet mislykkes, og online når det ikke gjør det. Endre dem, eller legg til dine egne — se [Kriterier](#kriterier) — og klikk deretter på **Neste**.
+Monitoren starter med to kriterier: den er offline og erklærer en hendelse når skriptet mislykkes, og online når det ikke gjør det. Endre dem, eller legg til dine egne — se [Kriterier](#kriterier) — og klikk deretter på **Neste**.
 
 ### Velg sonder, og opprett
 
@@ -181,7 +181,7 @@ Kriteriene til en monitor med egendefinert kode kan sjekke:
 | **Resultatverdi** | `data` som skriptet returnerte. Sammenlignes som et tall når det er et. | De samme, pluss Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik, Sann og Usann |
 | **Kjøretid (i ms)** | Hvor lenge skriptet kjørte. | Numeriske sammenligninger |
 
-Standardkriteriene markerer monitoren som online når **Feil** er tom, og som frakoblet — med en hendelse som løser seg selv når skriptet lykkes igjen — når den ikke er det. I hendelses- og varslingsmaler er kjøringen tilgjengelig som `{{result}}`, `{{scriptError}}`, `{{logMessages}}` og `{{executionTimeInMs}}`: se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating).
+Standardkriteriene markerer monitoren som online når **Feil** er tom, og som offline — med en hendelse som løser seg selv når skriptet lykkes igjen — når den ikke er det. I hendelses- og varslingsmaler er kjøringen tilgjengelig som `{{result}}`, `{{scriptError}}`, `{{logMessages}}` og `{{executionTimeInMs}}`: se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating).
 
 ### Varsling på de returnerte dataene
 

@@ -62,7 +62,7 @@ flowchart TB
 
 ### 로그인 방법 알려 주기
 
-**인증**에서 **사용자 이름**과 **비밀번호**를 입력하거나, HTTP 소스라면 Bearer 토큰으로 보내는 **API 토큰**을 입력합니다. **추가 필드**에는 `{ "X-Scope-OrgID": "tenant-1" }` 같은 **사용자 지정 HTTP 헤더**와 **추가 옵션**이 있습니다. Additional Options는 데이터베이스용 `sslEnabled`와 `sslRejectUnauthorized`, Elasticsearch용 `elasticsearchIndex`이며, Elasticsearch는 이것이 없으면 모든 인덱스(`*`)를 읽습니다.
+**인증**에서 **사용자 이름**과 **비밀번호**를 입력하거나, HTTP 소스라면 Bearer 토큰으로 보내는 **API 토큰**을 입력합니다. **추가 필드**에는 `{ "X-Scope-OrgID": "tenant-1" }` 같은 **사용자 지정 HTTP 헤더**와 **추가 옵션**이 있습니다. 추가 옵션은 데이터베이스용 `sslEnabled`와 `sslRejectUnauthorized`, Elasticsearch용 `elasticsearchIndex`이며, Elasticsearch는 이것이 없으면 모든 인덱스(`*`)를 읽습니다.
 
 ### 테스트하기
 

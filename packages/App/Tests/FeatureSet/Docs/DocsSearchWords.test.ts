@@ -68,7 +68,7 @@ describe("the word endings", () => {
     }
   });
 
-  it("are every spaced language's, and English's for English and German", () => {
+  it("are every spaced language's, English's for English, and English's and a verb's in -ieren for German", () => {
     expect(Object.keys(DOCS_SEARCH_WORD_ENDINGS).sort()).toEqual(
       SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string): boolean => {
         // Written without spaces: no endings to take off.
@@ -76,7 +76,25 @@ describe("the word endings", () => {
       }).sort(),
     );
     expect(DOCS_SEARCH_WORD_ENDINGS["en"]).toBe(ENGLISH_ENDINGS);
-    expect(DOCS_SEARCH_WORD_ENDINGS["de"]).toBe(ENGLISH_ENDINGS);
+    // German keeps every one of English's, as it had them (#7875), and adds a verb's in -ieren (#8775).
+    expect(DOCS_SEARCH_WORD_ENDINGS["de"]!.endings).toEqual(
+      expect.arrayContaining([
+        ...ENGLISH_ENDINGS.endings,
+        "ieren",
+        "ation",
+        "ierung",
+      ]),
+    );
+    expect(
+      DOCS_SEARCH_WORD_ENDINGS["de"]!.compoundJoint!.exec("eskalationsregeln"),
+    ).toEqual(expect.arrayContaining(["eskalation", "regeln"]));
+    // Only at the "s" after -ung, -tion, -heit, -keit, -schaft or -ität, with a word on either side.
+    expect(
+      DOCS_SEARCH_WORD_ENDINGS["de"]!.compoundJoint!.test("versionsnummer"),
+    ).toBe(false);
+    expect(
+      DOCS_SEARCH_WORD_ENDINGS["de"]!.compoundJoint!.test("rechnungs"),
+    ).toBe(false);
     expect(ENGLISH_ENDINGS.endings).toEqual([
       "ing",
       "ers",

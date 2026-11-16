@@ -63,7 +63,7 @@ Klicken Sie auf **Gerät registrieren**, behalten Sie im Feld **Gerätename** de
 Klicken Sie im Dialog **Browser registriert** auf **Testbenachrichtigung senden**. Ihr Desktop zeigt die Benachrichtigung über seinen Benachrichtigungsdienst; erscheint nichts, siehe [Fehlerbehebung](#fehlerbehebung).
 :::
 
-Ein Browser kann das „Nicht stören“ Ihres Desktops nicht durchbrechen. Für Alarme, die Sie wecken müssen, nutzen Sie die mobile App mit kritischen Warnungen: siehe [Android-Installation](/docs/mobile-desktop-apps/android-installation#den-stummmodus-durchbrechen).
+Ein Browser kann das „Nicht stören“ Ihres Desktops nicht durchbrechen. Für Warnungen, die Sie wecken müssen, nutzen Sie die mobile App mit kritischen Warnungen: siehe [Android-Installation](/docs/mobile-desktop-apps/android-installation#den-stummmodus-durchbrechen).
 
 Bei einem selbst gehosteten OneUptime brauchen Browser-Benachrichtigungen die VAPID-Schlüssel des Servers: siehe [Push-Benachrichtigungen](/docs/self-hosted/push-notifications#einrichtung-bei-selbsthosting).
 

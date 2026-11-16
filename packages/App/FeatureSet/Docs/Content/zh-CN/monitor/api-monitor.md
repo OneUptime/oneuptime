@@ -211,7 +211,7 @@ JSON 响应以紧凑形式检查，键和值之间没有空格。要用 **响应
 
 | 选项 | 会发生什么 | 适用于 |
 | --- | --- | --- |
-| **Ignore**（默认） | 条件不匹配。 | 普通的阈值告警。 |
+| **Ignore**（默认） | 条件不匹配。 | 普通的阈值警报。 |
 | **触发器** | 缺失的数据本身被视为问题。 | 沉默本身就是故障的检查。 |
 | **Treat As Zero** | 将窗口按单个零值比较。 | 没有事件确实意味着零的计数器。 |
 
@@ -250,5 +250,5 @@ API 把带有正文、或方法不是 `GET` 或 `HEAD` 的请求重定向到了�
 - [JavaScript 表达式](/docs/monitor/javascript-expression): 检查 JSON 响应深处的字段。
 - [监控密钥](/docs/monitor/monitor-secrets): 让 API 密钥和令牌不出现在监视器设置中。
 - [网站监控](/docs/monitor/website-monitor): 检查网页而不是端点。
-- [事件与告警模板](/docs/monitor/incident-alert-templating): 把响应细节放进事件和警报标题。
+- [事件与警报模板](/docs/monitor/incident-alert-templating): 把响应细节放进事件和警报标题。
 :::

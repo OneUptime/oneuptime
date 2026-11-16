@@ -2,6 +2,7 @@ import Entities from "../../../Models/DatabaseModels/Index";
 import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import StatusPagePrivateUserService from "../../../Server/Services/StatusPagePrivateUserService";
 import StatusPagePrivateUserSessionService from "../../../Server/Services/StatusPagePrivateUserSessionService";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -142,6 +143,11 @@ describePostgres("status page sign-in links against Postgres", () => {
 
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
+
+    // Workflows run elsewhere.
+    jest
+      .spyOn(DatabaseService.prototype, "onTriggerWorkflow")
+      .mockResolvedValue(undefined as never);
   });
 
   beforeEach(async () => {
