@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
@@ -1199,7 +1200,9 @@ test("a managed host: its collector's state, its config and the commands on the 
 
   // When it last reported, in words, with the date and time on hover.
   const lastReport: Locator = page.getByTestId("host-collector-last-report");
-  await expect(lastReport).toHaveText(/^\d+ minutes? ago$/);
+  await expect(lastReport).toHaveText(
+    new RegExp(`^\\d+${NO_BREAK_SPACE}minutes? ago$`),
+  );
   expect(await lastReport.getAttribute("title")).toMatch(/\d/);
 
   // Where what it collects is changed: a link, from the sentence that says so.
@@ -1639,7 +1642,7 @@ test("in German, the Collector page and a config's versions are translated", asy
     "1, die letzte, die hier funktioniert hat",
   );
   await expect(page.getByTestId("host-collector-last-report")).toHaveText(
-    /^vor \d+ Minuten?$/,
+    new RegExp(`^vor \\d+${NO_BREAK_SPACE}Minuten?$`),
   );
   await expect(
     card(page, "Collector")
