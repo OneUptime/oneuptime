@@ -2512,23 +2512,28 @@ describe("Audit Logs", () => {
       `export const ACTIVITY_REPORT_INTERVAL_MS: number = ${ACTIVITY_REPORTED_WITHIN_IN_MINUTES} * 60 * 1000;`,
     );
 
-    const sweepJob: string = fs.readFileSync(
-      path.join(
-        PACKAGES_DIR,
-        "..",
-        "ee",
-        "Server",
-        "AuditLog",
-        "Jobs",
-        "EndSessionsThatRanOut.ts",
-      ),
-      "utf8",
-    );
-
-    expect(sweepJob).toContain("schedule: EVERY_FIVE_MINUTE,");
     expect(readCommonSource("Server/Services/UserSessionService.ts")).toContain(
       "ended += await this.endSessionsPastIdleTimeout(condition);",
     );
+
+    /*
+     * The sweep is the Enterprise Edition's audit log job. Core CI runs
+     * without ee/: its schedule is held to the page wherever ee/ is present.
+     */
+    if (fs.existsSync(EE_DIR)) {
+      const sweepJob: string = fs.readFileSync(
+        path.join(
+          EE_DIR,
+          "Server",
+          "AuditLog",
+          "Jobs",
+          "EndSessionsThatRanOut.ts",
+        ),
+        "utf8",
+      );
+
+      expect(sweepJob).toContain("schedule: EVERY_FIVE_MINUTE,");
+    }
   });
 
   it("says an administrator's changes to someone else's notification setup are recorded", () => {
