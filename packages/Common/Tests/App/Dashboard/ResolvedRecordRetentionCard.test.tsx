@@ -1287,7 +1287,7 @@ describe("the postmortem statuses that keep an incident", () => {
       "Delete incidents in this postmortem status too?",
     );
     expect(dialog()).toHaveTextContent(
-      "Resolved incidents older than the length picked are deleted within the hour when their postmortem is in a status you take out. They can't be brought back.",
+      "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.",
     );
     await waitFor(() => {
       expect(countLine()).toBe("This deletes 7 incidents now.");
