@@ -1744,8 +1744,39 @@ describe("when several policies page", () => {
       "A policy started by hand is one started with **Execute On-Call Policy**, or by a page from Slack or Microsoft Teams that names it.",
     );
     expect(severalPolicies()).toContain(
-      "once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why.",
+      "once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why: the dashboard turns **Execute On-Call Policy** off and shows the reason.",
     );
+
+    /*
+     * Issue #7839: every record's feed turns Execute On-Call Policy off on a
+     * resolved record, with the reason, before any form is filled in.
+     */
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/ExecutePolicy/ExecuteOnCallPolicyWords.ts",
+      ),
+    ).toContain("if (data.standing === EventStanding.Resolved) {");
+
+    for (const feed of [
+      "Components/Incident/IncidentFeed.tsx",
+      "Components/Alert/AlertFeed.tsx",
+      "Components/IncidentEpisode/IncidentEpisodeFeed.tsx",
+      "Components/AlertEpisode/AlertEpisodeFeed.tsx",
+    ]) {
+      const source: string = readDashboardSource(feed);
+
+      expect({
+        feed,
+        locked: source.includes("getExecuteOnCallPolicyMenuLock({"),
+      }).toEqual({
+        feed,
+        locked: true,
+      });
+      expect({
+        feed,
+        disabled: source.includes("isDisabled={executePolicyLock.isDisabled}"),
+      }).toEqual({ feed, disabled: true });
+    }
   });
 
   /*
@@ -1776,7 +1807,7 @@ describe("when several policies page", () => {
     ).toContain("isOnCallPolicyStartedByHand(run)");
 
     expect(severalPolicies()).toContain(
-      "you are told why. Its notifications say who started which policy, and carry the message sent with a page from Slack or Microsoft Teams.",
+      "shows the reason. Its notifications say who started which policy, and carry the message sent with a page from Slack or Microsoft Teams.",
     );
   });
 });

@@ -1,4 +1,11 @@
 import { getPageAsObserversField } from "../OnCallPolicy/ExecutePolicy/PageAsObserversField";
+import {
+  ExecuteOnCallPolicyMenuLock,
+  getExecuteOnCallPolicyDescription,
+  getExecuteOnCallPolicyMenuLock,
+} from "../OnCallPolicy/ExecutePolicy/ExecuteOnCallPolicyWords";
+import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { EventStanding } from "../../Utils/EventDuration";
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -52,6 +59,13 @@ export interface ComponentProps {
    * on the overview. The loaded items stay on screen while it reloads.
    */
   refreshToken?: number | undefined;
+  /*
+   * Where the episode stands now (EpisodeTiming.standing). Resolved,
+   * "Execute On-Call Policy" is locked with why; acknowledged, its form says
+   * the policy still pages until one of its people answers
+   * (ExecuteOnCallPolicyWords). Unknown, it is offered as before.
+   */
+  standing?: EventStanding | undefined;
 }
 
 /*
@@ -70,6 +84,13 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
     React.useState<boolean>(false);
+
+  // Execute On-Call Policy, by where the alert episode stands.
+  const executePolicyLock: ExecuteOnCallPolicyMenuLock =
+    getExecuteOnCallPolicyMenuLock({
+      recordType: OnCallPageRecordType.AlertEpisode,
+      standing: props.standing,
+    });
 
   type GetFeedItemsFromEpisodeFeeds = (
     episodeFeeds: AlertEpisodeFeed[],
@@ -194,6 +215,8 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
               key="alert-episode-action-execute-policy"
               text="Execute On-Call Policy"
               icon={IconProp.Call}
+              isDisabled={executePolicyLock.isDisabled}
+              tooltip={executePolicyLock.tooltip}
               onClick={() => {
                 setShowOnCallPolicyModal(true);
               }}
@@ -219,9 +242,10 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
             modalWidth={ModalWidth.Normal}
             name={"execute-on-call-policy"}
             title={"Execute On-Call Policy"}
-            description={
-              "Execute the on-call policy for this episode. This will notify the on-call team members and start the on-call process."
-            }
+            description={getExecuteOnCallPolicyDescription({
+              recordType: OnCallPageRecordType.AlertEpisode,
+              standing: props.standing,
+            })}
             onClose={() => {
               setShowOnCallPolicyModal(false);
             }}

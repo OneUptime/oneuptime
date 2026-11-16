@@ -56016,5 +56016,17 @@
   "Runs AI Code Fixes": "AI のコード修正を実行",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "機密情報に見えるキーの値は、属性と JSON のログ本文で [REDACTED] に置き換えられます。",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "スパンのどの部分をスクラブするか：スパン名、属性値とリンク属性値、イベント属性値、またはすべて（ステータスメッセージとイベント名も含む）。",
-  "Signed out by a server admin because single sign-on is required": "シングルサインオン（SSO）必須のため、サーバー管理者によるサインアウト"
+  "Signed out by a server admin because single sign-on is required": "シングルサインオン（SSO）必須のため、サーバー管理者によるサインアウト",
+  "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.": "選択したポリシーの担当者を、このアラートエピソードについてレベルごとに呼び出します。担当者の誰かが応答するか、エピソードが解決されるまで続きます。",
+  "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.": "選択したポリシーの担当者を、このアラートについてレベルごとに呼び出します。担当者の誰かが応答するか、アラートが解決されるまで続きます。",
+  "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.": "選択したポリシーの担当者を、このインシデントエピソードについてレベルごとに呼び出します。担当者の誰かが応答するか、エピソードが解決されるまで続きます。",
+  "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.": "選択したポリシーの担当者を、このインシデントについてレベルごとに呼び出します。担当者の誰かが応答するか、インシデントが解決されるまで続きます。",
+  "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "このアラートエピソードはすでに確認済みです。選択したポリシーは、担当者の誰かが応答するかエピソードが解決されるまで、引き続き担当者をレベルごとに呼び出します。",
+  "This alert episode is resolved, so no on-call policy can be started for it.": "このアラートエピソードは解決済みのため、オンコールポリシーを開始できません。",
+  "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.": "このアラートはすでに確認済みです。選択したポリシーは、担当者の誰かが応答するかアラートが解決されるまで、引き続き担当者をレベルごとに呼び出します。",
+  "This alert is resolved, so no on-call policy can be started for it.": "このアラートは解決済みのため、オンコールポリシーを開始できません。",
+  "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "このインシデントエピソードはすでに確認済みです。選択したポリシーは、担当者の誰かが応答するかエピソードが解決されるまで、引き続き担当者をレベルごとに呼び出します。",
+  "This incident episode is resolved, so no on-call policy can be started for it.": "このインシデントエピソードは解決済みのため、オンコールポリシーを開始できません。",
+  "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "このインシデントはすでに確認済みです。選択したポリシーは、担当者の誰かが応答するかインシデントが解決されるまで、引き続き担当者をレベルごとに呼び出します。",
+  "This incident is resolved, so no on-call policy can be started for it.": "このインシデントは解決済みのため、オンコールポリシーを開始できません。"
 }

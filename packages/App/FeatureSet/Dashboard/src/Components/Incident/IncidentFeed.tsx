@@ -1,4 +1,11 @@
 import { getPageAsObserversField } from "../OnCallPolicy/ExecutePolicy/PageAsObserversField";
+import {
+  ExecuteOnCallPolicyMenuLock,
+  getExecuteOnCallPolicyDescription,
+  getExecuteOnCallPolicyMenuLock,
+} from "../OnCallPolicy/ExecutePolicy/ExecuteOnCallPolicyWords";
+import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { EventStanding } from "../../Utils/EventDuration";
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -67,6 +74,13 @@ export interface ComponentProps {
    * is locked with why (EventNoteKind.isPrivateEvent).
    */
   isPrivate?: boolean | undefined;
+  /*
+   * Where the incident stands now (getEventStanding). Resolved, "Execute
+   * On-Call Policy" is locked with why; acknowledged, its form says the
+   * policy still pages until one of its people answers
+   * (ExecuteOnCallPolicyWords). Unknown, it is offered as before.
+   */
+  standing?: EventStanding | undefined;
 }
 
 /*
@@ -155,6 +169,13 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     props.notifyStatusPageSubscribersByDefault ?? true;
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
     React.useState<boolean>(false);
+
+  // Execute On-Call Policy, by where the incident stands.
+  const executePolicyLock: ExecuteOnCallPolicyMenuLock =
+    getExecuteOnCallPolicyMenuLock({
+      recordType: OnCallPageRecordType.Incident,
+      standing: props.standing,
+    });
 
   const [showRunbookPickerModal, setShowRunbookPickerModal] =
     React.useState<boolean>(false);
@@ -323,6 +344,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
               key="incident-action-execute-policy"
               text="Execute On-Call Policy"
               icon={IconProp.Call}
+              isDisabled={executePolicyLock.isDisabled}
+              tooltip={executePolicyLock.tooltip}
               onClick={() => {
                 setShowOnCallPolicyModal(true);
               }}
@@ -348,9 +371,10 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             modalWidth={ModalWidth.Normal}
             name={"execute-on-call-policy"}
             title={"Execute On-Call Policy"}
-            description={
-              "Execute the on-call policy for this incident. This will notify the on-call team members and start the on-call process."
-            }
+            description={getExecuteOnCallPolicyDescription({
+              recordType: OnCallPageRecordType.Incident,
+              standing: props.standing,
+            })}
             onClose={() => {
               setShowOnCallPolicyModal(false);
             }}
