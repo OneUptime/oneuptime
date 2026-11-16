@@ -2,6 +2,8 @@ import {
   CLOUD_AI_AGENT_ASK_FIRST_TITLE,
   CLOUD_AI_AGENT_FIX_SAFE_TITLE,
   CLOUD_SHELL_NAMES,
+  AZURE_HOST_DESCRIPTIONS,
+  AZURE_HOST_TITLES,
   CloudAiAgentSetupChoices,
   GCP_HOST_DESCRIPTIONS,
   GCP_HOST_TITLES,
@@ -25,6 +27,8 @@ import {
 } from "../../../Types/CloudConnection/CloudAiAgentSetupCommands";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
+  AZURE_CLOUD_AI_AGENT_DEFAULT_HOST,
+  AZURE_CLOUD_AI_AGENT_HOSTS,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   GCP_CLOUD_AI_AGENT_HOSTS,
   getCloudAiAgentOwnTargets,
@@ -86,6 +90,8 @@ describe("the one question", () => {
         onlyTaggedResources: false,
         // Google Cloud's agent on a small VM unless More fields says Cloud Run.
         gcpHost: "compute-engine",
+        // Azure's as a Container App unless More fields says a small VM.
+        azureHost: "container-apps",
       });
       expect(getCloudAiAgentFixesMode(choices)).toBe("RequireApproval");
     }
@@ -196,9 +202,11 @@ describe("opened for an agent that connected", () => {
         "*prod-db*\narn:aws:rds:us-east-1:123456789012:db:orders",
       onlyTaggedResources: true,
       gcpHost: GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
+      azureHost: AZURE_CLOUD_AI_AGENT_DEFAULT_HOST,
     });
     // An AWS command takes no host.
     expect(options(CloudProvider.AWS, choices).gcpHost).toBeUndefined();
+    expect(options(CloudProvider.AWS, choices).azureHost).toBeUndefined();
 
     // And the command it writes keeps all of it.
     const written: CloudAiAgentSetupOptions = options(
@@ -595,5 +603,152 @@ describe("where a Google Cloud agent runs", () => {
     expect(
       estimateCloudAiAgentMonthlyCost(CloudProvider.GCP, "cloud-run").usd,
     ).toBe(45);
+  });
+});
+
+/*
+ * Azure's two hosts (#6212): a Container App, as every Azure agent ran
+ * before, or a small VM of its own for a subscription that cannot use
+ * Container Apps - chosen under More fields, kept by Change, and read back
+ * from what the agent reports.
+ */
+describe("where an Azure agent runs", () => {
+  const SUBSCRIPTION: string = "0b1f6471-1bf0-4dda-aec3-111122223333";
+
+  function azurePosture(
+    details: Record<string, string | null>,
+  ): ResourceAiAgentPosture {
+    return {
+      resourceType: AiResourceType.AzureSubscription,
+      resourceIdentifier: SUBSCRIPTION,
+      allowWrites: true,
+      writeTargets: [],
+      protectedTargets: [],
+      reachable: true,
+      details: {
+        cloudProvider: "azure",
+        cloudAccountId: SUBSCRIPTION,
+        ...details,
+      },
+    };
+  }
+
+  test("a new agent is a Container App, as before", () => {
+    expect(AZURE_CLOUD_AI_AGENT_DEFAULT_HOST).toBe("container-apps");
+    expect(
+      getDefaultCloudAiAgentSetupChoices({ provider: CloudProvider.Azure })
+        .azureHost,
+    ).toBe("container-apps");
+  });
+
+  test("Change keeps the host the agent reports", () => {
+    for (const host of AZURE_CLOUD_AI_AGENT_HOSTS) {
+      expect(
+        getDefaultCloudAiAgentSetupChoices({
+          provider: CloudProvider.Azure,
+          accountId: SUBSCRIPTION,
+          posture: azurePosture({ azureHost: host }),
+        }).azureHost,
+      ).toBe(host);
+    }
+  });
+
+  test("an agent too old to say where it runs ran as a Container App, as every one did: Change never moves it", () => {
+    for (const reported of [
+      {},
+      { azureHost: null },
+      { azureHost: "kubernetes" },
+    ]) {
+      expect(
+        getCloudAiAgentReportedChoices({
+          provider: CloudProvider.Azure,
+          accountId: SUBSCRIPTION,
+          posture: azurePosture(reported),
+        }).azureHost,
+      ).toBe("container-apps");
+    }
+  });
+
+  test("another cloud's posture says nothing of an Azure host", () => {
+    expect(
+      "azureHost" in
+        getCloudAiAgentReportedChoices({
+          provider: CloudProvider.GCP,
+          accountId: "my-project",
+          posture: {
+            ...azurePosture({ azureHost: "virtual-machine" }),
+            resourceType: AiResourceType.GoogleCloudProject,
+          },
+        }),
+    ).toBe(false);
+  });
+
+  test("the host chosen reaches the command, which is the host's", () => {
+    for (const host of AZURE_CLOUD_AI_AGENT_HOSTS) {
+      const written: CloudAiAgentSetupOptions = {
+        ...options(CloudProvider.Azure, {
+          ...getDefaultCloudAiAgentSetupChoices({
+            provider: CloudProvider.Azure,
+          }),
+          azureHost: host,
+        }),
+        accountId: SUBSCRIPTION,
+      };
+
+      expect(written.azureHost).toBe(host);
+      expect(describeCloudAiAgentSetupProblem(written)).toBeNull();
+      expect(getCloudAiAgentSetupCommand(written)).toContain(
+        host === "virtual-machine"
+          ? "az vm create --subscription"
+          : "az containerapp create --subscription",
+      );
+    }
+    // Another cloud's command takes no Azure host.
+    expect(
+      options(CloudProvider.GCP, {
+        ...getDefaultCloudAiAgentSetupChoices({ provider: CloudProvider.GCP }),
+        azureHost: "virtual-machine",
+      }).azureHost,
+    ).toBeUndefined();
+  });
+
+  test("More fields names each host with what it costs a month", () => {
+    expect(AZURE_HOST_TITLES).toEqual({
+      "container-apps": "Container Apps",
+      "virtual-machine": "A small VM",
+    });
+    for (const host of AZURE_CLOUD_AI_AGENT_HOSTS) {
+      expect(AZURE_HOST_DESCRIPTIONS[host]).toContain("about ${{usd}} a month");
+    }
+    expect(AZURE_HOST_DESCRIPTIONS["virtual-machine"]).toContain(
+      "in a network of its own that lets nothing in",
+    );
+    expect(AZURE_HOST_DESCRIPTIONS["virtual-machine"]).toContain(
+      "For a subscription that cannot use Container Apps.",
+    );
+    expect(estimateCloudAiAgentMonthlyCost(CloudProvider.Azure).usd).toBe(14);
+    expect(
+      estimateCloudAiAgentMonthlyCost(
+        CloudProvider.Azure,
+        undefined,
+        "virtual-machine",
+      ).usd,
+    ).toBe(13);
+  });
+
+  test("its logs: Run Command's docker logs on the VM, which takes no SSH login; the Container App's own otherwise", () => {
+    expect(
+      getCloudAiAgentLogsCommand(
+        CloudProvider.Azure,
+        undefined,
+        undefined,
+        "virtual-machine",
+      ),
+    ).toBe(
+      'az vm run-command invoke --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --command-id RunShellScript --scripts "docker logs --tail 100 oneuptime-ai-agent" --query "value[0].message" --output tsv',
+    );
+    expect(getCloudAiAgentLogsCommand(CloudProvider.Azure)).toBe(
+      "az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100",
+    );
   });
 });

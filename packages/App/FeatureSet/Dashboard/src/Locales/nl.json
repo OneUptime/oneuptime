@@ -55927,5 +55927,15 @@
   "Wrong password": "Verkeerd wachtwoord",
   "{{count}} attempt": "{{count}} poging",
   "{{summary}} - view sign-in attempt details": "{{summary}} - details van de aanmeldpoging bekijken",
-  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "Op OneUptime Cloud werkt AI in een repository die niet op GitHub staat op een van je eigen Runners: het toegangstoken ervan gaat nooit naar een globale Runner. Kies een van je Runners."
+  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "Op OneUptime Cloud werkt AI in een repository die niet op GitHub staat op een van je eigen Runners: het toegangstoken ervan gaat nooit naar een globale Runner. Kies een van je Runners.",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "Lezen werkt, maar wijzigingen mislukken",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Voer de installatieopdracht opnieuw uit. Die verplaatst de wijzigingen naar een eigen schrijfidentiteit, en de eigen identiteit van de agent houdt alleen het lezen.",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Voer de installatieopdracht opnieuw uit. Die verplaatst de wijzigingen naar een eigen schrijfrol, die de agent voor elke wijziging aanneemt met een beleid voor alleen die wijziging.",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "Voer de installatieopdracht opnieuw uit. Die verplaatst de wijzigingen naar een eigen schrijfaccount, en het eigen serviceaccount van de agent houdt alleen het lezen.",
+  "The {{agent}} makes its changes as the identity it reads with": "De {{agent}} voert zijn wijzigingen uit met de identiteit waarmee hij leest",
+  "Container Apps": "Container Apps",
+  "It runs on one small always-on VM in your subscription: about ${{usd}} a month at list prices, billed by your cloud.": "De agent draait op één kleine, altijd actieve VM in uw abonnement: ongeveer US$ {{usd}} per maand tegen lijstprijzen, gefactureerd door uw cloudprovider.",
+  "One Container App with one replica always on: about ${{usd}} a month.": "Eén Container App met één replica die altijd draait: ongeveer US$ {{usd}} per maand.",
+  "One Standard_B1s VM in a network of its own that lets nothing in: about ${{usd}} a month. For a subscription that cannot use Container Apps.": "Eén Standard_B1s-VM in een eigen netwerk dat niets binnenlaat: ongeveer US$ {{usd}} per maand. Voor een abonnement dat Container Apps niet kan gebruiken."
 }

@@ -55927,5 +55927,15 @@
   "Wrong password": "Mot de passe erroné",
   "{{count}} attempt": "{{count}} tentative",
   "{{summary}} - view sign-in attempt details": "{{summary}} - voir les détails de la tentative de connexion",
-  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "Sur OneUptime Cloud, l'IA travaille dans un dépôt qui n'est pas sur GitHub sur l'un de vos propres agents Runbook : son jeton d'accès n'est jamais remis à un agent Runbook global. Choisissez l'un de vos agents Runbook."
+  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "Sur OneUptime Cloud, l'IA travaille dans un dépôt qui n'est pas sur GitHub sur l'un de vos propres agents Runbook : son jeton d'accès n'est jamais remis à un agent Runbook global. Choisissez l'un de vos agents Runbook.",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "La lecture fonctionne, mais les modifications échoueront",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Exécutez à nouveau la commande de configuration. Elle confie les modifications à une identité d'écriture qui leur est propre, et l'identité de l'agent ne garde que la lecture.",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Exécutez à nouveau la commande de configuration. Elle confie les modifications à un rôle d'écriture qui leur est propre, que l'agent assume pour chaque modification avec une stratégie limitée à cette modification.",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "Exécutez à nouveau la commande de configuration. Elle confie les modifications à un compte d'écriture qui leur est propre, et le compte de service de l'agent ne garde que la lecture.",
+  "The {{agent}} makes its changes as the identity it reads with": "L'{{agent}} effectue ses modifications avec l'identité qui lui sert à lire",
+  "Container Apps": "Container Apps",
+  "It runs on one small always-on VM in your subscription: about ${{usd}} a month at list prices, billed by your cloud.": "Une petite VM toujours active tourne dans votre abonnement : environ {{usd}} $ par mois au prix catalogue, facturés par votre cloud.",
+  "One Container App with one replica always on: about ${{usd}} a month.": "Une Container App avec un réplica toujours actif : environ {{usd}} $ par mois.",
+  "One Standard_B1s VM in a network of its own that lets nothing in: about ${{usd}} a month. For a subscription that cannot use Container Apps.": "Une VM Standard_B1s dans un réseau à elle, qui ne laisse rien entrer : environ {{usd}} $ par mois. Pour un abonnement qui ne peut pas utiliser Container Apps."
 }

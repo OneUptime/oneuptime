@@ -55927,5 +55927,15 @@
   "Wrong password": "密码错误",
   "{{count}} attempt": "{{count}} 次尝试",
   "{{summary}} - view sign-in attempt details": "{{summary}} - 查看登录尝试详情",
-  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "在 OneUptime Cloud 上，AI 在不在 GitHub 上的代码仓库中的工作会在你自己的 Runner 上进行：它的访问令牌绝不会交给全局 Runner。请选择你的一个 Runner。"
+  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "在 OneUptime Cloud 上，AI 在不在 GitHub 上的代码仓库中的工作会在你自己的 Runner 上进行：它的访问令牌绝不会交给全局 Runner。请选择你的一个 Runner。",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "读取正常，但更改会失败",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "再次运行设置命令。它会把更改移到专属的写入标识，代理自身的标识只保留读取。",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "再次运行设置命令。它会把更改移到专属的写入角色，代理每次更改都以仅允许该更改的策略承担这个角色。",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "再次运行设置命令。它会把更改移到专属的写入账号，代理自身的服务账号只保留读取。",
+  "The {{agent}} makes its changes as the identity it reads with": "{{agent}}使用其读取时所用的标识进行更改",
+  "Container Apps": "Container Apps",
+  "It runs on one small always-on VM in your subscription: about ${{usd}} a month at list prices, billed by your cloud.": "它在您订阅中的一台常驻小型虚拟机上运行：按标价计算每月约 ${{usd}}，由您的云服务商计费。",
+  "One Container App with one replica always on: about ${{usd}} a month.": "一个始终运行一个副本的 Container App：每月约 ${{usd}}。",
+  "One Standard_B1s VM in a network of its own that lets nothing in: about ${{usd}} a month. For a subscription that cannot use Container Apps.": "一台 Standard_B1s 虚拟机，位于不允许任何入站连接的专用网络中：每月约 ${{usd}}。适用于无法使用 Container Apps 的订阅。"
 }

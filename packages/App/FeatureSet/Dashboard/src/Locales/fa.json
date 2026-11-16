@@ -55927,5 +55927,15 @@
   "Wrong password": "رمز عبور نادرست",
   "{{count}} attempt": "{{count}} تلاش",
   "{{summary}} - view sign-in attempt details": "{{summary}} - دیدن جزئیات تلاش برای ورود",
-  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "در OneUptime Cloud، هوش مصنوعی در مخزنی که روی GitHub نیست روی یکی از Runnerهای خودتان کار می‌کند: توکن دسترسی آن هرگز به یک Runner سراسری داده نمی‌شود. یکی از Runnerهای خود را انتخاب کنید."
+  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "در OneUptime Cloud، هوش مصنوعی در مخزنی که روی GitHub نیست روی یکی از Runnerهای خودتان کار می‌کند: توکن دسترسی آن هرگز به یک Runner سراسری داده نمی‌شود. یکی از Runnerهای خود را انتخاب کنید.",
+  "Attachment Seen At": "زمان مشاهدهٔ اتصال",
+  "Reads work, but changes will fail": "خواندن کار می‌کند، اما تغییرها شکست می‌خورند",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "فرمان راه‌اندازی را دوباره اجرا کنید. تغییرها را به یک هویت نوشتن مخصوص خودشان می‌برد و هویت خود عامل فقط خواندن را نگه می‌دارد.",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "فرمان راه‌اندازی را دوباره اجرا کنید. تغییرها را به یک نقش نوشتن مخصوص خودشان می‌برد که عامل برای هر تغییر با سیاستی فقط برای همان تغییر بر عهده می‌گیرد.",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "فرمان راه‌اندازی را دوباره اجرا کنید. تغییرها را به یک حساب نوشتن مخصوص خودشان می‌برد و حساب سرویس خود عامل فقط خواندن را نگه می‌دارد.",
+  "The {{agent}} makes its changes as the identity it reads with": "{{agent}} تغییرهایش را با همان هویتی انجام می‌دهد که با آن می‌خواند",
+  "Container Apps": "Container Apps",
+  "It runs on one small always-on VM in your subscription: about ${{usd}} a month at list prices, billed by your cloud.": "روی یک ماشین مجازی کوچک همیشه‌روشن در اشتراک شما اجرا می‌شود: با قیمت‌های اعلام‌شده حدود ${{usd}} در ماه، که در صورت‌حساب ابر شما می‌آید.",
+  "One Container App with one replica always on: about ${{usd}} a month.": "یک Container App با یک نسخهٔ همیشه‌روشن: حدود ${{usd}} در ماه.",
+  "One Standard_B1s VM in a network of its own that lets nothing in: about ${{usd}} a month. For a subscription that cannot use Container Apps.": "یک ماشین مجازی Standard_B1s در شبکه‌ای مخصوص خودش که اجازهٔ ورود به هیچ چیز نمی‌دهد: حدود ${{usd}} در ماه. برای اشتراکی که نمی‌تواند از Container Apps استفاده کند."
 }

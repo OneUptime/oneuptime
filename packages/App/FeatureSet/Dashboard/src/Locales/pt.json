@@ -55927,5 +55927,15 @@
   "Wrong password": "Senha incorreta",
   "{{count}} attempt": "{{count}} tentativa",
   "{{summary}} - view sign-in attempt details": "{{summary}} - ver detalhes da tentativa de login",
-  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "No OneUptime Cloud, a IA trabalha num repositório que não está no GitHub num dos seus próprios Runners: o seu token de acesso nunca é entregue a um Runner global. Escolha um dos seus Runners."
+  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "No OneUptime Cloud, a IA trabalha num repositório que não está no GitHub num dos seus próprios Runners: o seu token de acesso nunca é entregue a um Runner global. Escolha um dos seus Runners.",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "A leitura funciona, mas as alterações vão falhar",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Execute o comando de configuração de novo. Ele passa as alterações para uma identidade de gravação própria, e a identidade do agente fica só com a leitura.",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Execute o comando de configuração de novo. Ele passa as alterações para uma função de gravação própria, que o agente assume em cada alteração com uma política só para aquela alteração.",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "Execute o comando de configuração de novo. Ele passa as alterações para uma conta de gravação própria, e a conta de serviço do agente fica só com a leitura.",
+  "The {{agent}} makes its changes as the identity it reads with": "O {{agent}} faz as alterações com a identidade com que lê",
+  "Container Apps": "Container Apps",
+  "It runs on one small always-on VM in your subscription: about ${{usd}} a month at list prices, billed by your cloud.": "O agente é executado em uma pequena VM sempre ativa na sua assinatura: cerca de US$ {{usd}} por mês a preços de tabela, na fatura da sua nuvem.",
+  "One Container App with one replica always on: about ${{usd}} a month.": "Um Container App com uma réplica sempre ativa: cerca de US$ {{usd}} por mês.",
+  "One Standard_B1s VM in a network of its own that lets nothing in: about ${{usd}} a month. For a subscription that cannot use Container Apps.": "Uma VM Standard_B1s em uma rede própria que não deixa nada entrar: cerca de US$ {{usd}} por mês. Para uma assinatura que não pode usar o Container Apps."
 }

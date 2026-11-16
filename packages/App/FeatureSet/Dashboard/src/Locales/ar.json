@@ -55927,5 +55927,15 @@
   "Wrong password": "كلمة مرور خاطئة",
   "{{count}} attempt": "{{count}} محاولة",
   "{{summary}} - view sign-in attempt details": "{{summary}} - عرض تفاصيل محاولة تسجيل الدخول",
-  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "على OneUptime Cloud، يعمل الذكاء الاصطناعي في مستودع ليس على GitHub على أحد مشغّلاتك: لا يُسلَّم رمز الوصول الخاص به أبدًا إلى مشغّل عام. اختر أحد مشغّلاتك."
+  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "على OneUptime Cloud، يعمل الذكاء الاصطناعي في مستودع ليس على GitHub على أحد مشغّلاتك: لا يُسلَّم رمز الوصول الخاص به أبدًا إلى مشغّل عام. اختر أحد مشغّلاتك.",
+  "Attachment Seen At": "وقت رصد الارتباط",
+  "Reads work, but changes will fail": "القراءة تعمل، لكن التغييرات ستفشل",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "شغّل أمر الإعداد مرة أخرى. فهو ينقل التغييرات إلى هوية كتابة خاصة بها، وتبقى هوية الوكيل نفسه للقراءة فقط.",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "شغّل أمر الإعداد مرة أخرى. فهو ينقل التغييرات إلى دور كتابة خاص بها، يتولاه الوكيل لكل تغيير بسياسة تخص ذلك التغيير وحده.",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "شغّل أمر الإعداد مرة أخرى. فهو ينقل التغييرات إلى حساب كتابة خاص بها، ويبقى حساب خدمة الوكيل نفسه للقراءة فقط.",
+  "The {{agent}} makes its changes as the identity it reads with": "يُجري {{agent}} تغييراته بالهوية نفسها التي يقرأ بها",
+  "Container Apps": "Container Apps",
+  "It runs on one small always-on VM in your subscription: about ${{usd}} a month at list prices, billed by your cloud.": "يعمل على جهاز افتراضي صغير واحد دائم التشغيل في اشتراكك: تكلفته نحو ${{usd}} شهريًا بالأسعار المعلنة، وتُحتسب على فاتورة سحابتك.",
+  "One Container App with one replica always on: about ${{usd}} a month.": "تطبيق Container App واحد بنسخة متماثلة واحدة تعمل دائمًا: نحو ${{usd}} شهريًا.",
+  "One Standard_B1s VM in a network of its own that lets nothing in: about ${{usd}} a month. For a subscription that cannot use Container Apps.": "جهاز افتراضي واحد من نوع Standard_B1s ضمن شبكة خاصة به لا تسمح بدخول أي شيء: نحو ${{usd}} شهريًا. لاشتراك لا يمكنه استخدام Container Apps."
 }

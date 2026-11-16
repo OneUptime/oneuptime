@@ -547,7 +547,7 @@ describe("Azure: Test connection and the posture name the write identity", () =>
     );
 
     assert.strictEqual(
-      lines[3],
+      lines[4],
       `Write identity: oneuptime-ai-agent-write (resource group oneuptime-ai-agent), which the agent signs in as for each change (the agent can sign in as it, as object id ${AZURE_WRITE_PRINCIPAL_ID})`,
     );
     // Its one call reads the subscription, as the agent's own identity.
@@ -566,7 +566,7 @@ describe("Azure: Test connection and the posture name the write identity", () =>
     );
 
     assert.match(
-      lines[3] || "",
+      lines[4] || "",
       /^Write identity: oneuptime-ai-agent-write \(resource group oneuptime-ai-agent\), which the agent signs in as for each change \(the agent can NOT sign in as it, so every change fails: the managed identity endpoint answered HTTP 400 and no token of the write identity oneuptime-ai-agent-write \(Unable to load the proper Managed Identity\.\)\. Attach that identity where the agent runs/,
     );
   });
@@ -584,7 +584,7 @@ describe("Azure: Test connection and the posture name the write identity", () =>
         await runCloud(h, "azure", "cloud whoami", {
           origin: "AiInvestigation",
         }),
-      )[3] || "";
+      )[4] || "";
 
     assert.match(
       line,
@@ -607,7 +607,7 @@ describe("Azure: Test connection and the posture name the write identity", () =>
     );
 
     assert.strictEqual(
-      none[3],
+      none[4],
       "Write identity: none (ONEUPTIME_AI_AZURE_WRITE_IDENTITY is not set): changes use the agent's own identity, with whatever it allows",
     );
 
@@ -620,7 +620,7 @@ describe("Azure: Test connection and the posture name the write identity", () =>
         await runCloud(wrong, "azure", "cloud whoami", {
           origin: "AiInvestigation",
         }),
-      )[3],
+      )[4],
       'Write identity: ONEUPTIME_AI_AZURE_WRITE_IDENTITY="nope" is not the resource ID of a user-assigned managed identity (/subscriptions/<subscription id>/resourcegroups/oneuptime-ai-agent/providers/microsoft.managedidentity/userassignedidentities/oneuptime-ai-agent-write), so the agent changes nothing until it is fixed.',
     );
     assert.deepStrictEqual(wrong.arm.writeTokenRequests, []);
@@ -635,7 +635,7 @@ describe("Azure: Test connection and the posture name the write identity", () =>
         await runCloud(elsewhere, "azure", "cloud whoami", {
           origin: "AiInvestigation",
         }),
-      )[3],
+      )[4],
       `Write identity: ONEUPTIME_AI_AZURE_WRITE_IDENTITY names an identity of subscription ${OTHER_SUBSCRIPTION}, but the agent serves subscription ${SUB}, so it changes nothing`,
     );
     assert.deepStrictEqual(elsewhere.arm.writeTokenRequests, []);
@@ -652,7 +652,7 @@ describe("Azure: Test connection and the posture name the write identity", () =>
     );
 
     assert.match(
-      lines[3] || "",
+      lines[4] || "",
       /\(the agent can sign in as it, as object id 6d5c4b3a-2f1e-4d0c-9b8a-7f6e5d4c3b2a, which is the agent's own identity as well: give the agent an identity of its own that only reads\)$/,
     );
   });
