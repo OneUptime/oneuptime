@@ -105,6 +105,7 @@ import DashboardAPI from "Common/Server/API/DashboardAPI";
 import DashboardDomainAPI from "Common/Server/API/DashboardDomainAPI";
 import StatusPageDomainAPI from "Common/Server/API/StatusPageDomainAPI";
 import DomainAPI from "Common/Server/API/DomainAPI";
+import ApiKeyAPI from "Common/Server/API/ApiKeyAPI";
 import StatusPageSubscriberAPI from "Common/Server/API/StatusPageSubscriberAPI";
 import UserCallAPI from "Common/Server/API/UserCallAPI";
 import UserTotpAuthAPI from "Common/Server/API/UserTotpAuthAPI";
@@ -156,9 +157,6 @@ import TopologyAPI from "./API/Topology";
 import ApiKeyPermissionService, {
   Service as ApiKeyPermissionServiceType,
 } from "Common/Server/Services/ApiKeyPermissionService";
-import ApiKeyService, {
-  Service as ApiKeyServiceType,
-} from "Common/Server/Services/ApiKeyService";
 import CallLogService, {
   Service as CallLogServiceType,
 } from "Common/Server/Services/CallLogService";
@@ -1545,7 +1543,6 @@ import Span from "Common/Models/AnalyticsModels/Span";
 import Profile from "Common/Models/AnalyticsModels/Profile";
 import ProfileSample from "Common/Models/AnalyticsModels/ProfileSample";
 import NetworkFlow from "Common/Models/AnalyticsModels/NetworkFlow";
-import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import PushNotificationLog from "Common/Models/DatabaseModels/PushNotificationLog";
@@ -5414,7 +5411,8 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ApiKey, ApiKeyServiceType>(ApiKey, ApiKeyService).getRouter(),
+      // The keys, and reset-key, which makes a key a new one (ApiKeyAPI).
+      new ApiKeyAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5448,10 +5446,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ApiKey, ApiKeyServiceType>(ApiKey, ApiKeyService).getRouter(),
-    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<ApiKeyPermission, ApiKeyPermissionServiceType>(
