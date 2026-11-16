@@ -352,7 +352,7 @@
       "extendDescription": "Déplacer la date de fin de l'essai de ce projet. Le fournisseur de paiement reçoit aussi la nouvelle date : rien n'est facturé pendant l'essai.",
       "newTrialEndDate": "Nouvelle date de fin de l'essai",
       "newTrialEndDateDescription": "La date à laquelle l'essai doit se terminer. Elle doit être dans le futur et ne pas dépasser 730 jours (deux ans).",
-      "notTrialingWarning": "Ce projet n'est pas actuellement en période d'essai. La prolongation clôture la période de facturation à l'usage en cours : le client sera donc facturé immédiatement pour l'usage déjà accumulé sur cette période. L'essai prolongé lui-même est gratuit.",
+      "notTrialingUsageWaived": "Ce projet n'est pas actuellement en période d'essai. En prolongeant l'essai, l'usage que le client a déjà accumulé sur la période de facturation en cours lui est offert : il ne lui sera pas facturé. L'essai prolongé lui-même est gratuit.",
       "extendSubmitButton": "Prolonger l'essai",
       "extendSuccess": "Essai prolongé jusqu'au {{date}}. Le fournisseur de paiement a été mis à jour.",
       "extendFailure": "Échec de la prolongation de l'essai.",

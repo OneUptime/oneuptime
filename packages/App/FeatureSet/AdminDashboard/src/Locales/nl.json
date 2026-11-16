@@ -352,7 +352,7 @@
       "extendDescription": "Verplaats de einddatum van de proefperiode van dit project. De betaalprovider krijgt de nieuwe datum ook, dus tijdens de proefperiode wordt niets gefactureerd.",
       "newTrialEndDate": "Nieuwe einddatum proefperiode",
       "newTrialEndDateDescription": "De datum waarop de proefperiode moet eindigen. Moet in de toekomst liggen en niet meer dan 730 dagen (twee jaar) vanaf nu.",
-      "notTrialingWarning": "Dit project heeft momenteel geen proefperiode. Door te verlengen wordt de huidige factureringsperiode voor verbruik afgesloten, waardoor de klant direct wordt gefactureerd voor het verbruik dat deze periode al is opgebouwd. De verlengde proefperiode zelf is gratis.",
+      "notTrialingUsageWaived": "Dit project heeft momenteel geen proefperiode. Door te verlengen wordt het verbruik dat de klant in de huidige factureringsperiode al heeft opgebouwd kwijtgescholden, zodat het niet wordt gefactureerd. De verlengde proefperiode zelf is gratis.",
       "extendSubmitButton": "Proefperiode verlengen",
       "extendSuccess": "Proefperiode verlengd tot {{date}}. De betalingsprovider is bijgewerkt.",
       "extendFailure": "Kan de proefperiode niet verlengen.",

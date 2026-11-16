@@ -436,4 +436,315 @@ describe("StripeBillingProvider.extendTrial", () => {
       ).rejects.toThrow("Stripe API error");
     });
   });
+
+  /*
+   * Customers usually ask for more time after their trial has already turned
+   * into a paid subscription. Moving trial_end then closes the billing period
+   * they are in, and Stripe invoices the usage recorded in it on the spot -
+   * proration_behavior does not reach usage. The extension clears that usage
+   * instead, in the same update, so the customer is never invoiced for it.
+   */
+  describe("the usage accrued in the billing period the extension closes", () => {
+    type ItemShape = {
+      id: string;
+      priceId: string;
+      usageType: "metered" | "licensed";
+      metadata?: Record<string, string> | undefined;
+      taxRateIds?: Array<string> | undefined;
+    };
+
+    const LOGS_ITEM: ItemShape = {
+      id: "si_logs",
+      priceId: "price_logs",
+      usageType: "metered",
+    };
+
+    const MONITORS_ITEM: ItemShape = {
+      id: "si_monitors",
+      priceId: "price_monitors",
+      usageType: "metered",
+    };
+
+    const FLAT_FEE_ITEM: ItemShape = {
+      id: "si_growth",
+      priceId: "price_growth_month",
+      usageType: "licensed",
+    };
+
+    type GetSubscriptionWithItemsFunction = (data: {
+      id: string;
+      status: Stripe.Subscription.Status;
+      items: Array<ItemShape>;
+      trialEnd?: number | null | undefined;
+    }) => Stripe.Subscription;
+
+    // A subscription whose items carry the price fields extendTrial reads.
+    const getSubscriptionWithItems: GetSubscriptionWithItemsFunction = (data: {
+      id: string;
+      status: Stripe.Subscription.Status;
+      items: Array<ItemShape>;
+      trialEnd?: number | null | undefined;
+    }): Stripe.Subscription => {
+      return {
+        ...getStripeSubscription({
+          id: data.id,
+          status: data.status,
+          trialEnd: data.trialEnd,
+        }),
+        items: {
+          data: data.items.map((item: ItemShape): Stripe.SubscriptionItem => {
+            return {
+              id: item.id,
+              price: {
+                id: item.priceId,
+                recurring: { usage_type: item.usageType },
+              },
+              metadata: item.metadata || {},
+              tax_rates: (item.taxRateIds || []).map(
+                (taxRateId: string): { id: string } => {
+                  return { id: taxRateId };
+                },
+              ),
+            } as unknown as Stripe.SubscriptionItem;
+          }),
+        },
+      } as Stripe.Subscription;
+    };
+
+    type MockProjectSubscriptionsFunction = (data: {
+      mainStatus: Stripe.Subscription.Status;
+      meteredStatus: Stripe.Subscription.Status;
+      meteredItems?: Array<ItemShape> | undefined;
+      meteredTrialEnd?: number | null | undefined;
+    }) => void;
+
+    // The pair a project has: a flat fee, and its usage on the metered one.
+    const mockProjectSubscriptions: MockProjectSubscriptionsFunction = (data: {
+      mainStatus: Stripe.Subscription.Status;
+      meteredStatus: Stripe.Subscription.Status;
+      meteredItems?: Array<ItemShape> | undefined;
+      meteredTrialEnd?: number | null | undefined;
+    }): void => {
+      mockRetrieve({
+        mainSubscription: getSubscriptionWithItems({
+          id: SUBSCRIPTION_ID,
+          status: data.mainStatus,
+          items: [FLAT_FEE_ITEM],
+        }),
+        meteredSubscription: getSubscriptionWithItems({
+          id: METERED_SUBSCRIPTION_ID,
+          status: data.meteredStatus,
+          items: data.meteredItems || [LOGS_ITEM, MONITORS_ITEM],
+          trialEnd: data.meteredTrialEnd,
+        }),
+      });
+    };
+
+    type UpdateSentForFunction = (
+      subscriptionId: string,
+    ) => Stripe.SubscriptionUpdateParams;
+
+    const updateSentFor: UpdateSentForFunction = (
+      subscriptionId: string,
+    ): Stripe.SubscriptionUpdateParams => {
+      const calls: Array<Array<unknown>> = (
+        mockStripe.subscriptions.update as unknown as {
+          mock: { calls: Array<Array<unknown>> };
+        }
+      ).mock.calls.filter((call: Array<unknown>): boolean => {
+        return call[0] === subscriptionId;
+      });
+
+      expect(calls).toHaveLength(1);
+
+      return calls[0]![1] as Stripe.SubscriptionUpdateParams;
+    };
+
+    const extendBothSubscriptions: () => Promise<void> =
+      async (): Promise<void> => {
+        await billingService.extendTrial({
+          subscriptionId: SUBSCRIPTION_ID,
+          meteredSubscriptionId: METERED_SUBSCRIPTION_ID,
+          trialEndsAt: newTrialEndDate,
+        });
+      };
+
+    it("should clear the usage of an active metered subscription in the same update that moves its trial", async () => {
+      mockProjectSubscriptions({
+        mainStatus: "active",
+        meteredStatus: "active",
+      });
+
+      await extendBothSubscriptions();
+
+      /*
+       * One update, compared whole: the period is closed with its usage
+       * already gone, and each price is back on the subscription as a new,
+       * empty item.
+       */
+      expect(updateSentFor(METERED_SUBSCRIPTION_ID)).toEqual({
+        trial_end: OneUptimeDate.toUnixTimestamp(newTrialEndDate),
+        proration_behavior: "none",
+        items: [
+          { id: "si_logs", deleted: true, clear_usage: true },
+          { id: "si_monitors", deleted: true, clear_usage: true },
+          { price: "price_logs" },
+          { price: "price_monitors" },
+        ],
+      });
+    });
+
+    it("should clear the usage of a project whose flat fee went past_due when the trial ended", async () => {
+      // The project in the bug report: the flat fee failed, usage kept accruing.
+      mockProjectSubscriptions({
+        mainStatus: "past_due",
+        meteredStatus: "active",
+      });
+
+      await extendBothSubscriptions();
+
+      expect(updateSentFor(METERED_SUBSCRIPTION_ID).items).toEqual([
+        { id: "si_logs", deleted: true, clear_usage: true },
+        { id: "si_monitors", deleted: true, clear_usage: true },
+        { price: "price_logs" },
+        { price: "price_monitors" },
+      ]);
+    });
+
+    it("should clear the usage of a past_due metered subscription", async () => {
+      mockProjectSubscriptions({
+        mainStatus: "past_due",
+        meteredStatus: "past_due",
+      });
+
+      await extendBothSubscriptions();
+
+      expect(updateSentFor(METERED_SUBSCRIPTION_ID).items).toEqual([
+        { id: "si_logs", deleted: true, clear_usage: true },
+        { id: "si_monitors", deleted: true, clear_usage: true },
+        { price: "price_logs" },
+        { price: "price_monitors" },
+      ]);
+    });
+
+    it("should leave the items of a subscription that is still trialing alone", async () => {
+      // Usage in a trial is never invoiced, so there is nothing to clear.
+      mockProjectSubscriptions({
+        mainStatus: "trialing",
+        meteredStatus: "trialing",
+      });
+
+      await extendBothSubscriptions();
+
+      expect(updateSentFor(METERED_SUBSCRIPTION_ID)).toEqual({
+        trial_end: OneUptimeDate.toUnixTimestamp(newTrialEndDate),
+        proration_behavior: "none",
+      });
+    });
+
+    it("should read a trial_end still ahead as trialing, whatever the status says", async () => {
+      mockProjectSubscriptions({
+        mainStatus: "active",
+        meteredStatus: "active",
+        meteredTrialEnd: OneUptimeDate.toUnixTimestamp(
+          OneUptimeDate.getSomeDaysAfter(3),
+        ),
+      });
+
+      await extendBothSubscriptions();
+
+      expect(updateSentFor(METERED_SUBSCRIPTION_ID).items).toBeUndefined();
+    });
+
+    it("should not touch the items of the flat-fee subscription", async () => {
+      /*
+       * The flat fee is billed in advance and has no usage. Its item is the
+       * plan the customer is on, and deleting it would be a plan change.
+       */
+      mockProjectSubscriptions({
+        mainStatus: "active",
+        meteredStatus: "active",
+      });
+
+      await extendBothSubscriptions();
+
+      expect(updateSentFor(SUBSCRIPTION_ID)).toEqual({
+        trial_end: OneUptimeDate.toUnixTimestamp(newTrialEndDate),
+        proration_behavior: "none",
+      });
+    });
+
+    it("should clear only the metered items when a subscription also carries a licensed one", async () => {
+      mockProjectSubscriptions({
+        mainStatus: "active",
+        meteredStatus: "active",
+        meteredItems: [FLAT_FEE_ITEM, LOGS_ITEM],
+      });
+
+      await extendBothSubscriptions();
+
+      expect(updateSentFor(METERED_SUBSCRIPTION_ID).items).toEqual([
+        { id: "si_logs", deleted: true, clear_usage: true },
+        { price: "price_logs" },
+      ]);
+    });
+
+    it("should send no items for a subscription with no metered items", async () => {
+      mockProjectSubscriptions({
+        mainStatus: "active",
+        meteredStatus: "active",
+        meteredItems: [FLAT_FEE_ITEM],
+      });
+
+      await extendBothSubscriptions();
+
+      expect(updateSentFor(METERED_SUBSCRIPTION_ID).items).toBeUndefined();
+    });
+
+    it("should put each price back with the metadata and tax rates its item had", async () => {
+      mockProjectSubscriptions({
+        mainStatus: "active",
+        meteredStatus: "active",
+        meteredItems: [
+          {
+            ...LOGS_ITEM,
+            metadata: { costCentre: "observability" },
+            taxRateIds: ["txr_vat"],
+          },
+          MONITORS_ITEM,
+        ],
+      });
+
+      await extendBothSubscriptions();
+
+      expect(updateSentFor(METERED_SUBSCRIPTION_ID).items).toEqual([
+        { id: "si_logs", deleted: true, clear_usage: true },
+        { id: "si_monitors", deleted: true, clear_usage: true },
+        {
+          price: "price_logs",
+          metadata: { costCentre: "observability" },
+          tax_rates: ["txr_vat"],
+        },
+        { price: "price_monitors" },
+      ]);
+    });
+
+    it("should clear no usage when the extension is refused before anything is updated", async () => {
+      // The flat fee is cancelled: nothing at all may change, usage included.
+      mockRetrieve({
+        main: "canceled",
+        meteredSubscription: getSubscriptionWithItems({
+          id: METERED_SUBSCRIPTION_ID,
+          status: "active",
+          items: [LOGS_ITEM],
+        }),
+      });
+
+      await expect(extendBothSubscriptions()).rejects.toThrow(
+        Errors.BillingService.CANNOT_EXTEND_TRIAL_ON_CANCELLED_SUBSCRIPTION,
+      );
+
+      expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
+    });
+  });
 });
