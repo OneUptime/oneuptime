@@ -144,7 +144,9 @@ describe("buildExplainNoFixTool", () => {
     expect(outcome.result).toEqual({
       dataForLlm: "Recorded the explanation.",
       rowCount: 2,
+      // The chip's label, and its words in the reader's language (#8511).
       citationLabel: "Why there is no fix",
+      citationWords: { template: "Why there is no fix" },
       redactionCount: 0,
       isTruncated: false,
     });

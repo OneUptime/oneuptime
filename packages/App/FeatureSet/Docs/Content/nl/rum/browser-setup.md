@@ -35,10 +35,10 @@ flowchart TB
 
 1. Ga naar **Producten → Projectinstellingen**.
 2. Klap in het zijmenu **Telemetrie & APM** open en kies **Ingestiesleutels**.
-3. Klik op **Inname-sleutel aanmaken** en kies **Browser** als **Sleuteltype**.
+3. Klik op **Ingestiesleutel aanmaken** en kies **Browser** als **Sleuteltype**.
 4. Geef in de stap **Browserinstellingen** je origins op onder **Toegestane origins** als JSON-array, bijvoorbeeld `["https://app.example.com"]`, en maak de sleutel aan. Op het gratis abonnement van OneUptime Cloud toont een laatste stap **Facturering** eerst de prijs van telemetrie.
 
-![De lijst "Ingestiesleutels", met "Inname-sleutel aanmaken" omcirkeld](screen:ingestion-keys)
+![De lijst "Ingestiesleutels", met "Ingestiesleutel aanmaken" omcirkeld](screen:ingestion-keys)
 
 De nieuwe sleutel opent op een eigen pagina. Kopieer de **Geheime sleutel**: dat is het token dat de SDK als `x-oneuptime-token` verstuurt.
 

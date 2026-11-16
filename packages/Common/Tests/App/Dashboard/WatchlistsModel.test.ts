@@ -541,7 +541,7 @@ describe("what reads a list", () => {
     expect(
       describeWatchlistReaders(GERMAN, summarizeWatchlistReaders(readers)),
     ).toBe(
-      "VIP failures (Überwachung), Weekly VIP review (Bedrohungssuche) und 1 weitere",
+      "VIP failures (Monitor), Weekly VIP review (Bedrohungssuche) und 1 weitere",
     );
     expect(describeWatchlistReader(ENGLISH, readers[2]!)).toBe("VIP sign-in");
   });

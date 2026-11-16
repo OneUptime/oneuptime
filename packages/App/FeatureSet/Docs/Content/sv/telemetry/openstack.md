@@ -39,7 +39,7 @@ Molnet registrerar sig självt med sina första data, under det namn som agenten
 - Docker Engine 20.10 eller senare med Docker Compose v2-insticksmodulen, eller, för att köra utan Docker, en Linux-maskin (x86_64 eller arm64) med systemd 235 eller senare, glibc 2.34 eller senare (RHEL 9, Ubuntu 22.04, Debian 12) och root.
 - En väg från den maskinen till Keystone och till varje tjänsts publika slutpunkt.
 - Kommandoraden `openstack`, som någon som kan skapa autentiseringsuppgiften nedan.
-- En inmatningsnyckel. Skapa en under **Projektinställningar → Telemetri och APM → Intagningsnycklar** och kopiera dess värde.
+- En intagningsnyckel. Skapa en under **Projektinställningar → Telemetri och APM → Intagningsnycklar** och kopiera dess värde.
 - Utgående HTTPS från den maskinen till din OneUptime-URL.
 
 ### Var du ska köra agenten
@@ -260,7 +260,7 @@ curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh
 bash install.sh
 ```
 
-Skriptet frågar efter din OneUptime-URL, inmatningsnyckeln, ett stabilt namn på molnet, Keystones autentiserings-URL, regionnamnen, applikationsautentiseringsuppgiften (ett användarnamn och lösenord om du säger nej till den) och en privat CA-fil om molnet har en egen certifikatutfärdare. Inget hemligt skrivs ut eller hamnar på en kommandorad. Det kontrollerar autentiseringsuppgiften mot Keystone innan det skriver eller startar något, installerar i `/opt/oneuptime-openstack-agent`, eller i `oneuptime-openstack-agent` i din hemkatalog om du saknar rättigheter på `/opt` (det behöver bara gruppen `docker`), skriver `.env` och `clouds.yaml` med läget `0600` och startar agenten med Docker Compose. Varje svar fungerar också som en miljövariabel, och om du kör skriptet igen återanvänder det dem i stället för att fråga igen, vilket är hur du [uppgraderar agenten](#uppgradera-agenten).
+Skriptet frågar efter din OneUptime-URL, intagningsnyckeln, ett stabilt namn på molnet, Keystones autentiserings-URL, regionnamnen, applikationsautentiseringsuppgiften (ett användarnamn och lösenord om du säger nej till den) och en privat CA-fil om molnet har en egen certifikatutfärdare. Inget hemligt skrivs ut eller hamnar på en kommandorad. Det kontrollerar autentiseringsuppgiften mot Keystone innan det skriver eller startar något, installerar i `/opt/oneuptime-openstack-agent`, eller i `oneuptime-openstack-agent` i din hemkatalog om du saknar rättigheter på `/opt` (det behöver bara gruppen `docker`), skriver `.env` och `clouds.yaml` med läget `0600` och startar agenten med Docker Compose. Varje svar fungerar också som en miljövariabel, och om du kör skriptet igen återanvänder det dem i stället för att fråga igen, vilket är hur du [uppgraderar agenten](#uppgradera-agenten).
 @tab Docker Compose
 Ladda ned `docker-compose.yml` och `otel-collector-config.yaml` från din OneUptime till en ny mapp:
 
@@ -359,7 +359,7 @@ Installationsskriptet skriver dessa till `/opt/oneuptime-openstack-agent/.env`; 
 | Variabel | Obligatorisk | Beskrivning |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | Din OneUptime-URL, till exempel `https://oneuptime.com` eller din egenvärdade instans. |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Inmatningsnyckeln från **Projektinställningar → Telemetri och APM → Intagningsnycklar**. |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Intagningsnyckeln från **Projektinställningar → Telemetri och APM → Intagningsnycklar**. |
 | `OPENSTACK_CLOUD_NAME` | Ja | Molnets namn i OneUptime, satt på varje mätvärde som resursattributet `openstack.cloud.name`. Håll det stabilt: om du ändrar det registreras ett nytt moln. Standardvärdet är `openstack`. |
 | `OPENSTACK_AUTH_URL` | Medföljande exporter | Ett svar till installationsskriptet: Keystones autentiserings-URL. `/v3` läggs till om det saknas. |
 | `OPENSTACK_EXPORTER_CLOUDS` | Ja | Regionerna, inom hakparenteser, till exempel `[RegionOne,RegionTwo]`, var och en namnet på en post i `clouds.yaml`. Standardvärdet är `[RegionOne]`. |
@@ -1016,7 +1016,7 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/install-logs.sh
 sudo bash install-logs.sh
 ```
 
-Utan argument tittar skriptet på maskinen och frågar om det inte kan avgöra det. Det frågar efter din OneUptime-URL, inmatningsnyckeln, molnets namn, som måste vara det namn molnet har i OneUptime, och den region den här maskinen betjänar. Varje svar fungerar också som en miljövariabel, så en körning över en hel flotta frågar ingenting: `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `OPENSTACK_CLOUD_NAME`, `OPENSTACK_REGION_NAME`, `OPENSTACK_NODE_NAME` och `OPENSTACK_LOGS_PROFILE`. Att köra det igen är uppgraderingen, och behåller varje svar.
+Utan argument tittar skriptet på maskinen och frågar om det inte kan avgöra det. Det frågar efter din OneUptime-URL, intagningsnyckeln, molnets namn, som måste vara det namn molnet har i OneUptime, och den region den här maskinen betjänar. Varje svar fungerar också som en miljövariabel, så en körning över en hel flotta frågar ingenting: `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `OPENSTACK_CLOUD_NAME`, `OPENSTACK_REGION_NAME`, `OPENSTACK_NODE_NAME` och `OPENSTACK_LOGS_PROFILE`. Att köra det igen är uppgraderingen, och behåller varje svar.
 
 | Variabel | Vad den är till för |
 | --- | --- |
@@ -1736,7 +1736,7 @@ OneUptimes egna avbilder korsar gapet på ett annat sätt: [Installation i luftg
 ## Felsökning
 
 :::details Kör diagnostikskriptet först
-Agenten levereras med ett skript, [`troubleshoot.sh`](https://oneuptime.com/install/openstack-agent/troubleshoot.sh), som kontrollerar hela kedjan på den nätverksväg agenten använder: containrarna eller tjänsterna, `clouds.yaml`, exportern, DNS, TLS, Keystone, varje tjänst i katalogen, molnets namn och om OneUptime accepterar inmatningsnyckeln. OneUptime nekar en felaktig nyckel med `401` (`422` för en inaktiverad nyckel eller en webbläsarnyckel), och collectorn släpper varje nekad omgång med en enda loggrad `Exporting failed` som är lätt att missa.
+Agenten levereras med ett skript, [`troubleshoot.sh`](https://oneuptime.com/install/openstack-agent/troubleshoot.sh), som kontrollerar hela kedjan på den nätverksväg agenten använder: containrarna eller tjänsterna, `clouds.yaml`, exportern, DNS, TLS, Keystone, varje tjänst i katalogen, molnets namn och om OneUptime accepterar intagningsnyckeln. OneUptime nekar en felaktig nyckel med `401` (`422` för en inaktiverad nyckel eller en webbläsarnyckel), och collectorn släpper varje nekad omgång med en enda loggrad `Exporting failed` som är lätt att missa.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent/troubleshoot.sh -o troubleshoot.sh
@@ -1747,7 +1747,7 @@ Det läser varje sökväg agenten behöver med den riktiga autentiseringsuppgift
 :::
 
 :::details Inget moln visas i OneUptime
-1. Läs collectorns loggar: `docker logs oneuptime-openstack-agent`, eller `journalctl -u oneuptime-openstack-agent` utan Docker. En `401` vid export betyder en felaktig inmatningsnyckel; connection refused betyder en felaktig `ONEUPTIME_URL`.
+1. Läs collectorns loggar: `docker logs oneuptime-openstack-agent`, eller `journalctl -u oneuptime-openstack-agent` utan Docker. En `401` vid export betyder en felaktig intagningsnyckel; connection refused betyder en felaktig `ONEUPTIME_URL`.
 2. Kontrollera att exportern svarar. Den medföljande exportern publicerar inte sin port på värden, så fråga inifrån dess nätverk: `docker run --rm --network container:oneuptime-openstack-exporter curlimages/curl -s "http://localhost:9180/probe?cloud=RegionOne&include_services=identity" | head` bör skriva ut `openstack_identity_*`-rader.
 3. Ge det ett scrape-intervall: 2 minuter för compute, 5 för identity.
 :::
@@ -1793,7 +1793,7 @@ På Flamingo och Epoxy ger oslo.policy fel vid varje kontroll när en policyfil 
 :::
 
 :::details Ett molns tjänstloggar kommer inte fram
-Läs collectorns logg: `docker logs oneuptime-openstack-logs` för filprofilen, eller `journalctl -u oneuptime-openstack-logs` för journalens. En `401` betyder en felaktig inmatningsnyckel. Om rader kommer fram under inget moln är `OPENSTACK_CLOUD_NAME` inte det namn molnet har i OneUptime: kör `install-logs.sh` igen med rätt.
+Läs collectorns logg: `docker logs oneuptime-openstack-logs` för filprofilen, eller `journalctl -u oneuptime-openstack-logs` för journalens. En `401` betyder en felaktig intagningsnyckel. Om rader kommer fram under inget moln är `OPENSTACK_CLOUD_NAME` inte det namn molnet har i OneUptime: kör `install-logs.sh` igen med rätt.
 :::
 
 :::details Rader kommer fram utan nivå, begäran eller tjänst

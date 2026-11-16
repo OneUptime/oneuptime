@@ -95,7 +95,7 @@ Si quiere acceder a campos dentro del cuerpo (`{{requestBody.status}}` en un tí
 | `application/json` | El JSON analizado. |
 | `application/x-www-form-urlencoded` | El formulario analizado. Las claves entre corchetes se anidan (`alerts[0][status]=firing`), y cada valor es una cadena. |
 | `text/plain` | El JSON analizado, cuando el texto es un objeto o un array JSON: así envía Amazon SNS sus mensajes. Cualquier otro texto es un cuerpo vacío. |
-| Cualquier otro, o ninguno | Un cuerpo vacío (`{}`), así que cada referencia a `requestBody` no da nada. |
+| Cualquier otro, o ninguno | Un cuerpo vacío (`{}`), así que ninguna referencia a `requestBody` se resuelve, y una plantilla la deja tal cual. |
 
 Se aceptan cuerpos de hasta 50 MB; uno más grande se rechaza con un `413`. No comprima el cuerpo con `Content-Encoding: gzip`: no se guarda como JSON, y las rutas dentro de él no se resolverán.
 

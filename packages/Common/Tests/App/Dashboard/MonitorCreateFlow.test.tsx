@@ -235,6 +235,16 @@ import PermissionGate from "../../../UI/Utils/PermissionGate";
 import UiAnalytics from "../../../UI/Utils/Analytics";
 import { getJestSpyOn } from "../../Spy";
 import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * A read the page makes that these tests leave unanswered: the project's
+ * active monitor limit, for the notice above the form
+ * (ActiveMonitorLimitNotice), which says nothing when it cannot read it.
+ * Refused at once, as the network refused it, and taken as a read the
+ * notice could not make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/monitor/active-monitor-limit"]);
 
 // The server's global config, answered here rather than over the network.
 beforeEach((): void => {

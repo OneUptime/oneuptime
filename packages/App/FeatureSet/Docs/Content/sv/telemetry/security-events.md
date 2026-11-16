@@ -54,7 +54,7 @@ flowchart TB
 | **Skyddade entiteter** | Playbooks | De användare och värdar som ingen playbook begränsar |
 | **Inställningar** | AI | Om OneUptime AI bedömer varje nytt ärende |
 | **Anslutningar** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
-| **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
+| **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din intagningsnyckel |
 | **Ärendeprioriteter** | Inställningar | Hur brådskande ett ärende är: projektets egna prioriteter, den mest brådskande först |
 | **Svarsmål** | Inställningar | Hur snabbt ett ärende med varje prioritet måste tas om hand och begränsas |
 | **Ärendestatusar** | Inställningar | Stegen ett ärende går igenom, och vad ett ärende i varje steg räknas som |
@@ -78,9 +78,9 @@ Säkerhetsdata kan bara läsas av rollerna Projektägare och Projektadministrat�
 ## Skicka säkerhetshändelser
 
 :::steps
-### Skapa en ingestion-nyckel
+### Skapa en intagningsnyckel
 
-Öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa ingestion-nyckel**. Säkerhetshändelser använder samma nycklar som resten av din telemetri.
+Öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa intagningsnyckel**. Säkerhetshändelser använder samma nycklar som resten av din telemetri.
 
 ### Skicka dina händelser
 

@@ -95,7 +95,7 @@ Om du vill använda fält i kroppen — `{{requestBody.status}}` i en incidentti
 | `application/json` | Den tolkade JSON:en. |
 | `application/x-www-form-urlencoded` | Det tolkade formuläret. Nycklar inom hakparenteser nästlas (`alerts[0][status]=firing`), och alla värden är strängar. |
 | `text/plain` | Den tolkade JSON:en, när texten är ett JSON-objekt eller en JSON-matris: så skickar Amazon SNS sina meddelanden. All annan text blir en tom kropp. |
-| Allt annat, eller ingen | En tom kropp (`{}`), så varje hänvisning till `requestBody` blir ingenting. |
+| Allt annat, eller ingen | En tom kropp (`{}`), så ingen hänvisning till `requestBody` löses upp, och en mall skriver ut den ordagrant. |
 
 Kroppar på upp till 50 MB godtas; en större avvisas med en `413`. Komprimera inte kroppen med `Content-Encoding: gzip`: då lagras den inte som JSON, och sökvägar in i den löses inte upp.
 

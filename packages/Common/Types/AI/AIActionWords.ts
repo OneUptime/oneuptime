@@ -103,10 +103,25 @@ export interface AIActionMoment {
 }
 
 /*
+ * A page of the Dashboard, by where its menus put it and its name: "User
+ * Settings > Alerts & Notifications > Notification Methods". Each name is
+ * one of the Dashboard's own, by the key its menus and Search look it up
+ * by - from Ask AI's catalog of its pages (Server/Utils/AI/Docs), never
+ * the model's words - and is said in the sentence's language, joined with
+ * " > " (#8831): "Seite: Benutzereinstellungen > ... ". English reads each
+ * as the Dashboard draws it, a key that names its meaning as its word
+ * (MeaningKeys): "Insights (explorer analytics)" is "Insights".
+ */
+export interface AIActionMenuPath {
+  menuPath: Array<string>;
+}
+
+/*
  * What fills a sentence's {{placeholder}}: data as written, a number, a
- * term, a list, a figure, or a moment - the ends of the window a read's
+ * term, a list, a figure, a moment - the ends of the window a read's
  * table or source names (issue #7979), which the sentence says as their
- * ISO text in English and the Dashboard writes in the reader's time.
+ * ISO text in English and the Dashboard writes in the reader's time - or a
+ * Dashboard page's place and name.
  */
 export type AIActionSentenceValue =
   | string
@@ -114,7 +129,8 @@ export type AIActionSentenceValue =
   | AIActionTerm
   | AIActionList
   | AIActionFigure
-  | AIActionMoment;
+  | AIActionMoment
+  | AIActionMenuPath;
 
 export interface AIActionSentence {
   /*
@@ -1429,6 +1445,11 @@ export function aiActionMoment(moment: Date): AIActionMoment {
   return { moment: moment.toISOString() };
 }
 
+// A Dashboard page by its place and name, each said in the sentence's language (AIActionMenuPath).
+export function aiActionMenuPath(menuPath: Array<string>): AIActionMenuPath {
+  return { menuPath: [...menuPath] };
+}
+
 /*
  * ---------------------------------------------------------------------------
  * Reading a stored sentence (the Dashboard).
@@ -1462,6 +1483,48 @@ export function isAIActionFigure(value: unknown): value is AIActionFigure {
 
 export function isAIActionMoment(value: unknown): value is AIActionMoment {
   return isPlainObject(value) && typeof value["moment"] === "string";
+}
+
+export function isAIActionMenuPath(value: unknown): value is AIActionMenuPath {
+  return isPlainObject(value) && Array.isArray(value["menuPath"]);
+}
+
+// The most names a stored page's place and name may hold, and how long each.
+const MAX_MENU_PATH_NAMES: number = 8;
+const MAX_MENU_PATH_NAME_CHARS: number = 200;
+
+// A stored place the Dashboard can say: one to eight names, each a short text.
+const isKnownMenuPath: (value: AIActionMenuPath) => boolean = (
+  value: AIActionMenuPath,
+): boolean => {
+  return (
+    value.menuPath.length > 0 &&
+    value.menuPath.length <= MAX_MENU_PATH_NAMES &&
+    value.menuPath.every((name: unknown): boolean => {
+      return (
+        typeof name === "string" &&
+        name.trim().length > 0 &&
+        name.length <= MAX_MENU_PATH_NAME_CHARS
+      );
+    })
+  );
+};
+
+/*
+ * A page's place and name in the translator's language: each name as the
+ * Dashboard draws it there ("Benutzereinstellungen", "Análisis" for the
+ * explorers' "Insights (explorer analytics)"), English where the language
+ * has no wording of it, joined with " > " as the menus' path is.
+ */
+export function describeAIActionMenuPath(
+  value: AIActionMenuPath,
+  translator: Translator = getEnglishTranslator(),
+): string {
+  return value.menuPath
+    .map((name: string): string => {
+      return translator.translateTerm(name);
+    })
+    .join(" > ");
 }
 
 // A stored figure the Dashboard can write: a finite number, a share or not.
@@ -1533,6 +1596,11 @@ const isKnownValue: (value: unknown, depth: number) => boolean = (
   // A window's end: a date the Dashboard can read (issue #7979).
   if (isAIActionMoment(value)) {
     return isKnownMoment(value);
+  }
+
+  // A Dashboard page's place and name (#8831).
+  if (isAIActionMenuPath(value)) {
+    return isKnownMenuPath(value);
   }
 
   return false;
@@ -1936,6 +2004,11 @@ const toTemplateValues: (
        * the sentence (TableWords' drawReadSentence).
        */
       result[name] = value.moment;
+    } else if (isAIActionMenuPath(value)) {
+      // Each name in the sentence's language, as the Dashboard's menus draw it.
+      result[name] = composedValue((sentenceTranslator: Translator): string => {
+        return describeAIActionMenuPath(value, sentenceTranslator);
+      });
     }
   }
 

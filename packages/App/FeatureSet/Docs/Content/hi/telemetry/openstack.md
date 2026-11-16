@@ -39,7 +39,7 @@ flowchart TB
 - Docker Engine 20.10 या बाद का, Docker Compose v2 प्लगइन के साथ, या Docker के बिना चलाने के लिए, systemd 235 या बाद के, glibc 2.34 या बाद के (RHEL 9, Ubuntu 22.04, Debian 12) और root वाली Linux मशीन (x86_64 या arm64)।
 - उस मशीन से Keystone और हर सेवा के सार्वजनिक एंडपॉइंट तक रास्ता।
 - `openstack` कमांड लाइन, ऐसे व्यक्ति के रूप में जो नीचे का क्रेडेंशियल बना सकता हो।
-- एक इन्जेशन कुंजी। इसे **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** के अंतर्गत बनाएँ और इसका मान कॉपी करें।
+- एक इंजेशन कुंजी। इसे **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** के अंतर्गत बनाएँ और इसका मान कॉपी करें।
 - उस मशीन से आपके OneUptime URL तक आउटबाउंड HTTPS।
 
 ### एजेंट कहाँ चलाएँ
@@ -260,7 +260,7 @@ curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh
 bash install.sh
 ```
 
-स्क्रिप्ट आपसे आपका OneUptime URL, इन्जेशन कुंजी, क्लाउड का एक स्थिर नाम, Keystone auth URL, क्षेत्रों के नाम, एप्लिकेशन क्रेडेंशियल (अगर आप उसके लिए मना करें तो यूज़रनेम और पासवर्ड), और अगर क्लाउड की अपनी सर्टिफ़िकेट अथॉरिटी है तो एक निजी CA फ़ाइल पूछती है। कोई गोपनीय चीज़ इको नहीं होती और न किसी कमांड लाइन पर जाती है। यह कुछ भी लिखने या शुरू करने से पहले क्रेडेंशियल को Keystone से जाँचती है, `/opt/oneuptime-openstack-agent` में इंस्टॉल करती है, या अगर आपके पास `/opt` पर अधिकार नहीं हैं तो आपके होम फ़ोल्डर में `oneuptime-openstack-agent` में (इसे केवल `docker` समूह चाहिए), `.env` और `clouds.yaml` को मोड `0600` के साथ लिखती है, और एजेंट को Docker Compose से शुरू करती है। हर जवाब एनवायरनमेंट वेरिएबल के रूप में भी काम करता है, और स्क्रिप्ट को फिर से चलाने पर वह उन्हें दोबारा पूछने के बजाय दोबारा इस्तेमाल करती है, इसी तरह आप [एजेंट को अपग्रेड](#एजेंट-को-अपग्रेड-करना) करते हैं।
+स्क्रिप्ट आपसे आपका OneUptime URL, इंजेशन कुंजी, क्लाउड का एक स्थिर नाम, Keystone auth URL, क्षेत्रों के नाम, एप्लिकेशन क्रेडेंशियल (अगर आप उसके लिए मना करें तो यूज़रनेम और पासवर्ड), और अगर क्लाउड की अपनी सर्टिफ़िकेट अथॉरिटी है तो एक निजी CA फ़ाइल पूछती है। कोई गोपनीय चीज़ इको नहीं होती और न किसी कमांड लाइन पर जाती है। यह कुछ भी लिखने या शुरू करने से पहले क्रेडेंशियल को Keystone से जाँचती है, `/opt/oneuptime-openstack-agent` में इंस्टॉल करती है, या अगर आपके पास `/opt` पर अधिकार नहीं हैं तो आपके होम फ़ोल्डर में `oneuptime-openstack-agent` में (इसे केवल `docker` समूह चाहिए), `.env` और `clouds.yaml` को मोड `0600` के साथ लिखती है, और एजेंट को Docker Compose से शुरू करती है। हर जवाब एनवायरनमेंट वेरिएबल के रूप में भी काम करता है, और स्क्रिप्ट को फिर से चलाने पर वह उन्हें दोबारा पूछने के बजाय दोबारा इस्तेमाल करती है, इसी तरह आप [एजेंट को अपग्रेड](#एजेंट-को-अपग्रेड-करना) करते हैं।
 @tab Docker Compose
 अपने OneUptime से `docker-compose.yml` और `otel-collector-config.yaml` को एक नए फ़ोल्डर में डाउनलोड करें:
 
@@ -359,7 +359,7 @@ Docker के बिना, `systemctl status oneuptime-openstack-agent oneuptim
 | वेरिएबल | ज़रूरी | विवरण |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | हाँ | आपका OneUptime URL, जैसे `https://oneuptime.com` या आपका सेल्फ़-होस्टेड इंस्टेंस। |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | हाँ | **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** से इन्जेशन कुंजी। |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | हाँ | **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** से इंजेशन कुंजी। |
 | `OPENSTACK_CLOUD_NAME` | हाँ | OneUptime में क्लाउड का नाम, हर मेट्रिक पर `openstack.cloud.name` रिसोर्स एट्रिब्यूट के रूप में लगा। इसे स्थिर रखें: इसे बदलने से नया क्लाउड पंजीकृत होता है। डिफ़ॉल्ट `openstack` है। |
 | `OPENSTACK_AUTH_URL` | साथ वाला एक्सपोर्टर | इंस्टॉल स्क्रिप्ट का एक जवाब: Keystone auth URL। अगर `/v3` नहीं है तो जोड़ दिया जाता है। |
 | `OPENSTACK_EXPORTER_CLOUDS` | हाँ | क्षेत्र, वर्गाकार कोष्ठकों में, जैसे `[RegionOne,RegionTwo]`, हर एक `clouds.yaml` प्रविष्टि का नाम। डिफ़ॉल्ट `[RegionOne]` है। |
@@ -1016,7 +1016,7 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/install-logs.sh
 sudo bash install-logs.sh
 ```
 
-बिना आर्गुमेंट के स्क्रिप्ट मशीन को देखती है, और बता न पाने पर पूछती है। यह आपका OneUptime URL, इन्जेशन कुंजी, क्लाउड का नाम, जो वही होना चाहिए जो क्लाउड का OneUptime में है, और यह मशीन किस क्षेत्र की सेवा करती है, पूछती है। हर जवाब एनवायरनमेंट वेरिएबल के रूप में भी काम करता है, इसलिए पूरे बेड़े पर रन कुछ नहीं पूछता: `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `OPENSTACK_CLOUD_NAME`, `OPENSTACK_REGION_NAME`, `OPENSTACK_NODE_NAME` और `OPENSTACK_LOGS_PROFILE`। इसे फिर से चलाना अपग्रेड है, और हर जवाब रखता है।
+बिना आर्गुमेंट के स्क्रिप्ट मशीन को देखती है, और बता न पाने पर पूछती है। यह आपका OneUptime URL, इंजेशन कुंजी, क्लाउड का नाम, जो वही होना चाहिए जो क्लाउड का OneUptime में है, और यह मशीन किस क्षेत्र की सेवा करती है, पूछती है। हर जवाब एनवायरनमेंट वेरिएबल के रूप में भी काम करता है, इसलिए पूरे बेड़े पर रन कुछ नहीं पूछता: `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `OPENSTACK_CLOUD_NAME`, `OPENSTACK_REGION_NAME`, `OPENSTACK_NODE_NAME` और `OPENSTACK_LOGS_PROFILE`। इसे फिर से चलाना अपग्रेड है, और हर जवाब रखता है।
 
 | वेरिएबल | यह किसलिए है |
 | --- | --- |
@@ -1736,7 +1736,7 @@ OneUptime की अपनी इमेज गैप को दूसरे त�
 ## समस्या निवारण
 
 :::details पहले डायग्नोस्टिक स्क्रिप्ट चलाएँ
-एजेंट के साथ एक स्क्रिप्ट आती है, [`troubleshoot.sh`](https://oneuptime.com/install/openstack-agent/troubleshoot.sh), जो एजेंट के इस्तेमाल किए नेटवर्क पथ पर पूरी शृंखला जाँचती है: कंटेनर या सेवाएँ, `clouds.yaml`, एक्सपोर्टर, DNS, TLS, Keystone, कैटलॉग की हर सेवा, क्लाउड का नाम, और क्या OneUptime इन्जेशन कुंजी स्वीकार करता है। OneUptime ख़राब कुंजी को `401` से मना करता है (अक्षम कुंजी या ब्राउज़र कुंजी के लिए `422`), और कलेक्टर हर मना किया बैच एक `Exporting failed` लॉग पंक्ति के साथ छोड़ देता है जिसे चूकना आसान है।
+एजेंट के साथ एक स्क्रिप्ट आती है, [`troubleshoot.sh`](https://oneuptime.com/install/openstack-agent/troubleshoot.sh), जो एजेंट के इस्तेमाल किए नेटवर्क पथ पर पूरी शृंखला जाँचती है: कंटेनर या सेवाएँ, `clouds.yaml`, एक्सपोर्टर, DNS, TLS, Keystone, कैटलॉग की हर सेवा, क्लाउड का नाम, और क्या OneUptime इंजेशन कुंजी स्वीकार करता है। OneUptime ख़राब कुंजी को `401` से मना करता है (अक्षम कुंजी या ब्राउज़र कुंजी के लिए `422`), और कलेक्टर हर मना किया बैच एक `Exporting failed` लॉग पंक्ति के साथ छोड़ देता है जिसे चूकना आसान है।
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent/troubleshoot.sh -o troubleshoot.sh
@@ -1747,7 +1747,7 @@ sudo bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneupt
 :::
 
 :::details OneUptime में कोई क्लाउड नहीं दिखता
-1. कलेक्टर के लॉग पढ़ें: `docker logs oneuptime-openstack-agent`, या Docker के बिना `journalctl -u oneuptime-openstack-agent`। एक्सपोर्ट पर `401` का मतलब ख़राब इन्जेशन कुंजी है; connection refused का मतलब ग़लत `ONEUPTIME_URL` है।
+1. कलेक्टर के लॉग पढ़ें: `docker logs oneuptime-openstack-agent`, या Docker के बिना `journalctl -u oneuptime-openstack-agent`। एक्सपोर्ट पर `401` का मतलब ख़राब इंजेशन कुंजी है; connection refused का मतलब ग़लत `ONEUPTIME_URL` है।
 2. जाँचें कि एक्सपोर्टर जवाब देता है। साथ आने वाला एक्सपोर्टर अपना पोर्ट होस्ट पर प्रकाशित नहीं करता, इसलिए उसके नेटवर्क के अंदर से पूछें: `docker run --rm --network container:oneuptime-openstack-exporter curlimages/curl -s "http://localhost:9180/probe?cloud=RegionOne&include_services=identity" | head` को `openstack_identity_*` पंक्तियाँ प्रिंट करनी चाहिए।
 3. इसे एक स्क्रेप अंतराल दें: compute के लिए 2 मिनट, identity के लिए 5।
 :::
@@ -1793,7 +1793,7 @@ Flamingo और Epoxy पर, जब oslo.policy की पढ़ी पॉल�
 :::
 
 :::details क्लाउड की सेवा लॉग नहीं आते
-कलेक्टर का लॉग पढ़ें: फ़ाइल प्रोफ़ाइल के लिए `docker logs oneuptime-openstack-logs`, या जर्नल वाली के लिए `journalctl -u oneuptime-openstack-logs`। `401` का मतलब ख़राब इन्जेशन कुंजी है। अगर पंक्तियाँ किसी क्लाउड के बिना आती हैं, तो `OPENSTACK_CLOUD_NAME` वह नाम नहीं है जो क्लाउड का OneUptime में है: सही नाम के साथ `install-logs.sh` फिर चलाएँ।
+कलेक्टर का लॉग पढ़ें: फ़ाइल प्रोफ़ाइल के लिए `docker logs oneuptime-openstack-logs`, या जर्नल वाली के लिए `journalctl -u oneuptime-openstack-logs`। `401` का मतलब ख़राब इंजेशन कुंजी है। अगर पंक्तियाँ किसी क्लाउड के बिना आती हैं, तो `OPENSTACK_CLOUD_NAME` वह नाम नहीं है जो क्लाउड का OneUptime में है: सही नाम के साथ `install-logs.sh` फिर चलाएँ।
 :::
 
 :::details पंक्तियाँ बिना लेवल, अनुरोध या सेवा के आती हैं

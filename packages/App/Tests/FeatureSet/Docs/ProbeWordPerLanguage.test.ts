@@ -44,6 +44,11 @@ import { readDashboardLocale } from "Common/Tests/Helpers/DashboardLocales";
  *     reference, the server or the docs navigation says another word
  *     (ProbeWords: others), and no block of a docs page does - prose,
  *     headings, table rows, bold leads and diagram labels;
+ *   - no setup guide's words do either: each product's Help >
+ *     Documentation guide, in each language
+ *     (Pages/<Product>/DocumentationTranslations/<code>.ts), read piece by
+ *     piece. The Databases guide still wrote "probebaseret" and "en probe"
+ *     beside the Dashboard's Sonde (#8815);
  *   - a Persian block says کاوشگر only where its English says explorer;
  *   - nearly every block whose English names a probe says the Dashboard's
  *     word, so a page cannot drop it for a third one.
@@ -77,6 +82,63 @@ const LOCALE_DIRS: Readonly<Record<string, string>> = {
   Server: path.join(COMMON_DIR, "Server/Locales"),
   "Docs navigation": path.join(APPS_DIR, "Docs/Locales"),
 };
+
+/*
+ * Every setup guide's words: each product's Help > Documentation guide holds,
+ * per language, each piece of its English markdown and the language's words
+ * for it. Every product's folder is read, so a guide is read the day it lands.
+ */
+const DASHBOARD_PAGES: string = path.join(APPS_DIR, "Dashboard/src/Pages");
+
+// A fenced block of a guide's piece: code, not words.
+const FENCED_BLOCK: RegExp = /```[\s\S]*?```/g;
+
+function setupGuideFiles(language: string): Array<string> {
+  return fs
+    .readdirSync(DASHBOARD_PAGES)
+    .map((product: string): string => {
+      return path.join(
+        DASHBOARD_PAGES,
+        product,
+        "DocumentationTranslations",
+        `${language}.ts`,
+      );
+    })
+    .filter((file: string): boolean => {
+      return fs.existsSync(file);
+    });
+}
+
+// The pieces of a language's setup guides that say another word, by guide and English piece.
+async function setupGuideSightings(language: string): Promise<Array<string>> {
+  const sightings: Array<string> = [];
+
+  for (const file of setupGuideFiles(language)) {
+    const pieces: Record<string, string> = (
+      (await import(file)) as { default: Record<string, string> }
+    ).default;
+
+    for (const [english, text] of Object.entries(pieces)) {
+      if (text === english) {
+        continue;
+      }
+
+      const says: string | null = otherProbeWordIn(
+        language,
+        english,
+        text.replace(FENCED_BLOCK, " "),
+      );
+
+      if (says) {
+        sightings.push(
+          `${path.relative(DASHBOARD_PAGES, file)} ${JSON.stringify(english.slice(0, 70))}: ${says}`,
+        );
+      }
+    }
+  }
+
+  return sightings;
+}
 
 // The Dashboard's word for a probe, and for probes, in each language.
 const DASHBOARD_WORDS: Readonly<
@@ -389,6 +451,15 @@ describe.each(PROBE_LANGUAGES)("a probe in %s", (language: string) => {
       unpaired: unpairedNamingAProbe(language),
       sightings: docsSightings(language),
     }).toEqual({ language, unpaired: [], sightings: [] });
+  });
+
+  test("no setup guide's words say another word", async () => {
+    // Every guide is read (control): Databases' is the one #8815 found.
+    expect(setupGuideFiles(language).length).toBeGreaterThan(5);
+    expect({
+      language,
+      sightings: await setupGuideSightings(language),
+    }).toEqual({ language, sightings: [] });
   });
 
   /*

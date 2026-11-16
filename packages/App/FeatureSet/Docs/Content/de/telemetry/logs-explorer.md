@@ -31,7 +31,7 @@ Der Explorer hat fünf Tabs:
 | **Betrachter** | Protokolle suchen, filtern und lesen. Er öffnet mit der letzten Stunde, neueste zuerst, 100 Protokolle pro Seite. |
 | **Einblicke** | Was Ihre Dienste in einem Zeitraum protokolliert haben und was schiefging. |
 | **KI** | Die Fehlerprotokolle, die fehlende Protokollierung und die übermäßigen Protokolle, die OneUptime in Ihren Protokollen findet, und was OneUptime AI dagegen getan hat. Siehe [Fehlerprotokolle, fehlende und übermäßige Protokolle mit KI finden und beheben](#fehlerprotokolle-fehlende-und-übermäßige-protokolle-mit-ki-finden-und-beheben). |
-| **Einrichtungsanleitung** | Wie Sie Protokolle mit OpenTelemetry, Fluent Bit oder Fluentd senden, mit einem Ihrer [Aufnahmeschlüssel](/docs/telemetry/ingestion-keys). |
+| **Einrichtungsanleitung** | Wie Sie Protokolle mit OpenTelemetry, Fluent Bit oder Fluentd senden, mit einem Ihrer [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys). |
 | **Einstellungen** | Was mit Protokollen beim Eintreffen geschieht: **Pipelines**, **Drop-Filter**, **Scrub-Regeln** und **Aufzeichnungsregeln**. |
 
 ## Bevor Sie beginnen

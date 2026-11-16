@@ -2,10 +2,18 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { readDashboardLocale } from "Common/Tests/Helpers/DashboardLocales";
 import {
+  isWordedInDashboardLocale,
+  readDashboardLocale,
+} from "Common/Tests/Helpers/DashboardLocales";
+import {
+  EVERY_LOCALE_FOLDER,
+  INGESTION_KEY_WORDS,
+  LOCALE_FOLDERS,
+  LocaleFolder,
   ONE_WORD_RULES,
   SentenceRule,
+  foldersOf,
 } from "Common/Tests/Helpers/OneWordPerThingRules";
 
 /*
@@ -289,6 +297,22 @@ describe("the check of the sentences", () => {
     expect(dutch.word.test("een engine-metriek")).toBe(true);
   });
 
+  test("lets Hindi spell an event one way, इवेंट (#8824)", () => {
+    const hindi: SentenceRule = ruleOf("hi", "Events");
+
+    expect(hindi.english.test("Event Labels")).toBe(true);
+    expect(hindi.english.test("Failed to fetch events")).toBe(true);
+    // Negative control: the dropped spelling is caught, and only it.
+    expect(hindi.dropped.test("ईवेंट लेबल")).toBe(true);
+    expect(hindi.dropped.test("ईवेंटों का नाम")).toBe(true);
+    expect(hindi.dropped.test("इवेंट लेबल")).toBe(false);
+    expect(hindi.word.test("इवेंट लेबल")).toBe(true);
+    // The Dashboard's Event key reads the kept spelling.
+    expect(hindi.dropped.test(readDashboardLocale("hi")["Event"] || "")).toBe(
+      false,
+    );
+  });
+
   test("reads a plural form's key by its English", () => {
     expect(englishOf("Sync Criteria to {{count}} Linked Monitors_one")).toBe(
       "Sync Criteria to {{count}} Linked Monitors",
@@ -566,13 +590,24 @@ describe("a thing's docs in each language", () => {
  * audit log "registro di audit" there after the Dashboard and the docs said
  * "log di audit".
  */
-const ADMIN_LOCALES: string = path.resolve(
-  __dirname,
-  "../../FeatureSet/AdminDashboard/src/Locales",
-);
+const PACKAGES: string = path.resolve(__dirname, "../../..");
+
+function folderOf(folder: LocaleFolder): string {
+  return path.join(PACKAGES, LOCALE_FOLDERS[folder]);
+}
+
+const ADMIN_LOCALES: string = folderOf("Admin Dashboard");
 
 // Each string of an Admin locale, by its place in the file ("pages.home.title").
 function adminWords(language: string): Record<string, string> {
+  return localeWords("Admin Dashboard", language);
+}
+
+// Each string of a folder's locale, by its place in the file ("pages.home.title").
+function localeWords(
+  folder: LocaleFolder,
+  language: string,
+): Record<string, string> {
   const words: Record<string, string> = {};
   const walk: (node: Record<string, unknown>, prefix: string) => void = (
     node: Record<string, unknown>,
@@ -589,7 +624,7 @@ function adminWords(language: string): Record<string, string> {
 
   walk(
     JSON.parse(
-      fs.readFileSync(path.join(ADMIN_LOCALES, `${language}.json`), "utf8"),
+      fs.readFileSync(path.join(folderOf(folder), `${language}.json`), "utf8"),
     ),
     "",
   );
@@ -599,12 +634,30 @@ function adminWords(language: string): Record<string, string> {
 
 // The Admin strings of `rule.language` whose English names the thing and still say the dropped word.
 function adminStillDropped(rule: SentenceRule): Array<string> {
-  if (!fs.existsSync(path.join(ADMIN_LOCALES, `${rule.language}.json`))) {
+  return foldersOf(rule).includes("Admin Dashboard")
+    ? folderStillDropped(rule, "Admin Dashboard")
+    : [];
+}
+
+/*
+ * The strings of a folder in `rule.language` whose English names the thing
+ * and still say the dropped word; `overrides` words some strings otherwise,
+ * as a control's fixture.
+ */
+function folderStillDropped(
+  rule: SentenceRule,
+  folder: LocaleFolder,
+  overrides: Record<string, string> = {},
+): Array<string> {
+  if (!fs.existsSync(path.join(folderOf(folder), `${rule.language}.json`))) {
     return [];
   }
 
-  const english: Record<string, string> = adminWords("en");
-  const words: Record<string, string> = adminWords(rule.language);
+  const english: Record<string, string> = localeWords(folder, "en");
+  const words: Record<string, string> = {
+    ...localeWords(folder, rule.language),
+    ...overrides,
+  };
 
   return Object.keys(words).filter((place: string): boolean => {
     const named: string = englishOf(english[place] ?? place);
@@ -635,6 +688,289 @@ describe("a thing's Admin Dashboard strings in each language", () => {
     "%s's Admin Dashboard names %s with its one word",
     (_language: string, _thing: string, rule: SentenceRule) => {
       expect(adminStillDropped(rule)).toEqual([]);
+    },
+  );
+});
+
+/*
+ * THE STATUS PAGES, THE SIGN-IN PAGES, THE PUBLIC DASHBOARDS, THE API
+ * REFERENCE AND THE SERVER SAY IT TOO (#8828).
+ *
+ * A customer's own users read a status page; anyone signing in reads the
+ * sign-in pages; every email and server message is written from the
+ * server's locale. They name the Dashboard's things, but no one-word rule
+ * read them: a status page's webhook described an event with Hindi's
+ * minority ईवेंट, Norwegian status pages said Frakoblet for Offline, and
+ * the Korean sign-in pages named two-factor authentication 이중 인증 under
+ * the Dashboard's 2단계 인증 (#8827). Each rule reads the folders it names
+ * (foldersOf: every one, unless a rule says otherwise).
+ */
+const NEWLY_READ: ReadonlyArray<LocaleFolder> = [
+  "Status page",
+  "Sign-in pages",
+  "Public dashboards",
+  "API reference",
+  "Server",
+];
+
+describe("a thing's strings in every other app's locale folder", () => {
+  test("every folder a rule may read is one of the apps' locale folders", () => {
+    expect([...EVERY_LOCALE_FOLDER].sort()).toEqual(
+      ["Admin Dashboard", ...NEWLY_READ].sort(),
+    );
+
+    for (const folder of EVERY_LOCALE_FOLDER) {
+      expect({
+        folder,
+        english: fs.existsSync(path.join(folderOf(folder), "en.json")),
+      }).toEqual({ folder, english: true });
+    }
+
+    for (const rule of RULES) {
+      for (const folder of foldersOf(rule)) {
+        expect(EVERY_LOCALE_FOLDER).toContain(folder);
+      }
+    }
+  });
+
+  test.each(
+    RULES.flatMap(
+      (
+        rule: SentenceRule,
+      ): Array<[string, string, LocaleFolder, SentenceRule]> => {
+        return foldersOf(rule)
+          .filter((folder: LocaleFolder): boolean => {
+            return NEWLY_READ.includes(folder);
+          })
+          .map(
+            (
+              folder: LocaleFolder,
+            ): [string, string, LocaleFolder, SentenceRule] => {
+              return [rule.language, rule.thing, folder, rule];
+            },
+          );
+      },
+    ),
+  )(
+    "%s names %s with its one word in the %s folder",
+    (
+      _language: string,
+      _thing: string,
+      folder: LocaleFolder,
+      rule: SentenceRule,
+    ) => {
+      expect(folderStillDropped(rule, folder)).toEqual([]);
+    },
+  );
+
+  /*
+   * Each newly read folder, read for real (control): one of its strings
+   * whose English names the thing is worded with the dropped word, and the
+   * guard finds it.
+   */
+  test.each([
+    ["Status page", "hi", "Events", "ईवेंट"],
+    ["Sign-in pages", "ko", "Two-factor authentication", "이중 인증"],
+    ["Public dashboards", "no", "Offline", "Du er frakoblet"],
+    ["API reference", "zh-CN", "Traces", "堆栈跟踪"],
+    ["Server", "da", "Monitors", "Overvågning: {{monitorName}}"],
+  ])(
+    "the %s folder: a %s string about %s said %p is caught",
+    (folder: string, language: string, thing: string, minority: string) => {
+      const rule: SentenceRule = RULES.find((candidate: SentenceRule) => {
+        return candidate.language === language && candidate.thing === thing;
+      })!;
+      const english: Record<string, string> = localeWords(
+        folder as LocaleFolder,
+        "en",
+      );
+      const place: string | undefined = Object.keys(
+        localeWords(folder as LocaleFolder, language),
+      ).find((candidate: string): boolean => {
+        const named: string = englishOf(english[candidate] ?? candidate);
+
+        return (
+          rule.english.test(named) && !(rule.except && rule.except.test(named))
+        );
+      });
+
+      expect(foldersOf(rule)).toContain(folder);
+      expect(place).toBeDefined();
+      expect(
+        folderStillDropped(rule, folder as LocaleFolder, {
+          [place!]: minority,
+        }),
+      ).toEqual([place]);
+    },
+  );
+});
+
+/*
+ * AN INGESTION KEY IS ONE WORD, ON ITS PAGE AND EVERYWHERE (#8806).
+ *
+ * The Ingestion Keys card titled its list one way and its Create button
+ * another: Swedish Intagningsnycklar over Skapa ingestion-nyckel, Danish
+ * Indtagelsesnøgler over Opret ingestion-nøgle, Italian Chiavi di
+ * acquisizione over Crea chiave di ingestione. A reader could not tell the
+ * button makes one of the keys the title lists. Every string whose English
+ * names an ingestion key, in the Dashboard and the Admin Dashboard, says the
+ * language's word, in all 17 languages; the words they dropped are held out
+ * of the docs and the setup guides by the shared rules.
+ */
+const NAMES_AN_INGESTION_KEY: RegExp = /\bingestion[ -]keys?\b/i;
+
+// The strings whose English names an ingestion key and that do not say the language's word.
+function notSayingIngestionKey(
+  language: string,
+  strings: Record<string, string>,
+  english: (place: string) => string,
+): Array<string> {
+  const word: RegExp = INGESTION_KEY_WORDS[language]!;
+
+  return Object.keys(strings).filter((place: string): boolean => {
+    const named: string = englishOf(english(place));
+    const text: string = strings[place]!;
+
+    return (
+      NAMES_AN_INGESTION_KEY.test(named.replace(NOT_WORDS, " ")) &&
+      text !== named &&
+      !word.test(text.replace(NOT_WORDS, " "))
+    );
+  });
+}
+
+describe("an ingestion key in each language", () => {
+  test("every Dashboard language has its word", () => {
+    expect(Object.keys(INGESTION_KEY_WORDS).sort()).toEqual(
+      fs
+        .readdirSync(
+          path.resolve(__dirname, "../../FeatureSet/Dashboard/src/Locales"),
+        )
+        .filter((file: string): boolean => {
+          return file.endsWith(".json") && file !== "en.json";
+        })
+        .map((file: string): string => {
+          return file.replace(/\.json$/, "");
+        })
+        .sort(),
+    );
+  });
+
+  test.each(Object.keys(INGESTION_KEY_WORDS))(
+    "%s: the Ingestion Keys title and its Create button say one word",
+    (language: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
+      const word: RegExp = INGESTION_KEY_WORDS[language]!;
+
+      expect({
+        language,
+        title: word.test(words["Ingestion Keys"]!),
+        button: word.test(words["Create Ingestion Key"]!),
+        key: word.test(words["Ingestion Key"]!),
+      }).toEqual({ language, title: true, button: true, key: true });
+    },
+  );
+
+  test.each(Object.keys(INGESTION_KEY_WORDS))(
+    "%s: every Dashboard and Admin Dashboard string about an ingestion key says it",
+    (language: string) => {
+      const dashboard: Record<string, string> = readDashboardLocale(language);
+      const adminEnglish: Record<string, string> = adminWords("en");
+
+      expect({
+        language,
+        dashboard: notSayingIngestionKey(
+          language,
+          dashboard,
+          (place: string): string => {
+            return place;
+          },
+        ),
+        admin: fs.existsSync(path.join(ADMIN_LOCALES, `${language}.json`))
+          ? notSayingIngestionKey(
+              language,
+              adminWords(language),
+              (place: string): string => {
+                return adminEnglish[place] ?? place;
+              },
+            )
+          : [],
+      }).toEqual({ language, dashboard: [], admin: [] });
+    },
+  );
+
+  test("a string that names an ingestion key another way is caught (control)", () => {
+    expect(
+      notSayingIngestionKey(
+        "sv",
+        { "Create Ingestion Key": "Skapa ingestion-nyckel" },
+        (place: string): string => {
+          return place;
+        },
+      ),
+    ).toEqual(["Create Ingestion Key"]);
+    expect(
+      notSayingIngestionKey(
+        "sv",
+        { "Create Ingestion Key": "Skapa intagningsnyckel" },
+        (place: string): string => {
+          return place;
+        },
+      ),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * A THING'S OWN WORD THAT READS AS ITS ENGLISH IS KEPT ON PURPOSE (#8836).
+ *
+ * Where a language's one word for a thing is the English word itself -
+ * Norwegian's Offline, Danish's and Norwegian's Monitor, Italian's Log, the
+ * Russian and Traditional Chinese Runner - its key reads exactly as its
+ * English. The toolchain (npm run i18n:check) and the suites that ask
+ * whether a language words a key count such a key as untranslated unless
+ * the language's same-as-English list keeps it
+ * (Dashboard/i18n/Progress/<code>.json). #8797 made Norwegian's Offline read
+ * "Offline" without keeping it, so DefaultStatusNamesInDashboardLocales read
+ * Norwegian's Offline status as never worded.
+ */
+describe("a thing's own word that reads as English", () => {
+  test.each(
+    RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
+      return [rule.language, rule.thing, rule];
+    }),
+  )(
+    "%s keeps %s's own key, where it reads as English, on its same-as-English list",
+    (_language: string, _thing: string, rule: SentenceRule) => {
+      const english: Record<string, string> = readDashboardLocale("en");
+      const words: Record<string, string> = readDashboardLocale(rule.language);
+      const asEnglish: Array<string> = [
+        rule.thing,
+        rule.thing.replace(/s$/, ""),
+      ].filter((key: string): boolean => {
+        return words[key] !== undefined && words[key] === english[key];
+      });
+
+      expect(
+        asEnglish.filter((key: string): boolean => {
+          return !isWordedInDashboardLocale(key, rule.language);
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  test.each([
+    ["no", "Offline"],
+    ["no", "Monitor"],
+    ["da", "Monitor"],
+    ["it", "Log"],
+    ["ru", "Runner"],
+    ["zh-TW", "Runner"],
+  ])(
+    "%s reads %p as English, and keeps it on purpose",
+    (language: string, key: string) => {
+      expect(readDashboardLocale(language)[key]).toBe(key);
+      expect(isWordedInDashboardLocale(key, language)).toBe(true);
     },
   );
 });

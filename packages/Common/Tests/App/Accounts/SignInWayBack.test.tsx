@@ -13,6 +13,7 @@ import path from "path";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import Navigation from "../../../UI/Utils/Navigation";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
 import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import ForgotPasswordPage from "../../../../App/FeatureSet/Accounts/src/Pages/ForgotPassword";
 import en from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
@@ -175,6 +176,9 @@ describe("every 'question? Link.' line says something in its question that its l
 
 describe("the forgot password page", () => {
   beforeEach(() => {
+    // The server's global config, answered here rather than over the network.
+    standInForGlobalConfig();
+
     jest.spyOn(Navigation, "navigate").mockImplementation(() => {
       // A page that would move on stays put here.
     });

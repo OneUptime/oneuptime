@@ -217,7 +217,7 @@ OneUptime Database Agent — это преднастроенный OpenTelemetry
 
 - Docker Engine 20.10 или новее с плагином Docker Compose v2 на машине, которая может достучаться до порта базы данных (или кластер Kubernetes: см. [Kubernetes](#kubernetes)).
 - Учётная запись в базе данных, которая может создать пользователя для мониторинга и выдать ему перечисленные ниже права на статистику.
-- Ключ приёма. Создайте его в разделе **Настройки проекта → Телеметрия и APM → Ключи приема** и скопируйте значение.
+- Ключ приёма. Создайте его в разделе **Настройки проекта → Телеметрия и APM → Ключи приёма** и скопируйте значение.
 
 :::steps
 ### Создание пользователя для мониторинга
@@ -366,7 +366,7 @@ docker compose up -d
 | Переменная | Обязательна | Описание |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Да | URL вашего экземпляра OneUptime (например, `https://oneuptime.com` или ваш собственный хост) |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Да | Ключ приёма из **Настройки проекта → Телеметрия и APM → Ключи приема** |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Да | Ключ приёма из **Настройки проекта → Телеметрия и APM → Ключи приёма** |
 | `DATABASE_SYSTEM` | Да | Движок, проставляется как `db.system.name`: `postgresql`, `mysql`, `mariadb`, `redis`, `valkey`, `keydb`, `dragonfly`, `mongodb`, `microsoft.sql_server`, `oracle.db`, `elasticsearch`, `opensearch` или `memcached`. `install.sh` принимает распространённые написания и скачивает соответствующую конфигурацию |
 | `DATABASE_ENDPOINT` | Да | `host:port`, к которому подключается агент. Используйте `host.docker.internal:<port>`, когда агент работает на машине базы данных (см. [Устранение неполадок](#устранение-неполадок), если подключение отклоняется). Для Elasticsearch / OpenSearch это URL: `http://host:9200` или `https://` для TLS |
 | `DATABASE_ENDPOINT_HOST` | SQL Server | Хост из `DATABASE_ENDPOINT` отдельно; приёмник SQL Server принимает хост и порт раздельно. Его записывает `install.sh` |

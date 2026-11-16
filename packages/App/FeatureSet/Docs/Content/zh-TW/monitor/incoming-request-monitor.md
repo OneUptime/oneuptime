@@ -95,7 +95,7 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 | `application/json` | 剖析後的 JSON。 |
 | `application/x-www-form-urlencoded` | 剖析後的表單。帶方括號的鍵會形成巢狀（`alerts[0][status]=firing`），每個值都是字串。 |
 | `text/plain` | 文字是 JSON 物件或陣列時，為剖析後的 JSON：Amazon SNS 就是這樣傳送訊息的。其他任何文字都視為空的請求內文。 |
-| 其他任何類型，或沒有 | 空的請求內文（`{}`），因此對 `requestBody` 的任何參照都得不到值。 |
+| 其他任何類型，或沒有 | 空的請求內文（`{}`），因此對 `requestBody` 的參照都不會被解析，範本會將其原封不動地保留。 |
 
 最多接受 50 MB 的請求內文；更大的會以 `413` 拒絕。不要以 `Content-Encoding: gzip` 壓縮請求內文：那樣它就不會以 JSON 形式儲存，其中的路徑也無法解析。
 

@@ -20,7 +20,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "`--set aiAgent.enabled=true` turns **AI investigations** on, as the chart does by default: OneUptime AI investigates incidents and alerts on this cluster with read-only kubectl, through the Kubernetes AI agent.":
     "`--set aiAgent.enabled=true` schaltet **KI-Untersuchungen** ein, wie es das Chart standardmäßig tut: OneUptime AI untersucht Vorfälle und Warnungen in diesem Cluster mit schreibgeschütztem kubectl, über den Kubernetes-KI-Agenten.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Wählen Sie in Schritt 1 einen Aufnahmeschlüssel, um `<YOUR_API_KEY>` auszufüllen.",
+    "Wählen Sie in Schritt 1 einen Ingestion-Schlüssel, um `<YOUR_API_KEY>` auszufüllen.",
   "You should see:": "Sie sollten Folgendes sehen:",
   "The collector and the Kubernetes AI agent, plus one `-logs` and one `-ebpf` pod on every node. Once they are `Running`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.":
     "Den Collector und den Kubernetes-KI-Agenten, dazu je einen `-logs`- und einen `-ebpf`-Pod auf jedem Knoten. Sobald sie `Running` sind, erscheint der Cluster automatisch im Bereich **Kubernetes**, meist innerhalb von ein, zwei Minuten.",
@@ -134,7 +134,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the collector's logs: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent`":
     "2. Prüfen Sie die Logs des Collectors: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent`",
   "3. Verify the OneUptime URL and ingestion key in the install command are correct.":
-    "3. Prüfen Sie, ob die OneUptime-URL und der Aufnahmeschlüssel im Installationsbefehl stimmen.",
+    "3. Prüfen Sie, ob die OneUptime-URL und der Ingestion-Schlüssel im Installationsbefehl stimmen.",
   "4. Make sure the cluster can reach your OneUptime instance over the network.":
     "4. Stellen Sie sicher, dass der Cluster Ihre OneUptime-Instanz über das Netzwerk erreicht.",
   "1. Check the AI agent's pod: `kubectl get pods -n oneuptime-agent -l component=ai-agent`":

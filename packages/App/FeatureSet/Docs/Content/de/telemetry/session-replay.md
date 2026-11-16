@@ -54,7 +54,7 @@ Fügen Sie jeder Seite, die Sie aufzeichnen möchten, ein Script-Tag hinzu.
 :::steps
 ### Einen Browser-Schlüssel erstellen
 
-Klicken Sie unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** auf **Aufnahmeschlüssel erstellen**, wählen Sie **Browser** als **Schlüsseltyp** und tragen Sie die Ursprünge Ihrer Site unter **Zulässige Ursprünge** ein. Kopieren Sie dann den Wert unter **Geheimer Schlüssel**. [Einrichtung für Browser](/docs/rum/browser-setup#einrichten) zeigt jeden Bildschirm.
+Klicken Sie unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** auf **Ingestion-Schlüssel erstellen**, wählen Sie **Browser** als **Schlüsseltyp** und tragen Sie die Ursprünge Ihrer Site unter **Zulässige Ursprünge** ein. Kopieren Sie dann den Wert unter **Geheimer Schlüssel**. [Einrichtung für Browser](/docs/rum/browser-setup#einrichten) zeigt jeden Bildschirm.
 
 ### Das Script-Tag hinzufügen
 

@@ -19,7 +19,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Replace `my-podman-host` with a name for this host, such as `prod-podman-01`. It is how the host appears in OneUptime, so keep it stable: a new name registers a new host.":
     "Ersetzen Sie `my-podman-host` durch einen Namen für diesen Host, etwa `prod-podman-01`. Unter diesem Namen erscheint der Host in OneUptime, halten Sie ihn also stabil: Ein neuer Name registriert einen neuen Host.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Wählen Sie in Schritt 1 einen Aufnahmeschlüssel, um `<YOUR_API_KEY>` auszufüllen.",
+    "Wählen Sie in Schritt 1 einen Ingestion-Schlüssel, um `<YOUR_API_KEY>` auszufüllen.",
   "Look for this line in the logs:":
     "Suchen Sie in den Protokollen nach dieser Zeile:",
   "Once the agent connects, the host appears automatically in the **Podman** section — usually within a minute or so. The OneUptime AI agent shows as Connected on the host's **AI → AI agent** page, and at the bottom of its **Overview**.":
@@ -31,7 +31,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Ja | Die URL Ihrer OneUptime-Instanz (z. B. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_SERVICE_TOKEN` | Yes | The telemetry ingestion key from step 1 |":
-    "| `ONEUPTIME_SERVICE_TOKEN` | Ja | Der Telemetrie-Aufnahmeschlüssel aus Schritt 1 |",
+    "| `ONEUPTIME_SERVICE_TOKEN` | Ja | Der Telemetrie-Ingestion-Schlüssel aus Schritt 1 |",
   "| `PODMAN_HOST_NAME` | No | Friendly name for this host. Defaults to `podman-host` |":
     "| `PODMAN_HOST_NAME` | Nein | Ein sprechender Name für diesen Host. Standard: `podman-host` |",
   "| `DOCKER_API_VERSION` | No | Docker API version the agent speaks to the Podman socket. Empty by default: the agent negotiates it with the socket. Set it only to pin a version (see Troubleshooting) |":
@@ -107,13 +107,13 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent's logs for errors: `podman logs oneuptime-podman-agent 2>&1 | grep -i error`":
     "2. Prüfen Sie die Protokolle des Agenten auf Fehler: `podman logs oneuptime-podman-agent 2>&1 | grep -i error`",
   "3. Verify the OneUptime URL and ingestion key in the `podman run` command are correct.":
-    "3. Prüfen Sie, ob die OneUptime-URL und der Aufnahmeschlüssel im `podman run`-Befehl stimmen.",
+    "3. Prüfen Sie, ob die OneUptime-URL und der Ingestion-Schlüssel im `podman run`-Befehl stimmen.",
   "4. Make sure the host can reach your OneUptime instance over the network.":
     "4. Stellen Sie sicher, dass der Host Ihre OneUptime-Instanz über das Netzwerk erreicht.",
   "Check that the Podman socket is mounted into the agent. Its image has no shell, so look from a throwaway container that shares its mounts:":
     "Prüfen Sie, ob der Podman-Socket in den Agenten eingebunden ist. Sein Image hat keine Shell, sehen Sie also von einem Wegwerf-Container aus nach, der seine Mounts teilt:",
   "Then look for export errors in the agent's logs — `podman logs oneuptime-podman-agent 2>&1 | grep -i error` — and make sure the ingestion key is valid and has not expired.":
-    "Suchen Sie dann in den Protokollen des Agenten nach Exportfehlern — `podman logs oneuptime-podman-agent 2>&1 | grep -i error` — und stellen Sie sicher, dass der Aufnahmeschlüssel gültig und nicht abgelaufen ist.",
+    "Suchen Sie dann in den Protokollen des Agenten nach Exportfehlern — `podman logs oneuptime-podman-agent 2>&1 | grep -i error` — und stellen Sie sicher, dass der Ingestion-Schlüssel gültig und nicht abgelaufen ist.",
   "Metrics arrive but the **Logs** tab is empty, or shows only the agent's own logs? Your containers are most likely not using a file-based log driver (`k8s-file` or `json-file`) — rootful Podman defaults to `journald`, which the agent cannot read.":
     "Metriken kommen an, aber der Tab **Protokolle** ist leer oder zeigt nur die eigenen Protokolle des Agenten? Ihre Container verwenden höchstwahrscheinlich keinen dateibasierten Log-Treiber (`k8s-file` oder `json-file`) — rootful Podman verwendet standardmäßig `journald`, das der Agent nicht lesen kann.",
   "If step 1 shows `no files match the configured criteria`, or step 3 lists no files for your containers, they are not using `k8s-file`. Switch them (see **Collect logs from every container (k8s-file log driver)** under Advanced), then recreate each one — a container keeps the log driver it was created with:":
@@ -147,7 +147,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Add it to the agent's `environment:` list, e.g. `- DOCKER_API_VERSION=1.41`, and run `podman compose up -d`. Newer servers still serve older API versions, so a pinned version keeps working after an upgrade.":
     "Fügen Sie sie der Liste `environment:` des Agenten hinzu, z. B. `- DOCKER_API_VERSION=1.41`, und führen Sie `podman compose up -d` aus. Neuere Server bedienen weiterhin ältere API-Versionen, sodass eine festgelegte Version auch nach einem Upgrade funktioniert.",
   "3. Verify the OneUptime URL and ingestion key in docker-compose.yml are correct.":
-    "3. Prüfen Sie, ob die OneUptime-URL und der Aufnahmeschlüssel in docker-compose.yml stimmen.",
+    "3. Prüfen Sie, ob die OneUptime-URL und der Ingestion-Schlüssel in docker-compose.yml stimmen.",
   "The host's name comes from `PODMAN_HOST_NAME`. An agent started without it reports `podman-host`, so every host set up that way looks like the same host. Set `PODMAN_HOST_NAME` to a name of its own on each host and run `podman compose up -d` to recreate the agent with it.":
     "Der Name des Hosts kommt aus `PODMAN_HOST_NAME`. Ein Agent, der ohne ihn gestartet wurde, meldet `podman-host`, sodass jeder so eingerichtete Host wie derselbe Host aussieht. Setzen Sie `PODMAN_HOST_NAME` auf jedem Host auf einen eigenen Namen und führen Sie `podman compose up -d` aus, um den Agenten damit neu zu erstellen.",
 };

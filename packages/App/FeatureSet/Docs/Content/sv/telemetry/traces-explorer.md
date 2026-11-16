@@ -31,7 +31,7 @@ Utforskaren har fem flikar:
 | **Tittare** | Sök i och filtrera spans, och öppna deras spår. Den öppnas på den senaste timmen, nyaste först, 50 spans per sida. |
 | **Insikter** | Antal förfrågningar, felfrekvenser och latens per tjänst, och de förfrågningar som är värda en titt. |
 | **AI** | De långsamma och felande operationer och den saknade spårning som OneUptime hittar i dina spår, och vad OneUptime AI gjorde åt dem. Se [Hitta och åtgärda långsamma och felande operationer med AI](#hitta-och-åtgärda-långsamma-och-felande-operationer-med-ai). |
-| **Installationsguide** | Hur du skickar spår med OpenTelemetry med en av dina [inmatningsnycklar](/docs/telemetry/ingestion-keys). |
+| **Installationsguide** | Hur du skickar spår med OpenTelemetry med en av dina [intagningsnycklar](/docs/telemetry/ingestion-keys). |
 | **Inställningar** | Vad som händer med spans när de kommer in: **Pipelines**, **Drop-filter**, **Scrub-regler** och **Inspelningsregler**. |
 
 ## Innan du börjar
