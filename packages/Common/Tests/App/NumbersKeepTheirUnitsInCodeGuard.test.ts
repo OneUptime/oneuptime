@@ -1018,7 +1018,13 @@ const WORD_SCAN_SCOPES: ReadonlyArray<string> = [
   "ee/AdminDashboard",
 ];
 
-// Files whose English duration is no page's, each with what it writes.
+/*
+ * Files whose English duration is no page's, each with what it writes: an
+ * English refusal the API sends, a message stored with its record. And a
+ * translation key a page looks up by its English, which keeps its plain
+ * spaces: every wording of it holds the number (NoBreakSpaces' duration
+ * words, #8695), and the page holds the English it draws.
+ */
 const WORDS_AS_WRITTEN: Readonly<Record<string, string>> = {
   ...AS_WRITTEN,
   "packages/Common/Types/Monitor/OpenStackAlertTemplates.ts":
@@ -1037,74 +1043,75 @@ const WORDS_AS_WRITTEN: Readonly<Record<string, string>> = {
     "an on-call policy run's status message, stored in its column",
   "packages/App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackCapacityView.ts":
     "a cell of the capacity page's CSV export, opened in a spreadsheet",
+  "packages/Common/Utils/NetworkDiscovery/UnclaimedScanDiagnosis.ts":
+    "a discovery scan's status message, written by the worker and stored with the scan",
+  "packages/Common/Utils/OpenStack/OpenStackCheckFindings.ts":
+    "an OpenStack check's finding, written by the server into the alert it opens",
+  "packages/Common/Utils/OpenStack/OpenStackCollectionSettings.ts":
+    "the API's refusal of an OpenStack collection interval",
+  "packages/Common/Utils/VMware/VMwareCollectionSettings.ts":
+    "the API's refusal of a vCenter collection interval",
+  "packages/Common/Utils/PromQL/PromQLEngine.ts":
+    "a PromQL error the Prometheus API returns to Grafana and other clients",
+  "packages/Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser.ts":
+    "a correlation's timespan, written by the server into the step title it stores",
+  "packages/Common/Utils/SessionReplay/SessionReplayBudgetMetricType.ts":
+    "a budget metric's description, stored with the series the server writes",
+  "packages/Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType.ts":
+    "a budget metric's description, stored with the series the server writes",
+  "packages/Common/Types/AI/CodeTask.ts":
+    "a code task's refusal, returned by the API and the AI's tools",
+  "packages/Common/Types/AI/InvestigationRuleWait.ts":
+    "the API's refusal of an investigation rule's wait: the Dashboard only asks whether there is one",
+  "packages/Common/Types/Alert/AlertIncidentRuleWait.ts":
+    "the API's refusal of an alert-to-incident rule's wait",
+  "packages/Common/Types/AuditLog/AuditLogSessionEvent.ts":
+    "a session's end cause, stored with its audit log entry",
+  "packages/Common/Types/DataObservability/DataReconciliation.ts":
+    "a reconciliation's status message, written by the server and stored",
+  "packages/Common/Types/DataSecurity/DataSecurityCheckCatalog.ts":
+    "a data security check's finding, written by the server and stored",
+  "packages/Common/Types/NetworkController/NetworkControllerConnectionSettings.ts":
+    "the API's refusal of a network controller's read interval",
+  "packages/Common/Types/NetworkDevice/DiscoveredDeviceRetention.ts":
+    "the API's refusal of how long a discovered device is kept",
+  "packages/Common/Types/NetworkDevice/DiscoveryImport.ts":
+    "the API's refusal of a discovery import's polling interval",
+  "packages/Common/Types/OnCallDutyPolicy/OnCallPolicyAiHold.ts":
+    "why OneUptime AI handed a run to people, stored with the run's log",
+  "packages/Common/Types/OnCallDutyPolicy/OnCallSentLine.ts":
+    "a call's outcome, stored as its status message",
+  "packages/Common/Types/OnCallDutyPolicy/OnCallTestPage.ts":
+    "a test page's status message, stored with its run and read back by its English",
+  "packages/Common/Types/OpenStack/OpenStackCheck.ts":
+    "the API's refusal of an OpenStack check's interval",
+  "packages/Common/Types/Retention/ResolvedRecordRetention.ts":
+    "the API's refusal of how long a resolved record is kept",
+  "packages/Common/Types/Telemetry/TelemetryUsage.ts":
+    "the API's refusal of a usage range",
+  "packages/Common/Types/StateTimeline/RowsKeptOnDelete.ts":
+    "what a delete keeps, written word for word into a workflow run's stored log and the step's help",
+  "packages/Common/Types/PacketCapture/PacketCaptureLimits.ts":
+    "a capture's durations as the probe logs them at start and the Packet Capture docs quote them, word for word",
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil.ts":
+    "a reminder's refusal, a translation key ShiftRemindersCard looks up whole and draws held",
+  "packages/Common/Utils/Monitor/ProbeFailureCauses.ts":
+    "a timeout as the probe writes it into a stored cause, read back by its English",
+  "packages/Common/Utils/SecurityEvent/TelemetryScan/AuditLogSignals.ts":
+    "a security signal's message, stored by the server's scan",
+  "packages/Common/Utils/SecurityEvent/TelemetryScan/RumSignals.ts":
+    "a security signal's message, stored by the server's scan",
+  "packages/Common/Utils/VideoCall/TranscriptText.ts":
+    "a transcript's length, written into its feed item and the AI's prompt",
+  "packages/Common/Types/Monitor/MessageQueueAlertTemplates.ts":
+    "a message queue alert template's descriptions, stored with the monitor made from it",
+  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpWalkExport.ts":
+    "an SNMP walk's export file, in snmpwalk's own terms",
 };
 
 // Files another issue rewords, each with the issue.
 const WORDS_OWNED_ELSEWHERE: Readonly<Record<string, string>> = {
   ...OWNED_ELSEWHERE,
-  // English sentences built in code with a duration's word (#8695).
-  "packages/App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo.tsx":
-    "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/PollingIntervalLabels.ts":
-    "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil.ts":
-    "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/DetectionRulesGuide.ts":
-    "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/EntityRiskGuide.ts":
-    "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/ThreatIntelGuide.ts":
-    "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation.ts":
-    "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/Processes.tsx":
-    "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/Services.tsx": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/SystemdUnits.tsx":
-    "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Logs/Settings/RecordingRules.tsx":
-    "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown.ts":
-    "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/NetworkDevice/DiscoveryScanFormValidation.ts":
-    "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView.tsx":
-    "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaName.ts":
-    "#8695",
-  "packages/Common/Types/AI/AIAgentRunLimits.ts": "#8695",
-  "packages/Common/Types/AI/CodeTask.ts": "#8695",
-  "packages/Common/Types/AI/InvestigationRuleWait.ts": "#8695",
-  "packages/Common/Types/Alert/AlertIncidentRuleWait.ts": "#8695",
-  "packages/Common/Types/AuditLog/AuditLogSessionEvent.ts": "#8695",
-  "packages/Common/Types/DataObservability/DataReconciliation.ts": "#8695",
-  "packages/Common/Types/DataSecurity/DataSecurityCheckCatalog.ts": "#8695",
-  "packages/Common/Types/NetworkController/NetworkControllerConnectionSettings.ts":
-    "#8695",
-  "packages/Common/Types/NetworkDevice/DiscoveredDeviceRetention.ts": "#8695",
-  "packages/Common/Types/NetworkDevice/DiscoveryImport.ts": "#8695",
-  "packages/Common/Types/OnCallDutyPolicy/OnCallPolicyAiHold.ts": "#8695",
-  "packages/Common/Types/OnCallDutyPolicy/OnCallSentLine.ts": "#8695",
-  "packages/Common/Types/OnCallDutyPolicy/OnCallTestPage.ts": "#8695",
-  "packages/Common/Types/OpenStack/OpenStackCheck.ts": "#8695",
-  "packages/Common/Types/PacketCapture/PacketCaptureLimits.ts": "#8695",
-  "packages/Common/Types/Retention/ResolvedRecordRetention.ts": "#8695",
-  "packages/Common/Types/Runbook/RunbookStepTimeout.ts": "#8695",
-  "packages/Common/Types/StateTimeline/RowsKeptOnDelete.ts": "#8695",
-  "packages/Common/Types/Telemetry/TelemetryUsage.ts": "#8695",
-  "packages/Common/Utils/CertificateReissue.ts": "#8695",
-  "packages/Common/Utils/CronTab.ts": "#8695",
-  "packages/Common/Utils/DeveloperDocs/ResourceProfiles.ts": "#8695",
-  "packages/Common/Utils/NetworkDiscovery/UnclaimedScanDiagnosis.ts": "#8695",
-  "packages/Common/Utils/OpenStack/OpenStackCheckFindings.ts": "#8695",
-  "packages/Common/Utils/OpenStack/OpenStackCollectionSettings.ts": "#8695",
-  "packages/Common/Utils/PromQL/PromQLEngine.ts": "#8695",
-  "packages/Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser.ts": "#8695",
-  "packages/Common/Utils/SessionReplay/SessionReplayBudgetMetricType.ts":
-    "#8695",
-  "packages/Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType.ts":
-    "#8695",
-  "packages/Common/Utils/VMware/VMwareCollectionSettings.ts": "#8695",
 };
 
 const DURATION_WORD: string = [...ENGLISH_DURATION_WORDS]
@@ -1118,6 +1125,38 @@ const PLAIN_SPACE_BEFORE_A_DURATION_WORD: RegExp = new RegExp(
   `^[ \u2000-\u2006\u2008-\u200A\u205F](?:${DURATION_WORD})(?![\\p{L}\\p{N}_-])`,
   "u",
 );
+
+// A lone space a line breaks at: what a template writes between two values.
+const LONE_BREAKING_SPACE: RegExp = /^[ \u2000-\u2006\u2008-\u200A\u205F]$/;
+
+const DURATION_WORD_SET: ReadonlySet<string> = new Set<string>(
+  ENGLISH_DURATION_WORDS,
+);
+
+/*
+ * An expression that writes a duration's word whichever way it goes:
+ * `count === 1 ? "minute" : "minutes"` (#8695).
+ */
+const isDurationWordChoice: (expression: ts.Expression) => boolean = (
+  expression: ts.Expression,
+): boolean => {
+  if (ts.isParenthesizedExpression(expression)) {
+    return isDurationWordChoice(expression.expression);
+  }
+
+  if (ts.isConditionalExpression(expression)) {
+    return (
+      isDurationWordChoice(expression.whenTrue) &&
+      isDurationWordChoice(expression.whenFalse)
+    );
+  }
+
+  return (
+    (ts.isStringLiteral(expression) ||
+      ts.isNoSubstitutionTemplateLiteral(expression)) &&
+    DURATION_WORD_SET.has(expression.text)
+  );
+};
 
 // Every place `source` joins a figure to a duration's word with a plain space.
 const findPlainSpacesBeforeDurationWords: (data: {
@@ -1149,9 +1188,20 @@ const findPlainSpacesBeforeDurationWords: (data: {
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     if (
       ts.isTemplateExpression(node) &&
-      node.templateSpans.some((span: ts.TemplateSpan): boolean => {
-        return PLAIN_SPACE_BEFORE_A_DURATION_WORD.test(span.literal.text);
-      })
+      node.templateSpans.some(
+        (span: ts.TemplateSpan, index: number): boolean => {
+          const next: ts.TemplateSpan | undefined =
+            node.templateSpans[index + 1];
+
+          return (
+            PLAIN_SPACE_BEFORE_A_DURATION_WORD.test(span.literal.text) ||
+            // `${count} ${count === 1 ? "minute" : "minutes"}`
+            (next !== undefined &&
+              LONE_BREAKING_SPACE.test(span.literal.text) &&
+              isDurationWordChoice(next.expression))
+          );
+        },
+      )
     ) {
       report(node);
     }
@@ -1304,6 +1354,62 @@ describe("a number code joins to a duration's word keeps it on its line", () => 
   });
 });
 
+describe("English sentences built in code with a duration's word (#8695)", () => {
+  // The page text #8695 named, each file now holding its figures.
+  const HELD_NOW: ReadonlyArray<string> = [
+    "packages/Common/Utils/CertificateReissue.ts",
+    "packages/Common/Utils/Slo/SloProjection.ts",
+    "packages/Common/Utils/CronTab.ts",
+    "packages/Common/Utils/DeveloperDocs/ResourceProfiles.ts",
+    "packages/Common/Types/AI/AIAgentRunLimits.ts",
+    "packages/Common/Types/Runbook/RunbookStepTimeout.ts",
+    "packages/App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo.tsx",
+    "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/PollingIntervalLabels.ts",
+    "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/DetectionRulesGuide.ts",
+    "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/EntityRiskGuide.ts",
+    "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/ThreatIntelGuide.ts",
+    "packages/App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation.ts",
+    "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/Processes.tsx",
+    "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/Services.tsx",
+    "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/SystemdUnits.tsx",
+    "packages/App/FeatureSet/Dashboard/src/Pages/Logs/Settings/RecordingRules.tsx",
+    "packages/App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown.ts",
+    "packages/App/FeatureSet/Dashboard/src/Pages/NetworkDevice/DiscoveryScanFormValidation.ts",
+    "packages/App/FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView.tsx",
+  ];
+
+  test("each page's sentence #8695 named holds its figures now", () => {
+    const { findings } = readAllWordFindings();
+
+    for (const file of HELD_NOW) {
+      expect({
+        file,
+        listed:
+          WORDS_AS_WRITTEN[file] !== undefined ||
+          WORDS_OWNED_ELSEWHERE[file] !== undefined,
+        found: findings.some((finding: UnitFinding): boolean => {
+          return finding.file === file;
+        }),
+      }).toEqual({ file, listed: false, found: false });
+    }
+  });
+
+  test("no file is left for #8695: each is held, or listed with why it is no page's", () => {
+    expect(
+      Object.entries(WORDS_OWNED_ELSEWHERE).filter(
+        ([, issue]: [string, string]): boolean => {
+          return issue === "#8695";
+        },
+      ),
+    ).toEqual([]);
+    expect(
+      Object.keys(WORDS_OWNED_ELSEWHERE).filter((file: string): boolean => {
+        return OWNED_ELSEWHERE[file] === undefined;
+      }),
+    ).toEqual([]);
+  });
+});
+
 describe("negative controls: the word scan catches what it is for", () => {
   test("a figure, a plain space and a duration's word, however it is joined", () => {
     expect(
@@ -1340,6 +1446,40 @@ describe("negative controls: the word scan catches what it is for", () => {
           'const g: string = "Every " + "5 minutes";',
           "const h: string = `${count} minute-long`;",
           "const i: string = `${count} months_ago`;",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a figure, a plain space and a word chosen between a duration's two (#8695)", () => {
+    expect(
+      wordLinesOf(
+        [
+          'const a: string = `${hours} ${hours === 1 ? "hour" : "hours"}`;',
+          "const b: string = `in ${days} ${",
+          '  days === 1 ? "day" : "days"',
+          "} from now`;",
+          'const c: string = `${n} ${(n === 1 ? "second" : "seconds")}`;',
+          'const d: string = `${n} ${n === 1 ? "minute" : n === 2 ? "min" : "minutes"}`;',
+        ].join("\n"),
+      ),
+    ).toEqual([
+      '1 `${hours} ${hours === 1 ? "hour" : "hours"}`',
+      '2 `in ${days} ${ days === 1 ? "day" : "days" } from now`',
+      '5 `${n} ${(n === 1 ? "second" : "seconds")}`',
+      '6 `${n} ${n === 1 ? "minute" : n === 2 ? "min" : "minutes"}`',
+    ]);
+  });
+
+  test("negative control: a chosen word that is no duration's, held, or after more words", () => {
+    expect(
+      wordLinesOf(
+        [
+          'const a: string = `${n} ${n === 1 ? "speaker" : "speakers"}`;',
+          'const b: string = `${n}${NO_BREAK_SPACE}${n === 1 ? "hour" : "hours"}`;',
+          'const c: string = `${n} of ${n === 1 ? "hour" : "hours"}`;',
+          'const d: string = `${n} ${n === 1 ? "hour" : label}`;',
+          "const e: string = `${n} ${word}`;",
         ].join("\n"),
       ),
     ).toEqual([]);

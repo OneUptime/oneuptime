@@ -3244,9 +3244,9 @@ describe("Databases docs", (): void => {
       expect(lifecycle).toContain(
         "It says nothing about engine metrics, which have a status of their own.",
       );
-      // The pill's own hover text names the same sources and the same split.
+      // The pill's own hover text names the same sources and the same split, its figure held (#8695).
       expect(DATABASE_LIVENESS_DESCRIPTION).toContain(
-        `in the last ${DATABASE_SERVER_LIVE_WINDOW_MINUTES} minutes`,
+        `in the last ${DATABASE_SERVER_LIVE_WINDOW_MINUTES}\u00A0minutes`,
       );
       expect(DATABASE_LIVENESS_DESCRIPTION).toContain(
         "the separate Engine metrics status",
