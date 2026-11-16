@@ -1,5 +1,6 @@
 import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { translationKey } from "Common/Types/Translator";
+import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import { EventStanding } from "../../../Utils/EventDuration";
 
 /*
@@ -99,16 +100,43 @@ export interface ExecuteOnCallPolicyMenuLock {
 /*
  * Locked with why on a resolved record; offered on every other, and while
  * where the record stands is not known yet (`standing` undefined).
+ *
+ * Locked with why, too, when the reader may not start an on-call run for
+ * the record (`permissionGate`: OnCallDutyPolicyExecutionLog's create,
+ * asked with the private record's scope) - on a private incident, alert
+ * or episode, a run is started only through a team of theirs that owns it
+ * (#8913). Only a definite refusal locks it: while the permission snapshot
+ * is still on its way (no reason given), the server decides.
  */
 export function getExecuteOnCallPolicyMenuLock(data: {
   recordType: OnCallPageRecordType;
   standing: EventStanding | undefined;
+  permissionGate?: PermissionGateResult | undefined;
 }): ExecuteOnCallPolicyMenuLock {
   if (data.standing === EventStanding.Resolved) {
     return {
       isDisabled: true,
       tooltip: EXECUTE_ON_CALL_POLICY_WORDS[data.recordType].resolved,
     };
+  }
+
+  return getMenuLock(data.permissionGate);
+}
+
+/*
+ * A record's menu item locked with why by a permission gate's definite
+ * refusal - Execute Runbook on an incident or an alert, say - and offered
+ * otherwise, also while the permission snapshot is on its way.
+ */
+export function getMenuLock(
+  permissionGate: PermissionGateResult | undefined,
+): ExecuteOnCallPolicyMenuLock {
+  if (
+    permissionGate &&
+    !permissionGate.isAllowed &&
+    permissionGate.disabledReason
+  ) {
+    return { isDisabled: true, tooltip: permissionGate.disabledReason };
   }
 
   return { isDisabled: false, tooltip: undefined };

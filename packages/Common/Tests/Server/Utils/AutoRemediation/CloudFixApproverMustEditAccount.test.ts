@@ -33,6 +33,7 @@ import UserType from "../../../../Types/UserType";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import { withLabelJoinTables } from "../../TestingUtils/LabelJoinTables";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import PrivateRecordWriteCheck from "../../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 
 /*
  * A PERSON WHO MAY NOT CHANGE A CLOUD ACCOUNT CANNOT APPROVE ONEUPTIME AI'S
@@ -231,6 +232,15 @@ function cloudStatus(cloud: Cloud): ResourceAiAccessStatus {
     isRemediationReady: true,
   };
 }
+
+/*
+ * The fixes here are for incidents and alerts that are not private, or that
+ * the person reaches: what a fix's buttons ask of a private record's owning
+ * teams (#8913) is RemediationPrivateRecord's own suite.
+ */
+beforeEach(() => {
+  jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(true);
+});
 
 describe.each(CLOUDS)(
   "$name: approving OneUptime AI's fix of the account",

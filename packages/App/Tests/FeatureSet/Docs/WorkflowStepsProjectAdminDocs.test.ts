@@ -4,11 +4,16 @@ import slugify from "Common/Server/Types/MarkdownSlugify";
 import WorkflowAccessChangeRefusedException from "Common/Server/Types/Database/Permissions/WorkflowAccessChangeRefusedException";
 import { describeRefusal } from "Common/Server/Types/Workflow/Components/BaseModel/LogComponentError";
 import WorkflowPrincipal from "Common/Server/Utils/Workflow/WorkflowPrincipal";
+import { shouldBypassRecordPrivacy } from "Common/Server/Utils/PrivacyFilterUtil";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
+import ObjectID from "Common/Types/ObjectID";
+import UserType from "Common/Types/UserType";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { drawnStepName } from "./DocsWorkflowStepNames";
+import { drawnActionLabel } from "./DocsDashboardLabels";
 import { writtenPermissionTitle } from "./DocsRoleNames";
 
 /*
@@ -312,6 +317,134 @@ describe("every language's Configuration page has the section", () => {
         text.includes(`**${drawnStepName(locale, "Incident Template")}**`) ||
           text.includes("**Find One Incident Template**"),
       ).toBe(true);
+    },
+  );
+});
+
+/*
+ * WORKFLOWS DON'T ACT ON PRIVATE RECORDS (#8914).
+ *
+ * A step acts as a Project Admin, but is never lent a Project Admin's sight
+ * of private incidents, alerts and episodes (shouldBypassRecordPrivacy):
+ * the Configuration page says so among what a step may do, the Permissions
+ * page in its section on private records, and the upgrade notes for 14, in
+ * every language, each pointing at the other.
+ */
+describe("the pages say workflows don't act on private records", () => {
+  const PERMISSIONS: string = "permissions/index";
+  const PRIVATE_HEADING: string = "### Private incidents, alerts and episodes";
+
+  // The heading of `page` in `locale` at the place `heading` is in English.
+  function headingOf(locale: string, page: string, heading: string): string {
+    const level: string = heading.match(/^#+ /)![0];
+    const headingsOf: (markdown: string) => Array<string> = (
+      markdown: string,
+    ): Array<string> => {
+      return markdown.split("\n").filter((line: string): boolean => {
+        return line.startsWith(level);
+      });
+    };
+    const at: number = headingsOf(read("en", page)).indexOf(heading);
+
+    expect(at).toBeGreaterThanOrEqual(0);
+
+    return headingsOf(read(locale, page))[at]!;
+  }
+
+  function anchorOf(locale: string, page: string, heading: string): string {
+    return slugify(headingOf(locale, page, heading).replace(/^#+\s*/, ""));
+  }
+
+  test("a step holds a Project Admin's permission, and still sees no private record", () => {
+    const props: DatabaseCommonInteractionProps =
+      WorkflowPrincipal.getPropsWithoutPlan({
+        projectId: ObjectID.generate(),
+        workflowId: ObjectID.generate(),
+      });
+
+    // A person with the same permissions sees every private record.
+    expect(
+      shouldBypassRecordPrivacy({ ...props, userType: UserType.User }),
+    ).toBe(true);
+    expect(shouldBypassRecordPrivacy(props)).toBe(false);
+  });
+
+  test("the Configuration page says so among what a step may do", () => {
+    const text: string = section(read("en", CONFIGURATION), HEADING);
+
+    expect(text).toContain("**Not private incidents, alerts and episodes.**");
+    expect(text).toContain(
+      "a step is never lent that, whoever built or saved the workflow",
+    );
+    expect(text).toContain("**Run Workflow**");
+    expect(text).toContain(
+      `(/docs/permissions/index#${anchorOf("en", PERMISSIONS, PRIVATE_HEADING)})`,
+    );
+  });
+
+  test("the Permissions page no longer says workflow steps change every private record", () => {
+    const text: string = section(read("en", PERMISSIONS), PRIVATE_HEADING);
+
+    expect(text).not.toContain("and so do workflow steps");
+    expect(text).toContain("Workflows don't act on private records.");
+    expect(text).toContain(LINK);
+  });
+
+  test("the upgrade notes for 14 say what changes, among the other changes and for an existing workflow", () => {
+    const page: string = read("en", "installation/upgrading");
+
+    expect(page).not.toContain("and workflow steps, change every private");
+    expect(page.replace(/\s+/g, " ")).toContain(
+      "Workflow steps no longer see or change a private record, nor anything of one, and a workflow no longer starts on one.",
+    );
+
+    const workflows: string = section(
+      page,
+      "### Workflow steps act as a Project Admin",
+    );
+
+    expect(workflows).toContain(
+      "- A step no longer finds, changes or adds anything to a private incident, alert or episode, and a workflow no longer starts on one, or on anything that belongs to one",
+    );
+    expect(workflows).toContain(
+      "(/docs/permissions/index#private-incidents-alerts-and-episodes)",
+    );
+  });
+
+  test.each(
+    LOCALES.filter((locale: string) => {
+      return locale !== "en";
+    }),
+  )(
+    "%s: the Configuration and Permissions pages point at each other, in the language's words",
+    (locale: string) => {
+      const configuration: string = section(
+        read(locale, CONFIGURATION),
+        headingOf(locale, CONFIGURATION, HEADING),
+      );
+      const permissions: string = section(
+        read(locale, PERMISSIONS),
+        headingOf(locale, PERMISSIONS, PRIVATE_HEADING),
+      );
+      const bullet: string | undefined = configuration
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.includes(
+            `(/docs/permissions/index#${anchorOf(locale, PERMISSIONS, PRIVATE_HEADING)})`,
+          );
+        });
+
+      expect(bullet).toBeDefined();
+      expect(bullet!.startsWith("- **")).toBe(true);
+      expect(bullet).toContain(
+        `**${drawnActionLabel(locale, "Run Workflow")}**`,
+      );
+      expect(bullet).toContain(
+        `**${writtenPermissionTitle(locale, "Project Member")}**`,
+      );
+      expect(permissions).toContain(
+        `(/docs/workflows/configuration#${anchorOf(locale, CONFIGURATION, HEADING)})`,
+      );
     },
   );
 });

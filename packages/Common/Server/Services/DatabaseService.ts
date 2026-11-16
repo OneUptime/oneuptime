@@ -146,7 +146,7 @@ import {
 import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 import { ObjectLiteral } from "typeorm/common/ObjectLiteral";
-import { FindWhere } from "../../Types/BaseDatabase/Query";
+import { FindWhere, FindWhereProperty } from "../../Types/BaseDatabase/Query";
 import Realtime from "../Utils/Realtime";
 import RealtimeMetrics from "../Utils/Realtime/RealtimeMetrics";
 import {
@@ -171,9 +171,17 @@ import {
 } from "../../Types/Database/BooleanColumnValue";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import {
+  getReferenceRefusalMessage,
   normalizeReferenceId,
   resolveReferenceIds,
+  UnreadableReferenceException,
 } from "../Utils/Database/ProjectScopedReferenceRefusal";
+import {
+  combineWithPrivacyClause,
+  shouldBypassRecordPrivacy,
+} from "../Utils/PrivacyFilterUtil";
+import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
+import PrivateRecordWriteCheck from "../Utils/Permission/PrivateRecordWriteCheck";
 import ArchivedValueCheck, {
   ArchivableValueColumn,
   ArchivableValuePick,
@@ -6122,6 +6130,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       /*
+       * A workflow does not start on a private incident, alert or episode,
+       * nor on anything of one (#8914): its steps see no private record
+       * (shouldBypassRecordPrivacy), and the event itself hands the run
+       * what an update changed. See isAboutPrivateRecord.
+       */
+      if (await this.isAboutPrivateRecord(id)) {
+        return;
+      }
+
+      /*
        * An update the record's own create makes, before the create has
        * announced the record: On Create or Update hears the create, once,
        * and not these (RecordsBeingCreated). Said beside the event's data,
@@ -6162,6 +6180,207 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           projectId: projectId?.toString(),
         } as LogAttributes);
       });
+    }
+  }
+
+  /*
+   * The columns of this table's rows naming the private records they are,
+   * or are a part of (PrivateRecordPermission.getPrivateRecordColumns): none
+   * for a table that has nothing to do with one.
+   */
+  public getPrivateRecordColumns(): Array<PrivateRecordColumn> {
+    return PrivateRecordPermission.getPrivateRecordColumns(this.modelType);
+  }
+
+  /*
+   * Whether the record `id` of this table is a private incident, alert or
+   * episode, a part of one (a note, a state change, an owner), or names one
+   * (a page about it, a runbook run linked to it): read as OneUptime, the
+   * record's deleted row included - an On Delete event's record is gone.
+   * A workflow does not start on such a record (#8914): a step acts as a
+   * Project Admin but is never lent the sight of private records, and an On
+   * Update event hands the run the values the update wrote. A record that
+   * cannot be read at all hands on nothing but its id, and is let through.
+   */
+  public async isAboutPrivateRecord(id: ObjectID): Promise<boolean> {
+    const columns: Array<PrivateRecordColumn> = this.getPrivateRecordColumns();
+
+    if (columns.length === 0) {
+      return false;
+    }
+
+    const select: Dictionary<boolean> = { _id: true };
+
+    for (const column of columns) {
+      select[column.isRecord ? "isPrivate" : column.column] = true;
+    }
+
+    const rows: Array<TBaseModel> = await this._findBy(
+      {
+        query: { _id: id.toString() } as Query<TBaseModel>,
+        select: select as Select<TBaseModel>,
+        skip: 0,
+        limit: 1,
+        props: { isRoot: true, ignoreHooks: true },
+      },
+      true,
+    );
+
+    const row: TBaseModel | undefined = rows[0];
+
+    if (!row) {
+      return false;
+    }
+
+    for (const column of columns) {
+      if (column.isRecord) {
+        if ((row as unknown as { isPrivate?: unknown }).isPrivate === true) {
+          return true;
+        }
+
+        continue;
+      }
+
+      const recordId: unknown = row.getValue(column.column);
+
+      if (!recordId || !ObjectID.isValidUUID(recordId.toString())) {
+        continue;
+      }
+
+      const privateRecords: Array<BaseModel> =
+        await DatabaseService.getParentReader(column.recordModelType).findBy({
+          query: {
+            _id: recordId.toString(),
+            isPrivate: true,
+          } as Query<BaseModel>,
+          select: { _id: true } as Select<BaseModel>,
+          skip: 0,
+          limit: 1,
+          props: { isRoot: true },
+        });
+
+      if (privateRecords.length > 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /*
+   * THE PRIVATE RECORDS A CREATE IS ABOUT BESIDE WHAT IT IS READ THROUGH
+   * (PrivateRecordParts.ALSO_PART_OF, #8913): the incident, alert or episode
+   * a page of an on-call policy is about, the incident or alert a runbook's
+   * run is linked to, the episode an episode's member row is a member of.
+   * A private one is acted on only with the permissions of the teams that
+   * own it and of the people named as its owners - the caller's
+   * permission to create this record, team by team
+   * (PrivateRecordPermission.getReach) - and by those who act on every
+   * private record. One the caller sees (they own it, or a team of theirs
+   * does) is refused saying why; one they do not see is refused like a
+   * record that does not exist, telling them nothing of it. Asked of the
+   * record as it will be written, once its hooks have run: a service that
+   * asks about its second record itself, in its own words (IncidentAlert,
+   * the episode members), has asked by then. Root, master admin and those
+   * who act on every private record of the project are not asked.
+   */
+  private async checkNamedPrivateRecords(data: {
+    record: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const props: DatabaseCommonInteractionProps = data.props;
+
+    if (
+      props.isRoot ||
+      props.isMasterAdmin ||
+      shouldBypassRecordPrivacy(props)
+    ) {
+      return;
+    }
+
+    const columns: Array<PrivateRecordColumn> =
+      PrivateRecordReadFilter.getNamedRecordColumns(this.modelType);
+
+    if (columns.length === 0) {
+      return;
+    }
+
+    const projectId: ObjectID | null = this.getRecordProjectId(
+      data.record,
+      props,
+    );
+
+    for (const column of columns) {
+      const value: unknown = data.record.getValue(column.column);
+      const recordId: string = value ? value.toString().trim() : "";
+
+      if (!recordId || !ObjectID.isValidUUID(recordId)) {
+        continue;
+      }
+
+      const reader: DatabaseService<BaseModel> =
+        DatabaseService.getParentReader(column.recordModelType);
+
+      // The rule's own check of one record (PrivateRecordWriteCheck).
+      if (
+        await PrivateRecordWriteCheck.reaches({
+          modelType: this.modelType,
+          type: DatabaseRequestType.Create,
+          recordService: reader,
+          recordId: new ObjectID(recordId),
+          props: projectId ? { ...props, tenantId: projectId } : props,
+        })
+      ) {
+        continue;
+      }
+
+      const noun: string = (
+        new column.recordModelType().singularName || "record"
+      ).toLowerCase();
+
+      // Whether the caller sees it: refused saying why, or as missing.
+      const seenRaw: FindWhereProperty<any> | undefined =
+        PrivateRecordReadFilter.getOptionalRecordReadRaw({
+          kind: column.kind,
+          props: props,
+        });
+
+      const seen: Array<BaseModel> = await reader.findBy({
+        query: DatabaseService.inProject(
+          column.recordModelType,
+          {
+            _id: seenRaw
+              ? combineWithPrivacyClause(recordId, seenRaw)
+              : recordId,
+          } as Query<BaseModel>,
+          projectId,
+        ),
+        select: { _id: true } as Select<BaseModel>,
+        skip: 0,
+        limit: 1,
+        props: { isRoot: true },
+      });
+
+      if (seen.length > 0) {
+        throw new NotAuthorizedException(
+          `You do not have permission to create ${
+            this.getModel().singularName || "this record"
+          }. ${PrivateRecordPermission.getPrivateParentWriteReason(noun)}`,
+        );
+      }
+
+      throw new UnreadableReferenceException(
+        getReferenceRefusalMessage({
+          subject: (this.getModel().singularName || "record").toLowerCase(),
+          described: [
+            `${
+              this.getModel().getTableColumnMetadata(column.column)?.title ||
+              new column.recordModelType().singularName ||
+              column.column
+            } "${recordId}"`,
+          ],
+        }),
+      );
     }
   }
 
@@ -6422,6 +6641,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       props: props,
       projectId: this.getRecordProjectId(data.record, props),
       askedIds: DatabaseService.namedIdsAskedOn.get(data.createBy) || {},
+    });
+
+    // A private record it is about, only through its owners. See the helper.
+    await this.checkNamedPrivateRecords({
+      record: data.record,
+      props: props,
     });
 
     // A record the caller's create permission reaches. See the helper.

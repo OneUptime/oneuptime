@@ -46,6 +46,7 @@ import {
   expect,
   test,
 } from "@jest/globals";
+import PrivateRecordWriteCheck from "../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 
 /*
  * ---------------------------------------------------------------------------
@@ -386,6 +387,15 @@ function readyStatus(
     ...overrides,
   };
 }
+
+/*
+ * The fixes here are for incidents and alerts that are not private, or that
+ * the person reaches: what a fix's buttons ask of a private record's owning
+ * teams (#8913) is RemediationPrivateRecord's own suite.
+ */
+beforeEach(() => {
+  jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(true);
+});
 
 describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
   let suggestionFindSpy: jest.SpyInstance;

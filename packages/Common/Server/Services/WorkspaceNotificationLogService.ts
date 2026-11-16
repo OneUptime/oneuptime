@@ -7,6 +7,12 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ColumnLength from "../../Types/Database/ColumnLength";
+import FindBy from "../Types/Database/FindBy";
+import CountBy from "../Types/Database/CountBy";
+import { OnFind } from "../Types/Database/Hooks";
+import PositiveNumber from "../../Types/PositiveNumber";
+import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export interface WorkspaceLogData {
   projectId: ObjectID;
@@ -41,6 +47,42 @@ export class Service extends ProjectReferencesService<Model> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3);
     }
+  }
+
+  /*
+   * A Slack or Microsoft Teams message log about a private incident, alert or episode is read only by
+   * those who see that record (PrivateRecordReadFilter, #8913): the message is about the record, and its relation reads the record itself.
+   * One about no private record is read as before.
+   */
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = PrivateRecordReadFilter.apply(
+      findBy.query,
+      findBy.props,
+      Model,
+    );
+
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = PrivateRecordReadFilter.apply(
+      countBy.query,
+      countBy.props,
+      Model,
+    );
+
+    return await super.countBy(countBy);
+  }
+
+  // The read hook narrows by the records it names. See onBeforeFind.
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return PrivateRecordReadFilter.getNamedRecordColumnNames(Model);
   }
 
   /*
