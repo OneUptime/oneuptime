@@ -3835,6 +3835,28 @@ jobs:
           Tests/Workers/DataMigrations/BackfillMonitorFirstMeasuredAtPostgres.test.ts
           --forceExit
 
+      # #8960: a monitor's uptime history leaves out the time before its
+      # first check, so BackfillMonitorFirstMeasuredAtForUptimeHistory gives a
+      # monitor measured before the column existed its creation - one a
+      # result stamped during the upgrade before the backfill reached it, a
+      # Probe Status monitor, a Network Device monitor whose device was
+      # polled - and leaves the rest; the whole upgrade, in order, keeps a
+      # monitor checked all along its history, and until its row is there
+      # the uptime statements leave nothing out. Clones the migrated tables
+      # it reads into an isolated schema.
+      - name: Test a monitor's first check put right for its uptime history on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_MONITOR_FIRST_MEASURED_HISTORY_TESTS: "true"
+          MONITOR_FIRST_MEASURED_HISTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_FIRST_MEASURED_HISTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_FIRST_MEASURED_HISTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/BackfillMonitorFirstMeasuredAtForUptimeHistoryPostgres.test.ts
+          --forceExit
+
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out
       # live, the keys to who archived one are added online and cleared when

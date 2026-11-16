@@ -175,7 +175,16 @@ describe("BackfillMonitorFirstMeasuredAt", () => {
     expect(registered[registered.length - 1]).toBe(
       "AddAuditLogMcpClientColumns",
     );
-    expect(registered.indexOf(MIGRATION_NAME)).toBe(registered.length - 2);
+    /*
+     * Right before the migration that puts the column right for uptime
+     * history (issue #8960), which reads when this one finished.
+     */
+    expect(registered.indexOf(MIGRATION_NAME)).toBe(
+      registered.indexOf("BackfillMonitorFirstMeasuredAtForUptimeHistory") - 1,
+    );
+    expect(registered.indexOf(MIGRATION_NAME)).toBeLessThan(
+      registered.length - 1,
+    );
     expect(registered.indexOf(MIGRATION_NAME)).toBeGreaterThan(
       registered.indexOf("ResolveWhatMonitorsTurnedOffWouldHaveResolved"),
     );

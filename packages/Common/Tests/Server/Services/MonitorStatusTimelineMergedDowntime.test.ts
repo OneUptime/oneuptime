@@ -1,4 +1,5 @@
 import {
+  FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME,
   MergedDowntimeRow,
   MergedDowntimeTotals,
   Service as MonitorStatusTimelineServiceType,
@@ -325,9 +326,19 @@ describe("the time before a monitor's first check, in every statement (issue #89
   test("when a monitor's time starts to count: its first check, never while nothing has checked it, always for a manual monitor", async () => {
     for (const sql of [await aggregateSql(), await mergedSql()]) {
       expect(sql).toContain(
-        `measured AS ( SELECT m."_id" AS monitor_id, CASE WHEN m."monitorType" IS NULL OR m."monitorType" = 'Manual' THEN '-infinity'::timestamptz ELSE COALESCE(m."firstMeasuredAt", 'infinity'::timestamptz) END AS measured_from FROM "Monitor" m WHERE m."_id" = ANY($1::uuid[]) )`,
+        `measured AS ( SELECT m."_id" AS monitor_id, CASE WHEN m."monitorType" IS NULL OR m."monitorType" = 'Manual' OR NOT EXISTS ( SELECT 1 FROM "DataMigrations" dm WHERE dm."name" = 'BackfillMonitorFirstMeasuredAtForUptimeHistory' AND dm."executed" = true AND dm."deletedAt" IS NULL ) THEN '-infinity'::timestamptz ELSE COALESCE(m."firstMeasuredAt", 'infinity'::timestamptz) END AS measured_from FROM "Monitor" m WHERE m."_id" = ANY($1::uuid[]) )`,
       );
     }
+
+    /*
+     * Until the upgrade has put Monitor.firstMeasuredAt right for history
+     * (its DataMigrations row), every monitor counts from the start: a
+     * result that came back during the upgrade stamped it with the
+     * upgrade's time. The row's name is the migration's, never renamed.
+     */
+    expect(FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME).toBe(
+      "BackfillMonitorFirstMeasuredAtForUptimeHistory",
+    );
 
     // A group reads its members', which are $2.
     expect(await groupSql()).toContain(

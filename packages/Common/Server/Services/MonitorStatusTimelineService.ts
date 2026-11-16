@@ -86,6 +86,17 @@ export const MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE: string =
   "Could not acquire the monitor status timeline lock for this monitor.";
 
 /*
+ * The data migration that puts Monitor.firstMeasuredAt right for a monitor's
+ * uptime history (issue #8960; App's
+ * BackfillMonitorFirstMeasuredAtForUptimeHistory). The uptime statements
+ * leave a monitor's time before its first check out only once its
+ * DataMigrations row is there (getMeasuredFromCte). Never rename it: the
+ * row's name is what an install that has run it holds.
+ */
+export const FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME: string =
+  "BackfillMonitorFirstMeasuredAtForUptimeHistory";
+
+/*
  * THE STATUS EVENTS THAT ONLY MARK MONITORING TURNED OFF OR BACK ON.
  *
  * A monitor's monitoring turned off or on starts a status event of its own,
@@ -524,8 +535,11 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * waiting for a check: its status is the one a person sets, from the
    * start. A monitor that is not found reads as measured, as a read without
    * the column does. A monitor measured before the column existed holds the
-   * time it was created (BackfillMonitorFirstMeasuredAt), so its history
-   * reads as it always did.
+   * time it was created (BackfillMonitorFirstMeasuredAt, and
+   * BackfillMonitorFirstMeasuredAtForUptimeHistory for one a result stamped
+   * during the upgrade, or one OneUptime measures without a trace), so its
+   * history reads as it always did - and until that has run, nothing is
+   * cut at all (getMeasuredFromCte).
    *
    * The status's flags are looked up only for a period that starts before
    * the monitor's first check, which for a monitor that has been checked is
@@ -572,6 +586,14 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * When each monitor's time starts to count (see getTimelineSourceCtes):
    * its first check, `infinity` while nothing has checked it, and
    * `-infinity` - from the start - for a manual monitor.
+   *
+   * And from the start for every monitor until the upgrade has put the
+   * column right for history: BackfillMonitorFirstMeasuredAtForUptimeHistory
+   * gives a monitor measured before the column existed the time it was
+   * created, where a result that came back during the upgrade had stamped
+   * it with the upgrade's time. Until its DataMigrations row is there, an
+   * install's monitors read as they always did (one lookup, made once per
+   * statement), so no history reads as no data while it is put right.
    */
   public static getMeasuredFromCte(data: { monitorIds: string }): string {
     return `measured AS (
@@ -579,6 +601,13 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                CASE
                  WHEN m."monitorType" IS NULL
                    OR m."monitorType" = '${MonitorType.Manual}'
+                   OR NOT EXISTS (
+                     SELECT 1
+                     FROM "DataMigrations" dm
+                     WHERE dm."name" = '${FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME}'
+                       AND dm."executed" = true
+                       AND dm."deletedAt" IS NULL
+                   )
                    THEN '-infinity'::timestamptz
                  ELSE COALESCE(m."firstMeasuredAt", 'infinity'::timestamptz)
                END AS measured_from

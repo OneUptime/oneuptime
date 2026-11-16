@@ -1,6 +1,7 @@
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorStatusTimelineService, {
+  FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME,
   MergedDowntimeRow,
   MonitorGroupDailyUptimeRow,
   RollingUptimeTotalRow,
@@ -722,6 +723,19 @@ describePostgres(
       });
     }
 
+    /*
+     * The row BackfillMonitorFirstMeasuredAtForUptimeHistory leaves once it
+     * has put Monitor.firstMeasuredAt right for history: until it is there,
+     * the statements cut nothing (issue #8960).
+     */
+    async function markTheUpgradeDone(): Promise<void> {
+      await database.query(
+        `INSERT INTO "DataMigrations" ("_id", "version", "name", "executed", "executedAt")
+         VALUES (gen_random_uuid(), 1, $1, true, now())`,
+        [FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME],
+      );
+    }
+
     // Monitors in the Monitor table, with their type and first check (#8960).
     async function insertMonitors(monitors: Array<MonitorRow>): Promise<void> {
       for (const monitor of monitors) {
@@ -876,17 +890,22 @@ describePostgres(
 
       /*
        * The Monitor and MonitorStatus tables too, which the statements read
-       * a monitor's first check and a status's flags from (issue #8960).
+       * a monitor's first check and a status's flags from (issue #8960), and
+       * DataMigrations, whose row of the upgrade that puts the first check
+       * right for history opens the cut (getMeasuredFromCte).
        */
       for (const table of [
         "MonitorStatusTimeline",
         "Monitor",
         "MonitorStatus",
+        "DataMigrations",
       ]) {
         await database.query(
           `CREATE TABLE "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,
         );
       }
+
+      await markTheUpgradeDone();
 
       for (const status of EVERY_STATUS) {
         await database.query(
@@ -2171,6 +2190,91 @@ describePostgres(
             })
           ).monitors[0]!.buckets,
         );
+      });
+
+      test("until the upgrade has put the first check right for history, nothing is cut: every monitor reads as it always did", async () => {
+        /*
+         * During an upgrade a result stamps its monitor with the upgrade's
+         * time before BackfillMonitorFirstMeasuredAtForUptimeHistory gives
+         * it its creation: until that row is there, no history may read
+         * from the column.
+         */
+        await insertRows([
+          ...createdRows(monitorId(1)),
+          ...checkedRows(monitorId(2)),
+        ]);
+        await insertMonitors([
+          {
+            monitorId: monitorId(1),
+            monitorType: MonitorType.Website,
+            firstMeasuredAt: null,
+          },
+          {
+            monitorId: monitorId(2),
+            monitorType: MonitorType.Website,
+            firstMeasuredAt: new Date("2026-04-01T00:00:00.000Z"),
+          },
+        ]);
+
+        await database.query(`DELETE FROM "DataMigrations"`);
+
+        try {
+          const ids: Array<string> = [monitorId(1), monitorId(2)];
+          const [current, previous] = await Promise.all([
+            monitorDays({ monitorIds: ids, zone: "UTC" }),
+            previousMonitorDays({ monitorIds: ids, zone: "UTC" }),
+          ]);
+
+          current.monitors.forEach(
+            (monitor: { buckets: Array<UptimeDayBucket> }, index: number) => {
+              expectSameBuckets(
+                monitor.buckets,
+                previous.monitors[index]!.buckets,
+              );
+            },
+          );
+
+          const [merged, previousMerged] = await Promise.all([
+            mergedDowntime(ids),
+            previousMergedDowntime(ids),
+          ]);
+          expectWithinAMicrosecond(
+            merged.coveredSeconds,
+            previousMerged.coveredSeconds,
+          );
+
+          const [groups, previousGroups] = await Promise.all([
+            groupDays({ groups: [ids], zone: "UTC" }),
+            previousGroupDays({ groups: [ids], zone: "UTC" }),
+          ]);
+          expectSameBuckets(
+            groups.monitorGroups[0]!.buckets,
+            previousGroups.monitorGroups[0]!.buckets,
+          );
+
+          const [rolling, previousRolling] = await Promise.all([
+            rollingTotals(monitorId(1)),
+            previousRollingTotals(monitorId(1)),
+          ]);
+          rolling.forEach((total: MonitorUptimeWindowTotal, index: number) => {
+            expectWithinAMicrosecond(
+              total.coveredSeconds,
+              previousRolling[index]!.coveredSeconds,
+            );
+          });
+        } finally {
+          await markTheUpgradeDone();
+        }
+
+        // Once it is there, the monitor nothing has checked has no data.
+        const after: UptimeDailyAggregate = await monitorDays({
+          monitorIds: [monitorId(1)],
+          zone: "UTC",
+        });
+
+        for (const bucket of after.monitors[0]!.buckets) {
+          expect(bucket.coveredSeconds).toBe(0);
+        }
       });
 
       /*
