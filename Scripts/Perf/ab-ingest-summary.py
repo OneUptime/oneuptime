@@ -1,7 +1,8 @@
 """Prints ab-ingest.sh's results side by side, round by round: under the
 steady load the percent of one core the App and each datastore used, the
-batches a second the App finished and how long its OTLP jobs ran (median of
-the windows' p50 and p90); under the burst the batches a second it finished
+batches a second the App finished, how long its OTLP jobs ran (median of
+the windows' p50 and p90) and the parts ClickHouse made and merged; under
+the burst the batches a second it finished
 and how long the rest took to work off; and the load average at the start
 and end of each window. Then each side's mean, and the change from the
 baseline to the branch.
@@ -60,6 +61,7 @@ for name in sorted(os.listdir(RESULTS)):
         notes = handle.read()
     loads = dict(re.findall(r"^(\w+ load average at \w+): (.+)$", notes, re.M))
     drained = re.search(r"backlog (\d+) drained in (\d+) s", notes)
+    parts = re.search(r"steady ClickHouse parts \(new, merged\): (\d+) (\d+)", notes)
     cpu = read_json(f"{label}-steady.json")
     rounds.append(
         {
@@ -70,6 +72,7 @@ for name in sorted(os.listdir(RESULTS)):
             "burst": queue_summary(read_json(f"{label}-burst-queue.json")),
             "loads": loads,
             "drain": (int(drained.group(1)), int(drained.group(2))) if drained else None,
+            "parts": (int(parts.group(1)), int(parts.group(2))) if parts else (None, None),
         }
     )
 
@@ -89,15 +92,22 @@ def number(value, digits=0):
     return "-" if value is None else f"{value:.{digits}f}"
 
 
-print("Steady load: percent of one core, batches a second, OTLP job run time (ms)")
-print("| round | side | App | ClickHouse | Valkey | Postgres | batches/s | job p50 | job p90 | load avg start | load avg end |")
-print("|---|---|---|---|---|---|---|---|---|---|---|")
+print(
+    "Steady load: percent of one core, batches a second, OTLP job run time (ms), "
+    "ClickHouse parts made and merged in the window"
+)
+print(
+    "| round | side | App | ClickHouse | Valkey | Postgres | batches/s | job p50 | job p90 "
+    "| new parts | merges | load avg start | load avg end |"
+)
+print("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 for entry in rounds:
     steady = entry["steady"] or {}
     print(
         f"| {entry['round']} | {entry['side']} | {percent(entry, 'app')} | {percent(entry, 'ch')} | "
         f"{percent(entry, 'valkey')} | {percent(entry, 'pg')} | {number(steady.get('per_second'), 1)} | "
         f"{number(steady.get('run_p50'))} | {number(steady.get('run_p90'))} | "
+        f"{number(entry['parts'][0])} | {number(entry['parts'][1])} | "
         f"{entry['loads'].get('steady load average at start', '-')} | {entry['loads'].get('steady load average at end', '-')} |"
     )
 
@@ -127,6 +137,7 @@ for name, pick in (
     ("App, % of a core (steady)", lambda e: e["cpu"].get("app", {}).get("percent_of_core")),
     ("ClickHouse, % of a core (steady)", lambda e: e["cpu"].get("ch", {}).get("percent_of_core")),
     ("job p50 ms (steady)", lambda e: (e["steady"] or {}).get("run_p50")),
+    ("ClickHouse new parts (steady)", lambda e: e["parts"][0]),
     ("batches/s (burst)", lambda e: (e["burst"] or {}).get("per_second")),
 ):
     before, after = mean_of("baseline", pick), mean_of("branch", pick)

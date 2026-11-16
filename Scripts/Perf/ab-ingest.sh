@@ -6,7 +6,8 @@
 #   - steady: the kit's load (20 collectors every <steadyPeriodMs>, 15
 #     batches a second at 4000), sampled <minutes> after 2 minutes of it:
 #     cpu-sample.py for the CPU of the App and the datastores, ingest-queue.js
-#     for the jobs' run times;
+#     for the jobs' run times, ClickHouse's part log for the parts its
+#     inserts made and merged;
 #   - burst: 20 collectors every <burstPeriodMs> for <burstSeconds>, more than
 #     one App may keep up with, ingest-queue.js counting how many batches a
 #     second it finished, then the time it took to work off what was left.
@@ -55,6 +56,18 @@ backlog() {
     llen bull:Telemetry:wait 2>/dev/null || echo 0
 }
 
+# ClickHouse's new parts and merges between two UTC times: every insert
+# writes a part (and one more for each materialized view it feeds), and the
+# merges write them all again - the ClickHouse CPU an insert rate costs.
+parts_between() {
+  local ch="${PERF_PREFIX:-oneuptime-perf}-ch"
+  docker exec "$ch" clickhouse-client --password please-change-this-to-random-value \
+    -q "SYSTEM FLUSH LOGS" >/dev/null 2>&1
+  docker exec "$ch" clickhouse-client --password please-change-this-to-random-value \
+    -q "SELECT countIf(event_type = 'NewPart'), countIf(event_type = 'MergeParts') FROM system.part_log WHERE event_time BETWEEN '$1' AND '$2'" \
+    2>/dev/null | tr '\t' ' '
+}
+
 for round in $(seq 1 "$ROUNDS"); do
   for side in baseline branch; do
     label="ingest-r$round-$side"
@@ -70,12 +83,16 @@ for round in $(seq 1 "$ROUNDS"); do
     loader=$!
     sleep 120
     echo "steady load average at start: $(load_average)" | tee "$notes"
+    steady_start="$(date -u '+%F %T')"
     node "$HERE/ingest-queue.js" $((MINUTES * 60)) 10 "$RESULTS/$label-steady-queue.json" \
       >/dev/null 2>&1 &
     queue=$!
     python3 -I "$HERE/cpu-sample.py" "$MINUTES" "$label-steady" --interval 30 | tail -n 6
     wait "$queue"
+    steady_end="$(date -u '+%F %T')"
     echo "steady load average at end: $(load_average)" | tee -a "$notes"
+    echo "steady ClickHouse parts (new, merged): $(parts_between "$steady_start" "$steady_end")" |
+      tee -a "$notes"
     kill "$loader" 2>/dev/null
     wait "$loader" 2>/dev/null
 

@@ -2371,10 +2371,6 @@ app:
   telemetryFanInMaxBatchRows: 100000
   # Longest a buffered row waits (in ms) before its table is flushed anyway.
   telemetryFanInMaxWaitMs: 5000
-  # How long (in ms) a table's first buffered row waits for more rows before
-  # the table is flushed, when an insert is free to run. Ingest jobs wait for
-  # their rows to be flushed, so this is also how long each job waits.
-  telemetryFanInLingerMs: 200
   # Max simultaneous ClickHouse INSERTs per pod. Fleet-wide insert concurrency
   # is replicas x this value — keep that product under ~60% of ClickHouse
   # max_concurrent_queries (see docs/production-checklist.md).
@@ -2495,10 +2491,6 @@ worker:
   telemetryFanInMaxBatchRows: 100000
   # Longest a buffered row waits (in ms) before its table is flushed anyway.
   telemetryFanInMaxWaitMs: 5000
-  # How long (in ms) a table's first buffered row waits for more rows before
-  # the table is flushed, when an insert is free to run. Ingest jobs wait for
-  # their rows to be flushed, so this is also how long each job waits.
-  telemetryFanInLingerMs: 200
   # Max simultaneous ClickHouse INSERTs per pod. Fleet-wide insert concurrency
   # is replicas x this value — keep that product under ~60% of ClickHouse
   # max_concurrent_queries (see docs/production-checklist.md).
@@ -2609,7 +2601,6 @@ telemetryWriter:
   # (Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts).
   telemetryFanInMaxBatchRows: 100000
   telemetryFanInMaxWaitMs: 5000
-  telemetryFanInLingerMs: 200
   # Max simultaneous ClickHouse INSERTs per pod. Total telemetry insert
   # concurrency = replicaCount x this value — keep it under ~60% of ClickHouse
   # max_concurrent_queries.

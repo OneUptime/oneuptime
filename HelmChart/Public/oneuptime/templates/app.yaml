@@ -168,8 +168,6 @@ spec:
               value: {{ $.Values.app.telemetryFanInMaxBatchRows | default 100000 | squote }}
             - name: TELEMETRY_FANIN_MAX_WAIT_MS
               value: {{ $.Values.app.telemetryFanInMaxWaitMs | default 5000 | squote }}
-            - name: TELEMETRY_FANIN_LINGER_MS
-              value: {{ $.Values.app.telemetryFanInLingerMs | default 200 | squote }}
             - name: TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS
               value: {{ $.Values.app.telemetryFanInMaxConcurrentInserts | default 4 | squote }}
             - name: TELEMETRY_FANIN_MAX_PENDING_ROWS

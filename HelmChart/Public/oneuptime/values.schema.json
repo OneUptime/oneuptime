@@ -4072,10 +4072,6 @@
                     "type": "integer",
                     "minimum": 1
                 },
-                "telemetryFanInLingerMs": {
-                    "type": "integer",
-                    "minimum": 1
-                },
                 "telemetryFanInMaxConcurrentInserts": {
                     "type": "integer",
                     "minimum": 1
@@ -4313,10 +4309,6 @@
                     "type": "integer",
                     "minimum": 1
                 },
-                "telemetryFanInLingerMs": {
-                    "type": "integer",
-                    "minimum": 1
-                },
                 "telemetryFanInMaxConcurrentInserts": {
                     "type": "integer",
                     "minimum": 1
@@ -4523,10 +4515,6 @@
                     "minimum": 1
                 },
                 "telemetryFanInMaxWaitMs": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "telemetryFanInLingerMs": {
                     "type": "integer",
                     "minimum": 1
                 },

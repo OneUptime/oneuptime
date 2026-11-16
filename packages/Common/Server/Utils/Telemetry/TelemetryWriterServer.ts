@@ -167,6 +167,7 @@ export interface WriterInsertDeps {
     options: {
       dedupToken: string;
       clickhouseSettings?: ClickHouseSettings | undefined;
+      due?: boolean | undefined;
     },
   ) => Promise<FanInSubmitResult>;
   /*
@@ -215,12 +216,19 @@ export async function handleWriterInsert(
   }
 
   try {
+    /*
+     * Due at once: a worker's fan-in writer gathered these rows and its jobs
+     * wait on this answer, holding their worker slots, and with its token
+     * the request is inserted on its own whatever joins it. Waiting out
+     * this pod's window too only made them wait twice (#6086).
+     */
     const submission: FanInSubmitResult = await deps.submit(
       target,
       parsed.rows,
       {
         dedupToken: parsed.dedupToken,
         clickhouseSettings: parsed.clickhouseSettings,
+        due: true,
       },
     );
     await submission.flushed;
