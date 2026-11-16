@@ -145,7 +145,7 @@ import {
 import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 import { ObjectLiteral } from "typeorm/common/ObjectLiteral";
-import { FindWhere } from "../../Types/BaseDatabase/Query";
+import { FindWhere, FindWhereProperty } from "../../Types/BaseDatabase/Query";
 import Realtime from "../Utils/Realtime";
 import RealtimeMetrics from "../Utils/Realtime/RealtimeMetrics";
 import {
@@ -180,7 +180,6 @@ import {
   shouldBypassRecordPrivacy,
 } from "../Utils/PrivacyFilterUtil";
 import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
-import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
 import ArchivedValueCheck, {
   ArchivableValueColumn,
   ArchivableValuePick,

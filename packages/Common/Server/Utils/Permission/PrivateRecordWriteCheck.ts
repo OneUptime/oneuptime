@@ -119,8 +119,7 @@ export default class PrivateRecordWriteCheck {
     throw new NotAuthorizedException(
       PrivateRecordWriteCheck.getRefusal({
         action: data.action,
-        recordModelType: data.recordService
-          .modelType as DatabaseBaseModelType,
+        recordModelType: data.recordService.modelType as DatabaseBaseModelType,
       }),
     );
   }

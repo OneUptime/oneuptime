@@ -48,8 +48,7 @@ export default class PrivateRecordReadFilter {
     return PrivateRecordPermission.getPrivateRecordColumns(modelType).filter(
       (column: PrivateRecordColumn): boolean => {
         return (
-          !column.isRecord &&
-          !(primary && primary.column === column.column)
+          !column.isRecord && !(primary && primary.column === column.column)
         );
       },
     );

@@ -178,7 +178,8 @@ export default class RunbookPrivateRecordAccess {
 
     if (data.incidentId) {
       records.push({
-        service: IncidentService as unknown as DatabaseService<DatabaseBaseModel>,
+        service:
+          IncidentService as unknown as DatabaseService<DatabaseBaseModel>,
         id: data.incidentId,
         noun: "incident",
       });
