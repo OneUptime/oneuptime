@@ -4105,5 +4105,7 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "仍有 {{count}} 人未使用 SSO 登入。在使用 SSO 登入之前，他們無法開啟任何專案。",
   "Sign them out": "將他們登出",
   "Sign out everyone signed in without SSO?": "要登出所有未使用 SSO 登入的人嗎？",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "他們在所有裝置上的工作階段將立即結束，需要使用 SSO 重新登入。主要管理員會保持登入狀態。"
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "他們在所有裝置上的工作階段將立即結束，需要使用 SSO 重新登入。主要管理員會保持登入狀態。",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "回覆儲存在此伺服器上，由其主要管理員在這裡查看。「提供意見」也會透過電子郵件傳送到 support@oneuptime.com，評分（不含文字）會傳送到產品分析。",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "回覆儲存在此伺服器上，由其主要管理員在這裡查看。若已設定管理員通知電子郵件，「提供意見」也會傳送到該地址。不會向 OneUptime 傳送任何內容。"
 }

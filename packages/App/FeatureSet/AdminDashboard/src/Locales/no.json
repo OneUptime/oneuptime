@@ -4105,5 +4105,7 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} person er fortsatt logget inn uten SSO. Personen kan ikke åpne noe prosjekt før vedkommende logger inn med SSO.",
   "Sign them out": "Logg dem ut",
   "Sign out everyone signed in without SSO?": "Logge ut alle som er logget inn uten SSO?",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Øktene deres avsluttes nå på alle enheter, og de logger inn igjen med SSO. Hovedadministratorer forblir pålogget."
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Øktene deres avsluttes nå på alle enheter, og de logger inn igjen med SSO. Hovedadministratorer forblir pålogget.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "Svar lagres på denne serveren og leses her av hovedadministratorene. «Gi tilbakemelding» sendes også på e-post til support@oneuptime.com, og poengsummer, aldri tekst, går til produktanalyse.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "Svar lagres på denne serveren og leses her av hovedadministratorene. «Gi tilbakemelding» sendes også til e-postadressen for administratorvarslinger, hvis den er angitt. Ingenting sendes til OneUptime."
 }

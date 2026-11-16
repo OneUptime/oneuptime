@@ -4105,5 +4105,7 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "SSO 없이 로그인한 사용자가 아직 {{count}}명 있습니다. 이들은 SSO로 로그인할 때까지 어떤 프로젝트도 열 수 없습니다.",
   "Sign them out": "로그아웃시키기",
   "Sign out everyone signed in without SSO?": "SSO 없이 로그인한 모든 사용자를 로그아웃하시겠습니까?",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "모든 기기에서 세션이 즉시 끝나며, SSO로 다시 로그인해야 합니다. 마스터 관리자는 로그인 상태가 유지됩니다."
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "모든 기기에서 세션이 즉시 끝나며, SSO로 다시 로그인해야 합니다. 마스터 관리자는 로그인 상태가 유지됩니다.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "답변은 이 서버에 보관되며 여기서 마스터 관리자가 읽습니다. \"피드백 보내기\"는 support@oneuptime.com으로도 이메일로 전송되며, 내용이 아닌 점수만 제품 분석으로 전송됩니다.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "답변은 이 서버에 보관되며 여기서 마스터 관리자가 읽습니다. 관리자 알림 이메일이 설정되어 있으면 \"피드백 보내기\"가 그곳으로도 전송됩니다. OneUptime으로는 아무것도 전송되지 않습니다."
 }

@@ -4105,5 +4105,7 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} pessoa ainda está conectada sem SSO. Ela não pode abrir nenhum projeto até entrar com SSO.",
   "Sign them out": "Desconectá-las",
   "Sign out everyone signed in without SSO?": "Desconectar todos que entraram sem SSO?",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "As sessões delas terminam agora, em todos os dispositivos, e elas entram de novo com SSO. Os administradores principais continuam conectados."
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "As sessões delas terminam agora, em todos os dispositivos, e elas entram de novo com SSO. Os administradores principais continuam conectados.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "As respostas ficam neste servidor e são lidas aqui pelos administradores principais. \"Dar feedback\" também é enviado por e-mail para support@oneuptime.com, e as notas, nunca o texto, vão para a análise de produto.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "As respostas ficam neste servidor e são lidas aqui pelos administradores principais. \"Dar feedback\" também é enviado para o e-mail de notificação do admin, se houver um. Nada é enviado para o OneUptime."
 }

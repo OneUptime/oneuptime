@@ -4105,5 +4105,7 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} شخص لا يزال مسجّل الدخول بدون SSO. لا يمكنه فتح أي مشروع حتى يسجّل الدخول باستخدام SSO.",
   "Sign them out": "تسجيل خروجهم",
   "Sign out everyone signed in without SSO?": "هل تريد تسجيل خروج كل من سجّل الدخول بدون SSO؟",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "تنتهي جلساتهم الآن على كل الأجهزة، ويسجّلون الدخول مجددًا باستخدام SSO. يبقى المسؤولون الرئيسيون مسجّلي الدخول."
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "تنتهي جلساتهم الآن على كل الأجهزة، ويسجّلون الدخول مجددًا باستخدام SSO. يبقى المسؤولون الرئيسيون مسجّلي الدخول.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "تُحفظ الإجابات على هذا الخادم ويقرؤها هنا مسؤولوه الرئيسيون. يُرسل «إرسال رأي» أيضًا بالبريد الإلكتروني إلى support@oneuptime.com، وتُرسل الدرجات، لا النص أبدًا، إلى تحليلات المنتج.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "تُحفظ الإجابات على هذا الخادم ويقرؤها هنا مسؤولوه الرئيسيون. يُرسل «إرسال رأي» أيضًا إلى البريد الإلكتروني لإشعارات المسؤول، إن وُجد. لا يُرسل أي شيء إلى OneUptime."
 }

@@ -4105,5 +4105,7 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} persona sigue con la sesión iniciada sin SSO. No puede abrir ningún proyecto hasta que inicie sesión con SSO.",
   "Sign them out": "Cerrar su sesión",
   "Sign out everyone signed in without SSO?": "¿Cerrar la sesión de todos los que la iniciaron sin SSO?",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Sus sesiones terminan ahora en todos los dispositivos y vuelven a iniciar sesión con SSO. Los administradores maestros siguen con la sesión iniciada."
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Sus sesiones terminan ahora en todos los dispositivos y vuelven a iniciar sesión con SSO. Los administradores maestros siguen con la sesión iniciada.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "Las respuestas se guardan en este servidor y las leen aquí sus administradores principales. «Dar mi opinión» también se envía por correo a support@oneuptime.com, y las puntuaciones, nunca el texto, van a la analítica de producto.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "Las respuestas se guardan en este servidor y las leen aquí sus administradores principales. «Dar mi opinión» también se envía al correo de notificación admin, si hay uno. No se envía nada a OneUptime."
 }
