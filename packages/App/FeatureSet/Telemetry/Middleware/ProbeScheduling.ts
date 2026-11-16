@@ -18,20 +18,24 @@ import ProbeCapability, {
 } from "Common/Types/Probe/ProbeCapability";
 
 /*
- * Holds a probe scheduling request - /monitor/list, /monitor-test/list,
- * /probe/network-device/list - to the process's probe scheduling limit
- * (Common/Server/Utils/Probe/ProbeSchedulingLimiter, issue #7920): it runs
- * once a slot is free, keeps the slot until its answer has gone, and a
- * request the limiter refuses is answered busy here and never reaches the
- * handler, so it claims nothing - what it would have been handed stays due
- * for the next request.
+ * Holds a request a probe makes for work - /monitor/list, /monitor-test/list,
+ * /probe/network-device/list (issue #7920), and the other work it asks for:
+ * discovery scans, device diagnostics, packet captures, VMware and OpenStack
+ * collections and checks, Data Security and Data Observability (issue #8051)
+ * - to the process's probe scheduling limit
+ * (Common/Server/Utils/Probe/ProbeSchedulingLimiter): it runs once a slot is
+ * free, keeps the slot until its answer has gone, and a request the limiter
+ * refuses is answered busy here and never reaches the handler, so it claims
+ * nothing - what it would have been handed stays due for the next request.
  *
- * Busy is a 429 with Retry-After to a probe that declares
- * ProbeCapability.RetryWhenBusy, which reads it as "ask again at the next
- * tick". An older probe gets the endpoint's empty batch instead: it reads
- * that the same way without a word, where a 429 would reach its error log
- * every tick (its monitor and monitor test fetches parse any answer as a
- * list).
+ * Busy is a 429 with Retry-After to a probe whose fetch of the endpoint
+ * reads it as "ask again at the next tick": one that declares the
+ * endpoint's capability (ProbeCapability.RetryWhenBusy for the three
+ * scheduling endpoints, RetryAllWorkWhenBusy for the rest). Any other probe
+ * gets the endpoint's empty batch instead: it reads that the same way
+ * without a word, where a 429 would reach its log every tick (its monitor
+ * and monitor test fetches parse any answer as a list, and its other work
+ * fetches log a refused request as a failure).
  */
 
 // The endpoint's answer when it has nothing to hand out.
@@ -45,6 +49,18 @@ export type ProbeSchedulingMiddlewareFunction = (
   res: ExpressResponse,
   next: NextFunction,
 ) => Promise<void>;
+
+export interface ProbeSchedulingLimitOptions {
+  /*
+   * The capability of a probe whose fetch of this endpoint reads a 429 as
+   * "ask again at the next tick": RetryWhenBusy unless said. A busy request
+   * from such a probe is answered 429; every other probe gets the empty
+   * answer. null: every probe gets the empty answer - an endpoint whose
+   * empty answer still says something a 429 would lose.
+   */
+  retriesWhenBusy?: ProbeCapability | null | undefined;
+  limiter?: ProbeSchedulingLimiter | undefined;
+}
 
 interface ResponseEvents {
   once?: (event: string, listener: () => void) => void;
@@ -88,14 +104,20 @@ function releaseWhenAnswered(
 }
 
 export default class ProbeSchedulingMiddleware {
-  // Whether the probe that sent `req` reads a 429 as "ask again later".
-  public static probeRetriesWhenBusy(req: ExpressRequest): boolean {
+  /*
+   * Whether the probe that sent `req` reads a 429 as "ask again later":
+   * whether it declares `capability` (RetryWhenBusy unless said).
+   */
+  public static probeRetriesWhenBusy(
+    req: ExpressRequest,
+    capability: ProbeCapability = ProbeCapability.RetryWhenBusy,
+  ): boolean {
     return ProbeCapabilityUtil.has(
       ProbeCapabilityUtil.parse(
         (req.body as { probeCapabilities?: unknown } | undefined)
           ?.probeCapabilities,
       ),
-      ProbeCapability.RetryWhenBusy,
+      capability,
     );
   }
 
@@ -104,8 +126,12 @@ export default class ProbeSchedulingMiddleware {
     req: ExpressRequest,
     res: ExpressResponse,
     emptyAnswer: EmptySchedulingAnswer,
+    retriesWhenBusy: ProbeCapability | null = ProbeCapability.RetryWhenBusy,
   ): void {
-    if (ProbeSchedulingMiddleware.probeRetriesWhenBusy(req)) {
+    if (
+      retriesWhenBusy !== null &&
+      ProbeSchedulingMiddleware.probeRetriesWhenBusy(req, retriesWhenBusy)
+    ) {
       res.setHeader(
         "Retry-After",
         String(PROBE_SCHEDULING_BUSY_RETRY_AFTER_SECONDS),
@@ -119,8 +145,15 @@ export default class ProbeSchedulingMiddleware {
 
   public static limit(
     emptyAnswer: EmptySchedulingAnswer,
-    limiter: ProbeSchedulingLimiter = ProbeSchedulingLimiterInstance,
+    options: ProbeSchedulingLimitOptions = {},
   ): ProbeSchedulingMiddlewareFunction {
+    const limiter: ProbeSchedulingLimiter =
+      options.limiter || ProbeSchedulingLimiterInstance;
+    const retriesWhenBusy: ProbeCapability | null =
+      options.retriesWhenBusy === undefined
+        ? ProbeCapability.RetryWhenBusy
+        : options.retriesWhenBusy;
+
     return async (
       req: ExpressRequest,
       res: ExpressResponse,
@@ -147,7 +180,12 @@ export default class ProbeSchedulingMiddleware {
         }
 
         if (error instanceof ProbeSchedulingBusyError) {
-          return ProbeSchedulingMiddleware.answerBusy(req, res, emptyAnswer);
+          return ProbeSchedulingMiddleware.answerBusy(
+            req,
+            res,
+            emptyAnswer,
+            retriesWhenBusy,
+          );
         }
 
         return next(error);
