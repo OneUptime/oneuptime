@@ -20,8 +20,12 @@ import {
 } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
-import Permission from "../../../Types/Permission";
+import ObjectID from "../../../Types/ObjectID";
+import Permission, { UserPermission } from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
+import Query from "../../../Server/Types/Database/Query";
 import { ALWAYS_READABLE_COLUMNS } from "../../../Utils/Schema/BaseSchema";
 import { ModelSchema } from "../../../Utils/Schema/ModelSchema";
 
@@ -55,9 +59,11 @@ import { ModelSchema } from "../../../Utils/Schema/ModelSchema";
  * its schema. The App's Tests/BaseAPI/ListSortSchemaFollowsTheApi asks Ajv
  * the same, and so holds this reader to it.
  *
- * Who asks is root, who passes every permission check (#8839 holds a sort
- * to the caller's read of each column it names): the schema says which
- * sorts a list can be read in, not who may read which column.
+ * The shape of a sort is asked as root, who passes every permission check:
+ * the schema says which sorts a list can be read in, not who may read which
+ * column. Who may is SortValidator.checkSortPermission's (#8839), and held
+ * apart below: whoever may read a relation may sort by every field the spec
+ * offers through it.
  */
 
 const ROOT: DatabaseCommonInteractionProps = { isRoot: true };
@@ -631,6 +637,166 @@ describe("what the API takes beyond the spec", () => {
 
     expect(refusalOf(Incident, deep)).toBeNull();
     expect(allows(sortSchemaOf(Incident), deep)).toBe(false);
+  });
+});
+
+/*
+ * Who may sort by what is SortValidator.checkSortPermission's (#8839): a
+ * sort is held to the read of each column it names. A relation sort names
+ * only fields any reader of the relation may read - the ids and times, and
+ * those marked canReadOnRelationQuery - so whoever may read the relation
+ * may sort by every field the spec offers through it, whatever they hold of
+ * the related model.
+ */
+describe("who may sort", () => {
+  const PROJECT_ID: ObjectID = ObjectID.generate();
+
+  // Somebody of the project who holds exactly these permissions.
+  function personWith(
+    permissions: Array<Permission>,
+  ): DatabaseCommonInteractionProps {
+    return {
+      userId: ObjectID.generate(),
+      userType: UserType.User,
+      tenantId: PROJECT_ID,
+      userTenantAccessPermission: {
+        [PROJECT_ID.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: PROJECT_ID,
+          permissions: permissions.map(
+            (permission: Permission): UserPermission => {
+              return {
+                _type: "UserPermission",
+                permission: permission,
+                labelIds: [],
+                isBlockPermission: false,
+              };
+            },
+          ),
+        },
+      },
+    };
+  }
+
+  function permissionRefusalOf(
+    modelType: DatabaseBaseModelType,
+    sort: JSONObject,
+    props: DatabaseCommonInteractionProps,
+  ): Error | null {
+    try {
+      SortValidator.checkSortPermission({
+        modelType,
+        query: {} as Query<DatabaseBaseModel>,
+        sort,
+        props,
+      });
+      return null;
+    } catch (error) {
+      return error as Error;
+    }
+  }
+
+  test("whoever may read a relation may sort by every field the spec offers through it", () => {
+    const problems: Array<string> = [];
+    let checked: number = 0;
+
+    for (const modelType of SORTED_MODELS) {
+      const model: DatabaseBaseModel = new modelType();
+
+      for (const [key, property] of Object.entries(
+        propertiesOf(sortSchemaOf(modelType)),
+      )) {
+        const name: string = nameOfRef(property);
+
+        if (name === "SortFieldOrder") {
+          continue;
+        }
+
+        // Only who may read the relation itself: nothing of its record.
+        const reader: DatabaseCommonInteractionProps = personWith(
+          model.getColumnAccessControlFor(key)?.read || [],
+        );
+
+        for (const field of relationFieldsOf(name)) {
+          const sort: JSONObject = {
+            [key]: { [field]: SortOrder.Ascending },
+          };
+          const refusal: Error | null = permissionRefusalOf(
+            modelType,
+            sort,
+            reader,
+          );
+
+          if (refusal) {
+            problems.push(
+              `${tableOf(modelType)} ${JSON.stringify(sort)}: ${refusal.message}`,
+            );
+          }
+
+          checked++;
+        }
+      }
+    }
+
+    expect(problems).toEqual([]);
+    expect(checked).toBeGreaterThan(10_000);
+  });
+
+  /*
+   * The same readers are refused fields the spec leaves out of a relation
+   * sort, where they may not read them: the check above passes because of
+   * what the spec offers, not because the check passes everything.
+   */
+  test("and the same readers are refused a related field the spec leaves out, through most relations", () => {
+    // The relations through which one field the spec leaves out is refused.
+    let refused: number = 0;
+
+    for (const modelType of SORTED_MODELS) {
+      const model: DatabaseBaseModel = new modelType();
+
+      for (const [key, property] of Object.entries(
+        propertiesOf(sortSchemaOf(modelType)),
+      )) {
+        const name: string = nameOfRef(property);
+
+        if (name === "SortFieldOrder") {
+          continue;
+        }
+
+        const reader: DatabaseCommonInteractionProps = personWith(
+          model.getColumnAccessControlFor(key)?.read || [],
+        );
+        const relatedModel: DatabaseBaseModel = new (getTableColumns(model)[
+          key
+        ]!.modelType as DatabaseBaseModelType)();
+        const offered: Array<string> = relationFieldsOf(name);
+
+        for (const [field, column] of Object.entries(
+          getTableColumns(relatedModel),
+        )) {
+          if (
+            offered.includes(field) ||
+            column.type === TableColumnType.Entity ||
+            column.type === TableColumnType.EntityArray
+          ) {
+            continue;
+          }
+
+          if (
+            permissionRefusalOf(
+              modelType,
+              { [key]: { [field]: SortOrder.Ascending } },
+              reader,
+            ) instanceof NotAuthorizedException
+          ) {
+            refused++;
+            break;
+          }
+        }
+      }
+    }
+
+    expect(refused).toBeGreaterThan(1000);
   });
 });
 
