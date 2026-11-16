@@ -2476,19 +2476,78 @@ test.describe("setup health", () => {
 
     for (let index: number = 0; index < count; index++) {
       const row: Locator = rows.nth(index);
-      // Both boxes from one moment: a gap read across two would be off (Frames).
-      const [sentence, fix] = await boxesInOneFrame([
+      /*
+       * A finding fixed in one click (#7299) leads with that button, and
+       * its fix's link follows it on the same line; any other leads with
+       * the link.
+       */
+      const hasQuickFix: boolean =
+        (await row.getByTestId("setup-health-quick-fix").count()) > 0;
+      // The boxes from one moment: a gap read across two would be off (Frames).
+      const [sentence, first, fix] = await boxesInOneFrame([
         row.getByTestId("setup-health-sentence"),
+        row.getByTestId(
+          hasQuickFix ? "setup-health-quick-fix" : "setup-health-fix",
+        ),
         row.getByTestId("setup-health-fix"),
       ]);
 
       expect(sentence).not.toBeNull();
+      expect(first).not.toBeNull();
       expect(fix).not.toBeNull();
-      expect(Math.abs(fix!.x - sentence!.x)).toBeLessThan(2);
-      expect(fix!.y).toBeGreaterThanOrEqual(sentence!.y + sentence!.height);
+      expect(Math.abs(first!.x - sentence!.x)).toBeLessThan(2);
+      expect(first!.y).toBeGreaterThanOrEqual(sentence!.y + sentence!.height);
+
+      if (hasQuickFix) {
+        expect(fix!.x).toBeGreaterThan(first!.x + first!.width);
+        expect(
+          Math.abs(fix!.y + fix!.height / 2 - (first!.y + first!.height / 2)),
+        ).toBeLessThan(2);
+      }
     }
 
     await screenshot(page, "setup-health-1600");
+  });
+
+  /*
+   * #7299: SMS left off is fixed from its row, once a dialog has said
+   * exactly what will change - and Cancel changes nothing.
+   */
+  test("a one-click fix opens a dialog that says exactly what will change, and Cancel changes nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openSetupHealth(page);
+
+    const sms: Locator = page
+      .getByTestId("setup-health-finding")
+      .filter({ hasText: "SMS is off in this project" });
+    const button: Locator = sms.getByTestId("setup-health-quick-fix");
+
+    await expect(button).toHaveText("Turn On SMS");
+    // The link to the page that fixes it stays beside it.
+    await expect(sms.getByTestId("setup-health-fix")).toHaveText(
+      "Open Notification Channels",
+    );
+
+    await button.click();
+
+    await expect(page.getByTestId("setup-health-quick-fix-change")).toHaveText(
+      "SMS will be on for everyone in this project, so pages that use it are sent.",
+    );
+    await expect(page.getByTestId("setup-health-quick-fix-undo")).toHaveText(
+      "The switch is in Project Settings → Notifications → Notification Channels, where it can be turned off again.",
+    );
+    await screenshot(page, "setup-health-quick-fix-1280");
+
+    await page.getByTestId("modal-footer-close-button").click();
+
+    await expect(page.getByTestId("setup-health-quick-fix-dialog")).toHaveCount(
+      0,
+    );
+    await expect(sms).toBeVisible();
   });
 
   test("at 390px: one column, nothing wider than the screen", async ({

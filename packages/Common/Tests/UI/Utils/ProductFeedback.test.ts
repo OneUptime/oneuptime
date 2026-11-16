@@ -65,6 +65,8 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  GiveFeedbackCategory,
+  GiveFeedbackDestination,
   PRODUCT_FEEDBACK_ASK_ROUTE,
   PRODUCT_FEEDBACK_DETAILS_ROUTE,
   PRODUCT_FEEDBACK_ROUTE,
@@ -338,6 +340,158 @@ describe("what an answer is sent with", () => {
       }),
     ).toBeNull();
     expect(captureMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("Give feedback (#8893)", () => {
+  test("posts what it is about as its topic with the words, the page and the version - nothing else", async () => {
+    ProductFeedback.setSettings({ isOn: true, isAskingMe: false });
+    postMock.mockResolvedValue(
+      ok({ answerId: "answer-9", isEmailed: true, copyTo: "jane@acme.test" }),
+    );
+
+    await ProductFeedback.giveFeedback({
+      category: GiveFeedbackCategory.Idea,
+      details: "  Let me copy an SLO.  ",
+    });
+
+    const call: { url: { toString: () => string }; data: JSONObject } =
+      lastCall(postMock);
+
+    expect(call.url.toString()).toContain(PRODUCT_FEEDBACK_ROUTE);
+    expect(call.data).toEqual({
+      kind: "general",
+      topic: "idea",
+      score: null,
+      isPositive: null,
+      details: "Let me copy an SLO.",
+      page: "/dashboard/:projectId/monitors/setup",
+      version: ProductFeedback.getVersion(),
+    });
+    // The server adds who sent it, from who is signed in: never the Dashboard.
+    expect(JSON.stringify(call.data)).not.toContain("@");
+  });
+
+  test("answers with what the server did: whether it is emailed, and where a copy is on its way", async () => {
+    ProductFeedback.setSettings({ isOn: true, isAskingMe: true });
+    postMock.mockResolvedValue(
+      ok({ answerId: "answer-9", isEmailed: true, copyTo: "jane@acme.test" }),
+    );
+
+    expect(
+      await ProductFeedback.giveFeedback({
+        category: GiveFeedbackCategory.Broken,
+        details: "No budget on the SLO page.",
+      }),
+    ).toEqual({
+      answerId: "answer-9",
+      isEmailed: true,
+      copyTo: "jane@acme.test",
+    });
+  });
+
+  test("kept and not emailed - or from a server that does not say - promises nothing", async () => {
+    ProductFeedback.setSettings({ isOn: true, isAskingMe: true });
+
+    for (const answer of [
+      { answerId: "answer-9", isEmailed: false, copyTo: null },
+      { answerId: "answer-9" },
+    ]) {
+      postMock.mockResolvedValue(ok(answer as JSONObject));
+
+      expect(
+        await ProductFeedback.giveFeedback({
+          category: GiveFeedbackCategory.Other,
+          details: "Words.",
+        }),
+      ).toEqual({ answerId: "answer-9", isEmailed: false, copyTo: null });
+    }
+  });
+
+  test("not kept - refused, thrown, or a server that takes no feedback - is null", async () => {
+    ProductFeedback.setSettings({ isOn: true, isAskingMe: true });
+
+    postMock.mockResolvedValue(new HTTPErrorResponse(400, {}, {}));
+    expect(
+      await ProductFeedback.giveFeedback({
+        category: GiveFeedbackCategory.Other,
+        details: "Words.",
+      }),
+    ).toBeNull();
+
+    postMock.mockRejectedValue(new Error("offline"));
+    expect(
+      await ProductFeedback.giveFeedback({
+        category: GiveFeedbackCategory.Other,
+        details: "Words.",
+      }),
+    ).toBeNull();
+
+    postMock.mockReset();
+    ProductFeedback.setSettings({ isOn: false, isAskingMe: false });
+    expect(
+      await ProductFeedback.giveFeedback({
+        category: GiveFeedbackCategory.Other,
+        details: "Words.",
+      }),
+    ).toBeNull();
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
+  test("feedback/given carries what it is about, never the words", async () => {
+    ProductFeedback.setSettings({ isOn: true, isAskingMe: true });
+    postMock.mockResolvedValue(ok({ answerId: "answer-9" }));
+
+    await ProductFeedback.giveFeedback({
+      category: GiveFeedbackCategory.Confusing,
+      details: "Where do I set the paging order?",
+    });
+
+    const event: Array<unknown> | undefined = captureMock.mock.calls.find(
+      (call: Array<unknown>): boolean => {
+        return call[0] === ProductEventName.FeedbackGiven;
+      },
+    );
+
+    expect(event![1]).toMatchObject({
+      kind: "general",
+      topic: "confusing",
+      has_details: true,
+    });
+    expect(JSON.stringify(event![1])).not.toContain("paging order");
+  });
+
+  test("where it goes is the server's word, and before it has one, this frontend's", () => {
+    // A self-hosted frontend (billing off) claims nothing is emailed.
+    ProductFeedback.setSettings(null);
+    expect(ProductFeedback.getGiveFeedbackDestination()).toBe(
+      GiveFeedbackDestination.ServerAdmins,
+    );
+
+    for (const destination of Object.values(GiveFeedbackDestination)) {
+      ProductFeedback.setSettings({
+        isOn: true,
+        isAskingMe: true,
+        giveFeedbackGoesTo: destination,
+      });
+      expect(ProductFeedback.getGiveFeedbackDestination()).toBe(destination);
+    }
+  });
+
+  test("the settings carry where it goes, from the server", async () => {
+    getMock.mockResolvedValue(
+      ok({
+        isOn: true,
+        isAskingMe: true,
+        giveFeedbackGoesTo: GiveFeedbackDestination.ServerAdminsByEmail,
+      }),
+    );
+
+    await ProductFeedback.loadSettings();
+
+    expect(ProductFeedback.getGiveFeedbackDestination()).toBe(
+      GiveFeedbackDestination.ServerAdminsByEmail,
+    );
   });
 });
 

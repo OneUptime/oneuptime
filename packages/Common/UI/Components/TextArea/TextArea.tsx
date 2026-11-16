@@ -134,8 +134,14 @@ const TextArea: FunctionComponent<ComponentProps> = (
   // Each line reads the way it is written (TypedTextDirection).
   className += ` ${TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME}`;
 
+  /*
+   * Follow value when the page changes it, an empty one too: a box the page
+   * cleared (a message sent, a dialog opened again) is empty. Only a value
+   * that was something was taken, so a cleared box kept the old text, and
+   * the next keystroke wrote it back (#8893).
+   */
   useEffect(() => {
-    if (props.value) {
+    if (props.value !== undefined && props.value !== null) {
       textRef.current = props.value.toString();
       setText(props.value.toString());
     }

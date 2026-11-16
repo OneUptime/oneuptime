@@ -4,15 +4,22 @@ import ProjectService from "../../../../Server/Services/ProjectService";
 import IncomingRequestSecretPolicy, {
   INCOMING_REQUEST_SECRET_MISSING_MESSAGE,
   INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE,
+  INCOMING_REQUEST_SIGNATURE_EXPIRED_MESSAGE,
+  INCOMING_REQUEST_SIGNATURE_REPLAYED_MESSAGE,
   IncomingRequestSecretDecision,
+  IncomingRequestSecretMonitor,
+  IncomingRequestSecretOfPolicy,
   IncomingRequestSecretPolicyValue,
   IncomingRequestSecretVerdict,
 } from "../../../../Server/Utils/Monitor/IncomingRequestSecretPolicy";
 import IncomingRequestSecretRequest from "../../../../Server/Utils/Monitor/IncomingRequestSecretRequest";
 import IncomingRequestSecret from "../../../../Models/DatabaseModels/IncomingRequestSecret";
+import Label from "../../../../Models/DatabaseModels/Label";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import Project from "../../../../Models/DatabaseModels/Project";
 import { JSONObject } from "../../../../Types/JSON";
 import { IncomingRequestSecretProblem } from "../../../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
+import MonitorSecretAccess from "../../../../Types/Monitor/MonitorSecretAccess";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   afterEach,
@@ -59,11 +66,31 @@ const hash: (value: string) => string = (value: string): string => {
   return IncomingRequestSecretRequest.hashSecret(value);
 };
 
+// A secret as the policy keeps it: every monitor's, unless limited.
+const ofPolicy: (
+  secretId: string,
+  value: string,
+  access?: Partial<IncomingRequestSecretOfPolicy>,
+) => IncomingRequestSecretOfPolicy = (
+  secretId: string,
+  value: string,
+  access?: Partial<IncomingRequestSecretOfPolicy>,
+): IncomingRequestSecretOfPolicy => {
+  return {
+    secretId,
+    secretHash: hash(value),
+    monitorAccess: MonitorSecretAccess.AllMonitors,
+    monitorIds: [],
+    labelIds: [],
+    ...(access || {}),
+  };
+};
+
 const REQUIRED: IncomingRequestSecretPolicyValue = {
   isRequired: true,
   secrets: [
-    { secretId: SECRET_ID, secretHash: hash(SECRET) },
-    { secretId: OTHER_SECRET_ID, secretHash: hash(OTHER_SECRET) },
+    ofPolicy(SECRET_ID, SECRET),
+    ofPolicy(OTHER_SECRET_ID, OTHER_SECRET),
   ],
 };
 
@@ -226,6 +253,7 @@ describe("decide", () => {
       verdict: IncomingRequestSecretVerdict.Accepted,
       matchedSecretId: SECRET_ID,
       sentValidSecret: true,
+      wrongSecretHashes: [],
     });
 
     const second: IncomingRequestSecretDecision =
@@ -241,6 +269,8 @@ describe("decide", () => {
       verdict: IncomingRequestSecretVerdict.Accepted,
       matchedSecretId: OTHER_SECRET_ID,
       sentValidSecret: true,
+      // A right one among them: nothing is counted as a guess.
+      wrongSecretHashes: [],
     });
   });
 
@@ -273,6 +303,7 @@ describe("decide, for a monitor's record of requests with and without a secret",
         verdict: IncomingRequestSecretVerdict.NotRequired,
         sentValidSecret: false,
         problem: IncomingRequestSecretProblem.NoSecret,
+        wrongSecretHashes: [],
       });
       expect(IncomingRequestSecretPolicy.isRefused(decision.verdict)).toBe(
         false,
@@ -291,6 +322,8 @@ describe("decide, for a monitor's record of requests with and without a secret",
       verdict: IncomingRequestSecretVerdict.NotRequired,
       sentValidSecret: false,
       problem: IncomingRequestSecretProblem.WrongSecret,
+      // Nothing is refused, so nothing is counted as a guess.
+      wrongSecretHashes: [],
     });
     expect(decision.matchedSecretId).toBeUndefined();
   });
@@ -306,6 +339,7 @@ describe("decide, for a monitor's record of requests with and without a secret",
       verdict: IncomingRequestSecretVerdict.NotRequired,
       matchedSecretId: OTHER_SECRET_ID,
       sentValidSecret: true,
+      wrongSecretHashes: [],
     });
     expect(decision.problem).toBeUndefined();
   });
@@ -334,6 +368,7 @@ describe("decide, for a monitor's record of requests with and without a secret",
       verdict: IncomingRequestSecretVerdict.Missing,
       sentValidSecret: false,
       problem: IncomingRequestSecretProblem.NoSecret,
+      wrongSecretHashes: [],
     });
 
     expect(
@@ -345,7 +380,265 @@ describe("decide, for a monitor's record of requests with and without a secret",
       verdict: IncomingRequestSecretVerdict.NotRecognized,
       sentValidSecret: false,
       problem: IncomingRequestSecretProblem.WrongSecret,
+      // The wrong secret is what a guess counts as (issue #8499).
+      wrongSecretHashes: [hash("not-one-of-the-project-secrets")],
     });
+  });
+});
+
+/*
+ * A secret limited to some monitors (issue #8501): accepted by the monitors
+ * it covers, refused by every other as if it were wrong, and recorded as one
+ * of the project's that the monitor does not accept.
+ */
+describe("decide, for a secret limited to some monitors", () => {
+  const MONITOR_A: string = "a0000000-0000-4000-8000-00000000000a";
+  const MONITOR_B: string = "b0000000-0000-4000-8000-00000000000b";
+  const LABEL_TENANT_A: string = "1abe1000-0000-4000-8000-00000000000a";
+  const LABEL_TENANT_B: string = "1abe1000-0000-4000-8000-00000000000b";
+  const TENANT_A_SECRET: string = "tenant-a-secret-of-its-own-0001";
+  const TENANT_B_SECRET: string = "tenant-b-secret-of-its-own-0002";
+  const TENANT_A_ID: string = "5ec2e700-0000-4000-8000-0000000000aa";
+  const TENANT_B_ID: string = "5ec2e700-0000-4000-8000-0000000000bb";
+
+  const monitorA: IncomingRequestSecretMonitor = {
+    monitorId: MONITOR_A,
+    labelIds: [LABEL_TENANT_A],
+  };
+
+  const monitorB: IncomingRequestSecretMonitor = {
+    monitorId: MONITOR_B,
+    labelIds: [LABEL_TENANT_B],
+  };
+
+  const BY_MONITOR: IncomingRequestSecretPolicyValue = {
+    isRequired: true,
+    secrets: [
+      ofPolicy(TENANT_A_ID, TENANT_A_SECRET, {
+        monitorAccess: MonitorSecretAccess.SpecificMonitors,
+        monitorIds: [MONITOR_A],
+      }),
+      ofPolicy(TENANT_B_ID, TENANT_B_SECRET, {
+        monitorAccess: MonitorSecretAccess.SpecificMonitors,
+        monitorIds: [MONITOR_B],
+      }),
+    ],
+  };
+
+  const BY_LABEL: IncomingRequestSecretPolicyValue = {
+    isRequired: true,
+    secrets: [
+      ofPolicy(TENANT_A_ID, TENANT_A_SECRET, {
+        monitorAccess: MonitorSecretAccess.MonitorsWithLabels,
+        labelIds: [LABEL_TENANT_A],
+      }),
+      ofPolicy(TENANT_B_ID, TENANT_B_SECRET, {
+        monitorAccess: MonitorSecretAccess.MonitorsWithLabels,
+        labelIds: [LABEL_TENANT_B],
+      }),
+    ],
+  };
+
+  test.each([
+    ["listed monitors", BY_MONITOR],
+    ["labels", BY_LABEL],
+  ])(
+    "a secret limited by %s is accepted by the monitor it covers",
+    (_name: string, policy: IncomingRequestSecretPolicyValue) => {
+      expect(
+        IncomingRequestSecretPolicy.decide({
+          policy,
+          presentedSecretHashes: [hash(TENANT_A_SECRET)],
+          monitor: monitorA,
+        }),
+      ).toEqual({
+        verdict: IncomingRequestSecretVerdict.Accepted,
+        matchedSecretId: TENANT_A_ID,
+        sentValidSecret: true,
+        wrongSecretHashes: [],
+      });
+    },
+  );
+
+  test.each([
+    ["listed monitors", BY_MONITOR],
+    ["labels", BY_LABEL],
+  ])(
+    "tenant A's secret limited by %s is refused by tenant B's monitor, as a wrong one, and recorded as not for it",
+    (_name: string, policy: IncomingRequestSecretPolicyValue) => {
+      const decision: IncomingRequestSecretDecision =
+        IncomingRequestSecretPolicy.decide({
+          policy,
+          presentedSecretHashes: [hash(TENANT_A_SECRET)],
+          monitor: monitorB,
+        });
+
+      expect(decision).toEqual({
+        verdict: IncomingRequestSecretVerdict.NotRecognized,
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.SecretNotForMonitor,
+        wrongSecretHashes: [hash(TENANT_A_SECRET)],
+      });
+      expect(decision.matchedSecretId).toBeUndefined();
+
+      // The sender is told it is not one the monitor accepts - not that it is the project's.
+      expect(
+        IncomingRequestSecretPolicy.getRefusalMessage(
+          decision.verdict,
+          decision.problem,
+        ),
+      ).toBe(INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE);
+    },
+  );
+
+  test("a secret for another monitor sent beside the right one is accepted with the right one", () => {
+    expect(
+      IncomingRequestSecretPolicy.decide({
+        policy: BY_MONITOR,
+        presentedSecretHashes: [hash(TENANT_A_SECRET), hash(TENANT_B_SECRET)],
+        monitor: monitorB,
+      }),
+    ).toEqual({
+      verdict: IncomingRequestSecretVerdict.Accepted,
+      matchedSecretId: TENANT_B_ID,
+      sentValidSecret: true,
+      wrongSecretHashes: [],
+    });
+  });
+
+  test("a secret for every monitor is accepted by both, beside the limited ones", () => {
+    const policy: IncomingRequestSecretPolicyValue = {
+      isRequired: true,
+      secrets: [...BY_MONITOR.secrets, ofPolicy(SECRET_ID, SECRET)],
+    };
+
+    for (const monitor of [monitorA, monitorB]) {
+      expect(
+        IncomingRequestSecretPolicy.decide({
+          policy,
+          presentedSecretHashes: [hash(SECRET)],
+          monitor,
+        }).verdict,
+      ).toBe(IncomingRequestSecretVerdict.Accepted);
+    }
+  });
+
+  test("a limited secret's other list grants nothing: a label-scoped secret that lists monitors covers only by its labels", () => {
+    const policy: IncomingRequestSecretPolicyValue = {
+      isRequired: true,
+      secrets: [
+        ofPolicy(TENANT_A_ID, TENANT_A_SECRET, {
+          monitorAccess: MonitorSecretAccess.MonitorsWithLabels,
+          labelIds: [LABEL_TENANT_A],
+          monitorIds: [MONITOR_B],
+        }),
+      ],
+    };
+
+    expect(
+      IncomingRequestSecretPolicy.decide({
+        policy,
+        presentedSecretHashes: [hash(TENANT_A_SECRET)],
+        monitor: monitorB,
+      }).problem,
+    ).toBe(IncomingRequestSecretProblem.SecretNotForMonitor);
+  });
+
+  test("before the project requires a secret, a secret for another monitor is accepted but recorded as not for this one", () => {
+    expect(
+      IncomingRequestSecretPolicy.decide({
+        policy: { ...BY_MONITOR, isRequired: false },
+        presentedSecretHashes: [hash(TENANT_A_SECRET)],
+        monitor: monitorB,
+      }),
+    ).toEqual({
+      verdict: IncomingRequestSecretVerdict.NotRequired,
+      sentValidSecret: false,
+      problem: IncomingRequestSecretProblem.SecretNotForMonitor,
+      wrongSecretHashes: [],
+    });
+  });
+
+  test("a request whose monitor is unknown is covered only by secrets for every monitor", () => {
+    expect(
+      IncomingRequestSecretPolicy.decide({
+        policy: BY_MONITOR,
+        presentedSecretHashes: [hash(TENANT_A_SECRET)],
+      }).verdict,
+    ).toBe(IncomingRequestSecretVerdict.NotRecognized);
+  });
+
+  test("a policy kept before #8501, with no access on its secrets, covers every monitor", () => {
+    expect(
+      IncomingRequestSecretPolicy.decide({
+        policy: {
+          isRequired: true,
+          secrets: [{ secretId: SECRET_ID, secretHash: hash(SECRET) }],
+        },
+        presentedSecretHashes: [hash(SECRET)],
+        monitor: monitorB,
+      }).verdict,
+    ).toBe(IncomingRequestSecretVerdict.Accepted);
+  });
+
+  test("knows when a monitor's labels are needed", () => {
+    expect(IncomingRequestSecretPolicy.hasLabelScopedSecret(BY_LABEL)).toBe(
+      true,
+    );
+    expect(IncomingRequestSecretPolicy.hasLabelScopedSecret(BY_MONITOR)).toBe(
+      false,
+    );
+    expect(IncomingRequestSecretPolicy.hasLabelScopedSecret(REQUIRED)).toBe(
+      false,
+    );
+  });
+});
+
+describe("decide, for a signature that was not accepted (issue #8500)", () => {
+  test("an expired signature, and nothing else, is refused as expired", () => {
+    const decision: IncomingRequestSecretDecision =
+      IncomingRequestSecretPolicy.decide({
+        policy: REQUIRED,
+        presentedSecretHashes: [],
+        signatureProblem: IncomingRequestSecretProblem.ExpiredSignature,
+      });
+
+    expect(decision).toEqual({
+      verdict: IncomingRequestSecretVerdict.NotRecognized,
+      sentValidSecret: false,
+      problem: IncomingRequestSecretProblem.ExpiredSignature,
+      // Nothing was checked, so nothing was guessed.
+      wrongSecretHashes: [],
+    });
+    expect(
+      IncomingRequestSecretPolicy.getRefusalMessage(
+        decision.verdict,
+        decision.problem,
+      ),
+    ).toBe(INCOMING_REQUEST_SIGNATURE_EXPIRED_MESSAGE);
+  });
+
+  test("an expired signature beside a right secret in a header is accepted on the header", () => {
+    expect(
+      IncomingRequestSecretPolicy.decide({
+        policy: REQUIRED,
+        presentedSecretHashes: [hash(SECRET)],
+        signatureProblem: IncomingRequestSecretProblem.ExpiredSignature,
+      }).verdict,
+    ).toBe(IncomingRequestSecretVerdict.Accepted);
+  });
+
+  test("the expired and replayed refusals say what to do, and name no secret", () => {
+    for (const message of [
+      INCOMING_REQUEST_SIGNATURE_EXPIRED_MESSAGE,
+      INCOMING_REQUEST_SIGNATURE_REPLAYED_MESSAGE,
+    ]) {
+      expect(message).toMatch(/^[A-Z]/);
+      expect(message.endsWith(".")).toBe(true);
+      expect(message).toContain("Sign each request");
+    }
+
+    expect(INCOMING_REQUEST_SIGNATURE_EXPIRED_MESSAGE).toContain("5 minutes");
   });
 });
 
@@ -442,10 +735,89 @@ describe("getPolicy", () => {
     expect(secretFindBy).not.toHaveBeenCalled();
   });
 
-  test("keeps the policy under a namespace of its own, not one a server from before #8498 wrote without the secrets", () => {
+  test("keeps the policy under a namespace of its own, not one a server from before #8501 wrote without the monitors each secret covers", () => {
     expect(IncomingRequestSecretPolicy.NAMESPACE).toBe(
-      "incoming-request-secret-policy-v2",
+      "incoming-request-secret-policy-v3",
     );
+  });
+
+  test("reads which monitors each secret covers, and keeps only the list its mode reads", async () => {
+    const monitorId: string = "a0000000-0000-4000-8000-00000000000a";
+    const labelId: string = "1abe1000-0000-4000-8000-00000000000a";
+
+    secretFindBy.mockImplementationOnce(async () => {
+      const bySpecific: IncomingRequestSecret = new IncomingRequestSecret();
+      bySpecific.id = new ObjectID(SECRET_ID);
+      bySpecific.secretValue = SECRET;
+      bySpecific.monitorAccess = MonitorSecretAccess.SpecificMonitors;
+      bySpecific.monitors = [new Monitor(new ObjectID(monitorId))];
+      // A list its mode does not read: it must grant nothing.
+      bySpecific.labels = [new Label(new ObjectID(labelId))];
+
+      const byLabel: IncomingRequestSecret = new IncomingRequestSecret();
+      byLabel.id = new ObjectID(OTHER_SECRET_ID);
+      byLabel.secretValue = OTHER_SECRET;
+      byLabel.monitorAccess = MonitorSecretAccess.MonitorsWithLabels;
+      byLabel.labels = [new Label(new ObjectID(labelId))];
+
+      return [bySpecific, byLabel];
+    });
+
+    const policy: IncomingRequestSecretPolicyValue =
+      await IncomingRequestSecretPolicy.getPolicy(PROJECT_ID);
+
+    expect(policy.secrets).toEqual([
+      ofPolicy(SECRET_ID, SECRET, {
+        monitorAccess: MonitorSecretAccess.SpecificMonitors,
+        monitorIds: [monitorId],
+        labelIds: [],
+      }),
+      ofPolicy(OTHER_SECRET_ID, OTHER_SECRET, {
+        monitorAccess: MonitorSecretAccess.MonitorsWithLabels,
+        monitorIds: [],
+        labelIds: [labelId],
+      }),
+    ]);
+
+    // The secrets' lists are read with them, as OneUptime.
+    expect(secretFindBy.mock.calls[0]![0].select).toEqual(
+      expect.objectContaining({
+        monitorAccess: true,
+        monitors: { _id: true },
+        labels: { _id: true },
+      }),
+    );
+
+    // Kept and read back from Redis the same.
+    expect(await IncomingRequestSecretPolicy.getPolicy(PROJECT_ID)).toEqual(
+      policy,
+    );
+    expect(secretFindBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a secret with no mode read covers every monitor", async () => {
+    const policy: IncomingRequestSecretPolicyValue =
+      await IncomingRequestSecretPolicy.getPolicy(PROJECT_ID);
+
+    for (const secret of policy.secrets) {
+      expect(secret.monitorAccess).toBe(MonitorSecretAccess.AllMonitors);
+    }
+  });
+
+  test("a policy kept in the old shape, with no access on its secrets, is read again from Postgres", async () => {
+    redis.set(
+      `${IncomingRequestSecretPolicy.NAMESPACE}-${PROJECT_ID.toString()}`,
+      JSON.stringify({
+        isRequired: true,
+        secrets: [{ secretId: SECRET_ID, secretHash: hash(SECRET) }],
+      }),
+    );
+
+    const policy: IncomingRequestSecretPolicyValue =
+      await IncomingRequestSecretPolicy.getPolicy(PROJECT_ID);
+
+    expect(policy).toEqual(REQUIRED);
+    expect(secretFindBy).toHaveBeenCalledTimes(1);
   });
 
   test("a secret with no value is left out of the policy", async () => {
@@ -457,9 +829,7 @@ describe("getPolicy", () => {
     const policy: IncomingRequestSecretPolicyValue =
       await IncomingRequestSecretPolicy.getPolicy(PROJECT_ID);
 
-    expect(policy.secrets).toEqual([
-      { secretId: SECRET_ID, secretHash: hash(SECRET) },
-    ]);
+    expect(policy.secrets).toEqual([ofPolicy(SECRET_ID, SECRET)]);
   });
 
   test("a Redis that fails is a miss: the policy comes from Postgres", async () => {

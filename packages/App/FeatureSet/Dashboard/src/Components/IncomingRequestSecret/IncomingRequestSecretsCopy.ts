@@ -1,4 +1,7 @@
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The words of a project's incoming request secrets (issue #7526), on
@@ -49,6 +52,9 @@ export const IncomingRequestSecretsCopy: {
   reasonTitle: string;
   reasonNoSecret: string;
   reasonWrongSecret: string;
+  reasonSecretNotForMonitor: string;
+  reasonExpiredSignature: string;
+  confirmTurnOnCheckingLessThanADay: string;
   lastWithoutSecretTitle: string;
   lastWithSecretTitle: string;
   monitorRefusedNote: string;
@@ -66,8 +72,13 @@ export const IncomingRequestSecretsCopy: {
   switchOffDescription: translationKey(
     "Requests are accepted with or without a secret, as before. Each monitor's own criteria still apply.",
   ),
+  /*
+   * The ways to send it (issue #8500), the safest named: a signature, which
+   * a sender of its own (X-OneUptime-Signature), GitHub, Slack and Stripe
+   * make, keeps the secret off the wire.
+   */
   switchNote: translationKey(
-    "Senders send it in the X-OneUptime-Secret header, or as a Bearer token in the Authorization header.",
+    "Senders send it in the X-OneUptime-Secret header or as a Bearer token, or sign each request with it: safer, as the secret never travels.",
   ),
   confirmTurnOnTitle: translationKey("Require a Secret on Every Request?"),
   confirmTurnOnDescription: translationKey(
@@ -117,6 +128,17 @@ export const IncomingRequestSecretsCopy: {
   reasonTitle: translationKey("Reason"),
   reasonNoSecret: translationKey("No secret sent"),
   reasonWrongSecret: translationKey("Wrong secret sent"),
+  // One of the project's secrets, limited to other monitors (issue #8501).
+  reasonSecretNotForMonitor: translationKey("Secret not for this monitor"),
+  // A signature whose time was too far from OneUptime's clock (issue #8500).
+  reasonExpiredSignature: translationKey("Signature too old"),
+  /*
+   * Turning the requirement on while the list of requests without a secret
+   * is empty but has watched for less than its day (issue #8564).
+   */
+  confirmTurnOnCheckingLessThanADay: translationKey(
+    "Requests have been checked for a secret for less than a day, so a sender that calls less often may not show up yet.",
+  ),
   lastWithoutSecretTitle: translationKey("Last Without Secret"),
   lastWithSecretTitle: translationKey("Last With Secret"),
   // Under a monitor's heartbeat URL, with the time a request without one came.
@@ -126,6 +148,18 @@ export const IncomingRequestSecretsCopy: {
   monitorWouldBeRefusedNote: translationKey(
     "This monitor got a request without a valid secret {{time}}. Once the project requires one, requests like it are refused.",
   ),
+};
+
+/*
+ * Turning the requirement on while Incoming Request monitors are on the list
+ * of requests without a secret (issue #8564): how many, and that their
+ * senders are refused from then on. A plural of its own, outside the words
+ * above, which are all single sentences.
+ */
+export const CONFIRM_TURN_ON_REFUSED_MONITORS: PluralTemplate = {
+  one: "{{count}} Incoming Request monitor got a request without a valid secret in the last 24 hours. Its senders are refused from now on.",
+  other:
+    "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on.",
 };
 
 // The project column the switch writes.

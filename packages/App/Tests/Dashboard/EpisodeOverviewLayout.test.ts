@@ -112,9 +112,12 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     countField: "incidentCount",
     cardTitle: "Incidents in this episode",
     feedElement: "<IncidentEpisodeFeedElement",
-    // The incident episode feed also takes the public note notify default.
+    /*
+     * The incident episode feed also takes the public note notify default,
+     * and where the episode stands, for Execute On-Call Policy (#7839).
+     */
     feedElementRest:
-      "notifyStatusPageSubscribersByDefault={ notifyStatusPageSubscribersByDefault } isPrivate={!PrivateRecordPublicNotes.takesPublicNotes(episode)} />",
+      "notifyStatusPageSubscribersByDefault={ notifyStatusPageSubscribersByDefault } isPrivate={!PrivateRecordPublicNotes.takesPublicNotes(episode)} standing={timing.standing} />",
     viewAllPage: "PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS",
     memberViewPage: "PageMap.INCIDENT_VIEW",
     memberSelect: "INCIDENT_EPISODE_MEMBER_SELECT",
@@ -143,7 +146,8 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     countField: "alertCount",
     cardTitle: "Alerts in this episode",
     feedElement: "<AlertEpisodeFeedElement",
-    feedElementRest: "/>",
+    // Execute On-Call Policy follows where the episode stands (#7839).
+    feedElementRest: "standing={timing.standing} />",
     viewAllPage: "PageMap.ALERT_EPISODE_VIEW_ALERTS",
     memberViewPage: "PageMap.ALERT_VIEW",
     memberSelect: "ALERT_EPISODE_MEMBER_SELECT",

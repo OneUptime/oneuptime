@@ -99,7 +99,8 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
    * enableCallNotifications, enableWhatsAppNotifications,
    * enableTelegramNotifications), and nothing else: every other column's own
    * update list leaves them out, and the server checks both lists on every
-   * update.
+   * update. Edit Incoming Request Secret is here for one column alone,
+   * requireIncomingRequestSecret (issue #8502), the same way.
    */
   update: [
     Permission.ProjectOwner,
@@ -108,6 +109,7 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
     Permission.BillingMember,
     Permission.ManageProjectBilling,
     Permission.EditProject,
+    Permission.EditIncomingRequestSecret,
   ],
 })
 @TableMetadata({
@@ -4826,9 +4828,11 @@ export default class Project extends TenantModel {
    * it sends one of the project's incoming request secrets
    * (IncomingRequestSecret; Types/Monitor/IncomingMonitor/IncomingRequestSecret
    * says how). Everyone in the project reads it, so a monitor's page can say
-   * its senders need a secret; only owners and admins change it, as only they
-   * manage the secrets. It cannot be turned on while the project has no
-   * secret (ProjectService), so turning it on never refuses every sender at
+   * its senders need a secret; those who manage the secrets change it:
+   * owners, admins and a custom role given Edit Incoming Request Secret
+   * (issue #8502), the one column of the project that permission opens. It
+   * cannot be turned on while the project has no secret that covers a
+   * monitor (ProjectService), so turning it on never refuses every sender at
    * once by mistake.
    */
   @ColumnAccessControl({
@@ -4842,7 +4846,11 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncomingRequestSecret,
+    ],
   })
   @TableColumn({
     required: false,

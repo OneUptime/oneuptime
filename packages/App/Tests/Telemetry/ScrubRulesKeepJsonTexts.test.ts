@@ -449,18 +449,11 @@ describe("properties of a structured body through scrubLog", () => {
           });
 
           /*
-           * A Sensitive Attribute Keys rule writes the body back with
-           * JSON.stringify when it hides a value: its spaces are then
-           * JSON.stringify's. Pattern rules alone keep every token.
+           * Every token kept, a Sensitive Attribute Keys rule's too: it
+           * replaces only the texts it hides, where they are written
+           * (#8993), where it used to write the body again with
+           * JSON.stringify's spaces.
            */
-          if (
-            specs.some((spec: RuleSpec): boolean => {
-              return spec.patternType === "sensitiveKeys";
-            })
-          ) {
-            continue;
-          }
-
           const before: Array<JsonToken> = readJsonTokens(body);
           const after: Array<JsonToken> = readJsonTokens(scrubbed);
           const shape: (tokens: Array<JsonToken>) => Array<string> = (

@@ -1051,3 +1051,123 @@ describe("a body sent as a map stays JSON on each OTLP route when a pattern rule
     },
   );
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * #8993: a JSON text held in a string - an attribute an application wrote
+ * as JSON, one inside a list, and a string of a map body that is JSON of
+ * its own (a docker record's `log`, sent on by a collector) - is read key
+ * by key by a Sensitive Attribute Keys rule on each route. The secret under
+ * a key is hidden, the text is the very text sent otherwise - a number
+ * JSON.parse cannot keep, its spaces - and a JSON text with no secret key
+ * is stored as sent.
+ * ---------------------------------------------------------------------------
+ */
+const REQUEST_BODY: string =
+  '{ "username": "ada", "password": "hunter2", "id": 12345678901234567890 }';
+const REQUEST_BODY_HIDDEN: string =
+  '{ "username": "ada", "password": "[REDACTED]", "id": 12345678901234567890 }';
+const RESPONSE_BODY: string = '{ "event": "password_reset", "user": "ada" }';
+const DOCKER_LINE: string = '{"level":"info","token":"tok-77","msg":"paid"}\n';
+
+function jsonTextsRequest(): JSONObject {
+  return {
+    resourceLogs: [
+      {
+        resource: {
+          attributes: pairs([["service.name", text(SERVICE_NAME)]]),
+        },
+        scopeLogs: [
+          {
+            scope: { name: "checkout.logger" },
+            logRecords: [
+              {
+                timeUnixNano: "1794218400000000000",
+                severityNumber: 9,
+                body: text("login requested"),
+                attributes: pairs([
+                  ["http.request.body", text(REQUEST_BODY)],
+                  ["http.response.body", text(RESPONSE_BODY)],
+                  ["request.bodies", list(text(REQUEST_BODY), text("plain"))],
+                ]),
+              },
+              {
+                timeUnixNano: "1794218401000000000",
+                severityNumber: 9,
+                body: keyValueList([
+                  ["log", text(DOCKER_LINE)],
+                  ["stream", text("stdout")],
+                ]),
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+describe("a JSON text held in a string is read key by key on each OTLP route (#8993)", () => {
+  test.each(ROUTE_CASES)(
+    "%s: the secret inside an attribute's JSON text, and inside a map body's JSON line, is hidden; every other text is stored as sent",
+    async (_label: string, routeIndex: number) => {
+      setupIngest([
+        compiledRule({
+          patternType: LogScrubPatternType.SensitiveKeys,
+          action: LogScrubAction.Redact,
+        }),
+      ]);
+
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(jsonTextsRequest()),
+      );
+
+      expect(logRows).toHaveLength(2);
+
+      const attributes: JSONObject = attributesOf(
+        rowWithBody("login requested"),
+      );
+
+      expect(attributes["http.request.body"]).toBe(REQUEST_BODY_HIDDEN);
+      expect(attributes["http.response.body"]).toBe(RESPONSE_BODY);
+      expect(attributes["request.bodies"]).toEqual([
+        REQUEST_BODY_HIDDEN,
+        "plain",
+      ]);
+
+      const mapBody: string = logRows.find((row: JSONObject): boolean => {
+        return row["body"] !== "login requested";
+      })!["body"] as string;
+
+      expect(withoutKindNames(JSON.parse(mapBody))).toEqual(
+        keyValueList([
+          ["log", text(DOCKER_LINE.replace('"tok-77"', '"[REDACTED]"'))],
+          ["stream", text("stdout")],
+        ]),
+      );
+
+      const stored: string = JSON.stringify(logRows);
+
+      expect(stored).not.toContain("hunter2");
+      expect(stored).not.toContain("tok-77");
+    },
+  );
+
+  test.each(ROUTE_CASES)(
+    "%s: with no rule, the same texts are stored as sent",
+    async (_label: string, routeIndex: number) => {
+      setupIngest([]);
+
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(jsonTextsRequest()),
+      );
+
+      const attributes: JSONObject = attributesOf(
+        rowWithBody("login requested"),
+      );
+
+      expect(attributes["http.request.body"]).toBe(REQUEST_BODY);
+      expect(JSON.stringify(logRows)).toContain("tok-77");
+    },
+  );
+});

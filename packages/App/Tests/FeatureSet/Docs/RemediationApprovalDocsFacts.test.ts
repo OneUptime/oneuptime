@@ -337,6 +337,31 @@ describe("approving or dismissing a fix from a chat", () => {
     expect(actions).toContain("modelType: RunbookExecution,");
   });
 
+  it("says the message is edited once the fix is approved or dismissed, from anywhere, as approving and dismissing edit it", () => {
+    const section: string = flat(englishSection(AI_SRE, APPROVAL_SECTION));
+
+    expect(section).toContain(
+      `Once the fix is approved or dismissed, from anywhere, its message says who did, and only ${bold(getViewInProductTitle())} is left on it.`,
+    );
+
+    // Every approval and dismissal - the card's, a chat's, the API's - edits it.
+    const approval: string = readRepoFile(
+      "Common/Server/Utils/AutoRemediation/RemediationApproval.ts",
+    );
+    expect(approval.split("refreshFixMessages(suggestion);").length - 1).toBe(
+      3,
+    );
+    expect(approval).toContain("RemediationChatMessage.refreshKeptMessages({");
+
+    // Approved or dismissed, its buttons are View in OneUptime alone.
+    const message: string = readRepoFile(
+      "Common/Server/Utils/AutoRemediation/RemediationChatMessage.ts",
+    );
+    expect(message).toContain(
+      'state.kind === "waiting" || state.kind === "firstApproved";',
+    );
+  });
+
   it("says dismissing asks what approving does, on the card and in a chat, as the dismissal checks it", () => {
     const section: string = flat(englishSection(AI_SRE, APPROVAL_SECTION));
 
@@ -445,10 +470,22 @@ describe("approving or dismissing a fix from a chat", () => {
     const teams: string = readRepoFile(
       "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/Remediation.ts",
     );
-    // Confirmed first, then removed.
-    expect(teams.indexOf("answer: approved,")).toBeGreaterThan(0);
-    expect(teams.indexOf("answer: approved,")).toBeLessThan(
-      teams.indexOf("MicrosoftTeamsReplies.deleteBestEffort("),
+    /*
+     * Confirmed first - the approval's answer, or why nothing was done when
+     * the card no longer says what its press does - then removed.
+     */
+    const approvedAt: number = teams.indexOf(
+      "answer = await WorkspaceRemediationActions.approve({",
+    );
+    const answeredAt: number = teams.indexOf(
+      "await MicrosoftTeamsActionAnswer.reply({",
+      approvedAt,
+    );
+
+    expect(approvedAt).toBeGreaterThan(0);
+    expect(answeredAt).toBeGreaterThan(approvedAt);
+    expect(answeredAt).toBeLessThan(
+      teams.indexOf("MicrosoftTeamsReplies.deleteBestEffort(", approvedAt),
     );
   });
 });

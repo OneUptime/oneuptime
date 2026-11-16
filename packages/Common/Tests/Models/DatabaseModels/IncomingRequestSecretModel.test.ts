@@ -4,6 +4,7 @@ import Project from "../../../Models/DatabaseModels/Project";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import { IncomingRequestSecretProblem } from "../../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
+import MonitorSecretAccess from "../../../Types/Monitor/MonitorSecretAccess";
 import Permission from "../../../Types/Permission";
 import { ModelSchema } from "../../../Utils/Schema/ModelSchema";
 import { describe, expect, test } from "@jest/globals";
@@ -14,16 +15,20 @@ import { describe, expect, test } from "@jest/globals";
  *
  * The requirement exists so the people who run a project can secure every
  * monitor's URL, whoever configures the monitors. So:
- *   - owners and admins alone create, read, change and delete the secrets: a
- *     member who could read them could hand them out, and one who could
- *     delete them could undo the requirement;
+ *   - owners and admins create, read, change and delete the secrets, and so
+ *     does a custom role given the Incoming Request Secret permission for
+ *     each (issue #8502) - and no other role: a member who could read them
+ *     could hand them out, and one who could delete them could undo the
+ *     requirement;
  *   - a secret's value is encrypted at rest, never changed in place, and a
  *     secret to the API (Terraform and the clients keep it out of what they
  *     print);
+ *   - which monitors a secret covers (issue #8501) is set on create and
+ *     changed by the same people;
  *   - lastUsedAt is written only by the ingest path;
  *   - everyone in the project reads the switch, so a monitor's page can tell
- *     whoever wires up a sender that it needs a secret; only owners and admins
- *     turn it;
+ *     whoever wires up a sender that it needs a secret; only those who edit
+ *     the secrets turn it;
  *   - a monitor's record of requests with and without a secret (issue #8498)
  *     is read by whoever reads the monitor's latest request, and written by
  *     the ingest path alone: nobody can make a monitor look fixed.
@@ -32,6 +37,23 @@ import { describe, expect, test } from "@jest/globals";
 const OWNERS_AND_ADMINS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
+];
+
+const CREATORS: Array<Permission> = [
+  ...OWNERS_AND_ADMINS,
+  Permission.CreateIncomingRequestSecret,
+];
+const READERS: Array<Permission> = [
+  ...OWNERS_AND_ADMINS,
+  Permission.ReadIncomingRequestSecret,
+];
+const EDITORS: Array<Permission> = [
+  ...OWNERS_AND_ADMINS,
+  Permission.EditIncomingRequestSecret,
+];
+const DELETERS: Array<Permission> = [
+  ...OWNERS_AND_ADMINS,
+  Permission.DeleteIncomingRequestSecret,
 ];
 
 const secret: IncomingRequestSecret = new IncomingRequestSecret();
@@ -48,11 +70,27 @@ const access: (column: string) => ColumnAccessControl = (
 };
 
 describe("IncomingRequestSecret", () => {
-  test("only owners and admins create, read, change or delete a secret", () => {
-    expect(secret.createRecordPermissions).toEqual(OWNERS_AND_ADMINS);
-    expect(secret.readRecordPermissions).toEqual(OWNERS_AND_ADMINS);
-    expect(secret.updateRecordPermissions).toEqual(OWNERS_AND_ADMINS);
-    expect(secret.deleteRecordPermissions).toEqual(OWNERS_AND_ADMINS);
+  test("owners, admins and a role given each dedicated permission create, read, change or delete a secret", () => {
+    expect(secret.createRecordPermissions).toEqual(CREATORS);
+    expect(secret.readRecordPermissions).toEqual(READERS);
+    expect(secret.updateRecordPermissions).toEqual(EDITORS);
+    expect(secret.deleteRecordPermissions).toEqual(DELETERS);
+  });
+
+  test("which monitors a secret covers is set on create and changed by its editors, read with it", () => {
+    for (const column of ["monitorAccess", "monitors", "labels"]) {
+      expect({ column, access: access(column) }).toEqual({
+        column,
+        access: { create: CREATORS, read: READERS, update: EDITORS },
+      });
+    }
+
+    expect(secret.getTableColumnMetadata("monitorAccess")).toMatchObject({
+      required: true,
+      isDefaultValueColumn: true,
+      defaultValue: MonitorSecretAccess.AllMonitors,
+      allowedValues: Object.values(MonitorSecretAccess),
+    });
   });
 
   test("belongs to a project, and is served at its own API route", () => {
@@ -69,30 +107,30 @@ describe("IncomingRequestSecret", () => {
     expect(metadata.required).toBe(false);
     expect(ModelSchema.isSecretColumn(metadata)).toBe(true);
 
-    expect(access("secretValue").create).toEqual(OWNERS_AND_ADMINS);
-    expect(access("secretValue").read).toEqual(OWNERS_AND_ADMINS);
+    expect(access("secretValue").create).toEqual(CREATORS);
+    expect(access("secretValue").read).toEqual(READERS);
     expect(access("secretValue").update).toEqual([]);
   });
 
-  test("the name can be changed by owners and admins", () => {
+  test("the name can be changed by its editors", () => {
     expect(secret.getTableColumnMetadata("name").required).toBe(true);
-    expect(access("name").update).toEqual(OWNERS_AND_ADMINS);
+    expect(access("name").update).toEqual(EDITORS);
   });
 
   test("lastUsedAt is written only by the ingest path", () => {
     expect(access("lastUsedAt").create).toEqual([]);
     expect(access("lastUsedAt").update).toEqual([]);
-    expect(access("lastUsedAt").read).toEqual(OWNERS_AND_ADMINS);
+    expect(access("lastUsedAt").read).toEqual(READERS);
   });
 
-  test("no column is readable by anyone but owners and admins", () => {
+  test("no column is readable by anyone but owners, admins and Read Incoming Request Secret", () => {
     const readableByOthers: Array<string> = [];
 
     for (const [column, control] of Object.entries(
       secret.getColumnAccessControlForAllColumns(),
     )) {
       for (const permission of control.read) {
-        if (!OWNERS_AND_ADMINS.includes(permission)) {
+        if (!READERS.includes(permission)) {
           readableByOthers.push(`${column}: ${permission}`);
         }
       }
@@ -127,9 +165,41 @@ describe("Project.requireIncomingRequestSecret", () => {
     );
   });
 
-  test("only owners and admins turn it, and nobody sets it on create", () => {
-    expect(control?.update).toEqual(OWNERS_AND_ADMINS);
+  test("those who edit the secrets turn it, and nobody sets it on create", () => {
+    expect(control?.update).toEqual(EDITORS);
     expect(control?.create).toEqual([]);
+  });
+
+  test("the project's own update list lets Edit Incoming Request Secret through, for this column alone", () => {
+    expect(project.getUpdatePermissions()).toContain(
+      Permission.EditIncomingRequestSecret,
+    );
+
+    const otherColumns: Array<string> = [];
+
+    // Every model's own columns take the table's lists, for every role alike.
+    const BASE_COLUMNS: Array<string> = [
+      "_id",
+      "createdAt",
+      "updatedAt",
+      "deletedAt",
+    ];
+
+    for (const [column, columnControl] of Object.entries(
+      project.getColumnAccessControlForAllColumns(),
+    )) {
+      if (
+        column !== "requireIncomingRequestSecret" &&
+        !BASE_COLUMNS.includes(column) &&
+        (columnControl.update || []).includes(
+          Permission.EditIncomingRequestSecret,
+        )
+      ) {
+        otherColumns.push(column);
+      }
+    }
+
+    expect(otherColumns).toEqual([]);
   });
 });
 
@@ -181,6 +251,8 @@ describe("Monitor's record of requests with and without a secret", () => {
     expect(Object.values(IncomingRequestSecretProblem)).toEqual([
       "No Secret",
       "Wrong Secret",
+      "Secret Not For Monitor",
+      "Expired Signature",
     ]);
   });
 });

@@ -4116,5 +4116,20 @@
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "As sessões delas terminam agora, em todos os dispositivos, e elas entram de novo com SSO. Os administradores principais continuam conectados.",
   "Made by {{name}} on {{date}}": "Criada por {{name}} em {{date}}",
   "Made on {{date}}": "Criada em {{date}}",
-  "Ends in {{hint}}": "Termina em {{hint}}"
+  "Ends in {{hint}}": "Termina em {{hint}}",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "As respostas ficam neste servidor e são lidas aqui pelos administradores principais. \"Dar feedback\" também é enviado por e-mail para support@oneuptime.com, e as notas, nunca o texto, vão para a análise de produto.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "As respostas ficam neste servidor e são lidas aqui pelos administradores principais. \"Dar feedback\" também é enviado para o e-mail de notificação do admin, se houver um. Nada é enviado para o OneUptime.",
+  "Know when my website or API is down": "Saber quando meu site ou API cair",
+  "Page the right person when something breaks": "Acionar a pessoa certa quando algo quebrar",
+  "Publish a status page": "Publique uma página de status",
+  "Send logs, metrics and traces, then get alerted": "Enviar registros, métricas e traços e receber alertas",
+  "Guided setup": "Configuração guiada",
+  "Give feedback": "Dar feedback",
+  "First-week check-in": "Avaliação após a primeira semana",
+  "How OneUptime works": "Como o OneUptime funciona",
+  "Is OneUptime set up the way you wanted?": "O OneUptime está configurado como queria?",
+  "Something's broken": "Algo não funciona",
+  "Confusing": "Confuso",
+  "Idea": "Ideia",
+  "Other": "Outro"
 }

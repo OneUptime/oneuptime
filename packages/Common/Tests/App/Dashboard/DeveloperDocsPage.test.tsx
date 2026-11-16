@@ -121,18 +121,13 @@ jest.mock("../../../UI/Config", () => {
       default: { HTTPS: unknown };
     }
   ).default;
-  const VersionType: new (version: string) => unknown = (
-    jest.requireActual("../../../Types/Version") as {
-      default: new (version: string) => unknown;
-    }
-  ).default;
-
   return {
     __esModule: true,
     ...actual,
     HOST: "oneuptime.acme.com",
     HTTP_PROTOCOL: ProtocolType.HTTPS,
-    VERSION: new VersionType("14.0.11"),
+    // As env.js hands it, from the image's APP_VERSION (UI/Config, #8893).
+    VERSION: "14.0.11",
   };
 });
 

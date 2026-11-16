@@ -110,6 +110,7 @@ export enum ProductEventName {
   SetupHealthFixOpened = "setup_health/fix_opened",
   SetupHealthFindingDismissed = "setup_health/finding_dismissed",
   SetupHealthFindingRestored = "setup_health/finding_restored",
+  SetupHealthFixApplied = "setup_health/fix_applied",
   // How to reach me (#6820): a paging ladder saved, and the grid opened.
   PagingLadderSaved = "paging_ladder/saved",
   PagingLadderGridOpened = "paging_ladder/grid_opened",
@@ -418,6 +419,12 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     name: ProductEventName.SetupHealthFindingRestored,
     description: "A dismissed Setup health finding was restored.",
     properties: [token("check")],
+  },
+  {
+    name: ProductEventName.SetupHealthFixApplied,
+    description:
+      "A Setup health finding was fixed in one click, after its dialog said what would change: which check, at which level.",
+    properties: [token("check"), token("level")],
   },
   {
     name: ProductEventName.PagingLadderSaved,

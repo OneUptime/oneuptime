@@ -184,6 +184,8 @@ import HashProjectApiKeys from "./HashProjectApiKeys";
 import BackfillNetworkEndpointCoarseLastSeenAt from "./BackfillNetworkEndpointCoarseLastSeenAt";
 import ResolveWhatMonitorsTurnedOffWouldHaveResolved from "./ResolveWhatMonitorsTurnedOffWouldHaveResolved";
 import BackfillMonitorFirstMeasuredAt from "./BackfillMonitorFirstMeasuredAt";
+import BackfillMonitorFirstMeasuredAtForUptimeHistory from "./BackfillMonitorFirstMeasuredAtForUptimeHistory";
+import EncryptProjectCredentials from "./EncryptProjectCredentials";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1244,6 +1246,32 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new BackfillMonitorFirstMeasuredAt(),
+  /*
+   * A monitor's uptime bars and percentages leave out the time before its
+   * first check (issue #8960). A monitor measured before the column existed
+   * is given its creation where a result that came back during the upgrade
+   * stamped it with the upgrade's time, and a Probe Status or Network
+   * Device monitor - measured by OneUptime itself, with no trace the
+   * backfill reads - where it was measured; the uptime statements leave
+   * nothing out until this row is there. Postgres only, paged by id and
+   * idempotent; right after BackfillMonitorFirstMeasuredAt, whose finishing
+   * time it reads, and before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new BackfillMonitorFirstMeasuredAtForUptimeHistory(),
+  /*
+   * A project's credentials stored as written before their columns were
+   * kept encrypted at rest (#8989): its SMTP configs' passwords and OAuth
+   * client secrets, its Slack, Microsoft Teams and Mattermost bot tokens
+   * and its members' chat sign-in tokens, its code repositories' webhook
+   * secrets and its members' webhook signing secrets - each encrypted in
+   * place, in raw SQL, only while it still holds the value read. Paged and
+   * idempotent; a value not encrypted yet still reads as itself meanwhile.
+   * After RepairHashedStringEnvelopeSecrets, which unwraps the signing
+   * secrets a broken write wrapped, and before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new EncryptProjectCredentials(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

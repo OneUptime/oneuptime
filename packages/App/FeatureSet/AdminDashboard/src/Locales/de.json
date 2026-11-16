@@ -4116,5 +4116,20 @@
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Ihre Sitzungen enden sofort auf allen Geräten, und sie melden sich wieder mit SSO an. Master-Administratoren bleiben angemeldet.",
   "Made by {{name}} on {{date}}": "Erstellt von {{name}} am {{date}}",
   "Made on {{date}}": "Erstellt am {{date}}",
-  "Ends in {{hint}}": "Endet auf {{hint}}"
+  "Ends in {{hint}}": "Endet auf {{hint}}",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "Antworten werden auf diesem Server gespeichert und hier von seinen Master-Admins gelesen. „Feedback geben“ wird außerdem per E-Mail an support@oneuptime.com gesendet, und Bewertungen, nie Texte, gehen an die Produktanalyse.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "Antworten werden auf diesem Server gespeichert und hier von seinen Master-Admins gelesen. „Feedback geben“ wird außerdem an die Admin-Benachrichtigungs-E-Mail gesendet, wenn eine eingetragen ist. An OneUptime wird nichts gesendet.",
+  "Know when my website or API is down": "Wissen, wenn meine Website oder API ausfällt",
+  "Page the right person when something breaks": "Die richtige Person alarmieren, wenn etwas ausfällt",
+  "Publish a status page": "Statusseite veröffentlichen",
+  "Send logs, metrics and traces, then get alerted": "Protokolle, Metriken und Traces senden und dann Warnungen erhalten",
+  "Guided setup": "Geführte Einrichtung",
+  "Give feedback": "Feedback geben",
+  "First-week check-in": "Check-in nach der ersten Woche",
+  "How OneUptime works": "So funktioniert OneUptime",
+  "Is OneUptime set up the way you wanted?": "Ist OneUptime so eingerichtet, wie du es wolltest?",
+  "Something's broken": "Etwas funktioniert nicht",
+  "Confusing": "Unklar",
+  "Idea": "Idee",
+  "Other": "Sonstige"
 }

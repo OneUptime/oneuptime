@@ -2115,6 +2115,44 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
     );
   });
 
+  it("each workload sizes its Node.js heap to its container's memory limit as its start script does, and NODE_OPTIONS in extraEnv still wins", () => {
+    const start: string = scriptsOf("appPackage")["start"] as string;
+
+    /*
+     * The rule every image's start script opens with (Tests/Ops/
+     * NodeImageHeapLimit runs it): 8096 MB without a limit, three quarters of
+     * one, between 256 MB and 8096 MB.
+     */
+    expect(start).toMatch(/^heap=8096; /);
+    expect(start).toContain("/sys/fs/cgroup/memory.max");
+    expect(start).toContain("heap=$((limit / 1048576 * 3 / 4))");
+    expect(start).toContain("[ $heap -ge 256 ] || heap=256");
+    expect(start).toContain("[ $heap -le 8096 ] || heap=8096");
+    // An operator's NODE_OPTIONS comes after the rule's heap: node takes the last.
+    expect(start).toContain(
+      'export NODE_OPTIONS="--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}"',
+    );
+    // Each workload of the compute table takes extraEnv of its own.
+    for (const key of [
+      "app",
+      "worker",
+      "probes.one",
+      "nginx",
+      "telemetryWriter",
+    ]) {
+      expect({ key, extraEnv: valueAt(values, `${key}.extraEnv`) }).toEqual({
+        key,
+        extraEnv: [],
+      });
+    }
+    expect(page).toContain(
+      "sizes its heap to the memory limit of its container (`resources.limits.memory`): 75% of the limit, at least 256 MB and at most 8096 MB. Without a limit, the heap can grow to 8096 MB.",
+    );
+    expect(page).toContain(
+      "set `NODE_OPTIONS` to `--max-old-space-size=` followed by a size in MB, in the service's `extraEnv`",
+    );
+  });
+
   it("each pod opens up to 50 connections, and the bundled PostgreSQL allows 500", () => {
     expect(valueAt(values, "postgresql.primary.configuration")).toMatch(
       /^max_connections = 500$/m,

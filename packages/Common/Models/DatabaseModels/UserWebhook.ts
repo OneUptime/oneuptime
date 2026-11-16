@@ -184,21 +184,30 @@ class UserWebhook extends BaseModel {
     read: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
   })
-  // The HMAC signing key. Reading it is forging requests.
+  /*
+   * The HMAC signing key. Reading it is forging requests. Its owner still
+   * reads it - the Edit dialog shows it, and clearing it there stops the
+   * signing - and it is kept encrypted at rest (`encrypted: true`):
+   * DatabaseService encrypts it on every write and decrypts it on every
+   * read, a notification rule's read of its webhook through the userWebhook
+   * relation included, so every request is signed with the secret as it
+   * was typed. The EncryptProjectCredentials data migration encrypts the
+   * secrets stored before. Text, as a ciphertext is longer than the secret.
+   */
   @OwnerOnlyColumn()
   @TableColumn({
     secret: true,
+    encrypted: true,
     title: "Signing Secret",
     required: false,
     unique: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: false,
     description:
-      "Optional shared secret used to compute an HMAC-SHA256 signature for each request (sent in X-OneUptime-Signature).",
+      "Optional shared secret used to compute an HMAC-SHA256 signature for each request (sent in X-OneUptime-Signature). Kept encrypted at rest.",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
     unique: false,
     nullable: true,
   })

@@ -272,14 +272,22 @@ describe("filtering a status page by its Twilio config's auth token", () => {
   });
 });
 
+/*
+ * A project's SMTP credentials are write-only (#8989): nobody reads one
+ * through the API, so nobody filters by one either - an owner, an admin
+ * and Read SMTP Config included, who could before.
+ */
 describe("filtering a status page by its SMTP config's credentials", () => {
   test.each([["password" as const], ["clientSecret" as const]])(
-    "%s is refused to a viewer, a member and a status page viewer",
+    "%s is refused to everyone who may read a status page, its owners and admins included",
     async (column: "password" | "clientSecret") => {
       for (const permissions of [
         [Permission.Viewer],
         [Permission.ProjectMember],
         [Permission.StatusPageViewer],
+        [Permission.ProjectOwner],
+        [Permission.ProjectAdmin],
+        [Permission.StatusPageViewer, Permission.ReadProjectSMTPConfig],
       ]) {
         const error: Error | null = await refusalOf(
           StatusPage,
@@ -293,18 +301,17 @@ describe("filtering a status page by its SMTP config's credentials", () => {
             column: column,
             relatedModelName: "SMTP Config",
             relationColumn: "smtpConfig",
-            permissions: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ReadProjectSMTPConfig,
-            ],
+            permissions: [],
           }),
+        );
+        expect(error!.message).toContain(
+          "No permission allows it: the column cannot be filtered on through the API.",
         );
       }
     },
   );
 
-  test("an owner, an admin and Read SMTP Config may filter by it", async () => {
+  test("an owner, an admin and Read SMTP Config still filter by a column they may read", async () => {
     for (const permissions of [
       [Permission.ProjectOwner],
       [Permission.ProjectAdmin],
@@ -313,7 +320,7 @@ describe("filtering a status page by its SMTP config's credentials", () => {
       await expect(
         checkRead(
           StatusPage,
-          { smtpConfig: { password: new StartsWith("s") } },
+          { smtpConfig: { username: new StartsWith("s") } },
           caller(permissions),
         ),
       ).resolves.toBeTruthy();
@@ -397,10 +404,10 @@ describe("a workflow's step", () => {
       "You do not have permissions to query on - twilioAccountSID of Call and SMS Config through callSmsConfig.",
     ],
     [
-      "a status page by its SMTP config's password",
+      "a status page by its SMTP config's username",
       StatusPage,
-      { smtpConfig: { password: new StartsWith("s") } },
-      "You do not have permissions to query on - password of SMTP Config through smtpConfig.",
+      { smtpConfig: { username: new StartsWith("s") } },
+      "You do not have permissions to query on - username of SMTP Config through smtpConfig.",
     ],
     [
       "an incoming call policy by its Twilio config's auth token",

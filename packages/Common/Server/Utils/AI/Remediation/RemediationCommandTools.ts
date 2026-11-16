@@ -1,4 +1,7 @@
 import ObjectID from "../../../../Types/ObjectID";
+import Project from "../../../../Models/DatabaseModels/Project";
+import ProjectService from "../../../Services/ProjectService";
+import { isRiskierChangeNow } from "../../AutoRemediation/RemediationApprovalsNeeded";
 import { getLastingCloudChange } from "../../../../Utils/AiRemediation/DeclaredCodeChange";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
@@ -1774,10 +1777,16 @@ export default class RemediationCommandToolkit {
     /*
      * FullAuto gate: the full policy. Anything that is not AutoApproved is
      * refused here; the model is told why so it can pick an allowlisted
-     * alternative or leave the action to its final recommendations.
+     * alternative or leave the action to its final recommendations. Where
+     * the project asks two people to approve a riskier fix, a riskier
+     * change never runs without asking - Bypass approval and the allowlist
+     * included: it is proposed, for two approvals. The rule is read now,
+     * before each change, so one turned on mid-run holds the next change.
      */
     const gateFailure: FullAutoRefusal | null =
-      this.getFullAutoRefusal(command) || this.getGitOpsRefusal(command);
+      this.getFullAutoRefusal(command, {
+        isTwoApprovalsRuleOn: await this.readTwoApprovalsRule(),
+      }) || this.getGitOpsRefusal(command);
     if (gateFailure) {
       this.recordNeedingApproval(command, gateFailure);
       return this.failure(
@@ -2160,6 +2169,8 @@ export default class RemediationCommandToolkit {
             RemediationCommandToolkit.applyCloudUndo({
               command,
               resource: target,
+              // Made unattended: no riskier undo where two people approve one.
+              isTwoApprovalsRuleOn: await this.readTwoApprovalsRule(),
             });
           }
         }
@@ -2572,8 +2583,74 @@ export default class RemediationCommandToolkit {
    * cluster's allowlist; a rollback must itself be auto-approvable because
    * it runs unattended. A kubectl refusal that a human's click would lift
    * carries an approvalReason — see recordNeedingApproval.
+   *
+   * Where the project asks two people to approve a riskier fix
+   * (rule.isTwoApprovalsRuleOn), a kubectl or resource change the policy
+   * tiers riskier never runs unattended, whatever the cluster's or
+   * resource's mode and allowlist would allow: it is proposed, and two
+   * people approve it. Its rollback runs unattended too, so a riskier
+   * rollback does not qualify either. Asked only of a change that would
+   * otherwise run: one the policy refuses outright stays refused.
    */
   private getFullAutoRefusal(
+    command: AiRemediationCommand,
+    rule: { isTwoApprovalsRuleOn: boolean },
+  ): FullAutoRefusal | null {
+    const refusal: FullAutoRefusal | null =
+      this.getPolicyFullAutoRefusal(command);
+
+    if (refusal || !rule.isTwoApprovalsRuleOn) {
+      return refusal;
+    }
+
+    return this.getTwoApprovalsRefusal(command);
+  }
+
+  /*
+   * Why a change that would run unattended is held where the project asks
+   * two people to approve a riskier fix: the change is riskier (stored, or
+   * as the policy tiers it now) - a human's click lifts that, so it carries
+   * an approvalReason and is proposed - or its rollback is, which a safe
+   * rollback (or none) lifts. Null when neither is riskier.
+   */
+  private getTwoApprovalsRefusal(
+    command: AiRemediationCommand,
+  ): FullAutoRefusal | null {
+    if (
+      command.stepType !== RunbookStepType.Kubectl &&
+      command.stepType !== RunbookStepType.ResourceCommand
+    ) {
+      return null;
+    }
+
+    if (isRiskierChangeNow(command)) {
+      return {
+        text: `This is a riskier change, and this project asks two people to approve one, so it never runs unattended - Bypass approval and the allowlist included. The command was NOT executed. ${this.describeWhereRefusedChangesGo()} Do NOT hunt for a worse safe substitute; use a safe change only when it is genuinely the right fix.`,
+        approvalReason:
+          "it is a riskier change, and this project asks two people to approve one",
+      };
+    }
+
+    if (
+      command.rollbackCommand &&
+      isRiskierChangeNow({
+        ...command,
+        command: command.rollbackCommand,
+        // The stored tiers are the change's own: the rollback is tiered as it reads.
+        kubectlTier: undefined,
+        resourceCommandTier: undefined,
+      })
+    ) {
+      return {
+        text: "The rollbackCommand is a riskier change, and this project asks two people to approve one, so it cannot run unattended. Nothing was executed. Provide a safe rollback on ONE named object, or omit it.",
+      };
+    }
+
+    return null;
+  }
+
+  // The FullAuto gate of the policies, the cluster's and resource's mode and allowlist.
+  private getPolicyFullAutoRefusal(
     command: AiRemediationCommand,
   ): FullAutoRefusal | null {
     if (command.stepType === RunbookStepType.Kubectl) {
@@ -2747,6 +2824,29 @@ export default class RemediationCommandToolkit {
   }
 
   // Where a kubectl change this round may not run on its own ends up.
+  /*
+   * Whether the project asks two people to approve a riskier fix
+   * (Project.requireTwoApprovalsForRiskierFixes), read as OneUptime right
+   * before an unattended change. A read that fails holds the change for
+   * approval: nothing riskier runs unattended on a rule nobody could read.
+   */
+  private async readTwoApprovalsRule(): Promise<boolean> {
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: this.options.projectId,
+        select: { _id: true, requireTwoApprovalsForRiskierFixes: true },
+        props: { isRoot: true },
+      });
+
+      return project?.requireTwoApprovalsForRiskierFixes !== false;
+    } catch (error) {
+      logger.error(
+        `RemediationCommandToolkit: could not read whether project ${this.options.projectId.toString()} asks two people to approve a riskier fix; holding riskier changes for approval: ${error}`,
+      );
+      return true;
+    }
+  }
+
   private describeWhereRefusedChangesGo(): string {
     return this.options.proposesRefusedCommands
       ? "It is recorded for a human: if you run no other change in this round, OneUptime AI proposes it for one-click approval when the round ends. Also put it in your final recommendations."
@@ -2801,10 +2901,16 @@ export default class RemediationCommandToolkit {
    * agent's write scope). An undo that does not qualify, or a change with
    * nothing to undo, leaves no rollbackCommand: the plan then does not roll
    * it back on its own, and the step's output says how to undo it.
+   *
+   * A change made unattended where the project asks two people to approve a
+   * riskier fix (isTwoApprovalsRuleOn) gets no riskier undo either: the undo
+   * would run unattended too. The undo of a change people approved is part
+   * of what they approved.
    */
   public static applyCloudUndo(data: {
     command: AiRemediationCommand;
     resource: ResourceAiAccessStatus;
+    isTwoApprovalsRuleOn?: boolean | undefined;
   }): void {
     const { command, resource } = data;
 
@@ -2836,7 +2942,8 @@ export default class RemediationCommandToolkit {
       (policy.tier === ResourceCommandTier.SafeWrite ||
         (policy.tier === ResourceCommandTier.RiskyWrite &&
           resource.aiRemediationMode ===
-            ResourceAiRemediationMode.BypassApproval)) &&
+            ResourceAiRemediationMode.BypassApproval &&
+          data.isTwoApprovalsRuleOn !== true)) &&
       policy.requiresHuman !== true &&
       RemediationCommandToolkit.getResourceWriteScopeRefusal({
         resource,
