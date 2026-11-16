@@ -50,6 +50,12 @@ const WORKERS_DATA_MIGRATIONS: string = path.join(
 
 const TABLES: Array<string> = ["GreenlockCertificate", "GreenlockChallenge"];
 
+// What a data migration that still read the tables would name.
+const NAMES_A_GREENLOCK_SERVICE: RegExp =
+  /GreenlockCertificateService|GreenlockChallengeService/;
+const IMPORTS_A_GREENLOCK_MODEL: RegExp =
+  /from "Common\/Models\/DatabaseModels\/Greenlock/;
+
 // A query runner that records each statement, as a migration runs it.
 function recordingRunner(): { runner: QueryRunner; statements: Array<string> } {
   const statements: Array<string> = [];
@@ -226,14 +232,14 @@ describe("DropGreenlockTables1809181850000", () => {
         "utf8",
       );
 
-      expect([
+      expect([file, NAMES_A_GREENLOCK_SERVICE.test(source)]).toEqual([
         file,
-        /GreenlockCertificateService|GreenlockChallengeService/.test(source),
-      ]).toEqual([file, false]);
-      expect([
+        false,
+      ]);
+      expect([file, IMPORTS_A_GREENLOCK_MODEL.test(source)]).toEqual([
         file,
-        /from "Common\/Models\/DatabaseModels\/Greenlock/.test(source),
-      ]).toEqual([file, false]);
+        false,
+      ]);
     }
   });
 
