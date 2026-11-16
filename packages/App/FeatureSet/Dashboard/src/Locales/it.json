@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "Imposta un obiettivo di affidabilità e ricevi un avviso prima di mancarlo.",
   "Put related alerts into one episode, so one problem pages people once.": "Raggruppa gli avvisi correlati in un unico episodio, così un solo problema chiama la reperibilità una volta sola.",
   "Put related incidents into one episode, so one problem pages people once.": "Raggruppa gli incidenti correlati in un unico episodio, così un solo problema chiama la reperibilità una volta sola.",
-  "Set how long your team has to acknowledge and resolve an incident.": "Imposta quanto tempo ha il tuo team per riconoscere e risolvere un incidente."
+  "Set how long your team has to acknowledge and resolve an incident.": "Imposta quanto tempo ha il tuo team per riconoscere e risolvere un incidente.",
+  "Drop or sample the logs you do not need, before they are stored.": "Scarta o campiona i log che non ti servono, prima che vengano archiviati.",
+  "Drop or sample the spans you do not need, before they are stored.": "Scarta o campiona gli span che non ti servono, prima che vengano archiviati.",
+  "Drop, rename or redact metric data before it is stored.": "Scarta, rinomina o oscura i dati delle metriche prima che vengano archiviati.",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "Analizza, correggi ed etichetta i log al loro arrivo, prima che vengano archiviati.",
+  "Remove sensitive data from logs before they are stored.": "Rimuovi i dati sensibili dai log prima che vengano archiviati.",
+  "Remove sensitive data from spans before they are stored.": "Rimuovi i dati sensibili dagli span prima che vengano archiviati.",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "Rinomina, correggi ed etichetta gli span al loro arrivo, prima che vengano archiviati.",
+  "The steps this pipeline runs on every log it matches, in order.": "I passaggi che questa pipeline esegue, in ordine, su ogni log che corrisponde.",
+  "The steps this pipeline runs on every span it matches, in order.": "I passaggi che questa pipeline esegue, in ordine, su ogni span che corrisponde."
 }

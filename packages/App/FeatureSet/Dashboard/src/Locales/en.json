@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "Set a reliability target, and know before you miss it.",
   "Put related alerts into one episode, so one problem pages people once.": "Put related alerts into one episode, so one problem pages people once.",
   "Put related incidents into one episode, so one problem pages people once.": "Put related incidents into one episode, so one problem pages people once.",
-  "Set how long your team has to acknowledge and resolve an incident.": "Set how long your team has to acknowledge and resolve an incident."
+  "Set how long your team has to acknowledge and resolve an incident.": "Set how long your team has to acknowledge and resolve an incident.",
+  "Drop or sample the logs you do not need, before they are stored.": "Drop or sample the logs you do not need, before they are stored.",
+  "Drop or sample the spans you do not need, before they are stored.": "Drop or sample the spans you do not need, before they are stored.",
+  "Drop, rename or redact metric data before it is stored.": "Drop, rename or redact metric data before it is stored.",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "Parse, fix and tag logs as they arrive, before they are stored.",
+  "Remove sensitive data from logs before they are stored.": "Remove sensitive data from logs before they are stored.",
+  "Remove sensitive data from spans before they are stored.": "Remove sensitive data from spans before they are stored.",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "Rename, fix and tag spans as they arrive, before they are stored.",
+  "The steps this pipeline runs on every log it matches, in order.": "The steps this pipeline runs on every log it matches, in order.",
+  "The steps this pipeline runs on every span it matches, in order.": "The steps this pipeline runs on every span it matches, in order."
 }

@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "विश्वसनीयता लक्ष्य तय करें, और उससे चूकने से पहले जानें।",
   "Put related alerts into one episode, so one problem pages people once.": "संबंधित अलर्ट को एक एपिसोड में रखें, ताकि एक समस्या पर लोगों को केवल एक बार बुलाया जाए।",
   "Put related incidents into one episode, so one problem pages people once.": "संबंधित घटनाओं को एक एपिसोड में रखें, ताकि एक समस्या पर लोगों को केवल एक बार बुलाया जाए।",
-  "Set how long your team has to acknowledge and resolve an incident.": "तय करें कि आपकी टीम के पास किसी घटना को स्वीकार करने और सुलझाने के लिए कितना समय है।"
+  "Set how long your team has to acknowledge and resolve an incident.": "तय करें कि आपकी टीम के पास किसी घटना को स्वीकार करने और सुलझाने के लिए कितना समय है।",
+  "Drop or sample the logs you do not need, before they are stored.": "जिन लॉग की आपको ज़रूरत नहीं, उन्हें सहेजे जाने से पहले हटा दें या उनका केवल एक नमूना रखें।",
+  "Drop or sample the spans you do not need, before they are stored.": "जिन स्पैन की आपको ज़रूरत नहीं, उन्हें सहेजे जाने से पहले हटा दें या उनका केवल एक नमूना रखें।",
+  "Drop, rename or redact metric data before it is stored.": "मेट्रिक डेटा सहेजे जाने से पहले उसे हटाएँ, उसका नाम बदलें या उसे छिपाएँ।",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "लॉग आते ही, सहेजे जाने से पहले, उन्हें पार्स करें, ठीक करें और टैग करें।",
+  "Remove sensitive data from logs before they are stored.": "लॉग सहेजे जाने से पहले उनसे संवेदनशील डेटा हटाएँ।",
+  "Remove sensitive data from spans before they are stored.": "स्पैन सहेजे जाने से पहले उनसे संवेदनशील डेटा हटाएँ।",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "स्पैन आते ही, सहेजे जाने से पहले, उनका नाम बदलें, उन्हें ठीक करें और टैग करें।",
+  "The steps this pipeline runs on every log it matches, in order.": "वे चरण जो यह पाइपलाइन हर मेल खाने वाले लॉग पर क्रम से चलाती है।",
+  "The steps this pipeline runs on every span it matches, in order.": "वे चरण जो यह पाइपलाइन हर मेल खाने वाले स्पैन पर क्रम से चलाती है।"
 }

@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "Stel een betrouwbaarheidsdoel in en weet het voordat je het mist.",
   "Put related alerts into one episode, so one problem pages people once.": "Bundel gerelateerde waarschuwingen in één episode, zodat één probleem mensen maar één keer oproept.",
   "Put related incidents into one episode, so one problem pages people once.": "Bundel gerelateerde incidenten in één episode, zodat één probleem mensen maar één keer oproept.",
-  "Set how long your team has to acknowledge and resolve an incident.": "Stel in hoeveel tijd je team heeft om een incident te bevestigen en op te lossen."
+  "Set how long your team has to acknowledge and resolve an incident.": "Stel in hoeveel tijd je team heeft om een incident te bevestigen en op te lossen.",
+  "Drop or sample the logs you do not need, before they are stored.": "Verwijder of bemonster de logboeken die je niet nodig hebt, voordat ze worden opgeslagen.",
+  "Drop or sample the spans you do not need, before they are stored.": "Verwijder of bemonster de spans die je niet nodig hebt, voordat ze worden opgeslagen.",
+  "Drop, rename or redact metric data before it is stored.": "Verwijder, hernoem of maskeer metriekgegevens voordat ze worden opgeslagen.",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "Ontleed, corrigeer en tag logboeken zodra ze binnenkomen, voordat ze worden opgeslagen.",
+  "Remove sensitive data from logs before they are stored.": "Verwijder gevoelige gegevens uit logboeken voordat ze worden opgeslagen.",
+  "Remove sensitive data from spans before they are stored.": "Verwijder gevoelige gegevens uit spans voordat ze worden opgeslagen.",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "Hernoem, corrigeer en tag spans zodra ze binnenkomen, voordat ze worden opgeslagen.",
+  "The steps this pipeline runs on every log it matches, in order.": "De stappen die deze pipeline op volgorde uitvoert op elk logboek dat overeenkomt.",
+  "The steps this pipeline runs on every span it matches, in order.": "De stappen die deze pipeline op volgorde uitvoert op elke span die overeenkomt."
 }

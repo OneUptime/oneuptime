@@ -160,37 +160,35 @@ const ruleTypeConfig: Record<string, PillConfig> = {
 };
 
 const documentationMarkdown: string = `
-### How Metric Pipeline Rules Work
+A pipeline rule changes metric data points as they arrive, before they are stored: drop or sample the ones you do not need, rename a metric or an attribute, or add, remove or redact an attribute.
 
-Pipeline rules run **at metric ingest time**, after the OTel data point has been parsed but **before** it is written to storage. Service-scoped rules run first (and may short-circuit with \`Drop\`). Project-wide rules run after, on anything that survived.
+## How It Works
 
-| Rule Type        | What it does                                                    |
-|------------------|-----------------------------------------------------------------|
-| Filter           | Keep only data points matching the match expression.            |
-| Drop             | Drop data points matching the match expression.                 |
-| Rename Metric    | Rename the metric name (row.name).                              |
-| Rename Attribute | Rename an attribute key everywhere it appears on matched rows.  |
-| Add Attribute    | Add a new attribute (key = value) to matched rows.              |
-| Remove Attribute | Remove an attribute from matched rows.                          |
-| Redact Attribute | Replace an attribute's value with a redaction placeholder.      |
-| Sample           | Keep \`samplePercentage\`% of matching rows; drop the rest.     |
+- Rules run on each data point once it is read and before it is stored.
+- A rule scoped to a service runs first, and a **Drop** there ends it. Rules for the whole project run after, on whatever is left.
+- A new rule applies to every service. To scope it to one, open **More fields** on the **Match** step and pick it under **Only for one service**.
 
-### Match Criteria
+## What a Rule Does
 
-A new rule fires on **All data points**. Pick **Only data points that match filters** to decide which ones, with one or more filters:
+| Rule type | What it does to the data points it matches |
+|-----------|---------------------------------------------|
+| **Filter** | Keeps only them, and drops the rest |
+| **Drop** | Drops them |
+| **Rename Metric** | Renames their metric |
+| **Rename Attribute** | Renames an attribute key wherever it appears on them |
+| **Add Attribute** | Adds an attribute with a value you set |
+| **Remove Attribute** | Removes an attribute |
+| **Redact Attribute** | Replaces an attribute's value with a placeholder |
+| **Sample** | Keeps the share of them you set, and drops the rest |
 
-- **Metric Name** — match on the metric name with conditions like Equal To, Contains, Starts With, Matches Regex, etc.
-- **Attribute** — match on a specific attribute key. Choose Is Present / Is Not Present / Is Empty / Is Not Empty for key-based checks, or Equal To / Contains / Matches Regex (etc.) to compare the attribute value.
+## Match Criteria
 
-Once a rule has two or more filters, **Match Condition** decides how they are combined (with one filter or none there is nothing to combine, so it is not asked):
+A new rule acts on **All data points**. Pick **Only data points that match filters** to choose them, with one or more filters:
 
-- **All** (AND) — the data point must match every filter.
-- **Any** (OR) — the data point matches if at least one filter matches.
+- **Metric Name**: the metric's name, such as Equal To, Contains, Starts With or Matches Regex.
+- **Attribute**: one attribute key. Is Present, Is Not Present, Is Empty and Is Not Empty check the key; Equal To, Contains, Matches Regex and the rest compare its value.
 
-### Scope
-
-- A new rule applies to every service: it is a project-wide rule.
-- To scope a rule to a single service, open **More fields** on the Match step and pick it under **Only for one service**. Service-scoped rules evaluate first.
+With two or more filters, **Match Condition** says how they combine: **All**, where a data point must match every filter, or **Any**, where one is enough.
 `;
 
 /*
@@ -284,8 +282,7 @@ const MetricPipelineRules: FunctionComponent<
       }}
       helpContent={{
         title: "How Metric Pipeline Rules Work",
-        description:
-          "Understanding rule types, match criteria, and service-vs-project scope.",
+        description: "Drop, rename or redact metric data before it is stored.",
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No metric pipeline rules found."}

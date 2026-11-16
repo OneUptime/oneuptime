@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "Sätt ett tillförlitlighetsmål och få veta innan du missar det.",
   "Put related alerts into one episode, so one problem pages people once.": "Samla relaterade larm i en episod, så att ett problem bara larmar en gång.",
   "Put related incidents into one episode, so one problem pages people once.": "Samla relaterade incidenter i en episod, så att ett problem bara larmar en gång.",
-  "Set how long your team has to acknowledge and resolve an incident.": "Ange hur lång tid ditt team har på sig att bekräfta och lösa en incident."
+  "Set how long your team has to acknowledge and resolve an incident.": "Ange hur lång tid ditt team har på sig att bekräfta och lösa en incident.",
+  "Drop or sample the logs you do not need, before they are stored.": "Släng loggarna du inte behöver, eller behåll bara ett urval, innan de sparas.",
+  "Drop or sample the spans you do not need, before they are stored.": "Släng de spans du inte behöver, eller behåll bara ett urval, innan de sparas.",
+  "Drop, rename or redact metric data before it is stored.": "Släng, byt namn på eller maskera mätvärdesdata innan de sparas.",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "Tolka, rätta och märk loggar när de kommer in, innan de sparas.",
+  "Remove sensitive data from logs before they are stored.": "Ta bort känsliga uppgifter ur loggar innan de sparas.",
+  "Remove sensitive data from spans before they are stored.": "Ta bort känsliga uppgifter ur spans innan de sparas.",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "Byt namn på, rätta och märk spans när de kommer in, innan de sparas.",
+  "The steps this pipeline runs on every log it matches, in order.": "Stegen som den här pipelinen kör i tur och ordning på varje logg den matchar.",
+  "The steps this pipeline runs on every span it matches, in order.": "Stegen som den här pipelinen kör i tur och ordning på varje span den matchar."
 }

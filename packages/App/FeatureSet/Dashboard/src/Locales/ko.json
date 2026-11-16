@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "안정성 목표를 정하고, 목표를 놓치기 전에 미리 확인하세요.",
   "Put related alerts into one episode, so one problem pages people once.": "관련된 경고를 하나의 에피소드로 묶어, 한 가지 문제로 한 번만 호출되게 합니다.",
   "Put related incidents into one episode, so one problem pages people once.": "관련된 인시던트를 하나의 에피소드로 묶어, 한 가지 문제로 한 번만 호출되게 합니다.",
-  "Set how long your team has to acknowledge and resolve an incident.": "팀이 인시던트를 인지하고 해결해야 하는 시간을 설정합니다."
+  "Set how long your team has to acknowledge and resolve an incident.": "팀이 인시던트를 인지하고 해결해야 하는 시간을 설정합니다.",
+  "Drop or sample the logs you do not need, before they are stored.": "필요 없는 로그를 저장하기 전에 버리거나 일부만 샘플링해 남깁니다.",
+  "Drop or sample the spans you do not need, before they are stored.": "필요 없는 스팬을 저장하기 전에 버리거나 일부만 샘플링해 남깁니다.",
+  "Drop, rename or redact metric data before it is stored.": "메트릭 데이터를 저장하기 전에 버리거나, 이름을 바꾸거나, 가립니다.",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "로그가 들어올 때 저장하기 전에 파싱하고, 고치고, 태그를 붙입니다.",
+  "Remove sensitive data from logs before they are stored.": "로그를 저장하기 전에 민감한 데이터를 제거합니다.",
+  "Remove sensitive data from spans before they are stored.": "스팬을 저장하기 전에 민감한 데이터를 제거합니다.",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "스팬이 들어올 때 저장하기 전에 이름을 바꾸고, 고치고, 태그를 붙입니다.",
+  "The steps this pipeline runs on every log it matches, in order.": "이 파이프라인이 일치하는 각 로그에 순서대로 실행하는 단계입니다.",
+  "The steps this pipeline runs on every span it matches, in order.": "이 파이프라인이 일치하는 각 스팬에 순서대로 실행하는 단계입니다."
 }

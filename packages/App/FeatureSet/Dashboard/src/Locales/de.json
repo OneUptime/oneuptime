@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "Legen Sie ein Zuverlässigkeitsziel fest und erfahren Sie es, bevor Sie es verfehlen.",
   "Put related alerts into one episode, so one problem pages people once.": "Fassen Sie zusammengehörige Warnungen in einer Episode zusammen, damit ein Problem nur einmal alarmiert.",
   "Put related incidents into one episode, so one problem pages people once.": "Fassen Sie zusammengehörige Vorfälle in einer Episode zusammen, damit ein Problem nur einmal alarmiert.",
-  "Set how long your team has to acknowledge and resolve an incident.": "Legen Sie fest, wie viel Zeit Ihr Team hat, einen Vorfall zu bestätigen und zu beheben."
+  "Set how long your team has to acknowledge and resolve an incident.": "Legen Sie fest, wie viel Zeit Ihr Team hat, einen Vorfall zu bestätigen und zu beheben.",
+  "Drop or sample the logs you do not need, before they are stored.": "Verwerfen Sie Protokolle, die Sie nicht brauchen, oder behalten Sie nur eine Stichprobe, bevor sie gespeichert werden.",
+  "Drop or sample the spans you do not need, before they are stored.": "Verwerfen Sie Spans, die Sie nicht brauchen, oder behalten Sie nur eine Stichprobe, bevor sie gespeichert werden.",
+  "Drop, rename or redact metric data before it is stored.": "Verwerfen, umbenennen oder schwärzen Sie Metrikdaten, bevor sie gespeichert werden.",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "Zerlegen, korrigieren und kennzeichnen Sie Protokolle beim Eingang, bevor sie gespeichert werden.",
+  "Remove sensitive data from logs before they are stored.": "Entfernen Sie sensible Daten aus Protokollen, bevor sie gespeichert werden.",
+  "Remove sensitive data from spans before they are stored.": "Entfernen Sie sensible Daten aus Spans, bevor sie gespeichert werden.",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "Benennen Sie Spans beim Eingang um, korrigieren und kennzeichnen Sie sie, bevor sie gespeichert werden.",
+  "The steps this pipeline runs on every log it matches, in order.": "Die Schritte, die diese Pipeline der Reihe nach auf jedes passende Protokoll anwendet.",
+  "The steps this pipeline runs on every span it matches, in order.": "Die Schritte, die diese Pipeline der Reihe nach auf jeden passenden Span anwendet."
 }

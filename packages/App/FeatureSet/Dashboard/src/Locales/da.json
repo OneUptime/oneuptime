@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "Sæt et pålidelighedsmål, og få besked, før du misser det.",
   "Put related alerts into one episode, so one problem pages people once.": "Saml relaterede advarsler i én episode, så ét problem kun tilkalder folk én gang.",
   "Put related incidents into one episode, so one problem pages people once.": "Saml relaterede hændelser i én episode, så ét problem kun tilkalder folk én gang.",
-  "Set how long your team has to acknowledge and resolve an incident.": "Angiv, hvor lang tid dit team har til at bekræfte og løse en hændelse."
+  "Set how long your team has to acknowledge and resolve an incident.": "Angiv, hvor lang tid dit team har til at bekræfte og løse en hændelse.",
+  "Drop or sample the logs you do not need, before they are stored.": "Kassér de protokoller, du ikke har brug for, eller behold kun et udsnit, før de gemmes.",
+  "Drop or sample the spans you do not need, before they are stored.": "Kassér de spans, du ikke har brug for, eller behold kun et udsnit, før de gemmes.",
+  "Drop, rename or redact metric data before it is stored.": "Kassér, omdøb eller sløjf metrikdata, før de gemmes.",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "Fortolk, ret og mærk protokoller, når de ankommer, før de gemmes.",
+  "Remove sensitive data from logs before they are stored.": "Fjern følsomme data fra protokoller, før de gemmes.",
+  "Remove sensitive data from spans before they are stored.": "Fjern følsomme data fra spans, før de gemmes.",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "Omdøb, ret og mærk spans, når de ankommer, før de gemmes.",
+  "The steps this pipeline runs on every log it matches, in order.": "De trin, denne pipeline kører i rækkefølge på hver protokol, den matcher.",
+  "The steps this pipeline runs on every span it matches, in order.": "De trin, denne pipeline kører i rækkefølge på hvert span, den matcher."
 }

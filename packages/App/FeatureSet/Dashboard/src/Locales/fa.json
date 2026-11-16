@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "یک هدف قابلیت اطمینان تعیین کنید و پیش از آنکه به آن نرسید باخبر شوید.",
   "Put related alerts into one episode, so one problem pages people once.": "هشدارهای مرتبط را در یک اپیزود قرار دهید تا یک مشکل فقط یک بار افراد را فرا بخواند.",
   "Put related incidents into one episode, so one problem pages people once.": "حادثه‌های مرتبط را در یک اپیزود قرار دهید تا یک مشکل فقط یک بار افراد را فرا بخواند.",
-  "Set how long your team has to acknowledge and resolve an incident.": "تعیین کنید تیم شما چقدر زمان دارد تا یک حادثه را تأیید و رفع کند."
+  "Set how long your team has to acknowledge and resolve an incident.": "تعیین کنید تیم شما چقدر زمان دارد تا یک حادثه را تأیید و رفع کند.",
+  "Drop or sample the logs you do not need, before they are stored.": "لاگ‌هایی را که لازم ندارید پیش از ذخیره شدن حذف کنید یا فقط نمونه‌ای از آن‌ها را نگه دارید.",
+  "Drop or sample the spans you do not need, before they are stored.": "اسپن‌هایی را که لازم ندارید پیش از ذخیره شدن حذف کنید یا فقط نمونه‌ای از آن‌ها را نگه دارید.",
+  "Drop, rename or redact metric data before it is stored.": "داده‌های متریک را پیش از ذخیره شدن حذف، تغییر نام یا پنهان کنید.",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "لاگ‌ها را هنگام رسیدن و پیش از ذخیره شدن تجزیه، اصلاح و برچسب‌گذاری کنید.",
+  "Remove sensitive data from logs before they are stored.": "داده‌های حساس را پیش از ذخیره شدن لاگ‌ها از آن‌ها حذف کنید.",
+  "Remove sensitive data from spans before they are stored.": "داده‌های حساس را پیش از ذخیره شدن اسپن‌ها از آن‌ها حذف کنید.",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "اسپن‌ها را هنگام رسیدن و پیش از ذخیره شدن تغییر نام دهید، اصلاح و برچسب‌گذاری کنید.",
+  "The steps this pipeline runs on every log it matches, in order.": "مراحلی که این خط لوله به ترتیب روی هر لاگی که با آن جور است اجرا می‌کند.",
+  "The steps this pipeline runs on every span it matches, in order.": "مراحلی که این خط لوله به ترتیب روی هر اسپنی که با آن جور است اجرا می‌کند."
 }

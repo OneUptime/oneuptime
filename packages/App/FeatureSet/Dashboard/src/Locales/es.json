@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "Fije un objetivo de fiabilidad y entérese antes de incumplirlo.",
   "Put related alerts into one episode, so one problem pages people once.": "Agrupa las alertas relacionadas en un solo episodio, para que un mismo problema avise a las guardias una sola vez.",
   "Put related incidents into one episode, so one problem pages people once.": "Agrupa los incidentes relacionados en un solo episodio, para que un mismo problema avise a las guardias una sola vez.",
-  "Set how long your team has to acknowledge and resolve an incident.": "Define cuánto tiempo tiene tu equipo para reconocer y resolver un incidente."
+  "Set how long your team has to acknowledge and resolve an incident.": "Define cuánto tiempo tiene tu equipo para reconocer y resolver un incidente.",
+  "Drop or sample the logs you do not need, before they are stored.": "Descarta o muestrea los registros que no necesitas, antes de que se almacenen.",
+  "Drop or sample the spans you do not need, before they are stored.": "Descarta o muestrea los spans que no necesitas, antes de que se almacenen.",
+  "Drop, rename or redact metric data before it is stored.": "Descarta, renombra u oculta datos de métricas antes de que se almacenen.",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "Analiza, corrige y etiqueta los registros al llegar, antes de que se almacenen.",
+  "Remove sensitive data from logs before they are stored.": "Elimina los datos sensibles de los registros antes de que se almacenen.",
+  "Remove sensitive data from spans before they are stored.": "Elimina los datos sensibles de los spans antes de que se almacenen.",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "Renombra, corrige y etiqueta los spans al llegar, antes de que se almacenen.",
+  "The steps this pipeline runs on every log it matches, in order.": "Los pasos que esta canalización aplica, en orden, a cada registro que coincide.",
+  "The steps this pipeline runs on every span it matches, in order.": "Los pasos que esta canalización aplica, en orden, a cada span que coincide."
 }

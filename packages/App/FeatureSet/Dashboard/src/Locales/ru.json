@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "Задайте цель надёжности и узнайте заранее, если можете её не выполнить.",
   "Put related alerts into one episode, so one problem pages people once.": "Объединяйте связанные оповещения в один эпизод, чтобы одна проблема поднимала дежурных только один раз.",
   "Put related incidents into one episode, so one problem pages people once.": "Объединяйте связанные инциденты в один эпизод, чтобы одна проблема поднимала дежурных только один раз.",
-  "Set how long your team has to acknowledge and resolve an incident.": "Задайте, сколько времени у команды есть на подтверждение и устранение инцидента."
+  "Set how long your team has to acknowledge and resolve an incident.": "Задайте, сколько времени у команды есть на подтверждение и устранение инцидента.",
+  "Drop or sample the logs you do not need, before they are stored.": "Отбрасывайте ненужные журналы или сохраняйте только их выборку, до того как они будут сохранены.",
+  "Drop or sample the spans you do not need, before they are stored.": "Отбрасывайте ненужные спаны или сохраняйте только их выборку, до того как они будут сохранены.",
+  "Drop, rename or redact metric data before it is stored.": "Отбрасывайте, переименовывайте или скрывайте данные метрик до их сохранения.",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "Разбирайте, исправляйте и помечайте журналы при поступлении, до их сохранения.",
+  "Remove sensitive data from logs before they are stored.": "Удаляйте конфиденциальные данные из журналов до их сохранения.",
+  "Remove sensitive data from spans before they are stored.": "Удаляйте конфиденциальные данные из спанов до их сохранения.",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "Переименовывайте, исправляйте и помечайте спаны при поступлении, до их сохранения.",
+  "The steps this pipeline runs on every log it matches, in order.": "Шаги, которые этот конвейер по порядку применяет к каждому подходящему журналу.",
+  "The steps this pipeline runs on every span it matches, in order.": "Шаги, которые этот конвейер по порядку применяет к каждому подходящему спану."
 }

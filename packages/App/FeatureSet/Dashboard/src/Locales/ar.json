@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "حدّد هدفًا للموثوقية، واعرف قبل أن تُخفق في تحقيقه.",
   "Put related alerts into one episode, so one problem pages people once.": "اجمع التنبيهات المترابطة في حلقة واحدة، لتستدعي المشكلة الواحدة الأشخاص مرة واحدة فقط.",
   "Put related incidents into one episode, so one problem pages people once.": "اجمع الحوادث المترابطة في حلقة واحدة، لتستدعي المشكلة الواحدة الأشخاص مرة واحدة فقط.",
-  "Set how long your team has to acknowledge and resolve an incident.": "حدّد المدة المتاحة لفريقك للإقرار بالحادثة وحلّها."
+  "Set how long your team has to acknowledge and resolve an incident.": "حدّد المدة المتاحة لفريقك للإقرار بالحادثة وحلّها.",
+  "Drop or sample the logs you do not need, before they are stored.": "أسقِط السجلات التي لا تحتاج إليها، أو احتفظ بعيّنة منها فقط، قبل تخزينها.",
+  "Drop or sample the spans you do not need, before they are stored.": "أسقِط الامتدادات التي لا تحتاج إليها، أو احتفظ بعيّنة منها فقط، قبل تخزينها.",
+  "Drop, rename or redact metric data before it is stored.": "أسقِط بيانات المقاييس أو أعد تسميتها أو احجبها قبل تخزينها.",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "حلّل السجلات وأصلحها ووسمها عند وصولها، قبل تخزينها.",
+  "Remove sensitive data from logs before they are stored.": "أزِل البيانات الحساسة من السجلات قبل تخزينها.",
+  "Remove sensitive data from spans before they are stored.": "أزِل البيانات الحساسة من الامتدادات قبل تخزينها.",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "أعد تسمية الامتدادات وأصلحها ووسمها عند وصولها، قبل تخزينها.",
+  "The steps this pipeline runs on every log it matches, in order.": "الخطوات التي يطبّقها مسار المعالجة هذا بالترتيب على كل سجلّ يطابقه.",
+  "The steps this pipeline runs on every span it matches, in order.": "الخطوات التي يطبّقها مسار المعالجة هذا بالترتيب على كل امتداد يطابقه."
 }

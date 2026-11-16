@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "Defina uma meta de confiabilidade e seja avisado antes de não cumpri-la.",
   "Put related alerts into one episode, so one problem pages people once.": "Junte alertas relacionados em um único episódio, para que um mesmo problema acione o plantão uma só vez.",
   "Put related incidents into one episode, so one problem pages people once.": "Junte incidentes relacionados em um único episódio, para que um mesmo problema acione o plantão uma só vez.",
-  "Set how long your team has to acknowledge and resolve an incident.": "Defina quanto tempo sua equipe tem para confirmar e resolver um incidente."
+  "Set how long your team has to acknowledge and resolve an incident.": "Defina quanto tempo sua equipe tem para confirmar e resolver um incidente.",
+  "Drop or sample the logs you do not need, before they are stored.": "Descarte ou amostre os registros de que você não precisa, antes que sejam armazenados.",
+  "Drop or sample the spans you do not need, before they are stored.": "Descarte ou amostre os spans de que você não precisa, antes que sejam armazenados.",
+  "Drop, rename or redact metric data before it is stored.": "Descarte, renomeie ou oculte dados de métricas antes que sejam armazenados.",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "Analise, corrija e marque os registros quando chegam, antes que sejam armazenados.",
+  "Remove sensitive data from logs before they are stored.": "Remova dados sensíveis dos registros antes que sejam armazenados.",
+  "Remove sensitive data from spans before they are stored.": "Remova dados sensíveis dos spans antes que sejam armazenados.",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "Renomeie, corrija e marque os spans quando chegam, antes que sejam armazenados.",
+  "The steps this pipeline runs on every log it matches, in order.": "As etapas que este pipeline executa, em ordem, em cada registro que corresponde.",
+  "The steps this pipeline runs on every span it matches, in order.": "As etapas que este pipeline executa, em ordem, em cada span que corresponde."
 }

@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "设定可靠性目标，并在未能达成之前提前知晓。",
   "Put related alerts into one episode, so one problem pages people once.": "将相关警报归入同一个片段，让一个问题只呼叫一次。",
   "Put related incidents into one episode, so one problem pages people once.": "将相关事件归入同一个片段，让一个问题只呼叫一次。",
-  "Set how long your team has to acknowledge and resolve an incident.": "设置团队确认和解决事件的时限。"
+  "Set how long your team has to acknowledge and resolve an incident.": "设置团队确认和解决事件的时限。",
+  "Drop or sample the logs you do not need, before they are stored.": "在存储之前丢弃不需要的日志，或只保留其中的一部分样本。",
+  "Drop or sample the spans you do not need, before they are stored.": "在存储之前丢弃不需要的跨度，或只保留其中的一部分样本。",
+  "Drop, rename or redact metric data before it is stored.": "在存储之前丢弃、重命名或脱敏指标数据。",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "在日志到达时、存储之前，对其进行解析、修正和标记。",
+  "Remove sensitive data from logs before they are stored.": "在存储之前从日志中移除敏感数据。",
+  "Remove sensitive data from spans before they are stored.": "在存储之前从跨度中移除敏感数据。",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "在跨度到达时、存储之前，对其进行重命名、修正和标记。",
+  "The steps this pipeline runs on every log it matches, in order.": "此管道按顺序对每条匹配的日志执行的步骤。",
+  "The steps this pipeline runs on every span it matches, in order.": "此管道按顺序对每个匹配的跨度执行的步骤。"
 }

@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "Fixez un objectif de fiabilité et soyez prévenu avant de le manquer.",
   "Put related alerts into one episode, so one problem pages people once.": "Regroupez les alertes liées dans un seul épisode, pour qu'un même problème ne sollicite l'astreinte qu'une fois.",
   "Put related incidents into one episode, so one problem pages people once.": "Regroupez les incidents liés dans un seul épisode, pour qu'un même problème ne sollicite l'astreinte qu'une fois.",
-  "Set how long your team has to acknowledge and resolve an incident.": "Définissez le délai dont votre équipe dispose pour prendre en compte et résoudre un incident."
+  "Set how long your team has to acknowledge and resolve an incident.": "Définissez le délai dont votre équipe dispose pour prendre en compte et résoudre un incident.",
+  "Drop or sample the logs you do not need, before they are stored.": "Supprimez ou échantillonnez les journaux dont vous n'avez pas besoin, avant qu'ils ne soient stockés.",
+  "Drop or sample the spans you do not need, before they are stored.": "Supprimez ou échantillonnez les spans dont vous n'avez pas besoin, avant qu'ils ne soient stockés.",
+  "Drop, rename or redact metric data before it is stored.": "Supprimez, renommez ou masquez les données de métriques avant qu'elles ne soient stockées.",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "Analysez, corrigez et étiquetez les journaux à leur arrivée, avant qu'ils ne soient stockés.",
+  "Remove sensitive data from logs before they are stored.": "Retirez les données sensibles des journaux avant qu'ils ne soient stockés.",
+  "Remove sensitive data from spans before they are stored.": "Retirez les données sensibles des spans avant qu'ils ne soient stockés.",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "Renommez, corrigez et étiquetez les spans à leur arrivée, avant qu'ils ne soient stockés.",
+  "The steps this pipeline runs on every log it matches, in order.": "Les étapes que ce pipeline applique, dans l'ordre, à chaque journal qu'il retient.",
+  "The steps this pipeline runs on every span it matches, in order.": "Les étapes que ce pipeline applique, dans l'ordre, à chaque span qu'il retient."
 }

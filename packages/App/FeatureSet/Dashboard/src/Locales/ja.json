@@ -56022,5 +56022,14 @@
   "Set a reliability target, and know before you miss it.": "信頼性の目標を設定し、達成できなくなる前に知ることができます。",
   "Put related alerts into one episode, so one problem pages people once.": "関連するアラートを 1 つのエピソードにまとめ、1 つの問題での呼び出しを 1 回にします。",
   "Put related incidents into one episode, so one problem pages people once.": "関連するインシデントを 1 つのエピソードにまとめ、1 つの問題での呼び出しを 1 回にします。",
-  "Set how long your team has to acknowledge and resolve an incident.": "チームがインシデントを確認し、解決するまでの時間を設定します。"
+  "Set how long your team has to acknowledge and resolve an incident.": "チームがインシデントを確認し、解決するまでの時間を設定します。",
+  "Drop or sample the logs you do not need, before they are stored.": "不要なログを保存前に破棄するか、一部だけをサンプリングして残します。",
+  "Drop or sample the spans you do not need, before they are stored.": "不要なスパンを保存前に破棄するか、一部だけをサンプリングして残します。",
+  "Drop, rename or redact metric data before it is stored.": "保存する前にメトリクスデータを破棄、名前変更、または秘匿化します。",
+  "Parse, fix and tag logs as they arrive, before they are stored.": "ログを受信時に、保存する前に解析・修正・タグ付けします。",
+  "Remove sensitive data from logs before they are stored.": "保存する前にログから機密データを取り除きます。",
+  "Remove sensitive data from spans before they are stored.": "保存する前にスパンから機密データを取り除きます。",
+  "Rename, fix and tag spans as they arrive, before they are stored.": "スパンを受信時に、保存する前に名前変更・修正・タグ付けします。",
+  "The steps this pipeline runs on every log it matches, in order.": "このパイプラインが一致した各ログに順番に実行する手順です。",
+  "The steps this pipeline runs on every span it matches, in order.": "このパイプラインが一致した各スパンに順番に実行する手順です。"
 }
