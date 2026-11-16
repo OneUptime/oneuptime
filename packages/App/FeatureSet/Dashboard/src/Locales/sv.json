@@ -56442,5 +56442,7 @@
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} kommando som kördes här visas inte: det kördes för en AI-chatt, en incident eller ett larm som du inte kan öppna.",
   "Test email report not sent": "Testrapporten via e-post skickades inte",
   "Test message not sent": "Testmeddelandet skickades inte",
-  "Open (pull request)": "Öppen"
+  "No projects yet": "Inga projekt ännu",
+  "Open (pull request)": "Öppen",
+  "Welcome to OneUptime": "Välkommen till OneUptime"
 }

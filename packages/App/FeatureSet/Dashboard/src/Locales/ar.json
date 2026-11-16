@@ -56442,5 +56442,7 @@
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} أمر شُغّل هنا لا يظهر في القائمة: شُغّل لدردشة ذكاء اصطناعي أو حادث أو تنبيه لا يمكنك فتحه.",
   "Test email report not sent": "لم يُرسَل تقرير البريد الإلكتروني التجريبي",
   "Test message not sent": "لم تُرسَل الرسالة التجريبية",
-  "Open (pull request)": "مفتوح"
+  "No projects yet": "لا توجد مشاريع بعد",
+  "Open (pull request)": "مفتوح",
+  "Welcome to OneUptime": "مرحبًا بك في OneUptime"
 }

@@ -56442,5 +56442,7 @@
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} команда, выполненная здесь, не показана в списке: она выполнялась для чата с ИИ, инцидента или оповещения, которые вы не можете открыть.",
   "Test email report not sent": "Тестовый отчёт по email не отправлен",
   "Test message not sent": "Тестовое сообщение не отправлено",
-  "Open (pull request)": "Открыто"
+  "No projects yet": "Проектов пока нет",
+  "Open (pull request)": "Открыто",
+  "Welcome to OneUptime": "Добро пожаловать в OneUptime"
 }
