@@ -55969,5 +55969,10 @@
   "Already paged about this by {{name}}, so not paged again.": "Déjà appelé à ce sujet par {{name}}, donc pas appelé à nouveau.",
   "Merged Into On-Call Log ID": "ID du journal d'astreinte dans lequel il a été fusionné",
   "Their page from another on-call policy is over, so this policy pages them now.": "L'appel d'une autre politique d'astreinte est terminé, donc cette politique appelle elle-même maintenant.",
-  "Their page from {{name}} is over, so this policy pages them now.": "L'appel de {{name}} est terminé, donc cette politique appelle elle-même maintenant."
+  "Their page from {{name}} is over, so this policy pages them now.": "L'appel de {{name}} est terminé, donc cette politique appelle elle-même maintenant.",
+  "Every {{count}} seconds": "Toutes les {{count}} secondes",
+  "Every {{count}} seconds_one": "Toutes les {{count}} secondes",
+  "First Measured At": "Première mesure le",
+  "Missing-email check": "Vérification des e-mails manquants",
+  "Missing-request check": "Vérification des requêtes manquantes"
 }

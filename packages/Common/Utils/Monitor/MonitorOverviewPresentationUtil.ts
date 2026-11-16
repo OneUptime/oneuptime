@@ -36,6 +36,9 @@ import {
   MonitorOverviewProbeSummary,
 } from "./MonitorOverviewProbeUtil";
 import MonitorStatusHistoryUtil from "./MonitorStatusHistoryUtil";
+import HeartbeatSweepSchedule, {
+  HEARTBEAT_SWEEP_EVERY_SECONDS,
+} from "./HeartbeatSweepSchedule";
 import ProbeStatusMonitorUtil from "./ProbeStatusMonitorUtil";
 import MonitorOverviewTargetUtil, {
   MonitorOverviewTarget,
@@ -2236,6 +2239,38 @@ export default class MonitorOverviewPresentationUtil {
                 secondary: t.translateTemplate("From this monitor's criteria"),
               },
         );
+
+        /*
+         * The sweep visits the monitor every 30 seconds but stamps the
+         * check only every few minutes (HeartbeatSweepSchedule, issue
+         * #8123): while the stamp is as recent as that leaves it, the fact
+         * says the schedule, not a stamp that reads minutes old. Older than
+         * that, the sweeps have stopped reaching it, and when they last
+         * did is the fact. A paused monitor is not swept: its stamp says
+         * when it last was.
+         */
+        if (
+          !context.isPaused &&
+          HeartbeatSweepSchedule.isStampOnSchedule({
+            checkedAt: lastCheckedAt,
+            now: input.now,
+          })
+        ) {
+          facts.push({
+            key: "heartbeat-check",
+            label: isEmail
+              ? t.translateTemplate("Missing-email check")
+              : t.translateTemplate("Missing-request check"),
+            value: t.translatePlural(
+              {
+                one: "Every {{count}} second",
+                other: "Every {{count}} seconds",
+              },
+              HEARTBEAT_SWEEP_EVERY_SECONDS,
+            ),
+          });
+          break;
+        }
 
         facts.push(
           lastCheckedAt

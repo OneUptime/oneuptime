@@ -670,6 +670,19 @@ export default class MonitorResourceUtil {
         });
       }
 
+      /*
+       * So is an incoming request's, by its monitor, for the monitor page:
+       * the row is written only every so often, and a reader of the monitor
+       * may not read the secret key the sweep keeps arrivals by
+       * (MonitorResourceUtil.keepIncomingRequestArrival, issue #8123).
+       */
+      if (monitor.monitorType === MonitorType.IncomingRequest) {
+        await MonitorResourceUtil.keepIncomingRequestArrival({
+          monitorId: monitor.id!,
+          dataToProcess: dataToProcess as IncomingMonitorRequest,
+        });
+      }
+
       let probeName: string | undefined = undefined;
       const monitorName: string | undefined = monitor.name || undefined;
 
@@ -2318,6 +2331,30 @@ export default class MonitorResourceUtil {
     } finally {
       await releaseMutex();
     }
+  }
+
+  /*
+   * An incoming request that arrived (not the heartbeat sweep's look at the
+   * last one): its arrival is kept by its monitor, the latest of all, on
+   * every request. The monitor page reads it over the row's, which is
+   * written at most every so often (MonitorAPI.onBeforeSendRecords, issue
+   * #8123). Never throws.
+   */
+  public static async keepIncomingRequestArrival(input: {
+    monitorId: ObjectID;
+    dataToProcess: IncomingMonitorRequest;
+  }): Promise<void> {
+    if (
+      input.dataToProcess.onlyCheckForIncomingRequestReceivedAt ||
+      !input.dataToProcess.incomingRequestReceivedAt
+    ) {
+      return;
+    }
+
+    await MonitorHeartbeatState.recordIncomingRequest({
+      monitorId: input.monitorId,
+      receivedAt: input.dataToProcess.incomingRequestReceivedAt,
+    });
   }
 
   /*

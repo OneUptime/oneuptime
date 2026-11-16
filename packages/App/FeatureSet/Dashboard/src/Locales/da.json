@@ -55969,5 +55969,10 @@
   "Already paged about this by {{name}}, so not paged again.": "Allerede kaldt om dette af {{name}}, så ikke kaldt igen.",
   "Merged Into On-Call Log ID": "ID for vagtloggen, som dette blev flettet ind i",
   "Their page from another on-call policy is over, so this policy pages them now.": "Opkaldet fra en anden vagtpolitik er slut, så denne politik kalder nu selv.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Opkaldet fra {{name}} er slut, så denne politik kalder nu selv."
+  "Their page from {{name}} is over, so this policy pages them now.": "Opkaldet fra {{name}} er slut, så denne politik kalder nu selv.",
+  "Every {{count}} seconds": "Hvert {{count}}. sekund",
+  "Every {{count}} seconds_one": "Hvert {{count}}. sekund",
+  "First Measured At": "Først målt",
+  "Missing-email check": "Tjek for manglende e-mails",
+  "Missing-request check": "Tjek for manglende anmodninger"
 }

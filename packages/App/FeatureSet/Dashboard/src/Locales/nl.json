@@ -55969,5 +55969,10 @@
   "Already paged about this by {{name}}, so not paged again.": "Hierover al opgeroepen door {{name}}, dus niet opnieuw opgeroepen.",
   "Merged Into On-Call Log ID": "ID van het bereikbaarheidslogboek waarin dit is samengevoegd",
   "Their page from another on-call policy is over, so this policy pages them now.": "De oproep van een ander bereikbaarheidsbeleid is voorbij, dus dit beleid roept nu zelf op.",
-  "Their page from {{name}} is over, so this policy pages them now.": "De oproep van {{name}} is voorbij, dus dit beleid roept nu zelf op."
+  "Their page from {{name}} is over, so this policy pages them now.": "De oproep van {{name}} is voorbij, dus dit beleid roept nu zelf op.",
+  "Every {{count}} seconds": "Elke {{count}} seconden",
+  "Every {{count}} seconds_one": "Elke {{count}} seconde",
+  "First Measured At": "Voor het eerst gemeten op",
+  "Missing-email check": "Controle op ontbrekende e-mails",
+  "Missing-request check": "Controle op ontbrekende verzoeken"
 }

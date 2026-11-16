@@ -55969,5 +55969,10 @@
   "Already paged about this by {{name}}, so not paged again.": "Allerede kalt opp om dette av {{name}}, så ikke kalt opp igjen.",
   "Merged Into On-Call Log ID": "ID for vaktloggen dette ble slått sammen med",
   "Their page from another on-call policy is over, so this policy pages them now.": "Oppkallingen fra en annen vaktpolicy er over, så denne policyen kaller opp selv nå.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Oppkallingen fra {{name}} er over, så denne policyen kaller opp selv nå."
+  "Their page from {{name}} is over, so this policy pages them now.": "Oppkallingen fra {{name}} er over, så denne policyen kaller opp selv nå.",
+  "Every {{count}} seconds": "Hvert {{count}}. sekund",
+  "Every {{count}} seconds_one": "Hvert {{count}}. sekund",
+  "First Measured At": "Først målt",
+  "Missing-email check": "Sjekk for manglende e-post",
+  "Missing-request check": "Sjekk for manglende forespørsler"
 }

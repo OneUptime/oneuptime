@@ -55969,5 +55969,10 @@
   "Already paged about this by {{name}}, so not paged again.": "{{name}} 已为此呼叫过，因此不再重复呼叫。",
   "Merged Into On-Call Log ID": "合并到的值班日志 ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "另一个值班策略的呼叫已结束，因此现在由此策略自行呼叫。",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} 的呼叫已结束，因此现在由此策略自行呼叫。"
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} 的呼叫已结束，因此现在由此策略自行呼叫。",
+  "Every {{count}} seconds": "每 {{count}} 秒",
+  "Every {{count}} seconds_one": "每 {{count}} 秒",
+  "First Measured At": "首次测量时间",
+  "Missing-email check": "缺失邮件检查",
+  "Missing-request check": "缺失请求检查"
 }

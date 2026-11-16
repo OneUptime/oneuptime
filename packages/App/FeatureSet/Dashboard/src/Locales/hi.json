@@ -55969,5 +55969,10 @@
   "Already paged about this by {{name}}, so not paged again.": "इसके लिए {{name}} ने पहले ही पेज कर दिया है, इसलिए दोबारा पेज नहीं किया गया।",
   "Merged Into On-Call Log ID": "जिस ऑन-कॉल लॉग में मिलाया गया उसकी ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "किसी अन्य ऑन-कॉल नीति का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।"
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।",
+  "Every {{count}} seconds": "हर {{count}} सेकंड में",
+  "Every {{count}} seconds_one": "हर {{count}} सेकंड में",
+  "First Measured At": "पहली बार मापा गया",
+  "Missing-email check": "गुम ईमेल की जाँच",
+  "Missing-request check": "गुम अनुरोध की जाँच"
 }

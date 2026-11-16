@@ -55969,5 +55969,10 @@
   "Already paged about this by {{name}}, so not paged again.": "Already paged about this by {{name}}, so not paged again.",
   "Merged Into On-Call Log ID": "Merged Into On-Call Log ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "Their page from another on-call policy is over, so this policy pages them now.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Their page from {{name}} is over, so this policy pages them now."
+  "Their page from {{name}} is over, so this policy pages them now.": "Their page from {{name}} is over, so this policy pages them now.",
+  "Every {{count}} seconds": "Every {{count}} seconds",
+  "Every {{count}} seconds_one": "Every {{count}} second",
+  "First Measured At": "First Measured At",
+  "Missing-email check": "Missing-email check",
+  "Missing-request check": "Missing-request check"
 }

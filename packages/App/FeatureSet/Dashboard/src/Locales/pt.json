@@ -55969,5 +55969,10 @@
   "Already paged about this by {{name}}, so not paged again.": "Já chamado sobre isto por {{name}}, então não foi chamado de novo.",
   "Merged Into On-Call Log ID": "ID do registro de plantão em que foi mesclado",
   "Their page from another on-call policy is over, so this policy pages them now.": "A chamada de outra política de plantão terminou, então esta política chama agora por conta própria.",
-  "Their page from {{name}} is over, so this policy pages them now.": "A chamada de {{name}} terminou, então esta política chama agora por conta própria."
+  "Their page from {{name}} is over, so this policy pages them now.": "A chamada de {{name}} terminou, então esta política chama agora por conta própria.",
+  "Every {{count}} seconds": "A cada {{count}} segundos",
+  "Every {{count}} seconds_one": "A cada {{count}} segundos",
+  "First Measured At": "Medido pela primeira vez em",
+  "Missing-email check": "Verificação de e-mails ausentes",
+  "Missing-request check": "Verificação de solicitações ausentes"
 }

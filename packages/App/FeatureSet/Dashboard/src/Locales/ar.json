@@ -55969,5 +55969,10 @@
   "Already paged about this by {{name}}, so not paged again.": "استدعاه {{name}} بالفعل لهذا الأمر، لذا لم يُستدعَ مرة أخرى.",
   "Merged Into On-Call Log ID": "معرّف سجل المناوبة الذي دُمج فيه",
   "Their page from another on-call policy is over, so this policy pages them now.": "انتهى استدعاء سياسة المناوبة الأخرى، لذا تستدعي هذه السياسة الآن بنفسها.",
-  "Their page from {{name}} is over, so this policy pages them now.": "انتهى استدعاء {{name}}، لذا تستدعي هذه السياسة الآن بنفسها."
+  "Their page from {{name}} is over, so this policy pages them now.": "انتهى استدعاء {{name}}، لذا تستدعي هذه السياسة الآن بنفسها.",
+  "Every {{count}} seconds": "كل {{count}} ث",
+  "Every {{count}} seconds_one": "كل {{count}} ثانية",
+  "First Measured At": "وقت أول قياس",
+  "Missing-email check": "فحص البريد الإلكتروني المفقود",
+  "Missing-request check": "فحص الطلب المفقود"
 }

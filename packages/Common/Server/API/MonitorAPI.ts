@@ -27,6 +27,8 @@ import CloudResource from "../../Models/DatabaseModels/CloudResource";
 import { CloudEndpointSuggestion } from "../../Types/Cloud/CloudEndpointMatch";
 import { JSONObject } from "../../Types/JSON";
 import CloudEndpointSuggestions from "../Utils/CloudConnection/CloudEndpointSuggestions";
+import MonitorLatestArrivals from "../Utils/Monitor/MonitorLatestArrivals";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 export default class MonitorAPI extends BaseAPI<Monitor, MonitorServiceType> {
   public constructor() {
@@ -318,5 +320,19 @@ export default class MonitorAPI extends BaseAPI<Monitor, MonitorServiceType> {
         }
       },
     );
+  }
+
+  /*
+   * A monitor read through the API - its page, a list, the REST API - shows
+   * its latest heartbeat: a server report's or an incoming request's
+   * arrival kept in Redis, over the row's when it is newer, since the row
+   * is written only every so often (MonitorLatestArrivals, issue #8123). One
+   * Redis round trip per kind, no Postgres statement, and the row's values
+   * where Redis cannot be reached.
+   */
+  protected override async onBeforeSendRecords(
+    records: Array<BaseModel>,
+  ): Promise<void> {
+    await MonitorLatestArrivals.putOverRows(records as Array<Monitor>);
   }
 }

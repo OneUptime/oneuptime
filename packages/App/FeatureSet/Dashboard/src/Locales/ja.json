@@ -55969,5 +55969,10 @@
   "Already paged about this by {{name}}, so not paged again.": "これについては {{name}} からすでに呼び出されているため、再度呼び出されませんでした。",
   "Merged Into On-Call Log ID": "統合先のオンコールログの ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "別のオンコールポリシーからの呼び出しが終了したため、このポリシーが代わりに呼び出します。",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} からの呼び出しが終了したため、このポリシーが代わりに呼び出します。"
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} からの呼び出しが終了したため、このポリシーが代わりに呼び出します。",
+  "Every {{count}} seconds": "{{count}} 秒ごと",
+  "Every {{count}} seconds_one": "{{count}} 秒ごと",
+  "First Measured At": "初回測定日時",
+  "Missing-email check": "メール未着のチェック",
+  "Missing-request check": "リクエスト未着のチェック"
 }

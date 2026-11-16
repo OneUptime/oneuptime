@@ -55969,5 +55969,10 @@
   "Already paged about this by {{name}}, so not paged again.": "Ya avisado de esto por {{name}}, así que no se avisa de nuevo.",
   "Merged Into On-Call Log ID": "ID del registro de guardia en el que se fusionó",
   "Their page from another on-call policy is over, so this policy pages them now.": "El aviso de otra política de guardia terminó, así que esta política avisa ahora por sí misma.",
-  "Their page from {{name}} is over, so this policy pages them now.": "El aviso de {{name}} terminó, así que esta política avisa ahora por sí misma."
+  "Their page from {{name}} is over, so this policy pages them now.": "El aviso de {{name}} terminó, así que esta política avisa ahora por sí misma.",
+  "Every {{count}} seconds": "Cada {{count}} segundos",
+  "Every {{count}} seconds_one": "Cada {{count}} segundos",
+  "First Measured At": "Medido por primera vez el",
+  "Missing-email check": "Comprobación de correos ausentes",
+  "Missing-request check": "Comprobación de solicitudes ausentes"
 }

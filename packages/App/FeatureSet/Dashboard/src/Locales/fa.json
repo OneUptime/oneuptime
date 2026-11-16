@@ -55969,5 +55969,10 @@
   "Already paged about this by {{name}}, so not paged again.": "پیش‌تر {{name}} برای این فراخوانده بود، پس دوباره فراخوانده نشد.",
   "Merged Into On-Call Log ID": "شناسه گزارش آنکالی که در آن ادغام شد",
   "Their page from another on-call policy is over, so this policy pages them now.": "فراخوانی سیاست آنکال دیگر تمام شده است، پس این سیاست اکنون خودش فرامی‌خواند.",
-  "Their page from {{name}} is over, so this policy pages them now.": "فراخوانی {{name}} تمام شده است، پس این سیاست اکنون خودش فرامی‌خواند."
+  "Their page from {{name}} is over, so this policy pages them now.": "فراخوانی {{name}} تمام شده است، پس این سیاست اکنون خودش فرامی‌خواند.",
+  "Every {{count}} seconds": "هر {{count}} ثانیه",
+  "Every {{count}} seconds_one": "هر {{count}} ثانیه",
+  "First Measured At": "زمان نخستین اندازه‌گیری",
+  "Missing-email check": "بررسی ایمیل‌های نرسیده",
+  "Missing-request check": "بررسی درخواست‌های نرسیده"
 }
