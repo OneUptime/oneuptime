@@ -27,8 +27,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * are of the deleted samples, and a permission set cached for a project
  * that no longer exists grants nothing.
  */
-export class RemoveSampleProject1809180400000 implements MigrationInterface {
-  public name: string = "RemoveSampleProject1809180400000";
+export class RemoveSampleProject1809180800000 implements MigrationInterface {
+  public name: string = "RemoveSampleProject1809180800000";
 
   // DROP INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

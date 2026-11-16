@@ -1,8 +1,8 @@
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import { AddSampleProject1809123500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809123500000-AddSampleProject";
 import { AddSampleProjectUserIndex1809123500001 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809123500001-AddSampleProjectUserIndex";
-import { AddUserOnCallLogMergedInto1809180370000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180370000-AddUserOnCallLogMergedInto";
-import { RemoveSampleProject1809180400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180400000-RemoveSampleProject";
+import { MasterApiKeyHashedColumn1809180790100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180790100-MasterApiKeyHashedColumn";
+import { RemoveSampleProject1809180800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180800000-RemoveSampleProject";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Project from "../../../../Models/DatabaseModels/Project";
 import User from "../../../../Models/DatabaseModels/User";
@@ -91,14 +91,14 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("RemoveSampleProject1809180400000", () => {
+describe("RemoveSampleProject1809180800000", () => {
   test("runs outside a transaction, as DROP INDEX CONCURRENTLY must", () => {
-    expect(new RemoveSampleProject1809180400000().transaction).toBe(false);
+    expect(new RemoveSampleProject1809180800000().transaction).toBe(false);
   });
 
   test("deletes the sample projects and their people, then drops the key, the index and both columns", async () => {
     const recorded: Recorded = await record({
-      migration: new RemoveSampleProject1809180400000(),
+      migration: new RemoveSampleProject1809180800000(),
       direction: "up",
     });
 
@@ -114,7 +114,7 @@ describe("RemoveSampleProject1809180400000", () => {
 
   test("deletes the samples while the foreign key that takes their people with them is still there", async () => {
     const recorded: Recorded = await record({
-      migration: new RemoveSampleProject1809180400000(),
+      migration: new RemoveSampleProject1809180800000(),
       direction: "up",
     });
 
@@ -136,7 +136,7 @@ describe("RemoveSampleProject1809180400000", () => {
   test("run again after a stop part way, it deletes only by the columns still there and fails on nothing gone", async () => {
     // Stopped after User.sampleProjectId went: the samples are already gone.
     const afterUserColumn: Recorded = await record({
-      migration: new RemoveSampleProject1809180400000(),
+      migration: new RemoveSampleProject1809180800000(),
       direction: "up",
       columns: ["Project.isSampleProject"],
     });
@@ -146,7 +146,7 @@ describe("RemoveSampleProject1809180400000", () => {
 
     // Stopped after both columns went, before the run was recorded.
     const afterBoth: Recorded = await record({
-      migration: new RemoveSampleProject1809180400000(),
+      migration: new RemoveSampleProject1809180800000(),
       direction: "up",
       columns: [],
     });
@@ -166,7 +166,7 @@ describe("RemoveSampleProject1809180400000", () => {
 
   test("down puts back the columns, the index and the key as AddSampleProject and AddSampleProjectUserIndex made them", async () => {
     const recorded: Recorded = await record({
-      migration: new RemoveSampleProject1809180400000(),
+      migration: new RemoveSampleProject1809180800000(),
       direction: "down",
     });
 
@@ -209,18 +209,18 @@ describe("its place", () => {
   test("registered once, after the migrations that added the sample project and the one before it", () => {
     const migrations: Array<unknown> = SchemaMigrations as Array<unknown>;
     const removal: number = migrations.indexOf(
-      RemoveSampleProject1809180400000,
+      RemoveSampleProject1809180800000,
     );
 
     expect(removal).toBeGreaterThan(
       migrations.indexOf(AddSampleProjectUserIndex1809123500001),
     );
     expect(removal).toBeGreaterThan(
-      migrations.indexOf(AddUserOnCallLogMergedInto1809180370000),
+      migrations.indexOf(MasterApiKeyHashedColumn1809180790100),
     );
     expect(
       migrations.filter((migration: unknown): boolean => {
-        return migration === RemoveSampleProject1809180400000;
+        return migration === RemoveSampleProject1809180800000;
       }),
     ).toHaveLength(1);
   });

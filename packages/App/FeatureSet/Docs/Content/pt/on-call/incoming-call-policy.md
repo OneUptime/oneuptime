@@ -41,10 +41,11 @@ flowchart TB
 Vá em **Configurações do projeto** > **Notificações** > **Canais de notificação** e abra **Mais configurações**. No cartão **Configuração do Twilio**, clique em **Criar configuração do Twilio** e preencha o formulário:
 
 - **Nome** e **Descrição**: para que serve a conta, por exemplo "Linha de suporte".
+- **Usar esta conta para**: **Chamadas e SMS**, ou **Somente chamadas** quando os números da conta não enviam SMS. As chamadas recebidas funcionam com qualquer uma das duas.
 - **SID da Conta Twilio**: do console do Twilio. Começa com `AC`.
 - **Token de Autenticação Twilio**: do console do Twilio.
-- **Número de Telefone Principal do Twilio**: um número dessa conta, para os SMS e as chamadas que ela envia. Em **Mais campos**, opcionais: números para destinatários de outros países e números de SMS quando os números da conta só fazem chamadas (veja [Números separados para chamadas e SMS](/docs/self-hosted/twilio-integration#números-separados-para-chamadas-e-sms)).
-- **Definir como padrão do projeto**: ligado para a primeira configuração do Twilio do projeto, para que os SMS e as chamadas para os membros do projeto também passem por esta conta. Desligue se esta conta for só para chamadas recebidas.
+- **Número de Telefone Principal do Twilio**: um número dessa conta, para as chamadas que ela faz, e para os SMS dela quando ela os envia. Em **Mais campos**, opcionais: números para destinatários de outros países e números de SMS quando os números da conta só fazem chamadas (veja [Números separados para chamadas e SMS](/docs/self-hosted/twilio-integration#números-separados-para-chamadas-e-sms)).
+- **Definir como padrão do projeto**: ligado para a primeira configuração do Twilio do projeto, para que as chamadas para os membros do projeto também passem por esta conta, e os SMS deles quando ela é usada para **Chamadas e SMS**. Desligue se esta conta for só para chamadas recebidas.
 
 ### Crie a política
 

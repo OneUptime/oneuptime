@@ -352,7 +352,7 @@
       "extendDescription": "调整此项目的试用结束日期。支付提供商也会收到新日期，因此试用期间不会开具任何账单。",
       "newTrialEndDate": "新的试用结束日期",
       "newTrialEndDateDescription": "试用应结束的日期。必须是将来的日期，且不超过 730 天（两年）。",
-      "notTrialingWarning": "该项目当前不在试用中。延长试用会结束当前的用量计费周期，因此客户会立即收到本周期内已产生用量的账单。延长后的试用本身是免费的。",
+      "notTrialingUsageWaived": "该项目当前不在试用中。延长试用会免除客户在当前计费周期内已产生的用量费用，因此不会为其开具账单。延长后的试用本身是免费的。",
       "extendSubmitButton": "延长试用",
       "extendSuccess": "试用已延长至 {{date}}。支付提供商已更新。",
       "extendFailure": "延长试用失败。",
@@ -636,12 +636,6 @@
         "usageCardDescription": "每个项目的每日遥测用量保留多长时间，无论是否启用计费。",
         "usageEditButton": "编辑遥测用量保留"
       },
-      "apiKey": {
-        "cardTitle": "主 API 密钥设置",
-        "cardDescription": "拥有此服务器上所有项目的 root 访问权限。",
-        "editButton": "编辑 API 密钥设置",
-        "apiKeyNotGenerated": "API 密钥尚未生成。"
-      },
       "llmProviders": {
         "bannerTitle": "需要帮助设置 LLM 提供商吗?",
         "bannerDescription": "LLM 提供商启用 AI 功能。您可以配置所有项目可用的全局 LLM 提供商。",
@@ -752,7 +746,6 @@
   "Edit Server": "编辑服务器",
   "Edit SMTP Config": "编辑 SMTP 配置",
   "Edit API Key": "编辑 API 密钥",
-  "Edit API Key Settings": "编辑 API 密钥设置",
   "Edit Twilio Config": "编辑 Twilio 配置",
   "Edit Telegram Config": "编辑 Telegram 配置",
   "Edit Meta WhatsApp Config": "编辑 Meta WhatsApp 配置",
@@ -4019,5 +4012,15 @@
   "### Setup Steps": "### 设置步骤",
   "### Required WhatsApp Templates": "### 所需的 WhatsApp 模板",
   "### Template Bodies": "### 模板正文",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> 在 Meta 中创建每个模板时，请原样复制下方的模板正文，包括标点和空格。变量列表列出了必须在 WhatsApp Manager 中配置的每个占位符。"
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> 在 Meta 中创建每个模板时，请原样复制下方的模板正文，包括标点和空格。变量列表列出了必须在 WhatsApp Manager 中配置的每个占位符。",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "还没有密钥。请为以主管理员身份调用 API 的脚本和工具创建一个。",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "已设置密钥。它只在创建时显示过一次：只保存了它的哈希值，因此无法再次显示。如果丢失了，请重置它。",
+  "Create Key": "创建密钥",
+  "Reset Key": "重置密钥",
+  "Requests with the key are accepted.": "接受使用此密钥的请求。",
+  "Reset Master API Key?": "要重置主 API 密钥吗？",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "当前密钥会立即对使用它的每个脚本和工具失效。新密钥只显示一次。",
+  "Copy Your Master API Key": "复制你的主 API 密钥",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "请立即复制，并将其保存在安全的地方，例如密钥管理器。它只显示这一次：OneUptime 只保存它的哈希值。",
+  "The server did not answer with the master API key. Try again.": "服务器没有返回主 API 密钥。请重试。"
 }
