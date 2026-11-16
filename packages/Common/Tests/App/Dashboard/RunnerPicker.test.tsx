@@ -56,6 +56,7 @@ import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../Types/ObjectID";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import { GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS } from "../../../Types/Runner/GlobalRunnerWork";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 import RunnerLiveStatus from "../../../Types/Runner/RunnerLiveStatus";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -1014,8 +1015,14 @@ describe("in a project with no Runner of its own, every Runner field", () => {
     renderField({ stepType: RunbookStepType.JavaScript });
 
     expect(fieldShown()).toBe(`${GLOBAL_RUNNER_CHOICE_LABEL} · Connected`);
+    /*
+     * As a page draws English: the minutes held to their figure (#8811),
+     * so the line never breaks between them.
+     */
     expect(fieldLine()).toBe(
-      `Runs in a sandbox that reaches the internet only, for up to ${GLOBAL_RUNNER_MAX_MINUTES} minutes. To reach your network, pick one of your Runners.`,
+      withDurationWordsHeld(
+        `Runs in a sandbox that reaches the internet only, for up to ${GLOBAL_RUNNER_MAX_MINUTES} minutes. To reach your network, pick one of your Runners.`,
+      ),
     );
     expect(fieldMenu()[0]).toHaveTextContent(GLOBAL_RUNNER_CHOICE_DESCRIPTION);
     expect(recordedChanges()).toEqual([]);
