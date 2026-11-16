@@ -13,6 +13,7 @@ import "Common/Types/Monitor/MonitorJsonTypes";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import NewVersionNavigation from "Common/UI/Components/NewVersion/NewVersionNavigation";
 import NewVersionNotice from "Common/UI/Components/NewVersion/NewVersionNotice";
 import NewVersion, {
@@ -170,6 +171,7 @@ i18nReady
           <App />
         </BrowserRouter>
         <NewVersionNotice />
+        <ToastRegion />
       </ErrorBoundary>,
     );
   });

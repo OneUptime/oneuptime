@@ -506,5 +506,6 @@
   "Complete:": "رعایت شده:",
   "Incomplete:": "رعایت نشده:",
   "Special character included (optional)": "نویسهٔ ویژه دارد (اختیاری)",
-  "Special characters are optional. Try !, @, # or $.": "نویسه‌های ویژه اختیاری هستند. از !، @، # یا $ استفاده کنید."
+  "Special characters are optional. Try !, @, # or $.": "نویسه‌های ویژه اختیاری هستند. از !، @، # یا $ استفاده کنید.",
+  "Dismiss": "پنهان کردن"
 }

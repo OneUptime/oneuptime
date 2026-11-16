@@ -506,5 +506,6 @@
   "Complete:": "Oppfylt:",
   "Incomplete:": "Ikke oppfylt:",
   "Special character included (optional)": "Spesialtegn inkludert (valgfritt)",
-  "Special characters are optional. Try !, @, # or $.": "Spesialtegn er valgfrie. Prøv !, @, # eller $."
+  "Special characters are optional. Try !, @, # or $.": "Spesialtegn er valgfrie. Prøv !, @, # eller $.",
+  "Dismiss": "Skjul"
 }

@@ -506,5 +506,6 @@
   "Complete:": "Uppfyllt:",
   "Incomplete:": "Inte uppfyllt:",
   "Special character included (optional)": "Specialtecken inkluderat (valfritt)",
-  "Special characters are optional. Try !, @, # or $.": "Specialtecken är valfria. Prova !, @, # eller $."
+  "Special characters are optional. Try !, @, # or $.": "Specialtecken är valfria. Prova !, @, # eller $.",
+  "Dismiss": "Dölj"
 }

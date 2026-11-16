@@ -506,5 +506,6 @@
   "Complete:": "Cumplido:",
   "Incomplete:": "No cumplido:",
   "Special character included (optional)": "Carácter especial incluido (opcional)",
-  "Special characters are optional. Try !, @, # or $.": "Los caracteres especiales son opcionales. Prueba !, @, # o $."
+  "Special characters are optional. Try !, @, # or $.": "Los caracteres especiales son opcionales. Prueba !, @, # o $.",
+  "Dismiss": "Descartar"
 }

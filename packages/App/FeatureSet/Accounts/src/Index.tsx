@@ -4,6 +4,7 @@ import AccountsTheme from "./Utils/AccountsTheme";
 import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import NewVersionNavigation from "Common/UI/Components/NewVersion/NewVersionNavigation";
 import NewVersion, {
   NewVersionAudience,
@@ -69,6 +70,7 @@ i18nReady
           <NewVersionNavigation />
           <App />
         </BrowserRouter>
+        <ToastRegion />
       </ErrorBoundary>,
     );
   });
