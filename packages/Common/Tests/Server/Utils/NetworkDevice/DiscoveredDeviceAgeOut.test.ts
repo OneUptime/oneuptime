@@ -402,7 +402,11 @@ describe("buildAgeOutStatement", () => {
     expect(write).toContain(`t."editedAt" IS NULL`);
     expect(write).toContain(`t."createdByUserId" IS NULL`);
     expect(write).toContain(`RETURNING t."_id"`);
-    // Soft deleted, as a person's Delete is: nothing is erased.
+    /*
+     * Soft deleted, never erased here: the row is kept 30 days, then the
+     * daily purge deletes it for good (SoftDeletedRowsPurge). A person's
+     * Delete removes a row at once.
+     */
     expect(sql).not.toContain(`DELETE FROM "NetworkEndpoint"`);
   });
 
