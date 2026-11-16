@@ -41,6 +41,15 @@ import useDashboardNavigationItems, {
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/NavigationItems";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * The products menu reads which products the project has on
+ * (/project-products). These tests leave that read unanswered: refused at
+ * once, as the network refused it, and the menu lists every product
+ * (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/project-products"]);
 
 /*
  * Issue #5550: "Move Data Security and Security Events into different
