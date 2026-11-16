@@ -93,6 +93,7 @@ function assigned(
   entry.telemetryExceptionId = EXCEPTION_ID;
   entry.activityType = TelemetryExceptionActivityType.Assigned;
   entry.userId = PRIYA;
+  entry.version = 1;
   Object.assign(entry, overrides);
   return entry;
 }
@@ -637,6 +638,8 @@ describe("the Workers' run", () => {
           activityType: TelemetryExceptionActivityType.Assigned,
           isAssigneeNotified: false,
         });
+        // The version each entry is claimed at.
+        expect(findBy.select).toMatchObject({ version: true });
         return pending;
       }) as never);
 
@@ -652,6 +655,7 @@ describe("the Workers' run", () => {
         expect(
           (updateBy.query as Record<string, unknown>)["isAssigneeNotified"],
         ).toBe(false);
+        expect((updateBy.query as Record<string, unknown>)["version"]).toBe(1);
 
         if (marked.includes(id)) {
           return 0;
@@ -690,6 +694,64 @@ describe("the Workers' run", () => {
       assigneeUserId: ALEX,
     });
     marked = [entry.id!.toString()];
+    pending = [entry];
+
+    expect(
+      await ExceptionAssignmentNotifications.sendPendingNotifications(),
+    ).toBe(0);
+    expect(order).toEqual([]);
+  });
+
+  /*
+   * updateBy writes each row it found by its id, asking the UPDATE again
+   * only for the version its query names (DatabaseService), so two runs
+   * that both read the entry before either marked it both found it untold.
+   * Stood in for as that UPDATE: a row is written while it holds the
+   * version named, and its version moves (#8801).
+   */
+  test("of two runs that read an entry before either marks it, one takes it", async () => {
+    const entry: TelemetryExceptionActivity = assigned({
+      assigneeUserId: ALEX,
+    });
+    pending = [entry];
+
+    let storedVersion: number = 1;
+    (
+      TelemetryExceptionActivityService.updateBy as unknown as jest.Mock
+    ).mockImplementation(
+      async (updateBy: UpdateBy<TelemetryExceptionActivity>) => {
+        const version: unknown = (updateBy.query as Record<string, unknown>)[
+          "version"
+        ];
+
+        if (version !== undefined && version !== storedVersion) {
+          return 0;
+        }
+
+        storedVersion++;
+        order.push(`mark:${entry.id!.toString()}`);
+        return 1;
+      },
+    );
+
+    const taken: Array<number> = await Promise.all([
+      ExceptionAssignmentNotifications.sendPendingNotifications(),
+      ExceptionAssignmentNotifications.sendPendingNotifications(),
+    ]);
+
+    expect(taken[0]! + taken[1]!).toBe(1);
+    expect(
+      order.filter((step: string): boolean => {
+        return step.startsWith("send:");
+      }),
+    ).toEqual([`send:${ALEX.toString()}`]);
+  });
+
+  test("an entry read without its version is left for a run that can claim it", async () => {
+    const entry: TelemetryExceptionActivity = assigned({
+      assigneeUserId: ALEX,
+    });
+    delete entry.version;
     pending = [entry];
 
     expect(
