@@ -55,8 +55,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "क्यू अपने आप तभी बनती हैं जब तक प्रोजेक्ट अपने [ऑटो-क्रिएट बजट](/docs/telemetry/queues#the-auto-create-budget) से नीचे है।",
   "The queue's Overview charts these under **Broker health**, and each gauge and each count per period has **Create monitor**. Until one arrives, the section says where they come from.":
     "क्यू का अवलोकन इन्हें **ब्रोकर स्वास्थ्य** के अंतर्गत चार्ट करता है, और हर गेज और हर प्रति अवधि गिनती पर **मॉनिटर बनाएं** होता है। जब तक कोई नहीं आता, यह सेक्शन बताता है कि ये कहाँ से आते हैं।",
-  "| Metric | Shown as | Type |":
-    "| मेट्रिक | इस नाम से दिखता है | प्रकार |",
+  "| Metric | Shown as | Type |": "| मेट्रिक | इस नाम से दिखता है | प्रकार |",
   "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON stream: `numberofmessagespublished`) | Messages published | Count per period |":
     "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON स्ट्रीम: `numberofmessagespublished`) | प्रकाशित संदेश | प्रति अवधि गिनती |",
   "| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON stream: `numberofnotificationsdelivered`) | Notifications delivered | Count per period |":
@@ -207,8 +206,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Java**: OpenTelemetry Java एजेंट बिना कोड बदले RocketMQ क्लाइंट को ट्रेस करता है।",
   "Set `metricsExporterType=PROM` in the broker's `broker.conf` so the broker serves its lag and throughput metrics.":
     "ब्रोकर की `broker.conf` में `metricsExporterType=PROM` सेट करें ताकि ब्रोकर अपनी लैग और थ्रूपुट मेट्रिक्स दे।",
-  "Then scrape every broker:":
-    "फिर हर ब्रोकर को स्क्रेप करें:",
+  "Then scrape every broker:": "फिर हर ब्रोकर को स्क्रेप करें:",
   "| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |":
     "| `rocketmq_consumer_ready_messages` | तैयार संदेश | गेज |",
   "| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Counter, charted per second |":
@@ -229,12 +227,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "Azure Event Hubs क्यू OneUptime में अपने आप दिखती हैं, दो स्रोतों से: उन एप्लिकेशन के मैसेजिंग स्पैन जो उनमें प्रकाशित करते हैं और उनसे उपभोग करते हैं, और ब्रोकर के अपने मेट्रिक्स। आप हाथ से भी एक क्यू जोड़ सकते हैं: **क्यू → क्यू बनाएँ**।",
   "- **Java**: the Azure SDK for Java traces itself, and the OpenTelemetry Java agent connects that tracing to OpenTelemetry.":
     "- **Java**: Java के लिए Azure SDK खुद को ट्रेस करता है, और OpenTelemetry Java एजेंट उस ट्रेसिंग को OpenTelemetry से जोड़ता है।",
-  "- **.NET**: the Azure SDK's OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource(\"Azure.*\")`.":
-    "- **.NET**: Azure SDK के OpenTelemetry स्पैन प्रायोगिक हैं: `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (या `Azure.Experimental.EnableActivitySource` स्विच) सेट करें और `.AddSource(\"Azure.*\")` से Azure स्रोतों को सब्सक्राइब करें।",
+  '- **.NET**: the Azure SDK\'s OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource("Azure.*")`.':
+    '- **.NET**: Azure SDK के OpenTelemetry स्पैन प्रायोगिक हैं: `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (या `Azure.Experimental.EnableActivitySource` स्विच) सेट करें और `.AddSource("Azure.*")` से Azure स्रोतों को सब्सक्राइब करें।',
   "- **Node.js**: register `createAzureSdkInstrumentation()` from `@azure/opentelemetry-instrumentation-azure-sdk`.":
     "- **Node.js**: `@azure/opentelemetry-instrumentation-azure-sdk` से `createAzureSdkInstrumentation()` रजिस्टर करें।",
-  "- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = \"opentelemetry\"` (from `azure.core.settings`).":
-    "- **Python**: `azure-core-tracing-opentelemetry` इंस्टॉल करें और `settings.tracing_implementation = \"opentelemetry\"` (`azure.core.settings` से) सेट करें।",
+  '- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = "opentelemetry"` (from `azure.core.settings`).':
+    '- **Python**: `azure-core-tracing-opentelemetry` इंस्टॉल करें और `settings.tracing_implementation = "opentelemetry"` (`azure.core.settings` से) सेट करें।',
   "A connected Azure subscription reads the namespace's key metrics for each event hub, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.":
     "एक कनेक्ट किया गया Azure सब्सक्रिप्शन, बिना कुछ चलाए, हर इवेंट हब के लिए नेमस्पेस की मुख्य मेट्रिक्स पढ़ता है। सभी मेट्रिक्स पढ़ने के लिए कलेक्टर का `azure_monitor` रिसीवर चलाएँ, जो उन्हें EntityName डाइमेंशन के हिसाब से हर इवेंट हब में बाँटता है।",
   "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.":
@@ -343,8 +341,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "सर्वर के मॉनिटरिंग पोर्ट पर `-jsz=all` के साथ prometheus-nats-exporter चलाएँ। इसकी JetStream मेट्रिक्स हर स्ट्रीम और कंज़्यूमर की होती हैं, हर सब्जेक्ट की नहीं, इसलिए वे सब्जेक्ट-स्तर की क्यू से नहीं जुड़तीं।",
   "Turn on the server's monitoring port with `-m 8222` (or `http_port: 8222` in its configuration), then run the exporter:":
     "सर्वर का मॉनिटरिंग पोर्ट `-m 8222` से (या उसके कॉन्फ़िगरेशन में `http_port: 8222` से) चालू करें, फिर एक्सपोर्टर चलाएँ:",
-  "And scrape it:":
-    "और उसे स्क्रेप करें:",
+  "And scrape it:": "और उसे स्क्रेप करें:",
   "OneUptime charts no broker metrics for NATS under **Broker health**: what the collector above sends arrives only in the **Metrics** explorer. A metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
     "OneUptime **ब्रोकर स्वास्थ्य** के अंतर्गत NATS के लिए कोई ब्रोकर मेट्रिक्स चार्ट नहीं करता: ऊपर वाला कलेक्टर जो भेजता है, वह केवल **मेट्रिक्स** एक्सप्लोरर में पहुँचता है। जो मेट्रिक हर डेटा पॉइंट पर `messaging.system` और `messaging.destination.name` रखता है, वह क्यू के **मेट्रिक्स** टैब पर दिखता है।",
   "- NATS has no charted metrics. Its metrics are in the **Metrics** explorer.":

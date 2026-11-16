@@ -55,8 +55,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "只有在项目尚未达到其 [自动创建额度](/docs/telemetry/queues#the-auto-create-budget) 时，队列才会自动创建。",
   "The queue's Overview charts these under **Broker health**, and each gauge and each count per period has **Create monitor**. Until one arrives, the section says where they come from.":
     "队列的概览会在 **Broker 健康状况** 下绘制这些指标，每个仪表和每个周期计数都有 **创建监视器**。在第一个指标到达之前，该部分会说明它们从哪里来。",
-  "| Metric | Shown as | Type |":
-    "| 指标 | 显示为 | 类型 |",
+  "| Metric | Shown as | Type |": "| 指标 | 显示为 | 类型 |",
   "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON stream: `numberofmessagespublished`) | Messages published | Count per period |":
     "| `amazonaws.com/aws/sns/numberofmessagespublished`（JSON 流：`numberofmessagespublished`） | 已发布消息 | 每个周期的计数 |",
   "| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON stream: `numberofnotificationsdelivered`) | Notifications delivered | Count per period |":
@@ -207,8 +206,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Java**：OpenTelemetry Java 代理无需修改代码即可追踪 RocketMQ 客户端。",
   "Set `metricsExporterType=PROM` in the broker's `broker.conf` so the broker serves its lag and throughput metrics.":
     "在 broker 的 `broker.conf` 中设置 `metricsExporterType=PROM`，让 broker 提供它的滞后和吞吐量指标。",
-  "Then scrape every broker:":
-    "然后抓取每个 broker：",
+  "Then scrape every broker:": "然后抓取每个 broker：",
   "| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |":
     "| `rocketmq_consumer_ready_messages` | 就绪消息 | 仪表 |",
   "| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Counter, charted per second |":
@@ -229,12 +227,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "Azure Event Hubs 队列会自动出现在 OneUptime 中，来源有两个：向这些队列发布消息和从中消费消息的应用的消息 span，以及 Broker 自身的指标。你也可以手动添加：**队列 → 创建队列**。",
   "- **Java**: the Azure SDK for Java traces itself, and the OpenTelemetry Java agent connects that tracing to OpenTelemetry.":
     "- **Java**：Azure SDK for Java 会追踪自身，OpenTelemetry Java 代理会把这些追踪接入 OpenTelemetry。",
-  "- **.NET**: the Azure SDK's OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource(\"Azure.*\")`.":
-    "- **.NET**：Azure SDK 的 OpenTelemetry span 属于实验功能：设置 `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true`（或 `Azure.Experimental.EnableActivitySource` 开关），并用 `.AddSource(\"Azure.*\")` 订阅 Azure 源。",
+  '- **.NET**: the Azure SDK\'s OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource("Azure.*")`.':
+    '- **.NET**：Azure SDK 的 OpenTelemetry span 属于实验功能：设置 `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true`（或 `Azure.Experimental.EnableActivitySource` 开关），并用 `.AddSource("Azure.*")` 订阅 Azure 源。',
   "- **Node.js**: register `createAzureSdkInstrumentation()` from `@azure/opentelemetry-instrumentation-azure-sdk`.":
     "- **Node.js**：注册 `@azure/opentelemetry-instrumentation-azure-sdk` 中的 `createAzureSdkInstrumentation()`。",
-  "- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = \"opentelemetry\"` (from `azure.core.settings`).":
-    "- **Python**：安装 `azure-core-tracing-opentelemetry`，并设置 `settings.tracing_implementation = \"opentelemetry\"`（来自 `azure.core.settings`）。",
+  '- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = "opentelemetry"` (from `azure.core.settings`).':
+    '- **Python**：安装 `azure-core-tracing-opentelemetry`，并设置 `settings.tracing_implementation = "opentelemetry"`（来自 `azure.core.settings`）。',
   "A connected Azure subscription reads the namespace's key metrics for each event hub, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.":
     "已连接的 Azure 订阅无需运行任何程序，即可按事件中心读取命名空间的关键指标。要读取全部指标，请运行 Collector 的 `azure_monitor` 接收器，它按 EntityName 维度把指标拆分到每个事件中心。",
   "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.":
@@ -343,8 +341,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "针对服务器的监控端口以 `-jsz=all` 运行 prometheus-nats-exporter。它的 JetStream 指标按流和消费者划分，而不是按 subject 划分，因此不会附加到 subject 级别的队列上。",
   "Turn on the server's monitoring port with `-m 8222` (or `http_port: 8222` in its configuration), then run the exporter:":
     "用 `-m 8222`（或在其配置中设置 `http_port: 8222`）开启服务器的监控端口，然后运行导出器：",
-  "And scrape it:":
-    "再抓取它：",
+  "And scrape it:": "再抓取它：",
   "OneUptime charts no broker metrics for NATS under **Broker health**: what the collector above sends arrives only in the **Metrics** explorer. A metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
     "OneUptime 不会在 **Broker 健康状况** 下为 NATS 绘制 Broker 指标：上面的 Collector 发送的数据只会进入 **指标** 浏览器。每个数据点都带有 `messaging.system` 和 `messaging.destination.name` 的指标会显示在队列的 **指标** 选项卡上。",
   "- NATS has no charted metrics. Its metrics are in the **Metrics** explorer.":

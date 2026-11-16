@@ -1302,13 +1302,21 @@ function unknownConfigNote(context: GuideContext): string {
 function brokerStepDescription(context: GuideContext): string {
   if (canBrokerMetricsReachMessageQueue(context.system, context.queue)) {
     return context.queue
-      ? translationKey("They add the broker's view of this queue to its Overview, under Broker health.")
-      : translationKey("They add the broker's view of each queue to its Overview, under Broker health.");
+      ? translationKey(
+          "They add the broker's view of this queue to its Overview, under Broker health.",
+        )
+      : translationKey(
+          "They add the broker's view of each queue to its Overview, under Broker health.",
+        );
   }
   if (isOutsideBrokerMetricsScope(context)) {
-    return translationKey("They chart on the same destination's queue in its namespace, not on this one.");
+    return translationKey(
+      "They chart on the same destination's queue in its namespace, not on this one.",
+    );
   }
-  return translationKey("No queue page charts them: they arrive in the Metrics explorer.");
+  return translationKey(
+    "No queue page charts them: they arrive in the Metrics explorer.",
+  );
 }
 
 /*
@@ -1790,7 +1798,9 @@ function docsEntryLink(title: string, anchor: string): string {
 }
 
 function notCreatedTopic(context: GuideContext): SetupGuideTopic {
-  const title: string = translationKey("A queue my applications use was not created");
+  const title: string = translationKey(
+    "A queue my applications use was not created",
+  );
   return {
     title: title,
     summary:
@@ -1962,8 +1972,12 @@ function brokerHealthEmptyTopic(context: GuideContext): SetupGuideTopic {
 }
 
 function troubleshootingTopics(context: GuideContext): Array<SetupGuideTopic> {
-  const twoQueuesTitle: string = translationKey("Two queues for one destination");
-  const queuePerRequestTitle: string = translationKey("A new queue for every request");
+  const twoQueuesTitle: string = translationKey(
+    "Two queues for one destination",
+  );
+  const queuePerRequestTitle: string = translationKey(
+    "A new queue for every request",
+  );
 
   return [
     notCreatedTopic(context),
@@ -2123,8 +2137,9 @@ export function getMessageQueueSetupGuide(
       ),
       endpointLabel: "OTLP Endpoint",
       endpointValue: `${options.oneuptimeUrl}/otlp`,
-      endpointHint:
-        translationKey("SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter."),
+      endpointHint: translationKey(
+        "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter.",
+      ),
     },
     intro: introMarkdown(context),
     steps: steps,

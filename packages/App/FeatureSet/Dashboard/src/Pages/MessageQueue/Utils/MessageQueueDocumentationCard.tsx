@@ -83,7 +83,7 @@ const MessageQueueDocumentationCard: FunctionComponent<ComponentProps> = (
        * queue's own tab stays in English whole until its pieces (the
        * queue's identity, its broker's address and a system the catalog
        * does not know) have words of their own: a guide half in one
-       * language reads worse than one in English.
+       * language reads worse than one in English (#8798).
        */
       translations={
         props.queue ? undefined : MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS

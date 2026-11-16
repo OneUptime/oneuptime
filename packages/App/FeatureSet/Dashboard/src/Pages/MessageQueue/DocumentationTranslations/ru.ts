@@ -55,8 +55,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Очереди создаются сами только до тех пор, пока проект не исчерпал свой [бюджет автосоздания](/docs/telemetry/queues#the-auto-create-budget).",
   "The queue's Overview charts these under **Broker health**, and each gauge and each count per period has **Create monitor**. Until one arrives, the section says where they come from.":
     "Обзор очереди показывает эти метрики на графиках в разделе **Состояние брокера**, и у каждого измерителя и каждого количества за период есть **Создать монитор**. Пока ни одна не пришла, раздел подсказывает, откуда они берутся.",
-  "| Metric | Shown as | Type |":
-    "| Метрика | Показывается как | Тип |",
+  "| Metric | Shown as | Type |": "| Метрика | Показывается как | Тип |",
   "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON stream: `numberofmessagespublished`) | Messages published | Count per period |":
     "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-поток: `numberofmessagespublished`) | Опубликованные сообщения | Количество за период |",
   "| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON stream: `numberofnotificationsdelivered`) | Notifications delivered | Count per period |":
@@ -207,8 +206,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Java**: агент OpenTelemetry для Java трассирует клиенты RocketMQ без изменений в коде.",
   "Set `metricsExporterType=PROM` in the broker's `broker.conf` so the broker serves its lag and throughput metrics.":
     "Задайте `metricsExporterType=PROM` в `broker.conf` брокера, чтобы брокер отдавал свои метрики отставания и пропускной способности.",
-  "Then scrape every broker:":
-    "Затем опрашивайте каждый брокер:",
+  "Then scrape every broker:": "Затем опрашивайте каждый брокер:",
   "| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |":
     "| `rocketmq_consumer_ready_messages` | Готовые сообщения | Измеритель |",
   "| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Counter, charted per second |":
@@ -229,12 +227,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "Очереди Azure Event Hubs появляются в OneUptime сами, из двух источников: спанов обмена сообщениями от приложений, которые публикуют в них и потребляют из них, и собственных метрик брокера. Очередь можно добавить и вручную: **Очереди → Создать: Очередь**.",
   "- **Java**: the Azure SDK for Java traces itself, and the OpenTelemetry Java agent connects that tracing to OpenTelemetry.":
     "- **Java**: Azure SDK для Java трассирует себя сам, а агент OpenTelemetry для Java связывает эту трассировку с OpenTelemetry.",
-  "- **.NET**: the Azure SDK's OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource(\"Azure.*\")`.":
-    "- **.NET**: спаны OpenTelemetry в Azure SDK экспериментальные: задайте `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (или переключатель `Azure.Experimental.EnableActivitySource`) и подпишитесь на источники Azure через `.AddSource(\"Azure.*\")`.",
+  '- **.NET**: the Azure SDK\'s OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource("Azure.*")`.':
+    '- **.NET**: спаны OpenTelemetry в Azure SDK экспериментальные: задайте `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (или переключатель `Azure.Experimental.EnableActivitySource`) и подпишитесь на источники Azure через `.AddSource("Azure.*")`.',
   "- **Node.js**: register `createAzureSdkInstrumentation()` from `@azure/opentelemetry-instrumentation-azure-sdk`.":
     "- **Node.js**: зарегистрируйте `createAzureSdkInstrumentation()` из `@azure/opentelemetry-instrumentation-azure-sdk`.",
-  "- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = \"opentelemetry\"` (from `azure.core.settings`).":
-    "- **Python**: установите `azure-core-tracing-opentelemetry` и задайте `settings.tracing_implementation = \"opentelemetry\"` (из `azure.core.settings`).",
+  '- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = "opentelemetry"` (from `azure.core.settings`).':
+    '- **Python**: установите `azure-core-tracing-opentelemetry` и задайте `settings.tracing_implementation = "opentelemetry"` (из `azure.core.settings`).',
   "A connected Azure subscription reads the namespace's key metrics for each event hub, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.":
     "Подключённая подписка Azure читает ключевые метрики пространства имён для каждого концентратора событий, и ничего запускать не нужно. Чтобы читать все метрики, запустите приёмник `azure_monitor` коллектора, который разделяет их по концентраторам событий по измерению EntityName.",
   "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.":
@@ -343,8 +341,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Запустите prometheus-nats-exporter с `-jsz=all`, направив его на порт мониторинга сервера. Его метрики JetStream относятся к потокам и потребителям, а не к subject-ам, поэтому не присоединяются к очередям уровня subject.",
   "Turn on the server's monitoring port with `-m 8222` (or `http_port: 8222` in its configuration), then run the exporter:":
     "Включите порт мониторинга сервера через `-m 8222` (или `http_port: 8222` в его конфигурации), затем запустите экспортёр:",
-  "And scrape it:":
-    "И опрашивайте его:",
+  "And scrape it:": "И опрашивайте его:",
   "OneUptime charts no broker metrics for NATS under **Broker health**: what the collector above sends arrives only in the **Metrics** explorer. A metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
     "OneUptime не строит графики метрик брокера для NATS в разделе **Состояние брокера**: то, что отправляет коллектор выше, попадает только в обозреватель **Метрики**. Метрика, у которой на каждой точке данных есть `messaging.system` и `messaging.destination.name`, показывается на вкладке **Метрики** очереди.",
   "- NATS has no charted metrics. Its metrics are in the **Metrics** explorer.":

@@ -55,8 +55,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Köer skapas bara av sig själva så länge projektet ligger under sin [budget för automatiskt skapande](/docs/telemetry/queues#the-auto-create-budget).",
   "The queue's Overview charts these under **Broker health**, and each gauge and each count per period has **Create monitor**. Until one arrives, the section says where they come from.":
     "Köns Översikt visar dessa i diagram under **Brokerhälsa**, och varje mätare och varje antal per period har **Skapa monitor**. Tills något kommer berättar avsnittet var de kommer ifrån.",
-  "| Metric | Shown as | Type |":
-    "| Mätvärde | Visas som | Typ |",
+  "| Metric | Shown as | Type |": "| Mätvärde | Visas som | Typ |",
   "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON stream: `numberofmessagespublished`) | Messages published | Count per period |":
     "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-ström: `numberofmessagespublished`) | Publicerade meddelanden | Antal per period |",
   "| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON stream: `numberofnotificationsdelivered`) | Notifications delivered | Count per period |":
@@ -207,8 +206,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Java**: OpenTelemetry Java-agenten spårar RocketMQ-klienter utan kodändringar.",
   "Set `metricsExporterType=PROM` in the broker's `broker.conf` so the broker serves its lag and throughput metrics.":
     "Ange `metricsExporterType=PROM` i brokerns `broker.conf` så att brokern tillhandahåller sina lagg- och genomströmningsmätvärden.",
-  "Then scrape every broker:":
-    "Skrapa sedan varje broker:",
+  "Then scrape every broker:": "Skrapa sedan varje broker:",
   "| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |":
     "| `rocketmq_consumer_ready_messages` | Redo meddelanden | Mätare |",
   "| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Counter, charted per second |":
@@ -229,12 +227,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "Azure Event Hubs-köer dyker upp i OneUptime av sig själva, från två källor: messaging-spans från applikationerna som publicerar till och konsumerar från dem, och brokerns egna mätvärden. Du kan också lägga till en manuellt: **Köer → Skapa Kö**.",
   "- **Java**: the Azure SDK for Java traces itself, and the OpenTelemetry Java agent connects that tracing to OpenTelemetry.":
     "- **Java**: Azure SDK för Java spårar sig själv, och OpenTelemetry Java-agenten kopplar den spårningen till OpenTelemetry.",
-  "- **.NET**: the Azure SDK's OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource(\"Azure.*\")`.":
-    "- **.NET**: Azure SDK:ns OpenTelemetry-spans är experimentella: sätt `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (eller växeln `Azure.Experimental.EnableActivitySource`) och prenumerera på Azure-källorna med `.AddSource(\"Azure.*\")`.",
+  '- **.NET**: the Azure SDK\'s OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource("Azure.*")`.':
+    '- **.NET**: Azure SDK:ns OpenTelemetry-spans är experimentella: sätt `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (eller växeln `Azure.Experimental.EnableActivitySource`) och prenumerera på Azure-källorna med `.AddSource("Azure.*")`.',
   "- **Node.js**: register `createAzureSdkInstrumentation()` from `@azure/opentelemetry-instrumentation-azure-sdk`.":
     "- **Node.js**: registrera `createAzureSdkInstrumentation()` från `@azure/opentelemetry-instrumentation-azure-sdk`.",
-  "- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = \"opentelemetry\"` (from `azure.core.settings`).":
-    "- **Python**: installera `azure-core-tracing-opentelemetry` och sätt `settings.tracing_implementation = \"opentelemetry\"` (från `azure.core.settings`).",
+  '- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = "opentelemetry"` (from `azure.core.settings`).':
+    '- **Python**: installera `azure-core-tracing-opentelemetry` och sätt `settings.tracing_implementation = "opentelemetry"` (från `azure.core.settings`).',
   "A connected Azure subscription reads the namespace's key metrics for each event hub, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.":
     "En ansluten Azure-prenumeration läser namespacets viktigaste mätvärden för varje event hub, utan att du behöver köra något. För att läsa alla kör du collectorns `azure_monitor`-receiver, som delar upp dem per event hub efter dimensionen EntityName.",
   "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.":
@@ -343,8 +341,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Kör prometheus-nats-exporter med `-jsz=all` mot serverns övervakningsport. Dess JetStream-mätvärden gäller per ström och konsument, inte per subject, så de kopplas inte till köer på subject-nivå.",
   "Turn on the server's monitoring port with `-m 8222` (or `http_port: 8222` in its configuration), then run the exporter:":
     "Slå på serverns övervakningsport med `-m 8222` (eller `http_port: 8222` i dess konfiguration), och kör sedan exportören:",
-  "And scrape it:":
-    "Och skrapa den:",
+  "And scrape it:": "Och skrapa den:",
   "OneUptime charts no broker metrics for NATS under **Broker health**: what the collector above sends arrives only in the **Metrics** explorer. A metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
     "OneUptime visar inga brokermätvärden för NATS under **Brokerhälsa**: det som collectorn ovan skickar hamnar bara i **Mätvärden**-utforskaren. Ett mätvärde som bär `messaging.system` och `messaging.destination.name` på varje datapunkt visas på köns flik **Mätvärden**.",
   "- NATS has no charted metrics. Its metrics are in the **Metrics** explorer.":

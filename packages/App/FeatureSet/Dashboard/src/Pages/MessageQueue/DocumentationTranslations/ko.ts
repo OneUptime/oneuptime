@@ -55,8 +55,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "큐는 프로젝트가 [자동 생성 한도](/docs/telemetry/queues#the-auto-create-budget) 아래에 있는 동안에만 자동으로 만들어집니다.",
   "The queue's Overview charts these under **Broker health**, and each gauge and each count per period has **Create monitor**. Until one arrives, the section says where they come from.":
     "큐의 개요는 이를 **브로커 상태**에 차트로 표시하며, 각 게이지와 기간별 개수마다 **모니터 생성**이 있습니다. 하나라도 도착하기 전까지 이 섹션은 메트릭이 어디서 오는지 알려 줍니다.",
-  "| Metric | Shown as | Type |":
-    "| 메트릭 | 표시 이름 | 유형 |",
+  "| Metric | Shown as | Type |": "| 메트릭 | 표시 이름 | 유형 |",
   "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON stream: `numberofmessagespublished`) | Messages published | Count per period |":
     "| `amazonaws.com/aws/sns/numberofmessagespublished`(JSON 스트림: `numberofmessagespublished`) | 게시된 메시지 | 기간별 개수 |",
   "| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON stream: `numberofnotificationsdelivered`) | Notifications delivered | Count per period |":
@@ -207,8 +206,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Java**: OpenTelemetry Java 에이전트가 코드 변경 없이 RocketMQ 클라이언트를 트레이스합니다.",
   "Set `metricsExporterType=PROM` in the broker's `broker.conf` so the broker serves its lag and throughput metrics.":
     "브로커의 `broker.conf`에 `metricsExporterType=PROM`을 설정해 브로커가 지연과 처리량 메트릭을 제공하게 하세요.",
-  "Then scrape every broker:":
-    "그런 다음 모든 브로커를 스크레이프하세요:",
+  "Then scrape every broker:": "그런 다음 모든 브로커를 스크레이프하세요:",
   "| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |":
     "| `rocketmq_consumer_ready_messages` | 준비된 메시지 | 게이지 |",
   "| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Counter, charted per second |":
@@ -229,12 +227,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "Azure Event Hubs 큐는 두 가지 소스에서 OneUptime에 자동으로 나타납니다. 큐에 게시하고 큐에서 소비하는 애플리케이션의 메시징 스팬과 브로커 자체의 메트릭입니다. 직접 추가할 수도 있습니다: **큐 → 큐 만들기**.",
   "- **Java**: the Azure SDK for Java traces itself, and the OpenTelemetry Java agent connects that tracing to OpenTelemetry.":
     "- **Java**: Azure SDK for Java는 스스로를 트레이스하며, OpenTelemetry Java 에이전트가 그 트레이스를 OpenTelemetry에 연결합니다.",
-  "- **.NET**: the Azure SDK's OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource(\"Azure.*\")`.":
-    "- **.NET**: Azure SDK의 OpenTelemetry 스팬은 실험적 기능입니다. `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true`(또는 `Azure.Experimental.EnableActivitySource` 스위치)를 설정하고 `.AddSource(\"Azure.*\")`로 Azure 소스를 구독하세요.",
+  '- **.NET**: the Azure SDK\'s OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource("Azure.*")`.':
+    '- **.NET**: Azure SDK의 OpenTelemetry 스팬은 실험적 기능입니다. `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true`(또는 `Azure.Experimental.EnableActivitySource` 스위치)를 설정하고 `.AddSource("Azure.*")`로 Azure 소스를 구독하세요.',
   "- **Node.js**: register `createAzureSdkInstrumentation()` from `@azure/opentelemetry-instrumentation-azure-sdk`.":
     "- **Node.js**: `@azure/opentelemetry-instrumentation-azure-sdk`의 `createAzureSdkInstrumentation()`을 등록합니다.",
-  "- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = \"opentelemetry\"` (from `azure.core.settings`).":
-    "- **Python**: `azure-core-tracing-opentelemetry`를 설치하고 `settings.tracing_implementation = \"opentelemetry\"`(`azure.core.settings`에서)를 설정합니다.",
+  '- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = "opentelemetry"` (from `azure.core.settings`).':
+    '- **Python**: `azure-core-tracing-opentelemetry`를 설치하고 `settings.tracing_implementation = "opentelemetry"`(`azure.core.settings`에서)를 설정합니다.',
   "A connected Azure subscription reads the namespace's key metrics for each event hub, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.":
     "연결된 Azure 구독은 아무것도 실행하지 않아도 네임스페이스의 주요 메트릭을 이벤트 허브별로 읽습니다. 모두 읽으려면 Collector의 `azure_monitor` 리시버를 실행하세요. 리시버는 EntityName 차원으로 메트릭을 이벤트 허브별로 나눕니다.",
   "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.":
@@ -343,8 +341,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "서버의 모니터링 포트를 대상으로 `-jsz=all`과 함께 prometheus-nats-exporter를 실행하세요. 그 JetStream 메트릭은 서브젝트별이 아니라 스트림과 컨슈머별이므로, 서브젝트 수준의 큐에는 연결되지 않습니다.",
   "Turn on the server's monitoring port with `-m 8222` (or `http_port: 8222` in its configuration), then run the exporter:":
     "`-m 8222`(또는 구성의 `http_port: 8222`)로 서버의 모니터링 포트를 켠 다음 익스포터를 실행하세요:",
-  "And scrape it:":
-    "그리고 익스포터를 스크레이프하세요:",
+  "And scrape it:": "그리고 익스포터를 스크레이프하세요:",
   "OneUptime charts no broker metrics for NATS under **Broker health**: what the collector above sends arrives only in the **Metrics** explorer. A metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
     "OneUptime은 NATS의 브로커 메트릭을 **브로커 상태**에 차트로 표시하지 않습니다. 위의 컬렉터가 보내는 것은 **메트릭** 탐색기에만 도착합니다. 모든 데이터 포인트에 `messaging.system`과 `messaging.destination.name`을 담은 메트릭은 큐의 **메트릭** 탭에 표시됩니다.",
   "- NATS has no charted metrics. Its metrics are in the **Metrics** explorer.":

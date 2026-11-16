@@ -55,8 +55,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Wachtrijen worden alleen vanzelf aangemaakt zolang het project onder zijn [budget voor automatisch aanmaken](/docs/telemetry/queues#the-auto-create-budget) blijft.",
   "The queue's Overview charts these under **Broker health**, and each gauge and each count per period has **Create monitor**. Until one arrives, the section says where they come from.":
     "Het Overzicht van de wachtrij toont deze in grafieken onder **Brokergezondheid**, en elke meter en elk aantal per periode heeft **Monitor maken**. Tot er een aankomt, vertelt de sectie waar ze vandaan komen.",
-  "| Metric | Shown as | Type |":
-    "| Metriek | Getoond als | Type |",
+  "| Metric | Shown as | Type |": "| Metriek | Getoond als | Type |",
   "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON stream: `numberofmessagespublished`) | Messages published | Count per period |":
     "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-stream: `numberofmessagespublished`) | Gepubliceerde berichten | Aantal per periode |",
   "| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON stream: `numberofnotificationsdelivered`) | Notifications delivered | Count per period |":
@@ -207,8 +206,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Java**: de OpenTelemetry Java-agent tracet RocketMQ-clients zonder codewijzigingen.",
   "Set `metricsExporterType=PROM` in the broker's `broker.conf` so the broker serves its lag and throughput metrics.":
     "Stel `metricsExporterType=PROM` in in de `broker.conf` van de broker, zodat de broker zijn lag- en doorvoermetrics aanbiedt.",
-  "Then scrape every broker:":
-    "Scrape daarna elke broker:",
+  "Then scrape every broker:": "Scrape daarna elke broker:",
   "| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |":
     "| `rocketmq_consumer_ready_messages` | Gereedstaande berichten | Meter |",
   "| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Counter, charted per second |":
@@ -229,12 +227,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "Azure Event Hubs-wachtrijen verschijnen vanzelf in OneUptime, uit twee bronnen: de messaging-spans van de applicaties die ernaar publiceren en eruit consumeren, en de eigen metrieken van de broker. U kunt er ook met de hand een toevoegen: **Wachtrijen → Wachtrij aanmaken**.",
   "- **Java**: the Azure SDK for Java traces itself, and the OpenTelemetry Java agent connects that tracing to OpenTelemetry.":
     "- **Java**: de Azure SDK voor Java tracet zichzelf, en de OpenTelemetry Java-agent verbindt die tracing met OpenTelemetry.",
-  "- **.NET**: the Azure SDK's OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource(\"Azure.*\")`.":
-    "- **.NET**: de OpenTelemetry-spans van de Azure SDK zijn experimenteel: zet `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (of de schakelaar `Azure.Experimental.EnableActivitySource`) en abonneer u op de Azure-bronnen met `.AddSource(\"Azure.*\")`.",
+  '- **.NET**: the Azure SDK\'s OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource("Azure.*")`.':
+    '- **.NET**: de OpenTelemetry-spans van de Azure SDK zijn experimenteel: zet `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (of de schakelaar `Azure.Experimental.EnableActivitySource`) en abonneer u op de Azure-bronnen met `.AddSource("Azure.*")`.',
   "- **Node.js**: register `createAzureSdkInstrumentation()` from `@azure/opentelemetry-instrumentation-azure-sdk`.":
     "- **Node.js**: registreer `createAzureSdkInstrumentation()` uit `@azure/opentelemetry-instrumentation-azure-sdk`.",
-  "- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = \"opentelemetry\"` (from `azure.core.settings`).":
-    "- **Python**: installeer `azure-core-tracing-opentelemetry` en zet `settings.tracing_implementation = \"opentelemetry\"` (uit `azure.core.settings`).",
+  '- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = "opentelemetry"` (from `azure.core.settings`).':
+    '- **Python**: installeer `azure-core-tracing-opentelemetry` en zet `settings.tracing_implementation = "opentelemetry"` (uit `azure.core.settings`).',
   "A connected Azure subscription reads the namespace's key metrics for each event hub, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.":
     "Een gekoppeld Azure-abonnement leest de belangrijkste metrics van de namespace per event hub, zonder dat je iets hoeft te draaien. Draai om ze allemaal te lezen de `azure_monitor`-receiver van de collector, die ze per event hub opsplitst via de dimensie EntityName.",
   "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.":
@@ -343,8 +341,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Draai prometheus-nats-exporter met `-jsz=all` tegen de monitoringpoort van de server. Zijn JetStream-metrics gelden per stream en consumer, niet per subject, dus horen ze niet bij wachtrijen op subjectniveau.",
   "Turn on the server's monitoring port with `-m 8222` (or `http_port: 8222` in its configuration), then run the exporter:":
     "Zet de monitoringpoort van de server aan met `-m 8222` (of `http_port: 8222` in zijn configuratie), en draai daarna de exporter:",
-  "And scrape it:":
-    "En scrape hem:",
+  "And scrape it:": "En scrape hem:",
   "OneUptime charts no broker metrics for NATS under **Broker health**: what the collector above sends arrives only in the **Metrics** explorer. A metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
     "OneUptime toont voor NATS geen brokermetrieken onder **Brokergezondheid**: wat de collector hierboven verstuurt, komt alleen in de **Metrieken**-verkenner aan. Een metriek die `messaging.system` en `messaging.destination.name` op elk datapunt draagt, verschijnt op het tabblad **Metrieken** van de wachtrij.",
   "- NATS has no charted metrics. Its metrics are in the **Metrics** explorer.":

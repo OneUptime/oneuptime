@@ -55,8 +55,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Køer opprettes bare av seg selv så lenge prosjektet er under [budsjettet for automatisk oppretting](/docs/telemetry/queues#the-auto-create-budget).",
   "The queue's Overview charts these under **Broker health**, and each gauge and each count per period has **Create monitor**. Until one arrives, the section says where they come from.":
     "Køens Oversikt viser disse i grafer under **Brokerhelse**, og hver måler og hvert antall per periode har **Opprett monitor**. Til en kommer, forteller seksjonen hvor de kommer fra.",
-  "| Metric | Shown as | Type |":
-    "| Måling | Vises som | Type |",
+  "| Metric | Shown as | Type |": "| Måling | Vises som | Type |",
   "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON stream: `numberofmessagespublished`) | Messages published | Count per period |":
     "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-strøm: `numberofmessagespublished`) | Publiserte meldinger | Antall per periode |",
   "| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON stream: `numberofnotificationsdelivered`) | Notifications delivered | Count per period |":
@@ -207,8 +206,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Java**: OpenTelemetry Java-agenten tracer RocketMQ-klienter uten kodeendringer.",
   "Set `metricsExporterType=PROM` in the broker's `broker.conf` so the broker serves its lag and throughput metrics.":
     "Sett `metricsExporterType=PROM` i brokerens `broker.conf` slik at brokeren leverer lag- og gjennomstrømningsmålingene sine.",
-  "Then scrape every broker:":
-    "Skrap deretter hver broker:",
+  "Then scrape every broker:": "Skrap deretter hver broker:",
   "| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |":
     "| `rocketmq_consumer_ready_messages` | Klare meldinger | Måler |",
   "| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Counter, charted per second |":
@@ -229,12 +227,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "Azure Event Hubs-køer dukker opp i OneUptime av seg selv, fra to kilder: messaging-spans fra applikasjonene som publiserer til og konsumerer fra dem, og brokerens egne målinger. Du kan også legge til en manuelt: **Køer → Opprett Kø**.",
   "- **Java**: the Azure SDK for Java traces itself, and the OpenTelemetry Java agent connects that tracing to OpenTelemetry.":
     "- **Java**: Azure SDK for Java tracer seg selv, og OpenTelemetry Java-agenten kobler den tracingen til OpenTelemetry.",
-  "- **.NET**: the Azure SDK's OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource(\"Azure.*\")`.":
-    "- **.NET**: Azure SDK-ens OpenTelemetry-spans er eksperimentelle: sett `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (eller bryteren `Azure.Experimental.EnableActivitySource`) og abonner på Azure-kildene med `.AddSource(\"Azure.*\")`.",
+  '- **.NET**: the Azure SDK\'s OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource("Azure.*")`.':
+    '- **.NET**: Azure SDK-ens OpenTelemetry-spans er eksperimentelle: sett `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (eller bryteren `Azure.Experimental.EnableActivitySource`) og abonner på Azure-kildene med `.AddSource("Azure.*")`.',
   "- **Node.js**: register `createAzureSdkInstrumentation()` from `@azure/opentelemetry-instrumentation-azure-sdk`.":
     "- **Node.js**: registrer `createAzureSdkInstrumentation()` fra `@azure/opentelemetry-instrumentation-azure-sdk`.",
-  "- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = \"opentelemetry\"` (from `azure.core.settings`).":
-    "- **Python**: installer `azure-core-tracing-opentelemetry` og sett `settings.tracing_implementation = \"opentelemetry\"` (fra `azure.core.settings`).",
+  '- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = "opentelemetry"` (from `azure.core.settings`).':
+    '- **Python**: installer `azure-core-tracing-opentelemetry` og sett `settings.tracing_implementation = "opentelemetry"` (fra `azure.core.settings`).',
   "A connected Azure subscription reads the namespace's key metrics for each event hub, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.":
     "Et tilkoblet Azure-abonnement leser namespacets viktigste målinger for hver event hub, uten at du trenger å kjøre noe. For å lese alle kjører du collectorens `azure_monitor`-receiver, som deler dem opp per event hub etter dimensjonen EntityName.",
   "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.":
@@ -343,8 +341,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Kjør prometheus-nats-exporter med `-jsz=all` mot serverens overvåkingsport. JetStream-målingene gjelder per strøm og konsument, ikke per subject, så de knyttes ikke til køer på subject-nivå.",
   "Turn on the server's monitoring port with `-m 8222` (or `http_port: 8222` in its configuration), then run the exporter:":
     "Slå på serverens overvåkingsport med `-m 8222` (eller `http_port: 8222` i konfigurasjonen), og kjør deretter eksportøren:",
-  "And scrape it:":
-    "Og skrap den:",
+  "And scrape it:": "Og skrap den:",
   "OneUptime charts no broker metrics for NATS under **Broker health**: what the collector above sends arrives only in the **Metrics** explorer. A metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
     "OneUptime viser ingen brokermålinger for NATS under **Brokerhelse**: det collectoren ovenfor sender, kommer bare fram til **Målinger**-utforskeren. En måling som bærer `messaging.system` og `messaging.destination.name` på hvert datapunkt, vises i køens fane **Målinger**.",
   "- NATS has no charted metrics. Its metrics are in the **Metrics** explorer.":

@@ -55,8 +55,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "صف‌ها فقط تا وقتی خودبه‌خود ساخته می‌شوند که پروژه زیر [سقف ساخت خودکار](/docs/telemetry/queues#the-auto-create-budget) خود باشد.",
   "The queue's Overview charts these under **Broker health**, and each gauge and each count per period has **Create monitor**. Until one arrives, the section says where they come from.":
     "نمای کلی صف این‌ها را زیر **سلامت بروکر** نمودار می‌کند، و هر گِیج و هر شمارش در هر دوره دکمه **ساخت مانیتور** دارد. تا وقتی یکی نرسیده، این بخش می‌گوید از کجا می‌آیند.",
-  "| Metric | Shown as | Type |":
-    "| متریک | نمایش با نام | نوع |",
+  "| Metric | Shown as | Type |": "| متریک | نمایش با نام | نوع |",
   "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON stream: `numberofmessagespublished`) | Messages published | Count per period |":
     "| `amazonaws.com/aws/sns/numberofmessagespublished` (جریان JSON: `numberofmessagespublished`) | پیام‌های منتشرشده | شمارش در هر دوره |",
   "| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON stream: `numberofnotificationsdelivered`) | Notifications delivered | Count per period |":
@@ -207,8 +206,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Java**: عامل Java مربوط به OpenTelemetry بدون تغییر کد کلاینت‌های RocketMQ را ترِیس می‌کند.",
   "Set `metricsExporterType=PROM` in the broker's `broker.conf` so the broker serves its lag and throughput metrics.":
     "`metricsExporterType=PROM` را در `broker.conf` بروکر تنظیم کنید تا بروکر متریک‌های عقب‌ماندگی و توان عملیاتی خود را ارائه دهد.",
-  "Then scrape every broker:":
-    "سپس هر بروکر را خراش دهید:",
+  "Then scrape every broker:": "سپس هر بروکر را خراش دهید:",
   "| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |":
     "| `rocketmq_consumer_ready_messages` | پیام‌های آماده | گِیج |",
   "| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Counter, charted per second |":
@@ -229,12 +227,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "صف‌های Azure Event Hubs خودبه‌خود در OneUptime ظاهر می‌شوند، از دو منبع: اسپن‌های پیام‌رسانی برنامه‌هایی که در آن‌ها منتشر می‌کنند و از آن‌ها مصرف می‌کنند، و متریک‌های خود بروکر. می‌توانید یک صف را دستی هم اضافه کنید: **صف‌ها ← ساخت صف**.",
   "- **Java**: the Azure SDK for Java traces itself, and the OpenTelemetry Java agent connects that tracing to OpenTelemetry.":
     "- **Java**: Azure SDK برای Java خودش را ترِیس می‌کند، و عامل Java مربوط به OpenTelemetry آن ترِیس را به OpenTelemetry وصل می‌کند.",
-  "- **.NET**: the Azure SDK's OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource(\"Azure.*\")`.":
-    "- **.NET**: اسپن‌های OpenTelemetry در Azure SDK آزمایشی هستند: `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (یا سوئیچ `Azure.Experimental.EnableActivitySource`) را تنظیم کنید و با `.AddSource(\"Azure.*\")` منابع Azure را دنبال کنید.",
+  '- **.NET**: the Azure SDK\'s OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource("Azure.*")`.':
+    '- **.NET**: اسپن‌های OpenTelemetry در Azure SDK آزمایشی هستند: `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (یا سوئیچ `Azure.Experimental.EnableActivitySource`) را تنظیم کنید و با `.AddSource("Azure.*")` منابع Azure را دنبال کنید.',
   "- **Node.js**: register `createAzureSdkInstrumentation()` from `@azure/opentelemetry-instrumentation-azure-sdk`.":
     "- **Node.js**: `createAzureSdkInstrumentation()` را از `@azure/opentelemetry-instrumentation-azure-sdk` ثبت کنید.",
-  "- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = \"opentelemetry\"` (from `azure.core.settings`).":
-    "- **Python**: `azure-core-tracing-opentelemetry` را نصب کنید و `settings.tracing_implementation = \"opentelemetry\"` (از `azure.core.settings`) را تنظیم کنید.",
+  '- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = "opentelemetry"` (from `azure.core.settings`).':
+    '- **Python**: `azure-core-tracing-opentelemetry` را نصب کنید و `settings.tracing_implementation = "opentelemetry"` (از `azure.core.settings`) را تنظیم کنید.',
   "A connected Azure subscription reads the namespace's key metrics for each event hub, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.":
     "یک اشتراک Azure متصل، بی‌آنکه چیزی اجرا کنید، متریک‌های کلیدی فضای نام را برای هر Event Hub می‌خواند. برای خواندن همهٔ آن‌ها، گیرنده `azure_monitor` کالکتور را اجرا کنید، که آن‌ها را بر پایه بُعد EntityName برای هر Event Hub جدا می‌کند.",
   "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.":
@@ -343,8 +341,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "prometheus-nats-exporter را با `-jsz=all` روی پورت پایش سرور اجرا کنید. متریک‌های JetStream آن برای هر جریان و مصرف‌کننده‌اند، نه برای هر subject، پس به صف‌های سطح subject وصل نمی‌شوند.",
   "Turn on the server's monitoring port with `-m 8222` (or `http_port: 8222` in its configuration), then run the exporter:":
     "پورت پایش سرور را با `-m 8222` (یا `http_port: 8222` در پیکربندی آن) روشن کنید، سپس صادرکننده را اجرا کنید:",
-  "And scrape it:":
-    "و آن را خراش دهید:",
+  "And scrape it:": "و آن را خراش دهید:",
   "OneUptime charts no broker metrics for NATS under **Broker health**: what the collector above sends arrives only in the **Metrics** explorer. A metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
     "OneUptime برای NATS هیچ متریک بروکری را زیر **سلامت بروکر** نمودار نمی‌کند: آنچه کالکتور بالا می‌فرستد فقط به کاوشگر **متریک‌ها** می‌رسد. متریکی که روی هر نقطه داده `messaging.system` و `messaging.destination.name` دارد، در زبانه **متریک‌ها** در صفحه صف نمایش داده می‌شود.",
   "- NATS has no charted metrics. Its metrics are in the **Metrics** explorer.":

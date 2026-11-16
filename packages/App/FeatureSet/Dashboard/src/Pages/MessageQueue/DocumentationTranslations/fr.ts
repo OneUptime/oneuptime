@@ -55,8 +55,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Les files ne sont créées d'elles-mêmes que tant que le projet reste sous son [budget de création automatique](/docs/telemetry/queues#the-auto-create-budget).",
   "The queue's Overview charts these under **Broker health**, and each gauge and each count per period has **Create monitor**. Until one arrives, the section says where they come from.":
     "La Vue d'ensemble de la file affiche ces métriques sous **Santé du broker**, et chaque jauge et chaque nombre par période a **Créer un moniteur**. Tant qu'aucune n'est arrivée, la section indique d'où elles viennent.",
-  "| Metric | Shown as | Type |":
-    "| Métrique | Affichée comme | Type |",
+  "| Metric | Shown as | Type |": "| Métrique | Affichée comme | Type |",
   "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON stream: `numberofmessagespublished`) | Messages published | Count per period |":
     "| `amazonaws.com/aws/sns/numberofmessagespublished` (flux JSON : `numberofmessagespublished`) | Messages publiés | Nombre par période |",
   "| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON stream: `numberofnotificationsdelivered`) | Notifications delivered | Count per period |":
@@ -207,8 +206,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Java** : l'agent Java OpenTelemetry trace les clients RocketMQ sans modification du code.",
   "Set `metricsExporterType=PROM` in the broker's `broker.conf` so the broker serves its lag and throughput metrics.":
     "Définissez `metricsExporterType=PROM` dans le `broker.conf` du broker pour que le broker serve ses métriques de retard et de débit.",
-  "Then scrape every broker:":
-    "Puis collectez chaque broker :",
+  "Then scrape every broker:": "Puis collectez chaque broker :",
   "| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |":
     "| `rocketmq_consumer_ready_messages` | Messages prêts | Jauge |",
   "| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Counter, charted per second |":
@@ -229,12 +227,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "Les files Azure Event Hubs apparaissent d'elles-mêmes dans OneUptime, à partir de deux sources : les spans de messagerie des applications qui y publient et en consomment, et les métriques propres du broker. Vous pouvez aussi en ajouter une à la main : **Files d'attente → Créer : File d'attente**.",
   "- **Java**: the Azure SDK for Java traces itself, and the OpenTelemetry Java agent connects that tracing to OpenTelemetry.":
     "- **Java** : le SDK Azure pour Java se trace lui-même, et l'agent Java OpenTelemetry relie ce traçage à OpenTelemetry.",
-  "- **.NET**: the Azure SDK's OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource(\"Azure.*\")`.":
-    "- **.NET** : les spans OpenTelemetry du SDK Azure sont expérimentaux : définissez `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (ou l'interrupteur `Azure.Experimental.EnableActivitySource`) et abonnez-vous aux sources Azure avec `.AddSource(\"Azure.*\")`.",
+  '- **.NET**: the Azure SDK\'s OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource("Azure.*")`.':
+    '- **.NET** : les spans OpenTelemetry du SDK Azure sont expérimentaux : définissez `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (ou l\'interrupteur `Azure.Experimental.EnableActivitySource`) et abonnez-vous aux sources Azure avec `.AddSource("Azure.*")`.',
   "- **Node.js**: register `createAzureSdkInstrumentation()` from `@azure/opentelemetry-instrumentation-azure-sdk`.":
     "- **Node.js** : enregistrez `createAzureSdkInstrumentation()` depuis `@azure/opentelemetry-instrumentation-azure-sdk`.",
-  "- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = \"opentelemetry\"` (from `azure.core.settings`).":
-    "- **Python** : installez `azure-core-tracing-opentelemetry` et définissez `settings.tracing_implementation = \"opentelemetry\"` (depuis `azure.core.settings`).",
+  '- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = "opentelemetry"` (from `azure.core.settings`).':
+    '- **Python** : installez `azure-core-tracing-opentelemetry` et définissez `settings.tracing_implementation = "opentelemetry"` (depuis `azure.core.settings`).',
   "A connected Azure subscription reads the namespace's key metrics for each event hub, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.":
     "Un abonnement Azure connecté lit les métriques clés de l'espace de noms pour chaque event hub, sans rien à exécuter. Pour les lire toutes, exécutez le récepteur `azure_monitor` du collecteur, qui les répartit par event hub selon la dimension EntityName.",
   "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.":
@@ -343,8 +341,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Exécutez prometheus-nats-exporter avec `-jsz=all` contre le port de supervision du serveur. Ses métriques JetStream sont par stream et par consommateur, pas par sujet, elles ne se rattachent donc pas aux files au niveau des sujets.",
   "Turn on the server's monitoring port with `-m 8222` (or `http_port: 8222` in its configuration), then run the exporter:":
     "Activez le port de supervision du serveur avec `-m 8222` (ou `http_port: 8222` dans sa configuration), puis exécutez l'exportateur :",
-  "And scrape it:":
-    "Et collectez-le :",
+  "And scrape it:": "Et collectez-le :",
   "OneUptime charts no broker metrics for NATS under **Broker health**: what the collector above sends arrives only in the **Metrics** explorer. A metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
     "OneUptime n'affiche aucune métrique de broker pour NATS sous **Santé du broker** : ce qu'envoie le collecteur ci-dessus n'arrive que dans l'explorateur **Métriques**. Une métrique qui porte `messaging.system` et `messaging.destination.name` sur chaque point de données s'affiche dans l'onglet **Métriques** de la file.",
   "- NATS has no charted metrics. Its metrics are in the **Metrics** explorer.":

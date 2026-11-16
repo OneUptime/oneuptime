@@ -55,8 +55,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "لا تُنشأ قوائم الانتظار تلقائيًا إلا ما دام المشروع دون [ميزانية الإنشاء التلقائي](/docs/telemetry/queues#the-auto-create-budget) الخاصة به.",
   "The queue's Overview charts these under **Broker health**, and each gauge and each count per period has **Create monitor**. Until one arrives, the section says where they come from.":
     "ترسم النظرة العامة لقائمة الانتظار هذه المقاييس ضمن **سلامة الوسيط**، ولكل مؤشر وكل عدد في الفترة زر **إنشاء مراقبة**. وإلى أن يصل أحدها، يوضّح القسم من أين تأتي.",
-  "| Metric | Shown as | Type |":
-    "| المقياس | يظهر باسم | النوع |",
+  "| Metric | Shown as | Type |": "| المقياس | يظهر باسم | النوع |",
   "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON stream: `numberofmessagespublished`) | Messages published | Count per period |":
     "| `amazonaws.com/aws/sns/numberofmessagespublished` (تدفق JSON: `numberofmessagespublished`) | الرسائل المنشورة | العدد في كل فترة |",
   "| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON stream: `numberofnotificationsdelivered`) | Notifications delivered | Count per period |":
@@ -207,8 +206,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Java**: يتتبّع وكيل Java الخاص بـ OpenTelemetry عملاء RocketMQ دون أي تغيير في الشيفرة.",
   "Set `metricsExporterType=PROM` in the broker's `broker.conf` so the broker serves its lag and throughput metrics.":
     "اضبط `metricsExporterType=PROM` في `broker.conf` الخاص بالوسيط ليقدّم الوسيط مقاييس التأخر والإنتاجية.",
-  "Then scrape every broker:":
-    "ثم اجمع من كل وسيط:",
+  "Then scrape every broker:": "ثم اجمع من كل وسيط:",
   "| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |":
     "| `rocketmq_consumer_ready_messages` | الرسائل الجاهزة | المؤشر |",
   "| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Counter, charted per second |":
@@ -229,12 +227,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "تظهر قوائم انتظار Azure Event Hubs في OneUptime تلقائيًا، من مصدرين: امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومقاييس الوسيط نفسه. ويمكنك أيضًا إضافة قائمة انتظار يدويًا: **قوائم الانتظار ← إنشاء قائمة الانتظار**.",
   "- **Java**: the Azure SDK for Java traces itself, and the OpenTelemetry Java agent connects that tracing to OpenTelemetry.":
     "- **Java**: تتتبّع Azure SDK for Java نفسها، ويربط وكيل Java الخاص بـ OpenTelemetry ذلك التتبّع بـ OpenTelemetry.",
-  "- **.NET**: the Azure SDK's OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource(\"Azure.*\")`.":
-    "- **.NET**: امتدادات OpenTelemetry في Azure SDK تجريبية: اضبط `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (أو المفتاح `Azure.Experimental.EnableActivitySource`) واشترك في مصادر Azure بـ `.AddSource(\"Azure.*\")`.",
+  '- **.NET**: the Azure SDK\'s OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource("Azure.*")`.':
+    '- **.NET**: امتدادات OpenTelemetry في Azure SDK تجريبية: اضبط `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (أو المفتاح `Azure.Experimental.EnableActivitySource`) واشترك في مصادر Azure بـ `.AddSource("Azure.*")`.',
   "- **Node.js**: register `createAzureSdkInstrumentation()` from `@azure/opentelemetry-instrumentation-azure-sdk`.":
     "- **Node.js**: سجّل `createAzureSdkInstrumentation()` من `@azure/opentelemetry-instrumentation-azure-sdk`.",
-  "- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = \"opentelemetry\"` (from `azure.core.settings`).":
-    "- **Python**: ثبّت `azure-core-tracing-opentelemetry` واضبط `settings.tracing_implementation = \"opentelemetry\"` (من `azure.core.settings`).",
+  '- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = "opentelemetry"` (from `azure.core.settings`).':
+    '- **Python**: ثبّت `azure-core-tracing-opentelemetry` واضبط `settings.tracing_implementation = "opentelemetry"` (من `azure.core.settings`).',
   "A connected Azure subscription reads the namespace's key metrics for each event hub, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.":
     "يقرأ اشتراك Azure المتصل المقاييس الرئيسية لمساحة الاسم لكل مركز أحداث، دون تشغيل أي شيء. ولقراءتها كلها، شغّل المستقبِل `azure_monitor` في المجمّع، الذي يقسّمها حسب البُعد EntityName لكل مركز أحداث.",
   "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.":
@@ -343,8 +341,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "شغّل prometheus-nats-exporter مع `-jsz=all` على منفذ المراقبة في الخادم. مقاييس JetStream فيه لكل تدفق ومستهلك، لا لكل موضوع رسائل، لذا لا تُلحق بقوائم الانتظار على مستوى الموضوع.",
   "Turn on the server's monitoring port with `-m 8222` (or `http_port: 8222` in its configuration), then run the exporter:":
     "فعّل منفذ المراقبة في الخادم بـ `-m 8222` (أو `http_port: 8222` في إعداده)، ثم شغّل أداة التصدير:",
-  "And scrape it:":
-    "ثم اجمع منها:",
+  "And scrape it:": "ثم اجمع منها:",
   "OneUptime charts no broker metrics for NATS under **Broker health**: what the collector above sends arrives only in the **Metrics** explorer. A metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
     "لا يرسم OneUptime أي مقاييس وسيط لـ NATS ضمن **سلامة الوسيط**: ما يرسله المجمّع أعلاه لا يصل إلا إلى مستكشف **المقاييس**. أما المقياس الذي يحمل `messaging.system` و`messaging.destination.name` على كل نقطة بيانات فيظهر في علامة التبويب **المقاييس** لقائمة الانتظار.",
   "- NATS has no charted metrics. Its metrics are in the **Metrics** explorer.":

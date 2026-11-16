@@ -55,8 +55,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Le code vengono create da sole solo finché il progetto resta sotto il suo [budget di creazione automatica](/docs/telemetry/queues#the-auto-create-budget).",
   "The queue's Overview charts these under **Broker health**, and each gauge and each count per period has **Create monitor**. Until one arrives, the section says where they come from.":
     "La Panoramica della coda mostra queste metriche in **Salute del broker**, e ogni indicatore e ogni conteggio per periodo ha **Crea monitor**. Finché non ne arriva una, la sezione indica da dove provengono.",
-  "| Metric | Shown as | Type |":
-    "| Metrica | Mostrata come | Tipo |",
+  "| Metric | Shown as | Type |": "| Metrica | Mostrata come | Tipo |",
   "| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON stream: `numberofmessagespublished`) | Messages published | Count per period |":
     "| `amazonaws.com/aws/sns/numberofmessagespublished` (stream JSON: `numberofmessagespublished`) | Messaggi pubblicati | Conteggio per periodo |",
   "| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON stream: `numberofnotificationsdelivered`) | Notifications delivered | Count per period |":
@@ -207,8 +206,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Java**: l'agente Java di OpenTelemetry traccia i client RocketMQ senza modifiche al codice.",
   "Set `metricsExporterType=PROM` in the broker's `broker.conf` so the broker serves its lag and throughput metrics.":
     "Imposta `metricsExporterType=PROM` nel `broker.conf` del broker affinché il broker esponga le sue metriche di lag e di throughput.",
-  "Then scrape every broker:":
-    "Poi raccogli ogni broker:",
+  "Then scrape every broker:": "Poi raccogli ogni broker:",
   "| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |":
     "| `rocketmq_consumer_ready_messages` | Messaggi pronti | Indicatore |",
   "| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Counter, charted per second |":
@@ -229,12 +227,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "Le code di Azure Event Hubs compaiono da sole in OneUptime, da due fonti: gli span di messaggistica delle applicazioni che vi pubblicano e ne consumano, e le metriche del broker stesso. Puoi anche aggiungerne una a mano: **Code → Crea: Coda**.",
   "- **Java**: the Azure SDK for Java traces itself, and the OpenTelemetry Java agent connects that tracing to OpenTelemetry.":
     "- **Java**: l'Azure SDK per Java si traccia da sé, e l'agente Java di OpenTelemetry collega quel tracciamento a OpenTelemetry.",
-  "- **.NET**: the Azure SDK's OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource(\"Azure.*\")`.":
+  '- **.NET**: the Azure SDK\'s OpenTelemetry spans are experimental: set `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch) and subscribe to the Azure sources with `.AddSource("Azure.*")`.':
     "- **.NET**: gli span OpenTelemetry dell'Azure SDK sono sperimentali: imposta `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (o l'opzione `Azure.Experimental.EnableActivitySource`) e iscriviti alle sorgenti Azure con `.AddSource(\"Azure.*\")`.",
   "- **Node.js**: register `createAzureSdkInstrumentation()` from `@azure/opentelemetry-instrumentation-azure-sdk`.":
     "- **Node.js**: registra `createAzureSdkInstrumentation()` da `@azure/opentelemetry-instrumentation-azure-sdk`.",
-  "- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = \"opentelemetry\"` (from `azure.core.settings`).":
-    "- **Python**: installa `azure-core-tracing-opentelemetry` e imposta `settings.tracing_implementation = \"opentelemetry\"` (da `azure.core.settings`).",
+  '- **Python**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = "opentelemetry"` (from `azure.core.settings`).':
+    '- **Python**: installa `azure-core-tracing-opentelemetry` e imposta `settings.tracing_implementation = "opentelemetry"` (da `azure.core.settings`).',
   "A connected Azure subscription reads the namespace's key metrics for each event hub, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.":
     "Una sottoscrizione Azure connessa legge le metriche chiave del namespace per ogni event hub, senza nulla da eseguire. Per leggerle tutte, esegui il receiver `azure_monitor` del collector, che le suddivide per event hub in base alla dimensione EntityName.",
   "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.":
@@ -343,8 +341,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Esegui prometheus-nats-exporter con `-jsz=all` sulla porta di monitoraggio del server. Le sue metriche JetStream sono per stream e consumer, non per subject, quindi non si associano alle code a livello di subject.",
   "Turn on the server's monitoring port with `-m 8222` (or `http_port: 8222` in its configuration), then run the exporter:":
     "Attiva la porta di monitoraggio del server con `-m 8222` (o `http_port: 8222` nella sua configurazione), poi esegui l'exporter:",
-  "And scrape it:":
-    "E raccoglilo:",
+  "And scrape it:": "E raccoglilo:",
   "OneUptime charts no broker metrics for NATS under **Broker health**: what the collector above sends arrives only in the **Metrics** explorer. A metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
     "OneUptime non mostra nei grafici alcuna metrica del broker per NATS in **Salute del broker**: ciò che invia il collector qui sopra arriva solo nell'explorer **Metriche**. Una metrica che porta `messaging.system` e `messaging.destination.name` su ogni punto dati compare nella scheda **Metriche** della coda.",
   "- NATS has no charted metrics. Its metrics are in the **Metrics** explorer.":
