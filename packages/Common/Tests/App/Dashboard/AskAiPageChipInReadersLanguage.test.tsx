@@ -49,9 +49,9 @@ const navigateMock: MockFunction = getJestMockFunction();
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/CitationTargetNav",
   () => {
-    const actual: JSONObject = jest.requireActual(
+    const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/CitationTargetNav",
-    );
+    ) as Record<string, unknown>;
 
     return {
       __esModule: true,
