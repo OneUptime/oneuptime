@@ -6,6 +6,7 @@ import {
   readSyslogStructuredData,
   syslogStructuredDataAttributeKey,
 } from "../../../Utils/Syslog/SyslogMessageParser";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -322,11 +323,15 @@ describe("time in line with the text", () => {
     ["names", `[a ${"[".repeat(200_000)}="1"]`],
     ["elements", '[a x="1"]'.repeat(30_000)],
   ])("%s", (_name: string, structuredData: string) => {
-    const started: number = Date.now();
+    // The fastest of up to three attempts: one timing on a busy runner is noisy.
+    const read: FastestRun<void> = fastestRun({
+      run: (): void => {
+        parse(line(structuredData));
+        readSyslogStructuredData(structuredData);
+      },
+      limitInMs: 2000,
+    });
 
-    parse(line(structuredData));
-    readSyslogStructuredData(structuredData);
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(read.inMs).toBeLessThan(2000);
   });
 });
