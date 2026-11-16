@@ -98,9 +98,12 @@ const CMD_PRECOMPILED_ENTRYPOINT: RegExp =
  */
 const STARTS_PRECOMPILED_SERVER: RegExp =
   /&& exec node (--no-node-snapshot )?--require Common\/Server\/Utils\/TsNode\/PrecompiledSourceMaps\.js Index\.js$/;
-// The build step that writes that JavaScript, anchored to a RUN instruction.
+/*
+ * The build step that writes that JavaScript, anchored to a RUN instruction.
+ * The App's Enterprise Edition compiles ee/ in the same step (group 1).
+ */
 const RUN_PRECOMPILE_INSTRUCTION: RegExp =
-  /^\s*RUN\s+node\s+\/usr\/src\/Common\/Server\/Utils\/TsNode\/Precompile\.js\s+--project\s+\/usr\/src\/app\/tsconfig\.json\s+--root\s+\/usr\/src\/app\s+--root\s+\/usr\/src\/Common\s*$/m;
+  /^\s*RUN\s+node\s+\/usr\/src\/Common\/Server\/Utils\/TsNode\/Precompile\.js\s+--project\s+\/usr\/src\/app\/tsconfig\.json\s+--root\s+\/usr\/src\/app\s+--root\s+\/usr\/src\/Common(\s+--root\s+\/usr\/src\/ee)?\s*$/m;
 const TS_NODE_ANYWHERE: RegExp = /ts-node\/register/;
 /*
  * The actual build step, anchored to a RUN instruction. A plain substring
@@ -701,11 +704,22 @@ describe("Container boot configuration", () => {
             return RUN_COMPILE_INSTRUCTION.test(stage.body);
           }),
         ).toBe(true);
+
+        const precompiles: Array<RegExpMatchArray> = ancestry
+          .map((stage: DockerfileStage): RegExpMatchArray | null => {
+            return stage.body.match(RUN_PRECOMPILE_INSTRUCTION);
+          })
+          .filter((match: RegExpMatchArray | null): boolean => {
+            return match !== null;
+          }) as Array<RegExpMatchArray>;
+
+        expect(precompiles.length).toBeGreaterThan(0);
+        // ee/ is compiled where it is copied in: the Enterprise Edition only.
         expect(
-          ancestry.some((stage: DockerfileStage) => {
-            return RUN_PRECOMPILE_INSTRUCTION.test(stage.body);
+          precompiles.some((match: RegExpMatchArray): boolean => {
+            return match[1] !== undefined;
           }),
-        ).toBe(true);
+        ).toBe(name === "enterprise");
       },
     );
 
