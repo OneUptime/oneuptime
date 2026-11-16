@@ -5,6 +5,11 @@ import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import AiTokenCount from "../../Types/AI/AiTokenCount";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import FindBy from "../Types/Database/FindBy";
+import CountBy from "../Types/Database/CountBy";
+import { OnFind } from "../Types/Database/Hooks";
+import PositiveNumber from "../../Types/PositiveNumber";
+import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
 
 /*
  * The cached part of the tokens a usage aggregate adds up: read from and
@@ -62,6 +67,42 @@ export class Service extends DatabaseService<Model> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3);
     }
+  }
+
+  /*
+   * A log of a call OneUptime made to an AI provider about a private incident, alert or episode is read only by
+   * those who see that record (PrivateRecordReadFilter, #8913): its prompt and answer are about the record, and its relation reads the record itself.
+   * One about no private record is read as before.
+   */
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = PrivateRecordReadFilter.apply(
+      findBy.query,
+      findBy.props,
+      Model,
+    );
+
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = PrivateRecordReadFilter.apply(
+      countBy.query,
+      countBy.props,
+      Model,
+    );
+
+    return await super.countBy(countBy);
+  }
+
+  // The read hook narrows by the records it names. See onBeforeFind.
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return PrivateRecordReadFilter.getNamedRecordColumnNames(Model);
   }
 
   /*

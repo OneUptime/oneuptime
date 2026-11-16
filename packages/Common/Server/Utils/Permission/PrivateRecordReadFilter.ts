@@ -68,11 +68,19 @@ export default class PrivateRecordReadFilter {
 
   /*
    * The condition on a column naming records of `kind`: no record, or one
-   * the caller sees - not private, or owned by them or by a team of theirs
-   * they have accepted. Undefined for a caller who sees every private
-   * record (shouldBypassRecordPrivacy), who is not narrowed. A caller who
-   * is no person - an API key without Project Owner or Project Admin, a
+   * that is no private record the caller does not see - a private one is
+   * seen when it is owned by them or by a team of theirs they have
+   * accepted. Undefined for a caller who sees every private record
+   * (shouldBypassRecordPrivacy), who is not narrowed. A caller who is no
+   * person - an API key without Project Owner or Project Admin, a
    * workflow's step - sees no private record.
+   *
+   * Written as what it leaves out (NOT EXISTS over the private records of
+   * the kind), not as every record it lets through: the rows it narrows can
+   * be many - a project's notification logs - and the private records are
+   * few, so Postgres answers it with an anti-join on the record's primary
+   * key. A private record deleted since is still left out: what was done
+   * about it stays its owners'.
    */
   public static getOptionalRecordReadRaw(data: {
     kind: PrivateRecordKind;
@@ -84,29 +92,60 @@ export default class PrivateRecordReadFilter {
 
     const kind: PrivateRecordKind = data.kind;
 
-    const visible: Array<string> = [
-      `pr."isPrivate" IS NULL`,
-      `pr."isPrivate" = FALSE`,
-    ];
-
     const parameters: Record<string, string> = {};
+
+    let unseen: string = "";
 
     if (data.props.userId) {
       const user: string = `privReadUser_${Text.generateRandomText(10)}`;
 
       parameters[user] = data.props.userId.toString();
 
-      visible.push(
-        `pr."_id" IN (SELECT prou."${kind.ownerKey}" FROM "${kind.ownerUserTable}" prou WHERE prou."userId" = :${user} AND prou."deletedAt" IS NULL)`,
-        `pr."_id" IN (SELECT prot."${kind.ownerKey}" FROM "${kind.ownerTeamTable}" prot INNER JOIN "TeamMember" prtm ON prtm."teamId" = prot."teamId" WHERE prtm."userId" = :${user} AND prtm."deletedAt" IS NULL AND prtm."hasAcceptedInvitation" = TRUE AND prot."deletedAt" IS NULL)`,
-      );
+      unseen =
+        ` AND pr."_id" NOT IN (SELECT prou."${kind.ownerKey}" FROM "${kind.ownerUserTable}" prou WHERE prou."userId" = :${user} AND prou."deletedAt" IS NULL AND prou."${kind.ownerKey}" IS NOT NULL)` +
+        ` AND pr."_id" NOT IN (SELECT prot."${kind.ownerKey}" FROM "${kind.ownerTeamTable}" prot INNER JOIN "TeamMember" prtm ON prtm."teamId" = prot."teamId" WHERE prtm."userId" = :${user} AND prtm."deletedAt" IS NULL AND prtm."hasAcceptedInvitation" = TRUE AND prot."deletedAt" IS NULL AND prot."${kind.ownerKey}" IS NOT NULL)`;
     }
 
-    const records: string = `SELECT pr."_id" FROM "${kind.tableName}" pr WHERE pr."deletedAt" IS NULL AND (${visible.join(" OR ")})`;
-
     return Raw((alias: string): string => {
-      return `(${alias} IS NULL OR ${alias} IN (${records}))`;
+      return `(${alias} IS NULL OR NOT EXISTS (SELECT 1 FROM "${kind.tableName}" pr WHERE pr."_id" = ${alias} AND pr."isPrivate" = TRUE${unseen}))`;
     }, parameters);
+  }
+
+  /*
+   * `query` over `modelType`'s rows, kept to the rows that are no private
+   * record, no part of one and name none: what a caller who is no person
+   * and sees no private record reads - a workflow's step (#8914). For Run
+   * Workflow's record picker, which offers only what a run can act on. As
+   * it is for a model that has nothing to do with a private record.
+   */
+  public static keepToNotPrivate<T>(
+    query: T,
+    modelType: { new (): BaseModel },
+  ): T {
+    const filtered: Record<string, unknown> = {
+      ...((query || {}) as Record<string, unknown>),
+    };
+
+    for (const column of PrivateRecordPermission.getPrivateRecordColumns(
+      modelType,
+    )) {
+      const raw: FindWhereProperty<any> | undefined =
+        PrivateRecordReadFilter.getOptionalRecordReadRaw({
+          kind: column.kind,
+          // No person, no project: sees no private record.
+          props: {},
+        });
+
+      if (!raw) {
+        continue;
+      }
+
+      const key: string = column.isRecord ? "_id" : column.column;
+
+      filtered[key] = combineWithPrivacyClause(filtered[key], raw);
+    }
+
+    return filtered as T;
   }
 
   /*

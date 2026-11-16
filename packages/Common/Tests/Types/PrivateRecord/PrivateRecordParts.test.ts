@@ -215,6 +215,20 @@ describe("PrivateRecordParts.getKindsOf", () => {
       ],
       RunbookExecution: ["incidentId", "alertId"],
       AutoRemediationSuggestion: ["incidentId", "alertId"],
+      CallLog: ["incidentId", "alertId"],
+      EmailLog: ["incidentId", "alertId"],
+      LlmLog: ["incidentId", "alertId"],
+      PushNotificationLog: ["incidentId", "alertId"],
+      SmsLog: ["incidentId", "alertId"],
+      TelegramLog: ["incidentId", "alertId"],
+      WebhookLog: ["incidentId", "alertId"],
+      WhatsAppLog: ["incidentId", "alertId"],
+      WorkspaceNotificationLog: [
+        "incidentId",
+        "alertId",
+        "incidentEpisodeId",
+        "alertEpisodeId",
+      ],
     });
   });
 

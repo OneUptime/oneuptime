@@ -43,6 +43,12 @@ export const PRIVATE_RECORD_TABLES: ReadonlyArray<string> = [
  * On a private record, each is made only with the permissions of the teams
  * that own it, of the people named as its owners, and of Project Owners and
  * Admins - like a note on it - and read only by those who see the record.
+ *
+ * So is what OneUptime sent about one - the email, SMS, call, push, WhatsApp,
+ * Telegram, Slack or Microsoft Teams message and webhook logs, and the
+ * calls it made to an AI provider - whose text quotes the record: only
+ * OneUptime writes them, and only those who see the record read them. A
+ * person's own page (UserOnCallLog) is theirs: they were paged about it.
  */
 export const ALSO_PART_OF: Readonly<Record<string, ReadonlyArray<string>>> = {
   AlertEpisodeMember: ["alertEpisodeId"],
@@ -62,6 +68,20 @@ export const ALSO_PART_OF: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   RunbookExecution: ["incidentId", "alertId"],
   AutoRemediationSuggestion: ["incidentId", "alertId"],
+  CallLog: ["incidentId", "alertId"],
+  EmailLog: ["incidentId", "alertId"],
+  LlmLog: ["incidentId", "alertId"],
+  PushNotificationLog: ["incidentId", "alertId"],
+  SmsLog: ["incidentId", "alertId"],
+  TelegramLog: ["incidentId", "alertId"],
+  WebhookLog: ["incidentId", "alertId"],
+  WhatsAppLog: ["incidentId", "alertId"],
+  WorkspaceNotificationLog: [
+    "incidentId",
+    "alertId",
+    "incidentEpisodeId",
+    "alertEpisodeId",
+  ],
 };
 
 // What the two functions below read of a model: a database model is one.

@@ -332,6 +332,11 @@ const PAGE_KEYS: Array<{ kind: string; key: string }> = [
   { kind: "AlertEpisode", key: "triggeredByAlertEpisodeId" },
 ];
 
+const INCIDENT_AND_ALERT_KEYS: Array<{ kind: string; key: string }> = [
+  { kind: "Incident", key: "incidentId" },
+  { kind: "Alert", key: "alertId" },
+];
+
 const ALSO_PARTS: Record<string, Array<{ kind: string; key: string }>> = {
   AlertEpisodeMember: [{ kind: "AlertEpisode", key: "alertEpisodeId" }],
   IncidentEpisodeMember: [
@@ -348,6 +353,24 @@ const ALSO_PARTS: Record<string, Array<{ kind: string; key: string }>> = {
     { kind: "Incident", key: "incidentId" },
     { kind: "Alert", key: "alertId" },
   ],
+  /*
+   * What OneUptime sent about a record, whose text quotes it: read only by
+   * those who see the record. Only OneUptime writes them.
+   */
+  CallLog: INCIDENT_AND_ALERT_KEYS,
+  EmailLog: INCIDENT_AND_ALERT_KEYS,
+  LlmLog: INCIDENT_AND_ALERT_KEYS,
+  PushNotificationLog: INCIDENT_AND_ALERT_KEYS,
+  SmsLog: INCIDENT_AND_ALERT_KEYS,
+  TelegramLog: INCIDENT_AND_ALERT_KEYS,
+  WebhookLog: INCIDENT_AND_ALERT_KEYS,
+  WhatsAppLog: INCIDENT_AND_ALERT_KEYS,
+  WorkspaceNotificationLog: [
+    { kind: "Incident", key: "incidentId" },
+    { kind: "Alert", key: "alertId" },
+    { kind: "IncidentEpisode", key: "incidentEpisodeId" },
+    { kind: "AlertEpisode", key: "alertEpisodeId" },
+  ],
 };
 
 /*
@@ -361,25 +384,18 @@ const NAMES_BUT_IS_NO_PART: Record<string, string> = {
   AIConversation: "a person's own conversation with OneUptime AI about it",
   Alert: "a private kind itself; its episode is OneUptime's to write",
   AutoRemediationDecision: "OneUptime AI's own decision, written by OneUptime",
-  CallLog: "a log of a call OneUptime made",
   DataAlert:
     "what a data monitor's alert is about, written by OneUptime and read through its alerts' privacy filters",
   DataSecurityIssue: "a Data Security issue, which may point at one",
-  EmailLog: "a log of an email OneUptime sent",
   FormSubmission: "a form's answer, which may have declared one",
   Incident: "a private kind itself; its episode is OneUptime's to write",
-  LlmLog: "a log of a call OneUptime made to an AI provider",
-  PushNotificationLog: "a log of a push notification OneUptime sent",
   RumSessionPin: "a session replay pinned to it, a record of RUM",
   RumSessionReplayView: "a session replay's view, a record of RUM",
   SecurityCase: "a security case, which may point at one",
-  SmsLog: "a log of an SMS OneUptime sent",
-  TelegramLog: "a log of a Telegram message OneUptime sent",
-  UserOnCallLog: "a person's page, its own record",
-  UserOnCallLogTimeline: "a step of a person's page, its own record",
-  WebhookLog: "a log of a webhook OneUptime called",
-  WhatsAppLog: "a log of a WhatsApp message OneUptime sent",
-  WorkspaceNotificationLog: "a log of a Slack or Teams message OneUptime sent",
+  UserOnCallLog:
+    "a person's page, read only by that person, who was paged about the record",
+  UserOnCallLogTimeline:
+    "a step of a person's page, read only by that person, who was paged about the record",
 };
 
 describe("a part that names a second private record", () => {
