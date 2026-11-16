@@ -3221,15 +3221,16 @@ describe("the Public API page", () => {
       PUBLIC_API,
       "| Endpoint | Keys in the response |",
     );
+    /*
+     * Each route checks who may read the page, then answers with what the
+     * page shows - kept for every reader (StatusPageReadCache) - as the
+     * page's maintenance calendar reads its events too.
+     */
     const METHOD_OF: Record<string, string> = {
-      Incidents: "getIncidents",
-      Episodes: "getEpisodes",
-      /*
-       * The route checks who may read the page, then answers with what the
-       * page shows, as the page's maintenance calendar reads it too.
-       */
+      Incidents: "readShownIncidents",
+      Episodes: "readShownEpisodes",
       "Maintenance events": "readShownScheduledMaintenanceEvents",
-      Announcements: "getAnnouncements",
+      Announcements: "readShownAnnouncements",
     };
 
     expect(

@@ -1,4 +1,7 @@
-import { jest } from "@jest/globals";
+// What a spy keeps of its calls.
+interface SpiedCalls {
+  mock: { calls: Array<Array<unknown>> };
+}
 
 /*
  * The read of a status page's own row among the calls a spy on
@@ -8,9 +11,7 @@ import { jest } from "@jest/globals";
  * StatusPageService.getProjectIdOfStatusPage). Undefined when there was none.
  */
 export function statusPageReadOf(spy: unknown): Array<unknown> | undefined {
-  const calls: Array<Array<unknown>> = (spy as jest.Mock).mock.calls as Array<
-    Array<unknown>
-  >;
+  const calls: Array<Array<unknown>> = (spy as SpiedCalls).mock.calls;
 
   return calls.find((call: Array<unknown>): boolean => {
     return !isProjectLookup(call);

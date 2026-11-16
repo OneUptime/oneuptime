@@ -1327,7 +1327,7 @@ describePostgres(
       // A second on: every copy this pod keeps is within its life, the generation it read is not.
       const later: number =
         Date.now() + StatusPageOverviewCache.SHARED_GENERATION_READ_TTL_MS + 1;
-      const clock: jest.SpiedFunction<() => number> = jest
+      const clock: ReturnType<typeof jest.spyOn> = jest
         .spyOn(Date, "now")
         .mockReturnValue(later);
 
