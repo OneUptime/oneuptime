@@ -118,10 +118,15 @@ import {
   toDiscoveredDeviceRetentionInDays,
 } from "../../Types/NetworkDevice/DiscoveredDeviceRetention";
 import {
+  KEEP_EVERY_RESOLVED_RECORD,
   ResolvedRecordKind,
+  ResolvedRecordRetentionServerLimits,
+  getKeptPostmortemStatusIdsProblem,
   getResolvedRecordRetentionProblem,
+  readKeptPostmortemStatusIds,
   toResolvedRecordRetentionInDays,
 } from "../../Types/Retention/ResolvedRecordRetention";
+import ResolvedRecordRetention from "../Utils/Retention/ResolvedRecordRetention";
 import { NetworkTopologyLayoutUtil } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { DefaultTableColumnsUtil } from "../../Types/Table/DefaultTableColumns";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
@@ -241,6 +246,14 @@ export interface ProjectBalanceAdjustmentResult {
   previousBalanceInUSDCents: number;
   newBalanceInUSDCents: number;
 }
+
+/*
+ * Why a write of the postmortem statuses that keep an incident is refused
+ * when one of them is not the project's (issue #6945): one of another
+ * project, or none at all, gets the same answer.
+ */
+export const KEPT_POSTMORTEM_STATUS_NOT_THE_PROJECTS_MESSAGE: string =
+  "One of the postmortem statuses that keep an incident is not one of this project's. Pick them from the project's own postmortem statuses.";
 
 // The project columns that hold a prepaid balance, in cents.
 export type ProjectBalanceColumnName =
@@ -859,11 +872,36 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * choices - null too, since the columns always hold a value, and a number
    * that is not a choice, which must never delete more than was meant. A
    * write that leaves a column out is not judged on it.
+   *
+   * The server's maximum (issue #6941) does not refuse a longer length or
+   * Never: it holds them where incidents are deleted, so an API client that
+   * writes what it always wrote keeps working, and a project gets back what
+   * it picked once the maximum is lifted.
+   *
+   * The postmortem statuses that keep an incident (issue #6945) are a list
+   * of ids, never empty - stored lower case, each once - or null for the
+   * Completed status; assertKeptPostmortemStatusesAreTheProjects checks they
+   * are the project's own.
    */
   public applyResolvedRecordRetentionRules(data: {
     incidentRetentionInDays?: unknown;
     alertRetentionInDays?: unknown;
+    keepIncidentsInPostmortemStatusIds?: unknown;
   }): void {
+    if (data.keepIncidentsInPostmortemStatusIds !== undefined) {
+      const problem: string | null = getKeptPostmortemStatusIdsProblem(
+        data.keepIncidentsInPostmortemStatusIds,
+      );
+
+      if (problem) {
+        throw new BadDataException(problem);
+      }
+
+      data.keepIncidentsInPostmortemStatusIds =
+        readKeptPostmortemStatusIds(data.keepIncidentsInPostmortemStatusIds) ||
+        null;
+    }
+
     const columns: Array<{
       column: "incidentRetentionInDays" | "alertRetentionInDays";
       kind: ResolvedRecordKind;
@@ -989,6 +1027,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       data.data as {
         incidentRetentionInDays?: unknown;
         alertRetentionInDays?: unknown;
+        keepIncidentsInPostmortemStatusIds?: unknown;
       },
     );
     this.applyDefaultTableColumnsRules(
@@ -1734,6 +1773,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       updateBy.data as {
         incidentRetentionInDays?: unknown;
         alertRetentionInDays?: unknown;
+        keepIncidentsInPostmortemStatusIds?: unknown;
       },
     );
     this.applyDefaultTableColumnsRules(
@@ -1761,6 +1801,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     // Requiring an incoming request secret turns on only with a secret to send.
     await this.assertIncomingRequestSecretCanTurnOn(updateBy);
+
+    // The postmortem statuses that keep an incident are the project's own.
+    await this.assertKeptPostmortemStatusesAreTheProjects(updateBy);
 
     if (IsBillingEnabled) {
       if (
@@ -1792,6 +1835,57 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * at once - every heartbeat monitor going offline together - so it turns on
    * only once the project has a secret for its senders to send.
    */
+  /*
+   * The postmortem statuses that keep an incident from the incident
+   * retention (keepIncidentsInPostmortemStatusIds, issue #6945) must be
+   * statuses of each project the update writes - read for the projects the
+   * caller may write, with the update held to them - so no project keeps
+   * its incidents by another project's status, or by one that does not
+   * exist. The list's shape was checked by applyResolvedRecordRetentionRules.
+   */
+  private async assertKeptPostmortemStatusesAreTheProjects(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const statusIds: Array<string> | undefined = readKeptPostmortemStatusIds(
+      updateBy.data.keepIncidentsInPostmortemStatusIds,
+    );
+
+    if (!statusIds) {
+      return;
+    }
+
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+      },
+    );
+
+    for (const project of projects) {
+      if (!project.id) {
+        continue;
+      }
+
+      const found: number = (
+        await IncidentPostmortemStatusService.countBy({
+          query: {
+            projectId: project.id,
+            _id: QueryHelper.any(statusIds),
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      ).toNumber();
+
+      if (found !== statusIds.length) {
+        throw new BadDataException(
+          KEPT_POSTMORTEM_STATUS_NOT_THE_PROJECTS_MESSAGE,
+        );
+      }
+    }
+  }
+
   private async assertIncomingRequestSecretCanTurnOn(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
@@ -3412,6 +3506,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
       this.addDefaultSecurityCaseStatuses(createdItem),
     ]);
 
+    // How long it keeps resolved incidents and alerts: the server's default.
+    await this.applyServerRetentionDefaults(createdItem.id!);
+
     /*
      * A sample project is not a project anyone made for their own work:
      * no server/project_created (it would count as a sign-up's project in
@@ -3443,6 +3540,57 @@ export class ProjectService extends ProjectReferencesService<Model> {
     await this.sendProjectCreatedSlackNotification(createdItem.id!);
 
     return createdItem;
+  }
+
+  /*
+   * A new project's retention of resolved incidents and alerts (issue
+   * #6941): the server's default for each, set on Admin Dashboard >
+   * Settings > Data Retention - Never, as every project before, when the
+   * server has none. Written as OneUptime once the project exists: nobody
+   * gives a new project these columns (they take no value on create), and
+   * its owners change them afterwards like any other project's. Best-effort:
+   * a project the write misses keeps everything, the safe way to be wrong.
+   */
+  public async applyServerRetentionDefaults(
+    projectId: ObjectID,
+  ): Promise<void> {
+    const data: {
+      incidentRetentionInDays?: number;
+      alertRetentionInDays?: number;
+    } = {};
+
+    try {
+      const incident: ResolvedRecordRetentionServerLimits =
+        await ResolvedRecordRetention.getServerLimits(
+          ResolvedRecordKind.Incident,
+        );
+      const alert: ResolvedRecordRetentionServerLimits =
+        await ResolvedRecordRetention.getServerLimits(ResolvedRecordKind.Alert);
+
+      if (incident.defaultInDays !== KEEP_EVERY_RESOLVED_RECORD) {
+        data.incidentRetentionInDays = incident.defaultInDays;
+      }
+
+      if (alert.defaultInDays !== KEEP_EVERY_RESOLVED_RECORD) {
+        data.alertRetentionInDays = alert.defaultInDays;
+      }
+
+      if (Object.keys(data).length === 0) {
+        return;
+      }
+
+      await this.updateOneById({
+        id: projectId,
+        data: data,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        `Project ${projectId.toString()} was created without the server's default retention of resolved incidents and alerts, so it keeps every one until its owners pick a length: ${String(err)}`,
+      );
+    }
   }
 
   /*

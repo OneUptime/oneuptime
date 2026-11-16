@@ -2,14 +2,20 @@ import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import IncidentPostmortemStatus from "../../../Models/DatabaseModels/IncidentPostmortemStatus";
 import Query from "../../../Types/BaseDatabase/Query";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import {
   MIN_RESOLVED_RECORD_RETENTION_IN_DAYS,
+  NO_RESOLVED_RECORD_RETENTION_SERVER_LIMITS,
   ResolvedRecordKind,
+  ResolvedRecordRetentionServerLimits,
+  getEffectiveResolvedRecordRetentionInDays,
+  readKeptPostmortemStatusIds,
   readResolvedRecordRetentionInDays,
+  readResolvedRecordRetentionServerLimits,
 } from "../../../Types/Retention/ResolvedRecordRetention";
 import AlertEpisodeService from "../../Services/AlertEpisodeService";
 import AlertService from "../../Services/AlertService";
@@ -18,9 +24,11 @@ import IncidentEpisodeService from "../../Services/IncidentEpisodeService";
 import IncidentPostmortemStatusService from "../../Services/IncidentPostmortemStatusService";
 import IncidentService from "../../Services/IncidentService";
 import IncidentStateService from "../../Services/IncidentStateService";
+import GlobalConfigService from "../../Services/GlobalConfigService";
 import ProjectService from "../../Services/ProjectService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
+import { QueryRunner } from "typeorm";
 
 /*
  * DELETING RESOLVED INCIDENTS AND ALERTS A PROJECT NO LONGER KEEPS (OneUptime
@@ -31,7 +39,12 @@ import logger from "../Logger";
  * its incidents - or alerts - deleted once they have been resolved for
  * longer, a project at a time, a batch at a time, for the Workers jobs
  * Incident:DeleteResolvedIncidents and Alert:DeleteResolvedAlerts. A project
- * at 0, where every project starts, is never looked at.
+ * at 0, where every project starts, is never looked at - unless the server
+ * has a maximum (GlobalConfig.maxIncidentRetentionInDays,
+ * maxAlertRetentionInDays, issue #6941): then every project keeps them at
+ * most that long, one set to Never or to longer included. A project's own
+ * setting is never rewritten: the maximum is applied here, so lifting it
+ * gives every project back what it picked.
  *
  * WHAT IS DELETED
  *
@@ -46,11 +59,13 @@ import logger from "../Logger";
  *
  *   - Anything not resolved. Reopened, it is not resolved; resolved again,
  *     its length starts over.
- *   - An incident whose postmortem is completed - in a postmortem status
- *     flagged Completed - while the project keeps them
- *     (Project.keepIncidentsWithCompletedPostmortem, on by default). A
- *     drafted postmortem keeps nothing: OneUptime AI drafts one for every
- *     resolved incident where it is on, which would keep them all.
+ *   - An incident whose postmortem is completed while the project keeps
+ *     them (Project.keepIncidentsWithCompletedPostmortem, on by default):
+ *     in one of the postmortem statuses the project chose
+ *     (Project.keepIncidentsInPostmortemStatusIds, issue #6945), or with
+ *     none chosen in the status flagged Completed. A drafted postmortem
+ *     keeps nothing unless its status is chosen: OneUptime AI drafts one for
+ *     every resolved incident where it is on, which would keep them all.
  *   - An incident (an alert) in an episode that is still open, or resolved
  *     within the retention: an episode's members go with it, never before
  *     it, so an episode is never left telling half its story.
@@ -113,9 +128,25 @@ export interface ResolvedRecordRetentionStatement {
 
 export interface DueRetentionProject {
   projectId: string;
+  // How long it keeps them: its own setting, held to the server's maximum.
   retentionInDays: number;
   // Incidents only: whether incidents with a completed postmortem stay.
   keepCompletedPostmortems: boolean;
+  /*
+   * Incidents only: the postmortem statuses the project chose to keep, or
+   * undefined for its Completed status.
+   */
+  keptPostmortemStatusIds?: Array<string> | undefined;
+}
+
+// How many records a setting deletes now, counted as the purge reads them.
+export interface DueRecordsCount {
+  count: number;
+  /*
+   * The count stopped at RETENTION_COUNT_UP_TO: at least that many are due.
+   * A project with years of records is not counted to the last one.
+   */
+  isAtLeast: boolean;
 }
 
 export interface DueRetentionProjectsPage {
@@ -147,6 +178,11 @@ export interface ResolvedRecordRetentionSummary
  */
 interface RetentionTables {
   retentionColumn: string;
+  // GlobalConfig's maximum and new-project default for the kind.
+  serverMaximumColumn: "maxIncidentRetentionInDays" | "maxAlertRetentionInDays";
+  serverDefaultColumn:
+    | "defaultIncidentRetentionInDays"
+    | "defaultAlertRetentionInDays";
   recordTable: string;
   stateColumn: string;
   timelineTable: string;
@@ -163,6 +199,8 @@ interface RetentionTables {
 const TABLES: Record<ResolvedRecordKind, RetentionTables> = {
   [ResolvedRecordKind.Incident]: {
     retentionColumn: "incidentRetentionInDays",
+    serverMaximumColumn: "maxIncidentRetentionInDays",
+    serverDefaultColumn: "defaultIncidentRetentionInDays",
     recordTable: "Incident",
     stateColumn: "currentIncidentStateId",
     timelineTable: "IncidentStateTimeline",
@@ -177,6 +215,8 @@ const TABLES: Record<ResolvedRecordKind, RetentionTables> = {
   },
   [ResolvedRecordKind.Alert]: {
     retentionColumn: "alertRetentionInDays",
+    serverMaximumColumn: "maxAlertRetentionInDays",
+    serverDefaultColumn: "defaultAlertRetentionInDays",
     recordTable: "Alert",
     stateColumn: "currentAlertStateId",
     timelineTable: "AlertStateTimeline",
@@ -211,6 +251,17 @@ export const RETENTION_PROJECTS_PER_PAGE: number = 100;
  * delete already running finishes.
  */
 export const RETENTION_TIME_BUDGET_MS: number = 10 * 60 * 1000;
+
+/*
+ * The most a count of what a setting deletes reads (countDueRecords): past
+ * it, the answer is "at least" - a project turning retention on with years
+ * of incidents is told it deletes more than this, not made to wait while
+ * every one is counted.
+ */
+export const RETENTION_COUNT_UP_TO: number = 10000;
+
+// The longest a count may take before the question is asked without it.
+export const RETENTION_COUNT_TIMEOUT_MS: number = 5000;
 
 // Collects a statement's parameters, numbering them as Postgres does.
 class StatementParams {
@@ -247,34 +298,44 @@ export function getRetentionCutoff(data: {
 /*
  * Projects that keep the kind's resolved records for a while - at least the
  * shortest choice; 0 keeps every one - after `afterProjectId`, in id order.
+ * With a server maximum every project keeps them a while, Never included,
+ * so every live project is read: each one's own setting, which
+ * findDueProjects holds to the maximum.
  */
 export function buildDueProjectsStatement(data: {
   kind: ResolvedRecordKind;
   afterProjectId?: string | undefined;
   limit: number;
+  maximumInDays?: number | undefined;
 }): ResolvedRecordRetentionStatement {
   const tables: RetentionTables = TABLES[data.kind];
   const params: StatementParams = new StatementParams();
-  const minDays: string = params.add(MIN_RESOLVED_RECORD_RETENTION_IN_DAYS);
 
-  const filters: Array<string> = [
-    `p."deletedAt" IS NULL`,
-    `p."${tables.retentionColumn}" >= ${minDays}`,
-  ];
+  const filters: Array<string> = [`p."deletedAt" IS NULL`];
+
+  if (data.maximumInDays === undefined) {
+    const minDays: string = params.add(MIN_RESOLVED_RECORD_RETENTION_IN_DAYS);
+    filters.push(`p."${tables.retentionColumn}" >= ${minDays}`);
+  }
 
   if (data.afterProjectId) {
     filters.push(`p."_id" > ${params.add(data.afterProjectId)}::uuid`);
   }
 
-  const keepColumn: string =
-    data.kind === ResolvedRecordKind.Incident
-      ? `p."keepIncidentsWithCompletedPostmortem"`
-      : `false`;
+  const isIncident: boolean = data.kind === ResolvedRecordKind.Incident;
+
+  const keepColumn: string = isIncident
+    ? `p."keepIncidentsWithCompletedPostmortem"`
+    : `false`;
+
+  const keptStatusesColumn: string = isIncident
+    ? `p."keepIncidentsInPostmortemStatusIds"`
+    : `NULL::jsonb`;
 
   const limit: string = params.add(toBatchLimit(data.limit));
 
   return {
-    sql: `SELECT p."_id"::text AS "projectId", p."${tables.retentionColumn}" AS "retentionInDays", ${keepColumn} AS "keepCompletedPostmortems"
+    sql: `SELECT p."_id"::text AS "projectId", p."${tables.retentionColumn}" AS "retentionInDays", ${keepColumn} AS "keepCompletedPostmortems", ${keptStatusesColumn} AS "keptPostmortemStatusIds"
 FROM "Project" p
 WHERE ${filters.join("\n  AND ")}
 ORDER BY p."_id" ASC
@@ -283,24 +344,29 @@ LIMIT ${limit}`,
   };
 }
 
-/*
- * One batch of a project's records due: resolved, created
- * before the cut-off, nothing on their state timeline since, in no episode
- * still open or resolved since the cut-off - and, for incidents, without a
- * completed postmortem while the project keeps those; for alerts, linked to
- * no incident.
- */
-export function buildDueRecordsStatement(data: {
+// Which of a project's records the purge reads as due: see buildDueRecordsFilters.
+interface DueRecordsQuery {
   kind: ResolvedRecordKind;
   projectId: string;
   resolvedStateIds: Array<ObjectID | string>;
   cutoff: Date;
   // Incidents only: postmortems in these statuses keep their incident.
   keptPostmortemStatusIds?: Array<ObjectID | string> | undefined;
-  limit: number;
-}): ResolvedRecordRetentionStatement {
+}
+
+/*
+ * What makes a record of a project due: resolved, created before the
+ * cut-off, nothing on its state timeline since, in no episode still open or
+ * resolved since the cut-off - and, for incidents, without a postmortem in
+ * a status that keeps it; for alerts, linked to no incident. One builder for
+ * the purge's batches and for the count of what a setting deletes, so the
+ * count is always what goes.
+ */
+function buildDueRecordsFilters(
+  data: DueRecordsQuery,
+  params: StatementParams,
+): Array<string> {
   const tables: RetentionTables = TABLES[data.kind];
-  const params: StatementParams = new StatementParams();
   const project: string = params.add(data.projectId);
   const resolved: string = params.add(toIdTexts(data.resolvedStateIds));
   const cutoff: string = params.add(data.cutoff);
@@ -352,6 +418,19 @@ export function buildDueRecordsStatement(data: {
   )`);
   }
 
+  return filters;
+}
+
+/*
+ * One batch of a project's records due (buildDueRecordsFilters), in no
+ * order: every one of them goes.
+ */
+export function buildDueRecordsStatement(
+  data: DueRecordsQuery & { limit: number },
+): ResolvedRecordRetentionStatement {
+  const tables: RetentionTables = TABLES[data.kind];
+  const params: StatementParams = new StatementParams();
+  const filters: Array<string> = buildDueRecordsFilters(data, params);
   const limit: string = params.add(toBatchLimit(data.limit));
 
   return {
@@ -359,6 +438,68 @@ export function buildDueRecordsStatement(data: {
 FROM "${tables.recordTable}" r
 WHERE ${filters.join("\n  AND ")}
 LIMIT ${limit}`,
+    params: params.values,
+  };
+}
+
+/*
+ * How many of a project's records are due (buildDueRecordsFilters), read no
+ * further than `upTo`: the statement stops at that many rows, so a project
+ * with years of records costs a bounded read.
+ */
+export function buildDueRecordsCountStatement(
+  data: DueRecordsQuery & { upTo: number },
+): ResolvedRecordRetentionStatement {
+  const tables: RetentionTables = TABLES[data.kind];
+  const params: StatementParams = new StatementParams();
+  const filters: Array<string> = buildDueRecordsFilters(data, params);
+  const upTo: string = params.add(toBatchLimit(data.upTo));
+
+  return {
+    sql: `SELECT COUNT(*)::int AS "count"
+FROM (
+  SELECT 1
+  FROM "${tables.recordTable}" r
+  WHERE ${filters.join("\n    AND ")}
+  LIMIT ${upTo}
+) due`,
+    params: params.values,
+  };
+}
+
+/*
+ * How many live projects a new server maximum holds to a shorter length
+ * than they keep the kind's resolved records for now: each one set to
+ * Never, or to longer than the new maximum - read under the maximum there
+ * is now, if any. The Admin Dashboard says this before a maximum is set.
+ */
+export function buildProjectsReachedByMaximumStatement(data: {
+  kind: ResolvedRecordKind;
+  maximumInDays: number;
+  currentMaximumInDays?: number | undefined;
+}): ResolvedRecordRetentionStatement {
+  const tables: RetentionTables = TABLES[data.kind];
+  const params: StatementParams = new StatementParams();
+  const column: string = `p."${tables.retentionColumn}"`;
+  const minDays: string = params.add(MIN_RESOLVED_RECORD_RETENTION_IN_DAYS);
+  const maximum: string = params.add(data.maximumInDays);
+
+  /*
+   * How long each keeps them now: its own length - Never is none, read as
+   * longer than any maximum - or, under a maximum, at most that.
+   */
+  let keptFor: string = `CASE WHEN ${column} >= ${minDays} THEN ${column} END`;
+
+  if (data.currentMaximumInDays !== undefined) {
+    const current: string = params.add(data.currentMaximumInDays);
+    keptFor = `CASE WHEN ${column} >= ${minDays} AND ${column} <= ${current} THEN ${column} ELSE ${current} END`;
+  }
+
+  return {
+    sql: `SELECT COUNT(*)::int AS "count"
+FROM "Project" p
+WHERE p."deletedAt" IS NULL
+  AND COALESCE(${keptFor}, ${maximum} + 1) > ${maximum}`,
     params: params.values,
   };
 }
@@ -464,6 +605,13 @@ function isClearNo(value: unknown): boolean {
   return value === false || value === "false" || value === "f";
 }
 
+// The count a COUNT statement answered with: 0 for anything that is not one.
+function readCount(rows: Array<Record<string, unknown>>): number {
+  const count: number = Number(rows[0]?.["count"]);
+
+  return Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
+}
+
 export default class ResolvedRecordRetention {
   // Seams for tests: the statement runner, the clock and the service calls.
   public static runQuery: ResolvedRecordRetentionQueryRunner = async (
@@ -478,6 +626,76 @@ export default class ResolvedRecordRetention {
 
   public static now: () => Date = (): Date => {
     return new Date();
+  };
+
+  /*
+   * A count's statement, given at most RETENTION_COUNT_TIMEOUT_MS: run in a
+   * transaction of its own whose statement_timeout it sets, so a count that
+   * would take long fails quickly instead - and the question is asked
+   * without it. Nothing is written.
+   */
+  public static runCountQuery: ResolvedRecordRetentionQueryRunner = async (
+    sql: string,
+    params: Array<unknown>,
+  ): Promise<Array<Record<string, unknown>>> => {
+    const runner: QueryRunner =
+      ProjectService.getRepository().manager.connection.createQueryRunner();
+
+    try {
+      await runner.connect();
+      await runner.startTransaction();
+      await runner.query(
+        `SET LOCAL statement_timeout = ${Math.floor(RETENTION_COUNT_TIMEOUT_MS)}`,
+      );
+      const rows: Array<Record<string, unknown>> = (await runner.query(
+        sql,
+        params,
+      )) as Array<Record<string, unknown>>;
+      await runner.commitTransaction();
+
+      return rows;
+    } catch (error) {
+      if (runner.isTransactionActive) {
+        await runner.rollbackTransaction();
+      }
+
+      throw error;
+    } finally {
+      await runner.release();
+    }
+  };
+
+  /*
+   * The server's maximum and new-project default for the kind (issue
+   * #6941), as GlobalConfig holds them now: none, and Never, when there is
+   * no config row yet or a value cannot be read.
+   */
+  public static getServerLimits: (
+    kind: ResolvedRecordKind,
+  ) => Promise<ResolvedRecordRetentionServerLimits> = async (
+    kind: ResolvedRecordKind,
+  ): Promise<ResolvedRecordRetentionServerLimits> => {
+    const tables: RetentionTables = TABLES[kind];
+
+    const config: GlobalConfig | null = await GlobalConfigService.findOneById({
+      id: ObjectID.getZeroObjectID(),
+      select: {
+        [tables.serverMaximumColumn]: true,
+        [tables.serverDefaultColumn]: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!config) {
+      return { ...NO_RESOLVED_RECORD_RETENTION_SERVER_LIMITS };
+    }
+
+    return readResolvedRecordRetentionServerLimits({
+      maximumInDays: config.getColumnValue(tables.serverMaximumColumn),
+      defaultInDays: config.getColumnValue(tables.serverDefaultColumn),
+    });
   };
 
   // The project's states that count as resolved, for the kind.
@@ -527,6 +745,118 @@ export default class ResolvedRecordRetention {
         return Boolean(id);
       });
   };
+
+  /*
+   * The postmortem statuses that keep an incident (issue #6945): none for
+   * alerts, or while the project lets them go; else the ones it chose, or
+   * with none chosen its Completed status.
+   */
+  public static async getKeptPostmortemStatusIds(data: {
+    kind: ResolvedRecordKind;
+    projectId: ObjectID;
+    keepCompletedPostmortems: boolean;
+    chosenStatusIds?: Array<string> | undefined;
+  }): Promise<Array<ObjectID | string>> {
+    if (data.kind !== ResolvedRecordKind.Incident) {
+      return [];
+    }
+
+    if (!data.keepCompletedPostmortems) {
+      return [];
+    }
+
+    if (data.chosenStatusIds && data.chosenStatusIds.length > 0) {
+      return data.chosenStatusIds;
+    }
+
+    return await this.getCompletedPostmortemStatusIds(data.projectId);
+  }
+
+  /*
+   * How many of a project's records a setting deletes now (issue #6943):
+   * read with the purge's own filters (buildDueRecordsFilters), for the
+   * length the project would keep them under the server's maximum, up to
+   * RETENTION_COUNT_UP_TO and in at most RETENTION_COUNT_TIMEOUT_MS - a
+   * count that would take longer fails, and the question is asked without
+   * it. Episodes are not counted: they go once their members have.
+   */
+  public static async countDueRecords(data: {
+    kind: ResolvedRecordKind;
+    projectId: ObjectID;
+    retentionInDays: number;
+    keepCompletedPostmortems: boolean;
+    keptPostmortemStatusIds?: Array<string> | undefined;
+    maximumInDays?: number | undefined;
+  }): Promise<DueRecordsCount> {
+    const retentionInDays: number = getEffectiveResolvedRecordRetentionInDays({
+      projectRetentionInDays: data.retentionInDays,
+      maximumInDays: data.maximumInDays,
+    });
+
+    if (retentionInDays < MIN_RESOLVED_RECORD_RETENTION_IN_DAYS) {
+      return { count: 0, isAtLeast: false };
+    }
+
+    const resolvedStateIds: Array<ObjectID> = await this.getResolvedStateIds({
+      kind: data.kind,
+      projectId: data.projectId,
+    });
+
+    if (resolvedStateIds.length === 0) {
+      return { count: 0, isAtLeast: false };
+    }
+
+    const statement: ResolvedRecordRetentionStatement =
+      buildDueRecordsCountStatement({
+        kind: data.kind,
+        projectId: data.projectId.toString(),
+        resolvedStateIds: resolvedStateIds,
+        cutoff: getRetentionCutoff({
+          now: this.now(),
+          retentionInDays: retentionInDays,
+        }),
+        keptPostmortemStatusIds: await this.getKeptPostmortemStatusIds({
+          kind: data.kind,
+          projectId: data.projectId,
+          keepCompletedPostmortems: data.keepCompletedPostmortems,
+          chosenStatusIds: data.keptPostmortemStatusIds,
+        }),
+        upTo: RETENTION_COUNT_UP_TO,
+      });
+
+    const rows: Array<Record<string, unknown>> = await this.runCountQuery(
+      statement.sql,
+      statement.params,
+    );
+
+    const count: number = readCount(rows);
+
+    return {
+      count: count,
+      isAtLeast: count >= RETENTION_COUNT_UP_TO,
+    };
+  }
+
+  /*
+   * How many live projects a new server maximum holds to a shorter length
+   * than they keep the kind's resolved records for now (issue #6941).
+   */
+  public static async countProjectsReachedByMaximum(data: {
+    kind: ResolvedRecordKind;
+    maximumInDays: number;
+  }): Promise<number> {
+    const current: ResolvedRecordRetentionServerLimits =
+      await this.getServerLimits(data.kind);
+
+    const statement: ResolvedRecordRetentionStatement =
+      buildProjectsReachedByMaximumStatement({
+        kind: data.kind,
+        maximumInDays: data.maximumInDays,
+        currentMaximumInDays: current.maximumInDays,
+      });
+
+    return readCount(await this.runQuery(statement.sql, statement.params));
+  }
 
   /*
    * Deletes records by their ids, held to the states that count as
@@ -664,6 +994,11 @@ export default class ResolvedRecordRetention {
       return this.now().getTime() - startedAt >= budgetMs;
     };
 
+    // The server's maximum, read once a run: every project is held to it.
+    const maximumInDays: number | undefined = (
+      await this.getServerLimits(data.kind)
+    ).maximumInDays;
+
     let afterProjectId: string | undefined = undefined;
     let isLastPage: boolean = false;
 
@@ -671,6 +1006,7 @@ export default class ResolvedRecordRetention {
       const page: DueRetentionProjectsPage = await this.findDueProjects({
         kind: data.kind,
         afterProjectId: afterProjectId,
+        maximumInDays: maximumInDays,
       });
 
       for (const project of page.projects) {
@@ -688,6 +1024,7 @@ export default class ResolvedRecordRetention {
               projectId: project.projectId,
               retentionInDays: project.retentionInDays,
               keepCompletedPostmortems: project.keepCompletedPostmortems,
+              keptPostmortemStatusIds: project.keptPostmortemStatusIds,
               isOutOfTime: isOutOfTime,
             },
           );
@@ -712,19 +1049,21 @@ export default class ResolvedRecordRetention {
 
   /*
    * One page of the projects that keep the kind's resolved records for a
-   * while, and where the next page starts: after the last project the page
-   * read, whether or not it is worked on, or nowhere when the page was not
-   * full.
+   * while - each for its own length, held to the server's maximum - and
+   * where the next page starts: after the last project the page read,
+   * whether or not it is worked on, or nowhere when the page was not full.
    */
   public static async findDueProjects(data: {
     kind: ResolvedRecordKind;
     afterProjectId?: string | undefined;
+    maximumInDays?: number | undefined;
   }): Promise<DueRetentionProjectsPage> {
     const statement: ResolvedRecordRetentionStatement =
       buildDueProjectsStatement({
         kind: data.kind,
         afterProjectId: data.afterProjectId,
         limit: RETENTION_PROJECTS_PER_PAGE,
+        maximumInDays: data.maximumInDays,
       });
 
     const rows: Array<Record<string, unknown>> = await this.runQuery(
@@ -736,17 +1075,34 @@ export default class ResolvedRecordRetention {
 
     for (const row of rows) {
       const projectId: string = String(row["projectId"] || "");
-      const retentionInDays: number | undefined =
+
+      /*
+       * Only a project's own setting, one of the choices or Never, deletes
+       * anything: a value that cannot be read is skipped, even under the
+       * server's maximum.
+       */
+      const ownRetentionInDays: number | undefined =
         readResolvedRecordRetentionInDays(row["retentionInDays"]);
 
-      // Only a project's own setting, one of the choices, deletes anything.
       if (
         !ObjectID.isValidUUID(projectId) ||
-        !retentionInDays ||
-        retentionInDays < MIN_RESOLVED_RECORD_RETENTION_IN_DAYS
+        ownRetentionInDays === undefined
       ) {
         continue;
       }
+
+      const retentionInDays: number = getEffectiveResolvedRecordRetentionInDays(
+        {
+          projectRetentionInDays: ownRetentionInDays,
+          maximumInDays: data.maximumInDays,
+        },
+      );
+
+      if (retentionInDays < MIN_RESOLVED_RECORD_RETENTION_IN_DAYS) {
+        continue;
+      }
+
+      const isIncident: boolean = data.kind === ResolvedRecordKind.Incident;
 
       projects.push({
         projectId: projectId,
@@ -757,8 +1113,10 @@ export default class ResolvedRecordRetention {
          * have no postmortem.
          */
         keepCompletedPostmortems:
-          data.kind === ResolvedRecordKind.Incident &&
-          !isClearNo(row["keepCompletedPostmortems"]),
+          isIncident && !isClearNo(row["keepCompletedPostmortems"]),
+        keptPostmortemStatusIds: isIncident
+          ? readKeptPostmortemStatusIds(row["keptPostmortemStatusIds"])
+          : undefined,
       });
     }
 
@@ -786,6 +1144,8 @@ export default class ResolvedRecordRetention {
     projectId: string;
     retentionInDays: number;
     keepCompletedPostmortems: boolean;
+    // Incidents only: the statuses the project chose, or undefined for Completed.
+    keptPostmortemStatusIds?: Array<string> | undefined;
     isOutOfTime?: (() => boolean) | undefined;
   }): Promise<ResolvedRecordRetentionResult> {
     const result: ResolvedRecordRetentionResult = { records: 0, episodes: 0 };
@@ -806,10 +1166,13 @@ export default class ResolvedRecordRetention {
       return result;
     }
 
-    const keptPostmortemStatusIds: Array<ObjectID> =
-      data.kind === ResolvedRecordKind.Incident && data.keepCompletedPostmortems
-        ? await this.getCompletedPostmortemStatusIds(projectId)
-        : [];
+    const keptPostmortemStatusIds: Array<ObjectID | string> =
+      await this.getKeptPostmortemStatusIds({
+        kind: data.kind,
+        projectId: projectId,
+        keepCompletedPostmortems: data.keepCompletedPostmortems,
+        chosenStatusIds: data.keptPostmortemStatusIds,
+      });
 
     const cutoff: Date = getRetentionCutoff({
       now: this.now(),

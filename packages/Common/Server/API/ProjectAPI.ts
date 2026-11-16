@@ -47,12 +47,49 @@ import {
   RecordNumbering,
 } from "../../Utils/Project/NextNumber";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import ResolvedRecordRetention, {
+  DueRecordsCount,
+} from "../Utils/Retention/ResolvedRecordRetention";
+import {
+  ResolvedRecordKind,
+  ResolvedRecordRetentionServerLimits,
+  readKeptPostmortemStatusIds,
+} from "../../Types/Retention/ResolvedRecordRetention";
+import ResolvedRecordRetentionAnswers, {
+  DueRecordsCountRequest,
+  RESOLVED_RECORD_RETENTION_COUNT_ROUTE,
+  RESOLVED_RECORD_RETENTION_ROUTE,
+} from "../../Types/Retention/ResolvedRecordRetentionAnswers";
 
 /*
  * The reason is free text a customer types into the delete confirmation. The
  * column is unbounded text, so the cap is here.
  */
 export const MAX_DELETION_REASON_LENGTH: number = 5000;
+
+/*
+ * Who may read the server's retention maximum for a project ("read"), and
+ * who may count what a change of the kind's retention deletes ("update"):
+ * the read and update lists of the project's own retention column, so the
+ * Data Retention routes follow the setting they serve.
+ */
+export function getRetentionPermissions(
+  kind: ResolvedRecordKind,
+  access: "read" | "update",
+): Array<Permission> {
+  const column: string =
+    kind === ResolvedRecordKind.Incident
+      ? "incidentRetentionInDays"
+      : "alertRetentionInDays";
+
+  const accessControl:
+    | { read?: Array<Permission>; update?: Array<Permission> }
+    | undefined = new Project().getColumnAccessControlFor(column) || undefined;
+
+  return (
+    (access === "read" ? accessControl?.read : accessControl?.update) || []
+  );
+}
 
 /*
  * Who may read where a project's numbers stand (GET /project/:id/numbering):
@@ -283,6 +320,138 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
               };
             }) as JSONArray,
           });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * The server's maximum on how long a project keeps resolved incidents
+     * and alerts (issue #6941, Admin Dashboard > Settings > Data Retention),
+     * for the project's Data Retention cards: what the project cannot keep
+     * longer, locked there with a line that says so. GlobalConfig is no
+     * caller's to read, so the answer is read as OneUptime, for a member or
+     * API key of the project the URL names with a permission that reads the
+     * project's retention - the column's own read list.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/${RESOLVED_RECORD_RETENTION_ROUTE}`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const projectId: ObjectID = await this.assertRetentionCaller(
+            req,
+            "read",
+          );
+
+          const incident: ResolvedRecordRetentionServerLimits =
+            await ResolvedRecordRetention.getServerLimits(
+              ResolvedRecordKind.Incident,
+            );
+          const alert: ResolvedRecordRetentionServerLimits =
+            await ResolvedRecordRetention.getServerLimits(
+              ResolvedRecordKind.Alert,
+            );
+
+          logger.debug(
+            `Read the server's retention maximum for project ${projectId.toString()}.`,
+          );
+
+          // A master admin may change it any time: never answered from a cache.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            ResolvedRecordRetentionAnswers.toLimitsJSON({
+              incidentMaximumInDays: incident.maximumInDays,
+              alertMaximumInDays: alert.maximumInDays,
+            }),
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * How many incidents (alerts) a Data Retention setting deletes now
+     * (issue #6943): the setting as the card would save it - its length,
+     * and for incidents the postmortem switch and statuses, the project's
+     * saved ones where the request leaves them out - counted with the
+     * purge's own filters under the server's maximum
+     * (ResolvedRecordRetention.countDueRecords). Project Owners and Admins,
+     * who may change the setting. A count that fails or takes too long is
+     * answered with no count, so the card asks its question without one.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/${RESOLVED_RECORD_RETENTION_COUNT_ROUTE}`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const request: DueRecordsCountRequest | null =
+            ResolvedRecordRetentionAnswers.readCountRequest(req.body);
+
+          if (!request) {
+            throw new BadDataException(
+              "Say what to count: the kind (Incident or Alert) and a retention in days, one of the choices or 0.",
+            );
+          }
+
+          const projectId: ObjectID = await this.assertRetentionCaller(
+            req,
+            "update",
+            request.kind,
+          );
+
+          Response.setNoCacheHeaders(res);
+
+          try {
+            const saved: Project | null = await ProjectService.findOneById({
+              id: projectId,
+              select: {
+                keepIncidentsWithCompletedPostmortem: true,
+                keepIncidentsInPostmortemStatusIds: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            const limits: ResolvedRecordRetentionServerLimits =
+              await ResolvedRecordRetention.getServerLimits(request.kind);
+
+            const count: DueRecordsCount =
+              await ResolvedRecordRetention.countDueRecords({
+                kind: request.kind,
+                projectId: projectId,
+                retentionInDays: request.retentionInDays,
+                keepCompletedPostmortems:
+                  request.keepIncidentsWithCompletedPostmortem ??
+                  saved?.keepIncidentsWithCompletedPostmortem !== false,
+                keptPostmortemStatusIds: readKeptPostmortemStatusIds(
+                  request.keepIncidentsInPostmortemStatusIds ??
+                    saved?.keepIncidentsInPostmortemStatusIds,
+                ),
+                maximumInDays: limits.maximumInDays,
+              });
+
+            return Response.sendJsonObjectResponse(
+              req,
+              res,
+              ResolvedRecordRetentionAnswers.toCountJSON(count),
+            );
+          } catch (countError) {
+            logger.warn(
+              `Counting what a retention setting deletes in project ${projectId.toString()} failed; the question is asked without the count: ${String(countError)}`,
+            );
+
+            return Response.sendJsonObjectResponse(req, res, {
+              count: null,
+              isAtLeast: false,
+            });
+          }
         } catch (err) {
           next(err);
         }
@@ -900,5 +1069,47 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
         }
       },
     );
+  }
+
+  /*
+   * The project a Data Retention route answers about (issues #6941,
+   * #6943): the one the request is authenticated for - a member or API key
+   * of it, named in the URL too - with a permission that reads ("read") or
+   * changes ("update") the kind's retention: the column's own lists, so a
+   * route says no more, and counts for nobody more, than the model API
+   * would.
+   */
+  private async assertRetentionCaller(
+    req: ExpressRequest,
+    access: "read" | "update",
+    kind: ResolvedRecordKind = ResolvedRecordKind.Incident,
+  ): Promise<ObjectID> {
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    const projectId: ObjectID =
+      CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+    const idParam: string = String(req.params["id"] || "");
+
+    if (
+      !ObjectID.isValidUUID(idParam) ||
+      idParam.toLowerCase() !== projectId.toString().toLowerCase()
+    ) {
+      throw new NotAuthorizedException(
+        "You are not authorized to access this project's data.",
+      );
+    }
+
+    CommonAPI.assertPermittedInProject({
+      databaseProps: props,
+      allowedPermissions: getRetentionPermissions(kind, access),
+      errorMessage:
+        access === "read"
+          ? "You do not have permission to read how long this project keeps resolved incidents and alerts."
+          : "Only Project Owners and Project Admins can see what a change to how long resolved incidents and alerts are kept deletes.",
+    });
+
+    return projectId;
   }
 }
