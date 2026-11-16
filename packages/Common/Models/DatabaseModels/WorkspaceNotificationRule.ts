@@ -281,13 +281,16 @@ class WorkspaceNotificationRule extends BaseModel {
      * MCP's tools say about the rule's JSON. The values updatesToPost takes
      * are NotificationRuleUpdateKind's: the API refuses a rule saved with
      * one its kind of rule cannot choose (NotificationRuleUpdates
-     * .getValidationError). The last sentence is the conditions': the API
-     * refuses people, teams and policies of another project
-     * (NotificationRuleConditionIds). No Dashboard form shows this text: the
-     * rule form's steps draw their own words (hideColumnDescription).
+     * .getValidationError). An on-call policy rule's
+     * shouldMentionWhoIsOnCall is true or false, and true on no other kind
+     * of rule (getMentionValidationError, issue #7968). The last sentence is
+     * the conditions': the API refuses people, teams and policies of another
+     * project (NotificationRuleConditionIds). No Dashboard form shows this
+     * text: the rule form's steps draw their own words
+     * (hideColumnDescription).
      */
     description:
-      "The rule, as JSON: the events it is for (filters, filterCondition), where it posts, and for incident, alert, incident episode, alert episode, scheduled maintenance and on-call policy rules, updatesToPost: the updates it posts after the record's first message, any of ResolvedAndReopened, StateChanges, SeverityChanges, PublicNotes, PrivateNotes, Owners, Paging, EpisodeMembers, Postmortem, AI, Edits and Other - for an on-call policy rule, any of OnCallNow, OnCallNext, NobodyOnCall, Overrides, PolicyChanges and Owners - as its kind of rule allows. Left out, the rule posts every update. The first message, and a video call's Join button, are posted whatever it lists. Owner and On-Call Policy conditions in filters name people, teams and policies of this project by ID.",
+      "The rule, as JSON: the events it is for (filters, filterCondition), where it posts, and for incident, alert, incident episode, alert episode, scheduled maintenance and on-call policy rules, updatesToPost: the updates it posts after the record's first message, any of ResolvedAndReopened, StateChanges, SeverityChanges, PublicNotes, PrivateNotes, Owners, Paging, EpisodeMembers, Postmortem, AI, Edits and Other - for an on-call policy rule, any of OnCallNow, OnCallNext, NobodyOnCall, Overrides, PolicyChanges and Owners - as its kind of rule allows. Left out, the rule posts every update. The first message, and a video call's Join button, are posted whatever it lists. An on-call policy rule that posts OnCallNow can set shouldMentionWhoIsOnCall to true: its hand-off line then mentions the person who comes on call, where they connected their chat account. Owner and On-Call Policy conditions in filters name people, teams and policies of this project by ID.",
     required: true,
     unique: false,
     type: TableColumnType.JSON,

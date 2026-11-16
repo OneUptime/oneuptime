@@ -2,6 +2,7 @@ import MattermostUtil from "../../../../Server/Utils/Workspace/Mattermost/Matter
 import MicrosoftTeamsUtil from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import WorkspaceMentions from "../../../../Server/Utils/Workspace/WorkspaceMentions";
+import WorkspaceNotificationText from "../../../../Server/Utils/Workspace/WorkspaceNotificationText";
 import { JSONObject } from "../../../../Types/JSON";
 import {
   WorkspacePayloadMarkdown,
@@ -322,5 +323,28 @@ describe("Mattermost keeps a mention it is told of, and breaks every other", () 
     });
 
     expect(post["message"]).toBe("📞 @ana.lee is now on call. Hi @⁠bob.");
+  });
+});
+
+/*
+ * What a phone shows of the line (WorkspaceNotificationText): Slack shows
+ * its own mention in a notification as the name, and a Teams summary has
+ * the name the <at> tag holds - never the tag itself.
+ */
+describe("a notification of a line that mentions somebody", () => {
+  test("Slack's keeps the mention for Slack to show as the name", () => {
+    expect(
+      WorkspaceNotificationText.fromMarkdown(
+        "📞 <@U0123ABC> is now on call for [Payments](https://oneuptime.test/p).",
+      ),
+    ).toBe("📞 <@U0123ABC> is now on call for Payments.");
+  });
+
+  test("Microsoft Teams' reads the name inside the tag", () => {
+    expect(
+      WorkspaceNotificationText.fromMarkdown(
+        "📞 <at>Ana Lee</at> is now on call for [Payments](https://oneuptime.test/p).",
+      ),
+    ).toBe("📞 Ana Lee is now on call for Payments.");
   });
 });
