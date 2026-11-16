@@ -373,6 +373,10 @@ const ZERO_IS_NOT_A_VALUE: Record<string, string> = {
     "an interface's ifIndex is greater than zero (RFC 2863)",
   "OpenStackBudget.monthlyAmount":
     "a budget of nothing, which the service refuses first",
+  "OwnerNotificationDelivery.attempts":
+    "a row is written by the run that sets out to tell its owner: its first attempt",
+  "OwnerNotificationDelivery.occurrence":
+    "occurrences count from 1: a reminder's number, and 1 for a notification sent once",
   "RunnerJob.timeoutInMs": "a job with no time to run",
   "ScheduledMaintenanceReminderRule.reminderIntervalInMinutes":
     "a reminder every 0 minutes, which the service refuses first",
