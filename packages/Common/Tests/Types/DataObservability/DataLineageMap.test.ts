@@ -1,0 +1,602 @@
+import { describe, expect, test } from "@jest/globals";
+import { DataAssetFreshness } from "../../../Types/DataObservability/DataAssetFreshness";
+import DataAssetKind from "../../../Types/DataObservability/DataAssetKind";
+import DataAssetLineageSource from "../../../Types/DataObservability/DataAssetLineageSource";
+import { DataAssetAccessKind } from "../../../Types/DataObservability/DataAssetUsage";
+import {
+  DataLineageMap,
+  DataLineageMapChoice,
+  DataLineageMapEdge,
+  DataLineageMapEdgeKind,
+  DataLineageMapEvidence,
+  DataLineageMapLineageRow,
+  DataLineageMapNode,
+  DataLineageMapNodeKind,
+  DataLineageMapTableRow,
+  DataLineageMapTrace,
+  DataLineageMapUsageRow,
+  MAX_DATA_LINEAGE_MAP_DASHBOARDS,
+  MAX_DATA_LINEAGE_MAP_NODES,
+  MAX_DATA_LINEAGE_MAP_OPERATIONS,
+  assembleDataLineageMap,
+  chooseDataLineageMapFlows,
+  getLineageMapServiceNodeId,
+  hasFailedLineageMapPipeline,
+  isLineageMapNodeInTrouble,
+  traceDataLineageMap,
+} from "../../../Types/DataObservability/DataLineageMap";
+
+/*
+ * THE LINEAGE MAP, WORKED OUT FROM THE ROWS OneUptime KEEPS (#9114).
+ *
+ * Every arrow is a row: a table built from another (Feeds), a pipeline
+ * loading a table from outside or a service's spans writing it (Writes), a
+ * service's spans or a BI dashboard reading it (Reads). Nothing is drawn
+ * that no row says, the newest flows are kept when there are more than a
+ * map holds, and a row naming a table or pipeline that is gone draws
+ * nothing.
+ */
+
+const NOW: Date = new Date("2026-11-16T12:00:00.000Z");
+
+function hoursAgo(hours: number): Date {
+  return new Date(NOW.getTime() - hours * 60 * 60 * 1000);
+}
+
+function table(
+  id: string,
+  fields: Partial<DataLineageMapTableRow> = {},
+): DataLineageMapTableRow {
+  return {
+    dataAssetId: id,
+    assetKey: `public.${id}`,
+    name: id,
+    database: "orders-db",
+    assetKind: DataAssetKind.Table,
+    lastChangedAt: hoursAgo(1),
+    updateIntervalInSeconds: 24 * 60 * 60,
+    isDropped: false,
+    ...fields,
+  };
+}
+
+function feeds(
+  upstream: string,
+  downstream: string,
+  fields: Partial<DataLineageMapLineageRow> = {},
+): DataLineageMapLineageRow {
+  return {
+    upstreamDataAssetId: upstream,
+    downstreamDataAssetId: downstream,
+    dataPipelineId: null,
+    source: DataAssetLineageSource.QueryHistory,
+    lastSeenAt: hoursAgo(1),
+    ...fields,
+  };
+}
+
+function usage(
+  service: string,
+  dataAssetId: string,
+  accessKind: DataAssetAccessKind,
+  fields: Partial<DataLineageMapUsageRow> = {},
+): DataLineageMapUsageRow {
+  return {
+    dataAssetId,
+    serviceId: `svc-${service}`,
+    serviceName: service,
+    accessKind,
+    operations: [
+      accessKind === DataAssetAccessKind.Write ? "INSERT" : "SELECT",
+    ],
+    lastSeenAt: hoursAgo(1),
+    ...fields,
+  };
+}
+
+function nodeIds(map: DataLineageMap): Array<string> {
+  return map.nodes.map((node: DataLineageMapNode): string => {
+    return node.id;
+  });
+}
+
+function edgeOf(map: DataLineageMap, id: string): DataLineageMapEdge {
+  const edge: DataLineageMapEdge | undefined = map.edges.find(
+    (candidate: DataLineageMapEdge): boolean => {
+      return candidate.id === id;
+    },
+  );
+
+  if (!edge) {
+    throw new Error(
+      `no edge ${id} in ${map.edges
+        .map((e: DataLineageMapEdge): string => {
+          return e.id;
+        })
+        .join()}`,
+    );
+  }
+
+  return edge;
+}
+
+function assemble(data: {
+  lineage?: Array<DataLineageMapLineageRow>;
+  usages?: Array<DataLineageMapUsageRow>;
+  tables: Array<DataLineageMapTableRow>;
+  pipelines?: Parameters<typeof assembleDataLineageMap>[0]["pipelines"];
+  dashboards?: Parameters<typeof assembleDataLineageMap>[0]["dashboards"];
+  openAlertCounts?: Map<string, number>;
+  maxNodes?: number;
+}): DataLineageMap {
+  const choice: DataLineageMapChoice = chooseDataLineageMapFlows({
+    lineage: data.lineage || [],
+    usages: data.usages || [],
+    maxNodes: data.maxNodes,
+  });
+
+  return assembleDataLineageMap({
+    choice,
+    tables: data.tables,
+    pipelines: data.pipelines || [],
+    dashboards: data.dashboards || [],
+    openAlertCounts: data.openAlertCounts || new Map(),
+    now: NOW,
+  });
+}
+
+describe("chooseDataLineageMapFlows", () => {
+  test("keeps every flow and names every table and pipeline on it", () => {
+    const choice: DataLineageMapChoice = chooseDataLineageMapFlows({
+      lineage: [
+        feeds("raw", "orders"),
+        feeds("orders", "orders", { source: DataAssetLineageSource.Pipeline }),
+        {
+          upstreamDataAssetId: null,
+          downstreamDataAssetId: "raw",
+          dataPipelineId: "p1",
+          source: null,
+          lastSeenAt: hoursAgo(2),
+        },
+        // Neither a table nor a pipeline upstream: nothing to draw.
+        {
+          upstreamDataAssetId: null,
+          downstreamDataAssetId: "lonely",
+          dataPipelineId: null,
+          source: null,
+          lastSeenAt: hoursAgo(2),
+        },
+      ],
+      usages: [usage("api", "orders", DataAssetAccessKind.Read)],
+    });
+
+    // A table built from itself draws no arrow.
+    expect(choice.lineage).toHaveLength(2);
+    expect(choice.usages).toHaveLength(1);
+    expect(choice.dataAssetIds).toEqual(["orders", "raw"]);
+    expect(choice.dataPipelineIds).toEqual(["p1"]);
+    expect(choice.isTruncated).toBe(false);
+    expect(choice.dashboardRoom).toBe(MAX_DATA_LINEAGE_MAP_DASHBOARDS);
+  });
+
+  test("past the most cards a map draws, the newest flows are kept and the map says there were more", () => {
+    const choice: DataLineageMapChoice = chooseDataLineageMapFlows({
+      lineage: [
+        feeds("a", "b", { lastSeenAt: hoursAgo(10) }),
+        feeds("c", "d", { lastSeenAt: hoursAgo(1) }),
+        // Its cards are drawn already: it always fits.
+        feeds("d", "c", { lastSeenAt: hoursAgo(20) }),
+      ],
+      usages: [
+        usage("api", "e", DataAssetAccessKind.Write, {
+          lastSeenAt: hoursAgo(2),
+        }),
+      ],
+      maxNodes: 4,
+    });
+
+    expect(choice.lineage).toEqual([
+      feeds("c", "d", { lastSeenAt: hoursAgo(1) }),
+      feeds("d", "c", { lastSeenAt: hoursAgo(20) }),
+    ]);
+    expect(choice.usages).toHaveLength(1);
+    expect(choice.dataAssetIds).toEqual(["c", "d", "e"]);
+    expect(choice.isTruncated).toBe(true);
+    expect(choice.dashboardRoom).toBe(0);
+  });
+
+  test("more rows than were read make the map truncated", () => {
+    expect(
+      chooseDataLineageMapFlows({
+        lineage: [feeds("a", "b")],
+        usages: [],
+        hadMoreRows: true,
+      }).isTruncated,
+    ).toBe(true);
+  });
+
+  test("the room left for dashboards is what the flows leave, at most the dashboards' own most", () => {
+    expect(
+      chooseDataLineageMapFlows({
+        lineage: [feeds("a", "b")],
+        usages: [],
+        maxNodes: 5,
+      }).dashboardRoom,
+    ).toBe(3);
+    expect(MAX_DATA_LINEAGE_MAP_DASHBOARDS).toBeLessThan(
+      MAX_DATA_LINEAGE_MAP_NODES,
+    );
+  });
+
+  test("a service with neither a name nor an id draws nothing", () => {
+    expect(
+      chooseDataLineageMapFlows({
+        lineage: [],
+        usages: [
+          usage("", "a", DataAssetAccessKind.Read, {
+            serviceId: null,
+            serviceName: "  ",
+          }),
+        ],
+      }).usages,
+    ).toEqual([]);
+  });
+});
+
+describe("assembleDataLineageMap", () => {
+  test("one table built from another is one Feeds arrow, every place it was seen together", () => {
+    const map: DataLineageMap = assemble({
+      lineage: [
+        feeds("raw", "orders", { lastSeenAt: hoursAgo(5) }),
+        feeds("raw", "orders", {
+          source: DataAssetLineageSource.ViewDefinition,
+          lastSeenAt: hoursAgo(1),
+        }),
+        feeds("raw", "orders", {
+          source: null,
+          dataPipelineId: "p1",
+          lastSeenAt: hoursAgo(3),
+        }),
+        feeds("raw", "orders", {
+          source: DataAssetLineageSource.Pipeline,
+          dataPipelineId: "p2",
+          lastSeenAt: hoursAgo(3),
+        }),
+      ],
+      tables: [table("raw"), table("orders")],
+      pipelines: [
+        {
+          dataPipelineId: "p1",
+          jobName: "zeta_load",
+          jobNamespace: "airflow",
+          lastRunState: "COMPLETE",
+        },
+        {
+          dataPipelineId: "p2",
+          jobName: "orders_etl",
+          jobNamespace: "airflow",
+          lastRunState: "FAIL",
+        },
+      ],
+    });
+
+    expect(nodeIds(map)).toEqual(["table:orders", "table:raw"]);
+    expect(map.edges).toHaveLength(1);
+
+    const edge: DataLineageMapEdge = edgeOf(
+      map,
+      "Feeds:table:raw>table:orders",
+    );
+
+    expect(edge.kind).toBe(DataLineageMapEdgeKind.Feeds);
+    // In one order, whichever was seen last.
+    expect(edge.seenIn).toEqual([
+      DataLineageMapEvidence.Pipeline,
+      DataLineageMapEvidence.QueryHistory,
+      DataLineageMapEvidence.ViewDefinition,
+    ]);
+    // A failed run first: the pipeline that broke the flow.
+    expect(
+      edge.pipelines.map((p: { name: string }): string => {
+        return p.name;
+      }),
+    ).toEqual(["orders_etl", "zeta_load"]);
+    expect(hasFailedLineageMapPipeline(edge)).toBe(true);
+    expect(edge.lastSeenAt).toBe(hoursAgo(1).toISOString());
+    // A pipeline that moves data between two watched tables is told on the arrow, not drawn as a card.
+    expect(nodeIds(map)).not.toContain("pipeline:p1");
+  });
+
+  test("a pipeline loading a table from outside is a card writing it", () => {
+    const map: DataLineageMap = assemble({
+      lineage: [
+        {
+          upstreamDataAssetId: null,
+          downstreamDataAssetId: "raw",
+          dataPipelineId: "p1",
+          source: null,
+          lastSeenAt: hoursAgo(2),
+        },
+      ],
+      tables: [table("raw")],
+      pipelines: [
+        {
+          dataPipelineId: "p1",
+          jobName: "fivetran.salesforce",
+          jobNamespace: "fivetran",
+          lastRunState: "FAIL",
+        },
+      ],
+    });
+
+    expect(nodeIds(map)).toEqual(["pipeline:p1", "table:raw"]);
+
+    const pipeline: DataLineageMapNode = map.nodes[0]!;
+
+    expect(pipeline).toEqual({
+      id: "pipeline:p1",
+      kind: DataLineageMapNodeKind.Pipeline,
+      name: "fivetran.salesforce",
+      dataPipelineId: "p1",
+      jobNamespace: "fivetran",
+      lastRunState: "FAIL",
+    });
+    expect(isLineageMapNodeInTrouble(pipeline)).toBe(true);
+    expect(edgeOf(map, "Writes:pipeline:p1>table:raw").seenIn).toEqual([
+      DataLineageMapEvidence.Pipeline,
+    ]);
+  });
+
+  test("a service's spans write a table into it and read a table out of it", () => {
+    const map: DataLineageMap = assemble({
+      usages: [
+        usage("checkout", "orders", DataAssetAccessKind.Write, {
+          operations: ["INSERT", "UPDATE"],
+        }),
+        usage("checkout", "orders", DataAssetAccessKind.Write, {
+          operations: ["UPDATE", "DELETE"],
+          lastSeenAt: hoursAgo(5),
+        }),
+        usage("reports", "orders", DataAssetAccessKind.Read),
+      ],
+      tables: [table("orders")],
+    });
+
+    expect(nodeIds(map)).toEqual([
+      "service:svc-checkout",
+      "service:svc-reports",
+      "table:orders",
+    ]);
+
+    const write: DataLineageMapEdge = edgeOf(
+      map,
+      "Writes:service:svc-checkout>table:orders",
+    );
+
+    expect(write.seenIn).toEqual([DataLineageMapEvidence.Traces]);
+    expect(write.operations).toEqual(["INSERT", "UPDATE", "DELETE"]);
+    expect(write.lastSeenAt).toBe(hoursAgo(1).toISOString());
+
+    const read: DataLineageMapEdge = edgeOf(
+      map,
+      "Reads:table:orders>service:svc-reports",
+    );
+
+    expect(read.kind).toBe(DataLineageMapEdgeKind.Reads);
+    expect(read.operations).toEqual(["SELECT"]);
+  });
+
+  test("an arrow names at most a few operations", () => {
+    const operations: Array<string> = [
+      "INSERT",
+      "UPDATE",
+      "DELETE",
+      "MERGE",
+      "COPY",
+      "UPSERT",
+      "LOAD",
+      "TRUNCATE",
+    ];
+    const map: DataLineageMap = assemble({
+      usages: [
+        usage("loader", "orders", DataAssetAccessKind.Write, { operations }),
+      ],
+      tables: [table("orders")],
+    });
+
+    expect(map.edges[0]!.operations).toEqual(
+      operations.slice(0, MAX_DATA_LINEAGE_MAP_OPERATIONS),
+    );
+  });
+
+  test("a service known only by its name is one card, whatever its case", () => {
+    expect(
+      getLineageMapServiceNodeId({ serviceId: null, serviceName: " Billing " }),
+    ).toBe(
+      getLineageMapServiceNodeId({ serviceId: null, serviceName: "billing" }),
+    );
+
+    const map: DataLineageMap = assemble({
+      usages: [
+        usage("Billing", "orders", DataAssetAccessKind.Read, {
+          serviceId: null,
+        }),
+      ],
+      tables: [table("orders")],
+    });
+
+    expect(map.nodes[0]).toEqual({
+      id: "service-name:billing",
+      kind: DataLineageMapNodeKind.Service,
+      name: "Billing",
+      serviceId: null,
+    });
+  });
+
+  test("a table says how it is now: late, an open alert, dropped", () => {
+    const map: DataLineageMap = assemble({
+      lineage: [feeds("late", "alerting"), feeds("alerting", "dropped")],
+      tables: [
+        table("late", {
+          lastChangedAt: hoursAgo(72),
+          updateIntervalInSeconds: 60 * 60,
+        }),
+        table("alerting"),
+        table("dropped", { isDropped: true }),
+      ],
+      openAlertCounts: new Map([["alerting", 2]]),
+    });
+
+    const byId: Map<string, DataLineageMapNode> = new Map(
+      map.nodes.map(
+        (node: DataLineageMapNode): [string, DataLineageMapNode] => {
+          return [node.id, node];
+        },
+      ),
+    );
+
+    expect(byId.get("table:late")!.freshness).toBe(DataAssetFreshness.Late);
+    expect(byId.get("table:late")!.lateBySeconds).toBeGreaterThan(0);
+    expect(isLineageMapNodeInTrouble(byId.get("table:late")!)).toBe(true);
+    expect(byId.get("table:alerting")!.openAlertCount).toBe(2);
+    expect(isLineageMapNodeInTrouble(byId.get("table:alerting")!)).toBe(true);
+    expect(byId.get("table:dropped")!.isDropped).toBe(true);
+    expect(isLineageMapNodeInTrouble(byId.get("table:dropped")!)).toBe(false);
+    expect(byId.get("table:alerting")!.name).toBe("public.alerting");
+    expect(byId.get("table:alerting")!.database).toBe("orders-db");
+  });
+
+  test("a row naming a table or pipeline that is gone draws nothing", () => {
+    const map: DataLineageMap = assemble({
+      lineage: [
+        feeds("gone", "orders"),
+        {
+          upstreamDataAssetId: null,
+          downstreamDataAssetId: "orders",
+          dataPipelineId: "gone-pipeline",
+          source: null,
+          lastSeenAt: hoursAgo(1),
+        },
+      ],
+      usages: [usage("api", "gone", DataAssetAccessKind.Read)],
+      tables: [table("orders")],
+    });
+
+    expect(map.edges).toEqual([]);
+    expect(nodeIds(map)).toEqual(["table:orders"]);
+  });
+
+  test("a dashboard is drawn reading the tables on the map that it is built on", () => {
+    const map: DataLineageMap = assemble({
+      lineage: [feeds("raw", "orders")],
+      tables: [table("raw"), table("orders")],
+      dashboards: [
+        {
+          dataDashboardId: "d1",
+          name: "Revenue",
+          tool: "Metabase",
+          url: "https://metabase.example.com/dashboard/1",
+          dataAssetIds: ["orders", "not-on-map"],
+        },
+        {
+          dataDashboardId: "d2",
+          name: "Elsewhere",
+          tool: "Looker",
+          url: null,
+          dataAssetIds: ["not-on-map"],
+        },
+      ],
+    });
+
+    expect(nodeIds(map)).toEqual(["dashboard:d1", "table:orders", "table:raw"]);
+    expect(edgeOf(map, "Reads:table:orders>dashboard:d1").seenIn).toEqual([
+      DataLineageMapEvidence.BiTool,
+    ]);
+    expect(map.isTruncated).toBe(false);
+  });
+
+  test("more dashboards than there is room for: the first by name are drawn and the map says there were more", () => {
+    const choice: DataLineageMapChoice = chooseDataLineageMapFlows({
+      lineage: [feeds("raw", "orders")],
+      usages: [],
+      maxNodes: 3,
+    });
+    const map: DataLineageMap = assembleDataLineageMap({
+      choice,
+      tables: [table("raw"), table("orders")],
+      pipelines: [],
+      dashboards: ["B", "A"].map((name: string) => {
+        return {
+          dataDashboardId: name,
+          name,
+          tool: null,
+          url: null,
+          dataAssetIds: ["orders"],
+        };
+      }),
+      openAlertCounts: new Map(),
+      now: NOW,
+    });
+
+    expect(nodeIds(map)).toContain("dashboard:A");
+    expect(nodeIds(map)).not.toContain("dashboard:B");
+    expect(map.isTruncated).toBe(true);
+    // The choice it was given is left as it was.
+    expect(choice.isTruncated).toBe(false);
+  });
+});
+
+describe("traceDataLineageMap", () => {
+  const map: DataLineageMap = assemble({
+    lineage: [
+      feeds("raw", "staging"),
+      feeds("staging", "orders"),
+      feeds("orders", "staging", { lastSeenAt: hoursAgo(2) }),
+      feeds("other", "unrelated"),
+    ],
+    usages: [
+      usage("checkout", "raw", DataAssetAccessKind.Write),
+      usage("reports", "orders", DataAssetAccessKind.Read),
+    ],
+    tables: [
+      table("raw"),
+      table("staging"),
+      table("orders"),
+      table("other"),
+      table("unrelated"),
+    ],
+  });
+
+  test("everything the data comes from and everything it reaches, however many steps away", () => {
+    const trace: DataLineageMapTrace = traceDataLineageMap(map, "table:raw");
+
+    expect(Array.from(trace.upstream).sort()).toEqual(["service:svc-checkout"]);
+    expect(Array.from(trace.downstream).sort()).toEqual([
+      "service:svc-reports",
+      "table:orders",
+      "table:staging",
+    ]);
+    expect(trace.edgeIds.has("Feeds:table:other>table:unrelated")).toBe(false);
+    expect(trace.edgeIds.has("Feeds:table:raw>table:staging")).toBe(true);
+  });
+
+  test("a cycle ends the walk, and the card itself is on neither side", () => {
+    const trace: DataLineageMapTrace = traceDataLineageMap(
+      map,
+      "table:staging",
+    );
+
+    expect(trace.upstream.has("table:staging")).toBe(false);
+    expect(trace.downstream.has("table:staging")).toBe(false);
+    expect(trace.upstream.has("table:orders")).toBe(true);
+    expect(trace.downstream.has("table:orders")).toBe(true);
+  });
+
+  test("a card no arrow touches has nothing either way", () => {
+    const trace: DataLineageMapTrace = traceDataLineageMap(map, "table:nope");
+
+    expect(trace.upstream.size).toBe(0);
+    expect(trace.downstream.size).toBe(0);
+    expect(trace.edgeIds.size).toBe(0);
+  });
+});

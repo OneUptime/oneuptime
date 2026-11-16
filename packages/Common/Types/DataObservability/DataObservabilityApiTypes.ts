@@ -43,6 +43,7 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   tableLineageAnswer: string;
   pipelineLineage: string;
   lineageExpand: string;
+  lineageMap: string;
   tableSensitivity: string;
   tableErrors: string;
   aiAppTables: string;
@@ -132,6 +133,8 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   pipelineLineage: "/data-observability/pipelines/lineage",
   // The next tables a card of a lineage diagram does not draw: what pressing its count asks.
   lineageExpand: "/data-observability/lineage/expand",
+  // Every flow the project has seen, newest first: who writes and reads which tables, and what feeds what. What the Lineage Map draws.
+  lineageMap: "/data-observability/lineage/map",
   // What Data Security knows each of a table's columns holds.
   tableSensitivity: "/data-observability/tables/sensitivity",
   // The errors in the services that write a table, naming it.
