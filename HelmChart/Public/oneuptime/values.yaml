@@ -2687,6 +2687,15 @@ globalRunner:
   # How many steps each replica runs at the same time. A project runs at most
   # three of its steps on global Runners at once, whatever this says.
   concurrency: 4
+  # Keep GitLab, Forgejo, Gitea and Git repositories off global Runners, as
+  # OneUptime Cloud does. A GitHub repository's token for an AI code fix is
+  # minted for that one repository and revoked when the fix ends; the other
+  # hosts have no such narrow token, so a global Runner would get the
+  # connection's own long-lived token. Turn this on when this install serves
+  # several tenants whose code must stay apart: those repositories' code fixes
+  # then need one of the project's own Runners. GitHub repositories, and every
+  # repository on a single-tenant install, are unchanged.
+  codeFixGitHubOnly: false
   disableTelemetryCollection: false
   enableProfiling: false
   # The global Runner's key (optional — generated and kept in the release

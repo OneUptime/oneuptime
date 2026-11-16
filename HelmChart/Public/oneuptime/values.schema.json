@@ -5392,6 +5392,9 @@
                     "type": "integer",
                     "minimum": 1
                 },
+                "codeFixGitHubOnly": {
+                    "type": "boolean"
+                },
                 "disableTelemetryCollection": {
                     "type": "boolean"
                 },

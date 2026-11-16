@@ -82,6 +82,13 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
    * release emails from oneuptime.com (Accounts' Register page).
    */
   "DISABLE_INSTANCE_CHECK_IN",
+  /*
+   * A self-hosted multi-tenant install keeps GitLab, Forgejo, Gitea and Git
+   * repositories off global Runners (as OneUptime Cloud does): the Dashboard's
+   * Runner picker draws the amber line for them (Types/Runner/
+   * GlobalRunnerRepositoryTokens).
+   */
+  "GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY",
 ];
 
 /*

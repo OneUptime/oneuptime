@@ -75,7 +75,7 @@ Runner を使うと、これらのステップは自分が管理するホスト�
 
 14.0.94 より古いグローバル Runner や、 `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false` で起動したグローバル Runner はコード修正を受け付けず、OneUptime もコード修正の対象として数えません。その場合、 **グローバル Runner** で作業するリポジトリには、オンラインのグローバル Runner はどれも AI のコード修正を受け付けないと表示され、Admin Dashboard の **グローバル Runner** ページでは、その Runner のステータスの下に理由が表示されます。
 
-マスター管理者は、グローバル Runner をコード修正から完全に外せます。Admin Dashboard の **グローバル Runner** ページの **その他の項目** にあるスイッチ **AI のコード修正を実行** は、既定でオンです。オフにすると、OneUptime はその Runner にコード修正を渡さず、どのリポジトリのトークンも渡さないため、JavaScript ステップだけを実行します。OneUptime Cloud では、グローバル Runner が作業するのは GitHub のリポジトリだけです。GitLab、Forgejo、Gitea、Git のリポジトリには接続自身のトークンでアクセスするため、そのコード修正はお使いの Runner で実行されます。
+マスター管理者は、グローバル Runner をコード修正から完全に外せます。Admin Dashboard の **グローバル Runner** ページの **その他の項目** にあるスイッチ **AI のコード修正を実行** は、既定でオンです。オフにすると、OneUptime はその Runner にコード修正を渡さず、どのリポジトリのトークンも渡さないため、JavaScript ステップだけを実行します。OneUptime Cloud では、グローバル Runner が作業するのは GitHub のリポジトリだけです。GitLab、Forgejo、Gitea、Git のリポジトリには接続自身のトークンでアクセスするため、そのコード修正はお使いの Runner で実行されます。 複数のテナントにサービスを提供し、そのコードを分離して保つ必要があるセルフホストのインストールでは、`GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY=true` で同じルールを有効にできます。GitHub のリポジトリと、単一テナントのインストールのすべてのリポジトリは変わりません。
 
 自社のネットワークにアクセスする必要があるステップや、自分で管理するホストで実行したいステップには、自社の Runner を選んでください。すべてのステップを自社の Runner で実行するには、 **Runbook → Runner** の下部にある **グローバル Runner を使用** をオフにします。すると Runner を選ばない JavaScript のステップは、プロジェクトのデフォルト Runner で実行されるか、デフォルトがなければ、自社の Runner を選ぶまで、その旨を示して失敗します。自社の Runner を選んだステップは、どちらの場合もその Runner を使い続けます。コードの設定で Runner を選んでいないコードリポジトリも、プロジェクトのデフォルト Runner で作業し、デフォルトがなければグローバル Runner で作業します。このスイッチがオフの間は自社の Runner が必要です。[コード](/docs/ai/ai-agent#リポジトリの-runner-を選ぶ) を参照してください。
 

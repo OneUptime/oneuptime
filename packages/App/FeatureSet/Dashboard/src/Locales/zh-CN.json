@@ -55956,7 +55956,7 @@
   "Wrong password": "密码错误",
   "{{count}} attempt": "{{count}} 次尝试",
   "{{summary}} - view sign-in attempt details": "{{summary}} - 查看登录尝试详情",
-  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "在 OneUptime Cloud 上，AI 在不在 GitHub 上的代码仓库中的工作会在你自己的 Runner 上进行：它的访问令牌绝不会交给全局 Runner。请选择你的一个 Runner。",
+  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "AI 在不在 GitHub 上的代码仓库中的工作会在你自己的 Runner 上进行：它的访问令牌绝不会交给全局 Runner。请选择你的一个 Runner。",
   "Reads work, but changes will fail": "读取正常，但更改会失败",
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "再次运行设置命令。它会把更改移到专属的写入标识，代理自身的标识只保留读取。",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "再次运行设置命令。它会把更改移到专属的写入角色，代理每次更改都以仅允许该更改的策略承担这个角色。",

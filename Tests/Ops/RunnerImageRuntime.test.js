@@ -515,15 +515,13 @@ describeRuntime("the Runner image, as a global Runner", () => {
     expect(result.output).toContain('"answer": 42');
   });
 
-  test("the step ran as a user of its own, never the Runner's", () => {
+  test("the step ran as a user of its own, with no network, never the Runner's", () => {
+    // The combined line names both the user and the no-network sandbox.
     expect(runner.logs).toContain(OWN_USER_LOG);
+    expect(OWN_USER_LOG).toContain("no network");
     expect(runner.usersWhileRunning.some(isSandboxUser)).toBe(true);
     // The Runner itself stays the node user.
     expect(runner.usersWhileRunning).toContain(1000);
-  });
-
-  test("and with no network of its own: the Runner says so", () => {
-    expect(runner.logs).toContain(NO_NETWORK_LOG);
   });
 
   test("nothing of the step's user is left once it ended", () => {
@@ -561,6 +559,15 @@ describeRuntime(
       expect(result.output).toContain('"answer": 42');
       expect(runner.logs).toContain(OWN_PROCESS_LOG);
       expect(runner.usersWhileRunning.some(isSandboxUser)).toBe(false);
+    });
+
+    /*
+     * The no-network filter needs only no_new_privs (which it sets) and
+     * seccomp - no privilege - so it still keeps each step off the network
+     * even where the container forbids switching users. The Runner says so.
+     */
+    test("but each step still runs with no network of its own, and the Runner says so", () => {
+      expect(runner.logs).toContain(NO_NETWORK_LOG);
     });
   },
 );
