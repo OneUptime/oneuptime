@@ -1109,13 +1109,21 @@ describe("posting a policy's handoff", () => {
     const ANA_ENTRA: string = "7a3e1d2c-4b5f-4c6d-8e9f-0a1b2c3d4e5f";
     const ANA_MATTERMOST: string = "anamattermostuserid00000000".slice(0, 26);
 
-    // The accounts each person connected: Ana in every workspace, Bob in none.
+    /*
+     * The accounts each person connected: Ana in every workspace, Bob in none.
+     * Bob's accounts, for when he connected them too.
+     */
+    const BOB_SLACK: string = "U0BOBDIAZ";
+    const BOB_ENTRA: string = "8b4f2e3d-5c6a-4d7e-9f0a-1b2c3d4e5f60";
+    const BOB_MATTERMOST: string = "bobmattermostuserid0000000";
+
     function accounts(
       connected: Partial<Record<WorkspaceType, boolean>> = {
         [WorkspaceType.Slack]: true,
         [WorkspaceType.MicrosoftTeams]: true,
         [WorkspaceType.Mattermost]: true,
       },
+      people: Array<ObjectID> = [ANA],
     ): void {
       jest
         .spyOn(WorkspaceUserAuthTokenService, "getUserAuth")
@@ -1123,8 +1131,12 @@ describe("posting a policy's handoff", () => {
           userId: ObjectID;
           workspaceType: WorkspaceType;
         }): Promise<WorkspaceUserAuthToken | null> => {
+          const isAna: boolean = data.userId.toString() === ANA.toString();
+
           if (
-            data.userId.toString() !== ANA.toString() ||
+            !people.some((person: ObjectID): boolean => {
+              return person.toString() === data.userId.toString();
+            }) ||
             !connected[data.workspaceType]
           ) {
             return null;
@@ -1134,13 +1146,15 @@ describe("posting a policy's handoff", () => {
           token.workspaceType = data.workspaceType;
 
           if (data.workspaceType === WorkspaceType.Slack) {
-            token.workspaceUserId = ANA_SLACK;
+            token.workspaceUserId = isAna ? ANA_SLACK : BOB_SLACK;
           } else if (data.workspaceType === WorkspaceType.MicrosoftTeams) {
-            token.workspaceUserId = ANA_ENTRA;
-            token.miscData = { displayName: "Ana Lee" } as never;
+            token.workspaceUserId = isAna ? ANA_ENTRA : BOB_ENTRA;
+            token.miscData = {
+              displayName: isAna ? "Ana Lee" : "Bob Diaz",
+            } as never;
           } else {
-            token.workspaceUserId = ANA_MATTERMOST;
-            token.miscData = { username: "ana" } as never;
+            token.workspaceUserId = isAna ? ANA_MATTERMOST : BOB_MATTERMOST;
+            token.miscData = { username: isAna ? "ana" : "bob" } as never;
           }
 
           return token;
@@ -1260,6 +1274,56 @@ describe("posting a policy's handoff", () => {
       });
 
       expect(post["message"]).toContain("📞 @ana is now on call");
+    });
+
+    test("REGRESSION: who is next is never mentioned, even when they connected every account too", async () => {
+      accounts(undefined, [ANA, BOB]);
+
+      await OnCallHandoffPosts.post(handoff());
+
+      // Now on call, then next: Ana mentioned, Bob named as ever.
+      expect(sent()[0]!.lines?.[WorkspaceType.Slack]).toBe(
+        `📞 <@${ANA_SLACK}> is now on call for [Payments](${POLICY_LINK}) until {{DATE(2026-11-14T22:50:00Z, SHORT)}} at {{TIME(2026-11-14T22:50:00Z)}}, then @bob.`,
+      );
+
+      for (const workspaceType of [
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+        WorkspaceType.Mattermost,
+      ]) {
+        const mentions: Array<WorkspacePayloadMention> =
+          (
+            sent()[0]!.mentions as Partial<
+              Record<WorkspaceType, Array<WorkspacePayloadMention>>
+            >
+          )[workspaceType] || [];
+
+        expect({
+          workspaceType,
+          mentioned: mentions.map((mention: WorkspacePayloadMention) => {
+            return mention.workspaceUserId;
+          }),
+        }).toEqual({
+          workspaceType,
+          mentioned: [
+            workspaceType === WorkspaceType.Slack
+              ? ANA_SLACK
+              : workspaceType === WorkspaceType.MicrosoftTeams
+                ? ANA_ENTRA
+                : ANA_MATTERMOST,
+          ],
+        });
+
+        // No line holds Bob's mention.
+        expect(sent()[0]!.lines?.[workspaceType]).not.toContain(BOB_SLACK);
+        expect(sent()[0]!.lines?.[workspaceType]).not.toContain("<at>Bob");
+      }
+
+      // Who is next, alone: said once, nobody mentioned.
+      expect(sent()[4]!.mentioning).toBeUndefined();
+      expect(sent()[4]!.lines?.[WorkspaceType.Slack]).toContain(
+        "➡️ @bob is next on call",
+      );
     });
 
     test("a workspace where Ana connected nothing keeps her name in the mentioning line", async () => {
