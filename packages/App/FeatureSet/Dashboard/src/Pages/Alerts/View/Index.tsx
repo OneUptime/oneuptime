@@ -1228,7 +1228,12 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
           <EntityRunbooks alertId={modelId} hideIfEmpty={true} />
 
-          <AlertFeedElement alertId={modelId} refreshToken={feedRefreshToken} />
+          <AlertFeedElement
+            alertId={modelId}
+            refreshToken={feedRefreshToken}
+            // Execute On-Call Policy follows where the alert stands.
+            standing={standing}
+          />
         </div>
 
         <div className="min-w-0 xl:col-span-1">

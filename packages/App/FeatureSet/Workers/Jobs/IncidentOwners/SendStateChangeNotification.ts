@@ -1,5 +1,8 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import PreviousTimelineEntries, {
+  TimelineOf,
+} from "../../Utils/PreviousTimelineEntries";
 import OwnerNotificationBacklog, {
   OwnerNotificationPage,
 } from "../../Utils/OwnerNotificationBacklog";
@@ -33,7 +36,6 @@ import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import UserService from "Common/Server/Services/UserService";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import JobDeadline from "Common/Server/Utils/JobDeadline";
@@ -74,6 +76,20 @@ const INCIDENT_SELECT: Select<Incident> = {
   incidentSeverity: {
     name: true,
     color: true,
+  },
+};
+
+/*
+ * The entries a state change's previous one is read from, and what it is read
+ * with: for "Was ... for ..." in its email (PreviousTimelineEntries).
+ */
+const TIMELINE: TimelineOf<IncidentStateTimeline> = {
+  service: IncidentStateTimelineService,
+  recordIdColumn: "incidentId",
+  select: {
+    incidentStateId: true,
+    startsAt: true,
+    createdAt: true,
   },
 };
 
@@ -133,7 +149,7 @@ RunCron(
       },
       select: STATE_TIMELINE_SELECT,
       deadline: deadline,
-      readPage: readIncidentsOfPage,
+      readPage: readPageOfStateChanges,
       notify: async (input: {
         record: IncidentStateTimeline;
         page: OwnerNotificationPage;
@@ -217,6 +233,25 @@ async function notifyOfStateChange(data: {
 
 function incidentKey(incidentId: ObjectID): string {
   return `incident:${incidentId.toString()}`;
+}
+
+/*
+ * What every state change of a page needs, read once for the page: the
+ * incidents they are of (readIncidentsOfPage), and the entry before each
+ * (PreviousTimelineEntries: two reads per incident with more than one of
+ * them on the page, instead of one per state change).
+ */
+async function readPageOfStateChanges(
+  entries: Array<IncidentStateTimeline>,
+  page: OwnerNotificationPage,
+): Promise<void> {
+  await readIncidentsOfPage(entries, page);
+
+  await PreviousTimelineEntries.readForPage({
+    ...TIMELINE,
+    entries: entries,
+    page: page,
+  });
 }
 
 /*
@@ -364,22 +399,11 @@ async function notifyOwnersOfStateChange(data: {
 
   if (incidentStateTimeline.incidentId && incidentStateTimeline.startsAt) {
     const previousTimeline: IncidentStateTimeline | null =
-      await IncidentStateTimelineService.findOneBy({
-        query: {
-          incidentId: incidentStateTimeline.incidentId,
-          startsAt: QueryHelper.lessThan(incidentStateTimeline.startsAt),
-        },
-        sort: {
-          startsAt: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          incidentStateId: true,
-          startsAt: true,
-          createdAt: true,
-        },
+      // Read with the page's other state changes of the incident, or on its own (#8863).
+      await PreviousTimelineEntries.of({
+        ...TIMELINE,
+        entry: incidentStateTimeline,
+        page: data.page,
       });
 
     if (previousTimeline?.incidentStateId) {

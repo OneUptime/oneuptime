@@ -129,6 +129,65 @@ describe("both sentences, in every Dashboard language's file", () => {
     },
   );
 
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s: an item of no known type, every signal, drawn in a sentence with no English left",
+    (language: string) => {
+      for (const signal of INVENTORY_LINKED_SIGNALS) {
+        const sentence: string = withoutIsolateMarks(
+          describeMissingLink(undefined, signal, dashboardTranslator(language)),
+        );
+
+        expect({
+          language,
+          signal,
+          english: englishLeftIn(sentence),
+          startsWithLowerCase: LOWER_CASE_START.test(sentence),
+          unfilled: sentence.includes("{{"),
+        }).toEqual({
+          language,
+          signal,
+          english: [],
+          startsWithLowerCase: false,
+          unfilled: false,
+        });
+      }
+    },
+  );
+
+  /*
+   * Nothing capitalises the sentence once the Translator has filled it
+   * (#7861): the Translator gives a term its capital where the sentence
+   * starts with it (#7772). These languages open the sentence with the
+   * signal, which their file writes in lower case, as it reads in the
+   * middle of a sentence - so the capital is the Translator's.
+   */
+  test.each([
+    ["da", "Advarsler registreres"],
+    ["nl", "Waarschuwingen worden"],
+    ["no", "Varsler registreres"],
+    ["ru", "Оповещения регистрируются"],
+    ["sv", "Larm registreras"],
+  ])(
+    "%s gives the signal, lower case in its file, its capital where it opens the sentence: %s",
+    (language: string, opening: string) => {
+      const word: string = readDashboardLocale(language)["alerts"] || "";
+
+      expect(LOWER_CASE_START.test(word)).toBe(true);
+
+      for (const entityType of [EntityType.KubernetesPod, undefined]) {
+        expect(
+          withoutIsolateMarks(
+            describeMissingLink(
+              entityType,
+              "alerts",
+              dashboardTranslator(language),
+            ),
+          ).startsWith(`${opening} `),
+        ).toBe(true);
+      }
+    },
+  );
+
   /*
    * Where a language's demonstrative agrees with its noun, the sentence
    * names the item and puts the type in brackets: the words agree

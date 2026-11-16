@@ -35,7 +35,7 @@ Open **Projectinstellingen → Geavanceerd → API-sleutels** en klik op **API-s
 
 ### De sleutel kopiëren
 
-De pagina van de sleutel opent. Kopieer de **API-sleutel** van de kaart **API-sleuteldetails** en houd hem buiten je code:
+OneUptime toont de sleutel één keer, in het dialoogvenster **Kopieer uw API-sleutel**: kopieer hem voordat je op **Klaar** drukt, want geen enkele pagina toont hem opnieuw. Houd hem buiten je code:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -93,7 +93,7 @@ Een veld van een record dat de resource noemt, filter je onder de relatie ervan:
 
 Een resource met eigenaren - een monitor, een incident, een piketbeleid en elke andere met gebruikers- en teameigenaren - filter je ook op wie hem bezit, onder `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` vindt de records waarvan een of meer van die personen en teams eigenaar zijn. `match` is `AnyOf` tenzij je het instelt: `NoneOf` vindt de records waarvan geen van hen eigenaar is, records zonder eigenaren inbegrepen, en `AnyOwner` en `NoOwner` vinden de records met een eigenaar of zonder, zonder iemand te noemen. De leden van een team zijn geen eigenaar van wat het team bezit. Eén filter noemt samen hoogstens 1.000 personen en teams, een resource zonder eigenaren weigert het met een `400`, en filteren op eigenaren zonder toestemming om ze te lezen, wordt geweigerd met een `422`.
 
-`select` noemt de velden die terugkomen, en `_id` komt altijd terug. `sort` ordent ze, `ASC` of `DESC`; zonder sortering komen de nieuwste eerst. Een lijst geeft 10 records terug tenzij je `limit` instelt, tot 10.000, en `skip` slaat er eerst zoveel over: blijf `skip` met `limit` verhogen tot je er `count` hebt. Voeg `?output-type=csv` toe aan een lijstverzoek voor CSV in plaats van JSON.
+`select` noemt de velden die terugkomen, en `_id` komt altijd terug. `sort` ordent ze, `ASC` of `DESC`; zonder sortering komen de nieuwste eerst. Een lijst geeft 10 records terug tenzij je `limit` instelt, tot 10.000, en `skip` slaat er eerst zoveel over: blijf `skip` met `limit` verhogen tot je er `count` hebt. Op een lange lijst kost het tijd om elke treffer te tellen: voeg `countUpTo` toe, bijvoorbeeld `10000`, en de telling stopt daar, of aan het eind van de pagina als dat verder is. Als er meer records overeenkomen, is `count` waar de telling stopte en bevat het antwoord ook `"isCountCapped": true`: met `"countUpTo": 1` zegt dat of er na de pagina nog records volgen. Voeg `?output-type=csv` toe aan een lijstverzoek voor CSV in plaats van JSON.
 
 De volgorde van een veld kan ook zeggen waar de records zonder waarde erin komen: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` zet de nieuwste vooraan en die zonder waarde achteraan, en `FIRST` zet ze vooraan. Een relatie met één record sorteert op een veld van het record dat ze noemt: `{ "incidentSeverity": { "order": "ASC" } }` toont incidenten in de volgorde van hun ernstniveaus. Een relatie die alleen een richting krijgt, zoals in `{ "incidentSeverity": "DESC" }`, wordt geweigerd met een `400` die in plaats daarvan een veld noemt om op te sorteren, en net zo een relatie met veel records, zoals de `labels` van een incident: elk incident heeft er een lijst van, en een lijst heeft niet één waarde om incidenten op te ordenen. Sorteren op een veld vereist ook toestemming om het te lezen, via een relatie net als op de resource zelf: sorteren op een veld dat je niet mag lezen, wordt geweigerd met een `422`.
 
@@ -341,7 +341,7 @@ Elke resource, elk endpoint en elk veld staat in de [OneUptime API-referentie](/
 ## Problemen oplossen
 
 :::details Elk verzoek antwoordt 400 Invalid API Key
-De header `ApiKey` is leeg, is geen sleutel, of noemt een sleutel die is verlopen of opnieuw is ingesteld. Kopieer de sleutel opnieuw van zijn pagina onder **Projectinstellingen → Geavanceerd → API-sleutels**, waar ook zijn datum bij **Verloopt** staat.
+De header `ApiKey` is leeg, is geen sleutel, of noemt een sleutel die is verlopen of opnieuw is ingesteld. Zoek de sleutel onder **Projectinstellingen → Geavanceerd → API-sleutels** op hoe hij eindigt, en controleer zijn datum bij **Verloopt**. Een sleutel die je niet meer hebt, kan niet opnieuw worden getoond: stel hem op zijn pagina opnieuw in voor een nieuwe.
 :::
 
 :::details Elk verzoek antwoordt 402 Payment Required

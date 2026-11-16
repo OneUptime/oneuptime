@@ -66,18 +66,32 @@ import IncomingRequestSecretActivity from "Common/Server/Utils/Monitor/IncomingR
 import IncomingRequestSecretPolicy, {
   INCOMING_REQUEST_SECRET_MISSING_MESSAGE,
   INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE,
+  INCOMING_REQUEST_SIGNATURE_EXPIRED_MESSAGE,
+  INCOMING_REQUEST_SIGNATURE_REPLAYED_MESSAGE,
   IncomingRequestSecretPolicyValue,
 } from "Common/Server/Utils/Monitor/IncomingRequestSecretPolicy";
 import IncomingRequestSecretRequest from "Common/Server/Utils/Monitor/IncomingRequestSecretRequest";
+import IncomingRequestSecretValues from "Common/Server/Utils/Monitor/IncomingRequestSecretValues";
+import IncomingRequestSignature from "Common/Server/Utils/Monitor/IncomingRequestSignature";
 import MonitorSecretKeyCache, {
   MonitorOfSecretKey,
 } from "Common/Server/Utils/Monitor/MonitorSecretKeyCache";
+import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
+import { REDACTED } from "Common/Server/Utils/LogRedaction";
+import WrongIncomingRequestSecretLimit, {
+  WRONG_INCOMING_REQUEST_SECRETS_MESSAGE,
+} from "Common/Server/Utils/RateLimit/WrongIncomingRequestSecretLimit";
 import Response from "Common/Server/Utils/Response";
 import { ExpressRouter, RequestHandler } from "Common/Server/Utils/Express";
 import Dictionary from "Common/Types/Dictionary";
 import Exception from "Common/Types/Exception/Exception";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
-import { IncomingRequestSecretProblem } from "Common/Types/Monitor/IncomingMonitor/IncomingRequestSecret";
+import TooManyRequestsException from "Common/Types/Exception/TooManyRequestsException";
+import {
+  IncomingRequestSecretProblem,
+  IncomingRequestSignatureScheme,
+} from "Common/Types/Monitor/IncomingMonitor/IncomingRequestSecret";
+import MonitorSecretAccess from "Common/Types/Monitor/MonitorSecretAccess";
 import ObjectID from "Common/Types/ObjectID";
 import {
   afterEach,
@@ -159,6 +173,9 @@ async function settle(): Promise<void> {
 async function send(data: {
   method?: "GET" | "POST";
   headers?: Dictionary<string>;
+  // The body as it came, as StartServer's JSON parser keeps it.
+  rawBody?: string | undefined;
+  res?: Record<string, unknown> | undefined;
 }): Promise<jest.Mock> {
   const method: string = data.method || "POST";
   const next: jest.Mock = jest.fn() as unknown as jest.Mock;
@@ -173,8 +190,9 @@ async function send(data: {
       params: { secretkey: SECRET_KEY },
       headers: { "user-agent": "curl/8.12.1", ...(data.headers || {}) },
       body: { status: "ok" },
+      ...(data.rawBody !== undefined ? { rawBody: data.rawBody } : {}),
     },
-    {},
+    data.res || {},
     next,
   );
 
@@ -395,5 +413,270 @@ describe("a request the endpoint cannot place in a project", () => {
     expect(addIncomingRequestIngestJob).toHaveBeenCalledTimes(1);
     expect(IncomingRequestSecretPolicy.getPolicy).not.toHaveBeenCalled();
     expect(recordActivity).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A secret limited to some monitors (issue #8501): another monitor of the
+ * project answers it 401, as it answers a wrong one.
+ */
+describe("a secret limited to another monitor", () => {
+  test("is refused 401 as not one this monitor accepts, and nothing is queued", async () => {
+    policy = {
+      isRequired: true,
+      secrets: [
+        {
+          ...REQUIRED.secrets[0]!,
+          monitorAccess: MonitorSecretAccess.SpecificMonitors,
+          monitorIds: ["c0c0c0c0-0000-4000-8000-0000000000c0"],
+          labelIds: [],
+        },
+      ],
+    };
+
+    const next: jest.Mock = await send({
+      headers: { "x-oneuptime-secret": PROJECT_SECRET },
+    });
+
+    const refusal: Exception | null = refusalOf(next);
+
+    expect(refusal).toBeInstanceOf(NotAuthenticatedException);
+    expect(refusal?.message).toBe(
+      INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE,
+    );
+    expect(addIncomingRequestIngestJob).not.toHaveBeenCalled();
+    expect(recordActivity).toHaveBeenCalledWith({
+      monitorId: MONITOR.monitorId,
+      sentValidSecret: false,
+      problem: IncomingRequestSecretProblem.SecretNotForMonitor,
+    });
+  });
+});
+
+/*
+ * A client that sends too many different wrong secrets to a monitor
+ * (issue #8499) is answered 429, with when to try again.
+ */
+describe("a client over the wrong-secret limit", () => {
+  test("is answered 429 with Retry-After, and nothing is recorded or queued", async () => {
+    jest
+      .spyOn(WrongIncomingRequestSecretLimit, "checkBeforeComparing")
+      .mockResolvedValue({ retryAfterSeconds: 120 });
+
+    const headers: Dictionary<string> = {};
+
+    const next: jest.Mock = await send({
+      headers: { "x-oneuptime-secret": PROJECT_SECRET },
+      res: {
+        setHeader: (name: string, value: string): void => {
+          headers[name] = value;
+        },
+      },
+    });
+
+    const refusal: Exception | null = refusalOf(next);
+
+    expect(refusal).toBeInstanceOf(TooManyRequestsException);
+    expect(refusal?.code).toBe(429);
+    expect(refusal?.message).toBe(WRONG_INCOMING_REQUEST_SECRETS_MESSAGE);
+    expect(headers["Retry-After"]).toBe("120");
+
+    expect(sendEmptySuccessResponse).not.toHaveBeenCalled();
+    expect(advanceIfTracked).not.toHaveBeenCalled();
+    expect(addIncomingRequestIngestJob).not.toHaveBeenCalled();
+  });
+
+  test("the wrong secret that takes it over is answered 429 too", async () => {
+    jest
+      .spyOn(WrongIncomingRequestSecretLimit, "checkBeforeComparing")
+      .mockResolvedValue(null);
+    const countWrong: jest.Mock = jest
+      .spyOn(WrongIncomingRequestSecretLimit, "countWrong")
+      .mockResolvedValue({ retryAfterSeconds: 60 }) as unknown as jest.Mock;
+
+    const next: jest.Mock = await send({
+      headers: { "x-oneuptime-secret": "the-eleventh-guess-at-it" },
+      res: { setHeader: jest.fn() },
+    });
+
+    expect(refusalOf(next)).toBeInstanceOf(TooManyRequestsException);
+    expect(countWrong).toHaveBeenCalledTimes(1);
+    expect(addIncomingRequestIngestJob).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A signed request (issue #8500): the signature checked over the body as it
+ * came, the secret that made it presented to the worker, the signature
+ * accepted once and masked in what is queued.
+ */
+describe("a signed request", () => {
+  const BODY: string = '{"status":"ok"}';
+  const NOW_SECONDS: number = Math.floor(Date.now() / 1000);
+
+  let seen: Set<string>;
+
+  beforeEach(() => {
+    seen = new Set<string>();
+
+    jest
+      .spyOn(IncomingRequestSecretValues, "getSigningSecrets")
+      .mockResolvedValue([{ secretId: SECRET_ID, value: PROJECT_SECRET }]);
+
+    jest
+      .spyOn(GlobalCache, "setStringIfNotExists")
+      .mockImplementation(async (namespace: string, key: string) => {
+        const name: string = `${namespace}-${key}`;
+
+        if (seen.has(name)) {
+          return false;
+        }
+
+        seen.add(name);
+        return true;
+      });
+  });
+
+  const signature: (data?: {
+    secret?: string;
+    timestampSeconds?: number;
+  }) => string = (data?: {
+    secret?: string;
+    timestampSeconds?: number;
+  }): string => {
+    return IncomingRequestSignature.sign({
+      scheme: IncomingRequestSignatureScheme.OneUptime,
+      secret: data?.secret || PROJECT_SECRET,
+      body: BODY,
+      timestampSeconds: data?.timestampSeconds ?? NOW_SECONDS,
+    });
+  };
+
+  test("is answered 200 and queued with the secret that signed it, the signature taken off", async () => {
+    const next: jest.Mock = await send({
+      headers: {
+        "content-type": "application/json",
+        "x-oneuptime-signature": signature(),
+      },
+      rawBody: BODY,
+    });
+
+    expect(refusalOf(next)).toBeNull();
+    expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+    expect(addIncomingRequestIngestJob).toHaveBeenCalledTimes(1);
+
+    const job: {
+      presentedSecretHashes: Array<string>;
+      requestHeaders: Dictionary<string>;
+    } = addIncomingRequestIngestJob.mock.calls[0]![0] as {
+      presentedSecretHashes: Array<string>;
+      requestHeaders: Dictionary<string>;
+    };
+
+    expect(job.presentedSecretHashes).toEqual([
+      IncomingRequestSecretRequest.hashSecret(PROJECT_SECRET),
+    ]);
+    expect(job.requestHeaders["x-oneuptime-signature"]).toBeUndefined();
+    expect(JSON.stringify(job)).not.toContain(PROJECT_SECRET);
+  });
+
+  test("a GitHub delivery's signature is masked in what is queued, so nobody can send it again", async () => {
+    const next: jest.Mock = await send({
+      headers: {
+        "content-type": "application/json",
+        "x-github-event": "workflow_run",
+        "x-hub-signature-256": IncomingRequestSignature.sign({
+          scheme: IncomingRequestSignatureScheme.GitHub,
+          secret: PROJECT_SECRET,
+          body: BODY,
+        }),
+      },
+      rawBody: BODY,
+    });
+
+    expect(refusalOf(next)).toBeNull();
+
+    const queued: Dictionary<string> = (
+      addIncomingRequestIngestJob.mock.calls[0]![0] as {
+        requestHeaders: Dictionary<string>;
+      }
+    ).requestHeaders;
+
+    expect(queued["x-hub-signature-256"]).toBe(REDACTED);
+    expect(queued["x-github-event"]).toBe("workflow_run");
+  });
+
+  test("the same signed request sent again is refused 401 as a replay, and not queued", async () => {
+    const headers: Dictionary<string> = {
+      "content-type": "application/json",
+      "x-oneuptime-signature": signature(),
+    };
+
+    expect(refusalOf(await send({ headers, rawBody: BODY }))).toBeNull();
+
+    const replay: Exception | null = refusalOf(
+      await send({ headers, rawBody: BODY }),
+    );
+
+    expect(replay).toBeInstanceOf(NotAuthenticatedException);
+    expect(replay?.message).toBe(INCOMING_REQUEST_SIGNATURE_REPLAYED_MESSAGE);
+    expect(addIncomingRequestIngestJob).toHaveBeenCalledTimes(1);
+  });
+
+  test("a signature made with a wrong secret is refused 401", async () => {
+    const refusal: Exception | null = refusalOf(
+      await send({
+        headers: {
+          "content-type": "application/json",
+          "x-oneuptime-signature": signature({
+            secret: "not-the-projects-secret-at-all",
+          }),
+        },
+        rawBody: BODY,
+      }),
+    );
+
+    expect(refusal).toBeInstanceOf(NotAuthenticatedException);
+    expect(refusal?.message).toBe(
+      INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE,
+    );
+    expect(addIncomingRequestIngestJob).not.toHaveBeenCalled();
+  });
+
+  test("a signature of a body changed on the way is refused 401", async () => {
+    const refusal: Exception | null = refusalOf(
+      await send({
+        headers: {
+          "content-type": "application/json",
+          "x-oneuptime-signature": signature(),
+        },
+        rawBody: '{"status":"down"}',
+      }),
+    );
+
+    expect(refusal).toBeInstanceOf(NotAuthenticatedException);
+    expect(addIncomingRequestIngestJob).not.toHaveBeenCalled();
+  });
+
+  test("a signature more than five minutes old is refused 401, saying so", async () => {
+    const refusal: Exception | null = refusalOf(
+      await send({
+        headers: {
+          "content-type": "application/json",
+          "x-oneuptime-signature": signature({
+            timestampSeconds: NOW_SECONDS - 3600,
+          }),
+        },
+        rawBody: BODY,
+      }),
+    );
+
+    expect(refusal).toBeInstanceOf(NotAuthenticatedException);
+    expect(refusal?.message).toBe(INCOMING_REQUEST_SIGNATURE_EXPIRED_MESSAGE);
+    expect(recordActivity).toHaveBeenCalledWith({
+      monitorId: MONITOR.monitorId,
+      sentValidSecret: false,
+      problem: IncomingRequestSecretProblem.ExpiredSignature,
+    });
   });
 });

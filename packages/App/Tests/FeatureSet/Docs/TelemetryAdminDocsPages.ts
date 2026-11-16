@@ -140,8 +140,12 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "A role that changes telemetry settings.",
     // What a rule reads inside a list or a nested value (issue #6397).
     "Lists and nested values are read too.",
+    // A JSON text a string holds, which a keys rule reads too (issue #8993).
+    "JSON held in a string is read too.",
     "A value too large to read item by item is read as text.",
     "Exceptions come from the scrubbed record.",
+    // Why a record's session id is not hidden (issue #8924).
+    "A record's session id is kept.",
     "Session replays are scrubbed too.",
     "Rules run in the order of the list.",
     "A custom pattern takes time in line with the record.",

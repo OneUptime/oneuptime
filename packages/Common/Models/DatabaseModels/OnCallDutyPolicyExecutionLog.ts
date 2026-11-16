@@ -1091,7 +1091,14 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     ],
     update: [],
   })
-  @Index()
+  /*
+   * In no index, as the other columns a step writes alone
+   * (lastEscalationRuleExecutedAt, executeNextEscalationRuleInMinutes,
+   * onCallPolicyExecutionRepeatCount): every read of them reads the run by
+   * its _id, so an index by one was written on every step and read by
+   * nothing. A step's claim and a new pass's count change none of the
+   * table's indexed columns, so their updates can be HOT (#8104).
+   */
   @TableColumn({
     required: false,
     type: TableColumnType.Number,
@@ -1118,7 +1125,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     read: [],
     update: [],
   })
-  @Index()
+  // In no index: see lastExecutedEscalationRuleOrder.
   @TableColumn({
     required: false,
     type: TableColumnType.Date,
@@ -1198,6 +1205,11 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * Indexed: deleting an escalation rule finds the runs that last executed
+   * it by this column (the foreign key's ON DELETE CASCADE) - for every
+   * rule of a policy deleted with it, too - without reading the whole table.
+   */
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
@@ -1226,7 +1238,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     read: [],
     update: [],
   })
-  @Index()
+  // In no index: see lastExecutedEscalationRuleOrder.
   @TableColumn({
     type: TableColumnType.Number,
     required: false,
@@ -1263,7 +1275,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     ],
     update: [],
   })
-  @Index()
+  // In no index: see lastExecutedEscalationRuleOrder.
   @TableColumn({
     type: TableColumnType.Number,
     required: true,

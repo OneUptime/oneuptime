@@ -14,6 +14,12 @@ import {
 } from "../../Components/Permission/RoleAccess";
 import RoleAccessNotice from "../../Components/Permission/RoleAccessNotice";
 import { getApiKeyCreateFormFields } from "../../Components/ApiKey/ApiKeyCreateForm";
+import ApiKeyHint from "../../Components/ApiKey/ApiKeyHint";
+import {
+  API_KEY_SHOWN_ONCE_TEST_ID,
+  API_KEY_SHOWN_ONCE_VALUE_TEST_ID,
+  ApiKeyShownOnceCopy,
+} from "../../Components/ApiKey/ApiKeyShownOnceCopy";
 import { getApiKeyRolePermissionCountText } from "../../Components/CustomRole/CustomRoleCopy";
 import {
   CustomRoleSummary,
@@ -23,6 +29,7 @@ import {
   loadCustomRoles,
 } from "../../Components/CustomRole/CustomRoleOptions";
 import Route from "Common/Types/API/Route";
+import { getKeyShownOnCreate } from "Common/Types/ApiKey/ApiKeyShownOnce";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -30,6 +37,7 @@ import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import ShownOnceSecretModal from "Common/UI/Components/ShownOnceSecret/ShownOnceSecretModal";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import GrantablePermission, {
@@ -78,6 +86,18 @@ interface PendingAccess {
 }
 
 const NO_ACCESS: PendingAccess = { role: null, customRoleId: null };
+
+/*
+ * A key just created, shown once (#8902): the create's answer is the only
+ * time the server sends it. Where the page goes once Done is pressed is
+ * decided with it: the key's page, or nowhere when a notice says the key has
+ * no access yet.
+ */
+interface CreatedKey {
+  apiKeyId: ObjectID;
+  key: string;
+  opensItsPage: boolean;
+}
 
 const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -185,6 +205,9 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const [accessNotice, setAccessNotice] = useState<AccessNotice | null>(null);
 
+  // The key just created, until Done: then it is forgotten.
+  const [createdKey, setCreatedKey] = useState<CreatedKey | null>(null);
+
   type GetApiKeyRouteFunction = (apiKeyId: ObjectID) => Route;
 
   const getApiKeyRoute: GetApiKeyRouteFunction = (
@@ -198,6 +221,32 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
+      {/*
+       * SHOWN ONCE. The key is stored as its hash, so this is the one time
+       * anyone sees it: Done is the only way out, and then the key's page
+       * opens - unless a notice says the key has no access yet.
+       */}
+      {createdKey ? (
+        <ShownOnceSecretModal
+          title={ApiKeyShownOnceCopy.shownOnceTitle}
+          description={ApiKeyShownOnceCopy.shownOnceDescription}
+          doneButtonText={ApiKeyShownOnceCopy.done}
+          secret={createdKey.key}
+          onDone={() => {
+            const opened: CreatedKey = createdKey;
+
+            setCreatedKey(null);
+
+            if (opened.opensItsPage) {
+              Navigation.navigate(getApiKeyRoute(opened.apiKeyId));
+            }
+          }}
+          dataTestId={API_KEY_SHOWN_ONCE_TEST_ID}
+          valueTestId={API_KEY_SHOWN_ONCE_VALUE_TEST_ID}
+        />
+      ) : (
+        <></>
+      )}
       {accessNotice && (
         <RoleAccessNotice
           holder={RoleAccessHolder.ApiKey}
@@ -260,6 +309,29 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
             return createdApiKey;
           }
 
+          /*
+           * The key itself, which the create's answer holds and nothing will
+           * hold again: shown once, before the page moves on.
+           */
+          const key: string | null = getKeyShownOnCreate(createdApiKey.apiKey);
+          const newKeyId: ObjectID = createdApiKey.id;
+
+          const showKeyOnce: (opensItsPage: boolean) => boolean = (
+            opensItsPage: boolean,
+          ): boolean => {
+            if (!key) {
+              return false;
+            }
+
+            setCreatedKey({
+              apiKeyId: newKeyId,
+              key: key,
+              opensItsPage: opensItsPage,
+            });
+
+            return true;
+          };
+
           const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
           if ((role || access.customRoleId) && projectId) {
@@ -289,6 +361,9 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 error: API.getFriendlyMessage(err),
               });
 
+              // The key first, then the notice under it: it stays on the list.
+              showKeyOnce(false);
+
               return createdApiKey;
             }
           }
@@ -296,10 +371,14 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
           setAccessNotice(null);
 
           /*
-           * A new key opens on its page: the key to copy is there, and so is
-           * its access - the role just picked, or nothing yet and Add Role.
+           * A new key is shown once, then opens on its page: its access is
+           * there - the role just picked, or nothing yet and Add Role - and
+           * how the key ends. An answer that held no key opens the page at
+           * once, where Reset API Key makes one to copy.
            */
-          Navigation.navigate(getApiKeyRoute(createdApiKey.id));
+          if (!showKeyOnce(true)) {
+            Navigation.navigate(getApiKeyRoute(createdApiKey.id));
+          }
 
           return createdApiKey;
         }}
@@ -350,6 +429,20 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Expires",
             type: FieldType.Date,
+          },
+          {
+            /*
+             * How each key ends, so a person can tell the key they hold
+             * among the project's keys: the key itself is shown only once.
+             */
+            field: {
+              apiKeyHint: true,
+            },
+            title: "API Key",
+            type: FieldType.Element,
+            getElement: (item: ApiKey): ReactElement => {
+              return <ApiKeyHint hint={item.apiKeyHint} isSmall={true} />;
+            },
           },
         ]}
       />

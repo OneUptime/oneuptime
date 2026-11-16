@@ -105,6 +105,8 @@ export interface IncidentAlertAiFixInput {
   // Where: the AI card, Slack or Microsoft Teams (AutoRemediationApprovalSource).
   approvedFrom?: string | undefined;
   subjectId: string;
+  // It waits, and the reader gave its first approval: it waits for someone else's.
+  isFirstApprovedByReader?: boolean | undefined;
 }
 
 export interface IncidentAlertAiFixTaskInput {
@@ -259,6 +261,9 @@ export default class IncidentAlertAiInsightsBuilder {
             ...(input.subjectKind === "incident"
               ? { incidentId: fix.subjectId }
               : { alertId: fix.subjectId }),
+            ...(fix.isFirstApprovedByReader
+              ? { isFirstApprovedByReader: true }
+              : {}),
           };
         }),
       commands: input.commands,

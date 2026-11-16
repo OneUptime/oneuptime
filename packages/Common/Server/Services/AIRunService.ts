@@ -740,6 +740,15 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The read hook keeps a chat or investigation run to who started it: a
+   * condition on the run's type that reads its user (AIRunPrivacyFilter).
+   * See DatabaseService.
+   */
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return ["runType", "userId"];
+  }
+
+  /*
    * countBy MUST repeat the filter. DatabaseService has no onBeforeCount hook
    * (only onCountSuccess / onCountError), and BaseAPI.getList issues findBy
    * and countBy with the SAME client query, so filtering in onBeforeFind alone

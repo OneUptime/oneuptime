@@ -24,6 +24,7 @@ import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/
 import RunbookExecution from "../../../../../Models/DatabaseModels/RunbookExecution";
 import { WorkspaceConnectRequestAgainKind } from "../../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
 import AutoRemediationSuggestionStatus from "../../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import { RemediationApprovalStepKind } from "../../../../../Types/AutoRemediation/RemediationApprovals";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
@@ -426,14 +427,38 @@ describe("the person who approved a riskier fix first", () => {
 
   beforeEach(() => {
     readFix.mockResolvedValue(approvedFirstByThem() as never);
-    // The project asks two people to approve it, and it holds a riskier change.
+    /*
+     * The project asks two people to approve it, it holds a riskier change,
+     * and the first approval that counts is theirs.
+     */
     jest
       .spyOn(WorkspaceRemediationActions, "getFixApprovals")
       .mockResolvedValue({
         needed: 2,
         hasFirstApproval: true,
         firstApproverName: "Maya Chen",
+        step: {
+          kind: RemediationApprovalStepKind.Second,
+          firstApprovedByUserId: USER_ID.toString(),
+        },
       } as never);
+  });
+
+  test("a first approval of theirs that no longer counts (the fix changed since) is no reason to refuse them: the modal opens", async () => {
+    jest
+      .spyOn(WorkspaceRemediationActions, "getFixApprovals")
+      .mockResolvedValue({
+        needed: 2,
+        hasFirstApproval: false,
+        step: { kind: RemediationApprovalStepKind.First },
+      } as never);
+
+    await SlackRemediationActions.handleRemediationAction(
+      press(SlackActionType.ViewApproveRemediation),
+    );
+
+    expect(showModal).toHaveBeenCalledTimes(1);
+    expect(answers()).toEqual([]);
   });
 
   test("pressing Review and approve is told why approving again does nothing, and no modal opens", async () => {

@@ -81,6 +81,7 @@ import ModelForm, {
   ModelField,
 } from "../../../../UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import ModelAPI from "../../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../../UI/Utils/PermissionGate";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
@@ -317,6 +318,190 @@ describe("a write-only field with nothing stored to keep", () => {
     await save();
 
     expect(savedModels[0]?.["apiKey"]).toBe("sk-new");
+  });
+});
+
+/*
+ * A column only some records keep a value in - a custom domain's private key
+ * is stored only once the domain serves its own certificate - says so with a
+ * function of what the record holds (Field.hasNothingStoredWhenEditing). The
+ * form hands it the record as the edit read it, and draws the field the way
+ * it answers before the form is shown, never first the other way.
+ */
+describe("a write-only field whose nothing-stored follows what the record holds", () => {
+  type Rule = (storedValues: FormValues<LlmProvider>) => boolean;
+
+  function withRule(rule: Rule): Array<ModelField<LlmProvider>> {
+    return [FIELDS[0]!, { ...FIELDS[1]!, hasNothingStoredWhenEditing: rule }];
+  }
+
+  // Every placeholder a box was drawn with, from the first draw to the last.
+  function watchPlaceholders(): {
+    seen: Set<string>;
+    stop: () => void;
+  } {
+    const seen: Set<string> = new Set<string>();
+
+    const read: (node: Node) => void = (node: Node): void => {
+      if (!(node instanceof Element)) {
+        return;
+      }
+
+      for (const element of [
+        node,
+        ...Array.from(node.querySelectorAll("[placeholder]")),
+      ]) {
+        const placeholder: string | null = element.getAttribute("placeholder");
+
+        if (placeholder !== null) {
+          seen.add(placeholder);
+        }
+      }
+    };
+
+    const observer: MutationObserver = new MutationObserver(
+      (records: Array<MutationRecord>): void => {
+        for (const record of records) {
+          if (record.type === "attributes" && record.oldValue !== null) {
+            seen.add(record.oldValue);
+          }
+
+          read(record.target);
+          record.addedNodes.forEach(read);
+          record.removedNodes.forEach(read);
+        }
+      },
+    );
+
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["placeholder"],
+      attributeOldValue: true,
+    });
+
+    return {
+      seen: seen,
+      stop: (): void => {
+        observer.disconnect();
+      },
+    };
+  }
+
+  beforeEach(() => {
+    capturedSelect = null;
+    savedModels = [];
+    permissionsForTest = [Permission.SettingsMember];
+    PermissionGate.clearPermissionPropsCache();
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("is handed the record as the edit read it, and the key is still never read back", async () => {
+    const handed: Array<FormValues<LlmProvider>> = [];
+
+    await renderEditForm(
+      withRule((storedValues: FormValues<LlmProvider>): boolean => {
+        handed.push(storedValues);
+        return false;
+      }),
+    );
+
+    expect(capturedSelect?.["apiKey"]).toBeUndefined();
+    expect(
+      handed.some((storedValues: FormValues<LlmProvider>): boolean => {
+        return storedValues.name === "Project provider";
+      }),
+    ).toBe(true);
+  });
+
+  test("a record that keeps a value: blank keeps it, as for any write-only field", async () => {
+    await renderEditForm(
+      withRule((): boolean => {
+        return false;
+      }),
+    );
+
+    expect(screen.getByPlaceholderText("Unchanged")).not.toBeRequired();
+    expect(screen.getByText(`${KEY_HELP} ${KEEP_HINT}`)).toBeInTheDocument();
+  });
+
+  test("a record that keeps none: asked for as on a new record, and required", async () => {
+    await renderEditForm(
+      withRule((): boolean => {
+        return true;
+      }),
+    );
+
+    expect(screen.queryByPlaceholderText("Unchanged")).toBeNull();
+    expect(screen.queryByText(`${KEY_HELP} ${KEEP_HINT}`)).toBeNull();
+    expect(screen.getByText(KEY_HELP)).toBeInTheDocument();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    });
+
+    expect(await screen.findByText("API Key is required.")).toBeInTheDocument();
+    expect(savedModels).toEqual([]);
+
+    fireEvent.change(screen.getByPlaceholderText("sk-..."), {
+      target: { value: "sk-new" },
+    });
+
+    await save();
+
+    expect(savedModels[0]?.["apiKey"]).toBe("sk-new");
+  });
+
+  test("the form is never drawn for a record it is not, even for a moment", async () => {
+    const watch: { seen: Set<string>; stop: () => void } = watchPlaceholders();
+
+    // Nothing stored for this record - and something stored for any other.
+    await renderEditForm(
+      withRule((storedValues: FormValues<LlmProvider>): boolean => {
+        return storedValues.name === "Project provider";
+      }),
+    );
+
+    await screen.findByPlaceholderText("sk-...");
+    watch.stop();
+
+    expect(watch.seen.has("sk-...")).toBe(true);
+    expect(watch.seen.has("Unchanged")).toBe(false);
+  });
+
+  test("a form that reads no record decides from the values it was handed", async () => {
+    await act(async (): Promise<void> => {
+      render(
+        <ModelForm<LlmProvider>
+          modelType={LlmProvider}
+          modelAPI={makeModelAPI()}
+          id="llm-provider-edit-form"
+          name="LLM Provider"
+          fields={withRule((storedValues: FormValues<LlmProvider>) => {
+            return storedValues.name === "Handed provider";
+          })}
+          formType={FormType.Update}
+          modelIdToEdit={PROVIDER_ID}
+          doNotFetchExistingModel={true}
+          initialValues={{ name: "Handed provider" }}
+          submitButtonText="Save"
+          onSuccess={() => {
+            // not exercised
+          }}
+        />,
+      );
+    });
+
+    await screen.findByPlaceholderText("My provider");
+
+    expect(capturedSelect).toBeNull();
+    expect(screen.getByPlaceholderText("sk-...")).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Unchanged")).toBeNull();
   });
 });
 

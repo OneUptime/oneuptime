@@ -1643,6 +1643,13 @@ jobs:
           # group 8, at the planned line itself: about 21. Ask AI (4.5) moved to
           # group 22 on 2026-11-12, when its setup plans (#6829) took it past
           # this group's room: about 17.7.
+          # Give Feedback (#8893: the dialog from Help over a Dashboard page -
+          # what is sent and to whom on a self-hosted server and on Cloud, what
+          # it says once sent, where it starts, each kind's name on one line at
+          # 1280 and 390 pixels, a long address on a phone, dark, German and
+          # Persian; 9 tests, 26 seconds locally with its bundle, planned as
+          # 0.5, Chromium only) joined it on 2026-11-16, the group with the
+          # most room: about 18.2.
           - group: 18
             suites: >-
               test-diagrams-ui
@@ -1650,6 +1657,7 @@ jobs:
               test-asset-details-ui
               test-dashboard-table-thresholds-ui
               test-value-picker-ui
+              test-give-feedback-ui
           # Added on 2026-11-04 for an OpenStack cloud's pages: its Overview, its
           # lists and the pages of its parts, on what real clouds' exporters
           # answered, read through the real snapshot scan, at 1280, 1024, 768 and
@@ -2095,4 +2103,6 @@ jobs:
             output/playwright/product-onboarding-ui/test-results
             output/playwright/security-page-ui/*.png
             output/playwright/security-page-ui/test-results
+            output/playwright/give-feedback-ui/*.png
+            output/playwright/give-feedback-ui/test-results
           retention-days: 7

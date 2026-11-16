@@ -87,10 +87,16 @@ npm run compile
 
 ### 내 파일만 린트하기
 
-저장소 루트에서 변경한 파일을 지정합니다.
+저장소 루트에서 브랜치가 변경한 파일을 린트하고, ESLint가 고칠 수 있는 것은 고칩니다.
 
 ```bash
-npx eslint --fix packages/App/path/to/File.ts
+npm run fix-lint:changed
+```
+
+`origin/main`과 다른 파일을 커밋 여부와 관계없이 모두 가져와, 그 파일이 속한 TypeScript 프로젝트마다 ESLint를 한 번씩 실행합니다. 여러 패키지의 파일에 `npx eslint`를 한 번에 실행하면 메모리가 부족해집니다. 다른 파일을 같은 방식으로 린트하려면 `--` 뒤에 지정합니다.
+
+```bash
+node Scripts/Lint/LintByProject.js --fix -- packages/App/path/to/File.ts
 ```
 
 `npm run lint`와 `npm run fix-lint`는 피하세요. 저장소 전체를 린트합니다.

@@ -1,5 +1,7 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import Select from "Common/Server/Types/Database/Select";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -11,31 +13,33 @@ import PushNotificationMessage from "Common/Types/PushNotification/PushNotificat
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AIAgentOwnerTeamService from "Common/Server/Services/AIAgentOwnerTeamService";
 import AIAgentOwnerUserService from "Common/Server/Services/AIAgentOwnerUserService";
-import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
-import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
-import User from "Common/Models/DatabaseModels/User";
 import AIAgent from "Common/Models/DatabaseModels/AIAgent";
 import AIAgentService from "Common/Server/Services/AIAgentService";
-import logger from "Common/Server/Utils/Logger";
 import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
-import {
-  OwnerRowAdded,
-  ownersToTell,
-  planOwnersAdded,
-} from "../../Utils/OwnersAdded";
+import { ownersToTell, tellOwnersAdded } from "../../Utils/OwnersAdded";
+
+// What the aiAgent the owners were added to is read with.
+const AI_AGENT_SELECT: Select<AIAgent> = {
+  _id: true,
+  name: true,
+  description: true,
+  projectId: true,
+  project: {
+    name: true,
+  },
+};
 
 RunCron(
   "AIAgentOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -60,155 +64,31 @@ RunCron(
       },
     });
 
-    const aiAgentOwnerTeams: Array<AIAgentOwnerTeam> =
-      await AIAgentOwnerTeamService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: {
-          _id: true,
-          aiAgentId: true,
-          teamId: true,
-        },
-      });
-
-    const aiAgentOwnersMap: Dictionary<Array<OwnerRowAdded>> = {};
-
-    for (const aiAgentOwnerTeam of aiAgentOwnerTeams) {
-      const aiAgentId: ObjectID = aiAgentOwnerTeam.aiAgentId!;
-      const teamId: ObjectID = aiAgentOwnerTeam.teamId!;
-
-      const users: Array<User> = await TeamMemberService.getUsersInTeams([
-        teamId,
-      ]);
-
-      if (aiAgentOwnersMap[aiAgentId.toString()] === undefined) {
-        aiAgentOwnersMap[aiAgentId.toString()] = [];
-      }
-
-      (aiAgentOwnersMap[aiAgentId.toString()] as Array<OwnerRowAdded>).push({
-        ownerRowId: aiAgentOwnerTeam.id!,
-        isTeam: true,
-        users: users,
-      });
-    }
-
-    const aiAgentOwnerUsers: Array<AIAgentOwnerUser> =
-      await AIAgentOwnerUserService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: {
-          _id: true,
-          aiAgentId: true,
-          userId: true,
-          user: {
-            email: true,
-            name: true,
-          },
-        },
-      });
-
-    for (const aiAgentOwnerUser of aiAgentOwnerUsers) {
-      const aiAgentId: ObjectID = aiAgentOwnerUser.aiAgentId!;
-      const user: User = aiAgentOwnerUser.user!;
-
-      if (aiAgentOwnersMap[aiAgentId.toString()] === undefined) {
-        aiAgentOwnersMap[aiAgentId.toString()] = [];
-      }
-
-      (aiAgentOwnersMap[aiAgentId.toString()] as Array<OwnerRowAdded>).push({
-        ownerRowId: aiAgentOwnerUser.id!,
-        isTeam: false,
-        users: [user],
-      });
-    }
-
-    // send email to all of these users.
-
-    for (const aiAgentId in aiAgentOwnersMap) {
-      const ownerRows: Array<OwnerRowAdded> = aiAgentOwnersMap[aiAgentId] || [];
-
-      if (ownerRows.length === 0) {
-        continue;
-      }
-
-      const aiAgent: AIAgent | null = await readAIAgent(
-        new ObjectID(aiAgentId),
-      );
-
-      /*
-       * Whom each owner row is to tell, written before the rows are taken:
-       * a worker stopped from here on leaves them to be told by a later
-       * run, and one stopped before the take leaves the rows to be read
-       * again.
-       */
-      const deliveries: Array<OwnerNotificationDelivery> = aiAgent
-        ? await planOwnersAdded({
-            kind: OwnerNotificationKind.AIAgentOwnerAdded,
-            projectId: aiAgent.projectId!,
-            resourceId: aiAgent.id!,
-            ownerRows: ownerRows,
-          })
-        : [];
-
-      /*
-       * Marked as notified before the owners are told, so an owner row
-       * whose notification keeps failing is never read again on every run -
-       * one whose AI agent is gone too.
-       */
-      for (const ownerRow of ownerRows) {
-        if (ownerRow.isTeam) {
-          await AIAgentOwnerTeamService.updateOneById({
-            id: ownerRow.ownerRowId,
-            data: {
-              isOwnerNotified: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        } else {
-          await AIAgentOwnerUserService.updateOneById({
-            id: ownerRow.ownerRowId,
-            data: {
-              isOwnerNotified: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-      }
-
-      if (!aiAgent) {
-        continue;
-      }
-
-      try {
+    /*
+     * Every record's new owner rows, a page at a time, oldest first: its
+     * team rows and user rows told of together, each person once, each row
+     * taken by one run alone; the run stops between records at its deadline
+     * and the next carries on (OwnersAdded, issue #8862).
+     */
+    await tellOwnersAdded<AIAgent>({
+      jobName: "AIAgentOwner:SendOwnerAddedEmail",
+      kind: OwnerNotificationKind.AIAgentOwnerAdded,
+      recordIdColumn: "aiAgentId",
+      teamService: AIAgentOwnerTeamService,
+      userService: AIAgentOwnerUserService,
+      recordService: AIAgentService,
+      recordSelect: AI_AGENT_SELECT,
+      deadline: deadline,
+      tell: async (
+        record: AIAgent,
+        deliveries: Array<OwnerNotificationDelivery>,
+      ): Promise<void> => {
         await notifyOwnersAdded({
-          aiAgent: aiAgent,
+          aiAgent: record,
           deliveries: deliveries,
         });
-      } catch (e) {
-        logger.error("Error in sending AI agent owner added notification", {
-          projectId: aiAgent.projectId?.toString(),
-          aiAgentId: aiAgent.id?.toString(),
-        });
-        logger.error(e, {
-          projectId: aiAgent.projectId?.toString(),
-          aiAgentId: aiAgent.id?.toString(),
-        });
-      }
-    }
+      },
+    });
   },
 );
 
@@ -218,15 +98,7 @@ async function readAIAgent(aiAgentId: ObjectID): Promise<AIAgent | null> {
     props: {
       isRoot: true,
     },
-    select: {
-      _id: true,
-      name: true,
-      description: true,
-      projectId: true,
-      project: {
-        name: true,
-      },
-    },
+    select: AI_AGENT_SELECT,
   });
 }
 

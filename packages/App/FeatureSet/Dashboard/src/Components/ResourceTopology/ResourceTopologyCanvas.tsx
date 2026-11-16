@@ -27,16 +27,8 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import {
-  FlowExtent,
-  FlowRect,
-  drawingExtent,
-  panDeltaToReveal,
-} from "../Topology/FlowViewport";
-import {
-  FOCUS_REVEAL_PADDING_PX,
-  isKeyboardFocus,
-} from "../Topology/FlowKeyboardFocus";
+import { FlowExtent, FlowRect, drawingExtent } from "../Topology/FlowViewport";
+import { useFlowKeyboardFocus } from "../Topology/FlowKeyboardFocus";
 import {
   ResourceTopologyGraph,
   ResourceTopologyNode,
@@ -331,6 +323,19 @@ function ignoreNodeClick(): void {
   // The buttons inside each node handle its clicks.
 }
 
+/*
+ * What a pan that follows keyboard focus tells the map: nothing. The map
+ * keeps no note of whose the view is, so there is none to change. It frames
+ * the drawing only when asked - a part opened, a filter, a search, a focus,
+ * Fit - or when it lays the drawing out anew (a new canvas shape, the page's
+ * font arriving), and a pan or a zoom of the reader's own is not noted
+ * either. A resize that lays nothing out anew leaves the view where the
+ * keyboard put it.
+ */
+function keepNoNoteOfTheView(): void {
+  // Nothing to note: see above.
+}
+
 const NODE_TYPE_BY_KIND: Record<ResourceTopologyPlaced["kind"], string> = {
   card: "resourceTopologyCard",
   chip: "resourceTopologyChip",
@@ -478,66 +483,15 @@ const ViewportController: FunctionComponent<{
   }, [props.fitRequest.token, nodesInitialized, props.drawingIds]);
 
   /*
-   * Keyboard focus is followed: a card reached with Tab or an arrow is
-   * panned into view, and a scroll the browser makes to show it is undone
-   * first (it would slide the whole canvas, controls included, out of its
-   * box).
+   * Keyboard focus is followed with the piece the Service Map and the
+   * lineage drawings use (#6958): a part reached with Tab or an arrow is
+   * panned into view, 24px inside the canvas and within the pan extent, and
+   * a scroll the browser makes of React Flow's box to show it is turned
+   * into the same pan (left alone, it would slide the whole canvas, its
+   * zoom buttons included, out of its box). Focus a pointer gives is left
+   * alone, and so is focus the browser hands back as the window regains it.
    */
-  useEffect(() => {
-    const domNode: HTMLDivElement | null = store.getState().domNode;
-
-    if (!domNode) {
-      return undefined;
-    }
-
-    const followFocus: (event: FocusEvent) => void = (
-      event: FocusEvent,
-    ): void => {
-      const target: EventTarget | null = event.target;
-
-      if (!(target instanceof Element) || !isKeyboardFocus(target)) {
-        return;
-      }
-
-      domNode.scrollLeft = 0;
-      domNode.scrollTop = 0;
-
-      const pane: HTMLElement | null = domNode.querySelector<HTMLElement>(
-        ".react-flow__renderer",
-      );
-
-      if (!pane || !pane.contains(target)) {
-        return;
-      }
-
-      const view: DOMRect = pane.getBoundingClientRect();
-      const box: DOMRect = target.getBoundingClientRect();
-      const x: number = panDeltaToReveal(
-        box.left,
-        box.right,
-        view.left,
-        view.right,
-        FOCUS_REVEAL_PADDING_PX,
-      );
-      const y: number = panDeltaToReveal(
-        box.top,
-        box.bottom,
-        view.top,
-        view.bottom,
-        FOCUS_REVEAL_PADDING_PX,
-      );
-
-      if (x || y) {
-        store.getState().panBy({ x: x, y: y });
-      }
-    };
-
-    domNode.addEventListener("focusin", followFocus);
-
-    return () => {
-      domNode.removeEventListener("focusin", followFocus);
-    };
-  }, [store]);
+  useFlowKeyboardFocus(keepNoNoteOfTheView);
 
   return <></>;
 };

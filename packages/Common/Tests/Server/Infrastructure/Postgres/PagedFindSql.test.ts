@@ -15,9 +15,12 @@ import {
 import fs from "fs";
 import path from "path";
 import {
+  And,
   DataSource,
   EntitySchema,
+  Equal,
   FindManyOptions,
+  FindOperator,
   In,
   ObjectLiteral,
   Raw,
@@ -528,6 +531,83 @@ describe("the plans PagedFind makes", () => {
         where: { _id: MONITOR_ID } as never,
       }),
     ).toBe(false);
+  });
+
+  /*
+   * A read by id that the permission checks narrow by conditions on the
+   * record's own id - the labels a grant is limited to, a block with
+   * labels, the records the caller owns - comes as `_id: And(Equal(id),
+   * ...)` (combineWithPrivacyClause): still one record at most, so still
+   * one query, as the bare id is.
+   */
+  test("a primary key with conditions on it beside, all of which hold, still names one record", () => {
+    const metadata: EntityMetadata = repositoryOf(Monitor).metadata;
+    const condition: FindOperator<unknown> = Raw((alias: string): string => {
+      return `(${alias} IN (SELECT "MonitorLabel"."monitorId" FROM "MonitorLabel"))`;
+    });
+
+    for (const where of [
+      { _id: And(Equal(MONITOR_ID), condition) },
+      { _id: And(condition, Equal(MONITOR_ID)) },
+      { _id: And(And(Equal(MONITOR_ID), condition), condition) },
+      { _id: Equal(MONITOR_ID) },
+    ]) {
+      expect(
+        PagedFind.namesOneRecordByPrimaryKey(metadata, {
+          where: where as never,
+        }),
+      ).toBe(true);
+    }
+
+    for (const where of [
+      { _id: And(In([MONITOR_ID]), condition) },
+      { _id: And(condition, condition) },
+      { _id: And(Equal(""), condition) },
+      { _id: Equal("") },
+      { _id: condition },
+      [{ _id: And(Equal(MONITOR_ID), condition) }],
+    ]) {
+      expect(
+        PagedFind.namesOneRecordByPrimaryKey(metadata, {
+          where: where as never,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("a record read by its primary key under conditions on its id: one query, no LIMIT, TypeORM's own SQL", () => {
+    const options: FindManyOptions<Monitor> = {
+      where: {
+        _id: And(
+          Equal(MONITOR_ID),
+          Raw((alias: string): string => {
+            return `(${alias} IN (SELECT "MonitorLabel"."monitorId" FROM "MonitorLabel"))`;
+          }),
+        ),
+      } as never,
+      select: {
+        _id: true,
+        name: true,
+        labels: { _id: true, name: true },
+      } as never,
+      relations: { labels: true } as never,
+      order: { createdAt: "DESC", _id: "ASC" } as never,
+      skip: 0,
+      take: 1,
+    };
+
+    const typeOrm: Plan = planOf(
+      typeOrmBuilder(repositoryOf(Monitor), options),
+    );
+    const paged: Plan = planOf(
+      PagedFind.createQueryBuilder(repositoryOf(Monitor), options),
+    );
+
+    expect(typeOrm.take).toBe(1);
+    expect(paged.take).toBe(undefined);
+    expect(paged.limit).toBe(undefined);
+    expect(paged.sql).toBe(typeOrm.sql);
+    expect(paged.sql).not.toContain("LIMIT");
   });
 });
 

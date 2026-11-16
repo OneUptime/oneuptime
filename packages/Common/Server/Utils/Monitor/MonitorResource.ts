@@ -891,8 +891,9 @@ export default class MonitorResourceUtil {
        * under its own probe when a probe sent it. The first one that
        * measured the monitor - not a heartbeat sweep's look at what has not
        * arrived - says so on its row, once, so the lists and status pages
-       * stop saying it is waiting for its first check
-       * (MonitorFirstMeasured). It never fails the result.
+       * stop saying it is waiting for its first check, and announces it, so
+       * a Monitors list left open follows even when the status stays as it
+       * was (MonitorFirstMeasured). It never fails the result.
        */
       await MonitorFirstMeasured.stampIfFirst({
         monitor: monitor,

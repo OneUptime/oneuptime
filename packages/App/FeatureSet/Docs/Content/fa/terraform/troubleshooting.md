@@ -14,7 +14,7 @@
 | پیام یا نشانه | چه باید کرد |
 | --- | --- |
 | `Missing API Key` | کلید ارائه‌دهنده را به آن بدهید: [`Missing API Key` یا `Invalid API Key`](#missing-api-key-یا-invalid-api-key) را ببینید |
-| `Invalid API Key` | کلید را دوباره کپی کنید، یا یکی تازه بسازید: [`Missing API Key` یا `Invalid API Key`](#missing-api-key-یا-invalid-api-key) را ببینید |
+| `Invalid API Key` | کلید را بررسی کنید، یا برای کلیدی تازه بازنشانی‌اش کنید: [`Missing API Key` یا `Invalid API Key`](#missing-api-key-یا-invalid-api-key) را ببینید |
 | `ProjectId required` | از کلید API پروژه استفاده کنید، نه کلید اصلی: [`ProjectId required`](#projectid-required) را ببینید |
 | `You do not have permissions to create Monitor` | دسترسی‌ای را که پیام نام می‌برد به کلید بدهید: [کلید یک دسترسی کم دارد](#کلید-یک-دسترسی-کم-دارد) را ببینید |
 | `API keys need the Growth plan` | پروژه را به طرح Growth برگردانید: [نیاز به پرداخت](#نیاز-به-پرداخت) را ببینید |
@@ -60,7 +60,7 @@ flowchart TB
 
 `Missing API Key` ارائه‌دهنده را پیش از هر درخواستی متوقف می‌کند: نه `api_key` در بلوک ارائه‌دهنده تنظیم شده است و نه متغیر محیطی `ONEUPTIME_API_KEY`. متغیر را در پوسته‌ای که Terraform را در آن اجرا می‌کنید export کنید، یا کلید را در متغیری بدهید که `sensitive` علامت خورده است.
 
-`Invalid API Key` پاسخ OneUptime به کلیدی است که آن را نمی‌شناسد: کلیدی که اشتباه تایپ شده، منقضی یا حذف شده است، یا کلیدی از OneUptime دیگری جز آنی که `oneuptime_url` به آن اشاره می‌کند. کلید را دوباره از صفحه‌اش در **تنظیمات پروژه** > **پیشرفته** > **کلیدهای API** کپی کنید، یا یکی تازه بسازید.
+`Invalid API Key` پاسخ OneUptime به کلیدی است که آن را نمی‌شناسد: کلیدی که اشتباه تایپ شده، منقضی یا حذف شده است، یا کلیدی از OneUptime دیگری جز آنی که `oneuptime_url` به آن اشاره می‌کند. آن را با پایان کلید در صفحه‌اش در **تنظیمات پروژه** > **پیشرفته** > **کلیدهای API** مقایسه کنید، یا برای کلیدی تازه همان‌جا بازنشانی‌اش کنید.
 
 ### `ProjectId required`
 

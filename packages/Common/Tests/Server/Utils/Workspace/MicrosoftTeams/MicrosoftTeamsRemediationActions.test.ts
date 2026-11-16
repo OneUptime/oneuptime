@@ -14,6 +14,7 @@ import {
   MicrosoftTeamsRemediationActionType,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 import MicrosoftTeamsRemediationActions from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Remediation";
+import { ApprovalStepChangedException } from "../../../../../Server/Utils/AutoRemediation/RemediationApproval";
 import MicrosoftTeamsConnectPrompt from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsConnectPrompt";
 import SlackActionType from "../../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
 import { WorkspaceConnectRequestAgainKind } from "../../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
@@ -21,6 +22,7 @@ import WorkspaceRemediationActions, {
   RemediationApprovalDialog,
 } from "../../../../../Server/Utils/Workspace/WorkspaceRemediationActions";
 import AutoRemediationSuggestionStatus from "../../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import { RemediationApprovalStepKind } from "../../../../../Types/AutoRemediation/RemediationApprovals";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
@@ -353,6 +355,30 @@ describe("Approve and run", () => {
     expect(turn.deleted).toEqual([]);
     expect(turn.replies).toEqual([]);
   });
+
+  /*
+   * A card opened as the first of two approvals, pressed after someone else
+   * approved first (#6421): the server did nothing. The presser is told to
+   * review the fix again, and the card - which anyone in the channel can
+   * press, and which no longer says what pressing it does - is taken away.
+   */
+  test("a card whose press no longer does what it says asks for a fresh review, and is taken away", async () => {
+    const changed: string =
+      "Maya Chen approved this fix while you were reviewing it, so approving it now would run it. Nothing was done: review it again before you approve.";
+    approve.mockRejectedValue(
+      new ApprovalStepChangedException(changed) as never,
+    );
+    const turn: FakeTurn = createTurn();
+
+    await handle(
+      MicrosoftTeamsRemediationActionType.SubmitApproveRemediation,
+      turn,
+    );
+
+    expect(turn.replies).toHaveLength(1);
+    expect(replyText(turn.replies[0])).toContain(changed);
+    expect(turn.deleted).toEqual(["approval-card-activity"]);
+  });
 });
 
 describe("Dismiss", () => {
@@ -396,12 +422,17 @@ describe("the person who approved a riskier fix first", () => {
 
   beforeEach(() => {
     readFix.mockResolvedValue(approvedFirstBy(USER_ID) as never);
+    // The first approval that counts is theirs: a press is the second, after them.
     jest
       .spyOn(WorkspaceRemediationActions, "getFixApprovals")
       .mockResolvedValue({
         needed: 2,
         hasFirstApproval: true,
         firstApproverName: "Maya Chen",
+        step: {
+          kind: RemediationApprovalStepKind.Second,
+          firstApprovedByUserId: USER_ID.toString(),
+        },
       } as never);
   });
 

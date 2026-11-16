@@ -46,6 +46,7 @@ import {
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
+import { getRemediationPlanFingerprint } from "../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
 import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -402,8 +403,23 @@ describe("RemediationStep Approve & Run", () => {
     });
 
     expect(actionPosts(APPROVE_ROUTE)).toHaveLength(1);
+    /*
+     * The approval names the fix the card shows: its fingerprint, worked out
+     * in the browser as the server works it out (#6421). One approval runs
+     * it, so the press says no step of two.
+     */
     expect(actionPosts(APPROVE_ROUTE)[0]!["data"]).toEqual({
       suggestionId: SUGGESTION_ID,
+      expectedPlanFingerprint: getRemediationPlanFingerprint({
+        suggestionType: AutoRemediationSuggestionType.CommandPlan,
+        commandPlan: {
+          commands: [
+            kubectlCommand({
+              policyVerdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
+            }),
+          ],
+        },
+      }),
     });
     expect(screen.getByTestId("remediation-approve-button")).toBeDisabled();
     // Dismiss is locked too while the approval is in flight.

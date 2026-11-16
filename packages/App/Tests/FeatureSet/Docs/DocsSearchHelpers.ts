@@ -1,16 +1,19 @@
 import {
-  AIDocsIndexedPage,
-  AIDocsIndexedSection,
   AIDocsLanguageIndex,
   tokenizeForDocs,
 } from "../../../FeatureSet/Docs/Utils/AIDocsReader";
-import { DocsVocabulary } from "../../../FeatureSet/Docs/Utils/DocsSearchWords";
+import {
+  DocsIndexBuilder,
+  DocsIndexPageInput,
+  DocsIndexSectionInput,
+} from "../../../FeatureSet/Docs/Utils/DocsIndex";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 
 /*
  * A small docs index made by hand, laid out as AIDocsReader.build lays out
- * the real one, so docs search's ranking can be checked against pages whose
- * every word is known (DocsSearch.test.ts).
+ * the real one - by the same DocsIndexBuilder - so docs search's ranking
+ * can be checked against pages whose every word is known
+ * (DocsSearch.test.ts).
  */
 
 export interface MadeSection {
@@ -51,6 +54,68 @@ const anchorOf: (title: string) => string = (title: string): string => {
   return slugifyMarkdownHeading(title);
 };
 
+// A page made by hand, as the index's builder is handed a page of the docs.
+export const madePageInput: (
+  made: MadePage,
+  language: string,
+) => DocsIndexPageInput = (
+  made: MadePage,
+  language: string,
+): DocsIndexPageInput => {
+  const madeSections: Array<MadeSection> = made.sections || [];
+  const summary: string = made.summary || "";
+  const body: string = [
+    summary,
+    ...madeSections
+      .filter((section: MadeSection): boolean => {
+        return !section.isOtherName;
+      })
+      .map((section: MadeSection): string => {
+        return `${section.title}\n${section.text}`;
+      }),
+  ].join("\n");
+
+  return {
+    page: made.page,
+    title: made.title,
+    group: made.group || "Docs",
+    summary,
+    language,
+    isGuide: made.isGuide === true,
+    titleTerms: terms(made.title, language),
+    groupTerms: terms(made.group || "Docs", language),
+    summaryTerms: terms(summary, language),
+    headingTerms: terms(
+      madeSections
+        .filter((section: MadeSection): boolean => {
+          return !section.isOtherName;
+        })
+        .map((section: MadeSection): string => {
+          return section.title;
+        })
+        .join(" "),
+      language,
+    ),
+    bodyTerms: counts(body, language),
+    bodyLength: tokenizeForDocs(body, language).length,
+    sections: madeSections.map(
+      (section: MadeSection): DocsIndexSectionInput => {
+        return {
+          title: section.title,
+          anchor: section.anchor || anchorOf(section.title),
+          terms: counts(
+            section.isOtherName ? section.title : section.text,
+            language,
+          ),
+          titleTerms: terms(section.title, language),
+          text: section.text,
+          isOtherName: section.isOtherName,
+        };
+      },
+    ),
+  };
+};
+
 export const makeDocsIndex: (
   madePages: Array<MadePage>,
   language?: string | undefined,
@@ -58,90 +123,12 @@ export const makeDocsIndex: (
   madePages: Array<MadePage>,
   language?: string | undefined,
 ): AIDocsLanguageIndex => {
-  const documentFrequency: Map<string, number> = new Map();
   const resolved: string = language || "en";
+  const builder: DocsIndexBuilder = new DocsIndexBuilder(resolved);
 
-  const pages: Array<AIDocsIndexedPage> = madePages.map(
-    (made: MadePage): AIDocsIndexedPage => {
-      const madeSections: Array<MadeSection> = made.sections || [];
-      const summary: string = made.summary || "";
-      const body: string = [
-        summary,
-        ...madeSections
-          .filter((section: MadeSection): boolean => {
-            return !section.isOtherName;
-          })
-          .map((section: MadeSection): string => {
-            return `${section.title}\n${section.text}`;
-          }),
-      ].join("\n");
+  for (const made of madePages) {
+    builder.addPage(madePageInput(made, resolved));
+  }
 
-      const sections: Array<AIDocsIndexedSection> = madeSections.map(
-        (section: MadeSection): AIDocsIndexedSection => {
-          return {
-            title: section.title,
-            anchor: section.anchor || anchorOf(section.title),
-            terms: counts(
-              section.isOtherName ? section.title : section.text,
-              resolved,
-            ),
-            titleTerms: terms(section.title, resolved),
-            text: section.text,
-            isOtherName: section.isOtherName,
-          };
-        },
-      );
-
-      const page: AIDocsIndexedPage = {
-        page: made.page,
-        title: made.title,
-        group: made.group || "Docs",
-        summary,
-        language: resolved,
-        titleTerms: terms(made.title, resolved),
-        groupTerms: terms(made.group || "Docs", resolved),
-        summaryTerms: terms(summary, resolved),
-        headingTerms: terms(
-          madeSections
-            .filter((section: MadeSection): boolean => {
-              return !section.isOtherName;
-            })
-            .map((section: MadeSection): string => {
-              return section.title;
-            })
-            .join(" "),
-          resolved,
-        ),
-        bodyTerms: counts(body, resolved),
-        bodyLength: tokenizeForDocs(body, resolved).length,
-        sections,
-        isGuide: made.isGuide === true,
-      };
-
-      for (const term of new Set<string>([
-        ...page.titleTerms,
-        ...page.headingTerms,
-        ...page.summaryTerms,
-        ...page.bodyTerms.keys(),
-        ...sections.flatMap((section: AIDocsIndexedSection): Array<string> => {
-          return section.isOtherName ? Array.from(section.titleTerms) : [];
-        }),
-      ])) {
-        documentFrequency.set(term, (documentFrequency.get(term) || 0) + 1);
-      }
-
-      return page;
-    },
-  );
-
-  return {
-    language: resolved,
-    pages,
-    documentFrequency,
-    averageBodyLength:
-      pages.reduce((total: number, page: AIDocsIndexedPage): number => {
-        return total + page.bodyLength;
-      }, 0) / Math.max(1, pages.length),
-    vocabulary: new DocsVocabulary(documentFrequency),
-  };
+  return builder.build();
 };

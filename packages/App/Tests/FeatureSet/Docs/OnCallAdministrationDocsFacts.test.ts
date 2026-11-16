@@ -1744,8 +1744,70 @@ describe("when several policies page", () => {
       "A policy started by hand is one started with **Execute On-Call Policy**, or by a page from Slack or Microsoft Teams that names it.",
     );
     expect(severalPolicies()).toContain(
-      "once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why.",
+      "once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why: the dashboard turns **Execute On-Call Policy** off and shows the reason.",
     );
+
+    /*
+     * Issue #7839: every record's feed turns Execute On-Call Policy off on a
+     * resolved record, with the reason, before any form is filled in.
+     */
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/ExecutePolicy/ExecuteOnCallPolicyWords.ts",
+      ),
+    ).toContain("if (data.standing === EventStanding.Resolved) {");
+
+    for (const feed of [
+      "Components/Incident/IncidentFeed.tsx",
+      "Components/Alert/AlertFeed.tsx",
+      "Components/IncidentEpisode/IncidentEpisodeFeed.tsx",
+      "Components/AlertEpisode/AlertEpisodeFeed.tsx",
+    ]) {
+      const source: string = readDashboardSource(feed);
+
+      expect({
+        feed,
+        locked: source.includes("getExecuteOnCallPolicyMenuLock({"),
+      }).toEqual({
+        feed,
+        locked: true,
+      });
+      expect({
+        feed,
+        disabled: source.includes("isDisabled={executePolicyLock.isDisabled}"),
+      }).toEqual({ feed, disabled: true });
+      // Archived policies page no one, so the form offers none.
+      expect({
+        feed,
+        liveOnly: source.includes("query: { isArchived: false },"),
+      }).toEqual({ feed, liveOnly: true });
+    }
+  });
+
+  /*
+   * The incident feed's own docs say what its Execute On-Call Policy does
+   * (#7839): it pages until somebody it paged answers, the incident
+   * acknowledged or not; it is turned off on a resolved incident; and the
+   * archived policies, which page nobody, are not offered.
+   */
+  it("says on the incident feed's page what Execute On-Call Policy does by where the incident stands", () => {
+    const feedPage: string = readPage("en", "incidents/notes-owners-and-feed");
+
+    expect(feedPage).toContain(
+      "- **Execute On-Call Policy** — page a policy on demand. It pages the policy's people until one of them answers or the incident is resolved, even when somebody acknowledged the incident already. It is turned off on a resolved incident, and archived policies, which page no one, are not offered.",
+    );
+
+    // Goes on until answered, whoever acknowledged: a policy started by hand.
+    expect(isOnCallPageEndedOnlyByAnAnswer(startedByHand)).toBe(true);
+
+    const incidentFeed: string = readDashboardSource(
+      "Components/Incident/IncidentFeed.tsx",
+    );
+
+    expect(incidentFeed).toContain(
+      "recordType: OnCallPageRecordType.Incident,",
+    );
+    expect(incidentFeed).toContain("query: { isArchived: false },");
   });
 
   /*
@@ -1776,7 +1838,7 @@ describe("when several policies page", () => {
     ).toContain("isOnCallPolicyStartedByHand(run)");
 
     expect(severalPolicies()).toContain(
-      "you are told why. Its notifications say who started which policy, and carry the message sent with a page from Slack or Microsoft Teams.",
+      "shows the reason. Its notifications say who started which policy, and carry the message sent with a page from Slack or Microsoft Teams.",
     );
   });
 });

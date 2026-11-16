@@ -441,6 +441,40 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/OnCall/ScheduleLayersSavePostgres.test.ts --forceExit
 
+      # #7813: a change to a schedule's layers made through the API holds
+      # the schedule (rosterRefreshDueAt) until its writes are quiet, and the
+      # Workers tell it once and let it go with a compare-and-set. The real
+      # ScheduleLayerChanges runs on a copy of the migrated schedule table:
+      # the hold to the millisecond, the due read by its partial index, and a
+      # write made while a change is told holding it again.
+      - name: Test a schedule's change held until it is quiet, on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SCHEDULE_LAYER_CHANGES_TESTS: "true"
+          SCHEDULE_LAYER_CHANGES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SCHEDULE_LAYER_CHANGES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SCHEDULE_LAYER_CHANGES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/OnCall/ScheduleLayerChangesPostgres.test.ts --forceExit
+
+      # #8104: an escalation step's claim, and a new pass's count, change no
+      # indexed column of the migrated OnCallDutyPolicyExecutionLog, so they
+      # are HOT updates; the rule a run is on keeps its index for the
+      # cascade. The real service statements run on a copy of the table.
+      - name: Test what an escalation step writes, on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ON_CALL_EXECUTION_LOG_WRITES_TESTS: "true"
+          ON_CALL_EXECUTION_LOG_WRITES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ON_CALL_EXECUTION_LOG_WRITES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ON_CALL_EXECUTION_LOG_WRITES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OnCallExecutionLogStepWritesPostgres.test.ts --forceExit
+
       # An episode's members show their incident or alert, and their episode,
       # through joins that run neither one's privacy rules: a member row is
       # listed, counted, read and removed only by someone who may see both.
@@ -671,6 +705,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/WorkflowIncomingEmailSecretKeyPostgres.test.ts --forceExit
+
+      # #8861: a write posts its workflow trigger only when a workflow of its
+      # project listens. Clones the migrated Workflow table into an isolated
+      # schema: the triggers read for a project are those of its enabled
+      # workflows that are not archived nor deleted - for every trigger, a
+      # write is told a workflow listens exactly when the workflow service's
+      # handler finds one - read in one statement for a project's first
+      # write and none for the writes after it.
+      - name: Test which triggers a project's workflows listen to against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WORKFLOW_LISTENER_TESTS: "true"
+          WORKFLOW_LISTENER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKFLOW_LISTENER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKFLOW_LISTENER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Workflow/WorkflowListenersPostgres.test.ts --forceExit
 
       # Clones the migrated Runbook and RunbookExecution tables into an
       # isolated schema: Workers racing for a runbook schedule's due time
@@ -2672,6 +2725,27 @@ jobs:
           Tests/Server/Infrastructure/Postgres/AddAlertAndIncidentListIndexesPostgres.test.ts
           --forceExit
 
+      # #8113: a grant limited to labels, and a filter by labels, are a
+      # condition on the record's own id rather than a join through its
+      # labels. Every list, page, order, count, read by id and update of
+      # alerts, incidents and monitors runs twice through the real services
+      # and permission pipeline - the code as it was, frozen in the suite, and
+      # as it is - for a matrix of grants, blocks, Owned scopes and filters,
+      # and must reach the same records; and none outside the reader's labels.
+      # Clones the migrated tables into an isolated schema.
+      - name: Test label-limited lists before and after on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_LABEL_LIMITED_LIST_TESTS: "true"
+          LABEL_LIMITED_LIST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LABEL_LIMITED_LIST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LABEL_LIMITED_LIST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/LabelLimitedListsPostgres.test.ts
+          --forceExit
+
       # The Network Overview counts the fleet in one scan
       # (NetworkDeviceService.getFleetScan) where it ran four reads: the
       # summary strip's numbers, the health buckets, the vendor breakdown and
@@ -3267,9 +3341,12 @@ jobs:
       # #6480 and #6987: time a monitor's monitoring was turned off is left
       # out of its days, its rolling uptime, a monitor group's days and the
       # group's uptime. Runs the four statements on a structure-only copy of
-      # the migrated MonitorStatusTimeline table (its isMonitoringOff column
-      # among them) against a reference that skips the time off, and checks
-      # the open row before a switch ends at the switch.
+      # the migrated MonitorStatusTimeline, Monitor and MonitorStatus tables
+      # (the isMonitoringOff column among them) against a reference that
+      # skips the time off, and checks the open row before a switch ends at
+      # the switch. #8960: so is the time before a monitor's first check
+      # (Monitor.firstMeasuredAt), in five zones, while a monitor checked from
+      # the start reads exactly what the four statements read before.
       - name: Test time with monitoring off on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -3281,6 +3358,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MonitorStatusTimelineMonitoringOffPostgres.test.ts --forceExit
+
+      # #6887: a monitor's days are cut on the grid of local midnights the
+      # monitor group statement cuts on, each period's days found with
+      # width_bucket. Runs the day aggregate and the statement it replaced on
+      # a structure-only copy of the migrated MonitorStatusTimeline, Monitor
+      # and MonitorStatus tables, on drawn timelines in nine zones over
+      # windows with DST and midnight clock changes, holds the new one to the
+      # old one's buckets to within a microsecond, and times both on a
+      # flapping page.
+      - name: Test a monitor's day bars against the previous day split on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DAILY_UPTIME_AGGREGATE_TESTS: "true"
+          DAILY_UPTIME_AGGREGATE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DAILY_UPTIME_AGGREGATE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DAILY_UPTIME_AGGREGATE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MonitorDailyUptimeAggregatePostgres.test.ts --forceExit
 
       # Clones the migrated MonitorTest table into an isolated schema and runs
       # the write a probe's monitor test result makes: keyed on the test and
@@ -3527,7 +3624,12 @@ jobs:
       # state change jobs' backlog - a page at a time, oldest first, each
       # status change taken by one statement, by one of two runs at once,
       # and a run stopped at its deadline - on a copy of the migrated
-      # MonitorStatusTimeline table.
+      # MonitorStatusTimeline table. #8862: an incident's owner rows - team
+      # rows and user rows - told of together, each taken by one statement,
+      # by one of two runs at once, and never split by a run stopped at its
+      # deadline; #8863: the entries before a page's status changes read
+      # once per page - on copies of the migrated IncidentOwnerTeam,
+      # IncidentOwnerUser and MonitorStatusTimeline tables.
       - name: Test the owner notification jobs stopped and started again on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/App
@@ -3540,6 +3642,7 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/Jobs/OwnerNotificationJobsPostgres.test.ts
           Tests/Workers/Utils/OwnerNotificationBacklogPostgres.test.ts
+          Tests/Workers/Utils/OwnerNotificationGroupsPostgres.test.ts
           --forceExit
 
       # A bundled global probe upgraded from the key the repository ships, end
@@ -3658,6 +3761,30 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/DataMigrations/HashMasterApiKeyPostgres.test.ts
+          --forceExit
+
+      # A project's API keys through the upgrade that stores them hashed
+      # (#8902): on the ApiKey table as it was, with keys stored the old way,
+      # the API takes a key as written before the schema migration, after it
+      # and after HashProjectApiKeys, which leaves only hashes with their
+      # hints (a deleted key's too); then no key a request presents goes into
+      # a query; a reset's key works and the one before stops; a key created
+      # now is stored hashed; a master admin reads no key or hash and cannot
+      # write one; the master API key says when, by whom and how it ends
+      # (#8903); rolled back, a hashed key becomes a new random uuid. Clones
+      # the migrated ApiKey, GlobalConfig and User tables into an isolated
+      # schema.
+      - name: Test project API keys' upgrade to a hash on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_PROJECT_API_KEY_TESTS: "true"
+          PROJECT_API_KEY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_API_KEY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_API_KEY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/HashProjectApiKeysPostgres.test.ts
           --forceExit
 
       # Exceptions: the exception group upsert's ON CONFLICT branch, which is
@@ -3793,15 +3920,15 @@ jobs:
           --forceExit
 
       # When something first measured a monitor (#8899): the column
-      # 1809180900000 adds is a nullable timestamp; BackfillMonitorFirstMeasuredAt
+      # 1809181100000 adds is a nullable timestamp; BackfillMonitorFirstMeasuredAt
       # stamps, with its creation time, every monitor that left a trace of being
       # measured and every manual one, pages past a page, and changes nothing
       # the second time; a first result's stamp lands once, and skips a row
       # another writer holds rather than waiting for it. Clones the migrated
       # Monitor, MonitorProbe and MonitorStatusTimeline tables into an
-      # isolated schema.
+      # isolated schema. An App suite, so in shard 3, which installs App.
       - name: Test when something first measured a monitor on migrated Postgres
-        if: matrix.shard == 1
+        if: matrix.shard == 3
         working-directory: packages/App
         env:
           RUN_POSTGRES_MONITOR_FIRST_MEASURED_TESTS: "true"
@@ -3811,6 +3938,28 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/DataMigrations/BackfillMonitorFirstMeasuredAtPostgres.test.ts
+          --forceExit
+
+      # #8960: a monitor's uptime history leaves out the time before its
+      # first check, so BackfillMonitorFirstMeasuredAtForUptimeHistory gives a
+      # monitor measured before the column existed its creation - one a
+      # result stamped during the upgrade before the backfill reached it, a
+      # Probe Status monitor, a Network Device monitor whose device was
+      # polled - and leaves the rest; the whole upgrade, in order, keeps a
+      # monitor checked all along its history, and until its row is there
+      # the uptime statements leave nothing out. Clones the migrated tables
+      # it reads into an isolated schema.
+      - name: Test a monitor's first check put right for its uptime history on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_MONITOR_FIRST_MEASURED_HISTORY_TESTS: "true"
+          MONITOR_FIRST_MEASURED_HISTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_FIRST_MEASURED_HISTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_FIRST_MEASURED_HISTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/BackfillMonitorFirstMeasuredAtForUptimeHistoryPostgres.test.ts
           --forceExit
 
       # Archiving the values records pick from, on migrated Postgres: the two

@@ -28,6 +28,10 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
 import { stubDashboardCustomNotificationChannels } from "./CustomNotificationChannelsStub";
+import {
+  resetNotificationChannelReadiness,
+  stubNotificationChannelReadiness,
+} from "./NotificationChannelReadinessStub";
 
 /*
  * THE MICROSOFT TEAMS COLUMN IS MICROSOFT TEAMS IN EVERY LANGUAGE.
@@ -106,6 +110,8 @@ beforeEach(() => {
   jest.spyOn(User, "getUserId").mockReturnValue(USER_ID);
   // No custom channel on: the columns stop at Webhook.
   stubDashboardCustomNotificationChannels();
+  // Every channel has a verified method: every column is offered.
+  stubNotificationChannelReadiness();
   jest
     .spyOn(ModelAPI, "getCommonHeaders")
     .mockReturnValue({ tenantid: PROJECT_ID.toString() });
@@ -140,6 +146,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
   ConnectedWorkspaces.setFetcher(null);
   ConnectedWorkspaces.reset();
+  resetNotificationChannelReadiness();
   await act(async (): Promise<void> => {
     await i18next.changeLanguage("en");
   });

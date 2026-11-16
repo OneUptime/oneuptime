@@ -35,7 +35,7 @@ Abre **Ajustes del proyecto → Avanzado → Claves de API** y haz clic en **Cre
 
 ### Copiar la clave
 
-Se abre la página de la clave. Copia la **Clave de API** de la tarjeta **Detalles de la clave de API** y mantenla fuera de tu código:
+OneUptime muestra la clave una sola vez, en el diálogo **Copia tu clave de API**: cópiala antes de pulsar **Hecho**, porque ninguna página vuelve a mostrarla. Mantenla fuera de tu código:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -93,7 +93,7 @@ Un campo de un registro que nombra el recurso se filtra bajo su relación: `"use
 
 Un recurso con propietarios - un monitor, un incidente, una política de guardia y cualquier otro con propietarios de usuario y de equipo - también se filtra por quién es su propietario, bajo `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` encuentra los registros de los que son propietarios una o más de esas personas y equipos. `match` es `AnyOf` salvo que lo fijes: `NoneOf` encuentra los registros de los que no es propietario ninguno de ellos, incluidos los registros sin propietarios, y `AnyOwner` y `NoOwner` encuentran los registros con algún propietario o sin ninguno, sin nombrar a nadie. Los miembros de un equipo no son propietarios de lo que es del equipo. Un filtro nombra como máximo 1000 personas y equipos en total, un recurso sin propietarios lo rechaza con un `400`, y filtrar por propietarios sin permiso para leerlos se rechaza con un `422`.
 
-`select` nombra los campos que se devuelven, y `_id` siempre vuelve. `sort` los ordena, `ASC` o `DESC`; sin orden, los más recientes van primero. Una lista devuelve 10 registros salvo que fijes `limit`, hasta 10 000, y `skip` se salta antes esa cantidad: sigue aumentando `skip` en `limit` hasta tener `count` de ellos. Añade `?output-type=csv` a una solicitud de lista para obtener CSV en lugar de JSON.
+`select` nombra los campos que se devuelven, y `_id` siempre vuelve. `sort` los ordena, `ASC` o `DESC`; sin orden, los más recientes van primero. Una lista devuelve 10 registros salvo que fijes `limit`, hasta 10 000, y `skip` se salta antes esa cantidad: sigue aumentando `skip` en `limit` hasta tener `count` de ellos. En una lista larga, contar cada coincidencia lleva tiempo: añade `countUpTo`, por ejemplo `10000`, y el recuento se detiene ahí, o al final de la página si queda más lejos. Cuando coinciden más registros, `count` es donde se detuvo y la respuesta también lleva `"isCountCapped": true`: con `"countUpTo": 1`, eso indica si siguen más registros después de la página. Añade `?output-type=csv` a una solicitud de lista para obtener CSV en lugar de JSON.
 
 El orden de un campo también puede decir adónde van los registros sin valor en él: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` pone primero los más recientes y al final los que no tienen ninguno, y `FIRST` los pone primero. Una relación con un registro ordena por un campo del registro que nombra: `{ "incidentSeverity": { "order": "ASC" } }` lista los incidentes en el orden de sus gravedades. Una relación que recibe solo una dirección, como en `{ "incidentSeverity": "DESC" }`, se rechaza con un `400` que nombra un campo por el que ordenar en su lugar, y lo mismo una relación con muchos registros, como las `labels` de un incidente: cada incidente tiene una lista de ellas, y una lista no tiene un único valor por el que poner los incidentes en orden. Ordenar por un campo también requiere permiso para leerlo, a través de una relación igual que en el propio recurso: un orden por un campo que no puedes leer se rechaza con un `422`.
 
@@ -341,7 +341,7 @@ Cada recurso, endpoint y campo aparece en la [referencia de la API de OneUptime]
 ## Solución de problemas
 
 :::details Cada solicitud responde 400 Invalid API Key
-La cabecera `ApiKey` está vacía, no es una clave o nombra una clave que ha caducado o se ha restablecido. Vuelve a copiar la clave desde su página en **Ajustes del proyecto → Avanzado → Claves de API**, donde también está su fecha de **Caduca**.
+La cabecera `ApiKey` está vacía, no es una clave o nombra una clave que ha caducado o se ha restablecido. Busca la clave en **Ajustes del proyecto → Avanzado → Claves de API** por cómo termina, y comprueba su fecha de **Caduca**. Una clave que ya no tienes no se puede volver a mostrar: restablécela en su página para obtener una nueva.
 :::
 
 :::details Cada solicitud responde 402 Payment Required

@@ -1,7 +1,9 @@
 import {
+  EventStanding,
   EventStateTimelineDate,
   getEventDurationText,
   getEventEndDateForCurrentState,
+  getEventStanding,
 } from "../../Utils/EventDuration";
 import ResolvedStateUtil, {
   ResolvedStateList,
@@ -45,6 +47,13 @@ export interface EpisodeTiming {
   // Set only while the episode's current state counts as resolved.
   durationEndsAt?: Date | undefined;
   isResolved: boolean;
+  /*
+   * Where the episode stands now - open, acknowledged or resolved - by its
+   * latest dated state (getEventStanding), as an incident's and an alert's
+   * pages read theirs: what the page offers follows it (the feed's Execute
+   * On-Call Policy). Undefined while no state is dated.
+   */
+  standing: EventStanding | undefined;
 }
 
 /**
@@ -175,6 +184,23 @@ export function getEpisodeTiming(input: EpisodeTimingInput): EpisodeTiming {
       ? getEventEndDateForCurrentState(sortedTimelines, resolvedStateIds)
       : input.resolvedAt || undefined;
 
+  /*
+   * The states the episode is acknowledged but not resolved in: the
+   * acknowledged state and every state after it, up to the resolved one
+   * (Common/Utils/AcknowledgedState).
+   */
+  const acknowledgedStateIds: Array<string> =
+    AcknowledgedStateUtil.getAcknowledgedUnresolvedStates({
+      list: input.list,
+      states: input.states,
+    })
+      .map((state: EpisodeTimingState) => {
+        return state.id;
+      })
+      .filter((id: string) => {
+        return Boolean(id);
+      });
+
   return {
     acknowledgedStateName,
     resolvedStateName,
@@ -183,5 +209,10 @@ export function getEpisodeTiming(input: EpisodeTimingInput): EpisodeTiming {
     durationStartsAt: startedAt,
     durationEndsAt,
     isResolved: Boolean(durationEndsAt),
+    standing: getEventStanding({
+      timelines: input.timelines,
+      acknowledgedStateIds: acknowledgedStateIds,
+      resolvedStateIds: resolvedStateIds,
+    }),
   };
 }
