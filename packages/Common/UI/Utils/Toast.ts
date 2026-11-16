@@ -121,15 +121,19 @@ export const MAX_TOASTS: number = 4;
 
 export const SUCCESS_DURATION_IN_MS: number = 5000;
 export const INFO_DURATION_IN_MS: number = 6000;
+// A second line to read: what went out and where to look for it.
+export const DESCRIPTION_DURATION_IN_MS: number = 8000;
 // Long enough to read the toast and reach its button.
 export const ACTION_DURATION_IN_MS: number = 10000;
 
 export const getDefaultDurationInMs: (data: {
   type: ToastType;
   hasAction: boolean;
+  hasDescription?: boolean | undefined;
 }) => number | null = (data: {
   type: ToastType;
   hasAction: boolean;
+  hasDescription?: boolean | undefined;
 }): number | null => {
   if (data.type === ToastType.Error) {
     return null;
@@ -137,6 +141,10 @@ export const getDefaultDurationInMs: (data: {
 
   if (data.hasAction) {
     return ACTION_DURATION_IN_MS;
+  }
+
+  if (data.hasDescription) {
+    return DESCRIPTION_DURATION_IN_MS;
   }
 
   return data.type === ToastType.Info
@@ -172,6 +180,7 @@ export default class Toast {
         : getDefaultDurationInMs({
             type: type,
             hasAction: Boolean(options?.action),
+            hasDescription: Boolean(options?.description),
           });
 
     /*

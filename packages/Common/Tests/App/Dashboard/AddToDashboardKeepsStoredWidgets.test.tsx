@@ -16,6 +16,7 @@ import {
   test,
 } from "@jest/globals";
 import React from "react";
+import Toast, { ToastItem } from "../../../UI/Utils/Toast";
 
 /*
  * Issue #4571, on the metric explorer's Add to Dashboard. It reads the
@@ -194,6 +195,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   jest.clearAllMocks();
+  Toast.dismissAll();
 });
 
 describe("Add to Dashboard keeps the widgets already on the dashboard (issue #4571)", () => {
@@ -211,7 +213,21 @@ describe("Add to Dashboard keeps the widgets already on the dashboard (issue #45
       JSON.stringify((written["components"] as Array<JSONObject>)[0]),
     ).toContain(EXISTING_WIDGET_ID);
     expect(JSON.stringify(written)).toContain(METRIC_NAME);
-    expect(await screen.findByText("Chart Added")).toBeInTheDocument();
+    /*
+     * Said in the corner, with the way to the dashboard: it was a dialog
+     * over the explorer (#9120).
+     */
+    await waitFor(() => {
+      expect(Toast.getToasts()[0]?.title).toBe("Chart Added");
+    });
+
+    const added: ToastItem = Toast.getToasts()[0]!;
+
+    expect(String(added.description)).toBe(
+      "The chart was added to the Checkout on-call dashboard.",
+    );
+    expect(added.action?.title).toBe("Open Dashboard");
+    expect(screen.queryByText("Chart Added")).toBeNull();
   });
 
   test("a dashboard stored as JSON text: its widget is kept", async () => {

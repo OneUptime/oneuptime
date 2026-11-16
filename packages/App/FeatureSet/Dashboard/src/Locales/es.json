@@ -56431,5 +56431,7 @@
   "{{itemName}} invited": "Invitado: {{itemName}}",
   "{{itemName}} linked": "Vinculado: {{itemName}}",
   "{{itemName}} removed": "Quitado: {{itemName}}",
-  "{{itemName}} started": "Iniciado: {{itemName}}"
+  "{{itemName}} started": "Iniciado: {{itemName}}",
+  "Test email report not sent": "Informe de prueba por correo no enviado",
+  "Test message not sent": "Mensaje de prueba no enviado"
 }

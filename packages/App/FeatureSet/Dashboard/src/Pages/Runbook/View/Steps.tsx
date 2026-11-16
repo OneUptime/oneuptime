@@ -141,6 +141,7 @@ import {
   DropResult,
 } from "react-beautiful-dnd";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Toast, { CHANGES_SAVED } from "Common/UI/Utils/Toast";
 import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
 import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
 import { getRunbookStepsSignature } from "Common/Utils/Runbook/RunbookStepsSignature";
@@ -624,7 +625,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [success, setSuccess] = useState<boolean>(false);
 
   /*
    * The steps as they were last loaded or saved (getRunbookStepsSignature):
@@ -1015,7 +1015,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
        * is still unsaved.
        */
       setSavedStepsSignature(getRunbookStepsSignature(normalized));
-      setSuccess(true);
+      // Said in the corner: a "Saved" dialog had to be clicked away (#9120).
+      Toast.success(translator.translateText(CHANGES_SAVED) || CHANGES_SAVED);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -2628,18 +2629,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ) : null}
         </>
       </Card>
-
-      {success && (
-        <ConfirmModal
-          title="Saved"
-          description="Runbook steps saved successfully."
-          submitButtonText="Got it"
-          submitButtonType={ButtonStyleType.NORMAL}
-          onSubmit={() => {
-            setSuccess(false);
-          }}
-        />
-      )}
 
       {error && (
         <ConfirmModal

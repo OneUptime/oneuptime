@@ -56431,5 +56431,7 @@
   "{{itemName}} invited": "{{itemName}} دعوت شد",
   "{{itemName}} linked": "{{itemName}} پیوند داده شد",
   "{{itemName}} removed": "{{itemName}} برداشته شد",
-  "{{itemName}} started": "{{itemName}} آغاز شد"
+  "{{itemName}} started": "{{itemName}} آغاز شد",
+  "Test email report not sent": "گزارش آزمایشی ایمیل ارسال نشد",
+  "Test message not sent": "پیام آزمایشی ارسال نشد"
 }

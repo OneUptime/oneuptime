@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import Toast from "../../../UI/Utils/Toast";
 import {
   afterEach,
   beforeEach,
@@ -403,26 +404,25 @@ describe("the call list and numbers verified for SMS", () => {
     return list.name === "SMS";
   })!;
 
-  test("a number added that SMS already verified gets a notice, not a dialog asking for a code", async () => {
+  test("a number added that SMS already verified says so in a toast, not a dialog asking for a code", async () => {
+    Toast.dismissAll();
     render(<CallMethods />);
 
     await addNumber(callList, row(callList, { isVerified: true }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("modal-title")).toHaveTextContent(
-        "Phone Number Verified",
-      );
+      expect(Toast.getToasts()[0]?.title).toBe("Phone Number Verified");
     });
 
-    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+    expect(String(Toast.getToasts()[0]?.description)).toBe(
       `${PHONE} is already verified for SMS, so it is verified for calls too. No code needed.`,
     );
+    // Nothing to click away, and no code asked for.
+    expect(screen.queryByTestId("modal-title")).toBeNull();
     expect(screen.queryByTestId("verification-code-input")).toBeNull();
     expect(postsTo("/verification-status")).toHaveLength(0);
 
-    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
-
-    expect(screen.queryByTestId("modal-title")).toBeNull();
+    Toast.dismissAll();
   });
 
   test("its description says a number verified for SMS needs no code there", () => {

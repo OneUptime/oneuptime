@@ -14,6 +14,7 @@ import WorkspaceType, {
 } from "Common/Types/Workspace/WorkspaceType";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Toast from "Common/UI/Utils/Toast";
 import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceNotificationRuleOwningTeam from "Common/Models/DatabaseModels/WorkspaceNotificationRuleOwningTeam";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
@@ -272,8 +273,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   >(undefined);
 
   /*
-   * What the test came to, once it is sent: Test Notification Sent, or
-   * Test Failed with what the server said and what to do next. The failure
+   * What a test that failed came to (Test Notification Sent is a toast,
+   * #9120): Test Failed with what the server said and what to do next. The failure
    * showed inside the Test Rule dialog, under its Test button, and pressing
    * Test again could post a second test into the channels that got the
    * first: whatever the answer, that dialog closes and this one opens
@@ -317,7 +318,26 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
 
       setIsTestLoading(false);
       setShowTestModal(false);
-      setShowTestResultModal(true);
+      /*
+       * Said in the corner, naming the rule: Test Notification Sent was a
+       * dialog to click away (#9120). Test Failed stays a dialog, to be
+       * read.
+       */
+      Toast.success(
+        translator.translateText("Test Notification Sent") ||
+          "Test Notification Sent",
+        {
+          description: translator.translateTemplate(
+            'Check {{workspace}} to confirm the test notification for the rule "{{rule}}" arrived.',
+            {
+              workspace: getWorkspaceTypeDisplayName(props.workspaceType),
+              rule: testNotificationRule?.name || "",
+            },
+            { setsValuesApart: true },
+          ),
+        },
+      );
+      setTestNotificationRule(undefined);
     } catch (err) {
       setTestError(API.getFriendlyErrorMessage(err as Exception));
       setIsTestLoading(false);
@@ -1479,24 +1499,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
        * rule: it repeated its own title ("Test executed successfully.")
        * before saying anything new.
        */}
-      {showTestResultModal ? (
+      {showTestResultModal && testError ? (
         <ConfirmModal
-          title={testError ? `Test Failed` : `Test Notification Sent`}
+          title={`Test Failed`}
           error={testError}
-          description={
-            testError
-              ? translator.translateTemplate(
-                  "Fix the problem above, then test the rule again.",
-                )
-              : translator.translateTemplate(
-                  'Check {{workspace}} to confirm the test notification for the rule "{{rule}}" arrived.',
-                  {
-                    workspace: getWorkspaceTypeDisplayName(props.workspaceType),
-                    rule: testNotificationRule?.name || "",
-                  },
-                  { setsValuesApart: true },
-                )
-          }
+          description={translator.translateTemplate(
+            "Fix the problem above, then test the rule again.",
+          )}
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
           onSubmit={async () => {

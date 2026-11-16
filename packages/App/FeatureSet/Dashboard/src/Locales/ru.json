@@ -56431,5 +56431,7 @@
   "{{itemName}} invited": "Приглашено: {{itemName}}",
   "{{itemName}} linked": "Связано: {{itemName}}",
   "{{itemName}} removed": "Убрано: {{itemName}}",
-  "{{itemName}} started": "Запущено: {{itemName}}"
+  "{{itemName}} started": "Запущено: {{itemName}}",
+  "Test email report not sent": "Тестовый отчёт по email не отправлен",
+  "Test message not sent": "Тестовое сообщение не отправлено"
 }

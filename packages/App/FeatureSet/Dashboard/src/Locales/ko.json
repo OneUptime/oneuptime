@@ -56431,5 +56431,7 @@
   "{{itemName}} invited": "{{itemName}} 초대됨",
   "{{itemName}} linked": "{{itemName}} 연결됨",
   "{{itemName}} removed": "{{itemName}} 제거됨",
-  "{{itemName}} started": "{{itemName}} 시작됨"
+  "{{itemName}} started": "{{itemName}} 시작됨",
+  "Test email report not sent": "테스트 보고서 이메일을 보내지 못했습니다",
+  "Test message not sent": "테스트 메시지를 보내지 못했습니다"
 }

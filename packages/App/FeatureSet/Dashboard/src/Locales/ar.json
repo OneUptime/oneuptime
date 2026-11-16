@@ -56431,5 +56431,7 @@
   "{{itemName}} invited": "تمت دعوة {{itemName}}",
   "{{itemName}} linked": "تم ربط {{itemName}}",
   "{{itemName}} removed": "تمت إزالة {{itemName}}",
-  "{{itemName}} started": "تم بدء {{itemName}}"
+  "{{itemName}} started": "تم بدء {{itemName}}",
+  "Test email report not sent": "لم يُرسَل تقرير البريد الإلكتروني التجريبي",
+  "Test message not sent": "لم تُرسَل الرسالة التجريبية"
 }

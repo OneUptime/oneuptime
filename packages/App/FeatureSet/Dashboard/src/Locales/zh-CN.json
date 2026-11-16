@@ -56431,5 +56431,7 @@
   "{{itemName}} invited": "已邀请{{itemName}}",
   "{{itemName}} linked": "已关联{{itemName}}",
   "{{itemName}} removed": "已移除{{itemName}}",
-  "{{itemName}} started": "已开始{{itemName}}"
+  "{{itemName}} started": "已开始{{itemName}}",
+  "Test email report not sent": "测试报告邮件未发送",
+  "Test message not sent": "测试消息未发送"
 }

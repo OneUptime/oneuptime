@@ -8,6 +8,7 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Toast from "Common/UI/Utils/Toast";
 import Modal from "Common/UI/Components/Modal/Modal";
 import { NOTIFICATION_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -120,8 +121,6 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     useState<IncomingCallPolicyPhoneNumber | null>(null);
   const [showPurchaseConfirmModal, setShowPurchaseConfirmModal] =
     useState<boolean>(false);
-  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
-  const [successMessage, setSuccessMessage] = useState<string>("");
 
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -238,7 +237,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       setAvailableNumbers([]);
       setSelectedNumber(null);
       closeConfigureModal();
-      setSuccessMessage(
+      Toast.success(
         translator.translateTemplate(
           "Phone number {{phoneNumber}} has been reserved and configured for this policy.",
           {
@@ -249,7 +248,6 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
           },
         ),
       );
-      setShowSuccessModal(true);
 
       props.onPhoneNumbersChanged?.();
     } catch (err) {
@@ -295,7 +293,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       const releasedPhoneNumber: string =
         getIncomingCallPolicyPhoneNumberText(selectedPhoneNumber);
       setPhoneNumberToRelease(null);
-      setSuccessMessage(
+      Toast.success(
         releasedPhoneNumber
           ? translator.translateTemplate(
               "{{phoneNumber}} has been released back to Twilio.",
@@ -310,7 +308,6 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
               "The phone number has been released back to Twilio.",
             ) as string),
       );
-      setShowSuccessModal(true);
       props.onPhoneNumbersChanged?.();
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -390,7 +387,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       setOwnedNumbers([]);
       setSelectedOwnedNumber(null);
       closeConfigureModal();
-      setSuccessMessage(
+      Toast.success(
         translator.translateTemplate(
           "Phone number {{phoneNumber}} has been assigned and configured for this policy.",
           {
@@ -401,7 +398,6 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
           },
         ),
       );
-      setShowSuccessModal(true);
 
       props.onPhoneNumbersChanged?.();
     } catch (err) {
@@ -1068,22 +1064,6 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             }}
             isLoading={isLoading}
             onSubmit={assignExistingNumber}
-          />
-        ) : (
-          <></>
-        )}
-
-        {/* Success Modal */}
-        {showSuccessModal ? (
-          <ConfirmModal
-            title="Success"
-            description={successMessage}
-            submitButtonText="Close"
-            submitButtonType={ButtonStyleType.NORMAL}
-            onSubmit={() => {
-              setShowSuccessModal(false);
-              setSuccessMessage("");
-            }}
           />
         ) : (
           <></>

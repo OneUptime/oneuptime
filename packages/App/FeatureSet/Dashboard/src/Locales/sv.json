@@ -56431,5 +56431,7 @@
   "{{itemName}} invited": "{{itemName}} har bjudits in",
   "{{itemName}} linked": "{{itemName}} har länkats",
   "{{itemName}} removed": "{{itemName}} har tagits bort från listan",
-  "{{itemName}} started": "{{itemName}} har startats"
+  "{{itemName}} started": "{{itemName}} har startats",
+  "Test email report not sent": "Testrapporten via e-post skickades inte",
+  "Test message not sent": "Testmeddelandet skickades inte"
 }

@@ -56431,5 +56431,7 @@
   "{{itemName}} invited": "{{itemName}}を招待しました",
   "{{itemName}} linked": "{{itemName}}をリンクしました",
   "{{itemName}} removed": "{{itemName}}を外しました",
-  "{{itemName}} started": "{{itemName}}を開始しました"
+  "{{itemName}} started": "{{itemName}}を開始しました",
+  "Test email report not sent": "テストレポートのメールを送信できませんでした",
+  "Test message not sent": "テストメッセージを送信できませんでした"
 }

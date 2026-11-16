@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 import Toast, {
   ACTION_DURATION_IN_MS,
+  DESCRIPTION_DURATION_IN_MS,
   getDefaultDurationInMs,
   getItemCreatedTemplate,
   INFO_DURATION_IN_MS,
@@ -50,6 +51,14 @@ describe("Toast", () => {
     expect(success?.durationInMs).toBe(SUCCESS_DURATION_IN_MS);
     expect(error?.type).toBe(ToastType.Error);
     expect(error?.durationInMs).toBeNull();
+  });
+
+  test("one with a second line stays long enough to read it", () => {
+    Toast.success("Test SMS Sent", {
+      description: "It should arrive within a few minutes.",
+    });
+
+    expect(Toast.getToasts()[0]?.durationInMs).toBe(DESCRIPTION_DURATION_IN_MS);
   });
 
   test("one with an action stays long enough to reach it", () => {
