@@ -116,7 +116,7 @@ Elke keer dat een lid van het project zich bij OneUptime aanmeldt, legt het audi
 | `Sign In` | Iemand meldt zich aan: met een wachtwoord of een inloglink, een passkey, Google, Microsoft, Vercel of single sign-on. |
 | `Sign Out` | Diegene meldt zich af. |
 | `Session Timeout` | OneUptime beëindigt de sessie omdat de tijd om is: de inactiviteitsduur of sessieduur die een serverbeheerder heeft ingesteld, of 30 dagen zonder gebruik. |
-| `Session Revoked` | OneUptime beëindigt de sessie omdat het wachtwoord is gewijzigd, het account is geblokkeerd, of een serverbeheerder tweestapsverificatie heeft gereset of verplicht heeft gesteld. |
+| `Session Revoked` | OneUptime beëindigt de sessie omdat het wachtwoord is gewijzigd, het account is geblokkeerd, of een serverbeheerder tweefactorauthenticatie heeft gereset of verplicht heeft gesteld. |
 
 De **Resource** van een vermelding is de sessie, genoemd naar het apparaat waarop de aanmelding plaatsvond, zoals `Chrome 130 on macOS`. De **Actor** is de persoon van wie de sessie is, dus filteren op **E-mailadres gebruiker** vindt al diens aanmeldingen en sessies. De details vermelden hoe diegene zich aanmeldde en met welke tweede factor, het IP-adres en de plaats, en bij een geëindigde sessie wanneer die werd aangemeld, wanneer die het laatst werd gebruikt en wanneer die verliep. De eigen SSO-provider van een project wordt alleen in het auditlogboek van dat project genoemd.
 

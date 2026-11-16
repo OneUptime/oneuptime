@@ -35,7 +35,7 @@ flowchart TB
 | 功能 | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
 | 监控、告警、事件、值班、状态页、日志、指标、追踪、异常、仪表板、工作流、AI 功能、API 和 Terraform | 是 | 是 | 所有套餐 |
-| 密码登录、双因素认证、团队、内置角色和 API 密钥 | 是 | 是 | 所有套餐 |
+| 密码登录、双因素身份验证、团队、内置角色和 API 密钥 | 是 | 是 | 所有套餐 |
 | 用于项目登录的 [SAML SSO 和 OpenID Connect](/docs/identity/sso) | 是 | 是 | Scale 套餐及以上 |
 | 用于私有状态页登录的 SAML SSO 和 OpenID Connect | 是 | 是 | Scale 套餐及以上 |
 | [全局（整个实例范围的）SSO 和 OIDC](/docs/identity/global-sso) | 是 | 是 | 不适用 |

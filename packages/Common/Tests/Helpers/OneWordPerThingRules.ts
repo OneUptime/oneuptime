@@ -186,6 +186,68 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     word: /tofaktor/i,
     dropped: /totrinn/i,
   },
+  /*
+   * Seven more languages named two-factor authentication two or three ways
+   * (#8774). Each now says the word the Dashboard's Two Factor
+   * Authentication page is named with, and Korean the one its Dashboard,
+   * Admin Dashboard and docs say 49 times to the page title's 10. Google's
+   * own 2-Step Verification, on the Google Workspace page, keeps Google's
+   * name for it.
+   */
+  {
+    // Tofaktorgodkendelse (the page, the Admin Dashboard) over totrinsgodkendelse (the docs).
+    language: "da",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /tofaktor/i,
+    dropped: /totrins|to-faktor/i,
+  },
+  {
+    // दो-कारक प्रमाणीकरण over the transliterated टू-फ़ैक्टर ऑथेंटिकेशन and दो-चरणीय प्रमाणीकरण.
+    language: "hi",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /दो-कारक/,
+    dropped: /टू[- ]फ़?ैक्टर|टू फैक्टर|दो-चरणीय/,
+  },
+  {
+    language: "ko",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /2단계 인증/,
+    dropped: /이중 인증/,
+  },
+  {
+    // Tweefactorauthenticatie (the page, the Admin Dashboard) over tweestapsverificatie (the docs).
+    language: "nl",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /tweefactor/i,
+    dropped: /tweestaps|tweefactor-authenticatie/i,
+  },
+  {
+    // 双因素身份验证 (the page, the docs) over 双重身份验证 (the Admin Dashboard) and 双因素认证.
+    language: "zh-CN",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /双因素身份验证|双因素验证码/,
+    dropped: /双重(?:身份)?验证|双因素认证/,
+  },
+  {
+    language: "zh-TW",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /雙重驗證/,
+    dropped: /雙因素驗證/,
+  },
+  {
+    // "de dois fatores", as the Dashboard says it, over the docs' "em dois fatores".
+    language: "pt",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /de dois fatores/i,
+    dropped: /em dois fatores/i,
+  },
   {
     // Runner, declined as its other strings decline it: Runner-а, Runner-ы.
     language: "ru",

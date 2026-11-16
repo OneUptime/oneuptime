@@ -142,7 +142,7 @@ Hver monitor er en aktiv monitor, der faktureres som enhver anden og virker som 
 
 Klik på **Open in OneUptime** på ressourcen, eller på et af dens links i Vercel, så er du logget ind i OneUptime med din Vercel-kontos e-mailadresse. Første gang kommer du med i ressourcens projekt: som administrator, hvis du er ejer eller medlem af Vercel-teamet, og som medlem, hvis du har en af teamets skrivebeskyttede roller.
 
-Findes der allerede en OneUptime-konto med den e-mailadresse, er det den, du logger ind på. En konto, der har totrinsgodkendelse slået til, eller som tilhører en OneUptime-administrator, logger i stedet ind med sin adgangskode. Du er med i projektet alligevel.
+Findes der allerede en OneUptime-konto med den e-mailadresse, er det den, du logger ind på. En konto, der har tofaktorgodkendelse slået til, eller som tilhører en OneUptime-administrator, logger i stedet ind med sin adgangskode. Du er med i projektet alligevel.
 
 ## Planer og fakturering
 

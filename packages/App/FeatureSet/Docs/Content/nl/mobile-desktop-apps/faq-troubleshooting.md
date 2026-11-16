@@ -113,7 +113,7 @@ Geen van de projecten waarvan dat e-mailadres lid is, heeft single sign-on inges
 :::
 
 :::details Een beveiligingssleutel is uw enige tweede factor
-De app kan geen beveiligingssleutel gebruiken. Meld u aan met een van uw back-upcodes, of voeg in het dashboard een authenticator-app aan uw account toe: zie [Tweestapsverificatie inschakelen](/docs/introduction/your-account#tweestapsverificatie-inschakelen).
+De app kan geen beveiligingssleutel gebruiken. Meld u aan met een van uw back-upcodes, of voeg in het dashboard een authenticator-app aan uw account toe: zie [Tweefactorauthenticatie inschakelen](/docs/introduction/your-account#tweefactorauthenticatie-inschakelen).
 :::
 
 :::details Aanmelden met een passkey mislukt

@@ -116,7 +116,7 @@ Cada vez que um membro do projeto faz login no OneUptime, o registro de auditori
 | `Sign In` | Alguém faz login: com uma senha ou um link de acesso, uma chave de acesso, Google, Microsoft, Vercel ou login único. |
 | `Sign Out` | A pessoa faz logout. |
 | `Session Timeout` | O OneUptime encerra a sessão quando o tempo dela se esgota: o tempo de inatividade ou a duração da sessão definidos por um administrador do servidor, ou 30 dias sem uso. |
-| `Session Revoked` | O OneUptime encerra a sessão porque a senha mudou, a conta foi bloqueada, ou um administrador do servidor redefiniu ou passou a exigir a autenticação em dois fatores. |
+| `Session Revoked` | O OneUptime encerra a sessão porque a senha mudou, a conta foi bloqueada, ou um administrador do servidor redefiniu ou passou a exigir a autenticação de dois fatores. |
 
 O **Recurso** de uma entrada é a sessão, com o nome do dispositivo em que o login foi feito, como `Chrome 130 on macOS`. O **Ator** é a pessoa dona da sessão, então filtrar por **E-mail do Usuário** encontra todos os logins e sessões dela. Os detalhes da entrada dizem como a pessoa fez login e com qual segundo fator, o endereço IP e o local, e, para uma sessão que terminou, quando o login foi feito, quando ela foi usada pela última vez e quando expirou. O provedor de SSO próprio de um projeto só aparece no registro de auditoria desse projeto.
 

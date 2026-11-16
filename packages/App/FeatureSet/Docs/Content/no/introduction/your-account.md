@@ -64,7 +64,7 @@ Utvid **Sikkerhet** i sidemenyen til **Brukerprofil**. Delen har tre sider.
 | --- | --- |
 | **Passordadministrasjon** | Angi et nytt passord. |
 | **Passkeys** | Logg inn uten passord, med fingeravtrykk, ansikt, skjermlås eller en sikkerhetsnøkkel. |
-| **Two-factor authentication** | Be om et andre steg etter passordet eller en lenke på e-post: en kode fra en app, eller en sikkerhetsnøkkel. |
+| **Tofaktorautentisering** | Be om et andre steg etter passordet eller en lenke på e-post: en kode fra en app, eller en sikkerhetsnøkkel. |
 
 ### Bytt passord
 
@@ -108,7 +108,7 @@ Tofaktorautentisering gjelder når du logger inn med passordet ditt eller en len
 :::steps
 ### Legg til en autentiseringsapp
 
-Åpne **Sikkerhet → Two-factor authentication**. Under **Authenticator apps** legger du til en app og gir den et navn. Skann QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, skriv inn den sekssifrede koden den viser, og klikk på **Verify and finish**. Vil du heller bruke en USB- eller NFC-nøkkel, legger du den til under **Security keys**.
+Åpne **Sikkerhet → Tofaktorautentisering**. Under **Authenticator apps** legger du til en app og gir den et navn. Skann QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, skriv inn den sekssifrede koden den viser, og klikk på **Verify and finish**. Vil du heller bruke en USB- eller NFC-nøkkel, legger du den til under **Security keys**.
 
 ### Ta vare på reservekodene dine
 
@@ -116,7 +116,7 @@ Første gang du legger til en app, en nøkkel eller en passnøkkel, viser OneUpt
 
 ### Slå den på
 
-Øverst på siden klikker du på **Enable two-factor authentication** og bekrefter. Kortet viser nå **Aktivert**. Fra neste innlogging med passord eller en lenke på e-post ber OneUptime om det andre steget ditt.
+Øverst på siden klikker du på **Aktiver tofaktorautentisering** og bekrefter. Kortet viser nå **Aktivert**. Fra neste innlogging med passord eller en lenke på e-post ber OneUptime om det andre steget ditt.
 :::
 
 > [!TIP]
@@ -163,7 +163,7 @@ Logger du inn på nytt, sendes en ny lenke: sjekk også søppelpostmappen. Kan d
 :::
 
 :::details Jeg har mistet autentiseringsappen min
-Ved det andre steget av innloggingen velger du **Mistet tilgangen til autentiseringsappen din?** og skriver inn en av reservekodene dine. Åpne deretter **Sikkerhet → Two-factor authentication**, og legg til den nye appen. Uten reservekoder ber du en administrator av OneUptime-installasjonen din om å tilbakestille tofaktorautentiseringen på kontoen din.
+Ved det andre steget av innloggingen velger du **Mistet tilgangen til autentiseringsappen din?** og skriver inn en av reservekodene dine. Åpne deretter **Sikkerhet → Tofaktorautentisering**, og legg til den nye appen. Uten reservekoder ber du en administrator av OneUptime-installasjonen din om å tilbakestille tofaktorautentiseringen på kontoen din.
 :::
 
 :::details Innloggingen ber meg vente før jeg prøver en ny kode
