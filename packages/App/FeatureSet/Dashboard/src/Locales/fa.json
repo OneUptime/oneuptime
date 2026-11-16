@@ -55978,7 +55978,8 @@
   "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "حوادث برطرف‌شدهٔ قدیمی که گزارش پس از حادثه‌شان در وضعیتی است که کنارش می‌گذارید، ظرف یک ساعت حذف می‌شوند. امکان بازگرداندن آن‌ها وجود ندارد.",
   "{{count}} attempt": "{{count}} تلاش",
   "{{summary}} - view sign-in attempt details": "{{summary}} - دیدن جزئیات تلاش برای ورود",
-  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "هوش مصنوعی در مخزنی که روی GitHub نیست روی یکی از Runnerهای خودتان کار می‌کند: توکن دسترسی آن هرگز به یک Runner سراسری داده نمی‌شود. یکی از Runnerهای خود را انتخاب کنید.",
+  "AI works in a Forgejo, Gitea or Git repository on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "هوش مصنوعی در مخزن Forgejo، Gitea یا Git روی یکی از Runnerهای خودتان کار می‌کند: توکن دسترسی آن هرگز به یک Runner سراسری داده نمی‌شود. یکی از Runnerهای خود را انتخاب کنید.",
+  "GitLab did not let OneUptime make a short-lived token for this repository, so AI works in it on one of your own Runners. Give its connection a Maintainer's token with the api scope, or pick one of your Runners.": "GitLab اجازه نداد OneUptime برای این مخزن یک توکن کوتاه‌مدت بسازد، پس هوش مصنوعی در آن روی یکی از Runnerهای خودتان کار می‌کند. به اتصال آن توکن یک Maintainer با دامنهٔ api بدهید، یا یکی از Runnerهای خود را انتخاب کنید.",
   "Reads work, but changes will fail": "خواندن کار می‌کند، اما تغییرها شکست می‌خورند",
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "فرمان راه‌اندازی را دوباره اجرا کنید. تغییرها را به یک هویت نوشتن مخصوص خودشان می‌برد و هویت خود عامل فقط خواندن را نگه می‌دارد.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "فرمان راه‌اندازی را دوباره اجرا کنید. تغییرها را به یک نقش نوشتن مخصوص خودشان می‌برد که عامل برای هر تغییر با سیاستی فقط برای همان تغییر بر عهده می‌گیرد.",
@@ -56118,5 +56119,15 @@
   "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "این حادثه از پیش تأیید شده است. سیاستی که انتخاب می‌کنید باز هم افرادش را سطح به سطح فرامی‌خواند تا یکی از آن‌ها پاسخ دهد یا حادثه برطرف شود.",
   "This incident is resolved, so no on-call policy can be started for it.": "این حادثه برطرف شده است، پس نمی‌توان هیچ سیاست آنکالی برای آن آغاز کرد.",
   "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on.": "{{count}} مانیتور درخواست ورودی در ۲۴ ساعت گذشته درخواستی بدون راز معتبر گرفته‌اند. از این پس فرستنده‌هایشان رد می‌شوند.",
-  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on._one": "{{count}} مانیتور درخواست ورودی در ۲۴ ساعت گذشته درخواستی بدون راز معتبر گرفته است. از این پس فرستنده‌هایش رد می‌شوند."
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on._one": "{{count}} مانیتور درخواست ورودی در ۲۴ ساعت گذشته درخواستی بدون راز معتبر گرفته است. از این پس فرستنده‌هایش رد می‌شوند.",
+  "Code Repository Connection ID": "شناسه اتصال مخزن کد",
+  "Code Repository Minted Token": "توکن ساخته‌شده مخزن کد",
+  "Code Repository Minted Tokens": "توکن‌های ساخته‌شده مخزن کد",
+  "Host Project ID": "شناسه پروژه در میزبان",
+  "Host Token ID": "شناسه توکن در میزبان",
+  "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.": "سابقه داخلی هر توکن دسترسی کوتاه‌مدتی که OneUptime برای یک اصلاح کد با هوش مصنوعی روی میزبان یک مخزن ساخت، که نگه داشته می‌شود تا OneUptime هنگام پایان اصلاح آن را باطل کند.",
+  "Minted Token Refused At": "زمان رد ساخت توکن",
+  "Revocation Attempted At": "زمان تلاش برای ابطال",
+  "Revocation Error": "خطای ابطال",
+  "Worker ID": "شناسه کارگر"
 }

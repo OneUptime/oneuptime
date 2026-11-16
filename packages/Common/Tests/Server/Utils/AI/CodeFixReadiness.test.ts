@@ -13,10 +13,16 @@ import CodeFixReadiness, {
   getRepositoryRunnerOfflineDetail,
   getRepositoryRunnerTakesNoCodeFixesDetail,
 } from "../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
-import CodeRepositoryRunnerChoice from "../../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
+import CodeRepositoryRunnerChoice, {
+  CodeRepositoryRunnerStatus,
+} from "../../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import SubjectCodeFixRun from "../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import { CodeTaskBlockerType } from "../../../../Types/AI/CodeTask";
-import { GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL } from "../../../../Types/Runner/GlobalRunnerRepositoryTokens";
+import {
+  GLOBAL_RUNNER_GITLAB_TOKEN_NOT_MINTED_REFUSAL,
+  GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL,
+  GlobalRunnerKeptOffReason,
+} from "../../../../Types/Runner/GlobalRunnerRepositoryTokens";
 import { CodeRepositoryRunnerChoiceKind } from "../../../../Types/Runner/CodeRepositoryRunner";
 import AIService from "../../../../Server/Services/AIService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
@@ -608,6 +614,32 @@ describe("why nothing can do a repository's work, in words and as Code's blocker
       type: CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner,
       message: GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL,
     });
+  });
+
+  // #8912: GitLab's reason is its own: GitLab made no short-lived token.
+  test("a GitLab repository GitLab made no short-lived token for says so, as the same blocker", () => {
+    const status: CodeRepositoryRunnerStatus = {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: false,
+      needsOwnRunnerForItsToken: true,
+      keptOffReason: GlobalRunnerKeptOffReason.TokenNotMinted,
+    };
+
+    expect(describeRepositoryRunnerStatus(status)).toBe(
+      GLOBAL_RUNNER_GITLAB_TOKEN_NOT_MINTED_REFUSAL,
+    );
+    expect(getRepositoryRunnerBlocker(status)).toEqual({
+      type: CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner,
+      message: GLOBAL_RUNNER_GITLAB_TOKEN_NOT_MINTED_REFUSAL,
+    });
+
+    // A Forgejo, Gitea or Git repository's reason, said as before.
+    expect(
+      describeRepositoryRunnerStatus({
+        ...status,
+        keptOffReason: GlobalRunnerKeptOffReason.ConnectionToken,
+      }),
+    ).toBe(GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL);
   });
 
   test("each kind of Runner that takes no code fixes is its own sentence, never the offline one", () => {

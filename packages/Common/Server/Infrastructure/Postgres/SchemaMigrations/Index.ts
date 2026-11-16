@@ -1030,6 +1030,7 @@ import { AddIncomingRequestSecretMonitorAccess1809181830000 } from "./1809181830
 import { DropOnCallExecutionLogStepIndexes1809182000000 } from "./1809182000000-DropOnCallExecutionLogStepIndexes";
 import { AddScheduleRosterRefreshDueAt1809182100000 } from "./1809182100000-AddScheduleRosterRefreshDueAt";
 import { AddScheduleRosterRefreshDueAtIndex1809182110000 } from "./1809182110000-AddScheduleRosterRefreshDueAtIndex";
+import { AddCodeRepositoryMintedToken1809182200000 } from "./1809182200000-AddCodeRepositoryMintedToken";
 
 export default [
   InitialMigration,
@@ -2064,4 +2065,5 @@ export default [
   DropOnCallExecutionLogStepIndexes1809182000000,
   AddScheduleRosterRefreshDueAt1809182100000,
   AddScheduleRosterRefreshDueAtIndex1809182110000,
+  AddCodeRepositoryMintedToken1809182200000,
 ];

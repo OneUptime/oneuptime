@@ -105,6 +105,22 @@ interface RepositoryTokenResponse {
   repositoryName: string;
   // For a repository that is not on GitHub: where and how to use the token.
   codeHost?: CodeHostRunnerInfo;
+  /*
+   * True when OneUptime opens the run's pull request
+   * (SERVER_OPENS_PULL_REQUEST_FIELD); left out by an older server.
+   */
+  serverOpensPullRequest?: boolean;
+  message?: string;
+}
+
+interface OpenPullRequestResponse {
+  success?: boolean;
+  pullRequestId?: string | null;
+  pullRequestUrl?: string;
+  pullRequestNumber?: number | null;
+  hostPullRequestId?: number | null;
+  title?: string;
+  isNew?: boolean;
   message?: string;
 }
 
@@ -223,6 +239,40 @@ export interface RepositoryToken {
    * its API opens pull and merge requests. Absent for GitHub.
    */
   codeHost?: CodeHostRunnerInfo | undefined;
+  /*
+   * Whether OneUptime opens the run's pull (or merge) request: the Runner
+   * pushes its branch with the token and asks OneUptime to open it
+   * (BackendAPI.openPullRequest), as the token may not be able to - on
+   * GitLab it is one OneUptime made for the run, which pushes and nothing
+   * more. False from an older server: the Runner opens it with the token, as
+   * it always did.
+   */
+  opensPullRequestOnServer?: boolean | undefined;
+}
+
+// A pull request for OneUptime to open for a run (BackendAPI.openPullRequest).
+export interface OpenPullRequestOptions {
+  taskId: string;
+  codeRepositoryId: string;
+  headRefName: string;
+  baseRefName: string;
+  title: string;
+  body: string;
+  // Outcome of the pre-PR build/test verification loop (Passed/Failed/Skipped).
+  runnerVerificationStatus?: string | undefined;
+  runnerVerificationSummary?: string | undefined;
+}
+
+// A pull request OneUptime opened for a run, or found open already.
+export interface OpenedPullRequest {
+  // The host's own id for it.
+  id: number;
+  // Its number on its pages.
+  number: number;
+  htmlUrl: string;
+  title: string;
+  // False when it was open already: the answer to an earlier ask.
+  isNew: boolean;
 }
 
 export interface RecordPullRequestOptions {
@@ -718,6 +768,87 @@ export default class BackendAPI {
       organizationName: data.organizationName,
       repositoryName: data.repositoryName,
       ...(codeHost ? { codeHost } : {}),
+      ...(data.serverOpensPullRequest === true
+        ? { opensPullRequestOnServer: true }
+        : {}),
+    };
+  }
+
+  /*
+   * Have OneUptime open the pull (or merge) request of a branch this run
+   * pushed (issue #8916), with what the repository is connected with - the
+   * GitHub App, or the connection's token, which never comes here - and
+   * record it on the run. Asked only when the repository token's answer said
+   * OneUptime opens it (RepositoryToken.opensPullRequestOnServer).
+   *
+   * Retried when no answer came back, or one that says the server broke
+   * rather than the request: OneUptime opens one pull request per run and
+   * repository, so asking again answers with the one it opened. A refusal -
+   * the host's, or OneUptime's - is thrown with its words.
+   */
+  public async openPullRequest(
+    options: OpenPullRequestOptions,
+  ): Promise<OpenedPullRequest> {
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
+      "/api/ai-agent-data/open-pull-request",
+    );
+
+    const response: HTTPResponse<JSONObject> = await API.post({
+      url,
+      data: {
+        ...RunnerAPIRequest.getDefaultRequestBody(),
+        taskId: options.taskId,
+        codeRepositoryId: options.codeRepositoryId,
+        headRefName: options.headRefName,
+        baseRefName: options.baseRefName,
+        title: options.title,
+        body: options.body,
+        ...(options.runnerVerificationStatus
+          ? { runnerVerificationStatus: options.runnerVerificationStatus }
+          : {}),
+        ...(options.runnerVerificationSummary
+          ? { runnerVerificationSummary: options.runnerVerificationSummary }
+          : {}),
+      },
+      options: RunnerAPIRequest.getDefaultRequestOptions({
+        retries: RECORD_PULL_REQUEST_RETRIES,
+        exponentialBackoff: true,
+        retryOnlyOnRetryableErrors: true,
+      }),
+    });
+
+    const data: OpenPullRequestResponse =
+      (response.data as unknown as OpenPullRequestResponse) || {};
+
+    if (!response.isSuccess()) {
+      throw new Error(
+        data.message || "OneUptime did not open the pull request",
+      );
+    }
+
+    const number: number = Number(data.pullRequestNumber);
+    const htmlUrl: string =
+      typeof data.pullRequestUrl === "string" ? data.pullRequestUrl : "";
+
+    if (!Number.isSafeInteger(number) || number <= 0 || !htmlUrl) {
+      throw new Error(
+        "OneUptime answered with something that is not a pull request.",
+      );
+    }
+
+    const id: number = Number(data.hostPullRequestId);
+
+    logger.debug(`OneUptime opened pull request: ${htmlUrl}`);
+
+    return {
+      id: Number.isSafeInteger(id) && id > 0 ? id : number,
+      number,
+      htmlUrl,
+      title:
+        typeof data.title === "string" && data.title
+          ? data.title
+          : options.title,
+      isNew: data.isNew !== false,
     };
   }
 
