@@ -392,7 +392,7 @@ OneUptime 的 AI 網站可靠性工程師：它會在你的遙測中調查每個
 
 ### 基礎設施代理程式
 
-Server / VM 監測器背後的 `oneuptime-infrastructure-agent` 服務：它每 30 秒回報一次一台機器的 CPU、記憶體、磁碟和處理程序，並以該監測器的秘密金鑰簽署。
+伺服器 / 虛擬機器 監測器背後的 `oneuptime-infrastructure-agent` 服務：它每 30 秒回報一次一台機器的 CPU、記憶體、磁碟和處理程序，並以該監測器的秘密金鑰簽署。
 
 參閱 [伺服器 / 虛擬機器監控](/docs/monitor/server-monitor)。
 

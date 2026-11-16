@@ -1,6 +1,6 @@
 # Verbonden signalen
 
-Een beveiligingszaak zegt over welke gebruikers, hosts en adressen ze gaat. Verbonden signalen zegt welke daarvan OneUptime al kent - uw hosts, containerhosts, Kubernetes-clusters, OpenStack-clouds, netwerkapparaten, cloud-resources, serverless functies, services, de monitoren die ze controleren, en leden - en wat er op elk ervan gebeurde rond de zaak: de logboeken, traces en metrieken, de incidenten en waarschuwingen die erop openstaan, de monitoren die het bewaken en wat er is veranderd. Het doorzoekt ook uw logboeken en traces zelf naar ze: het adres van een aanvaller in het toegangslogboek van een webserver, een gelekt e-mailadres in de fout van een applicatie. Andersom zegt de pagina van een host, een cluster, een cloud-resource, een service, een monitor of een lid wat Security Events erover heeft gevonden.
+Een beveiligingszaak zegt over welke gebruikers, hosts en adressen ze gaat. Verbonden signalen zegt welke daarvan OneUptime al kent - uw hosts, containerhosts, Kubernetes-clusters, OpenStack-clouds, netwerkapparaten, cloud-resources, serverless functies, services, de monitoren die ze controleren, en leden - en wat er op elk ervan gebeurde rond de zaak: de logboeken, traces en metrieken, de incidenten en waarschuwingen die erop openstaan, de monitoren die het bewaken en wat er is veranderd. Het doorzoekt ook uw logboeken en traces zelf naar ze: het adres van een aanvaller in het toegangslogboek van een webserver, een gelekt e-mailadres in de fout van een applicatie. Andersom zegt de pagina van een host, een cluster, een cloud-resource, een service, een monitor of een lid wat Beveiligingsgebeurtenissen erover heeft gevonden.
 
 :::cards
 - [Waar u het ziet](#waar-u-het-ziet): De pagina van een zaak, het tabblad van een gebeurtenis, de pagina van een entiteit en de pagina's van wat ze noemen.
@@ -90,7 +90,7 @@ Onder de records doorzoekt Verbonden signalen uw logboeken en traces, over hetze
 - Verbonden signalen en de kaart **Beveiliging** van een record vereisen een rol die beveiligingsgebeurtenissen mag lezen: Beveiligingsbeheerder, Beveiligingslid, Beveiligingskijker, Projecteigenaar of Projectbeheerder. Niemand anders ziet op enige pagina beveiligingsgegevens. Zie [Rollen](/docs/permissions/reference#rollen).
 - De kaart **Beveiliging** van een incident vereist een rol die beveiligingszaken mag lezen.
 - Elk record wordt gelezen met uw eigen rol, en wat erop staat ook: een rol die geen bereikbaarheidsschema's mag lezen, ziet die van een lid niet. Een soort record dat uw rol niet mag lezen, wordt weggelaten en de pagina zegt dat; een soort dat zojuist niet kon worden gelezen, zegt dat ook, met **Opnieuw proberen**.
-- De pagina van een record toont de kaart **Beveiliging** alleen in een project dat Security Events gebruikt: een project dat in de afgelopen 7 dagen een beveiligingsgebeurtenis heeft ontvangen.
+- De pagina van een record toont de kaart **Beveiliging** alleen in een project dat Beveiligingsgebeurtenissen gebruikt: een project dat in de afgelopen 7 dagen een beveiligingsgebeurtenis heeft ontvangen.
 
 ## Incidenten die een zaak meldt
 

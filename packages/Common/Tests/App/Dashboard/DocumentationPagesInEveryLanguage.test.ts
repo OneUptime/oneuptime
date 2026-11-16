@@ -56,6 +56,7 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   DataObservability: { way: "a text per language" },
   Docker: { way: "a setup guide's words" },
   Podman: { way: "a setup guide's words" },
+  Proxmox: { way: "a setup guide's words" },
   StorageArray: { way: "a setup guide's words" },
   Kubernetes: { way: "a setup guide's words" },
   IoT: { way: "a setup guide's words" },
@@ -63,6 +64,9 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   DockerSwarm: { way: "a setup guide's words" },
   OpenStack: { way: "a setup guide's words" },
   VMware: { way: "a setup guide's words" },
+  // The engine picker's guide; a database's own tab is #8746.
+  Database: { way: "a setup guide's words" },
+  Host: { way: "a setup guide's words" },
   DataSecurity: {
     way: "locale keys",
     files: ["Pages/DataSecurity/Documentation.tsx"],
@@ -98,12 +102,7 @@ const PAGES: Readonly<Record<string, PageReading>> = {
  * markdown has no words in any other language yet. #8341. Only ever
  * shorter.
  */
-const STILL_IN_ENGLISH: ReadonlyArray<string> = [
-  "Database",
-  "Host",
-  "MessageQueue",
-  "Proxmox",
-];
+const STILL_IN_ENGLISH: ReadonlyArray<string> = ["MessageQueue"];
 
 // Every product that has a Help > Documentation page.
 function productsWithADocumentationPage(): Array<string> {
@@ -220,7 +219,9 @@ describe("every product's Help > Documentation page", () => {
       expect({
         product: product.name,
         drawsItsCard: page.includes(
-          `Components/${product.name}/DocumentationCard`,
+          path
+            .relative(DASHBOARD_SOURCE, product.cardFile)
+            .replace(/\.tsx$/, ""),
         ),
       }).toEqual({ product: product.name, drawsItsCard: true });
       expect(Object.keys(product.translations).length).toBe(

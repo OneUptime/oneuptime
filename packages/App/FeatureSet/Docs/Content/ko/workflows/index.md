@@ -107,7 +107,7 @@ OneUptime 전반에서 쓰는 단어는 [용어집](/docs/introduction/glossary)
 
 ```mermaid title="완성된 예제"
 flowchart TB
-    trigger["On Create Incident"] -->|"성공"| post["API 호출 POST (JSON)"]
+    trigger["인시던트 생성 시"] -->|"성공"| post["API 호출 POST (JSON)"]
     post -->|"오류"| log["로그"]
     post -->|"성공"| done["실행이 끝남"]
 ```
@@ -124,7 +124,7 @@ flowchart TB
 
 ### 트리거 추가
 
-점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭한 다음, **트리거 추가** 패널의 **인기** 아래에 있는 **On Create Incident**를 클릭합니다.
+점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭한 다음, **트리거 추가** 패널의 **인기** 아래에 있는 **인시던트 생성 시**를 클릭합니다.
 
 트리거가 점선 블록의 자리를 차지합니다. 그 위에 표시된 ID인 `incident-on-create-1` 이 이후 블록들이 이 트리거를 참조할 때 쓰는 이름입니다.
 

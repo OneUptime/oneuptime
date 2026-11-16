@@ -3,6 +3,7 @@ import {
   toStoredBoolean,
 } from "Common/Types/Database/BooleanColumnValue";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -205,7 +206,8 @@ describe("the incident settings page on Fields to watch", () => {
         .split("\n")
         .filter((line: string): boolean => {
           return (
-            line.includes("**On Update X**") &&
+            // On Update X as the builder draws it (#8708).
+            line.includes(`**${drawnStepName(language, "On Update X")}**`) &&
             line.includes(`**${fieldsToWatch(language)}**`)
           );
         });

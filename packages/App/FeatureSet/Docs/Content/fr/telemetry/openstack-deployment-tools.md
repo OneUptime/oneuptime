@@ -41,11 +41,11 @@ Tout outil doté d'un Alertmanager peut avoir des incidents dès aujourd'hui : u
 :::steps
 ### Créer le moniteur
 
-Créez un moniteur Incoming Request comme l'indique [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#recevoir-les-alertes-avec-un-moniteur), et copiez son **URL de heartbeat**. C'est l'adresse `<secret key>` dans le récepteur de chaque outil ci-dessous.
+Créez un moniteur Requête entrante comme l'indique [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#recevoir-les-alertes-avec-un-moniteur), et copiez son **URL de heartbeat**. C'est l'adresse `<secret key>` dans le récepteur de chaque outil ci-dessous.
 
 ### L'associer au cloud
 
-Ouvrez **Vue d'ensemble → Ressources liées** du moniteur et ajoutez le cloud OpenStack. Chaque incident se trouve alors sur la page **Incidents** de ce cloud : les propres paramètres d'un moniteur Incoming Request ne nomment aucun cloud, donc l'Alertmanager de chaque cloud a besoin de son propre moniteur. Le cloud apparaît dans cette liste dès l'arrivée de ses premières données ; faites donc ceci après les étapes ci-dessous, ou ajoutez d'abord le cloud sous **OpenStack → Tous les clouds**.
+Ouvrez **Vue d'ensemble → Ressources liées** du moniteur et ajoutez le cloud OpenStack. Chaque incident se trouve alors sur la page **Incidents** de ce cloud : les propres paramètres d'un moniteur Requête entrante ne nomment aucun cloud, donc l'Alertmanager de chaque cloud a besoin de son propre moniteur. Le cloud apparaît dans cette liste dès l'arrivée de ses premières données ; faites donc ceci après les étapes ci-dessous, ou ajoutez d'abord le cloud sous **OpenStack → Tous les clouds**.
 :::
 
 Alertmanager, à la version que Kolla-Ansible épingle, a été enregistré en train d'envoyer exactement cette forme, et ce qu'il a envoyé a ouvert un incident sur un OneUptime en fonctionnement, que son propre statut `resolved` a résolu.

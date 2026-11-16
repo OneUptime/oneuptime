@@ -452,17 +452,17 @@ Alerts for payments:
 
 ### 메트릭 및 인프라 모니터
 
-Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array, IoT Device 모니터에는 고유한 변수가 하나 있습니다.
+Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, 스토리지 어레이, IoT 디바이스 모니터에는 고유한 변수가 하나 있습니다.
 
 | 변수 | 담긴 내용 | 유형 |
 | --- | --- | --- |
 | `metricName` | 모니터의 첫 번째 쿼리가 읽는 메트릭의 이름(예: `container.cpu.time`). | `string` |
 
-그룹화되면 각 **그룹화 기준** 속성의 값과 `seriesLabels` 도 있습니다. [그룹화된 모니터의 값](#그룹화된-모니터의-값)을 참고하세요. IoT Device 모니터 템플릿은 디바이스별로 그룹화하므로, 템플릿으로 만든 모니터에는 `{{device.id}}` 도 있습니다.
+그룹화되면 각 **그룹화 기준** 속성의 값과 `seriesLabels` 도 있습니다. [그룹화된 모니터의 값](#그룹화된-모니터의-값)을 참고하세요. IoT 디바이스 모니터 템플릿은 디바이스별로 그룹화하므로, 템플릿으로 만든 모니터에는 `{{device.id}}` 도 있습니다.
 
 ### 기타 모니터 유형
 
-Logs, Traces, Exceptions, Security Events, AI / LLM, SQL Query 모니터에는 고유한 변수가 없습니다. [모든 모니터의 변수](#모든-모니터의-변수)를 사용하고, 그룹화된 Logs 모니터에서는 [그룹 값](#그룹화된-모니터의-값)을 사용하세요.
+Logs, Traces, Exceptions, 보안 이벤트, AI / LLM, SQL 쿼리 모니터에는 고유한 변수가 없습니다. [모든 모니터의 변수](#모든-모니터의-변수)를 사용하고, 그룹화된 Logs 모니터에서는 [그룹 값](#그룹화된-모니터의-값)을 사용하세요.
 
 ## 예시
 

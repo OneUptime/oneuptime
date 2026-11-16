@@ -1,4 +1,5 @@
 import Tooltip from "./Tooltip";
+import { BUTTON_DISABLED_CURSOR_CLASS_NAME } from "../Button/ButtonStates";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 
 /*
@@ -36,8 +37,8 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
 }
 
-export const LOCKED_REASON_WRAPPER_CLASS_NAME: string =
-  "cursor-not-allowed rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1";
+// The locked look's cursor, as a locked Button's wrapper takes it (ButtonStates).
+export const LOCKED_REASON_WRAPPER_CLASS_NAME: string = `${BUTTON_DISABLED_CURSOR_CLASS_NAME} rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1`;
 
 // What a locked control inside the wrapper takes, so the pointer reaches it.
 export const LOCKED_CONTROL_CLASS_NAME: string = "pointer-events-none";

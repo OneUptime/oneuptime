@@ -81,7 +81,7 @@ Na lista **Fluxos de trabalho**, clique em **Importar JSON** e escolha um arquiv
 O arquivo contém o nome do workflow, a descrição, o estado de ativação e o grafo. De propósito, ele não contém:
 
 - **A chave secreta do webhook.** Uma nova é gerada quando o workflow é criado, então um workflow importado tem outra URL de webhook — copie-a do gatilho Webhook do novo workflow. Tudo o que chamava o original precisa ser reapontado.
-- **O endereço de e-mail recebido.** Um workflow importado com um gatilho Incoming Email recebe um endereço próprio — copie-o do gatilho do novo workflow. Tudo o que mandava e-mail para o original precisa receber o novo endereço.
+- **O endereço de e-mail recebido.** Um workflow importado com um gatilho E-mail recebido recebe um endereço próprio — copie-o do gatilho do novo workflow. Tudo o que mandava e-mail para o original precisa receber o novo endereço.
 - **As variáveis globais.** Um bloco que lê `{{global.variables.MY_SECRET}}` mantém essa referência, mas o valor não está no arquivo. Crie as variáveis no projeto de destino antes de rodar o workflow importado.
 - **Os proprietários e os rótulos.** As regras de rótulos e de proprietários do seu projeto são aplicadas ao workflow importado, como se você o tivesse criado manualmente.
 
@@ -103,10 +103,10 @@ Só quem pode editar o workflow — **Proprietário do projeto**, **Administrado
 
 ## Segurança do e-mail recebido
 
-O gatilho Incoming Email dá ao workflow um endereço próprio, e qualquer pessoa que conheça o endereço pode mandar e-mail para ele. A parte antes do `@` é a chave secreta do workflow, então trate o endereço como uma senha:
+O gatilho E-mail recebido dá ao workflow um endereço próprio, e qualquer pessoa que conheça o endereço pode mandar e-mail para ele. A parte antes do `@` é a chave secreta do workflow, então trate o endereço como uma senha:
 
 - Não o publique nem o coloque em um repositório público. O gatilho oculta a chave até você clicar em **Mostrar**, e **Copiar endereço** copia o endereço sem mostrá-lo.
-- Se o endereço vazar, clique no gatilho Incoming Email no **Construtor** e depois em **Redefinir endereço**. O workflow recebe um endereço novo, e e-mails para o antigo passam a ser ignorados.
+- Se o endereço vazar, clique no gatilho E-mail recebido no **Construtor** e depois em **Redefinir endereço**. O workflow recebe um endereço novo, e e-mails para o antigo passam a ser ignorados.
 - Qualquer pessoa pode colocar qualquer remetente em um e-mail, então **De** não prova quem o enviou. Antes que um workflow faça algo importante, verifique algo que só o remetente real saiba — um token no assunto ou em um cabeçalho — com um bloco **Se / Senão**. Salve o token esperado como variável secreta.
 - A chave fica oculta em tudo o que a execução recebe — **Para**, **CC**, os cabeçalhos e os corpos —, porque o log da execução fica visível para qualquer pessoa que pode ler as execuções do workflow.
 
@@ -196,7 +196,7 @@ Os passos que leem e alteram registros do OneUptime — os componentes Find, Cre
   - editar ou excluir uma entrada de feed (os feeds de incidentes, alertas, episódios, monitores, políticas de plantão e manutenção programada);
   - gravar um log de notificação (os logs de SMS, chamadas, e-mail, WhatsApp, Telegram, push, webhook e mensagens de workspace);
   - os valores que o OneUptime define conforme as coisas acontecem: se o CNAME de um domínio personalizado está verificado, as chaves de proteção de uma equipe (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), qual papel de incidente é o principal e se ele pode ser excluído, se um proprietário ou membro foi notificado, os horários e contagens de lembretes, quem está de plantão agora e em seguida em uma escala, o andamento de uma execução de plantão, a taxa de consumo e o error budget atuais de um SLO, um monitor pausado por um incidente ou um evento de manutenção, o token de redefinição de senha e o último acesso de um usuário privado de uma página de status, os dados que um serviço informa sobre si mesmo (versão, runtime, nuvem) e a última execução de uma regra de detecção ou de um feed de ameaças;
-  - declarar um incidente a partir de um modelo enviando `createdIncidentTemplateId` para **Create One Incident** — escolha o modelo na configuração **Modelo de incidente** do passo: o passo então declara o incidente a partir dele, como Administrador do projeto, e registra o modelo;
+  - declarar um incidente a partir de um modelo enviando `createdIncidentTemplateId` para **Criar: Incidente (um registro)** — escolha o modelo na configuração **Modelo de incidente** do passo: o passo então declara o incidente a partir dele, como Administrador do projeto, e registra o modelo;
   - alterar a qual registro um registro pertence depois de criado, como o monitor de uma linha de proprietário ou o incidente de uma nota.
 - **Como ninguém.** Um registro que um workflow cria não nomeia criador, e o log de auditoria nomeia o workflow, com o nome que ele tinha na hora, como autor da alteração.
 

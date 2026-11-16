@@ -41,11 +41,11 @@ Qualquer ferramenta com um Alertmanager pode ter incidentes hoje: um alerta que 
 :::steps
 ### Crie o monitor
 
-Crie um monitor de Incoming Request como diz o [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#receber-alertas-com-um-monitor) e copie seu **Heartbeat URL**. Esse é o endereço `<secret key>` no receptor de cada ferramenta abaixo.
+Crie um monitor de Requisição recebida como diz o [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#receber-alertas-com-um-monitor) e copie seu **Heartbeat URL**. Esse é o endereço `<secret key>` no receptor de cada ferramenta abaixo.
 
 ### Associe-o à nuvem
 
-Abra **Visão geral → Recursos Vinculados** do monitor e adicione a nuvem OpenStack. Cada incidente passa a aparecer na página **Incidentes** dessa nuvem: as configurações de um monitor Incoming Request não nomeiam nenhuma nuvem, então o Alertmanager de cada nuvem precisa de um monitor próprio. A nuvem aparece nessa lista assim que seus primeiros dados chegam, então faça isso depois dos passos abaixo, ou adicione a nuvem antes em **OpenStack → Todas as nuvens**.
+Abra **Visão geral → Recursos Vinculados** do monitor e adicione a nuvem OpenStack. Cada incidente passa a aparecer na página **Incidentes** dessa nuvem: as configurações de um monitor Requisição recebida não nomeiam nenhuma nuvem, então o Alertmanager de cada nuvem precisa de um monitor próprio. A nuvem aparece nessa lista assim que seus primeiros dados chegam, então faça isso depois dos passos abaixo, ou adicione a nuvem antes em **OpenStack → Todas as nuvens**.
 :::
 
 O Alertmanager, na versão que o Kolla-Ansible fixa, foi gravado enviando exatamente neste formato, e o que ele enviou abriu um incidente em um OneUptime em execução, que o seu próprio status `resolved` resolveu.

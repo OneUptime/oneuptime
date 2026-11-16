@@ -116,7 +116,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-Os `descriptiveAttributes` de cada dispositivo de rede trazem o nome do host, o endereço IP, o número de série, o endereço MAC, a marca, o modelo, o firmware, o sistema operacional, a função, o site e a localização: veja [Atributos de ativo dos dispositivos de rede](#atributos-de-ativo-dos-dispositivos-de-rede) abaixo. O restante do que o coletor sabe, como interfaces e vizinhos, fica no próprio registro Network Device: siga `resourceId` até `/api/network-device/:id/get-item`, ou busque `/api/network-device/get-list` diretamente.
+Os `descriptiveAttributes` de cada dispositivo de rede trazem o nome do host, o endereço IP, o número de série, o endereço MAC, a marca, o modelo, o firmware, o sistema operacional, a função, o site e a localização: veja [Atributos de ativo dos dispositivos de rede](#atributos-de-ativo-dos-dispositivos-de-rede) abaixo. O restante do que o coletor sabe, como interfaces e vizinhos, fica no próprio registro Dispositivo de rede: siga `resourceId` até `/api/network-device/:id/get-item`, ou busque `/api/network-device/get-list` diretamente.
 
 ### Em CSV
 
@@ -184,7 +184,7 @@ Os atributos são acrescentados e nunca apagados: um que deixa de ser informado 
 
 ## Atributos de ativo dos dispositivos de rede
 
-Um dispositivo de rede (`entityType: network.device`) é espelhado a partir do seu registro Network Device, e os seus `descriptiveAttributes` usam as mesmas chaves que um host usa para os mesmos dados, então uma coluna do CMDB guarda o número de série seja a linha um servidor ou um switch:
+Um dispositivo de rede (`entityType: network.device`) é espelhado a partir do seu registro Dispositivo de rede, e os seus `descriptiveAttributes` usam as mesmas chaves que um host usa para os mesmos dados, então uma coluna do CMDB guarda o número de série seja a linha um servidor ou um switch:
 
 | Campo | Chave | De onde vem |
 | --- | --- | --- |

@@ -196,7 +196,7 @@ Faites référence à la sortie d'un bloc précédent ainsi :
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Un bloc **API** dont l'ID est `lookup-user`              | Son code de statut : `{{local.components.lookup-user.returnValues.response-status}}`. Son corps : `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Un bloc **Exécuter du JavaScript personnalisé** dont l'ID est `transform` | Ce qu'il a renvoyé : `{{local.components.transform.returnValues.returnValue}}`.     |
-| Un déclencheur **On Create Incident** dont l'ID est `incident-on-create-1` | Le titre de l'incident : `{{local.components.incident-on-create-1.returnValues.model.title}}`. Les déclencheurs d'enregistrement renvoient l'enregistrement comme `model`, dans lequel vous descendez. |
+| Un déclencheur **À la création : Incident** dont l'ID est `incident-on-create-1` | Le titre de l'incident : `{{local.components.incident-on-create-1.returnValues.model.title}}`. Les déclencheurs d'enregistrement renvoient l'enregistrement comme `model`, dans lequel vous descendez. |
 
 Les valeurs des blocs n'existent que pendant l'exécution en cours. Chaque nouvelle exécution repart de zéro.
 
@@ -239,7 +239,7 @@ Un webhook arrive avec un corps comme `{ "service": "checkout", "status": "faile
 
 1. Un déclencheur **Webhook** avec l'ID `ci-webhook`.
 2. Un bloc **Si / Sinon** : **Valeur à vérifier** est le champ `status` du Request Body du webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparaison** est **est égal à**, et **Comparer avec** est `failed`.
-3. Depuis la branche **Oui**, un bloc **Create One Incident** avec :
+3. Depuis la branche **Oui**, un bloc **Créer : Incident (un seul)** avec :
    - Titre : `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Description : `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 

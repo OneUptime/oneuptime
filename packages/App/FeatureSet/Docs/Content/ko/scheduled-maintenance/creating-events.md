@@ -90,7 +90,7 @@ flowchart TB
 5. **Runbook 규칙이 시작합니다**: 이벤트와 일치하는 런북을 시작합니다.
 6. **리마인더가 예약됩니다**: 리마인더 규칙이 일치하면 소유자를 위해 예약됩니다.
 
-**게시 시간** 을 고르지 않았다면 이벤트는 즉시 게시되고, **이벤트가 예약될 때** 를 끄지 않았다면 게시 후 1분 안에 상태 페이지의 구독자에게 이벤트가 예약되었다는 알림이 갑니다. 워크플로우 트리거 **On Create Maintenance Event** 는 이를 기반으로 만든 워크플로우를 시작하고, 소유자는 해당 알림을 켜 두었다면 이벤트에 대해 알게 됩니다. [알림 설정](/docs/notifications/notification-settings) 을 참조하세요.
+**게시 시간** 을 고르지 않았다면 이벤트는 즉시 게시되고, **이벤트가 예약될 때** 를 끄지 않았다면 게시 후 1분 안에 상태 페이지의 구독자에게 이벤트가 예약되었다는 알림이 갑니다. 워크플로우 트리거 **유지 관리 이벤트 생성 시** 는 이를 기반으로 만든 워크플로우를 시작하고, 소유자는 해당 알림을 켜 두었다면 이벤트에 대해 알게 됩니다. [알림 설정](/docs/notifications/notification-settings) 을 참조하세요.
 
 ## 나중에 게시하기
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | **이벤트가 예약될 때** 스위치입니다. 나머지 두 시점에는 각각 고유한 필드가 있습니다.      |
 | `publishOnStatusPageAt`                               | 이벤트가 상태 페이지에 게시되고 구독자에게 예약 알림이 전송되는 시간입니다. 생략하면 즉시 게시됩니다. |
 
-코드로 표현한 같은 이벤트는 Terraform 리소스 `oneuptime_scheduled_maintenance_event` 입니다. [예제](/docs/terraform/examples#예정된-유지-관리) 를 참조하세요. 워크플로우는 **Create One Maintenance Event** 단계로 이벤트를 만들고, `/oneuptime maintenance` 는 Slack에서 양식을 엽니다. [Slack](/docs/workspace-connections/slack#slack-에서-인시던트와-유지-관리-만들기) 을 참조하세요.
+코드로 표현한 같은 이벤트는 Terraform 리소스 `oneuptime_scheduled_maintenance_event` 입니다. [예제](/docs/terraform/examples#예정된-유지-관리) 를 참조하세요. 워크플로우는 **유지 관리 이벤트 1개 만들기** 단계로 이벤트를 만들고, `/oneuptime maintenance` 는 Slack에서 양식을 엽니다. [Slack](/docs/workspace-connections/slack#slack-에서-인시던트와-유지-관리-만들기) 을 참조하세요.
 
 ## 문제 해결
 

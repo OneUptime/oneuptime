@@ -196,7 +196,7 @@ Faça referência à saída de um bloco anterior assim:
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Um bloco **API** cujo ID é `lookup-user`                  | O código de status: `{{local.components.lookup-user.returnValues.response-status}}`. O corpo: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Um bloco **Executar JavaScript personalizado** cujo ID é `transform`  | O que ele devolveu: `{{local.components.transform.returnValues.returnValue}}`.        |
-| Um gatilho **On Create Incident** cujo ID é `incident-on-create-1` | O título do incidente: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Os gatilhos de registro devolvem o registro como `model`, e você navega dentro dele. |
+| Um gatilho **Ao criar: Incidente** cujo ID é `incident-on-create-1` | O título do incidente: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Os gatilhos de registro devolvem o registro como `model`, e você navega dentro dele. |
 
 Os valores dos blocos só existem durante a execução atual. Cada nova execução começa do zero.
 
@@ -239,7 +239,7 @@ Chega um webhook com um corpo como `{ "service": "checkout", "status": "failed" 
 
 1. Um gatilho **Webhook** com o ID `ci-webhook`.
 2. Um bloco **Se / Senão**: **Valor a verificar** é o campo `status` do Request Body do webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparação** é **é igual a** e **Comparar com** é `failed`.
-3. A partir do ramo **Sim**, um bloco **Create One Incident** com:
+3. A partir do ramo **Sim**, um bloco **Criar: Incidente (um registro)** com:
    - Título: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Descrição: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 

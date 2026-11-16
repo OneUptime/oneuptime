@@ -60,18 +60,84 @@ const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 /*
  * The source read, relative to the repository (ee/ is not in every
  * checkout). Common/Types is drawn on pages too: a file's size, a web
- * vital, an installation's health (#8457).
+ * vital, an installation's health (#8457). So are the Admin Dashboard's
+ * and the Status Page's own sources, and what the server writes for a page
+ * or a person to read: an email, a notification, an API's refusal (#8720).
  */
 const SCAN_SCOPES: ReadonlyArray<string> = [
   "packages/Common/UI",
   "packages/Common/Utils",
   "packages/Common/Types",
+  "packages/Common/Server",
   "packages/App/FeatureSet/Dashboard/src",
+  "packages/App/FeatureSet/AdminDashboard/src",
+  "packages/App/FeatureSet/StatusPage/src",
   "ee/Dashboard",
+  "ee/AdminDashboard",
 ];
+
+/*
+ * What the server writes that keeps its plain space (#8720): text it logs,
+ * stores or sends to a machine, read back or matched as written. A form's
+ * or a search's refusal, which a person reads where they typed it, is held.
+ */
+const SERVER_LOG: string = "a line of the server's own log";
+const SQL: string = "a SQL statement the server runs";
+const FOR_THE_AI: string =
+  "text for OneUptime AI to read: a prompt, a tool's answer, an insight's evidence";
+const STORED_RESULT: string =
+  "a check's or a criteria's result, stored with it and shown as it was written";
 
 // Files whose text is no page's, each with what it writes.
 const AS_WRITTEN: Readonly<Record<string, string>> = {
+  "packages/Common/Server/Infrastructure/Postgres/CancelOnTimeoutClient.ts":
+    SERVER_LOG,
+  "packages/Common/Server/Infrastructure/Postgres/OnlineDdl.ts": SERVER_LOG,
+  "packages/Common/Server/Infrastructure/Postgres/SchemaMigrationRunner.ts":
+    SERVER_LOG,
+  "packages/Common/Server/Infrastructure/Postgres/SchemaMigrationWait.ts":
+    SERVER_LOG,
+  "packages/Common/Server/Utils/RateLimit/WrongKeyLimit.ts": SERVER_LOG,
+  "packages/Common/Server/Utils/Telemetry/SpanExportQueue.ts": SERVER_LOG,
+  "packages/Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActivityDeduplicator.ts":
+    SERVER_LOG,
+  "packages/Common/Server/Utils/Aws/AwsDefaultCredentialChain.ts":
+    "a credential chain's failure, logged and stored on the connection",
+  "packages/Common/Server/Utils/CloudConnection/Kafka/KafkaClient.ts":
+    "a Kafka connection's failure, stored as the connection's last error",
+  "packages/Common/Server/Utils/LLM/LLMService.ts":
+    "an LLM provider's failure, logged and stored on the provider",
+  "packages/Common/Server/Utils/AI/Mcp/McpHttpTransport.ts":
+    "an external MCP server's failure, stored on the server and read by the AI agent",
+  "packages/Common/Server/Types/AnalyticsDatabase/AggregateBy.ts": SQL,
+  "packages/Common/Server/Types/Database/QueryHelper.ts": SQL,
+  "packages/Common/Server/Utils/Monitor/CountWindowBaseline.ts": SQL,
+  "packages/Common/Server/Utils/AI/SRE/ChangeImpact.ts": FOR_THE_AI,
+  "packages/Common/Server/Utils/AI/SRE/Insights/Detectors/TraceLatencyRegressionDetector.ts":
+    FOR_THE_AI,
+  "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionExplanationPrompt.ts":
+    FOR_THE_AI,
+  "packages/Common/Server/Utils/AI/Toolbox/MetricTools.ts": FOR_THE_AI,
+  "packages/Common/Server/Utils/CloudConnection/CloudLiveRead.ts": FOR_THE_AI,
+  "packages/Common/Server/Utils/CloudConnection/LiveRead/AwsLiveRead.ts":
+    FOR_THE_AI,
+  "packages/Common/Server/Utils/DataObservability/AthenaApi.ts": STORED_RESULT,
+  "packages/Common/Server/Utils/Monitor/Criteria/SnmpTransceiverCriteria.ts":
+    STORED_RESULT,
+  "packages/Common/Server/Utils/Monitor/MonitorCriteriaMessageFormatter.ts":
+    STORED_RESULT,
+  "packages/Common/Server/Utils/Monitor/MonitorCriteriaObservationBuilder.ts":
+    STORED_RESULT,
+  "packages/Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts":
+    "a root cause's response time, stored and read back exactly by RootCauseFacts",
+  "packages/Common/Server/Utils/SecurityEvent/Watchlists/SecurityWatchlistMatch.ts":
+    "a detection rule's last error, stored on the rule",
+  "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewComposer.ts":
+    "a production review posted as Markdown on the code host's pull request",
+  "packages/Common/Server/Utils/SampleProject/SampleProjectTelemetry.ts":
+    "a sample project's logs and spans, stored as telemetry data",
+  "packages/Common/Server/Services/TelemetrySourceMapService.ts":
+    "the source map upload API's answer to the tool that sent it",
   "packages/Common/Utils/AI/PromptText.ts": "a prompt for OneUptime AI",
   "packages/Common/UI/Utils/AIChatExport/ChatWidgetMarkdown.ts":
     "the AI chat's Markdown export",
@@ -194,10 +260,25 @@ const PLAIN_SPACE_BEFORE_A_UNIT: RegExp = new RegExp(
   "u",
 );
 
+// A unit's symbol, not the start of a longer word.
+const UNIT_ALONE: RegExp = new RegExp(`(?:${UNIT})(?![\\p{L}\\p{N}_-])`, "u");
+
 const WHITESPACE_RUN: RegExp = /\s+/g;
 
 // A run of spaces a line breaks at, and nothing else.
 const ONLY_PLAIN_SPACES: RegExp = /^[ \u2000-\u2006\u2008-\u200A\u205F]+$/;
+
+/*
+ * JSX TEXT (#8720). `{figure} dBm` draws the figure, a space and the unit
+ * as JSX text, and `{figure} {unit}` and `{figure}{" "}{unit}` a unit held
+ * in a variable; a figure written in the text ("up to 10 MB") is one too.
+ * A space that starts a new line is no space in JSX (it is left out), so
+ * only a space on the figure's own line counts.
+ */
+const WRITTEN_FIGURE_BEFORE_A_UNIT: RegExp = new RegExp(
+  `(?<![\\p{L}\\p{N}_.,])\\p{Nd}+(?:[.,]\\p{Nd}+)*[ ](?:${UNIT})(?![\\p{L}\\p{N}_-])`,
+  "u",
+);
 
 // A unit picked from a list: `units[index]`, `BYTE_UNITS[unit]`.
 const UNIT_FROM_A_LIST: RegExp =
@@ -385,12 +466,130 @@ const findPlainSpacesBeforeUnits: (data: {
       report(node);
     }
 
+    if (ts.isJsxElement(node) || ts.isJsxFragment(node)) {
+      for (const child of findJsxFiguresBeforeUnits(node.children)) {
+        report(child);
+      }
+    }
+
     ts.forEachChild(node, visit);
   };
 
   visit(sourceFile);
 
   return findings;
+};
+
+// A JSX child that is an expression: `{figure}`, `{" "}`, `{unit}`.
+const expressionOf: (
+  child: ts.JsxChild | undefined,
+) => ts.Expression | undefined = (
+  child: ts.JsxChild | undefined,
+): ts.Expression | undefined => {
+  return child && ts.isJsxExpression(child) ? child.expression : undefined;
+};
+
+/*
+ * The text of a JSX child as JSX draws it: each line trimmed where it meets
+ * a line break, the lines left joined by one space. " dBm" starts with a
+ * space; a line break and "dBm" does not.
+ */
+const drawnTextOf: (child: ts.JsxChild | undefined) => string | undefined = (
+  child: ts.JsxChild | undefined,
+): string | undefined => {
+  if (!child || !ts.isJsxText(child)) {
+    return undefined;
+  }
+
+  const lines: Array<string> = child.text.split("\n");
+
+  if (lines.length === 1) {
+    return child.text;
+  }
+
+  return lines
+    .map((line: string, index: number): string => {
+      const start: string = index === 0 ? line : line.trimStart();
+
+      return index === lines.length - 1 ? start : start.trimEnd();
+    })
+    .filter((line: string): boolean => {
+      return line.length > 0;
+    })
+    .join(" ");
+};
+
+/*
+ * The JSX children of an element that draw a figure, a space a line
+ * breaks at and a unit: `{figure} dBm`, `{figure} {unit}`, `{figure}{" "}
+ * {unit}` and a figure written in the text ("up to 10 MB").
+ */
+const findJsxFiguresBeforeUnits: (
+  children: ts.NodeArray<ts.JsxChild>,
+) => Array<ts.JsxChild> = (
+  children: ts.NodeArray<ts.JsxChild>,
+): Array<ts.JsxChild> => {
+  const found: Array<ts.JsxChild> = [];
+
+  children.forEach((child: ts.JsxChild, index: number): void => {
+    const next: ts.JsxChild | undefined = children[index + 1];
+    const afterNext: ts.JsxChild | undefined = children[index + 2];
+    // A held unit the text after it spells a word with: `{count} {unit}s`.
+    const spellsAWord: boolean = CONTINUES_A_WORD.test(
+      drawnTextOf(children[index + 3]) || "",
+    );
+
+    if (ts.isJsxText(child)) {
+      if (WRITTEN_FIGURE_BEFORE_A_UNIT.test(drawnTextOf(child) || "")) {
+        found.push(child);
+      }
+
+      return;
+    }
+
+    if (!expressionOf(child)) {
+      return;
+    }
+
+    // `{figure} dBm`: a space on the figure's line, then a unit's symbol.
+    const text: string | undefined = drawnTextOf(next);
+
+    if (text !== undefined && PLAIN_SPACE_BEFORE_A_UNIT.test(text)) {
+      found.push(next!);
+      return;
+    }
+
+    // `{figure} {unit}`: only spaces on the line, then a held unit.
+    const held: ts.Expression | undefined = expressionOf(afterNext);
+
+    if (
+      text !== undefined &&
+      ONLY_PLAIN_SPACES.test(text) &&
+      held !== undefined &&
+      isUnitHolder(held) &&
+      !spellsAWord
+    ) {
+      found.push(afterNext!);
+      return;
+    }
+
+    // `{figure}{" "}{unit}` and `{figure}{" "}dBm`.
+    const space: ts.Expression | undefined = expressionOf(next);
+
+    if (
+      space !== undefined &&
+      ts.isStringLiteralLike(space) &&
+      ONLY_PLAIN_SPACES.test(space.text) &&
+      ((held !== undefined && isUnitHolder(held) && !spellsAWord) ||
+        new RegExp(`^${UNIT_ALONE.source}`, "u").test(
+          drawnTextOf(afterNext) || "",
+        ))
+    ) {
+      found.push(next!);
+    }
+  });
+
+  return found;
 };
 
 interface ScanResult {
@@ -498,6 +697,14 @@ describe("a number code joins to its unit keeps it on its line", () => {
     expect(filesRead["packages/Common/UI"]).toBeGreaterThan(500);
     expect(filesRead["packages/Common/Utils"]).toBeGreaterThan(200);
     expect(filesRead["packages/Common/Types"]).toBeGreaterThan(1000);
+    // The Admin Dashboard, the Status Page and the server (#8720).
+    expect(filesRead["packages/Common/Server"]).toBeGreaterThan(1000);
+    expect(
+      filesRead["packages/App/FeatureSet/AdminDashboard/src"],
+    ).toBeGreaterThan(50);
+    expect(filesRead["packages/App/FeatureSet/StatusPage/src"]).toBeGreaterThan(
+      50,
+    );
     expect(filesRead["packages/App/FeatureSet/Dashboard/src"]).toBeGreaterThan(
       2000,
     );
@@ -526,6 +733,39 @@ describe("a number code joins to its unit keeps it on its line", () => {
       "packages/Common/Types/Telemetry/TelemetryIngestionBudget.ts",
       "packages/Common/Types/PacketCapture/PacketCaptureLimits.ts",
     ]) {
+      expect({
+        file,
+        found: findings.some((finding: UnitFinding): boolean => {
+          return finding.file === file;
+        }),
+      }).toEqual({ file, found: false });
+    }
+  });
+
+  test("the figures #8720 named, written as JSX text or in the Admin Dashboard and the server, are held now", () => {
+    const { findings } = readAllFindings();
+
+    for (const file of [
+      "packages/App/FeatureSet/Dashboard/src/Pages/IoT/View/Devices.tsx",
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Health/ClickhouseCapacity.tsx",
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Health/ClickhouseCapacitySummary.tsx",
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Health/InstanceHealthLogs.tsx",
+      "packages/App/FeatureSet/StatusPage/src/Utils/LiveRefresh.ts",
+      "packages/Common/Server/Utils/HostCollector/HostCollectorConfigPolicy.ts",
+      "packages/Common/Server/Utils/SecurityEvent/Watchlists/SecurityWatchlistQueryBinder.ts",
+      "ee/AdminDashboard/Health/ClickhouseCluster.tsx",
+      "ee/AdminDashboard/Health/Overview.tsx",
+      "ee/AdminDashboard/Health/PostgresCluster.tsx",
+      "ee/AdminDashboard/Health/RedisHealth.tsx",
+      "ee/AdminDashboard/Health/TelemetryIngestionUtils.ts",
+    ]) {
+      if (
+        file.startsWith("ee/") &&
+        !fs.existsSync(path.join(REPOSITORY_ROOT, file))
+      ) {
+        continue;
+      }
+
       expect({
         file,
         found: findings.some((finding: UnitFinding): boolean => {
@@ -921,6 +1161,55 @@ describe("a unit or a relative time is asked of Intl only where its number is he
         }),
       }).toEqual({ file, exists: true, asks: false });
     }
+  });
+});
+
+describe("negative controls: JSX text (#8720)", () => {
+  test("a figure, a space on its line and a unit: written, held in a variable, or after a space of its own", () => {
+    expect(
+      linesOf(
+        [
+          "const a = <span>{value} dBm</span>;",
+          "const b = <span>{Number(t).toFixed(1)} °C</span>;",
+          "const c = <span>{value} {unit}</span>;",
+          'const d = <span>{value}{" "}{reading.unit}</span>;',
+          'const e = <span>{value}{" "}ms</span>;',
+          "const f = <p>Up to 10 MB each</p>;",
+          "const g = <>{size} GB free</>;",
+          "const h = <span>{used} of {total} GiB</span>;",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "1 dBm",
+      "2 °C",
+      "3 {unit}",
+      '4 {" "}',
+      '5 {" "}',
+      "6 Up to 10 MB each",
+      "7 GB free",
+      "8 GiB",
+    ]);
+  });
+
+  test("a no-break space, a line break, a word, a plural or a figure that is a name's is no unit apart from its figure", () => {
+    expect(
+      linesOf(
+        [
+          'const a = <span>{value}{"\\u00A0"}dBm</span>;',
+          "const b = <span>{`${value}\\u00A0dBm`}</span>;",
+          "const c = <span>{count} hosts</span>;",
+          "const d = <span>\n  {value}\n  ms\n</span>;",
+          "const e = <span>{value}ms</span>;",
+          "const f = <span>{count} {noun}</span>;",
+          "const g = <span>{count} {unit}s ago</span>;",
+          "const h = <p>Version v2 MB</p>;",
+          "const i = <p>Top 10 hosts</p>;",
+          "const j = <span>{label}: {name}</span>;",
+          "// const k = <span>{value} ms</span>;",
+          'const l = <span title="5 ms">{value}</span>;',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
   });
 });
 

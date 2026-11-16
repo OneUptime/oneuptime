@@ -13,8 +13,8 @@ Pubblica un messaggio in un canale [Discord](https://discord.com) quando si apre
 
 ```mermaid title="Da un incidente a un messaggio Discord"
 flowchart TB
-    declared["Incidente dichiarato"] --> trigger["On Create Incident"]
-    trigger --> step["Send Message<br/>to Discord"]
+    declared["Incidente dichiarato"] --> trigger["Alla creazione:<br/>Incidente"]
+    trigger --> step["Invia messaggio<br/>a Discord"]
     step -->|"Successo"| channel["Messaggio nel<br/>tuo canale"]
     step -->|"Errore"| failed["L'esecuzione<br/>fallisce e<br/>dice perché"]
 ```
@@ -48,11 +48,11 @@ Parti dal modello, che costruisce l'intero flusso di lavoro per te, oppure da ze
 3. Mantieni il nome **Notify Discord on new incident** o cambialo, e fai clic su **Avanti**.
 4. Incolla l'URL in **Discord Webhook URL** e fai clic su **Crea flusso di lavoro**.
 
-Il flusso di lavoro si apre nel **Costruttore** con due passi: **On Create Incident** e **Invia messaggio a Discord**, che pubblica il numero, il titolo, la gravità e lo stato dell'incidente. L'URL viene salvato come variabile segreta `discordWebhookUrl` del flusso di lavoro.
+Il flusso di lavoro si apre nel **Costruttore** con due passi: **Alla creazione: Incidente** e **Invia messaggio a Discord**, che pubblica il numero, il titolo, la gravità e lo stato dell'incidente. L'URL viene salvato come variabile segreta `discordWebhookUrl` del flusso di lavoro.
 @tab Da zero
 1. Salva l'URL come variabile globale segreta: vai su **Flussi di lavoro → Variabili globali**, fai clic su **Crea: Variabile del flusso di lavoro**, chiamala `DISCORD_WEBHOOK_URL` e fai clic su **Avanti**. Incolla l'URL in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Variabile del flusso di lavoro**.
 2. Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, scegli **Parti da zero**, dai un nome al flusso di lavoro e fai clic su **Crea flusso di lavoro**.
-3. Nel **Costruttore**, fai clic su **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Incident** sotto **Popolari**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli gli altri campi che mostra il tuo messaggio, per esempio **Incident Number With Prefix**.
+3. Nel **Costruttore**, fai clic su **Scegli cosa avvia questo flusso di lavoro** e scegli **Alla creazione: Incidente** sotto **Popolari**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli gli altri campi che mostra il tuo messaggio, per esempio **Incident Number With Prefix**.
 4. Fai clic su **Aggiungi componente**, cerca `discord` e fai clic su **Invia messaggio a Discord**. Collega l'uscita **Successo** del trigger a questo passo.
 5. Fai clic sul nuovo passo. In **URL del webhook in entrata di Discord**, fai clic su **{ }** e scegli `DISCORD_WEBHOOK_URL` sotto **Global variables**. In **Testo del messaggio**, scrivi il messaggio e inserisci i campi dell'incidente con **{ }**.
 :::
@@ -75,7 +75,7 @@ Per provarlo senza aprire un incidente, fai clic su **Esegui flusso di lavoro** 
 
 - **Formattare con il Markdown di Discord.** Il testo viene inviato così come è scritto, quindi il Markdown di Discord funziona: gli asterischi intorno a una parola la mettono in grassetto, e un URL appare come link.
 - **Tenere conto del limite di 2.000 caratteri.** Discord accetta messaggi fino a 2.000 caratteri. Uno più lungo viene tagliato, e termina con "… (truncated — see OneUptime for the full text)", invece di essere rifiutato.
-- **Pubblicare più dei nuovi incidenti.** Costruisci un altro flusso di lavoro su **On Update Incident** per i cambi di stato, o su **On Create Alert** per gli avvisi, con lo stesso passo. Per pubblicare solo alcuni incidenti, metti un blocco **Se / Altrimenti** prima del passo.
+- **Pubblicare più dei nuovi incidenti.** Costruisci un altro flusso di lavoro su **All'aggiornamento: Incidente** per i cambi di stato, o su **Alla creazione: Avviso** per gli avvisi, con lo stesso passo. Per pubblicare solo alcuni incidenti, metti un blocco **Se / Altrimenti** prima del passo.
 - **Solo gli indirizzi di Discord.** Il passo pubblica su un URL `https` di `discord.com` o `discordapp.com`, e non segue i reindirizzamenti, quindi un URL che punta altrove ferma l'esecuzione.
 
 ## Risoluzione dei problemi

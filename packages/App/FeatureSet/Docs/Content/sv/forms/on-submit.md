@@ -76,7 +76,7 @@ En incident som deklareras via ett formulär är en vanlig incident, med några 
 - **Dess ägare får veta.** De ägare som inställningarna och mallen anger läggs till så snart incidentens Slack- och Microsoft Teams-kanaler finns, och aviseras — incidentens avisering **Incident skapad** väntar tills de är dess ägare, så att den går till dem i stället för till Projektägare.
 - **En privat anteckning registrerar inlämningen** — se [Den privata anteckningen](#den-privata-anteckningen).
 
-Allt som körs för en ny incident körs även för dessa: integritets-, ägar-, etikett-, jour- och runbook-regler, jourpolicyer och arbetsflöden med **On Create Incident**. Jourregler matchar ett formulärs incidenter som alla andra — även på deras titel och beskrivning, som inlämnaren skrev.
+Allt som körs för en ny incident körs även för dessa: integritets-, ägar-, etikett-, jour- och runbook-regler, jourpolicyer och arbetsflöden med **Vid skapande: Incident**. Jourregler matchar ett formulärs incidenter som alla andra — även på deras titel och beskrivning, som inlämnaren skrev.
 
 :::steps
 #### Läs vad inlämnaren skrev

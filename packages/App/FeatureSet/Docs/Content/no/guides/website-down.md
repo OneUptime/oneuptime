@@ -74,7 +74,7 @@ Sier setningen at ingen plassering sjekker adressen, har monitoren ingen sonde; 
 :::
 
 :::details Nettstedet virker, men monitoren sier at det er nede
-Monitoren regner det som nede når det ikke kommer noe svar, eller når svaret er utenfor 200 til 399. En brannmur som blokkerer sondene, ser ut som manglende svar: på OneUptime Cloud tillater du adressene på [IP-adresser](/docs/configuration/ip-addresses); på en selvdriftet server tillater du maskinen sonden kjører på. Hvordan du endrer regelen, står i [Nettsted-overvåking](/docs/monitor/website-monitor) eller [API-overvåking](/docs/monitor/api-monitor).
+Monitoren regner det som nede når det ikke kommer noe svar, eller når svaret er utenfor 200 til 399. En brannmur som blokkerer sondene, ser ut som manglende svar: på OneUptime Cloud tillater du adressene på [IP-adresser](/docs/configuration/ip-addresses); på en selvdriftet server tillater du maskinen sonden kjører på. Hvordan du endrer regelen, står i [Nettsted-monitor](/docs/monitor/website-monitor) eller [API-monitor](/docs/monitor/api-monitor).
 :::
 
 :::details Testoppkallet kan ikke bekreftes

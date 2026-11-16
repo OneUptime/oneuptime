@@ -13,8 +13,8 @@
 
 ```mermaid title="从事件到 Discord 消息"
 flowchart TB
-    declared["事件已宣布"] --> trigger["On Create Incident"]
-    trigger --> step["Send Message<br/>to Discord"]
+    declared["事件已宣布"] --> trigger["创建事件时"]
+    trigger --> step["发送消息到 Discord"]
     step -->|"成功"| channel["你的频道中<br/>的消息"]
     step -->|"错误"| failed["运行失败，<br/>并说明原因"]
 ```
@@ -48,11 +48,11 @@ flowchart TB
 3. 保留名称 **Notify Discord on new incident** 或更改它，然后点击 **下一步**。
 4. 把 URL 粘贴到 **Discord Webhook URL** 中，然后点击 **创建工作流**。
 
-工作流会在 **生成器** 中打开，包含两个步骤： **On Create Incident**，以及发布事件编号、标题、严重程度和状态的 **发送消息到 Discord**。URL 会保存为工作流的机密变量 `discordWebhookUrl`。
+工作流会在 **生成器** 中打开，包含两个步骤： **创建事件时**，以及发布事件编号、标题、严重程度和状态的 **发送消息到 Discord**。URL 会保存为工作流的机密变量 `discordWebhookUrl`。
 @tab 从零开始
 1. 把 URL 保存为机密的全局变量：前往 **工作流 → 全局变量**，点击 **创建工作流变量**，将其命名为 `DISCORD_WEBHOOK_URL`，然后点击 **下一步**。把 URL 粘贴到 **内容** 中，打开 **密钥**，然后点击 **创建工作流变量**。
 2. 前往 **工作流**，点击 **创建工作流**，选择 **从零开始**，为工作流命名，然后点击 **创建工作流**。
-3. 在 **生成器** 中，点击 **选择启动此工作流的方式**，然后在 **热门** 下选择 **On Create Incident**。点击触发器：它的 **要传递的字段** 已经包含 **标题**，所以点击 **添加字段**，再选择消息要显示的其他字段，例如 **Incident Number With Prefix**。
+3. 在 **生成器** 中，点击 **选择启动此工作流的方式**，然后在 **热门** 下选择 **创建事件时**。点击触发器：它的 **要传递的字段** 已经包含 **标题**，所以点击 **添加字段**，再选择消息要显示的其他字段，例如 **Incident Number With Prefix**。
 4. 点击 **添加组件**，搜索 `discord`，然后点击 **发送消息到 Discord**。把触发器的 **成功** 输出连接到它。
 5. 点击新步骤。在 **Discord 传入 Webhook URL** 中点击 **{ }**，然后在 **Global variables** 下选择 `DISCORD_WEBHOOK_URL`。在 **消息文本** 中写下消息，并用 **{ }** 插入事件的字段。
 :::
@@ -75,7 +75,7 @@ flowchart TB
 
 - **用 Discord 的 Markdown 设置格式。** 文本按输入的原样发送，所以 Discord 的 Markdown 可以在其中使用：用星号包围一个词会让它变成粗体，URL 会显示为链接。
 - **注意 2,000 个字符的限制。** Discord 接受最多 2,000 个字符的消息。更长的消息会被截断，并以 "… (truncated — see OneUptime for the full text)" 结尾，而不是被拒绝。
-- **不只发布新事件。** 用同一个步骤，基于 **On Update Incident** 构建另一个工作流来发布状态变更，或基于 **On Create Alert** 构建工作流来发布警报。要只发布部分事件，请在该步骤之前放一个 **如果 / 否则** 块。
+- **不只发布新事件。** 用同一个步骤，基于 **更新事件时** 构建另一个工作流来发布状态变更，或基于 **创建警报时** 构建工作流来发布警报。要只发布部分事件，请在该步骤之前放一个 **如果 / 否则** 块。
 - **只用 Discord 自己的地址。** 该步骤发布到 `discord.com` 或 `discordapp.com` 上的 `https` URL，并且不跟随重定向，所以指向其他任何地方的 URL 都会让运行停止。
 
 ## 故障排除

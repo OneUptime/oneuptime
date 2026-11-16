@@ -306,7 +306,7 @@ Tokens verlopen standaard na een jaar en worden niet vernieuwd. Om er niet een m
 ### Een Jira-issue openen voor elk incident
 
 :::steps
-1. Maak vanaf nul een workflow met de naam `Incidents to Jira`. Klik op het gestippelde blok en voeg de trigger **On Create Incident** toe. De **Velden om door te geven** ervan beginnen met **Titel**: klik op **Veld toevoegen** en kies **Beschrijving** en **Incidentnummer**. De ID wordt altijd doorgegeven. Laat de **Identifier** ervan op `incident-on-create-1` staan.
+1. Maak vanaf nul een workflow met de naam `Incidents to Jira`. Klik op het gestippelde blok en voeg de trigger **Bij aanmaken: Incident** toe. De **Velden om door te geven** ervan beginnen met **Titel**: klik op **Veld toevoegen** en kies **Beschrijving** en **Incidentnummer**. De ID wordt altijd doorgegeven. Laat de **Identifier** ervan op `incident-on-create-1` staan.
 2. Klik op **Component toevoegen**, voeg een **API-aanroep POST (JSON)**-blok toe en verbind de **Succes**-punt van de trigger ermee. Stel de **Identifier** in op `create-issue`, de **URL** op `{{global.variables.JIRA_URL}}/rest/api/3/issue` en, onder **Meer velden**, de **Aanvraagheaders** op `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Stel de **Verzoeklichaam** in op het issue, en vervang `OPS` en `Bug` door je projectsleutel en een issuetype van dat project:
 
@@ -390,7 +390,7 @@ Klik hiervoor in de **Velden om door te geven** van de trigger op **Veld toevoeg
 Bouw dit als een tweede workflow, zodat een fout hier nooit verhindert dat er issues worden geopend.
 
 :::steps
-1. Maak een workflow met de naam `Incident updates to Jira`, met de trigger **On Update Incident**. Klik in **Velden om te volgen** op **Veld toevoegen** en kies **Current Incident State**. Klik in **Velden om door te geven** op **Veld toevoegen**, open **Current Incident State** en kies **Naam**.
+1. Maak een workflow met de naam `Incident updates to Jira`, met de trigger **Bij bijwerken: Incident**. Klik in **Velden om te volgen** op **Veld toevoegen** en kies **Current Incident State**. Klik in **Velden om door te geven** op **Veld toevoegen**, open **Current Incident State** en kies **Naam**.
 2. Voeg een **Als / Anders**-blok toe: **Te controleren waarde** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Vergelijking** **is gelijk aan**, **Vergelijken met** `Resolved`, of de naam van je opgeloste status.
 3. Zoek na de **Ja**-kant ervan het issue met een **API-aanroep POST (JSON)**-blok waarvan de **Identifier** `find-issue` is, dat post naar `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
@@ -425,7 +425,7 @@ Bouw eerst de ontvangende workflow:
 
    Een zelfgehoste installatie gebruikt een eigen host. Behandel de URL als een wachtwoord: iedereen die hem heeft, kan de workflow starten. Lekt hij uit, klik dan op dezelfde plek op **URL opnieuw instellen**, en de oude URL werkt meteen niet meer.
 
-3. Voeg vanaf de trigger een **Update One Incident**-blok toe. Stel de **Query** in op `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, en de **Gegevens (JSON-object)** op de wijziging, zoals een nieuwe `currentIncidentStateId`. Een **Find One Incident State**-blok met de query `{"name": "Resolved"}` geeft je die ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Voeg vanaf de trigger een **Incident bijwerken (één record)**-blok toe. Stel de **Query** in op `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, en de **Gegevens (JSON-object)** op de wijziging, zoals een nieuwe `currentIncidentStateId`. Een **Status incident zoeken (één record)**-blok met de query `{"name": "Resolved"}` geeft je die ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Zet hem aan en laat Jira hem daarna aanroepen, vanuit een automatiseringsregel of vanuit een webhook:
 
@@ -466,13 +466,13 @@ Begin met de sjablonen voor waarschuwingen in [Beginnen met een sjabloon](#begin
 
 | Incident | Waarschuwing |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | Geen: waarschuwingen hebben geen openbare notities |
+| **Bij aanmaken: Incident** (`incident-on-create-1`) | **Bij aanmaken: Waarschuwing** (`alert-on-create-1`) |
+| **Bij bijwerken: Incident** (`incident-on-update-1`) | **Bij bijwerken: Waarschuwing** (`alert-on-update-1`) |
+| **Bij aanmaken: Interne incidentnotitie** | **Bij aanmaken: Interne notitie van waarschuwing** |
+| **Bij aanmaken: Openbare incidentnotitie** | Geen: waarschuwingen hebben geen openbare notities |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Status incident zoeken (één record)** | **Status waarschuwing zoeken (één record)** |
+| **Incident bijwerken (één record)** | **Waarschuwing bijwerken (één record)** |
 | Label `oneuptime-incident-<incident id>` | Label `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
@@ -544,7 +544,7 @@ Controleer eerst de poort: Jira roept alleen zijn toegestane poorten aan. Stuur 
 :::
 
 :::details De workflow draait, maar het incident verandert niet
-Een **Update One Incident**-blok meldt `Items Updated: 0` wanneer de query niets vond, en dat is een succes, geen fout. Controleer of de ID in het verzoek echt die van het OneUptime-incident is, en of je op `_id` zoekt.
+Een **Incident bijwerken (één record)**-blok meldt `Items Updated: 0` wanneer de query niets vond, en dat is een succes, geen fout. Controleer of de ID in het verzoek echt die van het OneUptime-incident is, en of je op `_id` zoekt.
 :::
 
 :::details Een verwijzing verschijnt zoals ze geschreven is in een Jira-issue

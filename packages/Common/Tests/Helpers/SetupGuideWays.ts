@@ -37,6 +37,10 @@ import {
   getOpenStackSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationMarkdown";
 import {
+  PROXMOX_CONNECT_METHODS,
+  getProxmoxSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
+import {
   OPENSTACK_DEPLOYMENT_TOOLS,
   OpenStackDeploymentTool,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
@@ -44,6 +48,17 @@ import {
   VMWARE_INSTALL_METHODS,
   getVMwareSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import {
+  DATABASE_AGENT_SYSTEM_OPTIONS,
+  getDatabaseAgentEngine,
+  getDatabaseAgentSetupGuide,
+  getDatabaseHealthMonitorCreateUrl,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
+import { DatabaseAgentEngine } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseAgentConfigs";
+import {
+  HOST_INSTALL_METHODS,
+  getHostSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
 
 /*
  * EVERY WAY THROUGH A PRODUCT'S SETUP GUIDE (#8341).
@@ -64,6 +79,8 @@ export interface SetupGuideWay {
 
 // What the guide is built with: before a key is picked, and after.
 export interface SetupGuideReader {
+  // How a failure's message names the reader.
+  label: string;
   oneuptimeUrl: string;
   apiKey: string;
   hasApiKey: boolean;
@@ -71,11 +88,13 @@ export interface SetupGuideReader {
 
 export const SETUP_GUIDE_READERS: ReadonlyArray<SetupGuideReader> = [
   {
+    label: "before a key",
     oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
   },
   {
+    label: "with a key",
     oneuptimeUrl: "https://oneuptime.example.com",
     apiKey: "0f8fad5b-d9cb-469f-a165-70867728950e",
     hasApiKey: true,
@@ -83,13 +102,26 @@ export const SETUP_GUIDE_READERS: ReadonlyArray<SetupGuideReader> = [
 ];
 
 /*
- * Every way through a guide: each of its options, before and after a key
- * is picked, for a new resource and for each of `names` (a resource's own
- * Documentation tab).
+ * A OneUptime served over plain HTTP on a port of its own, as a self-hosted
+ * one can be: a guide that writes the host, port or scheme of the reader's
+ * URL into its words (Proxmox's metric server) reads it for this reader too.
+ */
+export const SETUP_GUIDE_SELF_HOSTED_READER: SetupGuideReader = {
+  label: "self-hosted on its own port",
+  oneuptimeUrl: "http://oneuptime.internal:8080",
+  apiKey: "0f8fad5b-d9cb-469f-a165-70867728950e",
+  hasApiKey: true,
+};
+
+/*
+ * Every way through a guide: each of its options, for each reader (before
+ * and after a key is picked, unless the guide names its own), for a new
+ * resource and for each of `names` (a resource's own Documentation tab).
  */
 export function getSetupGuideWays<TKey extends string>(data: {
   options: ReadonlyArray<SetupGuideOption<TKey>>;
   names: ReadonlyArray<string>;
+  readers?: ReadonlyArray<SetupGuideReader> | undefined;
   build: (
     reader: SetupGuideReader,
     option: TKey,
@@ -99,12 +131,12 @@ export function getSetupGuideWays<TKey extends string>(data: {
   const ways: Array<SetupGuideWay> = [];
 
   for (const option of data.options) {
-    for (const reader of SETUP_GUIDE_READERS) {
+    for (const reader of data.readers || SETUP_GUIDE_READERS) {
       for (const name of [undefined, ...data.names]) {
         ways.push({
           label: [
             option.key,
-            reader.hasApiKey ? "with a key" : "before a key",
+            reader.label,
             name ? `for ${name}` : "for a new one",
           ].join(", "),
           content: data.build(reader, option.key, name),
@@ -270,6 +302,35 @@ export function getStorageArraySetupGuideWays(): Array<SetupGuideWay> {
 }
 
 /*
+ * The Proxmox guide varies by how the cluster connects (the install script,
+ * Docker Compose, or Proxmox VE's own push), by whether a key is picked
+ * (the install command, the notification commands) and by the cluster a
+ * Documentation tab installs for. The native push writes the host, port and
+ * scheme of the reader's OneUptime into its metric server's fields, so it is
+ * read for a self-hosted OneUptime on a port of its own too.
+ */
+export function getProxmoxSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: PROXMOX_CONNECT_METHODS,
+    names: ["pve-1", "Prod Cluster 01"],
+    readers: [...SETUP_GUIDE_READERS, SETUP_GUIDE_SELF_HOSTED_READER],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof PROXMOX_CONNECT_METHODS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getProxmoxSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        hasApiKey: reader.hasApiKey,
+        method: option,
+        clusterName: name,
+      });
+    },
+  });
+}
+
+/*
  * OpenStack's guide asks two things: how the reader deploys OpenStack (the
  * card's options, each tool with its own steps and topics) and, where there
  * is an agent to install, how to install it. Every tool is read with every
@@ -324,6 +385,62 @@ export function getVMwareSetupGuideWays(): Array<SetupGuideWay> {
         hasApiKey: reader.hasApiKey,
         method: option,
         vcenterName: name,
+      });
+    },
+  });
+}
+
+/*
+ * The Database guide on the product page (and in Add Database before a row
+ * exists): the reader picks the engine, and the guide installs the agent
+ * for it, before and after a key is picked. A database's own Documentation
+ * tab - the row's identity, or the guide for an engine the agent has no
+ * config for - still reads in English (DatabaseDocumentationCard), so it is
+ * not one of these ways.
+ */
+export function getDatabaseSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: DATABASE_AGENT_SYSTEM_OPTIONS,
+    names: [],
+    build: (reader: SetupGuideReader, system: string): SetupGuideContent => {
+      const engine: DatabaseAgentEngine | null = getDatabaseAgentEngine(system);
+
+      if (!engine) {
+        throw new Error(`The agent has no engine for ${system}.`);
+      }
+
+      return getDatabaseAgentSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        hasApiKey: reader.hasApiKey,
+        engine: engine,
+        system: system,
+        databaseHealthMonitorUrl: getDatabaseHealthMonitorCreateUrl(
+          "/dashboard/1/monitors/create",
+        ),
+      });
+    },
+  });
+}
+
+/*
+ * The Host guide varies by install method (Docker, a Debian or RHEL
+ * package, the Linux tarball, macOS, Windows), and Kubernetes nodes take
+ * the Kubernetes agent's steps instead. A host has no Documentation tab of
+ * its own, so there is no name to install for.
+ */
+export function getHostSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: HOST_INSTALL_METHODS,
+    names: [],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof HOST_INSTALL_METHODS)[number]["key"],
+    ): SetupGuideContent => {
+      return getHostSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        method: option,
       });
     },
   });

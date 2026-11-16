@@ -42,7 +42,7 @@ flowchart TB
 
 Gå till **Monitorer** och klicka på **Skapa monitor**.
 
-### Välj Docker Container
+### Välj Docker-container
 
 Klicka på **Fler monitortyper** under **Monitortyp** och välj **Docker-container** under **Infrastruktur**, eller skriv `docker` i sökrutan. Ange ett **Namn** – det används i titlar på incidenter och larm – och klicka på **Nästa**.
 

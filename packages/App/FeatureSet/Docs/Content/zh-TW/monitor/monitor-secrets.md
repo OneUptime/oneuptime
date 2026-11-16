@@ -69,16 +69,16 @@ flowchart TB
 | --- | --- |
 | API | URL、請求標頭和內文，以及用戶端憑證、私密金鑰和複雜密碼（mTLS） |
 | 網站 | URL，以及用戶端憑證、私密金鑰和複雜密碼（mTLS） |
-| Ping, IP, 連接埠, NTP, SSL Certificate | 要檢查的主機或 URL |
+| Ping, IP, 連接埠, NTP, SSL 憑證 | 要檢查的主機或 URL |
 | DNS | 網域名稱和 DNS 伺服器 |
 | DNSSEC, 網域 | 網域名稱 |
-| SQL Query | 主機、資料庫名稱、使用者名稱、密碼和查詢 |
-| Database Health | 主機、資料庫名稱、使用者名稱和密碼 |
-| External Status Page | 狀態頁 URL |
-| Synthetic Monitor, Custom JavaScript Code | 指令碼 |
-| Network Device | SNMP 社群字串，以及 SNMPv3 的驗證金鑰和隱私金鑰 |
+| SQL 查詢 | 主機、資料庫名稱、使用者名稱、密碼和查詢 |
+| 資料庫健康狀況 | 主機、資料庫名稱、使用者名稱和密碼 |
+| 外部狀態頁面 | 狀態頁 URL |
+| 合成監測器, 自訂 JavaScript 程式碼 | 指令碼 |
+| 網路裝置 | SNMP 社群字串，以及 SNMPv3 的驗證金鑰和隱私金鑰 |
 
-密鑰會在 Synthetic Monitor 或 Custom JavaScript Code 監測器的指令碼執行之前填入，因此指令碼中諸如 `{{monitorSecrets.ApiKey}}` 的參照在執行時就是解密後的值。
+密鑰會在 合成監測器 或 自訂 JavaScript 程式碼 監測器的指令碼執行之前填入，因此指令碼中諸如 `{{monitorSecrets.ApiKey}}` 的參照在執行時就是解密後的值。
 
 如果監測器參照了它不能使用的密鑰，該參照會保持原樣，不會被替換為值。
 

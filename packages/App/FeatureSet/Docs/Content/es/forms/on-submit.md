@@ -76,7 +76,7 @@ Un incidente declarado a través de un formulario es un incidente normal, con al
 - **Se avisa a sus propietarios.** Los propietarios que nombran los ajustes y la plantilla se añaden en cuanto existen los canales de Slack y Microsoft Teams del incidente, y reciben el aviso — la notificación **Incidente creado** del incidente espera a que sean sus propietarios, para que les llegue a ellos y no a los Propietarios del proyecto.
 - **Una nota privada registra el envío** — consulta [La nota privada](#la-nota-privada).
 
-Todo lo que se ejecuta para un incidente nuevo se ejecuta también para estos: las reglas de privacidad, de propietarios, de etiquetas, de guardia y de runbooks, las políticas de guardia y los flujos de trabajo **On Create Incident**. Las reglas de guardia coinciden con los incidentes de un formulario como con cualquier otro — también por su título y su descripción, que escribió el remitente.
+Todo lo que se ejecuta para un incidente nuevo se ejecuta también para estos: las reglas de privacidad, de propietarios, de etiquetas, de guardia y de runbooks, las políticas de guardia y los flujos de trabajo **Al crear Incidente**. Las reglas de guardia coinciden con los incidentes de un formulario como con cualquier otro — también por su título y su descripción, que escribió el remitente.
 
 :::steps
 #### Lee lo que escribió el remitente

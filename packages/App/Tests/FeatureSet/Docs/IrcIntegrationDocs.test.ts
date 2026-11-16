@@ -19,6 +19,7 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import { pathSteps } from "./DocsPageShape";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import SendMessageToChannel from "Common/Server/Types/Workflow/Components/IRC/SendMessageToChannel";
@@ -1333,8 +1334,13 @@ describe("the IRC page and the Builder panels it walks through", () => {
     (language: string) => {
       const bold: Set<string> = boldTermsOf(readIrcPage(language));
 
-      // A record step's title is built from its model's name, and has no key yet.
-      expect(bold.has("On Create Incident")).toBe(true);
+      /*
+       * A record step's title is built from its model's name, and drawn as
+       * the sentence it was built from (#8642, #8708).
+       */
+      expect(bold.has(drawnStepName(language, "On Create Incident"))).toBe(
+        true,
+      );
       expect(bold.has(dashboardWord(language, "Fields to pass on"))).toBe(true);
       expect(bold.has("Select Fields")).toBe(false);
     },

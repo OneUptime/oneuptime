@@ -1,21 +1,21 @@
 # Databasegezondheid-monitor
 
-De Database Health-monitor maakt volgens een schema verbinding met PostgreSQL, MySQL of Microsoft SQL Server en rapporteert de gezondheidssignalen van de server zelf — ruimte voor verbindingen, geblokkeerde sessies, replicatievertraging, cache-hitratio, databasegrootte, transactie-ID-wraparound en nog zo'n dertig andere — zodat je erop kunt alarmeren zoals je alarmeert op een website die plat ligt.
+De Databasegezondheid-monitor maakt volgens een schema verbinding met PostgreSQL, MySQL of Microsoft SQL Server en rapporteert de gezondheidssignalen van de server zelf — ruimte voor verbindingen, geblokkeerde sessies, replicatievertraging, cache-hitratio, databasegrootte, transactie-ID-wraparound en nog zo'n dertig andere — zodat je erop kunt alarmeren zoals je alarmeert op een website die plat ligt.
 
 Je schrijft geen SQL. De sonde voert een vaste set alleen-lezen catalogusquery's uit, gekozen per engine, en rapporteert een kleine set getallen met een naam.
 
 :::cards
 - [Een monitoringgebruiker maken](#een-monitoringgebruiker-maken): De rechten die elke engine nodig heeft. Dit is de stap waar het het meest om gaat.
-- [De monitor maken](#een-database-health-monitor-maken): Een sonde op de database richten en kiezen wat er wordt verzameld.
+- [De monitor maken](#een-databasegezondheid-monitor-maken): Een sonde op de database richten en kiezen wat er wordt verzameld.
 - [Verzamelde metrics](#verzamelde-metrics): Elke reeks, met de engines die hem rapporteren.
 - [Criteria instellen](#criteria-instellen): Alarmeren op verbindingen, blokkades, vertraging en wraparound.
 :::
 
-## Database Health of SQL Query?
+## Databasegezondheid of SQL-query?
 
 De twee databasemonitortypen beantwoorden verschillende vragen en zijn bedoeld om samen te gebruiken.
 
-| | Database Health | [SQL Query](/docs/monitor/sql-monitor) |
+| | Databasegezondheid | [SQL Query](/docs/monitor/sql-monitor) |
 |---|---|---|
 | Vraag die hij beantwoordt | "Is de database zelf gezond?" | "Zijn mijn gegevens wat ik verwacht?" |
 | Query | Ingebouwd, per engine, alleen-lezen | Die van jou |
@@ -23,7 +23,7 @@ De twee databasemonitortypen beantwoorden verschillende vragen en zijn bedoeld o
 | Typisch alarm | Gebruikte verbindingen boven 90% | Meer dan 50 geannuleerde bestellingen in de laatste vijf minuten |
 | Benodigde rechten | Leestoegang tot statistieken/DMV's — zie [Een monitoringgebruiker maken](#een-monitoringgebruiker-maken) | `SELECT` op de tabellen die je query raakt |
 
-Wil je alarmeren op een zakelijke voorwaarde, gebruik dan de SQL Query-monitor. Wil je weten dat de server door zijn verbindingen heen raakt voordat de zakelijke voorwaarde ook maar kan mislukken, gebruik dan deze.
+Wil je alarmeren op een zakelijke voorwaarde, gebruik dan de SQL-query-monitor. Wil je weten dat de server door zijn verbindingen heen raakt voordat de zakelijke voorwaarde ook maar kan mislukken, gebruik dan deze.
 
 ## Ondersteunde databases
 
@@ -37,7 +37,7 @@ Azure SQL Database en Azure SQL Managed Instance maken verbinding als **Microsof
 
 PostgreSQL- en MySQL-compatibele engines die hetzelfde wire-protocol spreken werken meestal, maar kunnen minder statistiekviews bieden; de betreffende metrics worden dan als niet beschikbaar gerapporteerd in plaats van verzameld. Alleen de drie engines hierboven zijn officieel getest.
 
-Elke database die je applicaties, clusters en hosts gebruiken — deze drie engines en nog veel meer — krijgt ook een eigen pagina met de engine-metrics, logs en de services die hem aanroepen: zie [Databases](/docs/telemetry/databases). Als de host en poort waarmee een Database Health-monitor verbinding maakt een van de endpoints van een database zijn, verschijnen de alarmen en incidenten van de monitor ook op de pagina van die database (zie [Alarmen bij een database](/docs/telemetry/databases#waarschuwingen-voor-een-database)).
+Elke database die je applicaties, clusters en hosts gebruiken — deze drie engines en nog veel meer — krijgt ook een eigen pagina met de engine-metrics, logs en de services die hem aanroepen: zie [Databases](/docs/telemetry/databases). Als de host en poort waarmee een Databasegezondheid-monitor verbinding maakt een van de endpoints van een database zijn, verschijnen de alarmen en incidenten van de monitor ook op de pagina van die database (zie [Alarmen bij een database](/docs/telemetry/databases#waarschuwingen-voor-een-database)).
 
 ## Hoe het werkt
 
@@ -155,7 +155,7 @@ De sonde herkent Azure SQL Database aan `SERVERPROPERTY('EngineEdition')` en nie
 - **Verbindingen gelden per database.** Met `VIEW DATABASE STATE` toont Azure SQL Database alleen de sessies van de bewaakte database, dus **Verbindingen** telt die database in plaats van de logische server. Bewaak elke database die belangrijk voor je is.
 - **In een elastische pool is "Vrije ruimte in TempDB" die van de pool.** De databases in een pool delen één tempdb.
 
-## Een Database Health-monitor maken
+## Een Databasegezondheid-monitor maken
 
 :::steps
 ### Een nieuwe monitor beginnen
@@ -191,7 +191,7 @@ Selecteer de **Sondes** die de database kunnen bereiken en een **Bewakingsinterv
 | **Host** | De databasehost die vanaf de sonde bereikbaar is (bijvoorbeeld `db.internal`). |
 | **Poort** | De poort van de database. |
 | **Databasenaam** | De database waarmee verbinding wordt gemaakt. Metrics op databaseniveau (grootte, cache-hitratio, uitwijken naar tijdelijke bestanden) worden voor deze database gerapporteerd; metrics op serverniveau (verbindingen, uptime, replicatie) voor de hele server — behalve op Azure SQL Database, waar verbindingen alleen voor de bewaakte database worden geteld. |
-| **Authenticatie** | Alleen Microsoft SQL Server: **Gebruikersnaam en wachtwoord**, de standaard, of **Windows Integrated Authentication**, dat aanmeldt als het sondeproces. Zie [Geïntegreerde Windows-verificatie](/docs/monitor/sql-monitor#geïntegreerde-windows-verificatie) op de pagina van de SQL Query-monitor — de inrichting is identiek. |
+| **Authenticatie** | Alleen Microsoft SQL Server: **Gebruikersnaam en wachtwoord**, de standaard, of **Windows Integrated Authentication**, dat aanmeldt als het sondeproces. Zie [Geïntegreerde Windows-verificatie](/docs/monitor/sql-monitor#geïntegreerde-windows-verificatie) op de pagina van de SQL-query-monitor — de inrichting is identiek. |
 | **Gebruikersnaam** | De monitoringgebruiker. Verplicht, tenzij je geïntegreerde Windows-verificatie gebruikt. |
 | **Wachtwoord** | Het wachtwoord. Verwijs met `{{monitorSecrets.name}}` naar een [monitorgeheim](/docs/monitor/monitor-secrets) in plaats van het als platte tekst in te typen (zie [Een monitorgeheim gebruiken](#een-monitorgeheim-gebruiken-voor-het-wachtwoord)). |
 | **Use SSL/TLS** | Verbinding maken via TLS. Als dit aan staat, kun je **Verify server certificate** uitzetten voor een zelfondertekend certificaat. |
@@ -205,7 +205,7 @@ Selecteer de **Sondes** die de database kunnen bereiken en een **Bewakingsinterv
 | **Connection Timeout (ms)** | `10000` | `30000` | Hoe lang er wordt gewacht om een verbinding op te bouwen. |
 | **Statement Timeout (ms)** | `10000` | `60000` | De bovengrens voor elke afzonderlijke catalogusquery. |
 
-De standaard statement-time-out is bewust krapper dan die van de SQL Query-monitor: deze query's antwoorden op een gezonde server binnen milliseconden, dus als `pg_stat_activity` tien seconden duurt, is het nuttige signaal "deze server zit in de problemen", niet langer wachten. Een waarde boven het maximum wordt naar het maximum verlaagd.
+De standaard statement-time-out is bewust krapper dan die van de SQL-query-monitor: deze query's antwoorden op een gezonde server binnen milliseconden, dus als `pg_stat_activity` tien seconden duurt, is het nuttige signaal "deze server zit in de problemen", niet langer wachten. Een waarde boven het maximum wordt naar het maximum verlaagd.
 
 ## Een monitorgeheim gebruiken voor het wachtwoord
 
@@ -381,7 +381,7 @@ Drempels zijn gehele getallen. Schrijf `90`, niet `90.5` — percentages en seco
 
 ### Variabelen voor JavaScript-expressies
 
-Bij een Database Health-monitor heeft de expressie toegang tot:
+Bij een Databasegezondheid-monitor heeft de expressie toegang tot:
 
 | Variabele | Type | Beschrijving |
 |---|---|---|

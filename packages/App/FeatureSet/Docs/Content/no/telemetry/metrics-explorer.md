@@ -102,7 +102,7 @@ Dra over et diagram for å zoome inn på et øyeblikk, og dobbeltklikk for å zo
 
 ## Bruk det du har vist i diagrammet
 
-- **Handlinger → Opprett monitor fra denne visningen** åpner en ny målingsmonitor der disse spørringene og formlene allerede er fylt inn. Se [Målingsovervåking](/docs/monitor/metrics-monitor).
+- **Handlinger → Opprett monitor fra denne visningen** åpner en ny målingsmonitor der disse spørringene og formlene allerede er fylt inn. Se [Målingsmonitor](/docs/monitor/metrics-monitor).
 - **Handlinger → Add to dashboard** legger diagrammet til et dashbord du velger. Du trenger tillatelse til å redigere det dashbordet.
 - **Kopier lenke** kopierer en lenke til nøyaktig denne visningen: spørringer, formler og tidsintervall.
 - **Lagrede visninger** tar vare på visningen under et navn for alle i prosjektet. **Leser** har egne lagrede visninger for søket og filtrene sine. Lagrede visninger fungerer som i [Loggutforsker](/docs/telemetry/logs-explorer#lagre-en-visning).
@@ -209,7 +209,7 @@ Filtrer **Leser** etter den **Tjeneste** og utvid tidsintervallet. Mangler de fo
 ## Neste steg
 
 :::cards
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Få varsel når en måling krysser en grense.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Få varsel når en måling krysser en grense.
 - [Opprette et dashbord](/docs/dashboards/authoring): Sett diagrammene dine side om side.
 - [Søkesyntaks](/docs/telemetry/search-syntax): Hvert filter søkefeltet forstår.
 :::

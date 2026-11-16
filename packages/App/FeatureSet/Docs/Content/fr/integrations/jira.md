@@ -306,7 +306,7 @@ Les jetons expirent par défaut au bout d'un an et ne se renouvellent pas. Pour 
 ### Créer un ticket Jira pour chaque incident
 
 :::steps
-1. Créez à partir de zéro un flux de travail nommé `Incidents to Jira`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **On Create Incident**. Ses **Champs à transmettre** commencent par **Titre** : cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident**. L'ID est toujours transmis. Laissez son **Identifiant** à `incident-on-create-1`.
+1. Créez à partir de zéro un flux de travail nommé `Incidents to Jira`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **À la création : Incident**. Ses **Champs à transmettre** commencent par **Titre** : cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident**. L'ID est toujours transmis. Laissez son **Identifiant** à `incident-on-create-1`.
 2. Cliquez sur **Ajouter un composant**, ajoutez un bloc **Appel d'API POST (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **Identifiant** sur `create-issue`, son **URL** sur `{{global.variables.JIRA_URL}}/rest/api/3/issue` et, sous **Plus de champs**, ses **En-têtes de la requête** sur `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Réglez son **Corps de la requête** sur le ticket, et remplacez `OPS` et `Bug` par la clé de votre projet et un type de ticket de ce projet :
 
@@ -390,7 +390,7 @@ Pour cela, dans les **Champs à transmettre** du déclencheur, cliquez sur **Ajo
 Construisez cela dans un second flux de travail, pour qu'un échec ici n'empêche jamais l'ouverture des tickets.
 
 :::steps
-1. Créez un flux de travail nommé `Incident updates to Jira`, avec le déclencheur **On Update Incident**. Dans **Champs à surveiller**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**. Dans **Champs à transmettre**, cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Nom**.
+1. Créez un flux de travail nommé `Incident updates to Jira`, avec le déclencheur **À la mise à jour : Incident**. Dans **Champs à surveiller**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**. Dans **Champs à transmettre**, cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Nom**.
 2. Ajoutez un bloc **Si / Sinon** : **Valeur à vérifier** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparaison** **est égal à**, **Comparer avec** `Resolved`, ou le nom de votre état résolu.
 3. Après son côté **Oui**, trouvez le ticket avec un bloc **Appel d'API POST (JSON)** dont l'**Identifiant** est `find-issue`, qui publie sur `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` :
 
@@ -425,7 +425,7 @@ Construisez d'abord le flux de travail qui reçoit :
 
    Une installation autogérée utilise son propre hôte. Traitez l'URL comme un mot de passe : quiconque l'a peut démarrer le flux de travail. Si elle fuite, cliquez sur **Réinitialiser l'URL** au même endroit, et l'ancienne URL cesse aussitôt de fonctionner.
 
-3. Depuis le déclencheur, ajoutez un bloc **Update One Incident**. Réglez sa **Requête** sur `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, et son **Données (objet JSON)** sur le changement, par exemple un nouveau `currentIncidentStateId`. Un bloc **Find One Incident State** avec la requête `{"name": "Resolved"}` vous donne cet ID avec `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Depuis le déclencheur, ajoutez un bloc **Mettre à jour : Incident (un seul)**. Réglez sa **Requête** sur `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, et son **Données (objet JSON)** sur le changement, par exemple un nouveau `currentIncidentStateId`. Un bloc **Trouver : État de l'incident (un seul)** avec la requête `{"name": "Resolved"}` vous donne cet ID avec `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Activez-le, puis faites-le appeler par Jira, depuis une règle d'automatisation ou depuis un webhook :
 
@@ -466,13 +466,13 @@ Commencez par les modèles pour les alertes de [Partir d'un modèle](#partir-dun
 
 | Incident | Alerte |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | Aucun : les alertes n'ont pas de notes publiques |
+| **À la création : Incident** (`incident-on-create-1`) | **À la création : Alerte** (`alert-on-create-1`) |
+| **À la mise à jour : Incident** (`incident-on-update-1`) | **À la mise à jour : Alerte** (`alert-on-update-1`) |
+| **À la création : Note interne de l'incident** | **À la création : Note interne de l'alerte** |
+| **À la création : Note publique de l'incident** | Aucun : les alertes n'ont pas de notes publiques |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Trouver : État de l'incident (un seul)** | **Trouver : État de l'alerte (un seul)** |
+| **Mettre à jour : Incident (un seul)** | **Mettre à jour : Alerte (un seul)** |
 | Étiquette `oneuptime-incident-<incident id>` | Étiquette `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
@@ -544,7 +544,7 @@ Vérifiez d'abord le port : Jira n'appelle que ses ports autorisés. Envoyez ens
 :::
 
 :::details Le flux de travail s'exécute, mais l'incident ne change pas
-Un bloc **Update One Incident** indique `Items Updated: 0` quand sa requête n'a rien trouvé, et c'est un succès, pas une erreur. Vérifiez que l'ID de la requête est bien celui de l'incident OneUptime, et que vous interrogez `_id`.
+Un bloc **Mettre à jour : Incident (un seul)** indique `Items Updated: 0` quand sa requête n'a rien trouvé, et c'est un succès, pas une erreur. Vérifiez que l'ID de la requête est bien celui de l'incident OneUptime, et que vous interrogez `_id`.
 :::
 
 :::details Une référence apparaît telle qu'elle est écrite dans un ticket Jira

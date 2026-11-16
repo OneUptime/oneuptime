@@ -208,13 +208,13 @@ Aviseringen säger vem som ringde, vilket nummer personen slog, varför ingen sv
 
 Loggar för inkommande samtal finns som utlösare i arbetsflöden:
 
-- **On Create Incoming Call Log** körs när ett samtal kommer in.
-- **On Update Incoming Call Log** körs allteftersom samtalet fortskrider. Den uppdatering som anger **Ended At** är samtalets slut.
+- **Vid skapande: Incoming Call Logg** körs när ett samtal kommer in.
+- **Vid uppdatering: Incoming Call Logg** körs allteftersom samtalet fortskrider. Den uppdatering som anger **Ended At** är samtalets slut.
 
 För att bara agera på missade samtal, till exempel för att publicera dem i Slack eller Microsoft Teams eller öppna ett ärende:
 
 :::steps
-1. Lägg till utlösaren **On Update Incoming Call Log**. Ställ in **Fält att bevaka** på **Ended At** och välj de fält du vill använda, till exempel **Status**, **Caller Phone Number** och **Routing Phone Number**.
+1. Lägg till utlösaren **Vid uppdatering: Incoming Call Logg**. Ställ in **Fält att bevaka** på **Ended At** och välj de fält du vill använda, till exempel **Status**, **Caller Phone Number** och **Routing Phone Number**.
 2. Lägg till ett steg **Om / Annars**. Kontrollera utlösarens **Status**, med jämförelsen **är inte lika med** och `Completed`.
 3. Anslut dina steg till porten **Ja**.
 :::

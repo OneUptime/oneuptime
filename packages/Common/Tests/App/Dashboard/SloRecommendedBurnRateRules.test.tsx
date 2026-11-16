@@ -932,3 +932,16 @@ describe("the API the page calls", () => {
     expect(await RecommendedBurnRateRulesApi.getMissing(SLO_ID)).toEqual([]);
   });
 });
+
+/*
+ * A workflow that turns a feature flag off when a rule fires is told which
+ * rule by its ID (#8447): each rule's menu offers Show ID, as the SLO list's
+ * rows do.
+ */
+describe("the Burn Rate Rules table", () => {
+  test("offers Show ID in each rule's menu, for a workflow told which rule by its ID", async () => {
+    await renderPage();
+
+    expect(mockTableProps!.showViewIdButton).toBe(true);
+  });
+});

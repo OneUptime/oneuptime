@@ -13,8 +13,8 @@ Stuur een bericht naar een [Telegram](https://telegram.org)-chat, -groep of -kan
 
 ```mermaid title="Van waarschuwing naar Telegram-bericht"
 flowchart TB
-    fired["Waarschuwing<br/>afgegaan"] --> trigger["On Create Alert"]
-    trigger --> step["Send Message<br/>to Telegram"]
+    fired["Waarschuwing<br/>afgegaan"] --> trigger["Bij aanmaken:<br/>Waarschuwing"]
+    trigger --> step["Bericht naar<br/>Telegram sturen"]
     step -->|"Succes"| chat["Bericht in<br/>je chat"]
     step -->|"Fout"| failed["De run mislukt<br/>en zegt waarom"]
 ```
@@ -53,11 +53,11 @@ Begin vanuit het sjabloon, dat de hele workflow voor waarschuwingen bouwt, of va
 3. Houd de naam **Notify Telegram on new alert** of wijzig hem, en klik op **Volgende**.
 4. Plak het token in **Telegram-bottoken** en de ID in **Telegram Chat ID**, en klik op **Workflow maken**.
 
-De workflow opent in de **Bouwer** met twee stappen: **On Create Alert** en **Bericht naar Telegram sturen**, die het nummer, de titel, de ernst en de status van de waarschuwing stuurt. Het token wordt opgeslagen als geheime variabele `telegramBotToken` van de workflow, en de ID als `telegramChatId`.
+De workflow opent in de **Bouwer** met twee stappen: **Bij aanmaken: Waarschuwing** en **Bericht naar Telegram sturen**, die het nummer, de titel, de ernst en de status van de waarschuwing stuurt. Het token wordt opgeslagen als geheime variabele `telegramBotToken` van de workflow, en de ID als `telegramChatId`.
 @tab Vanaf nul
 1. Sla het token op als geheime globale variabele: ga naar **Workflows → Globale variabelen**, klik op **Workflowvariabele aanmaken**, noem hem `TELEGRAM_BOT_TOKEN` en klik op **Volgende**. Plak het token in **Inhoud**, zet **Geheim** aan en klik op **Workflowvariabele aanmaken**.
 2. Ga naar **Workflows**, klik op **Workflow maken**, kies **Vanaf nul beginnen**, geef de workflow een naam en klik op **Workflow maken**.
-3. Klik in de **Bouwer** op **Kies wat deze workflow start** en kies **On Create Alert** onder **Populair**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies de andere velden die je bericht toont, zoals **Alert Number With Prefix**.
+3. Klik in de **Bouwer** op **Kies wat deze workflow start** en kies **Bij aanmaken: Waarschuwing** onder **Populair**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies de andere velden die je bericht toont, zoals **Alert Number With Prefix**.
 4. Klik op **Component toevoegen**, zoek naar `telegram` en klik op **Bericht naar Telegram sturen**. Verbind de uitgang **Succes** van de trigger met deze stap.
 5. Klik op de nieuwe stap. Klik in **Telegram-bottoken** op **{ }** en kies `TELEGRAM_BOT_TOKEN` onder **Global variables**. Vul de ID van de chat in bij **Chat-ID**, schrijf het bericht in **Berichttekst** en voeg de velden van de waarschuwing in met **{ }**.
 :::
@@ -80,7 +80,7 @@ Om te testen zonder een waarschuwing te laten afgaan, klik je op **Workflow uitv
 
 - **Platte tekst.** De stap stuurt de tekst zoals hij is getypt, zonder de opmaak van Telegram, dus `*` en `_` verschijnen zoals ze zijn.
 - **Let op de limiet van 4.096 tekens.** Telegram neemt berichten tot 4.096 tekens aan. Een langer bericht wordt ingekort en eindigt op "… (truncated — see OneUptime for the full text)", in plaats van te worden geweigerd.
-- **Ook incidenten.** Bouw dezelfde workflow op **On Create Incident**, of op **On Update Incident** voor statuswijzigingen. Om alleen sommige waarschuwingen te sturen, zet je een blok **Als / Anders** voor de stap.
+- **Ook incidenten.** Bouw dezelfde workflow op **Bij aanmaken: Incident**, of op **Bij bijwerken: Incident** voor statuswijzigingen. Om alleen sommige waarschuwingen te sturen, zet je een blok **Als / Anders** voor de stap.
 - **De vorm van het token wordt gecontroleerd.** Een token dat niet de vorm `123456789:ABCdef…` heeft, stopt de run voordat er iets wordt verstuurd, en het token wordt nooit naar het log geschreven.
 
 ## Problemen oplossen

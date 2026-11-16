@@ -144,22 +144,22 @@ flowchart TB
 :::details 모니터 유형별 doNotSyncFields 필드 이름
 | 모니터 유형 | 필드 이름 |
 | --- | --- |
-| 웹사이트, API, Ping, IP, 포트, SSL Certificate, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
+| 웹사이트, API, Ping, IP, 포트, SSL 인증서, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
 | API만 | `requestHeaders`, `requestType`, `requestBody` |
 | 웹사이트와 API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication`(클라이언트 인증서, 키, 암호를 함께) |
 | 포트, NTP | `monitorDestinationPort` |
-| Synthetic Monitor, Custom JavaScript Code | `customCode` |
-| Synthetic Monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
+| 합성 모니터, 사용자 지정 JavaScript 코드 | `customCode` |
+| 합성 모니터 | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver`(DNS 서버와 포트를 함께), `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | 도메인 | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
 | DNSSEC | `dnssecMonitor.domainName`, `dnssecMonitor.resolvers`, `dnssecMonitor.checkNameserverConsistency`, `dnssecMonitor.signatureExpiryWarningDays`, `dnssecMonitor.timeout`, `dnssecMonitor.retries` |
-| SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
-| Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
-| External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| 로그, Security Events, 트레이스, AI / LLM, 메트릭, 예외, 프로필 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor`(모니터의 전체 구성) |
+| SQL 쿼리 | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
+| 데이터베이스 상태 | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
+| 외부 상태 페이지 | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
+| 로그, 보안 이벤트, 트레이스, AI / LLM, 메트릭, 예외, 프로필 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor`(모니터의 전체 구성) |
 | 프로브 상태 | `probeStatusMonitor.probeIds` |
 
-인프라 모니터(Kubernetes, Docker Container, 호스트, Podman Container, Proxmox, Docker Swarm, Ceph, 스토리지 어레이, IoT Device)는 리소스 선택기, 필터(호스트 제외), 메트릭 쿼리, 쿼리 시간 범위를 보호할 수 있습니다. 그 이름은 해당 유형의 템플릿에 있는 **템플릿 동기화 설정**에 나열됩니다.
+인프라 모니터(Kubernetes, Docker 컨테이너, 호스트, Podman 컨테이너, Proxmox, Docker Swarm, Ceph, 스토리지 어레이, IoT 디바이스)는 리소스 선택기, 필터(호스트 제외), 메트릭 쿼리, 쿼리 시간 범위를 보호할 수 있습니다. 그 이름은 해당 유형의 템플릿에 있는 **템플릿 동기화 설정**에 나열됩니다.
 :::
 
 ## 문제 해결

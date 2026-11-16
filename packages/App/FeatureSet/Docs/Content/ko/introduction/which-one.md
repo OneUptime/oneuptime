@@ -55,7 +55,7 @@ OneUptime의 대부분은 아무것도 설치할 필요가 없습니다. OneUpti
 | 설치 대상 | 하는 일 | 이럴 때 설치 | 사용하는 키 |
 | --- | --- | --- | --- |
 | [사용자 지정 프로브](/docs/probe/custom-probe) | 네트워크 안에서 모니터의 확인을 실행합니다. | 확인할 대상이 방화벽 뒤에 있을 때. OneUptime 자체 프로브는 공개된 것을 확인합니다. | 자체 프로브 ID와 키 |
-| [인프라 에이전트](/docs/monitor/server-monitor) | 머신 한 대의 CPU, 메모리, 디스크, 프로세스를 Server / VM 모니터에 보고합니다. | 서버 한 대를 모니터 하나로 지켜보고, 그 수치에 기준을 걸고 싶을 때. | 모니터의 비밀 키 |
+| [인프라 에이전트](/docs/monitor/server-monitor) | 머신 한 대의 CPU, 메모리, 디스크, 프로세스를 서버 / VM 모니터에 보고합니다. | 서버 한 대를 모니터 하나로 지켜보고, 그 수치에 기준을 걸고 싶을 때. | 모니터의 비밀 키 |
 | [OpenTelemetry Collector](/docs/telemetry/hosts) | 머신의 메트릭, 로그, 프로세스를 보냅니다. **호스트 추가**가 명령 하나로 설치합니다. | 머신을 텔레메트리와 함께 **호스트** 아래에 두고 싶을 때. | 수집 키 |
 | [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent) | 클러스터의 메트릭, 이벤트, 로그, 트레이스를 수집합니다. Helm으로 설치합니다. | Kubernetes를 운영할 때. | 수집 키 |
 | [Runner](/docs/runbooks/agents) | Bash, SSH, kubectl 같은 런북 단계를 인프라 안에서 실행합니다. | 런북이 자체 호스트와 클러스터에 닿아야 할 때. | 자체 Runner ID와 키 |

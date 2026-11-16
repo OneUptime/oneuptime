@@ -117,7 +117,7 @@ API 和 Terraform 會拒絕等事件開始又在開始時停止的規則：這�
 
 ## 工作流程
 
-每個維護模型都有以其命名的工作流程觸發器和操作： **On Create Maintenance Event** 、 **On Update Maintenance Event** 、 **On Create or Update Maintenance Event** 和 **On Delete Maintenance Event** ， **Scheduled Maintenance State Timeline** 及其他模型也有同樣的觸發器，還有 **Create One Maintenance Event** 和 **Update One Maintenance Event** 等操作。自訂欄位定義和測量值是例外：它們沒有工作流程步驟。請參閱 [工作流程概觀](/docs/workflows/index)。
+每個維護模型都有以其命名的工作流程觸發器和操作： **建立維護事件時** 、 **更新維護事件時** 、 **建立或更新維護事件時** 和 **刪除維護事件時** ， **Scheduled Maintenance State Timeline** 及其他模型也有同樣的觸發器，還有 **建立單個維護事件** 和 **更新單個維護事件** 等操作。自訂欄位定義和測量值是例外：它們沒有工作流程步驟。請參閱 [工作流程概觀](/docs/workflows/index)。
 
 ## 誰可以變更這些內容
 

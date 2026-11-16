@@ -117,7 +117,7 @@ API と Terraform は、イベントの開始を待ち、開始と同時に停�
 
 ## ワークフロー
 
-メンテナンスの各モデルには、その名前を冠したワークフローのトリガーとアクションがあります。 **On Create Maintenance Event**、 **On Update Maintenance Event**、 **On Create or Update Maintenance Event**、 **On Delete Maintenance Event**、同様に **Scheduled Maintenance State Timeline** などのもの、そして **Create One Maintenance Event** や **Update One Maintenance Event** などのアクションです。例外はカスタムフィールドの定義と測定値の値で、ワークフローのステップはありません。 [ワークフロー 概要](/docs/workflows/index) を参照してください。
+メンテナンスの各モデルには、その名前を冠したワークフローのトリガーとアクションがあります。 **メンテナンスイベントの作成時**、 **メンテナンスイベントの更新時**、 **メンテナンスイベントの作成時または更新時**、 **メンテナンスイベントの削除時**、同様に **Scheduled Maintenance State Timeline** などのもの、そして **メンテナンスイベントを作成（1 件）** や **メンテナンスイベントを更新（1 件）** などのアクションです。例外はカスタムフィールドの定義と測定値の値で、ワークフローのステップはありません。 [ワークフロー 概要](/docs/workflows/index) を参照してください。
 
 ## 変更できる人
 

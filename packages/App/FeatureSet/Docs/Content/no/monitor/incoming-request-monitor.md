@@ -1,4 +1,4 @@
-# Innkommende forespørsel-overvåking
+# Innkommende forespørsel-monitor
 
 En monitor for innkommende forespørsler gir deg en URL som andre systemer sender HTTP-forespørsler til. OneUptime evaluerer hver forespørsel mot kriteriene dine og kan endre monitorens status, erklære hendelser og tilkalle dem som har vakt.
 

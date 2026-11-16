@@ -129,7 +129,7 @@ Klik op **Component toevoegen**, voeg een blok **Als / Anders** toe en verbind d
 
 ### Het incident declareren
 
-Voeg een blok **Create One Incident** toe en verbind de kant **Ja** van het blok **Als / Anders** ermee. Kies onder **Incidentsjabloon** een sjabloon dat de ernst en het bereikbaarheidsbeleid instelt dat moet worden opgeroepen (zie [Incidentsjablonen](/docs/incidents/settings#incidentsjablonen)). Stel onder **JSON-object** in wat van Grafana komt:
+Voeg een blok **Incident aanmaken (één record)** toe en verbind de kant **Ja** van het blok **Als / Anders** ermee. Kies onder **Incidentsjabloon** een sjabloon dat de ernst en het bereikbaarheidsbeleid instelt dat moet worden opgeroepen (zie [Incidentsjablonen](/docs/incidents/settings#incidentsjablonen)). Stel onder **JSON-object** in wat van Grafana komt:
 
 ```json
 {

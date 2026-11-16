@@ -269,7 +269,7 @@ Scopet måste vara din miljö-URL följd av `/.default`. En felaktig miljö-URL 
 ### Skapa ett ärende för varje incident
 
 :::steps
-1. Skapa ett arbetsflöde från grunden som heter `Incidents to Dynamics 365`. Klicka på det streckade blocket och lägg till utlösaren **On Create Incident**. Dess **Fält att skicka vidare** börjar med **Titel**: klicka på **Lägg till fält** och välj **Beskrivning** och **Incidentnummer**. ID:t skickas alltid vidare.
+1. Skapa ett arbetsflöde från grunden som heter `Incidents to Dynamics 365`. Klicka på det streckade blocket och lägg till utlösaren **Vid skapande: Incident**. Dess **Fält att skicka vidare** börjar med **Titel**: klicka på **Lägg till fält** och välj **Beskrivning** och **Incidentnummer**. ID:t skickas alltid vidare.
 2. Klicka på **Lägg till komponent**, lägg till ett **API-anrop POST (JSON)**-block och koppla utlösarens **Framgång**-punkt till det. Ställ in dess **Identifier** på `create-case` och dess **URL** på `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Ställ in dess **Begärandehuvuden** under **Fler fält** på:
 
@@ -323,7 +323,7 @@ Dynamics 365 levereras med `severitycode` med ett enda alternativ, så ställ in
 Bygg detta som ett andra arbetsflöde, så att ett fel här aldrig hindrar att ärenden skapas.
 
 :::steps
-1. Skapa ett arbetsflöde som heter `Close Dynamics 365 cases`, med utlösaren **On Update Incident**. Klicka på **Lägg till fält** i **Fält att bevaka** och välj **Current Incident State**. Klicka på **Lägg till fält** i **Fält att skicka vidare**, öppna **Current Incident State** och välj **Is Resolved State**.
+1. Skapa ett arbetsflöde som heter `Close Dynamics 365 cases`, med utlösaren **Vid uppdatering: Incident**. Klicka på **Lägg till fält** i **Fält att bevaka** och välj **Current Incident State**. Klicka på **Lägg till fält** i **Fält att skicka vidare**, öppna **Current Incident State** och välj **Is Resolved State**.
 2. Lägg till ett **Om / Annars**-block: **Värde att kontrollera** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Jämförelse** **är sant**.
 3. Lägg efter dess **Ja**-sida till ett **API-anrop GET (JSON)**-block med **Identifier** `find-case`, samma rubriker utan `Prefer` och denna **URL**:
 
@@ -363,7 +363,7 @@ Bygg först det mottagande arbetsflödet:
    På en egenhostad installation har URL:en din egen värd. Behandla URL:en som ett lösenord: alla som har den kan starta arbetsflödet. Om den läcker klickar du på **Återställ URL** på samma ställe, och den gamla URL:en slutar fungera direkt.
 
 3. Lägg till ett **Om / Annars**-block som kontrollerar en delad hemlighet före allt annat: **Värde att kontrollera** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Jämförelse** **är lika med**, **Jämför med** ett värde som du hittar på, sparat i en hemlig global variabel.
-4. Lägg efter dess **Ja**-sida till ett **Update One Incident**-block. Ställ in dess **Fråga** på `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, och dess **Data (JSON-objekt)** på ändringen, t.ex. ett nytt `currentIncidentStateId`. Ett **Find One Incident State**-block med frågan `{"name": "Resolved"}` ger dig det ID:t som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+4. Lägg efter dess **Ja**-sida till ett **Uppdatera Incident (en post)**-block. Ställ in dess **Fråga** på `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, och dess **Data (JSON-objekt)** på ändringen, t.ex. ett nytt `currentIncidentStateId`. Ett **Hitta Incidentstatus (en post)**-block med frågan `{"name": "Resolved"}` ger dig det ID:t som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Slå på det och låt sedan Dynamics 365 anropa det:
 
@@ -389,11 +389,11 @@ Larm fungerar på samma sätt. Byt posttyp, så ändras inget annat:
 
 | Incident | Larm |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **Vid skapande: Incident** (`incident-on-create-1`) | **Vid skapande: Larm** (`alert-on-create-1`) |
+| **Vid uppdatering: Incident** (`incident-on-update-1`) | **Vid uppdatering: Larm** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Hitta Incidentstatus (en post)** | **Hitta Larmstatus (en post)** |
+| **Uppdatera Incident (en post)** | **Uppdatera Larm (en post)** |
 
 Ett arbetsflöde har exakt en utlösare, så incidenter och larm behöver ett arbetsflöde var. För att göra samma Dynamics 365-arbete för båda bygger du det en gång i ett arbetsflöde med en **Manuell**-utlösare och startar det från båda med ett **Kör ett annat arbetsflöde**-block.
 
@@ -438,7 +438,7 @@ Skicka en begäran själv till webhook-URL:en med `curl` och leta upp den i **Lo
 :::
 
 :::details Arbetsflödet körs, men incidenten ändras inte
-Ett **Update One Incident**-block rapporterar `Items Updated: 0` när dess fråga inte matchade något, och det är en framgång, inte ett fel. Kontrollera att ID:t i begäran verkligen är OneUptime-incidentens, och att du frågar på `_id`.
+Ett **Uppdatera Incident (en post)**-block rapporterar `Items Updated: 0` när dess fråga inte matchade något, och det är en framgång, inte ett fel. Kontrollera att ID:t i begäran verkligen är OneUptime-incidentens, och att du frågar på `_id`.
 :::
 
 ## Nästa steg

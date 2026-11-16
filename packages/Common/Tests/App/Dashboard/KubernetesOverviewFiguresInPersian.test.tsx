@@ -338,7 +338,8 @@ function topPodFigures(): Array<string> {
       return withoutIsolateMarks(element.textContent || "").trim();
     })
     .filter((text: string): boolean => {
-      return text !== "" && text !== "—";
+      // A figure not reported is the quiet dash, read out as "Not set" (#8264).
+      return text !== "" && !text.startsWith("—");
     });
 }
 
@@ -348,7 +349,8 @@ describe("a Kubernetes cluster's Overview on a Persian page", () => {
 
     const values: Array<string> = tileValues().filter(
       (value: string): boolean => {
-        return value !== "—";
+        // A tile with no figure: the quiet dash, and "Not set" for a screen reader.
+        return !value.startsWith("—");
       },
     );
 

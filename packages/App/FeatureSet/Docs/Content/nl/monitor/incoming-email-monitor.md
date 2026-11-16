@@ -37,7 +37,7 @@ sequenceDiagram
 
 Ga naar **Monitoren** en klik op **Monitor maken**.
 
-### Incoming Email kiezen
+### Inkomende e-mail kiezen
 
 Klik onder **Monitortype** op **Meer monitortypen** en kies **Inkomende e-mail** onder **Inkomende bewaking**, of typ `email` in het zoekvak. Voer een **Naam** in en klik daarna op **Volgende**.
 

@@ -28,15 +28,19 @@
  * Runner three ways, two of them with the runbook word they dropped
  * (агент сценария, 操作手冊代理程式), where 200 of their strings say
  * "Runner" (#8706).
+ * Norwegian called two-factor authentication "totrinnsbekreftelse" on
+ * the docs page that turns it on, and "totrinnsautentisering" in three
+ * Dashboard strings, where the Dashboard's page and 12 strings say
+ * "tofaktorautentisering" (#8701).
  *
  * Each language now says one word. A word like 알림 or "overvågning" also
  * has a meaning of its own (a notification, the act of monitoring), so a
  * check reads the texts whose English names the thing, and only those: a
  * text whose English names the thing says the language's word and not the
- * dropped one. The locale files and the docs are held to these rules
- * (OneWordInSentencesPerThing), and so is every setup guide's words
- * (SetupGuideDocumentationInLocale): one list, so a rename reaches all
- * three.
+ * dropped one. The Dashboard's and the Admin Dashboard's locale files and
+ * the docs are held to these rules (OneWordInSentencesPerThing), and so is
+ * every setup guide's words (SetupGuideDocumentationInLocale): one list,
+ * so a rename reaches them all.
  */
 
 export interface SentenceRule {
@@ -63,8 +67,8 @@ export interface SentenceRule {
   docsEnglish?: RegExp;
 }
 
-// A Runner's English that names another agent, or AWS's App Runner.
-const NOT_THE_RUNNER: RegExp = /\bagent|app runner|proxy/i;
+// A Runner's English that names another agent, AWS's App Runner or the migrations' runner.
+const NOT_THE_RUNNER: RegExp = /\bagent|app runner|proxy|migration/i;
 
 export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
   {
@@ -166,6 +170,21 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     english: /\bmetrics?\b/i,
     word: /måling/i,
     dropped: /metrikk/i,
+  },
+  {
+    /*
+     * Its Dashboard draws "tofaktorautentisering" (Two Factor
+     * Authentication) in 12 strings; three said "totrinnsautentisering",
+     * and the docs' account page, whose step says how to turn it on, said
+     * "totrinnsbekreftelse" (#8701). Google's own "2-Step Verification",
+     * which the Google Workspace page names as Google does, is not
+     * OneUptime's two-factor authentication.
+     */
+    language: "no",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /tofaktor/i,
+    dropped: /totrinn/i,
   },
   {
     // Runner, declined as its other strings decline it: Runner-а, Runner-ы.

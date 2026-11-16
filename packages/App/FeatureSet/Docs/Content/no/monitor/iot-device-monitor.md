@@ -1,4 +1,4 @@
-# IoT-enhets-overvåking
+# IoT-enhetsmonitor
 
 En IoT-enhetsmonitor følger med på én flåte av enheter og sier fra når en enhet går offline, batteriet blir svakt, signalet svekkes, den blir overopphetet, eller CPU-en forblir opptatt. Den leser `iot_*`-målingene enhetene dine sender til OneUptime over OpenTelemetry eller MQTT, så ingenting sjekkes utenfra, og ingen sonde er involvert.
 
@@ -44,7 +44,7 @@ flowchart TB
 
 Gå til **Monitorer**, og klikk på **Opprett monitor**.
 
-### Velg IoT Device
+### Velg IoT-enhet
 
 Klikk på **Flere monitortyper** under **Monitortype**, og velg **IoT-enhet** under **Infrastruktur**, eller skriv `iot` i søkefeltet. Skriv inn et **Navn** - det brukes i titlene på hendelser og varsler - og klikk på **Neste**.
 
@@ -224,6 +224,6 @@ Malene leser `iot_*`-målingsnavnene nøyaktig og grupperer etter etiketten `dev
 
 :::cards
 - [IoT-enheter](/docs/telemetry/iot-devices): Send enhetsmålinger over OpenTelemetry eller MQTT.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på hvilken som helst måling, ikke bare IoT-målinger.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle på hvilken som helst måling, ikke bare IoT-målinger.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett enhetens ID i hendelsestitler.
 :::

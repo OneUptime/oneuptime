@@ -10,6 +10,7 @@ import {
 } from "Common/Types/Database/OwnersOnCreate";
 import ComponentMetadata, { Argument } from "Common/Types/Workflow/Component";
 import BaseModelComponents from "Common/Types/Workflow/Components/BaseModel";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 import { generateToolsForDatabaseModel } from "../../../FeatureSet/MCP/Tools/ToolGenerator";
 import { McpToolInfo } from "../../../FeatureSet/MCP/Types/McpTypes";
 import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
@@ -249,7 +250,7 @@ describe("the docs on the owners an incident's or an alert's create hands over",
         "`ownerUsers`",
         "`ownerTeams`",
         "`create_alert`",
-        "**Create One Alert**",
+        `**${drawnStepName(language, "Create One Alert")}**`,
         ...labels,
       ]) {
         expect([language, written, handOver.includes(written)]).toEqual([
@@ -266,7 +267,7 @@ describe("the docs on the owners an incident's or an alert's create hands over",
       );
 
       for (const written of [
-        "**Create One Incident**",
+        `**${drawnStepName(language, "Create One Incident")}**`,
         "`create_incident`",
         ...labels,
       ]) {
@@ -280,8 +281,8 @@ describe("the docs on the owners an incident's or an alert's create hands over",
       const settings: string = lineWith(language, COMPONENTS, labels[0]!);
 
       for (const written of [
-        "**Create One Incident**",
-        "**Create One Alert**",
+        `**${drawnStepName(language, "Create One Incident")}**`,
+        `**${drawnStepName(language, "Create One Alert")}**`,
         ...labels,
       ]) {
         expect([language, written, settings.includes(written)]).toEqual([

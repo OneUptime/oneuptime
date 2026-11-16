@@ -276,7 +276,7 @@ OneUptime 识别以下 `iot_*` 指标名称。只发送对你的设备有意义�
 
 | 指标名称 | 含义 |
 | --- | --- |
-| `iot_device_up` | 可用性：`1` 表示在线且可达，`0` 表示宕机。IoT Device 监视器会读取它。 |
+| `iot_device_up` | 可用性：`1` 表示在线且可达，`0` 表示宕机。IoT 设备 监视器会读取它。 |
 | `iot_device_info` | 仅用于标识。它带有 `device.id`、类别、类型和固件，因此设备在上报读数之前就会出现在清单中。 |
 | `iot_battery_percent` | 电池电量，`0` 到 `100`（%）。 |
 | `iot_signal_strength_dbm` | 以 dBm 表示的无线信号强度，例如 Wi-Fi、LoRa 或蜂窝网络的 RSSI。 |

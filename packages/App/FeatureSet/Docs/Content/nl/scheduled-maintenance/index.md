@@ -46,7 +46,7 @@ Aankondigingen worden behandeld in [Abonnees en aankondigingen](/docs/status-pag
 - **Een planning.** Een terugkerend sjabloon maakt volgens een planning een nieuwe gebeurtenis aan, bijvoorbeeld elke week of elke maand, zonder dat iemand het formulier opent.
 - **Een formulier.** Een formulier waarvan de inzendingen onderhoudsgebeurtenissen aanmaken, maakt van een wijzigingsverzoek een gebeurtenis. Zie [Wat een inzending aanmaakt](/docs/forms/on-submit#hoe-een-inzending-een-onderhoudsgebeurtenis-wordt).
 - **Chat.** `/oneuptime maintenance` in Slack, of `maintenance` getypt naar de OneUptime-bot in Microsoft Teams, opent het formulier in je chattool. Zie [Slack](/docs/workspace-connections/slack#incidenten-en-onderhoud-aanmaken-vanuit-slack).
-- **Code.** De API op `/api/scheduled-maintenance`, de Terraform-resource `oneuptime_scheduled_maintenance_event` en de stap **Create One Maintenance Event** van een workflow.
+- **Code.** De API op `/api/scheduled-maintenance`, de Terraform-resource `oneuptime_scheduled_maintenance_event` en de stap **Onderhoudsgebeurtenis aanmaken (één record)** van een workflow.
 
 ## Waar het onderhoud in het dashboard staat
 

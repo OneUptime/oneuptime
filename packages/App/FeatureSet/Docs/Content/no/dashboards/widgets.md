@@ -142,7 +142,7 @@ Den som kan redigere dashbordet, bestemmer hva denne widgeten kjører, og alle s
 
 Sporwidgetene teller bare rotspenn, slik sporutforskeren gjør, med mindre du tar med underordnede spenn i innstillingene deres. Et vanlig mønster er et ventetidsdiagram øverst med en liste over trege spor under.
 
-## Hendelser, varsler og overvåkinger
+## Hendelser, varsler og monitorer
 
 | Widget | Hva den viser | Filtre |
 | --- | --- | --- |
@@ -194,7 +194,7 @@ Hver av disse widgetene viser ressursene som en agent eller en collector rapport
 | **Proxmox** | **Noder**, **Gjester** | Proxmox-agenten |
 | **VMware** | **Verter**, **Virtuelle maskiner** | VMware-agenten, eller et vCenter du kobler til |
 | **Ceph** | **OSD-er**, som en vegg farget etter tilstand, og **Pools** | Ceph-agenten |
-| **Lagringsarrayer** | **Volumer**, og **Maskinvare** som en vegg farget etter status | Storage Array-agenten |
+| **Lagringsarrayer** | **Volumer**, og **Maskinvare** som en vegg farget etter status | Lagringsarray-agenten |
 
 Bruk dem til én side som blander tilstanden til infrastrukturen din med telemetrien fra arbeidslastene som kjører på den.
 

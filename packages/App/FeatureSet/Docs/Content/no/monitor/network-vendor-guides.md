@@ -167,8 +167,8 @@ Det totale antallet klienter krever fastvare 6.5.3 eller nyere. På eldre fastva
 ## Neste steg
 
 :::cards
-- [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor): Alt en enhet samler inn, og hvert kriterium den kan varsle om.
+- [Monitor for nettverksenhet](/docs/monitor/network-device-monitor): Alt en enhet samler inn, og hvert kriterium den kan varsle om.
 - [Nettverkshendelser](/docs/monitor/network-events): Hva sysloggen til hver produsent sier, som hendelser og varsler.
 - [Loggpipelines](/docs/telemetry/log-pipelines): Del opp brannmurlogger i attributter.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Varsle én gang per tunnel eller gateway.
+- [Logg-monitor](/docs/monitor/logs-monitor): Varsle én gang per tunnel eller gateway.
 :::

@@ -148,7 +148,7 @@ Lassen Sie das Array weg oder setzen Sie es auf `[]`, um jede unterstützte Schr
 | Nur API | `requestHeaders`, `requestType`, `requestBody` |
 | Website und API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication` (Client-Zertifikat, Schlüssel und Passphrase zusammen) |
 | Port, NTP | `monitorDestinationPort` |
-| Synthetischer Monitor, Custom JavaScript Code | `customCode` |
+| Synthetischer Monitor, Benutzerdefinierter JavaScript-Code | `customCode` |
 | Synthetischer Monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver` (DNS-Server und Port zusammen), `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | Domäne | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
@@ -159,7 +159,7 @@ Lassen Sie das Array weg oder setzen Sie es auf `[]`, um jede unterstützte Schr
 | Protokolle, Sicherheitsereignisse, Traces, KI / LLM, Metriken, Ausnahmen, Profile | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (die gesamte Konfiguration des Monitors) |
 | Sondenstatus | `probeStatusMonitor.probeIds` |
 
-Infrastruktur-Monitore (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Speicher-Array, IoT-Gerät) bieten ihren Ressourcen-Selektor, Filter (alle außer Host), Metrikabfragen und das Abfragezeitfenster an. Ihre Namen stehen unter **Einstellungen für die Vorlagensynchronisierung** in einer Vorlage dieses Typs.
+Infrastruktur-Monitore (Kubernetes, Docker-Container, Host, Podman-Container, Proxmox, Docker Swarm, Ceph, Speicher-Array, IoT-Gerät) bieten ihren Ressourcen-Selektor, Filter (alle außer Host), Metrikabfragen und das Abfragezeitfenster an. Ihre Namen stehen unter **Einstellungen für die Vorlagensynchronisierung** in einer Vorlage dieses Typs.
 :::
 
 ## Fehlerbehebung

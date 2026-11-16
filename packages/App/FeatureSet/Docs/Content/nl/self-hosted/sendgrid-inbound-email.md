@@ -118,7 +118,7 @@ inboundEmail:
 
 Pas ze daarna toe: voer onder Docker Compose `npm run start` uit, wat de containers met de nieuwe waarden opnieuw aanmaakt, of upgrade onder Kubernetes de Helm-release.
 
-### Maak een Incoming Email-monitor aan
+### Maak een Inkomende e-mail-monitor aan
 
 [Maak een Incoming Email-monitor aan](/docs/monitor/incoming-email-monitor#een-monitor-voor-inkomende-e-mail-maken). De pagina **Overzicht** ervan toont het adres, zoals `monitor-abc123def456@inbound.yourdomain.com`, en de criteria bepalen welke e-mails een waarschuwing aanmaken en welke die oplossen.
 
@@ -137,7 +137,7 @@ Stuur een e-mail naar het adres van de monitor, met een onderwerp dat overeenkom
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | Het subdomein dat is ingesteld voor inkomende e-mail. Inkomende e-mail staat uit tot het is ingesteld. | Ja | Leeg |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Secret waarmee het laatste segment van de webhook-URL moet overeenkomen: `/incoming-email/sendgrid/YOUR_SECRET`. Elke e-mail wordt geweigerd zolang het leeg is of een placeholder. | Ja | Leeg |
 
-Waarop een Incoming Email-monitor kan controleren – het onderwerp, de afzender, de inhoud, de ontvanger en of een e-mail op tijd is aangekomen – staat in [Beschikbare filtertypen](/docs/monitor/incoming-email-monitor#beschikbare-filtertypen).
+Waarop een Inkomende e-mail-monitor kan controleren – het onderwerp, de afzender, de inhoud, de ontvanger en of een e-mail op tijd is aangekomen – staat in [Beschikbare filtertypen](/docs/monitor/incoming-email-monitor#beschikbare-filtertypen).
 
 ## Problemen oplossen
 
@@ -156,7 +156,7 @@ Waarop een Incoming Email-monitor kan controleren – het onderwerp, de afzender
 
 :::details De monitor maakt geen waarschuwingen aan
 1. **Controleer de criteria:** controleer of uw criteria voor het aanmaken van waarschuwingen overeenkomen met de inhoud van de e-mail, en test eerst met exacte tekenreeksen voordat u patronen gebruikt.
-2. **Controleer de monitor:** zorg dat hij niet is uitgeschakeld en dat zijn type Incoming Email is.
+2. **Controleer de monitor:** zorg dat hij niet is uitgeschakeld en dat zijn type Inkomende e-mail is.
 3. **Bekijk het overzicht van de monitor:** controleer of de e-mail is ontvangen en verwerkt, en lees in de evaluatielogs hoe de criteria overeenkwamen.
 :::
 

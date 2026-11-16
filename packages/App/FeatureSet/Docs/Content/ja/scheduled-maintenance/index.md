@@ -46,7 +46,7 @@ flowchart TB
 - **スケジュール。** 繰り返しテンプレートは、毎週や毎月などのスケジュールで、誰もフォームを開かずに新しいイベントを作成します。
 - **フォーム機能。** 送信によってメンテナンスイベントを作成するフォームは、変更リクエストをイベントに変えます。 [送信で作成されるもの](/docs/forms/on-submit#送信がメンテナンスイベントになるまで) を参照してください。
 - **チャット。** Slack の `/oneuptime maintenance`、または Microsoft Teams で OneUptime ボットに送った `maintenance` で、チャットツール内にフォームが開きます。 [Slack](/docs/workspace-connections/slack#slack-からインシデントとメンテナンスを作成する) を参照してください。
-- **コード。** `/api/scheduled-maintenance` の API、Terraform リソース `oneuptime_scheduled_maintenance_event`、ワークフローの **Create One Maintenance Event** ステップです。
+- **コード。** `/api/scheduled-maintenance` の API、Terraform リソース `oneuptime_scheduled_maintenance_event`、ワークフローの **メンテナンスイベントを作成（1 件）** ステップです。
 
 ## ダッシュボードでのメンテナンスの場所
 

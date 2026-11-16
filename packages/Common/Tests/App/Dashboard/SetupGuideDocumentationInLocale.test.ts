@@ -157,6 +157,20 @@ function markdownsOf(content: SetupGuideContent): Array<string> {
 function keysOf(content: SetupGuideContent): Array<string> {
   const keys: Array<string> = [];
 
+  /*
+   * The key step: what it asks, and the label and hint over the address it
+   * shows (IngestionKeySelector words both, as the card words the rest).
+   */
+  for (const text of [
+    content.keyStep?.description,
+    content.keyStep?.endpointLabel,
+    content.keyStep?.endpointHint,
+  ]) {
+    if (text) {
+      keys.push(text);
+    }
+  }
+
   for (const step of content.steps) {
     keys.push(step.title);
     if (step.description) {
@@ -386,10 +400,19 @@ describe.each(
       }
     });
 
+    /*
+     * As its translations, alone or as what a guide in its reader's
+     * language is handed (Databases: the product guide, not a database's
+     * own tab).
+     */
     test("the card hands the guide its words", () => {
       const card: string = fs.readFileSync(product.cardFile, "utf8");
 
-      expect(card).toContain(`translations={${product.translationsConstant}}`);
+      expect(card).toMatch(
+        new RegExp(
+          `translations=\\{[^{}]*\\b${product.translationsConstant}\\b[^{}]*\\}`,
+        ),
+      );
     });
 
     /*

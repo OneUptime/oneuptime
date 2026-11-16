@@ -46,7 +46,7 @@ Guarde el monitor. El filtro se evalúa en la siguiente comprobación del monito
 
 ## Variables por tipo de monitor
 
-Las expresiones JavaScript se ofrecen para los monitores de tipo Sitio web, API, Solicitud entrante, Incoming Email, Consulta SQL y Salud de la base de datos.
+Las expresiones JavaScript se ofrecen para los monitores de tipo Sitio web, API, Solicitud entrante, Correo entrante, Consulta SQL y Salud de la base de datos.
 
 ### Monitores de sitio web y de API
 

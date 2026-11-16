@@ -172,7 +172,7 @@ resource "oneuptime_monitor" "website" {
 | `tls_client_key_passphrase` | string (حساس) | وب‌سایت، API | عبارت عبور کلید خصوصی. |
 | `request_timeout_in_ms` | number | بررسی‌هایی که یک پراب انجام می‌دهد | هر تلاش چقدر می‌تواند طول بکشد، به میلی‌ثانیه. پراب هر مقدار بالاتر از ۶۰٬۰۰۰ را به ۶۰٬۰۰۰ کاهش می‌دهد. |
 | `retry_count` | number | بررسی‌هایی که یک پراب انجام می‌دهد | تلاش‌های دوباره پس از شکست نخستین تلاش: `0` یک بار بررسی می‌کند، `3` تا چهار بار. پراب هر مقدار بالاتر از ۳ را به ۳ کاهش می‌دهد. |
-| `custom_code` | string | Custom JavaScript Code، Synthetic | اسکریپتی که مرحله اجرا می‌کند. |
+| `custom_code` | string | کد JavaScript سفارشی، Synthetic | اسکریپتی که مرحله اجرا می‌کند. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`، `Tablet` و `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` و `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | تلاش‌های دوباره وقتی اسکریپت شکست می‌خورد: `0` آن را یک بار اجرا می‌کند. |

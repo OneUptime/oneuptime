@@ -46,7 +46,7 @@ Spara monitorn. Filtret utvärderas vid monitorns nästa kontroll.
 
 ## Variabler per monitortyp
 
-JavaScript-uttryck erbjuds för monitorer av typen Website, API, Inkommande begäran, Incoming Email, SQL Query och Database Health.
+JavaScript-uttryck erbjuds för monitorer av typen Website, API, Inkommande begäran, Inkommande e-post, SQL-fråga och Databashälsa.
 
 ### Webbplats- och API-monitorer
 

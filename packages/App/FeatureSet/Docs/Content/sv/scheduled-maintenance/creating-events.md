@@ -90,7 +90,7 @@ I samma stund som du klickar på **Skapa underhållshändelse** går OneUptime i
 5. **Runbook-regler startar** de runbooks som matchar händelsen.
 6. **Påminnelser schemaläggs**, när en påminnelseregel matchar, för dess ägare.
 
-Inom en minut efter att den publiceras, vilket sker direkt om du inte har valt ett **Publicera den**, får prenumeranterna på dess statussidor veta att den är schemalagd, om du inte har stängt av **När händelsen schemaläggs**. Arbetsflödesutlösaren **On Create Maintenance Event** startar alla arbetsflöden som bygger på den, och dess ägare får höra om den om de har slagit på den aviseringen: se [Aviseringsinställningar](/docs/notifications/notification-settings).
+Inom en minut efter att den publiceras, vilket sker direkt om du inte har valt ett **Publicera den**, får prenumeranterna på dess statussidor veta att den är schemalagd, om du inte har stängt av **När händelsen schemaläggs**. Arbetsflödesutlösaren **Vid skapande: Underhållshändelse** startar alla arbetsflöden som bygger på den, och dess ägare får höra om den om de har slagit på den aviseringen: se [Aviseringsinställningar](/docs/notifications/notification-settings).
 
 ## Publicera den senare
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Reglaget **När händelsen schemaläggs**. De två andra tillfällena har egna fält.           |
 | `publishOnStatusPageAt`                               | När händelsen publiceras på sina statussidor och dess prenumeranter får veta att den är schemalagd. Utelämnad: direkt. |
 
-Samma händelse som kod är Terraform-resursen `oneuptime_scheduled_maintenance_event`: se [Exempel](/docs/terraform/examples#schemalagt-underhåll). Ett arbetsflöde skapar en med sitt steg **Create One Maintenance Event**, och `/oneuptime maintenance` öppnar formuläret i Slack: se [Slack](/docs/workspace-connections/slack#skapa-incidenter-och-underhåll-från-slack).
+Samma händelse som kod är Terraform-resursen `oneuptime_scheduled_maintenance_event`: se [Exempel](/docs/terraform/examples#schemalagt-underhåll). Ett arbetsflöde skapar en med sitt steg **Skapa Underhållshändelse (en post)**, och `/oneuptime maintenance` öppnar formuläret i Slack: se [Slack](/docs/workspace-connections/slack#skapa-incidenter-och-underhåll-från-slack).
 
 ## Felsökning
 
