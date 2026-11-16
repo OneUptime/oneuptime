@@ -106,6 +106,10 @@ and phone summary: change the suite in the same pull request as the menu.
   on the SSO page. Add a new settings card or switch to its page's settings list in
   `PageSearchIndex.ts`, or to `NOT_A_SETTING`. Enforced by
   [SettingsFoundByName](../../packages/App/Tests/Dashboard/SettingsFoundByName.test.ts).
+- **Search matches only words the page shows.** A key that names its meaning, such as `"Insights
+  (explorer analytics)"`, is searched as the word the Dashboard draws ("Insights"). Its note to
+  translators finds nothing, in any language. Enforced by
+  [PageSearchMeaningKeysAsEnglish](../../packages/App/Tests/Dashboard/PageSearchMeaningKeysAsEnglish.test.ts).
 
 ### A record's overview
 
