@@ -2236,13 +2236,18 @@ describe("the Syslog page", () => {
     );
   });
 
-  it("answers as soon as it has read the messages, and queues them after", async () => {
+  /*
+   * Read, queued, answered: the answer waits only for the queue to take the
+   * messages (issue #8021), so a 200 is never sent for messages the queue
+   * refused; parsing and storing come after the answer.
+   */
+  it("answers once it has read the messages and queued them, and parses and stores them after", async () => {
     const answer: SyslogIngestAnswer = await ingestSyslog({
       messages: [testMessage()],
     });
 
     expect(answer.passed).toBeUndefined();
-    expect(answer.calls).toEqual(["answered", "queued"]);
+    expect(answer.calls).toEqual(["queued", "answered"]);
     expect(englishPage(SYSLOG)).toContain(
       "OneUptime answers as soon as it has read the messages from the request, and parses and stores them a moment later.",
     );

@@ -276,7 +276,7 @@ export default class VMwareProbeCollectionStore {
    * (Utils/Probe/ClaimSetAside): collected by the VMware agent - switching
    * to it clears nextCollectionAt and keeps the probe - without a password,
    * an address or a user name, on a probe that may not collect it, or of a
-   * suspended, blocked, sample or deleted project. Each is judged again by
+   * suspended, blocked or deleted project. Each is judged again by
    * the claim's own rule (getCollectableSql, IS NOT TRUE), so a vCenter the
    * claim would hand out is never moved. Makes due the probe's vCenters
    * with no nextCollectionAt at all.
@@ -341,8 +341,7 @@ export default class VMwareProbeCollectionStore {
    *   an instance where those are the operator's own (billing off).
    * - The project is served (ProjectService.getActiveProjectStatusQuery):
    *   not deleted, not blocked by a master admin - it is not collected
-   *   until it is unblocked - not a sample, and its subscriptions not
-   *   inactive.
+   *   until it is unblocked - and its subscriptions not inactive.
    */
   public static getCollectableSql(parameters: {
     collectionMethodParameter: string;
@@ -359,7 +358,6 @@ export default class VMwareProbeCollectionStore {
       `pr."deletedAt" IS NULL`,
       `p."deletedAt" IS NULL`,
       `p."isBlocked" = false`,
-      `p."isSampleProject" = false`,
       `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
       `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
     ].join("\n          AND ");

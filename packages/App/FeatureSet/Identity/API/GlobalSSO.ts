@@ -32,6 +32,8 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
 import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
+import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure";
+import FailedSignInAuditLog from "Common/Server/Utils/AuditLog/FailedSignInAuditLog";
 import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
@@ -581,11 +583,35 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
       isNewUser = true;
     }
 
+    const account: User = alreadySavedUser;
+
+    /*
+     * A sign-in the provider vouched for that OneUptime refuses, for the
+     * audit log of every project the account's person is a member of
+     * (issue #6788), after the answer (FailedSignInAuditLog). The server's
+     * own provider: every project's entry names it.
+     */
+    const recordRefusedSignIn: (reason: SignInFailureReason) => void = (
+      reason: SignInFailureReason,
+    ): void => {
+      FailedSignInAuditLog.record({
+        req: req,
+        userId: account.id!,
+        reason: reason,
+        signIn: {
+          method: SignInMethod.Saml,
+          ssoProviderName: globalSso.name,
+        },
+      });
+    };
+
     /*
      * Blocked by a master admin. The identity provider vouching for the user
      * does not lift that, so nothing is provisioned and no session is issued.
      */
     if (alreadySavedUser.isBlocked) {
+      recordRefusedSignIn(SignInFailureReason.AccountBlocked);
+
       if (
         respondToMobileSsoFailure({
           res,
@@ -604,6 +630,8 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
     }
 
     if (!alreadySavedUser.isEmailVerified && !isNewUser) {
+      recordRefusedSignIn(SignInFailureReason.EmailNotVerified);
+
       await AuthenticationEmail.sendVerificationEmail(alreadySavedUser!);
 
       if (

@@ -2092,7 +2092,6 @@ import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
 import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
-import SampleProjectAPI from "Common/Server/API/SampleProjectAPI";
 import ProjectProductsAPI from "Common/Server/API/ProjectProductsAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
 import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
@@ -2102,6 +2101,7 @@ import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDisc
 import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
+import NetworkDeviceWatchingMonitorsAPI from "Common/Server/API/NetworkDeviceWatchingMonitorsAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import ScheduledMaintenanceCalendarAPI from "Common/Server/API/ScheduledMaintenanceCalendarAPI";
 import ScheduledMaintenanceExternalCalendarAPI from "Common/Server/API/ScheduledMaintenanceExternalCalendarAPI";
@@ -6627,14 +6627,6 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WelcomeChecklistAPI);
 
     /*
-     * A person's sample project (issue #6808): made in one click to look
-     * around in, and deleted from its banner. A bare router for the same
-     * reason as WelcomeChecklistAPI: no model's CRUD, and the sample is made
-     * as OneUptime (root), so its own checks are the gate.
-     */
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SampleProjectAPI);
-
-    /*
      * Asking people how things went (issue #6832): the question at the end
      * of a guided setup, Give feedback, Was this clear? and the first-week
      * check-in, kept on this server for its master admins (Admin Dashboard
@@ -6712,6 +6704,17 @@ const BaseAPIFeatureSet: FeatureSet = {
      * Meraki connection that describes it (NetworkDeviceRefreshAPI).
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, NetworkDeviceRefreshAPI);
+
+    /*
+     * The Network Device monitors watching a device, for its Overview and
+     * Monitors pages (NetworkDeviceWatchingMonitorsAPI, issue #8101): read
+     * by the device through MonitorNetworkDevice, not by listing every
+     * Network Device monitor of the project in the browser.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      NetworkDeviceWatchingMonitorsAPI,
+    );
 
     /*
      * On-call calendar feeds. The custom router carries the public

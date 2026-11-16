@@ -2694,7 +2694,7 @@ describe("a monitor group's status", () => {
       }),
     ).toBe(false);
     expect(groupsPage).toContain(
-      "- **Monitoring off shows Disabled.** When monitoring is turned off for every monitor in a group, nothing checks them, so the Dashboard shows **Disabled** in place of the group's status, and its **Uptime Graph** and uptime end where monitoring was turned off for the last of them. A status page shows the group as **Not monitored**.",
+      "- **Monitoring off shows Disabled.** When monitoring is turned off for every monitor in a group, nothing checks them, so the Dashboard shows **Disabled** in place of the group's status, and its **Uptime Graph** and uptime end where monitoring was turned off for the last of them. A status page shows the group as **Not monitored**. Each day all of them stay off, both draw that day's bar as monitoring off, not as a day with no data.",
     );
     // A status page draws such a group in the words the Dashboard has for it.
     expect(STATUS_PAGE_ENGLISH_OVERVIEW["notMonitored"]).toBe("Not monitored");

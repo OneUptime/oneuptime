@@ -260,6 +260,12 @@ export interface OnCallPolicyRunPagedPerson {
   acknowledged: boolean;
   // They could not take it, and escalated it (OnCallPagePassOn).
   passedOn?: boolean | undefined;
+  /*
+   * The policies whose page of them stands for this run's, by name: their
+   * page here was merged into it, and sent nothing (OnCallPageMerge). Empty
+   * when this run paged them itself.
+   */
+  alreadyPagedBy?: Array<string> | undefined;
   // How their pages reached them: "email", "SMS", "call", ...
   methods: Array<string>;
   // The people an override routed their pages from.
@@ -1190,6 +1196,23 @@ export default class OnCallPolicyRunMessageView {
 
     if (person.isBeingPaged && !person.passedOn) {
       facts.push(mdText`being paged now`);
+    }
+
+    /*
+     * Another policy's page of them stands for this run's (OnCallPageMerge):
+     * it sent nothing of its own, and says whose page reaches them.
+     */
+    const alreadyPagedBy: Array<string> = person.alreadyPagedBy || [];
+
+    if (alreadyPagedBy.length > 0 && !person.acknowledged && !person.passedOn) {
+      facts.push(
+        mdText`already paged by ${FeedMarkdown.join(
+          alreadyPagedBy.map((name: string): MarkdownText => {
+            return mdText`**${name}**`;
+          }),
+          ", ",
+        )}`,
+      );
     }
 
     if (person.methods.length > 0) {

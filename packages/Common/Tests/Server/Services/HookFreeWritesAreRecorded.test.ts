@@ -321,9 +321,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
      * A poll's verdict (#7389): reachability, when the device last answered
      * and its interface counts, as each poll reports them, in the one
      * compare-and-set statement that keeps an older poll's verdict from
-     * standing over a newer one's. Every column it sets is one entries leave
-     * out (reported, or a last...At stamp); the scan cannot read a SET built
-     * from a list.
+     * standing over a newer one's - and, since #7393, the poll's rate
+     * baseline and its SNMP table and transceiver snapshots with it. Every
+     * column it sets is one entries leave out (reported, OneUptime's own, or
+     * a last...At stamp); the scan cannot read a SET built from a list.
      */
     "Service.writePollVerdict NetworkDevice": Why.Reported,
   },
@@ -575,16 +576,6 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/Runbook/RunbookVariablesMove.ts": {
     "(module) Runbook": Why.Migration,
-  },
-  /*
-   * A sample project's records (#6808), filled by OneUptime as it makes the
-   * project and before it is handed to the person who asked: the sample
-   * service's description, and the creation times that make its history
-   * read as history.
-   */
-  "packages/Common/Server/Utils/SampleProject/SampleProjectSeeder.ts": {
-    "SampleProjectSeeder.backdate *": Why.Setup,
-    "SampleProjectSeeder.createServiceAndTelemetry Service": Why.Setup,
   },
   "packages/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarRefresher.ts":
     {

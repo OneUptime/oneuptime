@@ -217,12 +217,17 @@ describe("the NetworkDevice model says the same", () => {
     expect(offending).toEqual([]);
   });
 
+  /*
+   * Led by these three columns: since issue #8091 the Status index carries
+   * isSnmpReachable as a fourth (AddIsSnmpReachableToNetworkDeviceStatusIndex),
+   * and its three-column prefix serves these reads as the shorter index did.
+   */
   test("the Status facet and the summary strip still have their index", () => {
     expect(
       declared().some((index: IndexMetadataArgs): boolean => {
         return (
-          columnsOf(index).join(",") === "projectId,isArchived,isReachable" &&
-          !index.where
+          columnsOf(index).slice(0, 3).join(",") ===
+            "projectId,isArchived,isReachable" && !index.where
         );
       }),
     ).toBe(true);

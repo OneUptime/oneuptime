@@ -111,7 +111,11 @@ router.post(
  *    the phone call", "could not page Nitin via phone call".
  *
  * A call ends once: a callback for a call whose outcome is written already
- * - Twilio may send one twice - changes nothing.
+ * - Twilio may send one twice - writes and counts nothing more. The same
+ * callback sent again still corrects its notification, which writes only
+ * while that is only sent: Twilio sends a callback again when it was
+ * answered with an error (StatusCallbackRetry), and the one that wrote the
+ * log may have stopped before the notification was written (issue #6874).
  */
 router.post(
   "/status-callback/:callLogId/:token",
@@ -175,77 +179,84 @@ router.post(
         return Response.sendEmptySuccessResponse(req, res);
       }
 
-      /*
-       * Written once. A call placed is logged Success; how it ended moves it
-       * on - Missed Call, Busy, Error - or, answered, leaves it so.
-       */
-      if (callLog.status !== CallStatus.Success) {
-        return Response.sendEmptySuccessResponse(req, res);
-      }
-
       const statusMessage: string = getCallOutcomeStatusMessage({
         callSid: req.body?.["CallSid"],
         outcome: outcome,
       });
 
       /*
-       * An answered call's log still says Success once its end is written:
-       * its message, which says how it ended, is what tells a callback
-       * Twilio sent twice that it was.
+       * The log says this callback's outcome already - its message says how
+       * the call ended, also for an answered call, whose log still says
+       * Success: Twilio sent the callback again. The log is not written
+       * again, nor the call counted again.
        */
-      if (callLog.statusMessage === statusMessage) {
-        return Response.sendEmptySuccessResponse(req, res);
-      }
+      const isOutcomeWritten: boolean = callLog.statusMessage === statusMessage;
 
-      /*
-       * A bookkeeping stamp on the call's own log, as an SMS's delivery
-       * status is (SMS.ts): CallLog has update workflows disabled and no
-       * service update hooks, so the full update pipeline is skipped. Only
-       * while the log still says Success, with the message it had when the
-       * call was placed, in the same statement: of two callbacks for one
-       * call at once, one writes and the other stops.
-       */
-      const isWritten: boolean =
-        await CallLogService.compareAndSetColumnsByIdWithoutHooks({
-          id: callLog.id!,
-          data: {
-            ...(outcome.callStatus ? { status: outcome.callStatus } : {}),
-            statusMessage: statusMessage,
-          },
-          expectedData: {
-            status: CallStatus.Success,
-            statusMessage: (callLog.statusMessage ?? null) as string,
-          },
+      if (!isOutcomeWritten) {
+        /*
+         * Written once. A call placed is logged Success; how it ended moves
+         * it on - Missed Call, Busy, Error - or, answered, leaves it so.
+         */
+        if (callLog.status !== CallStatus.Success) {
+          return Response.sendEmptySuccessResponse(req, res);
+        }
+
+        /*
+         * A bookkeeping stamp on the call's own log, as an SMS's delivery
+         * status is (SMS.ts): CallLog has update workflows disabled and no
+         * service update hooks, so the full update pipeline is skipped.
+         * Only while the log still says Success, with the message it had
+         * when the call was placed, in the same statement: of two callbacks
+         * for one call at once, one writes and the other stops.
+         */
+        const isWritten: boolean =
+          await CallLogService.compareAndSetColumnsByIdWithoutHooks({
+            id: callLog.id!,
+            data: {
+              ...(outcome.callStatus ? { status: outcome.callStatus } : {}),
+              statusMessage: statusMessage,
+            },
+            expectedData: {
+              status: CallStatus.Success,
+              statusMessage: (callLog.statusMessage ?? null) as string,
+            },
+          });
+
+        if (!isWritten) {
+          return Response.sendEmptySuccessResponse(req, res);
+        }
+
+        /*
+         * How the call ended, for the platform's operator - once, as only
+         * the callback that wrote it gets here (notification.delivery.count).
+         */
+        NotificationDeliveryMetrics.recordDelivery({
+          channel: NotificationDeliveryChannel.Call,
+          provider: NotificationDeliveryProvider.Twilio,
+          providerConfig: getProviderConfigOfCallback(req.query),
+          isOnCallPage: Boolean(callLog.userOnCallLogTimelineId),
+          status: outcome.deliveryStatus,
+          timeToStatusInMs: getTimeToCallOutcomeInMs({
+            outcome: outcome,
+            // The call's log is written as Twilio accepts the call.
+            millisecondsSincePlaced:
+              NotificationDeliveryMetrics.getMillisecondsSince(
+                callLog.createdAt,
+              ),
+          }),
         });
-
-      if (!isWritten) {
-        return Response.sendEmptySuccessResponse(req, res);
       }
-
-      /*
-       * How the call ended, for the platform's operator - once, as only the
-       * callback that wrote it gets here (notification.delivery.count).
-       */
-      NotificationDeliveryMetrics.recordDelivery({
-        channel: NotificationDeliveryChannel.Call,
-        provider: NotificationDeliveryProvider.Twilio,
-        providerConfig: getProviderConfigOfCallback(req.query),
-        isOnCallPage: Boolean(callLog.userOnCallLogTimelineId),
-        status: outcome.deliveryStatus,
-        timeToStatusInMs: getTimeToCallOutcomeInMs({
-          outcome: outcome,
-          // The call's log is written as Twilio accepts the call.
-          millisecondsSincePlaced:
-            NotificationDeliveryMetrics.getMillisecondsSince(callLog.createdAt),
-        }),
-      });
 
       /*
        * Only a notification that is still just sent: the person's answer
        * (pressing 1 is their acknowledgement), an escalation from it, or a
        * skip says more than how the call ended - checked in the same
        * statement as the write (OnCallNotificationStatus), as an SMS's
-       * delivery report is.
+       * delivery report is. Also when the log was written already: the
+       * callback that wrote it may have failed before this - the database
+       * did - and Twilio sent it again. A notification that says the call
+       * was not answered, or failed, moved on from Sent and is not written
+       * again; an answered call's, still Sent, is told the same words again.
        */
       if (callLog.userOnCallLogTimelineId) {
         await recordProviderReport({

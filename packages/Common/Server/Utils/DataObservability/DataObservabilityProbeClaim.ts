@@ -76,8 +76,7 @@ export interface ClaimedTableHealthStore {
  *   read, with the connection variable the probe reads.
  * - The project's own probe: a global probe never reads a store.
  * - The project is served (ProjectService.getActiveProjectStatusQuery):
- *   not deleted, not blocked, not a sample, and its subscriptions not
- *   inactive.
+ *   not deleted, not blocked, and its subscriptions not inactive.
  */
 export function getTableHealthCollectableSql(parameters: {
   providerParameter: string;
@@ -97,7 +96,6 @@ export function getTableHealthCollectableSql(parameters: {
     `pr."deletedAt" IS NULL`,
     `p."deletedAt" IS NULL`,
     `p."isBlocked" = false`,
-    `p."isSampleProject" = false`,
     `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
     `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
   ].join("\n    AND ");
@@ -136,8 +134,8 @@ ORDER BY "due"."dueAt" ASC`;
  * Sets aside the probe's due stores whose tables nothing may collect now
  * (Utils/Probe/ClaimSetAside): not watched, archived, not self-managed or
  * of a kind a probe cannot read, without a connection variable, on a probe
- * that is not the project's own, or of a suspended, blocked, sample or
- * deleted project. Each is judged again by the claim's own rule
+ * that is not the project's own, or of a suspended, blocked or deleted
+ * project. Each is judged again by the claim's own rule
  * (getTableHealthCollectableSql, IS NOT TRUE), so a store the claim would
  * hand out is never moved. Makes due the probe's stores with no
  * nextTableHealthCollectionAt at all.

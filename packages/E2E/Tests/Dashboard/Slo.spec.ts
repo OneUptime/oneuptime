@@ -78,6 +78,7 @@ const SLO_VIEW_TABS: Array<string> = [
   "Burn Rate Rules",
   "Error Budget Policy",
   "Metrics",
+  "Monthly Report",
   "Alerts",
   "Incidents",
   "Feed",
@@ -946,6 +947,68 @@ test.describe("SLOs", () => {
         },
       )
       .toBeGreaterThan(0);
+  });
+
+  test("should render the monthly report, and keep the period picked in the address", async () => {
+    test.setTimeout(120000);
+    const page: Page = ctx.page;
+
+    const reportHeading: Locator = page
+      .getByRole("heading", {
+        name: "Monthly Report",
+        exact: true,
+      })
+      .first();
+
+    await gotoProjectPage({
+      page,
+      projectId: ctx.projectId,
+      url: sloUrl("/monthly-report"),
+      ready: reportHeading,
+    });
+
+    for (const period of ["3 months", "6 months", "9 months", "12 months"]) {
+      await expect(page.getByRole("radio", { name: period })).toBeVisible({
+        timeout: 30000,
+      });
+    }
+
+    /*
+     * The SLO's monitor was attached seconds ago, so the report holds this
+     * month so far - or, if its first status has not been written yet, says
+     * the period has no data. Either is the API's answer, read and drawn
+     * without an error.
+     */
+    const totalRow: Locator = page.getByTestId("slo-monthly-report-total-row");
+    const noData: Locator = page.getByTestId("slo-monthly-report-no-data");
+
+    await expect
+      .poll(
+        async (): Promise<number> => {
+          return (await totalRow.count()) + (await noData.count());
+        },
+        {
+          timeout: 60000,
+          message:
+            "the monthly report should draw its months or say the period has no data",
+        },
+      )
+      .toBeGreaterThan(0);
+
+    await page.getByRole("radio", { name: "3 months" }).click();
+
+    await expect
+      .poll(
+        (): string => {
+          return page.url();
+        },
+        { timeout: 30000 },
+      )
+      .toContain("months=3");
+
+    await expect(
+      page.getByRole("radio", { name: "3 months" }),
+    ).toHaveAttribute("aria-checked", "true");
   });
 
   test("should save an edit made from the overview details card", async () => {

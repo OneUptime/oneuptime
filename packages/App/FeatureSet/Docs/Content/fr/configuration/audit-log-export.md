@@ -140,7 +140,7 @@ Chaque entrée est un objet JSON, dont les clés sont toujours dans cet ordre :
 | `id` | L'id de l'entrée. La même entrée envoyée deux fois a le même id. |
 | `createdAt` | Quand la modification a été enregistrée, en UTC. |
 | `projectId` | Le projet dans lequel la modification a été faite. |
-| `action` | `Create`, `Update`, `Delete` ou `Download`, ou pour une session `SignIn`, `SignOut`, `SessionTimeout` ou `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` ou `Download`, ou pour une connexion ou une session `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` ou `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Ce qui a été modifié. |
 | `rootResourceType`, `rootResourceId` | La ressource à laquelle elle appartient, comme un SLO pour sa règle. |
 | `userId`, `userName`, `userEmail`, `userType` | Qui a fait la modification. |
@@ -173,7 +173,7 @@ Un nouvel export envoie la version 2. Un export enregistré avant la version 2 c
 
 ## Quand une destination échoue
 
-Un lot est tenté trois fois, à quelques secondes d'intervalle, puis l'export attend avant de réessayer : une minute, puis deux, quatre et ainsi de suite, jusqu'à une heure. Sa ligne indique **En échec**, et **Voir l'erreur** montre ce que la destination a répondu et quand aura lieu la prochaine tentative.
+Un lot est tenté trois fois, à quelques secondes d'intervalle, puis l'export attend avant de réessayer : une minute, puis deux, quatre et ainsi de suite, jusqu'à une heure. Sa ligne indique **En échec**, et **Voir l'erreur** montre ce que la destination a répondu, quand aura lieu la prochaine tentative, et à partir de quand les entrées en attente d'envoi commencent à être supprimées ou, une fois ce moment passé, depuis quand elles sont supprimées.
 
 Rien n'est sauté : les entrées attendent dans le journal d'audit, et la prochaine livraison qui réussit rattrape le retard depuis la plus ancienne. Chaque entrée est tout de même supprimée dès qu'elle est plus ancienne que la rétention avec laquelle elle a été enregistrée, envoyée ou non : corrigez donc un export en échec dans ce délai. Une rétention plus longue ne garde plus longtemps que les entrées enregistrées après sa modification.
 

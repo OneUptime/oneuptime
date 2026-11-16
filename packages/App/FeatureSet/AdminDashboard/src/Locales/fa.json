@@ -352,7 +352,7 @@
       "extendDescription": "تاریخ پایان دوره آزمایشی این پروژه را جابه‌جا کنید. ارائه‌دهنده پرداخت هم تاریخ جدید را می‌گیرد، پس در دوره آزمایشی صورتحسابی صادر نمی‌شود.",
       "newTrialEndDate": "تاریخ پایان جدید دوره آزمایشی",
       "newTrialEndDateDescription": "تاریخی که دوره آزمایشی باید در آن پایان یابد. باید در آینده و حداکثر ۷۳۰ روز (دو سال) بعد باشد.",
-      "notTrialingWarning": "این پروژه در حال حاضر در دوره آزمایشی نیست. تمدید دوره آزمایشی، دوره صورت‌حساب مصرف فعلی را می‌بندد، بنابراین برای مصرفی که مشتری در این دوره داشته بی‌درنگ صورت‌حساب صادر می‌شود. خودِ دوره آزمایشی تمدیدشده رایگان است.",
+      "notTrialingUsageWaived": "این پروژه در حال حاضر در دوره آزمایشی نیست. با تمدید دوره آزمایشی، هزینه مصرفی که مشتری در دوره صورت‌حساب فعلی داشته بخشیده می‌شود و برای آن صورت‌حساب صادر نمی‌شود. خودِ دوره آزمایشی تمدیدشده رایگان است.",
       "extendSubmitButton": "تمدید دوره آزمایشی",
       "extendSuccess": "دوره آزمایشی تا {{date}} تمدید شد. ارائه‌دهنده پرداخت به‌روزرسانی شد.",
       "extendFailure": "تمدید دوره آزمایشی ناموفق بود.",
@@ -636,12 +636,6 @@
         "usageCardDescription": "مصرف روزانه تله‌متری هر پروژه چه مدت نگه داشته می‌شود، چه صورت‌حساب فعال باشد چه نباشد.",
         "usageEditButton": "ویرایش نگهداری مصرف تله‌متری"
       },
-      "apiKey": {
-        "cardTitle": "تنظیمات کلید API ارشد",
-        "cardDescription": "به همهٔ پروژه‌های این سرور دسترسی root دارد.",
-        "editButton": "ویرایش تنظیمات کلید API",
-        "apiKeyNotGenerated": "کلید API هنوز ساخته نشده است."
-      },
       "llmProviders": {
         "bannerTitle": "برای راه‌اندازی ارائه‌دهندگان LLM کمک می‌خواهید؟",
         "bannerDescription": "ارائه‌دهندگان LLM قابلیت‌های هوش مصنوعی را ممکن می‌کنند. می‌توانید ارائه‌دهندگان LLM سراسری را که در دسترس همه پروژه‌ها هستند پیکربندی کنید.",
@@ -752,7 +746,6 @@
   "Edit Server": "ویرایش سرور",
   "Edit SMTP Config": "ویرایش پیکربندی SMTP",
   "Edit API Key": "ویرایش کلید API",
-  "Edit API Key Settings": "ویرایش تنظیمات کلید API",
   "Edit Twilio Config": "ویرایش پیکربندی Twilio",
   "Edit Telegram Config": "ویرایش پیکربندی Telegram",
   "Edit Meta WhatsApp Config": "ویرایش پیکربندی Meta WhatsApp",
@@ -1244,6 +1237,8 @@
   "Copy Error": "کپی خطا",
   "Full error message": "پیام کامل خطا",
   "Next try: {{time}}": "تلاش بعدی: {{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "مواردی که در انتظار فرستادن هستند از حدود {{time}} شروع به حذف شدن می‌کنند.",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "از حدود {{time}}، مواردی که در انتظار فرستادن هستند در حال حذف شدن‌اند.",
   "Needs a valid Enterprise license that includes audit logs.": "به پروانهٔ معتبر Enterprise که شامل گزارش‌های ممیزی باشد نیاز دارد.",
   "Paused": "متوقف‌شده",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "تا وقتی خاموش است چیزی فرستاده نمی‌شود. جایگاهش را حفظ می‌کند: وقتی دوباره روشن شود، آنچه در این فاصله ثبت شده را می‌فرستد.",
@@ -4017,5 +4012,15 @@
   "### Setup Steps": "### مراحل راه‌اندازی",
   "### Required WhatsApp Templates": "### قالب‌های لازم WhatsApp",
   "### Template Bodies": "### محتوای قالب‌ها",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> هنگام ساختن هر قالب در Meta، محتوای قالب زیر را دقیقاً — با نشانه‌گذاری و فاصله‌ها — کپی کنید. فهرست متغیرها هر جای‌نگهداری را نشان می‌دهد که باید در WhatsApp Manager پیکربندی شود."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> هنگام ساختن هر قالب در Meta، محتوای قالب زیر را دقیقاً — با نشانه‌گذاری و فاصله‌ها — کپی کنید. فهرست متغیرها هر جای‌نگهداری را نشان می‌دهد که باید در WhatsApp Manager پیکربندی شود.",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "هنوز کلیدی وجود ندارد. برای اسکریپت‌ها و ابزارهایی که API را در نقش مدیر ارشد فراخوانی می‌کنند یک کلید بسازید.",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "یک کلید تنظیم شده است. این کلید یک بار، هنگام ساختن، نمایش داده شد: فقط هش آن نگه داشته می‌شود، پس دوباره نمایش داده نمی‌شود. اگر آن را گم کرده‌اید، بازنشانی‌اش کنید.",
+  "Create Key": "ساخت کلید",
+  "Reset Key": "بازنشانی کلید",
+  "Requests with the key are accepted.": "درخواست‌هایی که این کلید را دارند پذیرفته می‌شوند.",
+  "Reset Master API Key?": "کلید API ارشد بازنشانی شود؟",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "کلید فعلی فوراً برای هر اسکریپت و ابزاری که از آن استفاده می‌کند از کار می‌افتد. کلید جدید یک بار نمایش داده می‌شود.",
+  "Copy Your Master API Key": "کلید API ارشد خود را کپی کنید",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "همین حالا آن را کپی کنید و در جای امنی، مانند یک مدیر رازها، نگه دارید. فقط همین یک بار نمایش داده می‌شود: OneUptime فقط هش آن را نگه می‌دارد.",
+  "The server did not answer with the master API key. Try again.": "سرور کلید API ارشد را برنگرداند. دوباره امتحان کنید."
 }

@@ -352,7 +352,7 @@
       "extendDescription": "調整此專案的試用結束日期。付款供應商也會收到新日期，因此試用期間不會開立任何帳單。",
       "newTrialEndDate": "新的試用結束日期",
       "newTrialEndDateDescription": "試用應結束的日期。必須是未來的日期，且不得超過 730 天（兩年）之後。",
-      "notTrialingWarning": "此專案目前不在試用中。延長試用會結束目前的用量計費週期，因此客戶會立即收到本週期內已產生用量的帳單。延長後的試用本身是免費的。",
+      "notTrialingUsageWaived": "此專案目前不在試用中。延長試用會免除客戶在目前計費週期內已產生的用量費用，因此不會為其開立帳單。延長後的試用本身是免費的。",
       "extendSubmitButton": "延長試用",
       "extendSuccess": "試用已延長至 {{date}}。付款服務商的資料已更新。",
       "extendFailure": "延長試用失敗。",
@@ -636,12 +636,6 @@
         "usageCardDescription": "每個專案的每日遙測使用量保留多長時間，無論是否啟用計費。",
         "usageEditButton": "編輯遙測使用量保留"
       },
-      "apiKey": {
-        "cardTitle": "主要 API 金鑰設定",
-        "cardDescription": "擁有此伺服器上所有專案的 root 存取權限。",
-        "editButton": "編輯 API 金鑰設定",
-        "apiKeyNotGenerated": "API 金鑰尚未產生。"
-      },
       "llmProviders": {
         "bannerTitle": "需要協助設定 LLM 供應商嗎?",
         "bannerDescription": "LLM 供應商啟用 AI 功能。您可以設定所有專案可用的全域 LLM 供應商。",
@@ -752,7 +746,6 @@
   "Edit Server": "編輯伺服器",
   "Edit SMTP Config": "編輯 SMTP 設定",
   "Edit API Key": "編輯 API 金鑰",
-  "Edit API Key Settings": "編輯 API 金鑰設定",
   "Edit Twilio Config": "編輯 Twilio 設定",
   "Edit Telegram Config": "編輯 Telegram 設定",
   "Edit Meta WhatsApp Config": "編輯 Meta WhatsApp 設定",
@@ -1244,6 +1237,8 @@
   "Copy Error": "複製錯誤",
   "Full error message": "完整錯誤訊息",
   "Next try: {{time}}": "下次嘗試：{{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "等待傳送的條目將從大約 {{time}} 起開始被刪除。",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "自大約 {{time}} 起，等待傳送的條目正在被刪除。",
   "Needs a valid Enterprise license that includes audit logs.": "需要包含稽核日誌的有效 Enterprise 授權。",
   "Paused": "已暫停",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "關閉期間不會傳送任何內容。它會保留位置：重新開啟後，會傳送期間記錄的內容。",
@@ -4017,5 +4012,15 @@
   "### Setup Steps": "### 設定步驟",
   "### Required WhatsApp Templates": "### 必要的 WhatsApp 範本",
   "### Template Bodies": "### 範本內文",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> 在 Meta 中建立每個範本時，請原樣複製下方的範本內文，包括標點和空格。變數清單列出了必須在 WhatsApp Manager 中設定的每個預留位置。"
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> 在 Meta 中建立每個範本時，請原樣複製下方的範本內文，包括標點和空格。變數清單列出了必須在 WhatsApp Manager 中設定的每個預留位置。",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "還沒有金鑰。請為以主要管理員身分呼叫 API 的指令碼和工具建立一個。",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "已設定金鑰。它只在建立時顯示過一次：只保存了它的雜湊值，因此無法再次顯示。如果遺失了，請重設它。",
+  "Create Key": "建立金鑰",
+  "Reset Key": "重設金鑰",
+  "Requests with the key are accepted.": "接受使用此金鑰的請求。",
+  "Reset Master API Key?": "要重設主 API 金鑰嗎？",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "目前的金鑰會立即對使用它的每個指令碼和工具失效。新金鑰只會顯示一次。",
+  "Copy Your Master API Key": "複製你的主 API 金鑰",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "請立即複製，並將其保存在安全的地方，例如密鑰管理工具。它只會顯示這一次：OneUptime 只保存它的雜湊值。",
+  "The server did not answer with the master API key. Try again.": "伺服器沒有傳回主 API 金鑰。請再試一次。"
 }

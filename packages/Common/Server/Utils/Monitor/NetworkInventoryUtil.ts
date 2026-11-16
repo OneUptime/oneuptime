@@ -1,6 +1,8 @@
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceService, {
   NetworkDeviceInterfaceCounts,
+  NetworkDevicePollDetails,
+  hasPollDetails,
 } from "../../Services/NetworkDeviceService";
 import NetworkEndpointService from "../../Services/NetworkEndpointService";
 import NetworkDeviceMacLearningUtil from "./NetworkDeviceMacLearningUtil";
@@ -25,6 +27,7 @@ import SnmpVendorTemplateUtil, {
 } from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
+import { JSONObject } from "../../../Types/JSON";
 import { NetworkDeviceMonitoringMethodUtil } from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
   NetworkDeviceDiscoveredField,
@@ -60,9 +63,10 @@ export const RESOLVED_ADDRESS_REFRESH_INTERVAL_IN_MS: number = 60 * 60 * 1000;
  * (NetworkInventoryUtil.withoutUnchangedInventory): its system group, its
  * last reboot, vendor, model, serial number, firmware and software, and its
  * LLDP and CDP neighbours - what stays the same from one poll to the next.
- * The SNMP table and transceiver snapshots carry readings that change on
- * every poll, so they are written as they come; the vendor template's OIDs
- * and tables are only ever written into an empty list.
+ * The vendor template's OIDs and tables are only ever written into an empty
+ * list. The SNMP table and transceiver snapshots carry readings that change
+ * on every poll, so they are not in the hooked write at all: they ride in
+ * the poll's verdict statement (NetworkDeviceService.writePollVerdict).
  */
 export const INVENTORY_COMPARED_COLUMNS: Array<keyof NetworkDevice> = [
   "sysDescr",
@@ -203,6 +207,12 @@ export default class NetworkInventoryUtil {
      * stored snapshot alone.
      */
     transceiverSnapshot?: Array<NetworkDeviceTransceiver> | undefined;
+    /*
+     * The rate baseline to keep for the next poll's interface and counter
+     * rates, when this poll replaces it (NetworkDeviceWalkUtil). Undefined
+     * leaves the stored one alone.
+     */
+    lastWalkLog?: JSONObject | undefined;
     /*
      * The probe that polled, and - for a device polled at a DNS name - the
      * address its ping resolved the name to (issue #5185). Undefined from a
@@ -408,12 +418,27 @@ export default class NetworkInventoryUtil {
        * or one that waited longer in the queue than the poll after it - used
        * to put its answer back over the newer one's.
        *
-       * None of it is written for a monitor-backed device - see the guard
-       * above the try. Its bound monitor owns its health.
+       * The poll's details ride in the same statement (OneUptime issue
+       * #7393): the rate baseline, and the SNMP table and transceiver
+       * snapshots. Each was a write of the device row of its own - the
+       * baseline on every walk, the snapshots through the hooked write on
+       * every poll of a device with tables or optics - and now takes the
+       * verdict's guard as well, so an older poll's never land over a newer
+       * one's.
+       *
+       * None of the verdict is written for a monitor-backed device - see the
+       * guard above the try. Its bound monitor owns its health. The poll's
+       * details are inventory, so they are written for it all the same.
        */
       let isNewestPoll: boolean = true;
 
-      if (!isMonitorBacked) {
+      const details: NetworkDevicePollDetails = {
+        lastWalkLog: data.lastWalkLog,
+        snmpTableSnapshot: data.snmpTableSnapshot,
+        transceiverSnapshot: data.transceiverSnapshot,
+      };
+
+      if (!isMonitorBacked || hasPollDetails(details)) {
         let interfaceCounts: NetworkDeviceInterfaceCounts | null | undefined =
           undefined;
 
@@ -437,11 +462,14 @@ export default class NetworkInventoryUtil {
             deviceId: deviceId,
             receivedAt: receivedAt,
             processedAt: processedAt,
-            verdict: {
-              isReachable: isDeviceReachable,
-              isSnmpReachable: walkRan ? walkSucceeded : null,
-              interfaceCounts: interfaceCounts,
-            },
+            verdict: isMonitorBacked
+              ? null
+              : {
+                  isReachable: isDeviceReachable,
+                  isSnmpReachable: walkRan ? walkSucceeded : null,
+                  interfaceCounts: interfaceCounts,
+                },
+            details: details,
           });
         } catch (err) {
           if (!isPostgresLockContentionError(err)) {
@@ -451,9 +479,11 @@ export default class NetworkInventoryUtil {
           /*
            * Another writer held the device past lock_timeout, or a
            * deadlock. Whether this poll is the newest is then unknown, so
-           * its device details wait for the next poll too. Its interfaces
-           * and endpoints, below, are other tables, and are written as
-           * usual.
+           * its device details - its baseline and snapshots, which were in
+           * the statement, and its system group below - wait for the next
+           * poll too: its rates are then worked out over the longer window.
+           * Its interfaces and endpoints, below, are other tables, and are
+           * written as usual.
            */
           logger.warn(
             `Network device ${deviceId.toString()}: the result of its poll received at ${OneUptimeDate.toString(receivedAt)} was left for its next poll, because another writer held the device past the lock timeout, or a deadlock (${
@@ -616,23 +646,6 @@ export default class NetworkInventoryUtil {
       }
 
       /*
-       * Inventory rather than health, like the neighbour snapshots: written
-       * for a monitor-backed device too. Already capped for storage by the
-       * walk processor.
-       */
-      if (data.snmpTableSnapshot !== undefined) {
-        deviceUpdate["snmpTableSnapshot"] = data.snmpTableSnapshot;
-      }
-
-      /*
-       * Inventory too - which optic sits in which port - so a monitor-backed
-       * device stores it like its tables.
-       */
-      if (data.transceiverSnapshot !== undefined) {
-        deviceUpdate["transceiverSnapshot"] = data.transceiverSnapshot;
-      }
-
-      /*
        * What the walk read about the device, through the hooked write: its
        * hooks re-run the site-assignment rules on sysName and seed the
        * vendor template's OIDs and tables. Empty on a ping-only poll and on
@@ -649,8 +662,14 @@ export default class NetworkInventoryUtil {
        *
        * Only from the newest poll. An older one - see isNewestPoll above -
        * read the device before the poll whose result it already holds, so
-       * its system group, neighbours and snapshots are older than what is
-       * stored, and would put the topology back to what it was.
+       * its system group and neighbours are older than what is stored, and
+       * would put the topology back to what it was.
+       *
+       * The SNMP table and transceiver snapshots are not here: they change
+       * on every poll, so they made this hooked write - a read of the row,
+       * the UPDATE and the hooks - one of every poll of a device with tables
+       * or optics. They ride in the verdict's statement instead (OneUptime
+       * issue #7393), and what is left here changes when the device does.
        */
       const changedInventory: Record<string, unknown> =
         NetworkInventoryUtil.withoutUnchangedInventory({

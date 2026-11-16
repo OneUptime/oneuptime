@@ -95,7 +95,7 @@ describe("the AuditLogExport area", () => {
     expect(names.slice(-2)).toEqual(["Billing", "CloudMarketplace"]);
   });
 
-  test("hands core one router with the two test routes and nothing else", () => {
+  test("hands core one router with the two test routes, the two deadline reads and nothing else", () => {
     const routers: Array<ExpressRouter> =
       AuditLogExportArea.getApiRouters?.() || [];
 
@@ -103,6 +103,8 @@ describe("the AuditLogExport area", () => {
     expect(routesOf(routers[0]!)).toEqual([
       "POST /audit-log-export/test",
       "POST /audit-log-export/instance/test",
+      "POST /audit-log-export/entries-lost-at",
+      "POST /audit-log-export/instance/entries-lost-at",
     ]);
   });
 

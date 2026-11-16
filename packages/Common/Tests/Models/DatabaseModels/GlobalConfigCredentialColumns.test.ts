@@ -1,13 +1,16 @@
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
+import ColumnLength from "../../../Types/Database/ColumnLength";
+import ColumnType from "../../../Types/Database/ColumnType";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import HashedString from "../../../Types/HashedString";
 import { ModelSchema } from "../../../Utils/Schema/ModelSchema";
 import { describe, expect, test } from "@jest/globals";
 import { getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 
 /*
- * THE SERVER'S CREDENTIALS ARE STORED ENCRYPTED (#7739).
+ * THE SERVER'S CREDENTIALS ARE STORED ENCRYPTED (#7739), OR HASHED (#7901).
  *
  * The server's own settings live in one GlobalConfig row. Every credential
  * column of it is declared `encrypted: true`, as its newer provider keys
@@ -17,10 +20,12 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
  * was written. Each is text, with room for a ciphertext longer than the
  * value, and none is unique: each write stores a different ciphertext.
  *
- * A column that is looked up by value cannot be encrypted, and the columns
- * that only name an account, an app or a mailbox are not secrets: both kinds
- * are listed below, each with why it stays as it is. Any other column of
- * the row that holds a secret fails here until it is encrypted or listed.
+ * A credential that is looked up by value cannot be encrypted - a ciphertext
+ * differs on every write - so it is stored as its hash, and matched by hash:
+ * the master API key, which a request names (HASHED). The columns that only
+ * name an account, an app or a mailbox are not secrets, and are listed below
+ * with why each stays as it is. Any other column of the row that holds a
+ * secret fails here until it is encrypted, hashed or listed.
  */
 
 const model: GlobalConfig = new GlobalConfig();
@@ -57,10 +62,15 @@ const ENCRYPTED: ReadonlyArray<string> = [
   ...ENCRYPTED_BY_7739,
 ];
 
-// The credential columns left as they are, and why.
+/*
+ * Hashed by #7901: looked up by value, so stored as the hash a request's key
+ * is matched by (ProjectAuthorization.isMasterApiKey, Utils/MasterApiKey).
+ * The HashMasterApiKey data migration hashes the key stored before.
+ */
+const HASHED: ReadonlyArray<string> = ["masterApiKey"];
+
+// The columns named like credentials left as they are, and why.
 const LEFT_AS_THEY_ARE: Readonly<Record<string, string>> = {
-  masterApiKey:
-    "Looked up by value: a request names the key, and ProjectAuthorization.isMasterApiKey finds the row WHERE masterApiKey = that key. An encrypted value differs on every write, so no lookup could match it; it is a uuid column, too.",
   twilioAccountSID:
     "Names the Twilio account; the auth token that goes with it is the secret, and is encrypted.",
   smtpUsername:
@@ -142,17 +152,75 @@ describe("GlobalConfig's credential columns", () => {
     }
   });
 
-  test("every secret of the row is encrypted, or left as it is with why", () => {
+  test("every secret of the row is encrypted or hashed: none is left as it is", () => {
     const leftSecrets: Array<string> = Object.keys(LEFT_AS_THEY_ARE).filter(
       (column: string): boolean => {
         return ModelSchema.isSecretColumn(model.getTableColumnMetadata(column));
       },
     );
 
-    expect(leftSecrets).toEqual(["masterApiKey"]);
-    expect(secretColumns().sort()).toEqual(
-      [...ENCRYPTED, ...leftSecrets].sort(),
+    expect(leftSecrets).toEqual([]);
+    expect(secretColumns().sort()).toEqual([...ENCRYPTED, ...HASHED].sort());
+  });
+
+  describe("the hashed columns", () => {
+    test.each(
+      HASHED.map((column: string): [string] => {
+        return [column];
+      }),
+    )(
+      "%s is a HashedString column, with room for its hash, nullable and still unique",
+      (column: string) => {
+        const metadata: TableColumnMetadata =
+          model.getTableColumnMetadata(column);
+
+        expect(metadata.type).toBe(TableColumnType.HashedString);
+        expect(metadata.encrypted).toBeFalsy();
+        // Made by OneUptime only (GlobalConfigService.createMasterApiKey).
+        expect(metadata.computed).toBe(true);
+        expect(metadata.hideColumnInDocumentation).toBe(true);
+        expect(model.isHashedStringColumn(column)).toBe(true);
+
+        const stored: ColumnMetadataArgs | undefined = typeOrmColumn(column);
+
+        expect(stored?.options.type).toBe(ColumnType.HashedString);
+        expect(stored?.options.length).toBe(ColumnLength.HashedString);
+        expect(stored?.options.nullable).toBe(true);
+        // A hash of a unique key is unique too.
+        expect(stored?.options.unique).toBe(true);
+        expect(typeof stored?.options.transformer).toBe("object");
+      },
     );
+
+    test("each is a secret to the API documentation and to the clients made from it", () => {
+      for (const column of HASHED) {
+        expect([
+          column,
+          ModelSchema.isSecretColumn(model.getTableColumnMetadata(column)),
+        ]).toEqual([column, true]);
+      }
+    });
+
+    test("no permission reads, writes or filters any of them", () => {
+      for (const column of HASHED) {
+        expect([column, model.getColumnAccessControlFor(column)]).toEqual([
+          column,
+          { create: [], read: [], update: [] },
+        ]);
+      }
+    });
+
+    test("the master API key is read back as its hash, never as a key", () => {
+      const transformer: {
+        from: (value: unknown) => unknown;
+      } = typeOrmColumn("masterApiKey")!.options.transformer as {
+        from: (value: unknown) => unknown;
+      };
+      const read: unknown = transformer.from("a".repeat(64));
+
+      expect(read).toBeInstanceOf(HashedString);
+      expect((read as HashedString).isValueHashed()).toBe(true);
+    });
   });
 
   describe("the columns left as they are", () => {
@@ -168,21 +236,8 @@ describe("GlobalConfig's credential columns", () => {
       },
     );
 
-    test("the master API key is a uuid, matched by value, and a secret all the same", () => {
-      const metadata: TableColumnMetadata =
-        model.getTableColumnMetadata("masterApiKey");
-
-      expect(metadata.type).toBe(TableColumnType.ObjectID);
-      expect(metadata.secret).toBe(true);
-      expect(typeOrmColumn("masterApiKey")?.options.type).toBe("uuid");
-    });
-
     test("the identifiers are not secrets", () => {
       for (const column of Object.keys(LEFT_AS_THEY_ARE)) {
-        if (column === "masterApiKey") {
-          continue;
-        }
-
         expect([
           column,
           ModelSchema.isSecretColumn(model.getTableColumnMetadata(column)),

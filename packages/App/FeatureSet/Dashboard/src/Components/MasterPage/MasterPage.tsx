@@ -2,7 +2,6 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Footer from "../Footer/Footer";
 import ProjectBlocked from "../Project/ProjectBlocked";
-import SampleProjectBar from "../SampleProject/SampleProjectBar";
 import Header from "../Header/Header";
 import NavBar from "../NavBar/NavBar";
 import WelcomeNextStep from "../Home/WelcomeChecklist/WelcomeNextStep";
@@ -53,11 +52,6 @@ export interface ComponentProps {
    * (BlockedProject.isSelectedProjectBlocked): its pages show why instead.
    */
   isSelectedProjectBlocked?: boolean | undefined;
-  /*
-   * Opens the dialog that creates a project: a sample project's bar offers
-   * it to a person who has no project of their own yet (issue #6808).
-   */
-  onCreateProject?: (() => void) | undefined;
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
@@ -156,21 +150,6 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         ).addRoute(ADMIN_GLOBAL_PROBES_ROUTE)}
         openLinksInNewTab={true}
       />
-      {/*
-       * A sample project says what it is on every page (issue #6808): its
-       * bar, drawn for a sample alone, with the ways out of it.
-       */}
-      {props.selectedProject?.isSampleProject && !showProjectBlocked ? (
-        <SampleProjectBar
-          project={props.selectedProject}
-          projects={props.projects}
-          onCreateProject={() => {
-            props.onCreateProject?.();
-          }}
-        />
-      ) : (
-        <></>
-      )}
       {BILLING_ENABLED &&
         isSubscriptionInactiveOrOverdue &&
         !showProjectBlocked && (

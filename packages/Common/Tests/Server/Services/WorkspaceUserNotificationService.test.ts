@@ -826,12 +826,8 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser - where the m
     errorLog = jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
-    /*
-     * The project may send (BlockedProjectNotifications.getSilencedReason):
-     * neither blocked nor a sample project (#6808).
-     */
+    // The project may send (BlockedProjectNotifications.getSilencedReason).
     jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
-    jest.spyOn(ProjectService, "isSampleProject").mockResolvedValue(false);
     connected("T0TEAM");
     jest
       .spyOn(SlackUtil, "sendDirectMessageToUser")

@@ -74,6 +74,13 @@ import logger, { LogAttributes } from "../Logger";
  * written at least once rather than at most: a stop between the feed item
  * and saying so writes it again, which is better than a feed that never
  * says who was told.
+ *
+ * OWNERS LEFT OUT (#7987). A job may leave some of the owners it read out
+ * of its notification - those a record's on-call page reached already are
+ * not told it was created a second time (OwnersReachedByAPage) - by handing
+ * them to plan() as leaveOut. They get no row, so no run tells them, not
+ * even one that takes up what a stopped run left; the delivery hands them
+ * back (leftOut) for the job's feed item to name apart from those told.
  */
 
 // Which notification: as OwnerNotificationEvent, with the occurrence left to 1.
@@ -114,6 +121,17 @@ export class OwnerNotificationDelivery {
   public readonly toldEarlier: Array<User>;
 
   /*
+   * The owners this run left out of the notification on purpose (plan's
+   * leaveOut): told of the record some other way already - its on-call page
+   * reached them (OwnersReachedByAPage). This run wrote no row for them, so
+   * no run that takes up what it left tells them. For the job's feed item
+   * to name apart from those it notified: never one of `owners` or
+   * `toldEarlier`. Empty for a delivery taken up from a stopped run, which
+   * does not know them.
+   */
+  public readonly leftOut: Array<User>;
+
+  /*
    * Taken up only to write the feed item a run that told every owner
    * stopped before writing (#8510): nobody is to be told, and the feed item
    * names whom the rows say was told (toldEarlier).
@@ -130,6 +148,7 @@ export class OwnerNotificationDelivery {
     isProjectOwners: boolean;
     owners: Array<OwnerToTellNow>;
     toldEarlier: Array<User>;
+    leftOut?: Array<User> | undefined;
     feedStatus?: OwnerNotificationFeedStatus | null | undefined;
     isFeedLeftUnwritten?: boolean | undefined;
   }) {
@@ -142,6 +161,7 @@ export class OwnerNotificationDelivery {
       return owner.user;
     });
     this.toldEarlier = data.toldEarlier;
+    this.leftOut = data.leftOut || [];
     this.toTell = new Map<string, OwnerToTellNow>();
 
     for (const owner of data.owners) {
@@ -367,7 +387,8 @@ export default class OwnerNotificationDeliveries {
    * record (see the top of this file), and hands back whom this run is to
    * tell - each owner who was not told or set out to be told already, in the
    * order given - and whom a run before it told. Never throws: should the
-   * rows not be written, every owner given is to be told, as before.
+   * rows not be written, every owner given is to be told, as before - but
+   * for those it leaves out.
    */
   public static async plan(data: {
     notification: OwnerNotificationOf;
@@ -379,9 +400,27 @@ export default class OwnerNotificationDeliveries {
      * writes it should this one stop before it does (#8510).
      */
     writesFeedItem: boolean;
+    /*
+     * Of `owners`, the ones not to tell after all: told of the record some
+     * other way already - its on-call page reached them
+     * (OwnersReachedByAPage). They get no row, so neither this run nor one
+     * that takes up what it left tells them, and the delivery hands them
+     * back (leftOut). One a run before this one wrote down or told already
+     * is told as planned, and is not named as left out.
+     */
+    leaveOut?: Array<User> | undefined;
   }): Promise<OwnerNotificationDelivery> {
     const notification: OwnerNotificationEvent = toEvent(data.notification);
-    const owners: Array<User> = onceEach(data.owners);
+    const toLeaveOut: Set<string> = new Set<string>(
+      onceEach(data.leaveOut || []).map(userKey),
+    );
+    const given: Array<User> = onceEach(data.owners);
+    const owners: Array<User> = given.filter((user: User): boolean => {
+      return !toLeaveOut.has(userKey(user));
+    });
+    const leftOut: Array<User> = given.filter((user: User): boolean => {
+      return toLeaveOut.has(userKey(user));
+    });
 
     if (owners.length === 0) {
       return new OwnerNotificationDelivery({
@@ -389,6 +428,7 @@ export default class OwnerNotificationDeliveries {
         isProjectOwners: data.isProjectOwners,
         owners: [],
         toldEarlier: [],
+        leftOut: leftOut,
       });
     }
 
@@ -419,6 +459,7 @@ export default class OwnerNotificationDeliveries {
           return { user: user, rowId: null };
         }),
         toldEarlier: [],
+        leftOut: leftOut,
       });
     }
 
@@ -431,6 +472,7 @@ export default class OwnerNotificationDeliveries {
       rows: rows,
       known: owners,
       isFeedLeftUnwritten: false,
+      leftOut: leftOut,
     });
   }
 
@@ -450,6 +492,15 @@ export default class OwnerNotificationDeliveries {
      */
     findProjectOwners?: (() => Promise<Array<User>>) | undefined;
     writesFeedItem: boolean;
+    /*
+     * Of the owners read - the record's, or the project's in their place -
+     * the ones to leave out (plan's leaveOut): those the record's on-call
+     * page reached already (OwnersReachedByAPage). Should it fail, nobody
+     * is left out, and it says so.
+     */
+    findOwnersToLeaveOut?:
+      | ((owners: Array<User>) => Promise<Array<User>>)
+      | undefined;
   }): Promise<OwnerNotificationDelivery> {
     let owners: Array<User> = [];
     let isProjectOwners: boolean = false;
@@ -480,11 +531,31 @@ export default class OwnerNotificationDeliveries {
       isProjectOwners = false;
     }
 
+    let leaveOut: Array<User> = [];
+
+    if (data.findOwnersToLeaveOut && owners.length > 0) {
+      try {
+        leaveOut = await data.findOwnersToLeaveOut(owners);
+      } catch (error) {
+        logger.error(
+          `Could not read whom of the owners of ${data.notification.kind} ${data.notification.eventId.toString()} to leave out: ${error}. Telling every one of them.`,
+          {
+            projectId: data.notification.projectId.toString(),
+            ownerNotificationKind: data.notification.kind,
+            resourceId: data.notification.resourceId.toString(),
+            eventId: data.notification.eventId.toString(),
+          } as LogAttributes,
+        );
+        leaveOut = [];
+      }
+    }
+
     return await this.plan({
       notification: data.notification,
       owners: owners,
       isProjectOwners: isProjectOwners,
       writesFeedItem: data.writesFeedItem,
+      leaveOut: leaveOut,
     });
   }
 
@@ -735,6 +806,8 @@ export default class OwnerNotificationDeliveries {
     rows: Array<OwnerNotificationDeliveryRow>;
     known: Array<User>;
     isFeedLeftUnwritten: boolean;
+    // Whom plan() left out (its leaveOut); none for one taken up.
+    leftOut?: Array<User> | undefined;
   }): Promise<OwnerNotificationDelivery> {
     const told: Array<OwnerNotificationDeliveryRow> = data.rows.filter(
       (row: OwnerNotificationDeliveryRow): boolean => {
@@ -827,10 +900,28 @@ export default class OwnerNotificationDeliveries {
       }
     }
 
+    /*
+     * Of those left out, none a run has written down to be told, is telling
+     * or told - one before this one, before the page reached them: they are
+     * told as planned, and the feed item must not say they were not.
+     */
+    const planned: Set<string> = new Set<string>(
+      data.rows
+        .filter((row: OwnerNotificationDeliveryRow): boolean => {
+          return row.status !== OwnerNotificationDeliveryStatus.Failed;
+        })
+        .map((row: OwnerNotificationDeliveryRow): string => {
+          return row.userId.toString().toLowerCase();
+        }),
+    );
+
     return new OwnerNotificationDelivery({
       notification: data.notification,
       isProjectOwners: data.isProjectOwners,
       owners: owners,
+      leftOut: (data.leftOut || []).filter((user: User): boolean => {
+        return !planned.has(userKey(user));
+      }),
       // Alike on every row of the notification.
       feedStatus:
         data.rows.find((row: OwnerNotificationDeliveryRow): boolean => {
