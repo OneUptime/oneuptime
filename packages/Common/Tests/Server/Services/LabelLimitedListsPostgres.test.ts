@@ -1263,7 +1263,7 @@ describePostgres(
        * outside the reader's labels, each read with every label it carries.
        */
       test.each(
-        readersFor(listed).map((reader: Reader) => {
+        readersFor(listed).map((reader: Reader): [string, Reader] => {
           return [reader.name, reader];
         }),
       )(

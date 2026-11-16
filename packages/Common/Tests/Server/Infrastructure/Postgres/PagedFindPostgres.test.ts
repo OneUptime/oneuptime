@@ -1055,7 +1055,7 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
         .sort();
       const onTheId: Array<string> = (
         await repository.find({
-          where: options.where,
+          where: options.where!,
           select: { _id: true } as never,
         })
       )
