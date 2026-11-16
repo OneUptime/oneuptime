@@ -1004,3 +1004,189 @@ describe("DayUptimeGraphUtil.formatDayLabel", () => {
     ).toBe("Sep 23, 2026");
   });
 });
+
+/*
+ * A day a monitor's monitoring was off (issue #7112): nothing was checked,
+ * and that is said - "monitoring off" - never "no data". A day with data is
+ * named by its uptime, whatever part of it monitoring was off for.
+ */
+describe("DayUptimeGraphUtil and a day monitoring was off", () => {
+  const OFF_IN_SPANISH: UptimeHistoryLabels = {
+    ...SPANISH_LABELS,
+    dayLabelMonitoringOff: "{{date}}: sin monitoreo",
+    dayLabelMonitoringOffWithIncidents:
+      "{{date}}: sin monitoreo, {{total}} sucesos",
+  };
+
+  test("a day with no data but time with monitoring off is named monitoring off", () => {
+    expect(
+      DayUptimeGraphUtil.getDayAriaLabel({
+        dateLabel: "Oct 21, 2026",
+        hasEvents: false,
+        uptimePercent: 0,
+        incidentCount: 0,
+        monitoringOffSeconds: 86400,
+      }),
+    ).toBe("Oct 21, 2026: monitoring off");
+
+    expect(
+      DayUptimeGraphUtil.getDayAriaLabel({
+        dateLabel: "Oct 21, 2026",
+        hasEvents: false,
+        uptimePercent: 0,
+        incidentCount: 3,
+        monitoringOffSeconds: 86400,
+      }),
+    ).toBe("Oct 21, 2026: monitoring off, 3 incidents");
+  });
+
+  test("in the caller's words, and with its maintenance", () => {
+    expect(
+      DayUptimeGraphUtil.getDayAriaLabel({
+        dateLabel: "21 oct 2026",
+        hasEvents: false,
+        uptimePercent: 0,
+        incidentCount: 1,
+        maintenanceCount: 2,
+        monitoringOffSeconds: 3600,
+        labels: OFF_IN_SPANISH,
+      }),
+    ).toBe("21 oct 2026: sin monitoreo, 1 sucesos, 2 maintenance events");
+  });
+
+  test("a day with data keeps its uptime name; one with neither stays no data", () => {
+    expect(
+      DayUptimeGraphUtil.getDayAriaLabel({
+        dateLabel: "Oct 21, 2026",
+        hasEvents: true,
+        uptimePercent: 100,
+        incidentCount: 0,
+        monitoringOffSeconds: 6 * 3600,
+      }),
+    ).toBe("Oct 21, 2026: 100% uptime");
+
+    expect(
+      DayUptimeGraphUtil.getDayAriaLabel({
+        dateLabel: "Oct 21, 2026",
+        hasEvents: false,
+        uptimePercent: 0,
+        incidentCount: 0,
+        monitoringOffSeconds: 0,
+      }),
+    ).toBe("Oct 21, 2026: no data");
+
+    // Callers from before it pass nothing: no data, as always.
+    expect(
+      DayUptimeGraphUtil.getDayAriaLabel({
+        dateLabel: "Oct 21, 2026",
+        hasEvents: false,
+        uptimePercent: 0,
+        incidentCount: 0,
+      }),
+    ).toBe("Oct 21, 2026: no data");
+  });
+
+  test("isMonitoringOffDay: no data, and at least a second with monitoring off", () => {
+    expect(
+      DayUptimeGraphUtil.isMonitoringOffDay({
+        hasEvents: false,
+        monitoringOffSeconds: 1,
+      }),
+    ).toBe(true);
+    expect(
+      DayUptimeGraphUtil.isMonitoringOffDay({
+        hasEvents: false,
+        monitoringOffSeconds: 0.999,
+      }),
+    ).toBe(false);
+    expect(
+      DayUptimeGraphUtil.isMonitoringOffDay({
+        hasEvents: true,
+        monitoringOffSeconds: 86400,
+      }),
+    ).toBe(false);
+    expect(DayUptimeGraphUtil.isMonitoringOffDay({ hasEvents: false })).toBe(
+      false,
+    );
+  });
+
+  describe("getMonitoringOffSecondsOfDay, from timeline rows", () => {
+    const DAY_START: Date = new Date("2026-10-21T00:00:00.000Z");
+    const DAY_END: Date = new Date("2026-10-22T00:00:00.000Z");
+
+    function at(hour: number): Date {
+      return new Date(DAY_START.getTime() + hour * 3600 * 1000);
+    }
+
+    function offSeconds(data: {
+      off: Array<[number, number]>;
+      checked?: Array<[number, number]>;
+    }): number {
+      return DayUptimeGraphUtil.getMonitoringOffSecondsOfDay({
+        monitoringOffSpans: data.off.map((span: [number, number]) => {
+          return { startDate: at(span[0]), endDate: at(span[1]) };
+        }),
+        checkedSpans: (data.checked || []).map((span: [number, number]) => {
+          return { startDate: at(span[0]), endDate: at(span[1]) };
+        }),
+        dayStart: DAY_START,
+        dayEnd: DAY_END,
+      });
+    }
+
+    test("a span inside the day is its length", () => {
+      expect(offSeconds({ off: [[6, 12]] })).toBe(6 * 3600);
+    });
+
+    test("a span across the day's edges counts only its part in the day", () => {
+      expect(offSeconds({ off: [[-30, 6]] })).toBe(6 * 3600);
+      expect(offSeconds({ off: [[18, 50]] })).toBe(6 * 3600);
+      expect(offSeconds({ off: [[-48, 48]] })).toBe(24 * 3600);
+      expect(offSeconds({ off: [[30, 40]] })).toBe(0);
+    });
+
+    test("overlapping spans - two monitors of a group off at once - count once", () => {
+      expect(
+        offSeconds({
+          off: [
+            [0, 12],
+            [6, 18],
+          ],
+        }),
+      ).toBe(18 * 3600);
+      expect(
+        offSeconds({
+          off: [
+            [0, 6],
+            [6, 12],
+          ],
+        }),
+      ).toBe(12 * 3600);
+    });
+
+    test("time something was checked is not time off: a group's other monitor was up", () => {
+      expect(
+        offSeconds({
+          off: [[0, 24]],
+          checked: [
+            [0, 10],
+            [8, 18],
+          ],
+        }),
+      ).toBe(6 * 3600);
+      expect(offSeconds({ off: [[0, 24]], checked: [[0, 24]] })).toBe(0);
+    });
+
+    test("no span, or a day of no length, is no time off", () => {
+      expect(offSeconds({ off: [], checked: [[0, 24]] })).toBe(0);
+      expect(
+        DayUptimeGraphUtil.getMonitoringOffSecondsOfDay({
+          monitoringOffSpans: [{ startDate: at(0), endDate: at(24) }],
+          checkedSpans: [],
+          dayStart: DAY_END,
+          dayEnd: DAY_START,
+        }),
+      ).toBe(0);
+    });
+  });
+});

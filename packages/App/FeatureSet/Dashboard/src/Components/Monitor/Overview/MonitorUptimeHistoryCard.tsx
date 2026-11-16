@@ -20,16 +20,22 @@ import {
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarTooltipMaintenance from "Common/Types/Monitor/UptimeBarTooltipMaintenance";
 import ObjectID from "Common/Types/ObjectID";
-import { UptimeStatusDuration } from "Common/Types/StatusPage/UptimeDailyAggregate";
+import {
+  UptimeDayBucket,
+  UptimeStatusDuration,
+} from "Common/Types/StatusPage/UptimeDailyAggregate";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import {
+  MONITORING_OFF_BAR_CLASS_NAME,
+  MONITORING_OFF_BAR_COLOR,
   NO_DATA_BAR_COLOR,
   UptimeBarDaySummary,
 } from "Common/UI/Components/Graphs/DayUptimeGraph";
+import DayUptimeGraphUtil from "Common/Utils/Uptime/DayUptimeGraphUtil";
 import MonitorUptimeGraph from "Common/UI/Components/MonitorGraphs/Uptime";
 import UptimeBarDayModal from "Common/UI/Components/MonitorGraphs/UptimeBarDayModal";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -68,8 +74,13 @@ export interface ComponentProps {
 }
 
 const CARD_TITLE: string = translationKey("Uptime history");
+/*
+ * Grey bars are days nothing was measured: no data, or monitoring off,
+ * which is drawn in a lighter grey with stripes and named in the legend
+ * (issue #7112).
+ */
 const CARD_DESCRIPTION: string = translationKey(
-  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data.",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.",
 );
 
 interface StatusModels {
@@ -402,6 +413,19 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
     });
   }
 
+  /*
+   * A day nothing was checked on because monitoring was off (issue #7112):
+   * its bar is the monitoring-off grey, and the legend names it.
+   */
+  const hasMonitoringOffDay: boolean = summary.buckets.some(
+    (bucket: UptimeDayBucket): boolean => {
+      return DayUptimeGraphUtil.isMonitoringOffDay({
+        hasEvents: bucket.coveredSeconds > 0,
+        monitoringOffSeconds: bucket.monitoringOffSeconds,
+      });
+    },
+  );
+
   const monitorCreatedAt: Date | undefined = props.monitorCreatedAt
     ? OneUptimeDate.fromString(props.monitorCreatedAt)
     : undefined;
@@ -502,6 +526,31 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
             <MonitorStatusDot color={NO_DATA_BAR_COLOR.toString()} />
             {translator.translateText("No data")}
           </li>
+          {hasMonitoringOffDay ? (
+            <li
+              className="inline-flex items-center gap-1.5"
+              data-testid="monitor-uptime-legend-monitoring-off"
+            >
+              {/*
+               * A small bar drawn by the strip's own class over its own
+               * grey, so the key and the days it names never drift apart.
+               */}
+              <span
+                aria-hidden="true"
+                className={`${MONITORING_OFF_BAR_CLASS_NAME} inline-block h-3 w-2 rounded-sm`}
+                style={{
+                  backgroundColor: MONITORING_OFF_BAR_COLOR.toString(),
+                }}
+              />
+              {/*
+               * The Status Timeline's word for the same time on this page,
+               * in the reader's language.
+               */}
+              {translator.translateText("Monitoring off")}
+            </li>
+          ) : (
+            <></>
+          )}
           {maintenanceEvents.length > 0 ? (
             <li
               className="inline-flex items-center gap-1.5"
@@ -599,6 +648,7 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
             uptimePercent={selectedDay.summary.uptimePercent}
             hasEvents={selectedDay.summary.hasEvents}
             statusDurations={selectedDay.summary.statusDurations}
+            monitoringOffSeconds={selectedDay.summary.monitoringOffSeconds}
             maintenanceEvents={selectedDay.summary.maintenanceEvents}
             onMaintenanceClick={navigateToMaintenance}
             onIncidentClick={navigateToIncident}

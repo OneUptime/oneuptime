@@ -1018,6 +1018,8 @@ import { AddServiceLevelObjectiveRequestFilter1809179900000 } from "./1809179900
 import { AddNetworkEndpointAttachmentSeenAt1809180000000 } from "./1809180000000-AddNetworkEndpointAttachmentSeenAt";
 import { AddIsSnmpReachableToNetworkDeviceStatusIndex1809180100000 } from "./1809180100000-AddIsSnmpReachableToNetworkDeviceStatusIndex";
 import { AddUserOnCallLogMergedInto1809180370000 } from "./1809180370000-AddUserOnCallLogMergedInto";
+import { MasterApiKeyHashedColumn1809180790100 } from "./1809180790100-MasterApiKeyHashedColumn";
+import { RemoveSampleProject1809180800000 } from "./1809180800000-RemoveSampleProject";
 
 export default [
   InitialMigration,
@@ -2040,4 +2042,6 @@ export default [
   AddNetworkEndpointAttachmentSeenAt1809180000000,
   AddIsSnmpReachableToNetworkDeviceStatusIndex1809180100000,
   AddUserOnCallLogMergedInto1809180370000,
+  MasterApiKeyHashedColumn1809180790100,
+  RemoveSampleProject1809180800000,
 ];

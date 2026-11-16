@@ -660,12 +660,6 @@
         "usageCardDescription": "課金のオン・オフにかかわらず、各プロジェクトの日ごとのテレメトリ使用量を保持する期間です。",
         "usageEditButton": "テレメトリ使用量保持を編集"
       },
-      "apiKey": {
-        "cardTitle": "マスターAPIキー設定",
-        "cardDescription": "このサーバーのすべてのプロジェクトに root アクセスできます。",
-        "editButton": "APIキー設定を編集",
-        "apiKeyNotGenerated": "APIキーはまだ生成されていません。"
-      },
       "llmProviders": {
         "bannerTitle": "LLMプロバイダーの設定にサポートが必要ですか？",
         "bannerDescription": "LLMプロバイダーはAI機能を有効にします。すべてのプロジェクトで利用可能なグローバルLLMプロバイダーを設定できます。",
@@ -776,7 +770,6 @@
   "Edit Server": "サーバーを編集",
   "Edit SMTP Config": "SMTP 構成を編集",
   "Edit API Key": "API キーを編集",
-  "Edit API Key Settings": "API キー設定を編集",
   "Edit Twilio Config": "Twilio 構成を編集",
   "Edit Telegram Config": "Telegram 構成を編集",
   "Edit Meta WhatsApp Config": "Meta WhatsApp 構成を編集",
@@ -4044,6 +4037,16 @@
   "### Required WhatsApp Templates": "### 必要な WhatsApp テンプレート",
   "### Template Bodies": "### テンプレートの本文",
   "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Meta で各テンプレートを作成するときは、下のテンプレート本文を句読点や空白も含めてそのままコピーしてください。変数の一覧には、WhatsApp Manager で設定が必要なプレースホルダーがすべて示されています。",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "キーはまだありません。マスター管理者として API を呼び出すスクリプトやツール用に作成してください。",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "キーが設定されています。作成時に一度だけ表示されました。保存されているのはハッシュだけなので、もう一度表示することはできません。紛失した場合はリセットしてください。",
+  "Create Key": "キーを作成",
+  "Reset Key": "キーをリセット",
+  "Requests with the key are accepted.": "このキーを使ったリクエストは受け付けられます。",
+  "Reset Master API Key?": "マスターAPIキーをリセットしますか？",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "現在のキーは、それを使うすべてのスクリプトとツールで直ちに使えなくなります。新しいキーは一度だけ表示されます。",
+  "Copy Your Master API Key": "マスターAPIキーをコピー",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "今すぐコピーして、シークレットマネージャーなどの安全な場所に保管してください。表示されるのは今回だけです。OneUptime はハッシュしか保存しません。",
+  "The server did not answer with the master API key. Try again.": "サーバーはマスターAPIキーを返しませんでした。もう一度お試しください。",
   "Invoice Number": "請求書番号",
   "Invoice Date": "請求書の日付",
   "Billed For": "請求対象",

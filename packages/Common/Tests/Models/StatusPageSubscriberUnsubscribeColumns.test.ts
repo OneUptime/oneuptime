@@ -80,6 +80,11 @@ describe("StatusPageSubscriber.unsubscribeToken", () => {
     expect(metadata("unsubscribeToken").type).toBe(TableColumnType.ShortText);
   });
 
+  /*
+   * The service mints it on every create, after the caller's values are
+   * asked: the check of the record as written takes the minted token as the
+   * create's own (columnsSetByServer, which DatabaseService hands over).
+   */
   test("a teammate's create carrying the minted token passes the column check", () => {
     const created: StatusPageSubscriber = new StatusPageSubscriber();
     created.projectId = projectId;
@@ -99,8 +104,32 @@ describe("StatusPageSubscriber.unsubscribeToken", () => {
           created,
           props([permission]),
           DatabaseRequestType.Create,
+          ["unsubscribeToken"],
         );
       }).not.toThrow();
+    }
+  });
+
+  // A token the create itself sends is the caller's: refused (#6541).
+  test("a teammate's create that sends a token of its own is refused", () => {
+    const created: StatusPageSubscriber = new StatusPageSubscriber();
+    created.projectId = projectId;
+    created.statusPageId = ObjectID.generate();
+    created.subscriberEmail = new Email("site03-all@acme.com");
+    created.unsubscribeToken = "ab".repeat(32);
+
+    for (const permission of [
+      Permission.ProjectAdmin,
+      Permission.StatusPageAdmin,
+      Permission.CreateStatusPageSubscriber,
+    ]) {
+      expect(() => {
+        ColumnPermissions.checkComputedColumnsSentOnCreate(
+          StatusPageSubscriber,
+          created,
+          props([permission]),
+        );
+      }).toThrow(/unsubscribeToken/);
     }
   });
 
@@ -185,6 +214,7 @@ describe("StatusPageSubscriber.isAddedByTeam", () => {
     expect(metadata("isAddedByTeam").defaultValue).toBe(false);
   });
 
+  // The stamp is the service's: the create's own write (columnsSetByServer).
   test("a teammate's create carrying the stamp passes the column check", () => {
     const created: StatusPageSubscriber = new StatusPageSubscriber();
     created.projectId = projectId;
@@ -198,9 +228,52 @@ describe("StatusPageSubscriber.isAddedByTeam", () => {
         created,
         props([Permission.CreateStatusPageSubscriber]),
         DatabaseRequestType.Create,
+        ["isAddedByTeam"],
       );
     }).not.toThrow();
   });
+
+  /*
+   * A teammate or an API key that sends `false` itself never keeps it
+   * (#6541): one who may read the column - a subscriber read and sent back
+   * whole carries it - has the value dropped, and the service stamps its
+   * own; one who may not even read it is refused.
+   */
+  test.each([true, false])(
+    "a create that sends it as %s itself never keeps it",
+    (value: boolean) => {
+      function sending(): StatusPageSubscriber {
+        const created: StatusPageSubscriber = new StatusPageSubscriber();
+        created.projectId = projectId;
+        created.statusPageId = ObjectID.generate();
+        created.subscriberEmail = new Email("site03-all@acme.com");
+        created.isAddedByTeam = value;
+        return created;
+      }
+
+      const fromAReader: StatusPageSubscriber = sending();
+
+      expect(
+        ColumnPermissions.checkComputedColumnsSentOnCreate(
+          StatusPageSubscriber,
+          fromAReader,
+          props([
+            Permission.CreateStatusPageSubscriber,
+            Permission.ReadStatusPageSubscriber,
+          ]),
+        ),
+      ).toEqual([]);
+      expect(fromAReader.isAddedByTeam).toBeUndefined();
+
+      expect(() => {
+        ColumnPermissions.checkComputedColumnsSentOnCreate(
+          StatusPageSubscriber,
+          sending(),
+          props([Permission.CreateStatusPageSubscriber]),
+        );
+      }).toThrow(/isAddedByTeam/);
+    },
+  );
 
   test("nobody may turn it off (or on) on an update", () => {
     const update: StatusPageSubscriber = new StatusPageSubscriber();

@@ -5,7 +5,8 @@
  * Monitor.incomingMonitorRequest is the copy people read - the overview,
  * the API, MCP, Terraform, workflow and runbook steps - cut as the
  * monitor's logs are, so everyone who reads the monitor may read it, a
- * Viewer included.
+ * Viewer included. Only the server writes it, from each request the monitor
+ * receives: no create or update through the API may carry one (#6541).
  *
  * Monitor.incomingMonitorRequestAsReceived is the request as it came, for
  * the heartbeat job to judge again. Nobody reads or writes it through the
@@ -222,15 +223,16 @@ describe("a write that carries the request as it came", () => {
     return monitor;
   }
 
-  // The refused column's name, or "allowed".
-  function columnCheck(
+  // The refused column's name, or "allowed", for a write carrying `column`.
+  function columnCheckOf(
+    column: string,
     permission: Permission,
     requestType: DatabaseRequestType,
   ): string {
     try {
       ColumnPermissions.checkDataColumnPermissions(
         Monitor,
-        monitorCarrying("incomingMonitorRequestAsReceived"),
+        monitorCarrying(column),
         memberWith(permission),
         requestType,
       );
@@ -243,6 +245,17 @@ describe("a write that carries the request as it came", () => {
     }
 
     return "allowed";
+  }
+
+  function columnCheck(
+    permission: Permission,
+    requestType: DatabaseRequestType,
+  ): string {
+    return columnCheckOf(
+      "incomingMonitorRequestAsReceived",
+      permission,
+      requestType,
+    );
   }
 
   test.each(WRITERS)(
@@ -291,19 +304,85 @@ describe("a write that carries the request as it came", () => {
   });
 
   /*
-   * The copy people read keeps the create permission it always had (a
-   * follow-up takes it away); the next request writes both copies over
-   * it, and the heartbeat splits a copy with no request beside it.
+   * The copy people read is the server's too (#6541): a create that carries
+   * a made-up latest request is refused for every role that may create a
+   * monitor, as an update is, so no monitor starts out showing a request it
+   * never received, nor one the heartbeat could take for the latest.
    */
-  test("a create may still carry the copy people read, as it always could", () => {
-    expect(() => {
-      ColumnPermissions.checkDataColumnPermissions(
+  test.each(WRITERS)(
+    "%s cannot create a monitor with the copy people read either",
+    (permission: Permission) => {
+      expect(
+        columnCheckOf(
+          "incomingMonitorRequest",
+          permission,
+          DatabaseRequestType.Create,
+        ),
+      ).toBe("incomingMonitorRequest");
+    },
+  );
+
+  test.each(WRITERS)(
+    "%s cannot update the copy people read",
+    (permission: Permission) => {
+      expect(
+        columnCheckOf(
+          "incomingMonitorRequest",
+          permission,
+          DatabaseRequestType.Update,
+        ),
+      ).toBe("incomingMonitorRequest");
+    },
+  );
+
+  test("a whole create that carries the copy people read is refused, and says no permission allows it", () => {
+    let refusal: unknown = null;
+
+    try {
+      CreatePermission.checkCreatePermissions(
         Monitor,
         monitorCarrying("incomingMonitorRequest"),
-        memberWith(Permission.ProjectMember),
-        DatabaseRequestType.Create,
+        memberWith(Permission.ProjectOwner),
+      );
+    } catch (error) {
+      refusal = error;
+    }
+
+    expect(refusal).toBeInstanceOf(ColumnWriteRefusedException);
+    expect((refusal as ColumnWriteRefusedException).columnName).toBe(
+      "incomingMonitorRequest",
+    );
+    expect((refusal as Error).message).toContain("No permission allows it");
+  });
+
+  test("OneUptime's own create may carry the copy people read: the server writes it", () => {
+    expect(() => {
+      CreatePermission.checkCreatePermissions(
+        Monitor,
+        monitorCarrying("incomingMonitorRequest"),
+        { isRoot: true },
       );
     }).not.toThrow();
+  });
+
+  /*
+   * Neither copy is computed: no create's own steps write either one, so
+   * the check of the record as written holds a value in it to the empty
+   * create list whoever set it, and nothing about a server-set column lets
+   * it through (ColumnPermission.getComputedColumnsWithValue).
+   */
+  test("a create's value in either copy is no server-set column's", () => {
+    for (const column of [
+      "incomingMonitorRequest",
+      "incomingMonitorRequestAsReceived",
+    ]) {
+      expect(
+        ColumnPermissions.getComputedColumnsWithValue(
+          new Monitor(),
+          monitorCarrying(column),
+        ),
+      ).toEqual([]);
+    }
   });
 });
 
@@ -319,13 +398,16 @@ describe("Monitor.incomingMonitorRequest: the copy people read", () => {
     expect(accessOf("incomingMonitorRequest").read).toContain(permission);
   });
 
-  /*
-   * A monitor's create may carry one, as it always could; every request
-   * that comes in writes both copies over it, and the heartbeat splits a
-   * copy with no request beside it.
-   */
-  test("nobody updates it through the API: the server writes it, from each request", () => {
+  // Every request that comes in writes both copies (LatestIncomingRequest).
+  test("nobody creates or updates it through the API: the server writes it, from each request", () => {
+    expect(accessOf("incomingMonitorRequest").create).toEqual([]);
     expect(accessOf("incomingMonitorRequest").update).toEqual([]);
+  });
+
+  test("it is not computed: the server's writes of it make no create", () => {
+    expect(
+      new Monitor().getTableColumnMetadata("incomingMonitorRequest").computed,
+    ).toBeFalsy();
   });
 
   test("its description says what it holds: cut as the logs are", () => {

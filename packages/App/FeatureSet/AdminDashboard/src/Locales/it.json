@@ -660,12 +660,6 @@
         "usageCardDescription": "Per quanto tempo viene conservato l'utilizzo giornaliero della telemetria di ogni progetto, con la fatturazione attiva o no.",
         "usageEditButton": "Modifica conservazione dell'utilizzo della telemetria"
       },
-      "apiKey": {
-        "cardTitle": "Impostazioni della chiave API master",
-        "cardDescription": "Ha accesso root a ogni progetto su questo server.",
-        "editButton": "Modifica impostazioni chiave API",
-        "apiKeyNotGenerated": "Chiave API non ancora generata."
-      },
       "llmProviders": {
         "bannerTitle": "Hai bisogno di aiuto per configurare i fornitori LLM?",
         "bannerDescription": "I fornitori LLM abilitano le funzionalità IA. Puoi configurare fornitori LLM globali disponibili per tutti i progetti.",
@@ -776,7 +770,6 @@
   "Edit Server": "Modifica server",
   "Edit SMTP Config": "Modifica configurazione SMTP",
   "Edit API Key": "Modifica chiave API",
-  "Edit API Key Settings": "Modifica impostazioni chiave API",
   "Edit Twilio Config": "Modifica configurazione Twilio",
   "Edit Telegram Config": "Modifica configurazione Telegram",
   "Edit Meta WhatsApp Config": "Modifica configurazione Meta WhatsApp",
@@ -4044,6 +4037,16 @@
   "### Required WhatsApp Templates": "### Modelli WhatsApp richiesti",
   "### Template Bodies": "### Contenuto dei modelli",
   "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Copia esattamente il contenuto del modello qui sotto — punteggiatura e spazi compresi — quando crei ogni modello in Meta. L'elenco delle variabili mostra ogni segnaposto da configurare in WhatsApp Manager.",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "Nessuna chiave ancora. Creane una per gli script e gli strumenti che chiamano l'API come amministratore principale.",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "È impostata una chiave. È stata mostrata una volta, quando è stata creata: viene conservato solo il suo hash, quindi non può essere mostrata di nuovo. Se l'hai persa, reimpostala.",
+  "Create Key": "Crea chiave",
+  "Reset Key": "Reimposta la chiave",
+  "Requests with the key are accepted.": "Le richieste con la chiave vengono accettate.",
+  "Reset Master API Key?": "Reimpostare la chiave API master?",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "La chiave attuale smette subito di funzionare, per ogni script e strumento che la usa. La nuova chiave viene mostrata una volta.",
+  "Copy Your Master API Key": "Copia la tua chiave API master",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Copiala ora e conservala in un posto sicuro, ad esempio in un gestore di segreti. Viene mostrata solo questa volta: OneUptime ne conserva solo un hash.",
+  "The server did not answer with the master API key. Try again.": "Il server non ha risposto con la chiave API master. Riprova.",
   "Invoice Number": "Numero della fattura",
   "Invoice Date": "Data della fattura",
   "Billed For": "Fatturato per",

@@ -62,6 +62,7 @@ import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
+import MonitorProbeLastResults from "../../../../Server/Utils/Monitor/MonitorProbeLastResults";
 import MonitorResourceUtil from "../../../../Server/Utils/Monitor/MonitorResource";
 import ExceptionMessages from "../../../../Types/Exception/ExceptionMessages";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
@@ -172,7 +173,7 @@ describe("a result for a monitor of a project that is not blocked", () => {
     findOneById.mockResolvedValue(monitorIn(LIVE_PROJECT_ID) as never);
     // Stops the evaluation at the next question: past the gate is all this asks.
     jest
-      .spyOn(ProjectService, "isSampleProject")
+      .spyOn(MonitorProbeLastResults, "storeResultAndReadProbes")
       .mockRejectedValue(new Error("went on past the gate"));
 
     await expect(

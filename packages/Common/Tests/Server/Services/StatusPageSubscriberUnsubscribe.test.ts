@@ -42,6 +42,7 @@ import { FindOperator } from "typeorm";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { columnsTheCreateWrote } from "../TestingUtils/ColumnsSetByServer";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -399,7 +400,9 @@ describe("a subscriber's unsubscribe token, minted on create", () => {
     /*
      * DatabaseService.create runs the hook first and the column check on
      * what it stamped. Without `computed`, the token - which grants nobody
-     * create - would refuse every Add in Bulk from the dashboard.
+     * create - would refuse every Add in Bulk from the dashboard: the check
+     * takes a computed column the create's own steps wrote as theirs
+     * (columnsSetByServer, which DatabaseService hands over).
      */
     expect(() => {
       ColumnPermissions.checkDataColumnPermissions(
@@ -407,6 +410,7 @@ describe("a subscriber's unsubscribe token, minted on create", () => {
         created,
         makeProps([Permission.ProjectAdmin]),
         DatabaseRequestType.Create,
+        columnsTheCreateWrote(created),
       );
     }).not.toThrow();
   });
@@ -618,6 +622,8 @@ describe("who added a subscriber (Is Added By Team), set on create", () => {
           },
         },
         DatabaseRequestType.Create,
+        // The stamp is the hook's: the create's own write.
+        columnsTheCreateWrote(seenByHook[0]!),
       );
     }).not.toThrow();
   });
