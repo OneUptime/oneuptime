@@ -83,6 +83,17 @@ export const LEVEL_LOOK: Readonly<
 export const DISMISSED_ICON_BOX: IconColorClasses = ICON_COLOR_CLASSES["gray"]!;
 
 /*
+ * The line at the top of a record's page (#7297): a panel in its level's
+ * colour, as the policy summary's "No responders are assigned" is, so it
+ * reads as something to act on before the record's details.
+ */
+export const RECORD_LINE_LOOK: Readonly<Record<SetupHealthLevel, string>> = {
+  [SetupHealthLevel.PagesWillNotArrive]: "border-red-200 bg-red-50",
+  [SetupHealthLevel.WorthFixing]: "border-amber-200 bg-amber-50",
+  [SetupHealthLevel.Suggestion]: "border-gray-200 bg-gray-50",
+};
+
+/*
  * Each check's icon: the icon of the product its record lives in - a
  * monitor's globe, an on-call policy's phone, a status page's window - or of
  * what is switched off. A status page's own icon in the menus is a check
