@@ -18,8 +18,8 @@
  *     .shouldBypassRecordPrivacy);
  *   - Run Workflow does not offer one to run with.
  *
- * Kept free of server and React code, so the server, the dashboard and the
- * tests read the same words.
+ * Kept free of server and React code, so the server and the tests read the
+ * same words.
  */
 
 // What a workflow's run log says when it was started on such a record.
@@ -27,6 +27,6 @@ export function getWorkflowPrivateRecordRefusal(singularName: string): string {
   return `This ${singularName.toLowerCase()} was not found, or it is private or part of a private record. ${WORKFLOW_PRIVATE_RECORDS_SENTENCE}`;
 }
 
-// Why, in one sentence: the docs and the Builder say it in these words.
+// Why, in one sentence, as the run log says it after what it refused.
 export const WORKFLOW_PRIVATE_RECORDS_SENTENCE: string =
   "Workflows don't act on private incidents, alerts or episodes, or on anything that belongs to one.";

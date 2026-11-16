@@ -78,8 +78,8 @@ export default class PrivateRecordReadFilter {
    * the kind), not as every record it lets through: the rows it narrows can
    * be many - a project's notification logs - and the private records are
    * few, so Postgres answers it with an anti-join on the record's primary
-   * key. A private record deleted since is still left out: what was done
-   * about it stays its owners'.
+   * key. Deleting a private record deletes the pages and logs about it with
+   * it; a runbook run or a fix linked to it outlives it, naming no record.
    */
   public static getOptionalRecordReadRaw(data: {
     kind: PrivateRecordKind;
