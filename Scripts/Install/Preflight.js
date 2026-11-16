@@ -279,9 +279,21 @@ const MAX_NAME_PART_LENGTH = 63;
 // A character beyond ASCII: a letter of a name DNS keeps in its xn-- form.
 const BEYOND_ASCII = /[^\u0000-\u007f]/;
 
+/*
+ * An IPv6 address by the rule the app reads HOST's brackets by as it starts
+ * (isIPv6 in packages/Common/Types/IP/IP.ts, which Hostname asks). Node's
+ * net.isIPv6, which this used, takes more: an IPv4 address after six groups
+ * or after groups and "::" (1:2:3:4:5:6:1.2.3.4, 1::2:192.0.2.1), which the
+ * app refuses, so such a HOST got past npm start and every service stopped
+ * as it started (#8877). ::ffff:192.0.2.1 and 64:ff9b::192.0.2.1 it takes.
+ * Tests/Ops/HelmHost.test.js holds this copy to the app's and the chart's.
+ */
+const IPV6_ADDRESS =
+  /^(?:([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/i;
+
 // An IPv6 address, written as a web address can hold one: hex digits, colons and dots, no zone.
 const isIpv6Address = (text) => {
-  return /^[0-9A-Fa-f:.]+$/.test(text) && net.isIPv6(text);
+  return /^[0-9A-Fa-f:.]+$/.test(text) && IPV6_ADDRESS.test(text);
 };
 
 const isPort = (text) => {
@@ -1463,6 +1475,7 @@ module.exports = {
   isIpAddress,
   bracketedReadingsOf,
   HOST_NAME,
+  IPV6_ADDRESS,
   nameProblemOf,
   asciiNameOf,
   hostShapeFinding,

@@ -39,6 +39,7 @@ const { spawnSync } = require("child_process");
 const yaml = require("js-yaml");
 const {
   HOST_NAME,
+  IPV6_ADDRESS,
   hostShapeFinding,
 } = require("../../Scripts/Install/Preflight");
 
@@ -242,6 +243,11 @@ const SHAPES = [
   "[1:2:3:4:5:6:7::]",
   "[::2:3:4:5:6:7:8]",
   "[fe80::1]:65535",
+  "[::192.0.2.1]",
+  // An IPv4 address at the end the app does not read, which Node.js does.
+  "[1:2:3:4:5:6:1.2.3.4]",
+  "[2001:db8::1:192.0.2.1]:8080",
+  "1:2:3:4:5:6:1.2.3.4",
   // IPv6 without brackets: one reading, the other, or both.
   "2001:db8::1",
   "::1",
@@ -304,10 +310,10 @@ const SHAPES = [
 
 /*
  * IPv6 addresses and near misses of every length, for the chart's IPv6 rule,
- * a port of Node.js's net.isIPv6 that Preflight reads HOST by: 0 to 9
- * groups, "::" in every place or none, an IPv4 address or a broken one at
- * the end, and a group that is too long, not hex or empty. Each in brackets,
- * in brackets with a port, and bare.
+ * the app's that Preflight reads HOST by too: 0 to 9 groups, "::" in every
+ * place or none, an IPv4 address or a broken one at the end, and a group
+ * that is too long, not hex or empty. Each in brackets, in brackets with a
+ * port, and bare.
  */
 function ipv6Shapes() {
   const groups = ["0", "1", "db8", "FFFF", "abcd"];
@@ -335,7 +341,8 @@ function ipv6Shapes() {
               : `${parts.slice(0, gap).join(":")}::${parts.slice(gap).join(":")}`;
 
           if (tail) {
-            text = text && !text.endsWith(":") ? `${text}:${tail}` : text + tail;
+            text =
+              text && !text.endsWith(":") ? `${text}:${tail}` : text + tail;
           }
 
           if (text) {
@@ -594,7 +601,10 @@ describe("the chart and npm start refuse the same hosts", () => {
               "goes in brackets, such as [2001:db8::1].",
             )
             // A value to set.
-            .replace(/; without one, write HOST=/g, "; without one, --set host=")
+            .replace(
+              /; without one, write HOST=/g,
+              "; without one, --set host=",
+            )
             .replace(/HOST=/g, "--set host=")
             .replace("HTTP_PROTOCOL says", "httpProtocol says")
         );
@@ -684,5 +694,61 @@ describe("the chart and npm start refuse the same hosts", () => {
     expect(chartRule).not.toBeNull();
     expect(HOST_NAME.source).toBe(appRule[1]);
     expect(chartRule[1]).toBe(appRule[1]);
+  });
+
+  /*
+   * The same for an IPv6 address: the app reads host's brackets by IP's
+   * isIPv6, case-insensitive, as it starts. Node.js's net.isIPv6, which npm
+   * start used, takes more - an IPv4 address after six groups, or after
+   * groups and "::" - and every service then stopped at its start.
+   */
+  test("the chart's IPv6 rule, npm start's and the app's are one rule", () => {
+    const ip = fs.readFileSync(
+      path.join(REPO_ROOT, "packages/Common/Types/IP/IP.ts"),
+      "utf8",
+    );
+    const appRule =
+      /private static isIPv6\(str: string\): boolean \{\s*const regexExp: RegExp =\s*\/(.+)\/(\w*);/.exec(
+        ip,
+      );
+    const chartRule = /\{\{- \$ipv6Rule := `([^`]+)` -\}\}/.exec(helpers);
+
+    expect(appRule).not.toBeNull();
+    expect(chartRule).not.toBeNull();
+    expect({ source: IPV6_ADDRESS.source, flags: IPV6_ADDRESS.flags }).toEqual({
+      source: appRule[1],
+      flags: appRule[2],
+    });
+    expect(chartRule[1]).toBe(appRule[1]);
+    // Case-insensitive in the chart too, as the app's "i".
+    expect(appRule[2]).toBe("i");
+    expect(helpers).toContain('(printf "(?i)%s" $ipv6Rule)');
+  });
+
+  test("npm start and the chart refuse the IPv6 forms the app refuses, and take ::ffff: and NAT64's", () => {
+    const hosts = [
+      "[1:2:3:4:5:6:1.2.3.4]",
+      "[2001:db8::1:192.0.2.1]",
+      "[::ffff:192.0.2.1]",
+      "[64:ff9b::192.0.2.33]",
+      "[::192.0.2.1]",
+    ];
+    const problems = chartProblems(hosts);
+
+    expect(
+      hosts.map((host) => {
+        return {
+          host,
+          chart: Boolean(problems[host]),
+          npmStart: Boolean(hostShapeFinding(host)),
+        };
+      }),
+    ).toEqual([
+      { host: "[1:2:3:4:5:6:1.2.3.4]", chart: true, npmStart: true },
+      { host: "[2001:db8::1:192.0.2.1]", chart: true, npmStart: true },
+      { host: "[::ffff:192.0.2.1]", chart: false, npmStart: false },
+      { host: "[64:ff9b::192.0.2.33]", chart: false, npmStart: false },
+      { host: "[::192.0.2.1]", chart: false, npmStart: false },
+    ]);
   });
 });

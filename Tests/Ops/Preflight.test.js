@@ -814,6 +814,32 @@ describe("an IPv6 HOST goes in brackets", () => {
     },
   );
 
+  /*
+   * The app reads HOST's brackets by its own rule (IP.isIPv6 in
+   * Common/Types/IP/IP.ts), which takes an IPv4 address at the end only
+   * after "::" or groups and "::" up to four of them, or as ::ffff:. Node.js's
+   * net.isIPv6, which this used, takes every form, and a HOST the app
+   * refuses then got past the start, and every service stopped as it started
+   * (#8877).
+   */
+  test.each(["[1:2:3:4:5:6:1.2.3.4]", "[2001:db8::1:192.0.2.1]:8080"])(
+    "HOST=%s, with an IPv4 address at its end the app does not read, stops the start",
+    (host) => {
+      expect(levelsOf(findingsFor(host))).toEqual(["stop"]);
+      expect(findingsFor(host)[0].message).toContain(
+        "Brackets hold an IPv6 address and nothing else",
+      );
+      expect(net.isIPv6(host.slice(1, host.indexOf("]")))).toBe(true);
+    },
+  );
+
+  test.each(["[::ffff:192.0.2.1]", "[64:ff9b::192.0.2.33]", "[::192.0.2.1]"])(
+    "HOST=%s, with an IPv4 address at its end the app reads, starts",
+    (host) => {
+      expect(findingsFor(host)).toEqual([]);
+    },
+  );
+
   test("a port with no address before it stops the start", () => {
     expect(findingsFor(":8080")).toEqual([
       {

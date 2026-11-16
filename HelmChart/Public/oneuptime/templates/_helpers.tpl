@@ -208,15 +208,15 @@ no IPv6 address either way. Preflight.js's bracketedReadingsOf, here.
 
 {{/*
 "true" for an IPv6 address as a web address holds one (hex digits, colons and
-dots, no zone), or nothing: Node.js's net.isIPv6 rule, which Preflight.js
-reads HOST by, in RE2.
+dots, no zone), or nothing: the rule the app reads host's brackets by as it
+starts (isIPv6 in packages/Common/Types/IP/IP.ts, case-insensitive there too),
+which Preflight.js holds HOST to. Tests/Ops/HelmHost.test.js holds $ipv6Rule
+to the app's.
 */}}
 {{- define "oneuptime.isIpv6Address" -}}
-{{- $v4Part := `(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])` -}}
-{{- $v4 := printf `(?:%s\.){3}%s` $v4Part $v4Part -}}
-{{- $g := `(?:[0-9a-fA-F]{1,4})` -}}
-{{- $rule := printf `^(?:(?:%[1]s:){7}(?:%[1]s|:)|(?:%[1]s:){6}(?:%[2]s|:%[1]s|:)|(?:%[1]s:){5}(?::%[2]s|(?::%[1]s){1,2}|:)|(?:%[1]s:){4}(?:(?::%[1]s){0,1}:%[2]s|(?::%[1]s){1,3}|:)|(?:%[1]s:){3}(?:(?::%[1]s){0,2}:%[2]s|(?::%[1]s){1,4}|:)|(?:%[1]s:){2}(?:(?::%[1]s){0,3}:%[2]s|(?::%[1]s){1,5}|:)|(?:%[1]s:){1}(?:(?::%[1]s){0,4}:%[2]s|(?::%[1]s){1,6}|:)|(?::(?:(?::%[1]s){0,5}:%[2]s|(?::%[1]s){1,7}|:)))$` $g $v4 -}}
-{{- if regexMatch $rule (toString .) -}}true{{- end -}}
+{{- $text := toString . -}}
+{{- $ipv6Rule := `^(?:([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$` -}}
+{{- if and (regexMatch `^[0-9A-Fa-f:.]+$` $text) (regexMatch (printf "(?i)%s" $ipv6Rule) $text) -}}true{{- end -}}
 {{- end -}}
 
 {{/*
