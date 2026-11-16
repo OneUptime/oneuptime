@@ -38,7 +38,7 @@ Die Zeile ganz oben nennt das Dringendste, was gerade offen ist, in einer passen
 | Monitore laufen, und nichts ist offen | **Alle Systeme betriebsbereit** |
 | Das Projekt hat noch keine Monitore | **Es wird noch nichts überwacht** |
 
-Daneben zeigt die Startseite, wann sie das Projekt zuletzt geladen hat, und **Aktualisieren** lädt es neu. Wenn Sie nach einer Minute oder länger zu einem Tab mit der Startseite zurückkehren, aktualisiert sie sich von selbst.
+Daneben zeigt die Startseite, wann sie das Projekt zuletzt geladen hat, und **Aktualisieren** lädt es neu. Die Startseite folgt außerdem dem, was sie zählt: Wird ein Vorfall, eine Warnung, ein Monitor, ein Wartungsereignis oder ein SLO erstellt, geändert oder gelöscht, ziehen die Zeile, die Zahlen, **Erfordert Aufmerksamkeit** und **Bevorstehende Wartung** innerhalb von Sekunden nach, ohne Neuladen. Wenn Sie nach einer Minute oder länger zu einem Tab mit der Startseite zurückkehren, aktualisiert sie sich von selbst.
 
 Solange noch nichts überwacht wird, endet die Zeile mit der Schaltfläche **Ersten Monitor erstellen**, die die geführte Einrichtung **Wissen, wenn meine Website oder API ausfällt** öffnet. Nur wer Monitore erstellen darf, sieht sie.
 
@@ -145,7 +145,7 @@ Ein Wort mit gepunkteter Linie darunter, etwa **Sonden** im Formular eines neuen
 
 Über dem Titel jeder Seite zeigt ein Pfad wie *Projekt › Docker › Einstellungen › Eigentümerregeln*, wo die Seite liegt. Jeder Schritt vor dem letzten öffnet seine Seite.
 
-- **Listen halten sich selbst aktuell.** Wird irgendwo ein Vorfall oder eine Warnung erstellt, bestätigt oder behoben, zeigen die Listen der Vorfälle, Warnungen und Episoden das innerhalb von Sekunden, ohne Neuladen. Solange Sie auf einer Liste mitten in etwas sind, etwa mit markierten Zeilen oder einem offenen Dialog, wartet sie und holt alles nach, wenn Sie fertig sind.
+- **Listen halten sich selbst aktuell.** Wird irgendwo ein Vorfall, eine Warnung, ein Monitor oder ein Wartungsereignis erstellt, geändert oder gelöscht, zeigen die Listen der Vorfälle, Warnungen, Episoden, Monitore und Wartungsereignisse das innerhalb von Sekunden, ohne Neuladen, und ebenso die Zahlen daneben in den Seitenmenüs. Die Zahlen der Glocke und die Listen **Aktive Vorfälle**, **Aktive Warnungen**, **Aktive Vorfall-Episoden** und **Aktive Warnungs-Episoden** folgen allen Projekten, denen Sie angehören, nicht nur dem geöffneten. Solange Sie auf einer Liste mitten in etwas sind, etwa mit markierten Zeilen oder einem offenen Dialog, wartet sie und holt alles nach, wenn Sie fertig sind.
 - **Auf dem Telefon klappen die Filter-Chips weg**, hinter **Filter**, sodass die Liste weiter oben beginnt. Die Chips, die Sie gesetzt haben, bleiben sichtbar, mit **Alle löschen**. Drücken Sie **Filter**, um alle Chips zu sehen, und noch einmal, um sie wieder zuzuklappen.
 - Der Eintrag **Spalten** im Menü **⋯** einer Liste legt fest, welche Spalten die Liste zeigt und in welcher Reihenfolge, und merkt sie sich für Sie in diesem Browser. Ein Projektinhaber oder ein Projektadministrator kann dort außerdem **Diese Spalten allen in diesem Projekt anzeigen** ankreuzen: Wer für diese Liste keine eigenen Spalten gewählt hat, sieht diese, und **Auf Projektstandard zurücksetzen** setzt Ihre eigenen wieder auf sie zurück.
 - Der Eintrag **Kompakte Zeilen** im selben Menü zeichnet die Zeilen jeder Liste niedriger, sodass eine lange Liste etwa ein Fünftel mehr davon zeigt. Die Wahl bleibt in diesem Browser gespeichert.

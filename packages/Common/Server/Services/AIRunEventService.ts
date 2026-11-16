@@ -168,6 +168,14 @@ export class Service extends DatabaseService<Model> {
     return { findBy, carryForward: null };
   }
 
+  /*
+   * The read hook keeps a run's event to the person it belongs to, by its
+   * user (AIChatPrivacyFilter). See DatabaseService.
+   */
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return ["userId"];
+  }
+
   @CaptureSpan()
   public override async countBy(
     countBy: CountBy<Model>,

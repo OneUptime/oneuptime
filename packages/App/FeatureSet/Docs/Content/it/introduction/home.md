@@ -38,7 +38,7 @@ La riga in alto nomina la cosa più urgente tra quelle aperte, in un colore corr
 | I monitor sono attivi e non c'è nulla di aperto | **Tutti i sistemi sono operativi** |
 | Il progetto non ha ancora monitor | **Non c'è ancora nulla sotto monitoraggio** |
 
-Accanto, la home dice quando ha caricato il progetto l'ultima volta, e **Aggiorna** lo ricarica. Quando torni a una scheda della home dopo un minuto o più, si aggiorna da sola.
+Accanto, la home dice quando ha caricato il progetto l'ultima volta, e **Aggiorna** lo ricarica. La home segue anche ciò che conta mentre cambia: quando un incidente, un avviso, un monitor, un evento di manutenzione o uno SLO viene creato, modificato o eliminato, la riga, i numeri, **Richiede attenzione** e **Prossime manutenzioni** si aggiornano in pochi secondi, senza ricaricare. Quando torni a una scheda della home dopo un minuto o più, si aggiorna da sola.
 
 Finché non c'è ancora nulla sotto monitoraggio, la riga termina con il pulsante **Crea il tuo primo monitor**, che apre la configurazione guidata **Sapere quando il mio sito web o la mia API non funziona**. Lo vede solo chi può creare monitor.
 
@@ -145,7 +145,7 @@ Una parola con una linea tratteggiata sotto, come **Sonde** nel modulo di un nuo
 
 Sopra il titolo di ogni pagina, un percorso come *Progetto › Docker › Impostazioni › Regole del proprietario* dice dove si trova la pagina. Ogni passo prima dell'ultimo apre la sua pagina.
 
-- **Gli elenchi si aggiornano da soli.** Quando un incidente o un avviso viene creato, preso in carico o risolto ovunque, gli elenchi di incidenti, avvisi ed episodi lo mostrano in pochi secondi, senza ricaricare. Mentre sei nel mezzo di qualcosa in un elenco, ad esempio con righe selezionate o una finestra di dialogo aperta, l'elenco aspetta e si aggiorna quando hai finito.
+- **Gli elenchi si aggiornano da soli.** Quando un incidente, un avviso, un monitor o un evento di manutenzione viene creato, modificato o eliminato ovunque, gli elenchi di incidenti, avvisi, episodi, monitor ed eventi di manutenzione lo mostrano in pochi secondi, senza ricaricare, e così i conteggi accanto a loro nei menu laterali. I conteggi della campanella, e gli elenchi **Incidenti attivi**, **Avvisi attivi**, **Episodi di incidente attivi** ed **Episodi di avviso attivi**, seguono tutti i progetti di cui fai parte, non solo quello aperto. Mentre sei nel mezzo di qualcosa in un elenco, ad esempio con righe selezionate o una finestra di dialogo aperta, l'elenco aspetta e si aggiorna quando hai finito.
 - **Su un telefono i chip dei filtri si richiudono** dietro **Filtro**, così l'elenco comincia più in alto. I chip che hai impostato restano in vista, con **Cancella tutto**. Premi **Filtro** per vedere tutti i chip, e di nuovo per richiuderli.
 - La voce **Colonne** nel menu **⋯** di un elenco sceglie quali colonne mostra l'elenco e in che ordine, e le conserva per te in questo browser. Un Proprietario del progetto o un Amministratore del progetto può anche spuntare lì **Mostra queste colonne a tutti in questo progetto**: chi non ha scelto le proprie colonne per quell'elenco vede queste, e **Reimposta i valori predefiniti del progetto** riporta le tue a queste.
 - La voce **Righe compatte**, nello stesso menu, disegna più basse le righe di ogni elenco, così un elenco lungo ne mostra circa un quinto in più. La scelta resta in questo browser.

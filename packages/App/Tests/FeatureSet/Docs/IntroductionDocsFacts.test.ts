@@ -2421,6 +2421,60 @@ describe("Home Page & Shortcuts", () => {
     );
   });
 
+  /*
+   * Home follows what it counts as it changes (#8963): its batch hears every
+   * kind it counts (UseHomeOverview), and Upcoming maintenance its events.
+   */
+  it("says Home follows what it counts as it changes, as the overview and Upcoming maintenance hear it", () => {
+    expect(sectionOf(HOME, "### The headline")).toContain(
+      "Home also follows what it counts as it changes: when an incident, alert, monitor, maintenance event or SLO is created, changed or deleted, the line, the numbers, **Needs attention** and **Upcoming maintenance** catch up within seconds, without a refresh.",
+    );
+
+    const hook: string = oneLine(
+      dashboard("Components/Home/UseHomeOverview.ts"),
+    );
+    const kinds: RegExpMatchArray | null = hook.match(
+      /HOME_OVERVIEW_LIVE_MODEL_TYPES: ReadonlyArray<\{ new \(\): BaseModel; \}> = \[([^\]]+)\]/,
+    );
+
+    expect(
+      (kinds?.[1] || "")
+        .split(",")
+        .map((kind: string): string => {
+          return kind.trim();
+        })
+        .filter(Boolean),
+    ).toEqual([
+      "Incident",
+      "Alert",
+      "Monitor",
+      "ScheduledMaintenance",
+      "ServiceLevelObjective",
+    ]);
+    expect(hook).toContain(
+      "useLiveRefresh({ modelTypes: HOME_OVERVIEW_LIVE_MODEL_TYPES,",
+    );
+
+    const upcoming: string = oneLine(UPCOMING_SOURCE);
+    expect(upcoming).toContain(
+      "UPCOMING_MAINTENANCE_LIVE_MODEL_TYPES: ReadonlyArray<{ new (): BaseModel; }> = [ScheduledMaintenance];",
+    );
+    expect(upcoming).toContain(
+      "useLiveRefresh({ modelTypes: UPCOMING_MAINTENANCE_LIVE_MODEL_TYPES,",
+    );
+
+    // The words the sentence uses for what it follows are the batch's kinds.
+    for (const kind of [
+      "an incident",
+      "alert",
+      "monitor",
+      "maintenance event",
+      "SLO",
+    ]) {
+      expect(sectionOf(HOME, "### The headline")).toContain(kind);
+    }
+  });
+
   it("says where Create your first monitor leads, as the headline links it", () => {
     const card: string = oneLine(
       dashboard("Components/Home/ProjectHealthCard.tsx"),

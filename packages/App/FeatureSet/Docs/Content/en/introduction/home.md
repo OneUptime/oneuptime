@@ -38,7 +38,7 @@ The line at the top names the most urgent thing that is open, in a matching colo
 | Monitors are running and nothing is open | **All systems operational** |
 | The project has no monitors yet | **Nothing is being monitored yet** |
 
-Beside it, Home says when it last read the project, and **Refresh** reads it again. When you come back to a Home tab after a minute or more, it refreshes by itself.
+Beside it, Home says when it last read the project, and **Refresh** reads it again. Home also follows what it counts as it changes: when an incident, alert, monitor, maintenance event or SLO is created, changed or deleted, the line, the numbers, **Needs attention** and **Upcoming maintenance** catch up within seconds, without a refresh. When you come back to a Home tab after a minute or more, it refreshes by itself.
 
 While nothing is monitored yet, the line ends on **Create your first monitor**, which opens the guided setup **Know when my website or API is down**. Only people who are allowed to create monitors see it.
 
@@ -145,7 +145,7 @@ A word with a dotted line under it, such as **Probes** on a new monitor's form, 
 
 Over every page's title, a trail such as *Project › Docker › Settings › Owner Rules* says where the page is. Each step before the last opens its page.
 
-- **Lists keep themselves current.** When an incident or alert is created, acknowledged or resolved anywhere, the lists of incidents, alerts and episodes show it within seconds, without a refresh. While you are in the middle of something on a list, such as rows ticked or a dialog open, it waits, and catches up when you are done.
+- **Lists keep themselves current.** When an incident, alert, monitor or maintenance event is created, changed or deleted anywhere, the lists of incidents, alerts, episodes, monitors and maintenance events show it within seconds, without a refresh, and so do the counts beside them in the side menus. The bell's counts, and the **Active Incidents**, **Active Alerts**, **Active Incident Episodes** and **Active Alert Episodes** lists, follow every project you belong to, not only the one that is open. While you are in the middle of something on a list, such as rows ticked or a dialog open, it waits, and catches up when you are done.
 - **On a phone, the filter chips fold away** behind **Filter**, so the list starts higher up. The chips you set stay in sight, with **Clear all**. Press **Filter** to see every chip, and again to fold them.
 - **Columns**, in a list's **⋯** menu, picks the columns the list shows and their order, and keeps them for you in this browser. A Project Owner or a Project Admin can tick **Show these columns to everyone in this project** there too: anyone who hasn't picked their own columns for that list sees them, and **Reset to project default** takes your own back to them.
 - **Compact rows**, in the same menu, draws every list's rows shorter, so a long list shows about a fifth more of them. It is kept in this browser.

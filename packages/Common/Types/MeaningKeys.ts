@@ -114,6 +114,15 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    * (overlooked) - which no target is.
    */
   "Missed (target)",
+  /*
+   * Notification Settings' columns for phone calls and push notifications,
+   * and the names its switches, its tabs' summaries and its "Channels not
+   * set up yet" give them (#8887). The bare "Call" is a function call in
+   * Chinese (调用) and Korean (호출), and "Push" a payment in Arabic (الدفع),
+   * as the rest of the Dashboard found (#7178).
+   */
+  "Call (phone call)",
+  "Push (push notification)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

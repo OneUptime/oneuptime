@@ -18,9 +18,9 @@ flowchart TB
     setting -->|"alt fra"| nothing["Intet bliver sendt"]
 ```
 
-- Hver række er en begivenhed, og hver kolonne en kanal: E-mail, SMS, Opkald, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost og Webhook. Slack, Microsoft Teams og Mattermost er kun kolonner, når projektet har forbundet dem.
+- Hver række er en begivenhed, og hver kolonne en kanal: E-mail, SMS, Opkald, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost og Webhook. Slack, Microsoft Teams og Mattermost er kun kolonner, når projektet har forbundet dem. En kanal, du ikke har sat op endnu, er ikke en kolonne: Den står over fanerne under **Kanaler, der ikke er sat op endnu**, som et link til at sætte den op.
 - En kanal, der er slået til, sender til hver bekræftet metode, du har på den i dette projekt, ikke kun til én.
-- En kanal, der er slået til uden en bekræftet metode bagved, sender intet. **Your setup checklist** siger det under **Staying informed**.
+- En kanal, der er slået til uden en bekræftet metode bagved, sender intet. Dens kolonne viser **Konfigurer** under navnet, og dens kontakter kan kun slås fra. **Your setup checklist** siger det også, under **Staying informed**.
 - En nyhed går til tingens ejere: de personer, der er angivet som ejere, og medlemmerne af dens ejerteams. Har en ting ingen ejere, går den i stedet til Projektejere. Den, som vagttilkaldet for en ny hændelse, advarsel eller episode allerede har nået, får ikke besked igen om, at den er oprettet. En begivenhed om at være blevet tilføjet som ejer går kun til den person, der blev tilføjet. Hvis OneUptime stopper, mens den sender en nyhed til en tings ejere, får de personer, den endnu ikke var nået til, den, når OneUptime er tilbage, et par minutter forsinket, og ingen får den to gange.
 - Sikkerhedssager har ingen ejere. En ny sag går til alle, der kan se projektets sager, ved den prioritet, hver af dem vælger, og en tildelt sag går til de personer, den er tildelt. Se [Sikkerhedssager](/docs/telemetry/security-cases#notifikationer).
 - Hver e-mail til ejere slutter med et link, "Manage notification preferences", der fører tilbage hertil.
@@ -34,11 +34,11 @@ Gå til **Brugerindstillinger → Notifikationsindstillinger**. Fanerne er **Hæ
 
 ### Find begivenheden
 
-Hver fane har et eller flere kort, som **Hændelsesepisoder** på fanen **Hændelser**. Hver række er en begivenhed, med en linje, der siger, hvornår den sendes.
+Hver fane har et eller flere kort, som **Hændelsesepisoder** på fanen **Hændelser**. Hver række er en begivenhed, med en linje, der siger, hvornår den sendes. Over kortene siger fanen, hvor mange af dens begivenheder du hører om, og via hvilke kanaler.
 
 ### Klik på en kanal
 
-Klik på en kanals cirkel for at slå den til, og igen for at slå den fra. Et flueben betyder slået til. Ændringer gemmes automatisk.
+Klik på en kanals kontakt for at slå den til, og igen for at slå den fra. Et korts første række, **Alle begivenheder**, slår en kanal til eller fra for hver begivenhed på kortet. Hver ændring gemmes med det samme, og kortet viser **Gemt**.
 :::
 
 ## Hvad der er slået til for et nyt medlem

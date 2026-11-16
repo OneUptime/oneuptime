@@ -400,6 +400,71 @@ export default class AppMetrics {
     return this.ingestDroppedCounter;
   }
 
+  // -- Live updates: who could read a record before a write -------------
+
+  /*
+   * The bounded attributes these carry: the table (one of the few that
+   * announce their changes, such as Incident or Monitor), the kind of write
+   * (Update or Delete) and, for a decision that was made, how it ended
+   * (RealtimeMetrics). Never a record, a project or a person: those belong
+   * on traces and logs.
+   */
+  public static readonly REALTIME_TABLE_ATTRIBUTE: string =
+    "oneuptime.realtime.table";
+  public static readonly REALTIME_EVENT_TYPE_ATTRIBUTE: string =
+    "oneuptime.realtime.event_type";
+  public static readonly REALTIME_OUTCOME_ATTRIBUTE: string =
+    "oneuptime.realtime.outcome";
+
+  private static realtimeBeforeWriteDecisionDuration: TelemetryHistogram | null =
+    null;
+  private static realtimeBeforeWriteDecisionsSkipped: TelemetryCounter | null =
+    null;
+
+  /*
+   * How long a write waited, before it was made, to learn who could read the
+   * records it changes or deletes (Realtime.snapshotReadAccess): who listens,
+   * on this server and - asked over the cluster - on every other App server,
+   * and which of those records each of them may read. At most
+   * Realtime.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS, past which the write goes
+   * ahead without it.
+   */
+  public static getRealtimeBeforeWriteDecisionDuration(): TelemetryHistogram {
+    if (!this.realtimeBeforeWriteDecisionDuration) {
+      this.realtimeBeforeWriteDecisionDuration = Telemetry.getHistogram({
+        name: "oneuptime.realtime.before_write.decision.duration",
+        description:
+          "Time a write waited, before it was made, to learn who could read the records it changes or deletes, partitioned by table, kind of write and outcome.",
+        unit: "ms",
+        explicitBucketBoundaries: [
+          1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2000, 5000,
+        ],
+      });
+    }
+
+    return this.realtimeBeforeWriteDecisionDuration;
+  }
+
+  /*
+   * The decisions a write did not wait for: an update that names no column
+   * any read is narrowed by - a monitor's status, an incident's state -
+   * cannot take a record away from anyone, so nobody is asked who listens
+   * (#8964). One per project of the records written, as each would have
+   * been one decision.
+   */
+  public static getRealtimeBeforeWriteDecisionsSkipped(): TelemetryCounter {
+    if (!this.realtimeBeforeWriteDecisionsSkipped) {
+      this.realtimeBeforeWriteDecisionsSkipped = Telemetry.getCounter({
+        name: "oneuptime.realtime.before_write.decision.skipped.count",
+        description:
+          "Decisions of who could read a record before a write that were not made, because no read is narrowed by the columns the write names, partitioned by table and kind of write.",
+        unit: "1",
+      });
+    }
+
+    return this.realtimeBeforeWriteDecisionsSkipped;
+  }
+
   // -- On-call calendar feeds -------------------------------------------
 
   /*

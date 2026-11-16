@@ -169,6 +169,7 @@ import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTi
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
 import "../../../../FeatureSet/Workers/Jobs/MonitorOwners/SendStatusChangeNotification";
@@ -705,46 +706,234 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
       },
     );
 
-    // Five status changes of each of the four monitors, interleaved.
+    const ONLINE_ID: ObjectID = new ObjectID("status-online");
+    const OFFLINE_ID: ObjectID = new ObjectID("status-offline");
+    const DEGRADED_ID: ObjectID = new ObjectID("status-degraded");
+
+    // How the email words the durations: as OneUptimeDate does.
+    const ONE_MINUTE: string =
+      OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(60);
+    const HALF_A_MINUTE: string =
+      OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(30);
+
+    const STATUSES: Record<string, string> = {
+      [ONLINE_ID.toString()]: "Online",
+      [OFFLINE_ID.toString()]: "Offline",
+      [DEGRADED_ID.toString()]: "Degraded",
+    };
+
+    /*
+     * Each monitor's whole timeline: the page's status changes, the entry
+     * before them, and entries told of already - which are on no page, and
+     * which the email's "Was ... for ..." must still count (#8863).
+     */
+    let timeline: Array<MonitorStatusTimeline> = [];
+
+    function entry(data: {
+      id: string;
+      monitorId: ObjectID;
+      atMs: number;
+      statusId: ObjectID;
+    }): MonitorStatusTimeline {
+      const each: MonitorStatusTimeline = new MonitorStatusTimeline(
+        new ObjectID(data.id),
+      );
+      each.monitorId = data.monitorId;
+      each.startsAt = new Date(CHANGED_AT.getTime() + data.atMs);
+      each.createdAt = each.startsAt;
+      each.monitorStatusId = data.statusId;
+      return each;
+    }
+
+    /*
+     * Five status changes of each of the four monitors, a minute apart and
+     * interleaved, flapping Online and Offline; each monitor was Offline for
+     * a minute before the first.
+     */
     function flapping(): Array<MonitorStatusTimeline> {
       const timelines: Array<MonitorStatusTimeline> = [];
 
+      for (const monitorId of MONITOR_IDS) {
+        timeline.push(
+          entry({
+            id: `timeline-${monitorId.toString()}-before`,
+            monitorId: monitorId,
+            atMs: -60000,
+            statusId: OFFLINE_ID,
+          }),
+        );
+      }
+
       for (let change: number = 0; change < 5; change++) {
         for (const monitorId of MONITOR_IDS) {
-          const timeline: MonitorStatusTimeline = makeTimeline({
+          const statusChange: MonitorStatusTimeline = makeTimeline({
             id: `timeline-${monitorId.toString()}-${change}`,
             description: DESCRIPTION_MARKDOWN,
             rootCause: ROOT_CAUSE_MARKDOWN,
           });
-          timeline.monitorId = monitorId;
+          statusChange.monitorId = monitorId;
           const monitor: Monitor = new Monitor(monitorId);
           monitor.name = `Monitor ${monitorId.toString()}`;
           monitor.description = DESCRIPTION_MARKDOWN;
-          timeline.monitor = monitor;
-          timeline.startsAt = new Date(CHANGED_AT.getTime() + change * 60000);
-          timelines.push(timeline);
+          statusChange.monitor = monitor;
+          statusChange.startsAt = new Date(
+            CHANGED_AT.getTime() + change * 60000,
+          );
+          statusChange.monitorStatusId =
+            change % 2 === 0 ? ONLINE_ID : OFFLINE_ID;
+          timelines.push(statusChange);
+          timeline.push(statusChange);
         }
       }
 
       return timelines;
     }
 
+    // The previous status and its duration each email was sent with, by monitor.
+    function previousStatusesSent(): Record<string, Array<string>> {
+      const sent: Record<string, Array<string>> = {};
+
+      for (const call of notificationService.sendUserNotification.mock.calls) {
+        const data: {
+          monitorId: ObjectID;
+          emailEnvelope: EmailEnvelope;
+          userId: ObjectID;
+        } = call[0] as {
+          monitorId: ObjectID;
+          emailEnvelope: EmailEnvelope;
+          userId: ObjectID;
+        };
+
+        // One owner's email per status change is enough.
+        if (data.userId.toString() !== "user-1") {
+          continue;
+        }
+
+        const vars: Dictionary<string> = data.emailEnvelope
+          .vars as Dictionary<string>;
+        const key: string = data.monitorId.toString();
+
+        sent[key] = [
+          ...(sent[key] || []),
+          `${vars["previousStatus"]}|${vars["previousStatusDurationText"]}`,
+        ];
+      }
+
+      return sent;
+    }
+
+    function pageReads(): number {
+      return timelineService.findBy.mock.calls.filter(
+        (call: Array<unknown>): boolean => {
+          return !(call[0] as { query: Record<string, unknown> }).query[
+            "monitorId"
+          ];
+        },
+      ).length;
+    }
+
+    function readsInBetween(): number {
+      return timelineService.findBy.mock.calls.length - pageReads();
+    }
+
     beforeEach(() => {
+      timeline = [];
+
       monitorService.findOwners.mockResolvedValue([
         makeOwner("user-1"),
         makeOwner("user-2"),
       ]);
 
-      // Every status change has a previous one, Offline.
-      const previousTimeline: MonitorStatusTimeline = new MonitorStatusTimeline(
-        new ObjectID("timeline-previous"),
+      jest
+        .spyOn(QueryHelper, "lessThan")
+        .mockImplementation((value: unknown) => {
+          return { lessThan: value } as never;
+        });
+      jest
+        .spyOn(QueryHelper, "inBetween")
+        .mockImplementation((from: unknown, to: unknown) => {
+          return { inBetween: [from, to] } as never;
+        });
+
+      // A page of status changes, or a monitor's entries in between (#8863).
+      timelineService.findBy.mockImplementation(
+        async (data: { query: Record<string, unknown> }) => {
+          if (data.query["monitorId"]) {
+            const [from, to] = (
+              data.query["startsAt"] as { inBetween: [Date, Date] }
+            ).inBetween;
+
+            return timeline
+              .filter((each: MonitorStatusTimeline): boolean => {
+                return (
+                  each.monitorId!.toString() ===
+                    String(data.query["monitorId"]) &&
+                  each.startsAt!.getTime() >= from.getTime() &&
+                  each.startsAt!.getTime() <= to.getTime()
+                );
+              })
+              .sort(
+                (
+                  a: MonitorStatusTimeline,
+                  b: MonitorStatusTimeline,
+                ): number => {
+                  return (
+                    a.startsAt!.getTime() - b.startsAt!.getTime() ||
+                    a.id!.toString().localeCompare(b.id!.toString())
+                  );
+                },
+              );
+          }
+
+          return dueTimelines.filter((each: MonitorStatusTimeline) => {
+            return !takenTimelineIds.has(each.id!.toString());
+          });
+        },
       );
-      previousTimeline.monitorStatusId = new ObjectID("status-offline");
-      previousTimeline.startsAt = new Date(CHANGED_AT.getTime() - 60000);
-      timelineService.findOneBy.mockResolvedValue(previousTimeline);
-      const offline: MonitorStatus = new MonitorStatus();
-      offline.name = "Offline";
-      monitorStatusService.findOneById.mockResolvedValue(offline);
+
+      // The entry before one: started latest, then first by id.
+      timelineService.findOneBy.mockImplementation(
+        async (data: { query: Record<string, unknown> }) => {
+          const before: Date = (data.query["startsAt"] as { lessThan: Date })
+            .lessThan;
+
+          return (
+            timeline
+              .filter((each: MonitorStatusTimeline): boolean => {
+                return (
+                  each.monitorId!.toString() ===
+                    String(data.query["monitorId"]) &&
+                  each.startsAt!.getTime() < before.getTime()
+                );
+              })
+              .sort(
+                (
+                  a: MonitorStatusTimeline,
+                  b: MonitorStatusTimeline,
+                ): number => {
+                  return (
+                    b.startsAt!.getTime() - a.startsAt!.getTime() ||
+                    a.id!.toString().localeCompare(b.id!.toString())
+                  );
+                },
+              )[0] || null
+          );
+        },
+      );
+
+      monitorStatusService.findOneById.mockImplementation(
+        async (data: { id: ObjectID }) => {
+          const name: string | undefined = STATUSES[data.id.toString()];
+
+          if (!name) {
+            return null;
+          }
+
+          const status: MonitorStatus = new MonitorStatus();
+          status.name = name;
+          return status;
+        },
+      );
     });
 
     test("reads the page's monitors in one query, and never a monitor's steps with each status change", async () => {
@@ -753,7 +942,7 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
       await runWorkerTick();
 
       // One page of status changes, one query for its four monitors.
-      expect(timelineService.findBy).toHaveBeenCalledTimes(1);
+      expect(pageReads()).toBe(1);
       expect(monitorService.findBy).toHaveBeenCalledTimes(1);
       expect(monitorService.findOneById).not.toHaveBeenCalled();
 
@@ -803,16 +992,133 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
       );
     });
 
-    test("reads each previous status once for the page", async () => {
+    /*
+     * Issue #8863: the entry before each status change was read on its own,
+     * twenty reads for this page. Two reads per monitor stand for all of its
+     * status changes now: the entry before its first, and its entries in
+     * between.
+     */
+    test("reads the entries before the page's 20 status changes of 4 monitors in 8 queries, not 20", async () => {
       due(flapping());
 
       await runWorkerTick();
 
-      // The previous status change is still read for each: 20.
-      expect(timelineService.findOneBy).toHaveBeenCalledTimes(20);
-      // Its status, the same one each time, once (was 20).
-      expect(monitorStatusService.findOneById).toHaveBeenCalledTimes(1);
-      expect(sentVars()[0]!["previousStatus"]).toBe("Offline");
+      // Was 20.
+      expect(timelineService.findOneBy).toHaveBeenCalledTimes(4);
+      expect(readsInBetween()).toBe(4);
+      // Each status they were in, once for the page (was 20).
+      expect(monitorStatusService.findOneById).toHaveBeenCalledTimes(2);
+    });
+
+    test("the previous status and how long it lasted are what a read of each status change's own found", async () => {
+      due(flapping());
+
+      await runWorkerTick();
+
+      const sent: Record<string, Array<string>> = previousStatusesSent();
+
+      for (const monitorId of MONITOR_IDS) {
+        expect([monitorId.toString(), sent[monitorId.toString()]]).toEqual([
+          monitorId.toString(),
+          [
+            // Its first: the entry before the page.
+            `Offline|Was Offline for ${ONE_MINUTE}`,
+            `Online|Was Online for ${ONE_MINUTE}`,
+            `Offline|Was Offline for ${ONE_MINUTE}`,
+            `Online|Was Online for ${ONE_MINUTE}`,
+            `Offline|Was Offline for ${ONE_MINUTE}`,
+          ],
+        ]);
+      }
+    });
+
+    test("an entry between two status changes that is on no page - told of already - is still the previous one", async () => {
+      const statusChanges: Array<MonitorStatusTimeline> = flapping();
+
+      // Degraded for half a minute between the first monitor's third and fourth change.
+      timeline.push(
+        entry({
+          id: "timeline-told-already",
+          monitorId: MONITOR_IDS[0]!,
+          atMs: 2 * 60000 + 30000,
+          statusId: DEGRADED_ID,
+        }),
+      );
+      due(statusChanges);
+
+      await runWorkerTick();
+
+      expect(previousStatusesSent()[MONITOR_IDS[0]!.toString()]).toEqual([
+        `Offline|Was Offline for ${ONE_MINUTE}`,
+        `Online|Was Online for ${ONE_MINUTE}`,
+        `Offline|Was Offline for ${ONE_MINUTE}`,
+        `Degraded|Was Degraded for ${HALF_A_MINUTE}`,
+        `Offline|Was Offline for ${ONE_MINUTE}`,
+      ]);
+      // The other monitors as before.
+      expect(previousStatusesSent()[MONITOR_IDS[1]!.toString()]![3]).toBe(
+        `Online|Was Online for ${ONE_MINUTE}`,
+      );
+    });
+
+    test("a monitor's first status change ever says nothing came before it", async () => {
+      const statusChanges: Array<MonitorStatusTimeline> = flapping();
+
+      // The second monitor has no entry before the page.
+      timeline = timeline.filter((each: MonitorStatusTimeline): boolean => {
+        return (
+          each.id!.toString() !==
+          `timeline-${MONITOR_IDS[1]!.toString()}-before`
+        );
+      });
+      due(statusChanges);
+
+      await runWorkerTick();
+
+      expect(previousStatusesSent()[MONITOR_IDS[1]!.toString()]![0]).toBe("|");
+      expect(previousStatusesSent()[MONITOR_IDS[1]!.toString()]![1]).toBe(
+        `Online|Was Online for ${ONE_MINUTE}`,
+      );
+    });
+
+    test("a monitor with one status change on the page keeps its one read", async () => {
+      const statusChanges: Array<MonitorStatusTimeline> = flapping().filter(
+        (each: MonitorStatusTimeline): boolean => {
+          // Monitor 4 has its last status change on the page only.
+          return (
+            each.monitorId!.toString() !== MONITOR_IDS[3]!.toString() ||
+            each.id!.toString().endsWith("-4")
+          );
+        },
+      );
+      due(statusChanges);
+
+      await runWorkerTick();
+
+      // Three monitors with five each: two reads each; one with one: its own.
+      expect(timelineService.findOneBy).toHaveBeenCalledTimes(4);
+      expect(readsInBetween()).toBe(3);
+      // Its change before, on no page of this run, is still the previous one.
+      expect(previousStatusesSent()[MONITOR_IDS[3]!.toString()]).toEqual([
+        `Offline|Was Offline for ${ONE_MINUTE}`,
+      ]);
+    });
+
+    test("a status change with no start says nothing came before it, and is read for by nobody", async () => {
+      const statusChanges: Array<MonitorStatusTimeline> = flapping();
+      const noStart: MonitorStatusTimeline = statusChanges[0]!;
+      delete (noStart as unknown as Record<string, unknown>)["startsAt"];
+      timeline = timeline.filter((each: MonitorStatusTimeline): boolean => {
+        return each !== noStart;
+      });
+      due(statusChanges);
+
+      await runWorkerTick();
+
+      expect(previousStatusesSent()[MONITOR_IDS[0]!.toString()]![0]).toBe("|");
+      expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(
+        40,
+      );
     });
 
     test("takes each status change with one hook-free write, and never updateOneById", async () => {

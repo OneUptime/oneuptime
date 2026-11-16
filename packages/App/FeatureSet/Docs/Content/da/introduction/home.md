@@ -38,7 +38,7 @@ Linjen øverst nævner det mest presserende, der er åbent, i en tilsvarende far
 | Monitorer kører, og intet er åbent | **Alle systemer er i drift** |
 | Projektet har ingen monitorer endnu | **Der overvåges ikke noget endnu** |
 
-Ved siden af siger Hjem, hvornår den sidst læste projektet, og **Opdater** læser det igen. Når du vender tilbage til en fane med Hjem efter et minut eller mere, opdaterer den sig selv.
+Ved siden af siger Hjem, hvornår den sidst læste projektet, og **Opdater** læser det igen. Hjem følger også med, når det, den tæller, ændrer sig: når en hændelse, en advarsel, en monitor, en vedligeholdelseshændelse eller et SLO oprettes, ændres eller slettes, følger linjen, tallene, **Kræver opmærksomhed** og **Kommende vedligeholdelse** med inden for få sekunder, uden at du skal genindlæse. Når du vender tilbage til en fane med Hjem efter et minut eller mere, opdaterer den sig selv.
 
 Så længe intet overvåges endnu, slutter linjen med knappen **Opret din første monitor**, som åbner den guidede opsætning **Vide, når mit website eller API er nede**. Kun personer, der har lov til at oprette monitorer, ser den.
 
@@ -145,7 +145,7 @@ Et ord med en prikket linje under, som **Sonder** i formularen til en ny monitor
 
 Over hver sides titel viser et spor som *Projekt › Docker › Indstillinger › Ejerregler*, hvor siden ligger. Hvert trin før det sidste åbner sin side.
 
-- **Lister holder sig selv opdaterede.** Når en hændelse eller advarsel oprettes, kvitteres eller løses et sted, viser listerne over hændelser, advarsler og episoder det inden for få sekunder, uden at du skal genindlæse. Mens du er midt i noget på en liste, for eksempel med rækker markeret eller en dialog åben, venter den og indhenter det, når du er færdig.
+- **Lister holder sig selv opdaterede.** Når en hændelse, en advarsel, en monitor eller en vedligeholdelseshændelse oprettes, ændres eller slettes et sted, viser listerne over hændelser, advarsler, episoder, monitorer og vedligeholdelseshændelser det inden for få sekunder, uden at du skal genindlæse, og det samme gør tallene ved siden af dem i sidemenuerne. Klokkens tal og listerne **Aktive hændelser**, **Aktive advarsler**, **Aktive hændelsesepisoder** og **Aktive advarselsepisoder** følger alle de projekter, du er med i, ikke kun det, der er åbent. Mens du er midt i noget på en liste, for eksempel med rækker markeret eller en dialog åben, venter den og indhenter det, når du er færdig.
 - **På en telefon foldes filterchipsene væk** bag **Filter**, så listen starter længere oppe. De chips, du har sat, bliver i syne sammen med **Ryd alt**. Tryk på **Filter** for at se alle chips, og igen for at folde dem væk.
 - **Kolonner**, i menuen **⋯** på en liste, vælger, hvilke kolonner listen viser og i hvilken rækkefølge, og husker dem for dig i denne browser. En Projektejer eller en Projektadministrator kan også sætte flueben ved **Vis disse kolonner for alle i dette projekt** der: alle, der ikke har valgt deres egne kolonner til listen, ser dem, og **Nulstil til projektets standard** sætter dine egne tilbage til dem.
 - **Kompakte rækker**, i samme menu, gør rækkerne i alle lister lavere, så en lang liste viser omkring en femtedel flere af dem. Valget huskes i denne browser.
