@@ -3,6 +3,7 @@ import {
   NotificationChannelDefinition,
   NotificationChannelKey,
   canChannelReach,
+  getChannelWord,
 } from "./NotificationChannelReadiness";
 import { formatNameList } from "../AiAccess/AiAccessModes";
 import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
@@ -172,7 +173,9 @@ export const describeTabSummary: (
     channels: composedValue((sentence: Translator): string => {
       return formatNameList(
         facts.channels.map((channel: NotificationChannelDefinition): string => {
-          return sentence.translateText(channel.label) || channel.label;
+          return (
+            sentence.translateText(getChannelWord(channel)) || channel.label
+          );
         }),
         "and",
         sentence,

@@ -56027,5 +56027,7 @@
   "You hear about {{on}} of {{count}} events on this tab, by {{channels}}.": "You hear about {{on}} of {{count}} events on this tab, by {{channels}}.",
   "You hear about {{on}} of {{count}} events on this tab, by {{channels}}._one": "You hear about {{on}} of {{count}} event on this tab, by {{channels}}.",
   "{{channel}} for every event in {{section}}": "{{channel}} for every event in {{section}}",
-  "{{channel}} for {{event}}": "{{channel}} for {{event}}"
+  "{{channel}} for {{event}}": "{{channel}} for {{event}}",
+  "Call (phone call)": "Call (phone call)",
+  "Push (push notification)": "Push (push notification)"
 }

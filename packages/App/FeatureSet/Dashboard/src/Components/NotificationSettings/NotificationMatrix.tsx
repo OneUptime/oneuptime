@@ -4,6 +4,7 @@ import {
   NotificationChannelKey,
   canChannelReach,
   getChannelSetUpRoute,
+  getChannelWord,
   isChannelColumnShown,
 } from "./NotificationChannelReadiness";
 import {
@@ -217,7 +218,9 @@ const ColumnNote: FunctionComponent<ColumnNoteProps> = (
         dataTestId={NOTIFICATION_CHANNEL_SET_UP_TEST_ID}
         title={translator.translateTemplate(
           NotificationSettingsWords.setUpChannel,
-          { channel: translatableTerm(props.channel.definition.label) },
+          {
+            channel: translatableTerm(getChannelWord(props.channel.definition)),
+          },
         )}
         isTitleTranslated={true}
         className={`${
@@ -364,7 +367,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
       return (
         <Toggle
           value={isOn}
-          title={data.channel.definition.label}
+          title={getChannelWord(data.channel.definition)}
           description={
             canChannelReach(data.channel.reach)
               ? undefined
@@ -391,7 +394,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
         ariaLabel={translator.translateTemplate(
           NotificationSettingsWords.channelForEvent,
           {
-            channel: translatableTerm(data.channel.definition.label),
+            channel: translatableTerm(getChannelWord(data.channel.definition)),
             event: translatableTerm(data.event.label),
           },
         )}
@@ -425,7 +428,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
     const name: string = translator.translateTemplate(
       NotificationSettingsWords.channelForEveryEvent,
       {
-        channel: translatableTerm(data.channel.definition.label),
+        channel: translatableTerm(getChannelWord(data.channel.definition)),
         section: sectionName,
       },
     );
@@ -438,7 +441,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
       return (
         <Toggle
           value={isOn}
-          title={data.channel.definition.label}
+          title={getChannelWord(data.channel.definition)}
           dataTestId={NOTIFICATION_CHANNEL_SWITCH_TEST_ID}
           onChange={onChange}
         />
@@ -515,7 +518,9 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                       size={SizeProp.Regular}
                     />
                     <span className="text-[11px] font-medium text-gray-600">
-                      {translator.translateText(channel.definition.label)}
+                      {translator.translateText(
+                        getChannelWord(channel.definition),
+                      )}
                     </span>
                     <ColumnNote channel={channel} isCompact={true} />
                   </div>

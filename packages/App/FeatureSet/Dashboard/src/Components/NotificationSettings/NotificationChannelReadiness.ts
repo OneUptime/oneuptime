@@ -84,7 +84,16 @@ export type NotificationChannelKey =
 // A column of the matrix: the channel, as Notification Settings lists it.
 export interface NotificationChannelDefinition {
   key: NotificationChannelKey;
+  // The channel's English name, as the docs quote the column.
   label: string;
+  /*
+   * The key the channel's name is drawn with where the label's bare word
+   * means something else in a language (#7178): "Call" is a function call
+   * in Chinese (调用) and "Push" a payment in Arabic (الدفع). A key that
+   * names its meaning (Common/Types/MeaningKeys) reads as the label in
+   * English.
+   */
+  word?: string | undefined;
   icon: IconProp;
   color: Color;
   /*
@@ -99,6 +108,15 @@ export interface NotificationChannelDefinition {
    */
   isCustomChannels?: boolean | undefined;
 }
+
+// The key a channel's name is drawn with: its own word, or its label.
+export const getChannelWord: (
+  definition: Pick<NotificationChannelDefinition, "label" | "word">,
+) => string = (
+  definition: Pick<NotificationChannelDefinition, "label" | "word">,
+): string => {
+  return definition.word || definition.label;
+};
 
 export enum ChannelReach {
   Ready = "Ready",

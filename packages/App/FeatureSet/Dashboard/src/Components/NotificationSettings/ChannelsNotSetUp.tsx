@@ -1,6 +1,7 @@
 import {
   ChannelReach,
   getChannelSetUpRoute,
+  getChannelWord,
 } from "./NotificationChannelReadiness";
 import {
   NotificationSettingsWords,
@@ -82,14 +83,18 @@ const ChannelsNotSetUp: FunctionComponent<ComponentProps> = (
                 dataTestId={CHANNEL_SET_UP_LINK_TEST_ID}
                 title={translator.translateTemplate(
                   NotificationSettingsWords.setUpChannel,
-                  { channel: translatableTerm(channel.definition.label) },
+                  {
+                    channel: translatableTerm(
+                      getChannelWord(channel.definition),
+                    ),
+                  },
                 )}
                 isTitleTranslated={true}
                 className="inline-flex items-center gap-1 rounded-full border border-dashed border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:border-indigo-400 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
                 <span>
-                  {translator.translateText(channel.definition.label)}
+                  {translator.translateText(getChannelWord(channel.definition))}
                 </span>
               </Link>
             </li>

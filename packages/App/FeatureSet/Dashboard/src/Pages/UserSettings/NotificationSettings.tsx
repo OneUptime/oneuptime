@@ -103,10 +103,22 @@ type ChannelDef = NotificationChannelDefinition;
 const CHANNELS: ReadonlyArray<ChannelDef> = [
   { key: "alertByEmail", label: "Email", icon: IconProp.Email, color: Blue500 },
   { key: "alertBySMS", label: "SMS", icon: IconProp.SMS, color: Purple500 },
-  { key: "alertByCall", label: "Call", icon: IconProp.Call, color: Orange500 },
+  /*
+   * Call and Push are drawn by keys that name their meaning (#7178): the
+   * bare "Call" is a function call in Chinese (调用), and "Push" a payment
+   * in Arabic (الدفع). English reads them as the label.
+   */
+  {
+    key: "alertByCall",
+    label: "Call",
+    word: translationKey("Call (phone call)"),
+    icon: IconProp.Call,
+    color: Orange500,
+  },
   {
     key: "alertByPush",
     label: "Push",
+    word: translationKey("Push (push notification)"),
     icon: IconProp.Notification,
     color: Sky500,
   },

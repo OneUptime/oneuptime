@@ -124,6 +124,20 @@ const CHANNELS: Array<string> = [
   "Webhook",
 ];
 
+/*
+ * The key each channel's name is drawn with in another language: the
+ * label, except Call and Push, which name their meaning (#7178) - the bare
+ * "Call" is a function call in Chinese, and "Push" a payment in Arabic.
+ */
+const CHANNEL_KEYS: Record<string, string> = {
+  Call: "Call (phone call)",
+  Push: "Push (push notification)",
+};
+
+function drawnChannel(language: string, channel: string): string {
+  return drawn(language, CHANNEL_KEYS[channel] || channel);
+}
+
 const PHONE_WIDTH: number = 390;
 const LAPTOP_WIDTH: number = 1280;
 
@@ -464,9 +478,37 @@ describe("on a phone", () => {
 
       expect(namesOf(switchesOf(event))).toEqual(
         CHANNELS.map((channel: string): string => {
-          return drawn(language, channel);
+          return drawnChannel(language, channel);
         }),
       );
+    },
+  );
+
+  /*
+   * Regression: the matrix drew its phone call and push columns with the
+   * bare "Call" and "Push", which Chinese reads as a function call (调用)
+   * and Arabic as a payment (الدفع).
+   */
+  test.each([
+    ["zh-CN", "Call", "调用", "电话"],
+    ["ko", "Call", "호출", "전화"],
+    ["ar", "Push", "الدفع", "إشعار فوري"],
+  ])(
+    "in %s, %s is the channel, never the other meaning of its bare word",
+    async (
+      language: string,
+      channel: string,
+      otherMeaning: string,
+      channelWord: string,
+    ) => {
+      await renderPage(language);
+
+      const names: Array<string> = namesOf(
+        switchesOf(screen.getAllByTestId("notification-matrix-event")[0]!),
+      );
+
+      expect(names[CHANNELS.indexOf(channel)]).toBe(channelWord);
+      expect(names).not.toContain(otherMeaning);
     },
   );
 });
