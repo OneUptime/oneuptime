@@ -2514,8 +2514,8 @@ describe("Audit Logs", () => {
       `So that a flood of attempts cannot fill the audit log, the first ${FAILED_SIGN_INS_RECORDED_PER_WINDOW} failed attempts on an account in an hour are recorded one by one. The rest are counted, and the account's next entry says how many attempts it stands for and when the first of them was made.`,
     );
 
-    // After the answer, never awaited by the route: setImmediate, then the count.
-    expect(bound).toContain("setImmediate((): void => {");
+    // After the answer, never awaited by the route: a timer, then the count.
+    expect(bound).toContain("setTimeout((): void => {");
     expect(bound).toContain("await FailedSignInAuditLog.countAttempt({");
     expect(authentication).toContain(
       "recordFailedSignIn(SignInFailureReason.WrongPassword);",

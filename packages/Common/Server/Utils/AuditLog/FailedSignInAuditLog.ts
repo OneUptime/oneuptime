@@ -140,13 +140,14 @@ export default class FailedSignInAuditLog {
         input.req,
       );
 
-      setImmediate((): void => {
+      // A turn of the event loop later: the route has answered by then.
+      setTimeout((): void => {
         FailedSignInAuditLog.recordNow({ ...input, req }).catch(
           (err: unknown): void => {
             FailedSignInAuditLog.logFailure(err);
           },
         );
-      });
+      }, 0);
     } catch (err) {
       FailedSignInAuditLog.logFailure(err);
     }
