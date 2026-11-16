@@ -701,16 +701,14 @@ export default class StatusPageDomain extends BaseModel {
       Permission.StatusPageMember,
       Permission.CreateStatusPageDomain,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageDomain,
-    ],
+    /*
+     * Write-only: nobody reads the key back through the API - not a Viewer,
+     * not the people who may change it. It is written with the certificate
+     * and kept encrypted at rest; nginx reads it as OneUptime to serve the
+     * domain (Nginx/Jobs/WriteCustomCertsToDisk), and the edit form leaves
+     * it blank, keeping the stored one (ModelForm's write-only fields).
+     */
+    read: [],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -722,9 +720,10 @@ export default class StatusPageDomain extends BaseModel {
   })
   @TableColumn({
     secret: true,
+    encrypted: true,
     type: TableColumnType.VeryLongText,
     description:
-      "The private key of your certificate, in PEM. Used when Is Custom Certificate is on.",
+      "The private key of your certificate, in PEM, without a passphrase. Used when Is Custom Certificate is on. Write-only: kept encrypted and never returned by the API.",
   })
   @Column({
     type: ColumnType.VeryLongText,

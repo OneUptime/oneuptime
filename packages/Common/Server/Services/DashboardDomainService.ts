@@ -43,6 +43,10 @@ import { CustomDomainCertificate } from "../../Types/CustomDomain/CustomDomainCe
 import CustomDomainConflicts, {
   CustomDomainKind,
 } from "../Utils/CustomDomain/CustomDomainConflicts";
+import UploadedCertificate, {
+  UPLOADED_CERTIFICATE_SELECT,
+  UploadedCertificateColumns,
+} from "../Utils/CustomDomain/UploadedCertificate";
 
 const DASHBOARD_DOMAIN_EGRESS_LABEL: string = "Dashboard domain";
 
@@ -124,6 +128,21 @@ export class Service extends ProjectReferencesService<DashboardDomain> {
       );
     }
 
+    /*
+     * A domain left serving its own certificate serves a pair nginx can
+     * use: the half the edit leaves blank - the key, which is never shown
+     * again - is read from the row (UploadedCertificate).
+     */
+    await UploadedCertificate.assertUpdateIsServable({
+      data: updateBy.data as UploadedCertificateColumns,
+      readRows: async (): Promise<Array<UploadedCertificateColumns>> => {
+        return await this.findRowsAndHoldUpdateToThem(
+          updateBy,
+          UPLOADED_CERTIFICATE_SELECT,
+        );
+      },
+    });
+
     return { updateBy, carryForward: null };
   }
 
@@ -190,16 +209,10 @@ export class Service extends ProjectReferencesService<DashboardDomain> {
 
     createBy.data.cnameVerificationToken = ObjectID.generate().toString();
 
-    if (createBy.data.isCustomCertificate) {
-      if (
-        !createBy.data.customCertificate ||
-        !createBy.data.customCertificateKey
-      ) {
-        throw new BadDataException(
-          "Custom certificate or private key is missing",
-        );
-      }
-    }
+    // An uploaded certificate comes with a key that is its own (UploadedCertificate).
+    UploadedCertificate.assertCreateIsServable(
+      createBy.data as UploadedCertificateColumns,
+    );
 
     return { createBy, carryForward: null };
   }
