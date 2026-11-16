@@ -1,5 +1,8 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import PreviousTimelineEntries, {
+  TimelineOf,
+} from "../../Utils/PreviousTimelineEntries";
 import OwnerNotificationBacklog, {
   OwnerNotificationPage,
 } from "../../Utils/OwnerNotificationBacklog";
@@ -34,7 +37,6 @@ import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import UserService from "Common/Server/Services/UserService";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import JobDeadline from "Common/Server/Utils/JobDeadline";
@@ -94,6 +96,20 @@ const ALERT_SELECT: Select<Alert> = {
   seriesLabels: true,
 };
 
+/*
+ * The entries a state change's previous one is read from, and what it is read
+ * with: for "Was ... for ..." in its email (PreviousTimelineEntries).
+ */
+const TIMELINE: TimelineOf<AlertStateTimeline> = {
+  service: AlertStateTimelineService,
+  recordIdColumn: "alertId",
+  select: {
+    alertStateId: true,
+    startsAt: true,
+    createdAt: true,
+  },
+};
+
 RunCron(
   "AlertOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -150,7 +166,7 @@ RunCron(
       },
       select: STATE_TIMELINE_SELECT,
       deadline: deadline,
-      readPage: readAlertsOfPage,
+      readPage: readPageOfStateChanges,
       notify: async (input: {
         record: AlertStateTimeline;
         page: OwnerNotificationPage;
@@ -230,6 +246,25 @@ async function notifyOfStateChange(data: {
 
 function alertKey(alertId: ObjectID): string {
   return `alert:${alertId.toString()}`;
+}
+
+/*
+ * What every state change of a page needs, read once for the page: the
+ * alerts they are of (readAlertsOfPage), and the entry before each
+ * (PreviousTimelineEntries: two reads per alert with more than one of
+ * them on the page, instead of one per state change).
+ */
+async function readPageOfStateChanges(
+  entries: Array<AlertStateTimeline>,
+  page: OwnerNotificationPage,
+): Promise<void> {
+  await readAlertsOfPage(entries, page);
+
+  await PreviousTimelineEntries.readForPage({
+    ...TIMELINE,
+    entries: entries,
+    page: page,
+  });
 }
 
 /*
@@ -372,22 +407,11 @@ async function notifyOwnersOfStateChange(data: {
 
   if (alertStateTimeline.alertId && alertStateTimeline.startsAt) {
     const previousTimeline: AlertStateTimeline | null =
-      await AlertStateTimelineService.findOneBy({
-        query: {
-          alertId: alertStateTimeline.alertId,
-          startsAt: QueryHelper.lessThan(alertStateTimeline.startsAt),
-        },
-        sort: {
-          startsAt: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          alertStateId: true,
-          startsAt: true,
-          createdAt: true,
-        },
+      // Read with the page's other state changes of the alert, or on its own (#8863).
+      await PreviousTimelineEntries.of({
+        ...TIMELINE,
+        entry: alertStateTimeline,
+        page: data.page,
       });
 
     if (previousTimeline?.alertStateId) {
