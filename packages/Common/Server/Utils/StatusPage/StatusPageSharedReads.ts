@@ -74,6 +74,12 @@ export interface SharedReadOptions<T> {
   // The value as JSON, and back.
   toJSON: (value: T) => unknown;
   fromJSON: (json: unknown) => T;
+  /*
+   * Whether a value built now may be kept for the others: false for one
+   * that found nothing (an item a page does not show), so ids nobody has
+   * never fill Redis. Left out, every value is.
+   */
+  shouldKeep?: ((value: T) => boolean) | undefined;
 }
 
 export default class StatusPageSharedReads {
@@ -138,11 +144,14 @@ export default class StatusPageSharedReads {
      * Written for every other process, then the claim let go: a claim that
      * outlived its value would hold the next build's waiters for nothing.
      */
-    void this.write(options, value, startedAt, expiresAt).then(
-      (): Promise<void> | undefined => {
-        return claim ? this.giveUpClaim(options.key, claim) : undefined;
-      },
-    );
+    const written: Promise<void> =
+      !options.shouldKeep || options.shouldKeep(value)
+        ? this.write(options, value, startedAt, expiresAt)
+        : Promise.resolve();
+
+    void written.then((): Promise<void> | undefined => {
+      return claim ? this.giveUpClaim(options.key, claim) : undefined;
+    });
 
     return { value: value, expiresAt: expiresAt };
   }

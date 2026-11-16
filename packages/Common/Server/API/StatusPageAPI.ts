@@ -350,6 +350,36 @@ const jsonBytesOf: (value: JSONObject) => number = (
 // The most one page's settings, or one list, is kept at: a bigger one is read every time.
 const MAX_KEPT_RESPONSE_BYTES: number = 4 * 1024 * 1024;
 
+/*
+ * An item opened by its id - from a subscriber's email, most often, as an
+ * incident is posted - is kept with its list, under the item's id. Only an
+ * item the page shows is kept: an id nobody has, or one the page does not
+ * show, is read every time, so it can never fill the cache.
+ */
+const itemVariantOf: (itemId: ObjectID | null) => string | undefined = (
+  itemId: ObjectID | null,
+): string | undefined => {
+  return itemId ? `item-${itemId.toString().toLowerCase()}` : undefined;
+};
+
+const keepItemsShown: (
+  itemId: ObjectID | null,
+  listKey: string,
+) => ((response: JSONObject) => boolean) | undefined = (
+  itemId: ObjectID | null,
+  listKey: string,
+): ((response: JSONObject) => boolean) | undefined => {
+  if (!itemId) {
+    return undefined;
+  }
+
+  return (response: JSONObject): boolean => {
+    const items: unknown = response[listKey];
+
+    return Array.isArray(items) && items.length > 0;
+  };
+};
+
 type KeepOwnStatusPageImagesFunction = (statusPage: StatusPage) => void;
 
 /*
@@ -436,11 +466,11 @@ export default class StatusPageAPI extends BaseAPI<
     });
 
   /*
-   * The lists a page's tabs read, kept as the overview is: for its TTL_MS,
-   * built once for every process while Redis answers, under the page's
-   * project generation - something taken off a page leaves them at once.
-   * Asked only after the reader's access is checked; one opened by its id
-   * is read on every request.
+   * The lists a page's tabs read, and each item of them opened by its id,
+   * kept as the overview is: for its TTL_MS, built once for every process
+   * while Redis answers, under the page's project generation - something
+   * taken off a page leaves them at once. Asked only after the reader's
+   * access is checked.
    */
   private static incidentListCache: StatusPageReadCache<JSONObject> =
     new StatusPageReadCache<JSONObject>({
@@ -2596,25 +2626,23 @@ export default class StatusPageAPI extends BaseAPI<
       req: req,
     });
 
-    if (scheduledMaintenanceId) {
-      return await StatusPageAPI.readShownScheduledMaintenanceEvents({
-        statusPageId: statusPageId,
-        scheduledMaintenanceId: scheduledMaintenanceId,
-      });
-    }
-
-    // The list, after the reader's access is checked (scheduledMaintenanceListCache).
+    // The list, or an event of it, after the reader's access is checked.
     return await StatusPageAPI.scheduledMaintenanceListCache.getOrRead({
       statusPageId: statusPageId,
+      variant: itemVariantOf(scheduledMaintenanceId),
       readProjectId: (): Promise<ObjectID | null> => {
         return StatusPageService.getProjectIdOfStatusPage(statusPageId);
       },
       read: (): Promise<JSONObject> => {
         return StatusPageAPI.readShownScheduledMaintenanceEvents({
           statusPageId: statusPageId,
-          scheduledMaintenanceId: null,
+          scheduledMaintenanceId: scheduledMaintenanceId,
         });
       },
+      shouldKeep: keepItemsShown(
+        scheduledMaintenanceId,
+        "scheduledMaintenanceEvents",
+      ),
     });
   }
 
@@ -3031,19 +3059,17 @@ export default class StatusPageAPI extends BaseAPI<
       req: req,
     });
 
-    if (announcementId) {
-      return await this.readShownAnnouncements(statusPageId, announcementId);
-    }
-
-    // The list, after the reader's access is checked (announcementListCache).
+    // The list, or an announcement of it, after the reader's access is checked.
     return await StatusPageAPI.announcementListCache.getOrRead({
       statusPageId: statusPageId,
+      variant: itemVariantOf(announcementId),
       readProjectId: (): Promise<ObjectID | null> => {
         return StatusPageService.getProjectIdOfStatusPage(statusPageId);
       },
       read: (): Promise<JSONObject> => {
-        return this.readShownAnnouncements(statusPageId, null);
+        return this.readShownAnnouncements(statusPageId, announcementId);
       },
+      shouldKeep: keepItemsShown(announcementId, "announcements"),
     });
   }
 
@@ -4627,19 +4653,17 @@ export default class StatusPageAPI extends BaseAPI<
       req: req,
     });
 
-    if (incidentId) {
-      return await this.readShownIncidents(statusPageId, incidentId);
-    }
-
-    // The list, after the reader's access is checked (incidentListCache).
+    // The list, or an incident of it, after the reader's access is checked.
     return await StatusPageAPI.incidentListCache.getOrRead({
       statusPageId: statusPageId,
+      variant: itemVariantOf(incidentId),
       readProjectId: (): Promise<ObjectID | null> => {
         return StatusPageService.getProjectIdOfStatusPage(statusPageId);
       },
       read: (): Promise<JSONObject> => {
-        return this.readShownIncidents(statusPageId, null);
+        return this.readShownIncidents(statusPageId, incidentId);
       },
+      shouldKeep: keepItemsShown(incidentId, "incidents"),
     });
   }
 
@@ -4937,19 +4961,17 @@ export default class StatusPageAPI extends BaseAPI<
       req: req,
     });
 
-    if (episodeId) {
-      return await this.readShownEpisodes(statusPageId, episodeId);
-    }
-
-    // The list, after the reader's access is checked (episodeListCache).
+    // The list, or an episode of it, after the reader's access is checked.
     return await StatusPageAPI.episodeListCache.getOrRead({
       statusPageId: statusPageId,
+      variant: itemVariantOf(episodeId),
       readProjectId: (): Promise<ObjectID | null> => {
         return StatusPageService.getProjectIdOfStatusPage(statusPageId);
       },
       read: (): Promise<JSONObject> => {
-        return this.readShownEpisodes(statusPageId, null);
+        return this.readShownEpisodes(statusPageId, episodeId);
       },
+      shouldKeep: keepItemsShown(episodeId, "episodes"),
     });
   }
 

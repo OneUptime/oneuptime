@@ -114,6 +114,13 @@ export default class StatusPageReadCache<T> {
     // The page's project; null when there is no such page.
     readProjectId: () => Promise<ObjectID | null>;
     read: () => Promise<T>;
+    /*
+     * Whether what was read may be kept - here and in Redis. False for a
+     * read that found nothing worth keeping (an item the page does not
+     * show): it is read again every time, and ids nobody has never fill the
+     * cache. Left out, every read is kept.
+     */
+    shouldKeep?: ((value: T) => boolean) | undefined;
   }): Promise<T> {
     const pageKey: StatusPageCacheKey =
       await StatusPageOverviewCache.getPageKey({
@@ -151,13 +158,17 @@ export default class StatusPageReadCache<T> {
               build: data.read,
               toJSON: this.options.shared.toJSON,
               fromJSON: this.options.shared.fromJSON,
+              shouldKeep: data.shouldKeep,
             })
           : this.readHere(data.read);
 
       const started: Promise<T> = read.then((result: SharedRead<T>): T => {
         const lifetime: number = result.expiresAt - Date.now();
 
-        if (lifetime > 0) {
+        if (
+          lifetime > 0 &&
+          (!data.shouldKeep || data.shouldKeep(result.value))
+        ) {
           this.kept.set(key, { value: result.value }, lifetime);
         }
 
