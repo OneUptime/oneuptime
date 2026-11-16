@@ -361,6 +361,8 @@ curl https://oneuptime.com/mcp/tools
 
 `list_` 和 `count_` 工具接受任意字段，这样工具列表就小到客户端可以一次加载。要查看资源的字段、每个字段的含义以及它接受的运算符，代理会用资源或它的某个工具（例如 `Incident` 或 `list_incidents`）调用 `oneuptime_describe_resource`。
 
+事件、监视器以及其他各类记录的其余 `list_` 工具，排序方式与 API 相同：字段接受一个方向，或接受 `{ "direction": "DESC", "nulls": "LAST" }`，把该字段没有值的记录放在最后；指向一条记录的关系按其所指定记录的某个字段排序，如 `{ "incidentSeverity": { "order": "ASC" } }`。`oneuptime_describe_resource` 会把每个这样的关系标记为 `sort`，并在 `sortBy` 下列出可用来排序的字段。
+
 ## 字段选择和分页
 
 `get_` 和 `list_` 工具接受一个可选的字段名数组 `select`。默认情况下，除较重的字段（JSON、很长的文本和 HTML 列）外，所有可读字段都会返回，较重的字段必须在 `select` 中请求。

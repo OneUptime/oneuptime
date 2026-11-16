@@ -95,6 +95,8 @@ En ressurs med eiere - en monitor, en hendelse, en vaktpolicy og enhver annen me
 
 `select` nevner feltene som skal returneres, og `_id` kommer alltid med. `sort` ordner dem, `ASC` eller `DESC`; uten sortering kommer de nyeste først. En liste returnerer 10 poster med mindre du setter `limit`, opptil 10 000, og `skip` hopper først over så mange: fortsett å øke `skip` med `limit` til du har `count` av dem. Legg til `?output-type=csv` i en listeforespørsel for å få CSV i stedet for JSON.
 
+Rekkefølgen til et felt kan også si hvor postene uten en verdi i det havner: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` setter de nyeste først og dem uten verdi sist, og `FIRST` setter dem først. En relasjon til én post sorterer etter et felt i posten den nevner: `{ "incidentSeverity": { "order": "ASC" } }` viser hendelser i rekkefølgen til alvorlighetsgradene deres. En relasjon som bare får en retning, som i `{ "incidentSeverity": "DESC" }`, avvises med en `400` som i stedet nevner et felt å sortere etter, og det samme gjør en relasjon til mange poster, som `labels` for en hendelse: hver hendelse har en liste av dem, og en liste har ikke én verdi å sette hendelser i rekkefølge etter. Å sortere etter et felt krever også tillatelse til å lese det, gjennom en relasjon som på selve ressursen: en sortering etter et felt du ikke har lov til å lese, avvises med en `422`.
+
 For eksempel monitorene der navnet inneholder «checkout», opprettet siden starten av 2026, de nyeste først:
 
 ```bash
