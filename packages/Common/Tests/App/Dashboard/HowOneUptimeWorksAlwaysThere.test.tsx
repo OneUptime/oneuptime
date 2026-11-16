@@ -33,6 +33,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * the products that do each, then every product, by category (#8891,
  * HowOneUptimeWorksOverview, whose own suite covers it in full); it links
  * Core Concepts and the Glossary; and Help starts with the ways to learn.
+ * A new project's Welcome checklist opens the same dialog, from a line
+ * under its steps, where it drew a shorter strip of its own (#8995).
  *
  * react-i18next answers from the Dashboard's REAL locale files, nested keys
  * and the reader's language included, so the words asserted are the words
@@ -194,7 +196,15 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import ObjectID from "../../../Types/ObjectID";
-import { getEmptyWelcomeChecklistAnswer } from "../../../Types/WelcomeChecklist/WelcomeChecklistAnswer";
+import {
+  WelcomeChecklistAnswer,
+  getEmptyWelcomeChecklistAnswer,
+} from "../../../Types/WelcomeChecklist/WelcomeChecklistAnswer";
+import {
+  WelcomeAudience,
+  WelcomeStep,
+} from "../../../Types/WelcomeChecklist/WelcomeChecklist";
+import ProjectGoal from "../../../Types/WelcomeChecklist/ProjectGoal";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import { DOCS_URL } from "../../../UI/Config";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
@@ -208,11 +218,10 @@ import HowOneUptimeWorksDialog, {
   HowOneUptimeWorksOpenedFrom,
   openHowOneUptimeWorks,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksDialog";
-import HowOneUptimeWorks, {
+import {
   FEEDS_INFRASTRUCTURE_TEXT,
   FEEDS_TELEMETRY_TEXT,
   HOW_IT_WORKS_CORE_CONCEPTS,
-  HOW_IT_WORKS_FEEDS,
   HOW_IT_WORKS_GLOSSARY,
   HOW_IT_WORKS_TITLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorks";
@@ -226,7 +235,9 @@ import {
 import ExploreProducts, {
   HOME_HOW_ONEUPTIME_WORKS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/ExploreProducts";
-import GettingStarted from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
+import GettingStarted, {
+  HOW_ONEUPTIME_WORKS_LINE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -687,7 +698,7 @@ describe("from Home, at any time", () => {
   });
 
   test("a project whose Welcome checklist is finished still opens it from Home", async () => {
-    // An old project: every step done, so the checklist and its strip are gone.
+    // An old project: every step done, so the checklist and its line are gone.
     welcomeFetchMock.mockResolvedValue({
       ...getEmptyWelcomeChecklistAnswer(),
       isFinished: true,
@@ -705,7 +716,7 @@ describe("from Home, at any time", () => {
     });
 
     expect(screen.queryByTestId("getting-started")).toBeNull();
-    expect(screen.queryByTestId("how-oneuptime-works")).toBeNull();
+    expect(screen.queryByTestId(HOW_ONEUPTIME_WORKS_LINE_TEST_ID)).toBeNull();
 
     // Home still opens it.
     fireEvent.click(screen.getByTestId(HOME_HOW_ONEUPTIME_WORKS_TEST_ID));
@@ -716,53 +727,96 @@ describe("from Home, at any time", () => {
     expect(
       screen.getByTestId(HOW_ONEUPTIME_WORKS_OVERVIEW_TEST_ID),
     ).toBeInTheDocument();
-    // The dialog is not the strip: the strip went with the checklist.
-    expect(screen.queryByTestId("how-oneuptime-works")).toBeNull();
   });
 });
 
-describe("the strip in the Welcome checklist", () => {
-  test("says what feeds the loop and links the docs too, with a heading of its own", () => {
-    render(<HowOneUptimeWorks projectId={PROJECT_ID} />);
+describe("from a new project's Welcome checklist", () => {
+  // A new project, its goals chosen: the checklist's steps, and the line under them.
+  const unfinished: (
+    extra?: Partial<WelcomeChecklistAnswer>,
+  ) => WelcomeChecklistAnswer = (
+    extra?: Partial<WelcomeChecklistAnswer>,
+  ): WelcomeChecklistAnswer => {
+    return {
+      ...getEmptyWelcomeChecklistAnswer(),
+      audience: WelcomeAudience.SetUp,
+      goals: [ProjectGoal.Uptime],
+      canChooseGoals: true,
+      steps: [
+        {
+          step: WelcomeStep.Monitor,
+          isDone: false,
+          needsPlan: null,
+          isNext: true,
+        },
+      ],
+      doneCount: 0,
+      totalCount: 1,
+      ...extra,
+    };
+  };
 
-    const strip: HTMLElement = screen.getByTestId("how-oneuptime-works");
+  const renderChecklist: () => Promise<void> = async (): Promise<void> => {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <GettingStarted projectId={new ObjectID(PROJECT_ID)} />
+          <HowOneUptimeWorksDialog />
+        </MemoryRouter>,
+      );
+    });
+  };
 
-    expect(strip).toHaveTextContent(HOW_IT_WORKS_TITLE);
-    expect(strip.className).toContain("border");
-    expect(within(strip).getAllByTestId(DEFINED_TERM_TEST_ID)).toHaveLength(2);
-    expect(
-      within(strip).getByTestId("how-oneuptime-works-docs-core-concepts"),
-    ).toBeInTheDocument();
-  });
+  test("the line under its steps opens it, as the Welcome checklist, on the four steps", async () => {
+    welcomeFetchMock.mockResolvedValue(unfinished());
+    await renderChecklist();
 
-  test("its docs links are the dialog's: Core Concepts and the Glossary, in a new tab", () => {
-    render(<HowOneUptimeWorks projectId={PROJECT_ID} />);
-
-    const strip: HTMLElement = screen.getByTestId("how-oneuptime-works");
-
-    expect(
-      within(strip).getByTestId("how-oneuptime-works-docs-core-concepts"),
-    ).toHaveAttribute("href", `${DOCS}/en/introduction/core-concepts`);
-    expect(
-      within(strip).getByTestId("how-oneuptime-works-docs-glossary"),
-    ).toHaveAttribute("target", "_blank");
-    // Four across on a wide Home.
-    expect(within(strip).getByRole("list").className).toContain(
-      "xl:grid-cols-4",
+    const line: HTMLElement = screen.getByTestId(
+      HOW_ONEUPTIME_WORKS_LINE_TEST_ID,
     );
+
+    expect(line).toHaveAccessibleName(HOW_IT_WORKS_TITLE);
+    expect(line).toHaveAttribute("aria-haspopup", "dialog");
+    expect(dialog()).toBeNull();
+
+    fireEvent.click(line);
+
+    await waitFor(() => {
+      expect(dialog()).not.toBeNull();
+    });
+    // The story, told once: the dialog's four steps, then every product.
+    expect(
+      within(dialog()!).getByTestId("how-oneuptime-works-loop"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog()!).getAllByTestId(/^how-oneuptime-works-step-/),
+    ).toHaveLength(HOW_IT_WORKS_LOOP.length);
+    expect(openedEvents()).toEqual([
+      expect.objectContaining({
+        product: "oneuptime",
+        source: "welcome-checklist",
+        project_id: PROJECT_ID,
+      }),
+    ]);
   });
 
-  test("its sentence about what feeds the loop is one translatable sentence with two words in it", () => {
-    expect(HOW_IT_WORKS_FEEDS).toContain("{{telemetry}}");
-    expect(HOW_IT_WORKS_FEEDS).toContain("{{infrastructure}}");
+  test("the line a hidden checklist leaves opens it too", async () => {
+    welcomeFetchMock.mockResolvedValue(unfinished({ isHiddenForMe: true }));
+    await renderChecklist();
 
-    for (const code of ["de", "ar", "fa"]) {
-      const translated: unknown = LOCALES[code]![HOW_IT_WORKS_FEEDS];
+    expect(screen.queryByTestId("getting-started")).toBeNull();
+    expect(screen.queryByTestId(HOW_ONEUPTIME_WORKS_LINE_TEST_ID)).toBeNull();
 
-      expect(typeof translated).toBe("string");
-      expect(translated).not.toBe(HOW_IT_WORKS_FEEDS);
-      expect(translated).toContain("{{telemetry}}");
-      expect(translated).toContain("{{infrastructure}}");
-    }
+    fireEvent.click(screen.getByTestId("welcome-checklist-how-it-works"));
+
+    await waitFor(() => {
+      expect(dialog()).not.toBeNull();
+    });
+    expect(openedEvents()).toEqual([
+      expect.objectContaining({
+        product: "oneuptime",
+        source: "welcome-checklist",
+      }),
+    ]);
   });
 });

@@ -1297,6 +1297,60 @@ test.describe("what do you want to do first?", () => {
     await screenshot(page, "home-welcome-half");
   });
 
+  test("under the steps, one line opens How OneUptime works: its four steps, told once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openQuickstart(page, "scenario=new&welcome=half");
+
+    const line: Locator = page.getByTestId("getting-started-how-it-works");
+
+    await expect(line).toBeVisible();
+    await expect(line).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(line).toContainText("How OneUptime works");
+    await expect(line).toContainText(
+      "Everything OneUptime does, and how it fits together.",
+    );
+    // The card tells no story of its own.
+    await expect(
+      page.getByTestId("getting-started").getByTestId("how-oneuptime-works"),
+    ).toHaveCount(0);
+
+    // In line with the steps: its icon where theirs is, as wide.
+    const lineIcon: { x: number; width: number } | null = await line
+      .locator("span")
+      .first()
+      .boundingBox();
+    const stepIcon: { x: number; width: number } | null = await page
+      .getByTestId("getting-started-task-on_call")
+      .locator("span")
+      .first()
+      .boundingBox();
+    expect(Math.round(lineIcon!.x)).toBe(Math.round(stepIcon!.x));
+    expect(Math.round(lineIcon!.width)).toBe(Math.round(stepIcon!.width));
+
+    await line.click();
+
+    const dialog: Locator = page.getByTestId("how-oneuptime-works-dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByTestId("how-oneuptime-works-loop")).toBeVisible();
+    await expect(
+      dialog.locator('[data-testid^="how-oneuptime-works-step-"]'),
+    ).toHaveCount(4);
+
+    await screenshot(page, "home-welcome-how-it-works");
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    // Back where it was opened: still the quickstart.
+    await expect(page.getByTestId("home-overview")).toHaveAttribute(
+      "data-home-mode",
+      "quickstart",
+    );
+    await expect(line).toBeVisible();
+  });
+
   test("on the Free plan, the team step says it needs Growth before the click", async ({
     page,
   }: {
@@ -1330,10 +1384,14 @@ test.describe("what do you want to do first?", () => {
     // Hidden: the rest of Home is back.
     await expect(page.getByTestId("home-health-headline")).toBeVisible();
 
-    await page.getByTestId("welcome-checklist-how-it-works").click();
-    await expect(page.getByTestId("how-oneuptime-works")).toBeVisible();
-
     await screenshot(page, "home-welcome-hidden");
+
+    // How OneUptime works opens its dialog, the one Help and Search open.
+    await page.getByTestId("welcome-checklist-how-it-works").click();
+    await expect(page.getByTestId("how-oneuptime-works-dialog")).toBeVisible();
+    await expect(page.getByTestId("how-oneuptime-works-loop")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("how-oneuptime-works-dialog")).toHaveCount(0);
 
     await page.getByTestId("welcome-checklist-show").click();
     await expect(page.getByTestId("getting-started")).toBeVisible();

@@ -80,7 +80,7 @@ Een begeleide installatie doet het hele werk op één pagina, stap voor stap, en
 
 Naast haar stappen somt een begeleide installatie op wat ze instelt, afgevinkt terwijl je vordert, en zegt ze hoe lang ze ongeveer duurt.
 
-Onder de stappen toont **Hoe OneUptime werkt** de vier kernproducten in de volgorde waarin een probleem ze doorloopt: **Monitoren**, **Incidenten & waarschuwingen**, **Bereikbaarheid** en **Statuspagina's**. Klik op een ervan om het te openen. Daaronder staat wat die kringloop voedt, telemetrie en infrastructuur, met links naar [Kernbegrippen](/docs/introduction/core-concepts) en [Woordenlijst](/docs/introduction/glossary).
+Onder de stappen opent een regel **Hoe OneUptime werkt**: alles wat OneUptime doet, en hoe het in elkaar grijpt.
 
 ```mermaid title="Wanneer de welkomstchecklist verschijnt"
 flowchart TB

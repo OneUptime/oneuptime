@@ -1699,7 +1699,6 @@ const TRANSLATION_KEY_CONSTANT: (name: string) => RegExp = (
 const NUMBER_CONSTANT: (name: string) => RegExp = (name: string): RegExp => {
   return new RegExp(`export const ${name}: number = (\\d+);`);
 };
-const HOW_IT_WORKS_STEP_TITLE: RegExp = /^ {4}title: "([^"]+)",$/gm;
 const KEY_SEQUENCE: RegExp = /keySequence: \[\[([^\]]+)\]\]/g;
 const QUICK_ACTION_TITLE: RegExp = /title: translationKey\("([^"]+)"\)/g;
 const RESOURCE_TITLE: RegExp = /title: translationKey\("([^"]+)"\)/g;
@@ -2842,28 +2841,39 @@ describe("Home Page & Shortcuts", () => {
     expect(section).not.toContain("this browser");
   });
 
-  it("names How OneUptime works and its four products in their order", () => {
+  /*
+   * The checklist drew a strip of four products of its own, beside the
+   * dialog's four steps; now one line under its steps opens the dialog,
+   * saying what it holds in the dialog's own words (#8995).
+   */
+  it("says a line under the steps opens How OneUptime works, in the words the line says", () => {
     const source: string = dashboard("Components/Home/HowOneUptimeWorks.tsx");
-    const steps: Array<string> = Array.from(
-      blockFrom(source, "export const HOW_IT_WORKS_STEPS", "\n];").matchAll(
-        HOW_IT_WORKS_STEP_TITLE,
-      ),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1] as string;
-    });
+    const description: string = (
+      dashboard("Components/Home/HowOneUptimeWorksDialog.tsx").match(
+        TRANSLATION_KEY_CONSTANT("HOW_ONEUPTIME_WORKS_DESCRIPTION"),
+      ) as RegExpMatchArray
+    )[1] as string;
 
     expect(source).toContain(
       'export const HOW_IT_WORKS_TITLE: string = "How OneUptime works";',
     );
-    expect(CHECKLIST_SOURCE).toContain("<HowOneUptimeWorks");
-    expect(whatHomeShows).toContain(
-      `**How OneUptime works** shows the four core products in the order a problem flows through them: ${steps
-        .slice(0, -1)
-        .map((step: string): string => {
-          return `**${step}**`;
-        })
-        .join(", ")} and **${steps[steps.length - 1]}**.`,
+    expect(CHECKLIST_SOURCE).toContain(
+      "openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.WelcomeChecklist);",
     );
+    expect(CHECKLIST_SOURCE).toContain(
+      "translator.translateText(HOW_ONEUPTIME_WORKS_DESCRIPTION)",
+    );
+    expect(CHECKLIST_SOURCE).not.toContain("<HowOneUptimeWorks");
+    expect(description).toBe(
+      "Everything OneUptime does, and how it fits together.",
+    );
+    expect(whatHomeShows).toContain(
+      `Under the steps, a line opens **How OneUptime works**: ${description
+        .charAt(0)
+        .toLowerCase()}${description.slice(1)}`,
+    );
+    // The products are the dialog's to name, in its four steps.
+    expect(whatHomeShows).not.toContain("four core products");
   });
 
   /*

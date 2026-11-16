@@ -80,7 +80,7 @@ Une configuration guidée fait tout le travail sur une seule page, étape par é
 
 À côté de ses étapes, une configuration guidée liste ce qu'elle met en place, coché au fur et à mesure, et indique combien de temps elle prend environ.
 
-Sous les étapes, **Comment fonctionne OneUptime** montre les quatre produits essentiels dans l'ordre où un problème les traverse : **Moniteurs**, **Incidents et alertes**, **Astreinte** et **Pages de statut**. Cliquez sur l'un d'eux pour l'ouvrir. En dessous, il indique ce qui alimente cette boucle, la télémétrie et l'infrastructure, avec des liens vers [Concepts clés](/docs/introduction/core-concepts) et [Glossaire](/docs/introduction/glossary).
+Sous les étapes, une ligne ouvre **Comment fonctionne OneUptime** : tout ce que fait OneUptime, et comment l'ensemble s'articule.
 
 ```mermaid title="Quand la liste de bienvenue s'affiche"
 flowchart TB

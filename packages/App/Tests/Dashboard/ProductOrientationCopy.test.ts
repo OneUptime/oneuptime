@@ -4,8 +4,9 @@ import path from "path";
 
 /*
  * The copy that orients a new user in a very large product: what each item in
- * the Products menu is for, what each core list page holds, the Home
- * "How OneUptime works" strip and dialog, and the Getting Started checklist.
+ * the Products menu is for, what each core list page holds, the "How
+ * OneUptime works" dialog, and the Getting Started checklist with the line
+ * under its steps that opens that dialog (#8995).
  *
  * Copy fails quietly. A locale missing a key shows English (or a raw key) to
  * that user, a rewritten English string silently orphans its translations,
@@ -346,8 +347,6 @@ describe("Home orientation copy", () => {
     expect(literals).toEqual(
       expect.arrayContaining([
         "How OneUptime works",
-        "Incidents & Alerts",
-        "Pages the right person, and escalates if nobody answers.",
         "Welcome to OneUptime 👋",
         "Hide",
         "steps completed",
@@ -370,6 +369,33 @@ describe("Home orientation copy", () => {
       ]),
     );
     expect(literals.length).toBeGreaterThanOrEqual(70);
+  });
+
+  test("the checklist tells no story of its own: its strip's words are gone, and it opens the dialog", () => {
+    /*
+     * The checklist drew four numbered products, what fed them and a
+     * footnote, beside the dialog's four steps: two shapes of one story.
+     */
+    for (const strip of [
+      "Incidents & Alerts",
+      "Pages the right person, and escalates if nobody answers.",
+      "That is the core. Logs, metrics, traces, infrastructure and everything else are optional — find them under Products when you need them.",
+    ]) {
+      expect(literals).not.toContain(strip);
+    }
+
+    const checklist: string = readSource(
+      "Components",
+      "Home",
+      "GettingStarted.tsx",
+    );
+    expect(checklist).toContain(
+      "openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.WelcomeChecklist);",
+    );
+    expect(checklist).toContain(
+      "translator.translateText(HOW_ONEUPTIME_WORKS_DESCRIPTION)",
+    );
+    expect(checklist).not.toContain("<HowOneUptimeWorks ");
   });
 
   test("every English literal is a key in en.json that maps to itself", () => {
@@ -398,22 +424,6 @@ describe("Home orientation copy", () => {
     expect(readSameAsEnglish("de").has("Start")).toBe(false);
     expect(locales["de"]!["Start"]).not.toBe("Start");
   });
-
-  test.each(nonEnglish)(
-    "%s footnote names the Products menu by its translated label",
-    (code: string) => {
-      /*
-       * The footnote sends users to "Products"; in each language that has to
-       * be the word on the actual button, or they will not find it.
-       */
-      const footnote: string = locales[code]![
-        "That is the core. Logs, metrics, traces, infrastructure and everything else are optional — find them under Products when you need them."
-      ] as string;
-      const productsLabel: string = locales[code]!["Products"] as string;
-      expect(typeof productsLabel).toBe("string");
-      expect(footnote).toContain(productsLabel);
-    },
-  );
 });
 
 describe("Help menu", () => {

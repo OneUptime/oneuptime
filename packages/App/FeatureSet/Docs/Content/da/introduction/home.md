@@ -80,7 +80,7 @@ En guidet opsætning klarer hele opgaven på én side, et trin ad gangen, og slu
 
 Ved siden af sine trin viser en guidet opsætning, hvad den sætter op, sat flueben ved efterhånden, og fortæller, cirka hvor lang tid den tager.
 
-Under trinene viser **Sådan virker OneUptime** de fire kerneprodukter i den rækkefølge, et problem bevæger sig gennem dem: **Monitorer**, **Hændelser og advarsler**, **Vagt** og **Statussider**. Klik på et for at åbne det. Under dem står, hvad der fodrer kredsløbet, telemetri og infrastruktur, med links til [Grundbegreber](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
+Under trinene åbner en linje **Sådan virker OneUptime**: alt, hvad OneUptime gør, og hvordan det hænger sammen.
 
 ```mermaid title="Hvornår velkomsttjeklisten vises"
 flowchart TB

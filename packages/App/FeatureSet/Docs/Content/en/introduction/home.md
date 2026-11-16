@@ -80,7 +80,7 @@ A guided setup does the whole job on one page, a step at a time, and ends with w
 
 Beside its steps, a guided setup lists what it sets up, ticked off as you go, and says about how long it takes.
 
-Under the steps, **How OneUptime works** shows the four core products in the order a problem flows through them: **Monitors**, **Incidents & Alerts**, **On-Call** and **Status Pages**. Click one to open it. Under them it says what feeds that loop, telemetry and infrastructure, and links to [Core Concepts](/docs/introduction/core-concepts) and the [Glossary](/docs/introduction/glossary).
+Under the steps, a line opens **How OneUptime works**: everything OneUptime does, and how it fits together.
 
 ```mermaid title="When the welcome checklist shows"
 flowchart TB

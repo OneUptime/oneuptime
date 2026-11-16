@@ -31,7 +31,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *  - each step to do says about how long it takes; a done step or one the
  *    plan holds back says nothing of time;
  *  - the next step stands out and carries its own Start, inside its row;
- *  - the steps are joined by a line, green past a step that is done.
+ *  - the steps are joined by a line, green past a step that is done;
+ *  - under them, one line opens How OneUptime works, in line with them
+ *    (#8995).
  *
  * The real component; the Welcome checklist's reads answer per test.
  */
@@ -100,7 +102,9 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
   };
 });
 
-import GettingStarted from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
+import GettingStarted, {
+  HOW_ONEUPTIME_WORKS_LINE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
 import {
   getGreeting,
   getGreetingFirstName,
@@ -437,6 +441,41 @@ describe("the path between the steps", () => {
   test("runs down the start of the line, so a page read from the right draws it on the right", () => {
     expect(PATH_LINE_CLASS_NAME).toContain("start-[34px]");
     expect(PATH_LINE_CLASS_NAME).not.toMatch(/\b(?:left|right)-/);
+  });
+});
+
+describe("under the steps", () => {
+  test("How OneUptime works is one line, its icon and words in line with the steps' own", async () => {
+    await renderPath();
+
+    const line: HTMLElement = screen.getByTestId(
+      HOW_ONEUPTIME_WORKS_LINE_TEST_ID,
+    );
+    const classesOf: (element: HTMLElement) => Array<string> = (
+      element: HTMLElement,
+    ): Array<string> => {
+      return element.className.split(" ");
+    };
+
+    // The same room either side as the steps' list has...
+    for (const padding of ["px-3", "sm:px-5"]) {
+      expect(classesOf(screen.getByTestId("getting-started-steps"))).toContain(
+        padding,
+      );
+      expect(classesOf(line.parentElement!)).toContain(padding);
+    }
+    // ...and inside, as a step's row has.
+    for (const token of ["px-3", "gap-4", "rounded-xl", "border"]) {
+      expect(classesOf(row(WelcomeStep.OnCall))).toContain(token);
+      expect(classesOf(line)).toContain(token);
+    }
+    // An icon as wide as a step's, so its words start where theirs do.
+    const icon: HTMLElement = line.firstElementChild as HTMLElement;
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+    expect(classesOf(icon)).toEqual(expect.arrayContaining(["h-11", "w-11"]));
+    // Quieter than a step: no colour of its own, and never marked next.
+    expect(line).not.toHaveAttribute("data-next");
+    expect(classesOf(icon)).toContain("bg-gray-100");
   });
 });
 

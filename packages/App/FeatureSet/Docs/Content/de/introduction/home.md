@@ -80,7 +80,7 @@ Eine geführte Einrichtung erledigt die ganze Aufgabe auf einer Seite, Schritt f
 
 Neben ihren Schritten listet eine geführte Einrichtung auf, was sie einrichtet, abgehakt, sobald Sie vorankommen, und sagt, wie lange sie etwa dauert.
 
-Unter den Schritten zeigt **So funktioniert OneUptime** die vier Kernprodukte in der Reihenfolge, in der ein Problem sie durchläuft: **Monitore**, **Vorfälle & Warnungen**, **Bereitschaft** und **Statusseiten**. Klicken Sie auf eines, um es zu öffnen. Darunter steht, was diesen Kreislauf speist, Telemetrie und Infrastruktur, mit Links zu den Seiten [Grundkonzepte](/docs/introduction/core-concepts) und [Glossar](/docs/introduction/glossary).
+Unter den Schritten öffnet eine Zeile **So funktioniert OneUptime**: alles, was OneUptime kann, und wie es zusammenhängt.
 
 ```mermaid title="Wann die Willkommens-Checkliste erscheint"
 flowchart TB

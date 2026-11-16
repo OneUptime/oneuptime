@@ -249,7 +249,7 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   {
     name: ProductEventName.HowItWorksOpened,
     description:
-      'A "How it works" explanation was opened: a product\'s, from beside the page\'s title, or How OneUptime works (product "oneuptime"), from Help, Home, Search or the phone menu (source).',
+      'A "How it works" explanation was opened: a product\'s, from beside the page\'s title, or How OneUptime works (product "oneuptime"), from Help, Home, the Welcome checklist, Search or the phone menu (source).',
     properties: [token("product"), token("source")],
   },
   {

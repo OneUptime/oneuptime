@@ -1,5 +1,10 @@
 import GoalQuestion from "./WelcomeChecklist/GoalQuestion";
-import HowOneUptimeWorks from "./HowOneUptimeWorks";
+import { HOW_IT_WORKS_TITLE } from "./HowOneUptimeWorks";
+import {
+  HOW_ONEUPTIME_WORKS_DESCRIPTION,
+  HowOneUptimeWorksOpenedFrom,
+  openHowOneUptimeWorks,
+} from "./HowOneUptimeWorksDialog";
 import MemberFirstSteps from "./MemberFirstSteps/MemberFirstSteps";
 import {
   fetchWelcomeChecklist,
@@ -86,6 +91,7 @@ import React, {
  *   - each step says about how long it takes, and the card how long is left;
  *   - a step the plan cannot finish says which plan it needs before the click;
  *   - one step is marked next, with its own Start;
+ *   - under the steps, one line opens "How OneUptime works" (#8995);
  *   - Hide hides the card for this person only, on every device, and leaves
  *     a line to show it again and to "How OneUptime works";
  *   - "Just looking around" keeps that goal and hides the card the same way;
@@ -260,12 +266,23 @@ const CURRENT_PLAN_HELD_BACK: PlanType = PlanType.Free;
 // How wide the quickstart is while it is the whole of Home.
 export const QUICKSTART_MAX_WIDTH_CLASS_NAME: string = "max-w-7xl";
 
+export const HOW_ONEUPTIME_WORKS_LINE_TEST_ID: string =
+  "getting-started-how-it-works";
+
+/*
+ * The line under the steps that opens How OneUptime works: a row as wide as
+ * a step's, its icon and words in line with theirs, quieter than they are.
+ */
+export const HOW_ONEUPTIME_WORKS_LINE_CLASS_NAME: string =
+  "group flex w-full items-center gap-4 rounded-xl border border-transparent px-3 py-3 text-start transition hover:border-gray-200 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
 const GettingStarted: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const projectIdString: string = props.projectId.toString();
   const headingId: string = `getting-started-title-${useId()}`;
+  const howItWorksId: string = `getting-started-how-it-works-${useId()}`;
 
   const [answer, setAnswer] = useState<WelcomeChecklistAnswer | null>(null);
   // The answer for this project was read, or could not be.
@@ -273,7 +290,6 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
   const [isChangingGoals, setIsChangingGoals] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [showHowItWorks, setShowHowItWorks] = useState<boolean>(false);
 
   /*
    * One read per project: what this browser remembered of the checklist
@@ -520,9 +536,16 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const howItWorks: ReactElement = (
-    <HowOneUptimeWorks projectId={projectIdString} />
-  );
+  /*
+   * How OneUptime works, in the dialog Help, Search and Explore OneUptime
+   * open too (HowOneUptimeWorksDialog): the four steps a problem moves
+   * through, then every product. The checklist used to draw a shorter strip
+   * of its own, so a newcomer met two shapes of one story; now it opens the
+   * one (#8995).
+   */
+  const openHowItWorks: () => void = (): void => {
+    openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.WelcomeChecklist);
+  };
 
   if (view === WelcomeCardView.Hidden) {
     return (
@@ -553,10 +576,8 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
             title={WELCOME_CHECKLIST_COPY.howItWorksButton}
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
             buttonSize={ButtonSize.Small}
-            ariaExpanded={showHowItWorks}
-            onClick={() => {
-              setShowHowItWorks(!showHowItWorks);
-            }}
+            ariaHaspopup="dialog"
+            onClick={openHowItWorks}
             dataTestId="welcome-checklist-how-it-works"
           />
           {error ? (
@@ -567,7 +588,6 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
             <></>
           )}
         </div>
-        {showHowItWorks ? <div className="mt-3">{howItWorks}</div> : <></>}
       </div>
     );
   }
@@ -797,13 +817,53 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
         )}
       </ol>
       {/*
-       * The checklist says what to do; this says how the pieces connect.
-       * Hiding the card keeps it one click away, on the line left behind.
-       * Help and Home's Explore OneUptime open it in a dialog
-       * (HowOneUptimeWorksDialog) at any time too, however old the project.
+       * The checklist says what to do; How OneUptime works says how the
+       * pieces connect. One line opens it, named as the dialog is and
+       * saying what the dialog says it holds, so the path stays about what
+       * to do first. Hiding the card keeps it one click away, on the line
+       * left behind.
        */}
-      <div className="border-t border-gray-200 px-5 py-6 sm:px-8">
-        {howItWorks}
+      <div className="border-t border-gray-200 px-3 py-3 sm:px-5">
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          aria-labelledby={`${howItWorksId}-title`}
+          aria-describedby={`${howItWorksId}-description`}
+          onClick={openHowItWorks}
+          data-testid={HOW_ONEUPTIME_WORKS_LINE_TEST_ID}
+          className={HOW_ONEUPTIME_WORKS_LINE_CLASS_NAME}
+        >
+          <span
+            aria-hidden="true"
+            className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-gray-100"
+          >
+            <Icon icon={IconProp.Map} className="h-5 w-5 text-gray-500" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span
+              id={`${howItWorksId}-title`}
+              className="block text-sm font-semibold text-gray-900"
+            >
+              {translator.translateText(HOW_IT_WORKS_TITLE)}
+            </span>
+            <span
+              id={`${howItWorksId}-description`}
+              className="mt-0.5 block text-sm text-gray-600"
+            >
+              {translator.translateText(HOW_ONEUPTIME_WORKS_DESCRIPTION)}
+            </span>
+          </span>
+          {/*
+           * Grey at rest, indigo on hover - on two elements, as a step's
+           * chevron is (WelcomePlanStep).
+           */}
+          <span className="flex-none text-gray-400">
+            <Icon
+              icon={IconProp.ChevronRight}
+              className="h-5 w-5 transition group-hover:text-indigo-500"
+            />
+          </span>
+        </button>
       </div>
     </section>
   );

@@ -28,9 +28,7 @@ import { getExploreCategories } from "../../../../App/FeatureSet/Dashboard/src/C
 import {
   FEEDS_INFRASTRUCTURE_TEXT,
   FEEDS_TELEMETRY_TEXT,
-  HOW_IT_WORKS_STEPS,
   HOW_IT_WORKS_TITLE,
-  HowItWorksStep,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorks";
 import HowOneUptimeWorksDialog, {
   HOW_ONEUPTIME_WORKS_DESCRIPTION,
@@ -474,13 +472,14 @@ describe("How it fits together", () => {
     ).toBe(HOW_IT_WORKS_LOOP.length);
   });
 
-  test("tells the Welcome checklist strip's story in the same order: monitors, incidents and alerts, on-call, status pages", () => {
-    // The strip's four products, by the page each opens.
-    const stripPages: Array<PageMap> = HOW_IT_WORKS_STEPS.map(
-      (stripStep: HowItWorksStep): PageMap => {
-        return stripStep.pageMap;
-      },
-    );
+  test("names the core products in the order a problem meets them: monitors, incidents, on-call, status pages", () => {
+    // The four core products, by the page each opens.
+    const corePages: Array<PageMap> = [
+      PageMap.MONITORS,
+      PageMap.INCIDENTS,
+      PageMap.ON_CALL_DUTY,
+      PageMap.STATUS_PAGES,
+    ];
     const loopPages: Array<string> = HOW_IT_WORKS_LOOP.flatMap(
       (loopStep: HowItWorksLoopStep): Array<string> => {
         return loopStep.products.map((product: ProductKey): string => {
@@ -488,7 +487,7 @@ describe("How it fits together", () => {
         });
       },
     );
-    const positions: Array<number> = stripPages.map((page: PageMap): number => {
+    const positions: Array<number> = corePages.map((page: PageMap): number => {
       return loopPages.indexOf(routeFor(page));
     });
 

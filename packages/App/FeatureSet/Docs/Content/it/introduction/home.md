@@ -80,7 +80,7 @@ Una configurazione guidata fa tutto il lavoro in una sola pagina, un passaggio a
 
 Accanto ai suoi passaggi, una configurazione guidata elenca ciò che configura, spuntato man mano che procedi, e indica quanto tempo richiede circa.
 
-Sotto i passaggi, **Come funziona OneUptime** mostra i quattro prodotti principali nell'ordine in cui un problema li attraversa: **Monitor**, **Incidenti e avvisi**, **Reperibilità** e **Pagine di stato**. Fai clic su uno per aprirlo. Sotto dice cosa alimenta questo ciclo, la telemetria e l'infrastruttura, e rimanda a [Concetti fondamentali](/docs/introduction/core-concepts) e [Glossario](/docs/introduction/glossary).
+Sotto i passaggi, una riga apre **Come funziona OneUptime**: tutto ciò che fa OneUptime, e come si incastra.
 
 ```mermaid title="Quando compare la checklist di benvenuto"
 flowchart TB

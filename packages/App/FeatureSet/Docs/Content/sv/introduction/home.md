@@ -80,7 +80,7 @@ En guidad installation gör hela jobbet på en sida, ett steg i taget, och sluta
 
 Bredvid sina steg listar en guidad installation vad den sätter upp, avbockat allt eftersom, och säger ungefär hur lång tid den tar.
 
-Under stegen visar **Så fungerar OneUptime** de fyra kärnprodukterna i den ordning ett problem går igenom dem: **Monitorer**, **Incidenter och larm**, **Jour** och **Statussidor**. Klicka på en för att öppna den. Under dem står vad som matar kretsloppet, telemetri och infrastruktur, med länkar till [Grundbegrepp](/docs/introduction/core-concepts) och [Ordlista](/docs/introduction/glossary).
+Under stegen öppnar en rad **Så fungerar OneUptime**: allt OneUptime gör, och hur det hänger ihop.
 
 ```mermaid title="När välkomstchecklistan visas"
 flowchart TB

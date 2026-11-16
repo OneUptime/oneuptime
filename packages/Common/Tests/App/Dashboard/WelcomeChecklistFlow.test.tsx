@@ -29,7 +29,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *    that goal and hides the checklist (#8897); the checklist that
  *    follows; Change to answer again.
  *  - Hide is this person's own: the card goes, a line stays with Show it
- *    and How OneUptime works.
+ *    and How OneUptime works, which opens its dialog (#8995).
  *  - What a browser remembered of the old checklist goes to the server
  *    first, once.
  *  - The events: home/goals_chosen, home/checklist_dismissed, and the
@@ -139,8 +139,11 @@ import {
   WelcomeChecklistAnswer,
   getEmptyWelcomeChecklistAnswer,
 } from "../../../Types/WelcomeChecklist/WelcomeChecklistAnswer";
+import { HowOneUptimeWorksOpenedFrom } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksDialog";
+import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import Name from "../../../Types/Name";
 import ChecklistEvents from "../../../UI/Utils/ChecklistEvents";
+import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
@@ -774,19 +777,43 @@ describe("hiding the card is this person's own", () => {
     ).toBeNull();
   });
 
-  test("How OneUptime works stays one click away after hiding", async () => {
-    fetchMock.mockResolvedValue(answer({ isHiddenForMe: true }));
-    await renderGettingStarted();
+  test("How OneUptime works stays one click away after hiding: the line opens its dialog", async () => {
+    const opened: MockFunction = getJestMockFunction();
+    const listener: (event: CustomEvent) => void = (
+      event: CustomEvent,
+    ): void => {
+      opened(event.detail);
+    };
+    GlobalEvents.addEventListener(EventName.HOW_ONEUPTIME_WORKS_OPEN, listener);
 
-    expect(screen.queryByTestId("how-oneuptime-works")).toBeNull();
+    try {
+      fetchMock.mockResolvedValue(answer({ isHiddenForMe: true }));
+      await renderGettingStarted();
 
-    await press("welcome-checklist-how-it-works");
+      const button: HTMLElement = screen.getByTestId(
+        "welcome-checklist-how-it-works",
+      );
 
-    expect(screen.getByTestId("how-oneuptime-works")).toBeInTheDocument();
+      expect(button).toHaveAttribute("aria-haspopup", "dialog");
+      // A dialog opens; nothing unfolds in the line.
+      expect(button).not.toHaveAttribute("aria-expanded");
 
-    await press("welcome-checklist-how-it-works");
+      await press("welcome-checklist-how-it-works");
 
-    expect(screen.queryByTestId("how-oneuptime-works")).toBeNull();
+      expect(opened).toHaveBeenCalledTimes(1);
+      expect(opened).toHaveBeenCalledWith({
+        from: HowOneUptimeWorksOpenedFrom.WelcomeChecklist,
+      });
+      expect(screen.queryByTestId("how-oneuptime-works")).toBeNull();
+      expect(screen.getByTestId("welcome-checklist-hidden")).toHaveTextContent(
+        "You hid the Welcome checklist.",
+      );
+    } finally {
+      GlobalEvents.removeEventListener(
+        EventName.HOW_ONEUPTIME_WORKS_OPEN,
+        listener,
+      );
+    }
   });
 
   test("Show it brings the checklist back", async () => {

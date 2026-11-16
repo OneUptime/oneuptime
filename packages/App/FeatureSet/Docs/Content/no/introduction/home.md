@@ -80,7 +80,7 @@ Et veiledet oppsett gjør hele jobben på én side, ett steg om gangen, og avslu
 
 Ved siden av stegene viser et veiledet oppsett hva det setter opp, krysset av etter hvert, og sier omtrent hvor lang tid det tar.
 
-Under stegene viser **Slik fungerer OneUptime** de fire kjerneproduktene i rekkefølgen et problem går gjennom dem: **Monitorer**, **Hendelser og varsler**, **Vakt** og **Statussider**. Klikk på ett for å åpne det. Under dem står det hva som mater kretsløpet, telemetri og infrastruktur, med lenker til [Grunnbegreper](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
+Under stegene åpner en linje **Slik fungerer OneUptime**: alt OneUptime gjør, og hvordan det henger sammen.
 
 ```mermaid title="Når velkomstsjekklisten vises"
 flowchart TB
