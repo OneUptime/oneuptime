@@ -736,6 +736,8 @@ async function sendToolImportRequest(data: {
   agents?: PinnedAgents | undefined;
 }): Promise<ToolImportHttpResponse> {
   const response: AxiosResponse<string> = await axios.request<string>({
+    // Only Node's http adapter uses the pinned agents.
+    adapter: "http",
     method: data.request.method,
     url: data.url.toString(),
     headers: OutboundUserAgent.withDefault(data.request.headers),

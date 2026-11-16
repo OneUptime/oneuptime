@@ -1261,6 +1261,8 @@ export default class LLMService {
     return {
       ...data.options,
       doNotFollowRedirects: true,
+      // Only Node's http adapter uses the pinned agents.
+      useNodeHttpAdapter: true,
       httpAgent: pinnedAgents.httpAgent,
       httpsAgent: pinnedAgents.httpsAgent,
       /*

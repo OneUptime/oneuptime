@@ -164,6 +164,12 @@ export default class DataSourceHttpFetch {
     }
 
     const axiosOptions: AxiosRequestConfig = {
+      /*
+       * The pinned agents are what make the checked address the dialled
+       * one, and only Node's http adapter uses agents: named, so the pin
+       * never rests on axios picking it from the environment.
+       */
+      adapter: "http",
       method: request.method,
       url: url.toString(),
       headers: headers,
