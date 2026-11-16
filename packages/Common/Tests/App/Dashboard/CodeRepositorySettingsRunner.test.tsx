@@ -102,8 +102,20 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
 import fs from "fs";
 import path from "path";
+
+/*
+ * Reads the page makes that these tests leave unanswered: the repository as
+ * the code-task API sees it, for whether it is connected (CodeApi
+ * getRepository), and the project's LLM providers, for the production
+ * review's LLM Provider field (RuleLlmProviderField). Both are beside the
+ * Runner's card.
+ * Refused at once, as the network refused them, and taken as reads the page
+ * could not make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/code-task/repository/*", "/ai-chat/providers"]);
 
 const PROJECT_ID: string = "dddddddd-0000-4000-8000-000000000003";
 const RUNNER_ID: string = "aaaaaaaa-0000-4000-8000-000000000021";
