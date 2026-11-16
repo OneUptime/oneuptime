@@ -1002,6 +1002,50 @@ describe("ProductAnalytics", (): void => {
       },
     );
 
+    /*
+     * Issue #8928: parseInt read "45.5" as 45 seconds. RFC 9110 allows digits
+     * only, or a date: it is no Retry-After, and the doubling applies.
+     */
+    it("reads a Retry-After that is no whole number of seconds as none", async (): Promise<void> => {
+      answers.push({ status: 429, headers: { "retry-after": "45.5" } });
+
+      makeTracker().start();
+
+      await jest.advanceTimersByTimeAsync(PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS);
+      expect(sent).toHaveLength(1);
+
+      // Not 45 seconds: the first doubling (two flush intervals) has passed.
+      await jest.advanceTimersByTimeAsync(
+        PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS * 3,
+      );
+      expect(sent).toHaveLength(2);
+      expect(sent[1]!.batch.batchId).toBe(sent[0]!.batch.batchId);
+    });
+
+    it("waits until a Retry-After's HTTP date before sending the same batch again", async (): Promise<void> => {
+      answers.push({
+        status: 503,
+        headers: {
+          "retry-after": new Date(
+            Date.now() + PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS + 60_000,
+          ).toUTCString(),
+        },
+      });
+
+      makeTracker().start();
+
+      await jest.advanceTimersByTimeAsync(PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS);
+      expect(sent).toHaveLength(1);
+
+      await jest.advanceTimersByTimeAsync(55_000);
+      expect(sent).toHaveLength(1);
+
+      await jest.advanceTimersByTimeAsync(
+        PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS + 1000,
+      );
+      expect(sent).toHaveLength(2);
+    });
+
     it("holds a batch the server would not file without consent, and sends it again", async (): Promise<void> => {
       answers.push({ status: 409 });
 

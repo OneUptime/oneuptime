@@ -2,6 +2,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
+import RetryAfter from "Common/Utils/RetryAfter";
 
 /*
  * A work endpoint's "busy" answer (issues #7920 and #8051).
@@ -21,9 +22,12 @@ import logger from "Common/Server/Utils/Logger";
  * the first tick after it. A fetch every ten seconds would otherwise ask
  * again at its very next tick, which can come five seconds after the
  * refusal: a busy request waits up to five seconds for a slot before it is
- * refused. An answer with no Retry-After waits DEFAULT_SERVER_BUSY_BACK_OFF_MS,
- * and none waits longer than MAX_SERVER_BUSY_BACK_OFF_MS (a proxy's hour
- * would stall the work for an hour).
+ * refused. The Retry-After is read as RFC 9110 writes it (Common's
+ * RetryAfter): an answer with none, or one that is neither a number of
+ * seconds nor an HTTP-date, waits DEFAULT_SERVER_BUSY_BACK_OFF_MS; none
+ * waits less than a second (a "0", or a date gone by) or longer than
+ * MAX_SERVER_BUSY_BACK_OFF_MS (a proxy's hour would stall the work for an
+ * hour).
  *
  * It is said at most once a minute for each kind of work, with how many
  * fetches were answered busy since, at warn: while the server sheds load a
@@ -37,16 +41,6 @@ export const DEFAULT_SERVER_BUSY_BACK_OFF_MS: number = 10 * 1000;
 
 // The longest a busy answer makes a fetch wait.
 export const MAX_SERVER_BUSY_BACK_OFF_MS: number = 60 * 1000;
-
-const DELTA_SECONDS: RegExp = /^\d+$/;
-
-/*
- * RFC 9110's IMF-fixdate, the form a sender must use for a Retry-After
- * date; anything else waits the default. Never Date.parse alone: it takes
- * "-5" or "1.5" for a day in 2001, gone by, which would mean no wait.
- */
-const HTTP_DATE: RegExp =
-  /^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/;
 
 type FetchResult =
   | HTTPResponse<JSONArray>
@@ -68,29 +62,16 @@ export default class ServerBusy {
 
   /*
    * How long a busy answer asks the probe to wait: its Retry-After, in
-   * seconds or as a date, held to MAX_SERVER_BUSY_BACK_OFF_MS;
-   * DEFAULT_SERVER_BUSY_BACK_OFF_MS when it names none it can be read as.
+   * seconds or as an HTTP-date in any of RFC 9110's three shapes, held
+   * between a second and MAX_SERVER_BUSY_BACK_OFF_MS;
+   * DEFAULT_SERVER_BUSY_BACK_OFF_MS when it has none that can be read.
    */
   public static backOffMs(result?: FetchResult | undefined): number {
-    const headers: Record<string, unknown> =
-      (result?.headers as Record<string, unknown> | undefined) || {};
-    const header: unknown = headers["retry-after"] ?? headers["Retry-After"];
-    const value: string =
-      header === undefined || header === null ? "" : String(header).trim();
-
-    let waitMs: number = DEFAULT_SERVER_BUSY_BACK_OFF_MS;
-
-    if (DELTA_SECONDS.test(value)) {
-      waitMs = Number(value) * 1000;
-    } else if (HTTP_DATE.test(value)) {
-      const retryAt: number = Date.parse(value);
-
-      if (!Number.isNaN(retryAt)) {
-        waitMs = Math.max(0, retryAt - Date.now());
-      }
-    }
-
-    return Math.min(waitMs, MAX_SERVER_BUSY_BACK_OFF_MS);
+    return (
+      RetryAfter.msFromHeaders(result?.headers, {
+        maxMs: MAX_SERVER_BUSY_BACK_OFF_MS,
+      }) ?? DEFAULT_SERVER_BUSY_BACK_OFF_MS
+    );
   }
 
   /*

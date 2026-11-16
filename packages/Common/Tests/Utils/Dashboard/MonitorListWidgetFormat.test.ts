@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
 import { Gray500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import { ComponentArgument } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
@@ -22,6 +23,7 @@ import {
   MonitorListRowStatus,
 } from "../../../Utils/Dashboard/MonitorListWidgetFormat";
 import MonitoringOff from "../../../Utils/Monitor/MonitoringOff";
+import { MonitorRowStatusKind } from "../../../Utils/Monitor/MonitorRowStatus";
 import NotOperationalMonitorQuery from "../../../Utils/Monitor/NotOperationalMonitorQuery";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
@@ -77,7 +79,13 @@ describe("which monitors a stored filter lists", () => {
     });
   });
 
-  test("'operational' is an operational status among the monitors that are checked", () => {
+  /*
+   * Issue #8899: a monitor nothing has checked yet holds the operational
+   * status it was created in, and its row says Waiting for data. It is not
+   * one of the operational monitors. A manual monitor is stamped measured
+   * when it is created, so it still is.
+   */
+  test("'operational' is an operational status among the monitors that are checked and have been measured", () => {
     expect(
       getMonitorListQuery({
         statusFilter: MONITOR_LIST_STATUS_FILTER_OPERATIONAL,
@@ -85,6 +93,7 @@ describe("which monitors a stored filter lists", () => {
     ).toEqual({
       ...MonitoringOff.getMonitoredQuery(),
       currentMonitorStatus: { isOperationalState: true },
+      firstMeasuredAt: new NotNull(),
     });
   });
 
@@ -117,8 +126,20 @@ describe("which monitors a stored filter lists", () => {
       isArchived: false,
       disableActiveMonitoring: false,
       currentMonitorStatus: { isOperationalState: true },
+      firstMeasuredAt: new NotNull(),
       currentMonitorStatusId: new Includes(STATUS_IDS),
     });
+  });
+
+  test("picked statuses ask for the stored status, as the Monitors list's Status filter does", () => {
+    expect(
+      getMonitorListQuery({ monitorStatusIds: STATUS_IDS })["firstMeasuredAt"],
+    ).toBeUndefined();
+    expect(
+      getMonitorListQuery({
+        statusFilter: MONITOR_LIST_STATUS_FILTER_NON_OPERATIONAL,
+      })["firstMeasuredAt"],
+    ).toBeUndefined();
   });
 
   /*
@@ -316,8 +337,11 @@ describe("what a row says a monitor's status is", () => {
           currentMonitorStatus,
         }),
       ).toEqual({
+        kind: MonitorRowStatusKind.MonitoringOff,
         text: "Disabled",
         color: Gray500,
+        isProductWords: true,
+        shouldAnimate: false,
         isMonitoringOff: true,
       });
     }
@@ -329,7 +353,14 @@ describe("what a row says a monitor's status is", () => {
         disableActiveMonitoring: false,
         currentMonitorStatus: { name: "Offline", color: RED },
       }),
-    ).toEqual({ text: "Offline", color: RED, isMonitoringOff: false });
+    ).toEqual({
+      kind: MonitorRowStatusKind.Status,
+      text: "Offline",
+      color: RED,
+      isProductWords: false,
+      shouldAnimate: true,
+      isMonitoringOff: false,
+    });
   });
 
   test("a monitor read without the flag says its status, as every row did before", () => {
@@ -339,25 +370,38 @@ describe("what a row says a monitor's status is", () => {
           disableActiveMonitoring,
           currentMonitorStatus: { name: "Degraded", color: RED },
         }),
-      ).toEqual({ text: "Degraded", color: RED, isMonitoringOff: false });
+      ).toMatchObject({ text: "Degraded", color: RED, isMonitoringOff: false });
     }
   });
 
   test("a monitor read without a status says Unknown, with no colour", () => {
-    for (const currentMonitorStatus of [
-      null,
-      undefined,
-      {},
-      { name: "", color: null },
-    ]) {
+    for (const currentMonitorStatus of [null, undefined]) {
       expect(
         getMonitorListRowStatus({
           disableActiveMonitoring: false,
           currentMonitorStatus,
         }),
       ).toEqual({
+        kind: MonitorRowStatusKind.NoStatus,
         text: MONITOR_LIST_NO_STATUS_LABEL,
         color: null,
+        isProductWords: true,
+        shouldAnimate: false,
+        isMonitoringOff: false,
+      });
+    }
+
+    // A status read with no name or colour is still the monitor's status.
+    for (const currentMonitorStatus of [{}, { name: "", color: null }]) {
+      expect(
+        getMonitorListRowStatus({
+          disableActiveMonitoring: false,
+          currentMonitorStatus,
+        }),
+      ).toMatchObject({
+        text: MONITOR_LIST_NO_STATUS_LABEL,
+        color: null,
+        isProductWords: true,
         isMonitoringOff: false,
       });
     }
@@ -370,7 +414,68 @@ describe("what a row says a monitor's status is", () => {
       getMonitorListRowStatus({
         currentMonitorStatus: { name: "Paused", color: undefined },
       }),
-    ).toEqual({ text: "Paused", color: null, isMonitoringOff: false });
+    ).toMatchObject({ text: "Paused", color: null, isMonitoringOff: false });
+  });
+
+  /*
+   * Issue #8899: the widget says what the Monitors table says, and the
+   * table what the monitor's page says (Utils/Monitor/MonitorRowStatus).
+   */
+  test("a monitor nothing has checked yet says Waiting for data, then No results yet, in the widget too", () => {
+    const now: Date = new Date("2026-11-16T12:00:00.000Z");
+    const row: Parameters<typeof getMonitorListRowStatus>[0] = {
+      monitorType: "Website",
+      firstMeasuredAt: null,
+      createdAt: new Date(now.getTime() - 60 * 1000),
+      monitoringInterval: "*/5 * * * *",
+      disableActiveMonitoring: false,
+      currentMonitorStatus: {
+        name: "Operational",
+        color: GREEN,
+        isOperationalState: true,
+        isOfflineState: false,
+      },
+    };
+
+    expect(getMonitorListRowStatus(row, now)).toMatchObject({
+      kind: MonitorRowStatusKind.WaitingForData,
+      text: "Waiting for data",
+      color: Gray500,
+      isProductWords: true,
+      isMonitoringOff: false,
+    });
+    expect(
+      getMonitorListRowStatus(
+        { ...row, createdAt: new Date(now.getTime() - 3 * 3600 * 1000) },
+        now,
+      ),
+    ).toMatchObject({
+      kind: MonitorRowStatusKind.NoResultsYet,
+      text: "No results yet",
+      isMonitoringOff: false,
+    });
+    expect(
+      getMonitorListRowStatus({ ...row, firstMeasuredAt: now }, now),
+    ).toMatchObject({
+      kind: MonitorRowStatusKind.Status,
+      text: "Operational",
+      color: GREEN,
+    });
+  });
+
+  test("a monitor no probe checks says so in the widget, as in the table", () => {
+    expect(
+      getMonitorListRowStatus({
+        isNoProbeEnabledOnThisMonitor: true,
+        currentMonitorStatus: { name: "Operational", color: GREEN },
+      }),
+    ).toMatchObject({ text: "Probes Not Enabled", isMonitoringOff: false });
+    expect(
+      getMonitorListRowStatus({
+        isAllProbesDisconnectedFromThisMonitor: true,
+        currentMonitorStatus: { name: "Operational", color: GREEN },
+      }),
+    ).toMatchObject({ text: "Probes Disconnected", isMonitoringOff: false });
   });
 
   test("reads a Monitor as the API hands it over", () => {
@@ -412,7 +517,7 @@ describe("Disabled is the Monitors table's word and colour, in every language", 
     expect(MONITOR_LIST_MONITORING_OFF_STATUS_COLOR.toString()).toBe("#6b7280");
   });
 
-  // The bubble the Monitors table draws for a monitor whose monitoring is off.
+  // The Monitors table's status column reads the same rule as the widget.
   test("the Monitors table draws the same", () => {
     const table: string = fs.readFileSync(
       path.join(
@@ -421,13 +526,27 @@ describe("Disabled is the Monitors table's word and colour, in every language", 
       ),
       "utf8",
     );
-    const bubble: string = table.slice(
-      table.indexOf('item["disableActiveMonitoring"]'),
-    );
 
-    expect(table).toContain('item["disableActiveMonitoring"]');
-    expect(bubble.slice(0, 400)).toContain("color={Gray500}");
-    expect(bubble.slice(0, 400)).toContain('text={"Disabled"}');
+    expect(table).toContain("MonitorRowStatusUtil.getRowStatus(item)");
+    expect(table).not.toContain('text={"Disabled"}');
+
+    // With every column the rule reads.
+    for (const column of [
+      "isArchived: true",
+      "disableActiveMonitoring: true",
+      "disableActiveMonitoringBecauseOfManualIncident: true",
+      "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true",
+      "isNoProbeEnabledOnThisMonitor: true",
+      "isAllProbesDisconnectedFromThisMonitor: true",
+      "monitorType: true",
+      "firstMeasuredAt: true",
+      "createdAt: true",
+      "monitoringInterval: true",
+    ]) {
+      expect(table).toContain(column);
+    }
+
+    expect(table).toContain("...STARTING_STATUS_SELECT");
   });
 
   test.each(["en", ...DASHBOARD_LANGUAGES])(
@@ -460,13 +579,26 @@ describe("Disabled is the Monitors table's word and colour, in every language", 
 });
 
 describe("what a row reads", () => {
-  test("whether monitoring is off, beside what it always drew", () => {
+  test("what the row rule reads, beside what it always drew", () => {
     expect(MONITOR_LIST_WIDGET_SELECT).toEqual({
       _id: true,
       name: true,
-      monitorType: true,
+      isArchived: true,
       disableActiveMonitoring: true,
-      currentMonitorStatus: { name: true, color: true },
+      disableActiveMonitoringBecauseOfManualIncident: true,
+      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      isNoProbeEnabledOnThisMonitor: true,
+      isAllProbesDisconnectedFromThisMonitor: true,
+      monitorType: true,
+      firstMeasuredAt: true,
+      createdAt: true,
+      monitoringInterval: true,
+      currentMonitorStatus: {
+        name: true,
+        color: true,
+        isOperationalState: true,
+        isOfflineState: true,
+      },
     });
   });
 

@@ -278,7 +278,7 @@ describe.each(API_STEPS)(
 
       expect(result.executePort?.id).toBe("error");
       expect(result.returnValues["error"]).toBe(
-        "The answer was larger than 10 MB, so it was not read.",
+        "The answer was larger than 10\u00A0MB, so it was not read.",
       );
       // Not axios's words, and nothing of the URL.
       expect(String(result.returnValues["error"])).not.toMatch(
@@ -378,7 +378,7 @@ describe("Update Zabbix Problem", () => {
 
     expect(result.executePort?.id).toBe("error");
     expect(result.returnValues["summary"]).toBe(
-      "Could not read Zabbix problem 40312: Zabbix's answer was larger than 1 MB, so it was not read.",
+      "Could not read Zabbix problem 40312: Zabbix's answer was larger than 1\u00A0MB, so it was not read.",
     );
     // Zabbix was reached: the step does not say it could not be.
     expect(String(result.returnValues["summary"])).not.toContain(
@@ -401,7 +401,7 @@ describe("Update Zabbix Problem", () => {
 
     expect(result.executePort?.id).toBe("error");
     expect(result.returnValues["summary"]).toBe(
-      "Zabbix did not update problem 40312: Zabbix's answer was larger than 1 MB, so it was not read.",
+      "Zabbix did not update problem 40312: Zabbix's answer was larger than 1\u00A0MB, so it was not read.",
     );
     expect(requests).toBe(2);
   });

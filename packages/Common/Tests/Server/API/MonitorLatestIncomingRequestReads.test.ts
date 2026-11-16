@@ -102,6 +102,8 @@ import {
 } from "../TestingUtils/InMemoryRepository";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
+import MonitorHeartbeatState from "../../../Server/Utils/Monitor/MonitorHeartbeatState";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -560,4 +562,108 @@ describe("realtime", () => {
       ).resolves.toBe(true);
     },
   );
+});
+
+/*
+ * Issue #8123: the request is written to the row only every so often, and
+ * its latest arrival is kept in Redis by its monitor. The API puts that
+ * arrival over the row's on its way out - never in MonitorService's read,
+ * so realtime's shortcut above still holds - and the row's when Redis
+ * cannot be reached.
+ */
+describe("the API: the latest request's arrival, kept in Redis", () => {
+  const KEPT_AT: Date = new Date("2026-11-09T08:01:45.000Z");
+
+  let kept: Map<string, string>;
+  let isRedisDown: boolean;
+
+  beforeEach(() => {
+    kept = new Map<string, string>();
+    isRedisDown = false;
+
+    jest
+      .spyOn(GlobalCache, "getStrings")
+      .mockImplementation(async (namespace: string, keys: Array<string>) => {
+        if (isRedisDown) {
+          throw new Error("Redis is down");
+        }
+
+        return keys.map((key: string): string | null => {
+          return kept.get(`${namespace}-${key}`) ?? null;
+        });
+      });
+  });
+
+  function keep(monitorId: string, at: Date): void {
+    kept.set(
+      `${MonitorHeartbeatState.NAMESPACE}-incoming-request-${monitorId.toLowerCase()}`,
+      String(at.getTime()),
+    );
+  }
+
+  function receivedAt(monitor: Monitor | undefined): Date {
+    return new Date(
+      (monitor?.incomingMonitorRequest as unknown as JSONObject)[
+        "incomingRequestReceivedAt"
+      ] as string,
+    );
+  }
+
+  test.each(READERS)(
+    "%s opening the monitor sees the arrival kept, newer than the one written",
+    async (_who: string, permissions: Array<Permission>) => {
+      props = caller(permissions);
+      keep(DEPLOY_HOOK_ID, KEPT_AT);
+
+      const { error, monitor } = await getItem(DEPLOY_HOOK_ID);
+
+      expect(error).toBeUndefined();
+      expect(receivedAt(monitor).getTime()).toBe(KEPT_AT.getTime());
+      // The request itself is the row's, cut as its logs are.
+      expectCut(monitor?.incomingMonitorRequest);
+    },
+  );
+
+  test("each monitor of a list gets its own arrival, in one read of Redis", async () => {
+    keep(DEPLOY_HOOK_ID, KEPT_AT);
+
+    const { error, monitors } = await getList();
+
+    expect(error).toBeUndefined();
+    expect(receivedAt(monitorOf(monitors, DEPLOY_HOOK_ID)).getTime()).toBe(
+      KEPT_AT.getTime(),
+    );
+    expect(receivedAt(monitorOf(monitors, QUIET_HOOK_ID)).getTime()).toBe(
+      new Date("2026-11-09T08:00:00.000Z").getTime(),
+    );
+    expect(GlobalCache.getStrings).toHaveBeenCalledTimes(1);
+  });
+
+  test("an arrival older than the one written leaves the row's", async () => {
+    keep(DEPLOY_HOOK_ID, new Date("2026-11-09T07:00:00.000Z"));
+
+    const { monitor } = await getItem(DEPLOY_HOOK_ID);
+
+    expect(receivedAt(monitor).getTime()).toBe(
+      new Date("2026-11-09T08:00:00.000Z").getTime(),
+    );
+  });
+
+  test("a Redis that cannot be reached leaves the row's, and the read answers", async () => {
+    keep(DEPLOY_HOOK_ID, KEPT_AT);
+    isRedisDown = true;
+
+    const { error, monitor } = await getItem(DEPLOY_HOOK_ID);
+
+    expect(error).toBeUndefined();
+    expect(receivedAt(monitor).getTime()).toBe(
+      new Date("2026-11-09T08:00:00.000Z").getTime(),
+    );
+  });
+
+  /*
+   * A read that did not ask for the request reads nothing from Redis: the
+   * table in memory hands back every column whatever was asked, so that is
+   * pinned where the rows are as a read leaves them (MonitorLatestArrivals).
+   */
 });

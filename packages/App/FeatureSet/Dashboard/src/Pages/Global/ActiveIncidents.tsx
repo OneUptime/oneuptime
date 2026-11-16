@@ -2,7 +2,8 @@ import MonitorsElement from "../../Components/Monitor/Monitors";
 import ProjectElement from "../../Components/Project/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageComponentProps from "../PageComponentProps";
+import { CrossProjectPageProps } from "../../Types/CrossProjectPageProps";
+import { getLiveProjectObjectIds } from "../../Utils/LiveProjects";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -24,9 +25,9 @@ import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
-const ActiveIncidents: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const ActiveIncidents: FunctionComponent<CrossProjectPageProps> = (
+  props: CrossProjectPageProps,
+): ReactElement => {
   return (
     <Page
       title={"Active Incidents"}
@@ -67,6 +68,11 @@ const ActiveIncidents: FunctionComponent<
             isMultiTenantRequest: true,
           } as RequestOptions
         }
+        /*
+         * The incidents of every project are listed, so a change in any of
+         * them reads the page again - not only one in the open project.
+         */
+        liveProjectIds={getLiveProjectObjectIds(props.projects)}
         selectMoreFields={{
           projectId: true,
           incidentNumberWithPrefix: true,

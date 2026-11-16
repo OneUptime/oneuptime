@@ -54,8 +54,32 @@ export const IS_ENTERPRISE_EDITION: boolean =
   env("IS_ENTERPRISE_EDITION") === "true";
 export const BILLING_PUBLIC_KEY: string = env("BILLING_PUBLIC_KEY") || "";
 
+/*
+ * Whether global Runners keep GitLab, Forgejo, Gitea and Git repositories
+ * off themselves (Common/Types/Runner/GlobalRunnerRepositoryTokens): on
+ * OneUptime Cloud (billing on), where every customer shares the same global
+ * Runners, and on a self-hosted multi-tenant install that turns the rule on
+ * with GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY=true. The Dashboard's Runner
+ * picker draws its amber line by this.
+ */
+export const GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY: boolean =
+  env("GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY") === "true";
+
+export const GLOBAL_RUNNERS_KEEP_CONNECTION_TOKENS_OFF: boolean =
+  BILLING_ENABLED || GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY;
+
 export const CAPTCHA_ENABLED: boolean = env("CAPTCHA_ENABLED") === "true";
 export const CAPTCHA_SITE_KEY: string = env("CAPTCHA_SITE_KEY") || "";
+
+/*
+ * The daily check-in with oneuptime.com turned off: a self-hosted sign-up
+ * form then offers no release emails from it (Accounts' Register page). The
+ * server reads the same setting as Server/EnvironmentConfig's
+ * DisableInstanceCheckIn, which a page does not import: that module is the
+ * server's whole configuration.
+ */
+export const DISABLE_INSTANCE_CHECK_IN: boolean =
+  env("DISABLE_INSTANCE_CHECK_IN") === "true";
 
 // VAPID Configuration for Push Notifications
 export const VAPID_PUBLIC_KEY: string = env("VAPID_PUBLIC_KEY") || "";

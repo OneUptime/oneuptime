@@ -69,8 +69,8 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import {
-  ON_CALL_PAGE_MERGE_UNNAMED_POLICY,
-  readOnCallPageMergedMessage,
+  OnCallPageCoverName,
+  readOnCallPageMergedLine,
 } from "../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { isOnCallPersonPage } from "../../../../Types/OnCallDutyPolicy/OnCallPersonPage";
@@ -1326,16 +1326,28 @@ export default class OnCallPolicyRunMessage {
           status === OnCallDutyExecutionLogTimelineStatus.AlreadyPaged
         ) {
           /*
-           * Another policy's page of them stands for this run's
-           * (OnCallPageMerge): the line says which policy, once.
+           * Another run's page of them stands for this run's
+           * (OnCallPageMerge): the line says which policy - or who, or
+           * which workflow, paged them directly (#8859) - once each. A
+           * line that cannot be read is null: another page, of whichever
+           * kind.
            */
-          const policyName: string =
-            readOnCallPageMergedMessage(step.statusMessage) ||
-            ON_CALL_PAGE_MERGE_UNNAMED_POLICY;
-          const alreadyPagedBy: Array<string> = person.alreadyPagedBy || [];
+          const by: OnCallPageCoverName | null = readOnCallPageMergedLine(
+            step.statusMessage,
+          );
+          const alreadyPagedBy: Array<OnCallPageCoverName | null> =
+            person.alreadyPagedBy || [];
 
-          if (!alreadyPagedBy.includes(policyName)) {
-            alreadyPagedBy.push(policyName);
+          if (
+            !alreadyPagedBy.some(
+              (known: OnCallPageCoverName | null): boolean => {
+                return known && by
+                  ? known.kind === by.kind && known.name === by.name
+                  : known === by;
+              },
+            )
+          ) {
+            alreadyPagedBy.push(by);
           }
 
           person.alreadyPagedBy = alreadyPagedBy;

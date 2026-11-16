@@ -1,0 +1,128 @@
+# globalRunner.codeFixGitHubOnly is the Helm half of
+# GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY (#8915): it keeps GitLab, Forgejo, Gitea
+# and Git repositories off global Runners on a self-hosted install that serves
+# several tenants whose code must stay apart, as OneUptime Cloud does. Their AI
+# code fixes then need one of the project's own Runners
+# (Common/Types/Runner/GlobalRunnerRepositoryTokens). GitHub repositories, and
+# every repository on a single-tenant install, are unchanged.
+#
+# Things that have to hold:
+#
+#   - It must default to "false". Off is the permissive direction on a
+#     self-hosted install, and it is what every release before this one did; an
+#     upgrade must not start refusing code fixes a single-tenant install runs
+#     on its global Runner today.
+#   - The server reads it as `process.env[...] === "true"`, so it must arrive
+#     as the quoted STRING "true", never a YAML boolean. The parenthesised
+#     `(($.Values.globalRunner).codeFixGitHubOnly)` idiom keeps it optional for
+#     values files written before it existed.
+#   - It is read by the SERVER (the token route, the claim and the picker), so
+#     it reaches the app and the worker. The global-runner pod itself holds
+#     none of the server's settings and never gets it.
+suite: global runner code fix GitHub only
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: defaults to off, so a single-tenant install is unchanged
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY
+            value: "false"
+
+  - it: keeps the rule on when the operator enables it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      globalRunner:
+        codeFixGitHubOnly: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY
+            value: "true"
+
+  # false is empty in a Go template, so an explicit false must not fall back.
+  - it: stays off when the operator explicitly disables it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      globalRunner:
+        codeFixGitHubOnly: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY
+            value: "false"
+
+  - it: reaches the worker deployment as well, where code-fix claims run
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      globalRunner:
+        codeFixGitHubOnly: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY
+            value: "true"
+
+  # The global-runner pod holds none of the server's settings, so it never
+  # gets this one either.
+  - it: is never handed to the global-runner pod
+    templates:
+      - templates/global-runner.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY
+            value: "true"
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY
+            value: "false"
+
+  # The server honours only the exact string "true", so a boolean typed as a
+  # string, or a number, would deploy as "off" without a word. Reject it at
+  # install time instead.
+  - it: rejects the quoted string "true"
+    templates:
+      - templates/app.yaml
+    set:
+      globalRunner.codeFixGitHubOnly: "true"
+    asserts:
+      - failedTemplate:
+          errorPattern: "globalRunner.codeFixGitHubOnly: Invalid type. Expected: boolean, given: string"
+
+  # A misspelt key would otherwise leave the switch silently off.
+  - it: rejects an unknown key in the block
+    templates:
+      - templates/app.yaml
+    set:
+      globalRunner.codeFixGitHubWonly: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "Additional property codeFixGitHubWonly is not allowed"

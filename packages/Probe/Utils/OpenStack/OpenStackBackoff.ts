@@ -1,6 +1,7 @@
 import OpenStackCollectionErrorCode from "Common/Types/OpenStack/OpenStackCollectionError";
 import { OpenStackPresentedCertificate } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import OldestKeyMap from "Common/Utils/OldestKeyMap";
+import RetryAfter from "Common/Utils/RetryAfter";
 
 /*
  * How monitoring stays out of the way of a cloud that is struggling. Two scales:
@@ -35,32 +36,16 @@ const JITTER_FRACTION: number = 0.2;
 const MAX_REMEMBERED: number = 2000;
 
 /*
- * Retry-After is seconds, or an HTTP date. The delay it asks for in milliseconds, or
- * null when it says nothing usable.
+ * Retry-After is a whole number of seconds, or an HTTP date, as RFC 9110 writes them
+ * (Common's RetryAfter). The delay it asks for in milliseconds - at least a second, so
+ * "0" or a date gone by is not a retry at once - or null when it says nothing usable:
+ * "1.5", "-5" or "5 seconds" is no Retry-After, and the doubling applies.
  */
 export function parseRetryAfter(
   value: string | Array<string> | undefined,
   now: number,
 ): number | null {
-  const text: string | undefined = Array.isArray(value) ? value[0] : value;
-
-  if (!text || !text.trim()) {
-    return null;
-  }
-
-  const seconds: number = Number(text.trim());
-
-  if (Number.isFinite(seconds)) {
-    return seconds < 0 ? null : seconds * 1000;
-  }
-
-  const date: number = Date.parse(text.trim());
-
-  if (Number.isNaN(date)) {
-    return null;
-  }
-
-  return Math.max(0, date - now);
+  return RetryAfter.parseMs(value, { nowMs: now }) ?? null;
 }
 
 /*

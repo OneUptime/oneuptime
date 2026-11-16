@@ -32,7 +32,8 @@ import PublicDashboardResourceListPolicy, {
   PublicDashboardResourceListPolicyResult,
 } from "../../../Server/Utils/Dashboard/PublicDashboardResourceListPolicy";
 import Includes from "../../../Types/BaseDatabase/Includes";
-import { Gray500 } from "../../../Types/BrandColors";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
+import { Gray500, Red500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
@@ -371,7 +372,11 @@ describe("the monitors each status filter lists, on a board and on its public pa
     expect(publicPage).toEqual(namedMonitors(widget));
   });
 
-  test("'operational' leaves out a monitor whose monitoring is off, however its last check went", async () => {
+  /*
+   * And one nothing has checked yet (issue #8899): its Operational is only
+   * the status it was created in, and its row says Waiting for data.
+   */
+  test("'operational' leaves out a monitor whose monitoring is off, however its last check went, and one nothing has measured", async () => {
     const { widget, publicPage } = await queriesFor({
       statusFilter: "operational",
     });
@@ -380,6 +385,7 @@ describe("the monitors each status filter lists, on a board and on its public pa
       isArchived: false,
       disableActiveMonitoring: false,
       currentMonitorStatus: { isOperationalState: true },
+      firstMeasuredAt: new NotNull(),
     });
     expect(publicPage).toEqual(widget);
   });
@@ -527,6 +533,60 @@ describe("a row says Disabled for a monitor whose monitoring is off", () => {
     expect(dotColorOf("legacy")).toBe(toRgb(RED));
     expect(statusCellOf("fresh")).toHaveTextContent("Unknown");
     expect(dotColorOf("fresh")).toBe(toRgb("#9ca3af"));
+  });
+
+  /*
+   * Issue #8899: a monitor nothing has checked yet said Operational, in
+   * green, while its own page said Waiting for data; and one no probe
+   * checks said its frozen status, while the Monitors table said Probes Not
+   * Enabled. The row says what the page and the table say.
+   */
+  test("a monitor nothing has checked yet says Waiting for data, in gray; one no probe checks, Probes Not Enabled", async () => {
+    const waiting: Monitor = monitor({
+      name: "brand-new",
+      status: "Operational",
+      color: GREEN,
+      disableActiveMonitoring: false,
+    });
+    (waiting as unknown as JSONObject)["firstMeasuredAt"] = null;
+    waiting.monitorType = MonitorType.Website;
+    waiting.createdAt = new Date();
+    waiting.monitoringInterval = "*/5 * * * *";
+    waiting.currentMonitorStatus!.isOperationalState = true;
+    waiting.currentMonitorStatus!.isOfflineState = false;
+
+    const noProbe: Monitor = monitor({
+      name: "probeless",
+      status: "Operational",
+      color: GREEN,
+      disableActiveMonitoring: false,
+    });
+    noProbe.isNoProbeEnabledOnThisMonitor = true;
+
+    const checked: Monitor = monitor({
+      name: "checked",
+      status: "Operational",
+      color: GREEN,
+      disableActiveMonitoring: false,
+    });
+    checked.firstMeasuredAt = new Date();
+
+    listMock.mockResolvedValue({
+      data: [waiting, noProbe, checked],
+      count: 3,
+    });
+    render(<DashboardMonitorListComponentElement {...monitorListProps()} />);
+
+    expect(await screen.findByText("brand-new")).toBeInTheDocument();
+    expect(statusCellOf("brand-new")).toHaveTextContent("Waiting for data");
+    expect(statusCellOf("brand-new")).not.toHaveTextContent("Operational");
+    expect(dotColorOf("brand-new")).toBe(toRgb(Gray500.toString()));
+
+    expect(statusCellOf("probeless")).toHaveTextContent("Probes Not Enabled");
+    expect(dotColorOf("probeless")).toBe(toRgb(Red500.toString()));
+
+    expect(statusCellOf("checked")).toHaveTextContent("Operational");
+    expect(dotColorOf("checked")).toBe(toRgb(GREEN));
   });
 });
 

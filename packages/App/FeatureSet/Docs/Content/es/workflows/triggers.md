@@ -73,6 +73,8 @@ curl -X POST "https://oneuptime.example.com/workflow/trigger/<secret key>" \
 
 La URL acepta tanto `GET` como `POST`. Quien llama recibe una confirmación rápida, `{"status": "Scheduled"}` — el flujo de trabajo se ejecuta en segundo plano, así que quien llama nunca ve lo que hace. Una llamada a un flujo de trabajo desactivado o archivado se rechaza con HTTP 400 y el motivo.
 
+Azure Event Grid, Slack, Microsoft Graph y Okta comprueban una URL antes de entregarle nada. La URL responde a cada comprobación como espera su servicio, como lo hace [la URL de un monitor de solicitudes entrantes](/docs/monitor/incoming-request-monitor#servicios-que-comprueban-primero-la-url), y una comprobación no inicia ninguna ejecución. Mientras el flujo de trabajo está desactivado o archivado, una comprobación se rechaza como una llamada.
+
 ```mermaid title="Qué pasa cuando algo llama a la URL del webhook"
 sequenceDiagram
     participant Caller as Tu herramienta
@@ -94,7 +96,7 @@ sequenceDiagram
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | **Encabezados de la solicitud**      | Todas las cabeceras de la solicitud, por su nombre en minúsculas, como `content-type`.                               |
 | **Parámetros de consulta de la solicitud** | Los parámetros de la cadena de consulta de la URL, por su nombre.                                                    |
-| **Cuerpo de la solicitud**         | El cuerpo que envió quien llama. Un cuerpo JSON, enviado con `Content-Type: application/json`, se puede leer campo a campo, y también el JSON enviado como texto plano, como lo envía Amazon SNS. |
+| **Cuerpo de la solicitud**         | El cuerpo que envió quien llama. Un cuerpo JSON, enviado con `Content-Type: application/json` o un tipo `+json` como los CloudEvents de Azure Event Grid, se puede leer campo a campo, y también el JSON enviado como texto plano, como lo envía Amazon SNS. Cualquier otro texto plano es el propio texto. |
 
 Lee un campo añadiendo su nombre a la referencia, como en `{{local.components.webhook-1.returnValues.request-body.message}}`.
 

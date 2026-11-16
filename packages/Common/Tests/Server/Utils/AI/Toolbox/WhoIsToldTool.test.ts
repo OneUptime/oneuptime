@@ -434,6 +434,132 @@ describe("describeWhoIsToldForModel: who it emails, for each owners source", () 
     },
   );
 
+  /*
+   * AN OWNER THE PAGE REACHES FIRST (#8860). The owners' Created email
+   * leaves out an owner the record's on-call page reached already (#7987):
+   * the model is told whom the email still reaches, and who is paged
+   * instead - so Ask AI never says Ana is emailed when only the page tells
+   * her.
+   */
+  test("an owner the on-call page reaches first is said not to be emailed as an owner too", () => {
+    expect(
+      linesOf(
+        opening({
+          source: WhoIsToldOwnersSource.Named,
+          userNames: ["Ben Ito"],
+          teamNames: ["Checkout SRE"],
+          pagedOwners: [{ userId: "u2", name: "Ana Lopez" }],
+        }),
+      ),
+    ).toContain(
+      `${OPENS}its owners (Ben Ito, team Checkout SRE) - not Ana Lopez, whom the on-call page reaches first, so is not emailed as an owner too`,
+    );
+  });
+
+  test("several owners the page reaches first are said together", () => {
+    expect(
+      linesOf(
+        opening({
+          source: WhoIsToldOwnersSource.OwnerRules,
+          userNames: ["Dana Reyes"],
+          teamNames: [],
+          pagedOwners: [
+            { userId: "u2", name: "Ana Lopez" },
+            { userId: "u3", name: "Ben Ito" },
+          ],
+        }),
+      ),
+    ).toContain(
+      `${OPENS}the owners added by owner rules (Dana Reyes) - not Ana Lopez, Ben Ito, whom the on-call page reaches first, so are not emailed as owners too`,
+    );
+  });
+
+  test("the one-person project, its owner paged: nobody is emailed as an owner, and why", () => {
+    expect(
+      linesOf(
+        opening({
+          source: WhoIsToldOwnersSource.ProjectOwners,
+          userNames: [],
+          teamNames: [],
+          pagedOwners: [{ userId: "u1", name: "Me Myself" }],
+        }),
+      ),
+    ).toContain(
+      `${OPENS}nobody as an owner: Me Myself, whom the on-call page reaches first, so is not emailed as a Project Owner too`,
+    );
+  });
+
+  test("through redactWhoIsTold: whom the page reaches first is worked out from the policies the person may read, and nobody's address list reaches the model", () => {
+    const owners: WhoIsToldOwners = {
+      source: WhoIsToldOwnersSource.ProjectOwners,
+      userNames: ["Me Myself"],
+      teamNames: [],
+      recipients: [
+        { userId: "u1", name: "Me Myself", isNamed: true, teamNames: [] },
+      ],
+    };
+    const paging: WhoIsToldResult = {
+      ...opening(owners),
+      criteria: [
+        {
+          ...opening(owners).criteria[0]!,
+          events: [
+            {
+              ...opening(owners).criteria[0]!.events[0]!,
+              rules: [
+                { id: "r1", name: "Page Default for every new incident" },
+              ],
+              policies: [
+                {
+                  ...RESULT.criteria[0]!.events[0]!.policies[0]!,
+                  pagesAtOnce: true,
+                  people: [
+                    {
+                      userId: "u1",
+                      name: "Me Myself",
+                      channels: [OnCallPageChannel.Email],
+                      channelsAtOnce: [OnCallPageChannel.Email],
+                      isFallback: true,
+                      isReachable: true,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const readable: string = describeWhoIsToldForModel(
+      redactWhoIsTold({
+        result: paging,
+        readablePolicyIds: new Set<string>(["p1"]),
+        readableRuleIds: new Set<string>(["r1"]),
+        readableOwnerRuleIds: new Set<string>(),
+        readableStatusPageIds: new Set<string>(),
+      }),
+    );
+    const hidden: string = describeWhoIsToldForModel(
+      redactWhoIsTold({
+        result: paging,
+        readablePolicyIds: new Set<string>(),
+        readableRuleIds: new Set<string>(["r1"]),
+        readableOwnerRuleIds: new Set<string>(),
+        readableStatusPageIds: new Set<string>(),
+      }),
+    );
+
+    expect(readable.split("\n")).toContain(
+      `${OPENS}nobody as an owner: Me Myself, whom the on-call page reaches first, so is not emailed as a Project Owner too`,
+    );
+    // A policy the person may not read says nothing of whom it pages.
+    expect(hidden.split("\n")).toContain(
+      `${OPENS}the Project Owners (Me Myself)`,
+    );
+    expect(hidden).not.toContain("reaches first");
+  });
+
   test("every source WhoIsTold defines is worded, and no two alike", () => {
     const sources: Array<WhoIsToldOwnersSource> = Object.values(
       WhoIsToldOwnersSource,

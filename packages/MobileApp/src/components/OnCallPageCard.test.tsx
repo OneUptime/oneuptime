@@ -304,6 +304,132 @@ describe("OnCallPageCard, an observer's page", () => {
   });
 });
 
+/*
+ * A page merged into another page of theirs about the same record
+ * (oncall/mergedPage.ts, #8858): it sent nothing of its own, and answering
+ * the page it stands on answers it. So it says Already paged, calmly, and
+ * which page to answer - never Not acknowledged, which read as a second
+ * page waiting for them.
+ */
+describe("OnCallPageCard, a page merged into another of theirs", () => {
+  const MERGED: Partial<OnCallPageItem> = {
+    status: "Already Paged",
+    statusMessage: "Already paged about this by Payments, so not paged again.",
+    policyName: "Billing",
+  };
+
+  test("says Already paged - never Not acknowledged - and is no warning", async (): Promise<void> => {
+    await render(<OnCallPageCard page={page(MERGED)} />);
+
+    expect(screen.getByText("Already paged")).toBeTruthy();
+    expect(screen.queryByText("Not acknowledged")).toBeNull();
+    expect(getPageStatus(page(MERGED))).toEqual({
+      label: "Already paged",
+      tone: "neutral",
+    });
+  });
+
+  test("says which page of theirs to answer, under its own policy", async (): Promise<void> => {
+    await render(<OnCallPageCard page={page(MERGED)} />);
+
+    expect(screen.getByText("Billing")).toBeTruthy();
+    expect(screen.getByTestId("page-merged-log-1")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Answering your page from Payments answers this one too.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("a page merged into one Jane sent from a chat names her (#8859)", async (): Promise<void> => {
+    await render(
+      <OnCallPageCard
+        page={page({
+          ...MERGED,
+          statusMessage:
+            "Already paged directly about this by Jane Doe, so not paged again.",
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "Answering your page from Jane Doe answers this one too.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("a workflow's page merged into a policy's says so, under Direct page", async (): Promise<void> => {
+    await render(
+      <OnCallPageCard
+        page={page({
+          ...MERGED,
+          policyName: undefined,
+          isDirectPage: true,
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Direct page")).toBeTruthy();
+    expect(screen.getByText("Already paged")).toBeTruthy();
+  });
+
+  test("once answered with the page it stood on, it is Acknowledged, and says no more", async (): Promise<void> => {
+    await render(
+      <OnCallPageCard
+        page={page({
+          ...MERGED,
+          status: "Completed",
+          acknowledgedAt: new Date().toISOString(),
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Acknowledged")).toBeTruthy();
+    expect(screen.queryByTestId("page-merged-log-1")).toBeNull();
+  });
+
+  test("once it took the page over, it is a page waiting for them like any other", async (): Promise<void> => {
+    await render(
+      <OnCallPageCard
+        page={page({
+          ...MERGED,
+          status: "Executing",
+          statusMessage:
+            "Their page from Payments is over, so this policy pages them now.",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Not acknowledged")).toBeTruthy();
+    expect(screen.queryByText("Already paged")).toBeNull();
+    expect(screen.queryByTestId("page-merged-log-1")).toBeNull();
+  });
+
+  test("a screen reader hears it too", async (): Promise<void> => {
+    await render(
+      <OnCallPageCard
+        page={page(MERGED)}
+        onPress={(): void => {
+          return undefined;
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Replica lag. Already paged." }),
+    ).toBeTruthy();
+  });
+
+  test("its pill is drawn in the calm, neutral tone", async (): Promise<void> => {
+    await render(<OnCallPageCard page={page(MERGED)} />);
+
+    expect(flatStyle("page-status-log-1").backgroundColor).toBe(
+      lightColors.backgroundTertiary,
+    );
+  });
+});
+
 describe("OnCallPageCard navigation", () => {
   test("is pressable when it points at something", async (): Promise<void> => {
     const onPress: (item: OnCallPageItem) => void = jestGlobal.fn();

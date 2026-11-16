@@ -35,7 +35,7 @@ Apri **Impostazioni del progetto → Avanzato → Chiavi API** e fai clic su **C
 
 ### Copiare la chiave
 
-Si apre la pagina della chiave. Copia la **Chiave API** dalla scheda **Dettagli chiave API** e tienila fuori dal tuo codice:
+OneUptime mostra la chiave una sola volta, nella finestra di dialogo **Copia la tua chiave API**: copiala prima di premere **Fatto**, perché nessuna pagina la mostra di nuovo. Tienila fuori dal tuo codice:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -341,7 +341,7 @@ Ogni risorsa, endpoint e campo si trova nel [riferimento API di OneUptime](/refe
 ## Risoluzione dei problemi
 
 :::details Ogni richiesta risponde 400 Invalid API Key
-L'intestazione `ApiKey` è vuota, non è una chiave, oppure nomina una chiave scaduta o reimpostata. Copia di nuovo la chiave dalla sua pagina in **Impostazioni del progetto → Avanzato → Chiavi API**, dove c'è anche la sua data **Scade**.
+L'intestazione `ApiKey` è vuota, non è una chiave, oppure nomina una chiave scaduta o reimpostata. Trova la chiave in **Impostazioni del progetto → Avanzato → Chiavi API** da come finisce, e controlla la sua data **Scade**. Una chiave che non hai più non può essere mostrata di nuovo: reimpostala nella sua pagina per averne una nuova.
 :::
 
 :::details Ogni richiesta risponde 402 Payment Required

@@ -199,7 +199,7 @@ Les formats de sortie et la taille des listes ne sont pas enregistrés ici : pas
 :::
 
 :::details Le message « API error (400): Invalid API Key »
-La clé n'est pas une clé API de OneUptime, a expiré ou a été réinitialisée. Copiez-la de nouveau depuis sa page dans **Paramètres du projet → Avancé → Clés API**, où se trouve aussi sa date sous **Expire**, et reconnectez-vous sous le même nom de contexte. La commande se termine avec le code `2`.
+La clé n'est pas une clé API de OneUptime, a expiré ou a été réinitialisée. Retrouvez-la dans **Paramètres du projet → Avancé → Clés API** à la façon dont elle se termine, et vérifiez sa date sous **Expire**. Une clé que vous n'avez plus ne peut pas être affichée de nouveau : réinitialisez-la sur sa page, et reconnectez-vous avec la nouvelle sous le même nom de contexte. La commande se termine avec le code `2`.
 :::
 
 :::details Le message « API error (402): API keys need the Growth plan »

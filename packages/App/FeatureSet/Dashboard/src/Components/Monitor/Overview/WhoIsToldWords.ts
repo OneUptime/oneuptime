@@ -124,6 +124,30 @@ const OWNER_SENTENCES: Readonly<
   },
 };
 
+/*
+ * AN OWNER THE PAGE REACHES FIRST (#8860). The owners' Created email leaves
+ * out everyone the record's on-call page reached already (#7987), so an
+ * owner a policy's first level pages at once is told once, by the page:
+ * "It emails its owners (Ben Ito). Ana Lopez is paged, so isn't emailed as
+ * an owner too." - or this sentence alone, when the page reaches every
+ * owner (a new project's one person, its owner, on call). Who is so is the
+ * server's (getWhoIsToldOwnersAsTold), matched by user id.
+ */
+export const PAGED_OWNERS_SENTENCES: Readonly<{
+  owners: PluralTemplate;
+  projectOwners: PluralTemplate;
+}> = {
+  owners: {
+    one: "{{names}} is paged, so isn't emailed as an owner too.",
+    other: "{{names}} are paged, so aren't emailed as owners too.",
+  },
+  // The Project Owners stand in for a record with no owners.
+  projectOwners: {
+    one: "{{names}} is paged, so isn't emailed as a Project Owner too.",
+    other: "{{names}} are paged, so aren't emailed as Project Owners too.",
+  },
+};
+
 const PAGES_PEOPLE_SENTENCE: string = translationKey(
   "It pages {{people}} through {{policies}}.",
 );
@@ -447,6 +471,75 @@ function getOwnersSentence(
   });
 }
 
+/*
+ * The owners the page reaches first, as one sentence (#8860): "Ana Lopez
+ * is paged, so isn't emailed as an owner too." - the first few by name,
+ * the rest counted. Null when the page reaches no owner first, or the
+ * server does not say.
+ */
+export function getPagedOwnersSentence(
+  owners: WhoIsToldOwners,
+  translator: Translator,
+): string | null {
+  const paged: Array<string> = (owners.pagedOwners || []).map(
+    (owner: { name: string }): string => {
+      return nameOr(owner.name, translator);
+    },
+  );
+
+  if (paged.length === 0) {
+    return null;
+  }
+
+  const names: Array<string> = paged.slice(0, WHO_IS_TOLD_MAX_NAMED_PEOPLE);
+  const more: number = paged.length - names.length;
+
+  return translator.translatePlural(
+    owners.source === WhoIsToldOwnersSource.ProjectOwners
+      ? PAGED_OWNERS_SENTENCES.projectOwners
+      : PAGED_OWNERS_SENTENCES.owners,
+    paged.length,
+    {
+      names: composedValue((sentence: Translator): string => {
+        return more > 0
+          ? nameList(
+              [
+                ...names,
+                sentence.translatePlural(
+                  { one: "{{count}} more", other: "{{count}} more" },
+                  more,
+                ),
+              ],
+              sentence,
+            )
+          : nameList(names, sentence);
+      }),
+    },
+  );
+}
+
+/*
+ * Who what opens emails, and who it does not as the page reaches them
+ * first (#8860): the owners' sentence - left out when the page reaches
+ * every owner, as the email then reaches nobody - then the paged one's.
+ */
+export function getOwnersSentences(
+  owners: WhoIsToldOwners,
+  translator: Translator,
+): Array<string> {
+  const paged: string | null = getPagedOwnersSentence(owners, translator);
+  const isAnybodyStillEmailed: boolean =
+    owners.userNames.length + owners.teamNames.length > 0;
+
+  if (!paged) {
+    return [getOwnersSentence(owners, translator)];
+  }
+
+  return isAnybodyStillEmailed
+    ? [getOwnersSentence(owners, translator), paged]
+    : [paged];
+}
+
 // The policies' names a sentence says, the readable ones.
 function policyNames(policies: ReadonlyArray<WhoIsToldPolicy>): Array<string> {
   return policies
@@ -567,7 +660,7 @@ export function getWhoIsToldSentences(
       // A Latin name stays in order on a right-to-left page.
       { setsValuesApart: true },
     ),
-    getOwnersSentence(event.owners, translator),
+    ...getOwnersSentences(event.owners, translator),
     getPagingSentence(event, translator),
   ];
 

@@ -109,6 +109,7 @@ import MonitorProbeLastResults, {
   MonitorProbesOfResult,
 } from "./MonitorProbeLastResults";
 import MonitorProbeResultOrder from "./MonitorProbeResultOrder";
+import MonitorFirstMeasured from "./MonitorFirstMeasured";
 import MonitorHeartbeatState, {
   HeartbeatKind,
   HeartbeatWrite,
@@ -505,6 +506,11 @@ export default class MonitorResourceUtil {
           },
           // A key resolved from a cache is checked against the monitor's own.
           ...(options?.secretKey ? { [options.secretKey.column]: true } : {}),
+          /*
+           * Whether anything has measured it yet: the first result that
+           * does stamps it (MonitorFirstMeasured, issue #8899).
+           */
+          ...MonitorFirstMeasured.SELECT,
         },
         props: {
           isRoot: true,
@@ -661,6 +667,19 @@ export default class MonitorResourceUtil {
         await MonitorResourceUtil.keepServerReport({
           monitorId: monitor.id!,
           dataToProcess: dataToProcess as ServerMonitorResponse,
+        });
+      }
+
+      /*
+       * So is an incoming request's, by its monitor, for the monitor page:
+       * the row is written only every so often, and a reader of the monitor
+       * may not read the secret key the sweep keeps arrivals by
+       * (MonitorResourceUtil.keepIncomingRequestArrival, issue #8123).
+       */
+      if (monitor.monitorType === MonitorType.IncomingRequest) {
+        await MonitorResourceUtil.keepIncomingRequestArrival({
+          monitorId: monitor.id!,
+          dataToProcess: dataToProcess as IncomingMonitorRequest,
         });
       }
 
@@ -866,6 +885,19 @@ export default class MonitorResourceUtil {
           );
         }
       }
+
+      /*
+       * The result is the monitor's now: past every refusal, and stored
+       * under its own probe when a probe sent it. The first one that
+       * measured the monitor - not a heartbeat sweep's look at what has not
+       * arrived - says so on its row, once, so the lists and status pages
+       * stop saying it is waiting for its first check
+       * (MonitorFirstMeasured). It never fails the result.
+       */
+      await MonitorFirstMeasured.stampIfFirst({
+        monitor: monitor,
+        dataToProcess: dataToProcess,
+      });
 
       const serverMonitorResponse: ServerMonitorResponse | undefined =
         monitor.monitorType === MonitorType.Server &&
@@ -2299,6 +2331,30 @@ export default class MonitorResourceUtil {
     } finally {
       await releaseMutex();
     }
+  }
+
+  /*
+   * An incoming request that arrived (not the heartbeat sweep's look at the
+   * last one): its arrival is kept by its monitor, the latest of all, on
+   * every request. The monitor page reads it over the row's, which is
+   * written at most every so often (MonitorAPI.onBeforeSendRecords, issue
+   * #8123). Never throws.
+   */
+  public static async keepIncomingRequestArrival(input: {
+    monitorId: ObjectID;
+    dataToProcess: IncomingMonitorRequest;
+  }): Promise<void> {
+    if (
+      input.dataToProcess.onlyCheckForIncomingRequestReceivedAt ||
+      !input.dataToProcess.incomingRequestReceivedAt
+    ) {
+      return;
+    }
+
+    await MonitorHeartbeatState.recordIncomingRequest({
+      monitorId: input.monitorId,
+      receivedAt: input.dataToProcess.incomingRequestReceivedAt,
+    });
   }
 
   /*

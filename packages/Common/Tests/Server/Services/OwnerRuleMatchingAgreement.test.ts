@@ -72,6 +72,7 @@ import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
   WhoIsToldEvent,
+  WhoIsToldOwnerRecipient,
   WhoIsToldOwnersSource,
   WhoIsToldResult,
   WhoIsToldRule,
@@ -890,6 +891,34 @@ function cardReached(event: WhoIsToldEvent): Reached {
   return reachedBy(cardEmailed(event));
 }
 
+/*
+ * Whom the resolver keeps the Created email addressed to, person by person
+ * (WhoIsToldOwners.recipients): the list an owner the on-call page reaches
+ * first is left out of (#8860). The Project Owners, when they stand in.
+ */
+function recipientsReached(event: WhoIsToldEvent): Reached {
+  if (event.owners.source === WhoIsToldOwnersSource.ProjectOwners) {
+    return PROJECT_OWNERS;
+  }
+
+  return sortedUnique(
+    (event.owners.recipients || []).map(
+      (recipient: WhoIsToldOwnerRecipient): string => {
+        return idOf(recipient.userId);
+      },
+    ),
+  );
+}
+
+// The owners the card names, without the resolver's own address list.
+function namedOwners(event: WhoIsToldEvent): WhoIsToldEvent["owners"] {
+  const named: WhoIsToldEvent["owners"] = { ...event.owners };
+
+  delete named.recipients;
+
+  return named;
+}
+
 interface EngineCase {
   kind: "incident" | "alert";
   label: string;
@@ -1284,6 +1313,15 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
         context,
         real: reachedBy(expected),
       });
+      /*
+       * And whom the resolver keeps it addressed to, one by one - whom an
+       * owner the page reaches first is left out of (#8860) - is whom the
+       * real email reaches.
+       */
+      expect({ context, recipients: recipientsReached(event) }).toEqual({
+        context,
+        recipients: reachedBy(expected),
+      });
       expect({
         context,
         ownerRules: event.ownerRules.map((rule: WhoIsToldRule): string => {
@@ -1419,7 +1457,7 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
       criteria: criteriaOf(facts, engine.kind),
     });
 
-    expect(event.owners).toEqual({
+    expect(namedOwners(event)).toEqual({
       source: WhoIsToldOwnersSource.Named,
       userNames: [USERS[1]!],
       teamNames: [TEAMS[1]!],
@@ -1439,6 +1477,8 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
     const reached: Reached = sortedUnique([USERS[1]!, USERS[3]!, USERS[0]!]);
     expect(cardReached(event)).toEqual(reached);
     expect(await realReached(engine.kind, created[0]!)).toEqual(reached);
+    // The resolver's own address list is the same people (#8860).
+    expect(recipientsReached(event)).toEqual(reached);
     expect(errors).not.toHaveBeenCalled();
   });
 

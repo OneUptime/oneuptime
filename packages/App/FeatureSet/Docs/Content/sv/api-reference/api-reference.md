@@ -35,7 +35,7 @@ Alla API-begäranden autentiseras med en API-nyckel. En nyckel tillhör ett proj
 
 ### Kopiera nyckeln
 
-Nyckelns sida öppnas. Kopiera **API-nyckel** från kortet **Detaljer om API-nyckel** och håll den utanför din kod:
+OneUptime visar nyckeln en gång, i dialogrutan **Kopiera din API-nyckel**: kopiera den innan du trycker på **Klar**, eftersom ingen sida visar den igen. Håll den utanför din kod:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -341,7 +341,7 @@ Varje resurs, slutpunkt och fält finns i [OneUptimes API-referens](/reference).
 ## Felsökning
 
 :::details Varje begäran besvaras med 400 Invalid API Key
-Huvudet `ApiKey` är tomt, är inte en nyckel, eller namnger en nyckel som har upphört att gälla eller återställts. Kopiera nyckeln igen från dess sida under **Projektinställningar → Avancerad → API-nycklar**, där även dess datum för **Upphör** står.
+Huvudet `ApiKey` är tomt, är inte en nyckel, eller namnger en nyckel som har upphört att gälla eller återställts. Hitta nyckeln under **Projektinställningar → Avancerad → API-nycklar** på hur den slutar, och kontrollera dess datum för **Upphör**. En nyckel som du inte längre har kan inte visas igen: återställ den på dess sida för att få en ny.
 :::
 
 :::details Varje begäran besvaras med 402 Payment Required

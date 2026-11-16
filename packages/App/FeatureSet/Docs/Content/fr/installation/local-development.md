@@ -87,10 +87,16 @@ npm run compile
 
 ### Linter uniquement vos fichiers
 
-Depuis la racine du dépôt, passez les fichiers que vous avez modifiés :
+Depuis la racine du dépôt, lintez les fichiers que votre branche a modifiés, et corrigez ce qu'ESLint sait corriger :
 
 ```bash
-npx eslint --fix packages/App/path/to/File.ts
+npm run fix-lint:changed
+```
+
+La commande prend chaque fichier qui diffère de `origin/main`, commité ou non, et lance ESLint une fois pour chaque projet TypeScript auquel ils appartiennent : un seul `npx eslint` sur les fichiers de plusieurs paquets manque de mémoire. Pour linter d'autres fichiers de la même façon, nommez-les après `--` :
+
+```bash
+node Scripts/Lint/LintByProject.js --fix -- packages/App/path/to/File.ts
 ```
 
 Évitez `npm run lint` et `npm run fix-lint` : ils lintent tout le dépôt.

@@ -280,7 +280,7 @@ API keys are granted permissions directly, on the key itself, or through the cus
 :::steps
 1. Open **Project Settings > Advanced > API Keys** and click **Create API Key**. On OneUptime Cloud, API keys need the Growth plan.
 2. Type the key's **Name** and pick its **Access**. The description and the expiry date are under **More fields**; a key expires a year from the day it is created unless you pick another date, and the folded section says so.
-3. Create the key. It opens on its page, where you copy it.
+3. Create the key. OneUptime shows it once, in a dialog: copy it there. Then its page opens.
 :::
 
 The role you pick becomes the key's first permission as soon as the key exists, exactly as if you had added it on the key's page. You are offered only the roles you hold yourself — a key can never be given more than the person giving it has — and someone who may create keys but not change what they can do is not asked.

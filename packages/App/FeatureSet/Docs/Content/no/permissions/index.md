@@ -280,7 +280,7 @@ API-nøkler får tillatelser direkte, på selve nøkkelen, eller gjennom de egen
 :::steps
 1. Åpne **Prosjektinnstillinger > Avansert > API-nøkler**, og klikk på **Opprett API-nøkkel**. På OneUptime Cloud krever API-nøkler Growth-planen.
 2. Skriv inn nøkkelens **Navn**, og velg dens **Tilgang**. Beskrivelsen og utløpsdatoen ligger under **Flere felt**; en nøkkel utløper et år etter dagen den opprettes, med mindre du velger en annen dato, og den sammenfoldede delen sier det.
-3. Opprett nøkkelen. Den åpnes på sin egen side, der du kopierer den.
+3. Opprett nøkkelen. OneUptime viser den én gang, i en dialog: kopier den der. Deretter åpnes siden dens.
 :::
 
 Rollen du velger, blir nøkkelens første tillatelse så snart nøkkelen finnes, akkurat som om du hadde lagt den til på nøkkelens side. Du får bare tilbud om rollene du selv har — en nøkkel kan aldri få mer enn personen som gir den har — og den som kan opprette nøkler, men ikke endre hva de kan gjøre, blir ikke spurt.

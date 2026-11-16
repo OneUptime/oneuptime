@@ -84,7 +84,7 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 > 任何知道这个 URL 的人都能把监视器标记为健康，因此要把它当作秘密对待。如果它泄露了，请打开监视器的 **设置** 页面，点击 **重置传入请求密钥**，然后更新每一个发送方。监视器的概览按其日志保留的样子显示最新请求：机密和个人数据已被遮盖，关闭 **保留请求内容** 时不显示请求头和请求正文。遮盖只能识别它已知的名称和模式，因此不要向这个端点发送 API 密钥或令牌。
 
 > [!IMPORTANT]
-> OneUptime 会立即以一个空 JSON 对象（`{}`）返回 `200`，并通过队列处理请求。这个响应在任何校验之前就已写出，因此 `200` **并不** 表示请求已被接受：错误的密钥、已删除的监视器和已禁用的监视器同样会返回 `200`。请查看监视器自己的时间线，确认请求确实到达。唯一的例外是要求每个请求都携带密钥的项目：未携带密钥的请求会收到 `401`。
+> OneUptime 会立即以一个空 JSON 对象（`{}`）返回 `200`，并通过队列处理请求。这个响应在任何校验之前就已写出，因此 `200` **并不** 表示请求已被接受：错误的密钥、已删除的监视器和已禁用的监视器同样会返回 `200`。请查看监视器自己的时间线，确认请求确实到达。要求每个请求都携带密钥的项目会对未携带密钥的请求返回 `401`；在投递前先检查 URL 的服务会收到它期望的应答：参见 [会先检查 URL 的服务](#会先检查-url-的服务)。
 
 ### 发送请求体
 
@@ -94,7 +94,8 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 | --- | --- |
 | `application/json` | 解析后的 JSON。 |
 | `application/x-www-form-urlencoded` | 解析后的表单。带方括号的键会嵌套（`alerts[0][status]=firing`），每个值都是字符串。 |
-| `text/plain` | 文本是 JSON 对象或数组时，为解析后的 JSON：Amazon SNS 就是这样发送消息的。其他任何文本都视为空请求体。 |
+| `text/plain` | 文本是 JSON 对象或数组时，为解析后的 JSON：Amazon SNS 就是这样发送消息的。其他任何文本就是文本本身，因此发送 `backup failed: error 42` 会让监视器在默认条件下离线。 |
+| `application/cloudevents+json` 或其他 `+json` 类型 | 解析后的 JSON：Azure Event Grid 就是这样投递 CloudEvents 的。 |
 | 其他任何类型，或没有 | 空请求体（`{}`），因此对 `requestBody` 的引用都不会被解析，模板会将其原样保留。 |
 
 最多接受 50 MB 的请求体；更大的会以 `413` 拒绝。不要用 `Content-Encoding: gzip` 压缩请求体：那样它不会以 JSON 形式保存，其中的路径也无法解析。
@@ -383,9 +384,25 @@ flowchart TB
 
 完整的 Alertmanager 配置请参阅 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)。Grafana 请参阅 [Grafana](/docs/integrations/grafana)。
 
+## 会先检查 URL 的服务
+
+有些服务在向新端点投递任何内容之前，会先检查这个端点：它们向端点发送一个请求，只有端点按预期应答后才开始投递。OneUptime 会自行应答这些检查，因此只需把监视器的 **Heartbeat URL** 粘贴到服务中。
+
+| 服务 | 检查请求 | OneUptime 的应答 |
+| --- | --- | --- |
+| Azure Event Grid，Event Grid 架构 | 一个 `SubscriptionValidationEvent` | 它的 `validationCode`，作为 `validationResponse` |
+| Azure Event Grid，CloudEvents 架构 | 一个说明来源的 `OPTIONS` 请求 | `WebHook-Allowed-Origin`，带上该来源 |
+| Slack Events API | 一个 `url_verification` 请求 | 它的 `challenge` |
+| Microsoft Graph 变更通知 | 带 `validationToken` 的 `POST` | 该令牌，以 `text/plain` 返回 |
+| Okta 事件钩子 | 带 `X-Okta-Verification-Challenge` 的 `GET` | 该请求头的值，作为 `verification` |
+
+只有监视器自己的 URL 才会应答检查，而且只在请求有效时应答：在要求每个请求都携带密钥的项目中，未携带密钥的检查会像其他请求一样被拒绝并返回 `401`，因此服务必须在请求头中发送密钥。应答只包含服务为取回而发送的值，不含请求的其他任何内容，并且只在该值符合服务给出的格式时才包含。
+
+检查和其他请求一样会到达监视器，因此监视器的条件会评估它，它也会显示在监视器的 **概览** 上；CloudEvents 检查只会得到应答，仅此而已。探测器的入站请求 Ingress 对检查的应答与对其他请求一样，都是 `{}`，因此请把这些服务指向 OneUptime 自己的 URL。
+
 ## 订阅 Amazon SNS 或 Azure Event Grid
 
-在有人打开服务发送到新端点的链接、确认订阅之前，Amazon SNS 和 Azure Event Grid 不会向该端点发送任何内容。这个请求到达后，监视器 **概览** 上的 **监视器摘要** 卡片会显示服务在等待什么、主题，以及一个在新标签页中打开该链接的按钮。
+在有人打开 Amazon SNS 发来的链接、确认订阅之前，Amazon SNS 不会向新端点发送任何内容。对于不应答其检查的端点，Azure Event Grid 也会发送这样的链接，而 OneUptime 会应答该检查。当一个仍待打开的链接到达时，监视器 **概览** 上的 **监视器摘要** 卡片会显示服务在等待什么、主题，以及一个在新标签页中打开该链接的按钮。
 
 | 服务 | 请求 | 按钮 | 链接有效期 |
 | --- | --- | --- | --- |
@@ -411,11 +428,11 @@ SNS 以标记为 `text/plain` 的 JSON 发送消息，监视器会把它们当�
 ### Azure Event Grid
 
 :::steps
-1. 在 Azure 门户中打开你想获取其事件的资源，添加一个事件订阅。事件架构选择 **Event Grid Schema**，端点类型选择 **Web Hook**，端点填入监视器的 **Heartbeat URL**。
-2. 在 10 分钟内打开监视器的 **概览**，并在 **监视器摘要** 卡片中点击 **验证订阅**。
+1. 在 Azure 门户中打开你想获取其事件的资源，添加一个事件订阅。事件架构选择 **Event Grid Schema** 或 **Cloud Event Schema v1.0**，端点类型选择 **Web Hook**，端点填入监视器的 **Heartbeat URL**。
+2. 创建事件订阅。OneUptime 会应答 Event Grid 的检查，因此订阅在创建时即通过验证，其事件也开始到达。
 :::
 
-Event Grid 会验证这样的端点：它把验证码原样回传，或者它的所有者打开了 Event Grid 发送的链接。OneUptime 对每个请求都以空的 `200` 应答，因此只能通过链接来验证。该链接指向端口 553 上的 Event Grid，你浏览器前面的防火墙必须放行该端口。如果先过了 10 分钟，事件订阅就会失败：请重新创建它。
+Event Grid 会验证这样的端点：它把验证码原样回传，或者它的所有者打开了 Event Grid 发送的链接。OneUptime 会回传验证码，因此只有对 OneUptime 未应答的验证，**监视器摘要** 卡片才会提供 **验证订阅**：请在 10 分钟内打开它。该链接指向端口 553 上的 Event Grid，你浏览器前面的防火墙必须放行该端口。如果先过了 10 分钟，事件订阅就会失败：请重新创建它。
 
 ## 最佳实践
 
@@ -444,7 +461,11 @@ Event Grid 会验证这样的端点：它把验证码原样回传，或者它的
 :::
 
 :::details 请求主体过滤器从不匹配
-发送 `Content-Type: application/json`，并把值写成紧凑的 JSON：`"status":"firing"`，冒号后面没有空格。没有 JSON 或表单内容类型时，请求体不会被解析：只有以 `text/plain` 发送的 JSON 例外。
+发送 `Content-Type: application/json`，并把值写成紧凑的 JSON：`"status":"firing"`，冒号后面没有空格。没有 JSON、表单或 `text/plain` 内容类型时，请求体为空，针对它的过滤器永远不会匹配。
+:::
+
+:::details 服务提示 URL 没有应答它的检查
+把监视器在 OneUptime 本身（而不是探测器）上的 **Heartbeat URL** 提供给服务。如果项目要求每个请求都携带密钥，除非服务发送了密钥，否则检查会被拒绝并返回 `401`。然后让服务再次检查该 URL：它会立即得到应答。
 :::
 
 :::details “请求标头”过滤器从不匹配

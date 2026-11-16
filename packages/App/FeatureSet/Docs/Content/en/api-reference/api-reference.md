@@ -35,7 +35,7 @@ Open **Project Settings → Advanced → API Keys** and click **Create API Key**
 
 ### Copy the key
 
-The key's page opens. Copy the **API Key** from the **API Key Details** card, and keep it out of your code:
+OneUptime shows the key once, in the **Copy Your API Key** dialog: copy it before you press **Done**, as no page shows it again. Keep it out of your code:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -341,7 +341,7 @@ Every resource, endpoint and field is listed in the [OneUptime API reference](/r
 ## Troubleshooting
 
 :::details Every request answers 400 Invalid API Key
-The `ApiKey` header is empty, is not a key, or names a key that has expired or been reset. Copy the key again from its page under **Project Settings → Advanced → API Keys**, where its **Expires** date is too.
+The `ApiKey` header is empty, is not a key, or names a key that has expired or been reset. Find the key under **Project Settings → Advanced → API Keys** by how it ends, and check its **Expires** date. A key you no longer have cannot be shown again: reset it on its page for a new one.
 :::
 
 :::details Every request answers 402 Payment Required
