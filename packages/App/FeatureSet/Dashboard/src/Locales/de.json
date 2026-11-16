@@ -19796,7 +19796,7 @@
   "Sandboxed JavaScript snippet": "Sandboxed JavaScript snippet",
   "Sandboxed via {{sandbox}} on the agent. Use {{returnValue}} to capture output. No filesystem, network, or process access.": "Sandboxed via {{sandbox}} on the agent. Use {{returnValue}} to capture output. No filesystem, network, or process access.",
   "Scale to {{replicas}}: {{workload}}": "Scale to {{replicas}}: {{workload}}",
-  "Scrape {{engine}}'s metrics endpoint": "Scrape {{engine}}'s metrics endpoint",
+  "Scrape {{engine}}'s metrics endpoint": "Metrik-Endpunkt von {{engine}} scrapen",
   "See the {{docsLink}} for the full tool catalog and query syntax.": "See the {{docsLink}} for the full tool catalog and query syntax.",
   "Seen in the last {{minutes}} minutes": "In den letzten {{minutes}} Minuten gesehen",
   "Select all ({{count}})": "Select all ({{count}})",
