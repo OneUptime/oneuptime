@@ -29,6 +29,7 @@ jest.mock("Common/Server/Services/AlertEpisodeService", () => {
   return {
     __esModule: true,
     default: {
+      findBy: jest.fn(),
       findOneById: jest.fn(),
       findOwners: jest.fn(),
       getEpisodeLinkInDashboard: jest.fn(),
@@ -40,6 +41,7 @@ jest.mock("Common/Server/Services/IncidentEpisodeService", () => {
   return {
     __esModule: true,
     default: {
+      findBy: jest.fn(),
       findOneById: jest.fn(),
       findOwners: jest.fn(),
       getEpisodeLinkInDashboard: jest.fn(),
@@ -50,14 +52,20 @@ jest.mock("Common/Server/Services/IncidentEpisodeService", () => {
 jest.mock("Common/Server/Services/AlertEpisodeMemberService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      findBy: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/IncidentEpisodeMemberService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      findBy: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+    },
   };
 });
 
@@ -139,14 +147,20 @@ const handlers: Map<string, CronHandler> = new Map(
 );
 
 interface EpisodeServiceMock {
+  findBy: jest.Mock;
   findOneById: jest.Mock;
   findOwners: jest.Mock;
   getEpisodeLinkInDashboard: jest.Mock;
 }
 
+/*
+ * The members, read a page at a time and each episode's batch with them,
+ * and each taken by one hook-free compare-and-set (OwnerNotificationBacklog,
+ * #8862).
+ */
 interface MemberServiceMock {
-  findAllBy: jest.Mock;
-  updateOneById: jest.Mock;
+  findBy: jest.Mock;
+  compareAndSetColumnsByIdWithoutHooks: jest.Mock;
 }
 
 interface EpisodeCase {
@@ -261,7 +275,12 @@ describe.each(cases)(
        * each owner told through it (OwnerNotificationDeliveries, #8509).
        */
       useInMemoryOwnerNotificationDeliveries();
-      entry.memberService.findAllBy.mockResolvedValue([
+      // The episode is read on its own (not with the page's).
+      entry.episodeService.findBy.mockResolvedValue([]);
+      entry.memberService.compareAndSetColumnsByIdWithoutHooks.mockResolvedValue(
+        true,
+      );
+      entry.memberService.findBy.mockResolvedValue([
         {
           id: new ObjectID("member-1"),
           projectId: PROJECT_ID,
@@ -579,7 +598,7 @@ describe.each(cases)(
       test("leaves a public member beside it listed with its title", async () => {
         const privateId: ObjectID = new ObjectID("resource-2");
 
-        entry.memberService.findAllBy.mockResolvedValue([
+        entry.memberService.findBy.mockResolvedValue([
           {
             id: new ObjectID("member-1"),
             projectId: PROJECT_ID,

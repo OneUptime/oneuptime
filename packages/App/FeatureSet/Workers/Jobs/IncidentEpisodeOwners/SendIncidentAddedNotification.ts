@@ -1,5 +1,12 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerNotificationBacklog, {
+  OwnerNotificationGroup,
+  OwnerNotificationPage,
+} from "../../Utils/OwnerNotificationBacklog";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import ProjectService from "Common/Server/Services/ProjectService";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -106,7 +113,7 @@ function inBatchOrder(
 RunCron(
   "IncidentEpisodeOwner:SendIncidentAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -148,137 +155,177 @@ RunCron(
       },
     });
 
-    // Find every member row that hasn't been rolled into a notification yet.
-    const members: Array<IncidentEpisodeMember> =
-      await IncidentEpisodeMemberService.findAllBy({
-        query: {
-          isOwnerNotifiedOfIncidentAdded: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: MEMBER_SELECT,
-      });
-
-    if (members.length === 0) {
-      return;
-    }
-
     /*
-     * Group members by episode so each owner gets ONE email per episode per
-     * cron tick, no matter how many incidents landed.
+     * Every episode's incidents added since its last batch, a page at a time,
+     * oldest first: an episode's members still to tell are one batch, told
+     * of in one notification - each owner gets ONE notification per episode
+     * per run, however many incidents landed - and each member row is taken
+     * by one run alone. The run stops between batches at its deadline and
+     * the next carries on (OwnerNotificationBacklog.forEachGroupToNotify,
+     * issue #8862).
      */
-    const membersByEpisode: Dictionary<Array<IncidentEpisodeMember>> = {};
-
-    for (const member of members) {
-      if (!member.incidentEpisodeId) {
-        // Bad data — mark so we never reprocess.
-        await markNotified(member);
-        continue;
-      }
-
-      const key: string = member.incidentEpisodeId.toString();
-      if (!membersByEpisode[key]) {
-        membersByEpisode[key] = [];
-      }
-      (membersByEpisode[key] as Array<IncidentEpisodeMember>).push(member);
-    }
-
-    for (const episodeIdStr of Object.keys(membersByEpisode)) {
-      const episodeMembers: Array<IncidentEpisodeMember> = inBatchOrder(
-        membersByEpisode[episodeIdStr] as Array<IncidentEpisodeMember>,
-      );
-
-      if (episodeMembers.length === 0) {
-        continue;
-      }
-
-      const episodeId: ObjectID = new ObjectID(episodeIdStr);
-      const projectId: ObjectID | undefined = episodeMembers[0]!.projectId;
-
-      // Load episode metadata for the email.
-      const episode: IncidentEpisode | null = projectId
-        ? await readEpisode(episodeId)
-        : null;
-
-      // Load every added incident in one query.
-      const incidents: Array<Incident> = episode
-        ? await readIncidents(episodeMembers)
-        : [];
-
-      /*
-       * Whom the batch is to tell - the episode's owners, or the project's
-       * when it has none - written before the batch is taken: a worker
-       * stopped from here on leaves them to be told by a later run, and one
-       * stopped before the take leaves the batch to be read again.
-       */
-      const delivery: OwnerNotificationDelivery | null =
-        projectId && episode && incidents.length > 0
-          ? await OwnerNotificationDeliveries.planForOwnersOf({
-              notification: {
-                kind: OwnerNotificationKind.IncidentEpisodeIncidentAdded,
-                projectId: projectId,
-                resourceId: episodeId,
-                eventId: episodeMembers[0]!.id!,
-                occurrence: episodeMembers.length,
-              },
-              findOwners: () => {
-                return IncidentEpisodeService.findOwners(episodeId);
-              },
-              writesFeedItem: true,
-            })
-          : null;
-
-      /*
-       * Mark everything in this batch as notified upfront. If the rest of
-       * this iteration fails we don't want to retry-spam owners on the next
-       * cron tick.
-       */
-      for (const member of episodeMembers) {
-        await markNotified(member);
-      }
-
-      if (!projectId || !episode || !delivery) {
-        continue;
-      }
-
-      try {
-        await notifyOwnersOfIncidentsAdded({
-          episode: episode,
-          projectId: projectId,
-          episodeMembers: episodeMembers,
-          incidents: incidents,
-          delivery: delivery,
-        });
-      } catch (e) {
-        logger.error(
-          "Error in sending incident-added-to-episode batch notification",
-          {
-            projectId: projectId?.toString(),
-            incidentEpisodeId: episodeId?.toString(),
-            batchSize: incidents.length,
+    await OwnerNotificationBacklog.forEachGroupToNotify({
+      jobName: "IncidentEpisodeOwner:SendIncidentAddedEmail",
+      recordIdColumn: "incidentEpisodeId",
+      tables: [
+        OwnerNotificationBacklog.groupTable<IncidentEpisodeMember>({
+          service: IncidentEpisodeMemberService,
+          notYetNotified: {
+            isOwnerNotifiedOfIncidentAdded: false,
           },
-        );
-        logger.error(e, {
-          projectId: projectId?.toString(),
-          incidentEpisodeId: episodeId?.toString(),
-        });
-      }
-    }
+          notified: {
+            isOwnerNotifiedOfIncidentAdded: true,
+          },
+          select: MEMBER_SELECT,
+        }),
+      ],
+      deadline: deadline,
+      readPage: readEpisodesOfPage,
+      notify: async (input: {
+        group: OwnerNotificationGroup;
+        page: OwnerNotificationPage;
+        take: () => Promise<Array<Array<BaseModel>>>;
+      }): Promise<void> => {
+        await notifyOfBatch(input);
+      },
+    });
   },
 );
 
-async function markNotified(member: IncidentEpisodeMember): Promise<void> {
-  await IncidentEpisodeMemberService.updateOneById({
-    id: member.id!,
-    data: {
-      isOwnerNotifiedOfIncidentAdded: true,
+/*
+ * One batch: an episode's members still to tell, in batch order. Whom it
+ * tells is planned, the batch taken, and - when this run took any of it -
+ * its owners told.
+ */
+async function notifyOfBatch(data: {
+  group: OwnerNotificationGroup;
+  page: OwnerNotificationPage;
+  take: () => Promise<Array<Array<BaseModel>>>;
+}): Promise<void> {
+  const episodeId: ObjectID = data.group.recordId;
+  const episodeMembers: Array<IncidentEpisodeMember> = inBatchOrder(
+    (data.group.rows[0] || []) as Array<IncidentEpisodeMember>,
+  );
+  const projectId: ObjectID | undefined = episodeMembers[0]?.projectId;
+
+  // Load episode metadata for the email: read with the page's episodes.
+  const episode: IncidentEpisode | null = projectId
+    ? await data.page.once(
+        episodeKey(episodeId),
+        (): Promise<IncidentEpisode | null> => {
+          return readEpisode(episodeId);
+        },
+      )
+    : null;
+
+  // Load every added incident in one query.
+  const incidents: Array<Incident> = episode
+    ? await readIncidents(episodeMembers)
+    : [];
+
+  /*
+   * Whom the batch is to tell - the episode's owners, or the project's
+   * when it has none - written before the batch is taken: a worker
+   * stopped from here on leaves them to be told by a later run, and one
+   * stopped before the take leaves the batch to be read again.
+   */
+  const delivery: OwnerNotificationDelivery | null =
+    projectId && episode && incidents.length > 0
+      ? await OwnerNotificationDeliveries.planForOwnersOf({
+          notification: {
+            kind: OwnerNotificationKind.IncidentEpisodeIncidentAdded,
+            projectId: projectId,
+            resourceId: episodeId,
+            eventId: episodeMembers[0]!.id!,
+            occurrence: episodeMembers.length,
+          },
+          // Each read once for every batch of the page.
+          findOwners: (): Promise<Array<User>> => {
+            return data.page.once(`owners:${episodeId.toString()}`, () => {
+              return IncidentEpisodeService.findOwners(episodeId);
+            });
+          },
+          findProjectOwners: (): Promise<Array<User>> => {
+            return data.page.once(
+              `projectOwners:${projectId.toString()}`,
+              () => {
+                return ProjectService.getOwners(projectId);
+              },
+            );
+          },
+          writesFeedItem: true,
+        })
+      : null;
+
+  /*
+   * Mark everything in this batch as notified upfront. If the rest of
+   * this run fails we don't want to retry-spam owners on the next cron
+   * tick. A batch another run took all of tells nobody here: that run
+   * tells its owners.
+   */
+  const taken: Array<BaseModel> = (await data.take()).flat();
+
+  if (taken.length === 0 || !projectId || !episode || !delivery) {
+    return;
+  }
+
+  try {
+    await notifyOwnersOfIncidentsAdded({
+      episode: episode,
+      projectId: projectId,
+      episodeMembers: episodeMembers,
+      incidents: incidents,
+      delivery: delivery,
+    });
+  } catch (e) {
+    logger.error(
+      "Error in sending incident-added-to-episode batch notification",
+      {
+        projectId: projectId?.toString(),
+        incidentEpisodeId: episodeId?.toString(),
+        batchSize: incidents.length,
+      },
+    );
+    logger.error(e, {
+      projectId: projectId?.toString(),
+      incidentEpisodeId: episodeId?.toString(),
+    });
+  }
+}
+
+function episodeKey(episodeId: ObjectID): string {
+  return `episode:${episodeId.toString()}`;
+}
+
+/*
+ * The episodes of a page's batches, in one query: each is read once
+ * however many batches of the page are of it.
+ */
+async function readEpisodesOfPage(
+  episodeIds: Array<ObjectID>,
+  page: OwnerNotificationPage,
+): Promise<void> {
+  const episodes: Array<IncidentEpisode> = await IncidentEpisodeService.findBy({
+    query: {
+      _id: QueryHelper.any(episodeIds),
     },
+    select: EPISODE_SELECT,
+    limit: episodeIds.length,
+    skip: 0,
     props: {
       isRoot: true,
     },
   });
+
+  /*
+   * One not found - gone since its members were read - is read on its own
+   * when its batch asks for it, as it would be without the page.
+   */
+  for (const each of episodes) {
+    if (each.id) {
+      page.prime<IncidentEpisode | null>(episodeKey(each.id), each);
+    }
+  }
 }
 
 async function readEpisode(

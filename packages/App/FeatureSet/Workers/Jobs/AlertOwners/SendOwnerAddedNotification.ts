@@ -1,5 +1,7 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import { tellOwnersAdded } from "../../Utils/OwnersAdded";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -14,18 +16,14 @@ import AlertOwnerUserService from "Common/Server/Services/AlertOwnerUserService"
 import AlertService from "Common/Server/Services/AlertService";
 import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
-import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Alert from "Common/Models/DatabaseModels/Alert";
-import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
-import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
 import Select from "Common/Server/Types/Database/Select";
-import logger from "Common/Server/Utils/Logger";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
@@ -58,17 +56,10 @@ const ALERT_SELECT: Select<Alert> = {
   alertNumberWithPrefix: true,
 };
 
-// An owner row not told of yet, and the people it made owners.
-interface OwnerRowAdded {
-  ownerRowId: ObjectID;
-  isTeam: boolean;
-  users: Array<User>;
-}
-
 RunCron(
   "AlertOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8199) - told first, exactly
@@ -93,149 +84,31 @@ RunCron(
       },
     });
 
-    const alertOwnerTeams: Array<AlertOwnerTeam> =
-      await AlertOwnerTeamService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: {
-          _id: true,
-          alertId: true,
-          teamId: true,
-        },
-      });
-
-    const alertOwnersMap: Dictionary<Array<OwnerRowAdded>> = {};
-
-    for (const alertOwnerTeam of alertOwnerTeams) {
-      const alertId: ObjectID = alertOwnerTeam.alertId!;
-      const teamId: ObjectID = alertOwnerTeam.teamId!;
-
-      const users: Array<User> = await TeamMemberService.getUsersInTeams([
-        teamId,
-      ]);
-
-      if (alertOwnersMap[alertId.toString()] === undefined) {
-        alertOwnersMap[alertId.toString()] = [];
-      }
-
-      (alertOwnersMap[alertId.toString()] as Array<OwnerRowAdded>).push({
-        ownerRowId: alertOwnerTeam.id!,
-        isTeam: true,
-        users: users,
-      });
-    }
-
-    const alertOwnerUsers: Array<AlertOwnerUser> =
-      await AlertOwnerUserService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: {
-          _id: true,
-          alertId: true,
-          userId: true,
-          user: {
-            email: true,
-            name: true,
-          },
-        },
-      });
-
-    for (const alertOwnerUser of alertOwnerUsers) {
-      const alertId: ObjectID = alertOwnerUser.alertId!;
-      const user: User = alertOwnerUser.user!;
-
-      if (alertOwnersMap[alertId.toString()] === undefined) {
-        alertOwnersMap[alertId.toString()] = [];
-      }
-
-      (alertOwnersMap[alertId.toString()] as Array<OwnerRowAdded>).push({
-        ownerRowId: alertOwnerUser.id!,
-        isTeam: false,
-        users: [user],
-      });
-    }
-
-    // send email to all of these users.
-
-    for (const alertId in alertOwnersMap) {
-      const ownerRows: Array<OwnerRowAdded> = alertOwnersMap[alertId] || [];
-
-      if (ownerRows.length === 0) {
-        continue;
-      }
-
-      // get all scheduled events of all the projects.
-      const alert: Alert | null = await readAlert(new ObjectID(alertId));
-
-      /*
-       * Whom each owner row is to tell, written before the rows are taken:
-       * a worker stopped from here on leaves them to be told by a later
-       * run, and one stopped before the take leaves the rows to be read
-       * again.
-       */
-      const deliveries: Array<OwnerNotificationDelivery> = alert
-        ? await planOwnersAdded({ alert: alert, ownerRows: ownerRows })
-        : [];
-
-      /*
-       * Marked as notified before the owners are told, so an owner row
-       * whose notification keeps failing is never read again on every run -
-       * one whose alert is gone too.
-       */
-      for (const ownerRow of ownerRows) {
-        if (ownerRow.isTeam) {
-          await AlertOwnerTeamService.updateOneById({
-            id: ownerRow.ownerRowId,
-            data: {
-              isOwnerNotified: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        } else {
-          await AlertOwnerUserService.updateOneById({
-            id: ownerRow.ownerRowId,
-            data: {
-              isOwnerNotified: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-      }
-
-      if (!alert) {
-        continue;
-      }
-
-      try {
+    /*
+     * Every record's new owner rows, a page at a time, oldest first: its
+     * team rows and user rows told of together, each person once, each row
+     * taken by one run alone; the run stops between records at its deadline
+     * and the next carries on (OwnersAdded, issue #8862).
+     */
+    await tellOwnersAdded<Alert>({
+      jobName: "AlertOwner:SendOwnerAddedEmail",
+      kind: OwnerNotificationKind.AlertOwnerAdded,
+      recordIdColumn: "alertId",
+      teamService: AlertOwnerTeamService,
+      userService: AlertOwnerUserService,
+      recordService: AlertService,
+      recordSelect: ALERT_SELECT,
+      deadline: deadline,
+      tell: async (
+        record: Alert,
+        deliveries: Array<OwnerNotificationDelivery>,
+      ): Promise<void> => {
         await notifyOwnersAdded({
-          alert: alert,
+          alert: record,
           deliveries: deliveries,
         });
-      } catch (e) {
-        logger.error("Error in sending alert owner added notification", {
-          projectId: alert.projectId?.toString(),
-          alertId: alert.id?.toString(),
-        });
-        logger.error(e, {
-          projectId: alert.projectId?.toString(),
-          alertId: alert.id?.toString(),
-        });
-      }
-    }
+      },
+    });
   },
 );
 
@@ -247,85 +120,6 @@ async function readAlert(alertId: ObjectID): Promise<Alert | null> {
     },
     select: ALERT_SELECT,
   });
-}
-
-/*
- * Whom each owner row tells it made them an owner of the alert, written
- * down before the rows are taken (OwnerNotificationDeliveries.plan): the
- * accepted members of the project among the people it names, each person
- * once for the alert - by the first row that names them - however many of
- * its new rows do. A failure to read them tells nobody, as it did when it
- * came after the take.
- */
-async function planOwnersAdded(data: {
-  alert: Alert;
-  ownerRows: Array<OwnerRowAdded>;
-}): Promise<Array<OwnerNotificationDelivery>> {
-  let members: Set<string> = new Set<string>();
-
-  try {
-    /*
-     * A team row expands to every member row, pending invitations included,
-     * and a pending invitee has no notification settings yet (the defaults
-     * are added on accept). Tell only the accepted members of the project -
-     * the same people findOwners reports as owners.
-     */
-    const users: Array<User> =
-      await TeamMemberService.filterUsersToProjectMembers({
-        projectId: data.alert.projectId!,
-        users: data.ownerRows.flatMap((ownerRow: OwnerRowAdded) => {
-          return ownerRow.users;
-        }),
-      });
-
-    members = new Set<string>(
-      users.map((user: User): string => {
-        return user.id?.toString() || "";
-      }),
-    );
-  } catch (e) {
-    logger.error("Error in reading the owners added to an alert", {
-      projectId: data.alert.projectId?.toString(),
-      alertId: data.alert.id?.toString(),
-    });
-    logger.error(e);
-  }
-
-  const deliveries: Array<OwnerNotificationDelivery> = [];
-  const planned: Set<string> = new Set<string>();
-
-  for (const ownerRow of data.ownerRows) {
-    const owners: Array<User> = ownerRow.users.filter((user: User): boolean => {
-      const userId: string = user?.id?.toString() || "";
-
-      if (!userId || !members.has(userId) || planned.has(userId)) {
-        return false;
-      }
-
-      planned.add(userId);
-      return true;
-    });
-
-    if (owners.length === 0) {
-      continue;
-    }
-
-    deliveries.push(
-      await OwnerNotificationDeliveries.plan({
-        notification: {
-          kind: OwnerNotificationKind.AlertOwnerAdded,
-          projectId: data.alert.projectId!,
-          resourceId: data.alert.id!,
-          eventId: ownerRow.ownerRowId,
-        },
-        owners: owners,
-        isProjectOwners: false,
-        writesFeedItem: false,
-      }),
-    );
-  }
-
-  return deliveries;
 }
 
 /*
