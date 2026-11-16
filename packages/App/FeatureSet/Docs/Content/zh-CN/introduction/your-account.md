@@ -64,7 +64,7 @@ flowchart TB
 | --- | --- |
 | **密码管理** | 设置新密码。 |
 | **Passkeys** | 无需密码即可登录，使用指纹、面容、屏幕锁或安全密钥。 |
-| **Two-factor authentication** | 在密码或电子邮件链接之后要求第二步：来自应用的验证码，或安全密钥。 |
+| **双因素身份验证** | 在密码或电子邮件链接之后要求第二步：来自应用的验证码，或安全密钥。 |
 
 ### 更改密码
 
@@ -108,7 +108,7 @@ flowchart TB
 :::steps
 ### 添加身份验证器应用
 
-打开 **安全 → Two-factor authentication**。在 **Authenticator apps** 下添加一个应用并为它命名。用 1Password、Google Authenticator 或 Microsoft Authenticator 等应用扫描二维码，输入它显示的 6 位验证码，然后点击 **Verify and finish**。如果想改用 USB 或 NFC 密钥，请在 **Security keys** 下添加。
+打开 **安全 → 双因素身份验证**。在 **Authenticator apps** 下添加一个应用并为它命名。用 1Password、Google Authenticator 或 Microsoft Authenticator 等应用扫描二维码，输入它显示的 6 位验证码，然后点击 **Verify and finish**。如果想改用 USB 或 NFC 密钥，请在 **Security keys** 下添加。
 
 ### 保存备用码
 
@@ -116,7 +116,7 @@ flowchart TB
 
 ### 开启它
 
-在页面顶部点击 **Enable two-factor authentication** 并确认。卡片现在显示 **已启用**。从你下一次使用密码或电子邮件链接登录开始，OneUptime 会要求第二步。
+在页面顶部点击 **启用双因素身份验证** 并确认。卡片现在显示 **已启用**。从你下一次使用密码或电子邮件链接登录开始，OneUptime 会要求第二步。
 :::
 
 > [!TIP]
@@ -163,7 +163,7 @@ flowchart TB
 :::
 
 :::details 我丢失了身份验证器应用
-在登录的第二步，选择 **无法使用身份验证器？** 并输入你的一个备用码。然后打开 **安全 → Two-factor authentication** 并添加你的新应用。如果没有备用码，请让你的 OneUptime 安装的管理员为你的账户重置双因素身份验证。
+在登录的第二步，选择 **无法使用身份验证器？** 并输入你的一个备用码。然后打开 **安全 → 双因素身份验证** 并添加你的新应用。如果没有备用码，请让你的 OneUptime 安装的管理员为你的账户重置双因素身份验证。
 :::
 
 :::details 登录要求我等待后才能尝试另一个验证码

@@ -13,6 +13,7 @@ import OpenStackProjectNotice from "../../../Models/DatabaseModels/OpenStackProj
 import OpenStackProjectNoticeDelivery from "../../../Models/DatabaseModels/OpenStackProjectNoticeDelivery";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import StatusPageAPI from "../../../Server/API/StatusPageAPI";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import MonitorStatusTimelineService from "../../../Server/Services/MonitorStatusTimelineService";
 import OpenStackProjectNoticeDeliveryService from "../../../Server/Services/OpenStackProjectNoticeDeliveryService";
 import OpenStackProjectNoticeService from "../../../Server/Services/OpenStackProjectNoticeService";
@@ -421,6 +422,11 @@ describePostgres(
       jest
         .spyOn(PostgresAppInstance, "getDataSource")
         .mockReturnValue(database);
+
+      // Workflows run elsewhere.
+      jest
+        .spyOn(DatabaseService.prototype, "onTriggerWorkflow")
+        .mockResolvedValue(undefined as never);
 
       mockRouter.routes.length = 0;
       new StatusPageAPI();

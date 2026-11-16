@@ -64,7 +64,7 @@ flowchart TB
 | --- | --- |
 | **密碼管理** | 設定新密碼。 |
 | **Passkeys** | 不需要密碼即可登入，使用指紋、臉部、螢幕鎖定或安全金鑰。 |
-| **Two-factor authentication** | 在密碼或電子郵件連結之後要求第二個步驟：來自應用程式的驗證碼，或安全金鑰。 |
+| **雙重驗證** | 在密碼或電子郵件連結之後要求第二個步驟：來自應用程式的驗證碼，或安全金鑰。 |
 
 ### 變更密碼
 
@@ -108,7 +108,7 @@ flowchart TB
 :::steps
 ### 加入驗證器應用程式
 
-開啟 **安全性 → Two-factor authentication**。在 **Authenticator apps** 下加入一個應用程式並為它命名。用 1Password、Google Authenticator 或 Microsoft Authenticator 等應用程式掃描 QR 碼，輸入它顯示的 6 位數驗證碼，然後點選 **Verify and finish**。如果想改用 USB 或 NFC 金鑰，請在 **Security keys** 下加入。
+開啟 **安全性 → 雙重驗證**。在 **Authenticator apps** 下加入一個應用程式並為它命名。用 1Password、Google Authenticator 或 Microsoft Authenticator 等應用程式掃描 QR 碼，輸入它顯示的 6 位數驗證碼，然後點選 **Verify and finish**。如果想改用 USB 或 NFC 金鑰，請在 **Security keys** 下加入。
 
 ### 儲存備用碼
 
@@ -116,7 +116,7 @@ flowchart TB
 
 ### 開啟它
 
-在頁面頂端點選 **Enable two-factor authentication** 並確認。卡片現在顯示 **已啟用**。從你下一次使用密碼或電子郵件連結登入開始，OneUptime 會要求第二個步驟。
+在頁面頂端點選 **啟用雙重驗證** 並確認。卡片現在顯示 **已啟用**。從你下一次使用密碼或電子郵件連結登入開始，OneUptime 會要求第二個步驟。
 :::
 
 > [!TIP]
@@ -163,7 +163,7 @@ flowchart TB
 :::
 
 :::details 我遺失了驗證器應用程式
-在登入的第二個步驟，選擇 **無法使用驗證器應用程式？** 並輸入你的一個備用碼。然後開啟 **安全性 → Two-factor authentication** 並加入你的新應用程式。如果沒有備用碼，請聯絡你的 OneUptime 安裝的管理員，為你的帳戶重設雙重驗證。
+在登入的第二個步驟，選擇 **無法使用驗證器應用程式？** 並輸入你的一個備用碼。然後開啟 **安全性 → 雙重驗證** 並加入你的新應用程式。如果沒有備用碼，請聯絡你的 OneUptime 安裝的管理員，為你的帳戶重設雙重驗證。
 :::
 
 :::details 登入要求我等待後才能嘗試另一個驗證碼

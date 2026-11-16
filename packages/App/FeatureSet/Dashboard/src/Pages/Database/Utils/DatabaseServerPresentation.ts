@@ -34,6 +34,7 @@ import {
   DatabaseEngineMetricsState,
   getDatabaseEngineMetricsState,
 } from "Common/Types/DatabaseServer/DatabaseHealth";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * How the Databases pages describe a DatabaseServer row: its engine-metrics
@@ -333,7 +334,7 @@ export function getDatabaseLivenessTone(
 }
 
 // The pill's hover text: what "seen" means, and what it does not.
-export const DATABASE_LIVENESS_DESCRIPTION: string = `Seen recently: application traces, a Kubernetes cluster, a Docker / Podman host or a Database Agent saw this database in the last ${DATABASE_SERVER_LIVE_WINDOW_MINUTES} minutes. Whether its engine metrics arrive is the separate Engine metrics status.`;
+export const DATABASE_LIVENESS_DESCRIPTION: string = `Seen recently: application traces, a Kubernetes cluster, a Docker / Podman host or a Database Agent saw this database in the last ${DATABASE_SERVER_LIVE_WINDOW_MINUTES}${NO_BREAK_SPACE}minutes. Whether its engine metrics arrive is the separate Engine metrics status.`;
 
 // ---- runtime platform ------------------------------------------------
 

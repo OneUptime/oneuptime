@@ -623,6 +623,20 @@ describe("the single keys and the titles", () => {
     // Norwegian's two-factor authentication, as its account docs now say it too (#8701).
     ["no", "Two Factor Authentication", "Tofaktorautentisering"],
     ["no", "Enable Two Factor Authentication", "Aktiver tofaktorautentisering"],
+    // The Security page's label, English in twelve languages until #8774, in each one's word.
+    ["no", "Two-factor authentication", "Tofaktorautentisering"],
+    ["da", "Two-factor authentication", "Tofaktorgodkendelse"],
+    ["fr", "Two-factor authentication", "Authentification à deux facteurs"],
+    ["hi", "Two-factor authentication", "दो-कारक प्रमाणीकरण"],
+    ["it", "Two-factor authentication", "Autenticazione a due fattori"],
+    ["ko", "Two-factor authentication", "2단계 인증"],
+    ["ko", "Two Factor Authentication", "2단계 인증"],
+    ["nl", "Two-factor authentication", "Tweefactorauthenticatie"],
+    ["pt", "Two-factor authentication", "Autenticação de dois fatores"],
+    ["ru", "Two-factor authentication", "Двухфакторная аутентификация"],
+    ["sv", "Two-factor authentication", "Tvåfaktorsautentisering"],
+    ["zh-CN", "Two-factor authentication", "双因素身份验证"],
+    ["zh-TW", "Two-factor authentication", "雙重驗證"],
     // Norwegian's noun alone, which is also its verb (it monitors).
     ["no", "Assign Monitor", "Tildel monitor"],
     [

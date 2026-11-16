@@ -72,6 +72,7 @@ import {
 import RunbookRunInputs from "../../../Components/Runbook/Triggers/RunbookRunInputs";
 import RunbookRunElapsed from "../../../Components/Runbook/RunbookRunElapsed";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * How often the page polls the server for the latest execution state while
@@ -642,7 +643,7 @@ const ExecutionView: FunctionComponent<
       : execStatus === RunbookExecutionStatus.WaitingForManualStep
         ? "Waiting on a manual step. Tick it off below to continue."
         : execStatus === RunbookExecutionStatus.Running
-          ? `Steps are running. This page refreshes every ${pollSeconds} seconds — or hit Refresh now.`
+          ? `Steps are running. This page refreshes every ${pollSeconds}${NO_BREAK_SPACE}seconds — or hit Refresh now.`
           : execStatus === RunbookExecutionStatus.Completed
             ? "All steps completed successfully."
             : execStatus === RunbookExecutionStatus.Failed

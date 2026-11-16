@@ -1266,9 +1266,9 @@ describe("AIAgentRunLimitsHelper.getStopNoteText", () => {
 });
 
 describe("AIAgentRunLimitsHelper.describeTimeLimit", () => {
-  test("an unset lane limit uses the project's, which is 120 minutes unless set", () => {
+  test("an unset lane limit uses the project's, which is 120\u00A0minutes unless set", () => {
     expect(AIAgentRunLimitsHelper.describeTimeLimit(null)).toBe(
-      "Uses the project's time limit per run: 120 minutes unless the project set its own.",
+      "Uses the project's time limit per run: 120\u00A0minutes unless the project set its own.",
     );
     // No more promise of a run without any time limit.
     expect(AIAgentRunLimitsHelper.describeTimeLimit(undefined)).not.toMatch(
@@ -1278,10 +1278,10 @@ describe("AIAgentRunLimitsHelper.describeTimeLimit", () => {
 
   test("describes a configured limit, singular and plural", () => {
     expect(AIAgentRunLimitsHelper.describeTimeLimit(1)).toBe(
-      "Stops investigating after 1 minute and reports what it found.",
+      "Stops investigating after 1\u00A0minute and reports what it found.",
     );
     expect(AIAgentRunLimitsHelper.describeTimeLimit(15)).toBe(
-      "Stops investigating after 15 minutes and reports what it found.",
+      "Stops investigating after 15\u00A0minutes and reports what it found.",
     );
   });
 });

@@ -127,16 +127,16 @@ describe("MonitorCheckScheduleUtil cadence", () => {
 
   it("describeInterval describes readable schedules, legacy values included", () => {
     expect(MonitorCheckScheduleUtil.describeInterval("*/5 * * * *")).toBe(
-      "Every 5 minutes",
+      "Every 5\u00A0minutes",
     );
     expect(MonitorCheckScheduleUtil.describeInterval("5m")).toBe(
-      "Every 5 minutes",
+      "Every 5\u00A0minutes",
     );
     expect(MonitorCheckScheduleUtil.describeInterval("* * * * *")).toBe(
       "Every minute",
     );
     expect(MonitorCheckScheduleUtil.describeInterval("0 */6 * * *")).toBe(
-      "Every 6 hours",
+      "Every 6\u00A0hours",
     );
   });
 

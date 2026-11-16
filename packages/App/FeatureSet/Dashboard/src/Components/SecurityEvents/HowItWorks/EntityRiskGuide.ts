@@ -16,6 +16,7 @@ import {
   fillGuideTemplate,
   markdownTable,
 } from "./SecurityEventsGuide";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * What a security team needs to trust a risk score: what adds to it, why
@@ -114,7 +115,7 @@ function riskLevels(threshold: number): Array<SecurityEventsGuideLevel> {
 function overviewMarkdown(threshold: number): string {
   return `A single finding rarely says much. A burst of failed sign-ins, a first sudo on a host and an Okta sign-in from a new country are each worth a glance; the same account in all three within a week is worth a case. Entity risk adds them up.
 
-Every finding - a detection rule's match, a threat intel match, an alert a connected security product raised - adds risk points to the user, host or IP address it is about. An entity's **risk score** is what its sources of the last ${ENTITY_RISK_WINDOW_IN_DAYS} days add up to. **Entity Risk** lists every entity by its score, the riskiest first, and each one opens on a page of its own: what added to its risk, its risk over the last 30 days, the cases about it and its activity.
+Every finding - a detection rule's match, a threat intel match, an alert a connected security product raised - adds risk points to the user, host or IP address it is about. An entity's **risk score** is what its sources of the last ${ENTITY_RISK_WINDOW_IN_DAYS}${NO_BREAK_SPACE}days add up to. **Entity Risk** lists every entity by its score, the riskiest first, and each one opens on a page of its own: what added to its risk, its risk over the last 30 days, the cases about it and its activity.
 
 When an entity's risk reaches **${threshold}**, the project's threshold, a case opens about it, or the open case about it takes the risk in and rises to its level.`;
 }
@@ -131,7 +132,7 @@ const pointsMarkdown: string = `${markdownTable(
 - A rule's points go to the value it groups by - its **Group By Field**, or each field a correlation groups by. A rule that groups by nothing names nobody in particular, and adds no risk.
 - A threat intel match adds to the address the indicator names; a connected product's alert to the user and the host it names.
 
-**Each source counts once.** A rule, a feed or a product's rule counts once in ${ENTITY_RISK_WINDOW_IN_DAYS} days, at the most it added, however often it fires. One noisy rule can never make an entity look worse than three different ones. A source that has said nothing for ${ENTITY_RISK_WINDOW_IN_DAYS} days stops counting, and the score falls.`;
+**Each source counts once.** A rule, a feed or a product's rule counts once in ${ENTITY_RISK_WINDOW_IN_DAYS}${NO_BREAK_SPACE}days, at the most it added, however often it fires. One noisy rule can never make an entity look worse than three different ones. A source that has said nothing for ${ENTITY_RISK_WINDOW_IN_DAYS}${NO_BREAK_SPACE}days stops counting, and the score falls.`;
 
 function levelsMarkdown(threshold: number): string {
   return `${markdownTable(
