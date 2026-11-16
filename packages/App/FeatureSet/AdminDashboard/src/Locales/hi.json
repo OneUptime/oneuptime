@@ -69,10 +69,6 @@
     "ingestionBudgets": "इंजेशन बजट",
     "products": "उत्पाद"
   },
-  "topAlert": {
-    "title": "OneUptime एडमिन डैशबोर्ड",
-    "description": "आप इस डैशबोर्ड पर OneUptime सर्वर से संबंधित कार्य कर सकते हैं।"
-  },
   "header": {
     "exitAdmin": "एडमिन से बाहर निकलें",
     "help": "सहायता",

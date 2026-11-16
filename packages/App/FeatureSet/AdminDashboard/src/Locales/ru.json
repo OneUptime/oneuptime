@@ -69,10 +69,6 @@
     "ingestionBudgets": "Бюджеты приема",
     "products": "Продукты"
   },
-  "topAlert": {
-    "title": "Панель администратора OneUptime",
-    "description": "Вы можете выполнять задачи, связанные с сервером OneUptime, на этой панели."
-  },
   "header": {
     "exitAdmin": "Выйти из админа",
     "help": "Справка",
