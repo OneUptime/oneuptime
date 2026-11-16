@@ -7,7 +7,7 @@ import {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
-import EventLoop from "Common/Server/Utils/EventLoop";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import logger from "Common/Server/Utils/Logger";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import PayloadTooLargeException from "Common/Types/Exception/PayloadTooLargeException";
@@ -403,6 +403,12 @@ export default class PyroscopeIngestService {
       // Collect all OTLP resource profiles from all series/samples
       const allResourceProfiles: Array<JSONObject> = [];
 
+      /*
+       * One budget for the push, asked before each sample
+       * (Common/Server/Utils/EventLoop.ts, #8925).
+       */
+      const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
+
       for (const s of series) {
         const appName: string = this.resolvePushServiceName(s.labels || []);
 
@@ -414,11 +420,14 @@ export default class PyroscopeIngestService {
           /*
            * Each non-empty sample is gzip-decompressed, pprof-parsed and
            * converted to OTLP below — heavy, variable-cost work (often
-           * 10-50ms per profile). Yield before every sample so a burst of
-           * large profiles can't hold the event loop long enough to starve
-           * the health probes.
+           * 10-50ms per profile, far less for a small one). The loop is
+           * handed back once the work since the last time took the budget,
+           * so a burst of large profiles can't starve the health probes,
+           * and a push of many small ones does not hand it back for each.
            */
-          await EventLoop.yieldToEventLoop();
+          if (eventLoopBudget.isSpent()) {
+            await eventLoopBudget.handBack();
+          }
 
           const profileBuffer: Buffer = Buffer.isBuffer(sample.rawProfile)
             ? sample.rawProfile
