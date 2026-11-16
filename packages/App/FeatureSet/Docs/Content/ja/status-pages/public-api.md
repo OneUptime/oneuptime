@@ -135,7 +135,8 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `resourceGroups` | グループ。入れ子のグループには `parentStatusPageGroupId` が付きます。 |
 | `monitorStatuses` | プロジェクトのすべてのモニターのステータス。優先度の低いものから高いものの順。 |
 | `monitorGroupCurrentStatuses`、`monitorsInGroup` | ページ上の各モニターグループの現在のステータスと、そのグループ内のモニター。 |
-| `notMonitoredResourceIds` | ページが **未監視** と表示するリソースの ID。監視がオフのモニターや、すべてのモニターで監視がオフのモニターグループです。どのステータスも左右せず、そのようなグループは `monitorGroupCurrentStatuses` に含まれません。 |
+| `notMonitoredResourceIds` | ページが **未監視** と表示するリソースの ID。監視がオフのモニターや、すべてのモニターで監視がオフのモニターグループです。`notMonitoredYetResourceIds` のリソースもここに含まれます。どのステータスも左右せず、そのようなグループは `monitorGroupCurrentStatuses` に含まれません。 |
+| `notMonitoredYetResourceIds` | ページが **まだ監視されていません** と表示するリソースの ID。まだ何にもチェックされておらず、どのモニターも最初に置かれる稼働中のステータスのままのモニターや、どのモニターもまだチェックされていないモニターグループです。 |
 | `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 稼働率バーを描く元データと、ページのバーの色ルール。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | ページが表示する未解決のインシデント、その公開メモと状態の変化、そしてプロジェクトのインシデントの状態。 |
 | `timelineIncidents` | 稼働率バーの期間内のインシデント (解決済みを含む)。バーのツールチップ用です。 |
@@ -197,7 +198,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | `activeIncidents` | ページが表示する未解決のインシデント。それぞれ、影響するリソースの `affectedResourceIds` が付きます。 |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 進行中のメンテナンスイベントと、これから始まるイベント。それぞれに `affectedResourceIds` が付きます。 |
 
-ページがリソースの `currentStatus` を表示しない場合、その値は `null` です。`isMonitored` が `false` の場合も同じです。そのリソースは、モニターの監視がオフか、モニターグループのすべてのモニターで監視がオフのため何にもチェックされず、ページには **未監視** と表示されます。 `isUnderMaintenance` は、進行中のイベントがリソースのモニターか、そのモニターグループ内のモニターを指定している間、それらのモニターのステータスにかかわらず `true` です。
+ページがリソースの `currentStatus` を表示しない場合、その値は `null` です。`isMonitored` が `false` の場合も同じです。そのリソースは、モニターの監視がオフか、モニターグループのすべてのモニターで監視がオフのため何にもチェックされず、ページには **未監視** と表示されます。まだ何にもチェックされていないリソースも同じで、ページには **まだ監視されていません** と表示されます。 `isUnderMaintenance` は、進行中のイベントがリソースのモニターか、そのモニターグループ内のモニターを指定している間、それらのモニターのステータスにかかわらず `true` です。
 
 ## 期間を指定した稼働率
 

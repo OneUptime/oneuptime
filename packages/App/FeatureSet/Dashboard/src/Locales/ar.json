@@ -56016,5 +56016,10 @@
   "Runs AI Code Fixes": "يشغّل إصلاحات التعليمات البرمجية بالذكاء الاصطناعي",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "تُستبدل بـ [REDACTED] قيم المفاتيح التي تبدو حساسة، في السمات وفي نص السجل بصيغة JSON.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "أجزاء الامتداد المراد تنقيتها: اسم الامتداد، أو قيم السمات وسمات الروابط، أو قيم سمات الأحداث، أو الكل بما فيه رسالة الحالة وأسماء الأحداث.",
-  "Signed out by a server admin because single sign-on is required": "سجّل مسؤول الخادم الخروج لأن تسجيل الدخول الموحّد (SSO) مطلوب"
+  "Signed out by a server admin because single sign-on is required": "سجّل مسؤول الخادم الخروج لأن تسجيل الدخول الموحّد (SSO) مطلوب",
+  "Every {{count}} seconds": "كل {{count}} ث",
+  "Every {{count}} seconds_one": "كل {{count}} ثانية",
+  "First Measured At": "وقت أول قياس",
+  "Missing-email check": "فحص البريد الإلكتروني المفقود",
+  "Missing-request check": "فحص الطلب المفقود"
 }

@@ -518,6 +518,42 @@ describe("the Monitor List widget", () => {
       ),
     ).toBe(GERMAN["Disabled"]);
   });
+
+  // Issue #8899: the row's own words, for a monitor with no status to show.
+  test("a monitor nothing has checked yet, or no probe checks, says the product's words for it", () => {
+    for (const text of [
+      "Waiting for data",
+      "No results yet",
+      "Paused",
+      "Probes Not Enabled",
+      "Probes Disconnected",
+    ]) {
+      expect(
+        getMonitorListStatusName(
+          {
+            text: text,
+            isProductWords: true,
+            isMonitoringOff: false,
+            color: null,
+          } as never,
+          german,
+        ),
+      ).toBe(GERMAN[text]);
+    }
+
+    // A status of the project's own named like one of them stays as written.
+    expect(
+      getMonitorListStatusName(
+        {
+          text: "Paused",
+          isProductWords: false,
+          isMonitoringOff: false,
+          color: null,
+        } as never,
+        german,
+      ),
+    ).toBe("Paused");
+  });
 });
 
 describe("a list widget's honeycomb tile", () => {

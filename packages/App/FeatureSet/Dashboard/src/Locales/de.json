@@ -56016,5 +56016,10 @@
   "Runs AI Code Fixes": "Führt KI-Codekorrekturen aus",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Die Werte von Schlüsseln, die sensibel aussehen, werden in Attributen und in einem JSON-Protokolltext durch [REDACTED] ersetzt.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Welche Teile des Span bereinigt werden sollen: Span-Name, Attribut- und Link-Attributwerte, Ereignis-Attributwerte oder alle, auch Statusmeldung und Ereignisnamen.",
-  "Signed out by a server admin because single sign-on is required": "Von einem Server-Administrator abgemeldet, weil Single Sign-On (SSO) erforderlich ist"
+  "Signed out by a server admin because single sign-on is required": "Von einem Server-Administrator abgemeldet, weil Single Sign-On (SSO) erforderlich ist",
+  "Every {{count}} seconds": "Alle {{count}} Sekunden",
+  "Every {{count}} seconds_one": "Alle {{count}} Sekunden",
+  "First Measured At": "Erstmals gemessen am",
+  "Missing-email check": "Prüfung auf fehlende E-Mails",
+  "Missing-request check": "Prüfung auf fehlende Anfragen"
 }
