@@ -344,11 +344,12 @@ describe("a call's model", () => {
 });
 
 describe("how long a call took", () => {
+  // Each figure held to its unit by a no-break space (#8302), exported too.
   test.each([
-    [850_000_000, "850 ms"],
-    [2_300_000_000, "2.3 s"],
-    [42_000_000_000, "42 s"],
-    [999_600_000, "1.0 s"],
+    [850_000_000, "850\u00A0ms"],
+    [2_300_000_000, "2.3\u00A0s"],
+    [42_000_000_000, "42\u00A0s"],
+    [999_600_000, "1.0\u00A0s"],
   ])("%d ns reads %s", async (nanos: number, text: string) => {
     await renderTable();
 

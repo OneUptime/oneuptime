@@ -776,6 +776,7 @@ describe("Traffic page: a two-week window draws every bucket, peaking at its Pea
     expect(props.data[0]!.data).toHaveLength(121);
     expect(plotted).toHaveLength(121);
     expect(Math.max(...plotted)).toBe(900);
-    expect(tileValue("peak")).toBe("900 Mbps");
+    // The figure held to its unit by a no-break space (#8303).
+    expect(tileValue("peak")).toBe("900\u00A0Mbps");
   });
 });
