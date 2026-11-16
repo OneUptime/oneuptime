@@ -56,11 +56,13 @@ const DASHBOARD_GUIDE: string = path.resolve(
   "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown.ts",
 );
 
-// The guide's words in each language (#8341), its code spans as written.
-const DASHBOARD_GUIDE_WORDS: string = path.resolve(
-  __dirname,
-  "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/DocumentationTranslations",
-);
+/*
+ * The guide's words in each language (#8341), its code spans as written.
+ * The Host guide carries the Kubernetes guide for cluster nodes, so its
+ * words hold the Kubernetes guide's too: every setup guide's words are
+ * its words.
+ */
+const GUIDE_WORDS_DIRECTORY: string = "DocumentationTranslations";
 
 const LANGUAGES: Array<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
 
@@ -378,8 +380,8 @@ describe("OneUptime reads the eBPF span-metrics families only as Metrics AI's re
   /*
    * The product's sources that name a span-metrics family or one of the
    * reader names, by path, with their text: each source is read once. The
-   * in-app guide is left out, and so are its words in each language: they
-   * document the metrics, and read nothing.
+   * in-app guide is left out, and so are every setup guide's words in each
+   * language: they document the metrics, and read nothing.
    */
   function namingSources(): Map<string, string> {
     if (sources) {
@@ -391,7 +393,7 @@ describe("OneUptime reads the eBPF span-metrics families only as Metrics AI's re
     for (const file of SCAN_DIRS.flatMap(listSourceFiles)) {
       if (
         file === DASHBOARD_GUIDE ||
-        path.dirname(file) === DASHBOARD_GUIDE_WORDS
+        path.basename(path.dirname(file)) === GUIDE_WORDS_DIRECTORY
       ) {
         continue;
       }
