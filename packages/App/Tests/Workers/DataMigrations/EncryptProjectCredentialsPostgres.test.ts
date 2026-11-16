@@ -6,7 +6,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAuthToken";
-import { ProjectCredentialsEncryptedColumns1809182200000 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809182200000-ProjectCredentialsEncryptedColumns";
+import { ProjectCredentialsEncryptedColumns1809182300000 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809182300000-ProjectCredentialsEncryptedColumns";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import CodeRepositoryService from "Common/Server/Services/CodeRepositoryService";
 import DatabaseService from "Common/Server/Services/DatabaseService";
@@ -30,7 +30,7 @@ import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
  * On the tables as they were before the upgrade - the SMTP password a
  * varchar(500), the webhook signing secret a varchar(100) - with every
  * credential stored as written, the upgrade runs as it does: the schema
- * migration (1809182200000-ProjectCredentialsEncryptedColumns), then the
+ * migration (1809182300000-ProjectCredentialsEncryptedColumns), then the
  * EncryptProjectCredentials data migration. Every reader reads through the
  * real services all along:
  *
@@ -285,7 +285,7 @@ describePostgres(
       }
 
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new ProjectCredentialsEncryptedColumns1809182200000().up(
+        await new ProjectCredentialsEncryptedColumns1809182300000().up(
           queryRunner,
         );
       });
@@ -378,7 +378,7 @@ describePostgres(
 
       // The tables as they were before the upgrade.
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new ProjectCredentialsEncryptedColumns1809182200000().down(
+        await new ProjectCredentialsEncryptedColumns1809182300000().down(
           queryRunner,
         );
       });
@@ -430,7 +430,7 @@ describePostgres(
 
       // The schema migration keeps every value.
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new ProjectCredentialsEncryptedColumns1809182200000().up(
+        await new ProjectCredentialsEncryptedColumns1809182300000().up(
           queryRunner,
         );
       });
