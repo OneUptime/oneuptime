@@ -8,6 +8,7 @@ import ObjectID from "Common/Types/ObjectID";
 import crypto from "crypto";
 import LogScrubRuleService from "./LogScrubRuleService";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
+import { maskKeepingEnds } from "Common/Utils/Telemetry/ScrubMask";
 
 /*
  * Server-side second net over a decoded rrweb event tree.
@@ -606,17 +607,9 @@ export default class SessionReplayScrubService {
       case LogScrubPatternType.IPAddress:
         return "***.***.***.***";
 
-      default: {
-        if (value.length <= 2) {
-          return "***";
-        }
-
-        return (
-          value[0] +
-          "*".repeat(Math.max(value.length - 2, 3)) +
-          value[value.length - 1]!
-        );
-      }
+      default:
+        // First and last characters kept, whole (Common/Utils/Telemetry/ScrubMask).
+        return maskKeepingEnds(value);
     }
   }
 }

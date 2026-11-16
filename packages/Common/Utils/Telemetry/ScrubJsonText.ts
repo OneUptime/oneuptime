@@ -25,18 +25,20 @@ import ScrubNestedValuesUtil from "./ScrubNestedValues";
  *     number, a Social Security number, a phone number and an IP address
  *     are matched as whole words, and in the JSON text one at the start of
  *     a line follows the `n` of `\n` - a letter - so `\n4111 1111 1111 1111`
- *     held no card number. Nor did `ada@example.com` hold an address.
+ *     held no card number. Nor did an address whose @ was written as an
+ *     escape hold an address.
  *
- * So a rule's pattern now reads such a text twice over, and what either
- * reading finds is scrubbed:
- *
- *   - as it reads: the JSON text with each string's escapes read as the
- *     characters they stand for - the text the application wrote, its keys,
- *     quotes and punctuation in place, so a pattern written against the
- *     JSON text (`"password":"[^"]*"`) still matches it;
- *   - as it is written, escapes and all, as a pattern always read it - only
- *     when it holds an escape, else the two are one text - so a pattern
- *     written against the escapes still matches them.
+ * So a rule's pattern now reads such a text as it reads: the JSON text with
+ * each string's escapes read as the characters they stand for - the text
+ * the application wrote, its keys, quotes and punctuation in place, so a
+ * pattern written against the JSON text (`"password":"[^"]*"`) still
+ * matches it. A built-in pattern reads only that, as it reads the same text
+ * sent as an attribute. A custom pattern - which a person may have written
+ * against the text as it is stored, escapes and all - reads the text as it
+ * is written too, as it always did, and what either reading finds is
+ * scrubbed. (Read as written, a built-in pattern would find what the
+ * application never wrote: `\n+1 555 123 4567` has a word boundary before
+ * the +, and `11205...` ends a number at the backslash.)
  *
  * A match is then replaced inside the values it covers, and only there: the
  * part of each string - a key or a value - it covers, and each number, true,
@@ -515,14 +517,17 @@ function toJsonStringText(text: string): string {
 interface ScrubJsonTextRule {
   findMatches: (text: string) => Array<TextRange>;
   replaceMatch: (matchedText: string) => string;
+  // A custom pattern, which reads a text as it is written too.
+  readsAsWritten: boolean;
   jsonTexts: ScrubJsonTexts;
 }
 
 /*
  * One rule over a JSON text, `depth` JSON texts inside the one it was
- * handed. `alreadyMatched`: matches in the text as it is written that the
- * text around it found - its text as it reads is this text as it is
- * written, so this text as it is written is not asked about again.
+ * handed. `alreadyMatched`: for a string of a JSON text, the matches the
+ * text around it found in it - in this text as it is written, which is
+ * what the text around it reads of the string - so that reading is not
+ * asked again.
  */
 function scrubJsonTextAt(data: {
   jsonText: string;
@@ -533,10 +538,19 @@ function scrubJsonTextAt(data: {
   const jsonText: string = data.jsonText;
   const rule: ScrubJsonTextRule = data.rule;
   const hasEscape: boolean = jsonText.indexOf("\\") !== -1;
-  const asWritten: Array<TextRange> =
-    data.alreadyMatched !== null
-      ? data.alreadyMatched
-      : rule.findMatches(jsonText);
+  /*
+   * The matches in the text as it is written. Without an escape that is
+   * the text as it reads too. With one, a built-in pattern does not read
+   * it so: what it would find there the application never wrote.
+   */
+  let asWritten: Array<TextRange> = [];
+
+  if (!hasEscape || rule.readsAsWritten) {
+    asWritten =
+      data.alreadyMatched !== null
+        ? data.alreadyMatched
+        : rule.findMatches(jsonText);
+  }
 
   /*
    * Without an escape the text reads as it is written, and so does every
@@ -771,15 +785,16 @@ export default class ScrubJsonTextUtil {
    * made sure it is one (ScrubNestedValuesUtil.readJsonListOrMap) - kept
    * JSON, as the module comment says. `findMatches` answers where the
    * rule's pattern matches a text (ScrubRegExp.matchRanges); it is asked
-   * about the text as it is written and, when the text holds an escape, as
-   * it reads. `replaceMatch` makes the rule's replacement of the text a
-   * match covers in one value. The very text comes back when nothing
-   * matched.
+   * about the text as it reads and, for a custom pattern
+   * (`readsAsWritten`), as it is written too. `replaceMatch` makes the
+   * rule's replacement of the text a match covers in one value. The very
+   * text comes back when nothing matched.
    */
   public static scrubJsonText(data: {
     jsonText: string;
     findMatches: (text: string) => Array<TextRange>;
     replaceMatch: (matchedText: string) => string;
+    readsAsWritten: boolean;
     jsonTexts?: ScrubJsonTexts | undefined;
   }): string {
     return scrubJsonTextAt({
@@ -787,6 +802,7 @@ export default class ScrubJsonTextUtil {
       rule: {
         findMatches: data.findMatches,
         replaceMatch: data.replaceMatch,
+        readsAsWritten: data.readsAsWritten,
         jsonTexts: data.jsonTexts || new ScrubJsonTexts(),
       },
       depth: 0,
@@ -804,6 +820,7 @@ export default class ScrubJsonTextUtil {
     text: string;
     findMatches: (text: string) => Array<TextRange>;
     replaceMatch: (matchedText: string) => string;
+    readsAsWritten: boolean;
     jsonTexts: ScrubJsonTexts;
   }): string {
     const text: string = data.text;
@@ -813,6 +830,7 @@ export default class ScrubJsonTextUtil {
         jsonText: text,
         findMatches: data.findMatches,
         replaceMatch: data.replaceMatch,
+        readsAsWritten: data.readsAsWritten,
         jsonTexts: data.jsonTexts,
       });
 

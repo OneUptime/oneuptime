@@ -21,6 +21,7 @@ import ScrubNestedValuesUtil, {
 import ScrubJsonTextUtil, {
   ScrubJsonTexts,
 } from "Common/Utils/Telemetry/ScrubJsonText";
+import { maskKeepingEnds } from "Common/Utils/Telemetry/ScrubMask";
 import { copyOwnValues, readOwnValue } from "Common/Utils/LookupTable";
 
 interface CompiledRule {
@@ -250,16 +251,9 @@ export class TraceScrubRuleService {
       case TraceScrubPatternType.IPAddress:
         return "***.***.***.***";
 
-      default: {
-        if (value.length <= 2) {
-          return "***";
-        }
-        return (
-          value[0] +
-          "*".repeat(Math.max(value.length - 2, 3)) +
-          value[value.length - 1]!
-        );
-      }
+      default:
+        // First and last characters kept, whole (Common/Utils/Telemetry/ScrubMask).
+        return maskKeepingEnds(value);
     }
   }
 
@@ -298,6 +292,8 @@ export class TraceScrubRuleService {
         replaceMatch: (match: string): string => {
           return this.applyScrubAction(match, action, patternType);
         },
+        // A person may have written a custom pattern against stored escapes.
+        readsAsWritten: patternType === TraceScrubPatternType.Custom,
         jsonTexts: jsonTexts,
       });
     }
