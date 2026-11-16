@@ -69,6 +69,11 @@ import {
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import PrivateRecordWriteCheck from "../../../Server/Utils/Permission/PrivateRecordWriteCheck";
+import DatabaseService from "../../../Server/Services/DatabaseService";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import PrivateRecordPermission from "../../../Server/Types/Database/Permissions/PrivateRecordPermission";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import { getJestSpyOn } from "../../Spy";
 
 /*
  * A DIRECT PAGE IS A RUN WITH NO POLICY, AND ONLY ONEUPTIME STARTS ONE.
@@ -682,6 +687,96 @@ describe("a direct page's run", () => {
    * are not asked about, and a record whose state cannot be read is paged
    * for, as it always was.
    */
+  /*
+   * A page about a private incident is started only through the teams that
+   * own it and the people named as its owners (#8913), whichever route
+   * creates it: the CRUD path asks the incident it names
+   * (DatabaseService.checkNamedPrivateRecords), as Page now and a direct
+   * page do. Who sees the incident is told why; anyone else, nothing of it.
+   */
+  describe("a run about a private incident the caller does not reach", () => {
+    let isSeen: boolean;
+    let asked: Array<{ modelType: unknown; recordId: string; type: unknown }>;
+
+    beforeEach(() => {
+      isSeen = true;
+      asked = [];
+
+      jest
+        .spyOn(PrivateRecordWriteCheck, "reaches")
+        .mockImplementation(
+          async (data: {
+            modelType: unknown;
+            recordId: ObjectID;
+            type: unknown;
+          }): Promise<boolean> => {
+            asked.push({
+              modelType: data.modelType,
+              recordId: data.recordId.toString(),
+              type: data.type,
+            });
+
+            return false;
+          },
+        );
+
+      // Whether the caller sees the incident: read as OneUptime, by id.
+      getJestSpyOn(DatabaseService, "getParentReader").mockImplementation(
+        () => {
+          return {
+            findBy: async (): Promise<Array<{ _id: string }>> => {
+              return isSeen ? [{ _id: INCIDENT_ID.toString() }] : [];
+            },
+          };
+        },
+      );
+
+      jest
+        .spyOn(OnCallAcknowledgementTimeout, "readRecordState")
+        .mockResolvedValue({ isAcknowledged: false, isResolved: false });
+    });
+
+    test("a member who sees it is refused saying why, and nothing is written", async () => {
+      const error: Error = await refusalOf(
+        create(policyRun(), member([Permission.ProjectMember])),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error.message).toBe(
+        `You do not have permission to create ${new OnCallDutyPolicyExecutionLog().singularName}. ${PrivateRecordPermission.getPrivateParentWriteReason("incident")}`,
+      );
+      expect(runs.rows).toEqual([]);
+      // Asked of the incident the run names, as a page about it.
+      expect(asked).toEqual([
+        {
+          modelType: OnCallDutyPolicyExecutionLog,
+          recordId: INCIDENT_ID.toString(),
+          type: DatabaseRequestType.Create,
+        },
+      ]);
+    });
+
+    test("a member who does not see it is told nothing of it, and nothing is written", async () => {
+      isSeen = false;
+
+      const error: Error = await refusalOf(
+        create(policyRun(), member([Permission.ProjectMember])),
+      );
+
+      expect(error).not.toBeInstanceOf(NotAuthorizedException);
+      expect(error.message).not.toContain("private");
+      expect(error.message).toContain(INCIDENT_ID.toString());
+      expect(runs.rows).toEqual([]);
+    });
+
+    test("a Project Admin, who acts on every private record, is not asked", async () => {
+      await create(policyRun(), member([Permission.ProjectAdmin]));
+
+      expect(asked).toEqual([]);
+      expect(runs.rows).toHaveLength(1);
+    });
+  });
+
   describe("a policy a person starts on a resolved record", () => {
     let recordStates: Array<{
       kind: OnCallTimeoutRecordKind;
