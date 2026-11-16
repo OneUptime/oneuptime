@@ -24,8 +24,15 @@ import Pill, { PillSize } from "../Pill/Pill";
 import {
   addRuleCriteriaToSelect,
   applyRuleCriteriaLegacySafetyShadow,
-  replaceLegacyRuleCriteriaFields,
-} from "../RuleCriteria/RuleCriteriaModelForm";
+  shouldUseRuleCriteriaBuilder,
+} from "../RuleCriteria/RuleCriteriaLegacyFields";
+import ruleCriteriaModelForm, {
+  loadRuleCriteriaModelForm,
+  RuleCriteriaModelFormLibrary,
+} from "../RuleCriteria/LazyRuleCriteriaModelForm";
+import ChunkLoadRecovery, {
+  ChunkLoadRecoveryVariant,
+} from "../NewVersion/ChunkLoadRecovery";
 import { FormErrors, FormProps, FormSummaryConfig } from "./BasicForm";
 import BasicModelForm from "./BasicModelForm";
 import Field from "./Types/Field";
@@ -248,6 +255,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
   const [fields, setFields] = useState<Fields<TBaseModel>>([]);
   const [isLoading, setLoading] = useState<boolean>(false);
   const [isFetching, setIsFetching] = useState<boolean>(false);
+  /*
+   * A rule's form, while the condition builder's file is on its way
+   * (LazyRuleCriteriaModelForm), and why it did not arrive if it did not.
+   */
+  const [isLoadingRuleCriteriaForm, setIsLoadingRuleCriteriaForm] =
+    useState<boolean>(false);
+  const [ruleCriteriaFormLoadError, setRuleCriteriaFormLoadError] =
+    useState<Error | null>(null);
   const [isFetchingDropdownOptions, setIsFetchingDropdownOptions] =
     useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -645,6 +660,24 @@ const ModelForm: <TBaseModel extends BaseModel>(
     fieldsRunGeneration.current = fieldsRunGeneration.current + 1;
     const generation: number = fieldsRunGeneration.current;
 
+    /*
+     * A rule's form draws its match fields as one condition builder, a file
+     * of its own that only a rule's form loads (LazyRuleCriteriaModelForm).
+     * Asked for now, it arrives while the dropdowns' options are fetched.
+     */
+    const isRuleForm: boolean = shouldUseRuleCriteriaBuilder(
+      model,
+      props.fields,
+    );
+    const ruleCriteriaFormLoading: Promise<RuleCriteriaModelFormLibrary> | null =
+      isRuleForm ? loadRuleCriteriaModelForm() : null;
+
+    // Its failure is handled where it is awaited, below.
+    ruleCriteriaFormLoading?.catch((): void => {});
+    setIsLoadingRuleCriteriaForm(
+      isRuleForm && ruleCriteriaModelForm.getLoaded() === null,
+    );
+
     let fieldsToSet: Fields<TBaseModel> = [];
 
     for (const field of props.fields) {
@@ -800,9 +833,42 @@ const ModelForm: <TBaseModel extends BaseModel>(
       return;
     }
 
-    fieldsToSet = replaceLegacyRuleCriteriaFields(model, fieldsToSet, {
-      subject: props.ruleCriteriaSubject,
-    });
+    if (ruleCriteriaFormLoading) {
+      let ruleCriteriaForm: RuleCriteriaModelFormLibrary;
+
+      try {
+        ruleCriteriaForm = await ruleCriteriaFormLoading;
+      } catch (loadError: unknown) {
+        /*
+         * Its file did not arrive - usually a new version deployed while the
+         * tab was open. The form says so in its place, as a part of a page
+         * whose code will not download does (ChunkLoadRecovery), rather than
+         * draw the match fields the builder stands for.
+         */
+        if (generation === fieldsRunGeneration.current) {
+          setRuleCriteriaFormLoadError(
+            loadError instanceof Error ? loadError : new Error(`${loadError}`),
+          );
+          setIsLoadingRuleCriteriaForm(false);
+        }
+
+        return;
+      }
+
+      if (generation !== fieldsRunGeneration.current) {
+        return;
+      }
+
+      fieldsToSet = ruleCriteriaForm.replaceLegacyRuleCriteriaFields(
+        model,
+        fieldsToSet,
+        {
+          subject: props.ruleCriteriaSubject,
+        },
+      );
+      setRuleCriteriaFormLoadError(null);
+      setIsLoadingRuleCriteriaForm(false);
+    }
 
     // if there are no fields to set, then show permission error. This is useful when there are no fields to show.
     if (fieldsToSet.length === 0 && props.fields.length > 0) {
@@ -1694,7 +1760,20 @@ const ModelForm: <TBaseModel extends BaseModel>(
    */
   const hasFieldsToRender: boolean = fields.length > 0;
 
-  if (isFetching || (isFetchingDropdownOptions && !hasFieldsToRender)) {
+  if (ruleCriteriaFormLoadError && !hasFieldsToRender) {
+    return (
+      <ChunkLoadRecovery
+        error={ruleCriteriaFormLoadError}
+        variant={ChunkLoadRecoveryVariant.Part}
+      />
+    );
+  }
+
+  if (
+    isFetching ||
+    ((isFetchingDropdownOptions || isLoadingRuleCriteriaForm) &&
+      !hasFieldsToRender)
+  ) {
     return (
       <div className="row flex justify-center mt-20 mb-20">
         <Loader loaderType={LoaderType.Bar} color={VeryLightGray} size={200} />

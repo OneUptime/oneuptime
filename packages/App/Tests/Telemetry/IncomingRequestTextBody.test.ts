@@ -1,4 +1,9 @@
+import IncomingRequestCriteria from "Common/Server/Utils/Monitor/Criteria/IncomingRequestCriteria";
 import { JSONObject } from "Common/Types/JSON";
+import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
+import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import ObjectID from "Common/Types/ObjectID";
 import {
   afterAll,
   beforeAll,
@@ -26,17 +31,26 @@ jest.mock("Common/Server/Utils/Logger", () => {
 });
 
 /*
- * AN AMAZON SNS TOPIC POINTED AT AN INCOMING REQUEST MONITOR DELIVERS ITS
- * MESSAGES, NOT EMPTY BODIES.
+ * AN AMAZON SNS TOPIC, A PLAIN-TEXT REPORT AND AN AZURE EVENT GRID CLOUDEVENT
+ * POINTED AT AN INCOMING REQUEST MONITOR DELIVER WHAT THEY SAY, NOT EMPTY
+ * BODIES.
  *
- * https://github.com/OneUptime/oneuptime/issues/7723
+ * https://github.com/OneUptime/oneuptime/issues/7723: SNS posts every
+ * message to an HTTPS subscription - the subscription confirmation whose
+ * link the owner has to open, then every notification - as JSON labelled
+ * "Content-Type: text/plain; charset=UTF-8". The endpoint read only JSON and
+ * form bodies, so each reached the monitor as {}. The route reads JSON sent
+ * as text/plain as the JSON it is (WebhookRequestBody).
  *
- * SNS posts every message to an HTTPS subscription - the subscription
- * confirmation whose link the owner has to open, then every notification -
- * as JSON labelled "Content-Type: text/plain; charset=UTF-8". The endpoint
- * read only JSON and form bodies, so each reached the monitor as {}. The
- * route now reads JSON sent as text/plain as the JSON it is
- * (PlainTextJsonBody); any other text still reaches the monitor empty.
+ * https://github.com/OneUptime/oneuptime/issues/8430: any other text - a
+ * backup script's `curl -H "Content-Type: text/plain" -d "backup failed"` -
+ * reached the monitor as {} too, so the default criteria, which looks for
+ * `error` in the body, could never match a plain-text report. It reaches the
+ * monitor as the text it is now.
+ *
+ * https://github.com/OneUptime/oneuptime/issues/8429: Event Grid delivers a
+ * CloudEvents subscription's events as application/cloudevents+json, read as
+ * its JSON now.
  *
  * The real Incoming Request router, over HTTP, behind the JSON and form
  * parsers StartServer runs for every route: only the queue and the arrival
@@ -171,10 +185,78 @@ describe("a request Amazon SNS sends", () => {
   });
 });
 
-describe("any other body", () => {
-  test("plain text still reaches the monitor empty", async () => {
+describe("a plain-text report", () => {
+  test("reaches the monitor as the text it is", async () => {
     const job: JSONObject = await send(
       { "content-type": "text/plain" },
+      "backup failed: error 42 on /dev/sdb",
+    );
+
+    expect(job["requestBody"]).toBe("backup failed: error 42 on /dev/sdb");
+  });
+
+  /*
+   * What the issue was about: the default criteria - Request Body Contains
+   * `error` takes the monitor offline - could never match a text report.
+   */
+  test("is matched by the default offline criteria, which looks for error in the body", async () => {
+    const job: JSONObject = await send(
+      { "content-type": "text/plain; charset=utf-8" },
+      "backup failed: error 42",
+    );
+
+    const met: string | null =
+      await IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: {
+          projectId: ObjectID.generate(),
+          monitorId: ObjectID.generate(),
+          requestBody: job["requestBody"] as string,
+          requestHeaders: {},
+          incomingRequestReceivedAt: new Date(),
+          checkedAt: new Date(),
+        } as IncomingMonitorRequest,
+        criteriaFilter: {
+          checkOn: CheckOn.RequestBody,
+          filterType: FilterType.Contains,
+          value: MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
+        },
+      });
+
+    expect(met).toBeTruthy();
+  });
+
+  test("an empty text still reaches the monitor as an empty body", async () => {
+    const job: JSONObject = await send({ "content-type": "text/plain" }, "");
+
+    expect(job["requestBody"]).toEqual({});
+  });
+});
+
+describe("an Azure Event Grid CloudEvent", () => {
+  test("reaches the monitor as its JSON", async () => {
+    const event: JSONObject = {
+      specversion: "1.0",
+      type: "Microsoft.Storage.BlobCreated",
+      source:
+        "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/ops/providers/Microsoft.Storage/storageAccounts/acmeprod",
+      id: "9aeb0fdf-c01e-0131-0922-9eb54906e209",
+      time: "2026-11-13T15:59:14.000Z",
+      data: { api: "PutBlob", contentLength: 524288 },
+    };
+
+    const job: JSONObject = await send(
+      { "content-type": "application/cloudevents+json; charset=utf-8" },
+      JSON.stringify(event),
+    );
+
+    expect(job["requestBody"]).toEqual(event);
+  });
+});
+
+describe("any other body", () => {
+  test("a body of another type still reaches the monitor empty", async () => {
+    const job: JSONObject = await send(
+      { "content-type": "application/octet-stream" },
       "backup finished",
     );
 

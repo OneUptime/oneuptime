@@ -87,10 +87,16 @@ npm run compile
 
 ### Executar o lint só nos seus arquivos
 
-Na raiz do repositório, passe os arquivos que você alterou:
+Na raiz do repositório, execute o lint nos arquivos que a sua branch alterou e corrija o que o ESLint consegue corrigir:
 
 ```bash
-npx eslint --fix packages/App/path/to/File.ts
+npm run fix-lint:changed
+```
+
+Ele pega cada arquivo que difere de `origin/main`, com commit ou não, e executa o ESLint uma vez para cada projeto TypeScript ao qual eles pertencem: um único `npx eslint` sobre os arquivos de vários pacotes fica sem memória. Para executar o lint em outros arquivos da mesma forma, informe-os depois de `--`:
+
+```bash
+node Scripts/Lint/LintByProject.js --fix -- packages/App/path/to/File.ts
 ```
 
 Evite `npm run lint` e `npm run fix-lint`: eles executam o lint no repositório inteiro.

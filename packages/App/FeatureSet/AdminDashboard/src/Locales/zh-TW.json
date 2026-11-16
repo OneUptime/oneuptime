@@ -4056,6 +4056,14 @@
   "Amount": "金額",
   "Invoice": "發票",
   "Invoices": "發票清單",
+  "Runs JavaScript steps as its own user: let its container switch users (allowPrivilegeEscalation, SETUID and SETGID).": "以自己的使用者執行 JavaScript 步驟：讓它的容器可以切換使用者（allowPrivilegeEscalation、SETUID 和 SETGID）。",
+  "Runs JavaScript steps as its own user: run its container as the image's own user, node.": "以自己的使用者執行 JavaScript 步驟：以映像自己的使用者 node 執行它的容器。",
+  "Runs JavaScript steps as its own user: run the Runner image, not its sources.": "以自己的使用者執行 JavaScript 步驟：執行 Runner 映像，而不是它的原始碼。",
+  "Runs JavaScript steps as its own user: its sandbox check failed, and its log says why.": "以自己的使用者執行 JavaScript 步驟：它的沙箱檢查失敗了，原因見它的日誌。",
+  "JavaScript steps share its network: let its container use seccomp, as Docker's and Kubernetes' default profiles do.": "JavaScript 步驟共用它的網路：讓它的容器使用 seccomp，就像 Docker 和 Kubernetes 的預設設定一樣。",
+  "JavaScript steps share its network: run the Runner image, not its sources.": "JavaScript 步驟共用它的網路：執行 Runner 映像，而不是它的原始碼。",
+  "JavaScript steps share its network: its network filter's check failed, and its log says why.": "JavaScript 步驟共用它的網路：它的網路過濾器檢查失敗了，原因見它的日誌。",
+  "Runs JavaScript steps as its own user and on its network: run the Runner image, not its sources.": "以自己的使用者並在它的網路上執行 JavaScript 步驟：執行 Runner 映像，而不是它的原始碼。",
   "Keep for at most": "最長保留時間",
   "New projects delete after": "新專案多久後刪除",
   "Longer than the limit above.": "超過上方設定的上限。",
@@ -4100,5 +4108,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "在其擁有者變更之前，新專案會在 {{count}} 天後刪除已解決的警示。現有專案保留各自的設定。",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "在其擁有者變更之前，新專案會在 {{count}} 天後刪除已解決的警示。現有專案保留各自的設定。",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "在其擁有者變更之前，新專案會在 {{count}} 年後刪除已解決的警示。現有專案保留各自的設定。",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "在其擁有者變更之前，新專案會在 {{count}} 年後刪除已解決的警示。現有專案保留各自的設定。"
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "在其擁有者變更之前，新專案會在 {{count}} 年後刪除已解決的警示。現有專案保留各自的設定。",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "仍有 {{count}} 人未使用 SSO 登入。在使用 SSO 登入之前，他們無法開啟任何專案。",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "仍有 {{count}} 人未使用 SSO 登入。在使用 SSO 登入之前，他們無法開啟任何專案。",
+  "Sign them out": "將他們登出",
+  "Sign out everyone signed in without SSO?": "要登出所有未使用 SSO 登入的人嗎？",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "他們在所有裝置上的工作階段將立即結束，需要使用 SSO 重新登入。主要管理員會保持登入狀態。"
 }

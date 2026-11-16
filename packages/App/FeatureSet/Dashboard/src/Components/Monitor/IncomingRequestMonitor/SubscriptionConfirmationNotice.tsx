@@ -12,6 +12,7 @@ import IncomingRequestSubscriptionConfirmationUtil, {
   SubscriptionConfirmationAction,
   SubscriptionConfirmationProvider,
 } from "Common/Utils/Monitor/IncomingRequestSubscriptionConfirmation";
+import WebhookVerificationProvider from "Common/Types/Monitor/IncomingMonitor/WebhookVerificationProvider";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 
 /*
@@ -22,13 +23,19 @@ import React, { FunctionComponent, ReactElement, useId } from "react";
  *
  * Amazon SNS sends an HTTPS subscription nothing until its owner opens the
  * link in the SubscriptionConfirmation it sent, and Azure Event Grid
- * validates a webhook only once its owner opens the validationUrl (OneUptime
- * cannot echo the code back). That link used to be masked in every copy of
- * the request people read, and finding it meant unfolding the request's
+ * validates a webhook once it is answered its validation code, or once its
+ * owner opens the validationUrl. That link used to be masked in every copy
+ * of the request people read, and finding it meant unfolding the request's
  * body. Now the copies keep it (MonitorRecordEvidence), and the request's
  * summary leads with it: what the service is waiting for, the topic, and
  * the link as the one button - wherever the request is shown (the
  * monitor's overview, a Monitoring Logs row, an incident's summary).
+ *
+ * OneUptime answers Event Grid's validation code itself now (issue #8429),
+ * and a request it answered says so (answeredVerification): nothing is
+ * left to do, so nothing is drawn for it. The link is offered only for a
+ * validation OneUptime did not answer - one a probe relayed, say, or one
+ * kept before it answered any.
  *
  * A link the copy holds masked (kept before the link was), or one past the
  * window the service gives it - two days for SNS, 10 minutes for Event
@@ -113,9 +120,22 @@ const PROVIDER_LOGOS: Record<SubscriptionConfirmationProvider, ProviderLogo> = {
 export interface ComponentProps {
   // The request's body, from whichever copy is shown.
   requestBody: unknown;
+  /*
+   * The service OneUptime answered the request's verification handshake
+   * for, when it did (IncomingMonitorRequest.answeredVerification).
+   */
+  answeredVerification?: WebhookVerificationProvider | undefined;
   // The moment the link's window is judged at: now, unless a test says.
   now?: Date | undefined;
 }
+
+// The confirmations OneUptime completes itself when it answers the request.
+const ANSWERED_BY: Partial<
+  Record<SubscriptionConfirmationAction, WebhookVerificationProvider>
+> = {
+  [SubscriptionConfirmationAction.ValidateSubscription]:
+    WebhookVerificationProvider.AzureEventGrid,
+};
 
 const SubscriptionConfirmationNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -127,6 +147,14 @@ const SubscriptionConfirmationNotice: FunctionComponent<ComponentProps> = (
     IncomingRequestSubscriptionConfirmationUtil.find(props.requestBody);
 
   if (!confirmation) {
+    return <></>;
+  }
+
+  // Answered by OneUptime itself: the service is waiting for nothing.
+  if (
+    props.answeredVerification &&
+    ANSWERED_BY[confirmation.action] === props.answeredVerification
+  ) {
     return <></>;
   }
 

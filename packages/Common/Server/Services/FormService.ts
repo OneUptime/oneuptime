@@ -110,6 +110,9 @@ import {
   getFormTargetHandler,
 } from "../Utils/Form/FormTargets";
 import logger, { LogAttributes } from "../Utils/Logger";
+import MalwareScanner, {
+  ScannedFile,
+} from "../Utils/MalwareScan/MalwareScanner";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
@@ -890,6 +893,23 @@ export class Service extends DatabaseService<Model> {
 
       decoded.set(field.id, files);
     }
+
+    /*
+     * Scanned for malware first, when the installation scans files
+     * (MalwareScanner, #6118): a file ClamAV flags refuses the submission,
+     * saying which (400), and so does ClamAV not answering (503) - nothing
+     * is stored unchecked, and a refused submission spends none of the
+     * form's hourly allowance of files.
+     */
+    await MalwareScanner.assertClean({
+      files: Array.from(decoded.values())
+        .flat()
+        .map((entry: { file: FormFileAnswer; bytes: Buffer }): ScannedFile => {
+          return { name: entry.file.name, bytes: entry.bytes };
+        }),
+      context: "a public form's submission",
+      logAttributes: this.getLogAttributes(data.form),
+    });
 
     await FormFileAllowance.reserve({
       shareKey: data.shareKey,

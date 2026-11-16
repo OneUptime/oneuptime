@@ -187,6 +187,10 @@ Cada variable también lee su nombre antiguo, con `INCIDENT_FORM_` delante en lu
 
 Cuando tu instancia de OneUptime tiene hCaptcha activado, el formulario muestra un captcha, y un envío que no lo ha superado se rechaza. No hay un ajuste por formulario. Una instalación autoalojada activa el captcha con `CAPTCHA_ENABLED`, `CAPTCHA_SITE_KEY` y `CAPTCHA_SECRET_KEY` — los mismos ajustes que protegen el registro. Sin él, los límites de frecuencia y la lista de IP permitidas soportan la carga.
 
+### Análisis de malware
+
+Una instalación autoalojada puede hacer que ClamAV analice en busca de malware cada archivo que envían las personas antes de guardarlo: los archivos de un formulario y los que las personas suben con la sesión iniciada o con una clave de API. Configura `CLAMAV_HOST` (y `CLAMAV_PORT`, `3310` de forma predeterminada) con un daemon de ClamAV. Con Docker Compose, `COMPOSE_PROFILES=clamav` y `CLAMAV_HOST=clamav` en `config.env` inician el ClamAV incluido con OneUptime; con Helm, activa `clamav.enabled`. Un archivo que ClamAV marca se rechaza, indicando cuál, y no se guarda nada del envío. Mientras ClamAV no responde, todos los archivos se rechazan con "Ahora mismo no se pueden analizar los archivos en busca de virus, así que no se aceptaron. Vuelve a intentarlo en unos minutos." (503), así que ningún archivo se guarda sin revisar. Sin `CLAMAV_HOST`, los archivos no se analizan, como hasta ahora.
+
 ## Solución de problemas
 
 :::details El enlace dice que el formulario no está disponible

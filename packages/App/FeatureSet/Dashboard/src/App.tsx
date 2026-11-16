@@ -60,6 +60,7 @@ import useAsyncEffect from "use-async-effect";
 import PageComponentProps from "./Pages/PageComponentProps";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
+import { CrossProjectPageProps } from "./Types/CrossProjectPageProps";
 import { RoutesProps } from "./Types/RoutesProps";
 
 // Keep the landing and recovery pages available in the initial bundle.
@@ -98,6 +99,11 @@ type LazyRoutes = React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 >;
 
+// A page across every project the person belongs to: handed their projects.
+type CrossProjectLazyRoutes = React.LazyExoticComponent<
+  React.FunctionComponent<CrossProjectPageProps>
+>;
+
 // Secondary pages download only when their route is opened.
 const AICopilot: LazyRoutes = lazy(() => {
   return import("./Pages/AICopilot/AICopilot");
@@ -129,16 +135,16 @@ const UserProfileDelete: LazyRoutes = lazy(() => {
 const ProjectInvitations: LazyRoutes = lazy(() => {
   return import("./Pages/Global/ProjectInvitations");
 });
-const ActiveIncidents: LazyRoutes = lazy(() => {
+const ActiveIncidents: CrossProjectLazyRoutes = lazy(() => {
   return import("./Pages/Global/ActiveIncidents");
 });
-const ActiveAlerts: LazyRoutes = lazy(() => {
+const ActiveAlerts: CrossProjectLazyRoutes = lazy(() => {
   return import("./Pages/Global/ActiveAlerts");
 });
-const ActiveAlertEpisodes: LazyRoutes = lazy(() => {
+const ActiveAlertEpisodes: CrossProjectLazyRoutes = lazy(() => {
   return import("./Pages/Global/ActiveAlertEpisodes");
 });
-const ActiveIncidentEpisodes: LazyRoutes = lazy(() => {
+const ActiveIncidentEpisodes: CrossProjectLazyRoutes = lazy(() => {
   return import("./Pages/Global/ActiveIncidentEpisodes");
 });
 const MyOnCallPolicies: LazyRoutes = lazy(() => {
@@ -1182,6 +1188,7 @@ const App: () => JSX.Element = () => {
                   <ActiveIncidents
                     {...commonPageProps}
                     pageRoute={RouteMap[PageMap.ACTIVE_INCIDENTS] as Route}
+                    projects={projects}
                   />
                 }
               />
@@ -1192,6 +1199,7 @@ const App: () => JSX.Element = () => {
                   <ActiveAlerts
                     {...commonPageProps}
                     pageRoute={RouteMap[PageMap.ACTIVE_ALERTS] as Route}
+                    projects={projects}
                   />
                 }
               />
@@ -1202,6 +1210,7 @@ const App: () => JSX.Element = () => {
                   <ActiveAlertEpisodes
                     {...commonPageProps}
                     pageRoute={RouteMap[PageMap.ACTIVE_ALERT_EPISODES] as Route}
+                    projects={projects}
                   />
                 }
               />
@@ -1216,6 +1225,7 @@ const App: () => JSX.Element = () => {
                     pageRoute={
                       RouteMap[PageMap.ACTIVE_INCIDENT_EPISODES] as Route
                     }
+                    projects={projects}
                   />
                 }
               />

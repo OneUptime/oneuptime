@@ -73,6 +73,8 @@ curl -X POST "https://oneuptime.example.com/workflow/trigger/<secret key>" \
 
 這個 URL 同時接受 `GET` 和 `POST`。呼叫端會很快收到確認 `{"status": "Scheduled"}`——工作流程本身在背景執行，所以呼叫端永遠看不到它做了什麼。對已關閉或已封存工作流程的呼叫會以 HTTP 400 和原因被拒絕。
 
+Azure Event Grid、Slack、Microsoft Graph 和 Okta 在向 URL 傳遞任何內容之前都會先檢查它。這個 URL 會依各服務預期的方式回應每次檢查，就像 [傳入請求監控的 URL 那樣](/docs/monitor/incoming-request-monitor#會先檢查-url-的服務)，而且檢查不會啟動任何執行。工作流程處於關閉或已封存狀態時，檢查會像呼叫一樣被拒絕。
+
 ```mermaid title="有東西呼叫 Webhook URL 時會發生什麼"
 sequenceDiagram
     participant Caller as 你的工具
@@ -94,7 +96,7 @@ sequenceDiagram
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | **請求標頭**      | 請求的每個標頭，依小寫名稱列出，例如 `content-type`。                                                                  |
 | **請求查詢參數** | URL 中的查詢參數，依名稱列出。                                                                                         |
-| **請求內文**         | 呼叫端傳送的內文。以 `Content-Type: application/json` 傳送的 JSON 內文可以逐一讀取欄位，像 Amazon SNS 那樣以純文字傳送的 JSON 也可以。 |
+| **請求內文**         | 呼叫端傳送的內文。以 `Content-Type: application/json` 或 `+json` 類型（例如 Azure Event Grid 的 CloudEvents）傳送的 JSON 內文可以逐一讀取欄位，像 Amazon SNS 那樣以純文字傳送的 JSON 也可以。其他任何純文字就是文字本身。 |
 
 要讀取單一欄位，把它的名稱加到參照後面，例如 `{{local.components.webhook-1.returnValues.request-body.message}}`。
 

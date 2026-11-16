@@ -39,6 +39,11 @@ export interface ComponentProps {
   monitorType: MonitorType;
   incomingRequestMonitorHeartbeatCheckedAt?: Date | undefined;
   incomingEmailMonitorHeartbeatCheckedAt?: Date | undefined;
+  /*
+   * The heartbeat sweep is checking the monitor on its schedule
+   * (HeartbeatSweepSchedule): its "status checked at" says the schedule.
+   */
+  isHeartbeatCheckOnSchedule?: boolean | undefined;
   probeMonitorResponses?: Array<ProbeMonitorResponse> | undefined; // this is an array because of multiple monitor steps.
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
   incomingEmailMonitorRequest?: IncomingEmailMonitorRequest | undefined;
@@ -391,6 +396,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
             incomingRequestMonitorHeartbeatCheckedAt={
               props.incomingRequestMonitorHeartbeatCheckedAt
             }
+            isStatusCheckOnSchedule={props.isHeartbeatCheckOnSchedule}
             incomingMonitorRequest={props.incomingMonitorRequest}
             areSecretsMasked={props.areIncomingRequestSecretsMasked}
           />
@@ -410,6 +416,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
             incomingEmailMonitorHeartbeatCheckedAt={
               props.incomingEmailMonitorHeartbeatCheckedAt
             }
+            isStatusCheckOnSchedule={props.isHeartbeatCheckOnSchedule}
             incomingEmailMonitorRequest={props.incomingEmailMonitorRequest}
           />
           {renderEvaluationLogs(

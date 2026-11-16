@@ -295,7 +295,10 @@ npm run compile           # tsc for the server, then the Dashboard and Admin Das
   `Tests/Server/TestTagStripGuard.test.ts` (`TagStripScan.ts`) and
   `Tests/Server/FrontendRequestsUseRefreshAwareApi.test.ts`
   (`RefreshAwareApiScan.ts`) do, or run the core guard with `ee/` present from
-  a step of `.github/workflows/test.ee.yaml`.
+  a step of `.github/workflows/test.ee.yaml`. Give that step the `if` of the
+  guard steps beside it, so that a red guard never keeps ee's own tests from
+  running (`Tests/Ops/EnterpriseEditionBuild.test.js` fails on a step that
+  would).
 - Tests that touch edition-dependent code must pin both the billing flag and the
   edition state. CI's `config.env` sets `BILLING_ENABLED=true`, and without the
   pin every test exercises the OneUptime Cloud path. The helpers are in

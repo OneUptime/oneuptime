@@ -4056,6 +4056,14 @@
   "Amount": "Beløb",
   "Invoice": "Faktura",
   "Invoices": "Fakturaer",
+  "Runs JavaScript steps as its own user: let its container switch users (allowPrivilegeEscalation, SETUID and SETGID).": "Kører JavaScript-trin som sin egen bruger: lad dens container skifte bruger (allowPrivilegeEscalation, SETUID og SETGID).",
+  "Runs JavaScript steps as its own user: run its container as the image's own user, node.": "Kører JavaScript-trin som sin egen bruger: kør dens container som imagets egen bruger, node.",
+  "Runs JavaScript steps as its own user: run the Runner image, not its sources.": "Kører JavaScript-trin som sin egen bruger: kør Runner-imaget, ikke dets kildekode.",
+  "Runs JavaScript steps as its own user: its sandbox check failed, and its log says why.": "Kører JavaScript-trin som sin egen bruger: dens sandkassetjek mislykkedes, og dens log siger hvorfor.",
+  "JavaScript steps share its network: let its container use seccomp, as Docker's and Kubernetes' default profiles do.": "JavaScript-trin deler dens netværk: lad dens container bruge seccomp, som Dockers og Kubernetes' standardprofiler gør.",
+  "JavaScript steps share its network: run the Runner image, not its sources.": "JavaScript-trin deler dens netværk: kør Runner-imaget, ikke dets kildekode.",
+  "JavaScript steps share its network: its network filter's check failed, and its log says why.": "JavaScript-trin deler dens netværk: tjekket af dens netværksfilter mislykkedes, og dens log siger hvorfor.",
+  "Runs JavaScript steps as its own user and on its network: run the Runner image, not its sources.": "Kører JavaScript-trin som sin egen bruger og på dens netværk: kør Runner-imaget, ikke dets kildekode.",
   "Keep for at most": "Behold i højst",
   "New projects delete after": "Nye projekter sletter efter",
   "Longer than the limit above.": "Længere end grænsen ovenfor.",
@@ -4100,5 +4108,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "Et nyt projekt sletter løste advarsler efter {{count}} dage, indtil ejerne ændrer det. Eksisterende projekter beholder deres egen indstilling.",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "Et nyt projekt sletter løste advarsler efter {{count}} dag, indtil ejerne ændrer det. Eksisterende projekter beholder deres egen indstilling.",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "Et nyt projekt sletter løste advarsler efter {{count}} år, indtil ejerne ændrer det. Eksisterende projekter beholder deres egen indstilling.",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "Et nyt projekt sletter løste advarsler efter {{count}} år, indtil ejerne ændrer det. Eksisterende projekter beholder deres egen indstilling."
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "Et nyt projekt sletter løste advarsler efter {{count}} år, indtil ejerne ændrer det. Eksisterende projekter beholder deres egen indstilling.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "{{count}} personer er stadig logget ind uden SSO. De kan ikke åbne noget projekt, før de logger ind med SSO.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} person er stadig logget ind uden SSO. Personen kan ikke åbne noget projekt, før vedkommende logger ind med SSO.",
+  "Sign them out": "Log dem ud",
+  "Sign out everyone signed in without SSO?": "Log alle ud, der er logget ind uden SSO?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Deres sessioner slutter nu på alle enheder, og de logger ind igen med SSO. Hovedadministratorer forbliver logget ind."
 }

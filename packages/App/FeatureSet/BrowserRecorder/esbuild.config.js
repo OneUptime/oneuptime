@@ -51,6 +51,15 @@ const COMMON_ROOT = path.resolve(__dirname, "../../../Common");
 const ALLOWED_COMMON_PREFIXES = ["Common/Utils/Rum/", "Common/Types/Rum/"];
 
 /*
+ * Single files outside those directories that the bundle may inline too,
+ * each one importing nothing (the escape check below still holds them to
+ * it). Common/Utils/RetryAfter reads a throttled answer's Retry-After as RFC
+ * 9110 writes it: the one reader every OneUptime client shares (issue
+ * #8928), so the recorder waits as the server asked, never at once.
+ */
+const ALLOWED_COMMON_FILES = ["Common/Utils/RetryAfter"];
+
+/*
  * The same allow-list expressed as absolute directories, for the RELATIVE
  * import check below. Files inside Common reach each other with relative
  * specifiers ("../../Types/Rum/SessionReplay"), which never match the
@@ -63,6 +72,20 @@ const ALLOWED_COMMON_DIRECTORIES = [
   path.join(COMMON_ROOT, "Utils", "Rum"),
   path.join(COMMON_ROOT, "Types", "Rum"),
 ];
+
+/*
+ * ALLOWED_COMMON_FILES as absolute paths with no extension, for the same
+ * check: a relative specifier names a file without its ".ts".
+ */
+const ALLOWED_COMMON_FILE_PATHS = ALLOWED_COMMON_FILES.map((file) => {
+  return path.join(COMMON_ROOT, file.replace(/^Common\//, ""));
+});
+
+// What may be inlined, said in an error.
+const ALLOWED_COMMON_DESCRIPTION = [
+  ...ALLOWED_COMMON_PREFIXES,
+  ...ALLOWED_COMMON_FILES,
+].join(", ");
 
 /*
  * Substrings that must never appear in a shipped artifact. Checked with
@@ -181,9 +204,20 @@ const FORBIDDEN_IN_BUNDLE = [
  * ProductAnalyticsEvents' scrubbing rule (#8197). Measured after:
  * recorder.js 352794 bytes raw / 105343 gzip. The gzip budget still holds
  * it and is unchanged; the loader carries none of it. Same rule.
+ *
+ * Raised again from 346 KB to 348 KB on 2026-11-16 for a throttled answer's
+ * Retry-After read as RFC 9110 writes it (issue #8928): the transport and
+ * product analytics read it with Common's RetryAfter, the one reader every
+ * OneUptime client shares (src/Transport.ts, src/ProductAnalytics.ts).
+ * parseInt read "1.5" as a second and "5 seconds" as five, and Date.parse
+ * took "-5" for a day in 2001; now anything but whole seconds or one of the
+ * three HTTP-date shapes is no Retry-After, and asctime is read in UTC.
+ * Measured after: recorder.js 354855 bytes raw / 106276 gzip; before it
+ * 352802 / 105353, which had left 119 bytes of gzip headroom. The loader
+ * carries none of it and is unchanged at 13333 bytes raw. Same rule.
  */
 const LOADER_MAX_BYTES = 13.5 * 1024;
-const RECORDER_MAX_BYTES = 346 * 1024;
+const RECORDER_MAX_BYTES = 348 * 1024;
 
 /*
  * Gzip budgets, which are the numbers a customer's browser actually pays.
@@ -271,9 +305,14 @@ const RECORDER_MAX_BYTES = 346 * 1024;
  * Raised from 100 KB to 103 KB on 2026-11-10 for product analytics events
  * (issue #6444; the raw budget's note above says what they are). Measured
  * after: recorder.js 104156 gzip; before it 101329. Same rule.
+ *
+ * Raised from 103 KB to 105 KB on 2026-11-16 for Retry-After read as RFC
+ * 9110 writes it (issue #8928; the raw budget's note above says what it
+ * is). Measured after: recorder.js 106276 gzip; before it 105353, which had
+ * left 119 bytes of headroom. Same rule.
  */
 const LOADER_MAX_GZIP_BYTES = 5 * 1024;
-const RECORDER_MAX_GZIP_BYTES = 103 * 1024;
+const RECORDER_MAX_GZIP_BYTES = 105 * 1024;
 
 function isInside(directory, candidate) {
   const withSeparator = directory.endsWith(path.sep)
@@ -284,9 +323,12 @@ function isInside(directory, candidate) {
 }
 
 function isAllowedCommonFile(absolutePath) {
-  return ALLOWED_COMMON_DIRECTORIES.some((directory) => {
-    return isInside(directory, absolutePath);
-  });
+  return (
+    ALLOWED_COMMON_FILE_PATHS.includes(absolutePath.replace(/\.ts$/, "")) ||
+    ALLOWED_COMMON_DIRECTORIES.some((directory) => {
+      return isInside(directory, absolutePath);
+    })
+  );
 }
 
 /*
@@ -343,7 +385,7 @@ function resolveCommonEscape(args) {
           `The browser recorder may not reach ` +
           `"Common/${path.relative(COMMON_ROOT, resolved)}" (imported as ` +
           `"${args.path}" from ${importer || "an entry point"}). Only ` +
-          `${ALLOWED_COMMON_PREFIXES.join(", ")} are inlined; everything ` +
+          `${ALLOWED_COMMON_DESCRIPTION} are inlined; everything ` +
           `else in Common pulls server dependencies or reads ` +
           `window.process.env.`,
       },
@@ -356,9 +398,11 @@ function createCommonRumInlinePlugin() {
     name: "common-rum-inline",
     setup(build) {
       build.onResolve({ filter: /^Common\// }, (args) => {
-        const isAllowed = ALLOWED_COMMON_PREFIXES.some((prefix) => {
-          return args.path.startsWith(prefix);
-        });
+        const isAllowed =
+          ALLOWED_COMMON_FILES.includes(args.path) ||
+          ALLOWED_COMMON_PREFIXES.some((prefix) => {
+            return args.path.startsWith(prefix);
+          });
 
         if (!isAllowed) {
           return {
@@ -366,7 +410,7 @@ function createCommonRumInlinePlugin() {
               {
                 text:
                   `The browser recorder may not import "${args.path}". ` +
-                  `Only ${ALLOWED_COMMON_PREFIXES.join(", ")} are inlined; ` +
+                  `Only ${ALLOWED_COMMON_DESCRIPTION} are inlined; ` +
                   `everything else in Common pulls server dependencies or ` +
                   `reads window.process.env.`,
               },
@@ -645,6 +689,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  ALLOWED_COMMON_FILES,
   ALLOWED_COMMON_PREFIXES,
   COMMON_ROOT,
   LATEST_RECORDER_VERSION,

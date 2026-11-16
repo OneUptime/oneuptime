@@ -4056,6 +4056,14 @@
   "Amount": "राशि",
   "Invoice": "चालान",
   "Invoices": "चालान सूची",
+  "Runs JavaScript steps as its own user: let its container switch users (allowPrivilegeEscalation, SETUID and SETGID).": "JavaScript चरणों को अपने ही उपयोगकर्ता के रूप में चलाता है: इसके कंटेनर को उपयोगकर्ता बदलने दें (allowPrivilegeEscalation, SETUID और SETGID)।",
+  "Runs JavaScript steps as its own user: run its container as the image's own user, node.": "JavaScript चरणों को अपने ही उपयोगकर्ता के रूप में चलाता है: इसके कंटेनर को इमेज के अपने उपयोगकर्ता node के रूप में चलाएँ।",
+  "Runs JavaScript steps as its own user: run the Runner image, not its sources.": "JavaScript चरणों को अपने ही उपयोगकर्ता के रूप में चलाता है: इसके सोर्स के बजाय Runner इमेज चलाएँ।",
+  "Runs JavaScript steps as its own user: its sandbox check failed, and its log says why.": "JavaScript चरणों को अपने ही उपयोगकर्ता के रूप में चलाता है: इसकी सैंडबॉक्स जाँच विफल रही, और इसका लॉग कारण बताता है।",
+  "JavaScript steps share its network: let its container use seccomp, as Docker's and Kubernetes' default profiles do.": "JavaScript चरण इसके नेटवर्क को साझा करते हैं: इसके कंटेनर को seccomp उपयोग करने दें, जैसा Docker और Kubernetes के डिफ़ॉल्ट प्रोफ़ाइल करते हैं।",
+  "JavaScript steps share its network: run the Runner image, not its sources.": "JavaScript चरण इसके नेटवर्क को साझा करते हैं: इसके सोर्स के बजाय Runner इमेज चलाएँ।",
+  "JavaScript steps share its network: its network filter's check failed, and its log says why.": "JavaScript चरण इसके नेटवर्क को साझा करते हैं: इसके नेटवर्क फ़िल्टर की जाँच विफल रही, और इसका लॉग कारण बताता है।",
+  "Runs JavaScript steps as its own user and on its network: run the Runner image, not its sources.": "JavaScript चरणों को अपने ही उपयोगकर्ता के रूप में और इसके नेटवर्क पर चलाता है: इसके सोर्स के बजाय Runner इमेज चलाएँ।",
   "Keep for at most": "अधिकतम इतने समय तक रखें",
   "New projects delete after": "नए प्रोजेक्ट में इसके बाद हटाएं",
   "Longer than the limit above.": "ऊपर की सीमा से लंबा।",
@@ -4100,5 +4108,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "नया प्रोजेक्ट सुलझाए गए अलर्ट को {{count}} दिन बाद हटा देता है, जब तक उसके मालिक इसे बदल नहीं देते। मौजूदा प्रोजेक्ट अपनी सेटिंग रखते हैं।",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "नया प्रोजेक्ट सुलझाए गए अलर्ट को {{count}} दिन बाद हटा देता है, जब तक उसके मालिक इसे बदल नहीं देते। मौजूदा प्रोजेक्ट अपनी सेटिंग रखते हैं।",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "नया प्रोजेक्ट सुलझाए गए अलर्ट को {{count}} साल बाद हटा देता है, जब तक उसके मालिक इसे बदल नहीं देते। मौजूदा प्रोजेक्ट अपनी सेटिंग रखते हैं।",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "नया प्रोजेक्ट सुलझाए गए अलर्ट को {{count}} साल बाद हटा देता है, जब तक उसके मालिक इसे बदल नहीं देते। मौजूदा प्रोजेक्ट अपनी सेटिंग रखते हैं।"
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "नया प्रोजेक्ट सुलझाए गए अलर्ट को {{count}} साल बाद हटा देता है, जब तक उसके मालिक इसे बदल नहीं देते। मौजूदा प्रोजेक्ट अपनी सेटिंग रखते हैं।",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "{{count}} लोग अब भी बिना SSO के साइन इन हैं। SSO से साइन इन करने तक वे कोई प्रोजेक्ट नहीं खोल सकते।",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} व्यक्ति अब भी बिना SSO के साइन इन है। SSO से साइन इन करने तक वह कोई प्रोजेक्ट नहीं खोल सकता।",
+  "Sign them out": "उन्हें साइन आउट करें",
+  "Sign out everyone signed in without SSO?": "बिना SSO के साइन इन सभी लोगों को साइन आउट करें?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "उनके सेशन अभी हर डिवाइस पर खत्म हो जाएंगे, और वे फिर से SSO से साइन इन करेंगे। मास्टर एडमिन साइन इन रहेंगे।"
 }

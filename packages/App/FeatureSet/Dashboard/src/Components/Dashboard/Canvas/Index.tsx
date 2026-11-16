@@ -2,6 +2,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -13,7 +14,9 @@ import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentSettingsModal from "./LazyComponentSettingsModal";
+import ComponentSettingsModal, {
+  loadComponentSettingsModal,
+} from "./LazyComponentSettingsModal";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
 import GridLayoutUtil, { GridRect } from "Common/Utils/Dashboard/GridLayout";
@@ -167,6 +170,20 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
   const components: Array<DashboardBaseComponent> = getCanvasComponents(
     props.dashboardViewConfig,
   );
+
+  /*
+   * In edit mode a picked widget opens its settings, a file of their own
+   * (LazyComponentSettingsModal). Asked for as the board turns to edit mode,
+   * it is there when the first widget is picked, and they open at once. A
+   * public dashboard has no edit mode, and never asks for it.
+   */
+  useEffect(() => {
+    if (props.isEditMode) {
+      loadComponentSettingsModal().catch((): void => {
+        // The settings say so in their place when they open.
+      });
+    }
+  }, [props.isEditMode]);
 
   /*
    * The board fills the width of the place it is drawn in - the dashboard's

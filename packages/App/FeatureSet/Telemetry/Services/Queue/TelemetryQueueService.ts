@@ -5,6 +5,7 @@ import OneUptimeDate from "Common/Types/Date";
 import logger from "Common/Server/Utils/Logger";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
+import WebhookVerificationProvider from "Common/Types/Monitor/IncomingMonitor/WebhookVerificationProvider";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import OtelPayloadDecoder, {
@@ -208,6 +209,12 @@ export interface IncomingRequestIngestJobData {
    * worker then reads what the headers carry.
    */
   presentedSecretHashes?: Array<string> | undefined;
+  /*
+   * The service whose verification handshake the endpoint answered this
+   * request as (IncomingMonitorRequest.answeredVerification). Absent for any
+   * other request, and on a job queued before handshakes were answered.
+   */
+  answeredVerification?: WebhookVerificationProvider | undefined;
   /*
    * Set only when the request was queued with same-monitor coalescing: its id
    * in IncomingRequestLatestPayloadStore. It tells the worker to evaluate the
@@ -1409,6 +1416,8 @@ export default class TelemetryQueueService {
     receivedAt?: Date | undefined;
     // See IncomingRequestIngestJobData.presentedSecretHashes.
     presentedSecretHashes?: Array<string> | undefined;
+    // See IncomingRequestIngestJobData.answeredVerification.
+    answeredVerification?: WebhookVerificationProvider | undefined;
   }): Promise<void> {
     try {
       const incomingRequestData: IncomingRequestIngestJobData = {
@@ -1419,6 +1428,9 @@ export default class TelemetryQueueService {
         ingestionTimestamp: data.receivedAt || OneUptimeDate.getCurrentDate(),
         receivedViaProbeId: data.receivedViaProbeId,
         presentedSecretHashes: data.presentedSecretHashes,
+        ...(data.answeredVerification
+          ? { answeredVerification: data.answeredVerification }
+          : {}),
       };
 
       /*

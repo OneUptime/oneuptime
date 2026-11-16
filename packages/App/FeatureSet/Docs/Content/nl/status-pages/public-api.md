@@ -135,7 +135,8 @@ De algemene status is de slechtste huidige status van de monitors en monitorgroe
 | `resourceGroups` | De groepen, met `parentStatusPageGroupId` voor geneste groepen. |
 | `monitorStatuses` | Elke monitorstatus van het project, van de laagste prioriteit naar de hoogste. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | De huidige status van elke monitorgroep op de pagina, en de monitors erin. |
-| `notMonitoredResourceIds` | De ID's van de resources die de pagina als **Niet bewaakt** toont: een monitor waarvan de bewaking uit staat, of een monitorgroep waarvan alle monitors die uit hebben staan. Ze bepalen geen status, en zo'n groep heeft geen vermelding in `monitorGroupCurrentStatuses`. |
+| `notMonitoredResourceIds` | De ID's van de resources die de pagina als **Niet bewaakt** toont: een monitor waarvan de bewaking uit staat, of een monitorgroep waarvan alle monitors die uit hebben staan. De lijst bevat ook de resources in `notMonitoredYetResourceIds`. Ze bepalen geen status, en zo'n groep heeft geen vermelding in `monitorGroupCurrentStatuses`. |
+| `notMonitoredYetResourceIds` | De ID's van de resources die de pagina als **Nog niet bewaakt** toont: een monitor die nog door niets is gecontroleerd en nog in de operationele status staat waarin elke monitor begint, of een monitorgroep waarvan nog geen enkele monitor is gecontroleerd. |
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Waaruit de beschikbaarheidsbalken worden getekend, en de kleurregels voor de balken van de pagina. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | De onopgeloste incidenten die de pagina toont, hun publieke notities en statuswijzigingen, en de incidentstatussen van het project. |
 | `timelineIncidents` | De incidenten in het venster van de beschikbaarheidsbalken, opgeloste incidenten inbegrepen, voor de tooltips van de balken. |
@@ -197,7 +198,7 @@ Het antwoord:
 | `activeIncidents` | De onopgeloste incidenten die de pagina toont, elk met de `affectedResourceIds` van de resources die het raakt. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | De onderhoudsgebeurtenissen die lopen of nog komen, elk met haar `affectedResourceIds`. |
 
-De `currentStatus` van een resource is `null` als de pagina die niet toont, en als `isMonitored` `false` is: niets controleert de resource, omdat de bewaking van haar monitor uit staat of elke monitor van haar monitorgroep die uit heeft staan, dus toont de pagina haar als **Niet bewaakt**. `isUnderMaintenance` is `true` zolang een lopende gebeurtenis een van de monitors van de resource noemt, of een monitor in de monitorgroep ervan, in welke status die monitors ook staan.
+De `currentStatus` van een resource is `null` als de pagina die niet toont, en als `isMonitored` `false` is: niets controleert de resource, omdat de bewaking van haar monitor uit staat of elke monitor van haar monitorgroep die uit heeft staan, dus toont de pagina haar als **Niet bewaakt**, of niets heeft haar nog gecontroleerd, dus toont de pagina haar als **Nog niet bewaakt**. `isUnderMaintenance` is `true` zolang een lopende gebeurtenis een van de monitors van de resource noemt, of een monitor in de monitorgroep ervan, in welke status die monitors ook staan.
 
 ## Beschikbaarheid over een periode
 

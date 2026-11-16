@@ -98,6 +98,8 @@ import {
   readPathAsWritten,
 } from "../src/CustomSignals";
 import { sanitizeRoute } from "../src/Sanitize";
+import fs from "node:fs";
+import path from "node:path";
 import UrlScrubber from "../../../../Common/Utils/Rum/UrlScrubber";
 import {
   PAGES_WITH_PERSONAL_DATA,
@@ -539,6 +541,25 @@ describe("published SDK wire contract", () => {
    * drags Common into a customer's bundle. A drift here would be a mobile
    * chunk that a customer's firewall blocks while the browser's passes.
    */
+  /*
+   * Issue #8928: every OneUptime client reads Retry-After with Common's
+   * RetryAfter. This package cannot import Common, so it carries the file
+   * byte for byte: copy packages/Common/Utils/RetryAfter.ts over
+   * src/RetryAfter.ts when this fails.
+   */
+  test("reads Retry-After with a byte-identical copy of Common's RetryAfter", () => {
+    const common: Buffer = fs.readFileSync(
+      path.join(__dirname, "../../../../Common/Utils/RetryAfter.ts"),
+    );
+    const copy: Buffer = fs.readFileSync(
+      path.join(__dirname, "../src/RetryAfter.ts"),
+    );
+
+    expect(copy.equals(common)).toBe(true);
+    // It imports nothing, so the copy needs nothing of Common's.
+    expect(copy.toString("utf8")).not.toMatch(/^import /m);
+  });
+
   test("frames envelopes exactly the way Common does", () => {
     expect(SESSION_REPLAY_CONTENT_TYPE).toBe("application/octet-stream");
     expect(SESSION_REPLAY_LEGACY_CONTENT_TYPE).toBe(COMMON_LEGACY_CONTENT_TYPE);

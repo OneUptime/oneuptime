@@ -210,12 +210,13 @@ no IPv6 address either way. Preflight.js's bracketedReadingsOf, here.
 "true" for an IPv6 address as a web address holds one (hex digits, colons and
 dots, no zone), or nothing: the rule the app reads host's brackets by as it
 starts (isIPv6 in packages/Common/Types/IP/IP.ts, case-insensitive there too),
-which Preflight.js holds HOST to. Tests/Ops/HelmHost.test.js holds $ipv6Rule
-to the app's.
+which Preflight.js holds HOST to. Every text form of RFC 4291, an IPv4 address
+at the end included (2001:db8::1:192.0.2.1). Tests/Ops/HelmHost.test.js holds
+$ipv6Rule to the app's.
 */}}
 {{- define "oneuptime.isIpv6Address" -}}
 {{- $text := toString . -}}
-{{- $ipv6Rule := `^(?:([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$` -}}
+{{- $ipv6Rule := `^(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|(?:(?:[0-9a-fA-F]{1,4}:){6}|::(?:[0-9a-fA-F]{1,4}:){0,5}|[0-9a-fA-F]{1,4}::(?:[0-9a-fA-F]{1,4}:){0,4}|(?:[0-9a-fA-F]{1,4}:){2}:(?:[0-9a-fA-F]{1,4}:){0,3}|(?:[0-9a-fA-F]{1,4}:){3}:(?:[0-9a-fA-F]{1,4}:){0,2}|(?:[0-9a-fA-F]{1,4}:){4}:(?:[0-9a-fA-F]{1,4}:)?|(?:[0-9a-fA-F]{1,4}:){5}:)(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))$` -}}
 {{- if and (regexMatch `^[0-9A-Fa-f:.]+$` $text) (regexMatch (printf "(?i)%s" $ipv6Rule) $text) -}}true{{- end -}}
 {{- end -}}
 
@@ -1309,6 +1310,16 @@ why: ""
   value: {{ include "oneuptime.envValue" $.Values.vapid.privateKey }}
   {{- end }}
 
+{{- /*
+Malware scanning (clamav): the in-cluster ClamAV when clamav.enabled, else a
+clamd of your own at clamav.host, else none - and then nothing is scanned.
+*/}}
+- name: CLAMAV_HOST
+  value: {{ ternary (printf "%s-clamav" $.Release.Name) (default "" ($.Values.clamav).host) (($.Values.clamav).enabled | default false) | quote }}
+
+- name: CLAMAV_PORT
+  value: {{ ternary 3310 (($.Values.clamav).port | default 3310) (($.Values.clamav).enabled | default false) | toString | quote }}
+
 - name: EXPO_ACCESS_TOKEN
   value: {{ default "" $.Values.expo.accessToken | quote }}
 
@@ -1969,6 +1980,15 @@ values are set. Secrets can come from an existing Kubernetes secret.
 
 - name: DISABLE_INSTANCE_CHECK_IN
   value: {{ default false (($.Values.instanceCheckIn).disabled) | squote }}
+
+{{/*
+  Keep GitLab, Forgejo, Gitea and Git repositories off global Runners (as
+  OneUptime Cloud does), for a self-hosted install that serves several tenants
+  whose code must stay apart. Their AI code fixes then need one of the
+  project's own Runners (Types/Runner/GlobalRunnerRepositoryTokens).
+*/}}
+- name: GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY
+  value: {{ ternary "true" "false" (default false (($.Values.globalRunner).codeFixGitHubOnly)) | squote }}
 
 {{/*
   Not `default 1 ...`: Helm's default treats 0 as empty, and 0 is a meaningful

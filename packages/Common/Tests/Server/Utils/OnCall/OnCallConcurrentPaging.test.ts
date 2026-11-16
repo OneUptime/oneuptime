@@ -2,7 +2,10 @@ import OnCallDutyPolicyEscalationRule from "../../../../Models/DatabaseModels/On
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimeline from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import UserOnCallLog from "../../../../Models/DatabaseModels/UserOnCallLog";
-import OnCallDutyPolicyEscalationRuleService from "../../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
+import OnCallDutyPolicyEscalationRuleService, {
+  OnCallPagedTarget,
+  OnCallPagingOutcome,
+} from "../../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallAcknowledgementTimeoutUtil, {
   OnCallPageAgainOutcome,
   OnCallPageAgainResult,
@@ -14,7 +17,11 @@ import OnCallPageMerge, {
 import OnCallPagePassOn from "../../../../Server/Utils/OnCall/OnCallPagePassOn";
 import ObjectID from "../../../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
-import { getOnCallPageMergedMessage } from "../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
+import {
+  OnCallPageCoverKind,
+  getOnCallPageMergedLine,
+  getOnCallPageMergedMessage,
+} from "../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 import UserNotificationExecutionStatus from "../../../../Types/UserNotification/UserNotificationExecutionStatus";
 import {
   getOnCallPolicyRunRecordHandledMessage,
@@ -501,7 +508,10 @@ describe("1. escalating the one page", () => {
       await OnCallPageMerge.readMergedPage(logOf(ANA, billingRun));
 
     expect(merged.standing).toBe(OnCallMergedPageStanding.TakesOver);
-    expect(merged.policyName).toBe("Payments");
+    expect(merged.by).toEqual({
+      kind: OnCallPageCoverKind.Policy,
+      name: "Payments",
+    });
   });
 
   test("from the Dashboard or the app escalates every page about it, the merged one too", async () => {
@@ -945,5 +955,293 @@ describe("the policy does not page again on top of a run started by hand that is
         return result.outcome;
       }),
     ).toEqual([OnCallPageAgainOutcome.PagedAgain]);
+  });
+});
+
+/*
+ * A DIRECT PAGE AND A POLICY PAGING ONE PERSON ABOUT ONE INCIDENT (#8859).
+ *
+ * A page somebody sends from Slack or Microsoft Teams, and a workflow's Page
+ * Users step, page people with no policy behind the page (OnCallDirectPage).
+ * Each was left out of #7837's merge, and so a person a policy and a direct
+ * page both reached was paged twice:
+ *
+ *   - Dana pages Ana from the incident's channel; a moment later a policy's
+ *     level reaches Ana. The policy's page of her is now merged into Dana's,
+ *     which goes on until Ana answers it, and outlasts it.
+ *   - A workflow's Page Users step pages Ana about an incident a policy is
+ *     paging her about already. The workflow's page of her is now merged
+ *     into the policy's - and, the other way round, a policy's page of her
+ *     into the workflow's.
+ *
+ * A page somebody sends from a chat still pages its people itself, always:
+ * it is asked for. An observer's page is never merged, either way.
+ */
+describe("4. a direct page and a policy paging the same person about one incident (#8859)", () => {
+  /*
+   * A direct page about the incident, run as OnCallDutyPolicyExecutionLog
+   * Service starts one: sent from a chat by `by`, or by a workflow's step
+   * named `workflowName`; to observers when `isObserverPage`.
+   */
+  async function startDirect(data: {
+    users: Array<ObjectID>;
+    by?: ObjectID | undefined;
+    workflowName?: string | undefined;
+    isObserverPage?: boolean | undefined;
+  }): Promise<{ runId: ObjectID; outcome: OnCallPagingOutcome }> {
+    const run: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
+    run.id = nextId();
+    run.projectId = PROJECT_ID;
+    run.triggeredByIncidentId = INCIDENT_ID;
+    run.userNotificationEventType = UserNotificationEventType.IncidentCreated;
+    run.status = OnCallDutyPolicyStatus.Executing;
+    run.createdAt = new Date(world.clock);
+
+    if (data.by) {
+      run.triggeredByUserId = data.by;
+    }
+
+    if (data.workflowName !== undefined) {
+      run.triggeredByWorkflowId = nextId();
+      run.triggeredByWorkflowName = data.workflowName;
+    }
+
+    if (data.isObserverPage) {
+      run.isObserverPage = true;
+    }
+
+    // As the database holds it: with no policy (addRunRow reads one with every run).
+    world.runs.push(run);
+
+    const outcome: OnCallPagingOutcome =
+      await OnCallDutyPolicyEscalationRuleService.startDirectPage({
+        projectId: PROJECT_ID,
+        triggeredByIncidentId: INCIDENT_ID,
+        userNotificationEventType: UserNotificationEventType.IncidentCreated,
+        onCallPolicyExecutionLogId: run.id,
+        targets: {
+          userIds: data.users,
+          teamIds: [],
+          onCallScheduleIds: [],
+        },
+      });
+
+    return { runId: run.id, outcome: outcome };
+  }
+
+  test("Dana pages Ana from a chat, then a policy reaches her: the policy's page is merged into Dana's, and sends nothing", async () => {
+    const fromDana: { runId: ObjectID } = await startDirect({
+      users: [ANA],
+      by: DANA,
+    });
+
+    world.advance(1);
+    await world.startRun();
+
+    expect(pagesOf(ANA)).toEqual([`Ana Lopez: ${fromDana.runId.toString()}`]);
+    expect(mergedPagesOf(ANA)).toEqual([
+      `Ana Lopez: ${RUN_ID.toString()} into ${fromDana.runId.toString()}`,
+    ]);
+    expect(logOf(ANA, RUN_ID).status).toBe(
+      UserNotificationExecutionStatus.AlreadyPaged,
+    );
+  });
+
+  test("the policy's line for her names Dana, who paged her directly - not a policy called Dana", async () => {
+    const fromDana: { runId: ObjectID } = await startDirect({
+      users: [ANA],
+      by: DANA,
+    });
+    await world.startRun();
+
+    expect(lineOf(ANA, RUN_ID).status).toBe(
+      OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+    );
+    expect(lineOf(ANA, RUN_ID).statusMessage).toBe(
+      "Already paged directly about this by Dana Kim, so not paged again.",
+    );
+    expect(logOf(ANA, RUN_ID).statusMessage).toBe(
+      lineOf(ANA, RUN_ID).statusMessage,
+    );
+    expect(logOf(ANA, RUN_ID).mergedIntoUserOnCallLogId!.toString()).toBe(
+      logOf(ANA, fromDana.runId).id!.toString(),
+    );
+  });
+
+  test("answering Dana's page answers the policy's too: its run records Ana as who acknowledged it", async () => {
+    const fromDana: { runId: ObjectID } = await startDirect({
+      users: [ANA],
+      by: DANA,
+    });
+    await world.startRun();
+
+    world.advance(3);
+    await world.answerPage(ANA, fromDana.runId);
+
+    expect(world.runById(RUN_ID).acknowledgedByUserId!.toString()).toBe(
+      ANA.toString(),
+    );
+    expect(logOf(ANA, RUN_ID).acknowledgedAt).toEqual(new Date(world.clock));
+    expect(lineOf(ANA, RUN_ID).status).toBe(
+      OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+    );
+  });
+
+  test("Dana's page ends without Ana's answer - she escalated it from one of its messages: the policy's page takes it over", async () => {
+    const fromDana: { runId: ObjectID } = await startDirect({
+      users: [ANA],
+      by: DANA,
+    });
+    await world.startRun();
+
+    world.advance(2);
+    await world.escalate(ANA, fromDana.runId);
+
+    // The policy's page of her is not escalated with it: she still has it.
+    expect(logOf(ANA, RUN_ID).status).toBe(
+      UserNotificationExecutionStatus.AlreadyPaged,
+    );
+
+    const merged: OnCallMergedPageReading =
+      await OnCallPageMerge.readMergedPage(logOf(ANA, RUN_ID));
+
+    expect(merged.standing).toBe(OnCallMergedPageStanding.TakesOver);
+    // Its take-over names Dana, as the merged page's line did.
+    expect(merged.by).toEqual({
+      kind: OnCallPageCoverKind.PersonPage,
+      name: "Dana Kim",
+    });
+  });
+
+  test("a page Dana sends from a chat still pages Ana itself, though a policy is paging her already", async () => {
+    await world.startRun();
+    const fromDana: { runId: ObjectID } = await startDirect({
+      users: [ANA],
+      by: DANA,
+    });
+
+    expect(pagesOf(ANA)).toEqual([
+      `Ana Lopez: ${RUN_ID.toString()}`,
+      `Ana Lopez: ${fromDana.runId.toString()}`,
+    ]);
+    expect(mergedPagesOf(ANA)).toEqual([]);
+  });
+
+  test("a workflow's Page Users step reaches Ana while a policy pages her: the workflow's page is merged into the policy's", async () => {
+    await world.startRun();
+    const workflow: { runId: ObjectID; outcome: OnCallPagingOutcome } =
+      await startDirect({ users: [ANA, BOB], workflowName: "Nightly Checks" });
+
+    expect(pagesOf(ANA)).toEqual([`Ana Lopez: ${RUN_ID.toString()}`]);
+    expect(mergedPagesOf(ANA)).toEqual([
+      `Ana Lopez: ${workflow.runId.toString()} into ${RUN_ID.toString()}`,
+    ]);
+    expect(lineOf(ANA, workflow.runId).statusMessage).toBe(
+      getOnCallPageMergedMessage({ policyName: "Payments" }),
+    );
+    // Somebody the policy is not paging is paged by the workflow, as always.
+    expect(pagesOf(BOB)).toEqual([`Bob Smith: ${workflow.runId.toString()}`]);
+  });
+
+  test("the workflow is told Ana was paged - by the policy's page, which it names", async () => {
+    await world.startRun();
+    const workflow: { runId: ObjectID; outcome: OnCallPagingOutcome } =
+      await startDirect({ users: [ANA], workflowName: "Nightly Checks" });
+
+    expect(
+      workflow.outcome.paged.map((paged: OnCallPagedTarget) => {
+        return {
+          userId: paged.userId.toString(),
+          alreadyPagedBy: paged.alreadyPagedByExecutionLogId?.toString(),
+        };
+      }),
+    ).toEqual([{ userId: ANA.toString(), alreadyPagedBy: RUN_ID.toString() }]);
+    expect(workflow.outcome.notPaged).toEqual([]);
+  });
+
+  test("a policy's level reaches Ana while a workflow's page of her is open: the policy's page is merged into the workflow's", async () => {
+    const workflow: { runId: ObjectID } = await startDirect({
+      users: [ANA],
+      workflowName: "Nightly Checks",
+    });
+    await world.startRun();
+
+    expect(pagesOf(ANA)).toEqual([`Ana Lopez: ${workflow.runId.toString()}`]);
+    expect(lineOf(ANA, RUN_ID).statusMessage).toBe(
+      getOnCallPageMergedLine({
+        kind: OnCallPageCoverKind.WorkflowPage,
+        name: "Nightly Checks",
+      }),
+    );
+  });
+
+  test("answering the policy's page answers the workflow's page merged into it", async () => {
+    await world.startRun();
+    const workflow: { runId: ObjectID } = await startDirect({
+      users: [ANA],
+      workflowName: "Nightly Checks",
+    });
+
+    world.advance(2);
+    await world.answerPage(ANA, RUN_ID);
+
+    expect(logOf(ANA, workflow.runId).acknowledgedAt).toEqual(
+      new Date(world.clock),
+    );
+    expect(world.runById(workflow.runId).acknowledgedByUserId!.toString()).toBe(
+      ANA.toString(),
+    );
+  });
+
+  test("the policy's page of Ana ends without her answer - its run stopped: the workflow's page takes it over", async () => {
+    await world.startRun();
+    const workflow: { runId: ObjectID } = await startDirect({
+      users: [ANA],
+      workflowName: "Nightly Checks",
+    });
+
+    await world.deliver(ANA);
+    world.runById(RUN_ID).status = OnCallDutyPolicyStatus.Completed;
+
+    expect(
+      (await OnCallPageMerge.readMergedPage(logOf(ANA, workflow.runId)))
+        .standing,
+    ).toBe(OnCallMergedPageStanding.TakesOver);
+  });
+
+  test("a workflow's page to observers and a policy's page of responders are never merged, either way", async () => {
+    const observers: { runId: ObjectID } = await startDirect({
+      users: [ANA],
+      workflowName: "Keep managers informed",
+      isObserverPage: true,
+    });
+    await world.startRun();
+    const moreObservers: { runId: ObjectID } = await startDirect({
+      users: [ANA],
+      workflowName: "Keep managers informed",
+      isObserverPage: true,
+    });
+
+    expect(pagesOf(ANA)).toEqual([
+      `Ana Lopez: ${observers.runId.toString()}`,
+      `Ana Lopez: ${RUN_ID.toString()}`,
+      `Ana Lopez: ${moreObservers.runId.toString()}`,
+    ]);
+    expect(mergedPagesOf(ANA)).toEqual([]);
+  });
+
+  test("a page Dana sent to observers is no page a policy's is merged into", async () => {
+    const observers: { runId: ObjectID } = await startDirect({
+      users: [ANA],
+      by: DANA,
+      isObserverPage: true,
+    });
+    await world.startRun();
+
+    expect(pagesOf(ANA)).toEqual([
+      `Ana Lopez: ${observers.runId.toString()}`,
+      `Ana Lopez: ${RUN_ID.toString()}`,
+    ]);
   });
 });

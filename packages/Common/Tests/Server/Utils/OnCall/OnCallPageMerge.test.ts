@@ -2,6 +2,8 @@ import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCa
 import UserOnCallLog from "../../../../Models/DatabaseModels/UserOnCallLog";
 import OnCallDutyPolicyExecutionLogService from "../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import UserOnCallLogService from "../../../../Server/Services/UserOnCallLogService";
+import UserService from "../../../../Server/Services/UserService";
+import User from "../../../../Models/DatabaseModels/User";
 import logger from "../../../../Server/Utils/Logger";
 import OnCallPageMerge, {
   OnCallMergedPageReading,
@@ -11,6 +13,10 @@ import OnCallPageMerge, {
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import {
+  OnCallPageCoverKind,
+  getOnCallPageMergedLine,
+} from "../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 import UserNotificationEventType from "../../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../../../Types/UserNotification/UserNotificationExecutionStatus";
 import { meetsCondition } from "../../TestingUtils/QueryConditions";
@@ -25,14 +31,15 @@ import {
 import type { SpyInstance } from "jest-mock";
 
 /*
- * THE READS BEHIND ONE PAGE FOR SOMEBODY TWO POLICIES PAGE (issue #7837,
- * Server/Utils/OnCall/OnCallPageMerge).
+ * THE READS BEHIND ONE PAGE FOR SOMEBODY TWO PAGES REACH (issues #7837,
+ * #8859, Server/Utils/OnCall/OnCallPageMerge).
  *
  * findCovers: as Billing's level pages Ana and Bob about an incident, which
- * of them has an open page about it from another policy's run - Payments' -
- * that their page in Billing's run is merged into. readMergedPage: where the
- * page a merged one stands on is, each minute. findMergedPagesToAnswer: a
- * person's merged pages about a record, answered with the page they answer.
+ * of them has an open page about it from another run - Payments', a page
+ * Jane sent from a chat, a workflow's - that their page in Billing's run is
+ * merged into. readMergedPage: where the page a merged one stands on is,
+ * each minute. findMergedPagesToAnswer: a person's merged pages about a
+ * record, answered with the page they answer.
  */
 
 const PROJECT: ObjectID = new ObjectID("78371000-0000-4000-8000-000000000001");
@@ -46,6 +53,58 @@ const PAYMENTS_RUN: ObjectID = new ObjectID(
 const ANA: ObjectID = new ObjectID("78371000-0000-4000-8000-000000000005");
 const BOB: ObjectID = new ObjectID("78371000-0000-4000-8000-000000000006");
 const POLICY: ObjectID = new ObjectID("78371000-0000-4000-8000-000000000007");
+const JANE: ObjectID = new ObjectID("78371000-0000-4000-8000-000000000008");
+const SAM: ObjectID = new ObjectID("78371000-0000-4000-8000-00000000000a");
+// Sent a page, and has no user left to name them by.
+const NEMO: ObjectID = new ObjectID("78371000-0000-4000-8000-00000000000b");
+const WORKFLOW: ObjectID = new ObjectID("78371000-0000-4000-8000-000000000009");
+
+/*
+ * The people the reads find, as UserService answers a read of them: whoever
+ * a direct page's run below names, kept for the whole suite, as the tables
+ * of runs are built before the tests run.
+ */
+const people: Map<string, User> = new Map<string, User>();
+
+/*
+ * A direct page's run (OnCallDirectPage): no policy. A page Jane sent from a
+ * chat names her - her user, read apart, is `byName` and `byEmail` - and a
+ * workflow's names the workflow (`workflowName`).
+ */
+function directRun(data: {
+  byUserId?: ObjectID | undefined;
+  byName?: string | undefined;
+  byEmail?: string | undefined;
+  workflowName?: string | undefined;
+  isObserverPage?: boolean | undefined;
+  status?: OnCallDutyPolicyStatus | undefined;
+}): OnCallDutyPolicyExecutionLog {
+  const row: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
+  row.status = data.status || OnCallDutyPolicyStatus.Executing;
+
+  if (data.byUserId) {
+    row.triggeredByUserId = data.byUserId;
+  }
+
+  if (data.byUserId && (data.byName || data.byEmail)) {
+    const user: User = new User();
+    user.id = data.byUserId;
+    user.name = data.byName as never;
+    user.email = data.byEmail as never;
+    people.set(data.byUserId.toString(), user);
+  }
+
+  if (data.workflowName !== undefined) {
+    row.triggeredByWorkflowId = WORKFLOW;
+    row.triggeredByWorkflowName = data.workflowName;
+  }
+
+  if (data.isObserverPage) {
+    row.isObserverPage = true;
+  }
+
+  return row;
+}
 
 let nextLog: number = 0;
 
@@ -93,6 +152,7 @@ function page(data: {
 let billingRun: OnCallDutyPolicyExecutionLog | null;
 let pages: Array<UserOnCallLog>;
 let pageReads: Array<Record<string, unknown>>;
+let peopleReads: Array<Record<string, unknown>>;
 let errors: Array<string>;
 
 async function coversOf(
@@ -119,7 +179,18 @@ beforeEach(() => {
   billingRun = run({});
   pages = [];
   pageReads = [];
+  peopleReads = [];
   errors = [];
+
+  jest.spyOn(UserService, "findBy").mockImplementation((async (data: {
+    query: Record<string, unknown>;
+  }) => {
+    peopleReads.push(data.query);
+
+    return [...people.values()].filter((user: User): boolean => {
+      return meetsCondition(data.query["_id"], user.id!.toString());
+    });
+  }) as never);
 
   jest.spyOn(logger, "error").mockImplementation(((message: unknown) => {
     errors.push(String(message));
@@ -163,7 +234,7 @@ describe("the open pages a level merges its people's pages into", () => {
     expect(coverOf(covers, ANA)).toEqual({
       userOnCallLogId: pages[0]!.id,
       executionLogId: PAYMENTS_RUN,
-      policyName: "Payments",
+      by: { kind: OnCallPageCoverKind.Policy, name: "Payments" },
     });
     expect(coverOf(covers, BOB)).toBeUndefined();
   });
@@ -240,12 +311,31 @@ describe("the open pages a level merges its people's pages into", () => {
     ["an observer's page", run({ isObserverPage: true }), false],
     ["a page again", run({ pageAgainNumber: 1 }), true],
     ["a policy started by hand", run({ triggeredByUserId: BOB }), true],
+    // A direct page stands for a policy's page too (#8859)...
     [
-      "a direct page",
-      Object.assign(new OnCallDutyPolicyExecutionLog(), {
-        status: OnCallDutyPolicyStatus.Executing,
-        triggeredByUserId: BOB,
-      }),
+      "a page Jane sent from a chat",
+      directRun({ byUserId: JANE, byName: "Jane Doe" }),
+      true,
+    ],
+    [
+      "a workflow's direct page",
+      directRun({ workflowName: "Nightly Checks" }),
+      true,
+    ],
+    // ...but not one whose line would have nobody to name.
+    [
+      "a page sent from a chat by somebody with no name to read",
+      directRun({ byUserId: NEMO }),
+      false,
+    ],
+    [
+      "a workflow's direct page with no name",
+      directRun({ workflowName: "" }),
+      false,
+    ],
+    [
+      "an observer's page Jane sent from a chat",
+      directRun({ byUserId: JANE, byName: "Jane Doe", isObserverPage: true }),
       false,
     ],
     [
@@ -275,7 +365,122 @@ describe("the open pages a level merges its people's pages into", () => {
   test("a policy with no name is named as none", async () => {
     pages = [page({ userId: ANA, policyName: "  " })];
 
-    expect(coverOf(await coversOf(), ANA)?.policyName).toBeNull();
+    expect(coverOf(await coversOf(), ANA)?.by).toEqual({
+      kind: OnCallPageCoverKind.Policy,
+      name: null,
+    });
+  });
+
+  test("a page Jane sent from a chat is named by her: her name, or else her email address (#8859)", async () => {
+    pages = [
+      page({
+        userId: ANA,
+        run: directRun({ byUserId: JANE, byName: "Jane Doe" }),
+      }),
+      page({
+        userId: BOB,
+        run: directRun({ byUserId: SAM, byEmail: "sam@example.com" }),
+      }),
+    ];
+
+    const covers: Map<string, OnCallPageCover> = await coversOf();
+
+    expect(coverOf(covers, ANA)?.by).toEqual({
+      kind: OnCallPageCoverKind.PersonPage,
+      name: "Jane Doe",
+    });
+    expect(coverOf(covers, BOB)?.by).toEqual({
+      kind: OnCallPageCoverKind.PersonPage,
+      name: "sam@example.com",
+    });
+  });
+
+  test("a workflow's direct page is named by the workflow (#8859)", async () => {
+    pages = [
+      page({
+        userId: ANA,
+        run: directRun({ workflowName: " Nightly Checks " }),
+      }),
+    ];
+
+    expect(coverOf(await coversOf(), ANA)?.by).toEqual({
+      kind: OnCallPageCoverKind.WorkflowPage,
+      name: "Nightly Checks",
+    });
+  });
+
+  test("a direct page with no name is passed over for their next open page", async () => {
+    const nameless: UserOnCallLog = page({
+      userId: ANA,
+      minutesAgo: 9,
+      run: directRun({ byUserId: NEMO }),
+    });
+    const payments: UserOnCallLog = page({ userId: ANA, minutesAgo: 2 });
+    pages = [nameless, payments];
+
+    expect(coverOf(await coversOf(), ANA)?.userOnCallLogId).toEqual(
+      payments.id,
+    );
+  });
+
+  test("a direct page's run is read with the workflow's name", async () => {
+    pages = [page({ userId: ANA })];
+    let select: Record<string, unknown> | undefined = undefined;
+
+    jest
+      .spyOn(UserOnCallLogService, "findBy")
+      .mockImplementation((async (data: {
+        select: Record<string, unknown>;
+      }) => {
+        select = data.select;
+        return [];
+      }) as never);
+
+    await coversOf();
+
+    expect(
+      (select!["onCallDutyPolicyExecutionLog"] as Record<string, unknown>)[
+        "triggeredByWorkflowName"
+      ],
+    ).toBe(true);
+  });
+
+  test("who sent pages from a chat is read once for them all, and not at all for none", async () => {
+    pages = [
+      page({
+        userId: ANA,
+        run: directRun({ byUserId: JANE, byName: "Jane Doe" }),
+      }),
+      page({
+        userId: BOB,
+        run: directRun({ byUserId: JANE, byName: "Jane Doe" }),
+      }),
+    ];
+
+    await coversOf();
+
+    expect(peopleReads).toHaveLength(1);
+
+    pages = [page({ userId: ANA })];
+    peopleReads = [];
+    await coversOf();
+
+    expect(peopleReads).toEqual([]);
+  });
+
+  test("a read of who sent a page that fails merges nothing, and is logged", async () => {
+    pages = [
+      page({
+        userId: ANA,
+        run: directRun({ byUserId: JANE, byName: "Jane Doe" }),
+      }),
+    ];
+    jest
+      .spyOn(UserService, "findBy")
+      .mockRejectedValue(new Error("connection reset") as never);
+
+    expect((await coversOf()).size).toBe(0);
+    expect(errors.join("\n")).toContain("paging everybody as before");
   });
 
   test.each([
@@ -285,6 +490,16 @@ describe("the open pages a level merges its people's pages into", () => {
     [
       "a test page",
       run({ userNotificationEventType: UserNotificationEventType.TestPage }),
+    ],
+    // A page a person sent from a chat always pages its people (#8859).
+    ["a page sent from a chat", directRun({ byUserId: BOB, byName: "Bob" })],
+    [
+      "an observer's page sent from a chat",
+      directRun({ byUserId: BOB, byName: "Bob", isObserverPage: true }),
+    ],
+    [
+      "a workflow's direct page to observers",
+      directRun({ workflowName: "Nightly Checks", isObserverPage: true }),
     ],
   ])(
     "%s pages everybody itself: no page is read for it",
@@ -296,6 +511,19 @@ describe("the open pages a level merges its people's pages into", () => {
       expect(pageReads).toEqual([]);
     },
   );
+
+  test("a workflow's direct page is merged into an open page, as a policy's level is (#8859)", async () => {
+    billingRun = directRun({ workflowName: "Nightly Checks" });
+    pages = [page({ userId: ANA })];
+
+    const covers: Map<string, OnCallPageCover> = await coversOf();
+
+    expect(pageReads).toHaveLength(1);
+    expect(coverOf(covers, ANA)?.by).toEqual({
+      kind: OnCallPageCoverKind.Policy,
+      name: "Payments",
+    });
+  });
 
   test("a page about no record, or nobody to page, reads nothing", async () => {
     pages = [page({ userId: ANA })];
@@ -326,7 +554,10 @@ describe("the open pages a level merges its people's pages into", () => {
 });
 
 describe("where the page a merged one stands on is, each minute", () => {
-  function mergedPage(into: ObjectID | undefined): UserOnCallLog {
+  function mergedPage(
+    into: ObjectID | undefined,
+    line?: string | undefined,
+  ): UserOnCallLog {
     const log: UserOnCallLog = new UserOnCallLog();
     log.id = new ObjectID("78371000-0000-4000-8000-0000000000aa");
     log.status = UserNotificationExecutionStatus.AlreadyPaged;
@@ -335,11 +566,17 @@ describe("where the page a merged one stands on is, each minute", () => {
       log.mergedIntoUserOnCallLogId = into;
     }
 
+    if (line) {
+      log.statusMessage = line;
+    }
+
     return log;
   }
 
+  // Where the merged page stands, its line naming what it stands on.
   async function reading(
     cover: UserOnCallLog | null,
+    line?: string | undefined,
   ): Promise<OnCallMergedPageReading> {
     jest
       .spyOn(UserOnCallLogService, "findOneById")
@@ -348,6 +585,7 @@ describe("where the page a merged one stands on is, each minute", () => {
     return await OnCallPageMerge.readMergedPage(
       mergedPage(
         cover?.id || new ObjectID("78371000-0000-4000-8000-0000000000bb"),
+        line,
       ),
     );
   }
@@ -374,7 +612,7 @@ describe("where the page a merged one stands on is, each minute", () => {
       standing: OnCallMergedPageStanding.Answered,
       acknowledgedAt: new Date("2026-11-16T03:04:00.000Z"),
       claimsSent: {},
-      policyName: "Payments",
+      by: { kind: OnCallPageCoverKind.Policy, name: "Payments" },
     });
   });
 
@@ -388,7 +626,7 @@ describe("where the page a merged one stands on is, each minute", () => {
     expect(await reading(cover)).toEqual({
       standing: OnCallMergedPageStanding.TakesOver,
       claimsSent: SENT,
-      policyName: "Payments",
+      by: { kind: OnCallPageCoverKind.Policy, name: "Payments" },
     });
   });
 
@@ -423,8 +661,86 @@ describe("where the page a merged one stands on is, each minute", () => {
     expect(await reading(null)).toEqual({
       standing: OnCallMergedPageStanding.TakesOver,
       claimsSent: {},
-      policyName: null,
+      by: null,
     });
+  });
+
+  test("gone: its take-over names the page as the merged page's own line did (#8859)", async () => {
+    jest
+      .spyOn(UserOnCallLogService, "findOneById")
+      .mockResolvedValue(null as never);
+
+    const merged: UserOnCallLog = mergedPage(
+      new ObjectID("78371000-0000-4000-8000-0000000000bb"),
+    );
+    merged.statusMessage = getOnCallPageMergedLine({
+      kind: OnCallPageCoverKind.PersonPage,
+      name: "Jane Doe",
+    });
+
+    expect((await OnCallPageMerge.readMergedPage(merged)).by).toEqual({
+      kind: OnCallPageCoverKind.PersonPage,
+      name: "Jane Doe",
+    });
+  });
+
+  test("a page Jane sent, escalated by them: taken over, named by her as the merged page's line names her (#8859)", async () => {
+    const cover: UserOnCallLog = page({
+      userId: ANA,
+      status: UserNotificationExecutionStatus.PassedOn,
+      run: directRun({ byUserId: JANE, byName: "Jane Doe" }),
+    });
+    cover.executedNotificationRules = SENT;
+    const findPeople: SpyInstance<typeof UserService.findBy> = jest.spyOn(
+      UserService,
+      "findBy",
+    );
+
+    expect(
+      await reading(
+        cover,
+        getOnCallPageMergedLine({
+          kind: OnCallPageCoverKind.PersonPage,
+          name: "Jane Doe",
+        }),
+      ),
+    ).toEqual({
+      standing: OnCallMergedPageStanding.TakesOver,
+      claimsSent: SENT,
+      by: { kind: OnCallPageCoverKind.PersonPage, name: "Jane Doe" },
+    });
+    // Nothing more is read for it: the line has her name.
+    expect(findPeople).not.toHaveBeenCalled();
+  });
+
+  test("a workflow's direct page that ended with nobody answering: taken over, with what it sent (#8859)", async () => {
+    const cover: UserOnCallLog = page({
+      userId: ANA,
+      status: UserNotificationExecutionStatus.Completed,
+      run: directRun({
+        workflowName: "Nightly Checks",
+        status: OnCallDutyPolicyStatus.Completed,
+      }),
+    });
+    cover.executedNotificationRules = SENT;
+
+    expect(await reading(cover)).toEqual({
+      standing: OnCallMergedPageStanding.TakesOver,
+      claimsSent: SENT,
+      by: { kind: OnCallPageCoverKind.WorkflowPage, name: "Nightly Checks" },
+    });
+  });
+
+  test("a direct page still open, its pages all out: the merged page waits", async () => {
+    const cover: UserOnCallLog = page({
+      userId: ANA,
+      status: UserNotificationExecutionStatus.Completed,
+      run: directRun({ byUserId: JANE, byName: "Jane Doe" }),
+    });
+
+    expect((await reading(cover)).standing).toBe(
+      OnCallMergedPageStanding.Waits,
+    );
   });
 
   test("a merged page that names no page takes it over without a read", async () => {
