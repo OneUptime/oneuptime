@@ -5,6 +5,7 @@ import MetricFormulaConfigData from "../../Types/Metrics/MetricFormulaConfigData
 import MetricQueryConfigData from "../../Types/Metrics/MetricQueryConfigData";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import { readOwnValue, writeOwnValue } from "../LookupTable";
+import MetricZeroFill, { MetricZeroFillOptions } from "./MetricZeroFill";
 
 /**
  * Shunting-yard based evaluator for metric formulas such as
@@ -23,6 +24,15 @@ import { readOwnValue, writeOwnValue } from "../LookupTable";
  * isGroupedVariable). When every referenced variable has a single
  * series the evaluator behaves exactly like the original timestamp-only
  * join — no stamping, identical output.
+ *
+ * A query that counts what happened (the Sum or Count of a counter or a
+ * histogram) has no point in a step where nothing happened. Given the
+ * catalog's word on its metric (`zeroFill`, MetricZeroFill), the formula
+ * reads it as 0 in a settled step another variable has a point in - so a
+ * failure share draws 0% where nothing failed - and in a group of the
+ * formula it has no series for. Without `zeroFill`, and for anything else
+ * (a gauge, an average, a percentile, a formula), a missing point is a gap,
+ * as it always was.
  */
 
 enum TokenType {
@@ -63,7 +73,12 @@ export interface FormulaPoint {
 interface VariableSeriesData {
   result: AggregatedResult;
   groupByAttributeKeys: Array<string>;
+  // The query behind the variable; undefined for a formula's.
+  queryConfig?: MetricQueryConfigData | undefined;
 }
+
+// A step's value of each variable, own keys only: "constructor" is a name too.
+type StepValues = Record<string, number>;
 
 interface SeriesGroupBucket {
   labels: JSONObject;
@@ -80,13 +95,20 @@ export default class MetricFormulaEvaluator {
    * Throws for STRUCTURAL problems (invalid formula syntax/arity,
    * unknown variable, grouped variables with no groups in common).
    * Per-point data gaps (a timestamp missing from one variable) are
-   * skipped silently, as before.
+   * skipped silently, as before - except a counting query's, which
+   * `zeroFill` reads as 0 (MetricZeroFill).
    */
   public static evaluateFormula(input: {
     formula: string;
     queryConfigs: Array<MetricQueryConfigData>;
     formulaConfigs: Array<MetricFormulaConfigData>;
     results: Array<AggregatedResult>;
+    /*
+     * What the metric catalog says of the queries' metrics, and which steps
+     * are settled: a counting query with no point in a step is then 0
+     * there. Unset: every missing point is a gap.
+     */
+    zeroFill?: MetricZeroFillOptions | undefined;
   }): AggregatedResult {
     const trimmedFormula: string = (input.formula || "").trim();
     if (!trimmedFormula) {
@@ -130,6 +152,17 @@ export default class MetricFormulaEvaluator {
       );
     }
 
+    // The queries a missing point of reads as 0 (MetricZeroFill).
+    const countingVariables: Set<string> =
+      MetricFormulaEvaluator.getCountingVariables({
+        referencedVariables,
+        variableData,
+        zeroFill: input.zeroFill,
+      });
+
+    const isStepSettled: ((stepStart: Date) => boolean) | undefined =
+      input.zeroFill?.isStepSettled;
+
     /*
      * The grouped path only ENGAGES when some variable factually carries
      * two or more series. Callers like the metric-monitor worker
@@ -157,6 +190,8 @@ export default class MetricFormulaEvaluator {
           rpn,
           referencedVariables,
           seriesByVariable,
+          countingVariables,
+          isStepSettled,
         }),
       };
     }
@@ -178,20 +213,61 @@ export default class MetricFormulaEvaluator {
     );
 
     /*
-     * Groups the formula is evaluated for = groups present in EVERY
-     * grouped variable. Ungrouped variables broadcast, so they don't
-     * constrain the set.
+     * A grouped counting query has no series in a group where nothing it
+     * counts happened - a service with requests and no failure has no
+     * failures series - so it is filled in the groups the formula is
+     * evaluated for instead of narrowing them. Only when it is grouped by
+     * the very attributes those groups are: a query grouped by others is
+     * never matched to them, and narrows the groups as any other does.
      */
-    let commonGroupKeys: Array<string> = Array.from(
-      seriesBuckets[groupedVariables[0]!]!.keys(),
+    const fillableGroupedVariables: Array<string> =
+      MetricFormulaEvaluator.getFillableGroupedVariables({
+        groupedVariables,
+        countingVariables,
+        seriesBuckets,
+        variableData,
+      });
+
+    const requiredGroupedVariables: Array<string> = groupedVariables.filter(
+      (variableName: string) => {
+        return !fillableGroupedVariables.includes(variableName);
+      },
     );
 
-    for (let index: number = 1; index < groupedVariables.length; index++) {
-      const buckets: Map<string, SeriesGroupBucket> =
-        seriesBuckets[groupedVariables[index]!]!;
-      commonGroupKeys = commonGroupKeys.filter((groupKey: string) => {
-        return buckets.has(groupKey);
-      });
+    /*
+     * Groups the formula is evaluated for = groups present in EVERY
+     * grouped variable that must have a point - every grouped one but the
+     * fillable counts - or, when all of them are fillable counts, in ANY of
+     * them. Ungrouped variables broadcast, so they don't constrain the set.
+     */
+    let commonGroupKeys: Array<string> = [];
+
+    if (requiredGroupedVariables.length > 0) {
+      commonGroupKeys = Array.from(
+        seriesBuckets[requiredGroupedVariables[0]!]!.keys(),
+      );
+
+      for (
+        let index: number = 1;
+        index < requiredGroupedVariables.length;
+        index++
+      ) {
+        const buckets: Map<string, SeriesGroupBucket> =
+          seriesBuckets[requiredGroupedVariables[index]!]!;
+        commonGroupKeys = commonGroupKeys.filter((groupKey: string) => {
+          return buckets.has(groupKey);
+        });
+      }
+    } else {
+      const anyGroupKeys: Set<string> = new Set<string>();
+
+      for (const variableName of fillableGroupedVariables) {
+        for (const groupKey of seriesBuckets[variableName]!.keys()) {
+          anyGroupKeys.add(groupKey);
+        }
+      }
+
+      commonGroupKeys = Array.from(anyGroupKeys);
     }
 
     if (commonGroupKeys.length === 0) {
@@ -206,11 +282,33 @@ export default class MetricFormulaEvaluator {
      */
     commonGroupKeys.sort();
 
+    /*
+     * A grouped count that is not filled across groups (grouped by other
+     * attributes) is not filled within one either: it is matched as any
+     * other grouped variable is.
+     */
+    const groupCountingVariables: Set<string> = new Set<string>(
+      Array.from(countingVariables).filter((variableName: string) => {
+        return (
+          !groupedVariables.includes(variableName) ||
+          fillableGroupedVariables.includes(variableName)
+        );
+      }),
+    );
+
     const resultData: Array<AggregatedModel> = [];
 
     for (const groupKey of commonGroupKeys) {
+      // The labels of the first grouped variable that has the group.
+      const labelSource: string | undefined = [
+        ...requiredGroupedVariables,
+        ...fillableGroupedVariables,
+      ].find((variableName: string) => {
+        return seriesBuckets[variableName]!.has(groupKey);
+      });
+
       const groupLabels: JSONObject =
-        seriesBuckets[groupedVariables[0]!]!.get(groupKey)!.labels;
+        seriesBuckets[labelSource!]!.get(groupKey)!.labels;
 
       const seriesByVariable: Record<string, Array<AggregatedModel>> = {};
       for (const variableName of referencedVariables) {
@@ -236,11 +334,157 @@ export default class MetricFormulaEvaluator {
           referencedVariables,
           seriesByVariable,
           groupAttributes: groupLabels,
+          countingVariables: groupCountingVariables,
+          isStepSettled,
         }),
       );
     }
 
     return { data: resultData };
+  }
+
+  /*
+   * The variables of a formula that a missing point of reads as 0, in order
+   * of first appearance: the queries it references that count what happened
+   * (MetricZeroFill.isCountingQuery). Empty without `zeroFill`, for a
+   * formula that cannot be read, and for a formula of formulas' formula
+   * variables - a formula's own output already holds its zeros.
+   */
+  public static getCountingVariablesOfFormula(input: {
+    formula: string;
+    queryConfigs: Array<MetricQueryConfigData>;
+    zeroFill?: MetricZeroFillOptions | undefined;
+  }): Array<string> {
+    const zeroFill: MetricZeroFillOptions | undefined = input.zeroFill;
+
+    if (!zeroFill) {
+      return [];
+    }
+
+    return MetricFormulaEvaluator.getReferencedVariables(input.formula).filter(
+      (variable: string) => {
+        const queryConfig: MetricQueryConfigData | undefined =
+          input.queryConfigs.find((candidate: MetricQueryConfigData) => {
+            return (
+              (
+                candidate.metricAliasData?.metricVariable || ""
+              ).toLowerCase() === variable
+            );
+          });
+
+        return MetricZeroFill.isCountingQuery({
+          queryConfig,
+          semanticsByMetricName: zeroFill.semanticsByMetricName,
+        });
+      },
+    );
+  }
+
+  /*
+   * The referenced query variables that count what happened, and whose read
+   * is whole: a read cut at its row limit, or to its top N series
+   * (AggregatedResult.truncated), lacks points that were only cut, and is
+   * never filled.
+   */
+  private static getCountingVariables(input: {
+    referencedVariables: Array<string>;
+    variableData: Record<string, VariableSeriesData>;
+    zeroFill?: MetricZeroFillOptions | undefined;
+  }): Set<string> {
+    const countingVariables: Set<string> = new Set<string>();
+    const zeroFill: MetricZeroFillOptions | undefined = input.zeroFill;
+
+    if (!zeroFill) {
+      return countingVariables;
+    }
+
+    for (const variableName of input.referencedVariables) {
+      const queryConfig: MetricQueryConfigData | undefined =
+        input.variableData[variableName]?.queryConfig;
+
+      if (
+        queryConfig &&
+        input.variableData[variableName]?.result.truncated !== true &&
+        MetricZeroFill.isCountingQuery({
+          queryConfig,
+          semanticsByMetricName: zeroFill.semanticsByMetricName,
+        })
+      ) {
+        countingVariables.add(variableName);
+      }
+    }
+
+    return countingVariables;
+  }
+
+  /*
+   * The grouped counting queries filled in a group they have no series in:
+   * grouped by their query's own attributes (a count grouped some other way
+   * has labels nothing can be told apart by), and by the same attributes as
+   * the groups are - those of the first grouped variable that must have a
+   * point. When every grouped variable is such a count, the groups are any
+   * of theirs, so they must all be grouped alike: counts grouped by service
+   * and by region are never filled into each other's groups. The rest are
+   * matched group by group like any other grouped variable.
+   */
+  private static getFillableGroupedVariables(input: {
+    groupedVariables: Array<string>;
+    countingVariables: Set<string>;
+    seriesBuckets: Record<string, Map<string, SeriesGroupBucket>>;
+    variableData: Record<string, VariableSeriesData>;
+  }): Array<string> {
+    const candidates: Array<string> = input.groupedVariables.filter(
+      (variableName: string) => {
+        return (
+          input.countingVariables.has(variableName) &&
+          (input.variableData[variableName]?.groupByAttributeKeys.length || 0) >
+            0
+        );
+      },
+    );
+
+    if (candidates.length === 0) {
+      return [];
+    }
+
+    const others: Array<string> = input.groupedVariables.filter(
+      (variableName: string) => {
+        return !candidates.includes(variableName);
+      },
+    );
+
+    const keysOf: (variableName: string) => string = (
+      variableName: string,
+    ): string => {
+      const queryKeys: Array<string> =
+        input.variableData[variableName]?.groupByAttributeKeys || [];
+
+      const keys: Array<string> =
+        queryKeys.length > 0
+          ? queryKeys
+          : Object.keys(
+              input.seriesBuckets[variableName]?.values().next().value
+                ?.labels || {},
+            );
+
+      return Array.from(new Set<string>(keys)).sort().join("\u0000");
+    };
+
+    if (others.length > 0) {
+      const groupKeys: string = keysOf(others[0]!);
+
+      return candidates.filter((variableName: string) => {
+        return keysOf(variableName) === groupKeys;
+      });
+    }
+
+    const groupKeys: string = keysOf(candidates[0]!);
+
+    return candidates.every((variableName: string) => {
+      return keysOf(variableName) === groupKeys;
+    })
+      ? candidates
+      : [];
   }
 
   /**
@@ -468,13 +712,13 @@ export default class MetricFormulaEvaluator {
 
       let alias: string | undefined;
       let groupByAttributeKeys: Array<string> = [];
+      let queryConfig: MetricQueryConfigData | undefined = undefined;
 
       if (index < input.queryConfigs.length) {
-        alias =
-          input.queryConfigs[index]?.metricAliasData?.metricVariable ||
-          undefined;
+        queryConfig = input.queryConfigs[index];
+        alias = queryConfig?.metricAliasData?.metricVariable || undefined;
         groupByAttributeKeys = (
-          input.queryConfigs[index]?.metricQueryData?.groupByAttributeKeys || []
+          queryConfig?.metricQueryData?.groupByAttributeKeys || []
         ).filter((key: string) => {
           return Boolean(key);
         });
@@ -492,6 +736,7 @@ export default class MetricFormulaEvaluator {
       variableMap[alias.toLowerCase()] = {
         result,
         groupByAttributeKeys,
+        queryConfig,
       };
     }
 
@@ -511,7 +756,8 @@ export default class MetricFormulaEvaluator {
    * keep the observed >=2 heuristic. A config-grouped variable with an
    * EMPTY result intentionally classifies as ungrouped: it degrades to
    * per-point gaps (empty output) instead of a structural
-   * no-groups-in-common error.
+   * no-groups-in-common error - or, when it counts what happened (a
+   * failures query nothing failed in), to a 0 in every group.
    *
    * Only consulted once the grouped path has engaged — the passthrough
    * gate in evaluateFormula deliberately does NOT use this predicate,
@@ -647,41 +893,79 @@ export default class MetricFormulaEvaluator {
    * point. Points missing a value for any referenced variable are
    * skipped (a partial join would produce misleading numbers — e.g.
    * treating a gap as zero silently when using subtraction), as are
-   * non-finite results like divide-by-zero. Structural formula errors
-   * are impossible here: the RPN's arity is validated at parse time.
+   * non-finite results like divide-by-zero. The one exception is a
+   * counting query's missing point (`countingVariables`), which is 0 in a
+   * step another variable has a point in, once the step is settled: that
+   * query counted nothing there (MetricZeroFill). A point that is there
+   * with no number is never one to fill. Structural formula errors are
+   * impossible here: the RPN's arity is validated at parse time.
    */
   private static evaluatePointwise(input: {
     rpn: Array<Token>;
     referencedVariables: Array<string>;
     seriesByVariable: Record<string, Array<AggregatedModel>>;
     groupAttributes?: JSONObject | undefined;
+    countingVariables?: ReadonlySet<string> | undefined;
+    isStepSettled?: ((stepStart: Date) => boolean) | undefined;
   }): Array<AggregatedModel> {
-    const timestampIndex: Map<
-      string,
-      Record<string, number>
-    > = MetricFormulaEvaluator.buildTimestampIndex(
-      input.referencedVariables,
-      input.seriesByVariable,
-    );
+    const timestampIndex: Map<string, StepValues> =
+      MetricFormulaEvaluator.buildTimestampIndex(
+        input.referencedVariables,
+        input.seriesByVariable,
+      );
 
     const sortedTimestamps: Array<string> = Array.from(
       timestampIndex.keys(),
     ).sort();
 
+    const countingVariables: ReadonlySet<string> =
+      input.countingVariables || new Set<string>();
+
     const resultData: Array<AggregatedModel> = [];
 
     for (const timestampString of sortedTimestamps) {
-      const values: Record<string, number> =
-        timestampIndex.get(timestampString) || {};
+      const values: StepValues =
+        timestampIndex.get(timestampString) ||
+        MetricFormulaEvaluator.createStepValues();
 
-      const hasAllValues: boolean = input.referencedVariables.every(
-        (variable: string) => {
-          return typeof values[variable] === "number";
-        },
-      );
+      const missingVariables: Array<string> = [];
+      let hasValueThatIsNotANumber: boolean = false;
 
-      if (!hasAllValues) {
+      for (const variable of input.referencedVariables) {
+        if (!Object.prototype.hasOwnProperty.call(values, variable)) {
+          missingVariables.push(variable);
+          continue;
+        }
+
+        if (typeof values[variable] !== "number") {
+          hasValueThatIsNotANumber = true;
+        }
+      }
+
+      if (hasValueThatIsNotANumber) {
         continue;
+      }
+
+      if (missingVariables.length > 0) {
+        /*
+         * Every timestamp here is one some variable has a point at, so a
+         * step none of them has a point in never reaches this.
+         */
+        const readsMissingAsZero: boolean =
+          missingVariables.length < input.referencedVariables.length &&
+          missingVariables.every((variable: string) => {
+            return countingVariables.has(variable);
+          }) &&
+          (!input.isStepSettled ||
+            input.isStepSettled(new Date(timestampString)));
+
+        if (!readsMissingAsZero) {
+          continue;
+        }
+
+        for (const variable of missingVariables) {
+          values[variable] = 0;
+        }
       }
 
       const evaluated: number = MetricFormulaEvaluator.evaluateRpn(
@@ -714,8 +998,8 @@ export default class MetricFormulaEvaluator {
   private static buildTimestampIndex(
     variables: Array<string>,
     seriesByVariable: Record<string, Array<AggregatedModel>>,
-  ): Map<string, Record<string, number>> {
-    const index: Map<string, Record<string, number>> = new Map();
+  ): Map<string, StepValues> {
+    const index: Map<string, StepValues> = new Map();
 
     for (const variable of variables) {
       const series: Array<AggregatedModel> | undefined =
@@ -729,16 +1013,27 @@ export default class MetricFormulaEvaluator {
           sample.timestamp,
         );
 
-        if (!index.has(timestampKey)) {
-          index.set(timestampKey, {});
+        let bucket: StepValues | undefined = index.get(timestampKey);
+
+        if (!bucket) {
+          bucket = MetricFormulaEvaluator.createStepValues();
+          index.set(timestampKey, bucket);
         }
 
-        const bucket: Record<string, number> = index.get(timestampKey) || {};
         bucket[variable] = sample.value;
       }
     }
 
     return index;
+  }
+
+  /*
+   * A step's values with no prototype: a variable named constructor or
+   * toString is there only when it has a point, and one named __proto__ is
+   * a key like any other.
+   */
+  private static createStepValues(): StepValues {
+    return Object.create(null) as StepValues;
   }
 
   private static normalizeTimestamp(timestamp: Date | string): string {

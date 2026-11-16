@@ -33,6 +33,8 @@ enum FormMessage {
   SubmissionsUnavailable = "Submissions cannot be accepted right now. Please try again in a few minutes.",
   // 429 on submit: the form took in as many files as it may this hour.
   FilesBusy = "This form is receiving too many files right now. Please try again later.",
+  // 503 on submit: files are scanned for malware, and the scanner is not answering.
+  FilesNotChecked = "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.",
   // 400 (and the page's own check): too many files, or too large, together.
   TooManyFiles = "A response can carry at most 10 files.",
   FilesTooLarge = "The files of a response can be at most 20 MB together.",

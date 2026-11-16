@@ -66,7 +66,7 @@ import {
  *     the values under a secret key inside a list or a key-value list, a
  *     scope's {key, value} pairs included;
  *   - a body sent as a map or a list is stored as its JSON text, masked in
- *     place;
+ *     place, and the value under a secret key inside it hidden (#6513);
  *   - a value nested too deep, or past a record's allowance, is stored as
  *     the very JSON text the Log table stores for the list, masked as text.
  *
@@ -727,6 +727,8 @@ describe("log scrub rules over lists and nested values, on each OTLP route (#639
         "theme=dark",
         "pw-1",
         "pw-2",
+        // Under the `password` key of a map body (#6513).
+        "pw-3",
         "tok-1",
         "scope-key-1",
       ]) {
@@ -821,12 +823,36 @@ describe("log scrub rules over lists and nested values, on each OTLP route (#639
           .join(OTHER_EMAIL_MASKED);
       };
 
-      expect(mapBody).toContain(EMAIL);
-      rowWithBody(masked(mapBody));
-      rowWithBody(masked(listBody));
+      /*
+       * A Sensitive Attribute Keys rule reads the keys of a map body too
+       * (#6513): the value of its `password` pair is hidden, and the rest
+       * of the text is the very text ingest stores for the body.
+       */
+      const hidden: (bodyText: string) => string = (
+        bodyText: string,
+      ): string => {
+        const parsed: JSONObject = JSON.parse(bodyText) as JSONObject;
 
-      // Keys are read in attributes only: a body is text to the rules.
-      expect(masked(mapBody)).toContain("pw-3");
+        for (const pair of (parsed["kvlistValue"] as JSONObject)[
+          "values"
+        ] as Array<JSONObject>) {
+          if (pair["key"] === "password") {
+            const value: JSONObject = pair["value"] as JSONObject;
+
+            for (const kind of Object.keys(value)) {
+              value[kind] = "[REDACTED]";
+            }
+          }
+        }
+
+        return JSON.stringify(parsed);
+      };
+
+      expect(mapBody).toContain(EMAIL);
+      expect(mapBody).toContain("pw-3");
+      rowWithBody(hidden(masked(mapBody)));
+      rowWithBody(masked(listBody));
+      expect(hidden(masked(mapBody))).not.toContain("pw-3");
     },
   );
 

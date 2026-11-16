@@ -55,6 +55,7 @@ import {
   GLOBAL_RUNNER_STEP_TYPES,
   canGlobalRunnersRunStepType,
 } from "Common/Types/Runner/GlobalRunnerWork";
+import { isCodeFixesTurnedOffInOneUptime } from "Common/Types/Runner/RunnerCodeFixes";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -403,9 +404,12 @@ export default class RunnerIngressAPI {
    * A global Runner is told it is one: it runs every project's JavaScript
    * steps (a master admin may pause those with "Runs Runbooks") and the AI
    * code fixes of every repository on the Global Runner, never with the
-   * repository's own commands. It then asks only for what global Runners
-   * run, and refuses anything else it is handed. The server serves it no
-   * other work whatever it asks for.
+   * repository's own commands - unless a master admin turned its code fixes
+   * off ("Runs AI Code Fixes", Runner.canRunCodeFixes): it then stops its
+   * code-fix loop, and its key proves no code-fix identity either
+   * (CodeFixAgentAuth). It asks only for what global Runners run, and
+   * refuses anything else it is handed. The server serves it no other work
+   * whatever it asks for.
    */
   public static getHeartbeatAnswer(
     agent: Runner,
@@ -418,7 +422,7 @@ export default class RunnerIngressAPI {
         globalStepTypes: [...GLOBAL_RUNNER_STEP_TYPES],
         capabilities: {
           canRunRunbooks: agent.canRunRunbooks !== false,
-          canRunCodeFixTasks: true,
+          canRunCodeFixTasks: !isCodeFixesTurnedOffInOneUptime(agent),
           canRunAiCommands: false,
         },
       };
@@ -1020,6 +1024,19 @@ export default class RunnerIngressAPI {
     };
   }
 
+  /*
+   * A job's heartbeat, while the Runner holds it:
+   *
+   *   { status: "ok" }                      the lease is renewed
+   *   { status: "ok", stop: true, reason }  the lease is renewed, and the
+   *                                         Runner must not start the step:
+   *                                         Enable AI was turned off since
+   *                                         it claimed this AI command
+   *   404 { message }                       the job is no longer its own
+   *
+   * A Runner of a release before the stop reads the first two alike, and
+   * runs the command, as it did then.
+   */
   public async heartbeatJob(
     req: RunnerExpressRequest,
     res: ExpressResponse,
@@ -1035,8 +1052,10 @@ export default class RunnerIngressAPI {
         throw new BadDataException("jobId is required");
       }
 
+      const jobId: ObjectID = new ObjectID(jobIdRaw);
+
       const stillOurs: boolean = await RunnerJobService.heartbeatJob({
-        jobId: new ObjectID(jobIdRaw),
+        jobId,
         agentId: agent.id,
       });
 
@@ -1047,7 +1066,28 @@ export default class RunnerIngressAPI {
         );
       }
 
-      return Response.sendJsonObjectResponse(req, res, { status: "ok" });
+      /*
+       * Enable AI, read again while the Runner holds the job: turned off
+       * since the claim, an AI command it has not started is never started
+       * - the heartbeat the Runner sends right before a step starts keeps
+       * it from starting. A runbook's own steps and Test access are never
+       * stopped (AiCommandKillSwitch), and a global Runner, which has no
+       * project, holds nothing else. The lease is still renewed, so the
+       * Runner reports what it did.
+       */
+      const stop: string | null = await RunnerJobService.getStopReasonOfHeldJob(
+        {
+          jobId,
+          agentId: agent.id,
+          projectId: agent.projectId,
+        },
+      );
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        stop ? { status: "ok", stop: true, reason: stop } : { status: "ok" },
+      );
     } catch (err) {
       next(err);
     }

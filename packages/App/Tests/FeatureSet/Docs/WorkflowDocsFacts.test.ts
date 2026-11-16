@@ -36,6 +36,7 @@ import {
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
 import { FormValidationMessage } from "Common/UI/Components/Forms/Utils/FormValidationMessages";
 import { describeUnresolvedIdReference } from "Common/Server/Types/Workflow/Components/BaseModel/UnresolvedIdReference";
+import { WEBHOOK_BODY_CONTENT_TYPES } from "Common/Server/Middleware/WebhookRequestBody";
 import WorkflowStatus, {
   getWorkflowStatusLabel,
 } from "Common/Types/Workflow/WorkflowStatus";
@@ -44,6 +45,8 @@ import {
   OAuth2TokenStatus,
 } from "Common/Types/Workflow/WorkflowVariableOAuth";
 import { TRUNCATED_TEXT_NOTE } from "Common/Utils/MessageFit";
+import ResponseTooLarge from "Common/Utils/ResponseTooLarge";
+import { API_COMPONENT_MAX_RESPONSE_BYTES } from "Common/Server/Types/Workflow/Components/API/Utils";
 import {
   describeRowsKeptByDelete,
   KEPT_STATUS_HISTORY_DAYS,
@@ -628,18 +631,55 @@ describe("the triggers page", () => {
 
   /*
    * Amazon SNS posts JSON labelled text/plain; the trigger reads it as JSON
-   * (PlainTextJsonBody, #7723), as the Request Body row says.
+   * (#7723), any other text as the text (#8430), and a +json body such as a
+   * CloudEvent as JSON (#8429) - WebhookRequestBody - as the Request Body
+   * row says.
    */
-  it("reads JSON sent as plain text, as the Request Body row says", () => {
+  it("reads JSON sent as plain text, other text, and +json bodies, as the Request Body row says", () => {
     for (const method of ["get", "post"]) {
       expect(WEBHOOK_TRIGGER).toContain(
         `props.router.${method}(\n      \`/trigger/:secretkey\`,\n      readTextBody,`,
       );
     }
 
-    expect(WEBHOOK_TRIGGER).toContain("PlainTextJsonBody.getReader(");
+    expect(WEBHOOK_TRIGGER).toContain("WebhookRequestBody.getReader(");
+    expect([...WEBHOOK_BODY_CONTENT_TYPES]).toEqual([
+      "text/plain",
+      "application/*+json",
+    ]);
     expect(section(TRIGGERS, "## Webhook")).toContain(
-      "can be read field by field, and so can JSON sent as plain text, as Amazon SNS sends it.",
+      "A JSON body, sent with `Content-Type: application/json` or a `+json` type such as Azure Event Grid's CloudEvents, can be read field by field, and so can JSON sent as plain text, as Amazon SNS sends it. Any other plain text is the text itself.",
+    );
+  });
+
+  /*
+   * #8429: the URL answers a service's check as the service expects
+   * (WebhookVerification), starting no run, and refuses it while the
+   * workflow is off or archived, as the page says.
+   */
+  it("answers a service's check, starts nothing for it, and refuses it while the workflow is off or archived", () => {
+    const answered: number = WEBHOOK_TRIGGER.indexOf(
+      "WebhookVerification.send(res, verification);",
+    );
+
+    expect(WEBHOOK_TRIGGER).toContain(
+      "props.router.options(\n      `/trigger/:secretkey`",
+    );
+    expect(answered).toBeGreaterThan(
+      WEBHOOK_TRIGGER.indexOf(
+        "throw new BadDataException(WORKFLOW_TURNED_OFF_MESSAGE);",
+      ),
+    );
+    expect(answered).toBeGreaterThan(
+      WEBHOOK_TRIGGER.indexOf(
+        "throw new BadDataException(WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE);",
+      ),
+    );
+    expect(answered).toBeLessThan(
+      WEBHOOK_TRIGGER.indexOf("await props.executeWorkflow(executeWorkflow);"),
+    );
+    expect(section(TRIGGERS, "## Webhook")).toContain(
+      "Azure Event Grid, Slack, Microsoft Graph and Okta check a URL before they deliver anything to it. The URL answers each check as its service expects, as an [Incoming Request monitor's URL does](/docs/monitor/incoming-request-monitor#services-that-check-the-url-first), and a check starts no run. While the workflow is turned off or archived, a check is refused like a call.",
     );
   });
 
@@ -844,6 +884,23 @@ describe("the components page", () => {
     expect(headers?.isSensitive).toBe(true);
     expect(tableRow(api, "**Request Headers**")[1]).toBe(
       "Headers to send, such as an API key. Under **More fields**. Their values are hidden in the run's log.",
+    );
+  });
+
+  // #8875: an API block reads a bounded answer, and the page says how much.
+  it("says how much of an answer an API block reads, and what a larger one does", () => {
+    const api: string = section(COMPONENTS, "## API");
+
+    expect(API_COMPONENT_MAX_RESPONSE_BYTES).toBe(10 * 1024 * 1024);
+    expect(api).toContain(
+      "A block reads at most 10 MB of an answer. A larger answer is not read: the block takes **Error**, with the reason.",
+    );
+    // The reason the block's Error holds names the same limit.
+    expect(ResponseTooLarge.getMessage(API_COMPONENT_MAX_RESPONSE_BYTES)).toBe(
+      "The answer was larger than 10 MB, so it was not read.",
+    );
+    expect(outputTitles(component(ComponentID.ApiGet)).includes("Error")).toBe(
+      true,
     );
   });
 

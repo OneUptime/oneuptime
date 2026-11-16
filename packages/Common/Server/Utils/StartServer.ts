@@ -11,10 +11,11 @@ import LocalCache from "../Infrastructure/LocalCache";
 import HttpMetricsMiddleware from "../Middleware/HttpMetricsMiddleware";
 import TraceContextPropagation from "./Telemetry/TraceContextPropagation";
 import GzipRequestBodyMiddleware from "../Middleware/GzipRequestBody";
-import CorsOptions, {
+import {
   CORS_EXPOSED_HEADERS,
   CORS_PREFLIGHT_MAX_AGE_SECONDS,
 } from "./CorsOptions";
+import CorsMiddleware from "./CorsMiddleware";
 import "./Environment";
 import { sendFrontendEnvironmentResponse } from "./FrontendEnvironment";
 import Express, {
@@ -69,7 +70,6 @@ import JSONFunctions from "../../Types/JSONFunctions";
 import Port from "../../Types/Port";
 import Typeof from "../../Types/Typeof";
 import CookieParser from "cookie-parser";
-import cors from "cors";
 import crypto from "crypto";
 import path from "path";
 import "ejs";
@@ -210,7 +210,7 @@ export const setDefaultHeaders: RequestHandler = (
   next();
 };
 
-app.use(cors(CorsOptions));
+app.use(CorsMiddleware);
 app.use(HttpMetricsMiddleware);
 app.use(setDefaultHeaders);
 

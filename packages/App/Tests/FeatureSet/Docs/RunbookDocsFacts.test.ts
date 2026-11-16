@@ -638,6 +638,23 @@ describe("what a step's output and network are held to", () => {
     );
   });
 
+  // #8875: the step reads a bounded answer, not one of any size.
+  it("say how much of an answer an HTTP request step reads", () => {
+    expect(STEP_EXECUTORS).toContain(
+      "export const HTTP_STEP_MAX_RESPONSE_BYTES: number = 10 * 1024 * 1024;",
+    );
+    expect(STEP_EXECUTORS).toContain(
+      "maxContentLength: HTTP_STEP_MAX_RESPONSE_BYTES,",
+    );
+    expect(STEP_EXECUTORS).toContain(
+      "errorMessage: ResponseTooLarge.getMessage(HTTP_STEP_MAX_RESPONSE_BYTES),",
+    );
+
+    expect(section(CONFIGURATION, "Output caps and timeouts")).toContain(
+      "| Answer per request | **10 MB**. A larger answer is not read, and fails the step. | HTTP request steps |",
+    );
+  });
+
   it("say what an HTTP request step counts as success, and that it follows no redirect", () => {
     expect(STEP_EXECUTORS).toContain("maxRedirects: 0,");
     expect(STEP_EXECUTORS).toContain(

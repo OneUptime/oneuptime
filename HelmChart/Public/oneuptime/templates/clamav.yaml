@@ -1,0 +1,113 @@
+{{- /*
+ClamAV in the cluster, for the malware scanning of the files people send
+OneUptime (clamav.enabled, off by default): a public form's files, and the
+files people upload while signed in or with an API key. The app scans with it
+over clamd's TCP port (CLAMAV_HOST, oneuptime.env.runtime). ClamAV downloads
+its signatures when it starts and keeps them up to date itself (freshclam);
+they live in memory, so the pod needs a few GiB. While it starts, and whenever
+it is down, uploads are refused: scanning fails closed.
+*/}}
+{{- if .Values.clamav.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-clamav
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-clamav
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: clamav
+    appname: oneuptime
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-clamav
+      app.kubernetes.io/component: clamav
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-clamav
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: clamav
+        appname: oneuptime
+    spec:
+      {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- with .Values.clamav.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.clamav.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.clamav.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.clamav.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: clamav
+        image: {{ include "oneuptime.imageReference" (dict "Values" .Values "Key" "clamav" "Default" (printf "%s:%s" .Values.clamav.image.repository (toString .Values.clamav.image.tag))) | quote }}
+        imagePullPolicy: {{ .Values.clamav.image.pullPolicy }}
+        {{- with .Values.clamav.containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        ports:
+        - name: clamd
+          containerPort: 3310
+          protocol: TCP
+        # Ready once clamd answers: it starts after the signatures load.
+        readinessProbe:
+          tcpSocket:
+            port: clamd
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 30
+        livenessProbe:
+          tcpSocket:
+            port: clamd
+          initialDelaySeconds: 300
+          periodSeconds: 30
+          failureThreshold: 5
+        {{- with .Values.clamav.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: signatures
+          mountPath: /var/lib/clamav
+      volumes:
+      - name: signatures
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-clamav
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-clamav
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: clamav
+    appname: oneuptime
+spec:
+  selector:
+    app: {{ .Release.Name }}-clamav
+    app.kubernetes.io/component: clamav
+  ports:
+  - name: clamd
+    port: 3310
+    targetPort: clamd
+    protocol: TCP
+{{- end }}

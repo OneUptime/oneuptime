@@ -4,6 +4,10 @@
  */
 import type ComponentSettingsModal from "./ComponentSettingsModal";
 import type { ComponentProps } from "./ComponentSettingsModal";
+import ChunkLoadRecovery, {
+  ChunkLoadRecoveryVariant,
+} from "Common/UI/Components/NewVersion/ChunkLoadRecovery";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import {
   LazyLibrary,
   LazyLibraryLoad,
@@ -19,8 +23,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * search. Statically imported, that was some 390 KB (before gzip) of what a
  * public dashboard's visitor downloaded before the board could draw
  * (packages/Common/Scripts/first-load-budgets.js). So it is a file of its
- * own, loaded the first time a widget's settings open, and there from the
- * first frame of every one opened after.
+ * own, asked for as the board turns to edit mode (loadComponentSettingsModal,
+ * Canvas/Index.tsx), and there from the first frame of every one opened
+ * after.
  */
 const componentSettingsModal: LazyLibrary<typeof ComponentSettingsModal> =
   new LazyLibrary<typeof ComponentSettingsModal>(
@@ -45,21 +50,38 @@ const LazyComponentSettingsModal: FunctionComponent<ComponentProps> = (
   if (load.error) {
     /*
      * Its file did not arrive - usually a new version deployed while the tab
-     * was open. Thrown, as a lazily loaded component's error is, so the part
-     * of the page it opens from says so and offers the new version
-     * (ContainedErrorBoundary, ChunkLoadRecovery).
+     * was open. The settings open all the same and say so in their place, as
+     * every part of a page whose code will not download does
+     * (ChunkLoadRecovery): the board and its unsaved changes stay behind the
+     * dialog, and the way onto the new version asks before it leaves them.
      */
-    throw load.error;
+    return (
+      <Modal
+        title={props.title}
+        isTitleTranslated={props.isTitleTranslated}
+        modalWidth={ModalWidth.Large}
+        onClose={props.onClose}
+        closeButtonText="Close"
+      >
+        <ChunkLoadRecovery
+          error={load.error}
+          variant={ChunkLoadRecoveryVariant.Part}
+        />
+      </Modal>
+    );
   }
 
   if (!load.library) {
-    // On its way: the moment its file takes, the first time only.
+    /*
+     * On its way: the moment its file takes, and only if the board did not
+     * ask for it as it turned to edit mode, or that is still on its way.
+     */
     return <></>;
   }
 
-  const Modal: typeof ComponentSettingsModal = load.library;
+  const SettingsModal: typeof ComponentSettingsModal = load.library;
 
-  return <Modal {...props} />;
+  return <SettingsModal {...props} />;
 };
 
 export default LazyComponentSettingsModal;

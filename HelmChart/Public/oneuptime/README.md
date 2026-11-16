@@ -22,7 +22,8 @@ on a status page. This Helm chart runs all of OneUptime on Kubernetes.
    ```
 
    An IPv6 address goes in brackets, and in quotes so YAML reads it as text:
-   `host: "[2001:db8::1]"`.
+   `host: "[2001:db8::1]"`. The chart refuses a host OneUptime cannot be
+   opened at, such as `oneuptime,example.com`, and says what to set.
 
    Keep `httpProtocol: http`, the chart's default, until people reach
    OneUptime over HTTPS, then set `httpProtocol: https`. The chart uses your

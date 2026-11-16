@@ -9,6 +9,7 @@ import {
   PROBE_INGEST_URL,
 } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
+import ServerBusy from "../../Utils/ServerBusy";
 import DiscoveryScanScheduler from "../../Utils/Discovery/DiscoveryScanScheduler";
 import { MAX_REVERSE_DNS_TOTAL_BUDGET_OVERRIDE_IN_MS } from "../../Utils/Discovery/ReverseDnsResolver";
 import { MAX_NETBIOS_MAX_HOSTS_OVERRIDE } from "../../Utils/Discovery/NetbiosNameResolver";
@@ -52,6 +53,9 @@ import BasicCron from "Common/Server/Utils/BasicCron";
 import { DiscoveredHostNetbiosStatus } from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
 import { withoutTrailingRun } from "Common/Utils/TrailingRuns";
 import { isWhiteSpaceCode } from "Common/Utils/RegExpCharacterClasses";
+
+// The work the scan list hands out, as a busy answer names it (ServerBusy).
+const DISCOVERY_SCANS_WORK: string = "discovery scans";
 
 /*
  * Assembles the SnmpV3Auth the scanner needs from one credential set's
@@ -1862,6 +1866,11 @@ export async function fetchAndRunScans(): Promise<void> {
 async function fetchScans(
   excludeScanIds: Array<string>,
 ): Promise<Array<NetworkDeviceDiscoveryScan>> {
+  // The server asked this probe to wait (ServerBusy): it asks later.
+  if (ServerBusy.isBackingOff(DISCOVERY_SCANS_WORK)) {
+    return [];
+  }
+
   const listUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
     "/probe/discovery-scan/list",
   );
@@ -1877,6 +1886,17 @@ async function fetchScans(
       headers: {},
       options: ProbeAPIRequest.getDefaultRequestOptions(listUrl),
     });
+
+  /*
+   * Too busy to hand out scans now (issue #8051): nothing was claimed, the
+   * scans stay Pending, and this probe asks again once the server's
+   * Retry-After has passed. Not a rejection: the sentence below would say
+   * no scan can leave Pending, every minute the server sheds load.
+   */
+  if (ServerBusy.isBusyAnswer(result)) {
+    ServerBusy.note(DISCOVERY_SCANS_WORK, result);
+    return [];
+  }
 
   /*
    * API.fetch RETURNS an HTTPErrorResponse for a 4xx/5xx (it only throws when

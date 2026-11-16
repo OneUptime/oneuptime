@@ -66,7 +66,7 @@ Global Runners are the Runners OneUptime runs for every project. A JavaScript st
 
 A global Runner runs the steps of many projects, so each step is kept apart from every other:
 
-- Each step runs in an `isolated-vm` sandbox of its own, made for that step and thrown away after it: no files, no processes, no environment variables, and nothing kept from one step to the next.
+- Each step runs in an `isolated-vm` sandbox of its own, made for that step and thrown away after it: no files, no processes, no environment variables, and nothing kept from one step to the next. The sandbox itself runs in a process started for that one step, as a user of its own: the process holds none of the Runner's key, settings or files, and it ends with the step.
 - Its HTTP requests reach public internet addresses only, never a private, loopback or link-local address or a cloud metadata endpoint, so a global Runner never reaches your network.
 - It gets a secret variable only when the variable's **Global Runners can use it** switch is on, and only for a step of the variable's own project.
 - A project runs at most three steps on global Runners at once, so no project keeps them to itself.
@@ -75,13 +75,15 @@ A global Runner also takes OneUptime AI's code fixes, in every code repository t
 
 A global Runner older than 14.0.94, or one started with `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, takes no code fixes, and OneUptime does not count it for them. A repository on **Global Runner** then says that no global Runner online takes AI code fixes, and the Admin Dashboard's **Global Runners** page says why under that Runner's status.
 
+A master admin can keep a global Runner off code fixes altogether: its **Runs AI Code Fixes** switch, under **More fields** on the Admin Dashboard's **Global Runners** page, is on by default. Off, OneUptime grants that Runner no code fix and hands it no repository's token, so it runs JavaScript steps only. On OneUptime Cloud, global Runners work in GitHub repositories only: a GitLab, Forgejo, Gitea or Git repository is reached with its connection's own token, so its code fixes run on one of your own Runners.
+
 Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then runs on the project's default Runner or, with none set, fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way. A code repository that picks no Runner in its settings in Code works on the project's default Runner too or, with none set, on a global Runner, and needs one of yours while the switch is off; see [Code](/docs/ai/ai-agent#pick-the-repositorys-runner).
 
 ### Where global Runners come from
 
 On OneUptime Cloud, OneUptime runs them. A self-hosted install runs one of its own by default, as it runs its own global probes: the `global-runner` service in Docker Compose, and the `globalRunner` deployment in the Helm chart. It holds its own key, `GLOBAL_RUNNER_KEY`, and nothing else of the server's.
 
-A master admin can add more, to run steps and code fixes from other hosts: in the Admin Dashboard, open **Settings**, then **Global Runners**, create one, and run the command its **Show ID and Key** gives on a host that can reach the internet.
+A master admin can add more, to run steps and code fixes from other hosts: in the Admin Dashboard, open **Settings**, then **Global Runners**, create one, and run the command its **Show ID and Key** gives on a host that can reach the internet. Keep that container's defaults: one started with `no-new-privileges`, or without the `SETUID` and `SETGID` capabilities, cannot run each step as a user of its own, so its steps run as the Runner's own user, each still in a process of its own, and its log says so.
 
 To turn the bundled one off, set `GLOBAL_RUNNER_REPLICAS=0` in Docker Compose's `config.env`, or `globalRunner.enabled` to `false` in the Helm chart. With no global Runner at all, **Runbooks → Runners** lists your own Runners only, and every JavaScript step and every code repository picks one of them.
 

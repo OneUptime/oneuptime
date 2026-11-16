@@ -27,6 +27,7 @@ import type {
   OnCallStackParamList,
 } from "../navigation/types";
 import { buildInboxDetailNavigation } from "../navigation/inboxNavigation";
+import { isMergedPage } from "../oncall/mergedPage";
 
 type MyPagesNavProp = NativeStackNavigationProp<
   OnCallStackParamList,
@@ -41,10 +42,13 @@ type PageFilter = "all" | "unacknowledged";
  * A page that waits on the reader: a responder's they have not acknowledged.
  * An observer's page (oncall/observerPage.ts) only keeps them informed -
  * nothing is required of them - so it is in the full list, saying whether
- * they have seen it, and never among the pages that need a response.
+ * they have seen it, and never among the pages that need a response. Nor is
+ * a page merged into another of theirs about the same record
+ * (oncall/mergedPage.ts): the page it stands on is the one that waits, and
+ * answering it answers both - counted twice, one page read as two (#8858).
  */
 function needsResponse(page: OnCallPageItem): boolean {
-  return !page.acknowledgedAt && !page.isObserverPage;
+  return !page.acknowledgedAt && !page.isObserverPage && !isMergedPage(page);
 }
 
 /*
@@ -77,10 +81,14 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     return pages.filter(needsResponse).length;
   }, [pages]);
 
-  // An observer's page is never "acknowledged": the summary says so.
-  const hasObserverPages: boolean = useMemo(() => {
+  /*
+   * An observer's page is never "acknowledged", and a merged page waits on
+   * another: the summary says nothing needs a response, not that all is
+   * acknowledged.
+   */
+  const hasPagesAskingNoAnswer: boolean = useMemo(() => {
     return pages.some((page: OnCallPageItem) => {
-      return Boolean(page.isObserverPage);
+      return Boolean(page.isObserverPage) || isMergedPage(page);
     });
   }, [pages]);
 
@@ -246,7 +254,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
         icon={unacknowledgedCount > 0 ? "alert-circle" : "checkmark-circle"}
         title={
           unacknowledgedCount === 0
-            ? hasObserverPages
+            ? hasPagesAskingNoAnswer
               ? "No pages need a response"
               : "All listed pages acknowledged"
             : `${unacknowledgedCount} ${unacknowledgedCount === 1 ? "page needs" : "pages need"} a response`

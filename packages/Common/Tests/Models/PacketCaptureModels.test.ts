@@ -122,6 +122,13 @@ describe("what a start writes, held to who may start", () => {
     };
   }
 
+  /*
+   * What onBeforeCreate writes of its own: the check of the record as
+   * written takes it as the create's (columnsSetByServer, which
+   * DatabaseService hands over).
+   */
+  const WRITTEN_AT_THE_START: Array<string> = ["name", "status"];
+
   // A capture as onBeforeCreate leaves it, before createdByUserId is stamped.
   function startedRecord(): PacketCapture {
     const capture: PacketCapture = new PacketCapture();
@@ -159,7 +166,7 @@ describe("what a start writes, held to who may start", () => {
     },
   );
 
-  test("what the server decides at the start - the name, the status - is computed, so no starter is asked for it", () => {
+  test("what the server decides at the start - the name, the status - is computed, so no starter is asked for what it wrote", () => {
     for (const column of ["name", "status"]) {
       expect([
         column,
@@ -196,8 +203,61 @@ describe("what a start writes, held to who may start", () => {
           startedRecord(),
           starter(permission),
           DatabaseRequestType.Create,
+          WRITTEN_AT_THE_START,
         );
       }).not.toThrow();
+    },
+  );
+
+  /*
+   * A status the start itself sends never reaches the capture (#6541): it
+   * is dropped for a starter who may read it - a capture read and sent back
+   * whole carries it - and refused to one who may not. A name it sends is
+   * replaced, as the model says, so it is dropped for every starter
+   * (ComputedColumnsReplacedOnCreate).
+   */
+  test.each([...PACKET_CAPTURE_START_PERMISSIONS])(
+    "a start that sends its own status or name never keeps it, for a starter holding %s",
+    (permission: Permission) => {
+      const sent: PacketCapture = new PacketCapture();
+      sent.interfaceName = "ens18";
+      sent.status = PacketCaptureStatus.Completed;
+
+      const readsTheStatus: boolean = (
+        model().getColumnAccessControlFor("status")!.read || []
+      ).includes(permission);
+
+      if (readsTheStatus) {
+        expect(
+          ColumnPermissions.checkComputedColumnsSentOnCreate(
+            PacketCapture,
+            sent,
+            starter(permission),
+          ),
+        ).toEqual([]);
+        expect(sent.status).toBeUndefined();
+      } else {
+        expect(() => {
+          ColumnPermissions.checkComputedColumnsSentOnCreate(
+            PacketCapture,
+            sent,
+            starter(permission),
+          );
+        }).toThrow(/status/);
+      }
+
+      const named: PacketCapture = new PacketCapture();
+      named.interfaceName = "ens18";
+      named.name = "a name the starter chose";
+
+      expect(
+        ColumnPermissions.checkComputedColumnsSentOnCreate(
+          PacketCapture,
+          named,
+          starter(permission),
+        ),
+      ).toEqual([]);
+      expect(named.name).toBeUndefined();
     },
   );
 
@@ -215,6 +275,7 @@ describe("what a start writes, held to who may start", () => {
           record,
           starter(permission),
           DatabaseRequestType.Create,
+          WRITTEN_AT_THE_START,
         );
       } catch (error) {
         refusal = error;

@@ -21,6 +21,7 @@ import IncidentStatusPageScope, {
   ResolvedIncidentStatusPages,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import OnCallRulePagingHoldUtil from "../Utils/OnCall/OnCallRulePagingHold";
 import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
 import AlertOnCallRuleService from "./AlertOnCallRuleService";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
@@ -86,6 +87,7 @@ import {
   WhoIsToldChannels,
   WhoIsToldCriteria,
   WhoIsToldEvent,
+  WhoIsToldOwnerRecipient,
   WhoIsToldOwners,
   WhoIsToldOwnersSource,
   WhoIsToldPerson,
@@ -189,7 +191,15 @@ interface ProjectContext {
    */
   projectMembers: Map<string, boolean>;
   teamsWithMembers: Map<string, boolean>;
+  /*
+   * The members of each owner team the Created email reaches through it, by
+   * team id, read with the above: the person by person of an event's owners
+   * (WhoIsToldOwners.recipients, #8860).
+   */
+  teamMemberIds: Map<string, Array<string>>;
   projectOwnerNames: Array<string> | null;
+  // The project's owners, by id and name, read with their names.
+  projectOwners: Array<{ id: string; name: string }> | null;
   channelsOff: Array<OnCallPageChannel>;
   isFallbackEnabled: boolean;
   firstLevels: Map<string, FirstLevel>;
@@ -920,7 +930,9 @@ export class WhoIsToldService {
       teamNames: new Map<string, string>(),
       projectMembers: new Map<string, boolean>(),
       teamsWithMembers: new Map<string, boolean>(),
+      teamMemberIds: new Map<string, Array<string>>(),
       projectOwnerNames: null,
+      projectOwners: null,
       channelsOff: getChannelsSwitchedOff(channels),
       isFallbackEnabled: !project?.disableOnCallNotificationFallback,
       firstLevels: new Map<string, FirstLevel>(),
@@ -1353,17 +1365,30 @@ export class WhoIsToldService {
 
     const policies: Array<WhoIsToldPolicy> = [];
 
+    const now: Date = OneUptimeDate.getCurrentDate();
+
     for (const policyId of order) {
-      policies.push(
-        await this.resolvePolicy({
-          context: data.context,
-          policyId: policyId,
-          kind: data.kind,
-          severityId: data.severityId,
-          isNamedByCriteria: namedIds.includes(policyId),
-          ruleIds: ruleIdsByPolicy.get(policyId) || [],
+      const policy: WhoIsToldPolicy = await this.resolvePolicy({
+        context: data.context,
+        policyId: policyId,
+        kind: data.kind,
+        severityId: data.severityId,
+        isNamedByCriteria: namedIds.includes(policyId),
+        ruleIds: ruleIdsByPolicy.get(policyId) || [],
+      });
+
+      policies.push({
+        ...policy,
+        pagesAtOnce: this.isPolicyPagedAtOnce({
+          isNamedByCriteria: policy.isNamedByCriteria,
+          rules: data.rules.filter(
+            (rule: IncidentOnCallRule | AlertOnCallRule): boolean => {
+              return policy.ruleIds.includes(idText(rule.id));
+            },
+          ),
+          now: now,
         }),
-      );
+      });
     }
 
     /*
@@ -1392,6 +1417,32 @@ export class WhoIsToldService {
       policies: policies,
       statusPages: data.statusPages,
     };
+  }
+
+  /*
+   * WHETHER A POLICY'S RUN PAGES ITS FIRST LEVEL AS WHAT OPENS IS CREATED
+   * (#8860), as the rule engines hold runs (OnCallRulePagingHold): a policy
+   * the criteria names pages right away, as one a record had before its
+   * rules ran always has; one the rules add pages right away when any rule
+   * that adds it does now - right away wins. A rule held for working hours
+   * outside them holds it, and so does one set to After OneUptime AI: whether
+   * AI may respond first to a record is only known once it exists, and a
+   * page it held has sent nothing by the time the owners are emailed.
+   */
+  private static isPolicyPagedAtOnce(data: {
+    isNamedByCriteria: boolean;
+    rules: Array<IncidentOnCallRule | AlertOnCallRule>;
+    now: Date;
+  }): boolean {
+    if (data.isNamedByCriteria) {
+      return true;
+    }
+
+    return data.rules.some(
+      (rule: IncidentOnCallRule | AlertOnCallRule): boolean => {
+        return OnCallRulePagingHoldUtil.isPagingNow(rule, data.now);
+      },
+    );
   }
 
   /*
@@ -1602,9 +1653,53 @@ export class WhoIsToldService {
       delete person.problem;
     }
 
+    /*
+     * What goes out as their page starts (#8860): the fallback sends what it
+     * picks at once; a rule sends at once when it notifies after no minutes.
+     */
+    person.channelsAtOnce = !person.isReachable
+      ? []
+      : person.isFallback
+        ? [...person.channels]
+        : this.getChannelsAtOnce({
+            methods: preview.methods,
+            channelsOff: data.context.channelsOff,
+          });
+
     data.context.people.set(key, person);
 
     return person;
+  }
+
+  /*
+   * The channels of a person's rules for a severity that notify as their
+   * page starts (#8860): after no minutes, on a verified method, by a
+   * channel the project has on - each once, in the order the rules send.
+   */
+  public static getChannelsAtOnce(data: {
+    methods: ReadonlyArray<{
+      channel: OnCallPageChannel;
+      isVerified: boolean;
+      notifyAfterMinutes: number;
+      isFallback?: boolean | undefined;
+    }>;
+    channelsOff: ReadonlyArray<OnCallPageChannel>;
+  }): Array<OnCallPageChannel> {
+    const channels: Array<OnCallPageChannel> = [];
+
+    for (const method of data.methods) {
+      if (
+        method.isVerified &&
+        !method.isFallback &&
+        Number(method.notifyAfterMinutes || 0) <= 0 &&
+        !data.channelsOff.includes(method.channel) &&
+        !channels.includes(method.channel)
+      ) {
+        channels.push(method.channel);
+      }
+    }
+
+    return channels;
   }
 
   /*
@@ -1718,18 +1813,26 @@ export class WhoIsToldService {
       });
 
     if (userIds.length > 0 || teamIds.length > 0) {
+      const userNames: Array<string> = await this.readUserNames({
+        context: data.context,
+        userIds: userIds,
+      });
+      const teamNames: Array<string> = await this.readTeamNames({
+        context: data.context,
+        teamIds: teamIds,
+      });
+
       return {
         owners: {
           source:
             reachedNamedUserIds.length > 0 || reachedNamedTeamIds.length > 0
               ? WhoIsToldOwnersSource.Named
               : WhoIsToldOwnersSource.OwnerRules,
-          userNames: await this.readUserNames({
+          userNames: userNames,
+          teamNames: teamNames,
+          recipients: await this.getOwnerRecipients({
             context: data.context,
             userIds: userIds,
-          }),
-          teamNames: await this.readTeamNames({
-            context: data.context,
             teamIds: teamIds,
           }),
         },
@@ -1737,20 +1840,112 @@ export class WhoIsToldService {
       };
     }
 
-    if (data.context.projectOwnerNames === null) {
-      data.context.projectOwnerNames = this.namesOf(
-        await ProjectService.getOwners(data.context.projectId),
-      );
-    }
+    const projectOwners: Array<{ id: string; name: string }> =
+      await this.readProjectOwners(data.context);
 
     return {
       owners: {
         source: WhoIsToldOwnersSource.ProjectOwners,
-        userNames: data.context.projectOwnerNames,
+        userNames: data.context.projectOwnerNames || [],
         teamNames: [],
+        // The Project Owners stand in for owners: each is named (#8860).
+        recipients: projectOwners.map(
+          (owner: { id: string; name: string }): WhoIsToldOwnerRecipient => {
+            return {
+              userId: owner.id,
+              name: owner.name,
+              isNamed: true,
+              teamNames: [],
+            };
+          },
+        ),
       },
       ownerRules: ownerRules,
     };
+  }
+
+  /*
+   * Everyone an event's Created email is addressed to, person by person
+   * (#8860): the owners it names and the members of its owner teams it
+   * reaches through them (readOwnersReached), each once, by id - with the
+   * teams that reach each. Their names are read once with the owners'.
+   */
+  private static async getOwnerRecipients(data: {
+    context: ResolveContext;
+    userIds: Array<string>;
+    teamIds: Array<string>;
+  }): Promise<Array<WhoIsToldOwnerRecipient>> {
+    const membersOf: (teamId: string) => Array<string> = (
+      teamId: string,
+    ): Array<string> => {
+      return data.context.teamMemberIds.get(teamId.toLowerCase()) || [];
+    };
+
+    const recipientIds: Array<string> = uniqueIds([
+      ...data.userIds,
+      ...data.teamIds.flatMap(membersOf),
+    ]);
+
+    await this.readUserNames({
+      context: data.context,
+      userIds: recipientIds,
+    });
+
+    const named: Set<string> = new Set<string>(
+      data.userIds.map((id: string): string => {
+        return id.toLowerCase();
+      }),
+    );
+
+    return recipientIds.map((userId: string): WhoIsToldOwnerRecipient => {
+      const key: string = userId.toLowerCase();
+
+      return {
+        userId: userId,
+        name: data.context.userNames.get(key) || "",
+        isNamed: named.has(key),
+        teamNames: data.teamIds
+          .filter((teamId: string): boolean => {
+            return membersOf(teamId).some((memberId: string): boolean => {
+              return memberId.toLowerCase() === key;
+            });
+          })
+          .map((teamId: string): string => {
+            return data.context.teamNames.get(teamId.toLowerCase()) || "";
+          })
+          .filter((name: string): boolean => {
+            return Boolean(name);
+          }),
+      };
+    });
+  }
+
+  /*
+   * The project's owners, by id and name, read once - with their names, as
+   * a status change and an event with no owners name them.
+   */
+  private static async readProjectOwners(
+    context: ResolveContext,
+  ): Promise<Array<{ id: string; name: string }>> {
+    if (context.projectOwners === null) {
+      const owners: Array<User> = await ProjectService.getOwners(
+        context.projectId,
+      );
+
+      context.projectOwnerNames = this.namesOf(owners);
+      context.projectOwners = owners
+        .filter((owner: User): boolean => {
+          return Boolean(idText(owner.id));
+        })
+        .map((owner: User): { id: string; name: string } => {
+          return {
+            id: idText(owner.id),
+            name: owner.name?.toString() || owner.email?.toString() || "",
+          };
+        });
+    }
+
+    return context.projectOwners;
   }
 
   /*
@@ -1836,16 +2031,18 @@ export class WhoIsToldService {
     }
 
     for (const id of teamIds) {
+      const reachedMembers: Array<string> = uniqueIds(
+        membersByTeam.get(id.toLowerCase()) || [],
+      ).filter((userId: string): boolean => {
+        return data.context.projectMembers.get(userId.toLowerCase()) === true;
+      });
+
       data.context.teamsWithMembers.set(
         id.toLowerCase(),
-        (membersByTeam.get(id.toLowerCase()) || []).some(
-          (userId: string): boolean => {
-            return (
-              data.context.projectMembers.get(userId.toLowerCase()) === true
-            );
-          },
-        ),
+        reachedMembers.length > 0,
       );
+      // Who the email reaches through the team, person by person (#8860).
+      data.context.teamMemberIds.set(id.toLowerCase(), reachedMembers);
     }
   }
 
@@ -1888,15 +2085,11 @@ export class WhoIsToldService {
       };
     }
 
-    if (context.projectOwnerNames === null) {
-      context.projectOwnerNames = this.namesOf(
-        await ProjectService.getOwners(context.projectId),
-      );
-    }
+    await this.readProjectOwners(context);
 
     return {
       source: WhoIsToldOwnersSource.ProjectOwners,
-      userNames: context.projectOwnerNames,
+      userNames: context.projectOwnerNames || [],
       teamNames: [],
     };
   }

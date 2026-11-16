@@ -94,6 +94,7 @@ Services, hosts, Kubernetes-clusters, Docker- en Podman-hosts, Docker Swarm-, Pr
 | Monitorlogboeken, één rij per controle | 1 dag, tenzij gewijzigd | Op een zelfgehoste installatie, **Logbewaring van monitor (dagen)** in het Admin Dashboard |
 | Monitormetrieken, en de metrieken die SLO's vastleggen | 30 dagen, tenzij gewijzigd | Op een zelfgehoste installatie, **Metriekbewaring van monitor (dagen)** in het Admin Dashboard |
 | [Telemetriegebruik](/docs/telemetry/usage), één telling per resource, signaal en dag | 120 dagen, tenzij gewijzigd | Op een zelfgehoste installatie, **Bewaring van telemetriegebruik (dagen)** in het Admin Dashboard |
+| Opgeloste incidenten en waarschuwingen, met hun tijdlijnen, notities en bestanden | Tot het project een periode kiest | **Incidenten → Instellingen → Gegevensbewaring** en **Waarschuwingen → Instellingen → Gegevensbewaring**: zie [Gegevensbewaring](/docs/incidents/settings#gegevensbewaring). Op een zelfgehoste installatie houdt **Maximaal bewaren** in het Admin Dashboard alle projecten aan een limiet |
 
 ## Wat bewaring kost
 

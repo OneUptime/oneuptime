@@ -414,6 +414,8 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     // The Require SSO card at the bottom of Single Sign-On, and its address.
     "Require SSO",
     "Master admin sign-in",
+    // Its button for people still signed in without SSO (#6116).
+    "Sign them out",
     // The providers' tables: their Add buttons, and a row's Test Sign-in.
     "Add SAML Provider",
     "Add OIDC Provider",
@@ -1096,6 +1098,7 @@ describe("the lists this test keeps", () => {
       "Require SSO for Login",
       "Require SSO",
       "Master admin sign-in",
+      "Sign them out",
       "Add SAML Provider",
       "Add OIDC Provider",
       "Test Sign-in",

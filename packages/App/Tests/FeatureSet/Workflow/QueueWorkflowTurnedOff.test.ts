@@ -629,8 +629,9 @@ describe("a webhook call to a workflow that is off", () => {
 
   /*
    * The route's own handler: the last one it registers, after the
-   * middleware that reads a text/plain body (PlainTextJsonBody, #7723),
-   * which the calls here - JSON, already parsed - pass straight through.
+   * middleware that reads a text/plain or +json body (WebhookRequestBody,
+   * #7723), which the calls here - JSON, already parsed - pass straight
+   * through.
    */
   const fakeRouter: FakeRouterFunction = (): ExpressRouter => {
     return {
@@ -639,6 +640,9 @@ describe("a webhook call to a workflow that is off", () => {
       },
       post: (uri: string, ...handlers: Array<Handler>): void => {
         routes[`POST ${uri}`] = handlers[handlers.length - 1] as Handler;
+      },
+      options: (uri: string, ...handlers: Array<Handler>): void => {
+        routes[`OPTIONS ${uri}`] = handlers[handlers.length - 1] as Handler;
       },
     } as unknown as ExpressRouter;
   };

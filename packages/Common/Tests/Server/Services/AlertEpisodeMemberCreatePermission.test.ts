@@ -25,6 +25,7 @@ import {
   test,
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { columnsTheCreateWrote } from "../TestingUtils/ColumnsSetByServer";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -131,6 +132,8 @@ describe("AlertEpisodeMember first-member create permissions", () => {
         AlertEpisodeMember,
         result.createBy.data,
         result.createBy.props,
+        // What the service stamped is the create's own: its hooks wrote it.
+        columnsTheCreateWrote(result.createBy.data),
       );
     }).not.toThrow();
   });

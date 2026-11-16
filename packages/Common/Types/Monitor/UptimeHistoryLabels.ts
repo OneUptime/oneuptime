@@ -22,10 +22,25 @@ export default interface UptimeHistoryLabels {
   dayLabelNoData: string;
   /* No timeline rows, but incidents. {{date}}, {{total}}. */
   dayLabelNoDataWithIncidents: string;
+  /*
+   * A day nothing checked the monitor because its monitoring was off
+   * (UptimeDayBucket.monitoringOffSeconds with no coverage, issue #7112):
+   * not a day with no data. {{date}}.
+   */
+  dayLabelMonitoringOff: string;
+  /* The same, with incidents. {{date}}, {{total}}. */
+  dayLabelMonitoringOffWithIncidents: string;
 
   /* Dialog + tooltip body. */
   uptime: string;
   noMonitoringData: string;
+  /* In place of noMonitoringData on a day monitoring was off. */
+  monitoringOffOnThisDay: string;
+  /*
+   * Under a day's uptime when monitoring was off for part of it: the uptime
+   * is of the rest. {{duration}}, written in the reader's language.
+   */
+  monitoringOffFor: string;
   incidents: string;
   noIncidents: string;
   noIncidentsDescription: string;
@@ -62,8 +77,13 @@ export const DefaultUptimeHistoryLabels: UptimeHistoryLabels = {
   dayLabelWithIncidents: "{{date}}: {{uptime}}% uptime, {{total}} incidents",
   dayLabelNoData: "{{date}}: no data",
   dayLabelNoDataWithIncidents: "{{date}}: no data, {{total}} incidents",
+  dayLabelMonitoringOff: "{{date}}: monitoring off",
+  dayLabelMonitoringOffWithIncidents:
+    "{{date}}: monitoring off, {{total}} incidents",
   uptime: "Uptime",
   noMonitoringData: "No monitoring data for this day",
+  monitoringOffOnThisDay: "Monitoring was off on this day",
+  monitoringOffFor: "Monitoring was off for {{duration}}",
   incidents: "Incidents",
   noIncidents: "No incidents",
   noIncidentsDescription: "No incidents were reported on this day.",

@@ -401,7 +401,7 @@ En undersøkelse som mislykkes, utløper eller blir foreldet, frigir likevel utb
 
 Mens utbedringen venter, sier trinnet **Utbedring** det (**Venter**), og viser hva som skjedde når undersøkelsen er avsluttet.
 
-Automatisk utbedring avhenger av to brytere. **Rett nye hendelser automatisk** (eller varsler), av til prosjektet slår den på: når den er av, rettes ingen ny hendelse (eller nytt varsel). Og **Aktiver AI** (**Prosjektinnstillinger → KI → AI-funksjoner**), prosjektets hovedbryter for KI: når den er av, kjører ingen AI-regel (heller ikke en som starter en runbook uten KI), og ingen klynge eller ressurs blir rettet.
+Automatisk utbedring avhenger av to brytere. **Rett nye hendelser automatisk** (eller varsler), av til prosjektet slår den på: når den er av, rettes ingen ny hendelse (eller nytt varsel). Og **Aktiver AI** (**Prosjektinnstillinger → KI → AI-funksjoner**), prosjektets hovedbryter for KI: når den er av, kjører ingen AI-regel (heller ikke en som starter en runbook uten KI), og ingen klynge eller ressurs blir rettet. En Runner eller en AI-agent som allerede har en kommando når **Aktiver AI** slås av, får beskjed om å stoppe ved neste heartbeat: En kommando som ennå ikke har startet, starter ikke.
 
 ## Hva den automatiske utbedringen gjorde
 

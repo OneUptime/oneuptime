@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Set them in `config.env`, then run `npm start`. `DISABLE_TELEMETRY_FOR_APP` is `true` by default, and then nothing is sent.
 :::
 
-OneUptime needs both the endpoint and the headers: it sends nothing without a header. Write each header as `name=value`, and separate several with `;`, or with `,` as in `OTEL_EXPORTER_OTLP_HEADERS`. A value may hold `=`. Without a `;`, a value is read as that standard writes it, a space as `%20`: end the setting with `;` to send it exactly as written. OneUptime adds `/v1/metrics` to the endpoint itself, and the same settings send its own traces and logs too. Each metric appears once OneUptime first records it: `notification.send.count` with the first message sent.
+OneUptime needs both the endpoint and the headers: it sends nothing without a header. Write each header as `name=value`, and separate several with `;`, or with `,` as in `OTEL_EXPORTER_OTLP_HEADERS`. A value may hold `=`. Without a `;`, a value is read as that standard writes it, a space as `%20`: end the setting with `;` to send it exactly as written. Headers set in `OTEL_EXPORTER_OTLP_HEADERS` itself, or in `OTEL_EXPORTER_OTLP_METRICS_HEADERS` for metrics alone, count too: the exporter sends them as well, and OneUptime's own win by name. OneUptime adds `/v1/metrics` to the endpoint itself, and the same settings send its own traces and logs too. Each metric appears once OneUptime first records it: `notification.send.count` with the first message sent.
 
 ### Send deltas to a OneUptime project
 
@@ -57,19 +57,15 @@ OneUptime sends counters and histograms the way OpenTelemetry does by default: e
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-A service's own list replaces the chart-wide one: if you set `app.extraEnv` or `worker.extraEnv`, add it there too.
+The chart hands it, as `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE`, to every service that sends OneUptime's own telemetry.
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-Create it next to `docker-compose.yml`, or add this to the one you have, then run `npm start`.
+Set it in `config.env`, then run `npm start`.
 :::
 
 This applies to every metric OneUptime sends about itself. A backend that reads running totals itself, such as Prometheus, needs no change.
@@ -210,7 +206,7 @@ At most 1% of the on-call SMS sent through the installation's own Twilio account
 | `a` | `notification.send.count` | **Sum** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Sum** | The same, with `outcome = failure` |
 
-The formula `$b / $a * 100` is the share that failed, and the objective holds while it stays at or below 1. A step with no failure draws no point, as `b` has none. `outcome != not_sent` leaves out what the projects' own settings held back, and `global` the projects' own Twilio accounts. On an installation that sends SMS through its SMS and call gateway, the same queries measure the gateway. For another channel, change `sms`: `call`, `push` or `email`.
+The formula `$b / $a * 100` is the share that failed, and the objective holds while it stays at or below 1. A step with no failure draws 0, as `b` counted nothing in it. `outcome != not_sent` leaves out what the projects' own settings held back, and `global` the projects' own Twilio accounts. On an installation that sends SMS through its SMS and call gateway, the same queries measure the gateway. For another channel, change `sms`: `call`, `push` or `email`.
 
 ### Pages go out within 30 seconds
 

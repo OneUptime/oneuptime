@@ -86,9 +86,10 @@ Whoever is paged again acknowledges it from its message, or with **Acknowledge a
 An incident, alert or episode runs each of its policies on its own, at the same time.
 
 - Someone on call in two of them is paged once. When a policy's level reaches someone another policy is already paging about it, it does not page them again: its execution log shows them as **Already Paged**, and the incident's feed and the policy's Slack and Microsoft Teams message name the policy that is paging them. The level still waits its minutes before the next level, as it does for anybody it paged. Answering that one page answers it for both policies. Within one policy, someone a level names twice, in person and through a team or a schedule, is paged once.
+- A page sent to people directly counts too. When a policy's level reaches someone a page from Slack or Microsoft Teams, or a workflow's paging block, is paging about it already, it does not page them again: its execution log names who sent that page, or the workflow. A workflow's paging block does not page again someone a policy or another page is paging already, either.
 - Acknowledging the incident or alert stops every policy running for it within a minute, wherever it is acknowledged: from any page about it, on its own page, in the mobile app, or in Slack or Microsoft Teams. No next level is paged, and no call or text still waiting to go out is sent. Notifications already sent stay sent.
 
-Nobody misses a page for being paged once. Their page can end without their answer: they escalate it from one of its messages, which escalates that policy only, it cannot be sent, or its policy stops. Then the other policy pages them itself within a minute, without sending again what reached them. **Escalate** on the incident's page or in the mobile app escalates both. A page again, a policy started by hand and a page someone sent from Slack or Microsoft Teams always page their people themselves, even someone another policy is paging. An observer's page and a responder's page are never merged.
+Nobody misses a page for being paged once. Their page can end without their answer: they escalate it from one of its messages, which escalates that page only, it cannot be sent, or it stops. Then the other policy, or the workflow's block, pages them itself within a minute, without sending again what reached them. **Escalate** on the incident's page or in the mobile app escalates both. A page again, a policy started by hand and a page someone sent from Slack or Microsoft Teams always page their people themselves, even someone another policy is paging. An observer's page and a responder's page are never merged.
 
 Some pages go on after it is acknowledged, until somebody they paged answers or it is resolved: a page again, a page to observers, a page someone sent to people from Slack or Microsoft Teams, and a policy started by hand.
 
@@ -125,7 +126,7 @@ You find execution logs in three places:
 - **On-Call → Advanced → Execution Logs**, for every policy, with direct pages from workflows and chat listed as **Direct page**;
 - the **On-Call Executions** page of an incident or an alert.
 
-Each row shows what triggered the run, when, its **Status** and who acknowledged it. **View Timeline** opens its **Execution Timeline**: each escalation rule, who it paged, through which schedule, and how each page ended. **Notified Via** shows how each page reached its person: phone call, SMS, email, push notification and so on. A schedule with nobody on call shows **No one was on call** instead of a person. A level that paged nobody says why, with **Moved on at once** under it: the policy did not wait for it. Someone another policy was paging already shows **Already Paged**: see [When several policies page](#when-several-policies-page). On OneUptime Cloud, execution logs need the **Growth** plan.
+Each row shows what triggered the run, when, its **Status** and who acknowledged it. **View Timeline** opens its **Execution Timeline**: each escalation rule, who it paged, through which schedule, and how each page ended. **Notified Via** shows how each page reached its person: phone call, SMS, email, push notification and so on. A schedule with nobody on call shows **No one was on call** instead of a person. A level that paged nobody says why, with **Moved on at once** under it: the policy did not wait for it. Someone another policy, or a page sent to them directly, was paging already shows **Already Paged**: see [When several policies page](#when-several-policies-page). On OneUptime Cloud, execution logs need the **Growth** plan.
 
 ## Archive or delete a policy
 
@@ -178,7 +179,7 @@ The policy is archived: an archived policy stays on the incidents and alerts tha
 :::
 
 :::details Someone was paged twice about one incident
-Someone on call in two of the policies the incident runs is paged once, by the first policy to reach them. The second pages them too when it is a page again, a policy started by hand, a page sent from Slack or Microsoft Teams or a page to observers, which page their people themselves, or when their first page was over before it reached them: they escalated it, or its policy had stopped. A person the second policy did not page again shows **Already Paged** in its **View Timeline**.
+Someone on call in two of the policies the incident runs is paged once, by the first policy to reach them, and so is someone a policy and a page from Slack, Microsoft Teams or a workflow both reach. The second pages them too when it is a page again, a policy started by hand, a page sent from Slack or Microsoft Teams or a page to observers, which page their people themselves, or when their first page was over before it reached them: they escalated it, or it had stopped. A person the second page did not page again shows **Already Paged** in its **View Timeline**.
 :::
 
 :::details A policy kept paging after the incident was acknowledged

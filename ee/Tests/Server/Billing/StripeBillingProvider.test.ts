@@ -759,6 +759,60 @@ describe("StripeBillingProvider", () => {
           Errors.BillingService.NO_PAYMENTS_METHODS,
         );
       });
+
+      it("should still refuse a change without a payment method when one is asked for outright", async () => {
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.update =
+          getJestMockFunction().mockResolvedValue({});
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue([]);
+
+        await expect(
+          billingService.changePlan({ ...newPlan, requirePaymentMethod: true }),
+        ).rejects.toThrow(Errors.BillingService.NO_PAYMENTS_METHODS);
+        expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
+      });
+
+      it("should move a project with no payment method when a master admin moves it", async () => {
+        /*
+         * The Admin Dashboard's Change Plan: staff move a project whatever
+         * the customer has on file. The price is swapped in place, as for
+         * any change, and what the new plan owes waits on an invoice.
+         */
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.update =
+          getJestMockFunction().mockResolvedValue({});
+        mockStripe.subscriptions.del = getJestMockFunction().mockResolvedValue(
+          {},
+        );
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue([]);
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+        } = await billingService.changePlan({
+          ...newPlan,
+          requirePaymentMethod: false,
+        });
+
+        expect(mockStripe.subscriptions.update).toHaveBeenCalledWith(
+          newPlan.subscriptionId,
+          expect.objectContaining({
+            items: [
+              {
+                id: mockSubscription.items.data[0]?.id,
+                price: newPlan.newPlan.getMonthlyPlanId(),
+                quantity: newPlan.quantity,
+              },
+            ],
+          }),
+        );
+        expect(result.subscriptionId).toEqual(newPlan.subscriptionId);
+        expect(mockStripe.subscriptions.del).not.toHaveBeenCalled();
+      });
     });
 
     describe("addOrUpdateMeteredPricingOnSubscription", () => {

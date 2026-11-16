@@ -6,6 +6,7 @@ import {
   doesRunnerTakeCodeFixes,
   getGlobalRunnerCodeFixAvailability,
   getRunnerCodeFixRefusal,
+  isCodeFixesTurnedOffInOneUptime,
 } from "../../../Types/Runner/RunnerCodeFixes";
 import OneUptimeDate from "../../../Types/Date";
 import Version from "../../../Types/Version";
@@ -219,6 +220,91 @@ describe("whether a global Runner that takes code fixes is online", () => {
           agentVersion: "14.0.80",
           lastAlive: JUST_NOW,
         },
+      ]),
+    ).toBe(GlobalRunnerCodeFixAvailability.OnlineButNoneTakesCodeFixes);
+  });
+});
+
+/*
+ * THE SERVER'S SWITCH FOR A GLOBAL RUNNER'S CODE FIXES (#6115).
+ *
+ * A master admin turns a global Runner's code fixes off on the Admin
+ * Dashboard's Global Runners page (Runner.canRunCodeFixes): the server then
+ * grants it none, its key proves no code-fix identity, and it is not
+ * counted for a repository's work - whatever it says on its heartbeat.
+ */
+describe("a global Runner a master admin turned code fixes off for", () => {
+  test("takes none, whatever it says and whatever its release", () => {
+    for (const runner of [
+      globalRunner({ canRunCodeFixes: false, takesCodeFixes: true }),
+      globalRunner({
+        canRunCodeFixes: false,
+        takesCodeFixes: null,
+        agentVersion: "15.0.0",
+      }),
+      globalRunner({ canRunCodeFixes: false, takesCodeFixes: false }),
+      globalRunner({ canRunCodeFixes: false, lastAlive: null }),
+    ]) {
+      expect(getRunnerCodeFixRefusal(runner)).toBe(
+        RunnerCodeFixRefusal.TurnedOffInOneUptime,
+      );
+      expect(doesRunnerTakeCodeFixes(runner)).toBe(false);
+      expect(isCodeFixesTurnedOffInOneUptime(runner)).toBe(true);
+    }
+  });
+
+  test("on, or not read, the switch changes nothing: the rest of the rule answers", () => {
+    for (const canRunCodeFixes of [true, undefined, null]) {
+      expect(
+        getRunnerCodeFixRefusal(
+          globalRunner({ canRunCodeFixes, takesCodeFixes: true }),
+        ),
+      ).toBeNull();
+      expect(
+        getRunnerCodeFixRefusal(
+          globalRunner({ canRunCodeFixes, takesCodeFixes: false }),
+        ),
+      ).toBe(RunnerCodeFixRefusal.TurnedOffOnHost);
+      expect(
+        getRunnerCodeFixRefusal(
+          globalRunner({ canRunCodeFixes, agentVersion: "14.0.80" }),
+        ),
+      ).toBe(RunnerCodeFixRefusal.OlderRelease);
+      expect(
+        isCodeFixesTurnedOffInOneUptime(globalRunner({ canRunCodeFixes })),
+      ).toBe(false);
+    }
+  });
+
+  test("is read for a global Runner alone: a project's Runner takes code work while a repository picks it", () => {
+    const runner: RunnerCodeFixFacts = projectRunner({
+      canRunCodeFixes: false,
+      takesCodeFixes: true,
+    });
+
+    expect(getRunnerCodeFixRefusal(runner)).toBeNull();
+    expect(isCodeFixesTurnedOffInOneUptime(runner)).toBe(false);
+  });
+
+  test("is not counted as there to take a repository's work; one beside it that takes them is", () => {
+    expect(
+      getGlobalRunnerCodeFixAvailability([
+        globalRunner({ canRunCodeFixes: false, takesCodeFixes: true }),
+      ]),
+    ).toBe(GlobalRunnerCodeFixAvailability.OnlineButNoneTakesCodeFixes);
+
+    expect(
+      getGlobalRunnerCodeFixAvailability([
+        globalRunner({ canRunCodeFixes: false, takesCodeFixes: true }),
+        globalRunner({ canRunCodeFixes: true, takesCodeFixes: true }),
+      ]),
+    ).toBe(GlobalRunnerCodeFixAvailability.Online);
+  });
+
+  test("the availability reads the rows as global Runners, so the switch holds on a row that does not say it is one", () => {
+    expect(
+      getGlobalRunnerCodeFixAvailability([
+        { canRunCodeFixes: false, takesCodeFixes: true, lastAlive: JUST_NOW },
       ]),
     ).toBe(GlobalRunnerCodeFixAvailability.OnlineButNoneTakesCodeFixes);
   });

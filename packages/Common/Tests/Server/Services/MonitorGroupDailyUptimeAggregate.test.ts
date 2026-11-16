@@ -215,7 +215,13 @@ describe("MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate", () 
 
     const sql: string = flatten(stub.calls[0]!.sql);
 
-    expect(sql).toContain("MAX(seg_end) OVER earlier AS reached_1");
+    /*
+     * Level 1 is every status (rank 1 and up): a period with monitoring
+     * off is ranked 0, so it is in no level (issue #7112).
+     */
+    expect(sql).toContain(
+      "MAX(seg_end) FILTER (WHERE status_rank >= 1) OVER earlier AS reached_1",
+    );
     expect(sql).toContain(
       "MAX(seg_end) FILTER (WHERE status_rank >= 2) OVER earlier AS reached_2",
     );
@@ -498,5 +504,147 @@ describe("MonitorStatusTimelineService.toMonitorGroupUptimeDailyAggregate", () =
 
     expect(total).toBeCloseTo(day.coveredSeconds, 9);
     expect(day.coveredSeconds).toBeLessThanOrEqual(day.daySeconds);
+  });
+});
+
+/*
+ * A day every monitor of a group had its monitoring off (issue #7112): the
+ * group was not checked, so the day has no status - as before - and its
+ * bars say it was not monitored instead of "no data". The statement keeps
+ * the periods that mark monitoring off at rank 0, which no level counts,
+ * and returns one more union, of every period, off included; less level
+ * 1's union it is the day's time with monitoring off.
+ */
+describe("a monitor group's time with monitoring off (issue #7112)", () => {
+  test("ranks a period with monitoring off 0, below every status, whatever status it holds, and keeps it", async () => {
+    const stub: StubbedService = stubService();
+    await stub.service.getMonitorGroupDailyUptimeAggregate(request());
+
+    const sql: string = flatten(stub.calls[0]!.sql);
+
+    expect(sql).toContain(
+      "CASE WHEN src.is_off THEN 0 ELSE rk.status_rank END AS status_rank",
+    );
+    // A status not in $6 is still left out, but a period with monitoring off is kept.
+    expect(sql).toContain("LEFT JOIN ranks rk ON rk.status_id = src.status_id");
+    expect(sql).toContain(
+      "WHERE src.e > src.s AND (src.is_off OR rk.status_rank IS NOT NULL)",
+    );
+    expect(sql).not.toContain("AND NOT src.is_off");
+  });
+
+  test("returns the union of every period, monitoring off included, beside the levels", async () => {
+    const stub: StubbedService = stubService();
+    await stub.service.getMonitorGroupDailyUptimeAggregate(request());
+
+    const sql: string = flatten(stub.calls[0]!.sql);
+
+    expect(sql).toContain("MAX(seg_end) OVER earlier AS reached_all");
+    expect(sql).toContain(
+      "COALESCE(SUM(GREATEST(EXTRACT(EPOCH FROM (seg_end - GREATEST(seg_start, COALESCE(reached_all, seg_start)))), 0)), 0)::double precision AS union_all",
+    );
+    expect(sql).toContain('u.union_all AS "unionWithMonitoringOff"');
+    // Every status level filters, level 1 too, so none counts rank 0.
+    expect(sql).toContain(
+      "COALESCE(SUM(GREATEST(EXTRACT(EPOCH FROM (seg_end - GREATEST(seg_start, COALESCE(reached_1, seg_start)))), 0)) FILTER (WHERE status_rank >= 1), 0)",
+    );
+  });
+
+  const RANKED: Array<string> = [OPERATIONAL, DEGRADED, OFFLINE];
+
+  function shape(
+    rows: Array<MonitorGroupDailyUptimeRow>,
+  ): MonitorGroupUptimeDailyAggregate {
+    return MonitorStatusTimelineServiceType.toMonitorGroupUptimeDailyAggregate({
+      rows: rows,
+      monitorGroupIds: [new ObjectID(GROUP_X)],
+      rankedMonitorStatusIds: RANKED,
+      timezone: "UTC",
+    });
+  }
+
+  function day(data: {
+    unions: Array<number | string | null> | null;
+    unionWithMonitoringOff?: number | string | null | undefined;
+  }): UptimeDayBucket {
+    return shape([
+      {
+        groupKey: 1,
+        bucketStart: new Date("2026-11-05T00:00:00.000Z"),
+        bucketEnd: new Date("2026-11-06T00:00:00.000Z"),
+        daySeconds: 86400,
+        unions: data.unions,
+        unionWithMonitoringOff: data.unionWithMonitoringOff,
+      },
+    ]).monitorGroups[0]!.buckets[0]!;
+  }
+
+  test("a day every monitor had monitoring off has no coverage, no status and the whole day off", () => {
+    const bucket: UptimeDayBucket = day({
+      unions: [0, 0, 0],
+      unionWithMonitoringOff: 86400,
+    });
+
+    expect(bucket.coveredSeconds).toBe(0);
+    expect(bucket.statusDurations).toEqual([]);
+    expect(bucket.monitoringOffSeconds).toBe(86400);
+  });
+
+  test("a day off in part is measured over the checked part, and says how long it was off", () => {
+    // Checked for 18 hours, 2 of them Offline; every monitor off for the other 6.
+    const bucket: UptimeDayBucket = day({
+      unions: [64800, 7200, 7200],
+      unionWithMonitoringOff: 86400,
+    });
+
+    expect(bucket.coveredSeconds).toBe(64800);
+    expect(bucket.monitoringOffSeconds).toBe(21600);
+    expect(
+      bucket.statusDurations.reduce(
+        (sum: number, duration: { seconds: number }) => {
+          return sum + duration.seconds;
+        },
+        0,
+      ),
+    ).toBe(64800);
+  });
+
+  test("a day one monitor was off while another was checked is no time off for the group", () => {
+    // The union of every period equals the checked one: someone was checked throughout.
+    const bucket: UptimeDayBucket = day({
+      unions: [86400, 0, 0],
+      unionWithMonitoringOff: 86400,
+    });
+
+    expect(bucket.coveredSeconds).toBe(86400);
+    expect(bucket.monitoringOffSeconds).toBeUndefined();
+  });
+
+  test("less than a microsecond apart is no time off, and a day monitoring was on carries no field", () => {
+    expect(
+      day({
+        unions: [59215.25, 0, 0],
+        unionWithMonitoringOff: 59215.25 + MINIMUM_GROUP_STATUS_SECONDS / 2,
+      }).monitoringOffSeconds,
+    ).toBeUndefined();
+    expect(
+      Object.keys(
+        day({ unions: [86400, 0, 0], unionWithMonitoringOff: 86400 }),
+      ),
+    ).not.toContain("monitoringOffSeconds");
+  });
+
+  test("reads the union the pg driver hands back as a string, and a row from before it as monitored", () => {
+    expect(
+      day({ unions: ["0", "0", "0"], unionWithMonitoringOff: "3600.5" })
+        .monitoringOffSeconds,
+    ).toBe(3600.5);
+    expect(
+      day({ unions: [0, 0, 0], unionWithMonitoringOff: undefined })
+        .monitoringOffSeconds,
+    ).toBeUndefined();
+    expect(
+      day({ unions: null, unionWithMonitoringOff: null }).monitoringOffSeconds,
+    ).toBeUndefined();
   });
 });
