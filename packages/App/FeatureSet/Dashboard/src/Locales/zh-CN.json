@@ -56331,5 +56331,8 @@
   "Match data stores and add owner users/teams automatically.": "匹配数据存储并自动添加所有者用户/团队。",
   "Match data stores and attach labels automatically.": "匹配数据存储并自动附加标签。",
   "Match serverless functions and add owner users/teams automatically.": "匹配无服务器函数并自动添加所有者用户/团队。",
-  "Match serverless functions and attach labels automatically.": "匹配无服务器函数并自动附加标签。"
+  "Match serverless functions and attach labels automatically.": "匹配无服务器函数并自动附加标签。",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "删除警报也会删除其备注、状态时间线、Runbook 执行记录以及 OneUptime AI 为其提出的修复。关联的事件会保留。",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "删除事件也会删除其备注、状态时间线、Runbook 执行记录以及 OneUptime AI 为其提出的修复，并将其从状态页中移除。关联的警报会保留。",
+  "In a private episode": "属于一个私有片段"
 }

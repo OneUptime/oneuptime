@@ -56331,5 +56331,8 @@
   "Match data stores and add owner users/teams automatically.": "Corresponda repositórios de dados e adicione usuários/equipes proprietários automaticamente.",
   "Match data stores and attach labels automatically.": "Corresponda repositórios de dados e anexe rótulos automaticamente.",
   "Match serverless functions and add owner users/teams automatically.": "Corresponda funções serverless e adicione usuários/equipes proprietários automaticamente.",
-  "Match serverless functions and attach labels automatically.": "Corresponda funções serverless e anexe rótulos automaticamente."
+  "Match serverless functions and attach labels automatically.": "Corresponda funções serverless e anexe rótulos automaticamente.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "Excluir um alerta também exclui suas notas, sua linha do tempo de estado, suas execuções de runbook e as correções que a OneUptime AI propôs para ele. Os incidentes vinculados permanecem.",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "Excluir um incidente também exclui suas notas, sua linha do tempo de estado, suas execuções de runbook e as correções que a OneUptime AI propôs para ele, e o remove das páginas de status. Os alertas vinculados permanecem.",
+  "In a private episode": "Em um episódio privado"
 }

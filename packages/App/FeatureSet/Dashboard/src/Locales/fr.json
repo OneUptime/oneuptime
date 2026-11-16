@@ -56331,5 +56331,8 @@
   "Match data stores and add owner users/teams automatically.": "Faites correspondre les magasins de données et ajoutez automatiquement les utilisateurs/équipes propriétaires.",
   "Match data stores and attach labels automatically.": "Faites correspondre les magasins de données et attachez automatiquement les étiquettes.",
   "Match serverless functions and add owner users/teams automatically.": "Faites correspondre les fonctions serverless et ajoutez automatiquement les utilisateurs/équipes propriétaires.",
-  "Match serverless functions and attach labels automatically.": "Faites correspondre les fonctions serverless et attachez automatiquement les étiquettes."
+  "Match serverless functions and attach labels automatically.": "Faites correspondre les fonctions serverless et attachez automatiquement les étiquettes.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "Supprimer une alerte supprime aussi ses notes, sa chronologie d'état, ses exécutions de runbook et les correctifs que l'IA de OneUptime a proposés pour elle. Les incidents liés sont conservés.",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "Supprimer un incident supprime aussi ses notes, sa chronologie d'état, ses exécutions de runbook et les correctifs que l'IA de OneUptime a proposés pour lui, et le retire des pages de statut. Les alertes liées sont conservées.",
+  "In a private episode": "Dans un épisode privé"
 }

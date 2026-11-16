@@ -56331,5 +56331,8 @@
   "Match data stores and add owner users/teams automatically.": "Match datalagre og legg til eierbrukere/team automatisk.",
   "Match data stores and attach labels automatically.": "Match datalagre og knytt til etiketter automatisk.",
   "Match serverless functions and add owner users/teams automatically.": "Match serverløse funksjoner og legg til eierbrukere/team automatisk.",
-  "Match serverless functions and attach labels automatically.": "Match serverløse funksjoner og knytt til etiketter automatisk."
+  "Match serverless functions and attach labels automatically.": "Match serverløse funksjoner og knytt til etiketter automatisk.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "Når du sletter et varsel, slettes også notatene, tilstandstidslinjen, runbook-kjøringene og rettelsene OneUptime AI foreslo for det. Koblede hendelser beholdes.",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "Når du sletter en hendelse, slettes også notatene, tilstandstidslinjen, runbook-kjøringene og rettelsene OneUptime AI foreslo for den, og den fjernes fra statussider. Koblede varsler beholdes.",
+  "In a private episode": "I en privat episode"
 }

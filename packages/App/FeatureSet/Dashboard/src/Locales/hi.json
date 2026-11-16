@@ -56331,5 +56331,8 @@
   "Match data stores and add owner users/teams automatically.": "डेटा स्टोर का मिलान करें और स्वामी उपयोगकर्ता/टीमें स्वचालित रूप से जोड़ें।",
   "Match data stores and attach labels automatically.": "डेटा स्टोर का मिलान करें और लेबल स्वचालित रूप से संलग्न करें।",
   "Match serverless functions and add owner users/teams automatically.": "Serverless फ़ंक्शन का मिलान करें और स्वामी उपयोगकर्ता/टीमें स्वचालित रूप से जोड़ें।",
-  "Match serverless functions and attach labels automatically.": "Serverless फ़ंक्शन का मिलान करें और लेबल स्वचालित रूप से संलग्न करें।"
+  "Match serverless functions and attach labels automatically.": "Serverless फ़ंक्शन का मिलान करें और लेबल स्वचालित रूप से संलग्न करें।",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "अलर्ट हटाने से उसके नोट, स्थिति टाइमलाइन, रनबुक रन और OneUptime AI द्वारा उसके लिए सुझाए गए सुधार भी हट जाते हैं। जुड़ी हुई घटनाएँ बनी रहती हैं।",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "घटना हटाने से उसके नोट, स्थिति टाइमलाइन, रनबुक रन और OneUptime AI द्वारा उसके लिए सुझाए गए सुधार भी हट जाते हैं, और वह स्थिति पृष्ठों से हट जाती है। जुड़े हुए अलर्ट बने रहते हैं।",
+  "In a private episode": "एक निजी एपिसोड में"
 }

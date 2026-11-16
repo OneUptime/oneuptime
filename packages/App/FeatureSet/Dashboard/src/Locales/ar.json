@@ -56331,5 +56331,8 @@
   "Match data stores and add owner users/teams automatically.": "طابِق مخازن البيانات وأضف المستخدمين/الفرق المالكين تلقائيًا.",
   "Match data stores and attach labels automatically.": "طابِق مخازن البيانات وأرفق التسميات تلقائيًا.",
   "Match serverless functions and add owner users/teams automatically.": "طابِق الدوال بلا خادم وأضف المستخدمين/الفرق المالكين تلقائيًا.",
-  "Match serverless functions and attach labels automatically.": "طابِق الدوال بلا خادم وأرفق التسميات تلقائيًا."
+  "Match serverless functions and attach labels automatically.": "طابِق الدوال بلا خادم وأرفق التسميات تلقائيًا.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "يؤدي حذف تنبيه إلى حذف ملاحظاته والمخطط الزمني لحالته وعمليات تنفيذ أدلة التشغيل الخاصة به والإصلاحات التي اقترحها OneUptime AI له أيضًا. تبقى الحوادث المرتبطة به.",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "يؤدي حذف حادثة إلى حذف ملاحظاتها والمخطط الزمني لحالتها وعمليات تنفيذ أدلة التشغيل الخاصة بها والإصلاحات التي اقترحها OneUptime AI لها أيضًا، وإزالتها من صفحات الحالة. تبقى التنبيهات المرتبطة بها.",
+  "In a private episode": "ضمن حلقة خاصة"
 }

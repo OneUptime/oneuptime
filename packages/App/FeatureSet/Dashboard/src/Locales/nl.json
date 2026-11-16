@@ -56331,5 +56331,8 @@
   "Match data stores and add owner users/teams automatically.": "Match gegevensopslagen en voeg automatisch eigenaargebruikers/-teams toe.",
   "Match data stores and attach labels automatically.": "Match gegevensopslagen en koppel automatisch labels.",
   "Match serverless functions and add owner users/teams automatically.": "Match serverless functies en voeg automatisch eigenaargebruikers/-teams toe.",
-  "Match serverless functions and attach labels automatically.": "Match serverless functies en koppel automatisch labels."
+  "Match serverless functions and attach labels automatically.": "Match serverless functies en koppel automatisch labels.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "Als u een waarschuwing verwijdert, worden ook de notities, de statustijdlijn, de runbook-uitvoeringen en de correcties die OneUptime AI ervoor voorstelde verwijderd. Gekoppelde incidenten blijven bestaan.",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "Als u een incident verwijdert, worden ook de notities, de statustijdlijn, de runbook-uitvoeringen en de correcties die OneUptime AI ervoor voorstelde verwijderd en wordt het van statuspagina's gehaald. Gekoppelde waarschuwingen blijven bestaan.",
+  "In a private episode": "In een privé-episode"
 }

@@ -56331,5 +56331,8 @@
   "Match data stores and add owner users/teams automatically.": "Сопоставляйте хранилища данных и автоматически добавляйте пользователей/команды-владельцев.",
   "Match data stores and attach labels automatically.": "Сопоставляйте хранилища данных и автоматически прикрепляйте метки.",
   "Match serverless functions and add owner users/teams automatically.": "Сопоставляйте serverless-функции и автоматически добавляйте пользователей/команды-владельцев.",
-  "Match serverless functions and attach labels automatically.": "Сопоставляйте serverless-функции и автоматически прикрепляйте метки."
+  "Match serverless functions and attach labels automatically.": "Сопоставляйте serverless-функции и автоматически прикрепляйте метки.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "При удалении оповещения удаляются и его заметки, хронология состояний, выполнения сборников инструкций и исправления, которые OneUptime AI предложил для него. Связанные инциденты остаются.",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "При удалении инцидента удаляются и его заметки, хронология состояний, выполнения сборников инструкций и исправления, которые OneUptime AI предложил для него, а сам он убирается со страниц статуса. Связанные оповещения остаются.",
+  "In a private episode": "Входит в приватный эпизод"
 }
