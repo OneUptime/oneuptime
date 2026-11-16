@@ -211,6 +211,7 @@ const processIncomingRequest: RequestHandler = async (
             ]),
           )
         : presented.secretHashes,
+      signatureProblem: secretDecision.signatureProblem,
       /*
        * The monitor learns its service was answered, and offers no link to
        * confirm by hand. Not for a request a probe relayed: the probe has

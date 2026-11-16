@@ -126,6 +126,12 @@ export interface IncomingRequestSecretEdgeDecision {
    * decides on it as on a secret sent in a header.
    */
   signedWithSecretHash?: string | undefined;
+  /*
+   * Why a presented signature was not accepted, for a request let through
+   * anyway (the project does not require a secret yet): queued, so the
+   * monitor's record says a wrong signature came, not that nothing did.
+   */
+  signatureProblem?: IncomingRequestSecretProblem | undefined;
 }
 
 export interface IncomingRequestSecretWorkerDecision {
@@ -229,10 +235,7 @@ export default class IncomingRequestSecretGate {
             ...(signedWithSecretHash ? [signedWithSecretHash] : []),
           ],
           monitor,
-          signatureProblem:
-            verification?.problem === SignatureProblem.Expired
-              ? IncomingRequestSecretProblem.ExpiredSignature
-              : undefined,
+          signatureProblem: this.toSecretProblem(verification?.problem),
         });
 
       /*
@@ -261,15 +264,18 @@ export default class IncomingRequestSecretGate {
       }
 
       if (IncomingRequestSecretPolicy.isRefused(decision.verdict)) {
-        if (countsWrongSecrets) {
+        // Each secret it presented, and each signature no secret made.
+        const wrongValues: Array<string> = [
+          ...decision.wrongSecretHashes,
+          ...(verification?.wrongDigests || []),
+        ];
+
+        if (countsWrongSecrets && wrongValues.length > 0) {
           const refusal: WrongKeyRefusal | null =
             await WrongIncomingRequestSecretLimit.countWrong({
               req: data.req!,
               monitorId,
-              wrongValues: [
-                ...decision.wrongSecretHashes,
-                ...(verification?.wrongDigests || []),
-              ],
+              wrongValues,
             });
 
           if (refusal) {
@@ -295,6 +301,9 @@ export default class IncomingRequestSecretGate {
       return {
         mayRecordArrival: true,
         signedWithSecretHash: signedWithSecretHash,
+        signatureProblem: signedWithSecretHash
+          ? undefined
+          : this.toSecretProblem(verification?.problem),
       };
     } catch (err) {
       /*
@@ -317,6 +326,8 @@ export default class IncomingRequestSecretGate {
     monitorId?: ObjectID | undefined;
     presentedSecretHashes: Array<string> | undefined;
     requestHeaders: Dictionary<string> | undefined;
+    // Why a signature the edge checked was not accepted (signatureProblem).
+    signatureProblem?: IncomingRequestSecretProblem | undefined;
   }): Promise<IncomingRequestSecretWorkerDecision> {
     /*
      * A job queued by an endpoint from before the requirement - during a
@@ -349,6 +360,7 @@ export default class IncomingRequestSecretGate {
         policy,
         presentedSecretHashes,
         monitor,
+        signatureProblem: this.readSignatureProblem(data.signatureProblem),
       });
 
     /*
@@ -440,6 +452,34 @@ export default class IncomingRequestSecretGate {
       secrets,
       now: data.now,
     });
+  }
+
+  /*
+   * What a signature that was not accepted means for the request, when it
+   * presented nothing else: one no secret made is a wrong secret, one too
+   * old to check is an expired signature.
+   */
+  private static toSecretProblem(
+    problem: SignatureProblem | undefined,
+  ): IncomingRequestSecretProblem | undefined {
+    switch (problem) {
+      case SignatureProblem.NoMatch:
+        return IncomingRequestSecretProblem.WrongSecret;
+      case SignatureProblem.Expired:
+        return IncomingRequestSecretProblem.ExpiredSignature;
+      default:
+        return undefined;
+    }
+  }
+
+  // A signature problem as a job carries it: one of the two, or none.
+  private static readSignatureProblem(
+    value: unknown,
+  ): IncomingRequestSecretProblem | undefined {
+    return value === IncomingRequestSecretProblem.WrongSecret ||
+      value === IncomingRequestSecretProblem.ExpiredSignature
+      ? value
+      : undefined;
   }
 
   // The SHA-256 the policy keeps for one of its secrets.
