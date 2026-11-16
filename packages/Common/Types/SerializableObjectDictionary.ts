@@ -36,10 +36,7 @@ import Recurring from "./Events/Recurring";
 import HashedString from "./HashedString";
 import IP from "./IP/IP";
 import { ObjectType } from "./JSON";
-import MonitorCriteria from "./Monitor/MonitorCriteria";
-import MonitorCriteriaInstance from "./Monitor/MonitorCriteriaInstance";
-import MonitorStep from "./Monitor/MonitorStep";
-import MonitorSteps from "./Monitor/MonitorSteps";
+import { getJoinedSerializableObject } from "./JoinedSerializableObjects";
 import Name from "./Name";
 import ObjectID from "./ObjectID";
 import Phone from "./Phone";
@@ -61,6 +58,12 @@ import Version from "./Version";
  *
  * A getter defers the lookup to the first property access, by which time every
  * module has finished initializing.
+ *
+ * A monitor's steps and criteria are not imported here: they bring every
+ * monitor type, which a page that never reads one - the sign-in pages, a
+ * status page - would download for nothing. Each joins the dictionary when
+ * its own module loads, and its entry looks it up there
+ * (JoinedSerializableObjects).
  */
 const SerializableObjectDictionary: Dictionary<any> = {
   get [ObjectType.Phone](): any {
@@ -82,16 +85,16 @@ const SerializableObjectDictionary: Dictionary<any> = {
     return EqualToOrNull;
   },
   get [ObjectType.MonitorSteps](): any {
-    return MonitorSteps;
+    return getJoinedSerializableObject(ObjectType.MonitorSteps);
   },
   get [ObjectType.MonitorStep](): any {
-    return MonitorStep;
+    return getJoinedSerializableObject(ObjectType.MonitorStep);
   },
   get [ObjectType.MonitorCriteria](): any {
-    return MonitorCriteria;
+    return getJoinedSerializableObject(ObjectType.MonitorCriteria);
   },
   get [ObjectType.MonitorCriteriaInstance](): any {
-    return MonitorCriteriaInstance;
+    return getJoinedSerializableObject(ObjectType.MonitorCriteriaInstance);
   },
   get [ObjectType.NotEqual](): any {
     return NotEqual;

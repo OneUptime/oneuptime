@@ -37,6 +37,7 @@ import {
   DASHBOARD_URL,
   CAPTCHA_ENABLED,
   CAPTCHA_SITE_KEY,
+  DISABLE_INSTANCE_CHECK_IN,
   GoogleSignInClientId,
   MicrosoftSignInClientId,
 } from "Common/UI/Config";
@@ -56,10 +57,6 @@ import User from "Common/Models/DatabaseModels/User";
 import React, { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
-import {
-  DisableInstanceCheckIn,
-  IsBillingEnabled,
-} from "Common/Server/EnvironmentConfig";
 import { SSO_REQUIRED_SIGN_UP_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import LoginWithSsoPage from "./LoginWithSSO";
 import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
@@ -496,8 +493,13 @@ const RegisterPage: () => JSX.Element = () => {
     },
   ]);
 
-  // With the daily check-in off, this install does not report to oneuptime.com.
-  if (!IsBillingEnabled && !DisableInstanceCheckIn) {
+  /*
+   * With the daily check-in off, this install does not report to
+   * oneuptime.com. Both are read from the page's own configuration
+   * (Common/UI/Config), not the server's, which would bring the server's
+   * whole configuration into the sign-up page.
+   */
+  if (!BILLING_ENABLED && !DISABLE_INSTANCE_CHECK_IN) {
     formFields = formFields.concat([
       {
         overrideField: {
