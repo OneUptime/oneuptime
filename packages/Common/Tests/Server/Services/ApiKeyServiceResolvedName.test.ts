@@ -32,6 +32,8 @@ import {
 import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import HashedApiKey from "../../../Server/Utils/APIKey/HashedApiKey";
+import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
 
@@ -45,7 +47,9 @@ import { getJestSpyOn } from "../../Spy";
  * the rest of the cached row - cleared on this node when a key is updated or
  * deleted, and at most a minute stale on the others.
  *
- * A fresh Service per test, so no test inherits another's cache.
+ * A fresh Service per test, so no test inherits another's cache. Every key
+ * is stored as its hash here (#8902): the lookup of a key stored as it was
+ * written, before keys were hashed, is ApiKeyServiceHashedLookup's.
  */
 
 type SpyInstance = ReturnType<typeof getJestSpyOn>;
@@ -101,6 +105,10 @@ describe("ApiKeyService.findApiKey - the key's name, for the audit trail", () =>
   beforeEach(() => {
     service = new ApiKeyServiceClass();
     findOneBySpy = getJestSpyOn(service, "findOneBy").mockResolvedValue(null);
+    // Every key is stored as its hash: none is looked up as written.
+    getJestSpyOn(service, "mayHoldKeysStoredAsWritten").mockResolvedValue(
+      false,
+    );
 
     currentTime = 1_800_000_000_000;
     nowSpy = jest.spyOn(Date, "now").mockImplementation((): number => {
@@ -138,15 +146,17 @@ describe("ApiKeyService.findApiKey - the key's name, for the audit trail", () =>
     expect(call.select).not.toHaveProperty("apiKey");
   });
 
-  test("still looks the key up by its value, and only while it has not expired", async () => {
+  test("looks the key up by its hash, never by the key, and only while it has not expired", async () => {
     await service.findApiKey(KEY_VALUE);
 
     const call: FindOneByCall = findOneBySpy.mock.calls[0]![0] as FindOneByCall;
 
     expect(Object.keys(call.query).sort()).toEqual(["apiKey", "expiresAt"]);
-    expect((call.query["apiKey"] as ObjectID).toString()).toBe(
-      KEY_VALUE.toString(),
+    expect(call.query["apiKey"]).toBeInstanceOf(HashedString);
+    expect((call.query["apiKey"] as HashedString).toString()).toBe(
+      HashedApiKey.hash(KEY_VALUE),
     );
+    expect(JSON.stringify(call.query)).not.toContain(KEY_VALUE.toString());
   });
 
   test("returns the key's id, project and name", async () => {
@@ -206,8 +216,8 @@ describe("ApiKeyService.findApiKey - the key's name, for the audit trail", () =>
     findOneBySpy.mockImplementation(
       async (findOneBy: FindOneByCall): Promise<ApiKey> => {
         const row: ApiKey = keyRow(
-          (findOneBy.query["apiKey"] as ObjectID).toString() ===
-            KEY_VALUE.toString()
+          (findOneBy.query["apiKey"] as HashedString).toString() ===
+            HashedApiKey.hash(KEY_VALUE)
             ? "Terraform"
             : "CI",
         );

@@ -63,7 +63,7 @@ Een alleen-lezen-export heeft één machtiging nodig, **Read Inventory Item**: d
 
 ### De sleutel kopiëren
 
-Kopieer de **API-sleutel** van de pagina van de sleutel en maak hem beschikbaar voor je taak:
+Gebruik de sleutel die OneUptime je één keer toonde, toen je hem aanmaakte, en maak hem beschikbaar voor je taak:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"

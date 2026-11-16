@@ -253,7 +253,20 @@ afterEach(() => {
 });
 
 describe("How OneUptime works and the Glossary (#6936)", () => {
-  test.each(["how it works", "overview", "getting started", "concepts"])(
+  /*
+   * It shows every product too (#8891), so asking what OneUptime can do
+   * finds it: "features", "capabilities", "all products".
+   */
+  test.each([
+    "how it works",
+    "overview",
+    "getting started",
+    "concepts",
+    "features",
+    "capabilities",
+    "all products",
+    "what can oneuptime do",
+  ])(
     "%p opens How OneUptime works, and the opening says it came from Search",
     async (query: string) => {
       const opened: MockFunction = getJestMockFunction();

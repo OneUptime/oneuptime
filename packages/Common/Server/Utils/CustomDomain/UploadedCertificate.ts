@@ -1,3 +1,11 @@
+import {
+  UPLOADED_CERTIFICATE_MISSING_MESSAGE,
+  UPLOADED_CERTIFICATE_REFUSALS,
+  UPLOADED_CERTIFICATE_UNREADABLE_MESSAGE,
+  UPLOADED_KEY_DOES_NOT_MATCH_MESSAGE,
+  UPLOADED_KEY_HAS_PASSPHRASE_MESSAGE,
+  UPLOADED_KEY_UNREADABLE_MESSAGE,
+} from "../../../Types/CustomDomain/UploadedCertificateRefusals";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import crypto from "crypto";
 
@@ -24,32 +32,20 @@ import crypto from "crypto";
  *   - the key the certificate was issued for.
  *
  * Each refusal says which half is wrong and how to fix it, in words that
- * never quote what was pasted. Nothing here logs either half.
+ * never quote what was pasted. Nothing here logs either half. The words are
+ * Types/CustomDomain/UploadedCertificateRefusals', shared with the Edit
+ * dialog, which says each under the half it is about, in the reader's
+ * language; they are re-exported here for the server's own callers.
  */
 
-export const UPLOADED_CERTIFICATE_MISSING_MESSAGE: string =
-  "To serve your own certificate, add both the certificate and its private key.";
-
-export const UPLOADED_CERTIFICATE_UNREADABLE_MESSAGE: string =
-  "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.";
-
-export const UPLOADED_KEY_UNREADABLE_MESSAGE: string =
-  "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.";
-
-export const UPLOADED_KEY_HAS_PASSPHRASE_MESSAGE: string =
-  "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.";
-
-export const UPLOADED_KEY_DOES_NOT_MATCH_MESSAGE: string =
-  "The private key does not belong to this certificate. Paste the private key the certificate was issued for.";
-
-// Every refusal above, for the dialog that shows them under their field.
-export const UPLOADED_CERTIFICATE_REFUSALS: ReadonlyArray<string> = [
+export {
   UPLOADED_CERTIFICATE_MISSING_MESSAGE,
+  UPLOADED_CERTIFICATE_REFUSALS,
   UPLOADED_CERTIFICATE_UNREADABLE_MESSAGE,
-  UPLOADED_KEY_UNREADABLE_MESSAGE,
-  UPLOADED_KEY_HAS_PASSPHRASE_MESSAGE,
   UPLOADED_KEY_DOES_NOT_MATCH_MESSAGE,
-];
+  UPLOADED_KEY_HAS_PASSPHRASE_MESSAGE,
+  UPLOADED_KEY_UNREADABLE_MESSAGE,
+};
 
 // What a domain's write and row hold of an uploaded certificate.
 export interface UploadedCertificateColumns {

@@ -54,6 +54,20 @@ export const IS_ENTERPRISE_EDITION: boolean =
   env("IS_ENTERPRISE_EDITION") === "true";
 export const BILLING_PUBLIC_KEY: string = env("BILLING_PUBLIC_KEY") || "";
 
+/*
+ * Whether global Runners keep GitLab, Forgejo, Gitea and Git repositories
+ * off themselves (Common/Types/Runner/GlobalRunnerRepositoryTokens): on
+ * OneUptime Cloud (billing on), where every customer shares the same global
+ * Runners, and on a self-hosted multi-tenant install that turns the rule on
+ * with GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY=true. The Dashboard's Runner
+ * picker draws its amber line by this.
+ */
+export const GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY: boolean =
+  env("GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY") === "true";
+
+export const GLOBAL_RUNNERS_KEEP_CONNECTION_TOKENS_OFF: boolean =
+  BILLING_ENABLED || GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY;
+
 export const CAPTCHA_ENABLED: boolean = env("CAPTCHA_ENABLED") === "true";
 export const CAPTCHA_SITE_KEY: string = env("CAPTCHA_SITE_KEY") || "";
 

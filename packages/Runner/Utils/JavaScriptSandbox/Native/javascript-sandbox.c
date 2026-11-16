@@ -17,7 +17,8 @@
  *       Runs <program> as <uid> (and the group of the same number), in a
  *       session of its own, with no supplementary group, no privilege it
  *       could ever regain (no_new_privs), core dumps and file writes off,
- *       standard input, output, error and the result channel (fd 3) only,
+ *       standard input, output, error, the result channel (fd 3) and the
+ *       HTTP channel (fd 4) only,
  *       in /, with an environment of only the names ALLOWED_ENVIRONMENT
  *       lists. The step's process is killed when this process ends
  *       (PR_SET_PDEATHSIG), and this process, which gives up root and keeps
@@ -66,8 +67,8 @@
 #define EXIT_INTERNAL 70
 #define EXIT_NO_PRIVILEGE 71
 
-/* fds 0, 1 and 2, and the result channel. */
-#define FIRST_FD_TO_CLOSE 4
+/* fds 0, 1 and 2, the result channel and the HTTP channel. */
+#define FIRST_FD_TO_CLOSE 5
 
 /* Threads count as processes here, and Node runs about a dozen. */
 #define SANDBOX_PROCESS_LIMIT 256

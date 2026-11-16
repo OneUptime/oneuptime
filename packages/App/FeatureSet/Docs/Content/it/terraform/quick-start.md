@@ -32,7 +32,7 @@ flowchart TB
 
 Nella dashboard di OneUptime, apri **Impostazioni del progetto → Avanzato → Chiavi API** e fai clic su **Crea: Chiave API**. Dalle un **Nome**, come `terraform`, e in **Accesso** scegli **Amministratore del progetto**: Terraform crea, legge, modifica ed elimina ogni tipo di record che gestisce, e **Amministratore del progetto** può fare tutto questo. Per una chiave più limitata, scegli **Scegli le autorizzazioni più tardi** e aggiungi nella pagina della chiave solo le autorizzazioni che ti servono.
 
-La chiave scade tra un anno. Per scegliere un'altra data, apri **Altri campi** prima di crearla, oppure cambia la data più tardi nella pagina della chiave. Una volta creata la chiave, si apre la sua pagina: copia la **Chiave API** dalla scheda **Dettagli chiave API**.
+La chiave scade tra un anno. Per scegliere un'altra data, apri **Altri campi** prima di crearla, oppure cambia la data più tardi nella pagina della chiave. Una volta creata la chiave, OneUptime la mostra una sola volta, nella finestra di dialogo **Copia la tua chiave API**: copiala prima di premere **Fatto**.
 
 ### Rendere la chiave disponibile a Terraform
 
@@ -218,7 +218,7 @@ Il provider non ha trovato nessuna chiave API. Esporta `ONEUPTIME_API_KEY` nella
 :::
 
 :::details Messaggio «the OneUptime API returned status 400: Invalid API Key»
-La chiave è scritta male, scaduta o eliminata, oppure appartiene a un'istanza OneUptime diversa da quella a cui punta `oneuptime_url`. Copia di nuovo la chiave dalla sua pagina, oppure creane una nuova.
+La chiave è scritta male, scaduta o eliminata, oppure appartiene a un'istanza OneUptime diversa da quella a cui punta `oneuptime_url`. Confrontala con come finisce la chiave nella sua pagina, oppure reimpostala lì per averne una nuova.
 :::
 
 :::details Messaggio «the OneUptime API returned status 402: API keys need the Growth plan»

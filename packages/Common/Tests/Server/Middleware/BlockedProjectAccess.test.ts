@@ -36,6 +36,7 @@ import {
   OneUptimeRequest,
 } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
+import MasterApiKey from "../../../Server/Utils/MasterApiKey";
 import McpDelegationToken from "../../../Server/Utils/Mcp/McpDelegationToken";
 import McpOAuthConfig from "../../../Server/Utils/Mcp/McpOAuthConfig";
 import Response from "../../../Server/Utils/Response";
@@ -550,9 +551,17 @@ describe("an API key of a blocked project", () => {
 
   test("the instance's master key is no project's key, and is let through", async () => {
     getJestSpyOn(ApiKeyService, "findApiKey").mockResolvedValue(null);
-    getJestSpyOn(GlobalConfigService, "findOneBy").mockResolvedValue(
-      new GlobalConfig(),
+    /*
+     * The server's settings hold the key, as its hash, turned on (#7901): an
+     * empty settings row is no master key.
+     */
+    const settings: GlobalConfig = new GlobalConfig();
+    settings.isMasterApiKeyEnabled = true;
+    settings.masterApiKey = new HashedString(
+      MasterApiKey.hash(API_KEY_VALUE),
+      true,
     );
+    getJestSpyOn(GlobalConfigService, "findOneBy").mockResolvedValue(settings);
     const masterAdmin: User = new User();
     masterAdmin._id = MASTER_ADMIN_ID.toString();
     masterAdmin.email = new Email("admin@example.com");

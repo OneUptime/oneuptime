@@ -2,6 +2,7 @@ import { execFile } from "child_process";
 import fs from "fs";
 import path from "path";
 import logger from "Common/Server/Utils/Logger";
+import { GlobalRunnerStepUserReason } from "Common/Types/Runner/GlobalRunnerSandbox";
 
 /*
  * WHO A GLOBAL RUNNER'S JAVASCRIPT STEP RUNS AS.
@@ -56,6 +57,12 @@ export interface SandboxIsolationDecision {
   isolation: SandboxIsolation;
   // Why a step does not get a user of its own; null when it does.
   reason: string | null;
+  /*
+   * The same, as the heartbeat says it (Common/Types/Runner/
+   * GlobalRunnerSandbox); null when it does. Left out by a test that does
+   * not ask.
+   */
+  reasonCode?: GlobalRunnerStepUserReason | null | undefined;
 }
 
 export const NO_PRIVILEGE_REASON: string =
@@ -137,6 +144,7 @@ export async function decideSandboxIsolation(data: {
     return {
       isolation: SandboxIsolation.OwnProcess,
       reason: LAUNCHER_MISSING_REASON,
+      reasonCode: GlobalRunnerStepUserReason.NotInstalled,
     };
   }
 
@@ -145,13 +153,18 @@ export async function decideSandboxIsolation(data: {
   ]);
 
   if (result.exitCode === 0) {
-    return { isolation: SandboxIsolation.OwnUser, reason: null };
+    return {
+      isolation: SandboxIsolation.OwnUser,
+      reason: null,
+      reasonCode: null,
+    };
   }
 
   if (result.errorCode === "EACCES") {
     return {
       isolation: SandboxIsolation.OwnProcess,
       reason: LAUNCHER_NOT_RUNNABLE_REASON,
+      reasonCode: GlobalRunnerStepUserReason.NotInNodeGroup,
     };
   }
 
@@ -159,6 +172,7 @@ export async function decideSandboxIsolation(data: {
     return {
       isolation: SandboxIsolation.OwnProcess,
       reason: LAUNCHER_MISSING_REASON,
+      reasonCode: GlobalRunnerStepUserReason.NotInstalled,
     };
   }
 
@@ -166,6 +180,7 @@ export async function decideSandboxIsolation(data: {
     return {
       isolation: SandboxIsolation.OwnProcess,
       reason: NO_PRIVILEGE_REASON,
+      reasonCode: GlobalRunnerStepUserReason.NoPrivilege,
     };
   }
 
@@ -176,6 +191,7 @@ export async function decideSandboxIsolation(data: {
         ? result.errorCode || "it did not finish"
         : `exit code ${result.exitCode}`
     })`,
+    reasonCode: GlobalRunnerStepUserReason.CheckFailed,
   };
 }
 

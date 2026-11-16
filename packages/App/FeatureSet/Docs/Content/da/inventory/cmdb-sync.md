@@ -63,7 +63,7 @@ En skrivebeskyttet eksport skal bruge én tilladelse, **Read Inventory Item**: i
 
 ### Kopiér nøglen
 
-Kopiér **API-nøgle** fra nøglens side, og gør den tilgængelig for dit job:
+Brug den nøgle, OneUptime viste dig én gang, da du oprettede den, og gør den tilgængelig for dit job:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"

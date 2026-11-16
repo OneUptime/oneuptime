@@ -1155,7 +1155,12 @@ run, only after a merge), so the suite pins the machinery itself:
   anything (core is the Community Edition by construction); `compile-ee` and
   `test.ee.yaml` install what ee needs and compile/test it, and `test.ee.yaml`
   also runs App's two Enterprise boundary guards with `ee/` present (their
-  ee-direction checks skip without it); the Build workflow
+  ee-direction checks skip without it). Its `test` job is played step by
+  step through its real `if`s (`Utils/WorkflowExpression.js`), one failure
+  at a time: a red guard leaves every other guard and ee's own tests running
+  and still fails the job, a failed `test-setup.sh` leaves the guards
+  running, and a failed install skips only the steps that need it (#6572);
+  every `steps.<id>` an `if` reads is an earlier step's id. The Build workflow
   builds both App targets and checks each with
   `Scripts/GHA/check_app_image_edition.sh`; the release jobs that enable
   billing (the SaaS e2e jobs) run the `enterprise-` tags, the self-hosted e2e
@@ -2171,9 +2176,14 @@ script. `KubernetesAiAgentRelease.test.js` keeps its own
 copies of these helpers as written; new image release tests use this module.
 
 `Utils/WorkflowExpression.js` evaluates a workflow's `${{ }}` expressions for
-one run, for the suites that work out a concurrency group: context paths and
-`||` only (a missing path reads as null, as on GitHub). It throws on anything
-else rather than misread it.
+one run. `evaluateExpressions` writes out a string, for the suites that work
+out a concurrency group: context paths and `||` only. `stepRuns` says whether
+a step's `if` lets it run, and `playJob` plays a whole job's steps through
+theirs, given which steps fail: the status functions (with the `success() &&`
+an `if` that calls none of them gets), `!`, `&&`, `||`, `==`, `!=`,
+parentheses, literals and context paths such as `steps.<id>.outcome`. A
+missing path reads as null, as on GitHub. It throws on anything else rather
+than misread it; `WorkflowExpression.test.js` holds it to GitHub's rules.
 
 `Utils/ContainerAgentCpuBehaviour.js` is the node half of
 `container-agent-cpu-utilization-behaviour.sh`: it writes the collector configs

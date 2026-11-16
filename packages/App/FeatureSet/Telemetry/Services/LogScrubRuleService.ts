@@ -17,6 +17,11 @@ import {
 import ScrubNestedValuesUtil, {
   ScrubNestedValuesAllowance,
 } from "Common/Utils/Telemetry/ScrubNestedValues";
+import ScrubJsonTextUtil, {
+  ScrubJsonTexts,
+} from "Common/Utils/Telemetry/ScrubJsonText";
+import { maskKeepingEnds } from "Common/Utils/Telemetry/ScrubMask";
+import { correlationIdAttributeKeys } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import { readOwnValue } from "Common/Utils/LookupTable";
 
 interface CompiledRule {
@@ -221,23 +226,25 @@ export class LogScrubRuleService {
       case LogScrubPatternType.IPAddress:
         return "***.***.***.***";
 
-      default: {
-        // Generic masking: keep first and last char, mask middle
-        if (value.length <= 2) {
-          return "***";
-        }
-        return (
-          value[0] +
-          "*".repeat(Math.max(value.length - 2, 3)) +
-          value[value.length - 1]!
-        );
-      }
+      default:
+        // First and last characters kept, whole (Common/Utils/Telemetry/ScrubMask).
+        return maskKeepingEnds(value);
     }
   }
 
+  /*
+   * The pattern rules over one text of a record. A text that is the JSON
+   * text of a list or a map - a structured body, a JSON log line, an
+   * attribute written as JSON or held as its JSON text - is read with its
+   * escapes read and stays JSON: a match is replaced only inside the values
+   * it covers (Common/Utils/Telemetry/ScrubJsonText, #8923). `jsonTexts`:
+   * the record's, so each such text is parsed once however many rules read
+   * it.
+   */
   private static scrubString(
     value: string,
     compiledRules: Array<CompiledRule>,
+    jsonTexts: ScrubJsonTexts,
   ): string {
     let result: string = value;
 
@@ -252,8 +259,17 @@ export class LogScrubRuleService {
       const action: string =
         (rule.scrubAction as string) || LogScrubAction.Redact;
 
-      result = regex.replace(result, (match: string): string => {
-        return this.applyScrubAction(match, action, patternType);
+      result = ScrubJsonTextUtil.scrubText({
+        text: result,
+        findMatches: (text: string): Array<[number, number]> => {
+          return regex.matchRanges(text);
+        },
+        replaceMatch: (match: string): string => {
+          return this.applyScrubAction(match, action, patternType);
+        },
+        // A person may have written a custom pattern against stored escapes.
+        readsAsWritten: patternType === LogScrubPatternType.Custom,
+        jsonTexts: jsonTexts,
       });
     }
 
@@ -274,6 +290,8 @@ export class LogScrubRuleService {
     attributes: JSONObject,
     compiled: CompiledRule,
     heldAsText: ReadonlySet<string>,
+    jsonTexts: ScrubJsonTexts,
+    correlationIdKeys: ReadonlySet<string>,
   ): void {
     const patternType: string = (compiled.rule.patternType as string) || "";
 
@@ -281,7 +299,11 @@ export class LogScrubRuleService {
       const action: string =
         (compiled.rule.scrubAction as string) || LogScrubAction.Redact;
 
-      // Key match → every text of the value gets the action.
+      /*
+       * Key match → every text of the value gets the action - but for the
+       * attribute that holds the log's own session id, which its sessionId
+       * column keeps (#8924).
+       */
       ScrubNestedValuesUtil.hideAttributeTextsUnderSensitiveKeys(
         attributes,
         (key: string): boolean => {
@@ -295,6 +317,7 @@ export class LogScrubRuleService {
           );
         },
         heldAsText,
+        correlationIdKeys,
       );
 
       return;
@@ -305,7 +328,7 @@ export class LogScrubRuleService {
     ScrubNestedValuesUtil.scrubAttributeTexts(
       attributes,
       (text: string): string => {
-        return this.scrubString(text, singleRule);
+        return this.scrubString(text, singleRule, jsonTexts);
       },
     );
   }
@@ -335,6 +358,7 @@ export class LogScrubRuleService {
     body: string,
     keyRules: Array<CompiledRule>,
     allowance: ScrubNestedValuesAllowance,
+    jsonTexts: ScrubJsonTexts,
   ): string {
     /*
      * A key is written in the JSON text as it is, but for an escape - JSON
@@ -381,7 +405,12 @@ export class LogScrubRuleService {
       );
     }
 
-    return value === parsed ? body : JSON.stringify(value);
+    const scrubbed: string = value === parsed ? body : JSON.stringify(value);
+
+    // The pattern rules after this read it as JSON without parsing it again.
+    jsonTexts.rememberJson(scrubbed);
+
+    return scrubbed;
   }
 
   public static scrubLog(
@@ -403,6 +432,19 @@ export class LogScrubRuleService {
     const allowance: ScrubNestedValuesAllowance =
       ScrubNestedValuesUtil.newRecordAllowance();
 
+    // Which of the record's texts are JSON, worked out once for every rule.
+    const jsonTexts: ScrubJsonTexts = new ScrubJsonTexts();
+
+    /*
+     * The attributes that hold the log's own session id - the value its
+     * sessionId column stores, the id session replay files it under: a
+     * correlation id, which a Sensitive Attribute Keys rule keeps where the
+     * column keeps it (Common/Utils/Telemetry/CorrelationIdAttributes,
+     * #8924). Read before any rule changes them.
+     */
+    const correlationIdKeys: ReadonlySet<string> =
+      correlationIdAttributeKeys(logRow);
+
     /*
      * A list or map too deep, or too large, for the rules to read value by
      * value is held as its JSON text first - as the Log table stores it -
@@ -418,10 +460,9 @@ export class LogScrubRuleService {
 
     /*
      * The Sensitive Attribute Keys rules read the keys of a structured
-     * body before any rule changes its text: a pattern rule's replacement
-     * can leave the text no longer JSON - an email address right after an
-     * escape such as \n is matched with the escape's letter - and then no
-     * key in it could be read.
+     * body before any rule changes its text, so they read the keys as they
+     * came, whatever the order of the list. A pattern rule keeps the body
+     * JSON (#8923), so the keys it leaves are read the same either way.
      */
     const keyRules: Array<CompiledRule> = compiledRules.filter(
       (compiled: CompiledRule): boolean => {
@@ -437,6 +478,7 @@ export class LogScrubRuleService {
         logRow["body"] as string,
         keyRules,
         allowance,
+        jsonTexts,
       );
     }
 
@@ -470,12 +512,16 @@ export class LogScrubRuleService {
         ? "attributes"
         : (compiled.rule.fieldsToScrub as string) || "both";
 
-      // Scrub body
+      // Scrub body - kept JSON when it is the JSON text of a list or a map.
       if (
         (fieldsToScrub === "body" || fieldsToScrub === "both") &&
         typeof logRow["body"] === "string"
       ) {
-        logRow["body"] = this.scrubString(logRow["body"] as string, singleRule);
+        logRow["body"] = this.scrubString(
+          logRow["body"] as string,
+          singleRule,
+          jsonTexts,
+        );
       }
 
       // Scrub attributes - the text inside lists and maps included.
@@ -488,6 +534,8 @@ export class LogScrubRuleService {
           logRow["attributes"] as JSONObject,
           compiled,
           heldAsText,
+          jsonTexts,
+          correlationIdKeys,
         );
       }
     }
