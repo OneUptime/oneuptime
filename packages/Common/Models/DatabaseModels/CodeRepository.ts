@@ -1315,13 +1315,22 @@ export default class CodeRepository extends BaseModel {
       Permission.EditCodeRepository,
     ],
   })
+  /*
+   * Write-only (read: []) and kept encrypted at rest (`encrypted: true`):
+   * a webhook signed with it is taken as the repository's own.
+   * DatabaseService encrypts it on every write and decrypts it on every
+   * read; the EncryptProjectCredentials data migration encrypts the tokens
+   * stored before.
+   */
   @TableColumn({
     secret: true,
+    encrypted: true,
     required: false,
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: false,
     title: "Secret Token",
-    description: "Secret token used to verify incoming webhooks",
+    description:
+      "Secret token used to verify incoming webhooks. Write-only: kept encrypted and never returned by the API.",
   })
   @Column({
     nullable: true,

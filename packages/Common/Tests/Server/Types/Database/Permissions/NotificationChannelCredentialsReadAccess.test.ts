@@ -11,20 +11,21 @@ import { describe, expect, test } from "@jest/globals";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
 
 /*
- * A PROJECT'S TWILIO AUTH TOKEN AND MAIL SERVER CREDENTIALS ARE READ BY ITS
- * OWNERS AND ADMINS, AND BY A ROLE GIVEN THE CONFIG'S OWN READ PERMISSION,
- * ALONE (#7737).
+ * A PROJECT'S TWILIO AUTH TOKEN IS READ BY ITS OWNERS AND ADMINS, AND BY A
+ * ROLE GIVEN THE CONFIG'S OWN READ PERMISSION, ALONE (#7737); ITS MAIL
+ * SERVER CREDENTIALS BY NOBODY (#8989).
  *
  * A project's Call and SMS configs and SMTP configs are in the API reference
  * and the Terraform provider now. Every member who may see the project's
  * settings reads a config: its name, its Account SID, its mail server's
- * address. Its credentials - the Twilio auth token, the mail server's
- * password and OAuth client secret, the email providers' keys - are read by
- * the project's owners and admins, and by a custom role with Read Call and
- * SMS or Read SMTP Config, alone. A read that selects one is refused for
- * anybody else, saying who may read it: an API key - Terraform's - that may
- * not read the token gets that error, never a record without the token,
- * which a plan would take for the token being removed.
+ * address. The Twilio auth token is read by the project's owners and admins,
+ * and by a custom role with Read Call and SMS, alone. The mail server's
+ * credentials - its password and OAuth client secret, the email providers'
+ * keys - are write-only: written with the config and read by OneUptime alone,
+ * to send. A read that selects one is refused, saying who may read it, or
+ * that no permission does: an API key - Terraform's - that may not read the
+ * token gets that error, never a record without the token, which a plan
+ * would take for the token being removed.
  *
  * Driven through the real permission layer, no stubs, for a person and for
  * an API key.
@@ -39,8 +40,10 @@ interface Channel {
   modelType: ModelType;
   // Who reads the config: the model's own list.
   readers: Array<Permission>;
-  // Who reads its credentials too.
+  // Who reads its credentials too: nobody, for a write-only one.
   secretReaders: Array<Permission>;
+  // What a refused read of a credential says about who may read it.
+  whoMayRead: string;
   secrets: Array<string>;
   // Columns every reader reads.
   configuration: Record<string, boolean>;
@@ -66,6 +69,7 @@ const CHANNELS: Array<Channel> = [
       Permission.ProjectAdmin,
       Permission.ReadProjectCallSMSConfig,
     ],
+    whoMayRead: "Project Owner",
     secrets: ["twilioAuthToken"],
     configuration: {
       name: true,
@@ -82,11 +86,10 @@ const CHANNELS: Array<Channel> = [
     name: "SMTP Config",
     modelType: ProjectSmtpConfig,
     readers: [...SETTINGS_READERS, Permission.ReadProjectSMTPConfig],
-    secretReaders: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ReadProjectSMTPConfig,
-    ],
+    // Write-only (#8989): OneUptime reads them, to send.
+    secretReaders: [],
+    whoMayRead:
+      "No permission allows it: the column is not readable through the API.",
     secrets: [
       "password",
       "clientSecret",
@@ -213,7 +216,7 @@ describe.each(CHANNELS)(
     );
 
     test.each(CALLERS)(
-      "the owners, the admins and the config's own Read permission read each credential, as a %s",
+      "whoever may read a credential reads each one, as a %s",
       async (userType: UserType) => {
         for (const permission of channel.secretReaders) {
           for (const secret of channel.secrets) {
@@ -246,7 +249,7 @@ describe.each(CHANNELS)(
             expect((error as Error).message).toContain(
               `You do not have permissions to select on - ${secret}.`,
             );
-            expect((error as Error).message).toContain("Project Owner");
+            expect((error as Error).message).toContain(channel.whoMayRead);
           }
         }
       },
@@ -254,7 +257,8 @@ describe.each(CHANNELS)(
 
     /*
      * What the narrower roles hold together is still no credential: the
-     * project's member, its viewer and every settings role at once.
+     * project's member, its viewer and every settings role at once - and,
+     * for a write-only one, every role that reads the config.
      */
     test("the narrower roles together read no credential", async () => {
       for (const secret of channel.secrets) {

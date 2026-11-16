@@ -194,7 +194,10 @@ describe("BackfillMonitorFirstMeasuredAtForUptimeHistory", () => {
     expect(registered[registered.length - 1]).toBe(
       "AddAuditLogMcpClientColumns",
     );
-    expect(registered.indexOf(MIGRATION_NAME)).toBe(registered.length - 2);
+    // Before the last slot; migrations added since sit between the two.
+    expect(registered.indexOf(MIGRATION_NAME)).toBeLessThan(
+      registered.length - 1,
+    );
   });
 
   test("has the name the uptime statements wait for, and reads and writes Postgres only", () => {

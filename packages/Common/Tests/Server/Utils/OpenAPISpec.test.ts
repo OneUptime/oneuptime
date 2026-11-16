@@ -1045,6 +1045,12 @@ describe("OpenAPI specification", () => {
       secrets: Array<string>;
       // The secrets the spec also writes as format: password.
       passwords: Array<string>;
+      /*
+       * Whether a read answers the credentials. A project's mail
+       * credentials are write-only (#8989): written on create and update,
+       * never read back.
+       */
+      readsCredentialsBack: boolean;
     }
 
     const TWILIO: Channel = {
@@ -1054,6 +1060,7 @@ describe("OpenAPI specification", () => {
       resource: "call_and_sms_config",
       secrets: ["twilioAuthToken"],
       passwords: ["twilioAuthToken"],
+      readsCredentialsBack: true,
     };
 
     const MAIL: Channel = {
@@ -1070,18 +1077,17 @@ describe("OpenAPI specification", () => {
         "resendApiKey",
         "sendgridApiKey",
       ],
-      /*
-       * The encrypted keys, and the password, a Password column. The OAuth
-       * client secret is marked `secret` and keeps its text format.
-       */
+      // Every one is encrypted text now, the OAuth client secret included (#8989).
       passwords: [
         "amazonSesSecretAccessKey",
+        "clientSecret",
         "mailgunApiKey",
         "password",
         "postmarkServerToken",
         "resendApiKey",
         "sendgridApiKey",
       ],
+      readsCredentialsBack: false,
     };
 
     const CHANNELS: Array<Channel> = [TWILIO, MAIL];
@@ -1203,6 +1209,15 @@ describe("OpenAPI specification", () => {
       expect(description).not.toContain("SMTP");
     });
 
+    // The schemas a credential is in: a write-only one's are the writes'.
+    function holdsCredentials(channel: Channel, kind: string): boolean {
+      return (
+        channel.readsCredentialsBack ||
+        kind === "CreateSchema" ||
+        kind === "UpdateSchema"
+      );
+    }
+
     it.each(CHANNELS)(
       "marks each credential of $tableName secret, and nothing else",
       (channel: Channel) => {
@@ -1223,8 +1238,14 @@ describe("OpenAPI specification", () => {
             })
             .sort();
 
-          expect([kind, secrets]).toEqual([kind, channel.secrets]);
-          expect([kind, passwords]).toEqual([kind, channel.passwords]);
+          expect([kind, secrets]).toEqual([
+            kind,
+            holdsCredentials(channel, kind) ? channel.secrets : [],
+          ]);
+          expect([kind, passwords]).toEqual([
+            kind,
+            holdsCredentials(channel, kind) ? channel.passwords : [],
+          ]);
         }
       },
     );
@@ -1259,6 +1280,12 @@ describe("OpenAPI specification", () => {
         const dataSource: TerraformDataSource = getDataSource(channel);
 
         for (const name of getSnakeNames(channel.secrets)) {
+          // A lookup reads no write-only credential.
+          if (!channel.readsCredentialsBack) {
+            expect([name, dataSource.schema[name]]).toEqual([name, undefined]);
+            continue;
+          }
+
           expect([name, dataSource.schema[name]?.sensitive]).toEqual([
             name,
             true,
@@ -1274,11 +1301,13 @@ describe("OpenAPI specification", () => {
 
     /*
      * A credential is written on create and on every update that changes it,
-     * and read back, so a token changed in the configuration is sent and a
-     * refresh compares what the server holds.
+     * so a token changed in the configuration is sent. One that is read back
+     * lets a refresh compare what the server holds; a write-only one (a
+     * project's mail credentials, #8989) is never answered, and the provider
+     * keeps the value configured.
      */
     it.each(CHANNELS)(
-      "writes each credential of $resource on create and update, and reads it back",
+      "writes each credential of $resource on create and update, and reads back only what is not write-only",
       (channel: Channel) => {
         const resource: TerraformResource = getResource(channel);
 
@@ -1288,7 +1317,7 @@ describe("OpenAPI specification", () => {
             Boolean(resource.operationSchemas?.create?.[name]),
             Boolean(resource.operationSchemas?.update?.[name]),
             Boolean(resource.operationSchemas?.read?.[name]),
-          ]).toEqual([name, true, true, true]);
+          ]).toEqual([name, true, true, channel.readsCredentialsBack]);
         }
       },
     );

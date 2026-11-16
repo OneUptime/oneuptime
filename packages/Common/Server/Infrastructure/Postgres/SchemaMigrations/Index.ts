@@ -1031,6 +1031,7 @@ import { DropOnCallExecutionLogStepIndexes1809182000000 } from "./1809182000000-
 import { AddScheduleRosterRefreshDueAt1809182100000 } from "./1809182100000-AddScheduleRosterRefreshDueAt";
 import { AddScheduleRosterRefreshDueAtIndex1809182110000 } from "./1809182110000-AddScheduleRosterRefreshDueAtIndex";
 import { AddCodeRepositoryMintedToken1809182200000 } from "./1809182200000-AddCodeRepositoryMintedToken";
+import { ProjectCredentialsEncryptedColumns1809182300000 } from "./1809182300000-ProjectCredentialsEncryptedColumns";
 
 export default [
   InitialMigration,
@@ -2066,4 +2067,5 @@ export default [
   AddScheduleRosterRefreshDueAt1809182100000,
   AddScheduleRosterRefreshDueAtIndex1809182110000,
   AddCodeRepositoryMintedToken1809182200000,
+  ProjectCredentialsEncryptedColumns1809182300000,
 ];
