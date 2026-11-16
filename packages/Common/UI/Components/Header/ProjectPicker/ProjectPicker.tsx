@@ -9,6 +9,7 @@ import {
   getProjectPickerMenuPlacement,
   ProjectPickerMenuPlacement,
 } from "./ProjectPickerMenuPlacement";
+import { createProjectSearch, ProjectSearch } from "./ProjectSearch";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Project from "../../../../Models/DatabaseModels/Project";
 import React, {
@@ -17,6 +18,7 @@ import React, {
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -98,7 +100,8 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
 
   const [isDropdownVisible, setDropdownVisible] = useState<boolean>(false);
 
-  const [filterValue, setFilterValue] = useState<string>("");
+  // What is typed in the list's search box, as typed.
+  const [searchText, setSearchText] = useState<string>("");
 
   const ids: ProjectPickerIds = getProjectPickerIds(useId());
 
@@ -121,7 +124,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     setDropdownVisible(isComponentVisible);
-    setFilterValue("");
+    setSearchText("");
     setActiveRowId(undefined);
 
     if (!isComponentVisible) {
@@ -133,16 +136,31 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
   const buttonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
 
-  const listedProjects: Array<Project> = (props.projects || []).filter(
-    (project: Project) => {
-      if (!filterValue) {
-        return true;
-      }
-      return Boolean(
-        project.name && project.name.toLowerCase().startsWith(filterValue),
-      );
-    },
-  );
+  /*
+   * The projects the search finds, best match first, matched as Search
+   * (Cmd/Ctrl+K) matches a page's name (ProjectSearch). Each name is read
+   * once per list, and the search runs again only when what is typed
+   * changes, not on every key that moves through the rows.
+   */
+  const projectSearch: ProjectSearch = useMemo((): ProjectSearch => {
+    return createProjectSearch(props.projects || []);
+  }, [props.projects]);
+
+  const listedProjects: Array<Project> = useMemo((): Array<Project> => {
+    return projectSearch(searchText);
+  }, [projectSearch, searchText]);
+
+  /*
+   * A search that finds no project says so and offers no Create New Project
+   * (Docs/ux/README.md#empty-states-and-suggestions). With that row the only
+   * one left, a search for a project spelled another way read as a project
+   * that was gone, with a new one as the way out.
+   */
+  const foundNothing: boolean =
+    searchText.trim().length > 0 && listedProjects.length === 0;
+
+  const showsCreateRow: boolean =
+    !props.hideCreateProjectButton && !foundNothing;
 
   const closeList: () => void = (): void => {
     setIsComponentVisible(false);
@@ -160,7 +178,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
         },
       };
     }),
-    ...(!props.hideCreateProjectButton
+    ...(showsCreateRow
       ? [
           {
             id: ids.createRow,
@@ -366,9 +384,11 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
               onSearchKeyDown={onSearchKeyDown}
               focusSearch={openedFromKeyboard}
               onSearchFocusChange={setIsSearchFocused}
+              searchText={searchText}
+              listedProjectCount={listedProjects.length}
               onFilter={(value: string) => {
-                setFilterValue(value.toLowerCase().trim());
-                // A new search starts on its first row.
+                setSearchText(value);
+                // A new search starts on its first row: its best match.
                 setActiveRowId(undefined);
               }}
             >
@@ -386,6 +406,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
                         setActiveRowId(rowId);
                       }}
                       project={project}
+                      searchText={searchText}
                       onProjectSelected={(project: Project) => {
                         closeList();
                         props.onProjectSelected(project);
@@ -395,7 +416,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
                   );
                 })}
               </>
-              {!props.hideCreateProjectButton ? (
+              {showsCreateRow ? (
                 <CreateNewProjectButton
                   id={ids.createRow}
                   isActive={ids.createRow === activeRow?.id}
