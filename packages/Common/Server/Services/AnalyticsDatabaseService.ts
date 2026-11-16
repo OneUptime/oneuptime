@@ -681,10 +681,15 @@ export default class AnalyticsDatabaseService<
    * window - the query and `valueColumnName = value` and
    * `timeColumnName >= startsAt AND timeColumnName <= endsAt`, both ends in
    * as InBetween has them - would count, read with the same permission
-   * check, retention filter and time limit (a partial count when it runs
-   * out, as a countBy's). The AI insight scan counts each exception's
-   * occurrences in its two windows this way: one statement a project, not
-   * two an exception.
+   * check, retention filter and time limit as a count. The AI insight scan
+   * counts each exception's occurrences in its two windows this way: one
+   * statement a project, not two an exception.
+   *
+   * A statement that runs out of its time fails (QueryTimeoutException):
+   * ClickHouse answers a grouped read it breaks off with an empty or cut-off
+   * body (ExplorerReadsStopWithErrorGuard), never with counts to trust. The
+   * scan then files nothing from the detector for the project, as when its
+   * counts broke off at 0, and reads again on its next tick.
    *
    * Returns, for each value that has a row in any window, its count in each
    * window, in the order the windows were given. A value with no row in any
@@ -793,7 +798,7 @@ export default class AnalyticsDatabaseService<
         .append(
           getQuerySettings({
             maxExecutionTimeInSeconds: COUNT_MAX_EXECUTION_TIME_IN_SECONDS,
-            timeoutOverflowMode: "break",
+            timeoutOverflowMode: "throw",
           }),
         );
 
