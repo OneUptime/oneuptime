@@ -94,6 +94,7 @@ Los servicios, los hosts, los clústeres de Kubernetes, los hosts de Docker y Po
 | Registros de monitores, una fila por comprobación | 1 día, salvo que lo cambie | En una instalación autoalojada, **Retención de registros del monitor (días)** en el Admin Dashboard |
 | Métricas de monitores, y las métricas que registran los SLO | 30 días, salvo que lo cambie | En una instalación autoalojada, **Retención de métricas del monitor (días)** en el Admin Dashboard |
 | [Uso de telemetría](/docs/telemetry/usage), un recuento por recurso, señal y día | 120 días, salvo que lo cambie | En una instalación autoalojada, **Retención del uso de telemetría (días)** en el Admin Dashboard |
+| Incidentes y alertas resueltos, con sus cronologías, notas y archivos | Hasta que el proyecto elija una duración | **Incidentes → Ajustes → Retención de datos** y **Alertas → Ajustes → Retención de datos**: consulte [Retención de datos](/docs/incidents/settings#retención-de-datos). En una instalación autoalojada, **Conservar como máximo** en el Admin Dashboard somete todos los proyectos a un límite |
 
 ## Lo que cuesta la retención
 

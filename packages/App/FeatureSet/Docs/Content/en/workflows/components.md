@@ -67,6 +67,8 @@ Make an HTTP request to any URL. There is one block per method: **API Get (JSON)
 
 Either way, the block returns **Response Status**, **Response Headers** and **Response Body**, plus **Error** with the reason when it failed. Read one field of a JSON response by adding its name to the reference, as in `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+A block reads at most 10 MB of an answer. A larger answer is not read: the block takes **Error**, with the reason.
+
 Redirects are not followed, so point the block at the address that answers. Requests go out from OneUptime: a URL that resolves to a private network address is refused unless a self-hosted administrator allows it, and the run stops with the reason. See [Outbound network access](/docs/workflows/configuration#outbound-network-access).
 
 **API Get By ID (JSON)** reads one item by an ID that came from somewhere else, such as the issue key a webhook sent. Put `{id}` in its **URL** where the ID goes, as in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, and the ID in **ID**. The block puts the ID in only when it is a plain ID, at most 200 letters, digits, dashes and underscores, and percent-encodes it all the same: anything else, such as `x/../users`, takes **Error** before any request is sent, so text from outside cannot point the request somewhere else. Otherwise it works as **API Get (JSON)** does, and returns the same values.

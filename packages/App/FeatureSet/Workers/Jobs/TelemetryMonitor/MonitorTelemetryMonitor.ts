@@ -354,12 +354,10 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
           /*
            * Not a project a master admin blocked: its monitors wait, due,
            * until it is unblocked (MonitorResource refuses any that slip
-           * through). Nor a sample project (issue #6808), whose monitors are
-           * never checked.
+           * through).
            */
           project: {
             isBlocked: false,
-            isSampleProject: false,
           },
           ...(afterId ? { _id: DatabaseQueryHelper.greaterThan(afterId) } : {}),
         },

@@ -138,6 +138,8 @@ describe("the bundled global Runner in Docker Compose", () => {
         "ONEUPTIME_URL",
         "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
         "OPENTELEMETRY_EXPORTER_OTLP_HEADERS",
+        // How its own metrics are sent, beside the exporter's settings (#6760).
+        "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE",
         "PORT",
       ].sort(),
     );

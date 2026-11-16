@@ -64,6 +64,7 @@ import {
 } from "Common/Utils/Project/TwilioAccount";
 import TwilioSendError, { TwilioSendKind } from "../Utils/TwilioSendError";
 import { withProviderConfig } from "../Utils/StatusCallbackProviderConfig";
+import { withRetryOnServerError } from "../Utils/StatusCallbackRetry";
 import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
@@ -369,10 +370,13 @@ export default class SmsService {
          * this SMS, are told what is missing and who can add it - and, when
          * the project's own config is used for calls only, that it is
          * (Utils/Project/TwilioAccount) - not "Twilio Config not found".
+         * A status page's SMS was handed the page's own config, not the
+         * project's default.
          */
         throw new BadDataException(
           getNoTwilioAccountMessage(TwilioMessageKind.SMS, {
             projectConfigUse: options.customTwilioConfig?.use,
+            isStatusPageConfig: Boolean(options.statusPageId),
           }),
         ).asUserError();
       }
@@ -568,13 +572,16 @@ export default class SmsService {
            * Nginx rewrites the external /notification path to /api/notification,
            * which is where the SMS router (and the /status-callback route) is mounted.
            * It says whose Twilio account the SMS goes out on, for the delivery
-           * metrics (StatusCallbackProviderConfig).
+           * metrics (StatusCallbackProviderConfig), and asks Twilio to send
+           * it again when this server could not take it (StatusCallbackRetry).
            */
-          statusCallbackUrl = withProviderConfig(
-            `${HttpProtocol}${Host}/notification/sms/status-callback/${smsLogId.toString()}/${smsLog.statusCallbackToken}`,
-            customTwilioConfig
-              ? NotificationProviderConfig.Project
-              : NotificationProviderConfig.Global,
+          statusCallbackUrl = withRetryOnServerError(
+            withProviderConfig(
+              `${HttpProtocol}${Host}/notification/sms/status-callback/${smsLogId.toString()}/${smsLog.statusCallbackToken}`,
+              customTwilioConfig
+                ? NotificationProviderConfig.Project
+                : NotificationProviderConfig.Global,
+            ),
           );
         }
       }
@@ -638,6 +645,7 @@ export default class SmsService {
           throw new BadDataException(
             getNoTwilioAccountMessage(TwilioMessageKind.SMS, {
               projectConfigUse: options.customTwilioConfig?.use,
+              isStatusPageConfig: Boolean(options.statusPageId),
             }),
           ).asUserError();
         }

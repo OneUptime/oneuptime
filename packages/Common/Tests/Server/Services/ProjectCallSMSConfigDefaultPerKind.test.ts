@@ -1,7 +1,11 @@
+import Project from "../../../Models/DatabaseModels/Project";
 import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import IncomingCallPolicyPhoneNumberService from "../../../Server/Services/IncomingCallPolicyPhoneNumberService";
 import IncomingCallPolicyService from "../../../Server/Services/IncomingCallPolicyService";
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import UserCallService from "../../../Server/Services/UserCallService";
 import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
@@ -16,7 +20,10 @@ import Permission, {
 } from "../../../Types/Permission";
 import Phone from "../../../Types/Phone";
 import UserType from "../../../Types/UserType";
-import { TwilioMessageKind } from "../../../Utils/Project/TwilioAccount";
+import {
+  getNoTwilioAccountMessage,
+  TwilioMessageKind,
+} from "../../../Utils/Project/TwilioAccount";
 import { getJestSpyOn } from "../../Spy";
 import {
   InMemoryTable,
@@ -438,6 +445,56 @@ describe("Stop Using as Project Default", () => {
     expect(TwilioPhoneNumbers.canSend(forCalls, TwilioMessageKind.Call)).toBe(
       false,
     );
+  });
+
+  /*
+   * Then, with no account of the server's that makes calls, nothing can
+   * make the call: a person adding a number for calls is told why, and the
+   * fix this project needs - its config for calls made the default for
+   * calls again - not only to use its SMS config for calls too, which its
+   * numbers cannot do (#6603).
+   */
+  test("with no server account either, a number for calls is told to make the config for calls the default for calls again - and once it is, its code goes", async () => {
+    await create({ name: "SMS", use: TwilioConfigUse.SmsOnly });
+    const calls: ProjectCallSMSConfig = await create({
+      name: "Calls",
+      use: TwilioConfigUse.CallsOnly,
+      isProjectDefault: true,
+    });
+
+    await setDefault(calls, false);
+
+    const project: Project = new Project();
+    project._id = PROJECT_ID.toString();
+    project.enableCallNotifications = true;
+    project.smsOrCallCurrentBalanceInUSDCents = 100000;
+
+    getJestSpyOn(ProjectService, "findOneById").mockResolvedValue(project);
+    // The server has no Twilio account, and no gateway.
+    getJestSpyOn(GlobalConfigService, "findOneBy").mockResolvedValue(null);
+
+    const reason: string | null =
+      await UserCallService.getReasonCodeCannotBeSent(PROJECT_ID);
+
+    expect(reason).toBe(
+      getNoTwilioAccountMessage(TwilioMessageKind.Call, {
+        projectConfigUse: TwilioConfigUse.SmsOnly,
+      }),
+    );
+    expect(reason).toMatch(
+      /^This project's default Twilio config is used for SMS only, and no other Twilio account is set up to make phone calls\. /,
+    );
+    expect(reason).toContain(
+      "make a config used for calls only the project default for calls (Set as Project Default for Calls in its row's menu)",
+    );
+
+    // Done as it says: the config for calls, the default for calls again.
+    await setDefault(calls, true);
+
+    expect(defaults()).toEqual({ SMS: "sms", Calls: "calls" });
+    await expect(
+      UserCallService.getReasonCodeCannotBeSent(PROJECT_ID),
+    ).resolves.toBeNull();
   });
 });
 

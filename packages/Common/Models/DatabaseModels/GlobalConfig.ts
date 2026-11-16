@@ -18,6 +18,7 @@ import OAuthProviderType from "../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
 import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import IconProp from "../../Types/Icon/IconProp";
+import HashedString from "../../Types/HashedString";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
@@ -1381,27 +1382,35 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   /*
-   * Stored as it is, not encrypted as the credentials above are: a request
-   * names the key, and ProjectAuthorization.isMasterApiKey finds the row
-   * by it (WHERE "masterApiKey" = the key). An encrypted value differs on
-   * every write, so no lookup by value could match it. It is a uuid
-   * column, too, which holds no ciphertext.
+   * The master API key, hashed (#7901): the SHA-256 of the key with the
+   * server's ENCRYPTION_SECRET (Common/Server/Utils/MasterApiKey), as the
+   * server's other minted tokens are kept. Not encrypted as the
+   * credentials above are: a request names the key, and it is matched by
+   * hash (ProjectAuthorization.isMasterApiKey), which no ciphertext could
+   * be. So the key itself is shown once, when it is made
+   * (GlobalConfigService.createMasterApiKey), and never again. Neither it
+   * nor its hash is read or written through the API: the generic API
+   * drops the column (ROOT_ONLY_MASTER_API_KEY_COLUMNS).
+   *
+   * A value stored before it was hashed is a uuid, until the
+   * HashMasterApiKey data migration hashes it; the lookup takes that too.
    */
   @TableColumn({
-    secret: true,
-    type: TableColumnType.ObjectID,
+    type: TableColumnType.HashedString,
     computed: true,
     title: "Master API Key",
     description:
-      "This API key has root access to all the resources in all the projects on OneUptime.",
+      "SHA-256 of the API key that has root access to every project on this server.",
+    hideColumnInDocumentation: true,
   })
   @Column({
-    type: ColumnType.ObjectID,
+    type: ColumnType.HashedString,
+    length: ColumnLength.HashedString,
     nullable: true,
     unique: true,
-    transformer: ObjectID.getDatabaseTransformer(),
+    transformer: HashedString.getDatabaseTransformer(),
   })
-  public masterApiKey?: ObjectID = undefined;
+  public masterApiKey?: HashedString = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -1997,6 +2006,84 @@ export default class GlobalConfig extends GlobalConfigModel {
     nullable: true,
   })
   public telemetryUsageRetentionInDays?: number = undefined;
+
+  /*
+   * The server's limits on how long projects keep resolved incidents and
+   * alerts (issue #6941, Admin Dashboard > Settings > Data Retention; Types/
+   * Retention/ResolvedRecordRetention): the longest any project keeps one -
+   * a project set to Never, or to longer, is held to it - and where a new
+   * project starts. Each one of the project choices (30, 60, 90, 180, 365,
+   * 730 or 1095 days), or empty: no maximum, and new projects at Never,
+   * where every server starts. Written only by master admins, checked by
+   * GlobalConfigService.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Maximum Incident Retention Days",
+    description:
+      "The longest any project keeps a resolved incident: 30, 60, 90, 180, 365, 730 or 1095 days. A project set to Never, or to a longer length, deletes resolved incidents after this. Empty (the default) is no maximum.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public maxIncidentRetentionInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Maximum Alert Retention Days",
+    description:
+      "The longest any project keeps a resolved alert: 30, 60, 90, 180, 365, 730 or 1095 days. A project set to Never, or to a longer length, deletes resolved alerts after this. Empty (the default) is no maximum.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public maxAlertRetentionInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Default Incident Retention Days",
+    description:
+      "How long a new project keeps a resolved incident until its owners change it: 30, 60, 90, 180, 365, 730 or 1095 days. Empty (the default) is Never. Projects that exist keep their own setting.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public defaultIncidentRetentionInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Default Alert Retention Days",
+    description:
+      "How long a new project keeps a resolved alert until its owners change it: 30, 60, 90, 180, 365, 730 or 1095 days. Empty (the default) is Never. Projects that exist keep their own setting.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public defaultAlertRetentionInDays?: number = undefined;
 
   @ColumnAccessControl({
     create: [],

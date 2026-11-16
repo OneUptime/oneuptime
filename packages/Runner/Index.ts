@@ -206,6 +206,21 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     );
 
     /*
+     * The code-fix lane's directories - a fix's workspace, its Git
+     * credentials helper - made private and this Runner's own before any
+     * step can run. A global Runner runs each JavaScript step as a user of
+     * its own: one whose code got out of its sandbox must find nothing of a
+     * fix to read, nor be first to make a directory a fix writes under
+     * (PrivateDirectory). The Kubernetes agent's Runner takes no code fixes.
+     */
+    if (!IS_KUBERNETES_AGENT_MODE) {
+      await WorkspaceManager.initialize();
+      await GitCredentials.initialize().catch((error: unknown) => {
+        logger.error(error, { serviceName: APP_NAME } as LogAttributes);
+      });
+    }
+
+    /*
      * Both loops start whenever they are possible AT ALL for this Runner,
      * and each one checks the live capability on every tick. That is what
      * lets a dashboard toggle take effect within a heartbeat: there is no
@@ -236,10 +251,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
        * mid-run (an OOM, a node drain, a deploy). Without this sweep those
        * clones accumulate for the life of the volume until the Runner
        * cannot clone at all, and the failure surfaces as unexplained fix
-       * runs failing rather than as a full disk.
+       * runs failing rather than as a full disk. (The base directory was
+       * made above, before the runbook loop started.)
        */
-      await WorkspaceManager.initialize();
-
       const reapedWorkspaces: number =
         await WorkspaceManager.cleanupOldWorkspaces();
       const reapedHelpers: number = await GitCredentials.cleanupOrphans();

@@ -68,7 +68,7 @@ export default class UptimeDailyAggregateUtil {
    */
   public static bucketsToJSON(buckets: Array<UptimeDayBucket>): JSONArray {
     return buckets.map((bucket: UptimeDayBucket): JSONObject => {
-      return {
+      const json: JSONObject = {
         bucketStart: bucket.bucketStart.toISOString(),
         bucketEnd: bucket.bucketEnd.toISOString(),
         daySeconds: bucket.daySeconds,
@@ -82,6 +82,16 @@ export default class UptimeDailyAggregateUtil {
           },
         ),
       };
+
+      /*
+       * Written only for a day monitoring was off in, so the payload of a
+       * page whose monitors were on every day stays as small as it was.
+       */
+      if (bucket.monitoringOffSeconds && bucket.monitoringOffSeconds > 0) {
+        json["monitoringOffSeconds"] = bucket.monitoringOffSeconds;
+      }
+
+      return json;
     });
   }
 
@@ -133,13 +143,23 @@ export default class UptimeDailyAggregateUtil {
         }
       }
 
-      buckets.push({
+      const parsed: UptimeDayBucket = {
         bucketStart: bucketStart,
         bucketEnd: bucketEnd,
         daySeconds: Number(bucket["daySeconds"]) || 0,
         coveredSeconds: Number(bucket["coveredSeconds"]) || 0,
         statusDurations: statusDurations,
-      });
+      };
+
+      // A day monitoring was off in (issue #7112); absent reads as none.
+      const monitoringOffSeconds: number =
+        Number(bucket["monitoringOffSeconds"]) || 0;
+
+      if (monitoringOffSeconds > 0) {
+        parsed.monitoringOffSeconds = monitoringOffSeconds;
+      }
+
+      buckets.push(parsed);
     }
 
     return buckets;

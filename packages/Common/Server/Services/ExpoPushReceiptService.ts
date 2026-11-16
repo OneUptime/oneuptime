@@ -59,8 +59,11 @@ import UserNotificationStatus from "../../Types/UserNotification/UserNotificatio
  * the relay, which holds the access token (its POST /receipts).
  *
  * A receipt that is not ready yet, or could not be fetched, is looked for
- * again later, until Expo has cleared it (ExpoPushReceiptQueue). Nothing
- * here throws for one receipt's sake: a run handles what it can.
+ * again later, until Expo has cleared it (ExpoPushReceiptQueue). So is one
+ * saying a push was not delivered whose push log or timeline row could not
+ * be told - the database failed - kept as counted, so it is not counted
+ * again (issue #6874). Nothing here throws for one receipt's sake: a run
+ * handles what it can.
  */
 
 export const EXPO_PUSH_RECEIPT_CHECK_JOB_NAME: string =
@@ -110,6 +113,11 @@ export interface ExpoPushReceiptCheckSummary {
   notReadyYet: number;
   // Expo or the relay could not be asked: looked for again later.
   couldNotFetch: number;
+  /*
+   * Not delivered, but the push log or the page's timeline row could not be
+   * told - the database failed: read again later, and written then.
+   */
+  couldNotRecord: number;
   // Past the day Expo keeps receipts: not looked for again.
   gaveUp: number;
   /*
@@ -140,6 +148,7 @@ export default class ExpoPushReceiptService {
       tokensMarkedGone: 0,
       notReadyYet: 0,
       couldNotFetch: 0,
+      couldNotRecord: 0,
       gaveUp: 0,
       dropped: 0,
     };
@@ -200,7 +209,7 @@ export default class ExpoPushReceiptService {
 
     if (run.summary.checked > 0) {
       logger.info(
-        `Expo push receipts: read ${run.summary.checked}; ${run.summary.delivered} delivered, ${run.summary.notDelivered} not delivered (${run.summary.tokensMarkedGone} gone token(s) marked), ${run.summary.notReadyYet} not ready yet, ${run.summary.couldNotFetch} could not be fetched, ${run.summary.gaveUp} given up, ${run.summary.dropped} dropped.`,
+        `Expo push receipts: read ${run.summary.checked}; ${run.summary.delivered} delivered, ${run.summary.notDelivered} not delivered (${run.summary.tokensMarkedGone} gone token(s) marked), ${run.summary.notReadyYet} not ready yet, ${run.summary.couldNotFetch} could not be fetched, ${run.summary.couldNotRecord} could not be recorded, ${run.summary.gaveUp} given up, ${run.summary.dropped} dropped.`,
       );
     }
 
@@ -350,6 +359,13 @@ export default class ExpoPushReceiptService {
       notDelivered.push({ entry: entry, receipt: receipt });
     }
 
+    /*
+     * Not delivered, but not written down: the push log or the page's row
+     * could not be told, the database failing. Read again later - Expo
+     * keeps a receipt for a day - and written then; counted already.
+     */
+    const notRecorded: Array<PendingExpoPushReceipt> = [];
+
     // A few at a time (EXPO_PUSH_RECEIPT_NOT_DELIVERED_CONCURRENCY).
     for (
       let start: number = 0;
@@ -360,18 +376,23 @@ export default class ExpoPushReceiptService {
         notDelivered
           .slice(start, start + EXPO_PUSH_RECEIPT_NOT_DELIVERED_CONCURRENCY)
           .map(
-            (item: {
+            async (item: {
               entry: PendingExpoPushReceipt;
               receipt: {
                 message: string;
                 details?: { error?: string | undefined } | undefined;
               };
             }): Promise<void> => {
-              return ExpoPushReceiptService.handleNotDelivered(
-                item.entry,
-                item.receipt,
-                run,
-              );
+              const isRecorded: boolean =
+                await ExpoPushReceiptService.handleNotDelivered(
+                  item.entry,
+                  item.receipt,
+                  run,
+                );
+
+              if (!isRecorded) {
+                notRecorded.push({ ...item.entry, isDeliveryCounted: true });
+              }
             },
           ),
       );
@@ -382,8 +403,15 @@ export default class ExpoPushReceiptService {
       run,
       "notReadyYet",
     );
+
+    await ExpoPushReceiptService.lookAgainLater(
+      notRecorded,
+      run,
+      "couldNotRecord",
+    );
   }
 
+  // Whether the push log and the page's row were told (recordNotDelivered).
   private static async handleNotDelivered(
     entry: PendingExpoPushReceipt,
     receipt: {
@@ -391,7 +419,7 @@ export default class ExpoPushReceiptService {
       details?: { error?: string | undefined } | undefined;
     },
     run: CheckRun,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const code: string | undefined = receipt.details?.error || undefined;
 
     // The phone's app is gone, or Expo, Apple or Google could not send it.
@@ -455,23 +483,29 @@ export default class ExpoPushReceiptService {
       });
     }
 
-    await ExpoPushReceiptService.recordNotDelivered(entry, message);
+    return await ExpoPushReceiptService.recordNotDelivered(entry, message);
   }
 
   /*
    * A push's final status, for the platform's operator
    * (NotificationDeliveryMetrics): counted once, as its receipt is read once
    * - its entry was taken from the queue by this run alone, and is not kept
-   * to read again. On the way it was sent (Expo with this installation's
-   * access token, or the push relay) and as an on-call page when it was one,
-   * as notification.send.count said them. Not timed: a receipt says whether
-   * Apple or Google took the push, not when, and it is read 15 minutes or
-   * more after the send. Never throws.
+   * to read again, unless what it says could not be written down: then it
+   * is kept counted, and not counted when read again. On the way it was
+   * sent (Expo with this installation's access token, or the push relay)
+   * and as an on-call page when it was one, as notification.send.count said
+   * them. Not timed: a receipt says whether Apple or Google took the push,
+   * not when, and it is read 15 minutes or more after the send. Never
+   * throws.
    */
   private static recordDelivery(
     entry: PendingExpoPushReceipt,
     status: NotificationDeliveryStatus,
   ): void {
+    if (entry.isDeliveryCounted) {
+      return;
+    }
+
     NotificationDeliveryMetrics.recordDelivery({
       channel: NotificationDeliveryChannel.Push,
       provider:
@@ -521,13 +555,16 @@ export default class ExpoPushReceiptService {
    * was sent - the timeline row, or that it is going out - and the row at
    * the version read: a page that was acknowledged meanwhile, even between
    * the read and the write, keeps saying so. Each failure is logged and the
-   * other still written.
+   * other still written. Whether both were told - false when either failed,
+   * the database's, so the receipt is read again later and they are told
+   * then: a row told already is not written again.
    */
   private static async recordNotDelivered(
     entry: PendingExpoPushReceipt,
     message: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const statusMessage: string = message.substring(0, ColumnLength.LongText);
+    let isRecorded: boolean = true;
 
     if (entry.pushNotificationLogId) {
       try {
@@ -545,8 +582,9 @@ export default class ExpoPushReceiptService {
           },
         });
       } catch (err) {
+        isRecorded = false;
         logger.error(
-          `Expo push receipts: could not record on push log ${entry.pushNotificationLogId} that its push was not delivered: ${err}`,
+          `Expo push receipts: could not record on push log ${entry.pushNotificationLogId} that its push was not delivered; its receipt is read again later: ${err}`,
         );
       }
     }
@@ -564,17 +602,20 @@ export default class ExpoPushReceiptService {
           statusMessage: statusMessage,
         });
       } catch (err) {
+        isRecorded = false;
         logger.error(
-          `Expo push receipts: could not record on on-call timeline ${entry.userOnCallLogTimelineId} that its push was not delivered: ${err}`,
+          `Expo push receipts: could not record on on-call timeline ${entry.userOnCallLogTimelineId} that its push was not delivered; its receipt is read again later: ${err}`,
         );
       }
     }
+
+    return isRecorded;
   }
 
   private static async lookAgainLater(
     pending: Array<PendingExpoPushReceipt>,
     run: CheckRun,
-    reason: "notReadyYet" | "couldNotFetch",
+    reason: "notReadyYet" | "couldNotFetch" | "couldNotRecord",
   ): Promise<void> {
     if (pending.length === 0) {
       return;

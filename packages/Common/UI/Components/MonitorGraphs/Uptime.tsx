@@ -13,6 +13,8 @@ import {
   UptimeStatusDuration,
 } from "../../../Types/StatusPage/UptimeDailyAggregate";
 import UptimeUtil from "./UptimeUtil";
+import { MonitoringOffSpan } from "../../../Utils/Uptime/UptimeUtil";
+import { DaySpan } from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import Color from "../../../Types/Color";
 import CommonMonitorEvent from "../../../Utils/Uptime/MonitorEvent";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
@@ -93,6 +95,23 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
     });
   }, [props.items, props.downtimeMonitorStatuses]);
 
+  /*
+   * Painted from the rows, a day's time with monitoring off is what the rows
+   * that mark it cover (issue #7112): a day nothing was checked on, but
+   * monitoring was off for, says so. With buckets, each day's reading says.
+   */
+  const monitoringOffSpans: Array<DaySpan> | undefined = useMemo(() => {
+    if (props.uptimeBuckets) {
+      return undefined;
+    }
+
+    return UptimeUtil.getMonitoringOffSpans(props.items).map(
+      (span: MonitoringOffSpan): DaySpan => {
+        return { startDate: span.startDate, endDate: span.endDate };
+      },
+    );
+  }, [props.items, props.uptimeBuckets]);
+
   const barColorRules: Array<BarChartRule> = useMemo(() => {
     return (props.barColorRules || []).map(
       (rule: StatusPageHistoryChartBarColorRule): BarChartRule => {
@@ -133,6 +152,8 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
         dayStart: bucket.bucketStart,
         daySeconds: bucket.daySeconds,
         coveredSeconds: bucket.coveredSeconds,
+        // The day's time with monitoring off, which no status holds (#7112).
+        monitoringOffSeconds: bucket.monitoringOffSeconds,
         statusDurations: bucket.statusDurations.map(
           (duration: UptimeStatusDuration): StatusDuration => {
             const statusId: string = duration.monitorStatusId.toString();
@@ -179,6 +200,7 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
       endDate={props.endDate}
       events={events}
       dayReadings={dayReadings}
+      monitoringOffSpans={monitoringOffSpans}
       timezone={props.uptimeTimezone}
       defaultBarColor={props.defaultBarColor}
       height={props.height}

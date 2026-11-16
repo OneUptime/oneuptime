@@ -424,6 +424,30 @@ describe("config.env", () => {
     );
   });
 
+  /*
+   * A name that is not a domain name (#8877), which the app stops at as it
+   * starts: the doctor says what npm start stops on, as a thing to fix.
+   */
+  test("a HOST with a character no domain name has is something to fix, saying which", () => {
+    expect(
+      configFindings(
+        settingsOf(["HOST=oneuptime,example.com", "HTTP_PROTOCOL=http"]),
+        {},
+      ),
+    ).toEqual([
+      finding(
+        "fix",
+        'HOST in config.env is oneuptime,example.com, which is not a domain name: a domain name has the letters a to z, digits, hyphens and dots only, and "," is none of them.',
+      ),
+    ]);
+    expect(
+      configFindings(
+        settingsOf(["HOST=bücher.example:8443", "HTTP_PROTOCOL=https"]),
+        {},
+      )[0].message,
+    ).toContain("Write HOST=xn--bcher-kva.example:8443.");
+  });
+
   test.each([
     "[2001:db8::1]",
     "[2001:db8::1]:8080",
@@ -431,6 +455,8 @@ describe("config.env", () => {
     "203.0.113.7:8080",
     "oneuptime.example.com",
     "oneuptime.example.com:8080",
+    "one_uptime.example.com",
+    "xn--bcher-kva.example:8080",
   ])("HOST=%s, with a port or without, says nothing", (host) => {
     expect(
       configFindings(settingsOf([`HOST=${host}`, "HTTP_PROTOCOL=https"]), {}),
@@ -1197,6 +1223,9 @@ describe("npm run doctor", () => {
     "http://oneuptime.example.com/",
     "0.0.0.0",
     "[oneuptime.example.com]",
+    // Not a domain name (#8877): the app stops at its start with either.
+    "oneuptime,example.com",
+    "one_uptime-.example.com:8443",
   ])(
     "HOST=%s, which npm start stops on, is never asked for from outside",
     async (host) => {

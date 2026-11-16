@@ -433,10 +433,13 @@ describe("every env value a chart template writes as one action is quoted", () =
       [
         'HelmChart/Public/oneuptime/templates/_helpers.tpl: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}',
         'HelmChart/Public/oneuptime/templates/_helpers.tpl: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}',
+        'HelmChart/Public/oneuptime/templates/_helpers.tpl: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.metricsTemporality }}',
         'HelmChart/Public/oneuptime/templates/global-runner.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}',
         'HelmChart/Public/oneuptime/templates/global-runner.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}',
+        'HelmChart/Public/oneuptime/templates/global-runner.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.metricsTemporality }}',
         'HelmChart/Public/oneuptime/templates/probe.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}',
         'HelmChart/Public/oneuptime/templates/probe.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}',
+        'HelmChart/Public/oneuptime/templates/probe.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.metricsTemporality }}',
       ].sort(),
     );
   });
@@ -944,6 +947,59 @@ describe("the oneuptime chart hands every credential and free-text setting to it
       expect([...holders].sort()).toEqual(EXPORTER_WORKLOADS);
     },
   );
+
+  /*
+   * openTelemetryExporter.metricsTemporality (#6760): the OTLP metric exporter
+   * of every workload that sends OneUptime's own telemetry reads it, so each
+   * of them gets it, and only once; unset, none does, and every exporter keeps
+   * its default, cumulative.
+   */
+  testWithHelm(
+    "the metrics temporality reaches every workload that sends OneUptime's own telemetry, and none without it",
+    () => {
+      const holdersOf = (documents) => {
+        const holders = [];
+
+        for (const [workload, entry] of envEntries(documents)) {
+          if (
+            entry.name === "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE"
+          ) {
+            expect({ workload, value: entry.value }).toEqual({
+              workload,
+              value: "delta",
+            });
+            holders.push(workload);
+          }
+        }
+
+        return holders.sort();
+      };
+
+      expect(
+        holdersOf(
+          render(
+            deepMerge(ALL_ON, {
+              openTelemetryExporter: {
+                endpoint: "https://oneuptime.example.com/otlp",
+                headers: "x-oneuptime-token=key",
+                metricsTemporality: "delta",
+              },
+            }),
+          ),
+        ),
+      ).toEqual(EXPORTER_WORKLOADS);
+      expect(holdersOf(render(ALL_ON))).toEqual([]);
+      expect(
+        holdersOf(
+          render(
+            deepMerge(ALL_ON, {
+              openTelemetryExporter: { metricsTemporality: "" },
+            }),
+          ),
+        ),
+      ).toEqual([]);
+    },
+  );
 });
 
 /*
@@ -954,6 +1010,9 @@ describe("the oneuptime chart hands every credential and free-text setting to it
  * two sides disagree: KEDA's TriggerAuthentication presented "key\n" to an
  * app that compared it with "key", and taking an inline key out of the values
  * later switched the pods to the Secret's copy, newline and all (#7337).
+ * The passwords of the databases you run yourself are stored there too, for
+ * the pods to read, without the line ending of the file they were read from
+ * and otherwise as written (#7911).
  */
 
 // A value as a file leaves it: whitespace around it and a final newline.
@@ -1303,6 +1362,107 @@ describe("every copy of a setting the chart keeps beside the pods' env holds wha
       ).toEqual([]);
       expect(
         podsMisread(documents, { CLICKHOUSE_USER: "oneuptime-user" }),
+      ).toEqual([]);
+    },
+  );
+
+  /*
+   * The passwords of the databases you run yourself (#7911), read from a file
+   * (helm --set-file, Terraform's file()): each pod reads its password from
+   * the Secret templates/secrets.yaml stores it in, so the app, the migrate
+   * Job and pgbouncer in front of the database each present the password
+   * without the file's line ending - and with the spaces and YAML syntax it
+   * holds, which a database knows it by.
+   */
+  const OWN_DATABASES = {
+    postgresql: { enabled: false },
+    clickhouse: { enabled: false },
+    valkey: { enabled: false },
+    externalPostgres: { host: "postgres.example.com" },
+    externalClickhouse: { host: "clickhouse.example.com" },
+    externalValkey: { host: "cache.example.com" },
+  };
+
+  const OWN_PASSWORDS = {
+    postgres: " pg: pass #1 'a' \"b\" ",
+    clickhouse: "*ch pass",
+    valkey: "\tvalkey pass ",
+  };
+
+  for (const [layout, pgbouncer] of [
+    ["the app connecting to the database itself", false],
+    ["pgbouncer in front of the database", true],
+  ]) {
+    for (const [file, ending] of [
+      ["a file", "\n"],
+      ["a file written on Windows", "\r\n"],
+    ]) {
+      testWithHelm(
+        `with ${layout}, every pod reads the password of each database of your own without the line ending of ${file}, and its spaces kept`,
+        () => {
+          const documents = render(
+            deepMerge(ALL_ON, OWN_DATABASES, {
+              pgbouncer: { enabled: pgbouncer },
+              externalPostgres: { password: OWN_PASSWORDS.postgres + ending },
+              externalClickhouse: {
+                password: OWN_PASSWORDS.clickhouse + ending,
+              },
+              externalValkey: {
+                password: OWN_PASSWORDS.valkey + ending,
+                // A username is used without the whitespace around it.
+                username: fromAFile("cache-user"),
+              },
+            }),
+          );
+          const expected = {
+            DATABASE_PASSWORD: OWN_PASSWORDS.postgres,
+            CLICKHOUSE_PASSWORD: OWN_PASSWORDS.clickhouse,
+            VALKEY_PASSWORD: OWN_PASSWORDS.valkey,
+            REDIS_PASSWORD: OWN_PASSWORDS.valkey,
+            VALKEY_USERNAME: "cache-user",
+            REDIS_USERNAME: "cache-user",
+          };
+
+          if (pgbouncer) {
+            expected.PGB_DB_PASSWORD = OWN_PASSWORDS.postgres;
+          }
+
+          expect(podsMisread(documents, expected)).toEqual([]);
+          expect(
+            [
+              "oneuptime-external-postgres",
+              "oneuptime-external-clickhouse",
+              "oneuptime-external-valkey",
+            ].map((name) => {
+              return secretValues(documents, name).password;
+            }),
+          ).toEqual([
+            OWN_PASSWORDS.postgres,
+            OWN_PASSWORDS.clickhouse,
+            OWN_PASSWORDS.valkey,
+          ]);
+        },
+      );
+    }
+  }
+
+  testWithHelm(
+    "the built-in databases' passwords stay as set, newline and all, as their servers and the pods read the same Secret",
+    () => {
+      const documents = render(
+        deepMerge(ALL_ON, {
+          postgresql: { auth: { postgresPassword: "built-in-pg\n" } },
+          clickhouse: { auth: { password: "built-in-ch\n" } },
+          valkey: { auth: { password: "built-in-valkey\n" } },
+        }),
+      );
+
+      expect(
+        podsMisread(documents, {
+          DATABASE_PASSWORD: "built-in-pg\n",
+          CLICKHOUSE_PASSWORD: "built-in-ch\n",
+          VALKEY_PASSWORD: "built-in-valkey\n",
+        }),
       ).toEqual([]);
     },
   );

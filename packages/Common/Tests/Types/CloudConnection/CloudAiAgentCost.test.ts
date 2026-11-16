@@ -6,7 +6,11 @@ import {
   AZURE_CONTAINER_APPS_FREE_GIB_SECONDS,
   AZURE_CONTAINER_APPS_FREE_VCPU_SECONDS,
   AZURE_CONTAINER_APPS_USD_PER_GIB_SECOND,
+  AZURE_B1S_USD_PER_HOUR,
   AZURE_CONTAINER_APPS_USD_PER_VCPU_SECOND,
+  AZURE_PUBLIC_IPV4_USD_PER_HOUR,
+  AZURE_S4_DISK_USD_PER_MONTH,
+  AZURE_VM_COST_DESCRIPTION,
   CLOUD_AI_AGENT_HOURS_PER_MONTH,
   CLOUD_AI_AGENT_SECONDS_PER_MONTH,
   CloudAiAgentCostEstimate,
@@ -20,6 +24,8 @@ import {
   estimateCloudAiAgentMonthlyCost,
 } from "../../../Types/CloudConnection/CloudAiAgentCost";
 import {
+  AZURE_CLOUD_AI_AGENT_OS_DISK_GB,
+  AZURE_CLOUD_AI_AGENT_VM_SIZE,
   CLOUD_AI_AGENT_SIZES,
   CloudAiAgentSetupOptions,
   GCP_CLOUD_AI_AGENT_BOOT_DISK_GB,
@@ -239,5 +245,79 @@ describe("estimateCloudAiAgentMonthlyCost", () => {
     expect(
       estimateCloudAiAgentMonthlyCost(CloudProvider.GCP, "cloud-run").usd,
     ).toBeLessThan(Math.round(withoutGcpTier));
+  });
+});
+
+/*
+ * Azure's agent on a small VM of its own (#6212): one Standard_B1s VM all
+ * month, its 30 GiB Standard HDD disk and its public IPv4 address - the VM
+ * the setup command makes, which the description names as written.
+ */
+describe("Azure on its own VM", () => {
+  test("a Standard_B1s VM all month, its S4 disk and its public address: about $13", () => {
+    const exact: number = 730 * (0.0104 + 0.005) + 1.54;
+
+    expect(exact).toBeCloseTo(12.782, 3);
+    expect(
+      (AZURE_B1S_USD_PER_HOUR + AZURE_PUBLIC_IPV4_USD_PER_HOUR) *
+        CLOUD_AI_AGENT_HOURS_PER_MONTH +
+        AZURE_S4_DISK_USD_PER_MONTH,
+    ).toBeCloseTo(exact, 6);
+    expect(
+      estimateCloudAiAgentMonthlyCost(
+        CloudProvider.Azure,
+        undefined,
+        "virtual-machine",
+      ).usd,
+    ).toBe(13);
+    // The Container App, as before.
+    expect(estimateCloudAiAgentMonthlyCost(CloudProvider.Azure).usd).toBe(14);
+  });
+
+  test("its description names the VM and the disk the setup command makes", () => {
+    const vm: CloudAiAgentCostEstimate = estimateCloudAiAgentMonthlyCost(
+      CloudProvider.Azure,
+      undefined,
+      "virtual-machine",
+    );
+    const command: string = getAzureCloudAiAgentSetupCommand({
+      provider: CloudProvider.Azure,
+      oneuptimeUrl: "https://oneuptime.com",
+      agentKey: buildCloudAiAgentKey({
+        cloudAccountId: "33333333-3333-4333-8333-333333333333",
+        secret: "0123456789abcdef".repeat(4),
+      }),
+      cloudAccountId: "33333333-3333-4333-8333-333333333333",
+      accountId: "0b1f6471-1bf0-4dda-aec3-111122223333",
+      fixesMode: "RequireApproval",
+      azureHost: "virtual-machine",
+    });
+
+    expect(vm.description).toBe(AZURE_VM_COST_DESCRIPTION);
+    expect(vm.description).toContain(`One ${AZURE_CLOUD_AI_AGENT_VM_SIZE} VM`);
+    expect(vm.description).toContain(
+      `its ${AZURE_CLOUD_AI_AGENT_OS_DISK_GB} GiB Standard HDD disk`,
+    );
+    expect(command).toContain(`--size ${AZURE_CLOUD_AI_AGENT_VM_SIZE} `);
+    expect(command).toContain(
+      `--os-disk-size-gb ${AZURE_CLOUD_AI_AGENT_OS_DISK_GB} --storage-sku Standard_LRS `,
+    );
+  });
+
+  test("Azure's host says nothing of another cloud's cost", () => {
+    expect(
+      estimateCloudAiAgentMonthlyCost(
+        CloudProvider.GCP,
+        "compute-engine",
+        "virtual-machine",
+      ).usd,
+    ).toBe(estimateCloudAiAgentMonthlyCost(CloudProvider.GCP).usd);
+    expect(
+      estimateCloudAiAgentMonthlyCost(
+        CloudProvider.AWS,
+        undefined,
+        "virtual-machine",
+      ).usd,
+    ).toBe(estimateCloudAiAgentMonthlyCost(CloudProvider.AWS).usd);
   });
 });

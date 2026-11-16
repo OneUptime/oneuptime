@@ -36,7 +36,7 @@ enum ProjectGoal {
   Infrastructure = "infrastructure",
   // "I am moving from another tool" (#6809).
   Import = "import",
-  // "Just looking around" (#6808 adds a sample project to look around in).
+  // "Just looking around".
   Explore = "explore",
 }
 

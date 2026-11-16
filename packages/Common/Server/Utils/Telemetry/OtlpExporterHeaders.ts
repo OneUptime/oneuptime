@@ -348,13 +348,220 @@ export const describeUnreadableOtlpHeaders: (
 };
 
 /*
+ * THE STANDARD'S OWN VARIABLES (issue #8884)
+ *
+ * The OTLP exporters Telemetry.init builds read the OpenTelemetry standard's
+ * header variables themselves, and send what they hold under OneUptime's
+ * own headers, which win by name: OTEL_EXPORTER_OTLP_HEADERS for every
+ * signal, and OTEL_EXPORTER_OTLP_TRACES_HEADERS, _METRICS_HEADERS and
+ * _LOGS_HEADERS for one, which win over it (@opentelemetry/otlp-exporter-base,
+ * getStaticHeadersFromEnv). So an exporter has a header to send when either
+ * holds one, and Telemetry.init builds it then too, and the profiler takes
+ * its token from OTEL_EXPORTER_OTLP_HEADERS when OneUptime's own setting has
+ * none.
+ *
+ * They are read here exactly as the exporters read them, with
+ * @opentelemetry/core's parseKeyPairsIntoRecord, which OtlpExporterHeaders's
+ * tests hold this to: ',' between headers, each split at its first '=', its
+ * name and value trimmed and URI-decoded, what follows a ';' in a header left
+ * out, and a header with an empty name or value, or one that does not
+ * decode, left out too.
+ */
+
+export enum OtlpSignal {
+  Traces = "TRACES",
+  Metrics = "METRICS",
+  Logs = "LOGS",
+}
+
+export const OTLP_SIGNALS: Array<OtlpSignal> = [
+  OtlpSignal.Traces,
+  OtlpSignal.Metrics,
+  OtlpSignal.Logs,
+];
+
+const SIGNAL_WORDS: Record<OtlpSignal, string> = {
+  [OtlpSignal.Traces]: "traces",
+  [OtlpSignal.Metrics]: "metrics",
+  [OtlpSignal.Logs]: "logs",
+};
+
+// OTEL_EXPORTER_OTLP_TRACES_HEADERS and the rest: one signal's own headers.
+export const otelSignalHeadersSetting: (signal: OtlpSignal) => string = (
+  signal: OtlpSignal,
+): string => {
+  return `OTEL_EXPORTER_OTLP_${signal}_HEADERS`;
+};
+
+const STANDARD_METADATA_SEPARATOR: string = ";";
+
+/*
+ * Headers as the OTLP exporters read one of the standard's variables, as
+ * parseKeyPairsIntoRecord does.
+ */
+export const readStandardOtlpHeaders: (
+  setting: string | undefined,
+) => Dictionary<string> = (setting: string | undefined): Dictionary<string> => {
+  const headers: Dictionary<string> = {};
+
+  if (typeof setting !== "string" || !setting) {
+    return headers;
+  }
+
+  for (const entry of setting.split(STANDARD_HEADER_SEPARATOR)) {
+    if (!entry) {
+      continue;
+    }
+
+    const metadataIndex: number = entry.indexOf(STANDARD_METADATA_SEPARATOR);
+    const pair: string =
+      metadataIndex === -1 ? entry : entry.substring(0, metadataIndex);
+    const separatorIndex: number = pair.indexOf(NAME_VALUE_SEPARATOR);
+
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const rawName: string = pair.substring(0, separatorIndex).trim();
+    const rawValue: string = pair.substring(separatorIndex + 1).trim();
+
+    if (!rawName || !rawValue) {
+      continue;
+    }
+
+    let name: string;
+    let value: string;
+
+    try {
+      name = decodeURIComponent(rawName);
+      value = decodeURIComponent(rawValue);
+    } catch {
+      continue;
+    }
+
+    if (value.length > 0) {
+      headers[name] = value;
+    }
+  }
+
+  return headers;
+};
+
+/*
+ * The headers one signal's exporter reads from the environment on its own:
+ * OTEL_EXPORTER_OTLP_HEADERS, with the signal's own variable over it.
+ */
+export const readStandardOtlpSignalHeaders: (
+  environment: NodeJS.ProcessEnv,
+  signal: OtlpSignal,
+) => Dictionary<string> = (
+  environment: NodeJS.ProcessEnv,
+  signal: OtlpSignal,
+): Dictionary<string> => {
+  return {
+    ...readStandardOtlpHeaders(environment[OTEL_EXPORTER_OTLP_HEADERS_SETTING]),
+    ...readStandardOtlpHeaders(environment[otelSignalHeadersSetting(signal)]),
+  };
+};
+
+/*
+ * Whether one signal's exporter has a header to send: one of OneUptime's own
+ * (`ownHeaders`, read from OPENTELEMETRY_EXPORTER_OTLP_HEADERS), or one the
+ * exporter reads from the standard's variables itself.
+ */
+export const hasOtlpHeadersFor: (data: {
+  ownHeaders: Dictionary<string>;
+  environment: NodeJS.ProcessEnv;
+  signal: OtlpSignal;
+}) => boolean = (data: {
+  ownHeaders: Dictionary<string>;
+  environment: NodeJS.ProcessEnv;
+  signal: OtlpSignal;
+}): boolean => {
+  return (
+    Object.keys(data.ownHeaders).length > 0 ||
+    Object.keys(readStandardOtlpSignalHeaders(data.environment, data.signal))
+      .length > 0
+  );
+};
+
+const listWords: (words: Array<string>, last: string) => string = (
+  words: Array<string>,
+  last: string,
+): string => {
+  if (words.length <= 1) {
+    return words.join("");
+  }
+
+  return `${words.slice(0, -1).join(", ")} ${last} ${words[words.length - 1]}`;
+};
+
+/*
  * The line for an exporter endpoint that is set while no header can be sent:
  * OneUptime then exports nothing at all (see Telemetry.init).
  */
 export const NOTHING_EXPORTED_WITHOUT_A_HEADER: string = [
   "OneUptime sends none of its own traces, metrics or logs:",
-  "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT is set, but",
+  "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT is set, but neither",
   `${OTLP_EXPORTER_HEADERS_SETTING} (${OTLP_EXPORTER_HEADERS_HELM_VALUE} in the Helm chart)`,
-  "holds no header it can send, and it exports only with one.",
+  `nor ${OTEL_EXPORTER_OTLP_HEADERS_SETTING} holds a header it can send, and it exports only with one.`,
   "Set at least one header, written as name=value, such as the x-oneuptime-token header with a Server ingestion key.",
 ].join(" ");
+
+/*
+ * The line for an endpoint whose headers are set for some signals only, in
+ * their own variables (OTEL_EXPORTER_OTLP_TRACES_HEADERS and the rest):
+ * OneUptime then exports those, and none of the others. `unexported` lists
+ * the others, and NOTHING_EXPORTED_WITHOUT_A_HEADER is the line when it lists
+ * every signal. It names variables only, never what they hold.
+ */
+export const describeSignalsExportedWithoutAHeader: (
+  unexported: Array<OtlpSignal>,
+) => string | null = (unexported: Array<OtlpSignal>): string | null => {
+  const missing: Array<OtlpSignal> = OTLP_SIGNALS.filter(
+    (signal: OtlpSignal): boolean => {
+      return unexported.includes(signal);
+    },
+  );
+
+  if (missing.length === 0) {
+    return null;
+  }
+
+  if (missing.length === OTLP_SIGNALS.length) {
+    return NOTHING_EXPORTED_WITHOUT_A_HEADER;
+  }
+
+  const exported: Array<OtlpSignal> = OTLP_SIGNALS.filter(
+    (signal: OtlpSignal): boolean => {
+      return !missing.includes(signal);
+    },
+  );
+
+  const words: (signals: Array<OtlpSignal>, last: string) => string = (
+    signals: Array<OtlpSignal>,
+    last: string,
+  ): string => {
+    return listWords(
+      signals.map((signal: OtlpSignal): string => {
+        return SIGNAL_WORDS[signal];
+      }),
+      last,
+    );
+  };
+
+  const settings: (signals: Array<OtlpSignal>, last: string) => string = (
+    signals: Array<OtlpSignal>,
+    last: string,
+  ): string => {
+    return listWords(signals.map(otelSignalHeadersSetting), last);
+  };
+
+  return [
+    `OneUptime sends none of its own ${words(missing, "or")}:`,
+    `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT is set, but its only headers are in ${settings(exported, "and")},`,
+    `for ${words(exported, "and")} alone, and it exports a signal only with a header.`,
+    `Set one for every signal in ${OTLP_EXPORTER_HEADERS_SETTING} (${OTLP_EXPORTER_HEADERS_HELM_VALUE} in the Helm chart)`,
+    `or ${OTEL_EXPORTER_OTLP_HEADERS_SETTING}, or set ${settings(missing, "and")}.`,
+  ].join(" ");
+};

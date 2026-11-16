@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "@jest/globals";
+import { afterAll, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Continuous profiling (Pyroscope).
@@ -373,6 +373,95 @@ describe("Profiling", () => {
       ]) {
         expect(String(call[0])).not.toContain(OTLP_HEADERS);
       }
+    });
+  });
+
+  /*
+   * Issue #8884: the OTLP exporters read OTEL_EXPORTER_OTLP_HEADERS
+   * themselves, and send its headers under OneUptime's own. An installation
+   * that sets its token only there sends its traces, metrics and logs with
+   * it, so the profiler takes it from there too, as the exporters read it.
+   */
+  describe("auth token from OTEL_EXPORTER_OTLP_HEADERS", () => {
+    const STANDARD: string = "OTEL_EXPORTER_OTLP_HEADERS";
+
+    beforeEach(() => {
+      delete process.env[STANDARD];
+    });
+
+    afterAll(() => {
+      delete process.env[STANDARD];
+    });
+
+    test("takes the token from the standard variable when OneUptime's own setting is unset", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[STANDARD] = "x-oneuptime-token=standard-token";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBe("standard-token");
+    });
+
+    test("takes it from among other headers, decoded as the exporters decode it", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[STANDARD] =
+        "Authorization=Basic%20dXNlcjpwYXNzd29yZA==, X-OneUptime-Token = c2Vj%2Bcm%3D ";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBe("c2Vj+cm=");
+    });
+
+    test("takes it when OneUptime's own setting holds other headers but no token", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[OTLP_HEADERS] = "x-scope=tenant-1";
+      process.env[STANDARD] = "x-oneuptime-token=standard-token";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBe("standard-token");
+    });
+
+    test("prefers OneUptime's own token, as the exporters send OneUptime's over the standard's", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[OTLP_HEADERS] = "x-oneuptime-token=own-token";
+      process.env[STANDARD] = "x-oneuptime-token=standard-token";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBe("own-token");
+    });
+
+    test("leaves out what follows a ';' in a header, as the exporters do", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[STANDARD] = "x-other=1;x-oneuptime-token=never-sent";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBeUndefined();
+    });
+
+    test("reads no per-signal variable: profiles are none of the three", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env["OTEL_EXPORTER_OTLP_TRACES_HEADERS"] =
+        "x-oneuptime-token=traces-token";
+
+      try {
+        Profiling.init({ serviceName: "app" });
+
+        expect(initConfig().authToken).toBeUndefined();
+      } finally {
+        delete process.env["OTEL_EXPORTER_OTLP_TRACES_HEADERS"];
+      }
+    });
+
+    test("is undefined when the standard variable holds no token", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[STANDARD] = "x-oneuptime-token=,x-other=1";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBeUndefined();
     });
   });
 

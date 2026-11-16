@@ -398,7 +398,7 @@ describe("Google Cloud: Test connection and the posture name the write account",
     );
 
     assert.strictEqual(
-      lines[3],
+      lines[4],
       `Write service account: ${GCP_WRITE_SERVICE_ACCOUNT}, whose token the agent asks for each change, for 15 minutes (the agent may ask for one: the agent's own account holds iam.serviceAccounts.getAccessToken on it)`,
     );
     assert.deepStrictEqual(callsIn(h), [
@@ -428,7 +428,7 @@ describe("Google Cloud: Test connection and the posture name the write account",
       );
 
       assert.match(
-        lines[3] || "",
+        lines[4] || "",
         /^Write service account: oneuptime-ai-agent-write@shop-prod-1234\.iam\.gserviceaccount\.com, whose token the agent asks for each change, for 15 minutes \(the agent may NOT ask for one, so every change fails: /,
       );
     }
@@ -442,7 +442,7 @@ describe("Google Cloud: Test connection and the posture name the write account",
     );
 
     assert.strictEqual(
-      none[3],
+      none[4],
       "Write service account: none (ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT is not set): changes use the agent's own service account, with whatever it allows",
     );
 
@@ -456,7 +456,7 @@ describe("Google Cloud: Test connection and the posture name the write account",
     );
 
     assert.strictEqual(
-      wrong[3],
+      wrong[4],
       'Write service account: ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT="nope" is not a service account (oneuptime-ai-agent-write@my-project.iam.gserviceaccount.com), so the agent changes nothing until it is fixed.',
     );
   });

@@ -156,6 +156,11 @@ return {
 
 Una ejecución conserva hasta 20 capturas de pantalla, cada una de hasta 10 MB y 50 MB en total. Una captura también puede mostrarse en el incidente o la alerta que abre una ejecución fallida (en su página y en los correos sobre ella) si la coloca en la descripción de incidente o de alerta del monitor. Consulte [Mostrar una captura de pantalla](/docs/monitor/incident-alert-templating#mostrar-una-captura-de-pantalla).
 
+Las capturas de pantalla de una comprobación se conservan en los registros del propio monitor, no en los registros de un incidente o de una alerta ni en los cambios de estado de un monitor: estos conservan el resto de la comprobación, y cada ejecución cuyas capturas se omitieron lo indica (`areScreenshotsOmitted`). Después de la actualización, una tarea que se ejecuta cada hora borra poco a poco las capturas que ya estaban guardadas allí, hasta que no queda ninguna.
+
+> [!NOTE]
+> En una instalación autoalojada, PostgreSQL reutiliza el espacio que dejan las capturas borradas, pero no lo devuelve al disco. Para reducir la base de datos una vez borradas, ejecute `VACUUM FULL` en las tablas más grandes durante una ventana de mantenimiento, ya que bloquea cada tabla mientras la reescribe, o use `pg_repack`, que no la bloquea.
+
 :::details Devolver capturas de pantalla (método heredado)
 Por compatibilidad con versiones anteriores, también puede devolver capturas de pantalla desde el script como parte del valor de retorno. Las capturas devueltas así **solo** se conservan cuando el script termina con normalidad: se pierden si el script lanza un error. Prefiera el canal lateral descrito arriba cuando quiera pruebas de los fallos.
 

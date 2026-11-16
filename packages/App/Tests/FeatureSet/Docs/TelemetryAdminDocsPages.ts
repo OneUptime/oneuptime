@@ -98,6 +98,8 @@ export const ADMIN_DASHBOARD_LABELS: Readonly<
     "Monitor Log Retention (Days)",
     "Monitor Metric Retention (Days)",
     "Telemetry Usage Retention (Days)",
+    // The limit on resolved incidents and alerts for every project (#6941).
+    "Keep for at most",
   ],
 };
 

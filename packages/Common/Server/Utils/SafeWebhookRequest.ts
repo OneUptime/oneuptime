@@ -8,18 +8,12 @@ import APIException from "../../Types/Exception/ApiException";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import API, { RequestOptions } from "../../Utils/API";
-import DataSourceEgressGuard, {
-  EgressLookupCallback,
-  EgressLookupFunction,
-  PinnedAgents,
-} from "./DataSource/EgressGuard";
+import ResponseTooLarge from "../../Utils/ResponseTooLarge";
+import DataSourceEgressGuard, { PinnedAgents } from "./DataSource/EgressGuard";
 import SSRFProtection, {
   ValidatedWebhookTarget,
   WebhookTargetValidationOptions,
 } from "./SSRFProtection";
-import dns from "dns";
-import http from "http";
-import https from "https";
 
 /*
  * A WEBHOOK SENT TO THE ADDRESS ITS URL CHECK APPROVED, AND NOWHERE ELSE
@@ -31,8 +25,10 @@ import https from "https";
  * OpenStack project notice, a call to a Mattermost server - goes through
  * here (WebhookSendersPinnedGuard holds every one to it), so each keeps
  * these rules. Other outbound connections a project member chooses - data
- * sources, LLM providers, SMTP and the like - go through
- * DataSource/EgressGuard instead.
+ * sources, LLM providers, SMTP and the like - are checked by
+ * DataSource/EgressGuard instead, whose pinned agents these are too
+ * (DataSourceEgressGuard.createPinnedAgents): one implementation of the
+ * pin, and of the proxy rule below, for every pinned HTTP request.
  *
  *   - The URL is checked (SSRFProtection.validateAndResolveWebhookTarget)
  *     with the policy its caller passes, unchanged: whether a private
@@ -56,11 +52,12 @@ import https from "https";
  *     environment, apart from the hosts in NO_PROXY - still does, exactly as
  *     axios routes every other request. The agents may look up the proxy's
  *     own name for that (the operator wrote it); every other name but the
- *     webhook's is refused. Through a proxy it is the proxy that looks the
- *     webhook's name up and connects, so the address it lands on is the
- *     proxy's to police: the URL is still checked first and no redirect is
- *     followed, and the docs (self-hosted/private-network-access) ask the
- *     operator to refuse private and link-local destinations on the proxy.
+ *     webhook's is refused (DataSourceEgressGuard.createPinnedLookupForTarget).
+ *     Through a proxy it is the proxy that looks the webhook's name up and
+ *     connects, so the address it lands on is the proxy's to police: the
+ *     URL is still checked first and no redirect is followed, and the docs
+ *     (self-hosted/private-network-access) ask the operator to refuse
+ *     private and link-local destinations on the proxy.
  *     Pinning through the proxy instead - asking it to CONNECT to the
  *     approved address - would break proxies that allow destinations by
  *     name, and a hostname is what an egress proxy's rules are written in.
@@ -71,9 +68,14 @@ import https from "https";
  *   - A total timeout, when the caller gives one, is a hard one: no new
  *     attempt starts that it cannot pay for (API's own budget), and an
  *     attempt still in flight when it runs out is aborted and its socket
- *     closed, so a server that trickles its answer cannot hold one open. A
- *     notification webhook also reads at most WEBHOOK_MAX_RESPONSE_BYTES of
- *     an answer.
+ *     closed, so a server that trickles its answer cannot hold one open.
+ *
+ *   - No answer is read whole that is larger than the caller reads
+ *     (maxContentLength): WEBHOOK_MAX_RESPONSE_BYTES unless it says
+ *     otherwise, so no sender reads an answer of any size, as the workflow
+ *     API steps, Update Zabbix Problem and a Mattermost server's calls once
+ *     did (issue #8875). A larger answer fails, unread, as a
+ *     WebhookAnswerTooLargeException that says so.
  *
  * The Mattermost workflow step (Mattermost/MattermostWebhook) reads every
  * answer as text itself, so it sends with axios directly; it pins the same
@@ -101,6 +103,10 @@ export interface WebhookSendOptions {
   retries?: number | undefined;
   exponentialBackoff?: boolean | undefined;
   retryOnlyOnRetryableErrors?: boolean | undefined;
+  /*
+   * The most of an answer read, in bytes. WEBHOOK_MAX_RESPONSE_BYTES when
+   * not given; a larger answer throws WebhookAnswerTooLargeException.
+   */
   maxContentLength?: number | undefined;
   maxBodyLength?: number | undefined;
 }
@@ -116,30 +122,39 @@ export interface WebhookRequestOptions extends WebhookSendOptions {
 export type WebhookPostOptions = Omit<WebhookRequestOptions, "method" | "data">;
 
 /*
- * The environment variables axios (proxy-from-env) and Node's own env
- * proxy read an outbound proxy from, in either case.
- */
-export const OUTBOUND_PROXY_ENVIRONMENT_VARIABLES: ReadonlyArray<string> = [
-  "http_proxy",
-  "HTTP_PROXY",
-  "https_proxy",
-  "HTTPS_PROXY",
-  "all_proxy",
-  "ALL_PROXY",
-];
-
-// What a lookup of any other name answers.
-export const UNAPPROVED_LOOKUP_MESSAGE: string =
-  "A webhook connects only to the address its URL check approved.";
-
-/*
- * The most of an answer a notification webhook reads (maxContentLength).
- * Its sender only wants the status, and at most a short excerpt for a log;
- * without a limit an endpoint - a status page sign-up's is anyone's to
- * choose - could stream a body until the worker runs out of memory. An
- * answer this large is no webhook's: it fails, unread.
+ * The most of an answer a request reads (maxContentLength) unless its
+ * caller reads more. A notification webhook's sender only wants the
+ * status, and at most a short excerpt for a log; without a limit an
+ * endpoint - a status page sign-up's is anyone's to choose - could stream
+ * a body until the worker runs out of memory. An answer this large is no
+ * webhook's: it fails, unread.
  */
 export const WEBHOOK_MAX_RESPONSE_BYTES: number = 1024 * 1024;
+
+/*
+ * A request whose answer was larger than it reads (maxContentLength): the
+ * answer was not read, and asking again gets the same one. Its message says
+ * so in a sentence - "The answer was larger than 10 MB, so it was not
+ * read." - in place of axios's "maxContentLength size of 10485760
+ * exceeded", and names nothing of the URL.
+ */
+export class WebhookAnswerTooLargeException extends APIException {
+  // The most of an answer the request read, in bytes.
+  public readonly maxContentLength: number;
+
+  public constructor(maxContentLength: number, error?: Error) {
+    super(ResponseTooLarge.getMessage(maxContentLength), error);
+    this.maxContentLength = maxContentLength;
+  }
+
+  /*
+   * The same sentence, naming whose answer it was: "Zabbix's answer was
+   * larger than 1 MB, so it was not read."
+   */
+  public describe(subject: string): string {
+    return ResponseTooLarge.getMessage(this.maxContentLength, subject);
+  }
+}
 
 // A scheme as SSRFProtection reads one off the raw URL: letters, then ":/".
 const SCHEME_PREFIX: RegExp = /^\s*[a-z][a-z0-9+.-]*:\//i;
@@ -245,9 +260,10 @@ export default class SafeWebhookRequest {
         options.retryOnlyOnRetryableErrors;
     }
 
-    if (options.maxContentLength !== undefined) {
-      requestOptions.maxContentLength = options.maxContentLength;
-    }
+    // Never an answer of any size: the caller's limit, or a webhook's.
+    const maxContentLength: number =
+      options.maxContentLength ?? WEBHOOK_MAX_RESPONSE_BYTES;
+    requestOptions.maxContentLength = maxContentLength;
 
     if (options.maxBodyLength !== undefined) {
       requestOptions.maxBodyLength = options.maxBodyLength;
@@ -303,6 +319,13 @@ export default class SafeWebhookRequest {
         );
       }
 
+      if (ResponseTooLarge.isError(error)) {
+        throw new WebhookAnswerTooLargeException(
+          maxContentLength,
+          error instanceof Error ? error : undefined,
+        );
+      }
+
       throw error;
     } finally {
       if (deadlineTimer) {
@@ -321,96 +344,14 @@ export default class SafeWebhookRequest {
     return `The webhook did not answer within ${seconds} second${seconds === 1 ? "" : "s"}, so the request was given up.`;
   }
 
-  // An http and an https agent that dial only what the target was approved for.
+  /*
+   * An http and an https agent that dial only what the target was approved
+   * for, and an outbound proxy the operator configured: the egress guard's
+   * pinned agents (DataSourceEgressGuard.createPinnedAgents), the one
+   * implementation every pinned HTTP request of the server uses.
+   */
   public static createPinnedAgents(target: WebhookTarget): PinnedAgents {
-    const lookup: EgressLookupFunction =
-      SafeWebhookRequest.createPinnedLookup(target);
-
-    return {
-      httpAgent: new http.Agent({ lookup: lookup as never }),
-      httpsAgent: new https.Agent({ lookup: lookup as never }),
-    };
-  }
-
-  /*
-   * A dns.lookup-shaped function for the agents: the target's name answers
-   * with the addresses its check approved, always (no second lookup); the
-   * name of an outbound proxy the operator configured is looked up as any
-   * other request's would be; any other name is refused. A host written as
-   * an IP address is never looked up at all - Node dials the literal, which
-   * is what the check approved.
-   */
-  public static createPinnedLookup(
-    target: WebhookTarget,
-  ): EgressLookupFunction {
-    const pinnedLookup: EgressLookupFunction =
-      DataSourceEgressGuard.createPinnedLookup(target.addresses);
-    const targetHostname: string = SafeWebhookRequest.normalizeHostname(
-      target.url.hostname,
-    );
-
-    return (
-      hostname: string,
-      lookupOptions: { all?: boolean | undefined; family?: number | undefined },
-      callback: EgressLookupCallback,
-    ): void => {
-      const name: string = SafeWebhookRequest.normalizeHostname(hostname);
-
-      if (name === targetHostname) {
-        pinnedLookup(hostname, lookupOptions, callback);
-        return;
-      }
-
-      if (SafeWebhookRequest.getOutboundProxyHostnames().has(name)) {
-        dns.lookup(
-          hostname,
-          (lookupOptions || {}) as dns.LookupAllOptions,
-          callback as never,
-        );
-        return;
-      }
-
-      const error: NodeJS.ErrnoException = new Error(UNAPPROVED_LOOKUP_MESSAGE);
-      error.code = "ENOTFOUND";
-
-      process.nextTick(() => {
-        callback(error, "");
-      });
-    };
-  }
-
-  /*
-   * The hosts of the outbound proxies the environment names, read when they
-   * are needed, as axios reads them: a value without a scheme is a host and
-   * port.
-   */
-  public static getOutboundProxyHostnames(): Set<string> {
-    const hostnames: Set<string> = new Set<string>();
-
-    for (const variable of OUTBOUND_PROXY_ENVIRONMENT_VARIABLES) {
-      const value: string = (process.env[variable] || "").trim();
-
-      if (!value) {
-        continue;
-      }
-
-      try {
-        const proxyUrl: globalThis.URL = new globalThis.URL(
-          value.includes("://") ? value : `http://${value}`,
-        );
-        const hostname: string = SafeWebhookRequest.normalizeHostname(
-          proxyUrl.hostname,
-        );
-
-        if (hostname) {
-          hostnames.add(hostname);
-        }
-      } catch {
-        // Not a URL: axios cannot send through it either.
-      }
-    }
-
-    return hostnames;
+    return DataSourceEgressGuard.createPinnedAgents(target);
   }
 
   /*
@@ -433,12 +374,5 @@ export default class SafeWebhookRequest {
       // Left for the check to refuse, in its own words.
       return text;
     }
-  }
-
-  private static normalizeHostname(hostname: string): string {
-    return (hostname || "")
-      .trim()
-      .toLowerCase()
-      .replace(/^\[|\]$/g, "");
   }
 }

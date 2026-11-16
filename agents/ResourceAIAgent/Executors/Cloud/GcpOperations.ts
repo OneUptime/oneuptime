@@ -30,6 +30,7 @@ import {
   canActAsGcpServiceAccount,
   generateGcpWriteToken,
 } from "./GcpIdentity";
+import { getServiceAccountProject } from "./CloudSettings";
 import {
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV,
@@ -335,23 +336,50 @@ export default class GcpCloud {
       );
     }
 
-    lines.push(await this.describeWriteAccount(data.run));
+    lines.push(
+      await this.describeWriteAccount(data.run, {
+        projectId: data.projectId,
+        runsIn: identity.runsIn,
+        number: identity.number,
+      }),
+    );
 
     return lines;
   }
 
-  // Test connection's line about the account changes run as.
-  private async describeWriteAccount(run: CloudCommandRun): Promise<string> {
+  /*
+   * Test connection's line about the account changes run as, and the run's
+   * write path: none, one it cannot read, one of another project (the
+   * project it serves, by its id - or by its number, which the metadata
+   * server tells of the project it runs in), or one it may or may not ask
+   * a token of.
+   */
+  private async describeWriteAccount(
+    run: CloudCommandRun,
+    project: { projectId: string; runsIn: string; number: string },
+  ): Promise<string> {
     const settings: CloudCommandRun["settings"] = run.settings;
 
     if (settings.gcpWriteServiceAccountProblem) {
+      run.writePath = { state: "unusable", problem: "unreadable-setting" };
       return `Write service account: ${settings.gcpWriteServiceAccountProblem}`;
     }
 
     const account: string | null = settings.gcpWriteServiceAccount;
 
     if (!account) {
+      run.writePath = { state: "unset" };
       return `Write service account: none (${RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV} is not set): changes use the agent's own service account, with whatever it allows`;
+    }
+
+    const writeProject: string = getServiceAccountProject(account);
+
+    if (
+      writeProject !== project.projectId &&
+      !(project.runsIn === writeProject && project.number === project.projectId)
+    ) {
+      run.writePath = { state: "unusable", problem: "another-account" };
+      return `Write service account: ${account}, a service account of project ${writeProject}: the agent serves project ${project.projectId}, so it changes nothing. Set ${RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV} to a service account of project ${project.projectId}`;
     }
 
     const send: CloudSender = run.send.bind(run);
@@ -370,6 +398,10 @@ export default class GcpCloud {
         detail: err instanceof Error ? err.message : String(err),
       };
     }
+
+    run.writePath = check.may
+      ? { state: "usable" }
+      : { state: "unusable", problem: "cannot-sign-in" };
 
     return `Write service account: ${account}, whose token the agent asks for each change, for ${
       GCP_WRITE_TOKEN_LIFETIME_SECONDS / 60

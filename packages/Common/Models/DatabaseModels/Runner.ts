@@ -570,6 +570,55 @@ export default class Runner extends BaseModel {
   public takesCodeFixes?: boolean = undefined;
 
   /*
+   * Whether a global Runner takes OneUptime AI's code fixes - the server's
+   * switch, set by a master admin on the Admin Dashboard's Global Runners
+   * page. On by default, as every global Runner has taken them since
+   * 14.0.94. Off, the server never grants it code fixes (its heartbeat's
+   * capability), its key proves no code-fix identity (CodeFixAgentAuth), so
+   * it is handed no run and no repository token, and it is not counted for
+   * a repository's work (Types/Runner/RunnerCodeFixes): it runs JavaScript
+   * steps only. Its host's ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false only
+   * stops that host from asking; this is what a multi-tenant install keeps
+   * repository tokens off the hosts that run every project's JavaScript
+   * with.
+   *
+   * Read for a global Runner alone: a project's Runner takes code work
+   * while a code repository picks it (Types/Runner/CodeRepositoryRunner).
+   * Written by no one in a project (create and update are OneUptime's and a
+   * master admin's), so no project can turn a global Runner's code fixes on
+   * or off.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunner,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Runs AI Code Fixes",
+    description:
+      "For a global Runner: whether it takes OneUptime AI's code fixes, with a token for each repository. On by default; a master admin turns it off.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public canRunCodeFixes?: boolean = undefined;
+
+  /*
    * A global Runner: one the OneUptime server runs for every project, with
    * no project of its own (projectId is empty). A master admin creates it
    * under Admin Dashboard -> Settings -> Global Runners and starts the

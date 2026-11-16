@@ -134,8 +134,6 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
     "a detection rule's last error, stored on the rule",
   "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewComposer.ts":
     "a production review posted as Markdown on the code host's pull request",
-  "packages/Common/Server/Utils/SampleProject/SampleProjectTelemetry.ts":
-    "a sample project's logs and spans, stored as telemetry data",
   "packages/Common/Server/Services/TelemetrySourceMapService.ts":
     "the source map upload API's answer to the tool that sent it",
   "packages/Common/Utils/AI/PromptText.ts": "a prompt for OneUptime AI",

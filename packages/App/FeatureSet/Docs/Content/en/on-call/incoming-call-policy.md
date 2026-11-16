@@ -41,10 +41,11 @@ flowchart TB
 Go to **Project Settings** > **Notifications** > **Notification Channels**, and open **More settings**. In the **Twilio Config** card, click **Create Twilio Config** and fill in the form:
 
 - **Name** and **Description**: what the account is for, such as "Support hotline".
+- **Use This Account For**: **Calls and SMS**, or **Calls only** when the account's numbers cannot send SMS. Incoming calls work with either.
 - **Twilio Account SID**: from the Twilio Console. It starts with `AC`.
 - **Twilio Auth Token**: from the Twilio Console.
-- **Twilio Primary Phone Number**: a number of that account, for the SMS and calls it sends. Under **More fields**, optional: numbers for recipients in other countries, and numbers for SMS when the account's numbers can only make calls (see [Separate numbers for calls and SMS](/docs/self-hosted/twilio-integration#separate-numbers-for-calls-and-sms)).
-- **Set as Project Default**: on for the project's first Twilio config, so the SMS and calls to the project's members go through this account too. Turn it off if this account is only for incoming calls.
+- **Twilio Primary Phone Number**: a number of that account, for the calls it makes, and for its SMS when it sends them. Under **More fields**, optional: numbers for recipients in other countries, and numbers for SMS when the account's numbers can only make calls (see [Separate numbers for calls and SMS](/docs/self-hosted/twilio-integration#separate-numbers-for-calls-and-sms)).
+- **Set as Project Default**: on for the project's first Twilio config, so the calls to the project's members go through this account too, and their SMS when it is used for **Calls and SMS**. Turn it off if this account is only for incoming calls.
 
 ### Create the policy
 

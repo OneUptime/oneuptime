@@ -16,8 +16,12 @@ import {
   AWS_CLOUD_AI_AGENT_TASK_ROLE_NAME,
   AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_APP_NAME,
+  AZURE_CLOUD_AI_AGENT_DEFAULT_HOST,
+  AZURE_CLOUD_AI_AGENT_HOSTS,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+  AZURE_CLOUD_AI_AGENT_VM_NAME,
   AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
+  AzureCloudAiAgentHost,
   CLOUD_AI_AGENT_NAME,
   CloudAiAgentProvider,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
@@ -68,6 +72,8 @@ export interface CloudAiAgentSetupChoices {
   onlyTaggedResources: boolean;
   // More fields, Google Cloud only: what runs the agent.
   gcpHost: GcpCloudAiAgentHost;
+  // More fields, Azure only: what runs the agent.
+  azureHost: AzureCloudAiAgentHost;
 }
 
 /*
@@ -88,6 +94,28 @@ export const GCP_HOST_DESCRIPTIONS: Readonly<
   ),
   "cloud-run": translationKey(
     "A Cloud Run service with CPU always allocated: about ${{usd}} a month. For a project that allows no VM an external IP address.",
+  ),
+};
+
+/*
+ * Azure's two hosts for the agent, as More fields offers them: a Container
+ * App, the default, or a small VM of its own, for a subscription where
+ * Container Apps cannot be used.
+ */
+export const AZURE_HOST_TITLES: Readonly<
+  Record<AzureCloudAiAgentHost, string>
+> = {
+  "container-apps": translationKey("Container Apps"),
+  "virtual-machine": translationKey("A small VM"),
+};
+export const AZURE_HOST_DESCRIPTIONS: Readonly<
+  Record<AzureCloudAiAgentHost, string>
+> = {
+  "container-apps": translationKey(
+    "One Container App with one replica always on: about ${{usd}} a month.",
+  ),
+  "virtual-machine": translationKey(
+    "One Standard_B1s VM in a network of its own that lets nothing in: about ${{usd}} a month. For a subscription that cannot use Container Apps.",
   ),
 };
 
@@ -178,6 +206,7 @@ export function getCloudAiAgentReportedChoices(data: {
     | "onlyTaggedResources"
     | "protectedTargetsText"
     | "gcpHost"
+    | "azureHost"
   >
 > {
   const posture: ResourceAiAgentPosture | null | undefined = data.posture;
@@ -195,6 +224,7 @@ export function getCloudAiAgentReportedChoices(data: {
       | "onlyTaggedResources"
       | "protectedTargetsText"
       | "gcpHost"
+      | "azureHost"
     >
   > = {};
 
@@ -211,6 +241,21 @@ export function getCloudAiAgentReportedChoices(data: {
     ).includes(host)
       ? (host as GcpCloudAiAgentHost)
       : "cloud-run";
+  }
+
+  /*
+   * Where an Azure agent runs, so the command keeps it there: what it
+   * reports, and Container Apps for an agent too old to say, as every
+   * Azure agent ran there before it could run on a VM.
+   */
+  if (data.provider === CloudProvider.Azure) {
+    const host: unknown = details["azureHost"];
+
+    choices.azureHost = (
+      AZURE_CLOUD_AI_AGENT_HOSTS as ReadonlyArray<unknown>
+    ).includes(host)
+      ? (host as AzureCloudAiAgentHost)
+      : "container-apps";
   }
 
   const reportedOperations: unknown = details["enabledOperations"];
@@ -281,6 +326,7 @@ export function getDefaultCloudAiAgentSetupChoices(data: {
     protectedTargetsText: "",
     onlyTaggedResources: false,
     gcpHost: GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
+    azureHost: AZURE_CLOUD_AI_AGENT_DEFAULT_HOST,
     ...getCloudAiAgentReportedChoices({
       provider: data.provider,
       accountId: data.accountId || "",
@@ -396,6 +442,9 @@ export function getCloudAiAgentSetupOptions(data: {
     ...(data.provider === CloudProvider.GCP
       ? { gcpHost: data.choices.gcpHost }
       : {}),
+    ...(data.provider === CloudProvider.Azure
+      ? { azureHost: data.choices.azureHost }
+      : {}),
   };
 }
 
@@ -411,6 +460,8 @@ export function getCloudAiAgentLogsCommand(
   // Google Cloud only: what runs the agent, and the project it runs in.
   gcpHost: GcpCloudAiAgentHost = GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   projectId?: string | undefined,
+  // Azure only: what runs the agent.
+  azureHost: AzureCloudAiAgentHost = AZURE_CLOUD_AI_AGENT_DEFAULT_HOST,
 ): string {
   const project: string =
     projectId && GCP_PROJECT_ID_PATTERN.test(projectId)
@@ -421,6 +472,14 @@ export function getCloudAiAgentLogsCommand(
     case CloudProvider.AWS:
       return `aws logs tail ${AWS_CLOUD_AI_AGENT_LOG_GROUP_NAME} --since 30m`;
     case CloudProvider.Azure:
+      /*
+       * On its own VM, which takes no SSH login: Docker's log of the agent,
+       * read by Run Command (the VM's own agent runs it as root).
+       */
+      if (azureHost === "virtual-machine") {
+        return `az vm run-command invoke --name ${AZURE_CLOUD_AI_AGENT_VM_NAME} --resource-group ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP} --command-id RunShellScript --scripts "docker logs --tail 100 ${AZURE_CLOUD_AI_AGENT_VM_NAME}" --query "value[0].message" --output tsv`;
+      }
+
       return `az containerapp logs show --name ${AZURE_CLOUD_AI_AGENT_APP_NAME} --resource-group ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP} --tail 100`;
     default:
       if (gcpHost === "compute-engine") {

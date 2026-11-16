@@ -84,8 +84,9 @@ export interface MonitorSummaryInfoProps {
 /*
  * Synthetic monitors carry base64 screenshots, one per browser × screen
  * size, and a single check can run to several megabytes. createdStateLog
- * keeps none of them (StateChangeLogScreenshots), though incidents and
- * alerts opened before that have them there, unbounded; this column keeps
+ * keeps none of them (StateChangeLogScreenshots), and those incidents and
+ * alerts opened before that kept are cleared by the hourly job
+ * Monitor:ClearStoredLogScreenshots (StoredLogScreenshots); this column keeps
  * them while they fit. Past the budget we drop the screenshots (the largest
  * thing by far) and flag it, so the row stays a sane size and the view can
  * say why the images are missing.

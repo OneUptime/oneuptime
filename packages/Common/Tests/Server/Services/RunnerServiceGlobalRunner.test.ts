@@ -447,7 +447,11 @@ describe("the global Runners every project reads", () => {
     expect(args.query).toEqual({ isGlobalRunner: true });
     expect(args.select).toBe(GLOBAL_RUNNER_LIST_READ_SELECT);
     expect(Object.keys(GLOBAL_RUNNER_LIST_READ_SELECT).sort()).toEqual(
-      [...Object.keys(GLOBAL_RUNNER_PUBLIC_SELECT), "agentVersion"].sort(),
+      [
+        ...Object.keys(GLOBAL_RUNNER_PUBLIC_SELECT),
+        "agentVersion",
+        "canRunCodeFixes",
+      ].sort(),
     );
     expect(args.props.isRoot).toBe(true);
   });
@@ -464,6 +468,7 @@ describe("the global Runners every project reads", () => {
     function row(data: {
       name: string;
       takesCodeFixes?: boolean | undefined;
+      canRunCodeFixes?: boolean | undefined;
       agentVersion: string;
       lastAlive?: Date | undefined;
     }): Runner {
@@ -472,6 +477,8 @@ describe("the global Runners every project reads", () => {
       runner.name = data.name;
       runner.isGlobalRunner = true;
       runner.agentVersion = new Version(data.agentVersion);
+      // As the column: on unless a master admin turned it off.
+      runner.canRunCodeFixes = data.canRunCodeFixes !== false;
       if (data.takesCodeFixes !== undefined) {
         runner.takesCodeFixes = data.takesCodeFixes;
       }
@@ -493,6 +500,14 @@ describe("the global Runners every project reads", () => {
       row({ name: "older", agentVersion: "14.0.93", lastAlive: now }),
       // Never heartbeated: its 1.0.0 is the new row's placeholder.
       row({ name: "never-started", agentVersion: "1.0.0" }),
+      // A master admin turned its code fixes off: it says yes, and takes none.
+      row({
+        name: "switched-off",
+        takesCodeFixes: true,
+        canRunCodeFixes: false,
+        agentVersion: "14.0.102",
+        lastAlive: now,
+      }),
     ] as never);
 
     const runners: Array<Runner> = await RunnerService.findGlobalRunners();
@@ -507,6 +522,7 @@ describe("the global Runners every project reads", () => {
       ["since-14.0.94", true],
       ["older", false],
       ["never-started", true],
+      ["switched-off", false],
     ]);
 
     // What is handed on, as the route serializes it: never a release.
@@ -515,6 +531,8 @@ describe("the global Runners every project reads", () => {
       Runner,
     ) as Array<JSONObject>) {
       expect(json).not.toHaveProperty("agentVersion");
+      // The server's switch is read here, and said only as takesCodeFixes.
+      expect(json).not.toHaveProperty("canRunCodeFixes");
       expect(json).not.toHaveProperty("key");
       expect(json).not.toHaveProperty("hostInfo");
       expect(typeof json["takesCodeFixes"]).toBe("boolean");

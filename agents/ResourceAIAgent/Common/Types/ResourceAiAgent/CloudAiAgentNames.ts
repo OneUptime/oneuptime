@@ -62,6 +62,45 @@ export const AZURE_CLOUD_AI_AGENT_READER_ROLE_NAME: string =
 export const AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME: string = `${CLOUD_AI_AGENT_NAME}-write`;
 
 /*
+ * Where the Azure agent runs, as its setup command starts it:
+ *
+ *   - container-apps (the default): one Container App, as above;
+ *   - virtual-machine: one small Linux VM (AZURE_CLOUD_AI_AGENT_VM_SIZE)
+ *     in a network of its own that lets nothing in, whose own
+ *     (system-assigned) identity only reads, with the write identity
+ *     attached to it and to nothing else. Its key is a secret of a Key
+ *     Vault of its own that only the VM's identity may read, which the VM
+ *     reads at every boot. For a subscription where Container Apps cannot
+ *     be used.
+ *
+ * Both are in the agent's resource group, which the agent never changes.
+ */
+export type AzureCloudAiAgentHost = "container-apps" | "virtual-machine";
+export const AZURE_CLOUD_AI_AGENT_HOSTS: ReadonlyArray<AzureCloudAiAgentHost> =
+  ["container-apps", "virtual-machine"];
+export const AZURE_CLOUD_AI_AGENT_DEFAULT_HOST: AzureCloudAiAgentHost =
+  "container-apps";
+// The VM, its network (a virtual network and subnet of one name), its NSG and its address.
+export const AZURE_CLOUD_AI_AGENT_VM_NAME: string = CLOUD_AI_AGENT_NAME;
+export const AZURE_CLOUD_AI_AGENT_NETWORK_NAME: string = CLOUD_AI_AGENT_NAME;
+
+/*
+ * The VM's Key Vault, which holds the agent's key. Key Vault names are one
+ * namespace across all of Azure (3 to 24 letters, digits and hyphens,
+ * starting with a letter), so the name carries the subscription's id: the
+ * first 19 of its hex digits after "ouai-", 24 characters in all.
+ */
+export function getAzureCloudAiAgentKeyVaultName(
+  subscriptionId: string,
+): string {
+  return `ouai-${subscriptionId
+    .trim()
+    .toLowerCase()
+    .replace(/-/g, "")
+    .slice(0, 19)}`;
+}
+
+/*
  * The write identity's resource ID in a subscription: what the Container
  * App is given it by, and what the agent asks for its token with.
  */

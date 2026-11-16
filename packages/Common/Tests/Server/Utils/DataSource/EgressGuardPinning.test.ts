@@ -248,9 +248,10 @@ describe("DataSourceEgressGuard.createPinnedLookup through an https agent", () =
 
 describe("DataSourceEgressGuard.createPinnedAgents", () => {
   test("builds http and https agents that both carry the pinned lookup", async () => {
-    const agents: PinnedAgents = DataSourceEgressGuard.createPinnedAgents([
-      { address: "93.184.216.34", family: 4 },
-    ]);
+    const agents: PinnedAgents = DataSourceEgressGuard.createPinnedAgents({
+      url: new URL("https://example.com/"),
+      addresses: [{ address: "93.184.216.34", family: 4 }],
+    });
 
     const httpLookup: EgressLookupFunction = (
       agents.httpAgent as unknown as {

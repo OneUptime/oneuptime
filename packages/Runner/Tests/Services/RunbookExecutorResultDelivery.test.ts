@@ -299,9 +299,12 @@ describe("the heartbeat right before a step runs", () => {
     await Executor.executeAndReport(kubectlJob());
 
     expect(jobHeartbeat).toHaveBeenCalledTimes(1);
-    expect(jobHeartbeat).toHaveBeenCalledWith("job-1", {
-      timeoutInMs: PRE_SPAWN_HEARTBEAT_TIMEOUT_MS,
-    });
+    expect(jobHeartbeat).toHaveBeenCalledWith(
+      "job-1",
+      expect.objectContaining({
+        timeoutInMs: PRE_SPAWN_HEARTBEAT_TIMEOUT_MS,
+      }),
+    );
     expect(kubectlExecute).toHaveBeenCalledTimes(1);
     expect(submitJobResult).toHaveBeenCalledTimes(1);
 
@@ -808,7 +811,9 @@ describe("delivering the result", () => {
     expect(times).toHaveLength(4);
     expect(times[3]! - startedAt).toBeGreaterThan(JOB_HEARTBEAT_INTERVAL_MS);
     expect(jobHeartbeat).toHaveBeenCalledTimes(2);
-    expect(jobHeartbeat.mock.calls[1]).toEqual(["job-1"]);
+    // The interval's own heartbeat: no short timeout of its own.
+    expect(jobHeartbeat.mock.calls[1]![0]).toBe("job-1");
+    expect(jobHeartbeat.mock.calls[1]![1]).not.toHaveProperty("timeoutInMs");
 
     await advance(JOB_HEARTBEAT_INTERVAL_MS * 5);
     expect(jobHeartbeat).toHaveBeenCalledTimes(2);

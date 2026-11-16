@@ -12,10 +12,11 @@
  *     starts: no process is ever spawned, no connection opened;
  *   - an AI-composed command is refused, whatever its type;
  *   - a job carrying a credential is refused;
- *   - a JavaScript step runs in a sandbox of its own whose egress is the
- *     strict one, said authoritatively, and whose refusals never say what
- *     DNS answered - one project's script must not map the network the
- *     global Runner sits in.
+ *   - a JavaScript step runs in a process of its own (JavaScriptSandbox),
+ *     never in the Runner's own, in a sandbox whose egress is the strict
+ *     one, said authoritatively, and whose refusals never say what DNS
+ *     answered - one project's script must not map the network the global
+ *     Runner sits in. SandboxProcess.test.ts runs that process for real.
  *
  * Driven through Executor.executeAndReport with the collaborators
  * module-mocked; bash is a recording mock so "never spawned" is asserted.
@@ -59,6 +60,13 @@ jest.mock("Common/Server/Utils/VM/VMAPI", () => {
   return {
     __esModule: true,
     default: { runCodeInSandbox: jest.fn() },
+  };
+});
+
+jest.mock("../../Utils/JavaScriptSandbox/SandboxProcess", () => {
+  return {
+    __esModule: true,
+    default: { runStep: jest.fn() },
   };
 });
 
@@ -111,6 +119,8 @@ import KubectlExecutor from "../../Services/KubectlExecutor";
 import GlobalRunnerMode from "../../Utils/GlobalRunnerMode";
 import RunnerCapabilities from "../../Utils/RunnerCapabilities";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
+import JavaScriptSandbox from "../../Utils/JavaScriptSandbox/SandboxProcess";
+import { MAX_OUTPUT_BYTES } from "../../Config";
 import { spawn } from "child_process";
 
 const spawnCalls: Array<{ command: string; args: Array<string> }> = (
@@ -124,6 +134,7 @@ const sshExecute: jest.Mock = SSHExecutor.execute as jest.Mock;
 const kubernetesExecute: jest.Mock = KubernetesExecutor.execute as jest.Mock;
 const kubectlExecute: jest.Mock = KubectlExecutor.execute as jest.Mock;
 const runCodeInSandbox: jest.Mock = VMUtil.runCodeInSandbox as jest.Mock;
+const runStepInOwnProcess: jest.Mock = JavaScriptSandbox.runStep as jest.Mock;
 
 function job(overrides: Partial<ClaimedJob> = {}): ClaimedJob {
   return {
@@ -153,6 +164,11 @@ beforeEach(() => {
   runCodeInSandbox.mockResolvedValue({
     returnValue: "ok",
     logMessages: [],
+  });
+  runStepInOwnProcess.mockReset();
+  runStepInOwnProcess.mockResolvedValue({
+    success: true,
+    output: "Return: ok",
   });
   GlobalRunnerMode.setFromServer(true);
   jest.spyOn(RunnerCapabilities, "resolve").mockReturnValue({
@@ -212,6 +228,7 @@ describe("on a global Runner", () => {
       expect(kubernetesExecute).not.toHaveBeenCalled();
       expect(kubectlExecute).not.toHaveBeenCalled();
       expect(runCodeInSandbox).not.toHaveBeenCalled();
+      expect(runStepInOwnProcess).not.toHaveBeenCalled();
     },
   );
 
@@ -227,6 +244,7 @@ describe("on a global Runner", () => {
         "never commands composed by OneUptime AI",
       );
       expect(runCodeInSandbox).not.toHaveBeenCalled();
+      expect(runStepInOwnProcess).not.toHaveBeenCalled();
     },
   );
 
@@ -240,36 +258,68 @@ describe("on a global Runner", () => {
     expect(result["success"]).toBe(false);
     expect(result["errorMessage"]).toContain("never handed a credential");
     expect(runCodeInSandbox).not.toHaveBeenCalled();
+    expect(runStepInOwnProcess).not.toHaveBeenCalled();
   });
 
-  test("a JavaScript step runs in the sandbox, on the strict egress policy, said authoritatively", async () => {
+  test("a JavaScript step runs in a process of its own, never in the Runner's, on the strict egress policy, said authoritatively", async () => {
     await Executor.executeAndReport(
       job({ inputs: { host: "web-1" }, trigger: "Webhook" }),
     );
 
-    expect(runCodeInSandbox).toHaveBeenCalledTimes(1);
+    expect(runCodeInSandbox).not.toHaveBeenCalled();
+    expect(runStepInOwnProcess).toHaveBeenCalledTimes(1);
 
-    const call: {
-      code: string;
-      options: Record<string, unknown>;
-    } = runCodeInSandbox.mock.calls[0]![0] as {
-      code: string;
-      options: Record<string, unknown>;
-    };
+    const request: Record<string, unknown> = runStepInOwnProcess.mock
+      .calls[0]![0] as Record<string, unknown>;
 
-    expect(call.code).toBe("return 'ok';");
-    expect(call.options["timeout"]).toBe(5_000);
-    expect(call.options["allowPrivateNetworkRequests"]).toBe(false);
-    expect(call.options["privateNetworkAccessIsAllowed"]).toBe(false);
-    expect(call.options["includeResolutionDetailInError"]).toBe(false);
-    expect(String(call.options["privateNetworkHint"])).toContain(
-      "Global Runners reach the internet only",
-    );
+    expect(request["script"]).toBe("return 'ok';");
+    expect(request["timeoutInMs"]).toBe(5_000);
+    expect(request["maxOutputBytes"]).toBe(MAX_OUTPUT_BYTES);
+    expect(request["policy"]).toEqual({
+      allowPrivateNetworkRequests: false,
+      privateNetworkAccessIsAllowed: false,
+      privateNetworkHint: GLOBAL_RUNNER_JAVASCRIPT_PRIVATE_NETWORK_HINT,
+      includeResolutionDetailInError: false,
+    });
     // The run's inputs, as data, as on any Runner.
-    expect(call.options["args"]).toBeDefined();
+    expect(request["args"]).toEqual({
+      inputs: { host: "web-1" },
+      trigger: "Webhook",
+    });
 
-    expect(submittedResult()["success"]).toBe(true);
+    expect(submittedResult()).toMatchObject({
+      success: true,
+      output: "Return: ok",
+    });
     expect(spawnCalls).toHaveLength(0);
+  });
+
+  test("what its process reports is what the server is told", async () => {
+    runStepInOwnProcess.mockResolvedValue({
+      success: false,
+      output: "partial",
+      errorMessage:
+        "The JavaScript step ran past its time limit and was stopped.",
+    });
+
+    await Executor.executeAndReport(job());
+
+    expect(submittedResult()).toMatchObject({
+      success: false,
+      output: "partial",
+      errorMessage:
+        "The JavaScript step ran past its time limit and was stopped.",
+    });
+  });
+
+  test("a step with no inputs gets empty args, as the isolate always did", async () => {
+    await Executor.executeAndReport(job());
+
+    expect(
+      (runStepInOwnProcess.mock.calls[0]![0] as Record<string, unknown>)[
+        "args"
+      ],
+    ).toEqual({});
   });
 });
 
@@ -285,6 +335,17 @@ describe("negative control: a project's own Runner", () => {
 
     expect(spawnCalls).toHaveLength(1);
     expect(submittedResult()["success"]).toBe(true);
+  });
+
+  test("runs a JavaScript step in its own process, as before: its project's own, as its Bash steps are", async () => {
+    await Executor.executeAndReport(job());
+
+    expect(runStepInOwnProcess).not.toHaveBeenCalled();
+    expect(runCodeInSandbox).toHaveBeenCalledTimes(1);
+    expect(submittedResult()).toMatchObject({
+      success: true,
+      output: "Return: ok",
+    });
   });
 
   test("runs a JavaScript step with the sandbox's own default policy, nothing widened for it", async () => {

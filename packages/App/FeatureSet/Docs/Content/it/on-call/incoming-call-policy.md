@@ -41,10 +41,11 @@ flowchart TB
 Vai in **Impostazioni del progetto** > **Notifiche** > **Canali di notifica** e apri **Altre impostazioni**. Nella scheda **Configurazione Twilio**, fai clic su **Crea configurazione Twilio** e compila il modulo:
 
 - **Nome** e **Descrizione**: a che cosa serve l'account, ad esempio «Linea di supporto».
+- **Usa questo account per**: **Chiamate e SMS**, oppure **Solo chiamate** se i numeri dell'account non possono inviare SMS. Le chiamate in entrata funzionano con entrambe le scelte.
 - **SID dell'account Twilio**: dalla console di Twilio. Inizia con `AC`.
 - **Token di autenticazione Twilio**: dalla console di Twilio.
-- **Numero di telefono principale Twilio**: un numero di quell'account, per gli SMS e le chiamate che invia. In **Altri campi**, facoltativi: numeri per i destinatari di altri paesi e numeri per gli SMS se i numeri dell'account possono solo effettuare chiamate (vedi [Numeri separati per chiamate e SMS](/docs/self-hosted/twilio-integration#numeri-separati-per-chiamate-e-sms)).
-- **Imposta come predefinito del progetto**: attivo per la prima configurazione Twilio del progetto, così anche gli SMS e le chiamate ai membri del progetto passano da questo account. Disattivalo se l'account serve solo per le chiamate in entrata.
+- **Numero di telefono principale Twilio**: un numero di quell'account, per le chiamate che effettua e per i suoi SMS quando ne invia. In **Altri campi**, facoltativi: numeri per i destinatari di altri paesi e numeri per gli SMS se i numeri dell'account possono solo effettuare chiamate (vedi [Numeri separati per chiamate e SMS](/docs/self-hosted/twilio-integration#numeri-separati-per-chiamate-e-sms)).
+- **Imposta come predefinito del progetto**: attivo per la prima configurazione Twilio del progetto, così anche le chiamate ai membri del progetto passano da questo account, e i loro SMS quando è usato per **Chiamate e SMS**. Disattivalo se l'account serve solo per le chiamate in entrata.
 
 ### Crea la policy
 

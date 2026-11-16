@@ -663,6 +663,44 @@ describe("MonitorUptimeSummaryUtil JSON", () => {
     expect(parsed!.statuses[2]).toEqual(STATUSES[2]);
   });
 
+  /*
+   * A day monitoring was off (issue #7112) carries how long, so the monitor
+   * page's strip says "monitoring off" for it rather than "no data"; a day
+   * monitoring was on carries nothing more than it always did.
+   */
+  it("carries a day's time with monitoring off, and only for a day it was off", () => {
+    const withOff: MonitorUptimeSummary = {
+      ...SUMMARY,
+      buckets: [
+        { ...SUMMARY.buckets[0]!, monitoringOffSeconds: 21600 },
+        SUMMARY.buckets[1]!,
+      ],
+    };
+
+    const json: JSONObject = MonitorUptimeSummaryUtil.toJSON(withOff);
+    const wireBuckets: Array<JSONObject> = json["buckets"] as Array<JSONObject>;
+
+    expect(wireBuckets[0]!["monitoringOffSeconds"]).toBe(21600);
+    expect(Object.keys(wireBuckets[1]!)).not.toContain("monitoringOffSeconds");
+
+    const parsed: MonitorUptimeSummary | null =
+      MonitorUptimeSummaryUtil.fromJSON(JSON.parse(JSON.stringify(json)));
+
+    expect(parsed!.buckets[0]!.monitoringOffSeconds).toBe(21600);
+    expect(parsed!.buckets[1]!.monitoringOffSeconds).toBeUndefined();
+    expect(MonitorUptimeSummaryUtil.toJSON(parsed!)).toEqual(json);
+
+    // Anything but a positive number reads as no time off.
+    for (const value of [-1, "nope", null, 0]) {
+      expect(
+        MonitorUptimeSummaryUtil.fromJSON({
+          ...json,
+          buckets: [{ ...wireBuckets[0]!, monitoringOffSeconds: value }],
+        })!.buckets[0]!.monitoringOffSeconds,
+      ).toBeUndefined();
+    }
+  });
+
   it("fromJSON returns null for garbage", () => {
     expect(MonitorUptimeSummaryUtil.fromJSON(null)).toBeNull();
     expect(MonitorUptimeSummaryUtil.fromJSON(undefined)).toBeNull();

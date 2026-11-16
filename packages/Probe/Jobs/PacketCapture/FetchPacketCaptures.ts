@@ -4,6 +4,7 @@ import {
   PROBE_PACKET_CAPTURE_SETTINGS,
 } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
+import ServerBusy from "../../Utils/ServerBusy";
 import {
   PacketCaptureRunResult,
   RunPacketCaptureOptions,
@@ -46,6 +47,9 @@ import logger from "Common/Server/Utils/Logger";
 
 // How long one upload may take: 25 MB over a slow site link, and then some.
 export const UPLOAD_TIMEOUT_IN_MS: number = 8 * 60 * 1000;
+
+// The work the list hands out, as a busy answer names it (ServerBusy).
+const PACKET_CAPTURES_WORK: string = "packet captures";
 
 interface RunningCapture {
   controller: AbortController;
@@ -131,6 +135,18 @@ export async function fetchPacketCaptures(data: {
         headers: {},
         options: ProbeAPIRequest.getDefaultRequestOptions(url),
       });
+
+    /*
+     * Too busy to hand out captures (issue #8051): nothing was claimed, and
+     * the next tick asks again. Unlike every other work fetch it does not
+     * wait out a Retry-After: this request is also what keeps the running
+     * captures alive on the server. A OneUptime server answers it busy with
+     * the stops alone, never a 429; this is for anything in between.
+     */
+    if (ServerBusy.isBusyAnswer(result)) {
+      ServerBusy.note(PACKET_CAPTURES_WORK);
+      return empty;
+    }
 
     if (result instanceof HTTPErrorResponse) {
       logger.warn(

@@ -26,6 +26,7 @@ import {
   OnUpdate,
 } from "../Types/Database/Hooks";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import ColumnPermissions from "../Types/Database/Permissions/ColumnPermission";
 import PermissionUtil from "../Types/Database/Permissions/PermissionsUtil";
 import CreatePermission, {
   CreateParent,
@@ -201,6 +202,7 @@ import RelatedFileAccess, {
   RelatedFileReader,
 } from "../Utils/File/RelatedFileAccess";
 import PublishedImages, { CascadedRow } from "../Utils/File/PublishedImages";
+import AttachedFiles, { hasAttachedFiles } from "../Utils/File/AttachedFiles";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
 import ProjectUsageCache from "../Utils/ProjectProducts/ProjectUsageCache";
@@ -503,6 +505,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   public doNotAllowDelete: boolean = false;
+
+  /*
+   * Set by a service whose rows OneUptime soft deletes on its own, on a
+   * schedule - never a person's Delete, which removes a row at once - such
+   * as the discovered devices the hourly age-out removes (NetworkEndpoint,
+   * DiscoveredDeviceAgeOut). The daily purge of soft-deleted rows
+   * (SoftDeletedRowsPurge) then deletes them for good once they have been
+   * deleted for 30 days on every installation, self-hosted ones included;
+   * other services' rows only where billing is on (issue #6528).
+   */
+  public purgesSoftDeletedRowsOnEveryInstall: boolean = false;
 
   public constructor(modelType: { new (): TBaseModel }) {
     super();
@@ -1126,9 +1139,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * The files a write or a delete let go of are deleted once nothing holds
-   * them (CustomFieldFiles.deleteUnheldFiles). Best-effort: a failure is
-   * logged, and never fails the write that is done already.
+   * The files a write or a delete let go of - held in custom fields, or
+   * attached to the deleted rows and their notes (AttachedFiles) - are
+   * deleted once nothing holds them (CustomFieldFiles.deleteUnheldFiles).
+   * Best-effort: a failure is logged, and never fails the write that is
+   * done already.
    */
   private async deleteReleasedCustomFieldFiles(
     releasedFileIds: Map<string, Set<string>>,
@@ -1145,7 +1160,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       });
     } catch (err) {
       logger.error(
-        `Could not delete the custom field files ${this.model.tableName} records let go of: ${String(err)}`,
+        `Could not delete the files ${this.model.tableName} records let go of: ${String(err)}`,
       );
     }
   }
@@ -1383,6 +1398,33 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * with these (the notes of an incident, the groups of a status page),
    * read while they are still there. See PublishedImages.
    */
+  /*
+   * The files attached to rows about to be deleted - to them, and to the
+   * notes their delete takes with it - by the project each was uploaded in,
+   * for deleteReleasedCustomFieldFiles once the DELETE is done (issue
+   * #6944). Nothing is read for a table that lists no attachments.
+   */
+  private async readAttachedFilesOfRowsDeleted(
+    items: Array<TBaseModel>,
+  ): Promise<Map<string, Set<string>>> {
+    if (!hasAttachedFiles(this.model.tableName)) {
+      return new Map();
+    }
+
+    return await AttachedFiles.readFilesOfRowsDeleted({
+      tableName: this.model.tableName,
+      ids: items.map((item: TBaseModel) => {
+        return item.id!;
+      }),
+      query: async (
+        sql: string,
+        parameters: Array<unknown>,
+      ): Promise<unknown> => {
+        return await this.getRepository().manager.query(sql, parameters);
+      },
+    });
+  }
+
   private async readRowsDeletedWith(
     items: Array<TBaseModel>,
   ): Promise<Array<CascadedRow>> {
@@ -1929,10 +1971,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * The salt column grants nobody create or update rights, so it has to get
    * past the column-permission check some other way on each path. On update
    * it does so by timing — sanitizeCreateOrUpdate runs after the check. On
-   * create the check runs after `hash()`, so the salt column relies on being
-   * declared `computed: true`, which checkDataColumnPermissions skips on
-   * create. A salt column that forgets that flag breaks every non-root
-   * create of a row carrying a password.
+   * create the check runs after `hash()`, so the salt column is declared
+   * `computed: true`: a server-set column the caller did not send is one the
+   * create's own steps wrote, which the check lets through
+   * (getColumnsSetByServerOnCreate), while a salt the caller sends is refused
+   * before the hooks run (ColumnPermission.checkComputedColumnsSentOnCreate).
+   * A salt column that forgets the flag breaks every non-root create of a row
+   * carrying a password.
    */
   private async hashColumnValue(data: {
     payload: TBaseModel | PartialEntity<TBaseModel>;
@@ -3584,6 +3629,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     CreateBy<BaseModel>,
     Dictionary<Array<string>>
   > = new WeakMap<CreateBy<BaseModel>, Dictionary<Array<string>>>();
+
+  /*
+   * The server-set columns a create's caller gave a value and may create,
+   * by the create, from its ask before its hooks
+   * (checkComputedColumnsSentOnCreate) for the ask after them, which takes
+   * every other value in a server-set column as one the create's own steps
+   * wrote (getColumnsSetByServerOnCreate).
+   */
+  private static computedColumnsSentOn: WeakMap<
+    CreateBy<BaseModel>,
+    Array<string>
+  > = new WeakMap<CreateBy<BaseModel>, Array<string>>();
 
   /*
    * For a create hook that fills in records a template names - an incident
@@ -5948,7 +6005,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * needs it (checkCallerBeforeHooks, which hands createBy its props); no row
    * id pinned by a non-root caller; no query operator, and no switch the
    * database would refuse, in the payload; who did what decided by
-   * OneUptime; one value for a reference, under its ID name too; the parent
+   * OneUptime; one value for a reference, under its ID name too; no value in
+   * a server-set column the caller may not create; the parent
    * the record goes under (checkCreateParents) and the records it names
    * (checkNamedLists), kept for the ask after the hooks. A create runs them
    * (_create), and so does the check that asks without creating
@@ -6010,6 +6068,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // A record named only by its relation, in its ID column too. See the helper.
     this.fillIdColumnsFromRelations(createBy.data);
 
+    /*
+     * What OneUptime fills in is not the caller's to give: a value in a
+     * server-set column is held to its create list, under both names of a
+     * reference (filled in above), before any hook reads it. See the helper.
+     */
+    DatabaseService.computedColumnsSentOn.set(
+      createBy,
+      ModelPermission.checkComputedColumnsSentOnCreate(
+        this.modelType,
+        createBy.data,
+        createBy.props,
+      ),
+    );
+
     // Under a parent the caller may read, before any hook acts. See the helper.
     const checkedParentIds: Array<string> = await this.checkCreateParents({
       data: createBy.data,
@@ -6064,7 +6136,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data: data.record,
     });
 
-    ModelPermission.checkCreatePermissions(this.modelType, data.record, props);
+    ModelPermission.checkCreatePermissions(
+      this.modelType,
+      data.record,
+      props,
+      this.getColumnsSetByServerOnCreate(data.createBy, data.record),
+    );
 
     // And under the parent the hooks left it with, should they name another.
     await this.checkCreateParents({
@@ -6095,6 +6172,34 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await this.assertFileReferencesOwnedOnCreate(data.record);
 
     return props;
+  }
+
+  /*
+   * The server-set columns the create's own steps wrote into `record` once
+   * its caller was asked (checkCreateBeforeHooks): its hooks, the defaults,
+   * the hashing - a salt, an incident's number, a token. They are the
+   * server-set columns the record holds a value in that the caller did not
+   * give one, and they are OneUptime's, so the check of the record lets them
+   * through (ColumnPermission.checkDataColumnPermissions). A create not asked
+   * before its hooks hands over none: every value is then the caller's.
+   */
+  private getColumnsSetByServerOnCreate(
+    createBy: CreateBy<TBaseModel>,
+    record: TBaseModel,
+  ): Array<string> {
+    const sentByCaller: Array<string> | undefined =
+      DatabaseService.computedColumnsSentOn.get(createBy);
+
+    if (!sentByCaller) {
+      return [];
+    }
+
+    return ColumnPermissions.getComputedColumnsWithValue(
+      this.model,
+      record,
+    ).filter((column: string): boolean => {
+      return !sentByCaller.includes(column);
+    });
   }
 
   private async _create(
@@ -7798,6 +7903,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         const cascaded: Array<CascadedRow> =
           await this.readRowsDeletedWith(items);
 
+        // The files attached to them and to their notes. See AttachedFiles.
+        const attachedFiles: Map<
+          string,
+          Set<string>
+        > = await this.readAttachedFilesOfRowsDeleted(items);
+
         // The DELETE itself, committed on its own.
         numberOfDocsAffected =
           (
@@ -7805,6 +7916,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
               return await this.getRepository().delete(query as any);
             })
           ).affected || 0;
+
+        /*
+         * Their attached files go with them - a retention purge included -
+         * unless something still holds them. See AttachedFiles.
+         */
+        await this.deleteReleasedCustomFieldFiles(attachedFiles);
 
         /*
          * Their images are private again, unless another record still shows
@@ -8170,6 +8287,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           deleteBy.props,
         );
 
+        // The files attached to them and to their notes. See AttachedFiles.
+        const attachedFiles: Map<
+          string,
+          Set<string>
+        > = await this.readAttachedFilesOfRowsDeleted(items);
+
         // The DELETE itself, committed on its own.
         numberOfDocsAffected =
           (
@@ -8177,6 +8300,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
               return await this.getRepository().delete(query as any);
             })
           ).affected || 0;
+
+        /*
+         * Their attached files go with them, unless something still holds
+         * them. See AttachedFiles.
+         */
+        await this.deleteReleasedCustomFieldFiles(attachedFiles);
 
         /*
          * The images the deleted rows - and the rows deleted with them -

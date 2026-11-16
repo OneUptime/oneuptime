@@ -364,9 +364,8 @@ export default class MattermostWebhook {
       );
     }
 
-    const agents: PinnedAgents = DataSourceEgressGuard.createPinnedAgents(
-      target.addresses,
-    );
+    const agents: PinnedAgents =
+      DataSourceEgressGuard.createPinnedAgents(target);
 
     const requestConfig: AxiosRequestConfig = {
       // Only Node's http adapter uses the pinned agents.

@@ -75,6 +75,23 @@ export interface UptimeDayBucket {
 
   /* Seconds spent in each status, summed within the bucket. */
   statusDurations: Array<UptimeStatusDuration>;
+
+  /*
+   * Seconds of this bucket nothing checked the monitor because its
+   * monitoring was turned off (MonitorStatusTimeline.isMonitoringOff, issue
+   * #6480). That time is in no status, so it is NOT in coveredSeconds or the
+   * durations: a day with no coverage and some of this is a day monitoring
+   * was off, which the bars say (issue #7112), not a day nothing was
+   * recorded; a day with both is measured over its checked time and says
+   * for how long monitoring was off.
+   *
+   * A monitor group's: the time at least one of its monitors had monitoring
+   * off while none of them was checked.
+   *
+   * Left out when monitoring was on for the whole bucket, so a payload or a
+   * reader from before it reads every bucket as it always did.
+   */
+  monitoringOffSeconds?: number | undefined;
 }
 
 /**

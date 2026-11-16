@@ -41,10 +41,11 @@ flowchart TB
 Gå till **Projektinställningar** > **Aviseringar** > **Aviseringskanaler** och öppna **Fler inställningar**. Klicka på **Skapa Twilio-konfiguration** i kortet **Twilio-konfiguration** och fyll i formuläret:
 
 - **Namn** och **Beskrivning**: vad kontot används till, till exempel "Supportlinje".
+- **Använd det här kontot för**: **Samtal och SMS**, eller **Endast samtal** när kontots nummer inte kan skicka SMS. Inkommande samtal fungerar med båda.
 - **Twilio-konto-SID**: från Twilio Console. Det börjar med `AC`.
 - **Twilio-autentiseringstoken**: från Twilio Console.
-- **Twilio primärt telefonnummer**: ett nummer på det kontot, för de SMS och samtal som det skickar. Under **Fler fält**, valfritt: nummer för mottagare i andra länder och nummer för SMS när kontots nummer bara kan ringa (se [Separata nummer för samtal och SMS](/docs/self-hosted/twilio-integration#separata-nummer-för-samtal-och-sms)).
-- **Ange som projektstandard**: på för projektets första Twilio-konfiguration, så att SMS och samtal till projektets medlemmar också går via det här kontot. Stäng av det om kontot bara är för inkommande samtal.
+- **Twilio primärt telefonnummer**: ett nummer på det kontot, för de samtal som det ringer, och för dess SMS när det skickar sådana. Under **Fler fält**, valfritt: nummer för mottagare i andra länder och nummer för SMS när kontots nummer bara kan ringa (se [Separata nummer för samtal och SMS](/docs/self-hosted/twilio-integration#separata-nummer-för-samtal-och-sms)).
+- **Ange som projektstandard**: på för projektets första Twilio-konfiguration, så att samtal till projektets medlemmar också går via det här kontot, och deras SMS när det används för **Samtal och SMS**. Stäng av det om kontot bara är för inkommande samtal.
 
 ### Skapa policyn
 

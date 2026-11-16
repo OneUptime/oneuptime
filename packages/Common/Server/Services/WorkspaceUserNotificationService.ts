@@ -142,9 +142,9 @@ export class WorkspaceUserNotificationService extends BaseService {
 
     try {
       /*
-       * A project a master admin blocked, and a sample project (issue
-       * #6808), send nobody a direct message (BlockedProjectNotifications):
-       * the send fails with the reason, which the on-call timeline shows.
+       * A project a master admin blocked sends nobody a direct message
+       * (BlockedProjectNotifications): the send fails with the reason, which
+       * the on-call timeline shows.
        */
       const silencedReason: string | null =
         await BlockedProjectNotifications.getSilencedReason({

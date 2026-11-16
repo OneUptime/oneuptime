@@ -287,6 +287,13 @@ export enum CodeTaskBlockerType {
    * project's own Runners, on that network.
    */
   RepositoryNeedsOwnRunner = "RepositoryNeedsOwnRunner",
+  /*
+   * On OneUptime Cloud, a repository that is not on GitHub works on the
+   * Global Runner, and no global Runner is handed its connection's token
+   * (Types/Runner/GlobalRunnerRepositoryTokens): it needs one of the
+   * project's own Runners.
+   */
+  RepositoryTokenNeedsOwnRunner = "RepositoryTokenNeedsOwnRunner",
   NoLlmProvider = "NoLlmProvider",
   NoAiCredits = "NoAiCredits",
   DailyLimitReached = "DailyLimitReached",

@@ -30,6 +30,7 @@ import "./Jobs/TelemetryException/SendAssignedNotification";
 
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";
+import "./Jobs/Monitor/ClearStoredLogScreenshots";
 
 // Alert Owners
 import "./Jobs/AlertOwners/SendCreatedResourceNotification";
@@ -486,9 +487,6 @@ import "./Jobs/InstanceUpdate/CheckForNewVersion";
 
 // Tells oneuptime.com once a day which URL and version this install runs.
 import "./Jobs/InstanceCheckIn/CheckIn";
-
-// On OneUptime Cloud, deletes a sample project nobody has opened for two weeks (#6808).
-import "./Jobs/SampleProject/DeleteIdleSampleProjects";
 
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
