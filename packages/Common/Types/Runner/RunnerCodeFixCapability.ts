@@ -25,9 +25,9 @@ enum RunnerCodeFixCapability {
    *     the one project, that can push (write_repository) but not call the
    *     API, and that OneUptime revokes when the run ends - rather than the
    *     connection's own token, wherever GitLab lets OneUptime make one;
-   *   - Forgejo and Gitea: still the connection's token, which no API lets
-   *     OneUptime narrow; the pull request is OneUptime's to open all the
-   *     same.
+   *   - Forgejo and Gitea: still the connection's token, which OneUptime
+   *     cannot narrow (they make a token only for a user's password); the
+   *     pull request is OneUptime's to open all the same.
    *
    * A Runner older than this opens the pull request itself, as it always
    * did, with a token that can.

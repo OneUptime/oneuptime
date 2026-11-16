@@ -9,9 +9,9 @@ import { CodeHost } from "../CodeRepository/CodeHost";
  * GitHub App and revoked when the run ends. A GitLab repository's is, where
  * GitLab lets OneUptime make one (issue #8912), a project access token made
  * for the run alone: on that one project, able to push and nothing else,
- * ending on its own within a day and revoked when the run ends - GitLab
- * makes one only for a Maintainer's or Owner's token with the api scope, and
- * on GitLab.com only on Premium and Ultimate. A Forgejo, Gitea or Git
+ * ending on its own by the end of the next day in UTC and revoked when the
+ * run ends - GitLab makes one only for a Maintainer's or Owner's token with
+ * the api scope, and on GitLab.com only on Premium and Ultimate. A Forgejo, Gitea or Git
  * repository's is the token its connection holds (CodeRepositoryConnection):
  * long-lived, and as wide as the account it was made with, because neither
  * host lets OneUptime make a narrower one with the token it holds - Gitea
@@ -39,7 +39,8 @@ import { CodeHost } from "../CodeRepository/CodeHost";
 export enum GlobalRunnerKeptOffReason {
   /*
    * Forgejo, Gitea or Git: the repository is reached with its connection's
-   * own token, which no API lets OneUptime narrow.
+   * own token, which OneUptime cannot narrow: Forgejo and Gitea make a
+   * token only for a user's password, and a Git server has no API.
    */
   ConnectionToken = "ConnectionToken",
   // GitLab: GitLab refused to make the short-lived token a fix pushes with.

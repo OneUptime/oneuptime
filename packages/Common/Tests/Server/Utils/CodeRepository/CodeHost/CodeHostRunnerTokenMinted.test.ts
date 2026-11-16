@@ -44,8 +44,9 @@ import { MintedTokenStore, mockMintedTokenStore } from "./MintedTokenStore";
  * (RunnerCodeFixCapability.ServerOpensPullRequests) is handed, for a GitLab
  * repository whose server OneUptime reaches, a project access token
  * OneUptime makes with the connection's token for that run alone - on the
- * one project, write_repository, Developer, ending within a day - and never
- * the connection's own token where it does not have to be. Against a fake
+ * one project, write_repository, Developer, ending by the end of the next
+ * day in UTC - and never the connection's own token where it does not have
+ * to be. Against a fake
  * GitLab that holds GitLab's rules for these tokens (FakeGitLab): who may
  * make one, the project it reaches, the scope it calls the API with, and
  * what revoking it does. Not verified against a real GitLab: see the pull
@@ -224,7 +225,7 @@ describe("a GitLab repository's Runner that has OneUptime open its merge request
     expect(JSON.stringify(decision.grant)).not.toContain(CONNECTION_TOKEN);
   });
 
-  test("the token reaches the run's project alone, pushes and calls no API, as a Developer, and ends within a day", async () => {
+  test("the token reaches the run's project alone, pushes and calls no API, as a Developer, and ends by the end of the next day in UTC", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
       connectionToken: CONNECTION_TOKEN,
     });
@@ -541,7 +542,7 @@ describe("what is not made a token", () => {
     expect(decision.grant!.serverOpensPullRequest).toBe(false);
   });
 
-  test("Forgejo and Gitea: the connection's token, which no API narrows, and OneUptime opens the pull request", async () => {
+  test("Forgejo and Gitea: the connection's token, which OneUptime cannot narrow, and OneUptime opens the pull request", async () => {
     connection = makeConnection({
       provider: CodeRepositoryType.Forgejo,
       hostUrl: "https://codeberg.org",

@@ -359,7 +359,7 @@ export default class CodeRepositoryMintedTokens {
    * Revoke every token a run was handed that may still be good - in one
    * repository, or in all of them. The number revoked; never throws: a
    * token not revoked now is the sweep's (revokeEnded), and ends on its own
-   * within a day.
+   * by the end of the next day in UTC.
    */
   @CaptureSpan()
   public static async revokeForRun(data: {

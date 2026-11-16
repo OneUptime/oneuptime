@@ -23,9 +23,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * A Runner that pushes a fix's branch to a GitLab repository is handed a
  * project access token OneUptime makes for that run alone, with the
  * connection's token: on the one project, able to push and nothing more,
- * ending on its own within a day - instead of the connection's own token,
- * which is long-lived and as wide as the account it was made with. This row
- * is what lets OneUptime revoke it once the run no longer needs it:
+ * ending on its own by the end of the next day in UTC - instead of the
+ * connection's own token, which is long-lived and as wide as the account it
+ * was made with. This row is what lets OneUptime revoke it once the run no
+ * longer needs it:
  *
  *   - when the Runner reports the run's end, or the run is queued again for
  *     another attempt (AIAgentTaskAPI);

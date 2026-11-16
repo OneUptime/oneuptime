@@ -71,10 +71,10 @@ import {
  *     stays on the server (serverOpensPullRequest);
  *   - so on GitLab it is handed a project access token OneUptime makes for
  *     the run alone instead of the connection's own: the one project,
- *     write_repository, the Developer role, ending within a day and revoked
- *     when the run ends (CodeRepositoryMintedTokens). Where GitLab makes
- *     none for this repository, its own Runner is handed the connection's
- *     token, as before;
+ *     write_repository, the Developer role, ending by the end of the next
+ *     day in UTC and revoked when the run ends (CodeRepositoryMintedTokens).
+ *     Where GitLab makes none for this repository, its own Runner is handed
+ *     the connection's token, as before;
  *   - Forgejo, Gitea and Git make no narrower token from the one OneUptime
  *     holds, so their Runner is still handed the connection's.
  *
