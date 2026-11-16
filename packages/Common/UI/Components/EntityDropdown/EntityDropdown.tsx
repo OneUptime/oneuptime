@@ -1691,7 +1691,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 event.preventDefault();
                 clearShownValue();
               }}
-              className={`-m-px flex w-[calc(100%+2px)] items-center justify-between rounded-lg border border-transparent px-3 py-2 text-left text-sm ${
+              className={`-m-px flex min-h-[40px] w-[calc(100%+2px)] items-center justify-between rounded-lg border border-transparent px-3 py-2 text-left text-sm ${
                 props.disabled ? "cursor-not-allowed text-gray-400" : ""
               }`}
             >
@@ -1885,7 +1885,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   removeKey(selectedKeys[selectedKeys.length - 1] as string);
                 }
               }}
-              className="block w-full rounded-lg bg-transparent px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none disabled:cursor-not-allowed disabled:text-gray-500"
+              className="block min-h-[38px] w-full rounded-lg bg-transparent px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none disabled:cursor-not-allowed disabled:text-gray-500"
             />
             {!isMulti && selectedKeys.length > 0 && canClearPick && (
               <button

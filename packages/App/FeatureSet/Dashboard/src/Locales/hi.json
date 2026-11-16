@@ -56336,5 +56336,10 @@
   "Limited to deleted records": "हटाए गए रिकॉर्ड तक सीमित",
   "OneUptime switched this rule off when they were deleted.": "उनके हटाए जाने पर OneUptime ने यह नियम बंद कर दिया।",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "जैसा है वैसा चालू करने पर यह नियम इन सूचियों से बिल्कुल सीमित नहीं रहेगा। इसे संपादित करके चुनें कि यह किस पर लागू हो, फिर इसे चालू करें।",
-  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, {{date}} को हटाया गया।"
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, {{date}} को हटाया गया।",
+  "Deleted escalation rule": "हटाया गया एस्केलेशन नियम",
+  "Escalation Rule Name": "एस्केलेशन नियम का नाम",
+  "Escalation Rule Order": "एस्केलेशन नियम का क्रम",
+  "Level {{order}} (deleted)": "स्तर {{order}} (हटाया गया)",
+  "Level {{order}}: {{name}} (deleted)": "स्तर {{order}}: {{name}} (हटाया गया)"
 }

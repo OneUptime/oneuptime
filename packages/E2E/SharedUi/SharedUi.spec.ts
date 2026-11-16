@@ -2143,6 +2143,57 @@ test.describe("a rule's conditions at every width", () => {
     await screenshot(page, "rule-conditions-fa-1280");
   });
 
+  /*
+   * Add condition is an outline button that starts where the pickers do
+   * (#9116): it adds a row to them, and is not the form's action. It was a
+   * tinted indigo button under the word "If", the one coloured button of a
+   * rule's dialog.
+   */
+  test("Add condition is an outline button, under the pickers' start, both directions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const lang of ["en", "fa"]) {
+      await open(page, `section=rules&lang=${lang}`);
+
+      for (const name of ["phone", "dialog", "wide-dialog", "page"]) {
+        const entry: Locator = page.getByTestId(`rules-${name}`);
+        const [row] = await readConditions(page, name);
+        const add: Locator = entry.getByTestId("rule-criteria-add");
+        const box: { x: number; width: number } | null = await add.boundingBox();
+        const look: { background: string; border: string } =
+          await add.evaluate(
+            (element: Element): { background: string; border: string } => {
+              const style: CSSStyleDeclaration = getComputedStyle(element);
+              return {
+                background: style.backgroundColor,
+                border: style.borderTopColor,
+              };
+            },
+          );
+
+        expect(box).not.toBeNull();
+        // A white fill and a grey edge: not the tinted indigo it was.
+        expect([name, look.background]).toEqual([name, "rgb(255, 255, 255)"]);
+        expect([name, look.border]).not.toEqual([name, "rgba(0, 0, 0, 0)"]);
+
+        const start: number =
+          lang === "fa"
+            ? Math.round(box!.x + box!.width)
+            : Math.round(box!.x);
+        const pickersStart: number =
+          lang === "fa" ? row!.field.right : row!.field.left;
+
+        expect([lang, name, Math.abs(start - pickersStart) <= 1]).toEqual([
+          lang,
+          name,
+          true,
+        ]);
+      }
+    }
+  });
+
   test("in the dark theme (?theme=dark)", async ({ page }: { page: Page }) => {
     await open(page, "section=rules&theme=dark");
 

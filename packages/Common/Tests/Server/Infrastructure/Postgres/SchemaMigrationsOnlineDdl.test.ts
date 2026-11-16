@@ -44,6 +44,9 @@ import ts from "typescript";
  *     builds it with CREATE INDEX CONCURRENTLY;
  *   OnlineDdl.addForeignKey(queryRunner, `ALTER TABLE ... FOREIGN KEY ...`)
  *     adds it NOT VALID and validates it separately;
+ *   OnlineDdl.replaceForeignKey(queryRunner, `ALTER TABLE ... FOREIGN KEY ...`)
+ *     changes an existing key (its ON DELETE, say): the generator's DROP and
+ *     this ADD swapped in one statement, NOT VALID, then validated;
  *   OnlineDdl.dropIndex(queryRunner, `DROP INDEX "public"."IDX_..."`)
  *     drops it with DROP INDEX CONCURRENTLY.
  *
@@ -105,6 +108,8 @@ interface BlockingDdl {
 const ONLINE_DDL_CALLS: ReadonlyArray<string> = [
   "OnlineDdl.createIndex",
   "OnlineDdl.addForeignKey",
+  // Swaps a foreign key in one statement, NOT VALID, then validates it.
+  "OnlineDdl.replaceForeignKey",
   "OnlineDdl.dropIndex",
 ];
 
@@ -710,6 +715,68 @@ describe("New schema migrations keep existing tables writable", () => {
         }`;
 
       expect(findBlockingDdl(source)).toEqual([]);
+    });
+
+    /*
+     * A foreign key whose ON DELETE changes: the generator's DROP left out,
+     * its ADD handed to OnlineDdl.replaceForeignKey, which swaps the two in
+     * one statement NOT VALID and validates online
+     * (1809182510000-KeepOnCallHistoryWhenItsSettingsAreDeleted).
+     */
+    test("about a foreign key's ON DELETE changed through OnlineDdl.replaceForeignKey without a transaction: nothing", () => {
+      const source: string = `
+        export class KeepFooHistory1810000000000 implements MigrationInterface {
+          public name: string = "KeepFooHistory1810000000000";
+          public transaction: boolean = false;
+
+          public async up(queryRunner: QueryRunner): Promise<void> {
+            await OnlineDdl.replaceForeignKey(
+              queryRunner,
+              \`ALTER TABLE "Monitor" ADD CONSTRAINT "FK_3e1a5a33af8c38b49ff26a08688" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION\`,
+            );
+          }
+
+          public async down(queryRunner: QueryRunner): Promise<void> {
+            await queryRunner.query(\`ALTER TABLE "Monitor" DROP CONSTRAINT "FK_3e1a5a33af8c38b49ff26a08688"\`);
+            await queryRunner.query(\`ALTER TABLE "Monitor" ADD CONSTRAINT "FK_3e1a5a33af8c38b49ff26a08688" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION\`);
+          }
+        }`;
+
+      expect(findBlockingDdl(source)).toEqual([]);
+    });
+
+    test("about the same in a migration that runs in a transaction: flagged before it refuses to run", () => {
+      const source: string = `
+        export class M1810000000000 {
+          public async up(queryRunner: QueryRunner): Promise<void> {
+            await OnlineDdl.replaceForeignKey(queryRunner, \`ALTER TABLE "Monitor" ADD CONSTRAINT "FK_c" FOREIGN KEY ("fooId") REFERENCES "Foo"("_id") ON DELETE SET NULL ON UPDATE NO ACTION\`);
+          }
+        }`;
+
+      expect(findBlockingDdl(source)).toEqual([
+        {
+          statement: expect.stringContaining("OnlineDdl.replaceForeignKey"),
+          problem: expect.stringContaining(
+            "Give the migration `public transaction: boolean = false;`",
+          ),
+        },
+      ]);
+    });
+
+    test("about the generated DROP and ADD run as they are: the ADD is flagged, it checks every row under its lock", () => {
+      const source: string = `
+        export class M1810000000000 {
+          public transaction: boolean = false;
+
+          public async up(queryRunner: QueryRunner): Promise<void> {
+            await queryRunner.query(\`ALTER TABLE "Monitor" DROP CONSTRAINT "FK_c"\`);
+            await queryRunner.query(\`ALTER TABLE "Monitor" ADD CONSTRAINT "FK_c" FOREIGN KEY ("fooId") REFERENCES "Foo"("_id") ON DELETE SET NULL ON UPDATE NO ACTION\`);
+          }
+        }`;
+
+      expect(statementsFound(findBlockingDdl(source))).toEqual([
+        'ALTER TABLE "Monitor" ADD CONSTRAINT "FK_c" FOREIGN KEY ("fooId") REFERENCES "Foo"("_id") ON DELETE SET NULL ON UPDATE NO ACTION',
+      ]);
     });
 
     test("about a foreign key added NOT VALID: nothing; about its VALIDATE in the same file: nothing either", () => {

@@ -535,6 +535,12 @@ what was further down.
 - **A button that cannot be pressed looks it,** the same way everywhere: faded, with the not-allowed
   cursor. Enforced by
   [HandDrawnButtonLockedLookGuard](../../packages/Common/Tests/UI/HandDrawnButtonLockedLookGuard.test.ts).
+- **A button that adds a row to a builder never looks like the form's action.** Add condition, Add
+  filter and Add row put one more line into what the person is building; the form's own action is
+  elsewhere. Draw them as outline buttons (`ButtonStyleType.OUTLINE`), never filled or tinted: a
+  rule's Applies to step drew Add condition in tinted indigo, the one coloured button on a screen
+  whose Next is not primary, and it read as the dialog's main action (#9116). Enforced by
+  [AddRowButtonsNotPrimaryGuard](../../packages/Common/Tests/UI/Components/AddRowButtonsNotPrimaryGuard.test.ts).
 - **Icons and logos are one-colour SVGs,** and an icon means one thing: a timeline is shown with the
   timeline's icon. Enforced by
   [ProviderLogosGuard](../../packages/Common/Tests/UI/Components/ProviderLogo/ProviderLogosGuard.test.ts)

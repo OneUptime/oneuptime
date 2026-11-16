@@ -97,6 +97,24 @@ import { QueryRunner } from "typeorm";
  * migration that builds an index, validates a foreign key or drops an index
  * on an existing table any other way, and one whose up() calls this without
  * `transaction = false` (where dropIndex falls back to a plain DROP INDEX).
+ *
+ * CHANGING A FOREIGN KEY - its ON DELETE, say, from CASCADE to SET NULL
+ *
+ * The generator writes a DROP CONSTRAINT and an ADD CONSTRAINT of the same
+ * name. Run apart, they leave a moment with no key at all: a parent deleted
+ * then leaves a child pointing at nothing, and the new key's validation
+ * fails on that row - at every run of the migration after it. So pass the
+ * generated ADD, as it is, to replaceForeignKey, and leave the DROP out:
+ *
+ *   replaceForeignKey  ALTER TABLE ... DROP CONSTRAINT ..., ADD CONSTRAINT
+ *                      ... NOT VALID - one statement, so never a moment
+ *                      without the key: ACCESS EXCLUSIVE on both tables for
+ *                      an instant (dropping the key drops its triggers on
+ *                      the table it references), no scan - then VALIDATE
+ *                      CONSTRAINT, as addForeignKey validates.
+ *
+ * A key that already does what the statement says is not swapped again, and
+ * one a stopped run left NOT VALID is validated.
  */
 
 export interface OnlineDdlLimits {
@@ -148,6 +166,27 @@ const ADD_FOREIGN_KEY: RegExp = new RegExp(
   "i",
 );
 
+/* The table a foreign key's definition references: REFERENCES "File"("_id"). */
+const REFERENCES: RegExp = new RegExp(
+  `\\bREFERENCES\\s+(${QUOTED_TABLE})\\s*\\(`,
+  "i",
+);
+
+const REFERENTIAL_ACTION: string =
+  "(CASCADE|SET\\s+NULL|SET\\s+DEFAULT|RESTRICT|NO\\s+ACTION)";
+
+/*
+ * What a definition does on a delete, and on an update, as pg_constraint
+ * spells it (confdeltype, confupdtype): NO ACTION when it says nothing.
+ */
+const REFERENTIAL_ACTION_CODES: Record<string, string> = {
+  CASCADE: "c",
+  "SET NULL": "n",
+  "SET DEFAULT": "d",
+  RESTRICT: "r",
+  "NO ACTION": "a",
+};
+
 export interface OnlineIndex {
   /* As written: "IDX_...". */
   quotedName: string;
@@ -165,8 +204,26 @@ export interface OnlineForeignKey {
   name: string;
   /* The constraint added without checking existing rows. */
   addNotValid: string;
+  /*
+   * The constraint of the same name dropped and added again, NOT VALID, in
+   * one statement: replaceForeignKey's swap, never a moment without the key.
+   */
+  replaceNotValid: string;
   /* The check of the existing rows. */
   validate: string;
+  /* As written: the table it references, "File" or "public"."File". */
+  quotedReferencedTable: string;
+  /* What it does on a delete and on an update, as pg_constraint spells it. */
+  onDelete: string;
+  onUpdate: string;
+}
+
+/* A foreign key as the catalog has it, by its table and name. */
+interface ForeignKeyRow {
+  isValidated: boolean;
+  onDelete: string;
+  onUpdate: string;
+  isSameTarget: boolean;
 }
 
 type IndexState = "missing" | "valid" | "invalid" | "building";
@@ -305,16 +362,16 @@ export default class OnlineDdl {
 
     this.assertNoTransaction(queryRunner, foreignKey.validate);
 
-    const isValidated: boolean | null = await this.getForeignKeyState(
+    const current: ForeignKeyRow | null = await this.getForeignKeyRow(
       queryRunner,
       foreignKey,
     );
 
-    if (isValidated === true) {
+    if (current?.isValidated === true) {
       return;
     }
 
-    if (isValidated === null) {
+    if (!current) {
       /*
        * Its own transaction (autocommit): SHARE ROW EXCLUSIVE on both tables
        * for an instant, the wait for it bounded by the connection's
@@ -323,6 +380,87 @@ export default class OnlineDdl {
       await queryRunner.query(foreignKey.addNotValid);
     }
 
+    await this.validateForeignKey(queryRunner, foreignKey, limits, {
+      onViolation: "drop",
+    });
+  }
+
+  /*
+   * Changes an existing foreign key - what it does on a delete, say - to
+   * what a generated `ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY`
+   * statement describes, the generator's DROP of the same constraint left
+   * out. Needs `transaction = false`.
+   *
+   * The DROP and the ADD go in one statement, the ADD NOT VALID: never a
+   * moment without the key, in which a parent's delete would leave a child
+   * pointing at nothing (and every validation after it failing on that
+   * row), and no scan under the swap's locks - ACCESS EXCLUSIVE on both
+   * tables, for an instant, its wait bounded by the connection's
+   * lock_timeout. Then its rows are checked with VALIDATE CONSTRAINT, as
+   * addForeignKey checks them: every one was checked by the key it
+   * replaces.
+   *
+   * Safe to run again: a key that already does what the statement says -
+   * its ON DELETE and ON UPDATE, to the same table - is not swapped again,
+   * and one a stopped run left NOT VALID is validated. Rows that violate it
+   * (a key that replaced one never validated) fail the migration, and the
+   * key stays as swapped, NOT VALID - unlike addForeignKey's, which goes:
+   * here a table without it would have no key at all.
+   */
+  public static async replaceForeignKey(
+    queryRunner: QueryRunner,
+    addForeignKeyStatement: string,
+    limits: OnlineDdlLimits = ONLINE_DDL_LIMITS,
+  ): Promise<void> {
+    const foreignKey: OnlineForeignKey = this.parseAddForeignKey(
+      addForeignKeyStatement,
+    );
+
+    this.assertNoTransaction(queryRunner, foreignKey.validate);
+
+    const current: ForeignKeyRow | null = await this.getForeignKeyRow(
+      queryRunner,
+      foreignKey,
+    );
+
+    const isReplaced: boolean = Boolean(
+      current &&
+        current.isSameTarget === true &&
+        current.onDelete === foreignKey.onDelete &&
+        current.onUpdate === foreignKey.onUpdate,
+    );
+
+    if (isReplaced && current?.isValidated === true) {
+      return;
+    }
+
+    if (!isReplaced) {
+      logger.info(
+        `Replacing ${foreignKey.quotedName} on ${foreignKey.quotedTable} in one statement (DROP and ADD ... NOT VALID), so the table is never without it.`,
+      );
+
+      await queryRunner.query(foreignKey.replaceNotValid);
+    }
+
+    await this.validateForeignKey(queryRunner, foreignKey, limits, {
+      onViolation: "keep",
+    });
+  }
+
+  /*
+   * VALIDATE CONSTRAINT, within its own bounds: SHARE UPDATE EXCLUSIVE on the
+   * table, ROW SHARE on the one it references - reads and writes of both
+   * carry on. A lock wait or a timeout leaves the constraint NOT VALID - it
+   * already checks every new row - for the next run. Rows that violate it
+   * fail the migration; the constraint is dropped first when asked to, so
+   * the table is as it was before an addForeignKey.
+   */
+  private static async validateForeignKey(
+    queryRunner: QueryRunner,
+    foreignKey: OnlineForeignKey,
+    limits: OnlineDdlLimits,
+    options: { onViolation: "drop" | "keep" },
+  ): Promise<void> {
     logger.info(
       `Validating ${foreignKey.quotedName} on ${foreignKey.quotedTable} online (VALIDATE CONSTRAINT); reads and writes of both tables carry on meanwhile.`,
     );
@@ -336,6 +474,14 @@ export default class OnlineDdl {
          * already checks every new row - and the next run validates it.
          */
         throw error;
+      }
+
+      if (options.onViolation === "keep") {
+        throw new Error(
+          `Rows of ${foreignKey.quotedTable} violate ${foreignKey.quotedName}, so it could not be validated. It stays NOT VALID, doing what it now says for every row written and every row it references deleted: ${this.getErrorMessage(
+            error,
+          )}`,
+        );
       }
 
       await queryRunner
@@ -396,14 +542,47 @@ export default class OnlineDdl {
     const quotedTable: string = match[1];
     const quotedName: string = match[2];
     const definition: string = match[3].trim();
+    const references: RegExpMatchArray | null = definition.match(REFERENCES);
+
+    if (!references || !references[1]) {
+      throw new Error(
+        `OnlineDdl.addForeignKey expects an ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY statement as the generator writes it, got: ${addForeignKeyStatement}`,
+      );
+    }
 
     return {
       quotedTable: quotedTable,
       quotedName: quotedName,
       name: this.unquote(quotedName),
       addNotValid: `ALTER TABLE ${quotedTable} ADD CONSTRAINT ${quotedName} ${definition} NOT VALID`,
+      replaceNotValid: `ALTER TABLE ${quotedTable} DROP CONSTRAINT IF EXISTS ${quotedName}, ADD CONSTRAINT ${quotedName} ${definition} NOT VALID`,
       validate: `ALTER TABLE ${quotedTable} VALIDATE CONSTRAINT ${quotedName}`,
+      quotedReferencedTable: references[1],
+      onDelete: this.getReferentialAction(definition, "DELETE"),
+      onUpdate: this.getReferentialAction(definition, "UPDATE"),
     };
+  }
+
+  /*
+   * What a foreign key's definition does on a delete or an update, as
+   * pg_constraint spells it: "n" for ON DELETE SET NULL, "a" (NO ACTION)
+   * when it says nothing.
+   */
+  private static getReferentialAction(
+    definition: string,
+    event: "DELETE" | "UPDATE",
+  ): string {
+    const match: RegExpMatchArray | null = definition.match(
+      new RegExp(`\\bON\\s+${event}\\s+${REFERENTIAL_ACTION}`, "i"),
+    );
+
+    if (!match || !match[1]) {
+      return REFERENTIAL_ACTION_CODES["NO ACTION"]!;
+    }
+
+    return REFERENTIAL_ACTION_CODES[
+      match[1].toUpperCase().replace(/\s+/g, " ")
+    ]!;
   }
 
   private static assertNoTransaction(
@@ -521,22 +700,43 @@ export default class OnlineDdl {
     );
   }
 
-  /* true: validated; false: added NOT VALID; null: not there. */
-  private static async getForeignKeyState(
+  /*
+   * The foreign key of this name on this table, as the catalog has it -
+   * whether it is validated, what it does on a delete and an update, and
+   * whether it references the table the statement names - or null when it
+   * is not there.
+   */
+  private static async getForeignKeyRow(
     queryRunner: QueryRunner,
     foreignKey: OnlineForeignKey,
-  ): Promise<boolean | null> {
-    const rows: Array<{ isValidated: boolean }> = await queryRunner.query(
-      `SELECT con.convalidated AS "isValidated"
+  ): Promise<ForeignKeyRow | null> {
+    const rows: Array<ForeignKeyRow> = await queryRunner.query(
+      `SELECT con.convalidated AS "isValidated",
+              con.confdeltype AS "onDelete",
+              con.confupdtype AS "onUpdate",
+              (con.confrelid = to_regclass($3)) AS "isSameTarget"
          FROM pg_constraint con
         WHERE con.conrelid = to_regclass($1) AND con.conname = $2
           AND con.contype = 'f'`,
-      [foreignKey.quotedTable, foreignKey.name],
+      [
+        foreignKey.quotedTable,
+        foreignKey.name,
+        foreignKey.quotedReferencedTable,
+      ],
     );
 
-    const row: { isValidated: boolean } | undefined = rows[0];
+    const row: ForeignKeyRow | undefined = rows[0];
 
-    return row ? row.isValidated === true : null;
+    if (!row) {
+      return null;
+    }
+
+    return {
+      isValidated: row.isValidated === true,
+      onDelete: row.onDelete,
+      onUpdate: row.onUpdate,
+      isSameTarget: row.isSameTarget === true,
+    };
   }
 
   /*

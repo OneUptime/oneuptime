@@ -54,7 +54,13 @@ const PREFERRED_PLAN_NAME: string = "Growth";
 /** An SLO id that exists in no project, for the forged-query assertions. */
 const FORGED_SLO_ID: string = "00000000-0000-4000-8000-000000000000";
 
-/** Exactly the fields the SLO widget renders. */
+/*
+ * Exactly the fields the SLO widget renders. The last two word the line under
+ * a request or Metric SLO's budget (#8441): what the SLO measures says
+ * whether its budget is in minutes or in events ("120 failed requests
+ * remaining"), and the bad events left are its headline number, as the
+ * minutes are a monitor uptime SLO's.
+ */
 const PUBLISHED_FIELDS: Array<string> = [
   "name",
   "targetPercentage",
@@ -63,6 +69,8 @@ const PUBLISHED_FIELDS: Array<string> = [
   "errorBudgetRemainingSeconds",
   "currentBurnRate",
   "sloStatus",
+  "sliType",
+  "errorBudgetRemainingEvents",
 ];
 
 /*
@@ -83,7 +91,13 @@ const PRIVATE_FIELDS: Array<string> = [
   "downtimeMonitorStatuses",
   "labels",
   "metricQueryConfig",
-  "sliType",
+  // What a request SLO is made of, and the counts behind its budget.
+  "services",
+  "latencyThresholdInMilliseconds",
+  "requestFilter",
+  "goodEventCount",
+  "totalEventCount",
+  "eventAccumulationFingerprint",
   "multiMonitorMode",
   "windowType",
   "windowDays",
@@ -362,9 +376,11 @@ test.describe("SLO widgets on a public dashboard", () => {
     const row: JSONish = rows[0]!;
     expect(row["name"]).toBe(publishedSloName);
     expect(Number(row["targetPercentage"])).toBe(99.9);
+    // What the SLO measures, which says what unit its budget line is in.
+    expect(row["sliType"]).toBe("Monitor Uptime");
 
     /*
-     * The exact assertion: every key that came back is one of the seven the
+     * The exact assertion: every key that came back is one of the fields the
      * widget draws (plus the _id every list response carries). The state
      * columns are legitimately null on a seconds-old SLO, so their VALUES
      * are not asserted — their presence is not what matters, the absence of

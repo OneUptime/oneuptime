@@ -600,7 +600,13 @@ describe("a run whose step fails for a reason a retry cannot fix", () => {
     expect(world.keptFailures()).toBeNull();
   });
 
-  test("its next rule deleted as it moves on: it ends at once, saying so", async () => {
+  /*
+   * Its next rule deleted as it moves on (issue #9036): it used to end at
+   * once, in Error - and page no later level at all. The deleted level has
+   * nobody on it to wait for: it is passed, as a level that reached nobody
+   * is, and the level after it is paged.
+   */
+  test("its next rule deleted as it moves on: that level is passed and the one after it paged - the run never just ends", async () => {
     await world.startRun();
     // Level 2 is found, then deleted before it starts.
     world.failAt(FailurePoint.ReadStartingRule, {
@@ -619,10 +625,11 @@ describe("a run whose step fails for a reason a retry cannot fix", () => {
 
     await minutesPass(10);
 
-    expect(run().status).toBe(OnCallDutyPolicyStatus.Error);
-    expect(run().statusMessage).toBe(
-      `The escalation rule ${levelTwo.id!.toString()} no longer exists. It may have been deleted.`,
+    expect(run().status).toBe(OnCallDutyPolicyStatus.Executing);
+    expect(run().lastExecutedEscalationRuleId?.toString()).toBe(
+      levelThree.id!.toString(),
     );
-    expect(pagesSoFar()).toEqual(["Ana Lopez L1 @ 0"]);
+    expect(pagesSoFar()).toEqual(["Ana Lopez L1 @ 0", "Dana Kim L3 @ 10"]);
+    expect(world.keptFailures()).toBeNull();
   });
 });

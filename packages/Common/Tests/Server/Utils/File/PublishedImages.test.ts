@@ -1478,8 +1478,12 @@ describe("PublishedImages.readCascadedRows: what a delete takes with it", () => 
     ).toBe(
       `SELECT "_id", "projectId", "note", "isPublished", "incidentId" FROM "IncidentPublicNote" WHERE "incidentId" = ANY($1::uuid[]) AND "deletedAt" IS NULL`,
     );
-    expect(getCascadedRowsSql(cascadeOf("StatusPage", "logoFileId"))).toBe(
-      `SELECT "_id", "projectId", "overviewPageDescription" FROM "StatusPage" WHERE "logoFileId" = ANY($1::uuid[]) AND "deletedAt" IS NULL`,
+    expect(
+      getCascadedRowsSql(
+        cascadeOf("StatusPageGroup", "parentStatusPageGroupId"),
+      ),
+    ).toBe(
+      `SELECT "_id", "projectId", "description" FROM "StatusPageGroup" WHERE "parentStatusPageGroupId" = ANY($1::uuid[]) AND "deletedAt" IS NULL`,
     );
   });
 

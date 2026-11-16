@@ -56336,5 +56336,10 @@
   "Limited to deleted records": "محدود به رکوردهای حذف‌شده",
   "OneUptime switched this rule off when they were deleted.": "OneUptime هنگام حذف آن‌ها این قاعده را غیرفعال کرد.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "اگر همین‌طور فعال شود، این فهرست‌ها دیگر هیچ محدودیتی بر این قاعده نمی‌گذارند. آن را ویرایش کنید تا انتخاب کنید بر چه چیزی اعمال شود، سپس فعالش کنید.",
-  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}، حذف‌شده در {{date}}."
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}، حذف‌شده در {{date}}.",
+  "Deleted escalation rule": "قاعده تشدید حذف‌شده",
+  "Escalation Rule Name": "نام قاعده تشدید",
+  "Escalation Rule Order": "ترتیب قاعده تشدید",
+  "Level {{order}} (deleted)": "سطح {{order}} (حذف‌شده)",
+  "Level {{order}}: {{name}} (deleted)": "سطح {{order}}: {{name}} (حذف‌شده)"
 }

@@ -56336,5 +56336,10 @@
   "Limited to deleted records": "Begrænset til slettede poster",
   "OneUptime switched this rule off when they were deleted.": "OneUptime slog denne regel fra, da de blev slettet.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Slået til, som den er, ville reglen slet ikke længere være begrænset af disse lister. Rediger den for at vælge, hvad den gælder for, og slå den derefter til.",
-  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, slettet {{date}}."
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, slettet {{date}}.",
+  "Deleted escalation rule": "Slettet eskaleringsregel",
+  "Escalation Rule Name": "Eskaleringsregelens navn",
+  "Escalation Rule Order": "Eskaleringsregelens rækkefølge",
+  "Level {{order}} (deleted)": "Niveau {{order}} (slettet)",
+  "Level {{order}}: {{name}} (deleted)": "Niveau {{order}}: {{name}} (slettet)"
 }

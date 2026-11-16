@@ -56336,5 +56336,10 @@
   "Limited to deleted records": "Beperkt tot verwijderde records",
   "OneUptime switched this rule off when they were deleted.": "OneUptime heeft deze regel uitgeschakeld toen ze werden verwijderd.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Ingeschakeld zoals hij is, zou de regel helemaal niet meer door deze lijsten worden beperkt. Bewerk hem om te kiezen waarop hij van toepassing is en schakel hem daarna in.",
-  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, verwijderd op {{date}}."
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, verwijderd op {{date}}.",
+  "Deleted escalation rule": "Verwijderde escalatieregel",
+  "Escalation Rule Name": "Naam van de escalatieregel",
+  "Escalation Rule Order": "Volgorde van de escalatieregel",
+  "Level {{order}} (deleted)": "Niveau {{order}} (verwijderd)",
+  "Level {{order}}: {{name}} (deleted)": "Niveau {{order}}: {{name}} (verwijderd)"
 }

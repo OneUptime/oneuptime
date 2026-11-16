@@ -317,6 +317,32 @@ describe("handing a run whose start failed to its escalation", () => {
     ]);
   });
 
+  /*
+   * A page again starts at a rule of its own: only one whose rule was
+   * recorded goes on from it. Its place says so - the rule may have been
+   * deleted since, which clears the rule and keeps the place (issue #9036).
+   */
+  test("a page again goes on from its rule only once its rule was recorded - by its place, which stays when the rule is deleted", async () => {
+    await expect(
+      OnCallDutyPolicyExecutionLogService.handStartedRunToEscalation({
+        executionLogId: RUN_ID,
+        dueAt: MOMENT,
+        onlyFromItsRule: true,
+      }),
+    ).resolves.toBe(true);
+
+    expect(repositoryUpdate).toHaveBeenCalledTimes(1);
+
+    const [where, values] = repositoryUpdate.mock.calls[0]!;
+
+    expect(where["_id"]).toBe(RUN_ID.toString());
+    expect(where["lastExecutedEscalationRuleId"]).toBeUndefined();
+    expect(
+      (where["lastExecutedEscalationRuleOrder"] as { type?: unknown }).type,
+    ).toBe("not");
+    expect(values).toEqual({ status: OnCallDutyPolicyStatus.Executing });
+  });
+
   test("a run no longer Started is left as it is", async () => {
     repositoryUpdate.mockResolvedValue({ affected: 0 });
 
@@ -430,6 +456,34 @@ describe("giving back a claim to move a run on that paged nobody", () => {
     await expect(giveBack()).resolves.toBe(false);
 
     expect(repositoryUpdate).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The rule the run was on when it was claimed was deleted since (issue
+   * #9036): the database cleared it from the run (ON DELETE SET NULL). The
+   * run is on the same level - only moving on names another rule - so its
+   * claim is given back, and the run moves on now rather than a whole wait
+   * later.
+   */
+  test("gives it back when the rule the run was on was deleted since: the run is on the same level", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(
+        storedRun({
+          lastExecutedEscalationRuleId: undefined as unknown as ObjectID,
+        }),
+      );
+
+    await expect(giveBack()).resolves.toBe(true);
+
+    expect(repositoryUpdate).toHaveBeenCalledWith(
+      {
+        _id: RUN_ID.toString(),
+        status: OnCallDutyPolicyStatus.Executing,
+        lastEscalationRuleExecutedAt: CLAIMED_AT,
+      },
+      { lastEscalationRuleExecutedAt: READ_AT },
+    );
   });
 
   test("a run moved on between the read and the update keeps what the other move wrote", async () => {
