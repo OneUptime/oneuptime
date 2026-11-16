@@ -622,6 +622,23 @@ async function lintFiles(
           ", ",
         )}${leftOut.length > 5 ? ` and ${leftOut.length - 5} more` : ""}\n`,
     );
+    /*
+     * A worktree's files, named from the checkout around it, whose config
+     * ignores every worktree: the worktree's own copy of this script lints
+     * them with the worktree's own config, ignoring nothing it should not.
+     */
+    const worktree = leftOut
+      .map((file) => {
+        return toPosix(path.relative(REPO_ROOT, file)).match(
+          /^((?:.*\/)?\.claude\/worktrees\/[^/]+)\//,
+        );
+      })
+      .find(Boolean);
+    if (worktree) {
+      process.stderr.write(
+        `[lint] To lint a worktree's files, run its own copy from its root: cd ${worktree[1]} && node Scripts/Lint/LintByProject.js -- <paths>\n`,
+      );
+    }
   }
 
   if (listProjects) {

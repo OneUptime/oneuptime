@@ -475,6 +475,11 @@ test.describe("the script, on planted files", () => {
       "export var answer: number = 42;\n",
     );
     write(path.join(fixture, "two", "plain.js"), "var ignored = 1;\n");
+    // A worktree's file, as the checkout around a worktree sees it.
+    write(
+      path.join(fixture, ".claude", "worktrees", "w", "a.ts"),
+      "export var answer: number = 42;\n",
+    );
   });
 
   test.after(() => {
@@ -564,6 +569,33 @@ test.describe("the script, on planted files", () => {
           `[lint] Left out, as eslint.config.js ignores them: ${relativeFixture}/two/plain.js\n`,
         ),
         result.stderr,
+      );
+    },
+  );
+
+  test.it(
+    "a worktree's file named from the checkout around it: left out, as that checkout's config ignores worktrees, with how to lint it instead",
+    () => {
+      const worktree = `${relativeFixture}/.claude/worktrees/w`;
+      const result = lint("--", `${worktree}/a.ts`);
+
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.ok(
+        result.stderr.includes(
+          `[lint] Left out, as eslint.config.js ignores them: ${worktree}/a.ts\n`,
+        ),
+        result.stderr,
+      );
+      assert.ok(
+        result.stderr.includes(
+          `[lint] To lint a worktree's files, run its own copy from its root: cd ${worktree} && node Scripts/Lint/LintByProject.js -- <paths>\n`,
+        ),
+        result.stderr,
+      );
+      // Walking the folder around it does not go into it.
+      assert.match(
+        lint("--list-projects", "--", relativeFixture).stdout,
+        /^(?![\s\S]*worktrees)/,
       );
     },
   );
