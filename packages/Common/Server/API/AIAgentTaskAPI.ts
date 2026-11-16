@@ -31,6 +31,8 @@ import GitHubRunReply from "../Utils/CodeRepository/GitHub/GitHubRunReply";
 import CodeTaskOutcomeReader, {
   CodeTaskOutcomeRead,
 } from "../Utils/AI/CodeTask/CodeTaskOutcomeReader";
+import CodeRepositoryMintedTokens from "../Utils/CodeRepository/CodeHost/CodeRepositoryMintedTokens";
+import { RunnerCodeFixCapabilityUtil } from "../../Types/Runner/RunnerCodeFixCapability";
 
 /*
  * The agent worker's task protocol. The route names and request shapes are
@@ -93,6 +95,13 @@ export default class AIAgentTaskAPI {
               supportedTaskTypes: CodeFixTaskTypeHelper.readSupportedTaskTypes(
                 (req.body as JSONObject | undefined)?.["supportedTaskTypes"],
               ),
+              /*
+               * Whether it pushes with a token made for its run, which is
+               * what lets a global Runner take a GitLab repository's runs
+               * where it is never handed a connection's own token.
+               */
+              pushesWithRunTokens:
+                RunnerCodeFixCapabilityUtil.pushesWithRunTokens(req.body),
             });
 
           if (!run) {
@@ -169,6 +178,8 @@ export default class AIAgentTaskAPI {
             worker: CodeFixAgentAuth.getCodeWorker(aiAgent),
             projectId: aiAgent.projectId,
             claimableTaskTypes,
+            pushesWithRunTokens:
+              RunnerCodeFixCapabilityUtil.pushesWithRunTokens(req.body),
           });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -398,6 +409,16 @@ export default class AIAgentTaskAPI {
                 pullRequests: unrecordedPullRequests,
               });
             }
+
+            /*
+             * The worker is done with the run, however it ended - and
+             * whether or not it goes back to the queue for another attempt,
+             * which is handed a token of its own: every token OneUptime made
+             * for it is revoked now (CodeRepositoryMintedTokens), rather
+             * than left good until it ends on its own. Never throws; one not
+             * revoked now is the sweep's.
+             */
+            await CodeRepositoryMintedTokens.revokeForRun({ runId: runId });
 
             /*
              * An attempt that failed for a reason trying again can fix goes

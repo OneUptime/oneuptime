@@ -10,6 +10,8 @@ import {
 import SloEvaluationCard from "../../../Components/Slo/SloEvaluationCard";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import { UsedByImpactForRecord } from "../../../Components/UsedBy/UsedByImpact";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
@@ -733,6 +735,13 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         archiveConfirmMessage={SLO_ARCHIVE_CONFIRM_MESSAGE}
         unarchiveConfirmMessage={SLO_UNARCHIVE_CONFIRM_MESSAGE}
         onArchiveChange={refreshBanner}
+        // Its burn-rate rules and dashboards say what archiving it changes (#7437).
+        archiveConfirmationContent={
+          <UsedByImpactForRecord
+            recordKind={UsedByRecordKind.Slo}
+            recordId={modelId}
+          />
+        }
       />
     </Fragment>
   );

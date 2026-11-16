@@ -101,6 +101,8 @@ Uma ausência adicionada assim vale para todas as políticas de plantão, então
 
 Com a API, uma substituição de usuário (`/api/on-call-duty-policy-user-override`) criada sem `routeAlertsToUserId` pula a pessoa em `overrideUserId` de `startsAt` até `endsAt`.
 
+A **Visão geral** de um agendamento tem um cartão **Usado por**: as políticas de plantão cujas regras de escalonamento acionam quem está de plantão, com as regras que fazem isso. Quando nenhuma faz, ele diz isso e leva às políticas de plantão. Excluir o agendamento, em sua página ou pela lista, diz primeiro quais políticas acionam por ele. As políticas que você não pode abrir são contadas, não nomeadas.
+
 ## Criar agendamentos com a API ou o Terraform
 
 Os agendamentos de plantão são o recurso `/api/on-call-duty-policy-schedule`; as camadas deles e as pessoas nelas são os recursos `/api/on-call-duty-schedule-layer` e `/api/on-call-duty-schedule-layer-user`.
@@ -108,6 +110,7 @@ Os agendamentos de plantão são o recurso `/api/on-call-duty-policy-schedule`; 
 - Criar um agendamento com `firstLayerUsers` (uma lista de IDs de usuário, na ordem em que se revezam) nos `miscDataProps` dá a ele a primeira camada, como faz o painel: **Layer 1**, de plantão a partir de agora, 24 horas por dia. `firstLayerRotation` diz quanto dura cada turno, como uma rotação do tipo `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; sem ela, uma semana. Todo usuário precisa ser membro do projeto e quem chama precisa poder criar camadas, senão o agendamento não é criado.
 - Um agendamento criado sem eles não tem camadas, como antes; o recurso de agendamento do Terraform não os envia.
 - Uma camada criada sem `rotation` passa o turno todo dia, como sempre.
+- Uma mudança nas camadas de um agendamento e nas pessoas nelas, feita com a API ou o Terraform, é avisada como uma única mudança: quem está de plantão é calculado quando as camadas ficam meio minuto sem mudanças, e quem entra ou sai do plantão, ou é o próximo, é avisado uma vez, e não uma vez por camada ou pessoa gravada. Os acionamentos vão para quem as camadas colocam de plantão assim que cada mudança é salva.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \

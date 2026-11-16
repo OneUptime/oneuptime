@@ -16,8 +16,8 @@ import RunbookStarter, {
 import Select from "../Types/Database/Select";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
-import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleSetCache from "../Utils/Rules/RuleSetCache";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import RuleCriteriaMatcher, {
   LegacyFilterCorrelation,
@@ -155,17 +155,16 @@ class RunbookRuleEngineServiceClass {
     matchesRule: RuleMatcher;
   }): Promise<void> {
     try {
-      const rules: Array<RunbookRule> = await RunbookRuleService.findBy({
-        query: {
+      // Kept until any of the project's rules changes (RuleSetCache).
+      const rules: Array<RunbookRule> =
+        await RuleSetCache.findEnabledRules<RunbookRule>({
+          service: RunbookRuleService,
           projectId: data.projectId,
-          isEnabled: true,
-          triggerEntityType: data.triggerEntityType,
-        },
-        props: { isRoot: true },
-        select: this.ruleSelect,
-        limit: MAX_RULES_EVALUATED_PER_PROJECT,
-        skip: 0,
-      });
+          query: {
+            triggerEntityType: data.triggerEntityType,
+          },
+          select: this.ruleSelect,
+        });
 
       logIfRuleReadWasTruncated({
         ruleKind: "RunbookRule",

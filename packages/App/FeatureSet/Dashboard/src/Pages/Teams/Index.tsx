@@ -1,4 +1,9 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  UsedByListActions,
+  getUsedByListActions,
+} from "../../Components/UsedBy/UsedByListActions";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -312,6 +317,14 @@ const Teams: FunctionComponent<PageComponentProps> = (
       getOwnersDisabledReason: getTeamOwnersDisabledReason,
     });
 
+  /*
+   * A row's Delete and the bulk Delete say what still uses the
+   * records first (#7435).
+   */
+  const usedBy: UsedByListActions<Team> = getUsedByListActions<Team>(
+    UsedByRecordKind.Team,
+  );
+
   return (
     <Fragment>
       {accessNotice && (
@@ -340,6 +353,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
           tableId: "settings-teams-table",
         }}
         isDeleteable={true}
+        getDeleteConfirmation={usedBy.getDeleteConfirmation}
         selectMoreFields={{
           isTeamDeleteable: true,
           isTeamEditable: true,
@@ -347,6 +361,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
         getDeleteDisabledReason={getTeamDeleteDisabledReason}
         bulkActions={{
           buttons: ownerBulkActions,
+          deleteConfirmationDetails: usedBy.deleteConfirmationDetails,
         }}
         isEditable={false}
         isCreateable={true}

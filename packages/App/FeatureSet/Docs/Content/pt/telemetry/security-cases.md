@@ -246,6 +246,8 @@ Para publicar em um canal, adicione uma regra em **Produtos → Eventos de segur
 
 Cada notificação, exceto a de uma tarefa, é publicada nos canais de todas as regras a que o caso corresponde naquele momento. Uma regra em que **Prioridade do caso de segurança** contém qualquer um de **Crítico** e **Alto** publica os casos High e Crítico assim que abrem, e um caso Medium quando ele sobe para High. Um caso de segurança nunca ganha um canal próprio.
 
+A etapa **Atualizações** de uma regra escolhe quais destes avisos ela publica: **Novos casos e aumentos de prioridade**, **Atribuições**, **Aprovações pendentes** e **Metas de resposta**, uma caixa cada em **Escolher atualizações**. **Somente atualizações importantes** publica todos menos as atribuições, para um canal que só deve saber do que alguém precisa resolver. Uma regra salva antes da etapa, e uma regra nova, publica todos os avisos.
+
 ## Playbooks
 
 Um playbook é uma lista de etapas que rodam em um caso. Crie um em **Produtos → Eventos de segurança → Playbooks**, a partir de um modelo ou em branco, e adicione as etapas na página dele. Um projeto sem playbooks vê os modelos no lugar de uma lista vazia; assim que há playbooks, **Criar a partir de modelo** na lista os abre, com **Adicionado** nos que o projeto já tem.

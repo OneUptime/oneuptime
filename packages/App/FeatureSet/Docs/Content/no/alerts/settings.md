@@ -80,7 +80,7 @@ Med to eller flere betingelser velger du **Samsvar med alle**, der hver må stem
 :::steps
 ### Velg varslene
 
-Klikk på **Opprett Alert On-Call Rule**. Under **Treff** samsvarer **Alle varsler**, som en ny regel starter på, med hvert nytt varsel. For å snevre inn regelen velger du **Bare varsler som oppfyller betingelsene** og legger til betingelsene et varsel må oppfylle.
+Klikk på **Opprett Vaktregel for varsler**. Under **Treff** samsvarer **Alle varsler**, som en ny regel starter på, med hvert nytt varsel. For å snevre inn regelen velger du **Bare varsler som oppfyller betingelsene** og legger til betingelsene et varsel må oppfylle.
 
 ### Velg policyene
 

@@ -143,7 +143,7 @@ async function seedProject(index) {
         { projectId },
         { _id: true, order: true },
         20,
-        { order: "Ascending" },
+        { order: "ASC" },
       )
     )[0]._id,
   );
@@ -155,7 +155,7 @@ async function seedProject(index) {
         { projectId },
         { _id: true, order: true },
         20,
-        { order: "Ascending" },
+        { order: "ASC" },
       )
     )[0]._id,
   );
@@ -246,7 +246,7 @@ async function seedProject(index) {
     (row) => {
       return row.isResolvedState;
     },
-    { order: "Ascending" },
+    { order: "ASC" },
   );
   const alertResolved = await firstWhere(
     session,
@@ -256,7 +256,7 @@ async function seedProject(index) {
     (row) => {
       return row.isResolvedState;
     },
-    { order: "Ascending" },
+    { order: "ASC" },
   );
 
   const incidentIds = [];

@@ -96,6 +96,8 @@ Cada barra del gráfico de tiempo de actividad, aquí y en una página de estado
 
 La lista **Grupos de monitores** puede filtrar grupos por propietario y etiqueta, fijar etiquetas y propietarios en muchos grupos a la vez, y exportar o importar grupos como JSON.
 
+La **Vista general** también tiene una tarjeta **Usado por**: las páginas de estado que muestran el grupo y los SLO que miden sus monitores. Si ninguna página de estado lo muestra, la tarjeta lo dice y enlaza a las páginas de estado. Eliminar el grupo, en su página o desde la lista, dice primero qué páginas de estado lo muestran.
+
 ## Desactivar el monitoreo de todo un grupo
 
 La tarjeta **Monitoreo** de la **Vista general** de un grupo desactiva el monitoreo, o lo vuelve a activar, para todos los monitores del grupo a la vez.

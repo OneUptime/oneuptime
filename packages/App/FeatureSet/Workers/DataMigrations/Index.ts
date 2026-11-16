@@ -185,6 +185,7 @@ import BackfillNetworkEndpointCoarseLastSeenAt from "./BackfillNetworkEndpointCo
 import ResolveWhatMonitorsTurnedOffWouldHaveResolved from "./ResolveWhatMonitorsTurnedOffWouldHaveResolved";
 import BackfillMonitorFirstMeasuredAt from "./BackfillMonitorFirstMeasuredAt";
 import BackfillMonitorFirstMeasuredAtForUptimeHistory from "./BackfillMonitorFirstMeasuredAtForUptimeHistory";
+import EncryptProjectCredentials from "./EncryptProjectCredentials";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1224,12 +1225,13 @@ const DataMigrations: Array<DataMigrationBase> = [
   new EncryptUploadedCertificateKeys(),
   /*
    * The private keys of the free certificates ordered from Let's Encrypt
-   * (AcmeCertificate.certificateKey), and the account and certificate keys
-   * the Greenlock store it replaced kept (GreenlockCertificate.blob), stored
-   * as plaintext before they were kept encrypted at rest: each encrypted in
-   * place, in raw SQL, only while it still holds the value read. Paged and
-   * idempotent; nginx serves a key not encrypted yet as itself meanwhile.
-   * Before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   * (AcmeCertificate.certificateKey), stored as plaintext before they were
+   * kept encrypted at rest: each encrypted in place, in raw SQL, only while
+   * it still holds the value read. Paged and idempotent; nginx serves a key
+   * not encrypted yet as itself meanwhile. The keys the Greenlock store kept
+   * are not encrypted: a schema migration drops its tables first
+   * (DropGreenlockTables1809182470000). Before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
    */
   new EncryptLetsEncryptKeys(),
   /*
@@ -1258,6 +1260,19 @@ const DataMigrations: Array<DataMigrationBase> = [
    * asserts for itself.
    */
   new BackfillMonitorFirstMeasuredAtForUptimeHistory(),
+  /*
+   * A project's credentials stored as written before their columns were
+   * kept encrypted at rest (#8989): its SMTP configs' passwords and OAuth
+   * client secrets, its Slack, Microsoft Teams and Mattermost bot tokens
+   * and its members' chat sign-in tokens, its code repositories' webhook
+   * secrets and its members' webhook signing secrets - each encrypted in
+   * place, in raw SQL, only while it still holds the value read. Paged and
+   * idempotent; a value not encrypted yet still reads as itself meanwhile.
+   * After RepairHashedStringEnvelopeSecrets, which unwraps the signing
+   * secrets a broken write wrapped, and before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new EncryptProjectCredentials(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

@@ -21,9 +21,18 @@
  * ones they own, "is not" the rest (unowned ones too), "is empty" the
  * unowned, "is not empty" the owned.
  *
+ * A schedule's own Overview (Pages/OnCallDuty/OnCallDutySchedule) is drawn
+ * at /on-call-duty/schedules/<id>: its details, its Final Schedule (it has
+ * no layers yet) and its Used by card (#7438) - with usedBy=used, the
+ * on-call policies that page Payments Primary and the escalation rules of
+ * each that do, and one more policy the member may not see; nothing pages
+ * it otherwise.
+ *
  * Steered by the query string:
- *   - lang=de     the Dashboard's German words
+ *   - lang=de|fa  the Dashboard's German or Persian words; Persian right to
+ *                 left
  *   - theme=dark  dark mode (set before the bundle by server.js)
+ *   - usedBy=used what pages the schedule, on its Overview's Used by card
  *   - delay=<ms>  the Owner chip's people and teams take this long to read
  *   - schedules=0 the project has no schedule yet
  *   - role=noowners
@@ -51,10 +60,13 @@ import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import OnCallDutySchedulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/OnCallDutySchedules";
+import OnCallDutyScheduleOverview from "../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/OnCallDutySchedule/Index";
 import OnCallDutySideMenu from "../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/SideMenu";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
+import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicyScheduleOwnerTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerTeam";
 import OnCallDutyPolicyScheduleOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerUser";
 import TableView from "Common/Models/DatabaseModels/TableView";
@@ -78,11 +90,16 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import Page from "Common/UI/Components/Page/Page";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { getUsedByRelations } from "Common/Types/UsedBy/UsedBy";
 
 const PROJECT_ID = "10000000-0000-4000-8000-0000000000f1";
 
 const params = new URLSearchParams(window.location.search);
-const language = params.get("lang") === "de" ? "de" : "en";
+const language = ["de", "fa"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
+// ?usedBy=used: on-call policies page the schedule (#7438).
+const usedByMode = params.get("usedBy") === "used" ? "used" : "none";
 // ?delay=<ms>: the Owner chip's people and teams take this long to read.
 const pickerDelay = Number(params.get("delay") || 0);
 // ?schedules=0: a project with no schedule yet.
@@ -272,6 +289,9 @@ const TABLES = {
   // Saved views and the chat workspaces the side menu names: none here.
   TableView: [],
   WorkspaceProjectAuthToken: [],
+  // A schedule's layers, and who takes turns in them: none yet.
+  OnCallDutyPolicyScheduleLayer: [],
+  OnCallDutyPolicyScheduleLayerUser: [],
 };
 
 // The tables read by name: a read of any other is unhandled.
@@ -284,7 +304,81 @@ const MODELLED = [
   Label,
   TableView,
   WorkspaceProjectAuthToken,
+  OnCallDutyPolicyScheduleLayer,
+  OnCallDutyPolicyScheduleLayerUser,
 ].map((modelType) => tableName(modelType));
+
+/*
+ * What pages Payments Primary, with ?usedBy=used, as UsedByService answers
+ * it (#7438): two on-call policies, each with the escalation rules of it
+ * that page the schedule in the order they escalate, and a third the
+ * member may not see - counted, never named.
+ */
+const PAGED_BY = {
+  hiddenCount: 1,
+  rows: [
+    {
+      id: uuid("a1000000", 1),
+      name: "Payments on-call",
+      detail: "Primary, Second line",
+    },
+    {
+      id: uuid("a1000000", 2),
+      name: "Checkout escalation",
+      detail: "Night cover",
+    },
+  ],
+};
+
+// GET /used-by/on-call-schedule/:id[/:relation][?skip=&limit=].
+function usedBy(url) {
+  const parts = String(url).split("/used-by/")[1].split("?")[0].split("/");
+  const paged =
+    usedByMode === "used" &&
+    parts[0] === "on-call-schedule" &&
+    idOf(parts[1]) === idOf(scheduleNamed("Payments Primary")._id);
+  const shown = (relation) => {
+    return paged && relation === "ScheduleOnCallPolicies"
+      ? PAGED_BY
+      : { hiddenCount: 0, rows: [] };
+  };
+
+  // One relation's rows, a page at a time (See all).
+  if (parts[2]) {
+    const description = getUsedByRelations(parts[0]).find((each) => {
+      return each.relation === parts[2];
+    });
+    const found = shown(parts[2]);
+
+    return {
+      recordKind: parts[0],
+      recordId: parts[1],
+      relation: parts[2],
+      rowKind: description ? description.rowKind : "",
+      count: found.rows.length,
+      hiddenCount: found.hiddenCount,
+      pageStart: 0,
+      pageSize: 50,
+      rows: found.rows,
+    };
+  }
+
+  return {
+    recordKind: parts[0],
+    recordId: parts[1],
+    groups: getUsedByRelations(parts[0]).map((description) => {
+      const found = shown(description.relation);
+
+      return {
+        relation: description.relation,
+        rowKind: description.rowKind,
+        count: found.rows.length,
+        hiddenCount: found.hiddenCount,
+        rows: found.rows,
+      };
+    }),
+  };
+}
 
 function tableName(modelType) {
   try {
@@ -499,22 +593,46 @@ ModelAPI.count = async (options) => {
 };
 ModelAPI.getCount = ModelAPI.count;
 
+// A schedule read by its id: its Overview's details and Final Schedule.
 ModelAPI.getItem = async (options) => {
-  window.__fixture.unhandled.push({
-    kind: "getItem",
-    model: tableName(options.modelType),
+  const modelType = options.modelType;
+  const name = tableName(modelType);
+
+  if (name !== tableName(OnCallDutyPolicySchedule)) {
+    window.__fixture.unhandled.push({ kind: "getItem", model: name });
+    return null;
+  }
+
+  const found = (TABLES.OnCallDutyPolicySchedule || []).find((item) => {
+    return idOf(item._id) === idOf(options.id);
   });
-  return null;
+
+  return found ? copyOf(found, modelType) : null;
 };
 
 API.get = async (options) => {
+  const url = String(options && options.url);
+
+  // What uses the schedule: its Overview's Used by card.
+  if (url.includes("/used-by/")) {
+    return new HTTPResponse(200, usedBy(url), {});
+  }
+
+  // The project's products, as the server answers a project with all on.
+  if (url.includes("/project-products")) {
+    return new HTTPResponse(200, {}, {});
+  }
+
+  window.__fixture.unhandled.push({ kind: "api", url: url });
+  return new HTTPResponse(200, {}, {});
+};
+API.post = async (options) => {
   window.__fixture.unhandled.push({
     kind: "api",
     url: String(options && options.url),
   });
   return new HTTPResponse(200, {}, {});
 };
-API.post = API.get;
 
 /*
  * The Dashboard looks every string up by its English text, so the
@@ -531,6 +649,9 @@ API.post = API.get;
 const LOCALE_LOADERS = {
   de: () => {
     return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
   },
 };
 
@@ -549,6 +670,29 @@ await i18next.use(initReactI18next).init({
 // Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
 followLanguageForDates(i18next);
 document.documentElement.lang = language;
+/*
+ * Persian reads right to left, as the Dashboard draws it (Common/UI/Utils/
+ * PageLanguage sets dir on <html>, and server.js loads the reading-direction
+ * plugin after Tailwind, as index.ejs does).
+ */
+document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
+
+// A schedule's Overview, as its page frames it: under the schedule's name.
+function ScheduleShell() {
+  Navigation.setNavigateHook(useNavigate());
+  Navigation.setLocation(useLocation());
+  Navigation.setParams(useParams());
+
+  return (
+    <Page title="On-Call Schedule" breadcrumbLinks={[]}>
+      <OnCallDutyScheduleOverview
+        pageRoute={Navigation.getCurrentRoute()}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />
+    </Page>
+  );
+}
 
 function Shell() {
   Navigation.setNavigateHook(useNavigate());
@@ -573,7 +717,11 @@ function Shell() {
 
 const target = `/dashboard/${PROJECT_ID}/on-call-duty/schedules`;
 
-if (window.location.pathname !== target) {
+// The schedules, or one schedule's Overview.
+if (
+  window.location.pathname !== target &&
+  !window.location.pathname.startsWith(`${target}/`)
+) {
   window.history.replaceState(null, "", target + window.location.search);
 }
 
@@ -587,6 +735,10 @@ createRoot(document.getElementById("root")).render(
       <PageRoute
         path="/dashboard/:projectId/on-call-duty/schedules"
         element={<Shell />}
+      />
+      <PageRoute
+        path="/dashboard/:projectId/on-call-duty/schedules/:id"
+        element={<ScheduleShell />}
       />
     </Routes>
   </BrowserRouter>,

@@ -515,11 +515,15 @@ describe("POST /ai-agent-data/get-repository-token", () => {
       /*
        * The repository's own facts: its project, the Runner it picks and
        * whether it picked the Global Runner - which decides whether it
-       * follows the project's default Runner.
+       * follows the project's default Runner - and, for whether a global
+       * Runner may be handed its token, where it is hosted and whether
+       * GitLab refused to make its fixes a token (#8912).
        */
       expect(Object.keys(asked.repository).sort()).toEqual([
         "isGlobalRunnerPicked",
+        "mintedTokenRefusedAt",
         "projectId",
+        "repositoryHostedAt",
         "runnerId",
       ]);
       expect(asked.repository["projectId"]?.toString()).toBe(

@@ -764,3 +764,60 @@ describe.each(DOCS_GUIDES)(
     );
   },
 );
+
+/*
+ * #7021 asked for a guide of its own, "Put your status page on your own
+ * domain". Publish a Status Page (#7398) already walks that job, from "I
+ * have a domain" to the page answering on it over HTTPS, so a second page
+ * would repeat it; what was missing was a way to it from where people put
+ * a status page on a domain: the status page's Custom Domains. Its card
+ * links the guide after its description, at the guide's first custom domain
+ * step, and DocsLinksResolve holds the anchor to a heading the guide has.
+ */
+describe("Publish a Status Page, where people put a page on their own domain", () => {
+  const guide: DocsGuide | undefined = DOCS_GUIDES.find(
+    (candidate: DocsGuide): boolean => {
+      return candidate.page === "guides/status-page";
+    },
+  );
+
+  const kinds: string = dashboardFile(
+    "Components/CustomDomain/CustomDomainKinds.ts",
+  );
+
+  // The status page kind's entry, from its name to the next kind.
+  const statusPageKind: string = kinds.slice(
+    kinds.indexOf("export const STATUS_PAGE_CUSTOM_DOMAINS"),
+    kinds.indexOf("export const DASHBOARD_CUSTOM_DOMAINS"),
+  );
+
+  it("is linked from the status page's Custom Domains, at its first custom domain step", () => {
+    expect(guide).toBeDefined();
+    expect(statusPageKind).toContain(
+      `guideDocsPath: "${guideUrl(guide!)}#add-your-domain",`,
+    );
+    expect(anchorsOf("en", guide!.page).has("add-your-domain")).toBe(true);
+  });
+
+  it("is the only guide a custom domains card links: dashboards and forms have none", () => {
+    expect(kinds.match(/guideDocsPath: "/g)).toHaveLength(1);
+  });
+
+  it("is linked where the card's description ends, in the words a guided setup links its guide with", () => {
+    const table: string = dashboardFile(
+      "Components/CustomDomain/CustomDomainsTable.tsx",
+    );
+    const copy: string = dashboardFile(
+      "Components/CustomDomain/CustomDomainCopy.ts",
+    );
+    const frame: string = dashboardFile(
+      "Components/GuidedSetup/GuidedSetupFrame.tsx",
+    );
+
+    expect(table).toContain(
+      "getLearnMoreUrl(kind.guideDocsPath, translator.language)",
+    );
+    expect(copy).toContain('guideLink: translationKey("Step-by-step guide")');
+    expect(frame).toContain('translationKey("Step-by-step guide")');
+  });
+});

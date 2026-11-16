@@ -71,6 +71,8 @@ Naast de naam toont het **Overzicht** van een service of de telemetrie binnenkom
 
 Eigenaren tellen ook buiten de pagina: een rol met het bereik Owned leest de telemetrie van de services die van u of uw teams zijn. Zie [Telemetrie](/docs/permissions/index#telemetrie).
 
+Het **Overzicht** van een service heeft een kaart **Gebruikt door**: de monitoren die de service bewaken, en de SLOs die ze meten. De service archiveren of verwijderen, op haar pagina's of vanuit de lijst, zegt deze eerst. Wat u niet mag openen, wordt geteld maar niet genoemd.
+
 ## Een service wijzigen
 
 :::steps

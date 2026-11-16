@@ -36,6 +36,7 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import EmailTemplateType from "../../../../Types/Email/EmailTemplateType";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
+import { NotificationRuleUpdateKind } from "../../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import NotificationSettingEventType from "../../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
@@ -641,6 +642,13 @@ describe("who is told that a case reached their priority", () => {
     expect(
       (channelPosts[0]!["notificationFor"] as JSONObject)["securityCaseId"],
     ).toEqual(CASE_ID);
+    /*
+     * Posted as the notice it is, so a rule that chose its notices posts it
+     * only when it ticked New and raised cases (#7936).
+     */
+    expect(
+      (channelPosts[0]!["workspaceNotification"] as JSONObject)["updateKinds"],
+    ).toEqual([NotificationRuleUpdateKind.PriorityReached]);
     expect(String(channelPosts[0]!["feedInfoInMarkdown"])).toContain(
       "🛡️ **New Critical security case**",
     );
@@ -891,8 +899,11 @@ describe("who is told that a case is assigned", () => {
     });
 
     expect(sent).toEqual([]);
-    // The channels hear of it all the same.
+    // The channels hear of it all the same, as an assignment (#7936).
     expect(channelPosts).toHaveLength(1);
+    expect(
+      (channelPosts[0]!["workspaceNotification"] as JSONObject)["updateKinds"],
+    ).toEqual([NotificationRuleUpdateKind.Assigned]);
   });
 });
 
@@ -958,6 +969,12 @@ describe("who is asked to approve a playbook step", () => {
     expect(feedItems[0]!["feedInfoInMarkdown"]).toBe(
       "🔔 Asked 2 people to approve step 2 (Contain the host in CrowdStrike) of playbook **Contain compromised host**.",
     );
+
+    // Posted as an approval asked for (#7936).
+    expect(channelPosts).toHaveLength(1);
+    expect(
+      (channelPosts[0]!["workspaceNotification"] as JSONObject)["updateKinds"],
+    ).toEqual([NotificationRuleUpdateKind.ApprovalRequested]);
   });
 
   test("the approver is told which hosts the step would contain, and not the ones it leaves alone", async () => {

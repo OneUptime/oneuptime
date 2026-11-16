@@ -343,6 +343,17 @@ export const CustomDomainCopy: {
    * record: nothing checks it on its own, so the person checks.
    */
   dnsSetupWhatHappensNextTwoRecords: string;
+  /*
+   * Project Settings -> Domains -> Verify Domain, over the domain's TXT
+   * record: the same record DNS Setup draws, which nothing checks on its
+   * own there either.
+   */
+  verifyDomainIntro: string;
+  /*
+   * The card's link to its kind's step-by-step guide, after its
+   * description: the words a guided setup links its guide with.
+   */
+  guideLink: string;
 } = {
   cardDescriptionNotEnabled: translationKey(
     "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature.",
@@ -408,6 +419,10 @@ export const CustomDomainCopy: {
   dnsSetupWhatHappensNextTwoRecords: translationKey(
     "Add both records, then click Check now. As soon as the TXT record is found, we add this domain and check its CNAME record, and after that we keep checking every 15 minutes.",
   ),
+  verifyDomainIntro: translationKey(
+    "Add this record at your DNS provider, then click Verify Domain.",
+  ),
+  guideLink: translationKey("Step-by-step guide"),
 };
 
 /*
@@ -570,6 +585,10 @@ export const ADD_CUSTOM_DOMAIN_TEST_IDS: {
   readiness: "custom-domain-server-readiness",
   readinessCheck: "custom-domain-server-readiness-check",
 };
+
+// data-testid of the card's link to its kind's step-by-step guide.
+export const CUSTOM_DOMAINS_GUIDE_LINK_TEST_ID: string =
+  "custom-domains-guide-link";
 
 // data-testids of the Status column.
 export const STATUS_TEST_IDS: {

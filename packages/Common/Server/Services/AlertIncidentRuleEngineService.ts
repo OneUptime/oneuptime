@@ -38,11 +38,12 @@ import IncidentFromAlerts, {
   SeverityForMapping,
 } from "../../Utils/Incident/IncidentFromAlerts";
 import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
-import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
+import Sort from "../Types/Database/Sort";
+import RuleSetCache from "../Utils/Rules/RuleSetCache";
 import { getAffectedResourceColumns } from "../Utils/Database/AffectedResourceRelations";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
@@ -117,6 +118,12 @@ const RULE_SELECT: Select<AlertIncidentRule> = {
   incidentSeverityId: true,
   declareAfterInMinutes: true,
   showIncidentOnStatusPage: true,
+};
+
+// The list as people put it in order; the older first on a tie.
+const RULE_SORT: Sort<AlertIncidentRule> = {
+  order: SortOrder.Ascending,
+  createdAt: SortOrder.Ascending,
 };
 
 /*
@@ -475,25 +482,19 @@ class AlertIncidentRuleEngineServiceClass {
     };
   }
 
-  // The project's enabled rules, top of the list first.
+  /*
+   * The project's enabled rules, top of the list first: kept until any of
+   * the project's rules changes (RuleSetCache).
+   */
   private async findEnabledRules(
     projectId: ObjectID,
   ): Promise<Array<AlertIncidentRule>> {
     const rules: Array<AlertIncidentRule> =
-      await AlertIncidentRuleService.findBy({
-        query: {
-          projectId: projectId,
-          isEnabled: true,
-        },
+      await RuleSetCache.findEnabledRules<AlertIncidentRule>({
+        service: AlertIncidentRuleService,
+        projectId: projectId,
         select: RULE_SELECT,
-        // The list as people put it in order; the older first on a tie.
-        sort: {
-          order: SortOrder.Ascending,
-          createdAt: SortOrder.Ascending,
-        },
-        limit: MAX_RULES_EVALUATED_PER_PROJECT,
-        skip: 0,
-        props: { isRoot: true },
+        sort: RULE_SORT,
       });
 
     logIfRuleReadWasTruncated({

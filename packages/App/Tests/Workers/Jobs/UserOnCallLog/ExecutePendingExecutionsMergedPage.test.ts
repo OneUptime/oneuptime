@@ -17,11 +17,12 @@ import UserNotificationRuleService from "Common/Server/Services/UserNotification
 import IncidentService from "Common/Server/Services/IncidentService";
 import logger from "Common/Server/Utils/Logger";
 import ProjectMembership from "Common/Server/Utils/TeamMember/ProjectMembership";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import QueryHelper, {
+  FindOperator,
+} from "Common/Server/Types/Database/QueryHelper";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
-import { FindOperator } from "typeorm";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*

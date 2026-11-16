@@ -8,7 +8,6 @@ import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import MonitorProbe from "../../../../../Models/DatabaseModels/MonitorProbe";
 import Probe from "../../../../../Models/DatabaseModels/Probe";
 import ProjectSCIM from "../../../../../Models/DatabaseModels/ProjectSCIM";
-import ProjectSMTPConfig from "../../../../../Models/DatabaseModels/ProjectSmtpConfig";
 import StatusPageSCIM from "../../../../../Models/DatabaseModels/StatusPageSCIM";
 import TeamMember from "../../../../../Models/DatabaseModels/TeamMember";
 import UserWebhook from "../../../../../Models/DatabaseModels/UserWebhook";
@@ -177,7 +176,9 @@ const readableBy: (
 /*
  * The plain-text secrets a caller may list the records of but not read:
  * stored as they are (not hashed, not encrypted), so their order said what
- * they hold.
+ * they hold. A project's SMTP client secret was one, until it was kept
+ * encrypted and write-only (#8989): nobody sorts by it now
+ * (ProjectCredentialsAtRest).
  */
 const SECRETS: Array<[string, ModelType, string]> = [
   ["a probe's key", Probe, "key"],
@@ -190,7 +191,6 @@ const SECRETS: Array<[string, ModelType, string]> = [
   ],
   ["a status page's SCIM bearer token", StatusPageSCIM, "bearerToken"],
   ["a project's SCIM bearer token", ProjectSCIM, "bearerToken"],
-  ["a project's SMTP client secret", ProjectSMTPConfig, "clientSecret"],
   [
     "a monitor's incoming request secret key",
     Monitor,

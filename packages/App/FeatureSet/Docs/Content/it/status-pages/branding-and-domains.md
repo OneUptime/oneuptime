@@ -208,14 +208,14 @@ In **Dominio** (segnaposto `status.example.com`), digitate l'indirizzo completo 
 
 #### Tenere il certificato gratuito o caricare il vostro
 
-**Altri campi** è chiuso, e la sua intestazione dice quale certificato userà il dominio: «Emettiamo un certificato SSL gratuito per questo dominio e lo rinnoviamo automaticamente.» Apritelo solo per usare un certificato vostro: attivate **Carica certificato personalizzato**, poi incollate il **Certificato** e la **Chiave privata del certificato** in formato PEM. Entrambi diventano allora obbligatori.
+**Altri campi** è chiuso, e la sua intestazione dice quale certificato userà il dominio: «Emettiamo un certificato SSL gratuito per questo dominio e lo rinnoviamo automaticamente.» Apritelo solo per usare un certificato vostro: attivate **Carica certificato personalizzato**, poi incollate il **Certificato** e la **Chiave privata del certificato** in formato PEM. Entrambi diventano allora obbligatori. La chiave viene salvata cifrata e non viene più mostrata. Un certificato e una chiave che non vanno insieme vengono rifiutati, con il motivo sotto il campo sbagliato.
 
 #### Continuare
 
 Fate clic su **Continua**. Se il progetto ha verificato il dominio su cui si trova l'indirizzo, il dominio viene aggiunto e si apre la sua **Configurazione DNS**, con il record CNAME da aggiungere. Altrimenti, OneUptime aggiunge quel dominio a **Impostazioni del progetto → Avanzato → Domini**, e la **Configurazione DNS** si apre con entrambi i record, così verificate il dominio lì stesso, senza lasciare la pagina.
 :::
 
-Il nome completo di un dominio viene fissato quando lo aggiungete, quindi **Modifica** cambia solo il suo certificato. Per usare un altro indirizzo, aggiungete quello ed eliminate quello vecchio. Un nome che una dashboard o un modulo usa già, in qualsiasi progetto, viene rifiutato: un dominio mostra una sola pagina di stato, una sola dashboard o un solo modulo.
+Il nome completo di un dominio viene fissato quando lo aggiungete, quindi **Modifica** cambia solo il suo certificato. Su un dominio che serve il vostro certificato, **Chiave privata del certificato** è vuota nella finestra **Modifica**: lasciatela vuota per mantenere la chiave salvata, che è tutto ciò che serve a un certificato rinnovato con la stessa chiave, oppure incollate una nuova chiave. Su un dominio con il certificato gratuito, attivare **Carica certificato personalizzato** chiede la chiave. Per usare un altro indirizzo, aggiungete quello ed eliminate quello vecchio. Un nome che una dashboard o un modulo usa già, in qualsiasi progetto, viene rifiutato: un dominio mostra una sola pagina di stato, una sola dashboard o un solo modulo.
 
 Aggiungere un dominio al progetto richiede il permesso di creare domini di progetto (**Create Domain**, oppure Proprietario del progetto o Amministratore del progetto), e verificarlo richiede **Edit Domain**. Senza questi permessi, la finestra di dialogo dice chi può farlo.
 

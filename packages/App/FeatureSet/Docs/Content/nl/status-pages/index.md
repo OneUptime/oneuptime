@@ -243,6 +243,8 @@ Archiveer een statuspagina om haar offline te halen zonder haar te verwijderen. 
 
 Om een statuspagina te archiveren, opent u haar en gaat u naar **Geavanceerd → Geavanceerde instellingen → Statuspagina archiveren**. Om er meerdere te archiveren, selecteert u ze in de lijst **Statuspagina's** en kiest u **Archiveren**. Om er een terug te halen, opent u **Statuspagina's → Geavanceerd → Gearchiveerd**, selecteert u haar en kiest u **Uit het archief halen**, of opent u haar en klikt u op **Uit het archief halen** in de banner bovenaan haar pagina's.
 
+Het **Overzicht** van een statuspagina heeft een kaart **Nu zichtbaar**: de open incidenten en het komende of lopende onderhoud dat bezoekers er nu op zien. De pagina archiveren of verwijderen, op haar eigen pagina's of vanuit de lijst, zegt eerst wat bezoekers niet meer zouden zien.
+
 ## Volgende stappen
 
 :::cards

@@ -8,9 +8,10 @@ enum NotificationRuleEventType {
   OnCallDutyPolicy = "On-Call Duty Policy",
   /*
    * A security case: posted to the channels and chats its rules name when the
-   * case opens or rises to a higher priority, is assigned, or has a playbook
-   * step waiting for approval (SecurityCaseNotifications). A case gets no
-   * channel of its own.
+   * case opens or rises to a higher priority, is assigned, has a playbook
+   * step waiting for approval, or is about to miss a response target or
+   * misses it (SecurityCaseNotifications); each rule picks which of these
+   * notices it posts. A case gets no channel of its own.
    */
   SecurityCase = "Security Case",
   /*

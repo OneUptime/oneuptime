@@ -101,6 +101,8 @@ Une absence ajoutée ainsi s'applique à toutes les politiques d'astreinte, si b
 
 Avec l'API, un remplacement d'utilisateur (`/api/on-call-duty-policy-user-override`) créé sans `routeAlertsToUserId` fait passer son tour à la personne de `overrideUserId` de `startsAt` à `endsAt`.
 
+La **Vue d'ensemble** d'un planning a une carte **Utilisé par** : les politiques d'astreinte dont les règles d'escalade appellent la personne d'astreinte, avec les règles qui le font. Quand aucune ne le fait, elle le dit et renvoie aux politiques d'astreinte. Supprimer le planning, sur sa page ou depuis la liste, dit d'abord quelles politiques appellent via lui. Les politiques que vous ne pouvez pas ouvrir sont comptées, pas nommées.
+
 ## Créer des plannings avec l'API ou Terraform
 
 Les plannings d'astreinte sont la ressource `/api/on-call-duty-policy-schedule` ; leurs couches et les personnes qui les composent sont les ressources `/api/on-call-duty-schedule-layer` et `/api/on-call-duty-schedule-layer-user`.
@@ -108,6 +110,7 @@ Les plannings d'astreinte sont la ressource `/api/on-call-duty-policy-schedule` 
 - Créer un planning avec `firstLayerUsers` (une liste d'identifiants d'utilisateurs, dans l'ordre de leurs tours) dans ses `miscDataProps` lui donne sa première couche, comme le fait le tableau de bord : **Layer 1**, d'astreinte dès maintenant, 24 heures sur 24. `firstLayerRotation` indique la durée de chaque tour, sous forme de rotation comme `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}` ; sans elle, une semaine. Chaque utilisateur doit être membre du projet et l'appelant doit être autorisé à créer des couches, sinon le planning n'est pas créé.
 - Un planning créé sans eux n'a pas de couches, comme auparavant ; la ressource Terraform des plannings ne les envoie pas.
 - Une couche créée sans `rotation` passe le relais chaque jour, comme toujours.
+- Un changement apporté aux couches d'un planning et aux personnes qui les composent, fait avec l'API ou Terraform, est annoncé comme un seul changement : qui est d'astreinte est calculé une fois que les couches sont restées une demi-minute sans changement, et une personne qui prend ou quitte l'astreinte, ou qui est la suivante, en est informée une fois, et non une fois par couche ou par personne écrite. Les alertes vont à la personne que les couches mettent d'astreinte dès que chaque changement est enregistré.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \

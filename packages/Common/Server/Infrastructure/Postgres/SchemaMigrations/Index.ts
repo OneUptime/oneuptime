@@ -1027,6 +1027,13 @@ import { ApiKeyHashedColumn1809181200000 } from "./1809181200000-ApiKeyHashedCol
 import { AddMasterApiKeyCreatedByAndHint1809181300000 } from "./1809181300000-AddMasterApiKeyCreatedByAndHint";
 import { AddFirstApprovedPlanFingerprint1809181730000 } from "./1809181730000-AddFirstApprovedPlanFingerprint";
 import { AddIncomingRequestSecretMonitorAccess1809181830000 } from "./1809181830000-AddIncomingRequestSecretMonitorAccess";
+import { DropOnCallExecutionLogStepIndexes1809182000000 } from "./1809182000000-DropOnCallExecutionLogStepIndexes";
+import { AddScheduleRosterRefreshDueAt1809182100000 } from "./1809182100000-AddScheduleRosterRefreshDueAt";
+import { AddScheduleRosterRefreshDueAtIndex1809182110000 } from "./1809182110000-AddScheduleRosterRefreshDueAtIndex";
+import { AddCodeRepositoryMintedToken1809182200000 } from "./1809182200000-AddCodeRepositoryMintedToken";
+import { ProjectCredentialsEncryptedColumns1809182300000 } from "./1809182300000-ProjectCredentialsEncryptedColumns";
+import { DropGreenlockTables1809182470000 } from "./1809182470000-DropGreenlockTables";
+import { AddCustomFieldsAndRemindersToUpdatesToPost1809182480026 } from "./1809182480026-AddCustomFieldsAndRemindersToUpdatesToPost";
 
 export default [
   InitialMigration,
@@ -2058,4 +2065,11 @@ export default [
   AddMasterApiKeyCreatedByAndHint1809181300000,
   AddFirstApprovedPlanFingerprint1809181730000,
   AddIncomingRequestSecretMonitorAccess1809181830000,
+  DropOnCallExecutionLogStepIndexes1809182000000,
+  AddScheduleRosterRefreshDueAt1809182100000,
+  AddScheduleRosterRefreshDueAtIndex1809182110000,
+  AddCodeRepositoryMintedToken1809182200000,
+  ProjectCredentialsEncryptedColumns1809182300000,
+  DropGreenlockTables1809182470000,
+  AddCustomFieldsAndRemindersToUpdatesToPost1809182480026,
 ];

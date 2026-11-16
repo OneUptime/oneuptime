@@ -627,7 +627,25 @@ const NUMBERS: Record<string, Array<string>> = {
     // Docker Engine 27, which IPv6 for OneUptime's network needs.
     "27",
   ],
-  [SIZING]: ["25", "95", "50", "500", "16", "15", "30", "90", "2", "8"],
+  /*
+   * ...and the Node.js heap: three quarters (75%) of a container's memory
+   * limit, between 256 MB and 8096 MB.
+   */
+  [SIZING]: [
+    "25",
+    "95",
+    "50",
+    "500",
+    "16",
+    "15",
+    "30",
+    "90",
+    "2",
+    "8",
+    "75",
+    "256",
+    "8096",
+  ],
   [SLACK]: ["443", "15"],
   // ...and the most projects the bot's question offers a button for.
   [TEAMS]: ["405", "404", "58", "24", "443", "15", "25"],
