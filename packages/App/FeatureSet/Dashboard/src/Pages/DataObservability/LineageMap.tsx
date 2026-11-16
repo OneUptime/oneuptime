@@ -288,7 +288,7 @@ const LineageMapEmpty: FunctionComponent = (): ReactElement => {
             <Link
               to={LINEAGE_MAP_DOCS_URL}
               openInNewTab={true}
-              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+              className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-3 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:text-sm"
               dataTestId="lineage-map-empty-docs"
             >
               <span>
@@ -384,6 +384,23 @@ const DataObservabilityLineageMapPage: FunctionComponent<
     );
     const shownCounts: Record<DataLineageMapNodeKind, number> =
       countLineageMapKinds(visible);
+    /*
+     * The selected card's facts: under the map, so selecting a card never
+     * moves the map under the pointer; over the list, where it is read.
+     */
+    const details: ReactElement =
+      selectedNode && trace ? (
+        <LineageMapDetails
+          node={selectedNode}
+          map={visible}
+          trace={trace}
+          isShowingOnlyItsLineage={isShowingOnlyItsLineage}
+          onShowOnlyItsLineage={setIsShowingOnlyItsLineage}
+          onSelect={select}
+        />
+      ) : (
+        <></>
+      );
 
     body = (
       <div className="space-y-4">
@@ -483,18 +500,7 @@ const DataObservabilityLineageMapPage: FunctionComponent<
           <></>
         )}
 
-        {selectedNode && trace && visible ? (
-          <LineageMapDetails
-            node={selectedNode}
-            map={visible}
-            trace={trace}
-            isShowingOnlyItsLineage={isShowingOnlyItsLineage}
-            onShowOnlyItsLineage={setIsShowingOnlyItsLineage}
-            onSelect={select}
-          />
-        ) : (
-          <></>
-        )}
+        {view === LineageMapView.List ? details : <></>}
 
         {visible.nodes.length === 0 ? (
           <p
@@ -505,18 +511,14 @@ const DataObservabilityLineageMapPage: FunctionComponent<
           </p>
         ) : view === LineageMapView.Map ? (
           <div className="space-y-3">
-            <div
-              className="overflow-hidden rounded-lg border border-gray-200"
-              style={{ height: "clamp(420px, 70vh, 760px)" }}
-            >
-              <LineageMapGraph
-                map={visible}
-                selectedNodeId={selectedNode?.id || null}
-                trace={trace}
-                onSelect={select}
-              />
-            </div>
+            <LineageMapGraph
+              map={visible}
+              selectedNodeId={selectedNode?.id || null}
+              trace={trace}
+              onSelect={select}
+            />
             <LineageMapLegend />
+            {details}
           </div>
         ) : (
           <LineageMapList
@@ -536,9 +538,10 @@ const DataObservabilityLineageMapPage: FunctionComponent<
   return (
     <Card
       title="Lineage Map"
+      headerLayout="toolbar"
       description="Which services, pipelines, tables and dashboards write and read your data, and where it flows. Select a card to follow its lineage."
       rightElement={
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <LineageMapHelp
             helpContent={{
               title: "How the Lineage Map Works",

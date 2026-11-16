@@ -11,10 +11,17 @@ import {
 import { LineageTone } from "../../FeatureSet/Dashboard/src/Components/DataObservability/LineageGraphModel";
 import {
   EMPTY_LINEAGE_MAP_FILTER,
+  LINEAGE_MAP_CANVAS_MAX_HEIGHT,
+  LINEAGE_MAP_CANVAS_MIN_HEIGHT,
+  LINEAGE_MAP_CANVAS_PADDING,
   LINEAGE_MAP_CARD_HEIGHT,
   LINEAGE_MAP_CARD_WIDTH,
+  LINEAGE_MAP_COLUMN_GAP,
+  LINEAGE_MAP_READABLE_ZOOM,
   LineageMapLayout,
   LineageMapPoint,
+  LineageMapView,
+  getLineageMapView,
   countLineageMapKinds,
   doesLineageMapNodeMatch,
   filterLineageMap,
@@ -216,12 +223,89 @@ describe("layoutLineageMap", () => {
     expect(packed.height).toBeLessThan(30 * LINEAGE_MAP_CARD_HEIGHT);
   });
 
+  test("a card that feeds others sits right before the nearest card it feeds, not in the first column", () => {
+    const pulled: LineageMapLayout = layoutLineageMap({
+      nodes: [
+        node("service:writer", DataLineageMapNodeKind.Service),
+        node("table:a"),
+        node("table:b"),
+        node("table:c"),
+        node("table:late_source"),
+        node("dashboard:d", DataLineageMapNodeKind.Dashboard),
+      ],
+      edges: [
+        edge("service:writer", "table:a", DataLineageMapEdgeKind.Writes),
+        edge("table:a", "table:b"),
+        edge("table:b", "table:c"),
+        edge("table:late_source", "table:c"),
+        edge("table:a", "dashboard:d", DataLineageMapEdgeKind.Reads),
+      ],
+    });
+    const column: (id: string) => number = (id: string): number => {
+      return Math.round(
+        pulled.positions.get(id)!.x /
+          (LINEAGE_MAP_CARD_WIDTH + LINEAGE_MAP_COLUMN_GAP),
+      );
+    };
+
+    expect(column("service:writer")).toBe(0);
+    expect(column("table:a")).toBe(1);
+    expect(column("table:c")).toBe(3);
+    // Beside the table it feeds, an arrow's length away.
+    expect(column("table:late_source")).toBe(2);
+    // What only reads stays right after what it reads.
+    expect(column("dashboard:d")).toBe(2);
+  });
+
   test("an empty map has no size", () => {
     expect(layoutLineageMap({ nodes: [], edges: [] })).toEqual({
       positions: new Map(),
       width: 0,
       height: 0,
     });
+  });
+});
+
+describe("getLineageMapView", () => {
+  test("a map that can be read whole opens whole and centred, never past its own size", () => {
+    const view: LineageMapView = getLineageMapView(
+      { width: 600, height: 200 },
+      1200,
+    );
+
+    expect(view.zoom).toBe(1);
+    expect(view.x).toBe(300);
+    expect(view.height).toBe(LINEAGE_MAP_CANVAS_MIN_HEIGHT);
+    expect(view.y).toBe((LINEAGE_MAP_CANVAS_MIN_HEIGHT - 200) / 2);
+  });
+
+  test("a wide map shrinks to fit, but not below a zoom its names can be read at", () => {
+    const fitted: LineageMapView = getLineageMapView(
+      { width: 1400, height: 300 },
+      1200,
+    );
+
+    expect(fitted.zoom).toBeCloseTo(
+      (1200 - 2 * LINEAGE_MAP_CANVAS_PADDING) / 1400,
+    );
+    expect(fitted.zoom).toBeGreaterThanOrEqual(LINEAGE_MAP_READABLE_ZOOM);
+
+    const wide: LineageMapView = getLineageMapView(
+      { width: 5000, height: 3000 },
+      1200,
+    );
+
+    // Opened at the readable zoom from its first column and its top, the canvas as tall as it may be.
+    expect(wide.zoom).toBe(LINEAGE_MAP_READABLE_ZOOM);
+    expect(wide.x).toBe(LINEAGE_MAP_CANVAS_PADDING);
+    expect(wide.y).toBe(LINEAGE_MAP_CANVAS_PADDING);
+    expect(wide.height).toBe(LINEAGE_MAP_CANVAS_MAX_HEIGHT);
+  });
+
+  test("on a phone's width the map still opens at a readable zoom", () => {
+    expect(getLineageMapView({ width: 2000, height: 400 }, 358).zoom).toBe(
+      LINEAGE_MAP_READABLE_ZOOM,
+    );
   });
 });
 

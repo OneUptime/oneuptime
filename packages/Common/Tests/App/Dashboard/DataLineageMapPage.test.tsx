@@ -371,6 +371,10 @@ describe("the Lineage Map page", () => {
     expect(await screen.findByTestId("mock-react-flow")).toBeInTheDocument();
     expect(mockFlowProps!.nodes).toHaveLength(6);
     expect(mockFlowProps!.edges).toHaveLength(4);
+    // React Flow lets a pointer through a card it may not select: each card takes its own clicks.
+    for (const node of mockFlowProps!.nodes!) {
+      expect(node.style).toEqual({ pointerEvents: "all" });
+    }
     expect(screen.getByTestId("lineage-map-summary")).toHaveTextContent(
       "3 tables · 1 service · 1 pipeline · 1 dashboard",
     );

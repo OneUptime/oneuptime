@@ -69,6 +69,10 @@ const SHOW_ONLY: string = translationKey("Show Only Its Lineage");
 const SHOW_ALL: string = translationKey("Show the Whole Map");
 const CLOSE: string = translationKey("Close");
 
+// Drawn as the Button beside it draws a primary button: a link, so it opens in a new tab too.
+const OPEN_CLASS_NAME: string =
+  "inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:text-sm";
+
 function nodeStatus(
   node: DataLineageMapNode,
   translator: Translator,
@@ -312,7 +316,7 @@ const LineageMapDetails: FunctionComponent<ComponentProps> = (
         {route ? (
           <AppLink
             to={route}
-            className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            className={OPEN_CLASS_NAME}
             dataTestId="lineage-map-details-open"
           >
             <span>{translator.translateText(openLabel)}</span>
@@ -321,7 +325,7 @@ const LineageMapDetails: FunctionComponent<ComponentProps> = (
           <Link
             to={dashboardUrl}
             openInNewTab={true}
-            className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            className={OPEN_CLASS_NAME}
             dataTestId="lineage-map-details-open"
           >
             <span>{translator.translateText(openLabel)}</span>

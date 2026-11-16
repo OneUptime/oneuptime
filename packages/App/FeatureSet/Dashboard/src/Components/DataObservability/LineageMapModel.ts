@@ -385,16 +385,22 @@ function layoutGroup(data: {
     return remaining.get(id) === 0;
   });
 
+  const forwardTargets: (id: string) => Array<string> = (
+    id: string,
+  ): Array<string> => {
+    return (data.outgoing.get(id) || []).filter((target: string): boolean => {
+      return inGroup.has(target) && !backArrows.has(`${id}>${target}`);
+    });
+  };
+  const topological: Array<string> = [];
+
   while (ready.length > 0) {
     const id: string = ready.shift()!;
     const at: number = layer.get(id) || 0;
     layer.set(id, at);
+    topological.push(id);
 
-    for (const target of data.outgoing.get(id) || []) {
-      if (backArrows.has(`${id}>${target}`)) {
-        continue;
-      }
-
+    for (const target of forwardTargets(id)) {
       layer.set(target, Math.max(layer.get(target) || 0, at + 1));
       const left: number = (remaining.get(target) || 0) - 1;
       remaining.set(target, left);
@@ -405,7 +411,38 @@ function layoutGroup(data: {
     }
   }
 
+  /*
+   * Then each card that feeds others moves right, to just before the
+   * nearest card it feeds, so a source sits beside what it writes rather
+   * than in the first column, an arrow's length away. A card that feeds
+   * nothing - a dashboard, a service that only reads - stays right after
+   * what it reads.
+   */
+  for (const id of [...topological].reverse()) {
+    const targets: Array<string> = forwardTargets(id);
+
+    if (targets.length > 0) {
+      layer.set(
+        id,
+        Math.min(
+          ...targets.map((target: string): number => {
+            return layer.get(target) || 0;
+          }),
+        ) - 1,
+      );
+    }
+  }
+
+  const first: number = Math.min(
+    ...ids.map((id: string): number => {
+      return layer.get(id) || 0;
+    }),
+  );
   const columns: Array<Array<string>> = [];
+
+  for (const id of ids) {
+    layer.set(id, (layer.get(id) || 0) - first);
+  }
 
   for (const id of ids) {
     const at: number = layer.get(id) || 0;
@@ -607,4 +644,58 @@ export function layoutLineageMap(
   }
 
   return { positions, width, height: y + rowHeight };
+}
+
+// The least zoom a map opens at: below it a card's name cannot be read.
+export const LINEAGE_MAP_READABLE_ZOOM: number = 0.7;
+export const LINEAGE_MAP_CANVAS_MIN_HEIGHT: number = 360;
+export const LINEAGE_MAP_CANVAS_MAX_HEIGHT: number = 720;
+// Between the drawing and the canvas's edge.
+export const LINEAGE_MAP_CANVAS_PADDING: number = 32;
+
+export interface LineageMapView {
+  x: number;
+  y: number;
+  zoom: number;
+  // The canvas's height: as tall as the drawing needs, within bounds.
+  height: number;
+}
+
+/*
+ * How a map opens on a canvas this wide: whole, centred, when it can be
+ * read whole (never past its own size); otherwise at the least zoom its
+ * names can be read at, from its first column and its top, the rest a drag
+ * or the fit button away. The canvas is as tall as the drawing at that
+ * zoom, so a map of a few flows is not a box of empty space, nor a big one
+ * taller than a screen.
+ */
+export function getLineageMapView(
+  layout: Pick<LineageMapLayout, "width" | "height">,
+  canvasWidth: number,
+): LineageMapView {
+  const padding: number = LINEAGE_MAP_CANVAS_PADDING;
+  const room: number = Math.max(1, canvasWidth - 2 * padding);
+  const zoom: number = Math.max(
+    LINEAGE_MAP_READABLE_ZOOM,
+    Math.min(1, layout.width > 0 ? room / layout.width : 1),
+  );
+  const drawnWidth: number = layout.width * zoom;
+  const drawnHeight: number = layout.height * zoom;
+  const height: number = Math.min(
+    LINEAGE_MAP_CANVAS_MAX_HEIGHT,
+    Math.max(LINEAGE_MAP_CANVAS_MIN_HEIGHT, drawnHeight + 2 * padding),
+  );
+
+  return {
+    zoom,
+    height,
+    x:
+      drawnWidth + 2 * padding <= canvasWidth
+        ? (canvasWidth - drawnWidth) / 2
+        : padding,
+    y:
+      drawnHeight + 2 * padding <= height
+        ? (height - drawnHeight) / 2
+        : padding,
+  };
 }

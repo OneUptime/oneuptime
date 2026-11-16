@@ -14,7 +14,9 @@ import {
   LINEAGE_MAP_CARD_WIDTH,
   LineageMapLayout,
   LineageMapPoint,
+  LineageMapView,
   getLineageMapNodeTone,
+  getLineageMapView,
   layoutLineageMap,
 } from "./LineageMapModel";
 import {
@@ -39,7 +41,11 @@ import React, {
   CSSProperties,
   FunctionComponent,
   ReactElement,
+  RefObject,
+  useLayoutEffect,
   useMemo,
+  useRef,
+  useState,
 } from "react";
 import ReactFlow, {
   Background,
@@ -71,9 +77,11 @@ import "reactflow/dist/style.css";
  *
  * Selecting a card (a click, or Enter on it) picks out everything upstream
  * and downstream of it in indigo, however many steps away, and fades the
- * rest; the page then says what it is and opens its page. The canvas pans
- * by dragging and zooms with its controls or a pinch: the wheel scrolls the
- * page, as on every lineage diagram. Tab reaches each card, and the view
+ * rest; the page then says what it is and opens its page. The map opens
+ * whole when it can be read whole, else at a zoom its names can be read at
+ * from its first column (getLineageMapView). The canvas pans by dragging
+ * and zooms with its controls or a pinch: the wheel scrolls the page, as on
+ * every lineage diagram. Tab reaches each card, and the view
  * pans to the card the keyboard's focus goes to (FlowKeyboardFocus).
  */
 
@@ -81,7 +89,11 @@ export const LINEAGE_MAP_TRACES_COLOR: string = "#14b8a6";
 
 const SELECTED_WIDTH: number = 2.5;
 
+// The fit button shows the whole map, however small that makes it.
 const FIT_VIEW_OPTIONS: FitViewOptions = { padding: 0.08, maxZoom: 1 };
+
+// A canvas not measured yet (never on a page) is read as this wide.
+const FALLBACK_CANVAS_WIDTH: number = 1200;
 
 const HANDLE_STYLE: CSSProperties = { opacity: 0, pointerEvents: "none" };
 
@@ -256,6 +268,35 @@ const LineageMapGraph: FunctionComponent<ComponentProps> = (
     return layoutLineageMap(props.map);
   }, [props.map]);
 
+  const canvasRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const [canvasWidth, setCanvasWidth] = useState<number>(0);
+
+  // The canvas's width, as the page lays it out: the map opens to fit it.
+  useLayoutEffect(() => {
+    const canvas: HTMLDivElement | null = canvasRef.current;
+
+    if (!canvas) {
+      return;
+    }
+
+    const measure: () => void = (): void => {
+      setCanvasWidth(Math.round(canvas.getBoundingClientRect().width));
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer: ResizeObserver = new ResizeObserver(measure);
+    observer.observe(canvas);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   const selected: string | null = props.selectedNodeId;
   const trace: DataLineageMapTrace | null = selected ? props.trace : null;
 
@@ -273,6 +314,11 @@ const LineageMapGraph: FunctionComponent<ComponentProps> = (
         id: node.id,
         type: "lineageMapCard",
         position: point,
+        /*
+         * React Flow lets a pointer through a card it may not select or
+         * drag, to the pane: the card's own button takes the click.
+         */
+        style: { pointerEvents: "all" },
         data: {
           node,
           isSelected: node.id === selected,
@@ -317,20 +363,27 @@ const LineageMapGraph: FunctionComponent<ComponentProps> = (
     });
   }, [props.map, trace, selected]);
 
+  const view: LineageMapView = getLineageMapView(
+    layout,
+    canvasWidth || FALLBACK_CANVAS_WIDTH,
+  );
+
   return (
     <div
-      className="h-full w-full"
+      ref={canvasRef}
+      className="w-full overflow-hidden rounded-lg border border-gray-200"
+      style={{ height: view.height }}
       role="figure"
       data-testid="lineage-map-canvas"
-      data-width={layout.width}
-      data-height={layout.height}
+      data-zoom={view.zoom}
     >
       <ReactFlow
-        key={getDrawingKey(props.map)}
+        // A new set of cards, or the canvas measured for the first time: opened afresh.
+        key={`${getDrawingKey(props.map)}:${canvasWidth > 0}`}
         nodes={nodes}
         edges={edges}
         nodeTypes={NODE_TYPES}
-        fitView={true}
+        defaultViewport={{ x: view.x, y: view.y, zoom: view.zoom }}
         fitViewOptions={FIT_VIEW_OPTIONS}
         minZoom={0.1}
         maxZoom={1.5}
