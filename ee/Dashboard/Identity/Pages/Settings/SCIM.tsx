@@ -168,7 +168,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                     "Let your identity provider add and remove the people in this project.",
                 }}
                 documentationLink={Route.fromString("/docs/identity/scim")}
-                noItemsMessage={"No SCIM configuration found."}
+                noItemsMessage={"No SCIM configurations yet."}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 formFields={getProjectScimFormFields()}
                 createInitialValues={createInitialValues}

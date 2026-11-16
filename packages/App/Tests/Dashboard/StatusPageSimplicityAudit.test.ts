@@ -343,54 +343,46 @@ describe("the screens", () => {
     expect(SubscriberFormCopy.addButton).toBe("Add Subscriber");
     expect(SubscriberFormCopy.addDialogTitle).toBe("Add New Subscriber");
 
-    for (const file of [
-      "EmailSubscribers.tsx",
-      "SMSSubscribers.tsx",
-      "SlackSubscribers.tsx",
-      "MicrosoftTeamsSubscribers.tsx",
-      "WebhookSubscribers.tsx",
-    ]) {
-      const code: string = readCode(`Pages/StatusPages/View/${file}`);
+    // One list for every channel since #9125, configured per channel.
+    const code: string = readCode(
+      "Components/StatusPage/StatusPageSubscriberList.tsx",
+    );
+    const channels: string = readCode(
+      "Components/StatusPage/SubscriberListChannels.ts",
+    );
 
-      expect([file, code.includes('singularName="Subscriber"')]).toEqual([
-        file,
-        true,
-      ]);
-      expect([file, code.includes('createVerb="Add"')]).toEqual([file, true]);
-      expect([
-        file,
-        code.includes("getSubscriberInternalNoteField(moreFields)"),
-      ]).toEqual([file, true]);
-      // The internal note is no step of its own any more.
-      expect([file, code.includes('id: "internal-info"')]).toEqual([
-        file,
-        false,
-      ]);
+    expect(code).toContain('singularName="Subscriber"');
+    expect(code).toContain('createVerb="Add"');
+    expect(code).toContain("getSubscriberInternalNoteField(moreFields)");
+    // The internal note is no step of its own any more.
+    expect(code).not.toContain('id: "internal-info"');
 
-      if (file === "EmailSubscribers.tsx") {
-        expect(code).toContain("...getEmailSubscriberAddChoiceFields(),");
-        expect(code).toContain(
-          "...getSubscriberStatusFields({ isEmail: true }),",
-        );
-      } else {
-        expect([
-          file,
-          code.includes("getSubscriberWelcomeField(moreFields)"),
-        ]).toEqual([file, true]);
-        /*
-         * An SMS subscriber can await the link texted to it: its Status
-         * offers Awaiting Confirmation, as an email subscriber's does.
-         */
-        expect([
-          file,
-          code.includes(
-            file === "SMSSubscribers.tsx"
-              ? "...getSubscriberStatusFields({ isEmail: false, isPhone: true }),"
-              : "...getSubscriberStatusFields({ isEmail: false }),",
-          ),
-        ]).toEqual([file, true]);
-      }
-    }
+    /*
+     * Email asks When you add them; every other channel asks whether to
+     * send a welcome, folded under More fields.
+     */
+    expect(code).toContain(
+      "...(channel.asksHowToAdd ? getEmailSubscriberAddChoiceFields() : []),",
+    );
+    expect(code).toContain(
+      "if (!channel.asksHowToAdd) { formFields.push(getSubscriberWelcomeField(moreFields)); }",
+    );
+    expect(code).toContain(
+      "...getSubscriberStatusFields(channel.statusFieldOptions),",
+    );
+    expect(channels.match(/asksHowToAdd: true,/g) || []).toHaveLength(1);
+
+    /*
+     * An SMS subscriber can await the link texted to it: its Status offers
+     * Awaiting Confirmation, as an email subscriber's does.
+     */
+    expect(channels).toContain("statusFieldOptions: { isEmail: true },");
+    expect(channels).toContain(
+      "statusFieldOptions: { isEmail: false, isPhone: true },",
+    );
+    expect(
+      channels.match(/statusFieldOptions: \{ isEmail: false \},/g) || [],
+    ).toHaveLength(3);
   });
 
   test("the custom code page says where the code runs, and each card what it replaces", () => {

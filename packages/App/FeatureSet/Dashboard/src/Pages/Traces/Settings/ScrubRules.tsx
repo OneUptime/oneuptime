@@ -211,7 +211,7 @@ const TraceScrubRules: FunctionComponent<
         description: "Remove sensitive data from spans before they are stored.",
         markdown: documentationMarkdown,
       }}
-      noItemsMessage={"No scrub rules found."}
+      noItemsMessage={"No scrub rules yet."}
       formFields={formFields}
       /*
        * The pattern itself, so a rule that scrubs nothing - a custom one

@@ -70,11 +70,13 @@ Fold **Sikkerhed** ud i sidemenuen i **Brugerprofil**. Afsnittet har tre sider.
 
 :::steps
 1. Åbn **Sikkerhed → Adgangskodeadministration**.
-2. Indtast den nye adgangskode i **Adgangskode** og igen i **Bekræft adgangskode**. Den skal være mindst 6 tegn lang.
+2. Indtast den nye adgangskode i **Ny adgangskode** og igen i **Bekræft adgangskode**. Den skal være mindst 15 tegn lang og må ikke være forudsigelig, som en almindelig adgangskode eller et gentaget mønster: nogle få ord, der ikke har noget med hinanden at gøre, fungerer godt. Tjeklisten under feltet krydser hvert punkt af, mens du skriver.
 3. Klik på **Opdater adgangskode**.
 :::
 
 En ny adgangskode logger alle enheder ud af din konto, og ethvert nulstillingslink eller login-link, der allerede er sendt, holder op med at virke.
+
+Alle sider, der angiver en adgangskode, kræver det samme: tilmelding, nulstillingslinket fra **Glemt adgangskode?**, denne side og en serveradministrators **Angiv adgangskode**. En adgangskode, du har angivet før denne regel, virker fortsat, indtil du ændrer den.
 
 ### Tilføj en adgangsnøgle
 

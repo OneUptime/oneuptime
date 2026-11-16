@@ -52,7 +52,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
         description:
           "Daily USD budgets for LLM spend. Spend is published as metrics every 15 minutes: alert on them from a Metrics monitor with a 30-minute rolling window.",
       }}
-      noItemsMessage={"No LLM cost budgets found."}
+      noItemsMessage={"No LLM cost budgets yet."}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Budget", id: "budget" },

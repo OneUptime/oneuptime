@@ -43,7 +43,7 @@ Die Schalter bestimmen, wie sich Besucher selbst anmelden können; eine Anmeldun
 
 In OneUptime Cloud steht neben einem Schalter, den Ihr Tarif nicht enthält, der Name des Tarifs: **Growth** für **SMS** und **Abonnentenseite anzeigen**, **Scale** für **Slack**, **Microsoft Teams** und **Webhook**. Einen Kanal auszuschalten funktioniert in jedem Tarif, sodass sich ein Kanal, den eine Testphase eingeschaltet hat, immer wieder ausschalten lässt; der Schalter sagt das darunter.
 
-Jeder Kanal bekommt außerdem seine eigene Liste im Seitenmenü der Statusseite unter **Abonnenten**: **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **Microsoft Teams-Abonnenten** und **Webhook-Abonnenten**. Dort sehen Sie, wer eingetragen ist, tragen jemanden mit **Abonnent hinzufügen** von Hand nach oder hinterlassen sich zu einem bestimmten Abonnenten eine **Interne Notiz** (`internalNote`), die der Abonnent nie sieht. Solange ein Kanal aus ist, steht das oben in seiner Liste, direkt neben dem Schalter des Kanals – so schalten Sie ihn ein, ohne die Liste zu verlassen.
+Die Abonnenten aller Kanäle stehen auf einer Seite, **Abonnenten**, im Abschnitt **Abonnenten** des Seitenmenüs der Statusseite. Sie hat einen Tab für jeden Kanal (**E-Mail**, **SMS**, **Slack**, **Microsoft Teams** und **Webhook**), und jeder Tab zeigt, wie viele Abonnenten der Kanal hat. Jeder Tab ist die Liste seines Kanals (**E-Mail-Abonnenten**, **SMS-Abonnenten** und so weiter). Dort sehen Sie, wer eingetragen ist, tragen jemanden mit **Abonnent hinzufügen** von Hand nach oder hinterlassen sich zu einem bestimmten Abonnenten eine **Interne Notiz** (`internalNote`), die der Abonnent nie sieht. Solange ein Kanal aus ist, steht das oben in seiner Liste, direkt neben dem Schalter des Kanals – so schalten Sie ihn ein, ohne die Liste zu verlassen. Der geöffnete Tab steht in der Adresse der Seite (`{id}/subscribers?channel=sms`), und die Adressen der früheren Seiten pro Kanal, etwa `{id}/email-subscribers`, öffnen den Tab ihres Kanals.
 
 **Ein Schalter allein genügt nicht.** Der Eintrag **Abonnieren** in der Navigationsleiste der Statusseite erscheint nur, wenn **Abonnentenseite anzeigen** an ist *und* mindestens ein Kanal an ist. Schalten Sie **E-Mail** ein, lassen aber **Abonnentenseite anzeigen** aus, kommen Besucher gar nicht erst zum Formular.
 
@@ -281,7 +281,7 @@ Benutzerdefinierte Vorfallfelder mit eingeschaltetem **In Abonnentenbenachrichti
 
 Der Eintrag **Abonnentenbenachrichtigung gesendet** im Vorfall-Feed listet unter **Custom fields sent** die Werte auf, die jeder Versand in eine Nachricht gesetzt hat. Abonnenten stehen meist außerhalb Ihres Teams, also schalten Sie die Einstellung nur für Felder ein, die man ihnen bedenkenlos zeigen kann.
 
-Der Abschnitt **Benachrichtigungsprotokolle** im Seitenmenü der Statusseite (`{id}/notification-logs`) ist der Ort, an dem Sie nachsehen, was die Seite tatsächlich verschickt hat.
+**Benachrichtigungsprotokolle** im Abschnitt **Abonnenten** des Seitenmenüs der Statusseite (`{id}/notification-logs`) ist der Ort, an dem Sie nachsehen, was die Seite tatsächlich verschickt hat.
 
 ### Vorfall-Episoden
 
@@ -483,7 +483,7 @@ Der Überprüfungsschritt zeigt dieselbe Zeile. **Aus Vorlage erstellen** füllt
 
 Die eigene Seite der Ankündigung bearbeitet sie in denselben zwei Schritten. **Abonnenten über diese Aktualisierung benachrichtigen** steht unter der Beschreibung (siehe [Abonnenten über eine Bearbeitung informieren](#abonnenten-über-eine-bearbeitung-informieren)), und **Zeitplan** enthält Beginn und Ende. Ein Ende zu setzen, das schon vorbei ist, ist der Weg, eine Ankündigung herunterzunehmen.
 
-Besucher lesen Ankündigungen unter `/announcements`, aufgeteilt in **Aktive Ankündigungen** und **Vergangene Ankündigungen**, jede mit **Angekündigt am** versehen. Gerade laufende Ankündigungen sind außerdem oben auf der Übersichtsseite angeheftet. Gibt es nichts zu zeigen, lautet die Seite *Keine Ankündigungen* mit dem Hinweis, dass bisher keine veröffentlicht wurden.
+Besucher lesen Ankündigungen unter `/announcements`, aufgeteilt in **Aktive Ankündigungen** und die innerhalb des Ankündigungsverlaufs der Seite beendeten, unter einer Überschrift, die nennt, wie viele Tage das sind, jede mit **Angekündigt am** versehen. Gerade laufende Ankündigungen sind außerdem oben auf der Übersichtsseite angeheftet. Gibt es nichts zu zeigen, sagt die Seite, dass es in so vielen Tagen keine Ankündigungen gab (14, sofern Sie es nicht ändern).
 
 Anhänge werden über `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId` ausgeliefert, hinter derselben Leseprüfung wie die Statusseite selbst – ein Anhang auf einer privaten Seite bleibt also privat.
 
@@ -499,7 +499,7 @@ Zwei Folgen, mit denen Sie planen sollten:
 - **Eine Ankündigung ohne Enddatum läuft nie ab.** Lassen Sie **Anzeige der Ankündigung beenden um** leer, bleibt sie unbegrenzt oben auf der Übersichtsseite angeheftet. Setzen Sie bei allem, was zeitgebunden ist, ein Enddatum.
 - **Eine alte, aber noch aktive Ankündigung kann aus der Liste verschwinden.** Hat sie vor mehr als `showAnnouncementHistoryInDays` begonnen, fällt sie aus `/announcements` heraus, bleibt aber auf der Übersicht. Erhöhen Sie das Verlaufsfenster, wenn Sie langlaufende Hinweise haben.
 
-**Bilder folgen der Ankündigung.** Ein Bild in der Beschreibung einer Ankündigung öffnet sich für alle ab **Anzeige der Ankündigung beginnen ab**, nicht vorher. Solange eine Ankündigung für später geplant ist, öffnen sich ihre Bilder nur für die Mitglieder Ihres Projekts, so wie die Ankündigung selbst nur im Dashboard erscheint. Sobald sie angezeigt wird, öffnen sich ihre Bilder für alle, auf der Statusseite und in den E-Mails, die Abonnenten bekommen. Das bleibt so, nachdem sie endet, denn ihre Statusseiten führen sie weiter unter **Vergangene Ankündigungen**, und ihr Link funktioniert weiter. Verschieben Sie eine Ankündigung auf später, sind ihre Bilder bis dahin wieder privat.
+**Bilder folgen der Ankündigung.** Ein Bild in der Beschreibung einer Ankündigung öffnet sich für alle ab **Anzeige der Ankündigung beginnen ab**, nicht vorher. Solange eine Ankündigung für später geplant ist, öffnen sich ihre Bilder nur für die Mitglieder Ihres Projekts, so wie die Ankündigung selbst nur im Dashboard erscheint. Sobald sie angezeigt wird, öffnen sich ihre Bilder für alle, auf der Statusseite und in den E-Mails, die Abonnenten bekommen. Das bleibt so, nachdem sie endet, denn ihr Link funktioniert weiter, und ihre Statusseiten führen sie bei den beendeten Ankündigungen, so weit ihr Verlauf zurückreicht. Verschieben Sie eine Ankündigung auf später, sind ihre Bilder bis dahin wieder privat.
 
 Ob Ankündigungen überhaupt erscheinen, legen Sie in der Karte **Was Ihre Statusseite zeigt** in den **Erweiterte Einstellungen** fest: **Ankündigungen anzeigen** (`showAnnouncementsOnStatusPage`, Standard true) und darunter **Die letzten … Tage anzeigen** (`showAnnouncementHistoryInDays`, Standard 14). Mit ausgeschaltetem **Ankündigungen anzeigen** lehnt der Endpunkt für Ankündigungen die Anfrage rundweg ab.
 

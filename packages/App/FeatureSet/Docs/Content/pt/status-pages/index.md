@@ -86,22 +86,21 @@ Em seguida, mais ou menos em ordem de utilidade:
 
 ## Onde fica cada coisa
 
-Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado em dez seções. Use-o como mapa para o resto desta parte da documentação.
+Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado em nove seções. Use-o como mapa para o resto desta parte da documentação.
 
 | Seção | O que contém |
 | --- | --- |
 | **Básico** | **Visão geral**, **Anúncios**, **Proprietários**. |
 | **Recursos** | Uma única tela **Recursos** (os grupos à esquerda, os monitores do grupo selecionado à direita). |
 | **Regras** | **Regras de monitor**: regras que adicionam à página cada monitor que corresponde, agora e depois. |
-| **Assinantes** | **Assinantes de e-mail**, **Assinantes de SMS**, **Assinantes do Slack**, **Assinantes do Microsoft Teams**, **Assinantes de webhook**, **Configurações de assinantes**. |
-| **Logs de notificação** | **Logs de notificação**: o que foi enviado aos assinantes. |
+| **Assinantes** | **Assinantes** (uma única página, com uma aba para cada canal: E-mail, SMS, Slack, Microsoft Teams e Webhook), **Configurações de assinantes**, **Logs de notificação**: o que foi enviado aos assinantes. |
 | **Marca** | **Marca** (logotipo, título, favicon, links, rodapé, cores e idiomas, em uma única página), **Domínios personalizados**, **HTML, CSS e JavaScript**. |
 | **Segurança** | **Acesso** (quem pode ver a página), **Usuários privados**, **SSO**, **OIDC**, **SCIM**. |
 | **IA** | **MCP**. |
 | **Desenvolvedores** | **Terraform**, **API**, **CLI**, **Assistentes de IA**: a página como código. |
 | **Avançado** | **Status incorporado**, **Relatórios**, **Campos personalizados**, **Configurações avançadas**, **Registros de auditoria**, **Excluir página de status**. |
 
-Apenas **Básico** e **Recursos**, o que a página mostra, começam abertas. Todas as outras seções começam recolhidas, como as seções pouco usadas de todos os menus da OneUptime: clique no título de uma seção para mostrar suas páginas. Uma seção se abre sozinha quando você está em uma das páginas dela, como **Configurações avançadas** ou **Assinantes de e-mail**.
+Apenas **Básico** e **Recursos**, o que a página mostra, começam abertas. Todas as outras seções começam recolhidas, como as seções pouco usadas de todos os menus da OneUptime: clique no título de uma seção para mostrar suas páginas. Uma seção se abre sozinha quando você está em uma das páginas dela, como **Configurações avançadas** ou **Assinantes**.
 
 Duas particularidades de nomes que vale conhecer antes de procurar:
 

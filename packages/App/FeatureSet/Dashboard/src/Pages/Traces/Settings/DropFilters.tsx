@@ -116,7 +116,7 @@ const TraceDropFilters: FunctionComponent<
           "Drop or sample the spans you do not need, before they are stored.",
         markdown: documentationMarkdown,
       }}
-      noItemsMessage={"No drop filters found."}
+      noItemsMessage={"No drop filters yet."}
       selectMoreFields={{
         samplePercentage: true,
         // Whether each row is on, for Enable and Disable to count.

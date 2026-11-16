@@ -124,7 +124,7 @@ const KubernetesClusterProfiles: FunctionComponent<
     <Fragment>
       <ProfileTable
         profileQuery={profileQuery}
-        noItemsMessage="No performance profiles found for this cluster."
+        noItemsMessage="No performance profiles for this cluster yet."
       />
     </Fragment>
   );

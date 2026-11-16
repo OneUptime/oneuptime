@@ -86,22 +86,21 @@ Als Nächstes, grob nach Nutzen sortiert:
 
 ## Wo alles liegt
 
-Sobald eine Statusseite geöffnet ist, ist ihr eigenes Seitenmenü links in zehn Abschnitte gegliedert. Nutzen Sie es als Karte für den Rest dieses Dokumentationsbereichs.
+Sobald eine Statusseite geöffnet ist, ist ihr eigenes Seitenmenü links in neun Abschnitte gegliedert. Nutzen Sie es als Karte für den Rest dieses Dokumentationsbereichs.
 
 | Abschnitt | Was er enthält |
 | --- | --- |
 | **Grundlegend** | **Übersicht**, **Ankündigungen**, **Eigentümer**. |
 | **Ressourcen** | Ein einziger Bildschirm **Ressourcen** – links die Gruppen, rechts die Monitore der gewählten Gruppe. |
 | **Regeln** | **Monitor-Regeln** – Regeln, die jeden passenden Monitor der Seite hinzufügen, jetzt und später. |
-| **Abonnenten** | **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **Microsoft Teams-Abonnenten**, **Webhook-Abonnenten**, **Abonnenten-Einstellungen**. |
-| **Benachrichtigungsprotokolle** | **Benachrichtigungsprotokolle** – was an Abonnenten gesendet wurde. |
+| **Abonnenten** | **Abonnenten** (eine Seite mit einem Tab für jeden Kanal: E-Mail, SMS, Slack, Microsoft Teams und Webhook), **Abonnenten-Einstellungen**, **Benachrichtigungsprotokolle** – was an Abonnenten gesendet wurde. |
 | **Branding** | **Branding** (Logo, Titel, Favicon, Links, Fußzeile, Farben und Sprachen, auf einer Seite), **Benutzerdefinierte Domains**, **HTML, CSS und JavaScript**. |
 | **Sicherheit** | **Zugriff** (wer die Seite sehen darf), **Private Benutzer**, **SSO**, **OIDC**, **SCIM**. |
 | **KI** | **MCP**. |
 | **Entwickler** | **Terraform**, **API**, **CLI**, **KI-Assistenten** – die Seite als Code. |
 | **Erweitert** | **Eingebetteter Status**, **Berichte**, **Benutzerdefinierte Felder**, **Erweiterte Einstellungen**, **Audit-Protokolle**, **Statusseite löschen**. |
 
-Nur **Grundlegend** und **Ressourcen**, also das, was die Seite zeigt, sind anfangs geöffnet. Jeder andere Abschnitt ist anfangs eingeklappt, wie die selten genutzten Abschnitte jedes Menüs in OneUptime: Klicken Sie auf den Titel eines Abschnitts, um seine Seiten einzublenden. Ein Abschnitt öffnet sich von selbst, sobald Sie auf einer seiner Seiten sind, etwa auf **Erweiterte Einstellungen** oder **E-Mail-Abonnenten**.
+Nur **Grundlegend** und **Ressourcen**, also das, was die Seite zeigt, sind anfangs geöffnet. Jeder andere Abschnitt ist anfangs eingeklappt, wie die selten genutzten Abschnitte jedes Menüs in OneUptime: Klicken Sie auf den Titel eines Abschnitts, um seine Seiten einzublenden. Ein Abschnitt öffnet sich von selbst, sobald Sie auf einer seiner Seiten sind, etwa auf **Erweiterte Einstellungen** oder **Abonnenten**.
 
 Zwei Eigenheiten der Benennung, die Sie kennen sollten, bevor Sie suchen:
 

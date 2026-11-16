@@ -60,7 +60,7 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
           buttons: props.cardButtons,
         }}
         showViewIdButton={true}
-        noItemsMessage={props.noItemsMessage || "No services found."}
+        noItemsMessage={props.noItemsMessage || "No services yet."}
         formFields={[
           {
             field: {

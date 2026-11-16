@@ -2531,12 +2531,28 @@ const Overview: FunctionComponent<PageComponentProps> = (
           }) &&
             !isLoading &&
             !error && (
+              /*
+               * A page with nothing on it says so, without a check mark: it
+               * told every visitor "Everything looks great" over an
+               * instruction meant for its owner (#9122). The owner reads
+               * what to do in the Dashboard's preview, and only there.
+               */
               <EmptyState
                 paddingClassName="py-12 sm:py-16"
                 id="overview-empty-state"
-                icon={IconProp.CheckCircle}
-                title={t("overview.allClearTitle")}
-                description={t("overview.allClearDescription")}
+                icon={IconProp.Squares}
+                title={t("overview.noResourcesTitle")}
+                description={t("overview.noResourcesDescription")}
+                footer={
+                  StatusPageUtil.isPreviewPage() ? (
+                    <p
+                      id="overview-empty-state-owner-note"
+                      className="mx-auto max-w-xl rounded-md border border-dashed border-gray-300 px-4 py-3 text-balance text-sm leading-6 text-gray-600"
+                    >
+                      {t("overview.noResourcesPreviewDescription")}
+                    </p>
+                  ) : undefined
+                }
               />
             )}
         </div>

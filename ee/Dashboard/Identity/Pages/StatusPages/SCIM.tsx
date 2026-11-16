@@ -143,7 +143,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   scim.statusPageId = modelId;
                   return Promise.resolve(scim);
                 }}
-                noItemsMessage={"No SCIM configuration found."}
+                noItemsMessage={"No SCIM configurations yet."}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 formFields={getStatusPageScimFormFields()}
                 onCreateSuccess={(

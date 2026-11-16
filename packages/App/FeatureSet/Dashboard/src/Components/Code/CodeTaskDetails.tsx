@@ -26,6 +26,13 @@ import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
+/*
+ * An open pull request's state, beside Merged and Closed. "Open" alone is
+ * every Open button's verb ("Öffnen", "Abrir"), so the state has a key of
+ * its own, worded as a state (Common/Types/MeaningKeys).
+ */
+const OPEN_PULL_REQUEST: string = translationKey("Open (pull request)");
+
 export const CODE_TASK_DETAILS_TEST_ID: string = "code-task-details";
 
 /*
@@ -35,7 +42,7 @@ export const CODE_TASK_DETAILS_TEST_ID: string = "code-task-details";
  * there is no room beside the conversation, so each is said once at any
  * width.
  */
-export const CODE_TASK_DETAILS_CLASS_NAME: string = "hidden xl:block";
+export const CODE_TASK_DETAILS_CLASS_NAME: string = "max-xl:hidden xl:block";
 
 /*
  * The branch a task works from: the one picked when it was asked (kept on
@@ -250,7 +257,7 @@ const CodeTaskDetails: FunctionComponent<ComponentProps> = (
                 ? translator.translateText("Merged")
                 : pullRequest.state === "closed"
                   ? translator.translateText("Closed")
-                  : translator.translateText("Open")}
+                  : translator.translateText(OPEN_PULL_REQUEST)}
             </span>
             {pullRequest.production ? (
               <FixProductionVerdict

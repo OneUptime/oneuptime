@@ -43,7 +43,7 @@ Reglagen avgör hur besökare kan registrera sig själva, och statussidan avvisa
 
 På OneUptime Cloud står abonnemangets namn vid ett reglage som ditt abonnemang inte omfattar: **Growth** för **SMS** och **Visa prenumerantsida**, **Scale** för **Slack**, **Microsoft Teams** och **Webhook**. Att stänga av en kanal fungerar på alla abonnemang, så en kanal som en provperiod slog på kan alltid stängas av igen; reglaget säger det under sig.
 
-Varje kanal har också en egen lista i statussidans sidomeny under **Prenumeranter**: **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **Microsoft Teams-prenumeranter** och **Webhook-prenumeranter**. Det är där du ser vem som är registrerad, lägger till någon manuellt med **Lägg till prenumerant** eller lämnar en **Intern anteckning** (`internalNote`) till dig själv om en viss prenumerant, som prenumeranten aldrig ser. Så länge en kanal är av säger listans överkant det, med kanalens reglage just där, så att du kan slå på den utan att lämna listan.
+Alla kanalers prenumeranter finns på en enda sida, **Prenumeranter**, i sektionen **Prenumeranter** i statussidans sidomeny. Den har en flik för varje kanal (**E-post**, **SMS**, **Slack**, **Microsoft Teams** och **Webhook**), och varje flik visar hur många prenumeranter kanalen har. Varje flik är kanalens lista (**E-postprenumeranter**, **SMS-prenumeranter** och så vidare). Det är där du ser vem som är registrerad, lägger till någon manuellt med **Lägg till prenumerant** eller lämnar en **Intern anteckning** (`internalNote`) till dig själv om en viss prenumerant, som prenumeranten aldrig ser. Så länge en kanal är av säger listans överkant det, med kanalens reglage just där, så att du kan slå på den utan att lämna listan. Den öppna fliken står i sidans adress (`{id}/subscribers?channel=sms`), och adresserna till de gamla sidorna för varje kanal, till exempel `{id}/email-subscribers`, öppnar kanalens flik.
 
 **Ett reglage räcker inte.** Objektet **Prenumerera** i statussidans navigeringsfält visas bara när **Visa prenumerantsida** är på *och* minst en kanal är på. Om du slår på **E-post** men låter **Visa prenumerantsida** vara av har besökarna inget sätt att nå formuläret.
 
@@ -281,7 +281,7 @@ Anpassade incidentfält med **Ta med i aviseringar till prenumeranter** på (und
 
 Posten **Prenumerantavisering skickad** i incidentflödet listar, under **Custom fields sent**, de värden som varje utskick lade in i ett meddelande. Prenumeranter finns oftast utanför ditt team, så slå bara på inställningen för fält som kan delas med dem utan risk.
 
-Sektionen **Aviseringsloggar** i statussidans sidomeny (`{id}/notification-logs`) är dit du går när du behöver se vad sidan faktiskt har skickat.
+**Aviseringsloggar**, i sektionen **Prenumeranter** i statussidans sidomeny (`{id}/notification-logs`), är dit du går när du behöver se vad sidan faktiskt har skickat.
 
 ### Incidentepisoder
 
@@ -483,7 +483,7 @@ Granskningssteget visar samma rad. **Skapa från mall** fyller i formuläret fr�
 
 Meddelandets egen sida redigerar det i samma två steg. **Meddela prenumeranter om denna uppdatering** finns under beskrivningen (se [Avisera prenumeranter om en redigering](#avisera-prenumeranter-om-en-redigering)), och **Schema** innehåller starten och slutet. Att ange ett slut som har passerat är sättet att ta ned ett meddelande.
 
-Besökare läser meddelanden på `/announcements`, uppdelade i **Aktiva meddelanden** och **Tidigare meddelanden**, vart och ett märkt med **Meddelat den**. Meddelanden som är live just nu fästs också högst upp på översiktssidan. När det inte finns något att visa står det *Inga meddelanden* på sidan, med anmärkningen att inga har publicerats hittills.
+Besökare läser meddelanden på `/announcements`, uppdelade i **Aktiva meddelanden** och de som har avslutats inom sidans meddelandehistorik, under en rubrik som säger hur många dagar det är, vart och ett märkt med **Meddelat den**. Meddelanden som är live just nu fästs också högst upp på översiktssidan. När det inte finns något att visa säger sidan att det inte har funnits några meddelanden under så många dagar (14 om du inte ändrar det).
 
 Bilagor levereras från `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`, bakom samma läskontroll som själva statussidan — så en bilaga på en privat sida förblir privat.
 
@@ -499,7 +499,7 @@ Två konsekvenser som är värda att planera för:
 - **Ett meddelande utan slutdatum upphör aldrig.** Lämna **Sluta visa meddelande vid** tomt så blir det fäst på översiktssidan på obestämd tid. Sätt ett slutdatum på allt som är tidsbundet.
 - **Ett gammalt men fortfarande aktivt meddelande kan försvinna från listan.** Om det började för mer än `showAnnouncementHistoryInDays` dagar sedan faller det bort från `/announcements` medan det ligger kvar på översikten. Öka historikfönstret om du har långvariga meddelanden.
 
-**Bilder följer meddelandet.** En bild i ett meddelandes beskrivning öppnas för alla från **Börja visa meddelande vid** och framåt, inte tidigare. Medan ett meddelande är schemalagt till senare öppnas dess bilder bara för medlemmarna i ditt projekt, precis som själva meddelandet bara visas i instrumentpanelen. Så snart det börjar visas öppnas dess bilder för alla, på statussidan och i e-postmeddelandena som prenumeranterna får. De förblir så efter att det har tagit slut, eftersom dess statussidor fortfarande listar det under **Tidigare meddelanden** och dess länk fortsätter att fungera. Flytta ett meddelande till en senare tid så blir dess bilder privata igen fram till dess.
+**Bilder följer meddelandet.** En bild i ett meddelandes beskrivning öppnas för alla från **Börja visa meddelande vid** och framåt, inte tidigare. Medan ett meddelande är schemalagt till senare öppnas dess bilder bara för medlemmarna i ditt projekt, precis som själva meddelandet bara visas i instrumentpanelen. Så snart det börjar visas öppnas dess bilder för alla, på statussidan och i e-postmeddelandena som prenumeranterna får. De förblir så efter att det har tagit slut, eftersom dess länk fortsätter att fungera och dess statussidor listar det bland de avslutade meddelandena så långt deras historik sträcker sig. Flytta ett meddelande till en senare tid så blir dess bilder privata igen fram till dess.
 
 Om meddelanden visas över huvud taget anges på kortet **Vad din statussida visar** under **Avancerade inställningar**: **Visa meddelanden** (`showAnnouncementsOnStatusPage`, standard true) och, under den, **Visa de senaste … dagarna** (`showAnnouncementHistoryInDays`, standard 14). Med **Visa meddelanden** av avvisar meddelandeslutpunkten begäran helt.
 

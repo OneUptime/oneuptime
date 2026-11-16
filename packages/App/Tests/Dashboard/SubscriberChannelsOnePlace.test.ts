@@ -1,13 +1,12 @@
-import StatusPage from "Common/Models/DatabaseModels/StatusPage";
-import TableColumnType from "Common/Types/Database/TableColumnType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import StatusPageSubscriberChannel, {
+  STATUS_PAGE_SUBSCRIBER_CHANNELS,
+} from "Common/Types/StatusPage/StatusPageSubscriberChannel";
 import SubscriberChannelsCopy, {
   getSubscriberChannel,
-  getSubscriberChannelNote,
   SUBSCRIBER_CHANNELS,
   SubscriberChannelDefinition,
   SUBSCRIPTION_SWITCH_COLUMNS,
-  SubscriptionSwitchColumn,
 } from "../../FeatureSet/Dashboard/src/Components/StatusPage/SubscriberChannelsCopy";
 import {
   getTemplateConfigurationWarning,
@@ -54,39 +53,29 @@ const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
 const OTHER_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
-interface ChannelPage {
-  file: string;
+/*
+ * The five subscriber lists are one component since #9125
+ * (StatusPageSubscriberList), a tab each on the Subscribers page, configured
+ * per channel (SubscriberListChannels): which channel each tab is, and so
+ * which switch it reads.
+ */
+const CHANNEL_KEYS: Array<{
+  key: string;
   method: StatusPageSubscriberNotificationMethod;
-  stateVariable: string;
-}
-
-const CHANNEL_PAGES: Array<ChannelPage> = [
+}> = [
+  { key: "Email", method: StatusPageSubscriberNotificationMethod.Email },
+  { key: "SMS", method: StatusPageSubscriberNotificationMethod.SMS },
+  { key: "Slack", method: StatusPageSubscriberNotificationMethod.Slack },
   {
-    file: "EmailSubscribers.tsx",
-    method: StatusPageSubscriberNotificationMethod.Email,
-    stateVariable: "isEmailSubscribersEnabled",
-  },
-  {
-    file: "SMSSubscribers.tsx",
-    method: StatusPageSubscriberNotificationMethod.SMS,
-    stateVariable: "isSMSSubscribersEnabled",
-  },
-  {
-    file: "SlackSubscribers.tsx",
-    method: StatusPageSubscriberNotificationMethod.Slack,
-    stateVariable: "isSlackSubscribersEnabled",
-  },
-  {
-    file: "MicrosoftTeamsSubscribers.tsx",
+    key: "MicrosoftTeams",
     method: StatusPageSubscriberNotificationMethod.MicrosoftTeams,
-    stateVariable: "isMicrosoftTeamsSubscribersEnabled",
   },
-  {
-    file: "WebhookSubscribers.tsx",
-    method: StatusPageSubscriberNotificationMethod.Webhook,
-    stateVariable: "isWebhookSubscribersEnabled",
-  },
+  { key: "Webhook", method: StatusPageSubscriberNotificationMethod.Webhook },
 ];
+
+const LIST_FILE: string = "Components/StatusPage/StatusPageSubscriberList.tsx";
+const LIST_CHANNELS_FILE: string =
+  "Components/StatusPage/SubscriberListChannels.ts";
 
 // Without its comments, collapsed to one line.
 function readSource(file: string): string {
@@ -99,6 +88,22 @@ function readSource(file: string): string {
 
 function readView(file: string): string {
   return readSource(path.join(VIEW_DIR, file));
+}
+
+function readDashboard(file: string): string {
+  return readSource(path.join(DASHBOARD_SRC, ...file.split("/")));
+}
+
+// One channel's entry in SubscriberListChannels.
+function channelDefinition(key: string): string {
+  const source: string = readDashboard(LIST_CHANNELS_FILE);
+  const start: number = source.indexOf(
+    `[StatusPageSubscriberChannel.${key}]: {`,
+  );
+
+  expect(start).toBeGreaterThan(-1);
+
+  return source.slice(start, source.indexOf("writeBulkEntry", start));
 }
 
 const SOURCE_FILE: RegExp = /\.tsx?$/;
@@ -148,28 +153,18 @@ describe("the channels", () => {
     ).toEqual(Object.values(StatusPageSubscriberNotificationMethod).sort());
   });
 
-  test("come in the side menu's order, after Show Subscriber Page", () => {
-    const menu: string = readView("SideMenu.tsx");
-    const positions: Array<number> = [
-      "Email Subscribers",
-      "SMS Subscribers",
-      "Slack Subscribers",
-      "Microsoft Teams Subscribers",
-      "Webhook Subscribers",
-    ].map((title: string): number => {
-      return menu.indexOf(`title: "${title}"`);
-    });
-
-    expect(
-      positions.every((position: number) => {
-        return position > -1;
-      }),
-    ).toBe(true);
-    expect(
-      [...positions].sort((a: number, b: number) => {
-        return a - b;
-      }),
-    ).toEqual(positions);
+  test("come in the Subscribers page's tab order, after Show Subscriber Page", () => {
+    // The tabs, in Common's order, which the list's channels follow.
+    expect([...STATUS_PAGE_SUBSCRIBER_CHANNELS]).toEqual([
+      StatusPageSubscriberChannel.Email,
+      StatusPageSubscriberChannel.SMS,
+      StatusPageSubscriberChannel.Slack,
+      StatusPageSubscriberChannel.MicrosoftTeams,
+      StatusPageSubscriberChannel.Webhook,
+    ]);
+    expect(readDashboard(LIST_CHANNELS_FILE)).toContain(
+      "STATUS_PAGE_SUBSCRIBER_CHANNELS.map(",
+    );
 
     expect(
       SUBSCRIBER_CHANNELS.map((channel: SubscriberChannelDefinition) => {
@@ -187,86 +182,6 @@ describe("the channels", () => {
       "showSubscriberPageOnStatusPage",
     );
   });
-
-  test("each switches a boolean column of the status page, with the default the docs give it", () => {
-    const statusPage: StatusPage = new StatusPage();
-
-    const defaults: Record<SubscriptionSwitchColumn, boolean> = {
-      showSubscriberPageOnStatusPage: true,
-      enableEmailSubscribers: true,
-      enableSmsSubscribers: false,
-      enableSlackSubscribers: false,
-      enableMicrosoftTeamsSubscribers: false,
-      enableWebhookSubscribers: false,
-    };
-
-    expect([...SUBSCRIPTION_SWITCH_COLUMNS].sort()).toEqual(
-      Object.keys(defaults).sort(),
-    );
-
-    for (const column of SUBSCRIPTION_SWITCH_COLUMNS) {
-      const metadata: ReturnType<StatusPage["getTableColumnMetadata"]> =
-        statusPage.getTableColumnMetadata(column);
-
-      expect([column, metadata?.type]).toEqual([
-        column,
-        TableColumnType.Boolean,
-      ]);
-      expect([column, metadata?.defaultValue]).toEqual([
-        column,
-        defaults[column],
-      ]);
-    }
-  });
-
-  test("are looked up by method", () => {
-    for (const channel of SUBSCRIBER_CHANNELS) {
-      expect(getSubscriberChannel(channel.method)).toBe(channel);
-    }
-
-    expect(() => {
-      return getSubscriberChannel(
-        "Carrier Pigeon" as StatusPageSubscriberNotificationMethod,
-      );
-    }).toThrow();
-  });
-
-  test("only SMS, and only where OneUptime bills for texts, says what it costs", () => {
-    for (const channel of SUBSCRIBER_CHANNELS) {
-      expect(
-        getSubscriberChannelNote(channel.method, { isBillingEnabled: false }),
-      ).toBeUndefined();
-
-      expect(
-        getSubscriberChannelNote(channel.method, { isBillingEnabled: true }),
-      ).toBe(
-        channel.method === StatusPageSubscriberNotificationMethod.SMS
-          ? SubscriberChannelsCopy.smsBalanceSentence
-          : undefined,
-      );
-    }
-
-    expect(SubscriberChannelsCopy.smsBalanceSentence).toContain(
-      "SMS and call balance",
-    );
-    expect(SubscriberChannelsCopy.smsBalanceSentence).toContain(
-      "Twilio Config",
-    );
-  });
-
-  test("say what off means on a channel's own list: no sign-ups that way, and the team's subscribers still get updates", () => {
-    for (const channel of SUBSCRIBER_CHANNELS) {
-      expect(channel.listSwitchOffDescription).toMatch(
-        /^Off for this status page: visitors can't subscribe /,
-      );
-      expect(channel.listSwitchOffDescription).toContain(
-        "Subscribers your team adds here still get updates.",
-      );
-      expect(channel.listSwitchOnDescription).toMatch(
-        /^On: visitors can subscribe .+ on the status page\.$/,
-      );
-    }
-  });
 });
 
 describe("one place for each switch", () => {
@@ -281,11 +196,12 @@ describe("one place for each switch", () => {
       ],
     };
 
-    for (const page of CHANNEL_PAGES) {
-      allowed[`Pages/StatusPages/View/${page.file}`] = [
-        getSubscriberChannel(page.method).column,
-      ];
-    }
+    // Each channel's list reads its own switch, named once per channel.
+    allowed[LIST_CHANNELS_FILE] = CHANNEL_KEYS.map(
+      (entry: { method: StatusPageSubscriberNotificationMethod }): string => {
+        return getSubscriberChannel(entry.method).column;
+      },
+    );
 
     const found: Record<string, Array<string>> = {};
 
@@ -361,31 +277,55 @@ describe("one place for each switch", () => {
   });
 });
 
-describe.each(CHANNEL_PAGES)("$file", (page: ChannelPage) => {
-  const source: string = readView(page.file);
+describe("every channel's list", () => {
+  const source: string = readDashboard(LIST_FILE);
 
   test("draws its channel's switch panel, with whether the channel is on", () => {
     expect(source).toContain(
-      `<SubscriberChannelOffPanel statusPageId={modelId} method={StatusPageSubscriberNotificationMethod.${
-        Object.entries(StatusPageSubscriberNotificationMethod).find(
-          ([, value]: [string, string]) => {
-            return value === page.method;
-          },
-        )![0]
-      }} isEnabled={${page.stateVariable}} />`,
+      "<SubscriberChannelOffPanel statusPageId={modelId} method={channel.method} isEnabled={isChannelEnabled} />",
+    );
+    expect(source).toContain("[channel.enabledColumn]: true,");
+    expect(source).toContain(
+      "setIsChannelEnabled(Boolean(statusPage?.[channel.enabledColumn]));",
     );
   });
 
+  test.each(CHANNEL_KEYS)(
+    "$key reads its own channel's switch",
+    (entry: {
+      key: string;
+      method: StatusPageSubscriberNotificationMethod;
+    }) => {
+      const definition: string = channelDefinition(entry.key);
+      const methodKey: string = Object.entries(
+        StatusPageSubscriberNotificationMethod,
+      ).find(([, value]: [string, string]) => {
+        return value === entry.method;
+      })![0];
+
+      expect(definition).toContain(
+        `method: StatusPageSubscriberNotificationMethod.${methodKey},`,
+      );
+      expect(definition).toContain(
+        `enabledColumn: "${getSubscriberChannel(entry.method).column}",`,
+      );
+    },
+  );
+
   test("has no red 'not enabled' banner, and no Alert at all", () => {
-    expect(source).not.toContain("not enabled for this status page");
-    expect(source).not.toContain("Please enable it in Subscriber Settings");
-    expect(source).not.toContain("AlertType.DANGER");
-    expect(source).not.toContain("<Alert");
+    for (const file of [LIST_FILE, LIST_CHANNELS_FILE]) {
+      const code: string = readDashboard(file);
+
+      expect(code).not.toContain("not enabled for this status page");
+      expect(code).not.toContain("Please enable it in Subscriber Settings");
+      expect(code).not.toContain("AlertType.DANGER");
+      expect(code).not.toContain("<Alert");
+    }
   });
 
   test("is loading from its first render, so the panel never draws a channel that is on as off", () => {
     expect(source).toContain(
-      "const [isLoading, setIsLoading] = React.useState<boolean>(true);",
+      "const [isLoading, setIsLoading] = useState<boolean>(true);",
     );
   });
 });

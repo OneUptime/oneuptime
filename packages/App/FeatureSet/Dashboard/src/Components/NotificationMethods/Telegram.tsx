@@ -22,6 +22,7 @@ import OneUptimeDate from "Common/Types/Date";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Toast from "Common/UI/Utils/Toast";
 import {
   NotificationMethodDeleteGuard,
   useNotificationMethodDeleteGuard,
@@ -62,8 +63,6 @@ const Telegram: () => JSX.Element = (): ReactElement => {
     useState<boolean>(false);
   const [resendError, setResendError] = useState<string>("");
   const [isResendLoading, setIsResendLoading] = useState<boolean>(false);
-
-  const [showVerifiedModal, setShowVerifiedModal] = useState<boolean>(false);
 
   const [currentItem, setCurrentItem] = useState<UserTelegram | null>(null);
   const [refreshToggle, setRefreshToggle] = useState<string>(
@@ -151,7 +150,16 @@ const Telegram: () => JSX.Element = (): ReactElement => {
         const data: JSONObject = response.data as JSONObject;
         if (data["isVerified"]) {
           setShowVerificationModal(false);
-          setShowVerifiedModal(true);
+          // Said in the corner: it was a dialog to click away (#9120).
+          Toast.success(
+            translator.translateText("Telegram account verified") ||
+              "Telegram account verified",
+            {
+              description: translator.translateText(
+                "You'll now receive OneUptime notifications in Telegram. You can manage event-level toggles under User Settings → Notification Settings.",
+              ),
+            },
+          );
           setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
         } else {
           setVerificationError(
@@ -449,19 +457,6 @@ const Telegram: () => JSX.Element = (): ReactElement => {
               setResendError(API.getFriendlyMessage(err));
               setIsResendLoading(false);
             }
-          }}
-        />
-      ) : null}
-
-      {showVerifiedModal ? (
-        <ConfirmModal
-          title={`Telegram account verified`}
-          description={
-            "You'll now receive OneUptime notifications in Telegram. You can manage event-level toggles under User Settings → Notification Settings."
-          }
-          submitButtonText={"Great"}
-          onSubmit={async () => {
-            setShowVerifiedModal(false);
           }}
         />
       ) : null}

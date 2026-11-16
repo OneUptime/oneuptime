@@ -43,7 +43,7 @@ De schakelaars bepalen hoe bezoekers zich zelf kunnen aanmelden, en de statuspag
 
 Op OneUptime Cloud staat bij een schakelaar die uw abonnement niet bevat de naam van het abonnement: **Growth** voor **SMS** en **Abonneepagina weergeven**, **Scale** voor **Slack**, **Microsoft Teams** en **Webhook**. Een kanaal uitzetten werkt op elk abonnement, dus een kanaal dat tijdens een proefperiode is aangezet, kan altijd weer uit; de schakelaar vermeldt dat eronder.
 
-Elk kanaal heeft ook een eigen lijst in het zijmenu van de statuspagina, onder **Abonnees**: **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **Microsoft Teams-abonnees** en **Webhook-abonnees**. Daar ziet u wie er is aangemeld, voegt u iemand handmatig toe met **Abonnee toevoegen** of laat u voor uzelf een **Interne notitie** (`internalNote`) achter bij een bepaalde abonnee, die de abonnee nooit ziet. Zolang een kanaal uit staat, vermeldt de bovenkant van de lijst dat, met de schakelaar van het kanaal er direct bij, zodat u het kunt aanzetten zonder de lijst te verlaten.
+De abonnees van alle kanalen staan op één pagina, **Abonnees**, in de sectie **Abonnees** van het zijmenu van de statuspagina. Die heeft een tabblad voor elk kanaal (**E-mail**, **SMS**, **Slack**, **Microsoft Teams** en **Webhook**), en elk tabblad toont hoeveel abonnees het kanaal heeft. Elk tabblad is de lijst van dat kanaal (**E-mail-abonnees**, **SMS-abonnees** enzovoort). Daar ziet u wie er is aangemeld, voegt u iemand handmatig toe met **Abonnee toevoegen** of laat u voor uzelf een **Interne notitie** (`internalNote`) achter bij een bepaalde abonnee, die de abonnee nooit ziet. Zolang een kanaal uit staat, vermeldt de bovenkant van de lijst dat, met de schakelaar van het kanaal er direct bij, zodat u het kunt aanzetten zonder de lijst te verlaten. Het geopende tabblad staat in het adres van de pagina (`{id}/subscribers?channel=sms`), en de adressen van de oude pagina's per kanaal, zoals `{id}/email-subscribers`, openen het tabblad van hun kanaal.
 
 **Eén schakelaar is niet genoeg.** Het item **Abonneren** in de navigatiebalk van de statuspagina verschijnt alleen wanneer **Abonneepagina weergeven** aan staat *en* minstens één kanaal aan staat. Als u **E-mail** aanzet maar **Abonneepagina weergeven** uit laat, kunnen bezoekers het formulier niet bereiken.
 
@@ -281,7 +281,7 @@ Aangepaste incidentvelden met **Opnemen in meldingen aan abonnees** aan (onder *
 
 De vermelding **Abonneemelding verzonden** in de incidentfeed toont onder **Custom fields sent** de waarden die elke verzending in een bericht heeft gezet. Abonnees staan meestal buiten uw team, dus zet de instelling alleen aan voor velden die veilig met hen kunnen worden gedeeld.
 
-De sectie **Meldingslogboeken** in het zijmenu van de statuspagina (`{id}/notification-logs`) is waar u naartoe gaat wanneer u moet zien wat de pagina werkelijk heeft verzonden.
+**Meldingslogboeken**, in de sectie **Abonnees** van het zijmenu van de statuspagina (`{id}/notification-logs`), is waar u naartoe gaat wanneer u moet zien wat de pagina werkelijk heeft verzonden.
 
 ### Incidentepisoden
 
@@ -483,7 +483,7 @@ De controlestap toont dezelfde regel. **Maken op basis van sjabloon** vult het f
 
 De eigen pagina van de aankondiging bewerkt haar in dezelfde twee stappen. **Abonnees op de hoogte stellen van deze update** staat onder de beschrijving (zie [Abonnees laten weten dat er iets is bewerkt](#abonnees-laten-weten-dat-er-iets-is-bewerkt)), en **Schema** bevat het begin en het einde. Een einde instellen dat al voorbij is, is hoe u een aankondiging offline haalt.
 
-Bezoekers lezen aankondigingen op `/announcements`, verdeeld in **Actieve aankondigingen** en **Vorige aankondigingen**, elk met een stempel **Aangekondigd op**. Aankondigingen die op dit moment live zijn, worden ook bovenaan de overzichtspagina vastgezet. Als er niets te tonen is, staat er op de pagina *Geen aankondigingen*, met de opmerking dat er nog geen zijn geplaatst.
+Bezoekers lezen aankondigingen op `/announcements`, verdeeld in **Actieve aankondigingen** en de aankondigingen die binnen de aankondigingsgeschiedenis van de pagina zijn beëindigd, onder een kop die zegt hoeveel dagen dat zijn, elk met een stempel **Aangekondigd op**. Aankondigingen die op dit moment live zijn, worden ook bovenaan de overzichtspagina vastgezet. Als er niets te tonen is, zegt de pagina dat er in die dagen geen aankondigingen waren (14, tenzij u dat wijzigt).
 
 Bijlagen worden geserveerd vanaf `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`, achter dezelfde leescontrole als de statuspagina zelf — dus een bijlage op een privépagina blijft privé.
 
@@ -499,7 +499,7 @@ Twee gevolgen om rekening mee te houden:
 - **Een aankondiging zonder einddatum verloopt nooit.** Laat **Stop met tonen aankondiging om** leeg en ze blijft voor onbepaalde tijd op de overzichtspagina vastgezet. Geef alles wat tijdgebonden is een einddatum.
 - **Een oude maar nog actieve aankondiging kan uit de lijst verdwijnen.** Als ze meer dan `showAnnouncementHistoryInDays` dagen geleden begon, valt ze van `/announcements` af terwijl ze op het overzicht blijft staan. Verruim de geschiedenisperiode als u langlopende berichten hebt.
 
-**Afbeeldingen volgen de aankondiging.** Een afbeelding in de beschrijving van een aankondiging opent voor iedereen vanaf **Aankondiging beginnen weer te geven om**, niet eerder. Zolang een aankondiging voor later is gepland, openen haar afbeeldingen alleen voor de leden van uw project, net zoals de aankondiging zelf alleen in het dashboard te zien is. Zodra ze wordt getoond, openen haar afbeeldingen voor iedereen, op de statuspagina en in de e-mails die abonnees krijgen. Dat blijft zo nadat ze is afgelopen, omdat haar statuspagina's haar nog onder **Vorige aankondigingen** tonen en haar link blijft werken. Verplaats een aankondiging naar een later tijdstip en haar afbeeldingen worden tot dan weer privé.
+**Afbeeldingen volgen de aankondiging.** Een afbeelding in de beschrijving van een aankondiging opent voor iedereen vanaf **Aankondiging beginnen weer te geven om**, niet eerder. Zolang een aankondiging voor later is gepland, openen haar afbeeldingen alleen voor de leden van uw project, net zoals de aankondiging zelf alleen in het dashboard te zien is. Zodra ze wordt getoond, openen haar afbeeldingen voor iedereen, op de statuspagina en in de e-mails die abonnees krijgen. Dat blijft zo nadat ze is afgelopen, omdat haar link blijft werken en haar statuspagina's haar bij de beëindigde aankondigingen tonen zo ver als hun geschiedenis teruggaat. Verplaats een aankondiging naar een later tijdstip en haar afbeeldingen worden tot dan weer privé.
 
 Of aankondigingen überhaupt verschijnen, stelt u in op de kaart **Wat uw statuspagina toont** van **Geavanceerde instellingen**: **Aankondigingen weergeven** (`showAnnouncementsOnStatusPage`, standaard true) en, daaronder, **De laatste … dagen weergeven** (`showAnnouncementHistoryInDays`, standaard 14). Met **Aankondigingen weergeven** uit weigert het aankondigingen-endpoint het verzoek zonder meer.
 

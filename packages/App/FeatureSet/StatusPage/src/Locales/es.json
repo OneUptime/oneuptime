@@ -49,8 +49,6 @@
     "noResourcesInGroup": "No se han añadido recursos a este grupo.",
     "activeIncidents": "Incidencias activas",
     "scheduledMaintenanceEvents": "Mantenimiento programado",
-    "allClearTitle": "Todo parece estar bien",
-    "allClearDescription": "Aún no se han añadido recursos a esta página de estado. Por favor, añada algunos recursos desde el panel de control.",
     "allResourcesAre": "Todos los recursos están {{status}}",
     "allMonitoredResourcesAre": "Todos los recursos monitoreados están {{status}}",
     "someResourcesAre": "Algunos recursos están {{status}}",
@@ -58,7 +56,10 @@
     "noResourcesAreMonitored": "Ningún recurso está monitoreado en este momento",
     "noResourcesAreMonitoredYet": "Aún no se monitorea ningún recurso",
     "oneSubGroup": "1 grupo",
-    "subGroupCount": "{{total}} grupos"
+    "subGroupCount": "{{total}} grupos",
+    "noResourcesTitle": "Aún no hay nada que mostrar",
+    "noResourcesDescription": "Esta página aún no muestra ningún servicio.",
+    "noResourcesPreviewDescription": "Los visitantes ven este aviso hasta que añadas recursos. Añade monitores o grupos a esta página de estado en Recursos, en el panel."
   },
   "eventItem": {
     "affectedResources": "Recursos afectados",
@@ -115,30 +116,23 @@
     "title": "Incidencias",
     "singular": "Incidencia",
     "active": "Incidencias activas",
-    "resolved": "Incidencias resueltas",
-    "none": "Sin incidencias",
-    "noneDescription": "No hay incidencias publicadas en esta página de estado.",
+    "noneDescription": "Cuando una incidencia afecte a los servicios de esta página, se publicará aquí.",
     "postmortem": "Análisis posterior a la incidencia",
     "declaredAt": "Declarado el ",
     "declaredAtTime": "Declarado el {{time}}",
     "report": "Informe de incidencia",
-    "notFound": "Incidencia no encontrada en esta página de estado."
-  },
-  "episodes": {
-    "report": "Informe de episodio",
-    "none": "Sin episodios",
-    "notFound": "Episodio no encontrado en esta página de estado."
+    "notFound": "Comprueba el enlace o abre la pestaña Incidencias de esta página.",
+    "notFoundTitle": "Incidencia no encontrada"
   },
   "announcements": {
     "title": "Anuncios",
     "singular": "Anuncio",
     "active": "Anuncios activos",
-    "past": "Anuncios pasados",
-    "none": "Sin anuncios",
-    "noneDescription": "No se han publicado anuncios hasta ahora en esta página.",
+    "noneDescription": "Cuando haya novedades sobre los servicios de esta página, se publicarán aquí.",
     "announcedAt": "Anunciado el ",
     "announcedAtTime": "Anunciado el {{time}}",
-    "notFound": "Anuncio no encontrado en esta página de estado."
+    "notFound": "Comprueba el enlace o abre la pestaña Anuncios de esta página.",
+    "notFoundTitle": "Anuncio no encontrado"
   },
   "scheduledEvents": {
     "title": "Mantenimiento programado",
@@ -146,9 +140,7 @@
     "scheduledMaintenance": "Mantenimiento programado",
     "ongoing": "Mantenimiento en curso",
     "upcoming": "Próximo mantenimiento",
-    "completed": "Mantenimiento finalizado",
-    "none": "Ningún mantenimiento programado",
-    "noneDescription": "No se ha publicado ningún mantenimiento programado en esta página de estado.",
+    "none": "No hay mantenimiento previsto",
     "scheduledAt": "Programado para ",
     "scheduledAtTime": "Programado para {{time}}",
     "report": "Informe del evento de mantenimiento",
@@ -507,5 +499,17 @@
   "Incomplete:": "No cumplido:",
   "Special character included (optional)": "Carácter especial incluido (opcional)",
   "Special characters are optional. Try !, @, # or $.": "Los caracteres especiales son opcionales. Prueba !, @, # o $.",
-  "Dismiss": "Descartar"
+  "Dismiss": "Descartar",
+  "Resolved in the Last {{count}} Days": "Resueltas en los últimos {{count}} días",
+  "Resolved in the Last {{count}} Days_one": "Resueltas en el último día",
+  "No incidents in the last {{count}} days": "Ninguna incidencia en los últimos {{count}} días",
+  "No incidents in the last {{count}} days_one": "Ninguna incidencia en el último día",
+  "Ended in the Last {{count}} Days": "Finalizados en los últimos {{count}} días",
+  "Ended in the Last {{count}} Days_one": "Finalizados en el último día",
+  "No announcements in the last {{count}} days": "Ningún anuncio en los últimos {{count}} días",
+  "No announcements in the last {{count}} days_one": "Ningún anuncio en el último día",
+  "Completed in the Last {{count}} Days": "Completado en los últimos {{count}} días",
+  "Completed in the Last {{count}} Days_one": "Completado en el último día",
+  "None is planned, and none took place in the last {{count}} days.": "No hay ninguno previsto ni hubo ninguno en los últimos {{count}} días.",
+  "None is planned, and none took place in the last {{count}} days._one": "No hay ninguno previsto ni hubo ninguno en el último día."
 }

@@ -64,7 +64,7 @@ Un produit masqué n'est pas désactivé. Il passe sous **Plus de produits**, la
 
 Sur un serveur auto-hébergé, un administrateur principal peut aussi désactiver un produit pour tous les projets, sous **Paramètres → Produits** dans l'Admin Dashboard (voir [N'exécuter que ce dont vous avez besoin](/docs/installation/docker-compose#nexécuter-que-ce-dont-vous-avez-besoin)). Un tel produit n'a pas d'interrupteur ici : il affiche **Désactivé sur ce serveur**, avec qui peut l'activer.
 
-Chaque produit est affiché jusqu'à ce que quelqu'un le masque ici. Aucun produit n'est masqué de lui-même : ce que son propriétaire a dit vouloir faire du projet sur l'accueil ne prépare que les premières étapes, et un produit pas encore configuré reste à sa place dans le menu.
+Chaque produit est affiché jusqu'à ce que quelqu'un le masque ici. Aucun produit n'est masqué de lui-même : ce qu'un Propriétaire du projet ou Administrateur du projet a dit vouloir faire du projet sur l'accueil ne prépare que les premières étapes, et un produit pas encore configuré reste à sa place dans le menu.
 
 Chaque produit indique ce qu'il est pour ce projet : **Utilisée**, **Non configuré** ou, sur OneUptime Cloud, l'offre dont il a besoin. Quand un produit masqué commence à recevoir des données, l'accueil le signale aux Propriétaires du projet et aux Administrateurs du projet et propose **L'afficher** ou **Laisser masqué**.
 

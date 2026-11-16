@@ -285,7 +285,7 @@ const MetricPipelineRules: FunctionComponent<
         description: "Drop, rename or redact metric data before it is stored.",
         markdown: documentationMarkdown,
       }}
-      noItemsMessage={"No metric pipeline rules found."}
+      noItemsMessage={"No metric pipeline rules yet."}
       formSteps={[
         { title: "Match", id: "match" },
         { title: "Action", id: "action" },

@@ -340,7 +340,7 @@
       "fieldMeteredSubscriptionId": "Metered Subscription ID",
       "noTrial": "Not on trial",
       "changePlanTitle": "Change Plan",
-      "changePlanDescription": "Move this project to another plan. A running trial carries over; otherwise the new plan is billed from now on, prorated on the next invoice. The customer does not need a payment method on file: what they owe waits until they add one.",
+      "changePlanDescription": "Move this project to another plan, prorated on the next invoice. A running trial carries over. No payment method is needed: charges wait for one.",
       "changePlanSubmitButton": "Change Plan",
       "changePlanSuccess": "Plan changed to {{plan}}.",
       "changePlanFailure": "The plan was not changed. Please try again.",
@@ -433,7 +433,7 @@
       "downloadButton": "Download",
       "voidButton": "Void Invoice",
       "voidTitle": "Void Invoice",
-      "voidDescription": "Void invoice {{number}} for {{amount}}? The customer will no longer owe it, and the payment provider stops trying to collect it. This cannot be undone.",
+      "voidDescription": "Void invoice {{number}} for {{amount}}? The customer will no longer owe it, and the payment provider stops collecting it. This cannot be undone.",
       "voidSuccess": "Invoice {{number}} voided. The customer no longer owes it."
     },
     "projectSupport": {
@@ -4155,5 +4155,17 @@
   "{{itemName}} invited": "{{itemName}} invited",
   "{{itemName}} linked": "{{itemName}} linked",
   "{{itemName}} removed": "{{itemName}} removed",
-  "{{itemName}} started": "{{itemName}} started"
+  "{{itemName}} started": "{{itemName}} started",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.",
+  "In short": "In short",
+  "Full documentation": "Full documentation",
+  "Expand all": "Expand all",
+  "Collapse all": "Collapse all",
+  "Limited to deleted records": "Limited to deleted records",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, deleted {{date}}.",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime switched this rule off when they were deleted.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.",
+  "{{names}} and {{count}} more": "{{names}} and {{count}} more",
+  "{{names}} and {{count}} more_one": "{{names}} and {{count}} more"
 }

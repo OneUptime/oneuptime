@@ -163,7 +163,7 @@ describe("a status page's menu and its breadcrumbs", () => {
     const links: Array<MenuLink> = menuLinks();
 
     // The menu is really read: its sections, past Subscribers and Branding.
-    expect(links.length).toBeGreaterThan(25);
+    expect(links.length).toBeGreaterThan(20);
     expect(mismatches(links)).toEqual([]);
   });
 
@@ -175,11 +175,9 @@ describe("a status page's menu and its breadcrumbs", () => {
     [PageMap.STATUS_PAGE_VIEW_REPORTS, "Reports"],
     [PageMap.STATUS_PAGE_VIEW_SCIM, "SCIM"],
     [PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS, "Audit Logs"],
-    [PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS, "Slack Subscribers"],
-    [
-      PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS,
-      "Microsoft Teams Subscribers",
-    ],
+    // One page with a tab per channel since #9125.
+    [PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS, "Subscribers"],
+    [PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS, "Notification Logs"],
   ])(
     "%s is Project > Status Pages > View Status Page > %s",
     (key: string, name: string) => {

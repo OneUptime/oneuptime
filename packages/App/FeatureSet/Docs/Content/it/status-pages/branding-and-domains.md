@@ -158,7 +158,7 @@ Su OneUptime Cloud, aggiungerne o modificarne uno richiede il piano **Growth**. 
 
 Per impostazione predefinita, una pagina di stato è raggiungibile all'URL di anteprima mostrato nella sua schermata **Panoramica**. Per portarla sul vostro nome host, andate in **Pagine di stato → la vostra pagina → Branding → Domini personalizzati** (`{id}/domains`).
 
-La scheda **Domini personalizzati** dice cosa fare: fate puntare il record CNAME di ogni dominio al record CNAME delle pagine di stato della vostra installazione, e OneUptime emette il certificato SSL del dominio e lo rinnova per voi. Quando non c'è nulla di configurato, la tabella dice **Nessun dominio personalizzato trovato**, con **Aggiungi dominio personalizzato** sotto. La tabella ha due colonne, **Dominio** e **Stato**, e filtri per **Dominio**, **CNAME valido** e **SSL provisionato**.
+La scheda **Domini personalizzati** dice cosa fare: fate puntare il record CNAME di ogni dominio al record CNAME delle pagine di stato della vostra installazione, e OneUptime emette il certificato SSL del dominio e lo rinnova per voi. Quando non c'è nulla di configurato, la tabella dice **Ancora nessun dominio personalizzato**, con **Aggiungi dominio personalizzato** sotto. La tabella ha due colonne, **Dominio** e **Stato**, e filtri per **Dominio**, **CNAME valido** e **SSL provisionato**.
 
 Portare la pagina sul vostro dominio richiede tre passaggi, tutti su questa pagina, e solo i primi due spettano a voi:
 

@@ -98,8 +98,11 @@ and phone summary: change the suite in the same pull request as the menu.
   [WorkspaceConnectionsGuards](../../packages/Common/Tests/App/Dashboard/WorkspaceConnectionsGuards.test.ts).
 - **One kind of record is one page.** Kinds of the same thing are tabs on that page, not a page each:
   How to Reach Me is one page, a ladder with a tab per kind behind it, not four pages in two menu
-  sections. Enforced by
-  [OnCallRulesOnePageGuard](../../packages/App/Tests/Dashboard/OnCallRulesOnePageGuard.test.ts).
+  sections. A status page's subscribers are one Subscribers page with a tab per channel (Email, SMS,
+  Slack, Microsoft Teams, Webhook), where they were five pages, and the old addresses open their tab
+  (#9125). Enforced by
+  [OnCallRulesOnePageGuard](../../packages/App/Tests/Dashboard/OnCallRulesOnePageGuard.test.ts) and
+  [StatusPageSubscribersOnePageGuard](../../packages/App/Tests/Dashboard/StatusPageSubscribersOnePageGuard.test.ts).
 - **Every entry in the More menu has an icon.** Enforced by
   [MoreMenuItemIconsGuard](../../packages/App/Tests/MoreMenuItemIconsGuard.test.ts).
 
@@ -428,6 +431,16 @@ work out, starts from a default for everything else, and folds what most people 
   found." with "Refresh?", which reads as a failed load on a new project. A product's own list explains
   the product while the project has none. Enforced by
   [CoreListEmptyStates](../../packages/Common/Tests/App/Dashboard/CoreListEmptyStates.test.tsx).
+- **A list's own empty sentence never says "found".** The table heads its empty state with the
+  page's `noItemsMessage`, so some fifty Dashboard lists greeted a new project with "No ingestion
+  keys found", "No custom domains found" (#9124, #9060). Write "No X yet." and leave what the list
+  is for to the card's description, which the empty state takes over, or add the one sentence that
+  says when rows arrive ("Pods appear here a few minutes after the agent starts scraping"). A
+  search or filter that hides every row is told apart by the table itself. A list that only ever
+  shows the answer to a query the reader set (the traces explorer) is listed in the guard with its
+  reason. A monitor's Logs says when its first check runs and links to Probes & Interval; its SLOs
+  offer Create with the monitor already attached. Enforced by
+  [EmptyListsSayYetGuard](../../packages/App/Tests/Dashboard/EmptyListsSayYetGuard.test.ts).
 - **A search or filter that finds nothing never offers Create.** It says nothing matched. Not
   enforced: use judgement.
 - **An empty state says each thing once.** An embedded logs list's empty state has one line from the
@@ -468,6 +481,15 @@ work out, starts from a default for everything else, and folds what most people 
   [DashboardWidgetPreviewGuard](../../packages/Common/Tests/App/Dashboard/DashboardWidgetPreviewGuard.test.tsx).
 - **Confirm only what cannot be undone.** A switch that can be flipped back saves without asking.
   Not enforced: use judgement.
+- **An action that changes something says it worked, without blocking the page.** A save, a
+  create, a delete or a test that went out says so in a toast (`Toast.success`,
+  `Common/UI/Utils/Toast`), which goes by itself; a failure says so in an error toast or a dialog,
+  and stays until it is closed. The shared model components already do it: a card's Edit says
+  "Changes saved", a list says "Nightly Backup deleted". Before, a change said nothing, or opened a
+  dialog to click away: "Saved", "Runbook steps saved successfully.", Got it (#9120). A dialog with
+  one way out (a `ConfirmModal` without `onClose`) stays only for what the person must read or act
+  on: what failed, a value shown once, a run's report, details they opened. Enforced by
+  [SuccessDialogsGuard](../../packages/Common/Tests/UI/SuccessDialogsGuard.test.ts).
 - **Leaving unsaved work asks first.** While a page holds work it has not saved (a dashboard being
   edited), a step to another page waits for its answer, Keep Editing or Discard Changes: a link,
   the side menu, the breadcrumbs, a button, the project picker, the browser's Back and Forward.

@@ -340,7 +340,7 @@
       "fieldMeteredSubscriptionId": "按量计费订阅 ID",
       "noTrial": "不在试用期内",
       "changePlanTitle": "更改套餐",
-      "changePlanDescription": "将此项目移到其他套餐。进行中的试用将延续；否则新套餐从现在开始计费，并按比例计入下一张发票。客户无需绑定支付方式：欠款会保留到客户添加支付方式为止。",
+      "changePlanDescription": "将此项目移到其他套餐，并按比例计入下一张发票。进行中的试用将延续。无需支付方式：费用会保留到添加支付方式为止。",
       "changePlanSubmitButton": "更改套餐",
       "changePlanSuccess": "套餐已更改为 {{plan}}。",
       "changePlanFailure": "套餐未更改。请重试。",
@@ -4155,5 +4155,17 @@
   "{{itemName}} invited": "已邀请{{itemName}}",
   "{{itemName}} linked": "已关联{{itemName}}",
   "{{itemName}} removed": "已移除{{itemName}}",
-  "{{itemName}} started": "已开始{{itemName}}"
+  "{{itemName}} started": "已开始{{itemName}}",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "删除事件也会删除其备注、状态时间线、Runbook 执行记录以及 OneUptime AI 为其提出的修复，并将其从状态页中移除。关联的警报会保留。",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "删除警报也会删除其备注、状态时间线、Runbook 执行记录以及 OneUptime AI 为其提出的修复。关联的事件会保留。",
+  "In short": "简而言之",
+  "Full documentation": "完整文档",
+  "Expand all": "全部展开",
+  "Collapse all": "全部折叠",
+  "Limited to deleted records": "限定于已删除的记录",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}：{{names}}，已于 {{date}} 删除。",
+  "OneUptime switched this rule off when they were deleted.": "这些记录被删除时，OneUptime 已停用此规则。",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "若按原样启用，此规则将完全不受这些列表限制。请编辑它以选择其适用范围，然后再启用。",
+  "{{names}} and {{count}} more": "{{names}} 等另外 {{count}} 个",
+  "{{names}} and {{count}} more_one": "{{names}} 等另外 {{count}} 个"
 }

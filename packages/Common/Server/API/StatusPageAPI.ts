@@ -218,6 +218,10 @@ import {
   getReaderLanguageFromAcceptLanguage,
 } from "../../Types/ReaderLanguage";
 import { Translator } from "../../Types/Translator";
+import {
+  getStatusPageHistoryInDays,
+  HISTORY_IN_DAYS_RESPONSE_KEY,
+} from "../../Utils/StatusPage/HistoryWindow";
 
 /*
  * A manage-subscription request is unauthenticated, and one Slack or Microsoft
@@ -2701,9 +2705,11 @@ export default class StatusPageAPI extends BaseAPI<
 
     // check if status page has active scheduled events.
     const today: Date = OneUptimeDate.getCurrentDate();
-    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      statusPage.showScheduledEventHistoryInDays || 14,
+    // The window the page names too (Common/Utils/StatusPage/HistoryWindow).
+    const historyInDays: number = getStatusPageHistoryInDays(
+      statusPage.showScheduledEventHistoryInDays,
     );
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(historyInDays);
 
     /*
      * Only events the page shows (StatusPageVisibilityQuery): one asked for
@@ -3022,6 +3028,7 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     const response: JSONObject = {
+      [HISTORY_IN_DAYS_RESPONSE_KEY]: historyInDays,
       scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(
         scheduledMaintenanceEventsPublicNotes,
         ScheduledMaintenancePublicNote,
@@ -3111,9 +3118,11 @@ export default class StatusPageAPI extends BaseAPI<
     // check if status page has active announcement.
 
     const today: Date = OneUptimeDate.getCurrentDate();
-    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      statusPage.showAnnouncementHistoryInDays || 14,
+    // The window the page names too (Common/Utils/StatusPage/HistoryWindow).
+    const historyInDays: number = getStatusPageHistoryInDays(
+      statusPage.showAnnouncementHistoryInDays,
     );
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(historyInDays);
 
     /*
      * Only announcements the page shows (StatusPageVisibilityQuery): one
@@ -3253,6 +3262,7 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     const response: JSONObject = {
+      [HISTORY_IN_DAYS_RESPONSE_KEY]: historyInDays,
       announcements: BaseModel.toJSONArray(
         announcements,
         StatusPageAnnouncement,
@@ -4720,9 +4730,11 @@ export default class StatusPageAPI extends BaseAPI<
 
     const today: Date = OneUptimeDate.getCurrentDate();
 
-    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      statusPage.showIncidentHistoryInDays || 14,
+    // The window the page names too (Common/Utils/StatusPage/HistoryWindow).
+    const historyInDays: number = getStatusPageHistoryInDays(
+      statusPage.showIncidentHistoryInDays,
     );
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(historyInDays);
 
     /*
      * Only incidents the page shows: IncidentStatusPageScope keeps every
@@ -4930,6 +4942,7 @@ export default class StatusPageAPI extends BaseAPI<
       await this.getIncidentStatesForStatusPage(statusPage.projectId!);
 
     const response: JSONObject = {
+      [HISTORY_IN_DAYS_RESPONSE_KEY]: historyInDays,
       incidentPublicNotes: BaseModel.toJSONArray(
         incidentPublicNotes,
         IncidentPublicNote,
@@ -5028,9 +5041,11 @@ export default class StatusPageAPI extends BaseAPI<
 
     const today: Date = OneUptimeDate.getCurrentDate();
 
-    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      statusPage.showEpisodeHistoryInDays || 14,
+    // The window the page names too (Common/Utils/StatusPage/HistoryWindow).
+    const historyInDays: number = getStatusPageHistoryInDays(
+      statusPage.showEpisodeHistoryInDays,
     );
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(historyInDays);
 
     /*
      * Get incidents that have monitors on this status page
@@ -5485,6 +5500,7 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     const response: JSONObject = {
+      [HISTORY_IN_DAYS_RESPONSE_KEY]: historyInDays,
       episodePublicNotes: BaseModel.toJSONArray(
         episodePublicNotes,
         IncidentEpisodePublicNote,

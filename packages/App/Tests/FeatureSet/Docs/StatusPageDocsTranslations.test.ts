@@ -359,7 +359,6 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
       key: "subscribe.confirm.subscribeAgain",
     },
     { english: "Active Announcements", key: "announcements.active" },
-    { english: "Past Announcements", key: "announcements.past" },
     { english: "Announced at", key: "announcements.announcedAt" },
     // A calendar instead of a subscription, from the Scheduled Maintenance page.
     { english: "Scheduled Maintenance", key: "nav.scheduledEvents" },
@@ -395,7 +394,6 @@ const STATUS_PAGE_APP_MESSAGES: Record<string, Array<string>> = {
     "subscribe.update.saved",
     "subscribe.preferences.summary.everything",
     "subscribe.preferences.summary.pickedResources",
-    "announcements.none",
   ],
 };
 

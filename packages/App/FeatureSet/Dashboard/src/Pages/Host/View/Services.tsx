@@ -608,7 +608,7 @@ const HostServices: FunctionComponent<
    */
   const noItemsMessage: string =
     rows.length === 0
-      ? `No Windows service metrics in the last ${SERVICE_LOOKBACK_MINUTES}${NO_BREAK_SPACE}minutes. Add the windows_service receiver to your collector: see the Documentation tab.`
+      ? `No Windows service metrics in the last ${SERVICE_LOOKBACK_MINUTES}${NO_BREAK_SPACE}minutes. The Documentation tab shows how to add the windows_service receiver.`
       : "No services match the current filters.";
 
   /*

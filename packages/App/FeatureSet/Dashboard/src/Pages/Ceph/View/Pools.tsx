@@ -336,7 +336,7 @@ const CephClusterPools: FunctionComponent<
         status: CEPH_METRIC_DESCRIPTIONS.poolStatusColumn,
       }}
       columns={POOL_COLUMNS}
-      emptyMessage="No pools found in the inventory yet. Pools appear here a few minutes after the Ceph agent starts sending metrics."
+      emptyMessage="No pools in the inventory yet. Pools appear here a few minutes after the Ceph agent starts sending metrics."
       getViewRoute={(resource: InfrastructureResource): Route => {
         return routes.getPartRoute(
           "Pool",

@@ -120,7 +120,7 @@ describe("the All profiles card's description", () => {
     const cardProps: CapturedTableProps["cardProps"] = await cardPropsOf(
       <ProfileTable
         modelId={SERVICE_ID}
-        noItemsMessage="No profiles found for this service."
+        noItemsMessage="No profiles for this service yet."
       />,
     );
 

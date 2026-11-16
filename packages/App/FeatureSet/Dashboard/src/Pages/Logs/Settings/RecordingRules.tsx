@@ -108,7 +108,7 @@ const LogRecordingRules: FunctionComponent<
           "Define a new metric as a count or an aggregation over logs, evaluated every minute.",
         markdown: documentationMarkdown,
       }}
-      noItemsMessage={"No recording rules found."}
+      noItemsMessage={"No recording rules yet."}
       createInitialValues={{
         isEnabled: true,
         definition: LogRecordingRuleDefinitionUtil.getEmptyDefinition(),

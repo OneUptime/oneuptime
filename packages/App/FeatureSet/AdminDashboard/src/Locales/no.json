@@ -340,7 +340,7 @@
       "fieldMeteredSubscriptionId": "ID for forbruksbasert abonnement",
       "noTrial": "Ikke i prøveperiode",
       "changePlanTitle": "Endre abonnement",
-      "changePlanDescription": "Flytt dette prosjektet til et annet abonnement. En pågående prøveperiode fortsetter; ellers faktureres det nye abonnementet fra nå av, forholdsmessig på neste faktura. Kunden trenger ikke en registrert betalingsmetode: det kunden skylder, venter til en er lagt til.",
+      "changePlanDescription": "Flytt dette prosjektet til et annet abonnement, forholdsmessig på neste faktura. En pågående prøveperiode fortsetter. Ingen betalingsmetode trengs: beløpet venter til en er lagt til.",
       "changePlanSubmitButton": "Endre abonnement",
       "changePlanSuccess": "Abonnementet er endret til {{plan}}.",
       "changePlanFailure": "Abonnementet ble ikke endret. Prøv igjen.",
@@ -4155,5 +4155,17 @@
   "{{itemName}} invited": "{{itemName}} invitert",
   "{{itemName}} linked": "{{itemName}} koblet til",
   "{{itemName}} removed": "{{itemName}} fjernet",
-  "{{itemName}} started": "{{itemName}} startet"
+  "{{itemName}} started": "{{itemName}} startet",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "Når du sletter en hendelse, slettes også notatene, tilstandstidslinjen, runbook-kjøringene og rettelsene OneUptime AI foreslo for den, og den fjernes fra statussider. Koblede varsler beholdes.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "Når du sletter et varsel, slettes også notatene, tilstandstidslinjen, runbook-kjøringene og rettelsene OneUptime AI foreslo for det. Koblede hendelser beholdes.",
+  "In short": "Kort fortalt",
+  "Full documentation": "Full dokumentasjon",
+  "Expand all": "Vis alle",
+  "Collapse all": "Skjul alle",
+  "Limited to deleted records": "Begrenset til slettede poster",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, slettet {{date}}.",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime slo av denne regelen da de ble slettet.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Slått på som den er, ville regelen ikke lenger være begrenset av disse listene i det hele tatt. Rediger den for å velge hva den gjelder for, og slå den deretter på.",
+  "{{names}} and {{count}} more": "{{names}} og {{count}} til",
+  "{{names}} and {{count}} more_one": "{{names}} og {{count}} til"
 }

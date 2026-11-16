@@ -340,7 +340,7 @@
       "fieldMeteredSubscriptionId": "मीटर्ड सदस्यता आईडी",
       "noTrial": "ट्रायल पर नहीं",
       "changePlanTitle": "योजना बदलें",
-      "changePlanDescription": "इस प्रोजेक्ट को किसी दूसरी योजना पर ले जाएँ। चल रहा ट्रायल जारी रहता है; नहीं तो नई योजना का बिल अभी से बनता है, अगले इनवॉइस में आनुपातिक रूप से। ग्राहक के पास भुगतान का तरीका दर्ज होना ज़रूरी नहीं है: बकाया राशि तब तक रुकी रहती है जब तक वे कोई तरीका नहीं जोड़ते।",
+      "changePlanDescription": "इस प्रोजेक्ट को किसी दूसरी योजना पर ले जाएँ, अगले इनवॉइस में आनुपातिक रूप से। चल रहा ट्रायल जारी रहता है। भुगतान का तरीका ज़रूरी नहीं है: शुल्क तब तक रुके रहते हैं जब तक कोई तरीका नहीं जोड़ा जाता।",
       "changePlanSubmitButton": "योजना बदलें",
       "changePlanSuccess": "योजना बदलकर {{plan}} कर दी गई।",
       "changePlanFailure": "योजना नहीं बदली गई। कृपया फिर से प्रयास करें।",
@@ -4155,5 +4155,17 @@
   "{{itemName}} invited": "{{itemName}} को आमंत्रित किया गया",
   "{{itemName}} linked": "{{itemName}} लिंक किया गया",
   "{{itemName}} removed": "{{itemName}} सूची से हटाया गया",
-  "{{itemName}} started": "{{itemName}} शुरू किया गया"
+  "{{itemName}} started": "{{itemName}} शुरू किया गया",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "घटना हटाने से उसके नोट, स्थिति टाइमलाइन, रनबुक रन और OneUptime AI द्वारा उसके लिए सुझाए गए सुधार भी हट जाते हैं, और वह स्थिति पृष्ठों से हट जाती है। जुड़े हुए अलर्ट बने रहते हैं।",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "अलर्ट हटाने से उसके नोट, स्थिति टाइमलाइन, रनबुक रन और OneUptime AI द्वारा उसके लिए सुझाए गए सुधार भी हट जाते हैं। जुड़ी हुई घटनाएँ बनी रहती हैं।",
+  "In short": "संक्षेप में",
+  "Full documentation": "पूरा दस्तावेज़ीकरण",
+  "Expand all": "सभी फैलाएँ",
+  "Collapse all": "सभी समेटें",
+  "Limited to deleted records": "हटाए गए रिकॉर्ड तक सीमित",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, {{date}} को हटाया गया।",
+  "OneUptime switched this rule off when they were deleted.": "उनके हटाए जाने पर OneUptime ने यह नियम बंद कर दिया।",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "जैसा है वैसा चालू करने पर यह नियम इन सूचियों से बिल्कुल सीमित नहीं रहेगा। इसे संपादित करके चुनें कि यह किस पर लागू हो, फिर इसे चालू करें।",
+  "{{names}} and {{count}} more": "{{names}} और {{count}} अन्य",
+  "{{names}} and {{count}} more_one": "{{names}} और {{count}} अन्य"
 }

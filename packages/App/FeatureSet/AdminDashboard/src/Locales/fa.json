@@ -340,7 +340,7 @@
       "fieldMeteredSubscriptionId": "شناسه اشتراک مصرفی",
       "noTrial": "در دوره آزمایشی نیست",
       "changePlanTitle": "تغییر طرح",
-      "changePlanDescription": "این پروژه را به طرح دیگری منتقل کنید. دوره آزمایشی جاری ادامه می‌یابد؛ وگرنه هزینه طرح جدید از همین حالا، به‌تناسب در صورت‌حساب بعدی، محاسبه می‌شود. مشتری لازم نیست روش پرداختی ثبت کرده باشد: بدهی او تا زمانی که روشی اضافه کند منتظر می‌ماند.",
+      "changePlanDescription": "این پروژه را به طرح دیگری منتقل کنید، به‌تناسب در صورت‌حساب بعدی. دوره آزمایشی جاری ادامه می‌یابد. روش پرداخت لازم نیست: هزینه‌ها تا افزوده شدن یک روش منتظر می‌مانند.",
       "changePlanSubmitButton": "تغییر طرح",
       "changePlanSuccess": "طرح به {{plan}} تغییر کرد.",
       "changePlanFailure": "طرح تغییر نکرد. لطفاً دوباره تلاش کنید.",
@@ -4155,5 +4155,17 @@
   "{{itemName}} invited": "{{itemName}} دعوت شد",
   "{{itemName}} linked": "{{itemName}} پیوند داده شد",
   "{{itemName}} removed": "{{itemName}} برداشته شد",
-  "{{itemName}} started": "{{itemName}} آغاز شد"
+  "{{itemName}} started": "{{itemName}} آغاز شد",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "حذف یک حادثه یادداشت‌ها، خط زمانی حالت، اجراهای رانبوک و اصلاح‌هایی را که هوش مصنوعی OneUptime برای آن پیشنهاد کرد هم حذف می‌کند و آن را از صفحات وضعیت برمی‌دارد. هشدارهای پیوندخورده باقی می‌مانند.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "حذف یک هشدار یادداشت‌ها، خط زمانی حالت، اجراهای رانبوک و اصلاح‌هایی را که هوش مصنوعی OneUptime برای آن پیشنهاد کرد هم حذف می‌کند. حادثه‌های پیوندخورده باقی می‌مانند.",
+  "In short": "به‌طور خلاصه",
+  "Full documentation": "مستندات کامل",
+  "Expand all": "باز کردن همه",
+  "Collapse all": "بستن همه",
+  "Limited to deleted records": "محدود به رکوردهای حذف‌شده",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}، حذف‌شده در {{date}}.",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime هنگام حذف آن‌ها این قاعده را غیرفعال کرد.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "اگر همین‌طور فعال شود، این فهرست‌ها دیگر هیچ محدودیتی بر این قاعده نمی‌گذارند. آن را ویرایش کنید تا انتخاب کنید بر چه چیزی اعمال شود، سپس فعالش کنید.",
+  "{{names}} and {{count}} more": "{{names}} و {{count}} مورد دیگر",
+  "{{names}} and {{count}} more_one": "{{names}} و {{count}} مورد دیگر"
 }

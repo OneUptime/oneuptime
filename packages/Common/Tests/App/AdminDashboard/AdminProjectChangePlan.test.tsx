@@ -367,7 +367,7 @@ describe("Admin > Project > Subscription > Change Plan", () => {
     // Staff move a project whatever the customer has on file, and are told so.
     expect(
       within(dialog()).getByText(
-        "Move this project to another plan. A running trial carries over; otherwise the new plan is billed from now on, prorated on the next invoice. The customer does not need a payment method on file: what they owe waits until they add one.",
+        "Move this project to another plan, prorated on the next invoice. A running trial carries over. No payment method is needed: charges wait for one.",
       ),
     ).toBeInTheDocument();
 

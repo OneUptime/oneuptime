@@ -58,7 +58,7 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import WorkflowsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Workflow/Workflows";
 import MonitorsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Monitors";
-import EmailSubscribersPage from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/EmailSubscribers";
+import StatusPageSubscribersPage from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Subscribers";
 // The Admin Dashboard's shell, which renders the Enterprise screen where it is.
 import EnterpriseLicensesPage from "../../../App/FeatureSet/AdminDashboard/src/Pages/EnterpriseLicenses/Index";
 import AdminUsersPage from "../../../App/FeatureSet/AdminDashboard/src/Pages/Users/Index";
@@ -844,9 +844,10 @@ document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
 const PAGES = {
   workflows: { component: WorkflowsPage, trail: ["Workflows"] },
   monitors: { component: MonitorsPage, trail: ["Monitors"] },
+  // The Subscribers page, on its first tab, Email (#9125).
   subscribers: {
-    component: EmailSubscribersPage,
-    trail: ["Status Pages", "Production Status Page", "Email Subscribers"],
+    component: StatusPageSubscribersPage,
+    trail: ["Status Pages", "Production Status Page", "Subscribers"],
   },
   licenses: {
     component: EnterpriseLicensesPage,

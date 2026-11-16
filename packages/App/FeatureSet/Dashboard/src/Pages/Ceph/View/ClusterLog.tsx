@@ -498,7 +498,7 @@ const CephClusterClusterLog: FunctionComponent<
           noItemsMessage={
             hasActiveFilters
               ? "No log lines match the current filters."
-              : "No ceph.log lines found in the last 24 hours."
+              : "No ceph.log lines in the last 24 hours."
           }
         />
       </Card>

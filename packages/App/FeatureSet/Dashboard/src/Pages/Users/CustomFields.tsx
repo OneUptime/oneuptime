@@ -56,7 +56,7 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
           description:
             "Custom fields help you collect additional information about team members in your project.",
         }}
-        noItemsMessage={"No custom fields found."}
+        noItemsMessage={"No custom fields yet."}
         viewPageRoute={Navigation.getCurrentRoute()}
         /*
          * One page, as on every other custom field settings page: the name,

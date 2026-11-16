@@ -26,6 +26,58 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import {
+  getSloFormFields,
+  SLO_CREATE_INITIAL_VALUES,
+} from "../../Slo/SloFormFields";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import SliType from "Common/Types/ServiceLevelObjective/SliType";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+
+/*
+ * The create form a monitor's SLOs page opens (#9124): the SLOs page's
+ * Objective step - name, target, and the folded Advanced section - on one
+ * page. What the SLO measures is this monitor's uptime, so that step is not
+ * asked: an SLO of requests or of a metric would not be this monitor's.
+ * Built where it is drawn, as the target's help is written in the reader's
+ * language of the moment.
+ */
+export const getMonitorSloCreateFormFields: () => Array<
+  ModelField<ServiceLevelObjective>
+> = (): Array<ModelField<ServiceLevelObjective>> => {
+  return getSloFormFields()
+    .filter((field: ModelField<ServiceLevelObjective>): boolean => {
+      return field.stepId === "objective";
+    })
+    .map(
+      (
+        field: ModelField<ServiceLevelObjective>,
+      ): ModelField<ServiceLevelObjective> => {
+        return { ...field, stepId: undefined };
+      },
+    );
+};
+
+/*
+ * What is created from a monitor keeps the monitor: the new SLO measures its
+ * uptime, with this monitor attached, so it is on this page once saved.
+ */
+export const measureMonitorUptime: (
+  item: ServiceLevelObjective,
+  monitorId: ObjectID,
+) => ServiceLevelObjective = (
+  item: ServiceLevelObjective,
+  monitorId: ObjectID,
+): ServiceLevelObjective => {
+  const monitor: Monitor = new Monitor();
+  monitor._id = monitorId.toString();
+
+  item.sliType = SliType.MonitorUptime;
+  item.monitors = [monitor];
+
+  return item;
+};
 
 /**
  * The SLOs that measure this monitor.
@@ -70,11 +122,29 @@ const MonitorSlos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isDeleteable={false}
         isEditable={false}
         /*
-         * Creating an SLO needs a target, a window and a multi-monitor
-         * mode that have nothing to do with this monitor — that belongs on
-         * the SLOs page, which this table's empty state points at.
+         * Create here measures this monitor's uptime: the SLOs page's
+         * Objective step alone (name, target, and the folded Advanced
+         * section), and the new SLO measures this monitor from the start.
+         * Its own page opens next, as from the SLOs page.
          */
-        isCreateable={false}
+        isCreateable={true}
+        formFields={getMonitorSloCreateFormFields()}
+        createInitialValues={SLO_CREATE_INITIAL_VALUES}
+        onBeforeCreate={(
+          item: ServiceLevelObjective,
+        ): Promise<ServiceLevelObjective> => {
+          return Promise.resolve(measureMonitorUptime(item, modelId));
+        }}
+        onCreateSuccess={(
+          item: ServiceLevelObjective,
+          modalType?: ModalType,
+        ): Promise<ServiceLevelObjective> => {
+          if (modalType === ModalType.Create && item._id) {
+            Navigation.navigate(getSloViewRoute(item));
+          }
+
+          return Promise.resolve(item);
+        }}
         isViewable={true}
         showRefreshButton={true}
         sortBy="name"
@@ -97,7 +167,7 @@ const MonitorSlos: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description:
             "Reliability targets that measure this monitor. Downtime on this monitor spends their error budgets.",
         }}
-        noItemsMessage="No SLO measures this monitor. Create one on the SLOs page to track a reliability target for it."
+        noItemsMessage="No SLO measures this monitor yet. Create one to set an uptime target for it, with an error budget its downtime spends."
         filters={[
           {
             field: {

@@ -84,8 +84,9 @@ const EMBEDDED_STATUS: string = `${DASHBOARD}/Pages/StatusPages/View/EmbeddedSta
 const SUBSCRIBER_SETTINGS: string = `${DASHBOARD}/Pages/StatusPages/View/SubscriberSettings.tsx`;
 const SUBSCRIBER_CHOICES_COPY: string = `${DASHBOARD}/Components/StatusPage/SubscriberChoicesCopy.ts`;
 const SUBSCRIBER_FORM_CHOICES: string = `${DASHBOARD}/Components/StatusPage/SubscriberFormChoices.ts`;
-const EMAIL_SUBSCRIBERS: string = `${DASHBOARD}/Pages/StatusPages/View/EmailSubscribers.tsx`;
-const SMS_SUBSCRIBERS: string = `${DASHBOARD}/Pages/StatusPages/View/SMSSubscribers.tsx`;
+// Every channel's subscriber list, one component since #9125, and its channels.
+const SUBSCRIBER_LIST: string = `${DASHBOARD}/Components/StatusPage/StatusPageSubscriberList.tsx`;
+const SUBSCRIBER_LIST_CHANNELS: string = `${DASHBOARD}/Components/StatusPage/SubscriberListChannels.ts`;
 const SUBSCRIBER_STATUS_PILL: string = `${DASHBOARD}/Components/StatusPage/SubscriberStatusPill.tsx`;
 
 const STATUS_PAGE_APP: string = "App/FeatureSet/StatusPage/src";
@@ -1391,13 +1392,16 @@ describe("Subscribers & Announcements: confirming an email address", () => {
     expect(service).toMatch(
       /const isSignUpByTextMessage: boolean =\s*statusPageSignUps\.has\(data\.data\) && Boolean\(data\.data\.subscriberPhone\);\s*if \(\s*\(isEmailSubscriber && !isSubscriptionConfirmed\) \|\|\s*isSignUpByTextMessage\s*\) \{\s*data\.data\.isSubscriptionConfirmed = false;\s*\} else \{\s*data\.data\.isSubscriptionConfirmed = true;/,
     );
-    // The Add form asks one question, Add in Bulk the same.
-    expect(readSource(EMAIL_SUBSCRIBERS)).toContain(
-      "...getEmailSubscriberAddChoiceFields(),",
+    // The Add form asks one question, Add in Bulk the same - on email only.
+    expect(readSource(SUBSCRIBER_LIST)).toContain(
+      "...(channel.asksHowToAdd ? getEmailSubscriberAddChoiceFields() : []),",
     );
-    expect(readSource(EMAIL_SUBSCRIBERS)).toContain(
+    expect(readSource(SUBSCRIBER_LIST)).toContain(
       "getSubscriberAddChoiceColumns(data.subscriberAddChoice)",
     );
+    expect(
+      readSource(SUBSCRIBER_LIST_CHANNELS).match(/asksHowToAdd: true,/g) || [],
+    ).toHaveLength(1);
 
     // What each answer writes, and the answer a new subscriber starts with.
     for (const [choice, confirmed, told] of [
@@ -1437,7 +1441,9 @@ describe("Subscribers & Announcements: confirming an email address", () => {
 
   it("says a sign-up by SMS confirms from the phone: one text first, the welcome once the link is opened, Awaiting Confirmation until then, and the code kept out of the SMS log", () => {
     const api: string = readSource(STATUS_PAGE_API);
-    const smsSubscribers: string = readSource(SMS_SUBSCRIBERS);
+    const smsSubscribers: string = `${readSource(SUBSCRIBER_LIST)}${readSource(
+      SUBSCRIBER_LIST_CHANNELS,
+    )}`;
 
     // The one text a sign-up by SMS is sent, and nothing else until confirmed.
     expect(service).toContain("getConfirmSubscriptionTextMessage({");

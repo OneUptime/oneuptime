@@ -34,6 +34,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * left, and a result that names every entry not added, with the server's
  * reason, and every line skipped, with why.
  *
+ * The five subscriber lists are one Subscribers page since #9125, a tab
+ * per channel drawing one shared list (StatusPageSubscriberList): each case
+ * opens the real page on its channel's tab, as its old address now does.
+ *
  * The real pages are rendered; their table, their bulk form and their CSV
  * upload are recorded so a test can press Add in Bulk and hand the form
  * what a person types. Every add is a real create through ModelAPI, which
@@ -160,6 +164,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       create: (...args: Array<unknown>): unknown => {
         return createMock(...args);
       },
+      // The Subscribers page counts each channel for its tab.
+      count: async (): Promise<number> => {
+        return 0;
+      },
     },
   };
 });
@@ -178,15 +186,36 @@ import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { SubscriberAddChoice } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberFormChoices";
-import EmailSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/EmailSubscribers";
-import MicrosoftTeamsSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/MicrosoftTeamsSubscribers";
 import PrivateUser from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/PrivateUser";
-import SMSSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SMSSubscribers";
-import SlackSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SlackSubscribers";
-import WebhookSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/WebhookSubscribers";
+import StatusPageSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Subscribers";
+import StatusPageSubscriberChannel from "../../../Types/StatusPage/StatusPageSubscriberChannel";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
+
+/*
+ * The Subscribers page, opened on a channel's tab by its address
+ * (?channel=sms), as a link or an old per-channel address opens it.
+ */
+function subscribersTab(
+  channel: StatusPageSubscriberChannel,
+): React.FunctionComponent<PageComponentProps> {
+  const SubscribersTab: React.FunctionComponent<PageComponentProps> = (
+    props: PageComponentProps,
+  ): ReactElement => {
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard/status-pages/subscribers?channel=${channel}`,
+    );
+
+    return <StatusPageSubscribers {...props} />;
+  };
+
+  SubscribersTab.displayName = `SubscribersTab(${channel})`;
+
+  return SubscribersTab;
+}
 
 function pageProps(): PageComponentProps {
   const project: Project = new Project();
@@ -312,7 +341,7 @@ function csvRows(values: Array<string>): Array<Record<string, string>> {
 const PAGES: Array<PageCase> = [
   {
     name: "Email Subscribers",
-    page: EmailSubscribers,
+    page: subscribersTab(StatusPageSubscriberChannel.Email),
     input: "text",
     modelType: StatusPageSubscriber,
     entries: (count: number): Array<string> => {
@@ -324,7 +353,7 @@ const PAGES: Array<PageCase> = [
     noValidEntry: "No valid email address found. Enter one address per line.",
     submit: async (values: Array<string>): Promise<void> => {
       await submitText({
-        emails: values.join("\n"),
+        entries: values.join("\n"),
         subscriberAddChoice: SubscriberAddChoice.SubscribeNow,
       });
     },
@@ -339,7 +368,7 @@ const PAGES: Array<PageCase> = [
   },
   {
     name: "SMS Subscribers",
-    page: SMSSubscribers,
+    page: subscribersTab(StatusPageSubscriberChannel.SMS),
     input: "text",
     modelType: StatusPageSubscriber,
     entries: (count: number): Array<string> => {
@@ -351,7 +380,7 @@ const PAGES: Array<PageCase> = [
     noValidEntry: "No valid phone number found. Enter one number per line.",
     submit: async (values: Array<string>): Promise<void> => {
       await submitText({
-        phones: values.join("\n"),
+        entries: values.join("\n"),
         sendYouHaveSubscribedMessage: false,
       });
     },
@@ -366,7 +395,7 @@ const PAGES: Array<PageCase> = [
   },
   {
     name: "Slack Subscribers",
-    page: SlackSubscribers,
+    page: subscribersTab(StatusPageSubscriberChannel.Slack),
     input: "csv",
     modelType: StatusPageSubscriber,
     entries: (count: number): Array<string> => {
@@ -391,7 +420,7 @@ const PAGES: Array<PageCase> = [
   },
   {
     name: "Microsoft Teams Subscribers",
-    page: MicrosoftTeamsSubscribers,
+    page: subscribersTab(StatusPageSubscriberChannel.MicrosoftTeams),
     input: "csv",
     modelType: StatusPageSubscriber,
     entries: (count: number): Array<string> => {
@@ -416,7 +445,7 @@ const PAGES: Array<PageCase> = [
   },
   {
     name: "Webhook Subscribers",
-    page: WebhookSubscribers,
+    page: subscribersTab(StatusPageSubscriberChannel.Webhook),
     input: "csv",
     modelType: StatusPageSubscriber,
     entries: (count: number): Array<string> => {
@@ -850,7 +879,7 @@ describe("what each page writes for an entry", () => {
     await renderPage(PAGES[0]!);
     await pressAddInBulk();
     await submitText({
-      emails: "Ada@Example.com",
+      entries: "Ada@Example.com",
       subscriberAddChoice: SubscriberAddChoice.AskToConfirm,
     });
     await waitForResult();
@@ -877,7 +906,7 @@ describe("what each page writes for an entry", () => {
     )["fields"] as Array<Record<string, unknown>>;
     const phones: Record<string, unknown> | undefined = fields.find(
       (field: Record<string, unknown>): boolean => {
-        return Boolean((field["field"] as Record<string, unknown>)["phones"]);
+        return Boolean((field["field"] as Record<string, unknown>)["entries"]);
       },
     );
 
@@ -893,7 +922,7 @@ describe("what each page writes for an entry", () => {
     await renderPage(PAGES[1]!);
     await pressAddInBulk();
     await submitText({
-      phones: "+1 415 555 0100",
+      entries: "+1 415 555 0100",
       sendYouHaveSubscribedMessage: true,
     });
     await waitForResult();
@@ -1038,11 +1067,12 @@ describe("what each page writes for an entry", () => {
 });
 
 /*
- * The six pages keep no loop and no progress dialog of their own: a seventh
- * copy would be the next one to add entries one at a time again.
+ * The subscriber list and Private Users keep no loop and no progress dialog
+ * of their own: another copy would be the next one to add entries one at a
+ * time again. The five subscriber pages are one list since #9125.
  */
 describe("the pages' sources", () => {
-  const VIEW: string = path.join(
+  const DASHBOARD: string = path.join(
     __dirname,
     "..",
     "..",
@@ -1052,22 +1082,18 @@ describe("the pages' sources", () => {
     "FeatureSet",
     "Dashboard",
     "src",
-    "Pages",
-    "StatusPages",
-    "View",
   );
 
   test.each([
-    "EmailSubscribers.tsx",
-    "SMSSubscribers.tsx",
-    "SlackSubscribers.tsx",
-    "MicrosoftTeamsSubscribers.tsx",
-    "WebhookSubscribers.tsx",
-    "PrivateUser.tsx",
+    "Components/StatusPage/StatusPageSubscriberList.tsx",
+    "Pages/StatusPages/View/PrivateUser.tsx",
   ])(
     "%s adds through useStatusPageBulkAdd and draws its dialog",
     (file: string) => {
-      const source: string = fs.readFileSync(path.join(VIEW, file), "utf8");
+      const source: string = fs.readFileSync(
+        path.join(DASHBOARD, ...file.split("/")),
+        "utf8",
+      );
 
       expect(source).toContain("useStatusPageBulkAdd({");
       expect(source).toContain("await bulkAdd.run(");

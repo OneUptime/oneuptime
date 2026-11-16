@@ -36,21 +36,19 @@ const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
 const OTHER_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
-interface SubscriberPage {
-  file: string;
-  // The column the list's own query requires, which names its channel.
-  channelField: string;
-}
-
-const PAGES: Array<SubscriberPage> = [
-  { file: "EmailSubscribers.tsx", channelField: "subscriberEmail" },
-  { file: "SMSSubscribers.tsx", channelField: "subscriberPhone" },
-  { file: "SlackSubscribers.tsx", channelField: "slackWorkspaceName" },
-  {
-    file: "MicrosoftTeamsSubscribers.tsx",
-    channelField: "microsoftTeamsWorkspaceName",
-  },
-  { file: "WebhookSubscribers.tsx", channelField: "subscriberWebhook" },
+/*
+ * The five subscriber lists are one component since #9125
+ * (StatusPageSubscriberList), a tab each on the Subscribers page,
+ * configured per channel (SubscriberListChannels). The channel's contact
+ * column is what its list, and the notice above it, pick its subscribers
+ * by.
+ */
+const CHANNELS: Array<{ channel: string; contactColumn: string }> = [
+  { channel: "Email", contactColumn: "subscriberEmail" },
+  { channel: "SMS", contactColumn: "subscriberPhone" },
+  { channel: "Slack", contactColumn: "slackWorkspaceName" },
+  { channel: "MicrosoftTeams", contactColumn: "microsoftTeamsWorkspaceName" },
+  { channel: "Webhook", contactColumn: "subscriberWebhook" },
 ];
 
 const PLACEHOLDER: RegExp = /\{\{[^}]+\}\}/g;
@@ -65,24 +63,45 @@ function readLocale(locale: string): Record<string, unknown> {
   ) as Record<string, unknown>;
 }
 
-function readPage(file: string): string {
+function readComponent(file: string): string {
   return fs
     .readFileSync(
-      path.join(DASHBOARD_SRC, "Pages", "StatusPages", "View", file),
+      path.join(DASHBOARD_SRC, "Components", "StatusPage", file),
       "utf8",
     )
     .replace(/\s+/g, " ");
 }
 
-// The body of the first `name={[ ... ]}` prop after `from`, bracket-matched.
-function arrayProp(source: string, name: string): string {
-  const start: number = source.indexOf(`${name}={[`);
+const LIST: string = readComponent("StatusPageSubscriberList.tsx");
+const CHANNEL_DEFINITIONS: string = readComponent("SubscriberListChannels.ts");
+
+// One channel's entry in SubscriberListChannels.
+function channelDefinition(channel: string): string {
+  const start: number = CHANNEL_DEFINITIONS.indexOf(
+    `[StatusPageSubscriberChannel.${channel}]: {`,
+  );
+
+  expect(start).toBeGreaterThan(-1);
+
+  return CHANNEL_DEFINITIONS.slice(
+    start,
+    CHANNEL_DEFINITIONS.indexOf("writeBulkEntry", start),
+  );
+}
+
+// The body of the `const name ... = [ ... ];` array, bracket-matched.
+function arrayConst(source: string, name: string): string {
+  const start: number = source.indexOf(`const ${name}`);
 
   expect(start).toBeGreaterThan(-1);
 
   let depth: number = 0;
 
-  for (let i: number = start + name.length + 2; i < source.length; i++) {
+  for (
+    let i: number = source.indexOf("= [", start) + 2;
+    i < source.length;
+    i++
+  ) {
     const character: string = source[i]!;
 
     if (character === "[") {
@@ -96,69 +115,81 @@ function arrayProp(source: string, name: string): string {
     }
   }
 
-  throw new Error(`No ${name} prop`);
+  throw new Error(`No ${name} array`);
 }
 
 const UNSUBSCRIBED_AT_ENTRY: RegExp =
   /\{ field: \{ unsubscribedAt: true, \}, title: SubscriberUnsubscribeCopy\.unsubscribedAtTitle, type: FieldType\.(Date|DateTime),/;
 
-describe.each(PAGES)("$file", (page: SubscriberPage) => {
-  const source: string = readPage(page.file);
-
+describe("every channel's list", () => {
   test("lists Unsubscribed At as a column", () => {
-    expect(arrayProp(source, "columns")).toMatch(UNSUBSCRIBED_AT_ENTRY);
+    expect(arrayConst(LIST, "columns")).toMatch(UNSUBSCRIBED_AT_ENTRY);
   });
 
   test("can filter on Unsubscribed At", () => {
-    expect(arrayProp(source, "filters")).toMatch(UNSUBSCRIBED_AT_ENTRY);
+    expect(arrayConst(LIST, "filters")).toMatch(UNSUBSCRIBED_AT_ENTRY);
   });
 
-  test("shows the notice of team-added subscribers that left, for this list's channel", () => {
-    expect(source).toContain("<TeamAddedSubscribersUnsubscribedNotice");
-    expect(source).toContain(
-      `channelQuery={{ ${page.channelField}: new NotNull() }}`,
+  test("shows the notice of team-added subscribers that left, for its own channel", () => {
+    expect(LIST).toContain("<TeamAddedSubscribersUnsubscribedNotice");
+    expect(LIST).toContain("channelQuery={getSubscriberChannelQuery(channel)}");
+    expect(LIST).toContain(
+      "contactSelect={getSubscriberContactSelect(channel)}",
     );
-    expect(source).toContain(`contactSelect={{ ${page.channelField}: true }}`);
 
     // The same channel the list below it shows.
-    expect(source).toContain(`${page.channelField}: new NotNull(), }}`);
+    expect(LIST).toContain(
+      "query={{ ...getSubscriberChannelQuery(channel), statusPageId: modelId,",
+    );
+    expect(CHANNEL_DEFINITIONS).toContain(
+      "[definition.contactColumn]: new NotNull(),",
+    );
   });
+
+  test.each(CHANNELS)(
+    "$channel picks its subscribers by $contactColumn",
+    (entry: { channel: string; contactColumn: string }) => {
+      expect(channelDefinition(entry.channel)).toContain(
+        `contactColumn: "${entry.contactColumn}",`,
+      );
+    },
+  );
 });
 
 describe("the email subscriber forms advise against shared addresses", () => {
-  const source: string = readPage("EmailSubscribers.tsx");
-
-  test("Add in Bulk says it in the Emails field's description, after how to paste them", () => {
-    const bulkForm: string = source.slice(
-      source.indexOf("<BasicFormModal<BulkAddFormData>"),
+  test("Add in Bulk says it in the pasted field's description, after how to paste them", () => {
+    const bulkForm: string = LIST.slice(
+      LIST.indexOf("<BasicFormModal<TextBulkAddFormData>"),
     );
-    const emailsField: string = bulkForm.slice(
-      bulkForm.indexOf("field: { emails: true }"),
-      bulkForm.indexOf("field: { isSubscriptionConfirmed: true }"),
+    const entriesField: string = bulkForm.slice(
+      bulkForm.indexOf("field: { entries: true }"),
+      bulkForm.indexOf("fieldType: FormFieldSchemaType.LongText"),
     );
 
-    expect(emailsField).toMatch(
-      /description: \( <> \{translator\.translateText\( "One email per line[^"]*", \)\}\{" "\} \{translator\.translateText\( SubscriberUnsubscribeCopy\.sharedAddressAdvice, \)\} <\/> \)/,
+    expect(entriesField).toMatch(
+      /description: channel\.asksHowToAdd \? \( <> \{translator\.translateText\(textBulkAdd\.fieldDescription\)\}\{" "\} \{translator\.translateText\( SubscriberUnsubscribeCopy\.sharedAddressAdvice, \)\} <\/> \)/,
+    );
+    // Only email asks how to add them, so only email says it.
+    expect(channelDefinition("Email")).toContain("asksHowToAdd: true,");
+    expect(channelDefinition("Email")).toContain(
+      'fieldDescription: "One email per line',
     );
     // No warning box under the field any more.
-    expect(emailsField).not.toContain("footerElement");
-    expect(emailsField).not.toContain("<Alert");
+    expect(entriesField).not.toContain("footerElement");
+    expect(entriesField).not.toContain("<Alert");
   });
 
   test("so does the form that adds one subscriber, in the Email field's description", () => {
-    const formFields: string = source.slice(
-      source.indexOf(
-        "const formFields: Array<ModelField<StatusPageSubscriber>>",
-      ),
-      source.indexOf("isSubscriptionConfirmed: true, }, title:"),
+    const contactFields: string = channelDefinition("Email").slice(
+      channelDefinition("Email").indexOf("contactFields: ["),
     );
 
-    expect(formFields).toContain("subscriberEmail: true");
-    expect(formFields).toContain(
+    expect(contactFields).toContain("subscriberEmail: true");
+    expect(contactFields).toContain(
       "description: SubscriberUnsubscribeCopy.sharedAddressAdvice,",
     );
-    expect(formFields).not.toContain("footerElement");
-    expect(formFields).not.toContain("<Alert");
+    expect(contactFields).not.toContain("footerElement");
+    expect(contactFields).not.toContain("<Alert");
   });
 
   test("the advice is one sentence that names a mailing list and says it is unsubscribed for everyone", () => {
@@ -170,10 +201,9 @@ describe("the email subscriber forms advise against shared addresses", () => {
     expect(advice.slice(0, -1)).not.toMatch(/[.!?] /);
   });
 
-  test("the warning box and its three sentences are gone from every subscriber page", () => {
-    for (const page of PAGES) {
-      expect(readPage(page.file)).not.toContain("shared-address-warning");
-    }
+  test("the warning box and its three sentences are gone from every subscriber list", () => {
+    expect(LIST).not.toContain("shared-address-warning");
+    expect(CHANNEL_DEFINITIONS).not.toContain("shared-address-warning");
 
     expect(Object.keys(SubscriberUnsubscribeCopy)).not.toContain(
       "sharedAddressWarning",

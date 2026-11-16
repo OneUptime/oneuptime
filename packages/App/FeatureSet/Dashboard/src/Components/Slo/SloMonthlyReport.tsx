@@ -29,7 +29,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import FilterButtons, {
   FilterButtonOption,
 } from "Common/UI/Components/FilterButtons/FilterButtons";
@@ -273,7 +273,7 @@ const SloMonthlyReportElement: FunctionComponent<ComponentProps> = (
             report.unit === SloMonthlyReportUnit.Requests
               ? "None of this SLO's services served a request that OneUptime counted in these months. Pick a later period, or wait for its services' traces to arrive."
               : report.unit === SloMonthlyReportUnit.Events
-                ? "None of this SLO's services sent an event of its metric that OneUptime counted in these months. Pick a later period, or wait for its services' metrics to arrive."
+                ? "None of this SLO's services sent an event of its metric in these months. Pick a later period, or wait for their metrics to arrive."
                 : "This SLO's monitors have no status history in these months. Pick a later period, or wait for its monitors to be checked."
           }
           dataTestId="slo-monthly-report-no-data"
@@ -396,7 +396,7 @@ const SloMonthlyReportElement: FunctionComponent<ComponentProps> = (
             className={`mt-1 text-2xl font-semibold tabular-nums ${SLO_MONTH_VERDICT_TEXT_CLASS[report.total.verdict]}`}
             data-testid="slo-monthly-report-total-sli"
           >
-            {totalSli || <TableEmptyValue />}
+            {totalSli || <EmptyFigure />}
           </dd>
           {target ? (
             <dd className="mt-0.5 text-xs text-gray-500">
@@ -423,7 +423,7 @@ const SloMonthlyReportElement: FunctionComponent<ComponentProps> = (
                 total: translator.formatNumber(summary.completeMonthCount),
               })
             ) : (
-              <TableEmptyValue />
+              <EmptyFigure />
             )}
           </dd>
           <dd className="mt-0.5 text-xs text-gray-500">
@@ -447,7 +447,7 @@ const SloMonthlyReportElement: FunctionComponent<ComponentProps> = (
                 timezone: report.timezone,
               })
             ) : (
-              <TableEmptyValue />
+              <EmptyFigure />
             )}
           </dd>
           {worstMonth ? (
