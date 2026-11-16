@@ -56021,5 +56021,17 @@
   "Every {{count}} seconds_one": "A cada {{count}} segundos",
   "First Measured At": "Medido pela primeira vez em",
   "Missing-email check": "Verificação de e-mails ausentes",
-  "Missing-request check": "Verificação de solicitações ausentes"
+  "Missing-request check": "Verificação de solicitações ausentes",
+  "Copy Your API Key": "Copie sua chave de API",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Copie-a agora e guarde-a em um lugar seguro, como um gerenciador de segredos. Ela só é mostrada desta vez: o OneUptime guarda apenas um hash dela.",
+  "Ends in {{hint}}": "Termina em {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "Mostrada só uma vez, quando foi criada. Redefina-a para obter uma nova.",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "Cria uma nova chave e a mostra uma vez. A chave atual deixa de funcionar em até um minuto.",
+  "Reset API Key?": "Redefinir a chave de API?",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "A chave atual deixa de funcionar em até um minuto, para todo script e ferramenta que a usa. A nova chave é mostrada uma vez.",
+  "The server did not answer with the new API key. Try again.": "O servidor não respondeu com a nova chave de API. Tente novamente.",
+  "API Key Hint": "Dica da chave de API",
+  "Master API Key Created At": "Chave de API mestra criada em",
+  "Master API Key Created By User ID": "ID do usuário que criou a chave de API mestra",
+  "Master API Key Hint": "Dica da chave de API mestra"
 }

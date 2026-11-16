@@ -4113,5 +4113,8 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} نفر هنوز بدون SSO وارد شده است. تا وقتی با SSO وارد نشود، هیچ پروژه‌ای را نمی‌تواند باز کند.",
   "Sign them out": "خارج کردن آن‌ها",
   "Sign out everyone signed in without SSO?": "همهٔ کسانی که بدون SSO وارد شده‌اند خارج شوند؟",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "نشست‌هایشان همین حالا در همهٔ دستگاه‌ها پایان می‌یابد و دوباره با SSO وارد می‌شوند. مدیران ارشد وارد می‌مانند."
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "نشست‌هایشان همین حالا در همهٔ دستگاه‌ها پایان می‌یابد و دوباره با SSO وارد می‌شوند. مدیران ارشد وارد می‌مانند.",
+  "Made by {{name}} on {{date}}": "ساخته‌شده توسط {{name}} در {{date}}",
+  "Made on {{date}}": "ساخته‌شده در {{date}}",
+  "Ends in {{hint}}": "به {{hint}} ختم می‌شود"
 }

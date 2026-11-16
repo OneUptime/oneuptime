@@ -4113,5 +4113,8 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "仍有 {{count}} 人未使用 SSO 登录。在使用 SSO 登录之前，他们无法打开任何项目。",
   "Sign them out": "将他们登出",
   "Sign out everyone signed in without SSO?": "要登出所有未使用 SSO 登录的人吗？",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "他们在所有设备上的会话将立即结束，需要使用 SSO 重新登录。主管理员保持登录状态。"
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "他们在所有设备上的会话将立即结束，需要使用 SSO 重新登录。主管理员保持登录状态。",
+  "Made by {{name}} on {{date}}": "由 {{name}} 于 {{date}} 创建",
+  "Made on {{date}}": "创建于 {{date}}",
+  "Ends in {{hint}}": "末尾为 {{hint}}"
 }

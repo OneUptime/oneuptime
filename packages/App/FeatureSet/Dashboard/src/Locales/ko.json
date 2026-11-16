@@ -56021,5 +56021,17 @@
   "Every {{count}} seconds_one": "{{count}}초마다",
   "First Measured At": "처음 측정 시각",
   "Missing-email check": "이메일 누락 점검",
-  "Missing-request check": "요청 누락 점검"
+  "Missing-request check": "요청 누락 점검",
+  "Copy Your API Key": "API 키 복사",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "지금 복사하여 시크릿 관리자와 같은 안전한 곳에 보관하세요. 이번 한 번만 표시됩니다. OneUptime은 해시만 저장합니다.",
+  "Ends in {{hint}}": "끝자리 {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "만들 때 한 번만 표시되었습니다. 새 키가 필요하면 재설정하세요.",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "새 키를 만들고 한 번만 표시합니다. 현재 키는 1분 안에 작동을 멈춥니다.",
+  "Reset API Key?": "API 키를 재설정할까요?",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "현재 키는 이 키를 사용하는 모든 스크립트와 도구에서 1분 안에 작동을 멈춥니다. 새 키는 한 번만 표시됩니다.",
+  "The server did not answer with the new API key. Try again.": "서버가 새 API 키를 보내지 않았습니다. 다시 시도하세요.",
+  "API Key Hint": "API 키 힌트",
+  "Master API Key Created At": "마스터 API 키 생성일",
+  "Master API Key Created By User ID": "마스터 API 키를 생성한 사용자 ID",
+  "Master API Key Hint": "마스터 API 키 힌트"
 }

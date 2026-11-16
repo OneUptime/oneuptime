@@ -3660,6 +3660,30 @@ jobs:
           Tests/Workers/DataMigrations/HashMasterApiKeyPostgres.test.ts
           --forceExit
 
+      # A project's API keys through the upgrade that stores them hashed
+      # (#8902): on the ApiKey table as it was, with keys stored the old way,
+      # the API takes a key as written before the schema migration, after it
+      # and after HashProjectApiKeys, which leaves only hashes with their
+      # hints (a deleted key's too); then no key a request presents goes into
+      # a query; a reset's key works and the one before stops; a key created
+      # now is stored hashed; a master admin reads no key or hash and cannot
+      # write one; the master API key says when, by whom and how it ends
+      # (#8903); rolled back, a hashed key becomes a new random uuid. Clones
+      # the migrated ApiKey, GlobalConfig and User tables into an isolated
+      # schema.
+      - name: Test project API keys' upgrade to a hash on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_PROJECT_API_KEY_TESTS: "true"
+          PROJECT_API_KEY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_API_KEY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_API_KEY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/HashProjectApiKeysPostgres.test.ts
+          --forceExit
+
       # Exceptions: the exception group upsert's ON CONFLICT branch, which is
       # all of regression detection - an occurrence after the resolve
       # reopens it as Regressed, a late one from before does not, and one

@@ -56021,5 +56021,17 @@
   "Every {{count}} seconds_one": "Every {{count}} second",
   "First Measured At": "First Measured At",
   "Missing-email check": "Missing-email check",
-  "Missing-request check": "Missing-request check"
+  "Missing-request check": "Missing-request check",
+  "Copy Your API Key": "Copy Your API Key",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.",
+  "Ends in {{hint}}": "Ends in {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "Shown only once, when it was made. Reset it to get a new one.",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "Makes a new key and shows it once. The current key stops working within a minute.",
+  "Reset API Key?": "Reset API Key?",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.",
+  "The server did not answer with the new API key. Try again.": "The server did not answer with the new API key. Try again.",
+  "API Key Hint": "API Key Hint",
+  "Master API Key Created At": "Master API Key Created At",
+  "Master API Key Created By User ID": "Master API Key Created By User ID",
+  "Master API Key Hint": "Master API Key Hint"
 }

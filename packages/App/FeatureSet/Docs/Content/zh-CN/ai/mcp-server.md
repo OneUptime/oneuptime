@@ -144,7 +144,7 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp
 
 ### 复制密钥
 
-点击 **创建API 密钥**：密钥的页面会打开。从那里复制密钥。
+点击 **创建API 密钥**。OneUptime 会在 **复制你的 API 密钥** 对话框中显示一次密钥：请在点击 **完成** 之前复制它。
 :::
 
 API 密钥属于一个项目：MCP 服务器从密钥中获取项目，因此创建工具从不需要 `projectId` 参数。

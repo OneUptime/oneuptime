@@ -199,7 +199,7 @@ Ausgabeformate und Listengrößen werden hier nicht gespeichert: Geben Sie `-o` 
 :::
 
 :::details Meldung „API error (400): Invalid API Key“
-Der Schlüssel ist kein API-Schlüssel von OneUptime, ist abgelaufen oder wurde zurückgesetzt. Kopieren Sie ihn erneut von seiner Seite unter **Projekteinstellungen → Erweitert → API-Schlüssel**, wo auch sein Datum unter **Läuft ab** steht, und melden Sie sich unter demselben Kontextnamen erneut an. Der Befehl endet mit dem Code `2`.
+Der Schlüssel ist kein API-Schlüssel von OneUptime, ist abgelaufen oder wurde zurückgesetzt. Suchen Sie ihn unter **Projekteinstellungen → Erweitert → API-Schlüssel** daran, wie er endet, und prüfen Sie sein Datum unter **Läuft ab**. Ein Schlüssel, den Sie nicht mehr haben, kann nicht erneut angezeigt werden: Setzen Sie ihn auf seiner Seite zurück, und melden Sie sich mit dem neuen unter demselben Kontextnamen erneut an. Der Befehl endet mit dem Code `2`.
 :::
 
 :::details Meldung „API error (402): API keys need the Growth plan“

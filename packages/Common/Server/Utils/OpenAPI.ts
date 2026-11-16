@@ -465,14 +465,27 @@ export default class OpenAPIUtil {
 
     // Use schema names that are already registered
     const createSchemaName: string = `${tableName}CreateSchema`;
-    const readSchemaName: string = `${tableName}ReadSchema`;
+    /*
+     * A model with a column its create answers once (a project's API key)
+     * answers with that column too, in <Table>CreatedSchema: nothing else
+     * ever holds it (ModelSchema.getCreatedModelSchema).
+     */
+    const shownOnceColumns: Array<string> =
+      ModelSchema.getShownOnceColumns(modelType);
+    const readSchemaName: string =
+      shownOnceColumns.length > 0
+        ? `${tableName}CreatedSchema`
+        : `${tableName}ReadSchema`;
 
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}`,
       operationId: `create${tableName}`,
       summary: `Create ${singularModelName}`,
-      description: `Endpoint to create a new ${singularModelName}`,
+      description:
+        shownOnceColumns.length > 0
+          ? `Endpoint to create a new ${singularModelName}. Its answer is the only one that holds ${shownOnceColumns.join(", ")}: keep it from there. OneUptime keeps only its hash.`
+          : `Endpoint to create a new ${singularModelName}`,
       tags: [singularModelName],
       requestBody: {
         required: true,
@@ -822,6 +835,14 @@ export default class OpenAPIUtil {
         modelType,
       });
       registry.register(`${tableName}ReadSchema`, readSchema);
+    }
+
+    // And what a create answers, where it holds what it answers once.
+    if (canCreate && ModelSchema.getShownOnceColumns(modelType).length > 0) {
+      registry.register(
+        `${tableName}CreatedSchema`,
+        ModelSchema.getCreatedModelSchema({ modelType }),
+      );
     }
 
     if (canUpdate) {

@@ -4113,5 +4113,8 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} Person ist noch ohne SSO angemeldet. Sie kann kein Projekt öffnen, bis sie sich mit SSO anmeldet.",
   "Sign them out": "Diese Personen abmelden",
   "Sign out everyone signed in without SSO?": "Alle abmelden, die ohne SSO angemeldet sind?",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Ihre Sitzungen enden sofort auf allen Geräten, und sie melden sich wieder mit SSO an. Master-Administratoren bleiben angemeldet."
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Ihre Sitzungen enden sofort auf allen Geräten, und sie melden sich wieder mit SSO an. Master-Administratoren bleiben angemeldet.",
+  "Made by {{name}} on {{date}}": "Erstellt von {{name}} am {{date}}",
+  "Made on {{date}}": "Erstellt am {{date}}",
+  "Ends in {{hint}}": "Endet auf {{hint}}"
 }
