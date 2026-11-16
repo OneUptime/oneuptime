@@ -31,10 +31,14 @@ import ProductKey, {
   PRODUCT_KEYS,
 } from "../../../Types/Product/ProductKey";
 import { ProductUsage } from "../../../Types/Product/ProductUsage";
-import { ProductPlacement } from "../../../Types/Product/ProjectProducts";
+import {
+  ProductPlacement,
+  ProjectProductsChosenBy,
+} from "../../../Types/Product/ProjectProducts";
 import {
   ProjectProductsAnswer,
   getEmptyProjectProductsAnswer,
+  parseProjectProductsAnswer,
 } from "../../../Types/Product/ProjectProductsAnswer";
 import { MoreMenuItem } from "../../../UI/Components/Navbar/NavBar";
 
@@ -371,5 +375,108 @@ describe("fitting the catalog", () => {
       ProductKey.Incidents,
       ProductKey.StatusPages,
     ]);
+  });
+});
+
+/*
+ * NOTHING MOVES UNDER MORE PRODUCTS BY ITSELF. A product leaves its
+ * category only when a member hides it on Project Settings > Products (or
+ * the server switches it off). The project's goals used to hide every
+ * product they did not name: a new project's menu had 37 products under
+ * More products, all "Not set up", though nobody hid them.
+ */
+describe("only a member's choice moves a product under More products", () => {
+  const everyProductNotSetUp: () => ProjectProductsAnswer =
+    (): ProjectProductsAnswer => {
+      const usage: Partial<Record<ProductKey, ProductUsage>> = {};
+
+      for (const product of PRODUCT_KEYS) {
+        usage[product] = ProductUsage.NotSetUp;
+      }
+
+      return { ...getEmptyProjectProductsAnswer(), usage: usage };
+    };
+
+  test("every product of the real catalog stays in its category, though none is set up", () => {
+    const menu: ProductsMenu = buildProductsMenu({
+      items: navigation.moreMenuItems,
+      answer: everyProductNotSetUp(),
+      fixedOrderCategories: navigation.moreMenuCategoriesInFixedOrder,
+    });
+
+    expect(menu.hidden).toEqual([]);
+    expect(
+      menu.listed
+        .map((entry: MoreMenuItem): string | undefined => {
+          return entry.key;
+        })
+        .sort(),
+    ).toEqual([...PRODUCT_KEYS].sort());
+
+    // Each keeps the category the catalog gives it, marked "Not set up".
+    for (const entry of menu.listed) {
+      const original: MoreMenuItem | undefined = navigation.moreMenuItems.find(
+        (candidate: MoreMenuItem): boolean => {
+          return candidate.key === entry.key;
+        },
+      );
+
+      expect([entry.key, entry.category, entry.isNotSetUp]).toEqual([
+        entry.key,
+        original?.category,
+        true,
+      ]);
+    }
+  });
+
+  test("a product nothing is known about stays listed too", () => {
+    const menu: ProductsMenu = buildProductsMenu({
+      items: navigation.moreMenuItems,
+      answer: getEmptyProjectProductsAnswer(),
+      fixedOrderCategories: navigation.moreMenuCategoriesInFixedOrder,
+    });
+
+    expect(menu.hidden).toEqual([]);
+    expect(menu.listed).toHaveLength(navigation.moreMenuItems.length);
+  });
+
+  test("a member's hidden products, and only those, are under More products", () => {
+    const menu: ProductsMenu = buildProductsMenu({
+      items: navigation.moreMenuItems,
+      answer: {
+        ...everyProductNotSetUp(),
+        hidden: [ProductKey.Kubernetes, ProductKey.Logs],
+        chosenBy: ProjectProductsChosenBy.Member,
+      },
+      fixedOrderCategories: navigation.moreMenuCategoriesInFixedOrder,
+    });
+
+    expect(
+      menu.hidden.map((entry: MoreMenuItem): string | undefined => {
+        return entry.key;
+      }),
+    ).toEqual([ProductKey.Logs, ProductKey.Kubernetes]);
+    expect(menu.listed).toHaveLength(navigation.moreMenuItems.length - 2);
+  });
+
+  test("an answer a browser kept from when the goals hid products moves nothing", () => {
+    const remembered: ProjectProductsAnswer | null = parseProjectProductsAnswer(
+      {
+        hidden: PRODUCT_KEYS.filter((product: ProductKey): boolean => {
+          return product !== ProductKey.Monitors;
+        }),
+        chosenBy: "goals",
+        usage: { logs: "not_set_up", kubernetes: "not_set_up" },
+      },
+    );
+
+    const menu: ProductsMenu = buildProductsMenu({
+      items: navigation.moreMenuItems,
+      answer: remembered!,
+      fixedOrderCategories: navigation.moreMenuCategoriesInFixedOrder,
+    });
+
+    expect(menu.hidden).toEqual([]);
+    expect(menu.listed).toHaveLength(navigation.moreMenuItems.length);
   });
 });
