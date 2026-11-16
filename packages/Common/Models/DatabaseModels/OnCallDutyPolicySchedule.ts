@@ -90,6 +90,14 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 @Entity({
   name: "OnCallDutyPolicySchedule",
 })
+/*
+ * The schedules whose change made through the API waits to be told
+ * (rosterRefreshDueAt): a handful at most, for half a minute each, which
+ * the Workers read every minute (OnCallDutySchedule:TellLayerChanges).
+ */
+@Index(["rosterRefreshDueAt"], {
+  where: '"rosterRefreshDueAt" IS NOT NULL',
+})
 @TableMetadata({
   tableName: "OnCallDutyPolicySchedule",
   singularName: "On-Call Schedule",
@@ -825,4 +833,37 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     default: 0,
   })
   public shiftConfigVersion?: number = undefined;
+
+  /*
+   * When a change made to the schedule's layers through the API is told
+   * (#7813): QUIET_PERIOD after its last write - an API key's (Terraform,
+   * the CLI, a script), an AI client's, a workflow's - for as long as the
+   * change goes on writing. Then who is on call is worked out once, and the
+   * people it reaches, the schedule's Slack and Microsoft Teams channels,
+   * its calendar feeds and reminders hear about the whole change once
+   * (ScheduleLayerChanges), where each row written used to send its own.
+   * Empty when nothing waits; a change made in the Dashboard is told at
+   * once, as before.
+   *
+   * The server's alone: nobody reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    computed: true,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Roster Refresh Due At",
+    description:
+      "Internal: while a change made to this schedule's layers through the API waits to be told, when it is told - once its writes have been quiet for half a minute.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public rosterRefreshDueAt?: Date = undefined;
 }

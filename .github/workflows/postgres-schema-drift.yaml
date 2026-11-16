@@ -441,6 +441,40 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/OnCall/ScheduleLayersSavePostgres.test.ts --forceExit
 
+      # #7813: a change to a schedule's layers made through the API holds
+      # the schedule (rosterRefreshDueAt) until its writes are quiet, and the
+      # Workers tell it once and let it go with a compare-and-set. The real
+      # ScheduleLayerChanges runs on a copy of the migrated schedule table:
+      # the hold to the millisecond, the due read by its partial index, and a
+      # write made while a change is told holding it again.
+      - name: Test a schedule's change held until it is quiet, on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SCHEDULE_LAYER_CHANGES_TESTS: "true"
+          SCHEDULE_LAYER_CHANGES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SCHEDULE_LAYER_CHANGES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SCHEDULE_LAYER_CHANGES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/OnCall/ScheduleLayerChangesPostgres.test.ts --forceExit
+
+      # #8104: an escalation step's claim, and a new pass's count, change no
+      # indexed column of the migrated OnCallDutyPolicyExecutionLog, so they
+      # are HOT updates; the rule a run is on keeps its index for the
+      # cascade. The real service statements run on a copy of the table.
+      - name: Test what an escalation step writes, on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ON_CALL_EXECUTION_LOG_WRITES_TESTS: "true"
+          ON_CALL_EXECUTION_LOG_WRITES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ON_CALL_EXECUTION_LOG_WRITES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ON_CALL_EXECUTION_LOG_WRITES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OnCallExecutionLogStepWritesPostgres.test.ts --forceExit
+
       # An episode's members show their incident or alert, and their episode,
       # through joins that run neither one's privacy rules: a member row is
       # listed, counted, read and removed only by someone who may see both.
