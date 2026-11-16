@@ -476,6 +476,7 @@
     "p95 (ms)",
     "p95 {{latency}}",
     "p99 (ms)",
+    "passkey",
     "per GB",
     "persistent volume claim",
     "pod",

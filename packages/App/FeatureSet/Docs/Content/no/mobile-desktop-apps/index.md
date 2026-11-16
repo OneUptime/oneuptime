@@ -54,7 +54,7 @@ Skrivebordsappen er selve dashbordet i et eget vindu. Den viser varslinger når 
 Hent den fra [App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) på en iPhone eller iPad, eller fra [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall) på Android. For en Android-telefon uten Google Play installerer du [APK-en](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) i stedet. De samme lenkene står i dashbordet under **Prosjektinnstillinger → Varslinger → Mobilapper**.
 
 ### Koble den til ditt OneUptime
-Åpne appen, behold `https://oneuptime.com` for OneUptime Cloud eller skriv inn adressen til ditt eget OneUptime, og logg inn med passordet ditt, en tilgangsnøkkel eller single sign-on.
+Åpne appen, behold `https://oneuptime.com` for OneUptime Cloud eller skriv inn adressen til ditt eget OneUptime, og logg inn med passordet ditt, en passnøkkel eller single sign-on.
 
 ### Tillat varslinger
 Tillat dem når telefonen spør. Appen registrerer telefonen i hvert av prosjektene dine, og vaktvarslene dine når den fra da av.
