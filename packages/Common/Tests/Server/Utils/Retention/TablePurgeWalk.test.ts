@@ -28,6 +28,28 @@ function service(model: unknown = AlertLabelRule): DatabaseService<BaseModel> {
   return new DatabaseService<BaseModel>(model as { new (): BaseModel });
 }
 
+/*
+ * A backlog that never ends, as far as any run goes: a full batch each call,
+ * then nothing after 1000 calls - so a walk that never stops draining fails
+ * its test instead of hanging it. Says how many calls it answered.
+ */
+function endlessBacklog(): {
+  purgeBatch: () => Promise<number>;
+  calls: () => number;
+} {
+  let calls: number = 0;
+
+  return {
+    purgeBatch: async (): Promise<number> => {
+      calls += 1;
+      return calls > 1000 ? 0 : 1000;
+    },
+    calls: (): number => {
+      return calls;
+    },
+  };
+}
+
 // A clock that moves only when a batch says so.
 function clockAt(start: number): {
   now: () => Date;
@@ -100,16 +122,17 @@ describe("one table", () => {
   });
 
   test("gets one batch however late it starts, and is cut short only if that batch removed something", async () => {
+    const backlog: ReturnType<typeof endlessBacklog> = endlessBacklog();
+
     expect(
       await TablePurgeWalk.purgeTable({
-        purgeBatch: async (): Promise<number> => {
-          return 1000;
-        },
+        purgeBatch: backlog.purgeBatch,
         isOutOfTime: (): boolean => {
           return true;
         },
       }),
     ).toEqual({ purged: 1000, isCutShort: true });
+    expect(backlog.calls()).toBe(1);
 
     expect(
       await TablePurgeWalk.purgeTable({
@@ -121,6 +144,22 @@ describe("one table", () => {
         },
       }),
     ).toEqual({ purged: 0, isCutShort: false });
+  });
+
+  test("a backlog drains until the run is out of time: the batch that finds it so is the last", async () => {
+    const backlog: ReturnType<typeof endlessBacklog> = endlessBacklog();
+    let checks: number = 0;
+
+    expect(
+      await TablePurgeWalk.purgeTable({
+        purgeBatch: backlog.purgeBatch,
+        isOutOfTime: (): boolean => {
+          checks += 1;
+          return checks >= 4;
+        },
+      }),
+    ).toEqual({ purged: 4000, isCutShort: true });
+    expect(backlog.calls()).toBe(4);
   });
 
   test("throws a batch that fails", async () => {
@@ -194,6 +233,53 @@ describe("a run", () => {
     });
 
     expect(checks).toEqual([false, false, true]);
+  });
+
+  test("drains for its budget, then gives each table left one batch", async () => {
+    const clock: ReturnType<typeof clockAt> = clockAt(0);
+    const backlogs: Array<ReturnType<typeof endlessBacklog>> = [
+      endlessBacklog(),
+      endlessBacklog(),
+      endlessBacklog(),
+    ];
+    const tables: Array<DatabaseService<BaseModel>> = [
+      service(),
+      service(WhatsAppLog),
+      service(),
+    ];
+
+    const summary: TablePurgeSummary = await TablePurgeWalk.run({
+      services: tables,
+      purgeTable: (
+        table: DatabaseService<BaseModel>,
+        isOutOfTime: () => boolean,
+      ): Promise<TablePurgeOfTable> => {
+        const backlog: ReturnType<typeof endlessBacklog> =
+          backlogs[tables.indexOf(table)]!;
+
+        return TablePurgeWalk.purgeTable({
+          // Each batch takes a minute.
+          purgeBatch: async (): Promise<number> => {
+            clock.advance(MINUTE_MS);
+            return await backlog.purgeBatch();
+          },
+          isOutOfTime,
+        });
+      },
+      onTableFailed: (): void => {
+        return undefined;
+      },
+      now: clock.now,
+      timeBudgetMs: 5 * MINUTE_MS,
+    });
+
+    expect(
+      backlogs.map((backlog: ReturnType<typeof endlessBacklog>): number => {
+        return backlog.calls();
+      }),
+    ).toEqual([5, 1, 1]);
+    expect(summary.purged).toBe(7000);
+    expect(summary.isCutShort).toBe(true);
   });
 
   test("a table cut short says the run was", async () => {
