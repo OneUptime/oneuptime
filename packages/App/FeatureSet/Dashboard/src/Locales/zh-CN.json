@@ -56258,5 +56258,8 @@
   "Revocation Attempted At": "Revocation Attempted At",
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
-  "Roster Refresh Due At": "值班表刷新时间"
+  "Roster Refresh Due At": "值班表刷新时间",
+  "Saved. The severities that differ keep their own rules.": "已保存。不同的严重程度保留各自的规则。",
+  "These keep their own rules when you save changes to the steps.": "保存对步骤的更改时，这些仍保留各自的规则。",
+  "Use This Ladder for Every Severity": "对每个严重程度都使用此联系顺序"
 }

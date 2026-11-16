@@ -56258,5 +56258,8 @@
   "Revocation Attempted At": "Revocation Attempted At",
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
-  "Roster Refresh Due At": "당번표 새로 고침 예정 시각"
+  "Roster Refresh Due At": "당번표 새로 고침 예정 시각",
+  "Saved. The severities that differ keep their own rules.": "저장했습니다. 다른 심각도는 자체 규칙을 유지합니다.",
+  "These keep their own rules when you save changes to the steps.": "단계 변경 사항을 저장해도 이 항목들은 자체 규칙을 유지합니다.",
+  "Use This Ladder for Every Severity": "이 연락 순서를 모든 심각도에 사용"
 }

@@ -56258,5 +56258,8 @@
   "Revocation Attempted At": "Revocation Attempted At",
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
-  "Roster Refresh Due At": "Nästa uppdatering av schemat"
+  "Roster Refresh Due At": "Nästa uppdatering av schemat",
+  "Saved. The severities that differ keep their own rules.": "Sparat. De allvarlighetsgrader som skiljer sig behåller sina egna regler.",
+  "These keep their own rules when you save changes to the steps.": "De här behåller sina egna regler när du sparar ändringar i stegen.",
+  "Use This Ladder for Every Severity": "Använd den här ordningen för alla allvarlighetsgrader"
 }

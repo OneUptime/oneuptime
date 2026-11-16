@@ -56258,5 +56258,8 @@
   "Revocation Attempted At": "زمان تلاش برای ابطال",
   "Revocation Error": "خطای ابطال",
   "Worker ID": "شناسه کارگر",
-  "Roster Refresh Due At": "موعد به‌روزرسانی نوبت"
+  "Roster Refresh Due At": "موعد به‌روزرسانی نوبت",
+  "Saved. The severities that differ keep their own rules.": "ذخیره شد. شدت‌های متفاوت قوانین خودشان را نگه می‌دارند.",
+  "These keep their own rules when you save changes to the steps.": "وقتی تغییرات گام‌ها را ذخیره می‌کنید، این‌ها قوانین خودشان را نگه می‌دارند.",
+  "Use This Ladder for Every Severity": "استفاده از این ترتیب تماس برای همهٔ شدت‌ها"
 }

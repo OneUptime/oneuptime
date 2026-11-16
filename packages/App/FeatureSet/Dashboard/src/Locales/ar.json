@@ -56258,5 +56258,8 @@
   "Revocation Attempted At": "وقت محاولة الإبطال",
   "Revocation Error": "خطأ الإبطال",
   "Worker ID": "معرّف العامل",
-  "Roster Refresh Due At": "موعد تحديث قائمة المناوبين"
+  "Roster Refresh Due At": "موعد تحديث قائمة المناوبين",
+  "Saved. The severities that differ keep their own rules.": "تم الحفظ. تحتفظ درجات الخطورة المختلفة بقواعدها الخاصة.",
+  "These keep their own rules when you save changes to the steps.": "تحتفظ هذه بقواعدها الخاصة عند حفظ التغييرات على الخطوات.",
+  "Use This Ladder for Every Severity": "استخدام هذا التسلسل لكل درجات الخطورة"
 }

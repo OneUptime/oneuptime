@@ -56258,5 +56258,8 @@
   "Revocation Attempted At": "Revocation Attempted At",
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
-  "Roster Refresh Due At": "当番表の更新予定日時"
+  "Roster Refresh Due At": "当番表の更新予定日時",
+  "Saved. The severities that differ keep their own rules.": "保存しました。異なる重大度は独自のルールのままです。",
+  "These keep their own rules when you save changes to the steps.": "ステップの変更を保存しても、これらは独自のルールのままです。",
+  "Use This Ladder for Every Severity": "この連絡手順をすべての重大度に使う"
 }
