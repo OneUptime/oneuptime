@@ -92,8 +92,10 @@ const CMD_INVOKES_TS_NODE: RegExp = /CMD.*ts-node\/register/;
 const TRANSPILE_ONLY_ENV: RegExp = /ENV\s+TS_NODE_TRANSPILE_ONLY=1/;
 const CMD_PRECOMPILED_ENTRYPOINT: RegExp =
   /CMD\s*\[\s*"node"\s*,\s*"build\/dist\/Index\.js"\s*\]/;
-// A server's start script: the JavaScript Precompile.js wrote, after the
-// stack-trace support for it.
+/*
+ * A server's start script: the JavaScript Precompile.js wrote, after the
+ * stack-trace support for it.
+ */
 const STARTS_PRECOMPILED_SERVER: RegExp =
   /&& exec node (--no-node-snapshot )?--require Common\/Server\/Utils\/TsNode\/PrecompiledSourceMaps\.js Index\.js$/;
 // The build step that writes that JavaScript, anchored to a RUN instruction.
@@ -388,22 +390,19 @@ describe("Container boot configuration", () => {
       servers.map((image: ServiceImage) => {
         return image.service;
       }),
-    )(
-      "%s type-checks, then compiles, at build time",
-      (service: string) => {
-        const image: ServiceImage | undefined = SERVICE_IMAGES.find(
-          (i: ServiceImage) => {
-            return i.service === service;
-          },
-        );
-        const stanza: string = image?.productionDockerfile ?? "";
-        const typeCheck: number = stanza.search(RUN_COMPILE_INSTRUCTION);
-        const compile: number = stanza.search(RUN_PRECOMPILE_INSTRUCTION);
+    )("%s type-checks, then compiles, at build time", (service: string) => {
+      const image: ServiceImage | undefined = SERVICE_IMAGES.find(
+        (i: ServiceImage) => {
+          return i.service === service;
+        },
+      );
+      const stanza: string = image?.productionDockerfile ?? "";
+      const typeCheck: number = stanza.search(RUN_COMPILE_INSTRUCTION);
+      const compile: number = stanza.search(RUN_PRECOMPILE_INSTRUCTION);
 
-        expect(typeCheck).toBeGreaterThanOrEqual(0);
-        expect(compile).toBeGreaterThan(typeCheck);
-      },
-    );
+      expect(typeCheck).toBeGreaterThanOrEqual(0);
+      expect(compile).toBeGreaterThan(typeCheck);
+    });
   });
 
   describe("images that run JavaScript compiled by tsc need no such flag", () => {

@@ -222,14 +222,9 @@ RUN npm run build-frontends:prod
 # Written into FeatureSet/Docs/build and FeatureSet/APIReference/build, which
 # the pruned stages keep (they remove /usr/src/app/build, the type-check's).
 RUN npm run build-docs-css
-# Type-check app source
+# Type-check app source. The JavaScript the image runs is compiled in the
+# pruned stages below, after every bundle is built.
 RUN npm run compile
-# Compile the App's TypeScript and Common's to JavaScript, each file beside its
-# TypeScript, as ts-node compiled them when the image ran it (the same
-# TypeScript, options and decorator metadata; source maps for stack traces):
-# the image runs JavaScript, and none of its processes loads TypeScript or
-# ts-node (Common/Server/Utils/TsNode/Precompile.js).
-RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common
 # The license terms travel with both images: LICENSE (the Apache License 2.0,
 # after a preamble that carves ee/ out of it) and the NOTICE that repeats that
 # split (the enterprise target adds ee/LICENSE with ee/). Root-owned, so the
@@ -299,10 +294,6 @@ RUN grep -rqF ONEUPTIME_EE_DASHBOARD_PLUGIN_v1 FeatureSet/Dashboard/public/dist 
     || { echo "The Dashboard bundle does not contain the Enterprise UI: ONEUPTIME_EE_DASHBOARD_PLUGIN_v1 is not in FeatureSet/Dashboard/public/dist." >&2; exit 1; }
 RUN grep -rqF ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_v1 FeatureSet/AdminDashboard/public/dist \
     || { echo "The Admin Dashboard bundle does not contain the Enterprise UI: ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_v1 is not in FeatureSet/AdminDashboard/public/dist." >&2; exit 1; }
-# Compile ee/ to JavaScript as the community build compiled the App and Common:
-# with the App's tsconfig, which is the one ts-node ran ee/ with. After the
-# Enterprise bundles above, so they are built from ee/'s TypeScript alone.
-RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/ee
 # ee's devDependencies (typescript, jest, ts-jest, @types) were only needed for
 # the type-check above. The Common and App links are dependencies and stay.
 RUN npm --prefix /usr/src/ee prune --omit=dev --ignore-scripts
@@ -352,6 +343,16 @@ EXPOSE 3002
 # App their tests and the type-check's output.
 # ---------------------------------------------------------------------------
 FROM enterprise-build AS enterprise-pruned
+# Compile the App's TypeScript, Common's and ee/'s to JavaScript, each file
+# beside its TypeScript, as ts-node compiled them when the image ran it (the
+# same TypeScript, the App's tsconfig and options, the same decorator
+# metadata; source maps for stack traces): the image runs JavaScript, and none
+# of its processes loads TypeScript or ts-node
+# (Common/Server/Utils/TsNode/Precompile.js). Here, after every bundle the
+# build made, so each bundle is built from the TypeScript alone: built with
+# the compiled JavaScript beside it, the Enterprise Dashboard's bundle took
+# in the server's packages (TypeORM's Node build) and failed.
+RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common --root /usr/src/ee
 COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js
 RUN node /tmp/PruneUnreachablePackages.js \
         --entry /usr/src/app/Index.ts \
@@ -429,6 +430,9 @@ CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /
 # calendar's worker.
 # ---------------------------------------------------------------------------
 FROM community-build AS community-pruned
+# The App's TypeScript and Common's, compiled as the Enterprise Edition's are
+# (see enterprise-pruned).
+RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common
 COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js
 RUN node /tmp/PruneUnreachablePackages.js \
         --entry /usr/src/app/Index.ts \

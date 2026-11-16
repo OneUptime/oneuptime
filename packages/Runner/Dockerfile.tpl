@@ -216,11 +216,6 @@ COPY --chown=1000:1000 ./packages/Runner /usr/src/app
 # Type-check app source. The image runs the JavaScript compiled below without
 # checking it, so this is where the Runner's types are checked in the image.
 RUN npm run compile
-# Compile the Runner's TypeScript and Common's to JavaScript, each file beside
-# its TypeScript, as ts-node compiled them when the image ran it: the Runner
-# runs JavaScript, and loads neither TypeScript nor ts-node. See
-# App/Dockerfile.tpl.
-RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common
 
 # A global Runner's JavaScript sandbox (Utils/JavaScriptSandbox): each step
 # runs in a process of its own. The launcher starts that process as a user of
@@ -240,6 +235,13 @@ RUN mkdir -p /usr/lib/oneuptime-runner \
   && /usr/src/Common/node_modules/.bin/esbuild /usr/src/app/Utils/JavaScriptSandbox/SandboxWorker.ts \
        --bundle --platform=node --target=node26 --external:isolated-vm --tsconfig=/usr/src/app/tsconfig.json \
        --legal-comments=none --log-level=warning --outfile=/usr/lib/oneuptime-runner/javascript-sandbox-worker.js
+
+# Compile the Runner's TypeScript and Common's to JavaScript, each file beside
+# its TypeScript, as ts-node compiled them when the image ran it: the Runner
+# runs JavaScript, and loads neither TypeScript nor ts-node. After the
+# sandbox's bundle, which is built from the TypeScript alone. See
+# App/Dockerfile.tpl.
+RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common
 
 # Leave in /usr/src only what the Runner runs: Common pruned to the packages
 # its imports and the stack-trace support its start command requires reach

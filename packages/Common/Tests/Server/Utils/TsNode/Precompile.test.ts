@@ -120,9 +120,11 @@ describe("what it compiles", () => {
   test("a folder with a package.json of its own is another program: only what the compiled files import from it", () => {
     const root: string = makeTree({
       "package.json": "{}",
-      "Server/BaseAPI.ts": 'import { version } from "../Recorder/Manifest";\nexport default version;\n',
+      "Server/BaseAPI.ts":
+        'import { version } from "../Recorder/Manifest";\nexport default version;\n',
       "Recorder/package.json": "{}",
-      "Recorder/Manifest.ts": 'import base from "./Version";\nexport const version = base;\n',
+      "Recorder/Manifest.ts":
+        'import base from "./Version";\nexport const version = base;\n',
       "Recorder/Version.ts": "export default 1;\n",
       "Recorder/src/Recorder.ts": "export default 2;\n",
       "Recorder/Tests/Manifest.test.ts": 'import "../Manifest";\n',
@@ -158,24 +160,27 @@ describe("what it compiles", () => {
     ["./Helper.js", "Helper.ts"],
     ["./Missing", null],
     ["./Types", null],
-  ])("resolves %s as require() finds its JavaScript", (specifier, expected) => {
-    const root: string = makeTree({
-      "Index.ts": "",
-      "Helper.ts": "",
-      "View.tsx": "",
-      "Folder/index.ts": "",
-      "Types.d.ts": "",
-    });
+  ])(
+    "resolves %s as require() finds its JavaScript",
+    (specifier: string, expected: string | null) => {
+      const root: string = makeTree({
+        "Index.ts": "",
+        "Helper.ts": "",
+        "View.tsx": "",
+        "Folder/index.ts": "",
+        "Types.d.ts": "",
+      });
 
-    const resolved: string | null = Precompile.resolveRelativeImport(
-      path.join(root, "Index.ts"),
-      specifier,
-    );
+      const resolved: string | null = Precompile.resolveRelativeImport(
+        path.join(root, "Index.ts"),
+        specifier,
+      );
 
-    expect(resolved === null ? null : path.relative(root, resolved)).toBe(
-      expected,
-    );
-  });
+      expect(resolved === null ? null : path.relative(root, resolved)).toBe(
+        expected,
+      );
+    },
+  );
 });
 
 describe("what it writes", () => {
@@ -398,8 +403,7 @@ describe("where it runs", () => {
       "At least one --root <directory> is required",
     );
     expect(
-      run(["--project", "tsconfig.json", "--root", ".", "--jobs", "0"])
-        .stderr,
+      run(["--project", "tsconfig.json", "--root", ".", "--jobs", "0"]).stderr,
     ).toContain("--jobs needs a whole number of at least 1");
     expect(run(["--project", "a", "--root", "b", "--other"]).stderr).toContain(
       "Unknown argument: --other",

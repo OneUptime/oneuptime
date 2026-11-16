@@ -11,8 +11,10 @@ export interface PrecompiledSourceMap {
   map: string;
 }
 
-// Installs source maps and the refusal of TypeScript; false when ts-node is
-// registered (it has its own) or this already ran.
+/*
+ * Installs source maps and the refusal of TypeScript; false when ts-node is
+ * registered (it has its own) or this already ran.
+ */
 export function install(): boolean;
 
 export function retrieveSourceMap(source: unknown): PrecompiledSourceMap | null;

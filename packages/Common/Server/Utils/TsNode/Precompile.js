@@ -70,9 +70,12 @@ const { Buffer } = require("buffer");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { Worker, isMainThread, parentPort, workerData } = require(
-  "worker_threads",
-);
+const {
+  Worker,
+  isMainThread,
+  parentPort,
+  workerData,
+} = require("worker_threads");
 const { runtimeCompilerOptions } = require("./Transpiler.js");
 
 const TYPESCRIPT_FILE = /\.tsx?$/;
@@ -226,7 +229,10 @@ function resolveRelativeImport(fromFile, specifier) {
   const base = path.resolve(path.dirname(fromFile), specifier);
   const candidates = [`${base}.ts`, `${base}.tsx`];
   if (/\.js$/.test(base)) {
-    candidates.push(base.replace(/\.js$/, ".ts"), base.replace(/\.js$/, ".tsx"));
+    candidates.push(
+      base.replace(/\.js$/, ".ts"),
+      base.replace(/\.js$/, ".tsx"),
+    );
   }
   if (TYPESCRIPT_FILE.test(base)) {
     candidates.push(base);
@@ -234,7 +240,10 @@ function resolveRelativeImport(fromFile, specifier) {
   candidates.push(path.join(base, "index.ts"), path.join(base, "index.tsx"));
   for (const candidate of candidates) {
     try {
-      if (fs.statSync(candidate).isFile() && !DECLARATION_FILE.test(candidate)) {
+      if (
+        fs.statSync(candidate).isFile() &&
+        !DECLARATION_FILE.test(candidate)
+      ) {
         return candidate;
       }
     } catch {

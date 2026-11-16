@@ -53,6 +53,7 @@ function servers(): Array<Server> {
           scripts?: Record<string, string>;
         }
       ).scripts || {};
+    // eslint-disable-next-line wrap-regex -- Parentheses conflict with Prettier.
     if (/&& exec node /.test(scripts["start"] || "")) {
       servers.push({ name: name, directory: directory });
     }
@@ -112,9 +113,7 @@ describe("servers that ship an image", () => {
       ).scripts["start"] as string;
 
       expect(start).toMatch(START_COMPILED);
-      expect(fs.existsSync(path.join(server.directory, "Index.ts"))).toBe(
-        true,
-      );
+      expect(fs.existsSync(path.join(server.directory, "Index.ts"))).toBe(true);
     },
   );
 

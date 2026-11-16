@@ -1211,12 +1211,26 @@ describe("App", () => {
       expect(runtime.instructions).toContain("WORKDIR /usr/src/app");
     });
 
+    const precompileLine = (extraRoots) => {
+      return [
+        "RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common",
+        ...extraRoots.map((root) => {
+          return `--root ${root}`;
+        }),
+      ].join(" ");
+    };
+
     test.each([
-      ["community", "community-build", []],
-      ["enterprise", "enterprise-build", ["/usr/src/ee/Server/Index.ts"]],
+      ["community", "community-build", [], []],
+      [
+        "enterprise",
+        "enterprise-build",
+        ["/usr/src/ee/Server/Index.ts"],
+        ["/usr/src/ee"],
+      ],
     ])(
-      "the %s image copies only /usr/src out of a build pruned from %s",
-      (edition, build, extraEntries) => {
+      "the %s image copies only /usr/src out of a build compiled and pruned from %s",
+      (edition, build, extraEntries, extraRoots) => {
         const image = byName(edition);
         const pruned = byName(`${edition}-pruned`);
 
@@ -1228,6 +1242,7 @@ describe("App", () => {
           }),
         ).toEqual([`COPY --from=${edition}-pruned /usr/src /usr/src`]);
         expect(pruned.instructions).toEqual([
+          precompileLine(extraRoots),
           PRUNE_COPY,
           pruneLine(extraEntries),
         ]);
@@ -1241,7 +1256,7 @@ describe("App", () => {
         ["/usr/src/ee/", "ee/"],
       ];
       const files = [
-        ...byName("enterprise-pruned").instructions[1].matchAll(
+        ...byName("enterprise-pruned").instructions[2].matchAll(
           /--(?:entry|entry-loader) (\S+)/g,
         ),
       ].map((match) => {
@@ -1282,7 +1297,7 @@ describe("App", () => {
 
     test("the build's other files under /usr/src stay: the licence files, the agents, the mermaid build and the features whose tests go", () => {
       const removed = byName("community-pruned")
-        .instructions[1].split("rm -rf ")[1]
+        .instructions[2].split("rm -rf ")[1]
         .split(" ");
       expect(removed).toEqual([
         "/tmp/PruneUnreachablePackages.js",

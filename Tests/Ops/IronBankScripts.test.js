@@ -314,7 +314,7 @@ describe("PinRelease.js", () => {
         "-c",
         "./run.sh",
       ]);
-      expect(PinRelease.dockerfileCommand("FROM x\n# CMD [\"no\"]\n")).toEqual(
+      expect(PinRelease.dockerfileCommand('FROM x\n# CMD ["no"]\n')).toEqual(
         [],
       );
     });
@@ -330,7 +330,9 @@ describe("PinRelease.js", () => {
         expect(
           PinRelease.startedFile(PinRelease.dockerfileCommand(dockerfile)),
         ).toBe("Index.js");
-        expect(PinRelease.startCommandMismatch(dockerfile, COMPILED)).toBeNull();
+        expect(
+          PinRelease.startCommandMismatch(dockerfile, COMPILED),
+        ).toBeNull();
         expect(PinRelease.startCommandMismatch(dockerfile, TS_NODE)).toBe(
           "the release's own start command runs Index.ts, and the Dockerfile's runs Index.js. Pin a release whose image starts Index.js (a release built before the images ran precompiled JavaScript started Index.ts through ts-node)",
         );

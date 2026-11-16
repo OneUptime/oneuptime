@@ -31,7 +31,9 @@ export interface CompileResult {
   sourceMapBytes: number;
 }
 
-export function precompile(options: PrecompileOptions): Promise<PrecompileSummary>;
+export function precompile(
+  options: PrecompileOptions,
+): Promise<PrecompileSummary>;
 
 export function parseArguments(argv: Array<string>): PrecompileOptions;
 

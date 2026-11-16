@@ -474,7 +474,14 @@ describeRuntime("the App image, as Docker Compose starts it", () => {
   });
 
   test("the running App loaded only JavaScript: no TypeScript, ts-node or TypeScript's compiler", () => {
-    const run = compose(["exec", "-T", "app", "node", "-e", LoadedModules.CHECK_SCRIPT]);
+    const run = compose([
+      "exec",
+      "-T",
+      "app",
+      "node",
+      "-e",
+      LoadedModules.CHECK_SCRIPT,
+    ]);
     const { report, problem } = LoadedModules.parseReport(run.output);
 
     expect({ problem }).toEqual({ problem: null });

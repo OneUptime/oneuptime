@@ -191,7 +191,7 @@ describe("stack traces", () => {
         'const shared = globalThis[Symbol.for("source-map-support/sharedData")];',
         'shared.fileContentsCache["first"] = "x".repeat(8 * 1024 * 1024);',
         'shared.fileContentsCache["second"] = "y";',
-        'process.stdout.write(JSON.stringify(Object.keys(shared.fileContentsCache)));',
+        "process.stdout.write(JSON.stringify(Object.keys(shared.fileContentsCache)));",
       ].join("\n"),
     ]);
 
@@ -257,7 +257,7 @@ describe("under ts-node", () => {
       "-e",
       [
         'process[Symbol.for("ts-node.register.instance")] = {};',
-        'const installed = require(process.argv[1]).install();',
+        "const installed = require(process.argv[1]).install();",
         'const shared = globalThis[Symbol.for("source-map-support/sharedData")];',
         'process.stdout.write(JSON.stringify({ installed, ts: Boolean(require("module")._extensions[".ts"]), sourceMapSupport: Boolean(shared) }));',
       ].join("\n"),
@@ -276,7 +276,7 @@ describe("under ts-node", () => {
       "--require",
       PRECOMPILED_SOURCE_MAPS,
       "-e",
-      'process.stdout.write(String(require(process.argv[1]).install()));',
+      "process.stdout.write(String(require(process.argv[1]).install()));",
       PRECOMPILED_SOURCE_MAPS,
     ]);
 
@@ -313,9 +313,10 @@ describe("the maps it hands source-map-support", () => {
       map: fs.readFileSync(`${javaScript}.map`, "utf8"),
     };
 
-    expect(
-      retrieve([javaScript, url.pathToFileURL(javaScript).href]),
-    ).toEqual([expected, expected]);
+    expect(retrieve([javaScript, url.pathToFileURL(javaScript).href])).toEqual([
+      expected,
+      expected,
+    ]);
   });
 
   test("none for a module without a map, an installed package's script, a TypeScript file, a relative name or not a name: source-map-support's own handler looks at those", () => {

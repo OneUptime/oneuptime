@@ -62,8 +62,10 @@ const PRECOMPILED_SOURCE_MAPS =
   "Common/Server/Utils/TsNode/PrecompiledSourceMaps.js";
 const PRECOMPILE =
   "RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common";
-const PRECOMPILE_EE =
-  "RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/ee";
+// The Enterprise Edition's compile, which takes ee/ too.
+const PRECOMPILE_EE = `${PRECOMPILE} --root /usr/src/ee`;
+// Steps that bundle TypeScript (the frontends, the Runner's sandbox worker).
+const BUNDLES = /\bbuild-frontends|frontend-run\.sh|\besbuild\b/;
 const PRUNE_ENTRY = `--entry /usr/src/${PRECOMPILED_SOURCE_MAPS}`;
 // The check every pruning image runs after its prune.
 const TOOLING_GONE =
@@ -75,6 +77,11 @@ const TOOLING_GONE =
  * template; null is the template's last stage), and whether its build
  * prunes its development packages.
  */
+
+// A Precompile.js step: the community compile, or the Enterprise one.
+function isPrecompile(line) {
+  return line === PRECOMPILE || line === PRECOMPILE_EE;
+}
 const SERVERS = [
   {
     name: "App",
@@ -169,7 +176,9 @@ describe.each(SERVERS)("packages/$name", (server) => {
       );
       expect(text).not.toMatch(/ts-node|\.tsx?\b/);
       expect(
-        fs.existsSync(path.join(REPO_ROOT, "packages", server.name, `${entry}.ts`)),
+        fs.existsSync(
+          path.join(REPO_ROOT, "packages", server.name, `${entry}.ts`),
+        ),
       ).toBe(true);
     },
   );
@@ -195,21 +204,44 @@ describe.each(SERVERS)("packages/$name", (server) => {
     }
   });
 
-  test("its build compiles the package and Common after the type-check, where its /usr/src comes from", () => {
+  test("its build compiles the package and Common once, after the type-check, where its /usr/src comes from", () => {
     for (const stage of finals) {
-      const built = stagesOfImage(stages, stage);
-      const compiling = built.filter((candidate) => {
-        return instructions(candidate.body).includes(PRECOMPILE);
+      const lines = stagesOfImage(stages, stage).flatMap((built) => {
+        return instructions(built.body);
       });
+      const compiles = lines.filter(isPrecompile);
 
-      expect({ stage: stage.name, compiling: compiling.length }).toEqual({
+      expect({ stage: stage.name, compiles }).toEqual({
         stage: stage.name,
-        compiling: 1,
+        compiles: [stage.name === "enterprise" ? PRECOMPILE_EE : PRECOMPILE],
       });
-      const lines = instructions(compiling[0].body);
       const typeCheck = lines.indexOf("RUN npm run compile");
       expect(typeCheck).toBeGreaterThanOrEqual(0);
-      expect(lines.indexOf(PRECOMPILE)).toBeGreaterThan(typeCheck);
+      expect(lines.findIndex(isPrecompile)).toBeGreaterThan(typeCheck);
+    }
+  });
+
+  /*
+   * esbuild bundles from the files it finds, and with the compiled
+   * JavaScript beside the TypeScript, the Enterprise Dashboard's bundle took
+   * in the server's packages and failed: every bundle is built before the
+   * compile.
+   */
+  test("no step of its build bundles TypeScript after the compile", () => {
+    for (const stage of finals) {
+      const lines = stagesOfImage(stages, stage).flatMap((built) => {
+        return instructions(built.body);
+      });
+      const compile = lines.findIndex(isPrecompile);
+      const bundlesAfter = lines.slice(compile + 1).filter((line) => {
+        return BUNDLES.test(line);
+      });
+
+      expect(compile).toBeGreaterThanOrEqual(0);
+      expect({ stage: stage.name, bundlesAfter }).toEqual({
+        stage: stage.name,
+        bundlesAfter: [],
+      });
     }
   });
 
@@ -254,7 +286,7 @@ describe.each(SERVERS)("packages/$name", (server) => {
         const lines = stagesOfImage(stages, stage).flatMap((built) => {
           return instructions(built.body);
         });
-        const compile = lines.indexOf(PRECOMPILE);
+        const compile = lines.findIndex(isPrecompile);
         const prune = lines.findIndex((line) => {
           return line.includes("PruneUnreachablePackages.js --entry");
         });
@@ -329,28 +361,26 @@ describe("what the images share", () => {
     const source = read(`packages/${PRECOMPILED_SOURCE_MAPS}`);
 
     expect(source).toContain('require("@cspotcode/source-map-support")');
-    expect(common.dependencies).toHaveProperty(
-      "@cspotcode/source-map-support",
-    );
+    expect(common.dependencies).toHaveProperty("@cspotcode/source-map-support");
   });
 
   test("the Enterprise image compiles ee/ with the App's tsconfig, after the Enterprise bundles", () => {
     const stages = productionStages("App");
-    const enterpriseBuild = stages.find((stage) => {
-      return stage.name === "enterprise-build";
+    const lines = buildOrder(stages, "enterprise").flatMap((built) => {
+      return instructions(built.body);
     });
-    const lines = instructions(enterpriseBuild.body);
 
     const copy = lines.indexOf("COPY ./ee /usr/src/ee");
     const bundles = lines.findIndex((line) => {
-      return line.includes("ONEUPTIME_EDITION=enterprise bash scripts/frontend-run.sh");
+      return line.includes(
+        "ONEUPTIME_EDITION=enterprise bash scripts/frontend-run.sh",
+      );
     });
     const compile = lines.indexOf(PRECOMPILE_EE);
 
     expect(copy).toBeGreaterThanOrEqual(0);
     expect(bundles).toBeGreaterThan(copy);
     expect(compile).toBeGreaterThan(bundles);
-    expect(buildOrder(stages, "enterprise")).toContain(enterpriseBuild);
   });
 
   test.each(["App", "Probe", "Runner", "Ingress"])(
@@ -368,7 +398,10 @@ describe("what the images share", () => {
   );
 
   test("the Helm chart starts the server images with their own commands, or the App's migrate script", () => {
-    const templates = path.join(REPO_ROOT, "HelmChart/Public/oneuptime/templates");
+    const templates = path.join(
+      REPO_ROOT,
+      "HelmChart/Public/oneuptime/templates",
+    );
     const files = fs.readdirSync(templates).filter((file) => {
       return /\.ya?ml$/.test(file);
     });
@@ -387,9 +420,9 @@ describe("what the images share", () => {
         startsTsNode: false,
       });
     }
-    expect(read("HelmChart/Public/oneuptime/templates/migrate-job.yaml")).toContain(
-      'command: ["npm", "run", "migrate"]',
-    );
+    expect(
+      read("HelmChart/Public/oneuptime/templates/migrate-job.yaml"),
+    ).toContain('command: ["npm", "run", "migrate"]');
   });
 
   test("docker-compose starts the server images with their own commands", () => {
@@ -433,7 +466,9 @@ describe("LoadedModules' check of a running server", () => {
    * runs the check against it.
    */
   async function check(files) {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-loaded-"));
+    const directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "oneuptime-loaded-"),
+    );
     for (const [name, text] of Object.entries(files)) {
       fs.mkdirSync(path.dirname(path.join(directory, name)), {
         recursive: true,
@@ -469,7 +504,8 @@ describe("LoadedModules' check of a running server", () => {
 
   test("lists a JavaScript server's modules, and finds no TypeScript", async () => {
     const { report, problem, directory } = await check({
-      "Index.js": 'require("./Helper"); console.log("up"); setInterval(() => {}, 1000);\n',
+      "Index.js":
+        'require("./Helper"); console.log("up"); setInterval(() => {}, 1000);\n',
       "Helper.js": "module.exports = 1;\n",
     });
 
@@ -508,19 +544,32 @@ describe("LoadedModules' check of a running server", () => {
   });
 
   test("refuses an inspector that is another process's (a server on the host's network)", async () => {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-loaded-"));
+    const directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "oneuptime-loaded-"),
+    );
     const entry = path.join(directory, "Index.js");
-    fs.writeFileSync(entry, 'console.log("up"); setInterval(() => {}, 1000);\n');
+    fs.writeFileSync(
+      entry,
+      'console.log("up"); setInterval(() => {}, 1000);\n',
+    );
     const otherPort = await freePort();
     const serverPort = await freePort();
     const other = spawn(
       process.execPath,
-      [`--inspect=127.0.0.1:${otherPort}`, "-e", 'console.log("up"); setInterval(() => {}, 1000);'],
+      [
+        `--inspect=127.0.0.1:${otherPort}`,
+        "-e",
+        'console.log("up"); setInterval(() => {}, 1000);',
+      ],
       { stdio: ["ignore", "pipe", "ignore"] },
     );
-    const server = spawn(process.execPath, [`--inspect-port=${serverPort}`, entry], {
-      stdio: ["ignore", "pipe", "ignore"],
-    });
+    const server = spawn(
+      process.execPath,
+      [`--inspect-port=${serverPort}`, entry],
+      {
+        stdio: ["ignore", "pipe", "ignore"],
+      },
+    );
     try {
       await Promise.all(
         [other, server].map((child) => {

@@ -331,6 +331,7 @@ describe("the App and Common, compiled as their image compiles them", () => {
     const migrationFiles: Array<string> = fs
       .readdirSync(migrationsFolder)
       .filter((name: string) => {
+        // eslint-disable-next-line wrap-regex -- Parentheses conflict with Prettier.
         return /^\d+-.*\.ts$/.test(name);
       });
     const run: SpawnSyncReturns<string> = node(
@@ -394,10 +395,7 @@ describe("the App and Common, compiled as their image compiles them", () => {
           if (entry.name !== "node_modules") {
             walk(full);
           }
-        } else if (
-          entry.name.endsWith(".js") &&
-          fs.existsSync(`${full}.map`)
-        ) {
+        } else if (entry.name.endsWith(".js") && fs.existsSync(`${full}.map`)) {
           const text: string = fs.readFileSync(full, "utf8");
           for (const match of text.matchAll(READ)) {
             const parts: Array<string> = [
@@ -477,11 +475,15 @@ describe("the App and Common, compiled as their image compiles them", () => {
         return text.startsWith("ENTERPRISE_BOOT_PROBE_RESULT ");
       });
 
-    expect({ status: run.status, line: Boolean(line), stderr: run.stderr }).toEqual(
-      { status: 0, line: true, stderr: "" },
-    );
+    expect({
+      status: run.status,
+      line: Boolean(line),
+      stderr: run.stderr,
+    }).toEqual({ status: 0, line: true, stderr: "" });
     expect(
-      JSON.parse((line as string).slice("ENTERPRISE_BOOT_PROBE_RESULT ".length)),
+      JSON.parse(
+        (line as string).slice("ENTERPRISE_BOOT_PROBE_RESULT ".length),
+      ),
     ).toEqual(
       expect.objectContaining({
         outcome: "loaded",

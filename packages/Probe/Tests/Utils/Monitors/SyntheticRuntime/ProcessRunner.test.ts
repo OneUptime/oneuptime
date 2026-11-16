@@ -1349,7 +1349,9 @@ describe("SyntheticRuntime ProcessRunner", () => {
    * stack-trace support the probe's own start command requires first.
    */
   describe("a worker the image compiled", () => {
-    async function execArgvFor(workerEntryPath: string): Promise<Array<string>> {
+    async function execArgvFor(
+      workerEntryPath: string,
+    ): Promise<Array<string>> {
       jest.spyOn(process, "getuid").mockReturnValue(501);
       const child: FakeChildProcess = new FakeChildProcess(41_051);
       const forkSpy: jest.Mock = getForkMock().mockImplementation(() => {
