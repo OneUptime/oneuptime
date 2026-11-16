@@ -1,6 +1,11 @@
 // Must stay the first import: the client's URLs are built from HOST on load.
 import "./DashboardHost";
-import FakeAxiosServer, { FakeTransport, SentRequest } from "./FakeAxiosServer";
+import FakeAxiosServer, {
+  FakeReply,
+  FakeTransport,
+  RENEWED_SESSION,
+  SentRequest,
+} from "./FakeAxiosServer";
 import BaseAPI from "../../../../UI/Utils/API/API";
 import { IDENTITY_URL } from "../../../../UI/Config";
 import LocalStorage from "../../../../UI/Utils/LocalStorage";
@@ -195,7 +200,7 @@ describe("a page installed without reportActivity", () => {
     expect(UserActivity.isReportingActivityWhileInUse()).toBe(false);
     expect(refreshRequests()).toHaveLength(0);
 
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
     await BaseAPI.refreshSession();
 
     expect(refreshRequests()[0]!.data).toEqual({
@@ -206,7 +211,7 @@ describe("a page installed without reportActivity", () => {
 
 describe("the Dashboard and the Admin Dashboard", () => {
   test("say with every renewal that they renew while in use", async () => {
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     installAsTheDashboardDoes();
     await settled();
@@ -220,7 +225,7 @@ describe("the Dashboard and the Admin Dashboard", () => {
   });
 
   test("a new sign-in says so from its first page: nothing was reported from this browser yet", async () => {
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     expect(UserActivity.getReportedActivityAtMs()).toBeNull();
 
@@ -251,7 +256,7 @@ describe("the Dashboard and the Admin Dashboard", () => {
       HTTPMethod.POST,
       REFRESH_URL,
       Array.from({ length: 20 }, () => {
-        return { status: 200 };
+        return RENEWED_SESSION;
       }),
     );
 
@@ -289,7 +294,7 @@ describe("the Dashboard and the Admin Dashboard", () => {
   });
 
   test("just before the interval nothing is asked; at it, a renewal", async () => {
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
     UserActivity.noteActivityReported(START_MS);
 
     installAsTheDashboardDoes();
@@ -306,7 +311,7 @@ describe("the Dashboard and the Admin Dashboard", () => {
   });
 
   test("a tab nobody uses asks for nothing, however long it stays open", async () => {
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     installAsTheDashboardDoes();
     await settled();
@@ -319,7 +324,7 @@ describe("the Dashboard and the Admin Dashboard", () => {
   });
 
   test("recent activity in another tab: this tab's renewal tells the server of it, and its report counts for every tab", async () => {
-    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }, { status: 200 }]);
+    server.on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION, RENEWED_SESSION]);
 
     installAsTheDashboardDoes();
     await settled();
@@ -351,7 +356,7 @@ describe("the Dashboard and the Admin Dashboard", () => {
       { networkErrorCode: "ECONNREFUSED" },
       { networkErrorCode: "ECONNREFUSED" },
       { networkErrorCode: "ECONNREFUSED" },
-      { status: 200 },
+      RENEWED_SESSION,
     ]);
 
     installAsTheDashboardDoes();
@@ -375,6 +380,46 @@ describe("the Dashboard and the Admin Dashboard", () => {
     expect(refreshRequests()).toHaveLength(4);
     expect(UserActivity.getReportedActivityAtMs()).not.toBeNull();
   });
+
+  /*
+   * A 200 that is not the server's answer to a renewal - a proxy, a captive
+   * portal, an error page (issue #8838) - reported nothing: the server
+   * never heard of the person. It is asked again a minute later, as one
+   * that got no answer, and nothing is noted as reported meanwhile.
+   */
+  test.each<[string, FakeReply]>([
+    ["no body", { status: 200 }],
+    ["an empty object", { status: 200, data: {} }],
+    ["{ data: [] }", { status: 200, data: { data: [] } }],
+    [
+      "no refresh token",
+      { status: 200, data: { accessToken: "renewed-access-token" } },
+    ],
+  ])(
+    "a renewal answered 200 with %s reported nothing: asked again a minute later, noted only once one goes through",
+    async (_label: string, answer: FakeReply) => {
+      server.on(HTTPMethod.POST, REFRESH_URL, [answer, RENEWED_SESSION]);
+
+      installAsTheDashboardDoes();
+      await settled();
+
+      // One renewal, not retried by the client: a 200 is no error to retry.
+      expect(refreshRequests()).toHaveLength(1);
+      expect(UserActivity.getReportedActivityAtMs()).toBeNull();
+      expect(localStorage.getItem("session-refreshed-at:dashboard")).toBeNull();
+
+      pressAKeyIn(ACTIVITY_WRITE_INTERVAL_IN_MS);
+      await settled();
+
+      expect(refreshRequests()).toHaveLength(1);
+
+      pressAKeyIn(MIN_TIME_BETWEEN_ACTIVITY_REPORTS_IN_MS);
+      await settled();
+
+      expect(refreshRequests()).toHaveLength(2);
+      expect(UserActivity.getReportedActivityAtMs()).not.toBeNull();
+    },
+  );
 
   test("a renewal the server refuses - the idle timeout ran out while the computer slept - sends the person to sign in, saying why", async () => {
     // The last activity before the computer slept, two hours ago.

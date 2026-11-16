@@ -209,7 +209,8 @@ const ENGLISH: Record<string, string> = {
   "days, hours and minutes": "2\u00A0days, 3\u00A0hours, 0\u00A0minutes",
   "a friendly time":
     "1\u00A0year 1\u00A0month 4\u00A0days 3\u00A0hours 5\u00A0mins 6\u00A0secs",
-  "a span's duration": "1.72 s",
+  // Its figure held to its unit, as every other language's is (#8826).
+  "a span's duration": "1.72\u00A0s",
 };
 
 const GERMAN: Record<string, string> = {

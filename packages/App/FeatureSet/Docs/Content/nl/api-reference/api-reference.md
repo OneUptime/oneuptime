@@ -95,6 +95,8 @@ Een resource met eigenaren - een monitor, een incident, een piketbeleid en elke 
 
 `select` noemt de velden die terugkomen, en `_id` komt altijd terug. `sort` ordent ze, `ASC` of `DESC`; zonder sortering komen de nieuwste eerst. Een lijst geeft 10 records terug tenzij je `limit` instelt, tot 10.000, en `skip` slaat er eerst zoveel over: blijf `skip` met `limit` verhogen tot je er `count` hebt. Voeg `?output-type=csv` toe aan een lijstverzoek voor CSV in plaats van JSON.
 
+De volgorde van een veld kan ook zeggen waar de records zonder waarde erin komen: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` zet de nieuwste vooraan en die zonder waarde achteraan, en `FIRST` zet ze vooraan. Een relatie met één record sorteert op een veld van het record dat ze noemt: `{ "incidentSeverity": { "order": "ASC" } }` toont incidenten in de volgorde van hun ernstniveaus. Een relatie die alleen een richting krijgt, zoals in `{ "incidentSeverity": "DESC" }`, wordt geweigerd met een `400` die in plaats daarvan een veld noemt om op te sorteren, en net zo een relatie met veel records, zoals de `labels` van een incident: elk incident heeft er een lijst van, en een lijst heeft niet één waarde om incidenten op te ordenen. Sorteren op een veld vereist ook toestemming om het te lezen, via een relatie net als op de resource zelf: sorteren op een veld dat je niet mag lezen, wordt geweigerd met een `422`.
+
 Bijvoorbeeld de monitors waarvan de naam „checkout” bevat, gemaakt sinds het begin van 2026, de nieuwste eerst:
 
 ```bash

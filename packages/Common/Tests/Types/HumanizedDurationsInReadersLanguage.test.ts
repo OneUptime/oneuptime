@@ -65,7 +65,8 @@ const humanized: (
 
 /*
  * getHumanizedDurationFromNanoseconds's English as it was written before
- * #8617, word for word: the reference every English reading is held to.
+ * #8617, word for word: the reference every English reading is held to,
+ * each figure held to its unit by a no-break space since #8826.
  */
 const formatDurationValueBefore: (value: number) => string = (
   value: number,
@@ -92,28 +93,28 @@ const englishBefore: (nanosecondsIn: number, maxPartsIn?: number) => string = (
   }
 
   if (nanoseconds === 0) {
-    return "0 ms";
+    return "0\u00A0ms";
   }
 
   const sign: string = nanoseconds < 0 ? "-" : "";
   nanoseconds = Math.abs(nanoseconds);
 
   if (nanoseconds < 1000) {
-    return sign + Math.round(nanoseconds).toString() + " ns";
+    return sign + Math.round(nanoseconds).toString() + "\u00A0ns";
   }
 
   if (nanoseconds / 1000 < 1000) {
-    return sign + formatDurationValueBefore(nanoseconds / 1000) + " μs";
+    return sign + formatDurationValueBefore(nanoseconds / 1000) + "\u00A0μs";
   }
 
   if (nanoseconds / 1000000 < 1000) {
-    return sign + formatDurationValueBefore(nanoseconds / 1000000) + " ms";
+    return sign + formatDurationValueBefore(nanoseconds / 1000000) + "\u00A0ms";
   }
 
   const seconds: number = nanoseconds / 1000000000;
 
   if (seconds < 60) {
-    return sign + formatDurationValueBefore(seconds) + " s";
+    return sign + formatDurationValueBefore(seconds) + "\u00A0s";
   }
 
   const units: Array<{ label: string; seconds: number }> = [
@@ -158,7 +159,7 @@ const englishBefore: (nanosecondsIn: number, maxPartsIn?: number) => string = (
   }
 
   if (parts.length === 0) {
-    return sign + formatDurationValueBefore(seconds) + " s";
+    return sign + formatDurationValueBefore(seconds) + "\u00A0s";
   }
 
   const trimmed: Array<string> = parts.slice(0, maxParts);
@@ -332,7 +333,7 @@ describe("a span's duration in the reader's language", () => {
         OneUptimeDate.getHumanizedDurationFromNanoseconds({
           nanoseconds: 1.72 * SECOND,
         }),
-      ).toBe("1,72 s");
+      ).toBe("1,72\u00A0s");
       expect(
         OneUptimeDate.getHumanizedDurationFromNanoseconds({
           nanoseconds: 125.5 * SECOND,

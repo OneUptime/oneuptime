@@ -53,6 +53,11 @@ interface DescribedField {
   filter?: true;
   // Can be used in `sort`.
   sort?: true;
+  /*
+   * A relation of one record marked sort: the fields of its record it sorts
+   * by, as in {"<relation>": {"<field>": "ASC"}}.
+   */
+  sortBy?: Array<string>;
   // Comes back only when `select` names it.
   large?: true;
   // Can be written and never read back.
@@ -93,18 +98,6 @@ const OPERATOR_SYNTAX: Record<string, JSONObject> = {
   IsNull: { _type: "IsNull" },
   NotNull: { _type: "NotNull" },
 };
-
-/*
- * Number columns ModelSchema's sort schema leaves out, though the API orders
- * by any column: the least severe severity is the one last by its `order`.
- */
-const DATABASE_NUMBER_TYPES: Array<TableColumnType> = [
-  TableColumnType.SmallNumber,
-  TableColumnType.SmallPositiveNumber,
-  TableColumnType.PositiveNumber,
-  TableColumnType.BigNumber,
-  TableColumnType.BigPositiveNumber,
-];
 
 /*
  * Telemetry columns anyone may read though they name nobody who may: the API
@@ -165,12 +158,20 @@ function describeDatabaseFields(
       );
     }
 
-    // A sort is offered on readable columns only, as a filter is.
-    if (
-      isReadable &&
-      (sortFields.includes(name) || DATABASE_NUMBER_TYPES.includes(column.type))
-    ) {
+    /*
+     * A sort is offered on readable columns only, as a filter is, and on
+     * what the REST API's own sort schema offers: a column of a type that
+     * orders, and a relation of one record by the fields of its record a
+     * relation sort may name.
+     */
+    if (isReadable && sortFields.includes(name)) {
       field.sort = true;
+
+      if (column.type === TableColumnType.Entity && column.modelType) {
+        field.sortBy = ModelSchema.getRelationSortFields(
+          column.modelType as DatabaseBaseModelType,
+        );
+      }
     }
 
     if (selectable.heavyFields.includes(name)) {
@@ -282,7 +283,10 @@ function buildUsage(
   const usage: JSONObject = {
     query:
       'Pass {"<field>": <value or operator>}. A plain value matches exactly, and every field given must match. Use fields marked filter, with the operators of their type.',
-    sort: 'Pass {"<field>": "ASC" or "DESC"}. Use fields marked sort.',
+    sort:
+      resource.modelType === ModelType.Database
+        ? 'Pass {"<field>": "ASC" or "DESC"}, or {"<field>": {"direction": "DESC", "nulls": "LAST"}} to say where records with no value go (FIRST or LAST). A relation marked sort sorts by one of the fields its sortBy names: {"<relation>": {"<field>": "ASC"}}. Use fields marked sort.'
+        : 'Pass {"<field>": "ASC" or "DESC"}. Use fields marked sort.',
     select: `Pass an array of field names. Omit it for all readable fields${
       resource.modelType === ModelType.Database
         ? ", except those marked large, which come back only when selected."

@@ -361,6 +361,8 @@ Operatorerna är `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `G
 
 Verktygen `list_` och `count_` tar vilket fält som helst, så att listan över verktyg är liten nog för att en klient ska kunna läsa in den på en gång. För att se en resurs fält, vad varje fält betyder och vilka operatorer det tar anropar en agent `oneuptime_describe_resource` med resursen eller ett av dess verktyg, till exempel `Incident` eller `list_incidents`.
 
+De andra `list_`-verktygen, för incidenter, monitorer och alla andra sorters poster, sorterar som API:et gör: ett fält tar en riktning, eller `{ "direction": "DESC", "nulls": "LAST" }` för att sätta posterna utan värde i det sist, och en relation till en post sorterar efter ett fält i posten den namnger, som i `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` markerar varje sådan relation med `sort` och namnger fälten den sorterar efter under `sortBy`.
+
 ## Fältval och sidindelning
 
 Verktygen `get_` och `list_` tar en valfri `select`-array med fältnamn. Som standard returneras alla läsbara fält utom de tunga (JSON, mycket lång text och HTML-kolumner), som måste begäras i `select`.

@@ -95,6 +95,8 @@ Une ressource avec des propriétaires - un moniteur, un incident, une stratégie
 
 `select` nomme les champs à renvoyer, et `_id` revient toujours. `sort` les ordonne, `ASC` ou `DESC` ; sans tri, les plus récents viennent en premier. Une liste renvoie 10 enregistrements tant que vous ne fixez pas `limit`, jusqu'à 10 000, et `skip` en saute d'abord autant : augmentez `skip` de `limit` jusqu'à en avoir `count`. Ajoutez `?output-type=csv` à une requête de liste pour du CSV au lieu de JSON.
 
+L'ordre d'un champ peut aussi dire où vont les enregistrements sans valeur dans ce champ : `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` place les plus récents en premier et ceux qui n'en ont pas en dernier, et `FIRST` les place en premier. Une relation vers un enregistrement trie selon un champ de l'enregistrement qu'elle nomme : `{ "incidentSeverity": { "order": "ASC" } }` liste les incidents dans l'ordre de leurs gravités. Une relation qui ne reçoit qu'une direction, comme dans `{ "incidentSeverity": "DESC" }`, est refusée avec un `400` qui nomme un champ selon lequel trier à la place, et de même une relation vers plusieurs enregistrements, comme les `labels` d'un incident : chaque incident en a une liste, et une liste n'a pas de valeur unique selon laquelle ranger les incidents. Trier selon un champ demande aussi l'autorisation de le lire, à travers une relation comme sur la ressource elle-même : un tri selon un champ que vous ne pouvez pas lire est refusé avec un `422`.
+
 Par exemple, les moniteurs dont le nom contient « checkout », créés depuis le début de 2026, les plus récents en premier :
 
 ```bash

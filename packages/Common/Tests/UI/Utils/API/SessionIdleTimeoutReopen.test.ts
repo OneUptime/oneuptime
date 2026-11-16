@@ -3,6 +3,7 @@ import { DASHBOARD_ORIGIN } from "./DashboardHost";
 import FakeAxiosServer, {
   FakeReply,
   FakeTransport,
+  RENEWED_SESSION,
   SentRequest,
 } from "./FakeAxiosServer";
 import UserSession from "../../../../Models/DatabaseModels/UserSession";
@@ -207,7 +208,8 @@ class IdentityServer {
     this.accessTokenExpiresAtMs =
       nowInMs + this.accessTokenLifetimeMs(decision.lengths);
 
-    return { status: 200, data: {} };
+    // The session's new tokens, as the server answers a renewal it made.
+    return RENEWED_SESSION;
   }
 
   private accessTokenLifetimeMs(lengths: SessionLengths | null): number {
