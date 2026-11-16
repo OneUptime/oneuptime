@@ -1026,6 +1026,8 @@ import { AddMonitorFirstMeasuredAt1809181100000 } from "./1809181100000-AddMonit
 import { ApiKeyHashedColumn1809181200000 } from "./1809181200000-ApiKeyHashedColumn";
 import { AddMasterApiKeyCreatedByAndHint1809181300000 } from "./1809181300000-AddMasterApiKeyCreatedByAndHint";
 import { DropOnCallExecutionLogStepIndexes1809181400000 } from "./1809181400000-DropOnCallExecutionLogStepIndexes";
+import { AddScheduleRosterRefreshDueAt1809181500000 } from "./1809181500000-AddScheduleRosterRefreshDueAt";
+import { AddScheduleRosterRefreshDueAtIndex1809181510000 } from "./1809181510000-AddScheduleRosterRefreshDueAtIndex";
 
 export default [
   InitialMigration,
@@ -2056,4 +2058,6 @@ export default [
   ApiKeyHashedColumn1809181200000,
   AddMasterApiKeyCreatedByAndHint1809181300000,
   DropOnCallExecutionLogStepIndexes1809181400000,
+  AddScheduleRosterRefreshDueAt1809181500000,
+  AddScheduleRosterRefreshDueAtIndex1809181510000,
 ];

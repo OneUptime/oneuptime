@@ -455,6 +455,7 @@ import "./Jobs/TelemetryIngestionBudget/PublishTelemetryIngestionBudgetMetrics";
  */
 
 import "./Jobs/OnCallDutySchedule/RefreshHandoffTime";
+import "./Jobs/OnCallDutySchedule/TellLayerChanges";
 
 /*
  * On-call shift reminders ("your shift starts in 1 hour") and the ledger

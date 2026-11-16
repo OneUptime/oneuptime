@@ -108,6 +108,7 @@ Vagtplaner er ressourcen `/api/on-call-duty-policy-schedule`; deres lag og perso
 - At oprette en vagtplan med `firstLayerUsers` (en liste med bruger-id'er i den rækkefølge, de skiftes) i dens `miscDataProps` giver den dens første lag, ligesom dashboardet gør: **Layer 1**, på vagt fra nu, døgnet rundt. `firstLayerRotation` siger, hvor længe hver tørn varer, som en rotation som `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; uden den en uge. Hver bruger skal være medlem af projektet, og kalderen skal have lov til at oprette lag, ellers oprettes vagtplanen ikke.
 - En vagtplan, der oprettes uden dem, har ingen lag, som før; Terraforms ressource for vagtplaner sender dem ikke.
 - Et lag, der oprettes uden `rotation`, overdrager dagligt, som det altid har gjort.
+- En ændring af en vagtplans lag og personerne i dem, foretaget med API'et eller Terraform, meldes som én ændring: Hvem der har vagt, beregnes, når lagene ikke er blevet ændret i et halvt minut, og den, der går på eller af vagt eller er den næste, får besked én gang, ikke én gang for hvert lag eller hver person, der skrives. Tilkald går til den, lagene sætter på vagt, så snart hver ændring er gemt.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \

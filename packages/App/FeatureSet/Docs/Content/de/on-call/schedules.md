@@ -108,6 +108,7 @@ Bereitschaftspläne sind die Ressource `/api/on-call-duty-policy-schedule`; ihre
 - Wird ein Plan mit `firstLayerUsers` (einer Liste von Benutzer-IDs in der Reihenfolge, in der sie sich abwechseln) in seinen `miscDataProps` angelegt, erhält er seine erste Ebene wie im Dashboard: **Layer 1**, ab sofort in Bereitschaft, rund um die Uhr. `firstLayerRotation` gibt an, wie lange jede Schicht dauert, als Rotation wie `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; ohne sie eine Woche. Jeder Benutzer muss Mitglied des Projekts sein und der Aufrufer muss Ebenen anlegen dürfen, sonst wird der Plan nicht angelegt.
 - Ein Plan, der ohne sie angelegt wird, hat wie bisher keine Ebenen; die Plan-Ressource von Terraform sendet sie nicht.
 - Eine Ebene, die ohne `rotation` angelegt wird, übergibt wie bisher täglich.
+- Eine Änderung an den Ebenen eines Plans und an den Personen darin, die über die API oder Terraform vorgenommen wird, wird als eine Änderung mitgeteilt: Wer Bereitschaft hat, wird ermittelt, sobald die Ebenen eine halbe Minute lang nicht geändert wurden, und wer in die Bereitschaft kommt, sie abgibt oder als Nächstes dran ist, erfährt es einmal, nicht einmal pro geschriebener Ebene oder Person. Alarme gehen an die Person, die die Ebenen in Bereitschaft setzen, sobald jede Änderung gespeichert ist.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
