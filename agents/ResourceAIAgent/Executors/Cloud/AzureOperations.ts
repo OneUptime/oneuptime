@@ -25,6 +25,7 @@ import {
   showCloudId,
   withArticle,
 } from "./CloudChange";
+import RetryAfter from "../../Common/Utils/RetryAfter";
 import {
   AzureManagedIdentityToken,
   AzureTokenProvider,
@@ -777,18 +778,17 @@ class AzureChange {
       return "Azure accepted the change and carries it out in the background.";
     }
 
-    let interval: number = DEFAULT_CLOUD_POLL_INTERVAL_MS;
-    const retryAfter: number | null = readInteger(
-      answer.headers,
-      "retry-after",
-    );
-
-    if (retryAfter !== null) {
-      interval = Math.max(
-        1_000,
-        Math.min(MAX_CLOUD_POLL_INTERVAL_MS, retryAfter * 1000),
-      );
-    }
+    /*
+     * How often to look: Azure's Retry-After, as RFC 9110 writes it
+     * (Common's RetryAfter, copied into Common/) - whole seconds or an HTTP
+     * date - from a second to MAX_CLOUD_POLL_INTERVAL_MS. "-5" was read as a
+     * second, and a date as nothing.
+     */
+    const interval: number =
+      RetryAfter.msFromHeaders(answer.headers, {
+        nowMs: this.run.runtime.nowMs(),
+        maxMs: MAX_CLOUD_POLL_INTERVAL_MS,
+      }) ?? DEFAULT_CLOUD_POLL_INTERVAL_MS;
 
     for (let poll: number = 0; poll < MAX_CLOUD_POLLS; poll++) {
       if (!(await this.run.pause(interval))) {
