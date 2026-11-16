@@ -43,6 +43,11 @@ export interface ComponentProps {
   uptimePercent?: number | undefined;
   hasEvents?: boolean | undefined;
   statusDurations?: Array<StatusDuration> | undefined;
+  /*
+   * How long monitoring was off that day (issue #7112), so the dialog says
+   * what the tooltip does: a day it was off, or for how long.
+   */
+  monitoringOffSeconds?: number | undefined;
   /* Defaults to English. The status page passes translated strings. */
   labels?: UptimeHistoryLabels | undefined;
   /*
@@ -118,6 +123,7 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
               uptimePercent={props.uptimePercent || 0}
               hasEvents={Boolean(props.hasEvents)}
               statusDurations={props.statusDurations || []}
+              monitoringOffSeconds={props.monitoringOffSeconds}
               hasFollowingContent={true}
               labels={props.labels}
             />

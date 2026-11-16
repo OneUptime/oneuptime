@@ -21,7 +21,9 @@ import DayUptimeGraphUtil, {
 } from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import Event from "../../../Utils/Uptime/Event";
 import MonitorEvent from "../../../Utils/Uptime/MonitorEvent";
-import UptimeUtil from "../../../Utils/Uptime/UptimeUtil";
+import UptimeUtil, {
+  MonitoringOffSpan,
+} from "../../../Utils/Uptime/UptimeUtil";
 import WorstStatusTimeline from "../../../Utils/Uptime/WorstStatusTimeline";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { getJestSpyOn } from "../../Spy";
@@ -236,10 +238,39 @@ interface ReferenceDay {
   bucketEnd: number;
   coveredSeconds: number;
   seconds: Record<string, number>;
+  /*
+   * The day's time with monitoring off (issue #7112), when the reference was
+   * handed the rows' spans with monitoring off: what the strip counts from
+   * timeline rows (DayUptimeGraphUtil.getMonitoringOffSecondsOfDay).
+   */
+  monitoringOffSeconds?: number | undefined;
+}
+
+/*
+ * The spans with monitoring off of the rows a statement reads, for the
+ * monitors given - one, or a group's - clipped to the window, as the strip
+ * reads them from timeline rows (UptimeUtil.getMonitoringOffSpans).
+ */
+function offSpans(data: {
+  rows: Array<Row>;
+  monitorIds: Array<string>;
+}): Array<MonitoringOffSpan> {
+  return UptimeUtil.getMonitoringOffSpans(
+    rowsRead(data.rows, WINDOW_START, WINDOW_END).filter(
+      (row: MonitorStatusTimeline): boolean => {
+        return data.monitorIds.includes(row.monitorId!.toString());
+      },
+    ),
+    { startDate: WINDOW_START, endDate: WINDOW_END },
+  );
 }
 
 // Events cut into the days the strip draws in the zone, clipped to the window.
-function toDays(events: Array<Event>, zone: string): Array<ReferenceDay> {
+function toDays(
+  events: Array<Event>,
+  zone: string,
+  monitoringOffSpans?: Array<MonitoringOffSpan> | undefined,
+): Array<ReferenceDay> {
   const days: Array<UptimeGraphDay> = DayUptimeGraphUtil.getDays({
     startDate: WINDOW_START,
     endDate: WINDOW_END,
@@ -280,6 +311,19 @@ function toDays(events: Array<Event>, zone: string): Array<ReferenceDay> {
       bucketEnd,
       coveredSeconds: coveredMs / 1000,
       seconds,
+      monitoringOffSeconds: monitoringOffSpans
+        ? DayUptimeGraphUtil.getMonitoringOffSecondsOfDay({
+            monitoringOffSpans: monitoringOffSpans,
+            checkedSpans: events.map((event: Event) => {
+              return {
+                startDate: new Date(event.startDate),
+                endDate: new Date(event.endDate),
+              };
+            }),
+            dayStart: new Date(bucketStart),
+            dayEnd: new Date(bucketEnd),
+          })
+        : undefined,
     };
   });
 }
@@ -327,6 +371,20 @@ function expectBucketsToMatch(
     );
 
     expect(total).toBeCloseTo(bucket.coveredSeconds, 4);
+
+    /*
+     * The day's time with monitoring off, as the strip counts it from the
+     * rows (issue #7112): never more than the day, never part of coverage.
+     */
+    if (day.monitoringOffSeconds !== undefined) {
+      expect(bucket.monitoringOffSeconds || 0).toBeCloseTo(
+        day.monitoringOffSeconds,
+        3,
+      );
+      expect(
+        bucket.coveredSeconds + (bucket.monitoringOffSeconds || 0),
+      ).toBeLessThanOrEqual(bucket.daySeconds + 0.001);
+    }
   });
 }
 
@@ -915,6 +973,221 @@ describePostgres(
       });
     });
 
+    /*
+     * A day monitoring was off says so (issue #7112): the day statements
+     * keep a row that marks it apart, in no status, and hand its seconds
+     * back as the day's monitoringOffSeconds - a day it fills is a day
+     * monitoring was off, not a day with no data.
+     */
+    describe("a day's time with monitoring off (issue #7112)", () => {
+      const switchedOffAt: Date = new Date("2026-04-03T12:00:00.000Z");
+
+      function offFromNoonRows(): Array<Row> {
+        return [
+          {
+            monitorId: monitorId(1),
+            statusId: OPERATIONAL.id!.toString(),
+            startsAt: before(WINDOW_START, 3),
+            endsAt: switchedOffAt,
+            isMonitoringOff: false,
+          },
+          {
+            monitorId: monitorId(1),
+            statusId: OFFLINE.id!.toString(),
+            startsAt: switchedOffAt,
+            endsAt: null,
+            isMonitoringOff: true,
+          },
+        ];
+      }
+
+      test("a monitor's day it was off is all time off; the day it was turned off is half and half", async () => {
+        await insertRows(offFromNoonRows());
+
+        const buckets: Array<UptimeDayBucket> = (
+          await monitorDays({ monitorIds: [monitorId(1)], zone: "UTC" })
+        ).monitors[0]!.buckets;
+
+        expect(
+          bucketAt(buckets, new Date("2026-04-03T00:00:00.000Z")),
+        ).toMatchObject({
+          coveredSeconds: 12 * 3600,
+          monitoringOffSeconds: 12 * 3600,
+        });
+        expect(
+          bucketAt(buckets, new Date("2026-04-04T00:00:00.000Z")),
+        ).toMatchObject({
+          coveredSeconds: 0,
+          statusDurations: [],
+          monitoringOffSeconds: 86400,
+        });
+        // The last day, clipped to the window's end at 15:45.
+        expect(
+          bucketAt(buckets, new Date("2026-04-10T00:00:00.000Z"))
+            .monitoringOffSeconds,
+        ).toBeCloseTo(15.75 * 3600, 3);
+        // Before it was turned off: no time off at all, and no field.
+        expect(
+          Object.keys(bucketAt(buckets, new Date("2026-03-01T00:00:00.000Z"))),
+        ).not.toContain("monitoringOffSeconds");
+
+        expectBucketsToMatch(
+          buckets,
+          toDays(
+            monitorEvents({
+              rows: offFromNoonRows(),
+              monitorId: monitorId(1),
+              startDate: WINDOW_START,
+              endDate: WINDOW_END,
+            }),
+            "UTC",
+            offSpans({ rows: offFromNoonRows(), monitorIds: [monitorId(1)] }),
+          ),
+        );
+      });
+
+      test("turned back on, the day of it is measured over the checked hours and says how long it was off", async () => {
+        const backOnAt: Date = new Date("2026-04-06T06:00:00.000Z");
+        const rows: Array<Row> = offFromNoonRows();
+        rows[1]!.endsAt = backOnAt;
+        rows.push({
+          monitorId: monitorId(1),
+          statusId: OPERATIONAL.id!.toString(),
+          startsAt: backOnAt,
+          endsAt: null,
+          isMonitoringOff: false,
+        });
+
+        await insertRows(rows);
+
+        for (const zone of ZONES) {
+          const buckets: Array<UptimeDayBucket> = (
+            await monitorDays({ monitorIds: [monitorId(1)], zone: zone })
+          ).monitors[0]!.buckets;
+
+          expectBucketsToMatch(
+            buckets,
+            toDays(
+              monitorEvents({
+                rows,
+                monitorId: monitorId(1),
+                startDate: WINDOW_START,
+                endDate: WINDOW_END,
+              }),
+              zone,
+              offSpans({ rows, monitorIds: [monitorId(1)] }),
+            ),
+          );
+        }
+
+        const utc: Array<UptimeDayBucket> = (
+          await monitorDays({ monitorIds: [monitorId(1)], zone: "UTC" })
+        ).monitors[0]!.buckets;
+
+        expect(
+          bucketAt(utc, new Date("2026-04-06T00:00:00.000Z")),
+        ).toMatchObject({
+          coveredSeconds: 18 * 3600,
+          monitoringOffSeconds: 6 * 3600,
+        });
+        expect(
+          Object.keys(bucketAt(utc, new Date("2026-04-07T00:00:00.000Z"))),
+        ).not.toContain("monitoringOffSeconds");
+      });
+
+      test("a group's day is time off only while none of its monitors was checked", async () => {
+        // One member turned off at noon on 3 April; the other checked throughout.
+        const rows: Array<Row> = [
+          ...offFromNoonRows(),
+          {
+            monitorId: monitorId(2),
+            statusId: OPERATIONAL.id!.toString(),
+            startsAt: before(WINDOW_START, 3),
+            endsAt: null,
+            isMonitoringOff: false,
+          },
+        ];
+
+        await insertRows(rows);
+
+        const both: Array<UptimeDayBucket> = (
+          await groupDays({
+            groups: [[monitorId(1), monitorId(2)]],
+            zone: "UTC",
+          })
+        ).monitorGroups[0]!.buckets;
+
+        for (const bucket of both) {
+          expect(Object.keys(bucket)).not.toContain("monitoringOffSeconds");
+        }
+
+        // The second member turned off as well, on 5 April at 06:00.
+        await database.query(`DELETE FROM "MonitorStatusTimeline"`);
+        const secondOffAt: Date = new Date("2026-04-05T06:00:00.000Z");
+        rows[2]!.endsAt = secondOffAt;
+        rows.push({
+          monitorId: monitorId(2),
+          statusId: OPERATIONAL.id!.toString(),
+          startsAt: secondOffAt,
+          endsAt: null,
+          isMonitoringOff: true,
+        });
+        await insertRows(rows);
+
+        for (const zone of ZONES) {
+          expectBucketsToMatch(
+            (
+              await groupDays({
+                groups: [[monitorId(1), monitorId(2)]],
+                zone: zone,
+              })
+            ).monitorGroups[0]!.buckets,
+            toDays(
+              groupEvents({ rows, monitorIds: [monitorId(1), monitorId(2)] }),
+              zone,
+              offSpans({ rows, monitorIds: [monitorId(1), monitorId(2)] }),
+            ),
+          );
+        }
+
+        const utc: Array<UptimeDayBucket> = (
+          await groupDays({
+            groups: [[monitorId(1), monitorId(2)]],
+            zone: "UTC",
+          })
+        ).monitorGroups[0]!.buckets;
+
+        expect(
+          bucketAt(utc, new Date("2026-04-05T00:00:00.000Z")),
+        ).toMatchObject({
+          coveredSeconds: 6 * 3600,
+          monitoringOffSeconds: 18 * 3600,
+        });
+        expect(
+          bucketAt(utc, new Date("2026-04-06T00:00:00.000Z")),
+        ).toMatchObject({
+          coveredSeconds: 0,
+          statusDurations: [],
+          monitoringOffSeconds: 86400,
+        });
+      });
+
+      test("the uptime statements still leave the time out: it is no status's", async () => {
+        await insertRows(offFromNoonRows());
+
+        const merged: MergedDowntimeTotals = await mergedDowntime([
+          monitorId(1),
+        ]);
+
+        // Operational to the switch, then nothing: no downtime, and no Offline.
+        expect(merged.downtimeSeconds).toBe(0);
+        expect(merged.coveredSeconds).toBeCloseTo(
+          (switchedOffAt.getTime() - WINDOW_START.getTime()) / 1000,
+          3,
+        );
+      });
+    });
+
     describe("against the reference, on drawn timelines with monitoring turned off and back on", () => {
       const random: SeededRandom = seededRandom(6480);
 
@@ -1002,6 +1275,8 @@ describePostgres(
                     endDate: WINDOW_END,
                   }),
                   zone,
+                  // And each day's time with monitoring off (#7112).
+                  offSpans({ rows, monitorIds: [id] }),
                 ),
               );
             }
@@ -1013,11 +1288,19 @@ describePostgres(
 
             expectBucketsToMatch(
               groups.monitorGroups[0]!.buckets,
-              toDays(groupEvents({ rows, monitorIds: ids }), zone),
+              toDays(
+                groupEvents({ rows, monitorIds: ids }),
+                zone,
+                offSpans({ rows, monitorIds: ids }),
+              ),
             );
             expectBucketsToMatch(
               groups.monitorGroups[1]!.buckets,
-              toDays(groupEvents({ rows, monitorIds: [ids[0]!] }), zone),
+              toDays(
+                groupEvents({ rows, monitorIds: [ids[0]!] }),
+                zone,
+                offSpans({ rows, monitorIds: [ids[0]!] }),
+              ),
             );
           }
         },
