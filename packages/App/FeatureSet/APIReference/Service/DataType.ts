@@ -35,6 +35,17 @@ export default class ServiceHandler {
       },
     );
 
+    // Sorting by a field of a related record: { relation: { field: "ASC" } }.
+    pageData["sortThroughRelationCode"] = await LocalCache.getOrSetString(
+      "data-type",
+      "sort-through-relation",
+      async () => {
+        return await LocalFile.read(
+          `${CodeExamplesPath}/DataTypes/SortThroughRelation.md`,
+        );
+      },
+    );
+
     pageData["equalToCode"] = await LocalCache.getOrSetString(
       "data-type",
       "equal-to",

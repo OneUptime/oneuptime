@@ -69,7 +69,7 @@
                                 <dd class="font-mono text-xs text-ink-subtle ">Sort</dd>
                                 <dt class="sr-only"><%= t('ui.srDescription') %></dt>
                                 <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                                    <p><%= t('pages.dataTypesGuide.sortDescription') %></p>
+                                    <p><%- t('pages.dataTypesGuide.sortDescription') %></p>
                                 </dd>
                             </dl>
                         </li>
@@ -81,6 +81,21 @@
             <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                 <%- include('../partials/code', {title: t('pages.dataTypesGuide.exampleSortTitle'), requestUrl: "" , requestType: "" ,
                     code: pageData.sortCode }) -%>
+
+            </div>
+        </div>
+
+        <h3 id="sort-by-a-related-record" class="scroll-mt-24">
+            <%= t('pages.dataTypesGuide.sortThroughRelation') %>
+        </h3>
+
+        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 2xl:max-w-none 2xl:grid-cols-2">
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <p><%- t('pages.dataTypesGuide.sortThroughRelationBody') %></p>
+            </div>
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <%- include('../partials/code', {title: t('pages.dataTypesGuide.exampleSortThroughRelationTitle'), requestUrl: "" , requestType: "" ,
+                    code: pageData.sortThroughRelationCode }) -%>
 
             </div>
         </div>

@@ -12,10 +12,13 @@ import fs from "fs";
 import path from "path";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
+import GlobalConfigUtil from "../../../UI/Utils/GlobalConfig";
 import Navigation from "../../../UI/Utils/Navigation";
 import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
 import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
-import ForgotPasswordPage from "../../../../App/FeatureSet/Accounts/src/Pages/ForgotPassword";
+import ForgotPasswordPage, {
+  FORGOT_PASSWORD_CANNOT_EMAIL_TEST_ID,
+} from "../../../../App/FeatureSet/Accounts/src/Pages/ForgotPassword";
 import en from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
 
 jest.mock("../../../UI/Config", () => {
@@ -174,11 +177,15 @@ describe("every 'question? Link.' line says something in its question that its l
   });
 });
 
+/*
+ * The forgot password page asks the server whether it can send email
+ * (GET /global-config/vars, through GlobalConfigUtil.fetchVars), and draws
+ * its form or, where it cannot, says so in the form's place (#8837). Each
+ * test answers that read itself: a suite that leaves it to the network has
+ * it refused (Tests/Helpers/RealNetworkRequests.ts) and fails.
+ */
 describe("the forgot password page", () => {
   beforeEach(() => {
-    // The server's global config, answered here rather than over the network.
-    standInForGlobalConfig();
-
     jest.spyOn(Navigation, "navigate").mockImplementation(() => {
       // A page that would move on stays put here.
     });
@@ -189,7 +196,10 @@ describe("the forgot password page", () => {
     jest.restoreAllMocks();
   });
 
-  test("has one way back to sign in, under its card", async () => {
+  // Draws the page on a server that can, or cannot, send email.
+  async function draw(canSendEmail: boolean): Promise<void> {
+    standInForGlobalConfig({ canSendEmail });
+
     await act(async () => {
       render(
         <MemoryRouter>
@@ -197,7 +207,10 @@ describe("the forgot password page", () => {
         </MemoryRouter>,
       );
     });
+  }
 
+  // The page's one link to sign in, on the line under the card, whichever the server's answer.
+  function expectOneWayBack(): void {
     const toSignIn: Array<HTMLElement> = screen
       .getAllByRole("link")
       .filter((link: HTMLElement): boolean => {
@@ -212,6 +225,15 @@ describe("the forgot password page", () => {
       `${en.forgotPassword.rememberPasswordPrompt} ${en.forgotPassword.loginLink}`,
     );
     expect(within(line).getByRole("link")).toBe(toSignIn[0]);
+  }
+
+  test("has one way back to sign in, under its card, where the server can send email", async () => {
+    await draw(true);
+
+    expectOneWayBack();
+    expect(
+      screen.queryByTestId(FORGOT_PASSWORD_CANNOT_EMAIL_TEST_ID),
+    ).toBeNull();
 
     // The card holds the email field and its button, and no link.
     const card: HTMLElement = screen.getByTestId("forgot-password-card");
@@ -223,4 +245,27 @@ describe("the forgot password page", () => {
     ).toBeInTheDocument();
     expect(within(card).queryAllByRole("link")).toEqual([]);
   });
+
+  test("keeps its one way back where the server cannot send email, which it says in the card's place", async () => {
+    await draw(false);
+
+    expectOneWayBack();
+    expect(screen.queryByTestId("forgot-password-card")).toBeNull();
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(
+      screen.getByTestId(FORGOT_PASSWORD_CANNOT_EMAIL_TEST_ID),
+    ).toHaveTextContent(en.forgotPassword.cannotEmail);
+  });
+
+  test.each([
+    ["can", true],
+    ["cannot", false],
+  ])(
+    "asks the suite, not the network, whether the server %s send email (control)",
+    async (_can: string, canSendEmail: boolean) => {
+      await draw(canSendEmail);
+
+      expect(GlobalConfigUtil.fetchVars).toHaveBeenCalled();
+    },
+  );
 });
