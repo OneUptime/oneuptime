@@ -56261,5 +56261,10 @@
   "Roster Refresh Due At": "Срок обновления графика дежурств",
   "Mention the person who comes on call": "Упоминать того, кто заступает на дежурство",
   "Mentions the person who comes on call": "Упоминает того, кто заступает на дежурство",
-  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Дежурный получает уведомление в канале при каждой передаче смены, если его аккаунт в чате подключён к OneUptime."
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Дежурный получает уведомление в канале при каждой передаче смены, если его аккаунт в чате подключён к OneUptime.",
+  "Emptied Limits": "Опустевшие ограничения",
+  "Limited to deleted records": "Ограничено удалёнными записями",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime отключил это правило, когда они были удалены.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Если включить правило как есть, эти списки перестанут его ограничивать. Измените его, чтобы выбрать, к чему оно применяется, а затем включите.",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}} (дата удаления: {{date}})."
 }

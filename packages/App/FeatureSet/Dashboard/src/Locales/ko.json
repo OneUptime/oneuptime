@@ -56261,5 +56261,10 @@
   "Roster Refresh Due At": "당번표 새로 고침 예정 시각",
   "Mention the person who comes on call": "온콜을 이어받는 사람 멘션",
   "Mentions the person who comes on call": "온콜을 이어받는 사람을 멘션합니다",
-  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "채팅 계정을 OneUptime에 연결했다면 인계 때마다 채널에서 알림을 받습니다."
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "채팅 계정을 OneUptime에 연결했다면 인계 때마다 채널에서 알림을 받습니다.",
+  "Emptied Limits": "비워진 제한",
+  "Limited to deleted records": "삭제된 레코드로 제한됨",
+  "OneUptime switched this rule off when they were deleted.": "해당 항목이 삭제될 때 OneUptime이 이 규칙을 비활성화했습니다.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "이대로 활성화하면 이 규칙은 이 목록들로 전혀 제한되지 않습니다. 규칙을 편집해 적용 대상을 선택한 다음 활성화하세요.",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, {{date}}에 삭제됨."
 }

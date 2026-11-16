@@ -56261,5 +56261,10 @@
   "Roster Refresh Due At": "Rooster vernieuwen op",
   "Mention the person who comes on call": "De persoon vermelden die dienst krijgt",
   "Mentions the person who comes on call": "Vermeldt de persoon die dienst krijgt",
-  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Die persoon krijgt bij elke overdracht een melding in het kanaal, zodra het chataccount aan OneUptime is gekoppeld."
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Die persoon krijgt bij elke overdracht een melding in het kanaal, zodra het chataccount aan OneUptime is gekoppeld.",
+  "Emptied Limits": "Geleegde beperkingen",
+  "Limited to deleted records": "Beperkt tot verwijderde records",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime heeft deze regel uitgeschakeld toen ze werden verwijderd.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Ingeschakeld zoals hij is, zou de regel helemaal niet meer door deze lijsten worden beperkt. Bewerk hem om te kiezen waarop hij van toepassing is en schakel hem daarna in.",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, verwijderd op {{date}}."
 }

@@ -56261,5 +56261,10 @@
   "Roster Refresh Due At": "موعد تحديث قائمة المناوبين",
   "Mention the person who comes on call": "الإشارة إلى من يتسلّم المناوبة",
   "Mentions the person who comes on call": "يشير إلى من يتسلّم المناوبة",
-  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "يتلقى إشعارًا في القناة عند كل تسليم مناوبة، بعد ربط حساب الدردشة الخاص به بـ OneUptime."
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "يتلقى إشعارًا في القناة عند كل تسليم مناوبة، بعد ربط حساب الدردشة الخاص به بـ OneUptime.",
+  "Emptied Limits": "حدود أُفرغت",
+  "Limited to deleted records": "مقيّدة بسجلات محذوفة",
+  "OneUptime switched this rule off when they were deleted.": "عطّل OneUptime هذه القاعدة عند حذف تلك السجلات.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "لو فُعّلت كما هي، فلن تقيّدها هذه القوائم أبدًا. عدّلها لاختيار ما تنطبق عليه، ثم فعّلها.",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}، حُذفت في {{date}}."
 }

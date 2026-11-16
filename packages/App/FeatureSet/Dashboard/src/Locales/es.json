@@ -56261,5 +56261,10 @@
   "Roster Refresh Due At": "Actualización del turno prevista el",
   "Mention the person who comes on call": "Mencionar a la persona que entra de guardia",
   "Mentions the person who comes on call": "Menciona a la persona que entra de guardia",
-  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Recibe un aviso en el canal en cada relevo, una vez que haya conectado su cuenta de chat a OneUptime."
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Recibe un aviso en el canal en cada relevo, una vez que haya conectado su cuenta de chat a OneUptime.",
+  "Emptied Limits": "Límites vaciados",
+  "Limited to deleted records": "Limitada a registros eliminados",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime desactivó esta regla cuando se eliminaron.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Si se activa tal como está, estas listas ya no limitarían la regla en absoluto. Edítala para elegir a qué se aplica y luego actívala.",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}; fecha de eliminación: {{date}}."
 }

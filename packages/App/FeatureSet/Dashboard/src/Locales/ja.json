@@ -56261,5 +56261,10 @@
   "Roster Refresh Due At": "当番表の更新予定日時",
   "Mention the person who comes on call": "オンコールを引き継ぐ人をメンションする",
   "Mentions the person who comes on call": "オンコールを引き継ぐ人をメンションします",
-  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "チャットアカウントを OneUptime に接続していれば、引き継ぎのたびにチャンネルで通知されます。"
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "チャットアカウントを OneUptime に接続していれば、引き継ぎのたびにチャンネルで通知されます。",
+  "Emptied Limits": "空になった制限",
+  "Limited to deleted records": "削除されたレコードに限定",
+  "OneUptime switched this rule off when they were deleted.": "それらが削除されたときに、OneUptime がこのルールを無効にしました。",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "このまま有効にすると、このルールはこれらのリストでまったく制限されなくなります。編集して適用先を選んでから、有効にしてください。",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}：{{names}}（{{date}} に削除）。"
 }

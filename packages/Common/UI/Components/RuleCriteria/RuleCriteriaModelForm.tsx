@@ -14,6 +14,11 @@ import FormValues from "../Forms/Types/FormValues";
 import { translateValidationMessage } from "../Forms/Validation";
 import RuleCriteriaBuilder from "./RuleCriteriaBuilder";
 import {
+  getRuleEmptiedLimits,
+  RuleEmptiedLimitsAlert,
+} from "./RuleEmptiedLimitsNote";
+import { RuleEmptiedLimit } from "../../../Types/Rules/RuleEmptiedLimit";
+import {
   formatRuleCriteriaMessage,
   getAvailableRuleCriteriaFields,
   getRuleCriteriaFormProblem,
@@ -155,18 +160,39 @@ export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
       values: FormValues<TEntity>,
       customElementProps: CustomElementProps,
     ): ReactElement => {
+      /*
+       * A rule OneUptime switched off because every record a list of it
+       * was limited to was deleted says so here, where what it applies to
+       * is chosen again (#9066). The Edit form reads the note without
+       * sending it (ModelTable's alsoReadColumns).
+       */
+      const emptiedLimits: Array<RuleEmptiedLimit> =
+        getRuleEmptiedLimits(values);
+
       return (
-        <RuleCriteriaBuilder
-          fields={legacyFields}
-          legacyValues={values as unknown as Record<string, unknown>}
-          value={(values as { criteria?: RuleCriteria }).criteria}
-          error={customElementProps.error}
-          requiresCondition={requiresCondition}
-          subject={subject}
-          onChange={(criteria: RuleCriteria): void => {
-            customElementProps.onChange?.(criteria);
-          }}
-        />
+        <>
+          {emptiedLimits.length > 0 ? (
+            <div className="mb-4">
+              <RuleEmptiedLimitsAlert
+                model={model}
+                emptiedLimits={emptiedLimits}
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+          <RuleCriteriaBuilder
+            fields={legacyFields}
+            legacyValues={values as unknown as Record<string, unknown>}
+            value={(values as { criteria?: RuleCriteria }).criteria}
+            error={customElementProps.error}
+            requiresCondition={requiresCondition}
+            subject={subject}
+            onChange={(criteria: RuleCriteria): void => {
+              customElementProps.onChange?.(criteria);
+            }}
+          />
+        </>
       );
     },
   };

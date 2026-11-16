@@ -56261,5 +56261,10 @@
   "Roster Refresh Due At": "Nästa uppdatering av schemat",
   "Mention the person who comes on call": "Nämn personen som går på jour",
   "Mentions the person who comes on call": "Nämner personen som går på jour",
-  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Personen aviseras i kanalen vid varje överlämning, när hen har kopplat sitt chattkonto till OneUptime."
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Personen aviseras i kanalen vid varje överlämning, när hen har kopplat sitt chattkonto till OneUptime.",
+  "Emptied Limits": "Tömda begränsningar",
+  "Limited to deleted records": "Begränsad till borttagna poster",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime stängde av den här regeln när de togs bort.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Påslagen som den är skulle regeln inte längre begränsas av de här listorna alls. Redigera den för att välja vad den gäller, och slå sedan på den.",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, som togs bort {{date}}."
 }

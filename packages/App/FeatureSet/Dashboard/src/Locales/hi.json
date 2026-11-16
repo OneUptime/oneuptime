@@ -56261,5 +56261,10 @@
   "Roster Refresh Due At": "रोस्टर रीफ़्रेश का नियत समय",
   "Mention the person who comes on call": "ऑन-कॉल संभालने वाले व्यक्ति को मेंशन करें",
   "Mentions the person who comes on call": "ऑन-कॉल संभालने वाले व्यक्ति को मेंशन करता है",
-  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "अपना चैट खाता OneUptime से जोड़ लेने पर उन्हें हर हैंडऑफ़ पर चैनल में सूचना मिलती है।"
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "अपना चैट खाता OneUptime से जोड़ लेने पर उन्हें हर हैंडऑफ़ पर चैनल में सूचना मिलती है।",
+  "Emptied Limits": "खाली हुई सीमाएँ",
+  "Limited to deleted records": "हटाए गए रिकॉर्ड तक सीमित",
+  "OneUptime switched this rule off when they were deleted.": "उनके हटाए जाने पर OneUptime ने यह नियम बंद कर दिया।",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "जैसा है वैसा चालू करने पर यह नियम इन सूचियों से बिल्कुल सीमित नहीं रहेगा। इसे संपादित करके चुनें कि यह किस पर लागू हो, फिर इसे चालू करें।",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, {{date}} को हटाया गया।"
 }

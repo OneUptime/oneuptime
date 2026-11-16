@@ -56261,5 +56261,10 @@
   "Roster Refresh Due At": "值班表重新整理時間",
   "Mention the person who comes on call": "提及接手待命的人員",
   "Mentions the person who comes on call": "會提及接手待命的人員",
-  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "只要已將聊天帳號連接到 OneUptime，每次交接時都會在頻道中收到通知。"
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "只要已將聊天帳號連接到 OneUptime，每次交接時都會在頻道中收到通知。",
+  "Emptied Limits": "已清空的限制",
+  "Limited to deleted records": "限定於已刪除的記錄",
+  "OneUptime switched this rule off when they were deleted.": "這些記錄被刪除時，OneUptime 已停用此規則。",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "若按原樣啟用，此規則將完全不受這些清單限制。請編輯它以選擇其適用範圍，然後再啟用。",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}：{{names}}，已於 {{date}} 刪除。"
 }
