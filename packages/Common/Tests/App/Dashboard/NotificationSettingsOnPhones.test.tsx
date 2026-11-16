@@ -41,6 +41,10 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
 import { stubDashboardCustomNotificationChannels } from "./CustomNotificationChannelsStub";
+import {
+  resetNotificationChannelReadiness,
+  stubNotificationChannelReadiness,
+} from "./NotificationChannelReadinessStub";
 
 /*
  * NOTIFICATION SETTINGS ON A PHONE.
@@ -50,9 +54,9 @@ import { stubDashboardCustomNotificationChannels } from "./CustomNotificationCha
  * that left the event's column a word a line wide. Below the width the table
  * needs - 13rem for the event, 60px a channel - each event is drawn on its
  * own: its name and description across the card, and its channels under them
- * as switches that say their names (Email ✓). The switches save exactly what
- * the table's do, and the layout follows the matrix's own box, so a tablet
- * with the side menu open gets the list too.
+ * as the shared switch, each named by its channel beside it, two to a line.
+ * The switches save exactly what the table's do, and the layout follows the
+ * matrix's own box, so a tablet with the side menu open gets the list too.
  *
  * The real page, in English and in the Dashboard's other languages, read from
  * their locale files.
@@ -177,6 +181,8 @@ beforeEach(() => {
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
   jest.spyOn(User, "getUserId").mockReturnValue(USER_ID);
   stubDashboardCustomNotificationChannels();
+  // Every channel has a verified method: every column is offered.
+  stubNotificationChannelReadiness();
   jest
     .spyOn(ModelAPI, "getCommonHeaders")
     .mockReturnValue({ tenantid: PROJECT_ID.toString() });
@@ -204,6 +210,7 @@ afterEach(async () => {
   setWindowWidth(originalInnerWidth);
   ConnectedWorkspaces.setFetcher(null);
   ConnectedWorkspaces.reset();
+  resetNotificationChannelReadiness();
   await act(async (): Promise<void> => {
     await i18next.changeLanguage("en");
   });
@@ -231,8 +238,18 @@ async function renderPage(language: string = "en"): Promise<void> {
   await screen.findAllByRole("switch");
 }
 
-function chipsOf(event: HTMLElement): Array<HTMLElement> {
-  return within(event).getAllByTestId("notification-channel-chip");
+// An event's channel switches, in their order: the shared switch, named by its channel beside it.
+function switchesOf(event: HTMLElement): Array<HTMLElement> {
+  return within(event).getAllByTestId("notification-channel-switch");
+}
+
+// What a switch is called: the channel's name, drawn beside it as its label.
+function namesOf(switches: Array<HTMLElement>): Array<string> {
+  return switches.map((channelSwitch: HTMLElement): string => {
+    const labelId: string = channelSwitch.getAttribute("aria-labelledby") || "";
+
+    return document.getElementById(labelId)?.textContent?.trim() || "";
+  });
 }
 
 async function findEvent(label: string): Promise<HTMLElement> {
@@ -331,49 +348,66 @@ describe("on a phone", () => {
     const group: HTMLElement = within(event).getByRole("group", {
       name: "Incident note posted",
     });
-    const chips: Array<HTMLElement> = chipsOf(group);
+    const switches: Array<HTMLElement> = switchesOf(group);
 
-    expect(
-      chips.map((chip: HTMLElement): string => {
-        return chip.textContent?.trim() || "";
-      }),
-    ).toEqual(CHANNELS);
+    expect(namesOf(switches)).toEqual(CHANNELS);
 
-    for (const chip of chips) {
-      expect(chip).toHaveAttribute("role", "switch");
+    for (const channelSwitch of switches) {
+      expect(channelSwitch).toHaveAttribute("role", "switch");
     }
   });
 
-  test("a channel switched on says so with a check, and to a screen reader", async () => {
+  /*
+   * The shared switch: on is the indigo track with the knob at the end,
+   * off the grey one - and a screen reader hears the channel's name, then
+   * the switch's state. It was a chip with a tick or a grey dot.
+   */
+  test("a channel switched on says so with the switch's own track, and to a screen reader", async () => {
     await renderPage();
 
-    const chips: Array<HTMLElement> = chipsOf(
+    const switches: Array<HTMLElement> = switchesOf(
       await findEvent("Incident note posted"),
     );
-    const email: HTMLElement = chips[0]!;
-    const sms: HTMLElement = chips[1]!;
+    const email: HTMLElement = switches[0]!;
+    const sms: HTMLElement = switches[1]!;
 
     expect(email).toHaveAttribute("aria-checked", "true");
-    expect(email).toHaveAccessibleName("Email: On. Click to disable.");
-    expect(email.querySelector("svg")).not.toBeNull();
+    expect(email).toHaveAccessibleName("Email");
+    expect(email.className).toContain("bg-indigo-600");
     expect(sms).toHaveAttribute("aria-checked", "false");
-    expect(sms).toHaveAccessibleName("SMS: Off. Click to enable.");
-    expect(sms.querySelector("svg")).toBeNull();
+    expect(sms).toHaveAccessibleName("SMS");
+    expect(sms.className).toContain("bg-gray-300");
   });
 
-  test("a channel's name is cut short rather than pushing the card wider", async () => {
+  test("its channels line up two to a line, each in a cell that may not push the card wider", async () => {
     await renderPage();
 
-    const chips: Array<HTMLElement> = chipsOf(
+    const group: HTMLElement = within(
       await findEvent("Incident note posted"),
-    );
+    ).getByRole("group", { name: "Incident note posted" });
 
-    for (const chip of chips) {
-      expect(chip.className).toContain("max-w-full");
-      expect(chip.querySelector("span.truncate")).not.toBeNull();
+    expect(group.className).toContain("grid");
+    expect(group.className).toContain("grid-cols-2");
+
+    for (const cell of Array.from(group.children)) {
+      expect(cell.className).toContain("min-w-0");
     }
+  });
 
-    expect(chips[0]!.parentElement!.className).toContain("flex-wrap");
+  test("a card of several events opens on All events, a switch per channel for every event", async () => {
+    await renderPage();
+
+    const allEvents: HTMLElement = screen.getAllByTestId(
+      "notification-matrix-all-events",
+    )[0]!;
+    const group: HTMLElement = within(allEvents).getByRole("group", {
+      name: "All events",
+    });
+
+    expect(namesOf(switchesOf(group))).toEqual(CHANNELS);
+    // Every event has Email on, and nothing else.
+    expect(switchesOf(group)[0]).toHaveAttribute("aria-checked", "true");
+    expect(switchesOf(group)[1]).toHaveAttribute("aria-checked", "false");
   });
 
   test("a switch saves its channel and no other, as the table's does", async () => {
@@ -383,11 +417,11 @@ describe("on a phone", () => {
 
     await renderPage();
 
-    const chips: Array<HTMLElement> = chipsOf(
+    const switches: Array<HTMLElement> = switchesOf(
       await findEvent("Incident note posted"),
     );
 
-    fireEvent.click(chips[CHANNELS.indexOf("Slack")]!);
+    fireEvent.click(switches[CHANNELS.indexOf("Slack")]!);
 
     await waitFor(() => {
       expect(updateById).toHaveBeenCalledTimes(1);
@@ -406,7 +440,7 @@ describe("on a phone", () => {
 
     const event: HTMLElement = await findEvent("Incident note posted");
 
-    fireEvent.click(chipsOf(event)[0]!);
+    fireEvent.click(switchesOf(event)[0]!);
 
     await waitFor(() => {
       expect(updateById).toHaveBeenCalledTimes(1);
@@ -415,7 +449,7 @@ describe("on a phone", () => {
       alertByEmail: false,
     });
     await waitFor(() => {
-      expect(chipsOf(event)[0]).toHaveAttribute("aria-checked", "false");
+      expect(switchesOf(event)[0]).toHaveAttribute("aria-checked", "false");
     });
   });
 
@@ -428,11 +462,7 @@ describe("on a phone", () => {
         "notification-matrix-event",
       )[0]!;
 
-      expect(
-        chipsOf(event).map((chip: HTMLElement): string => {
-          return chip.textContent?.trim() || "";
-        }),
-      ).toEqual(
+      expect(namesOf(switchesOf(event))).toEqual(
         CHANNELS.map((channel: string): string => {
           return drawn(language, channel);
         }),
@@ -451,7 +481,7 @@ describe("on a laptop", () => {
 
     expect(screen.getAllByRole("table").length).toBeGreaterThan(0);
     expect(screen.queryAllByTestId("notification-matrix-list")).toHaveLength(0);
-    expect(screen.queryAllByTestId("notification-channel-chip")).toHaveLength(
+    expect(screen.queryAllByTestId("notification-channel-switch")).toHaveLength(
       0,
     );
   });

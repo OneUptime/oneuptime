@@ -56016,5 +56016,16 @@
   "Runs AI Code Fixes": "AI 코드 수정 실행",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "민감해 보이는 키의 값은 속성과 JSON 로그 본문에서 [REDACTED]로 바뀝니다.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "스팬에서 마스킹할 부분: 스팬 이름, 속성 값과 링크 속성 값, 이벤트 속성 값 또는 상태 메시지와 이벤트 이름까지 포함한 전체.",
-  "Signed out by a server admin because single sign-on is required": "싱글 사인온(SSO)이 필요하여 서버 관리자가 로그아웃함"
+  "Signed out by a server admin because single sign-on is required": "싱글 사인온(SSO)이 필요하여 서버 관리자가 로그아웃함",
+  "Channels not set up yet": "Channels not set up yet",
+  "Choose which updates reach you, and on which channels.": "Choose which updates reach you, and on which channels.",
+  "How much email your updates add up to in this project. {{notificationSettings}} decides which updates you get.": "How much email your updates add up to in this project. {{notificationSettings}} decides which updates you get.",
+  "On-call pages follow {{howToReachMe}}, and {{emailPreferences}} sets how much email you get.": "On-call pages follow {{howToReachMe}}, and {{emailPreferences}} sets how much email you get.",
+  "Set up {{channel}}": "Set up {{channel}}",
+  "Where OneUptime can reach you in this project: email addresses, phone numbers, chat accounts, devices and webhooks. {{howToReachMe}} and {{notificationSettings}} decide when each is used.": "Where OneUptime can reach you in this project: email addresses, phone numbers, chat accounts, devices and webhooks. {{howToReachMe}} and {{notificationSettings}} decide when each is used.",
+  "You hear about none of the events on this tab.": "You hear about none of the events on this tab.",
+  "You hear about {{on}} of {{count}} events on this tab, by {{channels}}.": "You hear about {{on}} of {{count}} events on this tab, by {{channels}}.",
+  "You hear about {{on}} of {{count}} events on this tab, by {{channels}}._one": "You hear about {{on}} of {{count}} event on this tab, by {{channels}}.",
+  "{{channel}} for every event in {{section}}": "{{channel}} for every event in {{section}}",
+  "{{channel}} for {{event}}": "{{channel}} for {{event}}"
 }
