@@ -495,9 +495,10 @@ describe("Danish, Korean, Hindi and Persian call maintenance by one word", () =>
   test("Persian names a host's maintenance mode with the one word", () => {
     const persian: Strings = stringsOf("Dashboard", "fa")!;
     const english: Strings = stringsOf("Dashboard", "en")!;
+    const MAINTENANCE_MODE: RegExp = /maintenance mode/i;
     const maintenanceMode: Array<string> = [...english.keys()].filter(
       (key: string): boolean => {
-        return /maintenance mode/i.test(english.get(key)!);
+        return MAINTENANCE_MODE.test(english.get(key)!);
       },
     );
 

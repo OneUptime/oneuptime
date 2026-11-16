@@ -802,7 +802,8 @@ describe("a stored permission that granted nothing still reads", () => {
     [Permission.EditOpenStackCloudFeed]: "Edit OpenStack Cloud Feed",
     [Permission.EditPodmanHostFeed]: "Edit Podman Host Feed",
     [Permission.EditProxmoxClusterFeed]: "Edit Proxmox Cluster Feed",
-    [Permission.EditScheduledMaintenanceFeed]: "Edit Scheduled Maintenance Feed",
+    [Permission.EditScheduledMaintenanceFeed]:
+      "Edit Scheduled Maintenance Feed",
     [Permission.EditServiceFeed]: "Edit Service Feed",
     [Permission.EditServiceLevelObjectiveFeed]: "Edit SLO Feed",
     [Permission.EditStorageArrayFeed]: "Edit Storage Array Feed",
