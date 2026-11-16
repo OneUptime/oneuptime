@@ -954,6 +954,9 @@ describe("the oneuptime chart hands every credential and free-text setting to it
  * two sides disagree: KEDA's TriggerAuthentication presented "key\n" to an
  * app that compared it with "key", and taking an inline key out of the values
  * later switched the pods to the Secret's copy, newline and all (#7337).
+ * The passwords of the databases you run yourself are stored there too, for
+ * the pods to read, without the line ending of the file they were read from
+ * and otherwise as written (#7911).
  */
 
 // A value as a file leaves it: whitespace around it and a final newline.
@@ -1303,6 +1306,101 @@ describe("every copy of a setting the chart keeps beside the pods' env holds wha
       ).toEqual([]);
       expect(
         podsMisread(documents, { CLICKHOUSE_USER: "oneuptime-user" }),
+      ).toEqual([]);
+    },
+  );
+
+  /*
+   * The passwords of the databases you run yourself (#7911), read from a file
+   * (helm --set-file, Terraform's file()): each pod reads its password from
+   * the Secret templates/secrets.yaml stores it in, so the app, the migrate
+   * Job and pgbouncer in front of the database each present the password
+   * without the file's line ending - and with the spaces and YAML syntax it
+   * holds, which a database knows it by.
+   */
+  const OWN_DATABASES = {
+    postgresql: { enabled: false },
+    clickhouse: { enabled: false },
+    valkey: { enabled: false },
+    externalPostgres: { host: "postgres.example.com" },
+    externalClickhouse: { host: "clickhouse.example.com" },
+    externalValkey: { host: "cache.example.com" },
+  };
+
+  const OWN_PASSWORDS = {
+    postgres: " pg: pass #1 'a' \"b\" ",
+    clickhouse: "*ch pass",
+    valkey: "\tvalkey pass ",
+  };
+
+  for (const [layout, pgbouncer] of [
+    ["the app connecting to the database itself", false],
+    ["pgbouncer in front of the database", true],
+  ]) {
+    for (const [file, ending] of [
+      ["a file", "\n"],
+      ["a file written on Windows", "\r\n"],
+    ]) {
+      testWithHelm(
+        `with ${layout}, every pod reads the password of each database of your own without the line ending of ${file}, and its spaces kept`,
+        () => {
+          const documents = render(
+            deepMerge(ALL_ON, OWN_DATABASES, {
+              pgbouncer: { enabled: pgbouncer },
+              externalPostgres: { password: OWN_PASSWORDS.postgres + ending },
+              externalClickhouse: {
+                password: OWN_PASSWORDS.clickhouse + ending,
+              },
+              externalValkey: { password: OWN_PASSWORDS.valkey + ending },
+            }),
+          );
+          const expected = {
+            DATABASE_PASSWORD: OWN_PASSWORDS.postgres,
+            CLICKHOUSE_PASSWORD: OWN_PASSWORDS.clickhouse,
+            VALKEY_PASSWORD: OWN_PASSWORDS.valkey,
+            REDIS_PASSWORD: OWN_PASSWORDS.valkey,
+          };
+
+          if (pgbouncer) {
+            expected.PGB_DB_PASSWORD = OWN_PASSWORDS.postgres;
+          }
+
+          expect(podsMisread(documents, expected)).toEqual([]);
+          expect(
+            [
+              "oneuptime-external-postgres",
+              "oneuptime-external-clickhouse",
+              "oneuptime-external-valkey",
+            ].map((name) => {
+              return secretValues(documents, name).password;
+            }),
+          ).toEqual([
+            OWN_PASSWORDS.postgres,
+            OWN_PASSWORDS.clickhouse,
+            OWN_PASSWORDS.valkey,
+          ]);
+        },
+      );
+    }
+  }
+
+  testWithHelm(
+    "the built-in databases' passwords stay as set, newline and all, as their servers and the pods read the same Secret",
+    () => {
+      const documents = render(
+        deepMerge(ALL_ON, {
+          postgresql: { auth: { postgresPassword: "built-in-pg\n" } },
+          clickhouse: { auth: { password: "built-in-ch\n" } },
+          valkey: { auth: { password: "built-in-valkey\n" } },
+        }),
+      );
+
+      expect(
+        podsMisread(documents, {
+          DATABASE_PASSWORD: "built-in-pg\n",
+          CLICKHOUSE_PASSWORD: "built-in-ch\n",
+          VALKEY_PASSWORD: "built-in-valkey\n",
+        }),
       ).toEqual([]);
     },
   );

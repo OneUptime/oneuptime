@@ -2158,6 +2158,9 @@ externalPostgres:
   host:
   port:
   username:
+  # Read from a file (helm --set-file, Terraform's file()), the password is
+  # stored without the line ending the file ends with, "\n" or "\r\n", and
+  # otherwise exactly as written: a space it begins or ends with is kept.
   password:
   # If you're using an existing secret for the password, please use this instead of password.
   existingSecret:
@@ -2185,6 +2188,8 @@ externalValkey:
   host:
   port:
   username:
+  # Read from a file, the password is stored without the line ending the file
+  # ends with, and otherwise exactly as written, as externalPostgres.password.
   password:
   ipFamily:
   # If you're using an existing secret for the password, please use this instead of password.
@@ -2213,6 +2218,8 @@ externalClickhouse:
   isHostHttps: false
   port:
   username:
+  # Read from a file, the password is stored without the line ending the file
+  # ends with, and otherwise exactly as written, as externalPostgres.password.
   password:
   ## OneUptime's analytics schema is always a sharded + replicated cluster. Set
   ## this to the name of the cluster you defined in your external ClickHouse

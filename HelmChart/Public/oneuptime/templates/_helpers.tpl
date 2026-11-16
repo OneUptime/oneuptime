@@ -31,6 +31,29 @@ Tests/Ops/HelmEnvValuesQuoted.test.js holds every env value of the chart to it.
 {{- end -}}
 
 {{/*
+The password of a database you run yourself (externalPostgres.password,
+externalValkey.password, externalClickhouse.password), as the chart stores it
+in the Secret the pods read it from:
+  password: {{ include "oneuptime.passwordValue" $.Values.externalPostgres.password }}
+It is written without the line ending at the end of the file it was read from
+(helm --set-file, Terraform's file()), one "\n" or "\r\n", and otherwise
+exactly as set (#7911). Stored with that line ending, the app and pgbouncer
+presented "password\n", which no database takes for "password", while the
+username beside it, read through oneuptime.envValue, worked. Only that one line
+ending goes, unlike the whitespace oneuptime.envValue leaves out of a key: a
+password may begin or end with a space on purpose, and the database knows it
+with that space. The passwords of the built-in databases are not written
+through this: their server and the pods read the same Secret, so a password
+kept with a newline works, and the server keeps the one it started with.
+Double-quoted, as YAML reads it back exactly. An unset value renders nothing.
+*/}}
+{{- define "oneuptime.passwordValue" -}}
+{{- if not (kindIs "invalid" .) -}}
+{{- regexReplaceAll `\r?\n\z` (toString .) "" | quote -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Refuses a host that is an IPv6 address without brackets, and renders nothing:
   {{- include "oneuptime.validateHost" $ }}
 An IPv6 host goes in brackets, with any port after them: [2001:db8::1],

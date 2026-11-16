@@ -104,6 +104,14 @@ take an inline key out of your values, do it on a later upgrade: otherwise the
 pods switch to the copy stored with the newline, which is a different key (for
 `encryptionSecret`, one that cannot read your encrypted data).
 
+The password of a database you run yourself (`externalPostgres.password`,
+`externalValkey.password` and `externalClickhouse.password`) works from a file
+too: it is stored without the line ending the file ends with (`\n`, or `\r\n`
+from Windows), and otherwise exactly as written, so a password that begins or
+ends with a space keeps it. Older charts stored it with that line ending, which
+the database refused. The passwords of the built-in databases are stored as
+written: their server and the pods read the same Secret.
+
 ### Probe and Runner identity keys
 
 `PROBE_KEY` and the bundled global Runner's key (`GLOBAL_RUNNER_KEY`) are not

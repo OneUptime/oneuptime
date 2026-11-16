@@ -3365,7 +3365,8 @@
                     "type": [
                         "string",
                         "null"
-                    ]
+                    ],
+                    "description": "The password of your own PostgreSQL. Read from a file (--set-file), it is stored without the line ending the file ends with, and otherwise exactly as written."
                 },
                 "existingSecret": {
                     "type": "object",
@@ -3446,7 +3447,8 @@
                     "type": [
                         "string",
                         "null"
-                    ]
+                    ],
+                    "description": "Deprecated alias of externalValkey.password, stored the same way."
                 },
                 "ipFamily": {
                     "type": [
@@ -3534,7 +3536,8 @@
                     "type": [
                         "string",
                         "null"
-                    ]
+                    ],
+                    "description": "The password of your own cache. Read from a file (--set-file), it is stored without the line ending the file ends with, and otherwise exactly as written."
                 },
                 "ipFamily": {
                     "type": [
@@ -3631,7 +3634,8 @@
                     "type": [
                         "string",
                         "null"
-                    ]
+                    ],
+                    "description": "The password of your own ClickHouse. Read from a file (--set-file), it is stored without the line ending the file ends with, and otherwise exactly as written."
                 },
                 "existingSecret": {
                     "type": "object",
