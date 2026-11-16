@@ -2649,15 +2649,13 @@ export default class Alert extends BaseModel {
   })
   public telemetryQuery?: TelemetryQuery = undefined;
 
+  /*
+   * The alert's number in its project: taken from the project's counter on
+   * every create (AlertService.onBeforeCreate), so nobody may give a new alert
+   * one (#8907), as for an incident's.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.AlertAdmin,
-      Permission.AlertMember,
-      Permission.CreateAlert,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

@@ -2629,15 +2629,15 @@ export default class StatusPage extends BaseModel {
   })
   public callSmsConfigId?: ObjectID = undefined;
 
+  /*
+   * Whether the page's owners were told it was created: OneUptime's to say,
+   * written by the job that tells them
+   * (StatusPageOwner:SendCreatedResourceEmail), so nobody may give a new page
+   * a value in it (#8907), as for a monitor's or an incident's. A page created
+   * as already told was never announced to its owners.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateProjectStatusPage,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
