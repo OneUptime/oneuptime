@@ -56345,5 +56345,15 @@
   "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "हर अंतराल में सभी नोड पर ऐप द्वारा घेरी गई मेमोरी का योग, बाइट में। ऐप को मेमोरी चाहिए होने पर सिस्टम जिस फ़ाइल कैश को खाली कर सकता है, वह इसमें शामिल नहीं है।",
   "in use, no allocatable memory reported": "इस्तेमाल में, आवंटन-योग्य मेमोरी की जानकारी नहीं मिली",
   "{{used}} of {{allocatable}} allocatable": "{{allocatable}} आवंटन-योग्य में से {{used}}",
-  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "सभी नोड पर ऐप द्वारा घेरी गई मेमोरी, आवंटन-योग्य मेमोरी (जिसे पॉड इस्तेमाल कर सकते हैं) के हिस्से के रूप में, फ़ाइल कैश के बिना। चुनी गई सीमा के आख़िरी 5 मिनट का औसत (12 घंटे से लंबी सीमा पर या हाल का डेटा न होने पर अक्सर पूरी सीमा का)। जानकारी न मिले, तो बार नहीं।"
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "सभी नोड पर ऐप द्वारा घेरी गई मेमोरी, आवंटन-योग्य मेमोरी (जिसे पॉड इस्तेमाल कर सकते हैं) के हिस्से के रूप में, फ़ाइल कैश के बिना। चुनी गई सीमा के आख़िरी 5 मिनट का औसत (12 घंटे से लंबी सीमा पर या हाल का डेटा न होने पर अक्सर पूरी सीमा का)। जानकारी न मिले, तो बार नहीं।",
+  "GitHub Issue": "GitHub इश्यू",
+  "GitHub Pull Request": "GitHub पुल रिक्वेस्ट",
+  "GitLab Merge Request": "GitLab मर्ज रिक्वेस्ट",
+  "Last activity": "पिछली गतिविधि",
+  "Merge request": "मर्ज रिक्वेस्ट",
+  "Pull Request": "पुल रिक्वेस्ट",
+  "Slow Trace": "धीमा ट्रेस",
+  "Started by": "किसने शुरू किया",
+  "Started from": "कहाँ से शुरू हुआ",
+  "Time worked": "काम का समय"
 }

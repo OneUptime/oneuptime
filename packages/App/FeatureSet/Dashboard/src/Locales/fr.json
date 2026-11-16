@@ -56345,5 +56345,15 @@
   "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "Mémoire occupée par les applications sur tous les nœuds, additionnée, dans chaque intervalle, en octets. Le cache de fichiers que le système peut libérer quand les applications ont besoin de la mémoire n'est pas compté.",
   "in use, no allocatable memory reported": "utilisée, aucune mémoire allouable signalée",
   "{{used}} of {{allocatable}} allocatable": "{{used}} sur {{allocatable}} allouables",
-  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Mémoire occupée par les applications sur tous les nœuds, en part de la mémoire allouable (celle que les pods peuvent utiliser), sans le cache de fichiers. En moyenne sur les 5 dernières minutes de la plage sélectionnée (souvent toute la plage au-delà de 12 heures ou sans données récentes). Pas de barre si elle n'est pas signalée."
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Mémoire occupée par les applications sur tous les nœuds, en part de la mémoire allouable (celle que les pods peuvent utiliser), sans le cache de fichiers. En moyenne sur les 5 dernières minutes de la plage sélectionnée (souvent toute la plage au-delà de 12 heures ou sans données récentes). Pas de barre si elle n'est pas signalée.",
+  "GitHub Issue": "Ticket GitHub",
+  "GitHub Pull Request": "Demande de tirage GitHub",
+  "GitLab Merge Request": "Demande de fusion GitLab",
+  "Last activity": "Dernière activité",
+  "Merge request": "Demande de fusion",
+  "Pull Request": "Demande de tirage",
+  "Slow Trace": "Trace lente",
+  "Started by": "Lancé par",
+  "Started from": "Lancé depuis",
+  "Time worked": "Temps de travail"
 }

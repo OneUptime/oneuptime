@@ -18,6 +18,9 @@ import {
   CODE_TASK_START_FOOTER_BRANCH_ONLY,
   getRecipeLabel,
 } from "../../../Components/Code/CodeTaskCopy";
+import CodeTaskDetails, {
+  getTaskBaseBranch,
+} from "../../../Components/Code/CodeTaskDetails";
 import CodeTaskStateBadge from "../../../Components/Code/CodeTaskStateBadge";
 import CodeTaskRetryNote from "../../../Components/Code/CodeTaskRetryNote";
 import CodeTaskWorkTime from "../../../Components/Code/CodeTaskWorkTime";
@@ -80,19 +83,19 @@ import React, {
 } from "react";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
+export { getTaskBaseBranch };
+
 /*
- * The branch a task works from: the one picked when it was asked (kept on
- * its first turn), or the repository's main branch.
+ * The page on a wide screen: the conversation at the width a person reads
+ * at, and the task's Details beside it, as an issue tracker lays out an
+ * issue. Narrower, the conversation alone, its facts in the header.
  */
-export const getTaskBaseBranch: (
-  data: Pick<CodeTaskResponse, "turns" | "repository">,
-) => string = (
-  data: Pick<CodeTaskResponse, "turns" | "repository">,
-): string => {
-  return (
-    data.turns[0]?.request?.baseBranch || data.repository?.mainBranchName || ""
-  );
-};
+export const CODE_TASK_PAGE_CLASS_NAME: string =
+  "mx-auto w-full max-w-3xl xl:grid xl:max-w-none xl:grid-cols-[minmax(0,48rem)_18rem] xl:items-start xl:justify-center xl:gap-10";
+
+// The header's line of facts, which Details says on a wide screen instead.
+export const CODE_TASK_HEADER_FACTS_CLASS_NAME: string =
+  "mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500 xl:hidden";
 
 /*
  * The box that stays at the bottom of the window as the conversation
@@ -118,7 +121,9 @@ const STICKY_FADE_STYLE: React.CSSProperties = {
  * their diff, the pull request. At the bottom, held at the bottom of the
  * window, the box to reply: an answer, more context, or the next change -
  * each one a new turn of the same task, on the same branch and pull
- * request.
+ * request. On a wide screen the task's Details sit beside it: who started
+ * it and from what, where it works, its pull request, what it changed and
+ * when (CodeTaskDetails).
  *
  * While AI works the box waits (with Stop beside it), and each step shows as
  * AI takes it: the server announces every change of the task's turns, and
@@ -554,285 +559,289 @@ const CodeTaskConversation: FunctionComponent<
   };
 
   return (
-    <div className={CODE_COLUMN_CLASS_NAME}>
-      <header
-        data-testid="code-task-header"
-        className="border-b border-gray-200 pb-5"
-      >
-        <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
-          <div className="min-w-0 flex-1 basis-80">
-            <div className="flex flex-wrap items-center gap-2">
-              <CodeTaskStateBadge
-                state={data.task.state}
-                isQueued={data.task.isQueued}
-                isRetrying={Boolean(
-                  data.task.isQueued &&
-                    latestTurn?.state === CodeTaskState.Working &&
-                    latestTurn.retry?.nextAttemptAt,
-                )}
-              />
-              {/* AI tries the latest turn again by itself: which attempt. */}
-              {latestTurn?.state === CodeTaskState.Working &&
-              latestTurn.retry ? (
-                <CodeTaskRetryNote
-                  retry={latestTurn.retry}
-                  isCompact={true}
-                  className="text-sm"
-                  dataTestId="code-task-header-retry"
+    <div className={CODE_TASK_PAGE_CLASS_NAME}>
+      <div data-testid="code-task-main" className="min-w-0">
+        <header
+          data-testid="code-task-header"
+          className="border-b border-gray-200 pb-5"
+        >
+          <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
+            <div className="min-w-0 flex-1 basis-80">
+              <div className="flex flex-wrap items-center gap-2">
+                <CodeTaskStateBadge
+                  state={data.task.state}
+                  isQueued={data.task.isQueued}
+                  isRetrying={Boolean(
+                    data.task.isQueued &&
+                      latestTurn?.state === CodeTaskState.Working &&
+                      latestTurn.retry?.nextAttemptAt,
+                  )}
                 />
-              ) : (
-                <></>
-              )}
-              {data.task.taskNumber ? (
-                <span className="text-sm text-gray-500">
-                  #{data.task.taskNumber}
-                </span>
-              ) : (
-                <></>
-              )}
-              {data.task.recipe !== CodeFixTaskType.CodeRequest ? (
-                <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
-                  {translator.translateText(getRecipeLabel(data.task.recipe))}
-                </span>
-              ) : (
-                <></>
-              )}
+                {/* AI tries the latest turn again by itself: which attempt. */}
+                {latestTurn?.state === CodeTaskState.Working &&
+                latestTurn.retry ? (
+                  <CodeTaskRetryNote
+                    retry={latestTurn.retry}
+                    isCompact={true}
+                    className="text-sm"
+                    dataTestId="code-task-header-retry"
+                  />
+                ) : (
+                  <></>
+                )}
+                {data.task.taskNumber ? (
+                  <span className="text-sm text-gray-500">
+                    #{data.task.taskNumber}
+                  </span>
+                ) : (
+                  <></>
+                )}
+                {data.task.recipe !== CodeFixTaskType.CodeRequest ? (
+                  <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
+                    {translator.translateText(getRecipeLabel(data.task.recipe))}
+                  </span>
+                ) : (
+                  <></>
+                )}
+              </div>
+              <h1
+                data-testid="code-task-title"
+                className="mt-2 break-words text-xl font-semibold leading-7 text-gray-900"
+              >
+                {/* Words someone wrote, read the way they are written. */}
+                <IsolatedText text={title} />
+              </h1>
             </div>
-            <h1
-              data-testid="code-task-title"
-              className="mt-2 break-words text-xl font-semibold leading-7 text-gray-900"
-            >
-              {/* Words someone wrote, read the way they are written. */}
-              <IsolatedText text={title} />
-            </h1>
+
+            {pullRequest?.url ? (
+              <LinkComponent
+                to={URL.fromString(pullRequest.url)}
+                openInNewTab={true}
+                dataTestId="code-task-pull-request"
+                className="inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-lg bg-white px-3 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                <>
+                  <span className="inline-flex flex-shrink-0">
+                    <CodeHostMark
+                      provider={repositoryHost.provider}
+                      hostProduct={repositoryHost.hostProduct}
+                      className="h-4 w-4"
+                    />
+                  </span>
+                  {translator.translateTemplate(pullRequestCopy.title, {
+                    number: pullRequest.number?.toString() || "",
+                  })}
+                  <Icon
+                    icon={IconProp.ExternalLink}
+                    className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+                  />
+                </>
+              </LinkComponent>
+            ) : (
+              <></>
+            )}
           </div>
 
-          {pullRequest?.url ? (
-            <LinkComponent
-              to={URL.fromString(pullRequest.url)}
-              openInNewTab={true}
-              dataTestId="code-task-pull-request"
-              className="inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-lg bg-white px-3 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            >
-              <>
-                <span className="inline-flex flex-shrink-0">
-                  <CodeHostMark
-                    provider={repositoryHost.provider}
-                    hostProduct={repositoryHost.hostProduct}
-                    className="h-4 w-4"
-                  />
-                </span>
-                {translator.translateTemplate(pullRequestCopy.title, {
-                  number: pullRequest.number?.toString() || "",
-                })}
-                <Icon
-                  icon={IconProp.ExternalLink}
-                  className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+          {/*
+           * Where the task works and what it changed: its repository, the
+           * branch it works from, its lines added and removed, and - once its
+           * pull request is merged or closed - that, with what production
+           * showed. Open is the usual state, so it is not said.
+           */}
+          <div
+            data-testid="code-task-facts"
+            className={CODE_TASK_HEADER_FACTS_CLASS_NAME}
+          >
+            {data.repository ? (
+              <LinkComponent
+                to={getRepositoryRoute(data.repository.id)}
+                dataTestId="code-task-repository"
+                className="inline-flex min-w-0 items-center gap-1.5 hover:text-indigo-600"
+              >
+                <>
+                  <span className="inline-flex flex-shrink-0">
+                    <CodeHostMark
+                      provider={repositoryHost.provider}
+                      hostProduct={repositoryHost.hostProduct}
+                      className="h-4 w-4"
+                    />
+                  </span>
+                  <span className="truncate">
+                    {getRepositoryFullName(data.repository) ||
+                      data.repository.name}
+                  </span>
+                </>
+              </LinkComponent>
+            ) : (
+              <></>
+            )}
+            {data.repository && baseBranch ? (
+              <span
+                data-testid="code-task-branch"
+                className="inline-flex min-w-0 items-center gap-1"
+              >
+                <GitBranchMark className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+                <span className="truncate font-mono text-xs">{baseBranch}</span>
+              </span>
+            ) : (
+              <></>
+            )}
+            {data.task.changes ? (
+              <span
+                data-testid="code-task-files-changed"
+                className="inline-flex items-center gap-2 whitespace-nowrap"
+              >
+                {translator.translatePlural(
+                  {
+                    one: "{{count}} file changed",
+                    other: "{{count}} files changed",
+                  },
+                  data.task.changes.files,
+                )}
+                <CodeDiffStat
+                  changes={data.task.changes}
+                  dataTestId="code-task-changes-stat"
                 />
-              </>
-            </LinkComponent>
-          ) : (
-            <></>
-          )}
-        </div>
+              </span>
+            ) : (
+              <></>
+            )}
+            {/* How long AI has worked on it, over all its turns - shown or not. */}
+            <CodeTaskWorkTime
+              turns={turns}
+              notShownMilliseconds={data.turnsNotShown?.workMilliseconds}
+              hasClock={true}
+            />
+            {pullRequest &&
+            (pullRequest.state === "merged" ||
+              pullRequest.state === "closed") ? (
+              <span
+                data-testid="code-task-pull-request-state"
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  pullRequest.state === "merged"
+                    ? "bg-violet-50 text-violet-700"
+                    : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {pullRequest.state === "merged"
+                  ? translator.translateText("Merged")
+                  : translator.translateText("Closed")}
+              </span>
+            ) : (
+              <></>
+            )}
+            {/* What production showed once it shipped; the turn says why. */}
+            {pullRequest?.production ? (
+              <FixProductionVerdict
+                production={pullRequest.production}
+                isCompact={true}
+                testId="code-task-pull-request-production"
+              />
+            ) : (
+              <></>
+            )}
+          </div>
+        </header>
+
+        {actionError ? (
+          <p
+            role="alert"
+            className="mt-4 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700"
+          >
+            <ErrorInSentence message={actionError} showWhereToLook={true} />
+          </p>
+        ) : (
+          <></>
+        )}
 
         {/*
-         * Where the task works and what it changed: its repository, the
-         * branch it works from, its lines added and removed, and - once its
-         * pull request is merged or closed - that, with what production
-         * showed. Open is the usual state, so it is not said.
-         */}
-        <div
-          data-testid="code-task-facts"
-          className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500"
-        >
-          {data.repository ? (
-            <LinkComponent
-              to={getRepositoryRoute(data.repository.id)}
-              dataTestId="code-task-repository"
-              className="inline-flex min-w-0 items-center gap-1.5 hover:text-indigo-600"
-            >
-              <>
-                <span className="inline-flex flex-shrink-0">
-                  <CodeHostMark
-                    provider={repositoryHost.provider}
-                    hostProduct={repositoryHost.hostProduct}
-                    className="h-4 w-4"
-                  />
-                </span>
-                <span className="truncate">
-                  {getRepositoryFullName(data.repository) ||
-                    data.repository.name}
-                </span>
-              </>
-            </LinkComponent>
-          ) : (
-            <></>
-          )}
-          {data.repository && baseBranch ? (
-            <span
-              data-testid="code-task-branch"
-              className="inline-flex min-w-0 items-center gap-1"
-            >
-              <GitBranchMark className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
-              <span className="truncate font-mono text-xs">{baseBranch}</span>
-            </span>
-          ) : (
-            <></>
-          )}
-          {data.task.changes ? (
-            <span
-              data-testid="code-task-files-changed"
-              className="inline-flex items-center gap-2 whitespace-nowrap"
-            >
-              {translator.translatePlural(
-                {
-                  one: "{{count}} file changed",
-                  other: "{{count}} files changed",
-                },
-                data.task.changes.files,
-              )}
-              <CodeDiffStat
-                changes={data.task.changes}
-                dataTestId="code-task-changes-stat"
-              />
-            </span>
-          ) : (
-            <></>
-          )}
-          {/* How long AI has worked on it, over all its turns - shown or not. */}
-          <CodeTaskWorkTime
-            turns={turns}
-            notShownMilliseconds={data.turnsNotShown?.workMilliseconds}
-            hasClock={true}
-          />
-          {pullRequest &&
-          (pullRequest.state === "merged" || pullRequest.state === "closed") ? (
-            <span
-              data-testid="code-task-pull-request-state"
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                pullRequest.state === "merged"
-                  ? "bg-violet-50 text-violet-700"
-                  : "bg-gray-100 text-gray-600"
-              }`}
-            >
-              {pullRequest.state === "merged"
-                ? translator.translateText("Merged")
-                : translator.translateText("Closed")}
-            </span>
-          ) : (
-            <></>
-          )}
-          {/* What production showed once it shipped; the turn says why. */}
-          {pullRequest?.production ? (
-            <FixProductionVerdict
-              production={pullRequest.production}
-              isCompact={true}
-              testId="code-task-pull-request-production"
-            />
-          ) : (
-            <></>
-          )}
-        </div>
-      </header>
-
-      {actionError ? (
-        <p
-          role="alert"
-          className="mt-4 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700"
-        >
-          <ErrorInSentence message={actionError} showWhereToLook={true} />
-        </p>
-      ) : (
-        <></>
-      )}
-
-      {/*
         A log, as Ask AI's conversation is: a screen reader says each step
         as it arrives, and the reply when the turn ends - what a reader who
         sees the page watches come in.
       */}
-      <ol
-        ref={turnsRef}
-        data-testid="code-task-turns"
-        role="log"
-        aria-live="polite"
-        aria-relevant="additions"
-        aria-label={translator.translateText("Conversation")}
-        className="mt-6 space-y-6"
-      >
-        {turns.map((turn: CodeTaskTurnJSON, index: number) => {
-          return (
-            <React.Fragment key={turn.runId}>
-              <CodeTaskTurn
-                turn={turn}
-                isLatest={index === turns.length - 1}
-                origin={index === 0 ? data.task.origin : undefined}
-                repositorySettingsRoute={
-                  /*
-                   * A slow queue points at the repository's Runner: its
-                   * settings open there, with More settings open.
-                   */
-                  data.repository
-                    ? getRepositorySettingsRoute(
-                        data.repository.id,
-                        CodeRepositorySetting.Runner,
-                      )
-                    : undefined
-                }
-                onRetry={
-                  canRetry
-                    ? () => {
-                        void retry();
-                      }
-                    : undefined
-                }
-                onRetryNow={
-                  canRetryNow
-                    ? () => {
-                        void retry();
-                      }
-                    : undefined
-                }
-                isRetrying={isRetrying}
-                repositoryHost={repositoryHost}
-                logRoute={new Route(
-                  RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.CODE_TASK_VIEW_LOG] as Route,
-                    { modelId: new ObjectID(taskId) },
-                  ).toString(),
-                ).addQueryParams({ turn: turn.runId })}
-              />
-              {/*
-               * A long task: its first turn, then how many turns are not
-               * shown, then its newest.
-               */}
-              {index === 0 && data.turnsNotShown ? (
-                <CodeTaskTurnsNotShown turnsNotShown={data.turnsNotShown} />
-              ) : (
-                <></>
-              )}
-            </React.Fragment>
-          );
-        })}
-      </ol>
+        <ol
+          ref={turnsRef}
+          data-testid="code-task-turns"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-label={translator.translateText("Conversation")}
+          className="mt-6 space-y-6"
+        >
+          {turns.map((turn: CodeTaskTurnJSON, index: number) => {
+            return (
+              <React.Fragment key={turn.runId}>
+                <CodeTaskTurn
+                  turn={turn}
+                  isLatest={index === turns.length - 1}
+                  origin={index === 0 ? data.task.origin : undefined}
+                  repositorySettingsRoute={
+                    /*
+                     * A slow queue points at the repository's Runner: its
+                     * settings open there, with More settings open.
+                     */
+                    data.repository
+                      ? getRepositorySettingsRoute(
+                          data.repository.id,
+                          CodeRepositorySetting.Runner,
+                        )
+                      : undefined
+                  }
+                  onRetry={
+                    canRetry
+                      ? () => {
+                          void retry();
+                        }
+                      : undefined
+                  }
+                  onRetryNow={
+                    canRetryNow
+                      ? () => {
+                          void retry();
+                        }
+                      : undefined
+                  }
+                  isRetrying={isRetrying}
+                  repositoryHost={repositoryHost}
+                  logRoute={new Route(
+                    RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.CODE_TASK_VIEW_LOG] as Route,
+                      { modelId: new ObjectID(taskId) },
+                    ).toString(),
+                  ).addQueryParams({ turn: turn.runId })}
+                />
+                {/*
+                 * A long task: its first turn, then how many turns are not
+                 * shown, then its newest.
+                 */}
+                {index === 0 && data.turnsNotShown ? (
+                  <CodeTaskTurnsNotShown turnsNotShown={data.turnsNotShown} />
+                ) : (
+                  <></>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </ol>
 
-      {/*
-       * The reply box, held at the bottom of the window as the
-       * conversation scrolls - its ground is the page's, faded above it.
-       */}
-      <div
-        data-testid="code-task-footer"
-        className="sticky bottom-0 z-10 mt-8 pb-4"
-        style={STICKY_FOOTER_STYLE}
-      >
+        {/*
+         * The reply box, held at the bottom of the window as the
+         * conversation scrolls - its ground is the page's, faded above it.
+         */}
         <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -top-6 h-6"
-          style={STICKY_FADE_STYLE}
-        />
-        {renderFooter()}
+          data-testid="code-task-footer"
+          className="sticky bottom-0 z-10 mt-8 pb-4"
+          style={STICKY_FOOTER_STYLE}
+        >
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 -top-6 h-6"
+            style={STICKY_FADE_STYLE}
+          />
+          {renderFooter()}
+        </div>
       </div>
+      <CodeTaskDetails data={data} />
     </div>
   );
 };
