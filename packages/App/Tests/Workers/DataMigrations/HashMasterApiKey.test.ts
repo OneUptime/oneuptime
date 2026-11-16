@@ -1,7 +1,9 @@
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import logger from "Common/Server/Utils/Logger";
 import MasterApiKey from "Common/Server/Utils/MasterApiKey";
-import HashMasterApiKey from "../../../FeatureSet/Workers/DataMigrations/HashMasterApiKey";
+import HashMasterApiKey, {
+  digestOfValueRead,
+} from "../../../FeatureSet/Workers/DataMigrations/HashMasterApiKey";
 import {
   answerGlobalConfigSql,
   GlobalConfigSql,
@@ -60,6 +62,8 @@ const NEW_MIGRATION_CALL: RegExp = /new ([A-Za-z0-9]+)\(\)/g;
 
 // The key as the uuid column held it, and as the schema migration kept it.
 const KEY: string = "8e1a3a52-6d64-4f1f-9a2e-5f0f9c1d2b34";
+
+const SHA_256_HEX: RegExp = /^[0-9a-f]{64}$/;
 
 const OTHER_COLUMNS: Readonly<SqlRow> = {
   isMasterApiKeyEnabled: true,
@@ -195,19 +199,19 @@ describe("HashMasterApiKey", () => {
       expect([column, rows[0]![column]]).toEqual([column, value]);
     }
 
-    // One read of the column, then one compared write.
+    // One read of the column, then one write compared by the digest of the key read.
     expect(
       sql.calls.map((call: SqlCall): string => {
         return call.sql;
       }),
     ).toEqual([
       `SELECT "_id", "masterApiKey" FROM "GlobalConfig"`,
-      `UPDATE "GlobalConfig" SET "masterApiKey" = $1 WHERE "_id" = $2 AND "masterApiKey" = $3`,
+      `UPDATE "GlobalConfig" SET "masterApiKey" = $1 WHERE "_id" = $2 AND encode(sha256(convert_to("masterApiKey", 'UTF8')), 'hex') = $3`,
     ]);
     expect(updates(sql)[0]!.params).toEqual([
       MasterApiKey.hash(KEY),
       SERVER_SETTINGS_ID,
-      KEY,
+      digestOfValueRead(KEY),
     ]);
     expect(sql.writes).toHaveLength(1);
   });
@@ -220,7 +224,9 @@ describe("HashMasterApiKey", () => {
 
     expect(rows[0]!["masterApiKey"]).toBe(MasterApiKey.hash(KEY));
     expectKeyWorks(rows[0]!);
-    expect(updates(sql)[0]!.params[2]).toBe(KEY.toUpperCase());
+    expect(updates(sql)[0]!.params[2]).toBe(
+      digestOfValueRead(KEY.toUpperCase()),
+    );
   });
 
   test("hashes every row's key against that row", async () => {
@@ -303,7 +309,7 @@ describe("HashMasterApiKey", () => {
     expect(rows[0]!["masterApiKey"]).toBe(MasterApiKey.hash(newKey));
     expectKeyWorks(rows[0]!, newKey);
     expect(sql.writes).toHaveLength(0);
-    expect(updates(sql)[0]!.params[2]).toBe(KEY);
+    expect(updates(sql)[0]!.params[2]).toBe(digestOfValueRead(KEY));
   });
 
   test("two runs at once hash the key once", async () => {
@@ -390,6 +396,30 @@ describe("HashMasterApiKey", () => {
       expect(statements.includes(value)).toBe(false);
       expect(loggedText().includes(value)).toBe(false);
     }
+  });
+
+  test("the key is in no statement's parameters either, which TypeORM's slow-query log prints whole", async () => {
+    const rows: Array<SqlRow> = [storedRow(KEY.toUpperCase())];
+    const sql: GlobalConfigSql = stubTable(rows);
+
+    await migrate();
+
+    const parameters: string = JSON.stringify(
+      sql.calls.map((call: SqlCall): Array<unknown> => {
+        return call.params;
+      }),
+    ).toLowerCase();
+
+    expect(parameters).not.toContain(KEY);
+    // What it compares by is no key, nor the hash a request is matched by.
+    expect(digestOfValueRead(KEY)).toMatch(SHA_256_HEX);
+    expect(digestOfValueRead(KEY)).not.toBe(MasterApiKey.hash(KEY));
+    expect(
+      MasterApiKey.matches({
+        presentedKey: KEY,
+        storedValue: digestOfValueRead(KEY),
+      }),
+    ).toBe(false);
   });
 
   test("rollback changes nothing", async () => {

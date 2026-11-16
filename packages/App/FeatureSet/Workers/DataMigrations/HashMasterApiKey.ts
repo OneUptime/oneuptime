@@ -4,11 +4,25 @@ import DatabaseService from "Common/Server/Services/DatabaseService";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import logger from "Common/Server/Utils/Logger";
 import MasterApiKey from "Common/Server/Utils/MasterApiKey";
+import crypto from "crypto";
 
 // Taken from Common's service so App does not resolve its own typeorm copy.
 type ModelRepository = ReturnType<DatabaseService<BaseModel>["getRepository"]>;
 
 const MASTER_API_KEY_COLUMN: string = "masterApiKey";
+
+/*
+ * The SHA-256 of a value, as Postgres writes it for the same text
+ * (encode(sha256(convert_to(value, 'UTF8')), 'hex')). The write compares the
+ * column with the value read by this digest, not by the value itself: a
+ * statement's parameters are printed whole by TypeORM's slow-query log, and
+ * the value read is the key.
+ */
+export const digestOfValueRead: (value: string) => string = (
+  value: string,
+): string => {
+  return crypto.createHash("sha256").update(value, "utf8").digest("hex");
+};
 
 /*
  * Hashes the server's master API key stored before it was stored hashed
@@ -27,14 +41,15 @@ const MASTER_API_KEY_COLUMN: string = "masterApiKey";
  * change: the key a request presents is hashed and compared with the hash
  * stored, and until this runs the lookup takes the key as it was written.
  *
- * The value is written only while the column still holds the value read
- * (WHERE ... = the value read): a key made since, through the service, is
- * already its hash and stays as it is, and a second runner at the same time
- * writes nothing. A row with no key is left as it is.
+ * The value is written only while the column still holds the value read,
+ * compared by its digest (digestOfValueRead) so that the key is in no
+ * statement's parameters: a key made since, through the service, is already
+ * its hash and stays as it is, and a second runner at the same time writes
+ * nothing. A row with no key is left as it is.
  *
  * Idempotent, and safe to run twice: a value that is already a hash is left
- * alone, so a second run rewrites nothing. Neither the key nor its hash
- * reaches the log or the SQL text.
+ * alone, so a second run rewrites nothing. The key is in no statement's text
+ * or parameters, nor in the log; what is written, its hash, is no key.
  */
 export default class HashMasterApiKey extends DataMigrationBase {
   public constructor() {
@@ -75,8 +90,8 @@ export default class HashMasterApiKey extends DataMigrationBase {
 
       try {
         await repository.manager.query(
-          `UPDATE "${tableName}" SET "${MASTER_API_KEY_COLUMN}" = $1 WHERE "_id" = $2 AND "${MASTER_API_KEY_COLUMN}" = $3`,
-          [MasterApiKey.hash(value), row["_id"], value],
+          `UPDATE "${tableName}" SET "${MASTER_API_KEY_COLUMN}" = $1 WHERE "_id" = $2 AND encode(sha256(convert_to("${MASTER_API_KEY_COLUMN}", 'UTF8')), 'hex') = $3`,
+          [MasterApiKey.hash(value), row["_id"], digestOfValueRead(value)],
         );
       } catch (err) {
         /*

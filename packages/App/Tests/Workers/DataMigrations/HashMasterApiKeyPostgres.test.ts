@@ -1,4 +1,6 @@
-import HashMasterApiKey from "../../../FeatureSet/Workers/DataMigrations/HashMasterApiKey";
+import HashMasterApiKey, {
+  digestOfValueRead,
+} from "../../../FeatureSet/Workers/DataMigrations/HashMasterApiKey";
 import Entities from "Common/Models/DatabaseModels/Index";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import { MasterApiKeyHashedColumn1809180790100 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809180790100-MasterApiKeyHashedColumn";
@@ -295,6 +297,15 @@ describePostgres("the master API key through its upgrade (Postgres)", () => {
     await expectAccepted(KEY);
     await expectAccepted(KEY.toUpperCase());
     await expectRefused(OTHER_KEY);
+  });
+
+  test("Postgres digests the key as the data migration does, so its compare-and-set matches the key read", async () => {
+    const rows: Array<{ digest: string }> = await database.query(
+      `SELECT encode(sha256(convert_to("masterApiKey", 'UTF8')), 'hex') AS "digest" FROM "${schema}"."GlobalConfig" WHERE "_id" = $1`,
+      [ZERO_ID],
+    );
+
+    expect(rows).toEqual([{ digest: digestOfValueRead(KEY) }]);
   });
 
   test("the data migration leaves only the key's hash, and the API still takes the key as written", async () => {
