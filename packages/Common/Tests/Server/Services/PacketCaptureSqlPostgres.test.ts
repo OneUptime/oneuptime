@@ -29,6 +29,14 @@ import { dashboardStartCapture } from "../../Helpers/PacketCaptureStartBody";
 import { getJestSpyOn } from "../../Spy";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
+  createReferencingTable,
+  expectClaimLocksHoldOnlyTheRow,
+  expectConcurrentClaimsHandOutEachRowOnce,
+  expectHeldRowSkipped,
+  expectOneSelfCommittingClaim,
+  statementsSentBy,
+} from "../TestingUtils/Postgres/ClaimRowLocks";
+import {
   makePcap,
   makePcapRecord,
   pcapLength,
@@ -37,7 +45,8 @@ import { DataSource, QueryRunner } from "typeorm";
 
 /*
  * Packet capture's hand-written SQL against a real Postgres: the probe's
- * claim (FOR UPDATE SKIP LOCKED), its heartbeat and stop answer, its
+ * claim (one statement, FOR NO KEY UPDATE SKIP LOCKED: OneUptime issue
+ * #7392), its heartbeat and stop answer, its
  * failure and completion reports, Stop from the dashboard, the stale
  * capture sweep and the retention sweep. Each is keyed on the probe or the
  * project in its WHERE clause, and each reads what the driver returns - an
@@ -80,6 +89,8 @@ describePostgres("packet capture SQL against Postgres", () => {
     .toString()
     .replace(DASHES, "")}`;
   let database: DataSource;
+  // Rows that name a capture by a foreign key; they go with their capture.
+  let referencingTable: string;
 
   const projectId: ObjectID = ObjectID.generate();
   const otherProjectId: ObjectID = ObjectID.generate();
@@ -129,6 +140,12 @@ describePostgres("packet capture SQL against Postgres", () => {
         `ALTER TABLE "${schema}"."${column.table_name}" ALTER COLUMN "${column.column_name}" DROP NOT NULL`,
       );
     }
+
+    referencingTable = await createReferencingTable({
+      database: database,
+      schema: schema,
+      parentTable: "PacketCapture",
+    });
 
     expect(
       (await database.query("SELECT current_schema()"))[0].current_schema,
@@ -398,6 +415,97 @@ describePostgres("packet capture SQL against Postgres", () => {
       expect((await readCapture(locked))!.status).toBe(
         PacketCaptureStatus.Pending,
       );
+    });
+
+    function jobIds(jobs: Array<PacketCaptureJob>): Array<string> {
+      return jobs.map((job: PacketCaptureJob): string => {
+        return job.id;
+      });
+    }
+
+    async function claim(limit: number = 10): Promise<Array<string>> {
+      return jobIds(
+        await PacketCaptureService.claimPendingForProbe({
+          probeId: probeId,
+          limit: limit,
+        }),
+      );
+    }
+
+    /*
+     * OneUptime issue #7392: the claim was START TRANSACTION, SELECT ... FOR
+     * UPDATE, an UPDATE of the ids and COMMIT on every probe tick.
+     */
+    test("is one statement, with no transaction around it - with captures to hand out, and with none", async () => {
+      await insertCapture({ createdMinutesAgo: 1 });
+
+      const withWork: { result: Array<string>; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return claim();
+        });
+
+      expect(withWork.result).toHaveLength(1);
+      expect(withWork.statements).toHaveLength(1);
+      expectOneSelfCommittingClaim(withWork.statements);
+
+      const empty: { result: Array<string>; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return claim();
+        });
+
+      expect(empty.result).toEqual([]);
+      expect(empty.statements).toHaveLength(1);
+    });
+
+    test("a capture another writer holds is skipped at once, and handed out once it is free", async () => {
+      const held: ObjectID = await insertCapture({ createdMinutesAgo: 2 });
+      const free: ObjectID = await insertCapture({ createdMinutesAgo: 1 });
+
+      await expectHeldRowSkipped({
+        database: database,
+        schema: schema,
+        table: "PacketCapture",
+        held: held,
+        free: [free],
+        claim: (): Promise<Array<string>> => {
+          return claim();
+        },
+      });
+    });
+
+    test("claims at once hand out each capture exactly once", async () => {
+      const due: Array<string> = [];
+
+      for (let index: number = 0; index < 12; index++) {
+        due.push(
+          (
+            await insertCapture({ createdMinutesAgo: (12 - index) / 4 })
+          ).toString(),
+        );
+      }
+
+      await expectConcurrentClaimsHandOutEachRowOnce({
+        due: due,
+        claim: (limit: number): Promise<Array<string>> => {
+          return claim(limit);
+        },
+      });
+    });
+
+    test("while a claim's row locks are held, a row that names the capture is still written; only the capture itself waits", async () => {
+      const id: ObjectID = await insertCapture({});
+
+      await expectClaimLocksHoldOnlyTheRow({
+        database: database,
+        schema: schema,
+        service: PacketCaptureService,
+        table: "PacketCapture",
+        referencingTable: referencingTable,
+        id: id,
+        claim: (): Promise<Array<string>> => {
+          return claim();
+        },
+      });
     });
   });
 
