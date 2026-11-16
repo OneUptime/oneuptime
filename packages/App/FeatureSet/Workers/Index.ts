@@ -30,6 +30,7 @@ import "./Jobs/TelemetryException/SendAssignedNotification";
 
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";
+import "./Jobs/Monitor/ClearStoredLogScreenshots";
 
 // Alert Owners
 import "./Jobs/AlertOwners/SendCreatedResourceNotification";
