@@ -299,6 +299,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
     Dictionary<string>
   >({});
 
+  /*
+   * What the record holds, as the edit read it (fetchItem), for a field
+   * whose drawing follows it: a Field.hasNothingStoredWhenEditing that is a
+   * function is handed these. Null until the record is read.
+   */
+  const storedValues: MutableRefObject<FormValues<TBaseModel> | null> =
+    useRef<FormValues<TBaseModel> | null>(null);
+
   const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
   /*
@@ -586,6 +594,36 @@ const ModelForm: <TBaseModel extends BaseModel>(
   };
 
   /*
+   * Whether a write-only field has nothing stored to keep on this edit, so
+   * it is asked for as on a new record (Field.hasNothingStoredWhenEditing):
+   * said by the field, or worked out from what the record holds - as the
+   * edit read it, else the values the form was handed.
+   */
+  const hasNothingStoredWhenEditing: (field: Field<TBaseModel>) => boolean = (
+    field: Field<TBaseModel>,
+  ): boolean => {
+    const rule: Field<TBaseModel>["hasNothingStoredWhenEditing"] =
+      field.hasNothingStoredWhenEditing;
+
+    if (typeof rule === "function") {
+      return rule(
+        storedValues.current ||
+          props.initialValues ||
+          ({} as FormValues<TBaseModel>),
+      );
+    }
+
+    return Boolean(rule);
+  };
+
+  // Whether a field's drawing follows what the record holds (see above).
+  const isAnyFieldDrawnByStoredValues: () => boolean = (): boolean => {
+    return props.fields.some((field: ModelField<TBaseModel>): boolean => {
+      return typeof field.hasNothingStoredWhenEditing === "function";
+    });
+  };
+
+  /*
    * A write-only field is offered only where leaving it blank can keep what
    * is stored. A switch or a checkbox has no blank - drawn off, it would save
    * off over a stored on - so one the user may set but not read is left off
@@ -782,7 +820,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
             props.formType !== FormType.Create
               ? { required: false }
               : {}),
-            ...(isWriteOnlyField(key) && !field.hasNothingStoredWhenEditing
+            ...(isWriteOnlyField(key) && !hasNothingStoredWhenEditing(field)
               ? getWriteOnlyFieldProps(field)
               : {}),
             field: {
@@ -838,6 +876,15 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
     setFields(fieldsToSet);
   };
+
+  /*
+   * The fields as this draw works them out, for a run started elsewhere -
+   * the fetch below - that must use the page's latest fields, not those of
+   * the draw it started in.
+   */
+  const latestSetFormFields: MutableRefObject<PromiseVoidFunction> =
+    useRef<PromiseVoidFunction>(setFormFields);
+  latestSetFormFields.current = setFormFields;
 
   useAsyncEffect(async () => {
     // set fields.
@@ -936,6 +983,10 @@ const ModelForm: <TBaseModel extends BaseModel>(
     if (item && props.onItemFetched) {
       item = await props.onItemFetched(item as TBaseModel);
     }
+
+    storedValues.current = item
+      ? (item as unknown as FormValues<TBaseModel>)
+      : null;
 
     setItemToEdit(item as TBaseModel);
   };
@@ -1372,6 +1423,16 @@ const ModelForm: <TBaseModel extends BaseModel>(
     setError("");
     try {
       await fetchItem();
+
+      /*
+       * A field drawn by what the record holds - a custom domain's private
+       * key, asked for only while none is stored - is drawn again now the
+       * record is read, while the form still shows its loader: it never
+       * opens drawn for a record it is not.
+       */
+      if (isAnyFieldDrawnByStoredValues()) {
+        await latestSetFormFields.current();
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
       props.onError?.(API.getFriendlyMessage(err));
