@@ -54,6 +54,8 @@ import {
   BREAK_SENTENCES,
   getBreakSentence,
   getFixLink,
+  getOwnersSentences,
+  getPagedOwnersSentence,
   getWhoIsToldSentences,
   getWhoIsToldSummary,
   WhoIsToldFixLink,
@@ -1808,5 +1810,204 @@ describe("MonitorWhoIsToldCard", () => {
       "OneUptime marks it Offline and opens an incident (Critical).",
     );
     expect(screen.queryByTestId("who-is-told-try-again")).toBeNull();
+  });
+});
+
+/*
+ * AN OWNER THE PAGE REACHES FIRST (#8860). The owners' Created email leaves
+ * out an owner the on-call page reached already (#7987), and the card says
+ * so: the email's sentence names whom it still reaches, and a sentence of
+ * its own says who is paged instead - by what the server worked out
+ * (pagedOwners), never by a name matched here.
+ */
+describe("the card says an owner the page reaches first is not emailed as an owner too", () => {
+  function pagedOwners(
+    overrides: Partial<WhoIsToldEvent["owners"]> = {},
+  ): WhoIsToldEvent["owners"] {
+    return {
+      source: WhoIsToldOwnersSource.Named,
+      userNames: ["Ben Ito"],
+      teamNames: [],
+      pagedOwners: [{ userId: ANA, name: "Ana Lopez" }],
+      ...overrides,
+    };
+  }
+
+  test("some owners still emailed: whom the email reaches, then who is paged instead", () => {
+    expect(
+      getWhoIsToldSentences(
+        result([offline({ events: [event({ owners: pagedOwners() })] })]),
+        translator,
+      ),
+    ).toEqual([
+      "OneUptime marks it Offline and opens an incident (Critical).",
+      "It emails its owners (Ben Ito).",
+      "Ana Lopez is paged, so isn't emailed as an owner too.",
+      "It pages Ana Lopez through Primary.",
+    ]);
+  });
+
+  test("the one-person project: its Project Owner is paged, and no email is said to reach anybody", () => {
+    const sentences: Array<string> = getWhoIsToldSentences(
+      result([
+        offline({
+          events: [
+            event({
+              owners: pagedOwners({
+                source: WhoIsToldOwnersSource.ProjectOwners,
+                userNames: [],
+              }),
+            }),
+          ],
+        }),
+      ]),
+      translator,
+    );
+
+    expect(sentences).toEqual([
+      "OneUptime marks it Offline and opens an incident (Critical).",
+      "Ana Lopez is paged, so isn't emailed as a Project Owner too.",
+      "It pages Ana Lopez through Primary.",
+    ]);
+    expect(sentences.join(" ")).not.toContain("It emails");
+  });
+
+  test("several owners paged: said in the plural, the first few by name and the rest counted", () => {
+    const owners: WhoIsToldEvent["owners"] = pagedOwners({
+      userNames: [],
+      pagedOwners: [
+        { userId: "1", name: "Ana Lopez" },
+        { userId: "2", name: "Ben Ito" },
+        { userId: "3", name: "Cara Diaz" },
+        { userId: "4", name: "Dan Okafor" },
+      ],
+    });
+
+    expect(getPagedOwnersSentence(owners, translator)).toBe(
+      "Ana Lopez, Ben Ito, Cara Diaz and 1 more are paged, so aren't emailed as owners too.",
+    );
+    expect(
+      getPagedOwnersSentence(
+        pagedOwners({
+          pagedOwners: [
+            { userId: "1", name: "Ana Lopez" },
+            { userId: "2", name: "Ben Ito" },
+          ],
+        }),
+        translator,
+      ),
+    ).toBe("Ana Lopez and Ben Ito are paged, so aren't emailed as owners too.");
+  });
+
+  test("a team still emailed is named as the email's", () => {
+    expect(
+      getOwnersSentences(
+        pagedOwners({ userNames: [], teamNames: ["Checkout SRE"] }),
+        translator,
+      ),
+    ).toEqual([
+      "It emails its owners (Checkout SRE).",
+      "Ana Lopez is paged, so isn't emailed as an owner too.",
+    ]);
+  });
+
+  test("nobody paged first, or an older server's answer: the card says what it always said", () => {
+    const asBefore: WhoIsToldEvent["owners"] = {
+      source: WhoIsToldOwnersSource.Named,
+      userNames: ["Ana Lopez", "Ben Ito"],
+      teamNames: [],
+    };
+
+    expect(getOwnersSentences(asBefore, translator)).toEqual([
+      "It emails its owners (Ana Lopez and Ben Ito).",
+    ]);
+    expect(getPagedOwnersSentence(asBefore, translator)).toBeNull();
+    expect(
+      getOwnersSentences({ ...asBefore, pagedOwners: [] }, translator),
+    ).toEqual(["It emails its owners (Ana Lopez and Ben Ito)."]);
+  });
+
+  test("a status change's owners are said as they always were", () => {
+    expect(
+      getWhoIsToldSentences(
+        result([
+          offline({
+            events: [],
+            statusOwners: {
+              source: WhoIsToldOwnersSource.MonitorOwners,
+              userNames: ["Ana Lopez"],
+              teamNames: [],
+            },
+          }),
+        ]),
+        translator,
+      ),
+    ).toEqual([
+      "OneUptime marks it Offline. It opens no incident or alert, so nobody is paged.",
+      "It emails the monitor's owners (Ana Lopez).",
+    ]);
+  });
+
+  describe("in the chain", () => {
+    afterEach(() => {
+      cleanup();
+      jest.restoreAllMocks();
+    });
+
+    async function drawChain(owners: WhoIsToldEvent["owners"]): Promise<void> {
+      jest
+        .spyOn(WhoIsToldApi, "getForMonitor")
+        .mockResolvedValue(
+          result([offline({ events: [event({ owners: owners })] })]),
+        );
+
+      render(
+        <MemoryRouter>
+          <MonitorWhoIsToldCard monitorId={MONITOR_ID} />
+        </MemoryRouter>,
+      );
+
+      fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+    }
+
+    test("the Emails row names whom the email reaches, and under it who is paged instead", async () => {
+      await drawChain(pagedOwners());
+
+      const chain: HTMLElement = screen.getByTestId("who-is-told-chain");
+
+      expect(chain).toHaveTextContent("Ben Ito");
+      expect(screen.getByTestId("who-is-told-paged-owners")).toHaveTextContent(
+        "Ana Lopez is paged, so isn't emailed as an owner too.",
+      );
+      expect(screen.getByTestId("who-is-told-summary")).toHaveTextContent(
+        "It emails its owners (Ben Ito). Ana Lopez is paged, so isn't emailed as an owner too.",
+      );
+    });
+
+    test("every owner paged: Nobody is emailed, and the line under it says why", async () => {
+      await drawChain(
+        pagedOwners({
+          source: WhoIsToldOwnersSource.ProjectOwners,
+          userNames: [],
+        }),
+      );
+
+      expect(screen.getByTestId("who-is-told-chain")).toHaveTextContent(
+        "Nobody",
+      );
+      expect(screen.getByTestId("who-is-told-paged-owners")).toHaveTextContent(
+        "Ana Lopez is paged, so isn't emailed as a Project Owner too.",
+      );
+    });
+
+    test("nobody paged first: no line under the Emails row", async () => {
+      await drawChain({
+        source: WhoIsToldOwnersSource.Named,
+        userNames: ["Ana Lopez"],
+        teamNames: [],
+      });
+
+      expect(screen.queryByTestId("who-is-told-paged-owners")).toBeNull();
+    });
   });
 });

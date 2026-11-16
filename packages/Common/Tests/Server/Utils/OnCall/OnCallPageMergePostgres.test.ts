@@ -14,14 +14,19 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
-import { getOnCallPageMergeTakenOverMessage } from "../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
+import {
+  OnCallPageCoverKind,
+  OnCallPageCoverName,
+  getOnCallPageMergeTakenOverMessage,
+  getOnCallPageMergedLine,
+} from "../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 import UserNotificationEventType from "../../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../../../Types/UserNotification/UserNotificationExecutionStatus";
 import { DataSource } from "typeorm";
 
 /*
- * ONE PAGE FOR SOMEBODY TWO POLICIES PAGE ABOUT ONE RECORD, AGAINST A
- * MIGRATED POSTGRES (issue #7837).
+ * ONE PAGE FOR SOMEBODY TWO PAGES REACH ABOUT ONE RECORD, AGAINST A
+ * MIGRATED POSTGRES (issues #7837, #8859).
  *
  * The unit suites fake the services, so they cannot tell whether the reads
  * that merge pages run at all: a relation selected by a wrong name, or a
@@ -34,7 +39,10 @@ import { DataSource } from "typeorm";
  *     level pages, with that policy's name; only an open page (still
  *     sending, or all sent with its run still paging) of a run that may
  *     stand for theirs; their first; nobody for a run whose pages are never
- *     merged; an alert's pages by the alert;
+ *     merged; an alert's pages by the alert; a direct page - one sent from
+ *     a chat, by who sent it (their user, read apart), or a workflow's, by the
+ *     workflow's name - and a workflow's direct page merged into a page
+ *     (#8859);
  *   - readMergedPage, on a merged page read back from the database (its
  *     status and mergedIntoUserOnCallLogId): waits, answered with when, or
  *     takes the page over with what the other page sent (nothing after a
@@ -51,8 +59,8 @@ import { DataSource } from "typeorm";
  * Opt in with RUN_POSTGRES_ONCALL_PAGE_MERGE_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
  * database right after its drift check. The UserOnCallLog,
- * OnCallDutyPolicyExecutionLog, OnCallDutyPolicy and
- * OnCallDutyPolicyExecutionLogTimeline tables' STRUCTURE is cloned into a
+ * OnCallDutyPolicyExecutionLog, OnCallDutyPolicy,
+ * OnCallDutyPolicyExecutionLogTimeline and User tables' STRUCTURE is cloned into a
  * unique schema (search_path holds only that schema) that is dropped
  * afterwards; every row is synthetic. Credentials from DATABASE_USERNAME /
  * DATABASE_PASSWORD, database from ONCALL_PAGE_MERGE_TEST_DATABASE_NAME or
@@ -71,6 +79,8 @@ const TABLES: Array<string> = [
   "OnCallDutyPolicyExecutionLog",
   "OnCallDutyPolicy",
   "OnCallDutyPolicyExecutionLogTimeline",
+  // Who sent a direct page from a chat: its line names them (#8859).
+  "User",
 ];
 
 // What the other page sent, by claim key, as the claims write it.
@@ -91,6 +101,9 @@ interface RunFixture {
   policyId: ObjectID | null;
   status?: OnCallDutyPolicyStatus | undefined;
   triggeredByUserId?: ObjectID | undefined;
+  // A workflow's page: its id, and its name as the run recorded it.
+  triggeredByWorkflowId?: ObjectID | undefined;
+  triggeredByWorkflowName?: string | undefined;
   pageAgainNumber?: number | undefined;
   isObserverPage?: boolean | undefined;
   userNotificationEventType?: UserNotificationEventType | undefined;
@@ -109,13 +122,19 @@ interface PageFixture {
   executedNotificationRules?: JSONObject | undefined;
   mergedIntoUserOnCallLogId?: ObjectID | undefined;
   lineId?: ObjectID | undefined;
+  // A merged page's line: who is paging them.
+  statusMessage?: string | undefined;
 }
 
 interface CoverRow {
   user: string;
   page: string;
   run: string;
-  policyName: string | null;
+  by: OnCallPageCoverName;
+}
+
+function policyNamed(name: string | null): OnCallPageCoverName {
+  return { kind: OnCallPageCoverKind.Policy, name: name };
 }
 
 function idOf(id: ObjectID | string | undefined | null): string {
@@ -129,7 +148,7 @@ function coverRows(covers: Map<string, OnCallPageCover>): Array<CoverRow> {
         user: user,
         page: idOf(cover.userOnCallLogId),
         run: idOf(cover.executionLogId),
-        policyName: cover.policyName,
+        by: cover.by,
       };
     })
     .sort((a: CoverRow, b: CoverRow): number => {
@@ -175,13 +194,27 @@ describePostgres(
       return id;
     }
 
+    async function addUser(data: {
+      name?: string | undefined;
+      email: string;
+    }): Promise<ObjectID> {
+      const id: ObjectID = ObjectID.generate();
+      await database.query(
+        `INSERT INTO "${schema}"."User" ("_id", "name", "email", "version")
+        VALUES ($1, $2, $3, 1)`,
+        [id.toString(), data.name || null, data.email],
+      );
+      return id;
+    }
+
     async function addRun(run: RunFixture): Promise<ObjectID> {
       const id: ObjectID = ObjectID.generate();
       await database.query(
         `INSERT INTO "${schema}"."OnCallDutyPolicyExecutionLog"
           ("_id", "projectId", "onCallDutyPolicyId", "status", "triggeredByIncidentId",
-           "userNotificationEventType", "triggeredByUserId", "pageAgainNumber", "isObserverPage", "version")
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 1)`,
+           "userNotificationEventType", "triggeredByUserId", "pageAgainNumber", "isObserverPage",
+           "triggeredByWorkflowId", "triggeredByWorkflowName", "version")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 1)`,
         [
           id.toString(),
           projectId.toString(),
@@ -193,6 +226,10 @@ describePostgres(
           run.triggeredByUserId ? run.triggeredByUserId.toString() : null,
           run.pageAgainNumber || 0,
           Boolean(run.isObserverPage),
+          run.triggeredByWorkflowId
+            ? run.triggeredByWorkflowId.toString()
+            : null,
+          run.triggeredByWorkflowName ?? null,
         ],
       );
       return id;
@@ -208,8 +245,9 @@ describePostgres(
         `INSERT INTO "${schema}"."UserOnCallLog"
           ("_id", "projectId", "userId", "status", "${record.column}", "userNotificationEventType",
            "onCallDutyPolicyExecutionLogId", "onCallDutyPolicyId", "onCallDutyPolicyExecutionLogTimelineId",
-           "createdAt", "acknowledgedAt", "executedNotificationRules", "mergedIntoUserOnCallLogId", "version")
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 1)`,
+           "createdAt", "acknowledgedAt", "executedNotificationRules", "mergedIntoUserOnCallLogId",
+           "statusMessage", "version")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 1)`,
         [
           id.toString(),
           (page.projectId || projectId).toString(),
@@ -229,6 +267,7 @@ describePostgres(
           page.mergedIntoUserOnCallLogId
             ? page.mergedIntoUserOnCallLogId.toString()
             : null,
+          page.statusMessage ?? null,
         ],
       );
       return id;
@@ -321,6 +360,7 @@ describePostgres(
             _id: true,
             status: true,
             mergedIntoUserOnCallLogId: true,
+            statusMessage: true,
           },
           props: {
             isRoot: true,
@@ -422,7 +462,7 @@ describePostgres(
           user: idOf(ana),
           page: idOf(anaPage),
           run: idOf(paymentsRun),
-          policyName: "Payments",
+          by: policyNamed("Payments"),
         },
       ]);
     });
@@ -567,7 +607,7 @@ describePostgres(
           user: idOf(ana),
           page: idOf(firstPage),
           run: idOf(platformRun),
-          policyName: "Platform",
+          by: policyNamed("Platform"),
         },
       ]);
     });
@@ -644,7 +684,7 @@ describePostgres(
           user: idOf(ana),
           page: idOf(anaPage),
           run: idOf(paymentsRun),
-          policyName: "Payments",
+          by: policyNamed("Payments"),
         },
       ]);
       expect(
@@ -680,7 +720,7 @@ describePostgres(
       expect(await readMergedPageBack(merged)).toEqual({
         standing: OnCallMergedPageStanding.Waits,
         claimsSent: {},
-        policyName: "Payments",
+        by: policyNamed("Payments"),
       });
 
       // All sent, its run still paging: still open.
@@ -729,7 +769,7 @@ describePostgres(
       expect(await readMergedPageBack(merged)).toEqual({
         standing: OnCallMergedPageStanding.TakesOver,
         claimsSent: CLAIMS_SENT,
-        policyName: "Payments",
+        by: policyNamed("Payments"),
       });
 
       // All sent, and its policy stopped: what it sent counts.
@@ -740,7 +780,7 @@ describePostgres(
       expect(await readMergedPageBack(merged)).toEqual({
         standing: OnCallMergedPageStanding.TakesOver,
         claimsSent: CLAIMS_SENT,
-        policyName: "Payments",
+        by: policyNamed("Payments"),
       });
 
       // It failed: everything is sent again.
@@ -750,7 +790,7 @@ describePostgres(
       expect(await readMergedPageBack(merged)).toEqual({
         standing: OnCallMergedPageStanding.TakesOver,
         claimsSent: {},
-        policyName: "Payments",
+        by: policyNamed("Payments"),
       });
 
       // It is gone: from the start.
@@ -761,7 +801,197 @@ describePostgres(
       expect(await readMergedPageBack(merged)).toEqual({
         standing: OnCallMergedPageStanding.TakesOver,
         claimsSent: {},
-        policyName: null,
+        by: null,
+      });
+    });
+
+    test("a direct page stands for a policy's page: one sent from a chat by who sent it, a workflow's by the workflow (#8859)", async () => {
+      const billing: ObjectID = await addPolicy("Billing");
+      const billingRun: ObjectID = await addRun({ policyId: billing });
+      const jane: ObjectID = await addUser({
+        name: "Jane Doe",
+        email: "jane@example.com",
+      });
+      const nameless: ObjectID = await addUser({ email: "sam@example.com" });
+      const fromJane: ObjectID = await addRun({
+        policyId: null,
+        triggeredByUserId: jane,
+      });
+      const fromSam: ObjectID = await addRun({
+        policyId: null,
+        triggeredByUserId: nameless,
+      });
+      const fromWorkflow: ObjectID = await addRun({
+        policyId: null,
+        triggeredByWorkflowId: ObjectID.generate(),
+        triggeredByWorkflowName: "Nightly Checks",
+      });
+      // Sent by somebody who is no longer there to name: no page to stand on.
+      const fromNobody: ObjectID = await addRun({
+        policyId: null,
+        triggeredByUserId: ObjectID.generate(),
+      });
+
+      const ana: ObjectID = ObjectID.generate();
+      const ben: ObjectID = ObjectID.generate();
+      const carl: ObjectID = ObjectID.generate();
+      const dana: ObjectID = ObjectID.generate();
+      const anaPage: ObjectID = await addPage({
+        userId: ana,
+        runId: fromJane,
+        policyId: null,
+        status: UserNotificationExecutionStatus.Executing,
+      });
+      const benPage: ObjectID = await addPage({
+        userId: ben,
+        runId: fromSam,
+        policyId: null,
+        // All sent, the page still open.
+        status: UserNotificationExecutionStatus.Completed,
+      });
+      const carlPage: ObjectID = await addPage({
+        userId: carl,
+        runId: fromWorkflow,
+        policyId: null,
+        status: UserNotificationExecutionStatus.Executing,
+      });
+      await addPage({
+        userId: dana,
+        runId: fromNobody,
+        policyId: null,
+        status: UserNotificationExecutionStatus.Executing,
+      });
+
+      expect(
+        await findCovers({
+          runId: billingRun,
+          userIds: [ana, ben, carl, dana],
+        }),
+      ).toEqual(
+        [
+          {
+            user: idOf(ana),
+            page: idOf(anaPage),
+            run: idOf(fromJane),
+            by: { kind: OnCallPageCoverKind.PersonPage, name: "Jane Doe" },
+          },
+          {
+            user: idOf(ben),
+            page: idOf(benPage),
+            run: idOf(fromSam),
+            by: {
+              kind: OnCallPageCoverKind.PersonPage,
+              name: "sam@example.com",
+            },
+          },
+          {
+            user: idOf(carl),
+            page: idOf(carlPage),
+            run: idOf(fromWorkflow),
+            by: {
+              kind: OnCallPageCoverKind.WorkflowPage,
+              name: "Nightly Checks",
+            },
+          },
+        ].sort((a: CoverRow, b: CoverRow): number => {
+          return a.user.localeCompare(b.user);
+        }),
+      );
+    });
+
+    test("a workflow's direct page is merged into an open page, as a policy's level is; a page sent from a chat never is (#8859)", async () => {
+      const payments: ObjectID = await addPolicy("Payments");
+      const paymentsRun: ObjectID = await addRun({ policyId: payments });
+      const ana: ObjectID = ObjectID.generate();
+      const anaPage: ObjectID = await addPage({
+        userId: ana,
+        runId: paymentsRun,
+        policyId: payments,
+        status: UserNotificationExecutionStatus.Executing,
+      });
+      const workflowPage: ObjectID = await addRun({
+        policyId: null,
+        triggeredByWorkflowId: ObjectID.generate(),
+        triggeredByWorkflowName: "Nightly Checks",
+      });
+      const chatPage: ObjectID = await addRun({
+        policyId: null,
+        triggeredByUserId: await addUser({
+          name: "Jane Doe",
+          email: "jane@example.com",
+        }),
+      });
+
+      expect(await findCovers({ runId: workflowPage, userIds: [ana] })).toEqual(
+        [
+          {
+            user: idOf(ana),
+            page: idOf(anaPage),
+            run: idOf(paymentsRun),
+            by: policyNamed("Payments"),
+          },
+        ],
+      );
+      expect(await findCovers({ runId: chatPage, userIds: [ana] })).toEqual([]);
+    });
+
+    test("a page merged into a page sent from a chat names who sent it - read back, and once that page is gone (#8859)", async () => {
+      const billing: ObjectID = await addPolicy("Billing");
+      const billingRun: ObjectID = await addRun({ policyId: billing });
+      const fromJane: ObjectID = await addRun({
+        policyId: null,
+        triggeredByUserId: await addUser({
+          name: "Jane Doe",
+          email: "jane@example.com",
+        }),
+      });
+      const ana: ObjectID = ObjectID.generate();
+      const anaPage: ObjectID = await addPage({
+        userId: ana,
+        runId: fromJane,
+        policyId: null,
+        status: UserNotificationExecutionStatus.Executing,
+        executedNotificationRules: CLAIMS_SENT,
+      });
+      const janeLine: OnCallPageCoverName = {
+        kind: OnCallPageCoverKind.PersonPage,
+        name: "Jane Doe",
+      };
+      const merged: ObjectID = await addPage({
+        userId: ana,
+        runId: billingRun,
+        policyId: billing,
+        status: UserNotificationExecutionStatus.AlreadyPaged,
+        mergedIntoUserOnCallLogId: anaPage,
+        statusMessage: getOnCallPageMergedLine(janeLine),
+      });
+
+      expect(await readMergedPageBack(merged)).toEqual({
+        standing: OnCallMergedPageStanding.Waits,
+        claimsSent: {},
+        by: janeLine,
+      });
+
+      // Her page is over - everything sent, nobody answered: taken over.
+      await setPage(anaPage, {
+        status: UserNotificationExecutionStatus.Completed,
+      });
+      await setRunStatus(fromJane, OnCallDutyPolicyStatus.Completed);
+      expect(await readMergedPageBack(merged)).toEqual({
+        standing: OnCallMergedPageStanding.TakesOver,
+        claimsSent: CLAIMS_SENT,
+        by: janeLine,
+      });
+
+      // Gone: named as the merged page's own line names it.
+      await database.query(
+        `DELETE FROM "${schema}"."UserOnCallLog" WHERE "_id" = $1`,
+        [anaPage.toString()],
+      );
+      expect(await readMergedPageBack(merged)).toEqual({
+        standing: OnCallMergedPageStanding.TakesOver,
+        claimsSent: {},
+        by: janeLine,
       });
     });
 
@@ -796,7 +1026,7 @@ describePostgres(
 
       const reading: OnCallMergedPageReading = await readMergedPageBack(merged);
       const message: string = getOnCallPageMergeTakenOverMessage({
-        policyName: reading.policyName,
+        policyName: reading.by?.name,
       });
 
       await UserOnCallLogService.takeOverMergedPage({

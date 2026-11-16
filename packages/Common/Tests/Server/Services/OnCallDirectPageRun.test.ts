@@ -1244,6 +1244,11 @@ describe("a direct page's run", () => {
       UserNotificationExecutionStatus.Scheduled,
       UserNotificationExecutionStatus.Started,
       UserNotificationExecutionStatus.Executing,
+      /*
+       * Merged into the person's open page from another run (#8859): it
+       * waits on that page, and takes it over should it end unanswered.
+       */
+      UserNotificationExecutionStatus.AlreadyPaged,
     ])(
       "after the wait, a page that is %s keeps it open",
       async (status: UserNotificationExecutionStatus): Promise<void> => {
@@ -1267,6 +1272,7 @@ describe("a direct page's run", () => {
           UserNotificationExecutionStatus.Scheduled,
           UserNotificationExecutionStatus.Started,
           UserNotificationExecutionStatus.Executing,
+          UserNotificationExecutionStatus.AlreadyPaged,
         ].includes(value);
       })) {
         pageOut(status);

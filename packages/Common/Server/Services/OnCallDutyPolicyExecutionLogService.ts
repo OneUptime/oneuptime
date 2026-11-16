@@ -124,6 +124,21 @@ export interface OnCallDirectPageRun {
   outcome: OnCallPagingOutcome;
 }
 
+/*
+ * The statuses of a person's page that keep a direct page open
+ * (endDirectPageIfItsPagesAreOver): its notifications are still going out,
+ * or it is merged into the person's open page from another run and waits on
+ * it (OnCallPageMerge, #8859) - it takes the page over should that one end
+ * without their answer, so the direct page is not over while it waits.
+ */
+export const ON_CALL_DIRECT_PAGE_STATUSES_STILL_OUT: ReadonlyArray<UserNotificationExecutionStatus> =
+  [
+    UserNotificationExecutionStatus.Scheduled,
+    UserNotificationExecutionStatus.Started,
+    UserNotificationExecutionStatus.Executing,
+    UserNotificationExecutionStatus.AlreadyPaged,
+  ];
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -1563,7 +1578,10 @@ export class Service extends ProjectReferencesService<Model> {
    * sent everything they had to send (a call after ten minutes, a push that
    * repeats), with nobody acknowledging. Until then it stays open, so its
    * Slack and Microsoft Teams message goes on saying people are being paged
-   * while they are.
+   * while they are. A page of it merged into the person's open page from
+   * another run waits on that page, and keeps it open too
+   * (ON_CALL_DIRECT_PAGE_STATUSES_STILL_OUT): it pages them itself should
+   * that page end without their answer (#8859).
    *
    * It stays open for a while after paging started in any case
    * (ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES): somebody whose one
@@ -1598,11 +1616,7 @@ export class Service extends ProjectReferencesService<Model> {
     const pagesStillOut: PositiveNumber = await UserOnCallLogService.countBy({
       query: {
         onCallDutyPolicyExecutionLogId: executionLogId,
-        status: QueryHelper.any([
-          UserNotificationExecutionStatus.Scheduled,
-          UserNotificationExecutionStatus.Started,
-          UserNotificationExecutionStatus.Executing,
-        ]),
+        status: QueryHelper.any([...ON_CALL_DIRECT_PAGE_STATUSES_STILL_OUT]),
       },
       props: {
         isRoot: true,
