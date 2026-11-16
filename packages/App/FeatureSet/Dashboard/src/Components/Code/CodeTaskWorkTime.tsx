@@ -20,6 +20,12 @@ export interface ComponentProps {
    * task page's repository and branch).
    */
   hasClock?: boolean | undefined;
+  /*
+   * Under a name that already says it is how long AI worked (a task's
+   * Details): the time alone, "4 minutes", not "worked 4 minutes".
+   */
+  isDurationOnly?: boolean | undefined;
+  dataTestId?: string | undefined;
 }
 
 /*
@@ -85,7 +91,7 @@ const CodeTaskWorkTime: FunctionComponent<ComponentProps> = (
 
   return (
     <span
-      data-testid="code-task-work-time"
+      data-testid={props.dataTestId || "code-task-work-time"}
       className={`whitespace-nowrap ${
         props.hasClock ? "inline-flex items-center gap-1" : ""
       } ${props.className || ""}`}
@@ -100,7 +106,9 @@ const CodeTaskWorkTime: FunctionComponent<ComponentProps> = (
       )}
       {isWorking
         ? translator.translateTemplate("{{duration}} so far", { duration })
-        : translator.translateTemplate("worked {{duration}}", { duration })}
+        : props.isDurationOnly
+          ? duration
+          : translator.translateTemplate("worked {{duration}}", { duration })}
     </span>
   );
 };

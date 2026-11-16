@@ -56341,5 +56341,15 @@
   "Escalation Rule Name": "Eskaleringsregelens navn",
   "Escalation Rule Order": "Eskaleringsregelens rekkefølge",
   "Level {{order}} (deleted)": "Nivå {{order}} (slettet)",
-  "Level {{order}}: {{name}} (deleted)": "Nivå {{order}}: {{name}} (slettet)"
+  "Level {{order}}: {{name}} (deleted)": "Nivå {{order}}: {{name}} (slettet)",
+  "GitHub Issue": "GitHub-sak",
+  "GitHub Pull Request": "GitHub-pull-forespørsel",
+  "GitLab Merge Request": "GitLab-merge-forespørsel",
+  "Last activity": "Siste aktivitet",
+  "Merge request": "Merge-forespørsel",
+  "Pull Request": "Pull-forespørsel",
+  "Slow Trace": "Tregt spor",
+  "Started by": "Startet av",
+  "Started from": "Startet fra",
+  "Time worked": "Arbeidstid"
 }

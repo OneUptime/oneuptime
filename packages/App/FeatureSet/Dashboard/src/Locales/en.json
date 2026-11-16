@@ -56341,5 +56341,15 @@
   "Escalation Rule Name": "Escalation Rule Name",
   "Escalation Rule Order": "Escalation Rule Order",
   "Level {{order}} (deleted)": "Level {{order}} (deleted)",
-  "Level {{order}}: {{name}} (deleted)": "Level {{order}}: {{name}} (deleted)"
+  "Level {{order}}: {{name}} (deleted)": "Level {{order}}: {{name}} (deleted)",
+  "GitHub Issue": "GitHub Issue",
+  "GitHub Pull Request": "GitHub Pull Request",
+  "GitLab Merge Request": "GitLab Merge Request",
+  "Last activity": "Last activity",
+  "Merge request": "Merge request",
+  "Pull Request": "Pull Request",
+  "Slow Trace": "Slow Trace",
+  "Started by": "Started by",
+  "Started from": "Started from",
+  "Time worked": "Time worked"
 }

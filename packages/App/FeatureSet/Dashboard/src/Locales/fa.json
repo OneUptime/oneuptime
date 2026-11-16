@@ -56341,5 +56341,15 @@
   "Escalation Rule Name": "نام قاعده تشدید",
   "Escalation Rule Order": "ترتیب قاعده تشدید",
   "Level {{order}} (deleted)": "سطح {{order}} (حذف‌شده)",
-  "Level {{order}}: {{name}} (deleted)": "سطح {{order}}: {{name}} (حذف‌شده)"
+  "Level {{order}}: {{name}} (deleted)": "سطح {{order}}: {{name}} (حذف‌شده)",
+  "GitHub Issue": "Issue در GitHub",
+  "GitHub Pull Request": "Pull Request در GitHub",
+  "GitLab Merge Request": "Merge Request در GitLab",
+  "Last activity": "آخرین فعالیت",
+  "Merge request": "درخواست ادغام",
+  "Pull Request": "درخواست کشش",
+  "Slow Trace": "ترِیس کند",
+  "Started by": "شروع‌شده توسط",
+  "Started from": "شروع‌شده از",
+  "Time worked": "زمان کار"
 }

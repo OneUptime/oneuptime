@@ -56341,5 +56341,15 @@
   "Escalation Rule Name": "エスカレーションルール名",
   "Escalation Rule Order": "エスカレーションルールの順序",
   "Level {{order}} (deleted)": "レベル {{order}}（削除済み）",
-  "Level {{order}}: {{name}} (deleted)": "レベル {{order}}: {{name}}（削除済み）"
+  "Level {{order}}: {{name}} (deleted)": "レベル {{order}}: {{name}}（削除済み）",
+  "GitHub Issue": "GitHub イシュー",
+  "GitHub Pull Request": "GitHub のプルリクエスト",
+  "GitLab Merge Request": "GitLab のマージリクエスト",
+  "Last activity": "最終アクティビティ",
+  "Merge request": "マージリクエスト",
+  "Pull Request": "プルリクエスト",
+  "Slow Trace": "遅いトレース",
+  "Started by": "開始者",
+  "Started from": "開始元",
+  "Time worked": "作業時間"
 }

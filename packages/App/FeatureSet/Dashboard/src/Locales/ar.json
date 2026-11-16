@@ -56341,5 +56341,15 @@
   "Escalation Rule Name": "اسم قاعدة التصعيد",
   "Escalation Rule Order": "ترتيب قاعدة التصعيد",
   "Level {{order}} (deleted)": "المستوى {{order}} (محذوف)",
-  "Level {{order}}: {{name}} (deleted)": "المستوى {{order}}: {{name}} (محذوف)"
+  "Level {{order}}: {{name}} (deleted)": "المستوى {{order}}: {{name}} (محذوف)",
+  "GitHub Issue": "مشكلة GitHub",
+  "GitHub Pull Request": "طلب سحب GitHub",
+  "GitLab Merge Request": "طلب دمج GitLab",
+  "Last activity": "آخر نشاط",
+  "Merge request": "طلب دمج",
+  "Pull Request": "طلب سحب",
+  "Slow Trace": "تتبع بطيء",
+  "Started by": "بدأه",
+  "Started from": "بدأ من",
+  "Time worked": "وقت العمل"
 }

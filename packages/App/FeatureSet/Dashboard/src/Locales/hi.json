@@ -56341,5 +56341,15 @@
   "Escalation Rule Name": "एस्केलेशन नियम का नाम",
   "Escalation Rule Order": "एस्केलेशन नियम का क्रम",
   "Level {{order}} (deleted)": "स्तर {{order}} (हटाया गया)",
-  "Level {{order}}: {{name}} (deleted)": "स्तर {{order}}: {{name}} (हटाया गया)"
+  "Level {{order}}: {{name}} (deleted)": "स्तर {{order}}: {{name}} (हटाया गया)",
+  "GitHub Issue": "GitHub इश्यू",
+  "GitHub Pull Request": "GitHub पुल रिक्वेस्ट",
+  "GitLab Merge Request": "GitLab मर्ज रिक्वेस्ट",
+  "Last activity": "पिछली गतिविधि",
+  "Merge request": "मर्ज रिक्वेस्ट",
+  "Pull Request": "पुल रिक्वेस्ट",
+  "Slow Trace": "धीमा ट्रेस",
+  "Started by": "किसने शुरू किया",
+  "Started from": "कहाँ से शुरू हुआ",
+  "Time worked": "काम का समय"
 }

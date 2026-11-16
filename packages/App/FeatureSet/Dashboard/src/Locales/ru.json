@@ -56341,5 +56341,15 @@
   "Escalation Rule Name": "Название правила эскалации",
   "Escalation Rule Order": "Порядок правила эскалации",
   "Level {{order}} (deleted)": "Уровень {{order}} (удалён)",
-  "Level {{order}}: {{name}} (deleted)": "Уровень {{order}}: {{name}} (удалён)"
+  "Level {{order}}: {{name}} (deleted)": "Уровень {{order}}: {{name}} (удалён)",
+  "GitHub Issue": "Задача GitHub",
+  "GitHub Pull Request": "Пул-реквест GitHub",
+  "GitLab Merge Request": "Мерж-реквест GitLab",
+  "Last activity": "Последняя активность",
+  "Merge request": "Мерж-реквест",
+  "Pull Request": "Пул-реквест",
+  "Slow Trace": "Медленная трассировка",
+  "Started by": "Кто запустил",
+  "Started from": "Источник",
+  "Time worked": "Время работы"
 }

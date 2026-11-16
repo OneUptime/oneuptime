@@ -56341,5 +56341,15 @@
   "Escalation Rule Name": "升级规则名称",
   "Escalation Rule Order": "升级规则顺序",
   "Level {{order}} (deleted)": "级别 {{order}}（已删除）",
-  "Level {{order}}: {{name}} (deleted)": "级别 {{order}}：{{name}}（已删除）"
+  "Level {{order}}: {{name}} (deleted)": "级别 {{order}}：{{name}}（已删除）",
+  "GitHub Issue": "GitHub 议题",
+  "GitHub Pull Request": "GitHub 拉取请求",
+  "GitLab Merge Request": "GitLab 合并请求",
+  "Last activity": "最近活动",
+  "Merge request": "合并请求",
+  "Pull Request": "拉取请求",
+  "Slow Trace": "慢追踪",
+  "Started by": "发起人",
+  "Started from": "来源",
+  "Time worked": "工作时长"
 }

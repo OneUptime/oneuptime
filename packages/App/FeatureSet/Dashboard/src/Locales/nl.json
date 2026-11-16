@@ -56341,5 +56341,15 @@
   "Escalation Rule Name": "Naam van de escalatieregel",
   "Escalation Rule Order": "Volgorde van de escalatieregel",
   "Level {{order}} (deleted)": "Niveau {{order}} (verwijderd)",
-  "Level {{order}}: {{name}} (deleted)": "Niveau {{order}}: {{name}} (verwijderd)"
+  "Level {{order}}: {{name}} (deleted)": "Niveau {{order}}: {{name}} (verwijderd)",
+  "GitHub Issue": "GitHub-issue",
+  "GitHub Pull Request": "GitHub-pull request",
+  "GitLab Merge Request": "GitLab-merge request",
+  "Last activity": "Laatste activiteit",
+  "Merge request": "Mergeverzoek",
+  "Pull Request": "Pullverzoek",
+  "Slow Trace": "Trage trace",
+  "Started by": "Gestart door",
+  "Started from": "Gestart vanuit",
+  "Time worked": "Gewerkte tijd"
 }

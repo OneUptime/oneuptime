@@ -56341,5 +56341,15 @@
   "Escalation Rule Name": "Nom de la règle d'escalade",
   "Escalation Rule Order": "Ordre de la règle d'escalade",
   "Level {{order}} (deleted)": "Niveau {{order}} (supprimé)",
-  "Level {{order}}: {{name}} (deleted)": "Niveau {{order}} : {{name}} (supprimé)"
+  "Level {{order}}: {{name}} (deleted)": "Niveau {{order}} : {{name}} (supprimé)",
+  "GitHub Issue": "Ticket GitHub",
+  "GitHub Pull Request": "Demande de tirage GitHub",
+  "GitLab Merge Request": "Demande de fusion GitLab",
+  "Last activity": "Dernière activité",
+  "Merge request": "Demande de fusion",
+  "Pull Request": "Demande de tirage",
+  "Slow Trace": "Trace lente",
+  "Started by": "Lancé par",
+  "Started from": "Lancé depuis",
+  "Time worked": "Temps de travail"
 }
