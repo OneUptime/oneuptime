@@ -3,12 +3,14 @@
  */
 
 import SafeWebhookRequest, {
-  OUTBOUND_PROXY_ENVIRONMENT_VARIABLES,
-  UNAPPROVED_LOOKUP_MESSAGE,
   WEBHOOK_MAX_RESPONSE_BYTES,
   WebhookTarget,
 } from "../../../Server/Utils/SafeWebhookRequest";
-import { EgressLookupFunction } from "../../../Server/Utils/DataSource/EgressGuard";
+import DataSourceEgressGuard, {
+  EgressLookupFunction,
+  OUTBOUND_PROXY_ENVIRONMENT_VARIABLES,
+  UNAPPROVED_LOOKUP_MESSAGE,
+} from "../../../Server/Utils/DataSource/EgressGuard";
 import SSRFProtection, {
   WebhookTargetValidationOptions,
 } from "../../../Server/Utils/SSRFProtection";
@@ -836,18 +838,18 @@ describe("an outbound proxy the operator configured keeps working", () => {
     process.env["all_proxy"] = "::: not a URL :::";
 
     expect(
-      Array.from(SafeWebhookRequest.getOutboundProxyHostnames()).sort(),
+      Array.from(DataSourceEgressGuard.getOutboundProxyHostnames()).sort(),
     ).toEqual(
       ["fd00::1", "proxy.corp.example", "secure-proxy.corp.example"].sort(),
     );
   });
 
   test("with no proxy configured there are no proxy names to look up", () => {
-    expect(SafeWebhookRequest.getOutboundProxyHostnames().size).toBe(0);
+    expect(DataSourceEgressGuard.getOutboundProxyHostnames().size).toBe(0);
   });
 });
 
-describe("the pinned lookup", () => {
+describe("the pinned lookup the agents carry (DataSourceEgressGuard's, one implementation for every pinned request)", () => {
   const target: WebhookTarget = {
     url: new globalThis.URL("https://Hooks.Example.com/hook"),
     addresses: [
@@ -881,7 +883,7 @@ describe("the pinned lookup", () => {
 
   test("answers the target's name with the approved addresses, as the socket asks for them", async () => {
     const lookup: EgressLookupFunction =
-      SafeWebhookRequest.createPinnedLookup(target);
+      DataSourceEgressGuard.createPinnedLookupForTarget(target);
 
     expect(
       (await look(lookup, "hooks.example.com", { all: true })).address,
@@ -897,7 +899,7 @@ describe("the pinned lookup", () => {
 
   test("refuses any other name", async () => {
     const lookup: EgressLookupFunction =
-      SafeWebhookRequest.createPinnedLookup(target);
+      DataSourceEgressGuard.createPinnedLookupForTarget(target);
 
     for (const name of [
       "169.254.169.254.nip.io",
@@ -918,7 +920,7 @@ describe("the pinned lookup", () => {
 
   test("answers asynchronously, as dns.lookup does", () => {
     const lookup: EgressLookupFunction =
-      SafeWebhookRequest.createPinnedLookup(target);
+      DataSourceEgressGuard.createPinnedLookupForTarget(target);
     let answered: boolean = false;
 
     lookup("elsewhere.example", {}, () => {

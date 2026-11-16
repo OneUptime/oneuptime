@@ -8,18 +8,11 @@ import APIException from "../../Types/Exception/ApiException";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import API, { RequestOptions } from "../../Utils/API";
-import DataSourceEgressGuard, {
-  EgressLookupCallback,
-  EgressLookupFunction,
-  PinnedAgents,
-} from "./DataSource/EgressGuard";
+import DataSourceEgressGuard, { PinnedAgents } from "./DataSource/EgressGuard";
 import SSRFProtection, {
   ValidatedWebhookTarget,
   WebhookTargetValidationOptions,
 } from "./SSRFProtection";
-import dns from "dns";
-import http from "http";
-import https from "https";
 
 /*
  * A WEBHOOK SENT TO THE ADDRESS ITS URL CHECK APPROVED, AND NOWHERE ELSE
@@ -31,8 +24,10 @@ import https from "https";
  * OpenStack project notice, a call to a Mattermost server - goes through
  * here (WebhookSendersPinnedGuard holds every one to it), so each keeps
  * these rules. Other outbound connections a project member chooses - data
- * sources, LLM providers, SMTP and the like - go through
- * DataSource/EgressGuard instead.
+ * sources, LLM providers, SMTP and the like - are checked by
+ * DataSource/EgressGuard instead, whose pinned agents these are too
+ * (DataSourceEgressGuard.createPinnedAgents): one implementation of the
+ * pin, and of the proxy rule below, for every pinned HTTP request.
  *
  *   - The URL is checked (SSRFProtection.validateAndResolveWebhookTarget)
  *     with the policy its caller passes, unchanged: whether a private
@@ -56,11 +51,12 @@ import https from "https";
  *     environment, apart from the hosts in NO_PROXY - still does, exactly as
  *     axios routes every other request. The agents may look up the proxy's
  *     own name for that (the operator wrote it); every other name but the
- *     webhook's is refused. Through a proxy it is the proxy that looks the
- *     webhook's name up and connects, so the address it lands on is the
- *     proxy's to police: the URL is still checked first and no redirect is
- *     followed, and the docs (self-hosted/private-network-access) ask the
- *     operator to refuse private and link-local destinations on the proxy.
+ *     webhook's is refused (DataSourceEgressGuard.createPinnedLookupForTarget).
+ *     Through a proxy it is the proxy that looks the webhook's name up and
+ *     connects, so the address it lands on is the proxy's to police: the
+ *     URL is still checked first and no redirect is followed, and the docs
+ *     (self-hosted/private-network-access) ask the operator to refuse
+ *     private and link-local destinations on the proxy.
  *     Pinning through the proxy instead - asking it to CONNECT to the
  *     approved address - would break proxies that allow destinations by
  *     name, and a hostname is what an egress proxy's rules are written in.
@@ -114,23 +110,6 @@ export interface WebhookRequestOptions extends WebhookSendOptions {
 }
 
 export type WebhookPostOptions = Omit<WebhookRequestOptions, "method" | "data">;
-
-/*
- * The environment variables axios (proxy-from-env) and Node's own env
- * proxy read an outbound proxy from, in either case.
- */
-export const OUTBOUND_PROXY_ENVIRONMENT_VARIABLES: ReadonlyArray<string> = [
-  "http_proxy",
-  "HTTP_PROXY",
-  "https_proxy",
-  "HTTPS_PROXY",
-  "all_proxy",
-  "ALL_PROXY",
-];
-
-// What a lookup of any other name answers.
-export const UNAPPROVED_LOOKUP_MESSAGE: string =
-  "A webhook connects only to the address its URL check approved.";
 
 /*
  * The most of an answer a notification webhook reads (maxContentLength).
@@ -321,96 +300,14 @@ export default class SafeWebhookRequest {
     return `The webhook did not answer within ${seconds} second${seconds === 1 ? "" : "s"}, so the request was given up.`;
   }
 
-  // An http and an https agent that dial only what the target was approved for.
+  /*
+   * An http and an https agent that dial only what the target was approved
+   * for, and an outbound proxy the operator configured: the egress guard's
+   * pinned agents (DataSourceEgressGuard.createPinnedAgents), the one
+   * implementation every pinned HTTP request of the server uses.
+   */
   public static createPinnedAgents(target: WebhookTarget): PinnedAgents {
-    const lookup: EgressLookupFunction =
-      SafeWebhookRequest.createPinnedLookup(target);
-
-    return {
-      httpAgent: new http.Agent({ lookup: lookup as never }),
-      httpsAgent: new https.Agent({ lookup: lookup as never }),
-    };
-  }
-
-  /*
-   * A dns.lookup-shaped function for the agents: the target's name answers
-   * with the addresses its check approved, always (no second lookup); the
-   * name of an outbound proxy the operator configured is looked up as any
-   * other request's would be; any other name is refused. A host written as
-   * an IP address is never looked up at all - Node dials the literal, which
-   * is what the check approved.
-   */
-  public static createPinnedLookup(
-    target: WebhookTarget,
-  ): EgressLookupFunction {
-    const pinnedLookup: EgressLookupFunction =
-      DataSourceEgressGuard.createPinnedLookup(target.addresses);
-    const targetHostname: string = SafeWebhookRequest.normalizeHostname(
-      target.url.hostname,
-    );
-
-    return (
-      hostname: string,
-      lookupOptions: { all?: boolean | undefined; family?: number | undefined },
-      callback: EgressLookupCallback,
-    ): void => {
-      const name: string = SafeWebhookRequest.normalizeHostname(hostname);
-
-      if (name === targetHostname) {
-        pinnedLookup(hostname, lookupOptions, callback);
-        return;
-      }
-
-      if (SafeWebhookRequest.getOutboundProxyHostnames().has(name)) {
-        dns.lookup(
-          hostname,
-          (lookupOptions || {}) as dns.LookupAllOptions,
-          callback as never,
-        );
-        return;
-      }
-
-      const error: NodeJS.ErrnoException = new Error(UNAPPROVED_LOOKUP_MESSAGE);
-      error.code = "ENOTFOUND";
-
-      process.nextTick(() => {
-        callback(error, "");
-      });
-    };
-  }
-
-  /*
-   * The hosts of the outbound proxies the environment names, read when they
-   * are needed, as axios reads them: a value without a scheme is a host and
-   * port.
-   */
-  public static getOutboundProxyHostnames(): Set<string> {
-    const hostnames: Set<string> = new Set<string>();
-
-    for (const variable of OUTBOUND_PROXY_ENVIRONMENT_VARIABLES) {
-      const value: string = (process.env[variable] || "").trim();
-
-      if (!value) {
-        continue;
-      }
-
-      try {
-        const proxyUrl: globalThis.URL = new globalThis.URL(
-          value.includes("://") ? value : `http://${value}`,
-        );
-        const hostname: string = SafeWebhookRequest.normalizeHostname(
-          proxyUrl.hostname,
-        );
-
-        if (hostname) {
-          hostnames.add(hostname);
-        }
-      } catch {
-        // Not a URL: axios cannot send through it either.
-      }
-    }
-
-    return hostnames;
+    return DataSourceEgressGuard.createPinnedAgents(target);
   }
 
   /*
@@ -433,12 +330,5 @@ export default class SafeWebhookRequest {
       // Left for the check to refuse, in its own words.
       return text;
     }
-  }
-
-  private static normalizeHostname(hostname: string): string {
-    return (hostname || "")
-      .trim()
-      .toLowerCase()
-      .replace(/^\[|\]$/g, "");
   }
 }
