@@ -43,7 +43,7 @@ Los interruptores deciden cómo pueden registrarse los visitantes por sí mismos
 
 En OneUptime Cloud, un interruptor que tu plan no incluye muestra a su lado el nombre del plan: **Growth** para **SMS** y **Mostrar página de suscriptores**, **Scale** para **Slack**, **Microsoft Teams** y **Webhook**. Desactivar un canal funciona en todos los planes, así que un canal que activó una prueba siempre se puede volver a desactivar; el interruptor lo indica debajo.
 
-Cada canal tiene además su propia lista en el menú lateral de la página de estado, en **Suscriptores**: **Suscriptores por correo electrónico**, **Suscriptores por SMS**, **Suscriptores de Slack**, **Suscriptores de Microsoft Teams** y **Suscriptores de webhook**. Ahí es donde miras quién está registrado, añades a alguien a mano con **Añadir suscriptor** o te dejas una **Nota interna** (`internalNote`) sobre un suscriptor concreto, que el suscriptor nunca ve. Mientras un canal está desactivado, la parte superior de su lista lo indica, con el interruptor del canal ahí mismo, para que puedas activarlo sin salir de la lista.
+Los suscriptores de todos los canales están en una sola página, **Suscriptores**, en la sección **Suscriptores** del menú lateral de la página de estado. Tiene una pestaña para cada canal (**Correo electrónico**, **SMS**, **Slack**, **Microsoft Teams** y **Webhook**), y cada pestaña muestra cuántos suscriptores tiene el canal. Cada pestaña es la lista de ese canal (**Suscriptores por correo electrónico**, **Suscriptores por SMS**, etc.). Ahí es donde miras quién está registrado, añades a alguien a mano con **Añadir suscriptor** o te dejas una **Nota interna** (`internalNote`) sobre un suscriptor concreto, que el suscriptor nunca ve. Mientras un canal está desactivado, la parte superior de su lista lo indica, con el interruptor del canal ahí mismo, para que puedas activarlo sin salir de la lista. La pestaña abierta figura en la dirección de la página (`{id}/subscribers?channel=sms`), y las direcciones de las antiguas páginas por canal, como `{id}/email-subscribers`, abren la pestaña de su canal.
 
 **Un interruptor no basta.** El elemento **Suscribirse** de la barra de navegación de la página de estado solo aparece cuando **Mostrar página de suscriptores** está activado *y* al menos un canal está activado. Si activas **Correo electrónico** pero dejas **Mostrar página de suscriptores** desactivado, los visitantes no tienen forma de llegar al formulario.
 
@@ -281,7 +281,7 @@ Los campos personalizados de incidentes con **Incluir en las notificaciones a su
 
 La entrada **Notificación a suscriptores enviada** de la actividad del incidente lista, en **Custom fields sent**, los valores que cada envío puso en un mensaje. Los suscriptores suelen estar fuera de tu equipo, así que activa el ajuste solo para campos que se puedan compartir con ellos sin problema.
 
-La sección **Registros de notificación** del menú lateral de la página de estado (`{id}/notification-logs`) es adonde vas cuando necesitas ver lo que la página envió realmente.
+**Registros de notificación**, en la sección **Suscriptores** del menú lateral de la página de estado (`{id}/notification-logs`), es adonde vas cuando necesitas ver lo que la página envió realmente.
 
 ### Episodios de incidentes
 

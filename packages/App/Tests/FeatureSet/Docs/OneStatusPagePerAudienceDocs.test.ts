@@ -1020,10 +1020,11 @@ describe("One Status Page per Audience docs", () => {
         section: "Rules",
         title: "Monitor Rules",
       });
+      // One page with a tab per channel since #9125.
       expectMenuPath({
         menu: "Pages/StatusPages/View/SideMenu.tsx",
         section: "Subscribers",
-        title: "Email Subscribers",
+        title: "Subscribers",
       });
 
       for (const language of ALL_LANGUAGES) {
@@ -1129,9 +1130,15 @@ describe("One Status Page per Audience docs", () => {
     });
 
     it("names Add in Bulk, on Email Subscribers, as the subscriber list shows it", () => {
+      // The email tab's list, titled Email Subscribers (#9125).
       expect(
-        readDashboardSource("Pages/StatusPages/View/EmailSubscribers.tsx"),
+        readDashboardSource(
+          "Components/StatusPage/StatusPageSubscriberList.tsx",
+        ),
       ).toMatch(/title:\s*"Add in Bulk"/);
+      expect(
+        readDashboardSource("Components/StatusPage/SubscriberListChannels.ts"),
+      ).toContain('cardTitle: "Email Subscribers"');
 
       for (const language of ALL_LANGUAGES) {
         const names: Set<string> = boldText(readPage(GUIDE_PAGE, language));

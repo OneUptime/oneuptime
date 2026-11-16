@@ -43,7 +43,7 @@ Reglagen avgör hur besökare kan registrera sig själva, och statussidan avvisa
 
 På OneUptime Cloud står abonnemangets namn vid ett reglage som ditt abonnemang inte omfattar: **Growth** för **SMS** och **Visa prenumerantsida**, **Scale** för **Slack**, **Microsoft Teams** och **Webhook**. Att stänga av en kanal fungerar på alla abonnemang, så en kanal som en provperiod slog på kan alltid stängas av igen; reglaget säger det under sig.
 
-Varje kanal har också en egen lista i statussidans sidomeny under **Prenumeranter**: **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **Microsoft Teams-prenumeranter** och **Webhook-prenumeranter**. Det är där du ser vem som är registrerad, lägger till någon manuellt med **Lägg till prenumerant** eller lämnar en **Intern anteckning** (`internalNote`) till dig själv om en viss prenumerant, som prenumeranten aldrig ser. Så länge en kanal är av säger listans överkant det, med kanalens reglage just där, så att du kan slå på den utan att lämna listan.
+Alla kanalers prenumeranter finns på en enda sida, **Prenumeranter**, i sektionen **Prenumeranter** i statussidans sidomeny. Den har en flik för varje kanal (**E-post**, **SMS**, **Slack**, **Microsoft Teams** och **Webhook**), och varje flik visar hur många prenumeranter kanalen har. Varje flik är kanalens lista (**E-postprenumeranter**, **SMS-prenumeranter** och så vidare). Det är där du ser vem som är registrerad, lägger till någon manuellt med **Lägg till prenumerant** eller lämnar en **Intern anteckning** (`internalNote`) till dig själv om en viss prenumerant, som prenumeranten aldrig ser. Så länge en kanal är av säger listans överkant det, med kanalens reglage just där, så att du kan slå på den utan att lämna listan. Den öppna fliken står i sidans adress (`{id}/subscribers?channel=sms`), och adresserna till de gamla sidorna för varje kanal, till exempel `{id}/email-subscribers`, öppnar kanalens flik.
 
 **Ett reglage räcker inte.** Objektet **Prenumerera** i statussidans navigeringsfält visas bara när **Visa prenumerantsida** är på *och* minst en kanal är på. Om du slår på **E-post** men låter **Visa prenumerantsida** vara av har besökarna inget sätt att nå formuläret.
 
@@ -281,7 +281,7 @@ Anpassade incidentfält med **Ta med i aviseringar till prenumeranter** på (und
 
 Posten **Prenumerantavisering skickad** i incidentflödet listar, under **Custom fields sent**, de värden som varje utskick lade in i ett meddelande. Prenumeranter finns oftast utanför ditt team, så slå bara på inställningen för fält som kan delas med dem utan risk.
 
-Sektionen **Aviseringsloggar** i statussidans sidomeny (`{id}/notification-logs`) är dit du går när du behöver se vad sidan faktiskt har skickat.
+**Aviseringsloggar**, i sektionen **Prenumeranter** i statussidans sidomeny (`{id}/notification-logs`), är dit du går när du behöver se vad sidan faktiskt har skickat.
 
 ### Incidentepisoder
 

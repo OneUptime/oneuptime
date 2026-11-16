@@ -110,33 +110,12 @@ export function getStatusPagesBreadcrumbs(
         "View Monitor Rule",
       ],
     ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS,
-      ["Project", "Status Pages", "View Status Page", "Email Subscribers"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS, [
       "Project",
       "Status Pages",
       "View Status Page",
-      "SMS Subscribers",
+      "Subscribers",
     ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS,
-      ["Project", "Status Pages", "View Status Page", "Slack Subscribers"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS,
-      [
-        "Project",
-        "Status Pages",
-        "View Status Page",
-        "Microsoft Teams Subscribers",
-      ],
-    ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS,
-      ["Project", "Status Pages", "View Status Page", "Webhook Subscribers"],
-    ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS,
       ["Project", "Status Pages", "View Status Page", "Subscriber Settings"],

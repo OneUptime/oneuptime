@@ -43,7 +43,7 @@ De schakelaars bepalen hoe bezoekers zich zelf kunnen aanmelden, en de statuspag
 
 Op OneUptime Cloud staat bij een schakelaar die uw abonnement niet bevat de naam van het abonnement: **Growth** voor **SMS** en **Abonneepagina weergeven**, **Scale** voor **Slack**, **Microsoft Teams** en **Webhook**. Een kanaal uitzetten werkt op elk abonnement, dus een kanaal dat tijdens een proefperiode is aangezet, kan altijd weer uit; de schakelaar vermeldt dat eronder.
 
-Elk kanaal heeft ook een eigen lijst in het zijmenu van de statuspagina, onder **Abonnees**: **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **Microsoft Teams-abonnees** en **Webhook-abonnees**. Daar ziet u wie er is aangemeld, voegt u iemand handmatig toe met **Abonnee toevoegen** of laat u voor uzelf een **Interne notitie** (`internalNote`) achter bij een bepaalde abonnee, die de abonnee nooit ziet. Zolang een kanaal uit staat, vermeldt de bovenkant van de lijst dat, met de schakelaar van het kanaal er direct bij, zodat u het kunt aanzetten zonder de lijst te verlaten.
+De abonnees van alle kanalen staan op één pagina, **Abonnees**, in de sectie **Abonnees** van het zijmenu van de statuspagina. Die heeft een tabblad voor elk kanaal (**E-mail**, **SMS**, **Slack**, **Microsoft Teams** en **Webhook**), en elk tabblad toont hoeveel abonnees het kanaal heeft. Elk tabblad is de lijst van dat kanaal (**E-mail-abonnees**, **SMS-abonnees** enzovoort). Daar ziet u wie er is aangemeld, voegt u iemand handmatig toe met **Abonnee toevoegen** of laat u voor uzelf een **Interne notitie** (`internalNote`) achter bij een bepaalde abonnee, die de abonnee nooit ziet. Zolang een kanaal uit staat, vermeldt de bovenkant van de lijst dat, met de schakelaar van het kanaal er direct bij, zodat u het kunt aanzetten zonder de lijst te verlaten. Het geopende tabblad staat in het adres van de pagina (`{id}/subscribers?channel=sms`), en de adressen van de oude pagina's per kanaal, zoals `{id}/email-subscribers`, openen het tabblad van hun kanaal.
 
 **Eén schakelaar is niet genoeg.** Het item **Abonneren** in de navigatiebalk van de statuspagina verschijnt alleen wanneer **Abonneepagina weergeven** aan staat *en* minstens één kanaal aan staat. Als u **E-mail** aanzet maar **Abonneepagina weergeven** uit laat, kunnen bezoekers het formulier niet bereiken.
 
@@ -281,7 +281,7 @@ Aangepaste incidentvelden met **Opnemen in meldingen aan abonnees** aan (onder *
 
 De vermelding **Abonneemelding verzonden** in de incidentfeed toont onder **Custom fields sent** de waarden die elke verzending in een bericht heeft gezet. Abonnees staan meestal buiten uw team, dus zet de instelling alleen aan voor velden die veilig met hen kunnen worden gedeeld.
 
-De sectie **Meldingslogboeken** in het zijmenu van de statuspagina (`{id}/notification-logs`) is waar u naartoe gaat wanneer u moet zien wat de pagina werkelijk heeft verzonden.
+**Meldingslogboeken**, in de sectie **Abonnees** van het zijmenu van de statuspagina (`{id}/notification-logs`), is waar u naartoe gaat wanneer u moet zien wat de pagina werkelijk heeft verzonden.
 
 ### Incidentepisoden
 

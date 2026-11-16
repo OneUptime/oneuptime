@@ -43,7 +43,7 @@ Os interruptores decidem como os visitantes podem se inscrever sozinhos, e a pá
 
 No OneUptime Cloud, um interruptor que seu plano não inclui mostra ao lado o nome do plano: **Growth** para **SMS** e **Mostrar página de assinantes**, **Scale** para **Slack**, **Microsoft Teams** e **Webhook**. Desligar um canal funciona em todos os planos, então um canal que um teste ligou sempre pode ser desligado de novo; o interruptor diz isso logo abaixo.
 
-Cada canal também tem sua própria lista no menu lateral da página de status, em **Assinantes**: **Assinantes de e-mail**, **Assinantes de SMS**, **Assinantes do Slack**, **Assinantes do Microsoft Teams** e **Assinantes de webhook**. É ali que você vê quem está inscrito, adiciona alguém manualmente com **Adicionar assinante** ou deixa para si uma **Nota Interna** (`internalNote`) sobre um assinante específico, que o assinante nunca vê. Enquanto um canal está desligado, o topo da lista dele diz isso, com o interruptor do canal ali mesmo, para que você possa ligá-lo sem sair da lista.
+Os assinantes de todos os canais ficam em uma única página, **Assinantes**, na seção **Assinantes** do menu lateral da página de status. Ela tem uma aba para cada canal (**E-mail**, **SMS**, **Slack**, **Microsoft Teams** e **Webhook**), e cada aba mostra quantos assinantes o canal tem. Cada aba é a lista desse canal (**Assinantes de e-mail**, **Assinantes de SMS** e assim por diante). É ali que você vê quem está inscrito, adiciona alguém manualmente com **Adicionar assinante** ou deixa para si uma **Nota Interna** (`internalNote`) sobre um assinante específico, que o assinante nunca vê. Enquanto um canal está desligado, o topo da lista dele diz isso, com o interruptor do canal ali mesmo, para que você possa ligá-lo sem sair da lista. A aba aberta fica no endereço da página (`{id}/subscribers?channel=sms`), e os endereços das antigas páginas por canal, como `{id}/email-subscribers`, abrem a aba do seu canal.
 
 **Um interruptor não basta.** O item **Inscrever-se** na barra de navegação da página de status só aparece quando **Mostrar página de assinantes** está ligado *e* pelo menos um canal está ligado. Se você ligar **E-mail** mas deixar **Mostrar página de assinantes** desligado, os visitantes não têm como chegar ao formulário.
 
@@ -281,7 +281,7 @@ Os campos personalizados de incidentes com **Incluir nas notificações aos assi
 
 A entrada **Notificação de assinante enviada** no feed do incidente lista, em **Custom fields sent**, os valores que cada envio colocou em uma mensagem. Os assinantes geralmente são de fora da sua equipe, então ligue a configuração apenas para campos que podem ser compartilhados com eles com segurança.
 
-A seção **Logs de notificação** no menu lateral da página de status (`{id}/notification-logs`) é aonde você vai quando precisa ver o que a página realmente enviou.
+**Logs de notificação**, na seção **Assinantes** do menu lateral da página de status (`{id}/notification-logs`), é aonde você vai quando precisa ver o que a página realmente enviou.
 
 ### Episódios de incidentes
 

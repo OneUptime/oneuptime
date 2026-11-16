@@ -86,22 +86,21 @@ Derefter, nogenlunde i rækkefølge efter nytte:
 
 ## Hvor alting bor
 
-Når du har åbnet en statusside, er dens egen venstremenu delt op i ti sektioner. Brug den som kort over resten af denne del af dokumentationen.
+Når du har åbnet en statusside, er dens egen venstremenu delt op i ni sektioner. Brug den som kort over resten af denne del af dokumentationen.
 
 | Sektion | Hvad den indeholder |
 | --- | --- |
 | **Grundlæggende** | **Oversigt**, **Meddelelser**, **Ejere**. |
 | **Ressourcer** | Én skærm **Ressourcer** (grupperne til venstre, den valgte gruppes monitorer til højre). |
 | **Regler** | **Monitorregler**: regler, der tilføjer hver monitor, der matcher, til siden, nu og senere. |
-| **Abonnenter** | **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter**, **Webhook-abonnenter**, **Abonnementsindstillinger**. |
-| **Notifikationslogs** | **Notifikationslogs**: hvad der er sendt til abonnenterne. |
+| **Abonnenter** | **Abonnenter** (én side med en fane for hver kanal: E-mail, SMS, Slack, Microsoft Teams og Webhook), **Abonnementsindstillinger**, **Notifikationslogs**: hvad der er sendt til abonnenterne. |
 | **Branding** | **Branding** (logo, titel, favicon, links, sidefod, farver og sprog, på én side), **Brugerdefinerede domæner**, **HTML, CSS og JavaScript**. |
 | **Sikkerhed** | **Adgang** (hvem der må se siden), **Private brugere**, **SSO**, **OIDC**, **SCIM**. |
 | **AI** | **MCP**. |
 | **Udvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter**: siden som kode. |
 | **Avanceret** | **Indlejret status**, **Rapporter**, **Brugerdefinerede felter**, **Avancerede indstillinger**, **Auditlogs**, **Slet statusside**. |
 
-Kun **Grundlæggende** og **Ressourcer**, det siden viser, starter åbne. Alle andre sektioner starter foldet sammen, ligesom de sjældent brugte sektioner i alle OneUptimes menuer: klik på en sektions titel for at vise dens sider. En sektion åbner af sig selv, når du er på en af dens sider, for eksempel **Avancerede indstillinger** eller **E-mail-abonnenter**.
+Kun **Grundlæggende** og **Ressourcer**, det siden viser, starter åbne. Alle andre sektioner starter foldet sammen, ligesom de sjældent brugte sektioner i alle OneUptimes menuer: klik på en sektions titel for at vise dens sider. En sektion åbner af sig selv, når du er på en af dens sider, for eksempel **Avancerede indstillinger** eller **Abonnenter**.
 
 To navneskikke, som er værd at kende, før du begynder at lede:
 
