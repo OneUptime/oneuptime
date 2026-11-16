@@ -75,11 +75,13 @@ router.post(
       let projectId: ObjectID | undefined = undefined;
       let incidentId: ObjectID | undefined = undefined;
       let alertId: ObjectID | undefined = undefined;
+      // The record as the person read it, whether it is private with it.
+      let record: Incident | Alert | null = null;
 
       if (typeof incidentIdText === "string" && incidentIdText) {
         const incident: Incident | null = await IncidentService.findOneById({
           id: new ObjectID(incidentIdText),
-          select: { _id: true, projectId: true },
+          select: { _id: true, projectId: true, isPrivate: true },
           props: props,
         });
 
@@ -91,10 +93,11 @@ router.post(
 
         incidentId = incident.id;
         projectId = incident.projectId;
+        record = incident;
       } else {
         const alert: Alert | null = await AlertService.findOneById({
           id: new ObjectID(alertIdText as string),
-          select: { _id: true, projectId: true },
+          select: { _id: true, projectId: true, isPrivate: true },
           props: props,
         });
 
@@ -106,6 +109,7 @@ router.post(
 
         alertId = alert.id;
         projectId = alert.projectId;
+        record = alert;
       }
 
       if (
@@ -128,6 +132,8 @@ router.post(
         recordId: (incidentId || alertId)!,
         props: props,
         action: PAGE_NOW_ACTION,
+        // Read as not private: nothing more to ask.
+        readRecord: record || undefined,
       });
 
       const startedRuns: number = await AiFirstResponder.pageNow({
