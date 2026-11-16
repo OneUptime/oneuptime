@@ -84,6 +84,10 @@ interface LongStatic {
 
 const Long: LongStatic = protobuf.util.Long as unknown as LongStatic;
 
+// BigInt(), not literals: the tests compile for a target before ES2020.
+const HALF_BITS: bigint = BigInt(32);
+const LOW_HALF: bigint = BigInt(0xffffffff);
+
 const EDGE_HALVES: Array<[number, number]> = [
   [0, 0],
   [1, 0],
@@ -99,8 +103,8 @@ const EDGE_HALVES: Array<[number, number]> = [
   [0xfffffffe, 0xffffffff],
   // 1792231872345678901, a nanosecond time.
   [
-    Number(BigInt("1792231872345678901") & 0xffffffffn),
-    Number(BigInt("1792231872345678901") >> 32n),
+    Number(BigInt("1792231872345678901") & LOW_HALF),
+    Number(BigInt("1792231872345678901") >> HALF_BITS),
   ],
 ];
 
@@ -670,11 +674,14 @@ describe("OtlpWireDecoder.decodeAllDelimited", () => {
 
 describe("64-bit integers in decimal, without long.js", () => {
   function bigUnsigned(low: number, high: number): string {
-    return ((BigInt(high) << 32n) | BigInt(low)).toString();
+    return ((BigInt(high) << HALF_BITS) | BigInt(low)).toString();
   }
 
   function bigSigned(low: number, high: number): string {
-    return BigInt.asIntN(64, (BigInt(high) << 32n) | BigInt(low)).toString();
+    return BigInt.asIntN(
+      64,
+      (BigInt(high) << HALF_BITS) | BigInt(low),
+    ).toString();
   }
 
   test("every edge, and 20,000 random values, as BigInt and long.js write them", () => {
