@@ -1,6 +1,5 @@
 import DashboardDomainService from "../../../Server/Services/DashboardDomainService";
 import DomainService from "../../../Server/Services/DomainService";
-import ProjectService from "../../../Server/Services/ProjectService";
 import StatusPageDomainService from "../../../Server/Services/StatusPageDomainService";
 import CustomDomainConflicts from "../../../Server/Utils/CustomDomain/CustomDomainConflicts";
 import {
@@ -79,7 +78,6 @@ beforeAll(async () => {
 beforeEach(() => {
   // Every record a create names is the project's (ProjectReferenceCheck).
   stubProjectDirectory({});
-  jest.spyOn(ProjectService, "isSampleProject").mockResolvedValue(false);
   jest.spyOn(DomainService, "findOneBy").mockResolvedValue({
     domain: "acme.com",
     isVerified: true,
