@@ -315,7 +315,7 @@ describe("What do you want to do first?", () => {
       expect(entry.outcome.length).toBeGreaterThan(20);
       expect(card).toHaveTextContent(entry.outcome);
       expect(box).toHaveAccessibleDescription(entry.outcome);
-      expect(box).toHaveAccessibleName(new RegExp(`^${entry.title}`));
+      expect(box).toHaveAccessibleName(entry.title);
     }
   });
 
@@ -325,26 +325,50 @@ describe("What do you want to do first?", () => {
     const card: HTMLElement = screen.getByTestId(
       `welcome-goal-${ProjectGoal.Uptime}`,
     );
+    const mark: HTMLInputElement = screen.getByTestId(
+      `welcome-goal-${ProjectGoal.Uptime}-mark`,
+    ) as HTMLInputElement;
 
+    // The round mark in the card's corner is the checkbox itself.
+    expect(mark).toBe(goalBox(ProjectGoal.Uptime));
+    expect(mark.className).toContain("rounded-full");
     expect(card).toHaveAttribute("data-chosen", "false");
-    expect(
-      within(
-        screen.getByTestId(`welcome-goal-${ProjectGoal.Uptime}-mark`),
-      ).queryByRole("img", { hidden: true }),
-    ).toBeNull();
+    expect(mark.checked).toBe(false);
 
     fireEvent.click(goalBox(ProjectGoal.Uptime));
 
     expect(card).toHaveAttribute("data-chosen", "true");
     expect(card.className).toContain("border-indigo-500");
-    expect(
-      screen.getByTestId(`welcome-goal-${ProjectGoal.Uptime}-mark`).className,
-    ).toContain("bg-indigo-600");
+    expect(card.className).toContain("bg-indigo-50");
+    expect(mark.checked).toBe(true);
 
     fireEvent.click(goalBox(ProjectGoal.Uptime));
 
     expect(card).toHaveAttribute("data-chosen", "false");
     expect(card.className).not.toContain("border-indigo-500");
+    expect(mark.checked).toBe(false);
+  });
+
+  test("a click anywhere on a card picks it: the card is the checkbox's label", async () => {
+    await renderGettingStarted();
+
+    fireEvent.click(
+      within(
+        screen.getByTestId(`welcome-goal-${ProjectGoal.StatusPage}`),
+      ).getByText("Tell my customers with a status page"),
+    );
+
+    expect(goalBox(ProjectGoal.StatusPage).checked).toBe(true);
+  });
+
+  test("the checkbox is named by its goal alone, and described by what it brings", async () => {
+    await renderGettingStarted();
+
+    expect(
+      screen.getByRole("checkbox", {
+        name: "Page the right person when something breaks",
+      }),
+    ).toBe(goalBox(ProjectGoal.OnCall));
   });
 
   test("while picking, says how many steps the goals bring and about how long they take", async () => {

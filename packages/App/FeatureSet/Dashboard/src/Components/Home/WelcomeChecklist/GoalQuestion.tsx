@@ -180,6 +180,7 @@ const GoalQuestion: FunctionComponent<ComponentProps> = (
           >
             {cards.map((entry: WelcomeGoalEntry): ReactElement => {
               const isChosen: boolean = chosen.includes(entry.goal);
+              const titleId: string = `${questionId}-${entry.goal}-title`;
               const outcomeId: string = `${questionId}-${entry.goal}`;
 
               return (
@@ -191,19 +192,6 @@ const GoalQuestion: FunctionComponent<ComponentProps> = (
                     isChosen ? CHOSEN_CARD_CLASS_NAME : CARD_AT_REST_CLASS_NAME
                   }`}
                 >
-                  {/*
-                   * The choice itself: a real checkbox, out of sight. The
-                   * card is its label, so a click anywhere on it picks it.
-                   */}
-                  <input
-                    type="checkbox"
-                    checked={isChosen}
-                    onChange={() => {
-                      toggle(entry.goal);
-                    }}
-                    aria-describedby={outcomeId}
-                    className="sr-only"
-                  />
                   <span className="flex items-start justify-between gap-3">
                     <span
                       aria-hidden="true"
@@ -211,26 +199,28 @@ const GoalQuestion: FunctionComponent<ComponentProps> = (
                     >
                       <Icon icon={entry.icon} className="h-5 w-5 text-white" />
                     </span>
-                    <span
-                      aria-hidden="true"
+                    {/*
+                     * The choice itself: a real checkbox, drawn as the round
+                     * mark in the card's corner. The card is its label, so a
+                     * click anywhere on it picks it; it is named by the goal
+                     * and described by what the goal brings.
+                     */}
+                    <input
+                      type="checkbox"
+                      checked={isChosen}
+                      onChange={() => {
+                        toggle(entry.goal);
+                      }}
+                      aria-labelledby={titleId}
+                      aria-describedby={outcomeId}
                       data-testid={`welcome-goal-${entry.goal}-mark`}
-                      className={`flex h-6 w-6 flex-none items-center justify-center rounded-full border-2 transition ${
-                        isChosen
-                          ? "border-indigo-600 bg-indigo-600"
-                          : "border-gray-300 bg-white"
-                      }`}
-                    >
-                      {isChosen ? (
-                        <Icon
-                          icon={IconProp.Check}
-                          className="h-3.5 w-3.5 text-white"
-                        />
-                      ) : (
-                        <></>
-                      )}
-                    </span>
+                      className="mt-0.5 h-6 w-6 flex-none cursor-pointer rounded-full border-gray-300 text-indigo-600 transition focus:ring-0 focus:ring-offset-0"
+                    />
                   </span>
-                  <span className="mt-4 block text-base font-semibold text-gray-900">
+                  <span
+                    id={titleId}
+                    className="mt-4 block text-base font-semibold text-gray-900"
+                  >
                     {translator.translateText(entry.title)}
                   </span>
                   <span

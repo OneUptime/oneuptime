@@ -94,6 +94,7 @@ const WelcomePlanStep: FunctionComponent<ComponentProps> = (
             )}
           </span>
           <span
+            data-testid={`getting-started-task-${state.step}-description`}
             className={`mt-1 block text-sm ${
               isDone ? "text-gray-500" : "text-gray-600"
             }`}
