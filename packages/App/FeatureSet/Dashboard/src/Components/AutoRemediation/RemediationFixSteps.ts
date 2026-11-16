@@ -25,6 +25,7 @@ import {
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
   getRiskierRemediationCommands,
+  isRiskierWhateverItChanges,
   isSameApprover,
 } from "Common/Types/AutoRemediation/RemediationApprovals";
 import { isAiResourceType } from "Common/Types/ResourceAiAgent/AiResourceType";
@@ -513,9 +514,11 @@ const NO_SECOND_APPROVAL: RemediationFixApprovals = {
  * The approvals of a fix that waits, as the server will count them: once a
  * first approval is recorded, the fix waits for a second - unless the card
  * read the project's rule as off since, when one approval runs it. Before
- * any, two are needed when the rule reads on and the fix is a command plan
- * holding a riskier change. A rule not read (yet) says nothing of two
- * before a first approval is in: the server decides, and says so.
+ * any, two are needed when the rule reads on and the fix holds a riskier
+ * change: a command plan with a riskier command, or a fix through MCP
+ * servers (no policy of OneUptime's tiers what an MCP tool does). A rule
+ * not read (yet) says nothing of two before a first approval is in: the
+ * server decides, and says so.
  */
 export function getRemediationFixApprovals(data: {
   suggestion: Pick<
@@ -531,18 +534,27 @@ export function getRemediationFixApprovals(data: {
     "status" | "suggestionType" | "commandPlan" | "firstApprovedByUserId"
   > = data.suggestion;
 
-  if (
-    suggestion.status !== AutoRemediationSuggestionStatus.Suggested ||
-    suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan
-  ) {
+  if (suggestion.status !== AutoRemediationSuggestionStatus.Suggested) {
     return NO_SECOND_APPROVAL;
   }
 
-  const plan: AiRemediationCommandPlan | null =
-    AiRemediationCommandPlanUtil.parse(suggestion.commandPlan || null);
+  let hasRiskierChange: boolean = false;
 
-  // A plan that can no longer be approved waits for nobody.
-  if (plan?.commands.some(isRemovedSshCommand)) {
+  if (isRiskierWhateverItChanges(suggestion.suggestionType)) {
+    hasRiskierChange = true;
+  } else if (
+    suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
+  ) {
+    const plan: AiRemediationCommandPlan | null =
+      AiRemediationCommandPlanUtil.parse(suggestion.commandPlan || null);
+
+    // A plan that can no longer be approved waits for nobody.
+    if (plan?.commands.some(isRemovedSshCommand)) {
+      return NO_SECOND_APPROVAL;
+    }
+
+    hasRiskierChange = getRiskierRemediationCommands(plan).length > 0;
+  } else {
     return NO_SECOND_APPROVAL;
   }
 
@@ -554,8 +566,7 @@ export function getRemediationFixApprovals(data: {
     isWaitingForSecondApproval,
     needsTwoApprovals:
       isWaitingForSecondApproval ||
-      (data.isTwoApprovalsRuleOn === true &&
-        getRiskierRemediationCommands(plan).length > 0),
+      (data.isTwoApprovalsRuleOn === true && hasRiskierChange),
     isFirstApprovedByReader:
       isWaitingForSecondApproval &&
       isSameApprover(suggestion.firstApprovedByUserId, data.readerUserId),
