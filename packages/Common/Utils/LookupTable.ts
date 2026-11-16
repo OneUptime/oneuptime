@@ -112,6 +112,29 @@ export function assignOwnValues<T>(
 }
 
 /*
+ * Up to three records merged into a new plain object: exactly what
+ * assignOwnValues({}, first, second, third) gives - every own key of each,
+ * "__proto__" included, a later record's value winning, keys in the same
+ * order - for the attribute map of every log, span and metric point ingest
+ * stores (its resource's, its own, its scope's).
+ *
+ * By object spread, which the servers' ES2018 target leaves to the
+ * language: CopyDataProperties defines each key, so "__proto__" stays a key
+ * (Tests/Dependencies/TypeScriptTargets pins the targets, and
+ * LookupTable.test.ts this function). It is also how V8 copies a map
+ * fastest: Object.assign stores key by key, and on ingest's many map
+ * shapes each store missed V8's inline caches - 3.7 µs to merge one
+ * record's 13 keys, against 0.17 µs by spread (#6086).
+ */
+export function mergeOwnValues<T>(
+  first?: Readonly<Record<string, T>> | null,
+  second?: Readonly<Record<string, T>> | null,
+  third?: Readonly<Record<string, T>> | null,
+): Record<string, T> {
+  return { ...first, ...second, ...third };
+}
+
+/*
  * A new plain object with every own key of `record`, "__proto__" included:
  * what `{ ...record }` gives on an ES2018 or later target, at any target.
  */

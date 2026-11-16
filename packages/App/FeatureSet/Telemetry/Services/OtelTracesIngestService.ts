@@ -38,7 +38,7 @@ import { RumTelemetrySignal } from "Common/Types/Rum/RumTelemetrySignal";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
-import { assignOwnValues, copyOwnValues } from "Common/Utils/LookupTable";
+import { copyOwnValues, mergeOwnValues } from "Common/Utils/LookupTable";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import {
   SpanEventType,
@@ -700,19 +700,18 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   /*
                    * One fresh attribute map per span (downstream scrub /
                    * pipeline transforms mutate it, so spans must never share
-                   * one). A single Object.assign with ordered sources
-                   * reproduces the historical spread + per-span scope loop
-                   * exactly — same key-collision winners (resource < span
-                   * attributes < scope.*) and same key insertion order —
-                   * while the scope prefixing now happens once per scopeSpan
-                   * (see above) instead of per span. assignOwnValues is
-                   * that Object.assign, but it keeps a span attribute named
-                   * __proto__ as a key, where Object.assign dropped it.
+                   * one), merged from ordered sources - same key-collision
+                   * winners (resource < span attributes < scope.*) and same
+                   * key order as the historical spread + per-span scope
+                   * loop - while the scope prefixing happens once per
+                   * scopeSpan (see above). mergeOwnValues keeps a span
+                   * attribute named __proto__ as a key, and copies by
+                   * spread, which costs a twentieth of the key-by-key
+                   * Object.assign it replaces (#6086).
                    */
                   const spanAttributes: Dictionary<
                     AttributeType | Array<AttributeType>
-                  > = assignOwnValues<AttributeType | Array<AttributeType>>(
-                    {},
+                  > = mergeOwnValues<AttributeType | Array<AttributeType>>(
                     resourceAttributes,
                     TelemetryUtil.getAttributes({
                       items: (span["attributes"] as JSONArray) || [],

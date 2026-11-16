@@ -36,7 +36,7 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
-import { assignOwnValues, readOwnValue } from "Common/Utils/LookupTable";
+import { mergeOwnValues, readOwnValue } from "Common/Utils/LookupTable";
 import MetricCatalog from "../Utils/MetricCatalog";
 import MetricsQueueService from "./Queue/MetricsQueueService";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
@@ -1834,13 +1834,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                    * metric attributes < scope.*) and same key insertion
                    * order — while the scope prefixing itself now happens
                    * once per scopeMetric (see above) instead of per metric.
-                   * assignOwnValues is that Object.assign, but it keeps an
-                   * attribute named __proto__ as a key.
+                   * mergeOwnValues is that merge, keeping an attribute named
+                   * __proto__ as a key, by spread (#6086).
                    */
                   const metricAttributes: Dictionary<
                     AttributeType | Array<AttributeType>
-                  > = assignOwnValues<AttributeType | Array<AttributeType>>(
-                    {},
+                  > = mergeOwnValues<AttributeType | Array<AttributeType>>(
                     resourceAttributes,
                     TelemetryUtil.getAttributes({
                       items: (metric["attributes"] as JSONArray) || [],
@@ -5067,9 +5066,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
      * Each datapoint gets its OWN attribute map — pipeline rules mutate
      * attributes in place, so sharing the base map (or any row's map)
      * across datapoints would let one row's transform corrupt its
-     * siblings. One Object.assign copy per row is the floor:
-     * assignOwnValues, which is Object.assign keeping an attribute named
-     * __proto__ as a key.
+     * siblings. One copy per row is the floor: mergeOwnValues, which keeps
+     * an attribute named __proto__ as a key and copies by spread - a
+     * twentieth of the key-by-key Object.assign it replaces (#6086).
      */
     let attributes: Dictionary<AttributeType | Array<AttributeType>>;
     let attributeKeys: Array<string>;
@@ -5082,8 +5081,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         prefixKeysWithString: "",
       });
 
-      attributes = assignOwnValues<AttributeType | Array<AttributeType>>(
-        {},
+      attributes = mergeOwnValues<AttributeType | Array<AttributeType>>(
         data.baseAttributes,
         datapointAttributes,
       );
@@ -5095,8 +5093,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           })
         : TelemetryUtil.getAttributeKeys(attributes);
     } else {
-      attributes = assignOwnValues<AttributeType | Array<AttributeType>>(
-        {},
+      attributes = mergeOwnValues<AttributeType | Array<AttributeType>>(
         data.baseAttributes,
       );
 
