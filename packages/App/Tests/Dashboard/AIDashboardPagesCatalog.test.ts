@@ -709,3 +709,109 @@ describe("what the model reads of the catalog is the English the Dashboard draws
     }
   });
 });
+
+/*
+ * EVERY PAGE OF THE CATALOG CAN BE CITED (#8829), AND ITS CHIP SAID IN THE
+ * READER'S LANGUAGE (#8831).
+ *
+ * find_dashboard_page's citation opens the first page it finds, and two
+ * pages may share a name in one area: no name alone put the Traces or
+ * Metrics explorer's Insights tab first. Asked by a page's title and its
+ * place, as a result gives them, the tool finds only the pages there - so
+ * every page of the catalog is the first of the call that names it so.
+ *
+ * The chip names the page by its place and name, each looked up by the key
+ * the Dashboard's menus use: the catalog's places, and its titleKey or
+ * title. A place keeps no key of its own, so none may be a key that names
+ * its meaning; and each is a key the Dashboard's locales word.
+ */
+
+// Titles filled with another product's name, which no locale holds as a key (#8834).
+const TITLES_OF_ANOTHER_PRODUCT: RegExp = /^Import from \S/;
+
+describe("every page of the catalog can be cited, and named in the reader's language (#8829, #8831)", () => {
+  test("each is the first page found by its title and its place, as a result gives them", () => {
+    const missed: Array<string> = AI_DASHBOARD_PAGES.filter(
+      (page: AIDashboardPage): boolean => {
+        const found: AIDashboardPage | undefined = DashboardPageFinder.find({
+          query: page.title,
+          place: page.where.join(" > "),
+          limit: 1,
+          isBillingEnabled: true,
+        })[0];
+
+        return found !== page;
+      },
+    ).map((page: AIDashboardPage): string => {
+      return `${page.where.join(" > ")} > ${page.title} (${page.path})`;
+    });
+
+    expect(missed).toEqual([]);
+  });
+
+  test("no two pages share both a title and a place, so a title and a place name one page", () => {
+    const named: Map<string, number> = new Map<string, number>();
+
+    for (const page of AI_DASHBOARD_PAGES) {
+      const name: string = `${page.where.join(" > ")} > ${page.title}`;
+      named.set(name, (named.get(name) || 0) + 1);
+    }
+
+    expect(
+      [...named.entries()].filter((entry: [string, number]): boolean => {
+        return entry[1] > 1;
+      }),
+    ).toEqual([]);
+  });
+
+  test.each(EXPLORER_INSIGHTS)(
+    "the $area explorer's Insights tab is cited by Insights in $area, and OneUptime AI's by Insights in $area > AI",
+    (explorer: ExplorerInsights) => {
+      const cite: (place: string) => string | undefined = (
+        place: string,
+      ): string | undefined => {
+        return DashboardPageFinder.find({
+          query: "Insights",
+          place,
+          limit: 1,
+          isBillingEnabled: true,
+        })[0]?.path;
+      };
+
+      expect(cite(explorer.area)).toBe(explorer.tab);
+      expect(cite(`${explorer.area} > AI`)).toBe(explorer.aiInsights);
+    },
+  );
+
+  test("no place in Search's index is a key that names its meaning: a place keeps no key of its own beside it", () => {
+    const keyedPlaces: Array<string> = describeIndex({
+      isBillingEnabled: true,
+      isMonitorGroupsEnabled: false,
+      canDeleteProject: false,
+    }).flatMap((descriptor: PageSearchCommandDescriptor): Array<string> => {
+      return descriptor.breadcrumb.filter((name: string): boolean => {
+        return MEANING_KEY_SET.has(name);
+      });
+    });
+
+    expect(keyedPlaces).toEqual([]);
+  });
+
+  test("every name a page's chip says is a key the Dashboard's locales word, but a title filled with another product's name", () => {
+    const unknown: Set<string> = new Set<string>();
+
+    for (const page of AI_DASHBOARD_PAGES) {
+      for (const name of [...page.where, page.titleKey ?? page.title]) {
+        if (
+          !Object.prototype.hasOwnProperty.call(ENGLISH_WORDS, name) &&
+          !TITLES_OF_ANOTHER_PRODUCT.test(name)
+        ) {
+          unknown.add(name);
+        }
+      }
+    }
+
+    // Search's own action, which the palette words under a nested key (#8834).
+    expect([...unknown]).toEqual(["Create Scheduled Maintenance"]);
+  });
+});

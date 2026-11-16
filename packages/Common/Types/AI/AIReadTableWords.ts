@@ -1110,7 +1110,10 @@ export const AI_TOOL_CITATIONS: {
   docsPage: translationKey("Docs: {{page}}"),
   docsSection: translationKey("Docs: {{page}} > {{section}}"),
   dashboardPageSearch: translationKey("Dashboard page: {{query}}"),
-  // {{path}} is where the page is, as the Dashboard's menu names it.
+  /*
+   * {{path}} is where the page is and its name, as the Dashboard's menus
+   * name them, each in the reader's language (AIActionMenuPath, #8831).
+   */
   dashboardPage: translationKey("Page: {{path}}"),
   codeRepositories: translationKey("Connected code repositories ({{count}})"),
   codeLocationNoStackTrace: translationKey(
