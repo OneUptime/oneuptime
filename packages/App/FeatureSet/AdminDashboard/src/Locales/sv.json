@@ -4019,5 +4019,8 @@
   "### Setup Steps": "### Installationssteg",
   "### Required WhatsApp Templates": "### WhatsApp-mallar som krävs",
   "### Template Bodies": "### Mallinnehåll",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Kopiera mallinnehållet nedan exakt — inklusive skiljetecken och mellanslag — när du skapar varje mall i Meta. Variabellistan visar varje platshållare som måste ställas in i WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Kopiera mallinnehållet nedan exakt — inklusive skiljetecken och mellanslag — när du skapar varje mall i Meta. Variabellistan visar varje platshållare som måste ställas in i WhatsApp Manager.",
+  "Takes no AI code fixes: they are turned off for this Runner.": "Tar inga AI-kodkorrigeringar: de är avstängda för den här Runnern.",
+  "Runs AI Code Fixes": "Kör AI-kodkorrigeringar",
+  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "Låter den ta OneUptime AI:s kodkorrigeringar, med en token för varje repository. Avstängd kör den bara JavaScript-steg."
 }

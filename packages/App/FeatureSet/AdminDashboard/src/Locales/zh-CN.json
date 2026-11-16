@@ -4019,5 +4019,8 @@
   "### Setup Steps": "### 设置步骤",
   "### Required WhatsApp Templates": "### 所需的 WhatsApp 模板",
   "### Template Bodies": "### 模板正文",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> 在 Meta 中创建每个模板时，请原样复制下方的模板正文，包括标点和空格。变量列表列出了必须在 WhatsApp Manager 中配置的每个占位符。"
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> 在 Meta 中创建每个模板时，请原样复制下方的模板正文，包括标点和空格。变量列表列出了必须在 WhatsApp Manager 中配置的每个占位符。",
+  "Takes no AI code fixes: they are turned off for this Runner.": "不接受 AI 代码修复：已为此 Runner 关闭。",
+  "Runs AI Code Fixes": "执行 AI 代码修复",
+  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "让它接受 OneUptime AI 的代码修复，并为每个代码仓库获得一个令牌。关闭后，它只运行 JavaScript 步骤。"
 }

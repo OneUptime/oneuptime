@@ -4019,5 +4019,8 @@
   "### Setup Steps": "### Étapes de configuration",
   "### Required WhatsApp Templates": "### Modèles WhatsApp requis",
   "### Template Bodies": "### Contenu des modèles",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Copiez exactement le contenu du modèle ci-dessous — ponctuation et espaces compris — en créant chaque modèle dans Meta. La liste des variables montre chaque espace réservé à configurer dans WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Copiez exactement le contenu du modèle ci-dessous — ponctuation et espaces compris — en créant chaque modèle dans Meta. La liste des variables montre chaque espace réservé à configurer dans WhatsApp Manager.",
+  "Takes no AI code fixes: they are turned off for this Runner.": "Ne prend pas les corrections de code par IA : elles sont désactivées pour cet agent Runbook.",
+  "Runs AI Code Fixes": "Exécute les corrections de code par IA",
+  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "Lui permet de prendre les corrections de code de OneUptime AI, avec un jeton pour chaque dépôt. Désactivé, il n'exécute que des étapes JavaScript."
 }

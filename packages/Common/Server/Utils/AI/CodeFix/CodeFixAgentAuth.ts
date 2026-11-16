@@ -20,6 +20,7 @@ import {
 } from "../../../../Types/Runner/CodeRepositoryRunner";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import { CODE_AGENT_COMMAND_TOOL_NAME } from "../../../../Types/Runner/GlobalRunnerWork";
+import { isCodeFixesTurnedOffInOneUptime } from "../../../../Types/Runner/RunnerCodeFixes";
 import { LLMToolDefinition } from "../../LLM/LLMService";
 import CodeRepositoryRunnerChoice from "./CodeRepositoryRunnerChoice";
 
@@ -127,9 +128,12 @@ export interface CodeRepositoryCommands {
  * The Runner path is also where a Runner's code-fix capability is
  * enforced. A global Runner takes the code-fix work of every repository
  * that runs on the Global Runner (Types/Runner/CodeRepositoryRunner), as it
- * takes every project's JavaScript steps. A project's Runner takes code-fix
- * work exactly while AI works in a code repository of its project on it - a
- * repository picks it (its Runner setting in Code), or it is the project's
+ * takes every project's JavaScript steps - unless a master admin turned its
+ * code fixes off on the Admin Dashboard's Global Runners page
+ * (Runner.canRunCodeFixes): its key then proves no code-fix identity, as
+ * a Runner of a project no repository works on does. A project's Runner
+ * takes code-fix work exactly while AI works in a code repository of its
+ * project on it - a repository picks it (its Runner setting in Code), or it is the project's
  * default Runner and a repository that picks none follows it
  * (CodeRepositoryRunnerChoice.doesRunnerWorkInARepository). One no
  * repository works on authenticates like any other invalid credential — it
@@ -316,6 +320,8 @@ export default class CodeFixAgentAuth {
         _id: true,
         projectId: true,
         isGlobalRunner: true,
+        // The server's switch for a global Runner's code fixes.
+        canRunCodeFixes: true,
         // What the agent-row rule reads.
         name: true,
         hostInfo: true,
@@ -335,9 +341,16 @@ export default class CodeFixAgentAuth {
        * Global Runner. It belongs to no project, and neither does its
        * identity, so the claim and the data routes serve it across projects
        * by each repository's Runner choice, as they serve its JavaScript
-       * steps.
+       * steps - unless a master admin turned its code fixes off
+       * (Runner.canRunCodeFixes): then its key proves nothing here, so it
+       * claims no run and is handed no repository's token, whatever its
+       * host asks.
        */
-      if (runner.isGlobalRunner === true && !runner.projectId) {
+      if (
+        runner.isGlobalRunner === true &&
+        !runner.projectId &&
+        !isCodeFixesTurnedOffInOneUptime(runner)
+      ) {
         return {
           identity: {
             id: runner.id,
