@@ -140,7 +140,7 @@ Cada entrada é um objeto JSON, com as chaves sempre nesta ordem:
 | `id` | O id da entrada. A mesma entrada enviada duas vezes tem o mesmo id. |
 | `createdAt` | Quando a alteração foi registrada, em UTC. |
 | `projectId` | O projeto em que a alteração foi feita. |
-| `action` | `Create`, `Update`, `Delete` ou `Download`, ou, para uma sessão, `SignIn`, `SignOut`, `SessionTimeout` ou `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` ou `Download`, ou, para um login ou uma sessão, `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` ou `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | O que foi alterado. |
 | `rootResourceType`, `rootResourceId` | O recurso ao qual pertence, como um SLO para a regra dele. |
 | `userId`, `userName`, `userEmail`, `userType` | Quem fez a alteração. |
@@ -173,7 +173,7 @@ Uma exportação nova envia a versão 2. Uma exportação salva antes da versão
 
 ## Quando um destino falha
 
-Um lote é tentado três vezes, com poucos segundos de intervalo, e então a exportação espera antes de tentar de novo: um minuto, depois dois, quatro e assim por diante, até uma hora. A linha dela diz **Com falha**, e **Ver erro** mostra o que o destino respondeu e quando será a próxima tentativa.
+Um lote é tentado três vezes, com poucos segundos de intervalo, e então a exportação espera antes de tentar de novo: um minuto, depois dois, quatro e assim por diante, até uma hora. A linha dela diz **Com falha**, e **Ver erro** mostra o que o destino respondeu, quando será a próxima tentativa e a partir de quando as entradas à espera de envio começam a ser excluídas, ou, depois que esse momento passar, desde quando estão sendo excluídas.
 
 Nada é pulado: as entradas esperam no registro de auditoria, e a próxima entrega que funcionar recupera o atraso a partir da mais antiga. Ainda assim, cada entrada é excluída assim que fica mais antiga que a retenção com que foi registrada, enviada ou não, então corrija uma exportação com falha dentro desse prazo. Uma retenção mais longa só guarda por mais tempo as entradas registradas depois da mudança.
 

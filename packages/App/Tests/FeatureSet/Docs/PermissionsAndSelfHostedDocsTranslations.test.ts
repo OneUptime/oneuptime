@@ -360,6 +360,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Anyone who can author a workflow or an API, Website, External Status Page or Custom JavaScript Code monitor, or add a status page subscriber, can reach anything you allowed.",
     "The response body comes back.",
     "Redirects are never followed",
+    "OneUptime connects to the address it checked.",
+    "Through an outbound proxy, the proxy connects.",
     "Scope by probe rather than instance-wide where you can.",
   ],
   [ARCHITECTURE_PAGE]: ["ingress", "app"],

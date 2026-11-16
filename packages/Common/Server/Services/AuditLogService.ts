@@ -20,6 +20,8 @@ import { AUDIT_LOG_EXPORT_SOURCE_COLUMNS } from "../../Types/AuditLog/Export/Aud
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import { withAuditLogResourceTypeSpellings } from "../../Utils/AuditLog/AuditLogResourceTypes";
 import { SessionAuditEvent } from "../../Types/AuditLog/AuditLogSessionEvent";
+import { SignInFailureAuditEvent } from "../../Types/AuditLog/AuditLogSignInFailure";
+import { StatusPageSessionAuditEvent } from "../../Types/AuditLog/AuditLogStatusPageSession";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -45,8 +47,9 @@ export const AUDIT_LOG_CREATE_REFUSED_MESSAGE: string =
  * (ee/Server/AuditLog/AuditLogRecorder.ts): which changes are recorded, the
  * diff, redaction, relation names, the actor and the project-settings cache.
  * recordCreate / recordUpdate / recordDelete / recordDownload /
- * recordSessionEvents / invalidateProjectSettings stay here as thin
- * delegates to the recorder the enterprise module registered, so
+ * recordSessionEvents / recordSignInFailures /
+ * recordStatusPageSessionEvents / invalidateProjectSettings stay here as
+ * thin delegates to the recorder the enterprise module registered, so
  * DatabaseService, ProjectService and the user-notification services call
  * exactly what they always called.
  *
@@ -284,6 +287,71 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
       await recorder.recordSessionEvents(events);
     } catch (err) {
       logger.warn("AuditLog: failed to record session events");
+      logger.warn(err);
+    }
+  }
+
+  /*
+   * Whether anything records audit log entries here: false on the
+   * Community Edition, which has no recorder. Lets a caller skip the work
+   * an entry would take - counting a failed sign-in - when none can be
+   * written.
+   */
+  public hasRecorder(): boolean {
+    return Boolean(this.getRecorder());
+  }
+
+  /*
+   * Failed sign-ins on existing accounts (Types/AuditLog/
+   * AuditLogSignInFailure, issue #6788), as the sign-in routes hand them
+   * over once FailedSignInAuditLog's bound let them through. Never throws:
+   * nothing about a sign-in waits on, or learns from, its audit entry.
+   */
+  public async recordSignInFailures(
+    events: Array<SignInFailureAuditEvent>,
+  ): Promise<void> {
+    if (events.length === 0) {
+      return;
+    }
+
+    const recorder: AuditLogRecorder | null = this.getRecorder();
+
+    if (!recorder) {
+      return;
+    }
+
+    try {
+      await recorder.recordSignInFailures(events);
+    } catch (err) {
+      logger.warn("AuditLog: failed to record failed sign-ins");
+      logger.warn(err);
+    }
+  }
+
+  /*
+   * A private status page's readers' sessions (Types/AuditLog/
+   * AuditLogStatusPageSession, issue #6790): StatusPagePrivateUserSession
+   * Service calls it when a reader's session starts and when one ends.
+   * Never throws: the sign-in or the sign-out goes ahead whatever happens
+   * here.
+   */
+  public async recordStatusPageSessionEvents(
+    events: Array<StatusPageSessionAuditEvent>,
+  ): Promise<void> {
+    if (events.length === 0) {
+      return;
+    }
+
+    const recorder: AuditLogRecorder | null = this.getRecorder();
+
+    if (!recorder) {
+      return;
+    }
+
+    try {
+      await recorder.recordStatusPageSessionEvents(events);
+    } catch (err) {
+      logger.warn("AuditLog: failed to record status page session events");
       logger.warn(err);
     }
   }

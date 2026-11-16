@@ -21,6 +21,7 @@ import Select from "../../Types/Database/Select";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import MonitorResourceUtil from "./MonitorResource";
+import { logMonitorEvaluationError } from "./NonActionableIngestError";
 
 /*
  * Evaluates Probe Status monitors: for each step, the probes it watches as
@@ -349,13 +350,19 @@ export default class ProbeStatusMonitorEvaluator {
         });
 
       for (const monitor of monitors) {
+        /*
+         * A monitor paused, archived or disabled since it was read above is
+         * refused, as expected: logged at debug, and the next monitor is
+         * evaluated (logMonitorEvaluationError, issue #8069).
+         */
         try {
           await ProbeStatusMonitorEvaluator.evaluateMonitor(monitor);
         } catch (err) {
-          logger.error(
-            `Error evaluating Probe Status monitor ${monitor.id?.toString()} after probe ${probeId.toString()} changed status`,
-          );
-          logger.error(err);
+          logMonitorEvaluationError({
+            error: err,
+            message: `Error evaluating Probe Status monitor ${monitor.id?.toString()} after probe ${probeId.toString()} changed status`,
+            attributes: { projectId: monitor.projectId?.toString() },
+          });
         }
       }
     } catch (err) {

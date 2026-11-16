@@ -140,7 +140,7 @@ Hver oppføring er ett JSON-objekt, med nøklene alltid i denne rekkefølgen:
 | `id` | Oppføringens ID. Den samme oppføringen, sendt to ganger, har den samme ID-en. |
 | `createdAt` | Når endringen ble registrert, i UTC. |
 | `projectId` | Prosjektet endringen ble gjort i. |
-| `action` | `Create`, `Update`, `Delete` eller `Download`, eller for en økt `SignIn`, `SignOut`, `SessionTimeout` eller `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` eller `Download`, eller for en pålogging eller en økt `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` eller `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Hva som ble endret. |
 | `rootResourceType`, `rootResourceId` | Ressursen den hører til, for eksempel et SLO for regelen sin. |
 | `userId`, `userName`, `userEmail`, `userType` | Hvem som gjorde endringen. |
@@ -173,7 +173,7 @@ En ny eksport sender versjon 2. En eksport som ble lagret før versjon 2, fortse
 
 ## Når et mål feiler
 
-En batch prøves tre ganger med noen sekunders mellomrom, og så venter eksporten før den prøver igjen: ett minutt, så to, fire og så videre, opptil en time. Raden sier **Feiler**, og **Vis feil** viser hva målet svarte og når neste forsøk kommer.
+En batch prøves tre ganger med noen sekunders mellomrom, og så venter eksporten før den prøver igjen: ett minutt, så to, fire og så videre, opptil en time. Raden sier **Feiler**, og **Vis feil** viser hva målet svarte, når neste forsøk kommer, og fra når oppføringene som venter på å bli sendt, begynner å bli slettet, eller, når det tidspunktet er passert, siden når de blir slettet.
 
 Ingenting hoppes over: Oppføringene venter i revisjonsloggen, og den neste leveringen som lykkes, tar igjen fra den eldste. Hver oppføring slettes likevel når den er eldre enn oppbevaringstiden den ble registrert med, sendt eller ikke, så rett en eksport som feiler innen den tiden. En lengre oppbevaringstid gjelder bare oppføringer som registreres etter at du endrer den.
 

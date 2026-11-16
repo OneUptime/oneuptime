@@ -5,19 +5,33 @@ import {
   getAuditLogActionLabel,
 } from "../../../Types/AuditLog/AuditLogActionLabel";
 import {
+  AUDIT_LOG_FAILED_SIGN_IN_ATTEMPTS,
   AUDIT_LOG_SESSION_FIELD_LABELS,
   AUDIT_LOG_SESSION_FIELDS,
+  AUDIT_LOG_SESSION_REASON_WORDS,
   AUDIT_LOG_SESSION_RESOURCE_TYPE,
   AUDIT_LOG_SESSION_ROOT_RESOURCE_TYPE,
+  AUDIT_LOG_SESSION_SIGN_IN_NO_LONGER_ACCEPTED,
   AUDIT_LOG_SESSION_TIME_FIELDS,
   AuditLogSessionField,
   getSessionEndAuditLogAction,
   getSessionEntrySummary,
+  getSessionEntryValueInLanguage,
+  getSessionFieldLabel,
   isSessionAuditLogAction,
   readSessionEntryFields,
   SESSION_AUDIT_LOG_ACTIONS,
   SESSION_END_CAUSE_DESCRIPTIONS,
 } from "../../../Types/AuditLog/AuditLogSessionEvent";
+import {
+  SIGN_IN_FAILURE_REASON_DESCRIPTIONS,
+  SignInFailureReason,
+} from "../../../Types/AuditLog/AuditLogSignInFailure";
+import {
+  createTranslator,
+  Translator,
+  TextLookup,
+} from "../../../Types/Translator";
 import UserSession from "../../../Models/DatabaseModels/UserSession";
 import User from "../../../Models/DatabaseModels/User";
 import { SessionEndCause } from "../../../Types/UserSession/SessionEndCause";
@@ -31,9 +45,11 @@ import { JSONValue } from "../../../Types/JSON";
  */
 
 describe("the session actions", () => {
-  test("are sign in, sign out, a timeout and a revocation", () => {
+  // A failed sign-in (issue #6788) is drawn with the sign-ins it failed to be.
+  test("are sign in, a failed sign-in, sign out, a timeout and a revocation", () => {
     expect(SESSION_AUDIT_LOG_ACTIONS).toEqual([
       AuditLogAction.SignIn,
+      AuditLogAction.SignInFailed,
       AuditLogAction.SignOut,
       AuditLogAction.SessionTimeout,
       AuditLogAction.SessionRevoked,
@@ -63,10 +79,17 @@ describe("the session actions", () => {
   test("an entry, the API and an export carry each as one word", () => {
     expect([
       AuditLogAction.SignIn,
+      AuditLogAction.SignInFailed,
       AuditLogAction.SignOut,
       AuditLogAction.SessionTimeout,
       AuditLogAction.SessionRevoked,
-    ]).toEqual(["SignIn", "SignOut", "SessionTimeout", "SessionRevoked"]);
+    ]).toEqual([
+      "SignIn",
+      "SignInFailed",
+      "SignOut",
+      "SessionTimeout",
+      "SessionRevoked",
+    ]);
   });
 });
 
@@ -142,10 +165,27 @@ describe("the fields of a session entry", () => {
       "IP address",
     );
     expect(AUDIT_LOG_SESSION_TIME_FIELDS).toEqual([
+      AuditLogSessionField.FirstFailedAt,
       AuditLogSessionField.SignedInAt,
       AuditLogSessionField.LastActiveAt,
       AuditLogSessionField.EndedAt,
     ]);
+  });
+
+  // Issue #6788: the two a failed sign-in adds, where the dialog lists them.
+  test("a failed sign-in's count follows its reason, and its first attempt the place", () => {
+    expect(
+      AUDIT_LOG_SESSION_FIELDS.indexOf(AuditLogSessionField.FailedAttempts),
+    ).toBe(AUDIT_LOG_SESSION_FIELDS.indexOf(AuditLogSessionField.Reason) + 1);
+    expect(
+      AUDIT_LOG_SESSION_FIELDS.indexOf(AuditLogSessionField.FirstFailedAt),
+    ).toBe(AUDIT_LOG_SESSION_FIELDS.indexOf(AuditLogSessionField.Location) + 1);
+    expect(
+      AUDIT_LOG_SESSION_FIELD_LABELS[AuditLogSessionField.FailedAttempts],
+    ).toBe("Failed attempts");
+    expect(
+      AUDIT_LOG_SESSION_FIELD_LABELS[AuditLogSessionField.FirstFailedAt],
+    ).toBe("First attempt at");
   });
 
   test("are read from an entry's changes, the text ones only", () => {
@@ -242,6 +282,7 @@ describe("the words of every action", () => {
       Delete: "Delete",
       Download: "Download",
       SignIn: "Sign In",
+      SignInFailed: "Sign-In Failed",
       SignOut: "Sign Out",
       SessionTimeout: "Session Timeout",
       SessionRevoked: "Session Revoked",
@@ -253,5 +294,224 @@ describe("the words of every action", () => {
     expect(getAuditLogActionLabel("Archive")).toBe("Archive");
     expect(getAuditLogActionLabel(undefined)).toBe("Unknown");
     expect(getAuditLogActionLabel("")).toBe("Unknown");
+  });
+});
+
+/*
+ * A failed sign-in (issue #6788) as the table and the dialog read it: why
+ * it failed, and how many attempts the entry stands for when it is more
+ * than its own; nobody signed in, so the way they tried is not "Signed in
+ * with".
+ */
+describe("a failed sign-in in a few words", () => {
+  test("says why it failed", () => {
+    expect(
+      getSessionEntrySummary({
+        action: AuditLogAction.SignInFailed,
+        changes: [
+          { field: "reason", newValue: "Wrong password" },
+          { field: "signInMethod", newValue: "Password" },
+          { field: "ipAddress", newValue: "203.0.113.7" },
+        ],
+      }),
+    ).toBe("Wrong password");
+  });
+
+  test("and how many attempts it stands for, when it is more than one", () => {
+    expect(
+      getSessionEntrySummary({
+        action: AuditLogAction.SignInFailed,
+        changes: [
+          { field: "reason", newValue: "Wrong authenticator code" },
+          { field: "failedAttempts", newValue: "37" },
+        ],
+      }),
+    ).toBe("Wrong authenticator code · 37 attempts");
+  });
+
+  test("a count of one, or one that is no count, is left out", () => {
+    for (const count of ["1", "0", "-4", "two", "1.5", ""]) {
+      expect(
+        getSessionEntrySummary({
+          action: AuditLogAction.SignInFailed,
+          changes: [
+            { field: "reason", newValue: "Wrong password" },
+            { field: "failedAttempts", newValue: count },
+          ],
+        }),
+      ).toBe("Wrong password");
+    }
+  });
+
+  test("one that stored no reason says the sign-in failed", () => {
+    expect(
+      getSessionEntrySummary({
+        action: AuditLogAction.SignInFailed,
+        changes: [],
+      }),
+    ).toBe("Sign-in failed");
+  });
+
+  test("never reads as a sign-in, whatever way it tried", () => {
+    expect(
+      getSessionEntrySummary({
+        action: AuditLogAction.SignInFailed,
+        changes: [
+          { field: "reason", newValue: "Single sign-on refused" },
+          { field: "signInMethod", newValue: "SAML single sign-on" },
+          { field: "ssoProvider", newValue: "Acme Okta" },
+        ],
+      }),
+    ).toBe("Single sign-on refused");
+  });
+});
+
+describe("what the dialog calls a failed sign-in's fields", () => {
+  test("the way it tried is not the way it signed in", () => {
+    expect(
+      getSessionFieldLabel({
+        field: AuditLogSessionField.SignInMethod,
+        action: AuditLogAction.SignInFailed,
+      }),
+    ).toBe("Tried to sign in with");
+    expect(
+      getSessionFieldLabel({
+        field: AuditLogSessionField.SignInMethod,
+        action: AuditLogAction.SignIn,
+      }),
+    ).toBe("Signed in with");
+  });
+
+  test("every other field reads as it does for a session", () => {
+    for (const field of AUDIT_LOG_SESSION_FIELDS) {
+      if (field === AuditLogSessionField.SignInMethod) {
+        continue;
+      }
+
+      expect(
+        getSessionFieldLabel({ field, action: AuditLogAction.SignInFailed }),
+      ).toBe(AUDIT_LOG_SESSION_FIELD_LABELS[field]);
+    }
+
+    expect(
+      getSessionFieldLabel({
+        field: AuditLogSessionField.Reason,
+        action: undefined,
+      }),
+    ).toBe("Reason");
+  });
+});
+
+describe("the reasons an entry stores in OneUptime's own words", () => {
+  test("are every session end's, a status page's sign-in no longer accepted, and every failed sign-in's", () => {
+    for (const words of Object.values(SESSION_END_CAUSE_DESCRIPTIONS)) {
+      expect(AUDIT_LOG_SESSION_REASON_WORDS).toContain(words);
+    }
+
+    for (const reason of Object.values(SignInFailureReason)) {
+      expect(AUDIT_LOG_SESSION_REASON_WORDS).toContain(
+        SIGN_IN_FAILURE_REASON_DESCRIPTIONS[reason],
+      );
+    }
+
+    expect(AUDIT_LOG_SESSION_REASON_WORDS).toContain(
+      AUDIT_LOG_SESSION_SIGN_IN_NO_LONGER_ACCEPTED,
+    );
+  });
+});
+
+describe("a failed sign-in's values in the reader's language", () => {
+  const GERMAN: Record<string, string> = {
+    "Wrong password": "Falsches Passwort",
+    "Sign-in no longer accepted by the status page":
+      "Anmeldung von der Statusseite nicht mehr akzeptiert",
+    "{{count}} attempts": "{{count}} Versuche",
+    "{{count}} attempts_one": "{{count}} Versuch",
+    "Sign-in failed": "Anmeldung fehlgeschlagen",
+  };
+
+  const lookup: TextLookup = (key: string): string | undefined => {
+    return GERMAN[key];
+  };
+
+  const german: Translator = createTranslator(lookup, "de");
+
+  test("why it failed, and a reader's status page session's end, are OneUptime's words", () => {
+    expect(
+      getSessionEntryValueInLanguage({
+        field: AuditLogSessionField.Reason,
+        value: "Wrong password",
+        translator: german,
+      }),
+    ).toBe("Falsches Passwort");
+    expect(
+      getSessionEntryValueInLanguage({
+        field: AuditLogSessionField.Reason,
+        value: AUDIT_LOG_SESSION_SIGN_IN_NO_LONGER_ACCEPTED,
+        translator: german,
+      }),
+    ).toBe("Anmeldung von der Statusseite nicht mehr akzeptiert");
+  });
+
+  test("a reason no release wrote is drawn as stored", () => {
+    expect(
+      getSessionEntryValueInLanguage({
+        field: AuditLogSessionField.Reason,
+        value: "Wrong password!",
+        translator: german,
+      }),
+    ).toBe("Wrong password!");
+  });
+
+  test("a count is written in the reader's digits", () => {
+    expect(
+      getSessionEntryValueInLanguage({
+        field: AuditLogSessionField.FailedAttempts,
+        value: "1234",
+        translator: german,
+      }),
+    ).toBe("1.234");
+    expect(
+      getSessionEntryValueInLanguage({
+        field: AuditLogSessionField.FailedAttempts,
+        value: "1234",
+        translator: createTranslator(undefined, "fa"),
+      }),
+    ).toBe("۱٬۲۳۴");
+    // One that is no count is drawn as stored.
+    expect(
+      getSessionEntryValueInLanguage({
+        field: AuditLogSessionField.FailedAttempts,
+        value: "many",
+        translator: german,
+      }),
+    ).toBe("many");
+  });
+
+  test("the summary counts in the reader's plural forms", () => {
+    expect(
+      getSessionEntrySummary({
+        action: AuditLogAction.SignInFailed,
+        changes: [
+          { field: "reason", newValue: "Wrong password" },
+          { field: "failedAttempts", newValue: "37" },
+        ],
+        translator: german,
+      }),
+    ).toBe("Falsches Passwort · 37 Versuche");
+    expect(
+      getSessionEntrySummary({
+        action: AuditLogAction.SignInFailed,
+        changes: [],
+        translator: german,
+      }),
+    ).toBe("Anmeldung fehlgeschlagen");
+  });
+
+  test("the plural is the one the locales already hold", () => {
+    expect(AUDIT_LOG_FAILED_SIGN_IN_ATTEMPTS).toEqual({
+      one: "{{count}} attempt",
+      other: "{{count}} attempts",
+    });
   });
 });

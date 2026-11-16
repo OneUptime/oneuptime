@@ -12,9 +12,19 @@ enum AuditLogAction {
    * from where, and how each session ended - signed out, timed out, or
    * revoked because the password changed or the account was blocked. Each
    * is filed in every project its person is a member of, as an entry about
-   * the session (Types/AuditLog/AuditLogSessionEvent).
+   * the session (Types/AuditLog/AuditLogSessionEvent). A private status
+   * page's readers' sessions are filed in that status page's project only
+   * (issue #6790, Types/AuditLog/AuditLogStatusPageSession).
    */
   SignIn = "SignIn",
+  /*
+   * A sign-in to an existing account that failed (issue #6788): a wrong
+   * password or second factor, a blocked or unverified account, a single
+   * sign-on OneUptime refused. Filed like a sign-in, in every project the
+   * account's person is a member of, and only a few an hour for one
+   * account (Types/AuditLog/AuditLogSignInFailure).
+   */
+  SignInFailed = "SignInFailed",
   SignOut = "SignOut",
   SessionTimeout = "SessionTimeout",
   SessionRevoked = "SessionRevoked",

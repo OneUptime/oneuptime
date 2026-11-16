@@ -201,6 +201,8 @@ Abrir esto cambia de verdad lo que tu instancia de OneUptime puede llegar a alca
 - **Cualquiera que pueda crear un workflow o un monitor API, Website, External Status Page o Custom JavaScript Code, o añadir un suscriptor a una página de estado, puede alcanzar todo lo que hayas permitido.** Trata la pertenencia a esos proyectos en consecuencia.
 - **El cuerpo de la respuesta vuelve.** Un componente API de workflow devuelve el estado, las cabeceras y el cuerpo al registro del workflow, así que un host permitido se puede leer, no solo escribir.
 - **Las redirecciones nunca se siguen** en las peticiones de webhook, así que un host público permitido no puede rebotar el servidor a uno interno en un segundo salto.
+- **OneUptime se conecta a la dirección que comprobó.** El nombre de host de un webhook se resuelve una vez, cuando se comprueba su URL, y la petición va a una dirección que esa resolución aprobó, así que un nombre que un momento después responde otra cosa (DNS rebinding) nunca recibe la conexión. TLS sigue comprobando el certificado contra el nombre de la URL.
+- **A través de un proxy de salida, quien se conecta es el proxy.** Si el servidor de API envía a través de un proxy definido en `HTTPS_PROXY`, `HTTP_PROXY` o `ALL_PROXY` (salvo los hosts de `NO_PROXY`), los webhooks siguen pasando por él: OneUptime sigue comprobando primero la dirección y nunca sigue una redirección, pero es el proxy quien resuelve el nombre y abre la conexión. Rechaza los destinos privados y link-local en el propio proxy, sobre todo `169.254.169.254`.
 - **Limita por sonda en lugar de a toda la instancia siempre que puedas.** Una sonda desplegada dentro de una red es una autorización más estrecha que abrir la salida del servidor de API.
 
 ## Próximos pasos

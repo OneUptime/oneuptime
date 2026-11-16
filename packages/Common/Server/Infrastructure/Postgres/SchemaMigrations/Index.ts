@@ -1015,6 +1015,8 @@ import { AddOwnerNotificationFeedStatus1809179600000 } from "./1809179600000-Add
 import { AddOwnerNotificationFeedStatusIndex1809179610000 } from "./1809179610000-AddOwnerNotificationFeedStatusIndex";
 import { AddDataStoreWorkerContentScanIndex1809179800000 } from "./1809179800000-AddDataStoreWorkerContentScanIndex";
 import { AddServiceLevelObjectiveRequestFilter1809179900000 } from "./1809179900000-AddServiceLevelObjectiveRequestFilter";
+import { AddNetworkEndpointAttachmentSeenAt1809180000000 } from "./1809180000000-AddNetworkEndpointAttachmentSeenAt";
+import { AddIsSnmpReachableToNetworkDeviceStatusIndex1809180100000 } from "./1809180100000-AddIsSnmpReachableToNetworkDeviceStatusIndex";
 import { AddUserOnCallLogMergedInto1809180370000 } from "./1809180370000-AddUserOnCallLogMergedInto";
 
 export default [
@@ -2035,5 +2037,7 @@ export default [
   AddOwnerNotificationFeedStatusIndex1809179610000,
   AddDataStoreWorkerContentScanIndex1809179800000,
   AddServiceLevelObjectiveRequestFilter1809179900000,
+  AddNetworkEndpointAttachmentSeenAt1809180000000,
+  AddIsSnmpReachableToNetworkDeviceStatusIndex1809180100000,
   AddUserOnCallLogMergedInto1809180370000,
 ];

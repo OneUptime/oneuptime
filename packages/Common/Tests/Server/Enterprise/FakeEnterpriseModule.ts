@@ -128,6 +128,12 @@ export const createAuditLogRecorderSpy: () => MockedAuditLogRecorder =
       recordSessionEvents: jest.fn(async (): Promise<void> => {
         return undefined;
       }) as unknown as MockedAuditLogRecorder["recordSessionEvents"],
+      recordSignInFailures: jest.fn(async (): Promise<void> => {
+        return undefined;
+      }) as unknown as MockedAuditLogRecorder["recordSignInFailures"],
+      recordStatusPageSessionEvents: jest.fn(async (): Promise<void> => {
+        return undefined;
+      }) as unknown as MockedAuditLogRecorder["recordStatusPageSessionEvents"],
       invalidateProjectSettings: jest.fn((): void => {
         return undefined;
       }) as unknown as MockedAuditLogRecorder["invalidateProjectSettings"],

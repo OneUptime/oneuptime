@@ -875,6 +875,79 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
     );
   });
 
+  /*
+   * #7186: a failing export's error says, under the next try, from when
+   * the entries waiting to be sent start to be deleted - asked of the
+   * project's route for this export. One that is turned off, or that has
+   * an error but is not failing now, asks nothing and says nothing.
+   */
+  test("View Error on a failing export says from when its waiting entries start to be deleted", async () => {
+    const entriesLostAt: Date = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+
+    jest.mocked(API.post).mockResolvedValue(
+      new HTTPResponse(
+        200,
+        {
+          entriesLostAt: entriesLostAt.toISOString(),
+          readAt: new Date().toISOString(),
+        },
+        {},
+      ) as never,
+    );
+
+    await renderProjectPage();
+
+    await act(async () => {
+      action("View Error").onClick(
+        savedExport({
+          lastError: "The webhook endpoint refused the credential (HTTP 401).",
+          failingSince: new Date(Date.now() - 60 * 60 * 1000),
+          nextAttemptAt: new Date(Date.now() + 10 * 60 * 1000),
+        }),
+        () => {},
+      );
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("audit-log-export-entries-lost"),
+      ).toHaveTextContent(
+        "Entries waiting to be sent start to be deleted from about",
+      );
+    });
+
+    expect(posts()).toHaveLength(1);
+    expect(String(posts()[0]!["url"])).toContain(
+      "/audit-log-export/entries-lost-at",
+    );
+    expect(posts()[0]!["data"]).toEqual({ exportId: EXPORT_ID });
+  });
+
+  test("View Error on an export that is turned off, or not failing now, asks nothing of when entries are deleted", async () => {
+    await renderProjectPage();
+
+    for (const item of [
+      savedExport({
+        lastError: "HTTP 401",
+        failingSince: new Date(Date.now() - 60 * 60 * 1000),
+        isEnabled: false,
+      }),
+      savedExport({ lastError: "HTTP 401" }),
+    ]) {
+      await act(async () => {
+        action("View Error").onClick(item, () => {});
+      });
+
+      expect(screen.getByTestId("audit-log-export-error")).toBeInTheDocument();
+      expect(screen.queryByTestId("audit-log-export-entries-lost")).toBeNull();
+
+      cleanup();
+      await renderProjectPage();
+    }
+
+    expect(posts()).toHaveLength(0);
+  });
+
   test("Send a test sends one entry with the saved settings, to the project's route, as soon as it opens", async () => {
     await renderProjectPage();
 

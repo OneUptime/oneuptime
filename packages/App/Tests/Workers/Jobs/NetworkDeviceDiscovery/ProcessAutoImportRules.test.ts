@@ -4,6 +4,7 @@ import Semaphore, {
 } from "Common/Server/Infrastructure/Semaphore";
 import NetworkDeviceAutoImportRuleEngineService from "Common/Server/Services/NetworkDeviceAutoImportRuleEngineService";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import { AutoImportRuleRunResult } from "Common/Types/NetworkAutomation/RuleRunResult";
@@ -13,7 +14,7 @@ import { AutoImportRuleRunResult } from "Common/Types/NetworkAutomation/RuleRunR
  * callback so each test can exercise a complete worker sweep without creating
  * a BullMQ repeatable job.
  */
-type CronHandler = () => Promise<void>;
+type CronHandler = (deadline?: JobDeadline) => Promise<void>;
 
 const mockCapturedJobs: Record<string, CronHandler> = {};
 
@@ -152,7 +153,7 @@ function makeResult(
   };
 }
 
-async function runWorkerTick(): Promise<void> {
+async function runWorkerTick(deadline?: JobDeadline): Promise<void> {
   const handler: CronHandler | undefined =
     mockCapturedJobs["NetworkDeviceDiscovery:ProcessAutoImportRules"];
 
@@ -162,7 +163,15 @@ async function runWorkerTick(): Promise<void> {
     );
   }
 
-  await handler();
+  await handler(deadline);
+}
+
+function offeredScanIds(): Array<ObjectID> {
+  return engineService.processCompletedScan.mock.calls.map(
+    (call: Array<unknown>): ObjectID => {
+      return (call[0] as ProcessCompletedScanArgs).scanId;
+    },
+  );
 }
 
 describe("NetworkDeviceDiscovery:ProcessAutoImportRules worker", () => {
@@ -294,5 +303,112 @@ describe("NetworkDeviceDiscovery:ProcessAutoImportRules worker", () => {
     ).query;
 
     expect(query["autoImportProcessedAt"]).toBeDefined();
+  });
+});
+
+/*
+ * One engine writer at a time, and a sweep that stops at its deadline (issue
+ * #8103). The run's lease (CronLock) keeps two sweeps apart; the engine's
+ * lock is still taken, because Run Now - an API request, not a run of this
+ * job - takes it too, and two writers over one scan race into duplicate
+ * devices.
+ */
+describe("NetworkDeviceDiscovery:ProcessAutoImportRules one writer at a time", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    semaphore.lock.mockResolvedValue(SWEEP_MUTEX);
+    semaphore.release.mockResolvedValue(undefined);
+    scanService.findBy.mockResolvedValue([
+      makeScan({ id: PROJECT_A_SCAN_1_ID, projectId: PROJECT_A_ID }),
+      makeScan({ id: PROJECT_A_SCAN_2_ID, projectId: PROJECT_A_ID }),
+      makeScan({ id: PROJECT_B_SCAN_ID, projectId: PROJECT_B_ID }),
+    ]);
+    engineService.processCompletedScan.mockResolvedValue(makeResult());
+  });
+
+  test("takes the engine's lock, the one Run Now takes, without queueing, and releases it", async () => {
+    await runWorkerTick(new JobDeadline());
+
+    expect(semaphore.lock).toHaveBeenCalledTimes(1);
+    expect(semaphore.lock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: "NetworkDeviceDiscovery:ProcessAutoImportRules",
+        namespace: "Workers.Cron",
+        acquireAttemptsLimit: 1,
+      }),
+    );
+    expect(semaphore.release).toHaveBeenCalledWith(SWEEP_MUTEX);
+    expect(engineService.processCompletedScan).toHaveBeenCalledTimes(3);
+  });
+
+  test("does nothing at all while Run Now or another sweep holds the lock", async () => {
+    semaphore.lock.mockRejectedValue(new Error("already held"));
+
+    await runWorkerTick(new JobDeadline());
+
+    expect(scanService.findBy).not.toHaveBeenCalled();
+    expect(engineService.processCompletedScan).not.toHaveBeenCalled();
+    expect(semaphore.release).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The time limit ran out during the first scan: the import in flight
+   * finished, and the sweep stops before the next scan. The others keep
+   * their NULL marker, so the next tick resumes them.
+   */
+  test("stops before the next scan once the deadline has passed, and leaves the rest for the next tick", async () => {
+    const deadline: JobDeadline = new JobDeadline();
+
+    engineService.processCompletedScan.mockImplementationOnce(
+      async (): Promise<AutoImportRuleRunResult> => {
+        deadline.end();
+        return makeResult();
+      },
+    );
+
+    await runWorkerTick(deadline);
+
+    expect(offeredScanIds()).toEqual([PROJECT_A_SCAN_1_ID]);
+    expect(semaphore.release).toHaveBeenCalledWith(SWEEP_MUTEX);
+    expect(mockedLogger.debug).toHaveBeenCalledWith(
+      expect.stringContaining("stopping after 1 of 3 scan(s)"),
+    );
+  });
+
+  // A run whose lease was lost has its deadline ended (CronLock).
+  test("stops the same way when the run's lease was lost", async () => {
+    const deadline: JobDeadline = new JobDeadline();
+
+    engineService.processCompletedScan.mockImplementationOnce(
+      async (): Promise<AutoImportRuleRunResult> => {
+        deadline.end(new Error("its lock lapsed"));
+        return makeResult();
+      },
+    );
+
+    await runWorkerTick(deadline);
+
+    expect(engineService.processCompletedScan).toHaveBeenCalledTimes(1);
+  });
+
+  test("offers no scan when its deadline passed before it started, and still releases the lock", async () => {
+    const deadline: JobDeadline = new JobDeadline();
+    deadline.end();
+
+    await runWorkerTick(deadline);
+
+    expect(engineService.processCompletedScan).not.toHaveBeenCalled();
+    expect(semaphore.release).toHaveBeenCalledWith(SWEEP_MUTEX);
+  });
+
+  test("offers every scan while its deadline has not passed", async () => {
+    await runWorkerTick(new JobDeadline());
+
+    expect(offeredScanIds()).toEqual([
+      PROJECT_A_SCAN_1_ID,
+      PROJECT_A_SCAN_2_ID,
+      PROJECT_B_SCAN_ID,
+    ]);
   });
 });

@@ -21,7 +21,9 @@
  * (feeds, notifications, on-call) would otherwise be most of the count. So
  * is the read of what a monitor was linked to by hand, made once a record
  * is really created: a dozen reads in parallel of tables this suite does not
- * clone, which link nothing here.
+ * clone, which link nothing here. How many times it is made is pinned all
+ * the same (LINKED_RESOURCE_READS): once for an evaluation that opens an
+ * incident and an alert, never for one that opens nothing (issue #8118).
  *
  * Opt in with RUN_POSTGRES_MONITOR_RESULT_PATH_TESTS=true against a
  * Postgres migrated to head, e.g. the Postgres Schema Drift workflow's
@@ -157,6 +159,20 @@ const MOST_STATEMENTS: Readonly<Record<string, number>> = {
   opening: 9,
   whileOpen: 5,
   resolving: 8,
+};
+
+/*
+ * How many times each kind of result reads what the monitor was linked to
+ * by hand ("linked resources" among the record writes). An evaluation that
+ * opened an incident and an alert read it twice, once per creator (issue
+ * #8118): both are handed the one read now. Nothing else reads it.
+ */
+const LINKED_RESOURCE_READS: Readonly<Record<string, number>> = {
+  healthy: 0,
+  statusChange: 0,
+  opening: 1,
+  whileOpen: 0,
+  resolving: 0,
 };
 
 // A statement that reads the Monitor row (its table schema-qualified here).
@@ -853,12 +869,16 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
     } as unknown as ProbeMonitorResponse;
   }
 
-  // The statements one result issues, and what it decided.
+  // The statements one result issues, what it decided, and its record writes.
   async function countStatements(data: {
     monitor: MonitorFixture;
     verdict: Verdict;
     label: string;
-  }): Promise<{ statements: Array<string>; response: ProbeApiIngestResponse }> {
+  }): Promise<{
+    statements: Array<string>;
+    response: ProbeApiIngestResponse;
+    linkedResourceReads: number;
+  }> {
     statementLog.statements = [];
     recordWrites.length = 0;
     statementLog.isCounting = true;
@@ -892,7 +912,13 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
       );
     }
 
-    return { statements, response };
+    return {
+      statements,
+      response,
+      linkedResourceReads: recordWrites.filter((write: string) => {
+        return write === "linked resources";
+      }).length,
+    };
   }
 
   async function currentStatusOf(monitor: MonitorFixture): Promise<string> {
@@ -937,7 +963,7 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
         label: "healthy, one probe (first)",
       });
 
-      const { statements } = await countStatements({
+      const { statements, linkedResourceReads } = await countStatements({
         monitor,
         verdict: Verdict.Online,
         label: "healthy, one probe",
@@ -949,6 +975,7 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
       expect(statements.length).toBeLessThanOrEqual(
         MOST_STATEMENTS["healthy"]!,
       );
+      expect(linkedResourceReads).toBe(LINKED_RESOURCE_READS["healthy"]);
 
       // The monitor is read once, under its lock: no second read of its status.
       expect(
@@ -1036,7 +1063,7 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
         label: "status change (warm-up)",
       });
 
-      const { statements } = await countStatements({
+      const { statements, linkedResourceReads } = await countStatements({
         monitor,
         verdict: Verdict.Degraded,
         label: "status change, no records",
@@ -1047,6 +1074,7 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
       expect(statements.length).toBeLessThanOrEqual(
         MOST_STATEMENTS["statusChange"]!,
       );
+      expect(linkedResourceReads).toBe(LINKED_RESOURCE_READS["statusChange"]);
     },
     TEST_TIMEOUT_MS,
   );
@@ -1062,7 +1090,10 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
         label: "records (warm-up)",
       });
 
-      const opening: { statements: Array<string> } = await countStatements({
+      const opening: {
+        statements: Array<string>;
+        linkedResourceReads: number;
+      } = await countStatements({
         monitor,
         verdict: Verdict.Offline,
         label: "opens an incident and an alert",
@@ -1071,7 +1102,10 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
       expect(await currentStatusOf(monitor)).toBe(offlineStatusId.toString());
       expect(await openRecordsOf(monitor)).toEqual({ incidents: 1, alerts: 1 });
 
-      const stillDown: { statements: Array<string> } = await countStatements({
+      const stillDown: {
+        statements: Array<string>;
+        linkedResourceReads: number;
+      } = await countStatements({
         monitor,
         verdict: Verdict.Offline,
         label: "still offline, records open",
@@ -1079,7 +1113,10 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
 
       expect(await openRecordsOf(monitor)).toEqual({ incidents: 1, alerts: 1 });
 
-      const resolving: { statements: Array<string> } = await countStatements({
+      const resolving: {
+        statements: Array<string>;
+        linkedResourceReads: number;
+      } = await countStatements({
         monitor,
         verdict: Verdict.Online,
         label: "auto-resolves them",
@@ -1090,13 +1127,19 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
       );
       expect(await openRecordsOf(monitor)).toEqual({ incidents: 0, alerts: 0 });
 
-      const after: { statements: Array<string> } = await countStatements({
+      const after: {
+        statements: Array<string>;
+        linkedResourceReads: number;
+      } = await countStatements({
         monitor,
         verdict: Verdict.Online,
         label: "healthy after the resolve",
       });
 
-      const steady: { statements: Array<string> } = await countStatements({
+      const steady: {
+        statements: Array<string>;
+        linkedResourceReads: number;
+      } = await countStatements({
         monitor,
         verdict: Verdict.Online,
         label: "healthy, steady again",
@@ -1117,6 +1160,23 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
       expect(steady.statements.length).toBeLessThanOrEqual(
         MOST_STATEMENTS["healthy"]!,
       );
+
+      /*
+       * The incident and the alert the opening result created share one
+       * read of what the monitor was linked to by hand (issue #8118); the
+       * results that open nothing read it not at all.
+       */
+      expect(opening.linkedResourceReads).toBe(
+        LINKED_RESOURCE_READS["opening"],
+      );
+      expect(stillDown.linkedResourceReads).toBe(
+        LINKED_RESOURCE_READS["whileOpen"],
+      );
+      expect(resolving.linkedResourceReads).toBe(
+        LINKED_RESOURCE_READS["resolving"],
+      );
+      expect(after.linkedResourceReads).toBe(LINKED_RESOURCE_READS["healthy"]);
+      expect(steady.linkedResourceReads).toBe(LINKED_RESOURCE_READS["healthy"]);
     },
     TEST_TIMEOUT_MS,
   );

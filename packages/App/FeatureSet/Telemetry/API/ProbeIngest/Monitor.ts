@@ -448,8 +448,9 @@ router.post(
       );
 
       /*
-       * Atomically claim monitor tests with FOR UPDATE SKIP LOCKED to prevent
-       * duplicate test execution across concurrent probe replicas.
+       * Claim monitor tests in one statement, FOR NO KEY UPDATE SKIP LOCKED,
+       * so concurrent probe replicas never run the same test
+       * (MonitorTestService.claimMonitorTestsForProbing).
        */
       const claimedMonitorTestIds: Array<ObjectID> =
         await MonitorTestService.claimMonitorTestsForProbing({

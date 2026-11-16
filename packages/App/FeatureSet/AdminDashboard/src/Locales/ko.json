@@ -1244,6 +1244,8 @@
   "Copy Error": "오류 복사",
   "Full error message": "전체 오류 메시지",
   "Next try: {{time}}": "다음 시도: {{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "전송 대기 중인 항목은 약 {{time}}부터 삭제되기 시작합니다.",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "약 {{time}}부터 전송 대기 중인 항목이 삭제되고 있습니다.",
   "Needs a valid Enterprise license that includes audit logs.": "감사 로그가 포함된 유효한 Enterprise 라이선스가 필요합니다.",
   "Paused": "일시 중지됨",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "꺼져 있는 동안에는 아무것도 보내지 않습니다. 위치는 유지되므로 다시 켜면 그 사이에 기록된 항목을 보냅니다.",

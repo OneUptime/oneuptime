@@ -15,6 +15,13 @@ jest.mock("../../../Server/Utils/Logger", () => {
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import DataStoreService from "../../../Server/Services/DataStoreService";
+import MonitorTestService from "../../../Server/Services/MonitorTestService";
+import NetworkDeviceDiagnosticService from "../../../Server/Services/NetworkDeviceDiagnosticService";
+import PacketCaptureService from "../../../Server/Services/PacketCaptureService";
+import VMwareVCenterConnectionTestService from "../../../Server/Services/VMwareVCenterConnectionTestService";
+import OpenStackConnectionTestStore, {
+  OpenStackConnectionTestService,
+} from "../../../Server/Utils/OpenStack/OpenStackConnectionTestStore";
 import { claimDueTableHealthStoresForProbe } from "../../../Server/Utils/DataObservability/DataObservabilityProbeClaim";
 import { claimDueDataStoresForProbe } from "../../../Server/Utils/DataSecurity/DataSecurityProbeClaim";
 import OpenStackCheckStore, {
@@ -304,5 +311,163 @@ describe.each(CLAIMS)("the $name claim", (claim: ProbeClaim) => {
         expect(running).toEqual([RUNNING_ID]);
       }
     }
+  });
+});
+
+/*
+ * THE CLAIMS OF A PROBE'S ON-DEMAND JOBS ARE ONE STATEMENT TOO (OneUptime
+ * issue #7392): the monitor tests started from the dashboard, a device's
+ * diagnostics, packet captures, and the VMware and OpenStack connection
+ * tests. Each was a transaction of a SELECT ... FOR UPDATE SKIP LOCKED and
+ * an UPDATE of the ids: four round trips on every probe tick, even with
+ * nothing pending. Each now locks its pending rows FOR NO KEY UPDATE SKIP
+ * LOCKED in a "pending" CTE, moves them on in a "claimed" CTE, and answers
+ * what it wrote, the oldest first. Nothing is set aside: a job that is not
+ * picked up is failed by its own sweep. OnDemandProbeJobClaimsPostgres,
+ * PacketCaptureSqlPostgres and the VMware and OpenStack collection suites
+ * run them.
+ */
+interface OnDemandClaim {
+  name: string;
+  table: string;
+  alias: string;
+  // Runs the claim for PROBE_ID with room for LIMIT: the statements it sent.
+  run: () => Promise<Array<CapturedStatement>>;
+}
+
+const ON_DEMAND_CLAIMS: Array<OnDemandClaim> = [
+  {
+    name: "monitor test",
+    table: "MonitorTest",
+    alias: "mt",
+    run: async (): Promise<Array<CapturedStatement>> => {
+      const statements: Array<CapturedStatement> =
+        captureClaimQueries(MonitorTestService);
+
+      await MonitorTestService.claimMonitorTestsForProbing({
+        probeId: PROBE_ID,
+        limit: LIMIT,
+      });
+
+      return statements;
+    },
+  },
+  {
+    name: "network device diagnostic",
+    table: "NetworkDeviceDiagnostic",
+    alias: "d",
+    run: async (): Promise<Array<CapturedStatement>> => {
+      const statements: Array<CapturedStatement> = captureClaimQueries(
+        NetworkDeviceDiagnosticService,
+      );
+
+      await NetworkDeviceDiagnosticService.claimPendingForProbe({
+        probeId: PROBE_ID,
+        limit: LIMIT,
+      });
+
+      return statements;
+    },
+  },
+  {
+    name: "packet capture",
+    table: "PacketCapture",
+    alias: "c",
+    run: async (): Promise<Array<CapturedStatement>> => {
+      const statements: Array<CapturedStatement> =
+        captureClaimQueries(PacketCaptureService);
+
+      await PacketCaptureService.claimPendingForProbe({
+        probeId: PROBE_ID,
+        limit: LIMIT,
+      });
+
+      return statements;
+    },
+  },
+  {
+    name: "VMware connection test",
+    table: "VMwareVCenterConnectionTest",
+    alias: "t",
+    run: async (): Promise<Array<CapturedStatement>> => {
+      const statements: Array<CapturedStatement> = captureClaimQueries(
+        VMwareVCenterConnectionTestService,
+      );
+
+      await VMwareVCenterConnectionTestService.claimPendingTests({
+        probeId: PROBE_ID,
+        limit: LIMIT,
+      });
+
+      return statements;
+    },
+  },
+  {
+    name: "OpenStack connection test",
+    table: "OpenStackCloudConnectionTest",
+    alias: "t",
+    run: async (): Promise<Array<CapturedStatement>> => {
+      const service: ReturnType<typeof claimingService> = claimingService();
+      const statements: Array<CapturedStatement> = captureClaimQueries(service);
+
+      await OpenStackConnectionTestStore.claimPendingTests(
+        service as unknown as OpenStackConnectionTestService,
+        {
+          probeId: PROBE_ID,
+          limit: LIMIT,
+        },
+      );
+
+      return statements;
+    },
+  },
+];
+
+describe.each(ON_DEMAND_CLAIMS)("the $name claim", (claim: OnDemandClaim) => {
+  test("is one statement that locks the pending rows FOR NO KEY UPDATE SKIP LOCKED and moves them on itself", async () => {
+    const statements: Array<CapturedStatement> = await claim.run();
+
+    // Nothing pending: the claim, and nothing after it.
+    expect(statements).toHaveLength(1);
+
+    const sql: string = normalizeSql(statements[0]!.sql);
+
+    expect(sql.startsWith('WITH "pending" AS ( SELECT ')).toBe(true);
+    expect(sql).toContain(`FROM "${claim.table}" ${claim.alias}`);
+    expect(sql).toContain(`FOR NO KEY UPDATE OF ${claim.alias} SKIP LOCKED`);
+    // FOR UPDATE would make a foreign key check of a row naming one wait.
+    expect(sql).not.toMatch(/FOR UPDATE/);
+
+    expect(sql).toContain(
+      `"claimed" AS ( UPDATE "${claim.table}" AS ${claim.alias} SET `,
+    );
+    expect(sql).toContain(
+      `FROM "pending" WHERE ${claim.alias}."_id" = "pending"."_id" RETURNING ${claim.alias}."_id" )`,
+    );
+
+    // Only what the statement wrote is answered, the oldest first.
+    expect(
+      sql.endsWith(
+        'FROM "pending" INNER JOIN "claimed" ON "claimed"."_id" = "pending"."_id" ORDER BY "pending"."createdAt" ASC',
+      ),
+    ).toBe(true);
+    expect(sql).toContain(`ORDER BY ${claim.alias}."createdAt" ASC LIMIT $`);
+  });
+
+  test("binds every placeholder it names, and names every value it binds: the probe first, the limit where it says", async () => {
+    const statement: CapturedStatement = (await claim.run())[0]!;
+
+    expectPlaceholdersMatchParameters(statement);
+
+    expect(statement.parameters[0]).toBe(PROBE_ID.toString());
+
+    for (const limit of boundTo(statement, /\bLIMIT \$(\d+)/g)) {
+      expect(limit).toBe(LIMIT);
+    }
+
+    // Every status a claim compares or writes is bound, never spelled out.
+    expect(normalizeSql(statement.sql)).not.toMatch(
+      /"status" = '|"isInQueue" = '/,
+    );
   });
 });

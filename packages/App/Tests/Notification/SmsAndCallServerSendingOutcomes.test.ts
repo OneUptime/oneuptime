@@ -11,7 +11,7 @@ import SmsLogService from "Common/Server/Services/SmsLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import MessagingBalance from "Common/Server/Utils/Billing/MessagingBalance";
 import CustomChannelActionToken from "Common/Server/Utils/OnCall/CustomChannelActionToken";
-import SSRFProtection from "Common/Server/Utils/SSRFProtection";
+import { approveEveryWebhookAddress } from "Common/Tests/Server/TestingUtils/WebhookAddressCheck";
 import ServerSendingOutcomes, {
   ServerSendingOutcome,
 } from "Common/Server/Utils/ServerSending/ServerSendingOutcomes";
@@ -179,9 +179,7 @@ beforeEach(() => {
   });
 
   post = jest.spyOn(API, "post").mockResolvedValue(ok());
-  jest
-    .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-    .mockResolvedValue(undefined);
+  approveEveryWebhookAddress();
   jest.spyOn(SignedWebhookPost, "sleep").mockResolvedValue();
 
   project = new Project();

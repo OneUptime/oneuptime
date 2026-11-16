@@ -62,13 +62,21 @@ import {
   STATUS_PAGE_MAGIC_LINK_INVALID_MESSAGE,
   STATUS_PAGE_MAGIC_LINK_LOGIN_ROUTE,
 } from "Common/Types/StatusPage/StatusPageMagicLink";
+import {
+  STATUS_PAGE_SESSION_REFRESH_TOKEN_EXPIRED_REASON,
+  STATUS_PAGE_SESSION_SIGNED_OUT_REASON,
+} from "Common/Types/AuditLog/AuditLogStatusPageSession";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 
 const router: ExpressRouter = Express.getRouter();
 
 const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
-// Why a session a reader signed out of ended, as the session records it.
-const SIGNED_OUT_REASON: string = "User logged out";
+/*
+ * Why a session a reader signed out of ended, as the session records it -
+ * and as the audit log reads it, a Sign Out (issue #6790).
+ */
+const SIGNED_OUT_REASON: string = STATUS_PAGE_SESSION_SIGNED_OUT_REASON;
 
 type MasterPasswordAuthInput = {
   req: ExpressRequest;
@@ -173,6 +181,8 @@ type FinalizeStatusPageLoginInput = {
   req: ExpressRequest;
   res: ExpressResponse;
   user: StatusPagePrivateUser;
+  // How the reader signed in: the audit log says it (issue #6790).
+  signInMethod: SignInMethod;
 };
 
 const finalizeStatusPageLogin: (data: FinalizeStatusPageLoginInput) => Promise<{
@@ -184,7 +194,7 @@ const finalizeStatusPageLogin: (data: FinalizeStatusPageLoginInput) => Promise<{
   sessionMetadata: StatusPageSessionMetadata;
   accessToken: string;
 }> => {
-  const { req, res, user } = data;
+  const { req, res, user, signInMethod } = data;
 
   if (!user.projectId) {
     throw new BadDataException(
@@ -206,6 +216,8 @@ const finalizeStatusPageLogin: (data: FinalizeStatusPageLoginInput) => Promise<{
       ipAddress: getClientIp(req),
       userAgent: headerValueToString(req.headers["user-agent"]),
       ...extractDeviceInfo(req),
+      signIn: { method: signInMethod },
+      requestOrigin: RequestOriginUtil.fromRequest(req),
     });
 
   const accessToken: string = CookieUtil.setStatusPagePrivateUserCookie({
@@ -248,6 +260,7 @@ router.post(
             refreshToken,
             {
               reason: SIGNED_OUT_REASON,
+              requestOrigin: RequestOriginUtil.fromRequest(req),
             },
           )
         : false;
@@ -295,6 +308,7 @@ router.post(
             },
             {
               reason: SIGNED_OUT_REASON,
+              requestOrigin: RequestOriginUtil.fromRequest(req),
             },
           );
         }
@@ -495,7 +509,7 @@ router.post(
           statusPageId,
           revoke: {
             sessionId: session.id,
-            reason: "Refresh token expired",
+            reason: STATUS_PAGE_SESSION_REFRESH_TOKEN_EXPIRED_REASON,
           },
           message: "Session expired. Please login again.",
         });
@@ -1219,6 +1233,7 @@ router.post(
         req,
         res,
         user,
+        signInMethod: SignInMethod.SignInLink,
       });
 
       // Who signed in - their id, address and page - and nothing else.
@@ -1329,6 +1344,7 @@ router.post(
           req,
           res,
           user: alreadySavedUser,
+          signInMethod: SignInMethod.Password,
         });
 
         const sanitizedUser: StatusPagePrivateUser | null =
