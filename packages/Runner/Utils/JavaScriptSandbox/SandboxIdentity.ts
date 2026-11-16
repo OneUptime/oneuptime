@@ -72,7 +72,7 @@ export const LAUNCHER_NOT_RUNNABLE_REASON: string =
  * change, after the reason.
  */
 export const OWN_USER_REMEDY: string =
-  "To give each step a user of its own, run the Runner's image as its own user (node) and let it switch users: keep allowPrivilegeEscalation and no-new-privileges at their defaults and the SETUID and SETGID capabilities in the container (the Helm chart's global Runner does both).";
+  "To give each step a user of its own, run the Runner's image as its own user (node) and let it switch users: keep allowPrivilegeEscalation and no-new-privileges at their defaults and the SETUID and SETGID capabilities in the container, as the Helm chart's globalRunner and Docker Compose's global-runner do unless a security context of your own says otherwise.";
 
 export interface LauncherCallResult {
   // The exit code, or null when the launcher could not be run or was killed.

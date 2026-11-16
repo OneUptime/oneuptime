@@ -557,3 +557,91 @@ describeRuntime(
     });
   },
 );
+
+/*
+ * What a step's process can reach if its code got out of its isolate, in
+ * the image as it ships: RunnerSide.js plays the Runner (a key in its
+ * environment, a private file and directory, as during a code fix) and
+ * starts EscapedStep.js - plain Node.js, no isolate, no permission model -
+ * through the image's launcher, as a sandbox user would run it. It reports
+ * what it could reach; the kernel must have refused it all. Then a process
+ * the step left behind is reaped, and a step whose launcher is killed dies
+ * with it.
+ */
+const SANDBOX_HELPERS = path.join(
+  REPO_ROOT,
+  "packages/Runner/Tests/Utils/JavaScriptSandbox/Helpers",
+);
+
+function runRunnerSide(scenario) {
+  const run = docker([
+    "run",
+    "--rm",
+    "-e",
+    "ONEUPTIME_RUNNER_KEY=the-runner-key",
+    "-v",
+    `${SANDBOX_HELPERS}:/helpers:ro`,
+    IMAGE,
+    "node",
+    "/helpers/RunnerSide.js",
+    scenario,
+  ]);
+
+  expect({ status: run.status, stderr: run.stderr }).toEqual({
+    status: 0,
+    stderr: "",
+  });
+
+  return JSON.parse(run.stdout);
+}
+
+describeRuntime(
+  "the Runner image's JavaScript sandbox, against a step that got out of its isolate",
+  () => {
+    test("the step's process is a sandbox user, with no privilege, no group and none of the Runner's environment", () => {
+      const { report } = runRunnerSide("escape");
+
+      expect(isSandboxUser(report.uid)).toBe(true);
+      expect(report.gid).toBe(report.uid);
+      expect(report.groups).toEqual([report.uid]);
+      expect(report.environmentNames).toEqual(["LANG", "PATH"]);
+      expect(report.cwd).toBe("/");
+      expect(report.noNewPrivs).toEqual({ ok: true, value: "1" });
+      expect(report.capEff).toEqual({ ok: true, value: "0000000000000000" });
+    });
+
+    test("it can read neither the Runner's environment nor its memory, files or directories, signal it, or start the launcher again", () => {
+      const { report } = runRunnerSide("escape");
+
+      for (const attempt of [
+        "readRunnerEnvironment",
+        "readRunnerMemoryMap",
+        "readRunnerFile",
+        "listRunnerDirectory",
+        "runLauncher",
+      ]) {
+        expect({ attempt, result: report[attempt] }).toEqual({
+          attempt,
+          result: { ok: false, code: "EACCES" },
+        });
+      }
+      expect(report.signalRunner).toEqual({ ok: false, code: "EPERM" });
+      expect(report.writeFile).toEqual({ ok: false, code: "EFBIG" });
+    });
+
+    test("a process the step left behind is gone once the step's user is reaped", () => {
+      const reap = runRunnerSide("reap");
+
+      expect(reap.before.length).toBeGreaterThan(0);
+      expect(reap.reapStatus).toBe(0);
+      expect(reap.after).toEqual([]);
+    });
+
+    test("a step whose launcher is killed dies with it", () => {
+      const ended = runRunnerSide("pdeathsig");
+
+      expect(ended.before.length).toBeGreaterThan(0);
+      expect(ended.after).toEqual([]);
+    });
+  },
+);
