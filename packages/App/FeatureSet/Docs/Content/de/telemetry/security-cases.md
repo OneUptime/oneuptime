@@ -246,6 +246,8 @@ Um in einem Kanal zu posten, fügen Sie unter **Produkte → Sicherheitsereignis
 
 Jede Benachrichtigung außer der zu einer Aufgabe wird in die Kanäle jeder Regel gepostet, auf die der Fall in diesem Moment passt. Eine Regel, deren **Priorität des Sicherheitsfalls** eines von **Kritisch** und **Hoch** enthält, postet Fälle mit Priorität Hoch und Kritisch, sobald sie eröffnet werden, und einen Fall mit Medium, wenn er auf Hoch steigt. Ein Sicherheitsfall bekommt nie einen eigenen Kanal.
 
+Der Schritt **Aktualisierungen** einer Regel wählt aus, welche dieser Meldungen sie postet: **Neue und hochgestufte Fälle**, **Zuweisungen**, **Genehmigungsanfragen** und **Reaktionsziele**, je ein Kästchen unter **Aktualisierungen auswählen**. **Nur wichtige Aktualisierungen** postet alle außer den Zuweisungen, für einen Kanal, der nur hören soll, worauf jemand reagieren muss. Eine Regel, die vor dem Schritt gespeichert wurde, und eine neue Regel posten jede Meldung.
+
 ## Playbooks
 
 Ein Playbook ist eine Liste von Schritten, die auf einem Fall laufen. Erstellen Sie eines unter **Produkte → Sicherheitsereignisse → Playbooks**, aus einer Vorlage oder leer, und fügen Sie seine Schritte auf seiner Seite hinzu. Ein Projekt ohne Playbooks sieht statt einer leeren Liste die Vorlagen; sobald es Playbooks gibt, öffnet **Aus Vorlage erstellen** an der Liste sie, mit **Hinzugefügt** bei denen, die das Projekt schon hat.

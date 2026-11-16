@@ -3656,6 +3656,24 @@ jobs:
           Tests/Server/Services/DiscoveredResourceCreateAndGonePostgres.test.ts
           --forceExit
 
+      # The migration that ticks Custom field changes and Reminders on the
+      # notification rules saved with Other edits and Everything else ticked
+      # (#7937, #7938), on rows of every kind in a schema of its own: the new
+      # box where the old one is, every other part of the rule as it was, a
+      # second run changing nothing and its down taking both out again.
+      - name: Test the notification rules' new update boxes on Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_UPDATES_TO_POST_MIGRATION_TESTS: "true"
+          UPDATES_TO_POST_MIGRATION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          UPDATES_TO_POST_MIGRATION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          UPDATES_TO_POST_MIGRATION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddCustomFieldsAndRemindersToUpdatesToPostPostgres.test.ts
+          --forceExit
+
       # App installs serve the suites below: the probe ones (App) and the
       # Enterprise one, whose jest resolves Common and App from their own
       # installs.
@@ -3698,7 +3716,11 @@ jobs:
       # by one of two runs at once, and never split by a run stopped at its
       # deadline; #8863: the entries before a page's status changes read
       # once per page - on copies of the migrated IncidentOwnerTeam,
-      # IncidentOwnerUser and MonitorStatusTimeline tables.
+      # IncidentOwnerUser and MonitorStatusTimeline tables. #9019: the
+      # reminders due read a page at a time, the longest due first, each moved
+      # on by one statement, by one of two runs at once, and a run stopped at
+      # its deadline leaving the rest due - on a copy of the migrated Incident
+      # table.
       - name: Test the owner notification jobs stopped and started again on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/App
@@ -3712,6 +3734,7 @@ jobs:
           Tests/Workers/Jobs/OwnerNotificationJobsPostgres.test.ts
           Tests/Workers/Utils/OwnerNotificationBacklogPostgres.test.ts
           Tests/Workers/Utils/OwnerNotificationGroupsPostgres.test.ts
+          Tests/Workers/Utils/OwnerReminderBacklogPostgres.test.ts
           --forceExit
 
       # A bundled global probe upgraded from the key the repository ships, end

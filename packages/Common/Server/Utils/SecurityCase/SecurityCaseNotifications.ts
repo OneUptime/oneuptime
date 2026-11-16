@@ -20,6 +20,7 @@ import TeamService from "../../Services/TeamService";
 import UserNotificationSettingService from "../../Services/UserNotificationSettingService";
 import UserService from "../../Services/UserService";
 import WorkspaceNotificationRuleService from "../../Services/WorkspaceNotificationRuleService";
+import { NotificationRuleUpdateKind } from "../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "../../Types/Markdown";
 import logger from "../Logger";
@@ -125,7 +126,11 @@ import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
  *
  * Each is also posted to the Slack and Microsoft Teams channels and chats the
  * project's Security Case rules name (WorkspaceNotificationRuleService), and
- * the case's feed says who was told.
+ * the case's feed says who was told. A rule's Updates step picks which of the
+ * four notices it posts - priority reached, assigned, approval requested,
+ * response targets (issue #7936) - so each is posted with its kind
+ * (postToChannels); a rule saved before the step posts all four, as it did.
+ * A task handed to somebody is told to that person only.
  *
  * Only people who can read the case are ever told about it: a case is the
  * investigation trail of a possible breach, which a project-wide Viewer is
@@ -1093,6 +1098,7 @@ export default class SecurityCaseNotifications {
 
     await this.postToChannels({
       facts,
+      updateKind: NotificationRuleUpdateKind.PriorityReached,
       markdown: buildChannelMarkdown({
         headline: isNew
           ? mdText`🛡️ **New ${priorityName} security case**`
@@ -1222,6 +1228,7 @@ export default class SecurityCaseNotifications {
 
     await this.postToChannels({
       facts,
+      updateKind: NotificationRuleUpdateKind.Assigned,
       markdown: buildChannelMarkdown({
         headline: mdText`👤 **Security case assigned to ${facts.assignee}**`,
         facts,
@@ -1374,6 +1381,7 @@ export default class SecurityCaseNotifications {
 
     await this.postToChannels({
       facts,
+      updateKind: NotificationRuleUpdateKind.ApprovalRequested,
       markdown: buildChannelMarkdown({
         headline: mdText`⏸️ **Approval needed**: playbook **${playbookName}** is waiting for someone to approve ${stepDescription}.`,
         facts,
@@ -1541,6 +1549,7 @@ export default class SecurityCaseNotifications {
 
     await this.postToChannels({
       facts,
+      updateKind: NotificationRuleUpdateKind.ResponseTargets,
       markdown: buildChannelMarkdown({
         headline: isMissed
           ? mdText`🚨 **Security case missed its ${verb} target**`
@@ -2246,10 +2255,14 @@ export default class SecurityCaseNotifications {
 
   /*
    * The channels and chats of the project's Security Case rules that match
-   * the case as it is now. Never throws: the people were told already.
+   * the case as it is now and post this notice: a rule that chose its
+   * notices on its Updates step posts only those (issue #7936), one saved
+   * before posts every notice. Never throws: the people were told already.
    */
   private static async postToChannels(data: {
     facts: SecurityCaseMessageFacts;
+    // Which notice it is, for the rules that choose theirs.
+    updateKind: NotificationRuleUpdateKind;
     markdown: MarkdownText;
     notificationText: string;
   }): Promise<void> {
@@ -2263,6 +2276,7 @@ export default class SecurityCaseNotifications {
         notificationText: data.notificationText,
         workspaceNotification: {
           sendWorkspaceNotification: true,
+          updateKinds: [data.updateKind],
         },
       });
     } catch (error) {
