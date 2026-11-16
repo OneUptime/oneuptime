@@ -13,22 +13,25 @@ import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs
 import { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs";
 
 /*
- * THE FILES ATTACHED TO WHAT A DELETE TAKES (issue #6944): a note's
- * attachments and an incident's postmortem attachments outlived the
- * incident, alert or episode deleted with them, in the database the
- * retention exists to shrink. What is pinned here:
+ * THE FILES ATTACHED TO WHAT A DELETE TAKES (issues #6944, #8895): a note's
+ * attachments, an incident's postmortem attachments and a status page
+ * announcement's attachments outlived the incident, alert, episode,
+ * scheduled maintenance event or announcement deleted with them, in the
+ * database the retention exists to shrink. What is pinned here:
  *
- *   - the registry is the models' own: every join table that lists Files
- *     for an incident, an alert, an episode or one of their notes is in it,
- *     each note reached through the column its record's delete cascades
- *     along, and nothing else is;
+ *   - the registry is the models' own: every join table of the models that
+ *     lists Files is in it - an incident's, an alert's, an episode's, a
+ *     scheduled maintenance event's, one of their notes', an
+ *     announcement's - each note reached through the column its record's
+ *     delete cascades along, and nothing else is;
  *   - the statements name only registry tables and bind every id;
  *   - the files are read by the project each was uploaded in, a failing
  *     read is logged and leaves its files, and nothing is read for a table
  *     with no attachments.
  *
  * DatabaseServiceAttachedFiles.test drives both delete paths over this;
- * ResolvedRecordRetentionPostgres.test runs it against a real database.
+ * ResolvedRecordRetentionPostgres.test and AttachedFilesPostgres.test run it
+ * against a real database.
  */
 
 afterEach(() => {
@@ -43,6 +46,8 @@ const RECORD_TABLES: Array<string> = [
   "Alert",
   "IncidentEpisode",
   "AlertEpisode",
+  "ScheduledMaintenance",
+  "StatusPageAnnouncement",
 ];
 
 const NOTE_TABLES: Record<string, { record: string; column: string }> = {
@@ -61,7 +66,29 @@ const NOTE_TABLES: Record<string, { record: string; column: string }> = {
     record: "AlertEpisode",
     column: "alertEpisodeId",
   },
+  ScheduledMaintenanceInternalNote: {
+    record: "ScheduledMaintenance",
+    column: "scheduledMaintenanceId",
+  },
+  ScheduledMaintenancePublicNote: {
+    record: "ScheduledMaintenance",
+    column: "scheduledMaintenanceId",
+  },
 };
+
+// Every join table of the models that lists Files.
+const FILE_JOIN_TABLES: Array<string> = [
+  "AlertEpisodeInternalNoteFile",
+  "AlertInternalNoteFile",
+  "IncidentEpisodeInternalNoteFile",
+  "IncidentEpisodePublicNoteFile",
+  "IncidentInternalNoteFile",
+  "IncidentPostmortemAttachmentFile",
+  "IncidentPublicNoteFile",
+  "ScheduledMaintenanceInternalNoteFile",
+  "ScheduledMaintenancePublicNoteFile",
+  "StatusPageAnnouncementFile",
+];
 
 // The table name of an entity class, as TypeORM's metadata holds it.
 function tableOf(target: unknown): string {
@@ -121,44 +148,118 @@ function fileJoinTables(): Array<{
 }
 
 describe("the registry is the models' own", () => {
-  test("every File join table of an incident, an alert, an episode or one of their notes is released by its own delete", () => {
-    const relevant: Array<{
+  /*
+   * Every one, not only those of the records already here: a join table
+   * that lists Files and is not released by its owner's delete leaves its
+   * files behind for good (#8895 found three). A model that gains one fails
+   * this until it is added to ATTACHMENT_SOURCES.
+   */
+  test("every File join table of the models is released by its own delete", () => {
+    const joins: Array<{
       owner: string;
       joinTable: string;
       joinColumn: string;
-    }> = fileJoinTables().filter((join: { owner: string }) => {
-      return (
-        RECORD_TABLES.includes(join.owner) ||
-        Object.keys(NOTE_TABLES).includes(join.owner)
-      );
-    });
+    }> = fileJoinTables();
 
-    // The seven the issue lists, and no more hiding among the models.
     expect(
-      relevant
+      joins
         .map((join: { joinTable: string }): string => {
           return join.joinTable;
         })
         .sort(),
-    ).toEqual(
-      [
-        "AlertEpisodeInternalNoteFile",
-        "AlertInternalNoteFile",
-        "IncidentEpisodeInternalNoteFile",
-        "IncidentEpisodePublicNoteFile",
-        "IncidentInternalNoteFile",
-        "IncidentPostmortemAttachmentFile",
-        "IncidentPublicNoteFile",
-      ].sort(),
-    );
+    ).toEqual([...FILE_JOIN_TABLES].sort());
 
-    for (const join of relevant) {
+    for (const join of joins) {
+      expect([...RECORD_TABLES, ...Object.keys(NOTE_TABLES)]).toContain(
+        join.owner,
+      );
       expect(ATTACHMENT_SOURCES).toContainEqual({
         parentTable: join.owner,
         joinTable: join.joinTable,
         joinColumn: join.joinColumn,
       });
     }
+  });
+
+  // #8895: deleting one of these left its files in the database.
+  test.each([
+    [
+      "ScheduledMaintenanceInternalNote",
+      "ScheduledMaintenanceInternalNoteFile",
+      "scheduledMaintenanceInternalNoteId",
+    ],
+    [
+      "ScheduledMaintenancePublicNote",
+      "ScheduledMaintenancePublicNoteFile",
+      "scheduledMaintenancePublicNoteId",
+    ],
+    [
+      "StatusPageAnnouncement",
+      "StatusPageAnnouncementFile",
+      "statusPageAnnouncementId",
+    ],
+  ])(
+    "%s releases the files %s lists",
+    (parentTable: string, joinTable: string, joinColumn: string) => {
+      expect(ATTACHMENT_SOURCES).toContainEqual({
+        parentTable,
+        joinTable,
+        joinColumn,
+      });
+      expect(hasAttachedFiles(parentTable)).toBe(true);
+    },
+  );
+
+  test("a scheduled maintenance event releases its notes' files, through the notes", () => {
+    expect(
+      ATTACHMENT_SOURCES.filter((source: AttachmentSource): boolean => {
+        return source.parentTable === "ScheduledMaintenance";
+      }),
+    ).toEqual([
+      {
+        parentTable: "ScheduledMaintenance",
+        joinTable: "ScheduledMaintenanceInternalNoteFile",
+        joinColumn: "scheduledMaintenanceInternalNoteId",
+        through: {
+          table: "ScheduledMaintenanceInternalNote",
+          foreignKey: "scheduledMaintenanceId",
+        },
+      },
+      {
+        parentTable: "ScheduledMaintenance",
+        joinTable: "ScheduledMaintenancePublicNoteFile",
+        joinColumn: "scheduledMaintenancePublicNoteId",
+        through: {
+          table: "ScheduledMaintenancePublicNote",
+          foreignKey: "scheduledMaintenanceId",
+        },
+      },
+    ]);
+  });
+
+  // An announcement has no notes: its files are its own.
+  test("an announcement releases only its own join table's files", () => {
+    expect(
+      ATTACHMENT_SOURCES.filter((source: AttachmentSource): boolean => {
+        return source.parentTable === "StatusPageAnnouncement";
+      }),
+    ).toEqual([
+      {
+        parentTable: "StatusPageAnnouncement",
+        joinTable: "StatusPageAnnouncementFile",
+        joinColumn: "statusPageAnnouncementId",
+      },
+    ]);
+  });
+
+  test("no source is listed twice", () => {
+    const keys: Array<string> = ATTACHMENT_SOURCES.map(
+      (source: AttachmentSource): string => {
+        return JSON.stringify(source);
+      },
+    );
+
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   test("a note's files are released by its record's delete too, through the column the cascade follows", () => {
@@ -197,18 +298,23 @@ describe("the registry is the models' own", () => {
     }
   });
 
-  test("only incidents, alerts, episodes and their notes release files here", () => {
+  test("only the records with attachments and their notes release files here", () => {
     for (const source of ATTACHMENT_SOURCES) {
       expect([...RECORD_TABLES, ...Object.keys(NOTE_TABLES)]).toContain(
         source.parentTable,
       );
     }
 
-    // A status page's logo, a user's picture: never released by these deletes.
+    /*
+     * A status page's logo, a user's picture, what a template holds: never
+     * released by these deletes.
+     */
     expect(hasAttachedFiles("StatusPage")).toBe(false);
     expect(hasAttachedFiles("User")).toBe(false);
     expect(hasAttachedFiles("File")).toBe(false);
-    expect(hasAttachedFiles("ScheduledMaintenance")).toBe(false);
+    expect(hasAttachedFiles("ScheduledMaintenanceTemplate")).toBe(false);
+    expect(hasAttachedFiles("StatusPageAnnouncementTemplate")).toBe(false);
+    expect(hasAttachedFiles("Monitor")).toBe(false);
     expect(hasAttachedFiles(undefined)).toBe(false);
 
     for (const table of [...RECORD_TABLES, ...Object.keys(NOTE_TABLES)]) {
@@ -352,6 +458,92 @@ describe("readFilesOfRowsDeleted", () => {
     );
     expect(statements[0]).toContain(`j."alertEpisodeInternalNoteId" = ANY`);
   });
+
+  // #8895.
+  test("a scheduled maintenance event reads its internal and public notes' files, through its notes", async () => {
+    const calls: Array<{ sql: string; parameters: Array<unknown> }> = [];
+
+    const released: Map<
+      string,
+      Set<string>
+    > = await AttachedFiles.readFilesOfRowsDeleted({
+      tableName: "ScheduledMaintenance",
+      ids: [INCIDENT],
+      query: async (
+        sql: string,
+        parameters: Array<unknown>,
+      ): Promise<unknown> => {
+        calls.push({ sql, parameters });
+
+        if (sql.includes(`FROM "ScheduledMaintenanceInternalNoteFile"`)) {
+          return [{ fileId: FILE_1, projectId: PROJECT_A }];
+        }
+
+        return [{ fileId: FILE_2, projectId: PROJECT_A }];
+      },
+    });
+
+    expect(
+      calls.map((call: { sql: string }): string => {
+        return call.sql;
+      }),
+    ).toEqual([
+      `SELECT DISTINCT j."fileId"::text AS "fileId", f."projectId"::text AS "projectId" FROM "ScheduledMaintenanceInternalNoteFile" j JOIN "ScheduledMaintenanceInternalNote" n ON n."_id" = j."scheduledMaintenanceInternalNoteId" JOIN "File" f ON f."_id" = j."fileId" WHERE n."scheduledMaintenanceId" = ANY($1::uuid[]) AND f."projectId" IS NOT NULL`,
+      `SELECT DISTINCT j."fileId"::text AS "fileId", f."projectId"::text AS "projectId" FROM "ScheduledMaintenancePublicNoteFile" j JOIN "ScheduledMaintenancePublicNote" n ON n."_id" = j."scheduledMaintenancePublicNoteId" JOIN "File" f ON f."_id" = j."fileId" WHERE n."scheduledMaintenanceId" = ANY($1::uuid[]) AND f."projectId" IS NOT NULL`,
+    ]);
+
+    for (const call of calls) {
+      expect(call.parameters).toEqual([[INCIDENT]]);
+    }
+
+    expect(released).toEqual(new Map([[PROJECT_A, new Set([FILE_1, FILE_2])]]));
+  });
+
+  test.each([
+    [
+      "ScheduledMaintenanceInternalNote",
+      "ScheduledMaintenanceInternalNoteFile",
+      "scheduledMaintenanceInternalNoteId",
+    ],
+    [
+      "ScheduledMaintenancePublicNote",
+      "ScheduledMaintenancePublicNoteFile",
+      "scheduledMaintenancePublicNoteId",
+    ],
+    [
+      "StatusPageAnnouncement",
+      "StatusPageAnnouncementFile",
+      "statusPageAnnouncementId",
+    ],
+  ])(
+    "a %s deleted reads its own join table, %s, by %s",
+    async (tableName: string, joinTable: string, joinColumn: string) => {
+      const calls: Array<{ sql: string; parameters: Array<unknown> }> = [];
+
+      const released: Map<
+        string,
+        Set<string>
+      > = await AttachedFiles.readFilesOfRowsDeleted({
+        tableName,
+        ids: [INCIDENT],
+        query: async (
+          sql: string,
+          parameters: Array<unknown>,
+        ): Promise<unknown> => {
+          calls.push({ sql, parameters });
+          return [{ fileId: FILE_3, projectId: PROJECT_B }];
+        },
+      });
+
+      expect(calls).toEqual([
+        {
+          sql: `SELECT DISTINCT j."fileId"::text AS "fileId", f."projectId"::text AS "projectId" FROM "${joinTable}" j JOIN "File" f ON f."_id" = j."fileId" WHERE j."${joinColumn}" = ANY($1::uuid[]) AND f."projectId" IS NOT NULL`,
+          parameters: [[INCIDENT]],
+        },
+      ]);
+      expect(released).toEqual(new Map([[PROJECT_B, new Set([FILE_3])]]));
+    },
+  );
 
   test("no valid id, or a table with no attachments, reads nothing", async () => {
     const query: jest.Mock<
