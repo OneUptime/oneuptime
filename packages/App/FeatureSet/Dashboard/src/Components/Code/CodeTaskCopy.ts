@@ -365,7 +365,7 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
     "This repository's Git server is on a network OneUptime does not reach, so a global Runner cannot work in it. Pick one of your own Runners on that network.",
   ),
   [CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner]: translationKey(
-    "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.",
+    "AI works in a Forgejo, Gitea or Git repository on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.",
   ),
   [CodeTaskBlockerType.NoLlmProvider]: translationKey(
     "AI needs an LLM provider for this project.",
@@ -401,6 +401,16 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
  */
 export const CODE_TASK_REPOSITORY_CONNECTION_GONE: string = translationKey(
   "This repository is no longer connected to its Git server, so AI cannot work in it. Connect it again from Code's Repositories.",
+);
+
+/*
+ * What a GitLab repository on the Global Runner is told when GitLab did not
+ * let OneUptime make the short-lived token a fix pushes with
+ * (RepositoryTokenNeedsOwnRunner for GitLab): the same sentence as the one
+ * under its Runner picker.
+ */
+export const CODE_TASK_GITLAB_TOKEN_NOT_MINTED: string = translationKey(
+  "GitLab did not let OneUptime make a short-lived token for this repository, so AI works in it on one of your own Runners. Give its connection a Maintainer's token with the api scope, or pick one of your Runners.",
 );
 
 // The fix that goes with it: Repositories, where any host connects.

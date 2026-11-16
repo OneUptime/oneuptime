@@ -55980,7 +55980,8 @@
   "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "Les anciens incidents résolus dont le post-mortem est dans un statut que vous retirez sont supprimés dans l'heure. Ils ne peuvent pas être récupérés.",
   "{{count}} attempt": "{{count}} tentative",
   "{{summary}} - view sign-in attempt details": "{{summary}} - voir les détails de la tentative de connexion",
-  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "L'IA travaille dans un dépôt qui n'est pas sur GitHub sur l'un de vos propres agents Runbook : son jeton d'accès n'est jamais remis à un agent Runbook global. Choisissez l'un de vos agents Runbook.",
+  "AI works in a Forgejo, Gitea or Git repository on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "L'IA travaille dans un dépôt Forgejo, Gitea ou Git sur l'un de vos propres agents Runbook : son jeton d'accès n'est jamais remis à un agent Runbook global. Choisissez l'un de vos agents Runbook.",
+  "GitLab did not let OneUptime make a short-lived token for this repository, so AI works in it on one of your own Runners. Give its connection a Maintainer's token with the api scope, or pick one of your Runners.": "GitLab n'a pas permis à OneUptime de créer un jeton de courte durée pour ce dépôt, donc l'IA y travaille sur l'un de vos propres agents Runbook. Donnez à sa connexion le jeton d'un Maintainer avec la portée api, ou choisissez l'un de vos agents Runbook.",
   "Reads work, but changes will fail": "La lecture fonctionne, mais les modifications échoueront",
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Exécutez à nouveau la commande de configuration. Elle confie les modifications à une identité d'écriture qui leur est propre, et l'identité de l'agent ne garde que la lecture.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Exécutez à nouveau la commande de configuration. Elle confie les modifications à un rôle d'écriture qui leur est propre, que l'agent assume pour chaque modification avec une stratégie limitée à cette modification.",
@@ -56021,5 +56022,15 @@
   "Every {{count}} seconds_one": "Toutes les {{count}} secondes",
   "First Measured At": "Première mesure le",
   "Missing-email check": "Vérification des e-mails manquants",
-  "Missing-request check": "Vérification des requêtes manquantes"
+  "Missing-request check": "Vérification des requêtes manquantes",
+  "Code Repository Connection ID": "Code Repository Connection ID",
+  "Code Repository Minted Token": "Code Repository Minted Token",
+  "Code Repository Minted Tokens": "Code Repository Minted Tokens",
+  "Host Project ID": "Host Project ID",
+  "Host Token ID": "Host Token ID",
+  "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.": "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.",
+  "Minted Token Refused At": "Minted Token Refused At",
+  "Revocation Attempted At": "Revocation Attempted At",
+  "Revocation Error": "Revocation Error",
+  "Worker ID": "Worker ID"
 }

@@ -55980,7 +55980,8 @@
   "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "포스트모템이 선택에서 뺀 상태에 있는 해결된 오래된 인시던트는 1시간 이내에 삭제됩니다. 되돌릴 수 없습니다.",
   "{{count}} attempt": "{{count}}회 시도",
   "{{summary}} - view sign-in attempt details": "{{summary}} - 로그인 시도 세부 정보 보기",
-  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "GitHub에 없는 저장소의 AI 작업은 직접 운영하는 Runner에서 실행됩니다. 그 액세스 토큰은 글로벌 Runner에 절대 전달되지 않습니다. 직접 운영하는 Runner를 선택하세요.",
+  "AI works in a Forgejo, Gitea or Git repository on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "Forgejo, Gitea 또는 Git 저장소의 AI 작업은 직접 운영하는 Runner에서 실행됩니다. 그 액세스 토큰은 글로벌 Runner에 절대 전달되지 않습니다. 직접 운영하는 Runner를 선택하세요.",
+  "GitLab did not let OneUptime make a short-lived token for this repository, so AI works in it on one of your own Runners. Give its connection a Maintainer's token with the api scope, or pick one of your Runners.": "GitLab이 OneUptime에 이 저장소용 단기 토큰을 만들도록 허용하지 않아, 이 저장소의 AI 작업은 직접 운영하는 Runner에서 실행됩니다. 연결에 api 범위가 있는 Maintainer의 토큰을 지정하거나, 직접 운영하는 Runner를 선택하세요.",
   "Reads work, but changes will fail": "읽기는 작동하지만 변경은 실패합니다",
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "설정 명령을 다시 실행하세요. 변경은 전용 쓰기 ID로 옮겨지고, 에이전트 자체 ID에는 읽기만 남습니다.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "설정 명령을 다시 실행하세요. 변경은 전용 쓰기 역할로 옮겨지고, 에이전트는 변경마다 그 변경만 허용하는 정책으로 이 역할을 맡습니다.",
@@ -56021,5 +56022,15 @@
   "Every {{count}} seconds_one": "{{count}}초마다",
   "First Measured At": "처음 측정 시각",
   "Missing-email check": "이메일 누락 점검",
-  "Missing-request check": "요청 누락 점검"
+  "Missing-request check": "요청 누락 점검",
+  "Code Repository Connection ID": "Code Repository Connection ID",
+  "Code Repository Minted Token": "Code Repository Minted Token",
+  "Code Repository Minted Tokens": "Code Repository Minted Tokens",
+  "Host Project ID": "Host Project ID",
+  "Host Token ID": "Host Token ID",
+  "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.": "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.",
+  "Minted Token Refused At": "Minted Token Refused At",
+  "Revocation Attempted At": "Revocation Attempted At",
+  "Revocation Error": "Revocation Error",
+  "Worker ID": "Worker ID"
 }

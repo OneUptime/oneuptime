@@ -5,6 +5,7 @@ import {
   CODE_TASK_BLOCKER_SENTENCES,
   CODE_TASK_BLOCKER_WHO_CAN_FIX,
   CODE_TASK_CONNECT_REPOSITORIES,
+  CODE_TASK_GITLAB_TOKEN_NOT_MINTED,
   CODE_TASK_REPOSITORY_CONNECTION_GONE,
   CODE_TASK_REPOSITORY_SETTINGS_FIXES,
   CODE_TASK_RUNNER_NOT_ONLINE_NAMED,
@@ -109,6 +110,20 @@ export const getBlockerCopy: (data: {
         pageMap: PageMap.CODE_REPOSITORIES,
         title: CODE_TASK_CONNECT_REPOSITORIES,
       },
+    };
+  }
+
+  /*
+   * A GitLab repository is kept off global Runners only when GitLab made no
+   * short-lived token for it: said so, with the same fix (pick a Runner).
+   */
+  if (
+    data.type === CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner &&
+    CodeHost.readType(data.provider) === CodeRepositoryType.GitLab
+  ) {
+    return {
+      sentence: CODE_TASK_GITLAB_TOKEN_NOT_MINTED,
+      fix: CODE_TASK_BLOCKER_FIXES[data.type],
     };
   }
 

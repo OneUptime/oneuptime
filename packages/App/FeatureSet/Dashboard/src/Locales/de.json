@@ -55980,7 +55980,8 @@
   "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "Alte behobene Vorfälle, deren Postmortem einen Status hat, den Sie abwählen, werden innerhalb einer Stunde gelöscht. Sie sind nicht wiederherstellbar.",
   "{{count}} attempt": "{{count}} Versuch",
   "{{summary}} - view sign-in attempt details": "{{summary}} - Details zum Anmeldeversuch ansehen",
-  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "Die KI arbeitet in einem Repository, das nicht auf GitHub liegt, auf einem Ihrer eigenen Runner: Sein Zugriffstoken wird nie an einen globalen Runner gegeben. Wählen Sie einen Ihrer Runner.",
+  "AI works in a Forgejo, Gitea or Git repository on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "Die KI arbeitet in einem Forgejo-, Gitea- oder Git-Repository auf einem Ihrer eigenen Runner: Sein Zugriffstoken wird nie an einen globalen Runner gegeben. Wählen Sie einen Ihrer Runner.",
+  "GitLab did not let OneUptime make a short-lived token for this repository, so AI works in it on one of your own Runners. Give its connection a Maintainer's token with the api scope, or pick one of your Runners.": "GitLab hat OneUptime für dieses Repository kein kurzlebiges Token erstellen lassen, daher arbeitet die KI darin auf einem Ihrer eigenen Runner. Geben Sie seiner Verbindung das Token eines Maintainers mit dem Scope api, oder wählen Sie einen Ihrer Runner.",
   "Reads work, but changes will fail": "Lesen funktioniert, aber Änderungen schlagen fehl",
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Führen Sie den Einrichtungsbefehl erneut aus. Er verlegt die Änderungen auf eine eigene Schreibidentität, und die eigene Identität des Agenten behält nur das Lesen.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Führen Sie den Einrichtungsbefehl erneut aus. Er verlegt die Änderungen auf eine eigene Schreibrolle, die der Agent für jede Änderung mit einer Richtlinie nur für diese Änderung übernimmt.",
@@ -56021,5 +56022,15 @@
   "Every {{count}} seconds_one": "Alle {{count}} Sekunden",
   "First Measured At": "Erstmals gemessen am",
   "Missing-email check": "Prüfung auf fehlende E-Mails",
-  "Missing-request check": "Prüfung auf fehlende Anfragen"
+  "Missing-request check": "Prüfung auf fehlende Anfragen",
+  "Code Repository Connection ID": "Code Repository Connection ID",
+  "Code Repository Minted Token": "Code Repository Minted Token",
+  "Code Repository Minted Tokens": "Code Repository Minted Tokens",
+  "Host Project ID": "Host Project ID",
+  "Host Token ID": "Host Token ID",
+  "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.": "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.",
+  "Minted Token Refused At": "Minted Token Refused At",
+  "Revocation Attempted At": "Revocation Attempted At",
+  "Revocation Error": "Revocation Error",
+  "Worker ID": "Worker ID"
 }

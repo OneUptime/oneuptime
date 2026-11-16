@@ -55980,7 +55980,8 @@
   "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "Gamle løste hendelser med en etteranalyse i en status du velger bort, slettes innen en time. De kan ikke gjenopprettes.",
   "{{count}} attempt": "{{count}} forsøk",
   "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om påloggingsforsøket",
-  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "AI jobber i et repository som ikke ligger på GitHub, på en av dine egne Runnere: tilgangstokenet gis aldri til en global Runner. Velg en av dine Runnere.",
+  "AI works in a Forgejo, Gitea or Git repository on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "AI jobber i et Forgejo-, Gitea- eller Git-repository på en av dine egne Runnere: tilgangstokenet gis aldri til en global Runner. Velg en av dine Runnere.",
+  "GitLab did not let OneUptime make a short-lived token for this repository, so AI works in it on one of your own Runners. Give its connection a Maintainer's token with the api scope, or pick one of your Runners.": "GitLab lot ikke OneUptime lage et kortlivet token for dette repositoryet, så AI jobber i det på en av dine egne Runnere. Gi tilkoblingen et Maintainer-token med api-omfanget, eller velg en av dine Runnere.",
   "Reads work, but changes will fail": "Lesing fungerer, men endringer vil mislykkes",
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Kjør oppsettkommandoen på nytt. Den flytter endringene til en egen skriveidentitet, og agentens egen identitet beholder bare lesingen.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Kjør oppsettkommandoen på nytt. Den flytter endringene til en egen skriverolle, som agenten tar på seg for hver endring med en policy bare for den endringen.",
@@ -56021,5 +56022,15 @@
   "Every {{count}} seconds_one": "Hvert {{count}}. sekund",
   "First Measured At": "Først målt",
   "Missing-email check": "Sjekk for manglende e-post",
-  "Missing-request check": "Sjekk for manglende forespørsler"
+  "Missing-request check": "Sjekk for manglende forespørsler",
+  "Code Repository Connection ID": "Code Repository Connection ID",
+  "Code Repository Minted Token": "Code Repository Minted Token",
+  "Code Repository Minted Tokens": "Code Repository Minted Tokens",
+  "Host Project ID": "Host Project ID",
+  "Host Token ID": "Host Token ID",
+  "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.": "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.",
+  "Minted Token Refused At": "Minted Token Refused At",
+  "Revocation Attempted At": "Revocation Attempted At",
+  "Revocation Error": "Revocation Error",
+  "Worker ID": "Worker ID"
 }
