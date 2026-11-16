@@ -53,7 +53,7 @@
       "signIn": "Se connecter avec une clé d’accès",
       "inProgress": "Terminez ou annulez la connexion par clé d’accès avant d’utiliser votre mot de passe.",
       "helpTitle": "Vous découvrez les clés d’accès ?",
-      "help": "Une clé d’accès vous permet de vous connecter avec votre empreinte digitale, votre visage ou le code PIN de votre appareil, sans mot de passe. Pour en ajouter une, connectez-vous avec votre mot de passe ou le SSO, puis ouvrez Profil utilisateur → Sécurité → Passkeys.",
+      "help": "Une clé d’accès vous permet de vous connecter avec votre empreinte digitale, votre visage ou le code PIN de votre appareil, sans mot de passe. Pour en ajouter une, connectez-vous avec votre mot de passe ou le SSO, puis ouvrez Profil utilisateur → Sécurité → Clés d'accès.",
       "preparing": "Préparation de votre clé d’accès…",
       "waiting": "Consultez votre appareil",
       "waitingDescription": "Suivez les instructions de votre navigateur ou gestionnaire de mots de passe.",
@@ -255,7 +255,7 @@
     "complete": "Votre clé d’accès a été vérifiée. Revenez dans l’application pour terminer la connexion.",
     "returnToApp": "Revenir dans l’application",
     "cancel": "Annuler et revenir dans l’application",
-    "setup": "Créez une clé d’accès dans le tableau de bord web, sous Profil utilisateur → Sécurité → Passkeys."
+    "setup": "Créez une clé d’accès dans le tableau de bord web, sous Profil utilisateur → Sécurité → Clés d'accès."
   },
   "mcpAuthorize": {
     "title": "Connecter un client MCP",

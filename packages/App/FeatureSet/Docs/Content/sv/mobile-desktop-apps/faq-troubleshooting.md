@@ -116,8 +116,8 @@ Inget av de projekt som e-postadressen är medlem i har konfigurerat enkel inlog
 Appen kan inte använda en säkerhetsnyckel. Logga in med en av dina reservkoder, eller lägg till en autentiseringsapp på ditt konto i instrumentpanelen: se [Slå på tvåfaktorsautentisering](/docs/introduction/your-account#slå-på-tvåfaktorsautentisering).
 :::
 
-:::details Inloggning med passkey misslyckas
-Passkeys kräver att adressen till ditt OneUptime börjar med `https://`, och en passkey som du har lagt till för det här OneUptime: se [Lägg till en passkey](/docs/introduction/your-account#lägg-till-en-passnyckel). Tryck på **Change Server** på inloggningsskärmen för att använda en annan server.
+:::details Inloggning med passnyckel misslyckas
+Passnycklar kräver att adressen till ditt OneUptime börjar med `https://`, och en passnyckel som du har lagt till för det här OneUptime: se [Lägg till en passnyckel](/docs/introduction/your-account#lägg-till-en-passnyckel). Tryck på **Change Server** på inloggningsskärmen för att använda en annan server.
 :::
 
 ### Aviseringar

@@ -1843,8 +1843,22 @@ describe("the real source roots", () => {
 
   test("name directories and files that exist", () => {
     const repositoryRoot: string = path.join(__dirname, "..", "..", "..", "..");
+    /*
+     * The App Test job deletes ee/ before it runs, so the Enterprise
+     * screens' roots exist only where ee/ is checked out. There, in the
+     * Enterprise Edition Test workflow, EnterpriseScreensWordsExtracted
+     * holds every one of them to a directory of ee/Dashboard, and this
+     * holds them too.
+     */
+    const isEnterprisePresent: boolean = fs.existsSync(
+      path.join(repositoryRoot, "ee"),
+    );
 
     for (const root of SOURCE_ROOTS) {
+      if (root.directory.startsWith("ee/") && !isEnterprisePresent) {
+        continue;
+      }
+
       expect(fs.existsSync(path.join(repositoryRoot, root.directory))).toBe(
         true,
       );

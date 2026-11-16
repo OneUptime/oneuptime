@@ -53,7 +53,7 @@
       "signIn": "Logg inn med en passnøkkel",
       "inProgress": "Fullfør eller avbryt innloggingen med passnøkkel før du bruker passordet.",
       "helpTitle": "Er passnøkler nytt for deg?",
-      "help": "Med en passnøkkel logger du inn med fingeravtrykket, ansiktet eller enhetens PIN-kode i stedet for et passord. For å legge til en, logg inn med passord eller SSO, og åpne deretter Brukerprofil → Sikkerhet → Passkeys.",
+      "help": "Med en passnøkkel logger du inn med fingeravtrykket, ansiktet eller enhetens PIN-kode i stedet for et passord. For å legge til en, logg inn med passord eller SSO, og åpne deretter Brukerprofil → Sikkerhet → Passnøkler.",
       "preparing": "Gjør passnøkkelen klar…",
       "waiting": "Se på enheten din",
       "waitingDescription": "Følg instruksjonene fra nettleseren eller passordbehandleren.",
@@ -255,7 +255,7 @@
     "complete": "Passnøkkelen din er bekreftet. Gå tilbake til appen for å fullføre innloggingen.",
     "returnToApp": "Tilbake til appen",
     "cancel": "Avbryt og gå tilbake til appen",
-    "setup": "Opprett en passnøkkel i nettdashbordet under Brukerprofil → Sikkerhet → Passkeys."
+    "setup": "Opprett en passnøkkel i nettdashbordet under Brukerprofil → Sikkerhet → Passnøkler."
   },
   "mcpAuthorize": {
     "title": "Koble til en MCP-klient",
