@@ -21,6 +21,22 @@ import Timezone from "../../Types/Timezone";
 import moment from "moment-timezone";
 
 /*
+ * Less than a second of monitoring off on a day is no time worth saying: a
+ * switch turned twice within the second, or two sums of doubles a few ulps
+ * apart.
+ */
+export const MONITORING_OFF_MINIMUM_SECONDS: number = 1;
+
+// A stretch of time, as timeline rows and events give it.
+export interface DaySpan {
+  startDate: Date;
+  endDate: Date;
+}
+
+// The same, as epoch milliseconds, start before end.
+type MillisecondSpan = [number, number];
+
+/*
  * One bar of the strip: the calendar day it stands for, as instants.
  */
 export interface UptimeGraphDay {
@@ -155,6 +171,12 @@ export default class DayUptimeGraphUtil {
     uptimePercent: number;
     incidentCount: number;
     /*
+     * How long monitoring was off that day (issue #7112). A day with no data
+     * but some of this was not checked because monitoring was off, and is
+     * named so: "Oct 21, 2026: monitoring off", never "no data".
+     */
+    monitoringOffSeconds?: number | undefined;
+    /*
      * The day's maintenance events (UptimeMaintenanceUtil), said after
      * everything else: "Oct 21, 2026: 66.69% uptime, 1 maintenance event".
      * A screen reader hears what the bar's mark shows.
@@ -168,16 +190,26 @@ export default class DayUptimeGraphUtil {
     const incidentCount: number = Math.max(data.incidentCount, 0);
     const hasIncidents: boolean = incidentCount > 0;
 
+    const isMonitoringOff: boolean = this.isMonitoringOffDay({
+      hasEvents: data.hasEvents,
+      monitoringOffSeconds: data.monitoringOffSeconds,
+    });
+
+    let noDataLabel: string = hasIncidents
+      ? labels.dayLabelNoDataWithIncidents
+      : labels.dayLabelNoData;
+
+    if (isMonitoringOff) {
+      noDataLabel = hasIncidents
+        ? labels.dayLabelMonitoringOffWithIncidents
+        : labels.dayLabelMonitoringOff;
+    }
+
     const label: string = !data.hasEvents
-      ? this.interpolate(
-          hasIncidents
-            ? labels.dayLabelNoDataWithIncidents
-            : labels.dayLabelNoData,
-          {
-            date: data.dateLabel,
-            total: String(incidentCount),
-          },
-        )
+      ? this.interpolate(noDataLabel, {
+          date: data.dateLabel,
+          total: String(incidentCount),
+        })
       : this.interpolate(
           hasIncidents ? labels.dayLabelWithIncidents : labels.dayLabel,
           {
@@ -200,6 +232,116 @@ export default class DayUptimeGraphUtil {
         labels: labels,
       }),
     });
+  }
+
+  /*
+   * Whether a day is one monitoring was off for (issue #7112): nothing was
+   * checked, so it has no data, but the time that was there was with
+   * monitoring off. A day with data is measured over what was checked,
+   * whatever part of it monitoring was off for.
+   */
+  public static isMonitoringOffDay(data: {
+    hasEvents: boolean;
+    monitoringOffSeconds?: number | undefined;
+  }): boolean {
+    return (
+      !data.hasEvents &&
+      (data.monitoringOffSeconds || 0) >= MONITORING_OFF_MINIMUM_SECONDS
+    );
+  }
+
+  /*
+   * How long a day's monitoring was off, from timeline rows rather than a
+   * server reading: the part of the day the off spans cover that no checked
+   * span covers. For one monitor the two never overlap; for a group's
+   * merged timeline it is the time every monitor that was there was off, as
+   * the server's group buckets count it. In seconds; 0 when none.
+   */
+  public static getMonitoringOffSecondsOfDay(data: {
+    monitoringOffSpans: Array<DaySpan>;
+    checkedSpans: Array<DaySpan>;
+    dayStart: Date;
+    dayEnd: Date;
+  }): number {
+    const dayStart: number = data.dayStart.getTime();
+    const dayEnd: number = data.dayEnd.getTime();
+
+    if (!(dayEnd > dayStart) || data.monitoringOffSpans.length === 0) {
+      return 0;
+    }
+
+    const off: Array<MillisecondSpan> = this.clipAndMerge({
+      spans: data.monitoringOffSpans,
+      dayStart: dayStart,
+      dayEnd: dayEnd,
+    });
+    const checked: Array<MillisecondSpan> = this.clipAndMerge({
+      spans: data.checkedSpans,
+      dayStart: dayStart,
+      dayEnd: dayEnd,
+    });
+
+    let offMilliseconds: number = 0;
+
+    for (const interval of off) {
+      let checkedMilliseconds: number = 0;
+
+      for (const span of checked) {
+        const from: number = Math.max(interval[0], span[0]);
+        const to: number = Math.min(interval[1], span[1]);
+
+        if (to > from) {
+          checkedMilliseconds += to - from;
+        }
+      }
+
+      offMilliseconds += interval[1] - interval[0] - checkedMilliseconds;
+    }
+
+    return Math.max(offMilliseconds, 0) / 1000;
+  }
+
+  // The spans' parts inside the day, sorted, overlapping ones joined.
+  private static clipAndMerge(data: {
+    spans: Array<DaySpan>;
+    dayStart: number;
+    dayEnd: number;
+  }): Array<MillisecondSpan> {
+    const intervals: Array<MillisecondSpan> = [];
+
+    for (const span of data.spans) {
+      const from: number = Math.max(
+        OneUptimeDate.fromString(span.startDate).getTime(),
+        data.dayStart,
+      );
+      const to: number = Math.min(
+        OneUptimeDate.fromString(span.endDate).getTime(),
+        data.dayEnd,
+      );
+
+      if (to > from) {
+        intervals.push([from, to]);
+      }
+    }
+
+    intervals.sort((a: MillisecondSpan, b: MillisecondSpan): number => {
+      return a[0] - b[0];
+    });
+
+    const merged: Array<MillisecondSpan> = [];
+
+    for (const interval of intervals) {
+      const last: MillisecondSpan | undefined = merged[merged.length - 1];
+
+      if (last && interval[0] <= last[1]) {
+        last[1] = Math.max(last[1], interval[1]);
+        continue;
+      }
+
+      merged.push([interval[0], interval[1]]);
+    }
+
+    return merged;
   }
 
   /*

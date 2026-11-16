@@ -35,7 +35,6 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 import ProjectMilestoneService, {
   Service as ProjectMilestoneServiceClass,
 } from "../../../Server/Services/ProjectMilestoneService";
-import ProjectService from "../../../Server/Services/ProjectService";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import logger from "../../../Server/Utils/Logger";
@@ -125,7 +124,6 @@ const flush: () => Promise<void> = async (): Promise<void> => {
 describe("ProjectMilestoneService", () => {
   let captureSpy: SpyInstance<typeof ProductAnalytics.capture>;
   let isConfiguredSpy: SpyInstance<typeof ProductAnalytics.isConfigured>;
-  let isSampleProjectSpy: SpyInstance<typeof ProjectService.isSampleProject>;
 
   beforeEach(() => {
     queryCalls = [];
@@ -141,14 +139,6 @@ describe("ProjectMilestoneService", () => {
     jest.spyOn(ProjectMilestoneService, "getRepository").mockReturnValue({
       manager: { query: queryMock },
     } as never);
-    /*
-     * Before it keeps a milestone, the service asks whether the project is
-     * a sample (#6808), which reaches none: a real project here, unless a
-     * test says otherwise.
-     */
-    isSampleProjectSpy = jest
-      .spyOn(ProjectService, "isSampleProject")
-      .mockResolvedValue(false);
 
     captureSpy = jest
       .spyOn(ProductAnalytics, "capture")
@@ -342,44 +332,6 @@ describe("ProjectMilestoneService", () => {
       expect(captureSpy).not.toHaveBeenCalled();
     });
 
-    /*
-     * A sample project (#6808) was made up for a person to look around in:
-     * nothing that happens in it is a project getting value.
-     */
-    test("a sample project reaches no milestone: nothing is kept, no event is sent, and it is not asked again", async () => {
-      isSampleProjectSpy.mockResolvedValue(true);
-
-      expect(
-        await ProjectMilestoneService.reach({
-          projectId: PROJECT_ID,
-          milestone: ActivationMilestone.FirstMonitorCreated,
-        }),
-      ).toBe(false);
-
-      expect(isSampleProjectSpy).toHaveBeenCalledTimes(1);
-      expect(isSampleProjectSpy).toHaveBeenCalledWith(PROJECT_ID);
-      // No INSERT, and the project is not read for an event.
-      expect(queryCalls).toEqual([]);
-      expect(captureSpy).not.toHaveBeenCalled();
-      expect(
-        ProjectMilestoneService.isKnownReached(
-          PROJECT_ID,
-          ActivationMilestone.FirstMonitorCreated,
-        ),
-      ).toBe(true);
-
-      // Remembered: the next call is answered from the memo.
-      expect(
-        await ProjectMilestoneService.reach({
-          projectId: PROJECT_ID,
-          milestone: ActivationMilestone.FirstMonitorCreated,
-        }),
-      ).toBe(false);
-      expect(isSampleProjectSpy).toHaveBeenCalledTimes(1);
-      expect(queryCalls).toEqual([]);
-      expect(captureSpy).not.toHaveBeenCalled();
-    });
-
     test("no project, a value that is no milestone, or no database: nothing is written", async () => {
       expect(
         await ProjectMilestoneService.reach({
@@ -469,17 +421,11 @@ describe("ProjectMilestoneService", () => {
       expect(afterMilestoneReached).not.toHaveBeenCalled();
     });
 
-    test("a milestone that could not be kept, or a sample project's, tells it nothing", async () => {
+    test("a milestone that could not be kept tells it nothing", async () => {
       failNextInserts = 1;
       await ProjectMilestoneService.reach({
         projectId: PROJECT_ID,
         milestone: ActivationMilestone.FirstLogsReceived,
-      });
-
-      isSampleProjectSpy.mockResolvedValue(true);
-      await ProjectMilestoneService.reach({
-        projectId: OTHER_PROJECT_ID,
-        milestone: ActivationMilestone.FirstTracesReceived,
       });
 
       expect(afterMilestoneReached).not.toHaveBeenCalled();

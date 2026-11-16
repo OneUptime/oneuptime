@@ -355,4 +355,14 @@ describe("a project in the Admin Dashboard: its members first", () => {
     expect(isExpanded("Support")).toBe(false);
     expect(activeLinkTitles()).toEqual(["Subscription"]);
   });
+
+  test("with billing, the Invoices page opens Billing, which it sits in", async () => {
+    billingEnabledForTest = true;
+    goTo(adminRoute(PageMap.PROJECT_INVOICES, PROJECT_MODEL_ID));
+    await renderMenu(<AdminProjectSideMenu modelId={PROJECT_MODEL_ID} />);
+
+    expect(isExpanded("Billing")).toBe(true);
+    expect(isExpanded("Support")).toBe(false);
+    expect(activeLinkTitles()).toEqual(["Invoices"]);
+  });
 });

@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 آن‌ها را در `config.env` تنظیم کنید، سپس `npm start` را اجرا کنید. `DISABLE_TELEMETRY_FOR_APP` به‌طور پیش‌فرض `true` است، و در آن صورت هیچ چیزی فرستاده نمی‌شود.
 :::
 
-OneUptime هم به نقطهٔ پایانی و هم به سرآیندها نیاز دارد: بدون سرآیند هیچ چیزی نمی‌فرستد. هر سرآیند را به شکل `name=value` بنویسید و چند سرآیند را با `;`، یا مانند `OTEL_EXPORTER_OTLP_HEADERS` با `,`، از هم جدا کنید. یک مقدار می‌تواند `=` داشته باشد. بدون `;`، یک مقدار همان‌گونه خوانده می‌شود که آن استاندارد آن را می‌نویسد، و فاصله به شکل `%20`: برای فرستادن مقدار دقیقاً همان‌طور که نوشته شده، تنظیم را با `;` تمام کنید. OneUptime خودش `/v1/metrics` را به نقطهٔ پایانی اضافه می‌کند، و همین تنظیمات ردها و لاگ‌های خود آن را هم می‌فرستند. هر متریک به محض اینکه OneUptime نخستین بار آن را ثبت کند ظاهر می‌شود: `notification.send.count` با نخستین پیام فرستاده‌شده.
+OneUptime هم به نقطهٔ پایانی و هم به سرآیندها نیاز دارد: بدون سرآیند هیچ چیزی نمی‌فرستد. هر سرآیند را به شکل `name=value` بنویسید و چند سرآیند را با `;`، یا مانند `OTEL_EXPORTER_OTLP_HEADERS` با `,`، از هم جدا کنید. یک مقدار می‌تواند `=` داشته باشد. بدون `;`، یک مقدار همان‌گونه خوانده می‌شود که آن استاندارد آن را می‌نویسد، و فاصله به شکل `%20`: برای فرستادن مقدار دقیقاً همان‌طور که نوشته شده، تنظیم را با `;` تمام کنید. سرآیندهایی هم که در خود `OTEL_EXPORTER_OTLP_HEADERS`، یا فقط برای متریک‌ها در `OTEL_EXPORTER_OTLP_METRICS_HEADERS`، تنظیم شده‌اند به حساب می‌آیند: صادرکننده آن‌ها را هم می‌فرستد، و با نام یکسان، سرآیندهای خود OneUptime برنده‌اند. OneUptime خودش `/v1/metrics` را به نقطهٔ پایانی اضافه می‌کند، و همین تنظیمات ردها و لاگ‌های خود آن را هم می‌فرستند. هر متریک به محض اینکه OneUptime نخستین بار آن را ثبت کند ظاهر می‌شود: `notification.send.count` با نخستین پیام فرستاده‌شده.
 
 ### فرستادن دلتاها به یک پروژهٔ OneUptime
 
@@ -57,19 +57,15 @@ OneUptime شمارنده‌ها و هیستوگرام‌ها را همان‌ط�
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-فهرست خود یک سرویس جای فهرست سراسری چارت را می‌گیرد: اگر `app.extraEnv` یا `worker.extraEnv` را تنظیم می‌کنید، آن را آنجا هم اضافه کنید.
+چارت این مقدار را به شکل `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` به هر سرویسی می‌دهد که تله‌متری خود OneUptime را می‌فرستد.
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-آن را کنار `docker-compose.yml` بسازید، یا این را به فایلی که دارید اضافه کنید، سپس `npm start` را اجرا کنید.
+آن را در `config.env` تنظیم کنید، سپس `npm start` را اجرا کنید.
 :::
 
 این برای هر متریکی که OneUptime دربارهٔ خودش می‌فرستد صدق می‌کند. بک‌اندی که مجموع‌های جاری را خودش می‌خواند، مانند Prometheus، به هیچ تغییری نیاز ندارد.

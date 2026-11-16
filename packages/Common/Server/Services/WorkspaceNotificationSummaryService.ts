@@ -1009,13 +1009,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     const teamName: string = (summary.teamName || "").trim();
     const projectId: ObjectID = summary.projectId!;
 
-    // Nor for a sample project (issue #6808), which posts nothing.
-    if (
-      await BlockedProjectNotifications.getSilencedReason({
-        channel: "Workspace message",
-        projectId: projectId,
-      })
-    ) {
+    if (await BlockedProjectNotifications.isBlocked(projectId)) {
       return { teamId: teamName || undefined };
     }
 

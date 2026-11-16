@@ -745,7 +745,11 @@ export default class OAuth2TokenClient {
   /*
    * The production transport. Every response status comes back as a value -
    * the caller reads OAuth errors out of 4xx bodies - and only a failure to
-   * get any response at all rejects.
+   * get any response at all rejects. Behind an outbound proxy (HTTPS_PROXY,
+   * HTTP_PROXY, ALL_PROXY) the request goes through it, as every other
+   * request of the server does, whether the proxy is named by address or by
+   * host name; a token URL in NO_PROXY is dialled directly, at the address
+   * the guard checked.
    */
   public static async sendThroughEgressGuard(
     request: OAuth2TokenHttpRequest,

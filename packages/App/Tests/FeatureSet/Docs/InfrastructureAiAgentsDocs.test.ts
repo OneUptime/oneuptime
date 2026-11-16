@@ -29,6 +29,7 @@ import {
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
   CloudAiAgentEnvironmentVariable,
+  AZURE_CLOUD_AI_AGENT_VM_SIZE,
   CloudAiAgentSetupOptions,
   GCP_CLOUD_AI_AGENT_MACHINE_TYPE,
   GCP_TOKEN_CREATOR_ROLE,
@@ -61,6 +62,7 @@ import {
   AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_APP_NAME,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+  AZURE_CLOUD_AI_AGENT_VM_NAME,
   AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
@@ -4353,5 +4355,72 @@ describe("Infrastructure AI Agents docs", (): void => {
         "setting it turns verification on",
       );
     });
+  });
+});
+
+/*
+ * What #6212 changed, as the English page says it, held to the code:
+ * Azure's agent on a small VM of its own, that VM's logs, and Test
+ * connection's warning when the reads work but changes would fail.
+ */
+describe("Infrastructure AI Agents docs: Azure's VM and Test connection's warning", (): void => {
+  const page: string = readPage(PAGE);
+  const lines: Array<string> = page.split("\n");
+
+  it("the Azure row says More fields can run the agent on a small VM, as the command makes it", (): void => {
+    const azureRow: string = oneLine(
+      tableCells(
+        tableRow(
+          section(page, "### In a cloud account"),
+          infoOf(AiResourceType.AzureSubscription).displayName,
+        ),
+      )[2] as string,
+    );
+    const vmCommand: string = getCloudAiAgentSetupCommand(
+      cloudSetupOptions(CloudProvider.Azure, "azure", {
+        azureHost: "virtual-machine",
+      }),
+    );
+
+    expect(azureRow).toContain(
+      "Under **More fields**, **Where the agent runs** can choose a small VM instead, for a subscription that cannot use Container Apps: `oneuptime-ai-agent`, of size `Standard_B1s` on Ubuntu, in a network of its own whose security group lets nothing in.",
+    );
+    expect(azureRow).toContain(
+      "Its own identity only reads, the write identity is attached to it alone, and it reads the key at every boot from a Key Vault of its own that only that identity may read.",
+    );
+    // What the row says, the command does.
+    expect(vmCommand).toContain(
+      `az vm create --subscription "$SUBSCRIPTION" --name ${AZURE_CLOUD_AI_AGENT_VM_NAME} `,
+    );
+    expect(vmCommand).toContain(`--size ${AZURE_CLOUD_AI_AGENT_VM_SIZE} `);
+    expect(vmCommand).toContain("--image Ubuntu2404 ");
+    expect(vmCommand).toContain("--nsg-rule NONE ");
+    expect(vmCommand).toContain(
+      `--assign-identity [system] ${getAzureCloudAiAgentWriteIdentityId(CLOUD_ACCOUNT_IDS.azure)} `,
+    );
+    expect(vmCommand).toContain("--secret-permissions get --output none");
+    expect(vmCommand).toContain(
+      '--assignee-object-id "$PRINCIPAL" --assignee-principal-type ServicePrincipal --role "$READER_ROLE"',
+    );
+    expect(vmCommand).not.toContain(CLOUD_AI_AGENT_KEY + " ");
+  });
+
+  it("the logs line gives the VM's own command, in brackets after the Container App's", (): void => {
+    const logs: string = oneLine(section(page, "### Logs and status"));
+
+    expect(logs).toContain(
+      `\`${getCloudAiAgentLogsCommand(CloudProvider.Azure)}\` (on its own VM, \`${getCloudAiAgentLogsCommand(CloudProvider.Azure, undefined, undefined, "virtual-machine")}\`)`,
+    );
+  });
+
+  it("Test connection's warning: the reads work, but changes would fail, and what to fix", (): void => {
+    const whoami: string =
+      lines.find((line: string): boolean => {
+        return line.startsWith("On a cloud account, `cloud whoami` shows");
+      }) || "";
+
+    expect(whoami).toContain(
+      "When the agent reads but cannot sign in as what its changes run as, the test says, as a warning, that the reads work but changes will fail, and what to fix.",
+    );
   });
 });

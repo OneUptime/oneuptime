@@ -58,6 +58,7 @@ Der findes ikke længere et miljøflag `RUNBOOK_BASH_ENABLED`. Om disse trin vir
 | Output pr. trin | **50 KB**. Længere output skæres af med en markør. | Hvert automatiseret trin |
 | Udførelsestimeout | **30 sekunder** som standard | JavaScript-, Bash-, SSH- og kubectl-trin |
 | Anmodningstimeout | **30 sekunder** som standard | HTTP request-trin |
+| Svar pr. anmodning | **10 MB**. Et større svar læses ikke og får trinnet til at fejle. | HTTP request-trin |
 | Overtagelsestimeout | **2 minutter** som standard: hvor længe Workeren venter på, at den valgte Runner overtager jobbet, før det fejles | JavaScript-, Bash-, SSH- og kubectl-trin |
 | Timeoutinterval | **1 sekund til 1 time** | Hver timeout |
 | Venter på en person | Ingen grænse | Manual-trin og godkendelser |

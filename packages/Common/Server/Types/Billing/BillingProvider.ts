@@ -152,6 +152,11 @@ export default interface BillingProvider {
     quantity: number;
     isYearly: boolean;
     endTrialAt?: Date | undefined;
+    /*
+     * False only for a master admin moving a project from the Admin
+     * Dashboard: the customer need not have a payment method on file.
+     */
+    requirePaymentMethod?: boolean | undefined;
   }): Promise<{
     subscriptionId: string;
     meteredSubscriptionId: string;

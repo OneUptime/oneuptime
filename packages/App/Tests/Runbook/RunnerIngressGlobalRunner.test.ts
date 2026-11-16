@@ -218,7 +218,7 @@ function globalRunner(overrides: Record<string, unknown> = {}): Runner {
   } as unknown as Runner;
 }
 
-function projectRunner(): Runner {
+function projectRunner(overrides: Record<string, unknown> = {}): Runner {
   return {
     id: PROJECT_RUNNER_ID,
     _id: PROJECT_RUNNER_ID.toString(),
@@ -226,6 +226,7 @@ function projectRunner(): Runner {
     name: "office-runner",
     isGlobalRunner: false,
     canRunRunbooks: true,
+    ...overrides,
   } as unknown as Runner;
 }
 
@@ -408,6 +409,61 @@ describe("the Runner ingress, for a global Runner", () => {
       await callRoute({
         uri: HEARTBEAT_ROUTE,
         agent: globalRunner({ canRunRunbooks: false }),
+      });
+
+      expect(
+        (lastJsonResponse()["capabilities"] as JSONObject)[
+          "canRunCodeFixTasks"
+        ],
+      ).toBe(true);
+    });
+
+    /*
+     * A master admin keeps a global Runner off AI code fixes with Runs AI
+     * Code Fixes (Runner.canRunCodeFixes, #6115): its heartbeat grants none,
+     * so it stops its code-fix loop, and it keeps its JavaScript steps.
+     */
+    test("a global Runner a master admin turned code fixes off for is granted none, and keeps its JavaScript steps", async () => {
+      await callRoute({
+        uri: HEARTBEAT_ROUTE,
+        agent: globalRunner({ canRunCodeFixes: false }),
+      });
+
+      expect(lastJsonResponse()).toEqual({
+        status: "ok",
+        isGlobalRunner: true,
+        globalStepTypes: [RunbookStepType.JavaScript],
+        capabilities: {
+          canRunRunbooks: true,
+          canRunCodeFixTasks: false,
+          canRunAiCommands: false,
+        },
+      });
+    });
+
+    test("a global Runner whose switch is on, or not read, is granted code fixes", async () => {
+      for (const canRunCodeFixes of [true, undefined]) {
+        await callRoute({
+          uri: HEARTBEAT_ROUTE,
+          agent: globalRunner(
+            canRunCodeFixes === undefined ? {} : { canRunCodeFixes },
+          ),
+        });
+
+        expect(
+          (lastJsonResponse()["capabilities"] as JSONObject)[
+            "canRunCodeFixTasks"
+          ],
+        ).toBe(true);
+      }
+    });
+
+    test("a project's own Runner is not read by the switch: a repository's pick is what grants it code fixes", async () => {
+      pickedSpy.mockResolvedValue(true);
+
+      await callRoute({
+        uri: HEARTBEAT_ROUTE,
+        agent: projectRunner({ canRunCodeFixes: false }),
       });
 
       expect(

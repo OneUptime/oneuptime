@@ -1,6 +1,7 @@
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
 import { API_COMPONENT_TARGET_VALIDATION } from "../API/Utils";
 import SafeWebhookRequest, {
+  WebhookAnswerTooLargeException,
   WebhookTarget,
 } from "../../../../Utils/SafeWebhookRequest";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
@@ -28,6 +29,14 @@ import ZabbixComponents, {
   readZabbixAnswer,
   readZabbixProblemUpdate,
 } from "../../../../../Types/Workflow/Components/Zabbix";
+
+/*
+ * The most of an answer the step reads from Zabbix. It asks for one event's
+ * id, state and trigger, and then for that one event to be updated: Zabbix
+ * answers either in a few hundred bytes. A larger answer is not Zabbix's,
+ * and is not read (issue #8875).
+ */
+export const ZABBIX_MAX_RESPONSE_BYTES: number = 1024 * 1024;
 
 /*
  * Update Zabbix Problem (Types/Workflow/Components/Zabbix): reads the
@@ -83,7 +92,8 @@ export default class ZabbixUpdateProblem extends ComponentCode {
 
   /*
    * One JSON-RPC request: Zabbix's result, or why there is none - a request
-   * that got no answer, an HTTP error, or Zabbix saying no.
+   * that got no answer, an HTTP error, an answer too large to read, or
+   * Zabbix saying no.
    */
   private async call(data: {
     target: WebhookTarget;
@@ -92,9 +102,11 @@ export default class ZabbixUpdateProblem extends ComponentCode {
     method: string;
     params: JSONObject;
   }): Promise<ZabbixAnswer> {
-    // Zabbix 6.0 reads the token from the body; 6.4 and later from the header.
-    const answer: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await SafeWebhookRequest.send<JSONObject>(data.target, {
+    let answer: HTTPResponse<JSONObject> | HTTPErrorResponse;
+
+    try {
+      // Zabbix 6.0 reads the token from the body; 6.4 and later from the header.
+      answer = await SafeWebhookRequest.send<JSONObject>(data.target, {
         data: getZabbixRequestBody(
           data.method,
           data.params,
@@ -103,7 +115,16 @@ export default class ZabbixUpdateProblem extends ComponentCode {
         headers: data.tokenInBody
           ? {}
           : { Authorization: `Bearer ${data.token}` },
+        maxContentLength: ZABBIX_MAX_RESPONSE_BYTES,
       });
+    } catch (err: unknown) {
+      // Zabbix was reached: say what it answered, not that it could not be.
+      if (err instanceof WebhookAnswerTooLargeException) {
+        return { error: err.describe("Zabbix's answer") };
+      }
+
+      throw err;
+    }
 
     if (answer instanceof HTTPErrorResponse) {
       return {

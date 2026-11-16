@@ -237,6 +237,305 @@ tests:
           errorPattern: 'host is ::1, an IPv6 address without brackets'
 
   # -------------------------------------------------------------------------
+  # The rest of the shape is refused too, as npm start stops on it (#8877):
+  # every pod stops at its start on such a host ("Hostname ... is not in
+  # valid format", "Port is not in valid format"). A host whose refusal holds
+  # a number on each side of a colon is held in Tests/Ops/HelmHost.test.js,
+  # which also holds the chart to npm start's checks host by host.
+  # -------------------------------------------------------------------------
+  - it: refuses a name with a comma typed for a dot, which is no domain name
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: oneuptime,example.com
+    asserts: &refusesComma
+      - failedTemplate:
+          errorMessage: 'host is oneuptime,example.com, which is not a domain name: a domain name has the letters a to z, digits, hyphens and dots only, and "," is none of them.'
+
+  - it: refuses that name in the app too
+    templates:
+      - templates/app.yaml
+    set:
+      host: oneuptime,example.com
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts: *refusesComma
+
+  - it: refuses that name in the worker
+    templates:
+      - templates/worker.yaml
+    set:
+      host: oneuptime,example.com
+      worker:
+        enabled: true
+    asserts: *refusesComma
+
+  - it: refuses that name in the notes, with every workload turned off
+    templates:
+      - templates/NOTES.txt
+    set:
+      host: oneuptime,example.com
+      deployment:
+        disableDeployments: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'host is oneuptime,example.com, which is not a domain name'
+
+  - it: names the name when the host has a port
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: oneuptime,example.com:8443
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is oneuptime,example.com:8443, and oneuptime,example.com is not a domain name: a domain name has the letters a to z, digits, hyphens and dots only, and "," is none of them.'
+
+  - it: names every character no domain name has, once each
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: one*uptime,example!com,
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is one*uptime,example!com,, which is not a domain name: a domain name has the letters a to z, digits, hyphens and dots only, and "*", "," and "!" are none of them.'
+
+  - it: refuses an e-mail address
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: admin@oneuptime.example.com
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is admin@oneuptime.example.com, which is not a domain name: a domain name has the letters a to z, digits, hyphens and dots only, and "@" is none of them.'
+
+  - it: refuses a name with letters beyond a to z, and says to write its xn-- form
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: bücher.example
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is bücher.example, which is not a domain name: a domain name has the letters a to z, digits, hyphens and dots only, and "ü" is none of them. Write a name with letters beyond a to z in the ASCII form DNS writes it in, whose parts with such letters start with xn--.'
+
+  - it: refuses a part of a name that ends with a hyphen
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: one_uptime-.example.com
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is one_uptime-.example.com, which is not a domain name: no part of a domain name starts or ends with a hyphen, and "one_uptime-" does.'
+
+  - it: refuses a part of a name that starts with a hyphen
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: -oneuptime.example.com
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is -oneuptime.example.com, which is not a domain name: no part of a domain name starts or ends with a hyphen, and "-oneuptime" does.'
+
+  - it: refuses a part of a name longer than 63 characters
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.example.com
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.example.com, which is not a domain name: a part of a domain name between its dots is 63 characters at most, and "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" has 64.'
+
+  - it: refuses two dots in a row
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: oneuptime..example.com
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is oneuptime..example.com, which is not a domain name: it has two dots in a row.'
+
+  - it: refuses a name that starts with a dot
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: .oneuptime.example.com
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is .oneuptime.example.com, which is not a domain name: it starts with a dot.'
+
+  - it: refuses a web address, with the address alone to set
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: https://oneuptime.example.com/dashboard
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is https://oneuptime.example.com/dashboard. Write the address alone, without http:// or a path: --set host=oneuptime.example.com. httpProtocol says whether people use http or https.'
+
+  - it: refuses a web address of an IPv6 host, with the address in its brackets to set
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: http://[2001:db8::1]/
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is http://[2001:db8::1]/. Write the address alone, without http:// or a path: --set host=[2001:db8::1]. httpProtocol says whether people use http or https.'
+
+  - it: refuses a name with a space inside
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: oneuptime example.com
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is oneuptime example.com. Write the address alone, without http:// or a path: --set host=oneuptimeexample.com. httpProtocol says whether people use http or https.'
+
+  - it: refuses a name in brackets, which hold an IPv6 address only
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: "[oneuptime.example.com]"
+    asserts: &bracketsHoldIpv6
+      - failedTemplate:
+          errorMessage: 'host is [oneuptime.example.com]. Brackets hold an IPv6 address and nothing else, with any port after the closing one, such as [2001:db8::1] or [2001:db8::1]:8080. A domain name or an IPv4 address goes without them.'
+
+  - it: refuses brackets that are never closed
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: "[2001:db8::1"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is [2001:db8::1. Brackets hold an IPv6 address and nothing else, with any port after the closing one, such as [2001:db8::1] or [2001:db8::1]:8080. A domain name or an IPv4 address goes without them.'
+
+  - it: refuses a port after the brackets that is no port
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: "[2001:db8::1]:http"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is [2001:db8::1]:http, but http is not a port. A port is a number from 1 to 65535, such as --set host=[2001:db8::1]:8080; without one, --set host=[2001:db8::1].'
+
+  - it: refuses a colon after the brackets with no port
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: "[2001:db8::1]:"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is [2001:db8::1]:, but no port follows its last colon. A port is a number from 1 to 65535, such as --set host=[2001:db8::1]:8080; without one, --set host=[2001:db8::1].'
+
+  - it: refuses two colons with no IPv6 address either way
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: a:b:c
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is a:b:c, which is not an address: a domain name or an IPv4 address has one colon at most, before its port, and an IPv6 address goes in brackets, such as [2001:db8::1].'
+
+  - it: refuses a name's port that is no number
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: oneuptime.example.com:https
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is oneuptime.example.com:https, but https is not a port. A port is a number from 1 to 65535, such as --set host=oneuptime.example.com:8080; without one, --set host=oneuptime.example.com.'
+
+  - it: refuses a colon after a name with no port
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: "oneuptime.example.com:"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is oneuptime.example.com:, but no port follows its colon. A port is a number from 1 to 65535, such as --set host=oneuptime.example.com:8080; without one, --set host=oneuptime.example.com.'
+
+  - it: refuses port 0, which nobody can open
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: localhost:0
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is localhost:0, but 0 is not a port. A port is a number from 1 to 65535, such as --set host=localhost:8080; without one, --set host=localhost.'
+
+  - it: refuses a port with no address before it
+    templates:
+      - templates/nginx.yaml
+    set:
+      host: ":8080"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'host is :8080, a port with no address before it. Write the domain name or IP address people open OneUptime at before the colon, such as --set host=oneuptime.example.com:8080.'
+
+  # -------------------------------------------------------------------------
+  # Every name the app takes renders, as it was written
+  # -------------------------------------------------------------------------
+  - it: renders a name with an underscore, which the app takes
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      host: one_uptime.example.com
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOST
+            value: one_uptime.example.com
+
+  - it: renders a name that ends with its final dot
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      host: oneuptime.example.com.
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOST
+            value: oneuptime.example.com.
+
+  - it: renders a name in its xn-- form
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      host: xn--bcher-kva.example:8443
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOST
+            value: xn--bcher-kva.example:8443
+
+  - it: renders a part of a name of 63 characters, the most it may have
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      host: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.example.com
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOST
+            value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.example.com
+
+  # -------------------------------------------------------------------------
   # Nothing else is refused
   # -------------------------------------------------------------------------
   - it: renders the chart's own default, localhost

@@ -58,6 +58,7 @@ Não existe mais o sinalizador de ambiente `RUNBOOK_BASH_ENABLED`. Se essas etap
 | Saída por etapa | **50 KB**. Uma saída maior é cortada com um marcador. | Toda etapa automatizada |
 | Execution timeout | **30 segundos** por padrão | Etapas JavaScript, Bash, SSH e kubectl |
 | Request timeout | **30 segundos** por padrão | Etapas de requisição HTTP |
+| Resposta por requisição | **10 MB**. Uma resposta maior não é lida e faz a etapa falhar. | Etapas de requisição HTTP |
 | Claim timeout | **2 minutos** por padrão: por quanto tempo o Worker espera o Runner escolhido assumir o trabalho antes de fazê-lo falhar | Etapas JavaScript, Bash, SSH e kubectl |
 | Faixa dos timeouts | **De 1 segundo a 1 hora** | Todo timeout |
 | Espera por uma pessoa | Sem limite | Etapas Manual e aprovações |

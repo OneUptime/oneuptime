@@ -1212,8 +1212,12 @@ export default class LLMService {
    *
    * The address the guard checked is pinned into the socket, and redirects are
    * refused: pinning covers only the validated host, so a 3xx would walk
-   * around it. Private ranges stay reachable on self-hosted installs, because
-   * a self-hosted Ollama on 10.x is the documented deployment.
+   * around it. Behind an outbound proxy (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY)
+   * the request goes through it, as every other request of the server does,
+   * whether the proxy is named by address or by host name; a provider in
+   * NO_PROXY is dialled directly, at the address the guard checked. Private
+   * ranges stay reachable on self-hosted installs, because a self-hosted
+   * Ollama on 10.x is the documented deployment.
    *
    * A global provider no project owns reaches private ranges everywhere, even
    * where billing or DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES refuses them to
@@ -1232,7 +1236,7 @@ export default class LLMService {
     options: RequestOptions;
     logAttributes: LogAttributes;
   }): Promise<RequestOptions> {
-    let pinnedAgents: PinnedAgents;
+    let pinnedAgents: { url: globalThis.URL } & PinnedAgents;
 
     try {
       pinnedAgents = await DataSourceEgressGuard.assertUrlAllowedAndPin(
@@ -1257,8 +1261,15 @@ export default class LLMService {
     return {
       ...data.options,
       doNotFollowRedirects: true,
+      // Only Node's http adapter uses the pinned agents.
+      useNodeHttpAdapter: true,
       httpAgent: pinnedAgents.httpAgent,
       httpsAgent: pinnedAgents.httpsAgent,
+      /*
+       * The URL the guard checked, whose host name is the one the agents
+       * dial (and an outbound proxy's, which they look up as usual).
+       */
+      dispatchUrl: pinnedAgents.url.href,
     };
   }
 
