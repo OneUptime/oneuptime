@@ -361,6 +361,39 @@ jobs:
           Tests/Server/Utils/Retention/SoftDeletedRowsPurgePostgres.test.ts
           --forceExit
 
+      # Deleting the rows older than their table keeps them (issue #8894):
+      # 1000 a statement, one DELETE a batch, a run out of time taking one
+      # batch of each table and the next run the rest, a table with no
+      # window never read, on structure-only copies of the migrated tables.
+      - name: Test the purge by age on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OLDER_ROWS_PURGE_TESTS: "true"
+          OLDER_ROWS_PURGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OLDER_ROWS_PURGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OLDER_ROWS_PURGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Retention/OlderRowsPurgePostgres.test.ts
+          --forceExit
+
+      # The files attached to a scheduled maintenance event, its notes and a
+      # status page announcement go with them (issue #8895), by a person's
+      # delete and a retention purge's alike, and a file something else
+      # still uses - another event's note, a status page's logo - stays.
+      - name: Test the files deleted with scheduled maintenance and announcements on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ATTACHED_FILES_TESTS: "true"
+          ATTACHED_FILES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ATTACHED_FILES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ATTACHED_FILES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/File/AttachedFilesPostgres.test.ts --forceExit
+
       # A project's activation milestones (#6894): each kept once, even by
       # servers racing for it, and the backfill fills what the data shows
       # without sending anything or overwriting a milestone kept live.
