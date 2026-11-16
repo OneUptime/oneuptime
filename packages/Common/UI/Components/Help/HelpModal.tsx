@@ -59,8 +59,9 @@ import React, {
  *   - The documentation it summarizes is one click away, in a new tab, and
  *     "Was this clear?" asks whether it was (where OneUptime may ask).
  *
- * The title and the line under it are looked up in the reader's language;
- * the document is English, as the docs are.
+ * The title, the line under it and the dialog's own words are looked up in
+ * the reader's language. The document stays English: a hundred long
+ * documents in seventeen languages would drift from what they describe.
  */
 
 export const HELP_MODAL_TEST_ID: string = "help-modal";

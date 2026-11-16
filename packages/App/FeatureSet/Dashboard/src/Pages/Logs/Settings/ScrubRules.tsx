@@ -155,7 +155,9 @@ A **Custom Regex** is written without slashes or flags (\`\\bSECRET-[A-Z0-9]+\\b
 | **Mask** | Hides part of it, keeping its shape | \`user@example.com\` → \`u***@***.com\` |
 | **Hash** | Replaces it with its SHA-256 hash | \`user@example.com\` → \`a1b2c3d4...\` |
 
-Use **Hash** to follow one value across logs without showing it: the same value always gives the same hash. The action is under **More fields**.
+The action is under **More fields**.
+
+> **Tip:** Use **Hash** to follow one value across logs without showing it: the same value always gives the same hash.
 
 ## Where It Looks
 

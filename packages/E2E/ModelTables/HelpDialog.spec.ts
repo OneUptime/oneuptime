@@ -77,7 +77,8 @@ const WORDS: Array<DialogPart> = [
   },
   {
     name: "an open topic's words",
-    selector: "[data-testid=help-modal-sections] [role=region]:not([hidden]) p",
+    selector:
+      "[data-testid=help-modal-sections] [role=region]:not([hidden]) :is(p, li)",
   },
 ];
 
@@ -368,7 +369,8 @@ test.describe("the help dialog", () => {
       summary,
       sections,
       topics.first().locator("span"),
-      bodies.first().locator("p").first(),
+      // The topic's markdown as drawn: its words start at its left edge.
+      bodies.first().locator(":scope > *").first(),
     ]);
 
     // A reading width at 1280px, not the page's.
@@ -488,7 +490,7 @@ test.describe("the help dialog", () => {
         .getByTestId("modal-footer")
         .getByRole("button", { name: "Close", exact: true }),
       topics.first().locator("span"),
-      topicBodiesOf(dialog).first().locator("p").first(),
+      topicBodiesOf(dialog).first().locator(":scope > *").first(),
     ]);
 
     // The dialog inside the window, and Close inside it, in sight.
