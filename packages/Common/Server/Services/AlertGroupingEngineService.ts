@@ -29,8 +29,10 @@ import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import { Green500 } from "../../Types/BrandColors";
-import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleSetCache from "../Utils/Rules/RuleSetCache";
+import Select from "../Types/Database/Select";
+import Sort from "../Types/Database/Sort";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import { GroupingOptions } from "../../Utils/StartingStage";
 import EpisodeGroupingKey from "../Utils/Rules/EpisodeGroupingKey";
@@ -96,6 +98,72 @@ interface EpisodeTemplateValues {
   alertSeverity: string | undefined;
 }
 
+// What grouping an alert needs of each of the project's grouping rules.
+const GROUPING_RULE_SELECT: Select<AlertGroupingRule> = {
+  _id: true,
+  name: true,
+  priority: true,
+  criteria: true,
+  // Match criteria fields
+  monitors: {
+    _id: true,
+  },
+  alertSeverities: {
+    _id: true,
+  },
+  alertLabels: {
+    _id: true,
+  },
+  monitorLabels: {
+    _id: true,
+  },
+  alertTitlePattern: true,
+  alertDescriptionPattern: true,
+  monitorNamePattern: true,
+  monitorDescriptionPattern: true,
+  // Group by fields
+  groupByMonitor: true,
+  groupBySeverity: true,
+  groupByAlertTitle: true,
+  groupByAlertLabels: true,
+  groupByMonitorLabels: true,
+  groupByConnectedServices: true,
+  // Time settings
+  enableTimeWindow: true,
+  timeWindowMinutes: true,
+  // How many matching alerts it waits for
+  enableMinimumAlertCount: true,
+  minimumAlertCount: true,
+  episodeTitleTemplate: true,
+  episodeDescriptionTemplate: true,
+  enableResolveDelay: true,
+  resolveDelayMinutes: true,
+  enableReopenWindow: true,
+  reopenWindowMinutes: true,
+  enableInactivityTimeout: true,
+  inactivityTimeoutMinutes: true,
+  defaultAssignToUserId: true,
+  defaultAssignToTeamId: true,
+  onCallDutyPolicies: {
+    _id: true,
+  },
+  // Episode configuration fields
+  episodeLabels: {
+    _id: true,
+  },
+  episodeOwnerUsers: {
+    _id: true,
+  },
+  episodeOwnerTeams: {
+    _id: true,
+  },
+};
+
+// The first rule an alert matches wins: by priority.
+const GROUPING_RULE_SORT: Sort<AlertGroupingRule> = {
+  priority: SortOrder.Ascending,
+};
+
 class AlertGroupingEngineServiceClass {
   @CaptureSpan()
   @RuleEvaluation()
@@ -120,80 +188,16 @@ class AlertGroupingEngineServiceClass {
         return { grouped: true, episodeId: alert.alertEpisodeId };
       }
 
-      // Get enabled rules sorted by priority
+      /*
+       * Enabled rules sorted by priority: kept until any of the project's
+       * rules changes (RuleSetCache).
+       */
       const rules: Array<AlertGroupingRule> =
-        await AlertGroupingRuleService.findBy({
-          query: {
-            projectId: alert.projectId,
-            isEnabled: true,
-          },
-          sort: {
-            priority: SortOrder.Ascending,
-          },
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-            name: true,
-            priority: true,
-            criteria: true,
-            // Match criteria fields
-            monitors: {
-              _id: true,
-            },
-            alertSeverities: {
-              _id: true,
-            },
-            alertLabels: {
-              _id: true,
-            },
-            monitorLabels: {
-              _id: true,
-            },
-            alertTitlePattern: true,
-            alertDescriptionPattern: true,
-            monitorNamePattern: true,
-            monitorDescriptionPattern: true,
-            // Group by fields
-            groupByMonitor: true,
-            groupBySeverity: true,
-            groupByAlertTitle: true,
-            groupByAlertLabels: true,
-            groupByMonitorLabels: true,
-            groupByConnectedServices: true,
-            // Time settings
-            enableTimeWindow: true,
-            timeWindowMinutes: true,
-            // How many matching alerts it waits for
-            enableMinimumAlertCount: true,
-            minimumAlertCount: true,
-            episodeTitleTemplate: true,
-            episodeDescriptionTemplate: true,
-            enableResolveDelay: true,
-            resolveDelayMinutes: true,
-            enableReopenWindow: true,
-            reopenWindowMinutes: true,
-            enableInactivityTimeout: true,
-            inactivityTimeoutMinutes: true,
-            defaultAssignToUserId: true,
-            defaultAssignToTeamId: true,
-            onCallDutyPolicies: {
-              _id: true,
-            },
-            // Episode configuration fields
-            episodeLabels: {
-              _id: true,
-            },
-            episodeOwnerUsers: {
-              _id: true,
-            },
-            episodeOwnerTeams: {
-              _id: true,
-            },
-          },
-          limit: MAX_RULES_EVALUATED_PER_PROJECT,
-          skip: 0,
+        await RuleSetCache.findEnabledRules<AlertGroupingRule>({
+          service: AlertGroupingRuleService,
+          projectId: alert.projectId,
+          select: GROUPING_RULE_SELECT,
+          sort: GROUPING_RULE_SORT,
         });
 
       logIfRuleReadWasTruncated({
