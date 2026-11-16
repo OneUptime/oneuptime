@@ -53586,7 +53586,6 @@
   "{{label}}:": "{{label}}:",
   "{{count}} matching events.": "일치하는 이벤트 {{count}}개.",
   "{{count}} matching events._one": "일치하는 이벤트 {{count}}개.",
-  "A secret that requests to the project's Incoming Request monitors must send, in the X-OneUptime-Secret header or as a Bearer token, while the project requires one.": "프로젝트가 시크릿을 요구하는 동안 프로젝트의 수신 요청 모니터로 보내는 요청이 X-OneUptime-Secret 헤더나 Bearer 토큰으로 보내야 하는 시크릿입니다.",
   "API request": "API 요청",
   "Audit logging is not recording: Enterprise license required": "감사 로그 기록 안 됨: Enterprise 라이선스 필요",
   "Audit logging is not recording: not included in your Enterprise license": "감사 로그 기록 안 됨: Enterprise 라이선스에 포함되지 않음",
@@ -53629,7 +53628,6 @@
   "Require a secret on every request": "모든 요청에 시크릿 필수",
   "SSO provider": "SSO 공급자",
   "Second factor": "두 번째 인증 요소",
-  "Senders send it in the X-OneUptime-Secret header, or as a Bearer token in the Authorization header.": "발신자는 X-OneUptime-Secret 헤더나 Authorization 헤더의 Bearer 토큰으로 보냅니다.",
   "Senders send one of these. To replace one, create a new secret, move your senders to it, then delete the old one once its Last Used stops changing.": "발신자는 이 중 하나를 보냅니다. 하나를 교체하려면 새 시크릿을 만들고 발신자를 그것으로 옮긴 다음, 이전 시크릿의 마지막 사용이 더 이상 바뀌지 않으면 삭제하세요.",
   "Signed in at": "로그인 시각",
   "Signed in with": "로그인 방법",
@@ -56016,5 +56014,12 @@
   "Runs AI Code Fixes": "AI 코드 수정 실행",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "민감해 보이는 키의 값은 속성과 JSON 로그 본문에서 [REDACTED]로 바뀝니다.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "스팬에서 마스킹할 부분: 스팬 이름, 속성 값과 링크 속성 값, 이벤트 속성 값 또는 상태 메시지와 이벤트 이름까지 포함한 전체.",
-  "Signed out by a server admin because single sign-on is required": "싱글 사인온(SSO)이 필요하여 서버 관리자가 로그아웃함"
+  "Signed out by a server admin because single sign-on is required": "싱글 사인온(SSO)이 필요하여 서버 관리자가 로그아웃함",
+  "A secret that requests to the project's Incoming Request monitors must send while the project requires one: in the X-OneUptime-Secret header, as a Bearer token, or as a signature of the request's body.": "프로젝트가 시크릿을 요구하는 동안 프로젝트의 수신 요청 모니터로 보내는 요청이 보내야 하는 시크릿입니다. X-OneUptime-Secret 헤더, Bearer 토큰 또는 요청 본문의 서명으로 보냅니다.",
+  "Requests have been checked for a secret for less than a day, so a sender that calls less often may not show up yet.": "요청의 시크릿 확인이 시작된 지 하루가 되지 않아, 그보다 드물게 보내는 발신자는 아직 나타나지 않았을 수 있습니다.",
+  "Secret not for this monitor": "이 모니터용이 아닌 시크릿",
+  "Senders send it in the X-OneUptime-Secret header or as a Bearer token, or sign each request with it: safer, as the secret never travels.": "발신자는 X-OneUptime-Secret 헤더나 Bearer 토큰으로 보내거나, 이것으로 각 요청에 서명합니다. 시크릿이 전송되지 않으므로 서명이 더 안전합니다.",
+  "Signature too old": "너무 오래된 서명",
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on.": "지난 24시간 동안 수신 요청 모니터 {{count}}개가 유효한 시크릿 없이 요청을 받았습니다. 이제부터 해당 발신자는 거부됩니다.",
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on._one": "{{count}} Incoming Request monitor got a request without a valid secret in the last 24 hours. Its senders are refused from now on."
 }

@@ -53586,7 +53586,6 @@
   "{{label}}:": "{{label}}:",
   "{{count}} matching events.": "{{count}} من الأحداث المطابقة.",
   "{{count}} matching events._one": "{{count}} حدث مطابق.",
-  "A secret that requests to the project's Incoming Request monitors must send, in the X-OneUptime-Secret header or as a Bearer token, while the project requires one.": "سرٌّ يجب أن ترسله الطلبات إلى مراقبات الطلبات الواردة في المشروع، في الترويسة X-OneUptime-Secret أو كرمز Bearer، ما دام المشروع يشترطه.",
   "API request": "طلب API",
   "Audit logging is not recording: Enterprise license required": "تسجيل التدقيق لا يسجّل: يلزم ترخيص مؤسسات",
   "Audit logging is not recording: not included in your Enterprise license": "تسجيل التدقيق لا يسجّل: غير مشمول في ترخيص المؤسسات لديك",
@@ -53629,7 +53628,6 @@
   "Require a secret on every request": "اشتراط سر في كل طلب",
   "SSO provider": "موفّر SSO",
   "Second factor": "العامل الثاني",
-  "Senders send it in the X-OneUptime-Secret header, or as a Bearer token in the Authorization header.": "يرسله المُرسِلون في الترويسة X-OneUptime-Secret، أو كرمز Bearer في الترويسة Authorization.",
   "Senders send one of these. To replace one, create a new secret, move your senders to it, then delete the old one once its Last Used stops changing.": "يرسل المُرسِلون أحد هذه الأسرار. لاستبدال أحدها، أنشئ سرًا جديدًا، وانقل المُرسِلين إليه، ثم احذف القديم حين يتوقف آخر استخدام له عن التغير.",
   "Signed in at": "وقت تسجيل الدخول",
   "Signed in with": "طريقة تسجيل الدخول",
@@ -56016,5 +56014,12 @@
   "Runs AI Code Fixes": "يشغّل إصلاحات التعليمات البرمجية بالذكاء الاصطناعي",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "تُستبدل بـ [REDACTED] قيم المفاتيح التي تبدو حساسة، في السمات وفي نص السجل بصيغة JSON.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "أجزاء الامتداد المراد تنقيتها: اسم الامتداد، أو قيم السمات وسمات الروابط، أو قيم سمات الأحداث، أو الكل بما فيه رسالة الحالة وأسماء الأحداث.",
-  "Signed out by a server admin because single sign-on is required": "سجّل مسؤول الخادم الخروج لأن تسجيل الدخول الموحّد (SSO) مطلوب"
+  "Signed out by a server admin because single sign-on is required": "سجّل مسؤول الخادم الخروج لأن تسجيل الدخول الموحّد (SSO) مطلوب",
+  "A secret that requests to the project's Incoming Request monitors must send while the project requires one: in the X-OneUptime-Secret header, as a Bearer token, or as a signature of the request's body.": "سرٌّ يجب أن ترسله الطلبات إلى مراقبات الطلبات الواردة في المشروع ما دام المشروع يشترطه: في الترويسة X-OneUptime-Secret، أو كرمز Bearer، أو كتوقيع لمتن الطلب.",
+  "Requests have been checked for a secret for less than a day, so a sender that calls less often may not show up yet.": "لم تُفحص الطلبات بحثًا عن سر إلا منذ أقل من يوم، لذا قد لا يظهر بعدُ مُرسِل يتصل بوتيرة أقل.",
+  "Secret not for this monitor": "سر ليس لهذه المراقبة",
+  "Senders send it in the X-OneUptime-Secret header or as a Bearer token, or sign each request with it: safer, as the secret never travels.": "يرسله المُرسِلون في الترويسة X-OneUptime-Secret أو كرمز Bearer، أو يوقّعون به كل طلب: وهذا أكثر أمانًا، لأن السر نفسه لا يُرسَل أبدًا.",
+  "Signature too old": "توقيع قديم جدًا",
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on.": "تلقت مراقبات طلبات واردة طلبًا بلا سر صالح خلال آخر 24 ساعة (العدد: {{count}}). يُرفض مُرسِلوها من الآن فصاعدًا.",
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on._one": "تلقت {{count}} مراقبة طلبات واردة طلبًا بلا سر صالح خلال آخر 24 ساعة. يُرفض مُرسِلوها من الآن فصاعدًا."
 }

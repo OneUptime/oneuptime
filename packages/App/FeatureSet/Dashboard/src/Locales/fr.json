@@ -53586,7 +53586,6 @@
   "{{label}}:": "{{label}} :",
   "{{count}} matching events.": "{{count}} événements correspondants.",
   "{{count}} matching events._one": "{{count}} événement correspondant.",
-  "A secret that requests to the project's Incoming Request monitors must send, in the X-OneUptime-Secret header or as a Bearer token, while the project requires one.": "Un secret que les requêtes vers les moniteurs de requêtes entrantes du projet doivent envoyer, dans l'en-tête X-OneUptime-Secret ou comme jeton Bearer, tant que le projet en exige un.",
   "API request": "Requête API",
   "Audit logging is not recording: Enterprise license required": "La journalisation d'audit n'enregistre rien : licence Enterprise requise",
   "Audit logging is not recording: not included in your Enterprise license": "La journalisation d'audit n'enregistre rien : non incluse dans votre licence Enterprise",
@@ -53629,7 +53628,6 @@
   "Require a secret on every request": "Exiger un secret à chaque requête",
   "SSO provider": "Fournisseur SSO",
   "Second factor": "Second facteur",
-  "Senders send it in the X-OneUptime-Secret header, or as a Bearer token in the Authorization header.": "Les expéditeurs l'envoient dans l'en-tête X-OneUptime-Secret, ou comme jeton Bearer dans l'en-tête Authorization.",
   "Senders send one of these. To replace one, create a new secret, move your senders to it, then delete the old one once its Last Used stops changing.": "Les expéditeurs envoient l'un de ces secrets. Pour en remplacer un, créez un nouveau secret, faites-y passer vos expéditeurs, puis supprimez l'ancien une fois que sa dernière utilisation ne change plus.",
   "Signed in at": "Connexion le",
   "Signed in with": "Connexion avec",
@@ -56016,5 +56014,12 @@
   "Runs AI Code Fixes": "Exécute les corrections de code par IA",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Les valeurs des clés qui semblent sensibles, dans les attributs et dans un corps de journal JSON, sont remplacées par [REDACTED].",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Quelles parties du span masquer : le nom du span, les valeurs d'attributs et d'attributs de lien, les valeurs d'attributs d'événement, ou toutes, message d'état et noms d'événement compris.",
-  "Signed out by a server admin because single sign-on is required": "Déconnecté par un administrateur du serveur, car l'authentification unique (SSO) est requise"
+  "Signed out by a server admin because single sign-on is required": "Déconnecté par un administrateur du serveur, car l'authentification unique (SSO) est requise",
+  "A secret that requests to the project's Incoming Request monitors must send while the project requires one: in the X-OneUptime-Secret header, as a Bearer token, or as a signature of the request's body.": "Un secret que les requêtes vers les moniteurs de requêtes entrantes du projet doivent envoyer tant que le projet en exige un : dans l'en-tête X-OneUptime-Secret, comme jeton Bearer, ou comme signature du corps de la requête.",
+  "Requests have been checked for a secret for less than a day, so a sender that calls less often may not show up yet.": "Les requêtes ne sont vérifiées que depuis moins d'un jour, donc un expéditeur qui appelle moins souvent n'apparaît peut-être pas encore.",
+  "Secret not for this monitor": "Secret non valable pour ce moniteur",
+  "Senders send it in the X-OneUptime-Secret header or as a Bearer token, or sign each request with it: safer, as the secret never travels.": "Les expéditeurs l'envoient dans l'en-tête X-OneUptime-Secret ou comme jeton Bearer, ou s'en servent pour signer chaque requête, ce qui est plus sûr : le secret ne circule jamais.",
+  "Signature too old": "Signature trop ancienne",
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on.": "{{count}} moniteurs de requêtes entrantes ont reçu une requête sans secret valide au cours des dernières 24 heures. Leurs expéditeurs sont désormais refusés.",
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on._one": "{{count}} moniteur de requêtes entrantes a reçu une requête sans secret valide au cours des dernières 24 heures. Ses expéditeurs sont désormais refusés."
 }

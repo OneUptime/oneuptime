@@ -53586,7 +53586,6 @@
   "{{label}}:": "{{label}}:",
   "{{count}} matching events.": "{{count}} matchande händelser.",
   "{{count}} matching events._one": "{{count}} matchande händelse.",
-  "A secret that requests to the project's Incoming Request monitors must send, in the X-OneUptime-Secret header or as a Bearer token, while the project requires one.": "En hemlighet som begäranden till projektets monitorer för inkommande begäranden måste skicka i headern X-OneUptime-Secret eller som Bearer-token, så länge projektet kräver en.",
   "API request": "API-begäran",
   "Audit logging is not recording: Enterprise license required": "Granskningsloggning registrerar inte: Enterprise-licens krävs",
   "Audit logging is not recording: not included in your Enterprise license": "Granskningsloggning registrerar inte: ingår inte i din Enterprise-licens",
@@ -53629,7 +53628,6 @@
   "Require a secret on every request": "Kräv en hemlighet vid varje begäran",
   "SSO provider": "SSO-leverantör",
   "Second factor": "Andra faktor",
-  "Senders send it in the X-OneUptime-Secret header, or as a Bearer token in the Authorization header.": "Avsändare skickar den i headern X-OneUptime-Secret eller som Bearer-token i headern Authorization.",
   "Senders send one of these. To replace one, create a new secret, move your senders to it, then delete the old one once its Last Used stops changing.": "Avsändare skickar en av dessa. Byt ut en genom att skapa en ny hemlighet, flytta dina avsändare till den och sedan ta bort den gamla när dess Senast använd slutar ändras.",
   "Signed in at": "Inloggad",
   "Signed in with": "Inloggad med",
@@ -56016,5 +56014,12 @@
   "Runs AI Code Fixes": "Kör AI-kodkorrigeringar",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Värdena för nycklar som ser känsliga ut ersätts med [REDACTED] i attribut och i en loggkropp i JSON.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Vilka delar av spannet som ska maskeras: spannamn, värden för attribut och länkattribut, händelseattributvärden eller alla, även statusmeddelandet och händelsenamnen.",
-  "Signed out by a server admin because single sign-on is required": "Utloggad av en serveradministratör eftersom enkel inloggning (SSO) krävs"
+  "Signed out by a server admin because single sign-on is required": "Utloggad av en serveradministratör eftersom enkel inloggning (SSO) krävs",
+  "A secret that requests to the project's Incoming Request monitors must send while the project requires one: in the X-OneUptime-Secret header, as a Bearer token, or as a signature of the request's body.": "En hemlighet som begäranden till projektets monitorer för inkommande begäranden måste skicka så länge projektet kräver en: i headern X-OneUptime-Secret, som Bearer-token eller som signatur av begärans body.",
+  "Requests have been checked for a secret for less than a day, so a sender that calls less often may not show up yet.": "Begäranden har bara kontrollerats för en hemlighet i mindre än en dag, så en avsändare som anropar mer sällan har kanske inte dykt upp än.",
+  "Secret not for this monitor": "Hemlighet inte för den här monitorn",
+  "Senders send it in the X-OneUptime-Secret header or as a Bearer token, or sign each request with it: safer, as the secret never travels.": "Avsändare skickar den i headern X-OneUptime-Secret eller som Bearer-token, eller signerar varje begäran med den: säkrare, eftersom hemligheten aldrig skickas.",
+  "Signature too old": "Signatur för gammal",
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on.": "{{count}} monitorer för inkommande begäranden har fått en begäran utan giltig hemlighet de senaste 24 timmarna. Deras avsändare avvisas från och med nu.",
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on._one": "{{count}} monitor för inkommande begäranden har fått en begäran utan giltig hemlighet de senaste 24 timmarna. Dess avsändare avvisas från och med nu."
 }

@@ -53586,7 +53586,6 @@
   "{{label}}:": "{{label}}:",
   "{{count}} matching events.": "{{count}} matchende hændelser.",
   "{{count}} matching events._one": "{{count}} matchende hændelse.",
-  "A secret that requests to the project's Incoming Request monitors must send, in the X-OneUptime-Secret header or as a Bearer token, while the project requires one.": "En hemmelighed, som anmodninger til projektets monitorer af indgående anmodninger skal sende i headeren X-OneUptime-Secret eller som Bearer-token, så længe projektet kræver en.",
   "API request": "API-anmodning",
   "Audit logging is not recording: Enterprise license required": "Auditlogning registrerer ikke: Enterprise-licens påkrævet",
   "Audit logging is not recording: not included in your Enterprise license": "Auditlogning registrerer ikke: ikke inkluderet i din Enterprise-licens",
@@ -53629,7 +53628,6 @@
   "Require a secret on every request": "Kræv en hemmelighed ved hver anmodning",
   "SSO provider": "SSO-udbyder",
   "Second factor": "Anden faktor",
-  "Senders send it in the X-OneUptime-Secret header, or as a Bearer token in the Authorization header.": "Afsendere sender den i headeren X-OneUptime-Secret eller som Bearer-token i headeren Authorization.",
   "Senders send one of these. To replace one, create a new secret, move your senders to it, then delete the old one once its Last Used stops changing.": "Afsendere sender en af disse. For at udskifte en skal du oprette en ny hemmelighed, flytte dine afsendere til den og slette den gamle, når dens Sidst brugt holder op med at ændre sig.",
   "Signed in at": "Logget ind",
   "Signed in with": "Logget ind med",
@@ -56016,5 +56014,12 @@
   "Runs AI Code Fixes": "Kører AI-koderettelser",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Værdierne af nøgler, der ser følsomme ud, erstattes med [REDACTED] i attributter og i et logindhold i JSON.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Hvilke dele af spanet der skal renses: span-navn, værdier af attributter og linkattributter, hændelsesattributværdier eller alle, også statusbeskeden og hændelsesnavnene.",
-  "Signed out by a server admin because single sign-on is required": "Logget ud af en serveradministrator, fordi single sign-on (SSO) er påkrævet"
+  "Signed out by a server admin because single sign-on is required": "Logget ud af en serveradministrator, fordi single sign-on (SSO) er påkrævet",
+  "A secret that requests to the project's Incoming Request monitors must send while the project requires one: in the X-OneUptime-Secret header, as a Bearer token, or as a signature of the request's body.": "En hemmelighed, som anmodninger til projektets monitorer af indgående anmodninger skal sende, så længe projektet kræver en: i headeren X-OneUptime-Secret, som Bearer-token eller som signatur af anmodningens body.",
+  "Requests have been checked for a secret for less than a day, so a sender that calls less often may not show up yet.": "Anmodninger er kun blevet tjekket for en hemmelighed i mindre end en dag, så en afsender, der kalder sjældnere, er måske ikke dukket op endnu.",
+  "Secret not for this monitor": "Hemmelighed ikke til denne monitor",
+  "Senders send it in the X-OneUptime-Secret header or as a Bearer token, or sign each request with it: safer, as the secret never travels.": "Afsendere sender den i headeren X-OneUptime-Secret eller som Bearer-token, eller de signerer hver anmodning med den: mere sikkert, da hemmeligheden aldrig sendes.",
+  "Signature too old": "Signatur for gammel",
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on.": "{{count}} monitorer af indgående anmodninger har fået en anmodning uden en gyldig hemmelighed inden for de seneste 24 timer. Deres afsendere afvises fra nu af.",
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on._one": "{{count}} monitor af indgående anmodninger har fået en anmodning uden en gyldig hemmelighed inden for de seneste 24 timer. Dens afsendere afvises fra nu af."
 }
