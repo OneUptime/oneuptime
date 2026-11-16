@@ -16,7 +16,9 @@ import ResolvedRecordRetentionCopy, {
   getKeepCompletedPostmortemsDescription,
   getResolvedRecordRetentionChoices,
   getResolvedRecordRetentionConfirmation,
+  getResolvedRecordRetentionCountText,
   getResolvedRecordRetentionDescription,
+  getResolvedRecordRetentionServerMaximumText,
   getResolvedRecordRetentionText,
   getRetentionLength,
 } from "../../FeatureSet/Dashboard/src/Components/Retention/ResolvedRecordRetentionCopy";
@@ -80,6 +82,13 @@ const SENTENCES: Array<string> = [
   ResolvedRecordRetentionCopy.keepPostmortemsOffConfirmTitle,
   ResolvedRecordRetentionCopy.keepPostmortemsOffConfirmDescription,
   ResolvedRecordRetentionCopy.keepPostmortemsOffConfirmButton,
+  ResolvedRecordRetentionCopy.nothingToDeleteYet,
+  ResolvedRecordRetentionCopy.keptStatusesLabel,
+  ResolvedRecordRetentionCopy.keptStatusesDescription,
+  ResolvedRecordRetentionCopy.keptStatusesPlaceholder,
+  ResolvedRecordRetentionCopy.keptStatusesKeepOne,
+  ResolvedRecordRetentionCopy.keptStatusesConfirmTitle,
+  ResolvedRecordRetentionCopy.keptStatusesConfirmDescription,
   ...KIND_COPIES.flatMap((copy: ResolvedRecordRetentionKindCopy) => {
     return [
       copy.cardTitle,
@@ -88,6 +97,8 @@ const SENTENCES: Array<string> = [
       copy.offDescription,
       copy.confirmTitle,
       copy.confirmButton,
+      copy.serverMaximum,
+      copy.counting,
     ];
   }),
 ];
@@ -97,7 +108,12 @@ const PLURALS: Array<PluralTemplate> = [
   RETENTION_DAYS,
   RETENTION_YEARS,
   ...KIND_COPIES.flatMap((copy: ResolvedRecordRetentionKindCopy) => {
-    return [copy.confirmInDays, copy.confirmInYears];
+    return [
+      copy.confirmInDays,
+      copy.confirmInYears,
+      copy.deletesNow,
+      copy.deletesAtLeastNow,
+    ];
   }),
 ];
 
@@ -212,10 +228,93 @@ describe("the words, in English", () => {
     expect(INCIDENT_RETENTION_COPY.offersPostmortemKeep).toBe(true);
     expect(ALERT_RETENTION_COPY.offersPostmortemKeep).toBe(false);
     expect(getKeepCompletedPostmortemsDescription(true)).toBe(
-      "An incident whose postmortem is completed stays, however long ago it was resolved.",
+      "An incident whose postmortem is in one of the statuses below stays, however long ago it was resolved.",
     );
     expect(getKeepCompletedPostmortemsDescription(false)).toBe(
       "Incidents are deleted whether or not their postmortem is completed.",
+    );
+  });
+
+  test("the question says how many it deletes now, and nothing when it could not count (issue #6943)", () => {
+    expect(
+      getResolvedRecordRetentionCountText(
+        INCIDENT_RETENTION_COPY,
+        { count: 4512, isAtLeast: false },
+        english,
+      ),
+    ).toBe("This deletes 4,512 incidents now.");
+    expect(
+      getResolvedRecordRetentionCountText(
+        ALERT_RETENTION_COPY,
+        { count: 1, isAtLeast: false },
+        english,
+      ),
+    ).toBe("This deletes 1 alert now.");
+    expect(
+      getResolvedRecordRetentionCountText(
+        INCIDENT_RETENTION_COPY,
+        { count: 10000, isAtLeast: true },
+        english,
+      ),
+    ).toBe("This deletes more than 10,000 incidents now.");
+    expect(
+      getResolvedRecordRetentionCountText(
+        ALERT_RETENTION_COPY,
+        { count: 0, isAtLeast: false },
+        english,
+      ),
+    ).toBe("Nothing is old enough to delete yet.");
+    expect(
+      getResolvedRecordRetentionCountText(
+        INCIDENT_RETENTION_COPY,
+        null,
+        english,
+      ),
+    ).toBeNull();
+    expect(INCIDENT_RETENTION_COPY.counting).toBe(
+      "Counting the incidents this deletes…",
+    );
+    expect(ALERT_RETENTION_COPY.counting).toBe(
+      "Counting the alerts this deletes…",
+    );
+  });
+
+  test("the line under the pick names the server's maximum, or nothing with none (issue #6941)", () => {
+    expect(
+      getResolvedRecordRetentionServerMaximumText(
+        INCIDENT_RETENTION_COPY,
+        365,
+        english,
+      )?.replace(/\u00A0/g, " "),
+    ).toBe("Your server keeps resolved incidents for at most 1 year.");
+    expect(
+      getResolvedRecordRetentionServerMaximumText(
+        ALERT_RETENTION_COPY,
+        90,
+        english,
+      )?.replace(/\u00A0/g, " "),
+    ).toBe("Your server keeps resolved alerts for at most 90 days.");
+    expect(
+      getResolvedRecordRetentionServerMaximumText(
+        INCIDENT_RETENTION_COPY,
+        undefined,
+        english,
+      ),
+    ).toBeNull();
+  });
+
+  test("the postmortem statuses that keep an incident are named for what they do (issue #6945)", () => {
+    expect(ResolvedRecordRetentionCopy.keptStatusesLabel).toBe(
+      "Postmortem statuses that keep an incident",
+    );
+    expect(ResolvedRecordRetentionCopy.keptStatusesConfirmTitle).toBe(
+      "Delete incidents in this postmortem status too?",
+    );
+    expect(ResolvedRecordRetentionCopy.keptStatusesConfirmDescription).toMatch(
+      /deleted within the hour .* can't be brought back\.$/,
+    );
+    expect(ResolvedRecordRetentionCopy.keptStatusesKeepOne).toMatch(
+      /turn off keeping incidents with a completed postmortem\.$/,
     );
   });
 
