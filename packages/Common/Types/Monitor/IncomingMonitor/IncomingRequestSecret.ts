@@ -18,6 +18,8 @@
  * Dashboard reads the same rules the server enforces.
  */
 
+import MonitorSecretAccess from "../MonitorSecretAccess";
+
 /*
  * The header a sender puts the secret in. Header names are not case
  * sensitive; it is written here the way the docs and the Dashboard show it.
@@ -30,6 +32,103 @@ export const INCOMING_REQUEST_SECRET_HEADER: string = "X-OneUptime-Secret";
  * without custom headers.
  */
 export const INCOMING_REQUEST_SECRET_AUTHORIZATION_SCHEME: string = "Bearer";
+
+/*
+ * SIGNING A REQUEST INSTEAD OF SENDING THE SECRET (issue #8500).
+ *
+ * Some senders cannot set a header of their own: GitHub's webhooks take a URL
+ * and a secret, and Slack's and Stripe's take a URL alone and sign with a
+ * secret they generate. Each signs the request's body with the secret, an
+ * HMAC-SHA256, and sends the signature in a header of its own - so the
+ * secret never travels at all. OneUptime checks these signatures with the
+ * project's secrets, as it checks a secret sent in a header:
+ *
+ *   - X-OneUptime-Signature: t=<unix seconds>,v1=<hex HMAC of "<t>.<body>">,
+ *     for a sender of your own: the one to prefer, as nothing secret travels
+ *     and the time in it keeps a request someone captured from being sent
+ *     again later;
+ *   - X-Hub-Signature-256: sha256=<hex HMAC of the body>, GitHub's;
+ *   - X-Slack-Signature: v0=<hex HMAC of "v0:<timestamp>:<body>">, with
+ *     X-Slack-Request-Timestamp, Slack's;
+ *   - Stripe-Signature: t=<unix seconds>,v1=<hex HMAC of "<t>.<body>">,
+ *     Stripe's - the same shape as OneUptime's own.
+ *
+ * A signature with a time is accepted only within
+ * INCOMING_REQUEST_SIGNATURE_TOLERANCE_SECONDS of OneUptime's clock, and each
+ * accepted signature is remembered so the same request is refused if it is
+ * sent again (GitHub's carries no time, and is remembered for a day).
+ *
+ * The secret in a URL's query string was weighed and left out: a URL is
+ * written to proxy, load balancer and browser logs, and it already carries
+ * the monitor's own key, so a secret beside it would leak with it.
+ */
+export enum IncomingRequestSignatureScheme {
+  OneUptime = "OneUptime",
+  GitHub = "GitHub",
+  Slack = "Slack",
+  Stripe = "Stripe",
+}
+
+// OneUptime's own signature header.
+export const INCOMING_REQUEST_SIGNATURE_HEADER: string =
+  "X-OneUptime-Signature";
+
+export interface IncomingRequestSignatureFormat {
+  scheme: IncomingRequestSignatureScheme;
+  // The header the signature comes in, as the docs write it.
+  header: string;
+  // The header the signature's time comes in, when not in the signature itself.
+  timestampHeader?: string | undefined;
+  // Whether the signature carries a time, and so expires.
+  hasTimestamp: boolean;
+}
+
+// The signatures OneUptime checks, in the order the docs list them.
+export const INCOMING_REQUEST_SIGNATURE_FORMATS: ReadonlyArray<IncomingRequestSignatureFormat> =
+  [
+    {
+      scheme: IncomingRequestSignatureScheme.OneUptime,
+      header: INCOMING_REQUEST_SIGNATURE_HEADER,
+      hasTimestamp: true,
+    },
+    {
+      scheme: IncomingRequestSignatureScheme.GitHub,
+      header: "X-Hub-Signature-256",
+      hasTimestamp: false,
+    },
+    {
+      scheme: IncomingRequestSignatureScheme.Slack,
+      header: "X-Slack-Signature",
+      timestampHeader: "X-Slack-Request-Timestamp",
+      hasTimestamp: true,
+    },
+    {
+      scheme: IncomingRequestSignatureScheme.Stripe,
+      header: "Stripe-Signature",
+      hasTimestamp: true,
+    },
+  ];
+
+/*
+ * How far a signature's time may be from OneUptime's clock, either way: five
+ * minutes, what Slack and Stripe ask of their receivers.
+ */
+export const INCOMING_REQUEST_SIGNATURE_TOLERANCE_SECONDS: number = 5 * 60;
+
+/*
+ * How long an accepted signature without a time (GitHub's) is remembered, so
+ * the same delivery sent again is refused: a day.
+ */
+export const INCOMING_REQUEST_UNTIMED_SIGNATURE_MEMORY_SECONDS: number =
+  24 * 60 * 60;
+
+/*
+ * Which monitors a new incoming request secret covers when nobody says
+ * otherwise (issue #8501): all of the project's, as every secret did before
+ * a secret could be limited.
+ */
+export const INCOMING_REQUEST_SECRET_DEFAULT_ACCESS: MonitorSecretAccess =
+  MonitorSecretAccess.AllMonitors;
 
 /*
  * A secret someone types instead of letting OneUptime generate one. 16
@@ -50,13 +149,18 @@ const SECRET_VALUE_PATTERN: RegExp = /^[\x21-\x7E]+$/;
 
 /*
  * Why a request to an Incoming Request monitor had no valid incoming request
- * secret: it sent none, or one that is not the project's. Kept on the monitor
- * (Monitor.incomingRequestWithoutSecretReason, issue #8498) and shown where
- * its requests are refused, or would be. Stored values: never rename one.
+ * secret: it sent none; one that is not the project's (or a signature none of
+ * them made); one of the project's that does not cover this monitor (issue
+ * #8501); or a signature whose time is too far from OneUptime's (issue
+ * #8500). Kept on the monitor (Monitor.incomingRequestWithoutSecretReason,
+ * issue #8498) and shown where its requests are refused, or would be. Stored
+ * values: never rename one.
  */
 export enum IncomingRequestSecretProblem {
   NoSecret = "No Secret",
   WrongSecret = "Wrong Secret",
+  SecretNotForMonitor = "Secret Not For Monitor",
+  ExpiredSignature = "Expired Signature",
 }
 
 /*
