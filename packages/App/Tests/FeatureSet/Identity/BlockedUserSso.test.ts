@@ -16,6 +16,8 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 
 /*
  * ---------------------------------------------------------------------------
@@ -48,6 +50,24 @@ const TEAM_ID: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const ISSUER: string = "https://idp.example.com/metadata";
 
 let storedRow: Record<string, unknown> = {};
+
+/*
+ * The refusal, for the audit log of every project the blocked person is a
+ * member of (issue #6788): handed to FailedSignInAuditLog, which records it
+ * after the answer (FailedSignInAuditLog.test.ts).
+ */
+const recordFailedSignIn: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Utils/AuditLog/FailedSignInAuditLog", () => {
+  return {
+    __esModule: true,
+    default: {
+      record: (...args: Array<unknown>): unknown => {
+        return recordFailedSignIn(...args);
+      },
+    },
+  };
+});
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =
@@ -676,6 +696,43 @@ describe.each(FLOWS)("$name — a blocked user", (flow: Flow) => {
     expect(responseRedirect).not.toHaveBeenCalled();
   });
 
+  /*
+   * Issue #6788: the provider vouched for the person, and OneUptime refused
+   * them - a failed sign-in, in the audit log, with the provider that tried.
+   * A project's provider is named with its project, so only that project's
+   * entry names it; the server's own names none.
+   */
+  test("is recorded as a failed sign-in: the account, blocked, and the provider that tried", async () => {
+    storeUser({ isBlocked: true });
+
+    await runFlow(flow, { isMobile: false });
+
+    expect(recordFailedSignIn).toHaveBeenCalledTimes(1);
+
+    const attempt: {
+      userId: ObjectID;
+      reason: SignInFailureReason;
+      signIn: {
+        method: SignInMethod;
+        ssoProjectId?: ObjectID | undefined;
+      };
+    } = recordFailedSignIn.mock.calls[0]![0] as never;
+
+    expect(attempt.userId.toString()).toBe(USER_ID);
+    expect(attempt.reason).toBe(SignInFailureReason.AccountBlocked);
+    expect(attempt.signIn.method).toBe(
+      flow.name.includes("OIDC")
+        ? SignInMethod.OpenIdConnect
+        : SignInMethod.Saml,
+    );
+
+    if (flow.isGlobal) {
+      expect(attempt.signIn.ssoProjectId).toBeUndefined();
+    } else {
+      expect(attempt.signIn.ssoProjectId?.toString()).toBe(PROJECT_ID);
+    }
+  });
+
   test("selects isBlocked when it looks the user up", async () => {
     storeUser({ isBlocked: true });
 
@@ -737,5 +794,7 @@ describe.each(FLOWS)("$name — a user who is not blocked", (flow: Flow) => {
     expect(createSession).toHaveBeenCalledTimes(1);
     expect(setUserCookie).toHaveBeenCalledTimes(1);
     expect(responseRedirect).toHaveBeenCalledTimes(1);
+    // Nothing failed: nothing for the audit log's failed sign-ins.
+    expect(recordFailedSignIn).not.toHaveBeenCalled();
   });
 });
