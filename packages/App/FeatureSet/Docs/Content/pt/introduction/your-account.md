@@ -70,11 +70,13 @@ Expanda **Segurança** no menu lateral de **Perfil do usuário**. Ela tem três 
 
 :::steps
 1. Abra **Segurança → Gerenciamento de senhas**.
-2. Digite a nova senha em **Senha** e de novo em **Confirmar senha**. Ela precisa ter pelo menos 6 caracteres.
+2. Digite a nova senha em **Nova senha** e de novo em **Confirmar senha**. Ela precisa ter pelo menos 15 caracteres e não pode ser previsível, como uma senha comum ou um padrão repetido: algumas palavras sem relação entre si funcionam bem. A lista de verificação abaixo do campo marca cada item enquanto você digita.
 3. Clique em **Atualizar Senha**.
 :::
 
 Uma nova senha desconecta todos os dispositivos da sua conta, e qualquer link de redefinição ou de acesso já enviado deixa de funcionar.
+
+Toda página que define uma senha pede o mesmo: o cadastro, o link de redefinição de **Esqueceu a senha?**, esta página e **Definir senha** de um administrador do servidor. Uma senha definida antes desta regra continua funcionando até você trocá-la.
 
 ### Adicionar uma chave de acesso
 

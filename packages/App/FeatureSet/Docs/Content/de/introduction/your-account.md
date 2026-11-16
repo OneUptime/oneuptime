@@ -70,11 +70,13 @@ Klappen Sie **Sicherheit** im Seitenmenü von **Benutzerprofil** auf. Der Abschn
 
 :::steps
 1. Öffnen Sie **Sicherheit → Passwortverwaltung**.
-2. Geben Sie das neue Passwort unter **Passwort** und erneut unter **Passwort bestätigen** ein. Es muss mindestens 6 Zeichen lang sein.
+2. Geben Sie das neue Passwort unter **Neues Passwort** und erneut unter **Passwort bestätigen** ein. Es muss mindestens 15 Zeichen lang sein und darf nicht leicht zu erraten sein, etwa ein verbreitetes Passwort oder ein wiederholtes Muster: Ein paar Wörter, die nichts miteinander zu tun haben, eignen sich gut. Die Checkliste unter dem Feld hakt jeden Punkt ab, während Sie tippen.
 3. Klicken Sie auf **Passwort aktualisieren**.
 :::
 
 Ein neues Passwort meldet jedes Gerät von Ihrem Konto ab, und jeder bereits gesendete Link zum Zurücksetzen oder Anmeldelink funktioniert nicht mehr.
+
+Jede Seite, auf der ein Passwort festgelegt wird, verlangt dasselbe: die Registrierung, der Link zum Zurücksetzen über **Passwort vergessen?**, diese Seite und **Passwort festlegen** eines Serveradministrators. Ein Passwort, das Sie vor dieser Regel festgelegt haben, funktioniert weiter, bis Sie es ändern.
 
 ### Einen Passkey hinzufügen
 

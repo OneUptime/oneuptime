@@ -70,11 +70,13 @@ Klap **Beveiliging** open in het zijmenu van **Gebruikersprofiel**. De sectie he
 
 :::steps
 1. Open **Beveiliging → Wachtwoordbeheer**.
-2. Voer het nieuwe wachtwoord in bij **Wachtwoord** en nogmaals bij **Wachtwoord bevestigen**. Het moet minstens 6 tekens lang zijn.
+2. Voer het nieuwe wachtwoord in bij **Nieuw wachtwoord** en nogmaals bij **Wachtwoord bevestigen**. Het moet minstens 15 tekens lang zijn en mag niet voorspelbaar zijn, zoals een veelgebruikt wachtwoord of een herhaald patroon: een paar woorden die niets met elkaar te maken hebben, werken goed. De checklist onder het veld vinkt elk onderdeel af terwijl u typt.
 3. Klik op **Wachtwoord bijwerken**.
 :::
 
 Een nieuw wachtwoord meldt elk apparaat af bij uw account, en elke al verzonden resetlink of inloglink werkt niet meer.
+
+Elke pagina waar u een wachtwoord instelt, vraagt hetzelfde: aanmelden, de resetlink van **Wachtwoord vergeten?**, deze pagina en **Wachtwoord instellen** van een serverbeheerder. Een wachtwoord dat u vóór deze regel hebt ingesteld, blijft werken tot u het wijzigt.
 
 ### Een passkey toevoegen
 
