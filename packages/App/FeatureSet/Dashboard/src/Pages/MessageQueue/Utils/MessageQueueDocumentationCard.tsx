@@ -79,15 +79,12 @@ const MessageQueueDocumentationCard: FunctionComponent<ComponentProps> = (
       }}
       getContent={getContent}
       /*
-       * The product page's guide reads in the reader's language (#8341). A
-       * queue's own tab stays in English whole until its pieces (the
-       * queue's identity, its broker's address and a system the catalog
-       * does not know) have words of their own: a guide half in one
-       * language reads worse than one in English (#8798).
+       * Every guide the card draws reads in the reader's language (#8341,
+       * #8798): the product page's, and a queue's own tab with its
+       * identity, its broker's address and a system the catalog does not
+       * know.
        */
-      translations={
-        props.queue ? undefined : MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS
-      }
+      translations={MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

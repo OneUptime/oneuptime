@@ -248,6 +248,80 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     word: /de dois fatores/i,
     dropped: /em dois fatores/i,
   },
+  /*
+   * The Security pages around it read in English in those languages, and
+   * named a passkey and a backup code two ways once they were translated
+   * (#8796): the Dashboard's passkey errors said "passkey" (and Traditional
+   * Chinese 通行金鑰) where the sign-in page and the docs say each
+   * language's word for it; the Chinese docs said 备用码 and 備用碼 where
+   * the sign-in page, the Admin Dashboard and the Dashboard say 备用代码
+   * and 備用代碼; the Norwegian app docs called a passkey "tilgangsnøkkel",
+   * Norwegian's word for an AWS access key, and the Swedish ones "passkey".
+   * Each now says the sign-in page's word.
+   */
+  {
+    language: "da",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /adgangsnøgle/i,
+    dropped: /\bpasskey/i,
+  },
+  {
+    language: "fr",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /clés? d['’]accès/i,
+    dropped: /\bpasskey/i,
+  },
+  {
+    language: "no",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /passnøk(?:kel|ler)/i,
+    dropped: /\bpasskey|tilgangsnøk/i,
+  },
+  {
+    language: "pt",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /chaves? de acesso/i,
+    dropped: /\bpasskey/i,
+  },
+  {
+    language: "ru",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /ключ(?:и|а|ом|ей|ам|ами|ах)? доступа/i,
+    dropped: /\bpasskey/i,
+  },
+  {
+    language: "sv",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /passnyck(?:el|lar)/i,
+    dropped: /\bpasskey/i,
+  },
+  {
+    language: "zh-TW",
+    thing: "Passkeys",
+    english: /\bpasskeys?\b/i,
+    word: /通行密鑰/,
+    dropped: /通行金鑰/,
+  },
+  {
+    language: "zh-CN",
+    thing: "Backup codes",
+    english: /\bbackup codes?\b/i,
+    word: /备用代码/,
+    dropped: /备用码/,
+  },
+  {
+    language: "zh-TW",
+    thing: "Backup codes",
+    english: /\bbackup codes?\b/i,
+    word: /備用代碼/,
+    dropped: /備用碼/,
+  },
   {
     // Runner, declined as its other strings decline it: Runner-а, Runner-ы.
     language: "ru",
@@ -356,5 +430,17 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
       /notif|notify|notified|remind|notice|announce|\bpush|critical alert/i,
     word: /\blarm/i,
     dropped: /\bavisering/i,
+  },
+  {
+    /*
+     * Its Broker health section, its broker metrics and its docs say
+     * بروکر; the Queues pages' broker column and picker said کارگزار, so
+     * one setup guide named the broker both ways (#8799).
+     */
+    language: "fa",
+    thing: "Brokers",
+    english: /\bbrokers?\b/i,
+    word: /بروکر/,
+    dropped: /کارگزار/,
   },
 ];

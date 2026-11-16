@@ -574,14 +574,32 @@ export function getHostSetupGuideWays(): Array<SetupGuideWay> {
 }
 
 /*
+ * A queue's own Documentation tab, as a row can hand it: its destination,
+ * with or without the broker address its telemetry reported, and the Azure
+ * namespace Service Bus and Event Hubs queues are scoped by.
+ */
+const MESSAGE_QUEUE_TAB_DESTINATION: string = "orders";
+const MESSAGE_QUEUE_TAB_BROKER_ADDRESSES: ReadonlyArray<string | undefined> = [
+  undefined,
+  "broker-1.example.com:9092",
+];
+const MESSAGE_QUEUE_TAB_AZURE_NAMESPACE: string = "orders-ns";
+const MESSAGE_QUEUE_NAMESPACED_SYSTEMS: ReadonlyArray<string> = [
+  "servicebus",
+  "eventhubs",
+];
+// A system the catalog does not know: the generic guide, under its own name.
+const MESSAGE_QUEUE_UNKNOWN_SYSTEM: string = "acme-bus";
+
+/*
  * The Queues guide varies by messaging system: how its spans name it, what
  * traces its clients, the collector (or scraper) that reads its broker, and
- * what a queue's page charts. Only the product page reads in the reader's
- * language; a queue's own Documentation tab is English whole, so there is
- * no queue to build for here.
+ * what a queue's page charts. The product page picks a system; a queue's
+ * own Documentation tab is built for its row's system, with the queue's
+ * identity and broker, and for a system the catalog does not know too.
  */
 export function getMessageQueueSetupGuideWays(): Array<SetupGuideWay> {
-  return getSetupGuideWays({
+  const ways: Array<SetupGuideWay> = getSetupGuideWays({
     options: MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS,
     names: [],
     build: (reader: SetupGuideReader, option: string): SetupGuideContent => {
@@ -592,4 +610,43 @@ export function getMessageQueueSetupGuideWays(): Array<SetupGuideWay> {
       });
     },
   });
+
+  const systems: Array<string> = [
+    ...MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS.map(
+      (option: SetupGuideOption): string => {
+        return option.key;
+      },
+    ),
+    MESSAGE_QUEUE_UNKNOWN_SYSTEM,
+  ];
+
+  for (const system of systems) {
+    for (const reader of SETUP_GUIDE_READERS) {
+      for (const brokerAddress of MESSAGE_QUEUE_TAB_BROKER_ADDRESSES) {
+        ways.push({
+          label: [
+            system,
+            reader.label,
+            `for the queue ${MESSAGE_QUEUE_TAB_DESTINATION}`,
+            brokerAddress ? `on ${brokerAddress}` : "no broker address",
+          ].join(", "),
+          content: getMessageQueueSetupGuide({
+            oneuptimeUrl: reader.oneuptimeUrl,
+            apiKey: reader.apiKey,
+            system: system,
+            queue: {
+              system: system,
+              destination: MESSAGE_QUEUE_TAB_DESTINATION,
+              brokerScope: MESSAGE_QUEUE_NAMESPACED_SYSTEMS.includes(system)
+                ? MESSAGE_QUEUE_TAB_AZURE_NAMESPACE
+                : "",
+              brokerAddress: brokerAddress,
+            },
+          }),
+        });
+      }
+    }
+  }
+
+  return ways;
 }

@@ -374,6 +374,84 @@ const TRANSLATION: SetupGuideTranslation = {
     "- يسمّي المقياس قائمة الانتظار باسم مختلف عن اسمها في الامتدادات. تسمّي امتدادات RabbitMQ عادةً الـ exchange، بينما تصف مقاييس الوسيط قوائم الانتظار. والاثنان يلتقيان في الرسائل المرسلة عبر الـ exchange الافتراضي، لأن مفتاح التوجيه فيه هو اسم قائمة الانتظار.",
   "- RabbitMQ reports only the queues of virtual hosts its user has access to, and logs no error for the rest. RabbitMQ's counters appear with the first activity.":
     "- لا يبلّغ RabbitMQ إلا عن قوائم الانتظار في المضيفين الافتراضيين الذين يملك مستخدمه وصولًا إليهم، ولا يسجّل أي خطأ للبقية. تظهر عدّادات RabbitMQ مع أول نشاط.",
+  "This is the Amazon SNS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار Amazon SNS باسم `orders`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن مقاييس الوسيط نفسه. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "- `delay` waits for CloudWatch to publish a period, so with this configuration this queue's broker metrics arrive 11 to 17 minutes late: a monitor over them needs a longer window (see **Late metrics** under [Alerting](/docs/telemetry/queues#alerting)).":
+    "- ينتظر `delay` أن ينشر CloudWatch الفترة، لذا تصل مقاييس الوسيط لقائمة الانتظار هذه بهذا الإعداد متأخرة من 11 إلى 17 دقيقة: والمراقبة عليها تحتاج إلى نافذة أطول (راجع **المقاييس المتأخرة** ضمن [التنبيهات](/docs/telemetry/queues#alerting)).",
+  "Send a few messages through `orders`. Every span that names this queue is tagged with it as OneUptime ingests it: the spans fill in the **Overview** — messages published and consumed, errors and processing time, and the services under **Producers** and **Consumers** — and the **Traces** tab.":
+    "أرسل بضع رسائل عبر `orders`. كل امتداد يسمّي قائمة الانتظار هذه يُوسم بها حين يستوعبه OneUptime: فتملأ الامتدادات **نظرة عامة** — الرسائل المنشورة والمستهلكة، والأخطاء وزمن المعالجة، والخدمات ضمن **المنتِجون** و**المستهلكون** — وعلامة التبويب **التتبعات**.",
+  "**Broker health** on the Overview fills in from the broker's metrics as they arrive: with the configuration in step 3, CloudWatch's arrive 11 to 17 minutes late.":
+    "تمتلئ **سلامة الوسيط** في النظرة العامة من مقاييس الوسيط كلما وصلت: وبالإعداد في الخطوة 3، تصل مقاييس CloudWatch متأخرة من 11 إلى 17 دقيقة.",
+  "The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry, and over the last 60 minutes of cloud monitoring metrics, which arrive late.":
+    "يعرض الرأس **شوهدت مؤخرًا** بمجرد أن يجد الاكتشاف امتدادات أو مقاييس وسيط تسمّي قائمة الانتظار هذه. يعمل الاكتشاف كل 10 دقائق على قياسات آخر 15 دقيقة عن بُعد، وعلى آخر 60 دقيقة من مقاييس المراقبة السحابية، التي تصل متأخرة.",
+  "Names are compared without regard to case.":
+    "تُقارن الأسماء دون تمييز بين الأحرف الكبيرة والصغيرة.",
+  "- **Spans**: `messaging.system` = `aws.sns` (or `aws_sns`, `amazonsns` or `sns`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **الامتدادات**: `messaging.system` = `aws.sns` (أو `aws_sns` أو `amazonsns` أو `sns`) والوجهة `orders` — في `messaging.destination.name`، أو في مفتاح أقدم مثل `messaging.destination`.",
+  "- **Broker metrics**: `Dimensions.TopicName` or `TopicName` = `orders`.":
+    "- **مقاييس الوسيط**: `Dimensions.TopicName` أو `TopicName` = `orders`.",
+  "This is the Amazon SQS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار Amazon SQS باسم `orders`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن مقاييس الوسيط نفسه. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "This is the Apache ActiveMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار Apache ActiveMQ باسم `orders`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن مقاييس الوسيط نفسه. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "**Broker health** on the Overview fills in from the broker's metrics as they arrive.":
+    "تمتلئ **سلامة الوسيط** في النظرة العامة من مقاييس الوسيط كلما وصلت.",
+  "The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry.":
+    "يعرض الرأس **شوهدت مؤخرًا** بمجرد أن يجد الاكتشاف امتدادات أو مقاييس وسيط تسمّي قائمة الانتظار هذه. يعمل الاكتشاف كل 10 دقائق على قياسات آخر 15 دقيقة عن بُعد.",
+  "- JMS clients' spans say `jms` whichever broker is behind them, so they and the Apache ActiveMQ broker's metrics land on this one queue.":
+    "- تقول امتدادات عملاء JMS `jms` أيًّا كان الوسيط خلفها، لذا تصل هي ومقاييس وسيط Apache ActiveMQ إلى قائمة الانتظار الواحدة هذه.",
+  "The JMX host is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`).":
+    "مضيف JMX مملوء مسبقًا من عنوان الوسيط الذي تبلّغ عنه قياسات قائمة الانتظار هذه عن بُعد (`broker-1.example.com:9092`).",
+  "This is the Apache Kafka queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار Apache Kafka باسم `orders`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن مقاييس الوسيط نفسه. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "- **Spans**: `messaging.system` = `kafka` and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **الامتدادات**: `messaging.system` = `kafka` والوجهة `orders` — في `messaging.destination.name`، أو في مفتاح أقدم مثل `messaging.destination`.",
+  "- **Broker metrics**: `topic` = `orders`.":
+    "- **مقاييس الوسيط**: `topic` = `orders`.",
+  "For a cluster with SASL or TLS, uncomment `auth` and `tls`. The bootstrap broker is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`); change it if the collector reaches the broker another way. The receiver names each topic in `topic`, which is how the metrics find the topic's queue. It reports a consumer group's lag and committed offsets only on topics the group has committed an offset to, and skips topics whose names start with `_`.":
+    "لعنقود يستخدم SASL أو TLS، أزل التعليق عن `auth` و`tls`. وسيط التمهيد مملوء مسبقًا من عنوان الوسيط الذي تبلّغ عنه قياسات قائمة الانتظار هذه عن بُعد (`broker-1.example.com:9092`)؛ غيّره إن كان المجمّع يصل إلى الوسيط بطريق آخر. يسمّي المستقبِل كل موضوع في `topic`، وبه تجد المقاييس قائمة انتظار الموضوع. ولا يبلّغ عن تأخر مجموعة المستهلكين وإزاحاتها المثبّتة إلا للمواضيع التي ثبّتت فيها المجموعة إزاحة، ويتخطى المواضيع التي تبدأ أسماؤها بـ `_`.",
+  "This is the Apache Pulsar queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار Apache Pulsar باسم `orders`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن مقاييس الوسيط نفسه. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "- **Spans**: `messaging.system` = `pulsar` (or `apache_pulsar`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **الامتدادات**: `messaging.system` = `pulsar` (أو `apache_pulsar`) والوجهة `orders` — في `messaging.destination.name`، أو في مفتاح أقدم مثل `messaging.destination`.",
+  "This is the Apache RocketMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار Apache RocketMQ باسم `orders`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن مقاييس الوسيط نفسه. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "This is the Azure Event Grid queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار Azure Event Grid باسم `orders`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن المقاييس التي تحمل `messaging.system` و`messaging.destination.name` الخاصين بها. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "Metrics that carry its `messaging.system` and `messaging.destination.name` on each datapoint show on its **Metrics** tab.":
+    "المقاييس التي تحمل `messaging.system` و`messaging.destination.name` الخاصين بها على كل نقطة بيانات تظهر في علامة التبويب **المقاييس** الخاصة بها.",
+  "The header reads **Seen recently** once discovery finds spans or messaging client metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry.":
+    "يعرض الرأس **شوهدت مؤخرًا** بمجرد أن يجد الاكتشاف امتدادات أو مقاييس عملاء مراسلة تسمّي قائمة الانتظار هذه. يعمل الاكتشاف كل 10 دقائق على قياسات آخر 15 دقيقة عن بُعد.",
+  "This is the Azure Event Hubs queue `orders` in the `orders-ns` namespace. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار Azure Event Hubs باسم `orders` في مساحة الاسم `orders-ns`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن مقاييس الوسيط نفسه. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "- **Spans**: `messaging.system` = `eventhubs` (or `azure_eventhubs`, `azure.eventhubs` or `microsoft.eventhub`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`, from an SDK connected to `orders-ns.servicebus.windows.net`.":
+    "- **الامتدادات**: `messaging.system` = `eventhubs` (أو `azure_eventhubs` أو `azure.eventhubs` أو `microsoft.eventhub`) والوجهة `orders` — في `messaging.destination.name`، أو في مفتاح أقدم مثل `messaging.destination`، من حزمة SDK متصلة بـ `orders-ns.servicebus.windows.net`.",
+  "- **Broker metrics**: `metadata_entityname` = `orders`, on the namespace whose `name` is `orders-ns`.":
+    "- **مقاييس الوسيط**: `metadata_entityname` = `orders`، على مساحة الاسم التي `name` الخاص بها هو `orders-ns`.",
+  "This is the Azure Service Bus queue `orders` in the `orders-ns` namespace. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار Azure Service Bus باسم `orders` في مساحة الاسم `orders-ns`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن مقاييس الوسيط نفسه. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "This is the BullMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار BullMQ باسم `orders`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن المقاييس التي تحمل `messaging.system` و`messaging.destination.name` الخاصين بها. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "This is the Google Cloud Pub/Sub queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار Google Cloud Pub/Sub باسم `orders`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن مقاييس الوسيط نفسه. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "This is the JMS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار JMS باسم `orders`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن المقاييس التي تحمل `messaging.system` و`messaging.destination.name` الخاصين بها. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "Its metrics join this queue, which from then on shows as an Apache ActiveMQ queue.":
+    "تنضم مقاييسه إلى قائمة الانتظار هذه، التي تظهر منذ ذلك الحين كقائمة انتظار Apache ActiveMQ.",
+  "This is the NATS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار NATS باسم `orders`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن المقاييس التي تحمل `messaging.system` و`messaging.destination.name` الخاصين بها. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "This is the RabbitMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار RabbitMQ باسم `orders`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن مقاييس الوسيط نفسه. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "Set `RABBITMQ_USERNAME` and `RABBITMQ_PASSWORD` in the collector's environment. The management endpoint's host is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`); change it if the collector reaches the broker another way. The receiver reports each queue under its RabbitMQ name, while most instrumentations' spans name the exchange a message went through: the two meet for messages sent through the default exchange, whose routing key is the queue's name.":
+    "اضبط `RABBITMQ_USERNAME` و`RABBITMQ_PASSWORD` في بيئة المجمّع. مضيف نقطة نهاية الإدارة مملوء مسبقًا من عنوان الوسيط الذي تبلّغ عنه قياسات قائمة الانتظار هذه عن بُعد (`broker-1.example.com:9092`)؛ غيّره إن كان المجمّع يصل إلى الوسيط بطريق آخر. يبلّغ المستقبِل عن كل قائمة انتظار باسمها في RabbitMQ، بينما تسمّي امتدادات معظم أدوات التجهيز الـ exchange الذي مرّت به الرسالة: والاثنان يلتقيان في الرسائل المرسلة عبر الـ exchange الافتراضي، لأن مفتاح التوجيه فيه هو اسم قائمة الانتظار.",
+  "This is the `acme-bus` queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "هذه قائمة انتظار `acme-bus` باسم `orders`. تمتلئ من امتدادات المراسلة في التطبيقات التي تنشر إليها وتستهلك منها، ومن المقاييس التي تحمل `messaging.system` و`messaging.destination.name` الخاصين بها. كل ما يلي مملوء مسبقًا لقائمة الانتظار هذه.",
+  "OneUptime does not know this messaging system, so it has no ready-made way to read the broker's metrics; send them with `messaging.system` and `messaging.destination.name` on each datapoint and they attach to the queue.":
+    "لا يعرف OneUptime نظام المراسلة هذا، لذا ليست لديه طريقة جاهزة لقراءة مقاييس الوسيط؛ أرسلها مع `messaging.system` و`messaging.destination.name` على كل نقطة بيانات فتُلحق بقائمة الانتظار.",
+  "OneUptime charts no broker metrics for `acme-bus` under **Broker health**. Everything a collector sends is in the **Metrics** explorer, and a metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
+    "لا يرسم OneUptime أي مقاييس وسيط لـ `acme-bus` ضمن **سلامة الوسيط**. كل ما يرسله المجمّع موجود في مستكشف **المقاييس**، والمقياس الذي يحمل `messaging.system` و`messaging.destination.name` على كل نقطة بيانات يظهر في علامة التبويب **المقاييس** لقائمة الانتظار.",
+  "- Only the broker's own metrics need a system OneUptime knows (see [Supported messaging systems](/docs/telemetry/queues#supported-messaging-systems)). Its metrics are in the **Metrics** explorer.":
+    "- لا تحتاج إلى نظام يعرفه OneUptime إلا مقاييسُ الوسيط نفسه (راجع [أنظمة المراسلة المدعومة](/docs/telemetry/queues#supported-messaging-systems)). مقاييسه موجودة في مستكشف **المقاييس**.",
 };
 
 export default TRANSLATION;

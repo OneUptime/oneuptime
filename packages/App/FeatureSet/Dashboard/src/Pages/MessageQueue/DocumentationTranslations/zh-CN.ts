@@ -374,6 +374,83 @@ const TRANSLATION: SetupGuideTranslation = {
     "- 指标对队列的命名与 span 不同。RabbitMQ 的 span 通常标明 exchange，而 Broker 的指标描述的是队列。两者在通过默认 exchange 发送的消息上会对应起来，因为其 routing key 就是队列名。",
   "- RabbitMQ reports only the queues of virtual hosts its user has access to, and logs no error for the rest. RabbitMQ's counters appear with the first activity.":
     "- RabbitMQ 只报告其用户有权访问的虚拟主机中的队列，对其余部分不记录任何错误。RabbitMQ 的计数器会在首次有活动时出现。",
+  "This is the Amazon SNS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "这是 Amazon SNS 队列 `orders`。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及 Broker 自身的指标。下面的内容都已为此队列预先填好。",
+  "- `delay` waits for CloudWatch to publish a period, so with this configuration this queue's broker metrics arrive 11 to 17 minutes late: a monitor over them needs a longer window (see **Late metrics** under [Alerting](/docs/telemetry/queues#alerting)).":
+    "- `delay` 会等待 CloudWatch 发布一个周期，因此在此配置下，此队列的 Broker 指标会延迟 11 到 17 分钟到达：基于它们的监视器需要更长的时间窗口（参见 [警报](/docs/telemetry/queues#alerting) 下的 **延迟到达的指标**）。",
+  "Send a few messages through `orders`. Every span that names this queue is tagged with it as OneUptime ingests it: the spans fill in the **Overview** — messages published and consumed, errors and processing time, and the services under **Producers** and **Consumers** — and the **Traces** tab.":
+    "通过 `orders` 发送几条消息。OneUptime 在摄取时会给每个标明此队列的 span 打上此队列的标记：这些 span 会填充 **概览**（发布和消费的消息、错误和处理时间，以及 **生产者** 和 **消费者** 下的服务）和 **追踪** 选项卡。",
+  "**Broker health** on the Overview fills in from the broker's metrics as they arrive: with the configuration in step 3, CloudWatch's arrive 11 to 17 minutes late.":
+    "概览中的 **Broker 健康状况** 会随着 Broker 指标的到达而填充：在第 3 步的配置下，CloudWatch 的指标会延迟 11 到 17 分钟到达。",
+  "The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry, and over the last 60 minutes of cloud monitoring metrics, which arrive late.":
+    "一旦发现过程找到标明此队列的 span 或 Broker 指标，标题就会显示 **最近出现过**。发现过程每 10 分钟运行一次，读取最近 15 分钟的遥测，并读取最近 60 分钟的云监控指标，因为它们会延迟到达。",
+  "Names are compared without regard to case.": "名称比较时不区分大小写。",
+  "- **Spans**: `messaging.system` = `aws.sns` (or `aws_sns`, `amazonsns` or `sns`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **Span**：`messaging.system` = `aws.sns`（或 `aws_sns`、`amazonsns`、`sns`），以及目标 `orders`（位于 `messaging.destination.name`，或 `messaging.destination` 这样的旧键中）。",
+  "- **Broker metrics**: `Dimensions.TopicName` or `TopicName` = `orders`.":
+    "- **Broker 指标**：`Dimensions.TopicName` 或 `TopicName` = `orders`。",
+  "This is the Amazon SQS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "这是 Amazon SQS 队列 `orders`。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及 Broker 自身的指标。下面的内容都已为此队列预先填好。",
+  "This is the Apache ActiveMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "这是 Apache ActiveMQ 队列 `orders`。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及 Broker 自身的指标。下面的内容都已为此队列预先填好。",
+  "**Broker health** on the Overview fills in from the broker's metrics as they arrive.":
+    "概览中的 **Broker 健康状况** 会随着 Broker 指标的到达而填充。",
+  "The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry.":
+    "一旦发现过程找到标明此队列的 span 或 Broker 指标，标题就会显示 **最近出现过**。发现过程每 10 分钟运行一次，读取最近 15 分钟的遥测。",
+  "- JMS clients' spans say `jms` whichever broker is behind them, so they and the Apache ActiveMQ broker's metrics land on this one queue.":
+    "- 无论背后是哪种 Broker，JMS 客户端的 span 都标明 `jms`，因此它们和 Apache ActiveMQ Broker 的指标会落到这一个队列上。",
+  "The JMX host is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`).":
+    "JMX 主机已根据此队列的遥测报告的 Broker 地址（`broker-1.example.com:9092`）预先填好。",
+  "This is the Apache Kafka queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "这是 Apache Kafka 队列 `orders`。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及 Broker 自身的指标。下面的内容都已为此队列预先填好。",
+  "- **Spans**: `messaging.system` = `kafka` and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **Span**：`messaging.system` = `kafka`，以及目标 `orders`（位于 `messaging.destination.name`，或 `messaging.destination` 这样的旧键中）。",
+  "- **Broker metrics**: `topic` = `orders`.":
+    "- **Broker 指标**：`topic` = `orders`。",
+  "For a cluster with SASL or TLS, uncomment `auth` and `tls`. The bootstrap broker is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`); change it if the collector reaches the broker another way. The receiver names each topic in `topic`, which is how the metrics find the topic's queue. It reports a consumer group's lag and committed offsets only on topics the group has committed an offset to, and skips topics whose names start with `_`.":
+    "对于使用 SASL 或 TLS 的集群，请取消 `auth` 和 `tls` 的注释。引导 Broker 已根据此队列的遥测报告的 Broker 地址（`broker-1.example.com:9092`）预先填好；如果 Collector 通过其他方式访问 Broker，请修改它。接收器在 `topic` 中标明每个主题，指标就是靠它找到主题的队列。它只在消费者组已提交过 offset 的主题上报告该组的延迟和已提交的 offset，并跳过名称以 `_` 开头的主题。",
+  "This is the Apache Pulsar queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "这是 Apache Pulsar 队列 `orders`。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及 Broker 自身的指标。下面的内容都已为此队列预先填好。",
+  "- **Spans**: `messaging.system` = `pulsar` (or `apache_pulsar`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **Span**：`messaging.system` = `pulsar`（或 `apache_pulsar`），以及目标 `orders`（位于 `messaging.destination.name`，或 `messaging.destination` 这样的旧键中）。",
+  "This is the Apache RocketMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "这是 Apache RocketMQ 队列 `orders`。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及 Broker 自身的指标。下面的内容都已为此队列预先填好。",
+  "This is the Azure Event Grid queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "这是 Azure Event Grid 队列 `orders`。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及带有它的 `messaging.system` 和 `messaging.destination.name` 的指标。下面的内容都已为此队列预先填好。",
+  "Metrics that carry its `messaging.system` and `messaging.destination.name` on each datapoint show on its **Metrics** tab.":
+    "每个数据点都带有它的 `messaging.system` 和 `messaging.destination.name` 的指标，会显示在它的 **指标** 选项卡上。",
+  "The header reads **Seen recently** once discovery finds spans or messaging client metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry.":
+    "一旦发现过程找到标明此队列的 span 或消息客户端指标，标题就会显示 **最近出现过**。发现过程每 10 分钟运行一次，读取最近 15 分钟的遥测。",
+  "This is the Azure Event Hubs queue `orders` in the `orders-ns` namespace. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "这是 Azure Event Hubs 队列 `orders`（命名空间 `orders-ns`）。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及 Broker 自身的指标。下面的内容都已为此队列预先填好。",
+  "- **Spans**: `messaging.system` = `eventhubs` (or `azure_eventhubs`, `azure.eventhubs` or `microsoft.eventhub`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`, from an SDK connected to `orders-ns.servicebus.windows.net`.":
+    "- **Span**：`messaging.system` = `eventhubs`（或 `azure_eventhubs`、`azure.eventhubs`、`microsoft.eventhub`），以及目标 `orders`（位于 `messaging.destination.name`，或 `messaging.destination` 这样的旧键中），来自连接到 `orders-ns.servicebus.windows.net` 的 SDK。",
+  "- **Broker metrics**: `metadata_entityname` = `orders`, on the namespace whose `name` is `orders-ns`.":
+    "- **Broker 指标**：`metadata_entityname` = `orders`，位于 `name` 为 `orders-ns` 的命名空间上。",
+  "This is the Azure Service Bus queue `orders` in the `orders-ns` namespace. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "这是 Azure Service Bus 队列 `orders`（命名空间 `orders-ns`）。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及 Broker 自身的指标。下面的内容都已为此队列预先填好。",
+  "This is the BullMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "这是 BullMQ 队列 `orders`。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及带有它的 `messaging.system` 和 `messaging.destination.name` 的指标。下面的内容都已为此队列预先填好。",
+  "This is the Google Cloud Pub/Sub queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "这是 Google Cloud Pub/Sub 队列 `orders`。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及 Broker 自身的指标。下面的内容都已为此队列预先填好。",
+  "This is the JMS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "这是 JMS 队列 `orders`。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及带有它的 `messaging.system` 和 `messaging.destination.name` 的指标。下面的内容都已为此队列预先填好。",
+  "Its metrics join this queue, which from then on shows as an Apache ActiveMQ queue.":
+    "它的指标会并入此队列，此后此队列显示为 Apache ActiveMQ 队列。",
+  "This is the NATS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "这是 NATS 队列 `orders`。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及带有它的 `messaging.system` 和 `messaging.destination.name` 的指标。下面的内容都已为此队列预先填好。",
+  "This is the RabbitMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "这是 RabbitMQ 队列 `orders`。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及 Broker 自身的指标。下面的内容都已为此队列预先填好。",
+  "Set `RABBITMQ_USERNAME` and `RABBITMQ_PASSWORD` in the collector's environment. The management endpoint's host is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`); change it if the collector reaches the broker another way. The receiver reports each queue under its RabbitMQ name, while most instrumentations' spans name the exchange a message went through: the two meet for messages sent through the default exchange, whose routing key is the queue's name.":
+    "在 Collector 的环境中设置 `RABBITMQ_USERNAME` 和 `RABBITMQ_PASSWORD`。管理端点的主机已根据此队列的遥测报告的 Broker 地址（`broker-1.example.com:9092`）预先填好；如果 Collector 通过其他方式访问 Broker，请修改它。接收器以 RabbitMQ 中的名称报告每个队列，而大多数检测的 span 标明的是消息经过的 exchange：两者在通过默认 exchange 发送的消息上会对应起来，因为其 routing key 就是队列名。",
+  "This is the `acme-bus` queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "这是 `acme-bus` 队列 `orders`。它的数据来自向它发布消息和从中消费消息的应用的消息 span，以及带有它的 `messaging.system` 和 `messaging.destination.name` 的指标。下面的内容都已为此队列预先填好。",
+  "OneUptime does not know this messaging system, so it has no ready-made way to read the broker's metrics; send them with `messaging.system` and `messaging.destination.name` on each datapoint and they attach to the queue.":
+    "OneUptime 不认识这个消息系统，因此没有现成的方式读取 Broker 的指标；在每个数据点上带上 `messaging.system` 和 `messaging.destination.name` 发送它们，它们就会归属到该队列。",
+  "OneUptime charts no broker metrics for `acme-bus` under **Broker health**. Everything a collector sends is in the **Metrics** explorer, and a metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
+    "OneUptime 不会在 **Broker 健康状况** 下为 `acme-bus` 绘制 Broker 指标。Collector 发送的所有数据都在 **指标** 浏览器中，每个数据点都带有 `messaging.system` 和 `messaging.destination.name` 的指标会显示在队列的 **指标** 选项卡上。",
+  "- Only the broker's own metrics need a system OneUptime knows (see [Supported messaging systems](/docs/telemetry/queues#supported-messaging-systems)). Its metrics are in the **Metrics** explorer.":
+    "- 只有 Broker 自身的指标才需要 OneUptime 认识的系统（参见 [支持的消息系统](/docs/telemetry/queues#supported-messaging-systems)）。它的指标在 **指标** 浏览器中。",
 };
 
 export default TRANSLATION;

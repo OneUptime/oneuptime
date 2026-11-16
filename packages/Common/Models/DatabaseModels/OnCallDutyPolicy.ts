@@ -533,6 +533,13 @@ export default class OnCallDutyPolicy extends BaseModel {
       "Archived on-call policies are hidden from the On-Call Policies list and page no one: incidents and alerts that use them skip them. Unarchiving puts them back in service.",
     defaultValue: false,
     example: false,
+    /*
+     * Read through a relation too: the website-down guided setup reads the
+     * incident and alert on-call rules with their policies, and counts a
+     * rule only when it runs a policy in service (#8433). Its read list is
+     * the name's, which a relation reads already.
+     */
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.Boolean,

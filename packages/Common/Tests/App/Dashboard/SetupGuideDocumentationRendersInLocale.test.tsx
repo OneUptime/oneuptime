@@ -1831,46 +1831,51 @@ describe("Queues > Help > Documentation", () => {
   );
 
   /*
-   * A queue's own Documentation tab has pieces of its own (its identity,
-   * its broker's address, a system the catalog does not know) that have no
-   * words yet: it reads English whole, not half in each language.
+   * A queue's own Documentation tab (#8798): the queue's identity, the
+   * broker address its telemetry reported, its Azure namespace, and a
+   * system the catalog does not know, whose name the words hold as code.
    */
-  test("in de, a queue's own tab reads in English whole", async () => {
-    const queue: MessageQueueDocumentationTarget = {
-      system: "kafka",
-      destination: "orders",
-      brokerScope: "",
-      brokerAddress: "broker-1.example.com:9092",
-    };
+  test.each([
+    ["de", { system: "kafka", brokerAddress: "broker-1.example.com:9092" }],
+    ["ar", { system: "servicebus", brokerScope: "shop-prod" }],
+    ["de", { system: "rabbitmq", brokerAddress: "rabbit.internal:15672" }],
+    ["ar", { system: "ibmmq" }],
+  ] as Array<[string, Partial<MessageQueueDocumentationTarget>]>)(
+    "in %s, a queue's own tab reads in the reader's words: %j",
+    async (language: string, row: Partial<MessageQueueDocumentationTarget>) => {
+      const queue: MessageQueueDocumentationTarget = {
+        system: row.system,
+        destination: "orders.created",
+        brokerScope: row.brokerScope || "",
+        brokerAddress: row.brokerAddress,
+      };
 
-    await act(async () => {
-      await i18next.changeLanguage("de");
-    });
-    await act(async () => {
-      render(
-        <MemoryRouter>
-          <MessageQueueDocumentationCard
-            title="Set up this queue"
-            description=""
-            queue={queue}
-          />
-        </MemoryRouter>,
-      );
-    });
-    await settle();
-    await openEveryTopic();
-    await openEveryVariant();
-
-    const drawn: string = drawnTexts().join("\n");
-    for (const piece of getSetupGuideWordPieces(
-      messageQueueGuide("kafka", queue),
-    )) {
-      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
-        piece,
-        drawn: true,
+      await act(async () => {
+        await i18next.changeLanguage(language);
       });
-    }
-  });
+      await act(async () => {
+        render(
+          <MemoryRouter>
+            <MessageQueueDocumentationCard
+              title="Set up this queue"
+              description=""
+              queue={queue}
+            />
+          </MemoryRouter>,
+        );
+      });
+      await settle();
+      await openEveryTopic();
+      await openEveryVariant();
+
+      expectGuideInReadersWords(
+        "MessageQueue",
+        messageQueueGuide(queue.system as string, queue),
+        language,
+      );
+      expect(drawnTexts().join("\n")).toContain("`orders.created`");
+    },
+  );
 });
 
 describe("Podman > Help > Documentation", () => {

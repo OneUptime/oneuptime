@@ -390,6 +390,11 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "Browser",
         // The guide's own topic, named from another topic.
         "If the broker is Apache ActiveMQ",
+        // A queue's own tab: its Overview's sections and its header's state.
+        "Overview",
+        "Producers",
+        "Consumers",
+        "Seen recently",
       ],
     }),
   ];

@@ -2,7 +2,7 @@ import { BrowserContext, expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
-import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
+import { NO_BREAK_SPACE, withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
@@ -445,9 +445,13 @@ test.describe("the Incidents list of the screenshot", () => {
       .getByTestId("live-duration");
 
     await expect(duration).toHaveText("10 days, 23 hours");
+    /*
+     * An attribute is matched as written: each number held to its unit by a
+     * no-break space (#8669).
+     */
     await expect(duration).toHaveAttribute(
       "title",
-      "10 days, 23 hours, 31 minutes",
+      `${withUnit(10, "days")}, ${withUnit(23, "hours")}, ${withUnit(31, "minutes")}`,
     );
   });
 

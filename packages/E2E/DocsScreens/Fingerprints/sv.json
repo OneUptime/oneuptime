@@ -473,7 +473,7 @@
       "/",
       "/",
       "Skapa ingestion-nyckel",
-      "Dessa nycklar används för att mata in telemetridata som Loggar, Spår och Mått för ditt projekt.",
+      "Dessa nycklar används för att mata in telemetridata som Loggar, Spår och Mätvärden för ditt projekt.",
       "Markera alla objekt",
       "Namn",
       "Typ",
@@ -519,7 +519,7 @@
     "outline": [
       "heading: Intagningsnycklar",
       "button: Intagningsnycklar",
-      "button: Open search",
+      "button: Öppna sökning",
       "field text: Sök i intagningsnycklar efter namn, beskrivning…",
       "button: Skapa ingestion-nyckel",
       "button: Fler alternativ",

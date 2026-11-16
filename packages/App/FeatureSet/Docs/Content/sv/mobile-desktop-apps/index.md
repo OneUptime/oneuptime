@@ -54,7 +54,7 @@ Skrivbordsappen är själva instrumentpanelen, i ett eget fönster. Den visar av
 Hämta den från [App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) på en iPhone eller iPad, eller från [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall) på Android. För en Android-telefon utan Google Play installerar du [APK-filen](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) i stället. Samma länkar finns i instrumentpanelen under **Projektinställningar → Aviseringar → Mobilappar**.
 
 ### Anslut den till ditt OneUptime
-Öppna appen, behåll `https://oneuptime.com` för OneUptime Cloud eller ange adressen till ditt eget OneUptime, och logga in med ditt lösenord, en passkey eller enkel inloggning.
+Öppna appen, behåll `https://oneuptime.com` för OneUptime Cloud eller ange adressen till ditt eget OneUptime, och logga in med ditt lösenord, en passnyckel eller enkel inloggning.
 
 ### Tillåt aviseringar
 Tillåt dem när telefonen frågar. Appen registrerar telefonen i vart och ett av dina projekt, och dina jourlarm når den från och med nu.

@@ -1256,7 +1256,7 @@ describe("a queue's own guide", () => {
   test("a long-tail system gets the generic guide", () => {
     const content: SetupGuideContent = queueContent(LONG_TAIL_QUEUE);
     const markdown: string = getSetupGuideMarkdown(content);
-    expect(content.intro).toContain("This is the ibmmq queue `DEV.QUEUE.1`.");
+    expect(content.intro).toContain("This is the `ibmmq` queue `DEV.QUEUE.1`.");
     expect(markdown).toContain("`messaging.system` = `ibmmq`");
     // The catalog's reason is in the intro: there is no broker step to hold it.
     expect(content.intro).toContain(
@@ -1315,7 +1315,8 @@ describe("a queue's own guide", () => {
   test.each([
     ["kafka", "Apache Kafka"],
     ["azure_servicebus", "Azure Service Bus"],
-    ["IBMMQ", "ibmmq"],
+    // A system the catalog does not know reads as code, as its spans write it.
+    ["IBMMQ", "`ibmmq`"],
   ])(
     "a queue of %p is named %p, as the list names it",
     (system: string, label: string) => {
