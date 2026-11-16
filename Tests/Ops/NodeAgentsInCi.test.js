@@ -242,6 +242,119 @@ describe("every agent with npm tests has a workflow that runs them", () => {
   );
 });
 
+/*
+ * A workflow that runs an agent's tests only for the pull requests touching
+ * some paths must name every part of the repository those tests read, or a
+ * change there would reach main untested. A test that reads outside its
+ * agent names the top-level directory it reads in a string -
+ * path.join(__dirname, "..", "..", "..", "HelmChart", ...) or
+ * "packages/Common/..." - so each top-level directory a test file names (and
+ * the agent has no directory of that name of its own) must begin one of the
+ * filter's paths.
+ */
+const TOP_LEVEL_DIRECTORIES = fs
+  .readdirSync(REPO_ROOT, { withFileTypes: true })
+  .filter((entry) => {
+    return (
+      entry.isDirectory() &&
+      !entry.name.startsWith(".") &&
+      entry.name !== "node_modules"
+    );
+  })
+  .map((entry) => {
+    return entry.name;
+  });
+
+// The top-level directories a source names in a string, quoted whole or as
+// the start of a path.
+function topLevelDirectoriesNamedIn(source) {
+  const named = new Set();
+  const literal = /["'`]([A-Za-z][\w.-]*)(?:\/[^"'`\n]*)?["'`]/g;
+  let match;
+
+  while ((match = literal.exec(source))) {
+    if (TOP_LEVEL_DIRECTORIES.includes(match[1])) {
+      named.add(match[1]);
+    }
+  }
+  return [...named].sort();
+}
+
+// Every .js and .ts file under a directory, as paths from the repository root.
+function sourcesUnder(relativeDirectory) {
+  if (!exists(relativeDirectory)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(path.join(REPO_ROOT, relativeDirectory), {
+      withFileTypes: true,
+    })
+    .flatMap((entry) => {
+      const child = `${relativeDirectory}/${entry.name}`;
+
+      if (entry.isDirectory()) {
+        return entry.name === "node_modules" ? [] : sourcesUnder(child);
+      }
+      return /\.(js|ts)$/.test(entry.name) ? [child] : [];
+    });
+}
+
+describe("a workflow that runs an agent's tests only for some pull requests", () => {
+  test("reads the directories a test names (the check below is not vacuous)", () => {
+    expect(TOP_LEVEL_DIRECTORIES).toEqual(
+      expect.arrayContaining(["HelmChart", "agents", "packages"]),
+    );
+    expect(
+      topLevelDirectoriesNamedIn(
+        'path.join(__dirname, "..", "..", "..", "HelmChart", "Public");\n' +
+          "read('packages/Common/Types/Thing.ts'); // HelmChart in a comment\n" +
+          'const level = "INFO";',
+      ),
+    ).toEqual(["HelmChart", "packages"]);
+  });
+
+  test.each(agentsWithTests)(
+    "%s: names every part of the repository its tests read",
+    (directory) => {
+      const filters = allJobs
+        .filter(({ job }) => {
+          return jobRunsTests(job, directory);
+        })
+        .map(({ workflow }) => {
+          return ((workflow.on || {}).pull_request || {}).paths;
+        })
+        .filter(Boolean);
+      const ownDirectories = fs
+        .readdirSync(path.join(REPO_ROOT, directory))
+        .filter((name) => {
+          return fs
+            .statSync(path.join(REPO_ROOT, directory, name))
+            .isDirectory();
+        });
+      const namedOutside = [
+        ...new Set(
+          sourcesUnder(`${directory}/Tests`).flatMap((file) => {
+            return topLevelDirectoriesNamedIn(read(file));
+          }),
+        ),
+      ].filter((name) => {
+        return !ownDirectories.includes(name);
+      });
+
+      for (const paths of filters) {
+        const uncovered = namedOutside.filter((name) => {
+          return !paths.some((filter) => {
+            return filter.startsWith(`${name}/`);
+          });
+        });
+
+        expect({ directory, uncovered }).toEqual({ directory, uncovered: [] });
+      }
+    },
+  );
+});
+
 describe("every image that compiles its agent is built on every pull request", () => {
   const buildJobs = readYaml(BUILD_WORKFLOW).jobs;
   const releaseDockerfiles = Object.values(readYaml(RELEASE_WORKFLOW).jobs)

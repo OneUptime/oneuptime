@@ -6,7 +6,15 @@ concurrency:
   cancel-in-progress: true
 
 on:
+  # Only the pull requests that change the agent, a Go module of its own that
+  # reads nothing outside its directory, as the MSI test
+  # (test.infrastructure-agent-msi.yaml) already runs. Two jobs, one on a
+  # Windows runner, that every other pull request used to start for nothing.
+  # Main runs it nightly, whatever changed.
   pull_request:
+    paths:
+      - "agents/InfrastructureAgent/**"
+      - ".github/workflows/test.infrastructure-agent.yaml"
   # Not on every push to main: each pull request was tested on its merge
   # with main, and main runs this nightly and on demand instead
   # (Tests/Ops/PullRequestChecksNotOnPush.test.js says why).
