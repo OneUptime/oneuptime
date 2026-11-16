@@ -107,6 +107,7 @@ describe("the Runners of repositories that pick none", () => {
     expect(Object.keys(call.select).sort()).toEqual([
       "_id",
       "agentVersion",
+      "canRunCodeFixes",
       "isGlobalRunner",
       "lastAlive",
       "takesCodeFixes",
@@ -133,6 +134,27 @@ describe("the Runners of repositories that pick none", () => {
 
     expect(await RunnerService.getGlobalRunnerCodeFixAvailability()).toBe(
       GlobalRunnerCodeFixAvailability.OnlineButNoneTakesCodeFixes,
+    );
+  });
+
+  test("a global Runner a master admin turned code fixes off for is not counted, whatever it says; one beside it with them on is", async () => {
+    const off: Runner = onlineGlobalRunner({ takesCodeFixes: true });
+    off.canRunCodeFixes = false;
+
+    const find: jest.SpyInstance = jest
+      .spyOn(RunnerService, "findBy")
+      .mockResolvedValue([off] as never);
+
+    expect(await RunnerService.getGlobalRunnerCodeFixAvailability()).toBe(
+      GlobalRunnerCodeFixAvailability.OnlineButNoneTakesCodeFixes,
+    );
+
+    const on: Runner = onlineGlobalRunner({ takesCodeFixes: true });
+    on.canRunCodeFixes = true;
+    find.mockResolvedValue([off, on] as never);
+
+    expect(await RunnerService.getGlobalRunnerCodeFixAvailability()).toBe(
+      GlobalRunnerCodeFixAvailability.Online,
     );
   });
 
