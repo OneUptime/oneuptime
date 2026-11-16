@@ -3,7 +3,6 @@ import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatab
 import MonitorProbeService from "../../../../Server/Services/MonitorProbeService";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import logger from "../../../../Server/Utils/Logger";
-import NetworkDeviceWalkUtil from "../../../../Server/Utils/Monitor/NetworkDeviceWalkUtil";
 import MonitorProbeLastResults from "../../../../Server/Utils/Monitor/MonitorProbeLastResults";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
@@ -40,7 +39,9 @@ import { DataSource } from "typeorm";
  *   - a probe's result stored over a monitor probe is HOT; the claim, which
  *     moves the indexed nextPingAt, is not and cannot be;
  *   - a reachable poll's verdict whose state did not change is HOT, and so
- *     is its rate baseline; the claim (nextPollAt) is not, nor is a verdict
+ *     is the same statement carrying its rate baseline and its SNMP table
+ *     and transceiver snapshots - one UPDATE for all of it (issue #7393);
+ *     the claim (nextPollAt) is not, nor is a verdict
  *     that changes a state an index names (reachability, ports down, a walk
  *     that starts failing - issue #8091);
  *   - with "lastSeenAt" indexed again, as it was before, the same verdict
@@ -507,31 +508,65 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
       expect((await lastSeenAtOf(id)).toISOString()).toBe(NOW.toISOString());
     });
 
-    test("its rate baseline is a HOT update", async () => {
+    /*
+     * Issue #7393: the rate baseline and the SNMP table and transceiver
+     * snapshots ride in the verdict's statement. They were writes of the row
+     * of their own - the baseline on every walk, the snapshots through the
+     * hooked write on every poll of a device with tables or optics - and are
+     * now one UPDATE with the verdict, and HOT: none of them is indexed.
+     */
+    test("its rate baseline and snapshots ride in the verdict's one UPDATE, a HOT one", async () => {
       const id: ObjectID = await insertDevice();
+      let written: boolean = false;
 
       expect(
-        await writesOf("NetworkDevice", () => {
-          return NetworkDeviceWalkUtil.writeWalkBaseline({
+        await writesOf("NetworkDevice", async () => {
+          written = await NetworkDeviceService.writePollVerdict({
+            projectId: PROJECT_ID,
             deviceId: id,
-            lastWalkLog: {
-              snmpResponse: {
-                interfaces: [
-                  {
-                    interfaceIndex: 1,
-                    name: "GigabitEthernet1/0/1",
-                    isOperationallyUp: true,
-                    isAdministrativelyUp: true,
-                    inOctets: 1048576,
-                    outOctets: 2097152,
-                  },
-                ],
+            receivedAt: NOW,
+            processedAt: NOW,
+            verdict: {
+              isReachable: true,
+              isSnmpReachable: true,
+              interfaceCounts: { total: 24, up: 24, down: 0 },
+            },
+            details: {
+              lastWalkLog: {
+                snmpResponse: {
+                  interfaces: [
+                    {
+                      interfaceIndex: 1,
+                      name: "GigabitEthernet1/0/1",
+                      isOperationallyUp: true,
+                      isAdministrativelyUp: true,
+                      inOctets: 1048576,
+                      outOctets: 2097152,
+                    },
+                  ],
+                },
+                monitoredAt: NOW.toISOString(),
               },
-              monitoredAt: NOW.toISOString(),
+              snmpTableSnapshot: [],
+              transceiverSnapshot: [],
             },
           });
         }),
       ).toEqual({ updates: 1, hot: 1 });
+      expect(written).toBe(true);
+
+      const rows: Array<{
+        lastWalkLog: { monitoredAt?: string } | null;
+        snmpTableSnapshot: Array<unknown> | null;
+        transceiverSnapshot: Array<unknown> | null;
+      }> = await database.query(
+        `SELECT "lastWalkLog", "snmpTableSnapshot", "transceiverSnapshot"
+           FROM "${schema}"."NetworkDevice" WHERE "_id" = $1`,
+        [id.toString()],
+      );
+      expect(rows[0]!.lastWalkLog?.monitoredAt).toBe(NOW.toISOString());
+      expect(rows[0]!.snmpTableSnapshot).toEqual([]);
+      expect(rows[0]!.transceiverSnapshot).toEqual([]);
     });
 
     test("the claim is not, and cannot be: it moves nextPollAt, which the claim's own index orders by", async () => {

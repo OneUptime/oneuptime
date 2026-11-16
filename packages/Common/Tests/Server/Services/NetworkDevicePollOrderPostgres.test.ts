@@ -2,6 +2,7 @@ import Entities from "../../../Models/DatabaseModels/Index";
 import NetworkInterface from "../../../Models/DatabaseModels/NetworkInterface";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import NetworkDeviceService, {
+  NetworkDevicePollDetails,
   NetworkDevicePollVerdict,
 } from "../../../Server/Services/NetworkDeviceService";
 import NetworkEndpointService, {
@@ -86,7 +87,49 @@ const LOCK_TIMEOUT_MS: number = 3000;
 interface Poll {
   receivedAt: Date;
   processedAt: Date;
-  verdict: NetworkDevicePollVerdict;
+  // Null for a monitor-backed device: only its details are written.
+  verdict: NetworkDevicePollVerdict | null;
+  // Its rate baseline and snapshots (issue #7393).
+  details?: NetworkDevicePollDetails | undefined;
+}
+
+interface DetailsRow {
+  lastWalkLog: { monitoredAt?: string } | null;
+  snmpTableSnapshot: Array<{ tableId?: string }> | null;
+  transceiverSnapshot: Array<{ serialNumber?: string }> | null;
+}
+
+/*
+ * What a poll received at `receivedAt` read: its rate baseline, stamped with
+ * its receipt time, and snapshots that say which poll they came from.
+ */
+function detailsOf(receivedAt: Date): NetworkDevicePollDetails {
+  return {
+    lastWalkLog: {
+      snmpResponse: {
+        interfaces: [
+          {
+            interfaceIndex: 1,
+            inOctets: receivedAt.getTime() % 1000000,
+            outOctets: 2000,
+          },
+        ],
+      },
+      monitoredAt: receivedAt.toISOString(),
+    },
+    snmpTableSnapshot: [
+      {
+        tableId: `radios-${receivedAt.toISOString()}`,
+        rows: [],
+      } as never,
+    ],
+    transceiverSnapshot: [
+      {
+        interfaceIndex: 1,
+        serialNumber: `SFP-${receivedAt.toISOString()}`,
+      } as never,
+    ],
+  };
 }
 
 interface DeviceRow {
@@ -211,7 +254,35 @@ describePostgres(
         receivedAt: poll.receivedAt,
         processedAt: poll.processedAt,
         verdict: poll.verdict,
+        details: poll.details,
       });
+    };
+
+    const readDetails: (id: ObjectID) => Promise<DetailsRow> = async (
+      id: ObjectID,
+    ): Promise<DetailsRow> => {
+      const rows: Array<DetailsRow> = await database.query(
+        `SELECT "lastWalkLog", "snmpTableSnapshot", "transceiverSnapshot"
+         FROM "${schema}"."NetworkDevice" WHERE "_id" = $1`,
+        [id.toString()],
+      );
+
+      expect(rows).toHaveLength(1);
+      return rows[0]!;
+    };
+
+    // The details a poll received at `receivedAt` left on the device.
+    const expectDetailsOf: (row: DetailsRow, receivedAt: Date) => void = (
+      row: DetailsRow,
+      receivedAt: Date,
+    ): void => {
+      expect(row.lastWalkLog?.monitoredAt).toBe(receivedAt.toISOString());
+      expect(row.snmpTableSnapshot?.[0]?.tableId).toBe(
+        `radios-${receivedAt.toISOString()}`,
+      );
+      expect(row.transceiverSnapshot?.[0]?.serialNumber).toBe(
+        `SFP-${receivedAt.toISOString()}`,
+      );
     };
 
     // The verdict columns a poll leaves on a device that held no newer one.
@@ -219,8 +290,8 @@ describePostgres(
       row: DeviceRow,
       poll: Poll,
     ): void => {
-      expect(row.isReachable).toBe(poll.verdict.isReachable);
-      expect(row.isSnmpReachable).toBe(poll.verdict.isSnmpReachable);
+      expect(row.isReachable).toBe(poll.verdict?.isReachable);
+      expect(row.isSnmpReachable).toBe(poll.verdict?.isSnmpReachable);
       expect(iso(row.lastPollReceivedAt)).toBe(iso(poll.receivedAt));
       expect(iso(row.lastPolledAt)).toBe(iso(poll.processedAt));
     };
@@ -793,6 +864,193 @@ describePostgres(
         };
         expect(await write(deviceId, next)).toBe(true);
         expectVerdictOf(await readDevice(deviceId), next);
+      });
+    });
+
+    /*
+     * Issue #7393: a poll's rate baseline and its SNMP table and transceiver
+     * snapshots ride in the verdict's statement, under its guard. They were
+     * writes of their own: an older poll's snapshots, written through the
+     * hooked write after a newer poll's, stood until the next poll, and its
+     * baseline was judged only by its own times.
+     */
+    describe("the poll's details: its rate baseline and snapshots", () => {
+      test("two polls processed in reverse order leave the newer one's", async () => {
+        const deviceId: ObjectID = await insertDevice();
+
+        expect(
+          await write(deviceId, {
+            receivedAt: NEWER_RECEIVED_AT,
+            processedAt: PROCESSED_AT,
+            verdict: UP_AND_WALKED,
+            details: detailsOf(NEWER_RECEIVED_AT),
+          }),
+        ).toBe(true);
+        expect(
+          await write(deviceId, {
+            receivedAt: OLDER_RECEIVED_AT,
+            processedAt: LATER_PROCESSED_AT,
+            verdict: UP_AND_WALKED,
+            details: detailsOf(OLDER_RECEIVED_AT),
+          }),
+        ).toBe(false);
+
+        expectDetailsOf(await readDetails(deviceId), NEWER_RECEIVED_AT);
+      });
+
+      test("processed in order, the newer one's replace the older one's", async () => {
+        const deviceId: ObjectID = await insertDevice();
+
+        await write(deviceId, {
+          receivedAt: OLDER_RECEIVED_AT,
+          processedAt: PROCESSED_AT,
+          verdict: UP_AND_WALKED,
+          details: detailsOf(OLDER_RECEIVED_AT),
+        });
+        expectDetailsOf(await readDetails(deviceId), OLDER_RECEIVED_AT);
+
+        await write(deviceId, {
+          receivedAt: NEWER_RECEIVED_AT,
+          processedAt: LATER_PROCESSED_AT,
+          verdict: UP_AND_WALKED,
+          details: detailsOf(NEWER_RECEIVED_AT),
+        });
+        expectDetailsOf(await readDetails(deviceId), NEWER_RECEIVED_AT);
+      });
+
+      test("a poll with none leaves them; an empty snapshot clears one", async () => {
+        const deviceId: ObjectID = await insertDevice();
+
+        await write(deviceId, {
+          receivedAt: OLDER_RECEIVED_AT,
+          processedAt: PROCESSED_AT,
+          verdict: UP_AND_WALKED,
+          details: detailsOf(OLDER_RECEIVED_AT),
+        });
+        // A ping-only poll: no baseline, no tables, no optics.
+        await write(deviceId, {
+          receivedAt: NEWER_RECEIVED_AT,
+          processedAt: LATER_PROCESSED_AT,
+          verdict: { isReachable: true, isSnmpReachable: null },
+          details: {},
+        });
+        expectDetailsOf(await readDetails(deviceId), OLDER_RECEIVED_AT);
+
+        await write(deviceId, {
+          receivedAt: new Date(NEWER_RECEIVED_AT.getTime() + 5 * MINUTE),
+          processedAt: LATER_PROCESSED_AT,
+          verdict: UP_AND_WALKED,
+          details: { snmpTableSnapshot: [] },
+        });
+        const row: DetailsRow = await readDetails(deviceId);
+        expect(row.snmpTableSnapshot).toEqual([]);
+        expect(row.lastWalkLog?.monitoredAt).toBe(
+          OLDER_RECEIVED_AT.toISOString(),
+        );
+      });
+
+      test.each([
+        ["the newer one commits first: the older one's never land", "newer"],
+        [
+          "the older one commits first: the newer one's are written over them",
+          "older",
+        ],
+      ])(
+        "two polls written at once: %s",
+        async (_label: string, first: string) => {
+          const deviceId: ObjectID = await insertDevice();
+          const newer: Poll = {
+            receivedAt: NEWER_RECEIVED_AT,
+            processedAt: PROCESSED_AT,
+            verdict: UP_AND_WALKED,
+            details: detailsOf(NEWER_RECEIVED_AT),
+          };
+          const older: Poll = {
+            receivedAt: OLDER_RECEIVED_AT,
+            processedAt: PROCESSED_AT,
+            verdict: UP_AND_WALKED,
+            details: detailsOf(OLDER_RECEIVED_AT),
+          };
+          const [holding, waiting] =
+            first === "newer" ? [newer, older] : [older, newer];
+
+          const held: { commit: () => Promise<void> } = await writeHeldOpen(
+            deviceId,
+            holding,
+          );
+
+          const waitingWrite: Promise<boolean> = write(deviceId, waiting);
+
+          try {
+            await waitUntilAWriteWaits();
+          } finally {
+            await held.commit();
+          }
+
+          expect(await waitingWrite).toBe(waiting === newer);
+          expectDetailsOf(await readDetails(deviceId), NEWER_RECEIVED_AT);
+        },
+      );
+
+      /*
+       * A monitor-backed device's bound monitor owns its health, so a poll
+       * that reaches one - claimed before it was switched - writes none of
+       * the verdict. Its details are inventory, and are written, under the
+       * same guard.
+       */
+      test("a monitor-backed device gets them and no verdict, and an older poll's never land", async () => {
+        const deviceId: ObjectID = await insertDevice();
+
+        expect(
+          await write(deviceId, {
+            receivedAt: NEWER_RECEIVED_AT,
+            processedAt: PROCESSED_AT,
+            verdict: null,
+            details: detailsOf(NEWER_RECEIVED_AT),
+          }),
+        ).toBe(true);
+
+        const row: DeviceRow = await readDevice(deviceId);
+        expect(row.isReachable).toBeNull();
+        expect(row.isSnmpReachable).toBeNull();
+        expect(row.lastPolledAt).toBeNull();
+        expect(row.lastSeenAt).toBeNull();
+        expect(iso(row.lastPollReceivedAt)).toBe(iso(NEWER_RECEIVED_AT));
+        expectDetailsOf(await readDetails(deviceId), NEWER_RECEIVED_AT);
+
+        expect(
+          await write(deviceId, {
+            receivedAt: OLDER_RECEIVED_AT,
+            processedAt: LATER_PROCESSED_AT,
+            verdict: null,
+            details: detailsOf(OLDER_RECEIVED_AT),
+          }),
+        ).toBe(false);
+        expectDetailsOf(await readDetails(deviceId), NEWER_RECEIVED_AT);
+      });
+
+      test("never written to a deleted device, nor one of another project", async () => {
+        const deleted: ObjectID = await insertDevice({ deletedAt: new Date() });
+        const elsewhere: ObjectID = await insertDevice({
+          projectId: OTHER_PROJECT_ID,
+        });
+
+        for (const id of [deleted, elsewhere]) {
+          expect(
+            await write(id, {
+              receivedAt: NEWER_RECEIVED_AT,
+              processedAt: PROCESSED_AT,
+              verdict: UP_AND_WALKED,
+              details: detailsOf(NEWER_RECEIVED_AT),
+            }),
+          ).toBe(false);
+
+          expect(await readDetails(id)).toEqual({
+            lastWalkLog: null,
+            snmpTableSnapshot: null,
+            transceiverSnapshot: null,
+          });
+        }
       });
     });
 

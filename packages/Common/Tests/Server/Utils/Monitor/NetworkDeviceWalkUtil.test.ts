@@ -360,26 +360,27 @@ describe("NetworkDeviceWalkUtil.processWalkResult — happy path", () => {
 
     /*
      * Persisting first would make the delta baseline the walk itself —
-     * every rate would compute to zero.
+     * every rate would compute to zero. It is persisted by the inventory
+     * sync, with the poll's verdict (issue #7393).
      */
     expect(rateSpy.mock.invocationCallOrder[0]).toBeLessThan(
-      deviceUpdateSpy.mock.invocationCallOrder[0] as number,
+      inventorySpy.mock.invocationCallOrder[0] as number,
     );
   });
 
-  test("a walk with interfaces persists itself as the next delta baseline", async () => {
+  test("a walk with interfaces persists itself as the next delta baseline, through the inventory sync's verdict statement", async () => {
     mockPipeline();
     const snmpResponse: SnmpMonitorResponse = buildSnmpResponse();
 
     await runWalk(snmpResponse);
 
-    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
-    const updateArgs: JSONObject = deviceUpdateSpy.mock.calls[0][0];
-    expect((updateArgs["id"] as ObjectID).toString()).toBe(DEVICE_ID);
+    // No device write of its own: it rides with the verdict (issue #7393).
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(inventorySpy).toHaveBeenCalledTimes(1);
+    const inventoryArgs: JSONObject = inventorySpy.mock.calls[0][0];
+    expect((inventoryArgs["deviceId"] as ObjectID).toString()).toBe(DEVICE_ID);
 
-    const lastWalkLog: JSONObject = (updateArgs["data"] as JSONObject)[
-      "lastWalkLog"
-    ] as JSONObject;
+    const lastWalkLog: JSONObject = inventoryArgs["lastWalkLog"] as JSONObject;
     const storedResponse: JSONObject = lastWalkLog[
       "snmpResponse"
     ] as JSONObject;
