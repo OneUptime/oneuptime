@@ -662,6 +662,14 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 
 **A rule names only your project's records.** The monitors, labels, severities, on-call policies, roles and teams a rule picks are your project's, and the people are its members — the form's pickers offer nothing else. Rules saved through the API, Terraform or a workflow are held to the same: a rule that names a record from another project, a record that does not exist, or someone who is not a member of the project is refused, and the error names the field and the id. Editing a rule checks only what the edit adds, so a rule that names someone who has since left the project can still be saved. When a rule runs, it adds only your project's own teams as owners and pages only your project's own on-call policies.
 
+### When the records a rule is limited to are deleted
+
+A rule limited to some records never starts applying to every record because those records are deleted. When the last record in one of its lists is deleted, such as its only monitor, severity or label, or the only runbook, code repository or MCP server an AI rule may use, OneUptime switches the rule off in the same delete, whoever or whatever deletes it. A rule that keeps another record in the list keeps its limit, a rule saved with the list empty on purpose is left as it is, and a condition that names a deleted record simply stops matching it.
+
+The rule's row then says **Limited to deleted records** beside its status: which list lost which records, and when. Its edit form says the same above what it applies to, and the audit log records the change as made by whoever deleted the records. To use the rule again, edit it to choose what it applies to, then switch it on. Switching it on as it is, from the list or through the API, is refused while the list is still empty; through the API, send the list in the same update, empty if the rule should apply to every record.
+
+A rule emptied by a delete before OneUptime switched such rules off is left as it is: nothing tells it apart from a rule saved empty on purpose. The exception is a rule whose list still holds records that are all deleted, which the upgrade switches off and marks the same way. If you deleted monitors, labels or severities that rules were limited to, look over the rules that apply to every record.
+
 ## Incident label and owner rules
 
 **Incidents → Rules → Label Rules** attaches labels to new incidents that match, and **Owner Rules** adds owner users and teams to them. **Alerts → Rules** and **Scheduled Maintenance → Rules** have the same two pages and work the same way. Creating a rule takes two steps: **Match**, the conditions an incident must meet, then **Labels** (or **Owners**), what the rule adds. Its **Name** is filled in from what you pick until you type a name of your own, and the optional **Description** (and an owner rule's **Notify Owners**) waits under **More fields**.

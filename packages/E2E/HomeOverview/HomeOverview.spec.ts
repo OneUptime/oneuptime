@@ -1317,16 +1317,14 @@ test.describe("what do you want to do first?", () => {
       page.getByTestId("getting-started").getByTestId("how-oneuptime-works"),
     ).toHaveCount(0);
 
-    // In line with the steps: its icon where theirs is, as wide.
-    const lineIcon: { x: number; width: number } | null = await line
-      .locator("span")
-      .first()
-      .boundingBox();
-    const stepIcon: { x: number; width: number } | null = await page
-      .getByTestId("getting-started-task-on_call")
-      .locator("span")
-      .first()
-      .boundingBox();
+    /*
+     * In line with the steps: its icon where theirs is, as wide. Read in one
+     * frame, as the card settles (E2EBoxesInOneFrame).
+     */
+    const [lineIcon, stepIcon] = await boxesInOneFrame([
+      line.locator("span").first(),
+      page.getByTestId("getting-started-task-on_call").locator("span").first(),
+    ]);
     expect(Math.round(lineIcon!.x)).toBe(Math.round(stepIcon!.x));
     expect(Math.round(lineIcon!.width)).toBe(Math.round(stepIcon!.width));
 

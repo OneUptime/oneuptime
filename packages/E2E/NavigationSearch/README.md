@@ -117,6 +117,17 @@ menu are each named by their own button (no id twice on the page), open with
 Enter, and Escape puts them away with the focus back on the button.
 Screenshots are saved as `header-*.png`.
 
+`ProjectPickerSearch.spec.ts` searches the header's project list. Its
+`?header=true&projects=many` page lists six more projects after Acme Commerce
+Production (`MORE_PROJECTS` in `HeaderFixture.js`), two of them called "Test
+Project\". A word from the middle of a name finds it ("kube" finds OneUptime
+Kubernetes), its match marked with Search's yellow ground, and Enter opens the
+best match; "test" lists both Test Project\ before Project test, and "acme"
+finds Sample: Acme Shop after the name that starts with it. A search that finds
+nothing says so inside the list, with no Create New Project, legibly in the
+light theme and the dark, and on a 375px phone a long one wraps inside the list
+with no sideways scroll. Screenshots are saved as `project-search-*.png`.
+
 `ProjectProducts.spec.ts` covers products that fit the project and pins
 that follow the person (issue #6814). The Dashboard's navbar asks the API
 for the project's products (`/api/project-products`): the fixture's page

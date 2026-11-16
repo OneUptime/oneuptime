@@ -1,4 +1,5 @@
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
+import { statusPageReadOf } from "../TestingUtils/StatusPageReads";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
@@ -118,8 +119,9 @@ describe("an archived status page is not served", () => {
   it("reads the archive flag along with the access settings", async () => {
     await serve(statusPage({ isPublicStatusPage: true, isArchived: false }));
 
+    // The page's own read, after the lookup of its project.
     const select: Record<string, unknown> = (
-      findOneById.mock.calls[0]![0] as { select: Record<string, unknown> }
+      statusPageReadOf(findOneById)![0] as { select: Record<string, unknown> }
     ).select;
 
     expect(select["isArchived"]).toBe(true);

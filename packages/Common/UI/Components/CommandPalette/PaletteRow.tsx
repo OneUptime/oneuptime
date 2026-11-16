@@ -5,8 +5,8 @@ import KeyboardShortcut, {
 } from "../KeyboardShortcut/KeyboardShortcut";
 import { KeyboardShortcutKey } from "../KeyboardShortcut/KeyboardKey";
 import IconProp from "../../../Types/Icon/IconProp";
-import { getHighlightSegments, PaletteHighlightSegment } from "./PaletteFilter";
-import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import MatchedText from "./MatchedText";
+import React, { FunctionComponent, ReactElement } from "react";
 
 interface IconColorClasses {
   bg: string;
@@ -95,30 +95,6 @@ export interface ComponentProps {
   setRowElement: (element: HTMLDivElement | null) => void;
 }
 
-// Wrap the portions of text that match the query in a highlight.
-const highlightMatch: (text: string, query: string) => ReactNode = (
-  text: string,
-  query: string,
-): ReactNode => {
-  const segments: Array<PaletteHighlightSegment> = getHighlightSegments(
-    text,
-    query,
-  );
-  return segments.map((segment: PaletteHighlightSegment, index: number) => {
-    if (!segment.isMatch) {
-      return <React.Fragment key={index}>{segment.text}</React.Fragment>;
-    }
-    return (
-      <mark
-        key={index}
-        className="rounded-sm bg-yellow-100 px-0.5 text-inherit"
-      >
-        {segment.text}
-      </mark>
-    );
-  });
-};
-
 const PaletteRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -155,7 +131,7 @@ const PaletteRow: FunctionComponent<ComponentProps> = (
       )}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-gray-900">
-          {highlightMatch(item.title, props.query)}
+          <MatchedText text={item.title} search={props.query} />
         </p>
         {item.breadcrumb && item.breadcrumb.length > 0 ? (
           <p
@@ -177,7 +153,7 @@ const PaletteRow: FunctionComponent<ComponentProps> = (
                       <span className="sr-only">, </span>
                     </>
                   )}
-                  {highlightMatch(crumb, props.query)}
+                  <MatchedText text={crumb} search={props.query} />
                 </React.Fragment>
               );
             })}
@@ -185,7 +161,7 @@ const PaletteRow: FunctionComponent<ComponentProps> = (
         ) : (
           item.description && (
             <p className="truncate text-xs text-gray-500">
-              {highlightMatch(item.description, props.query)}
+              <MatchedText text={item.description} search={props.query} />
             </p>
           )
         )}

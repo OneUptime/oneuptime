@@ -82,6 +82,8 @@ jest.mock(
       __esModule: true,
       default: {
         findOneBy: jest.fn(),
+        // The policy's levels a run moves on through (OnCallRunLevel).
+        findBy: jest.fn(),
         startRuleExecution: jest.fn(),
         startDirectPage: jest.fn(),
       },
@@ -152,6 +154,7 @@ interface ExecutionLogServiceMock {
 
 interface RuleServiceMock {
   findOneBy: jest.Mock;
+  findBy: jest.Mock;
   startRuleExecution: jest.Mock;
   startDirectPage: jest.Mock;
 }
@@ -191,11 +194,28 @@ function directPage(about: "incident" | "alert"): OnCallDutyPolicyExecutionLog {
   return log;
 }
 
+// The two levels of the policy a policy's run here runs.
+const FIRST_RULE_ID: ObjectID = ObjectID.generate();
+const SECOND_RULE_ID: ObjectID = ObjectID.generate();
+
+function levels(): Array<OnCallDutyPolicyEscalationRule> {
+  return [FIRST_RULE_ID, SECOND_RULE_ID].map(
+    (id: ObjectID, index: number): OnCallDutyPolicyEscalationRule => {
+      const rule: OnCallDutyPolicyEscalationRule =
+        new OnCallDutyPolicyEscalationRule();
+      rule.id = id;
+      rule.order = index + 1;
+      return rule;
+    },
+  );
+}
+
 // A policy's run on its first rule, whose wait is over.
 function policyRun(): OnCallDutyPolicyExecutionLog {
   const log: OnCallDutyPolicyExecutionLog = directPage("incident");
   log.onCallDutyPolicyId = ObjectID.generate();
   log.lastExecutedEscalationRuleOrder = 1;
+  log.lastExecutedEscalationRuleId = FIRST_RULE_ID;
 
   const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
   policy.repeatPolicyIfNoOneAcknowledgesNoOfTimes = 0;
@@ -223,6 +243,9 @@ beforeEach(() => {
   incidentService.isIncidentAcknowledged.mockResolvedValue(false);
   alertService.isAlertAcknowledged.mockResolvedValue(false);
   ruleService.findOneBy.mockResolvedValue(null);
+  ruleService.findBy.mockImplementation(async () => {
+    return levels();
+  });
 });
 
 describe("a direct page that nobody has answered", () => {
@@ -252,6 +275,7 @@ describe("a direct page that nobody has answered", () => {
     await tick();
 
     expect(ruleService.findOneBy).not.toHaveBeenCalled();
+    expect(ruleService.findBy).not.toHaveBeenCalled();
     expect(ruleService.startRuleExecution).not.toHaveBeenCalled();
     expect(ruleService.startDirectPage).not.toHaveBeenCalled();
     expect(executionLogService.claimEscalationAdvance).not.toHaveBeenCalled();
@@ -384,31 +408,27 @@ describe("a policy's run on the same tick is still a policy's", () => {
 
   test("its next escalation rule is looked up under its own policy, and started", async () => {
     const run: OnCallDutyPolicyExecutionLog = policyRun();
-    const nextRule: OnCallDutyPolicyEscalationRule =
-      new OnCallDutyPolicyEscalationRule();
-    nextRule.id = ObjectID.generate();
 
     executionLogService.findBy.mockResolvedValue([run]);
-    ruleService.findOneBy.mockResolvedValue(nextRule);
 
     await tick();
 
     expect(executionLogService.claimEscalationAdvance).toHaveBeenCalledTimes(1);
-    expect(ruleService.findOneBy).toHaveBeenCalledTimes(1);
+    // The policy's levels, read under its own policy (OnCallRunLevel).
+    expect(ruleService.findBy).toHaveBeenCalledTimes(1);
 
     const query: Record<string, unknown> = (
-      ruleService.findOneBy.mock.calls[0]![0] as {
+      ruleService.findBy.mock.calls[0]![0] as {
         query: Record<string, unknown>;
       }
     ).query;
 
     expect(query["onCallDutyPolicyId"]).toBe(run.onCallDutyPolicyId);
     expect(query["projectId"]).toBe(run.projectId);
-    expect(query["order"]).toBe(2);
     expect(ruleService.startRuleExecution).toHaveBeenCalledTimes(1);
     expect(
       (ruleService.startRuleExecution.mock.calls[0]![0] as ObjectID).toString(),
-    ).toBe(nextRule.id!.toString());
+    ).toBe(SECOND_RULE_ID.toString());
   });
 
   test("a direct page and a policy's run on one tick each go their own way", async () => {
@@ -430,10 +450,10 @@ describe("a policy's run on the same tick is still a policy's", () => {
     ).toBe(page.id!.toString());
 
     // Only the policy's run looked for a rule, and under its own policy.
-    expect(ruleService.findOneBy).toHaveBeenCalledTimes(1);
+    expect(ruleService.findBy).toHaveBeenCalledTimes(1);
     expect(
       (
-        ruleService.findOneBy.mock.calls[0]![0] as {
+        ruleService.findBy.mock.calls[0]![0] as {
           query: Record<string, unknown>;
         }
       ).query["onCallDutyPolicyId"],

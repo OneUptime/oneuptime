@@ -958,9 +958,13 @@ describe("GUARD: SHOWN_RECORD_TABLES", () => {
   test("names a page's configuration, with bookkeeping columns of its own models only", () => {
     expect([...STATUS_PAGE_CONFIGURATION_TABLES].sort()).toEqual([
       "StatusPage",
+      "StatusPageFooterLink",
       "StatusPageGroup",
+      "StatusPageHeaderLink",
       "StatusPageMonitorRule",
       "StatusPageResource",
+      // What the page's sign-in page offers (its settings, /master-page).
+      "StatusPageSSO",
     ]);
 
     for (const [tableName, columns] of Object.entries(

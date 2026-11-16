@@ -6,6 +6,7 @@ import ProductBrandingText from "../../ProductBrandingText";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import { getOnCallPageAgainChatReason } from "../../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { getOnCallPassOnLevelLabel } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { getOnCallDeletedLevelLabel } from "../../../../Types/OnCallDutyPolicy/OnCallRunLevel";
 import {
   ON_CALL_PAGE_MERGE_UNKNOWN_PAGE,
   ON_CALL_PAGE_MERGE_UNNAMED_POLICY,
@@ -254,6 +255,11 @@ export enum OnCallPolicyRunOutcome {
 export interface OnCallPolicyRunRule {
   order: number;
   name?: string | undefined;
+  /*
+   * The level the run is on was deleted while it paged (issue #9036): its
+   * number and name are the ones it recorded, and it is said to be deleted.
+   */
+  isDeleted?: boolean | undefined;
 }
 
 // A person the run paged, once per run however often.
@@ -1539,6 +1545,11 @@ export default class OnCallPolicyRunMessageView {
     rule: OnCallPolicyRunRule,
     ruleCount: number,
   ): string {
+    // "Level 2: Database (deleted)": no "of 3", the policy has others now.
+    if (rule.isDeleted) {
+      return getOnCallDeletedLevelLabel({ order: rule.order, name: rule.name });
+    }
+
     return getOnCallPassOnLevelLabel(
       { order: rule.order, name: rule.name },
       ruleCount,

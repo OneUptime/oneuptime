@@ -107,6 +107,8 @@ Das Bearbeitungsformular einer Regel hat dieselben zwei Schritte und zusätzlich
 
 Eine solche Regel lässt sich weiterhin umbenennen, ausschalten oder löschen, auch über die API und Terraform. Die Liste kennzeichnet eine Regel, die nichts hinzufügt, neben ihrem Status mit **Fügt nichts hinzu**, ebenso die eigene Seite der Regel. Bearbeiten Sie sie, um festzulegen, was sie hinzufügt, oder löschen Sie sie.
 
+Eine Regel, deren passende Beschriftungen alle gelöscht sind, wird deaktiviert, statt auf jede Ressource zuzutreffen, und die Liste kennzeichnet sie neben ihrem Status mit **Auf gelöschte Datensätze beschränkt**. Bearbeiten Sie sie, um festzulegen, worauf sie zutrifft, und aktivieren Sie sie dann. Siehe [Wenn die Datensätze gelöscht werden, auf die eine Regel beschränkt ist](/docs/incidents/settings#wenn-die-datensätze-gelöscht-werden-auf-die-eine-regel-beschränkt-ist).
+
 ## Wann Regeln laufen
 
 Jede aktivierte Regel läuft, wenn eine Ressource angelegt wird, im Dashboard oder über die API, und jede Regel, die zutrifft, fügt hinzu, was sie hinzufügt:

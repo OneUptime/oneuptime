@@ -22,7 +22,8 @@ import type { SpyInstance } from "jest-mock";
  *  - Only someone who may edit the project shows or hides a product; a
  *    product hidden while in use is kept hidden on purpose.
  *  - Pins are the caller's own, five at most, known products only.
- *  - The goals set a project's products until a member changes them.
+ *  - Nothing hides a product by itself: a list an older version set from
+ *    the project's goals hides nothing, and is never written again.
  */
 
 let mockIsBillingEnabled: boolean = false;
@@ -80,13 +81,12 @@ import {
   ProductUsage,
 } from "../../../Types/Product/ProductUsage";
 import {
+  HIDEABLE_PRODUCTS,
   ProjectProductsChosenBy,
-  getProductsHiddenByGoals,
   parseProjectProductSettings,
 } from "../../../Types/Product/ProjectProducts";
 import { ProjectProductsAnswer } from "../../../Types/Product/ProjectProductsAnswer";
 import UserType from "../../../Types/UserType";
-import ProjectGoal from "../../../Types/WelcomeChecklist/ProjectGoal";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -316,17 +316,17 @@ describe("the answer", () => {
     expect(answer.neededPlans).toEqual({});
   });
 
-  test("it says what the project hides, and where the list came from", async () => {
+  test("it says what a member hid, and that a member chose it", async () => {
     row.productSettings = {
       hidden: ["kubernetes", "docker"],
-      chosenBy: "goals",
+      chosenBy: "member",
     };
 
     const answer: ProjectProductsAnswer =
       await ProjectProductsService.getAnswer(MEMBER());
 
     expect(answer.hidden).toEqual([ProductKey.Kubernetes, ProductKey.Docker]);
-    expect(answer.chosenBy).toBe(ProjectProductsChosenBy.Goals);
+    expect(answer.chosenBy).toBe(ProjectProductsChosenBy.Member);
   });
 
   test("it gives each person their own pins", async () => {
@@ -535,15 +535,15 @@ describe("usage is kept per project for a few minutes", () => {
     expect(usageQueries()).toBe(2);
   });
 
-  test("a fresh read, or forgetting, asks again", async () => {
+  test("forgetting asks again", async () => {
     await ProjectProductsService.getProjectUsage(PROJECT_ID);
-    await ProjectProductsService.getProjectUsage(PROJECT_ID, {
-      isFreshRead: true,
-    });
+    await ProjectProductsService.getProjectUsage(PROJECT_ID);
+    expect(usageQueries()).toBe(1);
+
     await ProjectProductsService.forgetUsage(PROJECT_ID);
     await ProjectProductsService.getProjectUsage(PROJECT_ID);
 
-    expect(usageQueries()).toBe(3);
+    expect(usageQueries()).toBe(2);
   });
 
   test("the time is ProjectUsageCache's: five minutes", () => {
@@ -756,7 +756,7 @@ describe("showing and hiding a product", () => {
     row.productSettings = {
       hidden: ["kubernetes", "docker"],
       keptHiddenWithData: ["kubernetes"],
-      chosenBy: "goals",
+      chosenBy: "member",
     };
 
     await ProjectProductsService.setProductShown(OWNER(), {
@@ -772,7 +772,7 @@ describe("showing and hiding a product", () => {
   });
 
   test("Show Every Product hides nothing, as the member's choice", async () => {
-    row.productSettings = { hidden: ["kubernetes"], chosenBy: "goals" };
+    row.productSettings = { hidden: ["kubernetes"], chosenBy: "member" };
 
     await ProjectProductsService.showEveryProduct(OWNER());
 
@@ -841,75 +841,128 @@ describe("pins", () => {
   });
 });
 
-describe("the goals set a new project's products", () => {
-  test("a project nobody chose for gets the goals' list, and what it uses stays shown", async () => {
-    records = { [ProductKey.Proxmox]: true };
+/*
+ * Choosing a project's goals used to hide every product they did not name:
+ * a project that answered "Know when my website or API is down" had 37
+ * products moved under More products, all "Not set up", although nobody
+ * hid them. Only a member hides a product now, and a list the goals stored
+ * then hides nothing.
+ */
+describe("nothing hides a product by itself", () => {
+  // As the goals stored it: everything but the seven essentials hidden.
+  const GOALS_LIST: JSONObject = {
+    hidden: HIDEABLE_PRODUCTS.filter((product: ProductKey): boolean => {
+      return ![
+        ProductKey.Monitors,
+        ProductKey.Incidents,
+        ProductKey.Alerts,
+        ProductKey.OnCall,
+        ProductKey.StatusPages,
+        ProductKey.ScheduledMaintenance,
+        ProductKey.Slos,
+      ].includes(product);
+    }),
+    keptHiddenWithData: [],
+    chosenBy: "goals",
+    changedAt: "2026-11-12T10:00:00.000Z",
+    changedByUserId: null,
+  };
 
-    await ProjectProductsService.applyGoals({
-      projectId: PROJECT_ID,
-      goals: [ProjectGoal.Uptime],
+  const updates: () => number = (): number => {
+    return queries.filter((query: { sql: string }): boolean => {
+      return query.sql.startsWith("UPDATE");
+    }).length;
+  };
+
+  test("a new project with nothing set up hides nothing", async () => {
+    const answer: ProjectProductsAnswer =
+      await ProjectProductsService.getAnswer(OWNER());
+
+    // Every product counted by its records is "Not set up" (or nothing yet)...
+    expect(answer.usage[ProductKey.Kubernetes]).toBe(ProductUsage.NotSetUp);
+    expect(answer.usage[ProductKey.Logs]).toBe(ProductUsage.NotSetUp);
+    // ...and still shown.
+    expect(answer.hidden).toEqual([]);
+    expect(answer.chosenBy).toBeNull();
+    expect(answer.hiddenWithData).toEqual([]);
+  });
+
+  test("a list the goals set hides nothing, for anyone who asks", async () => {
+    row.productSettings = { ...GOALS_LIST };
+
+    for (const asker of [OWNER(), MEMBER(), MONITOR_READER()]) {
+      const answer: ProjectProductsAnswer =
+        await ProjectProductsService.getAnswer(asker);
+
+      expect(answer.hidden).toEqual([]);
+      expect(answer.chosenBy).toBeNull();
+    }
+  });
+
+  test("Home asks about none of a goals list's products, though they have data", async () => {
+    row.productSettings = { ...GOALS_LIST };
+    records = { [ProductKey.Kubernetes]: true };
+    milestones = [ActivationMilestone.FirstLogsReceived];
+
+    const answer: ProjectProductsAnswer =
+      await ProjectProductsService.getAnswer(OWNER());
+
+    expect(answer.usage[ProductKey.Kubernetes]).toBe(ProductUsage.InUse);
+    expect(answer.usage[ProductKey.Logs]).toBe(ProductUsage.InUse);
+    expect(answer.hiddenWithData).toEqual([]);
+  });
+
+  test("reading the answer never writes the project's list", async () => {
+    row.productSettings = { ...GOALS_LIST };
+
+    await ProjectProductsService.getAnswer(OWNER());
+    await ProjectProductsService.getAnswer(MEMBER());
+
+    expect(updates()).toBe(0);
+    expect(row.productSettings).toEqual(GOALS_LIST);
+  });
+
+  test("a member hiding one product on a goals list hides that one only", async () => {
+    row.productSettings = { ...GOALS_LIST };
+
+    await ProjectProductsService.setProductShown(OWNER(), {
+      product: ProductKey.Kubernetes,
+      isShown: false,
     });
 
     expect(stored()).toMatchObject({
-      hidden: getProductsHiddenByGoals({
-        goals: [ProjectGoal.Uptime],
-        inUse: [ProductKey.Proxmox],
-      }),
-      chosenBy: ProjectProductsChosenBy.Goals,
-      changedByUserId: null,
+      hidden: [ProductKey.Kubernetes],
+      keptHiddenWithData: [],
+      chosenBy: ProjectProductsChosenBy.Member,
+      changedByUserId: OWNER_ID.toString(),
     });
-    expect(stored()?.hidden).not.toContain(ProductKey.Proxmox);
-    expect(stored()?.hidden).toContain(ProductKey.Ceph);
+    expect((await ProjectProductsService.getAnswer(MEMBER())).hidden).toEqual([
+      ProductKey.Kubernetes,
+    ]);
   });
 
-  test("it reads what is in use afresh, whatever is kept", async () => {
-    await ProjectProductsService.getProjectUsage(PROJECT_ID);
-    records = { [ProductKey.Ceph]: true };
+  test("a member showing one product on a goals list leaves nothing hidden", async () => {
+    row.productSettings = { ...GOALS_LIST };
 
-    await ProjectProductsService.applyGoals({
-      projectId: PROJECT_ID,
-      goals: [ProjectGoal.Uptime],
+    await ProjectProductsService.setProductShown(OWNER(), {
+      product: ProductKey.Logs,
+      isShown: true,
     });
 
-    expect(stored()?.hidden).not.toContain(ProductKey.Ceph);
-  });
-
-  test("goals that hide nothing leave every product shown", async () => {
-    await ProjectProductsService.applyGoals({
-      projectId: PROJECT_ID,
-      goals: [ProjectGoal.Explore],
+    expect(stored()).toMatchObject({
+      hidden: [],
+      chosenBy: ProjectProductsChosenBy.Member,
     });
-
-    expect(stored()?.hidden).toEqual([]);
   });
 
-  test("a list a member chose is left as it is", async () => {
-    row.productSettings = { hidden: ["kubernetes"], chosenBy: "member" };
+  test("a list a member chose is kept, whatever it hides", async () => {
+    row.productSettings = { ...GOALS_LIST, chosenBy: "member" };
 
-    await ProjectProductsService.applyGoals({
-      projectId: PROJECT_ID,
-      goals: [ProjectGoal.Uptime],
-    });
+    const answer: ProjectProductsAnswer =
+      await ProjectProductsService.getAnswer(OWNER());
 
-    expect(stored()?.hidden).toEqual([ProductKey.Kubernetes]);
-    expect(
-      queries.filter((query: { sql: string }): boolean => {
-        return query.sql.startsWith("UPDATE");
-      }),
-    ).toHaveLength(0);
-  });
-
-  test("a failure never stops the goals being kept", async () => {
-    usageQueryShouldFail = true;
-
-    await expect(
-      ProjectProductsService.applyGoals({
-        projectId: PROJECT_ID,
-        goals: [ProjectGoal.Uptime],
-      }),
-    ).resolves.toBeUndefined();
-    expect(row.productSettings).toBeNull();
-    expect(logger.error).toHaveBeenCalled();
+    expect(answer.hidden).toEqual(GOALS_LIST["hidden"]);
+    expect(answer.chosenBy).toBe(ProjectProductsChosenBy.Member);
   });
 });
 

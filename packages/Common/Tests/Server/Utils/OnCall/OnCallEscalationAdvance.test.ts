@@ -89,6 +89,10 @@ function runOn(
   run.userNotificationEventType = UserNotificationEventType.IncidentCreated;
   run.status = OnCallDutyPolicyStatus.Executing;
   run.lastExecutedEscalationRuleOrder = order;
+  // A run on a level names its rule (one with none was deleted, issue #9036).
+  if (order > 0) {
+    run.lastExecutedEscalationRuleId = ruleOf(order).id!;
+  }
   run.lastEscalationRuleExecutedAt = STARTED;
   run.onCallPolicyExecutionRepeatCount = settings.pass || 1;
   run.onCallDutyPolicy = {
@@ -154,15 +158,19 @@ beforeEach(() => {
       lastEscalationRuleExecutedAt: NOW,
     } as never);
 
+  // The policy's levels, as they are now (OnCallRunLevel, issue #9036).
   jest
-    .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
-    .mockImplementation((async (data: { query: { order: number } }) => {
-      return (
-        rules.find((rule: OnCallDutyPolicyEscalationRule) => {
-          return rule.order === data.query.order;
-        }) || null
-      );
+    .spyOn(OnCallDutyPolicyEscalationRuleService, "findBy")
+    .mockImplementation((async () => {
+      return [...rules];
     }) as never);
+
+  jest
+    .spyOn(
+      OnCallDutyPolicyEscalationRuleService,
+      "recordLevelSkippedByEscalation",
+    )
+    .mockResolvedValue(undefined);
 
   startSpy = jest
     .spyOn(OnCallDutyPolicyEscalationRuleService, "startRuleExecution")
@@ -400,13 +408,26 @@ describe("a rule that only people who passed it on were on", () => {
   });
 
   test("a loop of them stops: a guard, not a limit anybody meets", async () => {
-    // Every rule, for ever, pages nobody but people who passed it on.
-    startSpy.mockResolvedValue(outcome({ movesOnAtOnce: true }));
-    jest
-      .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
-      .mockResolvedValue(rules[1]! as never);
+    // A policy of 250 levels, every one of which pages nobody.
+    rules = [];
 
-    const result: OnCallEscalationAdvanceResult = await advance(runOn(1));
+    for (let order: number = 1; order <= 250; order++) {
+      const rule: OnCallDutyPolicyEscalationRule =
+        new OnCallDutyPolicyEscalationRule();
+      rule.id = new ObjectID(
+        `0f700000-0000-4000-8000-${order.toString().padStart(12, "0")}`,
+      );
+      rule.order = order;
+      rule.name = `Level ${order}`;
+      rules.push(rule);
+    }
+
+    startSpy.mockResolvedValue(outcome({ movesOnAtOnce: true }));
+
+    const run: OnCallDutyPolicyExecutionLog = runOn(1);
+    run.lastExecutedEscalationRuleId = rules[0]!.id!;
+
+    const result: OnCallEscalationAdvanceResult = await advance(run);
 
     expect(startSpy).toHaveBeenCalledTimes(200);
     expect(result.kind).toBe(OnCallEscalationAdvanceKind.RuleStarted);
@@ -485,13 +506,32 @@ describe("after the last rule", () => {
     );
   });
 
-  test("a policy whose first rule is gone ends rather than repeating nothing", async () => {
+  /*
+   * Its levels numbered from 2 - written so through the API: it starts
+   * again from its first level, whatever its number, where it used to look
+   * for a level 1 and end, paging nobody again (issue #9036).
+   */
+  test("a policy whose levels do not start at 1 starts again from its first", async () => {
     rules = [ruleOf(2), ruleOf(3)];
 
     const result: OnCallEscalationAdvanceResult = await advance(
       runOn(3, { pass: 1, repeats: 1 }),
     );
 
+    expect(startSpy.mock.calls[0]![0]).toEqual(ruleOf(2).id);
+    expect(result.kind).toBe(OnCallEscalationAdvanceKind.PolicyStartedAgain);
+    expect(result.rule?.order).toBe(2);
+  });
+
+  test("a policy with no level left ends rather than repeating nothing", async () => {
+    // Every level deleted while the run was on its last (issue #9036).
+    rules = [];
+
+    const result: OnCallEscalationAdvanceResult = await advance(
+      runOn(3, { pass: 1, repeats: 1 }),
+    );
+
+    expect(startSpy).not.toHaveBeenCalled();
     expect(result.kind).toBe(OnCallEscalationAdvanceKind.Ended);
     expect(result.endedWithMessage).toBe(
       ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
@@ -1144,24 +1184,7 @@ describe("what a move on pages, timed from when it was due", () => {
   });
 
   test("a level the person picked, past the next: due now, as an escalation", async () => {
-    // The picked level is read by its id; the levels it skips, all at once.
-    jest
-      .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
-      .mockImplementation((async (data: {
-        query: { order?: number; _id?: string };
-      }) => {
-        return (
-          rules.find((rule: OnCallDutyPolicyEscalationRule) => {
-            return data.query._id
-              ? rule.id!.toString() === data.query._id
-              : rule.order === data.query.order;
-          }) || null
-        );
-      }) as never);
-    jest
-      .spyOn(OnCallDutyPolicyEscalationRuleService, "findBy")
-      .mockResolvedValue([] as never);
-
+    // The picked level, and the levels it skips, are read with the policy's levels.
     await OnCallEscalationAdvance.advance({
       run: runOn(1),
       now: NOW,
@@ -1379,8 +1402,9 @@ describe("a move that fails after its claim", () => {
     const run: OnCallDutyPolicyExecutionLog = runOn(1, { pass: 2 });
     run.lastExecutedEscalationRuleId = rules[0]!.id!;
     const failure: Error = new Error("Connection terminated unexpectedly");
+    // The policy's levels cannot be read.
     jest
-      .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "findBy")
       .mockRejectedValue(failure as never);
 
     await expect(advance(run)).rejects.toBe(failure);
@@ -1463,5 +1487,220 @@ describe("a move that fails after its claim", () => {
     await advance(runOn(1));
 
     expect(giveBackSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * THE POLICY'S LEVELS CHANGED UNDER A RUN THAT PAGES (issue #9036).
+ *
+ * Deleting an escalation rule used to delete every run on it - with its
+ * timeline - so a run paging on a level that was deleted simply vanished,
+ * and nobody paged its later levels. The run stays now, its rule cleared
+ * (ON DELETE SET NULL), its place kept; it waits out the wait it started,
+ * then moves on - here - to the level that moved up into the deleted one's
+ * place. And where a run is is read from the levels as they are now, so a
+ * level added, deleted or moved before it neither skips a level nor pages
+ * its own again.
+ */
+describe("the policy's levels changed while the run pages (issue #9036)", () => {
+  // A level as it is now: its rule, at a place that may have changed.
+  function levelAt(
+    rule: number,
+    order: number,
+  ): OnCallDutyPolicyEscalationRule {
+    const level: OnCallDutyPolicyEscalationRule = ruleOf(rule);
+    level.order = order;
+    return level;
+  }
+
+  // A run whose level was deleted under it: its rule cleared, its place kept.
+  function runOnDeletedLevel(
+    order: number,
+    settings: { pass?: number; repeats?: number } = {},
+  ): OnCallDutyPolicyExecutionLog {
+    const run: OnCallDutyPolicyExecutionLog = runOn(order, settings);
+    run.lastExecutedEscalationRuleId = undefined as unknown as ObjectID;
+    return run;
+  }
+
+  beforeEach(() => {
+    jest.spyOn(logger, "warn").mockImplementation((() => {
+      return undefined;
+    }) as never);
+  });
+
+  test("on a level deleted under it, the run goes on to the level that moved up into its place", async () => {
+    // Level 2 deleted: Level 3 moved up to its place.
+    rules = [levelAt(1, 1), levelAt(3, 2)];
+
+    const result: OnCallEscalationAdvanceResult = await advance(
+      runOnDeletedLevel(2),
+    );
+
+    expect(startSpy.mock.calls[0]![0]).toEqual(ruleOf(3).id);
+    expect(result.kind).toBe(OnCallEscalationAdvanceKind.RuleStarted);
+    expect(result.rule).toEqual({
+      id: ruleOf(3).id,
+      order: 2,
+      name: "Level 3",
+    });
+  });
+
+  test("the level after it there, renumbered or not, is next: none is skipped", async () => {
+    // A delete that left the numbering as it was (no level moved up).
+    rules = [levelAt(1, 1), levelAt(3, 3)];
+
+    await advance(runOnDeletedLevel(2));
+
+    expect(startSpy.mock.calls[0]![0]).toEqual(ruleOf(3).id);
+  });
+
+  test("its claim, and what it pages, are a move on like any other", async () => {
+    rules = [levelAt(1, 1), levelAt(3, 2)];
+
+    await advance(runOnDeletedLevel(2));
+
+    expect(claimSpy).toHaveBeenCalledTimes(1);
+    expect(startSpy.mock.calls[0]![1]).toMatchObject({
+      onCallPolicyExecutionLogId: RUN,
+      onCallPolicyId: POLICY,
+    });
+  });
+
+  test("the last level deleted: the policy starts again from its first, as its Repeat Policy says", async () => {
+    rules = [levelAt(1, 1), levelAt(2, 2)];
+
+    const result: OnCallEscalationAdvanceResult = await advance(
+      runOnDeletedLevel(3, { pass: 1, repeats: 1 }),
+    );
+
+    expect(startSpy.mock.calls[0]![0]).toEqual(ruleOf(1).id);
+    expect(result.kind).toBe(OnCallEscalationAdvanceKind.PolicyStartedAgain);
+  });
+
+  test("the last level deleted, no repeat left: the run ends as one that went through every level - never silently", async () => {
+    lines = [line(ANA, OnCallDutyExecutionLogTimelineStatus.NotificationSent)];
+    rules = [levelAt(1, 1), levelAt(2, 2)];
+
+    const result: OnCallEscalationAdvanceResult = await advance(
+      runOnDeletedLevel(3),
+    );
+
+    expect(startSpy).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      kind: OnCallEscalationAdvanceKind.Ended,
+      pagedUserIds: [],
+      endedWithStatus: OnCallDutyPolicyStatus.Completed,
+      endedWithMessage: ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+    });
+  });
+
+  test("a level deleted before the run's own does not make it skip one", async () => {
+    // On Level 3 (place 3 when it got there); Level 2 deleted since.
+    rules = [levelAt(1, 1), levelAt(3, 2), levelAt(4, 3)];
+
+    const result: OnCallEscalationAdvanceResult = await advance(runOn(3));
+
+    // It used to look for place 4, find none, and end with Level 4 unpaged.
+    expect(startSpy.mock.calls[0]![0]).toEqual(ruleOf(4).id);
+    expect(result.rule?.order).toBe(3);
+  });
+
+  test("a level added before the run's own does not page its own again", async () => {
+    // On Level 2 (place 2); a new first level moved everybody down one.
+    rules = [levelAt(9, 1), levelAt(1, 2), levelAt(2, 3), levelAt(3, 4)];
+
+    await advance(runOn(2));
+
+    // It used to page place 3: Level 2 itself, again.
+    expect(startSpy.mock.calls[0]![0]).toEqual(ruleOf(3).id);
+  });
+
+  test("gaps in the numbering skip nothing", async () => {
+    rules = [levelAt(1, 1), levelAt(2, 3), levelAt(3, 7)];
+
+    await advance(runOn(1));
+
+    // It used to look for place 2, find none, and end.
+    expect(startSpy.mock.calls[0]![0]).toEqual(ruleOf(2).id);
+  });
+
+  test("a level deleted as the run moves on to it is passed: the run goes on to the level now at its place", async () => {
+    // Level 2 is deleted after the levels were read, before it is paged.
+    startSpy.mockImplementationOnce((async () => {
+      rules = [levelAt(1, 1), levelAt(3, 2)];
+      throw new BadDataException(
+        `The escalation rule ${ruleOf(2).id!.toString()} no longer exists. It may have been deleted.`,
+      );
+    }) as never);
+
+    const result: OnCallEscalationAdvanceResult = await advance(runOn(1));
+
+    expect(
+      startSpy.mock.calls.map((call: Array<unknown>) => {
+        return String(call[0]);
+      }),
+    ).toEqual([ruleOf(2).id!.toString(), ruleOf(3).id!.toString()]);
+    // Moving past the deleted level is claimed, as any move on is.
+    expect(claimSpy).toHaveBeenCalledTimes(2);
+    expect(result.kind).toBe(OnCallEscalationAdvanceKind.RuleStarted);
+    expect(result.rule?.id).toEqual(ruleOf(3).id);
+    // Not an error that ends the run.
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  test("a next level that fails to page while still there is the move's failure, as it was", async () => {
+    const failure: BadDataException = new BadDataException(
+      "The record this run pages about is gone.",
+    );
+    startSpy.mockRejectedValueOnce(failure as never);
+
+    await expect(advance(runOn(1))).rejects.toBe(failure);
+    expect(startSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("the run ended while it moved past a deleted level: nobody else is paged", async () => {
+    startSpy.mockImplementationOnce((async () => {
+      rules = [levelAt(1, 1), levelAt(3, 2)];
+      throw new BadDataException("The escalation rule no longer exists.");
+    }) as never);
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue({
+        status: OnCallDutyPolicyStatus.Completed,
+      } as never);
+
+    const result: OnCallEscalationAdvanceResult = await advance(runOn(1));
+
+    expect(startSpy).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      kind: OnCallEscalationAdvanceKind.NotClaimed,
+      pagedUserIds: [],
+    });
+  });
+
+  test("a level picked by the person escalating from a deleted level is paged, and the levels between are skipped", async () => {
+    const skipped: SpyInstance<
+      typeof OnCallDutyPolicyEscalationRuleService.recordLevelSkippedByEscalation
+    > = jest
+      .spyOn(
+        OnCallDutyPolicyEscalationRuleService,
+        "recordLevelSkippedByEscalation",
+      )
+      .mockResolvedValue(undefined);
+    // Level 2 deleted under the run; Level 3 and Level 4 moved up.
+    rules = [levelAt(1, 1), levelAt(3, 2), levelAt(4, 3)];
+
+    await OnCallEscalationAdvance.advance({
+      run: runOnDeletedLevel(2),
+      now: NOW,
+      toRuleId: ruleOf(4).id!,
+    });
+
+    expect(startSpy.mock.calls[0]![0]).toEqual(ruleOf(4).id);
+    expect(skipped).toHaveBeenCalledTimes(1);
+    expect(skipped.mock.calls[0]![0]).toEqual(ruleOf(3).id);
+    // The level skipped is recorded on its line as it is now.
+    expect(skipped.mock.calls[0]![2]).toEqual({ order: 2, name: "Level 3" });
   });
 });

@@ -610,6 +610,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OnCallExecutionLogStepWritesPostgres.test.ts --forceExit
 
+      # #9036, #9069: deleting an escalation rule, a schedule, a team or a
+      # person keeps the on-call runs, their timelines and the pages that
+      # name it (ON DELETE SET NULL), and deleting a picture's file keeps
+      # the person. Reads the migrated keys, then clones the on-call history
+      # tables and what they name into an isolated schema, with their keys:
+      # real deletes keep every row, a policy still takes its runs, a run
+      # paging on a deleted level moves on to the level that moved up into
+      # its place, and OnlineDdl.replaceForeignKey swaps a key on a real
+      # table and is a no-op once done.
+      - name: Test on-call history kept when what it names is deleted, on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ON_CALL_HISTORY_KEPT_TESTS: "true"
+          ON_CALL_HISTORY_KEPT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ON_CALL_HISTORY_KEPT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ON_CALL_HISTORY_KEPT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OnCallHistoryKeptPostgres.test.ts --forceExit
+
       # An episode's members show their incident or alert, and their episode,
       # through joins that run neither one's privacy rules: a member row is
       # listed, counted, read and removed only by someone who may see both.
@@ -1516,6 +1537,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/PublicNoteApprovalRequestPostgres.test.ts --forceExit
+
+      # #7975: how many Postgres statements an anonymous status page view
+      # sends - its HTML's SEO row, the app's settings, the overview, the
+      # favicon - and each image and each list a page's tabs read, counted
+      # through TypeORM's query log on clones of every table they read. A
+      # first view stays within the budget it had; every view after it, and
+      # a browser asking for an image it has (304), reads nothing; a view in
+      # another pod never builds the overview or a list again; and a page
+      # made private, here or in another pod, is refused from what is kept.
+      - name: Test the Postgres statements a status page view sends, on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_STATUS_PAGE_VIEW_STATEMENT_TESTS: "true"
+          STATUS_PAGE_VIEW_STATEMENT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          STATUS_PAGE_VIEW_STATEMENT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          STATUS_PAGE_VIEW_STATEMENT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/StatusPagePublicViewStatementsPostgres.test.ts --forceExit
 
       # Clones the migrated User, Project, StatusPage and
       # StatusPageHistoryChartBarColorRule tables (with the rules' foreign
@@ -4181,6 +4222,28 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/UsedByPostgres.test.ts --forceExit
+
+      # #9066: a rule is never widened to every record by a delete. Every
+      # list a rule can be limited to (152 match lists of 87 rule kinds and
+      # an AI rule's runbooks, repositories and MCP servers) through the
+      # real delete, on clones carrying the migrated join tables' foreign
+      # keys: the rule limited to the deleted record alone is switched off
+      # and noted, every other rule is left as it was; a bulk delete, a
+      # retention purge, a failed DELETE put back, a race with an edit;
+      # switching such a rule on is held back until its list says something
+      # again; and the repair of rules whose lists hold only soft-deleted
+      # records.
+      - name: Test rules limited to deleted records on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RULE_EMPTIED_LIMITS_TESTS: "true"
+          RULE_EMPTIED_LIMITS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RULE_EMPTIED_LIMITS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RULE_EMPTIED_LIMITS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/RuleEmptiedLimitsPostgres.test.ts --forceExit
 
       # Postmortem statuses (Incidents > Postmortems), on migrated Postgres:
       # the two migrations on a copy of the incidents table that already

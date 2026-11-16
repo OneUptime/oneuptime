@@ -698,8 +698,6 @@ describe("RuleSetCache: what starts a new generation", () => {
     ["IncidentPrivacyRuleIncidentLabel"],
     ["IncidentOwnerRuleOwnerTeam"],
     ["Project"],
-    // A person's picture: the database deletes the person with it.
-    ["File"],
   ])(
     "a %s deleted starts a new generation of every project: the database takes it out of the rules",
     async (tableName: string) => {
@@ -725,6 +723,12 @@ describe("RuleSetCache: what starts a new generation", () => {
     ["IncidentNote"],
     ["MonitorStatus"],
     ["TelemetryException"],
+    /*
+     * A person's picture: deleting its file clears the picture and keeps
+     * the person (issue #9069). It used to delete them, and with them the
+     * rules that name them.
+     */
+    ["File"],
   ])("a %s deleted keeps every project's rules", async (tableName: string) => {
     const { read, reads } = reader();
 
@@ -939,11 +943,12 @@ describe("RuleSetCache: the tables whose writes start a new generation", () => {
       expect(tables!.namedTables.has(tableName)).toBe(true);
     }
 
-    // Deleted with a named record: a person with their picture, and the project.
-    expect(tables!.deleteTables.has("File")).toBe(true);
+    // Deleted with a named record: the project.
     expect(tables!.deleteTables.has("Project")).toBe(true);
 
     for (const tableName of [
+      // A person's picture's file: deleting it keeps the person (#9069).
+      "File",
       "Probe",
       "IncidentNote",
       "MonitorStatus",

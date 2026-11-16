@@ -107,6 +107,8 @@ O formulário de edição de uma regra tem as mesmas duas etapas e acrescenta o 
 
 Uma regra assim ainda pode ser renomeada, desligada ou excluída, também pela API e pelo Terraform. A lista marca uma regra que não adiciona nada com **Não adiciona nada** ao lado do status, e a página da própria regra faz o mesmo. Edite-a para escolher o que ela adiciona, ou exclua-a.
 
+Uma regra cujos rótulos de correspondência são todos excluídos é desativada em vez de corresponder a todos os recursos, e a lista a marca com **Limitada a registros excluídos** ao lado do status. Edite-a para escolher a que ela corresponde e depois ative-a. Veja [Quando os registros a que uma regra está limitada são excluídos](/docs/incidents/settings#quando-os-registros-a-que-uma-regra-está-limitada-são-excluídos).
+
 ## Quando as regras são executadas
 
 Toda regra habilitada é executada quando um recurso é criado, pelo dashboard ou pela API, e cada regra que corresponde adiciona o que adiciona:

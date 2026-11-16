@@ -271,7 +271,7 @@ const CHART_TITLES: Array<string> = [
 // The six queries a golden-metrics load issues for the page's window.
 const GOLDEN_METRICS: Array<string> = [
   "k8s.node.cpu.utilization",
-  "k8s.node.memory.usage",
+  "k8s.node.memory.working_set",
   "k8s.node.filesystem.usage",
   "k8s.node.filesystem.available",
   "k8s.node.network.io",
@@ -336,7 +336,7 @@ function rowsFor(request: AggregateRequest): Array<Record<string, unknown>> {
         },
       ];
     case "k8s.node.cpu.utilization":
-    case "k8s.node.memory.usage":
+    case "k8s.node.memory.working_set":
     case "k8s.node.filesystem.usage":
     case "k8s.node.filesystem.available":
       return buckets.map((time: number): Record<string, unknown> => {
