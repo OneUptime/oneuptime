@@ -43,12 +43,22 @@ export default class GreenlockCertificate extends BaseModel {
   })
   public key?: string = undefined;
 
+  /*
+   * What the Greenlock store kept under the key: a certificate's chain, or,
+   * for a key pair (isKeyPair), the private key of the ACME account or of a
+   * domain's certificate. Nothing has read or written this table since ACME
+   * certificates replaced the Greenlock store (MoveGreenlockCertsToAcmeCerts
+   * reads the keys alone), but an installation that ran OneUptime before
+   * then still holds those private keys. So the column is kept encrypted at
+   * rest, as AcmeCertificate.certificateKey is: the EncryptLetsEncryptKeys
+   * data migration encrypted the blobs stored before.
+   */
   @ColumnAccessControl({
     create: [],
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.VeryLongText })
+  @TableColumn({ type: TableColumnType.VeryLongText, encrypted: true })
   @Column({
     type: ColumnType.VeryLongText,
     nullable: false,

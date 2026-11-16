@@ -56033,5 +56033,11 @@
   "API Key Hint": "تلميح مفتاح API",
   "Master API Key Created At": "تاريخ إنشاء مفتاح API الرئيسي",
   "Master API Key Created By User ID": "معرّف المستخدم الذي أنشأ مفتاح API الرئيسي",
-  "Master API Key Hint": "تلميح مفتاح API الرئيسي"
+  "Master API Key Hint": "تلميح مفتاح API الرئيسي",
+  "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.": "يحتاج OneUptime إلى هذا المفتاح لتقديم نطاقك عبر HTTPS. يُخزَّن مشفّرًا ولا يُعرض مرة أخرى أبدًا.",
+  "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.": "تعذّرت قراءة الشهادة. الصقها بصيغة PEM بحيث تبدأ بـ -----BEGIN CERTIFICATE-----.",
+  "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.": "تعذّرت قراءة المفتاح الخاص. الصقه بصيغة PEM بحيث يبدأ بـ -----BEGIN PRIVATE KEY-----.",
+  "The private key does not belong to this certificate. Paste the private key the certificate was issued for.": "المفتاح الخاص لا يخص هذه الشهادة. الصق المفتاح الخاص الذي صدرت الشهادة له.",
+  "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.": "المفتاح الخاص محمي بعبارة مرور. الصقه دونها: يجب أن يتمكن الخادم من قراءته لتقديم الشهادة.",
+  "To serve your own certificate, add both the certificate and its private key.": "لتقديم شهادتك الخاصة، أضف الشهادة ومفتاحها الخاص معًا."
 }

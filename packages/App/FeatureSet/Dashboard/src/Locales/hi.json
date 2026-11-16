@@ -56033,5 +56033,11 @@
   "API Key Hint": "API कुंजी संकेत",
   "Master API Key Created At": "मास्टर API कुंजी बनाई गई",
   "Master API Key Created By User ID": "मास्टर API कुंजी बनाने वाले उपयोगकर्ता की ID",
-  "Master API Key Hint": "मास्टर API कुंजी संकेत"
+  "Master API Key Hint": "मास्टर API कुंजी संकेत",
+  "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.": "आपके डोमेन को HTTPS पर सर्व करने के लिए OneUptime को इस कुंजी की ज़रूरत है। इसे एन्क्रिप्ट करके संग्रहीत किया जाता है और फिर कभी नहीं दिखाया जाता।",
+  "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.": "प्रमाणपत्र पढ़ा नहीं जा सका। इसे PEM फ़ॉर्मेट में पेस्ट करें, जो -----BEGIN CERTIFICATE----- से शुरू हो।",
+  "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.": "निजी कुंजी पढ़ी नहीं जा सकी। इसे PEM फ़ॉर्मेट में पेस्ट करें, जो -----BEGIN PRIVATE KEY----- से शुरू हो।",
+  "The private key does not belong to this certificate. Paste the private key the certificate was issued for.": "यह निजी कुंजी इस प्रमाणपत्र की नहीं है। वह निजी कुंजी पेस्ट करें जिसके लिए प्रमाणपत्र जारी किया गया था।",
+  "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.": "निजी कुंजी एक पासफ़्रेज़ से सुरक्षित है। इसे बिना पासफ़्रेज़ के पेस्ट करें: प्रमाणपत्र सर्व करने के लिए सर्वर को इसे पढ़ना होता है।",
+  "To serve your own certificate, add both the certificate and its private key.": "अपना खुद का प्रमाणपत्र सर्व करने के लिए, प्रमाणपत्र और उसकी निजी कुंजी दोनों जोड़ें।"
 }

@@ -56033,5 +56033,11 @@
   "API Key Hint": "API 키 힌트",
   "Master API Key Created At": "마스터 API 키 생성일",
   "Master API Key Created By User ID": "마스터 API 키를 생성한 사용자 ID",
-  "Master API Key Hint": "마스터 API 키 힌트"
+  "Master API Key Hint": "마스터 API 키 힌트",
+  "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.": "OneUptime이 도메인을 HTTPS로 제공하려면 이 키가 필요합니다. 키는 암호화되어 저장되며 다시 표시되지 않습니다.",
+  "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.": "인증서를 읽을 수 없습니다. -----BEGIN CERTIFICATE-----로 시작하는 PEM 형식으로 붙여 넣으세요.",
+  "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.": "개인 키를 읽을 수 없습니다. -----BEGIN PRIVATE KEY-----로 시작하는 PEM 형식으로 붙여 넣으세요.",
+  "The private key does not belong to this certificate. Paste the private key the certificate was issued for.": "이 개인 키는 이 인증서의 키가 아닙니다. 인증서를 발급받을 때 사용한 개인 키를 붙여 넣으세요.",
+  "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.": "개인 키가 암호문으로 보호되어 있습니다. 암호문 없이 붙여 넣으세요. 인증서를 제공하려면 서버가 키를 읽을 수 있어야 합니다.",
+  "To serve your own certificate, add both the certificate and its private key.": "자체 인증서를 제공하려면 인증서와 해당 개인 키를 모두 추가하세요."
 }

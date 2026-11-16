@@ -56033,5 +56033,11 @@
   "API Key Hint": "API 金鑰提示",
   "Master API Key Created At": "主 API 金鑰建立於",
   "Master API Key Created By User ID": "主 API 金鑰建立者使用者 ID",
-  "Master API Key Hint": "主 API 金鑰提示"
+  "Master API Key Hint": "主 API 金鑰提示",
+  "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.": "OneUptime 需要此金鑰才能透過 HTTPS 提供您的網域。金鑰會加密儲存，且不會再次顯示。",
+  "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.": "無法讀取憑證。請以 PEM 格式貼上，並以 -----BEGIN CERTIFICATE----- 開頭。",
+  "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.": "無法讀取私密金鑰。請以 PEM 格式貼上，並以 -----BEGIN PRIVATE KEY----- 開頭。",
+  "The private key does not belong to this certificate. Paste the private key the certificate was issued for.": "此私密金鑰不屬於這個憑證。請貼上簽發此憑證時所用的私密金鑰。",
+  "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.": "此私密金鑰受複雜密碼保護。請貼上不含複雜密碼的私密金鑰：伺服器必須能讀取它才能提供憑證。",
+  "To serve your own certificate, add both the certificate and its private key.": "若要提供您自己的憑證，請同時新增憑證及其私密金鑰。"
 }

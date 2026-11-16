@@ -56033,5 +56033,11 @@
   "API Key Hint": "راهنمای کلید API",
   "Master API Key Created At": "تاریخ ساخت کلید API ارشد",
   "Master API Key Created By User ID": "شناسه کاربر سازنده کلید API ارشد",
-  "Master API Key Hint": "راهنمای کلید API ارشد"
+  "Master API Key Hint": "راهنمای کلید API ارشد",
+  "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.": "OneUptime برای ارائه دامنه شما از طریق HTTPS به این کلید نیاز دارد. این کلید رمزنگاری‌شده ذخیره می‌شود و هرگز دوباره نشان داده نمی‌شود.",
+  "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.": "گواهی خوانده نشد. آن را در قالب PEM جای‌گذاری کنید، به‌طوری که با -----BEGIN CERTIFICATE----- شروع شود.",
+  "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.": "کلید خصوصی خوانده نشد. آن را در قالب PEM جای‌گذاری کنید، به‌طوری که با -----BEGIN PRIVATE KEY----- شروع شود.",
+  "The private key does not belong to this certificate. Paste the private key the certificate was issued for.": "این کلید خصوصی متعلق به این گواهی نیست. کلید خصوصی‌ای را جای‌گذاری کنید که گواهی برای آن صادر شده است.",
+  "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.": "کلید خصوصی با عبارت عبور محافظت شده است. آن را بدون عبارت عبور جای‌گذاری کنید: سرور برای ارائه گواهی باید بتواند آن را بخواند.",
+  "To serve your own certificate, add both the certificate and its private key.": "برای ارائه گواهی خودتان، هم گواهی و هم کلید خصوصی آن را اضافه کنید."
 }
