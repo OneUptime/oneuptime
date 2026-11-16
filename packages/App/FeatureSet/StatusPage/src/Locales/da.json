@@ -182,7 +182,9 @@
     "manageExisting": "Administrer eksisterende abonnement",
     "sendManagementLink": "Send administrationslink",
     "subscribedSuccessfully": "Du er blevet tilmeldt.",
-    "emailSentCheckSpam": "En e-mail med linket er sendt til din e-mailadresse. Hvis du ikke kan se e-mailen, så tjek din spam-mappe.",
+    "emailSentCheckSpam": "Vi har sendt en e-mail til denne adresse. Åbn linket i den for at bekræfte dit abonnement. Hvis du ikke kan se den, så tjek din spam-mappe.",
+    "checkEmailTitle": "Tjek din e-mail",
+    "checkPhoneTitle": "Tjek din telefon",
     "manageLinkSent": "Hvis et abonnement matcher de oplysninger, du har indtastet, har vi sendt et link til at administrere det.",
     "manageLinkSentEmail": "Hvis denne e-mailadresse har et abonnement, har vi sendt et administrationslink til adressen. Hvis du ikke kan se e-mailen, så tjek din spam-mappe.",
     "menu": {

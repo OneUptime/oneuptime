@@ -835,8 +835,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             title: "Severity",
             type: FieldType.Entity,
-            hideOnMobile: true,
             /*
+             * On a phone's card too, under the state, as the alerts list
+             * draws it: how bad an incident is decides who opens it first,
+             * and the card left it out (#9011).
+             *
              * Where the list does not fit its card - beside the side menu up
              * to about 1600px - the severity sits under the state, and the
              * duration under when it was declared, the labels and owners

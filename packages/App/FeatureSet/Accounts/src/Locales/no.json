@@ -70,7 +70,7 @@
     "emailSignInLink": "Send meg en innloggingslenke",
     "moreWaysToSignIn": "Flere måter å logge inn på",
     "noAccountPrompt": "Har du ikke en konto?",
-    "registerLink": "Registrer.",
+    "registerLink": "Registrer deg.",
     "twoFactor": {
       "title": "Tofaktorautentisering",
       "subtitle": "Velg tofaktorautentiseringsmetode. Du blir bedt om å skrive inn en kode fra den valgte metoden.",
@@ -187,7 +187,7 @@
     "submitButton": "Logg inn med SSO",
     "signInWithPassword": "Logg inn med passord",
     "noAccountPrompt": "Har du ikke en konto?",
-    "registerLink": "Registrer.",
+    "registerLink": "Registrer deg.",
     "selectProjectTitle": "Velg prosjekt",
     "noConfigForEmail": "Ingen SSO-konfigurasjon funnet for e-posten: {{email}}",
     "emailRequired": "E-post er nødvendig for å utføre denne handlingen",

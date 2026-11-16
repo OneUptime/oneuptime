@@ -69,10 +69,6 @@
     "ingestionBudgets": "수집 예산",
     "products": "제품"
   },
-  "topAlert": {
-    "title": "OneUptime 관리자 대시보드",
-    "description": "이 대시보드에서 OneUptime 서버 관련 작업을 수행할 수 있습니다."
-  },
   "header": {
     "exitAdmin": "관리자 종료",
     "help": "도움말",
