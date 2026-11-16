@@ -542,20 +542,36 @@ export default class OnCallHandoffPosts {
         /*
          * Said both ways, each to its own channels - never both to one: the
          * mention where a rule that posts it there asks for it, the name
-         * everywhere else.
+         * everywhere else. Should the mention not be posted, the channels
+         * that asked for it hear the line without it, rather than nothing.
          */
+        let isMentionPosted: boolean = true;
+
         try {
           await send({
             markdownByWorkspaceType: mentioned.lines,
             mentionsByWorkspaceType: mentioned.mentions,
             mentioning: true,
           });
-        } finally {
-          await send({
-            markdownByWorkspaceType: markdownByWorkspaceType,
-            mentioning: false,
-          });
+        } catch (err) {
+          isMentionPosted = false;
+          logger.error(
+            "Could not post an on-call handoff's mention to its channels: they hear the line without it.",
+            {
+              projectId: handoff.projectId?.toString(),
+              onCallDutyPolicyId: handoff.onCallDutyPolicyId?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(err, {
+            projectId: handoff.projectId?.toString(),
+            onCallDutyPolicyId: handoff.onCallDutyPolicyId?.toString(),
+          } as LogAttributes);
         }
+
+        await send({
+          markdownByWorkspaceType: markdownByWorkspaceType,
+          mentioning: isMentionPosted ? false : undefined,
+        });
       } catch (err) {
         logger.error("Could not post an on-call handoff to its channels.", {
           projectId: handoff.projectId?.toString(),

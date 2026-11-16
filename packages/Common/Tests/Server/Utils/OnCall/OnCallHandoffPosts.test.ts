@@ -1379,7 +1379,7 @@ describe("posting a policy's handoff", () => {
       ]);
     });
 
-    test("the line with the mention failing still lets the line without it go out", async () => {
+    test("REGRESSION: the line with the mention failing, the channels that asked for it hear the line without it - not nothing", async () => {
       accounts();
 
       jest
@@ -1401,11 +1401,32 @@ describe("posting a policy's handoff", () => {
 
       await expect(OnCallHandoffPosts.post(handoff())).resolves.toBeUndefined();
 
+      /*
+       * Each line without the mention goes wherever it is wanted: to the
+       * channels that asked for the mention too, which would else hear
+       * nothing of the hand-off.
+       */
       expect(
         sent().map((send: ReturnType<typeof sent>[number]) => {
-          return send.mentioning;
+          return [send.updateKinds, send.mentioning];
         }),
-      ).toEqual([false, false, undefined]);
+      ).toEqual([
+        [[OnCallNow], undefined],
+        [[OnCallNow], undefined],
+        [[OnCallNext], undefined],
+      ]);
+      expect(sent()[0]!.lines?.[WorkspaceType.Slack]).toContain(
+        "📞 @ana is now on call",
+      );
+    });
+
+    test("the line with the mention posted, the line without it skips the channels that heard the mention", async () => {
+      accounts();
+
+      await OnCallHandoffPosts.post(handoff());
+
+      expect(sent()[1]!.mentioning).toBe(false);
+      expect(sent()[3]!.mentioning).toBe(false);
     });
   });
 });
