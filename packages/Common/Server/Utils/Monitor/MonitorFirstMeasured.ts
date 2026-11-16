@@ -6,6 +6,7 @@ import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/Incom
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
+import ModelEventType from "../../../Types/Realtime/ModelEventType";
 import logger from "../Logger";
 import DataToProcess from "./DataToProcess";
 
@@ -37,6 +38,20 @@ import DataToProcess from "./DataToProcess";
  * Monitor row is written by every heartbeat. A stamp that is skipped or
  * fails is taken again by the next measurement, which reads the column
  * again. It never fails the result it is stamped for.
+ *
+ * A stamp that took is announced (#8974). The write runs no hooks, so it
+ * would announce nothing on its own, and a Monitors list left open kept
+ * saying Waiting for data after a first result that left the status as it
+ * was: nothing else about the monitor changed. So once the stamp lands, the
+ * monitor is announced as changed, as a write through the service would
+ * be - to the people its own read lets in (MonitorService
+ * .onTriggerRealtime), batched with the other events. It is once in a
+ * monitor's life: the heartbeat and probe-result bookkeeping on the same
+ * row (the once-a-minute fast paths) stays silent, and a stamp skipped or
+ * already taken announces nothing. A manual monitor's stamp is not
+ * announced either: it is written while the monitor is created, before the
+ * create itself is announced (DatabaseService.create runs onCreateSuccess
+ * first), so the list reads the monitor already stamped.
  */
 export default class MonitorFirstMeasured {
   // What monitorResource reads the monitor with, for stampIfFirst.
@@ -75,10 +90,13 @@ export default class MonitorFirstMeasured {
 
   /*
    * Stamps firstMeasuredAt now, if this result is a measurement and the
-   * monitor (read with SELECT) has none yet. True when it was written.
+   * monitor (read with SELECT) has none yet, and announces the monitor as
+   * changed once the stamp took, in its project (`monitor.projectId`; a
+   * monitor read without one is stamped and not announced). True when it
+   * was written.
    */
   public static async stampIfFirst(data: {
-    monitor: Pick<Monitor, "id" | "firstMeasuredAt">;
+    monitor: Pick<Monitor, "id" | "firstMeasuredAt" | "projectId">;
     dataToProcess: DataToProcess;
   }): Promise<boolean> {
     if (data.monitor.firstMeasuredAt || !data.monitor.id) {
@@ -89,10 +107,43 @@ export default class MonitorFirstMeasured {
       return false;
     }
 
-    return await MonitorFirstMeasured.stamp({
+    const isStamped: boolean = await MonitorFirstMeasured.stamp({
       monitorId: data.monitor.id,
       at: OneUptimeDate.getCurrentDate(),
     });
+
+    if (isStamped && data.monitor.projectId) {
+      await MonitorFirstMeasured.announce({
+        monitorId: data.monitor.id,
+        projectId: data.monitor.projectId,
+      });
+    }
+
+    return isStamped;
+  }
+
+  /*
+   * Tells the open pages of the people who may read the monitor that it
+   * changed: a Monitors list reads its page again, and the row says the
+   * monitor's status instead of Waiting for data. Never throws: the stamp
+   * is written either way, and the next change of the monitor is heard.
+   */
+  private static async announce(data: {
+    monitorId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    try {
+      await MonitorService.onTriggerRealtime(
+        data.monitorId,
+        data.projectId,
+        ModelEventType.Update,
+      );
+    } catch (err) {
+      logger.error(
+        `Could not announce that monitor ${data.monitorId.toString()} has been measured. Its next change is heard.`,
+      );
+      logger.error(err);
+    }
   }
 
   /*
