@@ -1335,6 +1335,12 @@ describePostgres(
       test("a repository's totals count the reader's tasks and pull requests only", async () => {
         const world: World = await seedWorld();
 
+        // The private alert's fix asks its person something: it waits for them.
+        await database.query(
+          `UPDATE "${schema}"."AIRun" SET "needsUserInput" = true WHERE "_id" = $1`,
+          [world.codeFixOfPrivateAlert],
+        );
+
         const statsOf: (
           reader: DatabaseCommonInteractionProps,
         ) => Promise<CodeRepositoryTaskStatsJSON> = async (
@@ -1381,18 +1387,56 @@ describePostgres(
         expect(other.working).toBe(0);
         expect(owner.working).toBe(1);
 
+        // The one waiting for its person is the private alert's.
+        expect(other.waitingForYou).toBe(0);
+        expect(owner.waitingForYou).toBe(1);
+
         // Open pull requests: each through the run that opened it.
         expect(other.openPullRequests).toBe(3);
         expect(owner.openPullRequests).toBe(6);
         expect(admin.openPullRequests).toBe(7);
 
-        // The tasks with no repository: none here, for anyone.
-        expect(
-          await CodeTaskStats.countTasksWithoutRepository({
-            projectId,
-            reader: member(otherId),
-          }),
-        ).toBe(0);
+        // When anything last happened: only in the reader's tasks.
+        await database.query(
+          `UPDATE "${schema}"."AIRun" SET "createdAt" = $1 WHERE "_id" = $2`,
+          [
+            new Date("2031-01-01T00:00:00.000Z"),
+            world.codeFixOfPrivateIncident,
+          ],
+        );
+
+        expect((await statsOf(member(otherId))).lastActivityAt).not.toBe(
+          "2031-01-01T00:00:00.000Z",
+        );
+        expect((await statsOf(member(namedOwnerId))).lastActivityAt).toBe(
+          "2031-01-01T00:00:00.000Z",
+        );
+
+        // A task with no repository about the private incident: its owners' alone.
+        const withoutRepository: string = await seedRun({
+          taskType: CodeFixTaskType.FixFromIncident,
+          incidentId: world.privateIncident,
+        });
+
+        await database.query(
+          `UPDATE "${schema}"."AIRun" SET "codeRepositoryId" = NULL WHERE "_id" = $1`,
+          [withoutRepository],
+        );
+
+        for (const [reader, count] of [
+          [member(otherId), 0],
+          [member(invitedId), 0],
+          [member(ownerTeamMemberId), 1],
+          [viewOnlyOwner(), 1],
+          [projectAdmin(), 1],
+        ] as Array<[DatabaseCommonInteractionProps, number]>) {
+          expect(
+            await CodeTaskStats.countTasksWithoutRepository({
+              projectId,
+              reader,
+            }),
+          ).toBe(count);
+        }
       });
 
       test("a task's page opens only for those who may read it, by its own id or a reply's", async () => {
