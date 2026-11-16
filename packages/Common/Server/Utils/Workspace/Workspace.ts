@@ -311,20 +311,15 @@ export default class WorkspaceUtil {
     const responses: Array<WorkspaceSendMessageResponse> = [];
 
     /*
-     * A project a master admin blocked, and a sample project (issue #6808),
-     * post nothing as their bot (BlockedProjectNotifications): answered as
-     * a project with no workspace connected is, one empty answer per
-     * payload, which says why (notSentReason). Each channel a payload names
-     * is not sent, for the platform's operator (WorkspaceDeliveryMetrics).
+     * A project a master admin blocked posts nothing as its bot
+     * (BlockedProjectNotifications): answered as a project with no
+     * workspace connected is, one empty answer per payload, which says why
+     * (notSentReason). Each channel a payload names is not sent, for the
+     * platform's operator (WorkspaceDeliveryMetrics).
      */
-    const silencedReason: string | null =
-      await BlockedProjectNotifications.getSilencedReason({
-        channel: "Workspace message",
-        projectId: data.projectId,
-      });
-
-    if (silencedReason) {
-      const blockedReason: string = silencedReason;
+    if (await BlockedProjectNotifications.isBlocked(data.projectId)) {
+      const blockedReason: string =
+        BlockedProjectNotifications.getNotSentReason("Workspace message");
 
       logger.debug(blockedReason, workspaceLogAttributes);
 
@@ -509,18 +504,14 @@ export default class WorkspaceUtil {
     logger.debug(data, postLogAttributes);
 
     /*
-     * A project a master admin blocked, and a sample project (issue #6808),
-     * post nothing (BlockedProjectNotifications): each channel the message
-     * names is not sent (WorkspaceDeliveryMetrics).
+     * A project a master admin blocked posts nothing (BlockedProjectNotifications):
+     * each channel the message names is not sent (WorkspaceDeliveryMetrics).
      */
-    const silencedReason: string | null =
-      await BlockedProjectNotifications.getSilencedReason({
-        channel: "Workspace message",
-        projectId: data.projectId,
-      });
-
-    if (silencedReason) {
-      logger.debug(silencedReason, postLogAttributes);
+    if (await BlockedProjectNotifications.isBlocked(data.projectId)) {
+      logger.debug(
+        BlockedProjectNotifications.getNotSentReason("Workspace message"),
+        postLogAttributes,
+      );
 
       WorkspaceDeliveryMetrics.recordChannelPostsNotSent({
         workspaceType: data.workspaceType,

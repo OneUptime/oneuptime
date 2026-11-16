@@ -323,7 +323,6 @@ beforeEach(() => {
       },
     );
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
-  jest.spyOn(ProjectService, "isSampleProject").mockResolvedValue(false);
 
   lock.mockResolvedValue(MUTEX as never);
   release.mockResolvedValue(undefined as never);

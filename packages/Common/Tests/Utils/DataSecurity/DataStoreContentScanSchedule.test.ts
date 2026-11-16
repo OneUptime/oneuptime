@@ -744,7 +744,6 @@ const CLAUSES: Record<string, ClauseReading> = {
   },
   'p."deletedAt" IS NULL': { kind: "not shown" },
   'p."isBlocked" = false': { kind: "not shown" },
-  'p."isSampleProject" = false': { kind: "not shown" },
   '(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY($5::text[]))':
     { kind: "not shown" },
   '(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY($5::text[]))':
@@ -1407,7 +1406,6 @@ describe("every content-scan path reads the store's switch, the project's switch
     expect(getServedProjectSql("$9")).toEqual([
       'p."deletedAt" IS NULL',
       'p."isBlocked" = false',
-      'p."isSampleProject" = false',
       '(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY($9::text[]))',
       '(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY($9::text[]))',
     ]);

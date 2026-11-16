@@ -367,7 +367,6 @@ describePostgres("statements one monitor result costs (Postgres)", () => {
 
     // Read once per server and cached in production.
     jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
-    jest.spyOn(ProjectService, "isSampleProject").mockResolvedValue(false);
 
     stubCache();
     stubRecordWrites();

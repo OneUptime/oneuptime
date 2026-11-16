@@ -921,7 +921,7 @@ export default class OpenStackCheckStore {
   /*
    * Sets aside the probe's due checks of one kind that nothing may run now (Utils/Probe/
    * ClaimSetAside): that kind turned off, deleted, of a deleted or archived cloud, on a probe that
-   * may not run them, or of a suspended, blocked, sample or deleted project. Each is judged again
+   * may not run them, or of a suspended, blocked or deleted project. Each is judged again
    * by the claim's own rule (getClaimableSql, IS NOT TRUE), so a check the claim would hand out is
    * never moved. The probe's checks are found as the claim finds them: those that name it, and
    * those that name no probe, of the clouds it collects. Makes due the probe's checks with no due
@@ -992,7 +992,7 @@ export default class OpenStackCheckStore {
    * - The tenancy backstop: the project's own probe, or a global probe on an instance where those
    *   are the operator's own (billing off).
    * - The project is served (ProjectService.getActiveProjectStatusQuery): not deleted, not blocked,
-   *   not a sample, and its subscriptions not inactive.
+   *   and its subscriptions not inactive.
    *
    * Which probe's checks these are is not part of it: that is the range each statement reads.
    */
@@ -1012,7 +1012,6 @@ export default class OpenStackCheckStore {
       `pr."deletedAt" IS NULL`,
       `p."deletedAt" IS NULL`,
       `p."isBlocked" = false`,
-      `p."isSampleProject" = false`,
       `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
       `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
     ].join("\n          AND ");

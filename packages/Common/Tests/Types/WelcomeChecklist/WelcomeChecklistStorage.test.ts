@@ -328,8 +328,6 @@ describe("the answer Home reads", () => {
     isFinished: false,
     canSendEmail: true,
     hasAcknowledgedTestPage: true,
-    // A sample project may be explored from the card (#6808).
-    canExploreSampleProject: true,
     steps: [
       {
         step: WelcomeStep.Monitor,

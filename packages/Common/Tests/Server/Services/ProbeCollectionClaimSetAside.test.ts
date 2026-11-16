@@ -238,7 +238,6 @@ interface ClaimUnderTest {
 const SERVED_PROJECT_RULE: Array<string> = [
   'p."deletedAt" IS NULL',
   'p."isBlocked" = false',
-  'p."isSampleProject" = false',
 ];
 
 function openStackCheckClaim(kind: OpenStackCheckKind): ClaimUnderTest {

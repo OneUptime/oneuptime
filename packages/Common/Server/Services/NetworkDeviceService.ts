@@ -3418,7 +3418,7 @@ export class Service extends ProjectReferencesService<Model> {
    * Sets aside the probe's due devices that nothing may poll now
    * (Utils/Probe/ClaimSetAside): polling turned off, no address,
    * monitor-backed, on a probe of another project, or anything of a
-   * suspended, blocked, sample or deleted project. Their nextPollAt moves
+   * suspended, blocked or deleted project. Their nextPollAt moves
    * SET_ASIDE_FOR_MINUTES on, plus up to SET_ASIDE_SPREAD_IN_MINUTES, so
    * the claim stops stepping over them on every cycle.
    *
@@ -3524,8 +3524,7 @@ export class Service extends ProjectReferencesService<Model> {
    * - Nothing polls a monitor-backed device. NULL is every device created
    *   before the column existed: those are probe-polled.
    * - The project is served (getActiveProjectStatusQuery): not deleted,
-   *   not blocked by a master admin, not a sample, and its subscriptions
-   *   not inactive.
+   *   not blocked by a master admin, and its subscriptions not inactive.
    */
   private static getPollableSql(statusesParameter: string): string {
     return [
@@ -3536,7 +3535,6 @@ export class Service extends ProjectReferencesService<Model> {
       `(nd."monitoringMethod" IS NULL OR nd."monitoringMethod" <> 'Monitor')`,
       `p."deletedAt" IS NULL`,
       `p."isBlocked" = false`,
-      `p."isSampleProject" = false`,
       `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
       `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
     ].join("\n          AND ");
