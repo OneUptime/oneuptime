@@ -1188,7 +1188,7 @@ test.describe("a host's Overview", () => {
       (await page.getByText(upSince.trim()).first().textContent()) || "",
     );
     expect(uptime).toBe(
-      fill(PERSIAN, "Up {{duration}}", { duration: "۴۱ روز" }),
+      fill(PERSIAN, "Up {{duration}}", { duration: withUnit("۴۱", "روز") }),
     );
     expect(uptime).not.toMatch(LATIN_DIGIT);
     const interval: Locator = page.getByRole("combobox", {
@@ -1198,7 +1198,11 @@ test.describe("a host's Overview", () => {
       withoutIsolateMarks(
         (await interval.locator("option:checked").textContent()) || "",
       ),
-    ).toBe(fill(PERSIAN, "Every {{interval}}", { interval: "۳۰ ثانیه" }));
+    ).toBe(
+      fill(PERSIAN, "Every {{interval}}", {
+        interval: withUnit("۳۰", "ثانیه"),
+      }),
+    );
     for (const option of await interval.locator("option").allTextContents()) {
       expect(option).not.toMatch(LATIN_DIGIT);
     }
