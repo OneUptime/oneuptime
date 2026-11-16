@@ -49,6 +49,7 @@
     "projectTeam": "تیم",
     "projectSubscription": "اشتراک",
     "projectSupport": "پشتیبانی",
+    "projectInvoices": "فاکتورها",
     "settings": "تنظیمات",
     "authentication": "احراز هویت",
     "singleSignOn": "ورود یکپارچه",
@@ -110,6 +111,7 @@
     "teams": "تیم‌ها",
     "billing": "صورت‌حساب",
     "subscription": "اشتراک",
+    "invoices": "فاکتورها",
     "support": "پشتیبانی",
     "customerSupportAccess": "دسترسی پشتیبانی مشتری",
     "advanced": "پیشرفته",
@@ -415,6 +417,28 @@
       "noUserLimit": "بدون سقف",
       "overUserLimit": "{{over}} بیش از سقف",
       "atUserLimit": "در سقف"
+    },
+    "projectInvoices": {
+      "title": "فاکتورها",
+      "cardTitle": "فاکتورها",
+      "cardDescription": "همه فاکتورهایی که ارائه‌دهنده پرداخت برای این پروژه صادر کرده است، جدیدترین در ابتدا. فاکتوری را که مشتری دیگر نباید بپردازد باطل کنید.",
+      "billingDisabled": "صدور صورت‌حساب در این سرور فعال نیست، پس پروژه‌ها فاکتوری ندارند.",
+      "emptyTitle": "هنوز فاکتوری نیست",
+      "emptyDescription": "ارائه‌دهنده پرداخت هنوز برای این پروژه فاکتوری صادر نکرده است. فاکتورها پس از صدور اینجا نمایش داده می‌شوند.",
+      "billedForPlan": "طرح",
+      "billedForUsage": "مصرف",
+      "statusPaid": "پرداخت‌شده",
+      "statusOpen": "پرداخت‌نشده",
+      "statusVoid": "باطل‌شده",
+      "statusUncollectible": "غیرقابل وصول",
+      "statusDraft": "پیش‌نویس",
+      "statusDeleted": "حذف‌شده",
+      "statusOther": "نامشخص",
+      "downloadButton": "دانلود",
+      "voidButton": "باطل کردن فاکتور",
+      "voidTitle": "باطل کردن فاکتور",
+      "voidDescription": "فاکتور {{number}} به مبلغ {{amount}} باطل شود؟ مشتری دیگر بدهکار آن نخواهد بود و ارائه‌دهنده پرداخت دیگر برای وصول آن تلاش نمی‌کند. این کار برگشت‌پذیر نیست.",
+      "voidSuccess": "فاکتور {{number}} باطل شد. مشتری دیگر بدهکار آن نیست."
     },
     "projectSupport": {
       "title": "دسترسی پشتیبانی مشتری",
@@ -4025,5 +4049,11 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "کلید فعلی فوراً برای هر اسکریپت و ابزاری که از آن استفاده می‌کند از کار می‌افتد. کلید جدید یک بار نمایش داده می‌شود.",
   "Copy Your Master API Key": "کلید API ارشد خود را کپی کنید",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "همین حالا آن را کپی کنید و در جای امنی، مانند یک مدیر رازها، نگه دارید. فقط همین یک بار نمایش داده می‌شود: OneUptime فقط هش آن را نگه می‌دارد.",
-  "The server did not answer with the master API key. Try again.": "سرور کلید API ارشد را برنگرداند. دوباره امتحان کنید."
+  "The server did not answer with the master API key. Try again.": "سرور کلید API ارشد را برنگرداند. دوباره امتحان کنید.",
+  "Invoice Number": "شماره فاکتور",
+  "Invoice Date": "تاریخ فاکتور",
+  "Billed For": "بابت",
+  "Amount": "مبلغ",
+  "Invoice": "فاکتور",
+  "Invoices": "فاکتورها"
 }

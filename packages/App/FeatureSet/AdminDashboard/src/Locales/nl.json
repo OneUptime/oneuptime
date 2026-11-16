@@ -49,6 +49,7 @@
     "projectTeam": "Team",
     "projectSubscription": "Abonnement",
     "projectSupport": "Ondersteuning",
+    "projectInvoices": "Facturen",
     "settings": "Instellingen",
     "authentication": "Authenticatie",
     "singleSignOn": "Single sign-on",
@@ -110,6 +111,7 @@
     "teams": "Teams",
     "billing": "Facturering",
     "subscription": "Abonnement",
+    "invoices": "Facturen",
     "support": "Ondersteuning",
     "customerSupportAccess": "Toegang voor klantenondersteuning",
     "advanced": "Geavanceerd",
@@ -415,6 +417,28 @@
       "noUserLimit": "Geen limiet",
       "overUserLimit": "{{over}} boven de limiet",
       "atUserLimit": "Op de limiet"
+    },
+    "projectInvoices": {
+      "title": "Facturen",
+      "cardTitle": "Facturen",
+      "cardDescription": "Alle facturen die de betaalprovider voor dit project heeft opgesteld, de nieuwste eerst. Annuleer een factuur die de klant niet meer hoeft te betalen.",
+      "billingDisabled": "Facturering is niet ingeschakeld op deze server, dus projecten hebben geen facturen.",
+      "emptyTitle": "Nog geen facturen",
+      "emptyDescription": "De betaalprovider heeft nog geen factuur voor dit project opgesteld. Facturen verschijnen hier zodra dat gebeurt.",
+      "billedForPlan": "Abonnement",
+      "billedForUsage": "Gebruik",
+      "statusPaid": "Betaald",
+      "statusOpen": "Openstaand",
+      "statusVoid": "Geannuleerd",
+      "statusUncollectible": "Oninbaar",
+      "statusDraft": "Concept",
+      "statusDeleted": "Verwijderd",
+      "statusOther": "Onbekend",
+      "downloadButton": "Downloaden",
+      "voidButton": "Factuur annuleren",
+      "voidTitle": "Factuur annuleren",
+      "voidDescription": "Factuur {{number}} van {{amount}} annuleren? De klant is deze dan niet meer verschuldigd en de betaalprovider probeert hem niet meer te innen. Dit kan niet ongedaan worden gemaakt.",
+      "voidSuccess": "Factuur {{number}} geannuleerd. De klant is deze niet meer verschuldigd."
     },
     "projectSupport": {
       "title": "Toegang voor klantenondersteuning",
@@ -4025,5 +4049,11 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "De huidige sleutel werkt meteen niet meer, voor elk script en elke tool die hem gebruikt. De nieuwe sleutel wordt één keer getoond.",
   "Copy Your Master API Key": "Kopieer uw master API-sleutel",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Kopieer hem nu en bewaar hem op een veilige plek, zoals een secret manager. Hij wordt alleen deze keer getoond: OneUptime bewaart er alleen een hash van.",
-  "The server did not answer with the master API key. Try again.": "De server antwoordde niet met de master API-sleutel. Probeer het opnieuw."
+  "The server did not answer with the master API key. Try again.": "De server antwoordde niet met de master API-sleutel. Probeer het opnieuw.",
+  "Invoice Number": "Factuurnummer",
+  "Invoice Date": "Factuurdatum",
+  "Billed For": "Gefactureerd voor",
+  "Amount": "Bedrag",
+  "Invoice": "Factuur",
+  "Invoices": "Facturen"
 }

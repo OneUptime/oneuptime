@@ -49,6 +49,7 @@
     "projectTeam": "팀",
     "projectSubscription": "구독",
     "projectSupport": "지원",
+    "projectInvoices": "청구서",
     "settings": "설정",
     "authentication": "인증",
     "singleSignOn": "SSO",
@@ -110,6 +111,7 @@
     "teams": "팀",
     "billing": "결제",
     "subscription": "구독",
+    "invoices": "청구서",
     "support": "지원",
     "customerSupportAccess": "고객 지원 액세스",
     "advanced": "고급",
@@ -415,6 +417,28 @@
       "noUserLimit": "한도 없음",
       "overUserLimit": "한도 {{over}}명 초과",
       "atUserLimit": "한도 도달"
+    },
+    "projectInvoices": {
+      "title": "청구서",
+      "cardTitle": "청구서",
+      "cardDescription": "결제 공급자가 이 프로젝트에 발행한 모든 청구서입니다(최신순). 고객이 더 이상 지불할 필요가 없는 청구서는 무효화할 수 있습니다.",
+      "billingDisabled": "이 서버에서는 결제가 활성화되어 있지 않으므로 프로젝트에 청구서가 없습니다.",
+      "emptyTitle": "아직 청구서가 없습니다",
+      "emptyDescription": "결제 공급자가 아직 이 프로젝트에 청구서를 발행하지 않았습니다. 발행되면 여기에 표시됩니다.",
+      "billedForPlan": "요금제",
+      "billedForUsage": "사용량",
+      "statusPaid": "결제됨",
+      "statusOpen": "미결제",
+      "statusVoid": "무효",
+      "statusUncollectible": "회수 불가",
+      "statusDraft": "초안",
+      "statusDeleted": "삭제됨",
+      "statusOther": "알 수 없음",
+      "downloadButton": "다운로드",
+      "voidButton": "청구서 무효화",
+      "voidTitle": "청구서 무효화",
+      "voidDescription": "{{amount}} 청구서 {{number}}을(를) 무효화하시겠습니까? 고객은 더 이상 이 금액을 지불할 필요가 없으며 결제 공급자도 더 이상 징수를 시도하지 않습니다. 이 작업은 되돌릴 수 없습니다.",
+      "voidSuccess": "청구서 {{number}}이(가) 무효화되었습니다. 고객은 더 이상 이 금액을 지불할 필요가 없습니다."
     },
     "projectSupport": {
       "title": "고객 지원 액세스",
@@ -4025,5 +4049,11 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "현재 키는 이 키를 사용하는 모든 스크립트와 도구에서 즉시 작동하지 않습니다. 새 키는 한 번만 표시됩니다.",
   "Copy Your Master API Key": "마스터 API 키 복사",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "지금 복사하여 시크릿 관리자와 같은 안전한 곳에 보관하세요. 이번 한 번만 표시됩니다. OneUptime은 해시만 저장합니다.",
-  "The server did not answer with the master API key. Try again.": "서버가 마스터 API 키를 반환하지 않았습니다. 다시 시도하세요."
+  "The server did not answer with the master API key. Try again.": "서버가 마스터 API 키를 반환하지 않았습니다. 다시 시도하세요.",
+  "Invoice Number": "청구서 번호",
+  "Invoice Date": "청구서 날짜",
+  "Billed For": "청구 대상",
+  "Amount": "금액",
+  "Invoice": "청구서",
+  "Invoices": "청구서 목록"
 }

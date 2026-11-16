@@ -49,6 +49,7 @@
     "projectTeam": "Team",
     "projectSubscription": "Abonnement",
     "projectSupport": "Kundestøtte",
+    "projectInvoices": "Fakturaer",
     "settings": "Innstillinger",
     "authentication": "Autentisering",
     "singleSignOn": "Enkel pålogging",
@@ -110,6 +111,7 @@
     "teams": "Team",
     "billing": "Fakturering",
     "subscription": "Abonnement",
+    "invoices": "Fakturaer",
     "support": "Kundestøtte",
     "customerSupportAccess": "Tilgang for kundestøtte",
     "advanced": "Avansert",
@@ -415,6 +417,28 @@
       "noUserLimit": "Ingen grense",
       "overUserLimit": "{{over}} over grensen",
       "atUserLimit": "Ved grensen"
+    },
+    "projectInvoices": {
+      "title": "Fakturaer",
+      "cardTitle": "Fakturaer",
+      "cardDescription": "Alle fakturaer betalingsleverandøren har utstedt for dette prosjektet, med den nyeste først. Annuller en faktura kunden ikke lenger skal betale.",
+      "billingDisabled": "Fakturering er ikke slått på på denne serveren, så prosjekter har ingen fakturaer.",
+      "emptyTitle": "Ingen fakturaer ennå",
+      "emptyDescription": "Betalingsleverandøren har ennå ikke utstedt en faktura for dette prosjektet. Fakturaene vises her så snart det skjer.",
+      "billedForPlan": "Abonnement",
+      "billedForUsage": "Forbruk",
+      "statusPaid": "Betalt",
+      "statusOpen": "Ubetalt",
+      "statusVoid": "Annullert",
+      "statusUncollectible": "Ikke innkrevbar",
+      "statusDraft": "Utkast",
+      "statusDeleted": "Slettet",
+      "statusOther": "Ukjent",
+      "downloadButton": "Last ned",
+      "voidButton": "Annuller faktura",
+      "voidTitle": "Annuller faktura",
+      "voidDescription": "Annullere faktura {{number}} på {{amount}}? Kunden skylder den da ikke lenger, og betalingsleverandøren slutter å prøve å kreve den inn. Dette kan ikke angres.",
+      "voidSuccess": "Faktura {{number}} er annullert. Kunden skylder den ikke lenger."
     },
     "projectSupport": {
       "title": "Tilgang for kundestøtte",
@@ -4025,5 +4049,11 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "Den nåværende nøkkelen slutter å virke med en gang, for alle skript og verktøy som bruker den. Den nye nøkkelen vises én gang.",
   "Copy Your Master API Key": "Kopier hoved-API-nøkkelen din",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Kopier den nå, og oppbevar den et trygt sted, for eksempel i en secret manager. Den vises bare denne ene gangen: OneUptime lagrer bare en hash av den.",
-  "The server did not answer with the master API key. Try again.": "Serveren svarte ikke med hoved-API-nøkkelen. Prøv igjen."
+  "The server did not answer with the master API key. Try again.": "Serveren svarte ikke med hoved-API-nøkkelen. Prøv igjen.",
+  "Invoice Number": "Fakturanummer",
+  "Invoice Date": "Fakturadato",
+  "Billed For": "Fakturert for",
+  "Amount": "Beløp",
+  "Invoice": "Faktura",
+  "Invoices": "Fakturaer"
 }

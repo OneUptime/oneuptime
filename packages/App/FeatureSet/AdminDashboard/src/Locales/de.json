@@ -49,6 +49,7 @@
     "projectTeam": "Team",
     "projectSubscription": "Abonnement",
     "projectSupport": "Support",
+    "projectInvoices": "Rechnungen",
     "settings": "Einstellungen",
     "authentication": "Authentifizierung",
     "singleSignOn": "Single Sign-On",
@@ -110,6 +111,7 @@
     "teams": "Teams",
     "billing": "Abrechnung",
     "subscription": "Abonnement",
+    "invoices": "Rechnungen",
     "support": "Support",
     "customerSupportAccess": "Kundensupport-Zugriff",
     "advanced": "Erweitert",
@@ -415,6 +417,28 @@
       "noUserLimit": "Kein Limit",
       "overUserLimit": "{{over}} über dem Limit",
       "atUserLimit": "Am Limit"
+    },
+    "projectInvoices": {
+      "title": "Rechnungen",
+      "cardTitle": "Rechnungen",
+      "cardDescription": "Alle Rechnungen, die der Zahlungsanbieter für dieses Projekt erstellt hat, die neueste zuerst. Stornieren Sie eine, die der Kunde nicht mehr bezahlen soll.",
+      "billingDisabled": "Die Abrechnung ist auf diesem Server nicht aktiviert, daher haben Projekte keine Rechnungen.",
+      "emptyTitle": "Noch keine Rechnungen",
+      "emptyDescription": "Der Zahlungsanbieter hat für dieses Projekt noch keine Rechnung erstellt. Sobald er das tut, erscheinen die Rechnungen hier.",
+      "billedForPlan": "Tarif",
+      "billedForUsage": "Nutzung",
+      "statusPaid": "Bezahlt",
+      "statusOpen": "Offen",
+      "statusVoid": "Storniert",
+      "statusUncollectible": "Uneinbringlich",
+      "statusDraft": "Entwurf",
+      "statusDeleted": "Gelöscht",
+      "statusOther": "Unbekannt",
+      "downloadButton": "Herunterladen",
+      "voidButton": "Rechnung stornieren",
+      "voidTitle": "Rechnung stornieren",
+      "voidDescription": "Rechnung {{number}} über {{amount}} stornieren? Der Kunde schuldet sie dann nicht mehr, und der Zahlungsanbieter versucht nicht mehr, sie einzuziehen. Dies kann nicht rückgängig gemacht werden.",
+      "voidSuccess": "Rechnung {{number}} storniert. Der Kunde schuldet sie nicht mehr."
     },
     "projectSupport": {
       "title": "Kundensupport-Zugriff",
@@ -4025,5 +4049,11 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "Der aktuelle Schlüssel funktioniert sofort nicht mehr, für jedes Skript und jedes Tool, das ihn verwendet. Der neue Schlüssel wird einmal angezeigt.",
   "Copy Your Master API Key": "Kopieren Sie Ihren Master-API-Schlüssel",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Kopieren Sie ihn jetzt und bewahren Sie ihn an einem sicheren Ort auf, etwa in einem Secret Manager. Er wird nur dieses eine Mal angezeigt: OneUptime speichert nur einen Hash davon.",
-  "The server did not answer with the master API key. Try again.": "Der Server hat nicht mit dem Master-API-Schlüssel geantwortet. Versuchen Sie es erneut."
+  "The server did not answer with the master API key. Try again.": "Der Server hat nicht mit dem Master-API-Schlüssel geantwortet. Versuchen Sie es erneut.",
+  "Invoice Number": "Rechnungsnummer",
+  "Invoice Date": "Rechnungsdatum",
+  "Billed For": "Berechnet für",
+  "Amount": "Betrag",
+  "Invoice": "Rechnung",
+  "Invoices": "Rechnungen"
 }

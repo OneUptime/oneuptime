@@ -49,6 +49,7 @@
     "projectTeam": "Equipo",
     "projectSubscription": "Suscripción",
     "projectSupport": "Soporte",
+    "projectInvoices": "Facturas",
     "settings": "Ajustes",
     "authentication": "Autenticación",
     "singleSignOn": "Inicio de sesión único",
@@ -110,6 +111,7 @@
     "teams": "Equipos",
     "billing": "Facturación",
     "subscription": "Suscripción",
+    "invoices": "Facturas",
     "support": "Soporte",
     "customerSupportAccess": "Acceso del soporte al cliente",
     "advanced": "Avanzado",
@@ -415,6 +417,28 @@
       "noUserLimit": "Sin límite",
       "overUserLimit": "{{over}} por encima del límite",
       "atUserLimit": "En el límite"
+    },
+    "projectInvoices": {
+      "title": "Facturas",
+      "cardTitle": "Facturas",
+      "cardDescription": "Todas las facturas que el proveedor de pagos ha emitido para este proyecto, de la más reciente a la más antigua. Anule la que el cliente ya no deba pagar.",
+      "billingDisabled": "La facturación no está habilitada en este servidor, así que los proyectos no tienen facturas.",
+      "emptyTitle": "Aún no hay facturas",
+      "emptyDescription": "El proveedor de pagos todavía no ha emitido ninguna factura para este proyecto. Sus facturas aparecerán aquí cuando lo haga.",
+      "billedForPlan": "Plan",
+      "billedForUsage": "Uso",
+      "statusPaid": "Pagada",
+      "statusOpen": "Pendiente",
+      "statusVoid": "Anulada",
+      "statusUncollectible": "Incobrable",
+      "statusDraft": "Borrador",
+      "statusDeleted": "Eliminada",
+      "statusOther": "Desconocida",
+      "downloadButton": "Descargar",
+      "voidButton": "Anular factura",
+      "voidTitle": "Anular factura",
+      "voidDescription": "¿Anular la factura {{number}} de {{amount}}? El cliente ya no la deberá y el proveedor de pagos dejará de intentar cobrarla. Esto no se puede deshacer.",
+      "voidSuccess": "Factura {{number}} anulada. El cliente ya no la debe."
     },
     "projectSupport": {
       "title": "Acceso del soporte al cliente",
@@ -4025,5 +4049,11 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "La clave actual deja de funcionar de inmediato para todos los scripts y herramientas que la usan. La nueva clave se muestra una vez.",
   "Copy Your Master API Key": "Copie su clave API maestra",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Cópiela ahora y guárdela en un lugar seguro, como un gestor de secretos. Solo se muestra esta vez: OneUptime solo guarda un hash de ella.",
-  "The server did not answer with the master API key. Try again.": "El servidor no respondió con la clave API maestra. Vuelva a intentarlo."
+  "The server did not answer with the master API key. Try again.": "El servidor no respondió con la clave API maestra. Vuelva a intentarlo.",
+  "Invoice Number": "Número de factura",
+  "Invoice Date": "Fecha de la factura",
+  "Billed For": "Concepto",
+  "Amount": "Importe",
+  "Invoice": "Factura",
+  "Invoices": "Facturas"
 }

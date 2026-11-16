@@ -49,6 +49,7 @@
     "projectTeam": "الفريق",
     "projectSubscription": "الاشتراك",
     "projectSupport": "الدعم",
+    "projectInvoices": "الفواتير",
     "settings": "الإعدادات",
     "authentication": "المصادقة",
     "singleSignOn": "تسجيل الدخول الموحد",
@@ -110,6 +111,7 @@
     "teams": "الفرق",
     "billing": "الفوترة",
     "subscription": "الاشتراك",
+    "invoices": "الفواتير",
     "support": "الدعم",
     "customerSupportAccess": "وصول دعم العملاء",
     "advanced": "متقدم",
@@ -415,6 +417,28 @@
       "noUserLimit": "بلا حد",
       "overUserLimit": "تجاوز الحد بمقدار {{over}}",
       "atUserLimit": "عند الحد"
+    },
+    "projectInvoices": {
+      "title": "الفواتير",
+      "cardTitle": "الفواتير",
+      "cardDescription": "كل الفواتير التي أصدرها موفّر الدفع لهذا المشروع، الأحدث أولًا. ألغِ الفاتورة التي لم يعد على العميل دفعها.",
+      "billingDisabled": "الفوترة غير مفعّلة على هذا الخادم، لذا لا توجد فواتير للمشاريع.",
+      "emptyTitle": "لا توجد فواتير بعد",
+      "emptyDescription": "لم يُصدر موفّر الدفع أي فاتورة لهذا المشروع بعد. ستظهر الفواتير هنا فور إصدارها.",
+      "billedForPlan": "الخطة",
+      "billedForUsage": "الاستخدام",
+      "statusPaid": "مدفوعة",
+      "statusOpen": "غير مدفوعة",
+      "statusVoid": "ملغاة",
+      "statusUncollectible": "غير قابلة للتحصيل",
+      "statusDraft": "مسودة",
+      "statusDeleted": "محذوفة",
+      "statusOther": "غير معروفة",
+      "downloadButton": "تنزيل",
+      "voidButton": "إلغاء الفاتورة",
+      "voidTitle": "إلغاء الفاتورة",
+      "voidDescription": "إلغاء الفاتورة {{number}} بمبلغ {{amount}}؟ لن يعود العميل مدينًا بها، وسيتوقف موفّر الدفع عن محاولة تحصيلها. لا يمكن التراجع عن ذلك.",
+      "voidSuccess": "أُلغيت الفاتورة {{number}}. لم يعد العميل مدينًا بها."
     },
     "projectSupport": {
       "title": "وصول دعم العملاء",
@@ -4025,5 +4049,11 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "يتوقف المفتاح الحالي عن العمل فورًا، لكل برنامج نصي وأداة تستخدمه. يُعرض المفتاح الجديد مرة واحدة.",
   "Copy Your Master API Key": "انسخ مفتاح API الرئيسي",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "انسخه الآن واحفظه في مكان آمن، مثل مدير الأسرار. لا يُعرض إلا هذه المرة: لا يحتفظ OneUptime إلا بتجزئته.",
-  "The server did not answer with the master API key. Try again.": "لم يُرجع الخادم مفتاح API الرئيسي. حاول مرة أخرى."
+  "The server did not answer with the master API key. Try again.": "لم يُرجع الخادم مفتاح API الرئيسي. حاول مرة أخرى.",
+  "Invoice Number": "رقم الفاتورة",
+  "Invoice Date": "تاريخ الفاتورة",
+  "Billed For": "بند الفوترة",
+  "Amount": "المبلغ",
+  "Invoice": "الفاتورة",
+  "Invoices": "الفواتير"
 }
