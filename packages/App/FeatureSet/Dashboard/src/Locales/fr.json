@@ -56331,5 +56331,10 @@
   "Match data stores and add owner users/teams automatically.": "Faites correspondre les magasins de données et ajoutez automatiquement les utilisateurs/équipes propriétaires.",
   "Match data stores and attach labels automatically.": "Faites correspondre les magasins de données et attachez automatiquement les étiquettes.",
   "Match serverless functions and add owner users/teams automatically.": "Faites correspondre les fonctions serverless et ajoutez automatiquement les utilisateurs/équipes propriétaires.",
-  "Match serverless functions and attach labels automatically.": "Faites correspondre les fonctions serverless et attachez automatiquement les étiquettes."
+  "Match serverless functions and attach labels automatically.": "Faites correspondre les fonctions serverless et attachez automatiquement les étiquettes.",
+  "Emptied Limits": "Limites vidées",
+  "Limited to deleted records": "Limitée à des éléments supprimés",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime a désactivé cette règle lors de leur suppression.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Réactivée en l'état, la règle ne serait plus du tout limitée par ces listes. Modifiez-la pour choisir ce à quoi elle s'applique, puis réactivez-la.",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}} : {{names}}, suppression le {{date}}."
 }

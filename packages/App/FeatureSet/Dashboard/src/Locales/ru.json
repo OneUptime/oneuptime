@@ -56331,5 +56331,10 @@
   "Match data stores and add owner users/teams automatically.": "Сопоставляйте хранилища данных и автоматически добавляйте пользователей/команды-владельцев.",
   "Match data stores and attach labels automatically.": "Сопоставляйте хранилища данных и автоматически прикрепляйте метки.",
   "Match serverless functions and add owner users/teams automatically.": "Сопоставляйте serverless-функции и автоматически добавляйте пользователей/команды-владельцев.",
-  "Match serverless functions and attach labels automatically.": "Сопоставляйте serverless-функции и автоматически прикрепляйте метки."
+  "Match serverless functions and attach labels automatically.": "Сопоставляйте serverless-функции и автоматически прикрепляйте метки.",
+  "Emptied Limits": "Опустевшие ограничения",
+  "Limited to deleted records": "Ограничено удалёнными записями",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime отключил это правило, когда они были удалены.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Если включить правило как есть, эти списки перестанут его ограничивать. Измените его, чтобы выбрать, к чему оно применяется, а затем включите.",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}} (дата удаления: {{date}})."
 }

@@ -84,6 +84,11 @@ import {
 import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
 import { shouldUseRuleCriteriaBuilder } from "../RuleCriteria/RuleCriteriaLegacyFields";
 import { loadRuleCriteriaModelForm } from "../RuleCriteria/LazyRuleCriteriaModelForm";
+import {
+  RULE_EMPTIED_LIMITS_COLUMN,
+  withRuleEmptiedLimitsMarker,
+} from "../RuleCriteria/RuleEmptiedLimitsNote";
+import RuleBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/RuleBaseModel";
 
 /**
  * The columns of the fields an Edit form leaves out (doNotShowWhenEditing):
@@ -320,6 +325,27 @@ const ModelTable: <TBaseModel extends BaseModel>(
       subject: props.ruleCriteriaSubject,
     });
 
+  /*
+   * A rule OneUptime switched off because every record a list of it was
+   * limited to was deleted (#9066) says so beside its status, and its Edit
+   * form says so above what it applies to (RuleEmptiedLimitsNote). The note
+   * is read with the rules: everyone who may read a rule may read it.
+   */
+  const isRule: boolean = model instanceof RuleBaseModel;
+
+  const columns: typeof ruleCriteriaTable.columns = isRule
+    ? withRuleEmptiedLimitsMarker(model, ruleCriteriaTable.columns)
+    : ruleCriteriaTable.columns;
+
+  const baseSelectMoreFields: Select<TBaseModel> | undefined = isRule
+    ? ({
+        ...((ruleCriteriaTable.selectMoreFields ||
+          props.selectMoreFields ||
+          {}) as Select<TBaseModel>),
+        [RULE_EMPTIED_LIMITS_COLUMN]: true,
+      } as Select<TBaseModel>)
+    : ruleCriteriaTable.selectMoreFields;
+
   if (props.enableJsonImportExport) {
     bulkActions = {
       ...(props.bulkActions || {}),
@@ -379,15 +405,15 @@ const ModelTable: <TBaseModel extends BaseModel>(
       )}
       <BaseModelTable
         {...props}
-        columns={ruleCriteriaTable.columns}
+        columns={columns}
         filters={ruleCriteriaTable.filters}
-        {...(ruleCriteriaTable.selectMoreFields
-          ? { selectMoreFields: ruleCriteriaTable.selectMoreFields }
+        {...(baseSelectMoreFields
+          ? { selectMoreFields: baseSelectMoreFields }
           : {})}
         {...(props.rowSwitch
           ? {
               selectMoreFields: {
-                ...((ruleCriteriaTable.selectMoreFields ||
+                ...((baseSelectMoreFields ||
                   props.selectMoreFields ||
                   {}) as Select<TBaseModel>),
                 [props.rowSwitch.column]: true,
@@ -583,7 +609,11 @@ const ModelTable: <TBaseModel extends BaseModel>(
                    */
                   alsoReadColumns:
                     modalType === ModalType.Edit
-                      ? getColumnsLeftOffEditForm(props.formFields)
+                      ? [
+                          ...getColumnsLeftOffEditForm(props.formFields),
+                          // Why OneUptime switched the rule off, if it did.
+                          ...(isRule ? [RULE_EMPTIED_LIMITS_COLUMN] : []),
+                        ]
                       : undefined,
                 }}
                 modelIdToEdit={modelIdToEdit}

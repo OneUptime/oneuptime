@@ -56331,5 +56331,10 @@
   "Match data stores and add owner users/teams automatically.": "匹配数据存储并自动添加所有者用户/团队。",
   "Match data stores and attach labels automatically.": "匹配数据存储并自动附加标签。",
   "Match serverless functions and add owner users/teams automatically.": "匹配无服务器函数并自动添加所有者用户/团队。",
-  "Match serverless functions and attach labels automatically.": "匹配无服务器函数并自动附加标签。"
+  "Match serverless functions and attach labels automatically.": "匹配无服务器函数并自动附加标签。",
+  "Emptied Limits": "已清空的限制",
+  "Limited to deleted records": "限定于已删除的记录",
+  "OneUptime switched this rule off when they were deleted.": "这些记录被删除时，OneUptime 已停用此规则。",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "若按原样启用，此规则将完全不受这些列表限制。请编辑它以选择其适用范围，然后再启用。",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}：{{names}}，已于 {{date}} 删除。"
 }

@@ -4138,6 +4138,28 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/UsedByPostgres.test.ts --forceExit
 
+      # #9066: a rule is never widened to every record by a delete. Every
+      # list a rule can be limited to (152 match lists of 87 rule kinds and
+      # an AI rule's runbooks, repositories and MCP servers) through the
+      # real delete, on clones carrying the migrated join tables' foreign
+      # keys: the rule limited to the deleted record alone is switched off
+      # and noted, every other rule is left as it was; a bulk delete, a
+      # retention purge, a failed DELETE put back, a race with an edit;
+      # switching such a rule on is held back until its list says something
+      # again; and the repair of rules whose lists hold only soft-deleted
+      # records.
+      - name: Test rules limited to deleted records on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RULE_EMPTIED_LIMITS_TESTS: "true"
+          RULE_EMPTIED_LIMITS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RULE_EMPTIED_LIMITS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RULE_EMPTIED_LIMITS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/RuleEmptiedLimitsPostgres.test.ts --forceExit
+
       # Postmortem statuses (Incidents > Postmortems), on migrated Postgres:
       # the two migrations on a copy of the incidents table that already
       # holds incidents (the column added without a rewrite, the indexes and

@@ -56331,5 +56331,10 @@
   "Match data stores and add owner users/teams automatically.": "Matcha datalager och lägg till ägaranvändare/team automatiskt.",
   "Match data stores and attach labels automatically.": "Matcha datalager och bifoga etiketter automatiskt.",
   "Match serverless functions and add owner users/teams automatically.": "Matcha serverlösa funktioner och lägg till ägaranvändare/team automatiskt.",
-  "Match serverless functions and attach labels automatically.": "Matcha serverlösa funktioner och bifoga etiketter automatiskt."
+  "Match serverless functions and attach labels automatically.": "Matcha serverlösa funktioner och bifoga etiketter automatiskt.",
+  "Emptied Limits": "Tömda begränsningar",
+  "Limited to deleted records": "Begränsad till borttagna poster",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime stängde av den här regeln när de togs bort.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Påslagen som den är skulle regeln inte längre begränsas av de här listorna alls. Redigera den för att välja vad den gäller, och slå sedan på den.",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, som togs bort {{date}}."
 }

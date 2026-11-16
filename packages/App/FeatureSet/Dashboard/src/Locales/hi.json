@@ -56331,5 +56331,10 @@
   "Match data stores and add owner users/teams automatically.": "डेटा स्टोर का मिलान करें और स्वामी उपयोगकर्ता/टीमें स्वचालित रूप से जोड़ें।",
   "Match data stores and attach labels automatically.": "डेटा स्टोर का मिलान करें और लेबल स्वचालित रूप से संलग्न करें।",
   "Match serverless functions and add owner users/teams automatically.": "Serverless फ़ंक्शन का मिलान करें और स्वामी उपयोगकर्ता/टीमें स्वचालित रूप से जोड़ें।",
-  "Match serverless functions and attach labels automatically.": "Serverless फ़ंक्शन का मिलान करें और लेबल स्वचालित रूप से संलग्न करें।"
+  "Match serverless functions and attach labels automatically.": "Serverless फ़ंक्शन का मिलान करें और लेबल स्वचालित रूप से संलग्न करें।",
+  "Emptied Limits": "खाली हुई सीमाएँ",
+  "Limited to deleted records": "हटाए गए रिकॉर्ड तक सीमित",
+  "OneUptime switched this rule off when they were deleted.": "उनके हटाए जाने पर OneUptime ने यह नियम बंद कर दिया।",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "जैसा है वैसा चालू करने पर यह नियम इन सूचियों से बिल्कुल सीमित नहीं रहेगा। इसे संपादित करके चुनें कि यह किस पर लागू हो, फिर इसे चालू करें।",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, {{date}} को हटाया गया।"
 }

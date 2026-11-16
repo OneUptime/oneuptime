@@ -56331,5 +56331,10 @@
   "Match data stores and add owner users/teams automatically.": "مخازن داده را تطبیق بده و کاربران/تیم‌های مالک را به‌صورت خودکار اضافه کن.",
   "Match data stores and attach labels automatically.": "مخازن داده را تطبیق بده و برچسب‌ها را به‌صورت خودکار بچسبان.",
   "Match serverless functions and add owner users/teams automatically.": "توابع بدون سرور را تطبیق بده و کاربران/تیم‌های مالک را به‌صورت خودکار اضافه کن.",
-  "Match serverless functions and attach labels automatically.": "توابع بدون سرور را تطبیق بده و برچسب‌ها را به‌صورت خودکار بچسبان."
+  "Match serverless functions and attach labels automatically.": "توابع بدون سرور را تطبیق بده و برچسب‌ها را به‌صورت خودکار بچسبان.",
+  "Emptied Limits": "محدودیت‌های خالی‌شده",
+  "Limited to deleted records": "محدود به رکوردهای حذف‌شده",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime هنگام حذف آن‌ها این قاعده را غیرفعال کرد.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "اگر همین‌طور فعال شود، این فهرست‌ها دیگر هیچ محدودیتی بر این قاعده نمی‌گذارند. آن را ویرایش کنید تا انتخاب کنید بر چه چیزی اعمال شود، سپس فعالش کنید.",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}، حذف‌شده در {{date}}."
 }

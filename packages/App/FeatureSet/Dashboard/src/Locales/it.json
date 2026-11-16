@@ -56331,5 +56331,10 @@
   "Match data stores and add owner users/teams automatically.": "Abbina gli archivi dati e aggiungi automaticamente utenti/team proprietari.",
   "Match data stores and attach labels automatically.": "Abbina gli archivi dati e allega automaticamente le etichette.",
   "Match serverless functions and add owner users/teams automatically.": "Abbina le funzioni serverless e aggiungi automaticamente utenti/team proprietari.",
-  "Match serverless functions and attach labels automatically.": "Abbina le funzioni serverless e allega automaticamente le etichette."
+  "Match serverless functions and attach labels automatically.": "Abbina le funzioni serverless e allega automaticamente le etichette.",
+  "Emptied Limits": "Limiti svuotati",
+  "Limited to deleted records": "Limitata a record eliminati",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime ha disattivato questa regola quando sono stati eliminati.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Riattivata così com'è, la regola non sarebbe più limitata da questi elenchi. Modificala per scegliere a cosa si applica, poi riattivala.",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}} (eliminazione: {{date}})."
 }

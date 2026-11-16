@@ -56331,5 +56331,10 @@
   "Match data stores and add owner users/teams automatically.": "Match gegevensopslagen en voeg automatisch eigenaargebruikers/-teams toe.",
   "Match data stores and attach labels automatically.": "Match gegevensopslagen en koppel automatisch labels.",
   "Match serverless functions and add owner users/teams automatically.": "Match serverless functies en voeg automatisch eigenaargebruikers/-teams toe.",
-  "Match serverless functions and attach labels automatically.": "Match serverless functies en koppel automatisch labels."
+  "Match serverless functions and attach labels automatically.": "Match serverless functies en koppel automatisch labels.",
+  "Emptied Limits": "Geleegde beperkingen",
+  "Limited to deleted records": "Beperkt tot verwijderde records",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime heeft deze regel uitgeschakeld toen ze werden verwijderd.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Ingeschakeld zoals hij is, zou de regel helemaal niet meer door deze lijsten worden beperkt. Bewerk hem om te kiezen waarop hij van toepassing is en schakel hem daarna in.",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, verwijderd op {{date}}."
 }

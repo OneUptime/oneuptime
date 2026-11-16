@@ -42,6 +42,9 @@ import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermis
 import SortValidator from "../Types/Database/Permissions/SortValidator";
 import RuleOwningTeams from "../Utils/Rules/RuleOwningTeams";
 import RuleSetCache from "../Utils/Rules/RuleSetCache";
+import RuleEmptiedLimits, {
+  EmptiedLimitsOfDelete,
+} from "../Utils/Rules/RuleEmptiedLimits";
 import TeamOwnedRulePermission, {
   TeamOwnedRuleColumn,
 } from "../Types/Database/Permissions/TeamOwnedRulePermission";
@@ -1462,6 +1465,48 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         return await this.getRepository().manager.query(sql, parameters);
       },
     });
+  }
+
+  /*
+   * The DELETE of `items`, which `deleteRows` runs, for every delete - a
+   * person's, the API's, a workflow's, OneUptime's own clean-ups and the
+   * retention purges - with or without the services' hooks.
+   *
+   * The database takes a deleted row out of every rule's list (ON DELETE
+   * CASCADE), and an empty list puts no limit on a rule: deleting the last
+   * monitor an on-call rule was limited to would page for every monitor.
+   * So a rule limited to these rows alone is switched off first, with a
+   * note of why on it, and put back if the DELETE fails; a rule left empty
+   * meanwhile is switched off after it (RuleEmptiedLimits, #9066). Each goes
+   * into its audit trail as changed by whoever deleted the rows (`props`). A
+   * failure to switch such a rule off refuses the delete.
+   */
+  private async deleteSwitchingOffEmptiedRules(
+    items: Array<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+    deleteRows: () => Promise<number>,
+  ): Promise<number> {
+    const emptiedLimits: EmptiedLimitsOfDelete | null =
+      await RuleEmptiedLimits.beforeDelete({
+        recordTable: this.model.tableName,
+        recordIds: items.map((item: TBaseModel): ObjectID | null => {
+          return item.id;
+        }),
+        props: props,
+      });
+
+    let deleted: number = 0;
+
+    try {
+      deleted = await deleteRows();
+    } catch (error) {
+      await RuleEmptiedLimits.afterDeleteFailed(emptiedLimits);
+      throw error;
+    }
+
+    await RuleEmptiedLimits.afterDelete(emptiedLimits);
+
+    return deleted;
   }
 
   /*
@@ -8430,13 +8475,24 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           Set<string>
         > = await this.readAttachedFilesOfRowsDeleted(items);
 
-        // The DELETE itself, committed on its own.
-        numberOfDocsAffected =
-          (
-            await progress.write(false, async (): Promise<DeleteResult> => {
-              return await this.getRepository().delete(query as any);
-            })
-          ).affected || 0;
+        /*
+         * The DELETE itself, committed on its own - a rule limited to these
+         * rows alone switched off first, a retention purge included. See
+         * deleteSwitchingOffEmptiedRules.
+         */
+        numberOfDocsAffected = await this.deleteSwitchingOffEmptiedRules(
+          items,
+          deleteBy.props,
+          async (): Promise<number> => {
+            return (
+              (
+                await progress.write(false, async (): Promise<DeleteResult> => {
+                  return await this.getRepository().delete(query as any);
+                })
+              ).affected || 0
+            );
+          },
+        );
 
         /*
          * Their attached files go with them - a retention purge included -
@@ -8835,13 +8891,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           Set<string>
         > = await this.readAttachedFilesOfRowsDeleted(items);
 
-        // The DELETE itself, committed on its own.
-        numberOfDocsAffected =
-          (
-            await progress.write(false, async (): Promise<DeleteResult> => {
-              return await this.getRepository().delete(query as any);
-            })
-          ).affected || 0;
+        /*
+         * The DELETE itself, committed on its own - a rule limited to these
+         * rows alone switched off first. See deleteSwitchingOffEmptiedRules.
+         */
+        numberOfDocsAffected = await this.deleteSwitchingOffEmptiedRules(
+          items,
+          deleteBy.props,
+          async (): Promise<number> => {
+            return (
+              (
+                await progress.write(false, async (): Promise<DeleteResult> => {
+                  return await this.getRepository().delete(query as any);
+                })
+              ).affected || 0
+            );
+          },
+        );
 
         /*
          * Their attached files go with them, unless something still holds
@@ -10631,6 +10697,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         archivedValuePicks,
       );
 
+      /*
+       * A rule switched on, and what the write says about its lists, as the
+       * caller wrote them: read before they are made into what is stored (a
+       * reminder rule with conditions stores its switch in them). See
+       * RuleEmptiedLimits.refuseSwitchOnWhileEmptied, below.
+       */
+      const ruleSwitchOn: Record<string, unknown> | null =
+        this.model instanceof RuleBaseModel &&
+        (beforeUpdateBy.data as Record<string, unknown>)["isEnabled"] === true
+          ? { ...(beforeUpdateBy.data as Record<string, unknown>) }
+          : null;
+
       const data: PartialEntity<TBaseModel> =
         (await this.sanitizeCreateOrUpdate(
           beforeUpdateBy.data,
@@ -10753,6 +10831,22 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       rowsOfWrite = items;
       writtenData = data;
+
+      /*
+       * A rule OneUptime switched off because every record a list of it was
+       * limited to was deleted stays off until the list says something again
+       * - this write, or one before it - so switching it on never makes it
+       * match every record (#9066). See RuleEmptiedLimits.
+       */
+      if (ruleSwitchOn && items.length > 0) {
+        await RuleEmptiedLimits.refuseSwitchOnWhileEmptied({
+          ruleTable: this.model.tableName,
+          ruleIds: items.map((item: TBaseModel): ObjectID | null => {
+            return item.id;
+          }),
+          written: ruleSwitchOn,
+        });
+      }
 
       /*
        * Only each record's own files, checked on the very rows this write
@@ -11212,6 +11306,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         rowsBefore: affectedItems,
         written: data,
       });
+
+      /*
+       * A rule switched on again: why OneUptime had switched it off is said
+       * no more. See RuleEmptiedLimits.
+       */
+      if (ruleSwitchOn && affectedItems.length > 0) {
+        await RuleEmptiedLimits.clearAfterSwitchOn({
+          ruleTable: this.model.tableName,
+          ruleIds: affectedItems.map((item: TBaseModel): ObjectID | null => {
+            return item.id;
+          }),
+        });
+      }
 
       /*
        * Before onUpdateSuccess, so a service hook that reads the list (an

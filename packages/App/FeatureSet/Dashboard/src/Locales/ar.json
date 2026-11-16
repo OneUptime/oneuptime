@@ -56331,5 +56331,10 @@
   "Match data stores and add owner users/teams automatically.": "طابِق مخازن البيانات وأضف المستخدمين/الفرق المالكين تلقائيًا.",
   "Match data stores and attach labels automatically.": "طابِق مخازن البيانات وأرفق التسميات تلقائيًا.",
   "Match serverless functions and add owner users/teams automatically.": "طابِق الدوال بلا خادم وأضف المستخدمين/الفرق المالكين تلقائيًا.",
-  "Match serverless functions and attach labels automatically.": "طابِق الدوال بلا خادم وأرفق التسميات تلقائيًا."
+  "Match serverless functions and attach labels automatically.": "طابِق الدوال بلا خادم وأرفق التسميات تلقائيًا.",
+  "Emptied Limits": "حدود أُفرغت",
+  "Limited to deleted records": "مقيّدة بسجلات محذوفة",
+  "OneUptime switched this rule off when they were deleted.": "عطّل OneUptime هذه القاعدة عند حذف تلك السجلات.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "لو فُعّلت كما هي، فلن تقيّدها هذه القوائم أبدًا. عدّلها لاختيار ما تنطبق عليه، ثم فعّلها.",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}، حُذفت في {{date}}."
 }
