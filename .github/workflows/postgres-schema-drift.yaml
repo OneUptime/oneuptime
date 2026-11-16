@@ -2970,9 +2970,10 @@ jobs:
       # UPDATE SKIP LOCKED), hears
       # only its own stops, settles only its own captures, and the server
       # counts the packets in the uploaded file; Stop from the dashboard, the
-      # stale capture sweep and the retention sweep (files included). Each
-      # write's round trips are counted: one self-committing statement each
-      # (#8870), the sweep three, a retention batch one transaction.
+      # stale capture sweep and the retention sweep (files included, with
+      # the capture's real foreign key to its file in place). Each write's
+      # round trips are counted: one self-committing statement each (#8870),
+      # the stale sweep three, a retention batch one (#8929).
       - name: Test packet capture's SQL on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
