@@ -66,7 +66,9 @@ import {
  *     the values under a secret key inside a list or a key-value list;
  *   - the exception an exception event becomes is stored scrubbed alike;
  *   - a value nested too deep, or past the span's allowance, is stored as
- *     its JSON text, masked as text.
+ *     its JSON text, masked as text;
+ *   - All masks the span's status message and its events' names, and the
+ *     rules that scrub its events the exception's type (#6513).
  *
  * Only the persistence edges are replaced (Redis, ClickHouse, Postgres, the
  * ingestion-key lookup).
@@ -899,6 +901,210 @@ describe("trace scrub rules over lists and nested values, on each OTLP route (#6
           "link.owners"
         ],
       ).toEqual([EMAIL]);
+    },
+  );
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A SPAN'S STATUS MESSAGE, ITS EVENTS' NAMES AND ITS EXCEPTION'S TYPE (#6513).
+ *
+ * No trace rule read a span's status message or an event's name, and an
+ * exception's type was stored as its span event's exception.type came, so
+ * an address repeated there reached storage past a rule meant to remove
+ * it. All reaches the status message and the events' names now, and the
+ * rules that scrub a span's events scrub its exception's type - on every
+ * route, with the exception still grouped by what it came with.
+ * ---------------------------------------------------------------------------
+ */
+const STATUS_SPAN_ID_HEX: string = "aaaaaaaaaaaaaa03";
+
+function statusRequest(): JSONObject {
+  return {
+    resourceSpans: [
+      {
+        resource: { attributes: pairs([["service.name", text(SERVICE_NAME)]]) },
+        scopeSpans: [
+          {
+            scope: { name: "checkout.tracer" },
+            spans: [
+              {
+                traceId: TRACE_ID_HEX,
+                spanId: STATUS_SPAN_ID_HEX,
+                name: "POST /charge",
+                kind: 2,
+                startTimeUnixNano: "1794218402000000000",
+                endTimeUnixNano: "1794218402250000000",
+                status: { code: 2, message: `card declined for ${EMAIL}` },
+                events: [
+                  {
+                    timeUnixNano: "1794218402100000000",
+                    name: `retrying for ${OTHER_EMAIL}`,
+                    attributes: pairs([["retry.count", int("1")]]),
+                  },
+                  {
+                    timeUnixNano: "1794218402200000000",
+                    name: "exception",
+                    attributes: pairs([
+                      ["exception.type", text(`CardDeclined[${EMAIL}]`)],
+                      ["exception.message", text("card declined")],
+                      ["exception.stacktrace", text("at charge (pay.js:9)")],
+                    ]),
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+// The project's Email rule, masking, for one Fields to Scrub choice.
+function emailRuleFor(fields: string): Array<CompiledTraceScrubRule> {
+  const compiled: CompiledTraceScrubRule = compiledRule({
+    patternType: TraceScrubPatternType.Email,
+    action: TraceScrubAction.Mask,
+  });
+
+  compiled.rule.fieldsToScrub = fields;
+
+  return [compiled];
+}
+
+function eventNames(row: JSONObject): Array<unknown> {
+  return (row["events"] as Array<JSONObject>).map(
+    (event: JSONObject): unknown => {
+      return event["name"];
+    },
+  );
+}
+
+describe("a span's status message, its events' names and its exception's type, on each OTLP route (#6513)", () => {
+  test.each(ROUTE_CASES)(
+    "%s: All masks the status message, the events' names and the exception's type",
+    async (_label: string, routeIndex: number) => {
+      setupIngest(projectRules());
+
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(statusRequest()),
+      );
+
+      const row: JSONObject = spanRow(STATUS_SPAN_ID_HEX);
+
+      expect(row["statusMessage"]).toBe(`card declined for ${EMAIL_MASKED}`);
+      expect(eventNames(row)).toEqual([
+        `retrying for ${OTHER_EMAIL_MASKED}`,
+        "exception",
+      ]);
+      expect(eventAttributes(row, "exception")["exception.type"]).toBe(
+        `CardDeclined[${EMAIL_MASKED}]`,
+      );
+
+      expect(exceptionRows).toHaveLength(1);
+      expect(exceptionRows[0]!["exceptionType"]).toBe(
+        `CardDeclined[${EMAIL_MASKED}]`,
+      );
+      expect(exceptionPayloads).toHaveLength(1);
+      expect(exceptionPayloads[0]!.exceptionType).toBe(
+        `CardDeclined[${EMAIL_MASKED}]`,
+      );
+
+      const stored: string = JSON.stringify([
+        spanRows,
+        exceptionRows,
+        exceptionPayloads,
+      ]);
+
+      expect(stored).not.toContain(EMAIL);
+      expect(stored).not.toContain(OTHER_EMAIL);
+    },
+  );
+
+  test.each(ROUTE_CASES)(
+    "%s: the exception is grouped by the type it came with, as without a rule",
+    async (_label: string, routeIndex: number) => {
+      setupIngest([]);
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(statusRequest()),
+      );
+
+      const unscrubbed: JSONObject = exceptionRows[0]!;
+
+      expect(unscrubbed["exceptionType"]).toBe(`CardDeclined[${EMAIL}]`);
+
+      jest.restoreAllMocks();
+      spanRows = [];
+      exceptionRows = [];
+      exceptionPayloads = [];
+      setupIngest(projectRules());
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(statusRequest()),
+      );
+
+      expect(exceptionRows[0]!["exceptionType"]).toBe(
+        `CardDeclined[${EMAIL_MASKED}]`,
+      );
+      expect(exceptionRows[0]!["fingerprint"]).toBe(unscrubbed["fingerprint"]);
+      expect(exceptionRows[0]!["fingerprintV2"]).toBe(
+        unscrubbed["fingerprintV2"],
+      );
+      expect(exceptionPayloads[0]!.fingerprint).toBe(unscrubbed["fingerprint"]);
+    },
+  );
+
+  test.each(ROUTE_CASES)(
+    "%s: Event Attributes Only masks the exception's type, never the status message or an event's name",
+    async (_label: string, routeIndex: number) => {
+      setupIngest(emailRuleFor(TraceScrubField.Events));
+
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(statusRequest()),
+      );
+
+      const row: JSONObject = spanRow(STATUS_SPAN_ID_HEX);
+
+      expect(row["statusMessage"]).toBe(`card declined for ${EMAIL}`);
+      expect(eventNames(row)).toEqual([
+        `retrying for ${OTHER_EMAIL}`,
+        "exception",
+      ]);
+      expect(exceptionRows[0]!["exceptionType"]).toBe(
+        `CardDeclined[${EMAIL_MASKED}]`,
+      );
+    },
+  );
+
+  test.each(ROUTE_CASES)(
+    "%s: Span Name Only and Attributes Only leave all three as they came",
+    async (_label: string, routeIndex: number) => {
+      for (const fields of [TraceScrubField.Name, TraceScrubField.Attributes]) {
+        jest.restoreAllMocks();
+        spanRows = [];
+        exceptionRows = [];
+        exceptionPayloads = [];
+        setupIngest(emailRuleFor(fields));
+
+        await ingestDecodedBody(
+          await ROUTES[routeIndex]!.decode(statusRequest()),
+        );
+
+        const row: JSONObject = spanRow(STATUS_SPAN_ID_HEX);
+
+        expect([fields, row["statusMessage"]]).toEqual([
+          fields,
+          `card declined for ${EMAIL}`,
+        ]);
+        expect([fields, eventNames(row)[0]]).toEqual([
+          fields,
+          `retrying for ${OTHER_EMAIL}`,
+        ]);
+        expect([fields, exceptionRows[0]!["exceptionType"]]).toEqual([
+          fields,
+          `CardDeclined[${EMAIL}]`,
+        ]);
+      }
     },
   );
 });

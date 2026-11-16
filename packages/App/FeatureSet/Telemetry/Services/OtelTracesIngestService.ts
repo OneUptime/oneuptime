@@ -85,7 +85,9 @@ import ServiceType from "Common/Types/Telemetry/ServiceType";
 import TraceDropFilterService, {
   LoadedTraceDropFilter,
 } from "./TraceDropFilterService";
-import TraceScrubRuleService from "./TraceScrubRuleService";
+import TraceScrubRuleService, {
+  ExceptionContent,
+} from "./TraceScrubRuleService";
 import TracePipelineService, {
   LoadedTracePipeline,
 } from "./TracePipelineService";
@@ -1459,16 +1461,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
     for (const rawException of data.rawExceptions) {
       try {
-        const scrubbed: {
-          message: string;
-          stackTrace: string;
-          attributes: JSONObject;
-        } =
+        const scrubbed: ExceptionContent =
           data.scrubRules.length > 0
             ? TraceScrubRuleService.scrubExceptionContent(
                 {
                   message: rawException.message,
                   stackTrace: rawException.stackTrace,
+                  exceptionType: rawException.exceptionType,
                   attributes: rawException.attributes,
                 },
                 data.scrubRules,
@@ -1477,7 +1476,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
         const message: string = scrubbed.message;
         const stackTrace: string = scrubbed.stackTrace;
-        const exceptionType: string = rawException.exceptionType;
+        /*
+         * The type as stored: scrubbed by the rules that scrub the span's
+         * events, as the event's exception.type on the Span row is. The
+         * fingerprints below read the type as it came (rawException), as
+         * they read the message and stack trace.
+         */
+        const exceptionType: string = scrubbed.exceptionType ?? "";
 
         /*
          * Fingerprint deliberately computed on the PRE-scrub content while
@@ -1498,7 +1503,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           primaryEntityId: spanContext.primaryEntityId,
           message: rawException.message,
           stackTrace: rawException.stackTrace,
-          exceptionType: exceptionType,
+          exceptionType: rawException.exceptionType,
         });
 
         /*
@@ -1511,7 +1516,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           primaryEntityId: spanContext.primaryEntityId,
           message: rawException.message,
           stackTrace: rawException.stackTrace,
-          exceptionType: exceptionType,
+          exceptionType: rawException.exceptionType,
         });
 
         // Extract release and environment from resource attributes

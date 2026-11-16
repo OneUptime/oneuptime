@@ -25,6 +25,15 @@ interface CompiledRule {
   regex: ScrubRegExp;
 }
 
+// What an exception copies out of its span's exception event.
+export interface ExceptionContent {
+  message: string;
+  stackTrace: string;
+  // The event's exception.type, when the caller stores it.
+  exceptionType?: string | undefined;
+  attributes: JSONObject;
+}
+
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
 const MAX_CACHED_PROJECTS: number = 10_000;
 
@@ -378,19 +387,17 @@ export class TraceScrubRuleService {
 
   /*
    * Scrub exception content extracted from a span's exception event.
-   * Exception message / stack trace / attributes are copies of the
+   * Exception message / stack trace / type / attributes are copies of the
    * span-event attributes, so the rules that apply are the ones scoped
    * to Events (or All) — keeping the ExceptionInstance copy consistent
-   * with the scrubbed event attributes stored on the Span row.
+   * with the scrubbed event attributes stored on the Span row. The type
+   * (exception.type) is scrubbed as the message is: the Span row's copy of
+   * it always was, and the exception's was stored as it came (#6513).
    */
   public static scrubExceptionContent(
-    content: {
-      message: string;
-      stackTrace: string;
-      attributes: JSONObject;
-    },
+    content: ExceptionContent,
     compiledRules: Array<CompiledRule>,
-  ): { message: string; stackTrace: string; attributes: JSONObject } {
+  ): ExceptionContent {
     if (compiledRules.length === 0) {
       return content;
     }
@@ -435,6 +442,14 @@ export class TraceScrubRuleService {
     return {
       message: this.scrubString(content.message, applicableRules),
       stackTrace: this.scrubString(content.stackTrace, applicableRules),
+      ...(typeof content.exceptionType === "string"
+        ? {
+            exceptionType: this.scrubString(
+              content.exceptionType,
+              applicableRules,
+            ),
+          }
+        : {}),
       attributes: attributes,
     };
   }
@@ -508,6 +523,21 @@ export class TraceScrubRuleService {
         );
       }
 
+      /*
+       * The status message: free text a span sets on itself, which often
+       * repeats the error it failed with - an address, a token in a URL.
+       * No scope but All names it (it is not the name, nor an attribute,
+       * nor an event), so All reaches it, as All reaches every text a span
+       * stores (#6513). A Sensitive Attribute Keys rule reads no free
+       * text: scrubString skips it.
+       */
+      if (scrubAll && typeof spanRow["statusMessage"] === "string") {
+        spanRow["statusMessage"] = this.scrubString(
+          spanRow["statusMessage"] as string,
+          singleRule,
+        );
+      }
+
       // Span attributes.
       if (
         (scrubAll || fieldsToScrub === TraceScrubField.Attributes) &&
@@ -570,7 +600,13 @@ export class TraceScrubRuleService {
         }
       }
 
-      // Span event attributes — walk events[].attributes.
+      /*
+       * Span events — walk events[].attributes, and under All the event's
+       * name too: an instrumentation can name an event with what happened
+       * ("Retrying after 10.0.0.12 refused"), and All reaches every text a
+       * span stores. Event Attributes Only reads what it says, the
+       * attributes (#6513).
+       */
       if (
         (scrubAll || fieldsToScrub === TraceScrubField.Events) &&
         Array.isArray(spanRow["events"])
@@ -579,7 +615,18 @@ export class TraceScrubRuleService {
           "events"
         ] as Array<JSONObject>;
         for (const event of events) {
-          if (event && typeof event === "object" && event["attributes"]) {
+          if (!event || typeof event !== "object") {
+            continue;
+          }
+
+          if (scrubAll && typeof event["name"] === "string") {
+            event["name"] = this.scrubString(
+              event["name"] as string,
+              singleRule,
+            );
+          }
+
+          if (event["attributes"]) {
             this.scrubAttributesInPlace(
               event["attributes"] as JSONObject,
               singleRule,
