@@ -7,6 +7,7 @@ import { EVERY_THIRTY_SECONDS } from "Common/Utils/CronTime";
 import MonitorService from "Common/Server/Services/MonitorService";
 import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import { logMonitorEvaluationError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 import MonitorHeartbeatState, {
   HeartbeatKind,
   HeartbeatWrite,
@@ -128,10 +129,16 @@ const checkOnlineStatus: (monitor: Monitor) => Promise<void> = async (
 
     logger.debug(`Processed incoming email monitor: ${monitor.id?.toString()}`);
   } catch (error) {
-    logger.error(
-      `Error while processing incoming email monitor: ${monitor.id?.toString()}`,
-    );
-    logger.error(error);
+    /*
+     * A monitor paused, archived or disabled since the sweep read it is
+     * refused, as expected: logged at debug, and the sweep goes on
+     * (logMonitorEvaluationError, issue #8069).
+     */
+    logMonitorEvaluationError({
+      error: error,
+      message: `Error while processing incoming email monitor: ${monitor.id?.toString()}`,
+      attributes: { projectId: monitor.projectId?.toString() },
+    });
   }
 };
 

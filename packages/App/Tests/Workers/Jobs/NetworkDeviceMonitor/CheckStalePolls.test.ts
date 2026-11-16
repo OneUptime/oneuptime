@@ -6,6 +6,8 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 
 /*
  * NetworkDeviceMonitor:CheckStalePolls. A Network Device monitor is
@@ -177,9 +179,11 @@ const monitorResource: jest.Mock =
   MonitorResourceUtil.monitorResource as unknown as jest.Mock;
 const markReported: jest.Mock =
   NetworkDeviceStalePollReports.markReported as unknown as jest.Mock;
-const mockedLogger: { error: jest.Mock } = logger as unknown as {
-  error: jest.Mock;
-};
+const mockedLogger: { error: jest.Mock; debug: jest.Mock } =
+  logger as unknown as {
+    error: jest.Mock;
+    debug: jest.Mock;
+  };
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const PROBE_ID: ObjectID = ObjectID.generate();
@@ -473,6 +477,94 @@ describe("NetworkDeviceMonitor:CheckStalePolls", () => {
     await tick();
 
     expect(monitorResource).toHaveBeenCalledTimes(2);
+  });
+
+  /*
+   * A monitor paused, archived or disabled after the run read it is refused
+   * by MonitorResource (issue #8069): logged at debug, never at error, and
+   * the run goes on. It is not recorded for the spell, so a monitor that is
+   * monitored again while its device is still stale is evaluated then.
+   */
+  test.each([
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+    ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+    ExceptionMessages.MonitorDisabled,
+    ExceptionMessages.MonitorArchived,
+    ExceptionMessages.MonitorNotFound,
+  ])(
+    "a monitor refused mid-check ('%s') is logged at debug, not error, the others go on, and it is not recorded",
+    async (refusal: string) => {
+      const first: NetworkDevice = device({ lastPolledAt: minutesAgo(30) });
+      const second: NetworkDevice = device({ lastPolledAt: minutesAgo(30) });
+      devices = [first, second];
+      const paused: Monitor = monitorWith(
+        deviceStep({ deviceId: first.id!.toString() }),
+      );
+      const watching: Monitor = monitorWith(
+        deviceStep({ deviceId: second.id!.toString() }),
+      );
+      monitors = [paused, watching];
+
+      monitorResource.mockImplementation(
+        async (response: ProbeMonitorResponse) => {
+          if (response.monitorId.toString() === paused.id!.toString()) {
+            throw new BadDataException(refusal);
+          }
+
+          return {};
+        },
+      );
+
+      await tick();
+
+      expect(mockedLogger.error).not.toHaveBeenCalled();
+
+      const refusalLines: Array<string> = mockedLogger.debug.mock.calls
+        .map((call: Array<unknown>): string => {
+          return String(call[0]);
+        })
+        .filter((line: string): boolean => {
+          return line.includes(refusal);
+        });
+
+      expect(refusalLines).toHaveLength(1);
+      expect(refusalLines[0]).toContain(paused.id!.toString());
+
+      // The other monitor was evaluated and recorded; the refused one was not.
+      expect(monitorResource).toHaveBeenCalledTimes(2);
+      expect(
+        markReported.mock.calls[0]![0].map(
+          (report: { monitorId: ObjectID }): string => {
+            return report.monitorId.toString();
+          },
+        ),
+      ).toEqual([watching.id!.toString()]);
+
+      // The run's summary counts it apart from the failures.
+      const summary: string | undefined = mockedLogger.debug.mock.calls
+        .map((call: Array<unknown>): string => {
+          return String(call[0]);
+        })
+        .find((line: string): boolean => {
+          return line.includes("whose polls may have stopped");
+        });
+
+      expect(summary).toContain("1 no longer monitored, 0 failed");
+    },
+  );
+
+  test("any other evaluation failure is still logged at error", async () => {
+    const stale: NetworkDevice = device({ lastPolledAt: minutesAgo(30) });
+    devices = [stale];
+    monitors = [monitorWith(deviceStep({ deviceId: stale.id!.toString() }))];
+    const failure: Error = new Error("database is down");
+    monitorResource.mockRejectedValueOnce(failure);
+
+    await tick();
+
+    expect(mockedLogger.error).toHaveBeenCalledWith(failure, {
+      projectId: PROJECT_ID.toString(),
+    });
   });
 
   test("a failure on one monitor does not stop the others", async () => {

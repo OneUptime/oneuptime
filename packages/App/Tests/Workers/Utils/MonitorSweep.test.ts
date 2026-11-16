@@ -10,6 +10,8 @@ import FindBy from "Common/Server/Types/Database/FindBy";
 import logger from "Common/Server/Utils/Logger";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import runMonitorSweep, {
   MONITOR_SWEEP_BATCH_SIZE,
   MONITOR_SWEEP_CONCURRENCY,
@@ -265,6 +267,40 @@ describe("bounded monitor sweeps", () => {
     expect(process).toHaveBeenCalledTimes(rows.length);
     expect(logger.error).toHaveBeenCalledTimes(4);
     expect(release).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * A monitor paused, archived or disabled after the page was read is
+   * refused by MonitorResource (issue #8069): a Probe Status monitor's
+   * evaluation throws it to the sweep. Logged at debug, never at error, and
+   * the sweep goes on.
+   */
+  test("a monitor refused mid-check is logged at debug, not error, and the sweep goes on", async () => {
+    const rows: Array<Monitor> = monitors(3);
+    findBy.mockResolvedValueOnce(rows);
+    const process: jest.Mock = jest
+      .fn()
+      .mockRejectedValueOnce(
+        new BadDataException(
+          ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+        ),
+      )
+      .mockResolvedValue(undefined);
+
+    await run(process);
+
+    expect(process).toHaveBeenCalledTimes(3);
+    expect(logger.error).not.toHaveBeenCalled();
+    expect(
+      (logger.debug as jest.Mock).mock.calls.filter((call: Array<unknown>) => {
+        return (
+          String(call[0]).includes(rows[0]!.id!.toString()) &&
+          String(call[0]).includes(
+            ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+          )
+        );
+      }),
+    ).toHaveLength(1);
   });
 
   test("releases the lock and propagates a page query failure", async () => {

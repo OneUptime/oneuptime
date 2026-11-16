@@ -1,9 +1,10 @@
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
+import logger, { LogAttributes } from "../Logger";
 import {
   PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE,
   REPORTING_PROBE_NOT_KNOWN_MESSAGE,
-} from "Common/Server/Utils/Probe/ProbeReportIdentity";
+} from "../Probe/ProbeReportIdentity";
 
 /*
  * Ingest failures that are expected and that nobody can act on: the job names
@@ -42,6 +43,10 @@ import {
  * claim went stale, or it was deleted. The write is keyed on the test and
  * the probe, and neither changes between attempts. ProcessProbeIngest logs
  * the refusal once, at warn, naming the probe and the test.
+ *
+ * Shared from here (issue #8069): the telemetry worker completes such a job,
+ * and a caller that evaluates one monitor after another goes on to the next
+ * (logMonitorEvaluationError).
  */
 export function isNonActionableIngestError(error: unknown): boolean {
   return (
@@ -58,4 +63,41 @@ export function isNonActionableIngestError(error: unknown): boolean {
       error.message === REPORTING_PROBE_NOT_KNOWN_MESSAGE ||
       error.message === ExceptionMessages.MonitorTestNotHandedToProbe)
   );
+}
+
+/*
+ * What a caller that evaluates one monitor after another logs when
+ * MonitorResource throws for one of them - a worker's sweep of heartbeat,
+ * server or incoming email monitors, a device's poll or SNMP trap fanned out
+ * to the monitors watching it (issue #8069).
+ *
+ * Each caller leaves out the monitors that are not being monitored before it
+ * calls, so a refusal (isNonActionableIngestError) reaches it only when the
+ * monitor was paused, archived, disabled or deleted between the caller's
+ * read and MonitorResource's own. That is nothing anyone can act on - the
+ * monitor is simply not being monitored now - so it is logged at debug, the
+ * way the telemetry worker completes such a job quietly, and the caller goes
+ * on with the next monitor. Anything else is logged at error, as before.
+ *
+ * True when it was such a refusal.
+ */
+export function logMonitorEvaluationError(data: {
+  error: unknown;
+  // What failed, as the error line says it: "Error evaluating monitor X".
+  message: string;
+  attributes?: LogAttributes | undefined;
+}): boolean {
+  if (isNonActionableIngestError(data.error)) {
+    logger.debug(
+      `${data.message}: refused, as expected for a monitor that changed mid-check (${(data.error as BadDataException).message}). Going on.`,
+      data.attributes,
+    );
+
+    return true;
+  }
+
+  logger.error(data.message, data.attributes);
+  logger.error(data.error, data.attributes);
+
+  return false;
 }
