@@ -344,7 +344,7 @@
       "fieldMeteredSubscriptionId": "ID da assinatura por uso",
       "noTrial": "Sem período de teste",
       "changePlanTitle": "Alterar plano",
-      "changePlanDescription": "Mova este projeto para outro plano. Um período de teste em andamento continua; caso contrário, o novo plano é cobrado a partir de agora, proporcionalmente na próxima fatura.",
+      "changePlanDescription": "Mova este projeto para outro plano. Um período de teste em andamento continua; caso contrário, o novo plano é cobrado a partir de agora, proporcionalmente na próxima fatura. O cliente não precisa ter um método de pagamento cadastrado: o que ele deve fica pendente até que adicione um.",
       "changePlanSubmitButton": "Alterar plano",
       "changePlanSuccess": "Plano alterado para {{plan}}.",
       "changePlanFailure": "O plano não foi alterado. Tente novamente.",

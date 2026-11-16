@@ -344,7 +344,7 @@
       "fieldMeteredSubscriptionId": "ID for forbrugsbaseret abonnement",
       "noTrial": "Ikke i prøveperiode",
       "changePlanTitle": "Skift plan",
-      "changePlanDescription": "Flyt dette projekt til en anden plan. En igangværende prøveperiode fortsætter; ellers faktureres den nye plan fra nu af, forholdsmæssigt på næste faktura.",
+      "changePlanDescription": "Flyt dette projekt til en anden plan. En igangværende prøveperiode fortsætter; ellers faktureres den nye plan fra nu af, forholdsmæssigt på næste faktura. Kunden behøver ikke at have en betalingsmetode registreret: det, kunden skylder, venter, til der er tilføjet en.",
       "changePlanSubmitButton": "Skift plan",
       "changePlanSuccess": "Planen er skiftet til {{plan}}.",
       "changePlanFailure": "Planen blev ikke skiftet. Prøv igen.",

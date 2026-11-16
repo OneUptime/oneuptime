@@ -344,7 +344,7 @@
       "fieldMeteredSubscriptionId": "Metered Subscription ID",
       "noTrial": "Not on trial",
       "changePlanTitle": "Change Plan",
-      "changePlanDescription": "Move this project to another plan. A running trial carries over; otherwise the new plan is billed from now on, prorated on the next invoice.",
+      "changePlanDescription": "Move this project to another plan. A running trial carries over; otherwise the new plan is billed from now on, prorated on the next invoice. The customer does not need a payment method on file: what they owe waits until they add one.",
       "changePlanSubmitButton": "Change Plan",
       "changePlanSuccess": "Plan changed to {{plan}}.",
       "changePlanFailure": "The plan was not changed. Please try again.",

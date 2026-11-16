@@ -344,7 +344,7 @@
       "fieldMeteredSubscriptionId": "用量計費訂閱 ID",
       "noTrial": "未在試用中",
       "changePlanTitle": "變更方案",
-      "changePlanDescription": "將此專案移至其他方案。進行中的試用將延續；否則新方案從現在開始計費，並按比例計入下一張帳單。",
+      "changePlanDescription": "將此專案移至其他方案。進行中的試用將延續；否則新方案從現在開始計費，並按比例計入下一張帳單。客戶無需綁定付款方式：欠款會保留到客戶新增付款方式為止。",
       "changePlanSubmitButton": "變更方案",
       "changePlanSuccess": "方案已變更為 {{plan}}。",
       "changePlanFailure": "方案未變更。請再試一次。",

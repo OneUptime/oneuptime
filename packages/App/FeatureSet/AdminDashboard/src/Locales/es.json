@@ -344,7 +344,7 @@
       "fieldMeteredSubscriptionId": "ID de la suscripción por uso",
       "noTrial": "Sin prueba activa",
       "changePlanTitle": "Cambiar plan",
-      "changePlanDescription": "Cambie este proyecto a otro plan. Una prueba en curso se mantiene; si no, el nuevo plan se factura desde ahora, prorrateado en la próxima factura.",
+      "changePlanDescription": "Cambie este proyecto a otro plan. Una prueba en curso se mantiene; si no, el nuevo plan se factura desde ahora, prorrateado en la próxima factura. El cliente no necesita un método de pago registrado: lo que adeude esperará hasta que añada uno.",
       "changePlanSubmitButton": "Cambiar plan",
       "changePlanSuccess": "Plan cambiado a {{plan}}.",
       "changePlanFailure": "No se ha cambiado el plan. Inténtelo de nuevo.",

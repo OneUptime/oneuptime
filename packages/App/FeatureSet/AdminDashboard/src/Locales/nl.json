@@ -344,7 +344,7 @@
       "fieldMeteredSubscriptionId": "ID van gebruiksafhankelijk abonnement",
       "noTrial": "Niet in proefperiode",
       "changePlanTitle": "Abonnement wijzigen",
-      "changePlanDescription": "Zet dit project over op een ander abonnement. Een lopende proefperiode loopt door; anders wordt het nieuwe abonnement vanaf nu gefactureerd, naar rato op de volgende factuur.",
+      "changePlanDescription": "Zet dit project over op een ander abonnement. Een lopende proefperiode loopt door; anders wordt het nieuwe abonnement vanaf nu gefactureerd, naar rato op de volgende factuur. De klant heeft geen opgeslagen betaalmethode nodig: wat hij verschuldigd is, wacht tot hij er een toevoegt.",
       "changePlanSubmitButton": "Abonnement wijzigen",
       "changePlanSuccess": "Abonnement gewijzigd naar {{plan}}.",
       "changePlanFailure": "Het abonnement is niet gewijzigd. Probeer het opnieuw.",
