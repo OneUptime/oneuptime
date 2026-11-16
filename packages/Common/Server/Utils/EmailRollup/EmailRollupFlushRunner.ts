@@ -213,7 +213,10 @@ export default class EmailRollupFlushRunner {
     let stoppedAtDeadline: boolean = false;
 
     for (let page: number = 0; page < MAX_DISCOVERY_PAGES_PER_TICK; page++) {
-      // Between pages: what was found so far is still flushed below.
+      /*
+       * Between pages. Nothing is flushed below once the deadline has
+       * passed either: everything still pending stays due for the next tick.
+       */
       if (options?.deadline?.hasPassed()) {
         stoppedAtDeadline = true;
         break;
