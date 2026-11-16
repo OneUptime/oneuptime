@@ -68,9 +68,12 @@ export interface OpenStackConnectionTestRecord {
 
 // What the store needs of the service that owns the table.
 export interface OpenStackConnectionTestService {
-  executeTransaction: <T>(
-    run: (manager: OpenStackSqlManager) => Promise<T>,
-  ) => Promise<T>;
+  /*
+   * Its connection, for the claim's one self-committing statement. There is no transaction
+   * to open here: a claim's row locks must never outlive its statement (OneUptime issues
+   * #7194 and #7392).
+   */
+  getRepository: () => { manager: OpenStackSqlManager };
   countBy: (options: {
     query: Record<string, unknown>;
     props: { isRoot: boolean };
@@ -328,6 +331,14 @@ export default class OpenStackConnectionTestStore {
    * Hand a probe the pending tests that name it, once each: claimed, the secret read, then
    * wiped from the row. Tests that waited longer than a person would are left for
    * expireStaleTests.
+   *
+   * The claim is one self-committing statement (OneUptime issue #7392), as VMware's is
+   * (VMwareVCenterConnectionTestService.claimPendingTests): the tests are locked FOR NO KEY
+   * UPDATE SKIP LOCKED - only the tests, never the Probe rows the tenancy rule reads - and
+   * marked Running by the same statement, so the locks last only as long as it runs. It
+   * was a transaction of a SELECT ... FOR UPDATE and an UPDATE of the ids: four round trips
+   * on every probe tick, even with nothing pending. The ids come back in claim order, the
+   * oldest first.
    */
   public static async claimPendingTests(
     service: OpenStackConnectionTestService,
@@ -346,52 +357,54 @@ export default class OpenStackConnectionTestStore {
       -OPENSTACK_CONNECTION_TEST_PICKUP_TIMEOUT_IN_SECONDS,
     );
 
-    const claimedIds: Array<string> = await service.executeTransaction(
-      async (manager: OpenStackSqlManager): Promise<Array<string>> => {
-        const selectedRows: Array<{ _id: string }> = (await manager.query(
-          `
-          SELECT t."_id"
-          FROM "OpenStackCloudConnectionTest" t
-          INNER JOIN "Probe" pr ON t."probeId" = pr."_id"
-          WHERE t."probeId" = $1
-            AND t."status" = $2
-            AND t."deletedAt" IS NULL
-            AND t."createdAt" >= $3
-            AND (
-              (pr."isGlobalProbe" = false AND pr."projectId" = t."projectId")
-              OR (pr."isGlobalProbe" = true AND $5::boolean = false)
-            )
-          ORDER BY t."createdAt" ASC
-          LIMIT $4
-          FOR UPDATE OF t SKIP LOCKED
-        `,
-          [
-            data.probeId.toString(),
-            OpenStackConnectionTestStatus.Pending,
-            oldestPickup,
-            data.limit,
-            IsBillingEnabled,
-          ],
-        )) as Array<{ _id: string }>;
-
-        if (selectedRows.length === 0) {
-          return [];
-        }
-
-        const ids: Array<string> = selectedRows.map(
-          (row: { _id: string }): string => {
-            return row._id;
-          },
-        );
-
-        await manager.query(
-          `UPDATE "OpenStackCloudConnectionTest" SET "status" = $1, "claimedAt" = $2::timestamptz WHERE "_id" = ANY($3::uuid[])`,
-          [OpenStackConnectionTestStatus.Running, now, ids],
-        );
-
-        return ids;
-      },
+    // A SELECT of the rows the UPDATE wrote: TypeORM hands a top-level UPDATE ... RETURNING back as [rows, rowCount].
+    const claimedRows: unknown = await service.getRepository().manager.query(
+      `
+      WITH "pending" AS (
+        SELECT t."_id", t."createdAt"
+        FROM "OpenStackCloudConnectionTest" t
+        INNER JOIN "Probe" pr ON t."probeId" = pr."_id"
+        WHERE t."probeId" = $1
+          AND t."status" = $2
+          AND t."deletedAt" IS NULL
+          AND t."createdAt" >= $3
+          AND (
+            (pr."isGlobalProbe" = false AND pr."projectId" = t."projectId")
+            OR (pr."isGlobalProbe" = true AND $5::boolean = false)
+          )
+        ORDER BY t."createdAt" ASC
+        LIMIT $4
+        FOR NO KEY UPDATE OF t SKIP LOCKED
+      ),
+      "claimed" AS (
+        UPDATE "OpenStackCloudConnectionTest" AS t
+        SET "status" = $6,
+            "claimedAt" = $7::timestamptz
+        FROM "pending"
+        WHERE t."_id" = "pending"."_id"
+        RETURNING t."_id"
+      )
+      SELECT "pending"."_id"
+      FROM "pending"
+      INNER JOIN "claimed" ON "claimed"."_id" = "pending"."_id"
+      ORDER BY "pending"."createdAt" ASC
+    `,
+      [
+        data.probeId.toString(),
+        OpenStackConnectionTestStatus.Pending,
+        oldestPickup,
+        data.limit,
+        IsBillingEnabled,
+        OpenStackConnectionTestStatus.Running,
+        now,
+      ],
     );
+
+    const claimedIds: Array<string> = Array.isArray(claimedRows)
+      ? claimedRows.map((row: { _id: string }): string => {
+          return row._id;
+        })
+      : [];
 
     if (claimedIds.length === 0) {
       return [];

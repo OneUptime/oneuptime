@@ -2,6 +2,7 @@ import NetworkEndpointService, {
   CoarseLastSeenAtBackfillPage,
   EndpointControllerClient,
   EndpointWriteCounts,
+  OLDER_THAN_OWN_ATTACHMENT_SQL,
 } from "../../../Server/Services/NetworkEndpointService";
 import NetworkEndpoint from "../../../Models/DatabaseModels/NetworkEndpoint";
 import logger from "../../../Server/Utils/Logger";
@@ -77,8 +78,8 @@ function slotOf(macAddress: string, at: Date): number {
 // A MAC whose OUI is in the bundled registry slice (Cisco 00:00:0c).
 const CISCO_MAC: string = "00:00:0c:aa:bb:01";
 
-const INSERT_PARAMS_PER_ROW: number = 15;
-const UPDATE_PARAMS_PER_ROW: number = 11;
+const INSERT_PARAMS_PER_ROW: number = 16;
+const UPDATE_PARAMS_PER_ROW: number = 12;
 
 type QueryCall = [string, Array<unknown>];
 
@@ -201,6 +202,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
     siteId?: ObjectID | undefined;
     firstSeenAt?: Date | undefined;
     lastSeenAt?: Date | undefined;
+    attachmentSeenAt?: Date | undefined;
   }) => NetworkEndpoint = (data: {
     macAddress: string;
     attachedNetworkDeviceId?: ObjectID | undefined;
@@ -211,6 +213,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
     siteId?: ObjectID | undefined;
     firstSeenAt?: Date | undefined;
     lastSeenAt?: Date | undefined;
+    attachmentSeenAt?: Date | undefined;
   }): NetworkEndpoint => {
     const row: NetworkEndpoint = new NetworkEndpoint();
     row.id = ROW_ID;
@@ -238,6 +241,9 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
     }
     if (data.lastSeenAt) {
       row.lastSeenAt = data.lastSeenAt;
+    }
+    if (data.attachmentSeenAt) {
+      row.attachmentSeenAt = data.attachmentSeenAt;
     }
     return row;
   };
@@ -294,6 +300,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       0, // version
       null, // hostname: a walk knows no name
       null, // attachmentSource: a walk found it
+      NOW, // attachmentSeenAt: when the switch saw it on that port
     ]);
     expect(insertCalls()[0]![0]).toContain(
       '"firstSeenAt", "lastSeenAt", "coarseLastSeenAt", "version"',
@@ -333,6 +340,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       0,
       null,
       null,
+      NOW, // attachmentSeenAt: the router claimed the row just now
     ]);
   });
 
@@ -463,6 +471,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       NOW, // lastSeenAt
       null, // no name: the stored one stays
       null, // a walk's row, so no controller's
+      NOW, // attachmentSeenAt: written with the attachment
     ]);
 
     const sql: string = updateCalls()[0]![0];
@@ -476,10 +485,12 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
 
   /*
    * OneUptime issue #7389: a walk's sighting is timed when OneUptime received
-   * the poll. An older poll processed after a newer one still writes what it
-   * says that is new - the rules of who owns the port are not about time -
-   * but it never takes the endpoint's last sighting back to its own. On the
-   * row as Postgres reads it, so a walk written at the same moment counts.
+   * the poll. On a row with no attachment time (written before #7541), an
+   * older poll processed after a newer one still writes what it says that is
+   * new, but it never takes the endpoint's last sighting back to its own. On
+   * the row as Postgres reads it, so a walk written at the same moment
+   * counts. With the time, see "an older walk of the switch it is attached
+   * to" below.
    */
   it("never moves an endpoint's lastSeenAt backwards, on the row as it stands", async () => {
     findBySpy.mockResolvedValue([
@@ -667,6 +678,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       NOW,
       null,
       null,
+      null, // nor attachmentSeenAt: the port is still the switch's
     ]);
   });
 
@@ -978,6 +990,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
         0,
         "wb-0660-kds01",
         "meraki",
+        JUST_WRITTEN, // attachmentSeenAt: when the controller saw it there
       ]);
     });
 
@@ -1008,6 +1021,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
         JUST_WRITTEN,
         "wb-0660-kds01",
         "meraki",
+        JUST_WRITTEN, // attachmentSeenAt: the controller's sighting
       ]);
       expect(updateCalls()[0]![0]).toContain(
         'WHEN v."setAttachment" AND v."attachmentSource" IS NOT NULL THEN v."attachedInterfaceIndex"',
@@ -1085,6 +1099,300 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
     });
   });
 
+  /*
+   * OneUptime issue #7541: who an endpoint is attached to was decided by
+   * precedence alone, so an older walk of a switch processed after a newer
+   * one moved an endpoint that had changed ports back to the port it left.
+   * The row now keeps when its attached device last saw it there
+   * (attachmentSeenAt), and an older walk of that device writes nothing.
+   * NetworkDevicePollOrderPostgres runs it against Postgres.
+   */
+  describe("an older walk of the switch it is attached to", () => {
+    const MAC: string = "aa:bb:cc:dd:75:41";
+
+    const attachedTo: (data: {
+      deviceId: ObjectID;
+      interfaceIndex: number;
+      attachmentSeenAt?: Date | undefined;
+      lastSeenAt?: Date | undefined;
+      ipAddress?: string | undefined;
+    }) => NetworkEndpoint = (data: {
+      deviceId: ObjectID;
+      interfaceIndex: number;
+      attachmentSeenAt?: Date | undefined;
+      lastSeenAt?: Date | undefined;
+      ipAddress?: string | undefined;
+    }): NetworkEndpoint => {
+      return makeExistingRow({
+        macAddress: MAC,
+        attachedNetworkDeviceId: data.deviceId,
+        attachedInterfaceIndex: data.interfaceIndex,
+        attachedPortName: `Gi0/${data.interfaceIndex}`,
+        ipAddress: data.ipAddress,
+        firstSeenAt: EARLIER,
+        lastSeenAt: data.lastSeenAt ?? data.attachmentSeenAt ?? NOW,
+        attachmentSeenAt: data.attachmentSeenAt,
+      });
+    };
+
+    const walkOf: (data: {
+      deviceId: ObjectID;
+      interfaceIndex?: number | undefined;
+      ipAddress?: string | undefined;
+      receivedAt: Date;
+    }) => Promise<EndpointWriteCounts> = (data: {
+      deviceId: ObjectID;
+      interfaceIndex?: number | undefined;
+      ipAddress?: string | undefined;
+      receivedAt: Date;
+    }): Promise<EndpointWriteCounts> => {
+      return NetworkEndpointService.upsertDiscoveredEndpoints({
+        projectId: PROJECT_ID,
+        deviceId: data.deviceId,
+        deviceSiteId: SITE_ID,
+        attachments:
+          data.interfaceIndex === undefined
+            ? []
+            : [
+                {
+                  macAddress: MAC,
+                  attachedInterfaceIndex: data.interfaceIndex,
+                  attachedPortName: `Gi0/${data.interfaceIndex}`,
+                },
+              ],
+        ipBindings: data.ipAddress
+          ? [
+              {
+                macAddress: MAC,
+                ipAddress: data.ipAddress,
+                routerInterfaceIndex: 3,
+              },
+            ]
+          : [],
+        now: data.receivedAt,
+      });
+    };
+
+    it("reads the time with the row it decides against", async () => {
+      await walkOf({ deviceId: SWITCH_ID, interfaceIndex: 7, receivedAt: NOW });
+
+      const select: Record<string, unknown> = findBySpy.mock.calls[0]![0]
+        .select as Record<string, unknown>;
+      expect(select["attachmentSeenAt"]).toBe(true);
+    });
+
+    it("writes nothing when the switch has seen the endpoint on another port since: it stays on the newer port", async () => {
+      findBySpy.mockResolvedValue([
+        attachedTo({
+          deviceId: SWITCH_ID,
+          interfaceIndex: 7,
+          attachmentSeenAt: NOW,
+        }),
+      ]);
+
+      const counts: EndpointWriteCounts = await walkOf({
+        deviceId: SWITCH_ID,
+        interfaceIndex: 3,
+        receivedAt: minutesBefore(5),
+      });
+
+      expect(counts).toEqual({ written: 0, skipped: 0 });
+      expect(updateCalls()).toHaveLength(0);
+      expect(insertCalls()).toHaveLength(0);
+    });
+
+    it("writes nothing of the address its ARP table gave the endpoint either: the newer walk read it later", async () => {
+      findBySpy.mockResolvedValue([
+        attachedTo({
+          deviceId: SWITCH_ID,
+          interfaceIndex: 7,
+          attachmentSeenAt: NOW,
+          ipAddress: "10.0.0.20",
+        }),
+      ]);
+
+      await walkOf({
+        deviceId: SWITCH_ID,
+        interfaceIndex: 3,
+        ipAddress: "10.0.0.10",
+        receivedAt: minutesBefore(5),
+      });
+
+      expect(updateCalls()).toHaveLength(0);
+    });
+
+    it("moves the endpoint on a newer walk of the switch, and stamps that walk's time with the port", async () => {
+      findBySpy.mockResolvedValue([
+        attachedTo({
+          deviceId: SWITCH_ID,
+          interfaceIndex: 3,
+          attachmentSeenAt: minutesBefore(5),
+        }),
+      ]);
+
+      const counts: EndpointWriteCounts = await walkOf({
+        deviceId: SWITCH_ID,
+        interfaceIndex: 7,
+        receivedAt: NOW,
+      });
+
+      expect(counts).toEqual({ written: 1, skipped: 0 });
+      const params: Array<unknown> = updateCalls()[0]![1];
+      expect(params[2]).toBe(true); // setAttachment
+      expect(params[4]).toBe(7);
+      expect(params[UPDATE_PARAMS_PER_ROW]).toEqual(NOW); // attachmentSeenAt
+    });
+
+    it("moves it even when a router's ARP read has seen the endpoint since: lastSeenAt is not the switch's", async () => {
+      // The switch put it on port 3 at -5 minutes; a router saw it at NOW.
+      findBySpy.mockResolvedValue([
+        attachedTo({
+          deviceId: SWITCH_ID,
+          interfaceIndex: 3,
+          attachmentSeenAt: minutesBefore(5),
+          lastSeenAt: NOW,
+        }),
+      ]);
+
+      await walkOf({
+        deviceId: SWITCH_ID,
+        interfaceIndex: 7,
+        receivedAt: minutesBefore(1),
+      });
+
+      const params: Array<unknown> = updateCalls()[0]![1];
+      expect(params[4]).toBe(7);
+      expect(params[UPDATE_PARAMS_PER_ROW]).toEqual(minutesBefore(1));
+    });
+
+    it("lets another switch's forwarding table take the port by the old precedence, whatever its time", async () => {
+      findBySpy.mockResolvedValue([
+        attachedTo({
+          deviceId: OTHER_SWITCH_ID,
+          interfaceIndex: 7,
+          attachmentSeenAt: NOW,
+        }),
+      ]);
+
+      await walkOf({
+        deviceId: SWITCH_ID,
+        interfaceIndex: 3,
+        receivedAt: minutesBefore(5),
+      });
+
+      const params: Array<unknown> = updateCalls()[0]![1];
+      expect(params[3]).toBe(SWITCH_ID.toString());
+      expect(params[4]).toBe(3);
+      expect(params[UPDATE_PARAMS_PER_ROW]).toEqual(minutesBefore(5));
+    });
+
+    it("lets a router's older ARP read refresh the address of an endpoint a switch holds, and leaves the switch's time alone", async () => {
+      findBySpy.mockResolvedValue([
+        attachedTo({
+          deviceId: OTHER_SWITCH_ID,
+          interfaceIndex: 7,
+          attachmentSeenAt: NOW,
+          ipAddress: "10.0.0.20",
+        }),
+      ]);
+
+      await walkOf({
+        deviceId: SWITCH_ID,
+        ipAddress: "10.0.0.21",
+        receivedAt: minutesBefore(5),
+      });
+
+      const params: Array<unknown> = updateCalls()[0]![1];
+      expect(params[2]).toBe(false); // setAttachment
+      expect(params[8]).toBe("10.0.0.21");
+      expect(params[UPDATE_PARAMS_PER_ROW]).toBeNull();
+    });
+
+    it("judges a row with no attachment time as before: it was written before the column", async () => {
+      findBySpy.mockResolvedValue([
+        attachedTo({ deviceId: SWITCH_ID, interfaceIndex: 7 }),
+      ]);
+
+      await walkOf({
+        deviceId: SWITCH_ID,
+        interfaceIndex: 3,
+        receivedAt: minutesBefore(5),
+      });
+
+      const params: Array<unknown> = updateCalls()[0]![1];
+      expect(params[4]).toBe(3);
+      expect(params[UPDATE_PARAMS_PER_ROW]).toEqual(minutesBefore(5));
+    });
+
+    it("asks it again of the row as Postgres reads it, in the update's own WHERE: a newer walk written since the read is not undone", async () => {
+      findBySpy.mockResolvedValue([
+        attachedTo({
+          deviceId: SWITCH_ID,
+          interfaceIndex: 3,
+          attachmentSeenAt: minutesBefore(5),
+        }),
+      ]);
+
+      await walkOf({ deviceId: SWITCH_ID, interfaceIndex: 7, receivedAt: NOW });
+
+      const call: QueryCall = updateCalls()[0]!;
+      const sql: string = normalizeSql(call[0]);
+
+      expect(sql).toContain(
+        normalizeSql(`AND NOT ${OLDER_THAN_OWN_ATTACHMENT_SQL}`),
+      );
+      expect(normalizeSql(OLDER_THAN_OWN_ATTACHMENT_SQL)).toBe(
+        normalizeSql(`COALESCE(
+          v."attachmentSource" IS NULL
+          AND e."attachedNetworkDeviceId" = v."deviceId"
+          AND e."attachmentSeenAt" > v."attachmentSeenAt",
+          false
+        )`),
+      );
+      // Written with the attachment, and only with it.
+      expect(sql).toContain(
+        '"attachmentSeenAt" = CASE WHEN v."setAttachment" THEN v."attachmentSeenAt" ELSE e."attachmentSeenAt" END',
+      );
+      expect(sql).toContain('"attachmentSource", "attachmentSeenAt") AS (');
+      expectPlaceholdersMatchParameters({ sql: call[0], parameters: call[1] });
+    });
+
+    it("counts a row the guard refused at the write as left, not written", async () => {
+      findBySpy.mockResolvedValue([
+        attachedTo({
+          deviceId: SWITCH_ID,
+          interfaceIndex: 3,
+          attachmentSeenAt: minutesBefore(5),
+        }),
+      ]);
+      // A newer walk of the switch attached it after the read: no row back.
+      querySpy.mockResolvedValue([]);
+
+      const counts: EndpointWriteCounts = await walkOf({
+        deviceId: SWITCH_ID,
+        interfaceIndex: 7,
+        receivedAt: minutesBefore(1),
+      });
+
+      expect(counts).toEqual({ written: 0, skipped: 1 });
+    });
+
+    it("writes the attachment time on every create, with the walk's own time", async () => {
+      await walkOf({
+        deviceId: SWITCH_ID,
+        interfaceIndex: 7,
+        receivedAt: minutesBefore(5),
+      });
+
+      const params: Array<unknown> = insertCalls()[0]![1];
+      expect(params).toHaveLength(INSERT_PARAMS_PER_ROW);
+      expect(params[INSERT_PARAMS_PER_ROW - 1]).toEqual(minutesBefore(5));
+      expect(insertCalls()[0]![0]).toContain(
+        '"hostname", "attachmentSource", "attachmentSeenAt"',
+      );
+    });
+  });
+
   describe("a walk that meets a row a controller placed", () => {
     const placed: (lastSeenAt: Date) => NetworkEndpoint = (
       lastSeenAt: Date,
@@ -1139,7 +1447,9 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
         49,
         "port49",
       ]);
-      expect(params[UPDATE_PARAMS_PER_ROW]).toBeNull();
+      // attachmentSource: the walk's row now.
+      expect(params[UPDATE_PARAMS_PER_ROW - 1]).toBeNull();
+      expect(params[UPDATE_PARAMS_PER_ROW]).toEqual(NOW);
     });
   });
 
@@ -1367,7 +1677,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       // The chunk's rows, typed, once - for the lock and for the write.
       expect(
         sql.startsWith(
-          'WITH "observed" ("macAddress", "setAttachment", "deviceId", "attachedInterfaceIndex", "attachedPortName", "vlanId", "siteId", "ipAddress", "lastSeenAt", "hostname", "attachmentSource") AS ( VALUES ($2::character varying, $3::boolean, $4::uuid,',
+          'WITH "observed" ("macAddress", "setAttachment", "deviceId", "attachedInterfaceIndex", "attachedPortName", "vlanId", "siteId", "ipAddress", "lastSeenAt", "hostname", "attachmentSource", "attachmentSeenAt") AS ( VALUES ($2::character varying, $3::boolean, $4::uuid,',
         ),
       ).toBe(true);
       expect(sql).toContain(
@@ -1378,8 +1688,14 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       expect(sql).toContain(
         '"written" AS ( UPDATE "NetworkEndpoint" AS e SET ',
       );
+      /*
+       * And of those, not one its own device has attached since this walk
+       * saw it (issue #7541): asked of the row as it stands.
+       */
       expect(sql).toContain(
-        'FROM "observed" AS v WHERE e."projectId" = $1 AND e."macAddress" = v."macAddress" AND e."deletedAt" IS NULL AND e."_id" IN (SELECT "_id" FROM "locked") RETURNING e."macAddress" )',
+        normalizeSql(
+          `FROM "observed" AS v WHERE e."projectId" = $1 AND e."macAddress" = v."macAddress" AND e."deletedAt" IS NULL AND e."_id" IN (SELECT "_id" FROM "locked") AND NOT ${OLDER_THAN_OWN_ATTACHMENT_SQL} RETURNING e."macAddress" )`,
+        ),
       );
       expect(sql.endsWith('SELECT "macAddress" FROM "written"')).toBe(true);
       expectPlaceholdersMatchParameters({ sql: call[0], parameters: call[1] });
@@ -1511,6 +1827,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
         NOW,
         null,
         null,
+        null, // and leaves the switch's attachment time alone
       ]);
     });
 

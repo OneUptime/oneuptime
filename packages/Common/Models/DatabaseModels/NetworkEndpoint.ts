@@ -712,6 +712,44 @@ export default class NetworkEndpoint extends BaseModel {
   public coarseLastSeenAt?: Date = undefined;
 
   /*
+   * When the device the endpoint is attached to last saw it there: the
+   * receipt time of the walk that wrote the attachment, or when a network
+   * controller saw the client (OneUptime issue #7541). Written with the
+   * attachment, by every write that sets it (NetworkEndpointService).
+   *
+   * lastSeenAt cannot answer this, because many sources share it - the
+   * forwarding tables of the access switch and of every uplink, a router's
+   * ARP table, a controller's client list. A walk of the attached switch
+   * older than this time, processed after a newer one, writes nothing to the
+   * endpoint (EndpointAttachmentUtil.decideUpsert): the switch has said
+   * since where the endpoint is, so the older walk no longer moves it back
+   * to the port it left. Another source's sighting keeps the precedence
+   * rules it always had, whatever its time. NULL - a row written before
+   * this column - reads as no time, and the next write that sets the
+   * attachment sets it.
+   *
+   * The server's alone: nobody reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Attachment Seen At",
+    description:
+      "When the device this endpoint is attached to last saw it there. Managed by the server, so an older walk of that device never moves the endpoint back to a port it left.",
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public attachmentSeenAt?: Date = undefined;
+
+  /*
    * When a person last added this device or changed its vendor, address or
    * site - through the Dashboard, the API, Terraform or a workflow, never the
    * server's own walks (NetworkEndpointService stamps it). A device a person
