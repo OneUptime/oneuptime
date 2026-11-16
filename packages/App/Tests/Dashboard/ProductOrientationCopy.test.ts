@@ -26,6 +26,33 @@ const DASHBOARD_SRC: string = path.join(
 );
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
+/*
+ * The words a language writes as English writes them, on purpose: Danish
+ * and Norwegian "Start" (the next quickstart step's button) is the right
+ * word, recorded on the language's same-as-English list
+ * (i18n/Progress/<code>.json) or the global one (i18n/SameAsEnglish.json),
+ * as the Dashboard's locale guard reads them.
+ */
+const I18N_DIR: string = path.join(DASHBOARD_SRC, "..", "i18n");
+
+const readSameAsEnglish: (code: string) => Set<string> = (
+  code: string,
+): Set<string> => {
+  const global: Array<string> = JSON.parse(
+    fs.readFileSync(path.join(I18N_DIR, "SameAsEnglish.json"), "utf8"),
+  ) as Array<string>;
+  const progressPath: string = path.join(I18N_DIR, "Progress", `${code}.json`);
+  const progress: { sameAsEnglish?: Array<string> } = fs.existsSync(
+    progressPath,
+  )
+    ? (JSON.parse(fs.readFileSync(progressPath, "utf8")) as {
+        sameAsEnglish?: Array<string>;
+      })
+    : {};
+
+  return new Set<string>([...global, ...(progress.sameAsEnglish || [])]);
+};
+
 type Locale = Record<string, unknown>;
 
 const readSource: (...segments: Array<string>) => string = (
@@ -338,11 +365,24 @@ describe("Home orientation copy", () => {
   });
 
   test.each(nonEnglish)("%s translates every Home literal", (code: string) => {
+    const sameAsEnglish: Set<string> = readSameAsEnglish(code);
+
     for (const literal of literals) {
       const value: unknown = locales[code]![literal];
       expect([literal, typeof value]).toEqual([literal, "string"]);
-      expect([literal, value]).not.toEqual([literal, literal]);
+
+      if (!sameAsEnglish.has(literal)) {
+        expect([literal, value]).not.toEqual([literal, literal]);
+      }
     }
+  });
+
+  test("a literal a language writes as English is on that language's list, and nowhere else", () => {
+    // Danish and Norwegian say "Start" for Start; German says "Starten".
+    expect(readSameAsEnglish("da").has("Start")).toBe(true);
+    expect(readSameAsEnglish("no").has("Start")).toBe(true);
+    expect(readSameAsEnglish("de").has("Start")).toBe(false);
+    expect(locales["de"]!["Start"]).not.toBe("Start");
   });
 
   test.each(nonEnglish)(
