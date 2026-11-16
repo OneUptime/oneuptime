@@ -346,6 +346,27 @@ export default class LinearRegExp {
   }
 
   /*
+   * Where every match is, as replace finds them - left to right, none
+   * overlapping, one code unit on after an empty match - as [start, end)
+   * pairs: for a caller that replaces each match in a text of its own
+   * making (Utils/Telemetry/ScrubJsonText.ts). Bounded the same way as
+   * replace, and as cheap: no match's text or groups are built.
+   */
+  public matchRanges(text: string): Array<[number, number]> {
+    const ranges: Array<[number, number]> = [];
+
+    if (!this.test(text)) {
+      return ranges;
+    }
+
+    this.forEachMatch(text, false, (slots: Array<number>): void => {
+      ranges.push([slots[0]!, slots[1]!]);
+    });
+
+    return ranges;
+  }
+
+  /*
    * Every match, as String.prototype.matchAll finds them with a global
    * pattern; bounded the same way as replace.
    */
