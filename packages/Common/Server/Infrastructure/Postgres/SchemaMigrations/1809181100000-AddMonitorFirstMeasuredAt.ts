@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * update. The monitors measured before it existed are stamped by the
  * BackfillMonitorFirstMeasuredAt data migration.
  */
-export class AddMonitorFirstMeasuredAt1809180900000
+export class AddMonitorFirstMeasuredAt1809181100000
   implements MigrationInterface
 {
-  public name: string = "AddMonitorFirstMeasuredAt1809180900000";
+  public name: string = "AddMonitorFirstMeasuredAt1809181100000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
