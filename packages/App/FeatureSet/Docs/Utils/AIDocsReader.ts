@@ -3,7 +3,6 @@ import {
   DOCS_SEARCH_COMPOUNDING_LANGUAGES,
   DOCS_SEARCH_WORD_ENDINGS,
   DocsSearchSynonym,
-  DocsVocabulary,
   DocsVocabularyMatch,
   DocsWordEndings,
   DocsWordForms,
@@ -16,6 +15,19 @@ import {
   getDocsWordEndings,
   getTypoAllowance,
 } from "./DocsSearchWords";
+import {
+  AIDocsIndexedPage,
+  AIDocsIndexedSection,
+  AIDocsLanguageIndex,
+  DocsIndexBuilder,
+  DocsIndexSectionInput,
+  DocsTermReader,
+  IN_PAGE_GROUP,
+  IN_PAGE_HEADINGS,
+  IN_PAGE_SUMMARY,
+  IN_PAGE_TITLE,
+  IN_SECTION_TITLE,
+} from "./DocsIndex";
 import { DocsGlossaryEntry, GLOSSARY_PAGE, parseGlossary } from "./Glossary";
 import DocsNav, { NavGroup, NavLink } from "./Nav";
 import DocsPlaceholders from "./Placeholders";
@@ -63,55 +75,26 @@ import OneUptimeDate from "Common/Types/Date";
  * Glossary's other names as sections of their own, and which pages are
  * guides. A word a question misspells is read as the docs word it nearly
  * spells, and a reader's word for what the docs call otherwise ("pager")
- * as the docs' word (Utils/DocsSearchWords.ts).
+ * as the docs' word (Utils/DocsSearchWords.ts). How the index holds all of
+ * that in a few MB a language is Utils/DocsIndex.ts (#8818).
  */
 
-export interface AIDocsIndexedSection extends AIDocsSection {
-  terms: Map<string, number>;
-  titleTerms: Set<string>;
-  /*
-   * What the section says, as plain text (plainTextOfDocs): the line a
-   * search result shows is cut from it.
-   */
-  text: string;
-  /*
-   * A name the Glossary gives a term besides its own ("Service Catalog
-   * (Service)"), as a section that opens the term: found by that name.
-   */
-  isOtherName?: boolean | undefined;
-}
-
-export interface AIDocsIndexedPage {
-  page: string;
-  title: string;
-  group: string;
-  summary: string;
-  language: string;
-  titleTerms: Set<string>;
-  groupTerms: Set<string>;
-  summaryTerms: Set<string>;
-  headingTerms: Set<string>;
-  bodyTerms: Map<string, number>;
-  // How many words its body holds.
-  bodyLength: number;
-  sections: Array<AIDocsIndexedSection>;
-  // A guide (NavLink.isGuide): docs search ranks it above a reference page for the same words.
-  isGuide: boolean;
-}
-
-export interface AIDocsLanguageIndex {
-  // The language it was built for; a page not translated yet is its English copy.
-  language: string;
-  pages: Array<AIDocsIndexedPage>;
-  // How many pages hold each word.
-  documentFrequency: Map<string, number>;
-  // How many words a page's body holds, on average.
-  averageBodyLength: number;
-  // Every word, laid out to find the ones a typed word starts or nearly spells.
-  vocabulary: DocsVocabulary;
-}
+export type {
+  AIDocsIndexedPage,
+  AIDocsIndexedSection,
+  AIDocsLanguageIndex,
+} from "./DocsIndex";
 
 const TTL_MS: number = 10 * 60 * 1000;
+/*
+ * How long a language's index is kept with no search in it (#8818): a
+ * server asked in a language once a day does not keep its index for the
+ * other 23 hours. The next search in it builds it again, as the first one
+ * did - about a second.
+ */
+export const DOCS_INDEX_IDLE_MS: number = 30 * 60 * 1000;
+// How often the indexes kept are looked over for ones nobody has searched in a while.
+const IDLE_CHECK_MS: number = 5 * 60 * 1000;
 // How much more a page named exactly what is asked counts (DocsAIReader.rank).
 const EXACT_NAME_BOOST: number = 1.5;
 const namesAsAsked: WeakMap<AIDocsIndexedPage, string> = new WeakMap();
@@ -165,10 +148,19 @@ const QUESTION_WORDS: ReadonlySet<string> = new Set<string>([
 const UNSPACED_SCRIPT: RegExp =
   /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
 
-const cache: Map<string, { index: AIDocsLanguageIndex; at: number }> =
-  new Map();
+interface CachedIndex {
+  index: AIDocsLanguageIndex;
+  // When it was built.
+  at: number;
+  // When it was last searched.
+  usedAt: number;
+}
+
+const cache: Map<string, CachedIndex> = new Map();
 // The builds under way, by language.
 const building: Map<string, Promise<AIDocsLanguageIndex>> = new Map();
+// Lets the indexes nobody searches go, while any is kept (DocsAIReader.releaseIdle).
+let idleCheck: ReturnType<typeof setInterval> | null = null;
 
 /*
  * A word as both a question and a page are compared by: lowercase, a
@@ -346,6 +338,11 @@ export const stemDocsWord: (
   memo.set(word, stem);
 
   return stem;
+};
+
+// Lets the stems read for a language go, with its index (DocsAIReader.releaseIdle).
+const forgetStems: (language: string) => void = (language: string): void => {
+  stemMemo.delete(language);
 };
 
 // stemDocsWord's reading of a word it has not read before.
@@ -831,18 +828,33 @@ const getNavPages: () => Array<{
   return pages;
 };
 
+interface DocsBodySection {
+  title: string;
+  anchor: string;
+  // The heading's own line, as written.
+  heading: string;
+  body: string;
+}
+
 /*
- * A page's sections, h2 and h3, each with the words under it up to the
- * next one; the words before the first heading are not a section.
+ * A page's body, line by line: the lines before its first heading, and
+ * each h2 and h3 section with its heading's line and the lines under it up
+ * to the next one. Every line of the body is in exactly one of them.
  */
-export const splitDocsSections: (
+const splitDocsBody: (markdown: string) => {
+  before: string;
+  sections: Array<DocsBodySection>;
+} = (
   markdown: string,
-) => Array<{ title: string; anchor: string; body: string }> = (
-  markdown: string,
-): Array<{ title: string; anchor: string; body: string }> => {
-  const sections: Array<{ title: string; anchor: string; body: string }> = [];
-  let current: { title: string; anchor: string; lines: Array<string> } | null =
-    null;
+): { before: string; sections: Array<DocsBodySection> } => {
+  const before: Array<string> = [];
+  const sections: Array<DocsBodySection> = [];
+  let current: {
+    title: string;
+    anchor: string;
+    heading: string;
+    lines: Array<string>;
+  } | null = null;
   let inFence: boolean = false;
 
   for (const line of markdown.split("\n")) {
@@ -859,29 +871,58 @@ export const splitDocsSections: (
         sections.push({
           title: current.title,
           anchor: current.anchor,
+          heading: current.heading,
           body: current.lines.join("\n"),
         });
       }
       current = {
         title: heading[2]!.replace(/[`*_]/g, ""),
         anchor: slugifyMarkdownHeading(heading[2]!.trim()),
+        heading: line,
         lines: [],
       };
       continue;
     }
 
-    current?.lines.push(line);
+    if (current) {
+      current.lines.push(line);
+    } else {
+      before.push(line);
+    }
   }
 
   if (current) {
     sections.push({
       title: current.title,
       anchor: current.anchor,
+      heading: current.heading,
       body: current.lines.join("\n"),
     });
   }
 
-  return sections;
+  return { before: before.join("\n"), sections };
+};
+
+/*
+ * A page's sections, h2 and h3, each with the words under it up to the
+ * next one; the words before the first heading are not a section.
+ */
+export const splitDocsSections: (
+  markdown: string,
+) => Array<{ title: string; anchor: string; body: string }> = (
+  markdown: string,
+): Array<{ title: string; anchor: string; body: string }> => {
+  return splitDocsBody(markdown).sections.map(
+    (
+      section: DocsBodySection,
+    ): { title: string; anchor: string; body: string } => {
+      return {
+        title: section.title,
+        anchor: section.anchor,
+        body: section.body,
+      };
+    },
+  );
 };
 
 /*
@@ -894,10 +935,10 @@ export const splitDocsSections: (
 const glossaryOtherNameSections: (
   language: string,
   markdown: string,
-) => Promise<Array<AIDocsIndexedSection>> = async (
+) => Promise<Array<DocsIndexSectionInput>> = async (
   language: string,
   markdown: string,
-): Promise<Array<AIDocsIndexedSection>> => {
+): Promise<Array<DocsIndexSectionInput>> => {
   const english: DocsCopy | null = await readCopy(
     GLOSSARY_PAGE,
     DEFAULT_DOCS_LANGUAGE,
@@ -913,8 +954,8 @@ const glossaryOtherNameSections: (
     [];
 
   return entries.flatMap(
-    (entry: DocsGlossaryEntry): Array<AIDocsIndexedSection> => {
-      return entry.alsoCalled.map((name: string): AIDocsIndexedSection => {
+    (entry: DocsGlossaryEntry): Array<DocsIndexSectionInput> => {
+      return entry.alsoCalled.map((name: string): DocsIndexSectionInput => {
         const title: string = `${name} (${entry.term})`;
 
         return {
@@ -937,17 +978,19 @@ export default class DocsAIReader implements AIDocsReader {
    * someone types (#6822): so requests that arrive while it builds share the
    * one build, and an index older than TTL_MS is still answered from while a
    * new one is built behind it. Only the very first search in a language
-   * waits.
+   * waits - and the first after DOCS_INDEX_IDLE_MS with none in it, whose
+   * index was let go (releaseIdle).
    */
   public static async getIndex(language: string): Promise<AIDocsLanguageIndex> {
     const resolved: string = isSupportedDocsLanguage(language)
       ? language
       : DEFAULT_DOCS_LANGUAGE;
     const now: number = OneUptimeDate.getCurrentDate().getTime();
-    const cached: { index: AIDocsLanguageIndex; at: number } | undefined =
-      cache.get(resolved);
+    const cached: CachedIndex | undefined = cache.get(resolved);
 
     if (cached) {
+      cached.usedAt = now;
+
       if (now - cached.at >= TTL_MS) {
         DocsAIReader.buildOnce(resolved).catch((): void => {
           // The old index keeps answering; the next request tries again.
@@ -970,10 +1013,14 @@ export default class DocsAIReader implements AIDocsReader {
 
     const build: Promise<AIDocsLanguageIndex> = DocsAIReader.build(language)
       .then((index: AIDocsLanguageIndex): AIDocsLanguageIndex => {
+        const now: number = OneUptimeDate.getCurrentDate().getTime();
+
         cache.set(language, {
           index,
-          at: OneUptimeDate.getCurrentDate().getTime(),
+          at: now,
+          usedAt: cache.get(language)?.usedAt ?? now,
         });
+        DocsAIReader.checkForIdle();
         return index;
       })
       .finally((): void => {
@@ -985,10 +1032,54 @@ export default class DocsAIReader implements AIDocsReader {
     return build;
   }
 
+  /*
+   * Lets go of every language's index nobody has searched in for
+   * DOCS_INDEX_IDLE_MS, and the stems read for it (#8818): an index is a
+   * few MB, but a server asked once in each of seventeen languages kept all
+   * seventeen for as long as it ran. An index in use is never let go, so
+   * languages searched in turn do not push each other out and build again
+   * and again, as a bound on how many are kept would. The languages let go.
+   */
+  public static releaseIdle(): Array<string> {
+    const now: number = OneUptimeDate.getCurrentDate().getTime();
+    const released: Array<string> = [];
+
+    for (const [language, cached] of cache) {
+      if (now - cached.usedAt >= DOCS_INDEX_IDLE_MS) {
+        cache.delete(language);
+        forgetStems(language);
+        released.push(language);
+      }
+    }
+
+    if (cache.size === 0 && idleCheck) {
+      clearInterval(idleCheck);
+      idleCheck = null;
+    }
+
+    return released;
+  }
+
+  // Looks over the indexes kept every IDLE_CHECK_MS while there are any, without keeping the process up.
+  private static checkForIdle(): void {
+    if (idleCheck) {
+      return;
+    }
+
+    idleCheck = setInterval((): void => {
+      DocsAIReader.releaseIdle();
+    }, IDLE_CHECK_MS);
+    idleCheck.unref();
+  }
+
+  // The languages whose index is kept, in the order they were first built.
+  public static getKeptLanguages(): Array<string> {
+    return Array.from(cache.keys());
+  }
+
   public static async build(language: string): Promise<AIDocsLanguageIndex> {
     const t: TranslateFn = makeT(language);
-    const pages: Array<AIDocsIndexedPage> = [];
-    const documentFrequency: Map<string, number> = new Map();
+    const builder: DocsIndexBuilder = new DocsIndexBuilder(language);
 
     for (const navPage of getNavPages()) {
       const copy: DocsCopy | null = await readCopy(navPage.page, language);
@@ -1001,19 +1092,40 @@ export default class DocsAIReader implements AIDocsReader {
       const group: string = t(`navGroups.${navPage.group.title}`);
       const summary: DocsPageSummary = summarizeDocsPage(copy.markdown);
       const body: string = copy.markdown.split("\n").slice(1).join("\n");
-      // The body's words, read once for how often each is written and how many there are.
-      const bodyWords: Array<string> = tokenizeForDocs(body, language);
+      const parts: { before: string; sections: Array<DocsBodySection> } =
+        splitDocsBody(body);
+      /*
+       * The body's words, with how often each is written and how many
+       * there are: each line read once, as its section's, its heading's or
+       * the lines' before the first heading. A word never runs from one
+       * line to the next, so these are the words of the body read whole.
+       */
+      const bodyTerms: Map<string, number> = new Map();
+      let bodyLength: number = 0;
+      const readIntoBody: (text: string) => Array<string> = (
+        text: string,
+      ): Array<string> => {
+        const words: Array<string> = tokenizeForDocs(text, language);
 
-      const sections: Array<AIDocsIndexedSection> = splitDocsSections(body).map(
-        (section: {
-          title: string;
-          anchor: string;
-          body: string;
-        }): AIDocsIndexedSection => {
+        for (const word of words) {
+          bodyTerms.set(word, (bodyTerms.get(word) || 0) + 1);
+        }
+
+        bodyLength += words.length;
+
+        return words;
+      };
+
+      readIntoBody(parts.before);
+
+      const sections: Array<DocsIndexSectionInput> = parts.sections.map(
+        (section: DocsBodySection): DocsIndexSectionInput => {
+          readIntoBody(section.heading);
+
           return {
             title: section.title,
             anchor: section.anchor,
-            terms: countTerms(section.body, language),
+            terms: countEach(readIntoBody(section.body)),
             titleTerms: termSet(section.title, language),
             text: plainTextOfDocs(section.body),
           };
@@ -1026,7 +1138,7 @@ export default class DocsAIReader implements AIDocsReader {
         );
       }
 
-      const indexed: AIDocsIndexedPage = {
+      builder.addPage({
         page: navPage.page,
         title,
         group,
@@ -1046,41 +1158,14 @@ export default class DocsAIReader implements AIDocsReader {
             .join(" "),
           language,
         ),
-        bodyTerms: countEach(bodyWords),
-        bodyLength: bodyWords.length,
+        bodyTerms,
+        bodyLength,
         sections,
         isGuide: navPage.link.isGuide === true,
-      };
-
-      const allTerms: Set<string> = new Set<string>([
-        ...indexed.titleTerms,
-        ...indexed.headingTerms,
-        ...indexed.summaryTerms,
-        ...indexed.bodyTerms.keys(),
-        ...sections.flatMap((section: AIDocsIndexedSection): Array<string> => {
-          return section.isOtherName ? Array.from(section.titleTerms) : [];
-        }),
-      ]);
-
-      for (const term of allTerms) {
-        documentFrequency.set(term, (documentFrequency.get(term) || 0) + 1);
-      }
-
-      pages.push(indexed);
+      });
     }
 
-    const averageBodyLength: number =
-      pages.reduce((total: number, page: AIDocsIndexedPage): number => {
-        return total + page.bodyLength;
-      }, 0) / Math.max(1, pages.length);
-
-    return {
-      language,
-      pages,
-      documentFrequency,
-      averageBodyLength,
-      vocabulary: new DocsVocabulary(documentFrequency),
-    };
+    return builder.build();
   }
 
   /*
@@ -1258,11 +1343,18 @@ export default class DocsAIReader implements AIDocsReader {
       const lengthRatio: number = length / Math.max(1, index.averageBodyLength);
       return (2 * (count * 2.2)) / (count + 1.2 * (0.25 + 0.75 * lengthRatio));
     };
-    const weight: (term: string) => number = (term: string): number => {
+    // Each word of the question, read page by page as the pages are gone through (DocsTermReader).
+    const readers: Array<DocsTermReader> = queryTerms.map(
+      (term: string): DocsTermReader => {
+        return new DocsTermReader(index.postings, term);
+      },
+    );
+    // How much each word says: little for one most pages hold.
+    const weights: Array<number> = queryTerms.map((term: string): number => {
       return Math.log(
         1 + pageCount / (1 + (index.documentFrequency.get(term) || 0)),
       );
-    };
+    });
 
     const scored: Array<{ hit: AIDocsSearchHit; score: number }> = [];
 
@@ -1272,19 +1364,21 @@ export default class DocsAIReader implements AIDocsReader {
       let score: number = 0;
       let matched: number = 0;
 
-      for (const term of queryTerms) {
-        const bodyCount: number = page.bodyTerms.get(term) || 0;
-        const nameTermScore: number = page.titleTerms.has(term) ? 6 : 0;
+      for (let word: number = 0; word < readers.length; word++) {
+        const reader: DocsTermReader = readers[word]!;
+        const fields: number = reader.pageFields(page.number);
+        const bodyCount: number = reader.bodyCount(page.number);
+        const nameTermScore: number = fields & IN_PAGE_TITLE ? 6 : 0;
         const termScore: number =
-          (page.headingTerms.has(term) ? 3 : 0) +
-          (page.summaryTerms.has(term) ? 2 : 0) +
-          (page.groupTerms.has(term) ? 2 : 0) +
+          (fields & IN_PAGE_HEADINGS ? 3 : 0) +
+          (fields & IN_PAGE_SUMMARY ? 2 : 0) +
+          (fields & IN_PAGE_GROUP ? 2 : 0) +
           bodyWeight(bodyCount, page.bodyLength);
 
         if (nameTermScore + termScore > 0) {
           matched++;
-          nameScore += weight(term) * nameTermScore;
-          score += weight(term) * termScore;
+          nameScore += weights[word]! * nameTermScore;
+          score += weights[word]! * termScore;
         }
       }
 
@@ -1322,11 +1416,13 @@ export default class DocsAIReader implements AIDocsReader {
 
       for (const section of page.sections) {
         let sectionScore: number = 0;
-        for (const term of queryTerms) {
+        for (let word: number = 0; word < readers.length; word++) {
+          const reader: DocsTermReader = readers[word]!;
+
           sectionScore +=
-            weight(term) *
-            ((section.titleTerms.has(term) ? 3 : 0) +
-              Math.log2(1 + (section.terms.get(term) || 0)));
+            weights[word]! *
+            ((reader.sectionFields(section.number) & IN_SECTION_TITLE ? 3 : 0) +
+              Math.log2(1 + reader.sectionCount(section.number)));
         }
         if (sectionScore > bestSectionScore) {
           bestSectionScore = sectionScore;
@@ -1458,5 +1554,10 @@ export default class DocsAIReader implements AIDocsReader {
   public static clearCache(): void {
     cache.clear();
     building.clear();
+
+    if (idleCheck) {
+      clearInterval(idleCheck);
+      idleCheck = null;
+    }
   }
 }
