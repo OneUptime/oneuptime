@@ -208,14 +208,14 @@ Dans **Domaine** (texte indicatif `status.example.com`), saisissez l'adresse com
 
 #### Garder le certificat gratuit, ou téléverser le vôtre
 
-**Plus de champs** est replié, et son en-tête indique le certificat qu'utilisera le domaine : « Nous émettons un certificat SSL gratuit pour ce domaine et le renouvelons automatiquement. » Ne l'ouvrez que pour utiliser votre propre certificat : activez **Téléverser un certificat personnalisé**, puis collez le **Certificat** et la **Clé privée du certificat** au format PEM. Les deux deviennent alors obligatoires.
+**Plus de champs** est replié, et son en-tête indique le certificat qu'utilisera le domaine : « Nous émettons un certificat SSL gratuit pour ce domaine et le renouvelons automatiquement. » Ne l'ouvrez que pour utiliser votre propre certificat : activez **Téléverser un certificat personnalisé**, puis collez le **Certificat** et la **Clé privée du certificat** au format PEM. Les deux deviennent alors obligatoires. La clé est stockée chiffrée et n'est plus jamais affichée. Un certificat et une clé qui ne vont pas ensemble sont refusés, avec la raison sous le champ en cause.
 
 #### Continuer
 
 Cliquez sur **Continuer**. Si le projet a vérifié le domaine sur lequel se trouve l'adresse, le domaine est ajouté et sa **Configuration DNS** s'ouvre, avec l'enregistrement CNAME à ajouter. Sinon, OneUptime ajoute ce domaine à **Paramètres du projet → Avancé → Domaines**, et la **Configuration DNS** s'ouvre avec les deux enregistrements, pour que vous vérifiiez le domaine sur place, sans quitter la page.
 :::
 
-Le nom complet d'un domaine est fixé quand vous l'ajoutez : **Modifier** ne change donc que son certificat. Pour utiliser une autre adresse, ajoutez-la et supprimez l'ancienne. Un nom déjà utilisé par un tableau de bord ou un formulaire, dans n'importe quel projet, est refusé : un domaine affiche une seule page de statut, un seul tableau de bord ou un seul formulaire.
+Le nom complet d'un domaine est fixé quand vous l'ajoutez : **Modifier** ne change donc que son certificat. Sur un domaine qui sert votre propre certificat, **Clé privée du certificat** est vide dans la boîte de dialogue **Modifier** : laissez-la vide pour conserver la clé enregistrée, ce qui suffit à un certificat renouvelé avec la même clé, ou collez une nouvelle clé. Sur un domaine qui utilise le certificat gratuit, activer **Téléverser un certificat personnalisé** demande la clé. Pour utiliser une autre adresse, ajoutez-la et supprimez l'ancienne. Un nom déjà utilisé par un tableau de bord ou un formulaire, dans n'importe quel projet, est refusé : un domaine affiche une seule page de statut, un seul tableau de bord ou un seul formulaire.
 
 Ajouter un domaine au projet demande l'autorisation de créer des domaines de projet (**Create Domain**, ou Propriétaire du projet ou Administrateur du projet), et le vérifier demande **Edit Domain**. Sans elles, la boîte de dialogue indique qui peut le faire.
 
