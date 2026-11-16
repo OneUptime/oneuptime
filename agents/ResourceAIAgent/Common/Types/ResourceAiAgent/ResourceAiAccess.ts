@@ -205,6 +205,15 @@ export const RESOURCE_AI_AGENT_API_KEY_ENVS: ReadonlyArray<string> = [
  *                    change, and its own identity then only reads. Unset
  *                    (an agent set up before), its own identity makes the
  *                    changes.
+ * AZURE_WRITE_PRINCIPAL_ID: Azure only: that identity's object id, as the
+ *                    setup command reads it from Azure: what the Activity
+ *                    Log names as the caller of the agent's changes. The
+ *                    agent reports it from the start, so the Changes page
+ *                    marks its changes before its first change or Test
+ *                    connection, and after a restart. What a token of the
+ *                    identity says wins over it; a value that is not an
+ *                    object id is ignored. Optional: unset, the agent
+ *                    learns it from the identity's first token.
  * Protected targets (ONEUPTIME_AI_PROTECTED_TARGETS) take the agent's own
  * service, roles and stack on top of what an operator lists.
  */
@@ -220,6 +229,8 @@ export const RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV: string =
   "ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT";
 export const RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV: string =
   "ONEUPTIME_AI_AZURE_WRITE_IDENTITY";
+export const RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV: string =
+  "ONEUPTIME_AI_AZURE_WRITE_PRINCIPAL_ID";
 export const RESOURCE_AI_PROTECTED_TARGETS_ENV: string =
   "ONEUPTIME_AI_PROTECTED_TARGETS";
 /*

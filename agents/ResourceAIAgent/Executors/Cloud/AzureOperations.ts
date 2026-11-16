@@ -33,9 +33,11 @@ import {
 import {
   AzureWriteIdentity,
   describeAzureWriteIdentityElsewhere,
+  parseCloudAgentSettings,
 } from "./CloudSettings";
 import {
   RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
+  RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
 } from "../../Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
@@ -302,6 +304,8 @@ export default class AzureCloud {
    * names as the caller of the agent's changes.
    */
   private writePrincipal: string | null = null;
+  // The object id a token named that its setting did not: said once.
+  private warnedWritePrincipal: string | null = null;
 
   public constructor(private readonly options: AzureCloudOptions) {
     this.tokens = new AzureTokenProvider(options.env, options.runtime.nowMs);
@@ -316,9 +320,21 @@ export default class AzureCloud {
     return this.tokens.principalId();
   }
 
-  // The write identity's object id, once the agent was given a token of it.
+  /*
+   * The write identity's object id: what Azure said in the last token of
+   * it the agent was given, else what its setup command read from Azure
+   * (ONEUPTIME_AI_AZURE_WRITE_PRINCIPAL_ID), so the posture names it from
+   * the start - before the first change or Test connection, and after a
+   * restart. Null when neither says.
+   */
   public writePrincipalId(): string | null {
-    return this.writePrincipal;
+    return this.writePrincipal || this.configuredWritePrincipalId();
+  }
+
+  // The object id its setup command passed, when it is one beside a write identity.
+  private configuredWritePrincipalId(): string | null {
+    return parseCloudAgentSettings(this.options.env, "azure")
+      .azureWritePrincipalId;
   }
 
   /*
@@ -337,6 +353,25 @@ export default class AzureCloud {
     });
 
     if (answer.principalId) {
+      /*
+       * Azure's token names the identity it was made for: when its setting
+       * says another object id, the token is right, and the agent says so
+       * once (for each object id a token names), so a setting typed by hand
+       * can be put right.
+       */
+      const configured: string | null = this.configuredWritePrincipalId();
+
+      if (
+        configured &&
+        configured !== answer.principalId &&
+        this.warnedWritePrincipal !== answer.principalId
+      ) {
+        this.warnedWritePrincipal = answer.principalId;
+        this.options.runtime.logger.warn(
+          `Azure's token of the write identity names object id ${answer.principalId}, but ${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV} says ${configured}: the agent goes by what Azure says. Run the setup command again to set it right.`,
+        );
+      }
+
       this.writePrincipal = answer.principalId;
     }
 
@@ -519,10 +554,20 @@ export default class AzureCloud {
       const answer: AzureManagedIdentityToken =
         await this.signInAsWriteIdentity(run.send.bind(run), identity);
       const own: string | null = this.tokens.principalId();
+      const configured: string | null = settings.azureWritePrincipalId;
 
       check = `the agent can sign in as it${
         answer.principalId ? `, as object id ${answer.principalId}` : ""
       }`;
+
+      // A setting that names another object id: Azure's token is right.
+      if (
+        answer.principalId &&
+        configured &&
+        configured !== answer.principalId
+      ) {
+        check = `${check}; ${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV} says ${configured}, which is not its object id, so the agent goes by what Azure says`;
+      }
 
       // Where only the write identity is attached, the agent reads with it too.
       if (answer.principalId && own && answer.principalId === own) {

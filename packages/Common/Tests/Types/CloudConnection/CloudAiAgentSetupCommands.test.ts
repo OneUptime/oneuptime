@@ -109,6 +109,7 @@ import {
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV,
   RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
+  RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV,
   RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
@@ -2271,15 +2272,90 @@ describe("Azure: the command", () => {
     expect(flagWords(app, "--secrets")).toEqual([
       `${AZURE_CLOUD_AI_AGENT_SECRET_NAME}=${KEY}`,
     ]);
-    expect(flagWords(app, "--env-vars")).toEqual(
-      getCloudAiAgentEnvironment(options).map(
+    expect(flagWords(app, "--env-vars")).toEqual([
+      ...getCloudAiAgentEnvironment(options).map(
         (variable: CloudAiAgentEnvironmentVariable): string => {
           return variable.isSecret
             ? `${variable.name}=secretref:${AZURE_CLOUD_AI_AGENT_SECRET_NAME}`
             : `${variable.name}=${variable.value}`;
         },
       ),
+      // The write identity's object id, as Azure answered for it.
+      `${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}=${WRITE_PRINCIPAL}`,
+    ]);
+  });
+
+  /*
+   * The write identity's object id, as Azure answers for the identity the
+   * command makes or finds: what the Activity Log names as the caller of
+   * the agent's changes. Passed to the agent so its posture names it from
+   * the start, and the Changes page marks its changes before its first
+   * change or Test connection, and after a restart (#6212).
+   */
+  test("the app is given the write identity's object id, as Azure answered for it: on a first run and on a run again", () => {
+    for (const exists of [false, true]) {
+      const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE), {
+        exists,
+      });
+      const app: Array<string> = callsTo(
+        shell,
+        "az",
+        "containerapp",
+        "create",
+      )[0]!;
+      const identity: Array<string> = callsTo(
+        shell,
+        "az",
+        "identity",
+        exists ? "show" : "create",
+      )[0]!;
+
+      // The id Azure answered with: the identity's principalId, read as text.
+      expect(flag(identity, "--query")).toBe("principalId");
+      expect(flag(identity, "--output")).toBe("tsv");
+      expect(
+        flagWords(app, "--env-vars").filter((word: string): boolean => {
+          return word.startsWith(
+            `${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}=`,
+          );
+        }),
+      ).toEqual([
+        `${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}=${WRITE_PRINCIPAL}`,
+      ]);
+    }
+  });
+
+  test("written as the shell's value of WRITE_PRINCIPAL, never as a value of the dialog's: Azure makes the id", () => {
+    const command: string = getAzureCloudAiAgentSetupCommand(AZURE);
+
+    expect(command).toContain(
+      ` ${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}="$WRITE_PRINCIPAL" `,
     );
+    // Only from the identity's own answer, set before the app is written.
+    expect(command.indexOf("WRITE_PRINCIPAL=$(az identity show")).toBeLessThan(
+      command.indexOf(`${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}=`),
+    );
+    expect(command).toContain(
+      '[ -n "$WRITE_PRINCIPAL" ] && az containerapp create',
+    );
+  });
+
+  test("not among the variables for running the agent elsewhere, which Azure has made no id for: the agent learns it from the identity's first token", () => {
+    expect(
+      getCloudAiAgentEnvironment(AZURE).map(
+        (variable: CloudAiAgentEnvironmentVariable): string => {
+          return variable.name;
+        },
+      ),
+    ).not.toContain(RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV);
+  });
+
+  test("only Azure's command carries it", () => {
+    for (const options of [AWS, GCP]) {
+      expect(getCloudAiAgentSetupCommand(options)).not.toContain(
+        RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV,
+      );
+    }
   });
 
   test("running it again updates both roles, keeps the group, the write identity and the environment, and writes the app whole again", () => {

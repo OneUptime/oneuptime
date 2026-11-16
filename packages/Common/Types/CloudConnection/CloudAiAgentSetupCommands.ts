@@ -47,6 +47,7 @@ import {
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV,
   RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
+  RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV,
   RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
@@ -2126,6 +2127,19 @@ export function getAzureCloudAiAgentSetupCommand(
   return writeAzureCommand(checkedSetup(options, CloudProvider.Azure));
 }
 
+/*
+ * The write identity's object id, as the command reads it from Azure when
+ * it makes or finds the identity (WRITE_PRINCIPAL): what the Activity Log
+ * names as the caller of the agent's changes. The agent reports it from
+ * the start, so the Changes page marks its changes before its first change
+ * or Test connection, and after a restart. A shell variable, written as a
+ * double-quoted expansion; the app is only written once it holds a value.
+ * Not among the variables for running the agent elsewhere: Azure makes the
+ * id when it makes the identity, and the agent learns it from the
+ * identity's first token without it.
+ */
+const AZURE_WRITE_PRINCIPAL_VARIABLE: string = `${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}="$WRITE_PRINCIPAL"`;
+
 function writeAzureCommand(setup: CloudAiAgentSetup): string {
   const size: CloudAiAgentSize = CLOUD_AI_AGENT_SIZES[CloudProvider.Azure];
   const location: string = setup.region as string;
@@ -2133,13 +2147,16 @@ function writeAzureCommand(setup: CloudAiAgentSetup): string {
   const group: string = `--resource-group ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP}`;
   const scope: string = '--scope "/subscriptions/$SUBSCRIPTION"';
   const writeIdentity: string = `--name ${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME} ${group}`;
-  const variables: Array<string> = environmentOf(setup).map(
-    (variable: CloudAiAgentEnvironmentVariable): string => {
-      return variable.isSecret
-        ? `${variable.name}=secretref:${AZURE_CLOUD_AI_AGENT_SECRET_NAME}`
-        : `${variable.name}=${shellQuote(variable.value)}`;
-    },
-  );
+  const variables: Array<string> = [
+    ...environmentOf(setup).map(
+      (variable: CloudAiAgentEnvironmentVariable): string => {
+        return variable.isSecret
+          ? `${variable.name}=secretref:${AZURE_CLOUD_AI_AGENT_SECRET_NAME}`
+          : `${variable.name}=${shellQuote(variable.value)}`;
+      },
+    ),
+    AZURE_WRITE_PRINCIPAL_VARIABLE,
+  ];
   // The same flags whether a role is created or updated.
   const role: (definition: string) => string = (definition: string): string => {
     return `${subscription} --role-definition "$${definition}" --query name --output tsv`;
