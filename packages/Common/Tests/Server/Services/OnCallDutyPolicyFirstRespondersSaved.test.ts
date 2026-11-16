@@ -35,6 +35,10 @@ import {
   PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
 } from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
 import Permission from "../../../Types/Permission";
+import {
+  FirstOnCallPolicyCreate,
+  buildFirstOnCallPolicy,
+} from "../../../Utils/GuidedSetup/OnCallPolicyRecords";
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 import { customDomainCaller } from "../API/CustomDomainCallers";
 import {
@@ -417,6 +421,12 @@ describe("a new policy with first responders", () => {
   });
 });
 
+/*
+ * A rule made with its responders as misc data: the Escalation Rules page's
+ * Add Escalation Rule, a PagerDuty or Opsgenie import as the person running
+ * it (ToolImportApplier), and the guided setup's first level all add one
+ * this way, and the rule service writes a join row for each responder.
+ */
 describe("an escalation rule added by hand with people, teams and schedules", () => {
   test.each(ROLES)(
     "%s adds it from the Escalation Rules page: it is saved paging them",
@@ -504,6 +514,8 @@ describe("a rule's responder added through the API", () => {
  * and, for someone who may add on-call rules, the two rules that run it for
  * every new incident and alert - then people and teams added to that level,
  * by a new rule when the policy has none and by join rows when it has one.
+ * And the policy Ask AI's set_up_paging and the website-down setup create,
+ * built by the same Common code they use (buildFirstOnCallPolicy).
  */
 describe("the guided on-call setup", () => {
   // OnCallSetupApi.createPolicy: the people and teams picked, by id.
@@ -546,6 +558,32 @@ describe("the guided on-call setup", () => {
       }
 
       expect(created.id).toBeDefined();
+    },
+  );
+
+  test.each([Permission.ProjectAdmin, Permission.ProjectOwner])(
+    "%s sets up paging from Ask AI or the website-down setup (buildFirstOnCallPolicy): saved with its first level and both on-call rules",
+    async (permission: Permission) => {
+      const create: FirstOnCallPolicyCreate = buildFirstOnCallPolicy({
+        userIds: [PERSON_ID],
+        teamIds: [TEAM_ID],
+        language: "en",
+      });
+      create.policy.projectId = PROJECT_ID;
+
+      await OnCallDutyPolicyService.create({
+        data: create.policy,
+        miscDataProps: create.miscDataProps,
+        props: caller(permission),
+      });
+
+      expect(errors).toEqual([]);
+      onlyRow(policies);
+      expect(onlyRow(rules)["name"]).toBe("Level 1");
+      expect(id(onlyRow(ruleUsers)["userId"])).toBe(id(PERSON_ID));
+      expect(id(onlyRow(ruleTeams)["teamId"])).toBe(id(TEAM_ID));
+      onlyRow(incidentOnCallRules);
+      onlyRow(alertOnCallRules);
     },
   );
 
