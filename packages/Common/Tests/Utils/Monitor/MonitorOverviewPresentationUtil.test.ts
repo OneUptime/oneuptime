@@ -1902,11 +1902,33 @@ describe("MonitorOverviewPresentationUtil facts", () => {
       value: "10 minutes",
       secondary: "From this monitor's criteria",
     });
+    /*
+     * Stamped 30 seconds ago: as recent as a running sweep leaves it, so the
+     * schedule, not a stamp written only every five minutes (#8123).
+     */
     expect(fact(withWindow, "heartbeat-check")).toEqual({
+      key: "heartbeat-check",
+      label: "Missing-request check",
+      value: "Every 30 seconds",
+    });
+
+    // Stamped longer ago than that: when the sweeps last reached it.
+    const lateSweep: MonitorOverviewPresentation = build(
+      running(MonitorType.IncomingRequest, {
+        monitorSteps: missingWindowSteps(CheckOn.IncomingRequest, 10),
+        heartbeat: {
+          lastReceivedAt: secondsAgo(120),
+          lastCheckedAt: secondsAgo(20 * 60),
+          requestMethod: "POST",
+        },
+      }),
+    );
+
+    expect(fact(lateSweep, "heartbeat-check")).toEqual({
       key: "heartbeat-check",
       label: "Last missing-request check",
       value: "",
-      valueDate: secondsAgo(30),
+      valueDate: secondsAgo(20 * 60),
     });
 
     const withoutWindow: MonitorOverviewPresentation = build(
