@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -43,6 +44,10 @@ const RULE_WORDING: RuleWording<CloudResourceLabelRule> =
  * rule made here is for environments only (CloudRuleKind); Cloud has its
  * own for the resources of its accounts.
  */
+const labelRuleDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "cloud environment", plural: "cloud environments" },
+});
+
 const AppPlatformsLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
 ): ReactElement => {
@@ -78,6 +83,12 @@ const AppPlatformsLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         title: "Cloud Environment Label Rules",
         description:
           "Auto-attach labels when matching environments are created.",
+      }}
+      helpContent={{
+        title: "How Cloud Environment Label Rules Work",
+        description:
+          "Match cloud environments and attach labels automatically.",
+        markdown: labelRuleDocumentation,
       }}
       /*
        * App Platforms' rules are for environments; Cloud has its own for the

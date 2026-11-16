@@ -177,6 +177,17 @@ describe("every resource's rule pages", () => {
    * their own.
    */
   const RESOURCE_RULE_PAGES: Array<string> = [
+    // The five that had no help at all until #8889.
+    "AppPlatforms/Settings/LabelRules.tsx",
+    "AppPlatforms/Settings/OwnerRules.tsx",
+    "Cloud/Settings/LabelRules.tsx",
+    "Cloud/Settings/OwnerRules.tsx",
+    "DataSecurity/Settings/LabelRules.tsx",
+    "DataSecurity/Settings/OwnerRules.tsx",
+    "Rum/Settings/LabelRules.tsx",
+    "Rum/Settings/OwnerRules.tsx",
+    "Serverless/Settings/LabelRules.tsx",
+    "Serverless/Settings/OwnerRules.tsx",
     "Ceph/Settings/LabelRules.tsx",
     "Ceph/Settings/OwnerRules.tsx",
     "Dashboards/Settings/LabelRules.tsx",

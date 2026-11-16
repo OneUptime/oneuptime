@@ -1,3 +1,4 @@
+import { getOwnerRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -36,6 +37,10 @@ const cloudResourceKind: EqualToOrNull<string> = getCloudRuleListKind(
 const RULE_WORDING: RuleWording<CloudResourceOwnerRule> =
   getCloudRuleWording<CloudResourceOwnerRule>(CloudResourceKind.Resource);
 
+const ownerRuleDocumentation: string = getOwnerRuleHelpMarkdown({
+  nouns: { singular: "cloud resource", plural: "cloud resources" },
+});
+
 const CloudResourceOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
 ): ReactElement => {
@@ -63,6 +68,12 @@ const CloudResourceOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         title: "Cloud Resource Owner Rules",
         description:
           "Auto-assign owners when matching cloud resources are created.",
+      }}
+      helpContent={{
+        title: "How Cloud Resource Owner Rules Work",
+        description:
+          "Match cloud resources and add owner users/teams automatically.",
+        markdown: ownerRuleDocumentation,
       }}
       /*
        * Cloud's rules are for the resources of its accounts; App Platforms

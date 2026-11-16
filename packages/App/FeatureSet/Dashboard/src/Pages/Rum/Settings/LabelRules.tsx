@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -16,6 +17,10 @@ import RumApplicationLabelRule from "Common/Models/DatabaseModels/RumApplication
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
+
+const labelRuleDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "RUM application", plural: "RUM applications" },
+});
 
 const RumApplicationLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
@@ -47,6 +52,11 @@ const RumApplicationLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         title: "RUM Application Label Rules",
         description:
           "Auto-attach labels when matching RUM applications are created.",
+      }}
+      helpContent={{
+        title: "How RUM Application Label Rules Work",
+        description: "Match RUM applications and attach labels automatically.",
+        markdown: labelRuleDocumentation,
       }}
       sortBy="name"
       sortOrder={SortOrder.Ascending}
