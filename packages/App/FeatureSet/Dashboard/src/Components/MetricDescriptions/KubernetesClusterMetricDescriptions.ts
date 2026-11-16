@@ -65,7 +65,7 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
     "CPU in use across all nodes as a share of allocatable CPU - the CPU Kubernetes can hand out to pods. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).",
   ),
   memory: translationKey(
-    "Memory in use on all nodes added together, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). It includes file cache the system can free, so it reads higher than what apps need.",
+    "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.",
   ),
   filesystem: translationKey(
     "Used space divided by used plus free space on each node's disk, averaged across nodes over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). One nearly full node can hide behind emptier ones.",
@@ -82,7 +82,7 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
     "Cluster CPU in use as a share of total allocatable CPU (what Kubernetes can hand out to pods) in each interval. Stays empty when the nodes do not report allocatable CPU.",
   ),
   memoryChart: translationKey(
-    "Memory in use on all nodes added together in each interval, in bytes. Includes file cache the system can free when apps need the memory.",
+    "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.",
   ),
   filesystemChart: translationKey(
     "Average disk fullness in each interval: for every node, used space divided by used plus free space on its disk, then averaged across the nodes.",

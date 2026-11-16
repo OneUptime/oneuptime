@@ -230,7 +230,7 @@ describe("cluster Overview: the page in the issue", () => {
     // Checked once every answer is in, before anything is painted...
     expectCode(
       golden,
-      "const allocatable: NodeAllocatableCpu = await allocatablePromise; if (isSuperseded()) { return; }",
+      "const allocatable: NodeAllocatableCpu = await allocatablePromise; const allocatableMemoryBytes: number = await allocatableMemoryPromise; if (isSuperseded()) { return; }",
     );
     // ...before an error is shown, and before the spinners are cleared.
     expectCode(
@@ -260,7 +260,16 @@ describe("cluster Overview: the page in the issue", () => {
     );
     expectCode(
       golden,
-      "startDate: allocatableLookbackStart.getTime() < startDate.getTime() ? allocatableLookbackStart : startDate,",
+      "const allocatableStartDate: Date = allocatableLookbackStart.getTime() < startDate.getTime() ? allocatableLookbackStart : startDate;",
+    );
+    // Allocatable CPU and allocatable memory (the Memory tile's denominator, #9113) both.
+    expectCode(
+      golden,
+      "KubernetesCpuUtils.fetchNodeAllocatableCpu({ clusterIdentifier: clusterIdentifier, startDate: allocatableStartDate, endDate: endDate, });",
+    );
+    expectCode(
+      golden,
+      "KubernetesMemoryUtils.fetchClusterAllocatableMemoryBytes({ clusterIdentifier: clusterIdentifier, startDate: allocatableStartDate, endDate: endDate, });",
     );
   });
 

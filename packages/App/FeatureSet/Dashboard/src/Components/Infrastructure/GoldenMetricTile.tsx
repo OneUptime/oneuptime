@@ -239,6 +239,7 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
         <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
           <div
             className={`${barColor} h-1.5 rounded-full transition-all`}
+            data-testid="golden-metric-tile-bar"
             style={{ width: `${safePercent}%` }}
           />
         </div>

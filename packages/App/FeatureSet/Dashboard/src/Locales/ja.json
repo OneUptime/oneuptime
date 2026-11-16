@@ -56336,5 +56336,9 @@
   "Limited to deleted records": "削除されたレコードに限定",
   "OneUptime switched this rule off when they were deleted.": "それらが削除されたときに、OneUptime がこのルールを無効にしました。",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "このまま有効にすると、このルールはこれらのリストでまったく制限されなくなります。編集して適用先を選んでから、有効にしてください。",
-  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}：{{names}}（{{date}} に削除）。"
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}：{{names}}（{{date}} に削除）。",
+  "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "各区間におけるすべてのノードでアプリが使用しているメモリの合計（バイト）です。アプリがメモリを必要としたときにシステムが解放できるファイルキャッシュは含みません。",
+  "in use, no allocatable memory reported": "使用中（割り当て可能なメモリの報告なし）",
+  "{{used}} of {{allocatable}} allocatable": "割り当て可能 {{allocatable}} 中 {{used}}",
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "すべてのノードでアプリが使用しているメモリを、割り当て可能なメモリ（Pod が使えるメモリ）に対する割合で表したものです（ファイルキャッシュを除く）。選択した範囲の直近 5 分間（12 時間を超える範囲や最近のデータがない場合は、多くの場合範囲全体）で平均しています。報告がない場合はバーを表示しません。"
 }

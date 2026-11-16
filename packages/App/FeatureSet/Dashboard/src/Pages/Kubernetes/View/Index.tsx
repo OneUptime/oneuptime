@@ -40,6 +40,10 @@ import KubernetesCpuUtils, {
   NodeAllocatableCpu,
   NODE_NAME_ATTRIBUTE,
 } from "../Utils/KubernetesCpuUtils";
+import KubernetesMemoryUtils, {
+  ClusterMemoryUtilization,
+  NODE_MEMORY_WORKING_SET_METRIC,
+} from "../Utils/KubernetesMemoryUtils";
 import {
   fetchClusterWarningEvents,
   fetchOpenShiftClusterHealth,
@@ -158,6 +162,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   PluralTemplate,
   translateText,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -183,7 +188,7 @@ interface ResourceLink {
 
 interface GoldenStats {
   cpuPercent: number | null;
-  memoryBytes: number | null;
+  memory: ClusterMemoryUtilization;
   filesystemPercent: number | null;
   networkInBytesPerSec: number | null;
   networkOutBytesPerSec: number | null;
@@ -758,8 +763,11 @@ const KubernetesClusterOverview: FunctionComponent<
    * selected time range. CPU is cores in use (`k8s.node.cpu.
    * utilization` is a misnamed cores gauge, not a ratio), so we sum it
    * across nodes and divide by the cluster's allocatable CPU
-   * (`k8s.node.allocatable_cpu`) to get a true percentage. Memory and
-   * filesystem live in absolute bytes client-side. Filesystem turns
+   * (`k8s.node.allocatable_cpu`) to get a true percentage. Memory is
+   * the nodes' working set (what apps hold, without the file cache the
+   * kernel frees on demand), summed across nodes, and the tile divides
+   * it by the cluster's allocatable memory (`k8s.node.allocatable_memory`)
+   * the same way (KubernetesMemoryUtils). Filesystem turns
    * into a percent because `k8s.node.filesystem.available` is also
    * emitted, so usage / (usage + available) is a clean per-node
    * fraction we can then average. Network counters are cumulative — we
@@ -836,7 +844,7 @@ const KubernetesClusterOverview: FunctionComponent<
       cpuAgg.groupBy = { attributes: true };
 
       const memAgg: AggregateBy<Metric> = buildAggregateBy(
-        "k8s.node.memory.usage",
+        NODE_MEMORY_WORKING_SET_METRIC,
         AggregationType.Avg,
       );
       memAgg.groupBy = { attributes: true };
@@ -881,13 +889,25 @@ const KubernetesClusterOverview: FunctionComponent<
         endDate,
         -ALLOCATABLE_CPU_MIN_LOOKBACK_MINUTES,
       );
+      const allocatableStartDate: Date =
+        allocatableLookbackStart.getTime() < startDate.getTime()
+          ? allocatableLookbackStart
+          : startDate;
       const allocatablePromise: Promise<NodeAllocatableCpu> =
         KubernetesCpuUtils.fetchNodeAllocatableCpu({
           clusterIdentifier: clusterIdentifier,
-          startDate:
-            allocatableLookbackStart.getTime() < startDate.getTime()
-              ? allocatableLookbackStart
-              : startDate,
+          startDate: allocatableStartDate,
+          endDate: endDate,
+        });
+      /*
+       * Denominator for the Memory tile's share: each node's allocatable
+       * memory (bytes) from `k8s.node.allocatable_memory`, read over the
+       * same window as allocatable CPU, as it is sampled as seldom.
+       */
+      const allocatableMemoryPromise: Promise<number> =
+        KubernetesMemoryUtils.fetchClusterAllocatableMemoryBytes({
+          clusterIdentifier: clusterIdentifier,
+          startDate: allocatableStartDate,
           endDate: endDate,
         });
 
@@ -936,6 +956,7 @@ const KubernetesClusterOverview: FunctionComponent<
         await receivingGapsPromise;
 
       const allocatable: NodeAllocatableCpu = await allocatablePromise;
+      const allocatableMemoryBytes: number = await allocatableMemoryPromise;
 
       // A newer load (a zoom, a reset, a refresh) owns the page now.
       if (isSuperseded()) {
@@ -1194,7 +1215,10 @@ const KubernetesClusterOverview: FunctionComponent<
 
       setGoldenStats({
         cpuPercent: cpuTile,
-        memoryBytes: memTile,
+        memory: KubernetesMemoryUtils.getClusterMemoryUtilization({
+          usedBytes: memTile,
+          allocatableBytes: allocatableMemoryBytes,
+        }),
         filesystemPercent: fsTile,
         networkInBytesPerSec: netInTile,
         networkOutBytesPerSec: netOutTile,
@@ -1638,6 +1662,33 @@ const KubernetesClusterOverview: FunctionComponent<
       )} out`;
     })();
 
+    /*
+     * Memory reads as CPU does - a share of what Kubernetes can hand out,
+     * with its bar - and the line under it says which bytes make it up.
+     * Without allocatable memory there is nothing to measure against: the
+     * tile shows the bytes in use, draws no bar, and says why.
+     */
+    const memory: ClusterMemoryUtilization = s.memory;
+    const memoryValue: string =
+      memory.percent !== null
+        ? formatPercent(memory.percent)
+        : formatMemoryBytes(memory.usedBytes);
+    const memorySublabel: string = (() => {
+      if (memory.usedBytes === null) {
+        return translationKey("across nodes");
+      }
+      if (memory.allocatableBytes === null) {
+        return translationKey("in use, no allocatable memory reported");
+      }
+      return translator.translateTemplate(
+        "{{used}} of {{allocatable}} allocatable",
+        {
+          used: formatMemoryBytes(memory.usedBytes),
+          allocatable: formatMemoryBytes(memory.allocatableBytes),
+        },
+      );
+    })();
+
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <GoldenMetricTile
@@ -1681,8 +1732,9 @@ const KubernetesClusterOverview: FunctionComponent<
           title="Memory"
           icon={IconProp.SquareStack}
           iconColor="violet"
-          value={formatMemoryBytes(s.memoryBytes)}
-          sublabel="total across nodes"
+          value={memoryValue}
+          sublabel={memorySublabel}
+          percent={memory.percent}
           description={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.memory}
         />
         <GoldenMetricTile

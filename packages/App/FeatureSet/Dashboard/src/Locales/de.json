@@ -56336,5 +56336,9 @@
   "Limited to deleted records": "Auf gelöschte Datensätze beschränkt",
   "OneUptime switched this rule off when they were deleted.": "OneUptime hat diese Regel deaktiviert, als sie gelöscht wurden.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Unverändert aktiviert, wäre die Regel durch diese Listen gar nicht mehr eingeschränkt. Bearbeiten Sie sie, um festzulegen, wofür sie gilt, und aktivieren Sie sie dann.",
-  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, gelöscht am {{date}}."
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, gelöscht am {{date}}.",
+  "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "Von Apps belegter Arbeitsspeicher aller Knoten zusammengezählt in jedem Intervall, in Bytes. Datei-Cache, den das System freigeben kann, wenn Apps den Speicher brauchen, zählt nicht mit.",
+  "in use, no allocatable memory reported": "belegt, kein zuweisbarer Speicher gemeldet",
+  "{{used}} of {{allocatable}} allocatable": "{{used}} von {{allocatable}} zuweisbar",
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Von Apps belegter Arbeitsspeicher aller Knoten als Anteil am zuweisbaren Arbeitsspeicher (den Pods nutzen können), ohne Datei-Cache. Gemittelt über die letzten 5 Minuten des ausgewählten Zeitraums (bei Zeiträumen über 12 Stunden oder ohne aktuelle Daten oft der ganze Zeitraum). Kein Balken, wenn keiner gemeldet wird."
 }
