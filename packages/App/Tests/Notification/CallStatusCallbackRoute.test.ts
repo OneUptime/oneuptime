@@ -45,6 +45,13 @@ import type { Mock } from "jest-mock";
  * call went out on (the callback's ?providerConfig) and as an on-call page
  * when its log names one, as notification.send.count said them. The
  * metrics SDK is stood in for, and keeps what it is given.
+ *
+ * A failure - the database's - is handed to Express, which answers 500,
+ * and the callback's address asks Twilio to send it again on a 5xx
+ * (StatusCallbackRetry). Sent again, the callback whose outcome the log
+ * says already writes no log and counts nothing, and still corrects the
+ * notification - which the first may have stopped before - while that is
+ * only sent (issue #6874).
  */
 
 interface RecordedCall {
@@ -523,10 +530,30 @@ describe("what is never written over", () => {
     expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
   });
 
-  test("an answered call's callback sent twice finds its end written already, and changes nothing", async () => {
+  test("an answered call's callback sent twice finds its end written already: the log is not written again", async () => {
     callLog!.statusMessage = `Call ID: ${CALL_SID}. The call was answered and lasted 42 seconds.`;
 
     await callback(ended("completed", { CallDuration: "42" }));
+
+    expect(writeCallLog).not.toHaveBeenCalled();
+    expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+  });
+
+  test("an answered call's callback sent twice tells its notification, still only sent, the same words again - nothing more", async () => {
+    const message: string = `Call ID: ${CALL_SID}. The call was answered and lasted 42 seconds.`;
+    callLog!.statusMessage = message;
+
+    await callback(ended("completed", { CallDuration: "42" }));
+
+    expect(updateNotification).toHaveBeenCalledTimes(1);
+    expect(notificationUpdate()["data"]).toEqual({ statusMessage: message });
+  });
+
+  test("a callback whose outcome is not the one the log says - another ended the call - reads no notification", async () => {
+    callLog!.status = CallStatus.MissedCall;
+    callLog!.statusMessage = `Call ID: ${CALL_SID}. The call was not answered: it rang out.`;
+
+    await callback(ended("busy"));
 
     expectNothingWritten();
     expect(findNotification).not.toHaveBeenCalled();
@@ -655,6 +682,187 @@ describe("a failure", () => {
       "connection reset",
     );
     expectNothingWritten();
+    expectNothingCounted();
+  });
+});
+
+describe("a callback Twilio sends again, after one the database failed for (issue #6874)", () => {
+  // The log as the callback that wrote it left it.
+  function asWritten(status: CallStatus | undefined, message: string): void {
+    if (status) {
+      callLog!.status = status;
+    }
+
+    callLog!.statusMessage = message;
+  }
+
+  const RANG_OUT: string = `Call ID: ${CALL_SID}. The call was not answered: it rang out.`;
+  const NOT_CONNECTED: string = `Call ID: ${CALL_SID}. The call could not be connected.`;
+
+  test("the notification could not be written: Express answers the error, the log written and the call counted", async () => {
+    updateNotification.mockRejectedValueOnce(
+      new Error("connection reset") as never,
+    );
+
+    const answer: Answer = await callback(ended("no-answer"));
+
+    expect(answer.next).toHaveBeenCalledTimes(1);
+    expect(writeCallLog).toHaveBeenCalledTimes(1);
+    expect(onlyDelivery()["outcome"]).toBe("not_answered");
+    expect(sendEmptySuccess).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [
+      "rang out",
+      "no-answer",
+      CallStatus.MissedCall,
+      RANG_OUT,
+      UserNotificationStatus.NotAnswered,
+    ],
+    [
+      "could not be connected",
+      "failed",
+      CallStatus.Error,
+      NOT_CONNECTED,
+      UserNotificationStatus.Error,
+    ],
+  ])(
+    "%s: sent again, it corrects the notification - the log not written again, the call not counted again",
+    async (
+      _name: string,
+      twilioStatus: string,
+      logStatus: CallStatus,
+      message: string,
+      notificationStatus: UserNotificationStatus,
+    ) => {
+      asWritten(logStatus, message);
+
+      const answer: Answer = await callback(ended(twilioStatus));
+
+      expect(answer.next).not.toHaveBeenCalled();
+      expect(writeCallLog).not.toHaveBeenCalled();
+      expectNothingCounted();
+      expect(notificationUpdate()).toEqual({
+        query: {
+          _id: NOTIFICATION_ID.toString(),
+          status: UserNotificationStatus.Sent,
+          version: 7,
+        },
+        data: { status: notificationStatus, statusMessage: message },
+        props: { isRoot: true },
+      });
+      expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("the whole of it: the first callback fails at the notification, Twilio sends it again, and it lands once", async () => {
+    // The log and the notification as the database holds them.
+    writeCallLog.mockImplementation((async (input: {
+      data: { status?: CallStatus; statusMessage: string };
+    }) => {
+      asWritten(input.data.status, input.data.statusMessage);
+      return true;
+    }) as never);
+    updateNotification
+      .mockRejectedValueOnce(new Error("connection reset") as never)
+      .mockImplementation((async (input: {
+        query: { status: UserNotificationStatus; version: number };
+        data: { status?: UserNotificationStatus };
+      }) => {
+        if (
+          notification!.status !== input.query.status ||
+          notification!.version !== input.query.version
+        ) {
+          return 0;
+        }
+
+        notification!.status = input.data.status!;
+        notification!.version = notification!.version! + 1;
+        return 1;
+      }) as never);
+
+    const first: Answer = await callback(ended("no-answer"));
+
+    expect(first.next).toHaveBeenCalledTimes(1);
+    expect(notification!.status).toBe(UserNotificationStatus.Sent);
+
+    // Twilio sends it again: the notification is corrected.
+    const second: Answer = await callback(ended("no-answer"));
+
+    expect(second.next).not.toHaveBeenCalled();
+    expect(notification!.status).toBe(UserNotificationStatus.NotAnswered);
+
+    // And a duplicate of Twilio's own after it: nothing more is written.
+    const third: Answer = await callback(ended("no-answer"));
+
+    expect(third.next).not.toHaveBeenCalled();
+    expect(writeCallLog).toHaveBeenCalledTimes(1);
+    expect(updateNotification).toHaveBeenCalledTimes(2);
+    expect(notification!.status).toBe(UserNotificationStatus.NotAnswered);
+    expect(onlyDelivery()["outcome"]).toBe("not_answered");
+    expect(onlyDeliveryTime()).toBe(PLACED_AGO_MS);
+    expect(sendEmptySuccess).toHaveBeenCalledTimes(2);
+  });
+
+  test("the log could not be written: sent again, it is written then, and counted once", async () => {
+    writeCallLog.mockRejectedValueOnce(new Error("connection reset") as never);
+
+    const first: Answer = await callback(ended("busy"));
+
+    expect(first.next).toHaveBeenCalledTimes(1);
+    expect(updateNotification).not.toHaveBeenCalled();
+    expectNothingCounted();
+
+    await callback(ended("busy"));
+
+    expect(writeCallLog).toHaveBeenCalledTimes(2);
+    expect((logWrite()["data"] as JSONObject)["status"]).toBe(CallStatus.Busy);
+    expect(updateNotification).toHaveBeenCalledTimes(1);
+    expect(onlyDelivery()["outcome"]).toBe("not_answered");
+  });
+
+  test.each([
+    UserNotificationStatus.Acknowledged,
+    UserNotificationStatus.NotAnswered,
+    UserNotificationStatus.Error,
+    UserNotificationStatus.PassedOn,
+    UserNotificationStatus.Skipped,
+  ])(
+    "a notification that is %s by then keeps its status",
+    async (status: UserNotificationStatus) => {
+      asWritten(CallStatus.MissedCall, RANG_OUT);
+      notification!.status = status;
+
+      await callback(ended("no-answer"));
+
+      expect(findNotification).toHaveBeenCalledTimes(1);
+      expect(updateNotification).not.toHaveBeenCalled();
+      expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("a call made for no on-call notification writes nothing when sent again", async () => {
+    asWritten(CallStatus.MissedCall, RANG_OUT);
+    delete callLog!.userOnCallLogTimelineId;
+
+    await callback(ended("no-answer"));
+
+    expectNothingWritten();
+    expect(findNotification).not.toHaveBeenCalled();
+    expectNothingCounted();
+  });
+
+  test("the notification could not be read when sent again: Express answers the error once more", async () => {
+    asWritten(CallStatus.MissedCall, RANG_OUT);
+    findNotification.mockRejectedValueOnce(
+      new Error("connection reset") as never,
+    );
+
+    const answer: Answer = await callback(ended("no-answer"));
+
+    expect(answer.next).toHaveBeenCalledTimes(1);
+    expect(writeCallLog).not.toHaveBeenCalled();
     expectNothingCounted();
   });
 });
