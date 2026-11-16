@@ -13,6 +13,7 @@ import DayUptimeGraphUtil, {
   UptimeGraphDay,
 } from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
+import { PREVIOUS_DAILY_UPTIME_AGGREGATE_SQL } from "./PreviousUptimeStatements";
 import { getJestSpyOn } from "../../Spy";
 import {
   afterAll,
@@ -43,8 +44,8 @@ import { DataSource } from "typeorm";
  * (America/Santiago), over windows that hold those changes, with periods
  * that start and end exactly on a local midnight, orphaned open rows,
  * deleted rows, rows that overlap their own monitor's, zero-length rows and
- * time with monitoring off. The old statement is kept here verbatim
- * (PREVIOUS_DAILY_UPTIME_AGGREGATE_SQL); it knows nothing of a monitor's
+ * time with monitoring off. The old statement is kept verbatim in
+ * PreviousUptimeStatements.ts; it knows nothing of a monitor's
  * first check (issue #8960), so every monitor here has been checked from
  * the start: the Monitor table holds none of them, which reads as measured.
  * And they time both on a flapping page.
@@ -69,99 +70,6 @@ const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_DAILY_UPTIME_AGGREGATE_TESTS"] === "true"
     ? describe
     : describe.skip;
-
-/*
- * getDailyUptimeAggregate's statement before issue #6887, verbatim: the
- * reference the new one is held to.
- */
-export const PREVIOUS_DAILY_UPTIME_AGGREGATE_SQL: string = `
-      WITH params AS (
-        SELECT $2::timestamptz AS win_start,
-               LEAST($3::timestamptz, now()) AS eff_end,
-               $4::text AS tz
-      ),
-      mons AS (
-        SELECT UNNEST($1::uuid[]) AS monitor_id
-      ),
-      src AS (
-        SELECT t."monitorId" AS monitor_id,
-               t."monitorStatusId" AS status_id,
-               t."isMonitoringOff" IS TRUE AS is_off,
-               GREATEST(t."startsAt", p.win_start) AS s,
-               LEAST(
-                 COALESCE(
-                   t."endsAt",
-                   LEAD(t."startsAt") OVER (
-                     PARTITION BY t."monitorId"
-                     ORDER BY t."startsAt", t."endsAt" NULLS LAST
-                   ),
-                   p.eff_end
-                 ),
-                 p.eff_end
-               ) AS e
-        FROM "MonitorStatusTimeline" t
-        CROSS JOIN params p
-        WHERE t."monitorId" = ANY($1::uuid[])
-          AND t."deletedAt" IS NULL
-          AND t."startsAt" <= p.eff_end
-          AND (t."endsAt" >= p.win_start OR t."endsAt" IS NULL)
-      ),
-      split AS (
-        SELECT src.monitor_id,
-               CASE WHEN src.is_off THEN NULL ELSE src.status_id END
-                 AS status_id,
-               src.is_off,
-               (gs AT TIME ZONE p.tz) AS day_start,
-               GREATEST(src.s, (gs AT TIME ZONE p.tz)) AS seg_start,
-               LEAST(src.e, ((gs + interval '1 day') AT TIME ZONE p.tz))
-                 AS seg_end
-        FROM src
-        CROSS JOIN params p,
-        LATERAL generate_series(
-          date_trunc('day', src.s AT TIME ZONE p.tz),
-          date_trunc('day', (src.e - interval '1 microsecond') AT TIME ZONE p.tz),
-          interval '1 day'
-        ) AS gs
-        WHERE src.e > src.s
-      ),
-      agg AS (
-        SELECT monitor_id,
-               day_start,
-               status_id,
-               is_off,
-               SUM(EXTRACT(EPOCH FROM (seg_end - seg_start)))::double precision
-                 AS seconds
-        FROM split
-        WHERE seg_end > seg_start
-        GROUP BY monitor_id, day_start, status_id, is_off
-      ),
-      buckets AS (
-        SELECT (d AT TIME ZONE p.tz) AS day_start,
-               GREATEST((d AT TIME ZONE p.tz), p.win_start) AS bucket_start,
-               LEAST(((d + interval '1 day') AT TIME ZONE p.tz), p.eff_end)
-                 AS bucket_end
-        FROM params p,
-             generate_series(
-               date_trunc('day', p.win_start AT TIME ZONE p.tz),
-               date_trunc('day', p.eff_end AT TIME ZONE p.tz),
-               interval '1 day'
-             ) AS d
-      )
-      SELECT m.monitor_id AS "monitorId",
-             b.bucket_start AS "bucketStart",
-             b.bucket_end AS "bucketEnd",
-             EXTRACT(EPOCH FROM (b.bucket_end - b.bucket_start))::bigint
-               AS "daySeconds",
-             a.status_id AS "monitorStatusId",
-             COALESCE(a.seconds, 0)::double precision AS "seconds",
-             COALESCE(a.is_off, false) AS "isMonitoringOff"
-      FROM mons m
-      CROSS JOIN buckets b
-      LEFT JOIN agg a ON a.monitor_id = m.monitor_id
-                     AND a.day_start = b.day_start
-      WHERE b.bucket_end > b.bucket_start
-      ORDER BY m.monitor_id, b.bucket_start
-    `;
 
 const HOUR_MS: number = 60 * 60 * 1000;
 const DAY_MS: number = 24 * HOUR_MS;
