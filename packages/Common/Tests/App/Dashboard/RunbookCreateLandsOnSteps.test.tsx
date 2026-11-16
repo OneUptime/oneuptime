@@ -79,7 +79,17 @@ import ObjectID from "../../../Types/ObjectID";
 import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
 import { getJestSpyOn } from "../../Spy";
+
+/*
+ * Reads the page makes that these tests leave unanswered: how many runbooks
+ * the project has, for the list's first-runbook watch (useFirstRecordWatch),
+ * and the labels a bulk Add Labels offers (BulkLabelActions). Refused at
+ * once, as the network refused them, and taken as reads the page could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/runbook/count", "/label/get-list"]);
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "5b1f0a0e-1111-4c1e-9a1e-000000000001",
