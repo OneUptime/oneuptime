@@ -427,10 +427,11 @@ const isRelationSortKey: (
  * (relationSorts, by the key the header sorts on), the column itself for
  * any other, and none when nothing is sorted.
  *
- * None either for a relation the list cannot be ordered by: a link or a
- * saved view made before a column changed can still name one, and the
- * server refuses an order by it ({ labels: "ASC" }) - the whole list would
- * fail to load. It is read in its own order instead.
+ * None either for a relation the list cannot be ordered by, or for a key
+ * the model has no column for: a link or a saved view made before a column
+ * changed can still name one, and the server refuses an order by it
+ * ({ labels: "ASC" }, { oldColumn: "ASC" }) - the whole list would fail to
+ * load. It is read in its own order instead.
  */
 export const getColumnSortForRead: <
   TBaseModel extends BaseModel | AnalyticsBaseModel,
@@ -463,6 +464,19 @@ export const getColumnSortForRead: <
   }
 
   if (isRelationSortKey(data.model, data.sortBy)) {
+    return {} as Sort<TBaseModel>;
+  }
+
+  /*
+   * None either for a key its model has no column for: a link or a saved
+   * view sorted by a column renamed or removed since, or an address someone
+   * edited (?sortBy=). The server refuses a sort by it (#8141), so the whole
+   * list would fail to load; it is read in its own order instead, and no
+   * header is highlighted (#8841). A telemetry list's attribute
+   * ("attributes.region") is no column either: it cannot order a list yet
+   * (#8140).
+   */
+  if (!data.model.hasColumn(data.sortBy)) {
     return {} as Sort<TBaseModel>;
   }
 
