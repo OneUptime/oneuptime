@@ -1998,6 +1998,84 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   public telemetryUsageRetentionInDays?: number = undefined;
 
+  /*
+   * The server's limits on how long projects keep resolved incidents and
+   * alerts (issue #6941, Admin Dashboard > Settings > Data Retention; Types/
+   * Retention/ResolvedRecordRetention): the longest any project keeps one -
+   * a project set to Never, or to longer, is held to it - and where a new
+   * project starts. Each one of the project choices (30, 60, 90, 180, 365,
+   * 730 or 1095 days), or empty: no maximum, and new projects at Never,
+   * where every server starts. Written only by master admins, checked by
+   * GlobalConfigService.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Maximum Incident Retention Days",
+    description:
+      "The longest any project keeps a resolved incident: 30, 60, 90, 180, 365, 730 or 1095 days. A project set to Never, or to a longer length, deletes resolved incidents after this. Empty (the default) is no maximum.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public maxIncidentRetentionInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Maximum Alert Retention Days",
+    description:
+      "The longest any project keeps a resolved alert: 30, 60, 90, 180, 365, 730 or 1095 days. A project set to Never, or to a longer length, deletes resolved alerts after this. Empty (the default) is no maximum.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public maxAlertRetentionInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Default Incident Retention Days",
+    description:
+      "How long a new project keeps a resolved incident until its owners change it: 30, 60, 90, 180, 365, 730 or 1095 days. Empty (the default) is Never. Projects that exist keep their own setting.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public defaultIncidentRetentionInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Default Alert Retention Days",
+    description:
+      "How long a new project keeps a resolved alert until its owners change it: 30, 60, 90, 180, 365, 730 or 1095 days. Empty (the default) is Never. Projects that exist keep their own setting.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public defaultAlertRetentionInDays?: number = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],
