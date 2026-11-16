@@ -416,6 +416,39 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
+/*
+ * A sign-in the project's provider vouched for that OneUptime refuses, for
+ * the audit log (issue #6788): handed to FailedSignInAuditLog, which
+ * records it after the answer.
+ */
+const recordFailedSignIn: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Utils/AuditLog/FailedSignInAuditLog", () => {
+  return {
+    __esModule: true,
+    default: {
+      record: (...args: Array<unknown>): unknown => {
+        return recordFailedSignIn(...args);
+      },
+    },
+  };
+});
+
+// The one refused sign-in handed to the audit log, and why.
+function refusedFor(): { reason: string; ssoProjectId: string | undefined } {
+  expect(recordFailedSignIn).toHaveBeenCalledTimes(1);
+
+  const attempt: {
+    reason: string;
+    signIn: { ssoProjectId?: { toString: () => string } };
+  } = recordFailedSignIn.mock.calls[0]![0] as never;
+
+  return {
+    reason: attempt.reason,
+    ssoProjectId: attempt.signIn.ssoProjectId?.toString(),
+  };
+}
+
 const render: jest.Mock = jest.fn();
 const sendErrorResponse: jest.Mock = jest.fn();
 const responseRedirect: jest.Mock = jest.fn();
@@ -1113,6 +1146,11 @@ describe.each(FLOWS)("$name on a self-hosted install", (flow: Flow) => {
     expect(sendVerificationEmail).toHaveBeenCalledTimes(1);
     expect(sendMail).not.toHaveBeenCalled();
     expectNoSessionAndNothingProvisioned();
+    // A failed sign-in, by this project's provider.
+    expect(refusedFor()).toEqual({
+      reason: "EmailNotVerified",
+      ssoProjectId: PROJECT_ID,
+    });
   });
 
   test("still refuses a OneUptime administrator account", async () => {
@@ -1127,6 +1165,11 @@ describe.each(FLOWS)("$name on a self-hosted install", (flow: Flow) => {
     expectNoSessionAndNothingProvisioned();
     expect(sendMail).not.toHaveBeenCalled();
     expect(hasConsent).not.toHaveBeenCalled();
+    // A tenant's provider asserting an administrator: a refused single sign-on.
+    expect(refusedFor()).toEqual({
+      reason: "SingleSignOnRefused",
+      ssoProjectId: PROJECT_ID,
+    });
   });
 });
 

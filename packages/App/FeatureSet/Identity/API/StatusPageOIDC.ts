@@ -30,6 +30,8 @@ import logger, {
 import Response from "Common/Server/Utils/Response";
 import StatusPageOIDC from "Common/Models/DatabaseModels/StatusPageOidc";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
+import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 import { Client } from "openid-client";
 
 const router: ExpressRouter = Express.getRouter();
@@ -250,6 +252,8 @@ router.get(
             isEnabled: true,
           },
           select: {
+            // The audit log's sign-in entry names the provider (issue #6790).
+            name: true,
             discoveryURL: true,
             issuerURL: true,
             clientId: true,
@@ -386,6 +390,12 @@ router.get(
           ipAddress: getClientIp(req),
           userAgent: headerValueToString(req.headers["user-agent"]),
           ...extractDeviceInfo(req),
+          // What the session the code is exchanged for signed in with.
+          signIn: {
+            method: SignInMethod.OpenIdConnect,
+            ssoProviderName: statusPageOidc.name,
+          },
+          requestOrigin: RequestOriginUtil.fromRequest(req),
         });
 
       const statusPageURL: string =

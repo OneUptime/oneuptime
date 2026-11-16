@@ -21,7 +21,7 @@ import WorkspaceNotificationSummaryService, {
 } from "../../../Server/Services/WorkspaceNotificationSummaryService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import BlockedProjectNotifications from "../../../Server/Utils/Notification/BlockedProjectNotifications";
-import SSRFProtection from "../../../Server/Utils/SSRFProtection";
+import { approveEveryWebhookAddress } from "../TestingUtils/WebhookAddressCheck";
 import MattermostConnection from "../../../Server/Utils/Workspace/Mattermost/MattermostConnection";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import {
@@ -677,9 +677,8 @@ beforeEach(() => {
   jest.spyOn(API, "put").mockImplementation(answer("PUT") as never);
   jest.spyOn(API, "delete").mockImplementation(answer("DELETE") as never);
 
-  jest
-    .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-    .mockResolvedValue(undefined);
+  // The check every call to the server runs, approving each URL (WebhookAddressCheck).
+  approveEveryWebhookAddress();
 
   isBlocked = jest
     .spyOn(BlockedProjectNotifications, "isBlocked")

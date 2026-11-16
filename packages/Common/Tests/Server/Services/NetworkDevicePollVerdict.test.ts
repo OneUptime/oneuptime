@@ -1,7 +1,13 @@
 import {
+  NETWORK_DEVICE_POLL_DETAIL_COLUMNS,
+  NetworkDevicePollDetails,
   NetworkDevicePollVerdict,
   Service as NetworkDeviceServiceType,
+  hasPollDetails,
 } from "../../../Server/Services/NetworkDeviceService";
+import { SnmpTableSnapshot } from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
+import { NetworkDeviceTransceiver } from "../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
   afterEach,
@@ -63,6 +69,9 @@ const VERDICT_COLUMNS: Array<string> = [
 
 // The column one SET assignment writes: `"isReachable" = $5::boolean`.
 const ASSIGNED_COLUMN: RegExp = /^"([A-Za-z]+)"\s*=/;
+
+// The placeholder one SET assignment binds: `$5` of `"isReachable" = $5::boolean`.
+const ASSIGNED_PLACEHOLDER: RegExp = /\$(\d+)/;
 
 type QueryFunction = (
   sql: string,
@@ -422,6 +431,201 @@ describe("NetworkDeviceService.writePollVerdict (issue #7389)", () => {
       query.mockRejectedValue(lockTimeout);
 
       await expect(write(REACHABLE_WALKED)).rejects.toBe(lockTimeout);
+    });
+  });
+
+  /*
+   * Issue #7393: a poll wrote the device row three or four times - its
+   * claim, its rate baseline, its verdict, and for a device with SNMP tables
+   * or optics the hooked write of its snapshots, which change on every poll.
+   * The baseline and the snapshots now ride in this statement, under the
+   * same guard, so a poll writes the row twice: its claim, and this.
+   */
+  describe("the poll's details", () => {
+    const BASELINE: JSONObject = {
+      snmpResponse: {
+        interfaces: [{ interfaceIndex: 1, inOctets: 5000, outOctets: 7000 }],
+      },
+      monitoredAt: RECEIVED_AT.toISOString(),
+    };
+    const TABLES: Array<SnmpTableSnapshot> = [
+      { tableId: "wifi-radios", rows: [] } as unknown as SnmpTableSnapshot,
+    ];
+    const OPTICS: Array<NetworkDeviceTransceiver> = [
+      { interfaceIndex: 1 } as unknown as NetworkDeviceTransceiver,
+    ];
+
+    const writeWith: (
+      verdict: NetworkDevicePollVerdict | null,
+      details: NetworkDevicePollDetails,
+    ) => Promise<boolean> = (
+      verdict: NetworkDevicePollVerdict | null,
+      details: NetworkDevicePollDetails,
+    ): Promise<boolean> => {
+      return service.writePollVerdict({
+        projectId: PROJECT_ID,
+        deviceId: DEVICE_ID,
+        receivedAt: RECEIVED_AT,
+        processedAt: PROCESSED_AT,
+        verdict,
+        details,
+      });
+    };
+
+    // The value bound to one assignment's placeholder.
+    const boundTo: (column: string) => unknown = (column: string): unknown => {
+      const assignment: string = assignments().get(column)!;
+      const placeholder: number = Number(
+        ASSIGNED_PLACEHOLDER.exec(assignment)![1],
+      );
+      return sentParameters()[placeholder - 1];
+    };
+
+    test("ride in the same statement, as jsonb, under the same guard", async () => {
+      await writeWith(REACHABLE_WALKED, {
+        lastWalkLog: BASELINE,
+        snmpTableSnapshot: TABLES,
+        transceiverSnapshot: OPTICS,
+      });
+
+      expect(query).toHaveBeenCalledTimes(1);
+      for (const column of NETWORK_DEVICE_POLL_DETAIL_COLUMNS) {
+        expect(assignments().get(column)).toMatch(
+          new RegExp(`^"${column}" = \\$\\d+::jsonb$`),
+        );
+      }
+      expect(JSON.parse(boundTo("lastWalkLog") as string)).toEqual(BASELINE);
+      expect(JSON.parse(boundTo("snmpTableSnapshot") as string)).toEqual(
+        TABLES,
+      );
+      expect(JSON.parse(boundTo("transceiverSnapshot") as string)).toEqual(
+        OPTICS,
+      );
+      // The verdict is all still there, and the guard with it.
+      expect(assignments().get("isReachable")).toBeDefined();
+      expect(whereClause()).toContain(
+        '("lastPollReceivedAt" IS NULL OR "lastPollReceivedAt" < $3::timestamptz)',
+      );
+    });
+
+    test("only the ones the poll has: undefined leaves a column as it is", async () => {
+      await writeWith(REACHABLE_WALKED, { snmpTableSnapshot: TABLES });
+
+      expect(assignments().has("snmpTableSnapshot")).toBe(true);
+      expect(assignments().has("lastWalkLog")).toBe(false);
+      expect(assignments().has("transceiverSnapshot")).toBe(false);
+    });
+
+    test("an empty snapshot clears it", async () => {
+      await writeWith(REACHABLE_WALKED, {
+        snmpTableSnapshot: [],
+        transceiverSnapshot: [],
+      });
+
+      expect(boundTo("snmpTableSnapshot")).toBe("[]");
+      expect(boundTo("transceiverSnapshot")).toBe("[]");
+    });
+
+    test("every placeholder is bound, and every bound value is used, whatever the poll carries", async () => {
+      const cases: Array<
+        [NetworkDevicePollVerdict | null, NetworkDevicePollDetails]
+      > = [
+        [REACHABLE_WALKED, { lastWalkLog: BASELINE }],
+        [
+          { isReachable: false, isSnmpReachable: null },
+          { snmpTableSnapshot: TABLES, transceiverSnapshot: OPTICS },
+        ],
+        [
+          { isReachable: true, isSnmpReachable: null, interfaceCounts: null },
+          {
+            lastWalkLog: BASELINE,
+            snmpTableSnapshot: [],
+            transceiverSnapshot: OPTICS,
+          },
+        ],
+        [null, { transceiverSnapshot: OPTICS }],
+        [null, { lastWalkLog: BASELINE, snmpTableSnapshot: TABLES }],
+      ];
+
+      for (const [verdict, details] of cases) {
+        query.mockClear();
+        await writeWith(verdict, details);
+
+        const used: Set<number> = new Set(
+          Array.from(sentSql().matchAll(/\$(\d+)/g)).map(
+            (match: RegExpMatchArray) => {
+              return Number(match[1]);
+            },
+          ),
+        );
+        expect(
+          Array.from(used).sort((a: number, b: number) => {
+            return a - b;
+          }),
+        ).toEqual(
+          Array.from(
+            { length: sentParameters().length },
+            (_value: unknown, index: number) => {
+              return index + 1;
+            },
+          ),
+        );
+      }
+    });
+
+    test("writes no column outside the verdict and the details", async () => {
+      await writeWith(REACHABLE_WALKED, {
+        lastWalkLog: BASELINE,
+        snmpTableSnapshot: TABLES,
+        transceiverSnapshot: OPTICS,
+      });
+
+      expect(Array.from(assignments().keys()).sort()).toEqual(
+        [...VERDICT_COLUMNS, ...NETWORK_DEVICE_POLL_DETAIL_COLUMNS].sort(),
+      );
+    });
+
+    /*
+     * A monitor-backed device's bound monitor owns its health: no verdict
+     * column is written for it, only the guard, the poll's details - which
+     * are inventory - and updatedAt.
+     */
+    test("a monitor-backed device gets the guard and the details, and no health column", async () => {
+      await writeWith(null, {
+        lastWalkLog: BASELINE,
+        transceiverSnapshot: OPTICS,
+      });
+
+      expect(Array.from(assignments().keys()).sort()).toEqual(
+        [
+          "lastPollReceivedAt",
+          "lastWalkLog",
+          "transceiverSnapshot",
+          "updatedAt",
+        ].sort(),
+      );
+      expect(sentParameters().slice(0, 3)).toEqual([
+        DEVICE_ID.toString(),
+        PROJECT_ID.toString(),
+        RECEIVED_AT,
+      ]);
+      expect(whereClause()).toContain(
+        '("lastPollReceivedAt" IS NULL OR "lastPollReceivedAt" < $3::timestamptz)',
+      );
+    });
+
+    test("whether a poll has any details to write", () => {
+      expect(hasPollDetails(undefined)).toBe(false);
+      expect(hasPollDetails({})).toBe(false);
+      expect(
+        hasPollDetails({
+          lastWalkLog: undefined,
+          snmpTableSnapshot: undefined,
+          transceiverSnapshot: undefined,
+        }),
+      ).toBe(false);
+      expect(hasPollDetails({ snmpTableSnapshot: [] })).toBe(true);
+      expect(hasPollDetails({ lastWalkLog: BASELINE })).toBe(true);
     });
   });
 });

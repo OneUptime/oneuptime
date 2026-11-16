@@ -746,14 +746,15 @@ describe("NetworkDeviceWalkUtil.processWalkResult with tables", () => {
 
 describe("NetworkInventoryUtil.updateFromWalk stores the table snapshot", () => {
   let updateSpy: jest.SpyInstance;
+  let verdictSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.spyOn(NetworkDeviceService, "findOneBy").mockResolvedValue(device());
     updateSpy = jest
       .spyOn(NetworkDeviceService, "updateOneById")
       .mockResolvedValue(1);
-    // The poll's verdict, first: a device with no newer one (issue #7389).
-    jest
+    // The poll's verdict: a device with no newer one (issue #7389).
+    verdictSpy = jest
       .spyOn(NetworkDeviceService, "writePollVerdict")
       .mockResolvedValue(true);
   });
@@ -762,16 +763,28 @@ describe("NetworkInventoryUtil.updateFromWalk stores the table snapshot", () => 
     jest.restoreAllMocks();
   });
 
-  // A poll with no details to write makes no enrichment write at all.
+  /*
+   * The poll's details as the verdict's one statement is handed them, the
+   * ones it writes (issue #7393): the snapshot rides there, and never in the
+   * hooked write, which it made one of every poll of a device with tables.
+   */
   function writtenColumns(): Record<string, unknown> {
-    expect(updateSpy.mock.calls.length).toBeLessThanOrEqual(1);
+    expect(verdictSpy).toHaveBeenCalledTimes(1);
 
-    return (
-      (
-        updateSpy.mock.calls[0]?.[0] as
-          | { data: Record<string, unknown> }
-          | undefined
-      )?.data || {}
+    for (const call of updateSpy.mock.calls) {
+      expect(
+        (call[0] as { data: Record<string, unknown> }).data,
+      ).not.toHaveProperty("snmpTableSnapshot");
+    }
+
+    const details: Record<string, unknown> =
+      (verdictSpy.mock.calls[0]![0] as { details?: Record<string, unknown> })
+        .details || {};
+
+    return Object.fromEntries(
+      Object.entries(details).filter(([, value]: [string, unknown]) => {
+        return value !== undefined;
+      }),
     );
   }
 

@@ -355,6 +355,10 @@ describe("Status page POST /login — per-user salt", () => {
 
     expect(createSession).toHaveBeenCalledTimes(1);
     expect(sendEntityResponse).toHaveBeenCalledTimes(1);
+    // Issue #6790: the audit log's Sign In says it was a password.
+    expect(
+      (createSession.mock.calls[0]![0] as Record<string, unknown>)["signIn"],
+    ).toEqual({ method: "Password" });
   });
 
   it("rejects the wrong password without creating a session", async () => {

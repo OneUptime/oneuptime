@@ -10,7 +10,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import MessagingBalance from "Common/Server/Utils/Billing/MessagingBalance";
 import CustomChannelActionToken from "Common/Server/Utils/OnCall/CustomChannelActionToken";
-import SSRFProtection from "Common/Server/Utils/SSRFProtection";
+import { approveEveryWebhookAddress } from "Common/Tests/Server/TestingUtils/WebhookAddressCheck";
 import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -250,9 +250,7 @@ beforeEach(() => {
   });
 
   post = jest.spyOn(API, "post").mockResolvedValue(ok());
-  ssrf = jest
-    .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-    .mockResolvedValue(undefined);
+  ssrf = approveEveryWebhookAddress() as unknown as jest.SpyInstance;
   jest.spyOn(SignedWebhookPost, "sleep").mockResolvedValue();
 
   project = new Project();

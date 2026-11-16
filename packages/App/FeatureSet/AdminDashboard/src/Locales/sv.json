@@ -1244,6 +1244,8 @@
   "Copy Error": "Kopiera fel",
   "Full error message": "Hela felmeddelandet",
   "Next try: {{time}}": "Nästa försök: {{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "Poster som väntar på att skickas börjar raderas från omkring {{time}}.",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "Sedan omkring {{time}} raderas poster som väntar på att skickas.",
   "Needs a valid Enterprise license that includes audit logs.": "Kräver en giltig Enterprise-licens som omfattar granskningsloggar.",
   "Paused": "Pausad",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "Inget skickas medan den är avstängd. Den behåller sin plats: när den slås på igen skickar den det som registrerats under tiden.",

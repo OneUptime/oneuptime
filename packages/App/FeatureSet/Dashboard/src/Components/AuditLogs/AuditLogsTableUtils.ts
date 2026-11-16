@@ -1,5 +1,10 @@
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import { AUDIT_LOG_SESSION_RESOURCE_TYPE } from "Common/Types/AuditLog/AuditLogSessionEvent";
+import { AUDIT_LOG_SIGN_IN_ATTEMPT_RESOURCE_TYPE } from "Common/Types/AuditLog/AuditLogSignInFailure";
+import {
+  AUDIT_LOG_STATUS_PAGE_READER_ACTOR_TYPE,
+  AUDIT_LOG_STATUS_PAGE_SESSION_RESOURCE_TYPE,
+} from "Common/Types/AuditLog/AuditLogStatusPageSession";
 import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -229,6 +234,24 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
    * from. No view route: a session is not a page.
    */
   [AUDIT_LOG_SESSION_RESOURCE_TYPE]: {
+    icon: IconProp.ComputerDesktop,
+    color: "text-slate-700",
+    bgColor: "bg-slate-50 border-slate-200",
+  },
+  /*
+   * A sign-in that failed (issue #6788), named by the device it came from.
+   * No view route: an attempt is not a page.
+   */
+  [AUDIT_LOG_SIGN_IN_ATTEMPT_RESOURCE_TYPE]: {
+    icon: IconProp.ShieldExclamation,
+    color: "text-orange-600",
+    bgColor: "bg-orange-50 border-orange-100",
+  },
+  /*
+   * A private status page's reader's session (issue #6790), named by the
+   * device it signed in from. It has no page, so it opens its status page.
+   */
+  [AUDIT_LOG_STATUS_PAGE_SESSION_RESOURCE_TYPE]: {
     icon: IconProp.ComputerDesktop,
     color: "text-slate-700",
     bgColor: "bg-slate-50 border-slate-200",
@@ -632,6 +655,10 @@ export const AUDIT_LOG_ACTOR_TYPE_LABELS: Readonly<Record<string, string>> = {
   User: translationKey("User"),
   MasterAdmin: translationKey("Master Admin"),
   System: translationKey("System"),
+  // A private status page's reader (issue #6790): no OneUptime user.
+  [AUDIT_LOG_STATUS_PAGE_READER_ACTOR_TYPE]: translationKey(
+    "Status Page Private User",
+  ),
 };
 
 /*

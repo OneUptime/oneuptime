@@ -24,6 +24,8 @@ export interface AuditLogExportScopeCopy {
   cardDescription: string;
   // The route a test of this scope's exports is sent to (ee/Server/AuditLogExport/API).
   testRoute: string;
+  // The route that says when a failing export's waiting entries start to be deleted.
+  entriesLostAtRoute: string;
 }
 
 export const AUDIT_LOG_EXPORT_SCOPE_COPY: Record<
@@ -36,6 +38,7 @@ export const AUDIT_LOG_EXPORT_SCOPE_COPY: Record<
       "Send this project's audit log to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON.",
     ),
     testRoute: "/audit-log-export/test",
+    entriesLostAtRoute: "/audit-log-export/entries-lost-at",
   },
   [AuditLogExportScope.Instance]: {
     cardTitle: translationKey("Export Audit Logs"),
@@ -43,6 +46,7 @@ export const AUDIT_LOG_EXPORT_SCOPE_COPY: Record<
       "Send the audit log of every project on this instance to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON. Projects with audit logging off send nothing.",
     ),
     testRoute: "/audit-log-export/instance/test",
+    entriesLostAtRoute: "/audit-log-export/instance/entries-lost-at",
   },
 };
 
@@ -107,6 +111,8 @@ export const AuditLogExportCopy: {
   copyError: string;
   fullErrorLabel: string;
   nextTry: string;
+  entriesLostFrom: string;
+  entriesLostSince: string;
   licenseRequired: string;
 } = {
   addButton: translationKey("Add export"),
@@ -215,6 +221,20 @@ export const AuditLogExportCopy: {
   copyError: translationKey("Copy Error"),
   fullErrorLabel: translationKey("Full error message"),
   nextTry: translationKey("Next try: {{time}}"),
+  /*
+   * A failing export's deadline, under its next try (#7186): from when the
+   * entries waiting to be sent start to be deleted - or, once that moment
+   * has passed, that they are being deleted since then, as the failing
+   * export's email says (AuditLogExportNotifications). "About": the audit
+   * log deletes a part of its entries only once every entry in it is past
+   * its date.
+   */
+  entriesLostFrom: translationKey(
+    "Entries waiting to be sent start to be deleted from about {{time}}.",
+  ),
+  entriesLostSince: translationKey(
+    "Since about {{time}}, entries waiting to be sent are being deleted.",
+  ),
   licenseRequired: translationKey(
     "Needs a valid Enterprise license that includes audit logs.",
   ),

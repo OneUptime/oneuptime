@@ -140,7 +140,7 @@ Every entry is one JSON object, its keys always in this order:
 | `id` | The entry's id. The same entry sent twice has the same id. |
 | `createdAt` | When the change was recorded, in UTC. |
 | `projectId` | The project the change was made in. |
-| `action` | `Create`, `Update`, `Delete` or `Download`, or for a session `SignIn`, `SignOut`, `SessionTimeout` or `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` or `Download`, or for a sign-in or a session `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` or `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | What was changed. |
 | `rootResourceType`, `rootResourceId` | The resource it belongs to, such as an SLO for its rule. |
 | `userId`, `userName`, `userEmail`, `userType` | Who made the change. |
@@ -173,7 +173,7 @@ A new export sends version 2. An export saved before version 2 keeps sending ver
 
 ## When a destination fails
 
-A batch is tried three times, a few seconds apart, then the export waits before trying again: one minute, then two, four and so on, up to an hour. Its row says **Failing**, and **View Error** shows what the destination answered and when it is tried next.
+A batch is tried three times, a few seconds apart, then the export waits before trying again: one minute, then two, four and so on, up to an hour. Its row says **Failing**, and **View Error** shows what the destination answered, when it is tried next, and from when the entries waiting to be sent start to be deleted, or, once that moment has passed, since when they are being deleted.
 
 Nothing is skipped: the entries wait in the audit log, and the next delivery that works catches up from the oldest. Each entry is still deleted once it is older than the audit log retention it was recorded with, sent or not, so fix a failing export within that time. A longer retention keeps only the entries recorded after you change it.
 

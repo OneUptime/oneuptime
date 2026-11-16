@@ -25,6 +25,11 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  CapturedStatement,
+  captureClaimQueries,
+  normalizeSql,
+} from "../TestingUtils/PastDueMonitoringClaimSql";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -623,6 +628,11 @@ function flatten(sql: string): string {
   return sql.replace(/\s+/g, " ").trim();
 }
 
+/*
+ * The claim is one self-committing statement (OneUptime issue #7392):
+ * captured at getRepository().manager.query, with executeTransaction made
+ * to throw, so a claim that opens a transaction again fails here.
+ */
 describe("claimPendingForProbe", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -630,76 +640,94 @@ describe("claimPendingForProbe", () => {
   });
 
   async function claim(
-    selectRows: Array<{ _id: string }>,
+    claimedRows: unknown,
     limit: number = 20,
   ): Promise<{
     ids: Array<ObjectID>;
-    statements: Array<RecordedStatement>;
+    statements: Array<CapturedStatement>;
+    service: NetworkDeviceDiagnosticServiceType;
   }> {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
-      selectRows,
-      [[], selectRows.length],
-    ]);
+    const statements: Array<CapturedStatement> = captureClaimQueries(
+      service,
+      claimedRows as Array<Record<string, unknown>>,
+    );
 
     const ids: Array<ObjectID> = await service.claimPendingForProbe({
       probeId: DEVICE_PROBE_ID,
       limit,
     });
 
-    return { ids, statements };
+    return { ids, statements, service };
   }
 
-  test("selects only this probe's Pending, undeleted rows inside the claim window, oldest first, skipping locked ones", async () => {
+  // The part of the statement that picks and locks the rows.
+  function pendingPart(sql: string): string {
+    return sql.slice(
+      sql.indexOf('WITH "pending" AS ('),
+      sql.indexOf('"claimed" AS ('),
+    );
+  }
+
+  test("locks only this probe's Pending, undeleted rows inside the claim window, oldest first, skipping locked ones", async () => {
     const before: number = Date.now();
     const { statements } = await claim([{ _id: DIAGNOSTIC_ID.toString() }], 7);
     const after: number = Date.now();
 
-    const select: RecordedStatement = statements[0]!;
-    const sql: string = flatten(select.sql);
+    expect(statements).toHaveLength(1);
+    const statement: CapturedStatement = statements[0]!;
+    const sql: string = normalizeSql(statement.sql);
+    const pending: string = pendingPart(sql);
 
-    expect(sql).toContain('FROM "NetworkDeviceDiagnostic"');
-    expect(sql).toContain('"probeId" = $1');
-    expect(select.params[0]).toBe(DEVICE_PROBE_ID.toString());
+    expect(pending).toContain('FROM "NetworkDeviceDiagnostic" d');
+    expect(pending).toContain('d."probeId" = $1');
+    expect(statement.parameters[0]).toBe(DEVICE_PROBE_ID.toString());
 
-    expect(sql).toContain('"status" = $4');
-    expect(select.params[3]).toBe(NetworkDeviceDiagnosticStatus.Pending);
+    expect(pending).toContain('d."status" = $4');
+    expect(statement.parameters[3]).toBe(NetworkDeviceDiagnosticStatus.Pending);
 
-    expect(sql).toContain('"createdAt" >= $3');
-    const windowStart: Date = select.params[2] as Date;
+    expect(pending).toContain('d."createdAt" >= $3');
+    const windowStart: Date = statement.parameters[2] as Date;
     expect(windowStart).toBeInstanceOf(Date);
     const windowInMs: number =
       NETWORK_DEVICE_DIAGNOSTIC_CLAIM_WINDOW_IN_MINUTES * 60 * 1000;
     expect(windowStart.getTime()).toBeGreaterThanOrEqual(before - windowInMs);
     expect(windowStart.getTime()).toBeLessThanOrEqual(after - windowInMs);
 
-    expect(sql).toContain('"deletedAt" IS NULL');
-    expect(sql).toContain('ORDER BY d."createdAt" ASC');
-    expect(sql).toContain("LIMIT $2");
-    expect(select.params[1]).toBe(7);
-    expect(sql).toContain("FOR UPDATE OF d SKIP LOCKED");
+    expect(pending).toContain('d."deletedAt" IS NULL');
+    expect(pending).toContain('ORDER BY d."createdAt" ASC');
+    expect(pending).toContain("LIMIT $2");
+    expect(statement.parameters[1]).toBe(7);
+    expect(pending).toContain("FOR NO KEY UPDATE OF d SKIP LOCKED");
+    // FOR UPDATE holds up the foreign-key checks of rows that name one.
+    expect(sql).not.toContain("FOR UPDATE");
+    expect(statement.parameters).toHaveLength(5);
   });
 
-  test("marks the selected rows In Progress with a start time, in the same transaction", async () => {
-    const { statements } = await claim([
+  test("marks the rows it locked In Progress with a start time, by the same statement, never in a transaction", async () => {
+    const { statements, service } = await claim([
       { _id: DIAGNOSTIC_ID.toString() },
       { _id: SECOND_DIAGNOSTIC_ID.toString() },
     ]);
 
-    expect(statements).toHaveLength(2);
-    const update: RecordedStatement = statements[1]!;
-    const sql: string = flatten(update.sql);
+    expect(statements).toHaveLength(1);
+    expect(service.executeTransaction).not.toHaveBeenCalled();
 
-    expect(sql).toContain('UPDATE "NetworkDeviceDiagnostic"');
-    expect(sql).toContain('"status" = $2');
-    expect(update.params[1]).toBe(NetworkDeviceDiagnosticStatus.InProgress);
-    expect(sql).toContain('"startedAt" = now()');
-    expect(sql).toContain('"updatedAt" = now()');
-    expect(sql).toContain('WHERE "_id" = ANY($1::uuid[])');
-    expect(update.params[0]).toEqual([
-      DIAGNOSTIC_ID.toString(),
-      SECOND_DIAGNOSTIC_ID.toString(),
-    ]);
+    const sql: string = normalizeSql(statements[0]!.sql);
+    const claimed: string = sql.slice(sql.indexOf('"claimed" AS ('));
+
+    expect(claimed).toContain('UPDATE "NetworkDeviceDiagnostic" AS d');
+    expect(claimed).toContain('"status" = $5');
+    expect(statements[0]!.parameters[4]).toBe(
+      NetworkDeviceDiagnosticStatus.InProgress,
+    );
+    expect(claimed).toContain('"startedAt" = now()');
+    expect(claimed).toContain('"updatedAt" = now()');
+    expect(claimed).toContain('FROM "pending" WHERE d."_id" = "pending"."_id"');
+    // The rows it wrote, in the order it locked them: oldest first.
+    expect(sql).toMatch(
+      /SELECT "pending"\."_id" FROM "pending" INNER JOIN "claimed" ON "claimed"\."_id" = "pending"\."_id" ORDER BY "pending"\."createdAt" ASC$/,
+    );
   });
 
   test("hands the claimed ids back as ObjectIDs, in claim order", async () => {
@@ -714,11 +742,17 @@ describe("claimPendingForProbe", () => {
     expect(ids[1]!.toString()).toBe(SECOND_DIAGNOSTIC_ID.toString());
   });
 
-  test("issues no UPDATE and returns nothing when there is nothing to claim", async () => {
+  test("with nothing to claim it is still one statement, and returns nothing", async () => {
     const { ids, statements } = await claim([]);
 
     expect(ids).toEqual([]);
     expect(statements).toHaveLength(1);
+  });
+
+  test("an answer that is not a list of rows returns nothing", async () => {
+    const { ids } = await claim("unexpected");
+
+    expect(ids).toEqual([]);
   });
 
   // Status strings are bound, never interpolated: the same words everywhere.
