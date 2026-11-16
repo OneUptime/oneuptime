@@ -232,13 +232,13 @@ describe("formatBreadcrumbOffset", () => {
   test.each([
     [0, "at exception"],
     [-9, "at exception"],
-    [-880, "-880 ms"],
-    [40, "+40 ms"],
-    [-1234, "-1.2 s"],
-    [9999, "+10.0 s"],
-    [-12500, "-12 s"],
-    [-60000, "-1 m"],
-    [-125000, "-2 m 5 s"],
+    [-880, "-880\u00A0ms"],
+    [40, "+40\u00A0ms"],
+    [-1234, "-1.2\u00A0s"],
+    [9999, "+10.0\u00A0s"],
+    [-12500, "-12\u00A0s"],
+    [-60000, "-1\u00A0m"],
+    [-125000, "-2\u00A0m 5\u00A0s"],
   ])(
     "%d ms from the exception reads %s",
     (offset: number, expected: string) => {
@@ -278,12 +278,12 @@ describe("formatBreadcrumbClockTime and formatBreadcrumbSpan", () => {
   });
 
   test.each([
-    [-5, "0 ms"],
-    [880, "880 ms"],
-    [1500, "1.5 s"],
-    [45000, "45 s"],
-    [120000, "2 m"],
-    [200000, "3 m 20 s"],
+    [-5, "0\u00A0ms"],
+    [880, "880\u00A0ms"],
+    [1500, "1.5\u00A0s"],
+    [45000, "45\u00A0s"],
+    [120000, "2\u00A0m"],
+    [200000, "3\u00A0m 20\u00A0s"],
   ])("a %d ms window reads %s", (durationMs: number, expected: string) => {
     expect(formatBreadcrumbSpan(durationMs)).toBe(expected);
   });
@@ -385,7 +385,7 @@ describe("describeBreadcrumbWindow", () => {
         firstTime: new Date(EXCEPTION_TIME.getTime() - 880),
         exceptionTime: EXCEPTION_TIME,
       }),
-    ).toBe("8 events in the 880 ms before the exception");
+    ).toBe("8 events in the 880\u00A0ms before the exception");
   });
 
   test("handles a single event, events after the exception and no exception time", () => {
@@ -415,7 +415,7 @@ describe("describeBreadcrumbWindow", () => {
         firstTime: new Date(EXCEPTION_TIME.getTime() - 12000),
         exceptionTime: EXCEPTION_TIME,
       }),
-    ).toBe("50 events in the 12 s before the exception (latest 50 of 72)");
+    ).toBe("50 events in the 12\u00A0s before the exception (latest 50 of 72)");
   });
 
   test("describes an active filter", () => {
