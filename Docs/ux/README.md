@@ -59,6 +59,13 @@ learned one can find their way around the next.
 - **A new project is told what is not set up, never that all is well.** With no monitors, Home says
   "No monitors yet" and opens the Monitors list. It does not say "Inoperational monitors 0 · All
   operational". Not enforced: use judgement.
+- **While a new project's quickstart shows, it is all of Home.** The question "What do you want to do
+  first?" and the steps its goals bring are the one thing a new person meets: a new project's Home was
+  a banner to create a monitor, five zeros, the Welcome card and two empty lists, all asking for the
+  same first click (#8897). Only what cannot wait shows above it: an open incident or anything else
+  that needs someone, and an unfinished server, to its admin. Hiding the checklist or finishing it
+  brings the rest of Home back, with the line that shows it again. Enforced by
+  [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx).
 - **Do not ask for what is already done.** "Send your first logs" never sits above a page of logs, and
   there is one button for one job on a page, not the explanation's and the empty state's for the same
   setup. Not enforced: use judgement.
@@ -66,7 +73,9 @@ learned one can find their way around the next.
   monitor, who is told and a test page; three products would leave the person to find the chain. A
   guided setup draws its steps in `Components/GuidedSetup/GuidedSetupFrame`: each step saves real
   records, coming back opens the first step not done, and it ends with a summary read from the
-  records and what to do next (`/monitors/setup`, #6804; `/on-call-duty/setup`, #6805). Its journey gets a budget of its own, with
+  records and what to do next (`/monitors/setup`, #6804; `/on-call-duty/setup`, #6805). Beside its
+  steps it lists what the setup sets up, ticked as each step is done, and about how long it takes,
+  the minutes Home's checklist says beside its step (#8897). Its journey gets a budget of its own, with
   `"path": "guided"`. Enforced by
   [GuidedSetupFrame](../../packages/Common/Tests/App/Dashboard/GuidedSetupFrame.test.tsx).
 

@@ -16,7 +16,10 @@ import PermissionGate, {
   ModelAction,
   PermissionCheckableModel,
 } from "Common/UI/Utils/PermissionGate";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 
@@ -36,47 +39,101 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 export interface WelcomeGoalEntry {
   goal: ProjectGoal;
   title: string;
+  /*
+   * What the person has once the goal's steps are done, in one line under
+   * its title on the question's card (#8897): the outcome, not the steps.
+   */
+  outcome: string;
   icon: IconProp;
+  // The disc behind the card's icon: the colour of the goal's first step.
+  iconBackgroundClassName: string;
 }
 
-// The question's answers, in the order it lists them.
+/*
+ * The question's answers, in the order it lists them. The last, "Just
+ * looking around", is not a card beside the others but the way out of the
+ * question (#8897): it is the goal of someone who has none yet, so it is
+ * offered under them, as one link (WELCOME_JUST_LOOKING_GOAL).
+ */
 export const WELCOME_GOALS: ReadonlyArray<WelcomeGoalEntry> = [
   {
     goal: ProjectGoal.Uptime,
     title: translationKey("Know when my website or API is down"),
+    outcome: translationKey(
+      "OneUptime checks it around the clock and tells you the moment it goes down.",
+    ),
     icon: IconProp.AltGlobe,
+    iconBackgroundClassName: "bg-indigo-500",
   },
   {
     goal: ProjectGoal.OnCall,
     title: translationKey("Page the right person when something breaks"),
+    outcome: translationKey(
+      "Whoever is on call is paged, and the page goes further if nobody answers.",
+    ),
     icon: IconProp.Call,
+    iconBackgroundClassName: "bg-rose-500",
   },
   {
     goal: ProjectGoal.StatusPage,
     title: translationKey("Tell my customers with a status page"),
+    outcome: translationKey(
+      "A public page shows your customers what is up, what is down and what is planned.",
+    ),
     icon: IconProp.CheckCircle,
+    iconBackgroundClassName: "bg-emerald-500",
   },
   {
     goal: ProjectGoal.Telemetry,
     title: translationKey("See my logs, metrics and traces"),
+    outcome: translationKey(
+      "Your app sends them with OpenTelemetry, and you search and alert on them here.",
+    ),
     icon: IconProp.Logs,
+    iconBackgroundClassName: "bg-violet-500",
   },
   {
     goal: ProjectGoal.Infrastructure,
     title: translationKey("Watch my servers, Kubernetes or cloud"),
+    outcome: translationKey(
+      "See the health of every server, cluster and cloud account in one place.",
+    ),
     icon: IconProp.ServerStack,
+    iconBackgroundClassName: "bg-cyan-600",
   },
   {
     goal: ProjectGoal.Import,
     title: translationKey("I am moving from another tool"),
+    outcome: translationKey(
+      "Bring your schedules, escalation policies and monitors over from the tool you use today.",
+    ),
     icon: IconProp.InboxArrowDown,
+    iconBackgroundClassName: "bg-sky-500",
   },
   {
     goal: ProjectGoal.Explore,
     title: translationKey("Just looking around"),
+    outcome: translationKey(
+      "Go straight to Home, and come back to this checklist whenever you like.",
+    ),
     icon: IconProp.Compass,
+    iconBackgroundClassName: "bg-gray-500",
   },
 ];
+
+/*
+ * The goal of someone who has none yet: the question's way out, a link
+ * under the cards. It is kept as the project's goal, and hides the
+ * checklist for the person who chose it, so they land on the rest of Home
+ * at once - with the line that shows the checklist again.
+ */
+export const WELCOME_JUST_LOOKING_GOAL: ProjectGoal = ProjectGoal.Explore;
+
+// The question's cards: every goal but the way out.
+export const WELCOME_GOAL_CARDS: ReadonlyArray<WelcomeGoalEntry> =
+  WELCOME_GOALS.filter((entry: WelcomeGoalEntry): boolean => {
+    return entry.goal !== WELCOME_JUST_LOOKING_GOAL;
+  });
 
 export const getWelcomeGoalEntry: (goal: ProjectGoal) => WelcomeGoalEntry = (
   goal: ProjectGoal,
@@ -90,18 +147,56 @@ export const WELCOME_QUESTION_COPY: {
   title: string;
   description: string;
   continueButton: string;
-  skipButton: string;
   saveButton: string;
   cancelButton: string;
+  stepsToSetUp: PluralTemplate;
+  pickHint: string;
 } = {
   title: translationKey("What do you want to do first?"),
   description: translationKey(
     "Pick one or more, and Home sets up your first steps around them. You can change this later.",
   ),
   continueButton: translationKey("Continue"),
-  skipButton: translationKey("Skip"),
   saveButton: translationKey("Save"),
   cancelButton: translationKey("Cancel"),
+  /*
+   * What the goals picked so far bring, said while the person picks, with
+   * about how long they take (WELCOME_MINUTES_COPY): the cost of a choice,
+   * before it is made. Not "plan", which is the subscription's word here.
+   */
+  stepsToSetUp: {
+    one: "{{count}} step to set up",
+    other: "{{count}} steps to set up",
+  },
+  // Beside Continue while nothing is picked: why it cannot be pressed yet.
+  pickHint: translationKey("Pick at least one to continue."),
+};
+
+/*
+ * The greeting both views of the checklist open with: the person's first
+ * name when the Dashboard knows it, and the card's own title when it does
+ * not (WELCOME_CHECKLIST_COPY.title).
+ */
+export const WELCOME_GREETING_WITH_NAME: string = translationKey(
+  "Welcome to OneUptime, {{name}} 👋",
+);
+
+/*
+ * About how long, in minutes, beside a step and for a plan: always "about",
+ * as WELCOME_STEP_MINUTES are estimates.
+ */
+export const WELCOME_MINUTES_COPY: {
+  about: PluralTemplate;
+  left: PluralTemplate;
+} = {
+  about: {
+    one: "About {{count}} minute",
+    other: "About {{count}} minutes",
+  },
+  left: {
+    one: "About {{count}} minute left",
+    other: "About {{count}} minutes left",
+  },
 };
 
 export const WELCOME_CHECKLIST_COPY: {
@@ -120,6 +215,7 @@ export const WELCOME_CHECKLIST_COPY: {
   showButton: string;
   howItWorksButton: string;
   couldNotSave: string;
+  startButton: string;
 } = {
   title: "Welcome to OneUptime 👋",
   description: translationKey(
@@ -143,6 +239,8 @@ export const WELCOME_CHECKLIST_COPY: {
   couldNotSave: translationKey(
     "That did not save. Check your connection and try again.",
   ),
+  // The next step's own button, in its row (#8897).
+  startButton: translationKey("Start"),
 };
 
 /*

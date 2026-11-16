@@ -20,6 +20,8 @@ Hjem er den første siden du ser i et prosjekt. Den viser med et blikk om noe tr
 5. **Prosjektet ditt**, hva prosjektet består av, og **Kommende vedlikehold** når noe er planlagt.
 6. **Utforsk OneUptime**, alle produktene, én kategori om gangen.
 
+Så lenge et nytt prosjekts sjekkliste **Velkommen til OneUptime 👋** vises, er den hele Hjem: det første du ser, er hva du skal gjøre først. En åpen hendelse, eller noe annet som trenger noen, vises fortsatt over den. Skjul sjekklisten, eller fullfør den, så kommer resten av Hjem tilbake.
+
 ### Søk og opprett
 
 Søkefeltet åpner søket, akkurat som `Mod` + `K`: skriv navnet på en side, monitor, hendelse, varsel, statusside eller vaktpolicy. Se [Søk](#søk-etter-en-side-en-innstilling-eller-en-handling). **Erklær hendelse** åpner skjemaet der du erklærer en hendelse. **Opprett** tilbyr **Opprett monitor**, **Planlegg vedlikehold** og **Opprett kunngjøring**. Hver av dem vises bare for dem som har lov til å bruke den.
@@ -56,7 +58,7 @@ Et tall over null viser **Krever oppmerksomhet**, eller **Pågår** og **Budsjet
 
 ### Velkomstsjekklisten
 
-Første gang en Prosjekteier eller Prosjektadministrator åpner Hjem i et nytt prosjekt, spør kortet **Hva vil du gjøre først?** Kryss av for ett eller flere mål, for eksempel **Vite når nettstedet eller API-et mitt er nede** eller **Jeg ser meg bare rundt**, og klikk på **Fortsett**: sjekklisten inneholder da stegene disse målene trenger. **Hopp over** gir de fire stegene alle prosjekter får. For å svare på nytt senere klikker du på **Endre** i sjekklisten. Et prosjekt som allerede bruker monitorer, telemetri eller vakt, blir ikke spurt.
+Første gang en Prosjekteier eller Prosjektadministrator åpner Hjem i et nytt prosjekt, hilser kortet på dem med fornavn og spør **Hva vil du gjøre først?** Velg ett eller flere mål, for eksempel **Vite når nettstedet eller API-et mitt er nede**, og klikk på **Fortsett**: sjekklisten inneholder da stegene disse målene trenger. Mens du velger, sier den hvor mange steg det er, og omtrent hvor lang tid de tar. **Jeg ser meg bare rundt** tar deg i stedet rett til resten av Hjem og lar en linje stå igjen, så du kan vise sjekklisten igjen. For å svare på nytt senere klikker du på **Endre** i sjekklisten. Et prosjekt som allerede bruker monitorer, telemetri eller vakt, blir ikke spurt.
 
 Hvert steg krysser seg selv av når tingen virker, ikke når en post finnes, og alle som setter opp prosjektet ser den samme listen, på alle enheter:
 
@@ -72,9 +74,13 @@ Hvert steg krysser seg selv av når tingen virker, ikke når en post finnes, og 
 
 Steget du skal ta først, er merket med **Neste steg**. På Free-abonnementet i OneUptime Cloud, som har én person, sier **Inviter teamet ditt** at det trenger Growth-abonnementet, og åpner **Fakturering**. På en selvhostet server som ennå ikke kan sende e-post, ser serverens administratorer først **Denne serveren kan ikke sende e-post ennå**; det åpner administrasjonsdashbordet.
 
+Hvert steg sier omtrent hvor lang tid det tar, sjekklisten omtrent hvor mye tid som er igjen, og det neste steget har sin egen knapp **Start**.
+
 Et veiledet oppsett gjør hele jobben på én side, ett steg om gangen, og avslutter med hva det har satt opp og hva du kan gjøre etterpå. Søk etter navnet for å åpne det igjen senere.
 
-Under stegene viser **Slik fungerer OneUptime** de fire kjerneproduktene i rekkefølgen et problem går gjennom dem: **Monitorer**, **Hendelser og varsler**, **Vakt** og **Statussider**. Klikk på ett for å åpne det. Under dem står det hva som mater kretsløpet, telemetri og infrastruktur, med lenker til [Grunnbegreper](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
+Ved siden av stegene viser et veiledet oppsett hva det setter opp, krysset av etter hvert, og sier omtrent hvor lang tid det tar.
+
+Under stegene åpner en linje **Slik fungerer OneUptime**: alt OneUptime gjør, og hvordan det henger sammen.
 
 ```mermaid title="Når velkomstsjekklisten vises"
 flowchart TB

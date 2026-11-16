@@ -20,6 +20,8 @@ Apri **Home** nella barra in alto, oppure premi `g` e poi `h` da qualsiasi punto
 5. **Il tuo progetto**, di cosa è fatto il progetto, e **Prossime manutenzioni** quando ce n'è qualcuna in programma.
 6. **Esplora OneUptime**, tutti i prodotti, una categoria alla volta.
 
+Finché la checklist **Benvenuto in OneUptime 👋** di un nuovo progetto è visibile, occupa tutta la Home: la prima cosa che vedi è cosa fare per prima. Un incidente aperto, o qualsiasi altra cosa che richieda qualcuno, compare comunque sopra. Nascondi la checklist, o completala, e il resto della Home torna.
+
 ### Cercare e creare
 
 La casella di ricerca apre la ricerca, come `Mod` + `K`: digita il nome di qualsiasi pagina, monitor, incidente, avviso, pagina di stato o policy di reperibilità. Vedi la sezione [Cercare](#cercare-una-pagina-unimpostazione-o-unazione). **Dichiara incidente** apre il modulo per dichiarare un incidente. **Crea** offre **Crea monitor**, **Pianifica manutenzione** e **Crea annuncio**. Ognuno viene mostrato solo a chi ha il permesso di usarlo.
@@ -56,7 +58,7 @@ Un numero sopra lo zero mostra **Richiede attenzione**, oppure **In corso** e **
 
 ### L'elenco di benvenuto
 
-La prima volta che un Proprietario del progetto o un Amministratore del progetto apre la Home di un nuovo progetto, la scheda chiede **Cosa vuoi fare per prima cosa?** Spunta uno o più obiettivi, come **Sapere quando il mio sito web o la mia API non funziona** o **Do solo un'occhiata**, e fai clic su **Continua**: la checklist conterrà i passaggi che servono a quegli obiettivi. **Salta** dà i quattro passaggi che riceve ogni progetto. Per rispondere di nuovo in seguito, fai clic su **Cambia** nella checklist. A un progetto che usa già monitor, telemetria o reperibilità non viene chiesto.
+La prima volta che un Proprietario del progetto o un Amministratore del progetto apre la Home di un nuovo progetto, la scheda lo saluta per nome e chiede **Cosa vuoi fare per prima cosa?** Scegli uno o più obiettivi, come **Sapere quando il mio sito web o la mia API non funziona**, e fai clic su **Continua**: la checklist conterrà i passaggi che servono a quegli obiettivi. Mentre scegli, indica quanti passaggi sono e quanto tempo richiedono circa. **Do solo un'occhiata** ti porta invece direttamente al resto della Home e lascia una riga per mostrare di nuovo la checklist. Per rispondere di nuovo in seguito, fai clic su **Cambia** nella checklist. A un progetto che usa già monitor, telemetria o reperibilità non viene chiesto.
 
 Ogni passaggio si spunta da solo quando la cosa funziona, non quando esiste un record, e chiunque configuri il progetto vede la stessa lista, su ogni dispositivo:
 
@@ -72,9 +74,13 @@ Ogni passaggio si spunta da solo quando la cosa funziona, non quando esiste un r
 
 Il passaggio da fare per primo è segnato con **Prossimo passaggio**. Con il piano Free di OneUptime Cloud, che include una persona, **Invita il tuo team** dice che serve il piano Growth e apre **Fatturazione**. Su un server self-hosted che non può ancora inviare email, gli amministratori del server vedono prima **Questo server non può ancora inviare email**, che apre la dashboard di amministrazione.
 
+Ogni passaggio indica quanto tempo richiede circa, la checklist quanto tempo resta circa, e il passaggio successivo ha un proprio pulsante **Avvia**.
+
 Una configurazione guidata fa tutto il lavoro in una sola pagina, un passaggio alla volta, e termina con ciò che ha configurato e cosa fare dopo. Per riaprirne una più tardi, cerca il suo nome.
 
-Sotto i passaggi, **Come funziona OneUptime** mostra i quattro prodotti principali nell'ordine in cui un problema li attraversa: **Monitor**, **Incidenti e avvisi**, **Reperibilità** e **Pagine di stato**. Fai clic su uno per aprirlo. Sotto dice cosa alimenta questo ciclo, la telemetria e l'infrastruttura, e rimanda a [Concetti fondamentali](/docs/introduction/core-concepts) e [Glossario](/docs/introduction/glossary).
+Accanto ai suoi passaggi, una configurazione guidata elenca ciò che configura, spuntato man mano che procedi, e indica quanto tempo richiede circa.
+
+Sotto i passaggi, una riga apre **Come funziona OneUptime**: tutto ciò che fa OneUptime, e come si incastra.
 
 ```mermaid title="Quando compare la checklist di benvenuto"
 flowchart TB

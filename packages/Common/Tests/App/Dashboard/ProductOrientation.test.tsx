@@ -24,16 +24,22 @@ import ObjectID from "../../../Types/ObjectID";
 import URL from "../../../Types/API/URL";
 import { DOCS_URL } from "../../../UI/Config";
 import DashboardNavbar from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
-import GettingStarted from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
-import HowOneUptimeWorks, {
-  HOW_IT_WORKS_FOOTNOTE,
-  HOW_IT_WORKS_STEPS,
-  HOW_IT_WORKS_TITLE,
-  HowItWorksStep,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorks";
+import GettingStarted, {
+  HOW_ONEUPTIME_WORKS_LINE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
+import { HOW_IT_WORKS_TITLE } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorks";
+import {
+  HOW_ONEUPTIME_WORKS_DESCRIPTION,
+  HowOneUptimeWorksOpenedFrom,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksDialog";
+import {
+  HOW_IT_WORKS_LOOP,
+  HowItWorksLoopStep,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksOverview";
+import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
+import ProductKey from "../../../Types/Product/ProductKey";
+import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import Help from "../../../../App/FeatureSet/Dashboard/src/Components/Header/Help";
-import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
-import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import {
   WelcomeAudience,
   WelcomeStep,
@@ -52,7 +58,8 @@ import {
  *    the core products first and in the order a problem flows through them,
  *    and opens on those core products alone: every other section is one
  *    line, opened with a click or found by searching;
- *  - Home explains how the core products fit together;
+ *  - Home opens How OneUptime works, which explains how the products fit
+ *    together, from a line under the Welcome checklist's steps;
  *  - Help links to the documentation.
  *
  * react-i18next is answered from the REAL locale files, so the copy asserted
@@ -753,91 +760,82 @@ describe("Products menu descriptions say what each product is for", () => {
 });
 
 describe("How OneUptime works (Home)", () => {
-  test("the Getting Started card explains how the core products connect", async () => {
-    await renderGettingStarted();
+  /*
+   * The checklist used to draw a strip of its own - four numbered products,
+   * what fed them and a footnote - beside a dialog that tells the story at
+   * length, so a newcomer met two shapes of it. Now one line under the
+   * steps opens the dialog (#8995).
+   */
+  const line: () => HTMLElement = (): HTMLElement => {
+    return screen.getByTestId(HOW_ONEUPTIME_WORKS_LINE_TEST_ID);
+  };
 
-    const strip: HTMLElement = screen.getByTestId("how-oneuptime-works");
-    expect(strip).toHaveTextContent(HOW_IT_WORKS_TITLE);
-    expect(strip).toHaveTextContent(HOW_IT_WORKS_FOOTNOTE);
-    expect(
-      within(strip)
-        .getAllByRole("button")
-        .map((button: HTMLElement): string => {
-          return button.getAttribute("data-testid") || "";
-        }),
-    ).toEqual([
-      "how-it-works-step-monitor",
-      "how-it-works-step-incident",
-      "how-it-works-step-on-call",
-      "how-it-works-step-status-page",
-      // What feeds the loop: Telemetry and Infrastructure, each defined.
-      "defined-term",
-      "defined-term",
-    ]);
+  // Each time the dialog was asked to open, and from where.
+  const opened: MockFunction = getJestMockFunction();
+  const listener: (event: CustomEvent) => void = (event: CustomEvent): void => {
+    opened(event.detail);
+  };
+
+  beforeEach(() => {
+    opened.mockReset();
+    GlobalEvents.addEventListener(EventName.HOW_ONEUPTIME_WORKS_OPEN, listener);
   });
 
-  test("steps are numbered in flow order and read as a sentence", async () => {
+  afterEach(() => {
+    GlobalEvents.removeEventListener(
+      EventName.HOW_ONEUPTIME_WORKS_OPEN,
+      listener,
+    );
+  });
+
+  test("the Getting Started card offers How OneUptime works in one line, under its steps", async () => {
     await renderGettingStarted();
 
-    const steps: Array<HTMLElement> = within(
-      screen.getByTestId("how-oneuptime-works"),
-    ).getAllByRole("listitem");
+    expect(line()).toHaveAccessibleName(HOW_IT_WORKS_TITLE);
+    expect(line()).toHaveAccessibleDescription(HOW_ONEUPTIME_WORKS_DESCRIPTION);
+    expect(line()).toHaveAttribute("aria-haspopup", "dialog");
+    // Under the steps, and not one of them.
+    const steps: HTMLElement = screen.getByTestId("getting-started-steps");
+    expect(steps).not.toContainElement(line());
+    expect(
+      steps.compareDocumentPosition(line()) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
 
-    expect(steps).toHaveLength(4);
-    HOW_IT_WORKS_STEPS.forEach((step: HowItWorksStep, index: number) => {
-      expect(steps[index]).toHaveTextContent(`${index + 1}.${step.title}`);
-      expect(steps[index]).toHaveTextContent(step.description);
+  test("the line opens the dialog, and the card tells no story of its own", async () => {
+    await renderGettingStarted();
+
+    const card: HTMLElement = screen.getByTestId("getting-started");
+    // The strip's products and footnote were the older shape of the story.
+    expect(within(card).queryByTestId("how-oneuptime-works")).toBeNull();
+    expect(
+      card.querySelector('[data-testid^="how-it-works-step-"]'),
+    ).toBeNull();
+    expect(card).not.toHaveTextContent("That is the core.");
+    expect(card).not.toHaveTextContent("feed the loop");
+
+    fireEvent.click(line());
+
+    expect(opened).toHaveBeenCalledTimes(1);
+    expect(opened).toHaveBeenCalledWith({
+      from: HowOneUptimeWorksOpenedFrom.WelcomeChecklist,
     });
+    // The dialog, not a product's page.
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  test("the strip tells the user the rest of the product is optional", async () => {
-    await renderGettingStarted();
-
-    expect(
-      screen.getByTestId("how-oneuptime-works-footnote"),
-    ).toHaveTextContent("optional");
-    expect(
-      screen.getByTestId("how-oneuptime-works-footnote"),
-    ).toHaveTextContent("Products");
-  });
-
-  test.each([
-    ["monitor", PageMap.MONITORS],
-    ["incident", PageMap.INCIDENTS],
-    ["on-call", PageMap.ON_CALL_DUTY],
-    ["status-page", PageMap.STATUS_PAGES],
-  ])(
-    "clicking the %s step opens that product in the current project",
-    async (key: string, pageMap: PageMap) => {
-      await renderGettingStarted();
-
-      fireEvent.click(screen.getByTestId(`how-it-works-step-${key}`));
-
-      expect(navigateMock).toHaveBeenCalledTimes(1);
-      const route: string = String(navigateMock.mock.calls[0]![0]);
-      expect(route).toContain(PROJECT_ID);
-      expect(route).not.toContain(":projectId");
-      expect(route).toBe(
-        RouteMap[pageMap]!.toString().replace(":projectId", PROJECT_ID),
-      );
-      expect(captureMock).toHaveBeenCalledWith(
-        "dashboard/home/how-it-works-step",
-        { projectId: PROJECT_ID, step: key },
-      );
-    },
-  );
-
-  test("the steps are the Essentials products, in the menu's order", () => {
+  test("the products menu and How OneUptime works tell the core products in the same order", () => {
     /*
-     * Home and the Products menu tell the same story; if someone reorders
-     * one, this makes them look at the other.
+     * The Products menu's Essentials and the dialog's four steps tell the
+     * same story; if someone reorders one, this makes them look at the
+     * other.
      */
     jest.useRealTimers();
     jest.useFakeTimers();
     openProductsMenu();
     const essentials: Array<string> = readMenuSections()[0]!.items;
 
-    const flow: Array<number> = [
+    const inTheMenu: Array<number> = [
       "Monitors",
       "Incidents",
       "On-Call",
@@ -845,64 +843,72 @@ describe("How OneUptime works (Home)", () => {
     ].map((title: string): number => {
       return essentials.indexOf(title);
     });
-    expect(
-      flow.every((index: number) => {
-        return index >= 0;
-      }),
-    ).toBe(true);
-    expect(
-      [...flow].sort((a: number, b: number) => {
-        return a - b;
-      }),
-    ).toEqual(flow);
-    expect(
-      HOW_IT_WORKS_STEPS.map((step: HowItWorksStep) => {
-        return step.pageMap;
-      }),
-    ).toEqual([
-      PageMap.MONITORS,
-      PageMap.INCIDENTS,
-      PageMap.ON_CALL_DUTY,
-      PageMap.STATUS_PAGES,
-    ]);
+    const loop: Array<ProductKey> = HOW_IT_WORKS_LOOP.flatMap(
+      (step: HowItWorksLoopStep): Array<ProductKey> => {
+        return [...step.products];
+      },
+    );
+    const inTheSteps: Array<number> = [
+      ProductKey.Monitors,
+      ProductKey.Incidents,
+      ProductKey.OnCall,
+      ProductKey.StatusPages,
+    ].map((key: ProductKey): number => {
+      return loop.indexOf(key);
+    });
+
+    for (const order of [inTheMenu, inTheSteps]) {
+      expect(
+        order.every((index: number) => {
+          return index >= 0;
+        }),
+      ).toBe(true);
+      expect(
+        [...order].sort((a: number, b: number) => {
+          return a - b;
+        }),
+      ).toEqual(order);
+    }
   });
 
-  test("hiding the checklist keeps the explainer one click away (#6803)", async () => {
+  test("hiding the checklist keeps How OneUptime works one click away (#6803)", async () => {
     await renderGettingStarted();
-    expect(screen.getByTestId("how-oneuptime-works")).toBeInTheDocument();
+    expect(line()).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByTestId("getting-started-dismiss"));
     });
 
     expect(screen.queryByTestId("getting-started")).toBeNull();
-    expect(screen.queryByTestId("how-oneuptime-works")).toBeNull();
+    expect(screen.queryByTestId(HOW_ONEUPTIME_WORKS_LINE_TEST_ID)).toBeNull();
 
     await act(async () => {
       fireEvent.click(screen.getByTestId("welcome-checklist-how-it-works"));
     });
 
-    expect(screen.getByTestId("how-oneuptime-works")).toBeInTheDocument();
+    expect(opened).toHaveBeenCalledWith({
+      from: HowOneUptimeWorksOpenedFrom.WelcomeChecklist,
+    });
   });
 
-  test("a fully set-up project does not see the explainer", async () => {
+  test("a fully set-up project does not see the line", async () => {
     welcomeFetchMock.mockResolvedValue(
       welcomeAnswer({ isFinished: true, steps: [] }),
     );
     await renderGettingStarted();
 
-    expect(screen.queryByTestId("how-oneuptime-works")).toBeNull();
+    expect(screen.queryByTestId(HOW_ONEUPTIME_WORKS_LINE_TEST_ID)).toBeNull();
     expect(screen.queryByTestId("getting-started")).toBeNull();
   });
 
-  test("the explainer and the checklist are translated (German)", async () => {
+  test("the line and the checklist are translated (German)", async () => {
     activeLocale = DE;
     await renderGettingStarted();
 
     const card: HTMLElement = screen.getByTestId("getting-started");
     for (const english of [
       HOW_IT_WORKS_TITLE,
-      HOW_IT_WORKS_FOOTNOTE,
+      HOW_ONEUPTIME_WORKS_DESCRIPTION,
       "Create your first monitor",
       "Publish a status page",
       "steps completed",
@@ -913,14 +919,7 @@ describe("How OneUptime works (Home)", () => {
       expect(card).toHaveTextContent(german as string);
       expect(card).not.toHaveTextContent(english);
     }
-  });
-
-  test("the strip also renders on its own, outside the checklist", () => {
-    render(<HowOneUptimeWorks projectId={PROJECT_ID} />);
-
-    expect(screen.getAllByRole("listitem")).toHaveLength(
-      HOW_IT_WORKS_STEPS.length,
-    );
+    expect(line()).toHaveAccessibleName(DE[HOW_IT_WORKS_TITLE] as string);
   });
 });
 

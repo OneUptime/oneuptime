@@ -26,8 +26,8 @@ import React, {
  * products that do each, then every product, by category
  * (HowOneUptimeWorksOverview, #8891). Help opens it, Home opens it, Search
  * opens it, and so can anything else that calls openHowOneUptimeWorks.
- * It used to name four products only, as the Welcome checklist's strip
- * still does.
+ * It used to name four products only, as the Welcome checklist's strip did
+ * until the checklist opened this instead (#8995).
  *
  * Mounted once in App.tsx, beside the keyboard shortcuts and the command
  * palette, and opened with a window event, so the opener needs nothing but
@@ -40,7 +40,13 @@ import React, {
  */
 export enum HowOneUptimeWorksOpenedFrom {
   Help = "help",
+  // Beside Explore OneUptime, on Home.
   Home = "home",
+  /*
+   * A new project's Welcome checklist on Home: the line under its steps,
+   * and the line it leaves when hidden (#8995).
+   */
+  WelcomeChecklist = "welcome-checklist",
   // Help in the phone's menu, where the header has no Help (#6816).
   PhoneMenu = "phone-menu",
   // Search (Cmd/Ctrl+K): "how it works", "overview" (#6936).

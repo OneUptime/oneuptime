@@ -95,8 +95,7 @@ export interface HowItWorksLoopStep {
 /*
  * The four steps a problem moves through, in order. Essentials, the
  * products menu's first category, lists its products in the same order a
- * problem meets them; the Welcome checklist's strip (HowOneUptimeWorks)
- * tells the short version of the same story.
+ * problem meets them.
  */
 export const HOW_IT_WORKS_LOOP: ReadonlyArray<HowItWorksLoopStep> = [
   {
