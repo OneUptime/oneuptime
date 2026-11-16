@@ -361,6 +361,8 @@ The operators are `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `
 
 The `list_` and `count_` tools take any field, which keeps the list of tools small enough for a client to load at once. To see a resource's fields, what each one means and which operators it takes, an agent calls `oneuptime_describe_resource` with the resource or one of its tools, such as `Incident` or `list_incidents`.
 
+The other `list_` tools, of incidents, monitors and every other kind of record, sort the way the API does: a field takes a direction, or `{ "direction": "DESC", "nulls": "LAST" }` to put the records with no value in it last, and a relation of one record sorts by a field of the record it names, as in `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` marks each such relation `sort`, and names the fields it sorts by under `sortBy`.
+
 ## Field Selection and Pagination
 
 `get_` and `list_` tools take an optional `select` array of field names. By default every readable field comes back except the heavy ones (JSON, very long text and HTML columns), which must be asked for in `select`.
