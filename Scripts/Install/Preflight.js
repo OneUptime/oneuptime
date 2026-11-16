@@ -7,6 +7,7 @@ const fs = require("fs");
 const net = require("net");
 const os = require("os");
 const path = require("path");
+const url = require("url");
 const { spawnSync } = require("child_process");
 const { readSettings } = require("./ReplacePlaceholderSecrets");
 const { HEADING, ok, warn, stop, listed } = require("./StartOutput");
@@ -31,14 +32,16 @@ const { HEADING, ok, warn, stop, listed } = require("./StartOutput");
  *     and --services included), is free or held by this install's own
  *     containers.
  *   - HOST, HTTP_PROTOCOL and PROVISION_SSL: the shapes that break sign-in or
- *     certificates, an IPv6 HOST without brackets, and HOST's DNS.
+ *     certificates, an IPv6 HOST without brackets, a name with a character
+ *     no domain name has, and HOST's DNS.
  *
  * Only what would certainly stop OneUptime stops `npm start` (marked ✗): no
  * Docker, a Docker this user cannot use, no Compose v2, a port another
  * program holds, a HOST no browser can open (such as 2001:db8::1, which a web
- * address writes as [2001:db8::1]). The rest is said and OneUptime
- * starts. A check that cannot tell says nothing. ONEUPTIME_SKIP_PREFLIGHT=true
- * skips every check, and a fault of this script's own never stops a start.
+ * address writes as [2001:db8::1]) or the app stops at (such as
+ * oneuptime,example.com). The rest is said and OneUptime starts. A check
+ * that cannot tell says nothing. ONEUPTIME_SKIP_PREFLIGHT=true skips every
+ * check, and a fault of this script's own never stops a start.
  *
  * It is the first command of the start script in package.json (not a
  * prestart hook: npm skips those when ignore-scripts is set), and
@@ -254,7 +257,27 @@ const isIpAddress = (hostname) => {
  * address. The app refuses most other HOSTs as it starts ("Hostname ... is
  * not in valid format", "Port is not in valid format"), and builds no link
  * that opens from the rest (":8080" is http://:8080/...).
+ *
+ * And a name is a domain name, by the rule the app reads HOST by as it starts
+ * (HOST_REGEX in packages/Common/Types/API/Hostname.ts): the letters a to z,
+ * digits, '-' and '_', in parts of 1 to 63 characters between single dots
+ * that neither start nor end with '-', and one final dot at most. An IPv4
+ * address is such a name too. A name the rule refuses got past npm start,
+ * and every service then stopped as it started, with "Hostname
+ * oneuptime,example.com is not in valid format" in logs only `npm run doctor`
+ * showed, while npm start waited for a status check that never answered
+ * (#8877). HOST_NAME is that rule, and Tests/Ops/HelmHost.test.js holds the
+ * app's copy, this one and the Helm chart's (oneuptime.validateHost) to one
+ * another.
  */
+
+const HOST_NAME =
+  /^[a-zA-Z0-9_](?:[a-zA-Z0-9_-]{0,61}[a-zA-Z0-9_])?(?:\.[a-zA-Z0-9_](?:[a-zA-Z0-9_-]{0,61}[a-zA-Z0-9_])?)*\.?$/;
+// What a part of a name between its dots may hold, one character at a time.
+const NAME_CHARACTER = /^[a-zA-Z0-9_-]$/;
+const MAX_NAME_PART_LENGTH = 63;
+// A character beyond ASCII: a letter of a name DNS keeps in its xn-- form.
+const BEYOND_ASCII = /[^\u0000-\u007f]/;
 
 // An IPv6 address, written as a web address can hold one: hex digits, colons and dots, no zone.
 const isIpv6Address = (text) => {
@@ -319,6 +342,97 @@ const hostLinesFor = (text) => {
 };
 
 /*
+ * Quoted, as a character or a part of a name reads in a sentence: "," for
+ * one, "," and "!" for two, ",", "!" and "?" for more.
+ */
+const quotedList = (items) => {
+  const quoted = items.map((item) => {
+    return `"${item}"`;
+  });
+
+  if (quoted.length <= 1) {
+    return quoted.join("");
+  }
+
+  return `${quoted.slice(0, -1).join(", ")} and ${quoted[quoted.length - 1]}`;
+};
+
+/*
+ * Pure: why `name`, HOST without its port, is no domain name the app takes,
+ * as the end of a sentence, or null when HOST_NAME takes it. The first
+ * reason only: the characters no name has, then an empty part, then a part
+ * that starts or ends with '-', then one longer than 63 characters.
+ */
+const nameProblemOf = (name) => {
+  if (HOST_NAME.test(name)) {
+    return null;
+  }
+
+  const strangers = [];
+
+  for (const character of Array.from(name)) {
+    if (
+      character !== "." &&
+      !NAME_CHARACTER.test(character) &&
+      strangers.indexOf(character) === -1
+    ) {
+      strangers.push(character);
+    }
+  }
+
+  if (strangers.length > 0) {
+    return `a domain name has the letters a to z, digits, hyphens and dots only, and ${quotedList(strangers)} ${strangers.length === 1 ? "is" : "are"} none of them`;
+  }
+
+  if (name.charAt(0) === ".") {
+    return "it starts with a dot";
+  }
+
+  if (name.indexOf("..") !== -1) {
+    return "it has two dots in a row";
+  }
+
+  // Its parts, without the one final dot a name may end with.
+  const parts = name.replace(/\.$/, "").split(".");
+
+  for (const part of parts) {
+    if (part.charAt(0) === "-" || part.charAt(part.length - 1) === "-") {
+      return `no part of a domain name starts or ends with a hyphen, and "${part}" does`;
+    }
+  }
+
+  for (const part of parts) {
+    if (part.length > MAX_NAME_PART_LENGTH) {
+      return `a part of a domain name between its dots is ${MAX_NAME_PART_LENGTH} characters at most, and "${part}" has ${part.length}`;
+    }
+  }
+
+  return "it is not one by the rule the app reads HOST by";
+};
+
+/*
+ * A name with letters beyond ASCII (bücher.example) in the ASCII form DNS
+ * writes it in (xn--bcher-kva.example), which is what a browser asks for; or
+ * null when it has no such letters or no such form. url.domainToASCII is in
+ * Node.js 12.
+ */
+const asciiNameOf = (name) => {
+  if (!BEYOND_ASCII.test(name)) {
+    return null;
+  }
+
+  let ascii = "";
+
+  try {
+    ascii = url.domainToASCII(name);
+  } catch (error) {
+    ascii = "";
+  }
+
+  return ascii && HOST_NAME.test(ascii) ? ascii : null;
+};
+
+/*
  * Pure: what is wrong with the shape of HOST (a value with no scheme, path or
  * spaces left), as a stop finding, or null when it is a name or an IPv4
  * address, or an IPv6 address in brackets, each with or without a port.
@@ -369,27 +483,44 @@ const hostShapeFinding = (host) => {
     };
   }
 
-  if (colons === 1) {
-    const colon = host.indexOf(":");
-    const name = host.slice(0, colon);
-    const port = host.slice(colon + 1);
+  // One colon at most from here: the name, and the port after the colon.
+  const colon = host.indexOf(":");
+  const name = colon === -1 ? host : host.slice(0, colon);
+  const port = colon === -1 ? null : host.slice(colon + 1);
 
-    if (!name) {
-      return {
-        level: "stop",
-        message: `${fromLine}, a port with no address before it. Write the domain name or IP address people open OneUptime at before the colon, such as HOST=oneuptime.example.com:${isPort(port) ? port : "8080"}.`,
-      };
-    }
-
-    if (!isPort(port)) {
-      return {
-        level: "stop",
-        message: `${fromLine}, but ${port ? `${port} is not a port` : "no port follows its colon"}. A port is a number from 1 to 65535, such as HOST=${name}:8080; without one, write HOST=${name}.`,
-      };
-    }
+  if (port !== null && !name) {
+    return {
+      level: "stop",
+      message: `${fromLine}, a port with no address before it. Write the domain name or IP address people open OneUptime at before the colon, such as HOST=oneuptime.example.com:${isPort(port) ? port : "8080"}.`,
+    };
   }
 
-  return null;
+  if (port !== null && !isPort(port)) {
+    return {
+      level: "stop",
+      message: `${fromLine}, but ${port ? `${port} is not a port` : "no port follows its colon"}. A port is a number from 1 to 65535, such as HOST=${name}:8080; without one, write HOST=${name}.`,
+    };
+  }
+
+  const problem = nameProblemOf(name);
+
+  if (!problem) {
+    return null;
+  }
+
+  const ascii = asciiNameOf(name);
+
+  if (ascii) {
+    return {
+      level: "stop",
+      message: `${fromLine}, a domain name with letters beyond a to z, which OneUptime takes only in the ASCII form DNS writes it in. Write HOST=${ascii}${port === null ? "" : `:${port}`}.`,
+    };
+  }
+
+  return {
+    level: "stop",
+    message: `${port === null ? `${fromLine}, which` : `${fromLine}, and ${name}`} is not a domain name: ${problem}.`,
+  };
 };
 
 /*
@@ -1094,7 +1225,12 @@ const defaultLookup = (hostname) => {
 const dnsFindings = async (settings, lookup) => {
   const host = String(settings.get("HOST") || "").trim();
 
-  if (!host || cleanedHost(host) !== host) {
+  /*
+   * A HOST whose shape stops the start (hostShapeFinding) is said there, with
+   * the line to write: a name that is not one, such as oneuptime,example.com,
+   * would only be said again here as a name that "does not resolve yet".
+   */
+  if (!host || cleanedHost(host) !== host || hostShapeFinding(host)) {
     return [];
   }
 
@@ -1326,6 +1462,9 @@ module.exports = {
   cleanedHost,
   isIpAddress,
   bracketedReadingsOf,
+  HOST_NAME,
+  nameProblemOf,
+  asciiNameOf,
   hostShapeFinding,
   exampleAddress,
   hostFindings,

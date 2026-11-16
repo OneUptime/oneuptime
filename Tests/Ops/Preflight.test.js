@@ -42,6 +42,8 @@ const {
   splitHost,
   cleanedHost,
   bracketedReadingsOf,
+  nameProblemOf,
+  asciiNameOf,
   exampleAddress,
   hostFindings,
   dockerFailureOf,
@@ -945,6 +947,234 @@ describe("an IPv6 HOST goes in brackets", () => {
         );
       }),
     ).toEqual([]);
+  });
+});
+
+/*
+ * HOST's name is a domain name (#8877): the letters a to z, digits, '-' and
+ * '_', in parts of 1 to 63 characters between single dots that neither start
+ * nor end with '-', and one final dot at most - the rule the app reads HOST
+ * by as it starts (HOST_REGEX in packages/Common/Types/API/Hostname.ts). A
+ * name such as oneuptime,example.com (a comma typed for a dot) got past the
+ * start: its DNS lookup only warned, and then every service stopped as it
+ * started, with "Hostname oneuptime,example.com is not in valid format" in
+ * logs only `npm run doctor` printed, while npm start waited for a status
+ * check that never answered. Now the start stops first, and says why.
+ */
+describe("HOST's name is a domain name", () => {
+  const stock = [
+    "HTTP_PROTOCOL=http",
+    "PROVISION_SSL=false",
+    "ONEUPTIME_HTTP_PORT=80",
+    "TRUSTED_PROXY_HOPS=1",
+  ];
+
+  function findingsFor(host) {
+    return hostFindings(
+      settingsWith(stock.concat([`HOST=${host}`])),
+      INTERFACES,
+    );
+  }
+
+  const LONGEST_PART = "a".repeat(63);
+  const TOO_LONG_PART = "a".repeat(64);
+
+  // Every name the app takes, with a port and without one: nothing is said.
+  test.each([
+    "oneuptime.example.com",
+    "one_uptime.example.com",
+    "oneuptime-1.example.com",
+    "ONEUPTIME.Example.COM",
+    "oneuptime",
+    "oneuptime.example.com.",
+    "xn--bcher-kva.example",
+    "status.xn--r8jz45g.xn--zckzah",
+    `${LONGEST_PART}.example.com`,
+    "1.example.com",
+    "203.0.113.5",
+    "_internal.example.com",
+  ])("HOST=%s starts, with a port and without one", (host) => {
+    expect(findingsFor(host)).toEqual([]);
+    expect(findingsFor(`${host}:8080`)).toEqual([]);
+  });
+
+  test.each([
+    [
+      "oneuptime,example.com",
+      'a domain name has the letters a to z, digits, hyphens and dots only, and "," is none of them',
+    ],
+    [
+      "oneuptime.example.com!",
+      'a domain name has the letters a to z, digits, hyphens and dots only, and "!" is none of them',
+    ],
+    [
+      "admin@oneuptime.example.com",
+      'a domain name has the letters a to z, digits, hyphens and dots only, and "@" is none of them',
+    ],
+    [
+      "one*uptime,example!com",
+      'a domain name has the letters a to z, digits, hyphens and dots only, and "*", "," and "!" are none of them',
+    ],
+    [
+      "oneuptime;example,com,",
+      'a domain name has the letters a to z, digits, hyphens and dots only, and ";" and "," are none of them',
+    ],
+    [
+      "one_uptime-.example.com",
+      'no part of a domain name starts or ends with a hyphen, and "one_uptime-" does',
+    ],
+    [
+      "-oneuptime.example.com",
+      'no part of a domain name starts or ends with a hyphen, and "-oneuptime" does',
+    ],
+    [
+      "oneuptime.-example.com",
+      'no part of a domain name starts or ends with a hyphen, and "-example" does',
+    ],
+    [
+      `${TOO_LONG_PART}.example.com`,
+      `a part of a domain name between its dots is 63 characters at most, and "${TOO_LONG_PART}" has 64`,
+    ],
+    ["oneuptime..example.com", "it has two dots in a row"],
+    ["oneuptime.example.com..", "it has two dots in a row"],
+    [".oneuptime.example.com", "it starts with a dot"],
+    [".", "it starts with a dot"],
+  ])("HOST=%s stops the start: %s", (host, why) => {
+    expect(findingsFor(host)).toEqual([
+      {
+        level: "stop",
+        message: `HOST in config.env is ${host}, which is not a domain name: ${why}.`,
+      },
+    ]);
+  });
+
+  test("with a port, the name is the one it says is not a domain name", () => {
+    expect(findingsFor("oneuptime,example.com:8080")).toEqual([
+      {
+        level: "stop",
+        message:
+          'HOST in config.env is oneuptime,example.com:8080, and oneuptime,example.com is not a domain name: a domain name has the letters a to z, digits, hyphens and dots only, and "," is none of them.',
+      },
+    ]);
+  });
+
+  test("a port that is no port is said before the name", () => {
+    expect(levelsOf(findingsFor("oneuptime,example.com:http"))).toEqual([
+      "stop",
+    ]);
+    expect(findingsFor("oneuptime,example.com:http")[0].message).toContain(
+      "but http is not a port.",
+    );
+  });
+
+  test.each([
+    ["bücher.example", "HOST=xn--bcher-kva.example"],
+    ["bücher.example:8080", "HOST=xn--bcher-kva.example:8080"],
+    ["Bücher.Example", "HOST=xn--bcher-kva.example"],
+    ["status.例え.テスト", "HOST=status.xn--r8jz45g.xn--zckzah"],
+  ])(
+    "HOST=%s, with letters beyond a to z, stops with its ASCII form: %s",
+    (host, line) => {
+      expect(findingsFor(host)).toEqual([
+        {
+          level: "stop",
+          message: `HOST in config.env is ${host}, a domain name with letters beyond a to z, which OneUptime takes only in the ASCII form DNS writes it in. Write ${line}.`,
+        },
+      ]);
+      // The line it gives is one the next start takes.
+      expect(findingsFor(line.slice("HOST=".length))).toEqual([]);
+    },
+  );
+
+  test("a name beyond ASCII with no ASCII form is said by its characters", () => {
+    expect(findingsFor("bü,cher.example")).toEqual([
+      {
+        level: "stop",
+        message:
+          'HOST in config.env is bü,cher.example, which is not a domain name: a domain name has the letters a to z, digits, hyphens and dots only, and "ü" and "," are none of them.',
+      },
+    ]);
+  });
+
+  test("every name it refuses is one the app refuses at its start, by the app's own rule", () => {
+    const hostname = fs.readFileSync(
+      path.join(REPO_ROOT, "packages/Common/Types/API/Hostname.ts"),
+      "utf8",
+    );
+    const literal = /const HOST_REGEX: RegExp =\s*\/(.+)\/;/.exec(hostname);
+    const appRule = new RegExp(literal[1]);
+
+    for (const name of [
+      "oneuptime,example.com",
+      "one_uptime-.example.com",
+      `${TOO_LONG_PART}.example.com`,
+      "oneuptime..example.com",
+      ".oneuptime.example.com",
+      "bücher.example",
+    ]) {
+      expect({ name, app: appRule.test(name) }).toEqual({ name, app: false });
+      expect({ name, preflight: nameProblemOf(name) === null }).toEqual({
+        name,
+        preflight: false,
+      });
+    }
+
+    for (const name of [
+      "oneuptime.example.com",
+      "one_uptime.example.com",
+      "oneuptime.example.com.",
+      "xn--bcher-kva.example",
+      `${LONGEST_PART}.example.com`,
+    ]) {
+      expect({ name, app: appRule.test(name) }).toEqual({ name, app: true });
+      expect(nameProblemOf(name)).toBeNull();
+    }
+  });
+
+  test("asciiNameOf gives only a name the rule takes", () => {
+    expect(asciiNameOf("bücher.example")).toBe("xn--bcher-kva.example");
+    expect(asciiNameOf("oneuptime.example.com")).toBeNull();
+    expect(asciiNameOf("bü,cher.example")).toBeNull();
+  });
+
+  test.each([
+    "oneuptime,example.com",
+    "oneuptime,example.com:8080",
+    "bücher.example",
+    "[oneuptime.example.com]",
+    "one_uptime-.example.com",
+  ])("HOST=%s, which stops the start, is not looked up", async (host) => {
+    const lookup = jest.fn(() => {
+      return Promise.resolve("not-found");
+    });
+
+    expect(await dnsFindings(settingsWith([`HOST=${host}`]), lookup)).toEqual(
+      [],
+    );
+    expect(lookup).not.toHaveBeenCalled();
+  });
+
+  test("a start with a comma typed for a dot stops before Compose starts anything, with one line and no DNS warning", async () => {
+    const lookup = jest.fn(() => {
+      return Promise.resolve("not-found");
+    });
+    const result = await runWith({
+      config: TEMPLATE.replace("HOST=localhost", "HOST=oneuptime,example.com"),
+      lookupHost: lookup,
+    });
+
+    expect(result.code).toBe(1);
+    expect(
+      result.lines.filter((line) => {
+        return line.startsWith("  ✗ ") || line.startsWith("  ! ");
+      }),
+    ).toEqual([
+      '  ✗ HOST in config.env is oneuptime,example.com, which is not a domain name: a domain name has the letters a to z, digits, hyphens and dots only, and "," is none of them.',
+    ]);
+    expect(result.lines.slice(-2)[0]).toContain("OneUptime did not start.");
+    expect(lookup).not.toHaveBeenCalled();
+    // config.env is the person's to change: the start never rewrites HOST.
+    expect(result.config).toContain("\nHOST=oneuptime,example.com\n");
   });
 });
 
