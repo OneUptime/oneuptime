@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "Op welke logboeken dit filter van toepassing is. Stel regels op met velden zoals ernst, body, service of aangepaste attributen.",
   "Which OID configured on this monitor should this criteria evaluate?": "Welke OID die op deze monitor is geconfigureerd, moet dit criterium evalueren?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Welke delen van het logboek moeten worden gewist: de logbody (bericht), attribuutwaarden of beide.",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Welke delen van de span moeten worden gewist: spannaam, attribuutwaarden, attribuutwaarden van gebeurtenissen of alle.",
   "Which probe do you want to use?": "Welke sonde wilt u gebruiken?",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "Op welke resources deze machtiging van toepassing is: alle (aanbevolen), die van dit team, of die met bepaalde labels.",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "Op welke resources deze rol van toepassing is: alle (aanbevolen), die van dit team, of die met bepaalde labels.",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Hoe {{name}} een melding krijgt wanneer deze persoon tijdens de bereikbaarheid een incidentepisode met deze ernst toegewezen krijgt.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Hoe {{name}} een melding krijgt wanneer deze persoon tijdens de bereikbaarheid een incident met deze ernst toegewezen krijgt.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Hoe {{name}} per ernst een melding krijgt wanneer deze persoon een incident, een waarschuwing of een van hun episodes toegewezen krijgt.",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "Overeenkomsten worden vervangen door [REDACTED] in spannamen, attributen en gebeurtenisattributen.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "Overeenkomsten worden vervangen door [REDACTED] in de inhoud en de attributen van het logboek.",
   "Named after the pattern type until you type a name of your own.": "Genoemd naar het patroontype totdat u zelf een naam typt.",
   "On-call rules": "Bereikbaarheidsregels",
@@ -55977,5 +55975,8 @@
   "Already paged about this by {{name}}, so not paged again.": "Hierover al opgeroepen door {{name}}, dus niet opnieuw opgeroepen.",
   "Merged Into On-Call Log ID": "ID van het bereikbaarheidslogboek waarin dit is samengevoegd",
   "Their page from another on-call policy is over, so this policy pages them now.": "De oproep van een ander bereikbaarheidsbeleid is voorbij, dus dit beleid roept nu zelf op.",
-  "Their page from {{name}} is over, so this policy pages them now.": "De oproep van {{name}} is voorbij, dus dit beleid roept nu zelf op."
+  "Their page from {{name}} is over, so this policy pages them now.": "De oproep van {{name}} is voorbij, dus dit beleid roept nu zelf op.",
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Overeenkomsten worden vervangen door [REDACTED] in spannamen, statusberichten, attributen, gebeurtenissen en koppelingen.",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "De waarden van sleutels die gevoelig lijken, in attributen en in een JSON-logtekst, worden vervangen door [REDACTED].",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Welke delen van de span moeten worden gewist: spannaam, waarden van attributen en koppelingsattributen, attribuutwaarden van gebeurtenissen of alle, ook het statusbericht en de gebeurtenisnamen."
 }

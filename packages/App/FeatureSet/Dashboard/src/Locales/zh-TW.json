@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "此篩選器適用於哪些日誌。使用嚴重性、內文、服務或自訂屬性等欄位來建立規則。",
   "Which OID configured on this monitor should this criteria evaluate?": "此條件應評估在此監測器上所設定的哪個 OID？",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "要清除日誌的哪些部分：日誌內文（訊息）、屬性值或兩者皆是。",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "要清除跨度的哪些部分：跨度名稱、屬性值、事件屬性值或全部。",
   "Which probe do you want to use?": "您想使用哪個探測器？",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "此權限適用的資源：全部（建議）、此團隊擁有的資源，或帶有特定標籤的資源。",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "此角色適用的資源：全部（建議）、此團隊擁有的資源，或帶有特定標籤的資源。",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "{{name}} 在待命期間被指派此嚴重程度的事件片段時，會如何收到通知。",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "{{name}} 在待命期間被指派此嚴重程度的事件時，會如何收到通知。",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "{{name}} 被指派事件、警示或其片段時，各嚴重程度會如何收到通知。",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "符合的內容會在跨度名稱、屬性與事件屬性中替換為 [REDACTED]。",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "符合的內容會在日誌本文與屬性中替換為 [REDACTED]。",
   "Named after the pattern type until you type a name of your own.": "在您輸入自己的名稱之前，會依模式類型命名。",
   "On-call rules": "待命規則",
@@ -55977,5 +55975,8 @@
   "Already paged about this by {{name}}, so not paged again.": "{{name}} 已為此呼叫過，因此不再重複呼叫。",
   "Merged Into On-Call Log ID": "合併到的待命日誌 ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "另一個待命策略的呼叫已結束，因此現在由此策略自行呼叫。",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} 的呼叫已結束，因此現在由此策略自行呼叫。"
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} 的呼叫已結束，因此現在由此策略自行呼叫。",
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "符合的內容會在跨度名稱、狀態訊息、屬性、事件與鏈路中替換為 [REDACTED]。",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "看起來敏感的鍵，其值會在屬性與 JSON 日誌內文中替換為 [REDACTED]。",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "要清除跨度的哪些部分：跨度名稱、屬性值與鏈路屬性值、事件屬性值，或全部（包括狀態訊息與事件名稱）。"
 }

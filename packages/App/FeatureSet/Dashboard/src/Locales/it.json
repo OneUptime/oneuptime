@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "A quali log si applica questo filtro. Crea regole con campi come gravità, corpo, servizio o attributi personalizzati.",
   "Which OID configured on this monitor should this criteria evaluate?": "Quale OID configurato su questo monitor deve valutare questo criterio?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Quali parti del log epurare: il corpo del log (messaggio), i valori degli attributi o entrambi.",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Quali parti dello span epurare: nome dello span, valori degli attributi, valori degli attributi degli eventi o tutto.",
   "Which probe do you want to use?": "Quale sonda vuoi utilizzare?",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "A quali risorse si applica questa autorizzazione: tutte (consigliato), quelle di proprietà di questo team o quelle con determinate etichette.",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "A quali risorse si applica questo ruolo: tutte (consigliato), quelle di proprietà di questo team o quelle con determinate etichette.",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Come {{name}} riceve le notifiche quando gli viene assegnato un episodio di incidente di questa gravità durante la reperibilità.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Come {{name}} riceve le notifiche quando gli viene assegnato un incidente di questa gravità durante la reperibilità.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Come {{name}} riceve le notifiche, per ogni gravità, quando gli viene assegnato un incidente, un avviso o uno dei loro episodi.",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "Le corrispondenze vengono sostituite con [REDACTED] nei nomi degli span, negli attributi e negli attributi degli eventi.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "Le corrispondenze vengono sostituite con [REDACTED] nel corpo del log e negli attributi.",
   "Named after the pattern type until you type a name of your own.": "Prende il nome dal tipo di pattern finché non digiti un nome tuo.",
   "On-call rules": "Regole di reperibilità",
@@ -55977,5 +55975,8 @@
   "Already paged about this by {{name}}, so not paged again.": "Già chiamato per questo da {{name}}, quindi non chiamato di nuovo.",
   "Merged Into On-Call Log ID": "ID del log di reperibilità in cui è stato unito",
   "Their page from another on-call policy is over, so this policy pages them now.": "La chiamata di un'altra policy di reperibilità è terminata, quindi ora chiama questa policy.",
-  "Their page from {{name}} is over, so this policy pages them now.": "La chiamata di {{name}} è terminata, quindi ora chiama questa policy."
+  "Their page from {{name}} is over, so this policy pages them now.": "La chiamata di {{name}} è terminata, quindi ora chiama questa policy.",
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Le corrispondenze vengono sostituite con [REDACTED] nei nomi degli span, nei messaggi di stato, negli attributi, negli eventi e nei collegamenti.",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "I valori delle chiavi che sembrano sensibili, negli attributi e in un corpo del log JSON, vengono sostituiti con [REDACTED].",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Quali parti dello span epurare: nome dello span, valori degli attributi e degli attributi dei collegamenti, valori degli attributi degli eventi o tutto, compresi messaggio di stato e nomi degli eventi."
 }

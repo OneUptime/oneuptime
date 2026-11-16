@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "К каким логам применяется этот фильтр. Создавайте правила с такими полями, как серьёзность, тело, сервис или пользовательские атрибуты.",
   "Which OID configured on this monitor should this criteria evaluate?": "Какой OID, настроенный на этом мониторе, должен оценивать этот критерий?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Какие части лога очищать: тело лога (сообщение), значения атрибутов или и то, и другое.",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Какие части спана очищать: имя спана, значения атрибутов, значения атрибутов событий или всё.",
   "Which probe do you want to use?": "Какой зонд вы хотите использовать?",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "К каким ресурсам применяется это разрешение: ко всем (рекомендуется), к тем, которыми владеет команда, или к ресурсам с определёнными метками.",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "К каким ресурсам применяется эта роль: ко всем (рекомендуется), к тем, которыми владеет команда, или к ресурсам с определёнными метками.",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Как {{name}} получает уведомления о назначенных во время дежурства эпизодах инцидентов с такой серьёзностью.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Как {{name}} получает уведомления о назначенных во время дежурства инцидентах с такой серьёзностью.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Как {{name}} получает уведомления для каждой серьёзности о назначенных инцидентах, оповещениях и их эпизодах.",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "Совпадения заменяются на [REDACTED] в именах спанов, атрибутах и атрибутах событий.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "Совпадения заменяются на [REDACTED] в теле журнала и атрибутах.",
   "Named after the pattern type until you type a name of your own.": "Название дано по типу шаблона, пока вы не введёте своё.",
   "On-call rules": "Правила дежурства",
@@ -55977,5 +55975,8 @@
   "Already paged about this by {{name}}, so not paged again.": "Уже вызван по этому поводу политикой {{name}}, поэтому повторно не вызывается.",
   "Merged Into On-Call Log ID": "ID журнала дежурства, с которым объединено",
   "Their page from another on-call policy is over, so this policy pages them now.": "Вызов другой политикой дежурства завершён, поэтому теперь вызывает эта политика.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Вызов политикой {{name}} завершён, поэтому теперь вызывает эта политика."
+  "Their page from {{name}} is over, so this policy pages them now.": "Вызов политикой {{name}} завершён, поэтому теперь вызывает эта политика.",
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Совпадения заменяются на [REDACTED] в именах спанов, сообщениях о статусе, атрибутах, событиях и связях.",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Значения ключей, которые выглядят конфиденциальными, заменяются на [REDACTED] в атрибутах и в теле лога в формате JSON.",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Какие части спана очищать: имя спана, значения атрибутов и атрибутов связей, значения атрибутов событий или всё, включая сообщение о статусе и названия событий."
 }

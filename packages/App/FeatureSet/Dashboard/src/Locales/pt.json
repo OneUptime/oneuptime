@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "A quais registros este filtro se aplica. Crie regras com campos como gravidade, corpo, serviço ou atributos personalizados.",
   "Which OID configured on this monitor should this criteria evaluate?": "Qual OID configurado neste monitor este critério deve avaliar?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Quais partes do registro devem ser limpas: o corpo do registro (mensagem), os valores dos atributos ou ambos.",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Quais partes do span devem ser limpas: nome do span, valores dos atributos, valores dos atributos de evento ou todas.",
   "Which probe do you want to use?": "Qual sonda você deseja usar?",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "A quais recursos esta permissão se aplica: todos (recomendado), os que esta equipe possui ou os que têm certos rótulos.",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "A quais recursos esta função se aplica: todos (recomendado), os que esta equipe possui ou os que têm certos rótulos.",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Como {{name}} recebe notificações quando um episódio de incidente desta gravidade lhe é atribuído durante o plantão.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Como {{name}} recebe notificações quando um incidente desta gravidade lhe é atribuído durante o plantão.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Como {{name}} recebe notificações, para cada gravidade, quando um incidente, um alerta ou um de seus episódios lhe é atribuído.",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "As correspondências são substituídas por [REDACTED] nos nomes de span, nos atributos e nos atributos de eventos.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "As correspondências são substituídas por [REDACTED] no corpo do registro e nos atributos.",
   "Named after the pattern type until you type a name of your own.": "Nomeada a partir do tipo de padrão até você digitar um nome próprio.",
   "On-call rules": "Regras de plantão",
@@ -55977,5 +55975,8 @@
   "Already paged about this by {{name}}, so not paged again.": "Já chamado sobre isto por {{name}}, então não foi chamado de novo.",
   "Merged Into On-Call Log ID": "ID do registro de plantão em que foi mesclado",
   "Their page from another on-call policy is over, so this policy pages them now.": "A chamada de outra política de plantão terminou, então esta política chama agora por conta própria.",
-  "Their page from {{name}} is over, so this policy pages them now.": "A chamada de {{name}} terminou, então esta política chama agora por conta própria."
+  "Their page from {{name}} is over, so this policy pages them now.": "A chamada de {{name}} terminou, então esta política chama agora por conta própria.",
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "As correspondências são substituídas por [REDACTED] nos nomes de span, nas mensagens de status, nos atributos, nos eventos e nos links.",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Os valores das chaves que parecem sensíveis, nos atributos e em um corpo do registro JSON, são substituídos por [REDACTED].",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Quais partes do span devem ser limpas: nome do span, valores dos atributos e dos atributos de links, valores dos atributos de evento ou todas, incluindo a mensagem de status e os nomes dos eventos."
 }

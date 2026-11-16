@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "A qué registros se aplica este filtro. Crea reglas con campos como gravedad, cuerpo, servicio o atributos personalizados.",
   "Which OID configured on this monitor should this criteria evaluate?": "¿Qué OID configurado en este monitor debe evaluar este criterio?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Qué partes del registro depurar: el cuerpo del registro (mensaje), los valores de atributos o ambos.",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Qué partes del span depurar: nombre del span, valores de atributos, valores de atributos de eventos o todos.",
   "Which probe do you want to use?": "¿Qué sonda quieres usar?",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "A qué recursos se aplica este permiso: todos (recomendado), los que posee este equipo o los que tienen ciertas etiquetas.",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "A qué recursos se aplica este rol: todos (recomendado), los que posee este equipo o los que tienen ciertas etiquetas.",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Cómo se notifica a {{name}} cuando se le asigna un episodio de incidente de esta gravedad mientras está de guardia.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Cómo se notifica a {{name}} cuando se le asigna un incidente de esta gravedad mientras está de guardia.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Cómo se notifica a {{name}}, para cada gravedad, cuando se le asigna un incidente, una alerta o uno de sus episodios.",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "Las coincidencias se sustituyen por [REDACTED] en los nombres de span, los atributos y los atributos de eventos.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "Las coincidencias se sustituyen por [REDACTED] en el cuerpo del registro y sus atributos.",
   "Named after the pattern type until you type a name of your own.": "Lleva el nombre del tipo de patrón hasta que escribas uno propio.",
   "On-call rules": "Reglas de guardia",
@@ -55977,5 +55975,8 @@
   "Already paged about this by {{name}}, so not paged again.": "Ya avisado de esto por {{name}}, así que no se avisa de nuevo.",
   "Merged Into On-Call Log ID": "ID del registro de guardia en el que se fusionó",
   "Their page from another on-call policy is over, so this policy pages them now.": "El aviso de otra política de guardia terminó, así que esta política avisa ahora por sí misma.",
-  "Their page from {{name}} is over, so this policy pages them now.": "El aviso de {{name}} terminó, así que esta política avisa ahora por sí misma."
+  "Their page from {{name}} is over, so this policy pages them now.": "El aviso de {{name}} terminó, así que esta política avisa ahora por sí misma.",
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Las coincidencias se sustituyen por [REDACTED] en los nombres de span, los mensajes de estado, los atributos, los eventos y los enlaces.",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Los valores de las claves que parecen sensibles, en los atributos y en un cuerpo del registro JSON, se sustituyen por [REDACTED].",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Qué partes del span depurar: nombre del span, valores de atributos y de atributos de enlaces, valores de atributos de eventos o todos, incluidos el mensaje de estado y los nombres de eventos."
 }
