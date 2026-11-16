@@ -78,6 +78,16 @@ const FILE_MOVED_REFUSALS: ReadonlyArray<string> = [
 export const GITLAB_TOKEN_SCOPE_HINT: string =
   "The token needs the api and write_repository scopes, and at least the Developer role in the project.";
 
+// A project access token GitLab made (createProjectAccessToken).
+export interface GitLabProjectAccessToken {
+  // GitLab's id for it, which revokes it.
+  id: string;
+  // The token itself: GitLab shows it once, on the answer that made it.
+  token: string;
+  // The date it ends at the start of, as GitLab says it (YYYY-MM-DD).
+  expiresAt: string;
+}
+
 // GitLab's largest page.
 export const GITLAB_PAGE_SIZE: number = 100;
 
@@ -998,6 +1008,144 @@ export default class GitLabApi {
             ? PullRequestState.Closed
             : PullRequestState.Open,
     };
+  }
+
+  /*
+   * The open merge request from one branch into another, or null when there
+   * is none: what OneUptime finds when GitLab says one is open already
+   * (409), so asking again for a fix's merge request answers with the one
+   * it opened rather than failing.
+   */
+  public async findOpenMergeRequest(data: {
+    project: string;
+    sourceBranch: string;
+    targetBranch: string;
+  }): Promise<CodeHostOpenedPullRequest | null> {
+    const answer: CodeHostApiAnswer = await this.client.getJson(
+      `${GitLabApi.projectPath(data.project)}/merge_requests`,
+      {
+        state: "opened",
+        source_branch: data.sourceBranch,
+        target_branch: data.targetBranch,
+        per_page: 20,
+      },
+    );
+
+    const mergeRequests: Array<unknown> = Array.isArray(answer.json)
+      ? (answer.json as Array<unknown>)
+      : [];
+
+    for (const raw of mergeRequests) {
+      const mergeRequest: CodeHostPullRequestDetails | null =
+        GitLabApi.readMergeRequest(raw);
+
+      if (
+        !mergeRequest ||
+        !mergeRequest.isOpen ||
+        mergeRequest.isFromFork ||
+        mergeRequest.headRefName !== data.sourceBranch ||
+        mergeRequest.baseRefName !== data.targetBranch
+      ) {
+        continue;
+      }
+
+      const id: number = Number((raw as JSONObject)["id"]);
+
+      return {
+        id: Number.isSafeInteger(id) && id > 0 ? id : mergeRequest.number,
+        number: mergeRequest.number,
+        htmlUrl: mergeRequest.htmlUrl,
+        state: PullRequestState.Open,
+      };
+    }
+
+    return null;
+  }
+
+  /*
+   * A project access token for one code-fix run (issue #8912): made with
+   * the connection's token, on the one project, for the scopes and role
+   * asked - the least a Runner needs to push the run's branch - and until
+   * the date given, at the start of which (midnight UTC) GitLab ends it.
+   *
+   * GitLab makes one only for the token of someone with the Maintainer or
+   * Owner role in the project, and on GitLab.com only on Premium and
+   * Ultimate; a group may forbid them. It refuses otherwise (403, or 404
+   * where the plan has none), and this throws GitLab's answer, which the
+   * caller reads as "GitLab makes none for this repository". Each token
+   * gets a bot user of its own, named after the token, which GitLab removes
+   * 30 days after its last token is revoked or ends.
+   */
+  public async createProjectAccessToken(data: {
+    project: string;
+    name: string;
+    description: string;
+    scopes: Array<string>;
+    accessLevel: number;
+    // The date it ends at the start of, as YYYY-MM-DD.
+    expiresAt: string;
+  }): Promise<GitLabProjectAccessToken> {
+    const answer: CodeHostApiAnswer = await this.client.postJson(
+      `${GitLabApi.projectPath(data.project)}/access_tokens`,
+      {
+        name: data.name,
+        description: data.description.substring(0, 255),
+        scopes: data.scopes,
+        access_level: data.accessLevel,
+        expires_at: data.expiresAt,
+      },
+    );
+
+    const made: JSONObject = GitLabApi.asObject(
+      answer.json,
+      "the access token it made",
+    );
+    const id: string = CodeHostText.readId(made["id"]);
+    const token: string = CodeHostText.readString(made["token"]);
+
+    if (!id || !token) {
+      throw GitLabApi.badAnswer("the access token it made");
+    }
+
+    return {
+      id,
+      token,
+      expiresAt: CodeHostText.readString(made["expires_at"]) || data.expiresAt,
+    };
+  }
+
+  /*
+   * Revoke a project access token OneUptime made: true once GitLab revoked
+   * it (204), false when GitLab has no such token any more (404) - revoked
+   * already, or the project is gone. Any other answer throws.
+   */
+  public async revokeProjectAccessToken(data: {
+    project: string;
+    tokenId: string;
+  }): Promise<boolean> {
+    const tokenId: number = Number(data.tokenId);
+
+    if (!Number.isSafeInteger(tokenId) || tokenId <= 0) {
+      return false;
+    }
+
+    try {
+      await this.client.request({
+        method: "DELETE",
+        path: `${GitLabApi.projectPath(data.project)}/access_tokens/${tokenId}`,
+      });
+    } catch (error) {
+      if (
+        error instanceof CodeHostHttpError &&
+        error.kind === CodeHostHttpErrorKind.NotFound
+      ) {
+        return false;
+      }
+
+      throw error;
+    }
+
+    return true;
   }
 
   /*

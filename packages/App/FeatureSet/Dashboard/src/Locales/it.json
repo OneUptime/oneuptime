@@ -55978,7 +55978,8 @@
   "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "I vecchi incidenti risolti il cui post-mortem è in uno stato che rimuovi vengono eliminati entro un'ora. Non possono essere recuperati.",
   "{{count}} attempt": "{{count}} tentativo",
   "{{summary}} - view sign-in attempt details": "{{summary}} - vedi i dettagli del tentativo di accesso",
-  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "L'IA lavora in un repository che non è su GitHub su uno dei tuoi Runner: il suo token di accesso non viene mai consegnato a un Runner globale. Scegli uno dei tuoi Runner.",
+  "AI works in a Forgejo, Gitea or Git repository on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "L'IA lavora in un repository Forgejo, Gitea o Git su uno dei tuoi Runner: il suo token di accesso non viene mai consegnato a un Runner globale. Scegli uno dei tuoi Runner.",
+  "GitLab did not let OneUptime make a short-lived token for this repository, so AI works in it on one of your own Runners. Give its connection a Maintainer's token with the api scope, or pick one of your Runners.": "GitLab non ha permesso a OneUptime di creare un token di breve durata per questo repository, quindi l'IA ci lavora su uno dei tuoi Runner. Dai alla sua connessione il token di un Maintainer con lo scope api, oppure scegli uno dei tuoi Runner.",
   "Reads work, but changes will fail": "La lettura funziona, ma le modifiche non riusciranno",
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Esegui di nuovo il comando di configurazione. Sposta le modifiche su un'identità di scrittura dedicata, e l'identità dell'agente resta solo con la lettura.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Esegui di nuovo il comando di configurazione. Sposta le modifiche su un ruolo di scrittura dedicato, che l'agente assume per ogni modifica con una policy valida solo per quella modifica.",
@@ -56137,5 +56138,15 @@
   "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "Questo incidente è già riconosciuto. La policy che scegli avvisa comunque le sue persone, livello per livello, finché una di loro non risponde o l'incidente non viene risolto.",
   "This incident is resolved, so no on-call policy can be started for it.": "Questo incidente è risolto, quindi non si può avviare alcuna policy di reperibilità per esso.",
   "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on.": "{{count}} monitor di richieste in arrivo hanno ricevuto una richiesta senza un segreto valido nelle ultime 24 ore. Da ora in poi i loro mittenti vengono rifiutati.",
-  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on._one": "{{count}} monitor di richieste in arrivo ha ricevuto una richiesta senza un segreto valido nelle ultime 24 ore. Da ora in poi i suoi mittenti vengono rifiutati."
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on._one": "{{count}} monitor di richieste in arrivo ha ricevuto una richiesta senza un segreto valido nelle ultime 24 ore. Da ora in poi i suoi mittenti vengono rifiutati.",
+  "Code Repository Connection ID": "Code Repository Connection ID",
+  "Code Repository Minted Token": "Code Repository Minted Token",
+  "Code Repository Minted Tokens": "Code Repository Minted Tokens",
+  "Host Project ID": "Host Project ID",
+  "Host Token ID": "Host Token ID",
+  "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.": "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.",
+  "Minted Token Refused At": "Minted Token Refused At",
+  "Revocation Attempted At": "Revocation Attempted At",
+  "Revocation Error": "Revocation Error",
+  "Worker ID": "Worker ID"
 }

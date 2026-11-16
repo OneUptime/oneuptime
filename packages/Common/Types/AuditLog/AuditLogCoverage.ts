@@ -213,6 +213,7 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
 
   // OneUptime's working state.
   CodeRepositoryConnection: AuditLogExemptionKind.WorkingState,
+  CodeRepositoryMintedToken: AuditLogExemptionKind.WorkingState,
   HostCollectorConfigVersion: AuditLogExemptionKind.WorkingState,
   IncidentSla: AuditLogExemptionKind.WorkingState,
   PublicNoteApprovalRequest: AuditLogExemptionKind.WorkingState,

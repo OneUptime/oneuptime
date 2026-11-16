@@ -55978,7 +55978,8 @@
   "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "Gamle løste hændelser, hvis postmortem har en status, du fravælger, slettes inden for en time. De kan ikke gendannes.",
   "{{count}} attempt": "{{count}} forsøg",
   "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om loginforsøget",
-  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "AI arbejder i et repository, der ikke ligger på GitHub, på en af dine egne Runnere: dets adgangstoken gives aldrig til en global Runner. Vælg en af dine Runnere.",
+  "AI works in a Forgejo, Gitea or Git repository on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "AI arbejder i et Forgejo-, Gitea- eller Git-repository på en af dine egne Runnere: dets adgangstoken gives aldrig til en global Runner. Vælg en af dine Runnere.",
+  "GitLab did not let OneUptime make a short-lived token for this repository, so AI works in it on one of your own Runners. Give its connection a Maintainer's token with the api scope, or pick one of your Runners.": "GitLab lod ikke OneUptime lave et kortlivet token til dette repository, så AI arbejder i det på en af dine egne Runnere. Giv dets forbindelse et Maintainer-token med api-scopet, eller vælg en af dine Runnere.",
   "Reads work, but changes will fail": "Læsning virker, men ændringer vil mislykkes",
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Kør opsætningskommandoen igen. Den flytter ændringerne til en skriveidentitet for sig, og agentens egen identitet beholder kun læsningen.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Kør opsætningskommandoen igen. Den flytter ændringerne til en skriverolle for sig, som agenten påtager sig for hver ændring med en politik kun for den ændring.",
@@ -56137,5 +56138,15 @@
   "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "Denne hændelse er allerede bekræftet. Den politik, du vælger, tilkalder stadig sine personer, niveau for niveau, indtil en af dem svarer, eller hændelsen er løst.",
   "This incident is resolved, so no on-call policy can be started for it.": "Denne hændelse er løst, så der kan ikke startes en vagtpolitik for den.",
   "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on.": "{{count}} monitorer af indgående anmodninger har fået en anmodning uden en gyldig hemmelighed inden for de seneste 24 timer. Deres afsendere afvises fra nu af.",
-  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on._one": "{{count}} monitor af indgående anmodninger har fået en anmodning uden en gyldig hemmelighed inden for de seneste 24 timer. Dens afsendere afvises fra nu af."
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on._one": "{{count}} monitor af indgående anmodninger har fået en anmodning uden en gyldig hemmelighed inden for de seneste 24 timer. Dens afsendere afvises fra nu af.",
+  "Code Repository Connection ID": "Code Repository Connection ID",
+  "Code Repository Minted Token": "Code Repository Minted Token",
+  "Code Repository Minted Tokens": "Code Repository Minted Tokens",
+  "Host Project ID": "Host Project ID",
+  "Host Token ID": "Host Token ID",
+  "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.": "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.",
+  "Minted Token Refused At": "Minted Token Refused At",
+  "Revocation Attempted At": "Revocation Attempted At",
+  "Revocation Error": "Revocation Error",
+  "Worker ID": "Worker ID"
 }

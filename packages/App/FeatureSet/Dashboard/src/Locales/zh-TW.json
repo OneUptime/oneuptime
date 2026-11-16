@@ -55978,7 +55978,8 @@
   "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "已解決的舊事件，若其事後分析處於你移除的狀態，會在一小時內被刪除。這些事件無法復原。",
   "{{count}} attempt": "{{count}} 次嘗試",
   "{{summary}} - view sign-in attempt details": "{{summary}} - 檢視登入嘗試詳細資料",
-  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "AI 在不在 GitHub 上的儲存庫中的工作會在你自己的 Runner 上進行：它的存取權杖絕不會交給全域 Runner。請選擇你的一個 Runner。",
+  "AI works in a Forgejo, Gitea or Git repository on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "AI 在 Forgejo、Gitea 或 Git 儲存庫中的工作會在你自己的 Runner 上進行：它的存取權杖絕不會交給全域 Runner。請選擇你的一個 Runner。",
+  "GitLab did not let OneUptime make a short-lived token for this repository, so AI works in it on one of your own Runners. Give its connection a Maintainer's token with the api scope, or pick one of your Runners.": "GitLab 不允許 OneUptime 為此儲存庫建立短期權杖，因此 AI 會在你自己的 Runner 上處理此儲存庫。請為它的連線提供具有 api 範圍的 Maintainer 權杖，或選擇你的一個 Runner。",
   "Reads work, but changes will fail": "讀取正常，但變更會失敗",
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "再次執行設定指令。它會把變更移到專屬的寫入識別，代理程式自身的識別只保留讀取。",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "再次執行設定指令。它會把變更移到專屬的寫入角色，代理程式每次變更都以僅允許該變更的原則承擔這個角色。",
@@ -56137,5 +56138,15 @@
   "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "此事件已被確認。所選策略仍會逐層呼叫其人員，直到其中有人回應或事件已解決。",
   "This incident is resolved, so no on-call policy can be started for it.": "此事件已解決，因此無法為它啟動待命策略。",
   "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on.": "過去 24 小時內有 {{count}} 個傳入請求監測器收到過未攜帶有效密鑰的請求。從現在起，它們的傳送端會遭到拒絕。",
-  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on._one": "{{count}} Incoming Request monitor got a request without a valid secret in the last 24 hours. Its senders are refused from now on."
+  "{{count}} Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on._one": "{{count}} Incoming Request monitor got a request without a valid secret in the last 24 hours. Its senders are refused from now on.",
+  "Code Repository Connection ID": "Code Repository Connection ID",
+  "Code Repository Minted Token": "Code Repository Minted Token",
+  "Code Repository Minted Tokens": "Code Repository Minted Tokens",
+  "Host Project ID": "Host Project ID",
+  "Host Token ID": "Host Token ID",
+  "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.": "Internal record of each short-lived access token OneUptime made on a repository's host for one AI code fix, kept so OneUptime revokes it when the fix ends.",
+  "Minted Token Refused At": "Minted Token Refused At",
+  "Revocation Attempted At": "Revocation Attempted At",
+  "Revocation Error": "Revocation Error",
+  "Worker ID": "Worker ID"
 }
