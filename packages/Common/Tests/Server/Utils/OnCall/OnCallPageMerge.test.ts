@@ -22,6 +22,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * THE READS BEHIND ONE PAGE FOR SOMEBODY TWO POLICIES PAGE (issue #7837,
@@ -427,9 +428,8 @@ describe("where the page a merged one stands on is, each minute", () => {
   });
 
   test("a merged page that names no page takes it over without a read", async () => {
-    const findOneById: jest.SpiedFunction<
-      typeof UserOnCallLogService.findOneById
-    > = jest.spyOn(UserOnCallLogService, "findOneById");
+    const findOneById: SpyInstance<typeof UserOnCallLogService.findOneById> =
+      jest.spyOn(UserOnCallLogService, "findOneById");
 
     expect(
       (await OnCallPageMerge.readMergedPage(mergedPage(undefined))).standing,

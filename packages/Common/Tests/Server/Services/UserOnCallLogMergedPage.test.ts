@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import Model from "../../../Models/DatabaseModels/UserOnCallLog";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
@@ -54,15 +55,15 @@ const COVER_LOG_ID: ObjectID = new ObjectID(
 
 const MESSAGE: string = getOnCallPageMergedMessage({ policyName: "Payments" });
 
-let createLog: jest.SpiedFunction<typeof UserOnCallLogService.create>;
-let workspaceRules: jest.SpiedFunction<
+let createLog: SpyInstance<typeof UserOnCallLogService.create>;
+let workspaceRules: SpyInstance<
   typeof UserNotificationRuleService.runWorkspaceRulesForOnCallNotification
 >;
 
 beforeEach(() => {
   createLog = jest
     .spyOn(UserOnCallLogService, "create")
-    .mockResolvedValue({ id: new ObjectID() } as never);
+    .mockResolvedValue({ id: ObjectID.generate() } as never);
   workspaceRules = jest
     .spyOn(
       UserNotificationRuleService,
@@ -221,22 +222,20 @@ describe("the log's own hooks", () => {
   );
 
   test("a merged page's start runs nothing: no status written, no rule counted, no line moved", async () => {
-    const logUpdate: jest.SpiedFunction<
-      typeof UserOnCallLogService.updateOneById
-    > = jest
-      .spyOn(UserOnCallLogService, "updateOneById")
-      .mockResolvedValue(undefined as never);
-    const ruleCount: jest.SpiedFunction<
-      typeof UserNotificationRuleService.countBy
-    > = jest.spyOn(UserNotificationRuleService, "countBy");
-    const lineUpdate: jest.SpiedFunction<
+    const logUpdate: SpyInstance<typeof UserOnCallLogService.updateOneById> =
+      jest
+        .spyOn(UserOnCallLogService, "updateOneById")
+        .mockResolvedValue(undefined as never);
+    const ruleCount: SpyInstance<typeof UserNotificationRuleService.countBy> =
+      jest.spyOn(UserNotificationRuleService, "countBy");
+    const lineUpdate: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogTimelineService.updateOneById
     > = jest
       .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "updateOneById")
       .mockResolvedValue(undefined as never);
 
     const log: Model = new Model();
-    log.id = new ObjectID();
+    log.id = ObjectID.generate();
     log.status = UserNotificationExecutionStatus.AlreadyPaged;
     log.mergedIntoUserOnCallLogId = COVER_LOG_ID;
     log.triggeredByIncidentId = INCIDENT_ID;
