@@ -22,6 +22,8 @@ import AuthenticationEmail from "App/FeatureSet/Identity/Utils/AuthenticationEma
 import VercelSignInRouter from "../../../../Server/CloudMarketplace/API/VercelSignIn";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
+import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
+import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 
 /*
  * Sign-in from Vercel (/identity/vercel/sso): the code Vercel sends the
@@ -177,6 +179,7 @@ const request: (query: Record<string, string>) => ExpressRequest = (
 let redirect: jest.Mock;
 let exchange: jest.SpyInstance;
 let verify: jest.SpyInstance;
+let ssoRequired: jest.SpyInstance;
 
 const signIn: (query: Record<string, string>) => Promise<void> = async (
   query: Record<string, string>,
@@ -218,6 +221,10 @@ beforeEach(() => {
     refreshTokenExpiresAt: new Date(),
   });
   mocked(DatabaseConfig.shouldDisableSignup).mockResolvedValue(false);
+  // A server that does not require single sign-on, unless a test says.
+  ssoRequired = jest
+    .spyOn(SsoRequiredSignIn, "isSsoRequired")
+    .mockResolvedValue(false);
 });
 
 afterEach(() => {
@@ -394,5 +401,39 @@ describe("GET /identity/vercel/sso", () => {
 
     await signIn({ code: "code-1" });
     expect(renderedTitle()).toBe("Vercel Marketplace is not available.");
+  });
+
+  /*
+   * While the whole server requires single sign-on (#6116), Vercel signs
+   * nobody in: its sign-in is not SSO, as Sign in with Microsoft is not.
+   * Refused before Vercel is asked anything, so nobody is joined to a
+   * project, no account is made and no code is spent.
+   */
+  it("signs nobody in while the server requires SSO, and says to sign in with SSO", async () => {
+    ssoRequired.mockResolvedValue(true);
+
+    await signIn({ code: "code-1", resource_id: "res_1" });
+
+    expect(renderedTitle()).toBe("Sign in with SSO instead.");
+    expect(
+      (mocked(Response.render).mock.calls[0]![3] as { message: string })
+        .message,
+    ).toBe(SSO_REQUIRED_SIGN_IN_MESSAGE);
+    expect(exchange).not.toHaveBeenCalled();
+    expect(VercelMarketplaceSignIn.ensureMemberships).not.toHaveBeenCalled();
+    expect(UserService.createByEmail).not.toHaveBeenCalled();
+    expect(UserSessionService.createSession).not.toHaveBeenCalled();
+    expect(CookieUtil.setUserCookie).not.toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("signs nobody in when whether SSO is required cannot be read", async () => {
+    ssoRequired.mockRejectedValue(new Error("connection terminated"));
+
+    await signIn({ code: "code-1" });
+
+    expect(renderedTitle()).toBe("We could not sign you in from Vercel.");
+    expect(exchange).not.toHaveBeenCalled();
+    expect(UserSessionService.createSession).not.toHaveBeenCalled();
   });
 });

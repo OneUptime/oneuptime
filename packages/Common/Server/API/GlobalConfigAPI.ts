@@ -57,6 +57,7 @@ import UserMiddleware, {
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import UserSessionService from "../Services/UserSessionService";
+import SsoRequiredSignIn from "../Utils/SsoRequiredSignIn";
 import logger from "../Utils/Logger";
 import {
   EndSessionsWithoutSsoAnswer,
@@ -231,7 +232,7 @@ export default class GlobalConfigAPI extends BaseAPI<
       MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          if (!(await GlobalConfigService.getRequireSsoForLogin())) {
+          if (!(await SsoRequiredSignIn.isSsoRequired())) {
             throw new BadDataException(
               SIGN_OUT_WITHOUT_SSO_NEEDS_SSO_REQUIRED_MESSAGE,
             );
