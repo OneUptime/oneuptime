@@ -281,9 +281,10 @@ export default class CodeRepositoryMintedToken extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
-    allowedValues: [CodeRepositoryType.GitLab],
+    allowedValues: Object.values(CodeRepositoryType),
     title: "Provider",
-    description: "Where the token was made: GitLab.",
+    description:
+      "Where the token was made. Only GitLab makes OneUptime one today.",
   })
   @Column({
     nullable: false,
