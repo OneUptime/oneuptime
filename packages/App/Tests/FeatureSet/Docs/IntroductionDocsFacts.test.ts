@@ -3001,6 +3001,35 @@ describe("Home Page & Shortcuts", () => {
     );
     expect(section).toContain("the monitors or policies it **Affects**");
 
+    // The two one-click fixes (#7299), by the buttons that open their dialogs.
+    const quickFixWords: string = dashboard(
+      "Components/SetupHealth/SetupHealthQuickFix.ts",
+    );
+
+    expect(quickFixWords).toContain('button: translationKey("Turn On SMS"),');
+    expect(quickFixWords).toContain(
+      'button: translationKey("Create On-Call Rule"),',
+    );
+    expect(section).toContain(
+      "**Turn On SMS** (or phone calls, WhatsApp or Telegram)",
+    );
+    expect(section).toContain("**Create On-Call Rule**");
+    expect(section).toContain(
+      "once a dialog has said exactly what will change",
+    );
+
+    // A policy's and a status page's own Overview say their findings (#7297).
+    for (const page of [
+      "Pages/OnCallDuty/OnCallDutyPolicy/Index.tsx",
+      "Pages/StatusPages/View/Index.tsx",
+    ]) {
+      expect(dashboard(page)).toContain("<SetupHealthRecordFindings");
+    }
+
+    expect(section).toContain(
+      "says so at the top of the policy's or the status page's own page too",
+    );
+
     // A monitor's findings are its own card's breaks; dismissed ones fold away.
     expect(
       dashboard("Components/Monitor/Overview/MonitorWhoIsToldCard.tsx"),
