@@ -17,6 +17,7 @@ import Semaphore, {
   SemaphoreMutex,
 } from "Common/Server/Infrastructure/Semaphore";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import { DISCOVERY_SCAN_IMPORTABLE_STATUSES } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import { AutoImportRuleRunResult } from "Common/Types/NetworkAutomation/RuleRunResult";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
@@ -52,24 +53,25 @@ import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 const SWEEP_TIMEOUT_MINUTES: number = 10;
 
 /*
- * Redis mutex that serializes the whole sweep across every worker replica —
- * the same arrangement, for the same reason, as Slo:EvaluateSlos: RunCron
- * has no overlap guard (the next repeatable iteration materializes while
- * the current one runs, across a many-replica fleet at concurrency 100),
- * runJobWithTimeout is a Promise.race with no cancellation, and a sweep
- * that creates hundreds of devices easily outlives the one-minute schedule.
- * Two concurrent sweeps over the same marker-NULL scans would race the
- * engine's check-then-create idempotency into duplicate devices; one sweep
- * at a time makes that window a single process's, which the engine's shared
- * hostname set already covers.
+ * One engine writer at a time (issue #8103).
  *
- * The lock identity lives on the ENGINE (AUTO_IMPORT_SWEEP_LOCK_*) because
- * the manual Run Now path takes the same lock for its real runs — sweep vs
- * Run Now is the same duplicate-device race as sweep vs sweep. The lock
- * timeout outlives the job timeout so an overrunning sweep keeps holding
- * the lock rather than letting a second sweep in behind it; redis-semaphore
- * auto-refreshes a held lock, so the value only bounds how long a CRASHED
- * worker's lock lingers.
+ * RunCron runs one copy of this job at a time across every worker replica
+ * (CronLock), and the sweep stops between scans once its deadline has passed
+ * - its time limit, or its lease lost - leaving the scans it did not reach
+ * marker-NULL for the next tick, which resumes them (device creation is
+ * idempotent per project and address).
+ *
+ * The sweep still takes this Redis mutex, for what the lease does not
+ * serialize. The manual Run Now path, an API request rather than a run of
+ * this job, takes the same lock for its real runs: two writers over the same
+ * marker-NULL scan race the engine's check-then-create idempotency into
+ * duplicate devices, sweep against Run Now as much as sweep against sweep.
+ * That is also why the lock identity lives on the ENGINE
+ * (AUTO_IMPORT_SWEEP_LOCK_*), so the two can never drift apart. And the lease
+ * lapses half a minute past the time limit even while an import of the run
+ * has not returned, where redis-semaphore refreshes this lock for as long as
+ * the run lasts; its timeout only bounds how long a CRASHED worker's lock
+ * lingers.
  */
 
 RunCron(
@@ -81,7 +83,7 @@ RunCron(
       SWEEP_TIMEOUT_MINUTES,
     ),
   },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * acquireAttemptsLimit: 1 — never queue behind the in-flight sweep. The
      * job re-runs every minute anyway; skipping is the correct backpressure.
@@ -163,7 +165,22 @@ RunCron(
         new Map();
       const cappedProjectIds: Set<string> = new Set();
 
+      let scansReached: number = 0;
+
       for (const scan of unprocessedScans) {
+        /*
+         * Between scans, never inside one: an import in flight finishes, and
+         * the scans not reached keep their NULL marker for the next tick.
+         */
+        if (deadline.hasPassed()) {
+          logger.debug(
+            `NetworkDeviceDiscovery:ProcessAutoImportRules - the run's deadline has passed; stopping after ${scansReached} of ${unprocessedScans.length} scan(s). The next tick resumes the other ${unprocessedScans.length - scansReached}.`,
+          );
+          break;
+        }
+
+        scansReached++;
+
         const projectId: string = scan.projectId?.toString() || "";
 
         /*
