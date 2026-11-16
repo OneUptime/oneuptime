@@ -230,29 +230,39 @@ describePostgres("dashboard list widget sorts against Postgres", () => {
       });
     }
 
-    for (const [name, status, disableActiveMonitoring] of [
-      ["api", "Zen", false],
-      ["billing", "Alarm", false],
-      ["cdn", "Busy", false],
-      ["dns", "Zen", false],
-      ["edge", "Maintenance", false],
-      ["fax", "Alarm", false],
-      ["gateway", "Zen", false],
+    for (const [name, status, disableActiveMonitoring, monitorType] of [
+      ["api", "Zen", false, "Manual"],
+      ["billing", "Alarm", false, "Manual"],
+      ["cdn", "Busy", false, "Manual"],
+      ["dns", "Zen", false, "Manual"],
+      ["edge", "Maintenance", false, "Manual"],
+      ["fax", "Alarm", false, "Manual"],
+      /*
+       * A website monitor nothing has checked yet (issue #8899): its Zen is
+       * only the status every monitor is created in.
+       */
+      ["gateway", "Zen", false, "Website"],
       /*
        * Monitoring turned off (issue #6476): nothing checks these, so each
        * status is only what its last check saw - the worst one and the best
        * one. Neither ranks among the monitors that are checked.
        */
-      ["hub", "Alarm", true],
-      ["ivr", "Zen", true],
-    ] as Array<[string, string, boolean]>) {
+      ["hub", "Alarm", true, "Manual"],
+      ["ivr", "Zen", true, "Manual"],
+    ] as Array<[string, string, boolean, string]>) {
       await insert("Monitor", {
         projectId: projectId.toString(),
         name,
         slug: name,
-        monitorType: "Manual",
+        monitorType,
         currentMonitorStatusId: statuses[status],
         disableActiveMonitoring,
+        /*
+         * A manual monitor is measured from the moment it is created
+         * (MonitorService stamps it, MonitorFirstMeasured): its status is
+         * the one a person sets. Any other is measured by its first check.
+         */
+        firstMeasuredAt: monitorType === "Manual" ? new Date() : null,
       });
     }
 
@@ -555,9 +565,11 @@ describePostgres("dashboard list widget sorts against Postgres", () => {
   /*
    * The status filters, as the widget and the public policy build them
    * (getMonitorListQuery), run on Postgres: neither lists a monitor whose
-   * monitoring is off, whatever status it was frozen at.
+   * monitoring is off, whatever status it was frozen at, and "operational"
+   * lists none that nothing has measured yet, whose operational status is
+   * only the one it was created in (issue #8899).
    */
-  test("the status filters list no monitor whose monitoring is off", async () => {
+  test("the status filters list no monitor whose monitoring is off, and operational none waiting for its first check", async () => {
     const filtered: (statusFilter: string) => Promise<Array<string>> = async (
       statusFilter: string,
     ): Promise<Array<string>> => {
@@ -583,8 +595,8 @@ describePostgres("dashboard list widget sorts against Postgres", () => {
       "cdn",
       "edge",
     ]);
-    // Not ivr, frozen at Zen.
-    expect(await filtered("operational")).toEqual(["api", "dns", "gateway"]);
+    // Not ivr, frozen at Zen, nor gateway, still in the Zen it was created in.
+    expect(await filtered("operational")).toEqual(["api", "dns"]);
   });
 
   test("monitors saved without a sort list by name, as they always did", async () => {
