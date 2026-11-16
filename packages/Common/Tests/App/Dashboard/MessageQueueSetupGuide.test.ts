@@ -2718,7 +2718,10 @@ describe("troubleshooting follows the docs page", () => {
         "Broker health stays empty",
       );
       const body: string = normalizeEntryText(topic.markdown);
+      // The summary holds a duration's figure to its word (#8770); the body writes a space.
       const causes: Array<string> = (topic.summary || "")
+        .split("\u00A0")
+        .join(" ")
         .toLowerCase()
         .replace(/\.$/, "")
         .split(/, (?:or )?/);
