@@ -18034,14 +18034,15 @@ test.describe("time to acknowledge after paging", () => {
       INCIDENT_PAGE.statBar,
       ACKNOWLEDGED_TILE,
     );
+    // Read as written: each number held to its unit (#8669).
     expect(
       lines.map((line: StatTileLine): string => {
         return line.text;
       }),
     ).toEqual([
       "Acknowledged in",
-      "3 minutes",
-      "2 minutes after paging",
+      withUnit(3, "minutes"),
+      `${withUnit(2, "minutes")} after paging`,
       "Sep 14 2026, 06:04 PM UTC",
     ]);
     const [, value, note, date] = lines;
@@ -18079,8 +18080,8 @@ test.describe("time to acknowledge after paging", () => {
       ),
     ).toEqual([
       "Acknowledged in",
-      "2 minutes",
-      "1 minute after paging",
+      withUnit(2, "minutes"),
+      `${withUnit(1, "minute")} after paging`,
       "Sep 14 2026, 06:08 PM UTC",
     ]);
     expect(await measurementRows(page)).toEqual([
@@ -18165,7 +18166,7 @@ test.describe("time to acknowledge after paging", () => {
           INCIDENT_PAGE.statBar,
           ACKNOWLEDGED_TILE,
         );
-        expect(note!.text).toBe("2 minutes after paging");
+        expect(note!.text).toBe(`${withUnit(2, "minutes")} after paging`);
         // Its own colour in both themes: quieter than the value, not the date's.
         expect(note!.color).not.toBe(value!.color);
         expect(note!.color).not.toBe(date!.color);
