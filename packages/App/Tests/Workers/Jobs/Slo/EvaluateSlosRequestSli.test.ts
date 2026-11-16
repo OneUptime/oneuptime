@@ -142,6 +142,22 @@ jest.mock("Common/Server/Services/MonitorService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
 
+/*
+ * Whether the upgrade has put Monitor.firstMeasuredAt right for history,
+ * which a Monitor Uptime SLO's timelines are read after (issue #9031): not
+ * yet, so its monitors count from the start. A request SLI reads no monitor.
+ */
+jest.mock("Common/Server/Services/DataMigrationService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneBy: jest.fn(async () => {
+        return null;
+      }),
+    },
+  };
+});
+
 jest.mock("Common/Server/Services/SloHistoryService", () => {
   return { __esModule: true, default: { insertHistoryRows: jest.fn() } };
 });

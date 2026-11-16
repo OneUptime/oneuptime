@@ -56259,7 +56259,10 @@
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
   "Roster Refresh Due At": "值班表重新整理時間",
+  "Mention the person who comes on call": "提及接手待命的人員",
+  "Mentions the person who comes on call": "會提及接手待命的人員",
   "Saved. The severities that differ keep their own rules.": "已儲存。不同的嚴重程度保留各自的規則。",
   "These keep their own rules when you save changes to the steps.": "儲存對步驟的變更時，這些仍保留各自的規則。",
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "只要已將聊天帳號連接到 OneUptime，每次交接時都會在頻道中收到通知。",
   "Use This Ladder for Every Severity": "對每個嚴重程度都使用此聯絡順序"
 }

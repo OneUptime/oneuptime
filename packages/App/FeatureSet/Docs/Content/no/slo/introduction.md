@@ -12,7 +12,7 @@ Et service level objective (SLO) er et pålitelighetsmål for det du drifter, so
 
 ## Slik fungerer det
 
-Et SLO måler én av to ting. Et SLO for monitoroppetid leser statustidslinjene til monitorene som er knyttet til det: de samme dataene som statussidene dine viser. Et forespørsels-SLO teller forespørslene som tjenestene i SLO-et besvarer, ut fra sporene deres: se [SLO-er for forespørsler og latens](/docs/slo/request-slos). Resten av denne siden beskriver SLO-er for monitoroppetid, og forespørsels-SLO-er fungerer på samme måte med mindre noe annet er sagt. Ut fra dem beregner OneUptime hvor stor del av samsvarsvinduet som var god tid, hvor mye av feilbudsjettet som er igjen, og hvor fort det brukes opp. Tid der overvåkingen av en monitor er slått av, utelates: ingenting sjekker monitoren da, så den tiden verken bruker av feilbudsjettet eller teller som god tid.
+Et SLO måler én av to ting. Et SLO for monitoroppetid leser statustidslinjene til monitorene som er knyttet til det: de samme dataene som statussidene dine viser. Et forespørsels-SLO teller forespørslene som tjenestene i SLO-et besvarer, ut fra sporene deres: se [SLO-er for forespørsler og latens](/docs/slo/request-slos). Resten av denne siden beskriver SLO-er for monitoroppetid, og forespørsels-SLO-er fungerer på samme måte med mindre noe annet er sagt. Ut fra dem beregner OneUptime hvor stor del av samsvarsvinduet som var god tid, hvor mye av feilbudsjettet som er igjen, og hvor fort det brukes opp. Tid der overvåkingen av en monitor er slått av, utelates: ingenting sjekker monitoren da, så den tiden verken bruker av feilbudsjettet eller teller som god tid. Det samme gjelder tiden før en monitors første sjekk: frem til noe har sjekket en monitor, er statusen bare den driftsklare som hver monitor opprettes med, så et SLO måles fra de første sjekkene av monitorene, og et SLO der ingenting har sjekket monitorene ennå, har ingenting å måle før de blir sjekket.
 
 ```mermaid title="Fra monitorsjekker til statusen til et SLO"
 flowchart TB
@@ -139,7 +139,7 @@ OneUptime gir hvert evaluerte SLO en status:
 | **Feilfri** | Det er mer budsjett igjen enn risikoterskelen. |
 | **I faresonen** | Gjenværende budsjett har falt til risikoterskelen eller under: 20 % som standard. |
 | **Budsjett oppbrukt** | Budsjettet er brukt helt opp, eller overskredet. |
-| **Feilkonfigurert** | SLO-et kan ikke måles: det har ingen monitorer, monitorene finnes ikke lenger eller har ennå ikke registrert noen status i vinduet, eller målet er utenfor gyldig område. Et forespørsels-SLO er feilkonfigurert uten tjenester, uten latensgrense eller før tjenestene har besvart en forespørsel i vinduet. |
+| **Feilkonfigurert** | SLO-et kan ikke måles: det har ingen monitorer, monitorene finnes ikke lenger, ingenting har sjekket dem ennå, eller de har ennå ikke registrert noen status i vinduet, eller målet er utenfor gyldig område. Et forespørsels-SLO er feilkonfigurert uten tjenester, uten latensgrense eller før tjenestene har besvart en forespørsel i vinduet. |
 | **Pauset** | Alle monitorene det måler, er arkivert eller har aktiv overvåking slått av, for hånd, av en manuell hendelse eller av planlagt vedlikehold. Det fortsetter av seg selv så snart en av dem overvåkes igjen. |
 
 Et deaktivert eller arkivert SLO evalueres ikke, så statusen blir stående som den var; SLO-listen viser i stedet et merke **Deaktivert** eller **Arkivert**. Eierne av et SLO får beskjed når statusen endres til **I faresonen** eller **Budsjett oppbrukt**: se [Feilbudsjetter](/docs/slo/error-budget).

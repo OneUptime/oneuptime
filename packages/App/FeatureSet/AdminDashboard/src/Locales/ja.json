@@ -69,10 +69,6 @@
     "ingestionBudgets": "取り込み予算",
     "products": "製品"
   },
-  "topAlert": {
-    "title": "OneUptime管理者ダッシュボード",
-    "description": "このダッシュボードでOneUptimeサーバー関連のタスクを実行できます。"
-  },
   "header": {
     "exitAdmin": "管理者を終了",
     "help": "ヘルプ",

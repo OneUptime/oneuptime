@@ -56259,7 +56259,10 @@
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
   "Roster Refresh Due At": "Rooster vernieuwen op",
+  "Mention the person who comes on call": "De persoon vermelden die dienst krijgt",
+  "Mentions the person who comes on call": "Vermeldt de persoon die dienst krijgt",
   "Saved. The severities that differ keep their own rules.": "Opgeslagen. De afwijkende ernstniveaus houden hun eigen regels.",
   "These keep their own rules when you save changes to the steps.": "Deze houden hun eigen regels wanneer u wijzigingen in de stappen opslaat.",
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Die persoon krijgt bij elke overdracht een melding in het kanaal, zodra het chataccount aan OneUptime is gekoppeld.",
   "Use This Ladder for Every Severity": "Deze reeks voor elk ernstniveau gebruiken"
 }

@@ -275,6 +275,11 @@ export default class SloUtil {
    *   AnyDown leaves out the time NONE of the monitors was monitored;
    *   MonitorSecondsAverage each monitor's own (UptimeUtil.getNotMonitoredSeconds).
    *   A calendar window's budget is still the full month's.
+   * - So is the time before a monitor's first check (issue #9031): the rows
+   *   come with it marked as monitoring off (Utils/Uptime/TimeBeforeFirstCheck,
+   *   applied where they are read, Server/Utils/Slo/SloMonitorTimelines), so a
+   *   monitor nothing has checked yet adds no time at all, and one checked
+   *   mid-window is measured from its check - as status pages measure it.
    *
    * No data at all (no timeline rows for any monitor) => totalSeconds 0,
    * sliPercentage 100 - callers decide what "no data" means (the evaluator marks

@@ -55995,8 +55995,8 @@
   "Already paged directly about this by {{name}}, so not paged again.": "Allerede kaldt direkte om dette af {{name}}, så ikke kaldt igen.",
   "Their page from another on-call policy is over, so they are paged directly now.": "Opkaldet fra en anden vagtpolitik er slut, så de kaldes nu direkte.",
   "Their page from {{name}} is over, so they are paged directly now.": "Opkaldet fra {{name}} er slut, så de kaldes nu direkte.",
-  "{{names}} are paged, so aren't emailed as Project Owners too.": "{{names}} tilkaldes, så de får ikke også besked på e-mail som projektejere.",
-  "{{names}} are paged, so aren't emailed as Project Owners too._one": "{{names}} tilkaldes, så vedkommende får ikke også besked på e-mail som projektejer.",
+  "{{names}} are paged, so aren't emailed as Project Owners too.": "{{names}} tilkaldes, så de får ikke også besked på e-mail som Projektejere.",
+  "{{names}} are paged, so aren't emailed as Project Owners too._one": "{{names}} tilkaldes, så vedkommende får ikke også besked på e-mail som Projektejer.",
   "{{names}} are paged, so aren't emailed as owners too.": "{{names}} tilkaldes, så de får ikke også besked på e-mail som ejere.",
   "{{names}} are paged, so aren't emailed as owners too._one": "{{names}} tilkaldes, så vedkommende får ikke også besked på e-mail som ejer.",
   "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Match erstattes med [REDACTED] i span-navne, statusbeskeder, attributter, hændelser og links.",
@@ -56259,7 +56259,10 @@
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
   "Roster Refresh Due At": "Vagtplanens næste opdatering",
+  "Mention the person who comes on call": "Nævn den person, der får vagt",
+  "Mentions the person who comes on call": "Nævner den person, der får vagt",
   "Saved. The severities that differ keep their own rules.": "Gemt. De alvorligheder, der er anderledes, beholder deres egne regler.",
   "These keep their own rules when you save changes to the steps.": "Disse beholder deres egne regler, når du gemmer ændringer i trinnene.",
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Personen får besked i kanalen ved hvert vagtskifte, når vedkommende har forbundet sin chatkonto med OneUptime.",
   "Use This Ladder for Every Severity": "Brug denne rækkefølge for alle alvorligheder"
 }

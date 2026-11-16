@@ -56259,7 +56259,10 @@
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
   "Roster Refresh Due At": "रोस्टर रीफ़्रेश का नियत समय",
+  "Mention the person who comes on call": "ऑन-कॉल संभालने वाले व्यक्ति को मेंशन करें",
+  "Mentions the person who comes on call": "ऑन-कॉल संभालने वाले व्यक्ति को मेंशन करता है",
   "Saved. The severities that differ keep their own rules.": "सहेजा गया। अलग गंभीरताएँ अपने नियम बनाए रखती हैं।",
   "These keep their own rules when you save changes to the steps.": "जब आप चरणों में बदलाव सहेजते हैं, तब भी ये अपने नियम बनाए रखते हैं।",
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "अपना चैट खाता OneUptime से जोड़ लेने पर उन्हें हर हैंडऑफ़ पर चैनल में सूचना मिलती है।",
   "Use This Ladder for Every Severity": "हर गंभीरता के लिए यही संपर्क क्रम इस्तेमाल करें"
 }

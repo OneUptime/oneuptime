@@ -3,6 +3,7 @@ import StatusPageGroup from "../../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import IncidentService from "../../../Server/Services/IncidentService";
 import MonitorGroupService from "../../../Server/Services/MonitorGroupService";
+import MonitorService from "../../../Server/Services/MonitorService";
 import StatusPageGroupService from "../../../Server/Services/StatusPageGroupService";
 import StatusPageService, {
   INCIDENT_COUNT_STATUS_PAGE_SELECT,
@@ -565,6 +566,11 @@ describe("StatusPageService report incident counts", () => {
       jest
         .spyOn(StatusPageService, "getMergedDowntimeForStatusPage")
         .mockResolvedValue({ coveredSeconds: 0, downtimeSeconds: 0 });
+      /*
+       * Nothing is measured here, so the report reads the monitors' first
+       * checks for what it says of them (issue #9030): none found.
+       */
+      jest.spyOn(MonitorService, "findBy").mockResolvedValue([]);
     }
 
     function resourceCounts(report: StatusPageReport): Dictionary<number> {

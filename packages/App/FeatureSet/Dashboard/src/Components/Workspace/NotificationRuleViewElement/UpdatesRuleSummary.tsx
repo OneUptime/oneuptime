@@ -26,7 +26,12 @@ import {
  * the row only for a rule that leaves some updates out: every other rule
  * posts every update, as rules always did. An on-call policy rule's card
  * always shows it (#7549): a new one starts on Key updates only, so one
- * saved before, which posts every update, says "Every update".
+ * saved before, which posts every update, says "Every update". One that
+ * mentions the person who comes on call says so under its updates (#7968):
+ *
+ *   Updates   Key updates only
+ *             Who is on call now · Nobody on call
+ *             Mentions the person who comes on call
  *
  * Each update stays whole on its line, the mark after it with it: a narrow
  * card breaks the list between two updates, never inside one ("Änderungen
@@ -87,6 +92,16 @@ const UpdatesRuleSummary: FunctionComponent<ComponentProps> = (
             );
           })}
         </ul>
+      ) : (
+        <></>
+      )}
+      {summary.mention ? (
+        <p
+          className="mt-0.5 text-gray-500"
+          data-testid="notification-rule-updates-summary-mention"
+        >
+          {summary.mention}
+        </p>
       ) : (
         <></>
       )}

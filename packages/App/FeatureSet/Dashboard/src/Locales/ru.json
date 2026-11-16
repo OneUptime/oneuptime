@@ -55995,8 +55995,8 @@
   "Already paged directly about this by {{name}}, so not paged again.": "Уже вызван по этому поводу напрямую пользователем {{name}}, поэтому повторно не вызывается.",
   "Their page from another on-call policy is over, so they are paged directly now.": "Вызов другой политикой дежурства завершён, поэтому теперь вызывается напрямую.",
   "Their page from {{name}} is over, so they are paged directly now.": "Вызов от {{name}} завершён, поэтому теперь вызывается напрямую.",
-  "{{names}} are paged, so aren't emailed as Project Owners too.": "{{names}} получают вызов, поэтому не получают ещё и письмо как владельцы проекта.",
-  "{{names}} are paged, so aren't emailed as Project Owners too._one": "{{names}} получает вызов, поэтому не получает ещё и письмо как владелец проекта.",
+  "{{names}} are paged, so aren't emailed as Project Owners too.": "{{names}} получают вызов, поэтому не получают ещё и письмо как Владельцы проекта.",
+  "{{names}} are paged, so aren't emailed as Project Owners too._one": "{{names}} получает вызов, поэтому не получает ещё и письмо как Владелец проекта.",
   "{{names}} are paged, so aren't emailed as owners too.": "{{names}} получают вызов, поэтому не получают ещё и письмо как владельцы.",
   "{{names}} are paged, so aren't emailed as owners too._one": "{{names}} получает вызов, поэтому не получает ещё и письмо как владелец.",
   "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Совпадения заменяются на [REDACTED] в именах спанов, сообщениях о статусе, атрибутах, событиях и связях.",
@@ -56259,7 +56259,10 @@
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
   "Roster Refresh Due At": "Срок обновления графика дежурств",
+  "Mention the person who comes on call": "Упоминать того, кто заступает на дежурство",
+  "Mentions the person who comes on call": "Упоминает того, кто заступает на дежурство",
   "Saved. The severities that differ keep their own rules.": "Сохранено. Отличающиеся уровни серьёзности сохраняют свои правила.",
   "These keep their own rules when you save changes to the steps.": "Они сохраняют свои правила, когда вы сохраняете изменения шагов.",
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Дежурный получает уведомление в канале при каждой передаче смены, если его аккаунт в чате подключён к OneUptime.",
   "Use This Ladder for Every Severity": "Использовать эту последовательность для любой серьёзности"
 }

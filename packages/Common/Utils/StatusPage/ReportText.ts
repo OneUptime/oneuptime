@@ -39,7 +39,11 @@ import StatusPageReportTreeUtil from "./Report";
  *     text's own digits, so it is never rounded differently from the
  *     English;
  *   - a duration from its minutes, the way OneUptimeDate writes one in the
- *     language ("4 Stunden, 39 Minuten").
+ *     language ("4 Stunden, 39 Minuten");
+ *   - what it says of a resource it measured nothing for, "Not monitored
+ *     yet" or "Not monitored" (StatusPageReportUptimeText), in the words
+ *     the status page uses for it; that resource's figures are a dash in
+ *     every language.
  *
  * Its numbers (counts, uptime as a number) and every name in it - the
  * resources' and groups', which the team wrote - stay as they are. English
@@ -62,6 +66,22 @@ export const StatusPageReportPeriodText: {
   weekOf: translationKey("the week of {{date}}"),
   // A calendar period that has no name of its own: two dates.
   dateRange: translationKey("{{startDate}} - {{endDate}}"),
+};
+
+/*
+ * What the report says of a resource it measured nothing for in its window
+ * (issue #9030), as the status page says it of the resource's row: its
+ * uptime and downtime are a dash, and these words stand where the page
+ * shows a status.
+ */
+export const StatusPageReportUptimeText: {
+  readonly notMonitoredYet: string;
+  readonly notMonitored: string;
+} = {
+  // Nothing had checked its monitors by the end of the window.
+  notMonitoredYet: translationKey("Not monitored yet"),
+  // Its monitors had been checked, but their monitoring was off throughout.
+  notMonitored: translationKey("Not monitored"),
 };
 
 /*
@@ -383,6 +403,10 @@ export default class StatusPageReportText {
           item.downtimeInMinutes,
           item.downtimeInHoursAndMinutes,
         ),
+        // A resource nothing was measured for: the status page's words for it.
+        notMonitoredText: item.notMonitoredText
+          ? data.translator.translateText(item.notMonitoredText)
+          : item.notMonitoredText,
       };
 
       itemsInLanguage.set(item, written);

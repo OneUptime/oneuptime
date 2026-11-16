@@ -1,3 +1,4 @@
+import { MORE_WAYS_TO_SIGN_IN_OPEN_KEY } from "../../../Types/Accounts/MoreWaysToSignIn";
 import { COOKIE_CONSENT_STORAGE_KEY } from "../../../Types/Analytics/CookieConsent";
 import { DASHBOARD_LANGUAGE_STORAGE_KEY } from "../../../Types/Dashboard/DashboardLanguage";
 import { DASHBOARD_VISITOR_THEME_STORAGE_KEY } from "../../../Types/Dashboard/DashboardTheme";
@@ -102,6 +103,24 @@ describe("every key on the list is the key its page reads", () => {
       `localStorage.setItem('${COOKIE_CONSENT_STORAGE_KEY}'`,
     );
   });
+
+  test("the sign-in page's More ways to sign in: the fold reads and writes the key on the list", () => {
+    const fold: string = featureSet(
+      "Accounts",
+      "src",
+      "Components",
+      "MoreWaysToSignIn",
+      "MoreWaysToSignIn.tsx",
+    );
+
+    expect(fold).toContain(
+      'import { MORE_WAYS_TO_SIGN_IN_OPEN_KEY } from "Common/Types/Accounts/MoreWaysToSignIn";',
+    );
+    expect(fold).toContain("LocalStorage.getItem(");
+    expect(fold).toContain(
+      "LocalStorage.setItem(MORE_WAYS_TO_SIGN_IN_OPEN_KEY",
+    );
+  });
 });
 
 describe("what the list may hold", () => {
@@ -117,6 +136,7 @@ describe("what the list may hold", () => {
         DOCS_THEME_STORAGE_KEY,
         API_REFERENCE_THEME_STORAGE_KEY,
         COOKIE_CONSENT_STORAGE_KEY,
+        MORE_WAYS_TO_SIGN_IN_OPEN_KEY,
       ].sort(),
     );
   });

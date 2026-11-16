@@ -69,10 +69,6 @@
     "ingestionBudgets": "ميزانيات الاستيعاب",
     "products": "المنتجات"
   },
-  "topAlert": {
-    "title": "لوحة معلومات المسؤول في OneUptime",
-    "description": "يمكنك تنفيذ المهام المتعلقة بخادم OneUptime على لوحة المعلومات هذه."
-  },
   "header": {
     "exitAdmin": "الخروج من وضع المسؤول",
     "help": "المساعدة",

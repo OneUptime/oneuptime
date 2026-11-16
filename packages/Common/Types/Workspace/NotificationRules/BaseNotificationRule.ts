@@ -28,4 +28,13 @@ export default interface BaseNotificationRule {
    * whatever it lists.
    */
   updatesToPost?: Array<NotificationRuleUpdateKind> | undefined;
+
+  /*
+   * On-call policy rules only: whether a hand-off's line mentions - so
+   * notifies - the person who comes on call, by the account they connected
+   * in the workspace (issue #7968). Off unless it is true: a channel that
+   * hears every hand-off is not pinged by each one. Who is next is never
+   * mentioned.
+   */
+  shouldMentionWhoIsOnCall?: boolean | undefined;
 }

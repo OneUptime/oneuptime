@@ -56259,7 +56259,10 @@
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
   "Roster Refresh Due At": "당번표 새로 고침 예정 시각",
+  "Mention the person who comes on call": "온콜을 이어받는 사람 멘션",
+  "Mentions the person who comes on call": "온콜을 이어받는 사람을 멘션합니다",
   "Saved. The severities that differ keep their own rules.": "저장했습니다. 다른 심각도는 자체 규칙을 유지합니다.",
   "These keep their own rules when you save changes to the steps.": "단계 변경 사항을 저장해도 이 항목들은 자체 규칙을 유지합니다.",
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "채팅 계정을 OneUptime에 연결했다면 인계 때마다 채널에서 알림을 받습니다.",
   "Use This Ladder for Every Severity": "이 연락 순서를 모든 심각도에 사용"
 }

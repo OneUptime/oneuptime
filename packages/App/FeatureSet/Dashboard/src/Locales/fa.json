@@ -56259,7 +56259,10 @@
   "Revocation Error": "خطای ابطال",
   "Worker ID": "شناسه کارگر",
   "Roster Refresh Due At": "موعد به‌روزرسانی نوبت",
+  "Mention the person who comes on call": "منشن کردن کسی که آنکال می‌شود",
+  "Mentions the person who comes on call": "کسی را که آنکال می‌شود منشن می‌کند",
   "Saved. The severities that differ keep their own rules.": "ذخیره شد. شدت‌های متفاوت قوانین خودشان را نگه می‌دارند.",
   "These keep their own rules when you save changes to the steps.": "وقتی تغییرات گام‌ها را ذخیره می‌کنید، این‌ها قوانین خودشان را نگه می‌دارند.",
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "اگر حساب گفتگوی خود را به OneUptime وصل کرده باشد، در هر تحویل شیفت در کانال به او اطلاع داده می‌شود.",
   "Use This Ladder for Every Severity": "استفاده از این ترتیب تماس برای همهٔ شدت‌ها"
 }

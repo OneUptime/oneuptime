@@ -56259,7 +56259,10 @@
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
   "Roster Refresh Due At": "Actualización del turno prevista el",
+  "Mention the person who comes on call": "Mencionar a la persona que entra de guardia",
+  "Mentions the person who comes on call": "Menciona a la persona que entra de guardia",
   "Saved. The severities that differ keep their own rules.": "Guardado. Las gravedades distintas conservan sus propias reglas.",
   "These keep their own rules when you save changes to the steps.": "Conservan sus propias reglas cuando guardas cambios en los pasos.",
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Recibe un aviso en el canal en cada relevo, una vez que haya conectado su cuenta de chat a OneUptime.",
   "Use This Ladder for Every Severity": "Usar esta secuencia para cada gravedad"
 }

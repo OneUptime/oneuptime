@@ -25,14 +25,19 @@ import ts from "typescript";
  *     retention card's own description.
  *
  * Each is gone, and this keeps it so for every page of every app (Dashboard,
- * Admin Dashboard, Status Page, Accounts, Public Dashboard). It reads each
- * page's TypeScript and fails on an info banner the page renders no matter
- * what:
+ * Admin Dashboard, Status Page, Accounts, Public Dashboard), and for the
+ * master page each app draws its pages in. It reads each page's TypeScript
+ * and fails on an info banner the page renders no matter what:
  *
  *   - an <Alert> (Common/UI/Components/Alerts/Alert) whose type is
  *     AlertType.INFO, or left out - INFO is the component's default;
  *   - an <AlertBanner> (Common/UI/Components/AlertBanner/AlertBanner) of
  *     type AlertBannerType.Info;
+ *   - a <TopAlert> (Common/UI/Components/TopAlert/TopAlert) whose alertType
+ *     is TopAlertType.INFO, or left out. Every Admin Dashboard page opened
+ *     on one that said "OneUptime Admin Dashboard - You can perform your
+ *     OneUptime server related tasks on this dashboard." (#9041); the
+ *     header's "Admin Dashboard" label says it now;
  *   - a hand-built one: a plain element (a <div>) tinted like an info Alert
  *     (bg-blue-50, or the sky, indigo or cyan 50 next to it) that holds the
  *     info glyph (<Icon icon={IconProp.Info}> or InformationCircle). The
@@ -83,18 +88,21 @@ const APPS: Array<string> = [
 const ALERT_MODULE_SUFFIX: string = "/Components/Alerts/Alert";
 const ALERT_BANNER_MODULE_SUFFIX: string =
   "/Components/AlertBanner/AlertBanner";
+const TOP_ALERT_MODULE_SUFFIX: string = "/Components/TopAlert/TopAlert";
 const ICON_MODULE_SUFFIX: string = "/Components/Icon/Icon";
 
 /*
  * Cheap first pass: only files that import one of the two components, or
  * that hold both an info glyph and an info tint, are parsed.
  */
-const MENTIONS_A_BANNER: RegExp = /Alerts\/Alert"|AlertBanner\/AlertBanner"/;
+const MENTIONS_A_BANNER: RegExp =
+  /Alerts\/Alert"|AlertBanner\/AlertBanner"|TopAlert\/TopAlert"/;
 const MENTIONS_INFO_GLYPH: RegExp = /\bIconProp\.(Info|InformationCircle)\b/;
 const MENTIONS_INFO_TINT: RegExp = /\bbg-(blue|sky|indigo|cyan)-50\b/;
 
 const INFO_ALERT_TYPE: RegExp = /\bAlertType\.INFO\b/;
 const INFO_BANNER_TYPE: RegExp = /\bAlertBannerType\.Info\b/;
+const INFO_TOP_ALERT_TYPE: RegExp = /\bTopAlertType\.INFO\b/;
 /*
  * The surface of an info Alert (border-blue-200 bg-blue-50) and its near
  * neighbours, opacity variants included (bg-indigo-50/60). A hover: or
@@ -115,7 +123,7 @@ function stripComments(text: string): string {
 }
 
 // "HandBuilt": a tinted plain element holding the info glyph.
-type BannerComponent = "Alert" | "AlertBanner" | "HandBuilt";
+type BannerComponent = "Alert" | "AlertBanner" | "TopAlert" | "HandBuilt";
 
 /*
  * When the banner shows: under a condition, decided wherever the function
@@ -283,6 +291,8 @@ function getBannerImports(source: ts.SourceFile): Map<string, BannerComponent> {
       names.set(localName, "Alert");
     } else if (specifier.endsWith(ALERT_BANNER_MODULE_SUFFIX)) {
       names.set(localName, "AlertBanner");
+    } else if (specifier.endsWith(TOP_ALERT_MODULE_SUFFIX)) {
+      names.set(localName, "TopAlert");
     }
   }
 
@@ -309,14 +319,24 @@ function isInfo(
   attributes: ts.JsxAttributes,
   source: ts.SourceFile,
 ): boolean {
-  const type: ts.JsxAttribute | undefined = getTypeAttribute(attributes);
+  const type: ts.JsxAttribute | undefined =
+    component === "TopAlert"
+      ? getAttribute(attributes, "alertType")
+      : getTypeAttribute(attributes);
 
   if (!type) {
-    // An <Alert> without a type is an info alert; spread props could say otherwise.
-    return component === "Alert" && !hasSpreadAttribute(attributes);
+    /*
+     * An <Alert> or <TopAlert> without a type is the info kind; spread props
+     * could say otherwise.
+     */
+    return component !== "AlertBanner" && !hasSpreadAttribute(attributes);
   }
 
   const text: string = type.initializer ? type.initializer.getText(source) : "";
+
+  if (component === "TopAlert") {
+    return INFO_TOP_ALERT_TYPE.test(text);
+  }
 
   return component === "Alert"
     ? INFO_ALERT_TYPE.test(text)
@@ -516,9 +536,25 @@ function relative(file: string): string {
   return path.relative(FEATURE_SET_DIR, file).split(path.sep).join("/");
 }
 
-const PAGE_FILES: Array<string> = APPS.flatMap((app: string): Array<string> => {
-  return listPageFiles(path.join(FEATURE_SET_DIR, app, "src", "Pages"));
-});
+/*
+ * Each app's master page too: the frame every page is drawn in. The Admin
+ * Dashboard's opened every page on a purple <TopAlert> that said what the
+ * dashboard was (#9041), unseen by a scan of the Pages alone.
+ */
+const MASTER_PAGE_FILES: Array<string> = APPS.flatMap(
+  (app: string): Array<string> => {
+    return listPageFiles(
+      path.join(FEATURE_SET_DIR, app, "src", "Components", "MasterPage"),
+    );
+  },
+);
+
+const PAGE_FILES: Array<string> = [
+  ...APPS.flatMap((app: string): Array<string> => {
+    return listPageFiles(path.join(FEATURE_SET_DIR, app, "src", "Pages"));
+  }),
+  ...MASTER_PAGE_FILES,
+];
 
 const BANNERS: Array<InfoBanner> = PAGE_FILES.flatMap(
   (file: string): Array<InfoBanner> => {
@@ -759,6 +795,26 @@ function Page(): ReactElement {
     ).toEqual(["always"]);
   });
 
+  test("an info <TopAlert> counts, its type left out too; a danger or warning one does not", () => {
+    expect(
+      shownWhenIn(`
+import TopAlert, { TopAlertType } from "Common/UI/Components/TopAlert/TopAlert";
+
+const MasterPage: FunctionComponent<ComponentProps> = (): ReactElement => {
+  return (
+    <Fragment>
+      <TopAlert title="This dashboard" description="is a dashboard." />
+      <TopAlert alertType={TopAlertType.INFO} title="Good" description="to know." />
+      <TopAlert alertType={TopAlertType.DANGER} title="Unpaid" description="invoices." />
+      <TopAlert alertType={TopAlertType.WARNING} title="Careful" description="now." />
+      {isOverdue && <TopAlert title="Overdue" description="invoices." />}
+    </Fragment>
+  );
+};
+`),
+    ).toEqual(["always", "always", "condition"]);
+  });
+
   test("a file without either component has nothing to judge", () => {
     expect(
       shownWhenIn(`
@@ -957,6 +1013,14 @@ describe("every page of every app", () => {
   test("the scan reads the pages", () => {
     // About 1,100 Dashboard pages and 100 more in the other apps.
     expect(PAGE_FILES.length).toBeGreaterThan(1000);
+    // And the frame each app draws its pages in.
+    expect(MASTER_PAGE_FILES.map(relative)).toEqual(
+      expect.arrayContaining([
+        "AdminDashboard/src/Components/MasterPage/MasterPage.tsx",
+        "Dashboard/src/Components/MasterPage/MasterPage.tsx",
+        "StatusPage/src/Components/MasterPage/MasterPage.tsx",
+      ]),
+    );
     expect(BANNERS.length).toBeGreaterThan(10);
   });
 

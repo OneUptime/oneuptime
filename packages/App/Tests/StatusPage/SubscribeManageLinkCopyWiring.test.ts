@@ -28,7 +28,16 @@ const LOCALES_DIR: string = path.join(STATUS_PAGE_SRC, "Locales");
 const SUBSCRIBE_SUCCESS_FLAG: string = "isSuccess";
 const MANAGE_SUCCESS_FLAG: string = "isManageLinkRequested";
 
-const SUCCESS_PARAGRAPH_CLASSES: string =
+/*
+ * Each success is the shared confirmation panel (Components/Subscribe/
+ * SubscribeConfirmation): an icon, a heading where there is a next step,
+ * and the sentence in a colour that reads. It was a centred paragraph in
+ * gray-400, "text-center text-gray-400 mb-20 mt-20", 2.5:1 on the page
+ * (#9027).
+ */
+const SUCCESS_COMPONENT: string = "SubscribeConfirmation";
+
+const OLD_SUCCESS_PARAGRAPH_CLASSES: string =
   "text-center text-gray-400 mb-20 mt-20";
 
 const MANAGE_KEY: string = "subscribe.manageLinkSent";
@@ -126,17 +135,17 @@ function sliceBetween(source: string, start: string, end: string): string {
 }
 
 interface SuccessParagraph {
-  classes: string;
+  component: string;
   body: string;
 }
 
-/** Every `{flag && ( <p className="..."> ... </p> )}` block in the source. */
+/** Every `{flag && ( <Component ... /> )}` block in the source. */
 function successParagraphs(
   source: string,
   flag: string,
 ): Array<SuccessParagraph> {
   const pattern: RegExp = new RegExp(
-    `\\{${escapeRegExp(flag)} && \\( <p className="([^"]*)">(.*?)</p> \\)\\}`,
+    `\\{${escapeRegExp(flag)} && \\( <([A-Za-z]+) (.*?)/> \\)\\}`,
     "g",
   );
 
@@ -144,7 +153,7 @@ function successParagraphs(
   let match: RegExpExecArray | null = pattern.exec(source);
 
   while (match) {
-    paragraphs.push({ classes: match[1]!, body: match[2]! });
+    paragraphs.push({ component: match[1]!, body: match[2]! });
     match = pattern.exec(source);
   }
 
@@ -224,8 +233,10 @@ describe.each(PAGES)(
       );
 
       expect(paragraphs).toHaveLength(1);
-      expect(paragraphs[0]!.classes).toBe(SUCCESS_PARAGRAPH_CLASSES);
-      expect(paragraphs[0]!.body).toContain(translationCall(subscribeKey));
+      expect(paragraphs[0]!.component).toBe(SUCCESS_COMPONENT);
+      expect(paragraphs[0]!.body).toContain(
+        `message={${translationCall(subscribeKey)}}`,
+      );
       expect(paragraphs[0]!.body).not.toContain(translationCall(manageKey));
     });
 
@@ -236,8 +247,10 @@ describe.each(PAGES)(
       );
 
       expect(paragraphs).toHaveLength(1);
-      expect(paragraphs[0]!.classes).toBe(SUCCESS_PARAGRAPH_CLASSES);
-      expect(paragraphs[0]!.body).toContain(translationCall(manageKey));
+      expect(paragraphs[0]!.component).toBe(SUCCESS_COMPONENT);
+      expect(paragraphs[0]!.body).toContain(
+        `message={${translationCall(manageKey)}}`,
+      );
       expect(paragraphs[0]!.body).not.toContain(translationCall(subscribeKey));
     });
 
@@ -248,6 +261,10 @@ describe.each(PAGES)(
       expect(occurrences(source, translationCall(subscribeKey))).toBe(1);
       expect(occurrences(source, translationCall(manageKey))).toBe(1);
       expect(source).not.toContain(translationCall(otherManageKey));
+    });
+
+    test("no success is the faint gray paragraph again", () => {
+      expect(source).not.toContain(OLD_SUCCESS_PARAGRAPH_CLASSES);
     });
 
     test("the tabs are hidden after either kind of success", () => {
