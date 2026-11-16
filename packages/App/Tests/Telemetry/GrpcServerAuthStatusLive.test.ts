@@ -1,5 +1,6 @@
 import * as grpc from "@grpc/grpc-js";
 import * as protoLoader from "@grpc/proto-loader";
+import { EventEmitter } from "events";
 import path from "path";
 import zlib from "zlib";
 import {
@@ -973,6 +974,12 @@ type AskHttpMiddlewareFunction = (
  * the call records it left, so the gRPC call that follows is observed on its
  * own: resolver call counts and the log transcript describe the gRPC server
  * alone. The resolver keeps answering the same way.
+ *
+ * A request the middleware admits is then answered as an OTLP/HTTP route
+ * answers one whose export the queue took: 200. The middleware marks the key
+ * used only once the route has answered with a success (issue #8021), as
+ * the gRPC server marks it only once the queue has the export, so what HTTP
+ * stamped can be put beside what gRPC did.
  */
 const askHttpMiddleware: AskHttpMiddlewareFunction = async (
   resolution: KeyResolution,
@@ -981,9 +988,13 @@ const askHttpMiddleware: AskHttpMiddlewareFunction = async (
   armResolver(resolution);
 
   const verdict: HttpVerdict = { status: null, message: null, nextArgs: null };
-  const res: Record<string, unknown> = {};
+  const res: EventEmitter & Record<string, unknown> = Object.assign(
+    new EventEmitter(),
+    { statusCode: 200 },
+  ) as EventEmitter & Record<string, unknown>;
   res["status"] = (code: number): Record<string, unknown> => {
     verdict.status = code;
+    res["statusCode"] = code;
     return res;
   };
   res["send"] = (body: unknown): Record<string, unknown> => {
@@ -1005,6 +1016,12 @@ const askHttpMiddleware: AskHttpMiddlewareFunction = async (
     res as unknown as ExpressResponse,
     next as unknown as NextFunction,
   );
+
+  // Admitted: the route took the export and answered.
+  if (verdict.nextArgs !== null && verdict.nextArgs.length === 0) {
+    res["statusCode"] = 200;
+    res.emit("finish");
+  }
 
   getPolicyResolverMock().mockClear();
   for (const fn of [logger.error, logger.warn, logger.info, logger.debug]) {
