@@ -16,7 +16,6 @@ export const ProductsSettingsCopy: {
   cardTitle: string;
   cardDescription: string;
   hiddenExplanation: string;
-  setFromGoals: string;
   showEveryProduct: string;
   shownCount: PluralTemplate;
   alwaysShown: string;
@@ -30,9 +29,6 @@ export const ProductsSettingsCopy: {
   ),
   hiddenExplanation: translationKey(
     "A hidden product is not switched off: it moves under More products at the foot of the menu, Search still finds it, its pages keep working and its data keeps arriving.",
-  ),
-  setFromGoals: translationKey(
-    "These were set from what this project came to do, as answered on Home. Change any of them here.",
   ),
   showEveryProduct: translationKey("Show Every Product"),
   shownCount: {

@@ -3,7 +3,11 @@ import { JSONObject } from "../JSON";
 import ProductKey, { PRODUCT_KEYS, parseProductKeys } from "./ProductKey";
 import { parsePinnedProducts } from "./ProductPins";
 import { ProductUsage, isProductUsage } from "./ProductUsage";
-import { ProjectProductsChosenBy, isHideableProduct } from "./ProjectProducts";
+import {
+  LEGACY_GOALS_CHOSEN_BY,
+  ProjectProductsChosenBy,
+  isHideableProduct,
+} from "./ProjectProducts";
 import {
   ServerProductsOff,
   isServerProductOffReason,
@@ -51,11 +55,14 @@ export const PROJECT_PRODUCTS_VISIBILITY_ROUTE: string =
 export const PROJECT_PRODUCTS_PINS_ROUTE: string = "/project-products/pins";
 
 export interface ProjectProductsAnswer {
-  // The products the project hides, in the menu's order.
+  /*
+   * The products the project hides, in the menu's order: the ones a member
+   * hid on Project Settings > Products, and nothing else.
+   */
   hidden: Array<ProductKey>;
   /*
-   * Where the project's list came from: its goals, a member, or null when
-   * nothing was chosen (every product shown).
+   * Who chose the project's list: a member, or null when nothing was chosen
+   * (every product shown).
    */
   chosenBy: ProjectProductsChosenBy | null;
   // The products this person pinned, in the order they were pinned.
@@ -181,7 +188,9 @@ const parseNeededPlans: (
 
 /*
  * An answer as sent or stored, read safely: anything unknown is left out,
- * and a value that is not an answer at all reads as null.
+ * and a value that is not an answer at all reads as null. One a browser
+ * remembered from when the goals hid products (LEGACY_GOALS_CHOSEN_BY)
+ * hides nothing, as the server now answers for that project.
  */
 export const parseProjectProductsAnswer: (
   value: unknown,
@@ -193,16 +202,13 @@ export const parseProjectProductsAnswer: (
   }
 
   const json: JSONObject = value as JSONObject;
-  const hidden: Array<ProductKey> = parseHidden(json["hidden"]);
   const chosenBy: unknown = json["chosenBy"];
+  const hidden: Array<ProductKey> =
+    chosenBy === LEGACY_GOALS_CHOSEN_BY ? [] : parseHidden(json["hidden"]);
 
   return {
     hidden: hidden,
-    chosenBy:
-      chosenBy === ProjectProductsChosenBy.Goals ||
-      chosenBy === ProjectProductsChosenBy.Member
-        ? chosenBy
-        : null,
+    chosenBy: chosenBy === ProjectProductsChosenBy.Member ? chosenBy : null,
     pinned: parsePinnedProducts(json["pinned"]),
     usage: parseUsage(json["usage"]),
     neededPlans: parseNeededPlans(json["neededPlans"]),
