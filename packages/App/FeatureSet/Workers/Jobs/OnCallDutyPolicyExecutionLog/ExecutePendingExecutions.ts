@@ -33,6 +33,7 @@ import logger from "Common/Server/Utils/Logger";
 import OnCallEscalationAdvance from "Common/Server/Utils/OnCall/OnCallEscalationAdvance";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import { isOnCallDirectPage } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
+import { hasOnCallRunStartedALevel } from "Common/Types/OnCallDutyPolicy/OnCallRunLevel";
 import OnCallRecordStates, {
   OnCallStateCache,
 } from "Common/Server/Utils/OnCall/OnCallRecordStates";
@@ -723,9 +724,12 @@ const resumeLevelInFlight: (data: {
    * A page again whose start failed or stopped before its rule was
    * recorded (issue #8514): it is started now, from where it starts, the
    * person who acknowledged first - once its start, if it may still be
-   * under way somewhere, has shown no sign of life for a while.
+   * under way somewhere, has shown no sign of life for a while. Not one
+   * whose rule was recorded and deleted since: its place stays recorded
+   * (OnCallRunLevel, issue #9036), and starting it again would page the
+   * people its start paged again.
    */
-  if (data.level.pageAgain && !currentRuleId) {
+  if (data.level.pageAgain && !hasOnCallRunStartedALevel(data.run)) {
     if (!OnCallLevelsInFlight.isToResume(data.level, data.now)) {
       return false;
     }

@@ -56336,5 +56336,10 @@
   "Limited to deleted records": "Limitada a registros eliminados",
   "OneUptime switched this rule off when they were deleted.": "OneUptime desactivó esta regla cuando se eliminaron.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Si se activa tal como está, estas listas ya no limitarían la regla en absoluto. Edítala para elegir a qué se aplica y luego actívala.",
-  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}; fecha de eliminación: {{date}}."
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}; fecha de eliminación: {{date}}.",
+  "Deleted escalation rule": "Regla de escalado eliminada",
+  "Escalation Rule Name": "Nombre de la regla de escalado",
+  "Escalation Rule Order": "Orden de la regla de escalado",
+  "Level {{order}} (deleted)": "Nivel {{order}} (eliminado)",
+  "Level {{order}}: {{name}} (deleted)": "Nivel {{order}}: {{name}} (eliminado)"
 }

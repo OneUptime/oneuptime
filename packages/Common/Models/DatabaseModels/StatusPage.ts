@@ -831,7 +831,11 @@ export default class StatusPage extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * Deleting the favicon's file keeps the status page, without its
+       * favicon (issue #9069).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "delete",
     },
   )
@@ -920,7 +924,11 @@ export default class StatusPage extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * Deleting the logo's file keeps the status page, without its
+       * logo (issue #9069).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "delete",
     },
   )
@@ -1109,7 +1117,11 @@ export default class StatusPage extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * Deleting the cover image's file keeps the status page, without its
+       * cover image (issue #9069).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "delete",
     },
   )

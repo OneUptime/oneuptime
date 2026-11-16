@@ -669,7 +669,11 @@ export default class UserOnCallLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting the escalation rule keeps this row and
+       * clears the reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -737,7 +741,11 @@ export default class UserOnCallLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting the team keeps this row and clears the
+       * reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )

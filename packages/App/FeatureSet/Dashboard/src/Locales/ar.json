@@ -56336,5 +56336,10 @@
   "Limited to deleted records": "مقيّدة بسجلات محذوفة",
   "OneUptime switched this rule off when they were deleted.": "عطّل OneUptime هذه القاعدة عند حذف تلك السجلات.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "لو فُعّلت كما هي، فلن تقيّدها هذه القوائم أبدًا. عدّلها لاختيار ما تنطبق عليه، ثم فعّلها.",
-  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}، حُذفت في {{date}}."
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}، حُذفت في {{date}}.",
+  "Deleted escalation rule": "قاعدة تصعيد محذوفة",
+  "Escalation Rule Name": "اسم قاعدة التصعيد",
+  "Escalation Rule Order": "ترتيب قاعدة التصعيد",
+  "Level {{order}} (deleted)": "المستوى {{order}} (محذوف)",
+  "Level {{order}}: {{name}} (deleted)": "المستوى {{order}}: {{name}} (محذوف)"
 }
