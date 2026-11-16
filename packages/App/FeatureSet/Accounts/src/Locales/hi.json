@@ -69,7 +69,7 @@
     "signInWithMicrosoft": "Microsoft से साइन इन करें",
     "emailSignInLink": "मुझे साइन-इन लिंक ईमेल करें",
     "noAccountPrompt": "खाता नहीं है?",
-    "registerLink": "पंजीकरण करें।",
+    "registerLink": "साइन अप करें।",
     "twoFactor": {
       "title": "दो-कारक प्रमाणीकरण",
       "subtitle": "दो-कारक प्रमाणीकरण विधि चुनें। आपको चयनित विधि से एक कोड दर्ज करने के लिए कहा जाएगा।",
@@ -186,7 +186,7 @@
     "submitButton": "SSO से लॉगिन",
     "signInWithPassword": "पासवर्ड से साइन इन करें",
     "noAccountPrompt": "खाता नहीं है?",
-    "registerLink": "पंजीकरण करें।",
+    "registerLink": "साइन अप करें।",
     "selectProjectTitle": "प्रोजेक्ट चुनें",
     "noConfigForEmail": "ईमेल के लिए कोई SSO कॉन्फ़िगरेशन नहीं मिला: {{email}}",
     "emailRequired": "इस क्रिया को करने के लिए ईमेल आवश्यक है",

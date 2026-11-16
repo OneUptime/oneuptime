@@ -69,7 +69,7 @@
     "signInWithMicrosoft": "Inloggen met Microsoft",
     "emailSignInLink": "Stuur mij een inloglink",
     "noAccountPrompt": "Hebt u geen account?",
-    "registerLink": "Registreren.",
+    "registerLink": "Aanmelden.",
     "twoFactor": {
       "title": "Tweefactorauthenticatie",
       "subtitle": "Selecteer een tweefactorauthenticatiemethode. U wordt gevraagd een code in te voeren van de geselecteerde methode.",
@@ -186,7 +186,7 @@
     "submitButton": "Inloggen met SSO",
     "signInWithPassword": "Inloggen met wachtwoord",
     "noAccountPrompt": "Hebt u geen account?",
-    "registerLink": "Registreren.",
+    "registerLink": "Aanmelden.",
     "selectProjectTitle": "Project selecteren",
     "noConfigForEmail": "Geen SSO-configuratie gevonden voor e-mail: {{email}}",
     "emailRequired": "E-mail is vereist om deze actie uit te voeren",

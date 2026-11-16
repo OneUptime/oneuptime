@@ -108,7 +108,8 @@ const LOST_ACCESS_SECURITY_KEY: string = "Lost access to your security key?";
 const BACK_TO_PICKER: string =
   "Select a different two factor authentication method";
 const SKIP_FOR_NOW: string = "Skip for now";
-const REGISTER_LINK: string = "Register.";
+// "Sign up.": named as the sign-up page's button names it (#9035).
+const REGISTER_LINK: string = "Sign up.";
 const ADMIN_RESET: string = "reset two factor authentication on your account";
 
 type LoginMockCall = { user?: unknown; token?: unknown };
@@ -443,7 +444,7 @@ describe("Two factor sign-in always offers a way out", () => {
   });
 
   /*
-   * Until the link above existed, "Don't have an account? Register." was the
+   * Until the link above existed, "Don't have an account? Sign up." was the
    * only other thing on a two factor screen -- an offer to make a second
    * account, made to somebody who is locked out of the one they have.
    */

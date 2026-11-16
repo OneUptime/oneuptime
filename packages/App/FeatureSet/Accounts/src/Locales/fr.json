@@ -69,7 +69,7 @@
     "signInWithMicrosoft": "Se connecter avec Microsoft",
     "emailSignInLink": "M'envoyer un lien de connexion",
     "noAccountPrompt": "Vous n'avez pas de compte ?",
-    "registerLink": "Inscription.",
+    "registerLink": "S'inscrire.",
     "twoFactor": {
       "title": "Authentification à deux facteurs",
       "subtitle": "Sélectionnez une méthode d'authentification à deux facteurs. Vous serez invité à saisir un code de la méthode sélectionnée.",
@@ -186,7 +186,7 @@
     "submitButton": "Connexion avec SSO",
     "signInWithPassword": "Se connecter avec un mot de passe",
     "noAccountPrompt": "Vous n'avez pas de compte ?",
-    "registerLink": "Inscription.",
+    "registerLink": "S'inscrire.",
     "selectProjectTitle": "Sélectionner un projet",
     "noConfigForEmail": "Aucune configuration SSO trouvée pour l'e-mail : {{email}}",
     "emailRequired": "L'e-mail est requis pour effectuer cette action",

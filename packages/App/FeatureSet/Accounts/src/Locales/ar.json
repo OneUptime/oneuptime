@@ -69,7 +69,7 @@
     "signInWithMicrosoft": "تسجيل الدخول باستخدام Microsoft",
     "emailSignInLink": "أرسل إليّ رابط تسجيل الدخول عبر البريد الإلكتروني",
     "noAccountPrompt": "ليس لديك حساب؟",
-    "registerLink": "سجّل الآن.",
+    "registerLink": "أنشئ حسابًا.",
     "twoFactor": {
       "title": "المصادقة الثنائية",
       "subtitle": "اختر طريقة المصادقة الثنائية. سيُطلب منك إدخال رمز من الطريقة المختارة.",
@@ -186,7 +186,7 @@
     "submitButton": "تسجيل الدخول باستخدام SSO",
     "signInWithPassword": "تسجيل الدخول بكلمة المرور",
     "noAccountPrompt": "ليس لديك حساب؟",
-    "registerLink": "سجّل الآن.",
+    "registerLink": "أنشئ حسابًا.",
     "selectProjectTitle": "اختر المشروع",
     "noConfigForEmail": "لم يُعثر على إعداد SSO للبريد الإلكتروني: {{email}}",
     "emailRequired": "البريد الإلكتروني مطلوب لتنفيذ هذا الإجراء",
