@@ -55980,7 +55980,7 @@
   "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "Gamle løste hændelser, hvis postmortem har en status, du fravælger, slettes inden for en time. De kan ikke gendannes.",
   "{{count}} attempt": "{{count}} forsøg",
   "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om loginforsøget",
-  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "På OneUptime Cloud arbejder AI i et repository, der ikke ligger på GitHub, på en af dine egne Runnere: dets adgangstoken gives aldrig til en global Runner. Vælg en af dine Runnere.",
+  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "AI arbejder i et repository, der ikke ligger på GitHub, på en af dine egne Runnere: dets adgangstoken gives aldrig til en global Runner. Vælg en af dine Runnere.",
   "Reads work, but changes will fail": "Læsning virker, men ændringer vil mislykkes",
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Kør opsætningskommandoen igen. Den flytter ændringerne til en skriveidentitet for sig, og agentens egen identitet beholder kun læsningen.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Kør opsætningskommandoen igen. Den flytter ændringerne til en skriverolle for sig, som agenten påtager sig for hver ændring med en politik kun for den ændring.",
@@ -56016,5 +56016,10 @@
   "Runs AI Code Fixes": "Kører AI-koderettelser",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Værdierne af nøgler, der ser følsomme ud, erstattes med [REDACTED] i attributter og i et logindhold i JSON.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Hvilke dele af spanet der skal renses: span-navn, værdier af attributter og linkattributter, hændelsesattributværdier eller alle, også statusbeskeden og hændelsesnavnene.",
-  "Signed out by a server admin because single sign-on is required": "Logget ud af en serveradministrator, fordi single sign-on (SSO) er påkrævet"
+  "Signed out by a server admin because single sign-on is required": "Logget ud af en serveradministrator, fordi single sign-on (SSO) er påkrævet",
+  "Every {{count}} seconds": "Hvert {{count}}. sekund",
+  "Every {{count}} seconds_one": "Hvert {{count}}. sekund",
+  "First Measured At": "Først målt",
+  "Missing-email check": "Tjek for manglende e-mails",
+  "Missing-request check": "Tjek for manglende anmodninger"
 }

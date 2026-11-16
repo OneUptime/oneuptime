@@ -135,7 +135,8 @@ Den samlede status er den værste aktuelle status blandt sidens monitorer og mon
 | `resourceGroups` | Grupperne, med `parentStatusPageGroupId` for indlejrede grupper. |
 | `monitorStatuses` | Alle projektets monitorstatusser, fra den laveste prioritet til den højeste. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | Den aktuelle status for hver monitorgruppe på siden og monitorerne i den. |
-| `notMonitoredResourceIds` | ID'erne for de ressourcer, siden viser som **Ikke overvåget**: en monitor med overvågning slået fra, eller en monitorgruppe, hvor alle monitorer har den slået fra. De afgør ingen status, og sådan en gruppe har ingen post i `monitorGroupCurrentStatuses`. |
+| `notMonitoredResourceIds` | ID'erne for de ressourcer, siden viser som **Ikke overvåget**: en monitor med overvågning slået fra, eller en monitorgruppe, hvor alle monitorer har den slået fra. Den lister også ressourcerne i `notMonitoredYetResourceIds`. De afgør ingen status, og sådan en gruppe har ingen post i `monitorGroupCurrentStatuses`. |
+| `notMonitoredYetResourceIds` | ID'erne for de ressourcer, siden viser som **Ikke overvåget endnu**: en monitor, som intet har tjekket endnu, stadig med den status i drift, som hver monitor starter med, eller en monitorgruppe, hvor ingen af monitorerne er blevet tjekket endnu. |
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Det, oppetidsbjælkerne tegnes ud fra, og sidens farveregler for bjælkerne. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | De uløste hændelser, siden viser, deres offentlige noter og tilstandsskift samt projektets hændelsestilstande. |
 | `timelineIncidents` | Hændelserne i oppetidsbjælkernes tidsvindue, løste hændelser medregnet, til bjælkernes værktøjstip. |
@@ -197,7 +198,7 @@ Svaret:
 | `activeIncidents` | De uløste hændelser, siden viser, hver med `affectedResourceIds` for de ressourcer, den berører. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | De vedligeholdelseshændelser, der er i gang eller kommer, hver med sine `affectedResourceIds`. |
 
-En ressources `currentStatus` er `null`, når siden ikke viser den, og når `isMonitored` er `false`: intet tjekker ressourcen, fordi dens monitors overvågning er slået fra, eller fordi alle monitorer i dens monitorgruppe har den slået fra, så siden viser den som **Ikke overvåget**. `isUnderMaintenance` er `true`, mens en igangværende begivenhed nævner en af ressourcens monitorer eller en monitor i dens monitorgruppe, uanset hvilken status de monitorer har.
+En ressources `currentStatus` er `null`, når siden ikke viser den, og når `isMonitored` er `false`: intet tjekker ressourcen, fordi dens monitors overvågning er slået fra, eller fordi alle monitorer i dens monitorgruppe har den slået fra, så siden viser den som **Ikke overvåget**, eller intet har tjekket den endnu, så siden viser den som **Ikke overvåget endnu**. `isUnderMaintenance` er `true`, mens en igangværende begivenhed nævner en af ressourcens monitorer eller en monitor i dens monitorgruppe, uanset hvilken status de monitorer har.
 
 ## Oppetid for et datointerval
 

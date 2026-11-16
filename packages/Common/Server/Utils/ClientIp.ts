@@ -105,9 +105,9 @@ export const normalizeIpCandidate: (
   }
 
   /*
-   * IP.isIP is the final arbiter, but its IPv6 pattern is unanchored, so the
-   * character-class guard above is what stops a substring match from letting
-   * junk through.
+   * IP.isIP is the final arbiter. Its patterns are anchored, and the
+   * character-class guard above keeps anything that is not hex digits,
+   * colons and dots away from them as well.
    */
   if (!IP.isIP(value)) {
     return null;

@@ -15,9 +15,11 @@ import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataSourceEgressGuard, { PinnedAgents } from "../DataSource/EgressGuard";
 import ClaudeModels from "./ClaudeModels";
+import LLMProviderAnswerTooLargeException from "./LLMProviderAnswerTooLargeException";
 import LLMProviderHTTPException from "./LLMProviderHTTPException";
 import LLMProviderExchangeRecorder from "./LLMProviderExchangeRecorder";
 import RejectedRequestParameter from "./RejectedRequestParameter";
+import ResponseTooLarge from "../../../Utils/ResponseTooLarge";
 import LlmProviderEndpoint, {
   AzureOpenAIRequestEndpoint,
 } from "../../../Utils/LLM/LlmProviderEndpoint";
@@ -278,6 +280,19 @@ const ANTHROPIC_REFUSAL_CATEGORY: RegExp = /^[a-z][a-z_]{0,39}$/;
  * (buildOpenAIRequestBody).
  */
 export const OPENAI_PROMPT_CACHE_KEY_PARAMETER: string = "prompt_cache_key";
+
+/*
+ * The most of an LLM provider's answer read (issue #8931). A long
+ * completion, its tool calls and its usage included, is well under a
+ * megabyte. Base URL is any project member's to change and Test LLM
+ * Provider sends a request on demand, so without a limit an endpoint that
+ * answers without end - or a gateway gone wrong - filled the memory of the
+ * app or the worker that asked. Axios counts the answer as it arrives,
+ * after decompressing it, so a streamed answer with no length, and a small
+ * compressed one that unpacks large, are held to it too. The models list
+ * keeps a limit of its own (MAX_MODELS_LIST_BYTES).
+ */
+export const LLM_PROVIDER_MAX_ANSWER_BYTES: number = 16 * 1024 * 1024;
 
 /*
  * Structural fields of an Ollama /api/chat request. additionalParams is
@@ -1228,6 +1243,9 @@ export default class LLMService {
    * install. Everything else holds for it too: loopback, link-local and the
    * other always-refused ranges stay refused, the address is pinned, and
    * redirects are refused.
+   *
+   * At most LLM_PROVIDER_MAX_ANSWER_BYTES of the answer is read, unless the
+   * options name a limit of their own (the models list does).
    */
   private static async buildGuardedRequestOptions(data: {
     providerName: string;
@@ -1260,6 +1278,8 @@ export default class LLMService {
 
     return {
       ...data.options,
+      maxContentLength:
+        data.options.maxContentLength ?? LLM_PROVIDER_MAX_ANSWER_BYTES,
       doNotFollowRedirects: true,
       // Only Node's http adapter uses the pinned agents.
       useNodeHttpAdapter: true,
@@ -1316,6 +1336,7 @@ export default class LLMService {
         providerName: data.providerName,
         error: error,
         timeoutInMs: data.options.timeout,
+        maxContentLength: data.options.maxContentLength,
         logAttributes: data.logAttributes,
       });
 
@@ -1699,19 +1720,38 @@ export default class LLMService {
    * retry classification are unchanged. The original error is not attached:
    * an AxiosError carries the URL and the request headers, credentials
    * included.
+   *
+   * An answer larger than the request reads (maxContentLength) is said in a
+   * sentence of its own (LLMProviderAnswerTooLargeException), with the
+   * limit, in place of axios's "maxContentLength size of 16777216 exceeded".
    */
   private static toAddressFreeProviderError(data: {
     providerName: string;
     error: unknown;
     timeoutInMs?: number | undefined;
+    maxContentLength?: number | undefined;
     logAttributes: LogAttributes;
   }): Error {
+    const isAnswerTooLarge: boolean = ResponseTooLarge.isError(data.error);
+
     logger.error(
-      `${data.providerName} API request failed before the provider responded: ${
+      `${data.providerName} API request failed ${
+        isAnswerTooLarge
+          ? "on an answer larger than it reads"
+          : "before the provider responded"
+      }: ${
         data.error instanceof Error ? data.error.message : String(data.error)
       }`,
       data.logAttributes,
     );
+
+    if (isAnswerTooLarge) {
+      return new LLMProviderAnswerTooLargeException({
+        providerName: data.providerName,
+        maxContentLength:
+          data.maxContentLength ?? LLM_PROVIDER_MAX_ANSWER_BYTES,
+      });
+    }
 
     if (data.error instanceof EgressGuardException) {
       return new EgressGuardException(
@@ -2134,6 +2174,7 @@ export default class LLMService {
         providerName: providerName,
         error: error,
         timeoutInMs: requestOptions.timeout,
+        maxContentLength: requestOptions.maxContentLength,
         logAttributes: logAttributes,
       });
 

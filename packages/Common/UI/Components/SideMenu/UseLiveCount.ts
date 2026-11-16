@@ -41,8 +41,9 @@ import { MutableRefObject, useEffect, useMemo, useRef } from "react";
  *     not even load one: the count asks LiveConnection, so a status page's
  *     subscribe menu does not download socket.io to draw its side menu.
  *
- * A table the server announces nothing for (Monitor, ScheduledMaintenance)
- * is not heard: its count follows what the page asks (SideMenuCountRefresh).
+ * A table the server announces nothing for (a model without
+ * enableRealtimeEventsOn, such as StatusPage) is not heard: its count
+ * follows what the page asks (SideMenuCountRefresh).
  */
 
 export interface UseLiveCountOptions {

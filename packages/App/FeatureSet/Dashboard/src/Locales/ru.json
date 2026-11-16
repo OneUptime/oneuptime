@@ -55980,7 +55980,7 @@
   "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.": "Старые устранённые инциденты, чей постмортем находится в статусе, который вы убираете, удаляются в течение часа. Восстановить их нельзя.",
   "{{count}} attempt": "{{count}} попытка",
   "{{summary}} - view sign-in attempt details": "{{summary}} — открыть сведения о попытке входа",
-  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "В OneUptime Cloud ИИ работает в репозитории не на GitHub на одном из ваших собственных Runner-ов: его токен доступа никогда не передаётся глобальному Runner-у. Выберите один из своих Runner-ов.",
+  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "ИИ работает в репозитории не на GitHub на одном из ваших собственных Runner-ов: его токен доступа никогда не передаётся глобальному Runner-у. Выберите один из своих Runner-ов.",
   "Reads work, but changes will fail": "Чтение работает, но изменения не пройдут",
   "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Выполните команду настройки ещё раз. Она переносит изменения на отдельное удостоверение записи, а собственному удостоверению агента остаётся только чтение.",
   "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Выполните команду настройки ещё раз. Она переносит изменения на отдельную роль записи, которую агент принимает для каждого изменения с политикой только для этого изменения.",
@@ -56016,5 +56016,10 @@
   "Runs AI Code Fixes": "Выполняет исправления кода от ИИ",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Значения ключей, которые выглядят конфиденциальными, заменяются на [REDACTED] в атрибутах и в теле лога в формате JSON.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Какие части спана очищать: имя спана, значения атрибутов и атрибутов связей, значения атрибутов событий или всё, включая сообщение о статусе и названия событий.",
-  "Signed out by a server admin because single sign-on is required": "Сеанс завершён администратором сервера: требуется единый вход (SSO)"
+  "Signed out by a server admin because single sign-on is required": "Сеанс завершён администратором сервера: требуется единый вход (SSO)",
+  "Every {{count}} seconds": "Раз в {{count}} сек",
+  "Every {{count}} seconds_one": "Раз в {{count}} сек",
+  "First Measured At": "Впервые измерено",
+  "Missing-email check": "Проверка отсутствия писем",
+  "Missing-request check": "Проверка отсутствия запросов"
 }

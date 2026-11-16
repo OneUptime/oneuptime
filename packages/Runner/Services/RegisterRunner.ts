@@ -22,6 +22,7 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
+import RetryAfter from "Common/Utils/RetryAfter";
 import { isShippedSecretValue } from "Common/Server/EnvironmentConfig";
 import { GLOBAL_AI_AGENT_GONE_MESSAGE } from "Common/Types/Runner/GlobalAIAgentsGone";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
@@ -163,13 +164,14 @@ export function getServerReason(data: unknown): string {
   return "";
 }
 
-// A Retry-After header in seconds: digits only.
+// The body's retryAfterSeconds as text: digits only.
 const RETRY_AFTER_SECONDS_PATTERN: RegExp = /^\d+$/;
 
 /*
  * How long the server said to wait before trying again: a numeric
- * `retryAfterSeconds` in the body, or an HTTP Retry-After header in seconds.
- * Null when it said nothing usable.
+ * `retryAfterSeconds` in the body, else the Retry-After header as RFC 9110
+ * writes it (Common's RetryAfter) - whole seconds or an HTTP-date, at least
+ * one second. Null when it said nothing usable.
  */
 function getRetryAfterSeconds(result: HTTPResponse<JSONObject>): number | null {
   const fromBody: unknown =
@@ -177,27 +179,19 @@ function getRetryAfterSeconds(result: HTTPResponse<JSONObject>): number | null {
       ? (result.data as JSONObject)["retryAfterSeconds"]
       : undefined;
 
-  const headers: Record<string, unknown> = (result.headers || {}) as Record<
-    string,
-    unknown
-  >;
-  const fromHeader: unknown = headers["retry-after"] ?? headers["Retry-After"];
+  const bodySeconds: number =
+    typeof fromBody === "number"
+      ? fromBody
+      : typeof fromBody === "string" &&
+          RETRY_AFTER_SECONDS_PATTERN.test(fromBody.trim())
+        ? parseInt(fromBody.trim(), 10)
+        : NaN;
 
-  for (const candidate of [fromBody, fromHeader]) {
-    const seconds: number =
-      typeof candidate === "number"
-        ? candidate
-        : typeof candidate === "string" &&
-            RETRY_AFTER_SECONDS_PATTERN.test(candidate.trim())
-          ? parseInt(candidate.trim(), 10)
-          : NaN;
-
-    if (Number.isFinite(seconds) && seconds >= 0) {
-      return seconds;
-    }
+  if (Number.isFinite(bodySeconds) && bodySeconds >= 0) {
+    return bodySeconds;
   }
 
-  return null;
+  return RetryAfter.secondsFromHeaders(result.headers) ?? null;
 }
 
 export default class Register {
