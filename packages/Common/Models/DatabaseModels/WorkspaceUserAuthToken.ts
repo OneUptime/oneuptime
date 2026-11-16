@@ -112,13 +112,23 @@ class WorkspaceUserAuthToken extends BaseModel {
     read: [],
     update: [],
   })
+  /*
+   * The member's own token in the chat, from their sign-in: with it, anyone
+   * acts in Slack or Microsoft Teams as that member. Server-only (read: [])
+   * and kept encrypted at rest (`encrypted: true`), as the project's bot
+   * token is (WorkspaceProjectAuthToken.authToken): DatabaseService encrypts
+   * it on every write and decrypts it on every read, and the
+   * EncryptProjectCredentials data migration encrypts the tokens stored
+   * before. Never read through a relation (EncryptedColumnsStayOffRelations):
+   * no model names this one.
+   */
   @TableColumn({
     secret: true,
+    encrypted: true,
     title: "Auth Token",
     required: true,
     unique: false,
     type: TableColumnType.VeryLongText,
-    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.VeryLongText,
