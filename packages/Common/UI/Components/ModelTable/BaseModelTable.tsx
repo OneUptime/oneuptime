@@ -86,7 +86,9 @@ import ConfirmModal from "../Modal/ConfirmModal";
 import RecordIdModal from "../ObjectID/RecordIdModal";
 import { getRecordIdText, hasRecordId } from "../ObjectID/RecordIdText";
 import { getApiReferencePagePath } from "../../../Utils/ApiReferencePage";
-import Modal, { ModalWidth } from "../Modal/Modal";
+import { ModalWidth } from "../Modal/Modal";
+import HelpModal from "../Help/HelpModal";
+import { HelpContent } from "../Help/HelpContent";
 import DeleteConfirmationMessage from "../DeleteConfirmation/DeleteConfirmationMessage";
 import {
   getDeleteConsequence,
@@ -94,7 +96,6 @@ import {
 } from "../DeleteConfirmation/DeleteConsequences";
 import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
 import { getRecordDisplayName } from "../../Utils/ModelDisplayName";
-import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import Icon from "../Icon/Icon";
 import Filter from "../ModelFilter/Filter";
 import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
@@ -492,13 +493,12 @@ export interface BaseTableProps<
    * Useful for in-table filter chips, alerts, etc.
    */
   topContent?: ReactElement | undefined;
-  helpContent?:
-    | {
-        title: string;
-        description?: string | undefined;
-        markdown: string;
-      }
-    | undefined;
+  /*
+   * The list's help (?): a title, a line under it and a markdown document
+   * of a lead and "##" topics, opened in the help dialog (HelpModal) from
+   * the card's header and from the empty list.
+   */
+  helpContent?: HelpContent | undefined;
   documentationLink?: Route | URL | undefined;
   videoLink?: Route | URL | undefined;
   showCreateForm?: undefined | boolean;
@@ -6554,19 +6554,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       )}
 
       {showHelpModal && props.helpContent && (
-        <Modal
+        <HelpModal
           title={props.helpContent.title}
           description={props.helpContent.description}
+          markdown={props.helpContent.markdown}
+          documentationLink={props.documentationLink}
           onClose={() => {
             setShowHelpModal(false);
           }}
-          modalWidth={ModalWidth.Large}
-          closeButtonText="Close"
-        >
-          <div className="p-2">
-            <MarkdownViewer text={props.helpContent.markdown} />
-          </div>
-        </Modal>
+        />
       )}
 
       {getColumnCustomizationModal()}
