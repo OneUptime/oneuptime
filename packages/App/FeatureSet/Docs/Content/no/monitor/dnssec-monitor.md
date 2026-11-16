@@ -66,7 +66,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **K
 
 ### Gå gjennom kriteriene
 
-**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når kjeden er brutt, tilkoblet når den er gyldig. For å bli varslet før signaturer utløper, legger du til et kriterium (se [Beste praksis](#beste-praksis)), og klikker så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): offline når kjeden er brutt, tilkoblet når den er gyldig. For å bli varslet før signaturer utløper, legger du til et kriterium (se [Beste praksis](#beste-praksis)), og klikker så på **Neste**.
 
 ### Velg sonder og opprett
 
@@ -86,7 +86,7 @@ Behold eller endre **Sonder** og **Overvåkingsintervall** (det starter på **Hv
 
 ## Overvåkingskriterier
 
-Kriterier avgjør når sonen regnes som tilkoblet, redusert eller frakoblet, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
+Kriterier avgjør når sonen regnes som tilkoblet, redusert eller offline, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
@@ -103,7 +103,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny DNSSEC-monitor starter med to kriterier:
 
-- **Kjeden er brutt** — **DNSSEC-kjeden er gyldig** er **Usann**. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "DNSSEC-kjeden for _monitornavn_ er brutt". Hendelsen løser seg selv når kjeden er gyldig igjen.
+- **Kjeden er brutt** — **DNSSEC-kjeden er gyldig** er **Usann**. Monitoren merkes som **Offline**, og det opprettes en hendelse med navnet "DNSSEC-kjeden for _monitornavn_ er brutt". Hendelsen løser seg selv når kjeden er gyldig igjen.
 - **Kjeden er gyldig** — monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -114,7 +114,7 @@ Standardkriteriene følger ikke selv med på signaturutløp eller navneserverkon
 
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
-| Frakoblet når kjeden er brutt (et standardkriterium) | **DNSSEC-kjeden er gyldig** | **Usann** | — |
+| Offline når kjeden er brutt (et standardkriterium) | **DNSSEC-kjeden er gyldig** | **Usann** | — |
 | Varsle før signaturer utløper | **Dager til DNSSEC-signaturen utløper** | **Mindre enn** | `7` |
 | Fang opp en delegering som har mistet DS-posten sin | **DNSSEC DS-post finnes hos overordnet sone** | **Usann** | — |
 | Fang opp løsere som er uenige | **DNSSEC-konsensus blant løsere (AD-flagg)** | **Usann** | — |

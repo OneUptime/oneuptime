@@ -3,6 +3,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
@@ -1755,7 +1756,7 @@ test.describe("the lists say what the Overview says", () => {
     await page.goto(withQuery(`${CLUSTER_PATH}/tasks`, `${TROUBLE}&lang=fa`));
     const memory: Locator = page
       .locator("bdi")
-      .filter({ hasText: /^471 MiB$/ })
+      .filter({ hasText: new RegExp(`^471${NO_BREAK_SPACE}MiB$`) })
       .first();
     await expect(memory).toBeVisible();
     expect(

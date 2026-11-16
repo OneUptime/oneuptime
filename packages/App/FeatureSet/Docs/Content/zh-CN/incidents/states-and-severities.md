@@ -115,7 +115,7 @@ flowchart TB
 
 ## 顺序是真正的约束，而不是显示偏好
 
-顺序在写入状态变更时就会强制执行，而不仅仅是在绘制列表时。事件、告警、事件或告警片段以及维护事件的每一次状态变更，都遵循同一条规则，无论由谁发起——仪表板、Slack、Microsoft Teams、API、Terraform、工作流还是 OneUptime 自身——也无论它是作为记录状态时间线中的一行发送，还是作为对其当前状态的更新发送：
+顺序在写入状态变更时就会强制执行，而不仅仅是在绘制列表时。事件、警报、事件或警报片段以及维护事件的每一次状态变更，都遵循同一条规则，无论由谁发起——仪表板、Slack、Microsoft Teams、API、Terraform、工作流还是 OneUptime 自身——也无论它是作为记录状态时间线中的一行发送，还是作为对其当前状态的更新发送：
 
 - **回退的转换会被拒绝。** 把事件移到顺序中位于当前状态之前的状态，会以指明两个状态的错误“Incident cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states.”失败。片段与它所归组的事件完全一样受此规则约束，只是错误消息是它自己的（“Episode cannot transition to …”），因此已解决的片段不会被移回更早的状态，其中的事件也不会因它而被移回。会让记录回退的更新，在保存任何内容之前就会被拒绝。
 - **重新选择当前状态会被拒绝。** 把事件设置为它已经所处的状态，会以“Incident state cannot be same as previous state.”失败。
@@ -142,7 +142,7 @@ flowchart TB
 | **重大事件**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
 | **轻微事件**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
-声明事件时严重性是必填的，监视器条件中的每个事件规格也都必须填写它，所以每个事件——无论手动还是自动——都带着严重性而来。声明流程参见 [声明事件](/docs/incidents/declaring-incidents)，由监视器驱动的路径参见 [事件与告警模板](/docs/monitor/incident-alert-templating)。
+声明事件时严重性是必填的，监视器条件中的每个事件规格也都必须填写它，所以每个事件——无论手动还是自动——都带着严重性而来。声明流程参见 [声明事件](/docs/incidents/declaring-incidents)，由监视器驱动的路径参见 [事件与警报模板](/docs/monitor/incident-alert-templating)。
 
 ## 编辑严重性
 
@@ -157,7 +157,7 @@ flowchart TB
 
 严重性不只是用于描述的地方：在 **事件 → 规则 → 值班规则** 中，规则的 **事件严重性** 字段是一个匹配条件。在那里列出 **严重事件**，就是表达“任何严重事件都呼叫数据库团队”的方式——值班策略存在于规则上，而不是严重性上。
 
-**更改事件的严重性**——在事件 **事件详情** 卡片的 **编辑** 中、通过 API 或 Terraform（`incidentSeverityId`）、通过工作流或通过 AI 工具——无论以哪种方式发送，都会做同样的四件事：事件信息流会添加一条写明新严重性的 **Incident updated** 条目，事件的 SLA 截止时间会重新计算，它的提醒规则会重新匹配，事件指标会计入一次严重性变更。保存事件已有的严重性则不会做其中任何一件事，所以只编辑事件的标题，其 SLA 截止时间、提醒和严重性变更计数都保持不变。告警的严重性在其信息流条目和提醒方面也是同样的工作方式。
+**更改事件的严重性**——在事件 **事件详情** 卡片的 **编辑** 中、通过 API 或 Terraform（`incidentSeverityId`）、通过工作流或通过 AI 工具——无论以哪种方式发送，都会做同样的四件事：事件信息流会添加一条写明新严重性的 **Incident updated** 条目，事件的 SLA 截止时间会重新计算，它的提醒规则会重新匹配，事件指标会计入一次严重性变更。保存事件已有的严重性则不会做其中任何一件事，所以只编辑事件的标题，其 SLA 截止时间、提醒和严重性变更计数都保持不变。警报的严重性在其信息流条目和提醒方面也是同样的工作方式。
 
 ## 归档状态或严重性
 
@@ -198,7 +198,7 @@ flowchart TB
 - **确认用时计到那第一次移动为止** —— 事件 **概览** 上的统计卡片、**Time to Acknowledge** 指标、在 **事件被确认时** 结束的测量，以及 Slack 和 Microsoft Teams 摘要中的 MTTA。从 **已识别** 直接移到 **Investigating** 的事件在那时就被确认了；直接解决的事件在解决时被确认。
 - **已确认过滤器**——例如仪表板事件列表小组件上的——会显示处于你的确认状态及其后任一状态、但尚未解决的事件。
 
-告警和片段使用你的告警状态，遵循同样的规则。
+警报和片段使用你的警报状态，遵循同样的规则。
 
 ## 解决会做什么
 
@@ -235,7 +235,7 @@ flowchart TB
 
 侧边菜单项带有一个使用同一查询的红色计数徽章，所以徽章和列表始终一致。没有可显示的内容时，页面会这样说明。
 
-实际的后果是：你在解决状态之上添加的自定义状态会让事件留在这个列表中——“Mitigated”不等于“完成”——而放在它之后的状态会像解决状态一样把事件移出列表。告警和片段以各自的状态遵循同样的规则，侧边菜单计数、提醒、状态页和移动应用都会读取它。
+实际的后果是：你在解决状态之上添加的自定义状态会让事件留在这个列表中——“Mitigated”不等于“完成”——而放在它之后的状态会像解决状态一样把事件移出列表。警报和片段以各自的状态遵循同样的规则，侧边菜单计数、提醒、状态页和移动应用都会读取它。
 
 ## 把状态变更告诉状态页订阅者
 
@@ -267,7 +267,7 @@ flowchart TB
 
 **备注会说明事件现在的状态。** 因为备注是唯一的那条消息，它会在每个渠道上写明新状态，就像状态变更消息原本会做的那样：邮件主题为 `[Resolved Incident] <title>`，详情中显示一个带状态颜色的 **Status** 行；短信写着 `Incident <title> on <status page> is Resolved.`；Slack 和 Microsoft Teams 消息带有一行 `**Status:** Resolved`；webhook 的 `IncidentNoteCreated` 载荷在 `data` 中带有 `incidentState`。单独发布的备注保持它通常的消息，编辑产生的更新通知也是如此。
 
-**发布备注需要单独的权限。** 更改状态和发布公开备注是不同的权限（自定义角色中的 **Create Incident State Timeline** 和 **Create Incident Status Page Note**；内置的事件和项目角色两者都有）。更改状态不需要编辑事件的权限：参见 [更改状态](/docs/permissions/index#更改状态)。可以更改事件状态但不能发布公开备注的人，在对话框和 **更改状态** 批量操作中都不会看到 **添加公开备注**。他们通过 API 发送的带备注的状态变更会被整体拒绝，并附上说明状态未被更改及其原因的消息，因此绝不会把一次变更记录为由一条从未发布的备注所通知。去掉备注，变更就能通过。告警、告警片段和事件片段则在状态变更时提供私密备注（**添加私密备注**），其工作方式相同：发布它需要备注自身的权限（自定义角色中的 **Create Alert Internal Note**、**Create Alert Episode Internal Note** 或 **Create Incident Episode Internal Note**；内置的告警、事件和项目角色都有），没有该权限的人发送的带私密备注的状态变更会被整体拒绝，状态不会改变。
+**发布备注需要单独的权限。** 更改状态和发布公开备注是不同的权限（自定义角色中的 **Create Incident State Timeline** 和 **Create Incident Status Page Note**；内置的事件和项目角色两者都有）。更改状态不需要编辑事件的权限：参见 [更改状态](/docs/permissions/index#更改状态)。可以更改事件状态但不能发布公开备注的人，在对话框和 **更改状态** 批量操作中都不会看到 **添加公开备注**。他们通过 API 发送的带备注的状态变更会被整体拒绝，并附上说明状态未被更改及其原因的消息，因此绝不会把一次变更记录为由一条从未发布的备注所通知。去掉备注，变更就能通过。警报、警报片段和事件片段则在状态变更时提供私密备注（**添加私密备注**），其工作方式相同：发布它需要备注自身的权限（自定义角色中的 **Create Alert Internal Note**、**Create Alert Episode Internal Note** 或 **Create Incident Episode Internal Note**；内置的警报、事件和项目角色都有），没有该权限的人发送的带私密备注的状态变更会被整体拒绝，状态不会改变。
 
 **私密事件的状态更改附带私密备注。** 私密事件不能添加公开备注，因此它的状态更改对话框折叠的是 **添加私密备注** 而不是 **添加公开备注**，不询问订阅者，并把备注提供给能在该事件上发布私密备注的人。批量操作 **更改状态** 会把它的备注作为私密备注添加到它移动的每个私密事件上，并且不就这些事件通知任何人。通过 API 发送、为私密事件附带公开备注的状态更改会被整体拒绝：“The state was not changed: it comes with a public note, and this incident is private, so public notes cannot be added to it. Post the note as a private note, or leave it out.”
 

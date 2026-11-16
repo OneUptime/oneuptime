@@ -8,6 +8,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
@@ -115,7 +116,7 @@ const PERSIAN: Record<string, string> = dashboardLocale("fa");
  * the reader's digits. On a page read from the right the limit is set apart
  * (between U+2068 and U+2069), so it keeps its number first (issue #7233).
  */
-const PERSIAN_SIZE: string = "\u06F1\u06F0 MB";
+const PERSIAN_SIZE: string = withUnit("\u06F1\u06F0", "MB");
 const PERSIAN_LIMIT: string = `\u2068${PERSIAN_SIZE}\u2069`;
 
 function hintWith(
@@ -152,7 +153,8 @@ async function drawnLimits(
 ): Promise<Array<DrawnLimit>> {
   return locator.evaluate(
     (element: Element, size: string): Array<DrawnLimit> => {
-      const [number, unit] = size.split(" ") as [string, string];
+      // The figure and its unit, held together by a no-break space.
+      const [number, unit] = size.split(/[ \u00A0]/) as [string, string];
       const found: Array<DrawnLimit> = [];
       const walker: TreeWalker = document.createTreeWalker(
         element,

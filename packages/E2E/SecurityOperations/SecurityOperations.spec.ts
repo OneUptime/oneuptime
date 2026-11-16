@@ -9094,9 +9094,10 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
       role: "viewer",
       width: 1280,
     });
+    // The role named as the role picker draws it (#8520).
     await expect(
       card.getByTestId("security-case-ai-reason-who-can"),
-    ).toHaveText("A project administrator can review these settings.", {
+    ).toHaveText("A Project Admin can review these settings.", {
       timeout: 30000,
     });
     await expect(
@@ -9128,7 +9129,7 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
     await expect(
       card.getByTestId("security-case-ai-reason-who-can"),
     ).toHaveText(
-      "A project owner or someone with Manage Billing can add AI credits.",
+      "A Project Owner or someone with Manage Billing can add AI credits.",
       { timeout: 30000 },
     );
   });

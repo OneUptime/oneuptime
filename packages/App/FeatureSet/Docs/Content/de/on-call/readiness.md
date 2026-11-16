@@ -30,7 +30,7 @@ Ein Bearbeiter ist jede Person, die eine Bereitschaftsrichtlinie alarmieren kann
 | **Einrichtung erforderlich** | Die Person ist erreichbar, aber für einige Schweregrade fehlt eine Regel. Die Zeile zählt diese Lücken. |
 | **Nicht erreichbar** | Nichts erreicht die Person: keine verifizierte Methode, jede verifizierte Methode liegt auf einem Kanal, den das Projekt ausgeschaltet hat, oder sie ist kein Mitglied des Projekts. |
 
-Eine Lücke ist ein Schweregrad ohne Regel, auf dem Tab für Vorfälle, Vorfallepisoden, Warnungen oder Warnungsepisoden. Eine Regel, die einen Schweregrad bewusst abschaltet, ist keine Lücke. Ein Alarm, der auf eine Lücke trifft, erreicht die Person trotzdem über ihre verifizierten Methoden, es sei denn, das Projekt hat diesen Rückfall ausgeschaltet: siehe [Wenn keine Regel passt](/docs/notifications/index#wenn-keine-regel-passt).
+Eine Lücke ist ein Schweregrad ohne Regel, auf dem Tab für Vorfälle, Vorfallepisoden, Warnungen oder Warnungsepisoden. Eine Regel, die einen Schweregrad bewusst abschaltet, ist keine Lücke. Eine Warnung, der auf eine Lücke trifft, erreicht die Person trotzdem über ihre verifizierten Methoden, es sei denn, das Projekt hat diesen Rückfall ausgeschaltet: siehe [Wenn keine Regel passt](/docs/notifications/index#wenn-keine-regel-passt).
 
 ## Die Seite Einsatzbereitschaft
 

@@ -606,10 +606,12 @@ describe("addresses that collide with Object.prototype", () => {
       ).toEqual(new Set<string>());
 
       /*
-       * "__proto__" is the one that still cannot be stored: writing that key
-       * on an object literal runs the prototype setter. It reads back empty
-       * rather than throwing, which costs a re-offered host on reopen — the
-       * pre-existing footgun — instead of a blank page.
+       * Each name is stored as the record's own key, "__proto__" too. Below
+       * ES2018 TypeScript compiled the spread that writes it to an
+       * assignment, which ran the prototype setter, so "__proto__" read back
+       * empty and its host was offered again on reopen. The App compiles
+       * for ES2018 (#8223): the spread is the language's own and defines
+       * the key, so the record keeps it and its prototype stays Object's.
        */
       const stored: ImportedIpAddressesByScanId = withImportedIpAddresses({
         importedByScanId: {},
@@ -617,16 +619,14 @@ describe("addresses that collide with Object.prototype", () => {
         ipAddresses: ["10.0.0.1"],
       });
 
+      expect(Object.prototype.hasOwnProperty.call(stored, scanId)).toBe(true);
+      expect(Object.getPrototypeOf(stored)).toBe(Object.prototype);
       expect(
         getImportedIpAddressesForScan({
           importedByScanId: stored,
           scanId: scanId,
         }),
-      ).toEqual(
-        scanId === "__proto__"
-          ? new Set<string>()
-          : new Set<string>(["10.0.0.1"]),
-      );
+      ).toEqual(new Set<string>(["10.0.0.1"]));
     }
   });
   test("an empty scan renders its own sentence and disturbs nothing", () => {

@@ -92,7 +92,7 @@ Restituisce **Risposta** (il testo generato), **Provider** e **Modello** (cosa h
 Collega **Successo** ai blocchi che usano la risposta, ed **Errore** a un'alternativa: gli errori di convalida, di accesso, del provider, di budget, di fatturazione e di timeout lo prendono tutti. Il blocco non invia strumenti, quindi il modello non può interrogare OneUptime, chiamare API o modificare dati da solo.
 
 > [!WARNING]
-> L'output del modello è testo non attendibile. Rivedilo prima che arrivi ai clienti, e non lasciare mai che un testo libero generato dall'IA decida da solo un'azione distruttiva. Vedi [Componenti AI](/docs/workflows/configuration#componenti-ai) per sapere cosa viene inviato al provider, cosa viene registrato e quanto costa.
+> L'output del modello è testo non attendibile. Rivedilo prima che arrivi ai clienti, e non lasciare mai che un testo libero generato dall'IA decida da solo un'azione distruttiva. Vedi [Componenti IA](/docs/workflows/configuration#componenti-ia) per sapere cosa viene inviato al provider, cosa viene registrato e quanto costa.
 
 ## Slack
 

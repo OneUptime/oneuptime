@@ -32,7 +32,7 @@ Ein Team besitzt einen Plan, wenn es auf der Seite **Eigentümer** des Plans ein
 | Ein Balken | Eine Schicht: wer Bereitschaft hat, von wann bis wann. Eine Person hat in jedem Plan dieselbe Farbe. |
 | Ein blasser Balken | Eine Schicht in der Vergangenheit. |
 | Ein mit **⇄** markierter Balken | Eine Vertretung: Jemand übernimmt eine Schicht. Die schmale Spur darunter nennt die Person, deren Schicht übernommen wird, durchgestrichen. |
-| Ein schraffierter gelber Block | Eine Abdeckungslücke: Niemand hat Bereitschaft. Ein Alarm, der an diesen Plan eskaliert, erreicht dann niemanden. |
+| Ein schraffierter gelber Block | Eine Abdeckungslücke: Niemand hat Bereitschaft. Eine Warnung, der an diesen Plan eskaliert, erreicht dann niemanden. |
 | Die rote Linie | Jetzt. |
 | Die Zeile unter dem Namen eines Plans | Wer gerade Bereitschaft hat, oder **Gerade niemand in Bereitschaft**. |
 

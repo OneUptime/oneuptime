@@ -12,7 +12,7 @@ import {
   getLocaleStatus,
   LocaleStatus,
 } from "../../FeatureSet/Dashboard/scripts/i18n/LocaleStatus";
-import { OAUTH2_TOKEN_STATUS_LABELS } from "../../FeatureSet/Dashboard/src/Components/Workflow/WorkflowVariableTokenStatus";
+import { OAUTH2_TOKEN_STATUS_LABELS } from "../../FeatureSet/Dashboard/src/Components/Workflow/WorkflowVariableTokenStatusLabels";
 
 /*
  * SESSION REPLAY, USER FLOWS, TELEMETRY, TRACE PIPELINES, TEAMS, USERS,

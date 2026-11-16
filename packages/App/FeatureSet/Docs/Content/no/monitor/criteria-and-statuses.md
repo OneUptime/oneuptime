@@ -1,6 +1,6 @@
 # Kriterier og statuser
 
-En monitors kriterier avgjør hva hver kontroll betyr: om monitoren er oppe eller nede, og om OneUptime erklærer en hendelse eller oppretter et varsel. Statuser er prosjektets liste over hva en monitor kan være, fra **I drift** til **Frakoblet**. Denne siden forklarer begge deler for alle monitortyper; hver types egen side viser filtrene den tilbyr.
+En monitors kriterier avgjør hva hver kontroll betyr: om monitoren er oppe eller nede, og om OneUptime erklærer en hendelse eller oppretter et varsel. Statuser er prosjektets liste over hva en monitor kan være, fra **I drift** til **Offline**. Denne siden forklarer begge deler for alle monitortyper; hver types egen side viser filtrene den tilbyr.
 
 :::cards
 - [Slik avgjør kriteriene](#slik-avgjør-kriteriene): Ovenfra og ned, og det første samsvaret vinner.
@@ -25,7 +25,7 @@ flowchart TB
     A --> L["Oppretter<br/>et varsel"]
 ```
 
-Rekkefølgen er en del av regelen. En ny monitor lister kriteriene sine fra det verste tilfellet: frakoblet, så en advarsel der typen har en (et sertifikat eller et domene som snart utløper), så tilkoblet. Et bredt friskt kriterium, som **Er tilkoblet** satt til **Sann**, samsvarer med nesten hver kontroll, så det kommer sist: over de andre ville det samsvare først hver gang, og de andre ville aldri handle.
+Rekkefølgen er en del av regelen. En ny monitor lister kriteriene sine fra det verste tilfellet: offline, så en advarsel der typen har en (et sertifikat eller et domene som snart utløper), så tilkoblet. Et bredt friskt kriterium, som **Er tilkoblet** satt til **Sann**, samsvarer med nesten hver kontroll, så det kommer sist: over de andre ville det samsvare først hver gang, og de andre ville aldri handle.
 
 Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrollen: monitoren beholder statusen sin, og kriteriene under det venter på neste kontroll. **Standard monitorstatus** gjelder bare når ingen kriterier samsvarer. For en ny monitor er den **I drift**; endre den under **Flere felt**, under kriteriene.
 
@@ -88,7 +88,7 @@ flowchart TB
 - **Én om gangen.** Så lenge en hendelse som et kriterium har erklært fortsatt er åpen, erklærer ikke det samme kriteriet en ny når det samsvarer igjen. Varsler fungerer på samme måte. En monitor som grupperer etter vert eller payload-felt, holder én åpen per vert eller verdi, og et kriterium på en monitor for innkommende e-post med **Åpne en ny hendelse for hver e-post** åpner én per e-post.
 - **Lukking.** Ved en senere kontroll der et annet kriterium samsvarer, eller ingen, løses en hendelse der kriteriet har **Løs hendelse automatisk** slått på, og det samme gjelder et varsel med **Løs varsel automatisk**. Begge ligger under **Flere felt** i hendelsen eller varselet, og kriteriene en ny monitor starter med, har dem slått på.
 - **Flere sonder.** En monitor som kontrolleres av mer enn én sonde, endres bare når sondene er enige. Se [Slik evalueres kriteriene](/docs/monitor/create-monitor#slik-evalueres-kriterier).
-- **En overordnet monitor som er nede.** På en monitors side **Konfigurasjon → Avhengigheter** angir **Avhenger av monitorer** monitorene den er avhengig av. Så lenge én av dem har en status som står i **Undertrykk når overordnet status er** (enhver frakoblet-status, hvis feltet står tomt), åpner monitoren ingen hendelser eller varsler. Statusen endres fortsatt, og det som er åpent, løses fortsatt.
+- **En overordnet monitor som er nede.** På en monitors side **Konfigurasjon → Avhengigheter** angir **Avhenger av monitorer** monitorene den er avhengig av. Så lenge én av dem har en status som står i **Undertrykk når overordnet status er** (enhver offline-status, hvis feltet står tomt), åpner monitoren ingen hendelser eller varsler. Statusen endres fortsatt, og det som er åpent, løses fortsatt.
 - **Planlagt vedlikehold.** En monitor i en vedlikeholdshendelse som pågår, kontrolleres ikke, så kriteriene kjører ikke. Se [Planlagt vedlikehold – Oversikt](/docs/scheduled-maintenance/index).
 
 For å se hvordan en kontroll ble vurdert, åpner du monitorens **Oversikt**: kortet **Monitor-sammendrag** viser hvilket kriterium som samsvarte og hva hvert kriterium gjorde, også en hendelse som ble hoppet over fordi en allerede var åpen.
@@ -140,7 +140,7 @@ En monitor har alltid en av prosjektets statuser. Et nytt prosjekt har tre, fra 
 | --- | --- | --- | --- |
 | **I drift** | 1 | Grønn | Nye monitorer starter i den, og den er en ny monitors **Standard monitorstatus**. Innebygd. |
 | **Redusert** | 2 | Gul | Ingenting av seg selv: et av kriteriene dine flytter en monitor hit. |
-| **Frakoblet** | 3 | Rød | En ny monitors frakoblet-kriterium flytter den hit, og OneUptime behandler en monitor med denne statusen som nede. Innebygd. |
+| **Offline** | 3 | Rød | En ny monitors offline-kriterium flytter den hit, og OneUptime behandler en monitor med denne statusen som nede. Innebygd. |
 
 Listen er en rekkefølge. Der monitorer vises sammen, vinner statusen som står lengst ned i listen: en monitorgruppe, en statussidegruppe og en statussides samlede status viser hver den verste statusen blant monitorene sine.
 
@@ -152,7 +152,7 @@ Listen er en rekkefølge. Der monitorer vises sammen, vinner statusen som står 
 | Statussider | Fargen på hver rad og tilgjengeligheten: bare statusene i sidens **Teller som nedetid** teller mot den. En ny statusside starter med alle statuser unntatt den driftsklare. Se [Velg hva siden viser](/docs/status-pages/index#å-velge-hva-som-vises-på-siden). |
 | Monitorgrupper | Gruppens status: den verste blant monitorene i den. Se [Monitorgrupper](/docs/monitor/monitor-groups). |
 | SLO-er | Nedetiden et SLO teller, ut fra sin egen liste over statuser. Se [Hvilke statuser som teller som nedetid](/docs/slo/introduction#hvilke-statuser-som-teller-som-nedetid). |
-| Avhengigheter | Om en overordnet monitor holder tilbake hendelser og varsler for monitorene som avhenger av den: som standard så lenge den har en frakoblet-status. |
+| Avhengigheter | Om en overordnet monitor holder tilbake hendelser og varsler for monitorene som avhenger av den: som standard så lenge den har en offline-status. |
 
 En status du legger til senere, kommer ikke med i listen **Teller som nedetid** på en eksisterende statusside: legg den til der selv.
 
@@ -165,7 +165,7 @@ Gå til **Monitorer → Innstillinger → Monitorstatus**. **Innstillinger** er 
 
 ### Opprett statusen
 
-Klikk på **Opprett Monitorstatus** og fyll ut **Navn**, **Beskrivelse** og **Farge**. Den nye statusen plasseres rett over frakoblet-statusen, slik at et brudd fortsatt regnes som det verste.
+Klikk på **Opprett Monitorstatus** og fyll ut **Navn**, **Beskrivelse** og **Farge**. Den nye statusen plasseres rett over offline-statusen, slik at et brudd fortsatt regnes som det verste.
 
 ### Sett den på plass
 
@@ -176,7 +176,7 @@ Dra statusen i håndtaket. En status lenger ned i listen regnes som verre enn al
 En status gjør ingenting før et kriterium flytter monitorer til den. Velg den i **Endre monitorstatus til** på kriteriet som skal sette den.
 :::
 
-Den driftsklare statusen og frakoblet-statusen er merket **Innebygd**: du kan gi dem nytt navn og endre fargen, men ikke slette dem. På OneUptime Cloud krever det Growth-planen å opprette eller endre en status. Å administrere statuser krever rollen Prosjekteier, Prosjektadministrator eller Monitoradministrator, eller en egendefinert rolle med tilsvarende tillatelse for monitorstatuser.
+Den driftsklare statusen og offline-statusen er merket **Innebygd**: du kan gi dem nytt navn og endre fargen, men ikke slette dem. På OneUptime Cloud krever det Growth-planen å opprette eller endre en status. Å administrere statuser krever rollen Prosjekteier, Prosjektadministrator eller Monitoradministrator, eller en egendefinert rolle med tilsvarende tillatelse for monitorstatuser.
 
 ### Statustidslinjen
 
@@ -191,12 +191,12 @@ Arkiver en status som teamet ditt ikke lenger skal bruke, i stedet for å slette
 - **Arkiver** ligger i radens meny **⋯**. Den spør først og viser monitorkriteriene, malene og statussidene som er satt opp til å bruke statusen: De fortsetter å bruke den til du endrer dem.
 - **Ingen kan velge den igjen.** Et kriterium, en monitors statusmeny, monitorstatusen til en hendelse eller en vedlikeholdshendelse og en statussides nedetidsstatuser utelater den. API-et, Terraform og MCP avviser den.
 - **Arkiverte statuser vises for seg**, i den sammenslåtte delen **Arkiverte monitorstatuser** under tabellen. **Fjern fra arkivet** setter en tilbake slik den var.
-- **De innebygde statusene kan ikke arkiveres.** Nye monitorer starter i driftsstatusen, og OneUptime regner en monitor i frakoblet-statusen som nede. Deres **Arkiver** er låst, med begrunnelsen.
+- **De innebygde statusene kan ikke arkiveres.** Nye monitorer starter i driftsstatusen, og OneUptime regner en monitor i offline-statusen som nede. Deres **Arkiver** er låst, med begrunnelsen.
 
 ## Feilsøking
 
 :::details Nettstedet er nede, men monitoren forblir I drift
-Et kriterium høyere opp i listen samsvarte først. Åpne **Konfigurasjon → Kriterier** og sjekk rekkefølgen: det friske kriteriet kommer sist. Sjekk også at frakoblet-kriteriet har **Aktiver disse kriteriene** slått på, og at handlingen **Når filtre samsvarer, endre monitorstatus.** er slått på med en valgt status.
+Et kriterium høyere opp i listen samsvarte først. Åpne **Konfigurasjon → Kriterier** og sjekk rekkefølgen: det friske kriteriet kommer sist. Sjekk også at offline-kriteriet har **Aktiver disse kriteriene** slått på, og at handlingen **Når filtre samsvarer, endre monitorstatus.** er slått på med en valgt status.
 :::
 
 :::details Ingen hendelse ble åpnet da monitoren gikk ned
@@ -207,8 +207,8 @@ Sjekk kriteriet som samsvarte: **Når filtre samsvarer, erklær en hendelse.** m
 Åpne kriteriet til hendelsen og utvid **Flere felt** i hendelsen: **Løs hendelse automatisk** må være slått på. En hendelse fra et kriterium du senere har slettet, løses ikke av monitoren: løs den manuelt.
 :::
 
-:::details Slett-knappen for Frakoblet er låst
-**I drift** og **Frakoblet** er innebygde: OneUptime flytter monitorer til dem, så de kan få nytt navn, men ikke slettes. Slett i stedet en av dine egne statuser, eller gi den innebygde et nytt navn.
+:::details Slett-knappen for Offline er låst
+**I drift** og **Offline** er innebygde: OneUptime flytter monitorer til dem, så de kan få nytt navn, men ikke slettes. Slett i stedet en av dine egne statuser, eller gi den innebygde et nytt navn.
 :::
 
 ## Neste trinn

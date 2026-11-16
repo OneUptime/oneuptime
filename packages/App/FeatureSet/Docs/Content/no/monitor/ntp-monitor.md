@@ -29,7 +29,7 @@ Ut fra de fire tidsstemplene regner sonden ut **klokkeavviket**, ((T2 − T1) + 
 > [!NOTE]
 > Avviket måles mot sondens egen klokke. OneUptime Clouds sonder holder klokkene sine synkronisert. På en [egendefinert sonde](/docs/probe/custom-probe) må vertens klokke også holdes synkronisert, med chrony eller systemd-timesyncd, ellers kan et avviksvarsel handle om sonden og ikke om serveren.
 
-En server som svarer, blir ikke spurt igjen, heller ikke når den svarer uten pålitelig tid. Stillhet, en avvist port og et mislykket DNS-oppslag prøves på nytt med en ny forespørsel. Når serveren ikke svarer i det hele tatt, sporer sonden også ruten dit og legger ved det den fant som **Nettverksbane på feiltidspunktet**. En sonde som har mistet sin egen nettverksforbindelse, rapporterer ikke noe resultat, så den kan ikke markere serveren din som frakoblet.
+En server som svarer, blir ikke spurt igjen, heller ikke når den svarer uten pålitelig tid. Stillhet, en avvist port og et mislykket DNS-oppslag prøves på nytt med en ny forespørsel. Når serveren ikke svarer i det hele tatt, sporer sonden også ruten dit og legger ved det den fant som **Nettverksbane på feiltidspunktet**. En sonde som har mistet sin egen nettverksforbindelse, rapporterer ikke noe resultat, så den kan ikke markere serveren din som offline.
 
 ## Før du begynner
 
@@ -57,7 +57,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde** og klikk på **Kj
 
 ### Gå gjennom kriteriene
 
-**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når serveren ikke leverer pålitelig tid, online når den gjør det. Endre dem ved behov, og klikk på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): offline når serveren ikke leverer pålitelig tid, online når den gjør det. Endre dem ved behov, og klikk på **Neste**.
 
 ### Velg sonder og opprett
 
@@ -95,7 +95,7 @@ En server som nekter å oppgi tiden, sender i stedet et **kiss-o'-death**: et sv
 
 ## Overvåkingskriterier
 
-Kriterier avgjør når serveren regnes som online, redusert eller frakoblet, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium kontrollerer ett eller flere filtre:
+Kriterier avgjør når serveren regnes som online, redusert eller offline, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium kontrollerer ett eller flere filtre:
 
 | Filter | Betingelser | Hva det kontrollerer |
 | --- | --- | --- |
@@ -112,7 +112,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny NTP-monitor starter med to kriterier:
 
-- **Frakoblet** — serveren svarer ikke, er ikke synkronisert, eller klokken dens er `1000` ms eller mer fra sondens. Monitoren markeres som **Frakoblet**, og det opprettes en hendelse som heter "_monitornavn_ leverer ikke riktig tid". Den løser seg selv når serveren igjen leverer pålitelig tid.
+- **Offline** — serveren svarer ikke, er ikke synkronisert, eller klokken dens er `1000` ms eller mer fra sondens. Monitoren markeres som **Offline**, og det opprettes en hendelse som heter "_monitornavn_ leverer ikke riktig tid". Den løser seg selv når serveren igjen leverer pålitelig tid.
 - **Online** — serveren svarer, er synkronisert, og klokken dens er innenfor `1000` ms fra sondens. Monitoren markeres som **I drift**.
 
 Kriteriene kontrolleres ovenfra og ned, og det første som samsvarer, avgjør hva som skjer. En server som svarer med feil tid, behandles med vilje som nede: hver klient som følger den, ville også ta den tiden.

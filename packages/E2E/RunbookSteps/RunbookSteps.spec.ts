@@ -3,6 +3,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
@@ -839,7 +840,9 @@ test.describe("on every screen", () => {
     const elapsed: Locator = page.getByTestId("runbook-execution-elapsed");
 
     // The fixture's run started ten minutes ago.
-    await expect(elapsed).toHaveText(/^10 mins( \d+ secs?)?$/);
+    await expect(elapsed).toHaveText(
+      new RegExp(`^10${NO_BREAK_SPACE}mins( \\d+${NO_BREAK_SPACE}secs?)?$`),
+    );
     await expect(elapsed).toHaveAttribute("role", "timer");
 
     const first: string = (await elapsed.textContent()) || "";

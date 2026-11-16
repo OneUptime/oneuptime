@@ -74,7 +74,7 @@ Jeder Lauf verweist auf seinen Trace, mit seinen Protokollen. Es gelten dieselbe
 
 ## Dashboards in BI-Tools
 
-Die eigentliche Folge schlechter Daten ist das Dashboard, das jemand öffnet. Fügen Sie unter **BI-Dashboards** Ihre BI-Tools mit Zugangsdaten hinzu, die deren Dashboards lesen dürfen. Jede Stunde liest Data Observability jedes Dashboard und die Tabellen dahinter, ordnet jede Tabelle einer überwachten zu und zeigt die Dashboards, die auf einer Tabelle und auf den daraus erstellten Tabellen aufbauen, auf ihrem Tab **Datenherkunft**, an ihren Alarmen und im Production Review.
+Die eigentliche Folge schlechter Daten ist das Dashboard, das jemand öffnet. Fügen Sie unter **BI-Dashboards** Ihre BI-Tools mit Zugangsdaten hinzu, die deren Dashboards lesen dürfen. Jede Stunde liest Data Observability jedes Dashboard und die Tabellen dahinter, ordnet jede Tabelle einer überwachten zu und zeigt die Dashboards, die auf einer Tabelle und auf den daraus erstellten Tabellen aufbauen, auf ihrem Tab **Datenherkunft**, an ihren Warnungen und im Production Review.
 
 | Tool | Zugangsdaten |
 | --- | --- |

@@ -312,7 +312,7 @@ Altri nomi: **Profili di prestazioni**, **Profilazione continua**. Vedi [Profili
 
 Le conversazioni delle tue app e dei tuoi agenti di IA: ogni chiamata a un modello, con token, costo, latenza, prompt e risposta, ricostruita dagli span OpenTelemetry che la tua app invia.
 
-Altri nomi: **Osservabilità AI / LLM**. Vedi [Osservabilità IA / LLM](/docs/telemetry/ai-llm-observability).
+Altri nomi: **Osservabilità IA / LLM**. Vedi [Osservabilità IA / LLM](/docs/telemetry/ai-llm-observability).
 
 ### Osservabilità dei dati
 

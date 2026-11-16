@@ -6,7 +6,7 @@ En IP-monitor sjekker at en IPv4- eller IPv6-adresse svarer på ping (ICMP-ekkof
 - [Opprett monitoren](#opprett-en-ip-monitor): Seks trinn i dashbordet.
 - [Konfigurasjonsalternativer](#konfigurasjonsalternativer): Adressen, tidsavbruddet og nye forsøk.
 - [Overvåkingskriterier](#overvåkingskriterier): Tilgjengelighet, forsinkelse, pakketap og jitter.
-- [Feilsøking](#feilsøking): Når adressen er oppe, men monitoren sier frakoblet.
+- [Feilsøking](#feilsøking): Når adressen er oppe, men monitoren sier offline.
 :::
 
 ## Slik fungerer det
@@ -35,7 +35,7 @@ Hvilken du skal bruke:
 > [!NOTE]
 > Noen vertsleverandører blokkerer ICMP på maskinene en sonde kjører på. En sonde som ikke kan sende ping i det hele tatt, sjekker i stedet TCP-port `80` på adressen, så monitoren fortsatt sier om den kan nås. Pakketap og jitter måles da ikke.
 
-En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke adressen din som frakoblet.
+En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke adressen din som offline.
 
 ## Før du starter
 
@@ -63,7 +63,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **K
 
 ### Gå gjennom kriteriene
 
-**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når adressen ikke svarer, tilkoblet når den gjør det. Endre dem ved behov, og klikk så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): offline når adressen ikke svarer, tilkoblet når den gjør det. Endre dem ved behov, og klikk så på **Neste**.
 
 ### Velg sonder og opprett
 
@@ -82,7 +82,7 @@ Behold eller endre **Sonder** og **Overvåkingsintervall** (det starter på **Hv
 
 ## Overvåkingskriterier
 
-Kriterier avgjør når adressen regnes som tilkoblet, redusert eller frakoblet, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
+Kriterier avgjør når adressen regnes som tilkoblet, redusert eller offline, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
@@ -98,7 +98,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny IP-monitor starter med to kriterier:
 
-- **Frakoblet** — adressen svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitornavn_ er frakoblet" opprettes. Hendelsen løser seg selv når adressen svarer igjen.
+- **Offline** — adressen svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Offline**, og en hendelse kalt "_monitornavn_ er offline" opprettes. Hendelsen løser seg selv når adressen svarer igjen.
 - **Oppe** — adressen svarer. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -131,14 +131,14 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
-| Frakoblet når adressen ikke kan nås | **Er tilkoblet** | **Usann** | — |
+| Offline når adressen ikke kan nås | **Er tilkoblet** | **Usann** | — |
 | Varsle når forsinkelsen er høy | **Svartid (i ms)** | **Større enn** | `100` |
 | Merk adressen som redusert på en forbindelse med tap | **Pakketap (i %)** | **Større enn** | `20` |
 | Varsle ved en ustabil forbindelse | **Jitter (i ms)** | **Større enn** | `30` |
 
 ## Feilsøking
 
-:::details Adressen er oppe, men monitoren sier frakoblet
+:::details Adressen er oppe, men monitoren sier offline
 Adressen, eller en brannmur foran den, svarer ikke på ICMP-ekkoforespørsler fra sonden. Tillat ICMP-ekkoforespørsler fra sondene, eller overvåk heller en tjeneste på den adressen med en [port-monitor](/docs/monitor/port-monitor). **Nettverksbane på feiltidspunktet** på den mislykkede sjekken viser hvor langt ruten kom.
 :::
 

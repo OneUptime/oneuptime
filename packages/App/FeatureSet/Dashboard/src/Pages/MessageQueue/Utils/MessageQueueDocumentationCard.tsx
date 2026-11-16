@@ -14,6 +14,7 @@ import {
   getMessageQueueSetupGuide,
   resolveMessageQueueGuideSystem,
 } from "./DocumentationMarkdown";
+import { MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS } from "./DocumentationTranslations";
 
 /*
  * The Queues setup guide with the viewer's ingestion key filled in, on the
@@ -77,6 +78,16 @@ const MessageQueueDocumentationCard: FunctionComponent<ComponentProps> = (
         return TelemetryIngestionKeyType.Server;
       }}
       getContent={getContent}
+      /*
+       * The product page's guide reads in the reader's language (#8341). A
+       * queue's own tab stays in English whole until its pieces (the
+       * queue's identity, its broker's address and a system the catalog
+       * does not know) have words of their own: a guide half in one
+       * language reads worse than one in English (#8798).
+       */
+      translations={
+        props.queue ? undefined : MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS
+      }
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

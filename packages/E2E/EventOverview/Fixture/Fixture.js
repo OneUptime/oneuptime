@@ -9356,7 +9356,7 @@ async function handleApi(method, options) {
         400,
         {
           message:
-            "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
+            "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A Project Owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
           refusalCode: "project_daily_limit_reached",
         },
         {},
@@ -9394,7 +9394,7 @@ async function handleApi(method, options) {
         400,
         {
           message:
-            "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+            "OneUptime AI is switched off for this project. A Project Owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
           refusalCode: "ai_off",
         },
         {},

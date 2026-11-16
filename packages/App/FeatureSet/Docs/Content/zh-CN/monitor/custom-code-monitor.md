@@ -149,7 +149,7 @@ return {
 };
 ```
 
-记录之后，这些指标会以 `custom.monitor.api.response.time` 这样的名称出现在 Metric Explorer 中，也会出现在监视器 **指标** 页面的 **自定义指标** 下。OneUptime 会给每个数据点加上监视器和探测器，因此你可以绘制图表、设置告警，并按监视器、探测器或你提供的任何自定义属性筛选。
+记录之后，这些指标会以 `custom.monitor.api.response.time` 这样的名称出现在 Metric Explorer 中，也会出现在监视器 **指标** 页面的 **自定义指标** 下。OneUptime 会给每个数据点加上监视器和探测器，因此你可以绘制图表、设置警报，并按监视器、探测器或你提供的任何自定义属性筛选。
 
 ### 限制
 
@@ -169,7 +169,7 @@ return {
 - `oneuptime.` 或 `resource.` 命名空间中的所有内容，它们承载 OneUptime 在接收数据时打上的标识符。
 - 资源标识属性：`service.name`、`host.name`、`k8s.cluster.name`、`iot.fleet.name`、`proxmox.cluster.name`、`openstack.cloud.name`、`vmware.vcenter.name`、`ceph.cluster.name`、`storage.array.name` 和 `docker.swarm.cluster.name`。
 
-这些名称不只是标签：OneUptime 会把它们读回，当作数据点属于哪个资源的声明。带有 `service.name: payments-api` 的指标会出现在该服务的指标选项卡上；如果你之后创建按 `service.name` 分组的指标监视器，它的告警会关联到该服务、呼叫该服务的负责人，并在该服务的维护窗口期间保持静默。要把监视器与服务或主机关联起来，请改用监视器自己的标签。
+这些名称不只是标签：OneUptime 会把它们读回，当作数据点属于哪个资源的声明。带有 `service.name: payments-api` 的指标会出现在该服务的指标选项卡上；如果你之后创建按 `service.name` 分组的指标监视器，它的警报会关联到该服务、呼叫该服务的负责人，并在该服务的维护窗口期间保持静默。要把监视器与服务或主机关联起来，请改用监视器自己的标签。
 
 ## 条件
 
@@ -181,9 +181,9 @@ return {
 | **结果值** | 脚本返回的 `data`。如果它是数字，就按数字比较。 | 同上，另加：大于、小于、大于或等于、小于或等于、是、否 |
 | **执行时间（毫秒）** | 脚本运行了多长时间。 | 数值比较 |
 
-默认条件在 **错误** 为空时将监视器标记为在线，不为空时标记为离线，并附带一个事件，脚本再次成功时该事件会自动解决。在事件和告警模板中，这次运行可以用 `{{result}}`、`{{scriptError}}`、`{{logMessages}}` 和 `{{executionTimeInMs}}` 引用：请参阅 [事件与告警模板](/docs/monitor/incident-alert-templating)。
+默认条件在 **错误** 为空时将监视器标记为在线，不为空时标记为离线，并附带一个事件，脚本再次成功时该事件会自动解决。在事件和警报模板中，这次运行可以用 `{{result}}`、`{{scriptError}}`、`{{logMessages}}` 和 `{{executionTimeInMs}}` 引用：请参阅 [事件与警报模板](/docs/monitor/incident-alert-templating)。
 
-### 根据返回的数据告警
+### 根据返回的数据警报
 
 脚本作为 `data` 返回的内容就是监视器的 **结果值**，条件可以对它进行比较，例如 _结果值 等于 `UP`_。
 
@@ -257,5 +257,5 @@ return {
 :::cards
 - [合成监控](/docs/monitor/synthetic-monitor): 驱动真实浏览器，而不是调用 API。
 - [监控密钥](/docs/monitor/monitor-secrets): 保存脚本使用的凭据。
-- [事件与告警模板](/docs/monitor/incident-alert-templating): 把脚本的结果和日志放进事件。
+- [事件与警报模板](/docs/monitor/incident-alert-templating): 把脚本的结果和日志放进事件。
 :::
