@@ -438,3 +438,73 @@ describe("a refusal names the fields of the caller as they asked", () => {
     expect(repository.find).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * A SORT IS HELD TO THE CALLER'S READ OF EACH COLUMN IT NAMES (#8839): an
+ * order says what a column holds, one guess at a time, so a list is sorted
+ * only by what its caller may read - as it is selected and filtered.
+ */
+describe("POST /incident/get-list: a sort by a column the caller may not read is refused", () => {
+  test("a column nobody may read: 403, and nothing is read", async () => {
+    caller = personWith([Permission.ProjectOwner]);
+    const repository: FakeRepository = fakeRepository(IncidentService);
+
+    const refusal: unknown = await refusalOfList({ groupingWaitKey: "ASC" });
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect((refusal as NotAuthorizedException).code).toBe(
+      ExceptionCode.NotAuthorizedException,
+    );
+    expect((refusal as NotAuthorizedException).message).toBe(
+      "You do not have permissions to sort on - groupingWaitKey. No permission allows it: a list cannot be sorted by the column through the API.",
+    );
+    expect(repository.find).not.toHaveBeenCalled();
+  });
+
+  test("a related record's column the caller may not read - the key of the probe that created the incident: 403, and nothing is read", async () => {
+    const repository: FakeRepository = fakeRepository(IncidentService);
+
+    const refusal: unknown = await refusalOfList({
+      createdByProbe: { key: "ASC" },
+    });
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect((refusal as NotAuthorizedException).message).toBe(
+      "You do not have permissions to sort on - key of Probe through createdByProbe. You need one of these permissions: Project Owner, Project Admin.",
+    );
+    expect(repository.find).not.toHaveBeenCalled();
+  });
+
+  test("the same sort reads for an admin, who may read a probe's key", async () => {
+    caller = personWith([Permission.ProjectAdmin]);
+    const repository: FakeRepository = fakeRepository(IncidentService);
+
+    await incidentApi().getList(
+      request(listBody({ createdByProbe: { key: "ASC" } })),
+      response(),
+    );
+
+    expect(repository.find.mock.calls[0]![0].order).toEqual({
+      createdByProbe: { key: "ASC" },
+      _id: SortOrder.Ascending,
+    });
+  });
+
+  test("a service reading as root sorts by any column, as before", async () => {
+    const repository: FakeRepository = fakeRepository(IncidentService);
+
+    await IncidentService.findBy({
+      query: { projectId: PROJECT_ID },
+      select: { _id: true },
+      sort: { groupingWaitKey: SortOrder.Ascending } as never,
+      skip: 0,
+      limit: 10,
+      props: { isRoot: true },
+    });
+
+    expect(repository.find.mock.calls[0]![0].order).toEqual({
+      groupingWaitKey: SortOrder.Ascending,
+      _id: SortOrder.Ascending,
+    });
+  });
+});
