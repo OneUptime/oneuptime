@@ -147,14 +147,16 @@ jobs:
       # every permission table asks one Scope (the custom role table is in
       # ee/Dashboard since #5216), the looked-up-once guard, which holds the
       # Enterprise pages' headings, crumbs, menu entries and tooltips to one
-      # lookup (#8224), and the check that states drawn together agree, which
+      # lookup (#8224), the check that states drawn together agree, which
       # reads the Enterprise licenses' and the Postgres cluster's states where
-      # the Admin Dashboard draws them - but the Common Test job deletes ee/
-      # first, so only this run sees the Enterprise UI. They only read files
-      # (and load Common's models).
+      # the Admin Dashboard draws them, and the milliseconds guard, which
+      # holds ee/Dashboard's durations to the reader's language as it holds
+      # the Dashboard's (#7418) - but the Common Test job deletes ee/ first,
+      # so only this run sees the Enterprise UI. They only read files (and
+      # load Common's models).
       - name: Run Common's UI source guards with ee/ present
         working-directory: packages/Common
-        run: node node_modules/.bin/jest Tests/UI/ForeignHiddenRuleGuard.test.ts Tests/UI/Components/Forms/CreateFormDefaultsGuard.test.ts Tests/UI/Components/CardInCardGuard.test.ts Tests/UI/Components/CardRowsGuard.test.ts Tests/UI/Components/Forms/LongFormStepsGuard.test.ts Tests/App/Dashboard/PermissionScopeChoice.test.ts Tests/UI/Components/PlaceholderLookedUpOnceEverywhere.test.ts Tests/App/StatesDrawnTogetherAgree.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/UI/ForeignHiddenRuleGuard.test.ts Tests/UI/Components/Forms/CreateFormDefaultsGuard.test.ts Tests/UI/Components/CardInCardGuard.test.ts Tests/UI/Components/CardRowsGuard.test.ts Tests/UI/Components/Forms/LongFormStepsGuard.test.ts Tests/App/Dashboard/PermissionScopeChoice.test.ts Tests/UI/Components/PlaceholderLookedUpOnceEverywhere.test.ts Tests/App/StatesDrawnTogetherAgree.test.ts Tests/UI/MillisecondsInReadersLanguageGuard.test.ts --forceExit
       # Common's check of which JavaScript each package's TypeScript compiles
       # to (#8223) holds ee/'s tsconfigs too: the enterprise server at ES2018
       # or later and below ES2022, ee/Dashboard, ee/AdminDashboard and the ee
