@@ -586,10 +586,22 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Hands a probe its Pending captures, oldest first, at most `limit` (the
-   * capture slots it has free), and marks them Running. FOR UPDATE SKIP
-   * LOCKED, so two replicas of one probe never run the same capture.
-   * Captures older than the pickup window are left for the sweep to fail:
-   * whoever started one has long since been told it was not picked up.
+   * capture slots it has free), and marks them Running. Captures older than
+   * the pickup window are left for the sweep to fail: whoever started one
+   * has long since been told it was not picked up.
+   *
+   * One self-committing statement (OneUptime issue #7392), the shape of
+   * NetworkDeviceService.claimDevicesForPolling: the captures are locked FOR
+   * NO KEY UPDATE SKIP LOCKED, so two replicas of one probe never run the
+   * same capture, and marked Running by the same statement, so the locks
+   * last only as long as it runs - and the foreign-key check of a row that
+   * names a capture does not wait for them. It was a transaction of a
+   * SELECT ... FOR UPDATE and an UPDATE of the ids: four round trips on
+   * every probe tick, even with nothing pending.
+   *
+   * What the probe runs is read with the lock, from the row the UPDATE
+   * writes (it changes none of those columns), and comes back in claim
+   * order, the oldest first.
    */
   @CaptureSpan()
   public async claimPendingForProbe(data: {
@@ -605,60 +617,57 @@ export class Service extends ProjectReferencesService<Model> {
       -PACKET_CAPTURE_PICKUP_TIMEOUT_IN_MINUTES,
     );
 
-    return await this.executeTransaction(
-      async (
-        transactionalEntityManager: EntityManager,
-      ): Promise<Array<PacketCaptureJob>> => {
-        const rows: unknown = await transactionalEntityManager.query(
-          `
-            SELECT c."_id", c."interfaceName", c."bpfFilter",
-                   c."maxDurationInSeconds", c."maxPackets", c."maxFileSizeInMB"
-            FROM "PacketCapture" c
-            WHERE c."probeId" = $1
-              AND c."status" = $2
-              AND c."createdAt" >= $3
-              AND c."deletedAt" IS NULL
-            ORDER BY c."createdAt" ASC
-            LIMIT $4
-            FOR UPDATE OF c SKIP LOCKED
-          `,
-          [
-            data.probeId.toString(),
-            PacketCaptureStatus.Pending,
-            pickupWindowStart,
-            data.limit,
-          ],
-        );
-
-        const claimed: Array<Record<string, unknown>> = Array.isArray(rows)
-          ? (rows as Array<Record<string, unknown>>)
-          : [];
-
-        if (claimed.length === 0) {
-          return [];
-        }
-
-        await transactionalEntityManager.query(
-          `
-            UPDATE "PacketCapture"
-            SET "status" = $2,
-                "startedAt" = now(),
-                "updatedAt" = now()
-            WHERE "_id" = ANY($1::uuid[])
-          `,
-          [
-            claimed.map((row: Record<string, unknown>): string => {
-              return String(row["_id"]);
-            }),
-            PacketCaptureStatus.Running,
-          ],
-        );
-
-        return claimed.map((row: Record<string, unknown>): PacketCaptureJob => {
-          return Service.toJob(row);
-        });
-      },
+    /*
+     * A SELECT of the rows the UPDATE wrote: TypeORM hands a top-level
+     * UPDATE ... RETURNING back as [rows, rowCount] instead.
+     */
+    const rows: unknown = await this.getRepository().manager.query(
+      `
+        WITH "pending" AS (
+          SELECT c."_id", c."interfaceName", c."bpfFilter",
+                 c."maxDurationInSeconds", c."maxPackets", c."maxFileSizeInMB",
+                 c."createdAt"
+          FROM "PacketCapture" c
+          WHERE c."probeId" = $1
+            AND c."status" = $2
+            AND c."createdAt" >= $3
+            AND c."deletedAt" IS NULL
+          ORDER BY c."createdAt" ASC
+          LIMIT $4
+          FOR NO KEY UPDATE OF c SKIP LOCKED
+        ),
+        "claimed" AS (
+          UPDATE "PacketCapture" AS c
+          SET "status" = $5,
+              "startedAt" = now(),
+              "updatedAt" = now()
+          FROM "pending"
+          WHERE c."_id" = "pending"."_id"
+          RETURNING c."_id"
+        )
+        SELECT "pending"."_id", "pending"."interfaceName", "pending"."bpfFilter",
+               "pending"."maxDurationInSeconds", "pending"."maxPackets",
+               "pending"."maxFileSizeInMB"
+        FROM "pending"
+        INNER JOIN "claimed" ON "claimed"."_id" = "pending"."_id"
+        ORDER BY "pending"."createdAt" ASC
+      `,
+      [
+        data.probeId.toString(),
+        PacketCaptureStatus.Pending,
+        pickupWindowStart,
+        data.limit,
+        PacketCaptureStatus.Running,
+      ],
     );
+
+    const claimed: Array<Record<string, unknown>> = Array.isArray(rows)
+      ? (rows as Array<Record<string, unknown>>)
+      : [];
+
+    return claimed.map((row: Record<string, unknown>): PacketCaptureJob => {
+      return Service.toJob(row);
+    });
   }
 
   /*

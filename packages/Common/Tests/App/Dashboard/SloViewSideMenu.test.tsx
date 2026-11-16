@@ -76,6 +76,11 @@ interface DetailPage {
 const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
   { title: "Overview", section: "Overview", path: SLO_PATH },
   { title: "Metrics", section: "Overview", path: `${SLO_PATH}/metrics` },
+  {
+    title: "Monthly Report",
+    section: "Overview",
+    path: `${SLO_PATH}/monthly-report`,
+  },
   { title: "Incidents", section: "Activity", path: `${SLO_PATH}/incidents` },
   { title: "Alerts", section: "Activity", path: `${SLO_PATH}/alerts` },
   { title: "Feed", section: "Activity", path: `${SLO_PATH}/feed` },
@@ -178,13 +183,13 @@ describe("SLO detail side menu", () => {
     },
   );
 
-  test("keeps all seventeen destinations unique and fully populated", async () => {
+  test("keeps all eighteen destinations unique and fully populated", async () => {
     await renderSloMenu();
 
     const hrefs: Array<string> = hrefsInMenu();
     const titles: Array<string> = titlesInMenu();
 
-    expect(hrefs).toHaveLength(17);
+    expect(hrefs).toHaveLength(18);
     expect(hrefs).toEqual(Array.from(new Set(hrefs)));
     expect(titles).toEqual(Array.from(new Set(titles)));
     expect(hrefs).toEqual(

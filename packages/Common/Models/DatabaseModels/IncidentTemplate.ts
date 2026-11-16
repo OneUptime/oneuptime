@@ -973,9 +973,9 @@ export default class IncidentTemplate extends BaseModel {
    *
    * IncidentTemplateService derives it from writes to statusPages and ignores
    * any value a client sends; it is never recomputed when join rows
-   * disappear. Computed, so a client cannot set it on create; its update
-   * access control matches statusPages because the service writes it into
-   * the caller's own update.
+   * disappear. Computed, so the value the service writes on a create is the
+   * create's own; its update access control matches statusPages because the
+   * service writes it into the caller's own update.
    */
   @ColumnAccessControl({
     create: [

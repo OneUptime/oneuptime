@@ -331,6 +331,57 @@ describe("Telemetry.init with a header whose value holds '='", () => {
   });
 });
 
+/*
+ * The form a backend's setup guide gives for OTEL_EXPORTER_OTLP_HEADERS
+ * (issue #7162): ',' between headers, a space in a value written %20. Read
+ * with ';' only, it was one header whose value held the other - sent, so
+ * refused by the backend, and nobody told.
+ */
+describe("Telemetry.init with headers copied as OTEL_EXPORTER_OTLP_HEADERS writes them", () => {
+  test("exports traces, metrics and logs with each header, its value decoded", () => {
+    process.env[ENDPOINT] = "https://collector.example.com/otlp";
+    process.env[HEADERS] =
+      "Authorization=Basic%20dXNlcjpwYXNzd29yZA==,X-Scope-OrgID=tenant-1";
+
+    expect(Telemetry.init({ serviceName: "app" })).not.toBeNull();
+
+    for (const configs of [
+      mockExporterConfigs.traces,
+      mockExporterConfigs.metrics,
+      mockExporterConfigs.logs,
+    ]) {
+      expect(configs).toHaveLength(1);
+      expect(configs[0]?.headers).toEqual({
+        Authorization: BASIC_AUTHORIZATION,
+        "X-Scope-OrgID": "tenant-1",
+      });
+    }
+
+    expect(Telemetry.isSpanExportEnabled()).toBe(true);
+    expect(loggedLines()).toEqual([]);
+  });
+
+  test("exports with a OneUptime token and a second header separated by ','", () => {
+    process.env[ENDPOINT] = "https://oneuptime.example.com/otlp";
+    process.env[HEADERS] = "x-oneuptime-token=c2VjcmV0=,x-extra=1";
+
+    Telemetry.init({ serviceName: "worker" });
+
+    for (const configs of [
+      mockExporterConfigs.traces,
+      mockExporterConfigs.metrics,
+      mockExporterConfigs.logs,
+    ]) {
+      expect(configs[0]?.headers).toEqual({
+        "x-oneuptime-token": "c2VjcmV0=",
+        "x-extra": "1",
+      });
+    }
+
+    expect(loggedLines()).toEqual([]);
+  });
+});
+
 describe("Telemetry.init with a header it cannot read", () => {
   test("exports with the headers it can read, and warns about the other once", () => {
     process.env[ENDPOINT] = "https://collector.example.com/otlp";
@@ -349,7 +400,7 @@ describe("Telemetry.init with a header it cannot read", () => {
       "OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart): " +
         "OneUptime cannot read header 2 of 2, so it does not send it. " +
         "Header 2 has no '=' between a name and a value. " +
-        "Write each header as name=value, and separate headers with ';'.",
+        "Write each header as name=value, and separate headers with ';' (or ',' as in OTEL_EXPORTER_OTLP_HEADERS).",
     ]);
     expect(loggerError).toHaveBeenCalledWith(
       expect.any(String),
@@ -432,7 +483,7 @@ describe("Telemetry.init with a header it cannot read", () => {
       "OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart): " +
         "OneUptime cannot read header 2 of 2, so it does not send it. " +
         "Header 2 has no '=' between a name and a value. " +
-        "Write each header as name=value, and separate headers with ';'.",
+        "Write each header as name=value, and separate headers with ';' (or ',' as in OTEL_EXPORTER_OTLP_HEADERS).",
     ]);
   });
 
@@ -500,5 +551,206 @@ describe("Telemetry.init's export gate", () => {
     expect(exportersBuilt()).toBe(0);
     expect(mockSdkStarts.count).toBe(0);
     expect(loggedLines()).toEqual([]);
+  });
+
+  test("the line for an endpoint without any header names the standard's variable too", () => {
+    expect(NOTHING_EXPORTED_WITHOUT_A_HEADER).toBe(
+      "OneUptime sends none of its own traces, metrics or logs: " +
+        "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT is set, but neither " +
+        "OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart) " +
+        "nor OTEL_EXPORTER_OTLP_HEADERS holds a header it can send, and it exports only with one. " +
+        "Set at least one header, written as name=value, such as the x-oneuptime-token header with a Server ingestion key.",
+    );
+  });
+});
+
+/*
+ * Issue #8884: the OTLP exporters read the OpenTelemetry standard's header
+ * variables on their own - OTEL_EXPORTER_OTLP_HEADERS for every signal, and
+ * OTEL_EXPORTER_OTLP_<SIGNAL>_HEADERS for one - and send them under the
+ * headers OneUptime hands them. The gate counted OneUptime's own setting
+ * only, so an endpoint whose headers were set there alone exported nothing,
+ * and the line said no header could be sent. Now each signal is exported
+ * when its exporter has a header to send, from either.
+ */
+describe("Telemetry.init with headers in the OpenTelemetry standard's own variables", () => {
+  const STANDARD: string = "OTEL_EXPORTER_OTLP_HEADERS";
+  const SIGNAL_VARIABLES: Array<string> = [
+    "OTEL_EXPORTER_OTLP_TRACES_HEADERS",
+    "OTEL_EXPORTER_OTLP_METRICS_HEADERS",
+    "OTEL_EXPORTER_OTLP_LOGS_HEADERS",
+  ];
+
+  const built: () => Record<string, number> = (): Record<string, number> => {
+    return {
+      traces: mockExporterConfigs.traces.length,
+      metrics: mockExporterConfigs.metrics.length,
+      logs: mockExporterConfigs.logs.length,
+    };
+  };
+
+  beforeEach(() => {
+    delete process.env[STANDARD];
+
+    for (const variable of SIGNAL_VARIABLES) {
+      delete process.env[variable];
+    }
+  });
+
+  afterAll(() => {
+    delete process.env[STANDARD];
+
+    for (const variable of SIGNAL_VARIABLES) {
+      delete process.env[variable];
+    }
+  });
+
+  test("exports traces, metrics and logs when OTEL_EXPORTER_OTLP_HEADERS alone holds a header, and says nothing", () => {
+    process.env[ENDPOINT] = "https://oneuptime.example.com/otlp";
+    process.env[STANDARD] = "x-oneuptime-token=key";
+
+    Telemetry.init({ serviceName: "app" });
+
+    expect(built()).toEqual({ traces: 1, metrics: 1, logs: 1 });
+    expect(Telemetry.isSpanExportEnabled()).toBe(true);
+    expect(internals.metricReader).toBeDefined();
+    expect(loggedLines()).toEqual([]);
+  });
+
+  /*
+   * The exporters read the standard's variables themselves and keep
+   * OneUptime's headers over them, so OneUptime hands them its own only: its
+   * own win by name, and nothing is sent twice.
+   */
+  test("hands the exporters none of the standard's headers, as they read those themselves", () => {
+    process.env[ENDPOINT] = "https://oneuptime.example.com/otlp";
+    process.env[STANDARD] = "x-oneuptime-token=standard-key,x-extra=1";
+
+    Telemetry.init({ serviceName: "app" });
+
+    for (const configs of [
+      mockExporterConfigs.traces,
+      mockExporterConfigs.metrics,
+      mockExporterConfigs.logs,
+    ]) {
+      expect(configs[0]?.headers).toEqual({});
+    }
+  });
+
+  test("hands the exporters OneUptime's own headers beside the standard's, which they keep over them", () => {
+    process.env[ENDPOINT] = "https://oneuptime.example.com/otlp";
+    process.env[HEADERS] = "x-oneuptime-token=own-key";
+    process.env[STANDARD] = "x-oneuptime-token=standard-key,x-extra=1";
+
+    Telemetry.init({ serviceName: "app" });
+
+    for (const configs of [
+      mockExporterConfigs.traces,
+      mockExporterConfigs.metrics,
+      mockExporterConfigs.logs,
+    ]) {
+      expect(configs[0]?.headers).toEqual({ "x-oneuptime-token": "own-key" });
+    }
+
+    expect(loggedLines()).toEqual([]);
+  });
+
+  test("a signal's own variable exports that signal, and says which are not sent", () => {
+    process.env[ENDPOINT] = "https://oneuptime.example.com/otlp";
+    process.env["OTEL_EXPORTER_OTLP_TRACES_HEADERS"] = "x-oneuptime-token=key";
+
+    Telemetry.init({ serviceName: "app" });
+
+    expect(built()).toEqual({ traces: 1, metrics: 0, logs: 0 });
+    expect(loggedLines()).toEqual([
+      "OneUptime sends none of its own metrics or logs: " +
+        "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT is set, but its only headers are in OTEL_EXPORTER_OTLP_TRACES_HEADERS, " +
+        "for traces alone, and it exports a signal only with a header. " +
+        "Set one for every signal in OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart) " +
+        "or OTEL_EXPORTER_OTLP_HEADERS, or set OTEL_EXPORTER_OTLP_METRICS_HEADERS and OTEL_EXPORTER_OTLP_LOGS_HEADERS.",
+    ]);
+    expect(loggerError).toHaveBeenCalledWith(
+      expect.any(String),
+      EXTERNAL_FAULT,
+    );
+  });
+
+  test("two signals' own variables export those two, and name the third", () => {
+    process.env[ENDPOINT] = "https://oneuptime.example.com/otlp";
+    process.env["OTEL_EXPORTER_OTLP_METRICS_HEADERS"] = "x-oneuptime-token=key";
+    process.env["OTEL_EXPORTER_OTLP_LOGS_HEADERS"] = "x-oneuptime-token=key";
+
+    Telemetry.init({ serviceName: "app" });
+
+    expect(built()).toEqual({ traces: 0, metrics: 1, logs: 1 });
+    expect(Telemetry.isSpanExportEnabled()).toBe(false);
+    expect(loggedLines()).toEqual([
+      "OneUptime sends none of its own traces: " +
+        "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT is set, but its only headers are in OTEL_EXPORTER_OTLP_METRICS_HEADERS and OTEL_EXPORTER_OTLP_LOGS_HEADERS, " +
+        "for metrics and logs alone, and it exports a signal only with a header. " +
+        "Set one for every signal in OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart) " +
+        "or OTEL_EXPORTER_OTLP_HEADERS, or set OTEL_EXPORTER_OTLP_TRACES_HEADERS.",
+    ]);
+  });
+
+  test("every signal's own variable exports all three, and says nothing", () => {
+    process.env[ENDPOINT] = "https://oneuptime.example.com/otlp";
+
+    for (const variable of SIGNAL_VARIABLES) {
+      process.env[variable] = "x-oneuptime-token=key";
+    }
+
+    Telemetry.init({ serviceName: "app" });
+
+    expect(built()).toEqual({ traces: 1, metrics: 1, logs: 1 });
+    expect(loggedLines()).toEqual([]);
+  });
+
+  test.each([
+    ["no '=' between a name and a value", "Authorization: Bearer the-secret"],
+    ["an empty value", "x-oneuptime-token="],
+    ["a value only after a ';', which the exporters leave out", "a;b=1"],
+    ["a value that does not decode", "x-oneuptime-token=%E0%A4%A"],
+    ["only commas and spaces", " , , "],
+  ])(
+    "OTEL_EXPORTER_OTLP_HEADERS with %s holds no header the exporters send, so nothing is exported and it says so",
+    (_why: string, setting: string) => {
+      process.env[ENDPOINT] = "https://oneuptime.example.com/otlp";
+      process.env[STANDARD] = setting;
+
+      Telemetry.init({ serviceName: "app" });
+
+      expect(exportersBuilt()).toBe(0);
+      expect(loggedLines()).toEqual([NOTHING_EXPORTED_WITHOUT_A_HEADER]);
+
+      for (const line of loggedLines()) {
+        expect(line).not.toContain("the-secret");
+      }
+    },
+  );
+
+  test("the standard's headers without an endpoint export nothing and say nothing", () => {
+    process.env[STANDARD] = "x-oneuptime-token=key";
+
+    Telemetry.init({ serviceName: "app" });
+
+    expect(exportersBuilt()).toBe(0);
+    expect(loggedLines()).toEqual([]);
+  });
+
+  test("an unreadable header of OneUptime's own is still reported, beside a readable standard one", () => {
+    process.env[ENDPOINT] = "https://oneuptime.example.com/otlp";
+    process.env[HEADERS] = "broken";
+    process.env[STANDARD] = "x-oneuptime-token=key";
+
+    Telemetry.init({ serviceName: "app" });
+
+    expect(built()).toEqual({ traces: 1, metrics: 1, logs: 1 });
+    expect(loggedLines()).toEqual([
+      "OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart): " +
+        "OneUptime cannot read header 1 of 1, so it does not send it. " +
+        "Header 1 has no '=' between a name and a value. " +
+        "Write each header as name=value, and separate headers with ';' (or ',' as in OTEL_EXPORTER_OTLP_HEADERS).",
+    ]);
   });
 });

@@ -18,6 +18,7 @@ import Permission, {
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
 import { withLabelJoinTables } from "../../../TestingUtils/LabelJoinTables";
+import { columnsTheCreateWrote } from "../../../TestingUtils/ColumnsSetByServer";
 
 /*
  * The permission gate on the SHARED calendar feeds, exercised for real.
@@ -207,21 +208,30 @@ describe("shared calendar feeds: the real permission gate", () => {
       Permission.CreateProjectOnCallDutyPolicySchedule,
     ]) {
       it(`a ${permission} may create the schedule feed the service stamped`, () => {
+        const feed: OnCallDutyPolicyScheduleCalendarFeed =
+          stampedScheduleFeed();
+
+        // The token columns are the service's stamp: the create's own write.
         expect(() => {
           ModelPermission.checkCreatePermissions(
             OnCallDutyPolicyScheduleCalendarFeed,
-            stampedScheduleFeed(),
+            feed,
             propsFor([permission]),
+            columnsTheCreateWrote(feed),
           );
         }).not.toThrow();
       });
 
       it(`a ${permission} may create the project feed the service stamped`, () => {
+        const feed: ProjectOnCallCalendarFeed = stampedProjectFeed();
+
+        // The token columns are the service's stamp: the create's own write.
         expect(() => {
           ModelPermission.checkCreatePermissions(
             ProjectOnCallCalendarFeed,
-            stampedProjectFeed(),
+            feed,
             propsFor([permission]),
+            columnsTheCreateWrote(feed),
           );
         }).not.toThrow();
       });

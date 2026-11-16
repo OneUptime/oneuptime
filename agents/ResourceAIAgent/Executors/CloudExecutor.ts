@@ -47,6 +47,8 @@ import {
 } from "./Cloud/CloudSettings";
 import AiResourceType from "../Common/Types/ResourceAiAgent/AiResourceType";
 import {
+  AZURE_CLOUD_AI_AGENT_HOSTS,
+  AzureCloudAiAgentHost,
   CloudAiAgentProvider,
   GCP_CLOUD_AI_AGENT_HOSTS,
   GcpCloudAiAgentHost,
@@ -58,6 +60,7 @@ import {
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
+  RESOURCE_AI_AZURE_HOST_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
   RESOURCE_AI_GCP_HOST_ENV,
   RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV,
@@ -72,6 +75,7 @@ import {
   ParsedCloudCommand,
   formatCloudDryRunVerdict,
   formatCloudReplacedValue,
+  formatCloudWritePath,
   getCloudCatalogProvider,
   getCloudUndoCommand,
   isCloudChangeOperation,
@@ -676,10 +680,19 @@ export default class CloudExecutor implements ResourceExecutor {
 
     try {
       if (!isCloudChangeOperation(call.command.operation)) {
+        const lines: Array<string> = await this.whoami(run, call);
+
+        /*
+         * Its first line says whether a change can run as the agent is set
+         * up (its write role, identity or account): Test connection reads
+         * it, and says so in amber when every change would fail.
+         */
         return this.finish(call, {
           success: true,
           exitCode: 0,
-          lines: await this.whoami(run, call),
+          lines: run.writePath
+            ? [formatCloudWritePath(run.writePath), ...lines]
+            : lines,
         });
       }
 
@@ -1266,6 +1279,7 @@ export default class CloudExecutor implements ResourceExecutor {
       details["azureSubscriptionName"] = probe.subscriptionName;
       details["azureSubscriptionState"] = probe.subscriptionState;
       details["azureIdentity"] = this.azure.describeIdentity();
+      details["azureHost"] = this.azureHost();
       // The Activity Log's caller of the agent's changes (CloudAiChangeAttribution).
       details["azurePrincipalId"] = this.azure.principalId();
 
@@ -1323,6 +1337,27 @@ export default class CloudExecutor implements ResourceExecutor {
       details,
       protectedTargets: this.getProtectedTargets(),
     };
+  }
+
+  /*
+   * Where an Azure agent runs, as its setup command started it: as a
+   * Container App (which says so itself: CONTAINER_APP_NAME) or on its own
+   * VM (whose start script says so: ONEUPTIME_AI_AZURE_HOST), so the
+   * command written from Change keeps it there. Null when neither says: an
+   * agent a team runs its own way.
+   */
+  private azureHost(): AzureCloudAiAgentHost | null {
+    const host: string = (this.options.env[RESOURCE_AI_AZURE_HOST_ENV] || "")
+      .trim()
+      .toLowerCase();
+
+    if ((AZURE_CLOUD_AI_AGENT_HOSTS as ReadonlyArray<string>).includes(host)) {
+      return host as AzureCloudAiAgentHost;
+    }
+
+    return (this.options.env["CONTAINER_APP_NAME"] || "").trim()
+      ? "container-apps"
+      : null;
   }
 
   /*

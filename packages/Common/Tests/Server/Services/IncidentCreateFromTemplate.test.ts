@@ -791,9 +791,10 @@ describe("the step's plan and permissions still decide", () => {
       modelType: Parameters<typeof checkCreatePermissions>[0],
       data: Parameters<typeof checkCreatePermissions>[1],
       props: Parameters<typeof checkCreatePermissions>[2],
+      columnsSetByServer: Parameters<typeof checkCreatePermissions>[3],
     ): ReturnType<typeof checkCreatePermissions> => {
       checked.push({ ...(data as unknown as Record<string, unknown>) });
-      return checkCreatePermissions(modelType, data, props);
+      return checkCreatePermissions(modelType, data, props, columnsSetByServer);
     }) as never);
     const permitted: SpyInstance = getJestSpyOn(
       IncidentService,

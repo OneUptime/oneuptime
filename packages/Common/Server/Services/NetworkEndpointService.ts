@@ -21,7 +21,7 @@ import { isPostgresLockContentionError } from "../Utils/Database/PostgresLockCon
 import logger from "../Utils/Logger";
 
 /*
- * Rows written per statement. Endpoint rows are narrow (15 params each at
+ * Rows written per statement. Endpoint rows are narrow (16 params each at
  * most), so 500 keeps a chunk well under Postgres' parameter ceiling while
  * turning a 4096-MAC switch into 9 round trips instead of 4096.
  */
@@ -44,6 +44,24 @@ const MAX_ENDPOINTS_PER_WALK: number = LIMIT_MAX;
 const CONTROLLER_CLIENT_CHUNK_SIZE: number = 5000;
 
 /*
+ * A walk older than the attachment its own device last wrote, asked of the
+ * row `e` as Postgres reads it at the write (OneUptime issue #7541): `e` is
+ * attached to the device whose walk this is, and that device saw it there
+ * after this walk did. EndpointAttachmentUtil.decideUpsert asks the same of
+ * the row it read (isOlderThanOwnAttachment); the UPDATE asks again, for a
+ * newer walk of the device written since that read. A walk is a sighting
+ * with no attachmentSource, and only one that sets the attachment carries a
+ * device, so an ARP sighting that cannot claim the row is never judged by
+ * it. A row with no attachment time (NULL) is never older.
+ */
+export const OLDER_THAN_OWN_ATTACHMENT_SQL: string = `COALESCE(
+              v."attachmentSource" IS NULL
+              AND e."attachedNetworkDeviceId" = v."deviceId"
+              AND e."attachmentSeenAt" > v."attachmentSeenAt",
+              false
+            )`;
+
+/*
  * Column order used by the INSERT in upsertDiscoveredEndpoints. Keep
  * this and the generated parameter tuples in perfect sync.
  */
@@ -63,6 +81,7 @@ const INSERT_COLUMNS: Array<string> = [
   "version",
   "hostname",
   "attachmentSource",
+  "attachmentSeenAt",
 ];
 
 /*
@@ -104,8 +123,9 @@ interface EndpointWrite extends EndpointSighting {
  * What a write of a walk's or a read's endpoints did (OneUptime issue
  * #7388). `written`: the rows it made or changed. `skipped`: the rows it was
  * to write and left for the next walk or read, which sees the MACs again -
- * a row another writer held, a row deleted under it, or the rows of a
- * statement that met a row lock past lock_timeout.
+ * a row another writer held, a row deleted under it, a row a newer walk of
+ * the same device attached meanwhile (OneUptime issue #7541), or the rows of
+ * a statement that met a row lock past lock_timeout.
  */
 export interface EndpointWriteCounts {
   written: number;
@@ -557,6 +577,7 @@ export class Service extends ProjectReferencesService<Model> {
         siteId: true,
         hostname: true,
         attachmentSource: true,
+        attachmentSeenAt: true,
         firstSeenAt: true,
         lastSeenAt: true,
       },
@@ -587,6 +608,7 @@ export class Service extends ProjectReferencesService<Model> {
       siteId: existing.siteId?.toString(),
       hostname: existing.hostname,
       attachmentSource: existing.attachmentSource,
+      attachmentSeenAt: existing.attachmentSeenAt,
       firstSeenAt: existing.firstSeenAt,
       lastSeenAt: existing.lastSeenAt,
     };
@@ -613,6 +635,9 @@ export class Service extends ProjectReferencesService<Model> {
    *
    * `vendor` is stamped from the OUI here, on create only: it is
    * user-correctable thereafter, and the update never writes it.
+   *
+   * attachmentSeenAt is when the device the row is attached to saw it there
+   * (OneUptime issue #7541): every create sets an attachment.
    */
   private async bulkInsertEndpoints(data: {
     projectId: ObjectID;
@@ -664,6 +689,9 @@ export class Service extends ProjectReferencesService<Model> {
           0, // version (BaseModel @VersionColumn)
           row.decision.hostname ?? null,
           row.decision.attachmentSource ?? null,
+          row.decision.setAttachment
+            ? row.decision.attachmentSeenAt ?? seenAt
+            : null,
         );
       }
 
@@ -673,7 +701,7 @@ export class Service extends ProjectReferencesService<Model> {
           "attachedNetworkDeviceId", "attachedInterfaceIndex",
           "attachedPortName", "vlanId", "siteId",
           "firstSeenAt", "lastSeenAt", "coarseLastSeenAt", "version",
-          "hostname", "attachmentSource"
+          "hostname", "attachmentSource", "attachmentSeenAt"
         )
         VALUES ${valueFragments.join(", ")}
         ON CONFLICT ("projectId", "macAddress") WHERE "deletedAt" IS NULL
@@ -735,6 +763,14 @@ export class Service extends ProjectReferencesService<Model> {
    * the poll (OneUptime issue #7389), and an older poll processed after a
    * newer one would otherwise take an endpoint's last sighting back to it.
    *
+   * attachmentSeenAt is written with the attachment: when the device the
+   * row is attached to saw it there (OneUptime issue #7541). A walk of that
+   * same device older than it writes nothing to the row - asked of the row
+   * as Postgres reads it, in the UPDATE's own WHERE
+   * (OLDER_THAN_OWN_ATTACHMENT_SQL), so a newer walk of the device written
+   * after the read above is not undone either. The row is answered as not
+   * written.
+   *
    * coarseLastSeenAt follows lastSeenAt a day at a time: it takes the new
    * lastSeenAt only once that is a day or more past it, so it is never
    * later than lastSeenAt and never a day behind it. It is what the
@@ -763,7 +799,7 @@ export class Service extends ProjectReferencesService<Model> {
 
       for (const row of chunk) {
         valueFragments.push(
-          `($${paramIndex++}::character varying, $${paramIndex++}::boolean, $${paramIndex++}::uuid, $${paramIndex++}::integer, $${paramIndex++}::character varying, $${paramIndex++}::integer, $${paramIndex++}::uuid, $${paramIndex++}::character varying, $${paramIndex++}::timestamptz, $${paramIndex++}::character varying, $${paramIndex++}::character varying)`,
+          `($${paramIndex++}::character varying, $${paramIndex++}::boolean, $${paramIndex++}::uuid, $${paramIndex++}::integer, $${paramIndex++}::character varying, $${paramIndex++}::integer, $${paramIndex++}::uuid, $${paramIndex++}::character varying, $${paramIndex++}::timestamptz, $${paramIndex++}::character varying, $${paramIndex++}::character varying, $${paramIndex++}::timestamptz)`,
         );
 
         params.push(
@@ -786,11 +822,16 @@ export class Service extends ProjectReferencesService<Model> {
           row.decision.lastSeenAt ?? data.now,
           row.decision.hostname ?? null,
           row.decision.attachmentSource ?? null,
+          row.decision.setAttachment
+            ? row.decision.attachmentSeenAt ??
+                row.decision.lastSeenAt ??
+                data.now
+            : null,
         );
       }
 
       const sql: string = `
-        WITH "observed" ("macAddress", "setAttachment", "deviceId", "attachedInterfaceIndex", "attachedPortName", "vlanId", "siteId", "ipAddress", "lastSeenAt", "hostname", "attachmentSource") AS (
+        WITH "observed" ("macAddress", "setAttachment", "deviceId", "attachedInterfaceIndex", "attachedPortName", "vlanId", "siteId", "ipAddress", "lastSeenAt", "hostname", "attachmentSource", "attachmentSeenAt") AS (
           VALUES ${valueFragments.join(", ")}
         ),
         "locked" AS (
@@ -824,6 +865,7 @@ export class Service extends ProjectReferencesService<Model> {
             END,
             "hostname" = COALESCE(v."hostname", e."hostname"),
             "attachmentSource" = v."attachmentSource",
+            "attachmentSeenAt" = CASE WHEN v."setAttachment" THEN v."attachmentSeenAt" ELSE e."attachmentSeenAt" END,
             "updatedAt" = now()
           FROM "observed" AS v
           WHERE
@@ -831,6 +873,7 @@ export class Service extends ProjectReferencesService<Model> {
             AND e."macAddress" = v."macAddress"
             AND e."deletedAt" IS NULL
             AND e."_id" IN (SELECT "_id" FROM "locked")
+            AND NOT ${OLDER_THAN_OWN_ATTACHMENT_SQL}
           RETURNING e."macAddress"
         )
         SELECT "macAddress" FROM "written"

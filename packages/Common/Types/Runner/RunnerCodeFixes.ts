@@ -5,10 +5,13 @@ import VersionUtil from "../../Utils/VersionUtil";
  * WHETHER A RUNNER TAKES ONEUPTIME AI'S CODE FIXES.
  *
  * The server grants a Runner the code-fix capability on every heartbeat - a
- * global Runner always, a project's Runner while a code repository works on
- * it (packages/App RunnerIngress) - but a Runner can refuse it on its own
- * side, and the server used to count it as there to take the work all the
- * same, so a repository on it looked ready while its fixes sat queued:
+ * global Runner unless a master admin turned its code fixes off
+ * (Runner.canRunCodeFixes, the Admin Dashboard's Global Runners page), a
+ * project's Runner while a code repository works on it (packages/App
+ * RunnerIngress). A global Runner turned off there takes none, whatever it
+ * says. And a Runner can refuse them on its own side, and the server used
+ * to count it as there to take the work all the same, so a repository on it
+ * looked ready while its fixes sat queued:
  *
  *   - its host turned code fixes off: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false,
  *     a local switch that can only narrow what the server grants. (The
@@ -63,6 +66,12 @@ export const RUNNER_CODE_FIXES_OFF_SETTING: string = `${RUNNER_CODE_FIXES_SETTIN
 // What the rule reads off a Runner row.
 export interface RunnerCodeFixFacts {
   isGlobalRunner?: boolean | null | undefined;
+  /*
+   * The server's switch for a global Runner (Runner.canRunCodeFixes), which
+   * a master admin turns on the Admin Dashboard: false, and it takes none,
+   * whatever it said. Not read for a project's Runner.
+   */
+  canRunCodeFixes?: boolean | null | undefined;
   // What the Runner said on its last heartbeat; empty when it said nothing.
   takesCodeFixes?: boolean | null | undefined;
   // The release it reported (Runner.agentVersion).
@@ -73,6 +82,12 @@ export interface RunnerCodeFixFacts {
 
 // Why a Runner takes no code fixes.
 export enum RunnerCodeFixRefusal {
+  /*
+   * A global Runner a master admin turned code fixes off for, on the Admin
+   * Dashboard's Global Runners page (Runner.canRunCodeFixes): the server
+   * grants it none and hands it no repository token.
+   */
+  TurnedOffInOneUptime = "turned-off-in-oneuptime",
   /*
    * It said so: its host turned code fixes off
    * (ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false).
@@ -101,10 +116,27 @@ function isReleaseAtLeast(
   return comparison !== null && comparison >= 0;
 }
 
+/*
+ * Whether the server lets the Runner take code fixes: false only for a
+ * global Runner a master admin turned them off for. Read with === false, as
+ * the column is NOT NULL DEFAULT true: a value that was not read is never
+ * taken for "off".
+ */
+export function isCodeFixesTurnedOffInOneUptime(
+  runner: Pick<RunnerCodeFixFacts, "isGlobalRunner" | "canRunCodeFixes">,
+): boolean {
+  return runner.isGlobalRunner === true && runner.canRunCodeFixes === false;
+}
+
 // Why the Runner takes no code fixes, or null when it takes them.
 export function getRunnerCodeFixRefusal(
   runner: RunnerCodeFixFacts,
 ): RunnerCodeFixRefusal | null {
+  // The server's switch comes first: what the Runner says cannot undo it.
+  if (isCodeFixesTurnedOffInOneUptime(runner)) {
+    return RunnerCodeFixRefusal.TurnedOffInOneUptime;
+  }
+
   if (runner.takesCodeFixes === true) {
     return null;
   }

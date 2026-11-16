@@ -201,6 +201,8 @@ At åbne for dette ændrer reelt, hvad din OneUptime-instans kan bringes til at 
 - **Alle, der kan oprette en arbejdsgang eller en monitor af typen API, Website, External Status Page eller Custom JavaScript Code eller tilføje en abonnent til en statusside, kan nå alt, hvad du har tilladt.** Behandl medlemskab af de projekter derefter.
 - **Svarets indhold kommer tilbage.** En API-komponent i en arbejdsgang returnerer status, headere og body i arbejdsgangsloggen, så en tilladt vært kan læses, ikke kun skrives til.
 - **Omdirigeringer følges aldrig** ved webhook-forespørgsler, så en tilladt offentlig vært ikke kan sende serveren videre til en intern vært i et andet hop.
+- **OneUptime forbinder til den adresse, den kontrollerede.** En webhooks værtsnavn slås op én gang, når dens URL kontrolleres, og forespørgslen går til en adresse, som det opslag godkendte, så et navn, der svarer anderledes et øjeblik senere (DNS-rebinding), aldrig får forbindelsen. TLS kontrollerer stadig certifikatet mod navnet i URL'en.
+- **Gennem en udgående proxy er det proxyen, der forbinder.** Hvis API-serveren sender gennem en proxy angivet i `HTTPS_PROXY`, `HTTP_PROXY` eller `ALL_PROXY` (bortset fra værterne i `NO_PROXY`), går webhooks fortsat gennem den: OneUptime kontrollerer stadig adressen først og følger aldrig en omdirigering, men det er proxyen, der slår navnet op og opretter forbindelsen. Afvis private og link-local-destinationer på selve proxyen, især `169.254.169.254`.
 - **Afgræns pr. sonde i stedet for for hele instansen, hvor du kan.** En sonde udrullet inde i ét netværk er en snævrere tilladelse end at åbne API-serverens udgående trafik.
 
 ## Næste trin

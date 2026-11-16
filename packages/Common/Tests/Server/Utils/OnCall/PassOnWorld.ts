@@ -207,6 +207,17 @@ export default class PassOnWorld {
   public recordStanding: OnCallTimeoutRecordStanding | null = null;
   public clock: Date = new Date(START);
   public repeatsAllowed: number = 0;
+  /*
+   * Every page merged into the person's open page from another policy's
+   * run (OnCallPageMerge), in the order merged: whose, in which run, into
+   * which of their logs.
+   */
+  public merges: Array<{ userId: string; runId: string; intoLogId: string }> =
+    [];
+  // Each policy's name, by id: a log is read with its policy's.
+  public policyNames: Record<string, string> = {
+    [POLICY_ID.toString()]: "Payments",
+  };
 
   public install(): void {
     idCounter = 0;
@@ -463,6 +474,62 @@ export default class PassOnWorld {
       },
     );
 
+    /*
+     * A page merged into the person's open page from another policy's run
+     * (OnCallPageMerge): their log of it, Already Paged, as
+     * UserNotificationRuleService writes it. Nothing is sent.
+     */
+    this.spy(
+      UserNotificationRuleService,
+      "recordMergedPage",
+      async (
+        userId: ObjectID,
+        options: {
+          onCallPolicyExecutionLogId: ObjectID;
+          onCallPolicyEscalationRuleId?: ObjectID | undefined;
+          onCallDutyPolicyExecutionLogTimelineId: ObjectID;
+          triggeredByIncidentId?: ObjectID | undefined;
+          onCallPolicyId?: ObjectID | undefined;
+          mergedIntoUserOnCallLogId: ObjectID;
+          statusMessage: string;
+        },
+      ) => {
+        const log: UserOnCallLog = new UserOnCallLog();
+        log.id = nextId();
+        log.projectId = PROJECT_ID;
+        log.userId = userId;
+        log.onCallDutyPolicyExecutionLogId = options.onCallPolicyExecutionLogId;
+        log.onCallDutyPolicyExecutionLogTimelineId =
+          options.onCallDutyPolicyExecutionLogTimelineId;
+
+        if (options.onCallPolicyEscalationRuleId) {
+          log.onCallDutyPolicyEscalationRuleId =
+            options.onCallPolicyEscalationRuleId;
+        }
+
+        if (options.onCallPolicyId) {
+          log.onCallDutyPolicyId = options.onCallPolicyId;
+        }
+
+        if (options.triggeredByIncidentId) {
+          log.triggeredByIncidentId = options.triggeredByIncidentId;
+        }
+
+        log.userNotificationEventType =
+          UserNotificationEventType.IncidentCreated;
+        log.status = UserNotificationExecutionStatus.AlreadyPaged;
+        log.statusMessage = options.statusMessage;
+        log.mergedIntoUserOnCallLogId = options.mergedIntoUserOnCallLogId;
+        log.createdAt = new Date(this.clock);
+        this.logs.push(log);
+        this.merges.push({
+          userId: userId.toString(),
+          runId: options.onCallPolicyExecutionLogId.toString(),
+          intoLogId: options.mergedIntoUserOnCallLogId.toString(),
+        });
+      },
+    );
+
     this.spy(
       UserOnCallLogService,
       "findBy",
@@ -472,24 +539,22 @@ export default class PassOnWorld {
             return matchesQuery(data.query, row as unknown as FakeRow);
           })
           .map((row: UserOnCallLog) => {
-            const log: UserOnCallLog = copy(row);
-
-            const step: OnCallDutyPolicyExecutionLogTimeline | undefined =
-              this.steps.find(
-                (candidate: OnCallDutyPolicyExecutionLogTimeline) => {
-                  return sameKey(
-                    candidate._id,
-                    row.onCallDutyPolicyExecutionLogTimelineId,
-                  );
-                },
-              );
-
-            if (step) {
-              log.onCallDutyPolicyExecutionLogTimeline = copy(step);
-            }
-
-            return log;
+            return this.readLog(row);
           });
+      },
+    );
+
+    this.spy(
+      UserOnCallLogService,
+      "findOneById",
+      async (data: { id: ObjectID }) => {
+        const row: UserOnCallLog | undefined = this.logs.find(
+          (candidate: UserOnCallLog) => {
+            return sameKey(candidate._id, data.id);
+          },
+        );
+
+        return row ? this.readLog(row) : null;
       },
     );
 
@@ -566,6 +631,46 @@ export default class PassOnWorld {
         return delivery ? updateNotificationWhileStill(delivery, data) : 0;
       },
     );
+  }
+
+  /*
+   * A person's log as a read hands it back: a copy, with the run's line for
+   * them, their run, and their policy's name - what the joins of
+   * UserOnCallLogService's reads select.
+   */
+  protected readLog(row: UserOnCallLog): UserOnCallLog {
+    const log: UserOnCallLog = copy(row);
+
+    const step: OnCallDutyPolicyExecutionLogTimeline | undefined =
+      this.steps.find((candidate: OnCallDutyPolicyExecutionLogTimeline) => {
+        return sameKey(
+          candidate._id,
+          row.onCallDutyPolicyExecutionLogTimelineId,
+        );
+      });
+
+    if (step) {
+      log.onCallDutyPolicyExecutionLogTimeline = copy(step);
+    }
+
+    const run: OnCallDutyPolicyExecutionLog | undefined = this.runs.find(
+      (candidate: OnCallDutyPolicyExecutionLog) => {
+        return sameKey(candidate._id, row.onCallDutyPolicyExecutionLogId);
+      },
+    );
+
+    if (run) {
+      log.onCallDutyPolicyExecutionLog = copy(run);
+    }
+
+    const policyName: string | undefined =
+      this.policyNames[row.onCallDutyPolicyId?.toString() || ""];
+
+    if (policyName) {
+      log.onCallDutyPolicy = { name: policyName } as never;
+    }
+
+    return log;
   }
 
   private installRules(): void {

@@ -115,6 +115,11 @@ export interface EndpointExistingRowSnapshot {
   hostname?: string | undefined;
   // Set when a network controller, not a walk, placed the row where it is.
   attachmentSource?: string | undefined;
+  /*
+   * When the device the row is attached to last saw it there (OneUptime
+   * issue #7541). Undefined on a row written before the column: no time.
+   */
+  attachmentSeenAt?: Date | undefined;
   firstSeenAt?: Date | undefined;
   lastSeenAt?: Date | undefined;
 }
@@ -251,6 +256,13 @@ export interface EndpointUpsertDecision {
    * saw it just now, which is what undefined means.
    */
   lastSeenAt?: Date | undefined;
+  /*
+   * Set with setAttachment: when the device the write attaches the row to
+   * saw it there, for the row's attachmentSeenAt - the walk's time
+   * (context.now), or when the controller saw the client. Undefined, the
+   * write's own time is meant.
+   */
+  attachmentSeenAt?: Date | undefined;
 }
 
 /*
@@ -481,6 +493,19 @@ export default class EndpointAttachmentUtil {
    *    door would move the client back onto its uplink for two hours. Once
    *    the controller stops reporting the client, the walk takes the row
    *    over; lastSeenAt is not refreshed meanwhile, or it never could.
+   *  - A walk of the device the row is attached to, older than the time
+   *    that device last saw it there (attachmentSeenAt), writes nothing
+   *    (OneUptime issue #7541). That is an older poll processed after a
+   *    newer one - a retried job, or one that waited longer in a queue
+   *    backlog than the poll after it - and everything it saw, the newer
+   *    walk saw later: where the endpoint is, and the address the device's
+   *    ARP table gave it. Written, it moved an endpoint that had changed
+   *    ports back to the port it left, until the switch's next walk. Only
+   *    the attached device's walks are judged by this time: the precedence
+   *    rules above decide between sources, whatever their times. A router's
+   *    ARP read, or an uplink's forwarding table, moves the row's lastSeenAt
+   *    but never its attachmentSeenAt, so they cannot keep the switch's own
+   *    newer walk from moving it.
    *
    * When `context` is supplied, an update that would write nothing but a
    * lastSeenAt whose refresh is not due yet (endpointRefreshSlot) collapses
@@ -505,6 +530,22 @@ export default class EndpointAttachmentUtil {
       existing &&
       context &&
       EndpointAttachmentUtil.isHeldByController(existing, context.now)
+    ) {
+      return {
+        action: "none",
+        setAttachment: false,
+        setIpAddress: false,
+      };
+    }
+
+    if (
+      existing &&
+      context &&
+      EndpointAttachmentUtil.isOlderThanOwnAttachment(
+        existing,
+        incoming,
+        context.now,
+      )
     ) {
       return {
         action: "none",
@@ -540,6 +581,16 @@ export default class EndpointAttachmentUtil {
         decision.attachedInterfaceIndex =
           incoming.ipBinding!.routerInterfaceIndex;
       }
+    }
+
+    /*
+     * Who saw the attachment, when: the row's attachmentSeenAt, which the
+     * attached device's older walks are judged by (isOlderThanOwnAttachment).
+     */
+    if (decision.setAttachment) {
+      decision.attachmentSeenAt = incoming.controller
+        ? incoming.controller.seenAt
+        : context?.now;
     }
 
     if (incoming.controller) {
@@ -683,6 +734,43 @@ export default class EndpointAttachmentUtil {
     }
 
     return true;
+  }
+
+  /*
+   * True when a walk's sighting comes from the device the row is attached
+   * to and is older than when that device last saw it there
+   * (attachmentSeenAt, OneUptime issue #7541): the device has said where the
+   * endpoint is since. A controller's report, a row with no attachment time
+   * (written before the column) and another device's walk are never judged
+   * by it. NetworkEndpointService's update asks the same of the row as
+   * Postgres reads it, for a walk written at the same moment.
+   *
+   * attachmentSeenAt is refreshed with lastSeenAt, so a re-sighting that
+   * changed nothing and fell in the row's refresh window
+   * (isUnchangedSighting) leaves it behind by up to a window. An older walk
+   * that is still newer than it is written as before - it would move the
+   * endpoint back only if the endpoint left its port and returned to it
+   * within one refresh window, and the device's next walk moves it again.
+   */
+  private static isOlderThanOwnAttachment(
+    existing: EndpointExistingRowSnapshot,
+    incoming: EndpointIncomingObservation,
+    now: Date,
+  ): boolean {
+    if (
+      incoming.controller ||
+      !existing.attachmentSeenAt ||
+      !existing.attachedNetworkDeviceId ||
+      existing.attachedNetworkDeviceId !== incoming.deviceId
+    ) {
+      return false;
+    }
+
+    const attachmentSeenAt: number = new Date(
+      existing.attachmentSeenAt,
+    ).getTime();
+
+    return !isNaN(attachmentSeenAt) && now.getTime() < attachmentSeenAt;
   }
 
   /*

@@ -7,6 +7,13 @@ import ProjectService, {
   ProjectService as ProjectServiceType,
   ProjectBalanceAdjustmentResult,
 } from "../Services/ProjectService";
+import BillingInvoiceService, {
+  BILLING_DISABLED_NO_INVOICES_MESSAGE,
+} from "../Services/BillingInvoiceService";
+import {
+  AdminProjectInvoice,
+  toAdminProjectInvoiceJSON,
+} from "../../Types/Billing/AdminProjectInvoice";
 import ResellerService from "../Services/ResellerService";
 import TeamMemberService from "../Services/TeamMemberService";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
@@ -106,16 +113,6 @@ export function getNumberingReadPermissions(): Array<Permission> {
 }
 
 /*
- * What a master admin is told when the project they are moving to another
- * plan has no payment method. The payment provider refuses any plan change
- * without one (BillingService.changePlan), and its own words speak to the
- * customer ("Please go to Project Settings..."), not to the OneUptime staff
- * acting on the project from the Admin Dashboard.
- */
-export const ADMIN_CHANGE_PLAN_NO_PAYMENT_METHOD_MESSAGE: string =
-  "This project has no payment method, and its plan cannot change without one. Ask a Project Owner to add one under Project Settings > Billing and Invoices > Billing, then try again.";
-
-/*
  * The master admin a request comes from, for the audit line a master-admin
  * route writes, or undefined when it cannot be read. The master admin
  * middleware checks the session but does not put it on the request, so the
@@ -137,6 +134,34 @@ function readMasterAdminUserId(req: ExpressRequest): ObjectID | undefined {
     return undefined;
   }
 }
+
+/*
+ * The project a master-admin route acts on, from its address. A master admin
+ * reaches any project, so an id that is not one is refused here rather than
+ * handed on to a query.
+ */
+export const ADMIN_PROJECT_ID_NOT_VALID_MESSAGE: string =
+  "The project ID in the address is not valid. Open the project from the Projects list, then try again.";
+
+function readProjectIdFromAddress(req: ExpressRequest): ObjectID {
+  const idParam: string = String(req.params["id"] || "");
+
+  if (!ObjectID.isValidUUID(idParam)) {
+    throw new BadDataException(ADMIN_PROJECT_ID_NOT_VALID_MESSAGE);
+  }
+
+  return new ObjectID(idParam);
+}
+
+/*
+ * A payment provider's invoice id: letters, digits and underscores
+ * ("in_1QdX..."). Anything else is refused before it reaches the provider's
+ * address for the invoice.
+ */
+const PAYMENT_PROVIDER_INVOICE_ID: RegExp = /^[A-Za-z0-9_]{1,255}$/;
+
+export const ADMIN_INVOICE_ID_NOT_VALID_MESSAGE: string =
+  "This is not an invoice ID. Reload the list, then try again.";
 
 export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
   public constructor() {
@@ -181,6 +206,10 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             throw new BadDataException("Plan ID is required to change plan");
           }
 
+          const isMasterAdmin: boolean = Boolean(
+            (req as OneUptimeRequest).userAuthorization?.isMasterAdmin,
+          );
+
           // Check for payment methods early before making any Stripe API calls
           const project: Project | null = await ProjectService.findOneById({
             id: projectId,
@@ -209,7 +238,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
                 paymentProviderPlanId,
                 getAllEnvVars(),
               ) &&
-              !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
+              !isMasterAdmin
             ) {
               throw new BadDataException(
                 "This plan is arranged with OneUptime's sales team. Please contact sales to move to it.",
@@ -220,15 +249,22 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
               throw new BadDataException("Payment Provider customer not found");
             }
 
-            const hasPaymentMethods: boolean =
-              await BillingService.hasPaymentMethods(
-                project.paymentProviderCustomerId,
-              );
+            /*
+             * A master admin moves a project whatever its customer has on
+             * file, as the Admin Dashboard's admin-change-plan does; anyone
+             * else needs a payment method first.
+             */
+            if (!isMasterAdmin) {
+              const hasPaymentMethods: boolean =
+                await BillingService.hasPaymentMethods(
+                  project.paymentProviderCustomerId,
+                );
 
-            if (!hasPaymentMethods) {
-              throw new BadDataException(
-                Errors.BillingService.NO_PAYMENTS_METHODS,
-              );
+              if (!hasPaymentMethods) {
+                throw new BadDataException(
+                  Errors.BillingService.NO_PAYMENTS_METHODS,
+                );
+              }
             }
           }
 
@@ -237,10 +273,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             [Permission.ProjectOwner, Permission.ManageProjectBilling],
           );
 
-          if (
-            !hasBillingPermission &&
-            !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
-          ) {
+          if (!hasBillingPermission && !isMasterAdmin) {
             throw new BadDataException(
               `You need ${Permission.ProjectOwner} or ${Permission.ManageProjectBilling} permission to change project plan`,
             );
@@ -249,6 +282,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           await ProjectService.changePlan({
             projectId: projectId,
             paymentProviderPlanId: paymentProviderPlanId,
+            ...(isMasterAdmin ? { requirePaymentMethod: false } : {}),
           });
 
           return Response.sendEmptySuccessResponse(req, res);
@@ -611,8 +645,9 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
      * The move itself is the one the customer makes
      * (ProjectService.changePlan): the payment provider is changed first, a
      * running trial carries over, and a project a cloud marketplace bills
-     * moves without a card. A custom-priced plan (Enterprise) can be picked
-     * here, as change-plan lets a master admin pick it.
+     * moves without a card. Unlike the customer's, it does not need a
+     * payment method on file. A custom-priced plan (Enterprise) can be
+     * picked here, as change-plan lets a master admin pick it.
      */
     this.router.put(
       `${new this.entityType().getCrudApiPath()?.toString()}/:id/admin-change-plan`,
@@ -699,23 +734,18 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           const changedByUserId: ObjectID | undefined =
             readMasterAdminUserId(req);
 
-          try {
-            await ProjectService.changePlan({
-              projectId: projectId,
-              paymentProviderPlanId: paymentProviderPlanId,
-            });
-          } catch (err) {
-            if (
-              err instanceof BadDataException &&
-              err.message === Errors.BillingService.NO_PAYMENTS_METHODS
-            ) {
-              throw new BadDataException(
-                ADMIN_CHANGE_PLAN_NO_PAYMENT_METHOD_MESSAGE,
-              );
-            }
-
-            throw err;
-          }
+          /*
+           * Staff move a project whatever the customer has on file: a
+           * project with no payment method moves too, and anything the new
+           * plan owes waits on an invoice the customer pays once they add one
+           * (StripeBillingProvider.changePlan). The customer's own change
+           * still needs a payment method.
+           */
+          await ProjectService.changePlan({
+            projectId: projectId,
+            paymentProviderPlanId: paymentProviderPlanId,
+            requirePaymentMethod: false,
+          });
 
           logger.info(
             `Plan for project ${projectId.toString()} changed from ${
@@ -853,6 +883,86 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
     );
 
     /*
+     * A project's invoices, newest first, read live from the payment
+     * provider for the Admin Dashboard's Invoices page. Master-admin only,
+     * like extend-trial: OneUptime staff read the invoices of a project they
+     * are not a member of, so the master admin middleware is the whole check.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/admin-invoices`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!IsBillingEnabled) {
+            throw new BadDataException(BILLING_DISABLED_NO_INVOICES_MESSAGE);
+          }
+
+          const projectId: ObjectID = readProjectIdFromAddress(req);
+
+          const invoices: Array<AdminProjectInvoice> =
+            await BillingInvoiceService.getInvoicesForAdmin(projectId);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            invoices: invoices.map(toAdminProjectInvoiceJSON),
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Voids one of a project's invoices, from the Admin Dashboard: the
+     * customer no longer owes it, and the payment provider stops collecting
+     * it. Master-admin only, for the same reason extend-trial is - it waives
+     * what a customer owes, so project-level billing permissions must not
+     * reach it. BillingInvoiceService.voidInvoiceForProject holds the invoice
+     * to this project and to the statuses that can be voided.
+     */
+    this.router.put(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/admin-void-invoice`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!IsBillingEnabled) {
+            throw new BadDataException(BILLING_DISABLED_NO_INVOICES_MESSAGE);
+          }
+
+          const projectId: ObjectID = readProjectIdFromAddress(req);
+
+          const body: JSONObject = (req.body as JSONObject) || {};
+          const data: JSONObject = (body["data"] as JSONObject) || {};
+          const invoiceIdValue: JSONValue = data["paymentProviderInvoiceId"];
+
+          const invoiceId: string =
+            typeof invoiceIdValue === "string" ? invoiceIdValue.trim() : "";
+
+          if (!invoiceId) {
+            throw new BadDataException("Choose the invoice to void.");
+          }
+
+          if (!PAYMENT_PROVIDER_INVOICE_ID.test(invoiceId)) {
+            throw new BadDataException(ADMIN_INVOICE_ID_NOT_VALID_MESSAGE);
+          }
+
+          // Who voided the invoice is the only audit trail this action has.
+          const voidedByUserId: ObjectID | undefined =
+            readMasterAdminUserId(req);
+
+          await BillingInvoiceService.voidInvoiceForProject({
+            projectId: projectId,
+            paymentProviderInvoiceId: invoiceId,
+            voidedByUserId: voidedByUserId,
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
      * This API lists all the projects where user is its team member.
      * This API is usually used to show project selector dropdown in the UI
      */
@@ -907,12 +1017,6 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
              * members are told only that their project is blocked.
              */
             isBlocked: true,
-            /*
-             * A sample project (issue #6808) says so on every page: the
-             * Dashboard draws its bar from the project it already has, from
-             * the first paint, and sends no product events from inside it.
-             */
-            isSampleProject: true,
             /*
              * Who created the project, so the Dashboard's analytics events
              * can say whether the person created it (is_project_creator,

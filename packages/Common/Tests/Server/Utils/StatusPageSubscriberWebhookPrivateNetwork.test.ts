@@ -299,7 +299,7 @@ describe("a subscriber the team added follows the instance's private network set
   });
 
   describe("on an instance whose allowlist names the target", () => {
-    test("a host name it names is sent to, without the blanket switch and without a DNS check", async () => {
+    test("a host name it names is sent to, without the blanket switch and without checking what DNS answers for it", async () => {
       setInstance({ allowlist: "mattermost.internal" });
 
       const result: HTTPResponse<JSONObject> | HTTPErrorResponse = await send(
@@ -307,12 +307,20 @@ describe("a subscriber the team added follows the instance's private network set
         true,
       );
 
+      // mattermost.internal resolves to 10.1.2.3, which nothing else here may reach.
       expect(result).toBeInstanceOf(HTTPResponse);
       expect(postSpy).toHaveBeenCalledTimes(1);
-      expect(lookupSpy).not.toHaveBeenCalledWith(
-        "mattermost.internal",
-        expect.anything(),
-      );
+
+      /*
+       * It is looked up once, by the check, so that the post dials that
+       * answer and no later one (issue #6611); the answer is trusted, not
+       * held to the private-address rule.
+       */
+      expect(
+        lookupSpy.mock.calls.filter((call: Array<unknown>) => {
+          return call[0] === "mattermost.internal";
+        }),
+      ).toHaveLength(1);
     });
 
     test("an address range it names lets in a name that resolves inside it, and nothing outside it", async () => {

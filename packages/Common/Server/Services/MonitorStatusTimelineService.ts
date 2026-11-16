@@ -138,6 +138,24 @@ export interface MergedDowntimeRow {
 }
 
 /*
+ * A row of getDailyUptimeAggregate's SQL: one monitor's day bucket and one
+ * of its statuses, with its seconds; or, with no status and isMonitoringOff,
+ * the day's time with monitoring off; or, with no status and no seconds, a
+ * day nothing of the monitor overlapped. Typed loosely because the pg
+ * driver hands some numeric types back as strings. isMonitoringOff is
+ * optional so rows shaped before it existed read as monitored.
+ */
+export interface UptimeDailyAggregateRow {
+  monitorId: string;
+  bucketStart: Date;
+  bucketEnd: Date;
+  daySeconds: string | number;
+  monitorStatusId: string | null;
+  seconds: string | number;
+  isMonitoringOff?: boolean | null | undefined;
+}
+
+/*
  * A row of getMonitorGroupDailyUptimeAggregate's SQL: one group's day
  * bucket, with the day's union of the group's periods ranked at or above
  * each level, from level 1 (every status: the coverage) up - or NULL for a
@@ -150,6 +168,13 @@ export interface MonitorGroupDailyUptimeRow {
   bucketEnd: Date | string;
   daySeconds: string | number;
   unions: Array<string | number | null> | null;
+  /*
+   * The day's union of every period of the group's monitors, those with
+   * monitoring off included: less unions[0], the time at least one monitor
+   * had monitoring off while none was checked. Optional so rows shaped
+   * before it existed read as monitored.
+   */
+  unionWithMonitoringOff?: string | number | null | undefined;
 }
 
 /*
@@ -249,13 +274,16 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    *
    * 4. Time with the monitor's monitoring turned off (`isMonitoringOff`,
    *    issue #6480) is no status: nothing checked the monitor, so its row
-   *    holds only what the last check saw. Such a row is dropped AFTER the
-   *    LEAD, never before it - filtered first, the open row before the switch
-   *    would run on across the time monitoring was off. It leaves that time
-   *    uncovered, so a day it fills reads as no data, and a day it fills in
-   *    part is measured over the rest. getMonitorGroupDailyUptimeAggregate,
-   *    getMergedDowntimeSeconds and getRollingUptimeTotals drop it the same
-   *    way.
+   *    holds only what the last check saw. Such a row is kept out of the
+   *    statuses AFTER the LEAD, never before it - filtered first, the open
+   *    row before the switch would run on across the time monitoring was
+   *    off. It leaves that time uncovered, so a day it fills has no status,
+   *    and a day it fills in part is measured over the rest; its seconds come
+   *    back apart, as the day's time with monitoring off (one row per day
+   *    with no status and is_off), so the bars say "monitoring off" for that
+   *    day instead of "no data" (issue #7112).
+   *    getMonitorGroupDailyUptimeAggregate does the same for a group;
+   *    getMergedDowntimeSeconds and getRollingUptimeTotals drop it.
    *
    * A trap that is worth recording even though this SQL no longer contains it:
    * PostgreSQL's LEAST/GREATEST IGNORE NULLs, returning the smallest or
@@ -330,7 +358,9 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       ),
       split AS (
         SELECT src.monitor_id,
-               src.status_id,
+               CASE WHEN src.is_off THEN NULL ELSE src.status_id END
+                 AS status_id,
+               src.is_off,
                (gs AT TIME ZONE p.tz) AS day_start,
                GREATEST(src.s, (gs AT TIME ZONE p.tz)) AS seg_start,
                LEAST(src.e, ((gs + interval '1 day') AT TIME ZONE p.tz))
@@ -343,17 +373,17 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
           interval '1 day'
         ) AS gs
         WHERE src.e > src.s
-          AND NOT src.is_off
       ),
       agg AS (
         SELECT monitor_id,
                day_start,
                status_id,
+               is_off,
                SUM(EXTRACT(EPOCH FROM (seg_end - seg_start)))::double precision
                  AS seconds
         FROM split
         WHERE seg_end > seg_start
-        GROUP BY monitor_id, day_start, status_id
+        GROUP BY monitor_id, day_start, status_id, is_off
       ),
       buckets AS (
         SELECT (d AT TIME ZONE p.tz) AS day_start,
@@ -373,7 +403,8 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
              EXTRACT(EPOCH FROM (b.bucket_end - b.bucket_start))::bigint
                AS "daySeconds",
              a.status_id AS "monitorStatusId",
-             COALESCE(a.seconds, 0)::double precision AS "seconds"
+             COALESCE(a.seconds, 0)::double precision AS "seconds",
+             COALESCE(a.is_off, false) AS "isMonitoringOff"
       FROM mons m
       CROSS JOIN buckets b
       LEFT JOIN agg a ON a.monitor_id = m.monitor_id
@@ -382,21 +413,15 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       ORDER BY m.monitor_id, b.bucket_start
     `;
 
-    const rows: Array<{
-      monitorId: string;
-      bucketStart: Date;
-      bucketEnd: Date;
-      daySeconds: string | number;
-      monitorStatusId: string | null;
-      seconds: string | number;
-    }> = await this.getRepository().manager.query(sql, [
-      data.monitorIds.map((id: ObjectID) => {
-        return id.toString();
-      }),
-      data.startDate,
-      data.endDate,
-      data.timezone || "UTC",
-    ]);
+    const rows: Array<UptimeDailyAggregateRow> =
+      await this.getRepository().manager.query(sql, [
+        data.monitorIds.map((id: ObjectID) => {
+          return id.toString();
+        }),
+        data.startDate,
+        data.endDate,
+        data.timezone || "UTC",
+      ]);
 
     return Service.toUptimeDailyAggregate(rows, data.timezone || "UTC");
   }
@@ -405,17 +430,12 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * Exported shape-only step, so the bucketing can be tested without a
    * database. One row per (monitor, day, status); a day with no coverage
    * comes back as a single row with a NULL status and zero seconds, which is
-   * what makes a no-data day distinguishable from a day spent up.
+   * what makes a no-data day distinguishable from a day spent up. A day's
+   * time with monitoring off is one more row, with no status and
+   * isMonitoringOff: it is the bucket's monitoringOffSeconds, never coverage.
    */
   public static toUptimeDailyAggregate(
-    rows: Array<{
-      monitorId: string;
-      bucketStart: Date;
-      bucketEnd: Date;
-      daySeconds: string | number;
-      monitorStatusId: string | null;
-      seconds: string | number;
-    }>,
+    rows: Array<UptimeDailyAggregateRow>,
     /*
      * The zone the SQL cut the day buckets in. It travels with the buckets
      * so a client draws its bars on the same day boundaries - see
@@ -452,6 +472,21 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       }
 
       const seconds: number = Number(row.seconds);
+
+      /*
+       * Time with monitoring off is no status and no coverage: it is told
+       * apart, so the day says monitoring was off rather than "no data".
+       * Left off the bucket while there is none, so a day monitoring was on
+       * reads as it always has.
+       */
+      if (row.isMonitoringOff === true) {
+        if (seconds > 0) {
+          bucket.monitoringOffSeconds =
+            (bucket.monitoringOffSeconds || 0) + seconds;
+        }
+
+        continue;
+      }
 
       /*
        * A NULL status is the LEFT JOIN's "nothing overlapped this day" row.
@@ -644,6 +679,14 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * by a FILTER - and each period adds to a level's union what reaches past
    * that level's running end. Counting each period once per level, in a
    * window per level, sorted twice as many rows and took a third longer.
+   *
+   * MONITORING OFF. A period that marks monitoring off (issue #6480) is
+   * ranked 0, below every status, whatever status it holds: no level counts
+   * it, so the statuses and the coverage leave that time out, as before.
+   * One more union, of every period, off included, comes back beside the
+   * levels (unionWithMonitoringOff): less level 1's, it is the time at least
+   * one monitor had monitoring off while none was checked - a day the bars
+   * say was not monitored (issue #7112), not a day with no data.
    */
   public static getMonitorGroupDailyUptimeAggregateSql(data: {
     levelCount: number;
@@ -653,9 +696,14 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     const reachedColumns: Array<string> = [];
     const unionColumns: Array<string> = [];
 
+    /*
+     * Level 1 is every period of a status (rank 1 and up); a period with
+     * monitoring off is ranked 0, so only the union of every period, off
+     * included (reached_all), counts it - the time with monitoring off is
+     * that union less level 1's.
+     */
     for (let level: number = 1; level <= levelCount; level++) {
-      const filter: string =
-        level === 1 ? "" : ` FILTER (WHERE status_rank >= ${level})`;
+      const filter: string = ` FILTER (WHERE status_rank >= ${level})`;
 
       reachedColumns.push(
         `MAX(seg_end)${filter} OVER earlier AS reached_${level}`,
@@ -713,17 +761,18 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       ),
       periods AS (
         SELECT mb.group_key,
-               rk.status_rank,
+               CASE WHEN src.is_off THEN 0 ELSE rk.status_rank END
+                 AS status_rank,
                src.s,
                src.e,
                width_bucket(src.s, g.starts) AS first_day,
                width_bucket(src.e - interval '1 microsecond', g.starts) AS last_day
         FROM src
         JOIN members mb ON mb.monitor_id = src.monitor_id
-        JOIN ranks rk ON rk.status_id = src.status_id
+        LEFT JOIN ranks rk ON rk.status_id = src.status_id
         CROSS JOIN grid g
         WHERE src.e > src.s
-          AND NOT src.is_off
+          AND (src.is_off OR rk.status_rank IS NOT NULL)
       ),
       split AS (
         SELECT group_key,
@@ -750,6 +799,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                status_rank,
                seg_start,
                seg_end,
+               MAX(seg_end) OVER earlier AS reached_all,
                ${reachedColumns.join(",\n               ")}
         FROM split
         WHERE seg_end > seg_start
@@ -764,7 +814,9 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                day_index,
                ARRAY[
                  ${unionColumns.join(",\n                 ")}
-               ]::double precision[] AS unions
+               ]::double precision[] AS unions,
+               COALESCE(SUM(GREATEST(EXTRACT(EPOCH FROM (seg_end - GREATEST(seg_start, COALESCE(reached_all, seg_start)))), 0)), 0)::double precision
+                 AS union_all
         FROM reach
         GROUP BY group_key, day_index
       ),
@@ -781,7 +833,8 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
              d.bucket_end AS "bucketEnd",
              EXTRACT(EPOCH FROM (d.bucket_end - d.bucket_start))::bigint
                AS "daySeconds",
-             u.unions AS "unions"
+             u.unions AS "unions",
+             u.union_all AS "unionWithMonitoringOff"
       FROM generate_series(1, $7::int) AS gk(group_key)
       CROSS JOIN days d
       LEFT JOIN day_unions u ON u.group_key = gk.group_key
@@ -802,7 +855,8 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * the same time can differ in their last bits: a difference below a
    * microsecond is no time at all, and one below zero is clamped away. Every
    * group asked for comes back, in the order asked, with a bucket for every
-   * day.
+   * day. The union of every period, monitoring off included, less U(1) is
+   * the bucket's monitoringOffSeconds, held to the same microsecond.
    */
   public static toMonitorGroupUptimeDailyAggregate(data: {
     rows: Array<MonitorGroupDailyUptimeRow>;
@@ -851,6 +905,21 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         coveredSeconds: unionAt(1),
         statusDurations: [],
       };
+
+      /*
+       * Every monitor that was there had monitoring off: the group was not
+       * checked, so that time is no status, and the day says so.
+       */
+      const unionWithMonitoringOff: number = Number(row.unionWithMonitoringOff);
+      const monitoringOffSeconds: number = Number.isFinite(
+        unionWithMonitoringOff,
+      )
+        ? unionWithMonitoringOff - unionAt(1)
+        : 0;
+
+      if (monitoringOffSeconds >= MINIMUM_GROUP_STATUS_SECONDS) {
+        bucket.monitoringOffSeconds = monitoringOffSeconds;
+      }
 
       for (
         let level: number = 1;

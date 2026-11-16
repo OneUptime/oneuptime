@@ -115,7 +115,7 @@ export default class AIAgentTaskLogAPI {
 
           /*
            * A project-scoped agent may only write to its own project's runs,
-           * and a global Runner only to a run it claimed (deniesAccessToRun)
+           * and every worker only to a run it claimed (deniesAccessToRun)
            * — this endpoint appends to a run's glass-box trail, so without
            * the check one tenant's key could plant log lines in another's.
            */

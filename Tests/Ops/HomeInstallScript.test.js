@@ -378,6 +378,9 @@ describe("a server with everything installed", () => {
     ["  oneuptime.example.com  ", "oneuptime.example.com"],
     ["localhost", "localhost"],
     ["[2001:db8::5]", "[2001:db8::5]"],
+    ["[2001:db8::5]:8080", "[2001:db8::5]:8080"],
+    ["http://[2001:db8::5]:8080/", "[2001:db8::5]:8080"],
+    ["203.0.113.5:8080", "203.0.113.5:8080"],
   ])("an answer of %p is written as HOST=%s", (answer, host) => {
     const result = run({ answers: `${answer}\n` });
 
@@ -391,6 +394,58 @@ describe("a server with everything installed", () => {
     expect(result.status).toBe(1);
     expect(result.output).toContain(
       '"myserver!" is not an address people can open.',
+    );
+    expect(callsOf(result, "npm")).toEqual([]);
+  });
+
+  test("the question says an IPv6 address goes in brackets", () => {
+    const result = run({ answers: "\n" });
+
+    expect(result.output).toContain(
+      "A domain name (oneuptime.example.com) or this server's IP address, an IPv6 one in brackets ([2001:db8::1]).",
+    );
+  });
+
+  /*
+   * An IPv6 address without brackets never worked as HOST (#8022). The
+   * installer does not bracket it either: 2001:db8::5:8080 is an address of
+   * its own, and also 2001:db8::5 on port 8080.
+   */
+  test.each(["2001:db8::5", "::1", "2001:db8::5:8080", "fd00::7"])(
+    "an IPv6 answer of %p without brackets stops before anything starts, and says to bracket it",
+    (answer) => {
+      const result = run({ answers: `${answer}\n` });
+
+      expect(result.status).toBe(1);
+      expect(result.output).toContain(
+        `"${answer}" is an IPv6 address without brackets, which no browser can open. Run this again with it in brackets, such as ONEUPTIME_HOST=[${answer}], and any port after them, such as [2001:db8::1]:8080.`,
+      );
+      expect(hostIn(result.config)).toBe("HOST=localhost");
+      expect(callsOf(result, "npm")).toEqual([]);
+    },
+  );
+
+  test("ONEUPTIME_HOST without brackets stops the same way, without a question", () => {
+    const result = run(
+      { answers: "should-not-be-read\n" },
+      { ONEUPTIME_HOST: "2001:db8::5" },
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.output).not.toContain("Which address");
+    expect(result.output).toContain(
+      '"2001:db8::5" is an IPv6 address without brackets',
+    );
+    expect(hostIn(result.config)).toBe("HOST=localhost");
+    expect(callsOf(result, "npm")).toEqual([]);
+  });
+
+  test("a name with two colons is no address: only an IPv6 address has two", () => {
+    const result = run({ answers: "oneuptime.example.com:8080:9090\n" });
+
+    expect(result.status).toBe(1);
+    expect(result.output).toContain(
+      '"oneuptime.example.com:8080:9090" is not an address people can open: only an IPv6 address has two colons, and it goes in brackets.',
     );
     expect(callsOf(result, "npm")).toEqual([]);
   });

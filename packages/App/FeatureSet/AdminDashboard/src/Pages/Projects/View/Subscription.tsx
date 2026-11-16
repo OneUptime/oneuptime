@@ -115,8 +115,8 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
   const [refresher, setRefresher] = useState<boolean>(false);
 
   /*
-   * Only a project whose metered subscription is still trialing can be
-   * extended with no bill at all - see the warning rendered below.
+   * A project whose metered subscription is still trialing has no paid usage
+   * for an extension to waive - see the notice rendered below.
    */
   const isCurrentlyTrialing: boolean =
     project?.paymentProviderMeteredSubscriptionStatus ===
@@ -592,17 +592,17 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
         )}
 
         {/*
-         * Usage-based billing is not subject to proration, so moving the
-         * billing cycle closes the metered subscription's current period and
-         * invoices whatever usage it holds. A project that is still trialing
-         * has none. One that has moved on to paying does, and the customer
-         * would get that bill the moment staff tell them their trial was
-         * extended - so say so before the admin opens the form.
+         * Extending the trial of a project that has moved on to paying also
+         * waives the usage it has accrued in the current billing period: the
+         * payment provider clears it rather than invoicing it when the trial
+         * moves (StripeBillingProvider.extendTrial). That is revenue handed
+         * back, so say so before the admin opens the form. A project still
+         * trialing has no paid usage to waive.
          */}
         {project && !isCurrentlyTrialing ? (
           <Alert
-            type={AlertType.WARNING}
-            title={t("pages.projectSubscription.notTrialingWarning")}
+            type={AlertType.INFO}
+            title={t("pages.projectSubscription.notTrialingUsageWaived")}
             className="mb-5"
           />
         ) : (

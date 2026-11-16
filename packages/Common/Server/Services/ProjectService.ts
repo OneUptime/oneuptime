@@ -199,8 +199,6 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import PositiveNumber from "../../Types/PositiveNumber";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
-import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
-import SampleProjectAnalyticsData from "../Utils/SampleProject/SampleProjectAnalyticsData";
 import ActiveMonitorLimitUtil from "../../Types/Monitor/ActiveMonitorLimit";
 import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
 import PublicNoteApprovalPolicy from "../Utils/Notes/PublicNoteApprovalPolicy";
@@ -458,17 +456,6 @@ export const SIGN_IN_RULE_CACHE_TTL_MS: number = 60_000;
 export const ACCESS_RULES_READ_BATCH_SIZE: number = 1000;
 
 /*
- * How long one server keeps its answer to "is this a sample project?"
- * (isSampleProject, issue #6808). The flag is written when the project is
- * made and never changes, so an answer stays true for the project's whole
- * life: the time only bounds what a server holds in memory.
- */
-export const SAMPLE_PROJECT_CACHE_TTL_MS: number = 60 * 60 * 1000;
-
-// The plan a sample project's pages open as: the top one (getCurrentPlan).
-export const SAMPLE_PROJECT_PLAN: PlanType = PlanType.Enterprise;
-
-/*
  * Where a project created from a reseller's promo code was bought: the
  * reseller, the plan it sold and the license, as the promo code holds them.
  * OneUptime writes them (onCreatePermitted); no caller may.
@@ -556,17 +543,6 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * queries.
    */
   private blockedProjectLookups: Map<string, Promise<boolean>> = new Map();
-
-  /*
-   * isSampleProject's answers, per server, and the one lookup per project
-   * in flight. Read with an explicit `undefined` check: a cached "not a
-   * sample" is `false` and must not look like a miss.
-   */
-  private sampleProjectCache: InMemoryTTLCache<boolean> = new InMemoryTTLCache(
-    10_000,
-  );
-
-  private sampleProjectLookups: Map<string, Promise<boolean>> = new Map();
 
   /*
    * How long a project's plan is cached on a server: the longest a plan
@@ -989,15 +965,6 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
   }
 
-  /*
-   * Whether a create makes a sample project (issue #6808): the flag, sent by
-   * OneUptime itself (root). Anyone else who sends it makes an ordinary
-   * project, which the create's column check then refuses.
-   */
-  public static isSampleProjectCreate(data: CreateBy<Model>): boolean {
-    return data.data.isSampleProject === true && Boolean(data.props.isRoot);
-  }
-
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
@@ -1120,17 +1087,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       );
     }
 
-    /*
-     * A sample project (issue #6808) is never billed: it is made with no
-     * plan, so no payment customer or subscription is made for it
-     * (onCreateSuccess), and its plan checks answer for it
-     * (getCurrentPlan). Only OneUptime makes one, as root
-     * (SampleProjectService): nobody may write the flag through the API, so
-     * a caller who sends it is refused by the create's column check.
-     */
-    const isSampleProject: boolean = ProjectService.isSampleProjectCreate(data);
-
-    if (IsBillingEnabled && !isSampleProject) {
+    if (IsBillingEnabled) {
       if (!data.data.paymentProviderPlanId) {
         throw new BadDataException("Plan required to create the project.");
       }
@@ -2517,6 +2474,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     paymentProviderPlanId: string;
     endTrialAt?: Date | null;
+    /*
+     * False only when a master admin moves the project from the Admin
+     * Dashboard (ProjectAPI's admin-change-plan): the customer need not have
+     * a payment method on file. A customer's own change always does.
+     */
+    requirePaymentMethod?: boolean | undefined;
   }): Promise<void> {
     if (!IsBillingEnabled) {
       throw new BadDataException("Billing is not enabled for this server");
@@ -2593,12 +2556,16 @@ export class ProjectService extends ProjectReferencesService<Model> {
       throw new BadDataException("Payment Provider customer not found");
     }
 
-    const hasPaymentMethods: boolean = await BillingService.hasPaymentMethods(
-      project.paymentProviderCustomerId,
-    );
+    const requirePaymentMethod: boolean = params.requirePaymentMethod !== false;
 
-    if (!hasPaymentMethods) {
-      throw new BadDataException(Errors.BillingService.NO_PAYMENTS_METHODS);
+    if (requirePaymentMethod) {
+      const hasPaymentMethods: boolean = await BillingService.hasPaymentMethods(
+        project.paymentProviderCustomerId,
+      );
+
+      if (!hasPaymentMethods) {
+        throw new BadDataException(Errors.BillingService.NO_PAYMENTS_METHODS);
+      }
     }
 
     const plan: SubscriptionPlan | undefined =
@@ -2643,6 +2610,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       quantity: seats,
       isYearly: plan.getYearlyPlanId() === params.paymentProviderPlanId,
       endTrialAt: endTrialAt,
+      requirePaymentMethod: requirePaymentMethod,
     });
 
     const subscriptionState: SubscriptionStatus | null =
@@ -3374,21 +3342,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
      * customer and no card subscriptions.
      */
 
-    /*
-     * A sample project (issue #6808) is never billed: no customer, no
-     * subscription, no conversion event, and no promo code is used up.
-     */
-    const isSampleProject: boolean = createdItem.isSampleProject === true;
-
-    if (isSampleProject) {
-      this.rememberSampleProject(createdItem.id!);
-    }
-
-    if (
-      IsBillingEnabled &&
-      !createdItem.billingMarketplace &&
-      !isSampleProject
-    ) {
+    if (IsBillingEnabled && !createdItem.billingMarketplace) {
       const customerId: string = await BillingService.createCustomer({
         name: createdItem.name!,
         email: createdItem.createdOwnerEmail!,
@@ -3508,17 +3462,6 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     // How long it keeps resolved incidents and alerts: the server's default.
     await this.applyServerRetentionDefaults(createdItem.id!);
-
-    /*
-     * A sample project is not a project anyone made for their own work:
-     * no server/project_created (it would count as a sign-up's project in
-     * the activation funnel, Docs/analytics/activation.md) and no message
-     * to the operator's channel. SampleProjectService sends
-     * sample_project/started instead.
-     */
-    if (isSampleProject) {
-      return createdItem;
-    }
 
     if (createdItem.createdOwnerEmail) {
       ProductAnalytics.capture({
@@ -4801,85 +4744,6 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /**
-   * Whether this is a sample project (issue #6808): one made up for a
-   * person to look around in, which can never notify anyone, be seen by
-   * the public or be billed. Every reader that keeps it so asks this -
-   * the notification senders, the public status page, the billing meters,
-   * the probes, telemetry ingestion, AI, workflows, activation milestones,
-   * feedback questions - and SampleProjectReadersGuard lists them.
-   *
-   * The flag is written when the project is made and never changes, so
-   * the answer is kept per server for SAMPLE_PROJECT_CACHE_TTL_MS, and a
-   * burst of callers shares one read. A project that does not exist is
-   * not a sample, and that answer is not kept: a project being made right
-   * now is asked again next time. A read that fails throws, so each
-   * caller decides what its own failure means.
-   */
-  @CaptureSpan()
-  public async isSampleProject(projectId: ObjectID | string): Promise<boolean> {
-    const key: string = projectId.toString().toLowerCase();
-
-    const cached: boolean | undefined = this.sampleProjectCache.get(key);
-
-    if (cached !== undefined) {
-      return cached;
-    }
-
-    /*
-     * With no database to ask (a server still starting, a unit test), no
-     * project is a sample, and nothing is kept.
-     */
-    if (!PostgresAppInstance.isConnected()) {
-      return false;
-    }
-
-    const inFlight: Promise<boolean> | undefined =
-      this.sampleProjectLookups.get(key);
-
-    if (inFlight) {
-      return inFlight;
-    }
-
-    const lookup: Promise<boolean> = this.findOneById({
-      id: new ObjectID(projectId.toString()),
-      select: { isSampleProject: true },
-      props: { isRoot: true, ignoreHooks: true },
-    })
-      .then((project: Model | null): boolean => {
-        if (!project) {
-          return false;
-        }
-
-        const isSample: boolean = project.isSampleProject === true;
-
-        this.sampleProjectCache.set(key, isSample, SAMPLE_PROJECT_CACHE_TTL_MS);
-
-        return isSample;
-      })
-      .finally((): void => {
-        if (this.sampleProjectLookups.get(key) === lookup) {
-          this.sampleProjectLookups.delete(key);
-        }
-      });
-
-    this.sampleProjectLookups.set(key, lookup);
-
-    return lookup;
-  }
-
-  /*
-   * Keeps this server's answer for a sample just made, so the hooks and
-   * the seeder that run right after never read it again.
-   */
-  public rememberSampleProject(projectId: ObjectID): void {
-    this.sampleProjectCache.set(
-      projectId.toString().toLowerCase(),
-      true,
-      SAMPLE_PROJECT_CACHE_TTL_MS,
-    );
-  }
-
-  /**
    * Returns whether the given project requires SSO for login. Cached for
    * 60s in-process — middleware calls this on every authenticated request.
    * Throws when the project does not exist, and when it cannot be read.
@@ -5131,7 +4995,6 @@ export class ProjectService extends ProjectReferencesService<Model> {
         currentActiveMonitorsCount: true,
         billingMarketplace: true,
         isBlocked: true,
-        isSampleProject: true,
         createdByUserId: true,
         createdByUser: {
           name: true,
@@ -5200,37 +5063,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
       }),
     );
 
-    /*
-     * A sample project (issue #6808) leaves nothing behind: its sample
-     * people went with it (User.sampleProjectId cascades), and its rows in
-     * the analytics database are deleted here, from every table, whatever
-     * deleted it - Delete Sample Project, Project Settings, a master admin,
-     * or the job that deletes an idle one on Cloud. It is not a customer's
-     * project: no deleted-project record, no message to the operator's
-     * channel.
-     */
-    const sampleProjectIds: Array<ObjectID> = onDelete.carryForward
-      .filter((project: Model): boolean => {
-        return Boolean(
-          project.id &&
-            project.isSampleProject &&
-            deletedProjectIds.has(project.id.toString()),
-        );
-      })
-      .map((project: Model): ObjectID => {
-        return project.id!;
-      });
-
-    for (const sampleProjectId of sampleProjectIds) {
-      await SampleProjectAnalyticsData.deleteAll(sampleProjectId);
-    }
-
     for (const project of onDelete.carryForward) {
       if (project.id && !deletedProjectIds.has(project.id.toString())) {
-        continue;
-      }
-
-      if (project.isSampleProject) {
         continue;
       }
 
@@ -5255,10 +5089,6 @@ export class ProjectService extends ProjectReferencesService<Model> {
       for (const project of onDelete.carryForward) {
         // As above: only a project that was really deleted is announced.
         if (project.id && !deletedProjectIds.has(project.id.toString())) {
-          continue;
-        }
-
-        if (project.isSampleProject) {
           continue;
         }
 
@@ -5413,7 +5243,6 @@ export class ProjectService extends ProjectReferencesService<Model> {
         paymentProviderSubscriptionStatus: true,
         paymentProviderMeteredSubscriptionStatus: true,
         activeMonitorsLimit: true,
-        isSampleProject: true,
       },
       props: {
         isRoot: true,
@@ -5424,30 +5253,6 @@ export class ProjectService extends ProjectReferencesService<Model> {
     if (!project) {
       // Don't cache "not found" — let the caller surface a fresh error.
       throw new BadDataException("Project ID is invalid");
-    }
-
-    /*
-     * A sample project (issue #6808) has no plan and is never billed, and
-     * every page of it opens as it would on the top plan, so a person
-     * looking around meets no upgrade prompt. What would cost anything is
-     * refused in a sample by its own check - AI, workflow runs, telemetry
-     * ingestion, new monitors - not by its plan.
-     */
-    if (project.isSampleProject) {
-      const samplePlan: CurrentPlan = {
-        plan: SAMPLE_PROJECT_PLAN,
-        isSubscriptionUnpaid: false,
-      };
-
-      if (planChangesBeforeRead === this.currentPlanChanges) {
-        this.currentPlanCache.set(
-          cacheKey,
-          samplePlan,
-          ProjectService.CURRENT_PLAN_CACHE_TTL_MS,
-        );
-      }
-
-      return samplePlan;
     }
 
     if (!project.paymentProviderPlanId) {
@@ -6090,11 +5895,6 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * probes' own fetches are raw SQL and say the same
    * (MonitorProbeService.claimMonitorProbesForProbing, and the network
    * device and VMware claims).
-   *
-   * Nor is a sample project (issue #6808): what it shows is made up, so
-   * nothing in it is ever checked - no probe, no sweep, no SLO run - and
-   * its history stays as it was written. The probes' raw SQL says the same
-   * wherever it leaves a blocked project out (SampleProjectReadersGuard).
    */
   public getActiveProjectStatusQuery(): Query<Model> {
     return {
@@ -6105,7 +5905,6 @@ export class ProjectService extends ProjectReferencesService<Model> {
         SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
       ),
       isBlocked: false,
-      isSampleProject: false,
     };
   }
 

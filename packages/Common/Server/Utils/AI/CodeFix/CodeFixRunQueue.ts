@@ -229,6 +229,7 @@ export default class CodeFixRunQueue {
             _id: true,
             runnerId: true,
             isGlobalRunnerPicked: true,
+            repositoryHostedAt: true,
           },
           props: { isRoot: true },
         })
@@ -247,6 +248,7 @@ export default class CodeFixRunQueue {
         projectId: data.projectId,
         runnerId: repository.runnerId,
         isGlobalRunnerPicked: repository.isGlobalRunnerPicked,
+        repositoryHostedAt: repository.repositoryHostedAt,
       }),
     );
   }

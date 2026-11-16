@@ -109,6 +109,10 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { StartingStage } from "../../../Utils/StartingStage";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { useInMemoryOwnerNotificationDeliveries } from "../../Helpers/InMemoryOwnerNotificationDeliveries";
+import {
+  InMemoryOnCallPages,
+  useInMemoryOnCallPages,
+} from "../../Helpers/InMemoryOnCallPages";
 import CreateOneBaseModel from "../../../Server/Types/Workflow/Components/BaseModel/CreateOneBaseModel";
 import { RunReturnType } from "../../../Server/Types/Workflow/ComponentCode";
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
@@ -1361,6 +1365,13 @@ function stubJobs(): void {
 
 let errors: ReturnType<typeof jest.spyOn>;
 
+/*
+ * The notifications on-call pages sent, which the job reads to leave out an
+ * owner the record's page reached already (#7987): nobody was paged, unless
+ * a test says so.
+ */
+let pages: InMemoryOnCallPages;
+
 // What went wrong on the way - the chain and the jobs log, and carry on.
 function errorsLogged(): Array<string> {
   return errors.mock.calls.map((call: Array<unknown>): string => {
@@ -1444,6 +1455,7 @@ beforeEach(() => {
    * and each owner told through it (OwnerNotificationDeliveries, #8199).
    */
   useInMemoryOwnerNotificationDeliveries();
+  pages = useInMemoryOnCallPages();
 });
 
 afterEach(() => {
@@ -1577,6 +1589,64 @@ describe.each(["incident", "alert"] as Array<Kind>)(
         expect(errorsLogged()).toEqual([]);
       },
     );
+
+    /*
+     * ONE NOTIFICATION FOR A NEW RECORD, NOT TWO (#7987): an owner the
+     * record's on-call page reached as it was created is not sent the
+     * Created email too.
+     */
+    function pagedAsItWasCreated(userId: string): void {
+      const recordId: ObjectID = new ObjectID(onlyRecord(kind));
+
+      pages.add({
+        projectId: PROJECT_ID,
+        userId: new ObjectID(userId),
+        ...(kind === "incident"
+          ? { triggeredByIncidentId: recordId }
+          : { triggeredByAlertId: recordId }),
+      });
+    }
+
+    test("leaves out an owner its on-call page reached already, and reaches every other owner, once", async () => {
+      await openFromMonitor(kind);
+      await waitUntil((): boolean => {
+        return !records.get(onlyRecord(kind))!.isNotified;
+      });
+
+      // The record's on-call policy paged Ben as it was created.
+      pagedAsItWasCreated(BEN);
+
+      advance({ minutes: 1 });
+      await runJob(kind);
+      await runJob(kind);
+
+      expect(notified(kind)).toEqual(
+        EVERY_KIND_OF_OWNER_REACHED.filter((userId: string): boolean => {
+          return userId !== BEN;
+        }),
+      );
+      expect(errorsLogged()).toEqual([]);
+    });
+
+    test("the project's owner, standing in for a record nobody owns and paged as it was created, hears of it once: by the page", async () => {
+      owners = NOBODY;
+
+      await openFromMonitor(kind);
+      await waitUntil((): boolean => {
+        return !records.get(onlyRecord(kind))!.isNotified;
+      });
+
+      pagedAsItWasCreated(PROJECT_OWNER);
+
+      advance({ minutes: 1 });
+      await runJob(kind);
+      await runJob(kind);
+
+      expect(notified(kind)).toEqual([]);
+      // Taken all the same: no later run reads it again.
+      expect(records.get(onlyRecord(kind))!.isNotified).toBe(true);
+      expect(errorsLogged()).toEqual([]);
+    });
   },
 );
 

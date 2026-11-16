@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Angi dem i `config.env`, og kjør deretter `npm start`. `DISABLE_TELEMETRY_FOR_APP` er `true` som standard, og da sendes ingenting.
 :::
 
-OneUptime trenger både endepunktet og headerne: uten en header sender det ingenting. Skriv hver header som `name=value`, og skill flere med `;`. En verdi kan inneholde `=`. OneUptime legger selv til `/v1/metrics` på endepunktet, og de samme innstillingene sender også dets egne traces og logger. Hver måling dukker opp så snart OneUptime registrerer den første gang: `notification.send.count` med den første sendte meldingen.
+OneUptime trenger både endepunktet og headerne: uten en header sender det ingenting. Skriv hver header som `name=value`, og skill flere med `;`, eller med `,` som i `OTEL_EXPORTER_OTLP_HEADERS`. En verdi kan inneholde `=`. Uten `;` leses en verdi slik den standarden skriver den, med mellomrom som `%20`: avslutt innstillingen med `;` for å sende den nøyaktig slik den er skrevet. Headere som er satt i selve `OTEL_EXPORTER_OTLP_HEADERS`, eller i `OTEL_EXPORTER_OTLP_METRICS_HEADERS` bare for målinger, teller også: eksportøren sender dem også, og ved samme navn vinner OneUptimes egne. OneUptime legger selv til `/v1/metrics` på endepunktet, og de samme innstillingene sender også dets egne traces og logger. Hver måling dukker opp så snart OneUptime registrerer den første gang: `notification.send.count` med den første sendte meldingen.
 
 ### Send deltaer til et OneUptime-prosjekt
 
@@ -57,19 +57,15 @@ OneUptime sender tellere og histogrammer slik OpenTelemetry gjør som standard: 
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-En tjenestes egen liste erstatter den for hele chartet: hvis du angir `app.extraEnv` eller `worker.extraEnv`, legg den til der også.
+Chartet gir verdien videre som `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` til hver tjeneste som sender OneUptimes egen telemetri.
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-Opprett den ved siden av `docker-compose.yml`, eller legg dette til i den du har, og kjør deretter `npm start`.
+Angi den i `config.env`, og kjør deretter `npm start`.
 :::
 
 Dette gjelder hver måling OneUptime sender om seg selv. En backend som selv leser løpende summer, som Prometheus, trenger ingen endring.

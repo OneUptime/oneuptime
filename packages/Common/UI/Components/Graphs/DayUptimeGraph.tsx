@@ -10,12 +10,15 @@ import ObjectID from "../../../Types/ObjectID";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
 import DayUptimeGraphUtil, {
+  DaySpan,
   UptimeGraphDay,
 } from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeMaintenanceUtil from "../../../Utils/Uptime/UptimeMaintenanceUtil";
 import UptimeHistoryLabels from "../../../Types/Monitor/UptimeHistoryLabels";
 import {
   MAINTENANCE_BAR_CLASS_NAME,
+  MONITORING_OFF_BAR_CLASS_NAME,
+  MONITORING_OFF_BAR_COLOR,
   NO_DATA_BAR_CLASS_NAME,
   NO_DATA_BAR_COLOR,
   getBarColorForUptimePercent,
@@ -54,6 +57,11 @@ export interface UptimeBarDaySummary {
    * so the dialog lists the same events the tooltip does.
    */
   maintenanceEvents: Array<UptimeBarTooltipMaintenance>;
+  /*
+   * How long monitoring was off that day (issue #7112), so the dialog says
+   * what the tooltip says: a day monitoring was off, or for how long.
+   */
+  monitoringOffSeconds: number;
 }
 
 /*
@@ -76,6 +84,12 @@ export interface DayReading {
   /* Zero means nothing was ever recorded for this day. */
   coveredSeconds: number;
   statusDurations: Array<StatusDuration>;
+  /*
+   * Seconds of the day nothing checked the monitor because its monitoring
+   * was off (UptimeDayBucket.monitoringOffSeconds, issue #7112). Not part of
+   * coveredSeconds: with no coverage, the day was off, not without data.
+   */
+  monitoringOffSeconds?: number | undefined;
 }
 
 /*
@@ -91,6 +105,13 @@ export interface DayReading {
  * reads them too.
  */
 export { NO_DATA_BAR_CLASS_NAME, NO_DATA_BAR_COLOR };
+
+/*
+ * A day monitoring was off (issue #7112) is not a day with no data either:
+ * a lighter grey with the Status Timeline's thin dark stripes, which a
+ * legend's monitoring-off swatch reads too.
+ */
+export { MONITORING_OFF_BAR_CLASS_NAME, MONITORING_OFF_BAR_COLOR };
 
 export interface ComponentProps {
   startDate: Date;
@@ -133,6 +154,13 @@ export interface ComponentProps {
    */
   maintenanceEvents?: Array<UptimeBarTooltipMaintenance> | undefined;
   onMaintenanceClick?: ((maintenanceId: string) => void) | undefined;
+  /*
+   * The time monitoring was off, from the timeline rows (UptimeUtil
+   * .getMonitoringOffSpans), for a day the events decide: a day with a
+   * reading takes its monitoringOffSeconds instead. A day nothing was
+   * checked on, but monitoring was off for, says so (issue #7112).
+   */
+  monitoringOffSpans?: Array<DaySpan> | undefined;
   /*
    * Wording for the accessible names. Defaults to English, matching the
    * tooltip; the status page passes translated strings.
@@ -589,10 +617,45 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
      */
     hasEvents = hasDataForTheDay;
 
+    /*
+     * How long monitoring was off this day (issue #7112): the server's
+     * reading says, when there is one; otherwise the timeline's spans with
+     * monitoring off, less the time something was checked. A day nothing
+     * was checked on, but monitoring was off for, is not a day with no data:
+     * someone turned monitoring off, and the bar, its name and its tooltip
+     * say so. A day with data keeps its uptime, of the time that was checked.
+     */
+    const monitoringOffSeconds: number = todaysReading
+      ? Math.max(Number(todaysReading.monitoringOffSeconds) || 0, 0)
+      : DayUptimeGraphUtil.getMonitoringOffSecondsOfDay({
+          monitoringOffSpans: props.monitoringOffSpans || [],
+          checkedSpans: todaysEvents.map((event: Event): DaySpan => {
+            return {
+              startDate: OneUptimeDate.fromString(event.startDate),
+              endDate: OneUptimeDate.fromString(event.endDate),
+            };
+          }),
+          dayStart: startOfTheDay,
+          dayEnd: new Date(dayEndTime),
+        });
+
+    const isMonitoringOffDay: boolean = DayUptimeGraphUtil.isMonitoringOffDay({
+      hasEvents: hasDataForTheDay,
+      monitoringOffSeconds: monitoringOffSeconds,
+    });
+
     if (!hasDataForTheDay) {
-      color = NO_DATA_BAR_COLOR;
+      color = isMonitoringOffDay ? MONITORING_OFF_BAR_COLOR : NO_DATA_BAR_COLOR;
     } else if (todaysEvents.length === 0 && !readingDecidesTheDay) {
       color = props.defaultBarColor || Green;
+    }
+
+    let dayStateClassName: string = "";
+
+    if (isMonitoringOffDay) {
+      dayStateClassName = ` ${MONITORING_OFF_BAR_CLASS_NAME}`;
+    } else if (!hasDataForTheDay) {
+      dayStateClassName = ` ${NO_DATA_BAR_CLASS_NAME}`;
     }
 
     // Get incidents for this day
@@ -658,6 +721,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       statusDurations: statusDurations,
       incidents: dayIncidents,
       maintenanceEvents: dayMaintenance,
+      monitoringOffSeconds: monitoringOffSeconds,
     };
 
     const ariaLabel: string = DayUptimeGraphUtil.getDayAriaLabel({
@@ -669,6 +733,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       uptimePercent: uptimePercentForTheDay,
       incidentCount: dayIncidents.length,
       maintenanceCount: dayMaintenance.length,
+      monitoringOffSeconds: monitoringOffSeconds,
       labels: props.labels,
     });
 
@@ -683,6 +748,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             uptimePercent={uptimePercentForTheDay}
             hasEvents={hasEvents}
             statusDurations={statusDurations}
+            monitoringOffSeconds={monitoringOffSeconds}
             incidents={dayIncidents}
             onIncidentClick={props.onIncidentClick}
             maintenanceEvents={dayMaintenance}
@@ -719,10 +785,11 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
            */
           className={`${className} relative block p-0 border-0 appearance-none focus:outline-none focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-indigo-600${
             isClickable ? " cursor-pointer hover:opacity-80" : ""
-          }${hasDataForTheDay ? "" : ` ${NO_DATA_BAR_CLASS_NAME}`}${
+          }${dayStateClassName}${
             hasMaintenance ? ` ${MAINTENANCE_BAR_CLASS_NAME}` : ""
           }`}
           data-has-data={hasDataForTheDay ? "true" : "false"}
+          data-monitoring-off={isMonitoringOffDay ? "true" : "false"}
           data-has-maintenance={hasMaintenance ? "true" : "false"}
           /*
            * The bar's colour exactly as picked, in both themes. On the dark

@@ -3,6 +3,7 @@ import CodeFixAgentAuth, {
   CodeFixAgentSource,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixAgentAuth";
 import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
+import AIRunService from "../../../Server/Services/AIRunService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import GitHubUtil from "../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import GitHubInstallationBinding from "../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
@@ -19,7 +20,10 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import { mockRouter } from "./Helpers";
+import AIRun from "../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
+import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import AIRunType from "../../../Types/AI/AIRunType";
 import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
@@ -106,6 +110,8 @@ describe("POST /ai-agent-data/get-repository-token", () => {
   let mintTokenSpy: jest.SpyInstance;
   let bindingSpy: jest.SpyInstance;
   let findRepositorySpy: jest.SpyInstance;
+  // The run the agent holds: it names none (an AI agent from before 12.0).
+  let findHeldRunSpy: jest.SpyInstance;
   let mayWorkSpy: jest.SpyInstance;
   let agentId: ObjectID;
 
@@ -141,6 +147,22 @@ describe("POST /ai-agent-data/get-repository-token", () => {
       .mockResolvedValue(true);
 
     findRepositorySpy = jest.spyOn(CodeRepositoryService, "findOneById");
+
+    /*
+     * The agent names no run, so it is handed a token while it holds one in
+     * the repository's project: a code fix it claimed and still works on.
+     */
+    findHeldRunSpy = jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockImplementation(async () => {
+        const run: AIRun = new AIRun();
+        run.id = ObjectID.generate();
+        run.projectId = attackerProjectId;
+        run.runType = AIRunType.CodeFix;
+        run.status = AIRunStatus.Running;
+        run.aiAgentId = agentId;
+        return run;
+      });
 
     const capSpy: jest.SpyInstance = jest.spyOn(
       OpenPullRequestCap,
@@ -395,6 +417,51 @@ describe("POST /ai-agent-data/get-repository-token", () => {
 
       expect(thrownError()).toBeInstanceOf(BadDataException);
       expect(mintTokenSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * A worker that names no run - an AI agent a project created before 12.0,
+   * or a Runner of a release before it sent one - is handed a token only
+   * while it holds a run in the repository's project: one it claimed (its id
+   * on the run) that is still Running, in this repository or one that has
+   * not found its repository yet. A key whose worker holds nothing opens
+   * nothing.
+   */
+  describe("a worker that names no run is held to a run it holds", () => {
+    test("asks for a code fix of the repository's project the worker claimed and still works on, in this repository or none yet", async () => {
+      mockRepository(ownInstallationId);
+      bindingSpy.mockResolvedValue(true);
+
+      await callRoute();
+
+      expect(findHeldRunSpy).toHaveBeenCalledTimes(1);
+
+      const query: Record<string, unknown> = (
+        findHeldRunSpy.mock.calls[0]![0] as { query: Record<string, unknown> }
+      ).query;
+
+      expect(String(query["projectId"])).toBe(attackerProjectId.toString());
+      expect(query["runType"]).toBe(AIRunType.CodeFix);
+      expect(query["status"]).toBe(AIRunStatus.Running);
+      expect(String(query["aiAgentId"])).toBe(agentId.toString());
+      // This repository, or one not found yet: never another repository.
+      expect(query["codeRepositoryId"]).toBeDefined();
+      expect(mintTokenSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("a worker that holds no run there is handed no token, exactly as for a missing repository", async () => {
+      mockRepository(ownInstallationId);
+      bindingSpy.mockResolvedValue(true);
+      findHeldRunSpy.mockResolvedValue(null);
+
+      await callRoute();
+
+      expect(thrownError()).toBeInstanceOf(BadDataException);
+      expect(thrownError()!.message).toBe("Code repository not found");
+      expect(bindingSpy).not.toHaveBeenCalled();
+      expect(mintTokenSpy).not.toHaveBeenCalled();
+      expect(jsonResponse()).toBeUndefined();
     });
   });
 

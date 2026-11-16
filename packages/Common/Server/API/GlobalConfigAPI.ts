@@ -36,6 +36,10 @@ import {
   toServerProductsAnswerJSON,
 } from "../../Types/Product/ServerProductsAnswer";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
+import {
+  MASTER_API_KEY_ROUTE,
+  toMasterApiKeyStateJSON,
+} from "../../Types/MasterApiKey/MasterApiKeyAnswer";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
 import Select from "../Types/Database/Select";
@@ -434,6 +438,65 @@ export default class GlobalConfigAPI extends BaseAPI<
             ok: result.ok,
             responseStatusCode: result.statusCode || null,
             statusMessage: result.message,
+          });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /global-config/master-api-key - whether the server has a master
+     * API key, and whether it is on (Admin Dashboard > Settings > API
+     * Key). Never the key, nor its hash: the key is stored hashed (#7901)
+     * and shown once, when it is made.
+     *
+     * A signed-in master admin, as the page is theirs.
+     */
+    this.router.get(
+      MASTER_API_KEY_ROUTE,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toMasterApiKeyStateJSON(
+              await GlobalConfigService.getMasterApiKeyState(),
+            ),
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /global-config/master-api-key - a master admin making the
+     * server's master API key: a new one, in place of the one before, which
+     * stops working at once, turned on (GlobalConfigService.
+     * createMasterApiKey). The answer holds the key, the one time it is
+     * ever sent: only its hash is kept, so the page shows it once, and no
+     * cache may keep the answer.
+     *
+     * A signed-in master admin only, never the master API key: a key that
+     * leaked must not be able to replace itself and lock its admins out.
+     */
+    this.router.post(
+      MASTER_API_KEY_ROUTE,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const masterApiKey: string =
+            await GlobalConfigService.createMasterApiKey();
+
+          res.setHeader("Cache-Control", "no-store");
+
+          return Response.sendJsonObjectResponse(req, res, {
+            ...toMasterApiKeyStateJSON(
+              await GlobalConfigService.getMasterApiKeyState(),
+            ),
+            masterApiKey: masterApiKey,
           });
         } catch (err) {
           return next(err);

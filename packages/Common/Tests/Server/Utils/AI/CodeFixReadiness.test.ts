@@ -16,6 +16,7 @@ import CodeFixReadiness, {
 import CodeRepositoryRunnerChoice from "../../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import SubjectCodeFixRun from "../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import { CodeTaskBlockerType } from "../../../../Types/AI/CodeTask";
+import { GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL } from "../../../../Types/Runner/GlobalRunnerRepositoryTokens";
 import { CodeRepositoryRunnerChoiceKind } from "../../../../Types/Runner/CodeRepositoryRunner";
 import AIService from "../../../../Server/Services/AIService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
@@ -587,6 +588,26 @@ describe("why nothing can do a repository's work, in words and as Code's blocker
     expect(GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL).not.toContain(
       "is online to",
     );
+  });
+
+  test("a repository no global Runner may be handed the token of (OneUptime Cloud, not GitHub) says so, as its own blocker", () => {
+    const status: {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global };
+      isOnline: boolean;
+      needsOwnRunnerForItsToken: boolean;
+    } = {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: false,
+      needsOwnRunnerForItsToken: true,
+    };
+
+    expect(describeRepositoryRunnerStatus(status)).toBe(
+      GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL,
+    );
+    expect(getRepositoryRunnerBlocker(status)).toEqual({
+      type: CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner,
+      message: GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL,
+    });
   });
 
   test("each kind of Runner that takes no code fixes is its own sentence, never the offline one", () => {

@@ -46,7 +46,9 @@ import Response from "Common/Server/Utils/Response";
  *   /heartbeat             { status: "ok" }
  *   /claim-next-job        { job: null } | { job: { jobId, origin, stepId,
  *                          stepType, timeoutInMs, leaseExpiresAt, payload } }
- *   /job/:jobId/heartbeat  { status: "ok" } | 404 { message }
+ *   /job/:jobId/heartbeat  { status: "ok" } | { status: "ok", stop: true,
+ *                          reason } (Enable AI was turned off since the
+ *                          claim: do not start the command) | 404 { message }
  *   /job/:jobId/result     { accepted }
  *   /disconnect            { status: "ok" }
  *
@@ -309,7 +311,26 @@ export default class KubernetesAiAgentIngressAPI {
         );
       }
 
-      return Response.sendJsonObjectResponse(req, res, { status: "ok" });
+      /*
+       * Enable AI, read again while the agent holds the job: turned off
+       * since the claim, the agent is told to stop - the heartbeat sent
+       * right before kubectl starts keeps it from starting. Test access is
+       * never stopped (AiCommandKillSwitch). The lease is still renewed, so
+       * the agent reports what it did.
+       */
+      const stop: string | null = await RunnerJobService.getStopReasonOfHeldJob(
+        {
+          jobId,
+          agentId: agent.id!,
+          projectId: agent.projectId,
+        },
+      );
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        stop ? { status: "ok", stop: true, reason: stop } : { status: "ok" },
+      );
     } catch (err) {
       next(err);
     }

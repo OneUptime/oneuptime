@@ -31,6 +31,7 @@ import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import Incident from "../../Models/DatabaseModels/Incident";
 import Alert from "../../Models/DatabaseModels/Alert";
+import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
 import CodeFixTaskType, {
   CodeFixContextKind,
@@ -102,36 +103,27 @@ export default class AIAgentDataAPI {
 
   /*
    * The run a repository-token request names, when it is a code-fix run of
-   * the repository's project the agent may act on - otherwise null. A
-   * global Runner may act only for the run it claimed and still holds
-   * (CodeFixAgentAuth.deniesAccessToRun), so for it this is the run it is
-   * working on, or null.
+   * the repository's project the agent may act on - otherwise null. Every
+   * worker acts only for the run it claimed and still holds
+   * (CodeFixAgentAuth.deniesAccessToRun), so this is the run it is working
+   * on, or null - and the route then refuses the token.
    *
    * `taskId` names a task; it does not assert anything about it, and a task
-   * in another project answers null exactly as a missing one does. An absent
-   * taskId also answers null, so an older worker that does not send one keeps
-   * the cap in full - and a global Runner, which always sends it, is refused
-   * the token (the route asks for its run).
+   * in another project answers null exactly as a missing one does. A request
+   * that names no run is not asked here: the route looks for a run the
+   * worker holds in the repository's project instead (holdsRunOfProject).
    */
   private static async findTokenRun(data: {
     aiAgent: CodeFixAgentIdentity;
-    taskId: string | undefined;
+    runId: ObjectID;
     projectId: ObjectID | undefined;
   }): Promise<AIRun | null> {
-    if (!data.taskId || !data.projectId) {
-      return null;
-    }
-
-    let taskId: ObjectID;
-
-    try {
-      taskId = new ObjectID(data.taskId);
-    } catch {
+    if (!data.projectId) {
       return null;
     }
 
     const run: AIRun | null = await AIRunService.findOneById({
-      id: taskId,
+      id: data.runId,
       select: {
         ...CODE_FIX_RUN_HOLD_SELECT,
         runType: true,
@@ -160,28 +152,97 @@ export default class AIAgentDataAPI {
   }
 
   /*
-   * Whether a global Runner is refused a route that names an exception
-   * (its details, the repository its code lives in): it reads only the
-   * exception of the run it holds (CodeFixAgentAuth.deniesAccessToRun), so
-   * the request must name that run (taskId) and the run must be about this
-   * exception. A project's own worker reads its project's exceptions as
-   * before (the route's project check), whether or not it names a run.
+   * Whether a request from a worker that names no run (an older Runner, or
+   * an AI agent a project created before 12.0) may be told what it asks:
+   * a project's own worker that holds a code-fix run of the project now -
+   * one it claimed (its id on the run) that is still Running - matching
+   * what it asks about. That run is what it is working on: the server finds
+   * it rather than being told, so such a worker keeps working, and a key
+   * whose worker holds nothing is told nothing. A global Runner always
+   * names its run, so it is never served this way.
    */
-  private static async deniesGlobalRunnerAccessToException(data: {
+  private static async holdsRunOfProject(data: {
     aiAgent: CodeFixAgentIdentity;
-    taskId: unknown;
-    exceptionId: ObjectID;
+    projectId: ObjectID | undefined;
+    // What the held run must also be: a fix of this exception.
+    exceptionId?: ObjectID | undefined;
+    // ...or a run in this repository, or one that has not found its own yet.
+    codeRepositoryId?: ObjectID | undefined;
   }): Promise<boolean> {
-    if (!CodeFixAgentAuth.isGlobalIdentity(data.aiAgent)) {
+    /*
+     * The project is the exception's or the repository's, which the route
+     * has already held to the worker's own (deniesAccessToProject), and a
+     * project's worker claims runs of its own project alone.
+     */
+    if (CodeFixAgentAuth.isGlobalIdentity(data.aiAgent) || !data.projectId) {
       return false;
     }
 
-    if (typeof data.taskId !== "string" || !ObjectID.isValidUUID(data.taskId)) {
-      return true;
+    const run: AIRun | null = await AIRunService.findOneBy({
+      query: {
+        projectId: data.projectId,
+        runType: AIRunType.CodeFix,
+        status: AIRunStatus.Running,
+        aiAgentId: data.aiAgent.id,
+        ...(data.exceptionId
+          ? { triggeredByTelemetryExceptionId: data.exceptionId }
+          : {}),
+        ...(data.codeRepositoryId
+          ? {
+              codeRepositoryId: QueryHelper.equalToOrNull(
+                data.codeRepositoryId,
+              ),
+            }
+          : {}),
+      },
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+
+    return Boolean(run);
+  }
+
+  /*
+   * The run a request names (its taskId), when that is a run id at all;
+   * null for a request that names none, or names something that is not one.
+   */
+  public static getNamedRunId(taskId: unknown): ObjectID | null {
+    return typeof taskId === "string" && ObjectID.isValidUUID(taskId)
+      ? new ObjectID(taskId)
+      : null;
+  }
+
+  /*
+   * Whether a worker is refused a route that names an exception (its
+   * details, the repository its code lives in): it reads only the exception
+   * of a run it holds (CodeFixAgentAuth.deniesAccessToRun). A request that
+   * names its run (taskId) - every Runner since global Runners took code
+   * fixes sends it - must name a code fix of this exception that it holds.
+   * One that names none is served while the worker holds a code fix of this
+   * exception (holdsRunOfProject); a global Runner always names its run, so
+   * it is refused. The route's project check comes first, so the exception
+   * is the worker's project's.
+   */
+  private static async deniesAccessToException(data: {
+    aiAgent: CodeFixAgentIdentity;
+    taskId: unknown;
+    exceptionId: ObjectID;
+    projectId: ObjectID | undefined;
+  }): Promise<boolean> {
+    const namedRunId: ObjectID | null = AIAgentDataAPI.getNamedRunId(
+      data.taskId,
+    );
+
+    if (!namedRunId) {
+      return !(await AIAgentDataAPI.holdsRunOfProject({
+        aiAgent: data.aiAgent,
+        projectId: data.projectId,
+        exceptionId: data.exceptionId,
+      }));
     }
 
     const run: AIRun | null = await AIRunService.findOneById({
-      id: new ObjectID(data.taskId),
+      id: namedRunId,
       select: {
         ...CODE_FIX_RUN_HOLD_SELECT,
         runType: true,
@@ -475,8 +536,8 @@ export default class AIAgentDataAPI {
 
           /*
            * A project-scoped Runner only sees its own project's exceptions,
-           * and a global Runner only the exception of the run it holds —
-           * this response carries stack traces and messages.
+           * and every worker only the exception of a run it holds — this
+           * response carries stack traces and messages.
            */
           if (
             !exception ||
@@ -484,10 +545,11 @@ export default class AIAgentDataAPI {
               aiAgent,
               exception.projectId,
             ) ||
-            (await AIAgentDataAPI.deniesGlobalRunnerAccessToException({
+            (await AIAgentDataAPI.deniesAccessToException({
               aiAgent,
               taskId: data["taskId"],
               exceptionId,
+              projectId: exception.projectId,
             }))
           ) {
             return Response.sendErrorResponse(
@@ -642,8 +704,9 @@ export default class AIAgentDataAPI {
 
           /*
            * A project-scoped Runner resolves only its own project's
-           * exceptions, and a global Runner only the exception of the run it
-           * holds (it names the run, taskId).
+           * exceptions, and every worker only the exception of a run it
+           * holds (the run it names, taskId, or - from a worker that names
+           * none - one it holds of this exception).
            */
           if (
             !exception ||
@@ -652,10 +715,11 @@ export default class AIAgentDataAPI {
               aiAgent,
               exception.projectId,
             ) ||
-            (await AIAgentDataAPI.deniesGlobalRunnerAccessToException({
+            (await AIAgentDataAPI.deniesAccessToException({
               aiAgent,
               taskId: data["taskId"],
               exceptionId,
+              projectId: exception.projectId,
             }))
           ) {
             return Response.sendErrorResponse(
@@ -1419,20 +1483,38 @@ export default class AIAgentDataAPI {
 
           /*
            * The run the token is for, when the request names one the agent
-           * may act for (findTokenRun). A global Runner serves every project,
-           * so it is handed a token only for a repository of the run it holds
-           * (CodeFixAgentAuth.deniesAccessToRun): its key never opens every
-           * repository on the Global Runner at will, only the one its work is
-           * in. Without such a run the repository reads as missing, as it
-           * does for another project's repository.
+           * may act for (findTokenRun). Every worker is handed a token only
+           * for a repository of a run it holds
+           * (CodeFixAgentAuth.deniesAccessToRun): a key never opens every
+           * repository its worker may work in at will, only the one its work
+           * is in. A worker that names no run - a Runner of a release before
+           * it sent one, or an AI agent a project created before 12.0 - is
+           * handed one while it holds a run in the repository's project
+           * (holdsRunOfProject), as its fix needs; a global Runner always
+           * names its run. Without such a run the repository reads as
+           * missing, as it does for another project's repository.
            */
-          const tokenRun: AIRun | null = await AIAgentDataAPI.findTokenRun({
-            aiAgent,
-            taskId: data["taskId"] as string | undefined,
-            projectId: codeRepository.projectId,
-          });
+          const namedRunId: ObjectID | null = AIAgentDataAPI.getNamedRunId(
+            data["taskId"],
+          );
 
-          if (CodeFixAgentAuth.isGlobalIdentity(aiAgent) && !tokenRun) {
+          const tokenRun: AIRun | null = namedRunId
+            ? await AIAgentDataAPI.findTokenRun({
+                aiAgent,
+                runId: namedRunId,
+                projectId: codeRepository.projectId,
+              })
+            : null;
+
+          const isHeldWithoutNamingIt: boolean =
+            !namedRunId &&
+            (await AIAgentDataAPI.holdsRunOfProject({
+              aiAgent,
+              projectId: codeRepository.projectId,
+              codeRepositoryId: codeRepositoryId,
+            }));
+
+          if (!tokenRun && !isHeldWithoutNamingIt) {
             return Response.sendErrorResponse(
               req,
               res,

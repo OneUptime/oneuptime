@@ -264,6 +264,30 @@ describe("the receipts queue on a real Valkey", () => {
     expect(takenAgain[0]!.isOnCallPage).toBe(true);
   });
 
+  /*
+   * A receipt read and counted whose news could not be written down is
+   * kept to be read again as counted (issue #6874): through Valkey, to
+   * whichever worker takes it next.
+   */
+  test("a receipt kept counted is still counted when another worker takes it again", async () => {
+    const counted: PendingExpoPushReceipt = {
+      ...receiptNumber(1),
+      isOnCallPage: true,
+      isDeliveryCounted: true,
+    };
+
+    expect(
+      await queue.checkAgainLater([counted], SENT_AT + 20 * MINUTE),
+    ).toEqual({ rescheduled: 1, expired: 0 });
+
+    const taken: Array<PendingExpoPushReceipt> = (
+      await otherWorker.claimDue({ now: SENT_AT + HOUR, limit: 10 })
+    ).receipts;
+
+    expect(taken).toEqual([{ ...counted, attempts: 1 }]);
+    expect(taken[0]!.isDeliveryCounted).toBe(true);
+  });
+
   test("when a token last registered is kept for a day and an hour, under a key that does not name it", async () => {
     const token: string = receiptNumber(1).deviceToken;
 

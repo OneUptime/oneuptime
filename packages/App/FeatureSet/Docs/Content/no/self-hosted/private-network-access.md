@@ -201,6 +201,8 @@ Kjør arbeidsflyten eller monitoren på nytt. Hvis den fortsatt avvises, nevner 
 - **Alle som kan opprette en arbeidsflyt eller en monitor av typen API, Website, External Status Page eller Custom JavaScript Code, eller legge til en abonnent på en statusside, kan nå alt du har tillatt.** Behandle medlemskap i de prosjektene deretter.
 - **Svarinnholdet kommer tilbake.** En API-komponent i en arbeidsflyt returnerer status, hoder og body i arbeidsflytloggen, så en tillatt vert kan leses, ikke bare skrives til.
 - **Omdirigeringer følges aldri** for webhook-forespørsler, så en tillatt offentlig vert kan ikke sende serveren videre til en intern vert i et nytt hopp.
+- **OneUptime kobler til adressen den kontrollerte.** Vertsnavnet til en webhook slås opp én gang, når URL-en kontrolleres, og forespørselen går til en adresse det oppslaget godkjente, så et navn som svarer annerledes et øyeblikk senere (DNS-rebinding), får aldri forbindelsen. TLS kontrollerer fortsatt sertifikatet mot navnet i URL-en.
+- **Gjennom en utgående proxy er det proxyen som kobler til.** Hvis API-serveren sender gjennom en proxy satt i `HTTPS_PROXY`, `HTTP_PROXY` eller `ALL_PROXY` (unntatt vertene i `NO_PROXY`), går webhooks fortsatt gjennom den: OneUptime kontrollerer fortsatt adressen først og følger aldri en omdirigering, men det er proxyen som slår opp navnet og kobler til. Avvis private og link-local-mål på selve proxyen, særlig `169.254.169.254`.
 - **Avgrens per sonde i stedet for for hele instansen der du kan.** En sonde rullet ut inne i ett nettverk er en smalere tillatelse enn å åpne den utgående trafikken til API-serveren.
 
 ## Neste steg

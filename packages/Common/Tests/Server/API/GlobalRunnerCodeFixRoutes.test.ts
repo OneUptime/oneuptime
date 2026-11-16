@@ -72,7 +72,10 @@ import {
  *   - never handed a repository's own commands, nor offered the command
  *     tool for its model;
  * and refused everything else exactly like a missing run. A project's own
- * Runner keeps its project scope, as before.
+ * Runner is held to the run it claimed the same way (it keeps the
+ * repository's commands and the command tool); one that names no run - a
+ * Runner of a release before it sent one - is served what a run it holds
+ * needs, found by what it asks about, and nothing while it holds none.
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -124,6 +127,11 @@ const PROJECT_RUNNER: CodeFixAgentIdentity = {
 
 let identity: CodeFixAgentIdentity;
 let storedRun: AIRun | null;
+/*
+ * The run a worker that names none holds, as the routes look it up
+ * (AIRunService.findOneBy): none unless a test says.
+ */
+let heldRunOfUnnamedRequest: AIRun | null;
 
 /*
  * How the run is held: by whom (its aiAgentId) and in what state. Every
@@ -247,6 +255,7 @@ beforeEach(() => {
 
   identity = GLOBAL_RUNNER;
   storedRun = null;
+  heldRunOfUnnamedRequest = null;
 
   jest
     .spyOn(CodeFixAgentAuth, "checkCredential")
@@ -256,6 +265,9 @@ beforeEach(() => {
 
   jest.spyOn(AIRunService, "findOneById").mockImplementation(async () => {
     return storedRun;
+  });
+  jest.spyOn(AIRunService, "findOneBy").mockImplementation(async () => {
+    return heldRunOfUnnamedRequest;
   });
   jest.spyOn(AIRunService, "updateOneBy").mockResolvedValue(1 as never);
 });
@@ -297,15 +309,28 @@ describe("POST /ai-agent-task/update-task-status (a report)", () => {
     },
   );
 
-  test("a project's own Runner reports on its project's run, whoever claimed it", async () => {
-    identity = PROJECT_RUNNER;
-    storedRun = makeRun({
-      hold: HELD_BY_ANOTHER,
-      taskType: CodeFixTaskType.FixException,
-    });
+  test.each([HELD_BY_IT, ENDED_ITS_OWN])(
+    "a project's own Runner reports on $name",
+    async (hold: RunHold) => {
+      identity = PROJECT_RUNNER;
+      storedRun = makeRun({ hold, taskType: CodeFixTaskType.FixException });
 
-    expect((await reportProgress()).error).toBeUndefined();
-  });
+      expect((await reportProgress()).error).toBeUndefined();
+    },
+  );
+
+  test.each([HELD_BY_ANOTHER, WAITING])(
+    "a project's own Runner is refused a report on $name of its own project, exactly as no run",
+    async (hold: RunHold) => {
+      identity = PROJECT_RUNNER;
+      storedRun = makeRun({ hold, taskType: CodeFixTaskType.FixException });
+
+      const answer: Answer = await reportProgress();
+
+      expect(answer.error?.message).toBe("Task not found");
+      expect(AIRunService.updateOneBy).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("POST /ai-agent-task-log/create-log (a report)", () => {
@@ -348,6 +373,25 @@ describe("POST /ai-agent-task-log/create-log (a report)", () => {
       expect(AIRunEventService.appendEventToRun).not.toHaveBeenCalled();
     },
   );
+
+  test("a project's own Runner logs to the run it claimed, and plants no line in the run another worker of its project holds", async () => {
+    identity = PROJECT_RUNNER;
+    storedRun = makeRun({
+      hold: HELD_BY_IT,
+      taskType: CodeFixTaskType.FixException,
+    });
+
+    expect((await log()).error).toBeUndefined();
+
+    jest.clearAllMocks();
+    storedRun = makeRun({
+      hold: HELD_BY_ANOTHER,
+      taskType: CodeFixTaskType.FixException,
+    });
+
+    expect((await log()).error?.message).toBe("Task not found");
+    expect(AIRunEventService.appendEventToRun).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /ai-agent-data/record-pull-request (a report)", () => {
@@ -385,6 +429,19 @@ describe("POST /ai-agent-data/record-pull-request (a report)", () => {
   test.each([HELD_BY_ANOTHER, WAITING])(
     "a global Runner records nothing on $name",
     async (hold: RunHold) => {
+      storedRun = makeRun({ hold, taskType: CodeFixTaskType.FixException });
+
+      const answer: Answer = await record();
+
+      expect(answer.error?.message).toBe("Task not found");
+      expect(CodeFixPullRequestRecord.record).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([HELD_BY_ANOTHER, WAITING])(
+    "a project's own Runner records nothing on $name of its own project",
+    async (hold: RunHold) => {
+      identity = PROJECT_RUNNER;
       storedRun = makeRun({ hold, taskType: CodeFixTaskType.FixException });
 
       const answer: Answer = await record();
@@ -474,6 +531,19 @@ describe("POST /ai-agent-data/llm-completion (work)", () => {
   test.each([HELD_BY_ANOTHER, WAITING, ENDED_ITS_OWN])(
     "a global Runner spends nothing of $name",
     async (hold: RunHold) => {
+      storedRun = makeRun({ hold, taskType: CodeFixTaskType.FixException });
+
+      const answer: Answer = await complete();
+
+      expect(answer.error?.message).toBe("Task not found");
+      expect(CodeFixAgentCompletion.execute).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([HELD_BY_ANOTHER, WAITING, ENDED_ITS_OWN])(
+    "a project's own Runner spends nothing of $name of its own project",
+    async (hold: RunHold) => {
+      identity = PROJECT_RUNNER;
       storedRun = makeRun({ hold, taskType: CodeFixTaskType.FixException });
 
       const answer: Answer = await complete();
@@ -583,8 +653,38 @@ describe("POST /ai-agent-data/get-exception-details and get-code-repositories (w
       },
     );
 
-    test("a project's own Runner reads its project's exception, naming a run or not, as before", async () => {
+    test("a project's own Runner reads the exception of the run it holds", async () => {
       identity = PROJECT_RUNNER;
+      storedRun = exceptionRun(HELD_BY_IT, EXCEPTION_ID);
+
+      const answer: Answer = await call(route, {
+        exceptionId: EXCEPTION_ID.toString(),
+        taskId: RUN_ID.toString(),
+      });
+
+      expect(answer.error).toBeUndefined();
+      expect(answer.json).toBeDefined();
+    });
+
+    test.each([HELD_BY_ANOTHER, WAITING, ENDED_ITS_OWN])(
+      "a project's own Runner reads nothing for $name of its own project",
+      async (hold: RunHold) => {
+        identity = PROJECT_RUNNER;
+        storedRun = exceptionRun(hold, EXCEPTION_ID);
+
+        const answer: Answer = await call(route, {
+          exceptionId: EXCEPTION_ID.toString(),
+          taskId: RUN_ID.toString(),
+        });
+
+        expect(answer.error?.message).toBe("Exception not found");
+        expect(answer.json).toBeUndefined();
+      },
+    );
+
+    test("a project's own Runner that names no run (an older Runner) reads the exception of a fix of it that it claimed and still works on", async () => {
+      identity = PROJECT_RUNNER;
+      heldRunOfUnnamedRequest = exceptionRun(HELD_BY_IT, EXCEPTION_ID);
 
       const answer: Answer = await call(route, {
         exceptionId: EXCEPTION_ID.toString(),
@@ -592,6 +692,46 @@ describe("POST /ai-agent-data/get-exception-details and get-code-repositories (w
 
       expect(answer.error).toBeUndefined();
       expect(answer.json).toBeDefined();
+
+      const lookup: { query: JSONObject } = (
+        AIRunService.findOneBy as unknown as jest.Mock
+      ).mock.calls[0]![0] as never;
+
+      expect(String(lookup.query["projectId"])).toBe(PROJECT_ID.toString());
+      expect(String(lookup.query["aiAgentId"])).toBe(WORKER_ID.toString());
+      expect(lookup.query["status"]).toBe(AIRunStatus.Running);
+      expect(lookup.query["runType"]).toBe(AIRunType.CodeFix);
+      expect(String(lookup.query["triggeredByTelemetryExceptionId"])).toBe(
+        EXCEPTION_ID.toString(),
+      );
+    });
+
+    test("a project's own Runner that names no run and holds no fix of the exception reads nothing", async () => {
+      identity = PROJECT_RUNNER;
+      heldRunOfUnnamedRequest = null;
+
+      for (const taskId of [undefined, "", "not-a-uuid", 42]) {
+        jest.clearAllMocks();
+
+        const answer: Answer = await call(route, {
+          exceptionId: EXCEPTION_ID.toString(),
+          ...(taskId === undefined ? {} : { taskId: taskId as never }),
+        });
+
+        expect(answer.error?.message).toBe("Exception not found");
+        expect(answer.json).toBeUndefined();
+      }
+    });
+
+    test("a global Runner is never served by a fix it holds without naming it", async () => {
+      heldRunOfUnnamedRequest = exceptionRun(HELD_BY_IT, EXCEPTION_ID);
+
+      const answer: Answer = await call(route, {
+        exceptionId: EXCEPTION_ID.toString(),
+      });
+
+      expect(answer.error?.message).toBe("Exception not found");
+      expect(AIRunService.findOneBy).not.toHaveBeenCalled();
     });
   });
 
@@ -614,6 +754,7 @@ describe("POST /ai-agent-data/get-exception-details and get-code-repositories (w
 
     jest.clearAllMocks();
     identity = PROJECT_RUNNER;
+    heldRunOfUnnamedRequest = exceptionRun(HELD_BY_IT, EXCEPTION_ID);
 
     const own: Answer = await call("/ai-agent-data/get-code-repositories", {
       exceptionId: EXCEPTION_ID.toString(),
@@ -678,9 +819,9 @@ describe("POST /ai-agent-data/get-instrumentation-task-details (work)", () => {
     expect(repository["testCommand"]).toBeNull();
   });
 
-  test("a project's own Runner gets the repository with its commands", async () => {
+  test("a project's own Runner gets the repository with its commands, for the run it holds", async () => {
     identity = PROJECT_RUNNER;
-    storedRun = loggingRun(HELD_BY_ANOTHER);
+    storedRun = loggingRun(HELD_BY_IT);
 
     const answer: Answer = await call(ROUTE, { taskId: RUN_ID.toString() });
 
@@ -691,6 +832,19 @@ describe("POST /ai-agent-data/get-instrumentation-task-details (work)", () => {
     expect(repository["setupCommand"]).toBe("npm ci");
     expect(repository["testCommand"]).toBe("npm test");
   });
+
+  test.each([HELD_BY_ANOTHER, WAITING, ENDED_ITS_OWN])(
+    "a project's own Runner gets nothing of $name of its own project",
+    async (hold: RunHold) => {
+      identity = PROJECT_RUNNER;
+      storedRun = loggingRun(hold);
+
+      const answer: Answer = await call(ROUTE, { taskId: RUN_ID.toString() });
+
+      expect(answer.error?.message).toBe("Task not found");
+      expect(answer.json).toBeUndefined();
+    },
+  );
 
   test.each([HELD_BY_ANOTHER, WAITING, ENDED_ITS_OWN])(
     "a global Runner gets nothing of $name",
@@ -868,8 +1022,9 @@ describe("POST /ai-agent-data/get-repository-token (work)", () => {
     expect(mintSpy).not.toHaveBeenCalled();
   });
 
-  test("a project's own Runner that names no run (an older Runner) is still handed its repository's token, scoped to it", async () => {
+  test("a project's own Runner that names no run (an older Runner) is handed its repository's token, scoped to it, while it holds a run there", async () => {
     identity = PROJECT_RUNNER;
+    heldRunOfUnnamedRequest = fixRun(HELD_BY_IT);
 
     const answer: Answer = await call(ROUTE, {
       codeRepositoryId: REPOSITORY_ID.toString(),
@@ -880,6 +1035,61 @@ describe("POST /ai-agent-data/get-repository-token (work)", () => {
     expect(mintSpy.mock.calls[0]![1]).toEqual(
       expect.objectContaining({ repositories: ["users-api"] }),
     );
+
+    // A run it claimed, still Running, in this project: never one of another.
+    const lookup: { query: JSONObject } = (
+      AIRunService.findOneBy as unknown as jest.Mock
+    ).mock.calls[0]![0] as never;
+
+    expect(String(lookup.query["projectId"])).toBe(PROJECT_ID.toString());
+    expect(String(lookup.query["aiAgentId"])).toBe(WORKER_ID.toString());
+    expect(lookup.query["status"]).toBe(AIRunStatus.Running);
+    expect(lookup.query["runType"]).toBe(AIRunType.CodeFix);
+    expect(lookup.query["codeRepositoryId"]).toBeDefined();
+  });
+
+  test("a project's own Runner that names no run and holds none is handed no token, exactly as for a missing repository", async () => {
+    identity = PROJECT_RUNNER;
+    heldRunOfUnnamedRequest = null;
+
+    const answer: Answer = await call(ROUTE, {
+      codeRepositoryId: REPOSITORY_ID.toString(),
+    });
+
+    expect(answer.error?.message).toBe("Code repository not found");
+    expect(mintSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([HELD_BY_ANOTHER, WAITING, ENDED_ITS_OWN])(
+    "a project's own Runner that names $name of its own project is handed no token",
+    async (hold: RunHold) => {
+      identity = PROJECT_RUNNER;
+      storedRun = fixRun(hold);
+      // Holding another run does not open this one.
+      heldRunOfUnnamedRequest = fixRun(HELD_BY_IT);
+
+      const answer: Answer = await call(ROUTE, {
+        codeRepositoryId: REPOSITORY_ID.toString(),
+        taskId: RUN_ID.toString(),
+      });
+
+      expect(answer.error?.message).toBe("Code repository not found");
+      expect(mintSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a project's own Runner is handed the token for the run it names and holds", async () => {
+    identity = PROJECT_RUNNER;
+    storedRun = fixRun(HELD_BY_IT);
+
+    const answer: Answer = await call(ROUTE, {
+      codeRepositoryId: REPOSITORY_ID.toString(),
+      taskId: RUN_ID.toString(),
+    });
+
+    expect(answer.error).toBeUndefined();
+    expect(answer.json?.["token"]).toBe("ghs_minted_for_one_repository");
+    expect(AIRunService.findOneBy).not.toHaveBeenCalled();
   });
 });
 
@@ -954,9 +1164,24 @@ describe("the GitHub routes (work)", () => {
     expect(repository["testCommand"]).toBeNull();
   });
 
-  test("get-github-task-details serves a project's own Runner the repository with its commands", async () => {
+  test("get-github-task-details serves a project's own Runner nothing of the run another worker of its project holds", async () => {
     identity = PROJECT_RUNNER;
     storedRun = githubRun(HELD_BY_ANOTHER, CodeFixTaskType.GitHubIssueFix);
+
+    const answer: Answer = await call(
+      "/ai-agent-data/get-github-task-details",
+      {
+        taskId: RUN_ID.toString(),
+      },
+    );
+
+    expect(answer.error?.message).toBe("Task not found");
+    expect(GitHubConversation.getIssue).not.toHaveBeenCalled();
+  });
+
+  test("get-github-task-details serves a project's own Runner the repository with its commands, for the run it holds", async () => {
+    identity = PROJECT_RUNNER;
+    storedRun = githubRun(HELD_BY_IT, CodeFixTaskType.GitHubIssueFix);
 
     const answer: Answer = await call(
       "/ai-agent-data/get-github-task-details",

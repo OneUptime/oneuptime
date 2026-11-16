@@ -201,6 +201,8 @@ Att öppna för detta ändrar på riktigt vad din OneUptime-instans kan förmås
 - **Den som kan skapa ett arbetsflöde eller en monitor av typen API, Website, External Status Page eller Custom JavaScript Code, eller lägga till en prenumerant på en statussida, kan nå allt du har tillåtit.** Behandla medlemskap i de projekten därefter.
 - **Svarets innehåll kommer tillbaka.** En API-komponent i ett arbetsflöde returnerar status, huvuden och innehåll till arbetsflödets logg, så en tillåten värd går att läsa, inte bara skriva till.
 - **Omdirigeringar följs aldrig** för webhook-begäranden, så en tillåten publik värd kan inte studsa servern vidare till en intern värd i ett andra hopp.
+- **OneUptime ansluter till adressen den kontrollerade.** En webhooks värdnamn slås upp en gång, när dess URL kontrolleras, och begäran går till en adress som den uppslagningen godkände, så ett namn som svarar annorlunda ett ögonblick senare (DNS-rebinding) får aldrig anslutningen. TLS kontrollerar fortfarande certifikatet mot namnet i URL:en.
+- **Genom en utgående proxy är det proxyn som ansluter.** Om API-servern skickar genom en proxy angiven i `HTTPS_PROXY`, `HTTP_PROXY` eller `ALL_PROXY` (utom värdarna i `NO_PROXY`) fortsätter webhooks att gå genom den: OneUptime kontrollerar fortfarande adressen först och följer aldrig en omdirigering, men det är proxyn som slår upp namnet och ansluter. Neka privata och link-local-mål på själva proxyn, särskilt `169.254.169.254`.
 - **Avgränsa per sond i stället för för hela instansen där du kan.** En sond som driftsatts inne i ett nätverk är en snävare behörighet än att öppna API-serverns utgående trafik.
 
 ## Nästa steg

@@ -41,10 +41,11 @@ flowchart TB
 Allez dans **Paramètres du projet** > **Notifications** > **Canaux de notification**, puis ouvrez **Plus de paramètres**. Dans la carte **Configuration Twilio**, cliquez sur **Créer une configuration Twilio** et remplissez le formulaire :
 
 - **Nom** et **Description** : à quoi sert le compte, par exemple « Ligne d'assistance ».
+- **Utiliser ce compte pour** : **Appels et SMS**, ou **Appels uniquement** si les numéros du compte ne peuvent pas envoyer de SMS. Les appels entrants fonctionnent avec l'un comme avec l'autre.
 - **SID de compte Twilio** : dans la console Twilio. Il commence par `AC`.
 - **Jeton d'authentification Twilio** : dans la console Twilio.
-- **Numéro de téléphone principal Twilio** : un numéro de ce compte, pour les SMS et les appels qu'il envoie. Sous **Plus de champs**, facultatif : des numéros pour les destinataires d'autres pays, et des numéros pour les SMS lorsque les numéros du compte ne peuvent que passer des appels (voir [Des numéros distincts pour les appels et les SMS](/docs/self-hosted/twilio-integration#des-numéros-distincts-pour-les-appels-et-les-sms)).
-- **Définir par défaut pour le projet** : activé pour la première configuration Twilio du projet, afin que les SMS et appels destinés aux membres du projet passent aussi par ce compte. Désactivez-le si ce compte ne sert qu'aux appels entrants.
+- **Numéro de téléphone principal Twilio** : un numéro de ce compte, pour les appels qu'il passe, et pour ses SMS lorsqu'il en envoie. Sous **Plus de champs**, facultatif : des numéros pour les destinataires d'autres pays, et des numéros pour les SMS lorsque les numéros du compte ne peuvent que passer des appels (voir [Des numéros distincts pour les appels et les SMS](/docs/self-hosted/twilio-integration#des-numéros-distincts-pour-les-appels-et-les-sms)).
+- **Définir par défaut pour le projet** : activé pour la première configuration Twilio du projet, afin que les appels destinés aux membres du projet passent aussi par ce compte, et leurs SMS lorsqu'il est utilisé pour **Appels et SMS**. Désactivez-le si ce compte ne sert qu'aux appels entrants.
 
 ### Créer la politique
 

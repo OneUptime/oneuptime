@@ -392,15 +392,21 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Atomically claims this probe's Pending diagnostics, oldest first, and
-   * marks them In Progress. FOR UPDATE SKIP LOCKED so concurrent replicas of
-   * the same probe never run the same diagnostic — the shape
-   * MonitorTestService.claimMonitorTestsForProbing uses.
+   * Claims this probe's Pending diagnostics, oldest first, and marks them In
+   * Progress, in one self-committing statement (OneUptime issue #7392): the
+   * rows are locked FOR NO KEY UPDATE SKIP LOCKED, so concurrent replicas of
+   * the same probe never run the same diagnostic, and moved to In Progress
+   * by the same statement, so the locks last only as long as it runs - the
+   * shape of NetworkDeviceService.claimDevicesForPolling. It was a
+   * transaction of a SELECT ... FOR UPDATE and an UPDATE of the ids: four
+   * round trips on every probe tick, even with nothing pending.
    *
    * Rows older than the claim window are left alone: whoever asked for them
    * has long since stopped waiting (the dashboard gives up after two
    * minutes), so running them would spend the probe's time on an answer
    * nobody reads. Retention deletes them later.
+   *
+   * The ids come back in claim order, the oldest first.
    */
   @CaptureSpan()
   public async claimPendingForProbe(data: {
@@ -412,54 +418,53 @@ export class Service extends ProjectReferencesService<Model> {
       -NETWORK_DEVICE_DIAGNOSTIC_CLAIM_WINDOW_IN_MINUTES,
     );
 
-    return await this.executeTransaction(
-      async (transactionalEntityManager: EntityManager) => {
-        const selectQuery: string = `
-          SELECT d."_id"
-          FROM "NetworkDeviceDiagnostic" d
-          WHERE d."probeId" = $1
-            AND d."status" = $4
-            AND d."createdAt" >= $3
-            AND d."deletedAt" IS NULL
-          ORDER BY d."createdAt" ASC
-          LIMIT $2
-          FOR UPDATE OF d SKIP LOCKED
-        `;
+    const claimQuery: string = `
+      WITH "pending" AS (
+        SELECT d."_id", d."createdAt"
+        FROM "NetworkDeviceDiagnostic" d
+        WHERE d."probeId" = $1
+          AND d."status" = $4
+          AND d."createdAt" >= $3
+          AND d."deletedAt" IS NULL
+        ORDER BY d."createdAt" ASC
+        LIMIT $2
+        FOR NO KEY UPDATE OF d SKIP LOCKED
+      ),
+      "claimed" AS (
+        UPDATE "NetworkDeviceDiagnostic" AS d
+        SET "status" = $5,
+            "startedAt" = now(),
+            "updatedAt" = now()
+        FROM "pending"
+        WHERE d."_id" = "pending"."_id"
+        RETURNING d."_id"
+      )
+      SELECT "pending"."_id"
+      FROM "pending"
+      INNER JOIN "claimed" ON "claimed"."_id" = "pending"."_id"
+      ORDER BY "pending"."createdAt" ASC
+    `;
 
-        const selectedRows: Array<{ _id: string }> =
-          await transactionalEntityManager.query(selectQuery, [
-            data.probeId.toString(),
-            data.limit,
-            claimWindowStart,
-            NetworkDeviceDiagnosticStatus.Pending,
-          ]);
-
-        if (!Array.isArray(selectedRows) || selectedRows.length === 0) {
-          return [];
-        }
-
-        const ids: Array<string> = selectedRows.map((row: { _id: string }) => {
-          return row._id;
-        });
-
-        const updateQuery: string = `
-          UPDATE "NetworkDeviceDiagnostic"
-          SET "status" = $2,
-              "startedAt" = now(),
-              "updatedAt" = now()
-          WHERE "_id" = ANY($1::uuid[])
-        `;
-
-        await transactionalEntityManager.query(updateQuery, [
-          ids,
-          NetworkDeviceDiagnosticStatus.InProgress,
-        ]);
-
-        return ids.map((id: string) => {
-          return new ObjectID(id);
-        });
-      },
+    /*
+     * A SELECT of the rows the UPDATE wrote: TypeORM hands a top-level
+     * UPDATE ... RETURNING back as [rows, rowCount] instead.
+     */
+    const claimedRows: unknown = await this.getRepository().manager.query(
+      claimQuery,
+      [
+        data.probeId.toString(),
+        data.limit,
+        claimWindowStart,
+        NetworkDeviceDiagnosticStatus.Pending,
+        NetworkDeviceDiagnosticStatus.InProgress,
+      ],
     );
+
+    return Array.isArray(claimedRows)
+      ? claimedRows.map((row: { _id: string }): ObjectID => {
+          return new ObjectID(row._id);
+        })
+      : [];
   }
 
   /*

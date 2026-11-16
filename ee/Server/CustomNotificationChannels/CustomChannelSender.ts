@@ -1,5 +1,6 @@
 import SignedWebhookPost, {
   MAX_SIGNED_WEBHOOK_BODY_LENGTH,
+  SIGNED_WEBHOOK_TARGET_VALIDATION,
   SignedPostOutcome,
 } from "App/FeatureSet/Notification/Utils/SignedWebhookPost";
 import CustomNotificationChannelService from "Common/Server/Services/CustomNotificationChannelService";
@@ -9,7 +10,9 @@ import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationS
 import CustomChannelEdition, {
   CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
 } from "Common/Server/Utils/Notification/CustomChannelEdition";
-import SSRFProtection from "Common/Server/Utils/SSRFProtection";
+import SafeWebhookRequest, {
+  WebhookTarget,
+} from "Common/Server/Utils/SafeWebhookRequest";
 import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
   NotificationDeliveryOutcome,
@@ -167,15 +170,19 @@ export default class CustomChannelSender {
       };
     }
 
+    let target: WebhookTarget;
+
     try {
       /*
        * The admin's own service, often on the installation's private
        * network, so private targets are allowed - as they are when the
-       * channel is saved (CustomNotificationChannelService).
+       * channel is saved (CustomNotificationChannelService). Every attempt
+       * then dials an address this check approved (SignedWebhookPost).
        */
-      await SSRFProtection.validateWebhookTargetIsSafe(channel.webhookUrl, {
-        allowPrivateNetworkTargets: true,
-      });
+      target = await SafeWebhookRequest.resolveTarget(
+        channel.webhookUrl,
+        SIGNED_WEBHOOK_TARGET_VALIDATION,
+      );
     } catch (err) {
       logger.error(
         `Custom channel ${channel.id?.toString()} (${name}): its URL was refused.`,
@@ -190,7 +197,7 @@ export default class CustomChannelSender {
     }
 
     const outcome: SignedPostOutcome = await SignedWebhookPost.post({
-      url: channel.webhookUrl,
+      target: target,
       secret: channel.secret || "",
       eventType: input.eventType,
       payload: input.payload || {},

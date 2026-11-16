@@ -870,10 +870,11 @@ export default class StatusPageSubscriber extends BaseModel {
    * 32 random bytes as hex, minted by StatusPageSubscriberService when the
    * subscriber is created; rows that predate it were backfilled by the
    * migration that added it. It is computed so a create from the dashboard or
-   * the API passes the column check (which exempts computed columns only on
-   * create) while the service overwrites anything a client sends, and nobody
-   * can read or change it: it only ever leaves the server inside a link sent
-   * to the subscription's own contact.
+   * the API passes the column check with the token the service minted (the
+   * check takes a computed column the create's own steps wrote as theirs),
+   * while a token a client sends is refused, and nobody can read or change
+   * it: it only ever leaves the server inside a link sent to the
+   * subscription's own contact.
    */
   @ColumnAccessControl({
     create: [],

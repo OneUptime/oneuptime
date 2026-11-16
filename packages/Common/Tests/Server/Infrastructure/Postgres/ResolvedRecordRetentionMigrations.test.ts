@@ -18,7 +18,7 @@ import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddResolvedRecordRetention1809110600000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809110600000-AddResolvedRecordRetention";
 import { AddIndexesForIncidentAndAlertDeletes1809110700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809110700000-AddIndexesForIncidentAndAlertDeletes";
-import { AddResolvedRecordRetentionServerLimits1809180000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180000000-AddResolvedRecordRetentionServerLimits";
+import { AddResolvedRecordRetentionServerLimits1809181000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181000000-AddResolvedRecordRetentionServerLimits";
 import {
   DEFAULT_KEEP_INCIDENTS_WITH_COMPLETED_POSTMORTEM,
   DEFAULT_RESOLVED_RECORD_RETENTION_IN_DAYS,
@@ -349,9 +349,9 @@ describe("the two, registered", () => {
  * the postmortem statuses that keep an incident - every one empty, so the
  * upgrade deletes nothing and keeps exactly what it kept.
  */
-describe("AddResolvedRecordRetentionServerLimits1809180000000", () => {
+describe("AddResolvedRecordRetentionServerLimits1809181000000", () => {
   const migration: MigrationInterface =
-    new AddResolvedRecordRetentionServerLimits1809180000000();
+    new AddResolvedRecordRetentionServerLimits1809181000000();
 
   test("adds the five columns, each empty and with no default: no row is rewritten", async () => {
     const statements: Array<string> = await statementsOf(migration, "up");
@@ -389,7 +389,7 @@ describe("AddResolvedRecordRetentionServerLimits1809180000000", () => {
       },
     );
     const className: string =
-      "AddResolvedRecordRetentionServerLimits1809180000000";
+      "AddResolvedRecordRetentionServerLimits1809181000000";
     const position: number = names.indexOf(className);
 
     expect(
@@ -402,7 +402,7 @@ describe("AddResolvedRecordRetentionServerLimits1809180000000", () => {
       fs.existsSync(
         path.join(
           MIGRATION_DIRECTORY,
-          "1809180000000-AddResolvedRecordRetentionServerLimits.ts",
+          "1809181000000-AddResolvedRecordRetentionServerLimits.ts",
         ),
       ),
     ).toBe(true);
@@ -413,6 +413,6 @@ describe("AddResolvedRecordRetentionServerLimits1809180000000", () => {
         return Number(TRAILING_TIMESTAMP.exec(name)?.[1] || 0);
       });
 
-    expect(Math.max(...before)).toBeLessThan(1809180000000);
+    expect(Math.max(...before)).toBeLessThan(1809181000000);
   });
 });
