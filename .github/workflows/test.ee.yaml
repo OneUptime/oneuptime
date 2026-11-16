@@ -153,6 +153,15 @@ jobs:
       - name: Run Common's UI source guards with ee/ present
         working-directory: packages/Common
         run: node node_modules/.bin/jest Tests/UI/ForeignHiddenRuleGuard.test.ts Tests/UI/Components/Forms/CreateFormDefaultsGuard.test.ts Tests/UI/Components/CardInCardGuard.test.ts Tests/UI/Components/CardRowsGuard.test.ts Tests/UI/Components/Forms/LongFormStepsGuard.test.ts Tests/App/Dashboard/PermissionScopeChoice.test.ts Tests/UI/Components/PlaceholderLookedUpOnceEverywhere.test.ts --forceExit
+      # Common's check of which JavaScript each package's TypeScript compiles
+      # to (#8223) holds ee/'s tsconfigs too: the enterprise server at ES2018
+      # or later and below ES2022, ee/Dashboard, ee/AdminDashboard and the ee
+      # UI tests at the browser bundles' target, and every ee tsconfig named.
+      # The Common Test job deletes ee/ first, so only this run reads them. It
+      # only reads files.
+      - name: Run Common's TypeScript targets check with ee/ present
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/Dependencies/TypeScriptTargets.test.ts --forceExit
       # Common's guard that every removal of a project membership goes through
       # TeamMemberService with its hooks, so the leaver's own notification
       # settings go with it, also walks ee/Server: SCIM deprovisioning removes
