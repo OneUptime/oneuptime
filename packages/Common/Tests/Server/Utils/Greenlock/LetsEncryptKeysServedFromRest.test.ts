@@ -281,7 +281,7 @@ function useLogs(): () => string {
   return (): string => {
     return JSON.stringify(lines, (_key: string, value: unknown): unknown => {
       return value instanceof Error
-        ? { message: value.message, stack: value.stack, ...value }
+        ? { ...value, message: value.message, stack: value.stack }
         : value;
     });
   };
