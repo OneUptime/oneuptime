@@ -13,7 +13,8 @@
  * A workflow runs a suite when a step that runs in packages/E2E - by its
  * working-directory, a `cd packages/E2E`, or the e2e container, whose working
  * directory is the package - runs `npm run <script>`, or loops `npm run
- * "$suite"` over a matrix value that names it, as App Test's
+ * "$suite"` over a matrix value that names it, or hands one to
+ * Scripts/RunUiSuites.js (which runs each name in its SUITES), as App Test's
  * dashboard-offline-ui groups do.
  *
  * The rest of this file pins what the two suites above needed to be useful
@@ -96,11 +97,16 @@ function scriptsNamedIn(command) {
 }
 
 /*
- * `npm run "$suite"` over a matrix value: every whitespace-separated name in
- * the matrix key that one of the step's env entries is set from.
+ * `npm run "$suite"` over a matrix value, or Scripts/RunUiSuites.js, which
+ * runs each name in its SUITES: every whitespace-separated name in the matrix
+ * key that one of the step's env entries is set from.
  */
 function matrixScriptsRunBy(job, step) {
-  if (!/\bnpm run "\$\{?\w+\}?"/.test(commandOf(step))) {
+  if (
+    !/\bnpm run "\$\{?\w+\}?"|\bnode Scripts\/RunUiSuites\.js\b/.test(
+      commandOf(step),
+    )
+  ) {
     return [];
   }
 
@@ -201,7 +207,7 @@ describe("the helpers this suite reads the workflows with", () => {
     expect(runners.get("test-session-replay-ui")).toContain(
       `${APP_TEST}: session-replay-ui`,
     );
-    // `npm run "$suite"` over the groups' `suites`
+    // Scripts/RunUiSuites.js over the groups' `suites`
     expect(runners.get("test-event-overview-ui")).toContain(
       `${APP_TEST}: dashboard-offline-ui`,
     );

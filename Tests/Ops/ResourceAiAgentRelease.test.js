@@ -686,14 +686,15 @@ describe("test.resource-ai-agent.yaml: pull requests run the agent's own tests",
     });
   const scripts = readJson(`${AGENT_DIR}/package.json`).scripts;
 
-  test("on every pull request and every push to main", () => {
+  test("on every pull request, and on main nightly", () => {
     // js-yaml reads the `on:` key as the boolean true (YAML 1.1).
     const triggers = workflow.on || workflow[true];
 
+    // Not on every push to main (PullRequestChecksNotOnPush.test.js).
     expect(Object.keys(triggers)).toEqual(
-      expect.arrayContaining(["pull_request", "push"]),
+      expect.arrayContaining(["pull_request", "schedule"]),
     );
-    expect(triggers.push.branches).toContain("main");
+    expect(triggers.pull_request).toBeNull();
   });
 
   test("installs, checks the Common copies, and runs the tests, in the agent's directory", () => {

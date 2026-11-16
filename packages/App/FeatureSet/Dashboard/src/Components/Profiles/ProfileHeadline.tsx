@@ -1,3 +1,4 @@
+import { getShortProfileFunctionName } from "Common/Utils/Profiles/ProfileFunctionNames";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -92,11 +93,13 @@ const ProfileHeadline: FunctionComponent<ComponentProps> = (
         type="button"
         className="rounded-sm font-mono font-semibold text-indigo-700 [overflow-wrap:anywhere] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         data-testid="profiles-headline-function"
+        title={row.functionName}
         onClick={() => {
           props.onOpenFunction(row);
         }}
       >
-        {row.functionName || translator.translateText("(anonymous)")}
+        {getShortProfileFunctionName(row.functionName) ||
+          translator.translateText("(anonymous)")}
       </button>
     );
   };

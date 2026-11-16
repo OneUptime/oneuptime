@@ -215,7 +215,9 @@ function runsE2eSuites(step) {
     },
   );
   const runsSuite =
-    /\bnpm run "\$\{?\w+\}?"|\bplaywright test\b/.test(command) ||
+    /\bnpm run "\$\{?\w+\}?"|\bplaywright test\b|\bnode Scripts\/RunUiSuites\.js\b/.test(
+      command,
+    ) ||
     scripts.some((script) => {
       return !LISTING_SCRIPTS.includes(script);
     });

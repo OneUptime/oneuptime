@@ -14,9 +14,13 @@
  *
  * So this suite walks agents/ and holds
  *
- *   - every agent whose package.json has a test script to a job that, on every
- *     pull request and every push to main, installs in the agent's directory
- *     and then runs that script, with the Node major the agent's image runs;
+ *   - every agent whose package.json has a test script to a job that, on the
+ *     pull requests that change the agent and on main nightly, installs in the
+ *     agent's directory and then runs that script, with the Node major the
+ *     agent's image runs. A workflow that filters its pull requests by path
+ *     names the agent's directory among them; one that does not runs on every
+ *     pull request. Main's run is the nightly one, not one per push
+ *     (PullRequestChecksNotOnPush.test.js);
  *   - every image that compiles its agent (its Dockerfile.tpl runs `npm run
  *     compile`) to one job of build.yml, which builds the Dockerfile release.yml
  *     builds, without the cache, and pushes nothing.
@@ -203,7 +207,7 @@ describe("every agent with npm tests has a workflow that runs them", () => {
   });
 
   test.each(agentsWithTests)(
-    "%s: on every pull request and push to main, with the Node major its image runs",
+    "%s: on the pull requests that change it and on main nightly, with the Node major its image runs",
     (directory) => {
       const running = allJobs.filter(({ job }) => {
         return jobRunsTests(job, directory);
@@ -216,20 +220,136 @@ describe("every agent with npm tests has a workflow that runs them", () => {
 
       for (const { where, workflow, job } of running) {
         const triggers = workflow.on || {};
+        const pullRequest = triggers.pull_request || {};
 
         expect({
           where,
           onPullRequests: Object.keys(triggers).includes("pull_request"),
-          onPushToMain: ((triggers.push || {}).branches || []).includes(
-            "main",
-          ),
+          // Every pull request, or every one that touches the agent.
+          onTheAgentsChanges:
+            !pullRequest.paths || pullRequest.paths.includes(`${directory}/**`),
+          onMainNightly: (triggers.schedule || []).length > 0,
           node: nodeMajorOf(job),
         }).toEqual({
           where,
           onPullRequests: true,
-          onPushToMain: true,
+          onTheAgentsChanges: true,
+          onMainNightly: true,
           node: imageNodeMajor(directory),
         });
+      }
+    },
+  );
+});
+
+/*
+ * A workflow that runs an agent's tests only for the pull requests touching
+ * some paths must name every part of the repository those tests read, or a
+ * change there would reach main untested. A test that reads outside its
+ * agent names the top-level directory it reads in a string -
+ * path.join(__dirname, "..", "..", "..", "HelmChart", ...) or
+ * "packages/Common/..." - so each top-level directory a test file names (and
+ * the agent has no directory of that name of its own) must begin one of the
+ * filter's paths.
+ */
+const TOP_LEVEL_DIRECTORIES = fs
+  .readdirSync(REPO_ROOT, { withFileTypes: true })
+  .filter((entry) => {
+    return (
+      entry.isDirectory() &&
+      !entry.name.startsWith(".") &&
+      entry.name !== "node_modules"
+    );
+  })
+  .map((entry) => {
+    return entry.name;
+  });
+
+// The top-level directories a source names in a string, quoted whole or as
+// the start of a path.
+function topLevelDirectoriesNamedIn(source) {
+  const named = new Set();
+  const literal = /["'`]([A-Za-z][\w.-]*)(?:\/[^"'`\n]*)?["'`]/g;
+  let match;
+
+  while ((match = literal.exec(source))) {
+    if (TOP_LEVEL_DIRECTORIES.includes(match[1])) {
+      named.add(match[1]);
+    }
+  }
+  return [...named].sort();
+}
+
+// Every .js and .ts file under a directory, as paths from the repository root.
+function sourcesUnder(relativeDirectory) {
+  if (!exists(relativeDirectory)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(path.join(REPO_ROOT, relativeDirectory), {
+      withFileTypes: true,
+    })
+    .flatMap((entry) => {
+      const child = `${relativeDirectory}/${entry.name}`;
+
+      if (entry.isDirectory()) {
+        return entry.name === "node_modules" ? [] : sourcesUnder(child);
+      }
+      return /\.(js|ts)$/.test(entry.name) ? [child] : [];
+    });
+}
+
+describe("a workflow that runs an agent's tests only for some pull requests", () => {
+  test("reads the directories a test names (the check below is not vacuous)", () => {
+    expect(TOP_LEVEL_DIRECTORIES).toEqual(
+      expect.arrayContaining(["HelmChart", "agents", "packages"]),
+    );
+    expect(
+      topLevelDirectoriesNamedIn(
+        'path.join(__dirname, "..", "..", "..", "HelmChart", "Public");\n' +
+          "read('packages/Common/Types/Thing.ts'); // HelmChart in a comment\n" +
+          'const level = "INFO";',
+      ),
+    ).toEqual(["HelmChart", "packages"]);
+  });
+
+  test.each(agentsWithTests)(
+    "%s: names every part of the repository its tests read",
+    (directory) => {
+      const filters = allJobs
+        .filter(({ job }) => {
+          return jobRunsTests(job, directory);
+        })
+        .map(({ workflow }) => {
+          return ((workflow.on || {}).pull_request || {}).paths;
+        })
+        .filter(Boolean);
+      const ownDirectories = fs
+        .readdirSync(path.join(REPO_ROOT, directory))
+        .filter((name) => {
+          return fs
+            .statSync(path.join(REPO_ROOT, directory, name))
+            .isDirectory();
+        });
+      const namedOutside = [
+        ...new Set(
+          sourcesUnder(`${directory}/Tests`).flatMap((file) => {
+            return topLevelDirectoriesNamedIn(read(file));
+          }),
+        ),
+      ].filter((name) => {
+        return !ownDirectories.includes(name);
+      });
+
+      for (const paths of filters) {
+        const uncovered = namedOutside.filter((name) => {
+          return !paths.some((filter) => {
+            return filter.startsWith(`${name}/`);
+          });
+        });
+
+        expect({ directory, uncovered }).toEqual({ directory, uncovered: [] });
       }
     },
   );
