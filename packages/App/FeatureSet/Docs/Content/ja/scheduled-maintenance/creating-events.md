@@ -90,7 +90,7 @@ flowchart TB
 5. **Runbook ルールが開始します**。イベントに一致する Runbook を開始します。
 6. **リマインダーが予定されます**。リマインダールールが一致した場合に、所有者向けに予定されます。
 
-公開から 1 分以内に（ **公開日時** を選んでいなければ公開はすぐです）、 **イベントの予定作成時** をオフにしていない限り、ステータスページの購読者にイベントが予定されたことが通知されます。ワークフロートリガー **On Create Maintenance Event** はそれを使って作られたワークフローを開始し、所有者はその通知をオンにしていればイベントについて知らされます。 [通知設定](/docs/notifications/notification-settings) を参照してください。
+公開から 1 分以内に（ **公開日時** を選んでいなければ公開はすぐです）、 **イベントの予定作成時** をオフにしていない限り、ステータスページの購読者にイベントが予定されたことが通知されます。ワークフロートリガー **メンテナンスイベントの作成時** はそれを使って作られたワークフローを開始し、所有者はその通知をオンにしていればイベントについて知らされます。 [通知設定](/docs/notifications/notification-settings) を参照してください。
 
 ## 後で公開する
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | **イベントの予定作成時** のスイッチです。ほかの二つのタイミングにはそれぞれ専用のフィールドがあります。 |
 | `publishOnStatusPageAt`                               | イベントがステータスページに公開され、購読者に予定されたことが通知される日時です。省略するとすぐに公開されます。 |
 
-コードとしての同じイベントは Terraform リソース `oneuptime_scheduled_maintenance_event` です。 [例](/docs/terraform/examples#定期メンテナンス) を参照してください。ワークフローは **Create One Maintenance Event** ステップでイベントを作成し、 `/oneuptime maintenance` は Slack でフォームを開きます。 [Slack](/docs/workspace-connections/slack#slack-からインシデントとメンテナンスを作成する) を参照してください。
+コードとしての同じイベントは Terraform リソース `oneuptime_scheduled_maintenance_event` です。 [例](/docs/terraform/examples#定期メンテナンス) を参照してください。ワークフローは **メンテナンスイベントを作成（1 件）** ステップでイベントを作成し、 `/oneuptime maintenance` は Slack でフォームを開きます。 [Slack](/docs/workspace-connections/slack#slack-からインシデントとメンテナンスを作成する) を参照してください。
 
 ## トラブルシューティング
 

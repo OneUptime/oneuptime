@@ -6,7 +6,7 @@ Un caso di sicurezza dice quali utenti, host e indirizzi riguarda. Segnali colle
 - [Dove lo vedi](#dove-lo-vedi): La pagina di un caso, la scheda di un evento, la pagina di un'entità e le pagine di ciò che nominano.
 - [Come si abbina un valore](#come-si-abbina-un-valore): Cosa conta come lo stesso record e cosa lo è solo forse.
 - [Cosa mostra ogni record](#cosa-mostra-ogni-record): I suoi segnali attorno al caso e ciò che è aperto su di esso.
-- [Nei tuoi registri e nelle tue tracce](#nei-tuoi-registri-e-nelle-tue-tracce): Dove un indirizzo, un dominio o un'email che nomina compare nelle tue righe di log e nei tuoi span.
+- [Nei tuoi log e nelle tue tracce](#nei-tuoi-log-e-nelle-tue-tracce): Dove un indirizzo, un dominio o un'email che nomina compare nelle tue righe di log e nei tuoi span.
 - [Chi vede cosa](#chi-vede-cosa): Ogni record viene letto con il ruolo di chi legge.
 :::
 
@@ -71,7 +71,7 @@ Ogni utente, host e indirizzo che un caso o un evento nomina viene cercato tra i
 | La pagina di un'entità | 30 minuti prima e dopo il suo ultimo evento di sicurezza |
 | La scheda **Sicurezza** di un record | Gli ultimi 7 giorni |
 
-## Nei tuoi registri e nelle tue tracce
+## Nei tuoi log e nelle tue tracce
 
 Sotto i record, Segnali collegati cerca nei tuoi log e nelle tue tracce, sulla stessa finestra, i valori che nomina che possono significare una sola cosa: un indirizzo IP (tranne `127.0.0.1` e gli altri che ogni macchina ha), un nome completo di host o di dominio, un'email, un URL, l'ID di una risorsa cloud e l'hash di un file. Un nome host semplice, il nome semplice di un utente e un processo non vengono mai cercati: una riga di log può contenerli per qualsiasi motivo. Vengono cercati al massimo 10 valori.
 

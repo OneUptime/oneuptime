@@ -151,7 +151,7 @@ Se [OpenTelemetry](/docs/telemetry/open-telemetry) for hvordan du kjører en col
 
 Logghendelsene omfatter `gemini_cli.user_prompt`, `gemini_cli.api_request`, `gemini_cli.api_response`, `gemini_cli.api_error`, `gemini_cli.tool_call` og `gemini_cli.file_operation`. Hver post bærer `session.id`, `installation.id`, `active_approval_mode` og, når noen er logget inn, `user.email`. OneUptime leser `session.id` som en samtale-ID, så en hel økt i Gemini CLI vises som én samtale under **Samtaler**, uansett hvor mange traser den brukte.
 
-Målingene er vanlige OpenTelemetry-målinger: vis hvilken som helst av dem i et diagram på et dashbord, eller varsle på en med en [Målingsovervåking](/docs/monitor/metrics-monitor).
+Målingene er vanlige OpenTelemetry-målinger: vis hvilken som helst av dem i et diagram på et dashbord, eller varsle på en med en [Målingsmonitor](/docs/monitor/metrics-monitor).
 
 ## Sett opp GitHub Copilot
 

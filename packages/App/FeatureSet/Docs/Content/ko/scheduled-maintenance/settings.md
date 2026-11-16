@@ -117,7 +117,7 @@ API와 Terraform은 이벤트 시작을 기다렸다가 시작되면 멈추는 �
 
 ## 워크플로우
 
-모든 유지 관리 모델에는 모델 이름을 딴 워크플로우 트리거와 작업이 있습니다. **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event**, **On Delete Maintenance Event**, 그리고 **Scheduled Maintenance State Timeline** 과 나머지 모델의 같은 트리거, **Create One Maintenance Event** 와 **Update One Maintenance Event** 같은 작업입니다. 예외는 사용자 정의 필드 정의와 측정 값으로, 워크플로우 단계가 없습니다. [워크플로우 개요](/docs/workflows/index) 를 참조하세요.
+모든 유지 관리 모델에는 모델 이름을 딴 워크플로우 트리거와 작업이 있습니다. **유지 관리 이벤트 생성 시**, **유지 관리 이벤트 업데이트 시**, **유지 관리 이벤트 생성 또는 업데이트 시**, **유지 관리 이벤트 삭제 시**, 그리고 **Scheduled Maintenance State Timeline** 과 나머지 모델의 같은 트리거, **유지 관리 이벤트 1개 만들기** 와 **유지 관리 이벤트 1개 업데이트** 같은 작업입니다. 예외는 사용자 정의 필드 정의와 측정 값으로, 워크플로우 단계가 없습니다. [워크플로우 개요](/docs/workflows/index) 를 참조하세요.
 
 ## 변경할 수 있는 사람
 

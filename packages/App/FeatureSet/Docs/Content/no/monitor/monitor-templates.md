@@ -184,7 +184,7 @@ Et navn i `doNotSyncFields` er ikke et felt for malens monitortype. Sjekk det mo
 
 :::cards
 - [Opprett en monitor](/docs/monitor/create-monitor): Skjemaet en mal fyller ut.
-- [API-overvåking](/docs/monitor/api-monitor): Innstillingene en API-mal tar med seg.
-- [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Del påloggingsdata mellom monitorer uten å kopiere dem.
+- [API-monitor](/docs/monitor/api-monitor): Innstillingene en API-mal tar med seg.
+- [Monitorhemmeligheter](/docs/monitor/monitor-secrets): Del påloggingsdata mellom monitorer uten å kopiere dem.
 - [Terraform-monitortrinn](/docs/terraform/monitor-steps): Administrer monitorer og trinnene deres som kode.
 :::

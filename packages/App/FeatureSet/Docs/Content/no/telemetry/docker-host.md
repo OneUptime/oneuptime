@@ -152,7 +152,7 @@ For å endre en verdi, fjern agenten og kjør kommandoen på nytt (Docker CLI), 
 
 Målingene og loggene til hver container lagres under en tjeneste oppkalt etter containeren. Hver logglinje får en alvorlighetsgrad fra nivået den nevner, som `[ERROR]`, `level=warn` eller `{"level":"info"}`; en linje som ikke nevner noe, får strømmens: stderr er `ERROR`, stdout er `INFO`. Linjer som begynner med mellomrom eller en lukkende parentes, slås sammen med linjen før, så en stakksporing kommer inn som én post. Agentens egne logger utelates.
 
-[Docker-overvåking](/docs/monitor/docker-monitor#innsamlede-målinger) lister hver måling og hva den betyr.
+[Docker-monitor](/docs/monitor/docker-monitor#innsamlede-målinger) lister hver måling og hva den betyr.
 
 ## Hva vertens sider viser
 
@@ -321,7 +321,7 @@ docker inspect oneuptime-docker-agent --format '{{range .Config.Env}}{{println .
 ## Neste trinn
 
 :::cards
-- [Docker-overvåking](/docs/monitor/docker-monitor): Varsle på CPU, minne og omstarter for containere.
+- [Docker-monitor](/docs/monitor/docker-monitor): Varsle på CPU, minne og omstarter for containere.
 - [Databaser](/docs/telemetry/databases): Databasecontainere på verten blir funnet og får egne sider.
 - [Kubernetes-agent](/docs/telemetry/kubernetes-agent): Overvåk en Kubernetes-klynge i stedet.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Overvåk selve maskinen: CPU, disker, prosesser og logger.

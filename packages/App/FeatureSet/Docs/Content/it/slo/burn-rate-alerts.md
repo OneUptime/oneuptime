@@ -261,7 +261,7 @@ Mentre un monitor dello SLO è in un evento di manutenzione in corso, le sue reg
 
 ## Il feed dello SLO
 
-Il **Feed** dello SLO pubblica ogni avviso generato da una regola e ogni incidente che dichiara, con un link e i tassi di consumo che lo spiegano, e quando ognuno si risolve, automaticamente o a mano. Un record che la regola riprende perché era ancora aperto non viene pubblicato due volte. Anche creare, modificare ed eliminare una regola viene pubblicato, e registrato nei **Log di audit** dello SLO. Vedi [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs).
+Il **Feed** dello SLO pubblica ogni avviso generato da una regola e ogni incidente che dichiara, con un link e i tassi di consumo che lo spiegano, e quando ognuno si risolve, automaticamente o a mano. Un record che la regola riprende perché era ancora aperto non viene pubblicato due volte. Anche creare, modificare ed eliminare una regola viene pubblicato, e registrato nei **Log di audit** dello SLO. Vedi [Feed e log di audit degli SLO](/docs/slo/feed-and-audit-logs).
 
 ## Risoluzione dei problemi
 
@@ -287,5 +287,5 @@ Non per gli SLO misurati dalla disponibilità dei monitor. La disponibilità si 
 - [Budget di errore](/docs/slo/error-budget): Cos'è il budget e quanto dura.
 - [Policy del budget di errore](/docs/slo/error-budget-policy): Agire in base a quanto budget resta, livello per livello.
 - [Regole di escalation](/docs/on-call/escalation-rules): Chi viene avvisato, e in quale ordine.
-- [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs): Ogni avviso e incidente generato da una regola.
+- [Feed e log di audit degli SLO](/docs/slo/feed-and-audit-logs): Ogni avviso e incidente generato da una regola.
 :::

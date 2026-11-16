@@ -306,7 +306,7 @@ Jira Cloud 接受由账户的电子邮件和 API 令牌编码在一起构成的 
 ### 为每个事件创建 Jira 问题
 
 :::steps
-1. 从零开始创建一个名为 `Incidents to Jira` 的工作流。点击虚线块，添加 **On Create Incident** 触发器。它的 **要传递的字段** 已经包含 **标题**：点击 **添加字段** 并选择 **描述** 和 **事件编号**。ID 总会被传递。它的 **Identifier** 保持为 `incident-on-create-1`。
+1. 从零开始创建一个名为 `Incidents to Jira` 的工作流。点击虚线块，添加 **创建事件时** 触发器。它的 **要传递的字段** 已经包含 **标题**：点击 **添加字段** 并选择 **描述** 和 **事件编号**。ID 总会被传递。它的 **Identifier** 保持为 `incident-on-create-1`。
 2. 点击 **添加组件**，添加一个 **API 调用 POST (JSON)** 块，并把触发器的 **成功** 点连接到它。把它的 **Identifier** 设为 `create-issue`，**URL** 设为 `{{global.variables.JIRA_URL}}/rest/api/3/issue`，并在 **更多字段** 下把 **请求标头** 设为 `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`。
 3. 把它的 **请求主体** 设为问题内容，并把 `OPS` 和 `Bug` 替换为你的项目键和该项目中的一个问题类型：
 
@@ -390,7 +390,7 @@ Jira 管理员也可以改为添加一个短文本自定义字段，例如命名
 把这部分构建为第二个工作流，这样这里的失败永远不会妨碍创建问题。
 
 :::steps
-1. 创建一个名为 `Incident updates to Jira` 的工作流，使用 **On Update Incident** 触发器。在 **要关注的字段** 中点击 **添加字段** 并选择 **Current Incident State**。在 **要传递的字段** 中点击 **添加字段**，展开 **Current Incident State** 并选择 **名称**。
+1. 创建一个名为 `Incident updates to Jira` 的工作流，使用 **更新事件时** 触发器。在 **要关注的字段** 中点击 **添加字段** 并选择 **Current Incident State**。在 **要传递的字段** 中点击 **添加字段**，展开 **Current Incident State** 并选择 **名称**。
 2. 添加一个 **如果 / 否则** 块：**要检查的值** 为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`，**比较** 为 **等于**，**比较对象** 为 `Resolved` 或你的已解决状态的名称。
 3. 在它的 **是** 一侧之后，用一个 **Identifier** 为 `find-issue` 的 **API 调用 POST (JSON)** 块查找问题，发布到 `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`：
 
@@ -425,7 +425,7 @@ Jira 管理员也可以改为添加一个短文本自定义字段，例如命名
 
    自托管安装使用自己的主机。像对待密码一样对待这个 URL：任何拥有它的人都可以启动工作流。如果泄露，请在同一位置点击 **重置 URL**，旧 URL 会立即失效。
 
-3. 从触发器添加一个 **Update One Incident** 块。把它的 **查询** 设为 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`，**数据（JSON 对象）** 设为要做的变更，例如新的 `currentIncidentStateId`。一个查询为 `{"name": "Resolved"}` 的 **Find One Incident State** 块会以 `{{local.components.incident-state-find-one-1.returnValues.model._id}}` 给出那个 ID。
+3. 从触发器添加一个 **更新单个事件** 块。把它的 **查询** 设为 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`，**数据（JSON 对象）** 设为要做的变更，例如新的 `currentIncidentStateId`。一个查询为 `{"name": "Resolved"}` 的 **查找单个事件状态** 块会以 `{{local.components.incident-state-find-one-1.returnValues.model._id}}` 给出那个 ID。
 
 启用它，然后让 Jira 通过自动化规则或 Webhook 调用它：
 
@@ -466,13 +466,13 @@ Webhook 可以带一个密钥，这时 Jira 会在 `X-Hub-Signature` 请求头�
 
 | 事件 | 警报 |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | 无：警报没有公开备注 |
+| **创建事件时** (`incident-on-create-1`) | **创建警报时** (`alert-on-create-1`) |
+| **更新事件时** (`incident-on-update-1`) | **更新警报时** (`alert-on-update-1`) |
+| **创建事件内部备注时** | **创建警报内部备注时** |
+| **创建事件公开备注时** | 无：警报没有公开备注 |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **查找单个事件状态** | **查找单个警报状态** |
+| **更新单个事件** | **更新单个警报** |
 | 标签 `oneuptime-incident-<incident id>` | 标签 `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
@@ -544,7 +544,7 @@ Jira 正在限制你的调用速度。响应中带有以秒为单位的 `Retry-A
 :::
 
 :::details 工作流运行了，但事件没有变化
-当查询没有匹配到任何内容时，**Update One Incident** 块会报告 `Items Updated: 0`，这是成功，而不是错误。请检查请求中的 ID 确实是 OneUptime 事件的 ID，并且你查询的是 `_id`。
+当查询没有匹配到任何内容时，**更新单个事件** 块会报告 `Items Updated: 0`，这是成功，而不是错误。请检查请求中的 ID 确实是 OneUptime 事件的 ID，并且你查询的是 `_id`。
 :::
 
 :::details Jira 问题中按原样显示了引用

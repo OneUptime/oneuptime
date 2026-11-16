@@ -74,7 +74,7 @@ flowchart TB
 | **详情** | **日志正文**，有的话还有它的 **追踪 ID**、**跨度 ID** 和 **会话**，以及它的 **属性**，可以列表或 JSON 形式查看。 |
 | **上下文** | 这条日志在相邻日志中的位置。**Nearby (service + time)** 显示同一服务中它前后各五行，**This trace** 显示其追踪中最多 100 条日志。 |
 
-- 点击追踪 ID，即可在 [跟踪浏览器](/docs/telemetry/traces-explorer) 中打开整个请求。
+- 点击追踪 ID，即可在 [追踪浏览器](/docs/telemetry/traces-explorer) 中打开整个请求。
 - 指向一个属性并点击它的过滤图标，即可搜索该值，也可以复制它。你还可以把所有属性一次性复制为 JSON。
 - **This trace** 只对在追踪内写入的日志出现。
 
@@ -118,7 +118,7 @@ flowchart TB
 
 ## 打开相关的追踪和指标
 
-**已保存的视图** 旁边的 **追踪** 和 **指标** 按钮会针对同一时间窗口打开 [跟踪浏览器](/docs/telemetry/traces-explorer) 或 [指标浏览器](/docs/telemetry/metrics-explorer)，并尽可能带上该浏览器能使用的过滤条件。指向按钮即可看到它无法带过去的内容。
+**已保存的视图** 旁边的 **追踪** 和 **指标** 按钮会针对同一时间窗口打开 [追踪浏览器](/docs/telemetry/traces-explorer) 或 [指标浏览器](/docs/telemetry/metrics-explorer)，并尽可能带上该浏览器能使用的过滤条件。指向按钮即可看到它无法带过去的内容。
 
 ## 日志洞察
 
@@ -217,5 +217,5 @@ OneUptime AI 每天（UTC）最多自行打开 5 个拉取请求，这一上限�
 - [搜索语法](/docs/telemetry/search-syntax): 搜索框能理解的所有过滤条件。
 - [日志监控](/docs/monitor/logs-monitor): 当你搜索的日志出现时收到警报。
 - [日志管道](/docs/telemetry/log-pipelines): 把日志行的一部分变成可用于过滤的属性。
-- [跟踪浏览器](/docs/telemetry/traces-explorer): 跨服务跟随一条日志所属的请求。
+- [追踪浏览器](/docs/telemetry/traces-explorer): 跨服务跟随一条日志所属的请求。
 :::

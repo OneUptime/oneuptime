@@ -934,7 +934,7 @@ test.describe("the verdicts", () => {
  *
  * The first thing someone new asks of a monitoring product: when it breaks,
  * will I be told? The checklist's on-call step answers it - an incident or
- * alert nobody owns is emailed to the project's owners until a policy pages
+ * alert nobody owns is emailed to the Project Owners until a policy pages
  * someone - on a phone as on a desktop, and in the reader's language.
  */
 
@@ -949,7 +949,7 @@ const NEWCOMER_STEPS: Array<string> = [
 const ON_CALL_STEP_TITLE: string = "Set up an on-call policy";
 
 const ON_CALL_STEP_SENTENCE: string =
-  "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the project's owners get an email.";
+  "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the Project Owners get an email.";
 
 async function checklistSteps(page: Page): Promise<Array<string>> {
   return page
@@ -1029,7 +1029,7 @@ test.describe("a newcomer's first steps", () => {
 
     await expect(onCall).toContainText("Bereitschaftsrichtlinie einrichten");
     await expect(onCall).toContainText(
-      "Bis dahin erhalten die Projekteigentümer eine E-Mail.",
+      "Bis dahin erhalten die Projektinhaber eine E-Mail.",
     );
     await expect(onCall).not.toContainText(ON_CALL_STEP_SENTENCE);
 

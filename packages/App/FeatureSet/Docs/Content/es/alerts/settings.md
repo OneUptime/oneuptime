@@ -178,7 +178,7 @@ La tarjeta **Próximo número** de debajo fija el número que reciben la próxim
 
 ## Flujos de trabajo
 
-Cada modelo de alerta tiene disparadores y acciones de flujo de trabajo con su nombre: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** y **On Delete Alert**, lo mismo para **Episodio de alerta**, **Cronología de estados de la alerta** y los demás, y acciones como **Create One Alert** y **Update One Alert**. Las definiciones de campos personalizados de alerta son la única excepción: no tienen disparadores de flujo de trabajo. Consulta [Visión general de los flujos de trabajo](/docs/workflows/index).
+Cada modelo de alerta tiene disparadores y acciones de flujo de trabajo con su nombre: **Al crear Alerta**, **Al actualizar Alerta**, **Al crear o actualizar Alerta** y **Al eliminar Alerta**, lo mismo para **Episodio de alerta**, **Cronología de estados de la alerta** y los demás, y acciones como **Crear Alerta (individual)** y **Actualizar Alerta (individual)**. Las definiciones de campos personalizados de alerta son la única excepción: no tienen disparadores de flujo de trabajo. Consulta [Visión general de los flujos de trabajo](/docs/workflows/index).
 
 ## Quién puede cambiarlos
 

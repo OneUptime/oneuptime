@@ -248,7 +248,7 @@ curl -X DELETE https://oneuptime.com/api/incident-alert/<link-id> \
 
 Båda ID:na är obligatoriska. En begäran om länkning avvisas också när larmet eller incidenten hör till ett annat projekt eller är en som du inte kan se. Felet lyder likadant oavsett om larmet eller incidenten inte finns eller bara är dold för dig, så att det aldrig avslöjar att ett privat finns.
 
-Samma resurs driver de genererade arbetsflödeskomponenterna — **On Create Incident Alert** utlöses när ett larm länkas och **On Delete Incident Alert** när det avlänkas — och MCP-serverns Incident Alert-verktyg. [API-referensen](/reference) har den fullständiga formen på begäran och svar.
+Samma resurs driver de genererade arbetsflödeskomponenterna — **Vid skapande: Incident Alert** utlöses när ett larm länkas och **Vid borttagning: Incident Alert** när det avlänkas — och MCP-serverns Incident Alert-verktyg. [API-referensen](/reference) har den fullständiga formen på begäran och svar.
 
 ## Avlänka
 

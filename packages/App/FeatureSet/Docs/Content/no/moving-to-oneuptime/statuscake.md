@@ -111,7 +111,7 @@ Ved hvert står det hvorfor: et navn prosjektet allerede har, noe en tidligere i
 ## Neste trinn
 
 :::cards
-- [Nettsted-overvåking](/docs/monitor/website-monitor): Hva en nettstedmonitor kontrollerer, og hvordan.
-- [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor): Hvordan OneUptime varsler før et sertifikat utløper.
+- [Nettsted-monitor](/docs/monitor/website-monitor): Hva en nettstedmonitor kontrollerer, og hvordan.
+- [SSL-sertifikat-monitor](/docs/monitor/ssl-certificate-monitor): Hvordan OneUptime varsler før et sertifikat utløper.
 - [Bytt fra Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma): Hent kontrollene dine over fra Uptime Kuma.
 :::

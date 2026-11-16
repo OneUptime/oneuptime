@@ -306,7 +306,7 @@ Tokens laufen standardmäßig nach einem Jahr ab und erneuern sich nicht. Damit 
 ### Für jeden Vorfall ein Jira-Issue anlegen
 
 :::steps
-1. Legen Sie ohne Vorlage einen Workflow namens `Incidents to Jira` an. Klicken Sie auf den gestrichelten Baustein und fügen Sie den Trigger **On Create Incident** hinzu. Seine **Weiterzugebende Felder** beginnen mit **Titel**: Klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallnummer**. Die ID wird immer weitergegeben. Lassen Sie seine **Kennung** bei `incident-on-create-1`.
+1. Legen Sie ohne Vorlage einen Workflow namens `Incidents to Jira` an. Klicken Sie auf den gestrichelten Baustein und fügen Sie den Trigger **Bei Erstellung: Vorfall** hinzu. Seine **Weiterzugebende Felder** beginnen mit **Titel**: Klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallnummer**. Die ID wird immer weitergegeben. Lassen Sie seine **Kennung** bei `incident-on-create-1`.
 2. Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API-Aufruf POST (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie seine **Kennung** auf `create-issue`, seine **URL** auf `{{global.variables.JIRA_URL}}/rest/api/3/issue` und unter **Weitere Felder** seine **Anfrage-Header** auf `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Setzen Sie seinen **Anfragetext** auf das Issue, und ersetzen Sie `OPS` und `Bug` durch Ihren Projektschlüssel und einen Issue-Typ dieses Projekts:
 
@@ -390,7 +390,7 @@ Klicken Sie dafür in den **Weiterzugebende Felder** des Triggers auf **Feld hin
 Bauen Sie dies als zweiten Workflow, damit ein Fehler hier nie das Anlegen von Issues stoppt.
 
 :::steps
-1. Legen Sie einen Workflow namens `Incident updates to Jira` an, mit dem Trigger **On Update Incident**. Klicken Sie in **Beobachtete Felder** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**. Klicken Sie in **Weiterzugebende Felder** auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Name**.
+1. Legen Sie einen Workflow namens `Incident updates to Jira` an, mit dem Trigger **Bei Aktualisierung: Vorfall**. Klicken Sie in **Beobachtete Felder** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**. Klicken Sie in **Weiterzugebende Felder** auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Name**.
 2. Fügen Sie einen **Wenn / Sonst**-Baustein hinzu: **Zu prüfender Wert** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Vergleich** **ist gleich**, **Vergleichen mit** `Resolved` oder der Name Ihres behobenen Status.
 3. Suchen Sie nach seiner Seite **Ja** das Issue mit einem **API-Aufruf POST (JSON)**-Baustein, dessen **Kennung** `find-issue` ist und der an `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` sendet:
 
@@ -425,7 +425,7 @@ Bauen Sie zuerst den empfangenden Workflow:
 
    Eine selbst gehostete Installation nutzt ihren eigenen Host. Behandeln Sie die URL wie ein Passwort: Wer sie hat, kann den Workflow starten. Wird sie bekannt, klicken Sie an derselben Stelle auf **URL zurücksetzen**, und die alte URL funktioniert sofort nicht mehr.
 
-3. Fügen Sie nach dem Trigger einen **Update One Incident**-Baustein hinzu. Setzen Sie seine **Abfrage** auf `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` und seine **Daten (JSON-Objekt)** auf die Änderung, etwa eine neue `currentIncidentStateId`. Ein **Find One Incident State**-Baustein mit der Abfrage `{"name": "Resolved"}` gibt Ihnen diese ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Fügen Sie nach dem Trigger einen **Vorfall aktualisieren (einzeln)**-Baustein hinzu. Setzen Sie seine **Abfrage** auf `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` und seine **Daten (JSON-Objekt)** auf die Änderung, etwa eine neue `currentIncidentStateId`. Ein **Vorfallsstatus finden (einzeln)**-Baustein mit der Abfrage `{"name": "Resolved"}` gibt Ihnen diese ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Schalten Sie ihn ein und lassen Sie Jira ihn dann aufrufen, aus einer Automatisierungsregel oder aus einem Webhook:
 
@@ -466,13 +466,13 @@ Beginnen Sie mit den Vorlagen für Warnungen unter [Mit einer Vorlage beginnen](
 
 | Vorfall | Warnung |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | Keiner: Warnungen haben keine öffentlichen Notizen |
+| **Bei Erstellung: Vorfall** (`incident-on-create-1`) | **Bei Erstellung: Warnung** (`alert-on-create-1`) |
+| **Bei Aktualisierung: Vorfall** (`incident-on-update-1`) | **Bei Aktualisierung: Warnung** (`alert-on-update-1`) |
+| **Bei Erstellung: Interne Vorfallsnotiz** | **Bei Erstellung: Interne Warnungsnotiz** |
+| **Bei Erstellung: Öffentliche Vorfallsnotiz** | Keiner: Warnungen haben keine öffentlichen Notizen |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Vorfallsstatus finden (einzeln)** | **Warnungsstatus finden (einzeln)** |
+| **Vorfall aktualisieren (einzeln)** | **Warnung aktualisieren (einzeln)** |
 | Label `oneuptime-incident-<incident id>` | Label `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
@@ -544,7 +544,7 @@ Prüfen Sie zuerst den Port: Jira ruft nur seine erlaubten Ports auf. Senden Sie
 :::
 
 :::details Der Workflow läuft, aber der Vorfall ändert sich nicht
-Ein **Update One Incident**-Baustein meldet `Items Updated: 0`, wenn seine Abfrage nichts getroffen hat, und das ist ein Erfolg, kein Fehler. Prüfen Sie, dass die ID in der Anfrage wirklich die des OneUptime-Vorfalls ist und dass Sie `_id` abfragen.
+Ein **Vorfall aktualisieren (einzeln)**-Baustein meldet `Items Updated: 0`, wenn seine Abfrage nichts getroffen hat, und das ist ein Erfolg, kein Fehler. Prüfen Sie, dass die ID in der Anfrage wirklich die des OneUptime-Vorfalls ist und dass Sie `_id` abfragen.
 :::
 
 :::details Ein Verweis erscheint unverändert in einem Jira-Issue

@@ -208,13 +208,13 @@ Eiere får e-post som standard. Hver person kan velge andre kanaler (SMS, anrop,
 
 Logger for innkommende anrop er tilgjengelige som utløsere i arbeidsflyter:
 
-- **On Create Incoming Call Log** kjører når et anrop kommer inn.
-- **On Update Incoming Call Log** kjører etter hvert som anropet skrider frem. Oppdateringen som setter **Ended At**, er slutten på anropet.
+- **Ved oppretting: Incoming Call Logg** kjører når et anrop kommer inn.
+- **Ved oppdatering: Incoming Call Logg** kjører etter hvert som anropet skrider frem. Oppdateringen som setter **Ended At**, er slutten på anropet.
 
 For å reagere bare på tapte anrop, for eksempel for å legge dem ut i Slack eller Microsoft Teams eller åpne en sak:
 
 :::steps
-1. Legg til utløseren **On Update Incoming Call Log**. Sett **Felt som overvåkes** til **Ended At**, og velg feltene du vil bruke, for eksempel **Status**, **Caller Phone Number** og **Routing Phone Number**.
+1. Legg til utløseren **Ved oppdatering: Incoming Call Logg**. Sett **Felt som overvåkes** til **Ended At**, og velg feltene du vil bruke, for eksempel **Status**, **Caller Phone Number** og **Routing Phone Number**.
 2. Legg til et steg **Hvis / Ellers**. Sjekk utløserens **Status**, med sammenligningen **er ikke lik** og `Completed`.
 3. Koble stegene dine til porten **Ja**.
 :::

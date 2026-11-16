@@ -269,7 +269,7 @@ De scope moet je omgevings-URL zijn gevolgd door `/.default`. Een verkeerde omge
 ### Een case openen voor elk incident
 
 :::steps
-1. Maak vanaf nul een workflow met de naam `Incidents to Dynamics 365`. Klik op het gestippelde blok en voeg de trigger **On Create Incident** toe. De **Velden om door te geven** ervan beginnen met **Titel**: klik op **Veld toevoegen** en kies **Beschrijving** en **Incidentnummer**. De ID wordt altijd doorgegeven.
+1. Maak vanaf nul een workflow met de naam `Incidents to Dynamics 365`. Klik op het gestippelde blok en voeg de trigger **Bij aanmaken: Incident** toe. De **Velden om door te geven** ervan beginnen met **Titel**: klik op **Veld toevoegen** en kies **Beschrijving** en **Incidentnummer**. De ID wordt altijd doorgegeven.
 2. Klik op **Component toevoegen**, voeg een **API-aanroep POST (JSON)**-blok toe en verbind de **Succes**-punt van de trigger ermee. Stel de **Identifier** in op `create-case` en de **URL** op `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Stel onder **Meer velden** de **Aanvraagheaders** in op:
 
@@ -323,7 +323,7 @@ Dynamics 365 levert `severitycode` met één enkele optie, dus stel in plaats da
 Bouw dit als een tweede workflow, zodat een fout hier nooit verhindert dat er cases worden geopend.
 
 :::steps
-1. Maak een workflow met de naam `Close Dynamics 365 cases`, met de trigger **On Update Incident**. Klik in **Velden om te volgen** op **Veld toevoegen** en kies **Current Incident State**. Klik in **Velden om door te geven** op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**.
+1. Maak een workflow met de naam `Close Dynamics 365 cases`, met de trigger **Bij bijwerken: Incident**. Klik in **Velden om te volgen** op **Veld toevoegen** en kies **Current Incident State**. Klik in **Velden om door te geven** op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**.
 2. Voeg een **Als / Anders**-blok toe: **Te controleren waarde** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Vergelijking** **is waar**.
 3. Voeg na de **Ja**-kant ervan een **API-aanroep GET (JSON)**-blok toe met de **Identifier** `find-case`, dezelfde headers zonder `Prefer` en deze **URL**:
 
@@ -363,7 +363,7 @@ Bouw eerst de ontvangende workflow:
    Bij een zelfgehoste installatie heeft de URL je eigen host. Behandel de URL als een wachtwoord: iedereen die hem heeft, kan de workflow starten. Lekt hij uit, klik dan op dezelfde plek op **URL opnieuw instellen**, en de oude URL werkt meteen niet meer.
 
 3. Voeg een **Als / Anders**-blok toe dat vóór alles een gedeeld geheim controleert: **Te controleren waarde** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Vergelijking** **is gelijk aan**, **Vergelijken met** een waarde die je zelf bedenkt, bewaard in een geheime globale variabele.
-4. Voeg na de **Ja**-kant ervan een **Update One Incident**-blok toe. Stel de **Query** in op `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, en de **Gegevens (JSON-object)** op de wijziging, zoals een nieuwe `currentIncidentStateId`. Een **Find One Incident State**-blok met de query `{"name": "Resolved"}` geeft je die ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+4. Voeg na de **Ja**-kant ervan een **Incident bijwerken (één record)**-blok toe. Stel de **Query** in op `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, en de **Gegevens (JSON-object)** op de wijziging, zoals een nieuwe `currentIncidentStateId`. Een **Status incident zoeken (één record)**-blok met de query `{"name": "Resolved"}` geeft je die ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Zet hem aan en laat Dynamics 365 hem daarna aanroepen:
 
@@ -389,11 +389,11 @@ Waarschuwingen werken op dezelfde manier. Wissel het recordtype om, en verder ve
 
 | Incident | Waarschuwing |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **Bij aanmaken: Incident** (`incident-on-create-1`) | **Bij aanmaken: Waarschuwing** (`alert-on-create-1`) |
+| **Bij bijwerken: Incident** (`incident-on-update-1`) | **Bij bijwerken: Waarschuwing** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Status incident zoeken (één record)** | **Status waarschuwing zoeken (één record)** |
+| **Incident bijwerken (één record)** | **Waarschuwing bijwerken (één record)** |
 
 Een workflow heeft precies één trigger, dus incidenten en waarschuwingen hebben elk een eigen workflow nodig. Om hetzelfde Dynamics 365-werk voor beide te doen, bouw je het één keer in een workflow met een **Handmatig**-trigger, en start je die vanuit beide met een **Andere workflow uitvoeren**-blok.
 
@@ -438,7 +438,7 @@ Stuur zelf een verzoek naar de webhook-URL met `curl`, en zoek het op in **Logbo
 :::
 
 :::details De workflow draait, maar het incident verandert niet
-Een **Update One Incident**-blok meldt `Items Updated: 0` wanneer de query niets vond, en dat is een succes, geen fout. Controleer of de ID in het verzoek echt die van het OneUptime-incident is, en of je op `_id` zoekt.
+Een **Incident bijwerken (één record)**-blok meldt `Items Updated: 0` wanneer de query niets vond, en dat is een succes, geen fout. Controleer of de ID in het verzoek echt die van het OneUptime-incident is, en of je op `_id` zoekt.
 :::
 
 ## Volgende stappen

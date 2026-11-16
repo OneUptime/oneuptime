@@ -1,4 +1,4 @@
-# Databasehelse-overvåking
+# Databasehelse-monitor
 
 Databasehelse-monitoren kobler til PostgreSQL, MySQL eller Microsoft SQL Server etter en tidsplan og rapporterer serverens egne helsesignaler — ledig kapasitet for tilkoblinger, blokkerte økter, replikeringsforsinkelse, treffrate i hurtigbufferen, databasestørrelse, transaksjons-ID-wraparound og rundt tretti til — slik at du kan varsle på dem på samme måte som du varsler når et nettsted er nede.
 
@@ -452,8 +452,8 @@ En gruppe kan ikke samles inn ved noen kontroll, så det samme innsamlingsproble
 ## Neste steg
 
 :::cards
-- [SQL-spørring-overvåking](/docs/monitor/sql-monitor): Varsle om resultatet av din egen spørring, ved siden av serverens helse.
+- [SQL-spørring-monitor](/docs/monitor/sql-monitor): Varsle om resultatet av din egen spørring, ved siden av serverens helse.
 - [Databaser](/docs/telemetry/databases): Se hver databases målinger, logger og kallere på én side.
-- [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Hold passordet til overvåkingsbrukeren kryptert.
+- [Monitorhemmeligheter](/docs/monitor/monitor-secrets): Hold passordet til overvåkingsbrukeren kryptert.
 - [Egendefinerte sonder](/docs/probe/custom-probe): Nå en database inne i nettverket ditt.
 :::

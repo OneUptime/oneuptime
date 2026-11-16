@@ -257,7 +257,7 @@ La respuesta a una pregunta de archivos son los archivos tal como se guardaron, 
 
 ### Workflows
 
-Los formularios tienen los componentes de workflow generados: **On Create Form**, **On Update Form**, etc. Para actuar sobre lo que creó un formulario, usa **On Create Incident** u **On Create Maintenance Event**.
+Los formularios tienen los componentes de workflow generados: **Al crear Formulario**, **Al actualizar Formulario**, etc. Para actuar sobre lo que creó un formulario, usa **Al crear Incidente** u **Al crear Evento de mantenimiento**.
 
 ### Los endpoints propios de la página pública
 

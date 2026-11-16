@@ -117,7 +117,7 @@ API और Terraform ऐसा नियम अस्वीकार करत�
 
 ## वर्कफ़्लो
 
-हर रखरखाव मॉडल के अपने नाम पर वर्कफ़्लो ट्रिगर और क्रियाएँ हैं: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** और **On Delete Maintenance Event**, यही **Scheduled Maintenance State Timeline** और बाकी के लिए, और **Create One Maintenance Event** और **Update One Maintenance Event** जैसी क्रियाएँ। कस्टम फ़ील्ड परिभाषाएँ और माप मान अपवाद हैं: उनके कोई वर्कफ़्लो चरण नहीं हैं। देखें [वर्कफ़्लो अवलोकन](/docs/workflows/index)।
+हर रखरखाव मॉडल के अपने नाम पर वर्कफ़्लो ट्रिगर और क्रियाएँ हैं: **रखरखाव इवेंट बनने पर**, **रखरखाव इवेंट अपडेट होने पर**, **रखरखाव इवेंट बनने या अपडेट होने पर** और **रखरखाव इवेंट हटाए जाने पर**, यही **Scheduled Maintenance State Timeline** और बाकी के लिए, और **एक रखरखाव इवेंट बनाएँ** और **एक रखरखाव इवेंट अपडेट करें** जैसी क्रियाएँ। कस्टम फ़ील्ड परिभाषाएँ और माप मान अपवाद हैं: उनके कोई वर्कफ़्लो चरण नहीं हैं। देखें [वर्कफ़्लो अवलोकन](/docs/workflows/index)।
 
 ## इन्हें कौन बदल सकता है
 

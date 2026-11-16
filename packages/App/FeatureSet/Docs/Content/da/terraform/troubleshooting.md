@@ -28,7 +28,7 @@ Slå den meddelelse, Terraform skrev, eller det, du så ske, op i tabellen neden
 | En `priority` eller `order` ændres efter apply | Giv hver enkelt et nummer, som ingen anden har: se [En prioritet eller rækkefølge, der flytter sig](#en-prioritet-eller-rækkefølge-der-flytter-sig) |
 | `Invalid Configuration for Read-Only Attribute` | Fjern attributten fra konfigurationen: se [Skrivebeskyttede attributter](#skrivebeskyttede-attributter) |
 | `has been renamed to` | Omdøb ressourcetypen med en `moved`-blok: se [En omdøbt ressourcetype](#en-omdøbt-ressourcetype) |
-| En monitor, der er lavet med Terraform, viser aldrig sine tjek | Opgradér OneUptime: se [Overvågninger fra før trin-ID'er](#overvågninger-fra-før-trin-ider) |
+| En monitor, der er lavet med Terraform, viser aldrig sine tjek | Opgradér OneUptime: se [Monitorer fra før trin-ID'er](#monitorer-fra-før-trin-ider) |
 | `must contain at least 1 elements` | Udelad attributten i stedet for at lade den være tom: se [Tomme værdier](#tomme-værdier) |
 | `Not an ID` | Henvis til posten i stedet for at nævne den: se [Et navn, hvor et ID hører hjemme](#et-navn-hvor-et-id-hører-hjemme) |
 | JSON fra dashboardet i en `.tf`-fil | Skriv det som HCL: se [JSON fra dashboardet](#json-fra-dashboardet) |
@@ -156,7 +156,7 @@ moved {
 
 `terraform plan` viser så flytningen og ingen anden ændring. Flytning mellem ressourcetyper kræver Terraform 1.8 eller nyere, eller OpenTofu 1.12 eller nyere; på en ældre version skal du beholde det gamle navn, som fortsat virker. Datakilder er omdøbt på samme måde: ændr navnet, og intet andet.
 
-### Overvågninger fra før trin-ID'er
+### Monitorer fra før trin-ID'er
 
 ID'erne inde i en monitor trin - for hvert trin, kriterium og hver hændelses- og alarmskabelon - er serverens at give. Ældre OneUptime-versioner gav kun kriterier ID'er, og et nyt sæt ved hver skrivning, så en monitor, der blev skrevet via API'et, som hver monitor, provideren lavede, blev gemt med et trin uden ID. Dens sonder tjekkede den stadig, og dens status ændrede sig stadig, men monitorens side kunne ikke finde dens tjek, dens hændelser kunne ikke løse sig selv, og hver `terraform apply`, der ændrede `monitor_steps`, rev åbne hændelser løs fra deres kriterier.
 

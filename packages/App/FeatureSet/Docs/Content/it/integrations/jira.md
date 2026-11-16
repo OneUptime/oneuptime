@@ -306,7 +306,7 @@ I token scadono dopo un anno per impostazione predefinita e non si rinnovano. Pe
 ### Aprire un ticket Jira per ogni incidente
 
 :::steps
-1. Crea da zero un flusso di lavoro chiamato `Incidents to Jira`. Fai clic sul blocco tratteggiato e aggiungi il trigger **On Create Incident**. I suoi **Campi da passare** iniziano con **Titolo**: fai clic su **Aggiungi campo** e scegli **Descrizione** e **Numero dell'incidente**. L'ID viene sempre trasmesso. Lascia il suo **Identifier** come `incident-on-create-1`.
+1. Crea da zero un flusso di lavoro chiamato `Incidents to Jira`. Fai clic sul blocco tratteggiato e aggiungi il trigger **Alla creazione: Incidente**. I suoi **Campi da passare** iniziano con **Titolo**: fai clic su **Aggiungi campo** e scegli **Descrizione** e **Numero dell'incidente**. L'ID viene sempre trasmesso. Lascia il suo **Identifier** come `incident-on-create-1`.
 2. Fai clic su **Aggiungi componente**, aggiungi un blocco **Chiamata API POST (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **Identifier** su `create-issue`, il suo **URL** su `{{global.variables.JIRA_URL}}/rest/api/3/issue` e, in **Altri campi**, i suoi **Intestazioni della richiesta** su `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Imposta il suo **Corpo della Richiesta** sul ticket, e sostituisci `OPS` e `Bug` con la chiave del tuo progetto e un tipo di ticket di quel progetto:
 
@@ -390,7 +390,7 @@ Per questo, nei **Campi da passare** del trigger, fai clic su **Aggiungi campo**
 Costruiscilo come secondo flusso di lavoro, così un errore qui non impedisce mai l'apertura dei ticket.
 
 :::steps
-1. Crea un flusso di lavoro chiamato `Incident updates to Jira`, con il trigger **On Update Incident**. In **Campi da osservare**, fai clic su **Aggiungi campo** e scegli **Current Incident State**. In **Campi da passare**, fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Nome**.
+1. Crea un flusso di lavoro chiamato `Incident updates to Jira`, con il trigger **All'aggiornamento: Incidente**. In **Campi da osservare**, fai clic su **Aggiungi campo** e scegli **Current Incident State**. In **Campi da passare**, fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Nome**.
 2. Aggiungi un blocco **Se / Altrimenti**: **Valore da verificare** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Confronto** **è uguale a**, **Confronta con** `Resolved`, o il nome del tuo stato risolto.
 3. Dopo il suo lato **Sì**, trova il ticket con un blocco **Chiamata API POST (JSON)** il cui **Identifier** sia `find-issue`, che pubblichi su `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
@@ -425,7 +425,7 @@ Costruisci prima il flusso di lavoro che riceve:
 
    Un'installazione self-hosted usa il proprio host. Tratta l'URL come una password: chiunque lo abbia può avviare il flusso di lavoro. Se trapela, fai clic su **Reimposta URL** nello stesso punto, e il vecchio URL smette subito di funzionare.
 
-3. Dal trigger, aggiungi un blocco **Update One Incident**. Imposta la sua **Query** su `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, e il suo **Dati (oggetto JSON)** sulla modifica, come un nuovo `currentIncidentStateId`. Un blocco **Find One Incident State** con la query `{"name": "Resolved"}` ti dà quell'ID come `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Dal trigger, aggiungi un blocco **Aggiorna: Incidente (un record)**. Imposta la sua **Query** su `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, e il suo **Dati (oggetto JSON)** sulla modifica, come un nuovo `currentIncidentStateId`. Un blocco **Trova: Stato incidente (un record)** con la query `{"name": "Resolved"}` ti dà quell'ID come `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Attivalo, poi fai in modo che Jira lo chiami, da una regola di automazione o da un webhook:
 
@@ -466,13 +466,13 @@ Parti dai modelli per gli avvisi di [Partire da un modello](#partire-da-un-model
 
 | Incidente | Avviso |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | Nessuno: gli avvisi non hanno note pubbliche |
+| **Alla creazione: Incidente** (`incident-on-create-1`) | **Alla creazione: Avviso** (`alert-on-create-1`) |
+| **All'aggiornamento: Incidente** (`incident-on-update-1`) | **All'aggiornamento: Avviso** (`alert-on-update-1`) |
+| **Alla creazione: Nota interna dell'incidente** | **Alla creazione: Nota interna dell'avviso** |
+| **Alla creazione: Nota pubblica dell'incidente** | Nessuno: gli avvisi non hanno note pubbliche |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Trova: Stato incidente (un record)** | **Trova: Stato avviso (un record)** |
+| **Aggiorna: Incidente (un record)** | **Aggiorna: Avviso (un record)** |
 | Etichetta `oneuptime-incident-<incident id>` | Etichetta `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
@@ -544,7 +544,7 @@ Controlla prima la porta: Jira chiama solo le sue porte consentite. Poi invia tu
 :::
 
 :::details Il flusso di lavoro viene eseguito, ma l'incidente non cambia
-Un blocco **Update One Incident** riporta `Items Updated: 0` quando la sua query non ha trovato nulla, e questo è un successo, non un errore. Verifica che l'ID nella richiesta sia davvero quello dell'incidente di OneUptime, e che la query sia su `_id`.
+Un blocco **Aggiorna: Incidente (un record)** riporta `Items Updated: 0` quando la sua query non ha trovato nulla, e questo è un successo, non un errore. Verifica che l'ID nella richiesta sia davvero quello dell'incidente di OneUptime, e che la query sia su `_id`.
 :::
 
 :::details Un riferimento compare così com'è scritto in un ticket Jira

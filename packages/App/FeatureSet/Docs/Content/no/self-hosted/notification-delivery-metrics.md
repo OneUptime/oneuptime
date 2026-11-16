@@ -196,7 +196,7 @@ Fire mål de fleste installasjoner kan love, hvert bygd av én eller to spørrin
 2. Velg aggregeringen dens under **Aggreger etter**. Åpne deretter **Filtre og gruppering**, og legg til hver av betingelsene dens under **Filtrer etter attributter**.
 3. For en ny spørring klikker du **Legg til måling** og setter opp `b` på samme måte.
 4. For en formel klikker du **Legg til formel** og skriver den i **Formel**.
-5. For å få beskjed når målet ikke nås, klikker du **Handlinger → Opprett monitor fra denne visningen** og varsler når verdien går forbi målet: se [Målingsovervåking](/docs/monitor/metrics-monitor).
+5. For å få beskjed når målet ikke nås, klikker du **Handlinger → Opprett monitor fra denne visningen** og varsler når verdien går forbi målet: se [Målingsmonitor](/docs/monitor/metrics-monitor).
 :::
 
 For å følge et mål over 30 dager med et feilbudsjett, knytt den monitoren til en [SLO](/docs/slo/introduction): den teller tiden målet ikke ble nådd.
@@ -261,7 +261,7 @@ Endelige statuser kommer fra leverandørene, senere, og bare der de kan melde de
 
 :::cards
 - [Målingsutforsker](/docs/telemetry/metrics-explorer): Vis, kombiner og sammenlign enhver måling.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle når et mål ikke nås.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle når et mål ikke nås.
 - [Twilio-integrasjon](/docs/self-hosted/twilio-integration): La Twilio melde hva som nådde telefonen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Ventetidene sendeforsinkelsen regnes fra.
 :::

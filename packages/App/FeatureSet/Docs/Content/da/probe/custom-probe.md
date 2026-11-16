@@ -110,7 +110,7 @@ Med værtsnetværk (`--network host`, `network_mode: host`) bruger sonden værte
 
 Inden for et minut eller to viser sondens **Status** i tabellen **Brugerdefinerede sonder** **Forbundet**. Viser den stadig **Afbrudt**, står årsagen i sondens log: se [Undersøg en afbrudt sonde](#undersøg-en-afbrudt-sonde).
 
-### Lad sonden tjekke en overvågning
+### Lad sonden tjekke en monitor
 
 En sonde tjekker kun de monitorer, den er føjet til. En ny monitor vælger sine sonder i trinnet **Sonder og interval** i **Opret monitor**. For en eksisterende monitor skal du åbne den og gå til **Konfiguration → Sonder og interval**. Siden har tre kort:
 
@@ -276,7 +276,7 @@ Sonden læser sine indstillinger fra sit miljø, når den starter: ændr en, og 
 | `PROBE_ID` | Sondens ID, fra **Vis ID og nøgle**. Uden det stopper sonden ved start. |
 | `ONEUPTIME_URL` | Hvor OneUptime er: `https://oneuptime.com` eller din egen installations URL. Uden den stopper sonden ved start. |
 
-### Tjek af overvågninger
+### Tjek af monitorer
 
 | Variabel | Standard | Hvad den gør |
 | --- | --- | --- |

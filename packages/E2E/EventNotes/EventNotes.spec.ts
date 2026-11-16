@@ -9,6 +9,7 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Renders the real public and private note pages of incidents, alerts,
@@ -2560,4 +2561,20 @@ test.describe("links and quotes in a note", () => {
       );
     });
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Arabic whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ar"],
+  address: (language: string): string => {
+    return language === "en"
+      ? `${INCIDENT}/public-notes`
+      : `${INCIDENT}/public-notes?lang=${language}`;
+  },
 });

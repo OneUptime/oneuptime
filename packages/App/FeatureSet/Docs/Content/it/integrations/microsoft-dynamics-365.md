@@ -269,7 +269,7 @@ L'ambito deve essere l'URL del tuo ambiente seguito da `/.default`. Un URL di am
 ### Aprire un caso per ogni incidente
 
 :::steps
-1. Crea da zero un flusso di lavoro chiamato `Incidents to Dynamics 365`. Fai clic sul blocco tratteggiato e aggiungi il trigger **On Create Incident**. I suoi **Campi da passare** iniziano con **Titolo**: fai clic su **Aggiungi campo** e scegli **Descrizione** e **Numero dell'incidente**. L'ID viene sempre trasmesso.
+1. Crea da zero un flusso di lavoro chiamato `Incidents to Dynamics 365`. Fai clic sul blocco tratteggiato e aggiungi il trigger **Alla creazione: Incidente**. I suoi **Campi da passare** iniziano con **Titolo**: fai clic su **Aggiungi campo** e scegli **Descrizione** e **Numero dell'incidente**. L'ID viene sempre trasmesso.
 2. Fai clic su **Aggiungi componente**, aggiungi un blocco **Chiamata API POST (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **Identifier** su `create-case` e il suo **URL** su `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. In **Altri campi**, imposta i suoi **Intestazioni della richiesta** su:
 
@@ -323,7 +323,7 @@ Dynamics 365 include `severitycode` con una sola opzione, quindi imposta invece 
 Costruiscilo come secondo flusso di lavoro, così un errore qui non impedisce mai l'apertura dei casi.
 
 :::steps
-1. Crea un flusso di lavoro chiamato `Close Dynamics 365 cases`, con il trigger **On Update Incident**. In **Campi da osservare**, fai clic su **Aggiungi campo** e scegli **Current Incident State**. In **Campi da passare**, fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**.
+1. Crea un flusso di lavoro chiamato `Close Dynamics 365 cases`, con il trigger **All'aggiornamento: Incidente**. In **Campi da osservare**, fai clic su **Aggiungi campo** e scegli **Current Incident State**. In **Campi da passare**, fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**.
 2. Aggiungi un blocco **Se / Altrimenti**: **Valore da verificare** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Confronto** **è vero**.
 3. Dopo il suo lato **Sì**, aggiungi un blocco **Chiamata API GET (JSON)** con l'**Identifier** `find-case`, le stesse intestazioni senza `Prefer` e questo **URL**:
 
@@ -363,7 +363,7 @@ Costruisci prima il flusso di lavoro che riceve:
    Su un'installazione self-hosted, l'URL ha il tuo host. Tratta l'URL come una password: chiunque lo abbia può avviare il flusso di lavoro. Se trapela, fai clic su **Reimposta URL** nello stesso punto, e il vecchio URL smette subito di funzionare.
 
 3. Aggiungi un blocco **Se / Altrimenti** che controlli un segreto condiviso prima di tutto: **Valore da verificare** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Confronto** **è uguale a**, **Confronta con** un valore che inventi tu, conservato in una variabile globale segreta.
-4. Dopo il suo lato **Sì**, aggiungi un blocco **Update One Incident**. Imposta la sua **Query** su `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, e il suo **Dati (oggetto JSON)** sulla modifica, come un nuovo `currentIncidentStateId`. Un blocco **Find One Incident State** con la query `{"name": "Resolved"}` ti dà quell'ID come `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+4. Dopo il suo lato **Sì**, aggiungi un blocco **Aggiorna: Incidente (un record)**. Imposta la sua **Query** su `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, e il suo **Dati (oggetto JSON)** sulla modifica, come un nuovo `currentIncidentStateId`. Un blocco **Trova: Stato incidente (un record)** con la query `{"name": "Resolved"}` ti dà quell'ID come `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Attivalo, poi fai in modo che Dynamics 365 lo chiami:
 
@@ -389,11 +389,11 @@ Gli avvisi funzionano allo stesso modo. Cambia il tipo di record, e non cambia n
 
 | Incidente | Avviso |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **Alla creazione: Incidente** (`incident-on-create-1`) | **Alla creazione: Avviso** (`alert-on-create-1`) |
+| **All'aggiornamento: Incidente** (`incident-on-update-1`) | **All'aggiornamento: Avviso** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Trova: Stato incidente (un record)** | **Trova: Stato avviso (un record)** |
+| **Aggiorna: Incidente (un record)** | **Aggiorna: Avviso (un record)** |
 
 Un flusso di lavoro ha esattamente un trigger, quindi incidenti e avvisi hanno bisogno di un flusso di lavoro ciascuno. Per fare lo stesso lavoro su Dynamics 365 per entrambi, costruiscilo una volta in un flusso di lavoro con un trigger **Manuale** e avvialo da entrambi con un blocco **Esegui un altro flusso di lavoro**.
 
@@ -438,7 +438,7 @@ Invia tu stesso una richiesta all'URL del webhook con `curl`, e cercala in **Log
 :::
 
 :::details Il flusso di lavoro viene eseguito, ma l'incidente non cambia
-Un blocco **Update One Incident** riporta `Items Updated: 0` quando la sua query non ha trovato nulla, e questo è un successo, non un errore. Verifica che l'ID nella richiesta sia davvero quello dell'incidente di OneUptime, e che la query sia su `_id`.
+Un blocco **Aggiorna: Incidente (un record)** riporta `Items Updated: 0` quando la sua query non ha trovato nulla, e questo è un successo, non un errore. Verifica che l'ID nella richiesta sia davvero quello dell'incidente di OneUptime, e che la query sia su `_id`.
 :::
 
 ## Prossimi passi

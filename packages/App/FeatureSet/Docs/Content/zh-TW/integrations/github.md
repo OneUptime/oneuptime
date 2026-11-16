@@ -15,7 +15,7 @@ OneUptime 以兩種方式與 [GitHub](https://github.com) 配合使用。透過 
 flowchart TB
     app["GitHub App"] --> repos["匯入的儲存庫"]
     repos --> pr["來自 OneUptime<br/>AI 的修復<br/>pull request"]
-    declared["事件已宣佈"] --> workflow["工作流程：<br/>On Create Incident"]
+    declared["事件已宣佈"] --> workflow["工作流程：<br/>建立事件時"]
     workflow -->|"POST issues"| issue["GitHub issue"]
 ```
 
@@ -62,7 +62,7 @@ flowchart TB
 
 ### 新增觸發器
 
-點選虛線的 **選擇啟動此工作流程的方式** 區塊，然後選擇 **On Create Incident**。點選觸發器：它的 **要傳遞的欄位** 已經包含 **標題**，所以點選 **新增欄位** 並選擇 **描述** 和 **Incident Number With Prefix**。
+點選虛線的 **選擇啟動此工作流程的方式** 區塊，然後選擇 **建立事件時**。點選觸發器：它的 **要傳遞的欄位** 已經包含 **標題**，所以點選 **新增欄位** 並選擇 **描述** 和 **Incident Number With Prefix**。
 
 ### 開啟 issue
 

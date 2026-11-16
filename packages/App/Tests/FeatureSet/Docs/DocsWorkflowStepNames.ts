@@ -1,10 +1,19 @@
+import Entities from "Common/Models/DatabaseModels/Index";
+import {
+  ComposedWords,
+  composeWords,
+  composedWordsOf,
+} from "Common/Types/ComposedWords";
+import { createTranslator, Translator } from "Common/Types/Translator";
 import ComponentMetadata, {
   Argument,
   Port,
   ReturnValue,
 } from "Common/Types/Workflow/Component";
 import Components from "Common/Types/Workflow/Components";
-import { SELECT_FIELDS_NAME } from "Common/Types/Workflow/Components/BaseModel";
+import BaseModelComponent, {
+  SELECT_FIELDS_NAME,
+} from "Common/Types/Workflow/Components/BaseModel";
 import {
   CONDITION_COMPARE_AS_OPTIONS,
   CONDITION_COMPARISONS,
@@ -12,7 +21,11 @@ import {
   ConditionComparison,
 } from "Common/Types/Workflow/Components/ConditionComparison";
 import { getCreateFromTemplateArgument } from "Common/Types/Workflow/CreateFromTemplate";
-import { dashboardLocale, drawnDashboardLabel } from "./DocsDashboardLabels";
+import {
+  asTheDocsWriteIt,
+  dashboardLocale,
+  drawnDashboardLabel,
+} from "./DocsDashboardLabels";
 
 /*
  * A WORKFLOW STEP'S OWN NAMES, AS EACH LANGUAGE'S DASHBOARD DRAWS THEM
@@ -34,6 +47,13 @@ import { dashboardLocale, drawnDashboardLabel } from "./DocsDashboardLabels";
  *     reference's chip and the run log's rows (ReturnValueNames, #8316).
  * Only a Switch / Case's cases keep the names the person gave them.
  *
+ * A record step's title is built from its model's name ("On Create
+ * Incident"), from a sentence each language words ("On Create
+ * {{itemName}}", #8642): the builder reads it as that sentence, the model
+ * by the language's own word for it (ComposedWords), and so do these
+ * (RECORD_STEP_TITLES, #8708). The docs' "On Create X" for any model's
+ * trigger reads as the same sentence, with X for the name.
+ *
  * So a docs page names each as its language's Dashboard draws it
  * (drawnStepName). The pages that walk through workflow steps are listed
  * here (WORKFLOW_STEP_PAGES) with the few bold words on them that are
@@ -52,8 +72,73 @@ const RECORD_STEP_SETTINGS: ReadonlyArray<string> = [
   "Fields to watch",
 ];
 
-function collectStepNames(): Set<string> {
+// The docs' stand-in for any model's name: "On Create X".
+export const ANY_MODEL: string = "X";
+
+/*
+ * Every record step's composed names - each title, and a setting's name
+ * built from the model's ("Incident ID") - built as the builder builds
+ * them, for every model with workflow steps: building them is what makes
+ * each one read as its sentence (ComposedWords). And each title's sentence
+ * with X for the name, as the docs write a trigger of any model.
+ */
+function collectRecordStepNames(): {
+  titles: Set<string>;
+  names: Set<string>;
+} {
+  const titles: Set<string> = new Set<string>();
   const names: Set<string> = new Set<string>();
+  const titleSentences: Set<string> = new Set<string>();
+
+  for (const modelType of Entities) {
+    for (const component of BaseModelComponent.getComponents(new modelType())) {
+      const composed: ComposedWords | undefined = composedWordsOf(
+        component.title,
+      );
+
+      if (composed) {
+        titles.add(component.title);
+        titleSentences.add(composed.template);
+      }
+
+      for (const argument of [
+        ...(component.arguments as Array<Argument>),
+        ...((component.runWorkflowManuallyArguments || []) as Array<Argument>),
+      ]) {
+        if (composedWordsOf(argument.name)) {
+          names.add(argument.name);
+        }
+      }
+    }
+  }
+
+  for (const sentence of titleSentences) {
+    titles.add(
+      composeWords(
+        sentence,
+        { itemName: ANY_MODEL, itemsName: ANY_MODEL },
+        { inSentence: false },
+      ),
+    );
+  }
+
+  for (const title of titles) {
+    names.add(title);
+  }
+
+  return { titles, names };
+}
+
+const RECORD_STEP_NAMES: {
+  titles: Set<string>;
+  names: Set<string>;
+} = collectRecordStepNames();
+
+// Every record step's title, for every model, and with X for any model's.
+export const RECORD_STEP_TITLES: ReadonlySet<string> = RECORD_STEP_NAMES.titles;
+
+function collectStepNames(): Set<string> {
+  const names: Set<string> = new Set<string>(RECORD_STEP_NAMES.names);
 
   for (const component of Components as Array<ComponentMetadata>) {
     names.add(component.title);
@@ -120,30 +205,71 @@ export const WORKFLOW_STEP_OUTPUTS: ReadonlySet<string> = new Set<string>(
   ),
 );
 
-// The built-in steps' titles.
-export const WORKFLOW_STEP_TITLES: ReadonlySet<string> = new Set<string>(
-  (Components as Array<ComponentMetadata>).map(
+// The built-in steps' titles, and every record step's.
+export const WORKFLOW_STEP_TITLES: ReadonlySet<string> = new Set<string>([
+  ...(Components as Array<ComponentMetadata>).map(
     (component: ComponentMetadata): string => {
       return component.title;
     },
   ),
-);
+  ...RECORD_STEP_TITLES,
+]);
 
-// Whether the Dashboard's English locale has the name as a key.
-export const isLookedUp: (name: string) => boolean = (
-  name: string,
-): boolean => {
+const isKey: (name: string) => boolean = (name: string): boolean => {
   return typeof dashboardLocale("en")[name] === "string";
 };
 
 /*
+ * Whether the Dashboard looks the name up: a key of its English locale, or
+ * a record step's name built from a sentence that is one (#8642).
+ */
+export const isLookedUp: (name: string) => boolean = (
+  name: string,
+): boolean => {
+  if (isKey(name)) {
+    return true;
+  }
+
+  const composed: ComposedWords | undefined = composedWordsOf(name);
+
+  return Boolean(composed && isKey(composed.template));
+};
+
+// The language's Dashboard locale as the builder reads it (useTranslateValue).
+const translators: Map<string, Translator> = new Map<string, Translator>();
+
+function translatorOf(language: string): Translator {
+  let translator: Translator | undefined = translators.get(language);
+
+  if (!translator) {
+    const locale: Record<string, unknown> = dashboardLocale(language);
+
+    translator = createTranslator((text: string): string | undefined => {
+      const value: unknown = locale[text];
+
+      return typeof value === "string" && value.trim() ? value : undefined;
+    }, language);
+    translators.set(language, translator);
+  }
+
+  return translator;
+}
+
+/*
  * What this language's builder draws for a step's name written in English:
- * the locale's word for it, or the English where it has none.
+ * the locale's word for it; a record step's title as the language words
+ * the sentence it was built from, with the model's own word in it; or the
+ * English where it has none.
  */
 export const drawnStepName: (language: string, name: string) => string = (
   language: string,
   name: string,
 ): string => {
+  if (language !== "en" && !isKey(name) && composedWordsOf(name)) {
+    // With a plain space where the builder sets a no-break one, as a page writes it.
+    return asTheDocsWriteIt(translatorOf(language).translateText(name) || name);
+  }
+
   return drawnDashboardLabel(language, name);
 };
 
@@ -277,7 +403,33 @@ export const WORKFLOW_STEP_PAGES: ReadonlyArray<WorkflowStepPage> = [
     onlyNames: ["Incident Template", "Error"],
   },
   { page: "telemetry/ai-agent-circuit-breaker" },
-  { page: "on-call/incoming-call-policy", onlyNames: ["Yes"] },
+  {
+    page: "on-call/incoming-call-policy",
+    onlyNames: [
+      "Yes",
+      "On Create Incoming Call Log",
+      "On Update Incoming Call Log",
+    ],
+  },
+  // The pages that name a record step's trigger or action (#8708).
+  { page: "incidents/index" },
+  {
+    page: "incidents/linked-alerts",
+    otherWords: [
+      {
+        name: "Incident",
+        why: "Link to Incident's dropdown, and the Permission Reference's group: no step's word there.",
+      },
+    ],
+  },
+  { page: "alerts/index" },
+  { page: "alerts/settings" },
+  { page: "scheduled-maintenance/index" },
+  { page: "scheduled-maintenance/creating-events" },
+  { page: "scheduled-maintenance/settings" },
+  { page: "forms/index" },
+  { page: "forms/on-submit" },
+  { page: "status-pages/one-status-page-per-audience" },
 ];
 
 export const WORKFLOW_STEP_PAGE_NAMES: ReadonlyArray<string> =

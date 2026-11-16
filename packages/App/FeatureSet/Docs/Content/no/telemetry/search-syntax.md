@@ -204,6 +204,6 @@ Brikker er en del av den lagrede visningen og av sidens URL, så et filter overl
 :::cards
 - [Zoome inn på et tidsintervall](/docs/telemetry/charts-and-time-ranges): Snevre inn utforskerne til øyeblikket som betyr noe.
 - [Loggpipelines](/docs/telemetry/log-pipelines): Gjøre deler av en logglinje om til søkbare attributter.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Få varsel når loggene du søker etter dukker opp.
+- [Logg-monitor](/docs/monitor/logs-monitor): Få varsel når loggene du søker etter dukker opp.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Sende logger, målinger og spor som kan søkes i.
 :::

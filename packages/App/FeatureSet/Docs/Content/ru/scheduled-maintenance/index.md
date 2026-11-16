@@ -46,7 +46,7 @@ flowchart TB
 - **Расписание.** Повторяющийся шаблон создаёт новое событие по расписанию, например каждую неделю или каждый месяц, и никому не нужно открывать форму.
 - **Форма заявки.** Форма, отправки которой создают события обслуживания, превращает запрос на изменение в событие. См. [Что создаёт отправка](/docs/forms/on-submit#как-отправка-становится-событием-обслуживания).
 - **Чат.** `/oneuptime maintenance` в Slack или `maintenance`, отправленное боту OneUptime в Microsoft Teams, открывает форму прямо в вашем чате. См. [Slack](/docs/workspace-connections/slack#создание-инцидентов-и-обслуживания-из-slack).
-- **Код.** API по адресу `/api/scheduled-maintenance`, ресурс Terraform `oneuptime_scheduled_maintenance_event` и шаг рабочего процесса **Create One Maintenance Event**.
+- **Код.** API по адресу `/api/scheduled-maintenance`, ресурс Terraform `oneuptime_scheduled_maintenance_event` и шаг рабочего процесса **Создать: Событие обслуживания (одна запись)**.
 
 ## Где обслуживание находится в панели управления
 

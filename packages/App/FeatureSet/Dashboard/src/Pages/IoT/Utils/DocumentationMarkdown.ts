@@ -195,10 +195,11 @@ function getKeyStep(data: IoTSetupGuideOptions): SetupGuideKeyStep {
     return {
       description:
         "Devices authenticate to the MQTT endpoint with this key as their password. Pick an existing key or create a new one — the snippets below update to use it.",
-      endpointLabel: "MQTT WebSocket URL",
+      endpointLabel: translationKey("MQTT WebSocket URL"),
       endpointValue: getIoTMqttWebSocketUrl(data.oneuptimeUrl),
-      endpointHint:
+      endpointHint: translationKey(
         "Send the ingestion token below as the MQTT password — the username is ignored.",
+      ),
     };
   }
 

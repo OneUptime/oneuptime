@@ -110,7 +110,7 @@ Ved hvert står det hvorfor: et navn prosjektet allerede har, noe en tidligere i
 ## Neste trinn
 
 :::cards
-- [Nettsted-overvåking](/docs/monitor/website-monitor): Hva en nettstedmonitor kontrollerer, og hvordan.
-- [Port-overvåking](/docs/monitor/port-monitor): Hva en portmonitor kontrollerer, og hvordan.
+- [Nettsted-monitor](/docs/monitor/website-monitor): Hva en nettstedmonitor kontrollerer, og hvordan.
+- [Port-monitor](/docs/monitor/port-monitor): Hva en portmonitor kontrollerer, og hvordan.
 - [Bytt fra StatusCake](/docs/moving-to-oneuptime/statuscake): Hent kontrollene dine over fra StatusCake.
 :::
