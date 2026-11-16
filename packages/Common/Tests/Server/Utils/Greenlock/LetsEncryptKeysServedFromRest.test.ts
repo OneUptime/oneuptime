@@ -17,7 +17,10 @@
  *   4. WriteServerCertToDisk writes the server's own host key the same way,
  *      and writes nothing (no nginx reload) while the disk holds the key the
  *      table holds, encrypted or not;
- *   5. no log line on the way carries a key, and neither does the error an
+ *   5. a key that reads back empty - encrypted under another
+ *      ENCRYPTION_SECRET - is not written over the files that still serve
+ *      its domain, and the other domains are written as ever;
+ *   6. no log line on the way carries a key, and neither does the error an
  *      order that failed is refused with.
  */
 
@@ -553,6 +556,78 @@ describe("a Let's Encrypt certificate's key, at rest and on disk", () => {
     }
 
     expect(disk.get(`${SERVER_CERTS}/oneuptime.acme.com.key`)).toBe(hostKey);
+  });
+
+  test("a key that reads back empty is not written over the files that still serve its domain", async () => {
+    const logged: () => string = useLogs();
+    const unreadable: string = await Encryption.encrypt(
+      keyFor("unreadable.acme.com"),
+    );
+    const decrypt: (text: string) => Promise<string> =
+      Encryption.decrypt.bind(Encryption);
+
+    // As a key encrypted under another ENCRYPTION_SECRET reads: empty.
+    jest
+      .spyOn(Encryption, "decrypt")
+      .mockImplementation(async (text: string): Promise<string> => {
+        return text === unreadable ? "" : await decrypt(text);
+      });
+
+    useTable([
+      {
+        _id: "00000000-0000-4000-8000-0000000000c1",
+        domain: "unreadable.acme.com",
+        certificate: certificateFor("unreadable.acme.com"),
+        certificateKey: unreadable,
+        issuedAt: mockOrder.issuedAt,
+        expiresAt: mockOrder.expiresAt,
+      },
+      {
+        _id: "00000000-0000-4000-8000-0000000000c2",
+        domain: "status.acme.com",
+        certificate: certificateFor("status.acme.com"),
+        certificateKey: await Encryption.encrypt(keyFor("status.acme.com")),
+        issuedAt: mockOrder.issuedAt,
+        expiresAt: mockOrder.expiresAt,
+      },
+    ]);
+
+    const disk: Map<string, string> = useDisk(
+      new Map<string, string>([
+        [
+          `${CUSTOM_DOMAIN_CERTS}/unreadable.acme.com.crt`,
+          certificateFor("unreadable.acme.com"),
+        ],
+        [
+          `${CUSTOM_DOMAIN_CERTS}/unreadable.acme.com.key`,
+          keyFor("unreadable.acme.com"),
+        ],
+      ]),
+    );
+    noUploadedCertificates();
+
+    await runAcmeWriteCertificates();
+
+    // The domain is still served with the last key written for it ...
+    expect(disk.get(`${CUSTOM_DOMAIN_CERTS}/unreadable.acme.com.key`)).toBe(
+      keyFor("unreadable.acme.com"),
+    );
+    expect(LocalFile.write).not.toHaveBeenCalledWith(
+      `${CUSTOM_DOMAIN_CERTS}/unreadable.acme.com.key`,
+      expect.anything(),
+    );
+    expect(LocalFile.write).not.toHaveBeenCalledWith(
+      `${CUSTOM_DOMAIN_CERTS}/unreadable.acme.com.crt`,
+      expect.anything(),
+    );
+
+    // ... the others are written as ever, and the log says which, not what.
+    expect(disk.get(`${CUSTOM_DOMAIN_CERTS}/status.acme.com.key`)).toBe(
+      keyFor("status.acme.com"),
+    );
+    expect(logged()).toContain("unreadable.acme.com");
+    expect(logged()).toContain("ENCRYPTION_SECRET");
+    expect(logged()).not.toContain("private-key-body");
   });
 
   test("an order that fails is refused without the key, and logs none", async () => {
