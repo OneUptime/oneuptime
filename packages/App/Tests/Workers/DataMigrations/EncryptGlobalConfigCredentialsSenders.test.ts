@@ -112,14 +112,29 @@ jest.mock("Common/Server/Utils/Express", () => {
 
 jest.mock("Common/Server/Utils/DataSource/EgressGuard", () => {
   const actual: {
-    default: { createPinnedLookup: (...args: Array<unknown>) => unknown };
-  } = jest.requireActual("Common/Server/Utils/DataSource/EgressGuard");
+    default: {
+      createPinnedLookup: (...args: Array<unknown>) => unknown;
+      createPinnedAgents: (...args: Array<unknown>) => unknown;
+    };
+  } = jest.requireActual("Common/Server/Utils/DataSource/EgressGuard") as {
+    default: {
+      createPinnedLookup: (...args: Array<unknown>) => unknown;
+      createPinnedAgents: (...args: Array<unknown>) => unknown;
+    };
+  };
 
   return {
     __esModule: true,
     default: {
       assertHostnameAllowed: jest.fn(),
-      // The gateway's requests dial the address their check approved (SafeWebhookRequest).
+      /*
+       * The gateway's requests dial the address their check approved, on the
+       * egress guard's pinned agents (SafeWebhookRequest). Bound: they build
+       * their lookup from the guard's other methods.
+       */
+      createPinnedAgents: actual.default.createPinnedAgents.bind(
+        actual.default,
+      ),
       createPinnedLookup: actual.default.createPinnedLookup,
     },
   };
