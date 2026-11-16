@@ -66,7 +66,7 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 
 全局 Runner 运行许多项目的步骤，因此每个步骤都与其他所有步骤相互隔离：
 
-- 每个步骤都在自己的 `isolated-vm` 沙箱中运行，该沙箱为这个步骤创建，并在步骤结束后丢弃：没有文件、没有进程、没有环境变量，也不会从一个步骤保留任何东西到下一个步骤。沙箱本身运行在只为该步骤启动的独立进程中，并以独立的用户身份运行：该进程不持有 Runner 的密钥、设置或文件，并随步骤一同结束。
+- 每个步骤都在自己的 `isolated-vm` 沙箱中运行，该沙箱为这个步骤创建，并在步骤结束后丢弃：没有文件、没有进程、没有环境变量，也不会从一个步骤保留任何东西到下一个步骤。沙箱本身运行在只为该步骤启动的独立进程中，并以独立的用户身份运行：该进程不持有 Runner 的密钥、设置或文件，并随步骤一同结束。 此外，步骤的进程没有自己的网络——它无法打开任何套接字——所以即使代码逃出了沙箱，它自己也触达不到任何东西，既不是你的集群，也不是你的 Docker Compose 网络、Kubernetes API 或云元数据端点；由 Runner 经过同样的检查代它发出步骤的 HTTP 请求。这在 Docker Compose 和 Kubernetes 上都成立，包括 OpenShift 的受限安全上下文，并且无需任何额外的 capability。
 - 它的 HTTP 请求只能到达公共互联网地址，绝不会到达私有地址、环回地址、链路本地地址或云元数据端点，因此全局 Runner 永远无法访问你的网络。
 - 只有当机密变量的 **全局 Runner 可以使用** 开关开启时，它才会收到该变量，而且只用于该变量所属项目的步骤。
 - 一个项目在全局 Runner 上同时最多运行三个步骤，因此没有项目能独占它们。
@@ -75,7 +75,7 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 
 早于 14.0.94 的全局 Runner，或以 `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false` 启动的全局 Runner，不接受代码修复，OneUptime 也不会把它计入。此时，在 **全局 Runner** 上工作的存储库会提示没有在线的全局 Runner 接受 AI 代码修复，而 Admin Dashboard 的 **全局 Runner** 页面会在该 Runner 的状态下方说明原因。
 
-主管理员可以让某个全局 Runner 完全不参与代码修复：Admin Dashboard 的 **全局 Runner** 页面上 **更多字段** 中的开关 **执行 AI 代码修复** 默认是打开的。关闭后，OneUptime 不再交给该 Runner 任何代码修复，也不交给它任何代码仓库的令牌，因此它只运行 JavaScript 步骤。在 OneUptime Cloud 上，全局 Runner 只在 GitHub 代码仓库中工作：GitLab、Forgejo、Gitea 或 Git 代码仓库要用其连接自己的令牌访问，因此它的代码修复在你自己的 Runner 上运行。
+主管理员可以让某个全局 Runner 完全不参与代码修复：Admin Dashboard 的 **全局 Runner** 页面上 **更多字段** 中的开关 **执行 AI 代码修复** 默认是打开的。关闭后，OneUptime 不再交给该 Runner 任何代码修复，也不交给它任何代码仓库的令牌，因此它只运行 JavaScript 步骤。在 OneUptime Cloud 上，全局 Runner 只在 GitHub 代码仓库中工作：GitLab、Forgejo、Gitea 或 Git 代码仓库要用其连接自己的令牌访问，因此它的代码修复在你自己的 Runner 上运行。 为多个租户提供服务、且其代码必须保持隔离的自托管安装，可以用 `GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY=true` 启用同样的规则；GitHub 代码仓库，以及单租户安装上的每个代码仓库，都保持不变。
 
 对于需要访问你的网络的步骤，或者要让步骤留在你掌控的主机上，请为它选择你自己的 Runner。要让每个步骤都在你自己的 Runner 上运行，请在 **运行手册 → Runbook 代理** 底部关闭 **使用全局 Runner** 。之后，未选择 Runner 的 JavaScript 步骤会在项目默认 Runner 上运行；如果没有设置默认 Runner，它会失败并说明原因，直到它选择你的某个 Runner；选择了你的某个 Runner 的步骤无论如何都会保留它。在代码的设置中没有选择 Runner 的代码存储库同样在项目默认 Runner 上工作，没有设置默认 Runner 时在全局 Runner 上工作，而在关闭该开关时需要你的某个 Runner；参见 [代码](/docs/ai/ai-agent#选择存储库的-runner)。
 
