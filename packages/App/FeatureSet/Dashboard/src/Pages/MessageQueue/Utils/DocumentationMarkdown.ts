@@ -2183,6 +2183,29 @@ export function getMessageQueueGuideSystems(): Array<MessagingSystemDescriptor> 
 }
 
 /*
+ * Each catalog system's name as a locale key, so the picker's pill reads
+ * as the reader's language writes it (#8341): every one writes these names
+ * as English does (i18n/SameAsEnglish.json). A system the catalog adds
+ * later shows its display name until it has a key here.
+ */
+const MESSAGE_QUEUE_PICKER_LABELS: Readonly<Record<string, string>> = {
+  kafka: translationKey("Apache Kafka"),
+  rabbitmq: translationKey("RabbitMQ"),
+  activemq: translationKey("Apache ActiveMQ"),
+  jms: translationKey("JMS"),
+  aws_sqs: translationKey("Amazon SQS"),
+  "aws.sns": translationKey("Amazon SNS"),
+  gcp_pubsub: translationKey("Google Cloud Pub/Sub"),
+  servicebus: translationKey("Azure Service Bus"),
+  eventhubs: translationKey("Azure Event Hubs"),
+  eventgrid: translationKey("Azure Event Grid"),
+  pulsar: translationKey("Apache Pulsar"),
+  rocketmq: translationKey("Apache RocketMQ"),
+  nats: translationKey("NATS"),
+  bullmq: translationKey("BullMQ"),
+};
+
+/*
  * The product guide's picker, one pill per catalog system, keyed by the
  * canonical `messaging.system`. The options come from the catalog, so the
  * picker can only offer a system OneUptime knows, and a system added to the
@@ -2194,7 +2217,9 @@ export const MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS: ReadonlyArray<SetupGuideOption> 
     (descriptor: MessagingSystemDescriptor): SetupGuideOption => {
       return {
         key: descriptor.system,
-        label: descriptor.displayName,
+        label:
+          MESSAGE_QUEUE_PICKER_LABELS[descriptor.system] ||
+          descriptor.displayName,
         description: `messaging.system: ${descriptor.system}`,
       };
     },

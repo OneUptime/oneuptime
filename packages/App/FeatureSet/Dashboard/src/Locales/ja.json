@@ -55895,5 +55895,18 @@
   "What a queue's page charts": "What a queue's page charts",
   "What this queue's page charts": "What this queue's page charts",
   "A refused key, or metrics that arrive {{earliest}} to {{latest}} minutes late.": "A refused key, or metrics that arrive {{earliest}} to {{latest}} minutes late.",
-  "A queue my applications use was not created": "A queue my applications use was not created"
+  "A queue my applications use was not created": "A queue my applications use was not created",
+  "Amazon SNS": "Amazon SNS",
+  "Amazon SQS": "Amazon SQS",
+  "Apache ActiveMQ": "Apache ActiveMQ",
+  "Apache Kafka": "Apache Kafka",
+  "Apache Pulsar": "Apache Pulsar",
+  "Apache RocketMQ": "Apache RocketMQ",
+  "Azure Event Grid": "Azure Event Grid",
+  "Azure Event Hubs": "Azure Event Hubs",
+  "Azure Service Bus": "Azure Service Bus",
+  "BullMQ": "BullMQ",
+  "Google Cloud Pub/Sub": "Google Cloud Pub/Sub",
+  "JMS": "JMS",
+  "NATS": "NATS"
 }
