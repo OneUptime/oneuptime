@@ -63,7 +63,9 @@ import {
   getProfileHeadlineFacts,
   getProfileKindChoices,
   getProfileOrigin,
+  getProfileServiceHotSpot,
   getProfilesComparison,
+  ProfileServiceHotSpot,
   getProfilesWindow,
   resolveProfileKind,
 } from "../../Utils/ProfilesView";
@@ -89,7 +91,7 @@ import ProfileScopeBar, {
   ProfileDeployOption,
   ProfileScopeService,
 } from "./ProfileScopeBar";
-import ProfileServicesCard from "./ProfileServicesCard";
+import ProfileServicesCard, { isKernelThread } from "./ProfileServicesCard";
 import { formatAgo, formatWindow } from "./ProfileTimeText";
 import {
   ProfileComparisonAnswer,
@@ -159,6 +161,9 @@ const EVER_DAYS: number = 30;
 
 // How many functions are read for the list and the headline.
 const FUNCTION_READ_LIMIT: number = 200;
+
+// How many of the busiest services the services card says a hot spot for.
+const SERVICE_HOT_SPOTS: number = 6;
 
 // How many of the shown functions' files are looked up in repositories.
 const SOURCE_LINK_FRAMES: number = 25;
@@ -437,6 +442,96 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
       },
     );
   }, [entities.data, names, serviceId]);
+
+  /*
+   * 6b. With several services and none picked, the services come first,
+   * each with where its own time goes: one read of its busiest functions
+   * per service, for the busiest few. A read that fails leaves that line
+   * out - the service is still there to pick.
+   */
+  /*
+   * Read once the services are named: a kernel thread is known by its name,
+   * and reading before would read it, then everything again.
+   */
+  const hotSpotServiceIds: Array<string> = useMemo(() => {
+    return scopeServices
+      .filter((service: ProfileScopeService): boolean => {
+        return (
+          service.sampleCount > 0 &&
+          Boolean(names[service.id]) &&
+          !isKernelThread(service)
+        );
+      })
+      .slice(0, SERVICE_HOT_SPOTS)
+      .map((service: ProfileScopeService): string => {
+        return service.id;
+      });
+  }, [scopeServices, names]);
+
+  const isServicesFirst: boolean =
+    !isLocked &&
+    !serviceId &&
+    scopeServices.filter((service: ProfileScopeService): boolean => {
+      return service.sampleCount > 0 && !isKernelThread(service);
+    }).length >= 2;
+
+  const hotSpots: ProfileRequestState<
+    Record<string, ProfileServiceHotSpot | null>
+  > = useProfileRequest<Record<string, ProfileServiceHotSpot | null>>(
+    isServicesFirst && hasData
+      ? `hot|${hotSpotServiceIds.join(",")}|${windowKey}|${kindKey}`
+      : null,
+    async (): Promise<Record<string, ProfileServiceHotSpot | null>> => {
+      const entries: Array<[string, ProfileServiceHotSpot | null]> =
+        await Promise.all(
+          hotSpotServiceIds.map(
+            async (
+              id: string,
+            ): Promise<[string, ProfileServiceHotSpot | null]> => {
+              try {
+                const answer: ProfileFunctionListAnswer =
+                  await fetchFunctionList({
+                    window: shownWindow,
+                    serviceIds: [id],
+                    profileTypes: kind.queryTypes,
+                    sortBy: "selfValue",
+                    limit: 1,
+                  });
+
+                return [
+                  id,
+                  getProfileServiceHotSpot(
+                    answer.functions,
+                    answer.windowTotal,
+                  ),
+                ];
+              } catch {
+                return [id, null];
+              }
+            },
+          ),
+        );
+
+      return Object.fromEntries(entries);
+    },
+  );
+
+  const servicesCard: ReactElement = (
+    <ProfileServicesCard
+      isLoading={entities.isLoading}
+      error={entities.error}
+      onRetry={entities.reload}
+      services={scopeServices}
+      hotSpots={hotSpots.data || undefined}
+      onSelect={(id: string) => {
+        updateState({
+          serviceId: id,
+          functionName: undefined,
+          fileName: undefined,
+        });
+      }}
+    />
+  );
 
   // 7. One service's recent deploys and changes, to compare across.
   const changes: ProfileRequestState<Array<ProfileRecentChange>> =
@@ -840,6 +935,12 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
+      {/*
+       * Several services, none picked: each one's own answer comes first,
+       * the graph of all of them merged after it.
+       */}
+      {isServicesFirst ? <div className="mb-6">{servicesCard}</div> : <></>}
+
       {readError ? (
         <></>
       ) : (
@@ -890,23 +991,7 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
           />
         </Card>
 
-        {!isLocked && !serviceId ? (
-          <ProfileServicesCard
-            isLoading={entities.isLoading}
-            error={entities.error}
-            onRetry={entities.reload}
-            services={scopeServices}
-            onSelect={(id: string) => {
-              updateState({
-                serviceId: id,
-                functionName: undefined,
-                fileName: undefined,
-              });
-            }}
-          />
-        ) : (
-          <></>
-        )}
+        {!isLocked && !serviceId && !isServicesFirst ? servicesCard : <></>}
 
         {!isLocked ? (
           <div className="flex justify-end">
