@@ -1,5 +1,7 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import Select from "Common/Server/Types/Database/Select";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -14,14 +16,9 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ServiceLevelObjectiveOwnerTeamService from "Common/Server/Services/ServiceLevelObjectiveOwnerTeamService";
 import ServiceLevelObjectiveOwnerUserService from "Common/Server/Services/ServiceLevelObjectiveOwnerUserService";
 import ServiceLevelObjectiveService from "Common/Server/Services/ServiceLevelObjectiveService";
-import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
-import logger from "Common/Server/Utils/Logger";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
-import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
-import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
-import User from "Common/Models/DatabaseModels/User";
 
 /**
  * Notifies users who were just added as owners of a Service Level Objective —
@@ -39,16 +36,25 @@ import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
-import {
-  OwnerRowAdded,
-  ownersToTell,
-  planOwnersAdded,
-} from "../../Utils/OwnersAdded";
+import { ownersToTell, tellOwnersAdded } from "../../Utils/OwnersAdded";
+
+// What the slo the owners were added to is read with.
+const SLO_SELECT: Select<ServiceLevelObjective> = {
+  _id: true,
+  name: true,
+  projectId: true,
+  project: {
+    name: true,
+  },
+  targetPercentage: true,
+  windowType: true,
+  windowDays: true,
+};
 
 RunCron(
   "SloOwners:SendOwnerAddedNotification",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -72,162 +78,31 @@ RunCron(
       },
     });
 
-    const sloOwnerTeams: Array<ServiceLevelObjectiveOwnerTeam> =
-      await ServiceLevelObjectiveOwnerTeamService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: {
-          _id: true,
-          serviceLevelObjectiveId: true,
-          teamId: true,
-        },
-      });
-
-    const sloOwnersMap: Dictionary<Array<OwnerRowAdded>> = {};
-
-    for (const sloOwnerTeam of sloOwnerTeams) {
-      const serviceLevelObjectiveId: ObjectID =
-        sloOwnerTeam.serviceLevelObjectiveId!;
-      const teamId: ObjectID = sloOwnerTeam.teamId!;
-
-      const users: Array<User> = await TeamMemberService.getUsersInTeams([
-        teamId,
-      ]);
-
-      if (sloOwnersMap[serviceLevelObjectiveId.toString()] === undefined) {
-        sloOwnersMap[serviceLevelObjectiveId.toString()] = [];
-      }
-
-      (
-        sloOwnersMap[serviceLevelObjectiveId.toString()] as Array<OwnerRowAdded>
-      ).push({
-        ownerRowId: sloOwnerTeam.id!,
-        isTeam: true,
-        users: users,
-      });
-    }
-
-    const sloOwnerUsers: Array<ServiceLevelObjectiveOwnerUser> =
-      await ServiceLevelObjectiveOwnerUserService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: {
-          _id: true,
-          serviceLevelObjectiveId: true,
-          userId: true,
-          user: {
-            email: true,
-            name: true,
-          },
-        },
-      });
-
-    for (const sloOwnerUser of sloOwnerUsers) {
-      const serviceLevelObjectiveId: ObjectID =
-        sloOwnerUser.serviceLevelObjectiveId!;
-      const user: User = sloOwnerUser.user!;
-
-      if (sloOwnersMap[serviceLevelObjectiveId.toString()] === undefined) {
-        sloOwnersMap[serviceLevelObjectiveId.toString()] = [];
-      }
-
-      (
-        sloOwnersMap[serviceLevelObjectiveId.toString()] as Array<OwnerRowAdded>
-      ).push({
-        ownerRowId: sloOwnerUser.id!,
-        isTeam: false,
-        users: [user],
-      });
-    }
-
-    // send email to all of these users.
-
-    for (const serviceLevelObjectiveId in sloOwnersMap) {
-      const ownerRows: Array<OwnerRowAdded> =
-        sloOwnersMap[serviceLevelObjectiveId] || [];
-
-      if (ownerRows.length === 0) {
-        continue;
-      }
-
-      const slo: ServiceLevelObjective | null = await readServiceLevelObjective(
-        new ObjectID(serviceLevelObjectiveId),
-      );
-
-      /*
-       * Whom each owner row is to tell, written before the rows are taken:
-       * a worker stopped from here on leaves them to be told by a later
-       * run, and one stopped before the take leaves the rows to be read
-       * again.
-       */
-      const deliveries: Array<OwnerNotificationDelivery> = slo
-        ? await planOwnersAdded({
-            kind: OwnerNotificationKind.ServiceLevelObjectiveOwnerAdded,
-            projectId: slo.projectId!,
-            resourceId: slo.id!,
-            ownerRows: ownerRows,
-          })
-        : [];
-
-      /*
-       * Marked as notified before the owners are told, so an owner row
-       * whose notification keeps failing is never read again on every run -
-       * one whose SLO is gone too.
-       */
-      for (const ownerRow of ownerRows) {
-        if (ownerRow.isTeam) {
-          await ServiceLevelObjectiveOwnerTeamService.updateOneById({
-            id: ownerRow.ownerRowId,
-            data: {
-              isOwnerNotified: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        } else {
-          await ServiceLevelObjectiveOwnerUserService.updateOneById({
-            id: ownerRow.ownerRowId,
-            data: {
-              isOwnerNotified: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-      }
-
-      if (!slo) {
-        continue;
-      }
-
-      try {
+    /*
+     * Every record's new owner rows, a page at a time, oldest first: its
+     * team rows and user rows told of together, each person once, each row
+     * taken by one run alone; the run stops between records at its deadline
+     * and the next carries on (OwnersAdded, issue #8862).
+     */
+    await tellOwnersAdded<ServiceLevelObjective>({
+      jobName: "SloOwners:SendOwnerAddedNotification",
+      kind: OwnerNotificationKind.ServiceLevelObjectiveOwnerAdded,
+      recordIdColumn: "serviceLevelObjectiveId",
+      teamService: ServiceLevelObjectiveOwnerTeamService,
+      userService: ServiceLevelObjectiveOwnerUserService,
+      recordService: ServiceLevelObjectiveService,
+      recordSelect: SLO_SELECT,
+      deadline: deadline,
+      tell: async (
+        record: ServiceLevelObjective,
+        deliveries: Array<OwnerNotificationDelivery>,
+      ): Promise<void> => {
         await notifyOwnersAdded({
-          slo: slo,
+          slo: record,
           deliveries: deliveries,
         });
-      } catch (e) {
-        logger.error("Error in sending SLO owner added notification", {
-          projectId: slo.projectId?.toString(),
-          serviceLevelObjectiveId: slo.id?.toString(),
-        });
-        logger.error(e, {
-          projectId: slo.projectId?.toString(),
-          serviceLevelObjectiveId: slo.id?.toString(),
-        });
-      }
-    }
+      },
+    });
   },
 );
 
@@ -239,17 +114,7 @@ async function readServiceLevelObjective(
     props: {
       isRoot: true,
     },
-    select: {
-      _id: true,
-      name: true,
-      projectId: true,
-      project: {
-        name: true,
-      },
-      targetPercentage: true,
-      windowType: true,
-      windowDays: true,
-    },
+    select: SLO_SELECT,
   });
 }
 

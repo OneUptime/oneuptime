@@ -226,6 +226,8 @@ function mcpFixRow(
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.McpToolCalls,
     mcpToolCallPlan: ExternalMcpToolCallPlanUtil.toJSON({ calls }),
     verificationWindowMinutes: 15,
@@ -361,7 +363,11 @@ describe("approving and dismissing a fix through MCP servers", () => {
   });
 
   test("a click that lost to someone else's makes nothing", async () => {
-    casSpy.mockResolvedValue(0 as never);
+    // Someone else's click claimed the fix first, as its write would leave it.
+    casSpy.mockImplementation(async (): Promise<number> => {
+      row["status"] = AutoRemediationSuggestionStatus.Approved;
+      return 0;
+    });
 
     const result: RouteCallResult = await callRoute(APPROVE_ROUTE);
 

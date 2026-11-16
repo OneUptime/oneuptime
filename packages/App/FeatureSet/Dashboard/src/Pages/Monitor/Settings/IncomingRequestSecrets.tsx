@@ -1,13 +1,16 @@
+import { getIncomingRequestSecretAccessFormFields } from "../../../Components/IncomingRequestSecret/IncomingRequestSecretAccessFormFields";
 import IncomingRequestSecretsCopy from "../../../Components/IncomingRequestSecret/IncomingRequestSecretsCopy";
 import RequireIncomingRequestSecretCard from "../../../Components/IncomingRequestSecret/RequireIncomingRequestSecretCard";
 import RequestsWithoutSecretTable, {
   getCheckingSince,
 } from "../../../Components/IncomingRequestSecret/RequestsWithoutSecretTable";
+import MonitorSecretAccessElement from "../../../Components/MonitorSecret/MonitorSecretAccessElement";
 import PageComponentProps from "../../PageComponentProps";
 import IncomingRequestSecret from "Common/Models/DatabaseModels/IncomingRequestSecret";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
+  INCOMING_REQUEST_SECRET_DEFAULT_ACCESS,
   INCOMING_REQUEST_SECRET_MAX_LENGTH,
   INCOMING_REQUEST_SECRET_MIN_LENGTH,
 } from "Common/Types/Monitor/IncomingMonitor/IncomingRequestSecret";
@@ -21,6 +24,7 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import React, {
   Fragment,
   FunctionComponent,
@@ -44,7 +48,13 @@ import React, {
  * Between the two, the Incoming Request monitors that got a request without a
  * valid secret in the last day (RequestsWithoutSecretTable, issue #8498):
  * before the switch is turned on, the senders to fix first; after, the
- * requests it refuses.
+ * requests it refuses. Turning the switch on says how many those are
+ * (issue #8564), counted again each time the secrets' list loads.
+ *
+ * A secret covers every Incoming Request monitor of the project unless it is
+ * limited to some, or to the ones with some labels (issue #8501): for a
+ * project shared by tenants, each sending its own secret. That question
+ * starts on All monitors and folds under More fields with the value.
  */
 
 const MonitorIncomingRequestSecrets: FunctionComponent<
@@ -55,12 +65,24 @@ const MonitorIncomingRequestSecrets: FunctionComponent<
   const [checkingSince, setCheckingSince] = useState<Date | null | undefined>(
     undefined,
   );
+  // How many times the secrets' list has loaded: the switch counts again then.
+  const [secretsLoadCount, setSecretsLoadCount] = useState<number>(0);
   const moreFields: FormFieldCollapsibleSection<IncomingRequestSecret> =
     getAdvancedFormSection<IncomingRequestSecret>();
 
+  const { translateString } = useTranslateValue();
+
+  const translate: (text: string) => string = (text: string): string => {
+    return translateString(text) || text;
+  };
+
   return (
     <Fragment>
-      <RequireIncomingRequestSecretCard projectId={projectId} />
+      <RequireIncomingRequestSecretCard
+        projectId={projectId}
+        checkingSince={checkingSince}
+        secretsLoadCount={secretsLoadCount}
+      />
 
       <RequestsWithoutSecretTable
         projectId={projectId}
@@ -100,6 +122,9 @@ const MonitorIncomingRequestSecrets: FunctionComponent<
           totalCount: number,
         ): void => {
           setCheckingSince(getCheckingSince(secrets, totalCount));
+          setSecretsLoadCount((count: number): number => {
+            return count + 1;
+          });
         }}
         formFields={[
           {
@@ -135,6 +160,10 @@ const MonitorIncomingRequestSecrets: FunctionComponent<
             },
             collapsibleSection: moreFields,
           },
+          ...getIncomingRequestSecretAccessFormFields({
+            translate,
+            collapsibleSection: moreFields,
+          }),
         ]}
         showRefreshButton={true}
         filters={[]}
@@ -158,6 +187,32 @@ const MonitorIncomingRequestSecrets: FunctionComponent<
               }
 
               return <HiddenText text={item.secretValue} isCopyable={true} />;
+            },
+          },
+          {
+            field: {
+              monitorAccess: true,
+              monitors: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              labels: {
+                name: true,
+                color: true,
+                _id: true,
+              },
+            },
+            // Which monitors accept it: all, or the ones it is limited to.
+            title: "Monitors",
+            type: FieldType.Element,
+            getElement: (item: IncomingRequestSecret): ReactElement => {
+              return (
+                <MonitorSecretAccessElement
+                  secret={item}
+                  defaultAccess={INCOMING_REQUEST_SECRET_DEFAULT_ACCESS}
+                />
+              );
             },
           },
           {

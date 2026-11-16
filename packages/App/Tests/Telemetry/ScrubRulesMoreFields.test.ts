@@ -267,20 +267,30 @@ describe("a log body sent as a map or a list: a Sensitive Attribute Keys rule re
     expect(
       scrubbedBody('{ "level": "info", "msg": "login" }', [SENSITIVE_KEYS]),
     ).toBe('{ "level": "info", "msg": "login" }');
-    // ...and written as JSON writes it when a secret is hidden.
+    // ...and when a secret is hidden: only the secret changes (#8993).
     expect(
       scrubbedBody('{ "msg": "login", "password": "hunter2" }', [
         SENSITIVE_KEYS,
       ]),
-    ).toBe('{"msg":"login","password":"[REDACTED]"}');
+    ).toBe('{ "msg": "login", "password": "[REDACTED]" }');
   });
 
-  test("a key written with an escape is read as the key it is", () => {
+  test("a key written with an escape is read as the key it is, and stays written so", () => {
     expect(
       scrubbedBody('{"pass\\u0077ord":"hunter2","note":"a\\nb"}', [
         SENSITIVE_KEYS,
       ]),
-    ).toBe('{"password":"[REDACTED]","note":"a\\nb"}');
+    ).toBe('{"pass\\u0077ord":"[REDACTED]","note":"a\\nb"}');
+  });
+
+  test("the numbers, spaces and keys of a body it hides a secret in stay as they were written (#8993)", () => {
+    const body: string =
+      '{\n  "user_id": 12345678901234567890,\n  "amount": 1.50,\n  "10": "ten",\n  "2": "two",\n  "password": "a",\n  "password": "b"\n}';
+
+    // Parsed and written again, the id lost digits, 1.50 became 1.5, "2" moved and one password was dropped.
+    expect(scrubbedBody(body, [SENSITIVE_KEYS])).toBe(
+      body.split('"a"').join('"[REDACTED]"').split('"b"').join('"[REDACTED]"'),
+    );
   });
 
   test("a rule saved with a body-only scope still reads the body's keys", () => {

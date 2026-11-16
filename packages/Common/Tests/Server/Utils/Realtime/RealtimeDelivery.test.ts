@@ -8,6 +8,10 @@ import {
   RealtimeReader,
   readableByEither,
 } from "../../../../Server/Utils/Realtime/RealtimeReadAccess";
+import RealtimeMetrics, {
+  BeforeWriteDecisionOutcome,
+} from "../../../../Server/Utils/Realtime/RealtimeMetrics";
+import AppMetrics from "../../../../Server/Utils/Telemetry/AppMetrics";
 import logger from "../../../../Server/Utils/Logger";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -1405,6 +1409,188 @@ describe("Realtime: a record's live update reaches only people who may read it",
 
       expect(owner.received).toEqual([]);
       expect(server.sendsToEveryone).toBe(0);
+    });
+  });
+
+  /*
+   * A write waits for the decision of who could read its records before it
+   * (#8964): how long, and how the decision ended, is measured, by table and
+   * kind of write (RealtimeMetrics).
+   */
+  describe("what a write waited for is measured", () => {
+    let measured: jest.SpyInstance;
+
+    beforeEach(() => {
+      measured = jest.spyOn(RealtimeMetrics, "recordBeforeWriteDecision");
+    });
+
+    function measurements(): Array<{
+      tableName: string;
+      eventType: ModelEventType;
+      outcome: BeforeWriteDecisionOutcome;
+      durationInMs: number;
+    }> {
+      return measured.mock.calls.map((call: Array<unknown>) => {
+        return call[0] as {
+          tableName: string;
+          eventType: ModelEventType;
+          outcome: BeforeWriteDecisionOutcome;
+          durationInMs: number;
+        };
+      });
+    }
+
+    test("someone listening could read the records: measured so, for the table and the kind of write", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      access.everyRecordReaders.add(OWNER);
+      server.addSocket({
+        rooms: [roomOf("Incident", ModelEventType.Delete)],
+        userId: OWNER,
+      });
+
+      await Realtime.snapshotReadAccess({
+        tenantId: TENANT_ID,
+        modelType: Incident,
+        modelIds: [new ObjectID(RECORD_A)],
+        access: access,
+      });
+
+      expect(measurements()).toHaveLength(1);
+      expect(measurements()[0]).toEqual({
+        tableName: "Incident",
+        eventType: ModelEventType.Delete,
+        outcome: BeforeWriteDecisionOutcome.SomeoneCouldRead,
+        durationInMs: expect.any(Number),
+      });
+      expect(measurements()[0]!.durationInMs).toBeGreaterThanOrEqual(0);
+    });
+
+    test("nobody listening could read them: measured so, as an update's", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      access.readableByUser.set(LABELS_READER, new Set());
+      server.addSocket({
+        rooms: [roomOf("Incident", ModelEventType.Update)],
+        userId: LABELS_READER,
+      });
+
+      await Realtime.snapshotReadAccess({
+        tenantId: TENANT_ID,
+        modelType: Incident,
+        modelIds: [new ObjectID(RECORD_A)],
+        access: access,
+        eventType: ModelEventType.Update,
+      });
+
+      expect(
+        measurements().map((measurement: { outcome: string }) => {
+          return measurement.outcome;
+        }),
+      ).toEqual([BeforeWriteDecisionOutcome.NobodyCouldRead]);
+      expect(measurements()[0]!.eventType).toBe(ModelEventType.Update);
+    });
+
+    test("not decided in time: measured as timed out, at about the time the write waited", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      let answer: (readsEveryRecord: boolean) => void = (): void => {};
+      access.readsEveryRecord = (): Promise<boolean> => {
+        return new Promise<boolean>(
+          (resolve: (readsEveryRecord: boolean) => void): void => {
+            answer = resolve;
+          },
+        );
+      };
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+
+      const timeouts: { BEFORE_WRITE_DECISION_TIMEOUT_IN_MS: number } =
+        Realtime as unknown as { BEFORE_WRITE_DECISION_TIMEOUT_IN_MS: number };
+      const timeout: number = timeouts.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS;
+      timeouts.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS = 20;
+
+      try {
+        server.addSocket({
+          rooms: [roomOf("Incident", ModelEventType.Delete)],
+          userId: OWNER,
+        });
+
+        await Realtime.snapshotReadAccess({
+          tenantId: TENANT_ID,
+          modelType: Incident,
+          modelIds: [new ObjectID(RECORD_A)],
+          access: access,
+        });
+
+        expect(measurements()).toHaveLength(1);
+        expect(measurements()[0]!.outcome).toBe(
+          BeforeWriteDecisionOutcome.TimedOut,
+        );
+        expect(measurements()[0]!.durationInMs).toBeGreaterThanOrEqual(15);
+      } finally {
+        timeouts.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS = timeout;
+        answer(false);
+      }
+    });
+
+    test("not decided at all: measured as failed", async () => {
+      jest
+        .spyOn(
+          Realtime as unknown as {
+            fetchListeningSockets: () => Promise<unknown>;
+          },
+          "fetchListeningSockets",
+        )
+        .mockRejectedValue(new Error("The cluster cannot be reached."));
+      jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+      await expect(
+        Realtime.snapshotReadAccess({
+          tenantId: TENANT_ID,
+          modelType: Incident,
+          modelIds: [new ObjectID(RECORD_A)],
+          access: new FakeReadAccess(),
+        }),
+      ).resolves.toBe(NO_READER_ACCESS);
+
+      expect(
+        measurements().map((measurement: { outcome: string }) => {
+          return measurement.outcome;
+        }),
+      ).toEqual([BeforeWriteDecisionOutcome.Failed]);
+    });
+
+    test("no records, nothing decided: nothing measured", async () => {
+      await Realtime.snapshotReadAccess({
+        tenantId: TENANT_ID,
+        modelType: Incident,
+        modelIds: [],
+        access: new FakeReadAccess(),
+      });
+
+      expect(measured).not.toHaveBeenCalled();
+    });
+
+    test("a measurement that cannot be taken never fails the decision", async () => {
+      measured.mockRestore();
+      jest
+        .spyOn(AppMetrics, "getRealtimeBeforeWriteDecisionDuration")
+        .mockImplementation((): never => {
+          throw new Error("No meter.");
+        });
+
+      const access: FakeReadAccess = new FakeReadAccess();
+      access.everyRecordReaders.add(OWNER);
+      server.addSocket({
+        rooms: [roomOf("Incident", ModelEventType.Delete)],
+        userId: OWNER,
+      });
+
+      await expect(
+        Realtime.snapshotReadAccess({
+          tenantId: TENANT_ID,
+          modelType: Incident,
+          modelIds: [new ObjectID(RECORD_A)],
+          access: access,
+        }),
+      ).resolves.not.toBe(NO_READER_ACCESS);
     });
   });
 });

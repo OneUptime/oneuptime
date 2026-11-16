@@ -175,6 +175,54 @@ export function getOnCallAcknowledgementTimeoutDueAt(data: {
 }
 
 /*
+ * WHEN A PAGE AGAIN WAS DUE, for its time to send (notification.time_to_send
+ * with notification.page.start = page_started, OnCallPageTiming): when its
+ * clock ran out by the timeout in force (getOnCallAcknowledgementTimeoutDueAt)
+ * - or, when its policy was changed after that moment, when it was changed.
+ *
+ * A changed number of minutes applies to a clock already running. Cut from
+ * 30 minutes to 10 twenty minutes in, a clock runs out ten minutes before
+ * the change, and the page again goes out at the worker's next tick: timed
+ * from the moment it ran out, it read as ten minutes the worker took - all
+ * of them before the new timeout existed (issue #6847). It was due from the
+ * change, so it is timed from then, and only the minutes the worker took
+ * after it show. A timeout turned off and on again between two ticks is
+ * timed from when it came back on, the same way.
+ *
+ * The policy keeps no moment for its timeout alone, so the change is read
+ * as when the policy was last changed (`policyChangedAt`, its updatedAt):
+ * never before its timeout's own change. A policy changed in some other way
+ * after the moment, before a late worker got to it, is timed from that
+ * change: the worker's lateness then reads short, never long.
+ *
+ * Only where its timing starts moves: whether and when the policy pages
+ * again is isOnCallAcknowledgementTimeoutDue's to decide, as it always was.
+ * A moment that is not one is left out, and a change in the future - two
+ * servers' clocks apart - is cut to now where the page starts
+ * (OnCallPageTiming.getDueMoment).
+ */
+export function getOnCallPageAgainDueAt(data: {
+  startedAt: Date;
+  minutes: number;
+  policyChangedAt?: Date | string | null | undefined;
+}): Date {
+  const ranOutAt: Date = getOnCallAcknowledgementTimeoutDueAt({
+    startedAt: data.startedAt,
+    minutes: data.minutes,
+  });
+
+  const changedAt: number = data.policyChangedAt
+    ? new Date(data.policyChangedAt).getTime()
+    : NaN;
+
+  if (isNaN(changedAt) || changedAt <= ranOutAt.getTime()) {
+    return ranOutAt;
+  }
+
+  return new Date(changedAt);
+}
+
+/*
  * Whether a clock that started at `startedAt` has run out at `now`: to the
  * millisecond, never by whole minutes - a worker that ticks once a minute
  * pages again at its first tick at or after the moment.

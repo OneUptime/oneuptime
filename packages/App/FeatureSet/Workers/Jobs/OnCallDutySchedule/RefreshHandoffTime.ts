@@ -77,6 +77,12 @@ RunCron(
      * roster) even once their start date arrives. Re-refreshing them is cheap:
      * schedules with no layers return early, and once a roster is established
      * currentUserIdOnRoster becomes non-null and they drop out of this set.
+     *
+     * Not while a change made to its layers through the API waits to be
+     * told (rosterRefreshDueAt): a schedule Terraform is building has no
+     * roster yet, and refreshing it half-built would tell its people who is
+     * on call before the change is done. OnCallDutySchedule:TellLayerChanges
+     * works it out once the change is quiet (#7813).
      */
     const schedulesWithNoRoster: Array<OnCallDutyPolicySchedule> =
       await OnCallDutyPolicyScheduleService.findAllBy({
@@ -84,6 +90,7 @@ RunCron(
           currentUserIdOnRoster: QueryHelper.isNull(),
           rosterHandoffAt: QueryHelper.isNull(),
           rosterNextStartAt: QueryHelper.isNull(),
+          rosterRefreshDueAt: QueryHelper.isNull(),
         },
         select: {
           _id: true,

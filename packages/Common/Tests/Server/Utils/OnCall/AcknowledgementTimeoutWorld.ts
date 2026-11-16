@@ -44,6 +44,7 @@ import PassOnWorld, {
   POLICY_ID,
   PROJECT_ID,
   RUN_ID,
+  START,
   nextId,
 } from "./PassOnWorld";
 
@@ -148,17 +149,60 @@ export interface WorldFeedEntry {
   at: Date;
 }
 
+/*
+ * When the policy was last changed before the world's clock starts: set up
+ * the day before, and left alone since.
+ */
+export const POLICY_SET_UP_AT: Date = new Date(
+  START.getTime() - 24 * 60 * MINUTE_IN_MS,
+);
+
+// What changing a policy may change, in the world (changePolicy).
+export interface WorldPolicyChange {
+  name?: string | undefined;
+  acknowledgementTimeoutInMinutes?: number | null | undefined;
+  isArchived?: boolean | undefined;
+}
+
 export default class AcknowledgementTimeoutWorld extends PassOnWorld {
   // The policy as it is now: every read of a run reads it again.
   public policy: {
     name: string;
     acknowledgementTimeoutInMinutes: number | null;
     isArchived: boolean;
+    /*
+     * When it was last changed, as the database stamps every update of it
+     * (updatedAt): changePolicy moves it to the world's now.
+     */
+    updatedAt: Date;
   } = {
     name: "Payments",
     acknowledgementTimeoutInMinutes: 30,
     isArchived: false,
+    updatedAt: new Date(POLICY_SET_UP_AT),
   };
+
+  /*
+   * The policy is changed now - in the Dashboard, through the API or
+   * Terraform - as the database writes it: what changed, and its updatedAt
+   * stamped with the moment of the write, whatever column changed.
+   */
+  public changePolicy(change: WorldPolicyChange): void {
+    if (change.name !== undefined) {
+      this.policy.name = change.name;
+    }
+
+    if (change.acknowledgementTimeoutInMinutes !== undefined) {
+      this.policy.acknowledgementTimeoutInMinutes =
+        change.acknowledgementTimeoutInMinutes;
+    }
+
+    if (change.isArchived !== undefined) {
+      this.policy.isArchived = change.isArchived;
+    }
+
+    this.policy.updatedAt = new Date(this.clock);
+  }
 
   public states: Array<IncidentState> = [
     state(CREATED, 1, "Created", { created: true }),
@@ -213,6 +257,7 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
       (policy as unknown as Record<string, unknown>)[
         "acknowledgementTimeoutInMinutes"
       ] = this.policy.acknowledgementTimeoutInMinutes;
+      policy.updatedAt = new Date(this.policy.updatedAt);
       policy.repeatPolicyIfNoOneAcknowledges = this.repeatsAllowed > 0;
       policy.repeatPolicyIfNoOneAcknowledgesNoOfTimes = this.repeatsAllowed;
       return policy;

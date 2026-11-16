@@ -428,6 +428,45 @@ describe("who may read the insights", () => {
     expect(JSON.stringify(insights)).not.toContain("A hidden finding");
   });
 
+  /*
+   * A fix the caller gave the first of two approvals waits for someone
+   * else's approval, not theirs (#6422): the insight says how many.
+   */
+  test("the fixes waiting for approval say how many the caller approved first", async () => {
+    const one: FakeRow = incident(1);
+    tables.incidents.push(one);
+    tables.runs.push(run(onIncident(one)));
+    tables.suggestions.push(
+      suggestion(
+        { incidentId: new ObjectID(one._id) },
+        { firstApprovedByUserId: CALLER.userId },
+      ),
+      suggestion(
+        { incidentId: new ObjectID(one._id) },
+        { firstApprovedByUserId: new ObjectID(uuid(2, 9)) },
+      ),
+      suggestion({ incidentId: new ObjectID(one._id) }),
+      // Approved first by the caller, then by someone else: it waits no more.
+      suggestion(
+        { incidentId: new ObjectID(one._id) },
+        {
+          status: AutoRemediationSuggestionStatus.Approved,
+          firstApprovedByUserId: CALLER.userId,
+        },
+      ),
+    );
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+    const awaiting: AiActivityInsight | undefined = insights.insights.find(
+      (item: AiActivityInsight): boolean => {
+        return item.kind === AiActivityInsightKind.FixesAwaitingApproval;
+      },
+    );
+
+    expect(awaiting?.count).toBe(3);
+    expect(awaiting?.approvedFirstByReaderCount).toBe(1);
+  });
+
   test("a caller who may not read fixes gets none, and the insights say they are hidden", async () => {
     const one: FakeRow = incident(1);
     tables.incidents.push(one);
@@ -528,6 +567,8 @@ describe("what it reads", () => {
         // Where it was approved: the card, Slack or Microsoft Teams.
         "approvedFrom",
         "createdAt",
+        // Whose first approval a fix that needs two waits after (#6422).
+        "firstApprovedByUserId",
         "incidentId",
         "status",
         "verificationStatus",

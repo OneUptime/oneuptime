@@ -46,6 +46,45 @@ describe("TextArea", () => {
     expect(onChange).toHaveBeenCalledWith("new value");
   });
 
+  test("follows the value the page gives it, an empty one too (#8893)", () => {
+    const { getByRole, rerender } = render(
+      <TextArea value="first words" onChange={() => {}} />,
+    );
+    const textarea: HTMLTextAreaElement = getByRole(
+      "textbox",
+    ) as HTMLTextAreaElement;
+
+    expect(textarea.value).toBe("first words");
+
+    rerender(<TextArea value="second words" onChange={() => {}} />);
+    expect(textarea.value).toBe("second words");
+
+    // A box the page cleared - a message sent - is empty, not the old text.
+    rerender(<TextArea value="" onChange={() => {}} />);
+    expect(textarea.value).toBe("");
+  });
+
+  test("typed into while the page's value stays empty, it keeps what is typed", () => {
+    const { getByRole } = render(<TextArea value="" onChange={() => {}} />);
+    const textarea: HTMLTextAreaElement = getByRole(
+      "textbox",
+    ) as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: "typed" } });
+
+    expect(textarea.value).toBe("typed");
+  });
+
+  test("an empty value never hides the initial value it starts with", () => {
+    const { getByRole } = render(
+      <TextArea value="" initialValue="from the form" />,
+    );
+
+    expect((getByRole("textbox") as HTMLTextAreaElement).value).toBe(
+      "from the form",
+    );
+  });
+
   test("calls onFocus event", () => {
     const onFocus: MockFunction = getJestMockFunction();
 

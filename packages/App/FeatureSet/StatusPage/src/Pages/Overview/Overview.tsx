@@ -2285,11 +2285,17 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 color={currentStatus.color}
                 doNotShowIcon={true}
                 textOnRight={
+                  /*
+                   * No figure when nothing on the page was measured - its
+                   * resources not checked yet, say (issue #8960): the
+                   * banner used to say 100% then.
+                   */
                   currentStatus.isOperationalState &&
-                  statusPage?.showOverallUptimePercentOnStatusPage
+                  statusPage?.showOverallUptimePercentOnStatusPage &&
+                  overallUptime !== null
                     ? t("overview.uptimePercent", {
                         percent: formatUptimePercentFigure(
-                          overallUptime ?? 100,
+                          overallUptime,
                           pageLanguage,
                         ),
                       })
