@@ -6,6 +6,12 @@ import ProductBrandingText from "../../ProductBrandingText";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import { getOnCallPageAgainChatReason } from "../../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { getOnCallPassOnLevelLabel } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  ON_CALL_PAGE_MERGE_UNKNOWN_PAGE,
+  ON_CALL_PAGE_MERGE_UNNAMED_POLICY,
+  OnCallPageCoverKind,
+  OnCallPageCoverName,
+} from "../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 
 /*
  * WHAT ONE ON-CALL POLICY RUN LOOKS LIKE IN SLACK AND MICROSOFT TEAMS.
@@ -263,9 +269,10 @@ export interface OnCallPolicyRunPagedPerson {
   /*
    * The policies whose page of them stands for this run's, by name: their
    * page here was merged into it, and sent nothing (OnCallPageMerge). Empty
-   * when this run paged them itself.
+   * when this run paged them itself. Null for a page whose line could not
+   * be read: a policy's, or one sent directly (#8859).
    */
-  alreadyPagedBy?: Array<string> | undefined;
+  alreadyPagedBy?: Array<OnCallPageCoverName | null> | undefined;
   // How their pages reached them: "email", "SMS", "call", ...
   methods: Array<string>;
   // The people an override routed their pages from.
@@ -1199,16 +1206,18 @@ export default class OnCallPolicyRunMessageView {
     }
 
     /*
-     * Another policy's page of them stands for this run's (OnCallPageMerge):
-     * it sent nothing of its own, and says whose page reaches them.
+     * Another run's page of them stands for this run's (OnCallPageMerge):
+     * it sent nothing of its own, and says whose page reaches them - a
+     * policy's, or a page sent from a chat or by a workflow (#8859).
      */
-    const alreadyPagedBy: Array<string> = person.alreadyPagedBy || [];
+    const alreadyPagedBy: Array<OnCallPageCoverName | null> =
+      person.alreadyPagedBy || [];
 
     if (alreadyPagedBy.length > 0 && !person.acknowledged && !person.passedOn) {
       facts.push(
         mdText`already paged by ${FeedMarkdown.join(
-          alreadyPagedBy.map((name: string): MarkdownText => {
-            return mdText`**${name}**`;
+          alreadyPagedBy.map((by: OnCallPageCoverName | null): MarkdownText => {
+            return this.getAlreadyPagedBy(by);
           }),
           ", ",
         )}`,
@@ -1224,6 +1233,32 @@ export default class OnCallPolicyRunMessageView {
     }
 
     return mdText`${who}: ${FeedMarkdown.join(facts, " · ")}`;
+  }
+
+  /*
+   * Whose page reaches somebody for this run's (OnCallPageMerge): "**Payments**",
+   * a policy - or, a page merged into a direct page (#8859), "**Jane Doe**",
+   * who paged them from a chat, or "workflow **Nightly Checks**". A policy
+   * the line names none of is "another on-call policy", unbolded: it is no
+   * name. A line that could not be read is "another page": it may have been
+   * a policy's or one sent directly.
+   */
+  private static getAlreadyPagedBy(
+    by: OnCallPageCoverName | null,
+  ): MarkdownText {
+    if (!by) {
+      return mdText`${ON_CALL_PAGE_MERGE_UNKNOWN_PAGE}`;
+    }
+
+    if (!by.name) {
+      return mdText`${ON_CALL_PAGE_MERGE_UNNAMED_POLICY}`;
+    }
+
+    if (by.kind === OnCallPageCoverKind.WorkflowPage) {
+      return mdText`workflow **${by.name}**`;
+    }
+
+    return mdText`**${by.name}**`;
   }
 
   // "**NB User 2**: not paged · not a member of this project".

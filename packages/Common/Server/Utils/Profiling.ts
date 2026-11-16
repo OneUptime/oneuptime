@@ -2,8 +2,10 @@ import { EnableProfiling } from "../EnvironmentConfig";
 import logger, { LogAttributes } from "./Logger";
 import GracefulShutdown, { ShutdownPriority } from "./GracefulShutdown";
 import {
+  OTEL_EXPORTER_OTLP_HEADERS_SETTING,
   OTLP_EXPORTER_HEADERS_SETTING,
   readOtlpExporterHeaders,
+  readStandardOtlpHeaders,
 } from "./Telemetry/OtlpExporterHeaders";
 import Dictionary from "../../Types/Dictionary";
 
@@ -150,11 +152,28 @@ export default class Profiling {
      * '='), so a token ending in '=' arrives whole. Header names are
      * case-insensitive, as the ingest side reads them. Telemetry.init
      * reports a header it cannot read; this reads quietly.
+     *
+     * Without one there, the token the OTLP exporters send from
+     * OTEL_EXPORTER_OTLP_HEADERS, which they read on their own, under
+     * OneUptime's headers (#8884): an installation that sets its token only
+     * there sends its traces, metrics and logs with it, and so its profiles.
      */
-    const headers: Dictionary<string> = readOtlpExporterHeaders(
-      process.env[OTLP_EXPORTER_HEADERS_SETTING],
-    ).headers;
+    return (
+      this.tokenIn(
+        readOtlpExporterHeaders(process.env[OTLP_EXPORTER_HEADERS_SETTING])
+          .headers,
+      ) ||
+      this.tokenIn(
+        readStandardOtlpHeaders(
+          process.env[OTEL_EXPORTER_OTLP_HEADERS_SETTING],
+        ),
+      ) ||
+      undefined
+    );
+  }
 
+  // The x-oneuptime-token header of a set of headers, by any case of its name.
+  private static tokenIn(headers: Dictionary<string>): string | undefined {
     let token: string | undefined = undefined;
 
     for (const name of Object.keys(headers)) {

@@ -189,15 +189,24 @@ describe("a label's sort key, as the members who write labels", () => {
     },
   );
 
-  test("a key a caller sends with a new label is never what is written", async () => {
-    const inserted: StoredRow = await create(
-      { name: "10.Owner=Platform", nameSortKey: "0000 first of all" },
-      member([Permission.ProjectOwner]),
+  /*
+   * The key is OneUptime's on a create as on an update: a member who sends
+   * one with a new label is refused, before the create's hooks run, and no
+   * label is written (#6541).
+   */
+  test("a key a caller sends with a new label is refused, and no label is written", async () => {
+    const error: unknown = await refusalOf(
+      create(
+        { name: "10.Owner=Platform", nameSortKey: "0000 first of all" },
+        member([Permission.ProjectOwner]),
+      ),
     );
 
-    expect(inserted["nameSortKey"]).toBe(
-      getNaturalSortKey("10.Owner=Platform"),
+    expect(error).toBeInstanceOf(ColumnWriteRefusedException);
+    expect((error as ColumnWriteRefusedException).columnName).toBe(
+      "nameSortKey",
     );
+    expect(labels.inserts).toEqual([]);
   });
 
   test("a label made by OneUptime itself (telemetry, the label rules) gets its key too", async () => {

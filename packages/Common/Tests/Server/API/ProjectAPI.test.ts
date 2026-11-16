@@ -5,6 +5,7 @@ import MasterAdminAuthorization from "../../../Server/Middleware/MasterAdminAuth
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import BillingService from "../../../Server/Services/BillingService";
+import Errors from "../../../Server/Utils/Errors";
 import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import {
@@ -320,6 +321,52 @@ describe("ProjectAPI", () => {
         mockRequest,
         mockResponse,
       );
+    });
+
+    it("should refuse a customer with no payment method on file", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+
+      BillingService.hasPaymentMethods = jest.fn().mockResolvedValue(false);
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.body = { data: { paymentProviderPlanId: planId } };
+      mockRequest.userTenantAccessPermission = tenantPermissionsFor(projectId, [
+        Permission.ProjectOwner,
+      ]);
+
+      await mockRouter
+        .match("put", "/project/:id/change-plan")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).toHaveBeenCalledWith(
+        new BadDataException(Errors.BillingService.NO_PAYMENTS_METHODS),
+      );
+      expect(ProjectService.changePlan).not.toHaveBeenCalled();
+    });
+
+    it("should let a master admin change the plan of a project with no payment method on file", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+
+      BillingService.hasPaymentMethods = jest.fn().mockResolvedValue(false);
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.body = { data: { paymentProviderPlanId: planId } };
+      mockRequest.userAuthorization = {
+        userId: ObjectID.generate(),
+        isMasterAdmin: true,
+      } as JSONWebTokenData;
+
+      await mockRouter
+        .match("put", "/project/:id/change-plan")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(BillingService.hasPaymentMethods).not.toHaveBeenCalled();
+      expect(ProjectService.changePlan).toHaveBeenCalledWith({
+        projectId: projectId,
+        paymentProviderPlanId: planId,
+        requirePaymentMethod: false,
+      });
     });
 
     it("should refuse an owner whose Project Owner another team blocks", async () => {

@@ -63,7 +63,11 @@ sets, those suites say what to change here.
   nginx 1.30's modules, `njs` included, so this adds only `libxml2`, which
   `njs` links.
 - **Runner.** It copies `/usr/src`, kubectl (which the release downloads and
-  checks against its sha256) and the release's CA certificates.
+  checks against its sha256), the release's CA certificates and the JavaScript
+  sandbox in `/usr/lib/oneuptime-runner`: the launcher that starts each of a
+  global Runner's JavaScript steps as a user of its own (setuid root, run by
+  the `node` group alone, which the Dockerfile sets again) and the bundle that
+  step's process runs.
 - **Probe.** It copies `/usr/src`, the Node.js that runs it, the Chromium and
   Firefox that Playwright downloaded, and the synthetic monitors' native
   helpers. Playwright's own `install-deps` installs the browsers' libraries.

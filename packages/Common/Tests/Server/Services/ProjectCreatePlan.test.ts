@@ -29,6 +29,7 @@ import {
   test,
 } from "@jest/globals";
 import type { Mock } from "jest-mock";
+import { columnsTheCreateWrote } from "../TestingUtils/ColumnsSetByServer";
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
@@ -196,6 +197,8 @@ const checkColumns: (createBy: CreateBy<Project>) => string = (
       createBy.data,
       createBy.props,
       DatabaseRequestType.Create,
+      // Who created it is the hook's stamp: the create's own write.
+      columnsTheCreateWrote(createBy.data),
     );
 
     return "allowed";

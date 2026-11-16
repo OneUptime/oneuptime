@@ -67,6 +67,8 @@ Eine HTTP-Anfrage an jede URL senden. Es gibt einen Baustein pro Methode: **API-
 
 So oder so gibt der Baustein **Antwortstatus**, **Antwort-Header** und **Antworttext** zurück, dazu **Fehler** mit dem Grund, wenn er fehlgeschlagen ist. Lesen Sie ein Feld einer JSON-Antwort, indem Sie seinen Namen an den Verweis anhängen, wie in `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+Ein Baustein liest höchstens 10 MB einer Antwort. Eine größere Antwort wird nicht gelesen: Der Baustein nimmt **Fehler**, mit dem Grund.
+
 Weiterleitungen werden nicht verfolgt, richten Sie den Baustein also auf die Adresse, die antwortet. Anfragen gehen von OneUptime aus: Eine URL, die zu einer privaten Netzwerkadresse auflöst, wird abgelehnt, sofern ein Administrator einer selbst gehosteten Installation sie nicht erlaubt, und die Ausführung stoppt mit dem Grund. Siehe [Ausgehender Netzwerkzugriff](/docs/workflows/configuration#ausgehender-netzwerkzugriff).
 
 **API-Aufruf GET nach ID (JSON)** liest ein Element über eine ID, die von anderswo kam, etwa den Vorgangsschlüssel, den ein Webhook gesendet hat. Setzen Sie `{id}` in seine **URL**, wo die ID hingehört, wie in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, und die ID in **ID**. Der Baustein setzt die ID nur ein, wenn sie eine schlichte ID ist, höchstens 200 Buchstaben, Ziffern, Bindestriche und Unterstriche, und kodiert sie trotzdem mit Prozentzeichen: Alles andere, etwa `x/../users`, nimmt **Fehler**, bevor eine Anfrage gesendet wird, sodass Text von außen die Anfrage nicht woandershin lenken kann. Ansonsten arbeitet er wie **API-Aufruf GET (JSON)** und gibt dieselben Werte zurück.
@@ -242,7 +244,7 @@ Ein Baustein, der zu einem Workflow hinzugefügt wird, der mit einem Vorfall ode
 
 **Erfolg** läuft, sobald mindestens eine Person alarmiert ist oder eine Richtlinie gestartet wurde. **Fehler** läuft, wenn niemand alarmiert wurde, und der Wert **Fehler** des Bausteins sagt, warum, zum Beispiel, dass im Plan niemand in Bereitschaft ist. **Zusammenfassung** sagt in einem Satz, wer alarmiert wurde und wer ausgelassen wurde, fertig zum Posten in einem Kanal, und **Alarmierte Benutzer** listet die alarmierten Personen auf.
 
-Wer abwesend ist, wird nicht alarmiert: Stattdessen wird alarmiert, wen die Benutzervertretung der Person als Vertretung nennt. Eine Alarmierung nennt höchstens 100 Personen, Teams und Pläne. Siehe [Wie jede Person erreicht wird](/docs/on-call/escalation-rules#wie-jede-person-erreicht-wird).
+Wer abwesend ist, wird nicht alarmiert: Stattdessen wird alarmiert, wen die Benutzervertretung der Person als Vertretung nennt. Wen eine Bereitschaftsrichtlinie oder eine andere Alarmierung dazu schon alarmiert, wird nicht noch einmal alarmiert und steht trotzdem unter **Alarmierte Benutzer**: Endet diese Alarmierung ohne seine Antwort, alarmiert ihn die Alarmierung des Bausteins selbst. Eine Alarmierung nennt höchstens 100 Personen, Teams und Pläne. Siehe [Wie jede Person erreicht wird](/docs/on-call/escalation-rules#wie-jede-person-erreicht-wird).
 
 Eine Alarmierung ohne Bereitschaftsrichtlinie dahinter wird bei den Läufen der Richtlinien als **Direkte Alarmierung** aufgeführt: in den Bereitschaftsprotokollen des Vorfalls oder der Warnung, in deren Feed und Slack- oder Microsoft-Teams-Kanal und in den Protokollen jeder alarmierten Person. Sie bleibt 30 Minuten offen und danach so lange, wie noch Alarmierungen hinausgehen. Hat bis dahin niemand bestätigt, endet sie, ohne jemand anderen zu alarmieren.
 

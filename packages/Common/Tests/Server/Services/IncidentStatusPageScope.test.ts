@@ -2644,10 +2644,14 @@ describe("Incident column permissions for scope edits", () => {
     expect(access("statusPages")).toEqual(access("monitors"));
   });
 
-  test("isScopedToStatusPages has the create and update access control of statusPages", () => {
-    expect(access("isScopedToStatusPages").create).toEqual(
-      access("statusPages").create,
-    );
+  /*
+   * Nobody may create it: the service derives it from statusPages on every
+   * create, so a value sent with one is dropped before the hooks run
+   * (#8907). An edit writes it into the editor's own update, so whoever may
+   * edit statusPages may write it.
+   */
+  test("isScopedToStatusPages takes no create list, and the update access control of statusPages", () => {
+    expect(access("isScopedToStatusPages").create).toEqual([]);
     expect(access("isScopedToStatusPages").update).toEqual(
       access("statusPages").update,
     );
@@ -2754,20 +2758,52 @@ describe("Incident column permissions for scope edits", () => {
     }).toThrow();
   });
 
-  test("a create carrying the computed columns passes the check for an incident member", () => {
-    const incident: Incident = new Incident();
-    incident.title = "Site outage";
-    incident.statusPages = [statusPage(PAGE_A)];
-    incident.isScopedToStatusPages = true;
+  /*
+   * On a create the scope flag is the hook's, never the caller's (#8907): a
+   * member's own value is dropped before the hooks run, as a record read
+   * and sent back whole carries one, and the value the hook derives passes
+   * the check of the record as the create's own.
+   */
+  test("a create's own scope flag passes the check for an incident member, and the member's own is dropped before the hooks", () => {
+    const sent: Incident = new Incident();
+    sent.title = "Site outage";
+    sent.statusPages = [statusPage(PAGE_A)];
+    sent.isScopedToStatusPages = false;
+
+    expect(
+      ColumnPermissions.checkComputedColumnsSentOnCreate(
+        Incident,
+        sent,
+        makeProps([Permission.IncidentMember]),
+      ),
+    ).toEqual([]);
+    expect(sent.isScopedToStatusPages).toBeUndefined();
+    expect(sent.statusPages).toHaveLength(1);
+
+    const written: Incident = new Incident();
+    written.title = "Site outage";
+    written.statusPages = [statusPage(PAGE_A)];
+    written.isScopedToStatusPages = true;
 
     expect(() => {
       ColumnPermissions.checkDataColumnPermissions(
         Incident,
-        incident,
+        written,
+        makeProps([Permission.IncidentMember]),
+        DatabaseRequestType.Create,
+        ["isScopedToStatusPages"],
+      );
+    }).not.toThrow();
+
+    // Handed no list, the value is the caller's, and nobody may create it.
+    expect(() => {
+      ColumnPermissions.checkDataColumnPermissions(
+        Incident,
+        written,
         makeProps([Permission.IncidentMember]),
         DatabaseRequestType.Create,
       );
-    }).not.toThrow();
+    }).toThrow();
   });
 });
 

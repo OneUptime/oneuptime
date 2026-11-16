@@ -8,7 +8,7 @@ import {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
-import EventLoop from "Common/Server/Utils/EventLoop";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -209,15 +209,18 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         logger.error(loadError);
       }
 
-      let messageCounter: number = 0;
+      /*
+       * Handed back by the time the work took, not every so many messages:
+       * a message's work grows with its scrub rules and what they read
+       * (Common/Server/Utils/EventLoop.ts).
+       */
+      const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
 
       for (const rawMessage of messages) {
         try {
-          if (messageCounter % 500 === 0) {
-            await EventLoop.yieldToEventLoop();
+          if (eventLoopBudget.isSpent()) {
+            await eventLoopBudget.handBack();
           }
-
-          messageCounter++;
 
           const parsed: ParsedSyslogMessage | null =
             parseSyslogMessage(rawMessage);

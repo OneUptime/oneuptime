@@ -86,6 +86,8 @@ Click **Add Formula** and write the **Formula** with the queries' variables, the
 
 A variable can be written with or without its `$`, in any case. A formula that names a query you have not defined says so instead of drawing.
 
+A query that counts what happened, the sum or the count of a counter or a histogram, has no data point in a step where nothing happened, so a formula reads it as 0 there: `$b / $a * 100` draws 0 in a step with no failure. A gauge, an average or a percentile with no data point is unknown, and the formula leaves that step out. It also leaves out a step none of its queries has a data point in, and one that ended less than a minute ago, whose last data points may still be arriving.
+
 ## Explore around a chart
 
 The buttons above the charts work on the time range you are looking at:

@@ -112,6 +112,7 @@ import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import MonitorTemplateService from "./MonitorTemplateService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ServerSetColumns from "../Utils/Database/ServerSetColumns";
 import {
   getAffectedResourceColumns,
   getAffectedResourceRelations,
@@ -4379,11 +4380,19 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
       statusTimeline.monitorId = monitorId;
       statusTimeline.monitorStatusId = monitorStatusId;
       statusTimeline.projectId = projectId;
-      statusTimeline.isOwnerNotified = !notifyOwners;
 
-      if (statusChangeLog) {
-        statusTimeline.statusChangeLog = statusChangeLog;
-      }
+      /*
+       * Whether the owners are told, and the evidence of the change, are
+       * OneUptime's to give, also when the row is written as the person
+       * whose incident changed the status (createStatusTimelineWithRetry):
+       * nobody may create either column, so the values are marked as
+       * OneUptime's on the row (ServerSetColumns).
+       */
+      ServerSetColumns.set(statusTimeline, {
+        isOwnerNotified: !notifyOwners,
+        statusChangeLog: statusChangeLog || undefined,
+      });
+
       if (rootCause) {
         statusTimeline.rootCause = rootCause;
       }

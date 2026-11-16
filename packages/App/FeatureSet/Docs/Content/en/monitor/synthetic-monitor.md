@@ -156,6 +156,11 @@ return {
 
 A run keeps up to 20 screenshots, each up to 10 MB and 50 MB in all. A screenshot can also be shown in the incident or alert a failing run opens — on its page and in the emails about it — by placing it in the monitor's incident or alert description. See [Showing a screenshot](/docs/monitor/incident-alert-templating#showing-a-screenshot).
 
+A check's screenshots are kept in the monitor's own logs, not in an incident's or an alert's logs or in a monitor's status changes: those keep the rest of the check, and each run whose screenshots were left out says so (`areScreenshotsOmitted`). Screenshots stored there before are cleared by an hourly job after the upgrade, a little at a time, until none are left.
+
+> [!NOTE]
+> On a self-hosted install, PostgreSQL reuses the space the cleared screenshots leave, but does not give it back to the disk. To shrink the database once they are cleared, run `VACUUM FULL` on the biggest tables in a maintenance window, as it locks each table while it rewrites it, or use `pg_repack`, which does not.
+
 :::details Returning screenshots (legacy)
 For backward compatibility, you can also return screenshots from the script as part of the return value. Screenshots returned this way are **only** captured when the script completes normally — they are lost if the script throws. Prefer the side-channel pattern above when you want evidence of failures.
 

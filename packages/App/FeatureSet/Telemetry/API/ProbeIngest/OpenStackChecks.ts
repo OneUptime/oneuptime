@@ -1,4 +1,5 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
 import { ProbeExpressRequest } from "../../Types/Request";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
@@ -6,6 +7,7 @@ import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import { AppVersion } from "Common/Server/EnvironmentConfig";
 import OpenStackCloudCheckService from "Common/Server/Services/OpenStackCloudCheckService";
 import Express, {
+  ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
@@ -20,6 +22,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
+import ProbeCapability from "Common/Types/Probe/ProbeCapability";
 import {
   OPENSTACK_PROBE_API_CHECK_CONCURRENCY,
   OPENSTACK_PROBE_LIFECYCLE_CHECK_CONCURRENCY,
@@ -99,6 +102,20 @@ export function createOpenStackCheckRouter(
   router.post(
     "/probe/openstack/checks/work",
     ProbeAuthorization.isAuthorizedServiceMiddleware,
+    /*
+     * Under the probe scheduling limit (issue #8051); a refused request claims nothing and is
+     * answered busy (ProbeSchedulingMiddleware): the checks stay due for the probe's next tick.
+     * The ones it is running carry on; their reports are not held to the limit.
+     */
+    ProbeSchedulingMiddleware.limit(
+      (req: ExpressRequest, res: ExpressResponse): void => {
+        return Response.sendJsonObjectResponse(req, res, {
+          apiChecks: [],
+          lifecycleChecks: [],
+        });
+      },
+      { retriesWhenBusy: ProbeCapability.RetryAllWorkWhenBusy },
+    ),
     async (
       req: ProbeExpressRequest,
       res: ExpressResponse,

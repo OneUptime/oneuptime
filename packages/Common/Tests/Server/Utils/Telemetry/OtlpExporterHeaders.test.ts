@@ -1,13 +1,20 @@
 import { describe, expect, test } from "@jest/globals";
 import { parseKeyPairsIntoRecord } from "@opentelemetry/core";
 import {
+  describeSignalsExportedWithoutAHeader,
   describeUnreadableOtlpHeaders,
+  hasOtlpHeadersFor,
   NOTHING_EXPORTED_WITHOUT_A_HEADER,
   OTEL_EXPORTER_OTLP_HEADERS_SETTING,
+  otelSignalHeadersSetting,
   OTLP_EXPORTER_HEADERS_HELM_VALUE,
   OTLP_EXPORTER_HEADERS_SETTING,
+  OTLP_SIGNALS,
   OtlpExporterHeaders,
+  OtlpSignal,
   readOtlpExporterHeaders,
+  readStandardOtlpHeaders,
+  readStandardOtlpSignalHeaders,
   UnreadableOtlpHeaderReason,
 } from "../../../../Server/Utils/Telemetry/OtlpExporterHeaders";
 import { redactLogString } from "../../../../Server/Utils/LogRedaction";
@@ -719,9 +726,9 @@ describe("NOTHING_EXPORTED_WITHOUT_A_HEADER", () => {
   test("says nothing is sent, which settings to look at, and what to write", () => {
     expect(NOTHING_EXPORTED_WITHOUT_A_HEADER).toBe(
       "OneUptime sends none of its own traces, metrics or logs: " +
-        "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT is set, but " +
+        "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT is set, but neither " +
         "OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart) " +
-        "holds no header it can send, and it exports only with one. " +
+        "nor OTEL_EXPORTER_OTLP_HEADERS holds a header it can send, and it exports only with one. " +
         "Set at least one header, written as name=value, such as the x-oneuptime-token header with a Server ingestion key.",
     );
   });
@@ -739,5 +746,192 @@ describe("NOTHING_EXPORTED_WITHOUT_A_HEADER", () => {
     expect(OTLP_EXPORTER_HEADERS_HELM_VALUE).toBe(
       "openTelemetryExporter.headers",
     );
+  });
+});
+
+/*
+ * Issue #8884: the OTLP exporters read OTEL_EXPORTER_OTLP_HEADERS and
+ * OTEL_EXPORTER_OTLP_<SIGNAL>_HEADERS on their own, with @opentelemetry/core's
+ * parseKeyPairsIntoRecord, and OneUptime decides whether an exporter has a
+ * header to send, and the profiler's token, from what they read.
+ * readStandardOtlpHeaders is that reading, held here to the SDK's own.
+ */
+describe("readStandardOtlpHeaders: OTEL_EXPORTER_OTLP_HEADERS as the OTLP exporters read it", () => {
+  test.each([
+    undefined,
+    "",
+    " ",
+    ",",
+    " , , ",
+    "a=1",
+    "a=1,b=2",
+    " a = 1 , b=2 ",
+    "x-oneuptime-token=0f8fad5b-d9cb-469f-a165-70867728950e",
+    "Authorization=Basic%20dXNlcjpwYXNzd29yZA==",
+    "Authorization=Bearer%20sk-live-123,X-Scope-OrgID=tenant-1",
+    "x-list=a%2Cb,x-semi=1%3B2,x-eq=b%3Dc",
+    "x-note=caf%C3%A9,a=1,a=2",
+    "x-scope=tenant=eu==,x-b=1",
+    // What OneUptime's own form writes: the SDK leaves out what follows ';'.
+    "a=1;b=2",
+    "x-oneuptime-token=abc;",
+    "a=1;metadata,b=2",
+    // Headers it leaves out.
+    "=1",
+    "a=",
+    "a= ",
+    " =1",
+    "a",
+    "a%=1",
+    "a=%",
+    "a=%E0%A4%A",
+    "a=%20",
+    "%61=1",
+    "a b=1",
+    "Authorization: Bearer the-secret",
+    "x-a=1,,x-b=2,",
+  ])("reads %p as parseKeyPairsIntoRecord does", (setting?: string) => {
+    expect(readStandardOtlpHeaders(setting)).toEqual(
+      parseKeyPairsIntoRecord(setting),
+    );
+  });
+
+  test("the corpus holds headers it reads and headers it leaves out", () => {
+    expect(readStandardOtlpHeaders("a=1;b=2")).toEqual({ a: "1" });
+    expect(readStandardOtlpHeaders("a=%E0%A4%A")).toEqual({});
+    expect(readStandardOtlpHeaders("%61=1")).toEqual({ a: "1" });
+  });
+});
+
+describe("readStandardOtlpSignalHeaders: one exporter's headers from the environment", () => {
+  test("OTEL_EXPORTER_OTLP_HEADERS for every signal, the signal's own variable over it", () => {
+    const environment: NodeJS.ProcessEnv = {
+      OTEL_EXPORTER_OTLP_HEADERS: "x-oneuptime-token=all,x-tenant=eu",
+      OTEL_EXPORTER_OTLP_TRACES_HEADERS: "x-oneuptime-token=traces",
+      OTEL_EXPORTER_OTLP_LOGS_HEADERS: "x-logs=1",
+    };
+
+    expect(
+      readStandardOtlpSignalHeaders(environment, OtlpSignal.Traces),
+    ).toEqual({ "x-oneuptime-token": "traces", "x-tenant": "eu" });
+    expect(
+      readStandardOtlpSignalHeaders(environment, OtlpSignal.Metrics),
+    ).toEqual({ "x-oneuptime-token": "all", "x-tenant": "eu" });
+    expect(readStandardOtlpSignalHeaders(environment, OtlpSignal.Logs)).toEqual(
+      {
+        "x-oneuptime-token": "all",
+        "x-tenant": "eu",
+        "x-logs": "1",
+      },
+    );
+  });
+
+  test("names each signal's own variable as the exporters read it", () => {
+    expect(
+      OTLP_SIGNALS.map((signal: OtlpSignal): string => {
+        return otelSignalHeadersSetting(signal);
+      }),
+    ).toEqual([
+      "OTEL_EXPORTER_OTLP_TRACES_HEADERS",
+      "OTEL_EXPORTER_OTLP_METRICS_HEADERS",
+      "OTEL_EXPORTER_OTLP_LOGS_HEADERS",
+    ]);
+  });
+
+  test("an environment without them holds none", () => {
+    for (const signal of OTLP_SIGNALS) {
+      expect(readStandardOtlpSignalHeaders({}, signal)).toEqual({});
+    }
+  });
+});
+
+describe("hasOtlpHeadersFor: whether a signal's exporter has a header to send", () => {
+  test.each([
+    [{}, {}, [false, false, false]],
+    [{ a: "1" }, {}, [true, true, true]],
+    [{}, { OTEL_EXPORTER_OTLP_HEADERS: "a=1" }, [true, true, true]],
+    [{}, { OTEL_EXPORTER_OTLP_HEADERS: "a=" }, [false, false, false]],
+    [{}, { OTEL_EXPORTER_OTLP_METRICS_HEADERS: "a=1" }, [false, true, false]],
+    [
+      {},
+      {
+        OTEL_EXPORTER_OTLP_TRACES_HEADERS: "a=1",
+        OTEL_EXPORTER_OTLP_LOGS_HEADERS: "b=2",
+      },
+      [true, false, true],
+    ],
+    [
+      { a: "1" },
+      { OTEL_EXPORTER_OTLP_TRACES_HEADERS: "b" },
+      [true, true, true],
+    ],
+  ])(
+    "own %j with %j: traces, metrics, logs %j",
+    (
+      ownHeaders: Record<string, string>,
+      environment: NodeJS.ProcessEnv,
+      expected: Array<boolean>,
+    ) => {
+      expect(
+        OTLP_SIGNALS.map((signal: OtlpSignal): boolean => {
+          return hasOtlpHeadersFor({ ownHeaders, environment, signal });
+        }),
+      ).toEqual(expected);
+    },
+  );
+});
+
+describe("describeSignalsExportedWithoutAHeader", () => {
+  test("says nothing when every signal is exported", () => {
+    expect(describeSignalsExportedWithoutAHeader([])).toBeNull();
+  });
+
+  test("is NOTHING_EXPORTED_WITHOUT_A_HEADER when no signal is", () => {
+    expect(describeSignalsExportedWithoutAHeader(OTLP_SIGNALS)).toBe(
+      NOTHING_EXPORTED_WITHOUT_A_HEADER,
+    );
+    expect(
+      describeSignalsExportedWithoutAHeader([
+        OtlpSignal.Logs,
+        OtlpSignal.Traces,
+        OtlpSignal.Metrics,
+      ]),
+    ).toBe(NOTHING_EXPORTED_WITHOUT_A_HEADER);
+  });
+
+  test.each([
+    [
+      [OtlpSignal.Traces],
+      "OneUptime sends none of its own traces: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT is set, but its only headers are in OTEL_EXPORTER_OTLP_METRICS_HEADERS and OTEL_EXPORTER_OTLP_LOGS_HEADERS, for metrics and logs alone, and it exports a signal only with a header. Set one for every signal in OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart) or OTEL_EXPORTER_OTLP_HEADERS, or set OTEL_EXPORTER_OTLP_TRACES_HEADERS.",
+    ],
+    [
+      [OtlpSignal.Logs, OtlpSignal.Metrics],
+      "OneUptime sends none of its own metrics or logs: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT is set, but its only headers are in OTEL_EXPORTER_OTLP_TRACES_HEADERS, for traces alone, and it exports a signal only with a header. Set one for every signal in OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart) or OTEL_EXPORTER_OTLP_HEADERS, or set OTEL_EXPORTER_OTLP_METRICS_HEADERS and OTEL_EXPORTER_OTLP_LOGS_HEADERS.",
+    ],
+    [
+      [OtlpSignal.Traces, OtlpSignal.Logs],
+      "OneUptime sends none of its own traces or logs: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT is set, but its only headers are in OTEL_EXPORTER_OTLP_METRICS_HEADERS, for metrics alone, and it exports a signal only with a header. Set one for every signal in OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart) or OTEL_EXPORTER_OTLP_HEADERS, or set OTEL_EXPORTER_OTLP_TRACES_HEADERS and OTEL_EXPORTER_OTLP_LOGS_HEADERS.",
+    ],
+  ])(
+    "names the signals %j are not sent, in the order of the signals",
+    (unexported: Array<OtlpSignal>, line: string) => {
+      expect(describeSignalsExportedWithoutAHeader(unexported)).toBe(line);
+    },
+  );
+
+  test("each line reaches the log as written: log redaction leaves it alone", () => {
+    for (const unexported of [
+      [OtlpSignal.Traces],
+      [OtlpSignal.Metrics],
+      [OtlpSignal.Logs],
+      [OtlpSignal.Traces, OtlpSignal.Metrics],
+      [OtlpSignal.Metrics, OtlpSignal.Logs],
+    ]) {
+      const line: string = describeSignalsExportedWithoutAHeader(
+        unexported,
+      ) as string;
+
+      expect(redactLogString(line)).toBe(line);
+    }
   });
 });

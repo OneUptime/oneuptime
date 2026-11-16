@@ -171,7 +171,7 @@ The **Next Number** card under it sets the number the next alert and the next ep
 
 ### Data retention
 
-**Alerts → Settings → Data Retention** deletes alerts once they have been resolved for long enough, as [Data retention](/docs/incidents/settings#data-retention) does for incidents. Its **Resolved Alerts** card asks **Delete after**, **Never** until you pick a length, and asks before deleting more, with **Delete old alerts**. An alert stays while it is not resolved, while it is in an episode that is still open or was resolved more recently, and as long as an incident it is linked to stays. Only Project Owners and Project Admins can change it; over the API it is the project's `alertRetentionInDays`.
+**Alerts → Settings → Data Retention** deletes alerts once they have been resolved for long enough, as [Data retention](/docs/incidents/settings#data-retention) does for incidents. Its **Resolved Alerts** card asks **Delete after**, **Never** until you pick a length, and asks before deleting more, with **Delete old alerts**, saying how many alerts that deletes now. An alert goes with its timeline, notes and the files attached to them, unless something else still uses a file. An alert stays while it is not resolved, while it is in an episode that is still open or was resolved more recently, and as long as an incident it is linked to stays. Only Project Owners and Project Admins can change it; over the API it is the project's `alertRetentionInDays`. On a self-hosted server, a master admin can hold every project to a limit and choose where new projects start: see [A limit for the whole server](/docs/incidents/settings#a-limit-for-the-whole-server).
 
 > [!NOTE]
 > On OneUptime Cloud, note templates and custom fields take the **Growth** plan or above.

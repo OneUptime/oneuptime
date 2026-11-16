@@ -1,5 +1,6 @@
 import { HasRegisterProbeKey, PROBE_INGEST_URL } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
+import ServerBusy from "../../Utils/ServerBusy";
 import OpenStackApiCheck from "../../Utils/OpenStack/Checks/OpenStackApiCheck";
 import OpenStackLifecycleCheck from "../../Utils/OpenStack/Checks/OpenStackLifecycleCheck";
 import { isOpenStackCollectionAllowedOnThisProbe } from "./FetchOpenStackWork";
@@ -43,6 +44,9 @@ import logger from "Common/Server/Utils/Logger";
 // How many times a report is tried, and how long apart: long enough for a server to restart.
 export const REPORT_ATTEMPTS: number = 5;
 export const REPORT_RETRY_DELAY_IN_MS: number = 15_000;
+
+// The work the work request hands out, as a busy answer names it (ServerBusy).
+const OPENSTACK_CHECKS_WORK: string = "OpenStack checks";
 
 const runningApiChecks: Map<string, Promise<void>> = new Map();
 const runningLifecycleChecks: Map<string, Promise<void>> = new Map();
@@ -123,6 +127,11 @@ export async function fetchOpenStackChecks(): Promise<OpenStackCheckWorkResponse
     lifecycleChecks: [],
   };
 
+  // The server asked this probe to wait (ServerBusy): it asks later.
+  if (ServerBusy.isBackingOff(OPENSTACK_CHECKS_WORK)) {
+    return empty;
+  }
+
   try {
     const running: { api: Array<string>; lifecycle: Array<string> } =
       getRunningOpenStackChecks();
@@ -139,6 +148,16 @@ export async function fetchOpenStackChecks(): Promise<OpenStackCheckWorkResponse
         headers: {},
         options: ProbeAPIRequest.getDefaultRequestOptions(url),
       });
+
+    /*
+     * Too busy to hand out checks now (issue #8051): nothing was claimed, they stay due, and
+     * this probe asks again once the server's Retry-After has passed. The checks running
+     * carry on.
+     */
+    if (ServerBusy.isBusyAnswer(result)) {
+      ServerBusy.note(OPENSTACK_CHECKS_WORK, result);
+      return empty;
+    }
 
     if (result instanceof HTTPErrorResponse) {
       logger.debug(

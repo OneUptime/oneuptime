@@ -86,6 +86,8 @@ Klicka på **Lägg till formel** och skriv **Formel** med frågornas variabler, 
 
 En variabel kan skrivas med eller utan sitt `$`, med stora eller små bokstäver. En formel som nämner en fråga som du inte har definierat säger det i stället för att rita.
 
+En fråga som räknar det som hände, summan eller antalet av en räknare eller ett histogram, har ingen datapunkt i ett steg där inget hände, så en formel läser den som 0 där: `$b / $a * 100` ritar 0 i ett steg utan misslyckanden. En mätare, ett medelvärde eller en percentil utan datapunkt är okänd, och formeln utelämnar det steget. Den utelämnar också ett steg där ingen av dess frågor har en datapunkt, och ett som slutade för mindre än en minut sedan, vars sista datapunkter fortfarande kan vara på väg.
+
 ## Utforska runt ett diagram
 
 Knapparna ovanför diagrammen arbetar med tidsintervallet du tittar på:

@@ -1,4 +1,5 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataStoreService from "Common/Server/Services/DataStoreService";
@@ -27,6 +28,7 @@ import DataCheckPlanner, {
 } from "Common/Server/Utils/DataObservability/DataCheckPlanner";
 import { getCollectorEngineOfKind } from "Common/Server/Utils/DataObservability/DataObservabilityEngines";
 import Express, {
+  ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
@@ -70,6 +72,17 @@ function readBody(req: ProbeExpressRequest): JSONObject {
 router.post(
   DATA_OBSERVABILITY_PROBE_WORK_ROUTE,
   ProbeAuthorization.isAuthorizedServiceMiddleware,
+  /*
+   * Under the probe scheduling limit (issue #8051); a refused request claims
+   * nothing and is answered busy (ProbeSchedulingMiddleware): the stores
+   * stay due for the probe's next poll.
+   */
+  ProbeSchedulingMiddleware.limit(
+    (req: ExpressRequest, res: ExpressResponse): void => {
+      return Response.sendJsonObjectResponse(req, res, { stores: [] });
+    },
+    { retriesWhenBusy: ProbeCapability.RetryAllWorkWhenBusy },
+  ),
   async (
     req: ProbeExpressRequest,
     res: ExpressResponse,

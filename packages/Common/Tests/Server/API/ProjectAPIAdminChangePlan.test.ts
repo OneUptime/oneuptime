@@ -1,6 +1,4 @@
-import ProjectAPI, {
-  ADMIN_CHANGE_PLAN_NO_PAYMENT_METHOD_MESSAGE,
-} from "../../../Server/API/ProjectAPI";
+import ProjectAPI from "../../../Server/API/ProjectAPI";
 import MasterAdminAuthorization from "../../../Server/Middleware/MasterAdminAuthorization";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
@@ -230,6 +228,7 @@ describe("PUT /project/:id/admin-change-plan", () => {
       expect(ProjectService.changePlan).toHaveBeenCalledWith({
         projectId: projectId,
         paymentProviderPlanId: "price_growth_year",
+        requirePaymentMethod: false,
       });
       expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
         mockRequest,
@@ -257,6 +256,7 @@ describe("PUT /project/:id/admin-change-plan", () => {
       expect(ProjectService.changePlan).toHaveBeenCalledWith({
         projectId: projectId,
         paymentProviderPlanId: "price_scale_month",
+        requirePaymentMethod: false,
       });
     });
 
@@ -271,6 +271,7 @@ describe("PUT /project/:id/admin-change-plan", () => {
       expect(ProjectService.changePlan).toHaveBeenCalledWith({
         projectId: projectId,
         paymentProviderPlanId: "price_enterprise_month",
+        requirePaymentMethod: false,
       });
     });
 
@@ -286,6 +287,7 @@ describe("PUT /project/:id/admin-change-plan", () => {
       expect(ProjectService.changePlan).toHaveBeenCalledWith({
         projectId: projectId,
         paymentProviderPlanId: "price_free_month",
+        requirePaymentMethod: false,
       });
     });
 
@@ -310,6 +312,7 @@ describe("PUT /project/:id/admin-change-plan", () => {
       expect(ProjectService.changePlan).toHaveBeenCalledWith({
         projectId: projectId,
         paymentProviderPlanId: "price_growth_year",
+        requirePaymentMethod: false,
       });
     });
   });
@@ -422,18 +425,27 @@ describe("PUT /project/:id/admin-change-plan", () => {
   });
 
   describe("when the plan change fails", () => {
-    it("says, in the admin's words, that the project needs a payment method first", async () => {
+    it("never asks the customer for a payment method: staff move the project whatever is on file", async () => {
+      await callRoute();
+
+      expect(ProjectService.changePlan).toHaveBeenCalledWith(
+        expect.objectContaining({ requirePaymentMethod: false }),
+      );
+      expect(Response.sendEmptySuccessResponse).toHaveBeenCalled();
+    });
+
+    it("hands a payment provider's refusal on as it came", async () => {
+      const failure: BadDataException = new BadDataException(
+        Errors.BillingService.NO_PAYMENTS_METHODS,
+      );
+
       ProjectService.changePlan = jest
         .fn()
-        .mockRejectedValue(
-          new BadDataException(Errors.BillingService.NO_PAYMENTS_METHODS),
-        ) as typeof ProjectService.changePlan;
+        .mockRejectedValue(failure) as typeof ProjectService.changePlan;
 
       await callRoute();
 
-      expect(refusal()).toEqual(
-        new BadDataException(ADMIN_CHANGE_PLAN_NO_PAYMENT_METHOD_MESSAGE),
-      );
+      expect(refusal()).toBe(failure);
       expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
     });
 
@@ -535,7 +547,6 @@ describe("PUT /project/:id/admin-change-plan", () => {
       "That plan is not one this server offers. Choose one of the plans shown, then try again.",
       "This project no longer exists. It may have been deleted.",
       "This project is already on that plan. Choose another plan to move it to.",
-      ADMIN_CHANGE_PLAN_NO_PAYMENT_METHOD_MESSAGE,
     ]) {
       expect({ message, isSentence: isErrorSentence(message) }).toEqual({
         message,

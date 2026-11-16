@@ -1,4 +1,5 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
 import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
@@ -30,6 +31,7 @@ import {
 import { ContentScanResult } from "Common/Server/Utils/DataSecurity/DataSecurityScanTypes";
 import { getFingerprintKey } from "Common/Server/Utils/DataSecurity/DataSecurityRunner";
 import Express, {
+  ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
@@ -243,6 +245,17 @@ export function buildStoreWork(data: {
 router.post(
   DATA_SECURITY_PROBE_WORK_ROUTE,
   ProbeAuthorization.isAuthorizedServiceMiddleware,
+  /*
+   * Under the probe scheduling limit (issue #8051); a refused request claims
+   * nothing and is answered busy (ProbeSchedulingMiddleware): the stores
+   * stay due for the probe's next poll.
+   */
+  ProbeSchedulingMiddleware.limit(
+    (req: ExpressRequest, res: ExpressResponse): void => {
+      return Response.sendJsonObjectResponse(req, res, { stores: [] });
+    },
+    { retriesWhenBusy: ProbeCapability.RetryAllWorkWhenBusy },
+  ),
   async (
     req: ProbeExpressRequest,
     res: ExpressResponse,
@@ -270,8 +283,8 @@ router.post(
       }
 
       /*
-       * Claimed in one transaction (DataSecurityProbeClaim), so two polls
-       * never get the same store.
+       * Claimed in one self-committing statement (DataSecurityProbeClaim),
+       * so two polls never get the same store.
        */
       const claimed: Array<ClaimedDataStore> = await claimDueDataStoresForProbe(
         {

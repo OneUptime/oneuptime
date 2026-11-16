@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddMonitorFirstMeasuredAt1809180900000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180900000-AddMonitorFirstMeasuredAt";
+import { AddMonitorFirstMeasuredAt1809181100000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181100000-AddMonitorFirstMeasuredAt";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import Permission from "../../../../Types/Permission";
@@ -26,7 +26,7 @@ import ModelImportExport from "../../../../Utils/ModelImportExport";
  * its statement to the model.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809180900000";
+const MIGRATION_TIMESTAMP: string = "1809181100000";
 const MIGRATION_BASE_NAME: string = "AddMonitorFirstMeasuredAt";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -43,7 +43,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddMonitorFirstMeasuredAt1809180900000();
+    new AddMonitorFirstMeasuredAt1809181100000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -54,7 +54,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddMonitorFirstMeasuredAt1809180900000", () => {
+describe("AddMonitorFirstMeasuredAt1809181100000", () => {
   test("adds firstMeasuredAt to Monitor, a nullable timestamp with no default", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "Monitor" ADD "firstMeasuredAt" TIMESTAMP WITH TIME ZONE`,
@@ -121,7 +121,7 @@ describe("AddMonitorFirstMeasuredAt1809180900000", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddMonitorFirstMeasuredAt1809180900000().name).toBe(
+    expect(new AddMonitorFirstMeasuredAt1809181100000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 
@@ -138,13 +138,14 @@ describe("AddMonitorFirstMeasuredAt1809180900000", () => {
     expect(Number(MIGRATION_TIMESTAMP)).toBeGreaterThan(
       Math.max(
         ...timestamps.filter((value: number): boolean => {
-          return value <= 1809180800000;
+          return value <= 1809181000000;
         }),
       ),
     );
     expect(names.indexOf(MIGRATION_CLASS_NAME)).toBeGreaterThan(
-      names.indexOf("RemoveSampleProject1809180800000"),
+      names.indexOf("AddResolvedRecordRetentionServerLimits1809181000000"),
     );
+    expect(names.indexOf("AddResolvedRecordRetentionServerLimits1809181000000")).toBeGreaterThan(-1);
     expect(
       fs.existsSync(
         path.join(

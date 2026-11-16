@@ -17,6 +17,8 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import ObjectID from "Common/Types/ObjectID";
 import Dictionary from "Common/Types/Dictionary";
 import MetricSeriesFingerprint from "Common/Utils/Metrics/MetricSeriesFingerprint";
+import { AggregationTemporality } from "Common/Models/AnalyticsModels/Metric";
+import { MetricZeroFillOptions } from "Common/Utils/Metrics/MetricZeroFill";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -654,5 +656,180 @@ describe("getSlotArrivals: a series' arrivals beside each query and formula", ()
         fingerprint: FINGERPRINT,
       }),
     ).toEqual([FRESH, null]);
+  });
+});
+
+/*
+ * A formula that reads a counting query's missing points as 0 (#6761,
+ * MetricZeroFill): the failures query of a failure share sends nothing
+ * while nothing fails, so its last arrival can be long ago - which is not
+ * the share going stale. Its points are timed by everything sent.
+ */
+describe("getSlotArrivals: a formula that reads a count with no point as 0", () => {
+  const SENT: string = "notification.send.count";
+  const LEVEL: string = "queue.depth";
+
+  const ZERO_FILL: MetricZeroFillOptions = {
+    semanticsByMetricName: new Map([
+      [
+        SENT,
+        {
+          isMonotonic: true,
+          aggregationTemporality: AggregationTemporality.Delta,
+        },
+      ],
+      [LEVEL, { isMonotonic: null, aggregationTemporality: null }],
+    ]),
+  };
+
+  function query(
+    variable: string,
+    metricName: string,
+    aggregation: MetricsAggregationType,
+  ): MetricQueryConfigData {
+    return {
+      metricAliasData: {
+        metricVariable: variable,
+        title: undefined,
+        description: undefined,
+        legend: undefined,
+        legendUnit: undefined,
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: metricName,
+          attributes: {},
+          aggegationType: aggregation,
+          aggregateBy: {},
+        },
+      },
+    } as MetricQueryConfigData;
+  }
+
+  function formula(variable: string, text: string): MetricFormulaConfigData {
+    return {
+      metricAliasData: {
+        metricVariable: variable,
+        title: undefined,
+        description: undefined,
+        legend: undefined,
+        legendUnit: undefined,
+      },
+      metricFormulaData: { metricFormula: text },
+    } as MetricFormulaConfigData;
+  }
+
+  const FRESH: MetricSeriesArrival = {
+    sinceNewestArrivalMs: 10 * SECOND,
+    lagMs: 20 * SECOND,
+    arrivalIntervalMs: MINUTE,
+  };
+  // The last failure arrived nine minutes ago.
+  const QUIET: MetricSeriesArrival = {
+    sinceNewestArrivalMs: 9 * MINUTE,
+    lagMs: 15 * SECOND,
+    arrivalIntervalMs: 4 * MINUTE,
+  };
+
+  const whole: (arrival: MetricSeriesArrival | null) => QueryArrivals = (
+    arrival: MetricSeriesArrival | null,
+  ): QueryArrivals => {
+    return { whole: arrival, bySeries: new Map() };
+  };
+
+  const share: Array<MetricQueryConfigData> = [
+    query("a", SENT, MetricsAggregationType.Sum),
+    query("b", SENT, MetricsAggregationType.Sum),
+  ];
+
+  test("without the catalog's word, a quiet failures query makes the share stale, as before", () => {
+    expect(
+      getSlotArrivals({
+        perQueryArrivals: [whole(FRESH), whole(QUIET)],
+        queryConfigs: share,
+        formulaConfigs: [formula("c", "$b / $a * 100")],
+      })?.[2],
+    ).toEqual({
+      sinceNewestArrivalMs: 9 * MINUTE,
+      lagMs: 20 * SECOND,
+      arrivalIntervalMs: 4 * MINUTE,
+    });
+  });
+
+  test("with it, the share is as fresh as the counts it has points of: the freshest", () => {
+    expect(
+      getSlotArrivals({
+        perQueryArrivals: [whole(FRESH), whole(QUIET)],
+        queryConfigs: share,
+        formulaConfigs: [formula("c", "$b / $a * 100")],
+        zeroFill: ZERO_FILL,
+      })?.[2],
+    ).toEqual(FRESH);
+  });
+
+  test("a count whose arrivals were not read was not behind: the share is fresh", () => {
+    expect(
+      getSlotArrivals({
+        perQueryArrivals: [null, whole(QUIET)],
+        queryConfigs: share,
+        formulaConfigs: [formula("c", "$b / $a * 100")],
+        zeroFill: ZERO_FILL,
+      })?.[2],
+    ).toBeNull();
+  });
+
+  test("a level it needs a point of still times it: a stale level is a stale formula", () => {
+    const levelAndCount: Array<MetricQueryConfigData> = [
+      query("g", LEVEL, MetricsAggregationType.Avg),
+      query("b", SENT, MetricsAggregationType.Sum),
+    ];
+
+    // The level is stale, the count quiet: the level's staleness is the formula's.
+    expect(
+      getSlotArrivals({
+        perQueryArrivals: [whole(QUIET), whole(FRESH)],
+        queryConfigs: levelAndCount,
+        formulaConfigs: [formula("c", "b / g")],
+        zeroFill: ZERO_FILL,
+      })?.[2],
+    ).toEqual(QUIET);
+
+    // The level is fresh: the quiet count does not make it stale.
+    expect(
+      getSlotArrivals({
+        perQueryArrivals: [whole(FRESH), whole(QUIET)],
+        queryConfigs: levelAndCount,
+        formulaConfigs: [formula("c", "b / g")],
+        zeroFill: ZERO_FILL,
+      })?.[2],
+    ).toEqual(FRESH);
+
+    // Not read: fresh, whatever the count did.
+    expect(
+      getSlotArrivals({
+        perQueryArrivals: [null, whole(QUIET)],
+        queryConfigs: levelAndCount,
+        formulaConfigs: [formula("c", "b / g")],
+        zeroFill: ZERO_FILL,
+      })?.[2],
+    ).toBeNull();
+  });
+
+  test("an average of a counter is no count: its staleness is the formula's", () => {
+    expect(
+      getSlotArrivals({
+        perQueryArrivals: [whole(FRESH), whole(QUIET)],
+        queryConfigs: [
+          query("a", SENT, MetricsAggregationType.Avg),
+          query("b", SENT, MetricsAggregationType.Avg),
+        ],
+        formulaConfigs: [formula("c", "$b / $a * 100")],
+        zeroFill: ZERO_FILL,
+      })?.[2],
+    ).toEqual({
+      sinceNewestArrivalMs: 9 * MINUTE,
+      lagMs: 20 * SECOND,
+      arrivalIntervalMs: 4 * MINUTE,
+    });
   });
 });

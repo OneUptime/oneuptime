@@ -40,6 +40,7 @@ import {
   ProjectDirectoryStub,
   stubProjectDirectory,
 } from "../TestingUtils/ProjectDirectory";
+import { columnsTheCreateWrote } from "../TestingUtils/ColumnsSetByServer";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { Token, Tokens, marked } from "marked";
 
@@ -792,12 +793,16 @@ describe.each(KINDS)(
         const props: DatabaseCommonInteractionProps = userProps(permission);
         const result: OnCreate<DatabaseBaseModel> = await create(props);
 
-        // And what the hook returns passes the create permission check.
+        /*
+         * And what the hook returns passes the create permission check: who
+         * added it, and whether it is a first membership, are the hook's.
+         */
         expect(() => {
           ModelPermission.checkCreatePermissions(
             kind.memberModel as unknown as { new (): DatabaseBaseModel },
             result.createBy.data,
             result.createBy.props,
+            columnsTheCreateWrote(result.createBy.data),
           );
         }).not.toThrow();
       },

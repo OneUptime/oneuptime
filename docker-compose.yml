@@ -57,6 +57,14 @@ services:
     depends_on:
       <<: *common-depends-on
 
+  # Malware scanning, off unless COMPOSE_PROFILES=clamav (see config.example.env).
+  clamav:
+    profiles:
+      - clamav
+    extends:
+      file: ./docker-compose.base.yml
+      service: clamav
+
   ingress:
     image: oneuptime/nginx:${APP_TAG}
     extends:
@@ -68,6 +76,7 @@ services:
 volumes:
   postgres:
   clickhouse:
+  clamav:
 
 networks:
   oneuptime:

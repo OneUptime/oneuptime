@@ -1,7 +1,7 @@
-import LocalFile from "Common/Server/Utils/LocalFile";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import SecretRedactor from "./SecretRedactor";
+import { ensurePrivateDirectory } from "./PrivateDirectory";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
@@ -122,6 +122,15 @@ export default class GitCredentials {
   }
 
   /*
+   * The helpers' directory, private and this Runner's own. Made at start-up
+   * too (Index.ts), before any step runs, so no step's user can make it
+   * first.
+   */
+  public static async initialize(): Promise<void> {
+    await ensurePrivateDirectory(this.BASE_DIR);
+  }
+
+  /*
    * Build an authenticated git environment for one repository.
    *
    * With `signIn`, git sends the username and token with its first request
@@ -135,16 +144,14 @@ export default class GitCredentials {
     token: string,
     signIn?: GitSignIn | undefined,
   ): Promise<GitCredentialHandle> {
-    await LocalFile.makeDirectory(this.BASE_DIR);
-
     /*
      * 0700 on the directory as well as the file: the file is created inside
      * a shared os.tmpdir(), where another local user could otherwise list
-     * and read it.
+     * and read it. A directory another user made first is refused, never
+     * used: that user could replace the helper git runs with the token in
+     * its environment (PrivateDirectory).
      */
-    await fs.chmod(this.BASE_DIR, 0o700).catch(() => {
-      // Best effort — an existing directory may be owned differently.
-    });
+    await GitCredentials.initialize();
 
     const scriptPath: string = path.join(
       this.BASE_DIR,

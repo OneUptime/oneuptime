@@ -1,3 +1,20 @@
+import { performance } from "perf_hooks";
+
+/*
+ * How long a loop over a batch - a telemetry ingest job's records, say - may
+ * hold the event loop before it hands it back, in milliseconds.
+ *
+ * Handing it back costs about a microsecond when nothing else is waiting, so
+ * the budget is not about the loop's own speed: it is how long every other
+ * request, job and health probe on the process may have to wait for it. A
+ * batch of small records used to hand the loop back every 500 logs or 200
+ * spans, some 10 to 60 milliseconds of work; a batch of records at the
+ * scrub rules' 10,000-value bound held it for seconds that way, and for most
+ * of a minute against a custom pattern. A loop that checks its budget
+ * between records holds the loop for at most this long and one record more.
+ */
+export const EVENT_LOOP_BUDGET_MS: number = 20;
+
 export default class EventLoop {
   /**
    * Yields control back to the Node.js event loop, resuming on a later
@@ -19,10 +36,66 @@ export default class EventLoop {
    * you await. setImmediate schedules a macrotask in the check phase, which
    * runs only after the poll phase has had a chance to process I/O — so a
    * loop that periodically awaits this genuinely unblocks the event loop.
+   *
+   * A loop over records whose work varies - one log can take a thousand
+   * times another - yields by an EventLoopBudget rather than every so many
+   * records.
    */
   public static async yieldToEventLoop(): Promise<void> {
     return new Promise<void>((resolve: () => void) => {
       setImmediate(resolve);
     });
+  }
+
+  /*
+   * The clock an EventLoopBudget reads: milliseconds that never go back,
+   * whatever happens to the wall clock - and that a test can replace.
+   */
+  public static now(): number {
+    return performance.now();
+  }
+}
+
+/*
+ * HAND THE EVENT LOOP BACK BY THE TIME THE WORK TOOK, NOT BY A COUNT.
+ *
+ * A loop that yields every so many records holds the event loop for as long
+ * as that many records take, and a record's work is not bounded by the
+ * count: a log or a span can carry up to 10,000 values inside its lists and
+ * maps, each read by every scrub rule of its project, besides its drop
+ * filters, pipelines and the encoding of its row. So a loop keeps one budget
+ * for the whole batch - its resources, scopes and records alike - and asks
+ * it between two records:
+ *
+ *   if (budget.isSpent()) {
+ *     await budget.handBack();
+ *   }
+ *
+ * The question costs one read of a monotonic clock and never awaits, so a
+ * batch of small records pays nothing more for it than it did for its
+ * counter; the loop is handed back only once the work since the last time
+ * has taken EVENT_LOOP_BUDGET_MS. One record's own work is never split.
+ */
+export class EventLoopBudget {
+  private readonly budgetInMs: number;
+  private handedBackAt: number;
+
+  public constructor(budgetInMs: number = EVENT_LOOP_BUDGET_MS) {
+    this.budgetInMs = budgetInMs;
+    this.handedBackAt = EventLoop.now();
+  }
+
+  // Whether the work since the loop was last handed back took the budget.
+  public isSpent(): boolean {
+    return EventLoop.now() - this.handedBackAt >= this.budgetInMs;
+  }
+
+  /*
+   * Hands the event loop back (EventLoop.yieldToEventLoop), and starts the
+   * budget again from when the loop has it back.
+   */
+  public async handBack(): Promise<void> {
+    await EventLoop.yieldToEventLoop();
+    this.handedBackAt = EventLoop.now();
   }
 }

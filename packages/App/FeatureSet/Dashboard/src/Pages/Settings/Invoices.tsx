@@ -34,7 +34,7 @@ import {
   getBillingActionLockedReason,
   getPayInvoiceGate,
 } from "../../Components/Billing/BillingActionGates";
-import { formatInvoiceAmount } from "../../Components/Billing/InvoiceAmount";
+import { formatInvoiceAmount } from "Common/Utils/Billing/InvoiceAmount";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import { PaymentIntentResult, Stripe, StripeError } from "@stripe/stripe-js";
 /*

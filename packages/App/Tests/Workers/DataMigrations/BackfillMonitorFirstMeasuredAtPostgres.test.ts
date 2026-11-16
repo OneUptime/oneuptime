@@ -13,7 +13,7 @@ import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
 /*
  * WHEN SOMETHING FIRST MEASURED A MONITOR, ON A MIGRATED POSTGRES (#8899).
  *
- * Monitor.firstMeasuredAt, added by 1809180900000-AddMonitorFirstMeasuredAt,
+ * Monitor.firstMeasuredAt, added by 1809181100000-AddMonitorFirstMeasuredAt,
  * is empty while nothing has measured a monitor, and the lists and status
  * pages say such a monitor is waiting for its first check. Only Postgres can
  * show:

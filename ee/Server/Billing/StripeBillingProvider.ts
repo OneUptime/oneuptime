@@ -991,6 +991,8 @@ export class StripeBillingProvider implements BillingProvider {
     quantity: number;
     isYearly: boolean;
     endTrialAt?: Date | undefined;
+    // False only for a master admin's move: see the payment method check below.
+    requirePaymentMethod?: boolean | undefined;
   }): Promise<{
     subscriptionId: string;
     meteredSubscriptionId: string;
@@ -1027,7 +1029,17 @@ export class StripeBillingProvider implements BillingProvider {
     logger.debug("Payment methods");
     logger.debug(paymentMethods);
 
-    if (paymentMethods.length === 0) {
+    /*
+     * A customer changing their own plan needs a payment method on file, so
+     * what the new plan owes can be collected. A master admin moving a
+     * project from the Admin Dashboard does not: onto Free or within a
+     * trial nothing is owed, and otherwise the change is prorated onto the
+     * next invoice (or, for a subscription that has to be replaced, an
+     * invoice raised now), which stays open until the customer adds one.
+     * The payment methods are still read, for the default getPaymentMethods
+     * promotes when there is one.
+     */
+    if (paymentMethods.length === 0 && data.requirePaymentMethod !== false) {
       logger.debug("No payment methods");
 
       throw new BadDataException(Errors.BillingService.NO_PAYMENTS_METHODS);

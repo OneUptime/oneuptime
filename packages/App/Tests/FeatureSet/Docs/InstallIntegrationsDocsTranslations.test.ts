@@ -307,6 +307,9 @@ const ADMIN_KEYS: Record<string, string> = {
   "Monitoring and status pages": "Monitoring and status pages",
   "Incident response": "Incident response",
   "Choose products one by one": "Choose products one by one",
+  // Settings > Data Retention: the limit on resolved incidents and alerts (#6941).
+  "Data Retention": "sideMenu.settingsDataRetention",
+  "Keep for at most": "Keep for at most",
 };
 
 // The bold words of a page that name the Admin Dashboard, paths included.
@@ -324,6 +327,7 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     "Choose products one by one",
   ],
   [TWILIO]: ["Admin Dashboard > Settings > Call and SMS"],
+  [SIZING]: ["Keep for at most", "Admin Dashboard → Settings → Data Retention"],
 };
 
 /*
