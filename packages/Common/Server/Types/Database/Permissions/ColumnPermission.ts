@@ -309,8 +309,9 @@ export default class ColumnPermissions {
    * the columns the create's own steps wrote, its hooks, the defaults and the
    * hashing (DatabaseService hands them over) - or one its own code marked on
    * this record for the person it writes as (ServerSetColumns). A value the
-   * caller sent there was refused before the hooks ran
-   * (checkComputedColumnsSentOnCreate), and is refused here again.
+   * caller sent there was dropped or refused before the hooks ran
+   * (checkComputedColumnsSentOnCreate); called without a list, as on a record
+   * the caller built, every such value is the caller's and is refused here.
    */
   @CaptureSpan()
   public static checkDataColumnPermissions<TBaseModel extends BaseModel>(
