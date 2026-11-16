@@ -1787,12 +1787,19 @@ jobs:
           # Ask AI, three loads each at 1280, 390 and 360 pixels, light and
           # dark: 25-27 seconds each locally (48 on a loaded machine) -
           # test-ask-ai-ui planned as 5.6, this group about 16.9.
+          # Security Page (15 tests, 0.6 minutes locally with its bundle,
+          # Chromium only: User Profile > Security's Two-factor authentication
+          # and Passkeys pages in English, German, Arabic and Persian, a new
+          # account in Persian dark, the regenerate dialog in German and the
+          # Arabic page on a phone, #8796) joined it on 2026-11-16, the group
+          # with the most room: about 17.7.
           - group: 22
             suites: >-
               test-journeys-ui
               test-reading-direction-ui
               test-ask-ai-ui
               test-kubernetes-pages-ui
+              test-security-page-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -2086,4 +2093,6 @@ jobs:
             output/playwright/database-pages-ui/test-results
             output/playwright/product-onboarding-ui/*.png
             output/playwright/product-onboarding-ui/test-results
+            output/playwright/security-page-ui/*.png
+            output/playwright/security-page-ui/test-results
           retention-days: 7
