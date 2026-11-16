@@ -29,6 +29,9 @@ import { FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME } from "./UptimeHistory
  *     or raise its alerts on it;
  *   - each monitor's type and first check.
  *
+ * A status page's uptime report reads the same first checks for the words
+ * it puts beside a resource it measured nothing for (issue #9030).
+ *
  * Every read is the caller's to fail: an SLO evaluation that cannot read
  * these measures nothing that tick, rather than measuring the monitor one
  * way this tick and the other way the next.
@@ -110,5 +113,66 @@ export default class MonitorMeasuredFrom {
     }
 
     return measuredFromByMonitorId;
+  }
+
+  /*
+   * Of these monitors, the ids of those nothing had checked by `at`: never
+   * measured (MonitorFirstCheck.isNeverMeasured), or first measured after
+   * it. What a status page's uptime report says of a resource it measured
+   * nothing for (issue #9030): "Not monitored yet", as the page says it of
+   * a monitor nothing has checked, rather than "Not monitored". A manual
+   * monitor is never waiting for a check, and one not found is not taken
+   * for one that is.
+   */
+  public static async getMonitorIdsNotCheckedBy(data: {
+    projectId: ObjectID;
+    monitorIds: Array<ObjectID>;
+    at: Date;
+  }): Promise<Set<string>> {
+    const notCheckedMonitorIds: Set<string> = new Set<string>();
+
+    if (data.monitorIds.length === 0) {
+      return notCheckedMonitorIds;
+    }
+
+    const monitors: Array<Monitor> = await MonitorService.findBy({
+      query: {
+        _id: QueryHelper.any(data.monitorIds),
+        projectId: data.projectId,
+      },
+      select: {
+        _id: true,
+        monitorType: true,
+        firstMeasuredAt: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const monitor of monitors) {
+      const monitorId: string | undefined = monitor.id?.toString();
+
+      if (!monitorId) {
+        continue;
+      }
+
+      const measuredFrom: MeasuredFrom = MonitorFirstCheck.getMeasuredFrom({
+        monitor: monitor,
+        isUptimeHistoryReady: true,
+      });
+
+      if (
+        measuredFrom === null ||
+        (measuredFrom instanceof Date &&
+          measuredFrom.getTime() > data.at.getTime())
+      ) {
+        notCheckedMonitorIds.add(monitorId);
+      }
+    }
+
+    return notCheckedMonitorIds;
   }
 }

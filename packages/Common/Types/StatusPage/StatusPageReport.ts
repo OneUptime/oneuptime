@@ -22,15 +22,30 @@
 export interface StatusPageReportItem {
   resourceName: string;
   totalIncidentCount: number;
-  uptimePercent: number;
+  /*
+   * The resource's uptime over the window, or null when nothing was measured
+   * for it in the window (issue #9030): a monitor nothing had checked yet,
+   * one whose monitoring was off the whole time, a monitor group none of
+   * whose monitors was measured. Such a resource has no uptime and no
+   * downtime - both read as a dash, as the status page reads its uptime -
+   * and is left out of every average above it.
+   */
+  uptimePercent: number | null;
   uptimePercentAsString: string;
   downtimeInHoursAndMinutes: string;
   /*
    * The downtime above in whole minutes, rounded up as it is written: what
    * a report in a subscriber's language writes its duration from
-   * (Utils/StatusPage/ReportText).
+   * (Utils/StatusPage/ReportText). Absent when nothing was measured.
    */
   downtimeInMinutes?: number | undefined;
+  /*
+   * For a resource nothing was measured for, what the status page says of
+   * its row instead of a status: "Not monitored yet" when nothing had
+   * checked its monitors by the end of the window, "Not monitored" when
+   * their monitoring was off. In the reader's language. Absent otherwise.
+   */
+  notMonitoredText?: string | undefined;
   /*
    * The group this resource is attached to directly. Empty string when the
    * resource is not in any group (it renders above the groups on the live page).
@@ -49,7 +64,11 @@ export interface StatusPageReportItem {
  * of resources the live status page rolls a group's uptime over.
  */
 export interface StatusPageReportGroupMetrics {
-  uptimePercent: number;
+  /*
+   * The average of the measured resources beneath the group; null - a dash
+   * - when nothing beneath it was measured, as on the live page.
+   */
+  uptimePercent: number | null;
   uptimePercentAsString: string;
   downtimeInHoursAndMinutes: string;
   // The downtime above in whole minutes, as StatusPageReportItem's.
@@ -89,6 +108,8 @@ export interface StatusPageReportRow {
    * Always 0 on a resource row.
    */
   totalResources: number;
+  // A resource row's notMonitoredText (StatusPageReportItem), when it has one.
+  notMonitoredText?: string | undefined;
 }
 
 export interface StatusPageReport {
@@ -106,7 +127,18 @@ export interface StatusPageReport {
   reportTimezone: string;
   totalResources: number;
   totalIncidents: number;
+  /*
+   * The average of the measured resources' uptime ("99.95%"); a dash when
+   * nothing on the page was measured in the window (issue #9030).
+   */
   averageUptimePercent: string;
+  /*
+   * Whether anything on the page was measured in the window, so that it has
+   * an average uptime. Absent on a report built without it, which reads as
+   * having one.
+   */
+  hasUptime?: boolean | undefined;
+  // A dash, as the uptime is, when nothing on the page was measured.
   totalDowntimeInHoursAndMinutes: string;
   // The total downtime above in whole minutes, as StatusPageReportItem's.
   totalDowntimeInMinutes?: number | undefined;
