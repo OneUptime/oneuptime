@@ -75,7 +75,7 @@ type BuildMappingHelpFunction = (
   sources: Array<CustomFieldMappingSourceInfo>,
 ) => string;
 
-const buildMappingHelp: BuildMappingHelpFunction = (
+export const buildMappingHelp: BuildMappingHelpFunction = (
   sources: Array<CustomFieldMappingSourceInfo>,
 ): string => {
   const sourceNames: string = sources
