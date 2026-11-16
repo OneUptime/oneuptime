@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "यह फ़िल्टर किन लॉग्स पर लागू होता है। severity, body, सेवा, या कस्टम विशेषताओं जैसे फ़ील्ड के साथ नियम बनाएँ।",
   "Which OID configured on this monitor should this criteria evaluate?": "इस मॉनिटर पर कॉन्फ़िगर किए गए किस OID का मूल्यांकन इस मानदंड को करना चाहिए?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "लॉग के किन हिस्सों को स्क्रब करना है: लॉग body (संदेश), विशेषता मान, या दोनों।",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "स्पैन के किन हिस्सों को स्क्रब करना है: स्पैन नाम, विशेषता मान, घटना विशेषता मान, या सभी।",
   "Which probe do you want to use?": "आप किस प्रोब का उपयोग करना चाहते हैं?",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "यह अनुमति किन संसाधनों पर लागू हो: सभी (अनुशंसित), जिनकी मालिक यह टीम है, या जिन पर कुछ लेबल हैं।",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "यह भूमिका किन संसाधनों पर लागू हो: सभी (अनुशंसित), जिनकी मालिक यह टीम है, या जिन पर कुछ लेबल हैं।",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "ऑन-कॉल के दौरान इस गंभीरता का कोई घटना एपिसोड {{name}} को सौंपे जाने पर उन्हें कैसे सूचित किया जाता है।",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "ऑन-कॉल के दौरान इस गंभीरता की कोई घटना {{name}} को सौंपी जाने पर उन्हें कैसे सूचित किया जाता है।",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "कोई घटना, अलर्ट या उनका कोई एपिसोड {{name}} को सौंपे जाने पर, हर गंभीरता के लिए उन्हें कैसे सूचित किया जाता है।",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "मिलान स्पैन नामों, विशेषताओं और इवेंट विशेषताओं में [REDACTED] से बदल दिए जाते हैं।",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "मिलान लॉग बॉडी और विशेषताओं में [REDACTED] से बदल दिए जाते हैं।",
   "Named after the pattern type until you type a name of your own.": "जब तक आप अपना नाम नहीं लिखते, नाम पैटर्न प्रकार के आधार पर रखा जाता है।",
   "On-call rules": "ऑन-कॉल नियम",
@@ -55979,5 +55977,8 @@
   "Already paged about this by {{name}}, so not paged again.": "इसके लिए {{name}} ने पहले ही पेज कर दिया है, इसलिए दोबारा पेज नहीं किया गया।",
   "Merged Into On-Call Log ID": "जिस ऑन-कॉल लॉग में मिलाया गया उसकी ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "किसी अन्य ऑन-कॉल नीति का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।"
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।",
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "मिलान स्पैन नामों, स्थिति संदेशों, विशेषताओं, इवेंट और लिंक में [REDACTED] से बदल दिए जाते हैं।",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "जो कुंजियाँ संवेदनशील लगती हैं, उनके मान विशेषताओं में और JSON लॉग बॉडी में [REDACTED] से बदल दिए जाते हैं।",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "स्पैन के किन हिस्सों को स्क्रब करना है: स्पैन नाम, विशेषता और लिंक विशेषता मान, इवेंट विशेषता मान, या सभी, स्थिति संदेश और इवेंट नामों सहित।"
 }

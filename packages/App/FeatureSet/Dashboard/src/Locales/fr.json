@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "À quels journaux ce filtre s'applique. Créez des règles avec des champs comme la gravité, le corps, le service ou des attributs personnalisés.",
   "Which OID configured on this monitor should this criteria evaluate?": "Quel OID configuré sur ce moniteur ce critère doit-il évaluer ?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Quelles parties du journal masquer : le corps du journal (message), les valeurs d'attributs, ou les deux.",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Quelles parties du span masquer : le nom du span, les valeurs d'attributs, les valeurs d'attributs d'événement, ou toutes.",
   "Which probe do you want to use?": "Quelle sonde souhaitez-vous utiliser ?",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "Les ressources concernées par cette autorisation : toutes (recommandé), celles que possède cette équipe, ou celles portant certaines étiquettes.",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "Les ressources concernées par ce rôle : toutes (recommandé), celles que possède cette équipe, ou celles portant certaines étiquettes.",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Comment {{name}} est notifié lorsqu'un épisode d'incident de cette gravité lui est attribué pendant son astreinte.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Comment {{name}} est notifié lorsqu'un incident de cette gravité lui est attribué pendant son astreinte.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Comment {{name}} est notifié, pour chaque gravité, lorsqu'un incident, une alerte ou l'un de leurs épisodes lui est attribué.",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "Les correspondances sont remplacées par [REDACTED] dans les noms de span, les attributs et les attributs d'événement.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "Les correspondances sont remplacées par [REDACTED] dans le corps du journal et ses attributs.",
   "Named after the pattern type until you type a name of your own.": "Nommée d'après le type de modèle jusqu'à ce que vous saisissiez votre propre nom.",
   "On-call rules": "Règles d'astreinte",
@@ -55979,5 +55977,8 @@
   "Already paged about this by {{name}}, so not paged again.": "Déjà appelé à ce sujet par {{name}}, donc pas appelé à nouveau.",
   "Merged Into On-Call Log ID": "ID du journal d'astreinte dans lequel il a été fusionné",
   "Their page from another on-call policy is over, so this policy pages them now.": "L'appel d'une autre politique d'astreinte est terminé, donc cette politique appelle elle-même maintenant.",
-  "Their page from {{name}} is over, so this policy pages them now.": "L'appel de {{name}} est terminé, donc cette politique appelle elle-même maintenant."
+  "Their page from {{name}} is over, so this policy pages them now.": "L'appel de {{name}} est terminé, donc cette politique appelle elle-même maintenant.",
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Les correspondances sont remplacées par [REDACTED] dans les noms de span, les messages d'état, les attributs, les événements et les liens.",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Les valeurs des clés qui semblent sensibles, dans les attributs et dans un corps de journal JSON, sont remplacées par [REDACTED].",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Quelles parties du span masquer : le nom du span, les valeurs d'attributs et d'attributs de lien, les valeurs d'attributs d'événement, ou toutes, message d'état et noms d'événement compris."
 }

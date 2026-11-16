@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "이 필터가 적용되는 로그입니다. 심각도, 본문, 서비스 또는 사용자 지정 속성과 같은 필드로 규칙을 만드세요.",
   "Which OID configured on this monitor should this criteria evaluate?": "이 모니터에 구성된 어떤 OID를 이 기준이 평가해야 합니까?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "로그에서 마스킹할 부분: 로그 본문(메시지), 속성 값 또는 둘 다.",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "스팬에서 마스킹할 부분: 스팬 이름, 속성 값, 이벤트 속성 값 또는 전체.",
   "Which probe do you want to use?": "어떤 프로브를 사용하시겠습니까?",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "이 권한이 적용되는 리소스입니다: 전체(권장), 이 팀이 소유한 리소스 또는 특정 레이블이 있는 리소스.",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "이 역할이 적용되는 리소스입니다: 전체(권장), 이 팀이 소유한 리소스 또는 특정 레이블이 있는 리소스.",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "온콜 중에 이 심각도의 인시던트 에피소드가 {{name}}에게 할당되었을 때 알림을 받는 방법입니다.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "온콜 중에 이 심각도의 인시던트가 {{name}}에게 할당되었을 때 알림을 받는 방법입니다.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "인시던트, 경고 또는 그 에피소드가 {{name}}에게 할당되었을 때 심각도별로 알림을 받는 방법입니다.",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "일치 항목은 스팬 이름, 속성, 이벤트 속성에서 [REDACTED]로 바뀝니다.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "일치 항목은 로그 본문과 속성에서 [REDACTED]로 바뀝니다.",
   "Named after the pattern type until you type a name of your own.": "직접 이름을 입력할 때까지 패턴 유형에 따라 이름이 지정됩니다.",
   "On-call rules": "온콜 규칙",
@@ -55979,5 +55977,8 @@
   "Already paged about this by {{name}}, so not paged again.": "이 건으로 {{name}}에서 이미 호출되었으므로 다시 호출하지 않았습니다.",
   "Merged Into On-Call Log ID": "병합된 온콜 로그 ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "다른 온콜 정책의 호출이 끝났으므로 이제 이 정책이 직접 호출합니다.",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}}의 호출이 끝났으므로 이제 이 정책이 직접 호출합니다."
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}}의 호출이 끝났으므로 이제 이 정책이 직접 호출합니다.",
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "일치 항목은 스팬 이름, 상태 메시지, 속성, 이벤트, 링크에서 [REDACTED]로 바뀝니다.",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "민감해 보이는 키의 값은 속성과 JSON 로그 본문에서 [REDACTED]로 바뀝니다.",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "스팬에서 마스킹할 부분: 스팬 이름, 속성 값과 링크 속성 값, 이벤트 속성 값 또는 상태 메시지와 이벤트 이름까지 포함한 전체."
 }

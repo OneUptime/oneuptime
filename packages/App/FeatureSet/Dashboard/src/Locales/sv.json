@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "Vilka loggar detta filter gäller. Bygg regler med fält som allvarlighetsgrad, brödtext, tjänst eller anpassade attribut.",
   "Which OID configured on this monitor should this criteria evaluate?": "Vilken OID som konfigurerats på denna monitor ska detta kriterium utvärdera?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Vilka delar av loggen som ska maskeras: loggens brödtext (meddelande), attributvärden eller båda.",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Vilka delar av spannet som ska maskeras: spannamn, attributvärden, händelseattributvärden eller alla.",
   "Which probe do you want to use?": "Vilken sond vill du använda?",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "Vilka resurser behörigheten gäller: alla (rekommenderas), de som teamet äger eller de med vissa etiketter.",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "Vilka resurser rollen gäller: alla (rekommenderas), de som teamet äger eller de med vissa etiketter.",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Hur {{name}} aviseras när personen tilldelas en incidentepisod med den här allvarlighetsgraden under sin jour.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Hur {{name}} aviseras när personen tilldelas en incident med den här allvarlighetsgraden under sin jour.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Hur {{name}} aviseras, för varje allvarlighetsgrad, när personen tilldelas en incident, ett larm eller någon av deras episoder.",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "Träffar ersätts med [REDACTED] i span-namn, attribut och händelseattribut.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "Träffar ersätts med [REDACTED] i loggens brödtext och attribut.",
   "Named after the pattern type until you type a name of your own.": "Namngiven efter mönstertypen tills du skriver ett eget namn.",
   "On-call rules": "Jourregler",
@@ -55979,5 +55977,8 @@
   "Already paged about this by {{name}}, so not paged again.": "Redan larmad om detta av {{name}}, så inte larmad igen.",
   "Merged Into On-Call Log ID": "ID för jourloggen som detta slogs ihop med",
   "Their page from another on-call policy is over, so this policy pages them now.": "Larmet från en annan jourpolicy är över, så den här policyn larmar nu själv.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Larmet från {{name}} är över, så den här policyn larmar nu själv."
+  "Their page from {{name}} is over, so this policy pages them now.": "Larmet från {{name}} är över, så den här policyn larmar nu själv.",
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Träffar ersätts med [REDACTED] i span-namn, statusmeddelanden, attribut, händelser och länkar.",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Värdena för nycklar som ser känsliga ut ersätts med [REDACTED] i attribut och i en loggkropp i JSON.",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Vilka delar av spannet som ska maskeras: spannamn, värden för attribut och länkattribut, händelseattributvärden eller alla, även statusmeddelandet och händelsenamnen."
 }
