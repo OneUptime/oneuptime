@@ -1,9 +1,10 @@
 # The App as its production image runs it (packages/App/Dockerfile.tpl's
 # community stage): node:26-alpine3.24 (musl), npm ci of Common and App,
-# the sources at /usr/src/Common and /usr/src/app, the node user, transpile-only
-# ts-node and the image's own CMD. Left out: the frontends' production builds
-# (the Dashboard's bundle is copied in from the checkout) and the build-time
-# type check.
+# the sources at /usr/src/Common and /usr/src/app, compiled to JavaScript
+# beside them as the image's build compiles them, the node user and the
+# image's own CMD. Left out: the frontends' production builds (the
+# Dashboard's bundle is copied in from the checkout), the build-time type
+# check and the prune of the packages the App does not reach.
 FROM public.ecr.aws/docker/library/node:26-alpine3.24
 RUN apk upgrade --no-cache \
     && apk add --no-cache bash curl \
@@ -19,8 +20,8 @@ RUN npm ci --prefer-offline --no-audit --no-fund && rm -rf node_modules/aedes/ex
 RUN apk del .gyp
 COPY packages/Common /usr/src/Common
 COPY --chown=1000:1000 packages/App /usr/src/app
+RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common
 ENV PRODUCTION=true
 ENV IS_ENTERPRISE_EDITION=false
 USER node
-ENV TS_NODE_TRANSPILE_ONLY=1
-CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
+CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Index.js" ]

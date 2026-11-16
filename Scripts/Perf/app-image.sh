@@ -8,8 +8,11 @@
 #
 #   app-image.sh build [commit]   images "$PERF_PREFIX-app:branch" (this
 #                                 checkout) and ":base" (commit, default the
-#                                 merge base with origin/main); both serve
-#                                 this checkout's built Dashboard
+#                                 merge base with origin/main), each built by
+#                                 its own commit's image/App.Dockerfile
+#                                 (this checkout's for a commit without
+#                                 one); both serve this checkout's built
+#                                 Dashboard
 #   app-image.sh run <tag>        stops the App stack.sh runs (or a running
 #                                 image), runs this one on the host network
 #                                 with $PERF_DIR/app.env and the inspector on
@@ -71,6 +74,12 @@ case "${1:-}" in
       | tar -x -C "$PERF_DIR/image/ctx-branch"
     context "$PERF_DIR/image/ctx-base"
     git -C "$REPO" archive "$commit" packages/App packages/Common | tar -x -C "$PERF_DIR/image/ctx-base"
+    # The base as its own commit's kit builds it, where it has one: a change to
+    # how the image runs the App (precompiled JavaScript, where it ran
+    # TypeScript through ts-node) is then measured against the image before it.
+    git -C "$REPO" show "$commit:Scripts/Perf/image/App.Dockerfile" >"$PERF_DIR/image/ctx-base/Dockerfile.own" 2>/dev/null \
+      && mv "$PERF_DIR/image/ctx-base/Dockerfile.own" "$PERF_DIR/image/ctx-base/Dockerfile"
+    rm -f "$PERF_DIR/image/ctx-base/Dockerfile.own"
     docker build -q -t "$NAME:base" "$PERF_DIR/image/ctx-base"
     docker build -q -t "$NAME:branch" "$PERF_DIR/image/ctx-branch"
     echo "built $NAME:base ($commit) and $NAME:branch"
@@ -101,7 +110,7 @@ case "${1:-}" in
     echo "stopped"
     ;;
   *)
-    sed -n '2,24p' "${BASH_SOURCE[0]}"
+    sed -n '2,25p' "${BASH_SOURCE[0]}"
     exit 1
     ;;
 esac
