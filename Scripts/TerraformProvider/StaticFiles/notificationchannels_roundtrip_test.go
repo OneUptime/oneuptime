@@ -6,16 +6,21 @@ package provider
  * provider's real protocol server, as terraform plan, apply, refresh and
  * import drive it, against a fake API that keeps and answers them as
  * OneUptime does: the phone number, the mail server's address, its port and
- * its sender wrapped in their types, the credentials decrypted for a key
- * that may read them, and the project's defaults for SMS and calls set by
- * the server (ProjectCallSMSConfigService, TwilioConfigDefaults).
+ * its sender wrapped in their types, the Auth Token decrypted for a key that
+ * may read it, the mail server's credentials never answered, and the
+ * project's defaults for SMS and calls set by the server
+ * (ProjectCallSMSConfigService, TwilioConfigDefaults).
  *
  * What the docs (self-hosted/twilio-integration.md, emails/smtp.md) say a
  * configuration does is held here:
  *
- *   - the Auth Token and the password are sent on create and by an update
- *     that changes them, and read back, so a plan after an apply, a refresh
- *     or an import changes nothing;
+ *   - the Auth Token is sent on create and by an update that changes it, and
+ *     read back, so a plan after an apply, a refresh or an import changes
+ *     nothing;
+ *   - the mail server's credentials are write-only (OneUptime/oneuptime#9065):
+ *     sent on create and by an update that changes them, never asked for and
+ *     never answered, so the state keeps the ones configured, an import has
+ *     none, and the apply after an import sends the configured one again;
  *   - a configuration that leaves is_project_default out sends false, so
  *     OneUptime does not make it the project's default as it makes the first
  *     config of a project that says nothing;
@@ -64,6 +69,19 @@ const (
 	callSMSConfigTable = "/call-sms-config"
 	smtpConfigTable    = "/smtp-config"
 )
+
+// The mail server's credentials. They are write-only since
+// OneUptime/oneuptime#9065: OneUptime refuses a read that asks for one, and
+// answers none.
+var smtpWriteOnlyCredentials = []string{
+	"password",
+	"clientSecret",
+	"amazonSesSecretAccessKey",
+	"sendgridApiKey",
+	"mailgunApiKey",
+	"postmarkServerToken",
+	"resendApiKey",
+}
 
 // The columns OneUptime answers wrapped in their types.
 var ownChannelsWrapped = map[string]string{
@@ -206,6 +224,9 @@ func (a *ownChannelsAPI) answer(table, id string) map[string]interface{} {
 		"updatedAt": map[string]interface{}{"_type": "DateTime", "value": ownChannelsCreatedAt},
 	}
 	for key, value := range a.rows[table][id] {
+		if table == smtpConfigTable && containsString(smtpWriteOnlyCredentials, key) {
+			continue
+		}
 		if wrapper, wrapped := ownChannelsWrapped[key]; wrapped && value != nil {
 			answer[key] = map[string]interface{}{"_type": wrapper, "value": value}
 			continue
@@ -271,6 +292,16 @@ func (a *ownChannelsAPI) handle(w http.ResponseWriter, r *http.Request) {
 			}
 			switch {
 			case r.Method == http.MethodPost && strings.HasSuffix(rest, "/get-item"):
+				if table == smtpConfigTable {
+					selected, _ := body["select"].(map[string]interface{})
+					for _, credential := range smtpWriteOnlyCredentials {
+						if _, asked := selected[credential]; asked {
+							a.t.Errorf("the read asked for %s, which OneUptime refuses: nobody reads it back", credential)
+							a.reply(w, http.StatusBadRequest, map[string]interface{}{"message": "You do not have permission to read " + credential})
+							return
+						}
+					}
+				}
 				a.reply(w, http.StatusOK, map[string]interface{}{"data": a.answer(table, id)})
 			case r.Method == http.MethodPut && id == rest:
 				phone, ok := a.keepPhone(data)
@@ -596,12 +627,21 @@ func TestSMTPConfig_AppliesSendsThePasswordAndPlansNoChange(t *testing.T) {
 		t.Fatalf("the plan after the update changes %v", changed)
 	}
 
+	// Imported, it has no password: nothing reads one back. The plan sets the
+	// configured one, the apply sends it alone, and then nothing changes.
 	imported := tf.importResource(smtpConfigType, id)
-	if got := stringAttribute(t, imported.state, "password"); got != "password-two" {
-		t.Fatalf("after the import, the state's password is %q", got)
+	if got := stringAttribute(t, imported.state, "password"); got != "" {
+		t.Fatalf("after the import, the state's password is %q, which nothing reads back", got)
 	}
-	if changed := tf.changes(smtpConfigType, imported, rotated); len(changed) > 0 {
-		t.Fatalf("the plan after the import changes %v", changed)
+	if changed := withoutServerTimes(tf.changes(smtpConfigType, imported, rotated)); len(changed) != 1 || changed[0] != "password" {
+		t.Fatalf("the plan after the import changes %v, not the password alone", changed)
+	}
+	reapplied := tf.apply(smtpConfigType, imported, rotated)
+	if update := api.lastSent(t, smtpConfigTable); len(update) != 1 || update["password"] != "password-two" {
+		t.Fatalf("the apply after the import sent %v, not the configured password alone", update)
+	}
+	if changed := tf.changes(smtpConfigType, tf.refresh(smtpConfigType, reapplied), rotated); len(changed) > 0 {
+		t.Fatalf("the plan after that apply changes %v", changed)
 	}
 
 	// The password, the OAuth client secret and the providers' keys are
