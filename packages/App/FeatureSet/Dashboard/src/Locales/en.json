@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "Already paged about this by {{name}}, so not paged again.",
   "Merged Into On-Call Log ID": "Merged Into On-Call Log ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "Their page from another on-call policy is over, so this policy pages them now.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Their page from {{name}} is over, so this policy pages them now."
+  "Their page from {{name}} is over, so this policy pages them now.": "Their page from {{name}} is over, so this policy pages them now.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "Already paged about this through the workflow {{name}}, so not paged again.",
+  "Already paged directly about this by {{name}}, so not paged again.": "Already paged directly about this by {{name}}, so not paged again.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "Their page from another on-call policy is over, so they are paged directly now.",
+  "Their page from {{name}} is over, so they are paged directly now.": "Their page from {{name}} is over, so they are paged directly now."
 }

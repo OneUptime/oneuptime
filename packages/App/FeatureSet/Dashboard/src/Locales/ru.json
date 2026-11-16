@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "Уже вызван по этому поводу политикой {{name}}, поэтому повторно не вызывается.",
   "Merged Into On-Call Log ID": "ID журнала дежурства, с которым объединено",
   "Their page from another on-call policy is over, so this policy pages them now.": "Вызов другой политикой дежурства завершён, поэтому теперь вызывает эта политика.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Вызов политикой {{name}} завершён, поэтому теперь вызывает эта политика."
+  "Their page from {{name}} is over, so this policy pages them now.": "Вызов от {{name}} завершён, поэтому теперь вызывает эта политика.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "Уже вызван по этому поводу через рабочий процесс {{name}}, поэтому повторно не вызывается.",
+  "Already paged directly about this by {{name}}, so not paged again.": "Уже вызван по этому поводу напрямую пользователем {{name}}, поэтому повторно не вызывается.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "Вызов другой политикой дежурства завершён, поэтому теперь вызывается напрямую.",
+  "Their page from {{name}} is over, so they are paged directly now.": "Вызов от {{name}} завершён, поэтому теперь вызывается напрямую."
 }

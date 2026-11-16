@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "Hierzu bereits von {{name}} alarmiert, daher nicht erneut alarmiert.",
   "Merged Into On-Call Log ID": "ID des Bereitschaftsprotokolls, in das dies zusammengeführt wurde",
   "Their page from another on-call policy is over, so this policy pages them now.": "Die Alarmierung durch eine andere Bereitschaftsrichtlinie ist beendet, daher alarmiert diese Richtlinie jetzt selbst.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Die Alarmierung durch {{name}} ist beendet, daher alarmiert diese Richtlinie jetzt selbst."
+  "Their page from {{name}} is over, so this policy pages them now.": "Die Alarmierung durch {{name}} ist beendet, daher alarmiert diese Richtlinie jetzt selbst.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "Hierzu bereits über den Arbeitsablauf {{name}} alarmiert, daher nicht erneut alarmiert.",
+  "Already paged directly about this by {{name}}, so not paged again.": "Hierzu bereits direkt von {{name}} alarmiert, daher nicht erneut alarmiert.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "Die Alarmierung durch eine andere Bereitschaftsrichtlinie ist beendet, daher werden sie jetzt direkt alarmiert.",
+  "Their page from {{name}} is over, so they are paged directly now.": "Die Alarmierung durch {{name}} ist beendet, daher werden sie jetzt direkt alarmiert."
 }

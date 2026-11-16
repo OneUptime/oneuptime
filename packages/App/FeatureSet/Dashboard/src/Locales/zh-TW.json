@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "{{name}} 已為此呼叫過，因此不再重複呼叫。",
   "Merged Into On-Call Log ID": "合併到的待命日誌 ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "另一個待命策略的呼叫已結束，因此現在由此策略自行呼叫。",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} 的呼叫已結束，因此現在由此策略自行呼叫。"
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} 的呼叫已結束，因此現在由此策略自行呼叫。",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "工作流程 {{name}} 已為此呼叫過，因此不再重複呼叫。",
+  "Already paged directly about this by {{name}}, so not paged again.": "{{name}} 已為此直接呼叫過，因此不再重複呼叫。",
+  "Their page from another on-call policy is over, so they are paged directly now.": "另一個待命策略的呼叫已結束，因此現在直接呼叫。",
+  "Their page from {{name}} is over, so they are paged directly now.": "{{name}} 的呼叫已結束，因此現在直接呼叫。"
 }

@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "Allerede kalt opp om dette av {{name}}, så ikke kalt opp igjen.",
   "Merged Into On-Call Log ID": "ID for vaktloggen dette ble slått sammen med",
   "Their page from another on-call policy is over, so this policy pages them now.": "Oppkallingen fra en annen vaktpolicy er over, så denne policyen kaller opp selv nå.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Oppkallingen fra {{name}} er over, så denne policyen kaller opp selv nå."
+  "Their page from {{name}} is over, so this policy pages them now.": "Oppkallingen fra {{name}} er over, så denne policyen kaller opp selv nå.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "Allerede kalt opp om dette via arbeidsflyten {{name}}, så ikke kalt opp igjen.",
+  "Already paged directly about this by {{name}}, so not paged again.": "Allerede kalt opp direkte om dette av {{name}}, så ikke kalt opp igjen.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "Oppkallingen fra en annen vaktpolicy er over, så de kalles nå opp direkte.",
+  "Their page from {{name}} is over, so they are paged directly now.": "Oppkallingen fra {{name}} er over, så de kalles nå opp direkte."
 }

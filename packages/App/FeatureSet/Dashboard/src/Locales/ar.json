@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "استدعاه {{name}} بالفعل لهذا الأمر، لذا لم يُستدعَ مرة أخرى.",
   "Merged Into On-Call Log ID": "معرّف سجل المناوبة الذي دُمج فيه",
   "Their page from another on-call policy is over, so this policy pages them now.": "انتهى استدعاء سياسة المناوبة الأخرى، لذا تستدعي هذه السياسة الآن بنفسها.",
-  "Their page from {{name}} is over, so this policy pages them now.": "انتهى استدعاء {{name}}، لذا تستدعي هذه السياسة الآن بنفسها."
+  "Their page from {{name}} is over, so this policy pages them now.": "انتهى استدعاء {{name}}، لذا تستدعي هذه السياسة الآن بنفسها.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "استُدعي بالفعل لهذا الأمر عبر سير العمل {{name}}، لذا لم يُستدعَ مرة أخرى.",
+  "Already paged directly about this by {{name}}, so not paged again.": "استدعاه {{name}} مباشرةً بالفعل لهذا الأمر، لذا لم يُستدعَ مرة أخرى.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "انتهى استدعاء سياسة المناوبة الأخرى، لذا يُستدعى الآن مباشرةً.",
+  "Their page from {{name}} is over, so they are paged directly now.": "انتهى استدعاء {{name}}، لذا يُستدعى الآن مباشرةً."
 }

@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "Redan larmad om detta av {{name}}, så inte larmad igen.",
   "Merged Into On-Call Log ID": "ID för jourloggen som detta slogs ihop med",
   "Their page from another on-call policy is over, so this policy pages them now.": "Larmet från en annan jourpolicy är över, så den här policyn larmar nu själv.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Larmet från {{name}} är över, så den här policyn larmar nu själv."
+  "Their page from {{name}} is over, so this policy pages them now.": "Larmet från {{name}} är över, så den här policyn larmar nu själv.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "Redan larmad om detta via arbetsflödet {{name}}, så inte larmad igen.",
+  "Already paged directly about this by {{name}}, so not paged again.": "Redan larmad direkt om detta av {{name}}, så inte larmad igen.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "Larmet från en annan jourpolicy är över, så de larmas nu direkt.",
+  "Their page from {{name}} is over, so they are paged directly now.": "Larmet från {{name}} är över, så de larmas nu direkt."
 }

@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "이 건으로 {{name}}에서 이미 호출되었으므로 다시 호출하지 않았습니다.",
   "Merged Into On-Call Log ID": "병합된 온콜 로그 ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "다른 온콜 정책의 호출이 끝났으므로 이제 이 정책이 직접 호출합니다.",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}}의 호출이 끝났으므로 이제 이 정책이 직접 호출합니다."
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}}의 호출이 끝났으므로 이제 이 정책이 직접 호출합니다.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "이 건으로 워크플로 {{name}}을(를) 통해 이미 호출되었으므로 다시 호출하지 않았습니다.",
+  "Already paged directly about this by {{name}}, so not paged again.": "이 건으로 {{name}}에게서 이미 직접 호출되었으므로 다시 호출하지 않았습니다.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "다른 온콜 정책의 호출이 끝났으므로 이제 직접 호출됩니다.",
+  "Their page from {{name}} is over, so they are paged directly now.": "{{name}}의 호출이 끝났으므로 이제 직접 호출됩니다."
 }

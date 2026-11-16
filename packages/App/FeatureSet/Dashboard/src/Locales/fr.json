@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "Déjà appelé à ce sujet par {{name}}, donc pas appelé à nouveau.",
   "Merged Into On-Call Log ID": "ID du journal d'astreinte dans lequel il a été fusionné",
   "Their page from another on-call policy is over, so this policy pages them now.": "L'appel d'une autre politique d'astreinte est terminé, donc cette politique appelle elle-même maintenant.",
-  "Their page from {{name}} is over, so this policy pages them now.": "L'appel de {{name}} est terminé, donc cette politique appelle elle-même maintenant."
+  "Their page from {{name}} is over, so this policy pages them now.": "L'appel de {{name}} est terminé, donc cette politique appelle elle-même maintenant.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "Déjà appelé à ce sujet via le flux de travail {{name}}, donc pas appelé à nouveau.",
+  "Already paged directly about this by {{name}}, so not paged again.": "Déjà appelé directement à ce sujet par {{name}}, donc pas appelé à nouveau.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "L'appel d'une autre politique d'astreinte est terminé, donc la personne est désormais appelée directement.",
+  "Their page from {{name}} is over, so they are paged directly now.": "L'appel de {{name}} est terminé, donc la personne est désormais appelée directement."
 }

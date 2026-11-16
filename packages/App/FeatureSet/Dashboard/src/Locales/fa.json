@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "پیش‌تر {{name}} برای این فراخوانده بود، پس دوباره فراخوانده نشد.",
   "Merged Into On-Call Log ID": "شناسه گزارش آنکالی که در آن ادغام شد",
   "Their page from another on-call policy is over, so this policy pages them now.": "فراخوانی سیاست آنکال دیگر تمام شده است، پس این سیاست اکنون خودش فرامی‌خواند.",
-  "Their page from {{name}} is over, so this policy pages them now.": "فراخوانی {{name}} تمام شده است، پس این سیاست اکنون خودش فرامی‌خواند."
+  "Their page from {{name}} is over, so this policy pages them now.": "فراخوانی {{name}} تمام شده است، پس این سیاست اکنون خودش فرامی‌خواند.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "پیش‌تر از طریق گردش کاری {{name}} برای این فراخوانده شده بود، پس دوباره فراخوانده نشد.",
+  "Already paged directly about this by {{name}}, so not paged again.": "پیش‌تر {{name}} مستقیماً برای این فراخوانده بود، پس دوباره فراخوانده نشد.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "فراخوانی سیاست آنکال دیگر تمام شده است، پس اکنون مستقیماً فراخوانده می‌شود.",
+  "Their page from {{name}} is over, so they are paged directly now.": "فراخوانی {{name}} تمام شده است، پس اکنون مستقیماً فراخوانده می‌شود."
 }

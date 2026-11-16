@@ -2,7 +2,9 @@ import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolic
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
   ON_CALL_PAGE_MERGE_UNNAMED_POLICY,
-  readOnCallPageMergedMessage,
+  OnCallPageCoverKind,
+  OnCallPageCoverName,
+  readOnCallPageMergedLine,
 } from "../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 import { readAwayUntil } from "../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import {
@@ -540,6 +542,34 @@ const isSaidInItsOwnWords: (input: OnCallStepFeedTextInput) => boolean = (
   );
 };
 
+/*
+ * What a merged page's line says is paging them already (OnCallPageMerge):
+ * "on-call policy **Payments**", or - merged into a direct page (#8859) -
+ * "**Jane Doe**", who paged them from a chat, or "workflow **Nightly
+ * Checks**". A line that names no policy, or cannot be read, says "another
+ * on-call policy", unbolded: it is no name.
+ */
+const getAlreadyPagedBy: (statusMessage: string | undefined) => MarkdownText = (
+  statusMessage: string | undefined,
+): MarkdownText => {
+  const by: OnCallPageCoverName | null =
+    readOnCallPageMergedLine(statusMessage);
+
+  if (by?.name && by.kind === OnCallPageCoverKind.PersonPage) {
+    return mdText`**${by.name}**`;
+  }
+
+  if (by?.name && by.kind === OnCallPageCoverKind.WorkflowPage) {
+    return mdText`workflow **${by.name}**`;
+  }
+
+  if (by?.name) {
+    return mdText`on-call policy **${by.name}**`;
+  }
+
+  return mdText`${ON_CALL_PAGE_MERGE_UNNAMED_POLICY}`;
+};
+
 // Who was (or was not) paged, by which policy, at which rule.
 const getStepHeadline: (input: OnCallStepFeedTextInput) => MarkdownText = (
   input: OnCallStepFeedTextInput,
@@ -627,11 +657,11 @@ const getStepHeadline: (input: OnCallStepFeedTextInput) => MarkdownText = (
     case OnCallDutyExecutionLogTimelineStatus.NotificationSent:
       return mdText`${policy} paged ${recipient}${via} at ${rule}.`;
     /*
-     * Their page was merged into their open page from another policy's run
+     * Their page was merged into their open page from another run
      * (OnCallPageMerge): that page reaches them for this one too.
      */
     case OnCallDutyExecutionLogTimelineStatus.AlreadyPaged:
-      return mdText`${policy} did not page ${recipient} again at ${rule}: on-call policy **${readOnCallPageMergedMessage(input.statusMessage) || ON_CALL_PAGE_MERGE_UNNAMED_POLICY}** is paging them about this already.`;
+      return mdText`${policy} did not page ${recipient} again at ${rule}: ${getAlreadyPagedBy(input.statusMessage)} is paging them about this already.`;
     default:
       return mdText`${policy} is paging ${recipient} at ${rule}.`;
   }
@@ -839,6 +869,12 @@ const getDirectPageStepHeadline: (
       return mdText`${pager} did not page ${recipient}${via}.`;
     case OnCallDutyExecutionLogTimelineStatus.NotificationSent:
       return mdText`${pager} paged ${recipient}${channels}${via}.`;
+    /*
+     * A workflow's page of them was merged into their open page from
+     * another run (OnCallPageMerge, #8859): that page reaches them for it.
+     */
+    case OnCallDutyExecutionLogTimelineStatus.AlreadyPaged:
+      return mdText`${pager} did not page ${recipient} again${via}: ${getAlreadyPagedBy(input.statusMessage)} is paging them about this already.`;
     default:
       return mdText`${pager} is paging ${recipient}${via}.`;
   }

@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "Hierover al opgeroepen door {{name}}, dus niet opnieuw opgeroepen.",
   "Merged Into On-Call Log ID": "ID van het bereikbaarheidslogboek waarin dit is samengevoegd",
   "Their page from another on-call policy is over, so this policy pages them now.": "De oproep van een ander bereikbaarheidsbeleid is voorbij, dus dit beleid roept nu zelf op.",
-  "Their page from {{name}} is over, so this policy pages them now.": "De oproep van {{name}} is voorbij, dus dit beleid roept nu zelf op."
+  "Their page from {{name}} is over, so this policy pages them now.": "De oproep van {{name}} is voorbij, dus dit beleid roept nu zelf op.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "Hierover al opgeroepen via de workflow {{name}}, dus niet opnieuw opgeroepen.",
+  "Already paged directly about this by {{name}}, so not paged again.": "Hierover al rechtstreeks opgeroepen door {{name}}, dus niet opnieuw opgeroepen.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "De oproep van een ander bereikbaarheidsbeleid is voorbij, dus ze worden nu rechtstreeks opgeroepen.",
+  "Their page from {{name}} is over, so they are paged directly now.": "De oproep van {{name}} is voorbij, dus ze worden nu rechtstreeks opgeroepen."
 }

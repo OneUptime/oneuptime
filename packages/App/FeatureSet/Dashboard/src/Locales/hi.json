@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "इसके लिए {{name}} ने पहले ही पेज कर दिया है, इसलिए दोबारा पेज नहीं किया गया।",
   "Merged Into On-Call Log ID": "जिस ऑन-कॉल लॉग में मिलाया गया उसकी ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "किसी अन्य ऑन-कॉल नीति का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।"
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} का पेज समाप्त हो गया है, इसलिए अब यह नीति स्वयं पेज करती है।",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "इसके लिए वर्कफ़्लो {{name}} के ज़रिए पहले ही पेज किया जा चुका है, इसलिए दोबारा पेज नहीं किया गया।",
+  "Already paged directly about this by {{name}}, so not paged again.": "इसके लिए {{name}} ने पहले ही सीधे पेज कर दिया है, इसलिए दोबारा पेज नहीं किया गया।",
+  "Their page from another on-call policy is over, so they are paged directly now.": "किसी अन्य ऑन-कॉल नीति का पेज समाप्त हो गया है, इसलिए अब उन्हें सीधे पेज किया जाता है।",
+  "Their page from {{name}} is over, so they are paged directly now.": "{{name}} का पेज समाप्त हो गया है, इसलिए अब उन्हें सीधे पेज किया जाता है।"
 }

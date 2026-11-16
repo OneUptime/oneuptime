@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "Já chamado sobre isto por {{name}}, então não foi chamado de novo.",
   "Merged Into On-Call Log ID": "ID do registro de plantão em que foi mesclado",
   "Their page from another on-call policy is over, so this policy pages them now.": "A chamada de outra política de plantão terminou, então esta política chama agora por conta própria.",
-  "Their page from {{name}} is over, so this policy pages them now.": "A chamada de {{name}} terminou, então esta política chama agora por conta própria."
+  "Their page from {{name}} is over, so this policy pages them now.": "A chamada de {{name}} terminou, então esta política chama agora por conta própria.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "Já chamado sobre isto pelo fluxo de trabalho {{name}}, então não foi chamado de novo.",
+  "Already paged directly about this by {{name}}, so not paged again.": "Já chamado diretamente sobre isto por {{name}}, então não foi chamado de novo.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "A chamada de outra política de plantão terminou, então agora é chamado diretamente.",
+  "Their page from {{name}} is over, so they are paged directly now.": "A chamada de {{name}} terminou, então agora é chamado diretamente."
 }

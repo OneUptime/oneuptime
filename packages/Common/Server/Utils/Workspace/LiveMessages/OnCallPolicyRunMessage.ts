@@ -69,8 +69,9 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import {
-  ON_CALL_PAGE_MERGE_UNNAMED_POLICY,
-  readOnCallPageMergedMessage,
+  OnCallPageCoverKind,
+  OnCallPageCoverName,
+  readOnCallPageMergedLine,
 } from "../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { isOnCallPersonPage } from "../../../../Types/OnCallDutyPolicy/OnCallPersonPage";
@@ -1326,16 +1327,22 @@ export default class OnCallPolicyRunMessage {
           status === OnCallDutyExecutionLogTimelineStatus.AlreadyPaged
         ) {
           /*
-           * Another policy's page of them stands for this run's
-           * (OnCallPageMerge): the line says which policy, once.
+           * Another run's page of them stands for this run's
+           * (OnCallPageMerge): the line says which policy - or who, or
+           * which workflow, paged them directly (#8859) - once each.
            */
-          const policyName: string =
-            readOnCallPageMergedMessage(step.statusMessage) ||
-            ON_CALL_PAGE_MERGE_UNNAMED_POLICY;
-          const alreadyPagedBy: Array<string> = person.alreadyPagedBy || [];
+          const by: OnCallPageCoverName = readOnCallPageMergedLine(
+            step.statusMessage,
+          ) || { kind: OnCallPageCoverKind.Policy, name: null };
+          const alreadyPagedBy: Array<OnCallPageCoverName> =
+            person.alreadyPagedBy || [];
 
-          if (!alreadyPagedBy.includes(policyName)) {
-            alreadyPagedBy.push(policyName);
+          if (
+            !alreadyPagedBy.some((known: OnCallPageCoverName): boolean => {
+              return known.kind === by.kind && known.name === by.name;
+            })
+          ) {
+            alreadyPagedBy.push(by);
           }
 
           person.alreadyPagedBy = alreadyPagedBy;

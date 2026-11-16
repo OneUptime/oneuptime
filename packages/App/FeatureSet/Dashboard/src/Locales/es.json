@@ -55977,5 +55977,9 @@
   "Already paged about this by {{name}}, so not paged again.": "Ya avisado de esto por {{name}}, así que no se avisa de nuevo.",
   "Merged Into On-Call Log ID": "ID del registro de guardia en el que se fusionó",
   "Their page from another on-call policy is over, so this policy pages them now.": "El aviso de otra política de guardia terminó, así que esta política avisa ahora por sí misma.",
-  "Their page from {{name}} is over, so this policy pages them now.": "El aviso de {{name}} terminó, así que esta política avisa ahora por sí misma."
+  "Their page from {{name}} is over, so this policy pages them now.": "El aviso de {{name}} terminó, así que esta política avisa ahora por sí misma.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "Ya avisado de esto a través del flujo de trabajo {{name}}, así que no se avisa de nuevo.",
+  "Already paged directly about this by {{name}}, so not paged again.": "Ya avisado de esto directamente por {{name}}, así que no se avisa de nuevo.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "El aviso de otra política de guardia terminó, así que ahora se le avisa directamente.",
+  "Their page from {{name}} is over, so they are paged directly now.": "El aviso de {{name}} terminó, así que ahora se le avisa directamente."
 }

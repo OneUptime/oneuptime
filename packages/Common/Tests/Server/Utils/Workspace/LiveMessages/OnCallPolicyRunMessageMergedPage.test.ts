@@ -14,13 +14,15 @@ import ObjectID from "../../../../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
+  OnCallPageCoverKind,
   getOnCallPageMergeTakenOverMessage,
+  getOnCallPageMergedLine,
   getOnCallPageMergedMessage,
 } from "../../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 
 /*
- * A PERSON ANOTHER POLICY IS PAGING ALREADY, IN THE RUN'S SLACK AND
- * MICROSOFT TEAMS MESSAGE (issue #7837, OnCallPageMerge).
+ * A PERSON ANOTHER PAGE IS PAGING ALREADY, IN THE RUN'S SLACK AND
+ * MICROSOFT TEAMS MESSAGE (issues #7837, #8859, OnCallPageMerge).
  *
  * Billing's level reached Ana while Payments was paging her about the same
  * incident: Billing's page of her was merged into Payments', and sent
@@ -134,7 +136,7 @@ describe("somebody another policy is paging already", () => {
       timesPaged: 0,
       isBeingPaged: false,
       acknowledged: false,
-      alreadyPagedBy: ["Payments"],
+      alreadyPagedBy: [{ kind: OnCallPageCoverKind.Policy, name: "Payments" }],
     });
     expect(run.notPaged).toEqual([]);
   });
@@ -172,7 +174,7 @@ describe("somebody another policy is paging already", () => {
     expect(alarms).toEqual([]);
   });
 
-  test("a line naming no policy says another on-call policy", () => {
+  test("a line naming no policy says another on-call policy - no name, so not in bold", () => {
     const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
       build([
         step({
@@ -185,8 +187,69 @@ describe("somebody another policy is paging already", () => {
     );
 
     expect(markdown).toContain(
-      "**Ana Lopez**: already paged by **another on-call policy**",
+      "**Ana Lopez**: already paged by another on-call policy",
     );
+    expect(markdown).not.toContain("**another on-call policy**");
+  });
+
+  test("merged into a page Jane sent from a chat: already paged by Jane (#8859)", () => {
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
+      build([
+        step({
+          status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+          userId: ANA,
+          userName: "Ana Lopez",
+          statusMessage: getOnCallPageMergedLine({
+            kind: OnCallPageCoverKind.PersonPage,
+            name: "Jane Doe",
+          }),
+        }),
+      ]),
+    );
+
+    expect(markdown).toContain("**Ana Lopez**: already paged by **Jane Doe**");
+    expect(markdown).not.toContain("being paged now");
+  });
+
+  test("merged into a workflow's page: already paged by the workflow (#8859)", () => {
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
+      build([
+        step({
+          status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+          userId: ANA,
+          userName: "Ana Lopez",
+          statusMessage: getOnCallPageMergedLine({
+            kind: OnCallPageCoverKind.WorkflowPage,
+            name: "Nightly Checks",
+          }),
+        }),
+      ]),
+    );
+
+    expect(markdown).toContain(
+      "**Ana Lopez**: already paged by workflow **Nightly Checks**",
+    );
+  });
+
+  test("a person and a policy of one name are told apart, and each named once", () => {
+    const run: OnCallPolicyRun = build([
+      step({
+        status: OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+        userId: ANA,
+        userName: "Ana Lopez",
+        statusMessage: getOnCallPageMergedLine({
+          kind: OnCallPageCoverKind.PersonPage,
+          name: "Payments",
+        }),
+      }),
+      ANA_ALREADY_PAGED,
+      ANA_ALREADY_PAGED,
+    ]);
+
+    expect(personNamed(run, "Ana Lopez")?.alreadyPagedBy).toEqual([
+      { kind: OnCallPageCoverKind.PersonPage, name: "Payments" },
+      { kind: OnCallPageCoverKind.Policy, name: "Payments" },
+    ]);
   });
 
   test("once they answered, they read as acknowledged, not as already paged", () => {
