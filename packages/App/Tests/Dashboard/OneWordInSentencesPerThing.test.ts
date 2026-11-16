@@ -732,7 +732,9 @@ describe("a thing's strings in every other app's locale folder", () => {
 
   test.each(
     RULES.flatMap(
-      (rule: SentenceRule): Array<[string, string, LocaleFolder, SentenceRule]> => {
+      (
+        rule: SentenceRule,
+      ): Array<[string, string, LocaleFolder, SentenceRule]> => {
         return foldersOf(rule)
           .filter((folder: LocaleFolder): boolean => {
             return NEWLY_READ.includes(folder);
