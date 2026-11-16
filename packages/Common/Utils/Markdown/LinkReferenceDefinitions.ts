@@ -3352,8 +3352,8 @@ const readBlocks: (
  * item's bullet ending at `contentStart` - as readListItems reads it there:
  * the line readListItem holds of it, without a task's "[ ] " and without
  * the white space at its end, which the list leaves out. undefined when no
- * list starts there; null when the item holds nothing. The caller reads no
- * thematic break there.
+ * list starts there; null when the item holds nothing. The caller's line
+ * is no thematic break (readLevel).
  */
 const readLineItem: (
   text: string,
@@ -3429,12 +3429,14 @@ const readLineItem: (
  * readBlocks reads any level.
  *
  * Read so exactly where readBlocks reads that quote or list item, and the
- * line holds nothing else. Up to three spaces and a ">" are no spaces
- * alone, code, fence, heading or thematic break, and the quote takes the
- * whole line (readBlockQuote). A bullet after up to three spaces starts no
- * code, fence or heading either, and where no thematic break is read, the
- * list is one item, the whole line (readLineItem): what is after it is
- * white space, which defines nothing. Anything else is left to readBlocks.
+ * line holds nothing else. A line with no "]:" defines nothing, so none is
+ * read further; one that holds a "]:" is no thematic break - marks, spaces
+ * and tabs alone. Up to three spaces and a ">" are no spaces alone, code,
+ * fence or heading either, and the quote takes the whole line
+ * (readBlockQuote). A bullet after up to three spaces starts no code,
+ * fence or heading, and the list is one item, the whole line
+ * (readLineItem): what is after it is white space, which defines nothing.
+ * Anything else is left to readBlocks.
  */
 const readLevel: (
   level: BlockLevel,
@@ -3469,9 +3471,14 @@ const readLevel: (
     let from: number;
     let to: number = text.length;
 
+    // A line with no "]:" defines nothing, as whatever readBlocks reads it.
+    if (colon === -1) {
+      return;
+    }
+
     if (text.charCodeAt(opening) === GREATER_THAN) {
-      // As readBlockQuote reads one line: holding a "]:", without its marker.
-      if (depth >= MAX_DEFINITION_NESTING_DEPTH || colon === -1) {
+      // As readBlockQuote reads one line, without its marker.
+      if (depth >= MAX_DEFINITION_NESTING_DEPTH) {
         return;
       }
 
@@ -3484,10 +3491,13 @@ const readLevel: (
 
       isTop = true;
     } else {
-      // As readList reads one line: one item, holding a "]:".
+      /*
+       * As readList reads one line: one item. A line that holds a "]:" is
+       * no thematic break, which is marks, spaces and tabs alone.
+       */
       const contentStart: number = readBullet(text, opening);
 
-      if (contentStart === -1 || isThematicBreak(text, 0, to)) {
+      if (contentStart === -1) {
         break;
       }
 
@@ -3504,7 +3514,7 @@ const readLevel: (
         return;
       }
 
-      if (colon !== -1 && colon < item.from) {
+      if (colon < item.from) {
         colon = text.indexOf("]:", item.from);
       }
 
