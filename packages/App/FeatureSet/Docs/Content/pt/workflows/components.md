@@ -242,7 +242,7 @@ Um bloco adicionado a um workflow que começa em um incidente ou em um alerta j�
 
 **Sucesso** roda assim que pelo menos uma pessoa é acionada, ou uma política começou. **Erro** roda quando ninguém foi acionado, e o valor **Erro** do bloco diz por quê, por exemplo que não há ninguém de plantão no agendamento. **Resumo** diz em uma frase quem foi acionado e quem ficou de fora, pronta para publicar em um canal, e **Usuários acionados** lista as pessoas acionadas.
 
-Quem está ausente não é acionado: é acionado no lugar quem a substituição de usuário dessa pessoa nomeia para cobri-la. Um acionamento indica no máximo 100 pessoas, equipes e agendamentos. Veja [Como cada pessoa é contatada](/docs/on-call/escalation-rules#como-cada-pessoa-é-contatada).
+Quem está ausente não é acionado: é acionado no lugar quem a substituição de usuário dessa pessoa nomeia para cobri-la. Quem uma política de plantão ou outro acionamento já está acionando sobre isso não é acionado de novo, e continua em **Usuários acionados**: se esse acionamento terminar sem a resposta dessa pessoa, o acionamento do bloco a aciona por conta própria. Um acionamento indica no máximo 100 pessoas, equipes e agendamentos. Veja [Como cada pessoa é contatada](/docs/on-call/escalation-rules#como-cada-pessoa-é-contatada).
 
 Um acionamento sem política de plantão por trás aparece junto às execuções das políticas como **Acionamento direto**: nos logs de plantão do incidente ou do alerta, no feed e no canal do Slack ou do Microsoft Teams dele, e nos logs de cada pessoa acionada. Ele fica aberto por 30 minutos, e depois enquanto ainda houver acionamentos saindo. Se até lá ninguém tiver confirmado, ele termina sem acionar mais ninguém.
 

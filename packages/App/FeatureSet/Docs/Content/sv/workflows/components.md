@@ -242,7 +242,7 @@ Ett block som läggs till i ett arbetsflöde som startar på en incident eller e
 
 **Framgång** körs så snart minst en person har larmats, eller en policy har startat. **Fel** körs när ingen larmades, och blockets värde **Fel** säger varför, till exempel att ingen har jour i schemat. **Sammanfattning** säger i en mening vem som larmades och vem som utelämnades, färdig att lägga upp i en kanal, och **Larmade användare** listar de personer som larmades.
 
-Den som är borta larmas inte: i stället larmas den som personens användaråsidosättning anger som ersättare. En utlarmning anger högst 100 personer, team och scheman. Se [Så nås varje person](/docs/on-call/escalation-rules#så-nås-varje-person).
+Den som är borta larmas inte: i stället larmas den som personens användaråsidosättning anger som ersättare. Den som en jourpolicy eller en annan utlarmning redan larmar om det larmas inte en gång till, och står ändå kvar under **Larmade användare**: slutar den utlarmningen utan personens svar, larmar blockets utlarmning personen själv. En utlarmning anger högst 100 personer, team och scheman. Se [Så nås varje person](/docs/on-call/escalation-rules#så-nås-varje-person).
 
 En utlarmning utan jourpolicy bakom sig står bland policyernas körningar som **Direkt utlarmning**: i jourloggarna för incidenten eller larmet, i dess flöde och dess Slack- eller Microsoft Teams-kanal, och i loggarna hos varje person som larmades. Den är öppen i 30 minuter, och därefter så länge larm fortfarande går ut. Har ingen bekräftat då avslutas den utan att larma någon annan.
 

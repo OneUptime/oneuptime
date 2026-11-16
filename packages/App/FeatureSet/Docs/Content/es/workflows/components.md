@@ -242,7 +242,7 @@ Un bloque añadido a un flujo de trabajo que empieza con un incidente o una aler
 
 **Éxito** se ejecuta en cuanto se avisa al menos a una persona, o se ha iniciado una política. **Error** se ejecuta cuando no se avisó a nadie, y el valor **Error** del bloque dice por qué, por ejemplo que no hay nadie de guardia en la programación. **Resumen** dice en una frase a quién se avisó y a quién se dejó fuera, lista para publicarla en un canal, y **Usuarios avisados** enumera a las personas avisadas.
 
-A quien está ausente no se le avisa: se avisa en su lugar a quien su sustitución de usuario nombra para cubrirle. Un aviso nombra como máximo 100 personas, equipos y programaciones. Consulta [Cómo se localiza a cada persona](/docs/on-call/escalation-rules#cómo-se-localiza-a-cada-persona).
+A quien está ausente no se le avisa: se avisa en su lugar a quien su sustitución de usuario nombra para cubrirle. A quien una política de guardia u otro aviso ya está avisando por lo mismo no se le vuelve a avisar, y sigue figurando en **Usuarios avisados**: si ese aviso termina sin su respuesta, el aviso del bloque le avisa por su cuenta. Un aviso nombra como máximo 100 personas, equipos y programaciones. Consulta [Cómo se localiza a cada persona](/docs/on-call/escalation-rules#cómo-se-localiza-a-cada-persona).
 
 Un aviso sin política de guardia detrás aparece junto a las ejecuciones de las políticas como **Aviso directo**: en los registros de guardia del incidente o de la alerta, en su feed y su canal de Slack o Microsoft Teams, y en los registros de cada persona avisada. Sigue abierto 30 minutos, y después mientras sigan saliendo avisos. Si para entonces nadie lo ha reconocido, termina sin avisar a nadie más.
 

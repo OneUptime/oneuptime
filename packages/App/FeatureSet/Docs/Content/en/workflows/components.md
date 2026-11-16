@@ -242,7 +242,7 @@ A block added to a workflow that starts on an incident or an alert is already se
 
 **Success** runs once at least one person is paged, or one policy has started. **Error** runs when nobody was, and the block's **Error** value says why, for example that nobody is on call in the schedule. **Summary** says in a sentence who was paged and who was left out, ready to post to a channel, and **Paged Users** lists the people paged.
 
-Somebody who is away is not paged: whoever their user override names to cover is paged instead. A page names at most 100 people, teams and schedules. See [How each person is reached](/docs/on-call/escalation-rules#how-each-person-is-reached).
+Somebody who is away is not paged: whoever their user override names to cover is paged instead. Somebody an on-call policy or another page is paging about it already is not paged again, and is still among **Paged Users**: should that page end without their answer, the block's page pages them itself. A page names at most 100 people, teams and schedules. See [How each person is reached](/docs/on-call/escalation-rules#how-each-person-is-reached).
 
 A page with no on-call policy behind it is listed with the policies' runs as a **Direct page**: in the on-call logs of the incident or the alert, in its feed and its Slack or Microsoft Teams channel, and in the logs of each person paged. It stays open for 30 minutes, and for as long after that as pages are still going out. If nobody has acknowledged by then, it ends without paging anybody else.
 
