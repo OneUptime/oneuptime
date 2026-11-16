@@ -454,7 +454,8 @@ describe("Ops Config Test runs the container checks", () => {
 
 /*
  * Built images (NODE_HEAP_IMAGES="oneuptime-app:community oneuptime-runner:ci"):
- * each image's own CMD, run with its shell, its sed and cat and its node.
+ * the start script each image carries, run with the image's shell, sed, cat
+ * and node.
  */
 const IMAGES = (process.env.NODE_HEAP_IMAGES || "")
   .split(/\s+/)
@@ -475,11 +476,39 @@ const IMAGES = (process.env.NODE_HEAP_IMAGES || "")
       return JSON.parse(inspected.stdout);
     }
 
-    test("its CMD is sh -c with a start script that opens with the rule", () => {
-      const [shell, flag, script] = imageCommand();
+    // The start script of the image's own package.json, in /usr/src/app.
+    function imageStartScript() {
+      const read = docker([
+        "run",
+        "--rm",
+        "--entrypoint",
+        "cat",
+        image,
+        "/usr/src/app/package.json",
+      ]);
+      expect(read.status).toBe(0);
+      return JSON.parse(read.stdout).scripts.start;
+    }
 
-      expect([shell, flag]).toEqual(["sh", "-c"]);
-      expect(heapRuleOf(script)).toBe(heapRuleOf(START));
+    test("its CMD runs its start script, which opens with the rule: sh -c with it, or the ingress's run.sh, which runs npm start", () => {
+      const start = imageStartScript();
+      const command = imageCommand();
+
+      expect(heapRuleOf(start)).toBe(heapRuleOf(START));
+      if (command[2] === "./run.sh") {
+        const runScript = docker([
+          "run",
+          "--rm",
+          "--entrypoint",
+          "cat",
+          image,
+          "/usr/src/app/run.sh",
+        ]);
+        expect(command).toEqual(["/bin/sh", "-c", "./run.sh"]);
+        expect(runScript.stdout).toMatch(/^npm start &$/m);
+      } else {
+        expect(command).toEqual(["sh", "-c", start]);
+      }
     });
 
     test.each([
@@ -487,7 +516,7 @@ const IMAGES = (process.env.NODE_HEAP_IMAGES || "")
       ["--memory=1g", ["--memory=1g"], 768],
       ["--memory=3g", ["--memory=3g"], 2304],
     ])("%s", (what, flags, heapMb) => {
-      const script = imageCommand()[2];
+      const script = imageStartScript();
       const report = parseReport(
         docker([
           "run",
