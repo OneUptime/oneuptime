@@ -370,10 +370,13 @@ export default class SmsService {
          * this SMS, are told what is missing and who can add it - and, when
          * the project's own config is used for calls only, that it is
          * (Utils/Project/TwilioAccount) - not "Twilio Config not found".
+         * A status page's SMS was handed the page's own config, not the
+         * project's default.
          */
         throw new BadDataException(
           getNoTwilioAccountMessage(TwilioMessageKind.SMS, {
             projectConfigUse: options.customTwilioConfig?.use,
+            isStatusPageConfig: Boolean(options.statusPageId),
           }),
         ).asUserError();
       }
@@ -642,6 +645,7 @@ export default class SmsService {
           throw new BadDataException(
             getNoTwilioAccountMessage(TwilioMessageKind.SMS, {
               projectConfigUse: options.customTwilioConfig?.use,
+              isStatusPageConfig: Boolean(options.statusPageId),
             }),
           ).asUserError();
         }
