@@ -125,6 +125,13 @@ import {
   SCRUB_MAX_VALUE_DEPTH,
 } from "Common/Utils/Telemetry/ScrubNestedValues";
 import { MAX_JSON_TEXTS_INSIDE_STRINGS } from "Common/Utils/Telemetry/ScrubJsonText";
+import SyslogAttribute from "Common/Types/Syslog/SyslogAttribute";
+import {
+  ParsedSyslogMessage,
+  parseSyslogMessage,
+  syslogStructuredDataAttributeKey,
+} from "Common/Utils/Syslog/SyslogMessageParser";
+import SyslogRawCopies from "Common/Utils/Syslog/SyslogRawCopies";
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 /*
  * `jest` deliberately NOT imported from @jest/globals: the `jest.Mock`
@@ -2765,6 +2772,131 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     ).toContain("return await LogScrubRuleService.loadScrubRules(projectId);");
     expect(page).toContain(
       "**Session replays are scrubbed too.** Log scrub rules also run over session replay recordings, behind the masking the recorder does in the browser.",
+    );
+  });
+
+  // Issue #9039: a syslog line's raw copies.
+  it("puts a syslog line's raw copies together again from what the rules left of its parts", () => {
+    const httpIngest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/SyslogIngestService.ts",
+    );
+    const probeIngest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/ProbeSyslogIngestService.ts",
+    );
+
+    // Both ways keep the structured data; syslog posted over HTTP, the line.
+    expect(httpIngest).toContain("[SyslogAttribute.Raw]: parsed.raw,");
+    expect(httpIngest).toContain(
+      "attributes[SyslogAttribute.StructuredRaw] = parsed.structuredDataRaw;",
+    );
+    expect(probeIngest).toContain(
+      "attributes[SyslogAttribute.StructuredRaw] = read.structuredDataRaw;",
+    );
+    expect(probeIngest).not.toContain("SyslogAttribute.Raw]");
+
+    // Both scrub through SyslogRawCopies, before a pipeline reads the copies.
+    for (const source of [httpIngest, probeIngest]) {
+      const scrubbed: number = source.indexOf("SyslogRawCopies.scrubLog(");
+
+      expect(scrubbed).toBeGreaterThan(-1);
+      expect(scrubbed).toBeLessThan(
+        source.indexOf("LogPipelineService.processLog("),
+      );
+    }
+
+    // A line's row as syslog posted over HTTP builds it, after the rules.
+    const scrubbedRow: (
+      line: string,
+      rules: Array<{ rule: LogScrubRule; regex: ScrubRegExp }>,
+    ) => JSONObject = (
+      line: string,
+      rules: Array<{ rule: LogScrubRule; regex: ScrubRegExp }>,
+    ): JSONObject => {
+      const parsed: ParsedSyslogMessage = parseSyslogMessage(
+        line,
+      ) as ParsedSyslogMessage;
+      const attributes: JSONObject = {
+        [SyslogAttribute.Raw]: parsed.raw,
+        [SyslogAttribute.Hostname]: parsed.hostname!,
+        [SyslogAttribute.AppName]: parsed.appName!,
+        [SyslogAttribute.StructuredRaw]: parsed.structuredDataRaw!,
+      };
+
+      for (const [sdId, params] of Object.entries(
+        parsed.structuredData || {},
+      )) {
+        for (const [name, value] of Object.entries(params)) {
+          attributes[syslogStructuredDataAttributeKey(sdId, name)] = value;
+        }
+      }
+
+      return SyslogRawCopies.scrubLog({
+        logRow: { body: parsed.message, attributes: attributes },
+        line: parsed,
+        scrub: (row: JSONObject): JSONObject => {
+          return LogScrubRuleService.scrubLog(row, rules as never);
+        },
+      });
+    };
+    const header: string =
+      "<165>1 2026-11-16T10:11:12.003Z web-01 checkout - -";
+    const rules: Array<{ rule: LogScrubRule; regex: ScrubRegExp }> = [
+      scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      scrubRule(
+        LogScrubPatternType.Email,
+        LogScrubAction.Redact,
+        LogScrubField.Body,
+      ),
+    ];
+
+    // What the keys rule hid in a parameter, and the Body Only rule in the message.
+    const secret: JSONObject = scrubbedRow(
+      `${header} [auth@1 password="hunter2"] mail from jane@example.com`,
+      rules,
+    );
+    const secretAttributes: JSONObject = secret["attributes"] as JSONObject;
+
+    expect(secretAttributes["syslog.structured.auth_1.password"]).toBe(
+      "[REDACTED]",
+    );
+    expect(secretAttributes[SyslogAttribute.StructuredRaw]).toBe(
+      '[auth@1 password="[REDACTED\\]"]',
+    );
+    expect(secretAttributes[SyslogAttribute.Raw]).toBe(
+      `${header} [auth@1 password="[REDACTED\\]"] mail from [REDACTED]`,
+    );
+
+    // Then read as the attributes they are: an Attributes Only rule's address.
+    const read: JSONObject = scrubbedRow(
+      `${header} [auth@1 password="hunter2"] mail from jane@example.com`,
+      [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+        scrubRule(
+          LogScrubPatternType.Email,
+          LogScrubAction.Redact,
+          LogScrubField.Attributes,
+        ),
+      ],
+    );
+
+    expect(read["body"]).toBe("mail from jane@example.com");
+    expect((read["attributes"] as JSONObject)[SyslogAttribute.Raw]).toBe(
+      `${header} [auth@1 password="[REDACTED\\]"] mail from [REDACTED]`,
+    );
+
+    // Nothing for the rules to change: the copies as the line arrived.
+    const quiet: string = `${header} [meta seq="9" note="a \\"b\\" \\] c"] all quiet`;
+    const quietAttributes: JSONObject = scrubbedRow(quiet, rules)[
+      "attributes"
+    ] as JSONObject;
+
+    expect(quietAttributes[SyslogAttribute.Raw]).toBe(quiet);
+    expect(quietAttributes[SyslogAttribute.StructuredRaw]).toBe(
+      '[meta seq="9" note="a \\"b\\" \\] c"]',
+    );
+
+    expect(page).toContain(
+      "- **A syslog line's raw copies hide what the rules hid in its parts.** Syslog keeps an RFC 5424 line's structured data as it arrived in `syslog.structured.raw`, and syslog sent over HTTP keeps the whole line in `syslog.raw`. Each copy is put together again from what the rules left of the header's fields, each structured-data parameter and the message, and the rules then read it as they read any attribute. So a password a **Sensitive Attribute Keys** rule hides in `syslog.structured.auth_1.password`, or an address a **Body Only** rule hides in the message, is hidden in the copies too, written as RFC 5424 writes a value: `password=\"[REDACTED\\]\"`. A line the rules change nothing in keeps its copies as it arrived.",
     );
   });
 
