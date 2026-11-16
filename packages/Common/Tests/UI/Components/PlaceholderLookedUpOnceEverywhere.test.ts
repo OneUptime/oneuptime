@@ -53,6 +53,14 @@ import {
  */
 
 const PACKAGES: string = path.resolve(__dirname, "../../../..");
+/*
+ * The Enterprise pages, beside the packages, are read only where ee/ is
+ * checked out: the Common Test job deletes it before it runs, and the
+ * Enterprise Edition Test workflow (test.ee.yaml) runs this with it.
+ */
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(
+  path.join(PACKAGES, "..", "ee"),
+);
 // <Button ariaLabel>, <Dropdown ariaLabel>, <NavBar moreMenuAriaLabel>.
 const HANDED_TO_ARIA_LABEL: RegExp = /[aA]riaLabel>$/;
 // A detail card's field, or a field of a fields array.
@@ -1373,6 +1381,10 @@ describe("every page heading, side menu title, tooltip and metric card title wri
   });
 
   test("reads the Enterprise pages beside the packages: their keyed headings, crumbs and menu entries, said translated", () => {
+    if (!ENTERPRISE_PRESENT) {
+      return;
+    }
+
     const keyed: Array<PlaceholderSite> = [
       ...handedIn(ENTERPRISE, HEADINGS),
       ...handedIn(ENTERPRISE, [BREADCRUMB_TITLE]),
@@ -1441,7 +1453,16 @@ describe("every page heading, side menu title, tooltip and metric card title wri
       },
     );
 
-    expect(tooltips.length).toBeGreaterThanOrEqual(100);
+    // The packages' own 99, and the Enterprise pages' three where ee/ is checked out.
+    expect(
+      tooltips.filter((site: PlaceholderSite): boolean => {
+        return !site.where.startsWith(ENTERPRISE);
+      }).length,
+    ).toBeGreaterThanOrEqual(99);
+
+    if (ENTERPRISE_PRESENT) {
+      expect(tooltips.length).toBeGreaterThanOrEqual(100);
+    }
     expect(
       tooltips.filter((site: PlaceholderSite): boolean => {
         return site.isLookedUp && site.isSaidTranslated;
