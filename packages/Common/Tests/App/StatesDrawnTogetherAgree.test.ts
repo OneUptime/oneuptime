@@ -153,7 +153,7 @@ export const STATE_SETS: Array<StateSet> = [
     keys: ["Not fetched yet (OAuth token)", "Valid (OAuth token)", "Expired"],
     phrases: ["No expiry reported", "Refresh failed"],
     drawnIn: [
-      `${DASHBOARD_SOURCE}/Components/Workflow/WorkflowVariableTokenStatus.tsx`,
+      `${DASHBOARD_SOURCE}/Components/Workflow/WorkflowVariableTokenStatusLabels.ts`,
     ],
   },
   {
