@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "Passwort zurücksetzen",
     "subtitle": "Bitte geben Sie Ihr neues Passwort ein, und wir werden es aktualisieren.",
-    "successMessage": "Ihr Passwort wurde aktualisiert. Bitte melden Sie sich an.",
     "submitButton": "Passwort zurücksetzen",
     "knowPasswordPrompt": "Kennen Sie Ihr Passwort?",
-    "loginLink": "Anmelden."
+    "loginLink": "Anmelden.",
+    "successTitle": "Ihr Passwort wurde zurückgesetzt",
+    "successDescription": "Melden Sie sich mit Ihrem neuen Passwort an.",
+    "signInButton": "Anmelden",
+    "linkExpiredTitle": "Dieser Link zum Zurücksetzen ist abgelaufen",
+    "linkExpiredDescription": "Links zum Zurücksetzen gelten einen Tag lang. Fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail.",
+    "linkInvalidTitle": "Dieser Link zum Zurücksetzen funktioniert nicht mehr",
+    "linkInvalidDescription": "Er wurde vielleicht schon verwendet, oder er wurde nur teilweise kopiert. Fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail.",
+    "requestNewLinkButton": "Neuen Link anfordern"
   },
   "sso": {
     "title": "Mit SSO anmelden",

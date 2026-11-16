@@ -4127,5 +4127,22 @@
   "Something's broken": "Something's broken",
   "Confusing": "Confusing",
   "Idea": "Idea",
-  "Other": "Other"
+  "Other": "Other",
+  "Use at least {{minimum}} characters.": "Use at least {{minimum}} characters.",
+  "Try a few unrelated words.": "Try a few unrelated words.",
+  "Password meets requirements": "Password meets requirements",
+  "Password must be at least 15 characters.": "Password must be at least 15 characters.",
+  "Password cannot be more than 100 characters.": "Password cannot be more than 100 characters.",
+  "Choose a less predictable password. Try a few unrelated words.": "Choose a less predictable password. Try a few unrelated words.",
+  "Password cannot be blank.": "Password cannot be blank.",
+  "Password is required.": "Password is required.",
+  "Password must be a string.": "Password must be a string.",
+  "Between {{minimum}} and {{maximum}} characters": "Between {{minimum}} and {{maximum}} characters",
+  "Avoid common or repeated patterns": "Avoid common or repeated patterns",
+  "Password length": "Password length",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / {{minimum}} characters minimum",
+  "Complete:": "Complete:",
+  "Incomplete:": "Incomplete:",
+  "Special character included (optional)": "Special character included (optional)",
+  "Special characters are optional. Try !, @, # or $.": "Special characters are optional. Try !, @, # or $."
 }

@@ -56345,5 +56345,22 @@
   "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "Von Apps belegter Arbeitsspeicher aller Knoten zusammengezählt in jedem Intervall, in Bytes. Datei-Cache, den das System freigeben kann, wenn Apps den Speicher brauchen, zählt nicht mit.",
   "in use, no allocatable memory reported": "belegt, kein zuweisbarer Speicher gemeldet",
   "{{used}} of {{allocatable}} allocatable": "{{used}} von {{allocatable}} zuweisbar",
-  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Von Apps belegter Arbeitsspeicher aller Knoten als Anteil am zuweisbaren Arbeitsspeicher (den Pods nutzen können), ohne Datei-Cache. Gemittelt über die letzten 5 Minuten des ausgewählten Zeitraums (bei Zeiträumen über 12 Stunden oder ohne aktuelle Daten oft der ganze Zeitraum). Kein Balken, wenn keiner gemeldet wird."
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Von Apps belegter Arbeitsspeicher aller Knoten als Anteil am zuweisbaren Arbeitsspeicher (den Pods nutzen können), ohne Datei-Cache. Gemittelt über die letzten 5 Minuten des ausgewählten Zeitraums (bei Zeiträumen über 12 Stunden oder ohne aktuelle Daten oft der ganze Zeitraum). Kein Balken, wenn keiner gemeldet wird.",
+  "Use at least {{minimum}} characters.": "Verwenden Sie mindestens {{minimum}} Zeichen.",
+  "Try a few unrelated words.": "Versuchen Sie es mit einigen nicht zusammenhängenden Wörtern.",
+  "Password meets requirements": "Das Passwort erfüllt die Anforderungen",
+  "Password must be at least 15 characters.": "Das Passwort muss mindestens 15 Zeichen lang sein.",
+  "Password cannot be more than 100 characters.": "Das Passwort darf höchstens 100 Zeichen lang sein.",
+  "Choose a less predictable password. Try a few unrelated words.": "Wählen Sie ein weniger vorhersehbares Passwort. Versuchen Sie es mit einigen nicht zusammenhängenden Wörtern.",
+  "Password cannot be blank.": "Das Passwort darf nicht nur aus Leerzeichen bestehen.",
+  "Password is required.": "Ein Passwort ist erforderlich.",
+  "Password must be a string.": "Das Passwort muss eine Zeichenfolge sein.",
+  "Between {{minimum}} and {{maximum}} characters": "Zwischen {{minimum}} und {{maximum}} Zeichen",
+  "Avoid common or repeated patterns": "Häufige oder sich wiederholende Muster vermeiden",
+  "Password length": "Passwortlänge",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / mindestens {{minimum}} Zeichen",
+  "Complete:": "Erfüllt:",
+  "Incomplete:": "Nicht erfüllt:",
+  "Special character included (optional)": "Sonderzeichen enthalten (optional)",
+  "Special characters are optional. Try !, @, # or $.": "Sonderzeichen sind optional. Probiere !, @, # oder $."
 }

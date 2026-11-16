@@ -56345,5 +56345,22 @@
   "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "Memoria occupata dalle app su tutti i nodi sommata in ogni intervallo, in byte. La cache dei file che il sistema può liberare quando le app hanno bisogno della memoria non è conteggiata.",
   "in use, no allocatable memory reported": "in uso, nessuna memoria allocabile riportata",
   "{{used}} of {{allocatable}} allocatable": "{{used}} di {{allocatable}} allocabili",
-  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Memoria occupata dalle app su tutti i nodi come quota della memoria allocabile (quella che i pod possono usare), senza la cache dei file. In media negli ultimi 5 minuti dell'intervallo selezionato (spesso l'intero intervallo oltre le 12 ore o senza dati recenti). Nessuna barra se non viene riportata."
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Memoria occupata dalle app su tutti i nodi come quota della memoria allocabile (quella che i pod possono usare), senza la cache dei file. In media negli ultimi 5 minuti dell'intervallo selezionato (spesso l'intero intervallo oltre le 12 ore o senza dati recenti). Nessuna barra se non viene riportata.",
+  "Use at least {{minimum}} characters.": "Usa almeno {{minimum}} caratteri.",
+  "Try a few unrelated words.": "Prova con alcune parole non correlate.",
+  "Password meets requirements": "La password soddisfa i requisiti",
+  "Password must be at least 15 characters.": "La password deve contenere almeno 15 caratteri.",
+  "Password cannot be more than 100 characters.": "La password non può superare i 100 caratteri.",
+  "Choose a less predictable password. Try a few unrelated words.": "Scegli una password meno prevedibile. Prova con alcune parole non correlate.",
+  "Password cannot be blank.": "La password non può contenere solo spazi.",
+  "Password is required.": "La password è obbligatoria.",
+  "Password must be a string.": "La password deve essere una stringa di testo.",
+  "Between {{minimum}} and {{maximum}} characters": "Tra {{minimum}} e {{maximum}} caratteri",
+  "Avoid common or repeated patterns": "Evita sequenze comuni o ripetute",
+  "Password length": "Lunghezza della password",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minimo {{minimum}} caratteri",
+  "Complete:": "Soddisfatto:",
+  "Incomplete:": "Non soddisfatto:",
+  "Special character included (optional)": "Carattere speciale incluso (facoltativo)",
+  "Special characters are optional. Try !, @, # or $.": "I caratteri speciali sono facoltativi. Prova !, @, # o $."
 }

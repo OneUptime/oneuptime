@@ -56345,5 +56345,22 @@
   "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "الذاكرة التي تشغلها التطبيقات على كل العقد مجموعةً معًا في كل فاصل زمني، بالبايت. ولا تُحتسب ذاكرة التخزين المؤقت للملفات التي يستطيع النظام تحريرها حين تحتاج التطبيقات إلى الذاكرة.",
   "in use, no allocatable memory reported": "مستخدمة، ولم يُبلَّغ عن ذاكرة قابلة للتخصيص",
   "{{used}} of {{allocatable}} allocatable": "{{used}} من {{allocatable}} قابلة للتخصيص",
-  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "الذاكرة التي تشغلها التطبيقات على كل العقد كنسبة من الذاكرة القابلة للتخصيص (ما تستطيع الـ pods استخدامه)، دون ذاكرة التخزين المؤقت للملفات. ويؤخذ متوسطها على مدى آخر 5 دقائق من النطاق المحدد (وغالبًا النطاق كله في النطاقات الأطول من 12 ساعة أو عند غياب بيانات حديثة). ولا يظهر شريط إن لم يُبلَّغ عنها."
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "الذاكرة التي تشغلها التطبيقات على كل العقد كنسبة من الذاكرة القابلة للتخصيص (ما تستطيع الـ pods استخدامه)، دون ذاكرة التخزين المؤقت للملفات. ويؤخذ متوسطها على مدى آخر 5 دقائق من النطاق المحدد (وغالبًا النطاق كله في النطاقات الأطول من 12 ساعة أو عند غياب بيانات حديثة). ولا يظهر شريط إن لم يُبلَّغ عنها.",
+  "Use at least {{minimum}} characters.": "استخدم {{minimum}} من الأحرف على الأقل.",
+  "Try a few unrelated words.": "جرّب بضع كلمات لا رابط بينها.",
+  "Password meets requirements": "كلمة المرور تستوفي المتطلبات",
+  "Password must be at least 15 characters.": "يجب ألا تقل كلمة المرور عن 15 حرفًا.",
+  "Password cannot be more than 100 characters.": "يجب ألا تزيد كلمة المرور عن 100 حرف.",
+  "Choose a less predictable password. Try a few unrelated words.": "اختر كلمة مرور يصعب توقعها. جرّب بضع كلمات لا رابط بينها.",
+  "Password cannot be blank.": "لا يمكن أن تكون كلمة المرور فارغة.",
+  "Password is required.": "كلمة المرور مطلوبة.",
+  "Password must be a string.": "يجب أن تكون كلمة المرور نصًا.",
+  "Between {{minimum}} and {{maximum}} characters": "بين {{minimum}} و{{maximum}} من الأحرف",
+  "Avoid common or repeated patterns": "تجنّب الأنماط الشائعة أو المكررة",
+  "Password length": "طول كلمة المرور",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / {{minimum}} حرفًا على الأقل",
+  "Complete:": "مكتمل:",
+  "Incomplete:": "غير مكتمل:",
+  "Special character included (optional)": "تتضمن حرفًا خاصًا (اختياري)",
+  "Special characters are optional. Try !, @, # or $.": "الأحرف الخاصة اختيارية. جرّب ! أو @ أو # أو $."
 }

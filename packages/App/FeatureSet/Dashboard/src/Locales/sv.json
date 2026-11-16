@@ -56345,5 +56345,22 @@
   "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "Minne som appar håller på alla noder sammanlagt i varje intervall, i byte. Filcache som systemet kan frigöra när apparna behöver minnet räknas inte.",
   "in use, no allocatable memory reported": "används, inget allokerbart minne rapporterat",
   "{{used}} of {{allocatable}} allocatable": "{{used}} av {{allocatable}} allokerbart",
-  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Minne som appar håller på alla noder som andel av allokerbart minne (det poddar kan använda), utan filcache. I genomsnitt under de senaste 5 minuterna av det valda tidsintervallet (ofta hela tidsintervallet om det är längre än 12 timmar eller saknar färska data). Ingen stapel om det inte rapporteras."
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Minne som appar håller på alla noder som andel av allokerbart minne (det poddar kan använda), utan filcache. I genomsnitt under de senaste 5 minuterna av det valda tidsintervallet (ofta hela tidsintervallet om det är längre än 12 timmar eller saknar färska data). Ingen stapel om det inte rapporteras.",
+  "Use at least {{minimum}} characters.": "Använd minst {{minimum}} tecken.",
+  "Try a few unrelated words.": "Prova några ord utan koppling till varandra.",
+  "Password meets requirements": "Lösenordet uppfyller kraven",
+  "Password must be at least 15 characters.": "Lösenordet måste innehålla minst 15 tecken.",
+  "Password cannot be more than 100 characters.": "Lösenordet får inte innehålla fler än 100 tecken.",
+  "Choose a less predictable password. Try a few unrelated words.": "Välj ett mindre förutsägbart lösenord. Prova några ord utan koppling till varandra.",
+  "Password cannot be blank.": "Lösenordet får inte bara innehålla blanksteg.",
+  "Password is required.": "Lösenord krävs.",
+  "Password must be a string.": "Lösenordet måste vara en textsträng.",
+  "Between {{minimum}} and {{maximum}} characters": "Mellan {{minimum}} och {{maximum}} tecken",
+  "Avoid common or repeated patterns": "Undvik vanliga eller upprepade mönster",
+  "Password length": "Lösenordets längd",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minst {{minimum}} tecken",
+  "Complete:": "Uppfyllt:",
+  "Incomplete:": "Inte uppfyllt:",
+  "Special character included (optional)": "Specialtecken inkluderat (valfritt)",
+  "Special characters are optional. Try !, @, # or $.": "Specialtecken är valfria. Prova !, @, # eller $."
 }

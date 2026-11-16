@@ -56345,5 +56345,22 @@
   "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "Minne som appene holder på alle noder lagt sammen i hvert intervall, i byte. Filbuffer som systemet kan frigjøre når appene trenger minnet, telles ikke med.",
   "in use, no allocatable memory reported": "i bruk, ikke noe tildelbart minne rapportert",
   "{{used}} of {{allocatable}} allocatable": "{{used}} av {{allocatable}} tildelbart",
-  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Minne som appene holder på alle noder, som andel av tildelbart minne (det pods kan bruke), uten filbuffer. I gjennomsnitt over de siste 5 minuttene av det valgte tidsrommet (ofte hele tidsrommet ved tidsrom over 12 timer eller uten nye data). Ingen stolpe hvis det ikke rapporteres."
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Minne som appene holder på alle noder, som andel av tildelbart minne (det pods kan bruke), uten filbuffer. I gjennomsnitt over de siste 5 minuttene av det valgte tidsrommet (ofte hele tidsrommet ved tidsrom over 12 timer eller uten nye data). Ingen stolpe hvis det ikke rapporteres.",
+  "Use at least {{minimum}} characters.": "Bruk minst {{minimum}} tegn.",
+  "Try a few unrelated words.": "Prøv noen ord uten sammenheng med hverandre.",
+  "Password meets requirements": "Passordet oppfyller kravene",
+  "Password must be at least 15 characters.": "Passordet må inneholde minst 15 tegn.",
+  "Password cannot be more than 100 characters.": "Passordet kan ikke inneholde mer enn 100 tegn.",
+  "Choose a less predictable password. Try a few unrelated words.": "Velg et mindre forutsigbart passord. Prøv noen ord uten sammenheng med hverandre.",
+  "Password cannot be blank.": "Passordet kan ikke bare inneholde mellomrom.",
+  "Password is required.": "Passord er påkrevd.",
+  "Password must be a string.": "Passordet må være en tekststreng.",
+  "Between {{minimum}} and {{maximum}} characters": "Mellom {{minimum}} og {{maximum}} tegn",
+  "Avoid common or repeated patterns": "Unngå vanlige eller gjentatte mønstre",
+  "Password length": "Passordlengde",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minst {{minimum}} tegn",
+  "Complete:": "Oppfylt:",
+  "Incomplete:": "Ikke oppfylt:",
+  "Special character included (optional)": "Spesialtegn inkludert (valgfritt)",
+  "Special characters are optional. Try !, @, # or $.": "Spesialtegn er valgfrie. Prøv !, @, # eller $."
 }

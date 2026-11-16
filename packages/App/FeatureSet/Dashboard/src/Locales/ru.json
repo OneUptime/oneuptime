@@ -56345,5 +56345,22 @@
   "Memory apps hold on all nodes added together in each interval, in bytes. File cache the system can free when apps need the memory is left out.": "Память, занятая приложениями на всех узлах, сложенная вместе, в каждом интервале, в байтах. Файловый кэш, который система может освободить, когда память понадобится приложениям, не учитывается.",
   "in use, no allocatable memory reported": "используется, выделяемая память не сообщается",
   "{{used}} of {{allocatable}} allocatable": "{{used}} из {{allocatable}} выделяемой",
-  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Память, занятая приложениями на всех узлах, как доля выделяемой памяти (той, что могут использовать поды), без файлового кэша. В среднем за последние 5 минут выбранного периода (часто за весь период, если он длиннее 12 часов или нет свежих данных). Без полосы, если узлы о ней не сообщают."
+  "Memory apps hold on all nodes as a share of allocatable memory (what pods can use), file cache left out. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). No bar if none is reported.": "Память, занятая приложениями на всех узлах, как доля выделяемой памяти (той, что могут использовать поды), без файлового кэша. В среднем за последние 5 минут выбранного периода (часто за весь период, если он длиннее 12 часов или нет свежих данных). Без полосы, если узлы о ней не сообщают.",
+  "Use at least {{minimum}} characters.": "Используйте не менее {{minimum}} символов.",
+  "Try a few unrelated words.": "Попробуйте несколько не связанных между собой слов.",
+  "Password meets requirements": "Пароль соответствует требованиям",
+  "Password must be at least 15 characters.": "Пароль должен содержать не менее 15 символов.",
+  "Password cannot be more than 100 characters.": "Пароль не может содержать более 100 символов.",
+  "Choose a less predictable password. Try a few unrelated words.": "Выберите менее предсказуемый пароль. Попробуйте несколько не связанных между собой слов.",
+  "Password cannot be blank.": "Пароль не может состоять только из пробелов.",
+  "Password is required.": "Необходимо указать пароль.",
+  "Password must be a string.": "Пароль должен быть строкой.",
+  "Between {{minimum}} and {{maximum}} characters": "От {{minimum}} до {{maximum}} символов",
+  "Avoid common or repeated patterns": "Избегайте распространённых или повторяющихся последовательностей",
+  "Password length": "Длина пароля",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / минимум {{minimum}} символов",
+  "Complete:": "Выполнено:",
+  "Incomplete:": "Не выполнено:",
+  "Special character included (optional)": "Специальный символ добавлен (необязательно)",
+  "Special characters are optional. Try !, @, # or $.": "Специальные символы необязательны. Попробуйте !, @, # или $."
 }

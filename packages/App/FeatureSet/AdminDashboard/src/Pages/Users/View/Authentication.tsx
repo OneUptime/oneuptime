@@ -9,24 +9,26 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import UserAuthenticationStatus from "Common/Types/UserAuthenticationStatus";
 import TwoFactorAuthStatus from "Common/Types/TwoFactorAuthStatus";
-import { MINIMUM_PASSWORD_LENGTH } from "Common/Types/Password";
+import { Translator } from "Common/Types/Translator";
 import IconProp from "Common/Types/Icon/IconProp";
 import User from "Common/Models/DatabaseModels/User";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getNewPasswordFields } from "Common/UI/Components/PasswordRequirements/NewPasswordFields";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { APP_API_URL } from "Common/UI/Config";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -62,6 +64,8 @@ const userAuthenticationRoute: (modelId: ObjectID, action: string) => URL = (
 
 const UserAuthentication: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
+  const passwordRequirementsId: string = useId();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [status, setStatus] = useState<UserAuthenticationStatus | null>(null);
@@ -531,33 +535,16 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
               name="Set User Password"
               initialValues={{}}
               showAsColumns={1}
-              fields={[
-                {
-                  field: {
-                    password: true,
-                  },
-                  title: t("pages.userAuthentication.newPasswordLabel"),
-                  fieldType: FormFieldSchemaType.Password,
-                  required: true,
-                  disableSpellCheck: true,
-                  validation: {
-                    minLength: MINIMUM_PASSWORD_LENGTH,
-                  },
-                },
-                {
-                  field: {
-                    confirmPassword: true,
-                  },
-                  title: t("pages.userAuthentication.confirmPasswordLabel"),
-                  fieldType: FormFieldSchemaType.Password,
-                  required: true,
-                  disableSpellCheck: true,
-                  validation: {
-                    minLength: MINIMUM_PASSWORD_LENGTH,
-                    toMatchField: "password",
-                  },
-                },
-              ]}
+              fields={getNewPasswordFields<SetPasswordFormValues>({
+                translator: translator,
+                requirementsId: passwordRequirementsId,
+                passwordTitle: t("pages.userAuthentication.newPasswordLabel"),
+                confirmPasswordTitle: t(
+                  "pages.userAuthentication.confirmPasswordLabel",
+                ),
+                // Somebody else's password: no password manager saves it as the admin's.
+                isOwnPassword: false,
+              })}
               submitButtonText={t("pages.userAuthentication.setPasswordButton")}
               submitButtonStyleType={ButtonStyleType.DANGER}
               isLoading={isSettingPassword}
