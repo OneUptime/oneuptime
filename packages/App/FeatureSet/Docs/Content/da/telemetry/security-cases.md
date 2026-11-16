@@ -246,6 +246,8 @@ For at slå op i en kanal tilføjer du en regel under **Produkter → Sikkerheds
 
 Alle notifikationer undtagen en opgaves slås op i kanalerne for hver regel, sagen matcher i det øjeblik. En regel, hvor **Prioritet for sikkerhedssag** indeholder en af **Kritisk** og **Høj**, slår sager med High og Kritisk op, når de åbnes, og en sag med Medium, når den stiger til High. En sikkerhedssag får aldrig sin egen kanal.
 
+En regels trin **Opdateringer** vælger, hvilke af disse meddelelser den slår op: **Nye sager og hævede prioriteter**, **Tildelinger**, **Ventende godkendelser** og **Responsmål**, ét flueben hver under **Vælg opdateringer**. **Kun vigtige opdateringer** slår dem alle op undtagen tildelingerne, til en kanal, der kun skal høre det, nogen skal handle på. En regel gemt før trinnet, og en ny regel, slår alle meddelelser op.
+
 ## Playbooks
 
 En playbook er en liste over trin, der kører på en sag. Opret en under **Produkter → Sikkerhedshændelser → Playbooks**, ud fra en skabelon eller fra bunden, og tilføj dens trin på dens side. Et projekt uden playbooks ser skabelonerne i stedet for en tom liste; når der er playbooks, åbner **Opret fra skabelon** ved listen dem, med **Tilføjet** ved dem, projektet allerede har.

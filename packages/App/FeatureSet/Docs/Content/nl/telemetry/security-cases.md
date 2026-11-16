@@ -246,6 +246,8 @@ Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Beveil
 
 Elke melding behalve die van een taak wordt geplaatst in de kanalen van elke regel waaraan de zaak op dat moment voldoet. Een regel waarin **Prioriteit van beveiligingszaak** een van **Kritiek** en **Hoog** bevat, plaatst zaken met High en Kritiek zodra ze worden geopend, en een zaak met Medium wanneer die naar High stijgt. Een beveiligingszaak krijgt nooit een eigen kanaal.
 
+De stap **Updates** van een regel kiest welke van deze meldingen hij plaatst: **Nieuwe zaken en verhoogde prioriteiten**, **Toewijzingen**, **Benodigde goedkeuringen** en **Reactiedoelen**, elk een vakje onder **Updates kiezen**. **Alleen belangrijke updates** plaatst ze allemaal behalve de toewijzingen, voor een kanaal dat alleen moet horen waar iemand iets mee moet. Een regel die vóór de stap is opgeslagen, en een nieuwe regel, plaatst elke melding.
+
 ## Playbooks
 
 Een playbook is een lijst met stappen die op een zaak draaien. Maak er een aan onder **Producten → Beveiligingsgebeurtenissen → Playbooks**, vanuit een sjabloon of leeg, en voeg de stappen toe op de pagina ervan. Een project zonder playbooks ziet de sjablonen in plaats van een lege lijst; zodra er playbooks zijn, opent **Maken op basis van sjabloon** bij de lijst ze, met **Toegevoegd** bij de sjablonen die het project al heeft.
