@@ -17,10 +17,10 @@ import { randomBytes } from "crypto";
  *     ends - never longer than a value built here would be: the lifetime
  *     runs from when the build that made it started.
  *   - Missing there too, the process claims the build (SET NX, for
- *     BUILD_CLAIM_SECONDS). The one that claims it builds and writes the
- *     value back; any other waits for it, BUILD_WAIT_MS at most, reading
- *     Redis every BUILD_POLL_MS, and builds itself only when the value does
- *     not come - its claim given up, or its builder gone.
+ *     BUILD_CLAIM_SECONDS). The one that claims it builds, writes the value
+ *     back and lets the claim go; any other waits for it, BUILD_WAIT_MS at
+ *     most, reading Redis every BUILD_POLL_MS, and builds itself only when
+ *     the value does not come - its claim given up, or its builder gone.
  *   - A value over MAX_ENTRY_BYTES is not written: it is kept in the process
  *     that built it alone, as before, rather than pushed into a Redis that
  *     also backs the job queues.
@@ -134,7 +134,15 @@ export default class StatusPageSharedReads {
 
     const expiresAt: number = this.getExpiresAt(options, startedAt);
 
-    void this.write(options, value, startedAt, expiresAt);
+    /*
+     * Written for every other process, then the claim let go: a claim that
+     * outlived its value would hold the next build's waiters for nothing.
+     */
+    void this.write(options, value, startedAt, expiresAt).then(
+      (): Promise<void> | undefined => {
+        return claim ? this.giveUpClaim(options.key, claim) : undefined;
+      },
+    );
 
     return { value: value, expiresAt: expiresAt };
   }
@@ -229,9 +237,12 @@ export default class StatusPageSharedReads {
   private static async waitForBuild<T>(
     options: SharedReadOptions<T>,
   ): Promise<SharedRead<T> | null> {
-    const waitUntil: number = Date.now() + this.BUILD_WAIT_MS;
+    const polls: number = Math.max(
+      1,
+      Math.ceil(this.BUILD_WAIT_MS / this.BUILD_POLL_MS),
+    );
 
-    while (Date.now() < waitUntil) {
+    for (let poll: number = 0; poll < polls; poll++) {
       await new Promise<void>((resolve: () => void) => {
         setTimeout(resolve, this.BUILD_POLL_MS);
       });
