@@ -6,7 +6,7 @@ OneUptime registra come vanno le notifiche che invia: quanti incidenti e avvisi 
 - [Attivarle](#attivarle): Due impostazioni, e senza di esse non viene registrato nulla.
 - [Le metriche](#le-metriche): Sette metriche, dall'attivazione al telefono.
 - [Come si cronometra un avviso](#come-si-cronometra-un-avviso): Da dove partono il tempo di invio e il ritardo di invio.
-- [SLO da cui partire](#slo-da-cui-partire): Quattro obiettivi, query per query.
+- [SLO da cui partire](#slo-da-cui-partire): Cinque obiettivi, query per query.
 :::
 
 ## Come funziona
@@ -151,7 +151,7 @@ Gli stati arrivano solo dove il provider può riportarli:
 | --- | --- |
 | `monitor_data_received` | Quando OneUptime ha ricevuto i dati che hanno attivato il monitor: una richiesta in ingresso, il report di un agente server, un'email in ingresso, il controllo di una sonda, un trap SNMP o l'interrogazione di un dispositivo di rete. Include il tempo che i dati hanno atteso in coda per essere valutati. |
 | `record_created` | Quando è stato creato l'incidente, l'avviso o l'episodio: da un monitor di telemetria, una regola o una persona, e per un controllo di assenza, come un heartbeat che si è fermato. |
-| `page_started` | Quando un avviso è iniziato più tardi: l'ha avviato una persona, un flusso di lavoro o una regola che ora corrisponde, oppure è un avviso diretto. Per un avviso trattenuto dalla sua regola di reperibilità o da OneUptime AI, quando è finita la sospensione, o quando è iniziato se è stato prima. Per un nuovo avviso, quando è scaduto il timeout dopo il riconoscimento. Così un worker arrivato in ritardo a uno dei due si vede nel tempo. |
+| `page_started` | Quando un avviso è iniziato più tardi: l'ha avviato una persona, un flusso di lavoro o una regola che ora corrisponde, oppure è un avviso diretto. Per un avviso trattenuto dalla sua regola di reperibilità o da OneUptime AI, quando è finita la sospensione, o quando è iniziato se è stato prima. Per un nuovo avviso, quando è scaduto il timeout dopo il riconoscimento, o quando la sua policy è stata modificata l'ultima volta, se è stato dopo: un timeout accorciato al punto da essere già scaduto è cronometrato dalla modifica. Così un worker arrivato in ritardo a uno dei due si vede nel tempo. |
 
 Per una richiesta in ingresso, il tempo parte dall'ultima richiesta ricevuta dall'endpoint, quindi può risultare un po' corto.
 
@@ -183,7 +183,7 @@ Un percentile viene calcolato dai bucket, e disegnato come il centro del bucket 
 
 ## SLO da cui partire
 
-Quattro obiettivi che la maggior parte delle installazioni può promettere, ciascuno costruito con una o due query nell'esploratore di metriche del progetto che riceve le metriche. Leggono un intervallo di tempo con esattezza una volta che le metriche arrivano come delta: vedi [Inviare delta a un progetto OneUptime](#inviare-delta-a-un-progetto-oneuptime).
+Cinque obiettivi che la maggior parte delle installazioni può promettere, ciascuno costruito con una o due query nell'esploratore di metriche del progetto che riceve le metriche. Leggono un intervallo di tempo con esattezza una volta che le metriche arrivano come delta: vedi [Inviare delta a un progetto OneUptime](#inviare-delta-a-un-progetto-oneuptime).
 
 ### Costruirne uno nell'esploratore di metriche
 
@@ -216,7 +216,17 @@ Il 95% degli avvisi di reperibilità raggiunge il suo provider entro 30 secondi 
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-L'obiettivo regge finché `a` resta pari o inferiore a 30000. Gli avvisi avviati più tardi sono cronometrati dal loro avvio o dalla loro scadenza, non da un'attivazione, quindi sono esclusi. Raggruppa per `notification.page.start` per vedere la coda dei monitor (`monitor_data_received`) separata dal resto, o per `notification.channel` per trovare un canale lento.
+L'obiettivo regge finché `a` resta pari o inferiore a 30000. Gli avvisi avviati più tardi sono cronometrati dal loro avvio o dalla loro scadenza, non da un'attivazione, quindi sono esclusi: li copre il prossimo obiettivo. Raggruppa per `notification.page.start` per vedere la coda dei monitor (`monitor_data_received`) separata dal resto, o per `notification.channel` per trovare un canale lento.
+
+### Gli avvisi avviati più tardi partono entro 2 minuti
+
+Il 95% degli avvisi avviati più tardi raggiunge il suo provider entro 2 minuti dalla sua scadenza: un avviso trattenuto, un nuovo avviso e un avviso avviato da una persona, un flusso di lavoro o una regola.
+
+| Query | Metrica | Aggregazione | Condizioni |
+| --- | --- | --- | --- |
+| `a` | `notification.time_to_send` | **P95** | `notification.page.start = page_started` |
+
+L'obiettivo regge finché `a` resta pari o inferiore a 120000. Un avviso trattenuto o un nuovo avviso attende la prossima esecuzione di un worker che gira una volta al minuto, quindi fino a un minuto del suo tempo se ne va in quell'attesa, e un worker rimasto indietro ne aggiunge altro.
 
 ### Le notifiche inviate più tardi partono entro 90 secondi
 
