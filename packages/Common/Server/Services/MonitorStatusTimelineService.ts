@@ -276,11 +276,12 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    *    last day in it with width_bucket, a binary search, as the monitor
    *    group statement does (issue #6887). A period that lies inside one day
    *    - the overwhelmingly common case, a flapping monitor's rows last well
-   *    under a second - is one segment with no zone conversion and no
-   *    generate_series. Only a period that crosses midnight fans out, one
-   *    segment per day it spans. Each period used to convert its start and
-   *    end to the zone and call generate_series, which was most of the
-   *    statement's time on a flapping page.
+   *    under a second - is one segment, with no zone conversion. Only a
+   *    period that crosses midnight fans out, one segment per day it spans.
+   *    Each period used to convert its start and end to the zone and call a
+   *    generate_series of timestamps, which was most of the statement's time
+   *    on a flapping page: on 1.1M rows of three monitors flapping every 20
+   *    seconds it took about 3 s, and takes about 2 s this way.
    *
    * 3. Seconds are summed as `double precision` and NEVER rounded per group.
    *    Rounding each (monitor, day, status) sum to a bigint loses up to half a
@@ -376,6 +377,13 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * width_bucket; one inside a day is a single segment, one that crosses
    * midnight is cut into a segment per day it touches.
    *
+   * The days a period touches are a set-returning call in the select list
+   * (a ProjectSet, one value per day, no tuplestore per row), so the
+   * periods are read once and never written out. Splitting them in two
+   * branches of a UNION, as the monitor group statement does, made Postgres
+   * write every period to a temporary file first - about 100 MB for 1.1M
+   * rows - and ran slower whenever the disk was busy.
+   *
    * Every monitor asked for comes back with a row for every day: a day
    * nothing of it overlapped is one row with no status and no seconds, so a
    * no-data day is never mistaken for a day spent up.
@@ -406,36 +414,28 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         WHERE src.e > src.s
       ),
       split AS (
-        SELECT monitor_id,
-               status_id,
-               is_off,
-               first_day AS day_index,
-               s AS seg_start,
-               e AS seg_end
-        FROM periods
-        WHERE first_day = last_day
-        UNION ALL
         SELECT pr.monitor_id,
                pr.status_id,
                pr.is_off,
-               di AS day_index,
-               GREATEST(pr.s, g.starts[di]) AS seg_start,
-               LEAST(pr.e, g.starts[di + 1]) AS seg_end
+               pr.s,
+               pr.e,
+               generate_series(pr.first_day, pr.last_day) AS day_index
         FROM periods pr
-        CROSS JOIN grid g,
-        LATERAL generate_series(pr.first_day, pr.last_day) AS di
-        WHERE pr.first_day <> pr.last_day
       ),
       agg AS (
-        SELECT monitor_id,
-               day_index,
-               status_id,
-               is_off,
-               SUM(EXTRACT(EPOCH FROM (seg_end - seg_start)))::double precision
-                 AS seconds
-        FROM split
-        WHERE seg_end > seg_start
-        GROUP BY monitor_id, day_index, status_id, is_off
+        SELECT sp.monitor_id,
+               sp.day_index,
+               sp.status_id,
+               sp.is_off,
+               SUM(EXTRACT(EPOCH FROM (
+                 LEAST(sp.e, g.starts[sp.day_index + 1])
+                   - GREATEST(sp.s, g.starts[sp.day_index])
+               )))::double precision AS seconds
+        FROM split sp
+        CROSS JOIN grid g
+        WHERE LEAST(sp.e, g.starts[sp.day_index + 1])
+                > GREATEST(sp.s, g.starts[sp.day_index])
+        GROUP BY sp.monitor_id, sp.day_index, sp.status_id, sp.is_off
       ),
       ${Service.getDayBucketsCte()}
       SELECT m.monitor_id AS "monitorId",

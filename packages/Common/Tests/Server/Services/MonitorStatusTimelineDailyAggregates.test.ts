@@ -492,11 +492,23 @@ describe("MonitorStatusTimelineService.getDailyUptimeAggregate", () => {
     expect(sql).toContain(
       "width_bucket(src.e - interval '1 microsecond', g.starts) AS last_day",
     );
-    // A period inside one day is one segment; only one crossing midnight fans out.
-    expect(sql).toContain("FROM periods WHERE first_day = last_day UNION ALL");
-    expect(sql).toContain("LATERAL generate_series(pr.first_day, pr.last_day)");
-    expect(sql).toContain("GREATEST(pr.s, g.starts[di]) AS seg_start");
-    expect(sql).toContain("LEAST(pr.e, g.starts[di + 1]) AS seg_end");
+    /*
+     * A period inside one day is one segment; only one crossing midnight
+     * fans out. The days come from an integer series in the select list, so
+     * the periods are read once: two branches of a UNION over them had
+     * Postgres write every period to a temporary file first.
+     */
+    expect(sql).toContain(
+      "generate_series(pr.first_day, pr.last_day) AS day_index FROM periods pr )",
+    );
+    expect(sql).not.toContain("UNION ALL");
+    expect(sql).not.toContain("LATERAL generate_series(pr.first_day");
+    expect(sql).toContain(
+      "LEAST(sp.e, g.starts[sp.day_index + 1]) - GREATEST(sp.s, g.starts[sp.day_index])",
+    );
+    expect(sql).toContain(
+      "WHERE LEAST(sp.e, g.starts[sp.day_index + 1]) > GREATEST(sp.s, g.starts[sp.day_index])",
+    );
     // No zone conversion is made per row any more.
     expect(sql).not.toContain("date_trunc('day', src.s AT TIME ZONE p.tz)");
     expect(sql).not.toContain("AT TIME ZONE p.tz) AS day_start");
@@ -803,7 +815,9 @@ describe("a monitor's time with monitoring off (issue #7112)", () => {
     expect(sql).toContain(
       "CASE WHEN src.is_off THEN NULL ELSE src.status_id END AS status_id",
     );
-    expect(sql).toContain("GROUP BY monitor_id, day_index, status_id, is_off");
+    expect(sql).toContain(
+      "GROUP BY sp.monitor_id, sp.day_index, sp.status_id, sp.is_off",
+    );
     expect(sql).toContain('COALESCE(a.is_off, false) AS "isMonitoringOff"');
     // Kept, not dropped: the day says it was off instead of having no data.
     expect(sql).not.toContain("AND NOT src.is_off");
