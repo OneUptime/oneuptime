@@ -331,6 +331,57 @@ describe("Telemetry.init with a header whose value holds '='", () => {
   });
 });
 
+/*
+ * The form a backend's setup guide gives for OTEL_EXPORTER_OTLP_HEADERS
+ * (issue #7162): ',' between headers, a space in a value written %20. Read
+ * with ';' only, it was one header whose value held the other - sent, so
+ * refused by the backend, and nobody told.
+ */
+describe("Telemetry.init with headers copied as OTEL_EXPORTER_OTLP_HEADERS writes them", () => {
+  test("exports traces, metrics and logs with each header, its value decoded", () => {
+    process.env[ENDPOINT] = "https://collector.example.com/otlp";
+    process.env[HEADERS] =
+      "Authorization=Basic%20dXNlcjpwYXNzd29yZA==,X-Scope-OrgID=tenant-1";
+
+    expect(Telemetry.init({ serviceName: "app" })).not.toBeNull();
+
+    for (const configs of [
+      mockExporterConfigs.traces,
+      mockExporterConfigs.metrics,
+      mockExporterConfigs.logs,
+    ]) {
+      expect(configs).toHaveLength(1);
+      expect(configs[0]?.headers).toEqual({
+        Authorization: BASIC_AUTHORIZATION,
+        "X-Scope-OrgID": "tenant-1",
+      });
+    }
+
+    expect(Telemetry.isSpanExportEnabled()).toBe(true);
+    expect(loggedLines()).toEqual([]);
+  });
+
+  test("exports with a OneUptime token and a second header separated by ','", () => {
+    process.env[ENDPOINT] = "https://oneuptime.example.com/otlp";
+    process.env[HEADERS] = "x-oneuptime-token=c2VjcmV0=,x-extra=1";
+
+    Telemetry.init({ serviceName: "worker" });
+
+    for (const configs of [
+      mockExporterConfigs.traces,
+      mockExporterConfigs.metrics,
+      mockExporterConfigs.logs,
+    ]) {
+      expect(configs[0]?.headers).toEqual({
+        "x-oneuptime-token": "c2VjcmV0=",
+        "x-extra": "1",
+      });
+    }
+
+    expect(loggedLines()).toEqual([]);
+  });
+});
+
 describe("Telemetry.init with a header it cannot read", () => {
   test("exports with the headers it can read, and warns about the other once", () => {
     process.env[ENDPOINT] = "https://collector.example.com/otlp";
@@ -349,7 +400,7 @@ describe("Telemetry.init with a header it cannot read", () => {
       "OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart): " +
         "OneUptime cannot read header 2 of 2, so it does not send it. " +
         "Header 2 has no '=' between a name and a value. " +
-        "Write each header as name=value, and separate headers with ';'.",
+        "Write each header as name=value, and separate headers with ';' (or ',' as in OTEL_EXPORTER_OTLP_HEADERS).",
     ]);
     expect(loggerError).toHaveBeenCalledWith(
       expect.any(String),
@@ -432,7 +483,7 @@ describe("Telemetry.init with a header it cannot read", () => {
       "OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart): " +
         "OneUptime cannot read header 2 of 2, so it does not send it. " +
         "Header 2 has no '=' between a name and a value. " +
-        "Write each header as name=value, and separate headers with ';'.",
+        "Write each header as name=value, and separate headers with ';' (or ',' as in OTEL_EXPORTER_OTLP_HEADERS).",
     ]);
   });
 

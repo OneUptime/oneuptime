@@ -510,7 +510,10 @@ export default class PersonPageFailureWorld {
   }
 
   private installLogs(): void {
-    // The worker's read: the logs still Executing, in _id order.
+    /*
+     * The worker's read: the logs still Executing - and those merged into
+     * another page (Already Paged, OnCallPageMerge) - in _id order.
+     */
     jest
       .spyOn(UserOnCallLogService, "findBy")
       .mockImplementation((async (args: {
@@ -519,9 +522,14 @@ export default class PersonPageFailureWorld {
       }) => {
         this.throwIfStopped();
 
+        const statuses: Array<unknown> =
+          typeof args.query["status"] === "string"
+            ? [args.query["status"]]
+            : operatorValues(args.query["status"]).flat();
+
         return this.logs
           .filter((log: UserOnCallLog) => {
-            return log.status === args.query["status"];
+            return statuses.includes(log.status);
           })
           .sort((a: UserOnCallLog, b: UserOnCallLog) => {
             return a.id!.toString() < b.id!.toString() ? -1 : 1;

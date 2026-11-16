@@ -335,9 +335,21 @@ describe("the person's-log worker, a page at a time", () => {
     });
 
     for (const read of reads) {
-      expect(read.query["status"]).toBe(
-        UserNotificationExecutionStatus.Executing,
-      );
+      // Still paging, or merged into another page (OnCallPageMerge).
+      expect(
+        Object.values(
+          (
+            read.query["status"] as {
+              objectLiteralParameters?: Record<string, unknown>;
+            }
+          ).objectLiteralParameters || {},
+        ),
+      ).toEqual([
+        [
+          UserNotificationExecutionStatus.Executing,
+          UserNotificationExecutionStatus.AlreadyPaged,
+        ],
+      ]);
       expect(read.sort).toEqual({ _id: SortOrder.Ascending });
       expect(read.limit).toBe(USER_LOG_PAGE_SIZE);
       expect(read.select).toBe(USER_LOG_SELECT);

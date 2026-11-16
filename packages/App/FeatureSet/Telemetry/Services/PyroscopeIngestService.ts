@@ -324,22 +324,18 @@ export default class PyroscopeIngestService {
         (req as TelemetryRequest).productType = ProductType.Profiles;
       }
 
-      // Respond immediately and queue for async processing
-      Response.sendEmptySuccessResponse(req, res);
-
-      try {
-        await ProfilesQueueService.addProfileIngestJob(req as TelemetryRequest);
-      } catch (enqueueError) {
-        /*
-         * The 200 is already on the wire, so the client cannot be told
-         * — and next(enqueueError) would attempt a second response
-         * write. Log loudly instead: this is dropped data.
-         */
-        logger.error(
-          "Pyroscope ingest: failed to enqueue profile job — payload dropped:",
-        );
-        logger.error(enqueueError);
+      /*
+       * Acknowledge only after queue admission, as the OTLP endpoints do.
+       * This answered 200 first and queued after, so a profile the queue
+       * then refused was lost behind a success; a 503 is retried.
+       */
+      if (
+        !(await this.enqueueOrAnswerUnavailable(req as TelemetryRequest, res))
+      ) {
+        return;
       }
+
+      Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
@@ -482,25 +478,49 @@ export default class PyroscopeIngestService {
         (req as TelemetryRequest).productType = ProductType.Profiles;
       }
 
-      // Respond immediately and queue for async processing
-      this.sendPushSuccessResponse(req, res);
-
-      try {
-        await ProfilesQueueService.addProfileIngestJob(req as TelemetryRequest);
-      } catch (enqueueError) {
-        /*
-         * The 200 is already on the wire, so the client cannot be told
-         * — and next(enqueueError) would attempt a second response
-         * write. Log loudly instead: this is dropped data.
-         */
-        logger.error(
-          "Pyroscope push: failed to enqueue profile job — payload dropped:",
-        );
-        logger.error(enqueueError);
+      /*
+       * Acknowledge only after queue admission, as the OTLP endpoints do.
+       * This answered 200 first and queued after, so a push the queue then
+       * refused was lost behind a success. A Connect client (Grafana
+       * Alloy's pyroscope.write) reads a 503 as Unavailable and retries it.
+       */
+      if (
+        !(await this.enqueueOrAnswerUnavailable(req as TelemetryRequest, res))
+      ) {
+        return;
       }
+
+      this.sendPushSuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
+  }
+
+  /*
+   * Queue the converted profiles, or answer 503 when the queue cannot take
+   * them - the answer the OTLP endpoints give, which every Pyroscope sender
+   * retries. True when they were queued and the caller still answers. The
+   * queue service logs the failure; the sender is told nothing of the
+   * backend or its payload.
+   */
+  private static async enqueueOrAnswerUnavailable(
+    req: TelemetryRequest,
+    res: ExpressResponse,
+  ): Promise<boolean> {
+    try {
+      await ProfilesQueueService.addProfileIngestJob(req);
+    } catch {
+      Response.sendCustomResponse(
+        req,
+        res,
+        503,
+        { message: "Telemetry queue unavailable. Please retry." },
+        {},
+      );
+      return false;
+    }
+
+    return true;
   }
 
   private static extractRawBody(req: ExpressRequest): Buffer | null {

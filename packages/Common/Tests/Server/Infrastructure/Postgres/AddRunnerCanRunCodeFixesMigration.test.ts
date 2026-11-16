@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddRunnerCanRunCodeFixes1809180500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180500000-AddRunnerCanRunCodeFixes";
+import { AddRunnerCanRunCodeFixes1809180900000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180900000-AddRunnerCanRunCodeFixes";
 import Runner from "../../../../Models/DatabaseModels/Runner";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -22,7 +22,7 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * every migration already registered, or it silently never runs.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809180500000";
+const MIGRATION_TIMESTAMP: string = "1809180900000";
 const MIGRATION_BASE_NAME: string = "AddRunnerCanRunCodeFixes";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -42,7 +42,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddRunnerCanRunCodeFixes1809180500000();
+    new AddRunnerCanRunCodeFixes1809180900000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -53,7 +53,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddRunnerCanRunCodeFixes1809180500000", () => {
+describe("AddRunnerCanRunCodeFixes1809180900000", () => {
   test("adds whether a global Runner takes AI code fixes, on for every Runner there is", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "Runner" ADD "canRunCodeFixes" boolean NOT NULL DEFAULT true`,
@@ -82,7 +82,7 @@ describe("AddRunnerCanRunCodeFixes1809180500000", () => {
     });
 
     expect(registered).toContain(MIGRATION_CLASS_NAME);
-    expect(new AddRunnerCanRunCodeFixes1809180500000().name).toBe(
+    expect(new AddRunnerCanRunCodeFixes1809180900000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(

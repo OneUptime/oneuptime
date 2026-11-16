@@ -352,7 +352,7 @@
       "extendDescription": "Mover a data de término do teste deste projeto. O provedor de pagamento também recebe a nova data, então nada é cobrado durante o teste.",
       "newTrialEndDate": "Nova data de término do período de teste",
       "newTrialEndDateDescription": "A data em que o período de teste deve terminar. Deve estar no futuro e a no máximo 730 dias (dois anos) de distância.",
-      "notTrialingWarning": "Este projeto não está atualmente em teste. Estender o teste encerra o período de faturação por utilização atual, pelo que o cliente será faturado de imediato pela utilização já acumulada neste período. O teste estendido em si é gratuito.",
+      "notTrialingUsageWaived": "Este projeto não está atualmente em teste. Estender o teste perdoa a utilização que o cliente já acumulou no período de faturação atual, pelo que não lhe será faturada. O teste estendido em si é gratuito.",
       "extendSubmitButton": "Estender período de teste",
       "extendSuccess": "Período de teste estendido até {{date}}. O provedor de pagamento foi atualizado.",
       "extendFailure": "Falha ao estender o teste.",
@@ -636,12 +636,6 @@
         "usageCardDescription": "Por quanto tempo o uso diário de telemetria de cada projeto é mantido, com a cobrança ativada ou desativada.",
         "usageEditButton": "Editar retenção do uso de telemetria"
       },
-      "apiKey": {
-        "cardTitle": "Configurações da chave API mestre",
-        "cardDescription": "Tem acesso root a todos os projetos deste servidor.",
-        "editButton": "Editar configurações da chave API",
-        "apiKeyNotGenerated": "Chave API ainda não gerada."
-      },
       "llmProviders": {
         "bannerTitle": "Precisa de ajuda para configurar provedores de LLM?",
         "bannerDescription": "Os provedores de LLM habilitam recursos de IA. Você pode configurar provedores de LLM globais disponíveis para todos os projetos.",
@@ -752,7 +746,6 @@
   "Edit Server": "Editar servidor",
   "Edit SMTP Config": "Editar configuração SMTP",
   "Edit API Key": "Editar chave de API",
-  "Edit API Key Settings": "Editar configurações da chave de API",
   "Edit Twilio Config": "Editar configuração do Twilio",
   "Edit Telegram Config": "Editar configuração do Telegram",
   "Edit Meta WhatsApp Config": "Editar configuração do Meta WhatsApp",
@@ -4022,5 +4015,15 @@
   "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Copie exatamente o conteúdo do modelo abaixo — incluindo pontuação e espaços — ao criar cada modelo na Meta. A lista de variáveis mostra cada marcador que precisa ser configurado no WhatsApp Manager.",
   "Takes no AI code fixes: they are turned off for this Runner.": "Não aceita correções de código por IA: estão desativadas para este Runner.",
   "Runs AI Code Fixes": "Executa correções de código por IA",
-  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "Permite que ele aceite as correções de código do OneUptime AI, com um token para cada repositório. Desativado, executa apenas etapas em JavaScript."
+  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "Permite que ele aceite as correções de código do OneUptime AI, com um token para cada repositório. Desativado, executa apenas etapas em JavaScript.",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "Ainda não há chave. Crie uma para os scripts e ferramentas que chamam a API como administrador principal.",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "Há uma chave definida. Ela foi mostrada uma vez, quando foi criada: só o hash dela é guardado, por isso não pode ser mostrada de novo. Se você a perdeu, redefina-a.",
+  "Create Key": "Criar chave",
+  "Reset Key": "Redefinir chave",
+  "Requests with the key are accepted.": "As solicitações com a chave são aceitas.",
+  "Reset Master API Key?": "Redefinir a chave de API mestra?",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "A chave atual deixa de funcionar na hora, para todo script e ferramenta que a usa. A nova chave é mostrada uma vez.",
+  "Copy Your Master API Key": "Copie sua chave de API mestra",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Copie-a agora e guarde-a em um lugar seguro, como um gerenciador de segredos. Ela só é mostrada desta vez: o OneUptime guarda apenas um hash dela.",
+  "The server did not answer with the master API key. Try again.": "O servidor não respondeu com a chave de API mestra. Tente novamente."
 }

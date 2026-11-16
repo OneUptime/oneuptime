@@ -352,7 +352,7 @@
       "extendDescription": "Move this project's trial end date. The payment provider gets the new date too, so nothing is invoiced during the trial.",
       "newTrialEndDate": "New Trial End Date",
       "newTrialEndDateDescription": "The date the trial should end. Must be in the future and no more than 730 days (two years) away.",
-      "notTrialingWarning": "This project is not currently on trial. Extending the trial closes the current usage billing period, so the customer will be invoiced straight away for the usage they have already accrued this period. The extended trial itself is free.",
+      "notTrialingUsageWaived": "This project is not currently on trial. Extending the trial waives the usage the customer has accrued this billing period, so they are not invoiced for it. The extended trial itself is free.",
       "extendSubmitButton": "Extend Trial",
       "extendSuccess": "Trial extended to {{date}}. The payment provider has been updated.",
       "extendFailure": "Failed to extend the trial.",
@@ -636,12 +636,6 @@
         "usageCardDescription": "How long each project's daily telemetry usage is kept, with billing on or off.",
         "usageEditButton": "Edit Telemetry Usage Retention"
       },
-      "apiKey": {
-        "cardTitle": "Master API Key Settings",
-        "cardDescription": "Has root access to every project on this server.",
-        "editButton": "Edit API Key Settings",
-        "apiKeyNotGenerated": "API Key not generated yet."
-      },
       "llmProviders": {
         "bannerTitle": "Need help with setting up LLM Providers?",
         "bannerDescription": "LLM Providers enable AI features. You can configure global LLM Providers that are available to all projects.",
@@ -752,7 +746,6 @@
   "Edit Server": "Edit Server",
   "Edit SMTP Config": "Edit SMTP Config",
   "Edit API Key": "Edit API Key",
-  "Edit API Key Settings": "Edit API Key Settings",
   "Edit Twilio Config": "Edit Twilio Config",
   "Edit Telegram Config": "Edit Telegram Config",
   "Edit Meta WhatsApp Config": "Edit Meta WhatsApp Config",
@@ -4022,5 +4015,15 @@
   "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.",
   "Takes no AI code fixes: they are turned off for this Runner.": "Takes no AI code fixes: they are turned off for this Runner.",
   "Runs AI Code Fixes": "Runs AI Code Fixes",
-  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only."
+  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "No key yet. Create one for scripts and tools that call the API as a master admin.",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.",
+  "Create Key": "Create Key",
+  "Reset Key": "Reset Key",
+  "Requests with the key are accepted.": "Requests with the key are accepted.",
+  "Reset Master API Key?": "Reset Master API Key?",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "The current key stops working at once, for every script and tool that uses it. The new key is shown once.",
+  "Copy Your Master API Key": "Copy Your Master API Key",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.",
+  "The server did not answer with the master API key. Try again.": "The server did not answer with the master API key. Try again."
 }

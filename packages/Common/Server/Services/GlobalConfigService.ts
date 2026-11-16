@@ -61,6 +61,9 @@ import ServerSendingStatusUtil, {
 } from "../../Types/ServerSending/ServerSendingStatus";
 import { JSONObject } from "../../Types/JSON";
 import PartialEntity from "../../Types/Database/PartialEntity";
+import HashedString from "../../Types/HashedString";
+import { MasterApiKeyState } from "../../Types/MasterApiKey/MasterApiKeyAnswer";
+import MasterApiKey from "../Utils/MasterApiKey";
 import crypto from "crypto";
 
 /*
@@ -235,6 +238,28 @@ export const ROOT_ONLY_SERVER_SETUP_COLUMNS: ReadonlyArray<keyof Model> = [
 export const ROOT_ONLY_SERVER_PRODUCTS_COLUMNS: ReadonlyArray<keyof Model> = [
   "serverProducts",
 ];
+
+/*
+ * The server's master API key (#7901): the SHA-256 of the key, never the
+ * key itself (Utils/MasterApiKey). It is made only by createMasterApiKey,
+ * as OneUptime itself, on Admin Dashboard > Settings > API Key, which shows
+ * the new key once. The generic API neither writes it
+ * (assertMasterApiKeyWrittenByRootOnly) - through it a master admin, or the
+ * master API key itself, could set a key of their own choosing, stored as
+ * it was sent - nor reads it back (onBeforeFind drops it): not even the
+ * hash leaves the server. The page reads whether there is one
+ * (getMasterApiKeyState).
+ */
+export const ROOT_ONLY_MASTER_API_KEY_COLUMNS: ReadonlyArray<keyof Model> = [
+  "masterApiKey",
+];
+
+// What a write of the master API key through the API is told.
+export const MASTER_API_KEY_WRITTEN_HERE_MESSAGE: string =
+  "The master API key cannot be set through the API. Create or reset it on Admin Dashboard > Settings > API Key, which shows the new key once.";
+
+// A SHA-256 digest, as HashedString writes it: 64 lower-case hex digits.
+const SHA_256_HEX_DIGEST: RegExp = /^[0-9a-f]{64}$/;
 
 const TELEGRAM_WEBHOOK_SECRET_CACHE_NAMESPACE: string =
   "global-config-security";
@@ -976,6 +1001,106 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Refuses a write of the master API key by anyone but OneUptime itself
+   * (ROOT_ONLY_MASTER_API_KEY_COLUMNS). An explicit null counts as a write:
+   * clearing the key takes it away as surely as replacing it.
+   *
+   * OneUptime's own write stores the key's hash, or nothing: a write of
+   * anything else - a key as it is, which the lookup would take for one
+   * stored before keys were hashed (MasterApiKey.isStoredAsWritten), or a
+   * HashedString still to be hashed, which the write path would hash
+   * without the key's own rules - is refused, so no path can put a key in
+   * the database as it is.
+   */
+  public assertMasterApiKeyWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    const value: unknown = (data as Record<string, unknown> | undefined)?.[
+      "masterApiKey"
+    ];
+
+    if (value === undefined) {
+      return;
+    }
+
+    if (!props.isRoot) {
+      throw new NotAuthorizedException(MASTER_API_KEY_WRITTEN_HERE_MESSAGE);
+    }
+
+    if (value === null) {
+      return;
+    }
+
+    if (
+      !(value instanceof HashedString) ||
+      !value.isValueHashed() ||
+      !SHA_256_HEX_DIGEST.test(value.toString())
+    ) {
+      throw new BadDataException(
+        "The master API key is stored only as its hash. Make it with GlobalConfigService.createMasterApiKey.",
+      );
+    }
+  }
+
+  /*
+   * Makes the server's master API key (Admin Dashboard > Settings > API Key,
+   * POST /global-config/master-api-key): a new random key in place of the
+   * one before, which stops working at once, stored as its hash and turned
+   * on - a key is made to be used, and the switch beside it turns it off.
+   *
+   * Answers the key. It is never stored, logged or sent again: the caller
+   * shows it once.
+   */
+  @CaptureSpan()
+  public async createMasterApiKey(): Promise<string> {
+    const masterApiKey: string = MasterApiKey.generate();
+
+    const updated: number = await this.updateOneById({
+      id: ObjectID.getZeroObjectID(),
+      data: {
+        masterApiKey: new HashedString(MasterApiKey.hash(masterApiKey), true),
+        isMasterApiKeyEnabled: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (updated === 0) {
+      throw new BadDataException(
+        "No master API key was made: this server's settings were not found. Restart OneUptime so it creates them, then try again.",
+      );
+    }
+
+    return masterApiKey;
+  }
+
+  /*
+   * Whether the server has a master API key, and whether it is on: what
+   * Admin Dashboard > Settings > API Key shows in place of the key, which
+   * nothing can read back.
+   */
+  @CaptureSpan()
+  public async getMasterApiKeyState(): Promise<MasterApiKeyState> {
+    const config: Model | null = await this.findOneById({
+      id: ObjectID.getZeroObjectID(),
+      select: {
+        masterApiKey: true,
+        isMasterApiKeyEnabled: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return {
+      isSet: Boolean(config?.masterApiKey?.toString()),
+      isEnabled: Boolean(config?.isMasterApiKeyEnabled),
+    };
+  }
+
+  /*
    * Writes the products switched off for every project: one statement, no
    * hooks. The caller (ServerProducts) forgets its copy afterwards.
    */
@@ -1070,11 +1195,16 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The branding columns, removed from what a caller other than OneUptime
-   * itself selects or filters on: read back through the generic API, they
-   * would show values the enterprise module has decided not to apply.
+   * The columns only OneUptime itself reads, removed from what any other
+   * caller selects or filters on:
+   *
+   *   - the branding columns: read back through the generic API, they would
+   *     show values the enterprise module has decided not to apply;
+   *   - the master API key: its hash, which no reader needs - the key is
+   *     shown once, when it is made - and which, filtered on, would answer
+   *     whether a guess is the key.
    */
-  public dropBrandingColumnsFromRead(findBy: FindBy<Model>): FindBy<Model> {
+  public dropRootOnlyColumnsFromRead(findBy: FindBy<Model>): FindBy<Model> {
     if (findBy.props.isRoot) {
       return findBy;
     }
@@ -1088,7 +1218,10 @@ export class Service extends DatabaseService<Model> {
         ...(value as unknown as Record<string, unknown>),
       };
 
-      for (const column of ROOT_ONLY_BRANDING_COLUMNS) {
+      for (const column of [
+        ...ROOT_ONLY_BRANDING_COLUMNS,
+        ...ROOT_ONLY_MASTER_API_KEY_COLUMNS,
+      ]) {
         delete copy[column as string];
       }
 
@@ -1352,7 +1485,7 @@ export class Service extends DatabaseService<Model> {
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
     return {
-      findBy: this.dropBrandingColumnsFromRead(findBy),
+      findBy: this.dropRootOnlyColumnsFromRead(findBy),
       carryForward: null,
     };
   }
@@ -1373,6 +1506,7 @@ export class Service extends DatabaseService<Model> {
       createBy.props,
     );
     this.assertServerProductsWrittenByRootOnly(createBy.data, createBy.props);
+    this.assertMasterApiKeyWrittenByRootOnly(createBy.data, createBy.props);
     this.assertTwilioAccountNotSetByEnvironment(createBy.data, createBy.props);
     this.assertEmailSettingsNotSetByEnvironment(createBy.data, createBy.props);
     this.assertTwilioSmsNumbersAreValid(createBy.data);
@@ -1409,6 +1543,7 @@ export class Service extends DatabaseService<Model> {
       updateBy.props,
     );
     this.assertServerProductsWrittenByRootOnly(updateBy.data, updateBy.props);
+    this.assertMasterApiKeyWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertTwilioAccountNotSetByEnvironment(updateBy.data, updateBy.props);
     this.assertEmailSettingsNotSetByEnvironment(updateBy.data, updateBy.props);
     this.assertTwilioSmsNumbersAreValid(updateBy.data);

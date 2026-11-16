@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 在 `config.env` 中设置它们，然后运行 `npm start`。`DISABLE_TELEMETRY_FOR_APP` 默认为 `true`，此时不会发送任何内容。
 :::
 
-OneUptime 需要同时设置端点和请求头：没有请求头时它什么都不发送。每个请求头写成 `name=value`，多个请求头之间用 `;` 分隔。值中可以包含 `=`。OneUptime 会自行在端点后加上 `/v1/metrics`，同样的设置也会发送它自己的追踪和日志。每个指标在 OneUptime 首次记录它时出现：`notification.send.count` 在发送第一条消息时出现。
+OneUptime 需要同时设置端点和请求头：没有请求头时它什么都不发送。每个请求头写成 `name=value`，多个请求头之间用 `;` 分隔，也可以像 `OTEL_EXPORTER_OTLP_HEADERS` 那样用 `,` 分隔。值中可以包含 `=`。没有 `;` 时，值按该标准的写法读取，空格写作 `%20`：要按原样发送值，请在设置末尾加上 `;`。OneUptime 会自行在端点后加上 `/v1/metrics`，同样的设置也会发送它自己的追踪和日志。每个指标在 OneUptime 首次记录它时出现：`notification.send.count` 在发送第一条消息时出现。
 
 ### 向 OneUptime 项目发送增量
 

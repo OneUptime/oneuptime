@@ -352,7 +352,7 @@
       "extendDescription": "이 프로젝트의 체험판 종료일을 옮깁니다. 결제 공급자에도 새 날짜가 반영되므로 체험 기간 중에는 청구되지 않습니다.",
       "newTrialEndDate": "새 체험판 종료일",
       "newTrialEndDateDescription": "체험판이 종료될 날짜입니다. 미래의 날짜여야 하며 730일(2년)을 초과할 수 없습니다.",
-      "notTrialingWarning": "이 프로젝트는 현재 체험 중이 아닙니다. 체험을 연장하면 현재 사용량 청구 주기가 마감되므로, 이번 주기에 이미 발생한 사용량이 즉시 고객에게 청구됩니다. 연장된 체험 자체는 무료입니다.",
+      "notTrialingUsageWaived": "이 프로젝트는 현재 체험 중이 아닙니다. 체험을 연장하면 현재 청구 주기에 고객이 이미 사용한 사용량이 면제되어 청구되지 않습니다. 연장된 체험 자체는 무료입니다.",
       "extendSubmitButton": "체험판 연장",
       "extendSuccess": "체험판이 {{date}}까지 연장되었습니다. 결제 공급자도 업데이트되었습니다.",
       "extendFailure": "체험을 연장하지 못했습니다.",
@@ -636,12 +636,6 @@
         "usageCardDescription": "결제가 켜져 있든 꺼져 있든, 각 프로젝트의 일별 텔레메트리 사용량이 보존되는 기간입니다.",
         "usageEditButton": "텔레메트리 사용량 보존 편집"
       },
-      "apiKey": {
-        "cardTitle": "마스터 API 키 설정",
-        "cardDescription": "이 서버의 모든 프로젝트에 root 권한으로 접근합니다.",
-        "editButton": "API 키 설정 편집",
-        "apiKeyNotGenerated": "API 키가 아직 생성되지 않았습니다."
-      },
       "llmProviders": {
         "bannerTitle": "LLM 공급자 설정에 도움이 필요하신가요?",
         "bannerDescription": "LLM 공급자는 AI 기능을 활성화합니다. 모든 프로젝트에서 사용할 수 있는 글로벌 LLM 공급자를 구성할 수 있습니다.",
@@ -752,7 +746,6 @@
   "Edit Server": "서버 편집",
   "Edit SMTP Config": "SMTP 구성 편집",
   "Edit API Key": "API 키 편집",
-  "Edit API Key Settings": "API 키 설정 편집",
   "Edit Twilio Config": "Twilio 구성 편집",
   "Edit Telegram Config": "Telegram 구성 편집",
   "Edit Meta WhatsApp Config": "Meta WhatsApp 구성 편집",
@@ -4022,5 +4015,15 @@
   "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Meta에서 각 템플릿을 만들 때 아래 템플릿 본문을 문장 부호와 공백까지 정확히 복사하세요. 변수 목록에는 WhatsApp Manager에서 설정해야 하는 모든 자리 표시자가 나와 있습니다.",
   "Takes no AI code fixes: they are turned off for this Runner.": "AI 코드 수정을 받지 않습니다. 이 Runner에서는 꺼져 있습니다.",
   "Runs AI Code Fixes": "AI 코드 수정 실행",
-  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "OneUptime AI의 코드 수정을 저장소마다 토큰과 함께 받도록 합니다. 끄면 JavaScript 단계만 실행합니다."
+  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "OneUptime AI의 코드 수정을 저장소마다 토큰과 함께 받도록 합니다. 끄면 JavaScript 단계만 실행합니다.",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "아직 키가 없습니다. 마스터 관리자로 API를 호출하는 스크립트와 도구용 키를 만드세요.",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "키가 설정되어 있습니다. 만들 때 한 번만 표시되었습니다. 해시만 저장되므로 다시 표시할 수 없습니다. 잃어버렸다면 재설정하세요.",
+  "Create Key": "키 만들기",
+  "Reset Key": "키 재설정",
+  "Requests with the key are accepted.": "이 키를 사용한 요청이 허용됩니다.",
+  "Reset Master API Key?": "마스터 API 키를 재설정할까요?",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "현재 키는 이 키를 사용하는 모든 스크립트와 도구에서 즉시 작동하지 않습니다. 새 키는 한 번만 표시됩니다.",
+  "Copy Your Master API Key": "마스터 API 키 복사",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "지금 복사하여 시크릿 관리자와 같은 안전한 곳에 보관하세요. 이번 한 번만 표시됩니다. OneUptime은 해시만 저장합니다.",
+  "The server did not answer with the master API key. Try again.": "서버가 마스터 API 키를 반환하지 않았습니다. 다시 시도하세요."
 }

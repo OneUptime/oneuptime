@@ -143,8 +143,7 @@ describe("the metering loop", () => {
 
     expect(findAllBy).toHaveBeenCalledTimes(1);
     expect(findAllBy.mock.calls[0]![0]).toEqual({
-      // Never a sample project (#6808): it is in nobody's usage.
-      query: { isSampleProject: false },
+      query: {},
       select: { _id: true },
       sort: { createdAt: SortOrder.Ascending },
       props: { isRoot: true },

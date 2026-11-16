@@ -2223,6 +2223,11 @@ export class StripeBillingProvider implements BillingProvider {
    * together: they were created with the same trial_end (see subscribeToPlan),
    * and leaving the metered one behind would start billing usage while the
    * customer still believes they are on trial.
+   *
+   * Customers usually ask for more time once their trial has already turned
+   * into a paid subscription, and the extension is free for them too: the
+   * usage accrued in the billing period it closes is cleared rather than
+   * invoiced (see getItemsClearingAccruedUsage).
    */
   @CaptureSpan()
   public async extendTrial(data: {
@@ -2260,6 +2265,11 @@ export class StripeBillingProvider implements BillingProvider {
      * flat-fee subscription and then discovering the metered one is cancelled
      * would leave the project's two subscriptions on different trial dates.
      */
+    const subscriptions: Array<{
+      subscriptionId: string;
+      subscription: Stripe.Subscription;
+    }> = [];
+
     for (const subscriptionId of subscriptionIds) {
       const subscription: Stripe.Subscription =
         await this.getSubscription(subscriptionId);
@@ -2278,10 +2288,15 @@ export class StripeBillingProvider implements BillingProvider {
           Errors.BillingService.CANNOT_EXTEND_TRIAL_ON_CANCELLED_SUBSCRIPTION,
         );
       }
+
+      subscriptions.push({
+        subscriptionId: subscriptionId,
+        subscription: subscription,
+      });
     }
 
-    for (const subscriptionId of subscriptionIds) {
-      await this.stripe.subscriptions.update(subscriptionId, {
+    for (const { subscriptionId, subscription } of subscriptions) {
+      const updateParams: Stripe.SubscriptionUpdateParams = {
         trial_end: OneUptimeDate.toUnixTimestamp(data.trialEndsAt),
 
         /*
@@ -2289,22 +2304,104 @@ export class StripeBillingProvider implements BillingProvider {
          * With the default proration behaviour Stripe raises proration line
          * items for the shifted period, which is exactly the surprise invoice
          * extending a trial is meant to prevent - so prorations are disabled.
-         *
-         * Caveat: this only silences the flat-fee subscription. Usage-based
-         * billing is not subject to proration, so closing the metered
-         * subscription's period early still invoices the usage recorded in it.
-         * For a project that is still trialing that is nothing (trial usage is
-         * not billable), but extending the trial of an already-active project
-         * bills its accrued usage immediately - the admin page warns about
-         * this before the extension is submitted.
+         * That covers the flat fee only: usage is never prorated, and is
+         * cleared below instead.
          */
         proration_behavior: "none",
-      });
+      };
+
+      const itemsClearingAccruedUsage: Array<Stripe.SubscriptionUpdateParams.Item> =
+        this.getItemsClearingAccruedUsage(subscription);
+
+      if (itemsClearingAccruedUsage.length > 0) {
+        updateParams.items = itemsClearingAccruedUsage;
+      }
+
+      await this.stripe.subscriptions.update(subscriptionId, updateParams);
+
+      // Usage waived is free service handed out, so it is logged like the extension itself.
+      if (itemsClearingAccruedUsage.length > 0) {
+        logger.info(
+          `Cleared the usage accrued in the current billing period of subscription ${subscriptionId}, so extending its trial does not invoice it`,
+        );
+      }
 
       logger.debug(
         `Extended trial for subscription ${subscriptionId} to ${data.trialEndsAt.toISOString()}`,
       );
     }
+  }
+
+  /*
+   * The item changes that keep a trial extension from invoicing the usage a
+   * subscription has accrued in its current billing period.
+   *
+   * Moving trial_end closes that period, and usage is not subject to
+   * proration: Stripe invoices the usage recorded in the closed period on the
+   * spot, whatever proration_behavior says. Usage already recorded can only
+   * be taken off by deleting its item with clear_usage, so each metered item
+   * is deleted that way and its price is put back as a new, empty item. The
+   * delete and the re-add go in the same update as the trial: the period
+   * closes with no usage in it, the subscription keeps every price it had,
+   * and if Stripe refuses any of it nothing changes at all.
+   *
+   * A subscription still in its trial has nothing to clear - usage in a trial
+   * is never invoiced. Nothing is lost for later either: the daily usage
+   * report (MeteredPlan:ReportTelemetryMeteredPlan) fills the new items in
+   * again, inside the extended trial, so it is free as well.
+   */
+  private getItemsClearingAccruedUsage(
+    subscription: Stripe.Subscription,
+  ): Array<Stripe.SubscriptionUpdateParams.Item> {
+    if (this.isSubscriptionTrialing(subscription)) {
+      return [];
+    }
+
+    const meteredItems: Array<Stripe.SubscriptionItem> =
+      subscription.items.data.filter((item: Stripe.SubscriptionItem) => {
+        return item.price?.recurring?.usage_type === "metered";
+      });
+
+    const deletedItems: Array<Stripe.SubscriptionUpdateParams.Item> =
+      meteredItems.map(
+        (
+          item: Stripe.SubscriptionItem,
+        ): Stripe.SubscriptionUpdateParams.Item => {
+          return {
+            id: item.id,
+            deleted: true,
+            clear_usage: true,
+          };
+        },
+      );
+
+    const replacementItems: Array<Stripe.SubscriptionUpdateParams.Item> =
+      meteredItems.map(
+        (
+          item: Stripe.SubscriptionItem,
+        ): Stripe.SubscriptionUpdateParams.Item => {
+          const replacementItem: Stripe.SubscriptionUpdateParams.Item = {
+            price: item.price.id,
+          };
+
+          // Whatever else was set on the item by hand stays with its price.
+          if (item.metadata && Object.keys(item.metadata).length > 0) {
+            replacementItem.metadata = item.metadata;
+          }
+
+          if (item.tax_rates && item.tax_rates.length > 0) {
+            replacementItem.tax_rates = item.tax_rates.map(
+              (taxRate: Stripe.TaxRate): string => {
+                return taxRate.id;
+              },
+            );
+          }
+
+          return replacementItem;
+        },
+      );
+
+    return [...deletedItems, ...replacementItems];
   }
 
   @CaptureSpan()

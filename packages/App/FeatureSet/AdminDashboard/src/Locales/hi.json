@@ -352,7 +352,7 @@
       "extendDescription": "इस प्रोजेक्ट की ट्रायल समाप्ति तिथि बदलें। भुगतान प्रदाता को भी नई तिथि मिलती है, इसलिए ट्रायल के दौरान कोई बिल नहीं बनता।",
       "newTrialEndDate": "नई ट्रायल समाप्ति तिथि",
       "newTrialEndDateDescription": "वह तिथि जब ट्रायल समाप्त होना चाहिए। यह भविष्य में होनी चाहिए और 730 दिन (दो वर्ष) से अधिक दूर नहीं होनी चाहिए।",
-      "notTrialingWarning": "यह प्रोजेक्ट फ़िलहाल परीक्षण अवधि में नहीं है। परीक्षण बढ़ाने से मौजूदा उपयोग-आधारित बिलिंग अवधि बंद हो जाती है, इसलिए ग्राहक को इस अवधि में अब तक हुए उपयोग का बिल तुरंत भेजा जाएगा। बढ़ाई गई परीक्षण अवधि स्वयं निःशुल्क है।",
+      "notTrialingUsageWaived": "यह प्रोजेक्ट फ़िलहाल परीक्षण अवधि में नहीं है। परीक्षण बढ़ाने पर मौजूदा बिलिंग अवधि में ग्राहक द्वारा किया गया उपयोग माफ़ कर दिया जाता है, इसलिए उसका बिल नहीं भेजा जाएगा। बढ़ाई गई परीक्षण अवधि स्वयं निःशुल्क है।",
       "extendSubmitButton": "ट्रायल बढ़ाएँ",
       "extendSuccess": "ट्रायल {{date}} तक बढ़ा दिया गया। भुगतान प्रदाता को अपडेट कर दिया गया है।",
       "extendFailure": "परीक्षण अवधि बढ़ाने में विफल।",
@@ -636,12 +636,6 @@
         "usageCardDescription": "हर प्रोजेक्ट का दैनिक टेलीमेट्री उपयोग कितने समय तक रखा जाता है, बिलिंग चालू हो या बंद।",
         "usageEditButton": "टेलीमेट्री उपयोग प्रतिधारण संपादित करें"
       },
-      "apiKey": {
-        "cardTitle": "मास्टर API कुंजी सेटिंग्स",
-        "cardDescription": "इस सर्वर के हर प्रोजेक्ट पर root पहुँच है।",
-        "editButton": "API कुंजी सेटिंग्स संपादित करें",
-        "apiKeyNotGenerated": "API कुंजी अभी तक उत्पन्न नहीं हुई है।"
-      },
       "llmProviders": {
         "bannerTitle": "LLM प्रदाता सेटअप करने में मदद चाहिए?",
         "bannerDescription": "LLM प्रदाता AI सुविधाओं को सक्षम करते हैं। आप वैश्विक LLM प्रदाता कॉन्फ़िगर कर सकते हैं जो सभी परियोजनाओं के लिए उपलब्ध हैं।",
@@ -752,7 +746,6 @@
   "Edit Server": "सर्वर संपादित करें",
   "Edit SMTP Config": "SMTP कॉन्फ़िगरेशन संपादित करें",
   "Edit API Key": "API कुंजी संपादित करें",
-  "Edit API Key Settings": "API कुंजी सेटिंग्स संपादित करें",
   "Edit Twilio Config": "Twilio कॉन्फ़िगरेशन संपादित करें",
   "Edit Telegram Config": "Telegram कॉन्फ़िगरेशन संपादित करें",
   "Edit Meta WhatsApp Config": "Meta WhatsApp कॉन्फ़िगरेशन संपादित करें",
@@ -4022,5 +4015,15 @@
   "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Meta में हर टेम्पलेट बनाते समय नीचे दी गई टेम्पलेट सामग्री ठीक वैसी ही कॉपी करें — विराम चिह्नों और रिक्त स्थानों सहित। वेरिएबल की सूची हर वह प्लेसहोल्डर दिखाती है जिसे WhatsApp Manager में कॉन्फ़िगर करना ज़रूरी है।",
   "Takes no AI code fixes: they are turned off for this Runner.": "AI कोड सुधार नहीं लेता: इस Runner के लिए ये बंद हैं।",
   "Runs AI Code Fixes": "AI कोड सुधार चलाता है",
-  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "इसे हर रिपॉज़िटरी के लिए एक टोकन के साथ OneUptime AI के कोड सुधार लेने देता है। बंद होने पर यह केवल JavaScript चरण चलाता है।"
+  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "इसे हर रिपॉज़िटरी के लिए एक टोकन के साथ OneUptime AI के कोड सुधार लेने देता है। बंद होने पर यह केवल JavaScript चरण चलाता है।",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "अभी कोई कुंजी नहीं है। उन स्क्रिप्ट और टूल के लिए एक कुंजी बनाएँ जो मास्टर एडमिन के रूप में API को कॉल करते हैं।",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "एक कुंजी सेट है। इसे बनाते समय एक बार दिखाया गया था: केवल इसका हैश रखा जाता है, इसलिए इसे फिर से नहीं दिखाया जा सकता। अगर यह खो गई है, तो इसे रीसेट करें।",
+  "Create Key": "कुंजी बनाएँ",
+  "Reset Key": "कुंजी रीसेट करें",
+  "Requests with the key are accepted.": "इस कुंजी वाले अनुरोध स्वीकार किए जाते हैं।",
+  "Reset Master API Key?": "मास्टर API कुंजी रीसेट करें?",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "मौजूदा कुंजी इसका उपयोग करने वाली हर स्क्रिप्ट और टूल के लिए तुरंत काम करना बंद कर देती है। नई कुंजी एक बार दिखाई जाती है।",
+  "Copy Your Master API Key": "अपनी मास्टर API कुंजी कॉपी करें",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "इसे अभी कॉपी करें और किसी सुरक्षित जगह रखें, जैसे सीक्रेट मैनेजर में। यह केवल इसी बार दिखाई जाती है: OneUptime इसका केवल हैश रखता है।",
+  "The server did not answer with the master API key. Try again.": "सर्वर ने मास्टर API कुंजी के साथ जवाब नहीं दिया। फिर से प्रयास करें।"
 }

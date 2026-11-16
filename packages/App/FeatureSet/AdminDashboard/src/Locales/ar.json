@@ -352,7 +352,7 @@
       "extendDescription": "غيّر تاريخ انتهاء الفترة التجريبية لهذا المشروع. يحصل موفّر الدفع على التاريخ الجديد أيضًا، لذا لا تُصدر أي فاتورة خلال الفترة التجريبية.",
       "newTrialEndDate": "التاريخ الجديد لانتهاء الفترة التجريبية",
       "newTrialEndDateDescription": "التاريخ الذي يجب أن تنتهي فيه الفترة التجريبية. يجب أن يكون في المستقبل وألا يتجاوز 730 يومًا (عامين).",
-      "notTrialingWarning": "هذا المشروع ليس في فترة تجريبية حاليًا. يؤدي تمديد الفترة التجريبية إلى إغلاق فترة فوترة الاستخدام الحالية، لذا ستُصدر للعميل فاتورة فورًا بالاستخدام الذي تراكم في هذه الفترة. الفترة التجريبية الممددة نفسها مجانية.",
+      "notTrialingUsageWaived": "هذا المشروع ليس في فترة تجريبية حاليًا. يؤدي تمديد الفترة التجريبية إلى التنازل عن رسوم الاستخدام الذي تراكم لدى العميل في فترة الفوترة الحالية، فلن تُصدر له فاتورة به. الفترة التجريبية الممددة نفسها مجانية.",
       "extendSubmitButton": "تمديد الفترة التجريبية",
       "extendSuccess": "مُددت الفترة التجريبية حتى {{date}}. تم تحديث موفّر الدفع.",
       "extendFailure": "تعذّر تمديد الفترة التجريبية.",
@@ -636,12 +636,6 @@
         "usageCardDescription": "مدة الاحتفاظ بالاستخدام اليومي للقياس عن بُعد لكل مشروع، سواء كانت الفوترة مفعّلة أم لا.",
         "usageEditButton": "تعديل الاحتفاظ باستخدام القياس عن بُعد"
       },
-      "apiKey": {
-        "cardTitle": "إعدادات مفتاح API الرئيسي",
-        "cardDescription": "لديه وصول جذري إلى كل مشروع على هذا الخادم.",
-        "editButton": "تعديل إعدادات مفتاح API",
-        "apiKeyNotGenerated": "لم يُنشأ مفتاح API بعد."
-      },
       "llmProviders": {
         "bannerTitle": "تحتاج إلى مساعدة في إعداد موفّري LLM؟",
         "bannerDescription": "يفعّل موفّرو LLM ميزات الذكاء الاصطناعي. يمكنك ضبط موفّري LLM عامّين متاحين لجميع المشاريع.",
@@ -752,7 +746,6 @@
   "Edit Server": "تعديل الخادم",
   "Edit SMTP Config": "تعديل إعداد SMTP",
   "Edit API Key": "تعديل مفتاح API",
-  "Edit API Key Settings": "تعديل إعدادات مفتاح API",
   "Edit Twilio Config": "تعديل إعداد Twilio",
   "Edit Telegram Config": "تعديل إعداد Telegram",
   "Edit Meta WhatsApp Config": "تعديل إعداد Meta WhatsApp",
@@ -4022,5 +4015,15 @@
   "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> انسخ محتوى القالب أدناه كما هو تمامًا — بعلامات الترقيم والمسافات — عند إنشاء كل قالب في Meta. تعرض قائمة المتغيرات كل عنصر نائب يجب ضبطه في WhatsApp Manager.",
   "Takes no AI code fixes: they are turned off for this Runner.": "لا يقبل إصلاحات التعليمات البرمجية بالذكاء الاصطناعي: إنها متوقفة لهذا المشغّل.",
   "Runs AI Code Fixes": "يشغّل إصلاحات التعليمات البرمجية بالذكاء الاصطناعي",
-  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "يتيح له قبول إصلاحات التعليمات البرمجية من OneUptime AI، مع رمز مميز لكل مستودع. عند إيقافه، يشغّل خطوات JavaScript فقط."
+  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "يتيح له قبول إصلاحات التعليمات البرمجية من OneUptime AI، مع رمز مميز لكل مستودع. عند إيقافه، يشغّل خطوات JavaScript فقط.",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "لا يوجد مفتاح بعد. أنشئ مفتاحًا للبرامج النصية والأدوات التي تستدعي API بصفة مسؤول رئيسي.",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "تم تعيين مفتاح. عُرض مرة واحدة عند إنشائه: لا يُحفظ إلا تجزئته، لذلك لا يمكن عرضه مرة أخرى. إذا فقدته، فأعد تعيينه.",
+  "Create Key": "إنشاء مفتاح",
+  "Reset Key": "إعادة تعيين المفتاح",
+  "Requests with the key are accepted.": "تُقبل الطلبات التي تحمل المفتاح.",
+  "Reset Master API Key?": "إعادة تعيين مفتاح API الرئيسي؟",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "يتوقف المفتاح الحالي عن العمل فورًا، لكل برنامج نصي وأداة تستخدمه. يُعرض المفتاح الجديد مرة واحدة.",
+  "Copy Your Master API Key": "انسخ مفتاح API الرئيسي",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "انسخه الآن واحفظه في مكان آمن، مثل مدير الأسرار. لا يُعرض إلا هذه المرة: لا يحتفظ OneUptime إلا بتجزئته.",
+  "The server did not answer with the master API key. Try again.": "لم يُرجع الخادم مفتاح API الرئيسي. حاول مرة أخرى."
 }

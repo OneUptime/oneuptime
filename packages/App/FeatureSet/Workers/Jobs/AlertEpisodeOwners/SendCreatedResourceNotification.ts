@@ -28,8 +28,11 @@ import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
+  OwnerNotificationOf,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import OwnersReachedByAPage from "Common/Server/Utils/Notification/OwnersReachedByAPage";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+import { MarkdownText } from "Common/Utils/Markdown/FeedMarkdown";
 
 // What an episode is read with.
 const EPISODE_SELECT: Select<AlertEpisode> = {
@@ -101,6 +104,13 @@ RunCron(
     });
 
     for (const episode of episodes) {
+      const notification: OwnerNotificationOf = {
+        kind: OwnerNotificationKind.AlertEpisodeCreated,
+        projectId: episode.projectId!,
+        resourceId: episode.id!,
+        eventId: episode.id!,
+      };
+
       /*
        * Whom it is to tell - its owners, or the project's when it has none -
        * written before the take: a worker stopped from here on leaves them to
@@ -109,16 +119,22 @@ RunCron(
        */
       const delivery: OwnerNotificationDelivery =
         await OwnerNotificationDeliveries.planForOwnersOf({
-          notification: {
-            kind: OwnerNotificationKind.AlertEpisodeCreated,
-            projectId: episode.projectId!,
-            resourceId: episode.id!,
-            eventId: episode.id!,
-          },
+          notification: notification,
           findOwners: () => {
             return AlertEpisodeService.findOwners(episode.id!);
           },
           writesFeedItem: true,
+          /*
+           * Not those the episode's on-call page reached already: someone
+           * who is on call and an owner is told of the episode once, not
+           * twice (#7987).
+           */
+          findOwnersToLeaveOut: (owners: Array<User>): Promise<Array<User>> => {
+            return OwnersReachedByAPage.findAmong({
+              notification: notification,
+              owners: owners,
+            });
+          },
         });
 
       await AlertEpisodeService.updateOneById({
@@ -150,20 +166,24 @@ RunCron(
   },
 );
 
+// A person, as the episode's feed names them: "Ana Lopez (ana@acme.com)".
+function personMarkdown(user: User): MarkdownText {
+  return OwnerNotificationFeedText.nameAndEmail({
+    name: user.name?.toString(),
+    email: user.email?.toString(),
+  });
+}
+
 // A person told, as the episode's feed names them.
 function feedLineMarkdown(user: User): string {
-  return OwnerNotificationFeedText.notifiedLineMarkdown(
-    OwnerNotificationFeedText.nameAndEmail({
-      name: user.name?.toString(),
-      email: user.email?.toString(),
-    }),
-  );
+  return OwnerNotificationFeedText.notifiedLineMarkdown(personMarkdown(user));
 }
 
 /*
  * Tells the delivery's owners that the episode was created, each once
  * (OwnerNotificationDelivery.tell), and says in the episode's feed whom it
- * reached - those a stopped run told first among them.
+ * reached - those a stopped run told first among them - and whom it left
+ * out, as the episode's on-call page reached them already.
  */
 async function notifyOwnersOfEpisodeCreated(
   episode: AlertEpisode,
@@ -314,6 +334,12 @@ async function notifyOwnersOfEpisodeCreated(
   if (!delivery.isFeedItemToWrite) {
     return;
   }
+
+  // Whom it left out, named apart from those notified (OwnersReachedByAPage).
+  moreEpisodeFeedInformationInMarkdown +=
+    OwnerNotificationFeedText.reachedByPageMarkdown(
+      delivery.leftOut.map(personMarkdown),
+    );
 
   await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
     alertEpisodeId: episode.id!,

@@ -187,8 +187,8 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
     }
 
     await database.query(
-      `INSERT INTO "${schema}"."Project" ("_id", "name", "isBlocked", "isSampleProject")
-       VALUES ($1, 'Probe tables', false, false)`,
+      `INSERT INTO "${schema}"."Project" ("_id", "name", "isBlocked")
+       VALUES ($1, 'Probe tables', false)`,
       [PROJECT_ID.toString()],
     );
     await database.query(

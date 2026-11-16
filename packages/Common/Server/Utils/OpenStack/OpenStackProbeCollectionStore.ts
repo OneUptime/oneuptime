@@ -341,7 +341,7 @@ export default class OpenStackProbeCollectionStore {
    * Sets aside the probe's due clouds that nothing may collect now (Utils/Probe/ClaimSetAside):
    * collected by the OpenStack agent - switching to it clears nextCollectionAt and keeps the
    * probe - without a credential or Keystone's address, on a probe that may not collect it, or of
-   * a suspended, blocked, sample or deleted project. Each is judged again by the claim's
+   * a suspended, blocked or deleted project. Each is judged again by the claim's
    * own rule (getCollectableSql, IS NOT TRUE), so a cloud the claim would hand out is never moved.
    * Makes due the probe's clouds with no nextCollectionAt at all.
    *
@@ -406,8 +406,8 @@ export default class OpenStackProbeCollectionStore {
    * - The tenancy backstop: the project's own probe, or a global probe on an instance where those
    *   are the operator's own (billing off).
    * - The project is served (ProjectService.getActiveProjectStatusQuery): not deleted, not blocked
-   *   by a master admin - it is not collected until it is unblocked - not a sample, and its
-   *   subscriptions not inactive.
+   *   by a master admin - it is not collected until it is unblocked - and its subscriptions not
+   *   inactive.
    */
   public static getCollectableSql(parameters: {
     collectionMethodParameter: string;
@@ -423,7 +423,6 @@ export default class OpenStackProbeCollectionStore {
       `pr."deletedAt" IS NULL`,
       `p."deletedAt" IS NULL`,
       `p."isBlocked" = false`,
-      `p."isSampleProject" = false`,
       `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
       `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
     ].join("\n          AND ");

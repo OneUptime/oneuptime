@@ -145,9 +145,10 @@ export default class Profiling {
   private static getAuthToken(): string | undefined {
     /*
      * The OneUptime token from the OTLP headers, read as the exporters read
-     * them ("x-oneuptime-token=<value>;other-header=value", each header split
-     * at its first '='), so a token ending in '=' arrives whole. Header names
-     * are case-insensitive, as the ingest side reads them. Telemetry.init
+     * them ("x-oneuptime-token=<value>;other-header=value", or separated by
+     * ',' as in OTEL_EXPORTER_OTLP_HEADERS, each header split at its first
+     * '='), so a token ending in '=' arrives whole. Header names are
+     * case-insensitive, as the ingest side reads them. Telemetry.init
      * reports a header it cannot read; this reads quietly.
      */
     const headers: Dictionary<string> = readOtlpExporterHeaders(

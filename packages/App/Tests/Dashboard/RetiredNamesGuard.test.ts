@@ -80,10 +80,6 @@ const OTHER_FRONT_END_LOCALES: ReadonlyArray<string> = [
   "App/FeatureSet/StatusPage/src/Locales/en.json",
 ];
 const WEBSITE_VIEWS: string = path.join(PACKAGES, "Home/Views");
-const SAMPLE_PROJECT: string = path.join(
-  PACKAGES,
-  "Common/Types/SampleProject",
-);
 
 interface Sighting {
   where: string;
@@ -699,36 +695,6 @@ describe("the docs and the website never use a retired name", () => {
             },
           ),
         ];
-      },
-    );
-
-    expect(found).toEqual([]);
-  });
-
-  /*
-   * The sample project (#6808) seeds records people read as the product's
-   * own: a monitor, an on-call policy and schedule, a maintenance event. Its
-   * words are held like the Dashboard's, comments aside.
-   */
-  test("no record the sample project seeds does", () => {
-    const found: Array<Sighting> = filesUnder(SAMPLE_PROJECT, ".ts").flatMap(
-      (file: string): Array<Sighting> => {
-        return fs
-          .readFileSync(file, "utf8")
-          .split("\n")
-          .flatMap((line: string, index: number): Array<Sighting> => {
-            const trimmed: string = line.trim();
-
-            if (
-              trimmed.startsWith("//") ||
-              trimmed.startsWith("*") ||
-              trimmed.startsWith("/*")
-            ) {
-              return [];
-            }
-
-            return sightings(`${relative(file)}:${index + 1}`, line);
-          });
       },
     );
 

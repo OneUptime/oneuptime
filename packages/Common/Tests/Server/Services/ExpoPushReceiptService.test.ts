@@ -686,9 +686,16 @@ describe("receipts of pushes sent with this deployment's Expo access token", () 
     expect(markAsGone).toHaveBeenCalledTimes(2);
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining(
-        `could not record on push log ${LOG_ID} that its push was not delivered`,
+        `could not record on push log ${LOG_ID} that its push was not delivered; its receipt is read again later`,
       ),
     );
+    // The one not written down is read again later (issue #6874); the other is done.
+    expect(summary.couldNotRecord).toBe(1);
+    expect(
+      waiting().map((entry: [PendingExpoPushReceipt, number]) => {
+        return entry[0].receiptId;
+      }),
+    ).toEqual([receiptIdOf(1)]);
   });
 
   test("a failure to mark the devices does not stop the page saying it was not delivered", async () => {
@@ -870,7 +877,7 @@ describe("receipts of pushes sent with this deployment's Expo access token", () 
     await check();
 
     expect(logger.info).toHaveBeenCalledWith(
-      "Expo push receipts: read 2; 1 delivered, 1 not delivered (1 gone token(s) marked), 0 not ready yet, 0 could not be fetched, 0 given up, 0 dropped.",
+      "Expo push receipts: read 2; 1 delivered, 1 not delivered (1 gone token(s) marked), 0 not ready yet, 0 could not be fetched, 0 could not be recorded, 0 given up, 0 dropped.",
     );
   });
 
@@ -1441,5 +1448,176 @@ describe("the page's timeline row: a provider's report, written as any other (#6
 
     expect(timeline.writes).toHaveLength(1);
     expect(timelineRow(TIMELINE_ID).status).toBe(UserNotificationStatus.Error);
+  });
+});
+
+describe("a receipt whose 'not delivered' could not be written down is read again (issue #6874)", () => {
+  /*
+   * The push log or the page's timeline row could not be told - the
+   * database failed - so the receipt is kept, as counted, to be read again:
+   * twice as long after the push as the last look (30 minutes, an hour...),
+   * while Expo keeps it. Read again, it tells what was not told; what was
+   * told already is not written again.
+   */
+  const NOT_DELIVERED_PAGE: PendingExpoPushReceipt = pendingReceipt(1, {
+    pushNotificationLogId: LOG_ID,
+    userOnCallLogTimelineId: TIMELINE_ID,
+  });
+
+  async function readAgainLater(): Promise<ExpoPushReceiptCheckSummary> {
+    now = SENT_AT + 30 * MINUTE;
+
+    return await check();
+  }
+
+  beforeEach(async () => {
+    await keep([NOT_DELIVERED_PAGE]);
+    expoReceipts.set(receiptIdOf(1), deviceNotRegistered(GONE_TOKEN));
+  });
+
+  test("the page's row could not be read: kept, counted, to be read again half an hour after the push", async () => {
+    timelineReads.mockRejectedValueOnce(new Error("database unavailable"));
+
+    const summary: ExpoPushReceiptCheckSummary = await check();
+
+    expect(summary.notDelivered).toBe(1);
+    expect(summary.couldNotRecord).toBe(1);
+    expect(summary.gaveUp).toBe(0);
+    expect(waiting()).toEqual([
+      [
+        { ...NOT_DELIVERED_PAGE, attempts: 1, isDeliveryCounted: true },
+        SENT_AT + 30 * MINUTE,
+      ],
+    ]);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `could not record on on-call timeline ${TIMELINE_ID} that its push was not delivered; its receipt is read again later`,
+      ),
+    );
+  });
+
+  test("read again, the page says it was not delivered - and the push log, told the first time, is not written again", async () => {
+    timelineReads.mockRejectedValueOnce(new Error("database unavailable"));
+
+    await check();
+
+    expect(logUpdates).toHaveLength(1);
+    expect(timeline.writes).toEqual([]);
+
+    const summary: ExpoPushReceiptCheckSummary = await readAgainLater();
+
+    expect(summary.notDelivered).toBe(1);
+    expect(summary.couldNotRecord).toBe(0);
+    expect(timeline.writes).toEqual([
+      {
+        id: TIMELINE_ID,
+        data: {
+          status: UserNotificationStatus.Error,
+          statusMessage: GONE_MESSAGE,
+        },
+      },
+    ]);
+    // Asked again - only while it says Success, so the log told already stays as it is.
+    expect(logUpdates).toHaveLength(2);
+    expect(logUpdates[1]!.query).toEqual({
+      _id: LOG_ID,
+      status: PushStatus.Success,
+    });
+    // Done: not kept any longer.
+    expect(waiting()).toEqual([]);
+  });
+
+  test("the push log could not be told: read again, it is told then", async () => {
+    jest
+      .spyOn(PushNotificationLogService, "updateOneBy")
+      .mockRejectedValueOnce(new Error("database unavailable"));
+
+    const first: ExpoPushReceiptCheckSummary = await check();
+
+    expect(first.couldNotRecord).toBe(1);
+    expect(timeline.writes).toHaveLength(1);
+    expect(logUpdates).toEqual([]);
+
+    await readAgainLater();
+
+    expect(logUpdates).toHaveLength(1);
+    expect(logUpdates[0]!.data).toEqual({
+      status: PushStatus.Error,
+      statusMessage: GONE_MESSAGE,
+    });
+    // The page, told the first time, is not written again.
+    expect(timeline.writes).toHaveLength(1);
+    expect(waiting()).toEqual([]);
+  });
+
+  test("a page acknowledged before the receipt is read again stays acknowledged", async () => {
+    timelineReads.mockRejectedValueOnce(new Error("database unavailable"));
+
+    await check();
+
+    timelineRow(TIMELINE_ID).status = UserNotificationStatus.Acknowledged;
+
+    await readAgainLater();
+
+    expect(timeline.writes).toEqual([]);
+    expect(timelineRow(TIMELINE_ID).status).toBe(
+      UserNotificationStatus.Acknowledged,
+    );
+    expect(waiting()).toEqual([]);
+  });
+
+  test("still failing when read again: kept once more, an hour after the push", async () => {
+    timelineReads
+      .mockRejectedValueOnce(new Error("database unavailable"))
+      .mockRejectedValueOnce(new Error("database unavailable"));
+
+    await check();
+    const summary: ExpoPushReceiptCheckSummary = await readAgainLater();
+
+    expect(summary.couldNotRecord).toBe(1);
+    expect(waiting()).toEqual([
+      [
+        { ...NOT_DELIVERED_PAGE, attempts: 2, isDeliveryCounted: true },
+        SENT_AT + HOUR,
+      ],
+    ]);
+  });
+
+  test("past the day Expo keeps receipts, it is given up", async () => {
+    timelineReads.mockRejectedValue(new Error("database unavailable"));
+    now = SENT_AT + 23 * HOUR + 58 * MINUTE;
+
+    const summary: ExpoPushReceiptCheckSummary = await check();
+
+    expect(summary.couldNotRecord).toBe(0);
+    expect(summary.gaveUp).toBe(1);
+    expect(waiting()).toEqual([]);
+  });
+
+  test("both told: nothing is kept", async () => {
+    const summary: ExpoPushReceiptCheckSummary = await check();
+
+    expect(summary.couldNotRecord).toBe(0);
+    expect(waiting()).toEqual([]);
+  });
+
+  test("a gone token's devices are marked again when it is read again, as a refused ticket would mark them - and the token stays out of every line", async () => {
+    timelineReads.mockRejectedValueOnce(new Error("database unavailable"));
+
+    await check();
+    await readAgainLater();
+
+    expect(markAsGone).toHaveBeenCalledTimes(2);
+    expect(everythingWritten()).not.toContain(GONE_TOKEN);
+  });
+
+  test("the run's line says how many could not be recorded", async () => {
+    timelineReads.mockRejectedValueOnce(new Error("database unavailable"));
+
+    await check();
+
+    expect(logger.info).toHaveBeenCalledWith(
+      "Expo push receipts: read 1; 0 delivered, 1 not delivered (1 gone token(s) marked), 0 not ready yet, 0 could not be fetched, 1 could not be recorded, 0 given up, 0 dropped.",
+    );
   });
 });
