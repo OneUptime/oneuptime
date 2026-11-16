@@ -90,7 +90,7 @@ const TTL_MS: number = 10 * 60 * 1000;
  * How long a language's index is kept with no search in it (#8818): a
  * server asked in a language once a day does not keep its index for the
  * other 23 hours. The next search in it builds it again, as the first one
- * did - about a second.
+ * did - in one to three seconds.
  */
 export const DOCS_INDEX_IDLE_MS: number = 30 * 60 * 1000;
 // How often the indexes kept are looked over for ones nobody has searched in a while.

@@ -95,7 +95,7 @@ air-gapped server too, and the page titles embedded in each page answer
 when the server cannot be reached.
 
 The server builds a language's index the first time someone searches in
-it, in a second or two, and keeps it while people search in that
+it, in one to three seconds, and keeps it while people search in that
 language: 14 to 25 MB a language, its words as typed arrays and its text
 deflated (`Utils/DocsIndex.ts`). An index nobody has searched in for half
 an hour is let go, and the next search builds it again
