@@ -121,9 +121,13 @@ interface Box {
 // A monospace family, as the Dashboard writes code.
 const MONOSPACE: RegExp = /mono|Menlo|Consolas|Courier/i;
 
-// A table's date under the pointer: the whole of it, and how long ago it was.
-const WHOLE_DATE_UNDER_THE_POINTER: RegExp =
-  /^Oct 27 2026, 02:57 PM \S+ · 3 minutes ago$/;
+/*
+ * A table's date under the pointer: the whole of it, and how long ago it
+ * was, the number held to its unit (#8669).
+ */
+const WHOLE_DATE_UNDER_THE_POINTER: RegExp = new RegExp(
+  `^Oct 27 2026, 02:57 PM \\S+ · ${withUnit(3, "minutes")} ago$`,
+);
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 
@@ -1611,11 +1615,18 @@ test.describe("what an answer carries fits where it is drawn", () => {
       for (const label of labels) {
         expect(label, label.text).toEqual({ text: label.text, lines: 1 });
       }
+      // Each value held to its unit, as read (#8717).
       expect(
         labels.map((label: { text: string; lines: number }): string => {
           return label.text;
         }),
-      ).toEqual(expect.arrayContaining(["650 ms", "1.3 s", "2.6 s"]));
+      ).toEqual(
+        expect.arrayContaining([
+          withUnit(650, "ms"),
+          withUnit(1.3, "s"),
+          withUnit(2.6, "s"),
+        ]),
+      );
     });
   }
 
