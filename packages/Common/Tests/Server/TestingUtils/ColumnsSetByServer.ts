@@ -13,8 +13,5 @@ export function columnsTheCreateWrote(record: BaseModel): Array<string> {
     new (): BaseModel;
   };
 
-  return ColumnPermissions.getComputedColumnsWithValue(
-    new modelType(),
-    record,
-  );
+  return ColumnPermissions.getComputedColumnsWithValue(new modelType(), record);
 }

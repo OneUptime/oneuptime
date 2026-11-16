@@ -1,10 +1,12 @@
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+
 /*
  * THE SERVER-SET COLUMNS ONEUPTIME'S OWN CODE FILLS IN ON A RECORD IT
  * CREATES AS A PERSON.
  *
  * A column marked computed is OneUptime's to fill in. On a create, a value a
  * write gives one is held to the column's create list, as any other column's
- * is, and refused for anyone not on it (ColumnPermission
+ * is, and never reaches the record unless the caller is on it (ColumnPermission
  * .checkComputedColumnsSentOnCreate); what the create's own steps write there
  * once it has been asked - its hooks, the defaults, the hashing - is
  * OneUptime's (checkDataColumnPermissions' columnsSetByServer).
@@ -24,8 +26,8 @@
  * column only once its value is set, so marking a column leaves no value of
  * the person's in it.
  */
-const SERVER_SET_COLUMNS: WeakMap<object, Set<string>> = new WeakMap<
-  object,
+const SERVER_SET_COLUMNS: WeakMap<BaseModel, Set<string>> = new WeakMap<
+  BaseModel,
   Set<string>
 >();
 
@@ -34,7 +36,7 @@ export default class ServerSetColumns {
    * Writes `values` into `record`'s columns and marks them as OneUptime's:
    * a value left undefined is neither written nor marked.
    */
-  public static set(record: object, values: Record<string, unknown>): void {
+  public static set(record: BaseModel, values: Record<string, unknown>): void {
     const columns: Array<string> = [];
 
     for (const [column, value] of Object.entries(values)) {
@@ -42,7 +44,7 @@ export default class ServerSetColumns {
         continue;
       }
 
-      (record as Record<string, unknown>)[column] = value;
+      (record as unknown as Record<string, unknown>)[column] = value;
       columns.push(column);
     }
 
@@ -50,7 +52,7 @@ export default class ServerSetColumns {
   }
 
   // Marks `columns` of `record` as holding the values OneUptime's own code gave them.
-  public static mark(record: object, columns: Array<string>): void {
+  public static mark(record: BaseModel, columns: Array<string>): void {
     if (columns.length === 0) {
       return;
     }
@@ -67,19 +69,19 @@ export default class ServerSetColumns {
 
   // Whether OneUptime's own code marked `column` of `record` (set, mark).
   public static isMarked(record: unknown, column: string): boolean {
-    if (!record || typeof record !== "object") {
-      return false;
-    }
-
-    return Boolean(SERVER_SET_COLUMNS.get(record)?.has(column));
+    return ServerSetColumns.getMarkedSet(record).has(column);
   }
 
   // The columns of `record` OneUptime's own code marked, in the order it marked them.
   public static getMarked(record: unknown): Array<string> {
+    return Array.from(ServerSetColumns.getMarkedSet(record));
+  }
+
+  private static getMarkedSet(record: unknown): Set<string> {
     if (!record || typeof record !== "object") {
-      return [];
+      return new Set<string>();
     }
 
-    return Array.from(SERVER_SET_COLUMNS.get(record) || []);
+    return SERVER_SET_COLUMNS.get(record as BaseModel) || new Set<string>();
   }
 }

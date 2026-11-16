@@ -87,7 +87,8 @@ const HELD_BY_EVERY_PERSON: ReadonlyArray<Permission> = [
 ];
 
 // The columns every model has, which no column check weighs.
-const EXCLUDED_COLUMNS: Array<string> = ColumnPermissions.getExcludedColumnNames();
+const EXCLUDED_COLUMNS: Array<string> =
+  ColumnPermissions.getExcludedColumnNames();
 
 function memberWith(
   permissions: Array<Permission>,
@@ -105,14 +106,16 @@ function memberWith(
       [PROJECT_ID.toString()]: {
         _type: "UserTenantAccessPermission",
         projectId: PROJECT_ID,
-        permissions: permissions.map((permission: Permission): UserPermission => {
-          return {
-            _type: "UserPermission",
-            permission: permission,
-            labelIds: [],
-            isBlockPermission: false,
-          };
-        }),
+        permissions: permissions.map(
+          (permission: Permission): UserPermission => {
+            return {
+              _type: "UserPermission",
+              permission: permission,
+              labelIds: [],
+              isBlockPermission: false,
+            };
+          },
+        ),
       },
     },
   };
@@ -242,16 +245,17 @@ function askBeforeHooks(
   (record as unknown as Record<string, unknown>)[entry.column] = SENT;
 
   try {
-    const sent: Array<string> = ColumnPermissions.checkComputedColumnsSentOnCreate(
-      entry.modelType,
-      record,
-      props,
-    );
+    const sent: Array<string> =
+      ColumnPermissions.checkComputedColumnsSentOnCreate(
+        entry.modelType,
+        record,
+        props,
+      );
 
     if (sent.includes(entry.column)) {
-      expect(
-        (record as unknown as Record<string, unknown>)[entry.column],
-      ).toBe(SENT);
+      expect((record as unknown as Record<string, unknown>)[entry.column]).toBe(
+        SENT,
+      );
       return "taken";
     }
 
@@ -361,7 +365,9 @@ describe("the computed columns, as the models declare them", () => {
 
       expect({
         column: nameOf(slug),
-        writtenBy: model.getSlugifyColumn() ? model.getSaveSlugToColumn() : null,
+        writtenBy: model.getSlugifyColumn()
+          ? model.getSaveSlugToColumn()
+          : null,
       }).toEqual({ column: nameOf(slug), writtenBy: slug.column });
     }
   });
@@ -589,7 +595,9 @@ describe("the columns whose value a create sends is replaced", () => {
 
   test.each(
     COMPUTED_COLUMNS_REPLACED_ON_CREATE.map(
-      (entry: ComputedColumnReplacedOnCreate) => {
+      (
+        entry: ComputedColumnReplacedOnCreate,
+      ): [string, ComputedColumnReplacedOnCreate] => {
         return [`${entry.tableName}.${entry.column}`, entry];
       },
     ),
@@ -687,7 +695,7 @@ describe("nothing that builds a record from what was sent marks one", () => {
           continue;
         }
 
-        if (/\.(ts|tsx)$/.test(entry.name)) {
+        if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
           uiFiles.push(full);
         }
       }

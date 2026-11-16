@@ -346,7 +346,10 @@ const POSTGRES_WRITE_ENTRY_POINTS: Array<WriteEntryPoint> = [
      */
     name: "checkComputedColumnsSentOnCreate",
     spyOnUnderlying: (): jest.SpyInstance<any, any> => {
-      return getJestSpyOn(ColumnPermissions, "checkComputedColumnsSentOnCreate");
+      return getJestSpyOn(
+        ColumnPermissions,
+        "checkComputedColumnsSentOnCreate",
+      );
     },
     call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
       return ModelPermission.checkComputedColumnsSentOnCreate(

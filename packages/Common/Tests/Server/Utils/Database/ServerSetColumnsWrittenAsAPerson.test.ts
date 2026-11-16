@@ -46,11 +46,11 @@ const USER_ID: ObjectID = new ObjectID("65410000-0000-4000-8000-00000000c002");
 const RESOURCE_ID: ObjectID = new ObjectID(
   "65410000-0000-4000-8000-00000000c003",
 );
-const OWNER_ID: ObjectID = new ObjectID(
-  "65410000-0000-4000-8000-00000000c004",
-);
+const OWNER_ID: ObjectID = new ObjectID("65410000-0000-4000-8000-00000000c004");
 
-function member(permissions: Array<Permission>): DatabaseCommonInteractionProps {
+function member(
+  permissions: Array<Permission>,
+): DatabaseCommonInteractionProps {
   return {
     userId: USER_ID,
     tenantId: PROJECT_ID,
@@ -59,14 +59,16 @@ function member(permissions: Array<Permission>): DatabaseCommonInteractionProps 
       [PROJECT_ID.toString()]: {
         _type: "UserTenantAccessPermission",
         projectId: PROJECT_ID,
-        permissions: permissions.map((permission: Permission): UserPermission => {
-          return {
-            _type: "UserPermission",
-            permission: permission,
-            labelIds: [],
-            isBlockPermission: false,
-          };
-        }),
+        permissions: permissions.map(
+          (permission: Permission): UserPermission => {
+            return {
+              _type: "UserPermission",
+              permission: permission,
+              labelIds: [],
+              isBlockPermission: false,
+            };
+          },
+        ),
       },
     },
   };
@@ -231,12 +233,14 @@ describe("a monitor's status row an incident writes as the person", () => {
     getJestSpyOn(MonitorStatusTimelineService, "findOneBy").mockResolvedValue(
       null as never,
     );
-    getJestSpyOn(MonitorStatusTimelineService, "create").mockImplementation((async (
-      createBy: CreateBy<MonitorStatusTimeline>,
-    ): Promise<MonitorStatusTimeline> => {
-      creates.push(createBy);
-      return createBy.data;
-    }) as never);
+    getJestSpyOn(MonitorStatusTimelineService, "create").mockImplementation(
+      (async (
+        createBy: CreateBy<MonitorStatusTimeline>,
+      ): Promise<MonitorStatusTimeline> => {
+        creates.push(createBy);
+        return createBy.data;
+      }) as never,
+    );
 
     return creates;
   }

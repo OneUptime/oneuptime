@@ -96,9 +96,7 @@ describe("ServerSetColumns", () => {
   });
 
   test("an unmarked record, or something that is no record, has no marks", () => {
-    expect(ServerSetColumns.getMarked(new MonitorStatusTimeline())).toEqual(
-      [],
-    );
+    expect(ServerSetColumns.getMarked(new MonitorStatusTimeline())).toEqual([]);
 
     for (const notARecord of [undefined, null, "isOwnerNotified", 1, true]) {
       expect(ServerSetColumns.isMarked(notARecord, "isOwnerNotified")).toBe(

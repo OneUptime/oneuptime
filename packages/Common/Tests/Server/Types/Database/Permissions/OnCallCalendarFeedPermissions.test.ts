@@ -208,7 +208,8 @@ describe("shared calendar feeds: the real permission gate", () => {
       Permission.CreateProjectOnCallDutyPolicySchedule,
     ]) {
       it(`a ${permission} may create the schedule feed the service stamped`, () => {
-        const feed: OnCallDutyPolicyScheduleCalendarFeed = stampedScheduleFeed();
+        const feed: OnCallDutyPolicyScheduleCalendarFeed =
+          stampedScheduleFeed();
 
         // The token columns are the service's stamp: the create's own write.
         expect(() => {

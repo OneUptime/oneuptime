@@ -235,8 +235,10 @@ export default class ColumnPermissions {
     }
 
     const model: BaseModel = new modelType();
-    const columnsWithValue: Array<string> =
-      this.getComputedColumnsWithValue(model, data);
+    const columnsWithValue: Array<string> = this.getComputedColumnsWithValue(
+      model,
+      data,
+    );
 
     if (columnsWithValue.length === 0) {
       return [];
