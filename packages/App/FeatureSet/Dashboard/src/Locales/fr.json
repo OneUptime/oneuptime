@@ -56033,5 +56033,10 @@
   "The steps this pipeline runs on every log it matches, in order.": "Les étapes que ce pipeline applique, dans l'ordre, à chaque journal qu'il retient.",
   "The steps this pipeline runs on every span it matches, in order.": "Les étapes que ce pipeline applique, dans l'ordre, à chaque span qu'il retient.",
   "Name the addresses and subnets the Traffic pages show.": "Nommez les adresses et les sous-réseaux affichés sur les pages Trafic.",
-  "Where Traffic Names Come From": "D'où viennent les noms du trafic"
+  "Where Traffic Names Come From": "D'où viennent les noms du trafic",
+  "Bring what your security products find into OneUptime, as security events.": "Importez dans OneUptime ce que détectent vos produits de sécurité, sous forme d'événements de sécurité.",
+  "Choose what your hosts' collectors collect, and which hosts run each config.": "Choisissez ce que collectent les collecteurs de vos hôtes, et quels hôtes exécutent chaque configuration.",
+  "Copy a field's value from a related resource, instead of typing it on every record.": "Copiez la valeur d'un champ depuis une ressource liée, au lieu de la saisir sur chaque enregistrement.",
+  "Copying Custom Field Values from a Related Resource": "Copier les valeurs des champs personnalisés depuis une ressource liée",
+  "How Collector Configs Work": "Fonctionnement des configurations du collecteur"
 }

@@ -56033,5 +56033,10 @@
   "The steps this pipeline runs on every log it matches, in order.": "此管道依序對每筆符合的日誌執行的步驟。",
   "The steps this pipeline runs on every span it matches, in order.": "此管道依序對每個符合的跨度執行的步驟。",
   "Name the addresses and subnets the Traffic pages show.": "為流量頁面顯示的位址和子網路命名。",
-  "Where Traffic Names Come From": "流量中的名稱從何而來"
+  "Where Traffic Names Come From": "流量中的名稱從何而來",
+  "Bring what your security products find into OneUptime, as security events.": "將安全產品發現的內容作為安全事件匯入 OneUptime。",
+  "Choose what your hosts' collectors collect, and which hosts run each config.": "選擇主機上的收集器收集什麼，以及哪些主機執行各個設定。",
+  "Copy a field's value from a related resource, instead of typing it on every record.": "從相關資源複製欄位的值，而不必在每筆記錄中手動輸入。",
+  "Copying Custom Field Values from a Related Resource": "從相關資源複製自訂欄位的值",
+  "How Collector Configs Work": "收集器設定的運作方式"
 }

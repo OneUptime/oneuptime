@@ -56033,5 +56033,10 @@
   "The steps this pipeline runs on every log it matches, in order.": "このパイプラインが一致した各ログに順番に実行する手順です。",
   "The steps this pipeline runs on every span it matches, in order.": "このパイプラインが一致した各スパンに順番に実行する手順です。",
   "Name the addresses and subnets the Traffic pages show.": "トラフィックページに表示されるアドレスとサブネットに名前を付けます。",
-  "Where Traffic Names Come From": "トラフィックの名前の出どころ"
+  "Where Traffic Names Come From": "トラフィックの名前の出どころ",
+  "Bring what your security products find into OneUptime, as security events.": "セキュリティ製品が検出した内容を、セキュリティイベントとして OneUptime に取り込みます。",
+  "Choose what your hosts' collectors collect, and which hosts run each config.": "ホストのコレクターが何を収集するか、どのホストがどの設定を実行するかを選びます。",
+  "Copy a field's value from a related resource, instead of typing it on every record.": "レコードごとに入力する代わりに、関連するリソースからフィールドの値をコピーします。",
+  "Copying Custom Field Values from a Related Resource": "関連するリソースからカスタムフィールドの値をコピーする",
+  "How Collector Configs Work": "コレクター設定のしくみ"
 }

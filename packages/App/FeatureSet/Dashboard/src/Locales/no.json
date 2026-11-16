@@ -56033,5 +56033,10 @@
   "The steps this pipeline runs on every log it matches, in order.": "Trinnene denne pipelinen kjører i rekkefølge på hver logg den treffer.",
   "The steps this pipeline runs on every span it matches, in order.": "Trinnene denne pipelinen kjører i rekkefølge på hvert span den treffer.",
   "Name the addresses and subnets the Traffic pages show.": "Gi navn til adressene og subnettene som Trafikk-sidene viser.",
-  "Where Traffic Names Come From": "Hvor navnene i trafikken kommer fra"
+  "Where Traffic Names Come From": "Hvor navnene i trafikken kommer fra",
+  "Bring what your security products find into OneUptime, as security events.": "Hent det sikkerhetsproduktene dine finner inn i OneUptime, som sikkerhetshendelser.",
+  "Choose what your hosts' collectors collect, and which hosts run each config.": "Velg hva innsamlerne på vertene dine samler inn, og hvilke verter som kjører hver konfigurasjon.",
+  "Copy a field's value from a related resource, instead of typing it on every record.": "Kopier verdien til et felt fra en relatert ressurs i stedet for å skrive den inn på hver post.",
+  "Copying Custom Field Values from a Related Resource": "Kopiering av verdier i egendefinerte felt fra en relatert ressurs",
+  "How Collector Configs Work": "Slik fungerer innsamlerkonfigurasjoner"
 }

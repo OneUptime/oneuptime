@@ -56033,5 +56033,10 @@
   "The steps this pipeline runs on every log it matches, in order.": "Шаги, которые этот конвейер по порядку применяет к каждому подходящему журналу.",
   "The steps this pipeline runs on every span it matches, in order.": "Шаги, которые этот конвейер по порядку применяет к каждому подходящему спану.",
   "Name the addresses and subnets the Traffic pages show.": "Задайте имена адресам и подсетям, которые показывают страницы «Трафик».",
-  "Where Traffic Names Come From": "Откуда берутся имена в трафике"
+  "Where Traffic Names Come From": "Откуда берутся имена в трафике",
+  "Bring what your security products find into OneUptime, as security events.": "Передавайте в OneUptime находки ваших продуктов безопасности в виде событий безопасности.",
+  "Choose what your hosts' collectors collect, and which hosts run each config.": "Выберите, что собирают коллекторы ваших хостов и какие хосты используют каждую конфигурацию.",
+  "Copy a field's value from a related resource, instead of typing it on every record.": "Копируйте значение поля из связанного ресурса, а не вводите его в каждой записи.",
+  "Copying Custom Field Values from a Related Resource": "Копирование значений пользовательских полей из связанного ресурса",
+  "How Collector Configs Work": "Как работают конфигурации коллектора"
 }

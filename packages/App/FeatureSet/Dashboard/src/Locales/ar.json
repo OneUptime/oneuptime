@@ -56033,5 +56033,10 @@
   "The steps this pipeline runs on every log it matches, in order.": "الخطوات التي يطبّقها مسار المعالجة هذا بالترتيب على كل سجلّ يطابقه.",
   "The steps this pipeline runs on every span it matches, in order.": "الخطوات التي يطبّقها مسار المعالجة هذا بالترتيب على كل امتداد يطابقه.",
   "Name the addresses and subnets the Traffic pages show.": "سمِّ العناوين والشبكات الفرعية التي تعرضها صفحات حركة المرور.",
-  "Where Traffic Names Come From": "من أين تأتي أسماء حركة المرور"
+  "Where Traffic Names Come From": "من أين تأتي أسماء حركة المرور",
+  "Bring what your security products find into OneUptime, as security events.": "اجلب ما تجده منتجاتك الأمنية إلى OneUptime على شكل أحداث أمنية.",
+  "Choose what your hosts' collectors collect, and which hosts run each config.": "اختر ما تجمعه المجمّعات على مضيفيك، وأي المضيفين يشغّل كل إعداد.",
+  "Copy a field's value from a related resource, instead of typing it on every record.": "انسخ قيمة حقل من مورد مرتبط بدلًا من كتابتها في كل سجل.",
+  "Copying Custom Field Values from a Related Resource": "نسخ قيم الحقول المخصصة من مورد مرتبط",
+  "How Collector Configs Work": "كيف تعمل إعدادات المجمّع"
 }

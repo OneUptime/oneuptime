@@ -56033,5 +56033,10 @@
   "The steps this pipeline runs on every log it matches, in order.": "The steps this pipeline runs on every log it matches, in order.",
   "The steps this pipeline runs on every span it matches, in order.": "The steps this pipeline runs on every span it matches, in order.",
   "Name the addresses and subnets the Traffic pages show.": "Name the addresses and subnets the Traffic pages show.",
-  "Where Traffic Names Come From": "Where Traffic Names Come From"
+  "Where Traffic Names Come From": "Where Traffic Names Come From",
+  "Bring what your security products find into OneUptime, as security events.": "Bring what your security products find into OneUptime, as security events.",
+  "Choose what your hosts' collectors collect, and which hosts run each config.": "Choose what your hosts' collectors collect, and which hosts run each config.",
+  "Copy a field's value from a related resource, instead of typing it on every record.": "Copy a field's value from a related resource, instead of typing it on every record.",
+  "Copying Custom Field Values from a Related Resource": "Copying Custom Field Values from a Related Resource",
+  "How Collector Configs Work": "How Collector Configs Work"
 }

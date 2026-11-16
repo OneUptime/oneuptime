@@ -56033,5 +56033,10 @@
   "The steps this pipeline runs on every log it matches, in order.": "مراحلی که این خط لوله به ترتیب روی هر لاگی که با آن جور است اجرا می‌کند.",
   "The steps this pipeline runs on every span it matches, in order.": "مراحلی که این خط لوله به ترتیب روی هر اسپنی که با آن جور است اجرا می‌کند.",
   "Name the addresses and subnets the Traffic pages show.": "به آدرس‌ها و ساب‌نت‌هایی که صفحه‌های ترافیک نشان می‌دهند نام بدهید.",
-  "Where Traffic Names Come From": "نام‌های ترافیک از کجا می‌آیند"
+  "Where Traffic Names Come From": "نام‌های ترافیک از کجا می‌آیند",
+  "Bring what your security products find into OneUptime, as security events.": "یافته‌های محصولات امنیتی خود را به‌صورت رویدادهای امنیتی به OneUptime بیاورید.",
+  "Choose what your hosts' collectors collect, and which hosts run each config.": "انتخاب کنید کالکتورهای میزبان‌های شما چه چیزی جمع کنند و کدام میزبان‌ها هر پیکربندی را اجرا کنند.",
+  "Copy a field's value from a related resource, instead of typing it on every record.": "به جای تایپ کردن مقدار یک فیلد در هر رکورد، آن را از یک منبع مرتبط کپی کنید.",
+  "Copying Custom Field Values from a Related Resource": "کپی مقدار فیلدهای سفارشی از یک منبع مرتبط",
+  "How Collector Configs Work": "پیکربندی‌های کالکتور چگونه کار می‌کنند"
 }

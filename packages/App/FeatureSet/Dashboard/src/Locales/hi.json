@@ -56033,5 +56033,10 @@
   "The steps this pipeline runs on every log it matches, in order.": "वे चरण जो यह पाइपलाइन हर मेल खाने वाले लॉग पर क्रम से चलाती है।",
   "The steps this pipeline runs on every span it matches, in order.": "वे चरण जो यह पाइपलाइन हर मेल खाने वाले स्पैन पर क्रम से चलाती है।",
   "Name the addresses and subnets the Traffic pages show.": "ट्रैफ़िक पेजों पर दिखने वाले पतों और सबनेट को नाम दें।",
-  "Where Traffic Names Come From": "ट्रैफ़िक के नाम कहाँ से आते हैं"
+  "Where Traffic Names Come From": "ट्रैफ़िक के नाम कहाँ से आते हैं",
+  "Bring what your security products find into OneUptime, as security events.": "अपने सुरक्षा उत्पादों को जो मिलता है, उसे सुरक्षा इवेंट के रूप में OneUptime में लाएँ।",
+  "Choose what your hosts' collectors collect, and which hosts run each config.": "चुनें कि आपके होस्ट के कलेक्टर क्या इकट्ठा करें, और कौन-से होस्ट कौन-सा कॉन्फ़िग चलाएँ।",
+  "Copy a field's value from a related resource, instead of typing it on every record.": "हर रिकॉर्ड पर टाइप करने के बजाय, किसी फ़ील्ड का मान किसी संबंधित संसाधन से कॉपी करें।",
+  "Copying Custom Field Values from a Related Resource": "किसी संबंधित संसाधन से कस्टम फ़ील्ड के मान कॉपी करना",
+  "How Collector Configs Work": "कलेक्टर कॉन्फ़िग कैसे काम करते हैं"
 }

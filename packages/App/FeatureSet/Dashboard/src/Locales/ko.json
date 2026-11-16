@@ -56033,5 +56033,10 @@
   "The steps this pipeline runs on every log it matches, in order.": "이 파이프라인이 일치하는 각 로그에 순서대로 실행하는 단계입니다.",
   "The steps this pipeline runs on every span it matches, in order.": "이 파이프라인이 일치하는 각 스팬에 순서대로 실행하는 단계입니다.",
   "Name the addresses and subnets the Traffic pages show.": "트래픽 페이지에 표시되는 주소와 서브넷에 이름을 붙입니다.",
-  "Where Traffic Names Come From": "트래픽 이름의 출처"
+  "Where Traffic Names Come From": "트래픽 이름의 출처",
+  "Bring what your security products find into OneUptime, as security events.": "보안 제품이 찾아낸 내용을 보안 이벤트로 OneUptime에 가져옵니다.",
+  "Choose what your hosts' collectors collect, and which hosts run each config.": "호스트의 컬렉터가 무엇을 수집할지, 어떤 호스트가 각 구성을 실행할지 선택합니다.",
+  "Copy a field's value from a related resource, instead of typing it on every record.": "모든 레코드에 직접 입력하는 대신, 관련 리소스에서 필드 값을 복사합니다.",
+  "Copying Custom Field Values from a Related Resource": "관련 리소스에서 사용자 정의 필드 값 복사하기",
+  "How Collector Configs Work": "컬렉터 구성의 작동 방식"
 }
