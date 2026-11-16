@@ -56031,5 +56031,7 @@
   "Remove sensitive data from spans before they are stored.": "스팬을 저장하기 전에 민감한 데이터를 제거합니다.",
   "Rename, fix and tag spans as they arrive, before they are stored.": "스팬이 들어올 때 저장하기 전에 이름을 바꾸고, 고치고, 태그를 붙입니다.",
   "The steps this pipeline runs on every log it matches, in order.": "이 파이프라인이 일치하는 각 로그에 순서대로 실행하는 단계입니다.",
-  "The steps this pipeline runs on every span it matches, in order.": "이 파이프라인이 일치하는 각 스팬에 순서대로 실행하는 단계입니다."
+  "The steps this pipeline runs on every span it matches, in order.": "이 파이프라인이 일치하는 각 스팬에 순서대로 실행하는 단계입니다.",
+  "Name the addresses and subnets the Traffic pages show.": "트래픽 페이지에 표시되는 주소와 서브넷에 이름을 붙입니다.",
+  "Where Traffic Names Come From": "트래픽 이름의 출처"
 }

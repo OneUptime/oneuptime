@@ -56031,5 +56031,7 @@
   "Remove sensitive data from spans before they are stored.": "داده‌های حساس را پیش از ذخیره شدن اسپن‌ها از آن‌ها حذف کنید.",
   "Rename, fix and tag spans as they arrive, before they are stored.": "اسپن‌ها را هنگام رسیدن و پیش از ذخیره شدن تغییر نام دهید، اصلاح و برچسب‌گذاری کنید.",
   "The steps this pipeline runs on every log it matches, in order.": "مراحلی که این خط لوله به ترتیب روی هر لاگی که با آن جور است اجرا می‌کند.",
-  "The steps this pipeline runs on every span it matches, in order.": "مراحلی که این خط لوله به ترتیب روی هر اسپنی که با آن جور است اجرا می‌کند."
+  "The steps this pipeline runs on every span it matches, in order.": "مراحلی که این خط لوله به ترتیب روی هر اسپنی که با آن جور است اجرا می‌کند.",
+  "Name the addresses and subnets the Traffic pages show.": "به آدرس‌ها و ساب‌نت‌هایی که صفحه‌های ترافیک نشان می‌دهند نام بدهید.",
+  "Where Traffic Names Come From": "نام‌های ترافیک از کجا می‌آیند"
 }

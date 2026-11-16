@@ -56031,5 +56031,7 @@
   "Remove sensitive data from spans before they are stored.": "Ta bort känsliga uppgifter ur spans innan de sparas.",
   "Rename, fix and tag spans as they arrive, before they are stored.": "Byt namn på, rätta och märk spans när de kommer in, innan de sparas.",
   "The steps this pipeline runs on every log it matches, in order.": "Stegen som den här pipelinen kör i tur och ordning på varje logg den matchar.",
-  "The steps this pipeline runs on every span it matches, in order.": "Stegen som den här pipelinen kör i tur och ordning på varje span den matchar."
+  "The steps this pipeline runs on every span it matches, in order.": "Stegen som den här pipelinen kör i tur och ordning på varje span den matchar.",
+  "Name the addresses and subnets the Traffic pages show.": "Namnge adresserna och subnäten som Trafik-sidorna visar.",
+  "Where Traffic Names Come From": "Var namnen i trafiken kommer ifrån"
 }

@@ -56031,5 +56031,7 @@
   "Remove sensitive data from spans before they are stored.": "Удаляйте конфиденциальные данные из спанов до их сохранения.",
   "Rename, fix and tag spans as they arrive, before they are stored.": "Переименовывайте, исправляйте и помечайте спаны при поступлении, до их сохранения.",
   "The steps this pipeline runs on every log it matches, in order.": "Шаги, которые этот конвейер по порядку применяет к каждому подходящему журналу.",
-  "The steps this pipeline runs on every span it matches, in order.": "Шаги, которые этот конвейер по порядку применяет к каждому подходящему спану."
+  "The steps this pipeline runs on every span it matches, in order.": "Шаги, которые этот конвейер по порядку применяет к каждому подходящему спану.",
+  "Name the addresses and subnets the Traffic pages show.": "Задайте имена адресам и подсетям, которые показывают страницы «Трафик».",
+  "Where Traffic Names Come From": "Откуда берутся имена в трафике"
 }

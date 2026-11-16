@@ -56031,5 +56031,7 @@
   "Remove sensitive data from spans before they are stored.": "Remova dados sensíveis dos spans antes que sejam armazenados.",
   "Rename, fix and tag spans as they arrive, before they are stored.": "Renomeie, corrija e marque os spans quando chegam, antes que sejam armazenados.",
   "The steps this pipeline runs on every log it matches, in order.": "As etapas que este pipeline executa, em ordem, em cada registro que corresponde.",
-  "The steps this pipeline runs on every span it matches, in order.": "As etapas que este pipeline executa, em ordem, em cada span que corresponde."
+  "The steps this pipeline runs on every span it matches, in order.": "As etapas que este pipeline executa, em ordem, em cada span que corresponde.",
+  "Name the addresses and subnets the Traffic pages show.": "Dê nomes aos endereços e sub-redes mostrados nas páginas de Tráfego.",
+  "Where Traffic Names Come From": "De onde vêm os nomes do tráfego"
 }

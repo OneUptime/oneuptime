@@ -56031,5 +56031,7 @@
   "Remove sensitive data from spans before they are stored.": "在存储之前从跨度中移除敏感数据。",
   "Rename, fix and tag spans as they arrive, before they are stored.": "在跨度到达时、存储之前，对其进行重命名、修正和标记。",
   "The steps this pipeline runs on every log it matches, in order.": "此管道按顺序对每条匹配的日志执行的步骤。",
-  "The steps this pipeline runs on every span it matches, in order.": "此管道按顺序对每个匹配的跨度执行的步骤。"
+  "The steps this pipeline runs on every span it matches, in order.": "此管道按顺序对每个匹配的跨度执行的步骤。",
+  "Name the addresses and subnets the Traffic pages show.": "为流量页面显示的地址和子网命名。",
+  "Where Traffic Names Come From": "流量中的名称从何而来"
 }

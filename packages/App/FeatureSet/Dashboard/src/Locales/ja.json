@@ -56031,5 +56031,7 @@
   "Remove sensitive data from spans before they are stored.": "保存する前にスパンから機密データを取り除きます。",
   "Rename, fix and tag spans as they arrive, before they are stored.": "スパンを受信時に、保存する前に名前変更・修正・タグ付けします。",
   "The steps this pipeline runs on every log it matches, in order.": "このパイプラインが一致した各ログに順番に実行する手順です。",
-  "The steps this pipeline runs on every span it matches, in order.": "このパイプラインが一致した各スパンに順番に実行する手順です。"
+  "The steps this pipeline runs on every span it matches, in order.": "このパイプラインが一致した各スパンに順番に実行する手順です。",
+  "Name the addresses and subnets the Traffic pages show.": "トラフィックページに表示されるアドレスとサブネットに名前を付けます。",
+  "Where Traffic Names Come From": "トラフィックの名前の出どころ"
 }

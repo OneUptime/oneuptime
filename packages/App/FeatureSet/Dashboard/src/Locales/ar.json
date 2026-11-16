@@ -56031,5 +56031,7 @@
   "Remove sensitive data from spans before they are stored.": "أزِل البيانات الحساسة من الامتدادات قبل تخزينها.",
   "Rename, fix and tag spans as they arrive, before they are stored.": "أعد تسمية الامتدادات وأصلحها ووسمها عند وصولها، قبل تخزينها.",
   "The steps this pipeline runs on every log it matches, in order.": "الخطوات التي يطبّقها مسار المعالجة هذا بالترتيب على كل سجلّ يطابقه.",
-  "The steps this pipeline runs on every span it matches, in order.": "الخطوات التي يطبّقها مسار المعالجة هذا بالترتيب على كل امتداد يطابقه."
+  "The steps this pipeline runs on every span it matches, in order.": "الخطوات التي يطبّقها مسار المعالجة هذا بالترتيب على كل امتداد يطابقه.",
+  "Name the addresses and subnets the Traffic pages show.": "سمِّ العناوين والشبكات الفرعية التي تعرضها صفحات حركة المرور.",
+  "Where Traffic Names Come From": "من أين تأتي أسماء حركة المرور"
 }
