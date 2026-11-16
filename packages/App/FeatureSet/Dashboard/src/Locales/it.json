@@ -55926,5 +55926,6 @@
   "Wrong backup code": "Codice di backup errato",
   "Wrong password": "Password errata",
   "{{count}} attempt": "{{count}} tentativo",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - vedi i dettagli del tentativo di accesso"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - vedi i dettagli del tentativo di accesso",
+  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "Su OneUptime Cloud, l'IA lavora in un repository che non è su GitHub su uno dei tuoi Runner: il suo token di accesso non viene mai consegnato a un Runner globale. Scegli uno dei tuoi Runner."
 }

@@ -13,6 +13,7 @@ import {
   RunnerPickerWork,
   buildRunnerPickerModel,
   getCodeRepositoryRunnerWords,
+  getGlobalRunnerKeptOffText,
   getRunnerTakingNoCodeFixes,
 } from "../Runner/RunnerPickerModel";
 import { getCodeRepositoryRunnerChoice } from "./CodeRepositoryRunnerChoice";
@@ -188,6 +189,14 @@ export interface CodeRepositoryRunnerPickerProps {
 export const CODE_REPOSITORY_RUNNER_LOADING_TEST_ID: string =
   "code-repository-runner-loading";
 
+/*
+ * Under the repository's Runner while it works on the Global Runner, where
+ * global Runners never get its token (OneUptime Cloud, a repository not on
+ * GitHub): one amber line, the same sentence as Code's notice for it.
+ */
+export const CODE_REPOSITORY_RUNNER_KEPT_OFF_TEST_ID: string =
+  "code-repository-runner-global-kept-off";
+
 export const CodeRepositoryRunnerPicker: FunctionComponent<
   CodeRepositoryRunnerPickerProps
 > = (props: CodeRepositoryRunnerPickerProps): ReactElement => {
@@ -207,21 +216,48 @@ export const CodeRepositoryRunnerPicker: FunctionComponent<
     );
   }
 
+  const keptOffText: string | null = getGlobalRunnerKeptOffText(props.provider);
+
+  const isOnGlobalRunner: boolean =
+    Boolean(keptOffText) &&
+    buildRunnerPickerModel({
+      work: RunnerPickerWork.CodeRepository,
+      stepType: "",
+      currentRunnerId: getChosenRunnerId(props.value),
+      projectRunners: choices.projectRunners,
+      globalRunners: choices.globalRunners,
+      projectUsesGlobalRunners: choices.projectUsesGlobalRunners,
+    }).selected?.kind === RunnerPickerOptionKind.Global;
+
   return (
-    <RunnerPicker
-      work={RunnerPickerWork.CodeRepository}
-      isFormField={true}
-      ariaLabelledby={props.ariaLabelledby}
-      stepType=""
-      value={getChosenRunnerId(props.value)}
-      onChange={(choice: string): void => {
-        props.onChange(choice);
-      }}
-      choices={choices}
-      codeRepositoryWords={words}
-      ownRunnerHelperText={translator.translateText(words.ownRunnerHelperText)}
-      dataTestId={CODE_REPOSITORY_RUNNER_PICKER_TEST_ID}
-    />
+    <>
+      <RunnerPicker
+        work={RunnerPickerWork.CodeRepository}
+        isFormField={true}
+        ariaLabelledby={props.ariaLabelledby}
+        stepType=""
+        value={getChosenRunnerId(props.value)}
+        onChange={(choice: string): void => {
+          props.onChange(choice);
+        }}
+        choices={choices}
+        codeRepositoryWords={words}
+        ownRunnerHelperText={translator.translateText(
+          words.ownRunnerHelperText,
+        )}
+        dataTestId={CODE_REPOSITORY_RUNNER_PICKER_TEST_ID}
+      />
+      {isOnGlobalRunner && keptOffText ? (
+        <p
+          className="mt-1 break-words text-xs leading-5 text-amber-700"
+          data-testid={CODE_REPOSITORY_RUNNER_KEPT_OFF_TEST_ID}
+        >
+          {translator.translateText(keptOffText)}
+        </p>
+      ) : (
+        <></>
+      )}
+    </>
   );
 };
 
@@ -320,9 +356,11 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
   const withStatus: (
     name: ReactElement,
     note?: string | undefined,
+    keptOffText?: string | null | undefined,
   ) => ReactElement = (
     name: ReactElement,
     note?: string | undefined,
+    keptOffText?: string | null | undefined,
   ): ReactElement => {
     return (
       <div data-testid={CODE_REPOSITORY_RUNNER_VALUE_TEST_ID}>
@@ -353,6 +391,16 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
             data-testid={CODE_REPOSITORY_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID}
           >
             <RunnerTakesNoCodeFixesText />
+          </p>
+        ) : (
+          <></>
+        )}
+        {keptOffText ? (
+          <p
+            className="mt-1 break-words text-xs leading-5 text-amber-700"
+            data-testid={CODE_REPOSITORY_RUNNER_KEPT_OFF_TEST_ID}
+          >
+            {translator.translateText(keptOffText)}
           </p>
         ) : (
           <></>
@@ -445,8 +493,13 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
     );
   }
 
+  /*
+   * On OneUptime Cloud, a repository that is not on GitHub: no global
+   * Runner is handed its token, said under the Global Runner in amber.
+   */
   return withStatus(
     <span>{translator.translateText(GLOBAL_RUNNER_CHOICE_LABEL)}</span>,
     getCodeRepositoryRunnerWords(props.provider).globalRunnerDescription,
+    getGlobalRunnerKeptOffText(props.provider),
   );
 };

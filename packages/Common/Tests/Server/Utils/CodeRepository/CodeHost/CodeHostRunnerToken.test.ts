@@ -22,6 +22,7 @@ import CodeRepositoryConnectionService, {
   Service as CodeRepositoryConnectionServiceClass,
 } from "../../../../../Server/Services/CodeRepositoryConnectionService";
 import { CODE_TASK_REPOSITORY_NEEDS_OWN_RUNNER_MESSAGE } from "../../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import { GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL } from "../../../../../Types/Runner/GlobalRunnerRepositoryTokens";
 import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
 import CodeRepositoryConnection from "../../../../../Models/DatabaseModels/CodeRepositoryConnection";
 import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
@@ -331,7 +332,7 @@ describe("handing a Runner the token of a repository off GitHub", () => {
     );
   });
 
-  test("a global Runner may reach a private network on a self-hosted OneUptime, never on OneUptime Cloud", async () => {
+  test("a global Runner may reach a private network on a self-hosted OneUptime, and never where the server blocks private addresses", async () => {
     const selfHosted: CodeHostRunnerDecision = await CodeHostRunnerToken.decide(
       {
         repository: makeRepository(),
@@ -343,26 +344,97 @@ describe("handing a Runner the token of a repository off GitHub", () => {
 
     expect(selfHosted.grant!.codeHost.isPrivateNetworkAllowed).toBe(true);
 
+    const savedBlock: string | undefined =
+      process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"];
+    process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"] = "true";
+
+    try {
+      const blocked: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
+        repository: makeRepository(),
+        worker: GLOBAL_RUNNER,
+        supportedCodeHosts: [CodeRepositoryType.GitLab],
+        transport: serverAnswering(200).transport,
+      });
+
+      expect(blocked.grant!.codeHost.isPrivateNetworkAllowed).toBe(false);
+
+      // A project's own Runner always may: it runs on the project's network.
+      const own: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
+        repository: makeRepository(),
+        worker: PROJECT_RUNNER,
+        supportedCodeHosts: [CodeRepositoryType.GitLab],
+        transport: serverAnswering(200).transport,
+      });
+
+      expect(own.grant!.codeHost.isPrivateNetworkAllowed).toBe(true);
+    } finally {
+      if (savedBlock === undefined) {
+        delete process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"];
+      } else {
+        process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"] = savedBlock;
+      }
+    }
+  });
+});
+
+/*
+ * On OneUptime Cloud a global Runner runs every customer's JavaScript steps,
+ * so it is never handed a connection's own token (#6115,
+ * Types/Runner/GlobalRunnerRepositoryTokens): a GitLab, Forgejo, Gitea or
+ * Git repository works on a Runner of its project's own there.
+ */
+describe("a global Runner on OneUptime Cloud", () => {
+  test.each([
+    CodeRepositoryType.GitLab,
+    CodeRepositoryType.Forgejo,
+    CodeRepositoryType.Git,
+  ])(
+    "is handed no %s repository's token, and the connection is never read for it",
+    async (type: CodeRepositoryType) => {
+      process.env["BILLING_ENABLED"] = "true";
+      const server: {
+        transport: CodeHostTransport;
+        seen: Array<CodeHostHttpRequest>;
+      } = serverAnswering(200);
+
+      const decision: CodeHostRunnerDecision = await CodeHostRunnerToken.decide(
+        {
+          repository: makeRepository({ repositoryHostedAt: type }),
+          worker: GLOBAL_RUNNER,
+          supportedCodeHosts: [type],
+          transport: server.transport,
+        },
+      );
+
+      expect(decision.grant).toBeUndefined();
+      expect(decision.refusal).toBe(GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL);
+      expect(CodeHostAccess.readConnections).not.toHaveBeenCalled();
+      expect(server.seen).toHaveLength(0);
+    },
+  );
+
+  test("a project's own Runner is handed the token there as before", async () => {
     process.env["BILLING_ENABLED"] = "true";
 
-    const cloud: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
-      repository: makeRepository(),
-      worker: GLOBAL_RUNNER,
-      supportedCodeHosts: [CodeRepositoryType.GitLab],
-      transport: serverAnswering(200).transport,
-    });
-
-    expect(cloud.grant!.codeHost.isPrivateNetworkAllowed).toBe(false);
-
-    // A project's own Runner always may: it runs on the project's network.
-    const own: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
+    const decision: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
       repository: makeRepository(),
       worker: PROJECT_RUNNER,
       supportedCodeHosts: [CodeRepositoryType.GitLab],
       transport: serverAnswering(200).transport,
     });
 
-    expect(own.grant!.codeHost.isPrivateNetworkAllowed).toBe(true);
+    expect(decision.grant!.token).toBe(TOKEN);
+  });
+
+  test("on a self-hosted OneUptime a global Runner is handed it as before", async () => {
+    const decision: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
+      repository: makeRepository(),
+      worker: GLOBAL_RUNNER,
+      supportedCodeHosts: [CodeRepositoryType.GitLab],
+      transport: serverAnswering(200).transport,
+    });
+
+    expect(decision.grant!.token).toBe(TOKEN);
   });
 });
 

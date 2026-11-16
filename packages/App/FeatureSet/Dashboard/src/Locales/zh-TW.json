@@ -55926,5 +55926,6 @@
   "Wrong backup code": "備用代碼錯誤",
   "Wrong password": "密碼錯誤",
   "{{count}} attempt": "{{count}} 次嘗試",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - 檢視登入嘗試詳細資料"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - 檢視登入嘗試詳細資料",
+  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "在 OneUptime Cloud 上，AI 在不在 GitHub 上的儲存庫中的工作會在你自己的 Runner 上進行：它的存取權杖絕不會交給全域 Runner。請選擇你的一個 Runner。"
 }

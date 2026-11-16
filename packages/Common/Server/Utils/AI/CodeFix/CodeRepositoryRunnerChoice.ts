@@ -26,6 +26,7 @@ import {
   GlobalRunnerCodeFixAvailability,
   doesRunnerTakeCodeFixes,
 } from "../../../../Types/Runner/RunnerCodeFixes";
+import GlobalRunnerRepositoryTokens from "../../Runner/GlobalRunnerRepositoryTokens";
 
 /*
  * Where AI works in a repository, on the server: the facts the repository's
@@ -54,6 +55,12 @@ export interface CodeRepositoryRunnerStatus {
    */
   takesNoCodeFixes?: boolean | undefined;
   /*
+   * Why it is not, when the repository works on the Global Runner and no
+   * global Runner may be handed its token: on OneUptime Cloud, a repository
+   * that is not on GitHub (Types/Runner/GlobalRunnerRepositoryTokens).
+   */
+  needsOwnRunnerForItsToken?: boolean | undefined;
+  /*
    * The name of the Runner the repository picked, or of the project's
    * default Runner it follows, for the words that name it; absent for a
    * global Runner, and for a pick that is not one of the project's Runners
@@ -73,19 +80,26 @@ export interface CodeRepositoryRunnerFactsRow {
   projectId: ObjectID | undefined;
   runnerId: ObjectID | string | null | undefined;
   isGlobalRunnerPicked: boolean | null | undefined;
+  /*
+   * Where it is hosted, for whether a global Runner may be handed its token
+   * (GlobalRunnerRepositoryTokens). Left out, it is not asked: the token
+   * route refuses such a token all the same.
+   */
+  repositoryHostedAt?: string | null | undefined;
 }
 
 // The facts row of a repository read with the rule's columns.
 export function getCodeRepositoryRunnerFactsRow(
   repository: Pick<
     CodeRepository,
-    "projectId" | "runnerId" | "isGlobalRunnerPicked"
+    "projectId" | "runnerId" | "isGlobalRunnerPicked" | "repositoryHostedAt"
   >,
 ): CodeRepositoryRunnerFactsRow {
   return {
     projectId: repository.projectId,
     runnerId: repository.runnerId,
     isGlobalRunnerPicked: repository.isGlobalRunnerPicked,
+    repositoryHostedAt: repository.repositoryHostedAt,
   };
 }
 
@@ -94,10 +108,12 @@ export const CODE_REPOSITORY_RUNNER_SELECT: {
   projectId: true;
   runnerId: true;
   isGlobalRunnerPicked: true;
+  repositoryHostedAt: true;
 } = {
   projectId: true,
   runnerId: true,
   isGlobalRunnerPicked: true,
+  repositoryHostedAt: true,
 };
 
 export default class CodeRepositoryRunnerChoice {
@@ -360,6 +376,19 @@ export default class CodeRepositoryRunnerChoice {
     }
 
     if (decision.kind === CodeRepositoryRunnerChoiceKind.Global) {
+      /*
+       * On OneUptime Cloud no global Runner is handed the token of a
+       * repository that is not on GitHub, so none is there to do its work,
+       * whoever is online.
+       */
+      if (
+        GlobalRunnerRepositoryTokens.isRepositoryKeptOff(
+          repository.repositoryHostedAt,
+        )
+      ) {
+        return { decision, isOnline: false, needsOwnRunnerForItsToken: true };
+      }
+
       const availability: GlobalRunnerCodeFixAvailability =
         await RunnerService.getGlobalRunnerCodeFixAvailability();
 

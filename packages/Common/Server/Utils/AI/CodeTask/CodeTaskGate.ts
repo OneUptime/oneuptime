@@ -257,6 +257,7 @@ export default class CodeTaskGate {
           _id: true,
           runnerId: true,
           isGlobalRunnerPicked: true,
+          repositoryHostedAt: true,
         },
         props: { isRoot: true },
       });
@@ -266,6 +267,7 @@ export default class CodeTaskGate {
         projectId: data.projectId,
         runnerId: runnerChoice?.runnerId,
         isGlobalRunnerPicked: runnerChoice?.isGlobalRunnerPicked,
+        repositoryHostedAt: runnerChoice?.repositoryHostedAt,
       });
 
     /*

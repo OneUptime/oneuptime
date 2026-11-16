@@ -55926,5 +55926,6 @@
   "Wrong backup code": "رمز احتياطي خاطئ",
   "Wrong password": "كلمة مرور خاطئة",
   "{{count}} attempt": "{{count}} محاولة",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - عرض تفاصيل محاولة تسجيل الدخول"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - عرض تفاصيل محاولة تسجيل الدخول",
+  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.": "على OneUptime Cloud، يعمل الذكاء الاصطناعي في مستودع ليس على GitHub على أحد مشغّلاتك: لا يُسلَّم رمز الوصول الخاص به أبدًا إلى مشغّل عام. اختر أحد مشغّلاتك."
 }
