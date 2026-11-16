@@ -56411,9 +56411,9 @@
   "Show the Whole Map": "عرض الخريطة كاملة",
   "{{count}} addresses grouped here.": "عدد العناوين المجمّعة هنا: {{count}}.",
   "{{count}} addresses grouped here._one": "{{count}} عنوان مجمّع هنا.",
-  "{{count}} pipelines": "{{count}} مسارات معالجة",
+  "{{count}} pipelines": "{{count}} من مسارات المعالجة",
   "{{count}} pipelines_one": "{{count}} مسار معالجة",
-  "Showing {{shown}} of {{count}} flows. Search to narrow them.": "عرض {{shown}} من {{count}} تدفقات. ابحث لتضييقها.",
+  "Showing {{shown}} of {{count}} flows. Search to narrow them.": "عرض {{shown}} من أصل {{count}} من التدفقات. ابحث لتضييقها.",
   "Showing {{shown}} of {{count}} flows. Search to narrow them._one": "عرض {{shown}} من {{count}} تدفق. ابحث لتضييقه.",
   "{{count}} more further upstream": "{{count}} أخرى أبعد في المصدر",
   "{{count}} more further upstream_one": "{{count}} أخرى أبعد في المصدر",
@@ -56441,5 +56441,6 @@
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "الأوامر التي شُغّلت هنا ولا تظهر في القائمة: {{count}}. شُغّلت لدردشات ذكاء اصطناعي أو حوادث أو تنبيهات لا يمكنك فتحها.",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} أمر شُغّل هنا لا يظهر في القائمة: شُغّل لدردشة ذكاء اصطناعي أو حادث أو تنبيه لا يمكنك فتحه.",
   "Test email report not sent": "لم يُرسَل تقرير البريد الإلكتروني التجريبي",
-  "Test message not sent": "لم تُرسَل الرسالة التجريبية"
+  "Test message not sent": "لم تُرسَل الرسالة التجريبية",
+  "Open (pull request)": "مفتوح"
 }

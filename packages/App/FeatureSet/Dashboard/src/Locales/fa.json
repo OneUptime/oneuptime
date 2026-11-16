@@ -56441,5 +56441,6 @@
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} دستوری که اینجا اجرا شده‌اند در فهرست نیستند: برای گفتگوهای هوش مصنوعی، حادثه‌ها یا هشدارهایی اجرا شده‌اند که نمی‌توانید باز کنید.",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} دستوری که اینجا اجرا شده است در فهرست نیست: برای گفتگوی هوش مصنوعی، حادثه یا هشداری اجرا شده است که نمی‌توانید باز کنید.",
   "Test email report not sent": "گزارش آزمایشی ایمیل ارسال نشد",
-  "Test message not sent": "پیام آزمایشی ارسال نشد"
+  "Test message not sent": "پیام آزمایشی ارسال نشد",
+  "Open (pull request)": "باز"
 }

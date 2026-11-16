@@ -56441,5 +56441,6 @@
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} command that ran here isn't listed: it was run for an AI chat, incident or alert you can't open.",
   "Test email report not sent": "Test email report not sent",
-  "Test message not sent": "Test message not sent"
+  "Test message not sent": "Test message not sent",
+  "Open (pull request)": "Open (pull request)"
 }

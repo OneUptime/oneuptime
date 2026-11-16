@@ -56441,5 +56441,6 @@
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "여기서 실행된 명령 {{count}}개는 목록에 표시되지 않습니다. 열 수 없는 AI 채팅, 인시던트 또는 경고를 위해 실행된 명령입니다.",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "여기서 실행된 명령 {{count}}개는 목록에 표시되지 않습니다. 열 수 없는 AI 채팅, 인시던트 또는 경고를 위해 실행된 명령입니다.",
   "Test email report not sent": "테스트 보고서 이메일을 보내지 못했습니다",
-  "Test message not sent": "테스트 메시지를 보내지 못했습니다"
+  "Test message not sent": "테스트 메시지를 보내지 못했습니다",
+  "Open (pull request)": "열림"
 }
