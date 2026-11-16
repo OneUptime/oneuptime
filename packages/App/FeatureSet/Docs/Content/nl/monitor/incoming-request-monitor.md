@@ -95,7 +95,7 @@ Wilt u velden in de body aanspreken (`{{requestBody.status}}` in een incidenttit
 | `application/json` | De geparste JSON. |
 | `application/x-www-form-urlencoded` | Het geparste formulier. Sleutels tussen vierkante haken worden genest (`alerts[0][status]=firing`), en elke waarde is een tekenreeks. |
 | `text/plain` | De geparste JSON, als de tekst een JSON-object of -array is: zo stuurt Amazon SNS zijn berichten. Elke andere tekst is een lege body. |
-| Alles anders, of geen | Een lege body (`{}`), dus elke verwijzing naar `requestBody` levert niets op. |
+| Alles anders, of geen | Een lege body (`{}`), dus geen enkele verwijzing naar `requestBody` wordt opgelost, en een sjabloon laat die letterlijk staan. |
 
 Bodies tot 50 MB worden geaccepteerd; een grotere wordt geweigerd met een `413`. Comprimeer de body niet met `Content-Encoding: gzip`: dan wordt hij niet als JSON opgeslagen, en worden paden erin niet opgelost.
 

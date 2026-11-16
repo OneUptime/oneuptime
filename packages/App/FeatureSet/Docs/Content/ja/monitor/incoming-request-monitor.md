@@ -95,7 +95,7 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 | `application/json` | 解析された JSON。 |
 | `application/x-www-form-urlencoded` | 解析されたフォーム。角かっこ付きのキーは入れ子になり (`alerts[0][status]=firing`)、値はすべて文字列です。 |
 | `text/plain` | テキストが JSON のオブジェクトか配列なら、解析された JSON。Amazon SNS はメッセージをこの形で送ります。それ以外のテキストは空のボディになります。 |
-| それ以外、またはなし | 空のボディ (`{}`)。そのため `requestBody` への参照はすべて何にも解決されません。 |
+| それ以外、またはなし | 空のボディ (`{}`)。そのため `requestBody` への参照はどれも解決されず、テンプレートではそのまま残ります。 |
 
 最大 50 MB のボディを受け付け、それより大きいものは `413` で拒否されます。ボディを `Content-Encoding: gzip` で圧縮しないでください。JSON として保存されず、その中へのパスが解決されなくなります。
 

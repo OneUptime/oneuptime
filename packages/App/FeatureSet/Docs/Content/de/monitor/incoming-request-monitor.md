@@ -95,7 +95,7 @@ Wenn Sie Felder im Body ansprechen wollen — `{{requestBody.status}}` in einem 
 | `application/json` | Das geparste JSON. |
 | `application/x-www-form-urlencoded` | Das geparste Formular. Schlüssel in eckigen Klammern werden verschachtelt (`alerts[0][status]=firing`), und jeder Wert ist eine Zeichenkette. |
 | `text/plain` | Das geparste JSON, wenn der Text ein JSON-Objekt oder -Array ist: So sendet Amazon SNS seine Nachrichten. Jeder andere Text ergibt einen leeren Body. |
-| Alles andere oder keiner | Ein leerer Body (`{}`), jeder Verweis auf `requestBody` ergibt also nichts. |
+| Alles andere oder keiner | Ein leerer Body (`{}`), sodass kein Verweis auf `requestBody` aufgelöst wird, und eine Vorlage gibt ihn wörtlich aus. |
 
 Bodys bis 50 MB werden angenommen; ein größerer wird mit `413` abgelehnt. Komprimieren Sie den Body nicht mit `Content-Encoding: gzip`: Er wird dann nicht als JSON gespeichert, und Pfade darin werden nicht aufgelöst.
 
