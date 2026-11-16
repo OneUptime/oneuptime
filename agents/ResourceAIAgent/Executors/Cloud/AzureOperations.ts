@@ -520,12 +520,14 @@ export default class AzureCloud {
     const settings: CloudCommandRun["settings"] = run.settings;
 
     if (settings.azureWriteIdentityProblem) {
+      run.writePath = { state: "unusable", problem: "unreadable-setting" };
       return `Write identity: ${settings.azureWriteIdentityProblem}`;
     }
 
     const identity: AzureWriteIdentity | null = settings.azureWriteIdentity;
 
     if (!identity) {
+      run.writePath = { state: "unset" };
       return `Write identity: none (${RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV} is not set): changes use the agent's own identity, with whatever it allows`;
     }
 
@@ -535,6 +537,7 @@ export default class AzureCloud {
     });
 
     if (elsewhere) {
+      run.writePath = { state: "unusable", problem: "another-account" };
       return `Write identity: ${elsewhere}`;
     }
 
@@ -573,7 +576,10 @@ export default class AzureCloud {
       if (answer.principalId && own && answer.principalId === own) {
         check = `${check}, which is the agent's own identity as well: give the agent an identity of its own that only reads`;
       }
+
+      run.writePath = { state: "usable" };
     } catch (err: unknown) {
+      run.writePath = { state: "unusable", problem: "cannot-sign-in" };
       check = `the agent can NOT sign in as it, so every change fails: ${
         err instanceof Error ? err.message : String(err)
       }`;

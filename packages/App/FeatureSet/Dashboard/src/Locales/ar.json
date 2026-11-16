@@ -55926,5 +55926,11 @@
   "Wrong backup code": "رمز احتياطي خاطئ",
   "Wrong password": "كلمة مرور خاطئة",
   "{{count}} attempt": "{{count}} محاولة",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - عرض تفاصيل محاولة تسجيل الدخول"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - عرض تفاصيل محاولة تسجيل الدخول",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "القراءة تعمل، لكن التغييرات ستفشل",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "شغّل أمر الإعداد مرة أخرى. فهو ينقل التغييرات إلى هوية كتابة خاصة بها، وتبقى هوية الوكيل نفسه للقراءة فقط.",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "شغّل أمر الإعداد مرة أخرى. فهو ينقل التغييرات إلى دور كتابة خاص بها، يتولاه الوكيل لكل تغيير بسياسة تخص ذلك التغيير وحده.",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "شغّل أمر الإعداد مرة أخرى. فهو ينقل التغييرات إلى حساب كتابة خاص بها، ويبقى حساب خدمة الوكيل نفسه للقراءة فقط.",
+  "The {{agent}} makes its changes as the identity it reads with": "يُجري {{agent}} تغييراته بالهوية نفسها التي يقرأ بها"
 }

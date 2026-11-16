@@ -55926,5 +55926,11 @@
   "Wrong backup code": "Неверный резервный код",
   "Wrong password": "Неверный пароль",
   "{{count}} attempt": "{{count}} попытка",
-  "{{summary}} - view sign-in attempt details": "{{summary}} — открыть сведения о попытке входа"
+  "{{summary}} - view sign-in attempt details": "{{summary}} — открыть сведения о попытке входа",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "Чтение работает, но изменения не пройдут",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Выполните команду настройки ещё раз. Она переносит изменения на отдельное удостоверение записи, а собственному удостоверению агента остаётся только чтение.",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Выполните команду настройки ещё раз. Она переносит изменения на отдельную роль записи, которую агент принимает для каждого изменения с политикой только для этого изменения.",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "Выполните команду настройки ещё раз. Она переносит изменения на отдельный аккаунт записи, а собственному сервисному аккаунту агента остаётся только чтение.",
+  "The {{agent}} makes its changes as the identity it reads with": "{{agent}} вносит изменения с тем же удостоверением, с которым читает"
 }

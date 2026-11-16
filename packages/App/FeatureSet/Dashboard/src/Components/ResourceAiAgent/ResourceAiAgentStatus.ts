@@ -44,6 +44,7 @@ import {
   readAutomaticRemediation,
 } from "../AiAccess/AutomaticRemediationLine";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
+import { CloudWritePathProblem } from "Common/Utils/AiRemediation/Resource/CloudOperationCatalog";
 
 /*
  * What a resource's AI agent page (ResourceAiAgentPage) and its AI Insights
@@ -767,6 +768,33 @@ export function getResourceAiRefusedRegistrationWarning(
 export const RESOURCE_AI_CHOICE_GAP_CODES: ReadonlyArray<ResourceAiAccessGapCode> =
   ["remediation_disabled"];
 
+/*
+ * Gaps that are advice: OneUptime AI does all of its job, and running the
+ * agent's setup command again makes it safer. A Cloud AI agent that makes
+ * its changes as the identity it reads with is one (the server says so
+ * only while it is).
+ */
+export const RESOURCE_AI_ADVICE_GAP_CODES: ReadonlyArray<ResourceAiAccessGapCode> =
+  ["cloud_agent_changes_as_itself"];
+
+/*
+ * What "Run the setup command again" does on each cloud, as the step says
+ * it: the changes move to a write role, identity or account of their own.
+ */
+export const CLOUD_AGENT_CHANGES_AS_ITSELF_STEP_TEXTS: Readonly<
+  Partial<Record<AiResourceType, string>>
+> = {
+  [AiResourceType.AwsAccount]: translationKey(
+    "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.",
+  ),
+  [AiResourceType.AzureSubscription]: translationKey(
+    "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.",
+  ),
+  [AiResourceType.GoogleCloudProject]: translationKey(
+    "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.",
+  ),
+};
+
 export function getResourceAiAttentionGaps(
   status: ResourceAiAccessStatus,
 ): Array<ResourceAiAccessGap> {
@@ -800,7 +828,9 @@ export type ResourceAiAgentGapAction =
   | "open_ai_features"
   | "open_llm_providers"
   | "open_ai_credits"
-  | "test_connection";
+  | "test_connection"
+  // A cloud account's setup dialog, with the command to run again.
+  | "show_cloud_agent_setup";
 
 export function getResourceAiAgentGapAction(
   gap: ResourceAiAccessGap,
@@ -825,6 +855,8 @@ export function getResourceAiAgentGapAction(
     case "ai_agent_unreachable_resource":
       // Once the socket, address or credentials are fixed, prove it.
       return status.agent ? "test_connection" : null;
+    case "cloud_agent_changes_as_itself":
+      return "show_cloud_agent_setup";
     default:
       return null;
   }
@@ -860,6 +892,25 @@ export function getResourceAiAttentionTitle(
   const values: TemplateValues = {
     noun: translatableTerm(descriptor.noun, { inSentence: true }),
   };
+
+  /*
+   * Nothing is blocked, and all there is is advice: OneUptime AI does its
+   * job, so the headline says what the advice is about, never that it
+   * can't do all of it.
+   */
+  if (
+    !blocksInvestigation &&
+    !blocksFixes &&
+    gaps.length > 0 &&
+    gaps.every((gap: ResourceAiAccessGap): boolean => {
+      return RESOURCE_AI_ADVICE_GAP_CODES.includes(gap.code);
+    })
+  ) {
+    return translateTemplate(
+      "The {{agent}} makes its changes as the identity it reads with",
+      { agent: translatableTerm(descriptor.agentName) },
+    );
+  }
 
   if (blocksInvestigation && blocksFixes && areFixesOn) {
     return translateTemplate(
@@ -974,6 +1025,13 @@ export function getResourceAiAttentionStepText(
      */
     case "ai_balance_insufficient":
       return translateTemplate(ADD_AI_CREDITS_STEP);
+    case "cloud_agent_changes_as_itself": {
+      // The command is the page's own (its Show how opens it).
+      const text: string | undefined =
+        CLOUD_AGENT_CHANGES_AS_ITSELF_STEP_TEXTS[descriptor.resourceType];
+
+      return text ? translateTemplate(text) : gap.nextStep || gap.title;
+    }
     default:
       return gap.nextStep || gap.title;
   }
@@ -1065,6 +1123,12 @@ export function getResourceAiAgentPageHint(
 export interface ResourceAccessTestResult {
   ok: boolean;
   message: string;
+  /*
+   * A cloud account's agent that reads but whose every change would fail
+   * as it is set up (CloudWritePathProblem): the page says so in amber,
+   * instead of that the connection works. Null when nothing says so.
+   */
+  writePathProblem: CloudWritePathProblem | null;
   results: Array<{
     command: string;
     succeeded: boolean;
@@ -1073,6 +1137,42 @@ export interface ResourceAccessTestResult {
     errorMessage: string | null;
   }>;
 }
+
+// The write-path problems this page knows: any other is read as none.
+const CLOUD_WRITE_PATH_PROBLEMS_READ: ReadonlyArray<CloudWritePathProblem> = [
+  "cannot-sign-in",
+  "unreadable-setting",
+  "another-account",
+];
+
+/*
+ * Test connection's verdict: whether the connection works, works for reads
+ * while every change would fail (a cloud account's write role, identity or
+ * account it cannot use: amber, with what to fix), or does not work yet.
+ */
+export type ResourceAccessTestVerdict =
+  | "works"
+  | "changes-will-fail"
+  | "not-working";
+
+export function getResourceAccessTestVerdict(
+  result: ResourceAccessTestResult,
+): ResourceAccessTestVerdict {
+  if (!result.ok) {
+    return "not-working";
+  }
+
+  return result.writePathProblem ? "changes-will-fail" : "works";
+}
+
+// Each verdict's headline, which the Alert drawing it translates.
+export const RESOURCE_ACCESS_TEST_VERDICT_TITLES: Readonly<
+  Record<ResourceAccessTestVerdict, string>
+> = {
+  works: translationKey("The connection works"),
+  "changes-will-fail": translationKey("Reads work, but changes will fail"),
+  "not-working": translationKey("The connection is not working yet"),
+};
 
 /*
  * The test's answer, read defensively: a missing message is empty, a
@@ -1090,6 +1190,11 @@ export function parseResourceAccessTestResult(
   return {
     ok: data["ok"] === true,
     message: typeof data["message"] === "string" ? data["message"] : "",
+    writePathProblem: (
+      CLOUD_WRITE_PATH_PROBLEMS_READ as ReadonlyArray<unknown>
+    ).includes(data["writePathProblem"])
+      ? (data["writePathProblem"] as CloudWritePathProblem)
+      : null,
     results: rows.map(
       (row: unknown): ResourceAccessTestResult["results"][number] => {
         const item: Record<string, unknown> = isObject(row) ? row : {};

@@ -55926,5 +55926,11 @@
   "Wrong backup code": "Forkert backupkode",
   "Wrong password": "Forkert adgangskode",
   "{{count}} attempt": "{{count}} forsøg",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om loginforsøget"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om loginforsøget",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "Læsning virker, men ændringer vil mislykkes",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Kør opsætningskommandoen igen. Den flytter ændringerne til en skriveidentitet for sig, og agentens egen identitet beholder kun læsningen.",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Kør opsætningskommandoen igen. Den flytter ændringerne til en skriverolle for sig, som agenten påtager sig for hver ændring med en politik kun for den ændring.",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "Kør opsætningskommandoen igen. Den flytter ændringerne til en skrivekonto for sig, og agentens egen tjenestekonto beholder kun læsningen.",
+  "The {{agent}} makes its changes as the identity it reads with": "{{agent}} foretager sine ændringer med den identitet, den læser med"
 }

@@ -552,7 +552,14 @@ export type ResourceAiAccessGapCode =
   | "auto_remediation_disabled_for_project"
   | "llm_provider_missing"
   | "ai_balance_insufficient"
-  | "cloud_connection_missing";
+  | "cloud_connection_missing"
+  /*
+   * Advice, never a block: a Cloud AI agent that makes its changes as the
+   * identity it reads with (no write role, identity or account set) - an
+   * agent set up before its cloud's setup command made one. Running the
+   * command again moves the changes to one. Shown only while it is so.
+   */
+  | "cloud_agent_changes_as_itself";
 
 export interface ResourceAiAccessGap {
   code: ResourceAiAccessGapCode;

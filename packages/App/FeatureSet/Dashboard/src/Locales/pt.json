@@ -55926,5 +55926,11 @@
   "Wrong backup code": "Código de backup incorreto",
   "Wrong password": "Senha incorreta",
   "{{count}} attempt": "{{count}} tentativa",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - ver detalhes da tentativa de login"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - ver detalhes da tentativa de login",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "A leitura funciona, mas as alterações vão falhar",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Execute o comando de configuração de novo. Ele passa as alterações para uma identidade de gravação própria, e a identidade do agente fica só com a leitura.",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Execute o comando de configuração de novo. Ele passa as alterações para uma função de gravação própria, que o agente assume em cada alteração com uma política só para aquela alteração.",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "Execute o comando de configuração de novo. Ele passa as alterações para uma conta de gravação própria, e a conta de serviço do agente fica só com a leitura.",
+  "The {{agent}} makes its changes as the identity it reads with": "O {{agent}} faz as alterações com a identidade com que lê"
 }

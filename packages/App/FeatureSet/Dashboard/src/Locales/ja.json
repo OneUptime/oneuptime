@@ -55926,5 +55926,11 @@
   "Wrong backup code": "バックアップコードの誤り",
   "Wrong password": "パスワードの誤り",
   "{{count}} attempt": "試行 {{count}} 回",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - サインイン試行の詳細を表示"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - サインイン試行の詳細を表示",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "読み取りは機能しますが、変更は失敗します",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "セットアップ コマンドをもう一度実行してください。変更は専用の書き込み ID に移り、エージェント自身の ID には読み取りだけが残ります。",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "セットアップ コマンドをもう一度実行してください。変更は専用の書き込みロールに移り、エージェントは変更ごとに、その変更だけを許可するポリシー付きでこのロールを引き受けます。",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "セットアップ コマンドをもう一度実行してください。変更は専用の書き込みアカウントに移り、エージェント自身のサービスアカウントには読み取りだけが残ります。",
+  "The {{agent}} makes its changes as the identity it reads with": "{{agent}} は、読み取りに使う ID で変更を行っています"
 }

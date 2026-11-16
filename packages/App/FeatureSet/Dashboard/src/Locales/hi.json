@@ -55926,5 +55926,11 @@
   "Wrong backup code": "गलत बैकअप कोड",
   "Wrong password": "गलत पासवर्ड",
   "{{count}} attempt": "{{count}} प्रयास",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - साइन-इन प्रयास का विवरण देखें"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - साइन-इन प्रयास का विवरण देखें",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "पढ़ना काम करता है, लेकिन बदलाव विफल होंगे",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "सेटअप कमांड फिर से चलाएँ। यह बदलावों को उनकी अपनी लिखने वाली पहचान पर ले जाती है, और एजेंट की अपनी पहचान के पास केवल पढ़ना रहता है।",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "सेटअप कमांड फिर से चलाएँ। यह बदलावों को उनकी अपनी लिखने वाली भूमिका पर ले जाती है, जिसे एजेंट हर बदलाव के लिए केवल उसी बदलाव वाली नीति के साथ अपनाता है।",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "सेटअप कमांड फिर से चलाएँ। यह बदलावों को उनके अपने लिखने वाले खाते पर ले जाती है, और एजेंट के अपने सेवा खाते के पास केवल पढ़ना रहता है।",
+  "The {{agent}} makes its changes as the identity it reads with": "{{agent}} अपने बदलाव उसी पहचान से करता है जिससे वह पढ़ता है"
 }

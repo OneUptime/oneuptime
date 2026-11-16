@@ -417,14 +417,28 @@ export default class AwsCloud {
       `Region: ${this.region() || "not set (AWS_REGION); STS is called on its global endpoint, and each change in its resource's Region"}`,
     ];
 
-    if (identity.account !== data.accountId && !settings.awsWriteRoleArn) {
+    const isOtherAccount: boolean =
+      identity.account !== data.accountId && !settings.awsWriteRoleArn;
+
+    if (isOtherAccount) {
       lines.push(
         `Warning: these credentials are for account ${identity.account}, not ${data.accountId}, so every change is refused.`,
       );
     }
 
+    // The role's account, from its ARN: a role of another account changes nothing.
+    const roleAccount: string = settings.awsWriteRoleArn
+      ? settings.awsWriteRoleArn.split(":")[4] || ""
+      : "";
+
     if (settings.awsWriteRoleProblem) {
+      run.writePath = { state: "unusable", problem: "unreadable-setting" };
       lines.push(`Write role: ${settings.awsWriteRoleProblem}`);
+    } else if (settings.awsWriteRoleArn && roleAccount !== data.accountId) {
+      run.writePath = { state: "unusable", problem: "another-account" };
+      lines.push(
+        `Write role: ${settings.awsWriteRoleArn}, a role of account ${roleAccount}: the agent serves account ${data.accountId}, so it changes nothing. Set ${RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV} to a role of account ${data.accountId}`,
+      );
     } else if (settings.awsWriteRoleArn) {
       lines.push(
         `Write role: ${settings.awsWriteRoleArn}, assumed for each change with a session policy that allows that change alone (${await this.checkWriteRole(
@@ -433,6 +447,9 @@ export default class AwsCloud {
         )})`,
       );
     } else {
+      run.writePath = isOtherAccount
+        ? { state: "unusable", problem: "another-account" }
+        : { state: "unset" };
       lines.push(
         `Write role: none (${RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV} is not set): changes use the agent's own credentials, with whatever they allow`,
       );
@@ -441,7 +458,10 @@ export default class AwsCloud {
     return lines;
   }
 
-  // Whether the agent can assume the write role: with a session policy that allows nothing.
+  /*
+   * Whether the agent can assume the write role: with a session policy that
+   * allows nothing. Says so on the run too (its write path).
+   */
   private async checkWriteRole(
     run: CloudCommandRun,
     roleArn: string,
@@ -461,8 +481,12 @@ export default class AwsCloud {
         userAgent: this.options.runtime.userAgent,
       });
 
+      run.writePath = { state: "usable" };
+
       return `the agent can assume it, as ${assumed.assumedRoleArn}`;
     } catch (err: unknown) {
+      run.writePath = { state: "unusable", problem: "cannot-sign-in" };
+
       return `the agent could NOT assume it, so every change fails: ${
         err instanceof Error ? err.message : String(err)
       }`;

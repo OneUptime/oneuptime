@@ -55926,5 +55926,11 @@
   "Wrong backup code": "Fel reservkod",
   "Wrong password": "Fel lösenord",
   "{{count}} attempt": "{{count}} försök",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - visa detaljer om inloggningsförsöket"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - visa detaljer om inloggningsförsöket",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "Läsning fungerar, men ändringar kommer att misslyckas",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Kör konfigurationskommandot igen. Det flyttar ändringarna till en egen skrividentitet, och agentens egen identitet behåller bara läsningen.",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Kör konfigurationskommandot igen. Det flyttar ändringarna till en egen skrivroll, som agenten antar för varje ändring med en policy bara för den ändringen.",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "Kör konfigurationskommandot igen. Det flyttar ändringarna till ett eget skrivkonto, och agentens eget tjänstkonto behåller bara läsningen.",
+  "The {{agent}} makes its changes as the identity it reads with": "{{agent}} gör sina ändringar med den identitet den läser med"
 }

@@ -55926,5 +55926,11 @@
   "Wrong backup code": "Wrong backup code",
   "Wrong password": "Wrong password",
   "{{count}} attempt": "{{count}} attempt",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - view sign-in attempt details"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - view sign-in attempt details",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "Reads work, but changes will fail",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.",
+  "The {{agent}} makes its changes as the identity it reads with": "The {{agent}} makes its changes as the identity it reads with"
 }

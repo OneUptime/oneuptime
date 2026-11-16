@@ -237,6 +237,8 @@ describe("Azure: whoami", () => {
     });
 
     assert.deepStrictEqual(outputLines(result), [
+      // What Test connection reads: no write identity, changes run as the agent's own.
+      'oneuptime-write-path: {"state":"unset"}',
       "Cloud: Azure",
       `Subscription: ${SUB} (Shop production), Enabled`,
       `Signed in as: ${IDENTITY}`,

@@ -72,6 +72,7 @@ import {
   ParsedCloudCommand,
   formatCloudDryRunVerdict,
   formatCloudReplacedValue,
+  formatCloudWritePath,
   getCloudCatalogProvider,
   getCloudUndoCommand,
   isCloudChangeOperation,
@@ -676,10 +677,19 @@ export default class CloudExecutor implements ResourceExecutor {
 
     try {
       if (!isCloudChangeOperation(call.command.operation)) {
+        const lines: Array<string> = await this.whoami(run, call);
+
+        /*
+         * Its first line says whether a change can run as the agent is set
+         * up (its write role, identity or account): Test connection reads
+         * it, and says so in amber when every change would fail.
+         */
         return this.finish(call, {
           success: true,
           exitCode: 0,
-          lines: await this.whoami(run, call),
+          lines: run.writePath
+            ? [formatCloudWritePath(run.writePath), ...lines]
+            : lines,
         });
       }
 

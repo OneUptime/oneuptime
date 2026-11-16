@@ -55926,5 +55926,11 @@
   "Wrong backup code": "잘못된 백업 코드",
   "Wrong password": "잘못된 비밀번호",
   "{{count}} attempt": "{{count}}회 시도",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - 로그인 시도 세부 정보 보기"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - 로그인 시도 세부 정보 보기",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "읽기는 작동하지만 변경은 실패합니다",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "설정 명령을 다시 실행하세요. 변경은 전용 쓰기 ID로 옮겨지고, 에이전트 자체 ID에는 읽기만 남습니다.",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "설정 명령을 다시 실행하세요. 변경은 전용 쓰기 역할로 옮겨지고, 에이전트는 변경마다 그 변경만 허용하는 정책으로 이 역할을 맡습니다.",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "설정 명령을 다시 실행하세요. 변경은 전용 쓰기 계정으로 옮겨지고, 에이전트 자체 서비스 계정에는 읽기만 남습니다.",
+  "The {{agent}} makes its changes as the identity it reads with": "{{agent}}는 읽기에 쓰는 ID로 변경을 합니다"
 }

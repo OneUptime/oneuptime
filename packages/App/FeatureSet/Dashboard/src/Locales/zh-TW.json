@@ -55926,5 +55926,11 @@
   "Wrong backup code": "備用代碼錯誤",
   "Wrong password": "密碼錯誤",
   "{{count}} attempt": "{{count}} 次嘗試",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - 檢視登入嘗試詳細資料"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - 檢視登入嘗試詳細資料",
+  "Attachment Seen At": "Attachment Seen At",
+  "Reads work, but changes will fail": "讀取正常，但變更會失敗",
+  "Run the setup command again. It moves the changes to a write identity of their own, and the agent's own identity keeps only the reads.": "再次執行設定指令。它會把變更移到專屬的寫入識別，代理程式自身的識別只保留讀取。",
+  "Run the setup command again. It moves the changes to a write role of their own, which the agent assumes for each change with a policy for that change alone.": "再次執行設定指令。它會把變更移到專屬的寫入角色，代理程式每次變更都以僅允許該變更的原則承擔這個角色。",
+  "Run the setup command again. It moves the changes to a write service account of their own, and the agent's own service account keeps only the reads.": "再次執行設定指令。它會把變更移到專屬的寫入帳戶，代理程式自身的服務帳戶只保留讀取。",
+  "The {{agent}} makes its changes as the identity it reads with": "{{agent}}使用其讀取時所用的識別進行變更"
 }
