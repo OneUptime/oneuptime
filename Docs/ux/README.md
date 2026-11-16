@@ -100,6 +100,13 @@ and phone summary: change the suite in the same pull request as the menu.
   How to Reach Me is one page, a ladder with a tab per kind behind it, not four pages in two menu
   sections. Enforced by
   [OnCallRulesOnePageGuard](../../packages/App/Tests/Dashboard/OnCallRulesOnePageGuard.test.ts).
+- **Red is for what broke, never for a choice.** A state someone chose (a monitor they disabled, a
+  record they archived or paused) gets a grey count and a calm icon, and sits with the records, not
+  under Attention Required. Monitors filed Disabled there with the error icon and a red count beside
+  Not Operational, and a red count that never went away taught people to ignore red (#9126). The
+  same state is grey wherever it shows: a monitor's row, its badge and an SLO's list of monitors.
+  Enforced by
+  [DeliberateStatesNotDangerGuard](../../packages/App/Tests/Dashboard/DeliberateStatesNotDangerGuard.test.ts).
 - **Every entry in the More menu has an icon.** Enforced by
   [MoreMenuItemIconsGuard](../../packages/App/Tests/MoreMenuItemIconsGuard.test.ts).
 
