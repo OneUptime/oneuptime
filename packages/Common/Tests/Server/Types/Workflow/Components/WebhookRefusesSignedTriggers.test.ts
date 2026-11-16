@@ -56,8 +56,8 @@ let triggerId: string | undefined;
 
 /*
  * The route's own handler: the last one it registers, after the middleware
- * that reads a text/plain body (PlainTextJsonBody), which the requests here
- * - JSON, already parsed - pass straight through.
+ * that reads a text/plain or +json body (WebhookRequestBody), which the
+ * requests here - JSON, already parsed - pass straight through.
  */
 function fakeRouter(): ExpressRouter {
   return {
@@ -66,6 +66,9 @@ function fakeRouter(): ExpressRouter {
     },
     post: (uri: string, ...handlers: Array<Handler>): void => {
       routes[`POST ${uri}`] = handlers[handlers.length - 1] as Handler;
+    },
+    options: (uri: string, ...handlers: Array<Handler>): void => {
+      routes[`OPTIONS ${uri}`] = handlers[handlers.length - 1] as Handler;
     },
   } as unknown as ExpressRouter;
 }

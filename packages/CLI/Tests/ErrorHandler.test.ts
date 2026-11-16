@@ -186,7 +186,7 @@ describe("ErrorHandler", () => {
         error: "API error (400): Invalid API Key",
         exitCode: ExitCode.AuthError,
         status: 400,
-        hint: "Copy the key again from Project Settings → Advanced → API Keys, and check its Expires date there. Then run `oneuptime login` again, or set ONEUPTIME_API_KEY.",
+        hint: "Find the key in Project Settings → Advanced → API Keys by how it ends, and check its Expires date there. A key is shown only once: if you no longer have it, reset it there. Then run `oneuptime login` again, or set ONEUPTIME_API_KEY.",
       },
       {
         error:

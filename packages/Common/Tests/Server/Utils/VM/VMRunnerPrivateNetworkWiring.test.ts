@@ -10,6 +10,12 @@ import path from "path";
  * cover the one detail that behaviour test does not: the guard now takes a
  * policy argument, and getting that argument's plumbing wrong fails open.
  *
+ * The guard lives in VMHttpBridge, which VMRunner builds once per run from
+ * the caller's options, and which a global Runner also runs on a step's
+ * behalf (packages/Runner/Utils/JavaScriptSandbox/SandboxHttp). So the checks
+ * below read both: the bridge for the request, the runner for what it hands
+ * the bridge.
+ *
  * Three things must hold, and none is visible from the sandbox:
  *
  *  - The runner passes the CALLER's flag, not a literal `true` and not the
@@ -40,6 +46,11 @@ const runnerSource: string = fs.readFileSync(
   "utf8",
 );
 
+const bridgeSource: string = fs.readFileSync(
+  path.join(VM_DIR, "VMHttpBridge.ts"),
+  "utf8",
+);
+
 const apiSource: string = fs.readFileSync(
   path.join(VM_DIR, "VMAPI.ts"),
   "utf8",
@@ -47,14 +58,20 @@ const apiSource: string = fs.readFileSync(
 
 describe("VMRunner — private network policy plumbing", () => {
   test("the sandbox axios guard is called with the caller's flag", () => {
+    expect(bridgeSource).toMatch(
+      /validateAndResolveWebhookTarget\(\s*effectiveUrl,\s*\{[\s\S]{0,600}?allowPrivateNetworkTargets:\s*\n?\s*this\.policy\.allowPrivateNetworkRequests === true,/,
+    );
     expect(runnerSource).toMatch(
-      /validateAndResolveWebhookTarget\(\s*effectiveUrl,\s*\{[\s\S]{0,600}?allowPrivateNetworkTargets:\s*\n?\s*options\.allowPrivateNetworkRequests === true,/,
+      /new VMHttpBridge\(\{[\s\S]{0,300}?allowPrivateNetworkRequests:\s*options\.allowPrivateNetworkRequests,/,
     );
   });
 
   test("the sandbox axios guard receives the caller's resolved policy", () => {
+    expect(bridgeSource).toMatch(
+      /privateNetworkAccessIsAllowed:\s*\n?\s*this\.policy\.privateNetworkAccessIsAllowed/,
+    );
     expect(runnerSource).toMatch(
-      /privateNetworkAccessIsAllowed:\s*\n?\s*options\.privateNetworkAccessIsAllowed/,
+      /new VMHttpBridge\(\{[\s\S]{0,300}?privateNetworkAccessIsAllowed:\s*options\.privateNetworkAccessIsAllowed,/,
     );
   });
 
@@ -63,7 +80,7 @@ describe("VMRunner — private network policy plumbing", () => {
    * runner's callers — one is a workflow script, the other is a monitor.
    */
   test("the guard is told this is a request, not a webhook", () => {
-    expect(runnerSource).toMatch(/targetLabel:\s*"Request URL"/);
+    expect(bridgeSource).toMatch(/targetLabel:\s*"Request URL"/);
   });
 
   /*
@@ -73,6 +90,9 @@ describe("VMRunner — private network policy plumbing", () => {
    * machine owned by a different person.
    */
   test("the refusal hint is passed through from the caller", () => {
+    expect(bridgeSource).toMatch(
+      /privateNetworkHint:\s*this\.policy\.privateNetworkHint/,
+    );
     expect(runnerSource).toMatch(
       /privateNetworkHint:\s*options\.privateNetworkHint/,
     );
@@ -87,6 +107,9 @@ describe("VMRunner — private network policy plumbing", () => {
      * deployment default. Dropping it here would hand every script the
      * detailed refusal on a shared probe.
      */
+    expect(bridgeSource).toMatch(
+      /includeResolutionDetailInError:\s*\n?\s*this\.policy\.includeResolutionDetailInError/,
+    );
     expect(runnerSource).toMatch(
       /includeResolutionDetailInError:\s*\n?\s*options\.includeResolutionDetailInError/,
     );
@@ -103,11 +126,40 @@ describe("VMRunner — private network policy plumbing", () => {
      * A second, unguarded request path inside the runner would be invisible to
      * every test above — the sandbox would simply have two doors.
      */
-    const calls: RegExpMatchArray | null = runnerSource.match(
+    const calls: RegExpMatchArray | null = bridgeSource.match(
       /validateAndResolveWebhookTarget\(/g,
     );
 
     expect(calls).toHaveLength(1);
+    expect(runnerSource).not.toContain("validateAndResolveWebhookTarget(");
+    // The runner makes no request itself: it has no HTTP client to make one.
+    expect(runnerSource).not.toMatch(/from "axios"/);
+    expect(runnerSource).not.toMatch(/from "https?"/);
+  });
+
+  /*
+   * A caller may hand the run a requester of its own (a global Runner's step,
+   * whose process may open no socket, hands each request to the Runner): it
+   * replaces only who makes the request. Every request is first held to the
+   * run's limits here, and the default requester is the bridge with the
+   * caller's policy.
+   */
+  test("every request is held to the run's limits, then made by the caller's requester or the run's bridge", () => {
+    expect(runnerSource).toMatch(
+      /httpRequester\?:\s*VMHttpRequester \| undefined;/,
+    );
+    expect(runnerSource).toMatch(
+      /options\.httpRequester \|\|\s*\(\(call: VMHttpCall, signal: AbortSignal\): Promise<string> => \{\s*return httpBridge\.execute\(call, signal\);/,
+    );
+
+    const reserved: number = runnerSource.indexOf("httpBridge.reserve(call);");
+    const requested: number = runnerSource.indexOf(
+      "requestHttp(call, abortController.signal)",
+    );
+
+    expect(reserved).toBeGreaterThan(-1);
+    expect(requested).toBeGreaterThan(reserved);
+    expect(runnerSource.match(/requestHttp\(/g)).toHaveLength(1);
   });
 
   test("the runner never reads the instance configuration itself", () => {
@@ -115,76 +167,80 @@ describe("VMRunner — private network policy plumbing", () => {
      * It would work in the App and silently differ in the Probe, where there
      * is no project to resolve. The policy has to arrive from the caller.
      */
-    expect(runnerSource).not.toContain("PrivateNetworkWebhookConfig");
-    expect(runnerSource).not.toContain("ProjectService");
-    expect(runnerSource).not.toContain("ALLOW_PRIVATE_NETWORK_WEBHOOKS");
+    for (const source of [runnerSource, bridgeSource]) {
+      expect(source).not.toContain("PrivateNetworkWebhookConfig");
+      expect(source).not.toContain("ProjectService");
+      expect(source).not.toContain("ALLOW_PRIVATE_NETWORK_WEBHOOKS");
+    }
   });
 
   test("the bridge disables explicit and environment-configured Axios proxies", () => {
-    expect(runnerSource).toMatch(/safeConfig\["proxy"\]\s*=\s*false;/);
+    expect(bridgeSource).toMatch(/safeConfig\["proxy"\]\s*=\s*false;/);
   });
 
   test("the bridge forces the HTTP/1 transport that uses its pinned agents", () => {
-    expect(runnerSource).toMatch(/delete safeConfig\["http2Options"\];/);
-    expect(runnerSource).toMatch(/delete safeConfig\["lookup"\];/);
-    expect(runnerSource).toMatch(/safeConfig\["httpVersion"\]\s*=\s*1;/);
+    expect(bridgeSource).toMatch(/delete safeConfig\["http2Options"\];/);
+    expect(bridgeSource).toMatch(/delete safeConfig\["lookup"\];/);
+    expect(bridgeSource).toMatch(/safeConfig\["httpVersion"\]\s*=\s*1;/);
   });
 
   test("the bridge pins the validation result into both socket agents", () => {
-    expect(runnerSource).toContain(
+    expect(bridgeSource).toContain(
       "DataSourceEgressGuard.createPinnedLookup(validatedTarget.addresses)",
     );
-    expect(runnerSource.match(/lookup:\s*pinnedLookup as never/g)).toHaveLength(
+    expect(bridgeSource.match(/lookup:\s*pinnedLookup as never/g)).toHaveLength(
       2,
     );
   });
 
   test("the validated canonical URL is authoritative at dispatch", () => {
-    expect(runnerSource).toMatch(/delete safeConfig\["baseURL"\];/);
-    expect(runnerSource).toMatch(/delete safeConfig\["url"\];/);
-    expect(runnerSource).toMatch(/delete safeConfig\["allowAbsoluteUrls"\];/);
+    expect(bridgeSource).toMatch(/delete safeConfig\["baseURL"\];/);
+    expect(bridgeSource).toMatch(/delete safeConfig\["url"\];/);
+    expect(bridgeSource).toMatch(/delete safeConfig\["allowAbsoluteUrls"\];/);
     expect(
-      runnerSource.match(
+      bridgeSource.match(
         /axios\.(?:get|head|options|post|put|patch|delete)\(canonicalUrl/g,
       ),
     ).toHaveLength(7);
-    expect(runnerSource).toMatch(/config\["url"\]\s*=\s*canonicalUrl;/);
+    expect(bridgeSource).toMatch(/config\["url"\]\s*=\s*canonicalUrl;/);
   });
 
   test("response and request bytes are bounded at the host bridge", () => {
-    expect(runnerSource).toContain(
+    expect(bridgeSource).toContain(
       "new HTTPResponseBodyBudget(MAX_HTTP_RESPONSE_BYTES)",
     );
-    expect(runnerSource).toMatch(
+    expect(bridgeSource).toMatch(
       /safeConfig\["maxBodyLength"\]\s*=\s*effectiveMaxBodyLength;/,
     );
-    expect(runnerSource).toContain(
+    expect(bridgeSource).toContain(
       "maximumResponseBytes: effectiveMaxContentLength",
     );
-    expect(runnerSource).toMatch(
+    expect(bridgeSource).toMatch(
       /safeConfig\["responseType"\]\s*=\s*"stream";/,
     );
-    expect(runnerSource).toContain("HTTPResponseBodyReader.read(responseData");
-    expect(runnerSource).toMatch(
-      /serializedHttpRequestBytes \+ operationBytes >\s*MAX_HTTP_REQUEST_BYTES/,
+    expect(bridgeSource).toContain("HTTPResponseBodyReader.read(responseData");
+    expect(bridgeSource).toMatch(
+      /this\.serializedRequestBytes \+ operationBytes >\s*MAX_HTTP_REQUEST_BYTES/,
     );
+    // The isolate's own check, before a request leaves it.
     expect(runnerSource).toContain(
       "assertSerializedRequestLength(method, url, arg1, arg2)",
     );
-    expect(runnerSource).toContain('"base64-arraybuffer"');
-    expect(runnerSource).toContain(
+    expect(bridgeSource).toContain('"base64-arraybuffer"');
+    expect(bridgeSource).toContain(
       "body.length > MAX_BASE64_RESPONSE_SOURCE_BYTES",
     );
-    expect(runnerSource).toContain('"base64-json-or-text"');
-    expect(runnerSource).toContain('"base64-text"');
-    expect(runnerSource).toContain('data: body.toString("base64")');
+    expect(bridgeSource).toContain('"base64-json-or-text"');
+    expect(bridgeSource).toContain('"base64-text"');
+    expect(bridgeSource).toContain('data: body.toString("base64")');
+    // The isolate decodes what the bridge encoded.
     expect(runnerSource).toContain("function decodeUtf8(bytes)");
   });
 
   test("untrusted Agent options cannot replace lookup or socket creation", () => {
-    const safeAgentOptionSection: string = runnerSource.slice(
-      runnerSource.indexOf("const pickAgentOptions"),
-      runnerSource.indexOf("const toPlainHeaders"),
+    const safeAgentOptionSection: string = bridgeSource.slice(
+      bridgeSource.indexOf("const pickAgentOptions"),
+      bridgeSource.indexOf("const toPlainHeaders"),
     );
 
     expect(safeAgentOptionSection).not.toContain('"lookup"');

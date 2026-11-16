@@ -298,6 +298,92 @@ describe("decideAtEdge", () => {
     expect(getPolicy).not.toHaveBeenCalled();
   });
 
+  /*
+   * A verification handshake (WebhookVerification, issue #8429) is answered
+   * only for a monitor's key, once the project's requirement lets it
+   * through - and it is usually a new monitor's first request, whose key no
+   * trusted caller has registered yet. So the edge looks it up whatever the
+   * key, when asked to.
+   */
+  describe("for a verification handshake, which asks to place an untracked key", () => {
+    const decideHandshake: (
+      presented: Array<string>,
+      secretKey?: string,
+    ) => Promise<IncomingRequestSecretEdgeDecision> = (
+      presented: Array<string>,
+      secretKey?: string,
+    ): Promise<IncomingRequestSecretEdgeDecision> => {
+      return IncomingRequestSecretGate.decideAtEdge({
+        secretKey: secretKey ?? SECRET_KEY,
+        presentedSecretHashes: presented,
+        placeUntrackedKey: true,
+      });
+    };
+
+    beforeEach(() => {
+      keptMonitor = null;
+      isTracked = false;
+    });
+
+    test("a new monitor's key is looked up, kept, and decided", async () => {
+      policy = NOT_REQUIRED;
+
+      expect(await decideHandshake([])).toEqual({ mayRecordArrival: true });
+      expect(isTrackedSpy).not.toHaveBeenCalled();
+      expect(findOneBy).toHaveBeenCalledTimes(1);
+      expect(setMonitor).toHaveBeenCalledTimes(1);
+    });
+
+    test("the project's requirement still refuses it without the secret", async () => {
+      expect(await decideHandshake([])).toEqual({
+        mayRecordArrival: false,
+        refusalMessage: INCOMING_REQUEST_SECRET_MISSING_MESSAGE,
+      });
+      expect(recorded()).toEqual([
+        {
+          monitorId: MONITOR_ID.toString(),
+          sentValidSecret: false,
+          problem: IncomingRequestSecretProblem.NoSecret,
+        },
+      ]);
+    });
+
+    test("and lets it through with the secret", async () => {
+      expect(await decideHandshake([hash(SECRET)])).toEqual({
+        mayRecordArrival: true,
+      });
+    });
+
+    test("a key that is no monitor's is not placed", async () => {
+      lookedUpMonitor = null;
+
+      expect(await decideHandshake([])).toEqual({ mayRecordArrival: false });
+      expect(getPolicy).not.toHaveBeenCalled();
+    });
+
+    test("a key kept in the cache still costs no database read", async () => {
+      keptMonitor = { monitorId: MONITOR_ID, projectId: PROJECT_ID };
+
+      await decideHandshake([hash(SECRET)]);
+
+      expect(findOneBy).not.toHaveBeenCalled();
+    });
+
+    test("a key that is not a UUID is still looked up nowhere", async () => {
+      expect(await decideHandshake([], "not-a-key")).toEqual({
+        mayRecordArrival: false,
+      });
+      expect(getMonitor).not.toHaveBeenCalled();
+      expect(findOneBy).not.toHaveBeenCalled();
+    });
+
+    test("a failed lookup refuses nothing, and places nothing", async () => {
+      findOneBy.mockRejectedValue(new Error("Postgres is unreachable"));
+
+      expect(await decideHandshake([])).toEqual({ mayRecordArrival: false });
+    });
+  });
+
   test("a refused request tells its monitor it had no secret: it never reaches the worker", async () => {
     await decide([]);
 

@@ -50,7 +50,7 @@ Blokkerte mål faller i to nivåer.
 
 Endepunktet for skymetadata `169.254.169.254` ligger i det forbudte nivået av en grunn. På en sky-VM deler det ut instansens IAM-påloggingsdetaljer til alt som kan gjøre en HTTP-forespørsel fra maskinen, så ingen generell innstilling vil noen gang åpne det.
 
-IPv6-skrivemåter som bærer et IPv4-mål inni seg – IPv4-mapped (`::ffff:10.0.0.5`), NAT64, 6to4, Teredo – klassifiseres etter IPv4-adressen de når, så de kan ikke brukes til å smugle en forbudt adresse forbi en tillatelse for det private nivået.
+IPv6-skrivemåter som bærer et IPv4-mål inni seg – IPv4-mapped (`::ffff:10.0.0.5`), IPv4-compatible (`::10.0.0.5`), NAT64, 6to4, Teredo – klassifiseres etter IPv4-adressen de når, uansett hvordan de er skrevet, så de kan ikke brukes til å smugle en forbudt adresse forbi en tillatelse for det private nivået.
 
 ## Webhooks og arbeidsflyter
 
@@ -142,7 +142,7 @@ På Docker Compose har `config.env` en linje `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSE
 
 Når den er på, rapporteres et avvist vertsnavn uten å si hva det ble slått opp til, for eksempel _"LLM provider host ollama.internal could not be reached."_ Et navn som ikke kan slås opp i det hele tatt, får samme melding, slik at prosjektmedlemmer ikke kan bruke disse feltene til å finne ut hvilke interne navn som finnes. En adresse skrevet som IP nevnes fortsatt sammen med årsaken, for eksempel _"LLM provider host 10.0.4.12 is not allowed: private network address."_ Med `LOG_LEVEL=DEBUG` logger appen adressen hvert avvist navn ble slått opp til.
 
-Bak en utgående proxy går tilkoblingene over HTTP gjennom den, slik webhooks gjør: datakilder og tilkoblinger for sikkerhetshendelser som leses over HTTP, threat intel-feeder, LLM-leverandører, OAuth-token-URL-er, verifisering av egne domener, HTTP-trinn i runbooks og Grafana OnCall-importen bruker proxyen satt i `HTTPS_PROXY`, `HTTP_PROXY` eller `ALL_PROXY`, enten den er oppgitt med en adresse eller et vertsnavn. OneUptime kontrollerer fortsatt adressen først og følger aldri en omdirigering, men det er proxyen som slår opp navnet og kobler til, så avvis link-local-mål på selve proxyen, særlig `169.254.169.254`. En vert i `NO_PROXY` kobles til direkte, på adressen OneUptime kontrollerte: før opp de interne vertene dine der. Database- og SMTP-tilkoblinger, OIDC-discovery, eksterne kalendere, MCP-servere og Git-servere kobler alltid til direkte, uten proxy.
+Bak en utgående proxy går tilkoblingene over HTTP gjennom den, slik webhooks gjør: datakilder og tilkoblinger for sikkerhetshendelser som leses over HTTP, threat intel-feeder, LLM-leverandører, OAuth-token-URL-er, enkel pålogging med OIDC, eksterne kalendere, MCP-servere, sikkerhetskopier, verifisering av egne domener, HTTP-trinn i runbooks og Grafana OnCall-importen bruker proxyen satt i `HTTPS_PROXY`, `HTTP_PROXY` eller `ALL_PROXY`, enten den er oppgitt med en adresse eller et vertsnavn. OneUptime kontrollerer fortsatt adressen først og følger aldri en omdirigering, men det er proxyen som slår opp navnet og kobler til, så avvis link-local-mål på selve proxyen, særlig `169.254.169.254`. En vert i `NO_PROXY` kobles til direkte, på adressen OneUptime kontrollerte: før opp de interne vertene dine der. Database- og SMTP-tilkoblinger og Git-servere kobler alltid til direkte, uten proxy.
 
 ## Sonder og monitorer
 

@@ -10,10 +10,17 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
+import { getHeartbeatSweepScheduleText } from "./IncomingRequestMonitorSummaryView";
 
 export interface ComponentProps {
   incomingEmailMonitorRequest: IncomingEmailMonitorRequest;
   incomingEmailMonitorHeartbeatCheckedAt?: Date | undefined;
+  /*
+   * The email sweep is checking the monitor on its schedule
+   * (HeartbeatSweepSchedule, issue #8123): the fact says the schedule
+   * rather than the stamp, which is written only every few minutes.
+   */
+  isStatusCheckOnSchedule?: boolean | undefined;
 }
 
 const IncomingEmailMonitorSummaryView: FunctionComponent<ComponentProps> = (
@@ -92,9 +99,13 @@ const IncomingEmailMonitorSummaryView: FunctionComponent<ComponentProps> = (
         {props.incomingEmailMonitorHeartbeatCheckedAt ? (
           <SummaryFact
             title="Monitor Status Check At"
-            value={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-              props.incomingEmailMonitorHeartbeatCheckedAt,
-            )}
+            value={
+              props.isStatusCheckOnSchedule
+                ? getHeartbeatSweepScheduleText(translator)
+                : OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                    props.incomingEmailMonitorHeartbeatCheckedAt,
+                  )
+            }
           />
         ) : (
           <></>

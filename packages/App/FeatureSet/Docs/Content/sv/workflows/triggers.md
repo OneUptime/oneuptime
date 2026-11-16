@@ -73,6 +73,8 @@ curl -X POST "https://oneuptime.example.com/workflow/trigger/<secret key>" \
 
 URL:en accepterar både `GET` och `POST`. Anroparen får en snabb bekräftelse, `{"status": "Scheduled"}` — själva arbetsflödet körs i bakgrunden, så anroparen ser aldrig vad det gör. Ett anrop till ett arbetsflöde som är avstängt eller arkiverat avvisas med HTTP 400 och orsaken.
 
+Azure Event Grid, Slack, Microsoft Graph och Okta kontrollerar en URL innan de levererar något till den. URL:en besvarar varje kontroll som tjänsten väntar sig, så som [URL:en för en monitor för inkommande förfrågningar gör](/docs/monitor/incoming-request-monitor#tjänster-som-kontrollerar-urlen-först), och en kontroll startar ingen körning. Medan arbetsflödet är avstängt eller arkiverat avvisas en kontroll som ett anrop.
+
 ```mermaid title="Vad som händer när något anropar webhook-URL:en"
 sequenceDiagram
     participant Caller as Ditt verktyg
@@ -94,7 +96,7 @@ sequenceDiagram
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | **Begärandehuvuden**      | Varje header i förfrågan, med namn i gemener, som `content-type`.                                                      |
 | **Frågeparametrar i begäran** | Frågeparametrarna i URL:en, efter namn.                                                                                |
-| **Begärandekropp**         | Bodyn som anroparen skickade. En JSON-body, skickad med `Content-Type: application/json`, kan läsas fält för fält, och det gäller även JSON som skickas som ren text, så som Amazon SNS skickar den. |
+| **Begärandekropp**         | Bodyn som anroparen skickade. En JSON-body, skickad med `Content-Type: application/json` eller en `+json`-typ som Azure Event Grids CloudEvents, kan läsas fält för fält, och det gäller även JSON som skickas som ren text, så som Amazon SNS skickar den. All annan ren text är själva texten. |
 
 Läs ett enskilt fält genom att lägga till dess namn i referensen, som i `{{local.components.webhook-1.returnValues.request-body.message}}`.
 

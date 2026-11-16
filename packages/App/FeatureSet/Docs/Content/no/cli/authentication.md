@@ -199,7 +199,7 @@ Utdataformater og listestørrelser lagres ikke her: gi `-o` og `--limit` til hve
 :::
 
 :::details Meldingen «API error (400): Invalid API Key»
-Nøkkelen er ikke en API-nøkkel til OneUptime, har utløpt eller er tilbakestilt. Kopier den på nytt fra siden dens under **Prosjektinnstillinger → Avansert → API-nøkler**, der også datoen dens står under **Utløper**, og logg inn på nytt under samme kontekstnavn. Kommandoen avslutter med koden `2`.
+Nøkkelen er ikke en API-nøkkel til OneUptime, har utløpt eller er tilbakestilt. Finn den under **Prosjektinnstillinger → Avansert → API-nøkler** på hvordan den slutter, og sjekk datoen dens under **Utløper**. En nøkkel du ikke lenger har, kan ikke vises igjen: tilbakestill den på siden dens, og logg inn på nytt med den nye under samme kontekstnavn. Kommandoen avslutter med koden `2`.
 :::
 
 :::details Meldingen «API error (402): API keys need the Growth plan»

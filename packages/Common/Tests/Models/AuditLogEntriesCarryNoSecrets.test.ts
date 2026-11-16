@@ -113,6 +113,8 @@ const NOT_SECRETS: Record<string, string> = {
   "ApiKeyCustomRole.apiKey":
     "the relation to the API key row: recorded as the row's id and name, never the key",
   "ApiKeyCustomRole.apiKeyId": "the API key row's id, not the key",
+  "ApiKey.apiKeyHint":
+    "the key's last four characters, never enough to use it: an entry says which key a reset replaced, and with which (#8903)",
   "Monitor.incomingRequestWithoutSecretReason":
     "why the monitor's last request without a valid secret had none: No Secret or Wrong Secret, never what it sent",
   "StatusPage.enableMasterPassword": "a switch",

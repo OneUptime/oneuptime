@@ -1,4 +1,5 @@
 import {
+  AI_READ_CARD_NOT_CHECKED_YET_LINES,
   AI_READ_CARD_VALUES,
   AI_READ_TABLE_LINES,
   AI_READ_TABLE_TITLES,
@@ -36,7 +37,10 @@ import WidgetBuilder from "./WidgetBuilder";
  *   - a monitor's type by the type picker's name for it, as the card's
  *     Type fact says it ("Docker Container" for Docker);
  *   - Disabled for a monitor whose monitoring is off, as the Monitors
- *     table and the card's line say it, never the status it was frozen at.
+ *     table and the card's line say it, never the status it was frozen at;
+ *   - for a monitor nothing has checked yet, the Monitors table's words for
+ *     why (Waiting for data, No results yet, ... - issue #8899), never the
+ *     operational status it was created in.
  *
  * A monitor's name and a status the project named ("Offline") are data,
  * as written. The table stores the same words in English
@@ -78,13 +82,28 @@ export interface MonitorsTableData {
   /*
    * The rows, as query_monitors lists them: each monitor's name, its type
    * (a MonitorType), its currentStatus, monitoringOff when its monitoring
-   * is off, and whatever else the row carries, kept as given.
+   * is off, notCheckedYet - the Monitors table's words for why - when
+   * nothing has checked it yet, and whatever else the row carries, kept as
+   * given.
    */
   rows: Array<JSONObject>;
 }
 
 function isMonitoringOffRow(row: JSONObject): boolean {
   return row["monitoringOff"] === true;
+}
+
+/*
+ * Why nothing has checked the row's monitor yet, in one of the card's
+ * lines for it - anything else the row carries there is not said.
+ */
+function getNotCheckedYetText(row: JSONObject): string | undefined {
+  const words: unknown = row["notCheckedYet"];
+
+  return typeof words === "string" &&
+    AI_READ_CARD_NOT_CHECKED_YET_LINES.includes(words)
+    ? words
+    : undefined;
 }
 
 // The table's title: what it lists, and how many.
@@ -126,7 +145,8 @@ function getDescription(data: MonitorsTableData): AIActionSentence {
 /*
  * A row's cells that are OneUptime's words: its type by the type picker's
  * name for it - a type it does not list is data, as stored - and Disabled
- * when its monitoring is off.
+ * when its monitoring is off, or why nothing has checked it when nothing
+ * has.
  */
 function getCells(row: JSONObject): Record<string, AIActionTableCell> {
   const cells: Record<string, AIActionTableCell> = {};
@@ -138,8 +158,12 @@ function getCells(row: JSONObject): Record<string, AIActionTableCell> {
     cells["type"] = aiActionTerm(typeTitle);
   }
 
+  const notCheckedYet: string | undefined = getNotCheckedYetText(row);
+
   if (isMonitoringOffRow(row)) {
     cells["currentStatus"] = aiActionTerm(MONITORING_OFF_STATUS_TEXT);
+  } else if (notCheckedYet) {
+    cells["currentStatus"] = aiActionSentence(notCheckedYet);
   }
 
   return cells;

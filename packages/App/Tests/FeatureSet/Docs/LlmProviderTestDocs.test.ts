@@ -1,9 +1,12 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "Common/Types/Docs/DocsLanguage";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmProviderTestAccess from "Common/Server/API/LlmProviderTestAccess";
+import LLMProviderAnswerTooLargeException from "Common/Server/Utils/LLM/LLMProviderAnswerTooLargeException";
 import LLMProviderHTTPException from "Common/Server/Utils/LLM/LLMProviderHTTPException";
+import { LLM_PROVIDER_MAX_ANSWER_BYTES } from "Common/Server/Utils/LLM/LLMService";
 import LlmProviderTestFailure from "Common/Server/Utils/LLM/LlmProviderTestFailure";
 import LlmType from "Common/Types/LLM/LlmType";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import { PermissionHelper } from "Common/Types/Permission";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { writtenPermissionTitle } from "./DocsRoleNames";
@@ -238,4 +241,47 @@ describe("what the English paragraph says a test does is what it does", () => {
       }).toEqual({ page, gated: true });
     }
   });
+});
+
+/*
+ * #8931: LLMService reads at most LLM_PROVIDER_MAX_ANSWER_BYTES of a
+ * provider's answer, and a test that gets a larger one says so. Every
+ * language's paragraph gives the same limit, in its own digits.
+ */
+describe("the testing paragraph says how much of an answer OneUptime reads", () => {
+  const LIMIT_IN_MB: number = LLM_PROVIDER_MAX_ANSWER_BYTES / (1024 * 1024);
+  const PERSIAN_DIGITS: string = "۰۱۲۳۴۵۶۷۸۹";
+
+  test("16 MB, the limit LLMService holds a provider's answer to", () => {
+    expect(LIMIT_IN_MB).toBe(16);
+    expect(testingParagraph("en")).toContain(
+      "OneUptime reads at most 16 MB of a provider's answer, in a test and in every AI feature. A larger answer is not read: the request fails, and the test says so.",
+    );
+    expect(
+      LlmProviderTestFailure.describe(
+        new LLMProviderAnswerTooLargeException({
+          providerName: "OpenAI",
+          maxContentLength: LLM_PROVIDER_MAX_ANSWER_BYTES,
+        }),
+        LlmType.OpenAI,
+      ),
+    ).toContain(`was larger than ${LIMIT_IN_MB}${NO_BREAK_SPACE}MB`);
+  });
+
+  test.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s gives the same limit",
+    (language: string) => {
+      const paragraph: string = Array.from(testingParagraph(language))
+        .map((character: string): string => {
+          const digit: number = PERSIAN_DIGITS.indexOf(character);
+          return digit === -1 ? character : String(digit);
+        })
+        .join("");
+
+      expect({
+        language,
+        gives: paragraph.includes(`${LIMIT_IN_MB} `),
+      }).toEqual({ language, gives: true });
+    },
+  );
 });

@@ -5,8 +5,9 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * THE WORDS OF ADMIN DASHBOARD > SETTINGS > API KEY (#7901).
  *
  * The master API key is stored hashed, so the page cannot show it: it says
- * whether there is one, makes one (Create Key, or Reset Key in place of the
- * one there is) and shows the new key once, in a dialog that says so. The
+ * whether there is one, and which (#8903): when it was made, by whom and
+ * how it ends; makes one (Create Key, or Reset Key in place of the one
+ * there is) and shows the new key once, in a dialog that says so. The
  * switch beside it turns the key off and on.
  *
  * Kept free of React so the page and its tests read these exact strings.
@@ -19,6 +20,8 @@ export const MASTER_API_KEY_SWITCH_TEST_ID: string = "master-api-key-enabled";
 export const MASTER_API_KEY_SHOWN_ONCE_TEST_ID: string =
   "master-api-key-shown-once";
 export const MASTER_API_KEY_VALUE_TEST_ID: string = "master-api-key-value";
+// Which key is set: when it was made, by whom, how it ends (#8903).
+export const MASTER_API_KEY_FACTS_TEST_ID: string = "master-api-key-facts";
 
 // The dialog Reset Key asks first, in English; the dialog translates it.
 export interface MasterApiKeyResetConfirmation {
@@ -43,6 +46,9 @@ export const MasterApiKeyCopy: {
   shownOnceDescription: string;
   done: string;
   notAnswered: string;
+  madeByOn: string;
+  madeOn: string;
+  endsIn: string;
 } = {
   cardTitle: translationKey("Master API Key"),
   cardDescription: translationKey(
@@ -78,6 +84,15 @@ export const MasterApiKeyCopy: {
   notAnswered: translationKey(
     "The server did not answer with the master API key. Try again.",
   ),
+  /*
+   * Which key is set (#8903), so an admin can match the key they hold
+   * against it: when it was made and by whom - a key the HashMasterApiKey
+   * data migration hashed has neither - and its last four characters. Facts
+   * set apart by " · ", each a sentence of its own.
+   */
+  madeByOn: translationKey("Made by {{name}} on {{date}}"),
+  madeOn: translationKey("Made on {{date}}"),
+  endsIn: translationKey("Ends in {{hint}}"),
 };
 
 // What the switch says under its name, on and off.

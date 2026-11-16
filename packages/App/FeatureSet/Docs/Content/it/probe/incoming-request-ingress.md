@@ -160,10 +160,10 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 
 | Cosa | Come la sonda lo gestisce |
 | --- | --- |
-| La risposta | `200` con un oggetto JSON vuoto (`{}`), inviata prima di inoltrare la richiesta. Come su OneUptime, viene inviata qualunque cosa accada dopo: anche una chiave segreta sbagliata la riceve. |
+| La risposta | `200` con un oggetto JSON vuoto (`{}`), inviata prima di inoltrare la richiesta. Come su OneUptime, viene inviata qualunque cosa accada dopo: anche una chiave segreta sbagliata la riceve. La riceve anche la verifica dell'URL da parte di un servizio, a cui OneUptime stesso risponde come il servizio si aspetta: inviate Slack, Microsoft Graph, Okta e Azure Event Grid all'URL proprio di OneUptime. |
 | I metodi | `POST` viene inoltrato come `POST`. `GET`, e `HEAD`, vengono inoltrati come `GET`. Gli altri metodi ricevono un `404` dalla sonda. |
 | Le intestazioni | Tutte tranne quelle hop-by-hop (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) e `Content-Encoding`, perché la sonda inoltra il corpo non compresso. La sonda aggiunge `OneUptime-Probe-Id`. |
-| Il corpo | Corpi JSON e di form fino a 50 MB, e JSON inviato come testo semplice (come lo invia Amazon SNS), come quando invii direttamente a OneUptime. Come lì, qualsiasi altro corpo arriva vuoto al monitor. |
+| Il corpo | Corpi JSON, di form, di testo semplice e `+json` fino a 50 MB, come quando invii direttamente a OneUptime: un corpo di testo semplice o `+json` viene inoltrato così come è arrivato, con il suo `Content-Type`. Come lì, qualsiasi altro corpo arriva vuoto al monitor. |
 | I nuovi tentativi | Quando un inoltro fallisce, la sonda riprova fino a `PROBE_INGRESS_FORWARD_RETRY_LIMIT` volte, aspettando 2 s, poi 4 s, poi 8 s, e mai più di 15 s. Poi registra l'errore e scarta la richiesta. |
 | I proxy | L'inoltro passa dal proxy della sonda quando `HTTP_PROXY_URL` o `HTTPS_PROXY_URL` è impostata. |
 | Dove va | `ONEUPTIME_URL` seguito da `/incoming-request-ingest/incoming-request/<secret-key>`. |

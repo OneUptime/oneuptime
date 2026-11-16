@@ -816,19 +816,23 @@ describe("an IPv6 HOST goes in brackets", () => {
 
   /*
    * The app reads HOST's brackets by its own rule (IP.isIPv6 in
-   * Common/Types/IP/IP.ts), which takes an IPv4 address at the end only
-   * after "::" or groups and "::" up to four of them, or as ::ffff:. Node.js's
-   * net.isIPv6, which this used, takes every form, and a HOST the app
-   * refuses then got past the start, and every service stopped as it started
-   * (#8877).
+   * Common/Types/IP/IP.ts). It once took an IPv4 address at the end only
+   * after "::" or groups and "::" up to four of them, or as ::ffff:, and
+   * npm start held HOST to that (#8877), so a valid address such as
+   * [2001:db8::1:192.0.2.1] stopped the start. The app now takes every form
+   * of RFC 4291, as Node.js's net.isIPv6 does (#8927), and so does npm start.
    */
-  test.each(["[1:2:3:4:5:6:1.2.3.4]", "[2001:db8::1:192.0.2.1]:8080"])(
-    "HOST=%s, with an IPv4 address at its end the app does not read, stops the start",
+  test.each([
+    "[1:2:3:4:5:6:1.2.3.4]",
+    "[2001:db8::1:192.0.2.1]",
+    "[2001:db8::1:192.0.2.1]:8080",
+    "[::1:2:3:4:5:1.2.3.4]",
+    "[1:2::3:1.2.3.4]",
+    "[0:0:0:0:0:ffff:192.0.2.1]",
+  ])(
+    "HOST=%s, with an IPv4 address at its end in a form the app now reads, starts",
     (host) => {
-      expect(levelsOf(findingsFor(host))).toEqual(["stop"]);
-      expect(findingsFor(host)[0].message).toContain(
-        "Brackets hold an IPv6 address and nothing else",
-      );
+      expect(findingsFor(host)).toEqual([]);
       expect(net.isIPv6(host.slice(1, host.indexOf("]")))).toBe(true);
     },
   );
@@ -837,6 +841,22 @@ describe("an IPv6 HOST goes in brackets", () => {
     "HOST=%s, with an IPv4 address at its end the app reads, starts",
     (host) => {
       expect(findingsFor(host)).toEqual([]);
+    },
+  );
+
+  test.each([
+    "[::ffff:01.2.3.4]",
+    "[1:2:3:4:5:6:7:1.2.3.4]",
+    "[1:2:3:4:5:1.2.3.4]",
+    "[::ffff:256.0.2.1]",
+  ])(
+    "HOST=%s, which is no IPv6 address to the app or to Node.js, stops the start",
+    (host) => {
+      expect(levelsOf(findingsFor(host))).toEqual(["stop"]);
+      expect(findingsFor(host)[0].message).toContain(
+        "Brackets hold an IPv6 address and nothing else",
+      );
+      expect(net.isIPv6(host.slice(1, host.indexOf("]")))).toBe(false);
     },
   );
 

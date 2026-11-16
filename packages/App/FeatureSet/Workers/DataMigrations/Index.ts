@@ -179,8 +179,10 @@ import RecordMonitoringOffOnStatusTimelines from "./RecordMonitoringOffOnStatusT
 import SettleOnCallNotificationsStuckBeforeUpgrade from "./SettleOnCallNotificationsStuckBeforeUpgrade";
 import EncryptGlobalConfigCredentials from "./EncryptGlobalConfigCredentials";
 import HashMasterApiKey from "./HashMasterApiKey";
+import HashProjectApiKeys from "./HashProjectApiKeys";
 import BackfillNetworkEndpointCoarseLastSeenAt from "./BackfillNetworkEndpointCoarseLastSeenAt";
 import ResolveWhatMonitorsTurnedOffWouldHaveResolved from "./ResolveWhatMonitorsTurnedOffWouldHaveResolved";
+import BackfillMonitorFirstMeasuredAt from "./BackfillMonitorFirstMeasuredAt";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1099,6 +1101,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new HashMasterApiKey(),
   /*
+   * Hashes the project API keys (ApiKey.apiKey, Project Settings > Advanced
+   * > API Keys) that were stored as they were written, before keys were
+   * stored hashed (#8902), with each key's hint, so every script and
+   * integration that uses one keeps working. After the schema migration
+   * ApiKeyHashedColumn, which makes the column a varchar and keeps the keys;
+   * paged, idempotent and safe twice at once; it writes only the ApiKey
+   * table, so it sits above the runbook migrations that keep their places
+   * before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new HashProjectApiKeys(),
+  /*
    * NetworkEndpoint.coarseLastSeenAt (#8092): lastSeenAt copied in for the
    * live endpoints that were seen, so the age-out of discovered devices,
    * which now finds its candidates by that column, finds the ones no walk
@@ -1207,6 +1220,19 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new EncryptUploadedCertificateKeys(),
+  /*
+   * A monitor nothing has checked yet reads Operational, the status every
+   * monitor is created in (issue #8899): Monitor.firstMeasuredAt now says
+   * whether anything has measured it, and the lists and status pages say it
+   * is waiting for its first check instead. Each monitor checked stamps it
+   * on its next result; this stamps, with its creation time, every monitor
+   * that left a trace of being measured before the column existed - a
+   * probe result, a heartbeat, an email, a server report, a queued
+   * evaluation, a status change - and every manual monitor. Postgres only,
+   * paged by id and idempotent; before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillMonitorFirstMeasuredAt(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
