@@ -1,12 +1,14 @@
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
+import TooManyRequestsException from "Common/Types/Exception/TooManyRequestsException";
 import { JSONObject } from "Common/Types/JSON";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  OneUptimeRequest,
   RequestHandler,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
@@ -15,10 +17,12 @@ import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthoriz
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
 import IncomingRequestSecretGate, {
   IncomingRequestSecretEdgeDecision,
+  IncomingRequestSecretRefusalKind,
 } from "Common/Server/Utils/Monitor/IncomingRequestSecretGate";
 import IncomingRequestSecretRequest, {
   PresentedIncomingRequestSecrets,
 } from "Common/Server/Utils/Monitor/IncomingRequestSecretRequest";
+import IncomingRequestSignature from "Common/Server/Utils/Monitor/IncomingRequestSignature";
 import WebhookRequestBody from "Common/Server/Middleware/WebhookRequestBody";
 import WebhookVerification, {
   WebhookVerificationAnswer,
@@ -43,6 +47,21 @@ export const TEXT_BODY_LIMIT: string = "50mb";
 const readTextBody: RequestHandler =
   WebhookRequestBody.getReader(TEXT_BODY_LIMIT);
 
+/*
+ * A signed request's body of any other type - which the monitor gets empty,
+ * as before - is read only to check its signature over (issue #8500).
+ */
+const readSignedBody: RequestHandler = WebhookRequestBody.getSignedBodyReader(
+  TEXT_BODY_LIMIT,
+  (req: ExpressRequest): boolean => {
+    return (
+      IncomingRequestSignature.readPresentedSignatures(
+        req.headers as Dictionary<string | Array<string> | undefined>,
+      ).length > 0
+    );
+  },
+);
+
 const processIncomingRequest: RequestHandler = async (
   req: ExpressRequest,
   res: ExpressResponse,
@@ -57,7 +76,9 @@ const processIncomingRequest: RequestHandler = async (
      * prove themselves with: the monitor's request is the project's to read.
      * And without X-OneUptime-Secret, the project's incoming request secret,
      * which is checked here and never travels further: what is queued is the
-     * SHA-256 of each secret the request presented.
+     * SHA-256 of each secret the request presented. A signature of the body
+     * (issue #8500) is checked here too, and is masked in what is queued, so
+     * nobody who reads the request can send it again.
      */
     const presented: PresentedIncomingRequestSecrets =
       IncomingRequestSecretRequest.takePresentedSecrets(
@@ -66,7 +87,8 @@ const processIncomingRequest: RequestHandler = async (
         ) as Dictionary<string>,
       );
 
-    const requestHeaders: Dictionary<string> = presented.requestHeaders;
+    const requestHeaders: Dictionary<string> =
+      IncomingRequestSignature.withoutSignatures(presented.requestHeaders);
     const requestBody: string | JSONObject = req.body as string | JSONObject;
 
     const monitorSecretKeyAsString: string | undefined =
@@ -103,7 +125,28 @@ const processIncomingRequest: RequestHandler = async (
         secretKey: monitorSecretKeyAsString,
         presentedSecretHashes: presented.secretHashes,
         placeUntrackedKey: Boolean(verification),
+        req: req,
+        requestHeaders: presented.requestHeaders,
+        signedBody: IncomingRequestSignature.getSignedBodyOf(
+          req as OneUptimeRequest,
+        ),
       });
+
+    /*
+     * A client that sent this monitor too many different wrong secrets is
+     * refused with 429, and when it may try again (issue #8499).
+     */
+    if (
+      secretDecision.refusalMessage &&
+      secretDecision.refusalKind ===
+        IncomingRequestSecretRefusalKind.TooManyWrongSecrets
+    ) {
+      res.setHeader(
+        "Retry-After",
+        String(secretDecision.retryAfterSeconds || 1),
+      );
+      throw new TooManyRequestsException(secretDecision.refusalMessage);
+    }
 
     if (secretDecision.refusalMessage) {
       throw new NotAuthenticatedException(secretDecision.refusalMessage);
@@ -156,7 +199,18 @@ const processIncomingRequest: RequestHandler = async (
       requestMethod: req.method,
       receivedViaProbeId: probeIdHeader,
       receivedAt: receivedAt,
-      presentedSecretHashes: presented.secretHashes,
+      /*
+       * A signature checked here presents the secret it was made with: the
+       * worker decides on it with the rest.
+       */
+      presentedSecretHashes: secretDecision.signedWithSecretHash
+        ? Array.from(
+            new Set<string>([
+              ...presented.secretHashes,
+              secretDecision.signedWithSecretHash,
+            ]),
+          )
+        : presented.secretHashes,
       /*
        * The monitor learns its service was answered, and offers no link to
        * confirm by hand. Not for a request a probe relayed: the probe has
@@ -177,6 +231,7 @@ const processIncomingRequest: RequestHandler = async (
 router.post(
   "/incoming-request/:secretkey",
   readTextBody,
+  readSignedBody,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -189,6 +244,7 @@ router.post(
 router.get(
   "/incoming-request/:secretkey",
   readTextBody,
+  readSignedBody,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
