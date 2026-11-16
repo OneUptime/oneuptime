@@ -1886,6 +1886,15 @@ export default class Incident extends BaseModel {
   })
   public labels?: Array<Label> = undefined;
 
+  /*
+   * The state the incident is in now. OneUptime moves it as the incident's
+   * state changes, but the state a new incident starts in is its declarer's to
+   * pick: the declare form's Initial State sends it under this name, the API
+   * under currentIncidentStateId, and IncidentService.onBeforeCreate checks
+   * that it is one of the project's states before it stamps it under both. So
+   * whoever may declare an incident may create it, as they may its ID column:
+   * the two names of one reference take one create list (#8907).
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

@@ -2992,6 +2992,13 @@ export default class StatusPage extends BaseModel {
   })
   public theme?: StatusPageTheme = undefined;
 
+  /*
+   * The monitor statuses that count as downtime on the page: a setting, which
+   * whoever creates the page may choose (#8907), as whoever edits it may. It
+   * is OneUptime's only when the create names none: StatusPageService
+   * .onBeforeCreate then fills in every status of the project that is not
+   * operational.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
