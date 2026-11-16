@@ -1503,9 +1503,7 @@ export function isAIActionMenuPath(value: unknown): value is AIActionMenuPath {
 const MAX_MENU_PATH_NAMES: number = 8;
 const MAX_MENU_PATH_NAME_CHARS: number = 200;
 
-const isMenuPathName: (name: unknown) => boolean = (
-  name: unknown,
-): boolean => {
+const isMenuPathName: (name: unknown) => boolean = (name: unknown): boolean => {
   return (
     typeof name === "string" &&
     name.trim().length > 0 &&

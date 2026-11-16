@@ -434,9 +434,7 @@ describe("an importer's action and the maintenance create page, in the reader's 
           query: `Import from ${tool}`,
         });
 
-        render(
-          <AskAiPageButtons text={`Go [C2].`} citations={[cited]} />,
-        );
+        render(<AskAiPageButtons text={`Go [C2].`} citations={[cited]} />);
 
         const text: string = withoutIsolateMarks(
           screen.getByRole("button").textContent || "",

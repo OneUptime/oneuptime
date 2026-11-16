@@ -137,6 +137,8 @@ const CITATION_MARK: RegExp = /\[(C\d+)\]/g;
 // The most values a title's template takes, and how long each may be.
 const MAX_TITLE_VALUES: number = 5;
 const MAX_TITLE_VALUE_CHARS: number = 100;
+// A value's name, as a template's {{placeholder}} names it.
+const TITLE_VALUE_NAME: RegExp = /^\w+$/;
 
 /*
  * The values a citation's titleValues names, as JSON, when it is an
@@ -160,11 +162,7 @@ export const readTitleValues: (
     return undefined;
   }
 
-  if (
-    typeof parsed !== "object" ||
-    parsed === null ||
-    Array.isArray(parsed)
-  ) {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     return undefined;
   }
 
@@ -175,7 +173,7 @@ export const readTitleValues: (
     entries.length > MAX_TITLE_VALUES ||
     !entries.every((entry: [string, unknown]): boolean => {
       return (
-        /^\w+$/.test(entry[0]) &&
+        TITLE_VALUE_NAME.test(entry[0]) &&
         typeof entry[1] === "string" &&
         entry[1].trim().length > 0 &&
         entry[1].length <= MAX_TITLE_VALUE_CHARS

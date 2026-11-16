@@ -716,13 +716,11 @@ describe("what the model reads of the catalog is the English the Dashboard draws
       title: "OpenID Connect (OIDC)",
     });
     // A template: filled for the model, kept with its values for the button (#8834).
-    expect(titledByKey("Import from {{tool}}", { tool: "PagerDuty" })).toEqual(
-      {
-        title: "Import from PagerDuty",
-        titleKey: "Import from {{tool}}",
-        titleValues: { tool: "PagerDuty" },
-      },
-    );
+    expect(titledByKey("Import from {{tool}}", { tool: "PagerDuty" })).toEqual({
+      title: "Import from PagerDuty",
+      titleKey: "Import from {{tool}}",
+      titleValues: { tool: "PagerDuty" },
+    });
     expect(titledByKey("Import from {{tool}}", {})).toEqual({
       title: "Import from {{tool}}",
     });
