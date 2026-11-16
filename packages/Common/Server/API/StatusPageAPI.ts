@@ -1885,8 +1885,9 @@ export default class StatusPageAPI extends BaseAPI<
             /*
              * False when nothing checks the resource right now - its
              * monitor's monitoring is off, or every monitor of its monitor
-             * group has it off - so the page draws it as Not monitored and
-             * its currentStatus is null (FrozenMonitorResources).
+             * group has it off - or nothing has checked it yet (#8899), so
+             * the page draws it as Not monitored (yet) and its currentStatus
+             * is null (FrozenMonitorResources).
              */
             isMonitored: boolean;
           };
