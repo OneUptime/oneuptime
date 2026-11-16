@@ -49,6 +49,7 @@
     "projectTeam": "Team",
     "projectSubscription": "Abonnement",
     "projectSupport": "Kundestøtte",
+    "projectInvoices": "Fakturaer",
     "settings": "Innstillinger",
     "authentication": "Autentisering",
     "singleSignOn": "Enkel pålogging",
@@ -110,6 +111,7 @@
     "teams": "Team",
     "billing": "Fakturering",
     "subscription": "Abonnement",
+    "invoices": "Fakturaer",
     "support": "Kundestøtte",
     "customerSupportAccess": "Tilgang for kundestøtte",
     "advanced": "Avansert",
@@ -415,6 +417,28 @@
       "noUserLimit": "Ingen grense",
       "overUserLimit": "{{over}} over grensen",
       "atUserLimit": "Ved grensen"
+    },
+    "projectInvoices": {
+      "title": "Fakturaer",
+      "cardTitle": "Fakturaer",
+      "cardDescription": "Alle fakturaer betalingsleverandøren har utstedt for dette prosjektet, med den nyeste først. Annuller en faktura kunden ikke lenger skal betale.",
+      "billingDisabled": "Fakturering er ikke slått på på denne serveren, så prosjekter har ingen fakturaer.",
+      "emptyTitle": "Ingen fakturaer ennå",
+      "emptyDescription": "Betalingsleverandøren har ennå ikke utstedt en faktura for dette prosjektet. Fakturaene vises her så snart det skjer.",
+      "billedForPlan": "Abonnement",
+      "billedForUsage": "Forbruk",
+      "statusPaid": "Betalt",
+      "statusOpen": "Ubetalt",
+      "statusVoid": "Annullert",
+      "statusUncollectible": "Ikke innkrevbar",
+      "statusDraft": "Utkast",
+      "statusDeleted": "Slettet",
+      "statusOther": "Ukjent",
+      "downloadButton": "Last ned",
+      "voidButton": "Annuller faktura",
+      "voidTitle": "Annuller faktura",
+      "voidDescription": "Annullere faktura {{number}} på {{amount}}? Kunden skylder den da ikke lenger, og betalingsleverandøren slutter å prøve å kreve den inn. Dette kan ikke angres.",
+      "voidSuccess": "Faktura {{number}} er annullert. Kunden skylder den ikke lenger."
     },
     "projectSupport": {
       "title": "Tilgang for kundestøtte",
@@ -4019,5 +4043,11 @@
   "### Setup Steps": "### Oppsettstrinn",
   "### Required WhatsApp Templates": "### Påkrevde WhatsApp-maler",
   "### Template Bodies": "### Malinnhold",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Kopier malinnholdet under nøyaktig — inkludert tegnsetting og mellomrom — når du oppretter hver mal i Meta. Variabellisten viser hver plassholder som må settes opp i WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Kopier malinnholdet under nøyaktig — inkludert tegnsetting og mellomrom — når du oppretter hver mal i Meta. Variabellisten viser hver plassholder som må settes opp i WhatsApp Manager.",
+  "Invoice Number": "Fakturanummer",
+  "Invoice Date": "Fakturadato",
+  "Billed For": "Fakturert for",
+  "Amount": "Beløp",
+  "Invoice": "Faktura",
+  "Invoices": "Fakturaer"
 }

@@ -35,6 +35,10 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROJECT_SUBSCRIPTION]: new Route(
     `/admin/projects/${RouteParams.ModelID}/subscription`,
   ),
+  // The project's invoices at the payment provider, which staff may void.
+  [PageMap.PROJECT_INVOICES]: new Route(
+    `/admin/projects/${RouteParams.ModelID}/invoices`,
+  ),
   [PageMap.PROJECT_SUPPORT]: new Route(
     `/admin/projects/${RouteParams.ModelID}/support`,
   ),

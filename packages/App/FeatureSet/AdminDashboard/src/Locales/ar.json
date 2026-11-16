@@ -49,6 +49,7 @@
     "projectTeam": "الفريق",
     "projectSubscription": "الاشتراك",
     "projectSupport": "الدعم",
+    "projectInvoices": "الفواتير",
     "settings": "الإعدادات",
     "authentication": "المصادقة",
     "singleSignOn": "تسجيل الدخول الموحد",
@@ -110,6 +111,7 @@
     "teams": "الفرق",
     "billing": "الفوترة",
     "subscription": "الاشتراك",
+    "invoices": "الفواتير",
     "support": "الدعم",
     "customerSupportAccess": "وصول دعم العملاء",
     "advanced": "متقدم",
@@ -415,6 +417,28 @@
       "noUserLimit": "بلا حد",
       "overUserLimit": "تجاوز الحد بمقدار {{over}}",
       "atUserLimit": "عند الحد"
+    },
+    "projectInvoices": {
+      "title": "الفواتير",
+      "cardTitle": "الفواتير",
+      "cardDescription": "كل الفواتير التي أصدرها موفّر الدفع لهذا المشروع، الأحدث أولًا. ألغِ الفاتورة التي لم يعد على العميل دفعها.",
+      "billingDisabled": "الفوترة غير مفعّلة على هذا الخادم، لذا لا توجد فواتير للمشاريع.",
+      "emptyTitle": "لا توجد فواتير بعد",
+      "emptyDescription": "لم يُصدر موفّر الدفع أي فاتورة لهذا المشروع بعد. ستظهر الفواتير هنا فور إصدارها.",
+      "billedForPlan": "الخطة",
+      "billedForUsage": "الاستخدام",
+      "statusPaid": "مدفوعة",
+      "statusOpen": "غير مدفوعة",
+      "statusVoid": "ملغاة",
+      "statusUncollectible": "غير قابلة للتحصيل",
+      "statusDraft": "مسودة",
+      "statusDeleted": "محذوفة",
+      "statusOther": "غير معروفة",
+      "downloadButton": "تنزيل",
+      "voidButton": "إلغاء الفاتورة",
+      "voidTitle": "إلغاء الفاتورة",
+      "voidDescription": "إلغاء الفاتورة {{number}} بمبلغ {{amount}}؟ لن يعود العميل مدينًا بها، وسيتوقف موفّر الدفع عن محاولة تحصيلها. لا يمكن التراجع عن ذلك.",
+      "voidSuccess": "أُلغيت الفاتورة {{number}}. لم يعد العميل مدينًا بها."
     },
     "projectSupport": {
       "title": "وصول دعم العملاء",
@@ -4019,5 +4043,11 @@
   "### Setup Steps": "### خطوات الإعداد",
   "### Required WhatsApp Templates": "### قوالب WhatsApp المطلوبة",
   "### Template Bodies": "### محتوى القوالب",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> انسخ محتوى القالب أدناه كما هو تمامًا — بعلامات الترقيم والمسافات — عند إنشاء كل قالب في Meta. تعرض قائمة المتغيرات كل عنصر نائب يجب ضبطه في WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> انسخ محتوى القالب أدناه كما هو تمامًا — بعلامات الترقيم والمسافات — عند إنشاء كل قالب في Meta. تعرض قائمة المتغيرات كل عنصر نائب يجب ضبطه في WhatsApp Manager.",
+  "Invoice Number": "رقم الفاتورة",
+  "Invoice Date": "تاريخ الفاتورة",
+  "Billed For": "بند الفوترة",
+  "Amount": "المبلغ",
+  "Invoice": "الفاتورة",
+  "Invoices": "الفواتير"
 }

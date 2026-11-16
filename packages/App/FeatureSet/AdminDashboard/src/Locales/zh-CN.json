@@ -49,6 +49,7 @@
     "projectTeam": "团队",
     "projectSubscription": "订阅",
     "projectSupport": "支持",
+    "projectInvoices": "发票",
     "settings": "设置",
     "authentication": "认证",
     "singleSignOn": "单点登录",
@@ -110,6 +111,7 @@
     "teams": "团队",
     "billing": "账单",
     "subscription": "订阅",
+    "invoices": "发票",
     "support": "支持",
     "customerSupportAccess": "客户支持访问权限",
     "advanced": "高级",
@@ -415,6 +417,28 @@
       "noUserLimit": "不限制",
       "overUserLimit": "超出限额 {{over}} 人",
       "atUserLimit": "已达限额"
+    },
+    "projectInvoices": {
+      "title": "发票",
+      "cardTitle": "发票",
+      "cardDescription": "支付提供商为此项目开具的所有发票，最新的在前。客户不再需要支付的发票可以作废。",
+      "billingDisabled": "此服务器未启用计费，因此项目没有发票。",
+      "emptyTitle": "暂无发票",
+      "emptyDescription": "支付提供商尚未为此项目开具发票。开具后会显示在这里。",
+      "billedForPlan": "套餐",
+      "billedForUsage": "用量",
+      "statusPaid": "已支付",
+      "statusOpen": "未支付",
+      "statusVoid": "已作废",
+      "statusUncollectible": "无法收回",
+      "statusDraft": "草稿",
+      "statusDeleted": "已删除",
+      "statusOther": "未知",
+      "downloadButton": "下载",
+      "voidButton": "作废发票",
+      "voidTitle": "作废发票",
+      "voidDescription": "要作废金额为 {{amount}} 的发票 {{number}} 吗？客户将不再欠付这笔款项，支付提供商也将停止尝试收款。此操作无法撤销。",
+      "voidSuccess": "发票 {{number}} 已作废。客户不再欠付这笔款项。"
     },
     "projectSupport": {
       "title": "客户支持访问权限",
@@ -4019,5 +4043,11 @@
   "### Setup Steps": "### 设置步骤",
   "### Required WhatsApp Templates": "### 所需的 WhatsApp 模板",
   "### Template Bodies": "### 模板正文",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> 在 Meta 中创建每个模板时，请原样复制下方的模板正文，包括标点和空格。变量列表列出了必须在 WhatsApp Manager 中配置的每个占位符。"
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> 在 Meta 中创建每个模板时，请原样复制下方的模板正文，包括标点和空格。变量列表列出了必须在 WhatsApp Manager 中配置的每个占位符。",
+  "Invoice Number": "发票编号",
+  "Invoice Date": "发票日期",
+  "Billed For": "计费项目",
+  "Amount": "金额",
+  "Invoice": "发票",
+  "Invoices": "发票列表"
 }

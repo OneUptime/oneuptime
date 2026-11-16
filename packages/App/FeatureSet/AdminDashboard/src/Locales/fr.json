@@ -49,6 +49,7 @@
     "projectTeam": "Équipe",
     "projectSubscription": "Abonnement",
     "projectSupport": "Assistance",
+    "projectInvoices": "Factures",
     "settings": "Paramètres",
     "authentication": "Authentification",
     "singleSignOn": "Authentification unique",
@@ -110,6 +111,7 @@
     "teams": "Équipes",
     "billing": "Facturation",
     "subscription": "Abonnement",
+    "invoices": "Factures",
     "support": "Assistance",
     "customerSupportAccess": "Accès du support client",
     "advanced": "Avancé",
@@ -415,6 +417,28 @@
       "noUserLimit": "Aucune limite",
       "overUserLimit": "{{over}} au-delà de la limite",
       "atUserLimit": "Limite atteinte"
+    },
+    "projectInvoices": {
+      "title": "Factures",
+      "cardTitle": "Factures",
+      "cardDescription": "Toutes les factures émises par le fournisseur de paiement pour ce projet, de la plus récente à la plus ancienne. Annulez celle que le client ne doit plus payer.",
+      "billingDisabled": "La facturation n'est pas activée sur ce serveur : les projets n'ont donc pas de factures.",
+      "emptyTitle": "Aucune facture pour l'instant",
+      "emptyDescription": "Le fournisseur de paiement n'a encore émis aucune facture pour ce projet. Ses factures apparaîtront ici dès qu'il en émettra.",
+      "billedForPlan": "Forfait",
+      "billedForUsage": "Utilisation",
+      "statusPaid": "Payée",
+      "statusOpen": "À payer",
+      "statusVoid": "Annulée",
+      "statusUncollectible": "Irrécouvrable",
+      "statusDraft": "Brouillon",
+      "statusDeleted": "Supprimée",
+      "statusOther": "Inconnue",
+      "downloadButton": "Télécharger",
+      "voidButton": "Annuler la facture",
+      "voidTitle": "Annuler la facture",
+      "voidDescription": "Annuler la facture {{number}} d'un montant de {{amount}} ? Le client ne la devra plus et le fournisseur de paiement cessera d'essayer de l'encaisser. Cette action est irréversible.",
+      "voidSuccess": "Facture {{number}} annulée. Le client ne la doit plus."
     },
     "projectSupport": {
       "title": "Accès du support client",
@@ -4019,5 +4043,11 @@
   "### Setup Steps": "### Étapes de configuration",
   "### Required WhatsApp Templates": "### Modèles WhatsApp requis",
   "### Template Bodies": "### Contenu des modèles",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Copiez exactement le contenu du modèle ci-dessous — ponctuation et espaces compris — en créant chaque modèle dans Meta. La liste des variables montre chaque espace réservé à configurer dans WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Copiez exactement le contenu du modèle ci-dessous — ponctuation et espaces compris — en créant chaque modèle dans Meta. La liste des variables montre chaque espace réservé à configurer dans WhatsApp Manager.",
+  "Invoice Number": "Numéro de facture",
+  "Invoice Date": "Date de la facture",
+  "Billed For": "Facturé pour",
+  "Amount": "Montant",
+  "Invoice": "Facture",
+  "Invoices": "Factures"
 }

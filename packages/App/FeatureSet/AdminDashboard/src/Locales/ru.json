@@ -49,6 +49,7 @@
     "projectTeam": "Команда",
     "projectSubscription": "Подписка",
     "projectSupport": "Поддержка",
+    "projectInvoices": "Счета",
     "settings": "Настройки",
     "authentication": "Аутентификация",
     "singleSignOn": "Единый вход",
@@ -110,6 +111,7 @@
     "teams": "Команды",
     "billing": "Биллинг",
     "subscription": "Подписка",
+    "invoices": "Счета",
     "support": "Поддержка",
     "customerSupportAccess": "Доступ службы поддержки",
     "advanced": "Расширенные",
@@ -415,6 +417,28 @@
       "noUserLimit": "Без ограничения",
       "overUserLimit": "Сверх лимита: {{over}}",
       "atUserLimit": "Лимит достигнут"
+    },
+    "projectInvoices": {
+      "title": "Счета",
+      "cardTitle": "Счета",
+      "cardDescription": "Все счета, выставленные платёжным провайдером для этого проекта, начиная с самых новых. Аннулируйте счёт, который клиент больше не должен оплачивать.",
+      "billingDisabled": "Биллинг на этом сервере не включён, поэтому у проектов нет счетов.",
+      "emptyTitle": "Счетов пока нет",
+      "emptyDescription": "Платёжный провайдер ещё не выставил ни одного счёта для этого проекта. Счета появятся здесь, как только он это сделает.",
+      "billedForPlan": "План",
+      "billedForUsage": "Использование",
+      "statusPaid": "Оплачено",
+      "statusOpen": "Не оплачено",
+      "statusVoid": "Аннулировано",
+      "statusUncollectible": "Не подлежит взысканию",
+      "statusDraft": "Черновик",
+      "statusDeleted": "Удалено",
+      "statusOther": "Неизвестно",
+      "downloadButton": "Скачать",
+      "voidButton": "Аннулировать счёт",
+      "voidTitle": "Аннулировать счёт",
+      "voidDescription": "Аннулировать счёт {{number}} на {{amount}}? Клиент больше не будет его должен, а платёжный провайдер перестанет пытаться его взыскать. Это действие нельзя отменить.",
+      "voidSuccess": "Счёт {{number}} аннулирован. Клиент больше его не должен."
     },
     "projectSupport": {
       "title": "Доступ службы поддержки",
@@ -4019,5 +4043,11 @@
   "### Setup Steps": "### Шаги настройки",
   "### Required WhatsApp Templates": "### Нужные шаблоны WhatsApp",
   "### Template Bodies": "### Содержимое шаблонов",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Создавая каждый шаблон в Meta, скопируйте его содержимое ниже в точности — со всеми знаками препинания и пробелами. В списке переменных показан каждый заполнитель, который нужно настроить в WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Создавая каждый шаблон в Meta, скопируйте его содержимое ниже в точности — со всеми знаками препинания и пробелами. В списке переменных показан каждый заполнитель, который нужно настроить в WhatsApp Manager.",
+  "Invoice Number": "Номер счёта",
+  "Invoice Date": "Дата счёта",
+  "Billed For": "Предмет счёта",
+  "Amount": "Сумма",
+  "Invoice": "Счёт",
+  "Invoices": "Счета"
 }

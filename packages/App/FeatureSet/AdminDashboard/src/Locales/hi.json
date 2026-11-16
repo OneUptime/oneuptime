@@ -49,6 +49,7 @@
     "projectTeam": "टीम",
     "projectSubscription": "सदस्यता",
     "projectSupport": "सहायता",
+    "projectInvoices": "चालान",
     "settings": "सेटिंग्स",
     "authentication": "प्रमाणीकरण",
     "singleSignOn": "सिंगल साइन-ऑन",
@@ -110,6 +111,7 @@
     "teams": "टीमें",
     "billing": "बिलिंग",
     "subscription": "सदस्यता",
+    "invoices": "चालान",
     "support": "सहायता",
     "customerSupportAccess": "ग्राहक सहायता पहुँच",
     "advanced": "उन्नत",
@@ -415,6 +417,28 @@
       "noUserLimit": "कोई सीमा नहीं",
       "overUserLimit": "सीमा से {{over}} अधिक",
       "atUserLimit": "सीमा पर"
+    },
+    "projectInvoices": {
+      "title": "चालान",
+      "cardTitle": "चालान",
+      "cardDescription": "इस प्रोजेक्ट के लिए भुगतान प्रदाता द्वारा जारी किए गए सभी चालान, सबसे नए पहले। जिस चालान का भुगतान ग्राहक को अब नहीं करना है, उसे रद्द करें।",
+      "billingDisabled": "इस सर्वर पर बिलिंग सक्षम नहीं है, इसलिए प्रोजेक्ट के कोई चालान नहीं हैं।",
+      "emptyTitle": "अभी तक कोई चालान नहीं",
+      "emptyDescription": "भुगतान प्रदाता ने इस प्रोजेक्ट के लिए अभी तक कोई चालान जारी नहीं किया है। जारी होते ही चालान यहाँ दिखेंगे।",
+      "billedForPlan": "योजना",
+      "billedForUsage": "उपयोग",
+      "statusPaid": "भुगतान किया गया",
+      "statusOpen": "भुगतान बाकी",
+      "statusVoid": "रद्द",
+      "statusUncollectible": "वसूली योग्य नहीं",
+      "statusDraft": "ड्राफ़्ट",
+      "statusDeleted": "हटाया गया",
+      "statusOther": "अज्ञात",
+      "downloadButton": "डाउनलोड करें",
+      "voidButton": "चालान रद्द करें",
+      "voidTitle": "चालान रद्द करें",
+      "voidDescription": "{{amount}} का चालान {{number}} रद्द करें? ग्राहक पर यह राशि बकाया नहीं रहेगी, और भुगतान प्रदाता इसे वसूलने की कोशिश बंद कर देगा। इसे पूर्ववत नहीं किया जा सकता।",
+      "voidSuccess": "चालान {{number}} रद्द कर दिया गया। ग्राहक पर अब यह बकाया नहीं है।"
     },
     "projectSupport": {
       "title": "ग्राहक सहायता पहुँच",
@@ -4019,5 +4043,11 @@
   "### Setup Steps": "### सेटअप के चरण",
   "### Required WhatsApp Templates": "### आवश्यक WhatsApp टेम्पलेट",
   "### Template Bodies": "### टेम्पलेट की सामग्री",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Meta में हर टेम्पलेट बनाते समय नीचे दी गई टेम्पलेट सामग्री ठीक वैसी ही कॉपी करें — विराम चिह्नों और रिक्त स्थानों सहित। वेरिएबल की सूची हर वह प्लेसहोल्डर दिखाती है जिसे WhatsApp Manager में कॉन्फ़िगर करना ज़रूरी है।"
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Meta में हर टेम्पलेट बनाते समय नीचे दी गई टेम्पलेट सामग्री ठीक वैसी ही कॉपी करें — विराम चिह्नों और रिक्त स्थानों सहित। वेरिएबल की सूची हर वह प्लेसहोल्डर दिखाती है जिसे WhatsApp Manager में कॉन्फ़िगर करना ज़रूरी है।",
+  "Invoice Number": "इनवॉइस संख्या",
+  "Invoice Date": "इनवॉइस तिथि",
+  "Billed For": "बिल किसके लिए",
+  "Amount": "राशि",
+  "Invoice": "चालान",
+  "Invoices": "चालान सूची"
 }

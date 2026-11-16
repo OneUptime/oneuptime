@@ -49,6 +49,7 @@
     "projectTeam": "團隊",
     "projectSubscription": "訂閱",
     "projectSupport": "支援",
+    "projectInvoices": "發票",
     "settings": "設定",
     "authentication": "驗證",
     "singleSignOn": "單一登入",
@@ -110,6 +111,7 @@
     "teams": "團隊",
     "billing": "帳單",
     "subscription": "訂閱",
+    "invoices": "發票",
     "support": "支援",
     "customerSupportAccess": "客戶支援存取權",
     "advanced": "進階",
@@ -415,6 +417,28 @@
       "noUserLimit": "不設上限",
       "overUserLimit": "超出上限 {{over}} 人",
       "atUserLimit": "已達上限"
+    },
+    "projectInvoices": {
+      "title": "發票",
+      "cardTitle": "發票",
+      "cardDescription": "付款供應商為此專案開立的所有發票，最新的在前。客戶不再需要支付的發票可以作廢。",
+      "billingDisabled": "此伺服器未啟用計費，因此專案沒有發票。",
+      "emptyTitle": "尚無發票",
+      "emptyDescription": "付款供應商尚未為此專案開立發票。開立後會顯示在這裡。",
+      "billedForPlan": "方案",
+      "billedForUsage": "使用量",
+      "statusPaid": "已付款",
+      "statusOpen": "未付款",
+      "statusVoid": "已作廢",
+      "statusUncollectible": "無法收回",
+      "statusDraft": "草稿",
+      "statusDeleted": "已刪除",
+      "statusOther": "未知",
+      "downloadButton": "下載",
+      "voidButton": "作廢發票",
+      "voidTitle": "作廢發票",
+      "voidDescription": "要作廢金額為 {{amount}} 的發票 {{number}} 嗎？客戶將不再積欠這筆款項，付款供應商也會停止嘗試收款。此操作無法復原。",
+      "voidSuccess": "發票 {{number}} 已作廢。客戶不再積欠這筆款項。"
     },
     "projectSupport": {
       "title": "客戶支援存取權",
@@ -4019,5 +4043,11 @@
   "### Setup Steps": "### 設定步驟",
   "### Required WhatsApp Templates": "### 必要的 WhatsApp 範本",
   "### Template Bodies": "### 範本內文",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> 在 Meta 中建立每個範本時，請原樣複製下方的範本內文，包括標點和空格。變數清單列出了必須在 WhatsApp Manager 中設定的每個預留位置。"
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> 在 Meta 中建立每個範本時，請原樣複製下方的範本內文，包括標點和空格。變數清單列出了必須在 WhatsApp Manager 中設定的每個預留位置。",
+  "Invoice Number": "發票編號",
+  "Invoice Date": "發票日期",
+  "Billed For": "計費項目",
+  "Amount": "金額",
+  "Invoice": "發票",
+  "Invoices": "發票清單"
 }
