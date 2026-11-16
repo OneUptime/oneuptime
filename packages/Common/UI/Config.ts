@@ -25,7 +25,7 @@ import URL from "../Types/API/URL";
 import Route from "../Types/API/Route";
 import SubscriptionPlan from "../Types/Billing/SubscriptionPlan";
 import { JSONObject } from "../Types/JSON";
-import Version from "../Types/Version";
+import VersionUtil from "../Utils/VersionUtil";
 import getBrowserTelemetryConfig, {
   BrowserTelemetryConfig,
 } from "./Utils/Telemetry/BrowserTelemetryConfig";
@@ -70,7 +70,37 @@ export const DISABLE_INSTANCE_CHECK_IN: boolean =
 // VAPID Configuration for Push Notifications
 export const VAPID_PUBLIC_KEY: string = env("VAPID_PUBLIC_KEY") || "";
 
-export const VERSION: Version = new Version(env("VERSION") || "1.0.0");
+/*
+ * THE ONEUPTIME RELEASE THIS SERVER RUNS ("14.3.0"), as a page says it: Give
+ * Feedback, the Developer pages' CLI and Terraform versions (issue #8893).
+ *
+ * Every image is built with APP_VERSION (packages/App/Dockerfile.tpl's build
+ * argument, from the root VERSION file), the server reports it at
+ * /api/version, and env.js hands it to the page (the server's
+ * FRONTEND_ENV_ALLOW_LIST). The page read VERSION instead: a name no image,
+ * Compose file or Helm chart sets, so every page said "1.0.0", a version
+ * that never existed. VERSION is still read, after APP_VERSION, for an
+ * install that sets it by hand.
+ *
+ * "" when neither is a version - a development build - so nothing names a
+ * version that is not the server's. Never throws: a page that cannot read
+ * its version still loads.
+ */
+export const getProductVersion: (read: GetEnvFunction) => string = (
+  read: GetEnvFunction,
+): string => {
+  for (const name of ["APP_VERSION", "VERSION"]) {
+    const version: string = VersionUtil.normalize(read(name));
+
+    if (VersionUtil.isValid(version)) {
+      return version;
+    }
+  }
+
+  return "";
+};
+
+export const VERSION: string = getProductVersion(env);
 
 export const APP_HOSTNAME: Hostname = Hostname.fromString(HOST);
 

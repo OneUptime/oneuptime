@@ -120,12 +120,9 @@ export default class ProductFeedback {
     }
   }
 
+  // The release the server runs ("14.3.0"), or "" where it is not known (Config's VERSION).
   public static getVersion(): string {
-    try {
-      return VERSION.toString();
-    } catch {
-      return "";
-    }
+    return VERSION || "";
   }
 
   // Reads the settings from the server; on any failure, nothing is asked.
