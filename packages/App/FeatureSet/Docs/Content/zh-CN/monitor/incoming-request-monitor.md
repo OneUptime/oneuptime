@@ -95,7 +95,7 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 | `application/json` | 解析后的 JSON。 |
 | `application/x-www-form-urlencoded` | 解析后的表单。带方括号的键会嵌套（`alerts[0][status]=firing`），每个值都是字符串。 |
 | `text/plain` | 文本是 JSON 对象或数组时，为解析后的 JSON：Amazon SNS 就是这样发送消息的。其他任何文本都视为空请求体。 |
-| 其他任何类型，或没有 | 空请求体（`{}`），因此对 `requestBody` 的任何引用都得不到值。 |
+| 其他任何类型，或没有 | 空请求体（`{}`），因此对 `requestBody` 的引用都不会被解析，模板会将其原样保留。 |
 
 最多接受 50 MB 的请求体；更大的会以 `413` 拒绝。不要用 `Content-Encoding: gzip` 压缩请求体：那样它不会以 JSON 形式保存，其中的路径也无法解析。
 

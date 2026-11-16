@@ -289,6 +289,22 @@ describe("the check of the sentences", () => {
     expect(dutch.word.test("een engine-metriek")).toBe(true);
   });
 
+  test("lets Hindi spell an event one way, इवेंट (#8824)", () => {
+    const hindi: SentenceRule = ruleOf("hi", "Events");
+
+    expect(hindi.english.test("Event Labels")).toBe(true);
+    expect(hindi.english.test("Failed to fetch events")).toBe(true);
+    // Negative control: the dropped spelling is caught, and only it.
+    expect(hindi.dropped.test("ईवेंट लेबल")).toBe(true);
+    expect(hindi.dropped.test("ईवेंटों का नाम")).toBe(true);
+    expect(hindi.dropped.test("इवेंट लेबल")).toBe(false);
+    expect(hindi.word.test("इवेंट लेबल")).toBe(true);
+    // The Dashboard's Event key reads the kept spelling.
+    expect(hindi.dropped.test(readDashboardLocale("hi")["Event"] || "")).toBe(
+      false,
+    );
+  });
+
   test("reads a plural form's key by its English", () => {
     expect(englishOf("Sync Criteria to {{count}} Linked Monitors_one")).toBe(
       "Sync Criteria to {{count}} Linked Monitors",

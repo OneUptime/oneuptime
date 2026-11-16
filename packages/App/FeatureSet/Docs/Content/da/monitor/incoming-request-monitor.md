@@ -95,7 +95,7 @@ Hvis du vil bruge felter inde i brødteksten — `{{requestBody.status}}` i en h
 | `application/json` | Den fortolkede JSON. |
 | `application/x-www-form-urlencoded` | Den fortolkede formular. Nøgler i firkantede parenteser indlejres (`alerts[0][status]=firing`), og alle værdier er strenge. |
 | `text/plain` | Den fortolkede JSON, når teksten er et JSON-objekt eller et JSON-array: sådan sender Amazon SNS sine beskeder. Al anden tekst bliver en tom brødtekst. |
-| Alt andet eller ingen | En tom brødtekst (`{}`), så enhver henvisning til `requestBody` ender som ingenting. |
+| Alt andet eller ingen | En tom brødtekst (`{}`), så ingen henvisning til `requestBody` løses op, og en skabelon skriver den ordret. |
 
 Brødtekster på op til 50 MB accepteres; en større afvises med en `413`. Komprimér ikke brødteksten med `Content-Encoding: gzip`: så gemmes den ikke som JSON, og stier ind i den bliver ikke løst op.
 
