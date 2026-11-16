@@ -340,7 +340,7 @@ describe("a project's webhook", () => {
     answerBytes = WEBHOOK_MAX_RESPONSE_BYTES * 2;
 
     await expect(send(`http://127.0.0.1:${port}/hook`)).rejects.toThrow(
-      "The answer was larger than 1 MB, so it was not read.",
+      "The answer was larger than 1\u00A0MB, so it was not read.",
     );
 
     expect(onlyLog().status).toBe(WebhookStatus.Error);
