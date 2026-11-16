@@ -166,6 +166,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import Query from "../../../Types/BaseDatabase/Query";
 import Route from "../../../Types/API/Route";
 
@@ -609,10 +610,32 @@ describe("a record of its kind changed, here or anywhere else", () => {
     expect(countMock).toHaveBeenCalledTimes(1);
   });
 
-  test("a kind the server announces nothing for (Monitor) is not listened for, and still counts when asked", async () => {
-    countMock.mockResolvedValue(2 as never);
+  /*
+   * Not Operational counts monitors whose status a failed check moved, with
+   * nobody on the page doing anything (#6918).
+   */
+  test("a monitor going offline moves the Monitors menu's count, as an alert moves Active Alerts", async () => {
+    countMock.mockResolvedValueOnce(1 as never);
     const { container } = await renderEntry({
       modelType: Monitor,
+      countQuery: { projectId: PROJECT_ID } as Query<BaseModel>,
+    });
+
+    expect(activeSubscriptions()).toHaveLength(3);
+    expect(badgeText(container)).toBe("1");
+
+    countMock.mockResolvedValueOnce(2 as never);
+    announce("Monitor", "Update");
+
+    await waitFor(() => {
+      expect(badgeText(container)).toBe("2");
+    });
+  });
+
+  test("a kind the server announces nothing for (StatusPage) is not listened for, and still counts when asked", async () => {
+    countMock.mockResolvedValue(2 as never);
+    const { container } = await renderEntry({
+      modelType: StatusPage,
       countQuery: { projectId: PROJECT_ID } as Query<BaseModel>,
     });
 

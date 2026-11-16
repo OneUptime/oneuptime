@@ -10,6 +10,7 @@ import {
   LIVE_ROWS_POINTER_REST_IN_MS,
   LiveRowsHeard,
   getLiveRowEventTypes,
+  getLiveRowTenantIds,
   isPointerAtWorkOnRows,
 } from "./LiveRows";
 import { MutableRefObject, useEffect, useRef } from "react";
@@ -22,6 +23,12 @@ export interface UseLiveRowsOptions {
   modelType: { new (): BaseModel } | null;
   // The project whose changes are heard. None, nothing is heard.
   tenantId: ObjectID | null;
+  /*
+   * A list that reads several projects at once - Active Incidents lists
+   * every project the person belongs to - hears the changes of each of
+   * these instead (LiveRows.getLiveRowTenantIds). Empty or unset: tenantId's.
+   */
+  tenantIds?: ReadonlyArray<ObjectID> | undefined;
   // False keeps the rows as they were loaded, until Refresh.
   isEnabled: boolean;
   /*
@@ -89,19 +96,26 @@ const useLiveRows: (options: UseLiveRowsOptions) => void = (
   > = useRef<(() => Element | null) | undefined>(options.getRowsElement);
   getRowsElementRef.current = options.getRowsElement;
 
+  // The projects whose changes are heard, each once.
+  const tenantIds: Array<string> = getLiveRowTenantIds(
+    options.tenantId,
+    options.tenantIds,
+  );
+
   const modelType: { new (): BaseModel } | null =
-    options.isEnabled && options.tenantId ? options.modelType : null;
+    options.isEnabled && tenantIds.length > 0 ? options.modelType : null;
 
   const eventTypes: Array<ModelEventType> = modelType
     ? getLiveRowEventTypes(new modelType())
     : [];
 
-  const tenantId: string = options.tenantId?.toString() || "";
-
-  // What the subscription is for: it starts over only when this changes.
+  /*
+   * What the subscription is for: it starts over only when this changes -
+   * the same projects in another order are the same subscription.
+   */
   const subscriptionKey: string =
     modelType && eventTypes.length > 0
-      ? `${new modelType().tableName}|${tenantId}|${eventTypes.join(",")}`
+      ? `${new modelType().tableName}|${[...tenantIds].sort().join(",")}|${eventTypes.join(",")}`
       : "";
 
   const minIntervalInMs: number =
@@ -112,7 +126,7 @@ const useLiveRows: (options: UseLiveRowsOptions) => void = (
     options.pointerRestInMs ?? LIVE_ROWS_POINTER_REST_IN_MS;
 
   useEffect(() => {
-    if (!subscriptionKey || !modelType || !options.tenantId) {
+    if (!subscriptionKey || !modelType || tenantIds.length === 0) {
       return undefined;
     }
 
@@ -220,31 +234,34 @@ const useLiveRows: (options: UseLiveRowsOptions) => void = (
       document.addEventListener("pointerdown", onPointer, { passive: true });
     }
 
-    const stopListening: Array<() => void> = eventTypes.map(
-      (eventType: ModelEventType): (() => void) => {
-        return Realtime.listenToModelEvent<BaseModel>(
-          {
-            modelType: modelType,
-            eventType: eventType,
-            tenantId: options.tenantId!,
-          },
-          (modelId: unknown): void => {
-            if (eventType === ModelEventType.Create) {
-              const id: string = getRecordIdText(modelId);
+    // Each kind of change, in each project the list reads.
+    const stopListening: Array<() => void> = tenantIds.flatMap(
+      (tenantId: string): Array<() => void> => {
+        return eventTypes.map((eventType: ModelEventType): (() => void) => {
+          return Realtime.listenToModelEvent<BaseModel>(
+            {
+              modelType: modelType,
+              eventType: eventType,
+              tenantId: new ObjectID(tenantId),
+            },
+            (modelId: unknown): void => {
+              if (eventType === ModelEventType.Create) {
+                const id: string = getRecordIdText(modelId);
 
-              if (id) {
-                createdIds.add(id);
+                if (id) {
+                  createdIds.add(id);
+                }
               }
-            }
 
-            if (isPending) {
-              // The change waiting already reads this one too.
-              return;
-            }
+              if (isPending) {
+                // The change waiting already reads this one too.
+                return;
+              }
 
-            onChange();
-          },
-        );
+              onChange();
+            },
+          );
+        });
       },
     );
 

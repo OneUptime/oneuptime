@@ -120,31 +120,6 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
-jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Utils/IncidentState",
-  () => {
-    return {
-      __esModule: true,
-      default: {
-        getUnresolvedIncidentStates: async () => {
-          return [];
-        },
-      },
-    };
-  },
-);
-
-jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/AlertState", () => {
-  return {
-    __esModule: true,
-    default: {
-      getUnresolvedAlertStates: async () => {
-        return [];
-      },
-    },
-  };
-});
-
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
