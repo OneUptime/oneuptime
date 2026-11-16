@@ -54283,7 +54283,6 @@
   "Paging never started and was timed out.": "El aviso nunca empezó y se agotó el tiempo.",
   "Paging started.": "Aviso iniciado.",
   "Paging timed out.": "Se agotó el tiempo del aviso.",
-  "Passed On": "Transferido",
   "Playbook {{playbook}} on {{case}}": "Playbook {{playbook}} en {{case}}",
   "Profile attribute keys ({{count}} found)": "Claves de atributo de perfiles ({{count}} encontradas)",
   "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}": "Comparación de perfiles, de {{beforeStart}} a {{beforeEnd}} frente a de {{afterStart}} a {{afterEnd}}",

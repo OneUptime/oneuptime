@@ -30,7 +30,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The command carries the platform you picked above. The script asks for:":
     "कमांड में ऊपर चुना गया प्लेटफ़ॉर्म शामिल है। स्क्रिप्ट ये पूछती है:",
   "- your **OneUptime URL** and **ingestion key**, both shown in step 1 (pick a key there to have them filled in here)":
-    "- आपका **OneUptime URL** और **इन्जेशन कुंजी**, दोनों चरण 1 में दिखते हैं (उन्हें यहाँ भरा पाने के लिए वहाँ एक कुंजी चुनें)",
+    "- आपका **OneUptime URL** और **इंजेशन कुंजी**, दोनों चरण 1 में दिखते हैं (उन्हें यहाँ भरा पाने के लिए वहाँ एक कुंजी चुनें)",
   "- an **array name** — how the array appears in OneUptime. Give every array its own and keep it stable: a new name registers a new storage array":
     "- एक **ऐरे का नाम**: OneUptime में ऐरे किस नाम से दिखे। हर ऐरे को उसका अपना नाम दें और उसे स्थिर रखें: नया नाम एक नया स्टोरेज ऐरे रजिस्टर करता है",
   "- the FlashArray's **management address** (host name or IP, no `https://`) and the read-only user's **API token**, which it reads without echoing":
@@ -48,7 +48,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- `PURE_FA_ENDPOINT` को FlashArray के प्रबंधन पते पर सेट करें (होस्ट नाम या IP, `https://` के बिना) और `PURE_FA_API_TOKEN` को केवल-पढ़ने वाले उपयोगकर्ता के API टोकन पर। `chmod 600 .env` चलाएँ: इसमें टोकन है।",
   "Start the agent:": "एजेंट शुरू करें:",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इन्जेशन कुंजी चुनें।",
+    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इंजेशन कुंजी चुनें।",
   "Look for `Everything is ready. Begin running and processing data.` in the logs. The array then appears automatically in the **Storage Arrays** section after its first scrape, usually within a minute or two.":
     "लॉग में `Everything is ready. Begin running and processing data.` देखें। पहले स्क्रैप के बाद ऐरे अपने-आप **स्टोरेज ऐरे** सेक्शन में दिखता है, आमतौर पर एक-दो मिनट के भीतर।",
   "The install script writes these to `/opt/oneuptime-storage-array-agent/.env`; a Docker Compose install reads them from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the agent's folder.":
@@ -57,7 +57,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | हाँ | आपके OneUptime इंस्टेंस का URL (जैसे `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key — the one picked in step 1 |":
-    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | हाँ | टेलीमेट्री इन्जेशन कुंजी, वही जो चरण 1 में चुनी गई |",
+    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | हाँ | टेलीमेट्री इंजेशन कुंजी, वही जो चरण 1 में चुनी गई |",
   "| `STORAGE_ARRAY_NAME` | Yes | The name this array registers under in OneUptime. Stamped on every metric as the `storage.array.name` resource attribute. Keep it stable — changing it registers a new storage array |":
     "| `STORAGE_ARRAY_NAME` | हाँ | वह नाम जिससे यह ऐरे OneUptime में रजिस्टर होता है। हर मेट्रिक पर `storage.array.name` रिसोर्स एट्रिब्यूट के रूप में लगाया जाता है। इसे स्थिर रखें: इसे बदलने से एक नया स्टोरेज ऐरे रजिस्टर होता है |",
   "| `STORAGE_SYSTEM` | No | The platform, stamped as the `storage.system` resource attribute: `purestorage.flasharray` or `purestorage.flashblade` (default: `purestorage.flasharray`) |":
@@ -134,11 +134,11 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then delete the read-only user and its API token on the array if you no longer need them.":
     "फिर अगर ज़रूरत न हो तो ऐरे पर केवल-पढ़ने वाला उपयोगकर्ता और उसका API टोकन हटा दें।",
   "`troubleshoot.sh` checks the whole chain — container runtime, the array endpoint exactly as the collector reaches it (the native endpoint or Pure's exporter, DNS, TLS, the API token), array-name stamping, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key. That last check matters most: OneUptime's OTLP endpoints refuse a bad key with `401` or `422`, which the collector logs as a single `Exporting failed` line per batch that is easy to miss, so the script asks `GET /otlp/v1/validate` for a direct 200/401 verdict.":
-    "`troubleshoot.sh` पूरी कड़ी जाँचता है (कंटेनर रनटाइम, ऐरे का एंडपॉइंट ठीक वैसे जैसे कलेक्टर उस तक पहुँचता है — नेटिव एंडपॉइंट या Pure का एक्सपोर्टर, DNS, TLS, API टोकन — ऐरे के नाम का लगना, कलेक्टर के अपने मेट्रिक्स) और OneUptime से सीधे पूछता है कि क्या वह आपकी इन्जेशन कुंजी स्वीकार करता है। यह आख़िरी जाँच सबसे ज़्यादा मायने रखती है: OneUptime के OTLP एंडपॉइंट ग़लत कुंजी को `401` या `422` से ठुकराते हैं, जिसे कलेक्टर हर बैच के लिए `Exporting failed` की एक ही ऐसी पंक्ति के रूप में लॉग करता है जो आसानी से छूट जाती है, इसलिए स्क्रिप्ट `GET /otlp/v1/validate` से सीधा 200/401 फ़ैसला माँगती है।",
+    "`troubleshoot.sh` पूरी कड़ी जाँचता है (कंटेनर रनटाइम, ऐरे का एंडपॉइंट ठीक वैसे जैसे कलेक्टर उस तक पहुँचता है — नेटिव एंडपॉइंट या Pure का एक्सपोर्टर, DNS, TLS, API टोकन — ऐरे के नाम का लगना, कलेक्टर के अपने मेट्रिक्स) और OneUptime से सीधे पूछता है कि क्या वह आपकी इंजेशन कुंजी स्वीकार करता है। यह आख़िरी जाँच सबसे ज़्यादा मायने रखती है: OneUptime के OTLP एंडपॉइंट ग़लत कुंजी को `401` या `422` से ठुकराते हैं, जिसे कलेक्टर हर बैच के लिए `Exporting failed` की एक ही ऐसी पंक्ति के रूप में लॉग करता है जो आसानी से छूट जाती है, इसलिए स्क्रिप्ट `GET /otlp/v1/validate` से सीधा 200/401 फ़ैसला माँगती है।",
   "It ends with a verdict naming the most likely cause.":
     "यह सबसे संभावित कारण बताने वाले फ़ैसले के साथ ख़त्म होता है।",
   "1. Check the collector logs: `docker logs oneuptime-storage-array-agent`. `server returned HTTP status 401` means the array refused the API token, `404` means the FlashArray has no native endpoint, `x509` means TLS verification is on against the array's self-signed certificate, `no such host` or `connection refused` means a wrong `PURE_FA_ENDPOINT`, and an export `401` means a bad ingestion key.":
-    "1. कलेक्टर के लॉग जाँचें: `docker logs oneuptime-storage-array-agent`। `server returned HTTP status 401` का मतलब है कि ऐरे ने API टोकन ठुकरा दिया, `404` का कि FlashArray के पास नेटिव एंडपॉइंट नहीं है, `x509` का कि ऐरे के सेल्फ़-साइन्ड सर्टिफ़िकेट के ख़िलाफ़ TLS सत्यापन चालू है, `no such host` या `connection refused` का कि `PURE_FA_ENDPOINT` ग़लत है, और एक्सपोर्ट में `401` का कि इन्जेशन कुंजी ग़लत है।",
+    "1. कलेक्टर के लॉग जाँचें: `docker logs oneuptime-storage-array-agent`। `server returned HTTP status 401` का मतलब है कि ऐरे ने API टोकन ठुकरा दिया, `404` का कि FlashArray के पास नेटिव एंडपॉइंट नहीं है, `x509` का कि ऐरे के सेल्फ़-साइन्ड सर्टिफ़िकेट के ख़िलाफ़ TLS सत्यापन चालू है, `no such host` या `connection refused` का कि `PURE_FA_ENDPOINT` ग़लत है, और एक्सपोर्ट में `401` का कि इंजेशन कुंजी ग़लत है।",
   "2. Make sure `STORAGE_ARRAY_NAME` is set — discovery keys on the `storage.array.name` resource attribute, and the collector refuses to start without it.":
     "2. पक्का करें कि `STORAGE_ARRAY_NAME` सेट है — डिस्कवरी `storage.array.name` रिसोर्स एट्रिब्यूट पर टिकी है, और इसके बिना कलेक्टर शुरू होने से मना कर देता है।",
   "3. Make sure `STORAGE_ARRAY_COLLECTOR_CONFIG` and `COMPOSE_PROFILES` name the same platform.":
@@ -156,7 +156,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent logs for errors: `docker logs oneuptime-storage-array-agent 2>&1 | grep -i error`":
     "2. एजेंट के लॉग में त्रुटियाँ जाँचें: `docker logs oneuptime-storage-array-agent 2>&1 | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
-    "3. पुष्टि करें कि आपका OneUptime URL और इन्जेशन कुंजी सही हैं।",
+    "3. पुष्टि करें कि आपका OneUptime URL और इंजेशन कुंजी सही हैं।",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":
     "4. पक्का करें कि एजेंट की मशीन नेटवर्क पर OneUptime इंस्टेंस तक पहुँच सकती है।",
   "The array's identity comes from `STORAGE_ARRAY_NAME`, stamped on every metric as `storage.array.name`. Fix it in `.env` and apply it with `docker compose up -d` in the agent's folder — note that a new name registers a new storage array.":
@@ -168,7 +168,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The array's identity comes from `STORAGE_ARRAY_NAME`, stamped on every metric as `storage.array.name`. This array is **`array-1`**. Fix it in `.env` and apply it with `docker compose up -d` in the agent's folder — note that a new name registers a new storage array.":
     "ऐरे की पहचान `STORAGE_ARRAY_NAME` से आती है, जो हर मेट्रिक पर `storage.array.name` के रूप में लगाई जाती है। यह ऐरे **`array-1`** है। इसे `.env` में ठीक करें और एजेंट के फ़ोल्डर में `docker compose up -d` से लागू करें; ध्यान दें कि नया नाम एक नया स्टोरेज ऐरे रजिस्टर करता है।",
   "The command already carries your OneUptime URL, ingestion key and the platform you picked above. The script asks for:":
-    "कमांड में आपका OneUptime URL, इन्जेशन कुंजी और ऊपर चुना गया प्लेटफ़ॉर्म पहले से हैं। स्क्रिप्ट ये पूछती है:",
+    "कमांड में आपका OneUptime URL, इंजेशन कुंजी और ऊपर चुना गया प्लेटफ़ॉर्म पहले से हैं। स्क्रिप्ट ये पूछती है:",
   "Access from that machine to `quay.io`, where Docker pulls Pure's exporter image":
     "उस मशीन से `quay.io` तक पहुँच, जहाँ से Docker Pure के एक्सपोर्टर की इमेज पुल करता है",
   "- `COMPOSE_PROFILES=flasharray-exporter` starts `pure-fa-exporter`, Pure's exporter, next to the collector; the two must match.":

@@ -50,13 +50,13 @@ flowchart TB
 
 1. Gehen Sie zu **Produkte → Projekteinstellungen**.
 2. Öffnen Sie im Seitenmenü **Telemetrie & APM** und wählen Sie **Ingestion-Schlüssel**.
-3. Klicken Sie auf **Aufnahmeschlüssel erstellen**. Der Dialog füllt einen Namen aus und wählt den Schlüsseltyp **Server**, mit dem eine Anwendung oder ein Collector sendet. Benennen Sie ihn bei Bedarf um und klicken Sie dann auf **Aufnahmeschlüssel erstellen**.
+3. Klicken Sie auf **Ingestion-Schlüssel erstellen**. Der Dialog füllt einen Namen aus und wählt den Schlüsseltyp **Server**, mit dem eine Anwendung oder ein Collector sendet. Benennen Sie ihn bei Bedarf um und klicken Sie dann auf **Ingestion-Schlüssel erstellen**.
 
-![Die Liste „Ingestion-Schlüssel“, „Aufnahmeschlüssel erstellen“ ist markiert](screen:ingestion-keys)
+![Die Liste „Ingestion-Schlüssel“, „Ingestion-Schlüssel erstellen“ ist markiert](screen:ingestion-keys)
 
 Der neue Schlüssel öffnet sich auf einer eigenen Seite. Kopieren Sie seinen **Geheimer Schlüssel** — das ist das Token, das Sie als `x-oneuptime-token` senden.
 
-![Die Seite eines Telemetrie-Aufnahmeschlüssels mit seinem geheimen Schlüssel](/docs/static/images/TelemetryIngestionKeyView.png)
+![Die Seite eines Telemetrie-Ingestion-Schlüssels mit seinem geheimen Schlüssel](/docs/static/images/TelemetryIngestionKeyView.png)
 
 ### Die OpenTelemetry-Umgebungsvariablen setzen
 

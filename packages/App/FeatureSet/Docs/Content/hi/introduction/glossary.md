@@ -418,7 +418,7 @@ OneUptime का AI साइट रिलायबिलिटी इंजी�
 
 वह कुंजी जो किसी चीज़ को आपके प्रोजेक्ट में टेलीमेट्री भेजने देती है: OpenTelemetry वाले ऐप्स, कलेक्टर और एजेंट। यह `x-oneuptime-token` हेडर में जाती है, और प्रोजेक्ट की API कुंजी उसकी जगह काम नहीं करती।
 
-अन्य नाम: **टेलीमेट्री इन्जेशन Key**, `oneuptime.apiKey`। [इंजेशन कुंजियाँ](/docs/telemetry/ingestion-keys) देखें।
+अन्य नाम: **टेलीमेट्री इंजेशन Key**, `oneuptime.apiKey`। [इंजेशन कुंजियाँ](/docs/telemetry/ingestion-keys) देखें।
 
 ### API कुंजी
 

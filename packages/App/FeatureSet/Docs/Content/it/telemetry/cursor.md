@@ -43,7 +43,7 @@ flowchart TB
 :::steps
 ### Crea una chiave di acquisizione
 
-In OneUptime, apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**, fai clic su **Crea chiave di ingestione** e copia la chiave. Il tuo URL di base OTLP è `https://oneuptime.com/otlp`, o `https://YOUR-ONEUPTIME-HOST/otlp` se ospiti OneUptime in proprio.
+In OneUptime, apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**, fai clic su **Crea chiave di acquisizione** e copia la chiave. Il tuo URL di base OTLP è `https://oneuptime.com/otlp`, o `https://YOUR-ONEUPTIME-HOST/otlp` se ospiti OneUptime in proprio.
 
 ### Crea la destinazione in Cursor
 

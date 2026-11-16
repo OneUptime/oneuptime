@@ -57,7 +57,7 @@ Gehen Sie zu **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüsse
 
 ### Den Schlüssel benennen und seinen Typ wählen
 
-Klicken Sie auf **Aufnahmeschlüssel erstellen**. Der Dialog beginnt mit dem Namen **Server-Schlüssel** und dem Typ **Server**. Wählen Sie den **Schlüsseltyp** und benennen Sie den Schlüssel nach dem, was ihn nutzen wird, etwa `checkout-collector`. Eine **Beschreibung** finden Sie unter **Erweitert**.
+Klicken Sie auf **Ingestion-Schlüssel erstellen**. Der Dialog beginnt mit dem Namen **Server-Schlüssel** und dem Typ **Server**. Wählen Sie den **Schlüsseltyp** und benennen Sie den Schlüssel nach dem, was ihn nutzen wird, etwa `checkout-collector`. Eine **Beschreibung** finden Sie unter **Erweitert**.
 
 ### Die Ursprünge eines Browser-Schlüssels hinzufügen
 
@@ -65,10 +65,10 @@ Ein **Browser**-Schlüssel fragt im nächsten Schritt, **Browser-Einstellungen**
 
 ### Den Schlüssel anlegen und sein Geheimnis kopieren
 
-Klicken Sie auf **Aufnahmeschlüssel erstellen**. Die eigene Seite des Schlüssels öffnet sich: Kopieren Sie den Wert unter **Geheimer Schlüssel** und geben Sie ihn Ihren Sendern.
+Klicken Sie auf **Ingestion-Schlüssel erstellen**. Die eigene Seite des Schlüssels öffnet sich: Kopieren Sie den Wert unter **Geheimer Schlüssel** und geben Sie ihn Ihren Sendern.
 :::
 
-Die **Einrichtungsanleitung** jedes Produkts beginnt mit **Aufnahmeschlüssel auswählen**, wo Sie die Schlüssel sehen, die diese Anleitung nutzen kann, und direkt einen anlegen können. Die Code-Beispiele der Anleitung enthalten dann diesen Schlüssel.
+Die **Einrichtungsanleitung** jedes Produkts beginnt mit **Ingestion-Schlüssel auswählen**, wo Sie die Schlüssel sehen, die diese Anleitung nutzen kann, und direkt einen anlegen können. Die Code-Beispiele der Anleitung enthalten dann diesen Schlüssel.
 
 ## Telemetrie mit dem Schlüssel senden
 
@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Einen Browser-Schlüssel absichern
 
-Ein Browser-Schlüssel steht in Ihrer Seite, wo ihn jeder kopieren kann. Diese Einstellungen begrenzen, was eine Kopie anrichten kann. Ändern Sie sie auf der Seite des Schlüssels mit **Aufnahmeschlüssel bearbeiten**.
+Ein Browser-Schlüssel steht in Ihrer Seite, wo ihn jeder kopieren kann. Diese Einstellungen begrenzen, was eine Kopie anrichten kann. Ändern Sie sie auf der Seite des Schlüssels mit **Ingestion-Schlüssel bearbeiten**.
 
 | Einstellung | Was sie bewirkt |
 | --- | --- |
@@ -112,9 +112,9 @@ Die Seite eines Schlüssels zeigt **Status**, **Geheimer Schlüssel** hinter **Z
 
 | Um | Tun Sie Folgendes | Was Sender sehen |
 | --- | --- | --- |
-| Einen Schlüssel sofort stoppen und es später rückgängig machen | Klicken Sie auf **Aufnahmeschlüssel bearbeiten**, öffnen Sie **Zugriff & Limits** und schalten Sie **Aktiviert** aus. Der Status lautet **Deaktiviert — Telemetrie abgelehnt**. | `422`, bis Sie ihn wieder einschalten |
+| Einen Schlüssel sofort stoppen und es später rückgängig machen | Klicken Sie auf **Ingestion-Schlüssel bearbeiten**, öffnen Sie **Zugriff & Limits** und schalten Sie **Aktiviert** aus. Der Status lautet **Deaktiviert — Telemetrie abgelehnt**. | `422`, bis Sie ihn wieder einschalten |
 | Ein nach außen gelangtes Geheimnis ersetzen | Klicken Sie auf **Geheimen Schlüssel zurücksetzen** und bestätigen Sie. Der Schlüssel behält seine Einstellungen und bekommt ein neues Geheimnis. | `401`, bis sie das neue Geheimnis senden |
-| Einen Schlüssel endgültig stoppen | Klicken Sie unten auf seiner Seite auf **Aufnahmeschlüssel löschen**. | `401` |
+| Einen Schlüssel endgültig stoppen | Klicken Sie unten auf seiner Seite auf **Ingestion-Schlüssel löschen**. | `401` |
 
 Um ein Geheimnis ohne Datenverlust zu wechseln, legen Sie einen zweiten Schlüssel an, stellen Ihre Sender darauf um und löschen den alten Schlüssel, sobald sich **Zuletzt verwendet am** dort nicht mehr ändert. **Zuletzt verwendet am** wird alle paar Minuten aktualisiert, nicht bei jeder Anfrage.
 

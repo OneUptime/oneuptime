@@ -344,6 +344,7 @@ describe("a call's model", () => {
 });
 
 describe("how long a call took", () => {
+  // Each figure held to its unit by a no-break space (#8302), exported too.
   test.each([
     [850_000_000, "850\u00A0ms"],
     [2_300_000_000, "2.3\u00A0s"],

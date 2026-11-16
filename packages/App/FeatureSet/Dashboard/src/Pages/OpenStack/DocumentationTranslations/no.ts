@@ -95,7 +95,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Trenger du dem, bruker du en av de andre fanene og agentens egen exporter. Du kan ombestemme deg senere: en sky beholder navnet sitt uansett hva som leser den.",
   "The script asks for:": "Skriptet spør etter:",
   "- **OneUptime URL and ingestion key**, both shown in step 1. Pick a key there to have them filled in here.":
-    "- **OneUptime-URL og ingestion-nøkkel**, begge vist i trinn 1. Velg en nøkkel der for å få dem fylt inn her.",
+    "- **OneUptime-URL og inntaksnøkkel**, begge vist i trinn 1. Velg en nøkkel der for å få dem fylt inn her.",
   "- **Cloud name**: how the cloud appears in OneUptime. Keep it stable: a new name registers a new cloud.":
     "- **Skynavn**: hvordan skyen vises i OneUptime. Hold det stabilt: et nytt navn registrerer en ny sky.",
   "- **Keystone auth URL**, such as `https://keystone.example.com:5000/v3`.":
@@ -265,7 +265,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Ja | URL-en til OneUptime-instansen din (f.eks. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key: the one picked in step 1 |":
-    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Ingestion-nøkkel for telemetri: den du valgte i trinn 1 |",
+    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Inntaksnøkkel for telemetri: den du valgte i trinn 1 |",
   "| `OPENSTACK_CLOUD_NAME` | Yes | The cloud's name in OneUptime, stamped on every metric as the `openstack.cloud.name` resource attribute. Keep it stable: changing it registers a new cloud |":
     "| `OPENSTACK_CLOUD_NAME` | Ja | Skyens navn i OneUptime, satt på hver måling som ressursattributtet `openstack.cloud.name`. Hold det stabilt: endrer du det, registreres en ny sky |",
   "| `OPENSTACK_EXPORTER_CLOUDS` | Yes | The `clouds.yaml` entries to read, one per region and named for the region, in square brackets: `[RegionOne,RegionTwo]` |":
@@ -382,7 +382,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then delete `/opt/oneuptime-openstack-agent`, which holds the credential, and the application credential itself: `openstack application credential delete oneuptime-agent`.":
     "Slett deretter `/opt/oneuptime-openstack-agent`, som inneholder legitimasjonen, og selve applikasjonslegitimasjonen: `openstack application credential delete oneuptime-agent`.",
   "`troubleshoot.sh` checks the whole chain, from DNS and TLS to Keystone, each service in the catalog and your ingestion key, and says what this credential can read and what each gap costs.":
-    "`troubleshoot.sh` sjekker hele kjeden, fra DNS og TLS til Keystone, hver tjeneste i katalogen og ingestion-nøkkelen din, og sier hva denne legitimasjonen kan lese og hva hvert hull koster.",
+    "`troubleshoot.sh` sjekker hele kjeden, fra DNS og TLS til Keystone, hver tjeneste i katalogen og inntaksnøkkelen din, og sier hva denne legitimasjonen kan lese og hva hvert hull koster.",
   "It needs `sudo` to read `clouds.yaml`, or it skips the credential checks. It ends with a verdict naming the most likely cause.":
     "Det trenger `sudo` for å lese `clouds.yaml`, ellers hopper det over sjekkene av legitimasjonen. Det avslutter med en dom som nevner den mest sannsynlige årsaken.",
   "1. Check that the agent is running (in `/opt/oneuptime-openstack-agent`): `docker compose ps`":
@@ -390,7 +390,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent logs for errors: `docker compose logs oneuptime-openstack-agent | grep -i error`":
     "2. Sjekk agentens logger for feil: `docker compose logs oneuptime-openstack-agent | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
-    "3. Bekreft at OneUptime-URL-en og ingestion-nøkkelen din er riktige.",
+    "3. Bekreft at OneUptime-URL-en og inntaksnøkkelen din er riktige.",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":
     "4. Sørg for at agentmaskinen kan nå OneUptime-instansen over nettverket.",
   "A **Project view** credential can't read them, and neither can a role without the policy overrides: Nova, Neutron and Placement keep them for admins by default. Use **Full view**, or **Infrastructure only** with the files in `access/policy` merged into the file each service's `[oslo_policy] policy_file` names. `troubleshoot.sh` says which reads were refused.":
@@ -434,7 +434,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Both files hold secrets, so keep them to their owner. The exporter runs as uid 65532, and must be the one account that can read `clouds.yaml`. Then start the agent:":
     "Begge filene inneholder hemmeligheter, så hold dem for eieren. Exporteren kjører som uid 65532 og må være den eneste kontoen som kan lese `clouds.yaml`. Start deretter agenten:",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Velg en ingestion-nøkkel i trinn 1 for å fylle inn `<YOUR_API_KEY>`.",
+    "Velg en inntaksnøkkel i trinn 1 for å fylle inn `<YOUR_API_KEY>`.",
   "A cloud is one Keystone, however many regions it has, and one agent reads them all. Add one `clouds.yaml` entry per region, and list them all in `OPENSTACK_EXPORTER_CLOUDS`. Each entry must be named for its region: the collector stamps that name on the exporter's series as `openstack.region.name`, because the series do not say which region they are from. Every list in OneUptime then filters by region.":
     "En sky er én Keystone, uansett hvor mange regioner den har, og én agent leser alle. Legg til én `clouds.yaml`-oppføring per region, og list opp alle i `OPENSTACK_EXPORTER_CLOUDS`. Hver oppføring må være oppkalt etter sin region: innsamleren setter det navnet på exporterens serier som `openstack.region.name`, fordi seriene ikke sier hvilken region de kommer fra. Hver liste i OneUptime kan da filtreres etter region.",
   "The agent reads these from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the folder with `docker-compose.yml`.":

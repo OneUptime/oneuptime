@@ -50,9 +50,9 @@ flowchart TB
 
 1. Vai a **Prodotti → Impostazioni del progetto**.
 2. Nel menu laterale apri **Telemetria e APM** e seleziona **Chiavi di acquisizione**.
-3. Fai clic su **Crea chiave di ingestione**. La finestra compila un nome e sceglie il tipo di chiave **Server**, quello con cui invia un'applicazione o un collector. Rinominala se vuoi, poi fai clic su **Crea chiave di ingestione**.
+3. Fai clic su **Crea chiave di acquisizione**. La finestra compila un nome e sceglie il tipo di chiave **Server**, quello con cui invia un'applicazione o un collector. Rinominala se vuoi, poi fai clic su **Crea chiave di acquisizione**.
 
-![L'elenco «Chiavi di acquisizione», con «Crea chiave di ingestione» evidenziato](screen:ingestion-keys)
+![L'elenco «Chiavi di acquisizione», con «Crea chiave di acquisizione» evidenziato](screen:ingestion-keys)
 
 La nuova chiave si apre nella sua pagina. Copia la sua **Chiave segreta**: è il token che invii come `x-oneuptime-token`.
 

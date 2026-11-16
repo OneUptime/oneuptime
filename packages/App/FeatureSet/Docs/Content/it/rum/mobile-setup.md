@@ -39,7 +39,7 @@ Fai di `device.id` un identificativo legato all'installazione, mai un ID pubblic
 ## Prima di iniziare
 
 - Un'app con un SDK OpenTelemetry: l'SDK OpenTelemetry per Java o OpenTelemetry Android, opentelemetry-swift, oppure l'SDK OpenTelemetry per JavaScript in React Native.
-- Una chiave di acquisizione **Server**, creata in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** con **Crea chiave di ingestione**. Una chiave **Browser** viene rifiutata da un'app mobile: è verificata rispetto all'intestazione `Origin`, che gli SDK mobili non inviano.
+- Una chiave di acquisizione **Server**, creata in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** con **Crea chiave di acquisizione**. Una chiave **Browser** viene rifiutata da un'app mobile: è verificata rispetto all'intestazione `Origin`, che gli SDK mobili non inviano.
 - Queste impostazioni OTLP. Se ospiti OneUptime in proprio, sostituisci `https://oneuptime.com` con il tuo host.
 
 | Impostazione | Valore |

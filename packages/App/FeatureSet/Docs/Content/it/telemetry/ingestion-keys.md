@@ -57,7 +57,7 @@ Andate in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisi
 
 ### Dare un nome alla chiave e sceglierne il tipo
 
-Fate clic su **Crea chiave di ingestione**. La finestra parte con il nome **Chiave server** e il tipo **Server**. Scegliete il **Tipo di chiave** e rinominate la chiave in base a chi la userà, ad esempio `checkout-collector`. Una **Descrizione** si trova in **Avanzato**.
+Fate clic su **Crea chiave di acquisizione**. La finestra parte con il nome **Chiave server** e il tipo **Server**. Scegliete il **Tipo di chiave** e rinominate la chiave in base a chi la userà, ad esempio `checkout-collector`. Una **Descrizione** si trova in **Avanzato**.
 
 ### Aggiungere le origini di una chiave Browser
 
@@ -65,10 +65,10 @@ Una chiave **Browser** chiede le sue **Origini consentite** al passaggio success
 
 ### Creare la chiave e copiarne il segreto
 
-Fate clic su **Crea chiave di ingestione**. Si apre la pagina della chiave: copiate la sua **Chiave segreta** e datela ai vostri mittenti.
+Fate clic su **Crea chiave di acquisizione**. Si apre la pagina della chiave: copiate la sua **Chiave segreta** e datela ai vostri mittenti.
 :::
 
-La **Guida alla configurazione** di ogni prodotto inizia con **Scegli una chiave di ingestione**, che elenca le chiavi che quella guida può usare e ne crea una sul posto. Gli snippet della guida contengono poi quella chiave.
+La **Guida alla configurazione** di ogni prodotto inizia con **Scegli una chiave di acquisizione**, che elenca le chiavi che quella guida può usare e ne crea una sul posto. Gli snippet della guida contengono poi quella chiave.
 
 ## Inviare telemetria con la chiave
 

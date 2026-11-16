@@ -35,10 +35,10 @@ flowchart TB
 
 1. Gå til **Produkter → Projektindstillinger**.
 2. Fold **Telemetri og APM** ud i sidemenuen, og vælg **Indtagelsesnøgler**.
-3. Klik på **Opret ingestion-nøgle**, og vælg **Browser** som **Nøgletype**.
+3. Klik på **Opret indtagelsesnøgle**, og vælg **Browser** som **Nøgletype**.
 4. Angiv dine oprindelser under **Tilladte oprindelser** i trinnet **Browserindstillinger** som et JSON-array, for eksempel `["https://app.example.com"]`, og opret så nøglen. På OneUptime Clouds gratisplan viser et sidste trin **Fakturering** først prisen for telemetri.
 
-![Listen »Indtagelsesnøgler«, med »Opret ingestion-nøgle« fremhævet](screen:ingestion-keys)
+![Listen »Indtagelsesnøgler«, med »Opret indtagelsesnøgle« fremhævet](screen:ingestion-keys)
 
 Den nye nøgle åbner på sin egen side. Kopiér dens **Hemmelig nøgle**: Det er det token, SDK'et sender som `x-oneuptime-token`.
 

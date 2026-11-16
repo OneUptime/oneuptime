@@ -35,11 +35,11 @@ Du behöver en intagningsnyckel för telemetri av typen **Server**. Om du inte h
 
 Gå till **Produkter → Projektinställningar**, öppna **Telemetri och APM** i sidomenyn och välj **Intagningsnycklar**.
 
-![Listan ”Intagningsnycklar”, med ”Skapa ingestion-nyckel” markerad](screen:ingestion-keys)
+![Listan ”Intagningsnycklar”, med ”Skapa intagningsnyckel” markerad](screen:ingestion-keys)
 
 ### Skapa en nyckel
 
-Klicka på **Skapa ingestion-nyckel**. Dialogrutan har redan nyckelns namn ifyllt och **Server** valt (den sorts nyckel som en applikation eller en collector skickar med), så klicka på **Skapa ingestion-nyckel** för att skapa den, eller byt namn på den först.
+Klicka på **Skapa intagningsnyckel**. Dialogrutan har redan nyckelns namn ifyllt och **Server** valt (den sorts nyckel som en applikation eller en collector skickar med), så klicka på **Skapa intagningsnyckel** för att skapa den, eller byt namn på den först.
 
 ### Kopiera hemligheten
 

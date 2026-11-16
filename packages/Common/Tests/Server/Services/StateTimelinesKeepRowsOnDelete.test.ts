@@ -194,11 +194,14 @@ describe("the history a status timeline keeps in full", () => {
       ),
     );
 
-    // And the uptime endpoint refuses a longer range.
+    /*
+     * And the uptime endpoint refuses a longer range: its days counted as
+     * whole days of 24 hours, the last one too (#8473).
+     */
     expect(KEPT_STATUS_HISTORY_DAYS).toBeGreaterThanOrEqual(
       numberAfter(
         "packages/Common/Server/API/StatusPageAPI.ts",
-        "OneUptimeDate.getDaysBetweenTwoDatesInclusive(startDate, endDate) >",
+        "OneUptimeDate.getWholeDaysOfTimeBetween(startDate, endDate) + 1 >",
       ),
     );
   });

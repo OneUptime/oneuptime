@@ -90,9 +90,11 @@ export enum AIChatCitationTargetType {
   DocsPage = "DocsPage",
   /*
    * A page of the Dashboard, found by find_dashboard_page in the catalog
-   * built from Search's page index; params: { path, title } - its route
-   * template ("/dashboard/:projectId/monitors/create"), which the Dashboard
-   * opens only when it is one of its own routes, and its English title.
+   * built from Search's page index; params: { path, title, titleKey? } -
+   * its route template ("/dashboard/:projectId/monitors/create"), which the
+   * Dashboard opens only when it is one of its own routes, its English
+   * title, and the locale key its "Go to ..." button draws where that is
+   * not the title ("Insights (explorer analytics)" for "Insights", #8817).
    */
   DashboardPage = "DashboardPage",
 }

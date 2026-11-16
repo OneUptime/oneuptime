@@ -95,7 +95,7 @@ Si vous voulez atteindre des champs du corps — `{{requestBody.status}}` dans u
 | `application/json` | Le JSON analysé. |
 | `application/x-www-form-urlencoded` | Le formulaire analysé. Les clés entre crochets s'imbriquent (`alerts[0][status]=firing`), et chaque valeur est une chaîne. |
 | `text/plain` | Le JSON analysé, quand le texte est un objet ou un tableau JSON : c'est ainsi qu'Amazon SNS envoie ses messages. Tout autre texte donne un corps vide. |
-| Tout autre, ou aucun | Un corps vide (`{}`) : chaque référence à `requestBody` ne donne donc rien. |
+| Tout autre, ou aucun | Un corps vide (`{}`) : aucune référence à `requestBody` ne se résout donc, et un modèle la laisse telle quelle. |
 
 Les corps jusqu'à 50 Mo sont acceptés ; un corps plus grand est refusé avec un `413`. Ne compressez pas le corps avec `Content-Encoding: gzip` : il ne serait pas stocké comme JSON, et les chemins vers son contenu ne se résoudraient pas.
 

@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 import AIChatPermissionMode from "../../../../../Types/AI/AIChatPermissionMode";
 import { AIChatCitationTargetType } from "../../../../../Types/AI/AIChatTypes";
+import {
+  describeAIActionSentence,
+  isKnownAIActionSentence,
+} from "../../../../../Types/AI/AIActionWords";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -505,5 +509,331 @@ describe("find_dashboard_page", () => {
       MEMBER,
     );
     expect(result.citationTarget).toBeUndefined();
+  });
+});
+
+/*
+ * AN EXPLORER'S INSIGHTS TAB, AS THE MODEL READS IT AND AS ITS BUTTON
+ * DRAWS IT (#8817). The tab's locale key is "Insights (explorer
+ * analytics)", a key that names its meaning, which English draws as
+ * "Insights". The model is told "Insights", where the reader sees it; the
+ * citation carries the key beside the title, for the "Go to ..." button
+ * alone, which draws the tab's own word in the reader's language.
+ */
+describe("find_dashboard_page and a page whose key names its meaning", () => {
+  const TAB_KEY: string = "Insights (explorer analytics)";
+
+  const pagesOf: (
+    result: ToolExecutionResult,
+  ) => Array<{ title: string; where: string; kind: string }> = (
+    result: ToolExecutionResult,
+  ): Array<{ title: string; where: string; kind: string }> => {
+    return (JSON.parse(result.dataForLlm) as JSONObject)["pages"] as Array<{
+      title: string;
+      where: string;
+      kind: string;
+    }>;
+  };
+
+  test("names the Logs explorer's tab Insights to the model, and its citation keeps the tab's key for its button", async () => {
+    const result: ToolExecutionResult = await FindDashboardPageTool.execute(
+      { query: "top errors" },
+      MEMBER,
+    );
+    const data: JSONObject = JSON.parse(result.dataForLlm) as JSONObject;
+
+    expect(pagesOf(result)[0]).toEqual({
+      title: "Insights",
+      where: "Logs",
+      kind: "page",
+    });
+    expect(data["citationOpens"]).toBe("Logs > Insights");
+    expect(result.citationLabel).toBe("Page: Logs > Insights");
+    expect(result.citationTarget).toEqual({
+      type: AIChatCitationTargetType.DashboardPage,
+      params: {
+        path: "/dashboard/:projectId/logs/insights",
+        title: "Insights",
+        titleKey: TAB_KEY,
+      },
+    });
+    // The key is the button's: never in what the model reads.
+    expect(result.dataForLlm).not.toContain("explorer analytics");
+    expect(result.dataForLlm).not.toContain("titleKey");
+  });
+
+  test("names the Exceptions explorer's tab so too", async () => {
+    const result: ToolExecutionResult = await FindDashboardPageTool.execute(
+      { query: "error trends" },
+      MEMBER,
+    );
+
+    expect(result.citationTarget?.params).toEqual({
+      path: "/dashboard/:projectId/exceptions/overview",
+      title: "Insights",
+      titleKey: TAB_KEY,
+    });
+    expect(result.citationLabel).toBe("Page: Exceptions > Insights");
+    expect(result.dataForLlm).not.toContain("explorer analytics");
+  });
+
+  test("\"Traces Insights\": OneUptime AI's Insights first, then the Traces explorer's tab, both named Insights", async () => {
+    const result: ToolExecutionResult = await FindDashboardPageTool.execute(
+      { query: "Traces Insights" },
+      MEMBER,
+    );
+
+    expect(pagesOf(result).slice(0, 2)).toEqual([
+      { title: "Insights", where: "Traces > AI", kind: "page" },
+      { title: "Insights", where: "Traces", kind: "page" },
+    ]);
+    // OneUptime AI's own page, with no key of its own beside its title.
+    expect(result.citationTarget?.params).toEqual({
+      path: "/dashboard/:projectId/traces/ai/insights",
+      title: "Insights",
+    });
+    expect(result.dataForLlm).not.toContain("explorer analytics");
+  });
+
+  test.each(["Logs", "Metrics", "Traces", "Exceptions"])(
+    'tells the model nothing of the key for "%s Insights", in its result or in the label it reads in a turn\'s history',
+    async (area: string) => {
+      const result: ToolExecutionResult = await FindDashboardPageTool.execute(
+        { query: `${area} Insights` },
+        MEMBER,
+      );
+
+      expect(pagesOf(result)).toContainEqual({
+        title: "Insights",
+        where: area,
+        kind: "page",
+      });
+      expect(result.dataForLlm).not.toContain(TAB_KEY);
+      expect(result.citationLabel).not.toContain(TAB_KEY);
+    },
+  );
+});
+
+/*
+ * EVERY PAGE A RESULT RETURNS CAN BE CITED (#8829).
+ *
+ * A result's citation opens its first page, and two pages can share a name
+ * in one area: "Traces Insights" finds OneUptime AI's Traces > AI >
+ * Insights first and the Traces explorer's tab, Traces > Insights, second.
+ * Asked again by its name and its place, as the result gave them, the tool
+ * finds only the pages there, so its citation opens the one the model
+ * means - the explorer's tab too, which no name alone ever put first.
+ */
+describe("find_dashboard_page cites the page the model names by its place", () => {
+  const TAB_KEY: string = "Insights (explorer analytics)";
+
+  const run: (args: JSONObject) => Promise<ToolExecutionResult> = (
+    args: JSONObject,
+  ): Promise<ToolExecutionResult> => {
+    return FindDashboardPageTool.execute(args, MEMBER);
+  };
+
+  const pagesOf: (
+    result: ToolExecutionResult,
+  ) => Array<{ title: string; where: string; kind: string }> = (
+    result: ToolExecutionResult,
+  ): Array<{ title: string; where: string; kind: string }> => {
+    return (JSON.parse(result.dataForLlm) as JSONObject)["pages"] as Array<{
+      title: string;
+      where: string;
+      kind: string;
+    }>;
+  };
+
+  test("offers the model a place to name, and says how to cite another page", () => {
+    const schema: JSONObject = FindDashboardPageTool.inputSchema;
+    const properties: JSONObject = schema["properties"] as JSONObject;
+
+    expect(Object.keys(properties).sort()).toEqual(["place", "query"]);
+    expect(schema["required"]).toEqual(["query"]);
+    expect(FindDashboardPageTool.description).toContain("its where as place");
+  });
+
+  test.each([
+    ["Traces", "/dashboard/:projectId/traces/insights"],
+    ["Metrics", "/dashboard/:projectId/metrics/insights"],
+    ["Logs", "/dashboard/:projectId/logs/insights"],
+    ["Exceptions", "/dashboard/:projectId/exceptions/overview"],
+  ])(
+    "a question about the %s explorer's Insights tab ends with a link to the tab",
+    async (area: string, tab: string) => {
+      // The model asks by the tab's name and area, and reads where each page is.
+      const first: ToolExecutionResult = await run({
+        query: `${area} Insights`,
+      });
+      const listed: Array<{ title: string; where: string }> = pagesOf(first);
+      const theTab: { title: string; where: string } | undefined = listed.find(
+        (page: { where: string }): boolean => {
+          return page.where === area;
+        },
+      );
+
+      expect(theTab).toEqual({ title: "Insights", where: area, kind: "page" });
+      expect(
+        (JSON.parse(first.dataForLlm) as JSONObject)["toCiteAnother"],
+      ).toBe("Call again with its title as query and its where as place.");
+
+      // Then cites it by its title and its place, as the result gave them.
+      const cited: ToolExecutionResult = await run({
+        query: theTab!.title,
+        place: theTab!.where,
+      });
+
+      expect(cited.citationTarget).toEqual({
+        type: AIChatCitationTargetType.DashboardPage,
+        params: { path: tab, title: "Insights", titleKey: TAB_KEY },
+      });
+      expect(cited.citationLabel).toBe(`Page: ${area} > Insights`);
+      expect(pagesOf(cited)[0]).toEqual({
+        title: "Insights",
+        where: area,
+        kind: "page",
+      });
+      expect(cited.dataForLlm).not.toContain("explorer analytics");
+    },
+  );
+
+  test("OneUptime AI's own Insights page is cited by its own place", async () => {
+    const cited: ToolExecutionResult = await run({
+      query: "Insights",
+      place: "Traces > AI",
+    });
+
+    expect(cited.citationTarget?.params).toEqual({
+      path: "/dashboard/:projectId/traces/ai/insights",
+      title: "Insights",
+    });
+    expect(pagesOf(cited)).toEqual([
+      { title: "Insights", where: "Traces > AI", kind: "page" },
+    ]);
+  });
+
+  test("a place is read by its words, as a result wrote it or not", async () => {
+    for (const place of ["Traces", "traces", " Traces ", "TRACES"]) {
+      const cited: ToolExecutionResult = await run({
+        query: "Insights",
+        place,
+      });
+
+      expect(cited.citationTarget?.params?.["path"]).toBe(
+        "/dashboard/:projectId/traces/insights",
+      );
+    }
+
+    const methods: ToolExecutionResult = await run({
+      query: "Notification Methods",
+      place: "user settings alerts and notifications",
+    });
+
+    expect(methods.citationTarget?.params?.["path"]).toBe(
+      "/dashboard/:projectId/user-settings/notification-methods",
+    );
+  });
+
+  test("a place no page of that name is in opens nothing, and says to ask without it", async () => {
+    const result: ToolExecutionResult = await run({
+      query: "Insights",
+      place: "Status Pages",
+    });
+
+    expect(result.rowCount).toBe(0);
+    expect(result.citationTarget).toBeUndefined();
+    expect(result.dataForLlm).toContain("without place");
+    expect(result.dataForLlm).toContain('"Status Pages"');
+  });
+
+  test("an empty place is no place", async () => {
+    for (const place of ["", "   "]) {
+      const withEmpty: ToolExecutionResult = await run({
+        query: "Traces Insights",
+        place,
+      });
+      const without: ToolExecutionResult = await run({
+        query: "Traces Insights",
+      });
+
+      expect(withEmpty.dataForLlm).toBe(without.dataForLlm);
+      expect(withEmpty.citationTarget).toEqual(without.citationTarget);
+    }
+  });
+
+  test("a result of one page says nothing of citing another", async () => {
+    const result: ToolExecutionResult = await run({
+      query: "Insights",
+      place: "Traces",
+    });
+
+    expect(pagesOf(result)).toHaveLength(1);
+    expect(
+      (JSON.parse(result.dataForLlm) as JSONObject)["toCiteAnother"],
+    ).toBeUndefined();
+  });
+});
+
+/*
+ * THE CHIP OF A PAGE, IN THE READER'S LANGUAGE (#8831). Its label, which
+ * the model reads in a turn's history and the exports print, is English;
+ * its words name the page by the keys the Dashboard's menus look them up
+ * by, which the chip says in the reader's language.
+ */
+describe("find_dashboard_page's chip", () => {
+  test("names the page's place and name by the Dashboard's keys, and its label in English", async () => {
+    const methods: ToolExecutionResult = await FindDashboardPageTool.execute(
+      { query: "Notification Methods" },
+      MEMBER,
+    );
+
+    expect(methods.citationWords).toEqual({
+      template: "Page: {{path}}",
+      values: {
+        path: {
+          menuPath: [
+            "User Settings",
+            "Alerts & Notifications",
+            "Notification Methods",
+          ],
+        },
+      },
+    });
+    expect(methods.citationLabel).toBe(
+      "Page: User Settings > Alerts & Notifications > Notification Methods",
+    );
+  });
+
+  test("names an explorer's Insights tab by the tab's own key, which its English label reads as Insights", async () => {
+    const tab: ToolExecutionResult = await FindDashboardPageTool.execute(
+      { query: "top errors" },
+      MEMBER,
+    );
+
+    expect(tab.citationWords?.values?.["path"]).toEqual({
+      menuPath: ["Logs", "Insights (explorer analytics)"],
+    });
+    expect(tab.citationLabel).toBe("Page: Logs > Insights");
+    expect(tab.dataForLlm).not.toContain("explorer analytics");
+  });
+
+  test("its label is its words in English, so the Dashboard draws the words", async () => {
+    for (const query of [
+      "Notification Methods",
+      "top errors",
+      "API Keys",
+      "Create Monitor",
+    ]) {
+      const result: ToolExecutionResult = await FindDashboardPageTool.execute(
+        { query },
+        MEMBER,
+      );
+
+      expect(isKnownAIActionSentence(result.citationWords)).toBe(true);
+      expect(describeAIActionSentence(result.citationWords!)).toBe(
+        result.citationLabel,
+      );
+    }
   });
 });

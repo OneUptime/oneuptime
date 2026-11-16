@@ -57,7 +57,7 @@ Gå til **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. **
 
 ### Navngiv nøglen, og vælg dens type
 
-Klik på **Opret ingestion-nøgle**. Dialogen starter med navnet **Servernøgle** og typen **Server**. Vælg **Nøgletype**, og omdøb nøglen efter det, der skal bruge den, for eksempel `checkout-collector`. En **Beskrivelse** ligger under **Avanceret**.
+Klik på **Opret indtagelsesnøgle**. Dialogen starter med navnet **Servernøgle** og typen **Server**. Vælg **Nøgletype**, og omdøb nøglen efter det, der skal bruge den, for eksempel `checkout-collector`. En **Beskrivelse** ligger under **Avanceret**.
 
 ### Tilføj en browsernøgles origins
 
@@ -65,10 +65,10 @@ En **Browser**-nøgle beder om sine **Tilladte oprindelser** i det næste trin, 
 
 ### Opret nøglen, og kopiér dens hemmelighed
 
-Klik på **Opret ingestion-nøgle**. Nøglens egen side åbner: kopiér dens **Hemmelig nøgle**, og giv den til dine afsendere.
+Klik på **Opret indtagelsesnøgle**. Nøglens egen side åbner: kopiér dens **Hemmelig nøgle**, og giv den til dine afsendere.
 :::
 
-Hvert produkts **Opsætningsvejledning** starter med **Vælg en ingestion-nøgle**, som viser de nøgler, vejledningen kan bruge, og opretter en på stedet. Kodestumperne i vejledningen indeholder derefter den nøgle.
+Hvert produkts **Opsætningsvejledning** starter med **Vælg en indtagelsesnøgle**, som viser de nøgler, vejledningen kan bruge, og opretter en på stedet. Kodestumperne i vejledningen indeholder derefter den nøgle.
 
 ## Send telemetri med nøglen
 

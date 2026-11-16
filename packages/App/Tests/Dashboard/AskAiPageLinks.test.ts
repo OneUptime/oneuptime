@@ -226,6 +226,76 @@ describe("getAnswerPageLinks", () => {
     expect(getAnswerPageLinks("Go [C3].", [untitled])[0]?.title).toBe(
       "Page: Create Monitor",
     );
+    expect(getAnswerPageLinks("Go [C3].", [untitled])[0]?.titleKey).toBe(
+      "Page: Create Monitor",
+    );
+  });
+
+  /*
+   * An explorer's Insights tab (#8817): the model reads its English title,
+   * "Insights", and the button draws the tab's own key, "Insights
+   * (explorer analytics)", so it reads the tab's word in each language.
+   */
+  test("draws a page by the key its citation carries beside its English title", () => {
+    const tab: AIChatCitation = citation(
+      "C6",
+      AIChatCitationTargetType.DashboardPage,
+      {
+        path: "/dashboard/:projectId/logs/insights",
+        title: "Insights",
+        titleKey: "Insights (explorer analytics)",
+      },
+    );
+
+    expect(getAnswerPageLinks("Open it [C6].", [tab])).toEqual([
+      {
+        citationId: "C6",
+        title: "Insights",
+        titleKey: "Insights (explorer analytics)",
+        target: tab.target,
+      },
+    ]);
+  });
+
+  test("draws a page with no key beside its title by its title, as every page before #8817", () => {
+    expect(getAnswerPageLinks("Go [C3].", [createMonitor])).toEqual([
+      {
+        citationId: "C3",
+        title: "Create Monitor",
+        titleKey: "Create Monitor",
+        target: createMonitor.target,
+      },
+    ]);
+
+    // Saved with the key as its title (14.3.0): still the tab's key.
+    const saved: AIChatCitation = citation(
+      "C7",
+      AIChatCitationTargetType.DashboardPage,
+      {
+        path: "/dashboard/:projectId/traces/insights",
+        title: "Insights (explorer analytics)",
+      },
+    );
+
+    expect(getAnswerPageLinks("Go [C7].", [saved])[0]?.titleKey).toBe(
+      "Insights (explorer analytics)",
+    );
+  });
+
+  test("an empty key is no key: the title is drawn", () => {
+    const blank: AIChatCitation = citation(
+      "C8",
+      AIChatCitationTargetType.DashboardPage,
+      {
+        path: "/dashboard/:projectId/logs/insights",
+        title: "Insights",
+        titleKey: "",
+      },
+    );
+
+    expect(getAnswerPageLinks("Go [C8].", [blank])[0]?.titleKey).toBe(
+      "Insights",
+    );
   });
 });
 

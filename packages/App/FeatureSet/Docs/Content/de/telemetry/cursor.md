@@ -43,7 +43,7 @@ flowchart TB
 :::steps
 ### Einen Ingestion-Schlüssel erstellen
 
-Öffnen Sie in OneUptime **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**, klicken Sie auf **Aufnahmeschlüssel erstellen** und kopieren Sie den Schlüssel. Ihre OTLP-Basis-URL ist `https://oneuptime.com/otlp`, oder `https://YOUR-ONEUPTIME-HOST/otlp`, wenn Sie OneUptime selbst betreiben.
+Öffnen Sie in OneUptime **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**, klicken Sie auf **Ingestion-Schlüssel erstellen** und kopieren Sie den Schlüssel. Ihre OTLP-Basis-URL ist `https://oneuptime.com/otlp`, oder `https://YOUR-ONEUPTIME-HOST/otlp`, wenn Sie OneUptime selbst betreiben.
 
 ### Das Ziel in Cursor erstellen
 

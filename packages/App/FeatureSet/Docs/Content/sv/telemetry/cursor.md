@@ -43,7 +43,7 @@ flowchart TB
 :::steps
 ### Skapa en intagningsnyckel
 
-I OneUptime öppnar du **Projektinställningar → Telemetri och APM → Intagningsnycklar**, klickar på **Skapa ingestion-nyckel** och kopierar nyckeln. Din OTLP-bas-URL är `https://oneuptime.com/otlp`, eller `https://YOUR-ONEUPTIME-HOST/otlp` om du driftar OneUptime själv.
+I OneUptime öppnar du **Projektinställningar → Telemetri och APM → Intagningsnycklar**, klickar på **Skapa intagningsnyckel** och kopierar nyckeln. Din OTLP-bas-URL är `https://oneuptime.com/otlp`, eller `https://YOUR-ONEUPTIME-HOST/otlp` om du driftar OneUptime själv.
 
 ### Skapa destinationen i Cursor
 

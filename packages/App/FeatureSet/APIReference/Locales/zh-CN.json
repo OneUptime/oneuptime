@@ -338,7 +338,7 @@
       "allEditions": "所有版本",
       "overviewDesc": "概览汇总:Postgres、ClickHouse 和 Valkey 是否可访问,以及简要的后台队列摘要。缓存 15 秒。",
       "queuesDesc": "按队列统计的后台任务数据 — 四个工作队列各自的等待中、活动中、已完成、已失败和已延迟的数量。缓存 15 秒。",
-      "failedJobsDesc": "单个队列中最近失败的任务(最多 25 个),每个任务都包含其任务主体、选项、返回值、堆栈跟踪以及该任务的日志。",
+      "failedJobsDesc": "单个队列中最近失败的任务(最多 25 个),每个任务都包含其任务主体、选项、返回值、堆栈追踪以及该任务的日志。",
       "clickhouseCapacityDesc": "ClickHouse 存储容量:数据总大小、每个节点的磁盘使用情况、最大的表,以及每个分片的本地表大小。",
       "clickhouseClusterDesc": "ClickHouse 集群健康状况:分片可访问性、分布式 DDL 队列、副本和复制队列状态,以及 Keeper 连接。它可以揭示卡住的 ON CLUSTER 架构同步。",
       "clickhouseTelemetryIngestionDesc": "遥测数据摄取吞吐量 — 在过去一分钟、一小时和一天内有多少日志、指标和追踪行写入了 ClickHouse。有助于发现停滞或过载的管道。",
