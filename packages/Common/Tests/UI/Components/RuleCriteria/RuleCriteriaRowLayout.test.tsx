@@ -5,6 +5,8 @@ import fs from "fs";
 import path from "path";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
+  RULE_CRITERIA_ADD_CELL_CLASS_NAME,
+  RULE_CRITERIA_ADD_ROW_CLASS_NAME,
   RULE_CRITERIA_CONNECTOR_CELL_CLASS_NAME,
   RULE_CRITERIA_FIELD_CELL_CLASS_NAME,
   RULE_CRITERIA_LAYOUT_WIDTHS_IN_REM,
@@ -406,6 +408,78 @@ describe("the builder draws its rows by that layout", () => {
     expect(
       cells[4]!.querySelector("[data-testid='rule-criteria-delete-1']"),
     ).not.toBeNull();
+  });
+});
+
+/*
+ * Add condition starts where the pickers do, so it reads as adding a row to
+ * them (#9116): after the 3.5rem word column and the row's 0.5rem gap from
+ * 24rem, at the edge on a phone, where the pickers take the row's width.
+ */
+describe("where Add condition sits, by the width of the conditions", () => {
+  const indentAt: (widthInPx: number) => string | undefined = (
+    widthInPx: number,
+  ): string | undefined => {
+    return placementAt(RULE_CRITERIA_ADD_CELL_CLASS_NAME, widthInPx)["ps-16"];
+  };
+
+  test("its own container, as wide as the list, so it measures what the rows do", () => {
+    expect(RULE_CRITERIA_ADD_ROW_CLASS_NAME.split(" ")).toContain(
+      "[container-type:inline-size]",
+    );
+  });
+
+  test("at the edge on a phone, under the pickers' start from 24rem", () => {
+    expect(indentAt(383)).toBeUndefined();
+
+    for (const width of [384, 478, 600, 900, 1200]) {
+      expect([width, indentAt(width)]).toEqual([width, ""]);
+    }
+  });
+
+  test("the indent is the word's column and the row's gap: 4rem", () => {
+    expect(RULE_CRITERIA_ROW_CLASS_NAME).toContain("gap-x-2");
+    expect(RULE_CRITERIA_ROW_CLASS_NAME).toContain("grid-cols-[3.5rem_");
+    // ps-16 is 4rem: 3.5rem + gap-x-2's 0.5rem.
+    expect(RULE_CRITERIA_ADD_CELL_CLASS_NAME).toContain(":ps-16");
+  });
+
+  test("by the inline start, so right to left it lines up from the right", () => {
+    expect(RULE_CRITERIA_ADD_CELL_CLASS_NAME).not.toMatch(/:pl-/);
+  });
+
+  test("the builder draws Add condition in that cell", () => {
+    render(
+      <RuleCriteriaBuilder<Record<string, unknown>>
+        fields={[
+          {
+            field: { title: true },
+            title: "Incident Title",
+            fieldType: FormFieldSchemaType.Text,
+          },
+        ]}
+        value={{
+          schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+          filterCondition: FilterCondition.All,
+          filters: [
+            {
+              field: "title",
+              operator: RuleCriteriaOperator.Contains,
+              value: "database",
+            },
+          ],
+        }}
+        onChange={(): void => {}}
+      />,
+    );
+
+    const cell: HTMLElement = screen.getByTestId("rule-criteria-add")
+      .parentElement as HTMLElement;
+
+    expect(cell.className).toBe(RULE_CRITERIA_ADD_CELL_CLASS_NAME);
+    expect((cell.parentElement as HTMLElement).className).toBe(
+      RULE_CRITERIA_ADD_ROW_CLASS_NAME,
+    );
   });
 });
 
