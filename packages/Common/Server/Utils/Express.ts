@@ -80,6 +80,11 @@ export interface OneUptimeRequest extends express.Request {
   };
   rawFormUrlEncodedBody?: string;
   rawBody?: string; // Raw body for signature verification (JSON or URL-encoded)
+  /*
+   * The body's bytes as they came, where a route keeps them to check a
+   * signature over (WebhookRequestBody: a text, +json or signed body).
+   */
+  rawBodyBytes?: Buffer;
 }
 
 export interface OneUptimeResponse extends express.Response {

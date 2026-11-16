@@ -5,6 +5,7 @@ import {
   ExpressResponse,
   ExpressText,
   NextFunction,
+  OneUptimeRequest,
   RequestHandler,
 } from "../Utils/Express";
 
@@ -106,6 +107,13 @@ export default class WebhookRequestBody {
     const readText: RequestHandler = ExpressText({
       type: [...WEBHOOK_BODY_CONTENT_TYPES],
       limit: limit,
+      /*
+       * The bytes as they came, before their charset is decoded: what a
+       * signature of the body is made over (IncomingRequestSignature).
+       */
+      verify: (req: ExpressRequest, _res: ExpressResponse, buf: Buffer) => {
+        (req as OneUptimeRequest).rawBodyBytes = buf;
+      },
     });
 
     return WebhookRequestBody.readWith(readText, (body: unknown): unknown => {
@@ -113,6 +121,53 @@ export default class WebhookRequestBody {
         ? WebhookRequestBody.fromText(body)
         : body;
     });
+  }
+
+  /*
+   * For a request that carries a signature of its body (`isSigned`): reads a
+   * body of any other type - one no parser reads, which reaches the route
+   * empty - as its bytes, up to `limit`, only to check the signature over
+   * (rawBodyBytes). The route still gets it empty, as before. Any other
+   * request, and a body already read, passes through untouched.
+   */
+  public static getSignedBodyReader(
+    limit: string,
+    isSigned: (req: ExpressRequest) => boolean,
+  ): RequestHandler {
+    const readBytes: RequestHandler = ExpressRaw({
+      type: (): boolean => {
+        return true;
+      },
+      limit: limit,
+    });
+
+    return (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): void => {
+      if (
+        req.readableEnded ||
+        Buffer.isBuffer(req.body) ||
+        (req as OneUptimeRequest).rawBody !== undefined ||
+        (req as OneUptimeRequest).rawBodyBytes !== undefined ||
+        !isSigned(req)
+      ) {
+        next();
+        return;
+      }
+
+      const bodyBefore: unknown = req.body;
+
+      readBytes(req, res, (err?: unknown): void => {
+        if (!err && Buffer.isBuffer(req.body)) {
+          (req as OneUptimeRequest).rawBodyBytes = req.body;
+        }
+
+        req.body = bodyBefore === undefined ? {} : bodyBefore;
+        next();
+      });
+    };
   }
 
   /*

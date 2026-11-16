@@ -643,12 +643,31 @@ describe("uptime day strips and non-time-series bars stay out of the zoom", () =
   });
 
   test("the monitor group view keeps its fixed 90 days", () => {
-    const graph: string = sliceBetween(
-      readSquashed(`${DASHBOARD}/Pages/MonitorGroup/View/Index.tsx`),
+    const source: string = readSquashed(
+      `${DASHBOARD}/Pages/MonitorGroup/View/Index.tsx`,
+    );
+
+    /*
+     * Drawn from the server's days (issue #6886): the 90 the summary was
+     * cut for, local midnight 89 days back to now.
+     */
+    const fromTheServer: string = sliceBetween(
+      source,
       "<MonitorUptimeGraph",
       "/>",
     );
-    expect(graph).toContain("startDate={OneUptimeDate.getSomeDaysAgo(90)}");
-    expect(graph).toContain("endDate={OneUptimeDate.getCurrentDate()}");
+    expect(fromTheServer).toContain("startDate={uptimeSummary.startDate}");
+    expect(fromTheServer).toContain("endDate={uptimeSummary.endDate}");
+
+    // From the rows, when the server cannot answer: the last 90 days.
+    const fromTheRows: string = sliceBetween(
+      source.slice(source.indexOf(fromTheServer) + fromTheServer.length),
+      "<MonitorUptimeGraph",
+      "/>",
+    );
+    expect(fromTheRows).toContain(
+      "startDate={OneUptimeDate.getSomeDaysAgo(90)}",
+    );
+    expect(fromTheRows).toContain("endDate={OneUptimeDate.getCurrentDate()}");
   });
 });

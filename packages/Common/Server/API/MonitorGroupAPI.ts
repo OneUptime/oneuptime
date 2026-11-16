@@ -10,8 +10,10 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { MonitorGroupUptimeSummary } from "../../Types/Monitor/MonitorGroupUptimeSummary";
 import ObjectID from "../../Types/ObjectID";
 import MonitorGroup from "../../Models/DatabaseModels/MonitorGroup";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
@@ -20,6 +22,8 @@ import MonitorGroupMonitoring, {
   MonitorGroupMonitoringChange,
   MonitorGroupMonitoringSummary,
 } from "../../Utils/Monitor/MonitorGroupMonitoring";
+import MonitorGroupUptimeSummaryUtil from "../../Utils/Monitor/MonitorGroupUptimeSummaryUtil";
+import MonitorUptimeSummaryUtil from "../../Utils/Monitor/MonitorUptimeSummaryUtil";
 
 export default class MonitorGroupAPI extends BaseAPI<
   MonitorGroup,
@@ -89,6 +93,97 @@ export default class MonitorGroupAPI extends BaseAPI<
             timeline,
             timeline.length,
             MonitorStatusTimeline,
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /monitor-group/uptime-summary/:monitorGroupId?timezone=<IANA zone>
+     *
+     * The Dashboard's monitor group page: the group's 90 days, cut in the
+     * zone the user reads times in, and its uptime over them, measured by
+     * the database from every row (MonitorGroupService.getUptimeSummary,
+     * issue #6886). The timeline route above returns the group's rows under
+     * one 10,000 row cap, oldest first, which on a flapping group drops its
+     * newest days.
+     *
+     * The summary runs as root, so the route applies what reading the
+     * group's history takes, before anything is read:
+     *
+     *   1. an authenticated member of the tenant (401 / 400 / 422),
+     *   2. a valid group id and time zone (400),
+     *   3. an Allow grant to read status timelines, and no team BLOCK on it,
+     *   4. the group read with the CALLER's props (table and label rules),
+     *      and it must belong to the tenant - a group they cannot see, or
+     *      another project's, is refused with the same message.
+     *
+     * Its monitors are read as OneUptime, as the timeline route reads them:
+     * whoever may see the group sees its history.
+     */
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/uptime-summary/:monitorGroupId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+          ObjectID.validateUUID(req.params["monitorGroupId"] as string);
+
+          const monitorGroupId: ObjectID = new ObjectID(
+            req.params["monitorGroupId"] as string,
+          );
+
+          const timezone: string = MonitorUptimeSummaryUtil.parseTimezone(
+            req.query["timezone"],
+          );
+
+          CommonAPI.assertCanReadTable({
+            modelType: MonitorStatusTimeline,
+            props: databaseProps,
+            errorMessage:
+              "You do not have permission to read this monitor group's status history.",
+          });
+
+          const monitorGroup: MonitorGroup | null =
+            await this.service.findOneById({
+              id: monitorGroupId,
+              select: {
+                _id: true,
+                projectId: true,
+              },
+              props: databaseProps,
+            });
+
+          // A null group is refused with the same message as a foreign one.
+          CommonAPI.assertResourceBelongsToProject({
+            resourceProjectId: monitorGroup?.projectId,
+            projectId: projectId,
+          });
+
+          const summary: MonitorGroupUptimeSummary =
+            await this.service.getUptimeSummary({
+              monitorGroupId: monitorGroupId,
+              projectId: projectId,
+              timezone: timezone,
+              now: OneUptimeDate.getCurrentDate(),
+            });
+
+          // A day is cut on now: a copy replayed from a cache would be stale.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            MonitorGroupUptimeSummaryUtil.toJSON(summary),
           );
         } catch (err) {
           next(err);
