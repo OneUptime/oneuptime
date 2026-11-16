@@ -21,7 +21,11 @@ global:
 # Please change this to the domain name / IP where OneUptime server is hosted on.
 # An IPv6 address goes in brackets, and in quotes so YAML reads it as text,
 # with any port after the brackets: host: "[2001:db8::1]" or
-# host: "[2001:db8::1]:8080". The chart refuses one without brackets.
+# host: "[2001:db8::1]:8080". The chart refuses a host OneUptime cannot be
+# opened at, and says what to set: an IPv6 address without brackets, a web
+# address instead of the address alone, a port that is not a number from 1 to
+# 65535, or a name with a character no domain name has, such as
+# oneuptime,example.com.
 host: localhost
 httpProtocol: http
 ssl:
