@@ -103,6 +103,23 @@ export function getCurrentStatusRef(
 }
 
 /*
+ * When something first measured the monitor (Monitor.firstMeasuredAt): a
+ * time; NULL as read when nothing has, which the hero then says whatever
+ * else it can or cannot read; undefined when the row was read without it,
+ * or holds what is not a time, so nothing is claimed either way.
+ */
+export function getFirstMeasuredAt(monitor: Monitor): Date | null | undefined {
+  const value: unknown = (monitor as unknown as { firstMeasuredAt?: unknown })
+    .firstMeasuredAt;
+
+  if (value === null) {
+    return null;
+  }
+
+  return MonitorCheckScheduleUtil.parseDate(value);
+}
+
+/*
  * Whether the probes are meant to be checking now. Any of the three pause
  * flags stops them, so while one is set a probe's old result is simply the
  * last one, not a late one.
@@ -342,6 +359,7 @@ export function toPresentationInput(data: {
     monitorSteps: monitor.monitorSteps,
     monitoringInterval: monitor.monitoringInterval,
     createdAt: MonitorCheckScheduleUtil.parseDate(monitor.createdAt),
+    firstMeasuredAt: getFirstMeasuredAt(monitor),
     currentStatus: getCurrentStatusRef(monitor),
     /*
      * Only a newest open row with the current status vouches for how long

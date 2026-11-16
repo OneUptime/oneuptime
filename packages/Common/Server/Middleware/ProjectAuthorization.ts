@@ -86,11 +86,12 @@ export default class ProjectMiddleware {
     const apiKey: string = rawHeader.trim();
 
     /*
-     * `ApiKey.apiKey` is a Postgres `uuid` column, so a non-UUID value makes
-     * the lookup raise "invalid input syntax for type uuid" down in the query
-     * layer. A raw QueryFailedError is not a OneUptime Exception, so it slips
-     * past the error translator and answers 500 to what is really a malformed
-     * request. Reject the shape here and let the caller get `Invalid API Key`.
+     * Every API key is a uuid (Utils/APIKey/HashedApiKey), so a value that
+     * is not one is no key: rejected here, with `Invalid API Key`, before
+     * anything is hashed or read for it. `ApiKey.apiKey` was a Postgres
+     * `uuid` column, where a non-UUID value made the lookup raise "invalid
+     * input syntax for type uuid" and answer 500; it holds the key's hash
+     * now (#8902), and the shape is still the one a key has.
      */
     if (!ObjectID.isValidUUID(apiKey)) {
       return null;

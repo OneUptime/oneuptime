@@ -12,8 +12,11 @@ import MonitorOverviewHero from "../../../Components/Monitor/Overview/MonitorOve
 import {
   getTelemetryLastCheckedAt,
   getTelemetryLastCheckedLabel,
+  isMonitorScheduled,
   toPresentationInput,
 } from "../../../Components/Monitor/Overview/MonitorOverviewInput";
+import HeartbeatSweepSchedule from "Common/Utils/Monitor/HeartbeatSweepSchedule";
+import MonitorCheckScheduleUtil from "Common/Utils/Monitor/MonitorCheckScheduleUtil";
 import MonitorOverviewStatBar from "../../../Components/Monitor/Overview/MonitorOverviewStatBar";
 import {
   MonitorOpenWork,
@@ -443,6 +446,24 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }
               incomingEmailMonitorHeartbeatCheckedAt={
                 monitor.incomingEmailMonitorHeartbeatCheckedAt
+              }
+              /*
+               * The sweep stamps "status checked at" only every few
+               * minutes: while the stamp is as recent as a running sweep
+               * leaves it, the card says the schedule, as the hero does
+               * (HeartbeatSweepSchedule, issue #8123). Judged on the
+               * server's clock, which wrote the stamp.
+               */
+              isHeartbeatCheckOnSchedule={
+                isMonitorScheduled(monitor) &&
+                HeartbeatSweepSchedule.isStampOnSchedule({
+                  checkedAt: MonitorCheckScheduleUtil.parseDate(
+                    monitorType === MonitorType.IncomingEmail
+                      ? monitor.incomingEmailMonitorHeartbeatCheckedAt
+                      : monitor.incomingRequestMonitorHeartbeatCheckedAt,
+                  ),
+                  now: now,
+                })
               }
               serverMonitorResponse={monitor.serverMonitorResponse}
               /*

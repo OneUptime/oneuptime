@@ -196,6 +196,14 @@ export interface TerraformAttribute {
   computed?: boolean;
   optional?: boolean; // Explicitly mark as optional (useful for optional+computed fields)
   sensitive?: boolean;
+  /*
+   * A secret OneUptime answers once - in the answer to the create that makes
+   * the record - and never reads back (the spec's x-oneuptime-shown-once): a
+   * project API key's api_key. Kept in state from that answer: no read
+   * clears it, and an update keeps it. Known only for a record this
+   * Terraform created; an imported one has none.
+   */
+  shownOnce?: boolean;
   forceNew?: boolean;
   default?: any;
   apiFieldName?: string; // Original OpenAPI field name for API requests

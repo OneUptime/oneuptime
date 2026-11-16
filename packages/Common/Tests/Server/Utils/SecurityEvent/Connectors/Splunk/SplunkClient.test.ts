@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
 import SplunkClient, {
   SPLUNK_MAX_EXPORT_ROWS,
   SplunkClientOptions,
@@ -908,6 +908,49 @@ describe("SplunkClient", () => {
 
       expect(error.message).toContain("retry after 30 seconds");
     });
+
+    // Issue #8928: what the header says, read as RFC 9110 writes it.
+    test.each([
+      ["Mon, 16 Nov 2026 10:00:25 GMT", "retry after 25 seconds"],
+      ["soon", "Splunk throttled the request. The next poll"],
+      ["-5", "Splunk throttled the request. The next poll"],
+    ])(
+      "says a Retry-After of %j as %j",
+      async (retryAfter: string, said: string) => {
+        const now: jest.SpiedFunction<typeof Date.now> = jest
+          .spyOn(Date, "now")
+          .mockReturnValue(Date.UTC(2026, 10, 16, 10, 0, 0));
+
+        try {
+          const harness: Harness = buildHarness({
+            exports: [
+              (): DataSourceHttpResponse => {
+                return {
+                  statusCode: 429,
+                  bodyText: "",
+                  bodyJson: undefined,
+                  headers: { "retry-after": retryAfter },
+                };
+              },
+            ],
+          });
+
+          const error: APIException = await expectRejection(
+            harness.client.exportSearch({
+              startTime: START,
+              endTime: END,
+              maxResults: 5,
+            }),
+          );
+
+          expect(error.message).toContain(said);
+          // The header's text is never quoted as a number of seconds.
+          expect(error.message).not.toMatch(/(soon|GMT|-5) seconds/);
+        } finally {
+          now.mockRestore();
+        }
+      },
+    );
 
     test("folds the transport's HTTP-status exception back into the status taxonomy", async () => {
       const harness: Harness = buildHarness({

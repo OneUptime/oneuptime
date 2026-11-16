@@ -111,7 +111,7 @@ import {
   CloudMonitoredResource,
   buildCloudMonitoredResourceIdentifier,
 } from "Common/Types/Cloud/CloudMonitoredResource";
-import EventLoop from "Common/Server/Utils/EventLoop";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import SingleFlight from "Common/Server/Utils/SingleFlight";
 import PostgresErrorTranslator from "Common/Server/Utils/Database/PostgresErrorTranslator";
 import DiscoveredResourceIdCache, {
@@ -4016,10 +4016,16 @@ export default abstract class OtelIngestBaseService {
     let resolved: number = 0;
     let failures: number = 0;
     let firstFailure: string = "";
+    /*
+     * Handed back by the time the work took, not every 25 resources: one
+     * the caches know costs a few map reads, one they do not a Postgres
+     * lookup (Common/Server/Utils/EventLoop.ts, #8925).
+     */
+    const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
 
     for (let index: number = 0; index < data.resources.length; index++) {
-      if (index > 0 && index % 25 === 0) {
-        await EventLoop.yieldToEventLoop();
+      if (eventLoopBudget.isSpent()) {
+        await eventLoopBudget.handBack();
       }
 
       const resource: CloudMonitoredResource = data.resources[index]!;

@@ -542,6 +542,129 @@ describe.each(CHILDREN)(
   },
 );
 
+/*
+ * WHO CREATED A ROW IS ONEUPTIME'S TO STAMP, ALSO IN THE EARLY CHECK (#8952).
+ *
+ * The rule service writes a rule's people, teams and schedules naming the
+ * person adding them as each row's creator (addUser, addTeam,
+ * addOnCallSchedules), and a client may send back a row it read, creator
+ * and all. A create made as a person takes the creator out before any of
+ * its checks reads the row, and stamps the person after them
+ * (UserAttribution). Since #8908 a value a check is handed in a column
+ * nobody may create is refused, so this early check, asked of the row as it
+ * was handed in, refused every such row: an escalation rule added with
+ * responders was saved without them. It now asks of the row what the
+ * create's own checks read.
+ */
+const OTHER_USER_ID: ObjectID = new ObjectID(
+  "40000000-0000-4000-8000-000000000002",
+);
+
+// Every role that may add a rule and its responders.
+const ROLES_THAT_ADD_RULES: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.OnCallAdmin,
+  Permission.OnCallMember,
+];
+
+describe.each(CHILDREN)(
+  "$name written naming its creator, as the rule service writes it",
+  (fixture: ChildFixture) => {
+    test.each(ROLES_THAT_ADD_RULES)(
+      "is let through for %s, with the creator left for the create to stamp",
+      async (permission: Permission) => {
+        const request: CreateBy<Child> = input(
+          fixture,
+          { createdByUserId: USER_ID },
+          callerProps([grant(permission)]),
+        );
+
+        await expect(fixture.service.create(request)).resolves.toBe(
+          request.data,
+        );
+
+        expect(createSpy).toHaveBeenCalledTimes(1);
+        expect(createSpy).toHaveBeenCalledWith(request);
+        // Taken out before the checks; DatabaseService stamps the caller after them.
+        expect(request.data.createdByUserId).toBeUndefined();
+      },
+    );
+
+    test("is let through for a role holding only this row's own create permission", async () => {
+      const request: CreateBy<Child> = input(
+        fixture,
+        { createdByUserId: USER_ID },
+        callerProps([
+          grant(fixture.createPermission),
+          // The policy the row is added to, read through its own permission.
+          grant(Permission.ReadProjectOnCallDutyPolicy),
+        ]),
+      );
+
+      await expect(fixture.service.create(request)).resolves.toBe(request.data);
+      expect(request.data.createdByUserId).toBeUndefined();
+    });
+
+    test("a row read and sent back whole is created as the caller's: someone else's creator and deleter are dropped, not refused", async () => {
+      const someoneElse: Record<string, unknown> = {
+        _id: OTHER_USER_ID.toString(),
+      };
+      const request: CreateBy<Child> = input(fixture, {
+        createdByUserId: OTHER_USER_ID,
+        createdByUser: someoneElse,
+        deletedByUserId: OTHER_USER_ID,
+        deletedByUser: someoneElse,
+      });
+
+      await expect(fixture.service.create(request)).resolves.toBe(request.data);
+
+      const sent: Record<string, unknown> = request.data as unknown as Record<
+        string,
+        unknown
+      >;
+
+      for (const column of [
+        "createdByUserId",
+        "createdByUser",
+        "deletedByUserId",
+        "deletedByUser",
+      ]) {
+        expect(sent[column]).toBeUndefined();
+      }
+      expect(createSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("taking the creator out lets nobody past the row's own create permission", async () => {
+      await expect(
+        fixture.service.create(
+          input(
+            fixture,
+            { createdByUserId: USER_ID },
+            callerProps([grant(Permission.Viewer)]),
+          ),
+        ),
+      ).rejects.toThrow(NotAuthorizedException);
+
+      expect(findSpy).not.toHaveBeenCalled();
+      expect(createSpy).not.toHaveBeenCalled();
+    });
+
+    test("OneUptime's own write naming the person it acts for keeps them", async () => {
+      const request: CreateBy<Child> = input(
+        fixture,
+        { createdByUserId: USER_ID },
+        { isRoot: true, userId: USER_ID },
+      );
+
+      await fixture.service.create(request);
+
+      expect(request.data.createdByUserId?.toString()).toBe(USER_ID.toString());
+    });
+  },
+);
+
 interface RelationFixture {
   scalar: string;
   relation: string;

@@ -586,6 +586,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a custom domain's uploaded certificate and key were not saved: the
+   * server's refusals, which the Edit dialog says under the half they are
+   * about, in the reader's language. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/CustomDomain/UploadedCertificateRefusals.ts",
+    kind: "keys",
+  },
+  /*
    * An error nobody explained (#6836): what happened, what to do next and
    * where to look, which ErrorExplanation says in the reader's language.
    * Only the words the file marks are read.

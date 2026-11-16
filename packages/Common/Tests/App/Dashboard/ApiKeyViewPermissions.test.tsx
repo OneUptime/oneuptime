@@ -223,7 +223,8 @@ function apiKey(): ApiKey {
   key._id = KEY_ID;
   key.name = "Terraform";
   key.expiresAt = OneUptimeDate.getSomeDaysAfter(365);
-  key.apiKey = new ObjectID("0f000000-0000-4000-8000-0000000000aa");
+  // How the key ends: the key itself is stored as its hash (#8902).
+  key.apiKeyHint = "00aa";
   return key;
 }
 

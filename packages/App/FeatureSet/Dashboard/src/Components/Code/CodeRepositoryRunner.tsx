@@ -28,7 +28,7 @@ import Link from "Common/UI/Components/Link/Link";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { BILLING_ENABLED } from "Common/UI/Config";
+import { GLOBAL_RUNNERS_KEEP_CONNECTION_TOKENS_OFF } from "Common/UI/Config";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -219,7 +219,7 @@ export const CodeRepositoryRunnerPicker: FunctionComponent<
 
   const keptOffText: string | null = getGlobalRunnerKeptOffText(
     props.provider,
-    BILLING_ENABLED,
+    GLOBAL_RUNNERS_KEEP_CONNECTION_TOKENS_OFF,
   );
 
   const isOnGlobalRunner: boolean =
@@ -504,6 +504,9 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
   return withStatus(
     <span>{translator.translateText(GLOBAL_RUNNER_CHOICE_LABEL)}</span>,
     getCodeRepositoryRunnerWords(props.provider).globalRunnerDescription,
-    getGlobalRunnerKeptOffText(props.provider, BILLING_ENABLED),
+    getGlobalRunnerKeptOffText(
+      props.provider,
+      GLOBAL_RUNNERS_KEEP_CONNECTION_TOKENS_OFF,
+    ),
   );
 };

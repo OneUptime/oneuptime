@@ -10,6 +10,7 @@ import crypto from "crypto";
 type ModelRepository = ReturnType<DatabaseService<BaseModel>["getRepository"]>;
 
 const MASTER_API_KEY_COLUMN: string = "masterApiKey";
+const MASTER_API_KEY_HINT_COLUMN: string = "masterApiKeyHint";
 
 /*
  * The SHA-256 of a value, as Postgres writes it for the same text
@@ -35,7 +36,10 @@ export const digestOfValueRead: (value: string) => string = (
  * and kept the key, as its lower-case text. This reads the row's raw value
  * and, where it is a key as it was written (a uuid - a hash never is one),
  * writes its hash in its place, in raw SQL, so the key is hashed exactly
- * once and DatabaseService's own hashing never touches it.
+ * once and DatabaseService's own hashing never touches it. Its hint - its
+ * last four characters, which Admin Dashboard > Settings > API Key shows in
+ * place of the key (#8903) - is written with it: once the key is hashed,
+ * nothing can work it out.
  *
  * Every script and integration that uses the key keeps working, with no
  * change: the key a request presents is hashed and compared with the hash
@@ -90,8 +94,13 @@ export default class HashMasterApiKey extends DataMigrationBase {
 
       try {
         await repository.manager.query(
-          `UPDATE "${tableName}" SET "${MASTER_API_KEY_COLUMN}" = $1 WHERE "_id" = $2 AND encode(sha256(convert_to("${MASTER_API_KEY_COLUMN}", 'UTF8')), 'hex') = $3`,
-          [MasterApiKey.hash(value), row["_id"], digestOfValueRead(value)],
+          `UPDATE "${tableName}" SET "${MASTER_API_KEY_COLUMN}" = $1, "${MASTER_API_KEY_HINT_COLUMN}" = $2 WHERE "_id" = $3 AND encode(sha256(convert_to("${MASTER_API_KEY_COLUMN}", 'UTF8')), 'hex') = $4`,
+          [
+            MasterApiKey.hash(value),
+            MasterApiKey.getHint(value),
+            row["_id"],
+            digestOfValueRead(value),
+          ],
         );
       } catch (err) {
         /*

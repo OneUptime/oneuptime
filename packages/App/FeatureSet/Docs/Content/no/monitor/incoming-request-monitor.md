@@ -94,7 +94,7 @@ Hvis du vil bruke felt inne i forespørselsteksten — `{{requestBody.status}}` 
 | --- | --- |
 | `application/json` | Den tolkede JSON-en. |
 | `application/x-www-form-urlencoded` | Det tolkede skjemaet. Nøkler i hakeparenteser nestes (`alerts[0][status]=firing`), og alle verdier er strenger. |
-| `text/plain` | Den tolkede JSON-en, når teksten er et JSON-objekt eller en JSON-matrise: slik sender Amazon SNS meldingene sine. All annen tekst er selve teksten, så `backup failed: error 42` setter monitoren frakoblet med standardkriteriene. |
+| `text/plain` | Den tolkede JSON-en, når teksten er et JSON-objekt eller en JSON-matrise: slik sender Amazon SNS meldingene sine. All annen tekst er selve teksten, så `backup failed: error 42` setter monitoren offline med standardkriteriene. |
 | `application/cloudevents+json` eller en annen `+json`-type | Den tolkede JSON-en: slik leverer Azure Event Grid CloudEvents. |
 | Alt annet, eller ingen | En tom tekst (`{}`), så ingen henvisning til `requestBody` løses opp, og en mal skriver den ordrett. |
 

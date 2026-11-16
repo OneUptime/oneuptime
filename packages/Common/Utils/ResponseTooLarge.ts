@@ -1,4 +1,5 @@
 import APIException from "../Types/Exception/ApiException";
+import { NO_BREAK_SPACE } from "../Types/NoBreakSpaces";
 import axios from "axios";
 
 /*
@@ -57,7 +58,12 @@ export default class ResponseTooLarge {
     return `${subject} was larger than ${ResponseTooLarge.formatSize(maxContentLength)}, so it was not read.`;
   }
 
-  // 10485760 -> "10 MB", 65536 -> "64 KB", 1572864 -> "1.5 MB".
+  /*
+   * 10485760 -> "10 MB", 65536 -> "64 KB", 1572864 -> "1.5 MB", the figure
+   * and its unit joined by a no-break space, so a narrow cell or a log line
+   * never ends in "10" and starts the next with "MB" (Docs/ux/README.md,
+   * numbers keep their units).
+   */
   private static formatSize(bytes: number): string {
     const units: Array<[string, number]> = [
       ["GB", 1024 * 1024 * 1024],
@@ -67,7 +73,7 @@ export default class ResponseTooLarge {
 
     for (const [unit, size] of units) {
       if (bytes >= size) {
-        return `${Math.round((bytes / size) * 10) / 10} ${unit}`;
+        return `${Math.round((bytes / size) * 10) / 10}${NO_BREAK_SPACE}${unit}`;
       }
     }
 

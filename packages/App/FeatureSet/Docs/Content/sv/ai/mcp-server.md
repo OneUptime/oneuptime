@@ -144,7 +144,7 @@ Under **Åtkomst** väljer du **Tittare** för en agent som bara läser, eller *
 
 ### Kopiera nyckeln
 
-Klicka på **Skapa API-nyckel**: nyckelns sida öppnas. Kopiera nyckeln därifrån.
+Klicka på **Skapa API-nyckel**. OneUptime visar nyckeln en gång, i dialogrutan **Kopiera din API-nyckel**: kopiera den innan du trycker på **Klar**.
 :::
 
 API-nycklar hör till ett projekt: MCP-servern tar projektet från nyckeln, så att skapandeverktyg aldrig behöver ett `projectId`-argument.

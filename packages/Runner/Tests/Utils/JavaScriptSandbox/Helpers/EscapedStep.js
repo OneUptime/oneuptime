@@ -22,6 +22,7 @@
  */
 
 const childProcess = require("child_process");
+const dgram = require("dgram");
 const fs = require("fs");
 const net = require("net");
 
@@ -40,6 +41,58 @@ function attempt(action) {
   }
 }
 
+/*
+ * Whether the process can open a socket of its own at all: the one way a
+ * step that got out of its isolate could reach a network. The no-network
+ * filter refuses the socket() call outright; Node's permission model,
+ * without leave for the network, refuses it before the call. Either way the
+ * probe never reaches a host, so it needs none up: it resolves with the
+ * error code, and the tests require that there always is one.
+ */
+function openSocket(kind) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (result) => {
+      if (!settled) {
+        settled = true;
+        resolve(result);
+      }
+    };
+
+    try {
+      if (kind === "tcp") {
+        const socket = new net.Socket();
+        socket.on("error", (error) => {
+          socket.destroy();
+          done({ ok: false, code: error.code || String(error) });
+        });
+        socket.on("connect", () => {
+          socket.destroy();
+          done({ ok: true, value: "opened" });
+        });
+        // A port nothing answers on this host: a refusal is the socket, not the port.
+        socket.connect(9, "127.0.0.1");
+      } else {
+        const socket = dgram.createSocket("udp4");
+        socket.on("error", (error) => {
+          socket.close();
+          done({ ok: false, code: error.code || String(error) });
+        });
+        socket.bind(0, "127.0.0.1", () => {
+          socket.close();
+          done({ ok: true, value: "bound" });
+        });
+      }
+    } catch (error) {
+      done({ ok: false, code: error && error.code ? error.code : String(error) });
+    }
+
+    setTimeout(() => {
+      done({ ok: false, code: "TIMEOUT" });
+    }, 2000);
+  });
+}
+
 function readStatusField(name) {
   const line = fs
     .readFileSync("/proc/self/status", "utf8")
@@ -48,26 +101,33 @@ function readStatusField(name) {
   return line ? line.slice(name.length + 1).trim() : null;
 }
 
+// The request is the first line of standard input (SandboxProtocol v2).
 function readRequest() {
   return new Promise((resolve) => {
-    const chunks = [];
-    process.stdin.on("data", (chunk) => {
-      chunks.push(chunk);
-    });
+    let buffer = "";
+    const onData = (chunk) => {
+      buffer += chunk;
+      const newline = buffer.indexOf("\n");
+      if (newline !== -1) {
+        process.stdin.off("data", onData);
+        try {
+          resolve(JSON.parse(buffer.slice(0, newline)));
+        } catch {
+          resolve(null);
+        }
+      }
+    };
+    process.stdin.on("data", onData);
     process.stdin.on("error", () => {
       resolve(null);
     });
     process.stdin.on("end", () => {
-      try {
-        resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
-      } catch {
-        resolve(null);
-      }
+      resolve(null);
     });
   });
 }
 
-function getReport(targets) {
+async function getReport(targets) {
   const report = {
     pid: process.pid,
     uid: process.getuid(),
@@ -75,6 +135,9 @@ function getReport(targets) {
     groups: process.getgroups(),
     environmentNames: Object.keys(process.env).sort(),
     cwd: process.cwd(),
+    seccomp: attempt(() => readStatusField("Seccomp")),
+    openTcpSocket: await openSocket("tcp"),
+    openUdpSocket: await openSocket("udp"),
     noNewPrivs: attempt(() => readStatusField("NoNewPrivs")),
     capEff: attempt(() => readStatusField("CapEff")),
     readRunnerEnvironment: attempt(() =>
@@ -124,7 +187,7 @@ async function main() {
   const argv = process.argv.slice(2);
 
   if (argv.length >= 3) {
-    const report = getReport({
+    const report = await getReport({
       runnerPid: argv[0],
       runnerFile: argv[1],
       runnerDirectory: argv[2],
@@ -140,12 +203,14 @@ async function main() {
     process.exit(2);
   }
 
-  const report = getReport(request.args || {});
-  const channel = new net.Socket({ fd: 3, readable: false, writable: true });
+  const report = await getReport(request.args || {});
+  // fd 3, the result channel, written as a file: the permission model
+  // refuses a socket of any kind, even around a descriptor it was given.
+  const channel = fs.createWriteStream("", { fd: 3 });
 
   channel.end(
     JSON.stringify({
-      version: 1,
+      version: 2,
       nonce: request.nonce,
       success: true,
       output: JSON.stringify(report),

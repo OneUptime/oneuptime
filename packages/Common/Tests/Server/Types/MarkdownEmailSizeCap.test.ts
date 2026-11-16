@@ -1287,3 +1287,327 @@ describe("Markdown.cutEmailMarkdown - a line megabytes long before the definitio
     },
   );
 });
+
+/*
+ * A FIELD OF MORE REFERENCES THAN HALF ITS WEIGHT LEAVES ROOM TO DEFINE
+ * (#7602).
+ *
+ * A field cut to fit brings along the definitions its kept references
+ * need, cuts its kept part shorter to make room for them - to half of the
+ * weight - and writes each that does not fit whole as an empty one
+ * ("[label]: <>"), whose references show their text. A shortcut reference,
+ * "[run-12-xxx...]", is shorter than its empty definition: a kept part of
+ * thousands of them needed more room for their empty definitions than half
+ * the weight left, and every reference past that showed as Markdown - 189
+ * of 4,000 with labels of 40 characters, 54 of 3,000 of 80. Now the kept
+ * part is cut shorter again, by what the empty definitions need, down to a
+ * quarter of the weight: it keeps fewer references, and each keeps its
+ * definition, whole or empty.
+ */
+describe("Markdown.cutEmailMarkdown - references that need more room to define than they take (#7602)", () => {
+  // A label of `length` characters for run `index`: "run-<index>-xxx...".
+  const runLabel: (index: number, length: number) => string = (
+    index: number,
+    length: number,
+  ): string => {
+    const head: string = `run-${index}-`;
+
+    return `${head}${"x".repeat(length - head.length)}`;
+  };
+
+  /*
+   * The issue's field: `count` references to runs - shortcut ones unless
+   * said - each a paragraph of its own, then 400 KB of a log, then each
+   * run's definition.
+   */
+  const runsField: (
+    count: number,
+    labelLength: number,
+    reference?: (label: string, index: number) => string,
+  ) => string = (
+    count: number,
+    labelLength: number,
+    reference: (label: string, index: number) => string = (
+      label: string,
+    ): string => {
+      return `[${label}]`;
+    },
+  ): string => {
+    const references: Array<string> = [];
+    const definitions: Array<string> = [];
+
+    for (let index: number = 0; index < count; index++) {
+      const label: string = runLabel(index, labelLength);
+
+      references.push(reference(label, index));
+      definitions.push(`[${label}]: https://ci.example.com/runs/${index}`);
+    }
+
+    return `${references.join("\n\n")}\n\n${"2026-11-13T10:00:00Z INFO request served\n".repeat(10000)}\n${definitions.join("\n")}\n`;
+  };
+
+  // How an email shows the references to runs: as links, as their text, as Markdown.
+  interface RunsShown {
+    links: number;
+    texts: number;
+    markdown: number;
+  }
+
+  const runsShown: (
+    html: string,
+    count: number,
+    labelLength: number,
+  ) => RunsShown = (
+    html: string,
+    count: number,
+    labelLength: number,
+  ): RunsShown => {
+    const shown: RunsShown = { links: 0, texts: 0, markdown: 0 };
+
+    for (let index: number = 0; index < count; index++) {
+      const label: string = runLabel(index, labelLength);
+
+      if (html.includes(`<a href="https://ci.example.com/runs/${index}">`)) {
+        shown.links++;
+      } else if (html.includes(`[${label}]`)) {
+        shown.markdown++;
+      } else if (html.includes(label)) {
+        shown.texts++;
+      }
+    }
+
+    return shown;
+  };
+
+  /*
+   * What a cut of `text` keeps of it, after the definitions it brings
+   * along and the blank line after them, if any: one line each here.
+   */
+  const keptOf: (text: string, cut: string) => string = (
+    text: string,
+    cut: string,
+  ): string => {
+    return text.startsWith(cut) ? cut : cut.slice(cut.indexOf("\n\n") + 2);
+  };
+
+  /*
+   * The labels marked looks up in `cut` that the text cut defines -
+   * `defined`, every label of these fields - and `cut` does not. (marked
+   * reading the whole text would list its thousands of definitions at each
+   * of its thousands of paragraphs, #7597.)
+   */
+  const undefinedInCut: (
+    defined: ReadonlySet<string>,
+    cut: string,
+  ) => Array<string> = (
+    defined: ReadonlySet<string>,
+    cut: string,
+  ): Array<string> => {
+    const read: MarkedReferences = readMarkedReferences(cut);
+
+    return read.lookedUp.filter((label: string): boolean => {
+      return defined.has(label) && !isDefined(read.links, label);
+    });
+  };
+
+  // Every label of runsField(count, labelLength).
+  const runLabels: (count: number, labelLength: number) => Set<string> = (
+    count: number,
+    labelLength: number,
+  ): Set<string> => {
+    const labels: Set<string> = new Set<string>();
+
+    for (let index: number = 0; index < count; index++) {
+      labels.add(runLabel(index, labelLength));
+    }
+
+    return labels;
+  };
+
+  test.each([
+    [2000, 40],
+    [4000, 40],
+    [3000, 80],
+  ])(
+    "the issue's fields: %i shortcut references with labels of %i characters, a log, then their definitions - each reference the email keeps is a link or its text, none Markdown",
+    async (count: number, labelLength: number) => {
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+      const markdown: string = runsField(count, labelLength);
+
+      const html: string = await render(markdown);
+      const shown: RunsShown = runsShown(html, count, labelLength);
+
+      expect(markdown.length).toBeGreaterThan(2 * MAX_EMAIL_FIELD_HTML_BYTES);
+      expect(EmailSize.getFieldSizeInBytes(html)).toBeLessThanOrEqual(
+        MAX_EMAIL_FIELD_HTML_BYTES,
+      );
+      expect(html.endsWith(EMAIL_TRUNCATED_TEXT_NOTE_HTML)).toBe(true);
+      // 189 and 54 showed as Markdown, before.
+      expect(shown.markdown).toBe(0);
+      // Well over a thousand are kept, and some of them come whole: links.
+      expect(shown.links + shown.texts).toBeGreaterThan(1400);
+      expect(shown.links).toBeGreaterThan(100);
+    },
+  );
+
+  /*
+   * Cut to 64 KB: half of it keeps hundreds of references whose empty
+   * definitions do not fit in the other half - images are longer than
+   * theirs, and always fitted - and marked reads the cut in good time.
+   */
+  test.each([
+    ["shortcut references, labels of 40 characters", 1500, 40, undefined],
+    ["shortcut references, labels of 80 characters", 800, 80, undefined],
+    ["shortcut references, labels of 20 characters", 2500, 20, undefined],
+    [
+      "collapsed references",
+      1800,
+      30,
+      (label: string): string => {
+        return `[${label}][]`;
+      },
+    ],
+    [
+      "images",
+      1500,
+      40,
+      (label: string, index: number): string => {
+        return `![Run ${index}][${label}]`;
+      },
+    ],
+  ])(
+    "cut to 64 KB, %s: within the weight, and every reference marked reads in the cut keeps its definition",
+    (
+      _name: string,
+      count: number,
+      labelLength: number,
+      reference: ((label: string, index: number) => string) | undefined,
+    ) => {
+      const weight: number = 64 * 1024;
+      const markdown: string = runsField(count, labelLength, reference);
+      const cut: string = Markdown.cutEmailMarkdown(markdown, weight);
+      const read: MarkedReferences = readMarkedReferences(cut);
+
+      expect(cut.length).toBeLessThanOrEqual(weight);
+      // The definitions come first, then the start of the text.
+      expect(markdown.startsWith(keptOf(markdown, cut))).toBe(true);
+      expect(read.lookedUp.length).toBeGreaterThan(300);
+      expect(undefinedInCut(runLabels(count, labelLength), cut)).toEqual([]);
+    },
+  );
+
+  /*
+   * A definition of "[r<n> x]" a cut writes, its label as the definition
+   * writes it: empty, or - when the room left takes one - whole.
+   */
+  const WRITTEN_LONG_LABEL: RegExp = /^\[r\d+ {300}x\]: (<>|\/runs\/\d+)$/;
+
+  test("a field whose definitions write their labels far longer than its references do: cut to a quarter of the weight, and no shorter - the empty definitions that fit come, and the cut text is within the weight", () => {
+    // "[r12 x]", defined as "[r12" and 300 spaces and "x]": one label to marked.
+    const references: Array<string> = [];
+    const definitions: Array<string> = [];
+
+    for (let index: number = 0; index < 8000; index++) {
+      references.push(`[r${index} x]`);
+      definitions.push(`[r${index}${" ".repeat(300)}x]: /runs/${index}`);
+    }
+
+    const markdown: string = `${references.join("\n")}\n\n${definitions.join("\n")}`;
+    const weight: number = 64 * 1024;
+    const cut: string = Markdown.cutEmailMarkdown(markdown, weight);
+    const written: Array<string> = cut
+      .slice(0, cut.indexOf("\n\n"))
+      .split("\n");
+    const kept: string = cut.slice(cut.indexOf("\n\n") + 2);
+
+    expect(cut.length).toBeLessThanOrEqual(weight);
+    expect(markdown.startsWith(kept)).toBe(true);
+    // Cut where a quarter of the weight is cut: at its last line break in the second half of it.
+    expect(kept.length).toBeGreaterThan(weight / 8);
+    expect(kept.length).toBeLessThanOrEqual(weight / 4);
+    /*
+     * As many definitions as fit come - empty, some 310 characters each, as
+     * the definitions write their labels - and no room is left for another.
+     */
+    expect(
+      written.every((line: string): boolean => {
+        return WRITTEN_LONG_LABEL.test(line);
+      }),
+    ).toBe(true);
+    expect(
+      written.filter((line: string): boolean => {
+        return line.endsWith("]: <>");
+      }).length,
+    ).toBeGreaterThan(100);
+    expect(weight - cut.length).toBeLessThan(320);
+  });
+
+  test("generated fields of many references to long labels, cut to many weights: within the weight, the start of the text after the definitions, and every reference marked reads keeps its definition", () => {
+    const random: SeededRandom = seededRandom(7602);
+    const FORMS: ReadonlyArray<(label: string) => string> = [
+      (label: string): string => {
+        return `[${label}]`;
+      },
+      (label: string): string => {
+        return `[${label}][]`;
+      },
+      (label: string): string => {
+        return `[Run][${label}]`;
+      },
+      (label: string): string => {
+        return `![Shot][${label}]`;
+      },
+    ];
+    const JOINERS: ReadonlyArray<string> = ["\n", "\n\n", " ", ""];
+    const problems: Array<string> = [];
+    let cuts: number = 0;
+    let cutPastHalf: number = 0;
+
+    for (let round: number = 0; round < 30; round++) {
+      const labels: Array<string> = [];
+
+      for (let index: number = 200 + random(1500); index > 0; index--) {
+        labels.push(`l${index}-${"y".repeat(8 + random(112))}`);
+      }
+
+      const references: string = labels
+        .map((label: string): string => {
+          return FORMS[random(FORMS.length)]!(label);
+        })
+        .join(JOINERS[random(JOINERS.length)]!);
+      const filler: string = "The probe timed out.\n".repeat(random(3000));
+      const markdown: string = `${references}\n\n${filler}\n${labels
+        .map((label: string, index: number): string => {
+          return `[${label}]: https://ci.example.com/runs/${index}`;
+        })
+        .join("\n")}`;
+
+      for (const share of [6, 3, 2]) {
+        const weight: number = Math.floor(markdown.length / share);
+        const cut: string = Markdown.cutEmailMarkdown(markdown, weight);
+        const kept: string = keptOf(markdown, cut);
+        const name: string = `round ${round}, cut to 1/${share}`;
+        const lost: number = undefinedInCut(
+          new Set<string>(labels),
+          cut,
+        ).length;
+
+        cuts++;
+        cutPastHalf += kept.length < weight / 2 ? 1 : 0;
+
+        if (cut.length > weight) {
+          problems.push(`${name}: weighs ${cut.length} of ${weight}`);
+        } else if (!markdown.startsWith(kept)) {
+          problems.push(`${name}: the kept part is not the start of the text`);
+        } else if (lost > 0) {
+          problems.push(`${name}: ${lost} references lost their definitions`);
+        }
+      }
+    }
+
+    expect(problems).toEqual([]);
+    // The fields reach what they test: many cut past half the weight for their definitions.
+    expect(cuts).toBe(90);
+    expect(cutPastHalf).toBeGreaterThan(20);
+  });
+});

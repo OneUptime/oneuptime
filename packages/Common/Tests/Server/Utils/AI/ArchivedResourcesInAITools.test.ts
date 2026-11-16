@@ -25,6 +25,7 @@ import MonitorGroupService from "../../../../Server/Services/MonitorGroupService
 import MonitorOwnerTeamService from "../../../../Server/Services/MonitorOwnerTeamService";
 import MonitorOwnerUserService from "../../../../Server/Services/MonitorOwnerUserService";
 import MonitorService from "../../../../Server/Services/MonitorService";
+import MonitorStatusService from "../../../../Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "../../../../Server/Services/MonitorStatusTimelineService";
 import OnCallDutyPolicyEscalationRuleScheduleService from "../../../../Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyEscalationRuleService from "../../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
@@ -464,10 +465,17 @@ describe("query_status_pages and archived status pages", () => {
     expect((monitorRead["query"] as JSONObject)["projectId"]).toBe(
       ctx.projectId,
     );
+    /*
+     * And whether anything has checked it yet, what it is and its status:
+     * one nothing has is marked not monitored yet (#8899).
+     */
     expect(monitorRead["select"]).toEqual({
       _id: true,
       isArchived: true,
       disableActiveMonitoring: true,
+      firstMeasuredAt: true,
+      monitorType: true,
+      currentMonitorStatusId: true,
     });
 
     expect(result.dataForLlm).toContain("Checkout");
@@ -600,6 +608,54 @@ describe("query_status_pages and monitors whose monitoring is off", () => {
     expect(resourcesShown(result)).toBe(
       "2: Checkout (monitor: Checkout monitor), Search (monitor: Search monitor) - not monitored",
     );
+  });
+
+  /*
+   * Issue #8899: a monitor nothing has checked yet holds the operational
+   * status it was created in; the public page draws it as Not monitored
+   * yet, and the assistant says so - never that it is up.
+   */
+  test("a monitor nothing has checked yet stays among the resources, marked not monitored yet", async () => {
+    const OPERATIONAL_ID: ObjectID = ObjectID.generate();
+    const checkout: StatusPageResource = resource("Checkout");
+    const brandNew: StatusPageResource = resource("Payments");
+    const neverMeasured: Monitor = monitorsRead[monitorsRead.length - 1]!;
+    (neverMeasured as unknown as JSONObject)["firstMeasuredAt"] = null;
+    neverMeasured.monitorType = MonitorType.Website;
+    neverMeasured.currentMonitorStatusId = OPERATIONAL_ID;
+
+    const operational: MonitorStatus = new MonitorStatus(OPERATIONAL_ID);
+    operational.isOperationalState = true;
+    operational.isOfflineState = false;
+    const statusesRead: AnySpy = spy(MonitorStatusService, "findBy", [
+      operational,
+    ]);
+
+    mockDetail([checkout, brandNew]);
+
+    const result: ToolExecutionResult = await readPage();
+
+    expect(result.dataForLlm).toContain(
+      "Payments (monitor: Payments monitor) - not monitored yet",
+    );
+    expect(result.dataForLlm).not.toContain(
+      "Checkout (monitor: Checkout monitor) - not monitored",
+    );
+    // The project's statuses, read as OneUptime, to tell the one it started in.
+    expect(statusesRead).toHaveBeenCalledTimes(1);
+    expect(firstCallArg(statusesRead)["props"]).toEqual({ isRoot: true });
+    expect(firstCallArg(statusesRead)["query"]).toEqual({
+      projectId: ctx.projectId,
+    });
+  });
+
+  test("a page whose monitors have all been measured reads no statuses", async () => {
+    const statusesRead: AnySpy = spy(MonitorStatusService, "findBy", []);
+    mockDetail([resource("Checkout"), resource("Search")]);
+
+    await readPage();
+
+    expect(statusesRead).not.toHaveBeenCalled();
   });
 
   test("a page whose monitors are all off lists every one, each marked", async () => {

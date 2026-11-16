@@ -1151,6 +1151,70 @@ describe("Transport", (): void => {
         Transport.parseRetryAfter(respond(429, "", { "retry-after": "soon" })),
       ).toBe(30);
     });
+
+    /*
+     * Issue #8928: parseInt read "1.5" as 1 and "5 seconds" as 5, and
+     * Date.parse took "-5" for a day in 2001. RFC 9110 allows digits only,
+     * or a date: these are no Retry-After, and wait the default.
+     */
+    it.each([["1.5"], ["5 seconds"], ["-5"], ["0x10"], ["1e2"], ["30s"]])(
+      "reads %j as no Retry-After",
+      (retryAfter: string): void => {
+        expect(
+          Transport.parseRetryAfter(
+            respond(429, "", { "retry-after": retryAfter }),
+          ),
+        ).toBe(30);
+      },
+    );
+
+    it("waits a second for 0, never retrying at once", (): void => {
+      expect(
+        Transport.parseRetryAfter(respond(429, "", { "retry-after": "0" })),
+      ).toBe(1);
+    });
+
+    it("reads an HTTP date in all three of its shapes, from one second to the cap", (): void => {
+      const now: jest.SpyInstance = jest
+        .spyOn(Date, "now")
+        .mockReturnValue(Date.UTC(2026, 10, 16, 10, 0, 0));
+
+      try {
+        for (const [retryAfter, seconds] of [
+          ["Mon, 16 Nov 2026 10:00:45 GMT", 45],
+          ["Monday, 16-Nov-26 10:00:45 GMT", 45],
+          ["Mon Nov 16 10:00:45 2026", 45],
+          // Gone by: a server clock behind this one.
+          ["Mon, 16 Nov 2026 09:00:00 GMT", 1],
+          ["Mon, 16 Nov 2026 12:00:00 GMT", 300],
+        ] as Array<[string, number]>) {
+          expect({
+            retryAfter,
+            seconds: Transport.parseRetryAfter(
+              respond(429, "", { "retry-after": retryAfter }),
+            ),
+          }).toEqual({ retryAfter, seconds });
+        }
+      } finally {
+        now.mockRestore();
+      }
+    });
+
+    it("a header object whose get() throws reads as none", (): void => {
+      expect(
+        Transport.parseRetryAfter({
+          status: 429,
+          headers: {
+            get: (): never => {
+              throw new Error("headers are gone");
+            },
+          },
+        } as unknown as Response),
+      ).toBe(30);
+      expect(
+        Transport.parseRetryAfter({ status: 429 } as unknown as Response),
+      ).toBe(30);
+    });
   });
 
   /*

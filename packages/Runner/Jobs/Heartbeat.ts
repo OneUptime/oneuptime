@@ -8,6 +8,7 @@ import RunnerCapabilities, {
 import KubernetesPosture from "../Utils/KubernetesPosture";
 import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
 import GlobalRunnerMode from "../Utils/GlobalRunnerMode";
+import JavaScriptSandbox from "../Utils/JavaScriptSandbox/SandboxProcess";
 import { JSONObject } from "Common/Types/JSON";
 import { KubernetesRunnerPosture } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import logger from "Common/Server/Utils/Logger";
@@ -77,6 +78,28 @@ export async function getHostInfo(): Promise<JSONObject> {
     : KubernetesPosture.buildWriteLimits();
 
   info["kubernetes"] = posture as unknown as JSONObject;
+
+  /*
+   * A global Runner says how it keeps each project's JavaScript steps apart
+   * (Common/Types/Runner/GlobalRunnerSandbox): whether a step gets a user of
+   * its own and no network, and why not. Decided once - here, as soon as the
+   * server says this is a global Runner, or at its first step - so the Admin
+   * Dashboard's Global Runners page can say when a step gets less, and what
+   * to change. A Runner that is not global runs its steps in its own
+   * process and says nothing of a sandbox.
+   */
+  if (GlobalRunnerMode.isActive()) {
+    try {
+      await JavaScriptSandbox.prepare();
+      Object.assign(info, JavaScriptSandbox.getHostInfo());
+    } catch (err) {
+      logger.debug(
+        `Could not say how JavaScript steps are kept apart: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
 
   return info;
 }

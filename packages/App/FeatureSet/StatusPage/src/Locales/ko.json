@@ -45,6 +45,7 @@
     "uptimePercent": "가동 시간 {{percent}}",
     "operational": "정상 작동",
     "notMonitored": "모니터링되지 않음",
+    "notMonitoredYet": "아직 모니터링되지 않음",
     "noResourcesInGroup": "이 그룹에 추가된 리소스가 없습니다.",
     "activeIncidents": "진행 중인 사고",
     "scheduledMaintenanceEvents": "예정된 유지 관리",
@@ -55,6 +56,7 @@
     "someResourcesAre": "일부 리소스가 {{status}}입니다",
     "someResourcesAreUnder": "일부 리소스가 {{status}} 중입니다",
     "noResourcesAreMonitored": "현재 모니터링되는 리소스가 없습니다",
+    "noResourcesAreMonitoredYet": "아직 모니터링되는 리소스가 없습니다",
     "oneSubGroup": "그룹 1개",
     "subGroupCount": "그룹 {{total}}개"
   },
