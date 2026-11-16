@@ -49,8 +49,6 @@
     "noResourcesInGroup": "이 그룹에 추가된 리소스가 없습니다.",
     "activeIncidents": "진행 중인 사고",
     "scheduledMaintenanceEvents": "예정된 유지 관리",
-    "allClearTitle": "모든 것이 정상입니다",
-    "allClearDescription": "이 상태 페이지에 아직 리소스가 추가되지 않았습니다. 대시보드에서 리소스를 추가해주세요.",
     "allResourcesAre": "모든 리소스가 {{status}}입니다",
     "allMonitoredResourcesAre": "모니터링되는 모든 리소스가 {{status}}입니다",
     "someResourcesAre": "일부 리소스가 {{status}}입니다",
@@ -58,7 +56,10 @@
     "noResourcesAreMonitored": "현재 모니터링되는 리소스가 없습니다",
     "noResourcesAreMonitoredYet": "아직 모니터링되는 리소스가 없습니다",
     "oneSubGroup": "그룹 1개",
-    "subGroupCount": "그룹 {{total}}개"
+    "subGroupCount": "그룹 {{total}}개",
+    "noResourcesTitle": "아직 표시할 내용이 없습니다",
+    "noResourcesDescription": "이 페이지에는 아직 표시되는 서비스가 없습니다.",
+    "noResourcesPreviewDescription": "리소스를 추가할 때까지 방문자에게 이 내용이 표시됩니다. 대시보드의 리소스에서 이 상태 페이지에 모니터나 그룹을 추가하세요."
   },
   "eventItem": {
     "affectedResources": "영향을 받은 리소스",
@@ -115,30 +116,23 @@
     "title": "사고",
     "singular": "사고",
     "active": "진행 중인 사고",
-    "resolved": "해결된 사고",
-    "none": "사고 없음",
-    "noneDescription": "이 상태 페이지에 게시된 사고가 없습니다.",
+    "noneDescription": "이 페이지의 서비스에 사고가 발생하면 여기에 게시됩니다.",
     "postmortem": "사고 사후 분석",
     "declaredAt": "발생 시각: ",
     "declaredAtTime": "발생 시각: {{time}}",
     "report": "사고 보고서",
-    "notFound": "이 상태 페이지에서 사고를 찾을 수 없습니다."
-  },
-  "episodes": {
-    "report": "에피소드 보고서",
-    "none": "에피소드 없음",
-    "notFound": "이 상태 페이지에서 에피소드를 찾을 수 없습니다."
+    "notFound": "링크를 확인하거나 이 페이지의 사고 탭을 여세요.",
+    "notFoundTitle": "사고를 찾을 수 없습니다"
   },
   "announcements": {
     "title": "공지사항",
     "singular": "공지사항",
     "active": "활성 공지사항",
-    "past": "지난 공지사항",
-    "none": "공지사항 없음",
-    "noneDescription": "이 페이지에 아직 게시된 공지사항이 없습니다.",
+    "noneDescription": "이 페이지의 서비스에 관한 소식이 있으면 여기에 게시됩니다.",
     "announcedAt": "공지 시각: ",
     "announcedAtTime": "공지 시각: {{time}}",
-    "notFound": "이 상태 페이지에서 공지사항을 찾을 수 없습니다."
+    "notFound": "링크를 확인하거나 이 페이지의 공지사항 탭을 여세요.",
+    "notFoundTitle": "공지사항을 찾을 수 없습니다"
   },
   "scheduledEvents": {
     "title": "예정된 유지 관리",
@@ -146,9 +140,7 @@
     "scheduledMaintenance": "예정된 유지 관리",
     "ongoing": "진행 중인 유지 관리",
     "upcoming": "향후 유지 관리",
-    "completed": "완료된 유지 관리",
     "none": "예정된 유지 관리 없음",
-    "noneDescription": "이 상태 페이지에 게시된 예정된 유지 관리가 없습니다.",
     "scheduledAt": "예정 시각: ",
     "scheduledAtTime": "예정 시각: {{time}}",
     "report": "유지 관리 이벤트 보고서",
@@ -507,5 +499,17 @@
   "Incomplete:": "미충족:",
   "Special character included (optional)": "특수 문자 포함됨 (선택 사항)",
   "Special characters are optional. Try !, @, # or $.": "특수 문자는 선택 사항입니다. !, @, # 또는 $를 사용해 보세요.",
-  "Dismiss": "숨기기"
+  "Dismiss": "숨기기",
+  "Resolved in the Last {{count}} Days": "지난 {{count}}일 동안 해결됨",
+  "Resolved in the Last {{count}} Days_one": "지난 1일 동안 해결됨",
+  "No incidents in the last {{count}} days": "지난 {{count}}일 동안 사고 없음",
+  "No incidents in the last {{count}} days_one": "지난 1일 동안 사고 없음",
+  "Ended in the Last {{count}} Days": "지난 {{count}}일 동안 종료됨",
+  "Ended in the Last {{count}} Days_one": "지난 1일 동안 종료됨",
+  "No announcements in the last {{count}} days": "지난 {{count}}일 동안 공지사항 없음",
+  "No announcements in the last {{count}} days_one": "지난 1일 동안 공지사항 없음",
+  "Completed in the Last {{count}} Days": "지난 {{count}}일 동안 완료됨",
+  "Completed in the Last {{count}} Days_one": "지난 1일 동안 완료됨",
+  "None is planned, and none took place in the last {{count}} days.": "예정된 유지 관리가 없으며, 지난 {{count}}일 동안 진행된 유지 관리도 없습니다.",
+  "None is planned, and none took place in the last {{count}} days._one": "예정된 유지 관리가 없으며, 지난 1일 동안 진행된 유지 관리도 없습니다."
 }

@@ -123,9 +123,9 @@ describe("Announcement docs: an announcement's images open for everyone from its
     );
   });
 
-  it("says they stay open after it ends, as the page still lists it", () => {
+  it("says they stay open after it ends, as its link keeps working", () => {
     expect(page).toContain(
-      "They stay that way after it ends, because its status pages still list it under **Past Announcements** and its link keeps working.",
+      "They stay that way after it ends, because its link keeps working, and its status pages list it among the ended announcements for as long as their history reaches back.",
     );
   });
 
