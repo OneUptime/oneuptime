@@ -10,7 +10,7 @@ import ScheduledEventList from "../../App/FeatureSet/StatusPage/src/Pages/Schedu
 import ScheduledEventDetail from "../../App/FeatureSet/StatusPage/src/Pages/ScheduledEvent/Detail";
 import API from "../../App/FeatureSet/StatusPage/src/Utils/API";
 import StatusPageUtil from "../../App/FeatureSet/StatusPage/src/Utils/StatusPage";
-import i18n from "../../App/FeatureSet/StatusPage/src/Utils/i18n";
+import i18n, { i18nReady } from "../../App/FeatureSet/StatusPage/src/Utils/i18n";
 import "Common/UI/Styles/Theme.css";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -247,6 +247,15 @@ StatusPageUtil.checkIfUserHasLoggedIn = () => {};
 if (params.get("theme") === "dark") {
   document.documentElement.classList.add("dark");
 }
+
+/*
+ * As the Status Page's own src/Index.tsx starts: every language but English
+ * is a chunk of its own (Utils/i18n.ts), so i18n first settles on the
+ * language it detects - the one the last page left in localStorage - and
+ * only then is this page's language set. Set before that, the detected
+ * language's chunk could arrive last and switch the page back to it.
+ */
+await i18nReady.catch(() => {});
 
 if (["de", "ja", "fa"].includes(params.get("lang"))) {
   await i18n.changeLanguage(params.get("lang"));
