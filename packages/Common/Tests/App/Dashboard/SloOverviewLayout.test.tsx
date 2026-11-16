@@ -21,6 +21,7 @@ import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import SloView from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/Index";
 import { UseSloOverviewDataResult } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/useSloOverviewData";
+import UsedByApi from "../../../../App/FeatureSet/Dashboard/src/Components/UsedBy/UsedByApi";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
@@ -32,6 +33,7 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
+import { UsedByRecordKind } from "../../../Types/UsedBy/UsedBy";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -371,6 +373,12 @@ beforeEach(() => {
   });
   getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 10 });
   createOrUpdateMock.mockResolvedValue({ data: {} });
+  // What uses the SLO, which its Used by card reads (#7437): nothing yet.
+  jest.spyOn(UsedByApi, "getSummary").mockResolvedValue({
+    recordKind: UsedByRecordKind.Slo,
+    recordId: SLO_ID.toString(),
+    groups: [],
+  });
 });
 
 afterEach(() => {
@@ -410,9 +418,18 @@ describe("SLO overview details sidebar", () => {
       const rules: HTMLElement = screen.getByRole("region", {
         name: "Burn rate rules",
       });
+      // What uses the SLO, last (#7437).
+      const usedBy: HTMLElement = (
+        await screen.findByTestId("used-by-card")
+      ).closest<HTMLElement>('[data-testid="card"]')!;
       const sidebar: HTMLElement = events.parentElement!;
       expect(details.parentElement).toBe(sidebar);
-      expect(Array.from(sidebar.children)).toEqual([details, events, rules]);
+      expect(Array.from(sidebar.children)).toEqual([
+        details,
+        events,
+        rules,
+        usedBy,
+      ]);
 
       const activity: HTMLElement = screen.getByRole("region", {
         name: "Recent activity",
