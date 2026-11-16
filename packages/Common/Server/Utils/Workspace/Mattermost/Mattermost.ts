@@ -33,7 +33,10 @@ import { fitTextToLength } from "../../../../Utils/MessageFit";
 import WorkspaceChannelName from "../../../../Utils/Workspace/WorkspaceChannelName";
 import { AppApiClientUrl } from "../../../EnvironmentConfig";
 import logger, { LogAttributes } from "../../Logger";
-import SafeWebhookRequest, { WebhookTarget } from "../../SafeWebhookRequest";
+import SafeWebhookRequest, {
+  WEBHOOK_MAX_RESPONSE_BYTES,
+  WebhookTarget,
+} from "../../SafeWebhookRequest";
 import { WebhookTargetValidationOptions } from "../../SSRFProtection";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -2163,6 +2166,8 @@ export default class MattermostUtil extends WorkspaceBase {
             validation: MattermostUtil.INCOMING_WEBHOOK_TARGET_VALIDATION,
             retries: 3,
             exponentialBackoff: true,
+            // Mattermost answers "ok": an endless answer is a failure, unread.
+            maxContentLength: WEBHOOK_MAX_RESPONSE_BYTES,
           },
         );
       },

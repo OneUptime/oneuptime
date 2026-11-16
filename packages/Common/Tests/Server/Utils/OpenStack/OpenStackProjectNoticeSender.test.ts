@@ -36,7 +36,9 @@ import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMa
 import OpenStackProjectNoticeSender, {
   OPENSTACK_NOTICE_WEBHOOK_VALIDATION,
 } from "../../../../Server/Utils/OpenStack/OpenStackProjectNoticeSender";
-import SafeWebhookRequest from "../../../../Server/Utils/SafeWebhookRequest";
+import SafeWebhookRequest, {
+  WEBHOOK_MAX_RESPONSE_BYTES,
+} from "../../../../Server/Utils/SafeWebhookRequest";
 import SSRFProtection from "../../../../Server/Utils/SSRFProtection";
 import { approveEveryWebhookAddress } from "../../TestingUtils/WebhookAddressCheck";
 import IncidentStateService from "../../../../Server/Services/IncidentStateService";
@@ -273,6 +275,8 @@ describe("sending what is waiting", () => {
     expect(call.options.httpsAgent).toBeDefined();
     expect(call.options.useNodeHttpAdapter).toBe(true);
     expect(call.options.timeout).toBe(10000);
+    // Only the status is read, and an endless answer is not.
+    expect(call.options.maxContentLength).toBe(WEBHOOK_MAX_RESPONSE_BYTES);
   });
 
   test.each<[string, Parameters<typeof arrange>[0], string]>([

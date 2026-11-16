@@ -89,7 +89,9 @@ import StatusPageSubscriberWebhookUtil, {
   SUBSCRIBER_WEBHOOK_RETRIES,
   SUBSCRIBER_WEBHOOK_TOTAL_TIMEOUT_IN_MS,
 } from "../../../Server/Utils/StatusPageSubscriberWebhook";
-import SafeWebhookRequest from "../../../Server/Utils/SafeWebhookRequest";
+import SafeWebhookRequest, {
+  WEBHOOK_MAX_RESPONSE_BYTES,
+} from "../../../Server/Utils/SafeWebhookRequest";
 import SubscriberNotificationTiming from "../../../Server/Utils/StatusPage/SubscriberNotificationTiming";
 import {
   NotificationDeliveryChannel,
@@ -465,6 +467,8 @@ describe("a post to a status page subscriber's webhook is counted once, for the 
       doNotFollowRedirects: true,
       timeout: SUBSCRIBER_WEBHOOK_ATTEMPT_TIMEOUT_IN_MS,
       totalTimeoutInMs: SUBSCRIBER_WEBHOOK_TOTAL_TIMEOUT_IN_MS,
+      // Only the status is read, and an endless answer is not.
+      maxContentLength: WEBHOOK_MAX_RESPONSE_BYTES,
       useNodeHttpAdapter: true,
       dispatchUrl: new globalThis.URL(PUBLIC_HOOK).href,
     });
@@ -752,6 +756,8 @@ describe("counted once however many times the post was tried, against a real end
   let requests: Array<string> = [];
   // How long the endpoint takes to answer; null: it takes the post and never answers.
   let answerAfterInMs: number | null = 0;
+  // How many bytes the endpoint answers with, when it is told to answer that many.
+  let answerBytes: number | null = null;
   // The connections the endpoint has open now.
   const openSockets: Set<Socket> = new Set<Socket>();
   const originalAdapter: typeof axios.defaults.adapter = axios.defaults.adapter;
@@ -793,7 +799,9 @@ describe("counted once however many times the post was tried, against a real end
 
             response.writeHead(status, { "Content-Type": "application/json" });
             response.end(
-              JSON.stringify({ received: body.length > 0, status: status }),
+              answerBytes === null
+                ? JSON.stringify({ received: body.length > 0, status: status })
+                : `"${"x".repeat(answerBytes)}"`,
             );
           }, answerAfterInMs);
         });
@@ -835,6 +843,7 @@ describe("counted once however many times the post was tried, against a real end
     statuses = [];
     requests = [];
     answerAfterInMs = 0;
+    answerBytes = null;
     process.env[ALLOW_ENV] = "true";
     process.env[ALLOWLIST_ENV] = "127.0.0.1";
 
@@ -1003,6 +1012,18 @@ describe("counted once however many times the post was tried, against a real end
 
     expect(openSockets.size).toBe(0);
   }, 10000);
+
+  test("an endpoint that answers with more than a webhook's answer can be is one failure, its answer unread", async () => {
+    answerBytes = WEBHOOK_MAX_RESPONSE_BYTES * 2;
+
+    await expect(
+      send({ webhookUrl: hook(), isAddedByTeam: true }),
+    ).rejects.toThrow(/maxContentLength/);
+
+    expect(sendCounterCalls).toEqual([
+      { value: 1, attributes: { ...SUBSCRIBER_WEBHOOK, outcome: "failure" } },
+    ]);
+  }, 30000);
 
   test("an endpoint that answers slowly, but inside the timeout, is a success", async () => {
     // A third of an attempt's time, at a hundredth.

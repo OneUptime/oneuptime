@@ -4,7 +4,9 @@ import WebhookService, {
 } from "../../FeatureSet/Notification/Services/WebhookService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import WebhookLogService from "Common/Server/Services/WebhookLogService";
-import SafeWebhookRequest from "Common/Server/Utils/SafeWebhookRequest";
+import SafeWebhookRequest, {
+  WEBHOOK_MAX_RESPONSE_BYTES,
+} from "Common/Server/Utils/SafeWebhookRequest";
 import WebhookLog from "Common/Models/DatabaseModels/WebhookLog";
 import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import ObjectID from "Common/Types/ObjectID";
@@ -72,6 +74,8 @@ let server: http.Server;
 let port: number = 0;
 let seen: Array<SeenRequest> = [];
 let status: number = 200;
+// How many bytes the endpoint answers with, when told to; otherwise a short JSON.
+let answerBytes: number | null = null;
 // Null: the endpoint takes the request and never answers.
 let answerAfterInMs: number | null = 0;
 const openSockets: Set<Socket> = new Set<Socket>();
@@ -126,7 +130,11 @@ beforeAll(async () => {
           }
 
           response.writeHead(status, { "Content-Type": "application/json" });
-          response.end(JSON.stringify({ received: true }));
+          response.end(
+            answerBytes === null
+              ? JSON.stringify({ received: true })
+              : `"${"x".repeat(answerBytes)}"`,
+          );
         }, answerAfterInMs);
       });
     },
@@ -159,6 +167,7 @@ afterAll(async () => {
 beforeEach(() => {
   seen = [];
   status = 200;
+  answerBytes = null;
   answerAfterInMs = 0;
   checkAnswers = {};
   logs = [];
@@ -320,6 +329,16 @@ describe("a project's webhook", () => {
     }
 
     expect(seen).toHaveLength(0);
+  });
+
+  test("an endpoint that answers with more than a webhook's answer can be is logged an error, its answer unread", async () => {
+    answerBytes = WEBHOOK_MAX_RESPONSE_BYTES * 2;
+
+    await expect(send(`http://127.0.0.1:${port}/hook`)).rejects.toThrow(
+      /maxContentLength/,
+    );
+
+    expect(onlyLog().status).toBe(WebhookStatus.Error);
   });
 
   test("is held to the rule a project member's URL always had", () => {

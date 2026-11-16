@@ -9,6 +9,7 @@ import WebhookLog from "Common/Models/DatabaseModels/WebhookLog";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SafeWebhookRequest, {
+  WEBHOOK_MAX_RESPONSE_BYTES,
   WebhookTarget,
 } from "Common/Server/Utils/SafeWebhookRequest";
 import { WebhookTargetValidationOptions } from "Common/Server/Utils/SSRFProtection";
@@ -171,6 +172,8 @@ export default class WebhookService {
           data: message.payload || {},
           headers,
           timeout: WEBHOOK_REQUEST_TIMEOUT_MS,
+          // The status, and the first 2,000 characters for the log, are all that is read.
+          maxContentLength: WEBHOOK_MAX_RESPONSE_BYTES,
         });
 
       const statusCode: number =

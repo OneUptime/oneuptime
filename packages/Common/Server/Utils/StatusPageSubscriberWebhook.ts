@@ -3,7 +3,10 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import { JSONObject } from "../../Types/JSON";
 import logger from "./Logger";
-import SafeWebhookRequest, { WebhookTarget } from "./SafeWebhookRequest";
+import SafeWebhookRequest, {
+  WEBHOOK_MAX_RESPONSE_BYTES,
+  WebhookTarget,
+} from "./SafeWebhookRequest";
 import SSRFProtection, {
   WebhookTargetValidationOptions,
 } from "./SSRFProtection";
@@ -267,6 +270,8 @@ export default class StatusPageSubscriberWebhookUtil {
         exponentialBackoff: true,
         timeout: SUBSCRIBER_WEBHOOK_ATTEMPT_TIMEOUT_IN_MS,
         totalTimeoutInMs: SUBSCRIBER_WEBHOOK_TOTAL_TIMEOUT_IN_MS,
+        // Only the status is read: an endless answer is a failure, unread.
+        maxContentLength: WEBHOOK_MAX_RESPONSE_BYTES,
       });
 
     logger.debug("Status page subscriber webhook response:");

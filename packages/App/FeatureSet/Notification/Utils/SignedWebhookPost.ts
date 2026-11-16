@@ -6,6 +6,7 @@ import {
   CUSTOM_CHANNEL_SIGNATURE_HEADER,
 } from "Common/Types/CustomNotificationChannel/CustomNotificationChannelPayload";
 import SafeWebhookRequest, {
+  WEBHOOK_MAX_RESPONSE_BYTES,
   WebhookTarget,
 } from "Common/Server/Utils/SafeWebhookRequest";
 import { WebhookTargetValidationOptions } from "Common/Server/Utils/SSRFProtection";
@@ -174,6 +175,8 @@ export default class SignedWebhookPost {
           data: data.payload,
           headers: data.headers,
           timeout: SIGNED_WEBHOOK_REQUEST_TIMEOUT_MS,
+          // Only the status is read: an endless answer is a failure, unread.
+          maxContentLength: WEBHOOK_MAX_RESPONSE_BYTES,
         });
 
       const statusCode: number = response.statusCode || 0;

@@ -127,6 +127,15 @@ export const OUTBOUND_PROXY_ENVIRONMENT_VARIABLES: ReadonlyArray<string> = [
 export const UNAPPROVED_LOOKUP_MESSAGE: string =
   "A webhook connects only to the address its URL check approved.";
 
+/*
+ * The most of an answer a notification webhook reads (maxContentLength).
+ * Its sender only wants the status, and at most a short excerpt for a log;
+ * without a limit an endpoint - a status page sign-up's is anyone's to
+ * choose - could stream a body until the worker runs out of memory. An
+ * answer this large is no webhook's: it fails, unread.
+ */
+export const WEBHOOK_MAX_RESPONSE_BYTES: number = 1024 * 1024;
+
 // A scheme as SSRFProtection reads one off the raw URL: letters, then ":/".
 const SCHEME_PREFIX: RegExp = /^\s*[a-z][a-z0-9+.-]*:\//i;
 

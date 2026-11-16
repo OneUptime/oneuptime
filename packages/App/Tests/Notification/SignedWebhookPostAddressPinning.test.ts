@@ -7,6 +7,7 @@ import SignedWebhookPost, {
   SignedPostOutcome,
 } from "../../FeatureSet/Notification/Utils/SignedWebhookPost";
 import SafeWebhookRequest, {
+  WEBHOOK_MAX_RESPONSE_BYTES,
   WebhookTarget,
 } from "Common/Server/Utils/SafeWebhookRequest";
 import { CallAndSmsGatewayEvent } from "Common/Types/CallAndSMS/CallAndSmsGatewayPayload";
@@ -65,6 +66,8 @@ let port: number = 0;
 let seen: Array<SeenRequest> = [];
 let statuses: Array<number> = [];
 let answers: boolean = true;
+// How many bytes the service answers with, when told to; otherwise "{}".
+let answerBytes: number | null = null;
 const openSockets: Set<Socket> = new Set<Socket>();
 let canUse127002: boolean = false;
 let checkAnswers: Record<string, string> = {};
@@ -116,7 +119,9 @@ beforeAll(async () => {
         }
 
         response.writeHead(status, { "Content-Type": "application/json" });
-        response.end("{}");
+        response.end(
+          answerBytes === null ? "{}" : `"${"x".repeat(answerBytes)}"`,
+        );
       });
     },
   );
@@ -149,6 +154,7 @@ beforeEach(() => {
   seen = [];
   statuses = [];
   answers = true;
+  answerBytes = null;
   checkAnswers = {};
 
   for (const name of [ALLOWLIST_ENV, ALLOW_ENV, "HTTP_PROXY", "http_proxy"]) {
@@ -308,6 +314,19 @@ describe("a signed request", () => {
     }
 
     expect(openSockets.size).toBe(0);
+  });
+});
+
+describe("an answer larger than a webhook's can be", () => {
+  test("is not read: not delivered, on any attempt", async () => {
+    answerBytes = WEBHOOK_MAX_RESPONSE_BYTES * 2;
+
+    const outcome: SignedPostOutcome = await postTo(
+      `http://127.0.0.1:${port}/oneuptime`,
+    );
+
+    expect(outcome.isDelivered).toBe(false);
+    expect(outcome.error).toMatch(/maxContentLength/);
   });
 });
 

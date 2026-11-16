@@ -5,6 +5,7 @@
 import SafeWebhookRequest, {
   OUTBOUND_PROXY_ENVIRONMENT_VARIABLES,
   UNAPPROVED_LOOKUP_MESSAGE,
+  WEBHOOK_MAX_RESPONSE_BYTES,
   WebhookTarget,
 } from "../../../Server/Utils/SafeWebhookRequest";
 import { EgressLookupFunction } from "../../../Server/Utils/DataSource/EgressGuard";
@@ -686,6 +687,34 @@ describe("the request goes out on exactly the URL that was checked", () => {
     ).rejects.toThrow("A webhook is not sent with HEAD.");
 
     expect(server.requests).toHaveLength(0);
+  });
+
+  test("an answer larger than the caller reads fails, unread, and its connection is closed", async () => {
+    const server: TestServer = await serve();
+
+    server.handler = (
+      _request: http.IncomingMessage,
+      response: http.ServerResponse,
+    ): void => {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(`"${"x".repeat(64 * 1024)}"`);
+    };
+
+    await expect(
+      SafeWebhookRequest.post(
+        server.url(),
+        {},
+        { validation: MEMBER_POLICY, maxContentLength: 1024 },
+      ),
+    ).rejects.toThrow(/maxContentLength/);
+
+    await eventually(() => {
+      return server.openSockets.size === 0;
+    });
+  });
+
+  test("a notification webhook reads at most a mebibyte of an answer", () => {
+    expect(WEBHOOK_MAX_RESPONSE_BYTES).toBe(1024 * 1024);
   });
 
   test("headers and body are sent as given", async () => {

@@ -5,7 +5,9 @@
 import MattermostUtil, {
   MattermostRequestError,
 } from "../../../../../Server/Utils/Workspace/Mattermost/Mattermost";
-import SafeWebhookRequest from "../../../../../Server/Utils/SafeWebhookRequest";
+import SafeWebhookRequest, {
+  WEBHOOK_MAX_RESPONSE_BYTES,
+} from "../../../../../Server/Utils/SafeWebhookRequest";
 import HTTPMethod from "../../../../../Types/API/HTTPMethod";
 import URL from "../../../../../Types/API/URL";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
@@ -337,5 +339,8 @@ describe("a post to a Mattermost incoming webhook", () => {
       { address: "93.184.216.34", family: 4 },
     ]);
     expect(send.mock.calls[0]![1]?.retries).toBe(3);
+    expect(send.mock.calls[0]![1]?.maxContentLength).toBe(
+      WEBHOOK_MAX_RESPONSE_BYTES,
+    );
   });
 });

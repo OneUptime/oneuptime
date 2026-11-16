@@ -32,7 +32,10 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "../../Types/Markdown";
 import BlockedProjectNotifications from "../Notification/BlockedProjectNotifications";
 import logger from "../Logger";
-import SafeWebhookRequest, { WebhookTarget } from "../SafeWebhookRequest";
+import SafeWebhookRequest, {
+  WEBHOOK_MAX_RESPONSE_BYTES,
+  WebhookTarget,
+} from "../SafeWebhookRequest";
 import { WebhookTargetValidationOptions } from "../SSRFProtection";
 import OpenStackProjectNotices, {
   toOpenStackNoticeRecipient,
@@ -735,6 +738,8 @@ export default class OpenStackProjectNoticeSender {
           headers: { "Idempotency-Key": deliveryId },
           retries: 0,
           timeout: WEBHOOK_TIMEOUT_IN_MS,
+          // Only the status is read: an endless answer is a failure, unread.
+          maxContentLength: WEBHOOK_MAX_RESPONSE_BYTES,
         });
 
       if (response instanceof HTTPErrorResponse) {
