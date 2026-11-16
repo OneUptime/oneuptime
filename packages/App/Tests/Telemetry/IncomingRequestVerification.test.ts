@@ -354,6 +354,34 @@ describe("Azure Event Grid's subscription validation (Event Grid schema)", () =>
     ).toBe(EVENT_GRID_CODE);
   });
 
+  /*
+   * So the monitor's summary no longer asks someone to open the validation
+   * link of a subscription OneUptime has validated.
+   */
+  test("reaches the monitor saying OneUptime answered it", async () => {
+    const answer: Answer = await call({
+      method: "POST",
+      headers: EVENT_GRID_HEADERS,
+      body: eventGridValidation(),
+    });
+
+    expect(answer.job?.["answeredVerification"]).toBe("Azure Event Grid");
+  });
+
+  test("relayed by a probe, which answers its sender itself, reaches it saying nothing was answered", async () => {
+    const answer: Answer = await call({
+      method: "POST",
+      headers: {
+        ...EVENT_GRID_HEADERS,
+        "oneuptime-probe-id": "11111111-2222-3333-4444-555555555555",
+      },
+      body: eventGridValidation(),
+    });
+
+    expect(answer.job).not.toBeNull();
+    expect(answer.job?.["answeredVerification"]).toBeUndefined();
+  });
+
   test("with a code no service would mint is answered as any request", async () => {
     const answer: Answer = await call({
       method: "POST",
@@ -535,6 +563,7 @@ describe("only for a monitor's key", () => {
     expect(answer.status).toBe(200);
     expect(JSON.parse(answer.text)).toEqual({});
     expect(answer.job).not.toBeNull();
+    expect(answer.job?.["answeredVerification"]).toBeUndefined();
   });
 
   test("a request that is no handshake costs no lookup of a key kept nowhere, as before", async () => {
@@ -618,5 +647,6 @@ describe("any other request", () => {
     expect(answer.status).toBe(200);
     expect(JSON.parse(answer.text)).toEqual({});
     expect(answer.job?.["requestBody"]).toEqual({ status: "healthy" });
+    expect(answer.job?.["answeredVerification"]).toBeUndefined();
   });
 });

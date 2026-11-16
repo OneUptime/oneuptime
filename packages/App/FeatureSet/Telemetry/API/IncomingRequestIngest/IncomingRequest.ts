@@ -113,8 +113,11 @@ const processIncomingRequest: RequestHandler = async (
      * Answered at once: a handshake with what its service expects, any other
      * request with the empty body it always got.
      */
-    if (verification && secretDecision.mayRecordArrival) {
-      WebhookVerification.send(res, verification);
+    const answeredVerification: WebhookVerificationAnswer | null =
+      verification && secretDecision.mayRecordArrival ? verification : null;
+
+    if (answeredVerification) {
+      WebhookVerification.send(res, answeredVerification);
     } else {
       Response.sendEmptySuccessResponse(req, res);
     }
@@ -154,6 +157,15 @@ const processIncomingRequest: RequestHandler = async (
       receivedViaProbeId: probeIdHeader,
       receivedAt: receivedAt,
       presentedSecretHashes: presented.secretHashes,
+      /*
+       * The monitor learns its service was answered, and offers no link to
+       * confirm by hand. Not for a request a probe relayed: the probe has
+       * answered its sender itself, with the empty body.
+       */
+      answeredVerification:
+        answeredVerification && !probeIdHeader
+          ? answeredVerification.provider
+          : undefined,
     });
 
     return;

@@ -1,5 +1,6 @@
 import Dictionary from "../../Types/Dictionary";
 import { JSONObject, JSONValue } from "../../Types/JSON";
+import WebhookVerificationProvider from "../../Types/Monitor/IncomingMonitor/WebhookVerificationProvider";
 import { ExpressRequest, ExpressResponse } from "./Express";
 
 /*
@@ -47,13 +48,7 @@ import { ExpressRequest, ExpressResponse } from "./Express";
  * lets a CloudEvents validation past the CORS middleware).
  */
 
-export enum WebhookVerificationProvider {
-  AzureEventGrid = "Azure Event Grid",
-  CloudEvents = "CloudEvents",
-  Slack = "Slack",
-  MicrosoftGraph = "Microsoft Graph",
-  Okta = "Okta",
-}
+export { WebhookVerificationProvider };
 
 // A request, as the recognizer reads it.
 export interface WebhookVerificationRequest {
