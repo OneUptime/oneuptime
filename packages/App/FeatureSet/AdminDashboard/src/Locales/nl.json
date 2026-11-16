@@ -4155,5 +4155,17 @@
   "{{itemName}} invited": "{{itemName}} uitgenodigd",
   "{{itemName}} linked": "{{itemName}} gekoppeld",
   "{{itemName}} removed": "{{itemName}} weggehaald",
-  "{{itemName}} started": "{{itemName}} gestart"
+  "{{itemName}} started": "{{itemName}} gestart",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "Als u een incident verwijdert, worden ook de notities, de statustijdlijn, de runbook-uitvoeringen en de correcties die OneUptime AI ervoor voorstelde verwijderd en wordt het van statuspagina's gehaald. Gekoppelde waarschuwingen blijven bestaan.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "Als u een waarschuwing verwijdert, worden ook de notities, de statustijdlijn, de runbook-uitvoeringen en de correcties die OneUptime AI ervoor voorstelde verwijderd. Gekoppelde incidenten blijven bestaan.",
+  "In short": "In het kort",
+  "Full documentation": "Volledige documentatie",
+  "Expand all": "Alles uitvouwen",
+  "Collapse all": "Alles samenvouwen",
+  "Limited to deleted records": "Beperkt tot verwijderde records",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}}: {{names}}, verwijderd op {{date}}.",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime heeft deze regel uitgeschakeld toen ze werden verwijderd.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Ingeschakeld zoals hij is, zou de regel helemaal niet meer door deze lijsten worden beperkt. Bewerk hem om te kiezen waarop hij van toepassing is en schakel hem daarna in.",
+  "{{names}} and {{count}} more": "{{names}} en nog {{count}}",
+  "{{names}} and {{count}} more_one": "{{names}} en nog {{count}}"
 }

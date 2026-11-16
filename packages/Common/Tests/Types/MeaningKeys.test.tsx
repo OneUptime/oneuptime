@@ -127,6 +127,7 @@ describe("the keys that name their meaning", () => {
         "Not fetched yet (OAuth token)",
         "Not fetched yet (calendar feed)",
         "Open (invoice status)",
+        "Open (pull request)",
         "Open (status)",
         "Push (push notification)",
         "Table (database object)",
@@ -152,6 +153,8 @@ describe("the keys that name their meaning", () => {
     expect(getWordOfMeaningKey("Table (database object)")).toBe("Table");
     expect(getWordOfMeaningKey(CHANGE)).toBe("Change");
     expect(getWordOfMeaningKey("Open (invoice status)")).toBe("Open");
+    // A Code task's open pull request, beside Merged and Closed.
+    expect(getWordOfMeaningKey("Open (pull request)")).toBe("Open");
     expect(getWordOfMeaningKey("Created (import result)")).toBe("Created");
     // #7535: the dbt Tests card's column of tests, the noun.
     expect(getWordOfMeaningKey("Test (dbt test)")).toBe("Test");

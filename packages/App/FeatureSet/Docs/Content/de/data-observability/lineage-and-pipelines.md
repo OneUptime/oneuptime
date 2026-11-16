@@ -32,7 +32,7 @@ Wählen Sie im Tab **Datenherkunft** unter **Einer Spalte folgen** eine Spalte d
 - **Pipelines**, die eine Tabelle aus Daten laden, die OneUptime nicht überwacht, etwa eine Fivetran-Synchronisierung. Eine Pipeline, die Daten zwischen zwei überwachten Tabellen bewegt, wird am Pfeil zwischen ihnen genannt.
 - **Dashboards** und Reverse-ETL-Synchronisierungen in Ihren BI-Tools, die die Tabellen lesen, auf denen sie aufbauen.
 
-Jeder Pfeil ist etwas, das OneUptime aufgezeichnet hat, nie eine Vermutung. Die Karten stehen von links nach rechts in Flussrichtung der Daten und zeigen ihren Zustand wie im Diagramm einer Tabelle: rot bei einer verspäteten Tabelle, einem offenen Alarm oder einer fehlgeschlagenen Ausführung. Ein Pfeil ist türkis, wenn die Traces eines Dienstes ihn gesehen haben.
+Jeder Pfeil ist etwas, das OneUptime aufgezeichnet hat, nie eine Vermutung. Die Karten stehen von links nach rechts in Flussrichtung der Daten und zeigen ihren Zustand wie im Diagramm einer Tabelle: rot bei einer verspäteten Tabelle, einer offenen Warnung oder einer fehlgeschlagenen Ausführung. Ein Pfeil ist türkis, wenn die Traces eines Dienstes ihn gesehen haben.
 
 Suchen Sie nach einer Tabelle, einem Dienst, einer Pipeline oder einem Dashboard, um zu behalten, was passt, und alles stromaufwärts und stromabwärts davon. Wählen Sie eine Karte aus, um ihre gesamte Datenherkunft hervorzuheben, zu sehen, woher sie stammt und wohin sie fließt, und ihre Seite zu öffnen; **Nur die zugehörige Datenherkunft anzeigen** lässt nur diese auf der Karte. Mit den Schaltern neben der Suche lassen Sie Dienste, Pipelines oder Dashboards weg. **Liste** zeigt jeden Pfeil als Zeile und ist das, was ein Smartphone öffnet.
 

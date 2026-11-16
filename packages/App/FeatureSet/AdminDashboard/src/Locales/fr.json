@@ -4155,5 +4155,17 @@
   "{{itemName}} invited": "Invité : {{itemName}}",
   "{{itemName}} linked": "Lié : {{itemName}}",
   "{{itemName}} removed": "Retiré : {{itemName}}",
-  "{{itemName}} started": "Démarré : {{itemName}}"
+  "{{itemName}} started": "Démarré : {{itemName}}",
+  "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.": "Supprimer un incident supprime aussi ses notes, sa chronologie d'état, ses exécutions de runbook et les correctifs que l'IA de OneUptime a proposés pour lui, et le retire des pages de statut. Les alertes liées sont conservées.",
+  "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.": "Supprimer une alerte supprime aussi ses notes, sa chronologie d'état, ses exécutions de runbook et les correctifs que l'IA de OneUptime a proposés pour elle. Les incidents liés sont conservés.",
+  "In short": "En bref",
+  "Full documentation": "Documentation complète",
+  "Expand all": "Tout développer",
+  "Collapse all": "Tout réduire",
+  "Limited to deleted records": "Limitée à des éléments supprimés",
+  "{{list}}: {{names}}, deleted {{date}}.": "{{list}} : {{names}}, suppression le {{date}}.",
+  "OneUptime switched this rule off when they were deleted.": "OneUptime a désactivé cette règle lors de leur suppression.",
+  "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Réactivée en l'état, la règle ne serait plus du tout limitée par ces listes. Modifiez-la pour choisir ce à quoi elle s'applique, puis réactivez-la.",
+  "{{names}} and {{count}} more": "{{names}} et {{count}} autres",
+  "{{names}} and {{count}} more_one": "{{names}} et {{count}} autre"
 }
