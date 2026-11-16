@@ -21,6 +21,7 @@ import {
   ProjectBalanceType,
 } from "../../../../Utils/Project/ProjectBalance";
 import { CodeRepositoryRunnerChoiceKind } from "../../../../Types/Runner/CodeRepositoryRunner";
+import { GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL } from "../../../../Types/Runner/GlobalRunnerRepositoryTokens";
 import {
   CodeTaskBlocker,
   CodeTaskBlockerType,
@@ -134,6 +135,10 @@ export function describeRepositoryRunnerStatus(
         ? getProjectDefaultRunnerTakesNoCodeFixesDetail(status.runnerName)
         : getProjectDefaultRunnerOfflineDetail(status.runnerName);
     case CodeRepositoryRunnerChoiceKind.Global:
+      if (status.needsOwnRunnerForItsToken) {
+        return GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL;
+      }
+
       return status.takesNoCodeFixes
         ? GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL
         : NO_GLOBAL_RUNNER_ONLINE_DETAIL;
@@ -166,9 +171,11 @@ export function getRepositoryRunnerBlocker(
       : CodeTaskBlockerType.RunnerNotOnline
     : status.decision.kind === CodeRepositoryRunnerChoiceKind.NoRunner
       ? CodeTaskBlockerType.GlobalRunnersOff
-      : status.takesNoCodeFixes
-        ? CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes
-        : CodeTaskBlockerType.NoAgent;
+      : status.needsOwnRunnerForItsToken
+        ? CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner
+        : status.takesNoCodeFixes
+          ? CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes
+          : CodeTaskBlockerType.NoAgent;
 
   /*
    * The Runner the repository works on is named, so Code's notice says
@@ -362,6 +369,7 @@ export default class CodeFixReadiness {
         projectId: params.projectId,
         runnerId: params.repository.runnerId,
         isGlobalRunnerPicked: params.repository.isGlobalRunnerPicked,
+        repositoryHostedAt: params.repository.repositoryHostedAt,
       });
 
     const blocker: CodeTaskBlocker | null = getRepositoryRunnerBlocker(status);

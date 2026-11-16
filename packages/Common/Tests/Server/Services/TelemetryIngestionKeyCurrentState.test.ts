@@ -57,7 +57,6 @@ jest.mock("../../../Server/Services/ProjectService", () => {
     __esModule: true,
     default: {
       isProjectBlocked: jest.fn().mockResolvedValue(false),
-      isSampleProject: jest.fn().mockResolvedValue(false),
     },
   };
 });

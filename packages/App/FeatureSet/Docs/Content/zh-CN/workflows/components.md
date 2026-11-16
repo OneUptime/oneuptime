@@ -67,6 +67,8 @@ flowchart TB
 
 无论哪种情况，块都会返回 **响应状态**、**响应标头** 和 **响应主体**，失败时还会返回带有原因的 **错误**。要读取 JSON 响应中的字段，把它的名称加到引用后面，例如 `{{local.components.api-get-1.returnValues.response-body.id}}`。
 
+块最多读取 10 MB 的响应。更大的响应不会被读取：块会走 **错误**，并附上原因。
+
 重定向不会被跟随，所以请把块指向真正应答的地址。请求从 OneUptime 发出：解析为私有网络地址的 URL 会被拒绝，除非自托管管理员允许，运行会带着原因停止。参见 [出站网络访问](/docs/workflows/configuration#出站网络访问)。
 
 **按 ID 进行 API 调用 GET (JSON)** 按来自别处的 ID 读取一个项目，例如 Webhook 发来的问题键。在它的 **URL** 中 ID 所在的位置放上 `{id}`，如 `https://your-domain.atlassian.net/rest/api/3/issue/{id}`，并把 ID 填入 **ID**。只有当 ID 是简单的 ID，即最多 200 个字母、数字、连字符和下划线时，块才会放入 ID，而且仍会对它做百分号编码：其他任何值，例如 `x/../users`，都会在发出任何请求之前走 **错误**，因此来自外部的文本无法把请求引向别处。除此之外，它的工作方式与 **API 调用 GET (JSON)** 相同，返回相同的值。

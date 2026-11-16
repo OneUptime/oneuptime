@@ -283,6 +283,13 @@ function manualCreateData(): MessageQueue {
   return data;
 }
 
+/*
+ * Who created the record is DatabaseService's to stamp, not the caller's to
+ * send (UserAttribution): the check of the record as written is told so, as
+ * DatabaseService tells it (columnsSetByServer).
+ */
+const STAMPED_BY_THE_SERVER: Array<string> = ["createdByUserId"];
+
 type CheckFunction = () => void;
 
 function checkCreate(
@@ -295,6 +302,7 @@ function checkCreate(
       modelType,
       data,
       makeProps(permissions),
+      STAMPED_BY_THE_SERVER,
     );
   };
 }
@@ -311,6 +319,7 @@ function checkColumns(
       data,
       makeProps(permissions),
       requestType,
+      STAMPED_BY_THE_SERVER,
     );
   };
 }

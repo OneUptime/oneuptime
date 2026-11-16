@@ -26,6 +26,7 @@ import {
   OnUpdate,
 } from "../Types/Database/Hooks";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import ColumnPermissions from "../Types/Database/Permissions/ColumnPermission";
 import PermissionUtil from "../Types/Database/Permissions/PermissionsUtil";
 import CreatePermission, {
   CreateParent,
@@ -1929,10 +1930,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * The salt column grants nobody create or update rights, so it has to get
    * past the column-permission check some other way on each path. On update
    * it does so by timing — sanitizeCreateOrUpdate runs after the check. On
-   * create the check runs after `hash()`, so the salt column relies on being
-   * declared `computed: true`, which checkDataColumnPermissions skips on
-   * create. A salt column that forgets that flag breaks every non-root
-   * create of a row carrying a password.
+   * create the check runs after `hash()`, so the salt column is declared
+   * `computed: true`: a server-set column the caller did not send is one the
+   * create's own steps wrote, which the check lets through
+   * (getColumnsSetByServerOnCreate), while a salt the caller sends is refused
+   * before the hooks run (ColumnPermission.checkComputedColumnsSentOnCreate).
+   * A salt column that forgets the flag breaks every non-root create of a row
+   * carrying a password.
    */
   private async hashColumnValue(data: {
     payload: TBaseModel | PartialEntity<TBaseModel>;
@@ -3584,6 +3588,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     CreateBy<BaseModel>,
     Dictionary<Array<string>>
   > = new WeakMap<CreateBy<BaseModel>, Dictionary<Array<string>>>();
+
+  /*
+   * The server-set columns a create's caller gave a value and may create,
+   * by the create, from its ask before its hooks
+   * (checkComputedColumnsSentOnCreate) for the ask after them, which takes
+   * every other value in a server-set column as one the create's own steps
+   * wrote (getColumnsSetByServerOnCreate).
+   */
+  private static computedColumnsSentOn: WeakMap<
+    CreateBy<BaseModel>,
+    Array<string>
+  > = new WeakMap<CreateBy<BaseModel>, Array<string>>();
 
   /*
    * For a create hook that fills in records a template names - an incident
@@ -5948,7 +5964,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * needs it (checkCallerBeforeHooks, which hands createBy its props); no row
    * id pinned by a non-root caller; no query operator, and no switch the
    * database would refuse, in the payload; who did what decided by
-   * OneUptime; one value for a reference, under its ID name too; the parent
+   * OneUptime; one value for a reference, under its ID name too; no value in
+   * a server-set column the caller may not create; the parent
    * the record goes under (checkCreateParents) and the records it names
    * (checkNamedLists), kept for the ask after the hooks. A create runs them
    * (_create), and so does the check that asks without creating
@@ -6010,6 +6027,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // A record named only by its relation, in its ID column too. See the helper.
     this.fillIdColumnsFromRelations(createBy.data);
 
+    /*
+     * What OneUptime fills in is not the caller's to give: a value in a
+     * server-set column is held to its create list, under both names of a
+     * reference (filled in above), before any hook reads it. See the helper.
+     */
+    DatabaseService.computedColumnsSentOn.set(
+      createBy,
+      ModelPermission.checkComputedColumnsSentOnCreate(
+        this.modelType,
+        createBy.data,
+        createBy.props,
+      ),
+    );
+
     // Under a parent the caller may read, before any hook acts. See the helper.
     const checkedParentIds: Array<string> = await this.checkCreateParents({
       data: createBy.data,
@@ -6064,7 +6095,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data: data.record,
     });
 
-    ModelPermission.checkCreatePermissions(this.modelType, data.record, props);
+    ModelPermission.checkCreatePermissions(
+      this.modelType,
+      data.record,
+      props,
+      this.getColumnsSetByServerOnCreate(data.createBy, data.record),
+    );
 
     // And under the parent the hooks left it with, should they name another.
     await this.checkCreateParents({
@@ -6095,6 +6131,34 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await this.assertFileReferencesOwnedOnCreate(data.record);
 
     return props;
+  }
+
+  /*
+   * The server-set columns the create's own steps wrote into `record` once
+   * its caller was asked (checkCreateBeforeHooks): its hooks, the defaults,
+   * the hashing - a salt, an incident's number, a token. They are the
+   * server-set columns the record holds a value in that the caller did not
+   * give one, and they are OneUptime's, so the check of the record lets them
+   * through (ColumnPermission.checkDataColumnPermissions). A create not asked
+   * before its hooks hands over none: every value is then the caller's.
+   */
+  private getColumnsSetByServerOnCreate(
+    createBy: CreateBy<TBaseModel>,
+    record: TBaseModel,
+  ): Array<string> {
+    const sentByCaller: Array<string> | undefined =
+      DatabaseService.computedColumnsSentOn.get(createBy);
+
+    if (!sentByCaller) {
+      return [];
+    }
+
+    return ColumnPermissions.getComputedColumnsWithValue(
+      this.model,
+      record,
+    ).filter((column: string): boolean => {
+      return !sentByCaller.includes(column);
+    });
   }
 
   private async _create(

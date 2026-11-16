@@ -58,6 +58,7 @@ Es gibt kein Umgebungs-Flag `RUNBOOK_BASH_ENABLED` mehr. Ob diese Schritte in ei
 | Ausgabe pro Schritt | **50 KB**. Längere Ausgabe wird mit einer Markierung abgeschnitten. | Jeden automatisierten Schritt |
 | Ausführungs-Timeout | Standardmäßig **30 Sekunden** | JavaScript-, Bash-, SSH- und kubectl-Schritte |
 | Anfrage-Timeout | Standardmäßig **30 Sekunden** | HTTP-Anfrage-Schritte |
+| Antwort pro Anfrage | **10 MB**. Eine größere Antwort wird nicht gelesen und lässt den Schritt fehlschlagen. | HTTP-Anfrage-Schritte |
 | Übernahme-Timeout | Standardmäßig **2 Minuten**: wie lange der Worker darauf wartet, dass der gewählte Runner den Job übernimmt, bevor er ihn fehlschlagen lässt | JavaScript-, Bash-, SSH- und kubectl-Schritte |
 | Timeout-Bereich | **1 Sekunde bis 1 Stunde** | Jedes Timeout |
 | Warten auf eine Person | Kein Limit | Manual-Schritte und Freigaben |

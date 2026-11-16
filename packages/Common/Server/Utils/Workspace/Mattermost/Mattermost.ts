@@ -3,6 +3,7 @@ import HTTPMethod from "../../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
 import Dictionary from "../../../../Types/Dictionary";
+import APIException from "../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
 import { JSONArray, JSONObject, JSONValue } from "../../../../Types/JSON";
@@ -35,6 +36,7 @@ import { AppApiClientUrl } from "../../../EnvironmentConfig";
 import logger, { LogAttributes } from "../../Logger";
 import SafeWebhookRequest, {
   WEBHOOK_MAX_RESPONSE_BYTES,
+  WebhookAnswerTooLargeException,
   WebhookTarget,
 } from "../../SafeWebhookRequest";
 import { WebhookTargetValidationOptions } from "../../SSRFProtection";
@@ -227,6 +229,17 @@ export default class MattermostUtil extends WorkspaceBase {
   // How long one call to a Mattermost server may take before it is given up.
   public static readonly REQUEST_TIMEOUT_IN_MS: number = 15000;
 
+  /*
+   * The most of an answer a call to a Mattermost server reads (issue
+   * #8875). Its answers are small JSON and lists of at most 200 entries,
+   * but one is not paged at all: the channels the bot is in, on a team
+   * (listChannels), which a bot that opens a channel per incident can be in
+   * thousands of. A listing's limit, then, as a Git server's is
+   * (CODE_HOST_MAX_RESPONSE_BYTES): a larger answer is not read, and the
+   * call fails saying so.
+   */
+  public static readonly SERVER_MAX_RESPONSE_BYTES: number = 8 * 1024 * 1024;
+
   // How many channels Mattermost lists in one page.
   private static readonly CHANNELS_PER_PAGE: number = 200;
 
@@ -276,10 +289,13 @@ export default class MattermostUtil extends WorkspaceBase {
      * The call dials an address the check approved and no other
      * (SafeWebhookRequest), so the server's name cannot resolve somewhere
      * else - with the bot's token on the request - between the check and
-     * the connection.
+     * the connection. An answer larger than SERVER_MAX_RESPONSE_BYTES is
+     * not read, nor asked for again.
      */
-    const response: HTTPResponse<T> | HTTPErrorResponse =
-      await SafeWebhookRequest.send<T>(target, {
+    let response: HTTPResponse<T> | HTTPErrorResponse;
+
+    try {
+      response = await SafeWebhookRequest.send<T>(target, {
         method: data.method,
         headers: {
           Authorization: `Bearer ${data.accessToken}`,
@@ -292,7 +308,15 @@ export default class MattermostUtil extends WorkspaceBase {
         exponentialBackoff: true,
         retryOnlyOnRetryableErrors: true,
         timeout: MattermostUtil.REQUEST_TIMEOUT_IN_MS,
+        maxContentLength: MattermostUtil.SERVER_MAX_RESPONSE_BYTES,
       });
+    } catch (err) {
+      if (err instanceof WebhookAnswerTooLargeException) {
+        throw new APIException(err.describe("Mattermost's answer"), err);
+      }
+
+      throw err;
+    }
 
     if (response instanceof HTTPErrorResponse) {
       throw MattermostUtil.getRequestError(response);

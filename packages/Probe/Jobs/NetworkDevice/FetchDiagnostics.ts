@@ -1,5 +1,6 @@
 import { PROBE_INGEST_URL } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
+import ServerBusy from "../../Utils/ServerBusy";
 import NetworkPathMonitor, {
   NetworkPathMonitorOptions,
 } from "../../Utils/Monitors/MonitorTypes/NetworkPathMonitor";
@@ -54,6 +55,9 @@ import logger from "Common/Server/Utils/Logger";
  * burst of traceroutes from forking a pile of processes at once.
  */
 export const DIAGNOSTIC_CONCURRENCY: number = 5;
+
+// The work the list hands out, as a busy answer names it (ServerBusy).
+const DIAGNOSTICS_WORK: string = "network device diagnostics";
 
 /*
  * Single-flight guard for the LIST FETCH only. node-cron fires every tick
@@ -119,6 +123,11 @@ const InitJob: VoidFunction = (): void => {
 export async function fetchDiagnosticList(): Promise<
   Array<NetworkDeviceDiagnosticJob>
 > {
+  // The server asked this probe to wait (ServerBusy): it asks later.
+  if (ServerBusy.isBackingOff(DIAGNOSTICS_WORK)) {
+    return [];
+  }
+
   const listUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
     "/probe/network-device-diagnostic/list",
   );
@@ -135,6 +144,16 @@ export async function fetchDiagnosticList(): Promise<
         headers: {},
         options: ProbeAPIRequest.getDefaultRequestOptions(listUrl),
       });
+
+    /*
+     * Too busy to hand out diagnostics now (issue #8051): nothing was
+     * claimed, they stay Pending, and this probe asks again once the
+     * server's Retry-After has passed. Not a failed request.
+     */
+    if (ServerBusy.isBusyAnswer(result)) {
+      ServerBusy.note(DIAGNOSTICS_WORK, result);
+      return [];
+    }
 
     /*
      * API.fetch RETURNS an HTTPErrorResponse for a 4xx/5xx — it only throws

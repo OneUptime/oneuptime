@@ -67,6 +67,8 @@ Doe een HTTP-verzoek naar elke URL. Er is één blok per methode: **API-aanroep 
 
 Hoe dan ook geeft het blok **Status van het antwoord**, **Reactieheaders** en **Antwoordlichaam** terug, plus **Fout** met de reden als het mislukte. Lees één veld van een JSON-antwoord door de naam ervan aan de verwijzing toe te voegen, zoals in `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+Een blok leest hoogstens 10 MB van een antwoord. Een groter antwoord wordt niet gelezen: het blok neemt **Fout**, met de reden.
+
 Omleidingen worden niet gevolgd, dus richt het blok op het adres dat antwoordt. Verzoeken gaan vanuit OneUptime de deur uit: een URL die naar een privénetwerkadres verwijst, wordt geweigerd tenzij een beheerder van een zelf gehoste installatie die toestaat, en de uitvoering stopt met de reden. Zie [Uitgaande netwerktoegang](/docs/workflows/configuration#uitgaande-netwerktoegang).
 
 **API-aanroep GET op ID (JSON)** leest één item op een ID dat ergens anders vandaan kwam, zoals de issuesleutel die een webhook stuurde. Zet `{id}` in de **URL** waar het ID hoort, zoals in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, en het ID in **ID**. Het blok zet het ID er alleen in als het een eenvoudig ID is, hooguit 200 letters, cijfers, streepjes en underscores, en codeert het toch met procenttekens: al het andere, zoals `x/../users`, neemt **Fout** voordat er een verzoek wordt verstuurd, zodat tekst van buiten het verzoek niet ergens anders heen kan sturen. Verder werkt het zoals **API-aanroep GET (JSON)** en geeft het dezelfde waarden terug.

@@ -67,6 +67,8 @@ Faça uma requisição HTTP para qualquer URL. Há um bloco por método: **Chama
 
 Nos dois casos, o bloco devolve **Status da resposta**, **Cabeçalhos da resposta** e **Corpo da Resposta**, além de **Erro** com o motivo quando falhou. Leia um campo de uma resposta JSON acrescentando o nome dele à referência, como em `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+Um bloco lê no máximo 10 MB de uma resposta. Uma resposta maior não é lida: o bloco segue por **Erro**, com o motivo.
+
 Redirecionamentos não são seguidos, então aponte o bloco para o endereço que responde. As requisições saem do OneUptime: uma URL que resolve para um endereço de rede privada é recusada, a menos que um administrador self-hosted a permita, e a execução para com o motivo. Veja [Acesso de rede para fora](/docs/workflows/configuration#acesso-de-rede-para-fora).
 
 **Chamada de API GET por ID (JSON)** lê um item por um ID que veio de outro lugar, como a chave de issue que um webhook enviou. Coloque `{id}` na **URL** dele onde vai o ID, como em `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, e o ID em **ID**. O bloco só coloca o ID quando ele é um ID simples, com no máximo 200 letras, dígitos, hífens e sublinhados, e mesmo assim o codifica com porcentagem: qualquer outra coisa, como `x/../users`, toma **Erro** antes de qualquer requisição sair, então um texto de fora não consegue apontar a requisição para outro lugar. De resto, funciona como **Chamada de API GET (JSON)** e devolve os mesmos valores.

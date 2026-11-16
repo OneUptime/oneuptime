@@ -454,8 +454,8 @@ describePostgres("Monitor's indexes, on Postgres", () => {
       ];
 
       await database.query(
-        `INSERT INTO "${schema}"."Project" ("_id", "name", "isBlocked", "isSampleProject")
-         SELECT p.id, 'Monitor indexes', false, false FROM (${projects}) AS p`,
+        `INSERT INTO "${schema}"."Project" ("_id", "name", "isBlocked")
+         SELECT p.id, 'Monitor indexes', false FROM (${projects}) AS p`,
         [projectIds],
       );
       // Each project's own statuses: one operational, two not.

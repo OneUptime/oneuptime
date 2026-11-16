@@ -115,11 +115,19 @@ interface ParentTableFacts {
 }
 
 export default class CreatePermission {
+  /*
+   * `columnsSetByServer` are the server-set (computed) columns the create's
+   * own steps wrote into the record - its hooks, the defaults, the hashing -
+   * which no caller may write: the column check lets those values through,
+   * and refuses the same column when it is the caller who sent it
+   * (ColumnPermission.checkDataColumnPermissions).
+   */
   @CaptureSpan()
   public static checkCreatePermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
+    columnsSetByServer: Array<string> = [],
   ): void {
     /*
      * Master admins skip every table-level check below, but not the edition
@@ -168,6 +176,7 @@ export default class CreatePermission {
       data,
       props,
       DatabaseRequestType.Create,
+      columnsSetByServer,
     );
 
     CreatePermission.checkCreateOwnership(modelType, data, props);

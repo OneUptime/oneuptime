@@ -297,21 +297,36 @@ describe("DataSourceHttpFetch.fetch - pinned socket lookup", () => {
     expect(first.httpsAgent).not.toBe(second.httpsAgent);
   });
 
-  test("the agent lookup yields the pinned validated address, ignoring the hostname it is asked for", async () => {
+  test("the agent lookup yields the pinned validated address for the URL's host, whatever DNS would say now", async () => {
     await DataSourceHttpFetch.fetch(makeRequest());
     const lookup: PinnedLookup = getPinnedLookup(getAxiosConfig().httpsAgent);
 
     /*
      * Even if DNS would now answer differently (rebind), the lookup must
-     * return the address that was validated — for ANY hostname asked.
+     * return the address that was validated for the host it was validated
+     * for: the agent never asks DNS about it again.
      */
     const outcome: LookupOutcome = await runLookup(
       lookup,
-      "rebound.attacker.example",
+      "api.example.com",
       {},
     );
     expect(outcome.address).toBe(PUBLIC_IP);
     expect(outcome.family).toBe(4);
+  });
+
+  /*
+   * #8873: the lookup used to answer EVERY name from the pin, and axios asks
+   * the agent for an outbound proxy's name when it sends through one - so
+   * the request dialled the data source's address on the proxy's port.
+   */
+  test("the agent lookup answers no other name from the pin", async () => {
+    await DataSourceHttpFetch.fetch(makeRequest());
+    const lookup: PinnedLookup = getPinnedLookup(getAxiosConfig().httpsAgent);
+
+    await expect(
+      runLookup(lookup, "rebound.attacker.example", {}),
+    ).rejects.toMatchObject({ code: "ENOTFOUND" });
   });
 
   test("the agent lookup returns every pinned address when asked for all", async () => {

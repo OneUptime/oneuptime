@@ -648,20 +648,6 @@ export default class MonitorResourceUtil {
         return response;
       }
 
-      /*
-       * Nor is a sample project's (issue #6808): its monitors show a made-up
-       * history, are handed to no probe and swept by no job, and a result
-       * that reaches one anyway - a heartbeat someone sends to its address -
-       * opens nothing and changes nothing.
-       */
-      if (await ProjectService.isSampleProject(monitor.projectId)) {
-        logger.debug(
-          `${dataToProcess.monitorId.toString()} Monitor's project is a sample project. Skipping.`,
-        );
-
-        return response;
-      }
-
       // What a heartbeat sweep compares with (MonitorHeartbeatState).
       const monitorStatusIdFound: ObjectID | undefined =
         monitor.currentMonitorStatusId;

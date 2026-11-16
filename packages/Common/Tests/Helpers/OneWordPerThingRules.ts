@@ -373,7 +373,8 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     english: /\brunners?\b/i,
     except: NOT_THE_RUNNER,
     word: /Runner/,
-    dropped: /агент|раннер/i,
+    // The AI agent is a thing of its own, named as the Dashboard names it.
+    dropped: /(?<!ИИ-)агент(?![а-яё]*\s+ИИ)|раннер/i,
     docsEnglish: /\bRunners?\b/,
   },
   {
@@ -382,7 +383,8 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     english: /\brunners?\b/i,
     except: NOT_THE_RUNNER,
     word: /Runner/,
-    dropped: /代理|執行器/,
+    // The AI agent (AI 代理) is a thing of its own, named as the Dashboard names it.
+    dropped: /(?<!AI )代理|執行器/,
     docsEnglish: /\bRunners?\b/,
   },
   /*

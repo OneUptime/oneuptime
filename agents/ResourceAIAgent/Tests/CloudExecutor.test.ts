@@ -504,6 +504,8 @@ describe("AWS: whoami", () => {
     assert.strictEqual(result.success, true, result.errorMessage || "");
     assert.strictEqual(result.exitCode, 0);
     assert.deepStrictEqual(outputLines(result), [
+      // What Test connection reads: a change can run as the write role.
+      'oneuptime-write-path: {"state":"usable"}',
       "Cloud: AWS",
       "Account: 123456789012",
       `Signed in as: ${AWS_TASK_CALLER_ARN} (the ECS task role)`,

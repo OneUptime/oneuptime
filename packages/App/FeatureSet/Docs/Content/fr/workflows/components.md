@@ -67,6 +67,8 @@ Faites une requête HTTP vers n'importe quelle URL. Il y a un bloc par méthode 
 
 Dans les deux cas, le bloc renvoie **Statut de la réponse**, **En-têtes de réponse** et **Corps de la réponse**, plus **Erreur** avec la raison en cas d'échec. Lisez un champ d'une réponse JSON en ajoutant son nom à la référence, comme dans `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+Un bloc lit au plus 10 Mo d'une réponse. Une réponse plus grande n'est pas lue : le bloc prend **Erreur**, avec la raison.
+
 Les redirections ne sont pas suivies : pointez donc le bloc vers l'adresse qui répond. Les requêtes partent de OneUptime : une URL qui se résout vers une adresse de réseau privé est refusée, sauf si un administrateur auto-hébergé l'autorise, et l'exécution s'arrête avec la raison. Voir [Accès réseau sortant](/docs/workflows/configuration#accès-réseau-sortant).
 
 **Appel d'API GET par ID (JSON)** lit un élément par un ID venu d'ailleurs, comme la clé de ticket qu'un webhook a envoyée. Mettez `{id}` dans son **URL** à l'endroit de l'ID, comme dans `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, et l'ID dans **ID**. Le bloc n'insère l'ID que s'il s'agit d'un ID simple, au plus 200 lettres, chiffres, tirets et tirets bas, et l'encode tout de même en pourcentage : tout le reste, comme `x/../users`, prend **Erreur** avant qu'aucune requête ne parte, si bien qu'un texte venu de l'extérieur ne peut pas diriger la requête ailleurs. Pour le reste, il fonctionne comme **Appel d'API GET (JSON)** et renvoie les mêmes valeurs.

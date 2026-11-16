@@ -196,6 +196,8 @@ describe("Google Cloud: whoami", () => {
     });
 
     assert.deepStrictEqual(outputLines(result), [
+      // What Test connection reads: no write account, changes run as the agent's own.
+      'oneuptime-write-path: {"state":"unset"}',
       "Cloud: Google Cloud",
       `Project: ${P} (number ${GCP_PROJECT_NUMBER})`,
       `Signed in as: ${IDENTITY}`,
@@ -218,9 +220,9 @@ describe("Google Cloud: whoami", () => {
       }),
     );
 
-    assert.strictEqual(lines[1], "Project: shop-staging-77");
+    assert.strictEqual(lines[2], "Project: shop-staging-77");
     assert.strictEqual(
-      lines[3],
+      lines[4],
       `Runs in: project ${P} (number ${GCP_PROJECT_NUMBER}); it changes project shop-staging-77, where its service account needs the roles of its changes`,
     );
   });

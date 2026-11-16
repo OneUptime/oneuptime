@@ -67,6 +67,8 @@ Fai una richiesta HTTP a qualsiasi URL. C'è un blocco per metodo: **Chiamata AP
 
 In entrambi i casi il blocco restituisce **Stato della risposta**, **Header della risposta** e **Corpo della Risposta**, più **Errore** con il motivo quando non è riuscito. Leggi un campo di una risposta JSON aggiungendo il suo nome al riferimento, come in `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+Un blocco legge al massimo 10 MB di una risposta. Una risposta più grande non viene letta: il blocco prende **Errore**, con il motivo.
+
 I reindirizzamenti non vengono seguiti, quindi punta il blocco all'indirizzo che risponde. Le richieste partono da OneUptime: un URL che si risolve in un indirizzo di rete privata viene rifiutato a meno che un amministratore self-hosted non lo consenta, e l'esecuzione si ferma con il motivo. Vedi [Accesso alla rete in uscita](/docs/workflows/configuration#accesso-alla-rete-in-uscita).
 
 **Chiamata API GET per ID (JSON)** legge un elemento tramite un ID arrivato da altrove, come la chiave del ticket inviata da un webhook. Metti `{id}` nel suo **URL** dove va l'ID, come in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, e l'ID in **ID**. Il blocco inserisce l'ID solo quando è un ID semplice, al massimo 200 lettere, cifre, trattini e trattini bassi, e lo codifica comunque in percentuale: qualsiasi altra cosa, come `x/../users`, prende **Errore** prima che parta qualsiasi richiesta, così un testo arrivato da fuori non può indirizzare la richiesta altrove. Per il resto funziona come **Chiamata API GET (JSON)** e restituisce gli stessi valori.

@@ -57,6 +57,12 @@ export interface PendingExpoPushReceipt {
    * notification.send.count said it, for its receipt's delivery metric.
    */
   isOnCallPage?: boolean | undefined;
+  /*
+   * Its receipt was read and counted (notification.delivery.count), but
+   * what it said could not be written down - the database failed - so it
+   * is read again, and not counted again (ExpoPushReceiptService).
+   */
+  isDeliveryCounted?: boolean | undefined;
 }
 
 // Expo's advice: read a push's receipt 15 minutes after sending it.
@@ -219,6 +225,10 @@ export class ExpoPushReceiptQueue {
       receipt.isOnCallPage = true;
     }
 
+    if (entry["isDeliveryCounted"] === true) {
+      receipt.isDeliveryCounted = true;
+    }
+
     return receipt;
   }
 
@@ -237,6 +247,7 @@ export class ExpoPushReceiptQueue {
         ? { userOnCallLogTimelineId: receipt.userOnCallLogTimelineId }
         : {}),
       ...(receipt.isOnCallPage ? { isOnCallPage: true } : {}),
+      ...(receipt.isDeliveryCounted ? { isDeliveryCounted: true } : {}),
     });
   }
 

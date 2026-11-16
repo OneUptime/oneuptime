@@ -46,7 +46,6 @@ jest.mock("../../../../Server/Utils/Logger");
 import CacheGenerations from "../../../../Server/Infrastructure/CacheGenerations";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import ProjectMilestoneService from "../../../../Server/Services/ProjectMilestoneService";
-import ProjectService from "../../../../Server/Services/ProjectService";
 import TelemetryMilestones, {
   PendingTelemetryMilestones,
 } from "../../../../Server/Utils/Activation/TelemetryMilestones";
@@ -273,7 +272,6 @@ describe("1. a setup guide's first data, on the server", () => {
     jest.spyOn(ProjectMilestoneService, "getRepository").mockReturnValue({
       manager: { query: queries },
     } as never);
-    jest.spyOn(ProjectService, "isSampleProject").mockResolvedValue(false);
     jest.spyOn(ProductAnalytics, "isConfigured").mockReturnValue(false);
   });
 

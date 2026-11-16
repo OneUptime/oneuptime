@@ -531,21 +531,31 @@ describe("LlmProvider - changing it through the permission layer", () => {
 
   /*
    * Postgres computes it on every read (a virtual column), so a create
-   * carrying it (an export taken by an owner, say) is not refused for it,
-   * and nothing a create or an update carries is ever written to it
-   * (LlmProviderServiceSecrets.test.ts).
+   * carrying it (a provider read back and sent whole, say) is not refused
+   * for it: the value is dropped before the create's hooks run
+   * (ComputedColumnsReplacedOnCreate), and nothing a create or an update
+   * carries is ever written to it (LlmProviderServiceSecrets.test.ts).
    */
   test("a create that names whether parameters are saved is not refused for it", () => {
     const provider: LlmProvider = new LlmProvider();
     provider.name = "Provider";
     provider.hasAdditionalParams = true;
 
-    expect(() => {
-      ModelPermission.checkCreatePermissions(
+    const props: DatabaseCommonInteractionProps = member({
+      permissions: [Permission.SettingsMember],
+    });
+
+    expect(
+      ModelPermission.checkComputedColumnsSentOnCreate(
         LlmProvider,
         provider,
-        member({ permissions: [Permission.SettingsMember] }),
-      );
+        props,
+      ),
+    ).toEqual([]);
+    expect(provider.hasAdditionalParams).toBeUndefined();
+
+    expect(() => {
+      ModelPermission.checkCreatePermissions(LlmProvider, provider, props);
     }).not.toThrow();
   });
 

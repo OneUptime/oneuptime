@@ -1,7 +1,6 @@
 import MonitorTestService, {
   MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE,
 } from "../../../Server/Services/MonitorTestService";
-import { EntityManager } from "../../../Server/Services/DatabaseService";
 import { MonitorStepProbeResponse } from "../../../Models/DatabaseModels/MonitorProbe";
 import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
@@ -13,6 +12,12 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * the test AND the probe, and says whether it wrote. The statement itself is
  * run against Postgres in MonitorTestProbeResponsePostgres; this pins its
  * shape and how the answer is read, wherever the suite runs.
+ *
+ * It is one self-committing statement on the service's own connection,
+ * never a transaction (OneUptime issue #8870): every step result of every
+ * "Test monitor" run paid a BEGIN and a COMMIT round trip for nothing. So
+ * executeTransaction is made to throw here, and a write that opens one
+ * again fails.
  */
 
 const TEST_ID: ObjectID = new ObjectID("6f1c3c8e-2b7a-4d4e-9f0a-1c2d3e4f5a6b");
@@ -38,23 +43,25 @@ async function mergeAnswered(answer: unknown): Promise<{
 }> {
   const queries: Array<RecordedQuery> = [];
 
-  const manager: EntityManager = {
-    query: async (
-      sql: string,
-      parameters: Array<unknown>,
-    ): Promise<unknown> => {
-      queries.push({ sql, parameters });
-      return answer;
-    },
-  } as unknown as EntityManager;
-
   jest
     .spyOn(MonitorTestService, "executeTransaction")
-    .mockImplementation((async (
-      run: (entityManager: EntityManager) => Promise<unknown>,
-    ): Promise<unknown> => {
-      return await run(manager);
+    .mockImplementation((async (): Promise<never> => {
+      throw new Error(
+        "A step result is one statement: it must not open a transaction.",
+      );
     }) as never);
+
+  jest.spyOn(MonitorTestService, "getRepository").mockReturnValue({
+    manager: {
+      query: async (
+        sql: string,
+        parameters: Array<unknown>,
+      ): Promise<unknown> => {
+        queries.push({ sql, parameters });
+        return answer;
+      },
+    },
+  } as never);
 
   const written: boolean = await MonitorTestService.mergeStepProbeResponse({
     testId: TEST_ID,
@@ -79,7 +86,9 @@ describe("MonitorTestService.mergeStepProbeResponse", () => {
   test("writes only the test handed to the probe that reported it", async () => {
     const { queries } = await mergeAnswered([[{ _id: TEST_ID.toString() }], 1]);
 
+    // One statement on the service's own connection, no transaction round it.
     expect(queries).toHaveLength(1);
+    expect(MonitorTestService.executeTransaction).not.toHaveBeenCalled();
 
     const sql: string = squash(queries[0]!.sql);
 

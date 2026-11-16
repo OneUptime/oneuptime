@@ -1,4 +1,5 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceDiagnostic";
@@ -10,6 +11,7 @@ import NetworkDeviceHydrationUtil, {
   ResolvedSnmpCredentialsForBatch,
 } from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import Express, {
+  ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
@@ -329,6 +331,17 @@ function buildSnmpWalkJob(data: {
 router.post(
   "/probe/network-device-diagnostic/list",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
+  /*
+   * Under the probe scheduling limit (issue #8051); a refused request claims
+   * nothing and is answered busy (ProbeSchedulingMiddleware): the
+   * diagnostics stay Pending for the probe's next tick, ten seconds on.
+   */
+  ProbeSchedulingMiddleware.limit(
+    (req: ExpressRequest, res: ExpressResponse): void => {
+      return Response.sendJsonObjectResponse(req, res, { diagnostics: [] });
+    },
+    { retriesWhenBusy: ProbeCapability.RetryAllWorkWhenBusy },
+  ),
   async (
     req: ProbeExpressRequest,
     res: ExpressResponse,

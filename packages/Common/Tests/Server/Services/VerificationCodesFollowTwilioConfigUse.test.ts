@@ -152,7 +152,15 @@ describe("a number for calls, in a project whose config is used for SMS only", (
       getNoTwilioAccountMessage(TwilioMessageKind.Call, {
         projectConfigUse: TwilioConfigUse.SmsOnly,
       }),
-    ).toMatch(/^This project's Twilio config is used for SMS only/);
+    ).toMatch(/^This project's default Twilio config is used for SMS only/);
+    // What fixes it for most such projects: a config for calls only, made the default for calls.
+    expect(
+      getNoTwilioAccountMessage(TwilioMessageKind.Call, {
+        projectConfigUse: TwilioConfigUse.SmsOnly,
+      }),
+    ).toContain(
+      "make a config used for calls only the project default for calls (Set as Project Default for Calls in its row's menu)",
+    );
   });
 
   test("is paid from the balance, so a balance too low refuses it - where a config for calls too would not be", async () => {
@@ -213,6 +221,11 @@ describe("a number for SMS, in a project whose config is used for calls only", (
       getNoTwilioAccountMessage(TwilioMessageKind.SMS, {
         projectConfigUse: TwilioConfigUse.CallsOnly,
       }),
+    );
+    await expect(
+      UserSmsService.getReasonCodeCannotBeSent(PROJECT_ID),
+    ).resolves.toContain(
+      "make a config used for SMS only the project default for SMS (Set as Project Default for SMS in its row's menu)",
     );
   });
 

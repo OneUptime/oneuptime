@@ -961,8 +961,11 @@ const SAME_AS_ENGLISH: Record<string, ReadonlyArray<string>> = {
   Host: ["de", "es", "it", "pt", "nl"],
   Interfaces: ["fr", "es", "pt", "nl"],
   Manual: ["es", "pt"],
-  // OneUptime's own status name, which these languages write as English does.
-  Offline: ["de", "it", "pt", "nl", "da", "sv"],
+  /*
+   * OneUptime's own status name, which these languages write as English
+   * does - Norwegian too, on its same-as-English list since 33f88b3bd94.
+   */
+  Offline: ["de", "it", "pt", "nl", "da", "no", "sv"],
   Spans: ["de", "fr", "es", "pt", "nl", "da", "no", "sv"],
   Up: ["nl"],
   "{{count}} down": ["nl"],

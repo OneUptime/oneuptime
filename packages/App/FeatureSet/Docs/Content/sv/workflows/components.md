@@ -67,6 +67,8 @@ Gör en HTTP-förfrågan till valfri URL. Det finns ett block per metod: **API-a
 
 Oavsett vilket returnerar blocket **Svarsstatus**, **Svarshuvuden** och **Svarstext**, plus **Fel** med orsaken när det misslyckades. Läs ett fält i ett JSON-svar genom att lägga till dess namn i referensen, som i `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+Ett block läser högst 10 MB av ett svar. Ett större svar läses inte: blocket tar **Fel**, med orsaken.
+
 Omdirigeringar följs inte, så peka blocket mot adressen som svarar. Förfrågningar skickas från OneUptime: en URL som pekar på en privat nätverksadress avvisas om inte en administratör för en självhostad installation tillåter det, och körningen stoppas med orsaken. Se [Utgående nätverksåtkomst](/docs/workflows/configuration#utgående-nätverksåtkomst).
 
 **API-anrop GET efter ID (JSON)** läser ett objekt utifrån ett ID som kom någon annanstans ifrån, till exempel ärendenyckeln som en webhook skickade. Sätt `{id}` i dess **URL** där ID:t ska stå, som i `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, och ID:t i **ID**. Blocket sätter bara in ID:t när det är ett enkelt ID, högst 200 bokstäver, siffror, bindestreck och understreck, och procentkodar det ändå: allt annat, till exempel `x/../users`, tar **Fel** innan någon förfrågan skickas, så att text utifrån inte kan skicka förfrågan någon annanstans. I övrigt fungerar det som **API-anrop GET (JSON)** och returnerar samma värden.

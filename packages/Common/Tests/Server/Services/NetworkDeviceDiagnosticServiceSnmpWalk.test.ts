@@ -24,7 +24,6 @@ import {
   SNMP_WALK_INVALID_AFTER_MESSAGE,
   SNMP_WALK_INVALID_ROOT_MESSAGE,
 } from "../../../Utils/NetworkDevice/SnmpWalkResultUtil";
-import { EntityManager } from "typeorm";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
@@ -438,32 +437,35 @@ describe("one walk of a device at a time", () => {
 });
 
 /*
- * A fake EntityManager that records the statement recordReport runs.
+ * The service's own connection, recording the one statement recordReport
+ * sends on it (OneUptime issue #8870: never a transaction).
  */
 interface RecordedStatement {
   sql: string;
   params: Array<unknown>;
 }
 
-function stubTransaction(
+function stubStatements(
   service: NetworkDeviceDiagnosticServiceType,
 ): Array<RecordedStatement> {
   const statements: Array<RecordedStatement> = [];
 
   jest
     .spyOn(service, "executeTransaction")
-    .mockImplementation(
-      async <TResult>(
-        runInTransaction: (entityManager: EntityManager) => Promise<TResult>,
-      ): Promise<TResult> => {
-        return await runInTransaction({
-          query: async (sql: string, params: Array<unknown>) => {
-            statements.push({ sql, params });
-            return [[{ _id: DIAGNOSTIC_ID.toString() }], 1];
-          },
-        } as unknown as EntityManager);
+    .mockImplementation((async (): Promise<never> => {
+      throw new Error(
+        "A diagnostic's report is one statement: it must not open a transaction.",
+      );
+    }) as never);
+
+  jest.spyOn(service, "getRepository").mockReturnValue({
+    manager: {
+      query: async (sql: string, params: Array<unknown>): Promise<unknown> => {
+        statements.push({ sql, params });
+        return [[{ _id: DIAGNOSTIC_ID.toString() }], 1];
       },
-    );
+    },
+  } as never);
 
   return statements;
 }
@@ -485,7 +487,7 @@ describe("storing what the probe read", () => {
 
   test("a walk result is stored as jsonb, the ping and traceroute columns NULL", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service);
+    const statements: Array<RecordedStatement> = stubStatements(service);
     const report: NetworkDeviceDiagnosticReport = {
       networkDeviceDiagnosticId: DIAGNOSTIC_ID.toString(),
       status: NetworkDeviceDiagnosticStatus.Completed,
@@ -511,7 +513,7 @@ describe("storing what the probe read", () => {
 
   test("a ping's report leaves the walk column NULL", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service);
+    const statements: Array<RecordedStatement> = stubStatements(service);
 
     await service.recordReport({
       probeId: DEVICE_PROBE_ID,

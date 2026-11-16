@@ -58,6 +58,7 @@ Non esiste più il flag d'ambiente `RUNBOOK_BASH_ENABLED`. Il funzionamento di q
 | Output per passaggio | **50 KB**. L'output più lungo viene troncato con un marcatore. | Ogni passaggio automatico |
 | Execution timeout | **30 secondi** per impostazione predefinita | Passaggi JavaScript, Bash, SSH e kubectl |
 | Request timeout | **30 secondi** per impostazione predefinita | Passaggi di richiesta HTTP |
+| Risposta per richiesta | **10 MB**. Una risposta più grande non viene letta e fa fallire il passaggio. | Passaggi di richiesta HTTP |
 | Claim timeout | **2 minuti** per impostazione predefinita: quanto il Worker attende che il Runner scelto prenda in carico il lavoro prima di farlo fallire | Passaggi JavaScript, Bash, SSH e kubectl |
 | Intervallo dei timeout | **Da 1 secondo a 1 ora** | Ogni timeout |
 | Attesa di una persona | Nessun limite | Passaggi Manual e approvazioni |
