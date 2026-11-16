@@ -102,6 +102,8 @@ PostgreSQL 存储的是您的配置和运行状态，而不是遥测数据，因
 | 入口网关 | `nginx` | 请求量 |
 | 遥测写入器（开启时） | `telemetryWriter` | 不随负载增长：它把每次遥测插入批量写入 ClickHouse，因此按 ClickHouse 能承受的量确定规模 |
 
+它们都运行 Node.js，Node.js 按容器的内存上限（`resources.limits.memory`）确定堆的大小：上限的 75%，最少 256 MB，最多 8096 MB。没有上限时，堆最多可增长到 8096 MB。上限的其余部分留给 Node.js 在堆之外使用的内存。要自己选择堆的大小，请将 `NODE_OPTIONS` 设为 `--max-old-space-size=` 加上以 MB 为单位的大小，写在服务的 `extraEnv` 中（使用 Docker Compose 时，写在覆盖文件里服务的 `environment` 中）。它优先于由上限得出的大小。
+
 Chart 内置 **KEDA**，因此应用、worker、探测器和全局 Runner 可以按队列积压自动伸缩。请同时开启 `keda.enabled` 和每个服务自己的 `keda.enabled`（例如 `app.keda.enabled`）。在尚未安装 KEDA 的集群上，第一次安装需要额外执行一轮：请参阅 Chart 的 [KEDA 指南](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md)。KEDA 不管理的服务可以改用基于 CPU 或内存的自动伸缩器（`autoscaling`）。
 
 ## 起步档位
