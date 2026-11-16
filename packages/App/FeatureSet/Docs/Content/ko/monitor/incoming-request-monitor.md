@@ -95,7 +95,7 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 | `application/json` | 파싱된 JSON. |
 | `application/x-www-form-urlencoded` | 파싱된 양식. 대괄호가 있는 키는 중첩되며(`alerts[0][status]=firing`), 모든 값은 문자열입니다. |
 | `text/plain` | 텍스트가 JSON 객체나 배열이면 파싱된 JSON. Amazon SNS가 메시지를 이렇게 보냅니다. 그 밖의 텍스트는 빈 본문이 됩니다. |
-| 그 밖의 유형 또는 없음 | 빈 본문(`{}`). 따라서 모든 `requestBody` 참조는 아무것도 가리키지 않습니다. |
+| 그 밖의 유형 또는 없음 | 빈 본문(`{}`). 따라서 어떤 `requestBody` 참조도 해석되지 않으며, 템플릿에서는 그대로 남습니다. |
 
 본문은 최대 50 MB까지 받으며, 그보다 크면 `413` 으로 거부됩니다. 본문을 `Content-Encoding: gzip` 으로 압축하지 마세요. JSON으로 저장되지 않아 그 안의 경로가 해석되지 않습니다.
 

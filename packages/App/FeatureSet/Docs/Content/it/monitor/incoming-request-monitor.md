@@ -95,7 +95,7 @@ Se volete raggiungere campi all'interno del corpo (`{{requestBody.status}}` in u
 | `application/json` | Il JSON analizzato. |
 | `application/x-www-form-urlencoded` | Il modulo analizzato. Le chiavi tra parentesi quadre si annidano (`alerts[0][status]=firing`), e ogni valore è una stringa. |
 | `text/plain` | Il JSON analizzato, quando il testo è un oggetto o un array JSON: è così che Amazon SNS invia i suoi messaggi. Qualsiasi altro testo è un corpo vuoto. |
-| Qualsiasi altro, o nessuno | Un corpo vuoto (`{}`), quindi ogni riferimento a `requestBody` non dà nulla. |
+| Qualsiasi altro, o nessuno | Un corpo vuoto (`{}`), quindi nessun riferimento a `requestBody` si risolve, e un modello lo lascia così com'è. |
 
 Sono accettati corpi fino a 50 MB; uno più grande viene rifiutato con un `413`. Non comprimete il corpo con `Content-Encoding: gzip`: non verrebbe salvato come JSON, e i percorsi al suo interno non si risolverebbero.
 
