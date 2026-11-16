@@ -39,7 +39,8 @@ describe("getDefaultRequestBody", () => {
        * credentials with them; only one that declares "dataSecurityScan"
        * is handed databases to scan for Data Security. One that declares
        * "retryWhenBusy" is answered 429 by a busy scheduling endpoint,
-       * rather than an empty batch.
+       * rather than an empty batch, and one that declares
+       * "retryAllWorkWhenBusy" by every other busy work endpoint too.
        */
       probeCapabilities: [
         "networkDevicePing",
@@ -48,6 +49,7 @@ describe("getDefaultRequestBody", () => {
         "dataSecurityScan",
         "dataObservabilityCollect",
         "retryWhenBusy",
+        "retryAllWorkWhenBusy",
       ],
     });
   });

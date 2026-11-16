@@ -49,6 +49,16 @@ import logger from "../Logger";
  * DNS-rebind window); SQL drivers connect by hostname immediately after
  * validation, accepting a small residual rebind window in exchange for
  * intact TLS hostname verification.
+ *
+ * An HTTP request sent with axios goes through the outbound proxy the
+ * operator configured (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY), apart from the
+ * hosts in NO_PROXY, as every other request of the server does. Its pinned
+ * agents (createPinnedAgents) answer only the checked host's name from the
+ * pin, look the proxy's own name up as usual, and refuse every other name
+ * (createPinnedLookupForTarget), so a proxy named by host name is reached
+ * at its own address. Through a proxy it is the proxy that looks the
+ * target's name up and connects: the docs (self-hosted/
+ * private-network-access) ask the operator to police it there.
  */
 
 export interface ResolvedAddress {
@@ -121,6 +131,33 @@ export interface PinnedAgents {
   httpAgent: http.Agent;
   httpsAgent: https.Agent;
 }
+
+/*
+ * What an HTTP request's agents are pinned to: the URL that was checked,
+ * whose host name is the one name they connect to, and the addresses its
+ * check approved for it.
+ */
+export interface PinnedTarget {
+  url: URL;
+  addresses: Array<ResolvedAddress>;
+}
+
+/*
+ * The environment variables an outbound proxy is read from, by axios
+ * (proxy-from-env) and by Node's own env proxy, in either case.
+ */
+export const OUTBOUND_PROXY_ENVIRONMENT_VARIABLES: ReadonlyArray<string> = [
+  "http_proxy",
+  "HTTP_PROXY",
+  "https_proxy",
+  "HTTPS_PROXY",
+  "all_proxy",
+  "ALL_PROXY",
+];
+
+// What a pinned HTTP agent's lookup answers when it is asked for any other name.
+export const UNAPPROVED_LOOKUP_MESSAGE: string =
+  "A request connects only to the address its URL check approved.";
 
 /*
  * dns.lookup's shape, as http.Agent / net.Socket call it. Declared locally
@@ -829,10 +866,13 @@ export default class DataSourceEgressGuard {
 
   /*
    * A dns.lookup-shaped function that always answers with the already
-   * validated addresses. Handing this to an http(s).Agent makes the address
-   * that was checked the address that gets dialed, closing the DNS-rebind
-   * window between validation and connect. TLS still verifies against the
-   * original hostname because SNI is taken from the URL, not from here.
+   * validated addresses, whatever name it is asked about: for a socket that
+   * dials one host and nothing else (an SMTP, IRC, syslog or Kafka
+   * connection), where the checked address becomes the address that gets
+   * dialed, closing the DNS-rebind window between validation and connect.
+   * TLS still verifies against the original hostname because SNI is taken
+   * from the URL, not from here. An HTTP agent, which axios may point at an
+   * outbound proxy, takes createPinnedLookupForTarget instead.
    *
    * It always answers asynchronously, the way dns.lookup does. Node's
    * net/tls connect can fail every pinned address synchronously (a probe
@@ -891,11 +931,105 @@ export default class DataSourceEgressGuard {
     };
   }
 
-  // http/https agent pair that dials only the given validated addresses.
-  public static createPinnedAgents(
-    addresses: Array<ResolvedAddress>,
-  ): PinnedAgents {
-    const lookup: EgressLookupFunction = this.createPinnedLookup(addresses);
+  /*
+   * A dns.lookup-shaped function for the agents of an HTTP request to one
+   * URL, the one every pinned HTTP agent uses (createPinnedAgents, and
+   * SafeWebhookRequest's through it):
+   *
+   *   - the URL's host name answers with the addresses its check approved,
+   *     always: no second lookup, so a name that resolves somewhere else a
+   *     moment later (DNS rebinding) is never dialled;
+   *   - the host name of an outbound proxy the operator configured is
+   *     looked up as any other request's would be. Axios sends a request
+   *     through HTTPS_PROXY, HTTP_PROXY or ALL_PROXY, unless NO_PROXY names
+   *     its host, and has these agents connect to the proxy: a forward
+   *     proxy for http, and for https a CONNECT tunnel whose agent takes
+   *     this lookup over. Answering the proxy's name from the pin dialled
+   *     the target's address on the proxy's port (issue #8873);
+   *   - any other name is refused.
+   *
+   * A host written as an IP address is never looked up at all: Node dials
+   * the literal, which is what the check approved.
+   */
+  public static createPinnedLookupForTarget(
+    target: PinnedTarget,
+  ): EgressLookupFunction {
+    const pinnedLookup: EgressLookupFunction = this.createPinnedLookup(
+      target.addresses,
+    );
+    const targetHostname: string = this.normalizeHostname(target.url.hostname);
+
+    return (
+      hostname: string,
+      lookupOptions: { all?: boolean | undefined; family?: number | undefined },
+      callback: EgressLookupCallback,
+    ): void => {
+      const name: string = this.normalizeHostname(hostname);
+
+      if (name === targetHostname) {
+        pinnedLookup(hostname, lookupOptions, callback);
+        return;
+      }
+
+      if (this.getOutboundProxyHostnames().has(name)) {
+        dns.lookup(
+          hostname,
+          (lookupOptions || {}) as dns.LookupAllOptions,
+          callback as never,
+        );
+        return;
+      }
+
+      const error: NodeJS.ErrnoException = new Error(UNAPPROVED_LOOKUP_MESSAGE);
+      error.code = "ENOTFOUND";
+
+      process.nextTick(() => {
+        callback(error, "");
+      });
+    };
+  }
+
+  /*
+   * The hosts of the outbound proxies the environment names, read when they
+   * are needed, as axios reads them: a value without a scheme is a host and
+   * port.
+   */
+  public static getOutboundProxyHostnames(): Set<string> {
+    const hostnames: Set<string> = new Set<string>();
+
+    for (const variable of OUTBOUND_PROXY_ENVIRONMENT_VARIABLES) {
+      const value: string = (process.env[variable] || "").trim();
+
+      if (!value) {
+        continue;
+      }
+
+      try {
+        const proxyUrl: URL = new URL(
+          value.includes("://") ? value : `http://${value}`,
+        );
+        const hostname: string = this.normalizeHostname(proxyUrl.hostname);
+
+        if (hostname) {
+          hostnames.add(hostname);
+        }
+      } catch {
+        // Not a URL: axios cannot send through it either.
+      }
+    }
+
+    return hostnames;
+  }
+
+  /*
+   * An http and an https agent for a request to the target's URL: they dial
+   * only the addresses its check approved, and an outbound proxy the
+   * operator configured (createPinnedLookupForTarget). Destroy both once
+   * the request is over.
+   */
+  public static createPinnedAgents(target: PinnedTarget): PinnedAgents {
+    const lookup: EgressLookupFunction =
+      this.createPinnedLookupForTarget(target);
 
     return {
       httpAgent: new http.Agent({ lookup: lookup as never }),
@@ -908,6 +1042,7 @@ export default class DataSourceEgressGuard {
    * one-call form for HTTP callers. Pair with maxRedirects 0 /
    * doNotFollowRedirects: pinning only covers the host that was validated, so
    * a 3xx to an unvalidated host would otherwise walk straight around it.
+   * Send the URL it returns, whose host name is the one the agents dial.
    */
   public static async assertUrlAllowedAndPin(
     urlString: string,
@@ -915,7 +1050,15 @@ export default class DataSourceEgressGuard {
   ): Promise<{ url: URL; addresses: Array<ResolvedAddress> } & PinnedAgents> {
     const { url, addresses } = await this.assertUrlAllowed(urlString, options);
 
-    return { url, addresses, ...this.createPinnedAgents(addresses) };
+    return { url, addresses, ...this.createPinnedAgents({ url, addresses }) };
+  }
+
+  // A host name as a lookup compares it: no case, no IPv6 brackets.
+  private static normalizeHostname(hostname: string): string {
+    return (hostname || "")
+      .trim()
+      .toLowerCase()
+      .replace(/^\[|\]$/g, "");
   }
 
   /*

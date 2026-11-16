@@ -67,6 +67,8 @@ Lav en HTTP-forespørgsel til enhver URL. Der er én blok pr. metode: **API-kald
 
 Uanset hvad returnerer blokken **Svarstatus**, **Svar-headere** og **Svarets brødtekst**, plus **Fejl** med årsagen, når den mislykkedes. Læs et felt i et JSON-svar ved at tilføje dets navn til referencen, som i `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+En blok læser højst 10 MB af et svar. Et større svar bliver ikke læst: blokken tager **Fejl**, med årsagen.
+
 Omdirigeringer følges ikke, så peg blokken på den adresse, der svarer. Forespørgsler sendes fra OneUptime: en URL, der peger på en privat netværksadresse, afvises, medmindre en administrator af en selvhostet installation tillader det, og kørslen stopper med årsagen. Se [Udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
 
 **API-kald GET efter ID (JSON)** læser ét element ud fra et ID, der kom et andet sted fra, for eksempel den issue-nøgle, som et webhook sendte. Sæt `{id}` i dens **URL**, hvor ID'et skal stå, som i `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, og ID'et i **ID**. Blokken sætter kun ID'et ind, når det er et rent ID, højst 200 bogstaver, cifre, bindestreger og understregninger, og procentkoder det alligevel: alt andet, for eksempel `x/../users`, tager **Fejl**, før nogen forespørgsel sendes, så tekst udefra ikke kan sende forespørgslen et andet sted hen. Ellers virker den som **API-kald GET (JSON)** og returnerer de samme værdier.

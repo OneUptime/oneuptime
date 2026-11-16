@@ -3005,7 +3005,9 @@ jobs:
       # UPDATE SKIP LOCKED), hears
       # only its own stops, settles only its own captures, and the server
       # counts the packets in the uploaded file; Stop from the dashboard, the
-      # stale capture sweep and the retention sweep (files included).
+      # stale capture sweep and the retention sweep (files included). Each
+      # write's round trips are counted: one self-committing statement each
+      # (#8870), the sweep three, a retention batch one transaction.
       - name: Test packet capture's SQL on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -3283,7 +3285,8 @@ jobs:
       # the write a probe's monitor test result makes: keyed on the test and
       # the probe that reported it, so only the probe the test was handed to
       # writes it, step after step, and a probe that learned another
-      # project's test id writes nothing.
+      # project's test id writes nothing - in one self-committing statement
+      # (#8870).
       - name: Test monitor test results are written only by their probe on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -3302,7 +3305,9 @@ jobs:
       # transaction, one round trip), FOR NO KEY UPDATE SKIP LOCKED - a row
       # another writer holds is skipped at once, claims at once hand out each
       # row once, a row that names a claimed one is still written - with the
-      # monitor test's ten-minute re-claim and the diagnostic's claim window.
+      # monitor test's ten-minute re-claim and the diagnostic's claim window;
+      # and a diagnostic's report, one self-committing statement keyed on the
+      # probe that never writes over a Completed answer (#8870).
       - name: Test the claims of a probe's on-demand jobs on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
