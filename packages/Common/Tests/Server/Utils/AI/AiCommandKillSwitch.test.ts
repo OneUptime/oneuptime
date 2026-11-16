@@ -555,16 +555,13 @@ describe("AiCommandKillSwitch", () => {
     it("never stops a runbook's own step, nor an access test", async () => {
       projectLookup.mockResolvedValue(project(false));
 
-      for (const job of [
-        heldJob({
-          origin: RunnerJobOrigin.Runbook,
-          autoRemediationSuggestionId: undefined,
-        }),
-        heldJob({
-          origin: RunnerJobOrigin.AiInvestigation,
-          autoRemediationSuggestionId: undefined,
-        }),
-      ]) {
+      // A runbook's own step, and Test access: no AI run, no suggestion.
+      const runbookStep: RunnerJob = new RunnerJob();
+      runbookStep.origin = RunnerJobOrigin.Runbook;
+      const accessTest: RunnerJob = new RunnerJob();
+      accessTest.origin = RunnerJobOrigin.AiInvestigation;
+
+      for (const job of [runbookStep, accessTest]) {
         jobLookup.mockResolvedValue(job);
 
         expect(
