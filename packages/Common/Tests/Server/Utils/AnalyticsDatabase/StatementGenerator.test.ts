@@ -2111,7 +2111,11 @@ describe("StatementGenerator", () => {
       ["true", true, "true"],
       ["null", null, "null"],
       ["no direction at all", undefined, "undefined"],
-      ["an order with nulls", { direction: "DESC", nulls: "LAST" }, '{"direction":"DESC","nulls":"LAST"}'],
+      [
+        "an order with nulls",
+        { direction: "DESC", nulls: "LAST" },
+        '{"direction":"DESC","nulls":"LAST"}',
+      ],
       ["an order through a relation", { name: "ASC" }, '{"name":"ASC"}'],
       ["a list", ["DESC"], "a list"],
     ])(

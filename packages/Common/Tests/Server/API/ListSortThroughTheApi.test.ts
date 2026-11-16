@@ -187,7 +187,9 @@ async function refusalOfList(sort: JSONValue): Promise<unknown> {
     return error;
   }
 
-  throw new Error(`Expected the list sorted by ${JSON.stringify(sort)} to be refused.`);
+  throw new Error(
+    `Expected the list sorted by ${JSON.stringify(sort)} to be refused.`,
+  );
 }
 
 beforeEach(() => {
@@ -240,9 +242,9 @@ describe("POST /incident/get-list: a sort the database cannot order the list by 
 
     const message: string = (refusal as BadDataException).message;
 
-    expect(message.startsWith('Incidents have no field "nope" to sort by.')).toBe(
-      true,
-    );
+    expect(
+      message.startsWith('Incidents have no field "nope" to sort by.'),
+    ).toBe(true);
     expect(message).toContain("title");
     expect(message).toContain("declaredAt");
     expect(repository.find).not.toHaveBeenCalled();
@@ -261,11 +263,17 @@ describe("POST /incident/get-list: a sort the database cannot order the list by 
   });
 
   test.each([
-    ["a direction TypeORM would have read as ascending", { title: "descending" }],
+    [
+      "a direction TypeORM would have read as ascending",
+      { title: "descending" },
+    ],
     ["null, which TypeORM threw a TypeError on", { title: null }],
-    ["a field through a relation that its record does not have", {
-      incidentSeverity: { nope: "ASC" },
-    }],
+    [
+      "a field through a relation that its record does not have",
+      {
+        incidentSeverity: { nope: "ASC" },
+      },
+    ],
     ["a sort that is not an object of fields", "DESC"],
   ] as Array<[string, JSONValue]>)(
     "%s: 400, and nothing is read",
@@ -302,9 +310,12 @@ describe("POST /incident/get-list: every sort the database can order the list by
       "descending with rows that have no value last",
       { declaredAt: { direction: "DESC", nulls: "LAST" } },
     ],
-    ["through a relation, by a field of its record", {
-      incidentSeverity: { order: "ASC" },
-    }],
+    [
+      "through a relation, by a field of its record",
+      {
+        incidentSeverity: { order: "ASC" },
+      },
+    ],
     [
       "through a relation, descending with rows that have none last",
       { incidentSeverity: { order: { direction: "DESC", nulls: "LAST" } } },
@@ -326,8 +337,13 @@ describe("POST /incident/get-list: every sort the database can order the list by
     },
   );
 
-  test("no sort: newest first, as before", async () => {
-    for (const sort of [undefined, {}] as Array<JSONValue | undefined>) {
+  test.each([
+    ["none at all", undefined],
+    ["an empty one", {}],
+    ["one with no field in it", []],
+  ] as Array<[string, JSONValue | undefined]>)(
+    "no sort - %s: newest first, as before",
+    async (_name: string, sort: JSONValue | undefined) => {
       const repository: FakeRepository = fakeRepository(IncidentService);
 
       await incidentApi().getList(
@@ -339,22 +355,8 @@ describe("POST /incident/get-list: every sort the database can order the list by
         createdAt: SortOrder.Descending,
         _id: SortOrder.Ascending,
       });
-
-      jest.restoreAllMocks();
-      jest
-        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-        .mockImplementation(
-          (async (): Promise<DatabaseCommonInteractionProps> => {
-            return caller;
-          }) as never,
-        );
-      stubProjectDirectory({ projectId: PROJECT_ID });
-      jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
-        plan: PlanType.Enterprise,
-        isSubscriptionUnpaid: false,
-      });
-    }
-  });
+    },
+  );
 
   test("a service reading on its own, as root, with a sort of its own", async () => {
     const repository: FakeRepository = fakeRepository(IncidentService);

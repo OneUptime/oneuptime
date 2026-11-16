@@ -138,7 +138,7 @@ export default class SortValidator {
     if (
       data.sort === undefined ||
       data.sort === null ||
-      Object.keys(data.sort as object).length === 0
+      Object.keys(data.sort as Record<string, unknown>).length === 0
     ) {
       return;
     }
@@ -287,8 +287,7 @@ export default class SortValidator {
 
     const relation: string | undefined = sortable.relations[0];
     const relatedModelType: { new (): BaseModel } | undefined = relation
-      ? (getTableColumn(level.model, relation) as TableColumnMetadata)
-          .modelType
+      ? (getTableColumn(level.model, relation) as TableColumnMetadata).modelType
       : undefined;
 
     if (relation && relatedModelType) {
@@ -452,7 +451,9 @@ export default class SortValidator {
         return false;
       }
 
-      return alwaysReadable.includes(key) || Boolean(column.canReadOnRelationQuery);
+      return (
+        alwaysReadable.includes(key) || Boolean(column.canReadOnRelationQuery)
+      );
     });
   }
 

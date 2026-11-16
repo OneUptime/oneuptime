@@ -6,7 +6,7 @@ import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import Span from "../../../Models/AnalyticsModels/Span";
 import AnalyticsDatabaseService from "../../../Server/Services/AnalyticsDatabaseService";
 import LogService from "../../../Server/Services/LogService";
-import ClickhouseAppInstance from "../../../Server/Infrastructure/ClickhouseDatabase";
+import { ClickhouseAppInstance } from "../../../Server/Infrastructure/ClickhouseDatabase";
 import StatementGenerator from "../../../Server/Utils/AnalyticsDatabase/StatementGenerator";
 import logger from "../../../Server/Utils/Logger";
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
@@ -101,9 +101,12 @@ describe("a direction a telemetry list does not take is bad data, refused before
   test.each([
     ["a lower-case direction", { time: "desc" }],
     ["-1", { time: -1 }],
-    ["descending with rows that have no value last", {
-      time: { direction: "DESC", nulls: "LAST" },
-    }],
+    [
+      "descending with rows that have no value last",
+      {
+        time: { direction: "DESC", nulls: "LAST" },
+      },
+    ],
     ["a word for a direction", { time: "descending" }],
   ] as Array<[string, Record<string, unknown>]>)(
     "a list of logs sorted with %s",

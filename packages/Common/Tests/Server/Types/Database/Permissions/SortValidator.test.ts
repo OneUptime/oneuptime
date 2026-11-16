@@ -189,9 +189,8 @@ const typeOrmOrderOf: (
   modelType: ModelType,
   order: unknown,
 ): Dictionary<unknown> => {
-  return typeOrmBuilder(modelType, order).expressionMap.orderBys as Dictionary<
-    unknown
-  >;
+  return typeOrmBuilder(modelType, order).expressionMap
+    .orderBys as Dictionary<unknown>;
 };
 
 interface FieldOfModel {
@@ -295,7 +294,9 @@ describe("the column metadata the check reads is TypeORM's own, for every model"
           !isTypeOrmColumn &&
           relation.inverseEntityMetadata.target !== field.column.modelType
         ) {
-          misread.push(`${modelType.name}.${field.name}: another related model`);
+          misread.push(
+            `${modelType.name}.${field.name}: another related model`,
+          );
         }
       }
     }
@@ -458,9 +459,7 @@ describe("every sort the check passes, TypeORM builds - and every sort TypeORM f
      * page is cut from rows, not incidents. Refused all the same: a list of
      * records has no one value to put a list in order by.
      */
-    expect(
-      typeOrmFailureOf(Incident, { labels: { name: ASC } }),
-    ).toBeNull();
+    expect(typeOrmFailureOf(Incident, { labels: { name: ASC } })).toBeNull();
     expect(refusalOf(Incident, { labels: { name: ASC } })).not.toBeNull();
   });
 
@@ -493,10 +492,22 @@ describe("every sort the check passes, TypeORM builds - and every sort TypeORM f
       [{ direction: DESC }, "DESC"],
       [{ direction: "desc" }, "DESC"],
       [{ direction: -1 }, "DESC"],
-      [{ direction: ASC, nulls: "FIRST" }, { order: "ASC", nulls: "NULLS FIRST" }],
-      [{ direction: DESC, nulls: "LAST" }, { order: "DESC", nulls: "NULLS LAST" }],
-      [{ direction: DESC, nulls: "last" }, { order: "DESC", nulls: "NULLS LAST" }],
-      [{ direction: DESC, nulls: "Last" }, { order: "DESC", nulls: "NULLS LAST" }],
+      [
+        { direction: ASC, nulls: "FIRST" },
+        { order: "ASC", nulls: "NULLS FIRST" },
+      ],
+      [
+        { direction: DESC, nulls: "LAST" },
+        { order: "DESC", nulls: "NULLS LAST" },
+      ],
+      [
+        { direction: DESC, nulls: "last" },
+        { order: "DESC", nulls: "NULLS LAST" },
+      ],
+      [
+        { direction: DESC, nulls: "Last" },
+        { order: "DESC", nulls: "NULLS LAST" },
+      ],
       [{ nulls: "LAST" }, { order: "ASC", nulls: "NULLS LAST" }],
       // Nothing to say but the default: ascending, as TypeORM reads it.
       [{}, "ASC"],
@@ -567,7 +578,9 @@ describe("which values a field takes", () => {
   });
 
   test("a relation of one record takes an object of its own fields, to any depth", () => {
-    expect(refusalOf(Incident, { incidentSeverity: { order: ASC } })).toBeNull();
+    expect(
+      refusalOf(Incident, { incidentSeverity: { order: ASC } }),
+    ).toBeNull();
     expect(
       refusalOf(Incident, {
         incidentSeverity: { order: { direction: DESC, nulls: "LAST" } },
@@ -581,7 +594,9 @@ describe("which values a field takes", () => {
     ).toBeNull();
     // Two relations deep: TypeORM joins both.
     expect(
-      refusalOf(Alert, { monitor: { currentMonitorStatus: { priority: DESC } } }),
+      refusalOf(Alert, {
+        monitor: { currentMonitorStatus: { priority: DESC } },
+      }),
     ).toBeNull();
     expect(
       typeOrmFailureOf(Alert, {
@@ -619,7 +634,12 @@ describe("which values a field takes", () => {
   });
 
   test("a field named like an object's own properties is no field", () => {
-    for (const field of ["constructor", "__proto__", "toString", "hasOwnProperty"]) {
+    for (const field of [
+      "constructor",
+      "__proto__",
+      "toString",
+      "hasOwnProperty",
+    ]) {
       const sort: Dictionary<unknown> = JSON.parse(`{ "${field}": "ASC" }`);
 
       expect([field, refusalOf(Incident, sort)]).not.toEqual([field, null]);
@@ -721,7 +741,9 @@ describe("what a refusal says", () => {
   test("a field of a related record given an order it does not take names the path", () => {
     expect(
       messageOf(Incident, { incidentSeverity: { order: "Desc" } }),
-    ).toContain('Incidents cannot be sorted by "incidentSeverity.order" with "Desc".');
+    ).toContain(
+      'Incidents cannot be sorted by "incidentSeverity.order" with "Desc".',
+    );
   });
 
   test("what the caller sent is quoted back short, and as text", () => {
@@ -734,7 +756,7 @@ describe("what a refusal says", () => {
     expect(messageOf(Incident, { 'a"b': ASC })).toContain('"a\\"b"');
     expect(
       messageOf(Incident, { title: { direction: "x".repeat(200) } }),
-    ).toContain('with an object.');
+    ).toContain("with an object.");
   });
 
   test("every refusal is a sentence: a capital letter first and a full stop last", () => {
@@ -781,11 +803,12 @@ describe("a refusal names only the fields the caller may read", () => {
       const named: Array<string> = namedColumnsOf(
         messageOf(Incident, { nope: ASC }, props),
       );
-      const readable: Array<string> = ColumnPermissions.getModelColumnsByPermissions(
-        Incident,
-        ColumnPermissions.getColumnCheckRows(member(permissions)),
-        DatabaseRequestType.Read,
-      ).columns;
+      const readable: Array<string> =
+        ColumnPermissions.getModelColumnsByPermissions(
+          Incident,
+          ColumnPermissions.getColumnCheckRows(member(permissions)),
+          DatabaseRequestType.Read,
+        ).columns;
 
       for (const column of named) {
         expect([
@@ -801,9 +824,9 @@ describe("a refusal names only the fields the caller may read", () => {
     expect(new Probe().getTableColumnMetadata("key").secret).toBe(true);
 
     for (const props of [ROOT, member([Permission.ProjectOwner])]) {
-      expect(namedColumnsOf(messageOf(Probe, { nope: ASC }, props))).not.toContain(
-        "key",
-      );
+      expect(
+        namedColumnsOf(messageOf(Probe, { nope: ASC }, props)),
+      ).not.toContain("key");
     }
   });
 
@@ -811,25 +834,28 @@ describe("a refusal names only the fields the caller may read", () => {
     expect(isOwnerOnlyColumn(new UserWebhook(), "webhookUrl")).toBe(true);
     expect(
       namedColumnsOf(
-        messageOf(UserWebhook, { nope: ASC }, member([Permission.ProjectOwner])),
+        messageOf(
+          UserWebhook,
+          { nope: ASC },
+          member([Permission.ProjectOwner]),
+        ),
       ),
     ).not.toContain("webhookUrl");
   });
 
   test("root and a master admin pass every check, so every column is named to them", () => {
     for (const props of [ROOT, { isMasterAdmin: true }]) {
-      expect(namedColumnsOf(messageOf(TeamMember, { nope: ASC }, props))).toContain(
-        "invitationAcceptedAt",
-      );
+      expect(
+        namedColumnsOf(messageOf(TeamMember, { nope: ASC }, props)),
+      ).toContain("invitationAcceptedAt");
     }
   });
 
   test("a field through a relation is named only when any reader of the relation may read it", () => {
     for (const modelType of [IncidentSeverity, MonitorStatus, Monitor, Label]) {
       for (const field of relatedFieldsOf(modelType)) {
-        const column: TableColumnMetadata = new modelType().getTableColumnMetadata(
-          field,
-        );
+        const column: TableColumnMetadata =
+          new modelType().getTableColumnMetadata(field);
 
         expect([
           `${modelType.name}.${field}`,
@@ -861,7 +887,8 @@ describe("every sort the product sends passes", () => {
     let lists: number = 0;
 
     for (const modelType of MODELS) {
-      const listOrder: ListOrderSettings | null = new modelType().getListOrder();
+      const listOrder: ListOrderSettings | null =
+        new modelType().getListOrder();
 
       if (!listOrder) {
         continue;
@@ -885,7 +912,9 @@ describe("every sort the product sends passes", () => {
   });
 
   test("every state, severity and status list, as StateOrderGuard reads it", () => {
-    for (const definition of Object.values(STATE_LISTS) as Array<StateListDefinition>) {
+    for (const definition of Object.values(
+      STATE_LISTS,
+    ) as Array<StateListDefinition>) {
       const modelType: ModelType | null = getModelTypeByName(definition.type);
 
       expect(modelType).not.toBeNull();
@@ -930,9 +959,11 @@ describe("every sort the product sends passes", () => {
             relationSorts: new Map(),
           });
 
-          expect([modelType.name, field.name, refusalOf(modelType, sort)]).toEqual(
-            [modelType.name, field.name, null],
-          );
+          expect([
+            modelType.name,
+            field.name,
+            refusalOf(modelType, sort),
+          ]).toEqual([modelType.name, field.name, null]);
         }
       }
     }
@@ -1007,7 +1038,9 @@ describe("every sort the product sends passes", () => {
         Monitor,
         {
           disableActiveMonitoring: ASC,
-          currentMonitorStatus: { priority: { direction: DESC, nulls: "LAST" } },
+          currentMonitorStatus: {
+            priority: { direction: DESC, nulls: "LAST" },
+          },
           name: ASC,
         },
       ],
@@ -1053,11 +1086,12 @@ function readableFieldsOf(
   props: DatabaseCommonInteractionProps,
 ): Array<string> {
   const model: BaseModel = new modelType();
-  const readable: Array<string> = ColumnPermissions.getModelColumnsByPermissions(
-    modelType,
-    ColumnPermissions.getColumnCheckRows(props),
-    DatabaseRequestType.Read,
-  ).columns;
+  const readable: Array<string> =
+    ColumnPermissions.getModelColumnsByPermissions(
+      modelType,
+      ColumnPermissions.getColumnCheckRows(props),
+      DatabaseRequestType.Read,
+    ).columns;
 
   return fieldsOf(modelType)
     .filter((field: FieldOfModel): boolean => {
