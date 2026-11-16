@@ -56033,5 +56033,11 @@
   "API Key Hint": "Hint van API-sleutel",
   "Master API Key Created At": "Master-API-sleutel aangemaakt op",
   "Master API Key Created By User ID": "ID van gebruiker die de master-API-sleutel aanmaakte",
-  "Master API Key Hint": "Hint van master-API-sleutel"
+  "Master API Key Hint": "Hint van master-API-sleutel",
+  "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.": "OneUptime heeft deze sleutel nodig om uw domein via HTTPS aan te bieden. Hij wordt versleuteld opgeslagen en nooit meer getoond.",
+  "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.": "Het certificaat kon niet worden gelezen. Plak het in PEM-formaat, beginnend met -----BEGIN CERTIFICATE-----.",
+  "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.": "De privésleutel kon niet worden gelezen. Plak hem in PEM-formaat, beginnend met -----BEGIN PRIVATE KEY-----.",
+  "The private key does not belong to this certificate. Paste the private key the certificate was issued for.": "De privésleutel hoort niet bij dit certificaat. Plak de privésleutel waarvoor het certificaat is uitgegeven.",
+  "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.": "De privésleutel is beveiligd met een wachtwoordzin. Plak hem zonder wachtwoordzin: de server moet hem kunnen lezen om het certificaat aan te bieden.",
+  "To serve your own certificate, add both the certificate and its private key.": "Om uw eigen certificaat aan te bieden, voegt u zowel het certificaat als de bijbehorende privésleutel toe."
 }

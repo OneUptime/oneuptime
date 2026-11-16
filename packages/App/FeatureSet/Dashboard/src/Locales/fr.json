@@ -56033,5 +56033,11 @@
   "API Key Hint": "Indice de la clé API",
   "Master API Key Created At": "Clé API maîtresse créée le",
   "Master API Key Created By User ID": "ID de l'utilisateur créateur de la clé API maîtresse",
-  "Master API Key Hint": "Indice de la clé API maîtresse"
+  "Master API Key Hint": "Indice de la clé API maîtresse",
+  "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.": "OneUptime a besoin de cette clé pour servir votre domaine en HTTPS. Elle est stockée chiffrée et ne sera plus jamais affichée.",
+  "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.": "Le certificat n'a pas pu être lu. Collez-le au format PEM, en commençant par -----BEGIN CERTIFICATE-----.",
+  "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.": "La clé privée n'a pas pu être lue. Collez-la au format PEM, en commençant par -----BEGIN PRIVATE KEY-----.",
+  "The private key does not belong to this certificate. Paste the private key the certificate was issued for.": "La clé privée n'appartient pas à ce certificat. Collez la clé privée pour laquelle le certificat a été émis.",
+  "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.": "La clé privée est protégée par une phrase secrète. Collez-la sans phrase secrète : le serveur doit pouvoir la lire pour servir le certificat.",
+  "To serve your own certificate, add both the certificate and its private key.": "Pour servir votre propre certificat, ajoutez le certificat et sa clé privée."
 }
