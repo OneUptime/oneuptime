@@ -124,6 +124,7 @@ import KubernetesAiAgentAuthorization from "../../FeatureSet/Runbook/Middleware/
 import AiCommandKillSwitch, {
   AI_COMMANDS_OFF_CLAIM_MESSAGE,
   AI_COMMANDS_OFF_STOP_MESSAGE,
+  AI_COMMANDS_UNCONFIRMED_STOP_MESSAGE,
 } from "Common/Server/Utils/AI/AiCommandKillSwitch";
 
 /*
@@ -1369,13 +1370,21 @@ describe("POST /job/:jobId/heartbeat", () => {
       expect(wire.body).toEqual({ status: "ok" });
     });
 
-    test("a read that fails is passed on as an error, never answered ok", async () => {
+    /*
+     * Enable AI fails closed: the agent starts a command when its pre-spawn
+     * heartbeat gets no answer, so an error here would let it run.
+     */
+    test("an Enable AI read that fails tells the agent to stop, never answers a bare ok", async () => {
       projectLookup.mockRejectedValue(new Error("database is down"));
 
       const wire: WireResponse = await heartbeat();
 
-      expect(wire.thrownToNext).toBeInstanceOf(Error);
-      expect(wire.body).toBeUndefined();
+      expect(wire.thrownToNext).toBeUndefined();
+      expect(wire.body).toEqual({
+        status: "ok",
+        stop: true,
+        reason: AI_COMMANDS_UNCONFIRMED_STOP_MESSAGE,
+      });
     });
   });
 

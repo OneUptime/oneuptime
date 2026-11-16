@@ -57,6 +57,14 @@ export const AI_COMMANDS_OFF_CLAIM_MESSAGE: string =
 export const AI_COMMANDS_OFF_STOP_MESSAGE: string =
   "OneUptime AI was turned off for this project (Enable AI) while its agent held this command.";
 
+/*
+ * Why an agent holding an AI command is told to stop when Enable AI could
+ * not be read: the switch fails closed on a job heartbeat as it does
+ * everywhere else (RunnerJobService.getStopReasonOfHeldJob).
+ */
+export const AI_COMMANDS_UNCONFIRMED_STOP_MESSAGE: string =
+  "OneUptime could not confirm that OneUptime AI is on for this project (Enable AI) while its agent held this command, so it told the agent to stop.";
+
 export default class AiCommandKillSwitch {
   /*
    * Whether Enable AI is off for the project (or the project is gone).

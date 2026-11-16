@@ -96,6 +96,7 @@ import {
 import ProjectLimitLock from "../Utils/Database/ProjectLimitLock";
 import AiCommandKillSwitch, {
   AI_COMMANDS_OFF_ENQUEUE_MESSAGE,
+  AI_COMMANDS_UNCONFIRMED_STOP_MESSAGE,
 } from "../Utils/AI/AiCommandKillSwitch";
 import { EntityManager } from "typeorm";
 
@@ -2292,10 +2293,29 @@ export class Service extends DatabaseService<Model> {
       return null;
     }
 
-    return await AiCommandKillSwitch.getStopReason({
-      job,
-      projectId: data.projectId,
-    });
+    /*
+     * Enable AI fails closed here as everywhere: a job known to be an AI
+     * command (getStopReason reads the switch for no other) whose project's
+     * switch could not be read is stopped, not left to run because the
+     * heartbeat failed - the agent starts a command when its pre-spawn
+     * heartbeat gets no answer. A runbook step or an access test reads
+     * nothing, so it is never stopped by a read that fails. A read of the
+     * job itself that fails still throws: without the job, whether it is AI's
+     * at all is not known.
+     */
+    try {
+      return await AiCommandKillSwitch.getStopReason({
+        job,
+        projectId: data.projectId,
+      });
+    } catch (error: unknown) {
+      logger.error(
+        `Could not read Enable AI for the AI command job ${data.jobId.toString()} its agent holds; telling the agent to stop it.`,
+      );
+      logger.error(error);
+
+      return AI_COMMANDS_UNCONFIRMED_STOP_MESSAGE;
+    }
   }
 
   /*

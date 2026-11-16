@@ -2,6 +2,7 @@ import AiCommandKillSwitch, {
   AI_COMMANDS_OFF_CLAIM_MESSAGE,
   AI_COMMANDS_OFF_ENQUEUE_MESSAGE,
   AI_COMMANDS_OFF_STOP_MESSAGE,
+  AI_COMMANDS_UNCONFIRMED_STOP_MESSAGE,
 } from "../../../../Server/Utils/AI/AiCommandKillSwitch";
 import RunnerJobService, {
   ResourceCommandEnqueueRefusedException,
@@ -606,7 +607,7 @@ describe("AiCommandKillSwitch", () => {
       expect(projectLookup).not.toHaveBeenCalled();
     });
 
-    it("lets a read that fails throw", async () => {
+    it("lets a read of the job that fails throw: without it, whether the job is AI's is not known", async () => {
       jobLookup.mockRejectedValue(new Error("database is down"));
 
       await expect(
@@ -616,6 +617,55 @@ describe("AiCommandKillSwitch", () => {
           projectId: PROJECT_ID,
         }),
       ).rejects.toThrow("database is down");
+    });
+
+    /*
+     * Enable AI fails closed: the agent starts a command when its pre-spawn
+     * heartbeat gets no answer, so a heartbeat that failed on the switch's
+     * read would let the command run unchecked.
+     */
+    it("stops the AI command when Enable AI cannot be read, and says so", async () => {
+      projectLookup.mockRejectedValue(new Error("database is down"));
+
+      for (const job of [
+        heldJob(),
+        heldJob({
+          origin: RunnerJobOrigin.AiInvestigation,
+          autoRemediationSuggestionId: undefined,
+          aiRunId: RUN_ID,
+        }),
+      ]) {
+        jobLookup.mockResolvedValue(job);
+
+        expect(
+          await RunnerJobService.getStopReasonOfHeldJob({
+            jobId: HELD_JOB_ID,
+            agentId: AGENT_ID,
+            projectId: PROJECT_ID,
+          }),
+        ).toBe(AI_COMMANDS_UNCONFIRMED_STOP_MESSAGE);
+      }
+    });
+
+    it("never stops a runbook's own step or an access test for a read that fails: they read no switch", async () => {
+      projectLookup.mockRejectedValue(new Error("database is down"));
+
+      const runbookStep: RunnerJob = new RunnerJob();
+      runbookStep.origin = RunnerJobOrigin.Runbook;
+      const accessTest: RunnerJob = new RunnerJob();
+      accessTest.origin = RunnerJobOrigin.AiInvestigation;
+
+      for (const job of [runbookStep, accessTest]) {
+        jobLookup.mockResolvedValue(job);
+
+        expect(
+          await RunnerJobService.getStopReasonOfHeldJob({
+            jobId: HELD_JOB_ID,
+            agentId: AGENT_ID,
+            projectId: PROJECT_ID,
+          }),
+        ).toBeNull();
+      }
     });
   });
 
