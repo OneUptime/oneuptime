@@ -84,14 +84,14 @@ Et nytt passord logger alle enheter ut av kontoen din, og enhver tilbakestilling
 3. Følg nettleserens melding for å lagre passnøkkelen.
 :::
 
-Neste gang velger du **Logg inn med en passnøkkel** på innloggingssiden.
+Neste gang velger du **Flere måter å logge inn på** → **Logg inn med en passnøkkel** på innloggingssiden.
 
 ### Logg inn med en lenke på e-post
 
 Du kan logge inn med en lenke i stedet for passordet. Det er ingenting å sette opp.
 
 :::steps
-1. Velg **Send meg en innloggingslenke** på innloggingssiden.
+1. Velg **Flere måter å logge inn på** → **Send meg en innloggingslenke** på innloggingssiden.
 2. Skriv inn e-postadressen din, og klikk på **Send meg en innloggingslenke**. Siden viser deretter **Sjekk e-posten din**.
 3. Åpne lenken i e-posten, og klikk på **Logg inn**.
 :::

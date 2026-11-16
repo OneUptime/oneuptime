@@ -68,6 +68,7 @@
     "signInWithSso": "Logg inn med SSO",
     "signInWithMicrosoft": "Logg inn med Microsoft",
     "emailSignInLink": "Send meg en innloggingslenke",
+    "moreWaysToSignIn": "Flere måter å logge inn på",
     "noAccountPrompt": "Har du ikke en konto?",
     "registerLink": "Registrer.",
     "twoFactor": {

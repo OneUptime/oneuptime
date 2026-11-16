@@ -84,14 +84,14 @@ Ein neues Passwort meldet jedes Gerät von Ihrem Konto ab, und jeder bereits ges
 3. Folgen Sie der Aufforderung Ihres Browsers, um den Passkey zu speichern.
 :::
 
-Wählen Sie beim nächsten Mal auf der Anmeldeseite **Mit einem Passkey anmelden**.
+Wählen Sie beim nächsten Mal auf der Anmeldeseite **Weitere Anmeldemöglichkeiten** → **Mit einem Passkey anmelden**.
 
 ### Mit einem per E-Mail gesendeten Link anmelden
 
 Sie können sich mit einem Link statt mit Ihrem Passwort anmelden. Sie müssen dafür nichts einrichten.
 
 :::steps
-1. Wählen Sie auf der Anmeldeseite **Anmeldelink per E-Mail senden**.
+1. Wählen Sie auf der Anmeldeseite **Weitere Anmeldemöglichkeiten** → **Anmeldelink per E-Mail senden**.
 2. Geben Sie Ihre E-Mail-Adresse ein und klicken Sie auf **Anmeldelink senden**. Die Seite zeigt dann **Prüfen Sie Ihre E-Mails**.
 3. Öffnen Sie den Link in der E-Mail und klicken Sie auf **Anmelden**.
 :::
