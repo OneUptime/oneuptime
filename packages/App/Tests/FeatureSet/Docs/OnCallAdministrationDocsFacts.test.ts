@@ -1776,7 +1776,38 @@ describe("when several policies page", () => {
         feed,
         disabled: source.includes("isDisabled={executePolicyLock.isDisabled}"),
       }).toEqual({ feed, disabled: true });
+      // Archived policies page no one, so the form offers none.
+      expect({
+        feed,
+        liveOnly: source.includes("query: { isArchived: false },"),
+      }).toEqual({ feed, liveOnly: true });
     }
+  });
+
+  /*
+   * The incident feed's own docs say what its Execute On-Call Policy does
+   * (#7839): it pages until somebody it paged answers, the incident
+   * acknowledged or not; it is turned off on a resolved incident; and the
+   * archived policies, which page nobody, are not offered.
+   */
+  it("says on the incident feed's page what Execute On-Call Policy does by where the incident stands", () => {
+    const feedPage: string = readPage("en", "incidents/notes-owners-and-feed");
+
+    expect(feedPage).toContain(
+      "- **Execute On-Call Policy** — page a policy on demand. It pages the policy's people until one of them answers or the incident is resolved, even when somebody acknowledged the incident already. It is turned off on a resolved incident, and archived policies, which page no one, are not offered.",
+    );
+
+    // Goes on until answered, whoever acknowledged: a policy started by hand.
+    expect(isOnCallPageEndedOnlyByAnAnswer(startedByHand)).toBe(true);
+
+    const incidentFeed: string = readDashboardSource(
+      "Components/Incident/IncidentFeed.tsx",
+    );
+
+    expect(incidentFeed).toContain(
+      "recordType: OnCallPageRecordType.Incident,",
+    );
+    expect(incidentFeed).toContain("query: { isArchived: false },");
   });
 
   /*

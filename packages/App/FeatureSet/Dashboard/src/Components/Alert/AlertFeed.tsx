@@ -371,6 +371,12 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
                     type: OnCallDutyPolicy,
                     labelField: "name",
                     valueField: "_id",
+                    /*
+                     * Archived policies page no one, so they are not
+                     * offered (OnCallDutyPolicyArchive), as Slack and
+                     * Microsoft Teams leave them out of their own form.
+                     */
+                    query: { isArchived: false },
                   },
                   required: true,
                   placeholder: "Select On-Call Policy",

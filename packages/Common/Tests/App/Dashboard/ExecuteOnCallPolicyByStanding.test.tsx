@@ -74,6 +74,9 @@ jest.mock("../../../UI/Components/Feed/FeedItem", () => {
   };
 });
 
+// What the form was last handed: its fields.
+let mockFormFields: Array<Record<string, unknown>> = [];
+
 jest.mock("../../../UI/Components/ModelFormModal/ModelFormModal", () => {
   return {
     __esModule: true,
@@ -81,7 +84,10 @@ jest.mock("../../../UI/Components/ModelFormModal/ModelFormModal", () => {
       title: string;
       description?: string;
       name?: string;
+      formProps?: { fields?: Array<Record<string, unknown>> };
     }): React.ReactElement => {
+      mockFormFields = props.formProps?.fields || [];
+
       return React.createElement(
         "div",
         { role: "dialog", "aria-label": props.title, "data-name": props.name },
@@ -226,6 +232,7 @@ async function press(item: HTMLElement): Promise<string | null> {
 
 beforeEach(() => {
   window.localStorage.clear();
+  mockFormFields = [];
 });
 
 afterEach(() => {
@@ -266,6 +273,31 @@ describe.each(FEEDS)("Execute On-Call Policy on $name", (feed: FeedCase) => {
 
     expect(item).not.toHaveAttribute("aria-disabled", "true");
     expect(await press(item)).toBe(words.acknowledged);
+  });
+
+  /*
+   * An archived policy pages no one (OnCallDutyPolicyArchive): picked, its
+   * run was written with the reason and nobody was paged. The form offers
+   * live policies only, as Slack's and Microsoft Teams' own forms do.
+   */
+  test("its form offers live policies only: an archived one would page no one", async () => {
+    const item: HTMLElement = await executeItem(feed, EventStanding.Open);
+
+    await press(item);
+
+    const policyField: Record<string, unknown> | undefined =
+      mockFormFields.find((field: Record<string, unknown>): boolean => {
+        return Boolean(
+          (field["field"] as Record<string, unknown> | undefined)?.[
+            "onCallDutyPolicy"
+          ],
+        );
+      });
+
+    expect(policyField).toBeDefined();
+    expect(
+      (policyField!["dropdownModal"] as { query?: unknown }).query,
+    ).toEqual({ isArchived: false });
   });
 
   test("where it stands not known yet: offered as it always was, the server keeping the last word", async () => {

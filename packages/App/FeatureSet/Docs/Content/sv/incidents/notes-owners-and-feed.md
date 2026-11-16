@@ -277,7 +277,7 @@ Vissa poster har extra detaljer — en avisering till ägarna listar till exempe
 Kortets rubrik har också en meny **Åtgärder**, så att du kan agera utan att lämna tidslinjen:
 
 - **Kör runbook** — starta ett [runbook](/docs/runbooks/index) för den här incidenten.
-- **Kör jourpolicy** — larma en policy på begäran. En arkiverad policy larmar ingen: dess körningslogg på incidenten säger att den inte kördes eftersom policyn är arkiverad. Slå på **Larma dem som observatörer** för att i stället hålla policyns personer informerade: deras svar säger bara att de har sett larmet, och incidenten bekräftas inte.
+- **Kör jourpolicy** — larma en policy på begäran. Den larmar policyns personer tills någon av dem svarar eller incidenten är löst, även när någon redan har bekräftat incidenten. Den är avstängd på en löst incident, och arkiverade policyer, som inte larmar någon, erbjuds inte. Slå på **Larma dem som observatörer** för att i stället hålla policyns personer informerade: deras svar säger bara att de har sett larmet, och incidenten bekräftas inte.
 - **Lägg till offentlig anteckning** — redigeraren från sidan **Offentliga anteckningar**, i en dialog: skriv anteckningen, och sedan **Publicera uppdatering**. Mallar, **Utkast med AI**, bilagor, **Avisera statussidans prenumeranter** med vem den når, och **Förhandsgranskning** finns alla där. Anteckningen publiceras nu; för att bakåtdatera den väljer du **Publicerad nu**.
 - **Lägg till privat anteckning** — redigeraren från sidan **Privata anteckningar**, i en dialog: skriv anteckningen, och sedan **Lägg till anteckning**.
 
