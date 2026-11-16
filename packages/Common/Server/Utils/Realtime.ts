@@ -39,6 +39,9 @@ import RealtimeSessions, {
   SESSION_OF_SOCKET_KEY,
 } from "./Realtime/RealtimeSessions";
 import RealtimeAccessChanges from "./Realtime/RealtimeAccessChanges";
+import RealtimeMetrics, {
+  BeforeWriteDecisionOutcome,
+} from "./Realtime/RealtimeMetrics";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import { SessionLengths } from "../../Types/UserSession/SessionLength";
 
@@ -1001,16 +1004,20 @@ export default abstract class Realtime {
       return NO_READER_ACCESS;
     }
 
+    const startedAt: number = Date.now();
     const deadlineMs: number =
-      Date.now() + this.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS;
+      startedAt + this.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS;
+    const eventType: ModelEventType = data.eventType || ModelEventType.Delete;
     let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+    // How the decision ended, for what the write waited (RealtimeMetrics).
+    let outcome: BeforeWriteDecisionOutcome = BeforeWriteDecisionOutcome.Failed;
 
     try {
       const readable: Map<string, Set<string>> | null = await Promise.race([
         this.decideReadableBeforeWrite({
           tenantId: tenantId,
           tableName: tableName,
-          eventType: data.eventType || ModelEventType.Delete,
+          eventType: eventType,
           modelIds: data.modelIds.map((id: ObjectID): string => {
             return id.toString();
           }),
@@ -1026,6 +1033,7 @@ export default abstract class Realtime {
       ]);
 
       if (!readable) {
+        outcome = BeforeWriteDecisionOutcome.TimedOut;
         logger.warn(
           `Realtime: who could read these ${tableName} records before the write could not be decided in time; the write goes ahead without it.`,
           { projectId: tenantId } as LogAttributes,
@@ -1040,8 +1048,11 @@ export default abstract class Realtime {
       );
 
       if (!anyoneReads) {
+        outcome = BeforeWriteDecisionOutcome.NobodyCouldRead;
         return NO_READER_ACCESS;
       }
+
+      outcome = BeforeWriteDecisionOutcome.SomeoneCouldRead;
 
       return {
         answersWithoutReading: true,
@@ -1076,6 +1087,14 @@ export default abstract class Realtime {
       if (timer) {
         clearTimeout(timer);
       }
+
+      // What the write waited for, before it was made.
+      RealtimeMetrics.recordBeforeWriteDecision({
+        tableName: tableName,
+        eventType: eventType,
+        outcome: outcome,
+        durationInMs: Date.now() - startedAt,
+      });
     }
   }
 
