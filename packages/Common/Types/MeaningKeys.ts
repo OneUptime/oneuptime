@@ -71,6 +71,14 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    */
   "From (range start)",
   "To (range end)",
+  /*
+   * A month that fell short of its SLO's target: the verdict on an SLO's
+   * Monthly Report (#5476). The bare "Missed" is an incident SLA's missed
+   * deadline, worded for a deadline in most languages - Danish
+   * "Overskredet" (exceeded), Norwegian "Oversittet", Japanese 見逃し
+   * (overlooked) - which no target is.
+   */
+  "Missed (target)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

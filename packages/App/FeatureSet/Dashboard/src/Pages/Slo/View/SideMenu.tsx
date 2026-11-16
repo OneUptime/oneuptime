@@ -134,6 +134,20 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Graph}
         />
+        {/*
+         * How the SLO did each calendar month, for the review or the report
+         * someone is asked for: read as often as Metrics, so it sits beside it.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Monthly Report",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_MONTHLY_REPORT] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Calendar}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Activity">

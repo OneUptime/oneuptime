@@ -111,13 +111,14 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array and a range's two ends, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends and an SLO month's missed target, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
         "Change (schema change)",
         "Created (import result)",
         "From (range start)",
+        "Missed (target)",
         "Open (invoice status)",
         "Open (status)",
         "Table (database object)",
@@ -142,6 +143,8 @@ describe("the keys that name their meaning", () => {
     // #8201: a range's two ends, never a message's sender and recipient.
     expect(getWordOfMeaningKey("From (range start)")).toBe("From");
     expect(getWordOfMeaningKey("To (range end)")).toBe("To");
+    // #5476: a month that missed its SLO's target, never a missed SLA deadline.
+    expect(getWordOfMeaningKey("Missed (target)")).toBe("Missed");
     expect(getWordOfMeaningKey("To")).toBeUndefined();
   });
 
