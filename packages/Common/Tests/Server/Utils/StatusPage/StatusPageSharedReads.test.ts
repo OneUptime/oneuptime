@@ -295,6 +295,31 @@ describe("StatusPageSharedReads.getOrBuild", () => {
     });
   });
 
+  test("a value shouldKeep refuses is handed out but never written, and its claim is let go", async () => {
+    const value: SharedRead<JSONObject> =
+      await StatusPageSharedReads.getOrBuild<JSONObject>({
+        key: KEY,
+        ttlMs: TTL_MS,
+        build: async (): Promise<JSONObject> => {
+          return { incidents: [] };
+        },
+        toJSON: (json: JSONObject): unknown => {
+          return json;
+        },
+        fromJSON: (json: unknown): JSONObject => {
+          return json as JSONObject;
+        },
+        shouldKeep: (json: JSONObject): boolean => {
+          return (json["incidents"] as Array<unknown>).length > 0;
+        },
+      });
+    await settle();
+
+    expect(value.value).toEqual({ incidents: [] });
+    expect(redis.peek(ENTRY_KEY)).toBeNull();
+    expect(redis.peek(CLAIM_KEY)).toBeNull();
+  });
+
   test("keeps each key apart", async () => {
     const build: Mock<() => Promise<JSONObject>> = counter();
 

@@ -58,12 +58,13 @@ import { DataSource, Logger } from "typeorm";
  *
  *                                      before          after
  *   a view, first / again             47 / 9          46 / 0
- *   a view in another pod             -               11
+ *   a view in another pod             47              11
  *   favicon, logo, dark logo, cover   1 each, always  first only; 0 after
  *   incidents, first / again          17 / 15         17 / 0
  *   episodes                          9 / 9           8 / 0
  *   scheduled maintenance             14 / 14         13 / 0
  *   announcements                     6 / 6           5 / 0
+ *   an incident opened by its id      11 every time   13 / 0
  *
  * Opt in with RUN_POSTGRES_STATUS_PAGE_VIEW_STATEMENT_TESTS=true against a
  * database the registered migrations have been applied to, e.g.
@@ -180,6 +181,7 @@ const ROUTES: {
   darkThemeLogo: string;
   coverImage: string;
   incidents: string;
+  incident: string;
   episodes: string;
   scheduledMaintenance: string;
   announcements: string;
@@ -193,6 +195,7 @@ const ROUTES: {
   darkThemeLogo: `${API_PATH}/dark-theme-logo/:statusPageIdOrDomain`,
   coverImage: `${API_PATH}/cover-image/:statusPageIdOrDomain`,
   incidents: `${API_PATH}/incidents/:statusPageIdOrDomain`,
+  incident: `${API_PATH}/incidents/:statusPageIdOrDomain/:incidentId`,
   episodes: `${API_PATH}/episodes/:statusPageIdOrDomain`,
   scheduledMaintenance: `${API_PATH}/scheduled-maintenance-events/:statusPageIdOrDomain`,
   announcements: `${API_PATH}/announcements/:statusPageIdOrDomain`,
@@ -308,6 +311,8 @@ describePostgres(
       projectId: ObjectID;
       statusPageId: ObjectID;
       domain: string;
+      // The incident under way, as a subscriber's email links to it.
+      activeIncidentId: ObjectID;
     }
 
     async function seedFile(
@@ -561,6 +566,8 @@ describePostgres(
         });
       }
 
+      let activeIncidentId: ObjectID = ObjectID.generate();
+
       for (const incident of [
         {
           title: "Website is slow",
@@ -576,6 +583,10 @@ describePostgres(
         },
       ]) {
         const id: ObjectID = ObjectID.generate();
+
+        if (incident.state !== "Resolved") {
+          activeIncidentId = id;
+        }
 
         await insert("Incident", {
           _id: id,
@@ -718,7 +729,7 @@ describePostgres(
         statusPageId: statusPageId,
       });
 
-      return { projectId, statusPageId, domain };
+      return { projectId, statusPageId, domain, activeIncidentId };
     }
 
     /*
@@ -1248,6 +1259,61 @@ describePostgres(
           counts["scheduledMaintenance, another pod"]! +
           counts["announcements, another pod"]!,
       ).toBeLessThanOrEqual(1 + 3);
+    });
+
+    test("an incident opened from a subscriber's email link reads Postgres the first time only; one the page does not show, every time", async () => {
+      const page: SeededPage = await seedPage();
+      const counts: Dictionary<number> = {};
+
+      const open: (
+        incidentId: ObjectID,
+      ) => Promise<{ statements: Array<string>; result: Answer }> = async (
+        incidentId: ObjectID,
+      ): Promise<{ statements: Array<string>; result: Answer }> => {
+        return await count(() => {
+          return call({
+            method: "post",
+            route: ROUTES.incident,
+            params: {
+              statusPageIdOrDomain: page.statusPageId.toString(),
+              incidentId: incidentId.toString(),
+            },
+            host: page.domain,
+          });
+        });
+      };
+
+      const first: { statements: Array<string>; result: Answer } = await open(
+        page.activeIncidentId,
+      );
+      const again: { statements: Array<string>; result: Answer } = await open(
+        page.activeIncidentId,
+      );
+
+      expect(first.result.error).toBeUndefined();
+      expect(
+        ((first.result.body as JSONObject)["incidents"] as Array<JSONObject>)
+          .length,
+      ).toBe(1);
+      expect(again.result.body).toEqual(first.result.body);
+
+      const nobodys: ObjectID = ObjectID.generate();
+      const unknownFirst: { statements: Array<string>; result: Answer } =
+        await open(nobodys);
+      const unknownAgain: { statements: Array<string>; result: Answer } =
+        await open(nobodys);
+
+      counts["incident, first"] = first.statements.length;
+      counts["incident, again"] = again.statements.length;
+      counts["an id nobody has, first"] = unknownFirst.statements.length;
+      counts["an id nobody has, again"] = unknownAgain.statements.length;
+
+      report("an incident by its id", counts);
+
+      expect(counts["incident, first"]).toBeLessThanOrEqual(16);
+      expect(counts["incident, again"]).toBe(0);
+      // Never kept: read every time, as before.
+      expect(counts["an id nobody has, again"]).toBeGreaterThan(0);
     });
 
     test("a page made private while its overview and lists are kept is never served from them to a visitor it does not let in", async () => {

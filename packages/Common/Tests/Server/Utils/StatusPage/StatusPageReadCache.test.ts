@@ -406,6 +406,40 @@ describe("StatusPageReadCache.getOrRead", () => {
     expect(read).toHaveBeenCalledTimes(2);
   });
 
+  test("shouldKeep: a read that found nothing worth keeping is read every time, here and in every pod", async () => {
+    const cache: StatusPageReadCache<JSONObject | null> = newCache({
+      shared: true,
+    });
+    const nothing: Mock<() => Promise<JSONObject>> = jest.fn(async () => {
+      return { incidents: [] };
+    });
+    const shouldKeep: (value: JSONObject | null) => boolean = (
+      value: JSONObject | null,
+    ): boolean => {
+      return Boolean(
+        value && Array.isArray(value["incidents"]) && value["incidents"].length,
+      );
+    };
+
+    for (let i: number = 0; i < 2; i++) {
+      await cache.getOrRead({
+        statusPageId: PAGE_ID,
+        variant: "item-1",
+        readProjectId: async (): Promise<ObjectID | null> => {
+          return PROJECT_ID;
+        },
+        read: nothing,
+        shouldKeep: shouldKeep,
+      });
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+    }
+
+    expect(nothing).toHaveBeenCalledTimes(2);
+    expect(redis.keys()).not.toContainEqual(expect.stringContaining("value|"));
+  });
+
   test("a read bigger than maxValueBytes is served as it was read, and read again every time", async () => {
     const cache: StatusPageReadCache<JSONObject | null> = newCache({
       maxValueBytes: 16,

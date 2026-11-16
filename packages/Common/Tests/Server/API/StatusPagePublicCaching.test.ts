@@ -594,6 +594,23 @@ async function openList(
   });
 }
 
+async function openItem(
+  target: PageState,
+  incidentId: string,
+  cookies?: Dictionary<string>,
+): Promise<Answer> {
+  return await call({
+    route: ROUTES["incident"]!,
+    method: "post",
+    params: {
+      statusPageIdOrDomain: target.id.toString(),
+      incidentId: incidentId,
+    },
+    host: target.domain,
+    cookies: cookies,
+  });
+}
+
 async function masterPage(target: PageState, host: string): Promise<Answer> {
   return await call({
     route: ROUTES["masterPage"]!,
@@ -770,27 +787,70 @@ describe("a public page's view, kept for every visitor", () => {
     expect(builds.length).toBe(builtBefore);
   });
 
-  test("an item opened by its id is read every time", async () => {
+  test("an item opened by its id - a subscriber's email link - is kept like its list, and apart from it", async () => {
     const acme: PageState = addPage();
+    const incidentId: string = ObjectID.generate().toString();
 
-    for (let i: number = 0; i < 2; i++) {
-      const answer: Answer = await call({
-        route: ROUTES["incident"]!,
-        method: "post",
-        params: {
-          statusPageIdOrDomain: acme.id.toString(),
-          incidentId: ObjectID.generate().toString(),
-        },
-      });
+    for (let i: number = 0; i < 3; i++) {
+      const answer: Answer = await openItem(acme, incidentId);
 
       expect(answer.error).toBeUndefined();
+      expect((answer.body as JSONObject)["incidents"]).toEqual(acme.incidents);
       // A page's item, too, is kept by no cache in front of OneUptime.
       expect(answer.headers["cache-control"]).toBe(
         "no-store, no-cache, must-revalidate",
       );
     }
 
-    expect(count(builds, `incidents:${acme.id.toString()}`)).toBe(2);
+    expect(count(builds, `incidents:${acme.id.toString()}`)).toBe(1);
+
+    // Another item, and the list, are each their own.
+    await openItem(acme, ObjectID.generate().toString());
+    await openList(acme, ROUTES["incidents"]!);
+
+    expect(count(builds, `incidents:${acme.id.toString()}`)).toBe(3);
+  });
+
+  test("an item the page does not show - or an id nobody has - is read every time, never kept", async () => {
+    const acme: PageState = addPage({ incidents: [] });
+
+    for (let i: number = 0; i < 3; i++) {
+      expect(
+        (
+          (await openItem(acme, ObjectID.generate().toString()))
+            .body as JSONObject
+        )["incidents"],
+      ).toEqual([]);
+    }
+
+    const sameId: string = ObjectID.generate().toString();
+    await openItem(acme, sameId);
+    await openItem(acme, sameId);
+
+    expect(count(builds, `incidents:${acme.id.toString()}`)).toBe(5);
+    expect(
+      redis.keys().filter((key: string): boolean => {
+        return key.includes("|item-");
+      }),
+    ).toEqual([]);
+  });
+
+  test("an item taken off the page leaves its copy at once", async () => {
+    const acme: PageState = addPage({ incidents: ["Website is slow"] });
+    const incidentId: string = ObjectID.generate().toString();
+
+    await openItem(acme, incidentId);
+
+    acme.incidents = [];
+    await StatusPageOverviewCache.afterUpdate({
+      tableName: "Incident",
+      rows: [{ projectId: acme.projectId.toString() }],
+      written: { isVisibleOnStatusPage: false },
+    });
+
+    expect(
+      ((await openItem(acme, incidentId)).body as JSONObject)["incidents"],
+    ).toEqual([]);
   });
 });
 
@@ -1020,6 +1080,14 @@ describe("privacy: a page that limits who sees it", () => {
         expect(answer.body).toBeUndefined();
       }
 
+      // Nor an incident opened from an email's link.
+      const item: Answer = await openItem(
+        restricted,
+        ObjectID.generate().toString(),
+      );
+      expect((item.error as Error).constructor.name).toBe(error);
+      expect(item.body).toBeUndefined();
+
       // Nothing was built for a visitor the page does not let in.
       expect(builds).toEqual([]);
     },
@@ -1099,11 +1167,13 @@ describe("privacy: a page that limits who sees it", () => {
 describe("privacy: a page made private while it is kept", () => {
   test("made private here: refused at once, and its images are private at once", async () => {
     const acme: PageState = addPage();
+    const incidentId: string = ObjectID.generate().toString();
 
     expect((await overview(acme)).error).toBeUndefined();
     for (const list of LISTS) {
       expect((await openList(acme, list.route)).error).toBeUndefined();
     }
+    expect((await openItem(acme, incidentId)).error).toBeUndefined();
     expect(
       (await image(acme, ROUTES["favicon"]!)).headers["cache-control"],
     ).toBe(`public, max-age=${STATUS_PAGE_IMAGE_MAX_AGE_SECONDS}`);
@@ -1120,6 +1190,7 @@ describe("privacy: a page made private while it is kept", () => {
       const answer: Answer = await openList(acme, list.route);
       expect(answer.body).toBeUndefined();
     }
+    expect((await openItem(acme, incidentId)).body).toBeUndefined();
 
     expect(
       (await image(acme, ROUTES["favicon"]!)).headers["cache-control"],
