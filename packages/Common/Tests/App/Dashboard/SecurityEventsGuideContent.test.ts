@@ -1082,7 +1082,7 @@ describe("Detection Rules guide: evaluation", () => {
       `from ${DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES} to ${DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES}`,
     );
     expect(evaluation).toContain(
-      `last ${DETECTION_MAX_LOOKBACK_IN_MINUTES / 60} hours`,
+      `last ${DETECTION_MAX_LOOKBACK_IN_MINUTES / 60}\u00A0hours`,
     );
     expect(evaluation).toContain(
       `At most ${DETECTION_MAX_GROUPS_PER_EVALUATION} groups`,
@@ -1125,7 +1125,7 @@ describe("Detection Rules guide: evaluation", () => {
     );
     expect(evaluation).toContain("and at most once a window");
     expect(evaluation).toContain(
-      `A real-time rule disabled and enabled again first reads the time it was off, up to the last ${DETECTION_MAX_LOOKBACK_IN_MINUTES / 60} hours, as a scheduled rule does.`,
+      `A real-time rule disabled and enabled again first reads the time it was off, up to the last ${DETECTION_MAX_LOOKBACK_IN_MINUTES / 60}\u00A0hours, as a scheduled rule does.`,
     );
   });
 
@@ -1458,7 +1458,9 @@ describe("Threat Intel guide: indicators", () => {
       expect(indicators).toContain(pattern);
     }
 
-    expect(indicators).toContain(`${THREAT_INTEL_DEFAULT_VALID_DAYS} days`);
+    expect(indicators).toContain(
+      `${THREAT_INTEL_DEFAULT_VALID_DAYS}\u00A0days`,
+    );
     expect(indicators).toContain(`\`${THREAT_INTEL_MINIMUM_CONFIDENCE_MIN}\``);
   });
 });
@@ -1541,10 +1543,10 @@ describe("Threat Intel guide: enrichment and matching", () => {
     );
 
     expect(enrichment).toContain(
-      `last ${THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES} minutes`,
+      `last ${THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES}\u00A0minutes`,
     );
     expect(enrichment).toContain(
-      `last ${THREAT_INTEL_MATCH_MAX_LOOKBACK_IN_MINUTES / 60} hours`,
+      `last ${THREAT_INTEL_MATCH_MAX_LOOKBACK_IN_MINUTES / 60}\u00A0hours`,
     );
     expect(enrichment).toContain(
       `at most ${THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION} indicator values`,
@@ -1652,10 +1654,10 @@ describe("Threat Intel guide: every source a feed can read", () => {
       `at most ${THREAT_INTEL_LIST_MAX_INDICATORS.toLocaleString("en-US")} indicators`,
     );
     expect(feeds).toContain(
-      `every ${THREAT_INTEL_LIST_MIN_POLL_INTERVAL_IN_MINUTES} minutes at most`,
+      `every ${THREAT_INTEL_LIST_MIN_POLL_INTERVAL_IN_MINUTES}\u00A0minutes at most`,
     );
     expect(feeds).toContain(
-      `active for ${THREAT_INTEL_LIST_VALID_DAYS} days after the poll that last read it`,
+      `active for ${THREAT_INTEL_LIST_VALID_DAYS}\u00A0days after the poll that last read it`,
     );
   });
 
@@ -1666,10 +1668,10 @@ describe("Threat Intel guide: every source a feed can read", () => {
     );
 
     expect(feeds).toContain(
-      `the first poll reads the last ${THREAT_INTEL_GOOGLE_SECOPS_MAX_WINDOW_IN_DAYS} days`,
+      `the first poll reads the last ${THREAT_INTEL_GOOGLE_SECOPS_MAX_WINDOW_IN_DAYS}\u00A0days`,
     );
     expect(feeds).toContain(
-      `active for ${THREAT_INTEL_GOOGLE_SECOPS_VALID_DAYS} days after Google SecOps last saw it`,
+      `active for ${THREAT_INTEL_GOOGLE_SECOPS_VALID_DAYS}\u00A0days after Google SecOps last saw it`,
     );
     expect(feeds).toContain("Chronicle API Viewer role");
   });
@@ -1688,10 +1690,10 @@ describe("Threat Intel guide: every source a feed can read", () => {
 
   test("a schedule is said in its largest whole unit", () => {
     expect(describeListSchedule(60)).toBe("Every hour");
-    expect(describeListSchedule(120)).toBe("Every 2 hours");
+    expect(describeListSchedule(120)).toBe("Every 2\u00A0hours");
     expect(describeListSchedule(1440)).toBe("Every day");
-    expect(describeListSchedule(2880)).toBe("Every 2 days");
-    expect(describeListSchedule(15)).toBe("Every 15 minutes");
+    expect(describeListSchedule(2880)).toBe("Every 2\u00A0days");
+    expect(describeListSchedule(15)).toBe("Every 15\u00A0minutes");
     expect(describeListSchedule(1)).toBe("Every minute");
   });
 });

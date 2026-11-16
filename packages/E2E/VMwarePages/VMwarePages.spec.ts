@@ -3,6 +3,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
@@ -1348,7 +1349,7 @@ test.describe("at a phone's width, in dark mode, in German and in Persian", () =
       });
     expect(statusWidth).toBeLessThan(184);
     expect(await listRow(page, "esx02.acme.example").textContent()).toContain(
-      "76.80\u00a0GHz",
+      withUnit("76.80", "GHz"),
     );
     await expectTablesFitTheirCards(page);
     await expectNoSidewaysScroll(page);

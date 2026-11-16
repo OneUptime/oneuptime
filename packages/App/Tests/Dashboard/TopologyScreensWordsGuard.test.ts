@@ -225,9 +225,15 @@ const JOINED_BY_HAND: RegExp = /\$\{\}\s*[·•]\s*\$\{\}/;
 // Reads as words: "Hosts", "Unnamed resource", "in this view".
 const READS_AS_WORDS: RegExp = /^\s*\p{Lu}\p{Ll}|\p{L}{2,}\s+\p{L}/u;
 
-// One class of a class list: "flex", "mt-3", "hover:bg-gray-50", "w-[10rem]".
+/*
+ * One class of a class list: "flex", "mt-3", "hover:bg-gray-50", "w-[10rem]".
+ * After its first letters, a separator and then any run of letters, digits
+ * and separators. One run, not a repeated group: the separator and the
+ * characters after it overlap, and a repeated group of them backtracked
+ * exponentially on a long run that does not match (CodeQL js/redos, #2684).
+ */
 const CLASS_TOKEN: RegExp =
-  /^!?-?[a-z][a-z0-9]*([-:/.[\]#()%_][a-z0-9%.[\]#()_-]*)*$/;
+  /^!?-?[a-z][a-z0-9]*(?:[-:/.[\]#()%_][-a-z0-9:/.[\]#()%_]*)?$/;
 
 // What only a class has: "mt-3", "hover:bg-gray-50".
 const CLASS_PUNCTUATION: RegExp = /[-:]/;

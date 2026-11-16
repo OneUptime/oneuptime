@@ -28,6 +28,14 @@ import {
   withSpacesShown,
   withUnit,
 } from "./NoBreakSpaces";
+import {
+  drawnTextOf,
+  EMPTY_FIGURE_TEST_ID,
+  expectQuietDash,
+  heardTextOf,
+  NOT_SET,
+  QUIET_DASH,
+} from "./QuietDash";
 import { expectNoSidewaysScroll, sidewaysScrollOf } from "./PageFit";
 
 /*
@@ -1550,5 +1558,93 @@ test.describe("withUnit and withSpacesShown", () => {
     expect(read).not.toBe("Up · 182 ms");
     expect(await line.innerText()).toBe(`Up · ${withUnit(182, "ms")}`);
     expect(withSpacesShown(read)).toBe("Up · 182⍽ms");
+  });
+});
+
+/*
+ * #8735, #8749: a figure with no reading is EmptyFigure - the quiet dash on
+ * screen, "Not set" for a screen reader - and its textContent, "—Not set",
+ * is neither. drawnTextOf and heardTextOf read the two apart.
+ */
+test.describe("drawnTextOf, heardTextOf and expectQuietDash", () => {
+  // A tile's figure as EmptyFigure draws it, or as a figure with a reading.
+  function tiles(): string {
+    return `<!doctype html><html><head><meta charset="utf-8"><style>.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}</style></head><body>
+  <p id="empty"><span data-testid="${EMPTY_FIGURE_TEST_ID}"><span aria-hidden="true">—</span><span class="sr-only">Not set</span></span></p>
+  <p id="worded"><span data-testid="${EMPTY_FIGURE_TEST_ID}"><span aria-hidden="true">—</span><span class="sr-only">No reading yet</span></span></p>
+  <p id="figure">100%</p>
+  <p id="bare">—</p>
+  <p id="later"></p>
+  <script>
+    setTimeout(() => {
+      document.getElementById("later").innerHTML =
+        '<span data-testid="${EMPTY_FIGURE_TEST_ID}"><span aria-hidden="true">—</span><span class="sr-only">Not set</span></span>';
+    }, 400);
+  </script>
+</body></html>`;
+  }
+
+  async function failureOfQuietDash(
+    locator: Locator,
+    heard?: string,
+  ): Promise<string> {
+    try {
+      await expectQuietDash(locator, heard);
+    } catch (error) {
+      return String((error as Error).message);
+    }
+    return "it passed";
+  }
+
+  test("read the dash drawn and the words heard apart, where textContent runs them together", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(tiles());
+    const empty: Locator = page.locator("#empty");
+
+    expect(QUIET_DASH).toBe("—");
+    expect(NOT_SET).toBe("Not set");
+    expect(await empty.textContent()).toBe("—Not set");
+    expect(await drawnTextOf(empty)).toBe("—");
+    expect(await heardTextOf(empty)).toBe("Not set");
+    // A figure with a reading is drawn and heard alike.
+    expect(await drawnTextOf(page.locator("#figure"))).toBe("100%");
+    expect(await heardTextOf(page.locator("#figure"))).toBe("100%");
+    // Reading leaves the page as it was.
+    expect(await empty.textContent()).toBe("—Not set");
+  });
+
+  test("expectQuietDash passes EmptyFigure, with its own words when it has some, and waits for it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(tiles());
+
+    await expectQuietDash(page.locator("#empty"));
+    await expectQuietDash(page.locator("#worded"), "No reading yet");
+    await expectQuietDash(page.locator("#later"));
+  });
+
+  test("expectQuietDash fails a figure, a bare dash with nothing to hear, and words other than those expected", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(60000);
+    await page.setContent(tiles());
+
+    expect(await failureOfQuietDash(page.locator("#figure"))).toContain(
+      "draws the quiet dash",
+    );
+    // Drawn as a dash, but nothing is said: not EmptyFigure.
+    expect(await failureOfQuietDash(page.locator("#bare"))).toContain(
+      EMPTY_FIGURE_TEST_ID,
+    );
+    expect(await failureOfQuietDash(page.locator("#worded"))).toContain(
+      "is heard as",
+    );
   });
 });

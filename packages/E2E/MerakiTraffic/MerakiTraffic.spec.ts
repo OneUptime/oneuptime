@@ -10,6 +10,8 @@ import fsSync from "fs";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { NO_BREAK_SPACE, withUnit } from "../SuiteHelpers/NoBreakSpaces";
+import { expectQuietDash } from "../SuiteHelpers/QuietDash";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
@@ -598,7 +600,7 @@ test("the page's uplinks side by side: what each carried, and how each line held
   await expect(rows.nth(0)).toContainText("wan1");
   await expect(rows.nth(0)).toContainText("91%");
   await expect(rows.nth(0).getByTestId("meraki-uplink-row-latency")).toHaveText(
-    "22\u00a0ms",
+    withUnit(22, "ms"),
   );
   await expect(rows.nth(1).getByTestId("meraki-uplink-row-loss")).toHaveText(
     "0.6%",
@@ -606,7 +608,7 @@ test("the page's uplinks side by side: what each carried, and how each line held
   // A standby line that carried nothing, and is still measured.
   await expect(rows.nth(2)).toContainText("cellular");
   await expect(rows.nth(2).getByTestId("meraki-uplink-row-latency")).toHaveText(
-    "71\u00a0ms",
+    withUnit(71, "ms"),
   );
   await expect(page.getByTestId("meraki-uplink-chart")).toBeVisible();
 
@@ -654,10 +656,8 @@ test("a click on an uplink narrows the whole page to it, and the others stay to 
   await expect(page.getByTestId("traffic-tile-total-value")).not.toHaveText(
     total,
   );
-  // Not a false 0: Meraki counts flows per network.
-  await expect(page.getByTestId("traffic-tile-flows-value")).toHaveText(
-    "\u2014",
-  );
+  // Not a false 0: Meraki counts flows per network. Drawn "\u2014", heard "Not set" (#8749).
+  await expectQuietDash(page.getByTestId("traffic-tile-flows-value"));
   await expect(page.getByTestId("meraki-narrowed-note")).toBeVisible();
   await expect(rows).toHaveCount(3);
   await expect(rows.nth(1)).toHaveAttribute("aria-pressed", "true");
@@ -1282,8 +1282,11 @@ test("the devices Meraki knows that are not here: offered on the row, added in o
 
   const usageBefore: number = (await fixture(page)).usageRequests.length;
   await finishDeviceAdd(page);
+  // A pattern reads the text as it is: the number held to its unit (#8748).
   await expect(deviceAddLine(page, "added")).toHaveText(
-    /^Added 20 network devices from Meraki \d+ seconds? ago\.$/,
+    new RegExp(
+      `^Added 20 network devices from Meraki \\d+${NO_BREAK_SPACE}seconds? ago\\.$`,
+    ),
   );
   await expect(deviceAddLine(page, "added")).toHaveAttribute(
     "data-tone",
@@ -1379,7 +1382,9 @@ test("an Add devices that went wrong says so on the row: devices it could not ad
   );
   // What it added before its worker went quiet is said above it.
   await expect(deviceAddLine(page, "added")).toHaveText(
-    /^Added 9 network devices from Meraki \d+ minutes ago\.$/,
+    new RegExp(
+      `^Added 9 network devices from Meraki \\d+${NO_BREAK_SPACE}minutes ago\\.$`,
+    ),
   );
   await expect(deviceAddLine(page, "not-added")).toHaveCount(0);
   await expect(deviceAddLine(page, "adding")).toHaveCount(0);

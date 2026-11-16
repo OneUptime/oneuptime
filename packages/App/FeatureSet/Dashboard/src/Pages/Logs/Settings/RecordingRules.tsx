@@ -29,6 +29,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 const documentationMarkdown: string = `
 ### How Log Recording Rules Work
@@ -46,7 +47,7 @@ Attribute filter keys match whatever their case; the numeric attribute and group
 
 ### When points are written
 
-A bucket is computed ${LOG_RECORDING_RULE_EVALUATION_LAG_IN_SECONDS} seconds after it ends, so late logs still land in it. Each rule remembers the last minute it wrote: after a worker restart or other downtime it catches up on the minutes it missed, up to ${LOG_RECORDING_RULE_MAX_CATCH_UP_IN_MINUTES} minutes back, and never writes a minute twice. A count with no group by writes 0 for a minute with no matching logs; other rules write nothing for a minute with nothing to aggregate.
+A bucket is computed ${LOG_RECORDING_RULE_EVALUATION_LAG_IN_SECONDS}${NO_BREAK_SPACE}seconds after it ends, so late logs still land in it. Each rule remembers the last minute it wrote: after a worker restart or other downtime it catches up on the minutes it missed, up to ${LOG_RECORDING_RULE_MAX_CATCH_UP_IN_MINUTES}${NO_BREAK_SPACE}minutes back, and never writes a minute twice. A count with no group by writes 0 for a minute with no matching logs; other rules write nothing for a minute with nothing to aggregate.
 
 ### Example: SD-WAN gateway latency
 

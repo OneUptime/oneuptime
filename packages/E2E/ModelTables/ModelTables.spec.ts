@@ -2,6 +2,7 @@ import { BrowserContext, expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
@@ -4625,7 +4626,9 @@ test.describe("a table fits its own card", () => {
     const duration: string =
       (await row.getByTestId("live-duration").textContent()) || "";
 
-    expect(duration).toMatch(/^\d+\u00a0\S+(, \d+\u00a0\S+)?$/);
+    expect(duration).toMatch(
+      new RegExp(`^\\d+${NO_BREAK_SPACE}\\S+(, \\d+${NO_BREAK_SPACE}\\S+)?$`),
+    );
     await screenshot(page, "incidents-rich-folded-titles-1280");
   });
 

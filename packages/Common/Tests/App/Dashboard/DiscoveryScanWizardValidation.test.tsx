@@ -1130,7 +1130,7 @@ describe("Rescan Interval is validated where it is asked, under More fields", ()
         isRecurring: true,
         rescanIntervalInMinutes: 5,
       }),
-    ).toContain("at least 15 minutes");
+    ).toContain("at least 15\u00A0minutes");
   });
 
   test("a fractional interval is rejected even though it clears the floor", async () => {

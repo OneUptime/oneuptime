@@ -19,6 +19,8 @@ export default defineConfig({
     { name: "mobile-chromium", use: { ...devices["Pixel 5"] } },
   ],
   use: {
+    // One zone whatever the machine's (Tests/Ops/E2EConfigsPinTheirZone.test.js).
+    timezoneId: "UTC",
     baseURL: `http://127.0.0.1:${port}`,
     locale: "en-GB",
     trace: "retain-on-failure",

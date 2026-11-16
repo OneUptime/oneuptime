@@ -116,14 +116,16 @@ export function watchDashboardLocales(page: Page): LocaleWatch {
 
 /*
  * What a fixture's scripts may weigh on a page, its language's own chunk
- * aside: its entry is 5 to 15 MB of the Dashboard's components once no
- * locale but English is in it. With two to four locales imported whole the
- * entries were 29 to 47 MB (#8366). A locale's chunk is not counted: it is
- * the 5 to 9 MB of words the page is drawn in. (Through the JSON loader an
- * unminified one was 17 to 28 MB, until #8650 shipped it as one default
- * export, written in UTF-8.)
+ * aside: 5 to 30 MB of the Dashboard's components once no locale but
+ * English is in them (AiInsights' are 29 MB). A locale's whole words would
+ * add 6 to 10 MB each, and the check of which locales a page loaded catches
+ * those first; this is the ceiling past which a fixture has grown by more
+ * than its pages. A locale's chunk is not counted: it is the 5 to 9 MB of
+ * words the page is drawn in. (Through the JSON loader an unminified one
+ * was 17 to 28 MB, until #8650 shipped it as one default export, written in
+ * UTF-8.)
  */
-export const LOCALE_FREE_PAGE_BUDGET_BYTES: number = 25 * 1024 * 1024;
+export const LOCALE_FREE_PAGE_BUDGET_BYTES: number = 40 * 1024 * 1024;
 
 const DASHBOARD_LOCALES: string = path.resolve(
   __dirname,
