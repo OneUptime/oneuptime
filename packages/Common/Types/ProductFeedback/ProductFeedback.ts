@@ -153,6 +153,18 @@ export const DEFAULT_GIVE_FEEDBACK_CATEGORY: GiveFeedbackCategory =
   GiveFeedbackCategory.Broken;
 
 /*
+ * Marks an English name as a key of the Dashboard's locales - the same
+ * marker as Common/UI/Utils/TranslateTemplate's translationKey, kept here so
+ * this file stays free of the UI. It returns the text unchanged. The
+ * Dashboard's locale extractor reads this file for what it marks and
+ * nothing else (a "keys" root of its SOURCE_ROOTS,
+ * App/FeatureSet/Dashboard/scripts/i18n/ExtractStrings.ts).
+ */
+const translationKey: (text: string) => string = (text: string): string => {
+  return text;
+};
+
+/*
  * Each one's name, as the dialog offers it and the team reads it. English:
  * the Dashboard and the Admin Dashboard translate what they show, and the
  * email to the team is English.
@@ -160,10 +172,10 @@ export const DEFAULT_GIVE_FEEDBACK_CATEGORY: GiveFeedbackCategory =
 export const GIVE_FEEDBACK_CATEGORY_TITLES: Readonly<
   Record<GiveFeedbackCategory, string>
 > = {
-  [GiveFeedbackCategory.Broken]: "Something's broken",
-  [GiveFeedbackCategory.Confusing]: "Confusing",
-  [GiveFeedbackCategory.Idea]: "Idea",
-  [GiveFeedbackCategory.Other]: "Other",
+  [GiveFeedbackCategory.Broken]: translationKey("Something's broken"),
+  [GiveFeedbackCategory.Confusing]: translationKey("Confusing"),
+  [GiveFeedbackCategory.Idea]: translationKey("Idea"),
+  [GiveFeedbackCategory.Other]: translationKey("Other"),
 };
 
 export const isGiveFeedbackCategory: (
