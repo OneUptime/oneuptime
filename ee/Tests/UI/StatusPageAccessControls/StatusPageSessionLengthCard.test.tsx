@@ -77,7 +77,10 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
+import {
+  withDurationWordsHeld,
+  withPlainSpaces,
+} from "Common/Types/NoBreakSpaces";
 
 const STATUS_PAGE_ID: string = "7c7c7c7c-0000-4000-8000-0000000000cc";
 
@@ -273,7 +276,9 @@ describe("the Reader Sessions card", () => {
     await renderCard();
 
     expect(shown()).toBe(StatusPageSessionLengthCopy.noLimit);
-    expect(description()).toBe(StatusPageSessionLengthCopy.noLimitDescription);
+    expect(description()).toBe(
+      withDurationWordsHeld(StatusPageSessionLengthCopy.noLimitDescription),
+    );
   });
 
   test("a page with a limit shows it, and that readers sign in again", async () => {
@@ -281,7 +286,9 @@ describe("the Reader Sessions card", () => {
     await renderCard();
 
     expect(shown()).toBe("12\u00A0hours");
-    expect(description()).toBe(StatusPageSessionLengthCopy.limitDescription);
+    expect(description()).toBe(
+      withDurationWordsHeld(StatusPageSessionLengthCopy.limitDescription),
+    );
   });
 
   test("offers No limit first, then every length shortest first", async () => {
@@ -289,11 +296,11 @@ describe("the Reader Sessions card", () => {
 
     expect(offered()).toEqual([
       "No limit",
-      "1 hour",
+      "1\u00A0hour",
       "4\u00A0hours",
       "8\u00A0hours",
       "12\u00A0hours",
-      "1 day",
+      "1\u00A0day",
       "3\u00A0days",
       "7\u00A0days",
       "14\u00A0days",
@@ -311,11 +318,11 @@ describe("the Reader Sessions card", () => {
     expect(shown()).toBe("36\u00A0hours");
     expect(offered()).toEqual([
       "No limit",
-      "1 hour",
+      "1\u00A0hour",
       "4\u00A0hours",
       "8\u00A0hours",
       "12\u00A0hours",
-      "1 day",
+      "1\u00A0day",
       "36\u00A0hours",
       "3\u00A0days",
       "7\u00A0days",
@@ -333,7 +340,9 @@ describe("the Reader Sessions card", () => {
       (updateByIdMock.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
     ).toBe(STATUS_PAGE_ID);
     expect(shown()).toBe("8\u00A0hours");
-    expect(description()).toBe(StatusPageSessionLengthCopy.limitDescription);
+    expect(description()).toBe(
+      withDurationWordsHeld(StatusPageSessionLengthCopy.limitDescription),
+    );
 
     await waitFor(() => {
       expect(
@@ -350,7 +359,9 @@ describe("the Reader Sessions card", () => {
     await pick("No limit");
 
     expect(writes()).toEqual([{ privateUserSessionLengthInHours: null }]);
-    expect(description()).toBe(StatusPageSessionLengthCopy.noLimitDescription);
+    expect(description()).toBe(
+      withDurationWordsHeld(StatusPageSessionLengthCopy.noLimitDescription),
+    );
   });
 
   test("picking what the page already has sends nothing", async () => {
@@ -377,7 +388,9 @@ describe("the Reader Sessions card", () => {
     expect(
       screen.getByTestId(`${STATUS_PAGE_SESSION_LENGTH_SETTING_TEST_ID}-error`),
     ).toHaveTextContent("Please upgrade your plan to Scale");
-    expect(description()).toBe(StatusPageSessionLengthCopy.limitDescription);
+    expect(description()).toBe(
+      withDurationWordsHeld(StatusPageSessionLengthCopy.limitDescription),
+    );
   });
 
   test("below the Scale plan, the plan it needs is named before anyone tries", async () => {

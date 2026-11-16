@@ -214,6 +214,8 @@ import {
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import ProxmoxResource from "../../../Models/DatabaseModels/ProxmoxResource";
 import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
+// What a page draws holds a duration's figure to its word (#8811).
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -430,7 +432,7 @@ async function expectExplained(
   for (const [title, key] of pairs) {
     expect({ title, text: await tooltipTextOf(infoButton(title)) }).toEqual({
       title,
-      text: PROXMOX_METRIC_DESCRIPTIONS[key],
+      text: withDurationWordsHeld(PROXMOX_METRIC_DESCRIPTIONS[key]),
     });
   }
 }
@@ -539,7 +541,7 @@ describe("Proxmox node detail", () => {
     expect(status).toHaveTextContent("Online");
     expect(status).toHaveAttribute(
       "title",
-      PROXMOX_METRIC_DESCRIPTIONS.nodeStatus,
+      withDurationWordsHeld(PROXMOX_METRIC_DESCRIPTIONS.nodeStatus),
     );
     expect(status).toHaveTextContent(PROXMOX_METRIC_DESCRIPTIONS.nodeStatus);
   });

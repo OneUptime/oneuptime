@@ -190,7 +190,9 @@ const KIND_NOUNS: Record<ReplayBackendSignalKind, string> = {
 };
 
 /* The words of a store made without the reader's translator: English. */
-const ENGLISH: Translator = createTranslator(undefined);
+const ENGLISH: Translator = createTranslator(undefined, undefined, {
+  drawsOnPage: true,
+});
 
 export interface ReplayBackendSignalsWindowInput {
   startTimeUnixMs: number;

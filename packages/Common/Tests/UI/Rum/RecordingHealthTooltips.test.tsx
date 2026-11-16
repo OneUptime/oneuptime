@@ -81,6 +81,7 @@ import {
   RumRecordingHealthMetric,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/RumMetricDescriptions";
 import { expectReadableDescriptionRecord } from "../../App/Dashboard/MetricDescriptionRules";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
 const NOW: number = Date.parse("2026-09-05T10:00:00.000Z");
@@ -197,8 +198,9 @@ async function expectExplained(
   const button: HTMLElement = infoButton(label);
 
   expect(button.parentElement?.closest("button, a")).toBeNull();
+  // Drawn, its durations held to their figures (#8811).
   expect(await tooltipTextOf(button)).toBe(
-    RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS[key],
+    withDurationWordsHeld(RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS[key]),
   );
 }
 

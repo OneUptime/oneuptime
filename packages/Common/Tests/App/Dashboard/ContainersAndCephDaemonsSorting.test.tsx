@@ -423,7 +423,7 @@ const CONTAINER_COLUMN_INDEX: Record<string, number> = {
   Image: 2,
   CPU: 3,
   Memory: 4,
-  "Restarts (15 min)": 5,
+  "Restarts (15\u00A0min)": 5,
   "Last Started": 6,
 };
 
@@ -509,7 +509,7 @@ describe.each(CONTAINER_LISTS)(
         Image: "none",
         CPU: "none",
         Memory: "none",
-        "Restarts (15 min)": "none",
+        "Restarts (15\u00A0min)": "none",
         "Last Started": "none",
       });
     });
@@ -640,9 +640,11 @@ describe.each(CONTAINER_LISTS)(
       serveRestarts({ web: 2, "batch-9": 5 });
       await renderPage(list.Page);
 
-      await clickHeader(list.tableId, "Restarts (15 min)");
+      await clickHeader(list.tableId, "Restarts (15\u00A0min)");
 
-      expect(ariaSortOf(list.tableId, "Restarts (15 min)")).toBe("descending");
+      expect(ariaSortOf(list.tableId, "Restarts (15\u00A0min)")).toBe(
+        "descending",
+      );
       expect(visibleNames()).toEqual([
         "batch-9",
         "web",
@@ -650,7 +652,7 @@ describe.each(CONTAINER_LISTS)(
         "batch-10",
         "cache",
       ]);
-      expect(visibleCells("Restarts (15 min)")).toEqual([
+      expect(visibleCells("Restarts (15\u00A0min)")).toEqual([
         "5",
         "2",
         "0",
@@ -663,7 +665,7 @@ describe.each(CONTAINER_LISTS)(
       serveContainers(FIVE_CONTAINERS);
       await renderPage(list.Page);
 
-      expect(visibleCells("Restarts (15 min)")).toEqual([
+      expect(visibleCells("Restarts (15\u00A0min)")).toEqual([
         "—",
         "—",
         "—",

@@ -147,6 +147,8 @@ import {
   HOST_METRIC_DESCRIPTIONS,
   HostMetric,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/HostMetricDescriptions";
+// A tooltip draws a duration's figure held to its word (#8811).
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 type Row = {
   timestamp: Date;
@@ -361,7 +363,9 @@ describe("Host overview, loaded", () => {
 
       const button: HTMLElement = infoButtonsFor(label)[index]!;
 
-      expect(await explanationOnHover(button)).toBe(D[key]);
+      expect(await explanationOnHover(button)).toBe(
+        withDurationWordsHeld(D[key]),
+      );
     },
   );
 

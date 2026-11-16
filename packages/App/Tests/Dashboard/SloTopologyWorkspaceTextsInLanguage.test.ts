@@ -170,7 +170,7 @@ describe("the SLO overview's words without a translator read as SloOverviewText'
         windowType: SloWindowType.Rolling,
         windowDays: 1,
       }),
-    ).toBe("Rolling 1 day");
+    ).toBe("Rolling 1\u00A0day");
     expect(
       getSloWindowPhraseInLanguage({
         windowType: SloWindowType.CalendarMonth,
@@ -211,7 +211,7 @@ describe("the SLO overview's words without a translator read as SloOverviewText'
         windowDays: 30,
       }),
     ).toBe(
-      `${formatDurationCompact(2592)} of downtime allowed per rolling 30 days`,
+      `${formatDurationCompact(2592)} of downtime allowed per rolling 30\u00A0days`,
     );
     expect(
       getSloAllowedDowntimeTextInLanguage({
@@ -220,7 +220,7 @@ describe("the SLO overview's words without a translator read as SloOverviewText'
         windowDays: 1,
       }),
     ).toBe(
-      `${formatDurationCompact(86)} of downtime allowed per rolling 1 day`,
+      `${formatDurationCompact(86)} of downtime allowed per rolling 1\u00A0day`,
     );
     expect(
       getSloAllowedDowntimeTextInLanguage({
@@ -232,7 +232,7 @@ describe("the SLO overview's words without a translator read as SloOverviewText'
     );
     // No window days: the column's default, 30.
     expect(getSloAllowedDowntimeTextInLanguage({ seconds: 60 })).toBe(
-      `${formatDurationCompact(60)} of downtime allowed per rolling 30 days`,
+      `${formatDurationCompact(60)} of downtime allowed per rolling 30\u00A0days`,
     );
   });
 
@@ -240,7 +240,7 @@ describe("the SLO overview's words without a translator read as SloOverviewText'
     expect(getSloEvaluationCadenceText()).toBe(
       SLO_EVALUATION_CADENCE_MINUTES === 1
         ? "Runs every minute"
-        : `Runs every ${SLO_EVALUATION_CADENCE_MINUTES} minutes`,
+        : `Runs every ${SLO_EVALUATION_CADENCE_MINUTES}\u00A0minutes`,
     );
   });
 
@@ -253,7 +253,7 @@ describe("the SLO overview's words without a translator read as SloOverviewText'
       }),
     ).toEqual(["objective", "burn", "status"]);
     expect(categories[1]!.description).toBe(
-      "How fast the error budget is being spent over the trailing 60 minutes, and how much downtime the SLO can still absorb before it breaches.",
+      "How fast the error budget is being spent over the trailing 60\u00A0minutes, and how much downtime the SLO can still absorb before it breaches.",
     );
   });
 });

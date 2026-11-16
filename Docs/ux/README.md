@@ -714,7 +714,12 @@ work out, starts from a default for everything else, and folds what most people 
   English (a translator made with `drawsOnPage`, as the front ends' are). English that may become a
   record's text - the server's, or a translator no page made - holds a unit's symbol only, so what
   is stored still matches what reads it back by its English; a sentence that becomes a value - the
-  name a form fills in - is written with plain spaces (`withPlainSpaces`). Enforced by
+  name a form fills in - is written with plain spaces (`withPlainSpaces`). English drawn without a
+  page's translator holds it too (#8811): a module's own English fallback that draws is a page's, an
+  English key drawn as written holds its figure (a page's `translateText`, `useTranslateValue`),
+  and so does an email's English - a mail client draws a no-break space as a browser does
+  (`getServerTranslator(language, { readByAPerson: true })`). Danish and Norwegian hold a count
+  written as an ordinal too ("Hvert 5. minut"). Enforced by
   [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
   [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
   and

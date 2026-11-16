@@ -237,6 +237,7 @@ import {
   SERVICE_RECEIVING_DATA_DESCRIPTION,
   SERVICE_WAITING_FOR_DATA_DESCRIPTION,
 } from "../../../Types/Service/ServiceTelemetryStatus";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -372,7 +373,11 @@ describe("a service's Overview hero says whether its data arrives", () => {
     expect(element).toHaveClass(expected.background);
     // Never amber or red: neither quiet state is a fault on its own.
     expect(element.className).not.toMatch(/amber|red/);
-    expect(element).toHaveAttribute("title", expected.hover);
+    // Drawn, its figure held to its duration (#8811).
+    expect(element).toHaveAttribute(
+      "title",
+      withDurationWordsHeld(expected.hover),
+    );
     expect(within(hero()).getByText(expected.seen)).toBeInTheDocument();
   });
 
@@ -394,7 +399,7 @@ describe("a service's Overview hero says whether its data arrives", () => {
 
     const hover: string = pill().getAttribute("title") || "";
 
-    expect(hover).toContain("Nothing has arrived in the last 30 minutes.");
+    expect(hover).toContain("Nothing has arrived in the last 30\u00A0minutes.");
     expect(hover).toContain("quiet when nobody calls it");
     expect(hover).toContain("If it should be busy, check that it is running");
     expect(hover).toContain("service.name");

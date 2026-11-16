@@ -58,12 +58,17 @@ async function readIn(language: string): Promise<void> {
   });
 }
 
+// A page's translator in `language`, as the criteria list draws with (#8811).
 function translatorIn(language: string): Translator {
   const words: Record<string, string> = readDashboardLocale(language);
 
-  return createTranslator((key: string): string | undefined => {
-    return words[key];
-  }, language);
+  return createTranslator(
+    (key: string): string | undefined => {
+      return words[key];
+    },
+    language,
+    { drawsOnPage: true },
+  );
 }
 
 beforeAll(async () => {
@@ -211,14 +216,14 @@ const CASES: ReadonlyArray<Case> = [
     name: "a disk's highest share over a window",
     filter: DISK,
     english:
-      'Check if maximum value of "Disk Usage (in %)" on /dev/sda in the past 15 minutes is greater than or equal to 90%',
+      'Check if maximum value of "Disk Usage (in %)" on /dev/sda in the past 15\u00A0minutes is greater than or equal to 90%',
   },
   {
     name: "a body judged check by check",
     filter: BODY,
     monitorType: MonitorType.Website,
     english:
-      'Check if "Response Body" does not contain "App Title" on every check in the past 5 minutes',
+      'Check if "Response Body" does not contain "App Title" on every check in the past 5\u00A0minutes',
   },
   {
     name: "an expression",
@@ -230,25 +235,25 @@ const CASES: ReadonlyArray<Case> = [
     name: "a yes or no over any value of a window",
     filter: ONLINE,
     english:
-      'Check if any value of "Is Online" in the past 10 minutes is false',
+      'Check if any value of "Is Online" in the past 10\u00A0minutes is false',
   },
   {
     name: "a metric's aggregate, with its unit",
     filter: METRIC_AVERAGE,
     english:
-      'Check if Average of all values of "Metric Value" in the past 5 minutes is less than 12.5\u00A0GB',
+      'Check if Average of all values of "Metric Value" in the past 5\u00A0minutes is less than 12.5\u00A0GB',
   },
   {
     name: "an anomaly",
     filter: ANOMALY,
     english:
-      'Check if "Metric Value" is anomalously high (sensitivity: High, baseline window: 14 days)',
+      'Check if "Metric Value" is anomalously high (sensitivity: High, baseline window: 14\u00A0days)',
   },
   {
     name: "a forecast",
     filter: FORECAST,
     english:
-      'Check if "Metric Value" is forecast to rise above 90\u00A0% within 3 days',
+      'Check if "Metric Value" is forecast to rise above 90\u00A0% within 3\u00A0days',
   },
   {
     name: "every row of an SNMP table",
@@ -259,7 +264,8 @@ const CASES: ReadonlyArray<Case> = [
   {
     name: "an incoming request that stops arriving",
     filter: INCOMING,
-    english: 'Check if "Incoming Request" is not received within 30 minutes',
+    english:
+      'Check if "Incoming Request" is not received within 30\u00A0minutes',
   },
 ];
 

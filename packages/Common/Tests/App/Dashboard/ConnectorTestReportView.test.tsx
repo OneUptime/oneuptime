@@ -476,10 +476,10 @@ describe("ConnectorTestReportView", () => {
     expect(labelOf("scope")).toBe("Data to import");
     expect(valueOf("scope")).toBe("Alerts only");
     expect(labelOf("ruleDetectionsCreatedLast24h")).toBe(
-      "Rule detections created in the last 24 hours",
+      "Rule detections created in the last 24\u00A0hours",
     );
     expect(labelOf("alertsViewLast7d")).toBe(
-      "Alerts by detection time, last 7 days",
+      "Alerts by detection time, last 7\u00A0days",
     );
     expect(labelOf("otherScope.scope")).toBe("Other Data to import choice");
     expect(valueOf("otherScope.scope")).toBe("Alerts and Detections");

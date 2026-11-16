@@ -658,7 +658,9 @@ export interface SessionReplayBadgeParts {
  * English, word for word, for a caller that hands in no translator: the
  * node tests, and anything that reads a badge's words outside the list.
  */
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 // A fixed line in the translator's language.
 function translateLine(text: string, translator: Translator): string {

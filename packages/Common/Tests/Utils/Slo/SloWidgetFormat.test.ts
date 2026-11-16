@@ -139,7 +139,7 @@ describe("SloWidgetFormat", () => {
 
     it("does not round a sub-minute remainder down to a misleading 0 min", () => {
       expect(formatErrorBudgetRemainingSeconds(20)).toBe(
-        "under 1 min remaining",
+        "under 1\u00A0min remaining",
       );
     });
 
@@ -156,7 +156,7 @@ describe("SloWidgetFormat", () => {
 
     it("handles a sub-minute overage without a bare 0", () => {
       expect(formatErrorBudgetRemainingSeconds(-20)).toBe(
-        "under 1 min over budget",
+        "under 1\u00A0min over budget",
       );
     });
 

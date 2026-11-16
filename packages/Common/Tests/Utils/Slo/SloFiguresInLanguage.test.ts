@@ -266,12 +266,14 @@ describe("formatErrorBudgetRemainingSeconds: the line under the error budget", (
     );
     expect(formatErrorBudgetRemainingSeconds(60)).toBe("1\u00A0min remaining");
     expect(formatErrorBudgetRemainingSeconds(0)).toBe("0\u00A0min remaining");
-    expect(formatErrorBudgetRemainingSeconds(20)).toBe("under 1 min remaining");
+    expect(formatErrorBudgetRemainingSeconds(20)).toBe(
+      "under 1\u00A0min remaining",
+    );
     expect(formatErrorBudgetRemainingSeconds(-2520)).toBe(
       `${MINUS_SIGN}42\u00A0min over budget`,
     );
     expect(formatErrorBudgetRemainingSeconds(-20)).toBe(
-      "under 1 min over budget",
+      "under 1\u00A0min over budget",
     );
     expect(formatErrorBudgetRemainingSeconds(86400)).toBe(
       "1440\u00A0min remaining",

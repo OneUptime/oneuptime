@@ -156,7 +156,10 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
 import { getPageAnchorNameForTitle } from "Common/UI/Utils/PageAnchor";
-import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
+import {
+  withDurationWordsHeld,
+  withPlainSpaces,
+} from "Common/Types/NoBreakSpaces";
 
 type Row = Partial<
   Record<
@@ -393,10 +396,12 @@ describe("what the page reads and shows", () => {
     ).toHaveAttribute("href", "/admin/settings/session-length");
     expect(shown(LENGTH)).toBe("No limit");
     expect(description(LENGTH)).toBe(
-      SessionLengthCopy.lengthNoLimitDescription,
+      withDurationWordsHeld(SessionLengthCopy.lengthNoLimitDescription),
     );
     expect(shown(IDLE)).toBe("30\u00A0days");
-    expect(description(IDLE)).toBe(SessionLengthCopy.idleDefaultDescription);
+    expect(description(IDLE)).toBe(
+      withDurationWordsHeld(SessionLengthCopy.idleDefaultDescription),
+    );
   });
 
   test("each length reads as a form field: what it sets, what the pick means, then the dropdown, with Saved after it", async () => {
@@ -458,9 +463,13 @@ describe("what the page reads and shows", () => {
     await openPage();
 
     expect(shown(LENGTH)).toBe("8\u00A0hours");
-    expect(description(LENGTH)).toBe(SessionLengthCopy.lengthSetDescription);
+    expect(description(LENGTH)).toBe(
+      withDurationWordsHeld(SessionLengthCopy.lengthSetDescription),
+    );
     expect(shown(IDLE)).toBe("30\u00A0minutes");
-    expect(description(IDLE)).toBe(SessionLengthCopy.idleSetDescription);
+    expect(description(IDLE)).toBe(
+      withDurationWordsHeld(SessionLengthCopy.idleSetDescription),
+    );
   });
 
   /*
@@ -473,7 +482,9 @@ describe("what the page reads and shows", () => {
     await openPage();
 
     expect(shown(IDLE)).toBe("15\u00A0minutes");
-    expect(description(IDLE)).toBe(SessionLengthCopy.idleShortestDescription);
+    expect(description(IDLE)).toBe(
+      withDurationWordsHeld(SessionLengthCopy.idleShortestDescription),
+    );
     expect(description(IDLE)).toContain(
       "The mobile app needs a version newer than 1.6.0",
     );
@@ -490,9 +501,11 @@ describe("what the page reads and shows", () => {
     await openPage();
 
     expect(description(SSO_IDLE)).toBe(
-      SessionLengthCopy.idleShortestDescription,
+      withDurationWordsHeld(SessionLengthCopy.idleShortestDescription),
     );
-    expect(description(IDLE)).toBe(SessionLengthCopy.idleSetDescription);
+    expect(description(IDLE)).toBe(
+      withDurationWordsHeld(SessionLengthCopy.idleSetDescription),
+    );
   });
 
   test("offers No limit, then 1 hour to 90 days; and 15 minutes to 14 days without use, then the 30 days of the default", async () => {
@@ -500,11 +513,11 @@ describe("what the page reads and shows", () => {
 
     expect(offered(LENGTH)).toEqual([
       "No limit",
-      "1 hour",
+      "1\u00A0hour",
       "4\u00A0hours",
       "8\u00A0hours",
       "12\u00A0hours",
-      "1 day",
+      "1\u00A0day",
       "3\u00A0days",
       "7\u00A0days",
       "14\u00A0days",
@@ -514,12 +527,12 @@ describe("what the page reads and shows", () => {
     expect(offered(IDLE)).toEqual([
       "15\u00A0minutes",
       "30\u00A0minutes",
-      "1 hour",
+      "1\u00A0hour",
       "2\u00A0hours",
       "4\u00A0hours",
       "8\u00A0hours",
       "12\u00A0hours",
-      "1 day",
+      "1\u00A0day",
       "3\u00A0days",
       "7\u00A0days",
       "14\u00A0days",
@@ -536,7 +549,7 @@ describe("what the page reads and shows", () => {
     expect(offered(LENGTH).slice(0, 3)).toEqual([
       "No limit",
       "45\u00A0minutes",
-      "1 hour",
+      "1\u00A0hour",
     ]);
   });
 
@@ -830,7 +843,7 @@ describe("SSO sign-ins, under More settings", () => {
 
     await openPage();
 
-    expect(shown(SSO_LENGTH)).toBe("1 hour");
+    expect(shown(SSO_LENGTH)).toBe("1\u00A0hour");
     expect(shown(SSO_IDLE)).toBe("30\u00A0days");
   });
 
@@ -858,7 +871,7 @@ describe("SSO sign-ins, under More settings", () => {
     await waitFor(() => {
       expect(shown(SSO_LENGTH)).toBe("8\u00A0hours");
     });
-    expect(shown(SSO_IDLE)).toBe("1 hour");
+    expect(shown(SSO_IDLE)).toBe("1\u00A0hour");
   });
 
   test("with nothing set, turning it on leaves SSO sign-ins at No limit and 30 days, as every sign-in is", async () => {
@@ -1163,7 +1176,7 @@ describe("once a change that signs people out is saved", () => {
     });
     await flush();
 
-    expect(shown(LENGTH)).toBe("1 hour");
+    expect(shown(LENGTH)).toBe("1\u00A0hour");
     expect(screen.queryByText(SessionLengthCopy.loadFailed)).toBeNull();
     expect(screen.queryByText("Your session has ended.")).toBeNull();
   });

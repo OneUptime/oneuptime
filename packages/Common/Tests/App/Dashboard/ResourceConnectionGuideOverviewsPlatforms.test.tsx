@@ -46,6 +46,8 @@ import ObjectID from "../../../Types/ObjectID";
 import { flush } from "./TimeRangeZoomPageHarness";
 import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
+// What a page draws holds a duration's figure to its word (#8811).
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 /*
  * The OneUptime the pages' diagnostic commands download from: this
@@ -700,7 +702,9 @@ describe.each(OVERVIEWS)(
       expect(
         within(element).getByRole("heading", {
           level: 2,
-          name: wordsOf(overview).stoppedHeading(overview.noun),
+          name: withDurationWordsHeld(
+            wordsOf(overview).stoppedHeading(overview.noun),
+          ),
         }),
       ).toBeInTheDocument();
       expect(element).toHaveTextContent(
@@ -886,7 +890,7 @@ describe.each(IDLE_WHEN_UNUSED)(
       expect(
         within(element).getByRole("heading", {
           level: 2,
-          name: WORDS.stoppedHeading(OVERVIEW.noun),
+          name: withDurationWordsHeld(WORDS.stoppedHeading(OVERVIEW.noun)),
         }),
       ).toBeInTheDocument();
       expect(element).toHaveTextContent(idle.idleDescription);
@@ -996,7 +1000,8 @@ describe.each(IDLE_WHEN_UNUSED)(
           state === "connected" ? "bg-emerald-50" : "bg-gray-50",
         );
         expect(pill.className).not.toMatch(/amber|red/);
-        expect(pill).toHaveAttribute("title", hover);
+        // Drawn, its figure held to its duration (#8811).
+        expect(pill).toHaveAttribute("title", withDurationWordsHeld(hover));
       },
     );
   },

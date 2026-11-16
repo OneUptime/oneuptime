@@ -451,7 +451,9 @@ describe("the Limits per run card", () => {
     );
     expect(detailValue(card, TOOL_CALLS_TITLE)).toBe("No limit");
     expect(detailValue(card, TOKENS_TITLE)).toBe("No limit");
-    expect(detailValue(card, TIME_TITLE)).toBe("120 minutes (the default)");
+    expect(detailValue(card, TIME_TITLE)).toBe(
+      "120\u00A0minutes (the default)",
+    );
     expect(card).not.toHaveTextContent(/budget/i);
   });
 
@@ -562,7 +564,7 @@ describe("the Limits per run card", () => {
 
     expect(inputFor(dialog, TIME_TITLE)).toHaveAttribute(
       "placeholder",
-      "120 minutes (the default)",
+      "120\u00A0minutes (the default)",
     );
     for (const title of [MODEL_CALLS_TITLE, TOOL_CALLS_TITLE, TOKENS_TITLE]) {
       expect(queryInputFor(dialog, title)).toBeNull();

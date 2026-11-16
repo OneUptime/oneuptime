@@ -52,7 +52,9 @@ import {
  * Without a translator they read exactly as SloOverviewText does - what the
  * tests compare them with.
  */
-const ENGLISH: Translator = createTranslator(undefined);
+const ENGLISH: Translator = createTranslator(undefined, undefined, {
+  drawsOnPage: true,
+});
 
 // The worker's and SloHealth's fallback: the column's default.
 const getWindowDays: (windowDays: number | undefined | null) => number = (
