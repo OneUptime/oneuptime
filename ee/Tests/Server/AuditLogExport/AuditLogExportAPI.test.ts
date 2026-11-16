@@ -723,7 +723,7 @@ describe("reading when a failing export's waiting entries start to be deleted", 
 
     soonest = jest.fn(async (): Promise<Date | null> => {
       return ENTRIES_LOST_AT;
-    });
+    }) as unknown as jest.Mock;
     originalReader = AuditLogExportEntriesLostAt.reader;
     AuditLogExportEntriesLostAt.reader = {
       findSoonestRetentionDateForExport: soonest,

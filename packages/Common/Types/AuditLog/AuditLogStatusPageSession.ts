@@ -28,8 +28,8 @@ import { SessionSignIn } from "../UserSession/SessionSignIn";
  *
  * A session that simply runs out - its refresh token's 30 days without
  * use, or Sign Readers Out After - is refused at its next refresh without
- * being ended, so no entry says when; one ended as run out reads as a
- * Session Timeout.
+ * being ended, so no entry says when (a sweep would: #8866); one ended as
+ * run out reads as a Session Timeout.
  *
  * WHERE: in the status page's project only - a reader is no member of any
  * other - and on the status page's own Audit Logs page: each entry rolls up
