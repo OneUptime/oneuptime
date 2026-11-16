@@ -10,6 +10,7 @@ import {
   ValueWidgetTrend,
 } from "Common/Utils/Dashboard/ValueWidgetSeries";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * The dashboard Value widget's sparkline and trend arrow, in a real browser,
@@ -1518,4 +1519,18 @@ test.describe("the Value widgets on the public dashboard", () => {
 
     await shoot(page, testInfo, "public-dark");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? APP_PATH : `${APP_PATH}?lang=${language}`;
+  },
 });

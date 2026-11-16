@@ -21,10 +21,11 @@
  * its page imports English and loads its own language with an import() of
  * a string literal (FixtureLocales.js).
  *
+ * Every fixture does so since #8645 moved the last ones; the lists of those
+ * still to move are gone with them.
+ *
  * This holds, for every source under packages/E2E (specs aside):
- *   - it imports no Dashboard locale but English statically, unless it is
- *     one of KNOWN_STATIC, the fixtures still to move, a list that only
- *     shrinks: a file on it that no longer does fails until it is taken off;
+ *   - it imports no Dashboard locale but English statically;
  *   - a Dashboard locale it loads with import() is named by a string
  *     literal - a template literal would make a chunk of every language, and
  *     Tests/Ops/E2EFixtureDateLanguage reads only literals - and inside a
@@ -60,38 +61,6 @@ const BUILD_HELPER = path.join(
   "FixtureLocalesBuild.js",
 );
 const PLUGIN_CALL = "dashboardLocalesPlugin";
-
-/*
- * The sources that still import a Dashboard locale other than English
- * whole, as paths from packages/E2E. Each is to load it as the Dashboard
- * does (#8645). Only shrinks.
- */
-const KNOWN_STATIC = [
-  "AssetDetails/Fixture.js",
-  "BulkActions/Fixture/Fixture.js",
-  "DashboardPlaylists/Fixture/AppFixture.js",
-  "DashboardTableThresholds/Fixture/AppFixture.js",
-  "DashboardTimeRange/Fixture/AppFixture.js",
-  "DashboardValueWidget/Fixture/AppFixture.js",
-  "DashboardWidgetSort/Fixture/AppFixture.js",
-  "LlmProviderTest/Fixture.js",
-  "OpenStackPages/Fixture/Fixture.js",
-  "RulesMenuSection/Fixture/Fixture.js",
-  "StorageArrayPages/Fixture/Fixture.js",
-];
-
-/*
- * The build scripts of fixtures that load their languages with import()
- * already, but ship each locale whole, without dashboardLocalesPlugin():
- * an English page loads no locale, and a page in another language loads
- * all of its own (#8645). Only shrinks.
- */
-const KNOWN_WITHOUT_PLUGIN = [
-  "LogsAi/Fixture/server.js",
-  "SecurityEventsEmptyStates/Fixture/server.js",
-  "SecurityOperations/Fixture/server.js",
-  "Topology/server.js",
-];
 
 // A Dashboard locale file, by its language.
 const DASHBOARD_LOCALE =
@@ -404,20 +373,16 @@ describe("the offline fixtures' Dashboard locales", () => {
     ).toEqual(["static en", "dynamic de", "dynamic ar"]);
   });
 
-  test("no fixture imports a language but English whole, unless it is still to move", () => {
-    const whole = sources
-      .filter((entry) => {
-        return !KNOWN_STATIC.includes(entry.file);
-      })
-      .flatMap((entry) => {
-        return entry.locales
-          .filter((locale) => {
-            return locale.kind === "static" && locale.language !== "en";
-          })
-          .map((locale) => {
-            return `${entry.file}:${locale.line} imports ${locale.language}.json whole: load it with an import() in a loader, as SuiteHelpers/FixtureLocales.js says`;
-          });
-      });
+  test("no fixture imports a language but English whole", () => {
+    const whole = sources.flatMap((entry) => {
+      return entry.locales
+        .filter((locale) => {
+          return locale.kind === "static" && locale.language !== "en";
+        })
+        .map((locale) => {
+          return `${entry.file}:${locale.line} imports ${locale.language}.json whole: load it with an import() in a loader, as SuiteHelpers/FixtureLocales.js says`;
+        });
+    });
 
     expect(whole).toEqual([]);
   });
@@ -447,8 +412,7 @@ describe("the offline fixtures' Dashboard locales", () => {
           localesLoadedBy(build.entryPoint).some((locale) => {
             return locale.kind === "dynamic";
           }) &&
-          !callsFunction(build.full, build.source, PLUGIN_CALL) &&
-          !KNOWN_WITHOUT_PLUGIN.includes(build.file)
+          !callsFunction(build.full, build.source, PLUGIN_CALL)
         );
       })
       .map((build) => {
@@ -456,41 +420,6 @@ describe("the offline fixtures' Dashboard locales", () => {
       });
 
     expect(missing).toEqual([]);
-  });
-
-  test("list only build scripts that still ship their lazily loaded languages whole: the list only shrinks", () => {
-    const stale = KNOWN_WITHOUT_PLUGIN.filter((file) => {
-      const build = builds.find((entry) => {
-        return entry.file === file;
-      });
-
-      return (
-        !build ||
-        callsFunction(build.full, build.source, PLUGIN_CALL) ||
-        !localesLoadedBy(build.entryPoint).some((locale) => {
-          return locale.kind === "dynamic";
-        })
-      );
-    });
-
-    expect(stale).toEqual([]);
-  });
-
-  test("list only fixtures that still import a language whole: the list only shrinks", () => {
-    const stale = KNOWN_STATIC.filter((file) => {
-      const entry = sources.find((source) => {
-        return source.file === file;
-      });
-
-      return (
-        !entry ||
-        !entry.locales.some((locale) => {
-          return locale.kind === "static" && locale.language !== "en";
-        })
-      );
-    });
-
-    expect(stale).toEqual([]);
   });
 });
 

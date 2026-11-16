@@ -61,9 +61,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
-import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import FR from "../../../App/FeatureSet/Dashboard/src/Locales/fr.json";
-import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 
 const PROJECT_ID = "10000000-0000-4000-8000-0000000000f1";
 const STATUS_PAGE_ID = "20000000-0000-4000-8000-0000000000f2";
@@ -74,8 +73,30 @@ const params = new URLSearchParams(window.location.search);
 const monitorGroupsOn = params.get("groups") === "1";
 // How many enabled monitor rules the SLO has.
 const enabledMonitorRules = Number(params.get("rules") || 0);
-const LANGUAGES = { de: DE, fr: FR, fa: FA };
-const language = LANGUAGES[params.get("lang")] ? params.get("lang") : "en";
+/*
+ * English, the fallback, is in the bundle; German, French and Persian are
+ * each a chunk of its own, loaded only by a page drawn in that language, as
+ * the Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as
+ * the Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8645).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  fr: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fr.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+};
+const language = Object.prototype.hasOwnProperty.call(
+  LOCALE_LOADERS,
+  params.get("lang"),
+)
+  ? params.get("lang")
+  : "en";
 
 window.__rulesMenuFixture = { unhandled: [] };
 
@@ -266,11 +287,12 @@ API.post = async (options) => {
 
 await i18next.use(initReactI18next).init({
   lng: language,
-  fallbackLng: language,
-  resources: {
-    en: { translation: {} },
-    [language]: { translation: LANGUAGES[language] || {} },
-  },
+  fallbackLng: "en",
+  resources: await localeResources({
+    language,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,

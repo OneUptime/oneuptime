@@ -2,6 +2,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs";
 import path from "path";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * The bulk actions the table audit built on the shared bulk switch
@@ -756,4 +757,18 @@ test.describe("in German", () => {
     ).toContainText(german["Already disabled."]!);
     await screenshot(page, "workflows-disable-result-german");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Japanese and Persian whole, parsed on every page load of every
+ * test. English is in the bundle now, and each other language a chunk of its
+ * own, loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js),
+ * built as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? WORKFLOWS : `${WORKFLOWS}?lang=${language}`;
+  },
 });
