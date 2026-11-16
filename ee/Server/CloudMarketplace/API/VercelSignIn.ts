@@ -8,6 +8,8 @@ import UserSessionService, {
 } from "Common/Server/Services/UserSessionService";
 import CookieUtil from "Common/Server/Utils/Cookie";
 import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
+import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
+import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -108,6 +110,39 @@ router.get(
         res,
         "Open OneUptime from Vercel.",
         "This page is where Vercel sends you when you open OneUptime from your Vercel dashboard. Open the OneUptime integration there and choose Open in OneUptime.",
+      );
+    }
+
+    /*
+     * While the whole server requires single sign-on, Vercel signs nobody
+     * in (#6116): its sign-in is not SSO, as Sign in with Microsoft is not,
+     * and the account it would sign in to - or make - opens no project then
+     * (SsoRequiredSignIn). No master admin signs in this way (see below). A
+     * requirement that cannot be read signs nobody in either. Asked before
+     * Vercel is, so a refused sign-in joins nobody to a project, makes no
+     * account and spends no code.
+     */
+    let isSsoRequired: boolean;
+
+    try {
+      isSsoRequired = await SsoRequiredSignIn.isSsoRequired();
+    } catch (err) {
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+
+      return renderMessage(
+        req,
+        res,
+        "We could not sign you in from Vercel.",
+        "Something went wrong. Please open OneUptime from your Vercel dashboard again in a minute.",
+      );
+    }
+
+    if (isSsoRequired) {
+      return renderMessage(
+        req,
+        res,
+        "Sign in with SSO instead.",
+        SSO_REQUIRED_SIGN_IN_MESSAGE,
       );
     }
 

@@ -60,6 +60,14 @@ import UserMiddleware, {
 } from "../Middleware/UserAuthorization";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
+import UserSessionService from "../Services/UserSessionService";
+import SsoRequiredSignIn from "../Utils/SsoRequiredSignIn";
+import logger from "../Utils/Logger";
+import {
+  EndSessionsWithoutSsoAnswer,
+  SessionsWithoutSsoAnswer,
+  SIGN_OUT_WITHOUT_SSO_NEEDS_SSO_REQUIRED_MESSAGE,
+} from "../../Types/SSO/SessionsWithoutSso";
 import {
   EnterpriseLicenseSnapshot,
   EnterpriseLicenseSnapshotUtil,
@@ -184,6 +192,75 @@ export default class GlobalConfigAPI extends BaseAPI<
             req,
             res,
             JSON.parse(JSON.stringify(answer)) as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /global-config/sessions-without-sso - how many people, master
+     * admins left out, are signed in without single sign-on (Types/SSO/
+     * SessionsWithoutSso): what the Require SSO card says while the server
+     * requires SSO, before it offers to sign them out. Master admins only.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/sessions-without-sso`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          Response.setNoCacheHeaders(res);
+
+          const answer: SessionsWithoutSsoAnswer = {
+            peopleCount:
+              await UserSessionService.countPeopleSignedInWithoutSso(),
+          };
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /global-config/sessions-without-sso/end - a master admin signing
+     * out everyone who signed in without single sign-on: every such session
+     * of everyone but master admins ends on the server, its refresh token
+     * with it (UserSessionService.endSessionsSignedInWithoutSso). Refused
+     * while the server does not require SSO, when they would sign in again
+     * with their password at once. A read of the rule that fails refuses
+     * too. Master admins only.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/sessions-without-sso/end`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!(await SsoRequiredSignIn.isSsoRequired())) {
+            throw new BadDataException(
+              SIGN_OUT_WITHOUT_SSO_NEEDS_SSO_REQUIRED_MESSAGE,
+            );
+          }
+
+          const answer: EndSessionsWithoutSsoAnswer = {
+            sessionsEnded:
+              await UserSessionService.endSessionsSignedInWithoutSso(),
+          };
+
+          logger.info(
+            `A master admin signed out everyone signed in without SSO: ${answer.sessionsEnded} session(s) ended.`,
+          );
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer as unknown as JSONObject,
           );
         } catch (err) {
           return next(err);

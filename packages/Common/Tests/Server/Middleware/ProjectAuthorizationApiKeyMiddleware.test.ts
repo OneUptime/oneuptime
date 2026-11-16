@@ -237,6 +237,33 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware", () => {
     });
 
     /*
+     * While the whole server requires SSO (#6116), an API key still works:
+     * it is no person signing in, but a credential a project's admin made,
+     * scoped to that project and to the permissions given to it, which the
+     * admin revokes on its own. So the server's Require SSO for Login is not
+     * even read for it.
+     */
+    test("should let the key in while the whole server requires SSO, without reading the rule", async () => {
+      mockResolvedApiKey();
+
+      const getRequireSsoForLogin: jest.SpyInstance = getJestSpyOn(
+        GlobalConfigService,
+        "getRequireSsoForLogin",
+      ).mockResolvedValue(true);
+
+      const req: Partial<ExpressRequest> = {
+        headers: { apikey: apiKeyValue.toString() },
+      };
+
+      await runMiddleware(req);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next.mock.calls[0]).toEqual([]);
+      expect((req as OneUptimeRequest).userType).toEqual(UserType.API);
+      expect(getRequireSsoForLogin).not.toHaveBeenCalled();
+    });
+
+    /*
      * The permissions attached to the request are looked up by the KEY's id,
      * and the rows found are what the request is allowed to do. Without this
      * the key would authenticate but carry no granted permission, which is the

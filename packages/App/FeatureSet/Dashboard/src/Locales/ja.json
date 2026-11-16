@@ -56007,5 +56007,6 @@
   "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "一致した部分は、スパン名、ステータスメッセージ、属性、イベント、リンクで [REDACTED] に置き換えられます。",
   "Runs AI Code Fixes": "AI のコード修正を実行",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "機密情報に見えるキーの値は、属性と JSON のログ本文で [REDACTED] に置き換えられます。",
-  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "スパンのどの部分をスクラブするか：スパン名、属性値とリンク属性値、イベント属性値、またはすべて（ステータスメッセージとイベント名も含む）。"
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "スパンのどの部分をスクラブするか：スパン名、属性値とリンク属性値、イベント属性値、またはすべて（ステータスメッセージとイベント名も含む）。",
+  "Signed out by a server admin because single sign-on is required": "シングルサインオン（SSO）必須のため、サーバー管理者によるサインアウト"
 }

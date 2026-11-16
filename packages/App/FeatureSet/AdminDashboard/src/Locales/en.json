@@ -4100,5 +4100,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "A new project deletes resolved alerts after {{count}} day until its owners change it. Projects that exist keep their own.",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "A new project deletes resolved alerts after {{count}} year until its owners change it. Projects that exist keep their own."
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "A new project deletes resolved alerts after {{count}} year until its owners change it. Projects that exist keep their own.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} person is still signed in without SSO. They can't open any project until they sign in with SSO.",
+  "Sign them out": "Sign them out",
+  "Sign out everyone signed in without SSO?": "Sign out everyone signed in without SSO?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in."
 }

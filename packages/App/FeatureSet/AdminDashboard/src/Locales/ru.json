@@ -4100,5 +4100,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "Новый проект удаляет устранённые оповещения через {{count}} дн., пока его владельцы это не изменят. Существующие проекты сохраняют свою настройку.",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "Новый проект удаляет устранённые оповещения через {{count}} день, пока его владельцы это не изменят. Существующие проекты сохраняют свою настройку.",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "Новый проект удаляет устранённые оповещения через {{count}} г., пока его владельцы это не изменят. Существующие проекты сохраняют свою настройку.",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "Новый проект удаляет устранённые оповещения через {{count}} год, пока его владельцы это не изменят. Существующие проекты сохраняют свою настройку."
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "Новый проект удаляет устранённые оповещения через {{count}} год, пока его владельцы это не изменят. Существующие проекты сохраняют свою настройку.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "Пользователей, всё ещё вошедших без SSO: {{count}}. Они не смогут открыть ни один проект, пока не войдут через SSO.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} пользователь всё ещё вошёл без SSO. Он не сможет открыть ни один проект, пока не войдёт через SSO.",
+  "Sign them out": "Завершить их сеансы",
+  "Sign out everyone signed in without SSO?": "Завершить сеансы всех, кто вошёл без SSO?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Их сеансы завершатся сейчас на всех устройствах, и они снова войдут через SSO. Главные администраторы останутся в системе."
 }

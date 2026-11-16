@@ -56007,5 +56007,6 @@
   "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "मिलान स्पैन नामों, स्थिति संदेशों, विशेषताओं, इवेंट और लिंक में [REDACTED] से बदल दिए जाते हैं।",
   "Runs AI Code Fixes": "AI कोड सुधार चलाता है",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "जो कुंजियाँ संवेदनशील लगती हैं, उनके मान विशेषताओं में और JSON लॉग बॉडी में [REDACTED] से बदल दिए जाते हैं।",
-  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "स्पैन के किन हिस्सों को स्क्रब करना है: स्पैन नाम, विशेषता और लिंक विशेषता मान, इवेंट विशेषता मान, या सभी, स्थिति संदेश और इवेंट नामों सहित।"
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "स्पैन के किन हिस्सों को स्क्रब करना है: स्पैन नाम, विशेषता और लिंक विशेषता मान, इवेंट विशेषता मान, या सभी, स्थिति संदेश और इवेंट नामों सहित।",
+  "Signed out by a server admin because single sign-on is required": "सिंगल साइन ऑन (SSO) ज़रूरी होने के कारण सर्वर एडमिन ने साइन आउट किया"
 }

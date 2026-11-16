@@ -187,6 +187,10 @@ IPv4 地址必须按 IPv4 的方式书写：如果按 IPv6 的方式书写，例
 
 当您的 OneUptime 实例开启了 hCaptcha 时，表单会显示验证码，未通过验证码的提交会被拒绝。没有按表单的设置。自托管安装通过 `CAPTCHA_ENABLED`、 `CAPTCHA_SITE_KEY` 和 `CAPTCHA_SECRET_KEY` 开启验证码——与保护注册的设置相同。没有验证码时，由速率限制和 IP 允许列表承担负载。
 
+### 恶意软件扫描
+
+自托管安装可以在保存每个文件之前用 ClamAV 扫描恶意软件：表单的文件，以及登录后或用 API 密钥上传的文件。将 `CLAMAV_HOST`（和 `CLAMAV_PORT`，默认 `3310`）设为一个 ClamAV 守护进程。使用 Docker Compose 时，`config.env` 中的 `COMPOSE_PROFILES=clamav` 和 `CLAMAV_HOST=clamav` 会启动 OneUptime 自带的 ClamAV；使用 Helm 时，开启 `clamav.enabled`。ClamAV 标记的文件会被拒绝，并指明是哪个文件，提交的内容一概不会保存。在 ClamAV 没有响应期间，每个文件都会被拒绝，提示 "目前无法检查文件是否含有病毒，因此文件未被接受。请几分钟后重试。" (503)，因此不会保存任何未经检查的文件。没有 `CLAMAV_HOST` 时，文件和以前一样不会被扫描。
+
 ## 故障排除
 
 :::details 链接提示表单不可用

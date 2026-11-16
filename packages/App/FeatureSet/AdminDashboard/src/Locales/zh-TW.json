@@ -4100,5 +4100,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "在其擁有者變更之前，新專案會在 {{count}} 天後刪除已解決的警示。現有專案保留各自的設定。",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "在其擁有者變更之前，新專案會在 {{count}} 天後刪除已解決的警示。現有專案保留各自的設定。",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "在其擁有者變更之前，新專案會在 {{count}} 年後刪除已解決的警示。現有專案保留各自的設定。",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "在其擁有者變更之前，新專案會在 {{count}} 年後刪除已解決的警示。現有專案保留各自的設定。"
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "在其擁有者變更之前，新專案會在 {{count}} 年後刪除已解決的警示。現有專案保留各自的設定。",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "仍有 {{count}} 人未使用 SSO 登入。在使用 SSO 登入之前，他們無法開啟任何專案。",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "仍有 {{count}} 人未使用 SSO 登入。在使用 SSO 登入之前，他們無法開啟任何專案。",
+  "Sign them out": "將他們登出",
+  "Sign out everyone signed in without SSO?": "要登出所有未使用 SSO 登入的人嗎？",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "他們在所有裝置上的工作階段將立即結束，需要使用 SSO 重新登入。主要管理員會保持登入狀態。"
 }

@@ -56007,5 +56007,6 @@
   "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "符合的內容會在跨度名稱、狀態訊息、屬性、事件與鏈路中替換為 [REDACTED]。",
   "Runs AI Code Fixes": "執行 AI 程式碼修正",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "看起來敏感的鍵，其值會在屬性與 JSON 日誌內文中替換為 [REDACTED]。",
-  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "要清除跨度的哪些部分：跨度名稱、屬性值與鏈路屬性值、事件屬性值，或全部（包括狀態訊息與事件名稱）。"
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "要清除跨度的哪些部分：跨度名稱、屬性值與鏈路屬性值、事件屬性值，或全部（包括狀態訊息與事件名稱）。",
+  "Signed out by a server admin because single sign-on is required": "因需要單一登入 (SSO)，已被伺服器管理員登出"
 }

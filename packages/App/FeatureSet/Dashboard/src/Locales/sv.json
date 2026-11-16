@@ -56007,5 +56007,6 @@
   "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Träffar ersätts med [REDACTED] i span-namn, statusmeddelanden, attribut, händelser och länkar.",
   "Runs AI Code Fixes": "Kör AI-kodkorrigeringar",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Värdena för nycklar som ser känsliga ut ersätts med [REDACTED] i attribut och i en loggkropp i JSON.",
-  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Vilka delar av spannet som ska maskeras: spannamn, värden för attribut och länkattribut, händelseattributvärden eller alla, även statusmeddelandet och händelsenamnen."
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Vilka delar av spannet som ska maskeras: spannamn, värden för attribut och länkattribut, händelseattributvärden eller alla, även statusmeddelandet och händelsenamnen.",
+  "Signed out by a server admin because single sign-on is required": "Utloggad av en serveradministratör eftersom enkel inloggning (SSO) krävs"
 }

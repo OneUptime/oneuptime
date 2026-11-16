@@ -4100,5 +4100,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "Een nieuw project verwijdert opgeloste waarschuwingen na {{count}} dagen, totdat de eigenaren dat wijzigen. Bestaande projecten houden hun eigen instelling.",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "Een nieuw project verwijdert opgeloste waarschuwingen na {{count}} dag, totdat de eigenaren dat wijzigen. Bestaande projecten houden hun eigen instelling.",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "Een nieuw project verwijdert opgeloste waarschuwingen na {{count}} jaar, totdat de eigenaren dat wijzigen. Bestaande projecten houden hun eigen instelling.",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "Een nieuw project verwijdert opgeloste waarschuwingen na {{count}} jaar, totdat de eigenaren dat wijzigen. Bestaande projecten houden hun eigen instelling."
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "Een nieuw project verwijdert opgeloste waarschuwingen na {{count}} jaar, totdat de eigenaren dat wijzigen. Bestaande projecten houden hun eigen instelling.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "{{count}} mensen zijn nog zonder SSO ingelogd. Ze kunnen geen project openen tot ze inloggen met SSO.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} persoon is nog zonder SSO ingelogd. Die kan geen project openen tot die inlogt met SSO.",
+  "Sign them out": "Ze uitloggen",
+  "Sign out everyone signed in without SSO?": "Iedereen uitloggen die zonder SSO is ingelogd?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Hun sessies eindigen nu, op elk apparaat, en ze loggen opnieuw in met SSO. Hoofdbeheerders blijven ingelogd."
 }

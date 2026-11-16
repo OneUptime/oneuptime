@@ -4100,5 +4100,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "Ein neues Projekt löscht behobene Warnungen nach {{count}} Tagen, bis seine Eigentümer das ändern. Bestehende Projekte behalten ihre eigene Einstellung.",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "Ein neues Projekt löscht behobene Warnungen nach {{count}} Tag, bis seine Eigentümer das ändern. Bestehende Projekte behalten ihre eigene Einstellung.",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "Ein neues Projekt löscht behobene Warnungen nach {{count}} Jahren, bis seine Eigentümer das ändern. Bestehende Projekte behalten ihre eigene Einstellung.",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "Ein neues Projekt löscht behobene Warnungen nach {{count}} Jahr, bis seine Eigentümer das ändern. Bestehende Projekte behalten ihre eigene Einstellung."
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "Ein neues Projekt löscht behobene Warnungen nach {{count}} Jahr, bis seine Eigentümer das ändern. Bestehende Projekte behalten ihre eigene Einstellung.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "{{count}} Personen sind noch ohne SSO angemeldet. Sie können kein Projekt öffnen, bis sie sich mit SSO anmelden.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} Person ist noch ohne SSO angemeldet. Sie kann kein Projekt öffnen, bis sie sich mit SSO anmeldet.",
+  "Sign them out": "Diese Personen abmelden",
+  "Sign out everyone signed in without SSO?": "Alle abmelden, die ohne SSO angemeldet sind?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Ihre Sitzungen enden sofort auf allen Geräten, und sie melden sich wieder mit SSO an. Master-Administratoren bleiben angemeldet."
 }
