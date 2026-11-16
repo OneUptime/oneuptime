@@ -66,14 +66,19 @@ import { DESCRIBE_RESOURCE_TOOL_NAME } from "../Tools/HelperTools";
 import { generateAllTools } from "../Tools/ToolGenerator";
 import McpCredentialUtil from "../Types/McpCredential";
 import { McpToolInfo } from "../Types/McpTypes";
+import ModelType from "../Types/ModelType";
 
 /*
- * The budget for the whole answer: about 65,000 tokens at four bytes a token.
+ * The budget for the whole answer: about 70,000 tokens at four bytes a token.
  * 250,000 on 2026-11-02; 260,000 on 2026-11-04, when Cloud Budget's six
  * tools (about 5,600 bytes) took the answer to 254,308, so AI agents manage
- * cloud budgets as people do (fu-cloud-costs).
+ * cloud budgets as people do (fu-cloud-costs); 280,000 on 2026-11-16, when
+ * every database list tool's sort took a relation's field and { direction,
+ * nulls } as the API does (#8840): 262 bytes on each of 54 list tools took
+ * the answer from 259,929 to 274,077, so an agent can list incidents by
+ * severity and put the undeclared last.
  */
-const MAX_TOOLS_LIST_BYTES: number = 260_000;
+const MAX_TOOLS_LIST_BYTES: number = 280_000;
 
 // The most any one tool may take of it.
 const MAX_TOOL_BYTES: number = 5_000;
@@ -253,6 +258,48 @@ describe("tools/list stays small enough for a client to load", () => {
         false,
       ]);
     }
+  });
+
+  /*
+   * A database list sorts through a relation and puts the records with no
+   * value where it is told (#8840); a telemetry list orders by ASC or DESC
+   * alone, all ClickHouse is asked. Said in the schema, not spelled out
+   * field by field: ListToolsSortAsTheApiDoes holds each form to the API.
+   */
+  test("a database list tool's sort takes a relation's field and { direction, nulls }, and a telemetry one only a direction", () => {
+    const validator: AjvJsonSchemaValidator = new AjvJsonSchemaValidator();
+    let databaseLists: number = 0;
+    let telemetryLists: number = 0;
+
+    for (const tool of listOrCountTools().filter((tool: Tool): boolean => {
+      return tool.name.startsWith("list_");
+    })) {
+      const check: (input: unknown) => { valid: boolean } =
+        validator.getValidator(tool.inputSchema as never);
+      const isTelemetry: boolean =
+        tools.find((generated: McpToolInfo): boolean => {
+          return generated.name === tool.name;
+        })?.modelType === ModelType.Analytics;
+
+      const takes: (sort: unknown) => boolean = (sort: unknown): boolean => {
+        return check({ sort }).valid;
+      };
+
+      expect([
+        tool.name,
+        takes({ anyRelation: { anyField: "ASC" } }),
+        takes({ anyField: { direction: "DESC", nulls: "LAST" } }),
+      ]).toEqual([tool.name, !isTelemetry, !isTelemetry]);
+
+      if (isTelemetry) {
+        telemetryLists++;
+      } else {
+        databaseLists++;
+      }
+    }
+
+    expect(databaseLists).toBeGreaterThan(50);
+    expect(telemetryLists).toBeGreaterThan(5);
   });
 
   test("a create or update tool still names and types every field, so a client can check a call", () => {
