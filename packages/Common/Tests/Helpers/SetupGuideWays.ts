@@ -382,6 +382,12 @@ export function getDatabaseSetupGuideRows(
   ];
 }
 
+// Engines a database can report that the catalog has never heard of.
+export const DATABASE_ENGINES_NOT_IN_THE_CATALOG: ReadonlyArray<string> = [
+  "acmedb",
+  "Acme Ledger 2",
+];
+
 const DATABASE_HEALTH_MONITOR_URL: string = getDatabaseHealthMonitorCreateUrl(
   "/dashboard/1/monitors/create",
 );
@@ -428,18 +434,37 @@ export function getDatabaseSetupGuideWays(): Array<SetupGuideWay> {
     },
   });
 
-  for (const descriptor of DATABASE_SYSTEMS as ReadonlyArray<DatabaseSystemDescriptor>) {
-    const hasAgent: boolean =
-      getDatabaseAgentEngine(descriptor.system) !== null;
+  /*
+   * Every engine of the catalog, and two it does not know, named as the
+   * data reported them: whatever an engine is called, its guide reads in
+   * the reader's words (#8780).
+   */
+  const engines: Array<{ system: string; port: number | null }> = [
+    ...(DATABASE_SYSTEMS as ReadonlyArray<DatabaseSystemDescriptor>).map(
+      (
+        descriptor: DatabaseSystemDescriptor,
+      ): {
+        system: string;
+        port: number | null;
+      } => {
+        return { system: descriptor.system, port: descriptor.defaultPort };
+      },
+    ),
+    ...DATABASE_ENGINES_NOT_IN_THE_CATALOG.map(
+      (system: string): { system: string; port: number | null } => {
+        return { system: system, port: null };
+      },
+    ),
+  ];
+
+  for (const engine of engines) {
+    const hasAgent: boolean = getDatabaseAgentEngine(engine.system) !== null;
 
     for (const reader of SETUP_GUIDE_READERS) {
-      for (const row of getDatabaseSetupGuideRows(
-        descriptor.system,
-        descriptor.defaultPort,
-      )) {
+      for (const row of getDatabaseSetupGuideRows(engine.system, engine.port)) {
         ways.push({
           label: [
-            descriptor.system,
+            engine.system,
             hasAgent ? "the agent" : "your own collector",
             reader.hasApiKey ? "with a key" : "before a key",
             row.label,
@@ -449,8 +474,8 @@ export function getDatabaseSetupGuideWays(): Array<SetupGuideWay> {
                 oneuptimeUrl: reader.oneuptimeUrl,
                 apiKey: reader.apiKey,
                 hasApiKey: reader.hasApiKey,
-                engine: databaseAgentEngine(descriptor.system),
-                system: descriptor.system,
+                engine: databaseAgentEngine(engine.system),
+                system: engine.system,
                 database: row.database,
                 databaseHealthMonitorUrl: DATABASE_HEALTH_MONITOR_URL,
                 recommendationsUrl: DATABASE_RECOMMENDATIONS_URL,

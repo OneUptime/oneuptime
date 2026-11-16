@@ -775,6 +775,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "OneUptime Database Agent에는 PostgreSQL, MySQL / MariaDB, Redis(및 Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch, Memcached용 구성이 들어 있습니다. Apache Derby 엔진은 애플리케이션 프로세스 안에서 실행되므로 엔진 메트릭을 수집할 서버가 없습니다.",
   "The OneUptime Database Agent ships configs for PostgreSQL, MySQL / MariaDB, Redis (and Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch and Memcached. InstantDB runs inside your application's process, so there is no server to collect engine metrics from.":
     "OneUptime Database Agent에는 PostgreSQL, MySQL / MariaDB, Redis(및 Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch, Memcached용 구성이 들어 있습니다. InstantDB 엔진은 애플리케이션 프로세스 안에서 실행되므로 엔진 메트릭을 수집할 서버가 없습니다.",
+  "The OneUptime Database Agent ships configs for PostgreSQL, MySQL / MariaDB, Redis (and Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch and Memcached. `acmedb` is not one of them, so its engine metrics come through your own OpenTelemetry Collector.":
+    "OneUptime Database Agent에는 PostgreSQL, MySQL / MariaDB, Redis(및 Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch, Memcached용 구성이 들어 있습니다. 여기에 `acmedb` 구성은 없으므로 엔진 메트릭은 자체 OpenTelemetry Collector를 통해 들어옵니다.",
+  "OneUptime does not know `acmedb`'s engine yet; if a collector receiver or a Prometheus endpoint exposes its metrics, stamp them with the block below. Whatever sends `acmedb`'s metrics, stamp this database's identity on them with the processor below, so the data attaches here:":
+    "OneUptime은 아직 `acmedb`의 엔진을 알지 못합니다. 컬렉터 리시버나 Prometheus 엔드포인트가 그 메트릭을 노출한다면 아래 블록으로 ID를 찍으세요. `acmedb`의 메트릭을 무엇이 보내든 아래 프로세서로 이 데이터베이스의 ID를 찍어 데이터가 여기에 연결되도록 하세요:",
+  "Look for export errors in your collector's log: `HTTP Status Code 401` or `422` means OneUptime refused the ingestion key. Check that the `resource/database` processor is in the pipeline that sends `acmedb`'s metrics — a receiver batch that names no server is ignored.":
+    "컬렉터 로그에서 내보내기 오류를 찾으세요. `HTTP Status Code 401` 또는 `422`는 OneUptime이 수집 키를 거부했다는 뜻입니다. `acmedb`의 메트릭을 보내는 파이프라인에 `resource/database` 프로세서가 있는지 확인하세요. 서버를 지정하지 않은 리시버 배치는 무시됩니다.",
 };
 
 export default TRANSLATION;

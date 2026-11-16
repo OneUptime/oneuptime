@@ -1340,6 +1340,16 @@ describe("Databases > Help > Documentation", () => {
       ["`/_status/vars`", "resource/database", "oneuptime.database.server.id"],
     ],
     [
+      "an engine OneUptime does not know, named as reported (#8780)",
+      {
+        id: DATABASE_ID,
+        name: "ledger",
+        dbSystem: "Acme Ledger 2",
+        serverAddress: "ledger.prod.internal",
+      },
+      ["`Acme Ledger 2`", "resource/database", "ledger.prod.internal"],
+    ],
+    [
       "a SQLite row, from its application's traces",
       { id: DATABASE_ID, name: "cache.db", dbSystem: "sqlite" },
       ["OTEL_EXPORTER_OTLP_ENDPOINT", DATABASE_ID],

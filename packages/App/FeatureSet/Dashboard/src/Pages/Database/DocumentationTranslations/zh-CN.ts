@@ -775,6 +775,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "OneUptime Database Agent 附带 PostgreSQL、MySQL / MariaDB、Redis（以及 Valkey、KeyDB、Dragonfly）、MongoDB、SQL Server、Oracle、Elasticsearch / OpenSearch 和 Memcached 的配置。Apache Derby 运行在您应用的进程内，因此没有可以采集引擎指标的服务器。",
   "The OneUptime Database Agent ships configs for PostgreSQL, MySQL / MariaDB, Redis (and Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch and Memcached. InstantDB runs inside your application's process, so there is no server to collect engine metrics from.":
     "OneUptime Database Agent 附带 PostgreSQL、MySQL / MariaDB、Redis（以及 Valkey、KeyDB、Dragonfly）、MongoDB、SQL Server、Oracle、Elasticsearch / OpenSearch 和 Memcached 的配置。InstantDB 运行在您应用的进程内，因此没有可以采集引擎指标的服务器。",
+  "The OneUptime Database Agent ships configs for PostgreSQL, MySQL / MariaDB, Redis (and Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch and Memcached. `acmedb` is not one of them, so its engine metrics come through your own OpenTelemetry Collector.":
+    "OneUptime Database Agent 附带 PostgreSQL、MySQL / MariaDB、Redis（以及 Valkey、KeyDB、Dragonfly）、MongoDB、SQL Server、Oracle、Elasticsearch / OpenSearch 和 Memcached 的配置。`acmedb` 不在其中，因此它的引擎指标要通过您自己的 OpenTelemetry Collector 发送。",
+  "OneUptime does not know `acmedb`'s engine yet; if a collector receiver or a Prometheus endpoint exposes its metrics, stamp them with the block below. Whatever sends `acmedb`'s metrics, stamp this database's identity on them with the processor below, so the data attaches here:":
+    "OneUptime 尚不认识 `acmedb` 的引擎；如果某个收集器接收器或 Prometheus 端点暴露了它的指标，请用下面的配置块在其上标记身份。无论由什么发送 `acmedb` 的指标，都请用下面的处理器在其上标记此数据库的身份，以便数据关联到这里：",
+  "Look for export errors in your collector's log: `HTTP Status Code 401` or `422` means OneUptime refused the ingestion key. Check that the `resource/database` processor is in the pipeline that sends `acmedb`'s metrics — a receiver batch that names no server is ignored.":
+    "请在收集器的日志中查找导出错误：`HTTP Status Code 401` 或 `422` 表示 OneUptime 拒绝了摄取密钥。请检查 `resource/database` 处理器是否在发送 `acmedb` 指标的管道中——未指明服务器的接收器批次会被忽略。",
 };
 
 export default TRANSLATION;

@@ -775,6 +775,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "OneUptime Database Agent 附有 PostgreSQL、MySQL / MariaDB、Redis（以及 Valkey、KeyDB、Dragonfly）、MongoDB、SQL Server、Oracle、Elasticsearch / OpenSearch 與 Memcached 的設定。Apache Derby 在您應用程式的處理程序內執行，因此沒有可以收集引擎指標的伺服器。",
   "The OneUptime Database Agent ships configs for PostgreSQL, MySQL / MariaDB, Redis (and Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch and Memcached. InstantDB runs inside your application's process, so there is no server to collect engine metrics from.":
     "OneUptime Database Agent 附有 PostgreSQL、MySQL / MariaDB、Redis（以及 Valkey、KeyDB、Dragonfly）、MongoDB、SQL Server、Oracle、Elasticsearch / OpenSearch 與 Memcached 的設定。InstantDB 在您應用程式的處理程序內執行，因此沒有可以收集引擎指標的伺服器。",
+  "The OneUptime Database Agent ships configs for PostgreSQL, MySQL / MariaDB, Redis (and Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch and Memcached. `acmedb` is not one of them, so its engine metrics come through your own OpenTelemetry Collector.":
+    "OneUptime Database Agent 附有 PostgreSQL、MySQL / MariaDB、Redis（以及 Valkey、KeyDB、Dragonfly）、MongoDB、SQL Server、Oracle、Elasticsearch / OpenSearch 與 Memcached 的設定。`acmedb` 不在其中，因此它的引擎指標要透過您自己的 OpenTelemetry Collector 傳送。",
+  "OneUptime does not know `acmedb`'s engine yet; if a collector receiver or a Prometheus endpoint exposes its metrics, stamp them with the block below. Whatever sends `acmedb`'s metrics, stamp this database's identity on them with the processor below, so the data attaches here:":
+    "OneUptime 尚不認識 `acmedb` 的引擎；如果某個收集器接收器或 Prometheus 端點公開了它的指標，請以下方的設定區塊在其上標記身分。無論由什麼傳送 `acmedb` 的指標，都請以下方的處理器在其上標記此資料庫的身分，讓資料連結到這裡：",
+  "Look for export errors in your collector's log: `HTTP Status Code 401` or `422` means OneUptime refused the ingestion key. Check that the `resource/database` processor is in the pipeline that sends `acmedb`'s metrics — a receiver batch that names no server is ignored.":
+    "請在收集器的日誌中尋找匯出錯誤：`HTTP Status Code 401` 或 `422` 表示 OneUptime 拒絕了擷取金鑰。請檢查 `resource/database` 處理器是否在傳送 `acmedb` 指標的管線中——未指明伺服器的接收器批次會被忽略。",
 };
 
 export default TRANSLATION;

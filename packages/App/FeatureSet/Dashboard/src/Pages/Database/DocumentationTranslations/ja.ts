@@ -775,6 +775,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "OneUptime Database Agent には、PostgreSQL、MySQL / MariaDB、Redis（および Valkey、KeyDB、Dragonfly）、MongoDB、SQL Server、Oracle、Elasticsearch / OpenSearch、Memcached の構成が付属しています。Apache Derby はアプリケーションのプロセス内で動くため、エンジンのメトリクスを収集するサーバーはありません。",
   "The OneUptime Database Agent ships configs for PostgreSQL, MySQL / MariaDB, Redis (and Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch and Memcached. InstantDB runs inside your application's process, so there is no server to collect engine metrics from.":
     "OneUptime Database Agent には、PostgreSQL、MySQL / MariaDB、Redis（および Valkey、KeyDB、Dragonfly）、MongoDB、SQL Server、Oracle、Elasticsearch / OpenSearch、Memcached の構成が付属しています。InstantDB はアプリケーションのプロセス内で動くため、エンジンのメトリクスを収集するサーバーはありません。",
+  "The OneUptime Database Agent ships configs for PostgreSQL, MySQL / MariaDB, Redis (and Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch and Memcached. `acmedb` is not one of them, so its engine metrics come through your own OpenTelemetry Collector.":
+    "OneUptime Database Agent には、PostgreSQL、MySQL / MariaDB、Redis（および Valkey、KeyDB、Dragonfly）、MongoDB、SQL Server、Oracle、Elasticsearch / OpenSearch、Memcached の構成が付属しています。`acmedb` はその中にないため、エンジンのメトリクスは独自の OpenTelemetry Collector を通して届きます。",
+  "OneUptime does not know `acmedb`'s engine yet; if a collector receiver or a Prometheus endpoint exposes its metrics, stamp them with the block below. Whatever sends `acmedb`'s metrics, stamp this database's identity on them with the processor below, so the data attaches here:":
+    "OneUptime はまだ `acmedb` のエンジンを認識していません。コレクターのレシーバーまたは Prometheus エンドポイントがそのメトリクスを公開している場合は、以下のブロックで ID を付けてください。`acmedb` のメトリクスを何が送るにしても、以下のプロセッサーでこのデータベースの ID を付け、データがここに結び付くようにしてください：",
+  "Look for export errors in your collector's log: `HTTP Status Code 401` or `422` means OneUptime refused the ingestion key. Check that the `resource/database` processor is in the pipeline that sends `acmedb`'s metrics — a receiver batch that names no server is ignored.":
+    "コレクターのログでエクスポートエラーを探してください。`HTTP Status Code 401` または `422` は、OneUptime が取り込みキーを拒否したことを意味します。`acmedb` のメトリクスを送るパイプラインに `resource/database` プロセッサーが入っていることを確認してください。サーバーを示さないレシーバーのバッチは無視されます。",
 };
 
 export default TRANSLATION;
