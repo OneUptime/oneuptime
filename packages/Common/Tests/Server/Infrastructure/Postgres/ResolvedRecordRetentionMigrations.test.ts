@@ -18,6 +18,7 @@ import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddResolvedRecordRetention1809110600000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809110600000-AddResolvedRecordRetention";
 import { AddIndexesForIncidentAndAlertDeletes1809110700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809110700000-AddIndexesForIncidentAndAlertDeletes";
+import { AddResolvedRecordRetentionServerLimits1809180000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180000000-AddResolvedRecordRetentionServerLimits";
 import {
   DEFAULT_KEEP_INCIDENTS_WITH_COMPLETED_POSTMORTEM,
   DEFAULT_RESOLVED_RECORD_RETENTION_IN_DAYS,
@@ -339,5 +340,79 @@ describe("the two, registered", () => {
 
     expect(before.length).toBeGreaterThan(100);
     expect(Math.max(...before)).toBeLessThan(Number(MIGRATIONS[0]!.timestamp));
+  });
+});
+
+/*
+ * AddResolvedRecordRetentionServerLimits (issues #6941, #6945): the
+ * server's maximum and new-project default for incidents and alerts, and
+ * the postmortem statuses that keep an incident - every one empty, so the
+ * upgrade deletes nothing and keeps exactly what it kept.
+ */
+describe("AddResolvedRecordRetentionServerLimits1809180000000", () => {
+  const migration: MigrationInterface =
+    new AddResolvedRecordRetentionServerLimits1809180000000();
+
+  test("adds the five columns, each empty and with no default: no row is rewritten", async () => {
+    const statements: Array<string> = await statementsOf(migration, "up");
+
+    expect(statements).toEqual([
+      `ALTER TABLE "Project" ADD "keepIncidentsInPostmortemStatusIds" jsonb`,
+      `ALTER TABLE "GlobalConfig" ADD "maxIncidentRetentionInDays" integer`,
+      `ALTER TABLE "GlobalConfig" ADD "maxAlertRetentionInDays" integer`,
+      `ALTER TABLE "GlobalConfig" ADD "defaultIncidentRetentionInDays" integer`,
+      `ALTER TABLE "GlobalConfig" ADD "defaultAlertRetentionInDays" integer`,
+    ]);
+
+    // The generator writes its keywords in capitals; a column may be named "default...".
+    for (const statement of statements) {
+      expect(statement).not.toMatch(
+        /NOT NULL|\bDEFAULT\b|INDEX|CONSTRAINT|UPDATE |DELETE /,
+      );
+    }
+  });
+
+  test("down drops them, the last added first", async () => {
+    expect(await statementsOf(migration, "down")).toEqual([
+      `ALTER TABLE "GlobalConfig" DROP COLUMN "defaultAlertRetentionInDays"`,
+      `ALTER TABLE "GlobalConfig" DROP COLUMN "defaultIncidentRetentionInDays"`,
+      `ALTER TABLE "GlobalConfig" DROP COLUMN "maxAlertRetentionInDays"`,
+      `ALTER TABLE "GlobalConfig" DROP COLUMN "maxIncidentRetentionInDays"`,
+      `ALTER TABLE "Project" DROP COLUMN "keepIncidentsInPostmortemStatusIds"`,
+    ]);
+  });
+
+  test("is registered once, under its own name, after every migration before it", () => {
+    const names: Array<string> = SchemaMigrations.map(
+      (registered: { name: string }): string => {
+        return registered.name;
+      },
+    );
+    const className: string =
+      "AddResolvedRecordRetentionServerLimits1809180000000";
+    const position: number = names.indexOf(className);
+
+    expect(
+      names.filter((name: string): boolean => {
+        return name === className;
+      }),
+    ).toHaveLength(1);
+    expect((migration as unknown as { name: string }).name).toBe(className);
+    expect(
+      fs.existsSync(
+        path.join(
+          MIGRATION_DIRECTORY,
+          "1809180000000-AddResolvedRecordRetentionServerLimits.ts",
+        ),
+      ),
+    ).toBe(true);
+
+    const before: Array<number> = names
+      .slice(0, position)
+      .map((name: string): number => {
+        return Number(TRAILING_TIMESTAMP.exec(name)?.[1] || 0);
+      });
+
+    expect(Math.max(...before)).toBeLessThan(1809180000000);
   });
 });
