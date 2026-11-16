@@ -560,5 +560,149 @@ describePostgres("on-demand probe job claims on Postgres", () => {
         },
       });
     });
+
+    /*
+     * What the probe found, written as one self-committing statement
+     * (OneUptime issue #8870): it was a transaction around the UPDATE -
+     * START TRANSACTION, the UPDATE, COMMIT - three round trips for one.
+     */
+    async function report(data: {
+      id: ObjectID;
+      probe?: ObjectID;
+      status: NetworkDeviceDiagnosticStatus;
+      statusMessage?: string;
+    }): Promise<boolean> {
+      return await NetworkDeviceDiagnosticService.recordReport({
+        probeId: data.probe || probeId,
+        report: {
+          networkDeviceDiagnosticId: data.id.toString(),
+          status: data.status,
+          statusMessage: data.statusMessage,
+          pingResult:
+            data.status === NetworkDeviceDiagnosticStatus.Completed
+              ? { isOnline: true, failureCause: "" }
+              : undefined,
+        },
+      });
+    }
+
+    async function readReport(id: ObjectID): Promise<{
+      status: string;
+      statusMessage: string | null;
+      completedAt: Date | null;
+    }> {
+      const rows: Array<{
+        status: string;
+        statusMessage: string | null;
+        completedAt: Date | null;
+      }> = await database.query(
+        `SELECT "status", "statusMessage", "completedAt" FROM "${schema}"."NetworkDeviceDiagnostic" WHERE "_id" = $1`,
+        [id.toString()],
+      );
+
+      return rows[0]!;
+    }
+
+    test("a report settles the probe's diagnostic in one statement, with no transaction around it - written or refused", async () => {
+      const running: ObjectID = await insertDiagnostic({
+        status: NetworkDeviceDiagnosticStatus.InProgress,
+      });
+
+      const written: { result: boolean; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return report({
+            id: running,
+            status: NetworkDeviceDiagnosticStatus.Completed,
+          });
+        });
+
+      expect(written.result).toBe(true);
+      expect(written.statements).toHaveLength(1);
+      expect(written.statements[0]!.trim()).toMatch(
+        /^UPDATE "NetworkDeviceDiagnostic"/,
+      );
+
+      const row: { status: string; completedAt: Date | null } =
+        await readReport(running);
+
+      expect(row.status).toBe(NetworkDeviceDiagnosticStatus.Completed);
+      expect(row.completedAt).toBeInstanceOf(Date);
+
+      // Already Completed: refused, in the same one statement.
+      const refused: { result: boolean; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return report({
+            id: running,
+            status: NetworkDeviceDiagnosticStatus.Failed,
+            statusMessage: "A late duplicate.",
+          });
+        });
+
+      expect(refused.result).toBe(false);
+      expect(refused.statements).toHaveLength(1);
+    });
+
+    test("another probe's report writes nothing, a Completed one is never written over, and a Failed one may be corrected", async () => {
+      const running: ObjectID = await insertDiagnostic({
+        status: NetworkDeviceDiagnosticStatus.InProgress,
+      });
+
+      expect(
+        await report({
+          id: running,
+          probe: otherProbeId,
+          status: NetworkDeviceDiagnosticStatus.Completed,
+        }),
+      ).toBe(false);
+      expect((await readReport(running)).status).toBe(
+        NetworkDeviceDiagnosticStatus.InProgress,
+      );
+
+      expect(
+        await report({
+          id: running,
+          status: NetworkDeviceDiagnosticStatus.Failed,
+          statusMessage: "The device did not answer.",
+        }),
+      ).toBe(true);
+      expect(await readReport(running)).toMatchObject({
+        status: NetworkDeviceDiagnosticStatus.Failed,
+        statusMessage: "The device did not answer.",
+      });
+
+      // A run that worked after all corrects the failure.
+      expect(
+        await report({
+          id: running,
+          status: NetworkDeviceDiagnosticStatus.Completed,
+        }),
+      ).toBe(true);
+
+      // And nothing writes over the answer the dashboard has shown.
+      expect(
+        await report({
+          id: running,
+          status: NetworkDeviceDiagnosticStatus.Failed,
+          statusMessage: "Too late.",
+        }),
+      ).toBe(false);
+      expect(await readReport(running)).toMatchObject({
+        status: NetworkDeviceDiagnosticStatus.Completed,
+        statusMessage: null,
+      });
+
+      // A diagnostic that is gone takes no report.
+      const deleted: ObjectID = await insertDiagnostic({
+        status: NetworkDeviceDiagnosticStatus.InProgress,
+        deleted: true,
+      });
+
+      expect(
+        await report({
+          id: deleted,
+          status: NetworkDeviceDiagnosticStatus.Completed,
+        }),
+      ).toBe(false);
+    });
   });
 });

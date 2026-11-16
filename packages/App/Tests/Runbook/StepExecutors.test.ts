@@ -19,7 +19,9 @@ import {
   MIN_AGENT_CLAIM_TIMEOUT_IN_MS,
   MIN_STEP_EXECUTION_TIMEOUT_IN_MS,
 } from "Common/Types/Runbook/RunbookStepTimeout";
-import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
+import DataSourceEgressGuard, {
+  ResolvedAddress,
+} from "Common/Server/Utils/DataSource/EgressGuard";
 import RunnerService from "Common/Server/Services/RunnerService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import Runner from "Common/Models/DatabaseModels/Runner";
@@ -44,11 +46,16 @@ beforeEach(() => {
   jest
     .spyOn(DataSourceEgressGuard, "assertUrlAllowedAndPin")
     .mockImplementation((urlString: string) => {
+      const url: globalThis.URL = new globalThis.URL(urlString);
+      const addresses: Array<ResolvedAddress> = [
+        { address: "93.184.216.34", family: 4 },
+      ];
+
+      // The step frees its agents once the request is over.
       return Promise.resolve({
-        url: new globalThis.URL(urlString),
-        addresses: [{ address: "93.184.216.34", family: 4 }],
-        httpAgent: undefined as never,
-        httpsAgent: undefined as never,
+        url: url,
+        addresses: addresses,
+        ...DataSourceEgressGuard.createPinnedAgents({ url, addresses }),
       });
     });
 });

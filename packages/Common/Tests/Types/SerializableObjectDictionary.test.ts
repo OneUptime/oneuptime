@@ -7,6 +7,13 @@ import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
 import Port from "../../Types/Port";
 import Version from "../../Types/Version";
+/*
+ * As a program that reads monitors loads them: a monitor's steps and
+ * criteria join the dictionary from their own module, which the dictionary
+ * does not import (JoinedSerializableObjects.test.ts holds them before and
+ * after).
+ */
+import "../../Types/Monitor/MonitorJsonTypes";
 
 /*
  * SerializableObjectDictionary is the registry JSONFunctions.deserializeValue

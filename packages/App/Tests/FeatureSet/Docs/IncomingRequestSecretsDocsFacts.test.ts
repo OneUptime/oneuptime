@@ -75,7 +75,27 @@ describe("the Incoming Request page on a project's incoming request secrets", ()
 
     expect(section()).toContain("is refused with `401` and the reason");
     expect(english).toContain(
-      "The one exception is a project that requires a secret on every request: a request without one is answered `401`.",
+      "A project that requires a secret on every request answers a request without one with `401`",
+    );
+  });
+
+  /*
+   * A service's check of the URL (WebhookVerification, #8429) is answered
+   * only once the requirement lets it through: the edge decides before it
+   * answers, and a refused check gets the 401 any request gets.
+   */
+  it("says a service's check without the secret is refused too, as the endpoint decides it", () => {
+    const endpoint: string = readRepoFile(
+      "packages/App/FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest.ts",
+    );
+
+    expect(
+      endpoint.indexOf("throw new NotAuthenticatedException("),
+    ).toBeLessThan(
+      endpoint.indexOf("WebhookVerification.send(res, answeredVerification);"),
+    );
+    expect(english).toContain(
+      "in a project that requires a secret on every request, a check that sends none is refused with `401`, as any request is",
     );
   });
 

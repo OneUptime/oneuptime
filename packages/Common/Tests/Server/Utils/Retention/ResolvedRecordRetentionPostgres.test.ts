@@ -2,9 +2,18 @@ import Entities from "../../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import DatabaseService from "../../../../Server/Services/DatabaseService";
 import ResolvedRecordRetention, {
+  DueRecordsCount,
+  DueRetentionProject,
+  DueRetentionProjectsPage,
   ResolvedRecordRetentionResult,
   ResolvedRecordRetentionSummary,
+  buildDueRecordsCountStatement,
+  buildProjectsReachedByMaximumStatement,
 } from "../../../../Server/Utils/Retention/ResolvedRecordRetention";
+import ProjectService, {
+  KEPT_POSTMORTEM_STATUS_NOT_THE_PROJECTS_MESSAGE,
+} from "../../../../Server/Services/ProjectService";
+import CustomFieldFiles from "../../../../Server/Utils/CustomField/CustomFieldFiles";
 import ObjectID from "../../../../Types/ObjectID";
 import { ResolvedRecordKind } from "../../../../Types/Retention/ResolvedRecordRetention";
 import { DataSource } from "typeorm";
@@ -126,6 +135,11 @@ describePostgres(
       jest.restoreAllMocks();
       if (database?.isInitialized) {
         if (projects.length > 0) {
+          // Files name their project with no foreign key, so they go first.
+          await database.query(
+            `DELETE FROM "File" WHERE "projectId" = ANY($1)`,
+            [projects],
+          );
           await database.query(`DELETE FROM "Project" WHERE "_id" = ANY($1)`, [
             projects,
           ]);
@@ -1030,6 +1044,811 @@ describePostgres(
         });
 
         expect(await exists("Incident", incidentId)).toBe(true);
+      });
+    });
+
+    /*
+     * ISSUES #6941, #6943, #6944 AND #6945, against the migrated database:
+     * the server's maximum, the count of what a setting deletes, the files
+     * attached to what is deleted, and the postmortem statuses that keep an
+     * incident. Every read and purge is held to this suite's own projects,
+     * and nothing on the server's config is written: the maximum is handed
+     * to the reads as GlobalConfig would give it.
+     */
+    async function addPostmortemStatus(
+      project: SeededProject,
+      name: string,
+      order: number,
+    ): Promise<string> {
+      const statusId: string = id();
+
+      await database.query(
+        `INSERT INTO "IncidentPostmortemStatus" ("_id","projectId","name","slug","color","order","version","isCompletedStatus") VALUES ($1,$2,$3,$4,'#888888',$5,1,false)`,
+        [statusId, project.projectId, name, `${name}-${statusId}`, order],
+      );
+
+      return statusId;
+    }
+
+    async function addFile(project: SeededProject): Promise<string> {
+      const fileId: string = id();
+
+      await database.query(
+        `INSERT INTO "File" ("_id","version","file","name","fileType","slug","projectId") VALUES ($1,1,$2,'runbook.pdf','application/pdf',$3,$4)`,
+        [
+          fileId,
+          Buffer.from("%PDF-1.7\n"),
+          `runbook-${fileId}`,
+          project.projectId,
+        ],
+      );
+
+      return fileId;
+    }
+
+    async function attachToNote(data: {
+      noteTable: string;
+      recordColumn: string;
+      recordId: string;
+      project: SeededProject;
+      fileIds: Array<string>;
+    }): Promise<string> {
+      const noteId: string = id();
+      const joinColumn: string = `${data.noteTable.charAt(0).toLowerCase()}${data.noteTable.slice(1)}Id`;
+
+      await database.query(
+        `INSERT INTO "${data.noteTable}" ("_id","projectId","${data.recordColumn}","note","version") VALUES ($1,$2,$3,'See the attached runbook.',1)`,
+        [noteId, data.project.projectId, data.recordId],
+      );
+
+      for (const fileId of data.fileIds) {
+        await database.query(
+          `INSERT INTO "${data.noteTable}File" ("${joinColumn}","fileId") VALUES ($1,$2)`,
+          [noteId, fileId],
+        );
+      }
+
+      return noteId;
+    }
+
+    // Every page of the projects due, read for this suite's projects alone.
+    async function dueProjectsOfOurs(
+      kind: ResolvedRecordKind,
+      maximumInDays: number | undefined,
+    ): Promise<Map<string, DueRetentionProject>> {
+      const ours: Map<string, DueRetentionProject> = new Map();
+      let afterProjectId: string | undefined = undefined;
+
+      do {
+        const page: DueRetentionProjectsPage =
+          await ResolvedRecordRetention.findDueProjects({
+            kind,
+            afterProjectId,
+            maximumInDays,
+          });
+
+        for (const project of page.projects) {
+          if (projects.includes(project.projectId)) {
+            ours.set(project.projectId, project);
+          }
+        }
+
+        afterProjectId = page.nextAfterProjectId;
+      } while (afterProjectId);
+
+      return ours;
+    }
+
+    describe("the server's maximum (issue #6941)", () => {
+      test("every project is held to it: Never and longer lengths read as the maximum, shorter ones keep their own", async () => {
+        const never: SeededProject = await seedProject({
+          incidentRetentionInDays: 0,
+          alertRetentionInDays: 0,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+        const longer: SeededProject = await seedProject({
+          incidentRetentionInDays: 1095,
+          alertRetentionInDays: 1095,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+        const shorter: SeededProject = await seedProject({
+          incidentRetentionInDays: 30,
+          alertRetentionInDays: 30,
+          keepIncidentsWithCompletedPostmortem: false,
+        });
+
+        const capped: Map<string, DueRetentionProject> =
+          await dueProjectsOfOurs(ResolvedRecordKind.Incident, 90);
+
+        expect(capped.get(never.projectId)?.retentionInDays).toBe(90);
+        expect(capped.get(longer.projectId)?.retentionInDays).toBe(90);
+        expect(capped.get(shorter.projectId)?.retentionInDays).toBe(30);
+        expect(capped.get(shorter.projectId)?.keepCompletedPostmortems).toBe(
+          false,
+        );
+        expect(capped.get(never.projectId)?.keepCompletedPostmortems).toBe(
+          true,
+        );
+
+        // With no maximum, Never is never due.
+        const uncapped: Map<string, DueRetentionProject> =
+          await dueProjectsOfOurs(ResolvedRecordKind.Alert, undefined);
+
+        expect(uncapped.has(never.projectId)).toBe(false);
+        expect(uncapped.get(longer.projectId)?.retentionInDays).toBe(1095);
+
+        // The projects' own settings are never rewritten.
+        const rows: Array<{ incidentRetentionInDays: number }> =
+          await database.query(
+            `SELECT "incidentRetentionInDays" FROM "Project" WHERE "_id" = $1`,
+            [never.projectId],
+          );
+        expect(rows[0]!.incidentRetentionInDays).toBe(0);
+      });
+
+      test("a project at Never loses what is older than the maximum, keeps the rest and its written-up incidents", async () => {
+        const never: SeededProject = await seedProject({
+          incidentRetentionInDays: 0,
+          alertRetentionInDays: 0,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+        const old: string = await addIncident(never, {
+          openedDaysAgo: 400,
+          resolvedDaysAgo: 120,
+        });
+        const recent: string = await addIncident(never, {
+          openedDaysAgo: 400,
+          resolvedDaysAgo: 60,
+        });
+        const writtenUp: string = await addIncident(never, {
+          openedDaysAgo: 400,
+          resolvedDaysAgo: 120,
+          postmortemStatusId: never.completedPostmortemStatus,
+        });
+
+        const due: DueRetentionProject = (
+          await dueProjectsOfOurs(ResolvedRecordKind.Incident, 90)
+        ).get(never.projectId)!;
+
+        const result: ResolvedRecordRetentionResult =
+          await ResolvedRecordRetention.purgeProject({
+            kind: ResolvedRecordKind.Incident,
+            projectId: due.projectId,
+            retentionInDays: due.retentionInDays,
+            keepCompletedPostmortems: due.keepCompletedPostmortems,
+            keptPostmortemStatusIds: due.keptPostmortemStatusIds,
+          });
+
+        expect(result.records).toBe(1);
+        expect(await exists("Incident", old)).toBe(false);
+        expect(await exists("Incident", recent)).toBe(true);
+        expect(await exists("Incident", writtenUp)).toBe(true);
+      });
+
+      test("the projects a new maximum reaches: those at Never and those keeping longer", async () => {
+        const never: SeededProject = await seedProject({
+          incidentRetentionInDays: 0,
+          alertRetentionInDays: 0,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+        const longer: SeededProject = await seedProject({
+          incidentRetentionInDays: 730,
+          alertRetentionInDays: 30,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+        const within: SeededProject = await seedProject({
+          incidentRetentionInDays: 180,
+          alertRetentionInDays: 30,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+        const ours: Array<string> = [
+          never.projectId,
+          longer.projectId,
+          within.projectId,
+        ];
+
+        // The real predicate, on this suite's projects alone.
+        const reached: (
+          kind: ResolvedRecordKind,
+          maximumInDays: number,
+          currentMaximumInDays?: number,
+        ) => Promise<number> = async (
+          kind: ResolvedRecordKind,
+          maximumInDays: number,
+          currentMaximumInDays?: number,
+        ): Promise<number> => {
+          const statement: { sql: string; params: Array<unknown> } =
+            buildProjectsReachedByMaximumStatement({
+              kind,
+              maximumInDays,
+              currentMaximumInDays,
+            });
+          const rows: Array<{ count: number }> = await database.query(
+            `${statement.sql} AND p."_id" = ANY($${statement.params.length + 1}::uuid[])`,
+            [...statement.params, ours],
+          );
+
+          return Number(rows[0]!.count);
+        };
+
+        expect(await reached(ResolvedRecordKind.Incident, 365)).toBe(2);
+        expect(await reached(ResolvedRecordKind.Incident, 90)).toBe(3);
+        expect(await reached(ResolvedRecordKind.Incident, 1095)).toBe(1);
+        expect(await reached(ResolvedRecordKind.Alert, 30)).toBe(1);
+        // Under a maximum of 365 already, 730 is kept 365: a new 365 reaches nobody new.
+        expect(await reached(ResolvedRecordKind.Incident, 365, 365)).toBe(0);
+        expect(await reached(ResolvedRecordKind.Incident, 90, 365)).toBe(3);
+      });
+    });
+
+    describe("how many a setting deletes (issue #6943)", () => {
+      test("the count is what the purge then deletes, incidents and alerts alike", async () => {
+        const project: SeededProject = await seedProject({
+          incidentRetentionInDays: 0,
+          alertRetentionInDays: 0,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+
+        for (let i: number = 0; i < 3; i++) {
+          await addIncident(project, {
+            openedDaysAgo: 300,
+            resolvedDaysAgo: 200,
+          });
+        }
+
+        // Kept: resolved lately, open, written up, in an open episode.
+        await addIncident(project, { openedDaysAgo: 300, resolvedDaysAgo: 10 });
+        await addIncident(project, { openedDaysAgo: 300 });
+        await addIncident(project, {
+          openedDaysAgo: 300,
+          resolvedDaysAgo: 200,
+          postmortemStatusId: project.completedPostmortemStatus,
+        });
+        const inEpisode: string = await addIncident(project, {
+          openedDaysAgo: 300,
+          resolvedDaysAgo: 200,
+        });
+        await addEpisode(ResolvedRecordKind.Incident, project, {
+          members: [inEpisode],
+        });
+
+        const dueAlert: string = await addAlert(project, {
+          openedDaysAgo: 300,
+          resolvedDaysAgo: 200,
+        });
+        const linkedAlert: string = await addAlert(project, {
+          openedDaysAgo: 300,
+          resolvedDaysAgo: 200,
+        });
+        await linkAlertToIncident(project, linkedAlert, inEpisode);
+
+        const count: DueRecordsCount =
+          await ResolvedRecordRetention.countDueRecords({
+            kind: ResolvedRecordKind.Incident,
+            projectId: new ObjectID(project.projectId),
+            retentionInDays: 90,
+            keepCompletedPostmortems: true,
+          });
+        const alertCount: DueRecordsCount =
+          await ResolvedRecordRetention.countDueRecords({
+            kind: ResolvedRecordKind.Alert,
+            projectId: new ObjectID(project.projectId),
+            retentionInDays: 90,
+            keepCompletedPostmortems: true,
+          });
+
+        expect(count).toEqual({ count: 3, isAtLeast: false });
+        expect(alertCount).toEqual({ count: 1, isAtLeast: false });
+
+        // Without keeping completed postmortems, the written-up one is counted too.
+        expect(
+          (
+            await ResolvedRecordRetention.countDueRecords({
+              kind: ResolvedRecordKind.Incident,
+              projectId: new ObjectID(project.projectId),
+              retentionInDays: 90,
+              keepCompletedPostmortems: false,
+            })
+          ).count,
+        ).toBe(4);
+
+        // Nothing yet at three years.
+        expect(
+          (
+            await ResolvedRecordRetention.countDueRecords({
+              kind: ResolvedRecordKind.Incident,
+              projectId: new ObjectID(project.projectId),
+              retentionInDays: 1095,
+              keepCompletedPostmortems: true,
+            })
+          ).count,
+        ).toBe(0);
+
+        const purged: ResolvedRecordRetentionResult = await purge(
+          ResolvedRecordKind.Incident,
+          project,
+          { retentionInDays: 90, keepCompletedPostmortems: true },
+        );
+        const purgedAlerts: ResolvedRecordRetentionResult = await purge(
+          ResolvedRecordKind.Alert,
+          project,
+          { retentionInDays: 90, keepCompletedPostmortems: true },
+        );
+
+        expect(purged.records).toBe(count.count);
+        expect(purgedAlerts.records).toBe(alertCount.count);
+        expect(await exists("Alert", dueAlert)).toBe(false);
+        expect(await exists("Alert", linkedAlert)).toBe(true);
+
+        // And once it has run, nothing is left to count.
+        expect(
+          (
+            await ResolvedRecordRetention.countDueRecords({
+              kind: ResolvedRecordKind.Incident,
+              projectId: new ObjectID(project.projectId),
+              retentionInDays: 90,
+              keepCompletedPostmortems: true,
+            })
+          ).count,
+        ).toBe(0);
+      });
+
+      test("under the server's maximum, a project at Never is counted for the maximum", async () => {
+        const project: SeededProject = await seedProject({
+          incidentRetentionInDays: 0,
+          alertRetentionInDays: 0,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+        await addIncident(project, {
+          openedDaysAgo: 300,
+          resolvedDaysAgo: 200,
+        });
+        await addIncident(project, {
+          openedDaysAgo: 300,
+          resolvedDaysAgo: 100,
+        });
+
+        const counted: (maximumInDays?: number) => Promise<number> = async (
+          maximumInDays?: number,
+        ): Promise<number> => {
+          return (
+            await ResolvedRecordRetention.countDueRecords({
+              kind: ResolvedRecordKind.Incident,
+              projectId: new ObjectID(project.projectId),
+              retentionInDays: 0,
+              keepCompletedPostmortems: true,
+              maximumInDays,
+            })
+          ).count;
+        };
+
+        expect(await counted()).toBe(0);
+        expect(await counted(180)).toBe(1);
+        expect(await counted(90)).toBe(2);
+      });
+
+      test("the count reads no further than its bound", async () => {
+        const project: SeededProject = await seedProject({
+          incidentRetentionInDays: 30,
+          alertRetentionInDays: 30,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+
+        for (let i: number = 0; i < 3; i++) {
+          await addIncident(project, {
+            openedDaysAgo: 300,
+            resolvedDaysAgo: 200,
+          });
+        }
+
+        const statement: { sql: string; params: Array<unknown> } =
+          buildDueRecordsCountStatement({
+            kind: ResolvedRecordKind.Incident,
+            projectId: project.projectId,
+            resolvedStateIds: [project.incidentStates.resolved],
+            cutoff: daysAgo(30),
+            upTo: 2,
+          });
+
+        const rows: Array<{ count: number }> = await database.query(
+          statement.sql,
+          statement.params,
+        );
+
+        expect(Number(rows[0]!.count)).toBe(2);
+      });
+    });
+
+    describe("the postmortem statuses that keep an incident (issue #6945)", () => {
+      test("the statuses a project chose keep their incidents; Not Needed and every other status do not", async () => {
+        const project: SeededProject = await seedProject({
+          incidentRetentionInDays: 90,
+          alertRetentionInDays: 0,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+        const published: string = await addPostmortemStatus(
+          project,
+          "Published",
+          4,
+        );
+        const notNeeded: string = await addPostmortemStatus(
+          project,
+          "Not Needed",
+          5,
+        );
+
+        await database.query(
+          `UPDATE "Project" SET "keepIncidentsInPostmortemStatusIds" = $1::jsonb WHERE "_id" = $2`,
+          [
+            JSON.stringify([project.completedPostmortemStatus, published]),
+            project.projectId,
+          ],
+        );
+
+        const old: { openedDaysAgo: number; resolvedDaysAgo: number } = {
+          openedDaysAgo: 400,
+          resolvedDaysAgo: 200,
+        };
+        const completed: string = await addIncident(project, {
+          ...old,
+          postmortemStatusId: project.completedPostmortemStatus,
+        });
+        const inPublished: string = await addIncident(project, {
+          ...old,
+          postmortemStatusId: published,
+        });
+        const inNotNeeded: string = await addIncident(project, {
+          ...old,
+          postmortemStatusId: notNeeded,
+        });
+        const inDraft: string = await addIncident(project, {
+          ...old,
+          postmortemStatusId: project.draftPostmortemStatus,
+        });
+        const withNone: string = await addIncident(project, old);
+
+        const due: DueRetentionProject = (
+          await dueProjectsOfOurs(ResolvedRecordKind.Incident, undefined)
+        ).get(project.projectId)!;
+
+        // Read from the project's jsonb as the purge reads it.
+        expect(due.keptPostmortemStatusIds?.sort()).toEqual(
+          [project.completedPostmortemStatus, published].sort(),
+        );
+
+        const result: ResolvedRecordRetentionResult =
+          await ResolvedRecordRetention.purgeProject({
+            kind: ResolvedRecordKind.Incident,
+            projectId: due.projectId,
+            retentionInDays: due.retentionInDays,
+            keepCompletedPostmortems: due.keepCompletedPostmortems,
+            keptPostmortemStatusIds: due.keptPostmortemStatusIds,
+          });
+
+        expect(result.records).toBe(3);
+        expect(await exists("Incident", completed)).toBe(true);
+        expect(await exists("Incident", inPublished)).toBe(true);
+        expect(await exists("Incident", inNotNeeded)).toBe(false);
+        expect(await exists("Incident", inDraft)).toBe(false);
+        expect(await exists("Incident", withNone)).toBe(false);
+      });
+
+      test("with none chosen, only the Completed status keeps them, as before", async () => {
+        const project: SeededProject = await seedProject({
+          incidentRetentionInDays: 90,
+          alertRetentionInDays: 0,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+        const published: string = await addPostmortemStatus(
+          project,
+          "Published",
+          4,
+        );
+        const completed: string = await addIncident(project, {
+          openedDaysAgo: 400,
+          resolvedDaysAgo: 200,
+          postmortemStatusId: project.completedPostmortemStatus,
+        });
+        const inPublished: string = await addIncident(project, {
+          openedDaysAgo: 400,
+          resolvedDaysAgo: 200,
+          postmortemStatusId: published,
+        });
+
+        const due: DueRetentionProject = (
+          await dueProjectsOfOurs(ResolvedRecordKind.Incident, undefined)
+        ).get(project.projectId)!;
+
+        expect(due.keptPostmortemStatusIds).toBeUndefined();
+
+        await ResolvedRecordRetention.purgeProject({
+          kind: ResolvedRecordKind.Incident,
+          projectId: due.projectId,
+          retentionInDays: due.retentionInDays,
+          keepCompletedPostmortems: due.keepCompletedPostmortems,
+          keptPostmortemStatusIds: due.keptPostmortemStatusIds,
+        });
+
+        expect(await exists("Incident", completed)).toBe(true);
+        expect(await exists("Incident", inPublished)).toBe(false);
+      });
+
+      test("a project may choose only its own statuses, stored as written", async () => {
+        const project: SeededProject = await seedProject({
+          incidentRetentionInDays: 90,
+          alertRetentionInDays: 0,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+        const other: SeededProject = await seedProject({
+          incidentRetentionInDays: 0,
+          alertRetentionInDays: 0,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+        const published: string = await addPostmortemStatus(
+          project,
+          "Published",
+          4,
+        );
+
+        await expect(
+          ProjectService.updateOneById({
+            id: new ObjectID(project.projectId),
+            data: {
+              keepIncidentsInPostmortemStatusIds: [
+                published,
+                other.completedPostmortemStatus,
+              ],
+            },
+            props: { isRoot: true },
+          }),
+        ).rejects.toThrow(KEPT_POSTMORTEM_STATUS_NOT_THE_PROJECTS_MESSAGE);
+
+        await ProjectService.updateOneById({
+          id: new ObjectID(project.projectId),
+          data: {
+            keepIncidentsInPostmortemStatusIds: [
+              published.toUpperCase(),
+              project.completedPostmortemStatus,
+            ],
+          },
+          props: { isRoot: true },
+        });
+
+        const rows: Array<{
+          keepIncidentsInPostmortemStatusIds: Array<string>;
+        }> = await database.query(
+          `SELECT "keepIncidentsInPostmortemStatusIds" FROM "Project" WHERE "_id" = $1`,
+          [project.projectId],
+        );
+
+        expect(rows[0]!.keepIncidentsInPostmortemStatusIds).toEqual([
+          published,
+          project.completedPostmortemStatus,
+        ]);
+      });
+    });
+
+    describe("the files attached to what is deleted (issue #6944)", () => {
+      test("every foreign key to File in the database is one the delete reads as holding a file", async () => {
+        // A file a foreign key still names is never deleted: some of them cascade (a user's picture).
+        const rows: Array<{ tableName: string; columnName: string }> =
+          await database.query(`SELECT cl.relname AS "tableName", a.attname AS "columnName"
+FROM pg_constraint c
+JOIN pg_class cl ON cl.oid = c.conrelid
+JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)
+WHERE c.contype = 'f' AND c.confrelid = '"File"'::regclass`);
+
+        const held: Set<string> = new Set(
+          CustomFieldFiles.getFileReferenceColumns(
+            database.entityMetadatas as unknown as Parameters<
+              typeof CustomFieldFiles.getFileReferenceColumns
+            >[0],
+          ).map((column: { tableName: string; columnName: string }) => {
+            return `${column.tableName}.${column.columnName}`;
+          }),
+        );
+
+        expect(rows.length).toBeGreaterThan(20);
+
+        const missing: Array<string> = rows
+          .map((row: { tableName: string; columnName: string }): string => {
+            return `${row.tableName}.${row.columnName}`;
+          })
+          .filter((reference: string): boolean => {
+            return !held.has(reference);
+          });
+
+        expect(missing).toEqual([]);
+      });
+
+      test("an incident's note files and postmortem attachments go with it; a file another note still holds, and a kept incident's, stay", async () => {
+        const project: SeededProject = await seedProject({
+          incidentRetentionInDays: 90,
+          alertRetentionInDays: 90,
+          keepIncidentsWithCompletedPostmortem: false,
+        });
+        const due: string = await addIncident(project, {
+          openedDaysAgo: 300,
+          resolvedDaysAgo: 200,
+        });
+        const kept: string = await addIncident(project, {
+          openedDaysAgo: 300,
+          resolvedDaysAgo: 10,
+        });
+
+        const internalFile: string = await addFile(project);
+        const publicFile: string = await addFile(project);
+        const postmortemFile: string = await addFile(project);
+        const sharedFile: string = await addFile(project);
+        const keptFile: string = await addFile(project);
+
+        await attachToNote({
+          noteTable: "IncidentInternalNote",
+          recordColumn: "incidentId",
+          recordId: due,
+          project,
+          fileIds: [internalFile, sharedFile],
+        });
+        await attachToNote({
+          noteTable: "IncidentPublicNote",
+          recordColumn: "incidentId",
+          recordId: due,
+          project,
+          fileIds: [publicFile],
+        });
+        await database.query(
+          `INSERT INTO "IncidentPostmortemAttachmentFile" ("incidentId","fileId") VALUES ($1,$2)`,
+          [due, postmortemFile],
+        );
+        await attachToNote({
+          noteTable: "IncidentInternalNote",
+          recordColumn: "incidentId",
+          recordId: kept,
+          project,
+          fileIds: [keptFile, sharedFile],
+        });
+
+        const result: ResolvedRecordRetentionResult = await purge(
+          ResolvedRecordKind.Incident,
+          project,
+          { retentionInDays: 90, keepCompletedPostmortems: false },
+        );
+
+        expect(result.records).toBe(1);
+        expect(await exists("Incident", due)).toBe(false);
+        expect(await exists("File", internalFile)).toBe(false);
+        expect(await exists("File", publicFile)).toBe(false);
+        expect(await exists("File", postmortemFile)).toBe(false);
+        expect(await exists("File", sharedFile)).toBe(true);
+        expect(await exists("File", keptFile)).toBe(true);
+        expect(
+          await countWhere("IncidentInternalNoteFile", "fileId", sharedFile),
+        ).toBe(1);
+      });
+
+      test("a file a status page still uses is never deleted, though a deleted note held it too", async () => {
+        const project: SeededProject = await seedProject({
+          incidentRetentionInDays: 90,
+          alertRetentionInDays: 90,
+          keepIncidentsWithCompletedPostmortem: false,
+        });
+        const due: string = await addIncident(project, {
+          openedDaysAgo: 300,
+          resolvedDaysAgo: 200,
+        });
+        const logo: string = await addFile(project);
+        const statusPageId: string = id();
+
+        await database.query(
+          `INSERT INTO "StatusPage" ("_id","projectId","name","slug","version","logoFileId") VALUES ($1,$2,'Acme Status',$3,1,$4)`,
+          [statusPageId, project.projectId, `status-${statusPageId}`, logo],
+        );
+        await attachToNote({
+          noteTable: "IncidentInternalNote",
+          recordColumn: "incidentId",
+          recordId: due,
+          project,
+          fileIds: [logo],
+        });
+
+        await purge(ResolvedRecordKind.Incident, project, {
+          retentionInDays: 90,
+          keepCompletedPostmortems: false,
+        });
+
+        expect(await exists("Incident", due)).toBe(false);
+        expect(await exists("File", logo)).toBe(true);
+        expect(await exists("StatusPage", statusPageId)).toBe(true);
+      });
+
+      test("an alert's note files go with it, and an emptied episode's note files with the episode", async () => {
+        const project: SeededProject = await seedProject({
+          incidentRetentionInDays: 30,
+          alertRetentionInDays: 30,
+          keepIncidentsWithCompletedPostmortem: false,
+        });
+        const alert: string = await addAlert(project, {
+          openedDaysAgo: 300,
+          resolvedDaysAgo: 200,
+        });
+        const alertFile: string = await addFile(project);
+        await attachToNote({
+          noteTable: "AlertInternalNote",
+          recordColumn: "alertId",
+          recordId: alert,
+          project,
+          fileIds: [alertFile],
+        });
+
+        const member: string = await addIncident(project, {
+          openedDaysAgo: 300,
+          resolvedDaysAgo: 200,
+        });
+        const episode: string = await addEpisode(
+          ResolvedRecordKind.Incident,
+          project,
+          { resolvedDaysAgo: 200, members: [member] },
+        );
+        const episodeFile: string = await addFile(project);
+        await attachToNote({
+          noteTable: "IncidentEpisodeInternalNote",
+          recordColumn: "incidentEpisodeId",
+          recordId: episode,
+          project,
+          fileIds: [episodeFile],
+        });
+
+        await purge(ResolvedRecordKind.Alert, project, {
+          retentionInDays: 30,
+          keepCompletedPostmortems: false,
+        });
+        const incidents: ResolvedRecordRetentionResult = await purge(
+          ResolvedRecordKind.Incident,
+          project,
+          { retentionInDays: 30, keepCompletedPostmortems: false },
+        );
+
+        expect(await exists("Alert", alert)).toBe(false);
+        expect(await exists("File", alertFile)).toBe(false);
+        expect(incidents.episodes).toBe(1);
+        expect(await exists("IncidentEpisode", episode)).toBe(false);
+        expect(await exists("File", episodeFile)).toBe(false);
+      });
+
+      test("the files of incidents that stay are never touched", async () => {
+        const project: SeededProject = await seedProject({
+          incidentRetentionInDays: 90,
+          alertRetentionInDays: 90,
+          keepIncidentsWithCompletedPostmortem: true,
+        });
+        const open: string = await addIncident(project, { openedDaysAgo: 300 });
+        const writtenUp: string = await addIncident(project, {
+          openedDaysAgo: 300,
+          resolvedDaysAgo: 200,
+          postmortemStatusId: project.completedPostmortemStatus,
+        });
+        const openFile: string = await addFile(project);
+        const writtenUpFile: string = await addFile(project);
+
+        await attachToNote({
+          noteTable: "IncidentInternalNote",
+          recordColumn: "incidentId",
+          recordId: open,
+          project,
+          fileIds: [openFile],
+        });
+        await database.query(
+          `INSERT INTO "IncidentPostmortemAttachmentFile" ("incidentId","fileId") VALUES ($1,$2)`,
+          [writtenUp, writtenUpFile],
+        );
+
+        await purge(ResolvedRecordKind.Incident, project, {
+          retentionInDays: 90,
+          keepCompletedPostmortems: true,
+        });
+
+        expect(await exists("File", openFile)).toBe(true);
+        expect(await exists("File", writtenUpFile)).toBe(true);
       });
     });
   },

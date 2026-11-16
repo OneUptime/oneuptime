@@ -50,7 +50,7 @@ Les cibles bloquées se répartissent en deux niveaux.
 
 Le point de terminaison des métadonnées cloud `169.254.169.254` se trouve dans le niveau interdit pour une raison. Sur une VM cloud, il distribue les identifiants IAM de l'instance à tout ce qui peut faire une requête HTTP depuis la machine ; aucun réglage global ne l'ouvrira donc jamais.
 
-Les écritures IPv6 qui portent une cible IPv4 – IPv4-mapped (`::ffff:10.0.0.5`), NAT64, 6to4, Teredo – sont classées selon l'adresse IPv4 qu'elles atteignent ; elles ne peuvent donc pas servir à faire passer une adresse interdite derrière une autorisation du niveau privé.
+Les écritures IPv6 qui portent une cible IPv4 – IPv4-mapped (`::ffff:10.0.0.5`), IPv4-compatible (`::10.0.0.5`), NAT64, 6to4, Teredo – sont classées selon l'adresse IPv4 qu'elles atteignent, quelle que soit leur écriture ; elles ne peuvent donc pas servir à faire passer une adresse interdite derrière une autorisation du niveau privé.
 
 ## Webhooks et flux de travail
 
@@ -141,6 +141,8 @@ Seule la valeur exacte `true` l'active. Sur une instance avec `BILLING_ENABLED=t
 Sous Docker Compose, `config.env` contient une ligne `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` (ajoutez-la si votre `config.env` est plus ancien). Passez cette ligne à `true` plutôt que d'en ajouter une seconde, puis exécutez `npm run start` pour que les conteneurs soient recréés avec la nouvelle valeur ; `docker compose restart` ne relit pas `config.env`. Sous Kubernetes, définissez-le dans votre fichier de valeurs et mettez à niveau la release ; le chart le transmet aux pods de l'application et du worker.
 
 S'il est activé, un nom d'hôte refusé est signalé sans dire vers quoi il s'est résolu, par exemple _"LLM provider host ollama.internal could not be reached."_ Un nom qui ne se résout pas du tout reçoit le même message, pour que les membres du projet ne puissent pas utiliser ces champs pour découvrir quels noms internes existent. Une adresse saisie sous forme d'IP est toujours nommée avec la raison, par exemple _"LLM provider host 10.0.4.12 is not allowed: private network address."_ Avec `LOG_LEVEL=DEBUG`, l'application journalise l'adresse vers laquelle chaque nom refusé s'est résolu.
+
+Derrière un proxy sortant, les connexions faites en HTTP passent par lui, comme les webhooks : les sources de données et les connexions d'événements de sécurité lues en HTTP, les flux de threat intel, les fournisseurs de LLM, les URL de jetons OAuth, l'authentification unique OIDC, les calendriers externes, les serveurs MCP, les sauvegardes, la vérification des domaines personnalisés, les étapes HTTP des runbooks et l'importation Grafana OnCall utilisent le proxy défini dans `HTTPS_PROXY`, `HTTP_PROXY` ou `ALL_PROXY`, qu'il soit désigné par une adresse ou par un nom d'hôte. OneUptime vérifie toujours l'adresse d'abord et ne suit jamais de redirection, mais c'est le proxy qui résout le nom et établit la connexion : refusez donc les destinations link-local sur le proxy lui-même, `169.254.169.254` avant tout. Un hôte de `NO_PROXY` est contacté directement, à l'adresse que OneUptime a vérifiée : listez-y vos hôtes internes. Les connexions aux bases de données et SMTP et les serveurs Git se connectent toujours directement, sans proxy.
 
 ## Sondes et moniteurs
 

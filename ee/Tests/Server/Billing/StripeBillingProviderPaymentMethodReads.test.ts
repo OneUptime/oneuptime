@@ -252,6 +252,34 @@ describe("StripeBillingProvider payment-method reads", () => {
         ]);
       });
 
+      /*
+       * Issue #8928: Number() read "1.5" as a second and a half. RFC 9110
+       * allows digits only, or a date: the rest is no Retry-After.
+       */
+      it.each([["1.5"], ["-5"], ["5 seconds"], ["0x10"]])(
+        "reads a Retry-After of %j as none, and waits its own first rung",
+        async (retryAfter: string) => {
+          const failure: Error = Object.assign(providerError(429), {
+            headers: { "retry-after": retryAfter },
+          });
+          request.mockRejectedValueOnce(failure);
+          await expect(run()).resolves.toBeDefined();
+          expect(sleep.mock.calls).toEqual([[1250]]);
+        },
+      );
+
+      it("waits until a Retry-After's HTTP-date when that is longer than its own backoff", async () => {
+        getJestSpyOn(Date, "now").mockReturnValue(
+          Date.UTC(2026, 10, 16, 10, 0, 0),
+        );
+        const failure: Error = Object.assign(providerError(429), {
+          headers: { "retry-after": "Mon, 16 Nov 2026 10:00:05 GMT" },
+        });
+        request.mockRejectedValueOnce(failure);
+        await expect(run()).resolves.toBeDefined();
+        expect(sleep.mock.calls).toEqual([[5000]]);
+      });
+
       it("keeps the next lookup fresh after a previous failure", async () => {
         const failure: Error = providerError(400);
         request.mockRejectedValueOnce(failure);

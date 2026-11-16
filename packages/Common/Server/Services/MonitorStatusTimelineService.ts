@@ -64,6 +64,7 @@ import StateTimelineRowsKept from "../Utils/Database/StateTimelineRowsKept";
 import MonitorStatusEventDelete, {
   StatusEventDeleteDecision,
 } from "../../Utils/Monitor/MonitorStatusEventDelete";
+import StateChangeLogScreenshots from "../../Utils/Monitor/StateChangeLogScreenshots";
 
 /*
  * Thrown by onBeforeCreate when the incoming status is the same as the status of
@@ -1763,6 +1764,17 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     createBy: CreateBy<MonitorStatusTimeline>,
   ): Promise<OnCreate<MonitorStatusTimeline>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * The check that caused the change, without a Synthetic monitor's
+     * screenshots: the log is read as JSON text, and they are megabytes a
+     * row. The monitor's own logs keep them. See StateChangeLogScreenshots.
+     */
+    if (createBy.data.statusChangeLog) {
+      createBy.data.statusChangeLog = StateChangeLogScreenshots.leaveOut(
+        createBy.data.statusChangeLog,
+      );
+    }
 
     /*
      * The monitor under either of its names (the two must agree, whoever

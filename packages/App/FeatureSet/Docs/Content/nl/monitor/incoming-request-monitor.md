@@ -84,7 +84,7 @@ Stuur **GET**- of **POST**-verzoeken naar deze URL. HEAD wordt geaccepteerd en a
 > Iedereen die deze URL kent, kan de monitor als gezond markeren, dus behandel hem als een geheim. Lekt hij uit, open dan de pagina **Instellingen** van de monitor en klik op **Geheime sleutel voor inkomende aanvraag opnieuw instellen**, en werk daarna elke afzender bij. Het overzicht van de monitor toont het laatste verzoek zoals de logs het bewaren: met geheimen en persoonsgegevens gemaskeerd, en zonder headers of body wanneer **Verzoekinhoud bewaren** uit staat. Het maskeren herkent de namen en patronen die het kent, dus stuur geen API-sleutels of tokens naar dit endpoint.
 
 > [!IMPORTANT]
-> OneUptime antwoordt meteen `200` met een leeg JSON-object (`{}`) en verwerkt het verzoek via een wachtrij. Dat antwoord wordt geschreven vóór elke controle, dus een `200` is **geen** bevestiging dat het verzoek is aanvaard: een verkeerde geheime sleutel, een verwijderde monitor en een uitgeschakelde monitor geven ook `200` terug. Controleer de tijdlijn van de monitor om te bevestigen dat de verzoeken aankomen. De enige uitzondering is een project dat bij elke aanvraag een geheim vereist: een verzoek zonder geheim krijgt `401`.
+> OneUptime antwoordt meteen `200` met een leeg JSON-object (`{}`) en verwerkt het verzoek via een wachtrij. Dat antwoord wordt geschreven vóór elke controle, dus een `200` is **geen** bevestiging dat het verzoek is aanvaard: een verkeerde geheime sleutel, een verwijderde monitor en een uitgeschakelde monitor geven ook `200` terug. Controleer de tijdlijn van de monitor om te bevestigen dat de verzoeken aankomen. Een project dat bij elke aanvraag een geheim vereist, beantwoordt een verzoek zonder geheim met `401`, en een dienst die de URL controleert voordat hij iets aflevert, krijgt het antwoord dat hij verwacht: zie [Diensten die eerst de URL controleren](#diensten-die-eerst-de-url-controleren).
 
 ### Een verzoeklichaam sturen
 
@@ -94,7 +94,8 @@ Wilt u velden in de body aanspreken (`{{requestBody.status}}` in een incidenttit
 | --- | --- |
 | `application/json` | De geparste JSON. |
 | `application/x-www-form-urlencoded` | Het geparste formulier. Sleutels tussen vierkante haken worden genest (`alerts[0][status]=firing`), en elke waarde is een tekenreeks. |
-| `text/plain` | De geparste JSON, als de tekst een JSON-object of -array is: zo stuurt Amazon SNS zijn berichten. Elke andere tekst is een lege body. |
+| `text/plain` | De geparste JSON, als de tekst een JSON-object of -array is: zo stuurt Amazon SNS zijn berichten. Elke andere tekst is de tekst zelf, dus `backup failed: error 42` zet de monitor met de standaardcriteria offline. |
+| `application/cloudevents+json`, of een ander `+json`-type | De geparste JSON: zo levert Azure Event Grid CloudEvents af. |
 | Alles anders, of geen | Een lege body (`{}`), dus geen enkele verwijzing naar `requestBody` wordt opgelost, en een sjabloon laat die letterlijk staan. |
 
 Bodies tot 50 MB worden geaccepteerd; een grotere wordt geweigerd met een `413`. Comprimeer de body niet met `Content-Encoding: gzip`: dan wordt hij niet als JSON opgeslagen, en worden paden erin niet opgelost.
@@ -383,9 +384,25 @@ De volledige payload is ernaast beschikbaar, dus zowel een incidenttitel `{{aler
 
 Een volledige Alertmanager-configuratie vindt u onder [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Voor Grafana, zie [Grafana](/docs/integrations/grafana).
 
+## Diensten die eerst de URL controleren
+
+Sommige diensten controleren een nieuw endpoint voordat ze er iets aan afleveren: ze sturen het een verzoek, en leveren pas af als het antwoordt zoals zij verwachten. OneUptime beantwoordt deze controles zelf, dus u plakt alleen de **Heartbeat URL** van de monitor in de dienst.
+
+| Dienst | De controle | Wat OneUptime antwoordt |
+| --- | --- | --- |
+| Azure Event Grid, Event Grid-schema | Een `SubscriptionValidationEvent` | Zijn `validationCode`, als `validationResponse` |
+| Azure Event Grid, CloudEvents-schema | Een `OPTIONS`-verzoek dat zijn herkomst noemt | `WebHook-Allowed-Origin`, met die herkomst |
+| Slack Events API | Een `url_verification`-verzoek | Zijn `challenge` |
+| Wijzigingsmeldingen van Microsoft Graph | Een `POST` met een `validationToken` | Het token, als `text/plain` |
+| Event hooks van Okta | Een `GET` met `X-Okta-Verification-Challenge` | De challenge, als `verification` |
+
+Een controle wordt alleen beantwoord op de eigen URL van een monitor, en alleen als het verzoek telt: in een project dat bij elke aanvraag een geheim vereist, wordt een controle zonder geheim geweigerd met `401`, zoals elk verzoek, dus de dienst moet het geheim in een header sturen. Het antwoord bevat wat de dienst stuurde om terug te krijgen, en verder niets van het verzoek, en alleen als het de vorm heeft die de dienst eraan geeft.
+
+Een controle bereikt de monitor zoals elk verzoek: zijn criteria beoordelen haar en ze verschijnt op het **Overzicht** van de monitor; de CloudEvents-controle wordt beantwoord en verder niets. De ingress voor inkomende verzoeken van een sonde beantwoordt een controle zoals elk verzoek, met `{}`, dus stuur deze diensten naar de eigen URL van OneUptime.
+
 ## Abonneren op Amazon SNS of Azure Event Grid
 
-Amazon SNS en Azure Event Grid sturen niets naar een nieuw endpoint totdat iemand het abonnement bevestigt, door een link te openen die de dienst ernaartoe stuurt. Zodra dat verzoek binnenkomt, toont de kaart **Monitorsamenvatting** op het **Overzicht** van de monitor waar de dienst op wacht, het topic, en één knop die de link in een nieuw tabblad opent.
+Amazon SNS stuurt niets naar een nieuw endpoint totdat iemand het abonnement bevestigt, door een link te openen die SNS ernaartoe stuurt. Azure Event Grid stuurt ook zo'n link, naar een endpoint dat zijn controle niet beantwoordt, en OneUptime beantwoordt die. Zodra er een link binnenkomt die nog geopend moet worden, toont de kaart **Monitorsamenvatting** op het **Overzicht** van de monitor waar de dienst op wacht, het topic, en één knop die de link in een nieuw tabblad opent.
 
 | Dienst | Het verzoek | Knop | Geldigheid van de link |
 | --- | --- | --- | --- |
@@ -411,11 +428,11 @@ Zegt de kaart dat de link niet meer kan worden geopend, selecteer dan het abonne
 ### Azure Event Grid
 
 :::steps
-1. Open in de Azure-portal de resource waarvan u de gebeurtenissen wilt ontvangen, en voeg een gebeurtenisabonnement toe. Kies **Event Grid Schema** als gebeurtenisschema, **Web Hook** als endpointtype en de **Heartbeat URL** van de monitor als endpoint.
-2. Open binnen 10 minuten het **Overzicht** van de monitor en klik op **Abonnement valideren** in de kaart **Monitorsamenvatting**.
+1. Open in de Azure-portal de resource waarvan u de gebeurtenissen wilt ontvangen, en voeg een gebeurtenisabonnement toe. Kies **Event Grid Schema** of **Cloud Event Schema v1.0** als gebeurtenisschema, **Web Hook** als endpointtype en de **Heartbeat URL** van de monitor als endpoint.
+2. Maak het gebeurtenisabonnement aan. OneUptime beantwoordt de controle van Event Grid, dus het abonnement wordt bij het aanmaken gevalideerd, en zijn gebeurtenissen beginnen binnen te komen.
 :::
 
-Event Grid valideert een endpoint dat een code naar Event Grid terugstuurt, of waarvan de eigenaar de link opent die Event Grid stuurt. OneUptime beantwoordt elk verzoek met een lege `200`, dus de link is de manier. De link wijst naar Event Grid op poort 553, die een firewall vóór uw browser moet toestaan. Verstrijken de 10 minuten eerst, dan mislukt het gebeurtenisabonnement: maak het opnieuw aan.
+Event Grid valideert een endpoint dat een code naar Event Grid terugstuurt, of waarvan de eigenaar de link opent die Event Grid stuurt. OneUptime stuurt de code terug, dus de kaart **Monitorsamenvatting** biedt **Abonnement valideren** alleen aan voor een validatie die OneUptime niet beantwoordde: open die binnen 10 minuten. De link wijst naar Event Grid op poort 553, die een firewall vóór uw browser moet toestaan. Verstrijken de 10 minuten eerst, dan mislukt het gebeurtenisabonnement: maak het opnieuw aan.
 
 ## Aanbevolen werkwijzen
 
@@ -444,7 +461,11 @@ Alleen een criterium **Inkomende aanvraag** (**Niet ontvangen in minuten**) kan 
 :::
 
 :::details Een filter Verzoeklichaam komt nooit overeen
-Stuur `Content-Type: application/json`, en schrijf de waarde als compacte JSON: `"status":"firing"`, zonder spatie na de dubbele punt. Zonder JSON- of formuliercontenttype wordt de body niet geparst: alleen JSON die als `text/plain` is verstuurd, wel.
+Stuur `Content-Type: application/json`, en schrijf de waarde als compacte JSON: `"status":"firing"`, zonder spatie na de dubbele punt. Zonder JSON-, formulier- of `text/plain`-contenttype is de body leeg, en komt een filter erop nooit overeen.
+:::
+
+:::details Een dienst meldt dat de URL zijn controle niet beantwoordde
+Geef de dienst de **Heartbeat URL** van de monitor, op OneUptime zelf en niet op een sonde. Vereist het project bij elke aanvraag een geheim, dan wordt de controle geweigerd met `401`, tenzij de dienst het geheim stuurt. Laat de dienst de URL daarna opnieuw controleren: die wordt meteen beantwoord.
 :::
 
 :::details Een filter Aanvraagheader komt nooit overeen

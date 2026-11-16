@@ -22,6 +22,11 @@ import React, { ReactElement, ReactNode } from "react";
 import { I18nextProvider } from "react-i18next";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
+import API from "../../../UI/Utils/API/API";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../Types/JSON";
+import { SESSIONS_WITHOUT_SSO_ROUTE } from "../../../Types/SSO/SessionsWithoutSso";
 
 /*
  * The admin dashboard's one-switch settings save the moment they are
@@ -368,6 +373,22 @@ beforeEach(() => {
   getJestSpyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
   getJestSpyOn(UserUtil, "getUserId").mockReturnValue(
     new ObjectID(SIGNED_IN_ADMIN_ID),
+  );
+
+  /*
+   * While SSO is required the card asks who is still signed in without it
+   * (SessionsWithoutSso, #6116): nobody, here.
+   */
+  getJestSpyOn(API, "fetch").mockImplementation(
+    async (options: unknown): Promise<unknown> => {
+      const url: string = String((options as { url: unknown }).url);
+
+      if (url.endsWith(SESSIONS_WITHOUT_SSO_ROUTE)) {
+        return new HTTPResponse<JSONObject>(200, { peopleCount: 0 }, {});
+      }
+
+      return new HTTPErrorResponse(500, { message: "Not in this test." }, {});
+    },
   );
 });
 

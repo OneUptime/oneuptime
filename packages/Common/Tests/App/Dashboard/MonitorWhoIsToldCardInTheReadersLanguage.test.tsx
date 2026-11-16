@@ -642,6 +642,87 @@ const ANSWERS: ReadonlyArray<Answer> = [
     name: "why each is paged and who is not, as the server's codes",
     result: answerWith(CODED_POLICY),
   },
+  /*
+   * An owner the page reaches first is not emailed as an owner too
+   * (#8860): one of them, then several, then a Project Owner, alone.
+   */
+  {
+    name: "an owner the page reaches first, and owners some of whom it does",
+    result: result([
+      {
+        id: "offline",
+        name: "Offline",
+        statusName: "Offline",
+        events: [
+          event({
+            owners: {
+              source: WhoIsToldOwnersSource.Named,
+              userNames: ["Ben Ito"],
+              teamNames: ["Platform"],
+              pagedOwners: [{ userId: ANA, name: "Ana Lopez" }],
+            },
+          }),
+        ],
+      },
+      {
+        id: "slow",
+        name: "Slow",
+        events: [
+          event({
+            kind: OnCallTestPageRecordKind.Alert,
+            owners: {
+              source: WhoIsToldOwnersSource.OwnerRules,
+              userNames: [],
+              teamNames: ["Platform"],
+              pagedOwners: [
+                { userId: ANA, name: "Ana Lopez" },
+                { userId: BEN, name: "Ben Ito" },
+                { userId: CHO, name: "Cho Park" },
+                { userId: DAN, name: "Dan Moss" },
+              ],
+            },
+          }),
+        ],
+      },
+    ]),
+  },
+  {
+    name: "the Project Owners, whom the page reaches first",
+    result: result([
+      {
+        id: "offline",
+        name: "Offline",
+        statusName: "Offline",
+        events: [
+          event({
+            owners: {
+              source: WhoIsToldOwnersSource.ProjectOwners,
+              userNames: [],
+              teamNames: [],
+              pagedOwners: [{ userId: ANA, name: "Ana Lopez" }],
+            },
+          }),
+        ],
+      },
+      {
+        id: "degraded",
+        name: "Degraded",
+        events: [
+          event({
+            owners: {
+              source: WhoIsToldOwnersSource.ProjectOwners,
+              userNames: ["Owner One"],
+              teamNames: [],
+              pagedOwners: [
+                { userId: ANA, name: "Ana Lopez" },
+                { userId: BEN, name: "Ben Ito" },
+              ],
+            },
+          }),
+        ],
+      },
+    ]),
+  },
   {
     name: "nobody paged",
     result: result([

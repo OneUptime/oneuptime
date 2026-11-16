@@ -28,6 +28,19 @@ export const API_COMPONENT_TARGET_VALIDATION: WebhookTargetValidationOptions = {
   allowPrivateNetworkTargets: true,
 };
 
+/*
+ * The most of an answer an API step reads: 10 MB, as the Custom JavaScript
+ * step's HTTP requests do (MAX_HTTP_RESPONSE_BYTES in VM/VMRunner). A step
+ * hands its answer to the rest of the workflow as Response Body, so the cap
+ * is generous - a page of a large JSON list fits - but it is there: a
+ * workflow pointed at an endpoint that streams forever used to fill the
+ * workflow worker's memory, and on OneUptime Cloud every project shares
+ * that worker (issue #8875). A larger answer takes the error port, unread,
+ * with Error saying so (WebhookAnswerTooLargeException). The workflow
+ * components docs say the limit.
+ */
+export const API_COMPONENT_MAX_RESPONSE_BYTES: number = 10 * 1024 * 1024;
+
 // What sanitizeArgs hands a step: its arguments, its ports, and where it may send.
 export interface SanitizedApiArgs {
   args: JSONObject;
@@ -44,7 +57,8 @@ export class ApiComponentUtils {
    * (SafeWebhookRequest). Redirects stay off: a validated public host that
    * answers 302 -> http://169.254.169.254/ would otherwise walk the server
    * straight past the check, and a name that resolves somewhere else by now
-   * is never dialled.
+   * is never dialled. At most API_COMPONENT_MAX_RESPONSE_BYTES of the
+   * answer is read.
    */
   public static async send(data: {
     method: HTTPMethod;
@@ -61,6 +75,7 @@ export class ApiComponentUtils {
           ? undefined
           : (args["request-body"] as JSONObject | undefined) || undefined,
       headers: args["request-headers"] as Dictionary<string> | undefined,
+      maxContentLength: API_COMPONENT_MAX_RESPONSE_BYTES,
     });
   }
 

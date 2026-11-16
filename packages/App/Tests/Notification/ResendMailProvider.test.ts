@@ -8,7 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import {
+import HttpMailApi, {
   MailApiAnswer,
   MailApiSendException,
 } from "../../FeatureSet/Notification/Services/MailProviders/HttpMailApi";
@@ -253,6 +253,16 @@ describe("sending, to a stand-in for Resend", () => {
   });
 
   test("throttled, it is tried again with the same Idempotency-Key, so the email is sent once", async () => {
+    // "0" waits a second, never at once (issue #8928): stubbed, and seen.
+    const slept: Array<number> = [];
+    jest
+      .spyOn(
+        HttpMailApi as unknown as { sleep: (ms: number) => Promise<void> },
+        "sleep",
+      )
+      .mockImplementation(async (ms: number): Promise<void> => {
+        slept.push(ms);
+      });
     resend.answerNextWith({
       ...resendError(429, "rate_limit_exceeded", "Too many requests"),
       headers: { "retry-after": "0" },
@@ -266,6 +276,7 @@ describe("sending, to a stand-in for Resend", () => {
     expect(resend.requests[0]!.headers["idempotency-key"]).toBe(
       resend.requests[1]!.headers["idempotency-key"],
     );
+    expect(slept).toEqual([1000]);
   });
 
   test("two emails get keys of their own", async () => {

@@ -187,6 +187,10 @@ Elke variabele leest ook haar oude naam, met `INCIDENT_FORM_` ervoor in plaats v
 
 Als je OneUptime-instantie hCaptcha aan heeft staan, toont het formulier een captcha, en een inzending die hem niet heeft doorstaan, wordt geweigerd. Er is geen instelling per formulier. Een zelf gehoste installatie zet captcha aan met `CAPTCHA_ENABLED`, `CAPTCHA_SITE_KEY` en `CAPTCHA_SECRET_KEY` — dezelfde instellingen die het registreren beschermen. Zonder captcha dragen de snelheidslimieten en de IP-toelatingslijst de last.
 
+### Malwarescan
+
+Een zelf gehoste installatie kan elk bestand dat mensen sturen met ClamAV op malware laten scannen voordat het wordt opgeslagen: de bestanden van een formulier, en de bestanden die mensen ingelogd of met een API-sleutel uploaden. Stel `CLAMAV_HOST` (en `CLAMAV_PORT`, standaard `3310`) in op een ClamAV-daemon. Met Docker Compose starten `COMPOSE_PROFILES=clamav` en `CLAMAV_HOST=clamav` in `config.env` de ClamAV die bij OneUptime hoort; met Helm zet u `clamav.enabled` aan. Een bestand dat ClamAV markeert, wordt geweigerd met de naam erbij, en van de inzending wordt niets opgeslagen. Zolang ClamAV niet antwoordt, wordt elk bestand geweigerd met "Bestanden kunnen op dit moment niet op virussen worden gecontroleerd, dus ze zijn niet aangenomen. Probeer het over een paar minuten opnieuw." (503), zodat geen bestand ongecontroleerd wordt opgeslagen. Zonder `CLAMAV_HOST` worden bestanden niet gescand, zoals voorheen.
+
 ## Problemen oplossen
 
 :::details De link zegt dat het formulier niet beschikbaar is

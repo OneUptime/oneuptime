@@ -97,7 +97,7 @@ Jo længere vinduet er, jo bredere er hvert tidsinterval, så ét datapunkt stå
 ## Sådan evalueres den
 
 - **Hvert minut.** En metrik-monitor tjekkes ikke af sonder, så den har intet interval at angive og ingen side **Sonder og interval**.
-- **Først forespørgsler, så formler.** Hver forespørgsel returnerer ét datapunkt pr. tidsinterval i tidsintervallet ved hjælp af sin **Aggreger efter**. Formler beregnes for hvert interval ud fra forespørgslernes datapunkter.
+- **Først forespørgsler, så formler.** Hver forespørgsel returnerer ét datapunkt pr. tidsinterval i tidsintervallet ved hjælp af sin **Aggreger efter**. Formler beregnes for hvert interval ud fra forespørgslernes datapunkter. En forespørgsel, der tæller, hvad der skete, summen eller antallet af en tæller eller et histogram, tæller 0 i et interval, den intet datapunkt har i, når intervallet har været slut i et minut, så en fejlandel er 0% dér, hvor intet fejlede. En måler, et gennemsnit eller en percentil uden datapunkt er ukendt, og formlen udelader det interval.
 - **Derefter reglens mål.** Reglen reducerer datapunkterne for sin metrik til det, den sammenligner med sin værdi, som **Målt som** siger:
 
 | Målt som | I de egne kriterier | Betingelsen tjekkes mod… |

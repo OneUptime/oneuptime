@@ -20,6 +20,7 @@ import ReplayOutbox, {
   OutboxMutationResult,
   StoredReplayFrame,
 } from "./Outbox";
+import RetryAfter from "./RetryAfter";
 
 /*
  * Attempts a frame gets against a server that ANSWERS and fails (a 5xx with
@@ -154,15 +155,15 @@ async function readDirective(
   }
 }
 
+/*
+ * Retry-After as RFC 9110 writes it (src/RetryAfter.ts, a copy of Common's):
+ * whole seconds or an HTTP-date, from one second to 300. Null for anything
+ * else, so the default wait applies: Number() read "1.5" as a second and a
+ * half and "" or "  " as 0 - a retry at once, and a server that kept
+ * answering so was asked again in a loop.
+ */
 function parseRetryAfter(value: string | null): number | null {
-  if (!value) {
-    return null;
-  }
-
-  const seconds: number = Number(value);
-  return Number.isFinite(seconds) && seconds >= 0
-    ? Math.min(300, seconds)
-    : null;
+  return RetryAfter.parseSeconds(value, { maxMs: 300 * 1000 }) ?? null;
 }
 
 type PostOutcome = "remove" | "remove-and-halt" | "retry" | "wait" | "stop";

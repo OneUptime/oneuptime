@@ -1,5 +1,6 @@
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ObjectID from "../../../Types/ObjectID";
 import ModelEventType from "../../../Types/Realtime/ModelEventType";
 
 /*
@@ -153,6 +154,37 @@ export const getLiveRowEventTypes: (
   }
 
   return eventTypes;
+};
+
+/*
+ * The projects whose changes a list hears, each once, in lower case as the
+ * server names its rooms: the ones it was given - a list that reads several
+ * projects at once, such as Active Incidents, which lists every project the
+ * person belongs to - or else the one it is drawn in. A change is announced
+ * in its own project, so a list that reads several and listened to one of
+ * them missed the others' changes (#6917). None: nothing is heard.
+ */
+export const getLiveRowTenantIds: (
+  tenantId: ObjectID | null | undefined,
+  tenantIds?: ReadonlyArray<ObjectID | string> | null | undefined,
+) => Array<string> = (
+  tenantId: ObjectID | null | undefined,
+  tenantIds?: ReadonlyArray<ObjectID | string> | null | undefined,
+): Array<string> => {
+  const ids: Array<string> = [];
+
+  const given: ReadonlyArray<ObjectID | string> =
+    tenantIds && tenantIds.length > 0 ? tenantIds : tenantId ? [tenantId] : [];
+
+  for (const id of given) {
+    const text: string = id?.toString().toLowerCase() || "";
+
+    if (text && !ids.includes(text)) {
+      ids.push(text);
+    }
+  }
+
+  return ids;
 };
 
 // What the reader is in the middle of, as the table knows it.

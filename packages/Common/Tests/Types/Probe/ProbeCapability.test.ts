@@ -20,6 +20,27 @@ describe("ProbeCapability", () => {
     expect(ProbeCapability.SnmpWalk).toBe("snmpWalk");
     // Only a probe declaring this is handed databases to scan.
     expect(ProbeCapability.DataSecurityScan).toBe("dataSecurityScan");
+    // A busy scheduling endpoint answers a probe declaring this with a 429.
+    expect(ProbeCapability.RetryWhenBusy).toBe("retryWhenBusy");
+    // And every other work endpoint, once the probe declares this (#8051).
+    expect(ProbeCapability.RetryAllWorkWhenBusy).toBe("retryAllWorkWhenBusy");
+  });
+
+  test("a probe that reads a 429 from its scheduling fetches alone does not declare it reads one from all its work fetches", () => {
+    const fromBefore8051: Array<string> = ProbeCapabilityUtil.parse([
+      "networkDevicePing",
+      "retryWhenBusy",
+    ]);
+
+    expect(
+      ProbeCapabilityUtil.has(fromBefore8051, ProbeCapability.RetryWhenBusy),
+    ).toBe(true);
+    expect(
+      ProbeCapabilityUtil.has(
+        fromBefore8051,
+        ProbeCapability.RetryAllWorkWhenBusy,
+      ),
+    ).toBe(false);
   });
 
   test("every capability is a distinct wire string a request is read for", () => {

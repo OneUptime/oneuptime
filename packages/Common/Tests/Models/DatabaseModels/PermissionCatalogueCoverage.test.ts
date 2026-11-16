@@ -457,11 +457,6 @@ describe("the columns that asked for another record's permission", () => {
     ["OnCallDutyPolicyFeed", "postedAt", Permission.CreateOnCallDutyPolicyFeed],
     ["OnCallDutyPolicyFeed", "user", Permission.CreateOnCallDutyPolicyFeed],
     ["OnCallDutyPolicyFeed", "userId", Permission.CreateOnCallDutyPolicyFeed],
-    [
-      "ScheduledMaintenance",
-      "subscriberNotificationStatusMessage",
-      Permission.CreateProjectScheduledMaintenance,
-    ],
     ["RunbookVariable", "runners", Permission.CreateRunbookSecret],
   ])(
     "%s.%s is created with %s",
@@ -469,6 +464,22 @@ describe("the columns that asked for another record's permission", () => {
       expect(columnLists(tableName, column)?.create).toContain(permission);
     },
   );
+
+  /*
+   * A scheduled maintenance event's notification status message asked for
+   * another record's permission to be created. Nobody may create it now -
+   * OneUptime writes it (#8907) - and it is edited with its own record's:
+   * the dashboard's Resend writes it back.
+   */
+  test("ScheduledMaintenance.subscriberNotificationStatusMessage is created by nobody, and edited with Edit Scheduled Maintenance", () => {
+    const lists: ColumnAccessControl | undefined = columnLists(
+      "ScheduledMaintenance",
+      "subscriberNotificationStatusMessage",
+    );
+
+    expect(lists?.create).toEqual([]);
+    expect(lists?.update).toContain(Permission.EditProjectScheduledMaintenance);
+  });
 
   test.each([
     ["IncidentFeed", Permission.ReadIncidentFeed],

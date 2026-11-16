@@ -67,6 +67,8 @@ Gör en HTTP-förfrågan till valfri URL. Det finns ett block per metod: **API-a
 
 Oavsett vilket returnerar blocket **Svarsstatus**, **Svarshuvuden** och **Svarstext**, plus **Fel** med orsaken när det misslyckades. Läs ett fält i ett JSON-svar genom att lägga till dess namn i referensen, som i `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+Ett block läser högst 10 MB av ett svar. Ett större svar läses inte: blocket tar **Fel**, med orsaken.
+
 Omdirigeringar följs inte, så peka blocket mot adressen som svarar. Förfrågningar skickas från OneUptime: en URL som pekar på en privat nätverksadress avvisas om inte en administratör för en självhostad installation tillåter det, och körningen stoppas med orsaken. Se [Utgående nätverksåtkomst](/docs/workflows/configuration#utgående-nätverksåtkomst).
 
 **API-anrop GET efter ID (JSON)** läser ett objekt utifrån ett ID som kom någon annanstans ifrån, till exempel ärendenyckeln som en webhook skickade. Sätt `{id}` i dess **URL** där ID:t ska stå, som i `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, och ID:t i **ID**. Blocket sätter bara in ID:t när det är ett enkelt ID, högst 200 bokstäver, siffror, bindestreck och understreck, och procentkodar det ändå: allt annat, till exempel `x/../users`, tar **Fel** innan någon förfrågan skickas, så att text utifrån inte kan skicka förfrågan någon annanstans. I övrigt fungerar det som **API-anrop GET (JSON)** och returnerar samma värden.
@@ -242,7 +244,7 @@ Ett block som läggs till i ett arbetsflöde som startar på en incident eller e
 
 **Framgång** körs så snart minst en person har larmats, eller en policy har startat. **Fel** körs när ingen larmades, och blockets värde **Fel** säger varför, till exempel att ingen har jour i schemat. **Sammanfattning** säger i en mening vem som larmades och vem som utelämnades, färdig att lägga upp i en kanal, och **Larmade användare** listar de personer som larmades.
 
-Den som är borta larmas inte: i stället larmas den som personens användaråsidosättning anger som ersättare. En utlarmning anger högst 100 personer, team och scheman. Se [Så nås varje person](/docs/on-call/escalation-rules#så-nås-varje-person).
+Den som är borta larmas inte: i stället larmas den som personens användaråsidosättning anger som ersättare. Den som en jourpolicy eller en annan utlarmning redan larmar om det larmas inte en gång till, och står ändå kvar under **Larmade användare**: slutar den utlarmningen utan personens svar, larmar blockets utlarmning personen själv. En utlarmning anger högst 100 personer, team och scheman. Se [Så nås varje person](/docs/on-call/escalation-rules#så-nås-varje-person).
 
 En utlarmning utan jourpolicy bakom sig står bland policyernas körningar som **Direkt utlarmning**: i jourloggarna för incidenten eller larmet, i dess flöde och dess Slack- eller Microsoft Teams-kanal, och i loggarna hos varje person som larmades. Den är öppen i 30 minuter, och därefter så länge larm fortfarande går ut. Har ingen bekräftat då avslutas den utan att larma någon annan.
 

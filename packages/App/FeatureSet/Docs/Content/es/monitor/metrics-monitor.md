@@ -97,7 +97,7 @@ Cuanto más larga es la ventana, más ancho es cada tramo de tiempo, así que un
 ## Cómo se evalúa
 
 - **Cada minuto.** Un monitor de métricas no lo comprueban sondas, así que no tiene intervalo que configurar ni página **Sondas e intervalo**.
-- **Primero las consultas, luego las fórmulas.** Cada consulta devuelve un punto de datos por tramo de tiempo del intervalo, según su **Agregar por**. Las fórmulas se calculan para cada tramo a partir de los puntos de datos de las consultas.
+- **Primero las consultas, luego las fórmulas.** Cada consulta devuelve un punto de datos por tramo de tiempo del intervalo, según su **Agregar por**. Las fórmulas se calculan para cada tramo a partir de los puntos de datos de las consultas. Una consulta que cuenta lo que ocurrió, la suma o el recuento de un contador o un histograma, cuenta 0 en un tramo en el que no tiene ningún punto de datos, una vez que el tramo lleva un minuto terminado, así que una proporción de fallos es del 0% donde nada falló. Un indicador, un promedio o un percentil sin punto de datos es desconocido, y la fórmula omite ese tramo.
 - **Después, la medida de la regla.** La regla reduce los puntos de datos de su métrica a lo que compara con su valor, según dice **Medido como**:
 
 | Medido como | En los criterios propios | La condición se comprueba con… |

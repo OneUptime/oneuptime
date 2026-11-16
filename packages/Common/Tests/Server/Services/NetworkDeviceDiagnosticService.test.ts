@@ -20,7 +20,6 @@ import {
   NetworkDeviceDiagnosticReport,
 } from "../../../Types/NetworkDevice/NetworkDeviceDiagnosticResult";
 import NetworkPathTrace from "../../../Types/Monitor/NetworkMonitor/NetworkPathTrace";
-import { EntityManager } from "typeorm";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -582,15 +581,18 @@ describe("onBeforeCreate fills the row in from the device", () => {
 });
 
 /*
- * A fake EntityManager that records every statement and answers each with
- * the next scripted result. The service only ever calls `query`.
+ * The service's own connection: records every statement sent on
+ * getRepository().manager and answers each with the next scripted result.
+ * The report is one self-committing statement (OneUptime issue #8870), so
+ * executeTransaction is made to throw - a report that opens a transaction
+ * again fails here.
  */
 interface RecordedStatement {
   sql: string;
   params: Array<unknown>;
 }
 
-function stubTransaction(
+function stubStatements(
   service: NetworkDeviceDiagnosticServiceType,
   results: Array<unknown>,
 ): Array<RecordedStatement> {
@@ -599,27 +601,20 @@ function stubTransaction(
 
   jest
     .spyOn(service, "executeTransaction")
-    .mockImplementation(
-      async <TResult>(
-        runInTransaction: (entityManager: EntityManager) => Promise<TResult>,
-      ): Promise<TResult> => {
-        const entityManager: {
-          query: (sql: string, params: Array<unknown>) => Promise<unknown>;
-        } = {
-          query: async (
-            sql: string,
-            params: Array<unknown>,
-          ): Promise<unknown> => {
-            statements.push({ sql, params });
-            return queue.length > 0 ? queue.shift() : [];
-          },
-        };
+    .mockImplementation((async (): Promise<never> => {
+      throw new Error(
+        "A diagnostic's report is one statement: it must not open a transaction.",
+      );
+    }) as never);
 
-        return await runInTransaction(
-          entityManager as unknown as EntityManager,
-        );
+  jest.spyOn(service, "getRepository").mockReturnValue({
+    manager: {
+      query: async (sql: string, params: Array<unknown>): Promise<unknown> => {
+        statements.push({ sql, params });
+        return queue.length > 0 ? queue.shift() : [];
       },
-    );
+    },
+  } as never);
 
   return statements;
 }
@@ -809,7 +804,7 @@ describe("recordReport", () => {
     updateResult: unknown,
   ): Promise<{ updated: boolean; statements: Array<RecordedStatement> }> {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
+    const statements: Array<RecordedStatement> = stubStatements(service, [
       updateResult,
     ]);
 
@@ -946,7 +941,7 @@ describe("recordReport", () => {
     "refuses a report whose status is %s, without touching the database",
     async (status: string | undefined) => {
       const { service } = buildService();
-      const statements: Array<RecordedStatement> = stubTransaction(service, []);
+      const statements: Array<RecordedStatement> = stubStatements(service, []);
 
       await expect(
         service.recordReport({
@@ -964,7 +959,7 @@ describe("recordReport", () => {
 
   test("refuses a report that names no diagnostic", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, []);
+    const statements: Array<RecordedStatement> = stubStatements(service, []);
 
     await expect(
       service.recordReport({

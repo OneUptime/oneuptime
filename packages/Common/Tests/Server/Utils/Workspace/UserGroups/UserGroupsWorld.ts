@@ -137,8 +137,11 @@ export class FakeSlack {
   public isAdminsOnly: boolean = false;
   // Refusals: method -> Slack error code, every time.
   public refusals: Map<string, string> = new Map<string, string>();
-  // Method -> seconds of Retry-After, once (HTTP 429).
-  public rateLimitOnce: Map<string, number> = new Map<string, number>();
+  // Method -> its Retry-After (seconds, or the header's text), once (HTTP 429).
+  public rateLimitOnce: Map<string, number | string> = new Map<
+    string,
+    number | string
+  >();
   // Slack cannot be reached at all.
   public isDown: boolean = false;
   public requests: Array<SlackRequest> = [];
@@ -208,7 +211,8 @@ export class FakeSlack {
       throw new Error("getaddrinfo ENOTFOUND slack.com");
     }
 
-    const retryAfter: number | undefined = this.rateLimitOnce.get(method);
+    const retryAfter: number | string | undefined =
+      this.rateLimitOnce.get(method);
 
     if (retryAfter !== undefined) {
       this.rateLimitOnce.delete(method);
@@ -455,6 +459,8 @@ export class FakeGraph {
   // Users the tag API refuses to add (HTTP 400).
   public refusedUsers: Set<string> = new Set<string>();
   public rateLimitOnce: boolean = false;
+  // What that 429's Retry-After says.
+  public rateLimitRetryAfter: string = "120";
   /*
    * Lists (a team's tags, a tag's members) answered this many entries a
    * page, each page naming the next with "@odata.nextLink" as Graph does -
@@ -510,7 +516,7 @@ export class FakeGraph {
       return new HTTPErrorResponse(
         429,
         { error: { code: "TooManyRequests", message: "Slow down" } },
-        { "retry-after": "120" },
+        { "retry-after": this.rateLimitRetryAfter },
       );
     }
 

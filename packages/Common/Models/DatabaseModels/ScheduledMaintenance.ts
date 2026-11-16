@@ -120,6 +120,21 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   icon: IconProp.Clock,
   tableName: "ScheduledMaintenance",
   tableDescription: "Manage maintenance events for your project",
+  /*
+   * A maintenance event starts and ends on its own, at the times it was
+   * scheduled for (the workers move its state), and the menus count the
+   * ones in progress (Ongoing Maintenance Events, the Scheduled Maintenance
+   * count of a resource's menu) beside the lists that show them. So every
+   * event created, changed or deleted is announced, and those counts and
+   * lists follow at once (UseLiveCount, UseLiveRows) instead of waiting for
+   * a reload (#6918). Events are written a few times in their life - a
+   * state change, a notification sent - so this costs next to nothing.
+   */
+  enableRealtimeEventsOn: {
+    create: true,
+    update: true,
+    delete: true,
+  },
 })
 export default class ScheduledMaintenance extends BaseModel {
   @ColumnAccessControl({
@@ -1801,15 +1816,17 @@ export default class ScheduledMaintenance extends BaseModel {
   })
   public endsAt?: Date = undefined;
 
+  /*
+   * Whether the subscribers were told the event was scheduled, and how it
+   * went (subscriberNotificationStatusMessage below): OneUptime's record of
+   * the notification, so nobody may give a new event either (#8907). The
+   * create decides it from shouldStatusPageSubscribersBeNotifiedOnEventCreated
+   * - queued, or skipped saying why - and the job that sends it writes the
+   * rest. Editors may still write it back to Pending: that is how the
+   * dashboard sends it again.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
-      Permission.CreateProjectScheduledMaintenance,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1849,14 +1866,7 @@ export default class ScheduledMaintenance extends BaseModel {
     undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
-      Permission.CreateProjectScheduledMaintenance,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -2156,15 +2166,13 @@ export default class ScheduledMaintenance extends BaseModel {
   })
   public nextSubscriberNotificationBeforeTheEventAt?: Date = undefined;
 
+  /*
+   * The event's number in its project: taken from the project's counter on
+   * every create (ScheduledMaintenanceService.onBeforeCreate), so nobody may
+   * give a new event one (#8907), as for an incident's.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
-      Permission.CreateProjectScheduledMaintenance,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

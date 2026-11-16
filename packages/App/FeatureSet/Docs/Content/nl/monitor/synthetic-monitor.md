@@ -156,6 +156,11 @@ return {
 
 Een uitvoering bewaart tot 20 schermafbeeldingen, elk tot 10 MB en samen 50 MB. Een schermafbeelding kan ook verschijnen in het incident of de waarschuwing die een mislukte uitvoering opent (op de pagina ervan en in de e-mails erover) door haar in de incident- of waarschuwingsbeschrijving van de monitor te plaatsen. Zie [Een schermafbeelding tonen](/docs/monitor/incident-alert-templating#een-schermafbeelding-tonen).
 
+De schermafbeeldingen van een controle worden bewaard in de logboeken van de monitor zelf, niet in de logboeken van een incident of een waarschuwing en niet in de statuswijzigingen van een monitor: die bewaren de rest van de controle, en elke uitvoering waarvan de schermafbeeldingen zijn weggelaten, meldt dat (`areScreenshotsOmitted`). Schermafbeeldingen die daar al eerder zijn opgeslagen, worden na de upgrade beetje bij beetje gewist door een taak die elk uur draait, tot er geen meer over zijn.
+
+> [!NOTE]
+> Bij een zelfgehoste installatie hergebruikt PostgreSQL de ruimte die de gewiste schermafbeeldingen achterlaten, maar geeft die niet terug aan de schijf. Om de database te verkleinen zodra ze gewist zijn, voert u in een onderhoudsvenster `VACUUM FULL` uit op de grootste tabellen, omdat dat elke tabel vergrendelt terwijl het die herschrijft, of gebruikt u `pg_repack`, dat dat niet doet.
+
 :::details Schermafbeeldingen teruggeven (verouderd)
 Voor achterwaartse compatibiliteit kunt u schermafbeeldingen ook als deel van de retourwaarde uit het script teruggeven. Zo teruggegeven schermafbeeldingen worden **alleen** vastgelegd als het script normaal eindigt: ze gaan verloren als het script een fout gooit. Geef de voorkeur aan het zijkanaalpatroon hierboven als u bewijs van mislukkingen wilt.
 

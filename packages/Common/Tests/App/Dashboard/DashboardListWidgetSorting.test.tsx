@@ -324,14 +324,30 @@ describe("a monitor list's column headers", () => {
     expect(lastRequest().sort).toEqual({ name: ASC });
     /*
      * With whether monitoring is off: such a monitor says Disabled, and a
-     * Status sort puts it after every monitor that is checked (#6476).
+     * Status sort puts it after every monitor that is checked (#6476). And
+     * with what tells a monitor nothing has checked yet, or no probe checks
+     * (MonitorRowStatus, #8899).
      */
     expect(lastRequest().select).toEqual({
       _id: true,
       name: true,
-      monitorType: true,
+      isArchived: true,
       disableActiveMonitoring: true,
-      currentMonitorStatus: { name: true, color: true, priority: true },
+      disableActiveMonitoringBecauseOfManualIncident: true,
+      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      isNoProbeEnabledOnThisMonitor: true,
+      isAllProbesDisconnectedFromThisMonitor: true,
+      monitorType: true,
+      firstMeasuredAt: true,
+      createdAt: true,
+      monitoringInterval: true,
+      currentMonitorStatus: {
+        name: true,
+        color: true,
+        isOperationalState: true,
+        isOfflineState: true,
+        priority: true,
+      },
     });
     expect(lastRequest().limit).toBe(25);
   });

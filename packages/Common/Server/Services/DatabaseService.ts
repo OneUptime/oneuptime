@@ -202,6 +202,7 @@ import RelatedFileAccess, {
   RelatedFileReader,
 } from "../Utils/File/RelatedFileAccess";
 import PublishedImages, { CascadedRow } from "../Utils/File/PublishedImages";
+import AttachedFiles, { hasAttachedFiles } from "../Utils/File/AttachedFiles";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
 import ProjectUsageCache from "../Utils/ProjectProducts/ProjectUsageCache";
@@ -504,6 +505,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   public doNotAllowDelete: boolean = false;
+
+  /*
+   * Set by a service whose rows OneUptime soft deletes on its own, on a
+   * schedule - never a person's Delete, which removes a row at once - such
+   * as the discovered devices the hourly age-out removes (NetworkEndpoint,
+   * DiscoveredDeviceAgeOut). The daily purge of soft-deleted rows
+   * (SoftDeletedRowsPurge) then deletes them for good once they have been
+   * deleted for 30 days on every installation, self-hosted ones included;
+   * other services' rows only where billing is on (issue #6528).
+   */
+  public purgesSoftDeletedRowsOnEveryInstall: boolean = false;
 
   public constructor(modelType: { new (): TBaseModel }) {
     super();
@@ -1127,9 +1139,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * The files a write or a delete let go of are deleted once nothing holds
-   * them (CustomFieldFiles.deleteUnheldFiles). Best-effort: a failure is
-   * logged, and never fails the write that is done already.
+   * The files a write or a delete let go of - held in custom fields, or
+   * attached to the deleted rows and their notes (AttachedFiles) - are
+   * deleted once nothing holds them (CustomFieldFiles.deleteUnheldFiles).
+   * Best-effort: a failure is logged, and never fails the write that is
+   * done already.
    */
   private async deleteReleasedCustomFieldFiles(
     releasedFileIds: Map<string, Set<string>>,
@@ -1146,7 +1160,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       });
     } catch (err) {
       logger.error(
-        `Could not delete the custom field files ${this.model.tableName} records let go of: ${String(err)}`,
+        `Could not delete the files ${this.model.tableName} records let go of: ${String(err)}`,
       );
     }
   }
@@ -1384,6 +1398,33 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * with these (the notes of an incident, the groups of a status page),
    * read while they are still there. See PublishedImages.
    */
+  /*
+   * The files attached to rows about to be deleted - to them, and to the
+   * notes their delete takes with it - by the project each was uploaded in,
+   * for deleteReleasedCustomFieldFiles once the DELETE is done (issue
+   * #6944). Nothing is read for a table that lists no attachments.
+   */
+  private async readAttachedFilesOfRowsDeleted(
+    items: Array<TBaseModel>,
+  ): Promise<Map<string, Set<string>>> {
+    if (!hasAttachedFiles(this.model.tableName)) {
+      return new Map();
+    }
+
+    return await AttachedFiles.readFilesOfRowsDeleted({
+      tableName: this.model.tableName,
+      ids: items.map((item: TBaseModel) => {
+        return item.id!;
+      }),
+      query: async (
+        sql: string,
+        parameters: Array<unknown>,
+      ): Promise<unknown> => {
+        return await this.getRepository().manager.query(sql, parameters);
+      },
+    });
+  }
+
   private async readRowsDeletedWith(
     items: Array<TBaseModel>,
   ): Promise<Array<CascadedRow>> {
@@ -4870,6 +4911,38 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * A RECORD AS A CREATE'S COLUMN CHECKS WILL READ IT, FOR A SERVICE THAT
+   * ASKS THEM ITSELF BEFORE THE CREATE STARTS (OnCallDutyPolicyChildService
+   * checks the columns of an on-call row before any hook, on the record as
+   * it was handed in).
+   *
+   * Before any of its own checks reads the record, a create takes out who
+   * did something to it (decideUserAttributionOnCreate: OneUptime stamps
+   * the creator after the checks) and holds a value in a server-set column
+   * to its create list (ColumnPermission.checkComputedColumnsSentOnCreate:
+   * dropped when the caller may read the column, refused with its name when
+   * they may not). This does the same to `createBy.data`, so an early check
+   * asks what the create asks: an escalation rule's join rows, which the
+   * rule service writes naming the person adding them, and a record a
+   * client read and sends back whole, are not refused for a value the
+   * create itself would have taken out or dropped - and a value it would
+   * refuse is still refused. The create asks it all again before its hooks
+   * run (checkCreateBeforeHooks). OneUptime's own writes and a server
+   * admin's keep what they name, as they do in the create.
+   */
+  protected takeOutWhatTheServerSetsOnCreate(
+    createBy: CreateBy<TBaseModel>,
+  ): void {
+    this.decideUserAttributionOnCreate(createBy.data, createBy.props);
+
+    ModelPermission.checkComputedColumnsSentOnCreate(
+      this.modelType,
+      createBy.data,
+      createBy.props,
+    );
+  }
+
+  /*
    * An update made in a project changes none of them either: they are taken
    * out of the write (a plain object by now - see sanitizeUpdateData), under
    * both names, before anything reads it, and the columns taken out are
@@ -7862,6 +7935,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         const cascaded: Array<CascadedRow> =
           await this.readRowsDeletedWith(items);
 
+        // The files attached to them and to their notes. See AttachedFiles.
+        const attachedFiles: Map<
+          string,
+          Set<string>
+        > = await this.readAttachedFilesOfRowsDeleted(items);
+
         // The DELETE itself, committed on its own.
         numberOfDocsAffected =
           (
@@ -7869,6 +7948,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
               return await this.getRepository().delete(query as any);
             })
           ).affected || 0;
+
+        /*
+         * Their attached files go with them - a retention purge included -
+         * unless something still holds them. See AttachedFiles.
+         */
+        await this.deleteReleasedCustomFieldFiles(attachedFiles);
 
         /*
          * Their images are private again, unless another record still shows
@@ -8234,6 +8319,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           deleteBy.props,
         );
 
+        // The files attached to them and to their notes. See AttachedFiles.
+        const attachedFiles: Map<
+          string,
+          Set<string>
+        > = await this.readAttachedFilesOfRowsDeleted(items);
+
         // The DELETE itself, committed on its own.
         numberOfDocsAffected =
           (
@@ -8241,6 +8332,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
               return await this.getRepository().delete(query as any);
             })
           ).affected || 0;
+
+        /*
+         * Their attached files go with them, unless something still holds
+         * them. See AttachedFiles.
+         */
+        await this.deleteReleasedCustomFieldFiles(attachedFiles);
 
         /*
          * The images the deleted rows - and the rows deleted with them -

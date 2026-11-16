@@ -9,6 +9,7 @@ import {
   WorkspaceUserGroupProblem,
 } from "../../../../Types/Workspace/WorkspaceUserGroup";
 import API from "../../../../Utils/API";
+import RetryAfter from "../../../../Utils/RetryAfter";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import {
@@ -672,17 +673,16 @@ export default class SlackUserGroups {
     return typeof error === "string" ? error : "";
   }
 
+  /*
+   * The seconds Slack asked us to wait, as RFC 9110 writes them (Common's
+   * RetryAfter): a whole number, at least one and at most an hour, so a
+   * huge one cannot put the next look a day away. Undefined for anything
+   * else: Number() took "1.5" as a second and a half.
+   */
   private static readRetryAfter(
     response: HTTPErrorResponse | HTTPResponse<JSONObject>,
   ): number | undefined {
-    const headers: Record<string, unknown> = (response.headers || {}) as Record<
-      string,
-      unknown
-    >;
-    const value: unknown = headers["retry-after"] ?? headers["Retry-After"];
-    const seconds: number = Number(value);
-
-    return Number.isFinite(seconds) && seconds > 0 ? seconds : undefined;
+    return RetryAfter.secondsFromHeaders(response.headers);
   }
 
   private static isSameSet(a: Array<string>, b: Array<string>): boolean {

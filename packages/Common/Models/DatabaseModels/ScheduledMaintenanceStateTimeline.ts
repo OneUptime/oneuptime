@@ -462,15 +462,18 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
   })
   public scheduledMaintenanceStateId?: ObjectID = undefined;
 
+  /*
+   * Whether the subscribers were told about the state change, and how it went
+   * (subscriberNotificationStatusMessage below): OneUptime's record of the
+   * notification, so nobody may give a new state change either (#8907). The
+   * create decides it from shouldStatusPageSubscribersBeNotified and the
+   * public note posted with the change (StateChangeSubscriberNotification) -
+   * queued, sent by the note, or skipped saying why - and the job that sends
+   * it writes the rest. Editors may still write it back to Pending: that is
+   * how the dashboard sends it again.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
-      Permission.CreateScheduledMaintenanceStateTimeline,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -511,14 +514,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
-      Permission.CreateScheduledMaintenanceStateTimeline,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

@@ -2,6 +2,9 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { getModelTypeByName } from "Common/Models/DatabaseModels/Index";
+import { getLiveRowEventTypes } from "Common/UI/Components/ModelTable/LiveRows";
 
 /*
  * Lists that keep themselves current (Common ModelTable/LiveRows.ts): a list
@@ -14,7 +17,8 @@ import ts from "typescript";
  *     in, before its first render;
  *   - the visitors' frontends (status pages, public dashboards) never do:
  *     a visitor has no project whose changes they could hear;
- *   - no list opts out of keeping itself current without saying here why.
+ *   - no list opts out of keeping itself current without saying here why;
+ *   - a list that reads several projects at once hears each of them.
  *
  * The behaviour itself is covered in Common (Tests/UI/Components/ModelTable:
  * LiveRows, UseLiveRows, BaseModelTableLiveRows).
@@ -235,6 +239,169 @@ describe("lists that opt out of keeping themselves current", () => {
 
     for (const entry of LISTS_KEPT_AS_LOADED) {
       expect(entry.reason.length).toBeGreaterThan(20);
+    }
+  });
+});
+
+/*
+ * A list that reads several projects at once - a ModelTable whose
+ * fetchRequestOptions asks with isMultiTenantRequest, such as Active
+ * Incidents, which lists every project the person belongs to - hears the
+ * changes of each of them (liveProjectIds), not only the open project's
+ * (#6917). A change is announced in its own project, so a list that
+ * listened to one missed the others'. The page is handed the person's
+ * projects by App.tsx, which the project picker lists.
+ */
+describe("a list across projects hears every project it reads", () => {
+  // A table's fetchRequestOptions that read every project the person is in.
+  const READS_SEVERAL_PROJECTS: RegExp = /isMultiTenantRequest:\s*true/;
+
+  interface CrossProjectList {
+    file: string;
+    component: string;
+    modelName: string;
+    hearsEveryProject: boolean;
+  }
+
+  // The name a page's file exports as its default.
+  const defaultExportOf: (sourceFile: ts.SourceFile) => string = (
+    sourceFile: ts.SourceFile,
+  ): string => {
+    for (const statement of sourceFile.statements) {
+      if (ts.isExportAssignment(statement)) {
+        return statement.expression.getText(sourceFile);
+      }
+    }
+
+    return "";
+  };
+
+  const findCrossProjectLists: () => Array<CrossProjectList> =
+    (): Array<CrossProjectList> => {
+      const lists: Array<CrossProjectList> = [];
+
+      for (const file of listSourceFiles(
+        path.join(FEATURE_SET_DIR, "Dashboard", "src"),
+      )) {
+        const source: string = fs.readFileSync(file, "utf8");
+
+        if (!source.includes("isMultiTenantRequest")) {
+          continue;
+        }
+
+        const sourceFile: ts.SourceFile = parse(file);
+
+        const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+          if (
+            (ts.isJsxOpeningElement(node) ||
+              ts.isJsxSelfClosingElement(node)) &&
+            TABLE_ELEMENT.test(node.tagName.getText(sourceFile))
+          ) {
+            const attributes: Map<string, string> = new Map<string, string>();
+
+            for (const property of node.attributes.properties) {
+              if (ts.isJsxAttribute(property)) {
+                attributes.set(
+                  property.name.getText(sourceFile),
+                  property.initializer
+                    ? property.initializer.getText(sourceFile)
+                    : "",
+                );
+              }
+            }
+
+            if (
+              READS_SEVERAL_PROJECTS.test(
+                attributes.get("fetchRequestOptions") || "",
+              )
+            ) {
+              lists.push({
+                file: path.relative(REPO_ROOT, file),
+                component: defaultExportOf(sourceFile),
+                modelName: (attributes.get("modelType") || "").replace(
+                  /[{}\s]/g,
+                  "",
+                ),
+                hearsEveryProject: attributes.has("liveProjectIds"),
+              });
+            }
+          }
+
+          ts.forEachChild(node, visit);
+        };
+
+        visit(sourceFile);
+      }
+
+      return lists;
+    };
+
+  const lists: Array<CrossProjectList> = findCrossProjectLists();
+
+  const announcesChanges: (modelName: string) => boolean = (
+    modelName: string,
+  ): boolean => {
+    const modelType: { new (): BaseModel } | null =
+      getModelTypeByName(modelName);
+
+    expect([modelName, Boolean(modelType)]).toEqual([modelName, true]);
+
+    return getLiveRowEventTypes(new modelType!()).length > 0;
+  };
+
+  test("the scan finds the inboxes the bell opens", () => {
+    expect(
+      lists
+        .map((list: CrossProjectList): string => {
+          return list.component;
+        })
+        .sort(),
+    ).toEqual(
+      expect.arrayContaining([
+        "ActiveAlertEpisodes",
+        "ActiveAlerts",
+        "ActiveIncidentEpisodes",
+        "ActiveIncidents",
+      ]),
+    );
+  });
+
+  test("each one whose records are announced hears every project it reads", () => {
+    const deaf: Array<string> = lists
+      .filter((list: CrossProjectList): boolean => {
+        return announcesChanges(list.modelName) && !list.hearsEveryProject;
+      })
+      .map((list: CrossProjectList): string => {
+        return list.file;
+      });
+
+    expect(deaf).toEqual([]);
+  });
+
+  test("App.tsx hands each of those pages the person's projects", () => {
+    const app: string = fs
+      .readFileSync(
+        path.join(FEATURE_SET_DIR, "Dashboard", "src", "App.tsx"),
+        "utf8",
+      )
+      .replace(/\s+/g, " ");
+
+    const handed: Array<string> = lists
+      .filter((list: CrossProjectList): boolean => {
+        return list.hearsEveryProject;
+      })
+      .map((list: CrossProjectList): string => {
+        return list.component;
+      });
+
+    expect(handed.length).toBeGreaterThan(0);
+
+    for (const component of handed) {
+      const element: RegExp = new RegExp(
+        `<${component} [^>]*projects=\\{projects\\}[^>]*/>`,
+      );
+
+      expect([component, element.test(app)]).toEqual([component, true]);
     }
   });
 });

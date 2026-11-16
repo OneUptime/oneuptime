@@ -7,6 +7,7 @@ import {
 } from "../../../../../Server/Types/Workflow/ComponentCode";
 import DataSourceEgressGuard, {
   PinnedAgents,
+  PinnedTarget,
   ResolvedAddress,
 } from "../../../../../Server/Utils/DataSource/EgressGuard";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
@@ -942,18 +943,18 @@ describe("where the step may send: the API steps' address guard, and nowhere els
 
     // The approved address is 10.1.2.3; the test's Mattermost is on 127.0.0.1.
     const server: FakeMattermostServer = await serve();
-    const realCreatePinnedAgents: (
-      addresses: Array<ResolvedAddress>,
-    ) => PinnedAgents = DataSourceEgressGuard.createPinnedAgents.bind(
-      DataSourceEgressGuard,
-    );
+    const realCreatePinnedAgents: (target: PinnedTarget) => PinnedAgents =
+      DataSourceEgressGuard.createPinnedAgents.bind(DataSourceEgressGuard);
     const pinned: Array<Array<ResolvedAddress>> = [];
 
     jest
       .spyOn(DataSourceEgressGuard, "createPinnedAgents")
-      .mockImplementation((addresses: Array<ResolvedAddress>) => {
-        pinned.push(addresses);
-        return realCreatePinnedAgents([{ address: "127.0.0.1", family: 4 }]);
+      .mockImplementation((target: PinnedTarget) => {
+        pinned.push(target.addresses);
+        return realCreatePinnedAgents({
+          url: target.url,
+          addresses: [{ address: "127.0.0.1", family: 4 }],
+        });
       });
 
     const result: StepRun = await run({

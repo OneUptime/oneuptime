@@ -7,6 +7,7 @@ import EgressGuardException, {
   EgressFailureReason,
 } from "../../../Types/Exception/EgressGuardException";
 import logger from "../Logger";
+import OutboundProxy from "../OutboundProxy";
 
 /*
  * SSRF egress guard for outbound connections whose target is chosen by a
@@ -49,6 +50,16 @@ import logger from "../Logger";
  * DNS-rebind window); SQL drivers connect by hostname immediately after
  * validation, accepting a small residual rebind window in exchange for
  * intact TLS hostname verification.
+ *
+ * An HTTP request sent with axios goes through the outbound proxy the
+ * operator configured (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY), apart from the
+ * hosts in NO_PROXY, as every other request of the server does. Its pinned
+ * agents (createPinnedAgents) answer only the checked host's name from the
+ * pin, look the proxy's own name up as usual, and refuse every other name
+ * (createPinnedLookupForTarget), so a proxy named by host name is reached
+ * at its own address. Through a proxy it is the proxy that looks the
+ * target's name up and connects: the docs (self-hosted/
+ * private-network-access) ask the operator to police it there.
  */
 
 export interface ResolvedAddress {
@@ -121,6 +132,54 @@ export interface PinnedAgents {
   httpAgent: http.Agent;
   httpsAgent: https.Agent;
 }
+
+/*
+ * The agents of a client sent with Node's own http client that learns its
+ * hosts as it goes (createGuardedAgentsForNodeHttp).
+ */
+export interface GuardedNodeHttpAgents {
+  // The agent a request to `url` goes out on, through a proxy or directly.
+  agentFor(url: URL): http.Agent;
+  destroy(): void;
+}
+
+/*
+ * http.Agent's createSocket, which every new socket of an agent is made
+ * by, the request's options in hand. Not in @types/node; agent-base, which
+ * https-proxy-agent is built on, takes the same hook.
+ */
+type AgentCreateSocket = (
+  request: http.ClientRequest,
+  options: http.ClientRequestArgs,
+  callback: (error: Error | null, socket?: net.Socket) => void,
+) => void;
+
+/*
+ * What an HTTP request's agents are pinned to: the URL that was checked,
+ * whose host name is the one name they connect to, and the addresses its
+ * check approved for it.
+ */
+export interface PinnedTarget {
+  url: URL;
+  addresses: Array<ResolvedAddress>;
+}
+
+/*
+ * The environment variables an outbound proxy is read from, by axios
+ * (proxy-from-env) and by Node's own env proxy, in either case.
+ */
+export const OUTBOUND_PROXY_ENVIRONMENT_VARIABLES: ReadonlyArray<string> = [
+  "http_proxy",
+  "HTTP_PROXY",
+  "https_proxy",
+  "HTTPS_PROXY",
+  "all_proxy",
+  "ALL_PROXY",
+];
+
+// What a pinned HTTP agent's lookup answers when it is asked for any other name.
+export const UNAPPROVED_LOOKUP_MESSAGE: string =
+  "A request connects only to the address its URL check approved.";
 
 /*
  * dns.lookup's shape, as http.Agent / net.Socket call it. Declared locally
@@ -829,10 +888,13 @@ export default class DataSourceEgressGuard {
 
   /*
    * A dns.lookup-shaped function that always answers with the already
-   * validated addresses. Handing this to an http(s).Agent makes the address
-   * that was checked the address that gets dialed, closing the DNS-rebind
-   * window between validation and connect. TLS still verifies against the
-   * original hostname because SNI is taken from the URL, not from here.
+   * validated addresses, whatever name it is asked about: for a socket that
+   * dials one host and nothing else (an SMTP, IRC, syslog or Kafka
+   * connection), where the checked address becomes the address that gets
+   * dialed, closing the DNS-rebind window between validation and connect.
+   * TLS still verifies against the original hostname because SNI is taken
+   * from the URL, not from here. An HTTP agent, which axios may point at an
+   * outbound proxy, takes createPinnedLookupForTarget instead.
    *
    * It always answers asynchronously, the way dns.lookup does. Node's
    * net/tls connect can fail every pinned address synchronously (a probe
@@ -891,11 +953,105 @@ export default class DataSourceEgressGuard {
     };
   }
 
-  // http/https agent pair that dials only the given validated addresses.
-  public static createPinnedAgents(
-    addresses: Array<ResolvedAddress>,
-  ): PinnedAgents {
-    const lookup: EgressLookupFunction = this.createPinnedLookup(addresses);
+  /*
+   * A dns.lookup-shaped function for the agents of an HTTP request to one
+   * URL, the one every pinned HTTP agent uses (createPinnedAgents, and
+   * SafeWebhookRequest's through it):
+   *
+   *   - the URL's host name answers with the addresses its check approved,
+   *     always: no second lookup, so a name that resolves somewhere else a
+   *     moment later (DNS rebinding) is never dialled;
+   *   - the host name of an outbound proxy the operator configured is
+   *     looked up as any other request's would be. Axios sends a request
+   *     through HTTPS_PROXY, HTTP_PROXY or ALL_PROXY, unless NO_PROXY names
+   *     its host, and has these agents connect to the proxy: a forward
+   *     proxy for http, and for https a CONNECT tunnel whose agent takes
+   *     this lookup over. Answering the proxy's name from the pin dialled
+   *     the target's address on the proxy's port (issue #8873);
+   *   - any other name is refused.
+   *
+   * A host written as an IP address is never looked up at all: Node dials
+   * the literal, which is what the check approved.
+   */
+  public static createPinnedLookupForTarget(
+    target: PinnedTarget,
+  ): EgressLookupFunction {
+    const pinnedLookup: EgressLookupFunction = this.createPinnedLookup(
+      target.addresses,
+    );
+    const targetHostname: string = this.normalizeHostname(target.url.hostname);
+
+    return (
+      hostname: string,
+      lookupOptions: { all?: boolean | undefined; family?: number | undefined },
+      callback: EgressLookupCallback,
+    ): void => {
+      const name: string = this.normalizeHostname(hostname);
+
+      if (name === targetHostname) {
+        pinnedLookup(hostname, lookupOptions, callback);
+        return;
+      }
+
+      if (this.getOutboundProxyHostnames().has(name)) {
+        dns.lookup(
+          hostname,
+          (lookupOptions || {}) as dns.LookupAllOptions,
+          callback as never,
+        );
+        return;
+      }
+
+      const error: NodeJS.ErrnoException = new Error(UNAPPROVED_LOOKUP_MESSAGE);
+      error.code = "ENOTFOUND";
+
+      process.nextTick(() => {
+        callback(error, "");
+      });
+    };
+  }
+
+  /*
+   * The hosts of the outbound proxies the environment names, read when they
+   * are needed, as axios reads them: a value without a scheme is a host and
+   * port.
+   */
+  public static getOutboundProxyHostnames(): Set<string> {
+    const hostnames: Set<string> = new Set<string>();
+
+    for (const variable of OUTBOUND_PROXY_ENVIRONMENT_VARIABLES) {
+      const value: string = (process.env[variable] || "").trim();
+
+      if (!value) {
+        continue;
+      }
+
+      try {
+        const proxyUrl: URL = new URL(
+          value.includes("://") ? value : `http://${value}`,
+        );
+        const hostname: string = this.normalizeHostname(proxyUrl.hostname);
+
+        if (hostname) {
+          hostnames.add(hostname);
+        }
+      } catch {
+        // Not a URL: axios cannot send through it either.
+      }
+    }
+
+    return hostnames;
+  }
+
+  /*
+   * An http and an https agent for a request to the target's URL: they dial
+   * only the addresses its check approved, and an outbound proxy the
+   * operator configured (createPinnedLookupForTarget). Destroy both once
+   * the request is over.
+   */
+  public static createPinnedAgents(target: PinnedTarget): PinnedAgents {
+    const lookup: EgressLookupFunction =
+      this.createPinnedLookupForTarget(target);
 
     return {
       httpAgent: new http.Agent({ lookup: lookup as never }),
@@ -904,10 +1060,221 @@ export default class DataSourceEgressGuard {
   }
 
   /*
+   * The agents of createPinnedAgents, for a request sent with Node's own
+   * http client (http.request), which reads no proxy setting by itself
+   * (#8932). Axios goes through the outbound proxy on agents like these; a
+   * request on these goes through it too, decided as axios decides
+   * (OutboundProxy.getProxyFor):
+   *
+   *   - through a proxy, the agent of the URL's scheme hands the request to
+   *     Node's own proxy support: a CONNECT tunnel for https, naming the
+   *     host the URL names, and for http the whole URL to the proxy. The
+   *     proxy's own name is looked up as usual, and never checked against
+   *     the egress policy (a proxy on 10.x is the operator's, whatever the
+   *     policy says of 10.x); it is the proxy that looks the target's name
+   *     up and connects;
+   *   - with no proxy, or NO_PROXY naming the host, the agents dial the
+   *     approved addresses only, as createPinnedAgents' do.
+   *
+   * Destroy both once the request is over.
+   */
+  public static createPinnedAgentsForNodeHttp(
+    target: PinnedTarget,
+  ): PinnedAgents {
+    const lookup: EgressLookupFunction =
+      this.createPinnedLookupForTarget(target);
+    const proxy: URL | null = this.getOutboundProxyForNodeHttp(target.url);
+    const isHttps: boolean = target.url.protocol === "https:";
+
+    return {
+      httpAgent: new http.Agent({
+        lookup: lookup as never,
+        ...(proxy && !isHttps ? { proxyEnv: { http_proxy: proxy.href } } : {}),
+      }),
+      httpsAgent: new https.Agent({
+        lookup: lookup as never,
+        ...(proxy && isHttps ? { proxyEnv: { https_proxy: proxy.href } } : {}),
+      }),
+    };
+  }
+
+  /*
+   * assertUrlAllowedAndPin, for a request sent with Node's own http client:
+   * the agents go through the outbound proxy as axios's would
+   * (createPinnedAgentsForNodeHttp).
+   */
+  public static async assertUrlAllowedAndPinForNodeHttp(
+    urlString: string,
+    options?: EgressGuardOptions,
+  ): Promise<{ url: URL; addresses: Array<ResolvedAddress> } & PinnedAgents> {
+    const { url, addresses } = await this.assertUrlAllowed(urlString, options);
+
+    return {
+      url,
+      addresses,
+      ...this.createPinnedAgentsForNodeHttp({ url, addresses }),
+    };
+  }
+
+  /*
+   * Agents for a client that learns its hosts as it goes and sends with
+   * Node's own http client: openid-client, which adopts the token, userinfo
+   * and JWKS URLs a discovery document names, and the backup storage
+   * clients. agentFor(url) answers the agent a request to `url` goes out on:
+   *
+   *   - with no outbound proxy for it (OutboundProxy.getProxyFor, as axios
+   *     decides), a direct agent whose lookup checks every name it is asked
+   *     for and dials the addresses it approved (createGuardedLookup). An
+   *     IP address, which Node never looks up, is checked before its socket
+   *     opens;
+   *   - through a proxy, an agent of that proxy that checks the host -
+   *     looked up, every address it has held to the policy - before it hands
+   *     the request to the proxy, as an axios request is checked before it
+   *     goes through one. The proxy's own name is looked up as usual and
+   *     never held to the policy.
+   *
+   * keepAlive keeps a connection open between requests to one host.
+   */
+  public static createGuardedAgentsForNodeHttp(
+    options: EgressGuardOptions,
+    agentOptions?: { keepAlive?: boolean | undefined },
+  ): GuardedNodeHttpAgents {
+    const keepAlive: boolean = agentOptions?.keepAlive === true;
+    const lookup: EgressLookupFunction = this.createGuardedLookup(options);
+
+    const checkAddressOnly: (host: string) => Promise<void> = async (
+      host: string,
+    ): Promise<void> => {
+      if (net.isIP(this.normalizeHostname(host)) !== 0) {
+        await this.assertHostnameAllowed(host, options);
+      }
+    };
+
+    const checkHost: (host: string) => Promise<void> = async (
+      host: string,
+    ): Promise<void> => {
+      await this.assertHostnameAllowed(host, options);
+    };
+
+    const directHttp: http.Agent = this.checkingEachSocket(
+      new http.Agent({ keepAlive, lookup: lookup as never }),
+      checkAddressOnly,
+    );
+    const directHttps: https.Agent = this.checkingEachSocket(
+      new https.Agent({ keepAlive, lookup: lookup as never }),
+      checkAddressOnly,
+    );
+    const proxied: Map<string, http.Agent> = new Map<string, http.Agent>();
+
+    return {
+      agentFor: (url: URL): http.Agent => {
+        const isHttps: boolean = url.protocol === "https:";
+        const proxy: URL | null = this.getOutboundProxyForNodeHttp(url);
+
+        if (!proxy) {
+          return isHttps ? directHttps : directHttp;
+        }
+
+        const key: string = `${url.protocol}${proxy.href}`;
+        let agent: http.Agent | undefined = proxied.get(key);
+
+        if (!agent) {
+          agent = this.checkingEachSocket(
+            isHttps
+              ? new https.Agent({
+                  keepAlive,
+                  proxyEnv: { https_proxy: proxy.href },
+                })
+              : new http.Agent({
+                  keepAlive,
+                  proxyEnv: { http_proxy: proxy.href },
+                }),
+            checkHost,
+          );
+          proxied.set(key, agent);
+        }
+
+        return agent;
+      },
+      destroy: (): void => {
+        directHttp.destroy();
+        directHttps.destroy();
+
+        for (const agent of proxied.values()) {
+          agent.destroy();
+        }
+
+        proxied.clear();
+      },
+    };
+  }
+
+  /*
+   * The outbound proxy a request to `url`, sent with Node's own http client,
+   * goes through: axios's choice (OutboundProxy.getProxyFor). Node's proxy
+   * support speaks to an http or https proxy only, and would go direct past
+   * any other, so another is refused, as axios fails a request to one. The
+   * refusal names no proxy: its URL may hold its password.
+   */
+  private static getOutboundProxyForNodeHttp(url: URL): URL | null {
+    let proxy: URL | null;
+
+    try {
+      proxy = OutboundProxy.getProxyFor(url);
+    } catch {
+      throw new BadDataException(
+        "The outbound proxy set in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY is not a URL.",
+      );
+    }
+
+    if (proxy && proxy.protocol !== "http:" && proxy.protocol !== "https:") {
+      throw new BadDataException(
+        "The outbound proxy set in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY is not an http or https proxy.",
+      );
+    }
+
+    return proxy;
+  }
+
+  /*
+   * `agent`, with `check` run on the host of every socket it opens before
+   * the socket is made; a refusal fails the request with the guard's error.
+   * A socket kept alive for a host is reused unchecked, as it was checked
+   * when it opened.
+   */
+  private static checkingEachSocket<T extends http.Agent>(
+    agent: T,
+    check: (host: string) => Promise<void>,
+  ): T {
+    const hooks: { createSocket: AgentCreateSocket } = agent as unknown as {
+      createSocket: AgentCreateSocket;
+    };
+    const createSocket: AgentCreateSocket = hooks.createSocket.bind(agent);
+
+    hooks.createSocket = (
+      request: http.ClientRequest,
+      options: http.ClientRequestArgs,
+      callback: (error: Error | null, socket?: net.Socket) => void,
+    ): void => {
+      check(String(options.host || options.hostname || "")).then(
+        () => {
+          createSocket(request, options, callback);
+        },
+        (error: Error) => {
+          callback(error);
+        },
+      );
+    };
+
+    return agent;
+  }
+
+  /*
    * Validate a URL and return agents pinned to what it resolved to — the
    * one-call form for HTTP callers. Pair with maxRedirects 0 /
    * doNotFollowRedirects: pinning only covers the host that was validated, so
    * a 3xx to an unvalidated host would otherwise walk straight around it.
+   * Send the URL it returns, whose host name is the one the agents dial.
    */
   public static async assertUrlAllowedAndPin(
     urlString: string,
@@ -915,7 +1282,15 @@ export default class DataSourceEgressGuard {
   ): Promise<{ url: URL; addresses: Array<ResolvedAddress> } & PinnedAgents> {
     const { url, addresses } = await this.assertUrlAllowed(urlString, options);
 
-    return { url, addresses, ...this.createPinnedAgents(addresses) };
+    return { url, addresses, ...this.createPinnedAgents({ url, addresses }) };
+  }
+
+  // A host name as a lookup compares it: no case, no IPv6 brackets.
+  private static normalizeHostname(hostname: string): string {
+    return (hostname || "")
+      .trim()
+      .toLowerCase()
+      .replace(/^\[|\]$/g, "");
   }
 
   /*

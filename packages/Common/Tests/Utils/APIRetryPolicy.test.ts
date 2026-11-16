@@ -240,6 +240,23 @@ describe("API.isRetryableError", () => {
       isRetryable: false,
     },
     {
+      // Asking again only reads as much of the same answer again (#8875).
+      name: "an answer larger than the request reads",
+      error: createAxiosError({
+        code: "ERR_BAD_RESPONSE",
+        message: "maxContentLength size of 1048576 exceeded",
+      }),
+      isRetryable: false,
+    },
+    {
+      name: "a stream that broke off, which mentions no limit",
+      error: createAxiosError({
+        code: "ERR_BAD_RESPONSE",
+        message: "stream has been aborted",
+      }),
+      isRetryable: true,
+    },
+    {
       name: "a non-axios error thrown while building the request",
       error: new Error("cannot serialize body"),
       isRetryable: false,
@@ -531,8 +548,77 @@ describe("Retry-After", () => {
     expect(sleptForInMs[0]).toBeLessThanOrEqual(5000);
   });
 
-  test("treats a date already in the past as retry immediately", async () => {
+  test("waits a second for a date already in the past, never retrying at once", async () => {
+    /*
+     * Most often a server clock behind ours. RFC 9110 allows a retry now,
+     * but a server that keeps answering so would be asked again in a tight
+     * loop, every retry spent at once.
+     */
     const retryAt: string = new Date(nowInMs - 60_000).toUTCString();
+
+    alwaysFailWith(
+      createAxiosError({ status: 503, headers: { "retry-after": retryAt } }),
+    );
+
+    await post({ retries: 3, exponentialBackoff: true });
+
+    expect(mockedAxios).toHaveBeenCalledTimes(4);
+    expect(sleptForInMs).toEqual([1000, 1000, 1000]);
+  });
+
+  test("waits a second for a Retry-After of 0", async () => {
+    alwaysFailWith(
+      createAxiosError({ status: 429, headers: { "retry-after": "0" } }),
+    );
+
+    await post({ retries: 2 });
+
+    expect(sleptForInMs).toEqual([1000, 1000]);
+  });
+
+  test("a ceiling under a second wins over that floor", async () => {
+    alwaysFailWith(
+      createAxiosError({ status: 429, headers: { "retry-after": "0" } }),
+    );
+
+    await post({ retries: 1, exponentialBackoff: true, maxBackoffInMs: 500 });
+
+    expect(sleptForInMs).toEqual([500]);
+  });
+
+  /*
+   * Issue #8928: Date.parse read these as days in 2001 - gone by - so every
+   * retry went at once. They are no Retry-After at all (RFC 9110 allows
+   * only digits, or an HTTP-date), and the backoff applies.
+   */
+  test.each([["-5"], ["1.5"], ["5 seconds"], ["+5"], ["1e3"], ["0x10"]])(
+    "backs off normally on %j, which is no Retry-After",
+    async (value: string) => {
+      alwaysFailWith(
+        createAxiosError({ status: 503, headers: { "retry-after": value } }),
+      );
+
+      await post({ retries: 2, exponentialBackoff: true });
+
+      // Midpoint jitter: 75% of 2 s, then of 4 s - the formula, not 0.
+      expect(sleptForInMs).toEqual([1500, 3000]);
+    },
+  );
+
+  test("waits 7 seconds for a Retry-After of 7", async () => {
+    alwaysFailWith(
+      createAxiosError({ status: 503, headers: { "retry-after": "7" } }),
+    );
+
+    await post({ retries: 2, exponentialBackoff: true });
+
+    expect(sleptForInMs).toEqual([7000, 7000]);
+  });
+
+  test("waits until an IMF-fixdate ahead, to the millisecond", async () => {
+    // A whole second, so the date names it exactly.
+    nowInMs = 1_700_000_000_000;
+    const retryAt: string = new Date(nowInMs + 12_000).toUTCString();
 
     alwaysFailWith(
       createAxiosError({ status: 503, headers: { "retry-after": retryAt } }),
@@ -540,8 +626,30 @@ describe("Retry-After", () => {
 
     await post({ retries: 1, exponentialBackoff: true });
 
-    expect(mockedAxios).toHaveBeenCalledTimes(2);
-    expect(sleptForInMs).toEqual([]);
+    expect(retryAt).toMatch(/^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} /);
+    expect(sleptForInMs).toEqual([12_000]);
+  });
+
+  test("reads the obsolete RFC 850 and asctime dates", async () => {
+    // RetryAfter.test.ts shows asctime is read as UTC in any time zone.
+    for (const retryAt of [
+      "Tuesday, 14-Nov-23 22:13:29 GMT",
+      "Tue Nov 14 22:13:29 2023",
+    ]) {
+      // Tue, 14 Nov 2023 22:13:20 GMT; the sleep moves the clock on.
+      nowInMs = 1_700_000_000_000;
+      sleptForInMs = [];
+      alwaysFailWith(
+        createAxiosError({ status: 503, headers: { "retry-after": retryAt } }),
+      );
+
+      await post({ retries: 1, exponentialBackoff: true });
+
+      expect({ retryAt, sleptForInMs }).toEqual({
+        retryAt,
+        sleptForInMs: [9000],
+      });
+    }
   });
 
   test("ignores a value it cannot make sense of and backs off normally", async () => {
@@ -579,6 +687,27 @@ describe("Retry-After", () => {
 });
 
 describe("retryOnlyOnRetryableErrors", () => {
+  test("spends nothing on an answer too large to read", async () => {
+    alwaysFailWith(
+      createAxiosError({
+        code: "ERR_BAD_RESPONSE",
+        message: "maxContentLength size of 1048576 exceeded",
+      }),
+    );
+
+    await expect(
+      post({
+        retries: 9,
+        exponentialBackoff: true,
+        retryOnlyOnRetryableErrors: true,
+        maxContentLength: 1048576,
+      }),
+    ).rejects.toThrow("maxContentLength size of 1048576 exceeded");
+
+    expect(mockedAxios).toHaveBeenCalledTimes(1);
+    expect(sleptForInMs).toEqual([]);
+  });
+
   test("spends nothing on a rejection that repeating cannot fix", async () => {
     alwaysFailWith(createAxiosError({ status: 400 }));
 

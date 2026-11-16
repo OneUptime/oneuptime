@@ -2,6 +2,7 @@ import DatabaseProperty from "../Database/DatabaseProperty";
 import BadDataException from "../Exception/BadDataException";
 import { JSONArray, JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
+import { joinSerializableObjectDictionary } from "../JoinedSerializableObjects";
 import ObjectID from "../ObjectID";
 import { Translator } from "../Translator";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
@@ -217,3 +218,11 @@ export default class MonitorCriteria extends DatabaseProperty {
     return JSON.stringify(this.toJSON());
   }
 }
+
+/*
+ * JSON naming a step's criteria reads back as one wherever this module is loaded: it
+ * joins SerializableObjectDictionary here rather than being imported by it,
+ * so a page that never reads a monitor does not download every monitor type
+ * (JoinedSerializableObjects).
+ */
+joinSerializableObjectDictionary(ObjectType.MonitorCriteria, MonitorCriteria);

@@ -13,6 +13,8 @@ import AIRunService from "../../../../Server/Services/AIRunService";
 import AIRunEventService from "../../../../Server/Services/AIRunEventService";
 import AIConversationMessageService from "../../../../Server/Services/AIConversationMessageService";
 import AIInsightService from "../../../../Server/Services/AIInsightService";
+import MonitorService from "../../../../Server/Services/MonitorService";
+import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
 import ExceptionInstanceService from "../../../../Server/Services/ExceptionInstanceService";
 import { RealtimeReader } from "../../../../Server/Utils/Realtime/RealtimeReadAccess";
 import DatabaseModels from "../../../../Models/DatabaseModels/Index";
@@ -411,6 +413,13 @@ describe("every model that sends live updates is read the way its service reads 
     AIRunEventService,
     AIConversationMessageService,
     AIInsightService,
+    /*
+     * A monitor going offline, a probe disconnecting, a maintenance event
+     * starting at its time: the Monitors and Maintenance Events menus'
+     * counts and lists follow them (#6918).
+     */
+    MonitorService,
+    ScheduledMaintenanceService,
   ] as unknown as Array<DatabaseService<BaseModel>>;
 
   const ANALYTICS_SERVICES: Array<

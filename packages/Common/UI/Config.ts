@@ -71,6 +71,16 @@ export const GLOBAL_RUNNERS_KEEP_CONNECTION_TOKENS_OFF: boolean =
 export const CAPTCHA_ENABLED: boolean = env("CAPTCHA_ENABLED") === "true";
 export const CAPTCHA_SITE_KEY: string = env("CAPTCHA_SITE_KEY") || "";
 
+/*
+ * The daily check-in with oneuptime.com turned off: a self-hosted sign-up
+ * form then offers no release emails from it (Accounts' Register page). The
+ * server reads the same setting as Server/EnvironmentConfig's
+ * DisableInstanceCheckIn, which a page does not import: that module is the
+ * server's whole configuration.
+ */
+export const DISABLE_INSTANCE_CHECK_IN: boolean =
+  env("DISABLE_INSTANCE_CHECK_IN") === "true";
+
 // VAPID Configuration for Push Notifications
 export const VAPID_PUBLIC_KEY: string = env("VAPID_PUBLIC_KEY") || "";
 

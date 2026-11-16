@@ -6,7 +6,8 @@
   "commonPolicyFiles": [
     "Types/AI/AgentAiSettings.ts",
     "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
-    "Types/Runbook/RunnerJobOrigin.ts"
+    "Types/Runbook/RunnerJobOrigin.ts",
+    "Utils/RetryAfter.ts"
   ],
   "otherCopies": []
 }

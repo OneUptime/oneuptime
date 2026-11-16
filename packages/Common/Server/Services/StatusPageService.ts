@@ -3135,6 +3135,10 @@ export class Service extends ProjectReferencesService<StatusPage> {
         monitorGroupIds,
       ));
 
+    /*
+     * Without each group whose monitors are all off, or not monitored yet
+     * (issue #8899): the statuses in hand say which a monitor starts in.
+     */
     const monitorGroupStatuses: Dictionary<MonitorStatus> =
       FrozenMonitorResources.withoutNotMonitoredMonitorGroups({
         monitorGroupStatuses:
@@ -3144,6 +3148,9 @@ export class Service extends ProjectReferencesService<StatusPage> {
             monitorGroupResources: resourcesByGroupId,
           }),
         monitorGroupResources: resourcesByGroupId,
+        startingStatusIds: FrozenMonitorResources.getStartingStatusIds(
+          data.monitorStatuses,
+        ),
       });
 
     for (const monitorGroupId of Object.keys(monitorGroupStatuses)) {

@@ -50,7 +50,7 @@ Los destinos bloqueados se dividen en dos niveles.
 
 El endpoint de metadatos de la nube `169.254.169.254` está en el nivel prohibido por una razón. En una VM en la nube entrega las credenciales IAM de la instancia a cualquier cosa que pueda hacer una petición HTTP desde la máquina, así que ningún ajuste general lo abrirá nunca.
 
-Las formas de escribir IPv6 que llevan dentro un destino IPv4 – IPv4-mapped (`::ffff:10.0.0.5`), NAT64, 6to4, Teredo – se clasifican por la dirección IPv4 a la que llegan, así que no sirven para colar una dirección prohibida por una autorización del nivel privado.
+Las formas de escribir IPv6 que llevan dentro un destino IPv4 – IPv4-mapped (`::ffff:10.0.0.5`), IPv4-compatible (`::10.0.0.5`), NAT64, 6to4, Teredo – se clasifican por la dirección IPv4 a la que llegan, se escriban como se escriban, así que no sirven para colar una dirección prohibida por una autorización del nivel privado.
 
 ## Webhooks y workflows
 
@@ -141,6 +141,8 @@ Solo el valor exacto `true` lo activa. En una instancia con `BILLING_ENABLED=tru
 En Docker Compose, `config.env` tiene una línea `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` (añádela si tu `config.env` es anterior). Cambia esa línea a `true` en lugar de añadir una segunda y luego ejecuta `npm run start` para que los contenedores se vuelvan a crear con el nuevo valor; `docker compose restart` no vuelve a leer `config.env`. En Kubernetes, defínelo en tu archivo de valores y actualiza la release; el chart lo pasa a los pods de la aplicación y del worker.
 
 Con él activado, un nombre de host rechazado se notifica sin decir a qué se resolvió, por ejemplo _"LLM provider host ollama.internal could not be reached."_ Un nombre que no se resuelve en absoluto recibe el mismo mensaje, para que los miembros del proyecto no puedan usar estos campos para averiguar qué nombres internos existen. Una dirección escrita como IP se sigue nombrando junto con el motivo, por ejemplo _"LLM provider host 10.0.4.12 is not allowed: private network address."_ Con `LOG_LEVEL=DEBUG`, la aplicación registra la dirección a la que se resolvió cada nombre rechazado.
+
+Detrás de un proxy de salida, las conexiones hechas por HTTP pasan por él, como los webhooks: las fuentes de datos y las conexiones de eventos de seguridad que se leen por HTTP, las fuentes de threat intel, los proveedores de LLM, las URL de tokens OAuth, el inicio de sesión único con OIDC, los calendarios externos, los servidores MCP, las copias de seguridad, la verificación de dominios personalizados, los pasos HTTP de runbooks y la importación de Grafana OnCall usan el proxy definido en `HTTPS_PROXY`, `HTTP_PROXY` o `ALL_PROXY`, tanto si se indica con una dirección como con un nombre de host. OneUptime sigue comprobando primero la dirección y nunca sigue una redirección, pero es el proxy quien resuelve el nombre y abre la conexión, así que rechaza los destinos link-local en el propio proxy, sobre todo `169.254.169.254`. Un host de `NO_PROXY` se conecta directamente, en la dirección que comprobó OneUptime: pon ahí tus hosts internos. Las conexiones de bases de datos y SMTP y los servidores Git siempre se conectan directamente, sin proxy.
 
 ## Sondas y monitores
 

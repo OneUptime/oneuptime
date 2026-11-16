@@ -2523,7 +2523,7 @@ describe("Architecture, against the compose file and the chart", () => {
     expect(
       textBetween(
         register,
-        "if (!IsBillingEnabled && !DisableInstanceCheckIn) {",
+        "if (!BILLING_ENABLED && !DISABLE_INSTANCE_CHECK_IN) {",
         'overrideFieldKey: "notifySelfHosted"',
       ),
     ).toContain("notifySelfHosted: true");

@@ -5,11 +5,15 @@ import {
   SourceRoot,
 } from "../../FeatureSet/Dashboard/scripts/i18n/ExtractStrings";
 import {
+  AUDIT_LOG_FAILED_SIGN_IN_ATTEMPTS,
+  AUDIT_LOG_FAILED_SIGN_IN_FIELD_LABELS,
   AUDIT_LOG_SESSION_FIELD_LABELS,
   AUDIT_LOG_SESSION_FIELDS,
   AUDIT_LOG_SESSION_NOT_USED_FOR,
+  AUDIT_LOG_SESSION_SIGN_IN_NO_LONGER_ACCEPTED,
   AUDIT_LOG_SESSION_SIGN_IN_WORDS,
   AUDIT_LOG_SESSION_SIGNED_IN,
+  AUDIT_LOG_SIGN_IN_FAILED,
   AuditLogSessionField,
   SESSION_END_CAUSE_DESCRIPTIONS,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
@@ -252,6 +256,15 @@ describe("a session entry's words", () => {
       AUDIT_LOG_SESSION_SIGNED_IN,
       AUDIT_LOG_SESSION_NOT_USED_FOR.one,
       AUDIT_LOG_SESSION_NOT_USED_FOR.other,
+      // A private status page reader's sign-in the page no longer accepts (#6790).
+      AUDIT_LOG_SESSION_SIGN_IN_NO_LONGER_ACCEPTED,
+      // A failed sign-in (#6788): its summary, its own label and its count.
+      AUDIT_LOG_SIGN_IN_FAILED,
+      ...(Object.values(
+        AUDIT_LOG_FAILED_SIGN_IN_FIELD_LABELS,
+      ) as Array<string>),
+      AUDIT_LOG_FAILED_SIGN_IN_ATTEMPTS.one,
+      AUDIT_LOG_FAILED_SIGN_IN_ATTEMPTS.other,
     ]);
 
     expect(textsOf(extractedFrom(SESSION_LABELS))).toEqual(expected);

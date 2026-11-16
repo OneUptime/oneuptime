@@ -156,6 +156,11 @@ return {
 
 En körning sparar upp till 20 skärmbilder, var och en upp till 10 MB och 50 MB totalt. En skärmbild kan också visas i den incident eller det larm som en misslyckad körning öppnar — på dess sida och i e-postmeddelandena om den — genom att du placerar den i monitorns beskrivning för incidenter eller larm. Se [Visa en skärmbild](/docs/monitor/incident-alert-templating#visa-en-skärmbild).
 
+En kontrolls skärmbilder sparas i monitorns egna loggar, inte i en incidents eller ett larms loggar och inte i en monitors statusändringar: de sparar resten av kontrollen, och varje körning vars skärmbilder utelämnades säger det (`areScreenshotsOmitted`). Skärmbilder som redan har sparats där rensas efter uppgraderingen av ett jobb som körs varje timme, lite i taget, tills inga finns kvar.
+
+> [!NOTE]
+> På en egen installation återanvänder PostgreSQL utrymmet som de rensade skärmbilderna lämnar, men lämnar inte tillbaka det till disken. För att krympa databasen när de är rensade kör du `VACUUM FULL` på de största tabellerna i ett underhållsfönster, eftersom det låser varje tabell medan det skriver om den, eller använder `pg_repack`, som inte gör det.
+
 :::details Returnera skärmbilder (äldre sätt)
 För bakåtkompatibilitet kan du också returnera skärmbilder från skriptet som en del av returvärdet. Skärmbilder som returneras på det här sättet sparas **bara** när skriptet slutförs normalt — de går förlorade om skriptet kastar ett fel. Föredra sidokanalmönstret ovan när du vill ha bevis på fel.
 

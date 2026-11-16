@@ -50,7 +50,7 @@ Geblokkeerde doelen vallen in twee niveaus.
 
 Het cloudmetadata-eindpunt `169.254.169.254` zit niet voor niets in het verboden niveau. Op een cloud-VM geeft het de IAM-inloggegevens van de instantie aan alles wat vanaf de machine een HTTP-verzoek kan doen, dus geen algemene instelling zal het ooit openen.
 
-IPv6-schrijfwijzen die een IPv4-doel in zich dragen – IPv4-mapped (`::ffff:10.0.0.5`), NAT64, 6to4, Teredo – worden ingedeeld naar het IPv4-adres dat ze bereiken, dus ze kunnen niet worden gebruikt om een verboden adres langs een toestemming voor het privéniveau te smokkelen.
+IPv6-schrijfwijzen die een IPv4-doel in zich dragen – IPv4-mapped (`::ffff:10.0.0.5`), IPv4-compatible (`::10.0.0.5`), NAT64, 6to4, Teredo – worden ingedeeld naar het IPv4-adres dat ze bereiken, hoe ze ook geschreven zijn, dus ze kunnen niet worden gebruikt om een verboden adres langs een toestemming voor het privéniveau te smokkelen.
 
 ## Webhooks en workflows
 
@@ -141,6 +141,8 @@ Alleen de exacte waarde `true` zet haar aan. Op een instantie met `BILLING_ENABL
 Onder Docker Compose bevat `config.env` een regel `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` (voeg hem toe als uw `config.env` ouder is). Zet die regel op `true` in plaats van een tweede toe te voegen en voer daarna `npm run start` uit, zodat de containers met de nieuwe waarde opnieuw worden aangemaakt; `docker compose restart` leest `config.env` niet opnieuw. Onder Kubernetes stelt u haar in in uw values-bestand en upgradet u de release; de chart geeft haar door aan de pods van de app en de worker.
 
 Staat ze aan, dan wordt een geweigerde hostnaam gemeld zonder te zeggen waarnaar hij werd omgezet, bijvoorbeeld _"LLM provider host ollama.internal could not be reached."_ Een naam die helemaal niet wordt omgezet, krijgt dezelfde melding, zodat projectleden met deze velden niet kunnen achterhalen welke interne namen bestaan. Een adres dat als IP is ingevoerd, wordt nog steeds samen met de reden genoemd, bijvoorbeeld _"LLM provider host 10.0.4.12 is not allowed: private network address."_ Met `LOG_LEVEL=DEBUG` logt de app het adres waarnaar elke geweigerde naam werd omgezet.
+
+Achter een uitgaande proxy gaan de verbindingen over HTTP daardoorheen, zoals webhooks: gegevensbronnen en verbindingen voor beveiligingsgebeurtenissen die over HTTP worden gelezen, threat-intelfeeds, LLM-providers, OAuth-token-URL's, single sign-on met OIDC, externe agenda's, MCP-servers, back-ups, de verificatie van eigen domeinen, HTTP-stappen in runbooks en de Grafana OnCall-import gebruiken de proxy uit `HTTPS_PROXY`, `HTTP_PROXY` of `ALL_PROXY`, of die nu met een adres of met een hostnaam is opgegeven. OneUptime controleert het adres nog steeds eerst en volgt nooit een omleiding, maar de proxy zoekt de naam op en maakt de verbinding, dus weiger link-local-bestemmingen op de proxy zelf, vooral `169.254.169.254`. Een host in `NO_PROXY` krijgt rechtstreeks verbinding, op het adres dat OneUptime heeft gecontroleerd: zet uw interne hosts daar. Database- en SMTP-verbindingen en Git-servers maken altijd rechtstreeks verbinding, zonder proxy.
 
 ## Sondes en monitors
 

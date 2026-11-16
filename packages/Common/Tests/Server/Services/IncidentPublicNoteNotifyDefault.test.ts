@@ -18,6 +18,7 @@ import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import ColumnPermission from "../../../Server/Types/Database/Permissions/ColumnPermission";
+import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import {
   afterEach,
@@ -771,6 +772,79 @@ describe("IncidentPublicNoteService create() with the notify default", () => {
     expect(saved.deletedByUserId).toBeUndefined();
     expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
   });
+
+  /*
+   * Whether a note's subscribers were told is OneUptime's record of it
+   * (#8907): a member's own "sent" and its message - a script's, a note read
+   * and posted again - are dropped before the hooks run, and the note is
+   * queued, or skipped, as its incident says.
+   */
+  function noteClaimingItWasSent(): IncidentPublicNote {
+    const note: IncidentPublicNote = buildNote({ projectId: undefined });
+    note.subscriberNotificationStatusOnNoteCreated =
+      StatusPageSubscriberNotificationStatus.Success;
+    note.subscriberNotificationStatusMessage = "Sent to all 1,284 subscribers.";
+    return note;
+  }
+
+  test("an incident member's own 'sent' and its message are dropped: the note is queued as its incident says", async () => {
+    mockIncidentLookup(incidentWithFlag(true));
+
+    const saved: IncidentPublicNote = await IncidentPublicNoteService.create({
+      data: noteClaimingItWasSent(),
+      props: memberProps([Permission.IncidentMember]),
+    });
+
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(saved.subscriberNotificationStatusOnNoteCreated).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
+    expect(saved.subscriberNotificationStatusMessage).toBeUndefined();
+  });
+
+  test("on a quiet incident the same note is skipped, saying why in OneUptime's words, not the member's", async () => {
+    mockIncidentLookup(incidentWithFlag(false));
+
+    const saved: IncidentPublicNote = await IncidentPublicNoteService.create({
+      data: noteClaimingItWasSent(),
+      props: memberProps([Permission.IncidentMember]),
+    });
+
+    expect(saved.subscriberNotificationStatusOnNoteCreated).toBe(
+      StatusPageSubscriberNotificationStatus.Skipped,
+    );
+    expect(saved.subscriberNotificationStatusMessage).toBe(SKIPPED_MESSAGE);
+  });
+
+  test.each([
+    "subscriberNotificationStatusOnNoteCreated",
+    "subscriberNotificationStatusMessage",
+  ])(
+    "a member who may post notes but not read them is refused for sending %s, by its name, and nothing is saved",
+    async (column: string) => {
+      mockIncidentLookup(incidentWithFlag(true));
+
+      const note: IncidentPublicNote = buildNote({ projectId: undefined });
+      (note as unknown as Record<string, unknown>)[column] =
+        StatusPageSubscriberNotificationStatus.Success;
+
+      const error: unknown = await IncidentPublicNoteService.create({
+        data: note,
+        props: noteCreatorProps(),
+      }).then(
+        () => {
+          return null;
+        },
+        (err: unknown) => {
+          return err;
+        },
+      );
+
+      expect(error).toBeInstanceOf(ColumnWriteRefusedException);
+      expect((error as ColumnWriteRefusedException).columnName).toBe(column);
+      expect(save).not.toHaveBeenCalled();
+    },
+  );
 
   test("harness guard: a caller who may only read public notes is refused", async () => {
     mockIncidentLookup(incidentWithFlag(false));
