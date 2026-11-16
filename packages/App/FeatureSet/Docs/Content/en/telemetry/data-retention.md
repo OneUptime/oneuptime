@@ -94,6 +94,7 @@ Services, hosts, Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Pro
 | Monitor logs, one row per check | 1 day unless changed | On a self-hosted installation, **Monitor Log Retention (Days)** in the Admin Dashboard |
 | Monitor metrics, and the metrics SLOs record | 30 days unless changed | On a self-hosted installation, **Monitor Metric Retention (Days)** in the Admin Dashboard |
 | [Telemetry usage](/docs/telemetry/usage), one count per resource, signal and day | 120 days unless changed | On a self-hosted installation, **Telemetry Usage Retention (Days)** in the Admin Dashboard |
+| Resolved incidents and alerts, with their timelines, notes and files | Until the project picks a length | **Incidents → Settings → Data Retention** and **Alerts → Settings → Data Retention**: see [Data retention](/docs/incidents/settings#data-retention). On a self-hosted installation, a limit for every project under **Admin Dashboard → Settings → Data Retention** |
 
 ## What retention costs
 
