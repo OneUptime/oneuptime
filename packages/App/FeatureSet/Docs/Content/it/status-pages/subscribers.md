@@ -43,7 +43,7 @@ Gli interruttori decidono come i visitatori possono iscriversi da soli, e la pag
 
 Su OneUptime Cloud, un interruttore che il vostro piano non include mostra accanto il nome del piano: **Growth** per **SMS** e **Mostra pagina iscritti**, **Scale** per **Slack**, **Microsoft Teams** e **Webhook**. Disattivare un canale funziona su tutti i piani, quindi un canale attivato durante una prova si può sempre disattivare di nuovo; l'interruttore lo dice sotto.
 
-Ogni canale ha anche il proprio elenco nel menu laterale della pagina di stato, sotto **Iscritti**: **Iscritti email**, **Iscritti SMS**, **Iscritti Slack**, **Iscritti a Microsoft Teams** e **Iscritti webhook**. È lì che guardate chi è iscritto, aggiungete qualcuno a mano con **Aggiungi iscritto** o vi lasciate una **Nota interna** (`internalNote`) su un determinato iscritto, che l'iscritto non vede mai. Finché un canale è disattivato, la parte alta del suo elenco lo dice, con l'interruttore del canale proprio lì, così potete attivarlo senza lasciare l'elenco.
+Gli iscritti di tutti i canali sono in un'unica pagina, **Iscritti**, nella sezione **Iscritti** del menu laterale della pagina di stato. Ha una scheda per ogni canale (**E-mail**, **SMS**, **Slack**, **Microsoft Teams** e **Webhook**), e ogni scheda mostra quanti iscritti ha il canale. Ogni scheda è l'elenco di quel canale (**Iscritti email**, **Iscritti SMS** e così via). È lì che guardate chi è iscritto, aggiungete qualcuno a mano con **Aggiungi iscritto** o vi lasciate una **Nota interna** (`internalNote`) su un determinato iscritto, che l'iscritto non vede mai. Finché un canale è disattivato, la parte alta del suo elenco lo dice, con l'interruttore del canale proprio lì, così potete attivarlo senza lasciare l'elenco. La scheda aperta è nell'indirizzo della pagina (`{id}/subscribers?channel=sms`), e gli indirizzi delle vecchie pagine per canale, come `{id}/email-subscribers`, aprono la scheda del loro canale.
 
 **Un interruttore non basta.** La voce **Iscriviti** nella barra di navigazione della pagina di stato compare solo quando **Mostra pagina iscritti** è attivo *e* almeno un canale è attivo. Se attivate **E-mail** ma lasciate disattivato **Mostra pagina iscritti**, i visitatori non hanno modo di raggiungere il modulo.
 
@@ -281,7 +281,7 @@ I campi personalizzati degli incidenti con **Includi nelle notifiche agli iscrit
 
 La voce **Notifica agli iscritti inviata** nel feed dell'incidente elenca, sotto **Custom fields sent**, i valori che ogni invio ha messo in un messaggio. Gli iscritti di solito sono esterni al vostro team, quindi attivate l'impostazione solo per campi che si possono condividere con loro senza problemi.
 
-La sezione **Log di notifica** nel menu laterale della pagina di stato (`{id}/notification-logs`) è dove andate quando dovete vedere che cosa ha effettivamente inviato la pagina.
+**Log di notifica**, nella sezione **Iscritti** del menu laterale della pagina di stato (`{id}/notification-logs`), è dove andate quando dovete vedere che cosa ha effettivamente inviato la pagina.
 
 ### Episodi degli incidenti
 

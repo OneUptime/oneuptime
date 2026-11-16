@@ -43,7 +43,7 @@ Les interrupteurs décident comment les visiteurs peuvent s'inscrire eux-mêmes,
 
 Sur OneUptime Cloud, un interrupteur que votre formule n'inclut pas porte le nom de la formule à côté : **Growth** pour **SMS** et **Afficher la page des abonnés**, **Scale** pour **Slack**, **Microsoft Teams** et **Webhook**. Désactiver un canal fonctionne avec toutes les formules, si bien qu'un canal activé pendant un essai peut toujours être désactivé ; l'interrupteur l'indique en dessous.
 
-Chaque canal a aussi sa propre liste dans le menu latéral de la page de statut, sous **Abonnés** : **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés Microsoft Teams** et **Abonnés au webhook**. C'est là que vous voyez qui est inscrit, ajoutez quelqu'un à la main avec **Ajouter un abonné** ou vous laissez une **Note interne** (`internalNote`) sur un abonné donné, que l'abonné ne voit jamais. Tant qu'un canal est désactivé, le haut de sa liste l'indique, avec l'interrupteur du canal juste à côté, pour que vous puissiez l'activer sans quitter la liste.
+Les abonnés de tous les canaux sont sur une seule page, **Abonnés**, dans la section **Abonnés** du menu latéral de la page de statut. Elle a un onglet par canal (**E-mail**, **SMS**, **Slack**, **Microsoft Teams** et **Webhook**), et chaque onglet indique combien d'abonnés compte le canal. Chaque onglet est la liste de ce canal (**Abonnés e-mail**, **Abonnés SMS**, etc.). C'est là que vous voyez qui est inscrit, ajoutez quelqu'un à la main avec **Ajouter un abonné** ou vous laissez une **Note interne** (`internalNote`) sur un abonné donné, que l'abonné ne voit jamais. Tant qu'un canal est désactivé, le haut de sa liste l'indique, avec l'interrupteur du canal juste à côté, pour que vous puissiez l'activer sans quitter la liste. L'onglet ouvert figure dans l'adresse de la page (`{id}/subscribers?channel=sms`), et les adresses des anciennes pages par canal, comme `{id}/email-subscribers`, ouvrent l'onglet de leur canal.
 
 **Un seul interrupteur ne suffit pas.** L'élément **S'abonner** de la barre de navigation de la page de statut n'apparaît que lorsque **Afficher la page des abonnés** est activé *et* qu'au moins un canal est activé. Si vous activez **E-mail** mais laissez **Afficher la page des abonnés** désactivé, les visiteurs n'ont aucun moyen d'atteindre le formulaire.
 
@@ -281,7 +281,7 @@ Les champs personnalisés d'incident dont **Inclure dans les notifications aux a
 
 L'entrée **Notification aux abonnés envoyée** du fil de l'incident liste, sous **Custom fields sent**, les valeurs que chaque envoi a placées dans un message. Les abonnés sont généralement extérieurs à votre équipe : n'activez le réglage que pour des champs qu'il est sans risque de partager avec eux.
 
-La section **Journaux de notification** du menu latéral de la page de statut (`{id}/notification-logs`) est l'endroit où aller quand vous devez voir ce que la page a réellement envoyé.
+**Journaux de notification**, dans la section **Abonnés** du menu latéral de la page de statut (`{id}/notification-logs`), est l'endroit où aller quand vous devez voir ce que la page a réellement envoyé.
 
 ### Épisodes d'incident
 

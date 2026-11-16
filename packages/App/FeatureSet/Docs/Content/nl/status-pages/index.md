@@ -86,22 +86,21 @@ Daarna, ongeveer in volgorde van nut:
 
 ## Waar alles staat
 
-Zodra u een statuspagina hebt geopend, is haar eigen linkermenu in tien secties ingedeeld. Gebruik het als kaart voor de rest van dit deel van de documentatie.
+Zodra u een statuspagina hebt geopend, is haar eigen linkermenu in negen secties ingedeeld. Gebruik het als kaart voor de rest van dit deel van de documentatie.
 
 | Sectie | Wat erin staat |
 | --- | --- |
 | **Basis** | **Overzicht**, **Aankondigingen**, **Eigenaren**. |
 | **Middelen** | Eén scherm **Middelen** (de groepen links, de monitoren van de geselecteerde groep rechts). |
 | **Regels** | **Monitorregels**: regels die elke overeenkomende monitor aan de pagina toevoegen, nu en later. |
-| **Abonnees** | **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **Microsoft Teams-abonnees**, **Webhook-abonnees**, **Abonneeinstellingen**. |
-| **Meldingslogboeken** | **Meldingslogboeken**: wat er naar abonnees is verzonden. |
+| **Abonnees** | **Abonnees** (één pagina, met een tabblad voor elk kanaal: E-mail, SMS, Slack, Microsoft Teams en Webhook), **Abonneeinstellingen**, **Meldingslogboeken**: wat er naar abonnees is verzonden. |
 | **Huisstijl** | **Huisstijl** (logo, titel, favicon, links, voettekst, kleuren en talen, op één pagina), **Aangepaste domeinen**, **HTML, CSS & JavaScript**. |
 | **Beveiliging** | **Toegang** (wie de pagina mag zien), **Privégebruikers**, **SSO**, **OIDC**, **SCIM**. |
 | **AI** | **MCP**. |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI**, **AI-assistenten**: de pagina als code. |
 | **Geavanceerd** | **Ingesloten status**, **Rapporten**, **Aangepaste velden**, **Geavanceerde instellingen**, **Auditlogboeken**, **Statuspagina verwijderen**. |
 
-Alleen **Basis** en **Middelen**, wat de pagina toont, beginnen open. Alle andere secties beginnen ingeklapt, net als de weinig gebruikte secties van elk menu in OneUptime: klik op de titel van een sectie om haar pagina's te tonen. Een sectie gaat vanzelf open wanneer u op een van haar pagina's bent, zoals **Geavanceerde instellingen** of **E-mail-abonnees**.
+Alleen **Basis** en **Middelen**, wat de pagina toont, beginnen open. Alle andere secties beginnen ingeklapt, net als de weinig gebruikte secties van elk menu in OneUptime: klik op de titel van een sectie om haar pagina's te tonen. Een sectie gaat vanzelf open wanneer u op een van haar pagina's bent, zoals **Geavanceerde instellingen** of **Abonnees**.
 
 Twee eigenaardigheden in de naamgeving die u moet kennen voordat u gaat zoeken:
 

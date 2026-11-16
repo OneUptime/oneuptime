@@ -98,8 +98,11 @@ and phone summary: change the suite in the same pull request as the menu.
   [WorkspaceConnectionsGuards](../../packages/Common/Tests/App/Dashboard/WorkspaceConnectionsGuards.test.ts).
 - **One kind of record is one page.** Kinds of the same thing are tabs on that page, not a page each:
   How to Reach Me is one page, a ladder with a tab per kind behind it, not four pages in two menu
-  sections. Enforced by
-  [OnCallRulesOnePageGuard](../../packages/App/Tests/Dashboard/OnCallRulesOnePageGuard.test.ts).
+  sections. A status page's subscribers are one Subscribers page with a tab per channel (Email, SMS,
+  Slack, Microsoft Teams, Webhook), where they were five pages, and the old addresses open their tab
+  (#9125). Enforced by
+  [OnCallRulesOnePageGuard](../../packages/App/Tests/Dashboard/OnCallRulesOnePageGuard.test.ts) and
+  [StatusPageSubscribersOnePageGuard](../../packages/App/Tests/Dashboard/StatusPageSubscribersOnePageGuard.test.ts).
 - **Every entry in the More menu has an icon.** Enforced by
   [MoreMenuItemIconsGuard](../../packages/App/Tests/MoreMenuItemIconsGuard.test.ts).
 
