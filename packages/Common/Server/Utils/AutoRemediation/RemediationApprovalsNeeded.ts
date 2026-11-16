@@ -1,13 +1,21 @@
+import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Project from "../../../Models/DatabaseModels/Project";
 import {
   AiRemediationCommand,
   AiRemediationCommandPlan,
+  AiRemediationCommandPlanUtil,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import {
   getRemediationApprovalsNeeded,
+  getRemediationApprovalStep,
   isRiskierRemediationCommand,
+  RemediationApprovalStep,
 } from "../../../Types/AutoRemediation/RemediationApprovals";
+import {
+  getRemediationPlanFingerprint,
+  isRemediationPlanFingerprint,
+} from "../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import ObjectID from "../../../Types/ObjectID";
 import { isAiResourceType } from "../../../Types/ResourceAiAgent/AiResourceType";
@@ -65,8 +73,9 @@ export function hasRiskierChangeNow(
 
 /*
  * How many approvals a fix needs, with the project's rule as a read of it
- * gave it: two for a command plan holding a riskier change where the
- * project asks two people to approve one, one otherwise.
+ * gave it: two for a command plan holding a riskier change, or a fix
+ * through MCP servers, where the project asks two people to approve a
+ * riskier fix; one otherwise.
  */
 export function getFixApprovalsNeeded(data: {
   project: Pick<Project, "requireTwoApprovalsForRiskierFixes"> | null;
@@ -78,6 +87,64 @@ export function getFixApprovalsNeeded(data: {
       data.project?.requireTwoApprovalsForRiskierFixes === true,
     suggestionType: data.suggestionType,
     hasRiskierChange: hasRiskierChangeNow(data.plan),
+  });
+}
+
+/*
+ * The first approval a fix has, when it still counts: one given to the fix
+ * as it is now - what it approved (firstApprovedPlanFingerprint) is what
+ * the fix runs now. A first approval given to what the fix no longer runs,
+ * or before what it approved was kept, counts for nothing: the next press
+ * is the first approval of the fix as it is.
+ */
+export function getCountedFirstApproverId(
+  suggestion: Pick<
+    AutoRemediationSuggestion,
+    | "firstApprovedByUserId"
+    | "firstApprovedPlanFingerprint"
+    | "suggestionType"
+    | "commandPlan"
+    | "mcpToolCallPlan"
+    | "runbookId"
+  >,
+): ObjectID | undefined {
+  if (
+    !suggestion.firstApprovedByUserId ||
+    !isRemediationPlanFingerprint(suggestion.firstApprovedPlanFingerprint)
+  ) {
+    return undefined;
+  }
+
+  return suggestion.firstApprovedPlanFingerprint ===
+    getRemediationPlanFingerprint(suggestion)
+    ? suggestion.firstApprovedByUserId
+    : undefined;
+}
+
+/*
+ * What a press of Approve does to a fix now, with the project's rule as a
+ * read of it gave it: run it (one approval), record the first of two, or
+ * run it after the first approval that counts.
+ */
+export function getFixApprovalStep(data: {
+  project: Pick<Project, "requireTwoApprovalsForRiskierFixes"> | null;
+  suggestion: Pick<
+    AutoRemediationSuggestion,
+    | "firstApprovedByUserId"
+    | "firstApprovedPlanFingerprint"
+    | "suggestionType"
+    | "commandPlan"
+    | "mcpToolCallPlan"
+    | "runbookId"
+  >;
+}): RemediationApprovalStep {
+  return getRemediationApprovalStep({
+    approvalsNeeded: getFixApprovalsNeeded({
+      project: data.project,
+      suggestionType: data.suggestion.suggestionType,
+      plan: AiRemediationCommandPlanUtil.parse(data.suggestion.commandPlan),
+    }),
+    firstApprovedByUserId: getCountedFirstApproverId(data.suggestion),
   });
 }
 

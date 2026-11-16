@@ -5,6 +5,8 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import { RemediationActionValue } from "../../../AutoRemediation/RemediationChatMessage";
+import { ApprovalStepChangedException } from "../../../AutoRemediation/RemediationApproval";
+import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { WorkspaceAnswer } from "../../WorkspaceActionAnswers";
 import WorkspaceRemediationActions, {
@@ -147,13 +149,39 @@ export default class MicrosoftTeamsRemediationActions {
       data.actionType ===
       MicrosoftTeamsRemediationActionType.SubmitApproveRemediation
     ) {
-      const approved: WorkspaceAnswer =
-        await WorkspaceRemediationActions.approve({
+      let approved: WorkspaceAnswer;
+
+      try {
+        approved = await WorkspaceRemediationActions.approve({
           props,
           value,
           from: WorkspaceType.MicrosoftTeams,
           suggestion,
         });
+      } catch (err) {
+        if (!(err instanceof ApprovalStepChangedException)) {
+          throw err;
+        }
+
+        /*
+         * The card no longer says what its press does (someone else
+         * approved first, or the rule changed): nothing was done. The
+         * presser is told to review the fix again, and the stale card is
+         * taken away so nobody in the channel presses it again.
+         */
+        await MicrosoftTeamsActionAnswer.reply({
+          turnContext: data.turnContext,
+          answer: {
+            markdown: mdText`${err.message}`.toString(),
+            text: err.message,
+          },
+        });
+        await MicrosoftTeamsReplies.deleteBestEffort(
+          data.turnContext,
+          data.turnContext.activity.replyToId,
+        );
+        return;
+      }
 
       /*
        * Confirmed, then the approval card is removed - best-effort, as

@@ -65,6 +65,10 @@ import {
   getFixApprovalsNeeded,
   readTwoApprovalsRule,
 } from "./RemediationApprovalsNeeded";
+import {
+  decodeRemediationApprovalStep,
+  RemediationApprovalStep,
+} from "../../../Types/AutoRemediation/RemediationApprovals";
 
 /*
  * A FIX THAT WAITS FOR APPROVAL, WHERE THE TEAM IS.
@@ -126,6 +130,11 @@ export interface RemediationChatApprovals {
   needed: number;
   hasFirstApproval: boolean;
   firstApproverName?: string | undefined;
+  /*
+   * What a press of the dialog's Approve does as it is shown: its button
+   * carries it, and does nothing once that is no longer so.
+   */
+  step?: RemediationApprovalStep | undefined;
 }
 
 /*
@@ -141,10 +150,17 @@ export function getTrackRecordRunKey(run: RemediationTrackRecordRun): string {
   return `${run.subjectKind}:${run.subjectId.toLowerCase()}`;
 }
 
-// A button's value: the fix, and the fingerprint of what it ran then.
+/*
+ * A button's value: the fix, the fingerprint of what it ran then and - on
+ * an approval dialog's Approve - the step that press was offered as
+ * (RemediationApprovalStep, encoded): the first of two approvals, the
+ * second after someone's, or the only one. A dialog left open while that
+ * changed does nothing when pressed (RemediationApproval).
+ */
 export interface RemediationActionValue {
   suggestionId: ObjectID;
   fingerprint: string;
+  approvalStep?: string | undefined;
 }
 
 // What a message shows of a change's reasoning and answers, at most.
@@ -274,8 +290,13 @@ export function describeChangeTarget(
 }
 
 export default class RemediationChatMessage {
+  // "<fix id>:<fingerprint>", and ":<step>" on a dialog's Approve.
   public static encodeActionValue(value: RemediationActionValue): string {
-    return `${value.suggestionId.toString()}${ACTION_VALUE_SEPARATOR}${value.fingerprint}`;
+    const fix: string = `${value.suggestionId.toString()}${ACTION_VALUE_SEPARATOR}${value.fingerprint}`;
+
+    return value.approvalStep
+      ? `${fix}${ACTION_VALUE_SEPARATOR}${value.approvalStep}`
+      : fix;
   }
 
   // A button's value, or null when it is not one this message wrote.
@@ -293,13 +314,27 @@ export default class RemediationChatMessage {
     }
 
     const suggestionId: string = value.slice(0, separator);
-    const fingerprint: string = value.slice(separator + 1);
+    const rest: string = value.slice(separator + 1);
+    // A fingerprint is hex digits: what follows its separator is the step.
+    const stepSeparator: number = rest.indexOf(ACTION_VALUE_SEPARATOR);
+    const fingerprint: string =
+      stepSeparator < 0 ? rest : rest.slice(0, stepSeparator);
+    const approvalStep: string =
+      stepSeparator < 0 ? "" : rest.slice(stepSeparator + 1);
 
     if (!ObjectID.isValidUUID(suggestionId) || !fingerprint) {
       return null;
     }
 
-    return { suggestionId: new ObjectID(suggestionId), fingerprint };
+    if (stepSeparator >= 0 && !decodeRemediationApprovalStep(approvalStep)) {
+      return null;
+    }
+
+    return {
+      suggestionId: new ObjectID(suggestionId),
+      fingerprint,
+      ...(approvalStep ? { approvalStep } : {}),
+    };
   }
 
   // The fix a suggestion row holds, as its message and dialog read it.
@@ -917,12 +952,13 @@ export default class RemediationChatMessage {
         : AutoRemediationSuggestionType.Runbook;
 
     /*
-     * Whether two people must approve it: a riskier command plan, in a
-     * project that asks for two (read now; unknown, the message says what
-     * it says of one approval, and the approval itself decides).
+     * Whether two people must approve it: a riskier command plan, or a
+     * fix through MCP servers, in a project that asks for two (read now;
+     * unknown, the message says what it says of one approval, and the
+     * approval itself decides).
      */
     const approvalsNeeded: number =
-      suggestionType === AutoRemediationSuggestionType.CommandPlan
+      suggestionType !== AutoRemediationSuggestionType.Runbook
         ? getFixApprovalsNeeded({
             project: {
               requireTwoApprovalsForRiskierFixes:
