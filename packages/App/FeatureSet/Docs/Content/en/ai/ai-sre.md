@@ -280,7 +280,7 @@ Everything on the page comes from what OneUptime already recorded — the incide
 
 ### Everything AI did on a cluster
 
-The cluster's **AI Logs** page (AI → Logs) is the record of everything OneUptime AI did there, newest first: each investigation with its incident or alert and its summary, each fix it proposed or ran with its status, and every kubectl command — investigation or fix — with the command, its status and when it ran. An investigation's summary is its TL;DR or, when no TL;DR could be written, the summary its report opens with. This page used to be called AI Insights; a bookmark of its old address now opens the AI Insights page, which links here.
+The cluster's **AI Logs** page (AI → Logs) is the record of everything OneUptime AI did there, newest first: each investigation with its incident or alert and its summary, each fix it proposed or ran with its status, and every kubectl command — investigation or fix — with the command, its status and when it ran. An investigation's summary is its TL;DR or, when no TL;DR could be written, the summary its report opens with. This page used to be called AI Insights; a bookmark of its old address now opens the AI Insights page, which links here. It lists the kubectl commands you may read: those OneUptime AI ran for someone else's AI chat, or about a private incident or alert you can't read, are left out, and the page says how many.
 
 ### Through the previous in-cluster Runner
 

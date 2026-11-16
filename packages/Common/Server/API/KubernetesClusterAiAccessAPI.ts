@@ -927,6 +927,12 @@ function mergeNewest<T extends BaseRow>(
  *   KUBERNETES_CLUSTER_AI_LOGS_COMMAND_WINDOW_IN_DAYS days. The AI agent
  *   page's connection tests have no AI run behind them and are not counted,
  *   the way the project's investigation brake leaves them out.
+ * - hiddenCommandCount: how many of the kubectl commands the page's list
+ *   reads - under the caller's props, through the Runner job API - the
+ *   caller may not read: another person's AI chat's, or one about a
+ *   private incident or alert they don't see (#9155). Counted as root and
+ *   as the caller, so only the number leaves. Absent for a caller who may
+ *   not read Runner jobs at all, whom the page tells so on its own.
  */
 export async function getClusterAiLogs(data: {
   projectId: ObjectID;
@@ -1041,15 +1047,27 @@ export async function getClusterAiLogs(data: {
     ).toNumber();
   };
 
-  const [investigationCommands, remediationCommands]: [number, number] =
-    await Promise.all([
-      countCommands({
-        origin: RunnerJobOrigin.AiInvestigation,
-        // Connection tests have no AI run; every investigation command does.
-        aiRunId: QueryHelper.notNull(),
-      }),
-      countCommands({ origin: RunnerJobOrigin.AiRemediation }),
-    ]);
+  const [investigationCommands, remediationCommands, hiddenCommandCount]: [
+    number,
+    number,
+    number | null,
+  ] = await Promise.all([
+    countCommands({
+      origin: RunnerJobOrigin.AiInvestigation,
+      // Connection tests have no AI run; every investigation command does.
+      aiRunId: QueryHelper.notNull(),
+    }),
+    countCommands({ origin: RunnerJobOrigin.AiRemediation }),
+    // What the page's list of kubectl commands reads, as the caller (see above).
+    RunnerJobService.countJobsHiddenFrom({
+      query: {
+        projectId,
+        kubernetesClusterId: clusterId,
+        stepType: RunbookStepType.Kubectl,
+      },
+      props,
+    }),
+  ]);
 
   return {
     clusterId: clusterId.toString(),
@@ -1059,6 +1077,7 @@ export async function getClusterAiLogs(data: {
       investigation: investigationCommands,
       remediation: remediationCommands,
     },
+    ...(hiddenCommandCount === null ? {} : { hiddenCommandCount }),
   };
 }
 

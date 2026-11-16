@@ -8,6 +8,7 @@ import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import { DRY_RUN_COMMAND_STEP_ID_PREFIX } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
+import { readHiddenCommandCount } from "./CommandJobsHidden";
 import {
   translatableTerm,
   translateTemplate,
@@ -187,6 +188,11 @@ export interface ResourceAiLogsFix {
 export interface ResourceAiLogs {
   investigations: Array<ResourceAiLogsInvestigation>;
   fixes: Array<ResourceAiLogsFix>;
+  /*
+   * How many of the resource's commands the reader may not read, which the
+   * commands card says it leaves out (CommandJobsHidden); 0 when none.
+   */
+  hiddenCommandCount: number;
 }
 
 function isObject(value: unknown): value is JSONObject {
@@ -325,6 +331,7 @@ export function parseResourceAiLogs(value: unknown): ResourceAiLogs | null {
   return {
     investigations: parseList(value["investigations"], parseInvestigation),
     fixes: parseList(value["fixes"], parseFix),
+    hiddenCommandCount: readHiddenCommandCount(value["hiddenCommandCount"]),
   };
 }
 

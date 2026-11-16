@@ -56436,5 +56436,8 @@
   "{{itemName}} invited": "{{itemName}} eingeladen",
   "{{itemName}} linked": "{{itemName}} verknüpft",
   "{{itemName}} removed": "{{itemName}} entfernt",
-  "{{itemName}} started": "{{itemName}} gestartet"
+  "{{itemName}} started": "{{itemName}} gestartet",
+  "No commands you can see.": "Keine Befehle, die Sie sehen können.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} Befehle, die hier ausgeführt wurden, werden nicht aufgeführt: Sie wurden für KI-Chats, Vorfälle oder Warnungen ausgeführt, die Sie nicht öffnen können.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} Befehl, der hier ausgeführt wurde, wird nicht aufgeführt: Er wurde für einen KI-Chat, einen Vorfall oder eine Warnung ausgeführt, die Sie nicht öffnen können."
 }
