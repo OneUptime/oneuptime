@@ -209,7 +209,8 @@ describe("the help panels speak plainly", () => {
     for (const page of RULE_PAGES) {
       expect({
         file: page.file,
-        headings: countOf(read(page.file), "### Match Criteria"),
+        // A "##" topic of the help dialog (Common HelpContent).
+        headings: countOf(read(page.file), "\n## Match Criteria\n"),
       }).toEqual({ file: page.file, headings: page.forms });
     }
   });

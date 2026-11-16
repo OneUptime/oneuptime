@@ -29,50 +29,46 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 
 const incidentOwnerDocumentation: string = `
-### How Incident Owner Rules Work
+An owner rule makes people and teams owners of every incident it matches, so the right people own an incident from the moment it is declared.
 
-Incident Owner Rules add owner users and teams to an incident automatically when it matches your criteria — without anyone having to remember to assign owners.
+## How It Works
 
-### Match Criteria
+- Rules run as each incident is declared, and again whenever its severity or labels change while it is open. An incident raised to a severity a rule matches, or labelled org-wide, gets that rule's owners then. This is how an oversight team takes over an incident that grows.
+- Every rule that matches adds its owners. An owner the incident already has is not added twice, and nobody is removed when the incident stops matching.
+- Whoever declares an incident owns it, whatever the rules say. The summary step of **Declare Incident** lists each rule that will run, and whom it will add.
+- To add owners to incidents you already have, open a rule and select **Run Now**.
 
-A rule matches an incident only when **all** specified criteria pass. Empty criteria are skipped.
+## Match Criteria
 
-- **Monitors**, **Severities**, **Incident Labels**, **Monitor Labels** — any-of (M2M)
-- **Title / Description Pattern**, **Monitor Name / Description Pattern** — case-insensitive regex
+Add conditions on the incident, such as its monitors, severity, labels or title, and choose whether all of them or any one must match.
 
-### Action
+## Owners a Rule Copies
 
-When a rule matches:
+Under **Inherit Owners**, a rule can also add the owners of the incident's monitors, and of the hosts, Kubernetes clusters, Docker hosts, Podman hosts and services it affects.
 
-- Every user and team listed on the rule is added as an owner.
-- If \`Inherit Owners From Monitors\` is on, every owner of the incident's monitors is also added.
-- If \`Inherit Owners From Hosts\` is on, every owner of the incident's affected hosts is also added.
-- If \`Inherit Owners From Kubernetes Clusters\` is on, every owner of the incident's affected Kubernetes clusters is also added.
-- If \`Inherit Owners From Docker Hosts\` is on, every owner of the incident's affected Docker hosts is also added.
-- If \`Inherit Owners From Podman Hosts\` is on, every owner of the incident's affected Podman hosts is also added.
-- If \`Inherit Owners From Services\` is on, every owner of the incident's affected services is also added.
-- Under \`Creator's Team\`, each listed team that the person who declares the incident is a member of is also added. An incident declared by a monitor, a workflow or an API key has no creator, so it gets none of these teams.
+**Creator's Team** adds each team you list that the person declaring the incident is in. An incident declared by a monitor, a workflow or an API key has no creator, so it gets none of these teams.
 
-Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned. Whoever declares an incident becomes one of its owners whatever the rules say, and the summary step of Declare Incident lists each rule that will run, and whom it will add.
+## Telling the New Owners
 
-### When the Severity or Labels Change
+With **Notify Owners** on (the default), the people and teams a rule adds are told they now own the incident. Turn it off to add them quietly.
 
-Rules run when an incident is declared, and again whenever its severity or labels change while it is open. Raised to a severity a rule matches, or labelled org-wide, the incident gets that rule's owners then - how an oversight team takes over an incident that grows. Owners are never removed when it stops matching.
+## Rules That Belong to Teams
 
-### Rules That Belong to Teams
-
-Under More fields, **Owning Teams** keeps a rule to the teams you pick: only their members, with those teams' permissions, and Project Admins can edit or delete it. It says who may change the rule, not who it adds to incidents. A rule with no owning teams can be changed by everyone who can edit rules.
+Under **More fields**, **Owning Teams** limits who can change a rule: only members of the teams you pick, with those teams' permissions, and Project Admins. It does not change whom the rule adds to incidents. A rule with no owning teams can be changed by anyone who can edit rules.
 `;
 
 const incidentEpisodeOwnerDocumentation: string = `
-### How Incident Episode Owner Rules Work
+An episode owner rule makes people and teams owners of every new incident episode it matches, so each episode has someone responsible for it.
 
-Match an incident episode on creation and add owner users / teams automatically.
+## How It Works
 
-### Match Criteria
+- Rules run as each episode opens. To add owners to episodes you already have, open a rule and select **Run Now**.
+- Every rule that matches adds its owners. An owner the episode already has is not added twice.
+- With **Notify Owners** on (the default), the people and teams a rule adds are told.
 
-- **Incident Severities**, **Episode Labels** — any of the selected values
-- **Episode Title**, **Episode Description** — text, or a regular expression or \`*\` wildcard pattern
+## Match Criteria
+
+Add conditions on the episode, such as its severity, labels or title, and choose whether all of them or any one must match.
 `;
 
 interface RulesTableProps {

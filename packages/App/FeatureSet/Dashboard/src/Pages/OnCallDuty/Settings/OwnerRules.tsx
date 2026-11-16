@@ -1,3 +1,4 @@
+import { getOwnerRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -21,56 +22,17 @@ import Label from "Common/Models/DatabaseModels/Label";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 
-const policyDocumentation: string = `
-### How On-Call Policy Owner Rules Work
+const policyDocumentation: string = getOwnerRuleHelpMarkdown({
+  nouns: { singular: "on-call policy", plural: "on-call policies" },
+});
 
-On-Call Policy Owner Rules add owner users and teams to an on-call policy automatically when it matches your criteria — without anyone having to remember to assign owners.
+const scheduleDocumentation: string = getOwnerRuleHelpMarkdown({
+  nouns: { singular: "on-call schedule", plural: "on-call schedules" },
+});
 
-### Match Criteria
-
-A rule matches a policy only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **On-Call Policy Labels** — any-of (M2M)
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
-`;
-
-const scheduleDocumentation: string = `
-### How On-Call Schedule Owner Rules Work
-
-On-Call Schedule Owner Rules add owner users and teams to an on-call schedule automatically when it matches your criteria.
-
-### Match Criteria
-
-A rule matches a schedule only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **On-Call Schedule Labels** — any-of (M2M)
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified.
-`;
-
-const incomingCallDocumentation: string = `
-### How Incoming Call Policy Owner Rules Work
-
-Incoming Call Policy Owner Rules add owner users and teams to an incoming call policy automatically when it matches your criteria.
-
-### Match Criteria
-
-A rule matches a policy only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Incoming Call Policy Labels** — any-of (M2M)
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified.
-`;
+const incomingCallDocumentation: string = getOwnerRuleHelpMarkdown({
+  nouns: { singular: "incoming call policy", plural: "incoming call policies" },
+});
 
 interface RulesTableProps {
   // Set when the page is routed as this rule's view page.

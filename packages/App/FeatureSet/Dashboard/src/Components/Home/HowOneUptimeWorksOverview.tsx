@@ -95,8 +95,7 @@ export interface HowItWorksLoopStep {
 /*
  * The four steps a problem moves through, in order. Essentials, the
  * products menu's first category, lists its products in the same order a
- * problem meets them; the Welcome checklist's strip (HowOneUptimeWorks)
- * tells the short version of the same story.
+ * problem meets them.
  */
 export const HOW_IT_WORKS_LOOP: ReadonlyArray<HowItWorksLoopStep> = [
   {
@@ -848,7 +847,7 @@ const HowOneUptimeWorksOverview: FunctionComponent<ComponentProps> = (
                 {index === 1 ? (
                   <span
                     aria-hidden="true"
-                    className="hidden px-3 pb-1 pt-5 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:block"
+                    className="max-lg:hidden px-3 pb-1 pt-5 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:block"
                   >
                     {tx(HOW_IT_WORKS_PRODUCTS_LABEL)}
                   </span>

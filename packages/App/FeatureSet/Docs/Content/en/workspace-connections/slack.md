@@ -132,7 +132,7 @@ At each hand-off, an on-call policy's channels hear who is on call, in one line:
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments links to the policy in OneUptime. When the policy pages more than one schedule, the line names the schedule too: Payments (Primary).
-- A person is named by their Slack name once they have connected their Slack account to OneUptime, and by their OneUptime name until then. Times show in each reader's own time zone.
+- A person is named by their Slack name once they have connected their Slack account to OneUptime, and by their OneUptime name until then, in every on-call line: hand-offs, overrides, and people added to the policy or taken out. Times show in each reader's own time zone.
 - When several escalation rules of the policy page the same schedule, each hand-off is posted once, not once for each rule.
 
 A rule posts what it chose in its **Updates** step, and a new rule starts on **Key updates only**: who is on call now, and when nobody is.
@@ -147,6 +147,8 @@ A rule posts what it chose in its **Updates** step, and a new rule starts on **K
 | **Owners** | Owners added and removed. |
 
 A channel gets one message for a hand-off, even when two rules post to it. An on-call rule saved before rules chose their updates posts every one, as it did.
+
+A name notifies nobody, so a channel that hears every hand-off is not pinged at each one. To notify the person who comes on call, turn on **Mention the person who comes on call** in the rule's **Updates** step: the hand-off line then mentions them, once they have connected their Slack account to OneUptime. Who is next is never mentioned, nor is anyone who has not connected their account. The switch shows while the rule posts **Who is on call now**, and is off for a new rule.
 
 ## Who is in a record's channel
 
@@ -261,7 +263,7 @@ OneUptime answers only what is addressed to it.
 - **In an alert's own channel.** In the channel OneUptime created for an alert, while the alert is open, the form says the incident is declared from that alert, and starts with the alert's title and the resources it is linked to that you may view. The incident is linked to the alert, as one declared from the alert's page is, and a private alert's incident is private too. When you may not link alerts to incidents, the incident is declared without the link, and you are told why.
 - **What a form may name.** The incident or event is created with your own permissions and credited to you. A monitor, on-call policy, label, severity or status you may not read, or one of another project, is refused like one the project does not have, even from a form opened before your access changed, and nothing is created. OneUptime tells you why in the channel, in a message only you see.
 
-**Execute On-Call Policy** on an incident, alert or episode works the same way: it needs permission to execute an on-call policy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Execute On-Call Policies** in a custom role) and to read that incident, alert or episode, and offers the live on-call policies you may read.
+**Execute On-Call Policy** on an incident, alert or episode works the same way: it needs permission to execute an on-call policy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Execute On-Call Policies** in a custom role) and to read that incident, alert or episode, and offers the live on-call policies you may read. The policy pages its people until one of them answers or the incident, alert or episode is resolved, even when somebody acknowledged it already, and the form says so under its list.
 
 ## Paging someone from Slack
 

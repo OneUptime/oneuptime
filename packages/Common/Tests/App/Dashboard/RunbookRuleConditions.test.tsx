@@ -919,8 +919,9 @@ describe("the runbook rule help", () => {
       }
 
       expect(markdown).not.toMatch(/\bPattern\b/);
-      expect(markdown).toContain(`### What Conditions Can Check`);
-      expect(markdown).toContain("Runbooks → Executions");
+      // A "##" topic of the help dialog (Common HelpContent).
+      expect(markdown).toContain(`## What Conditions Can Check`);
+      expect(markdown).toContain("**Runbooks > Executions**");
     },
   );
 
@@ -960,10 +961,10 @@ describe("the runbook rule help", () => {
     const shown: string = replaceRuleCriteriaHelpMarkdown(markdown);
 
     // The list of what a condition can check is outside the rewritten part.
-    expect(shown).toContain("### What Conditions Can Check");
+    expect(shown).toContain("## What Conditions Can Check");
     expect(shown).toContain("**Monitor Labels**");
-    expect(shown).toContain("### Match Criteria");
+    expect(shown).toContain("## Match Criteria");
     expect(shown).toContain(RULE_CRITERIA_HELP_SECTION_BODY);
-    expect(shown).toContain("### Action");
+    expect(shown).toContain("## How It Works");
   });
 });

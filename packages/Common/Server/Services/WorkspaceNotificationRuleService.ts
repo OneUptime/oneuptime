@@ -41,7 +41,9 @@ import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import WorkspaceMessagePayload, {
   WorkspaceMessageBlock,
   WorkspacePayloadMarkdown,
+  WorkspacePayloadMention,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceMentions from "../Utils/Workspace/WorkspaceMentions";
 import WorkspaceProjectAuthToken, {
   MicrosoftTeamsChat,
   MicrosoftTeamsMiscData,
@@ -63,6 +65,7 @@ import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNoti
 import NotificationRuleUpdates, {
   NotificationRuleUpdateKind,
   RuleOfChannel,
+  StoredRuleUpdates,
 } from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import UserService from "./UserService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -410,10 +413,22 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRule: unknown;
     eventType: NotificationRuleEventType | undefined;
   }): void {
-    const error: string | null = NotificationRuleUpdates.getValidationError({
-      eventType: data.eventType,
-      updatesToPost: Service.getWrittenUpdatesToPost(data.notificationRule),
-    });
+    const error: string | null =
+      NotificationRuleUpdates.getValidationError({
+        eventType: data.eventType,
+        updatesToPost: Service.getWrittenUpdatesToPost(data.notificationRule),
+      }) ||
+      /*
+       * And whether it mentions who comes on call (issue #7968): true or
+       * false, and true only on an on-call policy's rule.
+       */
+      NotificationRuleUpdates.getMentionValidationError({
+        eventType: data.eventType,
+        shouldMentionWhoIsOnCall: Service.getWrittenRuleField(
+          data.notificationRule,
+          "shouldMentionWhoIsOnCall",
+        ),
+      });
 
     if (error) {
       throw new BadDataException(error);
@@ -422,6 +437,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
   // The updatesToPost a write of the rule's notificationRule holds, if any.
   private static getWrittenUpdatesToPost(notificationRule: unknown): unknown {
+    return Service.getWrittenRuleField(notificationRule, "updatesToPost");
+  }
+
+  // A field a write of the rule's notificationRule holds, if any.
+  private static getWrittenRuleField(
+    notificationRule: unknown,
+    field: string,
+  ): unknown {
     if (
       !notificationRule ||
       typeof notificationRule !== "object" ||
@@ -430,7 +453,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       return undefined;
     }
 
-    return (notificationRule as Record<string, unknown>)["updatesToPost"];
+    return (notificationRule as Record<string, unknown>)[field];
   }
 
   @CaptureSpan()
@@ -528,15 +551,25 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     /*
-     * The updates the rule is saved to post are checked against the kind of
-     * rule it is: the kind the update sends, or else the kind of each rule
-     * it writes - read only when it writes a list.
+     * The updates the rule is saved to post, and whether it mentions who
+     * comes on call, are checked against the kind of rule it is: the kind
+     * the update sends, or else the kind of each rule it writes - read only
+     * when it writes either.
      */
-    const writtenUpdatesToPost: unknown = Service.getWrittenUpdatesToPost(
-      (updateBy.data as unknown as Record<string, unknown>)["notificationRule"],
+    const writtenRule: unknown = (
+      updateBy.data as unknown as Record<string, unknown>
+    )["notificationRule"];
+    const writtenUpdatesToPost: unknown =
+      Service.getWrittenUpdatesToPost(writtenRule);
+    const writtenMention: unknown = Service.getWrittenRuleField(
+      writtenRule,
+      "shouldMentionWhoIsOnCall",
     );
 
-    if (writtenUpdatesToPost !== undefined && writtenUpdatesToPost !== null) {
+    if (
+      (writtenUpdatesToPost !== undefined && writtenUpdatesToPost !== null) ||
+      (writtenMention !== undefined && writtenMention !== null)
+    ) {
       const sentEventType: unknown = (
         updateBy.data as unknown as Record<string, unknown>
       )["eventType"];
@@ -558,9 +591,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       for (const eventType of eventTypes) {
         Service.assertUpdatesToPostAreValid({
-          notificationRule: (
-            updateBy.data as unknown as Record<string, unknown>
-          )["notificationRule"],
+          notificationRule: writtenRule,
           eventType: eventType,
         });
       }
@@ -1823,6 +1854,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     markdownByWorkspaceType?:
       | Partial<Record<WorkspaceType, string>>
       | undefined;
+    /*
+     * The people each workspace's line mentions on purpose, as its text
+     * writes them (WorkspacePayloadMarkdown.mentions): a hand-off's person
+     * on call, on a rule that asks for it (issue #7968).
+     */
+    mentionsByWorkspaceType?:
+      | Partial<Record<WorkspaceType, Array<WorkspacePayloadMention>>>
+      | undefined;
     workspaceNotification: {
       /*
        * Who did what the message says, as a OneUptime user id: their name
@@ -1861,6 +1900,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       notWantedUpdateKinds?:
         | ReadonlyArray<NotificationRuleUpdateKind>
         | undefined;
+      /*
+       * For a hand-off's line said with and without its mention: posted
+       * only where a rule that wants it asks to mention who is on call
+       * (true), or only where none does (false).
+       */
+      mentioning?: boolean | undefined;
     };
   }): Promise<void> {
     /*
@@ -1907,6 +1952,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         apiKeyName: data.workspaceNotification.authorApiKeyName,
         markdown: data.feedInfoInMarkdown,
         markdownByWorkspaceType: data.markdownByWorkspaceType,
+        mentionsByWorkspaceType: data.mentionsByWorkspaceType,
         projectId: data.projectId,
       });
 
@@ -1956,6 +2002,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           alsoWantedUpdateKinds:
             data.workspaceNotification.alsoWantedUpdateKinds,
           notWantedUpdateKinds: data.workspaceNotification.notWantedUpdateKinds,
+          mentioning: data.workspaceNotification.mentioning,
         });
 
       for (const destination of destinations) {
@@ -2062,6 +2109,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationFor: NotificationFor;
     workspaceType: WorkspaceType;
     updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
+    /*
+     * Only where a rule that wants the message also passes this: one that
+     * asks to mention who is on call (getMessageDestinationsWanting). A
+     * record's channel whose rules are not known has no rule to pass it.
+     */
+    onlyWhereRule?: ((rule: StoredRuleUpdates) => boolean) | undefined;
   }): Promise<Array<WorkspaceMessagePayload>> {
     const destinations: Array<WorkspaceMessagePayload> = [];
 
@@ -2074,6 +2127,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         workspaceType: data.workspaceType,
         notificationFor: data.notificationFor,
         updateKinds: data.updateKinds,
+        onlyWhereRule: data.onlyWhereRule,
       });
 
     const recordChannels: Array<WorkspaceChannel> =
@@ -2082,6 +2136,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         notificationFor: data.notificationFor,
         workspaceType: data.workspaceType,
         updateKinds: data.updateKinds,
+        onlyWhereRule: data.onlyWhereRule,
       });
 
     for (const recordChannel of recordChannels) {
@@ -2116,6 +2171,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         workspaceType: data.workspaceType,
         notificationFor: data.notificationFor,
         updateKinds: data.updateKinds,
+        onlyWhereRule: data.onlyWhereRule,
       });
 
     for (const chatId of existingChatIds) {
@@ -2155,6 +2211,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notWantedUpdateKinds?:
       | ReadonlyArray<NotificationRuleUpdateKind>
       | undefined;
+    /*
+     * A hand-off's line said two ways, with the person on call mentioned
+     * and without (issue #7968): true, posted only where a rule that wants
+     * it asks to mention them (NotificationRuleUpdates
+     * .isMentioningWhoIsOnCall); false, only where none does. Left out,
+     * wherever it is wanted. So a channel gets one of the two, the
+     * mention where either of two rules that post there asks for it.
+     */
+    mentioning?: boolean | undefined;
   }): Promise<Array<WorkspaceMessagePayload>> {
     const destinations: Array<WorkspaceMessagePayload> =
       await this.getMessageDestinations({
@@ -2170,9 +2235,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     // The destinations of a message of these kinds, by where each goes.
     const getKeysWanting: (
-      kinds: ReadonlyArray<NotificationRuleUpdateKind>,
+      kinds: ReadonlyArray<NotificationRuleUpdateKind> | undefined,
+      onlyWhereRule?: ((rule: StoredRuleUpdates) => boolean) | undefined,
     ) => Promise<Set<string>> = async (
-      kinds: ReadonlyArray<NotificationRuleUpdateKind>,
+      kinds: ReadonlyArray<NotificationRuleUpdateKind> | undefined,
+      onlyWhereRule?: ((rule: StoredRuleUpdates) => boolean) | undefined,
     ): Promise<Set<string>> => {
       return new Set<string>(
         (
@@ -2181,6 +2248,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             notificationFor: data.notificationFor,
             workspaceType: data.workspaceType,
             updateKinds: kinds,
+            onlyWhereRule: onlyWhereRule,
           })
         ).map((destination: WorkspaceMessagePayload): string => {
           return Service.getDestinationKey(destination);
@@ -2198,13 +2266,22 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         ? await getKeysWanting(data.notWantedUpdateKinds)
         : null;
 
+    // Where a rule that wants the message asks to mention who is on call.
+    const mentionWanted: Set<string> | null =
+      data.mentioning === undefined
+        ? null
+        : await getKeysWanting(data.updateKinds, (rule: StoredRuleUpdates) => {
+            return NotificationRuleUpdates.isMentioningWhoIsOnCall(rule);
+          });
+
     return destinations.filter(
       (destination: WorkspaceMessagePayload): boolean => {
         const key: string = Service.getDestinationKey(destination);
 
         return (
           (!alsoWanted || alsoWanted.has(key)) &&
-          (!notWanted || !notWanted.has(key))
+          (!notWanted || !notWanted.has(key)) &&
+          (!mentionWanted || mentionWanted.has(key) === data.mentioning)
         );
       },
     );
@@ -2261,7 +2338,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           (block as WorkspacePayloadMarkdown)._type ===
           "WorkspacePayloadMarkdown"
         ) {
-          texts.push((block as WorkspacePayloadMarkdown).text);
+          // A mention reads as the name it shows, not "<@U0123ABC>".
+          texts.push(
+            WorkspaceMentions.toLogText(
+              (block as WorkspacePayloadMarkdown).text,
+              (block as WorkspacePayloadMarkdown).mentions,
+            ),
+          );
         }
       }
       /*
@@ -2473,6 +2556,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationFor: NotificationFor;
     workspaceType: WorkspaceType;
     updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
+    /*
+     * Only the channels one of whose rules that want it also passes this
+     * (getMessageDestinations): every channel's rules are read then.
+     */
+    onlyWhereRule?: ((rule: StoredRuleUpdates) => boolean) | undefined;
   }): Promise<Array<WorkspaceChannel>> {
     const recordChannels: Array<
       WorkspaceChannel &
@@ -2490,7 +2578,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     if (
       recordChannels.length === 0 ||
-      NotificationRuleUpdates.isPostedEverywhere(data.updateKinds)
+      (!data.onlyWhereRule &&
+        NotificationRuleUpdates.isPostedEverywhere(data.updateKinds))
     ) {
       return recordChannels;
     }
@@ -2512,8 +2601,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       },
     );
 
+    // No channel names a rule that could pass the filter: none is kept.
     if (!namesItsRules) {
-      return recordChannels;
+      return data.onlyWhereRule ? [] : recordChannels;
     }
 
     const rules: Array<RuleOfChannel> = (
@@ -2549,6 +2639,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           channel: channel,
           rules: rules,
           updateKinds: data.updateKinds,
+          onlyWhereRule: data.onlyWhereRule,
         });
       },
     );
@@ -2651,6 +2742,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRuleEventType: NotificationRuleEventType;
     notificationFor: NotificationFor;
     updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
+    // Only the rules that also pass this (getMessageDestinations).
+    onlyWhereRule?: ((rule: StoredRuleUpdates) => boolean) | undefined;
   }): Promise<Array<WorkspaceChannel>> {
     logger.debug("getExistingChannelNamesBasedOnEventType called with data:", {
       projectId: data.projectId?.toString(),
@@ -2667,10 +2760,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         notificationFor: data.notificationFor,
       })
     ).filter((rule: WorkspaceNotificationRule): boolean => {
-      return NotificationRuleUpdates.wantsUpdate({
-        rule: rule.notificationRule as BaseNotificationRule | undefined,
-        updateKinds: data.updateKinds,
-      });
+      return (
+        NotificationRuleUpdates.wantsUpdate({
+          rule: rule.notificationRule as BaseNotificationRule | undefined,
+          updateKinds: data.updateKinds,
+        }) &&
+        (!data.onlyWhereRule ||
+          data.onlyWhereRule(
+            rule.notificationRule as BaseNotificationRule | undefined,
+          ))
+      );
     });
 
     logger.debug("Notification rules retrieved:", {
@@ -5336,6 +5435,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRuleEventType: NotificationRuleEventType;
     notificationFor: NotificationFor;
     updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
+    // Only the rules that also pass this (getMessageDestinations).
+    onlyWhereRule?: ((rule: StoredRuleUpdates) => boolean) | undefined;
   }): Promise<Array<string>> {
     if (data.workspaceType !== WorkspaceType.MicrosoftTeams) {
       return []; // chats are only supported for Microsoft Teams.
@@ -5349,10 +5450,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         notificationFor: data.notificationFor,
       })
     ).filter((rule: WorkspaceNotificationRule): boolean => {
-      return NotificationRuleUpdates.wantsUpdate({
-        rule: rule.notificationRule as BaseNotificationRule | undefined,
-        updateKinds: data.updateKinds,
-      });
+      return (
+        NotificationRuleUpdates.wantsUpdate({
+          rule: rule.notificationRule as BaseNotificationRule | undefined,
+          updateKinds: data.updateKinds,
+        }) &&
+        (!data.onlyWhereRule ||
+          data.onlyWhereRule(
+            rule.notificationRule as BaseNotificationRule | undefined,
+          ))
+      );
     });
 
     return this.getExistingChatIdsFromNotificationRules({

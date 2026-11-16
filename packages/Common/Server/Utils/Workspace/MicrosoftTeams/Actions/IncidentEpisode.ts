@@ -28,6 +28,9 @@ import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
 import FeedMarkdown, {
   mdText,
 } from "../../../../../Utils/Markdown/FeedMarkdown";
+import { OnCallPageRecordType } from "../../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { getExecuteOnCallPolicyFormDescription } from "../../WorkspaceExecuteOnCallPolicyForm";
+import MicrosoftTeamsCardChoices from "../MicrosoftTeamsCardChoices";
 
 export default class MicrosoftTeamsIncidentEpisodeActions {
   // What a change-state card says instead of opening with nothing to pick.
@@ -639,6 +642,12 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
           style: "compact",
           choices: choices,
         },
+        // How long the policy pages, as the Dashboard's form says (#9006).
+        MicrosoftTeamsCardChoices.buildNoteElement(
+          getExecuteOnCallPolicyFormDescription(
+            OnCallPageRecordType.IncidentEpisode,
+          ),
+        ),
       ],
       actions: [
         {

@@ -588,6 +588,8 @@ test.describe("while a page is open", () => {
     await page.goto("/accounts/login");
     await expect(page.getByTestId("email")).toBeVisible();
 
+    // Single sign-on is in More ways to sign in, folded on a first visit.
+    await page.getByTestId("more-ways-to-sign-in").click();
     await page.getByTestId("sso-login").click();
     await expect(page).toHaveURL(/\/accounts\/sso$/);
     await expectScheme(page, "dark");
@@ -673,6 +675,17 @@ const shown: (text: string) => (page: Page) => Promise<void> = (
 
 const PAGES: Array<PageVisit> = [
   { name: "sign-in", address: "/accounts/login", ready: visible("email") },
+  {
+    // More ways to sign in, opened: single sign-on and the passkey (#9023).
+    name: "sign-in-more-ways",
+    address: "/accounts/login",
+    ready: visible("email"),
+    steps: async (page: Page): Promise<void> => {
+      await page.getByTestId("more-ways-to-sign-in").click();
+      await expect(page.getByTestId("sso-login")).toBeVisible();
+      await expect(page.getByTestId("passkey-login")).toBeVisible();
+    },
+  },
   {
     // The edition pill's Learn more: what this server is, and what Enterprise adds.
     name: "edition-dialog",

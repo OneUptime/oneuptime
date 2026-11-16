@@ -18,36 +18,22 @@ import {
 } from "../../../Utils/Form/EventRuleForm";
 
 const documentationMarkdown: string = `
-### How Incident Reminder Rules Work
+A reminder rule keeps reminding an incident's owners, as often as it says, until the incident is resolved or acknowledged.
 
-A reminder rule reminds an incident's owners, as often as it says, while the incident is open. A new incident gets the first rule that matches it, from the top of the list down, and its reminders stop as the rule's **Stop Reminders When** says: once the incident is resolved, or once someone acknowledges it.
+## How It Works
 
-\`\`\`mermaid
-flowchart TD
-    A[Incident Created] --> B{Match Against Reminder Rules}
-    B -->|Rule Matches| C[Schedule Reminder]
-    B -->|No Match| D[No Reminders]
-    C --> E[Wait for Interval]
-    E --> F{Time to Stop?}
-    F -->|No| G[Notify Incident Owners]
-    G --> E
-    F -->|Yes| H[Stop Reminders]
-\`\`\`
+- A new incident gets the first rule that matches it, from the top of the list down. Drag a rule by its handle to change its place; a new rule goes to the end.
+- Its owners are reminded at the rule's interval while the incident is open, until the rule's **Stop Reminders When** says to stop.
+- An incident no rule matches gets no reminders.
 
----
+## Match Criteria
 
-### Match Criteria
+| Condition | Matches |
+|-----------|---------|
+| **Severities** | Incidents with one of these severities |
+| **Labels** | Incidents with at least one of these labels |
 
-| Criteria | Description |
-|----------|-------------|
-| **Severities** | Only incidents with these severity levels. |
-| **Labels** | Only incidents with at least one of these labels. |
-
-Rules are evaluated from the top of the list down - the first matching rule wins. Drag a rule by its handle to change its place; a new rule is added to the end.
-
----
-
-### Stop Reminders When
+## Stop Reminders When
 
 | Answer | What it does |
 |--------|--------------|

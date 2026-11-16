@@ -130,32 +130,37 @@ const fieldsToScrubConfig: Record<string, PillConfig> = {
 };
 
 const documentationMarkdown: string = `
-### How Trace Scrub Rules Work
+A scrub rule finds sensitive data, such as email addresses, card numbers or tokens, in your spans as they arrive, and removes it before the spans are stored. It never reaches your trace storage.
 
-Trace scrub rules automatically detect and remove sensitive data (PII) from your spans **at ingest time** — before they are stored. This ensures sensitive information never reaches your span storage.
+## How It Works
 
-### Pattern Types
+- Scrub rules run after drop filters and before pipelines.
+- Rules run in the order of the table: drag a rule to change its place. Put narrow rules before broad ones.
+- A rule changes the spans that arrive after you save it, within about a minute. Spans already stored stay as they are.
+- A new rule is named after what it finds ("Scrub email addresses") until you type a name of your own.
 
-Email, Credit Card, SSN, Phone Number, IP Address, Sensitive Attribute Keys (the whole value of every attribute whose key looks sensitive, such as a password or a token), or your own custom regex.
+## What a Rule Finds
 
-A **Custom Regex** rule needs its pattern: a regular expression for the text to scrub, written without slashes or flags (\`\\bSECRET-[A-Z0-9]+\\b\`, not \`/secret/i\`). Matching is case-sensitive. A pattern that is empty, does not compile, or matches empty text is refused when you save, because the rule would scrub nothing. A rule saved before that check without a usable pattern is marked **Scrubs nothing** in the table: edit it to give it one.
+Email addresses, card numbers, US Social Security numbers, phone numbers, IP addresses, **Sensitive Attribute Keys** (the whole value of every attribute whose key looks sensitive, such as a password or a token), or your own **Custom Regex**.
 
-A new rule is named after its pattern type ("Scrub email addresses") until you type a name of your own.
+A **Custom Regex** is written without slashes or flags (\`\\bSECRET-[A-Z0-9]+\\b\`, not \`/secret/i\`), and matches case-sensitively. A pattern that is empty, does not compile, or matches empty text is refused when you save, since it would scrub nothing. A rule saved before that check without a usable pattern shows **Scrubs nothing** in the table: edit it to give it one.
 
-### Scrub Actions
+## What It Does with What It Finds
 
-- **Redact** — replace with \`[REDACTED]\` (what a new rule does)
-- **Mask** — partially hide value
-- **Hash** — replace with deterministic SHA-256 hash
+- **Redact**: replaces it with \`[REDACTED]\`. A new rule does this.
+- **Mask**: hides part of it, keeping its shape.
+- **Hash**: replaces it with its SHA-256 hash, the same for the same value, so you can follow it across spans without showing it.
 
-### Fields to Scrub
+## Where It Looks
 
-- **All** — span name, attributes, and event attributes (what a new rule scrubs)
-- **Span Name** — only the span name
-- **Attributes** — only span attribute values
-- **Events** — only span event attribute values
+| Fields | What is scrubbed |
+|--------|------------------|
+| **All** | The span's name, its attributes and its events' attributes. A new rule does this. |
+| **Span Name** | Only the span's name |
+| **Attributes** | Only the span's attribute values |
+| **Events** | Only its events' attribute values |
 
-A **Sensitive Attribute Keys** rule always scrubs attribute and event attribute values, since it matches attribute keys. The action and the fields are under **More fields** in the form.
+A **Sensitive Attribute Keys** rule always scrubs attribute and event attribute values, since it matches their keys. The action and the fields are under **More fields** in the form.
 `;
 
 const TraceScrubRules: FunctionComponent<
@@ -203,8 +208,7 @@ const TraceScrubRules: FunctionComponent<
       }}
       helpContent={{
         title: "How Trace Scrub Rules Work",
-        description:
-          "Understanding pattern types, scrub actions, and how sensitive data is removed from spans at ingest time",
+        description: "Remove sensitive data from spans before they are stored.",
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No scrub rules found."}

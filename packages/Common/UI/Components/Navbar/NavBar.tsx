@@ -25,6 +25,12 @@ import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
 import useTranslateValue from "../../Utils/Translation";
 import Icon, { ThickProp } from "../Icon/Icon";
 
+/*
+ * The id an app gives its Home item. The trail draws it first, and both the
+ * trail and the phone's header light it only on Home itself.
+ */
+export const HOME_NAV_BAR_ITEM_ID: string = "home-nav-bar-item";
+
 export interface NavItem {
   id: string;
   // In English, looked up where it is drawn.
@@ -515,11 +521,17 @@ const Navbar: FunctionComponent<ComponentProps> = (
     });
   }
 
-  // Find the currently active item (with the same extra routes as desktop)
+  /*
+   * Find the currently active item (with the same extra routes as desktop).
+   * Home matches exactly, as the desktop's trail does: an app whose Home
+   * starts every page's address (the Admin Dashboard's /admin) would
+   * otherwise say "Home" on every page (#9043). A page no item claims still
+   * falls back to the first item, Home.
+   */
   const activeItem: any =
     allNavItems.find((item: any) => {
       const routeToCheck: any = item.activeRoute || item.route;
-      return item.exact
+      return item.exact || item.id === HOME_NAV_BAR_ITEM_ID
         ? Navigation.isOnThisPage(routeToCheck)
         : isMoreMenuItemActive(item);
     }) || allNavItems[0];
@@ -623,10 +635,10 @@ const Navbar: FunctionComponent<ComponentProps> = (
    * title is translated to a non-English language.
    */
   const homeItem: NavItem | undefined = props.items.find((item: NavItem) => {
-    return item.id === "home-nav-bar-item";
+    return item.id === HOME_NAV_BAR_ITEM_ID;
   });
   const otherNavItems: NavItem[] = props.items.filter((item: NavItem) => {
-    return item.id !== "home-nav-bar-item";
+    return item.id !== HOME_NAV_BAR_ITEM_ID;
   });
 
   return (

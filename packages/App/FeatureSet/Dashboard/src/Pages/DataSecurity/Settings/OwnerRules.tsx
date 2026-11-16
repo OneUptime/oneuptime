@@ -1,3 +1,4 @@
+import { getOwnerRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -24,6 +25,10 @@ import Label from "Common/Models/DatabaseModels/Label";
  * The same two-step form as every owner rule (Utils/Form/ResourceRuleForm):
  * what the rule matches, then who it adds.
  */
+const ownerRuleDocumentation: string = getOwnerRuleHelpMarkdown({
+  nouns: { singular: "data store", plural: "data stores" },
+});
+
 const DataStoreOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
 ): ReactElement => {
@@ -51,6 +56,12 @@ const DataStoreOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         title: "Data Store Owner Rules",
         description:
           "Auto-assign owners when matching data stores are discovered.",
+      }}
+      helpContent={{
+        title: "How Data Store Owner Rules Work",
+        description:
+          "Match data stores and add owner users/teams automatically.",
+        markdown: ownerRuleDocumentation,
       }}
       sortBy="name"
       sortOrder={SortOrder.Ascending}

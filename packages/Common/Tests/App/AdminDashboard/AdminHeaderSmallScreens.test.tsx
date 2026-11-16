@@ -114,7 +114,10 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
-import AdminDashboardHeader from "../../../../App/FeatureSet/AdminDashboard/src/Components/Header/Header";
+import AdminDashboardHeader, {
+  ADMIN_DASHBOARD_LABEL_CLASS_NAME,
+  ADMIN_DASHBOARD_LABEL_TEST_ID,
+} from "../../../../App/FeatureSet/AdminDashboard/src/Components/Header/Header";
 
 type RenderHeaderFunction = () => Promise<void>;
 
@@ -309,6 +312,63 @@ const getEditionPill: GetElementFunction = (): HTMLElement => {
 const getStandaloneExitAdmin: GetElementFunction = (): HTMLElement => {
   return screen.getByRole("button", { name: "Exit Admin" });
 };
+
+/*
+ * Which dashboard this is, beside the logo (#9041). Every Admin page opened
+ * on a purple banner that said "OneUptime Admin Dashboard - You can perform
+ * your OneUptime server related tasks on this dashboard."; the header says
+ * it in the trail's own words instead, from 640px up. Below that the logo,
+ * help and the profile button fill the header ("Panel de administración"
+ * ran under help), and the trail every page starts with says it.
+ */
+describe("the header says which dashboard this is", () => {
+  const SM_WIDTH_IN_PX: number = TAILWIND_BREAKPOINTS_IN_PX["sm"]!;
+
+  beforeEach(() => {
+    resetHeaderState();
+  });
+
+  test("in the trail's own words, from the locale", async () => {
+    await renderHeader();
+
+    const label: HTMLElement = screen.getByTestId(
+      ADMIN_DASHBOARD_LABEL_TEST_ID,
+    );
+
+    expect(label).toHaveTextContent(englishLocale.breadcrumbs.adminDashboard);
+    expect(label).toHaveTextContent("Admin Dashboard");
+  });
+
+  test("on screen from 640px up, with or without a foreign .hidden rule, and left to the trail below", async () => {
+    await renderHeader();
+
+    const label: HTMLElement = screen.getByTestId(
+      ADMIN_DASHBOARD_LABEL_TEST_ID,
+    );
+
+    for (const width of [SM_WIDTH_IN_PX, ...widthsFrom(SM_WIDTH_IN_PX)]) {
+      expect(describeVisibility(label, width)).toBe(`visible at ${width}px`);
+      expect(describeVisibility(label, width, WITH_FOREIGN_HIDDEN_RULE)).toBe(
+        `visible at ${width}px with a foreign .hidden rule on the page`,
+      );
+    }
+
+    expect(isVisibleAtWidth(label, PHONE_WIDTH_IN_PX)).toBe(false);
+    expect(isVisibleAtWidth(label, SM_WIDTH_IN_PX - 1)).toBe(false);
+  });
+
+  test("it is a label, not a control: nothing to press", async () => {
+    await renderHeader();
+
+    const label: HTMLElement = screen.getByTestId(
+      ADMIN_DASHBOARD_LABEL_TEST_ID,
+    );
+
+    expect(label.tagName).toBe("SPAN");
+    expect(label.closest("a, button")).toBeNull();
+    expect(ADMIN_DASHBOARD_LABEL_CLASS_NAME).not.toMatch(/(^|\s)hidden(\s|$)/);
+  });
+});
 
 describe("admin dashboard header with a foreign .hidden rule on the page", () => {
   beforeEach(() => {

@@ -132,7 +132,7 @@ Ved hvert vagtskifte hører en vagtpolitiks kanaler i én linje, hvem der har va
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments linker til politikken i OneUptime. Når politikken tilkalder mere end én tidsplan, nævner linjen også tidsplanen: Payments (Primary).
-- En person nævnes ved sit Slack-navn, når vedkommende har forbundet sin Slack-konto med OneUptime, og ved sit navn i OneUptime indtil da. Tidspunkter vises i hver læsers egen tidszone.
+- En person nævnes ved sit Slack-navn, når vedkommende har forbundet sin Slack-konto med OneUptime, og ved sit navn i OneUptime indtil da, i hver vagtbesked: vagtskifter, tilsidesættelser og personer, der tilføjes til politikken eller fjernes. Tidspunkter vises i hver læsers egen tidszone.
 - Når flere af politikkens eskaleringsregler tilkalder den samme tidsplan, slås hvert vagtskifte op én gang, ikke én gang pr. regel.
 
 En regel slår det op, den valgte i sit trin **Opdateringer**, og en ny regel starter med **Kun vigtige opdateringer**: hvem der har vagt nu, og hvornår ingen har.
@@ -147,6 +147,8 @@ En regel slår det op, den valgte i sit trin **Opdateringer**, og en ny regel st
 | **Ejere** | Ejere tilføjet og fjernet. |
 
 En kanal får én besked pr. vagtskifte, også når to regler slår op i den. En vagtregel, der blev gemt, før regler valgte deres opdateringer, slår dem alle op som før.
+
+Et navn giver ingen besked, så en kanal, der hører hvert vagtskifte, bliver ikke pinget ved hvert. For at give den person, der får vagt, besked skal du slå **Nævn den person, der får vagt** til i reglens trin **Opdateringer**: Beskeden om vagtskiftet nævner så personen, når vedkommende har forbundet sin Slack-konto med OneUptime. Den næste nævnes aldrig, og det gør ingen, der ikke har forbundet sin konto. Kontakten vises, så længe reglen slår **Hvem der har vagt nu** op, og er slået fra for en ny regel.
 
 ## Hvem der er i en posts kanal
 
@@ -261,7 +263,7 @@ OneUptime svarer kun på det, der er rettet til den.
 - **I en advarsels egen kanal.** I den kanal, OneUptime oprettede til en advarsel, mens advarslen er åben, siger formularen, at hændelsen oprettes fra den advarsel, og starter med advarslens titel og de ressourcer, den er knyttet til, som du må se. Hændelsen knyttes til advarslen, ligesom en hændelse, der oprettes fra advarslens side, og en privat advarsels hændelse er også privat. Når du ikke må knytte advarsler til hændelser, oprettes hændelsen uden tilknytningen, og du får at vide hvorfor.
 - **Hvad en formular må nævne.** Hændelsen eller begivenheden oprettes med dine egne rettigheder og krediteres dig. En monitor, vagtpolitik, etiket, alvorlighed eller status, du ikke må læse, eller en fra et andet projekt, afvises som en, projektet ikke har, selv fra en formular, der blev åbnet, før din adgang ændrede sig, og intet oprettes. OneUptime fortæller dig hvorfor i kanalen, i en besked kun du kan se.
 
-**Execute On-Call Policy** på en hændelse, advarsel eller episode virker på samme måde: den kræver rettighed til at køre en vagtpolitik (**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Execute On-Call Policies** i en brugerdefineret rolle) og til at læse den hændelse, advarsel eller episode, og den tilbyder de aktive vagtpolitikker, du må læse.
+**Execute On-Call Policy** på en hændelse, advarsel eller episode virker på samme måde: den kræver rettighed til at køre en vagtpolitik (**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Execute On-Call Policies** i en brugerdefineret rolle) og til at læse den hændelse, advarsel eller episode, og den tilbyder de aktive vagtpolitikker, du må læse. Den tilkalder politikkens personer, indtil en af dem svarer, eller hændelsen, advarslen eller episoden er løst, også når nogen allerede har bekræftet den, og formularen siger det under sin liste.
 
 ## Tilkald nogen fra Slack
 

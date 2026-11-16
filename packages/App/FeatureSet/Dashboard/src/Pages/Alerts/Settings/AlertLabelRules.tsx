@@ -24,46 +24,34 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 
 const alertLabelDocumentation: string = `
-### How Alert Label Rules Work
+A label rule labels every new alert it matches: with the labels it names and, if you like, the labels of the monitor, hosts, clusters and services the alert affects.
 
-Alert Label Rules attach labels to an alert automatically when it matches your criteria — including labels copied from the alert's monitor, hosts, Kubernetes clusters, Docker hosts, and Podman hosts.
+## How It Works
 
-### Match Criteria
+- Rules run as each alert is created. To label alerts you already have, open a rule and select **Run Now**.
+- Every rule that matches adds its labels. A label the alert already has is not added twice, and a rule never takes a label away.
+- A disabled rule does not run.
 
-A rule matches an alert only when **all** specified criteria pass. Empty criteria are skipped.
+## Match Criteria
 
-- **Monitors**, **Severities**, **Alert Labels**, **Monitor Labels** — any-of (M2M)
-- **Title / Description Pattern**, **Monitor Name / Description Pattern** — case-insensitive regex
+Add conditions on the alert, such as its monitor, severity, labels or title, and choose whether all of them or any one must match.
 
-### Action
+## Labels a Rule Copies
 
-When a rule matches:
-
-- Every label listed under \`Labels to Add\` is attached to the alert.
-- If \`Inherit Labels From Monitor\` is on, every label of the alert's monitor is also attached.
-- If \`Inherit Labels From Hosts\` is on, every label of the alert's affected hosts is also attached.
-- If \`Inherit Labels From Kubernetes Clusters\` is on, every label of the alert's affected Kubernetes clusters is also attached.
-- If \`Inherit Labels From Docker Hosts\` is on, every label of the alert's affected Docker hosts is also attached.
-- If \`Inherit Labels From Podman Hosts\` is on, every label of the alert's affected Podman hosts is also attached.
-
-Labels already on the alert are not duplicated. Multiple matching rules contribute the union of their labels.
+Under **Inherit Labels**, a rule can also copy every label of the alert's monitor, and of the hosts, Kubernetes clusters, Docker hosts, Podman hosts and services it affects. A rule that copies labels needs no labels of its own.
 `;
 
 const alertEpisodeLabelDocumentation: string = `
-### How Alert Episode Label Rules Work
+An episode label rule labels every new alert episode it matches, so episodes are sorted and found without anyone labelling them by hand.
 
-Alert Episode Label Rules attach labels to an episode automatically when it matches your criteria.
+## How It Works
 
-### Match Criteria
+- Rules run as each episode opens. To label episodes you already have, open a rule and select **Run Now**.
+- Every rule that matches adds its labels. A label the episode already has is not added twice, and a rule never takes a label away.
 
-A rule matches an episode only when **all** specified criteria pass. Empty criteria are skipped.
+## Match Criteria
 
-- **Severities**, **Episode Labels** — any-of (M2M)
-- **Title / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every label listed under \`Labels to Add\` is attached to the episode. Labels already on the episode are not duplicated.
+Add conditions on the episode, such as its severity, labels or title, and choose whether all of them or any one must match.
 `;
 
 interface RulesTableProps {

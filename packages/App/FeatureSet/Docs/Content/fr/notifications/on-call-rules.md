@@ -47,7 +47,7 @@ Cliquez sur **Enregistrer les modifications**, qui apparaît dès que quelque ch
 
 **Tester vos appels**, au pied de la page, vous envoie un appel de test à travers elles.
 
-Quand une gravité mérite autre chose, **Différent pour certaines gravités**, sous les étapes, ouvre les onglets et les cartes décrits plus bas. Une carte qui diffère de votre séquence est marquée **Diffère de la séquence**, et la séquence indique ce que fait chacune à la place. Si vos règles diffèrent déjà, la page s'ouvre sur les cartes, avec **Utiliser une seule séquence pour tout** : l'enregistrement nomme d'abord les cartes qui perdent leur différence. Une gravité que votre projet a archivée garde ses propres règles.
+Quand une gravité mérite autre chose, **Différent pour certaines gravités**, le bouton à côté du titre, ouvre les onglets et les cartes décrits plus bas. Une carte qui diffère de votre séquence est marquée **Diffère de la séquence**. La page s'ouvre toujours sur vos étapes et liste en dessous chaque carte qui diffère et ce qu'elle fait à la place. **Enregistrer les modifications** laisse ces cartes telles quelles ; **Utiliser cette séquence pour chaque gravité**, à la fin de cette liste, leur donne aussi votre séquence, après avoir nommé les cartes qui perdent leur différence. Une gravité que votre projet a archivée garde ses propres règles.
 
 Une politique d'astreinte décide qui est appelé et quand vient son niveau suivant. La façon dont vous êtes joint est cette séquence, pour chaque politique qui vous appelle.
 

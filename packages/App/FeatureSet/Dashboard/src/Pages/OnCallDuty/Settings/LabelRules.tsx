@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -21,56 +22,17 @@ import Label from "Common/Models/DatabaseModels/Label";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 
-const policyDocumentation: string = `
-### How On-Call Policy Label Rules Work
+const policyDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "on-call policy", plural: "on-call policies" },
+});
 
-On-Call Policy Label Rules attach labels to an on-call policy automatically when it matches your criteria — so you don't have to remember to tag new policies.
+const scheduleDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "on-call schedule", plural: "on-call schedules" },
+});
 
-### Match Criteria
-
-A rule matches a policy only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **On-Call Policy Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the policy. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
-
-const scheduleDocumentation: string = `
-### How On-Call Schedule Label Rules Work
-
-On-Call Schedule Label Rules attach labels to an on-call schedule automatically when it matches your criteria.
-
-### Match Criteria
-
-A rule matches a schedule only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **On-Call Schedule Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the schedule. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
-
-const incomingCallDocumentation: string = `
-### How Incoming Call Policy Label Rules Work
-
-Incoming Call Policy Label Rules attach labels to an incoming call policy automatically when it matches your criteria.
-
-### Match Criteria
-
-A rule matches a policy only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Incoming Call Policy Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the policy. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
+const incomingCallDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "incoming call policy", plural: "incoming call policies" },
+});
 
 interface RulesTableProps {
   // Set when the page is routed as this rule's view page.

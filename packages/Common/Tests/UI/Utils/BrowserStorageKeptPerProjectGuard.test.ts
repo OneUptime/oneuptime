@@ -162,6 +162,8 @@ const KEPT_FOR_THE_PERSON: Record<string, string> = {
     "the language the person reads OneUptime in, on every page and in every project",
   "oneuptime-dashboard-theme":
     "the person's light, dark or system theme, on every page and in every project",
+  "oneuptime-sign-in-more-ways-open":
+    "whether this browser left the sign-in page's More ways to sign in open - read with nobody signed in, so no project's (MoreWaysToSignIn)",
   "oneuptime-navbar-product-categories":
     "which categories of the products menu the person folded",
   "oneuptime-side-menu-folds":

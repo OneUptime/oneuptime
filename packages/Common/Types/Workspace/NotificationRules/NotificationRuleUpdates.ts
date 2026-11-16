@@ -59,6 +59,15 @@ import NotificationRuleWorkspaceChannel, {
  *
  * Monitor, security hunt and SLO rules post every update; they have no
  * choice (getChoosableKinds is empty for them).
+ *
+ * A hand-off's line names the person on call as text that pings nobody,
+ * so a channel that hears every hand-off is not pinged by each one. An
+ * on-call rule that posts who is on call now can ask to mention them
+ * instead (issue #7968): "📞 @ana.lee is now on call ...", a real mention
+ * that notifies them, where they connected their account in the
+ * workspace (BaseNotificationRule.shouldMentionWhoIsOnCall,
+ * isMentioningWhoIsOnCall). It is off unless a rule turns it on. Who is
+ * next is never mentioned, so a hand-off notifies one person.
  */
 export enum NotificationRuleUpdateKind {
   // The record's first message: declared, created or scheduled. Always posted.
@@ -308,7 +317,7 @@ const NEW_RULE_UPDATE_KINDS: Readonly<
 
 // A rule's JSON, as far as the updates it posts go.
 export type RuleWithUpdates = Partial<
-  Pick<BaseNotificationRule, "updatesToPost">
+  Pick<BaseNotificationRule, "updatesToPost" | "shouldMentionWhoIsOnCall">
 >;
 
 // A rule as stored: updatesToPost is JSON, so it is read with care.
@@ -577,6 +586,12 @@ export default class NotificationRuleUpdates {
     // The project's rules of the channel's kind of record and workspace.
     rules: ReadonlyArray<RuleOfChannel>;
     updateKinds: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
+    /*
+     * Only where a rule that wants the message also passes this: one that
+     * asks to mention who is on call (isMentioningWhoIsOnCall). A channel
+     * whose rules are not known has no rule to pass it.
+     */
+    onlyWhereRule?: ((rule: StoredRuleUpdates) => boolean) | undefined;
   }): boolean {
     const rulesOfChannel: Array<RuleOfChannel> = data.rules.filter(
       (rule: RuleOfChannel): boolean => {
@@ -588,14 +603,17 @@ export default class NotificationRuleUpdates {
     );
 
     if (rulesOfChannel.length === 0) {
-      return true;
+      return !data.onlyWhereRule;
     }
 
     return rulesOfChannel.some((rule: RuleOfChannel): boolean => {
-      return this.wantsUpdate({
-        rule: rule.rule,
-        updateKinds: data.updateKinds,
-      });
+      return (
+        this.wantsUpdate({
+          rule: rule.rule,
+          updateKinds: data.updateKinds,
+        }) &&
+        (!data.onlyWhereRule || data.onlyWhereRule(rule.rule))
+      );
     });
   }
 
@@ -649,6 +667,75 @@ export default class NotificationRuleUpdates {
 
         return `updatesToPost lists ${shown}, which ${data.eventType} rules cannot choose. They choose any of: ${choosable.join(", ")}.`;
       }
+    }
+
+    return null;
+  }
+
+  /*
+   * Whether a kind of rule can mention the person who comes on call: an
+   * on-call policy's (issue #7968).
+   */
+  public static canMentionWhoIsOnCall(
+    eventType: NotificationRuleEventType | undefined,
+  ): boolean {
+    return eventType === NotificationRuleEventType.OnCallDutyPolicy;
+  }
+
+  /*
+   * Whether a rule mentions the person who comes on call in its hand-off
+   * lines: only when it says so, and only while it posts who is on call
+   * now - every update, or a list with it. Anything but true is off: a rule
+   * saved before, or a value typed by hand into its JSON.
+   */
+  public static isMentioningWhoIsOnCall(rule: StoredRuleUpdates): boolean {
+    if (rule?.shouldMentionWhoIsOnCall !== true) {
+      return false;
+    }
+
+    return this.wantsUpdate({
+      rule: rule,
+      updateKinds: [NotificationRuleUpdateKind.OnCallNow],
+    });
+  }
+
+  // The rule as the Updates step's mention switch sets it: off, it is left out.
+  public static withMentionOfWhoIsOnCall<T extends RuleWithUpdates>(data: {
+    rule: T | undefined;
+    isOn: boolean;
+  }): T {
+    const rule: RuleWithUpdates = { ...(data.rule || {}) };
+
+    if (data.isOn) {
+      rule.shouldMentionWhoIsOnCall = true;
+    } else {
+      delete rule.shouldMentionWhoIsOnCall;
+    }
+
+    return rule as T;
+  }
+
+  /*
+   * What is wrong with whether a rule is saved to mention the person who
+   * comes on call, or null when nothing is: true or false, and true only
+   * on an on-call policy's rule.
+   */
+  public static getMentionValidationError(data: {
+    eventType: NotificationRuleEventType | undefined;
+    shouldMentionWhoIsOnCall: unknown;
+  }): string | null {
+    const value: unknown = data.shouldMentionWhoIsOnCall;
+
+    if (value === undefined || value === null) {
+      return null;
+    }
+
+    if (typeof value !== "boolean") {
+      return "shouldMentionWhoIsOnCall is true or false: whether a hand-off's line mentions the person who comes on call.";
+    }
+
+    if (value && !this.canMentionWhoIsOnCall(data.eventType)) {
+      return `${data.eventType || "These"} rules do not mention who is on call: leave shouldMentionWhoIsOnCall out. On-call policy rules can.`;
     }
 
     return null;

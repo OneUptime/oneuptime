@@ -54,26 +54,28 @@ import React, {
 
 // The dialog's title says "How Collector Configs work": the text starts below it.
 const documentationMarkdown: string = `
-Every host you add with the one-command install runs a config that OneUptime sends it. A host gets its config in this order:
+Every host you add with the one-command install runs a collector config that OneUptime sends it. Write a config here to change what your hosts collect, and choose which hosts get it.
 
-1. **Picked for the host**: a config someone picked on the host's **Collector** page.
-2. **The first config that applies**: checked from the top of this list.
+## Which Config a Host Runs
+
+The first of these wins:
+
+1. **The config picked for the host**, on the host's **Collector** page.
+2. **The first config that applies**, from the top of this list. Drag a row to change the order.
 3. **OneUptime's default** for the host's system, when no config applies.
 
 A config applies to a host by:
 
-- **System**: a config is for Linux, Windows or macOS hosts, or for hosts on any system.
+- **System**: Linux, Windows or macOS hosts, or hosts on any system.
 - **Host labels**: a config with labels is only for hosts with at least one of them. Label hosts when you install them (\`--label env=production\`), on the Hosts page, or with label rules.
 
-Drag the rows to change the order.
-
-### Changing a config
+## Changing a Config
 
 Every saved change is checked and becomes a new version, and the hosts it applies to get it within about a minute. Each host shows the version it runs. A config that does not start on a host is rolled back there to the last one that worked, and the host shows why.
 
-### What a config may do
+## What a Config May Do
 
-A config OneUptime sends may read the host and the services on it and send that to this OneUptime, with the key each host was installed with. It may not send data anywhere else, read files or secrets through \`\${file:...}\` or similar, or run programs.
+A config OneUptime sends may read the host and the services on it, and send that to this OneUptime with the key the host was installed with. It may not send data anywhere else, read files or secrets through \`\${file:...}\` or similar, or run programs.
 `;
 
 const CollectorConfigs: FunctionComponent<
@@ -127,9 +129,9 @@ const CollectorConfigs: FunctionComponent<
             "The config OneUptime sends to the hosts it manages. Each host runs the first config that applies to it, from the top: drag the rows to change the order.",
         }}
         helpContent={{
-          title: "How Collector Configs work",
+          title: "How Collector Configs Work",
           description:
-            "Which hosts get which config, how changes reach them, and what a config may do.",
+            "Choose what your hosts' collectors collect, and which hosts run each config.",
           markdown: documentationMarkdown,
         }}
         /*

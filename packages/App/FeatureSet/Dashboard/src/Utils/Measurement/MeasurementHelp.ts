@@ -9,16 +9,21 @@ import {
 } from "Common/Utils/Measurement/MeasurementMoments";
 
 /*
- * The "?" help of the three Measurements pages, in plain words: what a
- * measurement is, the ready-made ones and the moments (written from the same
- * lists the form uses, so the two never disagree), where the numbers show
- * up, and why something can have no number. The help this replaced opened
- * on a flowchart of anchors and statuses.
+ * The "?" help of the three Measurements pages, in plain words and in the
+ * help dialog's shape (Common HelpContent): what a measurement is in short,
+ * then setting one up from the ready-made ones, the moments (written from
+ * the same lists the form uses, so the two never disagree), where the
+ * numbers show up, and why something can have no number. The help this
+ * replaced opened on a flowchart of anchors and statuses.
  */
 
 interface MeasurementHelpWords {
   // "incident", "alert", "maintenance event".
   thing: string;
+  // The same with its article, for the start of a sentence: "An incident".
+  aThing: string;
+  // A gap between two of its moments, as the summary names one.
+  gapExample: string;
   // "incidents", "alerts", "maintenance events".
   things: string;
   // The page's Create button.
@@ -35,6 +40,8 @@ interface MeasurementHelpWords {
 const WORDS: Record<MeasurementDomain, MeasurementHelpWords> = {
   [MeasurementDomain.Incident]: {
     thing: "incident",
+    aThing: "An incident",
+    gapExample: "how long until someone acknowledges it",
     things: "incidents",
     createButton: "Create Incident Measurement",
     metricName: "oneuptime.incident.measurement.<key>",
@@ -46,6 +53,8 @@ const WORDS: Record<MeasurementDomain, MeasurementHelpWords> = {
   },
   [MeasurementDomain.Alert]: {
     thing: "alert",
+    aThing: "An alert",
+    gapExample: "how long until someone acknowledges it",
     things: "alerts",
     createButton: "Create Alert Measurement",
     metricName: "oneuptime.alert.measurement.<key>",
@@ -57,6 +66,8 @@ const WORDS: Record<MeasurementDomain, MeasurementHelpWords> = {
   },
   [MeasurementDomain.ScheduledMaintenance]: {
     thing: "maintenance event",
+    aThing: "A maintenance event",
+    gapExample: "how late it really starts",
     things: "maintenance events",
     createButton: "Create Scheduled Maintenance Measurement",
     metricName: "oneuptime.scheduled-maintenance.measurement.<key>",
@@ -105,38 +116,34 @@ export const getMeasurementsHelpMarkdown: (
     .join("\n");
 
   return `
-### What a measurement is
+A measurement times the gap between two moments of every ${words.thing}, such as ${words.gapExample}, and charts it, past ${words.things} included, so you can see whether things are getting faster.
 
-A measurement is the time between two moments in a ${words.thing}. ${words.example}
+## Set Up a Measurement
 
-You set a measurement up once. OneUptime then works it out for every ${words.thing}, past ones included, and charts it, so you can see whether things are getting faster.
-
-### Ready-made measurements
-
-Choose **${words.createButton}** and pick one of these, or **Something else** to choose the two moments yourself.
+Choose **${words.createButton}** and pick a ready-made measurement, or **Something else** to choose the two moments yourself. ${words.example}
 
 | Measurement | Starts when | Ends when |
 |-------------|-------------|-----------|
 ${presets}
 
-### The moments you can pick
+A few options most measurements never need are under **More fields** on the second step: whether the first or the last time a state is reached counts (the first, unless you change it), the unit its charts use, how **View Chart** sums up many ${words.things}, and whether each ${words.thing}'s page shows it (it does, unless you turn that off).
+
+## The Moments You Can Pick
 
 | Moment | When it happens |
 |--------|-----------------|
 ${moments}
 
-A few options most measurements never need are under **More fields** on the second step: whether the first or the last time a state is reached counts (the first, unless you change it), the unit its charts use, how **View Chart** sums up many ${words.things}, and whether each ${words.thing}'s page shows it (it does, unless you turn that off).
-
-### Where the numbers show up
+## Where the Numbers Show Up
 
 Each ${words.thing}'s own page shows its measurements, in a **Measurements** card: the number once both moments have happened, how long it has been running while the clock is still going, or why there is no number.
 
-Choose **View Chart** on a measurement to see it over time. Every measurement is also a metric named \`${words.metricName}\`, which you can add to any dashboard. The key is made from the name when the measurement is created and never changes, so renaming a measurement keeps its history.
+Choose **View Chart** on a measurement to see it over time. Every measurement is also a metric named \`${words.metricName}\`, which you can add to any dashboard. Its key is made from its name when it is created and never changes, so renaming a measurement keeps its history.
 
 Changing where a measurement starts or ends works it out again for every ${words.thing}. To keep the old numbers, create a new measurement instead.
 
-### Why a ${words.thing} can have no number
+## When There Is No Number
 
-A ${words.thing} only gets a number once both moments have happened. If one has not happened yet, because ${words.stillOpen}, it is counted when it does. If one never will, because ${words.neverHappens}, the ${words.thing} is left out rather than counted as zero, so it cannot pull an average down. A ${words.thing} whose end comes before its start has timestamps that disagree, and is left out too.
+${words.aThing} gets a number only once both moments have happened. If one has not happened yet, because ${words.stillOpen}, it is counted when it does. If one never will, because ${words.neverHappens}, the ${words.thing} is left out rather than counted as zero, so it cannot pull an average down. ${words.aThing} whose end comes before its start has timestamps that disagree, and is left out too.
 `;
 };

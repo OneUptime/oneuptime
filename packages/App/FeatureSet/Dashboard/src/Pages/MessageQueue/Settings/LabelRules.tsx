@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,26 +18,17 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const messageQueueLabelDocumentation: string = `
-### How Queue Label Rules Work
+const messageQueueLabelDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "queue", plural: "queues" },
+  topics: [
+    {
+      topic: "Matching Discovered Queues",
+      markdown: `A queue OneUptime discovers is named after its destination, such as \`orders.created\`. So **Queue Name** starts with \`orders.\` covers every queue for that destination.
 
-Queue Label Rules attach labels to a queue automatically when it matches your criteria — so you don't have to remember to tag new queues.
-
-### Match Criteria
-
-A rule matches a queue only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Queue Labels** (prerequisite) — any-of
-- **Queue Name**, **Queue Description**, **Messaging System** — text, or a regular expression or \`*\` wildcard pattern
-
-### Matching Discovered Queues
-
-Discovered queues are named after their destination (\`orders.created\`), so the condition **Queue Name** starts with \`orders.\` covers every queue for that destination. **Messaging System** is compared with both the queue's OpenTelemetry value (\`kafka\`, \`rabbitmq\`, \`aws_sqs\`) and its display name (\`Apache Kafka\`, \`RabbitMQ\`, \`Amazon SQS\`), so the condition **Messaging System** equals \`kafka\` (or matches the pattern \`^kafka$\`) covers every Kafka topic.
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the queue. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
+**Messaging System** is compared with both the queue's OpenTelemetry value (\`kafka\`, \`rabbitmq\`, \`aws_sqs\`) and its display name (\`Apache Kafka\`, \`RabbitMQ\`, \`Amazon SQS\`). So **Messaging System** equals \`kafka\`, or matches the pattern \`^kafka$\`, covers every Kafka topic.`,
+    },
+  ],
+});
 
 const MessageQueueLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

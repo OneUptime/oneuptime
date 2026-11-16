@@ -30,56 +30,42 @@ import { OnCallRuleRecord } from "../../../Components/OnCallRule/WorkingHoursTex
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 const incidentOnCallDocumentation: string = `
-### How Incident On-Call Rules Work
+An on-call rule pages on-call policies for every new incident it matches, so nobody has to remember to add the right policy by hand.
 
-An on-call rule pages on-call policies for every new incident it matches, so nobody has to remember to add the policy by hand.
+## How It Works
 
-\`\`\`mermaid
-flowchart TD
-    A[New Incident Created] --> B{Match Against On-Call Rules}
-    B -->|Rule Matches| C[Add the Rule's On-Call Policies]
-    B -->|No Match| D[Only the Policies Added by Hand]
-    C --> E[Each Policy Pages Its People]
-    D --> E
-\`\`\`
+- When a rule matches, each of its on-call policies pages its people for the incident. A policy already on the incident does not run twice.
+- Every rule that matches runs: there is no order and no first match. Their policies join any added by hand or by a template, and each policy runs once.
+- Rules run as each incident is declared, and again whenever its severity or labels change while it is open. An incident raised to a severity a rule pages for, or labelled org-wide, pages that rule's policies then. Nothing is undone when it stops matching.
 
-### Match Criteria
+## Match Criteria
 
-The conditions a new incident must meet.
+The conditions a new incident must meet, such as its monitors, severity, labels or title.
 
-### What It Does
+## Responders or Observers
 
-When a rule matches, each of its on-call policies pages its people for the incident. A policy already on the incident is not run twice.
+A rule pages its policies' people as **responders**, who take the incident on: acknowledging the page acknowledges the incident.
 
-### Responders or Observers
+Under **More fields**, it can page them as **observers** instead, to keep them informed while others respond. An observer's answer only says they saw the page: the incident is not acknowledged, nobody else's page stops, and they do not become its Incident Commander. Use it to tell an oversight team about every critical incident another team owns.
 
-A rule pages its policies' people as **responders** - they take the incident on, and acknowledging the page acknowledges it - or, under More fields, as **observers**: kept informed while the people responding stay on it. An observer's answer only says they've seen the page: the incident is not acknowledged, nobody else's page stops, and they don't become its Incident Commander. Use it to tell an oversight team about every critical incident another team owns.
+A policy that one rule pages as responders and another as observers pages responders.
 
-### When the Severity or Labels Change
+## Rules That Belong to Teams
 
-Rules run when an incident is declared, and again whenever its severity or labels change while it is open: raised to a severity a rule pages for, or labelled org-wide, the incident pages that rule's policies then. Nothing is undone when it stops matching.
-
-### Several Matching Rules
-
-Every rule that matches runs: there is no order and no first match. Their policies are added to any added by hand or by a template, and each policy runs once. A policy that one rule pages as responders and another as observers pages responders.
-
-### Rules That Belong to Teams
-
-Under More fields, **Owning Teams** keeps a rule to the teams you pick: only their members, with those teams' permissions, and Project Admins can edit or delete it. Everyone else who can see rules still sees it, read-only. A rule with no owning teams can be changed by everyone who can edit rules.
+Under **More fields**, **Owning Teams** limits who can change a rule: only members of the teams you pick, with those teams' permissions, and Project Admins. Everyone else who can see rules sees it, read-only. A rule with no owning teams can be changed by anyone who can edit rules.
 `;
 
 const incidentEpisodeOnCallDocumentation: string = `
-### How Incident Episode On-Call Rules Work
+An episode on-call rule pages on-call policies for every new incident episode it matches, so the right people hear about a group of incidents once.
 
-An episode on-call rule pages on-call policies for every new incident episode it matches.
+## How It Works
 
-### Match Criteria
+- When a rule matches, each of its on-call policies pages its people for the episode.
+- Every rule that matches runs, and each policy runs once.
 
-The conditions a new episode must meet.
+## Match Criteria
 
-### What It Does
-
-When a rule matches, each of its on-call policies pages its people for the episode. Every rule that matches runs, and each policy runs once.
+The conditions a new episode must meet, such as its severity, labels or title.
 `;
 
 const IncidentRulesTable: FunctionComponent = (): ReactElement => {

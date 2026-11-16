@@ -146,6 +146,11 @@ const ALERT_TEMPLATE: NounSite = {
     "An alert template's resourceNoun, in the English words a monitor's criteria are created with.",
 };
 
+const RULE_HELP: NounSite = {
+  inEnglish:
+    "The nouns a label or owner rule page's help is written with (Utils/Help/ResourceRuleHelp): a help document's words are English markdown, never translated (#8889).",
+};
+
 // "Clúster de Kubernetes" as a label: translated, then started with a capital.
 const TRANSLATED_LABEL_CALL: RegExp =
   /toLabelTerm\(\s*translator\.translateText\(label\) \|\| label,\s*translator\.language,?\s*\)/;
@@ -257,14 +262,24 @@ const SITES: Readonly<Record<string, NounSite>> = {
     inSentence:
       "The agent's name in the connection guide's sentences (\"Set up the {{agentName}}\").",
   },
+  [`${DASHBOARD}/Pages/Ceph/Settings/LabelRules.tsx`]: RULE_HELP,
+  [`${DASHBOARD}/Pages/Ceph/Settings/OwnerRules.tsx`]: RULE_HELP,
   [`${DASHBOARD}/Pages/Ceph/View/Owners.tsx`]: OWNERS_CARD,
   [`${DASHBOARD}/Pages/Ceph/View/Settings.tsx`]: MORE_SETTINGS,
+  [`${DASHBOARD}/Pages/Docker/Settings/LabelRules.tsx`]: RULE_HELP,
+  [`${DASHBOARD}/Pages/Docker/Settings/OwnerRules.tsx`]: RULE_HELP,
   [`${DASHBOARD}/Pages/Docker/View/Owners.tsx`]: OWNERS_CARD,
   [`${DASHBOARD}/Pages/Docker/View/Settings.tsx`]: MORE_SETTINGS,
+  [`${DASHBOARD}/Pages/DockerSwarm/Settings/LabelRules.tsx`]: RULE_HELP,
+  [`${DASHBOARD}/Pages/DockerSwarm/Settings/OwnerRules.tsx`]: RULE_HELP,
   [`${DASHBOARD}/Pages/DockerSwarm/View/Owners.tsx`]: OWNERS_CARD,
   [`${DASHBOARD}/Pages/DockerSwarm/View/Settings.tsx`]: MORE_SETTINGS,
+  [`${DASHBOARD}/Pages/IoT/Settings/LabelRules.tsx`]: RULE_HELP,
+  [`${DASHBOARD}/Pages/IoT/Settings/OwnerRules.tsx`]: RULE_HELP,
   [`${DASHBOARD}/Pages/IoT/View/Owners.tsx`]: OWNERS_CARD,
   [`${DASHBOARD}/Pages/IoT/View/Settings.tsx`]: MORE_SETTINGS,
+  [`${DASHBOARD}/Pages/Kubernetes/Settings/LabelRules.tsx`]: RULE_HELP,
+  [`${DASHBOARD}/Pages/Kubernetes/Settings/OwnerRules.tsx`]: RULE_HELP,
   [`${DASHBOARD}/Pages/Kubernetes/View/Owners.tsx`]: OWNERS_CARD,
   [`${DASHBOARD}/Pages/Kubernetes/View/Settings.tsx`]: MORE_SETTINGS,
   [`${DASHBOARD}/Pages/Monitor/View/Documentation.tsx`]: LINK_IN_A_SENTENCE,
@@ -272,12 +287,20 @@ const SITES: Readonly<Record<string, NounSite>> = {
     inSentence:
       'Words in bold inside a sentence: "It listens for {{snmpTraps}} on UDP port 162".',
   },
+  [`${DASHBOARD}/Pages/OpenStack/Settings/LabelRules.tsx`]: RULE_HELP,
+  [`${DASHBOARD}/Pages/OpenStack/Settings/OwnerRules.tsx`]: RULE_HELP,
   [`${DASHBOARD}/Pages/OpenStack/View/Owners.tsx`]: OWNERS_CARD,
   [`${DASHBOARD}/Pages/OpenStack/View/Settings.tsx`]: MORE_SETTINGS,
+  [`${DASHBOARD}/Pages/Podman/Settings/LabelRules.tsx`]: RULE_HELP,
+  [`${DASHBOARD}/Pages/Podman/Settings/OwnerRules.tsx`]: RULE_HELP,
   [`${DASHBOARD}/Pages/Podman/View/Owners.tsx`]: OWNERS_CARD,
   [`${DASHBOARD}/Pages/Podman/View/Settings.tsx`]: MORE_SETTINGS,
+  [`${DASHBOARD}/Pages/Proxmox/Settings/LabelRules.tsx`]: RULE_HELP,
+  [`${DASHBOARD}/Pages/Proxmox/Settings/OwnerRules.tsx`]: RULE_HELP,
   [`${DASHBOARD}/Pages/Proxmox/View/Owners.tsx`]: OWNERS_CARD,
   [`${DASHBOARD}/Pages/Proxmox/View/Settings.tsx`]: MORE_SETTINGS,
+  [`${DASHBOARD}/Pages/Rum/Settings/LabelRules.tsx`]: RULE_HELP,
+  [`${DASHBOARD}/Pages/Rum/Settings/OwnerRules.tsx`]: RULE_HELP,
   [`${DASHBOARD}/Pages/Rum/View/Settings.tsx`]: MORE_SETTINGS,
   [`${DASHBOARD}/Pages/Settings/McpServer.tsx`]: LINK_IN_A_SENTENCE,
   [`${DASHBOARD}/Pages/StatusPages/View/Mcp.tsx`]: LINK_IN_A_SENTENCE,

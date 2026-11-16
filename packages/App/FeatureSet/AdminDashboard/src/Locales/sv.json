@@ -69,10 +69,6 @@
     "ingestionBudgets": "Intagningsbudgetar",
     "products": "Produkter"
   },
-  "topAlert": {
-    "title": "OneUptime administratörspanel",
-    "description": "Du kan utföra dina OneUptime-serverrelaterade uppgifter på denna panel."
-  },
   "header": {
     "exitAdmin": "Lämna admin",
     "help": "Hjälp",

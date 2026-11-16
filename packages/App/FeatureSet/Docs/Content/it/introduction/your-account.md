@@ -84,14 +84,14 @@ Una nuova password disconnette tutti i dispositivi dal tuo account, e qualsiasi 
 3. Segui la richiesta del browser per salvare la passkey.
 :::
 
-La prossima volta, scegli **Accedi con una passkey** nella pagina di accesso.
+La prossima volta, scegli **Altri modi per accedere** → **Accedi con una passkey** nella pagina di accesso.
 
 ### Accedere con un link inviato via e-mail
 
 Puoi accedere con un link invece della password. Non c'è nulla da configurare.
 
 :::steps
-1. Nella pagina di accesso, scegli **Inviami un link di accesso**.
+1. Nella pagina di accesso, scegli **Altri modi per accedere** → **Inviami un link di accesso**.
 2. Inserisci il tuo indirizzo e-mail e fai clic su **Inviami un link di accesso**. La pagina mostra quindi **Controlla la tua e-mail**.
 3. Apri il link nell'e-mail e fai clic su **Accedi**.
 :::

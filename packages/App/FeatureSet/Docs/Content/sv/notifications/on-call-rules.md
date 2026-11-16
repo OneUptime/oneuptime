@@ -47,7 +47,7 @@ Klicka på **Spara ändringar**, som visas så snart något har ändrats. Det sk
 
 **Testa dina larm**, längst ned på sidan, skickar ett testlarm till dig genom dem.
 
-När en allvarlighetsgrad förtjänar något annat öppnar **Annorlunda för vissa allvarlighetsgrader** under stegen flikarna och korten som beskrivs nedan. Ett kort som avviker från din ordning är märkt **Avviker från ordningen**, och ordningen visar vad varje kort gör i stället. Avviker dina regler redan öppnas sidan på korten, med **Använd en ordning för allt**: när du sparar nämner den först de kort som förlorar sin avvikelse. En allvarlighetsgrad som ditt projekt har arkiverat behåller sina egna regler.
+När en allvarlighetsgrad förtjänar något annat öppnar **Annorlunda för vissa allvarlighetsgrader**, knappen bredvid rubriken, flikarna och korten som beskrivs nedan. Ett kort som avviker från din ordning är märkt **Avviker från ordningen**. Sidan öppnas fortfarande på dina steg och visar under dem varje kort som avviker och vad det gör i stället. **Spara ändringar** låter de korten vara som de är; **Använd den här ordningen för alla allvarlighetsgrader**, sist i listan, ger dem också din ordning, efter att ha nämnt de kort som förlorar sin avvikelse. En allvarlighetsgrad som ditt projekt har arkiverat behåller sina egna regler.
 
 En jourpolicy bestämmer vem som larmas och när dess nästa nivå kommer. Hur du nås är den här ordningen, för varje policy som larmar dig.
 

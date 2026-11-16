@@ -24,7 +24,9 @@ import URL from "Common/Types/API/URL";
  *    tiles say "No monitors yet" / "No SLOs yet", and the monitors tile opens
  *    the Monitors list, whose empty state carries the Create Monitor button.
  *  - Menus say "Not Operational", never "Inoperational".
- *  - Getting Started's "Invite your team" lands where Invite User is.
+ *  - Home is the question alone, then the steps its goals bring (#8897);
+ *    Getting Started's "Invite your team" lands where Invite User is, and
+ *    hiding the checklist brings the rest of Home back.
  *  - An empty core list shows a real empty state - "No X yet", what the
  *    list is for, and its Create button - in place of the old grey sentence
  *    and "Refresh?" link; a search that matched nothing says so, offers to
@@ -33,8 +35,10 @@ import URL from "Common/Types/API/URL";
  *    saved on every five minutes; an Incoming Request monitor, which has no
  *    interval step, is saved with no interval at all.
  *
- * One project for the whole file, in order: the empty-project checks have to
- * run before the monitors that end the project's emptiness are created.
+ * One project for the whole file, in order: the question is answered first,
+ * the checklist is hidden before Home's numbers are read, and the
+ * empty-project checks run before the monitors that end the project's
+ * emptiness are created.
  */
 
 test.describe.configure({ mode: "serial" });
@@ -77,6 +81,104 @@ test.describe("First run: a brand-new project", () => {
 
   test.afterAll(async () => {
     await page?.close();
+  });
+
+  /*
+   * Issue #6803: a new project's owner is asked once what they came to do,
+   * on the server, so the answer holds on every device. While it is asked,
+   * and while the steps its goals bring show, the quickstart is the whole
+   * of Home (#8897): no headline, no numbers, no lists.
+   */
+  test("Home is the question alone, and a goal gives its steps", async () => {
+    test.setTimeout(180000);
+
+    await gotoProjectPage({
+      page,
+      projectId,
+      url: projectUrl(projectId, "/home"),
+      ready: page.getByTestId("welcome-question"),
+    });
+
+    await expect(page.getByTestId("welcome-question")).toContainText(
+      "What do you want to do first?",
+    );
+    // Six goals as cards; "Just looking around" is the way out under them.
+    await expect(
+      page.getByTestId("welcome-question").getByRole("checkbox"),
+    ).toHaveCount(6);
+    await expect(
+      page.getByTestId("welcome-question-just-looking"),
+    ).toBeVisible();
+    await expect(page.getByTestId("home-overview-stats")).toHaveCount(0);
+    await expect(page.getByTestId("home-needs-attention")).toHaveCount(0);
+
+    await page
+      .getByTestId("welcome-goal-on_call")
+      .getByRole("checkbox")
+      .check();
+    await expect(page.getByTestId("welcome-question-plan-steps")).toHaveText(
+      "3 steps to set up",
+    );
+    await page.getByTestId("welcome-question-continue").click();
+
+    for (const step of ["monitor", "on_call", "team"]) {
+      await expect(
+        page.getByTestId(`getting-started-task-${step}`),
+      ).toBeVisible({ timeout: 30000 });
+    }
+    await expect(page.getByTestId("home-overview-stats")).toHaveCount(0);
+
+    // Answered once: it is not asked again.
+    await page.reload();
+    await expect(page.getByTestId("getting-started-task-team")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("welcome-question")).toHaveCount(0);
+  });
+
+  test("Getting Started's 'Invite your team' lands where Invite User is", async () => {
+    test.setTimeout(180000);
+
+    await gotoProjectPage({
+      page,
+      projectId,
+      url: projectUrl(projectId, "/home"),
+      ready: page.getByTestId("getting-started-task-team"),
+    });
+
+    await page.getByTestId("getting-started-task-team").click();
+
+    await expect(page).toHaveURL(exactPath(projectId, "/users"), {
+      timeout: 30000,
+    });
+    await expect(page.getByRole("button", { name: "Invite User" })).toBeVisible(
+      { timeout: 30000 },
+    );
+  });
+
+  /*
+   * Hidden by its owner, the quickstart leaves the rest of Home, with a
+   * line that shows it again (#8897).
+   */
+  test("Hide brings the rest of Home back, with the line that shows the checklist again", async () => {
+    test.setTimeout(180000);
+
+    await gotoProjectPage({
+      page,
+      projectId,
+      url: projectUrl(projectId, "/home"),
+      ready: page.getByTestId("getting-started-dismiss"),
+    });
+
+    await page.getByTestId("getting-started-dismiss").click();
+
+    await expect(page.getByTestId("welcome-checklist-hidden")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("home-overview-stats")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("getting-started")).toHaveCount(0);
   });
 
   test("Home says what is not set up yet, instead of all clear", async () => {
@@ -162,64 +264,6 @@ test.describe("First run: a brand-new project", () => {
     await expect(page).toHaveURL(exactPath(projectId, "/monitors/create"), {
       timeout: 30000,
     });
-  });
-
-  /*
-   * Issue #6803: a new project's owner is asked once what they came to do,
-   * on the server, so the answer holds on every device. Skip gives the four
-   * steps every project gets.
-   */
-  test("Home asks what the project came to do, and Skip gives the four steps", async () => {
-    test.setTimeout(180000);
-
-    await gotoProjectPage({
-      page,
-      projectId,
-      url: projectUrl(projectId, "/home"),
-      ready: page.getByTestId("welcome-question"),
-    });
-
-    await expect(page.getByTestId("welcome-question")).toContainText(
-      "What do you want to do first?",
-    );
-    await expect(
-      page.getByTestId("welcome-question").getByRole("checkbox"),
-    ).toHaveCount(7);
-
-    await page.getByTestId("welcome-question-skip").click();
-
-    for (const step of ["monitor", "on_call", "status_page", "team"]) {
-      await expect(
-        page.getByTestId(`getting-started-task-${step}`),
-      ).toBeVisible({ timeout: 30000 });
-    }
-
-    // Answered once: it is not asked again.
-    await page.reload();
-    await expect(page.getByTestId("getting-started-task-team")).toBeVisible({
-      timeout: 30000,
-    });
-    await expect(page.getByTestId("welcome-question")).toHaveCount(0);
-  });
-
-  test("Getting Started's 'Invite your team' lands where Invite User is", async () => {
-    test.setTimeout(180000);
-
-    await gotoProjectPage({
-      page,
-      projectId,
-      url: projectUrl(projectId, "/home"),
-      ready: page.getByTestId("getting-started-task-team"),
-    });
-
-    await page.getByTestId("getting-started-task-team").click();
-
-    await expect(page).toHaveURL(exactPath(projectId, "/users"), {
-      timeout: 30000,
-    });
-    await expect(page.getByRole("button", { name: "Invite User" })).toBeVisible(
-      { timeout: 30000 },
-    );
   });
 
   test("the empty Monitors list says No monitors yet, and explains Monitors with Create Monitor under it", async () => {

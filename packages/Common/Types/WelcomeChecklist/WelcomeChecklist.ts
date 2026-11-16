@@ -97,6 +97,82 @@ export const STEPS_OF_GOAL: Readonly<
 };
 
 /*
+ * ABOUT HOW LONG EACH STEP TAKES, in minutes (issue #8897). The quickstart
+ * says it beside each step and adds up what is left, and the question adds
+ * up the steps a choice of goals brings, so a person sees what a plan asks
+ * of them before they start it. Each is someone new doing the step's guided
+ * setup (or page) with every default kept: rounded up, and said as "about".
+ * The guided setups say the same number beside their steps.
+ */
+export const WELCOME_STEP_MINUTES: Readonly<Record<WelcomeStep, number>> = {
+  // An email server in the Admin Dashboard, and a test email.
+  [WelcomeStep.ServerEmail]: 5,
+  // An API key from the other tool, a preview, and the import itself.
+  [WelcomeStep.Import]: 10,
+  // An address, who is told, and a test page (#6804).
+  [WelcomeStep.Monitor]: 3,
+  // The agent on one server, or one cluster or cloud account connected.
+  [WelcomeStep.Infrastructure]: 5,
+  // An app pointed at OpenTelemetry, then its first data (#6806).
+  [WelcomeStep.Telemetry]: 10,
+  // How you are reached, who else, what if nobody answers, a test (#6805).
+  [WelcomeStep.OnCall]: 5,
+  // A name, the monitors it shows, and a look at it (#6806).
+  [WelcomeStep.StatusPage]: 3,
+  // An invitation sent; accepting it is the teammate's.
+  [WelcomeStep.Team]: 1,
+};
+
+// About how long some steps take together, in minutes.
+export const getWelcomeStepsMinutes: (
+  steps: ReadonlyArray<WelcomeStep>,
+) => number = (steps: ReadonlyArray<WelcomeStep>): number => {
+  return steps.reduce((total: number, step: WelcomeStep): number => {
+    return total + WELCOME_STEP_MINUTES[step];
+  }, 0);
+};
+
+/*
+ * About how long the steps left take: the ones not done that the plan
+ * allows. A step the plan holds back is not counted, as it is not in the
+ * progress either.
+ */
+export const getWelcomeMinutesLeft: (
+  steps: ReadonlyArray<WelcomeChecklistStepState>,
+) => number = (steps: ReadonlyArray<WelcomeChecklistStepState>): number => {
+  return getWelcomeStepsMinutes(
+    steps
+      .filter((state: WelcomeChecklistStepState): boolean => {
+        return !state.isDone && state.needsPlan === null;
+      })
+      .map((state: WelcomeChecklistStepState): WelcomeStep => {
+        return state.step;
+      }),
+  );
+};
+
+/*
+ * The steps a choice of goals would give this server's project, before it
+ * is sent: what the question says the plan is while the person picks. The
+ * server's email is no goal's, so it is never counted here.
+ */
+export const getPlanStepsForGoals: (
+  goals: ReadonlyArray<ProjectGoal>,
+  offProducts?: ReadonlyArray<ProductKey> | undefined,
+) => Array<WelcomeStep> = (
+  goals: ReadonlyArray<ProjectGoal>,
+  offProducts?: ReadonlyArray<ProductKey> | undefined,
+): Array<WelcomeStep> => {
+  if (goals.length === 0) {
+    return [];
+  }
+
+  return getStepsForGoals(goals).filter((step: WelcomeStep): boolean => {
+    return !isWelcomeStepOffOnServer(step, offProducts || []);
+  });
+};
+
+/*
  * The steps of a project that skipped the question or never answered it:
  * the four the checklist always had, in the checklist's order.
  */

@@ -24,37 +24,41 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 
 const alertOwnerDocumentation: string = `
-### How Alert Owner Rules Work
+An owner rule makes people and teams owners of every new alert it matches, so the right people own an alert from the moment it is created.
 
-Alert Owner Rules add owner users and teams to an alert automatically when it matches your criteria.
+## How It Works
 
-### Match Criteria
+- Rules run as each alert is created. To add owners to alerts you already have, open a rule and select **Run Now**.
+- Every rule that matches adds its owners. An owner the alert already has is not added twice.
+- Whoever creates an alert owns it, whatever the rules say. The summary step of **Create Alert** lists each rule that will run, and whom it will add.
 
-A rule matches an alert only when **all** specified criteria pass. Empty criteria are skipped.
+## Match Criteria
 
-- **Monitors**, **Severities**, **Alert Labels**, **Monitor Labels** — any-of (M2M)
-- **Title / Description Pattern**, **Monitor Name / Description Pattern** — case-insensitive regex
+Add conditions on the alert, such as its monitor, severity, labels or title, and choose whether all of them or any one must match.
 
-### Action
+## Owners a Rule Copies
 
-When a rule matches:
+Under **Inherit Owners**, a rule can also add the owners of the alert's monitor, and of the hosts, Kubernetes clusters, Docker hosts, Podman hosts and services it affects.
 
-- Every user and team listed on the rule is added as an owner.
-- If \`Inherit Owners From Monitors\` is on, every owner of the alert's monitor is also added.
-- If \`Inherit Owners From Hosts\` is on, every owner of the alert's affected hosts is also added.
-- If \`Inherit Owners From Kubernetes Clusters\` is on, every owner of the alert's affected Kubernetes clusters is also added.
-- If \`Inherit Owners From Docker Hosts\` is on, every owner of the alert's affected Docker hosts is also added.
-- If \`Inherit Owners From Podman Hosts\` is on, every owner of the alert's affected Podman hosts is also added.
-- If \`Inherit Owners From Services\` is on, every owner of the alert's affected services is also added.
-- Under \`Creator's Team\`, each listed team that the person who creates the alert is a member of is also added. An alert created by a monitor, a workflow or an API key has no creator, so it gets none of these teams.
+**Creator's Team** adds each team you list that the person creating the alert is in. An alert created by a monitor, a workflow or an API key has no creator, so it gets none of these teams.
 
-Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Whoever creates an alert becomes one of its owners whatever the rules say, and the summary step of Create Alert lists each rule that will run, and whom it will add.
+## Telling the New Owners
+
+With **Notify Owners** on (the default), the people and teams a rule adds are told they now own the alert. Turn it off to add them quietly.
 `;
 
 const alertEpisodeOwnerDocumentation: string = `
-### How Alert Episode Owner Rules Work
+An episode owner rule makes people and teams owners of every new alert episode it matches, so each episode has someone responsible for it.
 
-Match an alert episode on creation and add owner users / teams automatically.
+## How It Works
+
+- Rules run as each episode opens. To add owners to episodes you already have, open a rule and select **Run Now**.
+- Every rule that matches adds its owners. An owner the episode already has is not added twice.
+- With **Notify Owners** on (the default), the people and teams a rule adds are told.
+
+## Match Criteria
+
+Add conditions on the episode, such as its severity, labels or title, and choose whether all of them or any one must match.
 `;
 
 interface RulesTableProps {

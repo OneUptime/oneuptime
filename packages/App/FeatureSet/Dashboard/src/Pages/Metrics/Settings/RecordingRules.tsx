@@ -24,27 +24,23 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const documentationMarkdown: string = `
-### How Recording Rules Work
+A recording rule makes a new metric out of the metrics you already have, one point a minute, such as an error rate from a count of errors and a count of requests. Chart it, put it on a dashboard, or alert on it, like any other metric.
 
-A Recording Rule computes a new metric from one or more existing metrics on a schedule.
+## Set Up a Rule
 
-Every minute, the Recording Rules worker evaluates each enabled rule for the **previous 1-minute bucket**. The result is written into the metric store under the rule's **Output Metric Name**, tagged with the rule ID so you can tell derived series apart from raw data. The output metric name is made from the rule's name - "HTTP 5xx error rate" writes \`http_5xx_error_rate\` - unless you choose **Edit** next to it and type your own.
+- **Sources**: up to 4 metrics, each with a letter (A, B, C, D), a metric name and an aggregation: Sum, Avg, Count, Min or Max. Each can be narrowed to one attribute's value.
+- **Expression**: arithmetic over the letters, with \`+ - * /\`, parentheses and numbers, such as \`A / B * 100\`.
+- **Group By**: an attribute key, such as \`service.name\`, for one point per value of it.
 
-### Definition
+The metric's name is made from the rule's name ("HTTP 5xx error rate" writes \`http_5xx_error_rate\`), unless you select **Edit** beside it and type your own.
 
-A rule is made of three parts:
+## When Points Are Written
 
-- **Sources** — up to 4 input metrics. Each gets an alias (A, B, C, D), a metric name, and an aggregation (Sum, Avg, Count, Min, Max). You can optionally filter a source by a single attribute key/value.
-- **Expression** — arithmetic over the aliases. Operators: \`+ - * /\`, parentheses, numeric literals. Example: \`A / B * 100\`.
-- **Group By** — optional attribute key (e.g. \`service.name\`). When set, one derived data point is produced per distinct value of that attribute.
+Every minute, each enabled rule is worked out for the minute before. A result that is not a number, such as a division by zero, a missing source or an overflow, writes nothing, so dashboards and alerts see a gap rather than a wrong value.
 
-### Null semantics
+## How Points Are Labelled
 
-If a bucket would produce a non-finite result (division by zero, missing source, overflow), it is skipped — no row is written for that bucket. Dashboards and alerts see a gap rather than bad data.
-
-### Output labeling
-
-Every materialized row carries an attribute \`oneuptime.derived.rule_id\` with this rule's ID, plus the group-by attribute value when set.
+Every point carries \`oneuptime.derived.rule_id\` with the rule's ID, so you can tell a rule's series from raw data, and its group-by value when it has one.
 `;
 
 /*

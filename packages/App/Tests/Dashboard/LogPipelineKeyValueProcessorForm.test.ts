@@ -175,10 +175,16 @@ describe("the form validates and tests with the shared parser", () => {
 });
 
 describe("the pipeline page explains the processor", () => {
+  /*
+   * The help dialog (#8889) draws each `##` of a page's help as a topic of
+   * its own, so the processor is one, beside the Grok Parser it is the
+   * order-free answer to, and it opens by saying what it does.
+   */
   test("the help panel documents the Key=Value Parser", () => {
-    expect(PIPELINE_VIEW_SOURCE).toMatch(/#### Key=Value Parser/);
+    expect(PIPELINE_VIEW_SOURCE).toMatch(/^## Key=Value Parser$/m);
+    expect(PIPELINE_VIEW_SOURCE).toMatch(/^## Grok Parser$/m);
     expect(PIPELINE_VIEW_SOURCE).toMatch(
-      /Understanding Grok Parser, Key=Value Parser,/,
+      /^## Key=Value Parser\n\nSplits a line of \\`key=value\\` pairs into attributes/m,
     );
   });
 });

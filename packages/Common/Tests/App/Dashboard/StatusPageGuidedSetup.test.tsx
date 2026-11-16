@@ -244,7 +244,32 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
+// What the setup sets up, beside the steps (#8897), in the order listed.
+const outcomesBeside: () => Array<string> = (): Array<string> => {
+  return Array.from(
+    screen.getByTestId("guided-setup-aside").querySelectorAll("li"),
+  ).map((item: HTMLLIElement): string => {
+    return item.textContent || "";
+  });
+};
+
 describe("a brand-new run", () => {
+  test("beside the steps, what it sets up, the first one open, and about how long", async () => {
+    await renderSetup();
+
+    expect(outcomesBeside()).toEqual([
+      "A status page shows your monitors, with their status and uptime.",
+      "Your customers see it at its own address.",
+    ]);
+    expect(screen.getByTestId("guided-setup-outcome-pick")).toHaveAttribute(
+      "data-state",
+      "open",
+    );
+    expect(screen.getByTestId("guided-setup-minutes")).toHaveTextContent(
+      /^About 3\sminutes$/,
+    );
+  });
+
   test("opens on step 1 with both steps in view, and makes nothing by opening", async () => {
     await renderSetup();
 

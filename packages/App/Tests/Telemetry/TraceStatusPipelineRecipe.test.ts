@@ -519,7 +519,7 @@ describe("the help gives customers the recipes these tests run", () => {
     const help: string = readSettingsHelp("DropFilters.tsx");
 
     expect(help).toContain(
-      `\`${SAMPLE_SUCCESSFUL_CLIENT_SPANS}\` (action: Sample, 10%)`,
+      `\`${SAMPLE_SUCCESSFUL_CLIENT_SPANS}\`, with **Sample** at 10%`,
     );
     expect(help).not.toContain(OLD_SAMPLE_SUCCESSFUL_CLIENT_SPANS);
   });

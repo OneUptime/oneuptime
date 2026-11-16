@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -16,6 +17,10 @@ import ServerlessFunctionLabelRule from "Common/Models/DatabaseModels/Serverless
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
+
+const labelRuleDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "serverless function", plural: "serverless functions" },
+});
 
 const ServerlessFunctionLabelRulesPage: FunctionComponent<
   RuleSettingsPageProps
@@ -47,6 +52,12 @@ const ServerlessFunctionLabelRulesPage: FunctionComponent<
         title: "Serverless Function Label Rules",
         description:
           "Auto-attach labels when matching serverless functions are created.",
+      }}
+      helpContent={{
+        title: "How Serverless Function Label Rules Work",
+        description:
+          "Match serverless functions and attach labels automatically.",
+        markdown: labelRuleDocumentation,
       }}
       sortBy="name"
       sortOrder={SortOrder.Ascending}

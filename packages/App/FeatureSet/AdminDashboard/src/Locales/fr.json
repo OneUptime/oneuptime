@@ -69,10 +69,6 @@
     "ingestionBudgets": "Budgets d'ingestion",
     "products": "Produits"
   },
-  "topAlert": {
-    "title": "Tableau de bord admin OneUptime",
-    "description": "Vous pouvez effectuer vos tâches liées au serveur OneUptime sur ce tableau de bord."
-  },
   "header": {
     "exitAdmin": "Quitter l'admin",
     "help": "Aide",

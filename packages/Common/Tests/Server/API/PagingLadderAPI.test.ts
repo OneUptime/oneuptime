@@ -148,6 +148,18 @@ describe("POST /paging-ladder/apply", () => {
     });
   });
 
+  test("passes the severities that keep their own rules on to the service, as sent (#8890)", async () => {
+    const keepCards: Array<JSONObject> = [
+      { ruleType: "On Call Executed Incident", severityId: "a-severity" },
+    ];
+
+    await apply({ steps: STEPS, keepCards: keepCards });
+
+    expect(
+      (applyLadder.mock.calls[0]![0] as { keepCards: unknown }).keepCards,
+    ).toEqual(keepCards);
+  });
+
   test("names the member a request names; the service decides whether the caller may", async () => {
     await apply({ steps: STEPS, userId: BOB.toString() });
 

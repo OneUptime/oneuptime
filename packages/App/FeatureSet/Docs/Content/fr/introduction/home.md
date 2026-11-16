@@ -20,6 +20,8 @@ Ouvrez **Accueil** dans la barre du haut, ou appuyez sur `g` puis `h` depuis n'i
 5. **Votre projet**, ce qui compose le projet, et **Maintenance à venir** quand une maintenance est planifiée.
 6. **Explorer OneUptime**, tous les produits, une catégorie à la fois.
 
+Tant que la liste **Bienvenue sur OneUptime 👋** d'un nouveau projet s'affiche, elle occupe tout l'accueil : la première chose que vous voyez est ce qu'il faut faire en premier. Un incident ouvert, ou tout ce qui demande quelqu'un, s'affiche quand même au-dessus. Masquez la liste, ou terminez-la, et le reste de l'accueil revient.
+
 ### Rechercher et créer
 
 Le champ de recherche ouvre la recherche, comme `Mod` + `K` : tapez le nom de n'importe quelle page, d'un moniteur, d'un incident, d'une alerte, d'une page de statut ou d'une politique d'astreinte. Consultez la section [Rechercher](#rechercher-une-page-un-paramètre-ou-une-action). **Déclarer un incident** ouvre le formulaire de déclaration d'un incident. **Créer** propose **Créer un moniteur**, **Planifier une maintenance** et **Créer une annonce**. Chacun n'est affiché qu'aux personnes autorisées à l'utiliser.
@@ -56,7 +58,7 @@ Un nombre supérieur à zéro affiche **Attention requise**, ou **En cours** et 
 
 ### La liste de bienvenue
 
-La première fois qu'un Propriétaire du projet ou un Administrateur du projet ouvre l'accueil d'un nouveau projet, la carte demande **Que voulez-vous faire en premier ?** Cochez un ou plusieurs objectifs, par exemple **Savoir quand mon site web ou mon API est en panne** ou **Je regarde simplement**, puis cliquez sur **Continuer** : la liste contient alors les étapes dont ces objectifs ont besoin. **Ignorer** donne les quatre étapes que reçoit tout projet. Pour répondre à nouveau plus tard, cliquez sur **Modifier** dans la liste. Un projet qui utilise déjà des moniteurs, de la télémétrie ou l'astreinte n'est pas interrogé.
+La première fois qu'un Propriétaire du projet ou un Administrateur du projet ouvre l'accueil d'un nouveau projet, la carte le salue par son prénom et demande **Que voulez-vous faire en premier ?** Choisissez un ou plusieurs objectifs, par exemple **Savoir quand mon site web ou mon API est en panne**, puis cliquez sur **Continuer** : la liste contient alors les étapes dont ces objectifs ont besoin. Pendant que vous choisissez, elle indique combien d'étapes cela représente et combien de temps elles prennent environ. **Je regarde simplement** vous amène plutôt directement au reste de l'accueil, et laisse une ligne pour afficher de nouveau la liste. Pour répondre à nouveau plus tard, cliquez sur **Modifier** dans la liste. Un projet qui utilise déjà des moniteurs, de la télémétrie ou l'astreinte n'est pas interrogé.
 
 Chaque étape se coche d'elle-même quand la chose fonctionne, pas quand un enregistrement existe, et toutes les personnes qui configurent le projet voient la même liste, sur chaque appareil :
 
@@ -72,9 +74,13 @@ Chaque étape se coche d'elle-même quand la chose fonctionne, pas quand un enre
 
 L'étape à faire en premier est marquée **Étape suivante**. Avec l'offre Free d'OneUptime Cloud, qui comprend une personne, **Invitez votre équipe** indique qu'il faut l'offre Growth, et ouvre **Facturation**. Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, les administrateurs du serveur voient d'abord **Ce serveur ne peut pas encore envoyer d'e-mails** ; cela ouvre le tableau de bord admin.
 
+Chaque étape indique combien de temps elle prend environ, la liste indique le temps qu'il reste environ, et l'étape suivante a son propre bouton **Lancer**.
+
 Une configuration guidée fait tout le travail sur une seule page, étape par étape, et se termine par ce qu'elle a configuré et ce qu'il faut faire ensuite. Pour en rouvrir une plus tard, recherchez son nom.
 
-Sous les étapes, **Comment fonctionne OneUptime** montre les quatre produits essentiels dans l'ordre où un problème les traverse : **Moniteurs**, **Incidents et alertes**, **Astreinte** et **Pages de statut**. Cliquez sur l'un d'eux pour l'ouvrir. En dessous, il indique ce qui alimente cette boucle, la télémétrie et l'infrastructure, avec des liens vers [Concepts clés](/docs/introduction/core-concepts) et [Glossaire](/docs/introduction/glossary).
+À côté de ses étapes, une configuration guidée liste ce qu'elle met en place, coché au fur et à mesure, et indique combien de temps elle prend environ.
+
+Sous les étapes, une ligne ouvre **Comment fonctionne OneUptime** : tout ce que fait OneUptime, et comment l'ensemble s'articule.
 
 ```mermaid title="Quand la liste de bienvenue s'affiche"
 flowchart TB
