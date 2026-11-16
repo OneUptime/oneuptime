@@ -212,6 +212,52 @@ async function withoutArchivedMonitors(
   return FrozenMonitorResources.withoutArchivedMonitors(resources);
 }
 
+/*
+ * The project's statuses a monitor can start in - read only when one of
+ * these monitors has never been measured, so a page whose monitors all have
+ * been costs nothing more. A read that fails tells no monitor apart: the
+ * page's answer says only what is off, as it did before.
+ */
+async function readStartingStatusIds(data: {
+  ctx: ToolContext;
+  monitors: Array<unknown>;
+}): Promise<StartingStatusIds> {
+  const hasNeverMeasured: boolean = data.monitors.some(
+    (monitor: unknown): boolean => {
+      return (
+        Boolean(monitor) &&
+        (monitor as { firstMeasuredAt?: unknown }).firstMeasuredAt === null
+      );
+    },
+  );
+
+  if (!hasNeverMeasured) {
+    return new Set<string>();
+  }
+
+  try {
+    const monitorStatuses: Array<MonitorStatus> =
+      await MonitorStatusService.findBy({
+        query: {
+          projectId: data.ctx.projectId,
+        },
+        select: {
+          _id: true,
+          ...STARTING_STATUS_SELECT,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return FrozenMonitorResources.getStartingStatusIds(monitorStatuses);
+  } catch {
+    return new Set<string>();
+  }
+}
+
 // The resources the public page draws as not monitored, and why.
 interface NotMonitoredResources {
   // Every one the page draws as not monitored.
@@ -233,11 +279,8 @@ async function getNotMonitoredResourceIds(
   ctx: ToolContext,
   resources: Array<StatusPageResource>,
 ): Promise<NotMonitoredResources> {
-  const [monitorGroupResources, monitorStatuses]: [
-    Dictionary<Array<MonitorGroupResource>>,
-    Array<MonitorStatus>,
-  ] = await Promise.all([
-    MonitorGroupService.getMonitorGroupResourcesByGroupIds(
+  const monitorGroupResources: Dictionary<Array<MonitorGroupResource>> =
+    await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
       resources
         .map((resource: StatusPageResource): ObjectID | undefined => {
           return resource.monitorGroupId;
@@ -245,25 +288,21 @@ async function getNotMonitoredResourceIds(
         .filter((id: ObjectID | undefined): id is ObjectID => {
           return Boolean(id);
         }),
-    ),
-    MonitorStatusService.findBy({
-      query: {
-        projectId: ctx.projectId,
-      },
-      select: {
-        _id: true,
-        ...STARTING_STATUS_SELECT,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    }),
-  ]);
+    );
 
-  const startingStatusIds: StartingStatusIds =
-    FrozenMonitorResources.getStartingStatusIds(monitorStatuses);
+  const startingStatusIds: StartingStatusIds = await readStartingStatusIds({
+    ctx: ctx,
+    monitors: [
+      ...resources.map((resource: StatusPageResource): unknown => {
+        return resource.monitor;
+      }),
+      ...Object.values(monitorGroupResources)
+        .flat()
+        .map((member: MonitorGroupResource): unknown => {
+          return member.monitor;
+        }),
+    ],
+  });
 
   return {
     notMonitored: new Set<string>(
