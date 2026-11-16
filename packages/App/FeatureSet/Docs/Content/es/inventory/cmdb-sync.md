@@ -63,7 +63,7 @@ Una exportación de solo lectura necesita un único permiso, **Read Inventory It
 
 ### Copiar la clave
 
-Copia la **Clave de API** desde la página de la clave y ponla a disposición de tu tarea:
+Usa la clave que OneUptime te mostró una sola vez, al crearla, y ponla a disposición de tu tarea:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"

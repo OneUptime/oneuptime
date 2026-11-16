@@ -25,9 +25,11 @@ import React, { FunctionComponent, ReactElement } from "react";
  * everything else is optional and lives in the Products menu; and where the
  * docs explain it all (Core Concepts, the Glossary).
  *
- * It is drawn in two places: inside the Welcome checklist on Home, for a new
- * project, and on its own in a dialog (HowOneUptimeWorksDialog) that Help
- * and Home open at any time, however old the project.
+ * It is drawn inside the Welcome checklist on Home, for a new project. The
+ * dialog that Help, Home and Search open at any time, however old the
+ * project (HowOneUptimeWorksDialog), tells the same story at more length:
+ * the four steps a problem moves through, and every product, by category
+ * (HowOneUptimeWorksOverview). It shares the docs links below.
  *
  * Strings are English literals looked up as flat keys in the locale files
  * (useTranslateValue), the same convention the rest of the dashboard uses.
@@ -111,32 +113,27 @@ export const HOW_IT_WORKS_STEPS: Array<HowItWorksStep> = [
 export const STEP_BUTTON_CLASS_NAME: string =
   "group flex w-full items-start gap-3 rounded-md p-2 text-left transition hover:bg-white hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
-// Four across on a wide Home; two by two in a dialog, which is narrower.
+// Four across on a wide Home, two by two on a narrower one.
 export const STRIP_GRID_CLASS_NAME: string =
   "grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4";
-export const DIALOG_GRID_CLASS_NAME: string =
-  "grid grid-cols-1 gap-3 sm:grid-cols-2";
 
 export const DOCS_LINK_CLASS_NAME: string =
   "inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus-visible:underline";
 
-export interface ComponentProps {
-  /*
-   * The project the steps open their product in. Without one (no project
-   * is picked yet) the steps say what each product does, and open nothing.
-   */
-  projectId?: string | undefined;
-  /*
-   * Drawn on its own in a dialog, whose title names it: no heading of its
-   * own, no grey frame, and the steps two by two.
-   */
-  isInDialog?: boolean | undefined;
-  // Called after a step has opened its product (a dialog closes).
-  onStepOpened?: (() => void) | undefined;
+export const HOW_ONEUPTIME_WORKS_DOCS_TEST_ID: string =
+  "how-oneuptime-works-docs";
+
+export interface DocsLinksProps {
+  // Size and spacing where they are drawn: the strip's line, the dialog's.
+  className?: string | undefined;
 }
 
-const HowOneUptimeWorks: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
+/*
+ * Core Concepts and the Glossary, in a new tab, in the reader's language
+ * where the docs have it: under the strip, and under the dialog's overview.
+ */
+export const HowOneUptimeWorksDocsLinks: FunctionComponent<DocsLinksProps> = (
+  props: DocsLinksProps,
 ): ReactElement => {
   const { translateString, language } = useTranslateValue();
   const tx: (value: string) => string = (value: string): string => {
@@ -158,23 +155,58 @@ const HowOneUptimeWorks: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className={
-        props.isInDialog
-          ? ""
-          : "rounded-lg border border-gray-200 bg-gray-50 p-4"
-      }
+      className={`flex flex-wrap gap-x-4 gap-y-1 ${props.className || ""}`}
+      data-testid={HOW_ONEUPTIME_WORKS_DOCS_TEST_ID}
+    >
+      {docsLinks.map(
+        (link: { key: string; text: string; url: string }): ReactElement => {
+          return (
+            <a
+              key={link.key}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid={`${HOW_ONEUPTIME_WORKS_DOCS_TEST_ID}-${link.key}`}
+              className={DOCS_LINK_CLASS_NAME}
+            >
+              {tx(link.text)}
+              <Icon
+                icon={IconProp.ExternalLink}
+                className="h-3.5 w-3.5 flex-shrink-0"
+              />
+            </a>
+          );
+        },
+      )}
+    </div>
+  );
+};
+
+export interface ComponentProps {
+  /*
+   * The project the steps open their product in. Without one (no project
+   * is picked yet) the steps say what each product does, and open nothing.
+   */
+  projectId?: string | undefined;
+}
+
+const HowOneUptimeWorks: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const tx: (value: string) => string = (value: string): string => {
+    return translateString(value) ?? value;
+  };
+
+  return (
+    <div
+      className="rounded-lg border border-gray-200 bg-gray-50 p-4"
       data-testid="how-oneuptime-works"
     >
-      {!props.isInDialog && (
-        <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          {tx(HOW_IT_WORKS_TITLE)}
-        </div>
-      )}
-      <ol
-        className={
-          props.isInDialog ? DIALOG_GRID_CLASS_NAME : STRIP_GRID_CLASS_NAME
-        }
-      >
+      <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {tx(HOW_IT_WORKS_TITLE)}
+      </div>
+      <ol className={STRIP_GRID_CLASS_NAME}>
         {HOW_IT_WORKS_STEPS.map((step: HowItWorksStep, index: number) => {
           const content: ReactElement = (
             <>
@@ -212,12 +244,10 @@ const HowOneUptimeWorks: FunctionComponent<ComponentProps> = (
             UiAnalytics.capture("dashboard/home/how-it-works-step", {
               projectId: props.projectId,
               step: step.key,
-              ...(props.isInDialog ? { place: "dialog" } : {}),
             });
             Navigation.navigate(
               RouteUtil.populateRouteParams(RouteMap[step.pageMap] as Route),
             );
-            props.onStepOpened?.();
           };
 
           return (
@@ -260,31 +290,7 @@ const HowOneUptimeWorks: FunctionComponent<ComponentProps> = (
       >
         {tx(HOW_IT_WORKS_FOOTNOTE)}
       </p>
-      <div
-        className="mt-2 flex flex-wrap gap-x-4 gap-y-1 px-2 text-xs"
-        data-testid="how-oneuptime-works-docs"
-      >
-        {docsLinks.map(
-          (link: { key: string; text: string; url: string }): ReactElement => {
-            return (
-              <a
-                key={link.key}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid={`how-oneuptime-works-docs-${link.key}`}
-                className={DOCS_LINK_CLASS_NAME}
-              >
-                {tx(link.text)}
-                <Icon
-                  icon={IconProp.ExternalLink}
-                  className="h-3.5 w-3.5 flex-shrink-0"
-                />
-              </a>
-            );
-          },
-        )}
-      </div>
+      <HowOneUptimeWorksDocsLinks className="mt-2 px-2 text-xs" />
     </div>
   );
 };

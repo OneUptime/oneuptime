@@ -291,32 +291,41 @@ describe("a log body sent as a map or a list: a Sensitive Attribute Keys rule re
     ).toBe(stored(kv([["password", str("[REDACTED]")]])));
   });
 
-  test("the keys are read before a pattern rule listed first changes the text: an address after an escape is matched with it", () => {
+  test("the keys are read whatever the order of the list, and an address after an escape leaves the body JSON (#8923)", () => {
     const body: string = stored(
       kv([
         ["message", str(`line one\n${EMAIL}`)],
         ["password", str("pw-3")],
       ]),
     );
-    // The Email rule alone: the match takes the escape's letter with it.
+    /*
+     * The Email rule alone. Its match used to take the escape's letter
+     * with it - `n` + the address - and leave `\[REDACTED]`, which is not
+     * JSON. The address is matched as written, after the line break.
+     */
     const emailOnly: string = scrubbedBody(body, [
       { patternType: "email", action: "redact" },
     ]);
 
-    expect(emailOnly).not.toContain(EMAIL);
-    expect(() => {
-      return JSON.parse(emailOnly);
-    }).toThrow();
+    expect(emailOnly).toBe(
+      stored(
+        kv([
+          ["message", str("line one\n[REDACTED]")],
+          ["password", str("pw-3")],
+        ]),
+      ),
+    );
 
     const both: string = scrubbedBody(body, [
       { patternType: "email", action: "redact" },
       SENSITIVE_KEYS,
     ]);
 
-    expect(both).not.toContain(EMAIL);
-    expect(both).not.toContain("pw-3");
-    expect(both).toContain(
-      '"key":"password","value":{"stringValue":"[REDACTED]"}',
+    expect(JSON.parse(both)).toEqual(
+      kv([
+        ["message", str("line one\n[REDACTED]")],
+        ["password", str("[REDACTED]")],
+      ]),
     );
   });
 
@@ -597,6 +606,10 @@ describe("a span's status message and its events' names: All reaches them", () =
         ): string => {
           asked.push(text);
           return regex.replace(text, replacer);
+        },
+        matchRanges: (text: string): Array<[number, number]> => {
+          asked.push(text);
+          return regex.matchRanges(text);
         },
       };
     }

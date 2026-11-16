@@ -169,6 +169,14 @@ export class Service extends ProjectReferencesService<Model> {
     return { findBy, carryForward: null };
   }
 
+  /*
+   * The read hook keeps an action item of a private incident to that
+   * incident's owners, by the incident it names. See DatabaseService.
+   */
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return ["incidentId"];
+  }
+
   @CaptureSpan()
   public override async countBy(
     countBy: CountBy<Model>,

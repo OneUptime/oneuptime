@@ -14,7 +14,7 @@ Slå opp meldingen Terraform skrev ut, eller det du så skje, i tabellen nedenfo
 | Melding eller symptom | Hva du gjør |
 | --- | --- |
 | `Missing API Key` | Gi provideren nøkkelen sin: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
-| `Invalid API Key` | Kopier nøkkelen på nytt, eller opprett en ny: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
+| `Invalid API Key` | Sjekk nøkkelen, eller tilbakestill den for å få en ny: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
 | `ProjectId required` | Bruk en API-nøkkel for prosjektet, ikke en hovednøkkel: se [`ProjectId required`](#projectid-required) |
 | `You do not have permissions to create Monitor` | Gi nøkkelen tillatelsen meldingen nevner: se [Nøkkelen mangler en tillatelse](#nøkkelen-mangler-en-tillatelse) |
 | `API keys need the Growth plan` | Flytt prosjektet tilbake til abonnementet Growth: se [Betaling kreves](#betaling-kreves) |
@@ -60,7 +60,7 @@ Provideren nevner hva den holdt på med: `Unable to create monitor` og `Unable t
 
 `Missing API Key` stopper provideren før den sender noen forespørsel: verken `api_key` i provider-blokken eller miljøvariabelen `ONEUPTIME_API_KEY` er angitt. Eksporter variabelen i skallet du kjører Terraform i, eller send nøkkelen i en variabel merket `sensitive`.
 
-`Invalid API Key` er OneUptimes svar på en nøkkel den ikke kjenner: en som er skrevet feil, utløpt eller slettet, eller en fra en annen OneUptime enn den `oneuptime_url` peker på. Kopier nøkkelen på nytt fra siden dens under **Prosjektinnstillinger → Avansert → API-nøkler**, eller opprett en ny.
+`Invalid API Key` er OneUptimes svar på en nøkkel den ikke kjenner: en som er skrevet feil, utløpt eller slettet, eller en fra en annen OneUptime enn den `oneuptime_url` peker på. Sjekk den mot hvordan nøkkelen slutter på siden dens under **Prosjektinnstillinger → Avansert → API-nøkler**, eller tilbakestill den der for å få en ny.
 
 ### `ProjectId required`
 

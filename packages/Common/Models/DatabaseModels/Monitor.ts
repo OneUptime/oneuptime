@@ -191,6 +191,26 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   icon: IconProp.AltGlobe,
   tableDescription:
     "Monitor is anything that monitors your API, Websites, IP, Network or more. You can also create static monitor that does not monitor anything.",
+  /*
+   * A monitor changes on its own: a check fails and its status moves, every
+   * probe watching it disconnects, a maintenance event turns its monitoring
+   * off. The Monitors menu counts what needs attention (Not Operational,
+   * Disabled, Probe Disconnected, Probe Disabled) beside the lists that show
+   * them, and both follow these announcements at once (UseLiveCount,
+   * UseLiveRows) instead of waiting for a reload (#6918).
+   *
+   * What is announced is what the service writes (DatabaseService): a status
+   * change, a probe's flags, an edit, an archive - and an update only when
+   * it changed the row. The bookkeeping a probe's result, a heartbeat or a
+   * telemetry sweep stamps on a monitor every minute is written without
+   * hooks (updateColumnsByIdWithoutHooks), and announces nothing: no count
+   * or list is waiting on it (HeartbeatWriteFastPathSafety).
+   */
+  enableRealtimeEventsOn: {
+    create: true,
+    update: true,
+    delete: true,
+  },
 })
 export default class Monitor extends BaseModel {
   @ColumnAccessControl({

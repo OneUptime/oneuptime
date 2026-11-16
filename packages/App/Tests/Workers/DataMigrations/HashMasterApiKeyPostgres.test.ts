@@ -20,6 +20,7 @@ import logger from "Common/Server/Utils/Logger";
 import MasterApiKey from "Common/Server/Utils/MasterApiKey";
 import Response from "Common/Server/Utils/Response";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { MasterApiKeyState } from "Common/Types/MasterApiKey/MasterApiKeyAnswer";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import ObjectID from "Common/Types/ObjectID";
 import UserType from "Common/Types/UserType";
@@ -41,7 +42,7 @@ import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
  *     after the data migration - written as it was, or upper-cased - and
  *     refuses any other key all along;
  *   - the schema migration keeps the key; the data migration leaves only
- *     its hash, and a second run changes nothing;
+ *     its hash, with its hint (#8903), and a second run changes nothing;
  *   - a key made afterwards (Reset Key) is stored as its hash, works, and
  *     the key before it stops working; nothing stored is ever the key;
  *   - a master admin's read through the generic API gets neither the key
@@ -117,6 +118,19 @@ describePostgres("the master API key through its upgrade (Postgres)", () => {
     expect(rows).toHaveLength(1);
 
     return rows[0]!;
+  }
+
+  // The key's hint, as the settings row holds it (#8903).
+  async function storedHint(): Promise<string | null> {
+    const rows: Array<{ masterApiKeyHint: string | null }> =
+      await database.query(
+        `SELECT "masterApiKeyHint" FROM "${schema}"."GlobalConfig" WHERE "_id" = $1`,
+        [ZERO_ID],
+      );
+
+    expect(rows).toHaveLength(1);
+
+    return rows[0]!.masterApiKeyHint;
   }
 
   async function setEnabled(isEnabled: boolean): Promise<void> {
@@ -317,6 +331,9 @@ describePostgres("the master API key through its upgrade (Postgres)", () => {
     expect(afterHash.masterApiKey).not.toContain(KEY);
     expect(MasterApiKey.isStoredAsWritten(afterHash.masterApiKey!)).toBe(false);
 
+    // With its hint: once hashed, nothing can work it out (#8903).
+    expect(await storedHint()).toBe("2b34");
+
     await expectAccepted(KEY);
     await expectAccepted(KEY.toUpperCase());
     await expectRefused(OTHER_KEY);
@@ -368,15 +385,30 @@ describePostgres("the master API key through its upgrade (Postgres)", () => {
   test("a key made by Reset Key is stored as its hash and works; the key before it stops working", async () => {
     await setEnabled(false);
 
-    resetKey = await GlobalConfigService.createMasterApiKey();
+    const before: number = Date.now();
+
+    resetKey = await GlobalConfigService.createMasterApiKey({
+      createdByUserId: masterAdminId,
+    });
     const afterReset: StoredKey = await stored();
 
     expect(afterReset.masterApiKey).toBe(MasterApiKey.hash(resetKey));
     expect(afterReset.masterApiKey).not.toContain(resetKey);
-    expect(await GlobalConfigService.getMasterApiKeyState()).toEqual({
+
+    // Which key it is (#8903): when, by whom - by name - and how it ends.
+    const state: MasterApiKeyState =
+      await GlobalConfigService.getMasterApiKeyState();
+
+    expect(state).toEqual({
       isSet: true,
       isEnabled: true,
+      createdAt: expect.any(Date),
+      createdByName: "Ada Admin",
+      hint: resetKey.slice(-4),
     });
+    expect(state.createdAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
+    expect(state.createdAt!.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
+    expect(await storedHint()).toBe(resetKey.slice(-4));
 
     await expectAccepted(resetKey);
     await expectRefused(KEY);
@@ -386,10 +418,13 @@ describePostgres("the master API key through its upgrade (Postgres)", () => {
     await setEnabled(false);
 
     expect((await stored()).masterApiKey).toBe(MasterApiKey.hash(resetKey));
-    expect(await GlobalConfigService.getMasterApiKeyState()).toEqual({
-      isSet: true,
-      isEnabled: false,
-    });
+    expect(await GlobalConfigService.getMasterApiKeyState()).toEqual(
+      expect.objectContaining({
+        isSet: true,
+        isEnabled: false,
+        hint: resetKey.slice(-4),
+      }),
+    );
     await expectRefused(resetKey);
     expect(await expectHealthRoutesTake(resetKey)).toBe(false);
 

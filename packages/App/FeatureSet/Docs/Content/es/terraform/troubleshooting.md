@@ -14,7 +14,7 @@ Busque en la tabla de abajo el mensaje que imprimió Terraform, o lo que vio que
 | Mensaje o síntoma | Qué hacer |
 | --- | --- |
 | `Missing API Key` | Dé al proveedor su clave: consulte [`Missing API Key` o `Invalid API Key`](#missing-api-key-o-invalid-api-key) |
-| `Invalid API Key` | Copie la clave de nuevo, o cree una nueva: consulte [`Missing API Key` o `Invalid API Key`](#missing-api-key-o-invalid-api-key) |
+| `Invalid API Key` | Compruebe la clave, o restablézcala para obtener una nueva: consulte [`Missing API Key` o `Invalid API Key`](#missing-api-key-o-invalid-api-key) |
 | `ProjectId required` | Use una clave de API del proyecto, no una clave maestra: consulte [`ProjectId required`](#projectid-required) |
 | `You do not have permissions to create Monitor` | Dé a la clave el permiso que nombra el mensaje: consulte [A la clave le falta un permiso](#a-la-clave-le-falta-un-permiso) |
 | `API keys need the Growth plan` | Devuelva el proyecto al plan Growth: consulte [Pago requerido](#pago-requerido) |
@@ -60,7 +60,7 @@ El proveedor nombra lo que estaba haciendo: `Unable to create monitor` y `Unable
 
 `Missing API Key` detiene el proveedor antes de que haga ninguna petición: no están definidos ni `api_key` en el bloque del proveedor ni la variable de entorno `ONEUPTIME_API_KEY`. Exporte la variable en el shell donde ejecuta Terraform, o pase la clave en una variable marcada como `sensitive`.
 
-`Invalid API Key` es la respuesta de OneUptime a una clave que no conoce: una mal escrita, caducada o eliminada, o una de otro OneUptime distinto del que indica `oneuptime_url`. Copie de nuevo la clave desde su página en **Ajustes del proyecto → Avanzado → Claves de API**, o cree una nueva.
+`Invalid API Key` es la respuesta de OneUptime a una clave que no conoce: una mal escrita, caducada o eliminada, o una de otro OneUptime distinto del que indica `oneuptime_url`. Compruébela con cómo termina la clave en su página en **Ajustes del proyecto → Avanzado → Claves de API**, o restablézcala allí para obtener una nueva.
 
 ### `ProjectId required`
 

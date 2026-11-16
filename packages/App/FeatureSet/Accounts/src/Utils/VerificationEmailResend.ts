@@ -5,6 +5,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Headers from "Common/Types/API/Headers";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/UI/Utils/API/API";
+import RetryAfter from "Common/Utils/RetryAfter";
 
 /*
  * Client half of POST /identity/resend-verification-email.
@@ -42,9 +43,6 @@ export const DEFAULT_VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS: number = 60;
  */
 export const MAX_VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS: number =
   24 * 60 * 60;
-
-// Retry-After in its delta-seconds form only; an HTTP-date is not trusted here.
-const RETRY_AFTER_SECONDS_PATTERN: RegExp = /^\d+$/;
 
 /*
  * Every wait this page shows comes from the network, so none of it is trusted
@@ -145,9 +143,13 @@ export const requestVerificationEmailResend: (
 };
 
 /*
- * How long a 429 asked us to wait, or 0 when it did not say. Header names are
- * matched case-insensitively: the browser's XHR adapter lower-cases them
- * ("retry-after"), a test or another adapter may not.
+ * How long a 429 asked us to wait, or 0 when it did not say. Read as RFC 9110
+ * writes it (Common's RetryAfter), whatever the header's case - the
+ * browser's XHR adapter lower-cases it ("retry-after"), a test or another
+ * adapter may not - in its delta-seconds form only: the countdown is shown
+ * on this device, whose clock may be wrong, and an HTTP-date would move with
+ * it. "0" stays 0 (the caller's default then applies), and a wait is never
+ * more than MAX_VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS.
  */
 export const getRetryAfterSecondsFromError: (error: unknown) => number = (
   error: unknown,
@@ -158,31 +160,13 @@ export const getRetryAfterSecondsFromError: (error: unknown) => number = (
 
   const headers: Headers | undefined = error.headers;
 
-  if (!headers || typeof headers !== "object") {
-    return 0;
-  }
-
-  for (const name of Object.keys(headers)) {
-    if (name.toLowerCase() !== "retry-after") {
-      continue;
-    }
-
-    const rawValue: unknown = headers[name];
-
-    if (typeof rawValue !== "string" && typeof rawValue !== "number") {
-      return 0;
-    }
-
-    const value: string = rawValue.toString().trim();
-
-    if (!RETRY_AFTER_SECONDS_PATTERN.test(value)) {
-      return 0;
-    }
-
-    return clampCooldownSeconds(Number(value));
-  }
-
-  return 0;
+  return (
+    RetryAfter.secondsFromHeaders(headers, {
+      acceptHttpDate: false,
+      minMs: 0,
+      maxMs: MAX_VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS * 1000,
+    }) ?? 0
+  );
 };
 
 /*

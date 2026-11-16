@@ -23,12 +23,29 @@
  *
  * A project can ask two people to approve a riskier fix
  * (Project.requireTwoApprovalsForRiskierFixes): an AI command plan holding a
- * riskier change then runs only on its second approval, by someone other
- * than whoever approved it first. The first approval passes every check a
- * lone one does and is recorded on the fix (firstApprovedBy*, its status
- * stays Suggested); the first approver's own second press is refused, and
- * says why. Both writes are guarded in their WHERE, so of two presses at
- * once only one is the first, and the other is read again as the second.
+ * riskier change, or a fix through MCP servers, then runs only on its second
+ * approval, by someone other than whoever approved it first. The first
+ * approval passes every check a lone one does and is recorded on the fix
+ * (firstApprovedBy*, with what it approved: firstApprovedPlanFingerprint;
+ * its status stays Suggested); the first approver's own second press is
+ * refused, and says why, wherever they press.
+ *
+ * An approval is held to the exact fix it approves:
+ *
+ *   - a press names the fix its person was shown (its plan fingerprint: a
+ *     chat message's, the AI card's) and the step it was offered as (the
+ *     only approval, the first of two, the second): a fix that changed, or
+ *     a press whose step changed since, does nothing;
+ *   - every claim lands only on the version of the row its checks read, so
+ *     nothing written in between - another plan, another first approval -
+ *     is ever approved by checks that never saw it; such an approval reads
+ *     the fix again and checks it as it is (MAX_APPROVAL_ATTEMPTS);
+ *   - the second of two runs the fix only while the first approval is the
+ *     one read, someone else's, and given to this very plan.
+ *
+ * Of two presses at once only one is the first, and the other is read
+ * again as the second; of two second approvals, or two lone ones, exactly
+ * one claims the fix, so it runs once.
  */
 
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -110,7 +127,10 @@ import {
 } from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import { readOpenStackChange } from "../../../Utils/AiRemediation/Resource/OpenStackCommandPolicy";
 import logger from "../Logger";
-import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
 import ExternalMcpServerService from "../../Services/ExternalMcpServerService";
 import McpRemediationRunner from "../AI/Remediation/McpRemediationRunner";
@@ -131,11 +151,17 @@ import ProductBrandingText from "../ProductBrandingText";
 import {
   getRemediationPlanFingerprint,
   isRemediationPlanFingerprint,
-} from "./RemediationPlanFingerprint";
-import { getFixApprovalsNeeded } from "./RemediationApprovalsNeeded";
+} from "../../../Types/AutoRemediation/RemediationPlanFingerprint";
+import { getFixApprovalStep } from "./RemediationApprovalsNeeded";
+import RemediationChatMessage from "./RemediationChatMessage";
 import {
   ALREADY_APPROVED_FIRST_MESSAGE,
+  decodeRemediationApprovalStep,
+  getApprovalStepChangedMessage,
   isSameApprover,
+  isSameRemediationApprovalStep,
+  RemediationApprovalStep,
+  RemediationApprovalStepKind,
 } from "../../../Types/AutoRemediation/RemediationApprovals";
 import User from "../../../Models/DatabaseModels/User";
 import UserService from "../../Services/UserService";
@@ -151,6 +177,14 @@ export type RemediationApprovalResult = JSONObject;
  */
 export function getFixChangedSinceMessage(): string {
   return `This fix changed after the message you pressed was posted, so nothing was done. Open it in ${ProductBrandingText.getProductName()} to see what it runs now.`;
+}
+
+/*
+ * The same, for the AI card's Approve: the fix no longer runs what the card
+ * showed when it was pressed.
+ */
+export function getFixChangedSinceShownMessage(): string {
+  return "This fix changed since it was shown to you, so nothing was done. Look at what it runs now before you approve.";
 }
 
 /*
@@ -173,13 +207,15 @@ function describeWhere(from: WorkspaceType | undefined): string {
 }
 
 /*
- * The fingerprint a chat press carries, checked against the fix as it is
- * now: a fix that changed since its message was posted is not approved, nor
- * dismissed, from that message.
+ * The fingerprint a press carries, checked against the fix as it is now: a
+ * fix that changed since its message was posted - or since the AI card
+ * showed it - is not approved, nor dismissed, from there.
  */
 function assertFixIsWhatTheMessageShowed(data: {
   suggestion: AutoRemediationSuggestion;
   expectedPlanFingerprint?: string | undefined;
+  // Where it was pressed: a chat's message, or (none) the AI card.
+  from?: WorkspaceType | undefined;
 }): void {
   if (data.expectedPlanFingerprint === undefined) {
     return;
@@ -190,7 +226,11 @@ function assertFixIsWhatTheMessageShowed(data: {
     getRemediationPlanFingerprint(data.suggestion) !==
       data.expectedPlanFingerprint
   ) {
-    throw new BadDataException(getFixChangedSinceMessage());
+    throw new BadDataException(
+      data.from
+        ? getFixChangedSinceMessage()
+        : getFixChangedSinceShownMessage(),
+    );
   }
 }
 
@@ -907,6 +947,13 @@ async function loadSuggestionAsRoot(
         firstApprovedByUserId: true,
         firstApprovedAt: true,
         firstApprovedFrom: true,
+        firstApprovedPlanFingerprint: true,
+        /*
+         * The row's version as read: the approval's claim lands only on
+         * this very version, so nothing that changed the fix after these
+         * checks read it can be approved by them.
+         */
+        version: true,
       },
       props: { isRoot: true },
     });
@@ -940,72 +987,181 @@ async function getApproverName(userId: ObjectID): Promise<string | null> {
 }
 
 /*
- * The approval of a riskier fix that needs two, as this press makes it:
- * the first - recorded now, and nothing runs - or the second, after the
- * first approver named, which runs the fix.
+ * How many times an approval reads the fix again when something else wrote
+ * it between the approval's checks and its claim - a dry run's answer
+ * landing, someone else's first approval - while it still waits: each
+ * attempt checks the fix as it is then, from the start.
  */
-type TwoApprovalsPress =
-  | { kind: "first" }
-  | { kind: "second"; firstApprovedByUserId: ObjectID };
+export const MAX_APPROVAL_ATTEMPTS: number = 3;
+
+// Why a press lost to someone else's, as the chats and the card say it.
+export function getJustActionedMessage(): string {
+  return "This suggestion was just actioned by someone else. Refresh to see its current state.";
+}
+
+// Why an approval gave up: the fix kept changing under it.
+export function getFixKeepsChangingMessage(): string {
+  return "This fix changed while it was being approved, and kept changing, so nothing was done. Refresh, and approve it again.";
+}
 
 /*
- * Records the first approval of a fix that needs two, or reads the one
- * recorded: a fix nobody approved yet is approved first by this press (a
- * conditional write - of two presses at once one is first, and the other
- * is read again as the second); a fix approved first by someone else is
- * approved a second time by it; one the presser approved first is refused,
- * with why. Every check of the approver has passed by now: the first
- * approval is held to the same bar as a lone one.
+ * Why an approval with no person behind it is refused: a fix is approved by
+ * someone, and two approvals are two different people.
  */
-async function takeTwoApprovalsPress(data: {
-  suggestion: AutoRemediationSuggestion;
-  props: DatabaseCommonInteractionProps;
-  from?: WorkspaceType | undefined;
-}): Promise<TwoApprovalsPress> {
-  const { suggestion, props } = data;
-  const recordedFirst: ObjectID | undefined = suggestion.firstApprovedByUserId;
+export function getApproverMustBeAPersonMessage(): string {
+  return `A fix is approved by a person signed in to ${ProductBrandingText.getProductName()}, so nothing was done.`;
+}
 
-  if (recordedFirst) {
-    if (isSameApprover(recordedFirst, props.userId)) {
-      throw new BadDataException(getAlreadyApprovedFirstMessage());
-    }
+// Why a press that names no step it was offered as is refused.
+export function getUnknownApprovalStepMessage(): string {
+  return "This approval does not say what it was offered as, so nothing was done. Review the fix again before you approve.";
+}
 
-    return { kind: "second", firstApprovedByUserId: recordedFirst };
-  }
+/*
+ * A press that did nothing because what it does changed since it was
+ * offered (getApprovalStepChangedMessage): a refusal like any other, which
+ * a chat can tell apart - Microsoft Teams takes the stale approval card
+ * away, so nobody presses it again.
+ */
+export class ApprovalStepChangedException extends BadDataException {}
 
-  const recorded: number =
-    await AutoRemediationSuggestionService.attemptFirstApproval({
-      suggestionId: suggestion.id!,
-      set: {
-        firstApprovedByUserId: props.userId!.toString(),
-        firstApprovedAt: OneUptimeDate.getCurrentDate(),
-        firstApprovedFrom: getRemediationApprovalSource(data.from),
-      },
-    });
+// What one attempt at an approval came to.
+type ApprovalAttempt =
+  // The fix changed between the attempt's checks and its claim: read it again.
+  | { isRowMoved: true }
+  | { isRowMoved: false; result: RemediationApprovalResult };
 
-  if (recorded > 0) {
-    return { kind: "first" };
-  }
+const ROW_MOVED: ApprovalAttempt = { isRowMoved: true };
 
-  // Someone acted on the fix meanwhile: it is read again, as it is now.
-  const now: AutoRemediationSuggestion = await loadSuggestionAsRoot(
-    suggestion.id!,
-  );
+function approved(result: RemediationApprovalResult): ApprovalAttempt {
+  return { isRowMoved: false, result };
+}
 
-  if (
-    now.status !== AutoRemediationSuggestionStatus.Suggested ||
-    !now.firstApprovedByUserId
-  ) {
+/*
+ * The version of the fix the approval's checks read. Every row has one (the
+ * @VersionColumn is never empty): a fix read without one is not approved,
+ * since its claim could not be held to what was checked.
+ */
+function readRowVersion(suggestion: AutoRemediationSuggestion): number {
+  const version: unknown = suggestion.version;
+
+  if (typeof version !== "number" || !Number.isInteger(version)) {
     throw new BadDataException(
-      "This suggestion was just actioned by someone else. Refresh to see its current state.",
+      `${ProductBrandingText.getProductName()} could not read this fix as it stands, so nothing was done. Refresh, and approve it again.`,
     );
   }
 
-  if (isSameApprover(now.firstApprovedByUserId, props.userId)) {
+  return version;
+}
+
+/*
+ * A claim, held to the version its checks read: whether it landed. When it
+ * did not, the fix is read again - it was acted on (refused, as a press that
+ * lost), or it still waits and only changed meanwhile (false: the approval
+ * checks it again, as it is now).
+ */
+async function claimOrSeeMoved(data: {
+  suggestionId: ObjectID;
+  claim: () => Promise<number>;
+}): Promise<boolean> {
+  if ((await data.claim()) > 0) {
+    return true;
+  }
+
+  const now: AutoRemediationSuggestion | null =
+    await AutoRemediationSuggestionService.findOneById({
+      id: data.suggestionId,
+      select: { _id: true, status: true },
+      props: { isRoot: true },
+    });
+
+  if (!now || now.status !== AutoRemediationSuggestionStatus.Suggested) {
+    throw new BadDataException(getJustActionedMessage());
+  }
+
+  return false;
+}
+
+/*
+ * The step a press says it was offered as: what it does as the person was
+ * shown it. Undefined when the press says none (an older dialog, the API).
+ */
+function readExpectedApprovalStep(
+  value: unknown,
+): RemediationApprovalStep | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  const step: RemediationApprovalStep | null =
+    decodeRemediationApprovalStep(value);
+
+  if (!step) {
+    throw new BadDataException(getUnknownApprovalStepMessage());
+  }
+
+  return step;
+}
+
+/*
+ * Who may press, and what the press does now - before anything is written:
+ * the person who gave the first of two approvals is refused with why (from
+ * the Dashboard, Slack, Teams or the API alike), and a press offered as a
+ * step it no longer is does nothing - its person reviews the fix again.
+ */
+async function assertMayPress(data: {
+  props: DatabaseCommonInteractionProps;
+  step: RemediationApprovalStep;
+  expectedStep?: RemediationApprovalStep | undefined;
+}): Promise<void> {
+  if (
+    data.step.kind === RemediationApprovalStepKind.Second &&
+    isSameApprover(data.step.firstApprovedByUserId, data.props.userId)
+  ) {
     throw new BadDataException(getAlreadyApprovedFirstMessage());
   }
 
-  return { kind: "second", firstApprovedByUserId: now.firstApprovedByUserId };
+  if (
+    data.expectedStep &&
+    !isSameRemediationApprovalStep(data.expectedStep, data.step)
+  ) {
+    const firstApproverName: string | null =
+      data.step.kind === RemediationApprovalStepKind.Second &&
+      data.step.firstApprovedByUserId
+        ? await getApproverName(new ObjectID(data.step.firstApprovedByUserId))
+        : null;
+
+    throw new ApprovalStepChangedException(
+      getApprovalStepChangedMessage({ now: data.step, firstApproverName }),
+    );
+  }
+}
+
+/*
+ * The fix's messages in Slack and Microsoft Teams, edited where they were
+ * posted to say how it stands now (RemediationChatMessage
+ * .refreshKeptMessages, which reads it from the fix's row): the first of
+ * two approvals names who gave it, so its buttons never read as if one
+ * approval runs it; an approval or a dismissal takes the buttons away and
+ * says who acted. Detached - an approval never waits on a chat - and best
+ * effort.
+ */
+function refreshFixMessages(suggestion: AutoRemediationSuggestion): void {
+  const suggestionId: ObjectID | null = suggestion.id || null;
+  const projectId: ObjectID | null = suggestion.projectId || null;
+
+  if (!suggestionId || !projectId) {
+    return;
+  }
+
+  RemediationChatMessage.refreshKeptMessages({
+    suggestionId,
+    projectId,
+  }).catch((error: unknown) => {
+    logger.error(
+      `RemediationApproval: could not update the messages of suggestion ${suggestionId.toString()}: ${error}`,
+    );
+  });
 }
 
 /*
@@ -1066,16 +1222,14 @@ async function postFeedItem(data: {
 /*
  * Approving a fix through the project's external MCP servers: the approver
  * may execute runbooks, Enable AI is still on, the fix still holds changes
- * to make, and every server they go to is still the project's and on. The
- * approval is claimed first (Suggested -> Approved, once), the changes are
- * made detached - they can take minutes - and verification watches the
- * monitors from now.
+ * to make, and every server they go to is still the project's and on.
+ * Answers the changes to make, and the project as read (its two-approvals
+ * rule: every change through an MCP server counts as riskier).
  */
-async function approveMcpToolCalls(data: {
+async function readMcpFixToApprove(data: {
   props: DatabaseCommonInteractionProps;
   suggestion: AutoRemediationSuggestion;
-  from?: WorkspaceType | undefined;
-}): Promise<RemediationApprovalResult> {
+}): Promise<{ proposed: Array<ExternalMcpToolCall>; project: Project }> {
   const { props, suggestion } = data;
   const projectId: ObjectID = suggestion.projectId!;
 
@@ -1083,7 +1237,12 @@ async function approveMcpToolCalls(data: {
 
   const project: Project | null = await ProjectService.findOneById({
     id: projectId,
-    select: { _id: true, enableAi: true },
+    select: {
+      _id: true,
+      enableAi: true,
+      // Whether a riskier fix needs two people's approval, as of now.
+      requireTwoApprovalsForRiskierFixes: true,
+    },
     props: { isRoot: true },
   });
 
@@ -1131,77 +1290,313 @@ async function approveMcpToolCalls(data: {
     }
   }
 
-  const claimed: number =
-    await AutoRemediationSuggestionService.attemptStatusTransition({
-      suggestionId: suggestion.id!,
-      fromStatus: AutoRemediationSuggestionStatus.Suggested,
-      set: {
-        status: AutoRemediationSuggestionStatus.Approved,
-        approvedByUserId: props.userId!.toString(),
-        approvedAt: OneUptimeDate.getCurrentDate(),
-        approvedFrom: getRemediationApprovalSource(data.from),
-        verificationStatus: AutoRemediationVerificationStatus.Pending,
-        verificationDeadlineAt: OneUptimeDate.addRemoveMinutes(
-          OneUptimeDate.getCurrentDate(),
-          suggestion.verificationWindowMinutes ||
-            DEFAULT_VERIFICATION_WINDOW_MINUTES,
-        ),
-      },
-    });
+  return { proposed, project };
+}
 
-  if (claimed === 0) {
+/*
+ * Approving an AI command plan, checked as the plan and the project are
+ * now: the approver may execute runbooks, the plan holds no SSH command and
+ * has commands, Enable AI is on, every Runner and AI agent it targets still
+ * takes AI commands, every cluster and resource still allows the change,
+ * and the approver may change each of them. Answers the plan and the
+ * project as read (its two-approvals rule).
+ */
+async function readCommandPlanToApprove(data: {
+  props: DatabaseCommonInteractionProps;
+  suggestion: AutoRemediationSuggestion;
+}): Promise<{ plan: AiRemediationCommandPlan; project: Project }> {
+  const { props, suggestion } = data;
+  const projectId: ObjectID = suggestion.projectId!;
+
+  assertCanExecuteRunbooks(props, projectId);
+
+  const parsedPlan: AiRemediationCommandPlan | null =
+    AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
+
+  /*
+   * A plan composed before runbook credentials were removed may hold
+   * an SSH command, which reached a host with one: it never runs, so
+   * the plan is not approved. Asked before anything else is read: it
+   * depends on the plan alone.
+   */
+  const removedSshCommand: AiRemediationCommand | undefined =
+    parsedPlan?.commands.find(isRemovedSshCommand);
+
+  if (removedSshCommand) {
     throw new BadDataException(
-      "This suggestion was just actioned by someone else. Refresh to see its current state.",
+      `Command ${removedSshCommand.sequence} of this plan runs over SSH. ${REMOVED_SSH_COMMAND_MESSAGE} ${REMOVED_SSH_COMMAND_NEXT_STEP}`,
     );
   }
 
-  McpRemediationRunner.executeApprovedCalls({
-    suggestionId: suggestion.id!,
-  }).catch((error: unknown) => {
-    logger.error(`AutoRemediationAPI: detached MCP fix failed: ${error}`);
+  /*
+   * Re-check the project's AI switch at approval time. The plan may
+   * have been composed hours ago; an operator who has since turned
+   * Enable AI off expects it to stop pending plans too, not just new
+   * ones — the same check RemediationExecutionRunner.checkProjectGates
+   * makes before a round runs. Every round passes the same gate: a
+   * rule's plan, and a cluster's or a resource's, whose own consent is
+   * re-checked per command below.
+   */
+  const project: Project | null = await ProjectService.findOneById({
+    id: projectId,
+    select: {
+      _id: true,
+      enableAi: true,
+      // Whether a riskier fix needs two people's approval, as of now.
+      requireTwoApprovalsForRiskierFixes: true,
+    },
+    props: { isRoot: true },
   });
 
-  await postFeedItem({
-    suggestion,
-    markdown:
-      mdText`⚡ Approved the **fix through MCP servers**${describeWhere(data.from)} (${ExternalMcpToolCallPlanUtil.describeChangeCount(proposed.length)}). The changes are being made; verification will watch the monitors for recovery.`.toString(),
-    userId: props.userId!,
-    pingWorkspace: true,
+  if (!project || project.enableAi === false) {
+    throw new BadDataException(
+      "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI → AI Features, or dismiss the suggestion.",
+    );
+  }
+
+  if (!parsedPlan || parsedPlan.commands.length === 0) {
+    throw new BadDataException(
+      "This suggestion has no valid command plan to run.",
+    );
+  }
+
+  const plan: AiRemediationCommandPlan = parsedPlan;
+
+  /*
+   * Fail fast if a target Runner lost its AI-commands consent (or was
+   * deleted) since the plan was composed — better a clear error now
+   * than a plan that half-runs into claim timeouts. Each Runner is
+   * read once, however many commands target it.
+   */
+  const runnerIds: Array<string> = Array.from(
+    new Set(
+      plan.commands.map((command: AiRemediationCommand) => {
+        return command.runnerId;
+      }),
+    ),
+  );
+
+  const statusByClusterId: ClusterStatusCache = new Map<
+    string,
+    KubernetesClusterAiAccessStatus | null
+  >();
+
+  const statusByResourceKey: ResourceStatusCache = new Map<
+    string,
+    ResourceAiAccessStatus | null
+  >();
+
+  for (const runnerId of runnerIds) {
+    /*
+     * A kubectl command composed for a cluster's Kubernetes AI agent
+     * names the agent's id where a Runner id would be. The agent is
+     * not a Runner row — re-reading the Runner table would refuse
+     * every agent plan — so it is recognised from the cluster's
+     * status instead, and must be connected.
+     */
+    const aiAgentStatus: KubernetesClusterAiAccessStatus | null =
+      await findAiAgentTargetStatus({
+        plan,
+        runnerId,
+        projectId,
+        statusByClusterId,
+      });
+
+    if (aiAgentStatus) {
+      assertAiAgentCanRunPlan({
+        plan,
+        runnerId,
+        status: aiAgentStatus,
+      });
+      continue;
+    }
+
+    /*
+     * A ResourceCommand step names its resource's AI agent the same
+     * way; that agent is not a Runner row either, so it is recognised
+     * from the resource's status and must be its current, connected
+     * agent.
+     */
+    if (
+      plan.commands.some((command: AiRemediationCommand): boolean => {
+        return (
+          command.stepType === RunbookStepType.ResourceCommand &&
+          command.runnerId === runnerId
+        );
+      })
+    ) {
+      await assertResourceAgentCanRunPlan({
+        plan,
+        runnerId,
+        projectId,
+        statusByResourceKey,
+      });
+      continue;
+    }
+
+    const runner: Runner | null = await RunnerService.findOneBy({
+      query: {
+        _id: runnerId,
+        projectId,
+        canRunAiCommands: true,
+      },
+      select: { _id: true, name: true, hostInfo: true },
+      props: { isRoot: true },
+    });
+
+    if (!runner) {
+      throw new BadDataException(
+        "A Runner this plan targets no longer accepts AI commands (or was deleted). The plan cannot be run — dismiss it and let a new suggestion be composed.",
+      );
+    }
+
+    assertNotHostStepOnKubernetesAgent({
+      plan,
+      runnerId,
+      runner,
+    });
+  }
+
+  /*
+   * Same idea for kubectl: the cluster's AI access is re-read at
+   * approval time, so a cluster whose remediation was switched off,
+   * re-bound to another Runner or re-credentialed since the plan was
+   * composed fails the click rather than the first command.
+   */
+  await assertKubectlCommandsStillRunnable({
+    plan,
+    projectId,
+    statusByClusterId,
   });
 
-  return {
-    suggestionId: suggestion.id!.toString(),
-    status: AutoRemediationSuggestionStatus.Approved,
-    suggestionType: AutoRemediationSuggestionType.McpToolCalls,
-  };
+  // And for every resource command: its resource, as it is now.
+  await assertResourceCommandsStillRunnable({
+    plan,
+    projectId,
+    statusByResourceKey,
+  });
+
+  /*
+   * And the approver may change every cluster and every resource the
+   * plan changes: its commands run on them as OneUptime, so this is
+   * where each one's own edit ACL (with its label and owner scope)
+   * applies.
+   */
+  await assertApproverMayChangeClusters({
+    plan,
+    props,
+    projectId,
+  });
+
+  await assertApproverMayChangeResources({
+    plan,
+    props,
+    projectId,
+  });
+
+  return { plan, project };
+}
+
+/*
+ * The feed line of the first of two approvals, by what the fix is: nothing
+ * runs, and the incident's or alert's feed - and its chat channels, where
+ * the fix's message waits - says it needs someone else's approval now.
+ */
+function describeFirstApproval(data: {
+  suggestion: AutoRemediationSuggestion;
+  from?: WorkspaceType | undefined;
+}): string {
+  if (
+    data.suggestion.suggestionType ===
+    AutoRemediationSuggestionType.McpToolCalls
+  ) {
+    return mdText`⚡ Approved the **fix through MCP servers**${describeWhere(data.from)}. It changes something through an MCP server, so its changes are made once someone else approves it too.`.toString();
+  }
+
+  return mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}. It holds a riskier change, so it runs once someone else approves it too.`.toString();
 }
 
 export default class RemediationApproval {
   /*
    * Approve a fix that waits for approval: the proposed runbook starts, the
    * AI command plan runs, or the fix through MCP servers is made - as the
-   * person approving, after every check their approval stands on.
+   * person approving, after every check their approval stands on. A riskier
+   * fix in a project that asks two people to approve one waits after its
+   * first approval for a second from someone else, which runs it.
+   *
+   * Every attempt checks the fix as it was read, and its claim lands only on
+   * that very version of it: a fix that changed in between is read and
+   * checked again (MAX_APPROVAL_ATTEMPTS), never approved on what an
+   * earlier read of it said.
    */
   public static async approve(data: {
     props: DatabaseCommonInteractionProps;
     suggestionId: unknown;
     /*
-     * A press on a Slack or Microsoft Teams message: the fingerprint of the
-     * fix the message showed (RemediationPlanFingerprint), and where it was
-     * pressed. The Dashboard's Approve passes neither.
+     * The fingerprint of the fix the person was shown
+     * (Types/AutoRemediation/RemediationPlanFingerprint): a Slack or
+     * Microsoft Teams press carries the one its message was posted with,
+     * and the AI card's Approve the one of the fix it shows. A fix that no
+     * longer runs exactly that is not approved.
      */
     expectedPlanFingerprint?: string | undefined;
+    /*
+     * The step the press was offered as (RemediationApprovalStep, encoded):
+     * the first of two approvals, the second, or the only one. A press
+     * whose step changed since - someone else approved first, the rule was
+     * turned on or off - does nothing.
+     */
+    expectedApprovalStep?: unknown;
+    // Where it was pressed: Slack or Microsoft Teams; the Dashboard passes none.
     from?: WorkspaceType | undefined;
   }): Promise<RemediationApprovalResult> {
     const props: DatabaseCommonInteractionProps = data.props;
+
+    // Two approvals are two people: an approval names who gives it.
+    if (!props.userId) {
+      throw new BadDataException(getApproverMustBeAPersonMessage());
+    }
+
+    const expectedStep: RemediationApprovalStep | undefined =
+      readExpectedApprovalStep(data.expectedApprovalStep);
 
     const suggestionId: ObjectID = await findAccessibleSuggestion(
       data.suggestionId,
       props,
     );
 
-    const suggestion: AutoRemediationSuggestion =
-      await loadSuggestionAsRoot(suggestionId);
+    for (let attempt: number = 1; attempt <= MAX_APPROVAL_ATTEMPTS; attempt++) {
+      const suggestion: AutoRemediationSuggestion =
+        await loadSuggestionAsRoot(suggestionId);
+
+      const outcome: ApprovalAttempt = await RemediationApproval.approveAsRead({
+        props,
+        suggestion,
+        expectedPlanFingerprint: data.expectedPlanFingerprint,
+        expectedStep,
+        from: data.from,
+      });
+
+      if (!outcome.isRowMoved) {
+        return outcome.result;
+      }
+    }
+
+    throw new BadDataException(getFixKeepsChangingMessage());
+  }
+
+  /*
+   * One attempt at an approval, on the fix as one read gave it: every
+   * check, then one claim held to that read's version.
+   */
+  private static async approveAsRead(data: {
+    props: DatabaseCommonInteractionProps;
+    suggestion: AutoRemediationSuggestion;
+    expectedPlanFingerprint?: string | undefined;
+    expectedStep?: RemediationApprovalStep | undefined;
+    from?: WorkspaceType | undefined;
+  }): Promise<ApprovalAttempt> {
+    const { props, suggestion } = data;
 
     if (suggestion.status !== AutoRemediationSuggestionStatus.Suggested) {
       throw new BadDataException(
@@ -1212,6 +1607,7 @@ export default class RemediationApproval {
     assertFixIsWhatTheMessageShowed({
       suggestion,
       expectedPlanFingerprint: data.expectedPlanFingerprint,
+      from: data.from,
     });
 
     if (!suggestion.projectId) {
@@ -1219,298 +1615,210 @@ export default class RemediationApproval {
     }
 
     /*
-     * A fix through the project's external MCP servers: approving makes
-     * exactly the changes OneUptime AI recorded, in order, through the
-     * servers' tools (McpRemediationRunner.executeApprovedCalls). Same
-     * permission bar as a command plan: a change in a system outside
-     * OneUptime is at least as sensitive as starting a runbook.
+     * What the fix runs, checked as it is now - its kind's own checks -
+     * and the project as read, for its two-approvals rule:
+     *
+     * - a fix through the project's external MCP servers makes exactly the
+     *   changes OneUptime AI recorded, in order, through the servers' tools
+     *   (McpRemediationRunner.executeApprovedCalls). Same permission bar as
+     *   a command plan: a change in a system outside OneUptime is at least
+     *   as sensitive as starting a runbook;
+     * - an AI command plan runs its commands instead of a runbook: the same
+     *   bar, since executing commands on a Runner is at least as sensitive
+     *   as starting a runbook on one;
+     * - a runbook starts, when the approver may start it.
      */
+    let project: Project | null = null;
+    let plan: AiRemediationCommandPlan | null = null;
+    let mcpChanges: Array<ExternalMcpToolCall> = [];
+
     if (
       suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
     ) {
-      return await approveMcpToolCalls({
-        props,
-        suggestion,
-        from: data.from,
+      const mcpFix: { proposed: Array<ExternalMcpToolCall>; project: Project } =
+        await readMcpFixToApprove({ props, suggestion });
+
+      mcpChanges = mcpFix.proposed;
+      project = mcpFix.project;
+    } else if (
+      suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
+    ) {
+      const commandPlan: {
+        plan: AiRemediationCommandPlan;
+        project: Project;
+      } = await readCommandPlanToApprove({ props, suggestion });
+
+      plan = commandPlan.plan;
+      project = commandPlan.project;
+    } else {
+      if (!suggestion.runbookId) {
+        throw new BadDataException("This suggestion has no runbook to start.");
+      }
+
+      assertCanExecuteRunbooks(props, suggestion.projectId);
+
+      // Only a runbook the approver's run grant reaches (labels, owned).
+      await RunbookRunAccess.assertMayStart({
+        databaseProps: props,
+        projectId: suggestion.projectId,
+        runbookId: suggestion.runbookId,
       });
     }
 
     /*
-     * CommandPlan suggestions approve the AI-composed command plan
-     * instead of starting a runbook. Same permission bar: executing
-     * commands on a Runner is at least as sensitive as starting a
-     * runbook on one.
+     * Two people approve a riskier fix where the project asks for it, as
+     * the project and the fix are now: the rule turned on after the fix
+     * was proposed holds it, and turned off, one approval runs it. A
+     * change the policies tier riskier now counts as one, whatever the
+     * plan stored; a first approval counts only when it was given to the
+     * fix as it is now.
      */
-    if (
-      suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
-    ) {
-      assertCanExecuteRunbooks(props, suggestion.projectId);
+    const step: RemediationApprovalStep = getFixApprovalStep({
+      project,
+      suggestion,
+    });
 
-      const plan: AiRemediationCommandPlan | null =
-        AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
+    await assertMayPress({ props, step, expectedStep: data.expectedStep });
 
-      /*
-       * A plan composed before runbook credentials were removed may hold
-       * an SSH command, which reached a host with one: it never runs, so
-       * the plan is not approved. Asked before anything else is read: it
-       * depends on the plan alone.
-       */
-      const removedSshCommand: AiRemediationCommand | undefined =
-        plan?.commands.find(isRemovedSshCommand);
+    // Every claim below lands only on the version all of the above read.
+    const atVersion: number = readRowVersion(suggestion);
 
-      if (removedSshCommand) {
-        throw new BadDataException(
-          `Command ${removedSshCommand.sequence} of this plan runs over SSH. ${REMOVED_SSH_COMMAND_MESSAGE} ${REMOVED_SSH_COMMAND_NEXT_STEP}`,
-        );
-      }
-
-      /*
-       * Re-check the project's AI switch at approval time. The plan may
-       * have been composed hours ago; an operator who has since turned
-       * Enable AI off expects it to stop pending plans too, not just new
-       * ones — the same check RemediationExecutionRunner.checkProjectGates
-       * makes before a round runs. Every round passes the same gate: a
-       * rule's plan, and a cluster's or a resource's, whose own consent is
-       * re-checked per command below.
-       */
-      const project: Project | null = await ProjectService.findOneById({
-        id: suggestion.projectId,
-        select: {
-          _id: true,
-          enableAi: true,
-          // Whether a riskier fix needs two people's approval, as of now.
-          requireTwoApprovalsForRiskierFixes: true,
+    if (step.kind === RemediationApprovalStepKind.First) {
+      const isRecorded: boolean = await claimOrSeeMoved({
+        suggestionId: suggestion.id!,
+        claim: (): Promise<number> => {
+          return AutoRemediationSuggestionService.attemptFirstApproval({
+            suggestionId: suggestion.id!,
+            atVersion,
+            set: {
+              firstApprovedByUserId: props.userId!.toString(),
+              firstApprovedAt: OneUptimeDate.getCurrentDate(),
+              firstApprovedFrom: getRemediationApprovalSource(data.from),
+              // What it approves: a second approval runs only this.
+              firstApprovedPlanFingerprint:
+                getRemediationPlanFingerprint(suggestion),
+            },
+          });
         },
-        props: { isRoot: true },
       });
 
-      if (!project || project.enableAi === false) {
-        throw new BadDataException(
-          "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI → AI Features, or dismiss the suggestion.",
-        );
+      if (!isRecorded) {
+        return ROW_MOVED;
       }
 
-      if (!plan || plan.commands.length === 0) {
-        throw new BadDataException(
-          "This suggestion has no valid command plan to run.",
-        );
-      }
-
-      /*
-       * Fail fast if a target Runner lost its AI-commands consent (or was
-       * deleted) since the plan was composed — better a clear error now
-       * than a plan that half-runs into claim timeouts. Each Runner is
-       * read once, however many commands target it.
-       */
-      const runnerIds: Array<string> = Array.from(
-        new Set(
-          plan.commands.map((command: AiRemediationCommand) => {
-            return command.runnerId;
-          }),
-        ),
-      );
-
-      const statusByClusterId: ClusterStatusCache = new Map<
-        string,
-        KubernetesClusterAiAccessStatus | null
-      >();
-
-      const statusByResourceKey: ResourceStatusCache = new Map<
-        string,
-        ResourceAiAccessStatus | null
-      >();
-
-      for (const runnerId of runnerIds) {
-        /*
-         * A kubectl command composed for a cluster's Kubernetes AI agent
-         * names the agent's id where a Runner id would be. The agent is
-         * not a Runner row — re-reading the Runner table would refuse
-         * every agent plan — so it is recognised from the cluster's
-         * status instead, and must be connected.
-         */
-        const aiAgentStatus: KubernetesClusterAiAccessStatus | null =
-          await findAiAgentTargetStatus({
-            plan,
-            runnerId,
-            projectId: suggestion.projectId,
-            statusByClusterId,
-          });
-
-        if (aiAgentStatus) {
-          assertAiAgentCanRunPlan({
-            plan,
-            runnerId,
-            status: aiAgentStatus,
-          });
-          continue;
-        }
-
-        /*
-         * A ResourceCommand step names its resource's AI agent the same
-         * way; that agent is not a Runner row either, so it is recognised
-         * from the resource's status and must be its current, connected
-         * agent.
-         */
-        if (
-          plan.commands.some((command: AiRemediationCommand): boolean => {
-            return (
-              command.stepType === RunbookStepType.ResourceCommand &&
-              command.runnerId === runnerId
-            );
-          })
-        ) {
-          await assertResourceAgentCanRunPlan({
-            plan,
-            runnerId,
-            projectId: suggestion.projectId,
-            statusByResourceKey,
-          });
-          continue;
-        }
-
-        const runner: Runner | null = await RunnerService.findOneBy({
-          query: {
-            _id: runnerId,
-            projectId: suggestion.projectId,
-            canRunAiCommands: true,
-          },
-          select: { _id: true, name: true, hostInfo: true },
-          props: { isRoot: true },
-        });
-
-        if (!runner) {
-          throw new BadDataException(
-            "A Runner this plan targets no longer accepts AI commands (or was deleted). The plan cannot be run — dismiss it and let a new suggestion be composed.",
-          );
-        }
-
-        assertNotHostStepOnKubernetesAgent({
-          plan,
-          runnerId,
-          runner,
-        });
-      }
-
-      /*
-       * Same idea for kubectl: the cluster's AI access is re-read at
-       * approval time, so a cluster whose remediation was switched off,
-       * re-bound to another Runner or re-credentialed since the plan was
-       * composed fails the click rather than the first command.
-       */
-      await assertKubectlCommandsStillRunnable({
-        plan,
-        projectId: suggestion.projectId,
-        statusByClusterId,
+      await postFeedItem({
+        suggestion,
+        markdown: describeFirstApproval({ suggestion, from: data.from }),
+        userId: props.userId!,
+        pingWorkspace: true,
       });
 
-      // And for every resource command: its resource, as it is now.
-      await assertResourceCommandsStillRunnable({
-        plan,
-        projectId: suggestion.projectId,
-        statusByResourceKey,
-      });
+      // Its message says a second approval is needed now, and whose came first.
+      refreshFixMessages(suggestion);
 
+      return approved({
+        suggestionId: suggestion.id!.toString(),
+        status: AutoRemediationSuggestionStatus.Suggested,
+        suggestionType: suggestion.suggestionType!,
+        isWaitingForSecondApproval: true,
+      });
+    }
+
+    const approvalSet: SuggestionTransitionSet = {
+      status: AutoRemediationSuggestionStatus.Approved,
+      approvedByUserId: props.userId!.toString(),
+      approvedAt: OneUptimeDate.getCurrentDate(),
+      // Where it was approved: the card, or the fix's chat message.
+      approvedFrom: getRemediationApprovalSource(data.from),
       /*
-       * And the approver may change every cluster and every resource the
-       * plan changes: its commands run on them as OneUptime, so this is
-       * where each one's own edit ACL (with its label and owner scope)
-       * applies.
+       * The fix runs next — the outcome verifier watches for monitor
+       * recovery until this deadline.
        */
-      await assertApproverMayChangeClusters({
-        plan,
-        props,
-        projectId: suggestion.projectId,
+      verificationStatus: AutoRemediationVerificationStatus.Pending,
+      verificationDeadlineAt: OneUptimeDate.addRemoveMinutes(
+        OneUptimeDate.getCurrentDate(),
+        suggestion.verificationWindowMinutes ||
+          DEFAULT_VERIFICATION_WINDOW_MINUTES,
+      ),
+    };
+
+    /*
+     * Claim the approval FIRST (CAS Suggested -> Approved, on the version
+     * these checks read), then run the fix. Two approvals at once race on
+     * this claim and exactly one wins — the loser gets a clean "already
+     * actioned" error instead of a fix run twice. The second of two
+     * approvals is claimed only while the first is the one read, given to
+     * this very fix, and someone else's (attemptSecondApproval).
+     */
+    const firstApprovedByUserId: string | undefined =
+      step.kind === RemediationApprovalStepKind.Second
+        ? step.firstApprovedByUserId
+        : undefined;
+
+    const isClaimed: boolean = await claimOrSeeMoved({
+      suggestionId: suggestion.id!,
+      claim: (): Promise<number> => {
+        return firstApprovedByUserId
+          ? AutoRemediationSuggestionService.attemptSecondApproval({
+              suggestionId: suggestion.id!,
+              atVersion,
+              firstApprovedByUserId,
+              firstApprovedPlanFingerprint:
+                getRemediationPlanFingerprint(suggestion),
+              set: approvalSet,
+            })
+          : AutoRemediationSuggestionService.attemptStatusTransition({
+              suggestionId: suggestion.id!,
+              fromStatus: AutoRemediationSuggestionStatus.Suggested,
+              atVersion,
+              set: approvalSet,
+            });
+      },
+    });
+
+    if (!isClaimed) {
+      return ROW_MOVED;
+    }
+
+    // The second of two approvals says whose came first.
+    const firstName: string | null = firstApprovedByUserId
+      ? await getApproverName(new ObjectID(firstApprovedByUserId))
+      : null;
+
+    // Its message no longer offers what it can no longer do, and says who approved it.
+    refreshFixMessages(suggestion);
+
+    const afterFirst: MarkdownText = firstApprovedByUserId
+      ? firstName
+        ? mdText`, after **${firstName}** approved it first`
+        : mdText`, the second of two approvals`
+      : FeedMarkdown.empty();
+
+    if (
+      suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
+    ) {
+      McpRemediationRunner.executeApprovedCalls({
+        suggestionId: suggestion.id!,
+      }).catch((error: unknown) => {
+        logger.error(`AutoRemediationAPI: detached MCP fix failed: ${error}`);
       });
 
-      await assertApproverMayChangeResources({
-        plan,
-        props,
-        projectId: suggestion.projectId,
+      await postFeedItem({
+        suggestion,
+        markdown:
+          mdText`⚡ Approved the **fix through MCP servers**${describeWhere(data.from)}${afterFirst} (${ExternalMcpToolCallPlanUtil.describeChangeCount(mcpChanges.length)}). The changes are being made; verification will watch the monitors for recovery.`.toString(),
+        userId: props.userId!,
+        pingWorkspace: true,
       });
 
-      /*
-       * Two people approve a riskier fix where the project asks for it, as
-       * the project and the plan are now: the rule turned on after the fix
-       * was proposed holds it, and turned off, one approval runs it. A
-       * change the policies tier riskier now counts as one, whatever the
-       * plan stored.
-       */
-      let secondApprovalAfter: ObjectID | undefined = undefined;
-
-      if (
-        getFixApprovalsNeeded({
-          project,
-          suggestionType: suggestion.suggestionType,
-          plan,
-        }) > 1
-      ) {
-        const press: TwoApprovalsPress = await takeTwoApprovalsPress({
-          suggestion,
-          props,
-          from: data.from,
-        });
-
-        if (press.kind === "first") {
-          /*
-           * Nothing runs: the incident's or alert's feed - and its chat
-           * channels, where the fix's message waits - says it needs
-           * someone else's approval now.
-           */
-          await postFeedItem({
-            suggestion,
-            markdown:
-              mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}. It holds a riskier change, so it runs once someone else approves it too.`.toString(),
-            userId: props.userId!,
-            pingWorkspace: true,
-          });
-
-          return {
-            suggestionId: suggestion.id!.toString(),
-            status: AutoRemediationSuggestionStatus.Suggested,
-            suggestionType: AutoRemediationSuggestionType.CommandPlan,
-            isWaitingForSecondApproval: true,
-          };
-        }
-
-        secondApprovalAfter = press.firstApprovedByUserId;
-      }
-
-      const approvalSet: SuggestionTransitionSet = {
+      return approved({
+        suggestionId: suggestion.id!.toString(),
         status: AutoRemediationSuggestionStatus.Approved,
-        approvedByUserId: props.userId!.toString(),
-        approvedAt: OneUptimeDate.getCurrentDate(),
-        // Where it was approved: the card, or the fix's chat message.
-        approvedFrom: getRemediationApprovalSource(data.from),
-        verificationStatus: AutoRemediationVerificationStatus.Pending,
-        verificationDeadlineAt: OneUptimeDate.addRemoveMinutes(
-          OneUptimeDate.getCurrentDate(),
-          suggestion.verificationWindowMinutes ||
-            DEFAULT_VERIFICATION_WINDOW_MINUTES,
-        ),
-      };
+        suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+      });
+    }
 
-      /*
-       * The second of two approvals is claimed only while the first is
-       * the one read and someone else's (attemptSecondApproval).
-       */
-      const claimedPlan: number = secondApprovalAfter
-        ? await AutoRemediationSuggestionService.attemptSecondApproval({
-            suggestionId: suggestion.id!,
-            firstApprovedByUserId: secondApprovalAfter.toString(),
-            set: approvalSet,
-          })
-        : await AutoRemediationSuggestionService.attemptStatusTransition({
-            suggestionId: suggestion.id!,
-            fromStatus: AutoRemediationSuggestionStatus.Suggested,
-            set: approvalSet,
-          });
-
-      if (claimedPlan === 0) {
-        throw new BadDataException(
-          "This suggestion was just actioned by someone else. Refresh to see its current state.",
-        );
-      }
-
+    if (plan) {
       /*
        * Detached on purpose: the plan can legitimately take minutes. The
        * executor persists per-command progress, and the verifier judges a
@@ -1526,78 +1834,20 @@ export default class RemediationApproval {
       });
 
       const running: string = `${describeCommandCount(plan.commands.length)} ${plan.commands.length === 1 ? "is" : "are"} being run`;
-      let approvedMarkdown: string =
-        mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}: ${running}. Verification will watch the monitors for recovery.`.toString();
-
-      // The second of two approvals says whose came first.
-      if (secondApprovalAfter) {
-        const firstName: string | null =
-          await getApproverName(secondApprovalAfter);
-
-        approvedMarkdown = firstName
-          ? mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}, after **${firstName}** approved it first: ${running}. Verification will watch the monitors for recovery.`.toString()
-          : mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}, the second of two approvals: ${running}. Verification will watch the monitors for recovery.`.toString();
-      }
 
       await postFeedItem({
         suggestion,
-        markdown: approvedMarkdown,
+        markdown:
+          mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}${afterFirst}: ${running}. Verification will watch the monitors for recovery.`.toString(),
         userId: props.userId!,
         pingWorkspace: true,
       });
 
-      return {
+      return approved({
         suggestionId: suggestion.id!.toString(),
         status: AutoRemediationSuggestionStatus.Approved,
         suggestionType: AutoRemediationSuggestionType.CommandPlan,
-      };
-    }
-
-    if (!suggestion.runbookId) {
-      throw new BadDataException("This suggestion has no runbook to start.");
-    }
-
-    assertCanExecuteRunbooks(props, suggestion.projectId);
-
-    // Only a runbook the approver's run grant reaches (labels, owned).
-    await RunbookRunAccess.assertMayStart({
-      databaseProps: props,
-      projectId: suggestion.projectId,
-      runbookId: suggestion.runbookId,
-    });
-
-    /*
-     * Claim the approval FIRST (CAS Suggested -> Approved), then start
-     * the runbook. Two concurrent approvals race on this transition and
-     * exactly one wins — the loser gets a clean "already actioned" error
-     * instead of a double-started runbook.
-     */
-    const claimed: number =
-      await AutoRemediationSuggestionService.attemptStatusTransition({
-        suggestionId: suggestion.id!,
-        fromStatus: AutoRemediationSuggestionStatus.Suggested,
-        set: {
-          status: AutoRemediationSuggestionStatus.Approved,
-          approvedByUserId: props.userId!.toString(),
-          approvedAt: OneUptimeDate.getCurrentDate(),
-          approvedFrom: getRemediationApprovalSource(data.from),
-          /*
-           * The runbook starts next — the outcome verifier watches for
-           * monitor recovery until this deadline.
-           */
-          verificationStatus: AutoRemediationVerificationStatus.Pending,
-          verificationDeadlineAt: OneUptimeDate.addRemoveMinutes(
-            OneUptimeDate.getCurrentDate(),
-            suggestion.verificationWindowMinutes ||
-              DEFAULT_VERIFICATION_WINDOW_MINUTES,
-          ),
-        },
       });
-
-    if (claimed === 0) {
-      throw new BadDataException(
-        "This suggestion was just actioned by someone else. Refresh to see its current state.",
-      );
     }
 
     /*
@@ -1623,7 +1873,7 @@ export default class RemediationApproval {
     try {
       execution = await RunbookRuleEngineService.startRunbookFor({
         projectId: suggestion.projectId,
-        runbookId: suggestion.runbookId,
+        runbookId: suggestion.runbookId!,
         linkage: runbookLinkage,
         trigger: RunbookTriggerType.AutoRemediation,
         triggeredByUserId: props.userId!,
@@ -1675,11 +1925,11 @@ export default class RemediationApproval {
       pingWorkspace: true,
     });
 
-    return {
+    return approved({
       suggestionId: suggestion.id!.toString(),
       status: AutoRemediationSuggestionStatus.Approved,
       runbookExecutionId: execution.id!.toString(),
-    };
+    });
   }
 
   /*
@@ -1816,6 +2066,7 @@ export default class RemediationApproval {
       assertFixIsWhatTheMessageShowed({
         suggestion,
         expectedPlanFingerprint: data.expectedPlanFingerprint,
+        from: data.from,
       });
     }
 
@@ -1914,6 +2165,9 @@ export default class RemediationApproval {
       userId: props.userId!,
       pingWorkspace: alreadyExecutedCount > 0,
     });
+
+    // Its message offers no Approve any more, and says who dismissed it.
+    refreshFixMessages(suggestion);
 
     return {
       suggestionId: suggestion.id!.toString(),

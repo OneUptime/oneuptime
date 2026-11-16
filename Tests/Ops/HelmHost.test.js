@@ -33,6 +33,7 @@
  */
 
 const fs = require("fs");
+const net = require("net");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
@@ -698,9 +699,11 @@ describe("the chart and npm start refuse the same hosts", () => {
 
   /*
    * The same for an IPv6 address: the app reads host's brackets by IP's
-   * isIPv6, case-insensitive, as it starts. Node.js's net.isIPv6, which npm
-   * start used, takes more - an IPv4 address after six groups, or after
-   * groups and "::" - and every service then stopped at its start.
+   * isIPv6, case-insensitive, as it starts. The three copies once took an
+   * IPv4 address at the end only after "::", "::ffff:" or up to four groups
+   * and "::", and npm start, which read HOST by Node.js's net.isIPv6 before
+   * #8877, let past a HOST every service then stopped on. Now all three take
+   * every form of RFC 4291 (#8927).
    */
   test("the chart's IPv6 rule, npm start's and the app's are one rule", () => {
     const ip = fs.readFileSync(
@@ -725,30 +728,73 @@ describe("the chart and npm start refuse the same hosts", () => {
     expect(helpers).toContain('(printf "(?i)%s" $ipv6Rule)');
   });
 
-  test("npm start and the chart refuse the IPv6 forms the app refuses, and take ::ffff: and NAT64's", () => {
-    const hosts = [
-      "[1:2:3:4:5:6:1.2.3.4]",
-      "[2001:db8::1:192.0.2.1]",
-      "[::ffff:192.0.2.1]",
-      "[64:ff9b::192.0.2.33]",
-      "[::192.0.2.1]",
-    ];
-    const problems = chartProblems(hosts);
+  /*
+   * The rule, read off npm start's copy (which the test above holds to the
+   * app's and the chart's), against Node.js's net.isIPv6 over every length
+   * and near miss: one answer for every address. No zone is in the corpus:
+   * a web address holds none, and the app takes one only on a link-local
+   * address.
+   */
+  test("the IPv6 rule takes every address net.isIPv6 takes, and nothing else", () => {
+    const texts = ipv6Shapes().filter((host) => {
+      return !host.startsWith("[");
+    });
+    const disagreements = texts
+      .filter((text) => {
+        return IPV6_ADDRESS.test(text) !== net.isIPv6(text);
+      })
+      .map((text) => {
+        return `${text}: the rule ${IPV6_ADDRESS.test(text) ? "takes" : "refuses"} it, net.isIPv6 ${net.isIPv6(text) ? "takes" : "refuses"} it`;
+      });
 
+    expect(disagreements).toEqual([]);
     expect(
-      hosts.map((host) => {
-        return {
-          host,
-          chart: Boolean(problems[host]),
-          npmStart: Boolean(hostShapeFinding(host)),
-        };
-      }),
-    ).toEqual([
-      { host: "[1:2:3:4:5:6:1.2.3.4]", chart: true, npmStart: true },
-      { host: "[2001:db8::1:192.0.2.1]", chart: true, npmStart: true },
-      { host: "[::ffff:192.0.2.1]", chart: false, npmStart: false },
-      { host: "[64:ff9b::192.0.2.33]", chart: false, npmStart: false },
-      { host: "[::192.0.2.1]", chart: false, npmStart: false },
-    ]);
+      texts.filter((text) => {
+        return IPV6_ADDRESS.test(text) && text.includes(".");
+      }).length,
+    ).toBeGreaterThan(15);
+  });
+
+  testWithHelm(
+    "npm start and the chart take an IPv6 host with an IPv4 address at its end, in every form (#8927)",
+    () => {
+      const hosts = [
+        "[1:2:3:4:5:6:1.2.3.4]",
+        "[2001:db8::1:192.0.2.1]",
+        "[2001:db8::1:192.0.2.1]:8080",
+        "[::1:2:3:4:5:1.2.3.4]",
+        "[1:2::3:1.2.3.4]",
+        "[0:0:0:0:0:ffff:192.0.2.1]",
+        "[::ffff:192.0.2.1]",
+        "[64:ff9b::192.0.2.33]",
+        "[::192.0.2.1]",
+      ];
+      const problems = chartProblems(hosts);
+
+      expect(
+        hosts.map((host) => {
+          return {
+            host,
+            chart: problems[host],
+            npmStart: hostShapeFinding(host),
+          };
+        }),
+      ).toEqual(
+        hosts.map((host) => {
+          return { host, chart: "", npmStart: null };
+        }),
+      );
+    },
+  );
+
+  test.each([
+    ["[::ffff:01.2.3.4]", "an IPv4 part with a leading zero"],
+    ["[1:2:3:4:5:6:7:1.2.3.4]", "an IPv4 address after seven groups"],
+    ["[1:2:3:4:5:1.2.3.4]", "an IPv4 address after five groups and no ::"],
+    ["[::1:2:3:4:5:6:1.2.3.4]", "nine groups' worth"],
+    ["[::ffff:256.0.2.1]", "an IPv4 part past 255"],
+  ])("npm start still stops on %s, %s", (host) => {
+    expect(hostShapeFinding(host)).not.toBeNull();
+    expect(net.isIPv6(host.slice(1, -1))).toBe(false);
   });
 });

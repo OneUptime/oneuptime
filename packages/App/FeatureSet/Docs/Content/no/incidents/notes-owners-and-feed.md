@@ -277,7 +277,7 @@ Noen oppføringer har ekstra detaljer — en varsling til eierne viser for eksem
 Kortets overskrift har også en meny **Handlinger**, så du kan handle uten å forlate tidslinjen:
 
 - **Kjør runbook** — start et [runbook](/docs/runbooks/index) for denne hendelsen.
-- **Kjør vaktpolicy** — tilkall en policy ved behov. En arkivert policy tilkaller ingen: kjøringsloggen på hendelsen sier at den ikke ble kjørt fordi policyen er arkivert. Slå på **Tilkall dem som observatører** for i stedet å holde personene i policyen orientert: Svaret deres sier bare at de har sett tilkallingen, og hendelsen blir ikke bekreftet.
+- **Kjør vaktpolicy** — tilkall en policy ved behov. Den tilkaller personene i policyen til en av dem svarer eller hendelsen er løst, også når noen allerede har bekreftet hendelsen. Den er slått av på en løst hendelse, og arkiverte policyer, som ikke tilkaller noen, tilbys ikke. Slå på **Tilkall dem som observatører** for i stedet å holde personene i policyen orientert: Svaret deres sier bare at de har sett tilkallingen, og hendelsen blir ikke bekreftet.
 - **Legg til offentlig notat** — redigeringsverktøyet fra siden **Offentlige notater**, i en dialog: skriv notatet, og deretter **Publiser oppdatering**. Maler, **Utkast med KI**, vedlegg, **Varsle abonnentene på statussiden** med hvem det når, og **Forhåndsvisning** er der alle sammen. Notatet publiseres nå; for å tilbakedatere det velger du **Publisert nå**.
 - **Legg til privat notat** — redigeringsverktøyet fra siden **Private notater**, i en dialog: skriv notatet, og deretter **Legg til notat**.
 

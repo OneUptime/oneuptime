@@ -40,6 +40,10 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
 import { stubDashboardCustomNotificationChannels } from "./CustomNotificationChannelsStub";
+import {
+  resetNotificationChannelReadiness,
+  stubNotificationChannelReadiness,
+} from "./NotificationChannelReadinessStub";
 
 /*
  * THE MATTERMOST COLUMN OF NOTIFICATION SETTINGS.
@@ -180,6 +184,8 @@ beforeEach(() => {
   jest.spyOn(User, "getUserId").mockReturnValue(USER_ID);
   // No custom channel on: the columns stop at Webhook.
   stubDashboardCustomNotificationChannels();
+  // Every channel has a verified method: every column is offered.
+  stubNotificationChannelReadiness();
   jest
     .spyOn(ModelAPI, "getCommonHeaders")
     .mockReturnValue({ tenantid: PROJECT_ID.toString() });
@@ -206,6 +212,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
   ConnectedWorkspaces.setFetcher(null);
   ConnectedWorkspaces.reset();
+  resetNotificationChannelReadiness();
   await act(async (): Promise<void> => {
     await i18next.changeLanguage("en");
   });
@@ -250,7 +257,7 @@ async function findEventRow(label: string): Promise<HTMLElement> {
 }
 
 function switchOf(row: HTMLElement): HTMLElement {
-  return within(row).getByRole("switch", { name: /^Mattermost:/ });
+  return within(row).getByRole("switch", { name: /^Mattermost for / });
 }
 
 describe("which projects have the column", () => {
@@ -302,7 +309,7 @@ describe("which projects have the column", () => {
 
       expect(headers(table)).not.toContain("Mattermost");
       expect(
-        screen.queryByRole("switch", { name: /^Mattermost:/ }),
+        screen.queryByRole("switch", { name: /^Mattermost for / }),
       ).not.toBeInTheDocument();
     },
   );
@@ -350,12 +357,12 @@ describe("a switch in the column", () => {
 
     expect(
       within(await findEventRow("Incident created")).getByRole("switch", {
-        name: "Mattermost: On. Click to disable.",
+        name: "Mattermost for Incident created",
       }),
     ).toHaveAttribute("aria-checked", "true");
     expect(
       within(await findEventRow("Incident note posted")).getByRole("switch", {
-        name: "Mattermost: Off. Click to enable.",
+        name: "Mattermost for Incident note posted",
       }),
     ).toHaveAttribute("aria-checked", "false");
   });
@@ -442,7 +449,7 @@ describe("a switch in the column", () => {
 
     await renderPage();
     const row: HTMLElement = await findEventRow("Incident note posted");
-    fireEvent.click(within(row).getByRole("switch", { name: /^Email:/ }));
+    fireEvent.click(within(row).getByRole("switch", { name: /^Email for / }));
 
     await waitFor(() => {
       expect(updateById).toHaveBeenCalledTimes(1);

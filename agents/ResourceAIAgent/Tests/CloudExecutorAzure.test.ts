@@ -57,6 +57,7 @@ function acceptedWith(
   h: CloudHarness,
   states: Array<string>,
   error?: string,
+  retryAfter: string = "3",
 ): FakeAnswer {
   let poll: number = 0;
 
@@ -73,7 +74,7 @@ function acceptedWith(
 
   return reply(202, "", {
     "Azure-AsyncOperation": OPERATION_URL,
-    "Retry-After": "3",
+    "Retry-After": retryAfter,
   });
 }
 
@@ -474,8 +475,12 @@ describe("Azure: App Service and Container Apps", () => {
     },
   ];
 
-  const appSetup: (configuration: Record<string, unknown>) => CloudHarness = (
+  const appSetup: (
     configuration: Record<string, unknown>,
+    retryAfter?: string,
+  ) => CloudHarness = (
+    configuration: Record<string, unknown>,
+    retryAfter?: string,
   ): CloudHarness => {
     const h: CloudHarness = cloudHarness("azure");
 
@@ -501,7 +506,12 @@ describe("Azure: App Service and Container Apps", () => {
       return jsonReply({ value: revisions });
     });
     h.arm.handle("PATCH", APP, (): FakeAnswer => {
-      return acceptedWith(h, ["InProgress", "Succeeded"]);
+      return acceptedWith(
+        h,
+        ["InProgress", "Succeeded"],
+        undefined,
+        retryAfter,
+      );
     });
     return h;
   };
@@ -534,6 +544,33 @@ describe("Azure: App Service and Container Apps", () => {
     assert.deepStrictEqual(h.clock.sleeps, [3000, 3000]);
     assert.strictEqual(h.arm.callsTo("GET", OPERATION_PATH).length, 2);
   });
+
+  /*
+   * Issue #8928: Azure's Retry-After is read as RFC 9110 writes it - whole
+   * seconds or an HTTP date - from a second to ten. "-5" was polled every
+   * second, and a date at the default.
+   */
+  for (const [retryAfter, intervalMs] of [
+    ["-5", 2000],
+    ["1.5", 2000],
+    ["soon", 2000],
+    ["0", 1000],
+    // The harness's clock reads 2026-10-27T12:00:00Z.
+    ["Tue, 27 Oct 2026 12:00:07 GMT", 7000],
+    ["Tuesday, 27-Oct-26 12:00:07 GMT", 7000],
+    ["3600", 10000],
+  ] as Array<[string, number]>) {
+    test(`a 202's Retry-After of ${JSON.stringify(retryAfter)} is followed every ${intervalMs} ms`, async () => {
+      const h: CloudHarness = appSetup({}, retryAfter);
+
+      assertChanged(
+        await runCloud(h, "azure", `cloud roll-back-service ${APP}`),
+        { version: "api--rev4" },
+      );
+
+      assert.deepStrictEqual(h.clock.sleeps, [intervalMs, intervalMs]);
+    });
+  }
 
   test("--to: a revision of the same app that is active; single revision mode and no ingress are refused", async () => {
     assertNotRun(

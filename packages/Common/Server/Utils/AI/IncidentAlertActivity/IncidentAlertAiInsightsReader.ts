@@ -24,6 +24,7 @@ import IncidentAlertAiLogsReader from "./IncidentAlertAiLogsReader";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import { isWaitingForOthersApproval } from "../../../../Types/AutoRemediation/RemediationApprovals";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
@@ -239,6 +240,8 @@ export default class IncidentAlertAiInsightsReader {
             createdAt: true,
             approvedAt: true,
             approvedFrom: true,
+            // Whose first approval a riskier fix waits after: the reader's own, or not.
+            firstApprovedByUserId: true,
             incidentId: true,
             alertId: true,
           },
@@ -399,6 +402,10 @@ export default class IncidentAlertAiInsightsReader {
                   : undefined,
                 approvedFrom: suggestion.approvedFrom,
                 subjectId: subjectIdOfFix(suggestion)!,
+                isFirstApprovedByReader: isWaitingForOthersApproval({
+                  suggestion,
+                  readerUserId: options.props.userId,
+                }),
               };
             },
           )

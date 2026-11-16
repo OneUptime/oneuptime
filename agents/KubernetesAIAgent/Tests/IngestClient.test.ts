@@ -299,6 +299,59 @@ describe("Retry-After parsing", () => {
       0,
     );
   });
+
+  /*
+   * Issue #8928: Date.parse took "-5", "1.5" and "5 seconds" for days in
+   * 2001, gone by - no wait at all. RFC 9110 allows whole seconds, or an
+   * HTTP date, and the header is read with Common's RetryAfter (copied into
+   * Common/).
+   */
+  test("what is neither whole seconds nor an HTTP date says nothing usable", () => {
+    for (const header of [
+      "-5",
+      "1.5",
+      "5 seconds",
+      "+5",
+      "1e3",
+      "0x10",
+      "  ",
+    ]) {
+      assert.strictEqual(
+        parseRetryAfterSeconds({ header, body: null }),
+        null,
+        header,
+      );
+    }
+  });
+
+  test("0 or a date gone by waits a second; RFC 850 and asctime dates are read, asctime in UTC", () => {
+    assert.strictEqual(parseRetryAfterSeconds({ header: "0", body: null }), 1);
+    assert.strictEqual(
+      parseRetryAfterSeconds({
+        header: new Date(1_000_000 - 60_000).toUTCString(),
+        body: null,
+        nowMs: 1_000_000,
+      }),
+      1,
+    );
+    // 1_000_000 ms is Thu, 01 Jan 1970 00:16:40 GMT.
+    assert.strictEqual(
+      parseRetryAfterSeconds({
+        header: "Thursday, 01-Jan-70 00:16:52 GMT",
+        body: null,
+        nowMs: 1_000_000,
+      }),
+      12,
+    );
+    assert.strictEqual(
+      parseRetryAfterSeconds({
+        header: "Thu Jan  1 00:16:52 1970",
+        body: null,
+        nowMs: 1_000_000,
+      }),
+      12,
+    );
+  });
 });
 
 describe("describeNetworkError", () => {

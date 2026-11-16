@@ -120,7 +120,7 @@ npm test            # compiles, then runs the node:test suites in Tests/
 npm run check-common
 ```
 
-`Common/` holds byte-identical copies of the kubectl policy files from `packages/Common` (and `KubectlArgvGuard.ts` is a copy of the Runner's). Never edit them here: change the source and run `npm run sync-common`. `packages/Common/Tests/Utils/AiRemediation/KubernetesAiAgentPolicyCopyParity.test.ts` fails when a copy drifts.
+`Common/` holds byte-identical copies of the kubectl policy files from `packages/Common`, and of `Utils/RetryAfter.ts`, which reads how long OneUptime asked the agent to wait the way every OneUptime client reads it (`KubectlArgvGuard.ts` is a copy of the Runner's). Never edit them here: change the source and run `npm run sync-common`. `packages/Common/Tests/Utils/AiRemediation/KubernetesAiAgentPolicyCopyParity.test.ts` fails when a copy drifts.
 
 ## Security context
 

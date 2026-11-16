@@ -323,8 +323,13 @@ describe("DatabaseService.findOneUpdatableById", () => {
       }),
     });
 
-    expect(JSON.stringify(lookup().query["labels"])).toContain(
+    // A condition on the monitor's id the label join table answers (#8113).
+    expect(lookup().query["labels"]).toBeUndefined();
+    expect(JSON.stringify(lookup().query["_id"])).toContain(
       LABEL_ID.toString(),
+    );
+    expect(JSON.stringify(lookup().query["_id"])).toContain(
+      MONITOR_ID.toString(),
     );
   });
 

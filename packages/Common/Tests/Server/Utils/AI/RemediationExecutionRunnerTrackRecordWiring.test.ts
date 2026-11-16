@@ -52,6 +52,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import OneUptimeDate from "../../../../Types/Date";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import WorkspaceLiveMessageKey from "../../../../Types/Workspace/WorkspaceLiveMessageKey";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -588,6 +589,8 @@ describe("a proposal, with its track record and its buttons", () => {
     expect(withButtons[0]!["workspaceNotification"]).toEqual({
       sendWorkspaceNotification: true,
       appendMessageBlocks: PROPOSAL_BLOCKS,
+      // Kept where they are posted, so approving the fix edits them there.
+      keepPostsAs: WorkspaceLiveMessageKey.forRemediationFix(SUGGESTION_ID),
     });
   });
 
@@ -643,10 +646,13 @@ describe("a proposal, with its track record and its buttons", () => {
     await propose();
 
     for (const call of incidentFeed.mock.calls) {
-      expect(
-        (call[0] as { workspaceNotification: JSONObject })
-          .workspaceNotification,
-      ).not.toHaveProperty("appendMessageBlocks");
+      const notification: JSONObject = (
+        call[0] as { workspaceNotification: JSONObject }
+      ).workspaceNotification;
+
+      expect(notification).not.toHaveProperty("appendMessageBlocks");
+      // Nothing of the fix's is posted, so nothing is kept to edit.
+      expect(notification).not.toHaveProperty("keepPostsAs");
     }
   });
 });

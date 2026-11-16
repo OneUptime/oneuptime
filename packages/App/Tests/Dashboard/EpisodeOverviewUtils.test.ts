@@ -19,6 +19,7 @@ import {
   getEpisodeTiming,
   getLatestTimelineStateId,
 } from "../../FeatureSet/Dashboard/src/Components/EpisodeView/EpisodeTiming";
+import { EventStanding } from "../../FeatureSet/Dashboard/src/Utils/EventDuration";
 import {
   ALERT_EPISODE_FEED_ICONS,
   INCIDENT_EPISODE_FEED_ICONS,
@@ -424,6 +425,111 @@ describe("getEpisodeTiming", () => {
 
     expect(timelines[0]!.stateId).toBe(RESOLVED.id);
     expect(timelines[1]!.stateId).toBe(CREATED.id);
+  });
+});
+
+/*
+ * Where an episode stands now, as an incident's and an alert's pages read
+ * theirs (getEventStanding): what its feed's Execute On-Call Policy offers
+ * follows it (issue #7839) - locked on a resolved episode, and saying on an
+ * acknowledged one that the policy still pages until one of its people
+ * answers.
+ */
+describe("getEpisodeTiming: where the episode stands now", () => {
+  const standingOf: (
+    timelines: Array<{ stateId: string; startsAt?: Date | undefined }>,
+    states?: Array<EpisodeTimingState>,
+  ) => EventStanding | undefined = (
+    timelines: Array<{ stateId: string; startsAt?: Date | undefined }>,
+    states?: Array<EpisodeTimingState>,
+  ): EventStanding | undefined => {
+    return getEpisodeTiming({
+      list: StateListType.IncidentState,
+      startedAt: START,
+      states: states || [...STATES, INVESTIGATING, CLOSED],
+      timelines: timelines,
+    }).standing;
+  };
+
+  test("open while it is in a state before Acknowledged", () => {
+    expect(standingOf([{ stateId: CREATED.id, startsAt: START }])).toBe(
+      EventStanding.Open,
+    );
+  });
+
+  test("acknowledged in Acknowledged, and in a state after it short of Resolved", () => {
+    expect(
+      standingOf([
+        { stateId: CREATED.id, startsAt: START },
+        { stateId: ACKNOWLEDGED.id, startsAt: at(5) },
+      ]),
+    ).toBe(EventStanding.Acknowledged);
+    expect(
+      standingOf([
+        { stateId: CREATED.id, startsAt: START },
+        { stateId: INVESTIGATING.id, startsAt: at(5) },
+      ]),
+    ).toBe(EventStanding.Acknowledged);
+  });
+
+  test("resolved in Resolved, and in a state placed after it", () => {
+    expect(
+      standingOf([
+        { stateId: ACKNOWLEDGED.id, startsAt: at(5) },
+        { stateId: RESOLVED.id, startsAt: at(9) },
+      ]),
+    ).toBe(EventStanding.Resolved);
+    expect(
+      standingOf([
+        { stateId: RESOLVED.id, startsAt: at(9) },
+        { stateId: CLOSED.id, startsAt: at(12) },
+      ]),
+    ).toBe(EventStanding.Resolved);
+  });
+
+  test("reopened, it is where it moved back to: a policy may be started on it again", () => {
+    expect(
+      standingOf([
+        { stateId: CREATED.id, startsAt: START },
+        { stateId: RESOLVED.id, startsAt: at(9) },
+        { stateId: CREATED.id, startsAt: at(20) },
+      ]),
+    ).toBe(EventStanding.Open);
+  });
+
+  test("by its latest dated state, however the timeline arrives", () => {
+    expect(
+      standingOf([
+        { stateId: RESOLVED.id, startsAt: at(30) },
+        { stateId: CREATED.id, startsAt: START },
+        { stateId: ACKNOWLEDGED.id, startsAt: at(10) },
+      ]),
+    ).toBe(EventStanding.Resolved);
+    expect(
+      standingOf([
+        { stateId: ACKNOWLEDGED.id, startsAt: at(10) },
+        { stateId: RESOLVED.id },
+      ]),
+    ).toBe(EventStanding.Acknowledged);
+  });
+
+  test("not known while no state is dated: nothing is assumed", () => {
+    expect(standingOf([])).toBeUndefined();
+    expect(standingOf([{ stateId: RESOLVED.id }])).toBeUndefined();
+  });
+
+  test("as an alert episode's, by the alert states", () => {
+    expect(
+      getEpisodeTiming({
+        list: StateListType.AlertState,
+        startedAt: START,
+        states: STATES,
+        timelines: [
+          { stateId: CREATED.id, startsAt: START },
+          { stateId: ACKNOWLEDGED.id, startsAt: at(3) },
+        ],
+      }).standing,
+    ).toBe(EventStanding.Acknowledged);
   });
 });
 

@@ -969,23 +969,29 @@ npm run analyze     # bundle composition
 
 ## Bundle weight
 
-Measured: **recorder.js 339.5 KB raw / 101.3 KB gzip**, **loader.js 13.3 KB raw /
-4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (100 KB gzip
+Measured: **recorder.js 354.9 KB raw / 106.3 KB gzip**, **loader.js 13.3 KB raw /
+4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (105 KB gzip
 for the recorder, 5 KB for the stub), which fails rather than shipping a
 regression — gzip being the number a customer's browser actually pays. The
 recorder budget went from 90 KB to 92 KB for offline mode, to 93 KB on
 2026-09-24 for automatic same-origin trace propagation (issue #3979: 92376 →
 94178 bytes gzip), to 95 KB on 2026-09-26 for INP per single-page-app
 view (issue #3975: 94102 → 95550 bytes gzip), to 97 KB on 2026-10-02 for
-the idle pause (issue #4208: 96723 → 97650 bytes gzip), and to 100 KB on
+the idle pause (issue #4208: 96723 → 97650 bytes gzip), to 100 KB on
 2026-11-09 for frustration signals an application defines itself (issue
-#6443: 99229 → 101329 bytes gzip). Its raw budget went
+#6443: 99229 → 101329 bytes gzip), to 103 KB on 2026-11-10 for product
+analytics events (issue #6444: 101329 → 104156 bytes gzip), and to 105 KB
+on 2026-11-16 for a throttled answer's `Retry-After` read as RFC 9110
+writes it, with Common's `RetryAfter` (issue #8928: 105353 → 106276 bytes
+gzip). Its raw budget went
 from 320 KB to 323 KB on 2026-10-22 for web vitals timed as the `web-vitals`
 library times them (issue #5181: 325428 → 329727 bytes raw, 97660 → 98655
 gzip), to 325 KB on 2026-10-26 for a prerendered page recorded only once
-it is opened (329727 → 331411 bytes raw, 98655 → 99218 gzip), and to 333 KB
+it is opened (329727 → 331411 bytes raw, 98655 → 99218 gzip), to 333 KB
 on 2026-11-09 for frustration signals an application defines itself (issue
-#6443: 331424 → 339513 bytes raw); `esbuild.config.js` carries each
+#6443: 331424 → 339513 bytes raw), on through 342, 344 and 346 KB, and to
+348 KB on 2026-11-16 for `Retry-After` read as RFC 9110 writes it (issue
+#8928: 352802 → 354855 bytes raw); `esbuild.config.js` carries each
 measurement and reason.
 
 It was 245 KB / 75.7 KB before the session-replay overhaul. The ~13 KB gzip

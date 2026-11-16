@@ -325,7 +325,7 @@ Fixes have the same four modes as on a Kubernetes cluster — `ONEUPTIME_AI_FIXE
 - **Off** — AI only investigates.
 - **Ask for approval** — after the root cause analysis, OneUptime AI diagnoses with read commands and composes the smallest plan that addresses the cause, for example `docker restart web`. The plan appears on the incident or alert with its rationale, expected effect and rollback; a person approves it with one click, and OneUptime runs exactly those commands.
 - **Automatic** — safe changes (**SafeWrite**) run on their own; a riskier change (**RiskyWrite**) is proposed for approval, unless the resource's command allowlist names its exact shape.
-- **Bypass approval** — every change the policy allows, riskier ones included, runs on its own. What always needs a person still waits for one.
+- **Bypass approval** — every change the policy allows, riskier ones included, runs on its own. What always needs a person still waits for one. Where the project asks two people to approve a riskier fix, a riskier change is proposed for their approval instead.
 
 After a fix runs, OneUptime watches the incident's or alert's monitors. If they do not recover, the plan's rollback runs and OneUptime AI composes one more plan, with the failed attempt in front of it — at most two rounds per incident or alert. In **Automatic** mode that second round asks for approval; in **Bypass approval** it runs on its own too. Unattended fixes are circuit-broken to three per resource per hour: past that, or while another unattended OneUptime AI round is still changing or verifying the same resource, a round proposes its plan for approval instead of running it.
 
@@ -342,7 +342,7 @@ One incident or alert gets one AI fix lane. When it is linked to a Kubernetes cl
 
 Some riskier changes **always need a person** in every mode, Bypass approval included, and no allowlist entry changes that — they are marked as such in the tables below.
 
-A project can also ask two people to approve a fix that holds a riskier change: see [Two people approve a riskier fix](/docs/ai/ai-sre#two-people-approve-a-riskier-fix).
+A project can also ask two people to approve a fix that holds a riskier change; then no riskier change runs on its own, the allowlist and Bypass approval included: see [Two people approve a riskier fix](/docs/ai/ai-sre#two-people-approve-a-riskier-fix).
 
 ### Fixes on Docker and Podman hosts
 

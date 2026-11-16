@@ -162,11 +162,6 @@ export const INVENTORY_LINKED_SIGNALS: ReadonlyArray<string> = [
   translationKey("maintenance windows"),
 ];
 
-// "incidents are raised..." starts a sentence, so its first letter is a capital.
-const capitalizeFirst: (text: string) => string = (text: string): string => {
-  return text.charAt(0).toLocaleUpperCase() + text.slice(1);
-};
-
 export type DescribeMissingLinkFunction = (
   entityType: string | undefined,
   signal: string,
@@ -177,6 +172,12 @@ export type DescribeMissingLinkFunction = (
  * What to tell someone looking at an item that can never have its own
  * incidents. `signal` is the plural noun for the page ("incidents",
  * "alerts", "maintenance windows").
+ *
+ * The signal opens the sentence as a term, and takes its capital from the
+ * Translator, which gives a term one where the filled sentence starts with
+ * it (#7772): "Alerts are raised against...". Nothing capitalises the
+ * sentence afterwards, so a signal that stopped being a term would read
+ * "alerts are raised..." and a test would see it.
  *
  * The item's type goes in the middle of the sentence, after "This", as a
  * term cased the reader's way: "This Kubernetes pod does not carry its
@@ -194,23 +195,19 @@ export const describeMissingLink: DescribeMissingLinkFunction = (
   );
 
   if (!entityType) {
-    return capitalizeFirst(
-      translator.translateTemplate(
-        "{{signal}} are raised against services, hosts and Kubernetes clusters. This item does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
-        { signal: signalTerm },
-      ),
+    return translator.translateTemplate(
+      "{{signal}} are raised against services, hosts and Kubernetes clusters. This item does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
+      { signal: signalTerm },
     );
   }
 
-  return capitalizeFirst(
-    translator.translateTemplate(
-      "{{signal}} are raised against services, hosts and Kubernetes clusters. This {{type}} does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
-      {
-        signal: signalTerm,
-        type: translatableTerm(getInventoryTypeLabel(entityType), {
-          inSentence: true,
-        }),
-      },
-    ),
+  return translator.translateTemplate(
+    "{{signal}} are raised against services, hosts and Kubernetes clusters. This {{type}} does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
+    {
+      signal: signalTerm,
+      type: translatableTerm(getInventoryTypeLabel(entityType), {
+        inSentence: true,
+      }),
+    },
   );
 };
