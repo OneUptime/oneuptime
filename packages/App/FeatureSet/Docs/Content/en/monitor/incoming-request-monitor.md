@@ -84,7 +84,7 @@ Send **GET** or **POST** requests to this URL. HEAD is accepted and treated as G
 > Anyone who knows this URL can mark the monitor healthy, so treat it as a secret. If it leaks, open the monitor's **Settings** page and click **Reset Incoming Request Secret Key**, then update every sender. The monitor's overview shows the latest request as its logs keep it: with secrets and personal data masked, and with no headers or body when **Keep request content** is off. Masking catches the names and patterns it knows, so do not send API keys or tokens to this endpoint.
 
 > [!IMPORTANT]
-> OneUptime replies `200` with an empty JSON object (`{}`) immediately and processes the request on a queue. That reply is written before any validation happens, so a `200` is **not** confirmation that the request was accepted — a wrong secret key, a deleted monitor, and a disabled monitor all return `200` too. Check the monitor's own timeline to confirm requests are landing. The one exception is a project that requires a secret on every request: a request without one is answered `401`.
+> OneUptime replies `200` with an empty JSON object (`{}`) immediately and processes the request on a queue. That reply is written before any validation happens, so a `200` is **not** confirmation that the request was accepted — a wrong secret key, a deleted monitor, and a disabled monitor all return `200` too. Check the monitor's own timeline to confirm requests are landing. A project that requires a secret on every request answers a request without one `401`, and a service that checks the URL before it delivers gets the answer it expects: see [Services that check the URL first](#services-that-check-the-url-first).
 
 ### Sending a request body
 
@@ -94,7 +94,8 @@ If you want to address fields inside the body — `{{requestBody.status}}` in an
 | --- | --- |
 | `application/json` | The parsed JSON. |
 | `application/x-www-form-urlencoded` | The parsed form. Bracketed keys nest (`alerts[0][status]=firing`), and every value is a string. |
-| `text/plain` | The parsed JSON, when the text is a JSON object or array: Amazon SNS sends its messages this way. Any other text is an empty body. |
+| `text/plain` | The parsed JSON, when the text is a JSON object or array: Amazon SNS sends its messages this way. Any other text is the text itself, so `backup failed: error 42` takes the monitor offline under the default criteria. |
+| `application/cloudevents+json`, or another `+json` type | The parsed JSON: Azure Event Grid delivers CloudEvents this way. |
 | Anything else, or none | An empty body (`{}`), so no `requestBody` reference resolves, and a template leaves it as written. |
 
 Bodies up to 50 MB are accepted; a larger one is refused with a `413`. Do not compress the body with `Content-Encoding: gzip`: it is not stored as JSON, and paths into it will not resolve.
@@ -383,9 +384,25 @@ The full payload is available alongside it, so an incident title of `{{alertname
 
 For a full Alertmanager configuration, see [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, see [Grafana](/docs/integrations/grafana).
 
+## Services that check the URL first
+
+Some services check a new endpoint before they deliver anything to it: they send it a request, and deliver only once it answers the way they expect. OneUptime answers these checks itself, so pasting the monitor's **Heartbeat URL** into the service is all it takes.
+
+| Service | The check | What OneUptime answers |
+| --- | --- | --- |
+| Azure Event Grid, Event Grid schema | A `SubscriptionValidationEvent` | Its `validationCode`, as `validationResponse` |
+| Azure Event Grid, CloudEvents schema | An `OPTIONS` request that names its origin | `WebHook-Allowed-Origin`, with that origin |
+| Slack Events API | A `url_verification` request | Its `challenge` |
+| Microsoft Graph change notifications | A `POST` with a `validationToken` | The token, as `text/plain` |
+| Okta event hooks | A `GET` with `X-Okta-Verification-Challenge` | The challenge, as `verification` |
+
+A check is answered only on a monitor's own URL, and only when the request counts: in a project that requires a secret on every request, a check that sends none is refused with `401`, as any request is, so the service must send the secret in a header. The answer holds what the service sent to be echoed, and nothing else of the request, and only when it has the form the service gives it.
+
+A check reaches the monitor as any request does, so its criteria evaluate it and it shows on the monitor's **Overview**; the CloudEvents check is answered and nothing more. A probe's incoming request ingress answers a check as it answers every request, with `{}`, so send these services to OneUptime's own URL.
+
 ## Subscribing to Amazon SNS or Azure Event Grid
 
-Amazon SNS and Azure Event Grid send nothing to a new endpoint until someone confirms the subscription, by opening a link the service sends to it. When that request arrives, the **Monitor Summary** card on the monitor's **Overview** shows what the service is waiting for, the topic, and one button that opens the link in a new tab.
+Amazon SNS sends nothing to a new endpoint until someone confirms the subscription, by opening a link it sends there. Azure Event Grid sends such a link too, for an endpoint that does not answer its check, and OneUptime answers it. When a link arrives that is still to be opened, the **Monitor Summary** card on the monitor's **Overview** shows what the service is waiting for, the topic, and one button that opens the link in a new tab.
 
 | Service | The request | Button | The link works for |
 | --- | --- | --- | --- |
@@ -411,11 +428,11 @@ If the card says the link can no longer be opened, select the subscription in th
 ### Azure Event Grid
 
 :::steps
-1. In the Azure portal, open the resource whose events you want and add an event subscription. Choose **Event Grid Schema** as its event schema, **Web Hook** as its endpoint type, and the monitor's **Heartbeat URL** as its endpoint.
-2. Within 10 minutes, open the monitor's **Overview** and click **Validate Subscription** in the **Monitor Summary** card.
+1. In the Azure portal, open the resource whose events you want and add an event subscription. Choose **Event Grid Schema** or **Cloud Event Schema v1.0** as its event schema, **Web Hook** as its endpoint type, and the monitor's **Heartbeat URL** as its endpoint.
+2. Create the event subscription. OneUptime answers Event Grid's check, so the subscription is validated as it is created, and its events start to arrive.
 :::
 
-Event Grid validates an endpoint that echoes a code back to it, or whose owner opens the link it sends. OneUptime answers every request with an empty `200`, so the link is the way. The link points at Event Grid on port 553, which a firewall in front of your browser must allow. If 10 minutes pass first, the event subscription fails: create it again.
+Event Grid validates an endpoint that echoes a code back to it, or whose owner opens the link it sends. OneUptime echoes the code, so the **Monitor Summary** card offers **Validate Subscription** only for a validation OneUptime did not answer: open it within 10 minutes. The link points at Event Grid on port 553, which a firewall in front of your browser must allow. If 10 minutes pass first, the event subscription fails: create it again.
 
 ## Best Practices
 
@@ -444,7 +461,11 @@ Only an **Incoming Request** criteria (**Not Recieved In Minutes**) can notice s
 :::
 
 :::details A Request Body filter never matches
-Send `Content-Type: application/json`, and write the value as compact JSON — `"status":"firing"`, with no space after the colon. Without a JSON or form content type, the body is not parsed: only JSON sent as `text/plain` is.
+Send `Content-Type: application/json`, and write the value as compact JSON — `"status":"firing"`, with no space after the colon. Without a JSON, form or `text/plain` content type, the body is empty, and a filter on it never matches.
+:::
+
+:::details A service says the URL did not answer its check
+Give the service the monitor's **Heartbeat URL**, on OneUptime itself rather than a probe. If the project requires a secret on every request, the check is refused with `401` unless the service sends the secret. Then have the service check the URL again: it is answered at once.
 :::
 
 :::details A Request Header filter never matches

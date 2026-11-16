@@ -73,6 +73,8 @@ curl -X POST "https://oneuptime.example.com/workflow/trigger/<secret key>" \
 
 De URL accepteert zowel `GET` als `POST`. De aanroeper krijgt een snelle bevestiging, `{"status": "Scheduled"}` — de workflow zelf draait op de achtergrond, dus de aanroeper ziet nooit wat hij doet. Een aanroep van een workflow die uit staat of gearchiveerd is, wordt geweigerd met HTTP 400 en de reden.
 
+Azure Event Grid, Slack, Microsoft Graph en Okta controleren een URL voordat ze er iets aan afleveren. De URL beantwoordt elke controle zoals de dienst verwacht, zoals [de URL van een Inkomende-verzoek-monitor dat doet](/docs/monitor/incoming-request-monitor#diensten-die-eerst-de-url-controleren), en een controle start geen run. Zolang de workflow uit staat of gearchiveerd is, wordt een controle geweigerd zoals een aanroep.
+
 ```mermaid title="Wat er gebeurt als iets de webhook-URL aanroept"
 sequenceDiagram
     participant Caller as Jouw tool
@@ -94,7 +96,7 @@ sequenceDiagram
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | **Aanvraagheaders**      | Elke header van het verzoek, op naam in kleine letters, zoals `content-type`.                                         |
 | **Queryparameters van het verzoek** | De queryparameters in de URL, op naam.                                                                                |
-| **Verzoeklichaam**         | De body die de aanroeper stuurde. Een JSON-body, verstuurd met `Content-Type: application/json`, kun je veld voor veld lezen, net als JSON die als platte tekst wordt verstuurd, zoals Amazon SNS dat doet. |
+| **Verzoeklichaam**         | De body die de aanroeper stuurde. Een JSON-body, verstuurd met `Content-Type: application/json` of een `+json`-type zoals de CloudEvents van Azure Event Grid, kun je veld voor veld lezen, net als JSON die als platte tekst wordt verstuurd, zoals Amazon SNS dat doet. Elke andere platte tekst is de tekst zelf. |
 
 Lees één veld door de naam ervan aan de verwijzing toe te voegen, zoals in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
