@@ -480,16 +480,32 @@ describe("Home and its cards", () => {
 
     const keyedOnProjectAndRefresh: RegExp =
       /\[\s*projectIdString\s*,\s*props\.refreshKey\s*\]\s*\)$/;
+    /*
+     * Upcoming maintenance reads again when one of the project's events
+     * changes, too (#8963): its own key, bumped as it hears one.
+     */
+    const keyedOnProjectRefreshAndChanges: RegExp =
+      /\[\s*projectIdString\s*,\s*props\.refreshKey\s*,\s*liveRefreshKey\s*\]\s*\)$/;
 
-    for (const [name, source, needle] of [
-      ["ProjectResources", RESOURCES_SOURCE, "Promise.all"],
-      ["UpcomingMaintenance", UPCOMING_SOURCE, "fetchUpcomingMaintenance("],
-    ] as Array<[string, string, string]>) {
+    for (const [name, source, needle, keyedOn] of [
+      [
+        "ProjectResources",
+        RESOURCES_SOURCE,
+        "Promise.all",
+        keyedOnProjectAndRefresh,
+      ],
+      [
+        "UpcomingMaintenance",
+        UPCOMING_SOURCE,
+        "fetchUpcomingMaintenance(",
+        keyedOnProjectRefreshAndChanges,
+      ],
+    ] as Array<[string, string, string, RegExp]>) {
       const effect: string = useEffectContaining(source, needle);
 
       expect({
         name,
-        keyedOnString: keyedOnProjectAndRefresh.test(effect),
+        keyedOnString: keyedOn.test(effect),
       }).toEqual({ name, keyedOnString: true });
     }
 

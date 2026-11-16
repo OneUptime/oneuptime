@@ -378,6 +378,12 @@ describe("DatabaseService relation-only rule rollout writes", () => {
           "sendsRealtimeUpdateEvents",
         )
         .mockReturnValue(true);
+      /*
+       * No read of a rule is narrowed by its switch, so no update of it is
+       * decided on before the write (#8964). Here every column is taken to
+       * narrow one, so the decision shows how the row is judged.
+       */
+      jest.spyOn(service, "getColumnsAnyReadMayNarrowBy").mockReturnValue(null);
       jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
       const snapshot: MockFunction = jest
         .spyOn(Realtime, "snapshotReadAccess")
@@ -407,6 +413,8 @@ describe("DatabaseService relation-only rule rollout writes", () => {
           "sendsRealtimeUpdateEvents",
         )
         .mockReturnValue(true);
+      // As above: a decision would be made, were the row changing.
+      jest.spyOn(service, "getColumnsAnyReadMayNarrowBy").mockReturnValue(null);
       jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
       const snapshot: MockFunction = jest
         .spyOn(Realtime, "snapshotReadAccess")

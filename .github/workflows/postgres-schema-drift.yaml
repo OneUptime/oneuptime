@@ -672,6 +672,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/WorkflowIncomingEmailSecretKeyPostgres.test.ts --forceExit
 
+      # #8861: a write posts its workflow trigger only when a workflow of its
+      # project listens. Clones the migrated Workflow table into an isolated
+      # schema: the triggers read for a project are those of its enabled
+      # workflows that are not archived nor deleted - for every trigger, a
+      # write is told a workflow listens exactly when the workflow service's
+      # handler finds one - read in one statement for a project's first
+      # write and none for the writes after it.
+      - name: Test which triggers a project's workflows listen to against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WORKFLOW_LISTENER_TESTS: "true"
+          WORKFLOW_LISTENER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKFLOW_LISTENER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKFLOW_LISTENER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Workflow/WorkflowListenersPostgres.test.ts --forceExit
+
       # Clones the migrated Runbook and RunbookExecution tables into an
       # isolated schema: Workers racing for a runbook schedule's due time
       # start one run (the compare-and-set on scheduleNextRunAt), a missed
@@ -3548,7 +3567,12 @@ jobs:
       # state change jobs' backlog - a page at a time, oldest first, each
       # status change taken by one statement, by one of two runs at once,
       # and a run stopped at its deadline - on a copy of the migrated
-      # MonitorStatusTimeline table.
+      # MonitorStatusTimeline table. #8862: an incident's owner rows - team
+      # rows and user rows - told of together, each taken by one statement,
+      # by one of two runs at once, and never split by a run stopped at its
+      # deadline; #8863: the entries before a page's status changes read
+      # once per page - on copies of the migrated IncidentOwnerTeam,
+      # IncidentOwnerUser and MonitorStatusTimeline tables.
       - name: Test the owner notification jobs stopped and started again on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/App
@@ -3561,6 +3585,7 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/Jobs/OwnerNotificationJobsPostgres.test.ts
           Tests/Workers/Utils/OwnerNotificationBacklogPostgres.test.ts
+          Tests/Workers/Utils/OwnerNotificationGroupsPostgres.test.ts
           --forceExit
 
       # A bundled global probe upgraded from the key the repository ships, end
@@ -3846,7 +3871,7 @@ jobs:
       # Monitor, MonitorProbe and MonitorStatusTimeline tables into an
       # isolated schema.
       - name: Test when something first measured a monitor on migrated Postgres
-        if: matrix.shard == 1
+        if: matrix.shard == 3
         working-directory: packages/App
         env:
           RUN_POSTGRES_MONITOR_FIRST_MEASURED_TESTS: "true"
