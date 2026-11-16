@@ -315,6 +315,8 @@ export interface CodePullRequestCopy {
   pushed: string;
   // The task header's button: "Pull request #12".
   title: string;
+  // What it is called on its own, over it in a task's Details.
+  name: string;
   // A task row's chip: "PR #12".
   short: string;
   // The reply box, while it is open: where a change goes.
@@ -331,6 +333,7 @@ const PULL_REQUEST_COPY: CodePullRequestCopy = {
   opened: translationKey("Opened pull request #{{number}}"),
   pushed: translationKey("Pushed to pull request #{{number}}"),
   title: translationKey("Pull request #{{number}}"),
+  name: translationKey("Pull request"),
   short: translationKey("PR #{{number}}"),
   replyFooter: translationKey(
     "Changes you ask for are pushed to pull request #{{number}}.",
@@ -344,6 +347,7 @@ const MERGE_REQUEST_COPY: CodePullRequestCopy = {
   opened: translationKey("Opened merge request !{{number}}"),
   pushed: translationKey("Pushed to merge request !{{number}}"),
   title: translationKey("Merge request !{{number}}"),
+  name: translationKey("Merge request"),
   short: translationKey("MR !{{number}}"),
   replyFooter: translationKey(
     "Changes you ask for are pushed to merge request !{{number}}.",
