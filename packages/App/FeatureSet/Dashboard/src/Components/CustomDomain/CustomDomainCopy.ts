@@ -343,6 +343,12 @@ export const CustomDomainCopy: {
    * record: nothing checks it on its own, so the person checks.
    */
   dnsSetupWhatHappensNextTwoRecords: string;
+  /*
+   * Project Settings -> Domains -> Verify Domain, over the domain's TXT
+   * record: the same record DNS Setup draws, which nothing checks on its
+   * own there either.
+   */
+  verifyDomainIntro: string;
 } = {
   cardDescriptionNotEnabled: translationKey(
     "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature.",
@@ -407,6 +413,9 @@ export const CustomDomainCopy: {
   dnsSetupCheckedAt: translationKey("Checked at {{time}}."),
   dnsSetupWhatHappensNextTwoRecords: translationKey(
     "Add both records, then click Check now. As soon as the TXT record is found, we add this domain and check its CNAME record, and after that we keep checking every 15 minutes.",
+  ),
+  verifyDomainIntro: translationKey(
+    "Add this record at your DNS provider, then click Verify Domain.",
   ),
 };
 

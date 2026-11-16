@@ -481,10 +481,12 @@ describe("the copy", () => {
    * word for who may add a project domain; DNS Setup's line over each
    * record, when it last looked, what happens next with two records, and
    * both kinds' intro for two records) and took two away (the Domain
-   * dropdown's line and its link to Project Settings): 43.
+   * dropdown's line and its link to Project Settings): 43. #7025 brought
+   * one, Project Settings -> Domains' line over the TXT record it now
+   * draws with DNS Setup's own component: 44.
    */
-  test("brings 43 sentences of its own", () => {
-    expect(NEW_SENTENCES).toHaveLength(43);
+  test("brings 44 sentences of its own", () => {
+    expect(NEW_SENTENCES).toHaveLength(44);
   });
 
   test.each(OTHER_LOCALES)(
