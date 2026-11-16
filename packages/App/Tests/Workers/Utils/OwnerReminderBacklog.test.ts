@@ -133,7 +133,7 @@ function asRecord(row: Row): Incident {
   // As a read hands it: a copy, cut to the millisecond.
   record.nextReminderNotificationAt = row.nextReminderNotificationAt
     ? new Date(row.nextReminderNotificationAt.getTime())
-    : (null as unknown as undefined);
+    : (null as unknown as Date);
   record.reminderNotificationSentCount =
     row.reminderNotificationSentCount as unknown as number;
   return record;
