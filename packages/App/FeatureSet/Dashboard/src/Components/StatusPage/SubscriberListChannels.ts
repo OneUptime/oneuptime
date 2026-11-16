@@ -58,17 +58,21 @@ export enum SubscriberBulkAddInput {
   Csv = "csv",
 }
 
-// How the Status column reads a subscriber of this channel.
+/*
+ * How the Status column reads a subscriber of this channel.
+ *
+ * Only email and SMS subscribers confirm: the server creates every Slack,
+ * Microsoft Teams and webhook subscriber confirmed, as nobody is there to
+ * ask (StatusPageSubscriberService.onBeforeCreate), so their lists showed an
+ * Awaiting Confirmation that could not happen, and filtered by it.
+ */
 export enum SubscriberStatusKind {
   /*
    * Subscribed, Awaiting Confirmation while the link sent to them works,
-   * Link Expired, or Unsubscribed (SubscriberStatusPill): email and SMS,
-   * the two channels a visitor confirms.
+   * Link Expired, or Unsubscribed (SubscriberStatusPill).
    */
   ConfirmationLink = "confirmation-link",
-  // Subscribed, Awaiting Confirmation or Unsubscribed, by the columns alone.
-  ConfirmedColumn = "confirmed-column",
-  // Subscribed or Unsubscribed: a webhook is never asked to confirm.
+  // Subscribed or Unsubscribed.
   SubscribedOnly = "subscribed-only",
 }
 
@@ -138,11 +142,6 @@ export interface SubscriberListChannel {
   awaitingConfirmationDescription?: string | undefined;
   // A language of its own: everything but a webhook, which is JSON.
   hasLanguage: boolean;
-  /*
-   * Whether "Subscription Confirmed?" is a filter: not for a webhook, which
-   * is never asked.
-   */
-  filtersByConfirmation: boolean;
   bulkAdd: SubscriberTextBulkAdd | SubscriberCsvBulkAdd;
   bulkAddTitle: string;
   bulkAddDescription: string;
@@ -152,25 +151,6 @@ export interface SubscriberListChannel {
     entry: StatusPageBulkAddEntry,
   ) => void;
 }
-
-const workspaceCsvColumns: (product: string) => Array<CSVColumn> = (
-  product: string,
-): Array<CSVColumn> => {
-  return [
-    {
-      key: "workspaceName",
-      title: "Workspace Name",
-      required: true,
-      description: `Name of the ${product} workspace for identification`,
-    },
-    {
-      key: "webhookUrl",
-      title: "Incoming Webhook URL",
-      required: true,
-      description: `${product} incoming webhook URL`,
-    },
-  ];
-};
 
 const LIST_CHANNELS: Record<
   StatusPageSubscriberChannel,
@@ -219,7 +199,6 @@ const LIST_CHANNELS: Record<
     awaitingConfirmationDescription:
       SubscriberFormCopy.awaitingConfirmationDescription,
     hasLanguage: true,
-    filtersByConfirmation: true,
     bulkAdd: {
       input: SubscriberBulkAddInput.Text,
       fieldTitle: "Emails",
@@ -281,7 +260,6 @@ const LIST_CHANNELS: Record<
     awaitingConfirmationDescription:
       SubscriberFormCopy.awaitingTextConfirmationDescription,
     hasLanguage: true,
-    filtersByConfirmation: true,
     bulkAdd: {
       input: SubscriberBulkAddInput.Text,
       fieldTitle: "Phone Numbers",
@@ -352,12 +330,24 @@ const LIST_CHANNELS: Record<
     contactFilterType: FieldType.Text,
     asksHowToAdd: false,
     statusFieldOptions: { isEmail: false },
-    statusKind: SubscriberStatusKind.ConfirmedColumn,
+    statusKind: SubscriberStatusKind.SubscribedOnly,
     hasLanguage: true,
-    filtersByConfirmation: true,
     bulkAdd: {
       input: SubscriberBulkAddInput.Csv,
-      columns: workspaceCsvColumns("Slack"),
+      columns: [
+        {
+          key: "workspaceName",
+          title: "Workspace Name",
+          required: true,
+          description: "Name of the Slack workspace for identification",
+        },
+        {
+          key: "webhookUrl",
+          title: "Incoming Webhook URL",
+          required: true,
+          description: "Slack incoming webhook URL",
+        },
+      ],
       templateFileName: "slack-subscribers-template.csv",
       valueColumn: "webhookUrl",
       // Each row named in the result by its workspace, as the list names it.
@@ -421,12 +411,25 @@ const LIST_CHANNELS: Record<
     contactFilterType: FieldType.Text,
     asksHowToAdd: false,
     statusFieldOptions: { isEmail: false },
-    statusKind: SubscriberStatusKind.ConfirmedColumn,
+    statusKind: SubscriberStatusKind.SubscribedOnly,
     hasLanguage: true,
-    filtersByConfirmation: true,
     bulkAdd: {
       input: SubscriberBulkAddInput.Csv,
-      columns: workspaceCsvColumns("Microsoft Teams"),
+      columns: [
+        {
+          key: "workspaceName",
+          title: "Workspace Name",
+          required: true,
+          description:
+            "Name of the Microsoft Teams workspace for identification",
+        },
+        {
+          key: "webhookUrl",
+          title: "Incoming Webhook URL",
+          required: true,
+          description: "Microsoft Teams incoming webhook URL",
+        },
+      ],
       templateFileName: "microsoft-teams-subscribers-template.csv",
       valueColumn: "webhookUrl",
       nameColumn: "workspaceName",
@@ -480,7 +483,6 @@ const LIST_CHANNELS: Record<
     statusKind: SubscriberStatusKind.SubscribedOnly,
     // A webhook gets JSON: there is no language to write it in.
     hasLanguage: false,
-    filtersByConfirmation: false,
     bulkAdd: {
       input: SubscriberBulkAddInput.Csv,
       columns: [

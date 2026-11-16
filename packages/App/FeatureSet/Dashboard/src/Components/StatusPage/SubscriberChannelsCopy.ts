@@ -84,8 +84,9 @@ export const SubscriberChannelsCopy: {
 };
 
 /*
- * In the order the side menu lists the subscriber pages, which is the order
- * the Subscribe page on the status page offers them.
+ * In the order of the Subscribers page's tabs (Common's
+ * StatusPageSubscriberChannel), which is the order the Subscribe page on the
+ * status page offers them. Each title is its channel's tab.
  */
 export const SUBSCRIBER_CHANNELS: ReadonlyArray<SubscriberChannelDefinition> = [
   {

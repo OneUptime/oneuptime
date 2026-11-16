@@ -131,17 +131,6 @@ interface TextBulkAddFormData {
   statusPageEventTypes?: Array<StatusPageEventType>;
 }
 
-/*
- * Who gets the updates, then - when the status page lets subscribers choose
- * - what they hear about. Without that choice the form is one page.
- * SUBSCRIBER_INFO_STEP_ID, written out: the form scanners of the guard
- * tests read literal ids.
- */
-const SUBSCRIBER_FORM_STEPS: Array<{ title: string; id: string }> = [
-  { title: "Subscriber Info", id: "subscriber-info" },
-  { title: "Notifications", id: "notifications" },
-];
-
 const StatusPageSubscriberList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -259,7 +248,9 @@ const StatusPageSubscriberList: FunctionComponent<ComponentProps> = (
 
   const getProjectId: () => ObjectID = (): ObjectID => {
     if (!props.currentProject || !props.currentProject._id) {
-      throw new BadDataException("Project ID cannot be null");
+      throw new BadDataException(
+        "This page does not know which project it is in. Reload the page and try again.",
+      );
     }
 
     return new ObjectID(props.currentProject._id);
@@ -526,19 +517,6 @@ const StatusPageSubscriberList: FunctionComponent<ComponentProps> = (
       return <Pill color={Red} text={"Unsubscribed"} />;
     }
 
-    if (
-      channel.statusKind === SubscriberStatusKind.ConfirmedColumn &&
-      !item["isSubscriptionConfirmed"]
-    ) {
-      return (
-        <Pill
-          color={Red}
-          text={"Awaiting Confirmation"}
-          tooltip="Subscription not yet confirmed"
-        />
-      );
-    }
-
     return <Pill color={Green} text={"Subscribed"} />;
   };
 
@@ -557,7 +535,7 @@ const StatusPageSubscriberList: FunctionComponent<ComponentProps> = (
       title: "Unsubscribed?",
       type: FieldType.Boolean,
     },
-    ...(channel.filtersByConfirmation
+    ...(channel.statusKind === SubscriberStatusKind.ConfirmationLink
       ? [
           {
             field: {
@@ -641,7 +619,16 @@ const StatusPageSubscriberList: FunctionComponent<ComponentProps> = (
         formProps={{
           name: textBulkAdd.formName,
           // Who to add, then what they hear about - only where the page lets subscribers choose.
-          steps: asksWhatTheyHearAbout ? SUBSCRIBER_FORM_STEPS : undefined,
+          steps: asksWhatTheyHearAbout
+            ? [
+                /*
+                 * SUBSCRIBER_INFO_STEP_ID, written out: the form scanners
+                 * of the guard tests read literal ids.
+                 */
+                { title: "Subscriber Info", id: "subscriber-info" },
+                { title: "Notifications", id: "notifications" },
+              ]
+            : undefined,
           fields: [
             {
               field: { entries: true },
@@ -899,7 +886,23 @@ const StatusPageSubscriberList: FunctionComponent<ComponentProps> = (
             },
           ],
         }}
-        formSteps={asksWhatTheyHearAbout ? SUBSCRIBER_FORM_STEPS : undefined}
+        /*
+         * Who gets the updates, then - when the status page lets subscribers
+         * choose - what they hear about, as Add in Bulk asks it. Without
+         * that choice the form is one page.
+         */
+        formSteps={
+          asksWhatTheyHearAbout
+            ? [
+                /*
+                 * SUBSCRIBER_INFO_STEP_ID, written out: the form scanners
+                 * of the guard tests read literal ids.
+                 */
+                { title: "Subscriber Info", id: "subscriber-info" },
+                { title: "Notifications", id: "notifications" },
+              ]
+            : undefined
+        }
         formFields={formFields}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
