@@ -2503,8 +2503,16 @@ describe("Home Page & Shortcuts", () => {
     );
     // The question and the steps are the quickstart; Home draws only it.
     expect(HOME_PAGE_SOURCE).toContain(
-      "return isQuickstartView(view) ? HomeMode.Quickstart : HomeMode.Overview;",
+      "return welcome.isTakingHome ? HomeMode.Quickstart : HomeMode.Overview;",
     );
+    /*
+     * A new project's: the question, and the steps once someone answered
+     * it, as the page says ("a new project's ... checklist").
+     */
+    expect(CHECKLIST_SOURCE).toContain(
+      "data.view === WelcomeCardView.Question",
+    );
+    expect(CHECKLIST_SOURCE).toContain("data.answer.goals !== null");
     // An open incident or anything else that needs someone: the health card.
     expect(HOME_PAGE_SOURCE).toContain(
       "kind === ProjectHealthKind.Incidents ||",

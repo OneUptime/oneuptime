@@ -1301,6 +1301,56 @@ describe("a brand-new project's quickstart", () => {
     expect(screen.getByTestId("home-needs-attention")).toBeVisible();
   });
 
+  /*
+   * The question is only ever asked of a project that is new and not in
+   * use yet. A project in use before it would have been asked - monitors
+   * reporting, but no status page or second member, so its checklist never
+   * finished - keeps its overview, with the checklist as a card in it: its
+   * people come to Home for what is open.
+   */
+  test("an older project that never answered the question keeps its overview, with its unfinished checklist in it", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    newProjectWelcome = {
+      goals: null,
+      shouldAskForGoals: false,
+      steps: ["monitor", "on_call", "status_page", "team"].map(
+        (step: string, index: number) => {
+          return {
+            step: step,
+            isDone: index < 2,
+            needsPlan: null,
+            isNext: index === 2,
+          };
+        },
+      ),
+      doneCount: 2,
+    };
+    await renderHome();
+
+    expect(homeMode()).toBe(HomeMode.Overview);
+    expect(screen.getByTestId("home-command-bar")).toBeVisible();
+    expect(screen.getByTestId("home-needs-attention")).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByTestId("getting-started")).toBeVisible();
+    });
+    // Where the Welcome card always was: under the headline.
+    expect(
+      screen
+        .getByTestId("home-project-health")
+        .compareDocumentPosition(screen.getByTestId("getting-started")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a project that skipped choosing goals is a new project's quickstart too", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    newProjectWelcome = { goals: [] };
+    await renderQuickstart();
+
+    expect(screen.getByTestId("getting-started")).toBeVisible();
+    expect(screen.queryByTestId("home-command-bar")).toBeNull();
+  });
+
   test("a quickstart that cannot be read leaves the overview", async () => {
     currentProjectId = new ObjectID(OTHER_PROJECT_ID);
     welcomeFetchMock.mockResolvedValue(null);
@@ -1355,15 +1405,22 @@ describe("while Home decides", () => {
 
 describe("which page Home is", () => {
   test.each([
-    [null, HomeMode.Deciding],
-    [WelcomeCardView.Question, HomeMode.Quickstart],
-    [WelcomeCardView.Checklist, HomeMode.Quickstart],
-    [WelcomeCardView.Hidden, HomeMode.Overview],
-    [WelcomeCardView.InvitedMember, HomeMode.Overview],
-    [WelcomeCardView.None, HomeMode.Overview],
-  ])("%s: %s", (view: WelcomeCardView | null, mode: HomeMode) => {
-    expect(getHomeMode(view)).toBe(mode);
-  });
+    [null, false, HomeMode.Deciding],
+    [WelcomeCardView.Question, true, HomeMode.Quickstart],
+    [WelcomeCardView.Checklist, true, HomeMode.Quickstart],
+    // An older project's checklist is a card in the overview.
+    [WelcomeCardView.Checklist, false, HomeMode.Overview],
+    [WelcomeCardView.Hidden, false, HomeMode.Overview],
+    [WelcomeCardView.InvitedMember, false, HomeMode.Overview],
+    [WelcomeCardView.None, false, HomeMode.Overview],
+  ])(
+    "%s, taking Home %s: %s",
+    (view: WelcomeCardView | null, isTakingHome: boolean, mode: HomeMode) => {
+      expect(getHomeMode({ view: view, isTakingHome: isTakingHome })).toBe(
+        mode,
+      );
+    },
+  );
 
   const counts: (extra: Partial<HomeCounts>) => HomeCounts = (
     extra: Partial<HomeCounts>,

@@ -103,10 +103,13 @@ export interface ComponentProps {
   className?: string | undefined;
   /*
    * Which view the card draws, each time it changes: null until the answer
-   * is read (or while a new project's is), then the view. Home draws the
-   * rest of the page by it.
+   * is read (or while a new project's is), then the view - and whether it
+   * is a new project's quickstart, which is then the whole of Home
+   * (isQuickstartTakingHome). Home draws the rest of the page by them.
    */
-  onViewChange?: ((view: WelcomeCardView | null) => void) | undefined;
+  onViewChange?:
+    | ((view: WelcomeCardView | null, isTakingHome: boolean) => void)
+    | undefined;
 }
 
 /*
@@ -153,6 +156,35 @@ export const isQuickstartView: (view: WelcomeCardView | null) => boolean = (
   view: WelcomeCardView | null,
 ): boolean => {
   return view !== null && QUICKSTART_VIEWS.includes(view);
+};
+
+/*
+ * Whether the quickstart is the whole of Home (#8897): a new project's -
+ * the question, and the steps its goals bring once someone chose them (or
+ * skipped choosing). The question is only ever asked of a project that is
+ * new and not in use yet, so an answer to it is what makes a project's
+ * checklist a quickstart. A project that never answered it - in use before
+ * it would have been asked, or from before there was one - keeps the whole
+ * of Home, with the checklist as a card in it, as it always had: its
+ * people come to Home for what is open, and an unfinished checklist (no
+ * status page yet, say) must never stand in the way.
+ */
+export const isQuickstartTakingHome: (data: {
+  view: WelcomeCardView | null;
+  answer: WelcomeChecklistAnswer | null;
+}) => boolean = (data: {
+  view: WelcomeCardView | null;
+  answer: WelcomeChecklistAnswer | null;
+}): boolean => {
+  if (data.view === WelcomeCardView.Question) {
+    return true;
+  }
+
+  return (
+    data.view === WelcomeCardView.Checklist &&
+    data.answer !== null &&
+    data.answer.goals !== null
+  );
 };
 
 // What the card draws for an answer.
@@ -323,10 +355,15 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     isChangingGoals: isChangingGoals,
   });
 
-  // Home draws the rest of the page by this.
+  const isTakingHome: boolean = isQuickstartTakingHome({
+    view: view,
+    answer: answer,
+  });
+
+  // Home draws the rest of the page by these.
   useEffect(() => {
-    props.onViewChange?.(isLoaded ? view : null);
-  }, [isLoaded, view]);
+    props.onViewChange?.(isLoaded ? view : null, isLoaded && isTakingHome);
+  }, [isLoaded, view, isTakingHome]);
 
   if (!answer || view === WelcomeCardView.None) {
     return <></>;

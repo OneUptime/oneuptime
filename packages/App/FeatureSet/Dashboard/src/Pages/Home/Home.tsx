@@ -1,7 +1,6 @@
 import ExploreProducts from "../../Components/Home/ExploreProducts";
 import GettingStarted, {
   WelcomeCardView,
-  isQuickstartView,
 } from "../../Components/Home/GettingStarted";
 import HomeCommandBar, {
   getCurrentCreateActionGates,
@@ -99,6 +98,12 @@ export const HOME_ROW_MAIN_COLUMN_CLASS_NAME: string = `${HOME_ROW_COLUMN_CLASS_
 export const HOME_ROW_SIDE_COLUMN_CLASS_NAME: string =
   HOME_ROW_COLUMN_CLASS_NAME;
 
+// What the quickstart said it draws (GettingStarted's onViewChange).
+export interface HomeWelcome {
+  view: WelcomeCardView | null;
+  isTakingHome: boolean;
+}
+
 // What Home is drawing.
 export enum HomeMode {
   // The quickstart's answer is not read yet: nothing is decided.
@@ -109,14 +114,20 @@ export enum HomeMode {
   Overview = "overview",
 }
 
-export const getHomeMode: (view: WelcomeCardView | null) => HomeMode = (
-  view: WelcomeCardView | null,
+/*
+ * Which page Home is, by what the quickstart says it draws: nothing decided
+ * until its answer is read, the quickstart alone while it is a new
+ * project's (GettingStarted's isQuickstartTakingHome), the overview
+ * otherwise - with the checklist in it when an older project has one.
+ */
+export const getHomeMode: (welcome: HomeWelcome) => HomeMode = (
+  welcome: HomeWelcome,
 ): HomeMode => {
-  if (view === null) {
+  if (welcome.view === null) {
     return HomeMode.Deciding;
   }
 
-  return isQuickstartView(view) ? HomeMode.Quickstart : HomeMode.Overview;
+  return welcome.isTakingHome ? HomeMode.Quickstart : HomeMode.Overview;
 };
 
 /*
@@ -179,7 +190,10 @@ const Home: FunctionComponent<ComponentProps> = (
    * What the quickstart draws (GettingStarted reads it, and says): null
    * until its answer is read, for each project in turn.
    */
-  const [welcomeView, setWelcomeView] = useState<WelcomeCardView | null>(null);
+  const [welcome, setWelcome] = useState<HomeWelcome>({
+    view: null,
+    isTakingHome: false,
+  });
 
   /*
    * How many things in the setup need a look (Setup health, #6812): read
@@ -219,7 +233,7 @@ const Home: FunctionComponent<ComponentProps> = (
     });
   };
 
-  const mode: HomeMode = getHomeMode(welcomeView);
+  const mode: HomeMode = getHomeMode(welcome);
   const counts: HomeCounts | null = overview.data
     ? getHomeCounts(overview.data)
     : null;
@@ -283,7 +297,9 @@ const Home: FunctionComponent<ComponentProps> = (
       <GettingStarted
         projectId={currentProjectId}
         className="!mb-0"
-        onViewChange={setWelcomeView}
+        onViewChange={(view: WelcomeCardView | null, isTakingHome: boolean) => {
+          setWelcome({ view: view, isTakingHome: isTakingHome });
+        }}
       />
 
       {mode === HomeMode.Quickstart ? (
