@@ -3,10 +3,13 @@ import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusT
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
+import { MeasuredFrom } from "../../../Utils/Monitor/MonitorFirstCheck";
 import { MonitorTimelineSet } from "../../../Utils/Slo/SloUtil";
+import TimeBeforeFirstCheck from "../../../Utils/Uptime/TimeBeforeFirstCheck";
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import MonitorStatusTimelineService from "../../Services/MonitorStatusTimelineService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import MonitorMeasuredFrom from "../Monitor/MonitorMeasuredFrom";
 
 /*
  * What a Monitor Uptime SLO is measured from: its monitors' status
@@ -22,6 +25,19 @@ import QueryHelper from "../../Types/Database/QueryHelper";
  * [start, end] when it started on or before the window end AND it either
  * ended on or after the window start or is still open (endsAt IS NULL).
  * findAllBy pages internally past the 10k LIMIT_MAX for long windows.
+ *
+ * Each monitor's time before its first check comes back marked as time
+ * with monitoring off (issue #9031), so SloUtil leaves it out of the SLI as
+ * it leaves that out: every monitor is created in the operational status,
+ * and nothing stands behind it until something has measured the monitor.
+ * The status pages and the Dashboard leave the same time out of uptime
+ * (issue #8960), by the same rule (Utils/Uptime/TimeBeforeFirstCheck), and
+ * from the same moment: once the upgrade has put Monitor.firstMeasuredAt
+ * right for history (MonitorMeasuredFrom). Until then, and for a monitor
+ * checked from the start of its rows - every monitor measured before the
+ * upgrade, which the upgrade stamps with the time it was created - the
+ * rows come back exactly as they were read, so the SLO measures exactly
+ * what it measured before.
  */
 export async function fetchPerMonitorTimelines(data: {
   projectId: ObjectID;
@@ -30,6 +46,12 @@ export async function fetchPerMonitorTimelines(data: {
   windowEnd: Date;
 }): Promise<Array<MonitorTimelineSet>> {
   const perMonitorTimelines: Array<MonitorTimelineSet> = [];
+
+  const measuredFromByMonitorId: Map<string, MeasuredFrom> =
+    await MonitorMeasuredFrom.getMeasuredFromByMonitorId({
+      projectId: data.projectId,
+      monitorIds: data.monitorIds,
+    });
 
   for (const monitorId of data.monitorIds) {
     const timelines: Array<MonitorStatusTimeline> =
@@ -57,7 +79,13 @@ export async function fetchPerMonitorTimelines(data: {
             priority: true,
             name: true,
             color: true,
+            /*
+             * Whether the status is one a monitor starts in
+             * (MonitorFirstCheck.isStartingStatus): only such a status is
+             * left out before the monitor's first check.
+             */
             isOperationalState: true,
+            isOfflineState: true,
           },
         },
         sort: {
@@ -70,7 +98,11 @@ export async function fetchPerMonitorTimelines(data: {
 
     perMonitorTimelines.push({
       monitorId: monitorId,
-      timelines: timelines,
+      timelines: TimeBeforeFirstCheck.markNotMonitored({
+        monitorId: monitorId,
+        timelines: timelines,
+        measuredFrom: measuredFromByMonitorId.get(monitorId.toString()),
+      }),
     });
   }
 
