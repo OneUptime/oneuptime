@@ -868,6 +868,38 @@ describe("Give feedback, from any page", () => {
     ).toBe(true);
   });
 
+  /*
+   * A Modal starts on the first control in its body. Once the kinds came
+   * above the box, that was the first kind, "Something's broken" - even
+   * opened from the check-in, with Idea picked - and the box's own
+   * autoFocus lost to it. The kind comes answered; the box is what the
+   * dialog is for.
+   */
+  test("starts in the message box: from Help, from the check-in, and opened again", () => {
+    openDialog();
+
+    expect(box()).toHaveFocus();
+
+    // Moved to a kind, then opened again from the check-in: in the box again.
+    act(() => {
+      screen.getByTestId(`${GIVE_FEEDBACK_CATEGORY_TEST_ID}-other`).focus();
+    });
+    expect(box()).not.toHaveFocus();
+
+    act(() => {
+      openGiveFeedback(GiveFeedbackOpenedFrom.CheckIn);
+    });
+
+    expect(
+      (
+        screen.getByTestId(
+          `${GIVE_FEEDBACK_CATEGORY_TEST_ID}-idea`,
+        ) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+    expect(box()).toHaveFocus();
+  });
+
   test("self-hosted, kept for the admins: once sent, says where to read it and offers GitHub, and promises no copy", async () => {
     serverAnswers({ isEmailed: false, copyTo: null });
     openDialog();

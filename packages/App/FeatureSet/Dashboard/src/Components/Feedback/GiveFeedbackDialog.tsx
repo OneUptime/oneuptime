@@ -29,6 +29,7 @@ import React, {
   ReactElement,
   useEffect,
   useId,
+  useRef,
   useState,
 } from "react";
 
@@ -166,20 +167,31 @@ const WHAT_IS_SENT: Readonly<Record<GiveFeedbackDestination, string>> = {
 };
 
 /*
- * A kind of feedback, as a chip: picked, it is indigo, as a picked choice is
- * everywhere; every chip in a row as tall as the tallest, so a name that
- * wraps in a long language ("Etwas funktioniert nicht") is never cut. Its
- * colours are plain utilities, which the dark theme repaints (Theme.css): a
- * peer-checked: one it would not.
+ * A kind of feedback, as a tile: its icon over its name, so the name has the
+ * tile's whole width. Beside its icon, "Something's broken" (140 pixels)
+ * had 124 in a desktop's row of four and 120 in a phone's two by two, and
+ * the kind picked when the dialog opens was the one name on two lines. Over
+ * it, the name has about 160 and 150. Picked, a tile is indigo, as a picked
+ * choice is everywhere; every tile in a row is as tall as the tallest, so a
+ * name that wraps in a long language ("Etwas funktioniert nicht") is never
+ * cut. Its colours are plain utilities, which the dark theme repaints
+ * (Theme.css): a peer-checked: one it would not.
  */
 const CATEGORY_CHIP_CLASS_NAME: string =
-  "flex h-full w-full cursor-pointer select-none items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-center text-sm font-medium leading-5 shadow-sm transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 peer-focus-visible:ring-offset-1";
+  "flex h-full w-full cursor-pointer select-none flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-3 text-center text-sm font-medium leading-5 shadow-sm transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 peer-focus-visible:ring-offset-1";
 
 const PICKED_CATEGORY_CHIP_CLASS_NAME: string =
   "border-indigo-500 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-500";
 
 const UNPICKED_CATEGORY_CHIP_CLASS_NAME: string =
   "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50";
+
+// A tile's icon: indigo on the picked kind, quieter than the name elsewhere.
+const PICKED_CATEGORY_ICON_CLASS_NAME: string =
+  "h-5 w-5 shrink-0 text-indigo-600";
+
+const UNPICKED_CATEGORY_ICON_CLASS_NAME: string =
+  "h-5 w-5 shrink-0 text-gray-400";
 
 interface SentFeedback extends GiveFeedbackSent {
   details: string;
@@ -240,6 +252,27 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
     };
   }, []);
 
+  const formRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+
+  /*
+   * Each opening starts in the message box, as the dialog did before it
+   * asked what the message is about: that question comes answered, and a
+   * person opens Give Feedback to write. A Modal starts on the first control
+   * in its body, here the first kind's tile, which took the start from the
+   * box's autoFocus. This moves it on afterwards: a parent's effects run
+   * after its children's. Tab and Shift+Tab still reach the kinds.
+   */
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    formRef.current
+      ?.querySelector<HTMLTextAreaElement>("textarea")
+      ?.focus({ preventScroll: true });
+  }, [isOpen, openedCount]);
+
   if (!isOpen) {
     return <></>;
   }
@@ -268,7 +301,12 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
         onClose={close}
         closeButtonText="Close"
       >
-        <div className="space-y-4" data-testid={GIVE_FEEDBACK_SENT_TEST_ID}>
+        {/*
+         * One column of words beside the tick, the link to GitHub in it too,
+         * lined up with what it follows. An address too long for a phone's
+         * line breaks rather than pushing the dialog sideways.
+         */}
+        <div data-testid={GIVE_FEEDBACK_SENT_TEST_ID}>
           <div className="flex items-start gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-50">
               <Icon
@@ -276,7 +314,7 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
                 className="h-5 w-5 text-emerald-600"
               />
             </span>
-            <div className="space-y-1 pt-1.5 text-sm text-gray-700">
+            <div className="min-w-0 space-y-1 break-words pt-1.5 text-sm text-gray-700">
               <p className="font-medium text-gray-900">
                 {
                   /*
@@ -304,26 +342,31 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
               ) : (
                 <></>
               )}
+              {!isOneUptimeTeam ? (
+                <p className="pt-2">
+                  <a
+                    href={getFeedbackGitHubIssueUrl({
+                      details: sent.details,
+                      page: page,
+                      version: version,
+                    })}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-800"
+                    data-testid={GIVE_FEEDBACK_GITHUB_TEST_ID}
+                  >
+                    {translator.translateText("Also tell OneUptime on GitHub")}
+                    <Icon
+                      icon={IconProp.ExternalLink}
+                      className="h-3.5 w-3.5"
+                    />
+                  </a>
+                </p>
+              ) : (
+                <></>
+              )}
             </div>
           </div>
-          {!isOneUptimeTeam ? (
-            <a
-              href={getFeedbackGitHubIssueUrl({
-                details: sent.details,
-                page: page,
-                version: version,
-              })}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
-              data-testid={GIVE_FEEDBACK_GITHUB_TEST_ID}
-            >
-              {translator.translateText("Also tell OneUptime on GitHub")}
-              <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
-            </a>
-          ) : (
-            <></>
-          )}
         </div>
       </Modal>
     );
@@ -378,7 +421,11 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
       isLoading={isSending}
       error={error || undefined}
     >
-      <div className="space-y-5" data-testid={GIVE_FEEDBACK_DIALOG_TEST_ID}>
+      <div
+        ref={formRef}
+        className="space-y-5"
+        data-testid={GIVE_FEEDBACK_DIALOG_TEST_ID}
+      >
         <div>
           <p id={categoryLabelId} className="text-sm font-medium text-gray-700">
             {translator.translateText("What is it about?")}
@@ -413,7 +460,11 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
                     >
                       <Icon
                         icon={GIVE_FEEDBACK_CATEGORY_ICONS[choice]}
-                        className="h-4 w-4 shrink-0"
+                        className={
+                          category === choice
+                            ? PICKED_CATEGORY_ICON_CLASS_NAME
+                            : UNPICKED_CATEGORY_ICON_CLASS_NAME
+                        }
                       />
                       {/* Wraps rather than cut: "Etwas funktioniert nicht". */}
                       <span>
@@ -444,7 +495,6 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
               // English: the box looks it up in the reader's language.
               placeholder={question.placeholder}
               ariaLabelledby={labelId}
-              autoFocus={true}
               rows={5}
               dataTestId={GIVE_FEEDBACK_DETAILS_TEST_ID}
             />
@@ -462,7 +512,8 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
             }
             className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
           />
-          <span>
+          {/* An address too long for a phone's line breaks, never runs off. */}
+          <span className="min-w-0 break-words">
             {translator.translateTemplate(WHAT_IS_SENT[destination], {
               email: UserUtil.getEmail()?.toString() || EMPTY_VALUE_MARK,
               page: pageName,
