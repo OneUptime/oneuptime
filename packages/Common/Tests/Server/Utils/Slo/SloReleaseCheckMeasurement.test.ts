@@ -1,9 +1,12 @@
+import DataMigration from "../../../../Models/DatabaseModels/DataMigration";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStatusTimeline";
 import Service from "../../../../Models/DatabaseModels/Service";
 import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
 import { Results } from "../../../../Server/Services/AnalyticsDatabaseService";
+import DataMigrationService from "../../../../Server/Services/DataMigrationService";
+import MonitorService from "../../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../../Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "../../../../Server/Services/MonitorStatusTimelineService";
 import SpanService from "../../../../Server/Services/SpanService";
@@ -17,6 +20,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONObject } from "../../../../Types/JSON";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
 import SliType from "../../../../Types/ServiceLevelObjective/SliType";
 import {
   SloReleaseCheckMeasurement as SloReleaseCheckMeasurementResult,
@@ -287,6 +291,7 @@ describe("SloReleaseCheckMeasurement - a Monitor Uptime SLO", () => {
   );
   offline.name = "Offline";
   offline.isOperationalState = false;
+  offline.isOfflineState = true;
   offline.priority = 2;
 
   const operational: MonitorStatus = new MonitorStatus(
@@ -294,6 +299,7 @@ describe("SloReleaseCheckMeasurement - a Monitor Uptime SLO", () => {
   );
   operational.name = "Operational";
   operational.isOperationalState = true;
+  operational.isOfflineState = false;
   operational.priority = 1;
 
   function row(
@@ -317,6 +323,12 @@ describe("SloReleaseCheckMeasurement - a Monitor Uptime SLO", () => {
   beforeEach(() => {
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
     jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([offline]);
+
+    /*
+     * The upgrade has not put Monitor.firstMeasuredAt right for history yet
+     * (issue #9031): the monitors count from the start, as they always did.
+     */
+    jest.spyOn(DataMigrationService, "findOneBy").mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -357,6 +369,101 @@ describe("SloReleaseCheckMeasurement - a Monitor Uptime SLO", () => {
     // 20% down against 0.1% allowed.
     expect(measurement.burnRate).toBeCloseTo(200, 6);
     expect(timelines).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The time before the monitor's first check (issue #9031), once the
+   * upgrade has put first checks right: what a status page leaves out of
+   * uptime is no time for the release either.
+   */
+  describe("once the upgrade has put first checks right", () => {
+    function monitorRow(firstMeasuredAt: Date | null): Monitor {
+      const monitor: Monitor = new Monitor(MONITOR_ID);
+      monitor.monitorType = MonitorType.Website;
+      (monitor as unknown as { firstMeasuredAt: Date | null }).firstMeasuredAt =
+        firstMeasuredAt;
+      return monitor;
+    }
+
+    beforeEach(() => {
+      jest
+        .spyOn(DataMigrationService, "findOneBy")
+        .mockResolvedValue(new DataMigration());
+    });
+
+    test("a monitor nothing has checked yet measures nothing: no SLI, and no burn", async () => {
+      jest
+        .spyOn(MonitorService, "findBy")
+        .mockResolvedValue([monitorRow(null)]);
+      jest
+        .spyOn(MonitorStatusTimelineService, "findAllBy")
+        .mockResolvedValue([
+          row(operational, new Date(NOW.getTime() - 120 * MINUTE)),
+        ]);
+
+      const measurement: SloReleaseCheckMeasurementResult =
+        await SloReleaseCheckMeasurement.measure({
+          slo: monitorSlo(),
+          options: optionsOf(),
+          now: NOW,
+        });
+
+      expect(measurement.measuredSeconds).toBe(0);
+      expect(measurement.sliPercentage).toBeNull();
+      expect(measurement.burnRate).toBe(0);
+    });
+
+    test("a monitor first checked four minutes ago is judged on those four minutes", async () => {
+      jest
+        .spyOn(MonitorService, "findBy")
+        .mockResolvedValue([monitorRow(new Date(NOW.getTime() - 4 * MINUTE))]);
+      jest
+        .spyOn(MonitorStatusTimelineService, "findAllBy")
+        .mockResolvedValue([
+          row(
+            operational,
+            new Date(NOW.getTime() - 60 * MINUTE),
+            new Date(NOW.getTime() - 2 * MINUTE),
+          ),
+          row(offline, new Date(NOW.getTime() - 2 * MINUTE)),
+        ]);
+
+      const measurement: SloReleaseCheckMeasurementResult =
+        await SloReleaseCheckMeasurement.measure({
+          slo: monitorSlo(),
+          options: optionsOf(),
+          now: NOW,
+        });
+
+      expect(measurement.measuredSeconds).toBe(240);
+      expect(measurement.sliPercentage).toBeCloseTo(50, 6);
+    });
+
+    test("a monitor checked when it was created reads exactly as before", async () => {
+      jest
+        .spyOn(MonitorService, "findBy")
+        .mockResolvedValue([monitorRow(new Date(NOW.getTime() - 60 * MINUTE))]);
+      jest
+        .spyOn(MonitorStatusTimelineService, "findAllBy")
+        .mockResolvedValue([
+          row(
+            operational,
+            new Date(NOW.getTime() - 60 * MINUTE),
+            new Date(NOW.getTime() - 2 * MINUTE),
+          ),
+          row(offline, new Date(NOW.getTime() - 2 * MINUTE)),
+        ]);
+
+      const measurement: SloReleaseCheckMeasurementResult =
+        await SloReleaseCheckMeasurement.measure({
+          slo: monitorSlo(),
+          options: optionsOf(),
+          now: NOW,
+        });
+
+      expect(measurement.measuredSeconds).toBe(600);
+      expect(measurement.sliPercentage).toBeCloseTo(80, 6);
+    });
   });
 
   test("no status in the window measures nothing", async () => {

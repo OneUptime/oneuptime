@@ -381,8 +381,9 @@ export const SUBSCRIBER_REPORT_LOOP_DOCUMENTATION: string = `**Per-resource fiel
 | Variable | Description |
 |----------|-------------|
 | \`{{this.resourceName}}\` | Name of the resource/monitor |
-| \`{{this.uptimePercentAsString}}\` | Uptime for the resource (e.g. "99.9%") |
-| \`{{this.downtimeInHoursAndMinutes}}\` | Downtime for the resource |
+| \`{{this.uptimePercentAsString}}\` | Uptime for the resource (e.g. "99.9%"), or "—" when nothing was measured for it in the period |
+| \`{{this.downtimeInHoursAndMinutes}}\` | Downtime for the resource, or "—" when nothing was measured |
+| \`{{this.notMonitoredText}}\` | When nothing was measured for the resource, what the status page says of it: "Not monitored yet" or "Not monitored". Empty otherwise |
 | \`{{this.totalIncidentCount}}\` | Number of incidents for the resource |
 | \`{{this.groupName}}\` | Group the resource sits in (empty when ungrouped) |
 | \`{{this.groupPath}}\` | Full group path, e.g. "Region 001 / Market 001 / Unit 0660" |
@@ -395,8 +396,9 @@ export const SUBSCRIBER_REPORT_LOOP_DOCUMENTATION: string = `**Per-resource fiel
 | \`{{this.name}}\` | Group name or resource name |
 | \`{{this.depth}}\` | Nesting level — 0 for a top level group |
 | \`{{this.indentInPixels}}\` | Indent to render the row with (16px per level) |
-| \`{{this.uptimePercentAsString}}\` | Uptime — rolled up over the whole subtree on a group row |
+| \`{{this.uptimePercentAsString}}\` | Uptime — rolled up over the whole subtree on a group row; "—" when nothing in it was measured |
 | \`{{this.downtimeInHoursAndMinutes}}\` | Downtime for the row |
+| \`{{this.notMonitoredText}}\` | On a resource row nothing was measured for: "Not monitored yet" or "Not monitored" |
 | \`{{this.totalIncidentCount}}\` | Incidents for the row |
 | \`{{this.totalResources}}\` | Resources a group rolls up (0 on a resource row) |
 

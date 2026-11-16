@@ -207,6 +207,16 @@ jest.mock("Common/Server/Services/MonitorService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
 
+/*
+ * Whether the upgrade has put Monitor.firstMeasuredAt right for history
+ * (the DataMigrations row the SLO's timelines are read after, issue #9031).
+ * Not yet, unless a test says so: every monitor then counts from the start,
+ * as every test written before #9031 reads it.
+ */
+jest.mock("Common/Server/Services/DataMigrationService", () => {
+  return { __esModule: true, default: { findOneBy: jest.fn() } };
+});
+
 jest.mock("Common/Server/Services/SloHistoryService", () => {
   return { __esModule: true, default: { insertHistoryRows: jest.fn() } };
 });
@@ -415,6 +425,9 @@ import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import MonitorService from "Common/Server/Services/MonitorService";
+import DataMigrationService from "Common/Server/Services/DataMigrationService";
+import DataMigration from "Common/Models/DatabaseModels/DataMigration";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -495,6 +508,8 @@ const monitorStatusService: { findBy: jest.Mock } =
 const monitorService: { findBy: jest.Mock } = MonitorService as unknown as {
   findBy: jest.Mock;
 };
+const dataMigrationService: { findOneBy: jest.Mock } =
+  DataMigrationService as unknown as { findOneBy: jest.Mock };
 const historyService: { insertHistoryRows: jest.Mock } =
   SloHistoryService as unknown as { insertHistoryRows: jest.Mock };
 const sloMetricUtil: {
@@ -1080,6 +1095,7 @@ describe("Slo:EvaluateSlos worker", () => {
     timelineService.findAllBy.mockResolvedValue([]);
     monitorStatusService.findBy.mockResolvedValue([offlineStatus]);
     monitorService.findBy.mockResolvedValue([enabledMonitor(MONITOR_A_ID)]);
+    dataMigrationService.findOneBy.mockResolvedValue(null);
     historyService.insertHistoryRows.mockResolvedValue(undefined);
     sloMetricUtil.saveSloMetrics.mockResolvedValue(undefined);
     sloMetricUtil.saveSloGuardMetrics.mockResolvedValue(undefined);
@@ -5571,6 +5587,221 @@ describe("Slo:EvaluateSlos worker", () => {
     });
   });
 
+  describe("the time before a monitor's first check (#9031)", () => {
+    /*
+     * Every monitor is created in the operational status, and nothing
+     * stands behind it until something has measured the monitor. The SLI
+     * now leaves that time out, as status pages leave it out of uptime
+     * (#8960) - but only once the upgrade has put Monitor.firstMeasuredAt
+     * right for history (BackfillMonitorFirstMeasuredAtForUptimeHistory's
+     * DataMigrations row). The upgrade must not move an SLO: a result that
+     * comes back during it stamps its monitor with the upgrade's time, and
+     * a monitor measured before it is stamped with its creation.
+     */
+    function monitorFirstChecked(
+      monitorId: ObjectID,
+      firstMeasuredAt: Date | null,
+    ): Monitor {
+      const monitor: Monitor = enabledMonitor(monitorId);
+      monitor.monitorType = MonitorType.Website;
+      (monitor as unknown as { firstMeasuredAt: Date | null }).firstMeasuredAt =
+        firstMeasuredAt;
+      return monitor;
+    }
+
+    function historyPutRight(isPutRight: boolean): void {
+      dataMigrationService.findOneBy.mockResolvedValue(
+        isPutRight ? new DataMigration() : null,
+      );
+    }
+
+    /*
+     * A slow burn rule over a monitor up for ten days, down for the last two
+     * hours: 2 of 6 hours down against 1% allowed is 33x, the last 30
+     * minutes 100x, both over 6x.
+     */
+    function slowBurnOverTwoHoursDown(rule: RuleOverrides = {}): void {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({
+          burnRateThreshold: 6,
+          longWindowInMinutes: 360,
+          shortWindowInMinutes: 30,
+          ...rule,
+        }),
+      ]);
+      stubTimelines({
+        [MONITOR_A_ID.toString()]: [
+          up(daysAgo(10), hoursAgo(2)),
+          down(hoursAgo(2)),
+        ],
+      });
+    }
+
+    test("during the upgrade, a monitor a result stamped with the upgrade's time keeps its history: the slow burn rule fires as before", async () => {
+      slowBurnOverTwoHoursDown();
+      historyPutRight(false);
+      monitorService.findBy.mockResolvedValue([
+        monitorFirstChecked(MONITOR_A_ID, minutesAgo(30)),
+      ]);
+
+      await runWorkerTick();
+
+      expect(alertService.create).toHaveBeenCalledTimes(1);
+      expect(burnRuleService.resolveOpenAlertsForRule).not.toHaveBeenCalled();
+      expect(persistedSloStatus()).toBe(SloStatus.BudgetExhausted);
+      // The SLO's day as it always read: two hours of 24 down.
+      expect(persistedStateUpdate()["currentSliPercentage"]).toBeCloseTo(
+        (22 / 24) * 100,
+        8,
+      );
+    });
+
+    test("which is what the wait holds back: read with the upgrade's stamp, the rule would lose its window and resolve its open alert", async () => {
+      slowBurnOverTwoHoursDown({ lastAlertCreatedAt: hoursAgo(1) });
+      historyPutRight(true);
+      monitorService.findBy.mockResolvedValue([
+        monitorFirstChecked(MONITOR_A_ID, minutesAgo(30)),
+      ]);
+
+      await runWorkerTick();
+
+      expect(alertService.create).not.toHaveBeenCalled();
+      expect(burnRuleService.resolveOpenAlertsForRule).toHaveBeenCalledTimes(1);
+    });
+
+    test("after the upgrade, a monitor measured before it holds its creation time and reads exactly as before", async () => {
+      slowBurnOverTwoHoursDown({ lastAlertCreatedAt: hoursAgo(1) });
+      historyPutRight(true);
+      monitorService.findBy.mockResolvedValue([
+        monitorFirstChecked(
+          MONITOR_A_ID,
+          new Date(daysAgo(10).getTime() - 300),
+        ),
+      ]);
+
+      await runWorkerTick();
+
+      // The open alert is neither resolved nor raised again: the rule still burns.
+      expect(burnRuleService.resolveOpenAlertsForRule).not.toHaveBeenCalled();
+      expect(persistedSloStatus()).toBe(SloStatus.BudgetExhausted);
+      expect(persistedStateUpdate()["currentSliPercentage"]).toBeCloseTo(
+        (22 / 24) * 100,
+        8,
+      );
+      expect(persistedStateUpdate()["errorBudgetTotalSeconds"]).toBe(864);
+    });
+
+    test("a monitor nothing has checked yet measures nothing: Misconfigured, no alert, no history - where it read a healthy 100%", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([makeRule()]);
+      historyPutRight(true);
+      monitorService.findBy.mockResolvedValue([
+        monitorFirstChecked(MONITOR_A_ID, null),
+      ]);
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBe(SloStatus.Misconfigured);
+      expect(alertService.create).not.toHaveBeenCalled();
+      expect(historyService.insertHistoryRows).not.toHaveBeenCalled();
+      expect(
+        payloadsContaining(sloUpdatePayloads(), "currentSliPercentage"),
+      ).toHaveLength(0);
+    });
+
+    test("until the upgrade has put first checks right, the same monitor reads as it always did", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      historyPutRight(false);
+      monitorService.findBy.mockResolvedValue([
+        monitorFirstChecked(MONITOR_A_ID, null),
+      ]);
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBe(SloStatus.Healthy);
+      expect(persistedStateUpdate()["currentSliPercentage"]).toBe(100);
+    });
+
+    test("a monitor first checked twelve hours ago is measured from its check: its budget is the target's share of those hours", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      historyPutRight(true);
+      monitorService.findBy.mockResolvedValue([
+        monitorFirstChecked(MONITOR_A_ID, hoursAgo(12)),
+      ]);
+      stubTimelines({
+        [MONITOR_A_ID.toString()]: [
+          up(daysAgo(10), hoursAgo(1)),
+          down(hoursAgo(1), minutesAgo(50)),
+          up(minutesAgo(50)),
+        ],
+      });
+
+      await runWorkerTick();
+
+      // Ten minutes down of twelve hours measured; 1% of them is 432 seconds.
+      expect(persistedStateUpdate()["currentSliPercentage"]).toBeCloseTo(
+        ((12 * 3600 - 600) / (12 * 3600)) * 100,
+        8,
+      );
+      expect(persistedStateUpdate()["errorBudgetTotalSeconds"]).toBe(432);
+      expect(persistedSloStatus()).toBe(SloStatus.BudgetExhausted);
+    });
+
+    test("a monitor first checked within a burn rule's long window does not page it: the rule waits for a full window measured from the check", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([makeRule()]);
+      historyPutRight(true);
+      monitorService.findBy.mockResolvedValue([
+        monitorFirstChecked(MONITOR_A_ID, minutesAgo(30)),
+      ]);
+      // Ten minutes down: 16.7x over the hour, 100x over five minutes.
+      stubTimelines({
+        [MONITOR_A_ID.toString()]: [
+          up(daysAgo(10), minutesAgo(10)),
+          down(minutesAgo(10)),
+        ],
+      });
+
+      await runWorkerTick();
+
+      expect(alertService.create).not.toHaveBeenCalled();
+      expect(alertService.findOneBy).not.toHaveBeenCalled();
+    });
+
+    test("Monitor Seconds Average: a monitor nothing has checked yet no longer dilutes the one that is", async () => {
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({
+          monitors: [new Monitor(MONITOR_A_ID), new Monitor(MONITOR_B_ID)],
+          multiMonitorMode: SloMultiMonitorMode.MonitorSecondsAverage,
+        }),
+      ]);
+      historyPutRight(true);
+      monitorService.findBy.mockResolvedValue([
+        monitorFirstChecked(MONITOR_A_ID, daysAgo(10)),
+        monitorFirstChecked(MONITOR_B_ID, null),
+      ]);
+      stubTimelines({
+        [MONITOR_A_ID.toString()]: [
+          up(daysAgo(10), hoursAgo(1)),
+          down(hoursAgo(1), minutesAgo(50)),
+          up(minutesAgo(50)),
+        ],
+        [MONITOR_B_ID.toString()]: [up(daysAgo(10), undefined, MONITOR_B_ID)],
+      });
+
+      await runWorkerTick();
+
+      // A's day alone; B's never-checked day used to halve A's ten minutes.
+      expect(persistedStateUpdate()["currentSliPercentage"]).toBeCloseTo(
+        ((86400 - 600) / 86400) * 100,
+        8,
+      );
+    });
+  });
+
   describe("error budget SECOND columns are Postgres integers (fix 7)", () => {
     /*
      * THE REGRESSION: errorBudgetRemainingSeconds / errorBudgetTotalSeconds are
@@ -6409,6 +6640,27 @@ describe("Slo:EvaluateSlos worker", () => {
             timelineService.findAllBy.mockResolvedValue([]);
           },
           reason: "have not recorded any status in its window yet",
+        },
+        // Issue #9031: the status it was created in is no time to measure.
+        {
+          label: "monitors nothing has checked yet",
+          slo: (): ServiceLevelObjective => {
+            return makeSlo();
+          },
+          arrange: (): void => {
+            dataMigrationService.findOneBy.mockResolvedValue(
+              new DataMigration(),
+            );
+            const neverChecked: Monitor = enabledMonitor(MONITOR_A_ID);
+            neverChecked.monitorType = MonitorType.Website;
+            (
+              neverChecked as unknown as { firstMeasuredAt: Date | null }
+            ).firstMeasuredAt = null;
+            monitorService.findBy.mockResolvedValue([neverChecked]);
+            stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+          },
+          reason:
+            "Nothing has checked the monitors attached to this SLO yet, so it has no time to measure. It is measured automatically from their first check.",
         },
       ])(
         "Misconfigured by $label names that exact reason",

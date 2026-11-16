@@ -429,7 +429,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "report.resources",
             description:
-              "Array of per-resource rows (resourceName, uptimePercentAsString, downtimeInHoursAndMinutes, totalIncidentCount, groupName, groupPath) to loop over with {{#each}}",
+              "Array of per-resource rows (resourceName, uptimePercentAsString, downtimeInHoursAndMinutes, notMonitoredText, totalIncidentCount, groupName, groupPath) to loop over with {{#each}}",
           },
           {
             name: "report.hasGroups",
@@ -439,7 +439,7 @@ export default class SubscriberNotificationTemplateVariables {
           {
             name: "report.rows",
             description:
-              "The status page's group hierarchy flattened into render order (isGroup, name, depth, indentInPixels, uptimePercentAsString, downtimeInHoursAndMinutes, totalIncidentCount, totalResources) to loop over with {{#each}}",
+              "The status page's group hierarchy flattened into render order (isGroup, name, depth, indentInPixels, uptimePercentAsString, downtimeInHoursAndMinutes, notMonitoredText, totalIncidentCount, totalResources) to loop over with {{#each}}",
           },
           {
             name: "report.groups",

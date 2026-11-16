@@ -22,10 +22,17 @@
   The inbox preview line, hidden as Partials/Start.hbs hides every other
   email's: never by a text colour close to its background, which spam
   filters score as hidden text (SpamAssassin's HTML_FONT_LOW_CONTRAST). A
-  page with no resources has no uptime to sum up - its "average" is a 0% -
-  so its preview says what the email says instead.
+  page with no resources has no uptime to sum up, so its preview says what
+  the email says instead; nor has a page nothing on which was measured in
+  the period (hasUptime "false", issue #9030), whose preview names the
+  period and says so rather than "— average uptime".
+
+  A resource nothing was measured for reads a dash for its uptime and
+  downtime, as the status page reads its uptime, and under its name the
+  words the page shows for its row: Not monitored yet, or Not monitored
+  (report.rows' notMonitoredText, in the reader's language).
 --}}
-<div style="display: none; max-height: 0; overflow: hidden; opacity: 0; mso-hide: all;">{{#ifCond hasResources "true"}}{{tt "{{statusPageName}} uptime report — {{uptime}} average uptime for {{period}}." statusPageName=statusPageName uptime=report.averageUptimePercent period=report.reportPeriodName}}{{else}}{{t "No resources have been added to this status page yet, so there is nothing to report this period."}}{{/ifCond}}</div>
+<div style="display: none; max-height: 0; overflow: hidden; opacity: 0; mso-hide: all;">{{#ifCond hasResources "true"}}{{#ifCond hasUptime "false"}}{{tt "{{statusPageName}} uptime report for {{period}}: none of its resources were monitored." statusPageName=statusPageName period=report.reportPeriodName}}{{else}}{{tt "{{statusPageName}} uptime report — {{uptime}} average uptime for {{period}}." statusPageName=statusPageName uptime=report.averageUptimePercent period=report.reportPeriodName}}{{/ifCond}}{{else}}{{t "No resources have been added to this status page yet, so there is nothing to report this period."}}{{/ifCond}}</div>
 
 {{> CustomLogo this}}
 
@@ -147,7 +154,7 @@
             {{else}}
             <tr bgcolor="#ffffff" style="background-color:#ffffff;">
               <td align="{{emailStart}}" style="padding:14px 10px;border-top:1px solid #e2e8f0;font-size:14px;line-height:22px;color:#475569;font-weight:500;">
-                <div class="st-ReportName st-ReportIndent" style="margin-{{emailStart}}:{{this.indentInPixels}}px;">{{#if @root.isEmailRightToLeft}}<span{{{emailValueDirAttribute this.name}}}>{{this.name}}</span>{{else}}{{this.name}}{{/if}}</div>
+                <div class="st-ReportName st-ReportIndent" style="margin-{{emailStart}}:{{this.indentInPixels}}px;">{{#if @root.isEmailRightToLeft}}<span{{{emailValueDirAttribute this.name}}}>{{this.name}}</span>{{else}}{{this.name}}{{/if}}{{#if this.notMonitoredText}}<div style="margin:2px 0 0 0;font-size:12px;line-height:18px;color:#64748b;font-weight:500;">{{this.notMonitoredText}}</div>{{/if}}</div>
               </td>
               <td align="{{emailEnd}}" style="padding:14px 10px;border-top:1px solid #e2e8f0;font-size:14px;line-height:22px;color:#0f172a;font-weight:600;text-align:{{emailEnd}};">{{this.uptimePercentAsString}}</td>
               <td align="{{emailEnd}}" style="padding:14px 10px;border-top:1px solid #e2e8f0;font-size:14px;line-height:22px;color:#475569;text-align:{{emailEnd}};">{{this.downtimeInHoursAndMinutes}}</td>
