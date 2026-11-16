@@ -10,7 +10,7 @@ import React, { FunctionComponent, ReactElement } from "react";
  */
 
 export const SCIM_SAVE_ACCESS_TITLE: string =
-  "Only a project owner can add or change SCIM connections.";
+  "Only a Project Owner can add or change SCIM connections.";
 
 export const SCIM_SAVE_ACCESS_DESCRIPTION: string =
   "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.";
