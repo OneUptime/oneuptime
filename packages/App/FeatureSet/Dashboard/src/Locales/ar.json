@@ -56372,5 +56372,12 @@
   "Complete:": "مكتمل:",
   "Incomplete:": "غير مكتمل:",
   "Special character included (optional)": "تتضمن حرفًا خاصًا (اختياري)",
-  "Special characters are optional. Try !, @, # or $.": "الأحرف الخاصة اختيارية. جرّب ! أو @ أو # أو $."
+  "Special characters are optional. Try !, @, # or $.": "الأحرف الخاصة اختيارية. جرّب ! أو @ أو # أو $.",
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.": "تعليمات برمجية بُنيت دون رموز: سجّل المحلّل مكان تشغيلها فقط، لا اسمها.",
+  "How to add symbols": "كيفية إضافة الرموز",
+  "No symbols": "بلا رموز",
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.": "في هذه الفترة مكدّسات استدعاء أكثر مما يتّسع له رسم واحد، لذا يرسم الأكثر انشغالًا، والحصص محسوبة منها.",
+  "{{count}} addresses grouped here.": "عدد العناوين المجمّعة هنا: {{count}}.",
+  "{{count}} addresses grouped here._one": "{{count}} عنوان مجمّع هنا.",
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} من هذا الرسم تعليمات برمجية بلا رموز، لذا لا أسماء لدوالّها."
 }

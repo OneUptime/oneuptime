@@ -56372,5 +56372,12 @@
   "Complete:": "Erfüllt:",
   "Incomplete:": "Nicht erfüllt:",
   "Special character included (optional)": "Sonderzeichen enthalten (optional)",
-  "Special characters are optional. Try !, @, # or $.": "Sonderzeichen sind optional. Probiere !, @, # oder $."
+  "Special characters are optional. Try !, @, # or $.": "Sonderzeichen sind optional. Probiere !, @, # oder $.",
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.": "Ohne Symbole gebauter Code: Der Profiler hat nur festgehalten, wo er lief, nicht wie er heißt.",
+  "How to add symbols": "So fügen Sie Symbole hinzu",
+  "No symbols": "Keine Symbole",
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.": "Dieses Zeitfenster hat mehr Aufrufstapel, als ein Diagramm fassen kann. Es zeigt daher die häufigsten, und die Anteile beziehen sich auf diese.",
+  "{{count}} addresses grouped here.": "{{count}} Adressen hier zusammengefasst.",
+  "{{count}} addresses grouped here._one": "{{count}} Adresse hier zusammengefasst.",
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} dieses Diagramms ist Code ohne Symbole, daher haben seine Funktionen keine Namen."
 }

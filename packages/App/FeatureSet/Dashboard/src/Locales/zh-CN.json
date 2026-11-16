@@ -56372,5 +56372,12 @@
   "Complete:": "已满足：",
   "Incomplete:": "未满足：",
   "Special character included (optional)": "已包含特殊字符（可选）",
-  "Special characters are optional. Try !, @, # or $.": "特殊字符为可选项。可以尝试 !、@、# 或 $。"
+  "Special characters are optional. Try !, @, # or $.": "特殊字符为可选项。可以尝试 !、@、# 或 $。",
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.": "未带符号构建的代码：性能分析器只记录了它运行的位置，没有记录它的名称。",
+  "How to add symbols": "如何添加符号",
+  "No symbols": "无符号",
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.": "此时间段的调用栈多于一张图能容纳的数量，因此只绘制最繁忙的调用栈，占比也以它们为基准。",
+  "{{count}} addresses grouped here.": "此处合并了 {{count}} 个地址。",
+  "{{count}} addresses grouped here._one": "此处合并了 {{count}} 个地址。",
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "此图中 {{share}} 是没有符号的代码，因此其函数没有名称。"
 }

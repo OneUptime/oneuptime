@@ -56372,5 +56372,12 @@
   "Complete:": "Выполнено:",
   "Incomplete:": "Не выполнено:",
   "Special character included (optional)": "Специальный символ добавлен (необязательно)",
-  "Special characters are optional. Try !, @, # or $.": "Специальные символы необязательны. Попробуйте !, @, # или $."
+  "Special characters are optional. Try !, @, # or $.": "Специальные символы необязательны. Попробуйте !, @, # или $.",
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.": "Код собран без символов: профилировщик записал только, где он выполнялся, но не его имя.",
+  "How to add symbols": "Как добавить символы",
+  "No symbols": "Нет символов",
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.": "В этом окне больше стеков вызовов, чем помещается в один граф, поэтому показаны самые загруженные, и доли считаются от них.",
+  "{{count}} addresses grouped here.": "Адресов, сгруппированных здесь: {{count}}.",
+  "{{count}} addresses grouped here._one": "{{count}} адрес сгруппирован здесь.",
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} этого графа — код без символов, поэтому у его функций нет имён."
 }

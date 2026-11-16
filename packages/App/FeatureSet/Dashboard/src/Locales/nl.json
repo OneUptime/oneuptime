@@ -56372,5 +56372,12 @@
   "Complete:": "Voldaan:",
   "Incomplete:": "Niet voldaan:",
   "Special character included (optional)": "Speciaal teken toegevoegd (optioneel)",
-  "Special characters are optional. Try !, @, # or $.": "Speciale tekens zijn optioneel. Probeer !, @, # of $."
+  "Special characters are optional. Try !, @, # or $.": "Speciale tekens zijn optioneel. Probeer !, @, # of $.",
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.": "Code gebouwd zonder symbolen: de profiler heeft alleen vastgelegd waar die draaide, niet hoe die heet.",
+  "How to add symbols": "Zo voeg je symbolen toe",
+  "No symbols": "Geen symbolen",
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.": "Dit venster heeft meer call stacks dan één grafiek kan bevatten, dus toont die de drukste, en de aandelen gaan over die stacks.",
+  "{{count}} addresses grouped here.": "{{count}} adressen hier gegroepeerd.",
+  "{{count}} addresses grouped here._one": "{{count}} adres hier gegroepeerd.",
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} van deze grafiek is code zonder symbolen, dus de functies hebben geen naam."
 }

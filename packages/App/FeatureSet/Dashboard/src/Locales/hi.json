@@ -56372,5 +56372,12 @@
   "Complete:": "पूरी हुई:",
   "Incomplete:": "पूरी नहीं हुई:",
   "Special character included (optional)": "विशेष चिह्न शामिल है (वैकल्पिक)",
-  "Special characters are optional. Try !, @, # or $.": "विशेष चिह्न वैकल्पिक हैं। !, @, # या $ आज़माएँ।"
+  "Special characters are optional. Try !, @, # or $.": "विशेष चिह्न वैकल्पिक हैं। !, @, # या $ आज़माएँ।",
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.": "बिना सिंबल के बना कोड: प्रोफ़ाइलर ने सिर्फ़ यह दर्ज किया कि यह कहाँ चला, यह नहीं कि इसका नाम क्या है।",
+  "How to add symbols": "सिंबल कैसे जोड़ें",
+  "No symbols": "कोई सिंबल नहीं",
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.": "इस अवधि में एक ग्राफ़ में समा सकने से ज़्यादा कॉल स्टैक हैं, इसलिए यह सबसे व्यस्त स्टैक दिखाता है, और हिस्सेदारी उन्हीं में से है।",
+  "{{count}} addresses grouped here.": "यहाँ {{count}} पते एक साथ रखे गए हैं।",
+  "{{count}} addresses grouped here._one": "यहाँ {{count}} पता एक साथ रखा गया है।",
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "इस ग्राफ़ का {{share}} बिना सिंबल वाला कोड है, इसलिए इसके फ़ंक्शन के नाम नहीं हैं।"
 }

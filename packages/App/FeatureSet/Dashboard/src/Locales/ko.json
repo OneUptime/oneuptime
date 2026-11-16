@@ -56372,5 +56372,12 @@
   "Complete:": "충족:",
   "Incomplete:": "미충족:",
   "Special character included (optional)": "특수 문자 포함됨 (선택 사항)",
-  "Special characters are optional. Try !, @, # or $.": "특수 문자는 선택 사항입니다. !, @, # 또는 $를 사용해 보세요."
+  "Special characters are optional. Try !, @, # or $.": "특수 문자는 선택 사항입니다. !, @, # 또는 $를 사용해 보세요.",
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.": "심볼 없이 빌드된 코드입니다. 프로파일러는 실행된 위치만 기록했고 이름은 기록하지 못했습니다.",
+  "How to add symbols": "심볼을 추가하는 방법",
+  "No symbols": "심볼 없음",
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.": "이 기간에는 그래프 하나에 담을 수 있는 것보다 많은 호출 스택이 있어 가장 많은 것만 그리며, 비율은 그 기준입니다.",
+  "{{count}} addresses grouped here.": "주소 {{count}}개를 여기에 묶었습니다.",
+  "{{count}} addresses grouped here._one": "주소 {{count}}개를 여기에 묶었습니다.",
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "이 그래프의 {{share}}는 심볼이 없는 코드라서 함수 이름이 없습니다."
 }

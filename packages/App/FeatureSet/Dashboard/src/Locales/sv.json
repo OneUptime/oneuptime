@@ -56372,5 +56372,12 @@
   "Complete:": "Uppfyllt:",
   "Incomplete:": "Inte uppfyllt:",
   "Special character included (optional)": "Specialtecken inkluderat (valfritt)",
-  "Special characters are optional. Try !, @, # or $.": "Specialtecken är valfria. Prova !, @, # eller $."
+  "Special characters are optional. Try !, @, # or $.": "Specialtecken är valfria. Prova !, @, # eller $.",
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.": "Kod byggd utan symboler: profileraren registrerade bara var den kördes, inte vad den heter.",
+  "How to add symbols": "Så lägger du till symboler",
+  "No symbols": "Inga symboler",
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.": "Det här fönstret har fler anropsstackar än ett diagram rymmer, så det visar de mest belastade, och andelarna avser dem.",
+  "{{count}} addresses grouped here.": "{{count}} adresser grupperade här.",
+  "{{count}} addresses grouped here._one": "{{count}} adress grupperad här.",
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} av det här diagrammet är kod utan symboler, så dess funktioner saknar namn."
 }
