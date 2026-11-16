@@ -274,6 +274,68 @@ export const checkSendGridMailSend: (
     );
   }
 
+  /*
+   * A copied address (cc) is an email object as a to one is, and SendGrid
+   * refuses a personalization that names one address twice.
+   */
+  const cc: unknown = firstPersonalization?.["cc"];
+
+  if (cc !== undefined) {
+    const named: Set<string> = new Set<string>(
+      (Array.isArray(to) ? to : []).map((item: unknown): string => {
+        return String(asRecord(item)?.["email"] || "").toLowerCase();
+      }),
+    );
+
+    if (!Array.isArray(cc)) {
+      errors.push(
+        sendGridError(
+          "The cc parameter must be an array of email objects.",
+          "personalizations.0.cc",
+        ),
+      );
+    } else {
+      cc.forEach((item: unknown, index: number) => {
+        const email: unknown = asRecord(item)?.["email"];
+
+        if (typeof email !== "string" || !email.includes("@")) {
+          errors.push(
+            sendGridError(
+              "Does not contain a valid address.",
+              `personalizations.0.cc.${index}.email`,
+            ),
+          );
+          return;
+        }
+
+        if (named.has(email.toLowerCase())) {
+          errors.push(
+            sendGridError(
+              `Each email address in the personalization block should be unique between to, cc, and bcc. We found the first duplicate instance of [${email}] in the personalizations.0.cc field.`,
+              "personalizations.0.cc",
+            ),
+          );
+        }
+
+        named.add(email.toLowerCase());
+      });
+    }
+  }
+
+  const replyTo: unknown = mail["reply_to"];
+
+  if (
+    replyTo !== undefined &&
+    typeof asRecord(replyTo)?.["email"] !== "string"
+  ) {
+    errors.push(
+      sendGridError(
+        "The reply_to email does not contain a valid address.",
+        "reply_to",
+      ),
+    );
+  }
+
   if (typeof asRecord(mail["from"])?.["email"] !== "string") {
     errors.push(
       sendGridError(
@@ -469,8 +531,12 @@ export const sendSendGridTo: (fake: FakeSendGrid) => void = (
 
 // The JSON body of a Mail Send the fake received.
 export interface SendGridMailSendJson {
-  personalizations: Array<{ to: Array<{ email: string; name?: string }> }>;
+  personalizations: Array<{
+    to: Array<{ email: string; name?: string }>;
+    cc?: Array<{ email: string; name?: string }>;
+  }>;
   from: { email: string; name?: string };
+  reply_to?: { email: string; name?: string };
   subject: string;
   content: Array<{ type: string; value: string }>;
   attachments?: Array<Record<string, unknown>>;
@@ -542,6 +608,31 @@ export const checkGraphSendMail: (body: unknown) => FakeHttpAnswer | null = (
       "ErrorInvalidRecipients",
       "At least one recipient isn't valid.",
     );
+  }
+
+  // Copied recipients and where a reply goes: recipients as toRecipients' are.
+  for (const field of ["ccRecipients", "replyTo"]) {
+    const value: unknown = message[field];
+
+    if (value === undefined) {
+      continue;
+    }
+
+    if (
+      !Array.isArray(value) ||
+      value.some((recipient: unknown): boolean => {
+        return (
+          typeof asRecord(asRecord(recipient)?.["emailAddress"])?.[
+            "address"
+          ] !== "string"
+        );
+      })
+    ) {
+      return graphError(
+        "ErrorInvalidRecipients",
+        "At least one recipient isn't valid.",
+      );
+    }
   }
 
   const attachments: unknown = message["attachments"];
@@ -708,6 +799,8 @@ export interface GraphSendMailJson {
     subject: string;
     body: { contentType: string; content: string };
     toRecipients: Array<{ emailAddress: { address: string } }>;
+    ccRecipients?: Array<{ emailAddress: { address: string } }>;
+    replyTo?: Array<{ emailAddress: { address: string } }>;
     from: { emailAddress: { address: string; name?: string } };
     attachments?: Array<Record<string, unknown>>;
   };
@@ -806,6 +899,29 @@ export const checkAmazonSesSendEmail: (
       "BadRequestException",
       "Destination must have at least one address.",
     );
+  }
+
+  // Copied addresses and where a reply goes: lists of addresses, as To is.
+  for (const [name, value] of [
+    [
+      "Destination.CcAddresses",
+      asRecord(request["Destination"])?.["CcAddresses"],
+    ],
+    ["ReplyToAddresses", request["ReplyToAddresses"]],
+  ] as Array<[string, unknown]>) {
+    if (
+      value !== undefined &&
+      (!Array.isArray(value) ||
+        value.some((address: unknown): boolean => {
+          return typeof address !== "string" || !address.includes("@");
+        }))
+    ) {
+      return amazonSesError(
+        400,
+        "BadRequestException",
+        `${name} must be a list of email addresses.`,
+      );
+    }
   }
 
   const simple: Record<string, unknown> | null = asRecord(
@@ -1048,7 +1164,8 @@ export const sendAmazonSesTo: (fake: FakeAmazonSes) => void = (
 // The JSON body of a SendEmail the fake received.
 export interface AmazonSesSendEmailJson {
   FromEmailAddress: string;
-  Destination: { ToAddresses: Array<string> };
+  Destination: { ToAddresses: Array<string>; CcAddresses?: Array<string> };
+  ReplyToAddresses?: Array<string>;
   Content: {
     Simple: {
       Subject: { Data: string; Charset?: string };
@@ -1241,6 +1358,21 @@ export const checkPostmarkEmail: (body: unknown) => FakeHttpAnswer | null = (
     return postmarkError(300, "Zero recipients specified");
   }
 
+  // Copied addresses (comma separated) and where a reply goes: text, as To is.
+  for (const field of ["Cc", "ReplyTo"]) {
+    const value: unknown = email[field];
+
+    if (
+      value !== undefined &&
+      (typeof value !== "string" ||
+        value.split(",").some((address: string): boolean => {
+          return !address.includes("@");
+        }))
+    ) {
+      return postmarkError(300, `Invalid '${field}' address: '${value}'.`);
+    }
+  }
+
   if (
     (typeof email["HtmlBody"] !== "string" || !email["HtmlBody"]) &&
     (typeof email["TextBody"] !== "string" || !email["TextBody"])
@@ -1349,6 +1481,8 @@ export const sendPostmarkTo: (fake: FakePostmark) => void = (
 export interface PostmarkEmailJson {
   From: string;
   To: string;
+  Cc?: string;
+  ReplyTo?: string;
   Subject: string;
   HtmlBody: string;
   TextBody?: string;
@@ -1401,6 +1535,30 @@ export const checkResendEmail: (body: unknown) => FakeHttpAnswer | null = (
     !(Array.isArray(to) && to.length > 0 && to.length <= 50)
   ) {
     return resendError(422, "missing_required_field", "Missing `to` field.");
+  }
+
+  // Copied addresses and where a reply goes: an address or a list, as to is.
+  for (const field of ["cc", "reply_to"]) {
+    const value: unknown = email[field];
+
+    if (
+      value !== undefined &&
+      !(typeof value === "string" && value.includes("@")) &&
+      !(
+        Array.isArray(value) &&
+        value.length > 0 &&
+        value.length <= 50 &&
+        value.every((address: unknown): boolean => {
+          return typeof address === "string" && address.includes("@");
+        })
+      )
+    ) {
+      return resendError(
+        422,
+        "validation_error",
+        `Invalid \`${field}\` field. The email address needs to follow the \`email@example.com\` or \`Name <email@example.com>\` format.`,
+      );
+    }
   }
 
   const attachments: unknown = email["attachments"];
@@ -1510,6 +1668,8 @@ export const sendResendTo: (fake: FakeResend) => void = (
 export interface ResendEmailJson {
   from: string;
   to: Array<string> | string;
+  cc?: Array<string> | string;
+  reply_to?: Array<string> | string;
   subject: string;
   html?: string;
   text?: string;

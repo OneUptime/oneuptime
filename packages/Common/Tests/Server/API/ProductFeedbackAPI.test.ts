@@ -21,6 +21,9 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import GiveFeedbackEmail, {
+  GiveFeedbackDelivery,
+} from "../../../Server/Utils/GiveFeedbackEmail";
 import ProductFeedbackRateLimit from "../../../Server/Utils/ProductFeedbackRateLimit";
 import Response from "../../../Server/Utils/Response";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -35,6 +38,9 @@ import Permission, {
 } from "../../../Types/Permission";
 import {
   FeedbackQuestionDecision,
+  GiveFeedbackCategory,
+  GiveFeedbackDestination,
+  ONEUPTIME_SUPPORT_EMAIL,
   PRODUCT_FEEDBACK_ADMIN_LIST_ROUTE,
   PRODUCT_FEEDBACK_ADMIN_SUMMARY_ROUTE,
   PRODUCT_FEEDBACK_ASK_ROUTE,
@@ -129,6 +135,29 @@ let getAdminSummary: jest.SpyInstance;
 let getAdminList: jest.SpyInstance;
 let sendJson: jest.SpyInstance;
 let takeAnswer: jest.SpyInstance;
+let prepareEmail: jest.SpyInstance;
+let sendEmail: jest.SpyInstance;
+// The order the handler answered the Dashboard and sent the email in.
+let events: Array<string> = [];
+
+// What prepare() decides for Give feedback emailed on OneUptime Cloud.
+const DELIVERY: GiveFeedbackDelivery = {
+  to: ONEUPTIME_SUPPORT_EMAIL,
+  destination: GiveFeedbackDestination.OneUptimeTeam,
+  projectId: PROJECT_ID,
+  email: {
+    category: GiveFeedbackCategory.Broken,
+    details: "The SLO page shows no budget.",
+    page: "/dashboard/:projectId/slos",
+    version: "14.3.0",
+    person: {
+      name: "Ada Lovelace",
+      email: "ada@example.com",
+      isEmailVerified: true,
+    },
+    project: null,
+  },
+};
 
 beforeEach(() => {
   props = memberProps();
@@ -169,7 +198,18 @@ beforeEach(() => {
     .mockReturnValue(true);
   sendJson = jest
     .spyOn(Response, "sendJsonObjectResponse")
-    .mockImplementation((() => {}) as never);
+    .mockImplementation((() => {
+      events.push("answered");
+    }) as never);
+  events = [];
+  prepareEmail = jest
+    .spyOn(GiveFeedbackEmail, "prepare")
+    .mockResolvedValue(null);
+  sendEmail = jest
+    .spyOn(GiveFeedbackEmail, "send")
+    .mockImplementation(async (): Promise<void> => {
+      events.push("emailed");
+    });
 });
 
 afterEach(() => {
@@ -232,6 +272,24 @@ describe("GET /product-feedback/settings", () => {
 
     expect(getSettings).toHaveBeenCalledWith(USER_ID);
     expect(answered()).toEqual({ isOn: true, isAskingMe: false });
+  });
+
+  test("and where Give feedback goes, for the dialog to say before it is sent", async () => {
+    getSettings.mockResolvedValue({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.ServerAdminsByEmail,
+    });
+
+    await call("GET", PRODUCT_FEEDBACK_SETTINGS_ROUTE);
+
+    expect(answered()).toEqual({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.ServerAdminsByEmail,
+    });
+    // Where it goes, never the admins' address.
+    expect(JSON.stringify(answered())).not.toContain("@");
   });
 
   test("an expired session is a 401, so the browser refreshes it and asks again", async () => {
@@ -384,10 +442,11 @@ describe("POST /product-feedback", () => {
     });
 
     expect(refusal).toBeInstanceOf(BadDataException);
-    expect((refusal as Error).message).toMatch(
-      /Write what you were trying to do/,
+    expect((refusal as Error).message).toBe(
+      "Write what you want to tell us, then send it again.",
     );
     expect(submit).not.toHaveBeenCalled();
+    expect(prepareEmail).not.toHaveBeenCalled();
   });
 
   test("one person cannot fill the table: past the hour's limit the answer is refused", async () => {
@@ -426,6 +485,122 @@ describe("POST /product-feedback", () => {
       }),
     ).toBeInstanceOf(NotAuthorizedException);
     expect(submit).not.toHaveBeenCalled();
+  });
+});
+
+describe("Give feedback, emailed to the team that reads it (#8893)", () => {
+  const giveFeedback: () => Promise<unknown> = (): Promise<unknown> => {
+    return call("POST", PRODUCT_FEEDBACK_ROUTE, {
+      kind: "general",
+      topic: "broken",
+      details: "The SLO page shows no budget.",
+      page: "/dashboard/11111111-1111-4111-8111-111111111111/slos",
+      version: "14.3.0",
+    });
+  };
+
+  test("is kept first, then the Dashboard is told it is emailed and where the copy goes, and only then is it sent", async () => {
+    prepareEmail.mockResolvedValue(DELIVERY);
+
+    expect(await giveFeedback()).toBeUndefined();
+
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(answered()).toEqual({
+      answerId: ANSWER_ID.toString(),
+      isEmailed: true,
+      copyTo: "ada@example.com",
+    });
+    expect(sendEmail).toHaveBeenCalledWith(DELIVERY);
+    // The answer does not wait for the mail server.
+    expect(events).toEqual(["answered", "emailed"]);
+    expect(submit.mock.invocationCallOrder[0]!).toBeLessThan(
+      prepareEmail.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("is asked about with what was kept, the person, and the project they are a member of", async () => {
+    await giveFeedback();
+
+    expect(prepareEmail).toHaveBeenCalledTimes(1);
+    expect(prepareEmail.mock.calls[0]![0]).toMatchObject({
+      userId: USER_ID,
+      projectId: PROJECT_ID,
+      submission: {
+        kind: ProductFeedbackKind.General,
+        topic: GiveFeedbackCategory.Broken,
+        details: "The SLO page shows no budget.",
+        page: "/dashboard/:id/slos",
+        version: "14.3.0",
+      },
+    });
+  });
+
+  test("a project the person is not a member of is never named in it", async () => {
+    props = memberProps({ tenantId: OTHER_PROJECT_ID });
+
+    await giveFeedback();
+
+    expect(prepareEmail.mock.calls[0]![0]).toMatchObject({ projectId: null });
+  });
+
+  test("where it is not emailed - a self-hosted server with no admin address, the hour's emails used - the Dashboard is told so, and nothing is sent", async () => {
+    prepareEmail.mockResolvedValue(null);
+
+    expect(await giveFeedback()).toBeUndefined();
+
+    expect(answered()).toEqual({
+      answerId: ANSWER_ID.toString(),
+      isEmailed: false,
+      copyTo: null,
+    });
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  test("an address the person never proved is no copy", async () => {
+    prepareEmail.mockResolvedValue({
+      ...DELIVERY,
+      email: {
+        ...DELIVERY.email,
+        person: { ...DELIVERY.email.person, isEmailVerified: false },
+      },
+    });
+
+    await giveFeedback();
+
+    expect(answered()).toEqual({
+      answerId: ANSWER_ID.toString(),
+      isEmailed: true,
+      copyTo: null,
+    });
+  });
+
+  test("an answer to a question OneUptime asks is never emailed", async () => {
+    for (const body of [
+      { kind: "setup_flow", topic: "website_down", score: 2 },
+      { kind: "explanation", topic: "how_oneuptime_works", isPositive: true },
+      { kind: "check_in", isPositive: false, details: "Paging." },
+    ]) {
+      await call("POST", PRODUCT_FEEDBACK_ROUTE, body);
+    }
+
+    expect(prepareEmail).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
+
+    for (const call of sendJson.mock.calls) {
+      expect(Object.keys(call[2] as JSONObject)).toEqual(["answerId"]);
+    }
+  });
+
+  test("nothing is emailed for feedback that was refused", async () => {
+    isServerOn.mockResolvedValue(false);
+    await giveFeedback();
+
+    isServerOn.mockResolvedValue(true);
+    takeAnswer.mockReturnValue(false);
+    await giveFeedback();
+
+    expect(prepareEmail).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 });
 

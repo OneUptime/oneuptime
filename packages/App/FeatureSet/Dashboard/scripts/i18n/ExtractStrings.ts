@@ -397,6 +397,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What Give Feedback can be about - "Something's broken", "Idea" - as the
+   * dialog offers it (#8893). Only the names the file marks are read: the
+   * rest of it is the server's rules for asking people.
+   */
+  {
+    directory: "packages/Common/Types/ProductFeedback/ProductFeedback.ts",
+    kind: "keys",
+  },
+  /*
    * An audit log entry's action in words - Sign In, Session Timeout - as
    * the audit log's Action column and its Action filter draw it, and a
    * workflow run's status - Timeout, Execution Exceeded Current Plan - as

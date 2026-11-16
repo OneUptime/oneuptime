@@ -9,6 +9,10 @@ import InlineImageRefusal from "./InlineImageRefusal";
 import formatMailbox, { toOneLine } from "./MailboxAddress";
 import MailProvider, { MailProviderSendOptions } from "./MailProvider";
 import EmailMessage from "Common/Types/Email/EmailMessage";
+import {
+  getCcAddresses,
+  getReplyToAddress,
+} from "Common/Types/Email/EmailRecipients";
 import EmailServer from "Common/Types/Email/EmailServer";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
@@ -39,6 +43,9 @@ const PROVIDER_NAME: string = "Postmark";
 export interface PostmarkSendEmailRequest {
   From: string;
   To: string;
+  // Who is copied, comma separated, and where a reply goes (EmailRecipients, #8893).
+  Cc?: string;
+  ReplyTo?: string;
   Subject: string;
   HtmlBody: string;
   TextBody?: string;
@@ -71,6 +78,8 @@ export default class PostmarkMailProvider implements MailProvider {
   }): PostmarkSendEmailRequest {
     const html: string = data.mail.body || "";
     const text: string = EmailPlainText.fromHtml(html);
+    const ccAddresses: Array<string> = getCcAddresses(data.mail);
+    const replyToAddress: string | null = getReplyToAddress(data.mail);
 
     return {
       From: formatMailbox({
@@ -78,6 +87,8 @@ export default class PostmarkMailProvider implements MailProvider {
         address: data.emailServer.fromEmail.toString(),
       }),
       To: data.mail.toEmail.toString(),
+      ...(ccAddresses.length > 0 ? { Cc: ccAddresses.join(",") } : {}),
+      ...(replyToAddress ? { ReplyTo: replyToAddress } : {}),
       Subject: toOneLine(data.mail.subject || ""),
       HtmlBody: html,
       ...(text ? { TextBody: text } : {}),
