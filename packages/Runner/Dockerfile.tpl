@@ -152,6 +152,18 @@ RUN apt-get update \
     python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 
+# The JavaScript sandbox's launcher, as the production image installs it.
+# The development Runner runs the sandbox's worker from its TypeScript (no
+# bundle: its source is mounted and changes), and runs as root, so the
+# launcher works for it whatever its mode.
+COPY ./packages/Runner/Utils/JavaScriptSandbox/Native/javascript-sandbox.c /tmp/javascript-sandbox.c
+RUN mkdir -p /usr/lib/oneuptime-runner \
+  && gcc -O2 -Wall -Wextra -Werror -Wformat-security -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE -pie -Wl,-z,relro,-z,now \
+       -o /usr/lib/oneuptime-runner/javascript-sandbox /tmp/javascript-sandbox.c \
+  && rm /tmp/javascript-sandbox.c \
+  && chown root:node /usr/lib/oneuptime-runner/javascript-sandbox \
+  && chmod 4750 /usr/lib/oneuptime-runner/javascript-sandbox
+
 WORKDIR /usr/src/Common
 COPY ./packages/Common/package*.json /usr/src/Common/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
@@ -201,6 +213,21 @@ COPY --chown=1000:1000 ./packages/Runner /usr/src/app
 # boot-time check would leave this service's types verified nowhere at all.
 RUN npm run compile
 
+# A global Runner's JavaScript sandbox (Utils/JavaScriptSandbox): each step
+# runs in a process of its own. The launcher starts that process as a user of
+# its own (setuid root, run by the node group alone; the last stage sets its
+# owner and mode again), and the worker the process runs is one bundle that
+# loads no TypeScript: about 0.3 s and 130 MB a step, where ts-node took 2 s
+# and 270 MB. The bundle is made before the prune below, so it holds every
+# package it uses but isolated-vm, a native addon the Runner keeps. The last
+# stage runs both once.
+RUN mkdir -p /usr/lib/oneuptime-runner \
+  && gcc -O2 -Wall -Wextra -Werror -Wformat-security -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE -pie -Wl,-z,relro,-z,now \
+       -o /usr/lib/oneuptime-runner/javascript-sandbox /usr/src/app/Utils/JavaScriptSandbox/Native/javascript-sandbox.c \
+  && /usr/src/Common/node_modules/.bin/esbuild /usr/src/app/Utils/JavaScriptSandbox/SandboxWorker.ts \
+       --bundle --platform=node --target=node26 --external:isolated-vm --tsconfig=/usr/src/app/tsconfig.json \
+       --legal-comments=none --log-level=warning --outfile=/usr/lib/oneuptime-runner/javascript-sandbox-worker.js
+
 # Leave in /usr/src only what the Runner runs: Common pruned to the packages
 # its imports reach (see the script's header), the Runner without its own
 # development packages (ts-node keeps TypeScript, which it runs on), and
@@ -218,6 +245,21 @@ RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --packag
 FROM base
 
 COPY --from=build /usr/src /usr/src
+COPY --from=build /usr/lib/oneuptime-runner /usr/lib/oneuptime-runner
+
+# The launcher is root's and the node group's alone: setuid, and runnable by
+# the Runner (node) and nobody else - never by a step's own user, which is in
+# no group. The bundle and the folder are root's, read by everyone. Then each
+# runs once, in the image as it ships (pruned): the launcher must answer a
+# call it does not know with its usage code (64), and the bundle must load,
+# isolated-vm with it, and refuse an empty request (2).
+RUN chown root:root /usr/lib/oneuptime-runner /usr/lib/oneuptime-runner/javascript-sandbox-worker.js \
+  && chmod 0755 /usr/lib/oneuptime-runner \
+  && chmod 0644 /usr/lib/oneuptime-runner/javascript-sandbox-worker.js \
+  && chown root:node /usr/lib/oneuptime-runner/javascript-sandbox \
+  && chmod 4750 /usr/lib/oneuptime-runner/javascript-sandbox \
+  && { /usr/lib/oneuptime-runner/javascript-sandbox 2>/dev/null; test $? -eq 64; } \
+  && { echo '' | NODE_PATH=/usr/src/Common/node_modules node --no-node-snapshot /usr/lib/oneuptime-runner/javascript-sandbox-worker.js; test $? -eq 2; }
 
 WORKDIR /usr/src/app
 USER node

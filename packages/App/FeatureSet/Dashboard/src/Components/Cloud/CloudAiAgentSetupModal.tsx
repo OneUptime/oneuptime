@@ -12,6 +12,8 @@ import {
   CloudAiAgentElsewhereTexts,
   CloudAiAgentProtectedTargetsProblem,
   CloudAiAgentSetupChoices,
+  AZURE_HOST_DESCRIPTIONS,
+  AZURE_HOST_TITLES,
   GCP_HOST_DESCRIPTIONS,
   GCP_HOST_TITLES,
   getCloudAiAgentElsewhereValues,
@@ -108,6 +110,9 @@ import {
   ResourceAiAccessStatus,
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
+  AZURE_CLOUD_AI_AGENT_DEFAULT_HOST,
+  AZURE_CLOUD_AI_AGENT_HOSTS,
+  AzureCloudAiAgentHost,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   GCP_CLOUD_AI_AGENT_HOSTS,
   GcpCloudAiAgentHost,
@@ -117,6 +122,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import {
   FOLDED_SECTION_ON,
@@ -282,6 +288,8 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // The protected resources' error line, which their box names.
+  const protectedTargetsErrorId: string = `${CLOUD_AI_AGENT_SETUP_TEST_ID}-protected-error-${useId()}`;
   const [choices, setChoices] = useState<CloudAiAgentSetupChoices>(() => {
     return getDefaultCloudAiAgentSetupChoices({
       provider: props.provider,
@@ -556,21 +564,32 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
       accountId: props.accountId,
       text: choices.protectedTargetsText,
     });
+  /*
+   * What is wrong with the protected resources, in the reader's language:
+   * said under their box, where it can be fixed, as well as in step 1,
+   * whose command and variables it holds back. The box sits under More
+   * fields, so step 1 alone left a reader who opened the fold to type
+   * there without a word of why the command went away.
+   */
+  const protectedTargetsError: string | null =
+    protectedProblem?.kind === "unreadable"
+      ? translator.translateTemplate(
+          "{{pattern}} is not a pattern the agent can read: write a resource's id, with * for any run of characters, and no spaces or quotes.",
+          { pattern: protectedProblem.pattern },
+        )
+      : protectedProblem?.kind === "too-many"
+        ? translator.translateTemplate(
+            "List at most {{most}} protected resources, with * patterns to cover several.",
+            { most: String(protectedProblem.most) },
+          )
+        : null;
   let problem: string | null = null;
 
   if (!agentKey) {
     // Said where the command goes: making it, or why there is no key.
     problem = keyError || null;
-  } else if (protectedProblem?.kind === "unreadable") {
-    problem = translator.translateTemplate(
-      "{{pattern}} is not a pattern the agent can read: write a resource's id, with * for any run of characters, and no spaces or quotes.",
-      { pattern: protectedProblem.pattern },
-    );
-  } else if (protectedProblem?.kind === "too-many") {
-    problem = translator.translateTemplate(
-      "List at most {{most}} protected resources, with * patterns to cover several.",
-      { most: String(protectedProblem.most) },
-    );
+  } else if (protectedTargetsError) {
+    problem = protectedTargetsError;
   } else {
     problem = describeCloudAiAgentSetupProblem(options);
   }
@@ -617,11 +636,16 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
   const cost: CloudAiAgentCostEstimate = estimateCloudAiAgentMonthlyCost(
     props.provider,
     choices.gcpHost,
+    choices.azureHost,
   );
   // Google Cloud's agent on a VM of its own: the cost is the VM's.
   const isGcpVm: boolean =
     props.provider === CloudProvider.GCP &&
     choices.gcpHost === "compute-engine";
+  // Azure's on a VM of its own, likewise.
+  const isAzureVm: boolean =
+    props.provider === CloudProvider.Azure &&
+    choices.azureHost === "virtual-machine";
   const everyChange: Array<string> = getCloudAiAgentChangeOperations(
     props.provider,
   );
@@ -731,6 +755,18 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
             title: translationKey("Runs on"),
             isSet: choices.gcpHost !== GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
             value: GCP_HOST_TITLES[choices.gcpHost],
+            translateValue: true,
+          },
+        ]
+      : []),
+    // What runs an Azure agent, named once it is not the default.
+    ...(props.provider === CloudProvider.Azure
+      ? [
+          {
+            key: "host",
+            title: translationKey("Runs on"),
+            isSet: choices.azureHost !== AZURE_CLOUD_AI_AGENT_DEFAULT_HOST,
+            value: AZURE_HOST_TITLES[choices.azureHost],
             translateValue: true,
           },
         ]
@@ -983,16 +1019,21 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                   "It runs on one small always-on VM in your project: about ${{usd}} a month at list prices, billed by your cloud. Google Cloud's free tier can cover it.",
                   { usd: String(cost.usd) },
                 )
-              : props.provider === CloudProvider.GCP
-                ? // Google Cloud names it a project, as the VM's line does.
-                  translator.translateTemplate(
-                    "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.",
+              : isAzureVm
+                ? translator.translateTemplate(
+                    "It runs on one small always-on VM in your subscription: about ${{usd}} a month at list prices, billed by your cloud.",
                     { usd: String(cost.usd) },
                   )
-                : translator.translateTemplate(
-                    "It runs one small always-on container in your account: about ${{usd}} a month at list prices, billed by your cloud.",
-                    { usd: String(cost.usd) },
-                  )}
+                : props.provider === CloudProvider.GCP
+                  ? // Google Cloud names it a project, as the VM's line does.
+                    translator.translateTemplate(
+                      "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.",
+                      { usd: String(cost.usd) },
+                    )
+                  : translator.translateTemplate(
+                      "It runs one small always-on container in your account: about ${{usd}} a month at list prices, billed by your cloud.",
+                      { usd: String(cost.usd) },
+                    )}
           </p>
         </div>
       ),
@@ -1068,6 +1109,7 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                   props.provider,
                   choices.gcpHost,
                   props.accountId,
+                  choices.azureHost,
                 )}
               />
             </div>
@@ -1273,6 +1315,64 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
               <></>
             )}
 
+            {props.provider === CloudProvider.Azure ? (
+              <fieldset
+                className="space-y-2"
+                data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-azure-host`}
+              >
+                <legend className="text-sm font-medium text-gray-900">
+                  {translator.translateText(
+                    translationKey("Where the agent runs"),
+                  )}
+                </legend>
+                {AZURE_CLOUD_AI_AGENT_HOSTS.map(
+                  (host: AzureCloudAiAgentHost): ReactElement => {
+                    return (
+                      <label
+                        key={host}
+                        className="flex items-start gap-2 text-sm text-gray-800"
+                      >
+                        <input
+                          type="radio"
+                          name={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-azure-host`}
+                          value={host}
+                          checked={choices.azureHost === host}
+                          className="mt-0.5 h-4 w-4 flex-shrink-0 border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500"
+                          data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-host-${host}`}
+                          onChange={() => {
+                            update({ azureHost: host });
+                          }}
+                        />
+                        <span className="min-w-0">
+                          <span className="block font-medium text-gray-900">
+                            {translator.translateText(
+                              AZURE_HOST_TITLES[host],
+                            ) || AZURE_HOST_TITLES[host]}
+                          </span>
+                          <span className="block text-xs text-gray-500">
+                            {translator.translateTemplate(
+                              AZURE_HOST_DESCRIPTIONS[host],
+                              {
+                                usd: String(
+                                  estimateCloudAiAgentMonthlyCost(
+                                    CloudProvider.Azure,
+                                    undefined,
+                                    host,
+                                  ).usd,
+                                ),
+                              },
+                            )}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  },
+                )}
+              </fieldset>
+            ) : (
+              <></>
+            )}
+
             <div className="space-y-2">
               <p className="text-sm font-medium text-gray-900">
                 {translator.translateText(
@@ -1324,7 +1424,11 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
               <textarea
                 id={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-protected`}
                 rows={3}
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className={`block w-full rounded-md border px-3 py-2 font-mono text-xs focus:outline-none focus:ring-1 ${
+                  protectedTargetsError
+                    ? "border-red-300 text-red-900 focus:border-red-500 focus:ring-red-500"
+                    : "border-gray-300 text-gray-900 focus:border-indigo-500 focus:ring-indigo-500"
+                }`}
                 placeholder={translator.translateText(
                   translationKey(
                     "One name or id pattern per line, such as *prod-db*",
@@ -1332,10 +1436,30 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                 )}
                 value={choices.protectedTargetsText}
                 data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-protected`}
+                aria-invalid={protectedTargetsError ? "true" : undefined}
+                aria-describedby={
+                  protectedTargetsError ? protectedTargetsErrorId : undefined
+                }
                 onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
                   update({ protectedTargetsText: event.target.value });
                 }}
               />
+              {/*
+               * Why the command and the variables went away, under the box
+               * that holds the reason: said as it is typed, politely, so a
+               * screen reader finishes the line it is reading first.
+               */}
+              {protectedTargetsError ? (
+                <FieldError
+                  message={protectedTargetsError}
+                  id={protectedTargetsErrorId}
+                  className="mt-1 text-xs"
+                  announce="polite"
+                  dataTestId={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-protected-error`}
+                />
+              ) : (
+                <></>
+              )}
             </div>
 
             <CheckRow

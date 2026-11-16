@@ -42,6 +42,8 @@ interface Row {
   key: string;
   projectId?: string | undefined;
   isGlobalRunner?: boolean | undefined;
+  // The server's switch for a global Runner's code fixes; unset reads on.
+  canRunCodeFixes?: boolean | undefined;
   name?: string | undefined;
   // Whether a code repository of its project works on the Runner.
   worksInARepository?: boolean | undefined;
@@ -69,6 +71,8 @@ function standInFor(table: "AIAgent" | "Runner") {
       _id: String(query["_id"]),
       projectId: row.projectId ? new ObjectID(row.projectId) : undefined,
       isGlobalRunner: row.isGlobalRunner === true,
+      // As the column: NOT NULL DEFAULT true.
+      canRunCodeFixes: row.canRunCodeFixes !== false,
       name: row.name || "a Runner",
     };
   };
@@ -183,6 +187,83 @@ describe("a global Runner", () => {
       identity: null,
       isKeyRight: true,
     });
+  });
+});
+
+/*
+ * A master admin keeps a global Runner off AI code fixes with its Runs AI
+ * Code Fixes switch (Runner.canRunCodeFixes, #6115): enforced here, where
+ * every code-fix route asks who a pair is, so its key claims no run and is
+ * handed no repository token - not only its host's own setting, which
+ * stops that host from asking.
+ */
+describe("a global Runner a master admin turned code fixes off for", () => {
+  test("proves no code-fix identity, though its key is right, so it is never counted as a wrong key", async () => {
+    const { pair } = add({
+      table: "Runner",
+      key: "global-runner-key-7c8d9e0f1a2b3c4d5e6f",
+      isGlobalRunner: true,
+      canRunCodeFixes: false,
+    });
+
+    expect(await CodeFixAgentAuth.checkCredential(pair)).toMatchObject({
+      identity: null,
+      isKeyRight: true,
+    });
+    expect(await CodeFixAgentAuth.resolveAgentIdentity(pair)).toBeNull();
+  });
+
+  test("proves a global Runner again once the switch is back on", async () => {
+    const { id, pair } = add({
+      table: "Runner",
+      key: "global-runner-key-8d9e0f1a2b3c4d5e6f7a",
+      isGlobalRunner: true,
+      canRunCodeFixes: false,
+    });
+
+    expect((await CodeFixAgentAuth.checkCredential(pair)).identity).toBeNull();
+
+    registry.get(id)!.canRunCodeFixes = true;
+
+    const identity: CodeFixAgentIdentity | null = (
+      await CodeFixAgentAuth.checkCredential(pair)
+    ).identity;
+
+    expect(identity?.id.toString()).toBe(id);
+    expect(identity?.projectId).toBeUndefined();
+  });
+
+  test("the switch is read with the Runner, by the key it presents", async () => {
+    const { pair } = add({
+      table: "Runner",
+      key: "global-runner-key-9e0f1a2b3c4d5e6f7a8b",
+      isGlobalRunner: true,
+    });
+
+    await CodeFixAgentAuth.checkCredential(pair);
+
+    const lookup: { query: JSONObject; select: JSONObject } = (
+      RunnerService.findOneBy as unknown as jest.Mock
+    ).mock.calls[0]![0] as never;
+
+    expect(lookup.select["canRunCodeFixes"]).toBe(true);
+    expect(lookup.query["key"]).toBe(pair["aiAgentKey"]);
+  });
+
+  test("a project's Runner a repository works on is not read by it: the repository's pick is its switch", async () => {
+    const { pair } = add({
+      table: "Runner",
+      key: "project-runner-key-0f1a2b3c4d5e6f7a8b9c",
+      projectId: PROJECT_ID,
+      canRunCodeFixes: false,
+      worksInARepository: true,
+    });
+
+    expect(
+      (
+        await CodeFixAgentAuth.checkCredential(pair)
+      ).identity?.projectId?.toString(),
+    ).toBe(PROJECT_ID);
   });
 });
 

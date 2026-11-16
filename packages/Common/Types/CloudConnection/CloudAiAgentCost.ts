@@ -1,5 +1,7 @@
 import { CloudProvider } from "../Cloud/CloudPlatform";
 import {
+  AZURE_CLOUD_AI_AGENT_DEFAULT_HOST,
+  AzureCloudAiAgentHost,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   GcpCloudAiAgentHost,
 } from "../ResourceAiAgent/CloudAiAgentNames";
@@ -26,6 +28,11 @@ import {
  *     month; less while the replica idles, whose vCPU-seconds cost
  *     $0.000003, and more when other apps of the subscription already use
  *     the free grant.
+ *   - Azure on its own VM: one Standard_B1s VM at $0.0104 an hour (East
+ *     US, Linux), its 30 GiB Standard HDD managed disk (an S4, $1.54 a
+ *     month) and its Standard public IPv4 address at $0.005 an hour. About
+ *     $13 a month - and an Azure free account's first year covers 750
+ *     hours of B1s a month.
  *   - Google Cloud, on its default host: one e2-micro Compute Engine VM
  *     at $0.008376 an hour (us-central1), its 10 GB standard persistent
  *     boot disk at $0.04 per GB-month, and its external IPv4 address at
@@ -66,6 +73,19 @@ export const GCP_CLOUD_RUN_USD_PER_GIB_SECOND: number = 0.000002;
 export const GCP_CLOUD_RUN_FREE_VCPU_SECONDS: number = 240000;
 export const GCP_CLOUD_RUN_FREE_GIB_SECONDS: number = 450000;
 
+// A Standard_B1s VM, its S4 Standard HDD disk and its public address, East US.
+export const AZURE_B1S_USD_PER_HOUR: number = 0.0104;
+export const AZURE_S4_DISK_USD_PER_MONTH: number = 1.54;
+export const AZURE_PUBLIC_IPV4_USD_PER_HOUR: number = 0.005;
+
+/*
+ * What the Azure VM's figure counts. Written out rather than composed: it
+ * names AZURE_CLOUD_AI_AGENT_VM_SIZE and AZURE_CLOUD_AI_AGENT_OS_DISK_GB as
+ * the setup command makes the VM, which the cost suite holds it to.
+ */
+export const AZURE_VM_COST_DESCRIPTION: string =
+  "One Standard_B1s VM running all month, with its 30 GiB Standard HDD disk and its public IPv4 address, at East US list prices. An Azure free account's first year covers 750 hours of B1s a month.";
+
 // An e2-micro VM, its standard disk and its external address, us-central1.
 export const GCP_E2_MICRO_USD_PER_HOUR: number = 0.008376;
 export const GCP_STANDARD_DISK_USD_PER_GB_MONTH: number = 0.04;
@@ -105,8 +125,22 @@ export function estimateCloudAiAgentMonthlyCost(
   provider: CloudProvider,
   // Google Cloud only: what runs the agent.
   gcpHost: GcpCloudAiAgentHost = GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
+  // Azure only: what runs the agent.
+  azureHost: AzureCloudAiAgentHost = AZURE_CLOUD_AI_AGENT_DEFAULT_HOST,
 ): CloudAiAgentCostEstimate {
   const size: CloudAiAgentSize = CLOUD_AI_AGENT_SIZES[provider];
+
+  if (provider === CloudProvider.Azure && azureHost === "virtual-machine") {
+    return {
+      usd: Math.round(
+        (AZURE_B1S_USD_PER_HOUR + AZURE_PUBLIC_IPV4_USD_PER_HOUR) *
+          CLOUD_AI_AGENT_HOURS_PER_MONTH +
+          AZURE_S4_DISK_USD_PER_MONTH,
+      ),
+      // As written: the VM's size and disk are the setup command's (CloudAiAgentCost.test pins them).
+      description: AZURE_VM_COST_DESCRIPTION,
+    };
+  }
 
   if (provider === CloudProvider.GCP && gcpHost === "compute-engine") {
     const usdPerHour: number =

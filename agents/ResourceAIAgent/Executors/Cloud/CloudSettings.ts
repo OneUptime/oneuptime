@@ -1,6 +1,7 @@
 import {
   RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV,
   RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
+  RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
   RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV,
@@ -50,6 +51,17 @@ import {
  *                                    not such an ID refuses every change,
  *                                    rather than falling back to the
  *                                    agent's own identity.
+ *   ONEUPTIME_AI_AZURE_WRITE_PRINCIPAL_ID
+ *                                    Azure: that identity's object id, as
+ *                                    the setup command read it from Azure:
+ *                                    the caller the Activity Log names for
+ *                                    the agent's changes, reported from the
+ *                                    start (the posture). Only a hint: a
+ *                                    token of the identity says its object
+ *                                    id, and that wins. A value that is not
+ *                                    an object id, or one beside no write
+ *                                    identity, is a warning and is ignored;
+ *                                    it never refuses a change.
  *
  * Pure: Config reads it for the start-up warnings, the executor for every
  * command and the posture.
@@ -88,6 +100,12 @@ export interface CloudAgentSettings {
   azureWriteIdentity: AzureWriteIdentity | null;
   // Set but not a user-assigned identity's ID: every change is refused with this.
   azureWriteIdentityProblem: string | null;
+  /*
+   * The write identity's object id, lowercased, as its setup command read
+   * it (ONEUPTIME_AI_AZURE_WRITE_PRINCIPAL_ID): null when unset, unreadable
+   * or beside no write identity.
+   */
+  azureWritePrincipalId: string | null;
   warnings: Array<string>;
 }
 
@@ -112,6 +130,15 @@ export function getServiceAccountProject(email: string): string {
  */
 const USER_ASSIGNED_IDENTITY_ID_PATTERN: RegExp =
   /^\/subscriptions\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/resourcegroups\/([\w.()-]{1,90})\/providers\/microsoft\.managedidentity\/userassignedidentities\/([A-Za-z0-9][\w-]{2,127})$/i;
+
+// An Entra ID object id: a GUID, in any case.
+const OBJECT_ID_PATTERN: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// An object id, lowercased as Azure's tokens name one, or null for anything else.
+export function parseAzureObjectId(value: string): string | null {
+  return OBJECT_ID_PATTERN.test(value) ? value.toLowerCase() : null;
+}
 
 // The ID Azure Resource Manager makes for one, as messages show it (lowercased).
 const USER_ASSIGNED_IDENTITY_ID_EXAMPLE: string =
@@ -350,6 +377,40 @@ export function parseCloudAgentSettings(
     );
   }
 
+  /*
+   * The write identity's object id: a hint for the posture, never a
+   * reason to refuse a change, so a value that cannot be used is a warning
+   * and nothing more. Shown lowercased, as the identity's ID is, so the
+   * output's redactor leaves it readable.
+   */
+  let azureWritePrincipalId: string | null = null;
+  const principalSetting: string = readTrimmed(
+    env,
+    RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV,
+  );
+
+  if (provider === "azure" && principalSetting) {
+    const objectId: string | null = parseAzureObjectId(principalSetting);
+
+    if (!objectId) {
+      warnings.push(
+        `${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}="${principalSetting
+          .slice(0, 64)
+          .toLowerCase()}" is not an object id (a GUID), so the agent ignores it and learns the write identity's object id from its first token.`,
+      );
+    } else if (!azureWriteIdentity) {
+      warnings.push(
+        `${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV} is set, but there is no write identity (${RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV}) for it to be the object id of, so it is ignored.`,
+      );
+    } else {
+      azureWritePrincipalId = objectId;
+    }
+  } else if (provider !== "azure" && principalSetting) {
+    warnings.push(
+      `${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV} is set, but this agent serves ${CLOUD_CATALOG_PROVIDER_NAMES[provider]}, so it is ignored.`,
+    );
+  }
+
   return {
     provider,
     enabledOperations: operations.enabled,
@@ -362,6 +423,7 @@ export function parseCloudAgentSettings(
     gcpWriteServiceAccountProblem,
     azureWriteIdentity,
     azureWriteIdentityProblem,
+    azureWritePrincipalId,
     warnings,
   };
 }
