@@ -16,6 +16,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { mockRouter } from "./Helpers";
+import { statusPageReadOf } from "../TestingUtils/StatusPageReads";
 import {
   afterEach,
   beforeAll,
@@ -145,8 +146,10 @@ describe("StatusPageAPI master-page: whether the sign-in page offers a sign-in l
     const responseCall: Array<unknown> = (
       Response.sendJsonObjectResponse as jest.Mock
     ).mock.calls[0] as Array<unknown>;
-    const findCall: Array<unknown> = findOneById.mock
-      .calls[0] as Array<unknown>;
+    // The page's own read, after the lookup of its project.
+    const findCall: Array<unknown> = statusPageReadOf(
+      findOneById,
+    ) as Array<unknown>;
 
     return {
       page: (responseCall[2] as JSONObject)["statusPage"] as JSONObject,

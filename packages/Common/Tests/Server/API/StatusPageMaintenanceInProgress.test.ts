@@ -193,6 +193,9 @@ describe("a status page shows every scheduled maintenance event in progress as o
     eventQueries = [];
     events = [];
 
+    // Each test reads the page's events afresh, not the list an earlier one kept.
+    StatusPageAPI.clearOverviewResponseCache();
+
     const statusPage: StatusPage = new StatusPage();
     statusPage._id = STATUS_PAGE_ID.toString();
     statusPage.projectId = PROGRESS_PROJECT_ID;

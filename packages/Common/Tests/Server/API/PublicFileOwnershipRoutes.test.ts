@@ -389,6 +389,8 @@ describe("public routes serve only a record's own files", () => {
 
   beforeEach(() => {
     selects = [];
+    // Each test reads the pages afresh, not from what an earlier one kept.
+    StatusPageAPI.clearOverviewResponseCache();
   });
 
   afterAll(async () => {
@@ -430,7 +432,12 @@ describe("public routes serve only a record's own files", () => {
         path: `/api/status-page/logo/${OWN_PAGE_ID.toString()}`,
       });
 
-      expect(selects[0]).toMatchObject({
+      // The logo's own read, among the page's other reads.
+      expect(
+        selects.find((select: Dictionary<unknown>): boolean => {
+          return "logoFile" in select;
+        }),
+      ).toMatchObject({
         projectId: true,
         logoFile: { file: true, projectId: true },
       });

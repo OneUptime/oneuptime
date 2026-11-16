@@ -188,9 +188,9 @@ describe("GUARD: caches kept by generation use CacheGenerations", () => {
       const source: string = read(user);
 
       expect(source).not.toMatch(/new CacheGenerations\(/);
-      expect(
-        source.replace(/CacheGenerations\.newToken\(\)/g, ""),
-      ).not.toMatch(/CacheGenerations\./);
+      expect(source.replace(/CacheGenerations\.newToken\(\)/g, "")).not.toMatch(
+        /CacheGenerations\./,
+      );
 
       for (const piece of SCHEME_PIECES.slice(0, 3)) {
         expect(source).not.toMatch(piece.pattern);
