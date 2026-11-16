@@ -559,8 +559,9 @@ describe("the kit's App image", () => {
       .filter((line) => {
         return line.includes("Common/Server/Utils/TsNode/Precompile.js");
       });
+    // The Community Edition's: the App and Common (the Enterprise one adds ee/).
     const communityCompile = precompile.find((line) => {
-      return line.includes("--root /usr/src/app --root /usr/src/Common");
+      return line.endsWith("--root /usr/src/app --root /usr/src/Common");
     });
 
     expect(communityCompile).toBeDefined();

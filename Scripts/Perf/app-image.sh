@@ -18,7 +18,10 @@
 #                                 with $PERF_DIR/app.env and the inspector on
 #                                 127.0.0.1:9371, and writes its PID to
 #                                 $PERF_DIR/app.pid, so cpu-sample.py and
-#                                 memory-sample.py measure it
+#                                 memory-sample.py measure it; says how long
+#                                 after `docker run` it was ready (asked every
+#                                 half second) and the CPU its container had
+#                                 used by then, its boot
 #   app-image.sh stop
 #
 # Settings: PERF_DIR, PERF_PREFIX, PERF_APP_PORT (see stack.sh),
@@ -47,6 +50,14 @@ context() {
     cp "$REPO/$DASHBOARD/sw.js" "$out/$DASHBOARD/sw.js" 2>/dev/null || true
     cp "$REPO/$DASHBOARD/assets/js"/tailwind*.js "$out/$DASHBOARD/assets/js/" 2>/dev/null || true
   fi
+}
+
+# CPU seconds a container of this stack has used (its cgroup v2 cpu.stat).
+container_cpu_seconds() {
+  local id
+  id=$(docker inspect -f '{{.Id}}' "$1" 2>/dev/null)
+  awk '/^usage_usec/ { printf "%.1f", $2 / 1000000 }' \
+    "/sys/fs/cgroup/system.slice/docker-$id.scope/cpu.stat" 2>/dev/null || echo "?"
 }
 
 stop_app() {
@@ -90,17 +101,19 @@ case "${1:-}" in
       python3 -I "$HERE/make_env.py"
     fi
     stop_app
+    started=$(date +%s%N)
     docker run -d --rm --name "$NAME" --network host \
       --env-file "$PERF_DIR/app.env" \
       -e "NODE_OPTIONS=--inspect=127.0.0.1:$PERF_APP_INSPECTOR" \
       "$NAME:$tag" >/dev/null
-    for _ in $(seq 1 200); do
+    for _ in $(seq 1 1200); do
       if [ "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PERF_APP_PORT/api/status/ready")" = "200" ]; then
+        seconds=$(( ($(date +%s%N) - started) / 100000000 ))
         docker inspect -f '{{.State.Pid}}' "$NAME" >"$PERF_DIR/app.pid"
-        echo "$NAME:$tag ready, pid $(cat "$PERF_DIR/app.pid")"
+        echo "$NAME:$tag ready, pid $(cat "$PERF_DIR/app.pid"), $((seconds / 10)).$((seconds % 10)) s after docker run, $(container_cpu_seconds "$NAME") s of CPU"
         exit 0
       fi
-      sleep 3
+      sleep 0.5
     done
     echo "$NAME:$tag not ready; see docker logs $NAME"
     exit 1
@@ -110,7 +123,7 @@ case "${1:-}" in
     echo "stopped"
     ;;
   *)
-    sed -n '2,25p' "${BASH_SOURCE[0]}"
+    sed -n '2,28p' "${BASH_SOURCE[0]}"
     exit 1
     ;;
 esac
