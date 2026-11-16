@@ -29,6 +29,13 @@ import type { Agent as HttpAgent } from "http";
 import type { Agent as HttpsAgent } from "https";
 
 /*
+ * What a request sends: JSON (an object or an array), or bytes sent as they
+ * are, with whatever Content-Type the caller names - how a probe passes on a
+ * text body it relays (Probe/API/IncomingRequestIngress).
+ */
+export type APIRequestBody = JSONObject | JSONArray | Buffer;
+
+/*
  * Diagnostic summary of one settled fetch() call, retries included. Handed
  * to RequestOptions.onRequestComplete so a caller can log WHERE a request
  * went wrong without having to wrap every one of its call sites.
@@ -140,7 +147,7 @@ export interface RequestOptions {
 
 export interface APIRequestOptions {
   url: URL;
-  data?: JSONObject | JSONArray;
+  data?: APIRequestBody;
   headers?: Headers;
   params?: Dictionary<string>;
   options?: RequestOptions;
@@ -149,7 +156,7 @@ export interface APIRequestOptions {
 export interface APIFetchOptions {
   method: HTTPMethod;
   url: URL;
-  data?: JSONObject | JSONArray;
+  data?: APIRequestBody;
   headers?: Headers;
   params?: Dictionary<string>;
   options?: RequestOptions;
@@ -182,7 +189,7 @@ export interface AuthRetryContext {
   request: {
     method: HTTPMethod;
     url: URL;
-    data?: JSONObject | JSONArray;
+    data?: APIRequestBody;
     headers?: Headers;
     params?: Dictionary<string>;
     options?: RequestOptions;
@@ -519,7 +526,7 @@ export default class API {
   >(
     method: HTTPMethod,
     url: URL,
-    data?: JSONObject | JSONArray,
+    data?: APIRequestBody,
     headers?: Headers,
     params?: Dictionary<string>,
     options?: RequestOptions,
@@ -571,7 +578,7 @@ export default class API {
   >(
     method: HTTPMethod,
     url: URL,
-    data?: JSONObject | JSONArray,
+    data?: APIRequestBody,
     headers?: Headers,
     params?: Dictionary<string>,
     options?: RequestOptions,
@@ -601,8 +608,7 @@ export default class API {
         ...headers,
       };
 
-      let finalBody: JSONObject | JSONArray | URLSearchParams | undefined =
-        data;
+      let finalBody: APIRequestBody | URLSearchParams | undefined = data;
 
       // if content-type is form-url-encoded, then stringify the data
 

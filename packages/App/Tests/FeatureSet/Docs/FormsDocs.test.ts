@@ -51,6 +51,7 @@ import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
 import Form from "Common/Models/DatabaseModels/Form";
 import FormDomain from "Common/Models/DatabaseModels/FormDomain";
 import { UPLOAD_OUTSIDE_PROJECT_MESSAGE } from "Common/Server/Services/FileService";
+import { MALWARE_SCAN_UNAVAILABLE_MESSAGE } from "Common/Server/Utils/MalwareScan/MalwareScanner";
 import FormSubmission from "Common/Models/DatabaseModels/FormSubmission";
 import {
   FORM_FOREIGN_PAGE_MESSAGE,
@@ -1172,6 +1173,8 @@ describe("Forms docs", () => {
         FORM_TOTAL_RATE_LIMIT_MESSAGE,
         // A form's hourly allowance of files, used up (Rate limits).
         FORM_FILES_RATE_LIMIT_MESSAGE,
+        // Files scanned for malware, and the scanner not answering (#6118).
+        MALWARE_SCAN_UNAVAILABLE_MESSAGE,
         FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
         FORM_NO_SEVERITY_MESSAGE,
         FormMessage.CaptchaFailed,
@@ -1196,7 +1199,7 @@ describe("Forms docs", () => {
       }
 
       // What a submitter sees is the page's own copy of the server's words.
-      for (const sentence of quoted.slice(0, 9)) {
+      for (const sentence of quoted.slice(0, 10)) {
         expect(Object.values(FormMessage)).toContain(sentence);
       }
 

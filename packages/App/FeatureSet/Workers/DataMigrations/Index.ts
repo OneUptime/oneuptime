@@ -135,6 +135,7 @@ import RedactPersonalDataInProductAnalyticsPages from "./RedactPersonalDataInPro
 import ReadHashRoutesInProductAnalyticsEntryPages from "./ReadHashRoutesInProductAnalyticsEntryPages";
 import ScrubProductAnalyticsAddresses from "./ScrubProductAnalyticsAddresses";
 import ScrubSessionReplayAddresses from "./ScrubSessionReplayAddresses";
+import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
@@ -180,6 +181,7 @@ import EncryptGlobalConfigCredentials from "./EncryptGlobalConfigCredentials";
 import HashMasterApiKey from "./HashMasterApiKey";
 import BackfillNetworkEndpointCoarseLastSeenAt from "./BackfillNetworkEndpointCoarseLastSeenAt";
 import ResolveWhatMonitorsTurnedOffWouldHaveResolved from "./ResolveWhatMonitorsTurnedOffWouldHaveResolved";
+import BackfillMonitorFirstMeasuredAt from "./BackfillMonitorFirstMeasuredAt";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1197,6 +1199,28 @@ const DataMigrations: Array<DataMigrationBase> = [
    * before the last slot AddAuditLogMcpClientColumns asserts for itself.
    */
   new ResolveWhatMonitorsTurnedOffWouldHaveResolved(),
+  /*
+   * The private keys of the certificates customers uploaded for their status
+   * page, dashboard and form domains, stored as plaintext before the column
+   * was kept encrypted at rest and write-only: each encrypted in place, in
+   * raw SQL, only while it still holds the value read. Idempotent; a key not
+   * encrypted yet still reads as itself meanwhile. Before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new EncryptUploadedCertificateKeys(),
+  /*
+   * A monitor nothing has checked yet reads Operational, the status every
+   * monitor is created in (issue #8899): Monitor.firstMeasuredAt now says
+   * whether anything has measured it, and the lists and status pages say it
+   * is waiting for its first check instead. Each monitor checked stamps it
+   * on its next result; this stamps, with its creation time, every monitor
+   * that left a trace of being measured before the column existed - a
+   * probe result, a heartbeat, an email, a server report, a queued
+   * evaluation, a status change - and every manual monitor. Postgres only,
+   * paged by id and idempotent; before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillMonitorFirstMeasuredAt(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

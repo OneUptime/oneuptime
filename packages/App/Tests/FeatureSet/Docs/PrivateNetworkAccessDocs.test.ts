@@ -397,4 +397,39 @@ describe("the guide says which outbound connections go through a proxy", () => {
       }
     },
   );
+
+  /*
+   * #8932: external calendars, MCP servers, backups and OIDC single sign-on
+   * send with Node's own HTTP client, and now go through the proxy too
+   * (createPinnedAgentsForNodeHttp, createGuardedAgentsForNodeHttp). Only
+   * database and SMTP connections and Git servers connect directly
+   * (EgressGuardedRequestsBehindProxy, NodeHttp suites).
+   */
+  test("names Node's own HTTP clients among those that use the proxy, and Git alone among the HTTP ones that never do", () => {
+    const paragraph: string = readPage("en").split("\n")[proxyParagraphLine()]!;
+
+    expect(paragraph).toContain(
+      "OIDC single sign-on, external calendars, MCP servers, backups, custom domain verification",
+    );
+    expect(
+      paragraph.endsWith(
+        "Database and SMTP connections and Git servers always connect directly, without a proxy.",
+      ),
+    ).toBe(true);
+  });
+
+  test.each(LANGUAGES_WITH_PAGE)(
+    "%s names OIDC and MCP servers once, in the proxy's list, as English does",
+    (language: string) => {
+      const line: string =
+        readPage(language).split("\n")[proxyParagraphLine()] || "";
+
+      expect({
+        language,
+        oidc: line.split("OIDC").length - 1,
+        mcp: line.split("MCP").length - 1,
+        git: line.split("Git").length - 1,
+      }).toEqual({ language, oidc: 1, mcp: 1, git: 1 });
+    },
+  );
 });

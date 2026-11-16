@@ -135,7 +135,8 @@ O status geral é o pior status atual dos monitores e grupos de monitores da pá
 | `resourceGroups` | Os grupos, com `parentStatusPageGroupId` para os grupos aninhados. |
 | `monitorStatuses` | Todo status de monitor do projeto, da menor prioridade para a maior. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | O status atual de cada grupo de monitores da página e os monitores dentro dele. |
-| `notMonitoredResourceIds` | Os IDs dos recursos que a página mostra como **Não monitorado**: um monitor com o monitoramento desligado, ou um grupo de monitores cujos monitores estão todos com ele desligado. Eles não decidem nenhum status, e um grupo assim não tem entrada em `monitorGroupCurrentStatuses`. |
+| `notMonitoredResourceIds` | Os IDs dos recursos que a página mostra como **Não monitorado**: um monitor com o monitoramento desligado, ou um grupo de monitores cujos monitores estão todos com ele desligado. A lista inclui também os recursos de `notMonitoredYetResourceIds`. Eles não decidem nenhum status, e um grupo assim não tem entrada em `monitorGroupCurrentStatuses`. |
+| `notMonitoredYetResourceIds` | Os IDs dos recursos que a página mostra como **Ainda não monitorado**: um monitor que nada verificou ainda, ainda no status operacional em que todo monitor começa, ou um grupo de monitores em que nenhum monitor foi verificado ainda. |
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | A partir de que as barras de disponibilidade são desenhadas, e as regras de cor das barras da página. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Os incidentes não resolvidos que a página mostra, as suas notas públicas e mudanças de estado, e os estados de incidente do projeto. |
 | `timelineIncidents` | Os incidentes dentro da janela das barras de disponibilidade, inclusive os resolvidos, para as dicas das barras. |
@@ -197,7 +198,7 @@ A resposta:
 | `activeIncidents` | Os incidentes não resolvidos que a página mostra, cada um com os `affectedResourceIds` dos recursos que ele afeta. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Os eventos de manutenção em andamento e ainda por vir, cada um com os seus `affectedResourceIds`. |
 
-O `currentStatus` de um recurso é `null` quando a página não o mostra, e quando `isMonitored` é `false`: nada verifica o recurso, porque o monitoramento do monitor dele está desligado ou todos os monitores do grupo de monitores dele estão com ele desligado, então a página o mostra como **Não monitorado**. `isUnderMaintenance` é `true` enquanto um evento em andamento nomeia um dos monitores do recurso, ou um monitor do grupo de monitores dele, seja qual for o status desses monitores.
+O `currentStatus` de um recurso é `null` quando a página não o mostra, e quando `isMonitored` é `false`: nada verifica o recurso, porque o monitoramento do monitor dele está desligado ou todos os monitores do grupo de monitores dele estão com ele desligado, então a página o mostra como **Não monitorado**, ou nada o verificou ainda, então a página o mostra como **Ainda não monitorado**. `isUnderMaintenance` é `true` enquanto um evento em andamento nomeia um dos monitores do recurso, ou um monitor do grupo de monitores dele, seja qual for o status desses monitores.
 
 ## Disponibilidade num intervalo de datas
 

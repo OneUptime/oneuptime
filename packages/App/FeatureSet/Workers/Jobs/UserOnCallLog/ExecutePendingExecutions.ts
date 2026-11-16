@@ -27,6 +27,7 @@ import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDut
 import ObjectID from "Common/Types/ObjectID";
 import { isOnCallPageEndedOnlyByAnAnswer } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgePage";
 import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import { isOnCallDirectPage } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
 import {
   getOnCallPageRecordDeletedMessage,
   OnCallPageRecordGoneException,
@@ -81,9 +82,9 @@ export const USER_LOG_CONCURRENCY: number = 8;
 
 /*
  * The logs the worker goes through every minute: every page still paging,
- * and every page merged into the person's open page from another policy's
- * run, which waits on it, is answered with it, or takes the page over
- * (Types/OnCallDutyPolicy/OnCallPageMerge).
+ * and every page merged into the person's open page from another run - a
+ * policy's, or a direct page's (#8859) - which waits on it, is answered with
+ * it, or takes the page over (Types/OnCallDutyPolicy/OnCallPageMerge).
  */
 export const USER_LOG_STATUSES_WORKED_ON: Array<UserNotificationExecutionStatus> =
   [
@@ -97,11 +98,14 @@ export const USER_LOG_SELECT: Select<UserOnCallLog> = {
   projectId: true,
   createdAt: true,
   /*
-   * Paging, or merged into the person's open page from another policy's
-   * run (Already Paged), and then the page it stands on (OnCallPageMerge).
+   * Paging, or merged into the person's open page from another run
+   * (Already Paged), and then the page it stands on (OnCallPageMerge) - and
+   * what its line named that page by, for the line of its take-over should
+   * that page be gone (#8859).
    */
   status: true,
   mergedIntoUserOnCallLogId: true,
+  statusMessage: true,
   executedNotificationRules: true,
   userId: true,
   userNotificationEventType: true,
@@ -955,7 +959,7 @@ const runPendingNotificationLog: RunPendingNotificationLogFunction = async (
   }
 
   /*
-   * A page merged into the person's open page from another policy's run
+   * A page merged into the person's open page from another run
    * (OnCallPageMerge) sends nothing while that page is open: its
    * notifications stand for both. The person answered it: this one is
    * answered with it. It is over without their answer - they escalated it,
@@ -1098,7 +1102,9 @@ const runPendingNotificationLog: RunPendingNotificationLogFunction = async (
     await UserOnCallLogService.takeOverMergedPage({
       userOnCallLogId: pendingNotificationLog.id!,
       statusMessage: getOnCallPageMergeTakenOverMessage({
-        policyName: mergedPageTakeOver.policyName,
+        policyName: mergedPageTakeOver.by?.name,
+        // A workflow's direct page pages them directly now (#8859).
+        isDirectPage: isOnCallDirectPage(pendingNotificationLog),
       }),
       executedNotificationRules: executedNotificationRules,
     });

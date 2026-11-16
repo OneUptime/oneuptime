@@ -16,6 +16,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import MonitorStepsColumnTransformer from "../../Types/Monitor/MonitorStepsColumnTransformer";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -362,7 +363,8 @@ export default class MonitorTest extends BaseModel {
   @Column({
     type: ColumnType.JSON,
     nullable: true,
-    transformer: MonitorSteps.getDatabaseTransformer(),
+    // A browser build declares it without the monitor types (issue #8821).
+    transformer: MonitorStepsColumnTransformer,
   })
   public monitorSteps?: MonitorSteps = undefined;
 

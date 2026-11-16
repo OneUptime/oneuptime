@@ -135,7 +135,8 @@ Der Gesamtstatus ist der schlechteste aktuelle Status der Monitore und Monitorgr
 | `resourceGroups` | Die Gruppen, mit `parentStatusPageGroupId` für verschachtelte Gruppen. |
 | `monitorStatuses` | Jeden Monitorstatus des Projekts, von der niedrigsten Priorität bis zur höchsten. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | Den aktuellen Status jeder Monitorgruppe auf der Seite und die Monitore darin. |
-| `notMonitoredResourceIds` | Die IDs der Ressourcen, die die Seite als **Nicht überwacht** zeigt: ein Monitor mit ausgeschalteter Überwachung oder eine Monitorgruppe, deren Monitore sie alle ausgeschaltet haben. Sie entscheiden keinen Status, und eine solche Gruppe hat keinen Eintrag in `monitorGroupCurrentStatuses`. |
+| `notMonitoredResourceIds` | Die IDs der Ressourcen, die die Seite als **Nicht überwacht** zeigt: ein Monitor mit ausgeschalteter Überwachung oder eine Monitorgruppe, deren Monitore sie alle ausgeschaltet haben. Die Liste enthält auch die Ressourcen in `notMonitoredYetResourceIds`. Sie entscheiden keinen Status, und eine solche Gruppe hat keinen Eintrag in `monitorGroupCurrentStatuses`. |
+| `notMonitoredYetResourceIds` | Die IDs der Ressourcen, die die Seite als **Noch nicht überwacht** zeigt: ein Monitor, den noch nichts geprüft hat und der noch im betriebsbereiten Status ist, in dem jeder Monitor beginnt, oder eine Monitorgruppe, von deren Monitoren noch keiner geprüft wurde. |
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Woraus die Verfügbarkeitsbalken gezeichnet werden, und die Balkenfarbregeln der Seite. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Die nicht behobenen Vorfälle, die die Seite zeigt, ihre öffentlichen Notizen und Statuswechsel sowie die Vorfallstatus des Projekts. |
 | `timelineIncidents` | Die Vorfälle im Zeitfenster der Verfügbarkeitsbalken, behobene eingeschlossen, für die Tooltips der Balken. |
@@ -197,7 +198,7 @@ Die Antwort:
 | `activeIncidents` | Die ungelösten Vorfälle, die die Seite zeigt, jeweils mit den `affectedResourceIds` der Ressourcen, die sie betreffen. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Die Wartungsereignisse, die laufen oder noch anstehen, jeweils mit ihren `affectedResourceIds`. |
 
-Der `currentStatus` einer Ressource ist `null`, wenn die Seite ihn nicht zeigt, und wenn `isMonitored` `false` ist: Nichts prüft die Ressource, weil die Überwachung ihres Monitors ausgeschaltet ist oder jeder Monitor ihrer Monitorgruppe sie ausgeschaltet hat, also zeigt die Seite sie als **Nicht überwacht**. `isUnderMaintenance` ist `true`, solange ein laufendes Ereignis einen der Monitore der Ressource oder einen Monitor ihrer Monitorgruppe nennt, gleich in welchem Status diese Monitore sind.
+Der `currentStatus` einer Ressource ist `null`, wenn die Seite ihn nicht zeigt, und wenn `isMonitored` `false` ist: Nichts prüft die Ressource, weil die Überwachung ihres Monitors ausgeschaltet ist oder jeder Monitor ihrer Monitorgruppe sie ausgeschaltet hat, also zeigt die Seite sie als **Nicht überwacht**, oder noch nichts hat sie geprüft, also zeigt die Seite sie als **Noch nicht überwacht**. `isUnderMaintenance` ist `true`, solange ein laufendes Ereignis einen der Monitore der Ressource oder einen Monitor ihrer Monitorgruppe nennt, gleich in welchem Status diese Monitore sind.
 
 ## Verfügbarkeit für einen Zeitraum
 

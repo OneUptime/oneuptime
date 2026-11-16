@@ -1,32 +1,38 @@
 import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import User from "../../../Models/DatabaseModels/User";
 import UserOnCallLog from "../../../Models/DatabaseModels/UserOnCallLog";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
+  OnCallPageCoverKind,
+  OnCallPageCoverName,
+  getOnCallPageCoverKind,
   isOnCallPageACover,
   isOnCallPageMergeable,
+  readOnCallPageMergedLine,
 } from "../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
 import OnCallDutyPolicyExecutionLogService from "../../Services/OnCallDutyPolicyExecutionLogService";
 import UserOnCallLogService from "../../Services/UserOnCallLogService";
+import UserService from "../../Services/UserService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 /*
- * ONE PAGE FOR SOMEBODY TWO POLICIES PAGE ABOUT ONE RECORD, ON THE SERVER
- * (issue #7837).
+ * ONE PAGE FOR SOMEBODY TWO PAGES REACH ABOUT ONE RECORD, ON THE SERVER
+ * (issues #7837, #8859).
  *
  * What a merged page is, which pages merge and into which, and why, is in
  * Types/OnCallDutyPolicy/OnCallPageMerge. This reads and writes it:
  *
- *   - findCovers: as a level pages its people
- *     (OnCallDutyPolicyEscalationRuleService), the open page each of them has
- *     from another policy's run about the same record, which their page in
+ *   - findCovers: as a level - or a workflow's direct page - pages its
+ *     people (OnCallDutyPolicyEscalationRuleService), the open page each of
+ *     them has from another run about the same record, which their page in
  *     this run is merged into - one read for the level;
  *   - readMergedPage: each minute (UserOnCallLog:ExecutePendingExecutions),
  *     where the page a merged page stands on is: still open, answered by its
@@ -60,16 +66,20 @@ export interface OnCallPageMergeRecordOf {
 }
 
 /*
- * A person's open page from another policy's run, which their page in this
- * run is merged into.
+ * A person's open page from another run, which their page in this run is
+ * merged into.
  */
 export interface OnCallPageCover {
   // Its log: the page a merged page stands on.
   userOnCallLogId: ObjectID;
   // Its run.
   executionLogId: ObjectID;
-  // Its policy's name, for the merged page's line; null when it has none.
-  policyName: string | null;
+  /*
+   * What the merged page's line names it by: its policy - with no name for
+   * one that has none - the person who sent it from a chat, or the workflow
+   * whose direct page it is (#8859).
+   */
+  by: OnCallPageCoverName;
 }
 
 // Where the page a merged page stands on is, read each minute.
@@ -96,8 +106,13 @@ export interface OnCallMergedPageReading {
    * is sent again, rather than risk a page that never reached them.
    */
   claimsSent: JSONObject;
-  // The other page's policy, for the line of a page that takes it over.
-  policyName: string | null;
+  /*
+   * What the other page is, for the line of a page that takes it over: its
+   * policy, or who or which workflow sent it (#8859) - read from the page
+   * itself, or, when it is gone, from what the merged page's own line named
+   * it. Null when neither says.
+   */
+  by: OnCallPageCoverName | null;
 }
 
 // The statuses of a person's page whose notifications are still going out.
@@ -126,6 +141,17 @@ const RUN_KIND_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
   userNotificationEventType: true,
 };
 
+/*
+ * A run read as a page that may stand for another: its kind, and the name a
+ * workflow's direct page is named by (#8859), as the run recorded it. Who
+ * sent a page from a chat is read apart (readPagerNames): a read joins one
+ * relation deep, and the run is already one.
+ */
+const COVER_RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
+  ...RUN_KIND_SELECT,
+  triggeredByWorkflowName: true,
+};
+
 // A page that may still stand for another, read with its run and policy.
 const COVER_SELECT: Select<UserOnCallLog> = {
   _id: true,
@@ -138,7 +164,7 @@ const COVER_SELECT: Select<UserOnCallLog> = {
   onCallDutyPolicy: {
     name: true,
   },
-  onCallDutyPolicyExecutionLog: RUN_KIND_SELECT,
+  onCallDutyPolicyExecutionLog: COVER_RUN_SELECT,
 };
 
 export default class OnCallPageMerge {
@@ -180,6 +206,105 @@ export default class OnCallPageMerge {
   }
 
   /*
+   * What a merged page's line names a page by, read with its run and policy
+   * (COVER_SELECT): its policy's name; for a direct page (#8859), who sent it
+   * from a chat - by `pagerNames`, read for the pages at once
+   * (readPagerNames) - or the workflow whose step sent it. Null as the name
+   * when there is none to read.
+   */
+  public static getCoverName(
+    page: UserOnCallLog,
+    pagerNames?: Map<string, string> | undefined,
+  ): OnCallPageCoverName {
+    const run: OnCallDutyPolicyExecutionLog | undefined =
+      page.onCallDutyPolicyExecutionLog;
+
+    const kind: OnCallPageCoverKind = run
+      ? getOnCallPageCoverKind(run)
+      : OnCallPageCoverKind.Policy;
+
+    if (kind === OnCallPageCoverKind.PersonPage) {
+      return {
+        kind: kind,
+        name:
+          (run?.triggeredByUserId &&
+            pagerNames?.get(this.getUserKey(run.triggeredByUserId))) ||
+          null,
+      };
+    }
+
+    if (kind === OnCallPageCoverKind.WorkflowPage) {
+      return {
+        kind: kind,
+        name: run?.triggeredByWorkflowName?.toString().trim() || null,
+      };
+    }
+
+    return {
+      kind: kind,
+      name: page.onCallDutyPolicy?.name?.toString().trim() || null,
+    };
+  }
+
+  /*
+   * Who sent each of these pages from a chat (#8859), by their user id: their
+   * name, or else their email address. One read for them all, as OneUptime;
+   * none for no page sent from a chat. Throws as the database does.
+   */
+  public static async readPagerNames(
+    pages: Array<UserOnCallLog>,
+  ): Promise<Map<string, string>> {
+    const names: Map<string, string> = new Map<string, string>();
+    const userIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const page of pages) {
+      const run: OnCallDutyPolicyExecutionLog | undefined =
+        page.onCallDutyPolicyExecutionLog;
+
+      if (
+        run?.triggeredByUserId &&
+        getOnCallPageCoverKind(run) === OnCallPageCoverKind.PersonPage
+      ) {
+        userIds.set(
+          this.getUserKey(run.triggeredByUserId),
+          new ObjectID(run.triggeredByUserId.toString()),
+        );
+      }
+    }
+
+    if (userIds.size === 0) {
+      return names;
+    }
+
+    const users: Array<User> = await UserService.findBy({
+      query: {
+        _id: QueryHelper.any([...userIds.values()]),
+      },
+      select: {
+        _id: true,
+        name: true,
+        email: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const user of users) {
+      const name: string =
+        user.name?.toString().trim() || user.email?.toString().trim() || "";
+
+      if (user.id && name) {
+        names.set(this.getUserKey(user.id), name);
+      }
+    }
+
+    return names;
+  }
+
+  /*
    * Whether a person's page, read with its run, is open (see
    * OnCallPageMerge's header): not answered, not escalated and not failed,
    * and its notifications still going out, or its run still paging.
@@ -207,10 +332,12 @@ export default class OnCallPageMerge {
    * THE OPEN PAGES A LEVEL MERGES ITS PEOPLE'S PAGES INTO, BY PERSON.
    *
    * For a run whose pages may be merged (isOnCallPageMergeable): each of
-   * `userIds` who has an open page (isOpen) from another policy's run about
-   * the same record, of the same kind, that may stand for theirs here
-   * (isOnCallPageACover) - their first, when they have two. Nobody for
-   * any other run, a page about no record, or when a read fails.
+   * `userIds` who has an open page (isOpen) from another run about the same
+   * record, of the same kind, that may stand for theirs here
+   * (isOnCallPageACover) - their first, when they have two. A direct page
+   * that names nobody who sent it is passed over: the merged page's line
+   * would have nobody to name (#8859). Nobody for any other run, a page
+   * about no record, or when a read fails.
    */
   @CaptureSpan()
   public static async findCovers(data: {
@@ -276,6 +403,9 @@ export default class OnCallPageMerge {
 
       const runKey: string = data.executionLogId.toString().toLowerCase();
 
+      // Who sent the pages among them sent from a chat (#8859): one read.
+      const pagerNames: Map<string, string> = await this.readPagerNames(pages);
+
       for (const page of byFirst) {
         if (!page.id || !page.userId || !page.onCallDutyPolicyExecutionLogId) {
           continue;
@@ -307,10 +437,16 @@ export default class OnCallPageMerge {
           continue;
         }
 
+        const by: OnCallPageCoverName = this.getCoverName(page, pagerNames);
+
+        if (by.kind !== OnCallPageCoverKind.Policy && !by.name) {
+          continue;
+        }
+
         covers.set(userKey, {
           userOnCallLogId: page.id,
           executionLogId: page.onCallDutyPolicyExecutionLogId,
-          policyName: page.onCallDutyPolicy?.name?.toString().trim() || null,
+          by: by,
         });
       }
 
@@ -341,6 +477,11 @@ export default class OnCallPageMerge {
    * it failed. A page that cannot be found is over: the merged page pages
    * its person itself, from the start. Throws as the database does: the
    * worker tries again.
+   *
+   * What the other page is named by, for the line of a take-over: its
+   * policy's name as it is now, a workflow's as its run recorded it - and,
+   * for a page sent from a chat, or one that is gone, what the merged page's
+   * own line named it as it was merged (#8859): nothing more is read for it.
    */
   @CaptureSpan()
   public static async readMergedPage(
@@ -357,10 +498,7 @@ export default class OnCallPageMerge {
             onCallDutyPolicy: {
               name: true,
             },
-            onCallDutyPolicyExecutionLog: {
-              _id: true,
-              status: true,
-            },
+            onCallDutyPolicyExecutionLog: COVER_RUN_SELECT,
           },
           props: {
             isRoot: true,
@@ -368,23 +506,29 @@ export default class OnCallPageMerge {
         })
       : null;
 
+    /*
+     * Gone, or never named: what the merged page's own line named it by is
+     * what the line of its take-over names (#8859).
+     */
     if (!cover) {
       return {
         standing: OnCallMergedPageStanding.TakesOver,
         claimsSent: {},
-        policyName: null,
+        by: readOnCallPageMergedLine(page.statusMessage),
       };
     }
 
-    const policyName: string | null =
-      cover.onCallDutyPolicy?.name?.toString().trim() || null;
+    const read: OnCallPageCoverName = this.getCoverName(cover);
+    const by: OnCallPageCoverName = read.name
+      ? read
+      : readOnCallPageMergedLine(page.statusMessage) || read;
 
     if (cover.acknowledgedAt) {
       return {
         standing: OnCallMergedPageStanding.Answered,
         acknowledgedAt: new Date(cover.acknowledgedAt),
         claimsSent: {},
-        policyName: policyName,
+        by: by,
       };
     }
 
@@ -392,7 +536,7 @@ export default class OnCallPageMerge {
       return {
         standing: OnCallMergedPageStanding.Waits,
         claimsSent: {},
-        policyName: policyName,
+        by: by,
       };
     }
 
@@ -405,7 +549,7 @@ export default class OnCallPageMerge {
               ...((cover.executedNotificationRules as JSONObject | undefined) ||
                 {}),
             },
-      policyName: policyName,
+      by: by,
     };
   }
 

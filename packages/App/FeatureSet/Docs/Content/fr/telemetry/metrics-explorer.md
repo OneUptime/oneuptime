@@ -86,6 +86,8 @@ Cliquez sur **Ajouter une formule** et écrivez la **Formule** avec les variable
 
 Une variable s'écrit avec ou sans son `$`, en majuscules ou en minuscules. Une formule qui nomme une requête que vous n'avez pas définie le signale au lieu de tracer.
 
+Une requête qui compte ce qui s'est passé, la somme ou le nombre d'un compteur ou d'un histogramme, n'a aucun point de données dans un pas où rien ne s'est passé, donc une formule la lit comme 0 à cet endroit : `$b / $a * 100` trace 0 dans un pas sans échec. Une jauge, une moyenne ou un centile sans point de données est inconnu, et la formule laisse ce pas de côté. Elle laisse aussi de côté un pas dans lequel aucune de ses requêtes n'a de point de données, et un pas terminé il y a moins d'une minute, dont les derniers points de données peuvent encore être en route.
+
 ## Explorer autour d'un graphique
 
 Les boutons au-dessus des graphiques agissent sur la plage de temps que vous regardez :

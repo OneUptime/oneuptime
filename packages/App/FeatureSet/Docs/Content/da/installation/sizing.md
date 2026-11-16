@@ -82,6 +82,8 @@ Lageret vokser **lineært med opbevaringen**: Et vindue på 90 dage koster cirka
 
 PostgreSQL gemmer din konfiguration og driftstilstand, ikke telemetri, så det vokser langsomt og forbliver lille ved siden af ClickHouse. Selv store installationer ligger typisk i titalsvis af GB. Standardvolumenet på **25 Gi** er fint til små installationer; planlæg 50–100 GB til større, med plads til historikken for hændelser og alarmer.
 
+Løste hændelser og advarsler bliver, indtil hvert projekt vælger, hvor længe de skal beholdes. For at holde alle projekter til en grænse skal du indstille **Behold i højst** under **Admin Dashboard → Indstillinger → Dataopbevaring**: Se [En grænse for hele serveren](/docs/incidents/settings#en-grænse-for-hele-serveren).
+
 Med mange replikaer af app, workers og sonder kan databaseforbindelserne slippe op før lageret. Hver pod åbner som standard op til 50 forbindelser, og det medfølgende PostgreSQL tillader 500. Netop derfor indeholder chartet en valgfri connection pooler, **PgBouncer** (`pgbouncer.enabled`): Slå den til for installationer med mange replikaer.
 
 ## Valkey – cache, køer og sessioner

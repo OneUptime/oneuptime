@@ -197,6 +197,59 @@ describe("Ask AI's who_is_told and the When this goes down card", () => {
     },
   );
 
+  /*
+   * An owner the on-call page reaches first is not emailed as an owner too
+   * (#8860): the card and Ask AI leave out the same owner, say whom the
+   * email still reaches in the same words, and say why in the same terms -
+   * an owner, or a Project Owner.
+   */
+  test.each(rows(EVENT_SOURCES))(
+    "what opens, emailing %s, one of whom the page reaches first: both leave out the same owner, and say why alike",
+    (source: WhoIsToldOwnersSource) => {
+      const role: string =
+        source === WhoIsToldOwnersSource.ProjectOwners
+          ? "a Project Owner"
+          : "an owner";
+      const result: WhoIsToldResult = opening({
+        ...owners(source, ["Ben Ito"]),
+        pagedOwners: [{ userId: "u1", name: "Ana Lopez" }],
+      });
+      const parts: Array<string> = toolSays(result, OPENS_LEAD).split(
+        " - not ",
+      );
+
+      expect(parts).toHaveLength(2);
+      expect(cardSays(result)).toBe(`It emails ${parts[0]}.`);
+      expect(cardSays(result)).not.toContain("Ana Lopez");
+      expect(getWhoIsToldSentences(result, english)).toContain(
+        `Ana Lopez is paged, so isn't emailed as ${role} too.`,
+      );
+      expect(parts[1]).toBe(
+        `Ana Lopez, whom the on-call page reaches first, so is not emailed as ${role} too`,
+      );
+    },
+  );
+
+  test("every owner the page reaches first: the card says no email, and Ask AI that nobody is emailed as an owner", () => {
+    const result: WhoIsToldResult = opening({
+      ...owners(WhoIsToldOwnersSource.ProjectOwners, []),
+      pagedOwners: [{ userId: "u1", name: "Me Myself" }],
+    });
+    const sentences: Array<string> = getWhoIsToldSentences(result, english);
+
+    expect(
+      sentences.some((item: string): boolean => {
+        return item.startsWith("It emails ");
+      }),
+    ).toBe(false);
+    expect(sentences).toContain(
+      "Me Myself is paged, so isn't emailed as a Project Owner too.",
+    );
+    expect(toolSays(result, OPENS_LEAD)).toBe(
+      "nobody as an owner: Me Myself, whom the on-call page reaches first, so is not emailed as a Project Owner too",
+    );
+  });
+
   test("the OwnerRules source is never said as the project's owners, on the card or by Ask AI", () => {
     const result: WhoIsToldResult = opening(
       owners(WhoIsToldOwnersSource.OwnerRules, ["Dana Reyes"]),

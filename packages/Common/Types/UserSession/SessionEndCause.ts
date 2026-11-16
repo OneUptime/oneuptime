@@ -6,7 +6,8 @@
  * master admin set, Types/UserSession/SessionLength.ts), or its refresh
  * token runs out after 30 days without use; or when OneUptime revokes it -
  * a new password, a blocked account, two factor authentication reset or
- * required by a server admin.
+ * required by a server admin, or a server admin signing out everyone who
+ * signed in without SSO while the server requires it.
  *
  * Each cause is revoked with the words sessions have always been revoked
  * with (UserSession.revokedReason, a ShortText column): a refresh that comes
@@ -26,6 +27,11 @@ export enum SessionEndCause {
   AccountBlocked = "AccountBlocked",
   TwoFactorRequired = "TwoFactorRequired",
   TwoFactorReset = "TwoFactorReset",
+  /*
+   * A master admin signed out everyone who signed in without SSO while the
+   * server requires it (UserSessionService.endSessionsSignedInWithoutSso).
+   */
+  SignedInWithoutSso = "SignedInWithoutSso",
   // A revocation that names none of the causes above.
   Other = "Other",
 }
@@ -52,6 +58,7 @@ export const SESSION_END_CAUSE_REVOKED_REASONS: Readonly<
   [SessionEndCause.AccountBlocked]: "User blocked",
   [SessionEndCause.TwoFactorRequired]: "Two factor auth required by admin",
   [SessionEndCause.TwoFactorReset]: "Two factor auth reset by admin",
+  [SessionEndCause.SignedInWithoutSso]: "Signed in without SSO",
 };
 
 // The words a session revoked for `cause` is kept with.

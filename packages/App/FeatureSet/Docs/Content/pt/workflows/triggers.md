@@ -73,6 +73,8 @@ curl -X POST "https://oneuptime.example.com/workflow/trigger/<secret key>" \
 
 A URL aceita `GET` e `POST`. Quem chama recebe uma confirmação rápida, `{"status": "Scheduled"}` — o workflow em si roda em segundo plano, então quem chama nunca vê o que ele faz. Uma chamada a um workflow desligado ou arquivado é recusada com HTTP 400 e o motivo.
 
+O Azure Event Grid, o Slack, o Microsoft Graph e o Okta verificam uma URL antes de entregar algo a ela. A URL responde a cada verificação como o serviço dela espera, como faz [a URL de um monitor de requisições recebidas](/docs/monitor/incoming-request-monitor#serviços-que-verificam-a-url-primeiro), e uma verificação não inicia nenhuma execução. Enquanto o workflow está desligado ou arquivado, uma verificação é recusada como uma chamada.
+
 ```mermaid title="O que acontece quando algo chama a URL do webhook"
 sequenceDiagram
     participant Caller as Sua ferramenta
@@ -94,7 +96,7 @@ sequenceDiagram
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | **Cabeçalhos da Requisição**      | Todos os cabeçalhos da requisição, pelo nome em minúsculas, como `content-type`.                                      |
 | **Parâmetros de consulta da requisição** | Os parâmetros da query string da URL, pelo nome.                                                                      |
-| **Corpo da Requisição**         | O corpo que quem chamou enviou. Um corpo JSON, enviado com `Content-Type: application/json`, pode ser lido campo a campo, assim como JSON enviado como texto simples, como o Amazon SNS o envia. |
+| **Corpo da Requisição**         | O corpo que quem chamou enviou. Um corpo JSON, enviado com `Content-Type: application/json` ou um tipo `+json` como os CloudEvents do Azure Event Grid, pode ser lido campo a campo, assim como JSON enviado como texto simples, como o Amazon SNS o envia. Qualquer outro texto simples é o próprio texto. |
 
 Leia um campo acrescentando o nome dele à referência, como em `{{local.components.webhook-1.returnValues.request-body.message}}`.
 

@@ -63,10 +63,14 @@ import {
   isOnCallPolicyStartedByHand,
 } from "Common/Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
 import {
+  OnCallPageCoverKind,
+  getOnCallPageMergedLine,
   getOnCallPageMergedMessage,
   isOnCallPageACover,
   isOnCallPageMergeable,
 } from "Common/Types/OnCallDutyPolicy/OnCallPageMerge";
+import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
+import { ON_CALL_DIRECT_PAGE_STATUSES_STILL_OUT } from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
 import { isOnCallPageLineReached } from "Common/Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import {
@@ -1458,6 +1462,7 @@ describe("when several policies page", () => {
   // Runs as the workers read them: who, or what, started each.
   const POLICY_ID: string = "a-policy";
   const PERSON_ID: string = "a-person";
+  const WORKFLOW_ID: string = "a-workflow";
   const startedByOneUptime: OnCallAcknowledgePageRun = {
     onCallDutyPolicyId: POLICY_ID,
   };
@@ -1544,10 +1549,69 @@ describe("when several policies page", () => {
       "The level still waits its minutes before the next level, as it does for anybody it paged. Answering that one page answers it for both policies. Within one policy, someone a level names twice, in person and through a team or a schedule, is paged once.",
     );
     expect(troubleshooting()).toContain(
-      "Someone on call in two of the policies the incident runs is paged once, by the first policy to reach them.",
+      "Someone on call in two of the policies the incident runs is paged once, by the first policy to reach them, and so is someone a policy and a page from Slack, Microsoft Teams or a workflow both reach.",
     );
     expect(troubleshooting()).toContain(
-      "A person the second policy did not page again shows **Already Paged** in its **View Timeline**.",
+      "A person the second page did not page again shows **Already Paged** in its **View Timeline**.",
+    );
+  });
+
+  /*
+   * #8859: a page sent to people directly - from a chat, or by a
+   * workflow's paging block - stands for a policy's page of them, and a
+   * workflow's page of somebody another page is paging is merged into it.
+   */
+  it("pages someone a direct page and a policy both reach once", () => {
+    const personPage: OnCallAcknowledgePageRun = {
+      triggeredByUserId: PERSON_ID,
+    };
+    const workflowPage: OnCallAcknowledgePageRun = {
+      triggeredByWorkflowId: WORKFLOW_ID,
+    };
+
+    // A page sent from a chat stands for a policy's page, and is never merged.
+    expect(isOnCallPageACover(personPage)).toBe(true);
+    expect(isOnCallPageMergeable(personPage)).toBe(false);
+    // A workflow's page stands for one, and is merged into one.
+    expect(isOnCallPageACover(workflowPage)).toBe(true);
+    expect(isOnCallPageMergeable(workflowPage)).toBe(true);
+
+    // The line names who sent the page, or the workflow.
+    expect(
+      getOnCallPageMergedLine({
+        kind: OnCallPageCoverKind.PersonPage,
+        name: "Jane Doe",
+      }),
+    ).toBe(
+      "Already paged directly about this by Jane Doe, so not paged again.",
+    );
+    expect(
+      getOnCallPageMergedLine({
+        kind: OnCallPageCoverKind.WorkflowPage,
+        name: "Nightly Checks",
+      }),
+    ).toBe(
+      "Already paged about this through the workflow Nightly Checks, so not paged again.",
+    );
+
+    // A direct page reads covers too, and stays open while a page of it waits.
+    const levels: string = readCommonSource(
+      "Server/Services/OnCallDutyPolicyEscalationRuleService.ts",
+    );
+    const directPage: string = levels.slice(
+      levels.indexOf("public async startDirectPage("),
+      levels.indexOf("private static assertTriggerMatchesEventType("),
+    );
+    expect(directPage).toContain("await this.pageTargets(");
+    expect(
+      levels.slice(levels.indexOf("private async pageTargets(")),
+    ).not.toContain("const covers: Map<string, OnCallPageCover> = ruleId");
+    expect(ON_CALL_DIRECT_PAGE_STATUSES_STILL_OUT).toContain(
+      UserNotificationExecutionStatus.AlreadyPaged,
+    );
+
+    expect(severalPolicies()).toContain(
+      "- A page sent to people directly counts too. When a policy's level reaches someone a page from Slack or Microsoft Teams, or a workflow's paging block, is paging about it already, it does not page them again: its execution log names who sent that page, or the workflow. A workflow's paging block does not page again someone a policy or another page is paging already, either.",
     );
   });
 
@@ -1571,10 +1635,19 @@ describe("when several policies page", () => {
 
     expect(isOnCallPageMergeable(aTestPage)).toBe(false);
 
-    // What a page is merged into: a responder's page of a policy.
+    /*
+     * What a page is merged into: a responder's page - a policy's, or one
+     * sent to people directly (#8859) - never an observer's.
+     */
     expect(isOnCallPageACover(startedByHand)).toBe(true);
     expect(isOnCallPageACover(anObserverPage)).toBe(false);
-    expect(isOnCallPageACover({ triggeredByUserId: PERSON_ID })).toBe(false);
+    expect(isOnCallPageACover({ triggeredByUserId: PERSON_ID })).toBe(true);
+    expect(
+      isOnCallPageACover({
+        triggeredByUserId: PERSON_ID,
+        isObserverPage: true,
+      }),
+    ).toBe(false);
 
     expect(severalPolicies()).toContain(
       "A page again, a policy started by hand and a page someone sent from Slack or Microsoft Teams always page their people themselves, even someone another policy is paging. An observer's page and a responder's page are never merged.",
@@ -1594,7 +1667,7 @@ describe("when several policies page", () => {
     ).toContain("await this.answerMergedPages(page);");
 
     expect(severalPolicies()).toContain(
-      "Nobody misses a page for being paged once. Their page can end without their answer: they escalate it from one of its messages, which escalates that policy only, it cannot be sent, or its policy stops. Then the other policy pages them itself within a minute, without sending again what reached them. **Escalate** on the incident's page or in the mobile app escalates both.",
+      "Nobody misses a page for being paged once. Their page can end without their answer: they escalate it from one of its messages, which escalates that page only, it cannot be sent, or it stops. Then the other policy, or the workflow's block, pages them itself within a minute, without sending again what reached them. **Escalate** on the incident's page or in the mobile app escalates both.",
     );
   });
 

@@ -84,7 +84,7 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 > 이 URL을 아는 사람은 누구나 모니터를 정상으로 표시할 수 있으므로 비밀로 다루세요. 유출되었다면 모니터의 **설정** 페이지를 열어 **수신 요청 비밀 키 재설정** 을 클릭한 다음, 모든 발신자를 업데이트하세요. 모니터 개요에는 최신 요청이 로그에 보관되는 그대로 표시됩니다. 비밀과 개인 데이터는 마스킹되고, **요청 내용 보관** 이 꺼져 있으면 헤더와 본문은 표시되지 않습니다. 마스킹은 알고 있는 이름과 패턴만 찾아내므로 이 엔드포인트로 API 키나 토큰을 보내지 마세요.
 
 > [!IMPORTANT]
-> OneUptime은 즉시 빈 JSON 객체(`{}`)와 함께 `200` 으로 응답하고, 요청은 큐에서 처리합니다. 이 응답은 어떤 검증보다도 먼저 기록되므로, `200` 은 요청이 받아들여졌다는 확인이 **아닙니다**. 잘못된 비밀 키, 삭제된 모니터, 비활성화된 모니터도 모두 `200` 을 반환합니다. 요청이 제대로 도착하는지는 모니터 자체의 타임라인에서 확인하세요. 유일한 예외는 모든 요청에 시크릿을 요구하는 프로젝트입니다. 시크릿이 없는 요청에는 `401`로 응답합니다.
+> OneUptime은 즉시 빈 JSON 객체(`{}`)와 함께 `200` 으로 응답하고, 요청은 큐에서 처리합니다. 이 응답은 어떤 검증보다도 먼저 기록되므로, `200` 은 요청이 받아들여졌다는 확인이 **아닙니다**. 잘못된 비밀 키, 삭제된 모니터, 비활성화된 모니터도 모두 `200` 을 반환합니다. 요청이 제대로 도착하는지는 모니터 자체의 타임라인에서 확인하세요. 모든 요청에 시크릿을 요구하는 프로젝트는 시크릿이 없는 요청에 `401`로 응답하고, 전송하기 전에 URL을 확인하는 서비스는 그 서비스가 기대하는 응답을 받습니다. [먼저 URL을 확인하는 서비스](#먼저-url을-확인하는-서비스)를 참고하세요.
 
 ### 요청 본문 보내기
 
@@ -94,7 +94,8 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 | --- | --- |
 | `application/json` | 파싱된 JSON. |
 | `application/x-www-form-urlencoded` | 파싱된 양식. 대괄호가 있는 키는 중첩되며(`alerts[0][status]=firing`), 모든 값은 문자열입니다. |
-| `text/plain` | 텍스트가 JSON 객체나 배열이면 파싱된 JSON. Amazon SNS가 메시지를 이렇게 보냅니다. 그 밖의 텍스트는 빈 본문이 됩니다. |
+| `text/plain` | 텍스트가 JSON 객체나 배열이면 파싱된 JSON. Amazon SNS가 메시지를 이렇게 보냅니다. 그 밖의 텍스트는 텍스트 그대로이므로, `backup failed: error 42` 를 보내면 기본 조건에서 모니터가 오프라인이 됩니다. |
+| `application/cloudevents+json` 또는 다른 `+json` 유형 | 파싱된 JSON. Azure Event Grid가 CloudEvents를 이렇게 전송합니다. |
 | 그 밖의 유형 또는 없음 | 빈 본문(`{}`). 따라서 어떤 `requestBody` 참조도 해석되지 않으며, 템플릿에서는 그대로 남습니다. |
 
 본문은 최대 50 MB까지 받으며, 그보다 크면 `413` 으로 거부됩니다. 본문을 `Content-Encoding: gzip` 으로 압축하지 마세요. JSON으로 저장되지 않아 그 안의 경로가 해석되지 않습니다.
@@ -383,9 +384,25 @@ flowchart TB
 
 전체 Alertmanager 구성은 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)를 참고하세요. Grafana는 [Grafana](/docs/integrations/grafana)를 참고하세요.
 
+## 먼저 URL을 확인하는 서비스
+
+어떤 서비스는 새 엔드포인트에 무엇이든 전송하기 전에 그 엔드포인트를 확인합니다. 엔드포인트에 요청을 보내고, 기대한 대로 응답할 때에만 전송을 시작합니다. OneUptime이 이 확인에 직접 응답하므로, 서비스에 모니터의 **Heartbeat URL** 만 붙여 넣으면 됩니다.
+
+| 서비스 | 확인 요청 | OneUptime의 응답 |
+| --- | --- | --- |
+| Azure Event Grid, Event Grid 스키마 | `SubscriptionValidationEvent` | 그 `validationCode` 를 `validationResponse` 로 |
+| Azure Event Grid, CloudEvents 스키마 | 출처를 밝히는 `OPTIONS` 요청 | 그 출처를 담은 `WebHook-Allowed-Origin` |
+| Slack Events API | `url_verification` 요청 | 그 `challenge` |
+| Microsoft Graph 변경 알림 | `validationToken` 이 있는 `POST` | 토큰을 `text/plain` 으로 |
+| Okta 이벤트 후크 | `X-Okta-Verification-Challenge` 가 있는 `GET` | 헤더 값을 `verification` 으로 |
+
+확인에는 모니터 자체의 URL만 응답하며, 요청이 인정될 때에만 응답합니다. 모든 요청에 시크릿을 요구하는 프로젝트에서는 시크릿을 보내지 않는 확인이 다른 요청처럼 `401` 로 거부되므로, 서비스가 헤더로 시크릿을 보내야 합니다. 응답에는 서비스가 돌려받으려고 보낸 값만 담기고 요청의 다른 부분은 담기지 않으며, 그 값이 서비스가 보내는 형식일 때에만 담깁니다.
+
+확인은 다른 요청처럼 모니터에 도착하므로 모니터의 조건이 확인을 평가하고, 모니터의 **개요** 에 표시됩니다. CloudEvents 확인에는 응답만 합니다. 프로브의 수신 요청 Ingress는 확인에도 다른 요청처럼 `{}` 로 응답하므로, 이런 서비스는 OneUptime 자체의 URL로 보내세요.
+
 ## Amazon SNS 또는 Azure Event Grid 구독하기
 
-Amazon SNS와 Azure Event Grid는 서비스가 새 엔드포인트로 보내는 링크를 누군가 열어 구독을 확인할 때까지 그 엔드포인트에 아무것도 보내지 않습니다. 그 요청이 도착하면 모니터 **개요** 의 **모니터 요약** 카드에 서비스가 무엇을 기다리는지, 토픽, 그리고 링크를 새 탭에서 여는 버튼 하나가 표시됩니다.
+Amazon SNS는 SNS가 보내는 링크를 누군가 열어 구독을 확인할 때까지 새 엔드포인트에 아무것도 보내지 않습니다. Azure Event Grid도 확인에 응답하지 않는 엔드포인트에는 이런 링크를 보내는데, OneUptime은 그 확인에 응답합니다. 아직 열지 않은 링크가 도착하면 모니터 **개요** 의 **모니터 요약** 카드에 서비스가 무엇을 기다리는지, 토픽, 그리고 링크를 새 탭에서 여는 버튼 하나가 표시됩니다.
 
 | 서비스 | 요청 | 버튼 | 링크 유효 기간 |
 | --- | --- | --- | --- |
@@ -411,11 +428,11 @@ SNS는 메시지를 `text/plain` 으로 표시된 JSON으로 보내고, 모니�
 ### Azure Event Grid
 
 :::steps
-1. Azure portal에서 이벤트를 받으려는 리소스를 열고 이벤트 구독을 추가합니다. 이벤트 스키마로 **Event Grid Schema** 를, 엔드포인트 유형으로 **Web Hook** 을, 엔드포인트로 모니터의 **Heartbeat URL** 을 선택합니다.
-2. 10분 안에 모니터의 **개요** 를 열고 **모니터 요약** 카드에서 **구독 검증** 을 클릭합니다.
+1. Azure portal에서 이벤트를 받으려는 리소스를 열고 이벤트 구독을 추가합니다. 이벤트 스키마로 **Event Grid Schema** 또는 **Cloud Event Schema v1.0** 를, 엔드포인트 유형으로 **Web Hook** 을, 엔드포인트로 모니터의 **Heartbeat URL** 을 선택합니다.
+2. 이벤트 구독을 만듭니다. OneUptime이 Event Grid의 확인에 응답하므로, 구독은 만들어지면서 검증되고 이벤트가 도착하기 시작합니다.
 :::
 
-Event Grid는 코드를 그대로 돌려보내는 엔드포인트나, 소유자가 Event Grid가 보낸 링크를 여는 엔드포인트를 검증합니다. OneUptime은 모든 요청에 빈 `200` 으로 응답하므로 링크를 여는 방법을 써야 합니다. 링크는 포트 553의 Event Grid를 가리키므로, 브라우저 앞단의 방화벽이 이 포트를 허용해야 합니다. 그 전에 10분이 지나면 이벤트 구독이 실패합니다. 이벤트 구독을 다시 만드세요.
+Event Grid는 코드를 그대로 돌려보내는 엔드포인트나, 소유자가 Event Grid가 보낸 링크를 여는 엔드포인트를 검증합니다. OneUptime이 코드를 돌려보내므로, **모니터 요약** 카드는 OneUptime이 응답하지 않은 검증에만 **구독 검증** 을 제공합니다. 그때는 10분 안에 여세요. 링크는 포트 553의 Event Grid를 가리키므로, 브라우저 앞단의 방화벽이 이 포트를 허용해야 합니다. 그 전에 10분이 지나면 이벤트 구독이 실패합니다. 이벤트 구독을 다시 만드세요.
 
 ## 모범 사례
 
@@ -444,7 +461,11 @@ Event Grid는 코드를 그대로 돌려보내는 엔드포인트나, 소유자�
 :::
 
 :::details 요청 본문 필터가 일치하지 않습니다
-`Content-Type: application/json` 을 보내고, 값을 압축된 JSON으로 쓰세요. `"status":"firing"` 처럼 콜론 뒤에 공백이 없어야 합니다. JSON이나 양식 콘텐츠 유형이 없으면 본문을 파싱하지 않습니다. 예외는 `text/plain` 으로 보낸 JSON뿐입니다.
+`Content-Type: application/json` 을 보내고, 값을 압축된 JSON으로 쓰세요. `"status":"firing"` 처럼 콜론 뒤에 공백이 없어야 합니다. JSON, 양식, `text/plain` 콘텐츠 유형이 없으면 본문은 비어 있고, 본문 필터는 일치하지 않습니다.
+:::
+
+:::details 서비스가 URL이 확인에 응답하지 않았다고 알립니다
+서비스에 프로브가 아니라 OneUptime 자체에 있는 모니터의 **Heartbeat URL** 을 주세요. 프로젝트가 모든 요청에 시크릿을 요구하면, 서비스가 시크릿을 보내지 않는 한 확인은 `401` 로 거부됩니다. 그런 다음 서비스가 URL을 다시 확인하게 하세요. 바로 응답합니다.
 :::
 
 :::details 요청 헤더 필터가 일치하지 않습니다

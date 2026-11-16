@@ -94,6 +94,12 @@ export interface ComponentProps {
    * monitored, in gray.
    */
   isNotMonitored?: boolean | undefined;
+  /*
+   * One of those that nothing has checked yet (the overview's
+   * notMonitoredYetResourceIds, issue #8899): its Operational is only the
+   * status every monitor is created in. It says Not monitored yet.
+   */
+  isNotMonitoredYet?: boolean | undefined;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
@@ -172,7 +178,9 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           data-testid="resource-not-monitored"
           {...getStatusTextProps(NOT_MONITORED_STATUS_COLOR.toString())}
         >
-          {t("overview.notMonitored")}
+          {props.isNotMonitoredYet
+            ? t("overview.notMonitoredYet")
+            : t("overview.notMonitored")}
         </div>
       );
     }

@@ -507,15 +507,23 @@ export default class FormDomain extends BaseModel {
 
   @ColumnAccessControl({
     create: [...CREATE_PERMISSIONS],
-    read: [...READ_PERMISSIONS],
+    /*
+     * Write-only: nobody reads the key back through the API - not a Viewer,
+     * not the people who may change it. It is written with the certificate
+     * and kept encrypted at rest; nginx reads it as OneUptime to serve the
+     * domain (Nginx/Jobs/WriteCustomCertsToDisk), and the edit form leaves
+     * it blank, keeping the stored one (ModelForm's write-only fields).
+     */
+    read: [],
     update: [...UPDATE_PERMISSIONS],
   })
   @TableColumn({
     secret: true,
+    encrypted: true,
     type: TableColumnType.VeryLongText,
     title: "Custom Certificate Key",
     description:
-      "The custom certificate's private key, in PEM format. Used while isCustomCertificate is on.",
+      "The custom certificate's private key, in PEM format, without a passphrase. Used while isCustomCertificate is on. Write-only: kept encrypted and never returned by the API.",
   })
   @Column({
     type: ColumnType.VeryLongText,

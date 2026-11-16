@@ -8,15 +8,13 @@ import NetworkSiteService, {
 import NetworkSiteTypeService, {
   SITE_TYPE_PURGE_SHAPE,
 } from "../../../Server/Services/NetworkSiteTypeService";
-import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import logger from "../../../Server/Utils/Logger";
 import { NETWORK_SITE_HIERARCHY_LOCK_NAMESPACE } from "../../../Server/Utils/NetworkSite/NetworkSiteHierarchyLock";
 import {
   LeafPurgeShape,
   NamingColumn,
 } from "../../../Server/Utils/NetworkSite/NetworkSiteLeafPurge";
-import LIMIT_MAX from "../../../Types/Database/LimitMax";
-import OneUptimeDate from "../../../Types/Date";
+import SoftDeletedRowsPurge from "../../../Server/Utils/Retention/SoftDeletedRowsPurge";
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
 import {
@@ -93,27 +91,22 @@ const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../../..");
 const RETENTION_JOB_PATH: string =
   "packages/App/FeatureSet/Workers/Jobs/HardDelete/HardDeleteItemsInDatabase.ts";
 
+const SOFT_DELETED_ROWS_PURGE_PATH: string =
+  "packages/Common/Server/Utils/Retention/SoftDeletedRowsPurge.ts";
+
 // Ends a purge loop that does not end, instead of hanging the suite.
 const MAX_PURGE_CALLS: number = 20;
 
 /*
- * The retention job's own call, as HardDeleteItemsInDatabase makes it (the
- * test below holds the two together): every row deleted more than 30 days
- * ago, as OneUptime, LIMIT_MAX at a time.
+ * The retention job's own call, the very one it makes (SoftDeletedRowsPurge,
+ * which HardDeleteItemsInDatabase runs; the test below holds the two
+ * together): every row deleted more than 30 days ago, as OneUptime, 1000 at
+ * a time (SOFT_DELETED_ROWS_PURGE_BATCH_SIZE).
  */
 const purgeOnce: (service: DatabaseService<any>) => Promise<number> = async (
   service: DatabaseService<any>,
 ): Promise<number> => {
-  return await service.hardDeleteBy({
-    query: {
-      deletedAt: QueryHelper.lessThan(OneUptimeDate.getSomeDaysAgo(30)),
-    },
-    props: {
-      isRoot: true,
-    },
-    limit: LIMIT_MAX,
-    skip: 0,
-  });
+  return await SoftDeletedRowsPurge.purgeBatch(service);
 };
 
 /*
@@ -180,19 +173,30 @@ describe("The retention job the Postgres suite stands in for", () => {
       path.join(REPOSITORY_ROOT, RETENTION_JOB_PATH),
       "utf8",
     );
+    const purge: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, SOFT_DELETED_ROWS_PURGE_PATH),
+      "utf8",
+    );
 
-    // The soft-delete sweep, with the call purgeOnce makes and the loop purgeUntilDone runs.
+    // The soft-delete sweep, which hands every service to the purge purgeOnce calls.
     const sweep: string = job.slice(
       job.indexOf('"HardDelete:HardDeleteItemsInDatabase"'),
       job.indexOf('"HardDelete:HardDeleteOlderItemsInDatabase"'),
     );
 
     // Compared without whitespace or trailing commas, so a reformat changes nothing.
-    const code: string = sweep.replace(/\s+/g, "").replace(/,([)}\]])/g, "$1");
+    const code: (text: string) => string = (text: string): string => {
+      return text.replace(/\s+/g, "").replace(/,([)}\]])/g, "$1");
+    };
 
     expect(sweep.length).toBeGreaterThan(0);
-    expect(code).toContain(
-      "deletedCount=awaitservice.hardDeleteBy({query:{deletedAt:QueryHelper.lessThan(OneUptimeDate.getSomeDaysAgo(30))},props:{isRoot:true},limit:LIMIT_MAX,skip:0});}while(deletedCount>0);",
+    expect(code(sweep)).toContain(
+      "awaitSoftDeletedRowsPurge.run({services:Services",
+    );
+
+    // The loop purgeUntilDone runs: a batch at a time, until one removes nothing.
+    expect(code(purge)).toContain(
+      "constremoved:number=awaitthis.purgeBatch(data.service);purged+=removed;if(removed===0){return{purged:purged,isCutShort:false};}",
     );
   });
 });

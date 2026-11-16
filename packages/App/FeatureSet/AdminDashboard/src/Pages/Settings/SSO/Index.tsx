@@ -2,6 +2,7 @@ import AdminModelAPI from "../../../Utils/ModelAPI";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
+import SessionsWithoutSso from "./SessionsWithoutSso";
 import {
   MASTER_ADMIN_SIGN_IN_TEST_ID,
   OIDC_PROVIDERS_TABLE_ID,
@@ -100,6 +101,23 @@ const SsoSettings: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
 
   const globalConfigId: ObjectID = ObjectID.getZeroObjectID();
+
+  // Under the switch whichever way it is set: the master admins' way in.
+  const masterAdminSignIn: ReactElement = (
+    <div className="space-y-3" data-testid={MASTER_ADMIN_SIGN_IN_TEST_ID}>
+      <p className="text-sm text-gray-600">
+        {translator.translateText(REQUIRE_SSO_COPY.masterAdminSentence)}
+      </p>
+      <CopyableValueList
+        values={[
+          {
+            label: REQUIRE_SSO_COPY.masterAdminAddressLabel,
+            value: getMasterAdminSignInUrl(),
+          },
+        ]}
+      />
+    </div>
+  );
 
   return (
     <Page
@@ -389,23 +407,16 @@ const SsoSettings: FunctionComponent = (): ReactElement => {
             : REQUIRE_SSO_COPY.switchOffDescription;
         }}
         getConfirmation={getRequireSsoConfirmation}
-        getDetails={(): ReactElement => {
+        getDetails={(_item: GlobalConfig, isOn: boolean): ReactElement => {
           return (
-            <div
-              className="space-y-3"
-              data-testid={MASTER_ADMIN_SIGN_IN_TEST_ID}
-            >
-              <p className="text-sm text-gray-600">
-                {translator.translateText(REQUIRE_SSO_COPY.masterAdminSentence)}
-              </p>
-              <CopyableValueList
-                values={[
-                  {
-                    label: REQUIRE_SSO_COPY.masterAdminAddressLabel,
-                    value: getMasterAdminSignInUrl(),
-                  },
-                ]}
-              />
+            <div className="space-y-3">
+              {/*
+               * While SSO is required: the people still signed in without
+               * it, and a way to sign them out (#6116). Drawn as the switch
+               * turns on, so the offer comes with the change.
+               */}
+              {isOn ? <SessionsWithoutSso /> : <></>}
+              {masterAdminSignIn}
             </div>
           );
         }}

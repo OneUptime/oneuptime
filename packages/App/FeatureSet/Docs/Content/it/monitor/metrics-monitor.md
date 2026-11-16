@@ -97,7 +97,7 @@ Più lunga è la finestra, più largo è ogni intervallo di raggruppamento, quin
 ## Come viene valutato
 
 - **Ogni minuto.** Un monitor metriche non viene controllato da sonde, quindi non ha un intervallo da impostare né una pagina **Sonde e intervallo**.
-- **Prima le query, poi le formule.** Ogni query restituisce un punto dati per intervallo di raggruppamento dell'intervallo di tempo, secondo il suo **Aggrega per**. Le formule vengono calcolate per ogni intervallo a partire dai punti dati delle query.
+- **Prima le query, poi le formule.** Ogni query restituisce un punto dati per intervallo di raggruppamento dell'intervallo di tempo, secondo il suo **Aggrega per**. Le formule vengono calcolate per ogni intervallo a partire dai punti dati delle query. Una query che conta ciò che è successo, la somma o il conteggio di un contatore o di un istogramma, conta 0 in un intervallo in cui non ha alcun punto dati, una volta che l'intervallo è finito da un minuto, quindi una quota di errori è 0% dove nulla è fallito. Un indicatore, una media o un percentile senza punto dati è sconosciuto, e la formula tralascia quell'intervallo.
 - **Poi la misura della regola.** La regola riduce i punti dati della sua metrica a ciò che confronta con il suo valore, come dice **Misurato come**:
 
 | Misurato come | Nei criteri personalizzati | La condizione viene verificata su… |
