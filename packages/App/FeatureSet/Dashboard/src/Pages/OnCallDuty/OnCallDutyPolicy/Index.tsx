@@ -14,6 +14,21 @@ import OverviewCustomFields from "../../../Components/CustomFields/OverviewCusto
 import OnCallDutyPolicyFeedElement from "../../../Components/OnCallPolicy/OnCallDutyPolicyFeed";
 import OnCallPolicySummary from "../../../Components/OnCallPolicy/OnCallPolicySummary";
 import ResponderReadinessCard from "../../../Components/OnCallPolicy/Readiness/ResponderReadinessCard";
+import SetupHealthRecordFindings from "../../../Components/SetupHealth/SetupHealthRecordFindings";
+import {
+  SetupHealthCheck,
+  SetupHealthRecordKind,
+} from "Common/Types/SetupHealth/SetupHealth";
+
+/*
+ * What the policy's own cards say already, so Setup Health's line at the
+ * top leaves it out: the summary says it has no escalation rules, and which
+ * levels reach nobody right now.
+ */
+export const POLICY_PAGE_SAYS: ReadonlyArray<SetupHealthCheck> = [
+  SetupHealthCheck.PolicyHasNoEscalationRules,
+  SetupHealthCheck.PolicyReachesNobody,
+];
 
 const OnCallDutyPolicyView: FunctionComponent<
   PageComponentProps
@@ -22,6 +37,16 @@ const OnCallDutyPolicyView: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * Setup Health's findings about this policy (#7297): one that nothing
+       * runs pages nobody, and nothing else on this page says so.
+       */}
+      <SetupHealthRecordFindings
+        recordKind={SetupHealthRecordKind.OnCallDutyPolicy}
+        recordId={modelId}
+        saidByThisPage={POLICY_PAGE_SAYS}
+      />
+
       {/* OnCallDutyPolicy View  */}
       <CardModelDetail<OnCallDutyPolicy>
         name="On-Call Policy > On-Call Policy Details"
