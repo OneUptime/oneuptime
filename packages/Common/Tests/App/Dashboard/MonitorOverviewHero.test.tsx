@@ -460,7 +460,8 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     secondary: [],
     headline: "Every probe is turned off for this monitor",
     hasExplanation: true,
-    lastKnown: "Last recorded status: Operational",
+    // No probe has ever returned a result: no status was recorded (#7464).
+    lastKnown: undefined,
     cta: { text: "Manage probes", page: PageMap.MONITOR_VIEW_PROBES },
   },
   {
@@ -479,7 +480,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     secondary: [],
     headline: "No probes are attached to this monitor",
     hasExplanation: true,
-    lastKnown: "Last recorded status: Operational",
+    lastKnown: undefined,
     cta: { text: "Add a probe", page: PageMap.MONITOR_VIEW_PROBES },
   },
   {
@@ -550,7 +551,11 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     secondary: [],
     headline: "Waiting for the first check",
     hasExplanation: true,
-    lastKnown: "Last recorded status: Operational",
+    /*
+     * Nothing has been checked: Operational is only the status the monitor
+     * was created in, and "recorded" read as a check that came back (#7464).
+     */
+    lastKnown: undefined,
   },
   {
     name: "5 heartbeat waiting for its first request",
@@ -564,7 +569,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     secondary: [],
     headline: "Waiting for the first heartbeat",
     hasExplanation: true,
-    lastKnown: "Last recorded status: Operational",
+    lastKnown: undefined,
     cta: {
       text: "Setup instructions",
       page: PageMap.MONITOR_VIEW_DOCUMENTATION,
@@ -580,7 +585,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     secondary: [],
     headline: "Waiting for the agent to report",
     hasExplanation: true,
-    lastKnown: "Last recorded status: Operational",
+    lastKnown: undefined,
     cta: {
       text: "Setup instructions",
       page: PageMap.MONITOR_VIEW_DOCUMENTATION,
@@ -614,13 +619,13 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     /*
      * Nothing was ever measured, so the stored status is only the default
      * the monitor was created with: it is neither the badge nor the
-     * headline, just the last recorded status.
+     * headline, and no status was recorded (#7464).
      */
     badge: "No results yet",
     badgeTone: "warning",
     secondary: ["Checks overdue"],
     headline: "No check has completed yet",
-    lastKnown: "Last recorded status: Operational",
+    lastKnown: undefined,
     hasExplanation: true,
     cta: { text: "Check probes", page: PageMap.MONITOR_VIEW_PROBES },
   },

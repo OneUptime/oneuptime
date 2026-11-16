@@ -484,9 +484,8 @@ export default class ScheduledMaintenanceStartUtil {
 
   /*
    * The project's scheduled state: the first state from the top flagged
-   * scheduled - the one a new event is created in, and the sample project's
-   * events start in. Null when the list has none (a project always keeps
-   * one; StateOrderGuard refuses deleting it).
+   * scheduled - the one a new event is created in. Null when the list has
+   * none (a project always keeps one; StateOrderGuard refuses deleting it).
    */
   public static getScheduledState<T>(data: { states: Array<T> }): T | null {
     return this.getBuiltInState(data.states, SCHEDULED_FLAG);

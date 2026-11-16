@@ -945,8 +945,7 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * The next alert number of this project, with the project's prefix for
    * it: the one way an alert is numbered. A create takes it in
-   * onBeforeCreate; the sample project, which writes its alerts without
-   * hooks, takes it here (RecordNumbersTakenInOnePlaceGuard).
+   * onBeforeCreate (RecordNumbersTakenInOnePlaceGuard).
    */
   @CaptureSpan()
   public async takeNextAlertNumber(

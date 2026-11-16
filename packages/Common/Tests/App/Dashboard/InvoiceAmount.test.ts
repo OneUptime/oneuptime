@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { formatInvoiceAmount } from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/InvoiceAmount";
+import { formatInvoiceAmount } from "../../../Utils/Billing/InvoiceAmount";
 
 /*
  * An invoice's amount as Project Settings > Billing and Invoices > Invoices lists it. The payment

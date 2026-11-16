@@ -31,6 +31,8 @@ import {
   CODE_TASK_REPOSITORY_NEEDS_OWN_RUNNER_MESSAGE,
   getRepositoryNotReachableMessage,
 } from "../../AI/CodeTask/CodeTaskGate";
+import GlobalRunnerRepositoryTokens from "../../Runner/GlobalRunnerRepositoryTokens";
+import { GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL } from "../../../../Types/Runner/GlobalRunnerRepositoryTokens";
 
 /*
  * WHAT A RUNNER IS HANDED TO WORK IN A REPOSITORY THAT IS NOT ON GITHUB.
@@ -46,7 +48,10 @@ import {
  *     reaches goes to one of the project's own Runners, never a global one;
  *   - the server still takes the token, when OneUptime can ask it (a token
  *     that expired is caught here, with what to do, before the Runner
- *     clones anything - and the repository shows as not connected).
+ *     clones anything - and the repository shows as not connected);
+ *   - and, on OneUptime Cloud, the Runner is the project's own: a global
+ *     Runner there runs every customer's JavaScript steps, and is never
+ *     handed a connection's token (Types/Runner/GlobalRunnerRepositoryTokens).
  */
 
 export const RUNNER_TOO_OLD_FOR_CODE_HOST_MESSAGE: (
@@ -102,6 +107,20 @@ export default class CodeHostRunnerToken {
     const type: CodeRepositoryType = CodeHost.readType(
       repository.repositoryHostedAt,
     );
+
+    /*
+     * Asked before the connection is read: on OneUptime Cloud a global
+     * Runner is never handed a connection's token, so it is never even
+     * looked up for one.
+     */
+    if (
+      data.worker.kind === CodeWorkerKind.GlobalRunner &&
+      GlobalRunnerRepositoryTokens.isRepositoryKeptOff(
+        repository.repositoryHostedAt,
+      )
+    ) {
+      return { refusal: GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL };
+    }
 
     if (!data.supportedCodeHosts.includes(type)) {
       return {

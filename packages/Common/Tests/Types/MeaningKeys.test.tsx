@@ -111,7 +111,7 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others and an explorer's Insights tab, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab and an SLO month's missed target, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
@@ -122,6 +122,7 @@ describe("the keys that name their meaning", () => {
         "Expired (threat indicator)",
         "From (range start)",
         "Insights (explorer analytics)",
+        "Missed (target)",
         "Not fetched yet (OAuth token)",
         "Not fetched yet (calendar feed)",
         "Open (invoice status)",
@@ -160,6 +161,8 @@ describe("the keys that name their meaning", () => {
     // #8201: a range's two ends, never a message's sender and recipient.
     expect(getWordOfMeaningKey("From (range start)")).toBe("From");
     expect(getWordOfMeaningKey("To (range end)")).toBe("To");
+    // #5476: a month that missed its SLO's target, never a missed SLA deadline.
+    expect(getWordOfMeaningKey("Missed (target)")).toBe("Missed");
     expect(getWordOfMeaningKey("To")).toBeUndefined();
     /*
      * #8659: a state a page words to agree with its other states, where the

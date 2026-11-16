@@ -401,7 +401,7 @@ En utredning som misslyckas, löper ut eller blir inaktuell släpper ändå fram
 
 Medan åtgärden väntar säger steget **Åtgärd** det (**Väntar**), och visar vad som hände när utredningen har avslutats.
 
-Automatisk åtgärd beror på två reglage. **Åtgärda nya incidenter automatiskt** (eller larm), av tills projektet slår på det: när det är av åtgärdas ingen ny incident (eller nytt larm). Och **Aktivera AI** (**Projektinställningar → AI → AI-funktioner**), projektets huvudreglage för AI: när det är av körs ingen AI-regel (inte ens en som startar en runbook utan AI), och inget kluster eller någon resurs åtgärdas.
+Automatisk åtgärd beror på två reglage. **Åtgärda nya incidenter automatiskt** (eller larm), av tills projektet slår på det: när det är av åtgärdas ingen ny incident (eller nytt larm). Och **Aktivera AI** (**Projektinställningar → AI → AI-funktioner**), projektets huvudreglage för AI: när det är av körs ingen AI-regel (inte ens en som startar en runbook utan AI), och inget kluster eller någon resurs åtgärdas. En Runner eller en AI-agent som redan har ett kommando när **Aktivera AI** stängs av får besked att sluta vid sitt nästa heartbeat: Ett kommando som ännu inte har startat startar inte.
 
 ## Vad den automatiska åtgärden gjorde
 

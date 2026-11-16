@@ -337,10 +337,11 @@ describe("the SMS and call gateway", () => {
   test("a gateway on a private address is refused where the instance allows none, and nothing is sent", async () => {
     process.env[ALLOWLIST_ENV] = "";
     checkAnswers["gateway.corp.example"] = "10.20.30.40";
-    const sendSpy: SpyInstance<typeof SafeWebhookRequest.send> = jest.spyOn(
-      SafeWebhookRequest,
-      "send",
-    ) as unknown as SpyInstance<typeof SafeWebhookRequest.send>;
+    const sendSpy: SpyInstance<
+      (
+        ...args: Parameters<typeof SafeWebhookRequest.send>
+      ) => ReturnType<typeof SafeWebhookRequest.send>
+    > = jest.spyOn(SafeWebhookRequest, "send");
 
     const result: CallAndSmsGatewayResult = await CallAndSmsGatewayService.send(
       {
@@ -365,11 +366,13 @@ describe("the SMS and call gateway", () => {
     process.env[ALLOWLIST_ENV] = "";
     process.env[ALLOW_ENV] = "true";
     checkAnswers["gateway.corp.example"] = "10.20.30.40";
-    const sendSpy: SpyInstance<typeof SafeWebhookRequest.send> = jest
+    const sendSpy: SpyInstance<
+      (
+        ...args: Parameters<typeof SafeWebhookRequest.send>
+      ) => ReturnType<typeof SafeWebhookRequest.send>
+    > = jest
       .spyOn(SafeWebhookRequest, "send")
-      .mockRejectedValue(
-        new Error("not sent in this test") as never,
-      ) as unknown as SpyInstance<typeof SafeWebhookRequest.send>;
+      .mockRejectedValue(new Error("not sent in this test") as never);
 
     await CallAndSmsGatewayService.send({
       gateway: {

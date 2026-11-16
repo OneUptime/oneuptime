@@ -402,13 +402,20 @@ export default class MonitorUptimeSummaryUtil {
       startDate: summary.startDate.toISOString(),
       endDate: summary.endDate.toISOString(),
       buckets: summary.buckets.map((bucket: UptimeDayBucket): JSONObject => {
-        return {
+        const json: JSONObject = {
           bucketStart: bucket.bucketStart.toISOString(),
           bucketEnd: bucket.bucketEnd.toISOString(),
           daySeconds: bucket.daySeconds,
           coveredSeconds: bucket.coveredSeconds,
           statusDurations: durationsToJSON(bucket.statusDurations),
         };
+
+        // Only for a day monitoring was off in (issue #7112).
+        if (bucket.monitoringOffSeconds && bucket.monitoringOffSeconds > 0) {
+          json["monitoringOffSeconds"] = bucket.monitoringOffSeconds;
+        }
+
+        return json;
       }),
       windows: summary.windows.map(
         (window: MonitorUptimeWindowTotal): JSONObject => {
@@ -488,13 +495,24 @@ export default class MonitorUptimeSummaryUtil {
         continue;
       }
 
-      buckets.push({
+      const parsed: UptimeDayBucket = {
         bucketStart: bucketStart,
         bucketEnd: bucketEnd,
         daySeconds: toSeconds(bucket["daySeconds"]),
         coveredSeconds: toSeconds(bucket["coveredSeconds"]),
         statusDurations: durationsFromJSON(bucket["statusDurations"]),
-      });
+      };
+
+      // A day monitoring was off in (issue #7112); absent reads as none.
+      const monitoringOffSeconds: number = toSeconds(
+        bucket["monitoringOffSeconds"],
+      );
+
+      if (monitoringOffSeconds > 0) {
+        parsed.monitoringOffSeconds = monitoringOffSeconds;
+      }
+
+      buckets.push(parsed);
     }
 
     const windows: Array<MonitorUptimeWindowTotal> = [];

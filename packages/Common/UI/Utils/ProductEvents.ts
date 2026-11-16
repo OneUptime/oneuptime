@@ -26,14 +26,6 @@ import { JSONObject } from "../../Types/JSON";
  * and only with the visitor's consent and without Global Privacy Control.
  * It never throws: a page never breaks because of an event.
  */
-/*
- * The only events a sample project sends (issue #6808): nothing done inside
- * one is a project getting value, so the activation funnel never sees it.
- */
-export const SAMPLE_PROJECT_EVENTS: ReadonlyArray<ProductEventName> = [
-  ProductEventName.SampleProjectStarted,
-  ProductEventName.SampleProjectDeleted,
-];
 
 /*
  * Told each event as it is sent, by its name and its own reviewed
@@ -52,13 +44,6 @@ const productEventListeners: Set<ProductEventListener> =
 export default class ProductEvents {
   public static send(name: ProductEventName, properties?: JSONObject): void {
     try {
-      if (
-        ProductEvents.isInSampleProject() &&
-        !SAMPLE_PROJECT_EVENTS.includes(name)
-      ) {
-        return;
-      }
-
       const ownProperties: JSONObject = toProductEventProperties({
         name: name,
         properties: properties,
@@ -88,15 +73,6 @@ export default class ProductEvents {
     return (): void => {
       productEventListeners.delete(listener);
     };
-  }
-
-  // Whether the page is in a sample project (Project.isSampleProject).
-  public static isInSampleProject(): boolean {
-    try {
-      return ProjectUtil.getCurrentProject()?.isSampleProject === true;
-    } catch {
-      return false;
-    }
   }
 
   // OneUptime Cloud: billing is on.

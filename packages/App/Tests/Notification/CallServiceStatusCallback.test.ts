@@ -34,7 +34,12 @@ import Twilio from "twilio";
  * A call placed on the project's own Twilio account says so in its
  * callback's query (?providerConfig=project), so how it ended is counted as
  * the project's account, as its send was (issue #6648). The server's own
- * account adds nothing: its URL is as it always was.
+ * account adds nothing to the query.
+ *
+ * Every callback's fragment asks Twilio to send it again when this server
+ * answers it with a 5xx - Twilio otherwise retries only a connection that
+ * failed - so a callback the database failed for is not lost (issue
+ * #6874, StatusCallbackRetry). A request never carries the fragment.
  */
 
 // The server's public host, set per test (setHost): read as each call is made.
@@ -123,13 +128,16 @@ const TWILIO_CONFIG: TwilioConfig = {
 const UUID: RegExp =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
+// What asks Twilio to send the callback again on a 5xx (StatusCallbackRetry).
+const RETRY_FRAGMENT: string = "#rc=3&rp=ct,5xx";
+
 const CALLBACK: RegExp = new RegExp(
-  "^https://oneuptime\\.example\\.com/notification/call/status-callback/([0-9a-f-]{36})/([0-9a-f-]{36})$",
+  "^https://oneuptime\\.example\\.com/notification/call/status-callback/([0-9a-f-]{36})/([0-9a-f-]{36})#rc=3&rp=ct,5xx$",
 );
 
 // A call on the project's own Twilio account: the same URL, saying so.
 const PROJECT_ACCOUNT_CALLBACK: RegExp = new RegExp(
-  "^https://oneuptime\\.example\\.com/notification/call/status-callback/([0-9a-f-]{36})/([0-9a-f-]{36})\\?providerConfig=project$",
+  "^https://oneuptime\\.example\\.com/notification/call/status-callback/([0-9a-f-]{36})/([0-9a-f-]{36})\\?providerConfig=project#rc=3&rp=ct,5xx$",
 );
 
 let createCall: jest.Mock;
@@ -400,6 +408,34 @@ describe("a project's call through Twilio", () => {
     expect(url).not.toContain("?");
     expect(url).not.toContain("providerConfig");
   });
+
+  test("asks Twilio to send the callback again on a 5xx, in a fragment no request carries - on either account", async () => {
+    await CallService.makeCall(pageCall(), { projectId: PROJECT_ID });
+    await CallService.makeCall(pageCall(), {
+      projectId: PROJECT_ID,
+      customTwilioConfig: TWILIO_CONFIG,
+    });
+
+    for (const call of createCall.mock.calls) {
+      const url: globalThis.URL = new globalThis.URL(
+        String((call[0] as JSONObject)["statusCallback"]),
+      );
+
+      expect(url.hash).toBe(RETRY_FRAGMENT);
+      expect(
+        Object.fromEntries(new URLSearchParams(url.hash.slice(1))),
+      ).toEqual({ rc: "3", rp: "ct,5xx" });
+      // The path and the query the route reads are as before.
+      expect(url.pathname.split("/").slice(0, 4)).toEqual([
+        "",
+        "notification",
+        "call",
+        "status-callback",
+      ]);
+    }
+
+    expect(createCall).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("no callback is asked for", () => {
@@ -435,11 +471,11 @@ describe("prepareStatusCallback", () => {
 
     expect(log.id!.toString()).toBe(id.toString());
     expect(url).toBe(
-      `https://oneuptime.example.com/notification/call/status-callback/${id.toString()}/${log.statusCallbackToken}`,
+      `https://oneuptime.example.com/notification/call/status-callback/${id.toString()}/${log.statusCallbackToken}${RETRY_FRAGMENT}`,
     );
   });
 
-  test("the server's own account, said or not, is the URL as it always was", () => {
+  test("the server's own account, said or not, adds nothing to the query", () => {
     const log: CallLog = new CallLog();
     log.id = ObjectID.generate();
 
@@ -449,7 +485,7 @@ describe("prepareStatusCallback", () => {
     );
 
     expect(url).toBe(
-      `https://oneuptime.example.com/notification/call/status-callback/${log.id.toString()}/${log.statusCallbackToken}`,
+      `https://oneuptime.example.com/notification/call/status-callback/${log.id.toString()}/${log.statusCallbackToken}${RETRY_FRAGMENT}`,
     );
   });
 
@@ -463,7 +499,7 @@ describe("prepareStatusCallback", () => {
     );
 
     expect(url).toBe(
-      `https://oneuptime.example.com/notification/call/status-callback/${log.id.toString()}/${log.statusCallbackToken}?providerConfig=project`,
+      `https://oneuptime.example.com/notification/call/status-callback/${log.id.toString()}/${log.statusCallbackToken}?providerConfig=project${RETRY_FRAGMENT}`,
     );
   });
 

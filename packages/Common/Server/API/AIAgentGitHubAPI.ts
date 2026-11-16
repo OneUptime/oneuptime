@@ -428,8 +428,8 @@ export default class AIAgentGitHubAPI {
 
     /*
      * A denial answers exactly like a missing run, so a probing key cannot
-     * tell "another tenant's run" from "no such run" - and a global Runner
-     * is served only the run it holds (deniesAccessToRun).
+     * tell "another tenant's run" from "no such run" - and every worker is
+     * served only the run it holds (deniesAccessToRun).
      */
     if (
       !run ||

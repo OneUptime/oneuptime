@@ -85,8 +85,10 @@ La personne alertée de nouveau la prend en compte depuis son message, ou avec *
 
 Un incident, une alerte ou un épisode exécute chacune de ses politiques séparément, en même temps.
 
-- Une personne d'astreinte dans deux d'entre elles est alertée par les deux, une fois par chacune : OneUptime ne fusionne pas les alertes de politiques différentes. Au sein d'une politique, une personne qu'un niveau nomme deux fois, en personne et via une équipe ou un planning, n'est alertée qu'une fois.
+- Une personne d'astreinte dans deux d'entre elles n'est alertée qu'une fois. Quand le niveau d'une politique atteint une personne qu'une autre politique alerte déjà à ce sujet, elle ne l'alerte pas de nouveau : son journal d'exécution indique **Déjà appelé** pour cette personne, et le fil d'activité de l'incident ainsi que le message Slack et Microsoft Teams de la politique nomment la politique qui l'alerte. Le niveau attend tout de même ses minutes avant de passer au niveau suivant, comme il le fait pour toute personne qu'il a alertée. Répondre à cette seule alerte vaut pour les deux politiques. Au sein d'une politique, une personne qu'un niveau nomme deux fois, en personne et via une équipe ou un planning, n'est alertée qu'une fois.
 - La prise en compte de l'incident ou de l'alerte arrête en moins d'une minute toutes les politiques en cours pour lui, où qu'elle ait lieu : depuis n'importe quelle alerte à son sujet, sur sa propre page, dans l'application mobile, ou dans Slack ou Microsoft Teams. Aucun niveau suivant n'est alerté, et aucun appel ni SMS encore en attente n'est envoyé. Les notifications déjà envoyées le restent.
+
+Personne ne manque d'alerte pour n'avoir été alerté qu'une fois. Cette alerte unique peut prendre fin sans réponse : la personne l'escalade depuis l'un de ses messages, ce qui n'escalade que cette politique, l'alerte ne peut pas être envoyée, ou sa politique s'arrête. L'autre politique alerte alors elle-même la personne en moins d'une minute, sans renvoyer ce qui lui est déjà parvenu. **Escalader** sur la page de l'incident ou dans l'application mobile escalade les deux. Une nouvelle alerte, une politique lancée à la main et une alerte que quelqu'un a envoyée depuis Slack ou Microsoft Teams alertent toujours elles-mêmes leurs propres personnes, même une personne qu'une autre politique alerte déjà. L'alerte d'un observateur et celle d'un intervenant ne sont jamais fusionnées.
 
 Certaines alertes continuent après la prise en compte, jusqu'à ce qu'une personne qu'elles ont alertée réponde ou que ce soit résolu : une nouvelle alerte, une alerte aux observateurs, une alerte que quelqu'un a envoyée à des personnes depuis Slack ou Microsoft Teams, et une politique lancée à la main.
 
@@ -123,7 +125,7 @@ Vous trouvez les journaux d'exécution à trois endroits :
 - dans **Astreinte → Avancé → Journaux d'exécution**, pour toutes les politiques, où les appels directs venus des flux de travail et du chat apparaissent comme **Appel direct** ;
 - sur la page **Exécutions d'astreinte** d'un incident ou d'une alerte.
 
-Chaque ligne montre ce qui a déclenché l'exécution, quand, son **Statut** et qui l'a prise en compte. **Voir la chronologie** ouvre sa **Chronologie d'exécution** : chaque règle d'escalade, qui elle a alerté, par quel planning, et comment chaque alerte s'est terminée. **Notifié via** indique comment chaque alerte a atteint la personne : appel téléphonique, SMS, e-mail, notification push, etc. Un planning où personne n'est d'astreinte affiche **Personne n'était d'astreinte** au lieu d'une personne. Un niveau qui n'a alerté personne dit pourquoi, avec **Poursuivi sans attendre** en dessous : la politique ne l'a pas attendu. Sur OneUptime Cloud, les journaux d'exécution nécessitent l'offre **Growth**.
+Chaque ligne montre ce qui a déclenché l'exécution, quand, son **Statut** et qui l'a prise en compte. **Voir la chronologie** ouvre sa **Chronologie d'exécution** : chaque règle d'escalade, qui elle a alerté, par quel planning, et comment chaque alerte s'est terminée. **Notifié via** indique comment chaque alerte a atteint la personne : appel téléphonique, SMS, e-mail, notification push, etc. Un planning où personne n'est d'astreinte affiche **Personne n'était d'astreinte** au lieu d'une personne. Un niveau qui n'a alerté personne dit pourquoi, avec **Poursuivi sans attendre** en dessous : la politique ne l'a pas attendu. Une personne qu'une autre politique alertait déjà affiche **Déjà appelé** : voir [Quand plusieurs politiques alertent](#quand-plusieurs-politiques-alertent). Sur OneUptime Cloud, les journaux d'exécution nécessitent l'offre **Growth**.
 
 ## Archiver ou supprimer une politique
 
@@ -176,7 +178,7 @@ La politique est archivée : une politique archivée reste sur les incidents et 
 :::
 
 :::details Quelqu'un a été alerté deux fois pour un même incident
-Cette personne est d'astreinte dans deux des politiques que l'incident exécute, et chaque politique alerte ses propres personnes. Prendre l'incident en compte depuis l'une ou l'autre alerte arrête les deux. Pour qu'elle ne soit alertée qu'une fois, placez les deux équipes ou plannings dans un même niveau d'une politique.
+Une personne d'astreinte dans deux des politiques que l'incident exécute n'est alertée qu'une fois, par la première politique qui l'atteint. La seconde l'alerte aussi quand il s'agit d'une nouvelle alerte, d'une politique lancée à la main, d'une alerte envoyée depuis Slack ou Microsoft Teams ou d'une alerte aux observateurs, qui alertent elles-mêmes leurs personnes, ou quand sa première alerte était déjà terminée avant que la seconde ne l'atteigne : la personne l'avait escaladée, ou sa politique s'était arrêtée. **Voir la chronologie** de la seconde politique indique **Déjà appelé** pour une personne qu'elle n'a pas alertée de nouveau.
 :::
 
 :::details Une politique a continué d'alerter après la prise en compte de l'incident

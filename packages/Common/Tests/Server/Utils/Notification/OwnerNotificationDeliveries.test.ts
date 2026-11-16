@@ -363,6 +363,249 @@ describe("OwnerNotificationDeliveries", () => {
         }),
       ).toEqual(["writeOwnersToTell"]);
     });
+
+    /*
+     * ONE NOTIFICATION FOR A NEW ALERT, NOT TWO (#7987). A Created job
+     * leaves out the owners the record's on-call page reached already
+     * (OwnersReachedByAPage): they are never written down, so no run tells
+     * them, and the delivery names them for the feed item.
+     */
+    describe("leaving owners out", () => {
+      test("writes no row for an owner left out, tells only the others, and hands them back apart", async () => {
+        const delivery: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.plan({
+            notification: created(),
+            owners: [CAROL, ALICE, BOB],
+            isProjectOwners: false,
+            writesFeedItem: true,
+            leaveOut: [ALICE],
+          });
+
+        expect(idsOf(delivery.owners)).toEqual(idsOf([CAROL, BOB]));
+        expect(idsOf(delivery.leftOut)).toEqual(idsOf([ALICE]));
+        expect(delivery.toldEarlier).toEqual([]);
+        expect(table.statusesOf(INCIDENT_ID)).toEqual({
+          [idOf(CAROL)]: OwnerNotificationDeliveryStatus.Pending,
+          [idOf(BOB)]: OwnerNotificationDeliveryStatus.Pending,
+        });
+
+        const sent: Array<string> = [];
+
+        expect(await tellEveryone(delivery, sent)).toEqual(idsOf([CAROL, BOB]));
+        // Not one of its owners: never sent to.
+        expect(await delivery.tell(ALICE, sender(sent, ALICE))).toBe(false);
+        expect(sent).toEqual(idsOf([CAROL, BOB]));
+        expect(delivery.isFeedItemToWrite).toBe(true);
+      });
+
+      test("names those left out in the order the owners were given, each once, and only owners", async () => {
+        const dave: User = makeUser("11111111-0000-4000-8000-000000000004");
+
+        const delivery: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.plan({
+            notification: created(),
+            owners: [CAROL, ALICE, BOB],
+            isProjectOwners: false,
+            writesFeedItem: false,
+            leaveOut: [BOB, ALICE, BOB, makeUser(idOf(ALICE)), dave],
+          });
+
+        expect(idsOf(delivery.owners)).toEqual(idsOf([CAROL]));
+        expect(idsOf(delivery.leftOut)).toEqual(idsOf([ALICE, BOB]));
+        expect(delivery.leftOut[0]).toBe(ALICE);
+        expect(Object.keys(table.statusesOf(INCIDENT_ID))).toEqual(
+          idsOf([CAROL]),
+        );
+      });
+
+      test("every owner left out: nothing is written, there is nothing to do, and no feed item to write", async () => {
+        const delivery: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.plan({
+            notification: created(),
+            owners: [ALICE, BOB],
+            isProjectOwners: true,
+            writesFeedItem: true,
+            leaveOut: [BOB, ALICE],
+          });
+
+        expect(delivery.owners).toEqual([]);
+        expect(idsOf(delivery.leftOut)).toEqual(idsOf([ALICE, BOB]));
+        expect(delivery.isProjectOwners).toBe(true);
+        expect(delivery.hasWorkToDo).toBe(false);
+        expect(delivery.isFeedItemToWrite).toBe(false);
+        expect(table.rows).toEqual([]);
+        expect(table.statements).toEqual([]);
+      });
+
+      test("leaving out nobody plans every owner, as before", async () => {
+        for (const leaveOut of [undefined, []]) {
+          const delivery: OwnerNotificationDelivery =
+            await OwnerNotificationDeliveries.plan({
+              notification: created(OTHER_INCIDENT_ID),
+              owners: [ALICE, BOB],
+              isProjectOwners: false,
+              writesFeedItem: false,
+              leaveOut: leaveOut,
+            });
+
+          expect(idsOf(delivery.owners)).toEqual(idsOf([ALICE, BOB]));
+          expect(delivery.leftOut).toEqual([]);
+        }
+      });
+
+      test("an owner a run before this one wrote down, before the page reached them, is told as planned - and not named as left out", async () => {
+        await OwnerNotificationDeliveries.plan({
+          notification: created(),
+          owners: [ALICE, BOB],
+          isProjectOwners: false,
+          writesFeedItem: false,
+        });
+
+        const again: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.plan({
+            notification: created(),
+            owners: [ALICE, BOB],
+            isProjectOwners: false,
+            writesFeedItem: false,
+            leaveOut: [ALICE],
+          });
+
+        expect(idsOf(again.owners).sort()).toEqual(idsOf([ALICE, BOB]).sort());
+        expect(again.leftOut).toEqual([]);
+      });
+
+      test("an owner a run before this one told, or is telling, is not named as left out", async () => {
+        const first: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.plan({
+            notification: created(),
+            owners: [ALICE, BOB, CAROL],
+            isProjectOwners: false,
+            writesFeedItem: false,
+          });
+
+        const sent: Array<string> = [];
+        await first.tell(ALICE, sender(sent, ALICE));
+        // Bob's send is under way, by the first run, as the second plans.
+        table.stopAt({ statement: "finishTelling", userId: idOf(BOB) });
+        void first.tell(BOB, sender(sent, BOB));
+
+        for (let turn: number = 0; turn < 100 && table.stops() === 0; turn++) {
+          await new Promise<void>((resolve: () => void) => {
+            setTimeout(resolve, 0);
+          });
+        }
+
+        expect(table.statusesOf(INCIDENT_ID)[idOf(BOB)]).toBe(
+          OwnerNotificationDeliveryStatus.Sending,
+        );
+
+        const again: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.plan({
+            notification: created(),
+            owners: [ALICE, BOB, CAROL],
+            isProjectOwners: false,
+            writesFeedItem: false,
+            leaveOut: [ALICE, BOB],
+          });
+
+        expect(idsOf(again.toldEarlier)).toEqual(idsOf([ALICE]));
+        expect(idsOf(again.owners)).toEqual(idsOf([CAROL]));
+        expect(again.leftOut).toEqual([]);
+      });
+
+      test("an owner whose earlier telling failed, and whom the page reached since, is named as left out", async () => {
+        const first: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.plan({
+            notification: created(),
+            owners: [ALICE, BOB],
+            isProjectOwners: false,
+            writesFeedItem: false,
+          });
+
+        await first.tell(ALICE, async (): Promise<void> => {
+          throw new Error("smtp connection reset");
+        });
+
+        const again: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.plan({
+            notification: created(),
+            owners: [ALICE, BOB],
+            isProjectOwners: false,
+            writesFeedItem: false,
+            leaveOut: [ALICE],
+          });
+
+        expect(idsOf(again.owners)).toEqual(idsOf([BOB]));
+        expect(idsOf(again.leftOut)).toEqual(idsOf([ALICE]));
+      });
+
+      test("rows that cannot be written: the others are told without them, and those left out still are not", async () => {
+        table.failWith(
+          "writeOwnersToTell",
+          new Error("relation does not exist"),
+        );
+
+        const delivery: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.plan({
+            notification: created(),
+            owners: [ALICE, BOB],
+            isProjectOwners: false,
+            writesFeedItem: false,
+            leaveOut: [ALICE],
+          });
+
+        const sent: Array<string> = [];
+
+        expect(await tellEveryone(delivery, sent)).toEqual(idsOf([BOB]));
+        expect(sent).toEqual(idsOf([BOB]));
+        expect(idsOf(delivery.leftOut)).toEqual(idsOf([ALICE]));
+      });
+
+      test("a later run that takes up what a stopped run left never tells one it left out, and does not know them", async () => {
+        const delivery: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.plan({
+            notification: created(),
+            owners: [ALICE, BOB, CAROL],
+            isProjectOwners: false,
+            writesFeedItem: true,
+            leaveOut: [BOB],
+          });
+
+        const sent: Array<string> = [];
+        // The run tells Alice, and stops.
+        await delivery.tell(ALICE, sender(sent, ALICE));
+
+        now = minutesLater(OwnerNotificationDeliveries.RESUME_AFTER_MINUTES);
+
+        const takenUp: Array<OwnerNotificationDelivery> = [];
+
+        await OwnerNotificationDeliveries.resume({
+          kinds: [OwnerNotificationKind.IncidentCreated],
+          notify: async (later: OwnerNotificationDelivery): Promise<void> => {
+            takenUp.push(later);
+            await tellEveryone(later, sent);
+          },
+        });
+
+        expect(takenUp).toHaveLength(1);
+        expect(idsOf(takenUp[0]!.owners)).toEqual(idsOf([CAROL]));
+        expect(idsOf(takenUp[0]!.toldEarlier)).toEqual(idsOf([ALICE]));
+        expect(takenUp[0]!.leftOut).toEqual([]);
+        expect(sent).toEqual(idsOf([ALICE, CAROL]));
+
+        // Nor does any run after it.
+        now = minutesLater(60);
+        await OwnerNotificationDeliveries.resume({
+          kinds: [OwnerNotificationKind.IncidentCreated],
+          notify: async (later: OwnerNotificationDelivery): Promise<void> => {
+            await tellEveryone(later, sent);
+          },
+        });
+
+        expect(sent).toEqual(idsOf([ALICE, CAROL]));
+        expect(table.statusesOf(INCIDENT_ID)[idOf(BOB)]).toBeUndefined();
+      });
+    });
   });
 
   describe("tell", () => {
@@ -1588,6 +1831,118 @@ describe("OwnerNotificationDeliveries", () => {
           return String(call[0]).includes("Telling nobody.");
         }),
       ).toBe(true);
+    });
+
+    // Those the record's on-call page reached already (#7987).
+    describe("with owners to leave out", () => {
+      test("asks of the owners it read, before writing anyone down, and leaves out whom it is told", async () => {
+        const asked: Array<Array<string>> = [];
+
+        const delivery: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.planForOwnersOf({
+            notification: created(),
+            findOwners: async (): Promise<Array<User>> => {
+              return [ALICE, BOB];
+            },
+            writesFeedItem: true,
+            findOwnersToLeaveOut: async (
+              owners: Array<User>,
+            ): Promise<Array<User>> => {
+              asked.push(idsOf(owners));
+              // Nobody is written down yet: the left out never are.
+              expect(table.rows).toEqual([]);
+              return [BOB];
+            },
+          });
+
+        expect(asked).toEqual([idsOf([ALICE, BOB])]);
+        expect(idsOf(delivery.owners)).toEqual(idsOf([ALICE]));
+        expect(idsOf(delivery.leftOut)).toEqual(idsOf([BOB]));
+        expect(Object.keys(table.statusesOf(INCIDENT_ID))).toEqual(
+          idsOf([ALICE]),
+        );
+      });
+
+      test("asks of the project's owners when they stand in for a record with none", async () => {
+        jest.spyOn(ProjectService, "getOwners").mockResolvedValue([CAROL]);
+
+        const delivery: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.planForOwnersOf({
+            notification: created(),
+            findOwners: async (): Promise<Array<User>> => {
+              return [];
+            },
+            writesFeedItem: true,
+            findOwnersToLeaveOut: async (
+              owners: Array<User>,
+            ): Promise<Array<User>> => {
+              expect(idsOf(owners)).toEqual(idsOf([CAROL]));
+              return [CAROL];
+            },
+          });
+
+        expect(delivery.isProjectOwners).toBe(true);
+        expect(delivery.owners).toEqual([]);
+        expect(idsOf(delivery.leftOut)).toEqual(idsOf([CAROL]));
+        expect(delivery.hasWorkToDo).toBe(false);
+        expect(table.rows).toEqual([]);
+      });
+
+      test("one that fails leaves nobody out, and says so", async () => {
+        const delivery: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.planForOwnersOf({
+            notification: created(),
+            findOwners: async (): Promise<Array<User>> => {
+              return [ALICE, BOB];
+            },
+            writesFeedItem: true,
+            findOwnersToLeaveOut: async (): Promise<Array<User>> => {
+              throw new Error("The database is away");
+            },
+          });
+
+        expect(idsOf(delivery.owners)).toEqual(idsOf([ALICE, BOB]));
+        expect(delivery.leftOut).toEqual([]);
+        expect(
+          errors.mock.calls.some((call: Array<unknown>): boolean => {
+            return (
+              String(call[0]) ===
+              `Could not read whom of the owners of IncidentCreated ${INCIDENT_ID.toString()} to leave out: Error: The database is away. Telling every one of them.`
+            );
+          }),
+        ).toBe(true);
+      });
+
+      test("is not asked when there is nobody to tell", async () => {
+        jest.spyOn(ProjectService, "getOwners").mockResolvedValue([]);
+
+        const findOwnersToLeaveOut: Mock<
+          (owners: Array<User>) => Promise<Array<User>>
+        > = jest.fn(async (): Promise<Array<User>> => {
+          return [];
+        });
+
+        await OwnerNotificationDeliveries.planForOwnersOf({
+          notification: created(),
+          findOwners: async (): Promise<Array<User>> => {
+            return [];
+          },
+          writesFeedItem: true,
+          findOwnersToLeaveOut: findOwnersToLeaveOut,
+        });
+
+        // Nor when the owners cannot be read.
+        await OwnerNotificationDeliveries.planForOwnersOf({
+          notification: created(),
+          findOwners: async (): Promise<Array<User>> => {
+            throw new Error("connection reset");
+          },
+          writesFeedItem: true,
+          findOwnersToLeaveOut: findOwnersToLeaveOut,
+        });
+
+        expect(findOwnersToLeaveOut).not.toHaveBeenCalled();
+      });
     });
   });
 });

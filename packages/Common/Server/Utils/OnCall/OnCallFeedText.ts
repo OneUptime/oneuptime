@@ -1,5 +1,9 @@
 import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import {
+  ON_CALL_PAGE_MERGE_UNNAMED_POLICY,
+  readOnCallPageMergedMessage,
+} from "../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 import { readAwayUntil } from "../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import {
   ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_FIX,
@@ -480,7 +484,9 @@ const isAnswerSaidInHeadline: (
   status: OnCallDutyExecutionLogTimelineStatus,
 ) => boolean = (status: OnCallDutyExecutionLogTimelineStatus): boolean => {
   return (
-    status === OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged
+    status === OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
+    // A merged page: the headline names the policy paging them already.
+    status === OnCallDutyExecutionLogTimelineStatus.AlreadyPaged
   );
 };
 
@@ -620,6 +626,12 @@ const getStepHeadline: (input: OnCallStepFeedTextInput) => MarkdownText = (
       return mdText`${policy} did not page ${recipient} at ${rule}.`;
     case OnCallDutyExecutionLogTimelineStatus.NotificationSent:
       return mdText`${policy} paged ${recipient}${via} at ${rule}.`;
+    /*
+     * Their page was merged into their open page from another policy's run
+     * (OnCallPageMerge): that page reaches them for this one too.
+     */
+    case OnCallDutyExecutionLogTimelineStatus.AlreadyPaged:
+      return mdText`${policy} did not page ${recipient} again at ${rule}: on-call policy **${readOnCallPageMergedMessage(input.statusMessage) || ON_CALL_PAGE_MERGE_UNNAMED_POLICY}** is paging them about this already.`;
     default:
       return mdText`${policy} is paging ${recipient} at ${rule}.`;
   }

@@ -7,6 +7,7 @@ import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import logger from "../../../Server/Utils/Logger";
+import Errors from "../../../Server/Utils/Errors";
 import MarketingEventUtil from "../../../Server/Utils/Marketing/MarketingEventUtil";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import { MarketingEvent } from "../../../Types/Marketing/MarketingEvent";
@@ -894,6 +895,66 @@ describe("ProjectService.changePlan", () => {
       );
       expect(event.eventId).not.toBe(
         `subscription_started:${PROJECT_ID.toString()}`,
+      );
+    });
+  });
+
+  /*
+   * A customer changing their own plan needs a payment method on file. A
+   * master admin moving the project from the Admin Dashboard does not
+   * (ProjectAPI's admin-change-plan passes requirePaymentMethod: false).
+   */
+  describe("the customer's payment method", () => {
+    it("should refuse a customer's own change while they have no payment method", async () => {
+      const spies: ChangePlanSpies = setup();
+      spies.hasPaymentMethods.mockResolvedValue(false as never);
+
+      await expect(
+        ProjectService.changePlan({
+          projectId: PROJECT_ID,
+          paymentProviderPlanId: NEW_PLAN_ID,
+        }),
+      ).rejects.toThrow(Errors.BillingService.NO_PAYMENTS_METHODS);
+
+      expect(spies.hasPaymentMethods).toHaveBeenCalledWith(CUSTOMER_ID);
+      expect(spies.changePlan).not.toHaveBeenCalled();
+      expect(spies.updateOneById).not.toHaveBeenCalled();
+    });
+
+    it("should ask the payment provider to hold a customer's change to a payment method too", async () => {
+      const spies: ChangePlanSpies = setup();
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+      });
+
+      expect(spies.changePlan).toHaveBeenCalledWith(
+        expect.objectContaining({ requirePaymentMethod: true }),
+      );
+    });
+
+    it("should move the project for a master admin whatever the customer has on file", async () => {
+      const spies: ChangePlanSpies = setup();
+      spies.hasPaymentMethods.mockResolvedValue(false as never);
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+        requirePaymentMethod: false,
+      });
+
+      // Not even asked: the answer would change nothing.
+      expect(spies.hasPaymentMethods).not.toHaveBeenCalled();
+      expect(spies.changePlan).toHaveBeenCalledWith(
+        expect.objectContaining({ requirePaymentMethod: false }),
+      );
+      expect(getUpdatedData(spies)).toEqual(
+        expect.objectContaining({
+          paymentProviderPlanId: NEW_PLAN_ID,
+          paymentProviderSubscriptionId: NEW_SUBSCRIPTION_ID,
+          paymentProviderMeteredSubscriptionId: NEW_METERED_SUBSCRIPTION_ID,
+        }),
       );
     });
   });

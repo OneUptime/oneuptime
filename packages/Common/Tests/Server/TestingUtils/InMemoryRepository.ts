@@ -303,6 +303,37 @@ export function sortRows(
   });
 }
 
+export interface InMemoryTableOptions {
+  /*
+   * Answer a find with only the columns it selects (and the id), as
+   * Postgres does, for a test of what a read leaves out: a column the
+   * service drops from a read is then missing from what the API sends. Off
+   * by default: the tables answer every column, as the tests written before
+   * this expect.
+   */
+  answersOnlySelectedColumns?: boolean | undefined;
+}
+
+// The columns of `row` a find's `select` asks for, and the id.
+function selectedColumnsOf(
+  row: StoredRow,
+  select: Record<string, unknown> | undefined,
+): StoredRow {
+  if (!select) {
+    return { ...row };
+  }
+
+  const selected: StoredRow = { _id: row["_id"] };
+
+  for (const [column, isSelected] of Object.entries(select)) {
+    if (isSelected && column in row) {
+      selected[column] = row[column];
+    }
+  }
+
+  return selected;
+}
+
 /*
  * Put an in-memory table behind `service`. `rows` are the rows the table
  * starts with; each needs an _id.
@@ -310,6 +341,7 @@ export function sortRows(
 export function useInMemoryTable<TBaseModel extends BaseModel>(
   service: DatabaseService<TBaseModel>,
   rows: Array<StoredRow>,
+  options?: InMemoryTableOptions | undefined,
 ): InMemoryTable {
   const table: InMemoryTable = {
     rows: rows.map((row: StoredRow): StoredRow => {
@@ -340,23 +372,30 @@ export function useInMemoryTable<TBaseModel extends BaseModel>(
 
   table.repository = {
     find: getJestMockFunction().mockImplementation(
-      async (options: {
+      async (findOptions: {
         where?: unknown;
         skip?: number;
         take?: number;
         order?: Record<string, string>;
+        select?: Record<string, unknown>;
       }): Promise<Array<TBaseModel>> => {
         const matched: Array<StoredRow> = sortRows(
           table.rows.filter((row: StoredRow) => {
-            return rowMatchesWhere(row, options.where);
+            return rowMatchesWhere(row, findOptions.where);
           }),
-          options.order,
+          findOptions.order,
         );
 
-        const start: number = options.skip || 0;
-        const window: Array<StoredRow> = options.take
-          ? matched.slice(start, start + options.take)
+        const start: number = findOptions.skip || 0;
+        const window: Array<StoredRow> = findOptions.take
+          ? matched.slice(start, start + findOptions.take)
           : matched.slice(start);
+
+        if (options?.answersOnlySelectedColumns) {
+          return window.map((row: StoredRow): TBaseModel => {
+            return toModel(selectedColumnsOf(row, findOptions.select));
+          });
+        }
 
         return window.map(toModel);
       },

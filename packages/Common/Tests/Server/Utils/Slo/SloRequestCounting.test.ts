@@ -476,6 +476,198 @@ describe("SloRequestCounting.readWindowSums", () => {
   });
 });
 
+describe("SloRequestCounting.buildRangeSumsStatement", () => {
+  /*
+   * An SLO's monthly report sums its counted steps one month at a time:
+   * each range [from, to) over the same newest-version steps a window sum
+   * reads, in one query.
+   */
+  const JANUARY: SloRequestCountingRange = rangeOf(
+    Date.UTC(2026, 0, 1),
+    Date.UTC(2026, 1, 1),
+  );
+  const FEBRUARY: SloRequestCountingRange = rangeOf(
+    Date.UTC(2026, 1, 1),
+    Date.UTC(2026, 2, 1),
+  );
+
+  test("sums each range between its start and its end, from the newest version of every step that has both counts", () => {
+    const statement: Statement = SloRequestCounting.buildRangeSumsStatement({
+      projectId: PROJECT_ID,
+      sloId: SLO_ID,
+      ranges: [JANUARY, FEBRUARY],
+    });
+
+    const sql: string = oneLine(statement);
+
+    expect(sql).toMatch(
+      /sumIf\(good, bucketStart >= \{p\d+:DateTime\} AND bucketStart < \{p\d+:DateTime\}\) AS good0/,
+    );
+    expect(sql).toMatch(
+      /sumIf\(total, bucketStart >= \{p\d+:DateTime\} AND bucketStart < \{p\d+:DateTime\}\) AS total0/,
+    );
+    expect(sql).toContain("AS good1");
+    expect(sql).toContain("AS total1");
+    expect(sql).toMatch(
+      /argMaxIf\(value, version, metricName = \{p\d+:String\}\) AS good/,
+    );
+    expect(sql).toContain("GROUP BY bucketStart HAVING countIf(metricName =");
+    // Nothing is excluded: a report reads what earlier evaluations kept.
+    expect(sql).not.toContain("AND NOT (");
+    expect(paramValues(statement)).toContain("good.count");
+    expect(paramValues(statement)).toContain("total.count");
+    expect(paramValues(statement)).toContain(SLO_ID.toString());
+  });
+
+  test("reads from the first range's start to the last range's end, and no further", () => {
+    const statement: Statement = SloRequestCounting.buildRangeSumsStatement({
+      projectId: PROJECT_ID,
+      sloId: SLO_ID,
+      ranges: [FEBRUARY, JANUARY],
+    });
+
+    const sql: string = oneLine(statement);
+
+    const paramsOf: (pattern: RegExp) => [string, string] = (
+      pattern: RegExp,
+    ): [string, string] => {
+      const match: RegExpMatchArray | null = sql.match(pattern);
+      expect(match).not.toBeNull();
+      return [match![1]!, match![2]!];
+    };
+
+    const [, februaryEnd] = paramsOf(
+      /sumIf\(good, bucketStart >= \{(p\d+):DateTime\} AND bucketStart < \{(p\d+):DateTime\}\) AS good0/,
+    );
+    const [januaryStart] = paramsOf(
+      /sumIf\(good, bucketStart >= \{(p\d+):DateTime\} AND bucketStart < \{(p\d+):DateTime\}\) AS good1/,
+    );
+    const [readFrom, readTo] = paramsOf(
+      /AND bucketStart >= \{(p\d+):DateTime\} AND bucketStart < \{(p\d+):DateTime\} GROUP BY/,
+    );
+
+    expect(statement.query_params[readFrom]).toEqual(
+      statement.query_params[januaryStart],
+    );
+    expect(statement.query_params[readTo]).toEqual(
+      statement.query_params[februaryEnd],
+    );
+  });
+});
+
+describe("SloRequestCounting.readRangeSums", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const JANUARY: SloRequestCountingRange = rangeOf(
+    Date.UTC(2026, 0, 1),
+    Date.UTC(2026, 1, 1),
+  );
+  const FEBRUARY: SloRequestCountingRange = rangeOf(
+    Date.UTC(2026, 1, 1),
+    Date.UTC(2026, 2, 1),
+  );
+  const EMPTY: SloRequestCountingRange = rangeOf(
+    Date.UTC(2025, 11, 1),
+    Date.UTC(2025, 11, 1),
+  );
+
+  test("reads one sum per range, in the ranges' order", async () => {
+    jest
+      .spyOn(SloHistoryService, "executeQuery")
+      .mockResolvedValue(
+        resultOf([
+          { good0: "990", total0: "1000", good1: 50, total1: 60 },
+        ]) as never,
+      );
+
+    expect(
+      await SloRequestCounting.readRangeSums({
+        projectId: PROJECT_ID,
+        sloId: SLO_ID,
+        ranges: [JANUARY, FEBRUARY],
+      }),
+    ).toEqual([
+      { goodCount: 990, totalCount: 1000 },
+      { goodCount: 50, totalCount: 60 },
+    ]);
+  });
+
+  test("a range that holds no time is zero, and is left out of the query", async () => {
+    const query: jest.SpiedFunction<typeof SloHistoryService.executeQuery> =
+      jest
+        .spyOn(SloHistoryService, "executeQuery")
+        .mockResolvedValue(
+          resultOf([{ good0: 7, total0: 8, good1: 3, total1: 4 }]) as never,
+        );
+
+    const sums: Array<SloRequestCounts> =
+      await SloRequestCounting.readRangeSums({
+        projectId: PROJECT_ID,
+        sloId: SLO_ID,
+        ranges: [EMPTY, JANUARY, EMPTY, FEBRUARY],
+      });
+
+    expect(sums).toEqual([
+      { goodCount: 0, totalCount: 0 },
+      { goodCount: 7, totalCount: 8 },
+      { goodCount: 0, totalCount: 0 },
+      { goodCount: 3, totalCount: 4 },
+    ]);
+
+    const sql: string = oneLine(query.mock.calls[0]![0] as Statement);
+    expect(sql).toContain("AS good1");
+    expect(sql).not.toContain("AS good2");
+  });
+
+  test("reads nothing when no range holds any time", async () => {
+    const query: jest.SpiedFunction<typeof SloHistoryService.executeQuery> =
+      jest.spyOn(SloHistoryService, "executeQuery");
+
+    expect(
+      await SloRequestCounting.readRangeSums({
+        projectId: PROJECT_ID,
+        sloId: SLO_ID,
+        ranges: [EMPTY, EMPTY],
+      }),
+    ).toEqual([
+      { goodCount: 0, totalCount: 0 },
+      { goodCount: 0, totalCount: 0 },
+    ]);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  test("no row at all, or a count that is not a number, sums to zero", async () => {
+    jest
+      .spyOn(SloHistoryService, "executeQuery")
+      .mockResolvedValue(resultOf([]) as never);
+
+    expect(
+      await SloRequestCounting.readRangeSums({
+        projectId: PROJECT_ID,
+        sloId: SLO_ID,
+        ranges: [JANUARY],
+      }),
+    ).toEqual([{ goodCount: 0, totalCount: 0 }]);
+
+    jest.restoreAllMocks();
+    jest
+      .spyOn(SloHistoryService, "executeQuery")
+      .mockResolvedValue(
+        resultOf([{ good0: "NaN", total0: null }] as never) as never,
+      );
+
+    expect(
+      await SloRequestCounting.readRangeSums({
+        projectId: PROJECT_ID,
+        sloId: SLO_ID,
+        ranges: [JANUARY],
+      }),
+    ).toEqual([{ goodCount: 0, totalCount: 0 }]);
+  });
+});
+
 describe("SloRequestCounting.isCoveredBy", () => {
   const from: number = SETTLED_END.getTime() - 4 * STEP;
   const to: number = SETTLED_END.getTime();

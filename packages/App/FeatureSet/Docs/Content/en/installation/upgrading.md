@@ -796,6 +796,19 @@ working mail server.
   **Let people sign in with an emailed link** on
   **Admin Dashboard > Settings > Authentication**. See
   [Sign in with an emailed link](/docs/introduction/your-account#sign-in-with-an-emailed-link).
+- **The master API key is stored hashed, and shown only when it is made.**
+  The key has root access to every project, and it was stored as it was
+  written, so a database dump or a backup held a working key. Now only its
+  hash is stored, and the upgrade hashes the key you have: the scripts and
+  integrations that use it keep working, with no change.
+  **Admin Dashboard > Settings > API Key** no longer shows the key: it says
+  whether one is set, and **Create Key** or **Reset Key** shows a new key
+  once, to copy then. If you read the key from that page rather than keep it
+  in a secret manager, copy it before you upgrade: afterwards **Reset Key**
+  makes a new one, and the old one stops working. A new key works at once,
+  and **Enabled** turns it off. The API no longer reads `masterApiKey` back,
+  and refuses a key written to it. Rolled back to an earlier release, the
+  page shows the key's hash, which is no key: generate a new key there.
 - **A record you may not read can no longer be changed or deleted, and a
   change by ID that reaches nothing says so.** A change or a delete - from
   the dashboard, the API, Terraform, the MCP tools or a workflow - now

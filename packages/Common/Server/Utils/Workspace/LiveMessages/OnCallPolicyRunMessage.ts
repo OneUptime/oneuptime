@@ -68,6 +68,10 @@ import { WorkspaceSendMessageResponse } from "../WorkspaceBase";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
+import {
+  ON_CALL_PAGE_MERGE_UNNAMED_POLICY,
+  readOnCallPageMergedMessage,
+} from "../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { isOnCallPersonPage } from "../../../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import { isOnCallPolicyStartedByHand } from "../../../../Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
@@ -1318,6 +1322,23 @@ export default class OnCallPolicyRunMessage {
           status === OnCallDutyExecutionLogTimelineStatus.PassedOn
         ) {
           person.timesPaged++;
+        } else if (
+          status === OnCallDutyExecutionLogTimelineStatus.AlreadyPaged
+        ) {
+          /*
+           * Another policy's page of them stands for this run's
+           * (OnCallPageMerge): the line says which policy, once.
+           */
+          const policyName: string =
+            readOnCallPageMergedMessage(step.statusMessage) ||
+            ON_CALL_PAGE_MERGE_UNNAMED_POLICY;
+          const alreadyPagedBy: Array<string> = person.alreadyPagedBy || [];
+
+          if (!alreadyPagedBy.includes(policyName)) {
+            alreadyPagedBy.push(policyName);
+          }
+
+          person.alreadyPagedBy = alreadyPagedBy;
         } else {
           // Started or Executing: the page is still going out.
           person.isBeingPaged = true;

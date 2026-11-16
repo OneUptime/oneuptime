@@ -41,10 +41,11 @@ flowchart TB
 Gå til **Projektindstillinger** > **Notifikationer** > **Notifikationskanaler**, og åbn **Yderligere indstillinger**. Klik i kortet **Twilio-konfiguration** på **Opret Twilio-konfiguration**, og udfyld formularen:
 
 - **Navn** og **Beskrivelse**: hvad kontoen bruges til, fx "Supportlinje".
+- **Brug denne konto til**: **Opkald og SMS**, eller **Kun opkald**, når kontoens numre ikke kan sende SMS. Indgående opkald virker med begge.
 - **Twilio-konto-SID**: fra Twilio Console. Den starter med `AC`.
 - **Twilio-godkendelsestoken**: fra Twilio Console.
-- **Twilio primært telefonnummer**: et nummer på den konto, til de SMS'er og opkald, den sender. Under **Flere felter**, valgfrit: numre til modtagere i andre lande og numre til SMS, når kontoens numre kun kan foretage opkald (se [Separate numre til opkald og SMS](/docs/self-hosted/twilio-integration#separate-numre-til-opkald-og-sms)).
-- **Indstil som projektstandard**: slået til for projektets første Twilio-konfiguration, så SMS'er og opkald til projektets medlemmer også går gennem denne konto. Slå det fra, hvis kontoen kun er til indgående opkald.
+- **Twilio primært telefonnummer**: et nummer på den konto, til de opkald, den foretager, og til dens SMS'er, når den sender dem. Under **Flere felter**, valgfrit: numre til modtagere i andre lande og numre til SMS, når kontoens numre kun kan foretage opkald (se [Separate numre til opkald og SMS](/docs/self-hosted/twilio-integration#separate-numre-til-opkald-og-sms)).
+- **Indstil som projektstandard**: slået til for projektets første Twilio-konfiguration, så opkald til projektets medlemmer også går gennem denne konto, og deres SMS'er, når den bruges til **Opkald og SMS**. Slå det fra, hvis kontoen kun er til indgående opkald.
 
 ### Opret politikken
 

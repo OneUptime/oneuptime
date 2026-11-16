@@ -435,6 +435,31 @@ export const LOG_PAGE_LINE_SENTENCES: Readonly<{
   ),
 };
 
+/*
+ * A person's page merged into their open page from another policy's run
+ * (OnCallPageMerge): which policy is paging them - or, for a line that names
+ * none, another policy - and the line of one that took the page over.
+ */
+export const LOG_MERGED_PAGE_SENTENCES: Readonly<{
+  merged: string;
+  mergedUnnamed: string;
+  takenOver: string;
+  takenOverUnnamed: string;
+}> = {
+  merged: translationKey(
+    "Already paged about this by {{name}}, so not paged again.",
+  ),
+  mergedUnnamed: translationKey(
+    "Already paged about this by another on-call policy, so not paged again.",
+  ),
+  takenOver: translationKey(
+    "Their page from {{name}} is over, so this policy pages them now.",
+  ),
+  takenOverUnnamed: translationKey(
+    "Their page from another on-call policy is over, so this policy pages them now.",
+  ),
+};
+
 // A provider's delivery report, by the status it says (SmsStatus, WhatsAppStatus).
 export const LOG_PROVIDER_STATUS_SENTENCES: Readonly<Record<string, string>> = {
   Delivered: translationKey("The provider delivered it."),
@@ -682,6 +707,24 @@ function getPageLineSentence(
             { setsValuesApart: true },
           )
         : null;
+    case OnCallLogLineCode.PageMerged:
+      return line.name
+        ? translator.translateTemplate(
+            LOG_MERGED_PAGE_SENTENCES.merged,
+            { name: line.name },
+            { setsValuesApart: true },
+          )
+        : translator.translateTemplate(LOG_MERGED_PAGE_SENTENCES.mergedUnnamed);
+    case OnCallLogLineCode.PageMergeTakenOver:
+      return line.name
+        ? translator.translateTemplate(
+            LOG_MERGED_PAGE_SENTENCES.takenOver,
+            { name: line.name },
+            { setsValuesApart: true },
+          )
+        : translator.translateTemplate(
+            LOG_MERGED_PAGE_SENTENCES.takenOverUnnamed,
+          );
     case OnCallLogLineCode.NotificationStuck:
       return line.minutes
         ? translator.translatePlural(LOG_NOTIFICATION_STUCK, line.minutes)

@@ -28,6 +28,8 @@ import {
   buildRunnerPickerModel,
   canGlobalRunnersRunWork,
   getCodeRepositoryRunnerWords,
+  getGlobalRunnerKeptOffText,
+  CODE_GLOBAL_RUNNER_KEPT_OFF_TEXT,
   getGlobalRunnersLiveStatus,
   getNewRuleRunnerId,
   getProjectDefaultRunner,
@@ -1817,6 +1819,33 @@ describe("a code repository's Runner lines, in its host's words", () => {
       expect(getCodeRepositoryRunnerWords(provider)).toEqual(words);
     },
   );
+
+  /*
+   * On OneUptime Cloud a global Runner never gets a GitLab, Forgejo, Gitea
+   * or Git repository's token (#6115): where its Runner is picked, the
+   * repository says so - and the lines above are its host's as ever.
+   */
+  test("the line a repository on the Global Runner adds where global Runners never get its token", () => {
+    for (const provider of [
+      CodeRepositoryType.GitLab,
+      CodeRepositoryType.Forgejo,
+      CodeRepositoryType.Git,
+    ]) {
+      expect(getGlobalRunnerKeptOffText(provider, true)).toBe(
+        CODE_GLOBAL_RUNNER_KEPT_OFF_TEXT,
+      );
+      expect(getGlobalRunnerKeptOffText(provider, false)).toBeNull();
+    }
+
+    for (const provider of [CodeRepositoryType.GitHub, undefined, null]) {
+      expect(getGlobalRunnerKeptOffText(provider, true)).toBeNull();
+    }
+
+    // The same sentence as Code's notice for it.
+    expect(CODE_GLOBAL_RUNNER_KEPT_OFF_TEXT).toContain(
+      "its access token is never handed to a global Runner",
+    );
+  });
 
   test("a repository whose host is not read yet, or unknown, reads as GitHub's", () => {
     for (const provider of [undefined, null, "", "Bitbucket"]) {

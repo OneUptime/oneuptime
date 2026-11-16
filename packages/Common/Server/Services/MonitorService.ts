@@ -41,7 +41,6 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { SAMPLE_PROJECT_REFUSALS } from "../../Types/SampleProject/SampleProject";
 import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import MonitorType, {
@@ -113,6 +112,7 @@ import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import MonitorTemplateService from "./MonitorTemplateService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ServerSetColumns from "../Utils/Database/ServerSetColumns";
 import {
   getAffectedResourceColumns,
   getAffectedResourceRelations,
@@ -2297,19 +2297,6 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("ProjectId required to create monitor.");
     }
 
-    /*
-     * A sample project's monitors (issue #6808) are never checked - no
-     * probe takes them, no job sweeps them - so a monitor made there would
-     * sit waiting for a first check for ever. Refused, with where to make
-     * it instead. OneUptime makes the sample's own, as root.
-     */
-    if (
-      !createBy.props.isRoot &&
-      (await ProjectService.isSampleProject(createBy.props.tenantId))
-    ) {
-      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.monitor);
-    }
-
     // A Synthetic step with no browser or no screen size would run nothing.
     SyntheticMonitorStepsUtil.assertRunsSomewhere({
       monitorType: createBy.data.monitorType,
@@ -4380,11 +4367,19 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
       statusTimeline.monitorId = monitorId;
       statusTimeline.monitorStatusId = monitorStatusId;
       statusTimeline.projectId = projectId;
-      statusTimeline.isOwnerNotified = !notifyOwners;
 
-      if (statusChangeLog) {
-        statusTimeline.statusChangeLog = statusChangeLog;
-      }
+      /*
+       * Whether the owners are told, and the evidence of the change, are
+       * OneUptime's to give, also when the row is written as the person
+       * whose incident changed the status (createStatusTimelineWithRetry):
+       * nobody may create either column, so the values are marked as
+       * OneUptime's on the row (ServerSetColumns).
+       */
+      ServerSetColumns.set(statusTimeline, {
+        isOwnerNotified: !notifyOwners,
+        statusChangeLog: statusChangeLog || undefined,
+      });
+
       if (rootCause) {
         statusTimeline.rootCause = rootCause;
       }

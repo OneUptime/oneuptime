@@ -41,10 +41,11 @@ flowchart TB
 Ve a **Ajustes del proyecto** > **Notificaciones** > **Canales de notificación** y abre **Más ajustes**. En la tarjeta **Configuración de Twilio**, haz clic en **Crear configuración de Twilio** y rellena el formulario:
 
 - **Nombre** y **Descripción**: para qué es la cuenta, por ejemplo «Línea de soporte».
+- **Usar esta cuenta para**: **Llamadas y SMS**, o **Solo llamadas** si los números de la cuenta no pueden enviar SMS. Las llamadas entrantes funcionan con cualquiera de las dos.
 - **SID de cuenta de Twilio**: de la consola de Twilio. Empieza por `AC`.
 - **Token de autenticación de Twilio**: de la consola de Twilio.
-- **Número de teléfono principal de Twilio**: un número de esa cuenta, para los SMS y las llamadas que envía. En **Más campos**, opcionales: números para destinatarios de otros países y números para SMS si los números de la cuenta solo pueden hacer llamadas (consulta [Números distintos para llamadas y SMS](/docs/self-hosted/twilio-integration#números-distintos-para-llamadas-y-sms)).
-- **Establecer como predeterminado del proyecto**: activado para la primera configuración de Twilio del proyecto, de modo que los SMS y las llamadas a los miembros del proyecto también pasen por esta cuenta. Desactívalo si esta cuenta es solo para llamadas entrantes.
+- **Número de teléfono principal de Twilio**: un número de esa cuenta, para las llamadas que hace y para sus SMS cuando los envía. En **Más campos**, opcionales: números para destinatarios de otros países y números para SMS si los números de la cuenta solo pueden hacer llamadas (consulta [Números distintos para llamadas y SMS](/docs/self-hosted/twilio-integration#números-distintos-para-llamadas-y-sms)).
+- **Establecer como predeterminado del proyecto**: activado para la primera configuración de Twilio del proyecto, de modo que las llamadas a los miembros del proyecto también pasen por esta cuenta, y sus SMS cuando se usa para **Llamadas y SMS**. Desactívalo si esta cuenta es solo para llamadas entrantes.
 
 ### Crea la política
 

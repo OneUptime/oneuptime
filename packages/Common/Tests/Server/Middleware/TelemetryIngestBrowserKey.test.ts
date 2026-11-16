@@ -1,4 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import { EventEmitter } from "events";
 import TelemetryIngest, {
   getEffectiveRequestsPerMinuteLimit,
   TelemetryRequest,
@@ -206,9 +207,11 @@ const run: RunFunction = async (
   } as unknown as ExpressRequest;
 
   const setHeader: MockFn = jest.fn();
-  const res: ExpressResponse = {
+  // "finish" is how the guard learns the route accepted the data.
+  const res: ExpressResponse = Object.assign(new EventEmitter(), {
     setHeader,
-  } as unknown as ExpressResponse;
+    statusCode: 200,
+  }) as unknown as ExpressResponse;
   const next: MockFn = jest.fn();
 
   if (surface === null) {
@@ -226,6 +229,24 @@ const run: RunFunction = async (
   }
 
   return { req, res, next, setHeader };
+};
+
+type AnswerAsRouteFunction = (res: ExpressResponse, statusCode: number) => void;
+
+/*
+ * The route answering an admitted request, as its res.end() comes to: the
+ * guard marks the key used only once the route answers with a success
+ * (issue #8021).
+ */
+const answerAsRoute: AnswerAsRouteFunction = (
+  res: ExpressResponse,
+  statusCode: number,
+): void => {
+  const response: EventEmitter & { statusCode: number } =
+    res as unknown as EventEmitter & { statusCode: number };
+
+  response.statusCode = statusCode;
+  response.emit("finish");
 };
 
 type TokenHeadersFunction = (
@@ -1548,10 +1569,20 @@ describe("TelemetryIngest browser ingestion key guard", () => {
   });
 
   describe("last-used bookkeeping", () => {
-    test("markUsed is recorded for the admitting key on success", async () => {
+    test("markUsed is recorded for the admitting key once its route accepts the data", async () => {
       resolveTo(buildPolicy({}));
 
-      await run(TelemetryIngestSurface.OtelTraces, tokenHeaders());
+      const result: RunResult = await run(
+        TelemetryIngestSurface.OtelTraces,
+        tokenHeaders(),
+      );
+
+      // Admitted, but the route has not taken the data yet.
+      expect(
+        TelemetryIngestionKeyService.markUsed as MockFn,
+      ).not.toHaveBeenCalled();
+
+      answerAsRoute(result.res, 200);
 
       expect(
         TelemetryIngestionKeyService.markUsed as MockFn,
@@ -1582,6 +1613,14 @@ describe("TelemetryIngest browser ingestion key guard", () => {
       );
 
       expect(result.next).toHaveBeenCalledTimes(1);
+
+      // Nor is the route's answer: the write is started, never awaited.
+      expect(() => {
+        answerAsRoute(result.res, 200);
+      }).not.toThrow();
+      expect(
+        TelemetryIngestionKeyService.markUsed as MockFn,
+      ).toHaveBeenCalledTimes(1);
     });
 
     test("a failed markUsed write does not fail the ingest request", async () => {
@@ -1606,6 +1645,14 @@ describe("TelemetryIngest browser ingestion key guard", () => {
         expect(result.next).toHaveBeenCalledTimes(1);
         // next() with no arguments - an argument would be an Express error.
         expect(result.next.mock.calls[0]?.length || 0).toBe(0);
+
+        // The route answers; the write it starts then fails, and goes no further.
+        expect(() => {
+          answerAsRoute(result.res, 200);
+        }).not.toThrow();
+        expect(
+          TelemetryIngestionKeyService.markUsed as MockFn,
+        ).toHaveBeenCalledTimes(1);
 
         // Let the swallowed rejection settle so it cannot surface elsewhere.
         await Promise.resolve();
