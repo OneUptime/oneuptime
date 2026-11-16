@@ -172,12 +172,14 @@ export type RecordOperation =
   | DatabaseRequestType.Delete;
 
 export default class ReadPermission {
+  // `sort`: the order the read asked for, held to the caller's read (#8839).
   @CaptureSpan()
   public static async checkReadPermission<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
+    sort?: unknown,
   ): Promise<CheckReadPermissionType<TBaseModel>> {
     // The base permission check adds predicates to the query.
     query = { ...query };
@@ -196,6 +198,8 @@ export default class ReadPermission {
         select,
         props,
         DatabaseRequestType.Read,
+        undefined,
+        sort,
       );
 
     // upate query

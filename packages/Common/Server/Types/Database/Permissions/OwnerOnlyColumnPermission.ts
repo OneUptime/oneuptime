@@ -43,10 +43,13 @@ import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
  *      tables' reads, so a nested select is how the credential escapes without
  *      anything appearing to have been widened at all.
  *
- *   3. A sort key - `sort: { webhookUrl: "ASC" }`. DatabaseService adds sorted
- *      columns to the select AFTER the permission layer has run, so the gate is
- *      simply not in the path; isOwnerOnlyColumnOnModel() lets that code refuse
- *      to add a marked column.
+ *   3. A sort key - `sort: { webhookUrl: "ASC" }`, or one through a relation.
+ *      The order says what the column holds, so the permission layer refuses
+ *      a sort by a marked column unless the query is pinned to the caller
+ *      (SortValidator.checkSortPermission, #8839). DatabaseService also adds
+ *      sorted columns to the select AFTER the permission layer has run;
+ *      isOwnerOnlyColumnOnModel() lets that code refuse to add a marked
+ *      column.
  *
  *   4. A WHERE predicate - `query: { webhookUrl: "https://..." }`. Equality on a
  *      secret is a value oracle: enough queries and the value is read out one

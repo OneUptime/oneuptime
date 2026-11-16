@@ -1,5 +1,6 @@
 import {
   buildPageSearchCommandDescriptors,
+  fillPageSearchTitle,
   PageSearchAvailability,
   PageSearchCommandDescriptor,
 } from "../../FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPaletteHelpers";
@@ -95,18 +96,39 @@ const describeIndex: (
   });
 };
 
+interface TitledByKey {
+  title: string;
+  titleKey?: string;
+  titleValues?: Record<string, string>;
+}
+
 /*
  * A page's title as the model reads it, from the key the index names it
  * by: the English the Dashboard draws ("Insights"), and the key itself
  * only where it is not that English ("Insights (explorer analytics)"),
- * for the button that draws it in the reader's language.
+ * for the button and the chip that draw it in the reader's language. A
+ * template keeps what fills it too: "Import from {{tool}}" with { tool:
+ * "PagerDuty" } is "Import from PagerDuty" to the model (#8834).
  */
-const titledByKey: (key: string) => { title: string; titleKey?: string } = (
+const titledByKey: (
   key: string,
-): { title: string; titleKey?: string } => {
-  const title: string = withMeaningKeyAsItsWord(key);
+  values?: Record<string, string> | undefined,
+) => TitledByKey = (
+  key: string,
+  values?: Record<string, string> | undefined,
+): TitledByKey => {
+  const title: string = fillPageSearchTitle(
+    withMeaningKeyAsItsWord(key),
+    values,
+  );
 
-  return title === key ? { title } : { title, titleKey: key };
+  if (title === key) {
+    return { title };
+  }
+
+  return values && Object.keys(values).length > 0
+    ? { title, titleKey: key, titleValues: { ...values } }
+    : { title, titleKey: key };
 };
 
 // Texts the model reads, as English draws them: where a page is, its other names.
@@ -138,7 +160,7 @@ const deriveCatalog: () => Array<AIDashboardPage> =
     return withBilling.map(
       (descriptor: PageSearchCommandDescriptor): AIDashboardPage => {
         return {
-          ...titledByKey(descriptor.title),
+          ...titledByKey(descriptor.titleKey, descriptor.titleValues),
           where: asEnglishDraws(descriptor.breadcrumb),
           ...(descriptor.keywords.length > 0
             ? { keywords: asEnglishDraws(descriptor.keywords) }
@@ -184,10 +206,21 @@ const CREATE_PAGES: Array<{
     keywords: ["new alert", "add alert"],
     page: PageMap.ALERT_CREATE,
   },
+  /*
+   * Named as its page's own button and the docs name it, a key every
+   * language words: Search's action says "Create Scheduled Maintenance"
+   * under a nested key no flat lookup reads (#8834), which still finds it.
+   */
   {
-    title: "Create Scheduled Maintenance",
+    title: "Create Maintenance Event",
     where: ["Scheduled Maintenance"],
-    keywords: ["new maintenance", "downtime window", "planned maintenance"],
+    keywords: [
+      "create scheduled maintenance",
+      "schedule maintenance",
+      "new maintenance",
+      "downtime window",
+      "planned maintenance",
+    ],
     page: PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
   },
   {
@@ -306,6 +339,19 @@ describe("Ask AI's catalog of the Dashboard's pages", () => {
         path: "/dashboard/:projectId/on-call-duty/policies",
       },
       { query: "Status Pages", path: "/dashboard/:projectId/status-pages" },
+      // As its page's own button and the docs name it, and as Search's action does (#8834).
+      {
+        query: "Create Maintenance Event",
+        path: "/dashboard/:projectId/scheduled-maintenance-events/create",
+      },
+      {
+        query: "Create Scheduled Maintenance",
+        path: "/dashboard/:projectId/scheduled-maintenance-events/create",
+      },
+      {
+        query: "Import from PagerDuty",
+        path: "/dashboard/:projectId/settings/import",
+      },
     ];
 
     for (const expectation of expectations) {
@@ -388,7 +434,10 @@ const findTextsNotAsEnglishDraws: (
     }
 
     if (page.titleKey !== undefined) {
-      const drawn: string | undefined = english.translateText(page.titleKey);
+      // A template, filled with what fills it (#8834).
+      const drawn: string | undefined = page.titleValues
+        ? english.translateTemplate(page.titleKey, page.titleValues)
+        : english.translateText(page.titleKey);
 
       if (page.titleKey === page.title || drawn !== page.title) {
         findings.push(
@@ -556,7 +605,7 @@ describe("what the model reads of the catalog is the English the Dashboard draws
     ]);
   });
 
-  test("a titleKey is a key of the Dashboard's locales that names its meaning, kept only where it is not the title", () => {
+  test("a titleKey is a key of the Dashboard's locales that names its meaning, or a template its titleValues fill, kept only where it is not the title", () => {
     const keyed: Array<AIDashboardPage> = AI_DASHBOARD_PAGES.filter(
       (page: AIDashboardPage): boolean => {
         return page.titleKey !== undefined;
@@ -567,10 +616,25 @@ describe("what the model reads of the catalog is the English the Dashboard draws
 
     for (const page of keyed) {
       expect(Object.keys(ENGLISH_WORDS)).toContain(page.titleKey);
-      expect(MEANING_KEY_SET.has(page.titleKey!)).toBe(true);
       expect(page.titleKey).not.toBe(page.title);
-      expect(withMeaningKeyAsItsWord(page.titleKey!)).toBe(page.title);
+
+      if (page.titleValues) {
+        expect(page.titleKey).toMatch(/\{\{\w+\}\}/);
+        expect(fillPageSearchTitle(page.titleKey!, page.titleValues)).toBe(
+          page.title,
+        );
+      } else {
+        expect(MEANING_KEY_SET.has(page.titleKey!)).toBe(true);
+        expect(withMeaningKeyAsItsWord(page.titleKey!)).toBe(page.title);
+      }
     }
+
+    // No page keeps values without a template to fill.
+    expect(
+      AI_DASHBOARD_PAGES.filter((page: AIDashboardPage): boolean => {
+        return page.titleValues !== undefined && page.titleKey === undefined;
+      }),
+    ).toEqual([]);
   });
 
   test.each(EXPLORER_INSIGHTS)(
@@ -651,19 +715,31 @@ describe("what the model reads of the catalog is the English the Dashboard draws
     expect(titledByKey("OpenID Connect (OIDC)")).toEqual({
       title: "OpenID Connect (OIDC)",
     });
+    // A template: filled for the model, kept with its values for the button (#8834).
+    expect(titledByKey("Import from {{tool}}", { tool: "PagerDuty" })).toEqual({
+      title: "Import from PagerDuty",
+      titleKey: "Import from {{tool}}",
+      titleValues: { tool: "PagerDuty" },
+    });
+    expect(titledByKey("Import from {{tool}}", {})).toEqual({
+      title: "Import from {{tool}}",
+    });
     expect(
       asEnglishDraws(["Data Observability", "Table (database object)"]),
     ).toEqual(["Data Observability", "Table"]);
   });
 
-  test("every page Search's index titles by a meaning key is written with its English title and that key, and only those keep a key", () => {
+  test("every page Search's index titles by a meaning key or a template is written with its English title and that key, and only those keep a key", () => {
     const keyedInIndex: Array<{ path: string; key: string }> = describeIndex({
       isBillingEnabled: true,
       isMonitorGroupsEnabled: false,
       canDeleteProject: false,
     })
       .filter((descriptor: PageSearchCommandDescriptor): boolean => {
-        return MEANING_KEY_SET.has(descriptor.title);
+        return (
+          MEANING_KEY_SET.has(descriptor.titleKey) ||
+          descriptor.titleValues !== undefined
+        );
       })
       .map(
         (
@@ -674,7 +750,7 @@ describe("what the model reads of the catalog is the English the Dashboard draws
               PROJECT_PLACEHOLDER,
               ":projectId",
             ),
-            key: descriptor.title,
+            key: descriptor.titleKey,
           };
         },
       );
@@ -700,12 +776,15 @@ describe("what the model reads of the catalog is the English the Dashboard draws
       }),
     ).toEqual(keyedInIndex);
 
-    for (const entry of keyedInIndex) {
-      expect(
-        DERIVED.find((page: AIDashboardPage): boolean => {
-          return page.path === entry.path;
-        })?.title,
-      ).toBe(withMeaningKeyAsItsWord(entry.key));
+    for (const page of DERIVED) {
+      if (page.titleKey !== undefined) {
+        expect(page.title).toBe(
+          fillPageSearchTitle(
+            withMeaningKeyAsItsWord(page.titleKey),
+            page.titleValues,
+          ),
+        );
+      }
     }
   });
 });
@@ -725,9 +804,6 @@ describe("what the model reads of the catalog is the English the Dashboard draws
  * title. A place keeps no key of its own, so none may be a key that names
  * its meaning; and each is a key the Dashboard's locales word.
  */
-
-// Titles filled with another product's name, which no locale holds as a key (#8834).
-const TITLES_OF_ANOTHER_PRODUCT: RegExp = /^Import from \S/;
 
 describe("every page of the catalog can be cited, and named in the reader's language (#8829, #8831)", () => {
   test("each is the first page found by its title and its place, as a result gives them", () => {
@@ -797,21 +873,17 @@ describe("every page of the catalog can be cited, and named in the reader's lang
     expect(keyedPlaces).toEqual([]);
   });
 
-  test("every name a page's chip says is a key the Dashboard's locales word, but a title filled with another product's name", () => {
+  test("every name a page's button and chip draw is a key the Dashboard's locales hold: none is drawn as English it cannot look up (#8834)", () => {
     const unknown: Set<string> = new Set<string>();
 
-    for (const page of AI_DASHBOARD_PAGES) {
+    for (const page of [...AI_DASHBOARD_PAGES, ...DERIVED]) {
       for (const name of [...page.where, page.titleKey ?? page.title]) {
-        if (
-          !Object.prototype.hasOwnProperty.call(ENGLISH_WORDS, name) &&
-          !TITLES_OF_ANOTHER_PRODUCT.test(name)
-        ) {
+        if (!Object.prototype.hasOwnProperty.call(ENGLISH_WORDS, name)) {
           unknown.add(name);
         }
       }
     }
 
-    // Search's own action, which the palette words under a nested key (#8834).
-    expect([...unknown]).toEqual(["Create Scheduled Maintenance"]);
+    expect([...unknown]).toEqual([]);
   });
 });

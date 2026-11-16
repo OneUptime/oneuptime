@@ -185,3 +185,120 @@ describe("a sentence with a page's place and name", () => {
     ).toBe(true);
   });
 });
+
+/*
+ * A NAME THAT IS A TEMPLATE (#8834): "Import from {{tool}}", which Search
+ * fills with another product's name once it is translated. The name is
+ * said in the sentence's language and its values as written: German
+ * "Import aus PagerDuty", never "Import from PagerDuty" in a German
+ * sentence.
+ */
+describe("a page's place and a name its values fill", () => {
+  const IMPORT_PATH: Array<string> = [
+    "Project Settings",
+    "Advanced",
+    "Import from another tool",
+    "Import from {{tool}}",
+  ];
+  const PAGERDUTY: Record<string, string> = { tool: "PagerDuty" };
+
+  const germanImport: Translator = createTranslator((text: string) => {
+    return {
+      "Page: {{path}}": "Seite: {{path}}",
+      "Project Settings": "Projekteinstellungen",
+      Advanced: "Erweitert",
+      "Import from another tool": "Import aus anderem Tool",
+      "Import from {{tool}}": "Import aus {{tool}}",
+    }[text];
+  }, "de");
+
+  test("keeps its values, as a copy, and none when there are none", () => {
+    const values: Record<string, string> = { ...PAGERDUTY };
+    const value: AIActionMenuPath = aiActionMenuPath(IMPORT_PATH, values);
+
+    values["tool"] = "Opsgenie";
+
+    expect(value).toEqual({ menuPath: IMPORT_PATH, values: PAGERDUTY });
+    expect(aiActionMenuPath(IMPORT_PATH, {})).toEqual({
+      menuPath: IMPORT_PATH,
+    });
+    expect(aiActionMenuPath(IMPORT_PATH)).toEqual({ menuPath: IMPORT_PATH });
+  });
+
+  test("reads in English with its values filled in, as the label the model reads", () => {
+    expect(
+      describeAIActionMenuPath(aiActionMenuPath(IMPORT_PATH, PAGERDUTY)),
+    ).toBe(
+      "Project Settings > Advanced > Import from another tool > Import from PagerDuty",
+    );
+    expect(
+      describeAIActionSentence(
+        aiActionSentence(AI_TOOL_CITATIONS.dashboardPage, {
+          path: aiActionMenuPath(IMPORT_PATH, PAGERDUTY),
+        }),
+      ),
+    ).toBe(
+      "Page: Project Settings > Advanced > Import from another tool > Import from PagerDuty",
+    );
+  });
+
+  test("reads in German as the template is worded there, the product's name as written", () => {
+    expect(
+      describeAIActionSentence(
+        aiActionSentence(AI_TOOL_CITATIONS.dashboardPage, {
+          path: aiActionMenuPath(IMPORT_PATH, PAGERDUTY),
+        }),
+        germanImport,
+      ),
+    ).toBe(
+      "Seite: Projekteinstellungen > Erweitert > Import aus anderem Tool > Import aus PagerDuty",
+    );
+  });
+
+  test("fills only a name with a placeholder: another name is said as a name", () => {
+    expect(
+      describeAIActionMenuPath(
+        aiActionMenuPath(["Project Settings", "Import from {{tool}}"], {
+          tool: "Project Settings",
+        }),
+        germanImport,
+      ),
+    ).toBe("Projekteinstellungen > Import aus Project Settings");
+  });
+
+  test("a sentence whose name is a template with values is the module's", () => {
+    expect(
+      isKnownAIActionSentence(
+        aiActionSentence(AI_TOOL_CITATIONS.dashboardPage, {
+          path: aiActionMenuPath(IMPORT_PATH, PAGERDUTY),
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  test.each<[string, unknown]>([
+    ["no values", {}],
+    ["a value that is no text", { tool: 4 }],
+    ["an empty value", { tool: " " }],
+    ["a value too long", { tool: "x".repeat(201) }],
+    [
+      "too many values",
+      Object.fromEntries(
+        Array.from({ length: 11 }, (_unused: unknown, index: number) => {
+          return [`v${index}`, "x"];
+        }),
+      ),
+    ],
+    ["values that are a list", ["PagerDuty"]],
+  ])(
+    "with %s is not the module's, and reads as the label it stores",
+    (_case: string, values: unknown) => {
+      expect(
+        isKnownAIActionSentence({
+          template: AI_TOOL_CITATIONS.dashboardPage,
+          values: { path: { menuPath: IMPORT_PATH, values } },
+        }),
+      ).toBe(false);
+    },
+  );
+});

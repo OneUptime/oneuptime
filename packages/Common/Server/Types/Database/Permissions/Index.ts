@@ -472,12 +472,18 @@ export default class ModelPermission {
     }
   }
 
+  /*
+   * `sort` is the order the read asked for: each column it names is held to
+   * the caller's read, as the select's are (SortValidator
+   * .checkSortPermission, #8839).
+   */
   @CaptureSpan()
   public static async checkReadQueryPermission<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
+    sort?: unknown,
   ): Promise<CheckReadPermissionType<TBaseModel>> {
     props = await CallerPlan.withPlanFor({
       props: props,
@@ -491,6 +497,7 @@ export default class ModelPermission {
         query,
         select,
         props,
+        sort,
       );
     } catch (error) {
       throw ModelPermission.toAnonymousRefusal(error, props);
