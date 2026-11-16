@@ -2669,10 +2669,11 @@ test("an Arabic reader reads the player's figures in Latin digits", async ({
  * it "needs the identity permission" - a permission no roles screen lists.
  * The header's tooltip and the session details' End user row now name
  * Watch Session Replays, the grant the server shows the identity behind,
- * in each language's words and quotes.
+ * in each language's words and quotes. The role is named as the role
+ * picker draws it (#8520).
  */
 const IDENTITY_TOOLTIP: string =
-  'Your role cannot read end-user identity. Ask a project admin for the "{{permission}}" permission.';
+  'Your role cannot read end-user identity. Ask a Project Admin for the "{{permission}}" permission.';
 const IDENTITY_ROW: string =
   'Hidden - your role needs the "{{permission}}" permission';
 const IDENTITY_HINT: string =
