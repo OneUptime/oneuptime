@@ -828,6 +828,8 @@
     "{{count}} open incident",
     "{{count}} open pull request",
     "{{count}} open pull requests",
+    "{{count}} pipeline",
+    "{{count}} pipelines",
     "{{count}} placement group",
     "{{count}} placement groups",
     "{{count}} pod",

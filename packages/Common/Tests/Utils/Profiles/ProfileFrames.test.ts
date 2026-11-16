@@ -207,6 +207,26 @@ describe("getProfileFrameOrigin", () => {
     );
   });
 
+  /*
+   * The eBPF profiler marks a stripped binary's frames "native" whether the
+   * binary is the system's or the application's own: its address says
+   * nothing about whose it is, so it is no more "System" than "Your code".
+   */
+  test("an address stays nobody's code when the profiler calls it native", () => {
+    expect(getProfileFrameOrigin("", "0x7f3a1c2b", "native")).toBe(
+      ProfileFrameOrigin.Unknown,
+    );
+  });
+
+  test("V8's own frames in a Node.js process are the runtime's", () => {
+    expect(getProfileFrameOrigin("", "V8::EntryFrame")).toBe(
+      ProfileFrameOrigin.Runtime,
+    );
+    expect(getProfileFrameOrigin("", "v8::internal::Invoke")).toBe(
+      ProfileFrameOrigin.Runtime,
+    );
+  });
+
   test("a frame with nothing to go on is unknown", () => {
     expect(getProfileFrameOrigin("", "")).toBe(ProfileFrameOrigin.Unknown);
     expect(getProfileFrameOrigin(undefined, undefined)).toBe(

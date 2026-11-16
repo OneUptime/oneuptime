@@ -139,6 +139,9 @@ const RUNTIME_FUNCTION_PREFIXES: ReadonlyArray<string> = [
   "com.sun.",
   "System.",
   "Microsoft.",
+  // V8's own frames, as the eBPF profiler names them in a Node.js process.
+  "V8::",
+  "v8::",
   "(garbage collector)",
   "(program)",
   "(idle)",
@@ -206,13 +209,17 @@ export function getProfileFrameOrigin(
     }
   }
 
-  if (NATIVE_FRAME_TYPES.includes(kind)) {
-    return ProfileFrameOrigin.Native;
-  }
-
-  // An address the profiler could not name ("0x7f3a…") is nobody's code.
+  /*
+   * An address the profiler could not name ("0x7f3a…") is code built
+   * without symbols, and nobody can tell whose: the eBPF profiler marks it
+   * "native" whether it is the system's or the application's own binary.
+   */
   if (name.startsWith("0x")) {
     return ProfileFrameOrigin.Unknown;
+  }
+
+  if (NATIVE_FRAME_TYPES.includes(kind)) {
+    return ProfileFrameOrigin.Native;
   }
 
   return ProfileFrameOrigin.Own;

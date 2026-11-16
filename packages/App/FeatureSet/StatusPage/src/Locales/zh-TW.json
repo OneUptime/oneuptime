@@ -343,9 +343,16 @@
     "resetPassword": {
       "description": "為您的 {{statusPageName}} 帳號建立新密碼。",
       "instructions": "請輸入您的新密碼，我們將進行更新。",
-      "success": "您的密碼已更新。請登入。",
       "submit": "重設密碼",
-      "knowPassword": "知道您的密碼？"
+      "knowPassword": "知道您的密碼？",
+      "successTitle": "您的密碼已重設",
+      "successDescription": "請使用新密碼登入。",
+      "loginButton": "登入",
+      "linkExpiredTitle": "此重設連結已過期",
+      "linkExpiredDescription": "重設連結的有效期為一天。請申請新連結，我們會以電子郵件寄給您。",
+      "linkInvalidTitle": "此重設連結已失效",
+      "linkInvalidDescription": "它可能已被使用過，或只複製了一部分。請申請新連結，我們會以電子郵件寄給您。",
+      "requestNewLinkButton": "申請新連結"
     },
     "magicLink": {
       "title": "使用連結登入",
@@ -482,5 +489,22 @@
   },
   "No options available": "沒有可用的選項",
   "No matches found": "找不到相符項目",
-  "{{eventType}} state changed to {{state}}": "{{eventType}}狀態已變更為 {{state}}"
+  "{{eventType}} state changed to {{state}}": "{{eventType}}狀態已變更為 {{state}}",
+  "Use at least {{minimum}} characters.": "請至少使用 {{minimum}} 個字元。",
+  "Try a few unrelated words.": "試著組合幾個互不相關的詞。",
+  "Password meets requirements": "密碼符合要求",
+  "Password must be at least 15 characters.": "密碼必須至少包含 15 個字元。",
+  "Password cannot be more than 100 characters.": "密碼不能超過 100 個字元。",
+  "Choose a less predictable password. Try a few unrelated words.": "請選擇更難猜測的密碼。試著組合幾個互不相關的詞。",
+  "Password cannot be blank.": "密碼不能僅包含空白字元。",
+  "Password is required.": "請輸入密碼。",
+  "Password must be a string.": "密碼必須是字串。",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}} 至 {{maximum}} 個字元",
+  "Avoid common or repeated patterns": "避免常見或重複的模式",
+  "Password length": "密碼長度",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} 個字元 / 至少 {{minimum}} 個字元",
+  "Complete:": "已符合：",
+  "Incomplete:": "未符合：",
+  "Special character included (optional)": "已包含特殊字元（選填）",
+  "Special characters are optional. Try !, @, # or $.": "特殊字元為選填項目。可以試試 !、@、# 或 $。"
 }

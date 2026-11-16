@@ -356,6 +356,12 @@ Wat er rond een privérecord wordt gedaan, volgt dezelfde regel: iemand erover o
 
 Wat er rond een privérecord wordt gedaan en verstuurd, lezen alleen zij die het record mogen lezen: de runs van on-callbeleid, de runbookruns, de correcties die ervoor zijn voorgesteld, en de logboeken van de e-mails, sms'jes, oproepen, pushmeldingen, chatberichten, webhooks en AI-verzoeken die OneUptime erover verstuurde. De mensen die erover zijn opgeroepen, zien hun oproep nog steeds.
 
+Als een privérecord wordt verwijderd, wordt dit alles mee verwijderd, hoe het ook wordt verwijderd: één voor één of veel tegelijk, vanuit het dashboard, de API, Terraform of MCP, door de bewaartermijn voor opgeloste records of samen met het project. Runbookruns en correcties worden verwijderd met het incident of de waarschuwing waaraan ze gekoppeld zijn, privé of niet.
+
+De opdrachten die een Runner voor een runbookrun of een correctie heeft uitgevoerd, met wat ze hebben afgedrukt, worden alleen gelezen door wie de run of de correctie mag lezen. Ze worden met de run verwijderd. De opdrachten van een verwijderde correctie blijven bewaard, als vastlegging van wat er op uw infrastructuur is uitgevoerd, en alleen Projecteigenaren en Projectbeheerders lezen ze.
+
+Een record dat een privérecord noemt zonder er deel van uit te maken, zoals een Data Security-probleem, een beveiligingszaak, een formulierinzending, een sessie-opname, of een openbare waarschuwing of een openbaar incident in een privé-episode, wordt gelezen zoals voorheen. Alleen wie het privérecord mag lezen, ziet daar de titel en de andere velden ervan: voor ieder ander vindt een filter erop het niet, en een lijst die het noemt, kan er niet op worden gesorteerd.
+
 Workflows handelen niet op privérecords. De stappen van een workflow handelen als Projectbeheerder, maar krijgen nooit diens zicht op privé-incidenten, -waarschuwingen en -episodes geleend: ze vinden er geen, wijzigen er geen en voegen er niets aan toe, en een workflow start niet op zo'n record of op iets dat erbij hoort. Zie [Wat workflowstappen mogen](/docs/workflows/configuration#wat-workflowstappen-mogen).
 
 ### Regels die bij teams horen

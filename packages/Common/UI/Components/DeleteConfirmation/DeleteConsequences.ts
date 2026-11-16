@@ -128,22 +128,33 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       takenOutOf: [{ table: "ServiceLevelObjective", property: "monitors" }],
       stays: ["Incident", "Alert", "ServiceLevelObjective"],
     },
+    /*
+     * Its runbook runs and fixes are named because they used to stay,
+     * linked to nothing: they go with it now (#9103).
+     */
     Incident: {
       sentence: translationKey(
-        "Deleting an incident also deletes its notes and state timeline, and takes it off status pages. Linked alerts stay.",
+        "Deleting an incident also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it, and takes it off status pages. Linked alerts stay.",
       ),
       deletedWith: [
         "IncidentPublicNote",
         "IncidentInternalNote",
         "IncidentStateTimeline",
+        "RunbookExecution",
+        "AutoRemediationSuggestion",
       ],
       stays: ["Alert"],
     },
     Alert: {
       sentence: translationKey(
-        "Deleting an alert also deletes its notes and state timeline. Linked incidents stay.",
+        "Deleting an alert also deletes its notes, state timeline, runbook runs and the fixes OneUptime AI proposed for it. Linked incidents stay.",
       ),
-      deletedWith: ["AlertInternalNote", "AlertStateTimeline"],
+      deletedWith: [
+        "AlertInternalNote",
+        "AlertStateTimeline",
+        "RunbookExecution",
+        "AutoRemediationSuggestion",
+      ],
       stays: ["Incident"],
     },
     ScheduledMaintenance: {

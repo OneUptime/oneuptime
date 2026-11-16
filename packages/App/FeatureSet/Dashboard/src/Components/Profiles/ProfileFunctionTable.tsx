@@ -1,3 +1,4 @@
+import { getShortProfileFunctionName } from "Common/Utils/Profiles/ProfileFunctionNames";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -14,7 +15,7 @@ import {
   formatProfileShare,
   formatProfileValue,
 } from "Common/Utils/Profiles/ProfileTypes";
-import ProfileUtil, { ModuleCategory } from "../../Utils/ProfileUtil";
+import ProfileUtil from "../../Utils/ProfileUtil";
 import {
   PROFILE_FUNCTION_ROWS,
   PROFILE_FUNCTION_ROWS_ALL,
@@ -101,14 +102,6 @@ export function findSourceLink(
     })
   );
 }
-
-const ORIGIN_TO_MODULE: Record<ProfileFrameOrigin, ModuleCategory> = {
-  [ProfileFrameOrigin.Own]: "own",
-  [ProfileFrameOrigin.Dependency]: "vendor",
-  [ProfileFrameOrigin.Runtime]: "runtime",
-  [ProfileFrameOrigin.Native]: "native",
-  [ProfileFrameOrigin.Unknown]: "unknown",
-};
 
 interface FrameRow {
   functionName: string;
@@ -254,7 +247,11 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
     row: FrameRow,
   ): ReactElement => {
     const style: { bg: string } = ProfileUtil.getModuleFrameStyle(
-      ORIGIN_TO_MODULE[getProfileOrigin(row)],
+      ProfileUtil.getModuleCategory(
+        row.fileName,
+        row.functionName,
+        row.frameType,
+      ),
       0.8,
     );
     const isHighlighted: boolean =
@@ -280,7 +277,8 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
             props.onOpenFunction(row);
           }}
         >
-          {row.functionName || translator.translateText("(anonymous)")}
+          {getShortProfileFunctionName(row.functionName) ||
+            translator.translateText("(anonymous)")}
         </button>
         <button
           type="button"

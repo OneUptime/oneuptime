@@ -354,7 +354,7 @@ export default class RunbookExecution extends BaseModel {
     modelType: Incident,
     title: "Incident",
     description:
-      "Incident that this runbook execution is associated with (if any).",
+      "Incident that this runbook execution is associated with (if any). Deleting the incident deletes the execution.",
   })
   @ManyToOne(
     () => {
@@ -363,7 +363,7 @@ export default class RunbookExecution extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )
@@ -432,7 +432,7 @@ export default class RunbookExecution extends BaseModel {
     modelType: Alert,
     title: "Alert",
     description:
-      "Alert that this runbook execution is associated with (if any).",
+      "Alert that this runbook execution is associated with (if any). Deleting the alert deletes the execution.",
   })
   @ManyToOne(
     () => {
@@ -441,7 +441,7 @@ export default class RunbookExecution extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )

@@ -1,3 +1,4 @@
+import { getShortProfileFunctionName } from "Common/Utils/Profiles/ProfileFunctionNames";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -124,7 +125,11 @@ function toFlamegraphNode(node: ProfileTreeNode): FlamegraphNode {
     fileName: node.fileName,
     lineNumber: 0,
     frameType: node.frameType || "",
-    category: ProfileUtil.getModuleCategory(node.fileName),
+    category: ProfileUtil.getModuleCategory(
+      node.fileName,
+      node.functionName,
+      node.frameType,
+    ),
     selfValue: node.selfValue,
     totalValue: node.totalValue,
     children: node.children.map(toFlamegraphNode),
@@ -275,7 +280,8 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
           props.onOpenFunction(row);
         }}
       >
-        {row.functionName || translator.translateText("(anonymous)")}
+        {getShortProfileFunctionName(row.functionName) ||
+          translator.translateText("(anonymous)")}
       </button>
     );
   };
@@ -457,7 +463,7 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
                       props.onOpenFunction(nearestOwnCaller);
                     }}
                   >
-                    {nearestOwnCaller.functionName}
+                    {getShortProfileFunctionName(nearestOwnCaller.functionName)}
                   </button>
                 ),
               }}
@@ -559,7 +565,7 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
                               fileName: string;
                             }): string => {
                               return `${getArrowBack(translator.language)} ${setApartInSentence(
-                                frame.functionName,
+                                getShortProfileFunctionName(frame.functionName),
                                 getReadingDirection(translator.language),
                               )}`;
                             },
@@ -700,8 +706,21 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
             className="break-all font-mono text-base font-semibold text-gray-900"
             data-testid="profiles-panel-name"
           >
-            {props.functionName || translator.translateText("(anonymous)")}
+            {getShortProfileFunctionName(props.functionName) ||
+              translator.translateText("(anonymous)")}
           </h3>
+          {/* The full name, when the heading shows a shorter one. */}
+          {getShortProfileFunctionName(props.functionName) !==
+          props.functionName ? (
+            <p
+              className="mt-0.5 break-all font-mono text-xs text-gray-500"
+              data-testid="profiles-panel-full-name"
+            >
+              {props.functionName}
+            </p>
+          ) : (
+            <></>
+          )}
           <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs">
             {where ? (
               sourceLink ? (

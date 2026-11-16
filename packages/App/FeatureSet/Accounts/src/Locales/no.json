@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "Tilbakestill passordet ditt",
     "subtitle": "Skriv inn det nye passordet ditt, så oppdaterer vi det.",
-    "successMessage": "Passordet ditt er oppdatert. Vennligst logg inn.",
     "submitButton": "Tilbakestill passord",
     "knowPasswordPrompt": "Kjenner du passordet ditt?",
-    "loginLink": "Logg inn."
+    "loginLink": "Logg inn.",
+    "successTitle": "Passordet ditt er tilbakestilt",
+    "successDescription": "Logg inn med det nye passordet ditt.",
+    "signInButton": "Logg inn",
+    "linkExpiredTitle": "Denne tilbakestillingslenken har utløpt",
+    "linkExpiredDescription": "Tilbakestillingslenker virker i én dag. Be om en ny lenke, så sender vi den til deg på e-post.",
+    "linkInvalidTitle": "Denne tilbakestillingslenken virker ikke lenger",
+    "linkInvalidDescription": "Den kan allerede være brukt, eller bare en del av den ble kopiert. Be om en ny lenke, så sender vi den til deg på e-post.",
+    "requestNewLinkButton": "Be om en ny lenke"
   },
   "sso": {
     "title": "Logg inn med SSO",

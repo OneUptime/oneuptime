@@ -37,14 +37,16 @@ import TooManyRequestsException from "Common/Types/Exception/TooManyRequestsExce
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import HashedString from "Common/Types/HashedString";
+import NewPasswordRule from "Common/Server/Utils/NewPasswordRule";
 import Name from "Common/Types/Name";
 import RequestOrigin from "Common/Types/RequestOrigin";
 import ObjectID from "Common/Types/ObjectID";
-import { getSignupPasswordValidationError } from "Common/Types/Password";
+import { getPasswordValidationError } from "Common/Types/Password";
 import {
   getAccountAlreadyExistsMessage,
   INCOMPLETE_RESET_LINK_MESSAGE,
   INCOMPLETE_VERIFICATION_LINK_MESSAGE,
+  RESET_LINK_MESSAGES,
   TWO_FACTOR_MESSAGES,
 } from "Common/Types/Accounts/SignInMessages";
 import MagicLink, {
@@ -679,7 +681,7 @@ router.post(
           ? (suppliedPassword as JSONObject)["value"]
           : suppliedPassword;
       const passwordValidationError: string | null =
-        getSignupPasswordValidationError(password);
+        getPasswordValidationError(password);
 
       if (passwordValidationError) {
         throw new BadDataException(passwordValidationError);
@@ -2189,9 +2191,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException(
-            "Invalid link. Please go to forgot password page again and request a new link.",
-          ),
+          new BadDataException(RESET_LINK_MESSAGES.invalid),
         );
       }
 
@@ -2202,9 +2202,26 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException(
-            "Expired link. Please go to forgot password page again and request a new link.",
-          ),
+          new BadDataException(RESET_LINK_MESSAGES.expired),
+        );
+      }
+
+      /*
+       * The one password rule, as sign-up asks it (Types/Password). Asked
+       * after the link, so a person with a dead link is told to get a new one
+       * rather than to fix a password they cannot use yet. UserService asks
+       * again on the write, as it does for every new password; a reset used
+       * to store any password at all, undoing the rule sign-up set (#9123).
+       */
+      const passwordRefusal: string | null = NewPasswordRule.getRefusal(
+        user.password,
+      );
+
+      if (passwordRefusal) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(passwordRefusal),
         );
       }
 

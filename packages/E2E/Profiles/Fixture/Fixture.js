@@ -318,6 +318,35 @@ const SEARCH_CPU = [
     70,
   ),
   stack(["runtime.gcBgMarkWorker@/usr/local/go/src/runtime/mgc.go:1310"], 40),
+  /*
+   * A stripped native library the index calls through cgo: the eBPF
+   * profiler names its frames only by address, and the Profiler groups
+   * them into one "No symbols" frame. Its caller is named by its full Go
+   * import path, which the flame graph shortens.
+   */
+  stack(
+    [
+      GO_MAIN,
+      GO_SERVE,
+      GO_HANDLER,
+      "github.com/acme/search/internal/index.(*Segment).Lookup@/app/internal/index/segment.go:77",
+      "0x7f3a2c10|native",
+      "0x7f3a2b9e|native",
+      "0x7f3a2b40|native",
+    ],
+    30,
+  ),
+  stack(
+    [
+      GO_MAIN,
+      GO_SERVE,
+      GO_HANDLER,
+      "github.com/acme/search/internal/index.(*Segment).Lookup@/app/internal/index/segment.go:77",
+      "0x7f3a2c10|native",
+      "0x7f3a2d02|native",
+    ],
+    20,
+  ),
   stack(
     [
       GO_MAIN,

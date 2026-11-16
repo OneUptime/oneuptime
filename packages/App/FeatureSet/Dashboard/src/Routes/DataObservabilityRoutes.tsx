@@ -48,6 +48,7 @@ import DataAssetOwnerRule from "Common/Models/DatabaseModels/DataAssetOwnerRule"
 import DataAssetLabelRule from "Common/Models/DatabaseModels/DataAssetLabelRule";
 import DataObservabilityBiDashboardsPage from "../Pages/DataObservability/BiDashboards";
 import DataObservabilitySpendPage from "../Pages/DataObservability/Spend";
+import DataObservabilityLineageMapPage from "../Pages/DataObservability/LineageMap";
 import DataProductViewLayout from "../Pages/DataProduct/View/Layout";
 import DataProductOverviewPage from "../Pages/DataProduct/View/Overview";
 import DataProductSettingsPage from "../Pages/DataProduct/View/Settings";
@@ -234,6 +235,11 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
         {page(PageMap.DATA_OBSERVABILITY_SPEND, (pageRoute: Route) => {
           return (
             <DataObservabilitySpendPage {...props} pageRoute={pageRoute} />
+          );
+        })}
+        {page(PageMap.DATA_OBSERVABILITY_LINEAGE_MAP, (pageRoute: Route) => {
+          return (
+            <DataObservabilityLineageMapPage {...props} pageRoute={pageRoute} />
           );
         })}
         {page(PageMap.DATA_OBSERVABILITY_CHECKS, (pageRoute: Route) => {

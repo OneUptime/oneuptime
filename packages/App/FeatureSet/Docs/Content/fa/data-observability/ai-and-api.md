@@ -39,6 +39,7 @@ OneUptime AI داده‌های شما را می‌شناسد: یک هشدار د
 | `POST /api/data-observability/pipelines/lineage` | جدول‌هایی که یک پایپ‌لاین می‌خواند و می‌نویسد، همراه با وضع کنونی هر جدول، همان‌طور که صفحهٔ آن رسمشان می‌کند، با `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | یک کلید API |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | تبار یک هشدار داده، همان‌طور که صفحهٔ آن رسمش می‌کند، همراه با مسیر تا هشداری که باعث آن شده و تا هشدارهایی که آن باعث شده، و برای هشداری که از یک بررسی روی یک ستون آمده است، `column` آن و ستون‌هایی که هر پیکان می‌برد | یک کلید API |
 | `POST /api/data-observability/lineage/expand` | جدول‌های بعدی‌ای که یک کارت از نمودار تبار رسم نمی‌کند، همان‌طور که انتخاب عددش آن‌ها را رسم می‌کند: کارت به‌صورت `nodeId` با `side` آن، و آنچه رسم شده به‌صورت `focusNodeId`، `tables` و `dataDashboardIds` | یک کلید API |
+| `POST /api/data-observability/lineage/map` | نقشهٔ تبار پروژه، همان‌طور که صفحهٔ **نقشهٔ تبار** آن را رسم می‌کند: سرویس‌ها، جدول‌ها، پایپ‌لاین‌ها و داشبوردهایی که داده‌های شما را می‌نویسند و می‌خوانند، و پیکان‌های میان آن‌ها، تازه‌ترین دیده‌شده‌ها اول | یک کلید API |
 | `POST /api/data-observability/checks/apply` | بررسی‌های پروژه را با یک فایل یکی کنید، همان‌طور که `oneuptime data-checks apply` انجام می‌دهد، با `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | یک کلید API |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | نشان «data as of» یک محصول داده | توکن خود نشان |
 

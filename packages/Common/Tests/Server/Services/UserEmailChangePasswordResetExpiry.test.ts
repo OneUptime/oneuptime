@@ -506,7 +506,7 @@ describe("UserService.onBeforeUpdate — a password reset link dies with the add
        */
       await userService().onBeforeUpdate(
         updatePayload({
-          patch: { password: new HashedString("a-new-password") },
+          patch: { password: new HashedString("a-new-river-lantern") },
         }),
       );
 

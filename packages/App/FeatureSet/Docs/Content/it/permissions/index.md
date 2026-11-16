@@ -356,6 +356,12 @@ Ciò che si fa a proposito di un record privato segue la stessa regola: avvisare
 
 Ciò che si fa e si invia a proposito di un record privato è letto solo da chi può leggere il record: le sue esecuzioni delle politiche di reperibilità, le sue esecuzioni di runbook, le correzioni proposte per esso e i log di email, SMS, chiamate, notifiche push, messaggi di chat, webhook e richieste all'IA che OneUptime ha inviato al riguardo. Le persone avvisate al riguardo vedono comunque il loro avviso.
 
+Eliminando un record privato si elimina tutto questo insieme a esso, in qualunque modo venga eliminato: uno alla volta o molti insieme, dalla dashboard, dall'API, da Terraform o da MCP, con la conservazione dei record risolti o insieme al suo progetto. Le esecuzioni di runbook e le correzioni vengono eliminate con l'incidente o l'avviso a cui sono collegate, privato o no.
+
+I comandi che un Runner ha eseguito per un'esecuzione di runbook o una correzione, con ciò che hanno stampato, li legge solo chi può leggere l'esecuzione o la correzione. Vengono eliminati con l'esecuzione. I comandi di una correzione eliminata restano, come traccia di ciò che è stato eseguito sulla vostra infrastruttura, e li leggono solo i Proprietari del progetto e gli Amministratori del progetto.
+
+Un record che nomina un record privato senza farne parte, come un problema di Data Security, un caso di sicurezza, un invio di modulo, una registrazione di sessione, o un avviso o un incidente pubblico in un episodio privato, viene letto come prima. Solo chi può leggere il record privato vi vede il titolo e gli altri campi: per chiunque altro un filtro su di essi non lo trova, e un elenco che lo nomina non può essere ordinato in base a essi.
+
 I flussi di lavoro non agiscono sui record privati. I passaggi di un flusso di lavoro agiscono come Amministratore del progetto, ma non ricevono mai in prestito la sua vista su incidenti, avvisi ed episodi privati: non ne trovano, non ne modificano e non vi aggiungono nulla, e un flusso di lavoro non parte da uno di essi né da qualcosa che gli appartiene. Vedi [Cosa possono fare i passaggi di un flusso di lavoro](/docs/workflows/configuration#cosa-possono-fare-i-passaggi-di-un-flusso-di-lavoro).
 
 ### Regole che appartengono a dei team
