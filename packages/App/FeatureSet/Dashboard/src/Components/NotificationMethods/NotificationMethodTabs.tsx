@@ -26,6 +26,15 @@ import { Tab } from "Common/UI/Components/Tabs/Tab";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import React, { FunctionComponent, ReactElement } from "react";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import Navigation from "Common/UI/Utils/Navigation";
+import {
+  DEFAULT_NOTIFICATION_METHODS_TAB,
+  getNotificationMethodsTabByName,
+  NOTIFICATION_METHODS_TAB_NAMES,
+  NOTIFICATION_METHODS_TAB_QUERY_PARAM,
+  NotificationMethodsTab,
+  readNotificationMethodsTab,
+} from "./NotificationMethodsTabQuery";
 
 /*
  * Where a person sets up the ways OneUptime reaches them: User Settings >
@@ -141,7 +150,39 @@ const NotificationMethodTabs: FunctionComponent = (): ReactElement => {
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  /*
+   * A link that asks for a tab (?tab=push-notifications, from Notification
+   * Settings' "Set up" beside a channel) opens on it; a tab that is not here
+   * (Workspace Apps in a project with no workspace connected) opens the
+   * first. The tab opened goes into the address in place, so a reload or a
+   * copied link opens it again; the first tab is the bare address.
+   */
+  const requestedTab: NotificationMethodsTab | null =
+    readNotificationMethodsTab(
+      Navigation.getQueryStringByName(NOTIFICATION_METHODS_TAB_QUERY_PARAM),
+    );
+
+  return (
+    <Tabs
+      tabs={tabs}
+      initialTabName={
+        requestedTab ? NOTIFICATION_METHODS_TAB_NAMES[requestedTab] : undefined
+      }
+      onTabChange={(tab: Tab): void => {
+        const opened: NotificationMethodsTab | null =
+          getNotificationMethodsTabByName(tab.name);
+
+        if (!opened) {
+          return;
+        }
+
+        Navigation.setQueryString({
+          [NOTIFICATION_METHODS_TAB_QUERY_PARAM]:
+            opened === DEFAULT_NOTIFICATION_METHODS_TAB ? null : opened,
+        });
+      }}
+    />
+  );
 };
 
 export default NotificationMethodTabs;
