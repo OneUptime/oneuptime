@@ -53,7 +53,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement, useEffect, useState } from "react";
 
 /*
  * The create dialog's title. A table's own verb ("Add", "Invite") gets its
@@ -82,6 +82,8 @@ import {
   RuleCriteriaTableConfiguration,
 } from "../RuleCriteria/RuleCriteriaModelTable";
 import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
+import { shouldUseRuleCriteriaBuilder } from "../RuleCriteria/RuleCriteriaLegacyFields";
+import { loadRuleCriteriaModelForm } from "../RuleCriteria/LazyRuleCriteriaModelForm";
 
 /**
  * The columns of the fields an Edit form leaves out (doNotShowWhenEditing):
@@ -175,6 +177,26 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
   const [importRefreshCounter, setImportRefreshCounter] = useState<number>(0);
+
+  /*
+   * A table of rules opens a rule's form, which draws the match fields as
+   * one condition builder, a file of its own (LazyRuleCriteriaModelForm).
+   * Asked for as the table draws, it is there when the form opens, which
+   * then draws its fields at once; a file that does not arrive is said by
+   * the form, which asks again.
+   */
+  const isRuleTable: boolean = shouldUseRuleCriteriaBuilder(
+    model,
+    props.formFields || [],
+  );
+
+  useEffect(() => {
+    if (isRuleTable) {
+      loadRuleCriteriaModelForm().catch((): void => {
+        // ModelForm says so, where the builder would be.
+      });
+    }
+  }, [isRuleTable]);
 
   type GetExportBulkActionFunction = () => BulkActionButtonSchema<TBaseModel>;
 

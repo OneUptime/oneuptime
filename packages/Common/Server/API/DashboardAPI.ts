@@ -1204,6 +1204,8 @@ export default class DashboardAPI extends BaseAPI<
               select: {
                 name: true,
                 unit: true,
+                isMonotonic: true,
+                aggregationTemporality: true,
               },
               skip: 0,
               limit: LIMIT_PER_PROJECT,
@@ -1224,10 +1226,7 @@ export default class DashboardAPI extends BaseAPI<
                 );
               })
               .map((metricType: MetricType) => {
-                return {
-                  name: metricType.name || "",
-                  unit: metricType.unit || "",
-                };
+                return DashboardAPI.toPublicMetricType(metricType);
               }),
           });
         } catch (err) {
@@ -1905,6 +1904,24 @@ export default class DashboardAPI extends BaseAPI<
         };
       },
     );
+  }
+
+  /*
+   * A metric type as the public dashboard reads it: its name and unit, and
+   * its counter semantics - so its formulas read a count with no point in a
+   * step as 0 where the dashboard's own page does (MetricZeroFill). Null
+   * where the catalog does not know them.
+   */
+  public static toPublicMetricType(metricType: MetricType): JSONObject {
+    return {
+      name: metricType.name || "",
+      unit: metricType.unit || "",
+      isMonotonic:
+        typeof metricType.isMonotonic === "boolean"
+          ? metricType.isMonotonic
+          : null,
+      aggregationTemporality: metricType.aggregationTemporality || null,
+    };
   }
 
   /*

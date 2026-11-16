@@ -56004,8 +56004,22 @@
   "Merged Into On-Call Log ID": "ID del log di reperibilità in cui è stato unito",
   "Their page from another on-call policy is over, so this policy pages them now.": "La chiamata di un'altra policy di reperibilità è terminata, quindi ora chiama questa policy.",
   "Their page from {{name}} is over, so this policy pages them now.": "La chiamata di {{name}} è terminata, quindi ora chiama questa policy.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "Già chiamato per questo tramite il flusso di lavoro {{name}}, quindi non chiamato di nuovo.",
+  "Already paged directly about this by {{name}}, so not paged again.": "Già chiamato direttamente per questo da {{name}}, quindi non chiamato di nuovo.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "La chiamata di un'altra policy di reperibilità è terminata, quindi ora viene chiamato direttamente.",
+  "Their page from {{name}} is over, so they are paged directly now.": "La chiamata di {{name}} è terminata, quindi ora viene chiamato direttamente.",
+  "{{names}} are paged, so aren't emailed as Project Owners too.": "{{names}} vengono avvisati, quindi non ricevono anche l'e-mail come Proprietari del progetto.",
+  "{{names}} are paged, so aren't emailed as Project Owners too._one": "{{names}} viene avvisato, quindi non riceve anche l'e-mail come Proprietario del progetto.",
+  "{{names}} are paged, so aren't emailed as owners too.": "{{names}} vengono avvisati, quindi non ricevono anche l'e-mail come proprietari.",
+  "{{names}} are paged, so aren't emailed as owners too._one": "{{names}} viene avvisato, quindi non riceve anche l'e-mail come proprietario.",
   "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Le corrispondenze vengono sostituite con [REDACTED] nei nomi degli span, nei messaggi di stato, negli attributi, negli eventi e nei collegamenti.",
   "Runs AI Code Fixes": "Esegue le correzioni di codice con l'IA",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "I valori delle chiavi che sembrano sensibili, negli attributi e in un corpo del log JSON, vengono sostituiti con [REDACTED].",
-  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Quali parti dello span epurare: nome dello span, valori degli attributi e degli attributi dei collegamenti, valori degli attributi degli eventi o tutto, compresi messaggio di stato e nomi degli eventi."
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Quali parti dello span epurare: nome dello span, valori degli attributi e degli attributi dei collegamenti, valori degli attributi degli eventi o tutto, compresi messaggio di stato e nomi degli eventi.",
+  "Signed out by a server admin because single sign-on is required": "Disconnesso da un amministratore del server perché è richiesto il single sign-on (SSO)",
+  "Every {{count}} seconds": "Ogni {{count}} secondi",
+  "Every {{count}} seconds_one": "Ogni {{count}} secondi",
+  "First Measured At": "Prima misurazione il",
+  "Missing-email check": "Controllo delle email mancanti",
+  "Missing-request check": "Controllo delle richieste mancanti"
 }

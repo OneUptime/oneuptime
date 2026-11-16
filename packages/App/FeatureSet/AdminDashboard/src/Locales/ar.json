@@ -4100,5 +4100,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "يحذف المشروع الجديد التنبيهات التي تم حلها بعد {{count}} من الأيام، حتى يغيّر مالكوه ذلك. وتحتفظ المشاريع الموجودة بإعدادها الخاص.",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "يحذف المشروع الجديد التنبيهات التي تم حلها بعد {{count}} يوم، حتى يغيّر مالكوه ذلك. وتحتفظ المشاريع الموجودة بإعدادها الخاص.",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "يحذف المشروع الجديد التنبيهات التي تم حلها بعد {{count}} من السنوات، حتى يغيّر مالكوه ذلك. وتحتفظ المشاريع الموجودة بإعدادها الخاص.",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "يحذف المشروع الجديد التنبيهات التي تم حلها بعد {{count}} سنة، حتى يغيّر مالكوه ذلك. وتحتفظ المشاريع الموجودة بإعدادها الخاص."
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "يحذف المشروع الجديد التنبيهات التي تم حلها بعد {{count}} سنة، حتى يغيّر مالكوه ذلك. وتحتفظ المشاريع الموجودة بإعدادها الخاص.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "عدد من لا يزالون مسجّلي الدخول بدون SSO: {{count}}. لا يمكنهم فتح أي مشروع حتى يسجّلوا الدخول باستخدام SSO.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} شخص لا يزال مسجّل الدخول بدون SSO. لا يمكنه فتح أي مشروع حتى يسجّل الدخول باستخدام SSO.",
+  "Sign them out": "تسجيل خروجهم",
+  "Sign out everyone signed in without SSO?": "هل تريد تسجيل خروج كل من سجّل الدخول بدون SSO؟",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "تنتهي جلساتهم الآن على كل الأجهزة، ويسجّلون الدخول مجددًا باستخدام SSO. يبقى المسؤولون الرئيسيون مسجّلي الدخول."
 }

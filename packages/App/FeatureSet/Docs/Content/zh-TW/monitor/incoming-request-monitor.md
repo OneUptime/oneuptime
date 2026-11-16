@@ -84,7 +84,7 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 > 任何知道這個 URL 的人都能把監測器標示為正常，因此請把它當作機密看待。如果它外洩了，請開啟監測器的 **設定** 頁面，點選 **重設傳入請求密鑰**，然後更新每一個傳送端。監測器的概覽會依其日誌保留的樣子顯示最新請求：機密與個人資料已遮蔽，關閉 **保留請求內容** 時不會顯示標頭與內文。遮蔽只能辨識它已知的名稱與模式，因此請不要傳送 API 金鑰或權杖到這個端點。
 
 > [!IMPORTANT]
-> OneUptime 會立即以一個空的 JSON 物件（`{}`）傳回 `200`，並透過佇列處理請求。這個回應是在任何驗證之前就寫出的，因此 `200` **並不** 代表請求已被接受：錯誤的密鑰、已刪除的監測器和已停用的監測器同樣會傳回 `200`。請查看監測器本身的時間軸，確認請求確實送達。唯一的例外是要求每個請求都攜帶密鑰的專案：未攜帶密鑰的請求會收到 `401`。
+> OneUptime 會立即以一個空的 JSON 物件（`{}`）傳回 `200`，並透過佇列處理請求。這個回應是在任何驗證之前就寫出的，因此 `200` **並不** 代表請求已被接受：錯誤的密鑰、已刪除的監測器和已停用的監測器同樣會傳回 `200`。請查看監測器本身的時間軸，確認請求確實送達。要求每個請求都攜帶密鑰的專案會對未攜帶密鑰的請求傳回 `401`；在傳遞前先檢查 URL 的服務會收到它預期的回應：請參閱 [會先檢查 URL 的服務](#會先檢查-url-的服務)。
 
 ### 傳送請求內文
 
@@ -94,7 +94,8 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 | --- | --- |
 | `application/json` | 剖析後的 JSON。 |
 | `application/x-www-form-urlencoded` | 剖析後的表單。帶方括號的鍵會形成巢狀（`alerts[0][status]=firing`），每個值都是字串。 |
-| `text/plain` | 文字是 JSON 物件或陣列時，為剖析後的 JSON：Amazon SNS 就是這樣傳送訊息的。其他任何文字都視為空的請求內文。 |
+| `text/plain` | 文字是 JSON 物件或陣列時，為剖析後的 JSON：Amazon SNS 就是這樣傳送訊息的。其他任何文字就是文字本身，因此傳送 `backup failed: error 42` 會讓監測器在預設條件下離線。 |
+| `application/cloudevents+json` 或其他 `+json` 類型 | 剖析後的 JSON：Azure Event Grid 就是這樣傳遞 CloudEvents 的。 |
 | 其他任何類型，或沒有 | 空的請求內文（`{}`），因此對 `requestBody` 的參照都不會被解析，範本會將其原封不動地保留。 |
 
 最多接受 50 MB 的請求內文；更大的會以 `413` 拒絕。不要以 `Content-Encoding: gzip` 壓縮請求內文：那樣它就不會以 JSON 形式儲存，其中的路徑也無法解析。
@@ -383,9 +384,25 @@ flowchart TB
 
 完整的 Alertmanager 設定請參閱 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)。Grafana 請參閱 [Grafana](/docs/integrations/grafana)。
 
+## 會先檢查 URL 的服務
+
+有些服務在向新端點傳遞任何內容之前，會先檢查這個端點：它們向端點傳送一個請求，只有端點依預期回應後才開始傳遞。OneUptime 會自行回應這些檢查，因此只需把監測器的 **Heartbeat URL** 貼到服務中。
+
+| 服務 | 檢查請求 | OneUptime 的回應 |
+| --- | --- | --- |
+| Azure Event Grid，Event Grid 結構描述 | 一個 `SubscriptionValidationEvent` | 它的 `validationCode`，作為 `validationResponse` |
+| Azure Event Grid，CloudEvents 結構描述 | 一個說明來源的 `OPTIONS` 請求 | `WebHook-Allowed-Origin`，帶上該來源 |
+| Slack Events API | 一個 `url_verification` 請求 | 它的 `challenge` |
+| Microsoft Graph 變更通知 | 帶有 `validationToken` 的 `POST` | 該權杖，以 `text/plain` 傳回 |
+| Okta 事件掛鉤 | 帶有 `X-Okta-Verification-Challenge` 的 `GET` | 該標頭的值，作為 `verification` |
+
+只有監測器本身的 URL 才會回應檢查，而且只在請求有效時回應：在要求每個請求都攜帶密鑰的專案中，未攜帶密鑰的檢查會像其他請求一樣被拒絕並傳回 `401`，因此服務必須在標頭中傳送密鑰。回應只包含服務為了取回而傳送的值，不含請求的其他任何內容，並且只在該值符合服務給出的格式時才包含。
+
+檢查和其他請求一樣會送達監測器，因此監測器的條件會評估它，它也會顯示在監測器的 **概覽** 上；CloudEvents 檢查只會得到回應，僅此而已。探測器的傳入請求 Ingress 對檢查的回應與對其他請求一樣，都是 `{}`，因此請把這些服務指向 OneUptime 本身的 URL。
+
 ## 訂閱 Amazon SNS 或 Azure Event Grid
 
-在有人開啟服務傳送到新端點的連結、確認訂閱之前，Amazon SNS 和 Azure Event Grid 不會向該端點傳送任何內容。這個請求送達後，監測器 **概覽** 上的 **監測器摘要** 卡片會顯示服務在等待什麼、主題，以及一個會在新分頁中開啟該連結的按鈕。
+在有人開啟 Amazon SNS 傳來的連結、確認訂閱之前，Amazon SNS 不會向新端點傳送任何內容。對於不回應其檢查的端點，Azure Event Grid 也會傳送這樣的連結，而 OneUptime 會回應該檢查。當一個仍待開啟的連結送達時，監測器 **概覽** 上的 **監測器摘要** 卡片會顯示服務在等待什麼、主題，以及一個會在新分頁中開啟該連結的按鈕。
 
 | 服務 | 請求 | 按鈕 | 連結有效期 |
 | --- | --- | --- | --- |
@@ -411,11 +428,11 @@ SNS 以標示為 `text/plain` 的 JSON 傳送訊息，監測器會把它們當�
 ### Azure Event Grid
 
 :::steps
-1. 在 Azure 入口網站中開啟你想取得其事件的資源，並新增一個事件訂閱。事件結構描述選擇 **Event Grid Schema**，端點類型選擇 **Web Hook**，端點填入監測器的 **Heartbeat URL**。
-2. 在 10 分鐘內開啟監測器的 **概覽**，並在 **監測器摘要** 卡片中點選 **驗證訂閱**。
+1. 在 Azure 入口網站中開啟你想取得其事件的資源，並新增一個事件訂閱。事件結構描述選擇 **Event Grid Schema** 或 **Cloud Event Schema v1.0**，端點類型選擇 **Web Hook**，端點填入監測器的 **Heartbeat URL**。
+2. 建立事件訂閱。OneUptime 會回應 Event Grid 的檢查，因此訂閱在建立時即通過驗證，其事件也開始送達。
 :::
 
-Event Grid 會驗證這樣的端點：它把驗證碼原樣傳回，或者它的擁有者開啟了 Event Grid 傳送的連結。OneUptime 對每個請求都以空的 `200` 回應，因此只能透過連結來驗證。該連結指向連接埠 553 上的 Event Grid，你瀏覽器前方的防火牆必須允許這個連接埠。如果先過了 10 分鐘，事件訂閱就會失敗：請重新建立它。
+Event Grid 會驗證這樣的端點：它把驗證碼原樣傳回，或者它的擁有者開啟了 Event Grid 傳送的連結。OneUptime 會傳回驗證碼，因此只有對 OneUptime 未回應的驗證，**監測器摘要** 卡片才會提供 **驗證訂閱**：請在 10 分鐘內開啟它。該連結指向連接埠 553 上的 Event Grid，你瀏覽器前方的防火牆必須允許這個連接埠。如果先過了 10 分鐘，事件訂閱就會失敗：請重新建立它。
 
 ## 最佳做法
 
@@ -444,7 +461,11 @@ Event Grid 會驗證這樣的端點：它把驗證碼原樣傳回，或者它的
 :::
 
 :::details 請求內文篩選器從不符合
-傳送 `Content-Type: application/json`，並把值寫成精簡的 JSON：`"status":"firing"`，冒號後面沒有空格。沒有 JSON 或表單內容類型時，請求內文不會被剖析：只有以 `text/plain` 傳送的 JSON 例外。
+傳送 `Content-Type: application/json`，並把值寫成精簡的 JSON：`"status":"firing"`，冒號後面沒有空格。沒有 JSON、表單或 `text/plain` 內容類型時，請求內文為空，針對它的篩選器永遠不會符合。
+:::
+
+:::details 服務提示 URL 沒有回應它的檢查
+把監測器在 OneUptime 本身（而不是探測器）上的 **Heartbeat URL** 提供給服務。如果專案要求每個請求都攜帶密鑰，除非服務傳送了密鑰，否則檢查會被拒絕並傳回 `401`。然後讓服務再次檢查該 URL：它會立即得到回應。
 :::
 
 :::details 「請求標頭」篩選器從不符合

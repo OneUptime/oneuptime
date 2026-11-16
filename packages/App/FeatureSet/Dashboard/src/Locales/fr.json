@@ -56004,8 +56004,22 @@
   "Merged Into On-Call Log ID": "ID du journal d'astreinte dans lequel il a été fusionné",
   "Their page from another on-call policy is over, so this policy pages them now.": "L'appel d'une autre politique d'astreinte est terminé, donc cette politique appelle elle-même maintenant.",
   "Their page from {{name}} is over, so this policy pages them now.": "L'appel de {{name}} est terminé, donc cette politique appelle elle-même maintenant.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "Déjà appelé à ce sujet via le flux de travail {{name}}, donc pas appelé à nouveau.",
+  "Already paged directly about this by {{name}}, so not paged again.": "Déjà appelé directement à ce sujet par {{name}}, donc pas appelé à nouveau.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "L'appel d'une autre politique d'astreinte est terminé, donc la personne est désormais appelée directement.",
+  "Their page from {{name}} is over, so they are paged directly now.": "L'appel de {{name}} est terminé, donc la personne est désormais appelée directement.",
+  "{{names}} are paged, so aren't emailed as Project Owners too.": "{{names}} sont alertés, donc ne reçoivent pas aussi l'e-mail en tant que Propriétaires du projet.",
+  "{{names}} are paged, so aren't emailed as Project Owners too._one": "{{names}} est alerté, donc ne reçoit pas aussi l'e-mail en tant que Propriétaire du projet.",
+  "{{names}} are paged, so aren't emailed as owners too.": "{{names}} sont alertés, donc ne reçoivent pas aussi l'e-mail en tant que propriétaires.",
+  "{{names}} are paged, so aren't emailed as owners too._one": "{{names}} est alerté, donc ne reçoit pas aussi l'e-mail en tant que propriétaire.",
   "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Les correspondances sont remplacées par [REDACTED] dans les noms de span, les messages d'état, les attributs, les événements et les liens.",
   "Runs AI Code Fixes": "Exécute les corrections de code par IA",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Les valeurs des clés qui semblent sensibles, dans les attributs et dans un corps de journal JSON, sont remplacées par [REDACTED].",
-  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Quelles parties du span masquer : le nom du span, les valeurs d'attributs et d'attributs de lien, les valeurs d'attributs d'événement, ou toutes, message d'état et noms d'événement compris."
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Quelles parties du span masquer : le nom du span, les valeurs d'attributs et d'attributs de lien, les valeurs d'attributs d'événement, ou toutes, message d'état et noms d'événement compris.",
+  "Signed out by a server admin because single sign-on is required": "Déconnecté par un administrateur du serveur, car l'authentification unique (SSO) est requise",
+  "Every {{count}} seconds": "Toutes les {{count}} secondes",
+  "Every {{count}} seconds_one": "Toutes les {{count}} secondes",
+  "First Measured At": "Première mesure le",
+  "Missing-email check": "Vérification des e-mails manquants",
+  "Missing-request check": "Vérification des requêtes manquantes"
 }

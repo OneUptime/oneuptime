@@ -4100,5 +4100,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "नया प्रोजेक्ट सुलझाए गए अलर्ट को {{count}} दिन बाद हटा देता है, जब तक उसके मालिक इसे बदल नहीं देते। मौजूदा प्रोजेक्ट अपनी सेटिंग रखते हैं।",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "नया प्रोजेक्ट सुलझाए गए अलर्ट को {{count}} दिन बाद हटा देता है, जब तक उसके मालिक इसे बदल नहीं देते। मौजूदा प्रोजेक्ट अपनी सेटिंग रखते हैं।",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "नया प्रोजेक्ट सुलझाए गए अलर्ट को {{count}} साल बाद हटा देता है, जब तक उसके मालिक इसे बदल नहीं देते। मौजूदा प्रोजेक्ट अपनी सेटिंग रखते हैं।",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "नया प्रोजेक्ट सुलझाए गए अलर्ट को {{count}} साल बाद हटा देता है, जब तक उसके मालिक इसे बदल नहीं देते। मौजूदा प्रोजेक्ट अपनी सेटिंग रखते हैं।"
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "नया प्रोजेक्ट सुलझाए गए अलर्ट को {{count}} साल बाद हटा देता है, जब तक उसके मालिक इसे बदल नहीं देते। मौजूदा प्रोजेक्ट अपनी सेटिंग रखते हैं।",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "{{count}} लोग अब भी बिना SSO के साइन इन हैं। SSO से साइन इन करने तक वे कोई प्रोजेक्ट नहीं खोल सकते।",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} व्यक्ति अब भी बिना SSO के साइन इन है। SSO से साइन इन करने तक वह कोई प्रोजेक्ट नहीं खोल सकता।",
+  "Sign them out": "उन्हें साइन आउट करें",
+  "Sign out everyone signed in without SSO?": "बिना SSO के साइन इन सभी लोगों को साइन आउट करें?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "उनके सेशन अभी हर डिवाइस पर खत्म हो जाएंगे, और वे फिर से SSO से साइन इन करेंगे। मास्टर एडमिन साइन इन रहेंगे।"
 }

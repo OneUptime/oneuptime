@@ -192,7 +192,13 @@ describe("the trigger's advertised contract matches the server", () => {
     return routes;
   };
 
-  test("the server answers exactly the methods the dialog lists", async () => {
+  /*
+   * And OPTIONS, which nobody calls the URL with: only a CloudEvents
+   * validation reaches it (StartServer's CORS middleware answers every
+   * other OPTIONS request), to be answered as its protocol sets
+   * (WebhookVerification, #8429). The dialog lists what a person sends.
+   */
+  test("the server answers exactly the methods the dialog lists, and a CloudEvents validation", async () => {
     const routes: Array<RegisteredRoute> = await recordRoutes();
 
     expect(
@@ -201,7 +207,7 @@ describe("the trigger's advertised contract matches the server", () => {
           return route.method;
         })
         .sort(),
-    ).toEqual([...WEBHOOK_TRIGGER_HTTP_METHODS].sort());
+    ).toEqual([...WEBHOOK_TRIGGER_HTTP_METHODS, "OPTIONS"].sort());
   });
 
   test("every method is registered on the path the dialog builds", async () => {

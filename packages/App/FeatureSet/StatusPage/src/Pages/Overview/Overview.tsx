@@ -380,10 +380,19 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   /*
    * The resources drawn as Not monitored, in gray, in place of a status:
-   * a monitor whose monitoring is off, a monitor group whose monitors all
-   * have it off. Their status decides no other (FrozenMonitorResources).
+   * a monitor whose monitoring is off or that nothing has checked yet, a
+   * monitor group whose monitors all are one or the other. Their status
+   * decides no other (FrozenMonitorResources).
    */
   const [notMonitoredResourceIds, setNotMonitoredResourceIds] =
+    useState<ReadonlySet<string>>(NO_RESOURCE_IDS);
+
+  /*
+   * Of those, the ones nothing has checked yet (issue #8899): they say Not
+   * monitored yet. The Operational they hold is only the status every
+   * monitor is created in.
+   */
+  const [notMonitoredYetResourceIds, setNotMonitoredYetResourceIds] =
     useState<ReadonlySet<string>>(NO_RESOURCE_IDS);
 
   const [timelineIncidents, setTimelineIncidents] = useState<
@@ -679,6 +688,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setNotMonitoredResourceIds(
         readNotMonitoredResourceIds(data["notMonitoredResourceIds"]),
       );
+      setNotMonitoredYetResourceIds(
+        readNotMonitoredResourceIds(data["notMonitoredYetResourceIds"]),
+      );
 
       setStatusPageHistoryChartBarColorRules(
         statusPageHistoryChartBarColorRules,
@@ -960,7 +972,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       if (kind === StatusPageGroupRollupKind.NotMonitored) {
         return {
-          label: t("overview.notMonitored"),
+          // Not monitored yet when nothing beneath it has been checked yet.
+          label: FrozenMonitorResources.isEveryResourceNotMonitored(
+            resourcesInSubtree,
+            notMonitoredYetResourceIds,
+          )
+            ? t("overview.notMonitoredYet")
+            : t("overview.notMonitored"),
           color: NOT_MONITORED_STATUS_COLOR.toString(),
         };
       }
@@ -1005,6 +1023,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     monitorStatuses,
     monitorGroupCurrentStatuses,
     notMonitoredResourceIds,
+    notMonitoredYetResourceIds,
     statusPage,
     monitorsInGroup,
     uptimeDailyAggregate,
@@ -1098,6 +1117,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
         notMonitoredResourceIds,
       );
 
+      // Nothing has checked it yet: it says Not monitored yet.
+      const isNotMonitoredYet: boolean =
+        isNotMonitored &&
+        FrozenMonitorResources.isNotMonitored(
+          resource,
+          notMonitoredYetResourceIds,
+        );
+
       // if it's a monitor
 
       if (resource.monitor) {
@@ -1179,6 +1206,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             showHistoryChart={resource.showStatusHistoryChart}
             showCurrentStatus={resource.showCurrentStatus}
             isNotMonitored={isNotMonitored}
+            isNotMonitoredYet={isNotMonitoredYet}
             uptimeGraphHeight={10}
             defaultBarColor={statusPage?.defaultBarColor || Green}
             uptimeHistoryDays={uptimeHistoryDays}
@@ -1297,6 +1325,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             showHistoryChart={resource.showStatusHistoryChart}
             showCurrentStatus={resource.showCurrentStatus}
             isNotMonitored={isNotMonitored}
+            isNotMonitoredYet={isNotMonitoredYet}
             uptimeGraphHeight={10}
             defaultBarColor={statusPage?.defaultBarColor || Green}
             uptimeHistoryDays={uptimeHistoryDays}
@@ -1333,6 +1362,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     monitorsInGroup,
     monitorGroupCurrentStatuses,
     notMonitoredResourceIds,
+    notMonitoredYetResourceIds,
     uptimeStripStartDate,
     uptimeStripEndDate,
     uptimeStripTimezone,
@@ -1578,6 +1608,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       /*
        * Nothing in the cell is checked: it reads Not monitored, in gray,
        * with no uptime - a percentage would speak for a time nothing checks.
+       * Not monitored yet, when nothing in it has been checked yet.
        */
       if (
         FrozenMonitorResources.isEveryResourceNotMonitored(
@@ -1588,7 +1619,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return {
           isEmpty: false,
           color: NOT_MONITORED_STATUS_COLOR.toString(),
-          statusName: t("overview.notMonitored"),
+          statusName: FrozenMonitorResources.isEveryResourceNotMonitored(
+            cell.resources,
+            notMonitoredYetResourceIds,
+          )
+            ? t("overview.notMonitoredYet")
+            : t("overview.notMonitored"),
           uptimeText: null,
           labels: cell.resources.map((resource: StatusPageResource) => {
             return resource.displayName || resource.monitor?.name || "";
@@ -2275,7 +2311,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
               ) && (
                 <Alert
                   size={AlertSize.Large}
-                  title={t("overview.noResourcesAreMonitored")}
+                  title={
+                    // A page nothing on which has been checked yet says so.
+                    FrozenMonitorResources.isEveryResourceNotMonitored(
+                      statusPageResources,
+                      notMonitoredYetResourceIds,
+                    )
+                      ? t("overview.noResourcesAreMonitoredYet")
+                      : t("overview.noResourcesAreMonitored")
+                  }
                   color={NOT_MONITORED_STATUS_COLOR}
                   doNotShowIcon={true}
                   textClassName="text-white text-lg flex justify-between w-full"

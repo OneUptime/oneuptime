@@ -135,7 +135,8 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `resourceGroups` | 그룹. 중첩된 그룹에는 `parentStatusPageGroupId`가 있습니다. |
 | `monitorStatuses` | 프로젝트의 모든 모니터 상태. 우선순위가 낮은 것부터 높은 것 순. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | 페이지에 있는 각 모니터 그룹의 현재 상태와 그 안의 모니터. |
-| `notMonitoredResourceIds` | 페이지가 **모니터링되지 않음**으로 표시하는 리소스의 ID. 모니터링이 꺼진 모니터나, 모든 모니터에서 모니터링이 꺼진 모니터 그룹입니다. 어떤 상태도 결정하지 않으며, 그런 그룹은 `monitorGroupCurrentStatuses` 에 항목이 없습니다. |
+| `notMonitoredResourceIds` | 페이지가 **모니터링되지 않음**으로 표시하는 리소스의 ID. 모니터링이 꺼진 모니터나, 모든 모니터에서 모니터링이 꺼진 모니터 그룹입니다. `notMonitoredYetResourceIds` 의 리소스도 여기에 포함됩니다. 어떤 상태도 결정하지 않으며, 그런 그룹은 `monitorGroupCurrentStatuses` 에 항목이 없습니다. |
+| `notMonitoredYetResourceIds` | 페이지가 **아직 모니터링되지 않음**으로 표시하는 리소스의 ID. 아직 아무것도 확인하지 않아 모든 모니터가 시작하는 정상 상태에 그대로 있는 모니터나, 어떤 모니터도 아직 확인되지 않은 모니터 그룹입니다. |
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | 가동률 막대를 그리는 데이터와 페이지의 막대 색상 규칙. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | 페이지가 보여 주는 해결되지 않은 인시던트, 그 공개 메모와 상태 변경, 프로젝트의 인시던트 상태. |
 | `timelineIncidents` | 가동률 막대 기간 안의 인시던트(해결된 것 포함). 막대의 툴팁에 쓰입니다. |
@@ -197,7 +198,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | `activeIncidents` | 페이지가 보여 주는 해결되지 않은 인시던트. 각각 영향을 주는 리소스의 `affectedResourceIds` 가 붙습니다. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 진행 중인 유지 관리 이벤트와 앞으로 있을 이벤트. 각각 `affectedResourceIds` 가 붙습니다. |
 
-페이지가 리소스의 `currentStatus` 를 보여 주지 않으면 그 값은 `null` 이며, `isMonitored` 가 `false` 일 때도 마찬가지입니다. 이때는 모니터의 모니터링이 꺼져 있거나 모니터 그룹의 모든 모니터에서 모니터링이 꺼져 있어 아무것도 리소스를 확인하지 않으므로, 페이지는 리소스를 **모니터링되지 않음**으로 표시합니다. `isUnderMaintenance` 는 진행 중인 이벤트가 리소스의 모니터나 그 모니터 그룹의 모니터를 지정하는 동안, 그 모니터들의 상태와 관계없이 `true` 입니다.
+페이지가 리소스의 `currentStatus` 를 보여 주지 않으면 그 값은 `null` 이며, `isMonitored` 가 `false` 일 때도 마찬가지입니다. 이때는 모니터의 모니터링이 꺼져 있거나 모니터 그룹의 모든 모니터에서 모니터링이 꺼져 있어 아무것도 리소스를 확인하지 않으므로, 페이지는 리소스를 **모니터링되지 않음**으로 표시합니다. 아직 아무것도 리소스를 확인하지 않은 경우도 마찬가지이며, 이때 페이지는 리소스를 **아직 모니터링되지 않음**으로 표시합니다. `isUnderMaintenance` 는 진행 중인 이벤트가 리소스의 모니터나 그 모니터 그룹의 모니터를 지정하는 동안, 그 모니터들의 상태와 관계없이 `true` 입니다.
 
 ## 기간별 가동률
 

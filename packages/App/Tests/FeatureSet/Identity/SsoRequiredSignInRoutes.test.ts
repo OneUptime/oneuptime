@@ -834,3 +834,138 @@ describe("POST /signup while the server does not require SSO", () => {
     expect(verifyCaptcha).toHaveBeenCalledTimes(1);
   });
 });
+
+/*
+ * EVERY OTHER WAY IN, WHILE THE SERVER REQUIRES SSO (#6116).
+ *
+ * A second step finishes a password or sign-in link sign-in, so it is held
+ * to the rule the first step is, at every stage: an authenticator code, a
+ * security key, a backup code, and the enrolment an admin forces. A
+ * password reset and an address's verification prove a mailbox, and hand
+ * out no session: a reset sets a password that, for anyone but a master
+ * admin, still signs in nowhere (POST /login above), and it ends every
+ * session the account had. SsoRequiredWaysIn.test.ts lists every way in.
+ */
+describe("the other second steps while the server requires SSO", () => {
+  beforeEach(() => {
+    getRequireSsoForLogin.mockResolvedValue(true);
+    storeUser({ enableTwoFactorAuth: true });
+  });
+
+  it.each([
+    [
+      "/verify-webauthn-auth",
+      {
+        twoFactorAuthId: "11111111-1111-4111-8111-111111111111",
+        credential: { id: "credential" },
+      },
+    ],
+    ["/verify-backup-code", { backupCode: "ABCD-EFGH-IJKL" }],
+    [
+      "/verify-totp-enrolment",
+      {
+        code: "123456",
+        twoFactorAuthId: "22222222-2222-4222-8222-222222222222",
+      },
+    ],
+  ])(
+    "%s is refused, before its proof is checked, and hands out nothing",
+    async (uri: string, extra: JSONObject) => {
+      const result: InvokeResult = await invoke(uri, credentials(extra));
+
+      expectRefusedForSso(result);
+      expect(totpFindOneBy).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["/verify-totp-auth"],
+    ["/verify-webauthn-auth"],
+    ["/verify-backup-code"],
+  ])("%s is not refused for a master admin", async (uri: string) => {
+    storeUser({ isMasterAdmin: true, enableTwoFactorAuth: true });
+
+    const result: InvokeResult = await invoke(
+      uri,
+      credentials({
+        code: "123456",
+        backupCode: "ABCD-EFGH-IJKL",
+        twoFactorAuthId: ObjectID.generate().toString(),
+      }),
+    );
+
+    // On to the second factor itself: the rule was not what stopped it.
+    expect(answeredError(result)?.message).not.toBe(
+      SSO_REQUIRED_SIGN_IN_MESSAGE,
+    );
+    expect(getRequireSsoForLogin).not.toHaveBeenCalled();
+  });
+});
+
+describe("a password reset while the server requires SSO", () => {
+  const RESET_TOKEN: string = "77777777-7777-4777-8777-777777777777";
+
+  beforeEach(() => {
+    getRequireSsoForLogin.mockResolvedValue(true);
+    storeUser();
+    storedRow["resetPasswordExpires"] = new Date(Date.now() + 60 * 60 * 1000);
+  });
+
+  it("sets the new password, ends every session, and hands out none", async () => {
+    const result: InvokeResult = await invoke("/reset-password", {
+      data: {
+        resetPasswordToken: RESET_TOKEN,
+        password: {
+          _type: "HashedString",
+          value: "a new long enough passphrase",
+        },
+      },
+    });
+
+    expect(answeredError(result)).toBeUndefined();
+
+    const UserServiceMock: { updateOneById: jest.Mock } = jest.requireMock<{
+      default: { updateOneById: jest.Mock };
+    }>("Common/Server/Services/UserService").default;
+    const UserSessionServiceMock: { revokeAllSessionsByUserId: jest.Mock } =
+      jest.requireMock<{ default: { revokeAllSessionsByUserId: jest.Mock } }>(
+        "Common/Server/Services/UserSessionService",
+      ).default;
+
+    expect(UserServiceMock.updateOneById).toHaveBeenCalledTimes(1);
+    expect(
+      UserSessionServiceMock.revokeAllSessionsByUserId,
+    ).toHaveBeenCalledTimes(1);
+    expectNoSession();
+    // A reset is no sign-in: the rule is not even asked.
+    expect(getRequireSsoForLogin).not.toHaveBeenCalled();
+  });
+});
+
+describe("an address's verification while the server requires SSO", () => {
+  beforeEach(() => {
+    getRequireSsoForLogin.mockResolvedValue(true);
+  });
+
+  it("verifies the address and hands out no session", async () => {
+    const EmailVerificationTokenServiceMock: { findOneBy: jest.Mock } =
+      jest.requireMock<{ default: { findOneBy: jest.Mock } }>(
+        "Common/Server/Services/EmailVerificationTokenService",
+      ).default;
+
+    EmailVerificationTokenServiceMock.findOneBy.mockResolvedValue({
+      _id: ObjectID.generate().toString(),
+      email: new Email(USER_EMAIL),
+      userId: new ObjectID(USER_ID),
+      expires: new Date(Date.now() + 60 * 60 * 1000),
+    });
+
+    const result: InvokeResult = await invoke("/verify-email", {
+      data: { token: "88888888-8888-4888-8888-888888888888" },
+    });
+
+    expect(answeredError(result)).toBeUndefined();
+    expectNoSession();
+    expect(getRequireSsoForLogin).not.toHaveBeenCalled();
+  });
+});

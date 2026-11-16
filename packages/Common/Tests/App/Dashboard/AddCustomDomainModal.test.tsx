@@ -493,9 +493,18 @@ describe.each(KINDS)(
         .compareDocumentPosition(screen.getByTestId(DNS_SETUP_TEST_IDS.record));
       expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       expect(create).not.toHaveBeenCalled();
+      /*
+       * As the page draws it: a duration's figure held to its word by a
+       * no-break space ("every 15 minutes" on one line, #8770).
+       */
       expect(
         screen.getByTestId(DNS_SETUP_TEST_IDS.whatHappensNext).textContent,
-      ).toBe(CustomDomainCopy.dnsSetupWhatHappensNextTwoRecords);
+      ).toBe(
+        CustomDomainCopy.dnsSetupWhatHappensNextTwoRecords.replace(
+          "every 15 minutes",
+          "every 15 minutes",
+        ),
+      );
     });
 
     test("one Check now: the TXT first, then the domain is added and its CNAME checked, each with its own status", async () => {

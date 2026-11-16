@@ -63,6 +63,14 @@ import IncidentInternalNoteService from "../../../Server/Services/IncidentIntern
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
 import CaptchaUtil from "../../../Server/Utils/Captcha";
+import ClamAvClient, {
+  ClamAvUnavailableError,
+} from "../../../Server/Utils/MalwareScan/ClamAvClient";
+import MalwareScanner, {
+  getMalwareFoundMessage,
+  MALWARE_SCAN_UNAVAILABLE_MESSAGE,
+} from "../../../Server/Utils/MalwareScan/MalwareScanner";
+import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavailableException";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -491,5 +499,118 @@ describe("files are taken away again", () => {
     expect(
       (fileDelete.mock.calls[0]![0] as { props: JSONObject }).props,
     ).toEqual({ isRoot: true });
+  });
+});
+
+/*
+ * MALWARE SCANNING (#6118). An installation that runs ClamAV has every file
+ * of a submission scanned before anything is counted or stored
+ * (MalwareScanner): one ClamAV flags refuses the submission, saying which
+ * file; ClamAV not answering refuses it too (503), so nothing is stored
+ * unchecked. Either way nothing is stored or created, and none of the
+ * form's hourly allowance of files is spent. Without a scanner nothing is
+ * scanned, as before.
+ */
+describe("malware scanning of a submission's files", () => {
+  let scan: ReturnType<typeof jest.spyOn>;
+
+  function scanningIsOn(): void {
+    jest
+      .spyOn(MalwareScanner, "getConfig")
+      .mockReturnValue({ host: "clamav", port: 3310 });
+  }
+
+  function scannedBytes(): Array<string> {
+    return scan.mock.calls.map((call: Array<unknown>): string => {
+      return Buffer.from((call[0] as { bytes: Uint8Array }).bytes).toString(
+        "hex",
+      );
+    });
+  }
+
+  beforeEach(() => {
+    scan = jest.spyOn(ClamAvClient, "scan").mockImplementation((async () => {
+      calls.push("scan");
+      return { isInfected: false };
+    }) as never);
+  });
+
+  test("without a scanner, nothing is scanned and the files are stored as before", async () => {
+    await submit(ANSWERS);
+
+    expect(scan).not.toHaveBeenCalled();
+    expect(fileCreate).toHaveBeenCalledTimes(3);
+  });
+
+  test("every file is scanned, with the bytes sent, at the scanner configured, before any allowance is spent or file stored", async () => {
+    scanningIsOn();
+
+    await submit(ANSWERS);
+
+    expect(calls).toEqual([
+      "submission ceiling",
+      "scan",
+      "scan",
+      "scan",
+      "file ceiling",
+      "file",
+      "file",
+      "file",
+      "incident",
+    ]);
+    expect(scannedBytes().sort()).toEqual(
+      [PNG, LOG, PDF]
+        .map((bytes: Uint8Array): string => {
+          return Buffer.from(bytes).toString("hex");
+        })
+        .sort(),
+    );
+
+    for (const call of scan.mock.calls) {
+      expect(call[0]).toMatchObject({ host: "clamav", port: 3310 });
+    }
+  });
+
+  test("a file the scanner flags refuses the submission, naming the file: nothing is stored, spent or created", async () => {
+    scanningIsOn();
+    scan.mockImplementation((async (request: { bytes: Uint8Array }) => {
+      calls.push("scan");
+      return Buffer.from(request.bytes).equals(Buffer.from(PDF))
+        ? { isInfected: true, signature: "Pdf.Exploit.Test" }
+        : { isInfected: false };
+    }) as never);
+
+    const refusal: Exception = await refusalOf(submit(ANSWERS));
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal.message).toBe(getMalwareFoundMessage("receipt.pdf"));
+    expect(reserveFiles).not.toHaveBeenCalled();
+    expect(fileCreate).not.toHaveBeenCalled();
+    expect(incidentCreate).not.toHaveBeenCalled();
+  });
+
+  test("a scanner that does not answer refuses the submission (503), failing closed: nothing is stored, spent or created", async () => {
+    scanningIsOn();
+    scan.mockRejectedValue(
+      new ClamAvUnavailableError("ClamAV could not be reached: ECONNREFUSED"),
+    );
+
+    const refusal: Exception = await refusalOf(submit(ANSWERS));
+
+    expect(refusal).toBeInstanceOf(ServiceUnavailableException);
+    expect(refusal.message).toBe(MALWARE_SCAN_UNAVAILABLE_MESSAGE);
+    expect(reserveFiles).not.toHaveBeenCalled();
+    expect(fileCreate).not.toHaveBeenCalled();
+    expect(incidentCreate).not.toHaveBeenCalled();
+  });
+
+  test("a submission without files is not held up by the scanner", async () => {
+    scanningIsOn();
+    scan.mockRejectedValue(new ClamAvUnavailableError("down"));
+
+    await submit({ title: "Checkout is down" });
+
+    expect(scan).not.toHaveBeenCalled();
+    expect(incidentCreate).toHaveBeenCalledTimes(1);
   });
 });

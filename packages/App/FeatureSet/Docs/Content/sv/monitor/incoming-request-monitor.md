@@ -84,7 +84,7 @@ Skicka **GET**- eller **POST**-förfrågningar till den här URL:en. HEAD godtas
 > Alla som känner till den här URL:en kan markera monitorn som frisk, så behandla den som en hemlighet. Om den läcker öppnar du monitorns sida **Inställningar** och klickar på **Återställ hemlig nyckel för inkommande begäran**, och sedan uppdaterar du varje avsändare. Monitorns översikt visar den senaste förfrågan så som dess loggar behåller den: med hemligheter och personuppgifter maskerade, och utan headers eller brödtext när **Behåll förfrågans innehåll** är avstängt. Maskeringen hittar bara de namn och mönster den känner till, så skicka inte API-nycklar eller token till den här slutpunkten.
 
 > [!IMPORTANT]
-> OneUptime svarar `200` med ett tomt JSON-objekt (`{}`) direkt och behandlar förfrågan via en kö. Svaret skrivs innan någon validering sker, så en `200` är **inte** en bekräftelse på att förfrågan godtogs — en felaktig hemlig nyckel, en borttagen monitor och en inaktiverad monitor returnerar också `200`. Kontrollera monitorns egen tidslinje för att bekräfta att förfrågningarna kommer fram. Det enda undantaget är ett projekt som kräver en hemlighet vid varje begäran: en begäran utan hemlighet besvaras med `401`.
+> OneUptime svarar `200` med ett tomt JSON-objekt (`{}`) direkt och behandlar förfrågan via en kö. Svaret skrivs innan någon validering sker, så en `200` är **inte** en bekräftelse på att förfrågan godtogs — en felaktig hemlig nyckel, en borttagen monitor och en inaktiverad monitor returnerar också `200`. Kontrollera monitorns egen tidslinje för att bekräfta att förfrågningarna kommer fram. Ett projekt som kräver en hemlighet vid varje begäran besvarar en begäran utan hemlighet med `401`, och en tjänst som kontrollerar URL:en innan den levererar något får det svar den väntar sig: se [Tjänster som kontrollerar URL:en först](#tjänster-som-kontrollerar-urlen-först).
 
 ### Skicka en förfrågningskropp
 
@@ -94,7 +94,8 @@ Om du vill använda fält i kroppen — `{{requestBody.status}}` i en incidentti
 | --- | --- |
 | `application/json` | Den tolkade JSON:en. |
 | `application/x-www-form-urlencoded` | Det tolkade formuläret. Nycklar inom hakparenteser nästlas (`alerts[0][status]=firing`), och alla värden är strängar. |
-| `text/plain` | Den tolkade JSON:en, när texten är ett JSON-objekt eller en JSON-matris: så skickar Amazon SNS sina meddelanden. All annan text blir en tom kropp. |
+| `text/plain` | Den tolkade JSON:en, när texten är ett JSON-objekt eller en JSON-matris: så skickar Amazon SNS sina meddelanden. All annan text är själva texten, så `backup failed: error 42` gör monitorn offline med standardkriterierna. |
+| `application/cloudevents+json`, eller en annan `+json`-typ | Den tolkade JSON:en: så levererar Azure Event Grid CloudEvents. |
 | Allt annat, eller ingen | En tom kropp (`{}`), så ingen hänvisning till `requestBody` löses upp, och en mall skriver ut den ordagrant. |
 
 Kroppar på upp till 50 MB godtas; en större avvisas med en `413`. Komprimera inte kroppen med `Content-Encoding: gzip`: då lagras den inte som JSON, och sökvägar in i den löses inte upp.
@@ -383,9 +384,25 @@ Hela nyttolasten finns tillgänglig vid sidan av, så både en incidenttitel `{{
 
 En fullständig Alertmanager-konfiguration finns under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). För Grafana, se [Grafana](/docs/integrations/grafana).
 
+## Tjänster som kontrollerar URL:en först
+
+Vissa tjänster kontrollerar en ny slutpunkt innan de levererar något till den: de skickar den en förfrågan och levererar först när den svarar som de väntar sig. OneUptime besvarar själv dessa kontroller, så du behöver bara klistra in monitorns **Heartbeat URL** i tjänsten.
+
+| Tjänst | Kontrollen | Det OneUptime svarar |
+| --- | --- | --- |
+| Azure Event Grid, Event Grid-schema | En `SubscriptionValidationEvent` | Dess `validationCode`, som `validationResponse` |
+| Azure Event Grid, CloudEvents-schema | En `OPTIONS`-förfrågan som anger sitt ursprung | `WebHook-Allowed-Origin`, med det ursprunget |
+| Slack Events API | En `url_verification`-förfrågan | Dess `challenge` |
+| Ändringsaviseringar från Microsoft Graph | En `POST` med en `validationToken` | Token, som `text/plain` |
+| Event hooks från Okta | En `GET` med `X-Okta-Verification-Challenge` | Utmaningen, som `verification` |
+
+En kontroll besvaras bara på en monitors egen URL, och bara när förfrågan räknas: i ett projekt som kräver en hemlighet vid varje begäran avvisas en kontroll utan hemlighet med `401`, som varje förfrågan, så tjänsten måste skicka hemligheten i en header. Svaret innehåller det tjänsten skickade för att få tillbaka, och inget annat från förfrågan, och bara när det har den form tjänsten ger det.
+
+En kontroll når monitorn som varje förfrågan, så dess kriterier utvärderar den och den visas på monitorns **Översikt**; CloudEvents-kontrollen besvaras och inget mer. En sonds ingress för inkommande förfrågningar besvarar en kontroll som den besvarar varje förfrågan, med `{}`, så skicka de här tjänsterna till OneUptimes egen URL.
+
 ## Prenumerera på Amazon SNS eller Azure Event Grid
 
-Amazon SNS och Azure Event Grid skickar ingenting till en ny slutpunkt förrän någon bekräftar prenumerationen genom att öppna en länk som tjänsten skickar dit. När den förfrågan kommer visar kortet **Monitor-sammanfattning** på monitorns **Översikt** vad tjänsten väntar på, ämnet och en knapp som öppnar länken i en ny flik.
+Amazon SNS skickar ingenting till en ny slutpunkt förrän någon bekräftar prenumerationen genom att öppna en länk som SNS skickar dit. Azure Event Grid skickar också en sådan länk, till en slutpunkt som inte besvarar dess kontroll, och OneUptime besvarar den. När en länk kommer som ännu ska öppnas visar kortet **Monitor-sammanfattning** på monitorns **Översikt** vad tjänsten väntar på, ämnet och en knapp som öppnar länken i en ny flik.
 
 | Tjänst | Förfrågan | Knapp | Länken fungerar i |
 | --- | --- | --- | --- |
@@ -411,11 +428,11 @@ Om kortet säger att länken inte längre kan öppnas markerar du prenumeratione
 ### Azure Event Grid
 
 :::steps
-1. Öppna resursen vars händelser du vill ha i Azure-portalen och lägg till en händelseprenumeration. Välj **Event Grid Schema** som händelseschema, **Web Hook** som slutpunktstyp och monitorns **Heartbeat URL** som slutpunkt.
-2. Öppna monitorns **Översikt** inom 10 minuter och klicka på **Validera prenumeration** på kortet **Monitor-sammanfattning**.
+1. Öppna resursen vars händelser du vill ha i Azure-portalen och lägg till en händelseprenumeration. Välj **Event Grid Schema** eller **Cloud Event Schema v1.0** som händelseschema, **Web Hook** som slutpunktstyp och monitorns **Heartbeat URL** som slutpunkt.
+2. Skapa händelseprenumerationen. OneUptime besvarar Event Grids kontroll, så prenumerationen valideras när den skapas och dess händelser börjar komma.
 :::
 
-Event Grid validerar en slutpunkt som skickar tillbaka en kod till den, eller vars ägare öppnar länken den skickar. OneUptime svarar på varje förfrågan med en tom `200`, så det är länken som gäller. Länken pekar på Event Grid på port 553, som en brandvägg framför din webbläsare måste släppa igenom. Om 10 minuter hinner gå först misslyckas händelseprenumerationen: skapa den igen.
+Event Grid validerar en slutpunkt som skickar tillbaka en kod till den, eller vars ägare öppnar länken den skickar. OneUptime skickar tillbaka koden, så kortet **Monitor-sammanfattning** erbjuder **Validera prenumeration** bara för en validering som OneUptime inte besvarade: öppna den inom 10 minuter. Länken pekar på Event Grid på port 553, som en brandvägg framför din webbläsare måste släppa igenom. Om 10 minuter hinner gå först misslyckas händelseprenumerationen: skapa den igen.
 
 ## Bästa praxis
 
@@ -444,7 +461,11 @@ Bara ett kriterium med **Inkommande begäran** (**Inte mottaget inom (minuter)**
 :::
 
 :::details Ett filter på Begärandekropp matchar aldrig
-Skicka `Content-Type: application/json`, och skriv värdet som kompakt JSON — `"status":"firing"`, utan mellanslag efter kolonet. Utan en innehållstyp för JSON eller formulär tolkas kroppen inte: det gör bara JSON som skickas som `text/plain`.
+Skicka `Content-Type: application/json`, och skriv värdet som kompakt JSON — `"status":"firing"`, utan mellanslag efter kolonet. Utan en innehållstyp för JSON, formulär eller `text/plain` är kroppen tom, och ett filter på den matchar aldrig.
+:::
+
+:::details En tjänst säger att URL:en inte besvarade dess kontroll
+Ge tjänsten monitorns **Heartbeat URL**, på OneUptime självt och inte på en sond. Om projektet kräver en hemlighet vid varje begäran avvisas kontrollen med `401` om inte tjänsten skickar hemligheten. Låt sedan tjänsten kontrollera URL:en igen: den besvaras direkt.
 :::
 
 :::details Ett filter på Begärandehuvud matchar aldrig

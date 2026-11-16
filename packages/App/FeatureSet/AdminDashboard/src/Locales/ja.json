@@ -4100,5 +4100,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "新しいプロジェクトは、所有者が変更するまで解決済みのアラートを {{count}} 日後に削除します。既存のプロジェクトは独自の設定を保ちます。",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "新しいプロジェクトは、所有者が変更するまで解決済みのアラートを {{count}} 日後に削除します。既存のプロジェクトは独自の設定を保ちます。",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "新しいプロジェクトは、所有者が変更するまで解決済みのアラートを {{count}} 年後に削除します。既存のプロジェクトは独自の設定を保ちます。",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "新しいプロジェクトは、所有者が変更するまで解決済みのアラートを {{count}} 年後に削除します。既存のプロジェクトは独自の設定を保ちます。"
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "新しいプロジェクトは、所有者が変更するまで解決済みのアラートを {{count}} 年後に削除します。既存のプロジェクトは独自の設定を保ちます。",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "SSO を使わずにサインインしたままのユーザーが {{count}} 人います。SSO でサインインするまで、どのプロジェクトも開けません。",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "SSO を使わずにサインインしたままのユーザーが {{count}} 人います。SSO でサインインするまで、どのプロジェクトも開けません。",
+  "Sign them out": "サインアウトさせる",
+  "Sign out everyone signed in without SSO?": "SSO を使わずにサインインしている全員をサインアウトしますか？",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "すべてのデバイスでセッションがすぐに終了し、SSO で再度サインインすることになります。マスター管理者はサインインしたままです。"
 }

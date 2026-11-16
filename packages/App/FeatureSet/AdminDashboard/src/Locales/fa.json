@@ -4100,5 +4100,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "یک پروژهٔ جدید هشدارهای برطرف‌شده را پس از {{count}} روز حذف می‌کند، تا وقتی مالکانش آن را تغییر دهند. پروژه‌های موجود تنظیم خودشان را نگه می‌دارند.",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "یک پروژهٔ جدید هشدارهای برطرف‌شده را پس از {{count}} روز حذف می‌کند، تا وقتی مالکانش آن را تغییر دهند. پروژه‌های موجود تنظیم خودشان را نگه می‌دارند.",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "یک پروژهٔ جدید هشدارهای برطرف‌شده را پس از {{count}} سال حذف می‌کند، تا وقتی مالکانش آن را تغییر دهند. پروژه‌های موجود تنظیم خودشان را نگه می‌دارند.",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "یک پروژهٔ جدید هشدارهای برطرف‌شده را پس از {{count}} سال حذف می‌کند، تا وقتی مالکانش آن را تغییر دهند. پروژه‌های موجود تنظیم خودشان را نگه می‌دارند."
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "یک پروژهٔ جدید هشدارهای برطرف‌شده را پس از {{count}} سال حذف می‌کند، تا وقتی مالکانش آن را تغییر دهند. پروژه‌های موجود تنظیم خودشان را نگه می‌دارند.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "{{count}} نفر هنوز بدون SSO وارد شده‌اند. تا وقتی با SSO وارد نشوند، هیچ پروژه‌ای را نمی‌توانند باز کنند.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} نفر هنوز بدون SSO وارد شده است. تا وقتی با SSO وارد نشود، هیچ پروژه‌ای را نمی‌تواند باز کند.",
+  "Sign them out": "خارج کردن آن‌ها",
+  "Sign out everyone signed in without SSO?": "همهٔ کسانی که بدون SSO وارد شده‌اند خارج شوند؟",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "نشست‌هایشان همین حالا در همهٔ دستگاه‌ها پایان می‌یابد و دوباره با SSO وارد می‌شوند. مدیران ارشد وارد می‌مانند."
 }

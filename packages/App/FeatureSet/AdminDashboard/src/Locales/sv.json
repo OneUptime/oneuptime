@@ -4100,5 +4100,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "Ett nytt projekt tar bort lösta larm efter {{count}} dagar tills ägarna ändrar det. Befintliga projekt behåller sin egen inställning.",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "Ett nytt projekt tar bort lösta larm efter {{count}} dag tills ägarna ändrar det. Befintliga projekt behåller sin egen inställning.",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "Ett nytt projekt tar bort lösta larm efter {{count}} år tills ägarna ändrar det. Befintliga projekt behåller sin egen inställning.",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "Ett nytt projekt tar bort lösta larm efter {{count}} år tills ägarna ändrar det. Befintliga projekt behåller sin egen inställning."
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "Ett nytt projekt tar bort lösta larm efter {{count}} år tills ägarna ändrar det. Befintliga projekt behåller sin egen inställning.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "{{count}} personer är fortfarande inloggade utan SSO. De kan inte öppna något projekt förrän de loggar in med SSO.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} person är fortfarande inloggad utan SSO. Personen kan inte öppna något projekt förrän hen loggar in med SSO.",
+  "Sign them out": "Logga ut dem",
+  "Sign out everyone signed in without SSO?": "Logga ut alla som är inloggade utan SSO?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Deras sessioner avslutas nu på alla enheter, och de loggar in igen med SSO. Huvudadministratörer förblir inloggade."
 }

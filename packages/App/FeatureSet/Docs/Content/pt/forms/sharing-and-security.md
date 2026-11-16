@@ -187,6 +187,10 @@ Cada variável também lê o seu nome antigo, com `INCIDENT_FORM_` na frente em 
 
 Quando a sua instância do OneUptime tem o hCaptcha ativado, o formulário mostra um captcha, e um envio que não passou por ele é recusado. Não existe uma configuração por formulário. Uma instalação auto-hospedada ativa o captcha com `CAPTCHA_ENABLED`, `CAPTCHA_SITE_KEY` e `CAPTCHA_SECRET_KEY` — as mesmas configurações que protegem o cadastro. Sem ele, os limites de taxa e a lista de IPs permitidos seguram a carga.
 
+### Verificação de malware
+
+Uma instalação auto-hospedada pode fazer o ClamAV verificar se há malware em cada arquivo que as pessoas enviam, antes de guardá-lo: os arquivos de um formulário e os que as pessoas enviam conectadas ou com uma chave de API. Defina `CLAMAV_HOST` (e `CLAMAV_PORT`, `3310` por padrão) com um daemon do ClamAV. Com Docker Compose, `COMPOSE_PROFILES=clamav` e `CLAMAV_HOST=clamav` no `config.env` iniciam o ClamAV que acompanha o OneUptime; com Helm, ative `clamav.enabled`. Um arquivo que o ClamAV sinaliza é recusado, dizendo qual, e nada do envio é guardado. Enquanto o ClamAV não responde, todo arquivo é recusado com "No momento não é possível verificar vírus nos arquivos, por isso eles não foram aceitos. Tente novamente em alguns minutos." (503), então nenhum arquivo é guardado sem verificação. Sem `CLAMAV_HOST`, os arquivos não são verificados, como antes.
+
 ## Solução de problemas
 
 :::details O link diz que o formulário não está disponível

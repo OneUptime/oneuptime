@@ -45,6 +45,7 @@
     "uptimePercent": "{{percent}} oppetid",
     "operational": "I drift",
     "notMonitored": "Ikke overvåget",
+    "notMonitoredYet": "Ikke overvåget endnu",
     "noResourcesInGroup": "Der er ikke tilføjet nogen ressourcer til denne gruppe.",
     "activeIncidents": "Aktive hændelser",
     "scheduledMaintenanceEvents": "Planlagt vedligeholdelse",
@@ -55,6 +56,7 @@
     "someResourcesAre": "Nogle ressourcer er {{status}}",
     "someResourcesAreUnder": "Nogle ressourcer er under {{status}}",
     "noResourcesAreMonitored": "Ingen ressourcer overvåges lige nu",
+    "noResourcesAreMonitoredYet": "Ingen ressourcer er overvåget endnu",
     "oneSubGroup": "1 gruppe",
     "subGroupCount": "{{total}} grupper"
   },

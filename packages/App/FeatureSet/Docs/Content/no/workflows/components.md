@@ -244,7 +244,7 @@ En blokk som legges til i en arbeidsflyt som starter på en hendelse eller et va
 
 **Suksess** kjører så snart minst én person er tilkalt, eller én policy har startet. **Feil** kjører når ingen ble tilkalt, og blokkens verdi **Feil** sier hvorfor, for eksempel at ingen har vakt i vaktplanen. **Sammendrag** sier i én setning hvem som ble tilkalt og hvem som ble utelatt, klar til å legge ut i en kanal, og **Tilkalte brukere** lister opp personene som ble tilkalt.
 
-En person som er borte, tilkalles ikke: i stedet tilkalles den personens brukeroverstyring navngir som dekning. En tilkalling navngir høyst 100 personer, team og vaktplaner. Se [Slik nås hver person](/docs/on-call/escalation-rules#slik-nås-hver-person).
+En person som er borte, tilkalles ikke: i stedet tilkalles den personens brukeroverstyring navngir som dekning. En person som en vaktpolicy eller en annen tilkalling allerede tilkaller om det samme, tilkalles ikke igjen og står fortsatt under **Tilkalte brukere**: ender den tilkallingen uten vedkommendes svar, tilkaller blokkens tilkalling vedkommende selv. En tilkalling navngir høyst 100 personer, team og vaktplaner. Se [Slik nås hver person](/docs/on-call/escalation-rules#slik-nås-hver-person).
 
 En tilkalling uten en vaktpolicy bak seg står sammen med kjøringene til policyene som **Direkte tilkalling**: i vaktloggene for hendelsen eller varselet, i feeden og Slack- eller Microsoft Teams-kanalen dens, og i loggene til hver person som ble tilkalt. Den står åpen i 30 minutter, og deretter så lenge det fortsatt går ut tilkallinger. Har ingen bekreftet innen da, avsluttes den uten å tilkalle noen andre.
 

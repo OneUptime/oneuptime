@@ -257,6 +257,18 @@ const INPUTS_SCRIPT: string = String.raw`
     "lines of titles in () left open": () =>
       repeatTo(repeatTo("[a](x (", QUADRATIC_SIZE - 1) + "\n", MIB - 16),
     /*
+     * #7599: a "\" before a line separator closes no label and no address
+     * in "<>" for marked, which reads what follows as text - a word of
+     * punctuation, from each "!" to its end. The count read a link there,
+     * or a definition, once.
+     */
+    "a link's label escaping a separator, a word of punctuation after it": () =>
+      "[a\\" + String.fromCharCode(0x2028) + "](" + repeatTo("a!", QUADRATIC_SIZE) + ")",
+    "a link's address in <> escaping a separator, a word of punctuation in it": () =>
+      "[a](<\\" + String.fromCharCode(0x2028) + repeatTo("a!", QUADRATIC_SIZE) + ">)",
+    "a definition's label escaping a separator, a word of punctuation after it": () =>
+      "[a\\" + String.fromCharCode(0x2028) + "]: " + repeatTo("a!", QUADRATIC_SIZE),
+    /*
      * #7597: marked lists every definition of the text at each paragraph,
      * cell or item it reads - definitions times reads. 20,000 and 20,000
      * one-word paragraphs took 42 s; nothing is held back of any of these,
@@ -1061,7 +1073,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
     );
 
     expectUnoptimizedProcess(report);
-    expect(Object.keys(report.results)).toHaveLength(23);
+    expect(Object.keys(report.results)).toHaveLength(26);
     expectEveryCheckPassed(report);
   }, 600000);
 
@@ -1189,7 +1201,12 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
           ],
           [
             "links to an address with a query, one on each line",
-            (n) => ("[dashboard](" + query(512) + ")\n").repeat(n),
+            /*
+             * Queries of 384 characters: the most of them the count lets
+             * through (399) is 237 KB of HTML, within what a field keeps -
+             * past it the field is cut to fit, whatever marked's time.
+             */
+            (n) => ("[dashboard](" + query(384) + ")\n").repeat(n),
             2000,
             (html, n) => countOf(html, '<a href="https://grafana.example.com/') === n,
           ],
@@ -1222,6 +1239,32 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
             (n) => "- start\n" + "  aaa bbb\n".repeat(n),
             6000,
             (html, n) => countOf(html, "<li") === 1 && countOf(html, "aaa bbb") === n,
+          ],
+          // #7599: glued into one word, as a row of badges is.
+          [
+            "links glued into one word (#7599)",
+            (n) => "[a](b)".repeat(n),
+            20000,
+            (html, n) => countOf(html, '<a href="b">a</a>') === n,
+          ],
+          [
+            "references glued into one word (#7599)",
+            (n) => "[a][a]".repeat(n) + "\n\n[a]: /a",
+            20000,
+            (html, n) => countOf(html, '<a href="/a">a</a>') === n,
+          ],
+          [
+            "image references glued into one word (#7599)",
+            (n) => "![Run][s]".repeat(n) + "\n\n[s]: /s.png",
+            20000,
+            (html, n) => countOf(html, '<img src="/s.png" alt="Run"') === n,
+          ],
+          [
+            "badges glued into one word (#7599)",
+            (n) => "[![b](https://e.com/b.svg)](https://e.com)".repeat(n),
+            20000,
+            (html, n) =>
+              countOf(html, '<a href="https://e.com"><img src="https://e.com/b.svg" alt="b"') === n,
           ],
         ];
 
@@ -1277,6 +1320,10 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
       "letters before an @",
       "emphasis that never closes",
       "a list item of many lines (#7598)",
+      "links glued into one word (#7599)",
+      "references glued into one word (#7599)",
+      "image references glued into one word (#7599)",
+      "badges glued into one word (#7599)",
     ]);
     expectEveryCheckPassed(report);
   }, 600000);

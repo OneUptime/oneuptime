@@ -97,7 +97,7 @@ Hoe langer het venster, hoe breder elk tijdsinterval, dus één datapunt staat v
 ## Hoe hij wordt geëvalueerd
 
 - **Elke minuut.** Een metrics-monitor wordt niet door sondes gecontroleerd, dus hij heeft geen interval om in te stellen en geen pagina **Sondes en interval**.
-- **Eerst de query's, dan de formules.** Elke query levert één datapunt per tijdsinterval van het tijdsbereik op, volgens zijn **Aggregeren op**. Formules worden voor elk interval berekend uit de datapunten van de query's.
+- **Eerst de query's, dan de formules.** Elke query levert één datapunt per tijdsinterval van het tijdsbereik op, volgens zijn **Aggregeren op**. Formules worden voor elk interval berekend uit de datapunten van de query's. Een query die telt wat er gebeurde, de som of het aantal van een teller of een histogram, telt 0 in een interval waarin hij geen datapunt heeft, zodra dat interval een minuut voorbij is, zodat een foutaandeel 0% is waar niets mislukte. Een meter, een gemiddelde of een percentiel zonder datapunt is onbekend, en de formule laat dat interval weg.
 - **Dan de maat van de regel.** De regel brengt de datapunten van zijn metriek terug tot wat hij met zijn waarde vergelijkt, zoals **Gemeten als** zegt:
 
 | Gemeten als | In de eigen criteria | De voorwaarde wordt getoetst aan… |

@@ -95,7 +95,7 @@ import {
   DASHBOARD_WIDGET_FALLBACK_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetFallback";
 import DashboardBaseComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
-import { loadComponentSettingsModal } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/LazyComponentSettingsModal";
+import * as LazyComponentSettingsModal from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/LazyComponentSettingsModal";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
@@ -476,7 +476,7 @@ describe("Edit widget, from the canvas", () => {
    * loaded first here, as a board that has opened them once has them.
    */
   beforeAll(async () => {
-    await loadComponentSettingsModal();
+    await LazyComponentSettingsModal.loadComponentSettingsModal();
   });
 
   const CONFIG: DashboardViewConfig = StoredDashboardViewConfig.read({
@@ -571,5 +571,56 @@ describe("Edit widget, from the canvas", () => {
       screen.queryByRole("dialog", { name: "Component Settings" }),
     ).toBeNull();
     expect(screen.getByTestId("clock-widget")).toBeInTheDocument();
+  });
+});
+
+describe("a widget's settings, asked for before a widget is picked", () => {
+  /*
+   * Their file (LazyComponentSettingsModal) is asked for as the board turns
+   * to edit mode, so the first widget picked opens them at once. A board in
+   * view mode - every public dashboard's - never asks for it.
+   */
+  let loads: SpyInstance<() => Promise<unknown>>;
+
+  beforeEach(() => {
+    loads = jest.spyOn(
+      LazyComponentSettingsModal,
+      "loadComponentSettingsModal",
+    );
+  });
+
+  afterEach(() => {
+    loads.mockRestore();
+  });
+
+  const CLOCK_BOARD: DashboardViewConfig = board([
+    widget(CLOCK_ID, DashboardComponentType.Clock, 0),
+  ]);
+
+  test("a board in view mode, as a public dashboard draws it, never asks for them", () => {
+    const { rerender } = render(canvas({ config: CLOCK_BOARD }));
+
+    rerender(canvas({ config: CLOCK_BOARD, refreshTick: 1 }));
+
+    expect(screen.getByTestId("clock-widget")).toBeInTheDocument();
+    expect(loads).not.toHaveBeenCalled();
+  });
+
+  test("a board asks for them as it turns to edit mode, before any widget is picked, and once", () => {
+    const { rerender } = render(canvas({ config: CLOCK_BOARD }));
+
+    expect(loads).not.toHaveBeenCalled();
+
+    rerender(canvas({ config: CLOCK_BOARD, isEditMode: true }));
+
+    expect(loads).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole("dialog", { name: "Component Settings" }),
+    ).toBeNull();
+
+    // Still editing: nothing more is asked for.
+    rerender(canvas({ config: CLOCK_BOARD, isEditMode: true, refreshTick: 2 }));
+
+    expect(loads).toHaveBeenCalledTimes(1);
   });
 });

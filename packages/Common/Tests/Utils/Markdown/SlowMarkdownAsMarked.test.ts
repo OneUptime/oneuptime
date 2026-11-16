@@ -142,6 +142,12 @@ function queryAddress(length: number): string {
 // Plain words, long enough that a text is measured.
 const FILLER: string = `${"lorem ipsum dolor sit amet ".repeat(100).trim()}\n\n`;
 
+// A badge: a link whose label is an image.
+const BADGE: string = "[![b](https://e.com/b.svg)](https://e.com)";
+
+// U+2028, which "." does not match: no escape for marked after a "\".
+const LINE_SEPARATOR: string = String.fromCharCode(0x2028);
+
 describe("getMarkedLineWork - a link or a reference whose label closes", () => {
   test.each([
     ["a link", "[Run](https://example.com/run)", 1],
@@ -297,12 +303,15 @@ describe("getMarkedLineWork - what marked reads once", () => {
   test("a link's address and title: counted once, never as inline Markdown", () => {
     const text: string = `[a](${queryAddress(512)}&q=*x*&r=_y_&s=a!b!c "Run *now*, \`twice\`")`;
     const tail: number = text.length - "[a]".length;
-    const work: number = tail + 2 * text.length;
+    const work: number = tail;
 
     expect(lineWork(text)).toEqual({
       characters: 0,
       maskedItems: 1,
-      // The tail once, and the label's two brackets times the word's length.
+      /*
+       * The tail once. The label's brackets are no punctuation of the word
+       * (#7599): the link is a masked item, all marked spends on them.
+       */
       work: work,
       isDefinition: false,
     });
@@ -483,6 +492,125 @@ describe("getMarkedLineWork - what costs marked nothing, and what costs it more"
   });
 });
 
+/*
+ * LINKS AND REFERENCES GLUED INTO ONE WORD (#7599).
+ *
+ * A link, an image or a reference whose label closes costs marked a copy of
+ * its unit - a masked item - and its brackets were counted again as the
+ * punctuation of its word, times the word's length: links glued into one
+ * word, with no space between them, were held back from 4 KB, where
+ * marked reads them about as fast as spaced ones. Their brackets, and an
+ * image's "!", are no punctuation of a word now; a badge's link - its
+ * label an image - is read as marked's link rule reads it.
+ */
+describe("getMarkedLineWork - links and references glued into one word (#7599)", () => {
+  test.each([
+    ["links", "[a](b)", 1, 3],
+    ["images", "![a](b)", 1, 3],
+    ["full references", "[a][s]", 1, 0],
+    ["image references", "![Run][s]", 1, 0],
+    ["collapsed references", "[s][]", 1, 0],
+    ["badges", BADGE, 2, BADGE.length - "[![b]]".length],
+  ])(
+    "%s, a hundred glued: each a masked item, its tails read once, its brackets no punctuation of the word",
+    (_name: string, piece: string, maskedItems: number, tails: number) => {
+      expect(lineWork(piece.repeat(100))).toEqual({
+        characters: 0,
+        maskedItems: 100 * maskedItems,
+        work: 100 * tails,
+        isDefinition: false,
+      });
+      // Before: every bracket and "!" of the word times the word's length.
+      expect(
+        getWordPunctuationWork(piece.repeat(100), 0, 100 * piece.length),
+      ).toBeGreaterThan(100 * 100 * piece.length);
+    },
+  );
+
+  test("what else is in the word is still its punctuation: the text around the links, and a label's own", () => {
+    // "!" and "." times the word's length, and the tails once.
+    expect(lineWork("x!y[a](b)").work).toBe(9 + 3);
+    expect(lineWork("[a.b](c)").work).toBe(8 + 3);
+    // The "!" right before the image's "[" is the image's own.
+    expect(lineWork("a!a![a](b)a!").work).toBe(2 * 12 + 3);
+  });
+
+  test("a badge's link ends where marked's does, and holds its image", () => {
+    for (const badge of [
+      BADGE,
+      "[![b][s]](https://e.com)",
+      "[![b](https://e.com/b.svg) build](https://e.com)",
+    ]) {
+      const first: Token = Lexer.lexInline(`${badge} z`)[0]!;
+
+      expect([
+        badge,
+        getMarkedLinkEnd(`${badge} z`, 0, badge.length + 2),
+      ]).toEqual([badge, badge.length]);
+      expect([first.type, first.raw]).toEqual(["link", badge]);
+    }
+
+    // Its label holds an image reference: two masked items, one tail.
+    expect(lineWork("[![b][s]](https://e.com)")).toEqual({
+      characters: 0,
+      maskedItems: 2,
+      work: "(https://e.com)".length,
+      isDefinition: false,
+    });
+  });
+
+  test("a link in a badge's label that ends past the label is no link: marked reads that label alone, and what follows the badge as text", () => {
+    // Inside "[![a](b](c)", the image's address runs on past its label.
+    const text: string = `[![a](b](c)${"a!".repeat(100)})`;
+    const first: Token = Lexer.lexInline(text)[0]!;
+
+    expect([first.type, first.raw]).toEqual(["link", "[![a](b](c)"]);
+    /*
+     * The badge one masked item, its image a look through - and the hundred
+     * "!" after the badge the punctuation of the word, not a tail read once.
+     */
+    expect(lineWork(text)).toMatchObject({ characters: 1, maskedItems: 1 });
+    expect(lineWork(text).work).toBeGreaterThan(100 * text.length);
+  });
+
+  test('a "\\" before a line or paragraph separator escapes nothing for marked: the label, or the address in <>, does not close', () => {
+    for (const text of [
+      `[a\\${LINE_SEPARATOR}](x) z`,
+      `[a](<b\\${LINE_SEPARATOR}c>) z`,
+      `[a\\${String.fromCharCode(0x2029)}](x) z`,
+    ]) {
+      const first: Token = Lexer.lexInline(text)[0]!;
+
+      expect([text, getMarkedLinkEnd(text, 0, text.length)]).toEqual([
+        text,
+        -1,
+      ]);
+      expect([text, first.type]).toEqual([text, "text"]);
+    }
+
+    const definition: string = `[a\\${LINE_SEPARATOR}]: /x`;
+
+    expect(
+      getMarkedDefinitionAddressStart(definition, 0, definition.length),
+    ).toBe(-1);
+    expect(Object.keys(marked.lexer(definition).links)).toEqual([]);
+
+    // So what follows is read as text: a word of punctuation, its square.
+    const tail: string = `[a\\${LINE_SEPARATOR}](${"a!".repeat(1000)})`;
+
+    expect(lineWork(tail).characters).toBe(1);
+    expect(lineWork(tail).work).toBeGreaterThan(1000 * 1000);
+  });
+
+  test("glued, they are held back where spaced ones are: their copies of the paragraph add up the same", () => {
+    const glued: number = markedWork(`${FILLER}${"[a](b)".repeat(3000)}`);
+    const spaced: number = markedWork(`${FILLER}${"[a](b) ".repeat(3000)}`);
+
+    expect(glued).toBeLessThan(spaced);
+    expect(spaced).toBeLessThan(2 * glued);
+  });
+});
+
 describe("measureSlowMarkdownRuns - a unit's references in their share", () => {
   test("1,000 references cost a sixteenth of a copy of their paragraph each", () => {
     const text: string = references(1000);
@@ -490,15 +618,13 @@ describe("measureSlowMarkdownRuns - a unit's references in their share", () => {
     const run: SlowMarkdownRun = measureSlowMarkdownRuns(text, {
       countAsMarked: true,
     })[0]!;
-    let words: number = 0;
 
-    for (const line of paragraph.split("\n")) {
-      words += getWordPunctuationWork(line, 0, line.length);
-    }
-
+    /*
+     * Their brackets and an image's "!" are no punctuation of a word
+     * (#7599): the copies are all they cost.
+     */
     expect(run.inlineWork).toBe(
-      Math.ceil((1000 * (paragraph.length + 1)) / MARKED_MASKED_ITEM_SHARE) +
-        words,
+      Math.ceil((1000 * (paragraph.length + 1)) / MARKED_MASKED_ITEM_SHARE),
     );
     expect(run.inlineWork).toBeLessThan(SLOW_MARKDOWN_MAX_INLINE_WORK / 4);
   });
@@ -586,6 +712,18 @@ describe("holdBackSlowMarkdown - what the emails hold back", () => {
       "a block of 20,000 definitions",
       `See [the run][s1].\n\n${runScreenshots(20000).split("\n\n")[1]}`,
     ],
+    // #7599: held back from 4 KB before, as spaced ones are not.
+    ["links glued into one word, 4 KB", "[a](b)".repeat(700)],
+    ["links glued into one word, 16 KB", "[a](b)".repeat(2700)],
+    [
+      "references glued into one word, 16 KB",
+      `${"[a]".repeat(5400)}\n\n[a]: /a`,
+    ],
+    [
+      "image references glued into one word, 16 KB",
+      `${"![Run][s]".repeat(1800)}\n\n[s]: /s.png`,
+    ],
+    ["badges glued into one word, 16 KB", BADGE.repeat(390)],
   ])(
     "no longer holds back what marked reads in good time: %s",
     (_name: string, text: string) => {
@@ -612,7 +750,11 @@ describe("holdBackSlowMarkdown - what the emails hold back", () => {
     ["code spans that never close", "`a".repeat(2048)],
     ["link openers", "[a](".repeat(1024)],
     ["image openers", "![a](".repeat(820)],
-    ["links glued into one word", "[a](b)".repeat(700)],
+    /*
+     * Each link is a copy of its paragraph: 36 KB of them glued, as spaced
+     * ones, cost marked more than it is given (#7599). 4 KB no longer do.
+     */
+    ["links glued into one word, 36 KB", "[a](b)".repeat(6000)],
     ["underscores in a word", "_a".repeat(2048)],
     ["a word of punctuation", "a!".repeat(2048)],
     ["letters before an @", `x ${"a".repeat(4096)}@`],
@@ -626,6 +768,23 @@ describe("holdBackSlowMarkdown - what the emails hold back", () => {
     ["2,500 references, one on each line", references(2500)],
     ["angle pairs", "< b > ".repeat(4000)],
     ["escaped symbols", "\\€ ".repeat(6000)],
+    /*
+     * A "\" before a separator in a label or an address in "<>": no link,
+     * no definition for marked, which reads what follows as text - a word
+     * of punctuation - and was counted as read once.
+     */
+    [
+      "a link whose label escapes a separator, a word of punctuation after it",
+      `[a\\${LINE_SEPARATOR}](${"a!".repeat(2048)})`,
+    ],
+    [
+      "a link whose address in <> escapes a separator, a word of punctuation after it",
+      `[a](<\\${LINE_SEPARATOR}${"a!".repeat(2048)}>)`,
+    ],
+    [
+      "a definition whose label escapes a separator, a word of punctuation after it",
+      `[a\\${LINE_SEPARATOR}]: ${"a!".repeat(2048)}`,
+    ],
   ])(
     "still holds back what marked reads slowly: %s",
     (_name: string, shape: string) => {
@@ -682,6 +841,7 @@ describe("the count reads links and definitions where marked does", () => {
     "\\)",
     "\\(",
     "\\>",
+    `\\${LINE_SEPARATOR}`,
     '"',
     "'",
     '"t"',
@@ -712,6 +872,14 @@ describe("the count reads links and definitions where marked does", () => {
     "@",
     " ",
     "€",
+    // A badge's image, and other groups a link's label may hold (#7599).
+    "![b](c)",
+    "[b]",
+    "[b][c]",
+    "[",
+    "\\",
+    `\\${LINE_SEPARATOR}`,
+    LINE_SEPARATOR,
   ];
 
   const pieces: (
@@ -772,7 +940,15 @@ describe("the count reads links and definitions where marked does", () => {
 
   test("a definition, for 6,000 generated lines", () => {
     const random: SeededRandom = seededRandom(7230);
-    const labels: ReadonlyArray<string> = ["a", " ", "b c", "\\]", "`", "!"];
+    const labels: ReadonlyArray<string> = [
+      "a",
+      " ",
+      "b c",
+      "\\]",
+      "`",
+      "!",
+      `\\${LINE_SEPARATOR}`,
+    ];
     const addresses: ReadonlyArray<string> = [
       "/a",
       "https://example.com/x?y=1&z=2",
@@ -826,7 +1002,8 @@ describe("the count reads links and definitions where marked does", () => {
       }
     }
 
-    expect(taken).toBeGreaterThan(500);
+    // About four fifths of what seed 7230 makes: a label escaping a separator never defines.
+    expect(taken).toBeGreaterThan(400);
     expect(readTheSame).toBeGreaterThan(taken / 2);
   });
 });

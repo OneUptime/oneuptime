@@ -368,6 +368,112 @@ describe("an observer's page in My pages", () => {
   });
 });
 
+/*
+ * A page merged into another of theirs about the same record (#8858): two
+ * policies paged Ana about one incident, and the second's page of her
+ * stands on the first's. One page waits on her, not two.
+ */
+describe("a page merged into another of theirs in My pages", () => {
+  beforeEach(() => {
+    mockNavigate.mockReset();
+    mockRefetch.mockReset();
+    mockPages.current = {
+      pages: [],
+      isLoading: false,
+      isError: false,
+      refetch: mockRefetch,
+    };
+  });
+
+  const INCIDENT: { _id: string; title: string } = {
+    _id: "incident",
+    title: "Checkout down",
+  };
+
+  test("is listed, saying Already paged, and is not counted as needing a response: the page it stands on is", async (): Promise<void> => {
+    mockPages.current.pages = [
+      page({
+        _id: "billing",
+        status: "Already Paged",
+        statusMessage:
+          "Already paged about this by Payments, so not paged again.",
+        policyName: "Billing",
+        triggeredByIncident: INCIDENT,
+      }),
+      page({
+        _id: "payments",
+        status: "Executing",
+        policyName: "Payments",
+        triggeredByIncident: INCIDENT,
+      }),
+    ];
+
+    await render(<MyOnCallPagesScreen />);
+
+    expect(screen.getByText("1 page needs a response")).toBeTruthy();
+    expect(screen.getByText("Already paged")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Answering your page from Payments answers this one too.",
+      ),
+    ).toBeTruthy();
+
+    await fireEvent.press(screen.getByText("Unacknowledged (1)"));
+    expect(screen.queryByTestId("page-card-billing")).toBeNull();
+    expect(screen.getByTestId("page-card-payments")).toBeTruthy();
+
+    await fireEvent.press(screen.getByText("All (2)"));
+    expect(screen.getByTestId("page-card-billing")).toBeTruthy();
+  });
+
+  test("with only a merged page waiting, nothing needs a response - and the summary does not call it acknowledged", async (): Promise<void> => {
+    mockPages.current.pages = [
+      page({ _id: "billing", status: "Already Paged" }),
+      page({ _id: "done", acknowledgedAt: "2026-09-10T09:05:00Z" }),
+    ];
+
+    await render(<MyOnCallPagesScreen />);
+
+    const summary: HostElement = screen.getByTestId("pages-summary");
+    expect(within(summary).getByText("No pages need a response")).toBeTruthy();
+    expect(
+      within(summary).queryByText("All listed pages acknowledged"),
+    ).toBeNull();
+  });
+
+  test("once it took the page over, it needs a response like any other", async (): Promise<void> => {
+    mockPages.current.pages = [
+      page({
+        _id: "billing",
+        status: "Executing",
+        statusMessage:
+          "Their page from Payments is over, so this policy pages them now.",
+      }),
+    ];
+
+    await render(<MyOnCallPagesScreen />);
+
+    expect(screen.getByText("1 page needs a response")).toBeTruthy();
+    expect(screen.getByText("Not acknowledged")).toBeTruthy();
+  });
+
+  test("tapped, it opens its record, as any page does", async (): Promise<void> => {
+    mockPages.current.pages = [
+      page({
+        _id: "billing",
+        status: "Already Paged",
+        triggeredByAlert: { _id: "alert-8", title: "Disk full" },
+      }),
+    ];
+
+    await render(<MyOnCallPagesScreen />);
+    await fireEvent.press(screen.getByTestId("page-card-billing"));
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(mockNavigate.mock.calls[0])).toContain("alert-8");
+  });
+});
+
 describe("My pages layout", () => {
   beforeEach(() => {
     mockNavigate.mockReset();

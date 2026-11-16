@@ -56004,8 +56004,22 @@
   "Merged Into On-Call Log ID": "병합된 온콜 로그 ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "다른 온콜 정책의 호출이 끝났으므로 이제 이 정책이 직접 호출합니다.",
   "Their page from {{name}} is over, so this policy pages them now.": "{{name}}의 호출이 끝났으므로 이제 이 정책이 직접 호출합니다.",
+  "Already paged about this through the workflow {{name}}, so not paged again.": "이 건으로 워크플로 {{name}}을(를) 통해 이미 호출되었으므로 다시 호출하지 않았습니다.",
+  "Already paged directly about this by {{name}}, so not paged again.": "이 건으로 {{name}}에게서 이미 직접 호출되었으므로 다시 호출하지 않았습니다.",
+  "Their page from another on-call policy is over, so they are paged directly now.": "다른 온콜 정책의 호출이 끝났으므로 이제 직접 호출됩니다.",
+  "Their page from {{name}} is over, so they are paged directly now.": "{{name}}의 호출이 끝났으므로 이제 직접 호출됩니다.",
+  "{{names}} are paged, so aren't emailed as Project Owners too.": "{{names}}은(는) 호출되므로 프로젝트 소유자로서 이메일을 따로 받지 않습니다.",
+  "{{names}} are paged, so aren't emailed as Project Owners too._one": "{{names}}은(는) 호출되므로 프로젝트 소유자로서 이메일을 따로 받지 않습니다.",
+  "{{names}} are paged, so aren't emailed as owners too.": "{{names}}은(는) 호출되므로 소유자로서 이메일을 따로 받지 않습니다.",
+  "{{names}} are paged, so aren't emailed as owners too._one": "{{names}}은(는) 호출되므로 소유자로서 이메일을 따로 받지 않습니다.",
   "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "일치 항목은 스팬 이름, 상태 메시지, 속성, 이벤트, 링크에서 [REDACTED]로 바뀝니다.",
   "Runs AI Code Fixes": "AI 코드 수정 실행",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "민감해 보이는 키의 값은 속성과 JSON 로그 본문에서 [REDACTED]로 바뀝니다.",
-  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "스팬에서 마스킹할 부분: 스팬 이름, 속성 값과 링크 속성 값, 이벤트 속성 값 또는 상태 메시지와 이벤트 이름까지 포함한 전체."
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "스팬에서 마스킹할 부분: 스팬 이름, 속성 값과 링크 속성 값, 이벤트 속성 값 또는 상태 메시지와 이벤트 이름까지 포함한 전체.",
+  "Signed out by a server admin because single sign-on is required": "싱글 사인온(SSO)이 필요하여 서버 관리자가 로그아웃함",
+  "Every {{count}} seconds": "{{count}}초마다",
+  "Every {{count}} seconds_one": "{{count}}초마다",
+  "First Measured At": "처음 측정 시각",
+  "Missing-email check": "이메일 누락 점검",
+  "Missing-request check": "요청 누락 점검"
 }
