@@ -473,7 +473,12 @@ export const FindDashboardPageTool: ObservabilityTool = {
       }),
       citationTarget: {
         type: AIChatCitationTargetType.DashboardPage,
-        params: { path: first.path, title: first.title },
+        params: {
+          path: first.path,
+          title: first.title,
+          // The key its button draws, where it is not the title (#8817).
+          ...(first.titleKey ? { titleKey: first.titleKey } : {}),
+        },
       },
       redactionCount: 0,
       isTruncated: false,
