@@ -120,7 +120,8 @@ export const STRIP_GRID_CLASS_NAME: string =
 export const DOCS_LINK_CLASS_NAME: string =
   "inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus-visible:underline";
 
-export const HOW_IT_WORKS_DOCS_TEST_ID: string = "how-oneuptime-works-docs";
+export const HOW_ONEUPTIME_WORKS_DOCS_TEST_ID: string =
+  "how-oneuptime-works-docs";
 
 export interface DocsLinksProps {
   // Size and spacing where they are drawn: the strip's line, the dialog's.
@@ -155,7 +156,7 @@ export const HowOneUptimeWorksDocsLinks: FunctionComponent<DocsLinksProps> = (
   return (
     <div
       className={`flex flex-wrap gap-x-4 gap-y-1 ${props.className || ""}`}
-      data-testid={HOW_IT_WORKS_DOCS_TEST_ID}
+      data-testid={HOW_ONEUPTIME_WORKS_DOCS_TEST_ID}
     >
       {docsLinks.map(
         (link: { key: string; text: string; url: string }): ReactElement => {
@@ -165,7 +166,7 @@ export const HowOneUptimeWorksDocsLinks: FunctionComponent<DocsLinksProps> = (
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              data-testid={`${HOW_IT_WORKS_DOCS_TEST_ID}-${link.key}`}
+              data-testid={`${HOW_ONEUPTIME_WORKS_DOCS_TEST_ID}-${link.key}`}
               className={DOCS_LINK_CLASS_NAME}
             >
               {tx(link.text)}

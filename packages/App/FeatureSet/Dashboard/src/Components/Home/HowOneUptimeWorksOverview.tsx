@@ -798,7 +798,7 @@ const HowOneUptimeWorksOverview: FunctionComponent<ComponentProps> = (
                       {hasProject ? (
                         <Icon
                           icon={IconProp.ChevronRight}
-                          className="mt-0.5 h-4 w-4 flex-none text-gray-300 rtl:-scale-x-100"
+                          className="mt-0.5 h-4 w-4 flex-none text-gray-300"
                         />
                       ) : (
                         <></>
@@ -933,7 +933,7 @@ const HowOneUptimeWorksOverview: FunctionComponent<ComponentProps> = (
               </span>
               <Icon
                 icon={IconProp.ChevronRight}
-                className="h-4 w-4 flex-none rtl:-scale-x-100"
+                className="h-4 w-4 flex-none"
               />
             </button>
           </div>
