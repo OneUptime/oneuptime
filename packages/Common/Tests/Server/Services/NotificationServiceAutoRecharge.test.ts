@@ -673,7 +673,7 @@ describe("NotificationService.rechargeBalance (the Recharge button)", () => {
       "SMS and Call Recharge Successful for project - Acme Production",
     ]);
     expect(world.ownerEmails[0]!.body).toContain(
-      "Your current balance is 30 USD.",
+      "Your current balance is 30\u00A0USD.",
     );
   });
 

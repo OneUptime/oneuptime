@@ -726,7 +726,9 @@ work out, starts from a default for everything else, and folds what most people 
   written as an ordinal too ("Hvert 5. minut"). A helper handed the word
   (`plural(count, "minute", "minutes")`, `pluralize(count, "day")`) holds what it writes on a page
   (`withDurationWordsHeld`, #8823), and a unit's symbol a formatter writes beside a figure is held
-  however short it is: a disk's "12.5 ms", "ops/s", a transceiver's "V" and "mA" (#8803). Enforced by
+  however short it is: a disk's "12.5 ms", "ops/s", a transceiver's "V" and "mA" (#8803), an
+  amount of money ("20 USD") and a span's English duration ("12 ms", #8826); a CSV cell and a log
+  line keep their plain space. Enforced by
   [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
   [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
   and

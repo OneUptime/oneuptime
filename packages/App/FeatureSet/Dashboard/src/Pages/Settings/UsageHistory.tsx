@@ -298,7 +298,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                     return (
                       <div>{`${Currency.convertToDecimalPlaces(
                         (item["totalCostInUSD"] as Decimal).value as number,
-                      )} USD`}</div>
+                      )}\u00A0USD`}</div>
                     );
                   },
                 } as ModelTableColumn<TelemetryUsageBilling>,
