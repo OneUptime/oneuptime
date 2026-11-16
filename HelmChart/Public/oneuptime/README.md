@@ -21,6 +21,9 @@ on a status page. This Helm chart runs all of OneUptime on Kubernetes.
    host: oneuptime.example.com
    ```
 
+   An IPv6 address goes in brackets, and in quotes so YAML reads it as text:
+   `host: "[2001:db8::1]"`.
+
    Keep `httpProtocol: http`, the chart's default, until people reach
    OneUptime over HTTPS, then set `httpProtocol: https`. The chart uses your
    cluster's default storage class; set `global.storageClass` only when it

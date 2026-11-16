@@ -11,7 +11,7 @@ up-to-date list see [`values.yaml`](../values.yaml).
 | Parameter          | Description                                                                                     | Default         | Change |
 |--------------------|-------------------------------------------------------------------------------------------------|-----------------|:------:|
 | `global.storageClass` | Storage class used for all persistent volumes.                                               | `nil`           | 🚨 |
-| `host`             | Primary hostname served by OneUptime (used for routing and certificates).                       | `localhost`     | 🚨 |
+| `host`             | Primary hostname served by OneUptime (used for routing and certificates): a domain name or an IP address, with `:port` when people open it on one. An IPv6 address goes in brackets, and in a values file in quotes too: `host: "[2001:db8::1]"`, or `"[2001:db8::1]:8080"`. The chart refuses one without brackets. | `localhost`     | 🚨 |
 | `httpProtocol`     | Set to `https` when people reach OneUptime over HTTPS (TLS at the chart's nginx or at a proxy in front of it), otherwise `http`. See [HTTPS](#https). | `http`          | 🚨 |
 | `ssl.provision`    | Auto-provision a Let's Encrypt certificate for the primary host (needs public ports 80 & 443).  | `false`         |    |
 | `oneuptimeSecret`  | Value used for `ONEUPTIME_SECRET`, the cluster key OneUptime's own services present to each other. Leave it empty for a generated one, or set a long random string. A value the repository ships (`secret`, a `please-change-this` placeholder) is refused. The bundled global Runner never holds it. | `nil`           |    |

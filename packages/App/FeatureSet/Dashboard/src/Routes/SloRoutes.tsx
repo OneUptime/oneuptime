@@ -21,6 +21,7 @@ import SloMonitorRules from "../Pages/Slo/View/MonitorRules";
 import SloBurnRateRules from "../Pages/Slo/View/BurnRateRules";
 import SloErrorBudgetPolicy from "../Pages/Slo/View/ErrorBudgetPolicy";
 import SloMetrics from "../Pages/Slo/View/Metrics";
+import SloMonthlyReport from "../Pages/Slo/View/MonthlyReport";
 import SloCharts from "../Pages/Slo/View/Charts";
 import SloAlerts from "../Pages/Slo/View/Alerts";
 import SloIncidents from "../Pages/Slo/View/Incidents";
@@ -265,6 +266,16 @@ const SloRoutes: FunctionComponent<ComponentProps> = (
             <SloMetrics
               {...props}
               pageRoute={RouteMap[PageMap.SLO_VIEW_METRICS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SLO_VIEW_MONTHLY_REPORT)}
+          element={
+            <SloMonthlyReport
+              {...props}
+              pageRoute={RouteMap[PageMap.SLO_VIEW_MONTHLY_REPORT] as Route}
             />
           }
         />

@@ -31,6 +31,28 @@ Tests/Ops/HelmEnvValuesQuoted.test.js holds every env value of the chart to it.
 {{- end -}}
 
 {{/*
+Refuses a host that is an IPv6 address without brackets, and renders nothing:
+  {{- include "oneuptime.validateHost" $ }}
+An IPv6 host goes in brackets, with any port after them: [2001:db8::1],
+[2001:db8::1]:8080. A web address writes it so, a browser names it so in the
+Host of every request, and the app builds every link from host. Without them
+it never worked (#8022): nginx answers 400 to a Host of 2001:db8::1 and never
+takes a request for a server of that name, and every link read
+http://2001:db8::1/..., which no browser opens. Nor are the brackets put in
+here: 2001:db8::1:8080 is an address of its own, and also 2001:db8::1 on port
+8080. Two colons and no opening bracket is the shape: a domain name or an
+IPv4 address has one colon at most, before its port. Scripts/Install/Preflight.js
+stops `npm start` on the same host. tests/host_test.yaml holds it template by
+template, and Tests/Ops/HelmHost.test.js renders the whole chart with helm.
+*/}}
+{{- define "oneuptime.validateHost" -}}
+{{- $host := trim (toString (default "" .Values.host)) -}}
+{{- if and (not (hasPrefix "[" $host)) (gt (len (splitList ":" $host)) 2) -}}
+{{- fail (printf "host is %s, an IPv6 address without brackets, so no browser can open OneUptime at it. Write it in brackets, with any port after them, such as [2001:db8::1]:8080: --set host=[%s], or in a values file, in quotes so YAML reads it as text, host: \"[%s]\"." $host $host $host) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 The name the bundled Altinity operator chart gives its resources (its own
 "altinity-clickhouse-operator.fullname"), worked out from its values: the
 operator reads its credentials Secret by that name (its config.yaml's
@@ -508,6 +530,7 @@ the button when it is set; the secret is in oneuptime.env.runtime.
   value: {{ $.Values.gitHubApp.name | quote }}
 - name: GITHUB_APP_CLIENT_ID
   value: {{ $.Values.gitHubApp.clientId | quote }}
+{{- include "oneuptime.validateHost" $ }}
 - name: HOST
   value: {{ include "oneuptime.envValue" $.Values.host }}
 - name: PROVISION_SSL

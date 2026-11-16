@@ -321,13 +321,15 @@ describe.each(RESOURCE_CASES)(
 );
 
 /*
- * SLO performance and activity precede configuration and the rules. Charts
+ * SLO performance and activity precede configuration and the rules: the
+ * Monthly Report beside Metrics, as both are read rather than set up. Charts
  * remains absent: its history lives in Metrics, and its route only survives
  * for bookmarks.
  */
 const SLO_SECTION_LINKS: Array<ExpectedLink> = [
   { title: "Overview", page: PageMap.SLO_VIEW },
   { title: "Metrics", page: PageMap.SLO_VIEW_METRICS },
+  { title: "Monthly Report", page: PageMap.SLO_VIEW_MONTHLY_REPORT },
   { title: "Incidents", page: PageMap.SLO_VIEW_INCIDENTS },
   { title: "Alerts", page: PageMap.SLO_VIEW_ALERTS },
   { title: "Feed", page: PageMap.SLO_VIEW_FEED },

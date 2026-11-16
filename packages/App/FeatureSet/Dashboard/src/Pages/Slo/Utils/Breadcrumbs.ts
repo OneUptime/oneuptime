@@ -98,6 +98,12 @@ export function getSloBreadcrumbs(path: string): Array<Link> | undefined {
       "View SLO",
       "Metrics",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SLO_VIEW_MONTHLY_REPORT, [
+      "Project",
+      "SLOs",
+      "View SLO",
+      "Monthly Report",
+    ]),
     // Off the side menu, but still reachable from bookmarks.
     ...BuildBreadcrumbLinksByTitles(PageMap.SLO_VIEW_CHARTS, [
       "Project",
