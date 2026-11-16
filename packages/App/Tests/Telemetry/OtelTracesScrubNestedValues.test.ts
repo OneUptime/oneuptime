@@ -1031,6 +1031,8 @@ describe("a span's status message, its events' names and its exception's type, o
       );
 
       const unscrubbed: JSONObject = exceptionRows[0]!;
+      const unscrubbedPayload: TelemetryExceptionPayload =
+        exceptionPayloads[0]!;
 
       expect(unscrubbed["exceptionType"]).toBe(`CardDeclined[${EMAIL}]`);
 
@@ -1046,11 +1048,13 @@ describe("a span's status message, its events' names and its exception's type, o
       expect(exceptionRows[0]!["exceptionType"]).toBe(
         `CardDeclined[${EMAIL_MASKED}]`,
       );
+      // The occurrence's group, and the group's upsert, as without a rule.
+      expect(typeof unscrubbed["fingerprint"]).toBe("string");
       expect(exceptionRows[0]!["fingerprint"]).toBe(unscrubbed["fingerprint"]);
-      expect(exceptionRows[0]!["fingerprintV2"]).toBe(
-        unscrubbed["fingerprintV2"],
-      );
       expect(exceptionPayloads[0]!.fingerprint).toBe(unscrubbed["fingerprint"]);
+      expect(exceptionPayloads[0]!.fingerprintV2).toBe(
+        unscrubbedPayload.fingerprintV2,
+      );
     },
   );
 

@@ -2304,10 +2304,7 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     const read: (row: JSONObject) => Array<unknown> = (
       row: JSONObject,
     ): Array<unknown> => {
-      return [
-        row["statusMessage"],
-        (row["events"] as JSONArray)[0]!["name"],
-      ];
+      return [row["statusMessage"], (row["events"] as JSONArray)[0]!["name"]];
     };
 
     expect({
@@ -2317,7 +2314,10 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       events: read(after(TraceScrubField.Events)),
     }).toEqual({
       all: ["card declined for [REDACTED]", "retry for [REDACTED]"],
-      name: ["card declined for jane@example.com", "retry for jane@example.com"],
+      name: [
+        "card declined for jane@example.com",
+        "retry for jane@example.com",
+      ],
       attributes: [
         "card declined for jane@example.com",
         "retry for jane@example.com",

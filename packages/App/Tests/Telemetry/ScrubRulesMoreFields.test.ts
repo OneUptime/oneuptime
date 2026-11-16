@@ -641,3 +641,29 @@ describe("an exception's type is scrubbed with the rest of its content", () => {
     expect(scrubbed.exceptionType).toBe("TokenExpiredError");
   });
 });
+
+describe("each Sensitive Attribute Keys rule reads a structured body within the same bounds", () => {
+  test("a body that fits once is read key by key by every rule, not as text by the second", () => {
+    // 1 entry, 3,000 contacts and 2 entries each: 9,001 values, which fit once.
+    const contacts: Array<JSONObject> = [];
+
+    for (let index: number = 0; index < 3_000; index++) {
+      contacts.push({ email: `user${index}@example.com`, password: "pw" });
+    }
+
+    const body: JSONObject = JSON.parse(
+      scrubbedBody(JSON.stringify({ contacts: contacts }), [
+        { patternType: "sensitiveKeys", action: "redact" },
+        { patternType: "sensitiveKeys", action: "hash" },
+      ]),
+    ) as JSONObject;
+    const stored: Array<JSONObject> = body["contacts"] as Array<JSONObject>;
+
+    expect(Array.isArray(stored)).toBe(true);
+    expect(stored).toHaveLength(3_000);
+    expect(stored[2_999]).toEqual({
+      email: "user2999@example.com",
+      password: `[HASHED:${sha8("[REDACTED]")}]`,
+    });
+  });
+});
