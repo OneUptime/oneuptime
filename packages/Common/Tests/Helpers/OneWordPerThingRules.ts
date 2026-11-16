@@ -497,7 +497,8 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     thing: "Ingestion Keys",
     english: INGESTION_KEY,
     word: /indtagelsesnøgl/i,
-    dropped: /ingestion-?nøgl|ingestionsnøgl|indlæsningsnøgl|nøgle til telemetri-indtagelse/i,
+    dropped:
+      /ingestion-?nøgl|ingestionsnøgl|indlæsningsnøgl|nøgle til telemetri-indtagelse/i,
   },
   {
     language: "de",
@@ -539,7 +540,8 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     thing: "Ingestion Keys",
     english: INGESTION_KEY,
     word: /inntaksnøk/i,
-    dropped: /ingestion-?nøk|innhentingsnøk|innsamlingsnøk|nøkkel for telemetri-inntak/i,
+    dropped:
+      /ingestion-?nøk|innhentingsnøk|innsamlingsnøk|nøkkel for telemetri-inntak/i,
   },
   {
     language: "ru",
@@ -553,7 +555,8 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     thing: "Ingestion Keys",
     english: INGESTION_KEY,
     word: /intagningsnyck/i,
-    dropped: /ingestion-?nyck|inmatningsnyck|intagsnyck|nyckel för telemetriinmatning|telemetrinyckel för inmatning/i,
+    dropped:
+      /ingestion-?nyck|inmatningsnyck|intagsnyck|nyckel för telemetriinmatning|telemetrinyckel för inmatning/i,
   },
   {
     language: "zh-CN",

@@ -456,9 +456,10 @@ describe.each(PROBE_LANGUAGES)("a probe in %s", (language: string) => {
   test("no setup guide's words say another word", async () => {
     // Every guide is read (control): Databases' is the one #8815 found.
     expect(setupGuideFiles(language).length).toBeGreaterThan(5);
-    expect({ language, sightings: await setupGuideSightings(language) }).toEqual(
-      { language, sightings: [] },
-    );
+    expect({
+      language,
+      sightings: await setupGuideSightings(language),
+    }).toEqual({ language, sightings: [] });
   });
 
   /*

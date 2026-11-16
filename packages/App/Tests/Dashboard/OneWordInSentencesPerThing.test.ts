@@ -678,7 +678,9 @@ describe("an ingestion key in each language", () => {
   test("every Dashboard language has its word", () => {
     expect(Object.keys(INGESTION_KEY_WORDS).sort()).toEqual(
       fs
-        .readdirSync(path.resolve(__dirname, "../../FeatureSet/Dashboard/src/Locales"))
+        .readdirSync(
+          path.resolve(__dirname, "../../FeatureSet/Dashboard/src/Locales"),
+        )
         .filter((file: string): boolean => {
           return file.endsWith(".json") && file !== "en.json";
         })
