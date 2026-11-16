@@ -67,6 +67,27 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
+/*
+ * The reader is a master admin of a self-hosted installation, so the
+ * Dashboard footer asks the server's update check for its "Update
+ * available" pill (GET /global-config/update-status, UpdateStatus.ts). Not
+ * under test here, and no request may leave a test
+ * (Tests/Helpers/RealNetworkRequests): answered as an installation with
+ * nothing to update.
+ */
+jest.mock("../../../UI/Utils/UpdateStatus", () => {
+  return {
+    __esModule: true,
+    ...(jest.requireActual("../../../UI/Utils/UpdateStatus") as Record<
+      string,
+      unknown
+    >),
+    useUpdateStatus: (): null => {
+      return null;
+    },
+  };
+});
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/LanguageSwitcher/LanguageSwitcher",
   () => {

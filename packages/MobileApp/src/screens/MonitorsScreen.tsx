@@ -43,6 +43,7 @@ import { matchesSearch } from "../utils/search";
 import { getMonitorHealth, type MonitorHealth } from "../utils/monitorHealth";
 import { useAllProjectMonitors } from "../hooks/useAllProjectMonitors";
 import { useHaptics } from "../hooks/useHaptics";
+import { useNow } from "../hooks/useNow";
 import MonitorCard from "../components/MonitorCard";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
@@ -59,7 +60,7 @@ type NavProp = NativeStackNavigationProp<
 
 interface MonitorSection {
   title: string;
-  kind: "issues" | "operational" | "disabled" | "unknown";
+  kind: "issues" | "operational" | "disabled" | "unknown" | "notChecked";
   count: number;
   data: ProjectMonitorItem[];
 }
@@ -69,6 +70,7 @@ interface MonitorCounts {
   operational: number;
   inoperational: number;
   disabled: number;
+  notChecked: number;
 }
 
 interface HealthTileProps {
@@ -191,6 +193,7 @@ function MonitorSummary({
 const sectionTones: Record<MonitorSection["kind"], StatusTone> = {
   issues: "danger",
   unknown: "warning",
+  notChecked: "info",
   disabled: "neutral",
   operational: "success",
 };
@@ -201,6 +204,7 @@ const sectionIcons: Record<
 > = {
   issues: "alert-circle",
   unknown: "help-circle",
+  notChecked: "hourglass",
   disabled: "pause-circle",
   operational: "checkmark-circle",
 };
@@ -221,9 +225,11 @@ function MonitorSectionHeader({
   );
   /*
    * Sections that need someone keep full-strength titles; the ones that are
-   * fine or switched off step back, so the eye lands on trouble first.
+   * fine or switched off step back, so the eye lands on trouble first. A
+   * monitor nothing checks is neither fine nor switched off.
    */
-  const needsAttention: boolean = kind === "issues" || kind === "unknown";
+  const needsAttention: boolean =
+    kind === "issues" || kind === "unknown" || kind === "notChecked";
   return (
     <View
       testID={`monitor-section-${kind}`}
@@ -364,15 +370,19 @@ export default function MonitorsScreen(): React.JSX.Element {
     refetch,
   } = useAllProjectMonitors();
   const { lightImpact } = useHaptics();
+  // When a first result turns overdue, its row says so without a reload.
+  const now: number = useNow();
 
   const { monitorSections, counts } = useMemo(() => {
     const issues: ProjectMonitorItem[] = [];
     const operational: ProjectMonitorItem[] = [];
     const disabled: ProjectMonitorItem[] = [];
     const unknown: ProjectMonitorItem[] = [];
+    const notChecked: ProjectMonitorItem[] = [];
     let disabledCount: number = 0;
     let inoperationalCount: number = 0;
     let operationalCount: number = 0;
+    let notCheckedCount: number = 0;
 
     for (const wrapped of allMonitors) {
       /*
@@ -380,12 +390,16 @@ export default function MonitorsScreen(): React.JSX.Element {
        * establishes health, and a monitor whose monitoring is off is
        * Disabled, never an issue: the status it holds is what its last check
        * saw (utils/monitorHealth, the web's rule). Home's Monitor issues
-       * count asks the server for the same monitors.
+       * count asks the server for the same monitors. An operational status
+       * no check stands behind - nothing has checked the monitor yet, or no
+       * probe checks it - is Not checked, never Healthy, as the web's
+       * Operational filter leaves it out (issue #8961).
        */
       const health: MonitorHealth = getMonitorHealth(wrapped.item);
       const isDisabled: boolean = health === "disabled";
       const hasIssue: boolean = health === "issue";
       const isHealthy: boolean = health === "healthy";
+      const isNotChecked: boolean = health === "notChecked";
       if (isDisabled) {
         disabledCount++;
       }
@@ -394,6 +408,9 @@ export default function MonitorsScreen(): React.JSX.Element {
       }
       if (isHealthy) {
         operationalCount++;
+      }
+      if (isNotChecked) {
+        notCheckedCount++;
       }
 
       if (
@@ -420,6 +437,8 @@ export default function MonitorsScreen(): React.JSX.Element {
         issues.push(wrapped);
       } else if (isHealthy) {
         operational.push(wrapped);
+      } else if (isNotChecked) {
+        notChecked.push(wrapped);
       } else {
         unknown.push(wrapped);
       }
@@ -440,6 +459,14 @@ export default function MonitorsScreen(): React.JSX.Element {
         kind: "unknown",
         count: unknown.length,
         data: unknown.slice(0, visibleCount),
+      });
+    }
+    if (notChecked.length > 0) {
+      sections.push({
+        title: "Not checked",
+        kind: "notChecked",
+        count: notChecked.length,
+        data: notChecked.slice(0, visibleCount),
       });
     }
     if (disabled.length > 0) {
@@ -465,6 +492,7 @@ export default function MonitorsScreen(): React.JSX.Element {
         operational: operationalCount,
         inoperational: inoperationalCount,
         disabled: disabledCount,
+        notChecked: notCheckedCount,
       },
     };
   }, [allMonitors, visibleCount, search, filter]);
@@ -582,6 +610,15 @@ export default function MonitorsScreen(): React.JSX.Element {
           Monitors with monitoring turned off are listed under Disabled.
         </HelperNote>
       ) : null}
+      {/*
+       * Where a monitor nothing has checked yet went, said only when there
+       * is one: its status reads Operational, and no check stands behind it.
+       */}
+      {filter === "operational" && counts.notChecked > 0 ? (
+        <HelperNote testID="monitor-healthy-note">
+          Monitors that are not checked are listed under All.
+        </HelperNote>
+      ) : null}
     </View>
   );
 
@@ -690,6 +727,7 @@ export default function MonitorsScreen(): React.JSX.Element {
           return (
             <MonitorCard
               monitor={wrapped.item}
+              now={new Date(now)}
               muted={isOperational}
               selected={listPane.isOpen("MonitorDetail", {
                 monitorId: wrapped.item._id,

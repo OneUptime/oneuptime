@@ -144,7 +144,7 @@ Kies onder **Toegang** **Kijker** voor een agent die alleen leest, of **Projectb
 
 ### Kopieer de sleutel
 
-Klik op **API-sleutel aanmaken**: de pagina van de sleutel opent. Kopieer de sleutel daar.
+Klik op **API-sleutel aanmaken**. OneUptime toont de sleutel één keer, in het dialoogvenster **Kopieer uw API-sleutel**: kopieer hem voordat je op **Klaar** drukt.
 :::
 
 API-sleutels horen bij één project: de MCP-server haalt het project uit de sleutel, zodat aanmaaktools nooit een argument `projectId` nodig hebben.

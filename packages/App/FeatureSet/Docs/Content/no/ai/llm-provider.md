@@ -113,7 +113,7 @@ Under **Tilkobling** spør skjemaet bare om det leverandøren bruker, med egen h
 
 ### Test den
 
-**Teste en leverandør.** **Test**, på leverandørens side eller i menyen på raden, sender leverandøren en kort prompt med dens **API-nøkkel**, **Modellnavn**, **Basis-URL** og **Ekstra parametere**, og sier om den svarte og kalte et verktøy, noe OneUptimes AI-funksjoner trenger. En mislykket test sier først hva du bør sjekke, deretter hva leverandøren svarte. Den som kan endre en leverandør, kan teste den: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Innstillingsadministrator**, **Innstillingsmedlem** og **Edit LLM**. Alle andre som kan se leverandøren, finner **Test** låst. En global LLM-leverandør testes av en serveradministrator, i Admin Dashboard under **Innstillinger → Globale LLM-leverandører**.
+**Teste en leverandør.** **Test**, på leverandørens side eller i menyen på raden, sender leverandøren en kort prompt med dens **API-nøkkel**, **Modellnavn**, **Basis-URL** og **Ekstra parametere**, og sier om den svarte og kalte et verktøy, noe OneUptimes AI-funksjoner trenger. En mislykket test sier først hva du bør sjekke, deretter hva leverandøren svarte. Den som kan endre en leverandør, kan teste den: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Innstillingsadministrator**, **Innstillingsmedlem** og **Edit LLM**. Alle andre som kan se leverandøren, finner **Test** låst. En global LLM-leverandør testes av en serveradministrator, i Admin Dashboard under **Innstillinger → Globale LLM-leverandører**. OneUptime leser høyst 16 MB av svaret fra en leverandør, i en test og i hver AI-funksjon. Et større svar leses ikke: forespørselen mislykkes, og testen sier det.
 :::
 
 ## Leverandørspesifikk konfigurasjon

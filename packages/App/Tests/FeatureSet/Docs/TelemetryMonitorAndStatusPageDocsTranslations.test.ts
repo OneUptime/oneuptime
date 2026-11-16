@@ -458,6 +458,12 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Checkout API",
     "Archived monitors are not shown.",
     "A monitor whose monitoring is off shows Not monitored.",
+    "A monitor nothing has checked yet shows Not monitored yet.",
+    /*
+     * A status page's word, not the Dashboard's: each language names it as
+     * its status page draws it (TelemetryMonitorAndStatusPageDocsFacts).
+     */
+    "Not monitored yet",
     "Resources decide which incidents the page shows.",
     "A monitor group row stands for every monitor in it, for subscribers too.",
     // The parts of the Resources screen, named for what they are.

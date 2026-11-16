@@ -61,7 +61,14 @@ import AgentClient, { HeartbeatResult } from "../../Services/RunnerClient";
 import Register from "../../Services/RegisterRunner";
 import KubernetesAgentMode from "../../Utils/KubernetesAgentMode";
 import KubernetesPosture from "../../Utils/KubernetesPosture";
+import GlobalRunnerMode from "../../Utils/GlobalRunnerMode";
+import JavaScriptSandbox from "../../Utils/JavaScriptSandbox/SandboxProcess";
 import RunnerCapabilities from "../../Utils/RunnerCapabilities";
+import {
+  GLOBAL_RUNNER_SANDBOX_HOST_INFO_KEY,
+  GlobalRunnerStepNetwork,
+  GlobalRunnerStepUser,
+} from "Common/Types/Runner/GlobalRunnerSandbox";
 import { JSONObject } from "Common/Types/JSON";
 import {
   KubernetesRunnerPosture,
@@ -142,6 +149,45 @@ describe("what rides on the heartbeat", () => {
       kubectlVersion: "v1.31.4",
     });
     expect(info["hostname"]).toBeDefined();
+  });
+
+  /*
+   * A global Runner says how it keeps each project's JavaScript steps apart
+   * (#8911): who a step's process runs as, and whether it has a network. A
+   * Runner that is not global says nothing of a sandbox.
+   */
+  test("a global Runner reports its sandbox isolation; another Runner reports none", async () => {
+    jest.spyOn(GlobalRunnerMode, "isActive").mockReturnValue(true);
+    const prepare: jest.SpyInstance = jest
+      .spyOn(JavaScriptSandbox, "prepare")
+      .mockResolvedValue(undefined);
+    jest.spyOn(JavaScriptSandbox, "getHostInfo").mockReturnValue({
+      [GLOBAL_RUNNER_SANDBOX_HOST_INFO_KEY]: {
+        user: GlobalRunnerStepUser.OwnUser,
+        network: GlobalRunnerStepNetwork.None,
+      },
+    });
+
+    const info: JSONObject = await getHostInfo();
+
+    expect(prepare).toHaveBeenCalledTimes(1);
+    expect(info[GLOBAL_RUNNER_SANDBOX_HOST_INFO_KEY]).toEqual({
+      user: GlobalRunnerStepUser.OwnUser,
+      network: GlobalRunnerStepNetwork.None,
+    });
+
+    jest.restoreAllMocks();
+    jest.spyOn(KubernetesAgentMode, "isActive").mockReturnValue(true);
+    jest.spyOn(KubernetesPosture, "build").mockResolvedValue({
+      clusterIdentifier: "prod-us",
+      inCluster: true,
+      allowWrites: true,
+      kubectlVersion: "v1.31.4",
+    });
+
+    const notGlobal: JSONObject = await getHostInfo();
+
+    expect(notGlobal[GLOBAL_RUNNER_SANDBOX_HOST_INFO_KEY]).toBeUndefined();
   });
 
   /*

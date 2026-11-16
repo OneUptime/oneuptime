@@ -45,6 +45,7 @@
     "uptimePercent": "{{percent}} وقت التشغيل",
     "operational": "يعمل بشكل طبيعي",
     "notMonitored": "غير مراقَب",
+    "notMonitoredYet": "لم يُراقَب بعد",
     "noResourcesInGroup": "لم تُضف أي موارد إلى هذه المجموعة.",
     "activeIncidents": "الحوادث النشطة",
     "scheduledMaintenanceEvents": "الصيانة المجدولة",
@@ -55,6 +56,7 @@
     "someResourcesAre": "حالة بعض الموارد: {{status}}",
     "someResourcesAreUnder": "بعض الموارد في حالة: {{status}}",
     "noResourcesAreMonitored": "لا يخضع أي مورد للمراقبة الآن",
+    "noResourcesAreMonitoredYet": "لم يخضع أي مورد للمراقبة بعد",
     "oneSubGroup": "مجموعة واحدة",
     "subGroupCount": "المجموعات: {{total}}"
   },

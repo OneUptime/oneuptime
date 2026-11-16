@@ -69,6 +69,7 @@ import { LiveRowsHeard } from "../../../../UI/Components/ModelTable/LiveRows";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
+import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../../../Types/ObjectID";
 
@@ -226,8 +227,26 @@ describe("what a list listens for", () => {
     ).toEqual(["Update"]);
   });
 
-  test("a Monitors list hears nothing: monitors do not announce their changes", () => {
+  /*
+   * A monitor's status moves with its checks, and its probes come and go:
+   * Not Operational and the other Monitors lists follow them (#6918).
+   */
+  test("a Monitors list hears its project's created, changed and deleted monitors", () => {
     mount({ modelType: Monitor as unknown as { new (): BaseModel } });
+
+    expect(
+      active().map((subscription: Subscription): string => {
+        return `${subscription.modelName} ${subscription.eventType} ${subscription.tenantId}`;
+      }),
+    ).toEqual([
+      `Monitor Create ${PROJECT_ID}`,
+      `Monitor Update ${PROJECT_ID}`,
+      `Monitor Delete ${PROJECT_ID}`,
+    ]);
+  });
+
+  test("a list of a kind that announces nothing hears nothing", () => {
+    mount({ modelType: StatusPage as unknown as { new (): BaseModel } });
     expect(active()).toEqual([]);
   });
 
@@ -268,6 +287,131 @@ describe("what a list listens for", () => {
     harness.rerender();
     expect(subscriptions).toHaveLength(3);
     expect(active()).toHaveLength(3);
+  });
+});
+
+/*
+ * Active Incidents lists the incidents of every project the person belongs
+ * to; a change is announced in its own project. So a list across projects
+ * hears each of them, not only the open one (#6917).
+ */
+describe("a list across projects", () => {
+  const THIRD_PROJECT_ID: string = "99999999-8888-4777-8666-555555555555";
+
+  const acrossProjects: () => Harness = (): Harness => {
+    return mount({
+      tenantIds: [new ObjectID(PROJECT_ID), new ObjectID(OTHER_PROJECT_ID)],
+    });
+  };
+
+  test("hears each project it reads, every kind of change in each", () => {
+    acrossProjects();
+
+    expect(
+      active()
+        .map((subscription: Subscription): string => {
+          return `${subscription.eventType} ${subscription.tenantId}`;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        `Create ${PROJECT_ID}`,
+        `Update ${PROJECT_ID}`,
+        `Delete ${PROJECT_ID}`,
+        `Create ${OTHER_PROJECT_ID}`,
+        `Update ${OTHER_PROJECT_ID}`,
+        `Delete ${OTHER_PROJECT_ID}`,
+      ].sort(),
+    );
+  });
+
+  test("a change in a project that is not the open one reads the page again", () => {
+    const harness: Harness = acrossProjects();
+
+    act((): void => {
+      for (const subscription of active()) {
+        if (
+          subscription.tenantId === OTHER_PROJECT_ID &&
+          subscription.eventType === "Create"
+        ) {
+          subscription.onEvent(CHANGED_ID);
+        }
+      }
+    });
+
+    expect(harness.refresh).toHaveBeenCalledTimes(1);
+    // A record created there is a new row, wherever it was announced.
+    expect(harness.refresh.mock.calls[0]![0].createdIds).toEqual([CHANGED_ID]);
+  });
+
+  test("a burst across every project reads once at once and once after the interval", async () => {
+    const harness: Harness = acrossProjects();
+
+    for (let change: number = 0; change < 60; change += 1) {
+      announce("Update");
+    }
+
+    expect(harness.refresh).toHaveBeenCalledTimes(1);
+
+    await advance(INTERVAL);
+    expect(harness.refresh).toHaveBeenCalledTimes(2);
+
+    await advance(INTERVAL * 3);
+    expect(harness.refresh).toHaveBeenCalledTimes(2);
+  });
+
+  test("the same projects in another order keep the one subscription; a project joined starts it over", () => {
+    const harness: Harness = acrossProjects();
+    expect(subscriptions).toHaveLength(6);
+
+    harness.rerender({
+      tenantIds: [new ObjectID(OTHER_PROJECT_ID), new ObjectID(PROJECT_ID)],
+    });
+    expect(subscriptions).toHaveLength(6);
+
+    harness.rerender({
+      tenantIds: [
+        new ObjectID(PROJECT_ID),
+        new ObjectID(OTHER_PROJECT_ID),
+        new ObjectID(THIRD_PROJECT_ID),
+      ],
+    });
+
+    expect(
+      Array.from(
+        new Set(
+          active().map((subscription: Subscription): string => {
+            return subscription.tenantId;
+          }),
+        ),
+      ).sort(),
+    ).toEqual([PROJECT_ID, OTHER_PROJECT_ID, THIRD_PROJECT_ID].sort());
+    expect(active()).toHaveLength(9);
+  });
+
+  test("no projects given yet: the open project is heard", () => {
+    mount({ tenantIds: [] });
+
+    expect(
+      active().map((subscription: Subscription): string => {
+        return subscription.tenantId;
+      }),
+    ).toEqual([PROJECT_ID, PROJECT_ID, PROJECT_ID]);
+  });
+
+  test("no open project, but the projects it reads: those are heard", () => {
+    mount({ tenantId: null, tenantIds: [new ObjectID(OTHER_PROJECT_ID)] });
+
+    expect(active()).toHaveLength(3);
+  });
+
+  test("a list that goes stops hearing every project", () => {
+    const harness: Harness = acrossProjects();
+    expect(active()).toHaveLength(6);
+
+    harness.unmount();
+
+    expect(active()).toHaveLength(0);
   });
 });
 

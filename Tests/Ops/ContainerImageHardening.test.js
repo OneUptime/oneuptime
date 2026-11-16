@@ -553,15 +553,18 @@ describe("Runner", () => {
 
     /*
      * A global Runner runs each JavaScript step in a process of its own, as a
-     * user of its own (packages/Runner/Utils/JavaScriptSandbox): the build
-     * stage compiles the launcher, which switches the step's process to that
-     * user, and bundles the worker it runs; the image owns the launcher as
-     * root, setuid, runnable by the node group alone, and runs both once.
+     * user of its own and off the network (packages/Runner/Utils/
+     * JavaScriptSandbox): the build stage compiles the launcher, which
+     * switches the step's process to that user, the no-network filter, which
+     * sets a seccomp filter that keeps it off every socket, and bundles the
+     * worker it runs; the image owns the launcher as root, setuid, runnable
+     * by the node group alone, the no-network filter as root, runnable by
+     * all, never setuid, and runs all three once.
      * RunnerJavaScriptSandboxImage.test.ts in the Runner holds the flags and
      * the source; RunnerImageRuntime.test.js has the built image run a step
-     * as its own user.
+     * as its own user and off the network.
      */
-    test("the build stage compiles the JavaScript sandbox's launcher and bundles its worker; the image owns, sets and runs them as root", () => {
+    test("the build stage compiles the JavaScript sandbox's launcher, its no-network filter and bundles its worker; the image owns, sets and runs them as root", () => {
       const compile = build.instructions.find((line) => {
         return line.includes(
           "-o /usr/lib/oneuptime-runner/javascript-sandbox /usr/src/app/Utils/JavaScriptSandbox/Native/javascript-sandbox.c",
@@ -569,6 +572,9 @@ describe("Runner", () => {
       });
       expect(compile).toBeDefined();
       expect(compile).toContain("gcc -O2 -Wall -Wextra -Werror");
+      expect(compile).toContain(
+        "-o /usr/lib/oneuptime-runner/javascript-sandbox-no-network /usr/src/app/Utils/JavaScriptSandbox/Native/javascript-sandbox-no-network.c",
+      );
       expect(compile).toContain(
         "--outfile=/usr/lib/oneuptime-runner/javascript-sandbox-worker.js",
       );
@@ -586,11 +592,22 @@ describe("Runner", () => {
       expect(setUp).toContain(
         "chown root:node /usr/lib/oneuptime-runner/javascript-sandbox",
       );
+      // The no-network filter: root's, runnable by all, never setuid.
+      expect(setUp).toContain(
+        "chmod 0755 /usr/lib/oneuptime-runner/javascript-sandbox-no-network",
+      );
       expect(setUp).toContain(
         "{ /usr/lib/oneuptime-runner/javascript-sandbox 2>/dev/null; test $? -eq 64; }",
       );
       expect(setUp).toContain(
-        "node --no-node-snapshot /usr/lib/oneuptime-runner/javascript-sandbox-worker.js; test $? -eq 2; }",
+        "{ /usr/lib/oneuptime-runner/javascript-sandbox-no-network check; test $? -eq 0; }",
+      );
+      expect(setUp).toContain(
+        "node --no-node-snapshot /usr/lib/oneuptime-runner/javascript-sandbox-worker.js 3>/dev/null 4>/dev/null; test $? -eq 2; }",
+      );
+      // Never setuid: the no-network filter needs no privilege.
+      expect(setUp).not.toMatch(
+        /chmod [0-7]*[4567][0-7][0-7][0-7] \/usr\/lib\/oneuptime-runner\/javascript-sandbox-no-network/,
       );
       // Set as root, before the image becomes the node user's.
       expect(final.instructions.indexOf(setUp)).toBeLessThan(

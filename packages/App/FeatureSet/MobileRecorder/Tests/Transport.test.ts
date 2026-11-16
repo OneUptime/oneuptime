@@ -384,6 +384,60 @@ describe("mobile replay transport", () => {
     jest.useRealTimers();
   });
 
+  /*
+   * Issue #8928: Number() read "1.5" as a second and a half and "  " as 0 -
+   * the rest drained at once, and a server that kept answering so was asked
+   * in a loop - and read a date as nothing. Retry-After is read as RFC 9110
+   * writes it now (src/RetryAfter.ts, Common's copied).
+   */
+  test.each([
+    ["1.5", 15_000],
+    ["  ", 15_000],
+    ["5 seconds", 15_000],
+    ["-5", 15_000],
+    ["0", 1_000],
+    ["Mon, 16 Nov 2026 10:00:20 GMT", 20_000],
+    ["Monday, 16-Nov-26 10:00:20 GMT", 20_000],
+    ["Mon Nov 16 10:00:20 2026", 20_000],
+    ["Mon, 16 Nov 2026 11:00:00 GMT", 300_000],
+  ])(
+    "a throttle's Retry-After of %j waits %d ms before the next frame",
+    async (retryAfter: string, waitMs: number) => {
+      jest.useFakeTimers({ now: Date.UTC(2026, 10, 16, 10, 0, 0) });
+      const outbox: ReplayOutbox = new ReplayOutbox(new MemoryStorage(), "app");
+      await seed(outbox, 0);
+      await seed(outbox, 1);
+      const fetch: jest.MockedFunction<ReplayFetch> = jest.fn(
+        async (_url: string) => {
+          return response(
+            204,
+            {},
+            {
+              "x-oneuptime-replay-directive": "throttle",
+              "retry-after": retryAfter,
+            },
+          );
+        },
+      );
+      const transport: ReplayTransport = new ReplayTransport({
+        startOptions: validateStartOptions(startOptions({ fetch }))!,
+        outbox,
+        onDirective: jest.fn(),
+        onDiagnostic: jest.fn(),
+      });
+      await transport.restore();
+      expect(fetch).toHaveBeenCalledTimes(1);
+
+      await jest.advanceTimersByTimeAsync(waitMs - 1);
+      expect(fetch).toHaveBeenCalledTimes(1);
+
+      await jest.advanceTimersByTimeAsync(1);
+      expect(fetch).toHaveBeenCalledTimes(2);
+      transport.destroy();
+      jest.useRealTimers();
+    },
+  );
+
   test.each([401, 403, 404])(
     "terminal HTTP %s clears sensitive persisted backlog",
     async (status: number) => {

@@ -365,7 +365,7 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
     "This repository's Git server is on a network OneUptime does not reach, so a global Runner cannot work in it. Pick one of your own Runners on that network.",
   ),
   [CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner]: translationKey(
-    "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.",
+    "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.",
   ),
   [CodeTaskBlockerType.NoLlmProvider]: translationKey(
     "AI needs an LLM provider for this project.",

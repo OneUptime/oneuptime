@@ -253,6 +253,11 @@ function countedRegex(regex: ScrubRegExp): ScrubRegExp {
       advance(readCost(text));
       return regex.replace(text, replacer);
     },
+    // What the scrub rules read a text with since #8923: the same reading.
+    matchRanges: (text: string): Array<[number, number]> => {
+      advance(readCost(text));
+      return regex.matchRanges(text);
+    },
   };
 }
 

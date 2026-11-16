@@ -1,7 +1,8 @@
 import ProjectElement from "../../Components/Project/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageComponentProps from "../PageComponentProps";
+import { CrossProjectPageProps } from "../../Types/CrossProjectPageProps";
+import { getLiveProjectObjectIds } from "../../Utils/LiveProjects";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -25,9 +26,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
-const ActiveIncidentEpisodes: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const ActiveIncidentEpisodes: FunctionComponent<CrossProjectPageProps> = (
+  props: CrossProjectPageProps,
+): ReactElement => {
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<IncidentEpisode>({ modelType: IncidentEpisode });
 
@@ -71,6 +72,11 @@ const ActiveIncidentEpisodes: FunctionComponent<
             isMultiTenantRequest: true,
           } as RequestOptions
         }
+        /*
+         * The incident episodes of every project are listed, so a change in any of
+         * them reads the page again - not only one in the open project.
+         */
+        liveProjectIds={getLiveProjectObjectIds(props.projects)}
         selectMoreFields={{
           projectId: true,
           episodeNumberWithPrefix: true,

@@ -926,6 +926,180 @@ describePostgres("packet capture SQL against Postgres", () => {
     });
   });
 
+  /*
+   * The retention sweep with the foreign key from a capture to its file in
+   * place (issue #8929). The cloned tables copy no foreign keys, so this
+   * adds the migrated one, as public has it. A batch deletes its captures
+   * and their files in one statement; the key's ON DELETE SET NULL is
+   * checked at the end of it, when the captures it would set are gone. And
+   * a file something else still holds refuses its delete - and the whole
+   * batch with it: a capture and its file go together or not at all.
+   */
+  describe("the retention sweep, with the capture's foreign key to its file", () => {
+    const FOREIGN_KEY: string = "FK_d3b5b7489eb61e6f1b529676213";
+    const HOLDER_TABLE: string = "FileHolder";
+
+    // A capture key's definition, as Postgres writes it back.
+    async function readKey(table: string): Promise<Array<string>> {
+      const rows: Array<{ definition: string }> = await database.query(
+        `SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint
+         WHERE conrelid = $1::regclass AND conname = $2`,
+        [table, FOREIGN_KEY],
+      );
+
+      return rows.map((row: { definition: string }): string => {
+        return row.definition;
+      });
+    }
+
+    beforeAll(async () => {
+      // The migrated key - what OneUptime runs with - read from public.
+      expect(await readKey('public."PacketCapture"')).toEqual([
+        'FOREIGN KEY ("fileId") REFERENCES public."File"(_id) ON DELETE SET NULL',
+      ]);
+
+      // The same key, between this schema's copies.
+      await database.query(
+        `ALTER TABLE "${schema}"."PacketCapture" ADD CONSTRAINT "${FOREIGN_KEY}"
+         FOREIGN KEY ("fileId") REFERENCES "${schema}"."File"("_id") ON DELETE SET NULL`,
+      );
+      expect(await readKey(`"${schema}"."PacketCapture"`)).toEqual([
+        'FOREIGN KEY ("fileId") REFERENCES "File"(_id) ON DELETE SET NULL',
+      ]);
+      await database.query(
+        `CREATE TABLE "${schema}"."${HOLDER_TABLE}" (
+           "_id" uuid PRIMARY KEY,
+           "fileId" uuid NOT NULL REFERENCES "${schema}"."File"("_id")
+         )`,
+      );
+    });
+
+    afterAll(async () => {
+      await database.query(`DROP TABLE "${schema}"."${HOLDER_TABLE}"`);
+      await database.query(
+        `ALTER TABLE "${schema}"."PacketCapture" DROP CONSTRAINT "${FOREIGN_KEY}"`,
+      );
+    });
+
+    beforeEach(async () => {
+      await database.query(`DELETE FROM "${schema}"."${HOLDER_TABLE}"`);
+    });
+
+    async function readFileIds(): Promise<Array<string>> {
+      const files: Array<{ _id: string }> = await database.query(
+        `SELECT "_id" FROM "${schema}"."File" ORDER BY "_id"`,
+      );
+
+      return files.map((file: { _id: string }): string => {
+        return file._id;
+      });
+    }
+
+    test("deletes the captures past retention with their files, keeps the rest, and sets no file to NULL", async () => {
+      const expiredFiles: Array<ObjectID> = [
+        await insertFile(),
+        await insertFile(),
+      ];
+      const keptFile: ObjectID = await insertFile();
+      const expired: Array<ObjectID> = [
+        await insertCapture({
+          status: PacketCaptureStatus.Completed,
+          createdMinutesAgo: 9 * 24 * 60,
+          fileId: expiredFiles[0]!,
+        }),
+        await insertCapture({
+          status: PacketCaptureStatus.Failed,
+          createdMinutesAgo: 8 * 24 * 60,
+          fileId: expiredFiles[1]!,
+          deleted: true,
+        }),
+        // Expired with no file: nothing of File to delete for it.
+        await insertCapture({ createdMinutesAgo: 8 * 24 * 60 }),
+      ];
+      const kept: ObjectID = await insertCapture({
+        status: PacketCaptureStatus.Completed,
+        createdMinutesAgo: 6 * 24 * 60,
+        fileId: keptFile,
+      });
+
+      expect(await PacketCaptureService.deleteExpiredCaptures()).toBe(3);
+
+      for (const id of expired) {
+        expect(await readCapture(id)).toBeUndefined();
+      }
+
+      expect((await readCapture(kept))!.fileId).toBe(keptFile.toString());
+      expect(await readFileIds()).toEqual([keptFile.toString()]);
+
+      // The key is in place, and holds: a capture cannot name a file that is gone.
+      await expect(insertCapture({ fileId: expiredFiles[0]! })).rejects.toThrow(
+        /violates foreign key constraint/,
+      );
+    });
+
+    test("a file something else holds refuses its delete, and the whole batch stays: captures and files together", async () => {
+      const heldFile: ObjectID = await insertFile();
+      const otherFile: ObjectID = await insertFile();
+      const heldCapture: ObjectID = await insertCapture({
+        status: PacketCaptureStatus.Completed,
+        createdMinutesAgo: 9 * 24 * 60,
+        fileId: heldFile,
+      });
+      const otherCapture: ObjectID = await insertCapture({
+        status: PacketCaptureStatus.Completed,
+        createdMinutesAgo: 8 * 24 * 60,
+        fileId: otherFile,
+      });
+
+      await database.query(
+        `INSERT INTO "${schema}"."${HOLDER_TABLE}" ("_id", "fileId") VALUES ($1, $2)`,
+        [ObjectID.generate().toString(), heldFile.toString()],
+      );
+
+      await expect(
+        PacketCaptureService.deleteExpiredCaptures(),
+      ).rejects.toThrow(/violates foreign key constraint/);
+
+      // Nothing of the batch committed: no capture lost its file, no file its capture.
+      expect((await readCapture(heldCapture))!.fileId).toBe(
+        heldFile.toString(),
+      );
+      expect((await readCapture(otherCapture))!.fileId).toBe(
+        otherFile.toString(),
+      );
+      expect(await readFileIds()).toEqual(
+        [heldFile.toString(), otherFile.toString()].sort(),
+      );
+
+      // Let go, the next sweep deletes both, with their files.
+      await database.query(`DELETE FROM "${schema}"."${HOLDER_TABLE}"`);
+
+      expect(await PacketCaptureService.deleteExpiredCaptures()).toBe(2);
+      expect(await readCapture(heldCapture)).toBeUndefined();
+      expect(await readCapture(otherCapture)).toBeUndefined();
+      expect(await readFileIds()).toEqual([]);
+    });
+
+    test("two sweeps at once delete each capture and file once, and both finish", async () => {
+      for (let index: number = 0; index < 30; index++) {
+        await insertCapture({
+          status: PacketCaptureStatus.Completed,
+          createdMinutesAgo: 8 * 24 * 60 + index,
+          fileId: await insertFile(),
+        });
+      }
+
+      const counts: Array<number> = await Promise.all([
+        PacketCaptureService.deleteExpiredCaptures(),
+        PacketCaptureService.deleteExpiredCaptures(),
+      ]);
+
+      expect(counts[0]! + counts[1]!).toBe(30);
+      expect(await countRows("PacketCapture")).toBe(0);
+      expect(await readFileIds()).toEqual([]);
+    });
+  });
+
   describe("the probe's capability report", () => {
     test("is kept on a project's own probe, and a global probe's is dropped", async () => {
       const globalProbeId: ObjectID = ObjectID.generate();
@@ -987,12 +1161,13 @@ describePostgres("packet capture SQL against Postgres", () => {
   });
 
   /*
-   * The round trips each write takes (OneUptime issue #8870). Each but the
-   * retention sweep's batches is self-committing: the statement's own WHERE
-   * is its guard, so the transaction each ran in - START TRANSACTION, the
-   * statement, COMMIT - was two round trips more, holding the connection
-   * between them, for nothing to commit together. Counted at the query
-   * runner, which every statement TypeORM sends goes through.
+   * The round trips each write takes (OneUptime issues #8870 and #8929).
+   * Each is self-committing: the statement's own WHERE is its guard, so the
+   * transaction each ran in - START TRANSACTION, the statement, COMMIT - was
+   * two round trips more, holding the connection between them. A retention
+   * batch's two deletes, which must commit together, are one statement.
+   * Counted at the query runner, which every statement TypeORM sends goes
+   * through.
    */
   describe("the round trips of each write", () => {
     const TRANSACTION_CONTROL: RegExp =
@@ -1225,7 +1400,7 @@ describePostgres("packet capture SQL against Postgres", () => {
       });
     });
 
-    test("a retention batch stays one transaction: its captures and their files commit together", async () => {
+    test("a retention batch is one statement: its captures and their files, and no transaction", async () => {
       const file: ObjectID = await insertFile();
       await insertCapture({
         status: PacketCaptureStatus.Completed,
@@ -1239,12 +1414,51 @@ describePostgres("packet capture SQL against Postgres", () => {
         });
 
       expect(retention.result).toBe(1);
+      expect(transactionControl(retention.statements)).toEqual([]);
+      // It was START TRANSACTION, DELETE FROM "PacketCapture", the files, COMMIT.
       expect(retention.statements.map(firstWords)).toEqual([
-        "START TRANSACTION",
-        'DELETE FROM "PacketCapture"',
-        'DELETE FROM "File"',
-        "COMMIT",
+        'WITH "expired" AS',
       ]);
+      expect(await countRows("PacketCapture")).toBe(0);
+      expect(await countRows("File")).toBe(0);
+    });
+
+    test("a sweep with nothing expired is one statement, where it was three", async () => {
+      await insertCapture({ createdMinutesAgo: 60 });
+
+      const retention: { result: number; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return PacketCaptureService.deleteExpiredCaptures();
+        });
+
+      expect(retention.result).toBe(0);
+      expect(retention.statements.map(firstWords)).toEqual([
+        'WITH "expired" AS',
+      ]);
+    });
+
+    test("a sweep of more than a batch is one statement a batch", async () => {
+      for (let index: number = 0; index < 201; index++) {
+        await insertCapture({
+          status: PacketCaptureStatus.Completed,
+          createdMinutesAgo: 8 * 24 * 60 + index,
+          fileId: await insertFile(),
+        });
+      }
+
+      const retention: { result: number; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return PacketCaptureService.deleteExpiredCaptures();
+        });
+
+      expect(retention.result).toBe(201);
+      expect(transactionControl(retention.statements)).toEqual([]);
+      expect(retention.statements.map(firstWords)).toEqual([
+        'WITH "expired" AS',
+        'WITH "expired" AS',
+      ]);
+      expect(await countRows("PacketCapture")).toBe(0);
+      expect(await countRows("File")).toBe(0);
     });
   });
 

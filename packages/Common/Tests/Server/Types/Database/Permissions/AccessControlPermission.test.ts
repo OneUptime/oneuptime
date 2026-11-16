@@ -2,6 +2,9 @@ import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/Databa
 import AccessControlPermission from "../../../../../Server/Types/Database/Permissions/AccessControlPermission";
 import QueryUtil from "../../../../../Server/Types/Database/QueryUtil";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import TeamMember from "../../../../../Models/DatabaseModels/TeamMember";
+import Includes from "../../../../../Types/BaseDatabase/Includes";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
@@ -54,8 +57,29 @@ describe("AccessControlPermission.addAccessControlIdsToQuery", () => {
     jest.restoreAllMocks();
   });
 
-  it("adds the permitted-label filter when the caller has no label filter", async () => {
+  function mockRelatedTable(): void {
+    jest.spyOn(QueryUtil, "getManyToManyRelatedTable").mockReturnValue({
+      tableName: "Label",
+      columnName: "_id",
+      deleteDateColumnName: "deletedAt",
+    });
+  }
+
+  // The SQL a raw condition writes for a column, and what it binds.
+  function sqlOf(condition: any, alias: string): string {
+    return condition.getSql(alias);
+  }
+
+  /*
+   * #8113: the permitted labels are a condition on the record's own id - a
+   * subquery on the label join table - and never a filter through the
+   * labels relation, which joined to many in the WHERE: a list's page
+   * could not take its ids from the table alone, and every record came
+   * back with only the permitted labels it carries.
+   */
+  it("keeps the records carrying a permitted label by a condition on their id, not through the labels relation", async () => {
     mockJoinTableMetadata();
+    mockRelatedTable();
     const query: any = { projectId };
 
     const result: any =
@@ -67,12 +91,107 @@ describe("AccessControlPermission.addAccessControlIdsToQuery", () => {
         DatabaseRequestType.Read,
       );
 
+    expect(result.labels).toBeUndefined();
+    expect(result.projectId).toBe(projectId);
+    expect(result._id).toBeInstanceOf(FindOperator);
+    expect(result._id.type).toBe("raw");
+    expect(Object.values(result._id.objectLiteralParameters)).toEqual([
+      [permittedLabelA.toString(), permittedLabelB.toString()],
+    ]);
+
+    // Linked to a permitted label that is there and not deleted.
+    const sql: string = sqlOf(result._id, '"Monitor"."_id"');
+    expect(sql).toMatch(
+      /^\("Monitor"\."_id" IN \(SELECT "MonitorLabel"\."monitorId" FROM "MonitorLabel" WHERE "MonitorLabel"\."labelId" IN \(SELECT "Label"\."_id" FROM "Label" WHERE "Label"\."_id" IN \(:\.\.\.\w+\) AND "Label"\."deletedAt" IS NULL\)\)\)$/,
+    );
+  });
+
+  it("keeps an id the caller filters by, serialized, beside the permitted labels", async () => {
+    mockJoinTableMetadata();
+    mockRelatedTable();
+    const monitorA: ObjectID = ObjectID.generate();
+    const monitorB: ObjectID = ObjectID.generate();
+
+    for (const idFilter of [
+      monitorA,
+      new Includes([monitorA, monitorB]),
+      [monitorA.toString(), monitorB.toString()],
+    ]) {
+      const result: any =
+        await AccessControlPermission.addAccessControlIdsToQuery(
+          Monitor,
+          { projectId, _id: idFilter } as any,
+          null,
+          makeLabelRestrictedProps(),
+          DatabaseRequestType.Read,
+        );
+
+      // Both hold: the caller's ids, and the permitted labels.
+      expect(result._id.type).toBe("and");
+      expect(result._id.value).toHaveLength(2);
+      expect(result._id.value[0]).toBeInstanceOf(FindOperator);
+      expect(
+        Object.values(result._id.value[0].objectLiteralParameters),
+      ).toEqual([
+        idFilter instanceof ObjectID
+          ? monitorA.toString()
+          : [monitorA.toString(), monitorB.toString()],
+      ]);
+      expect(result._id.value[1].type).toBe("raw");
+      expect(result.labels).toBeUndefined();
+    }
+  });
+
+  it("asks each grant's labels in a condition of its own: one label of each", async () => {
+    mockJoinTableMetadata();
+    mockRelatedTable();
+    const otherLabel: ObjectID = ObjectID.generate();
+
+    let query: any = AccessControlPermission.addLabelIdsToQuery(
+      Monitor,
+      { projectId } as any,
+      [permittedLabelA],
+    );
+    query = AccessControlPermission.addLabelIdsToQuery(Monitor, query, [
+      otherLabel,
+    ]);
+
+    expect(query._id.type).toBe("and");
     expect(
-      (result.labels as Array<ObjectID>).map((id: ObjectID) => {
-        return id.toString();
+      query._id.value.map((part: any): Array<unknown> => {
+        return Object.values(part.objectLiteralParameters);
       }),
-    ).toEqual([permittedLabelA.toString(), permittedLabelB.toString()]);
-    expect(result._id).toBeUndefined();
+    ).toEqual([[[permittedLabelA.toString()]], [[otherLabel.toString()]]]);
+  });
+
+  it("refuses an id filter it cannot combine with the permitted labels", () => {
+    mockJoinTableMetadata();
+    mockRelatedTable();
+    jest
+      .spyOn(QueryUtil, "serializeQuery")
+      .mockReturnValue({ _id: { not: "an operator" } } as any);
+
+    expect(() => {
+      AccessControlPermission.addLabelIdsToQuery(
+        Monitor,
+        { projectId, _id: "x" } as any,
+        [permittedLabelA],
+      );
+    }).toThrow(BadDataException);
+  });
+
+  it("asks nothing of a model without labels, or of no labels", () => {
+    mockJoinTableMetadata();
+    const query: any = { projectId };
+
+    expect(
+      AccessControlPermission.addLabelIdsToQuery(Monitor, query, []),
+    ).toEqual({ projectId });
+    expect(
+      AccessControlPermission.getCarriesLabelsCondition(TeamMember, [
+        permittedLabelA,
+      ]),
+    ).toBeNull();
   });
 
   it("preserves a caller-supplied label filter and ANDs the permitted set onto _id", async () => {

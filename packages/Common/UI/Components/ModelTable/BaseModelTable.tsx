@@ -621,6 +621,14 @@ export interface BaseTableProps<
    * row moving would get in the way of what the page is for.
    */
   isLive?: boolean | undefined;
+  /*
+   * A list that reads several projects at once (fetchRequestOptions'
+   * isMultiTenantRequest - Active Incidents lists every project the person
+   * belongs to): the projects whose changes it hears, so a record changing
+   * in any of them reads the page again, not only one in the open project.
+   * Unset: the open project's (LiveRows.getLiveRowTenantIds).
+   */
+  liveProjectIds?: Array<ObjectID> | undefined;
   fetchRequestOptions?: RequestOptions | undefined;
   deleteRequestOptions?: RequestOptions | undefined;
   onItemDeleted?: ((item: TBaseModel) => void) | undefined;
@@ -3606,6 +3614,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         ? (props.modelType as { new (): BaseModel })
         : null,
     tenantId: ProjectUtil.getCurrentProjectId(),
+    // A list across projects hears each of them.
+    tenantIds: props.liveProjectIds,
     isEnabled: props.isLive !== false,
     isHeld: (): boolean => {
       return isLiveRowsHeld({

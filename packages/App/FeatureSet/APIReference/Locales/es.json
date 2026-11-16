@@ -100,7 +100,7 @@
       "title": "Autenticación",
       "intro": "Necesitarás autenticar tus solicitudes para acceder a cualquiera de los endpoints de la API de OneUptime. En esta guía, veremos cómo funciona la autenticación. OneUptime ofrece una forma de autenticar tus solicitudes a la API: mediante una API Key.",
       "generateApiKey": "Generar una API Key",
-      "generateApiKeyBody": "Dirígete a <strong>Ajustes del proyecto</strong> > <strong>Avanzado</strong> > <strong>Claves de API</strong>. Crea una nueva API Key. Ten en cuenta lo siguiente: las nuevas API Keys no tienen permisos asignados, por lo que tendrás que asignarle un permiso antes de poder utilizarla.",
+      "generateApiKeyBody": "Dirígete a <strong>Ajustes del proyecto</strong> > <strong>Avanzado</strong> > <strong>Claves de API</strong> y crea una clave de API. OneUptime muestra la clave una sola vez, cuando se crea: cópiala entonces, porque ninguna página vuelve a mostrarla. Una clave solo puede hacer lo que sus permisos permiten: elige su acceso al crearla, o añade permisos en su página.",
       "readMorePermissions": "Más información sobre los permisos",
       "projectId": "ID del proyecto",
       "projectIdBody": "Dirígete a <strong>Ajustes del proyecto</strong> > <strong>Proyecto</strong>. Allí deberías ver el ID de tu proyecto.",

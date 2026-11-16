@@ -32,7 +32,7 @@ flowchart TB
 
 Open in het OneUptime-dashboard **Projectinstellingen → Geavanceerd → API-sleutels** en klik op **API-sleutel aanmaken**. Geef hem een **Naam**, zoals `terraform`, en kies onder **Toegang** voor **Projectbeheerder**: Terraform maakt, leest, wijzigt en verwijdert elk soort record dat het beheert, en **Projectbeheerder** mag dat allemaal. Kies voor een beperktere sleutel **Machtigingen later kiezen** en voeg op de pagina van de sleutel alleen de machtigingen toe die je nodig hebt.
 
-De sleutel verloopt over een jaar. Om een andere datum te kiezen, open je **Meer velden** voordat je hem aanmaakt, of wijzig je de datum later op de pagina van de sleutel. Zodra de sleutel is aangemaakt, opent zijn pagina: kopieer de **API-sleutel** uit de kaart **API-sleuteldetails**.
+De sleutel verloopt over een jaar. Om een andere datum te kiezen, open je **Meer velden** voordat je hem aanmaakt, of wijzig je de datum later op de pagina van de sleutel. Zodra de sleutel is aangemaakt, toont OneUptime hem één keer, in het dialoogvenster **Kopieer uw API-sleutel**: kopieer hem voordat je op **Klaar** drukt.
 
 ### De sleutel beschikbaar maken voor Terraform
 
@@ -218,7 +218,7 @@ De provider heeft geen API-sleutel gevonden. Exporteer `ONEUPTIME_API_KEY` in de
 :::
 
 :::details Melding „the OneUptime API returned status 400: Invalid API Key”
-De sleutel is verkeerd getypt, verlopen of verwijderd, of hij hoort bij een andere OneUptime dan die waar `oneuptime_url` naar wijst. Kopieer de sleutel opnieuw van zijn pagina, of maak een nieuwe aan.
+De sleutel is verkeerd getypt, verlopen of verwijderd, of hij hoort bij een andere OneUptime dan die waar `oneuptime_url` naar wijst. Vergelijk hem met hoe de sleutel op zijn pagina eindigt, of stel hem daar opnieuw in voor een nieuwe.
 :::
 
 :::details Melding „the OneUptime API returned status 402: API keys need the Growth plan”

@@ -100,7 +100,7 @@
       "title": "Authenticatie",
       "intro": "U moet uw verzoeken authenticeren om toegang te krijgen tot een van de endpoints in de OneUptime API. In deze handleiding bekijken we hoe authenticatie werkt. OneUptime biedt één manier om uw API-verzoeken te authenticeren - door een API-sleutel te gebruiken.",
       "generateApiKey": "Een API-sleutel genereren",
-      "generateApiKeyBody": "Ga naar <strong>Projectinstellingen</strong> > <strong>Geavanceerd</strong> > <strong>API-sleutels</strong>. Maak een nieuwe API-sleutel aan. Let op: nieuwe API-sleutels hebben geen machtigingen toegewezen, dus u moet een machtiging toewijzen voordat u ze kunt gebruiken.",
+      "generateApiKeyBody": "Ga naar <strong>Projectinstellingen</strong> > <strong>Geavanceerd</strong> > <strong>API-sleutels</strong> en maak een API-sleutel aan. OneUptime toont de sleutel één keer, wanneer hij wordt aangemaakt: kopieer hem dan, want geen enkele pagina toont hem opnieuw. Een sleutel kan alleen wat zijn machtigingen toestaan: kies zijn toegang wanneer u hem aanmaakt, of voeg machtigingen toe op zijn pagina.",
       "readMorePermissions": "Lees meer over machtigingen",
       "projectId": "Project-ID",
       "projectIdBody": "Ga naar <strong>Projectinstellingen</strong> > <strong>Project</strong>. Daar zou u uw Project-ID moeten zien.",

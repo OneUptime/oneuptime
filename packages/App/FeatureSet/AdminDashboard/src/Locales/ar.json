@@ -4056,6 +4056,14 @@
   "Amount": "المبلغ",
   "Invoice": "الفاتورة",
   "Invoices": "الفواتير",
+  "Runs JavaScript steps as its own user: let its container switch users (allowPrivilegeEscalation, SETUID and SETGID).": "يشغّل خطوات JavaScript بمستخدمه الخاص: اسمح لحاويته بتبديل المستخدمين (allowPrivilegeEscalation وSETUID وSETGID).",
+  "Runs JavaScript steps as its own user: run its container as the image's own user, node.": "يشغّل خطوات JavaScript بمستخدمه الخاص: شغّل حاويته بمستخدم الصورة نفسه، node.",
+  "Runs JavaScript steps as its own user: run the Runner image, not its sources.": "يشغّل خطوات JavaScript بمستخدمه الخاص: شغّل صورة المشغّل، لا مصادره.",
+  "Runs JavaScript steps as its own user: its sandbox check failed, and its log says why.": "يشغّل خطوات JavaScript بمستخدمه الخاص: فشل فحص بيئته المعزولة، وسجلّه يوضّح السبب.",
+  "JavaScript steps share its network: let its container use seccomp, as Docker's and Kubernetes' default profiles do.": "تتشارك خطوات JavaScript شبكته: اسمح لحاويته باستخدام seccomp، كما تفعل ملفات التعريف الافتراضية لـ Docker وKubernetes.",
+  "JavaScript steps share its network: run the Runner image, not its sources.": "تتشارك خطوات JavaScript شبكته: شغّل صورة المشغّل، لا مصادره.",
+  "JavaScript steps share its network: its network filter's check failed, and its log says why.": "تتشارك خطوات JavaScript شبكته: فشل فحص مرشّح شبكته، وسجلّه يوضّح السبب.",
+  "Runs JavaScript steps as its own user and on its network: run the Runner image, not its sources.": "يشغّل خطوات JavaScript بمستخدمه الخاص وعلى شبكته: شغّل صورة المشغّل، لا مصادره.",
   "Keep for at most": "الاحتفاظ لمدة أقصاها",
   "New projects delete after": "الحذف في المشاريع الجديدة بعد",
   "Longer than the limit above.": "أطول من الحد المحدد أعلاه.",
@@ -4105,5 +4113,8 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} شخص لا يزال مسجّل الدخول بدون SSO. لا يمكنه فتح أي مشروع حتى يسجّل الدخول باستخدام SSO.",
   "Sign them out": "تسجيل خروجهم",
   "Sign out everyone signed in without SSO?": "هل تريد تسجيل خروج كل من سجّل الدخول بدون SSO؟",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "تنتهي جلساتهم الآن على كل الأجهزة، ويسجّلون الدخول مجددًا باستخدام SSO. يبقى المسؤولون الرئيسيون مسجّلي الدخول."
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "تنتهي جلساتهم الآن على كل الأجهزة، ويسجّلون الدخول مجددًا باستخدام SSO. يبقى المسؤولون الرئيسيون مسجّلي الدخول.",
+  "Made by {{name}} on {{date}}": "أنشأه {{name}} في {{date}}",
+  "Made on {{date}}": "أُنشئ في {{date}}",
+  "Ends in {{hint}}": "ينتهي بـ {{hint}}"
 }

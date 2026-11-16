@@ -34,6 +34,7 @@ import { JSONObject } from "../../../Types/JSON";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import {
   MASTER_API_KEY_ROUTE,
+  MasterApiKeyState,
   parseCreatedMasterApiKey,
   parseMasterApiKeyState,
 } from "../../../Types/MasterApiKey/MasterApiKeyAnswer";
@@ -74,12 +75,19 @@ if (
  *   - both are a signed-in master admin's only. POST is refused to the
  *     master API key itself - a leaked key must not replace itself - and
  *     the key is never even looked at for it.
+ *
+ * And which key is set (#8903): GET answers when it was made, by whom and
+ * its hint, and POST records the master admin who made it.
  */
 
 const ROUTE: string = `/api${MASTER_API_KEY_ROUTE}`;
 
 const KEY: string = "8e1a3a52-6d64-4f1f-9a2e-5f0f9c1d2b34";
 const NEW_KEY: string = "5f3b9c1e-7a2d-4e8f-b6c0-1d2e3f4a5b6c";
+const MADE_AT: Date = new Date("2026-11-16T09:30:00.000Z");
+
+// The master admin signed in, for the key they make.
+let signedInUserId: ObjectID = ObjectID.generate();
 
 interface HttpResult {
   status: number;
@@ -143,8 +151,10 @@ function request(data: {
 }
 
 function session(isMasterAdmin: boolean): JSONWebTokenData {
+  signedInUserId = ObjectID.generate();
+
   return {
-    userId: ObjectID.generate(),
+    userId: signedInUserId,
     email: new Email("admin@example.com"),
     isMasterAdmin: isMasterAdmin,
     isGlobalLogin: true,
@@ -178,7 +188,7 @@ describe("the master API key's routes, over HTTP", () => {
   let create: jest.SpyInstance;
   let state: jest.SpyInstance;
   let isMasterApiKey: jest.SpyInstance;
-  let stored: { isSet: boolean; isEnabled: boolean };
+  let stored: MasterApiKeyState;
 
   beforeAll(async () => {
     const app: express.Express = express();
@@ -206,12 +216,24 @@ describe("the master API key's routes, over HTTP", () => {
   });
 
   beforeEach(() => {
-    stored = { isSet: true, isEnabled: false };
+    stored = {
+      isSet: true,
+      isEnabled: false,
+      createdAt: null,
+      createdByName: null,
+      hint: null,
+    };
 
     create = jest
       .spyOn(GlobalConfigService, "createMasterApiKey")
       .mockImplementation(async (): Promise<string> => {
-        stored = { isSet: true, isEnabled: true };
+        stored = {
+          isSet: true,
+          isEnabled: true,
+          createdAt: MADE_AT,
+          createdByName: "Ada Lovelace",
+          hint: "5b6c",
+        };
         return NEW_KEY;
       });
     state = jest
@@ -235,13 +257,45 @@ describe("the master API key's routes, over HTTP", () => {
       const result: HttpResult = await request({ port, method: "GET" });
 
       expect(result.status).toBe(200);
-      expect(result.body).toEqual({ isSet: true, isEnabled: false });
+      expect(result.body).toEqual({
+        isSet: true,
+        isEnabled: false,
+        createdAt: null,
+        createdByName: null,
+        hint: null,
+      });
       expect(parseMasterApiKeyState(result.body)).toEqual({
         isSet: true,
         isEnabled: false,
+        createdAt: null,
+        createdByName: null,
+        hint: null,
       });
       expect(state).toHaveBeenCalledTimes(1);
       expect(create).not.toHaveBeenCalled();
+    });
+
+    test("and which key is set: when it was made, by whom, and how it ends", async () => {
+      signIn("master-admin");
+      stored = {
+        isSet: true,
+        isEnabled: true,
+        createdAt: MADE_AT,
+        createdByName: "Ada Lovelace",
+        hint: "2b34",
+      };
+
+      const result: HttpResult = await request({ port, method: "GET" });
+
+      expect(result.status).toBe(200);
+      expect(result.body).toEqual({
+        isSet: true,
+        isEnabled: true,
+        createdAt: "2026-11-16T09:30:00.000Z",
+        createdByName: "Ada Lovelace",
+        hint: "2b34",
+      });
+      expect(parseMasterApiKeyState(result.body)).toEqual(stored);
     });
 
     test("never answers the key, nor its hash", async () => {
@@ -252,6 +306,9 @@ describe("the master API key's routes, over HTTP", () => {
       expect(result.text).not.toContain(KEY);
       expect(result.text).not.toContain(MasterApiKey.hash(KEY));
       expect(Object.keys(result.body || {}).sort()).toEqual([
+        "createdAt",
+        "createdByName",
+        "hint",
         "isEnabled",
         "isSet",
       ]);
@@ -297,13 +354,32 @@ describe("the master API key's routes, over HTTP", () => {
       expect(result.body).toEqual({
         isSet: true,
         isEnabled: true,
+        createdAt: "2026-11-16T09:30:00.000Z",
+        createdByName: "Ada Lovelace",
+        hint: "5b6c",
         masterApiKey: NEW_KEY,
       });
       expect(parseCreatedMasterApiKey(result.body)).toEqual({
         isSet: true,
         isEnabled: true,
+        createdAt: MADE_AT,
+        createdByName: "Ada Lovelace",
+        hint: "5b6c",
         masterApiKey: NEW_KEY,
       });
+    });
+
+    test("records the master admin who made the key, from their session", async () => {
+      signIn("master-admin");
+
+      await request({ port, method: "POST" });
+
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          create.mock.calls[0]![0] as { createdByUserId: ObjectID }
+        ).createdByUserId.toString(),
+      ).toBe(signedInUserId.toString());
     });
 
     test("no cache may keep the answer that holds the key", async () => {

@@ -35,7 +35,7 @@ Abra **Configurações do projeto → Avançado → Chaves de API** e clique em 
 
 ### Copiar a chave
 
-A página da chave se abre. Copie a **Chave de API** do cartão **Detalhes da chave de API** e mantenha-a fora do seu código:
+O OneUptime mostra a chave uma única vez, na caixa de diálogo **Copie sua chave de API**: copie-a antes de clicar em **Concluído**, pois nenhuma página a mostra de novo. Mantenha-a fora do seu código:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -93,7 +93,7 @@ Um campo de um registro que o recurso cita é filtrado sob a sua relação: `"us
 
 Um recurso com proprietários - um monitor, um incidente, uma política de plantão e qualquer outro com proprietários usuários e equipes - também é filtrado por quem o possui, sob `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` encontra os registros dos quais uma ou mais dessas pessoas e equipes são proprietárias. `match` é `AnyOf`, a menos que você o defina: `NoneOf` encontra os registros dos quais nenhuma delas é proprietária, incluindo os registros sem proprietários, e `AnyOwner` e `NoOwner` encontram os registros com algum proprietário ou sem nenhum, sem citar ninguém. Os membros de uma equipe não são proprietários do que a equipe possui. Um filtro cita no máximo 1.000 pessoas e equipes no total, um recurso sem proprietários o recusa com um `400`, e filtrar por proprietários sem permissão para lê-los é recusado com um `422`.
 
-`select` cita os campos a devolver, e `_id` sempre volta. `sort` os ordena, `ASC` ou `DESC`; sem ordenação, os mais recentes vêm primeiro. Uma lista devolve 10 registros, a menos que você defina `limit`, até 10.000, e `skip` pula essa quantidade antes: continue aumentando `skip` por `limit` até ter `count` deles. Adicione `?output-type=csv` a uma requisição de lista para receber CSV em vez de JSON.
+`select` cita os campos a devolver, e `_id` sempre volta. `sort` os ordena, `ASC` ou `DESC`; sem ordenação, os mais recentes vêm primeiro. Uma lista devolve 10 registros, a menos que você defina `limit`, até 10.000, e `skip` pula essa quantidade antes: continue aumentando `skip` por `limit` até ter `count` deles. Em uma lista longa, contar cada correspondência leva tempo: adicione `countUpTo`, por exemplo `10000`, e a contagem para ali, ou no fim da página, se ele estiver mais adiante. Quando mais registros correspondem, `count` é onde ela parou e a resposta também traz `"isCountCapped": true`: com `"countUpTo": 1`, isso diz se há mais registros depois da página. Adicione `?output-type=csv` a uma requisição de lista para receber CSV em vez de JSON.
 
 A ordem de um campo também pode dizer para onde vão os registros sem valor nele: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` coloca os mais recentes primeiro e os que não têm nenhum por último, e `FIRST` os coloca primeiro. Uma relação com um registro ordena por um campo do registro que ela cita: `{ "incidentSeverity": { "order": "ASC" } }` lista os incidentes na ordem das suas gravidades. Uma relação que recebe só uma direção, como em `{ "incidentSeverity": "DESC" }`, é recusada com um `400` que cita um campo pelo qual ordenar em vez disso, e o mesmo acontece com uma relação com muitos registros, como as `labels` de um incidente: cada incidente tem uma lista delas, e uma lista não tem um único valor pelo qual pôr os incidentes em ordem. Ordenar por um campo também exige permissão para lê-lo, por uma relação como no próprio recurso: uma ordenação por um campo que você não pode ler é recusada com um `422`.
 
@@ -341,7 +341,7 @@ Cada recurso, endpoint e campo está na [referência da API OneUptime](/referenc
 ## Solução de problemas
 
 :::details Toda requisição responde 400 Invalid API Key
-O cabeçalho `ApiKey` está vazio, não é uma chave ou cita uma chave que expirou ou foi redefinida. Copie a chave de novo da página dela em **Configurações do projeto → Avançado → Chaves de API**, onde também fica a data em **Expira**.
+O cabeçalho `ApiKey` está vazio, não é uma chave ou cita uma chave que expirou ou foi redefinida. Encontre a chave em **Configurações do projeto → Avançado → Chaves de API** pelo jeito como ela termina, e confira a data dela em **Expira**. Uma chave que você não tem mais não pode ser mostrada de novo: redefina-a na página dela para obter uma nova.
 :::
 
 :::details Toda requisição responde 402 Payment Required
