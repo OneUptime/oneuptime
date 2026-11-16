@@ -196,6 +196,8 @@ La **Panoramica** risponde a «siamo dentro il budget?», dall'alto in basso:
 
 Quando lo SLO è in un livello della sua policy del budget di errore, la **Panoramica** mostra anche quel livello e cosa il team ha concordato di fare in esso: vedi [Policy del budget di errore](/docs/slo/error-budget-policy).
 
+La scheda **Usato da** elenca le regole di tasso di consumo e i livelli della policy del budget di errore che agiscono sullo SLO, e le dashboard che lo mostrano. Archiviare o eliminare lo SLO li dice prima: le sue regole e i suoi livelli vengono eliminati con esso.
+
 ### Impostazioni
 
 La pagina **Impostazioni** raccoglie come misura uno SLO, una scheda per ciascuna cosa:

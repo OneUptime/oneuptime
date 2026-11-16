@@ -70,8 +70,6 @@ const NOT_SECRETS: Readonly<Record<string, string>> = {
     "written into a public DNS record to show the domain is yours",
   "AcmeChallenge.token":
     "an ACME challenge, served in public at /.well-known for the certificate authority",
-  "GreenlockChallenge.token":
-    "an ACME challenge, served in public at /.well-known for the certificate authority",
   "File.imageAccessToken":
     "addresses a file in a link; opening it still takes the right to see the file (FileViewerAccess)",
   // A cursor, not a credential.

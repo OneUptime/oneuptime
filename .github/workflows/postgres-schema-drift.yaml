@@ -328,6 +328,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeMemberDeletePostgres.test.ts --forceExit
 
+      # #8990: the Greenlock store's tables, with the old ACME keys they hold,
+      # go in one statement - and behind a reader of "User", which their keys
+      # point at, the drop waits only its lock_timeout and is tried again,
+      # never parking "User"'s readers behind it. In a schema of its own.
+      - name: Test dropping the Greenlock tables on Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DROP_GREENLOCK_TABLES_TESTS: "true"
+          DROP_GREENLOCK_TABLES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DROP_GREENLOCK_TABLES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DROP_GREENLOCK_TABLES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/DropGreenlockTablesPostgres.test.ts --forceExit
+
       # Deleting the resolved incidents and alerts a project no longer keeps
       # (issue #6903): the real statements, hard deletes and cascades - what
       # goes, what stays (not resolved, resolved lately, a completed
@@ -380,6 +396,39 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Retention/SoftDeletedRowsPurgePostgres.test.ts
           --forceExit
+
+      # Deleting the rows older than their table keeps them (issue #8894):
+      # 1000 a statement, one DELETE a batch, a run out of time taking one
+      # batch of each table and the next run the rest, a table with no
+      # window never read, on structure-only copies of the migrated tables.
+      - name: Test the purge by age on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OLDER_ROWS_PURGE_TESTS: "true"
+          OLDER_ROWS_PURGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OLDER_ROWS_PURGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OLDER_ROWS_PURGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Retention/OlderRowsPurgePostgres.test.ts
+          --forceExit
+
+      # The files attached to a scheduled maintenance event, its notes and a
+      # status page announcement go with them (issue #8895), by a person's
+      # delete and a retention purge's alike, and a file something else
+      # still uses - another event's note, a status page's logo - stays.
+      - name: Test the files deleted with scheduled maintenance and announcements on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ATTACHED_FILES_TESTS: "true"
+          ATTACHED_FILES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ATTACHED_FILES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ATTACHED_FILES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/File/AttachedFilesPostgres.test.ts --forceExit
 
       # A project's activation milestones (#6894): each kept once, even by
       # servers racing for it, and the backfill fills what the data shows
@@ -3807,6 +3856,30 @@ jobs:
           Tests/Workers/DataMigrations/HashProjectApiKeysPostgres.test.ts
           --forceExit
 
+      # A project's credentials through the upgrade that encrypts them
+      # (#8989): on the tables as they were (the SMTP password a varchar(500),
+      # the webhook signing secret a varchar(100)), with every credential
+      # stored as written, the schema migration widens the two in place and
+      # EncryptProjectCredentials leaves only ciphertext; every credential
+      # reads as written through the services before, between and after (a
+      # status page's SMTP config through its relation included); a second
+      # run changes nothing, two at once encrypt each value once, and a save
+      # afterwards is stored encrypted. Clones the migrated ProjectSMTPConfig,
+      # StatusPage, WorkspaceProjectAuthToken, WorkspaceUserAuthToken,
+      # UserWebhook and CodeRepository tables into an isolated schema.
+      - name: Test project credentials' upgrade to encrypted on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_PROJECT_CREDENTIALS_TESTS: "true"
+          PROJECT_CREDENTIALS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_CREDENTIALS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_CREDENTIALS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/EncryptProjectCredentialsPostgres.test.ts
+          --forceExit
+
       # Exceptions: the exception group upsert's ON CONFLICT branch, which is
       # all of regression detection - an occurrence after the resolve
       # reopens it as Regressed, a late one from before does not, and one
@@ -4000,6 +4073,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ArchivableValuesPostgres.test.ts --forceExit
+
+      # #7436: what uses a record (the Used by card, and what Delete and
+      # Archive say first), run by Postgres through the real services: every
+      # relation of every kind counts exactly the rows that refer to the
+      # record in its project, a reader limited to a label or blocked from
+      # one is told how many more there are without their names, a selection
+      # is counted once, and a record 5,000 rows refer to takes two counts
+      # and one page of three.
+      - name: Test what uses a record on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_USED_BY_TESTS: "true"
+          USED_BY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          USED_BY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          USED_BY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/UsedByPostgres.test.ts --forceExit
 
       # Postmortem statuses (Incidents > Postmortems), on migrated Postgres:
       # the two migrations on a copy of the incidents table that already

@@ -243,6 +243,8 @@ Archivez une page de statut pour la mettre hors ligne sans la supprimer. Une pag
 
 Pour archiver une page de statut, ouvrez-la et allez dans **Avancé → Paramètres avancés → Archiver : page de statut**. Pour en archiver plusieurs, sélectionnez-les dans la liste **Pages de statut** et choisissez **Archiver**. Pour en récupérer une, ouvrez **Pages de statut → Avancé → Archivé**, sélectionnez-la et choisissez **Désarchiver**, ou ouvrez-la et cliquez sur **Désarchiver** dans le bandeau en haut de ses pages.
 
+La **Vue d'ensemble** d'une page de statut a une carte **Affiché maintenant** : les incidents ouverts et la maintenance à venir ou en cours que les visiteurs y voient en ce moment. Archiver ou supprimer la page, sur ses propres pages ou depuis la liste, dit d'abord ce que les visiteurs ne verraient plus.
+
 ## Étapes suivantes
 
 :::cards

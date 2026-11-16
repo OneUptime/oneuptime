@@ -60,6 +60,68 @@ const RECORDS: Array<RecordPages> = [
     overview: "Pages/Teams/View/Index.tsx",
     deletePage: "Pages/Teams/View/Delete.tsx",
   },
+  // What runs the policy (#7758).
+  {
+    kind: "OnCallPolicy",
+    overview: "Pages/OnCallDuty/OnCallDutyPolicy/Index.tsx",
+    deletePage: "Pages/OnCallDuty/OnCallDutyPolicy/Delete.tsx",
+    settings: "Pages/OnCallDuty/OnCallDutyPolicy/Settings.tsx",
+  },
+  // A monitor group and an SLO (#7437).
+  {
+    kind: "MonitorGroup",
+    overview: "Pages/MonitorGroup/View/Index.tsx",
+    deletePage: "Pages/MonitorGroup/View/Delete.tsx",
+  },
+  {
+    kind: "Slo",
+    overview: "Pages/Slo/View/Index.tsx",
+    deletePage: "Pages/Slo/View/Delete.tsx",
+    settings: "Pages/Slo/View/Settings.tsx",
+  },
+];
+
+/*
+ * The lists whose rows are deleted, and archived where the list archives
+ * (#7435): each row's Delete, Bulk Actions > Delete and both Archives say
+ * what still uses the records.
+ */
+interface RecordList {
+  kind: string;
+  list: string;
+  // Where the list builds its archive actions, if it archives.
+  archive?: string | undefined;
+}
+
+const LISTS: Array<RecordList> = [
+  {
+    kind: "Monitor",
+    list: "Components/Monitor/MonitorTable.tsx",
+    archive: "Components/Monitor/MonitorTable.tsx",
+  },
+  {
+    kind: "StatusPage",
+    list: "Pages/StatusPages/StatusPages.tsx",
+    archive: "Pages/StatusPages/StatusPages.tsx",
+  },
+  {
+    kind: "Service",
+    list: "Pages/Service/Services.tsx",
+    archive: "Pages/Service/Services.tsx",
+  },
+  { kind: "Team", list: "Pages/Teams/Index.tsx" },
+  { kind: "OnCallSchedule", list: "Pages/OnCallDuty/OnCallDutySchedules.tsx" },
+  {
+    kind: "OnCallPolicy",
+    list: "Pages/OnCallDuty/OnCallDutyPolicies.tsx",
+    archive: "Pages/OnCallDuty/OnCallDutyPolicies.tsx",
+  },
+  { kind: "MonitorGroup", list: "Pages/MonitorGroup/MonitorGroups.tsx" },
+  {
+    kind: "Slo",
+    list: "Pages/Slo/Slos.tsx",
+    archive: "Components/Slo/useSloBulkActions.tsx",
+  },
 ];
 
 describe("each record answers what uses it on its own page", () => {
@@ -164,6 +226,44 @@ describe("where a record is removed, it says what still uses it", () => {
     },
   );
 
+  test.each(LISTS)(
+    "the $kind list's row Delete and Bulk Actions > Delete say it",
+    (record: RecordList) => {
+      const source: string = read(record.list);
+
+      expect(source).toMatch(
+        new RegExp(
+          `getUsedByListActions<\\w+>\\(\\s*UsedByRecordKind\\.${record.kind},?\\s*\\)`,
+          "u",
+        ),
+      );
+      expect(source).toContain(
+        "getDeleteConfirmation={usedBy.getDeleteConfirmation}",
+      );
+      expect(source).toContain(
+        "deleteConfirmationDetails: usedBy.deleteConfirmationDetails,",
+      );
+    },
+  );
+
+  test.each(
+    LISTS.filter((record: RecordList): boolean => {
+      return Boolean(record.archive);
+    }),
+  )(
+    "the $kind list's Archive, a row's and the bulk one, says it",
+    (record: RecordList) => {
+      const source: string = read(record.archive as string);
+
+      expect(source).toContain(
+        "archiveConfirmDetails: usedBy.archiveConfirmDetails,",
+      );
+      expect(source).toContain(
+        "getArchiveConfirmationDetails: usedBy.getArchiveConfirmationDetails,",
+      );
+    },
+  );
+
   test("the Archive card draws that list only while it asks to archive", () => {
     const source: string = read(
       "Components/TelemetryResource/ArchiveResourceCard.tsx",
@@ -176,6 +276,18 @@ describe("where a record is removed, it says what still uses it", () => {
 });
 
 describe("the server answers", () => {
+  test("a list's selection is counted with one request, a POST of its ids", () => {
+    const api: string = fs.readFileSync(
+      path.join(__dirname, "../../../Common/Server/API/UsedByAPI.ts"),
+      "utf8",
+    );
+    const client: string = read("Components/UsedBy/UsedByApi.ts");
+
+    expect(api).toContain("router.post(\n  `${USED_BY_API_PATH}/:recordKind`,");
+    expect(client).toContain("await API.post<JSONObject>({");
+    expect(client).toContain("url: getUsedBySummariesUrl(data),");
+  });
+
   test("the Used by router is mounted beside Who is told", () => {
     const source: string = fs.readFileSync(
       path.join(__dirname, "../../FeatureSet/BaseAPI/Index.ts"),

@@ -8,6 +8,8 @@ import RecommendationType from "Common/Types/Recommendation/RecommendationType";
 import {
   SetupHealthAnswer,
   SetupHealthFinding,
+  SetupHealthRecord,
+  SetupHealthRecordAnswer,
   SetupHealthSummary,
   getSetupHealthDismissalId,
 } from "Common/Types/SetupHealth/SetupHealth";
@@ -18,8 +20,9 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 /*
  * SETUP HEALTH, as the Dashboard asks for it (Common/Server/API/
  * SetupHealthAPI, #6812): the findings for the page, the counts for Home's
- * line, and a finding dismissed or restored for everyone in the project
- * (a RecommendationDismissal of RecommendationType.SetupHealth).
+ * line, one record's findings for the line at the top of its page (#7297),
+ * and a finding dismissed or restored for everyone in the project (a
+ * RecommendationDismissal of RecommendationType.SetupHealth).
  */
 
 export const SETUP_HEALTH_API_PATH: string = "/setup-health";
@@ -42,6 +45,24 @@ export function getSetupHealthSummaryUrl(): URL {
   return URL.fromString(APP_API_URL.toString()).addRoute(
     `${SETUP_HEALTH_API_PATH}/summary`,
   );
+}
+
+export function getSetupHealthRecordUrl(
+  record: Pick<SetupHealthRecord, "kind" | "id">,
+  options?: { refresh?: boolean | undefined },
+): URL {
+  const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
+    `${SETUP_HEALTH_API_PATH}/record`,
+  );
+
+  url.addQueryParam("kind", record.kind);
+  url.addQueryParam("id", record.id);
+
+  if (options?.refresh) {
+    url.addQueryParam("refresh", "true");
+  }
+
+  return url;
 }
 
 export class SetupHealthApiError extends Error {
@@ -91,6 +112,19 @@ export function isSetupHealthSummary(
   );
 }
 
+export function isSetupHealthRecordAnswer(
+  body: unknown,
+): body is SetupHealthRecordAnswer {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return false;
+  }
+
+  const answer: Partial<SetupHealthRecordAnswer> =
+    body as Partial<SetupHealthRecordAnswer>;
+
+  return Array.isArray(answer.findings) && typeof answer.checkedAt === "string";
+}
+
 async function getJson(url: URL): Promise<JSONValue> {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
     await API.get<JSONObject>({
@@ -129,6 +163,22 @@ export default class SetupHealthApi {
     }
 
     return body;
+  }
+
+  // One record's open findings, as the person may see them.
+  public static async getRecordFindings(
+    record: Pick<SetupHealthRecord, "kind" | "id">,
+    options?: { refresh?: boolean | undefined },
+  ): Promise<Array<SetupHealthFinding>> {
+    const body: JSONValue = await getJson(
+      getSetupHealthRecordUrl(record, options),
+    );
+
+    if (!isSetupHealthRecordAnswer(body)) {
+      throw new SetupHealthApiError("Couldn't read the setup health.");
+    }
+
+    return body.findings;
   }
 
   // Hides a finding for everyone in the project, with the reason given.

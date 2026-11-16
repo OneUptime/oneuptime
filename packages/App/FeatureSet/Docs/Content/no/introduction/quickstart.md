@@ -98,7 +98,7 @@ Under **Send et testoppkall** klikker du på **Test denne policyen**, velger en 
 > [!NOTE]
 > SMS og telefonanrop er slått av i et nytt prosjekt. En Prosjekteier, en Faktureringsadministrator eller noen med Manage Billing slår dem på i kortet **Varslingskanaler** under **Prosjektinnstillinger → Varslinger → Varslingskanaler**.
 
-To vaktregler utløser policyen: én ved hver nye hendelse og én ved hvert nye varsel. For å se den første åpner du **Hendelser** fra menyen **Produkter**, folder ut **Regler** i sidemenyen og velger **Vaktregler**: Den treffer **Alle hendelser**. For å utløse policyen bare ved noen hendelser, for eksempel kritiske, redigerer du regelen der, eller klikker på **Opprett Incident On-Call Rule** for å legge til din egen.
+To vaktregler utløser policyen: én ved hver nye hendelse og én ved hvert nye varsel. For å se den første åpner du **Hendelser** fra menyen **Produkter**, folder ut **Regler** i sidemenyen og velger **Vaktregler**: Den treffer **Alle hendelser**. For å utløse policyen bare ved noen hendelser, for eksempel kritiske, redigerer du regelen der, eller klikker på **Opprett Vaktregel for hendelser** for å legge til din egen.
 
 For i stedet å bygge en policy felt for felt åpner du **Vakt** fra menyen **Produkter** og klikker på **Opprett Vaktpolicy**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vaktplaner](/docs/on-call/schedules) for flere nivåer, rotasjoner og hvor lenge hvert nivå venter.
 

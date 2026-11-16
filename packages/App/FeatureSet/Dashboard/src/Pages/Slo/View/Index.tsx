@@ -4,6 +4,8 @@ import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSk
 import SloActiveBurnEventsCard from "../../../Components/Slo/SloActiveBurnEventsCard";
 import SloBudgetBurnDownCard from "../../../Components/Slo/SloBudgetBurnDownCard";
 import SloBurnRateRulesSummaryCard from "../../../Components/Slo/SloBurnRateRulesSummaryCard";
+import UsedByCard from "../../../Components/UsedBy/UsedByCard";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import SloErrorBudgetPolicyTierCard from "../../../Components/Slo/SloErrorBudgetPolicyTierCard";
 import SloFeed from "../../../Components/Slo/SloFeed";
 import SloKpiStrip from "../../../Components/Slo/SloKpiStrip";
@@ -335,6 +337,16 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             rules={data.burnRateRules}
             currentBurnRate={slo.currentBurnRate}
             error={data.burnRateRulesError}
+          />
+          {/*
+           * What uses the SLO (#7437): its burn-rate rules and error budget
+           * policy, which go with it, and the dashboards that show it.
+           */}
+          <UsedByCard
+            recordKind={UsedByRecordKind.Slo}
+            recordId={modelId}
+            headerLayout="stacked"
+            refreshToken={data.refreshCount}
           />
         </div>
       </div>

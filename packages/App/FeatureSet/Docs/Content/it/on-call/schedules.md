@@ -101,6 +101,8 @@ Un'assenza aggiunta così vale per tutte le policy di reperibilità, quindi rich
 
 Con l'API, una sostituzione utente (`/api/on-call-duty-policy-user-override`) creata senza `routeAlertsToUserId` salta la persona in `overrideUserId` da `startsAt` a `endsAt`.
 
+La **Panoramica** di una pianificazione ha una scheda **Usato da**: le policy di reperibilità le cui regole di escalation chiamano chi è reperibile, con le regole che lo fanno. Se nessuna lo fa, lo dice e rimanda alle policy di reperibilità. Eliminare la pianificazione, dalla sua pagina o dall'elenco, dice prima quali policy chiamano tramite essa. Le policy che non puoi aprire vengono contate, non nominate.
+
 ## Creare pianificazioni con l'API o Terraform
 
 Le pianificazioni di reperibilità sono la risorsa `/api/on-call-duty-policy-schedule`; i loro livelli e le persone che vi appartengono sono le risorse `/api/on-call-duty-schedule-layer` e `/api/on-call-duty-schedule-layer-user`.

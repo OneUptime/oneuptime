@@ -80,7 +80,7 @@ Met twee of meer voorwaarden kies je **Voldoet aan alle**, waarbij elke voorwaar
 :::steps
 ### De waarschuwingen kiezen
 
-Klik op **Alert On-Call Rule aanmaken**. Bij **Overeenkomst** komt **Alle waarschuwingen**, waar een nieuwe regel mee begint, overeen met elke nieuwe waarschuwing. Om de regel in te perken, kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en voeg de voorwaarden toe waaraan een waarschuwing moet voldoen.
+Klik op **Bereikbaarheidsregel voor waarschuwingen aanmaken**. Bij **Overeenkomst** komt **Alle waarschuwingen**, waar een nieuwe regel mee begint, overeen met elke nieuwe waarschuwing. Om de regel in te perken, kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en voeg de voorwaarden toe waaraan een waarschuwing moet voldoen.
 
 ### Het beleid kiezen
 

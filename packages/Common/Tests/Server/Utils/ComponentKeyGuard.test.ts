@@ -50,10 +50,6 @@ const NAMING_KEYS: Record<string, string> = {
     "the measurement, in the metric name its points are written under",
   NetworkDeviceRole:
     "the role, which SNMP classification and the topology map match on",
-  GreenlockCertificate:
-    "a certificate in the Let's Encrypt store that ACME certificates replaced",
-  GreenlockChallenge:
-    "an HTTP challenge in the Let's Encrypt store that ACME certificates replaced",
 };
 
 /*

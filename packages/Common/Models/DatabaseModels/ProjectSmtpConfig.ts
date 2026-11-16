@@ -430,17 +430,34 @@ export default class ProjectSmtpConfig extends BaseModel {
   })
   public username?: string = undefined;
 
+  /*
+   * THE CONFIG'S CREDENTIALS ARE WRITE-ONLY, AND KEPT ENCRYPTED AT REST.
+   *
+   * The SMTP password, the OAuth client secret (for a Google service
+   * account, the private key of its JSON key file) and the key of each
+   * provider with an HTTP API of its own sign in to the mail account as the
+   * project: with one alone, anyone sends mail as the project's domain. So
+   * nobody reads one back through the API - not a Viewer, not the people
+   * who may change it (read: []). They are written with the config, and
+   * only OneUptime reads them, as root, to send through it
+   * (PROJECT_SMTP_CONFIG_SEND_SELECT, ProjectSmtpConfigService
+   * .toEmailServer). The Edit dialog leaves each blank, and blank keeps the
+   * stored one (ModelForm's write-only fields).
+   *
+   * Each is stored encrypted (`encrypted: true`): DatabaseService encrypts
+   * it on every write and decrypts it on every read, a status page's read
+   * of its config through the smtpConfig relation included. The
+   * EncryptProjectCredentials data migration encrypts the passwords and
+   * client secrets stored before. Tests/Models/DatabaseModels/
+   * ProjectCredentialsAtRest holds them to it.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateProjectSMTPConfig,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ReadProjectSMTPConfig,
-    ],
+    read: [],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -449,13 +466,15 @@ export default class ProjectSmtpConfig extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.Password,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    description:
+      "The password the SMTP server is signed in to with, or the API key your provider gives you for SMTP. Used when Authentication Type is Username and Password. Write-only: kept encrypted and never returned by the API.",
     example: "your-secure-password",
   })
   @Column({
     nullable: true,
-    type: ColumnType.Password,
-    length: ColumnLength.Password,
+    type: ColumnType.VeryLongText,
   })
   public password?: string = undefined;
 
@@ -769,17 +788,14 @@ export default class ProjectSmtpConfig extends BaseModel {
   })
   public clientId?: string = undefined;
 
+  // Write-only and encrypted at rest, as the password above.
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateProjectSMTPConfig,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ReadProjectSMTPConfig,
-    ],
+    read: [],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -790,9 +806,10 @@ export default class ProjectSmtpConfig extends BaseModel {
     secret: true,
     required: false,
     type: TableColumnType.VeryLongText,
+    encrypted: true,
     title: "OAuth Client Secret",
     description:
-      "The Client Secret from your OAuth application registration. Required for OAuth authentication. For Google service accounts, this is the private key from the JSON key file.",
+      "The Client Secret from your OAuth application registration. Required for OAuth authentication. For Google service accounts, this is the private key from the JSON key file. Write-only: kept encrypted and never returned by the API.",
     example: "your-client-secret",
   })
   @Column({
@@ -921,11 +938,10 @@ export default class ProjectSmtpConfig extends BaseModel {
    * Postmark and Resend their key, Mailgun its key, sending domain and
    * region. Every key is a password-equivalent credential - with it alone,
    * anyone sends mail as the project's domain - so, like the SMTP password
-   * and the OAuth client secret, it is read only by the project's owners and
-   * admins and whoever is granted Read SMTP Config, and it is encrypted at
-   * rest, like every other stored provider credential (the Twilio auth
-   * token, the LLM provider's API key). An access key ID and a sending
-   * domain identify an account but sign in to nothing, so they stay
+   * and the OAuth client secret, it is write-only (see the password) and
+   * encrypted at rest, like every other stored provider credential (the
+   * Twilio auth token, the LLM provider's API key). An access key ID and a
+   * sending domain identify an account but sign in to nothing, so they stay
    * readable by the config's wider audience, as the SMTP username does.
    */
 
@@ -972,11 +988,7 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.CreateProjectSMTPConfig,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ReadProjectSMTPConfig,
-    ],
+    read: [],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -989,7 +1001,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     encrypted: true,
     title: "Amazon SES Secret Access Key",
     description:
-      "The secret access key that goes with the access key ID. Required when Transport is Amazon SES. Encrypted at rest.",
+      "The secret access key that goes with the access key ID. Required when Transport is Amazon SES. Write-only: kept encrypted and never returned by the API.",
     example: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
   })
   @Column({
@@ -1041,11 +1053,7 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.CreateProjectSMTPConfig,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ReadProjectSMTPConfig,
-    ],
+    read: [],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1058,7 +1066,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     encrypted: true,
     title: "SendGrid API Key",
     description:
-      "A SendGrid API key with the Mail Send permission. Required when Transport is SendGrid. Encrypted at rest.",
+      "A SendGrid API key with the Mail Send permission. Required when Transport is SendGrid. Write-only: kept encrypted and never returned by the API.",
     example:
       "SG.xxxxxxxxxxxxxxxxxxxxxx.yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
   })
@@ -1074,11 +1082,7 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.CreateProjectSMTPConfig,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ReadProjectSMTPConfig,
-    ],
+    read: [],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1091,7 +1095,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     encrypted: true,
     title: "Mailgun API Key",
     description:
-      "A Mailgun API key, or a sending API key for the domain. Required when Transport is Mailgun. Encrypted at rest.",
+      "A Mailgun API key, or a sending API key for the domain. Required when Transport is Mailgun. Write-only: kept encrypted and never returned by the API.",
     example: "key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   })
   @Column({
@@ -1181,11 +1185,7 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.CreateProjectSMTPConfig,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ReadProjectSMTPConfig,
-    ],
+    read: [],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1198,7 +1198,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     encrypted: true,
     title: "Postmark Server API Token",
     description:
-      "The API token of the Postmark server that sends, from its API Tokens tab. Required when Transport is Postmark. Encrypted at rest.",
+      "The API token of the Postmark server that sends, from its API Tokens tab. Required when Transport is Postmark. Write-only: kept encrypted and never returned by the API.",
     example: "00000000-0000-0000-0000-000000000000",
   })
   @Column({
@@ -1213,11 +1213,7 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.CreateProjectSMTPConfig,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ReadProjectSMTPConfig,
-    ],
+    read: [],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1230,7 +1226,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     encrypted: true,
     title: "Resend API Key",
     description:
-      "A Resend API key with sending access. Required when Transport is Resend. Encrypted at rest.",
+      "A Resend API key with sending access. Required when Transport is Resend. Write-only: kept encrypted and never returned by the API.",
     example: "re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   })
   @Column({

@@ -26,6 +26,8 @@ flowchart TB
     statuspage --> subscribers["Iscritti"]
 ```
 
+La pagina di ogni record dice anche cosa lo usa. La scheda **Usato da** di un monitor elenca le pagine di stato che lo mostrano, i suoi gruppi di monitor, gli SLO che lo misurano, la manutenzione in arrivo che lo cita, i monitor che dipendono da esso, le regole e i modelli che lo citano, e i flussi di lavoro e le dashboard che lo usano. Ciò che non puoi aprire viene contato, non nominato. Eliminare o archiviare un record lo dice prima, sulle sue pagine e negli elenchi.
+
 ## Progetti e persone
 
 Un **progetto** contiene tutto: monitor, incidenti, policy di reperibilità, pagine di stato, telemetria e impostazioni. Alla maggior parte delle aziende ne basta uno, alcune ne tengono uno per ambiente o per unità di business. Niente di ciò che crei in un progetto è visibile in un altro.

@@ -1211,23 +1211,32 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
           }
           isTitleTranslated={true}
           description={
-            deleteConfirmation?.description || (
-              <DeleteConfirmationMessage
-                kind="question"
-                name={getItemLabel(itemToDelete)}
-                typeLabel={singularName || "Item"}
-                warning={joinSentences(
-                  [
-                    getDeleteConsequence(model.tableName || "", translator),
-                    props.deleteConfirmationWarning
-                      ? translator.translateText(
-                          props.deleteConfirmationWarning,
-                        ) || props.deleteConfirmationWarning
-                      : "",
-                  ].filter(Boolean),
-                )}
-              />
-            )
+            <>
+              {deleteConfirmation?.description || (
+                <DeleteConfirmationMessage
+                  kind="question"
+                  name={getItemLabel(itemToDelete)}
+                  typeLabel={singularName || "Item"}
+                  warning={joinSentences(
+                    [
+                      getDeleteConsequence(model.tableName || "", translator),
+                      props.deleteConfirmationWarning
+                        ? translator.translateText(
+                            props.deleteConfirmationWarning,
+                          ) || props.deleteConfirmationWarning
+                        : "",
+                    ].filter(Boolean),
+                  )}
+                />
+              )}
+              {deleteConfirmation?.details ? (
+                <div className="mt-3" data-testid="delete-confirmation-details">
+                  {deleteConfirmation.details}
+                </div>
+              ) : (
+                <></>
+              )}
+            </>
           }
           isLoading={isDeleting}
           onClose={() => {

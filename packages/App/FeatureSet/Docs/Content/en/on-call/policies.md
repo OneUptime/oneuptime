@@ -57,6 +57,8 @@ Open a policy from the list. Its side menu holds everything about it:
 - **User Overrides** covers people on this policy only. See [User Overrides](/docs/on-call/user-overrides).
 - **Settings** has **Export On-Call Policy** and the card that archives the policy.
 
+**What runs this policy**, on the **Overview**, lists the on-call rules, the monitors whose criteria page the policy, the templates and other rules that page it, and the workflows that do, each with a link. A rule that is switched off says **Off**. When nothing runs the policy, the card says so: it pages nobody until something does. Deleting or archiving the policy says the same first. What you may not open is counted, not named.
+
 ## Repeat a policy
 
 When the last level's wait runs out with nobody acknowledging, a policy stops, unless it repeats. To choose, open the policy's **Escalation Rules** page and click **Edit** on the **Repeat Policy** card below the rules. **Edit Repeat Policy** asks **If nobody acknowledges after the last level**:

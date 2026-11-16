@@ -3,6 +3,8 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import { ON_CALL_POLICY_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import { UsedByImpactForRecord } from "../../../Components/UsedBy/UsedByImpact";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -44,6 +46,13 @@ const OnCallDutyPolicySettings: FunctionComponent<
           }
           unarchiveConfirmMessage={
             ON_CALL_POLICY_ARCHIVE_COPY.unarchiveConfirmMessage
+          }
+          // What runs it stops paging anyone while it is archived (#7758).
+          archiveConfirmationContent={
+            <UsedByImpactForRecord
+              recordKind={UsedByRecordKind.OnCallPolicy}
+              recordId={modelId}
+            />
           }
         />
       </div>
