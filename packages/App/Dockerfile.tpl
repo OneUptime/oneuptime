@@ -349,9 +349,12 @@ FROM enterprise-build AS enterprise-pruned
 # metadata; source maps for stack traces): the image runs JavaScript, and none
 # of its processes loads TypeScript or ts-node
 # (Common/Server/Utils/TsNode/Precompile.js). Here, after every bundle the
-# build made, so each bundle is built from the TypeScript alone: built with
-# the compiled JavaScript beside it, the Enterprise Dashboard's bundle took
-# in the server's packages (TypeORM's Node build) and failed.
+# build made, so each bundle is built from the TypeScript alone: esbuild takes
+# Foo.js over Foo.ts for a file it reaches through node_modules, and the
+# frontends reach Common through node_modules/Common, so a bundle built after
+# this took Common's compiled CommonJS - past the browser stand-ins Common's
+# package.json names by their .ts - and with it the server's packages
+# (TypeORM's Node build), and failed.
 RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common --root /usr/src/ee
 COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js
 RUN node /tmp/PruneUnreachablePackages.js \

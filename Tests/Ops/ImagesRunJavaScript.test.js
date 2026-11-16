@@ -222,10 +222,12 @@ describe.each(SERVERS)("packages/$name", (server) => {
   });
 
   /*
-   * esbuild bundles from the files it finds, and with the compiled
-   * JavaScript beside the TypeScript, the Enterprise Dashboard's bundle took
-   * in the server's packages and failed: every bundle is built before the
-   * compile.
+   * esbuild takes Foo.js over Foo.ts for a file it reaches through
+   * node_modules, as the frontends reach Common: a bundle built after the
+   * compile took Common's compiled CommonJS, past the browser stand-ins
+   * Common's package.json names by their .ts, and with it the server's
+   * packages, and the Enterprise Dashboard's bundle failed. So every bundle
+   * is built before the compile.
    */
   test("no step of its build bundles TypeScript after the compile", () => {
     for (const stage of finals) {
