@@ -2354,16 +2354,6 @@ test.describe("in the reader's language", () => {
     }
     await expect(times).toHaveCount(2);
     await expect(times.filter({ hasText: /ago|[0-9]/ })).toHaveCount(0);
-    // The count keeps its unit on its line, as in English (#8302).
-    expect(
-      withSpacesShown(
-        await times
-          .filter({ hasText: "۲۰ دقیقه پیش" })
-          .evaluate((element: Element): string => {
-            return element.firstChild?.textContent || "";
-          }),
-      ),
-    ).toBe(withSpacesShown(`${withUnit("۲۰", "دقیقه")} پیش`));
 
     // Where each word and each digit of "۲۰ دقیقه پیش" is drawn.
     const drawn: Array<{ text: string; left: number; right: number }> =
@@ -2395,7 +2385,7 @@ test.describe("in the reader's language", () => {
             const pieces: Array<{ text: string; left: number; right: number }> =
               [];
             let start: number = 0;
-            // A word ends at a space or at the no-break space after the count.
+            // Its words, apart at a space and at the no-break space after the count.
             for (const word of content.split(/[ \u00A0]/)) {
               pieces.push(boxOf(start, start + word.length));
               start += word.length + 1;
@@ -2411,6 +2401,12 @@ test.describe("in the reader's language", () => {
       [count!.text, minutes!.text, ago!.text, firstDigit!.text],
       "the words as written",
     ).toEqual(["۲۰", "دقیقه", "پیش", "۲"]);
+    // The count held to its unit by a no-break space (#8456).
+    expect(
+      withSpacesShown(
+        (await times.filter({ hasText: "۲۰ دقیقه پیش" }).textContent()) || "",
+      ),
+    ).toContain(withSpacesShown(`${withUnit("۲۰", "دقیقه")} پیش`));
     // From the right: the count, then the unit to its left, then "ago".
     expect(minutes!.right).toBeLessThanOrEqual(count!.left + 0.5);
     expect(ago!.right).toBeLessThanOrEqual(minutes!.left + 0.5);

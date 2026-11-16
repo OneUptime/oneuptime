@@ -726,6 +726,7 @@ test.describe("an entity's page", () => {
     expect(sources[0]).toContain("Detection Rule");
     expect(sources[0]).toContain("50");
     expect(sources[0]).toContain("14");
+    // Read as written: the number held to its unit (#8456).
     expect(sources[0]).toContain(`${withUnit(9, "minutes")} ago`);
     expect(sources[0]).toContain("TA0006 Credential Access");
     expect(sources[1]).toContain("Spray, then a success");
