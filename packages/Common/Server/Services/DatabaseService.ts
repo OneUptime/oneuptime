@@ -505,6 +505,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   public doNotAllowDelete: boolean = false;
 
+  /*
+   * Set by a service whose rows OneUptime soft deletes on its own, on a
+   * schedule - never a person's Delete, which removes a row at once - such
+   * as the discovered devices the hourly age-out removes (NetworkEndpoint,
+   * DiscoveredDeviceAgeOut). The daily purge of soft-deleted rows
+   * (SoftDeletedRowsPurge) then deletes them for good once they have been
+   * deleted for 30 days on every installation, self-hosted ones included;
+   * other services' rows only where billing is on (issue #6528).
+   */
+  public purgesSoftDeletedRowsOnEveryInstall: boolean = false;
+
   public constructor(modelType: { new (): TBaseModel }) {
     super();
     this.modelType = modelType;
