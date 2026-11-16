@@ -16,7 +16,6 @@ import {
   OpenStackProjectNoticeEvent,
   isOpenStackProjectNoticeArmed,
 } from "../../../Types/OpenStack/OpenStackProjectNotice";
-import API from "../../../Utils/API";
 import {
   OpenStackProjectNoticeFacts,
   OpenStackProjectNoticeMessage,
@@ -33,7 +32,8 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "../../Types/Markdown";
 import BlockedProjectNotifications from "../Notification/BlockedProjectNotifications";
 import logger from "../Logger";
-import SSRFProtection from "../SSRFProtection";
+import SafeWebhookRequest, { WebhookTarget } from "../SafeWebhookRequest";
+import { WebhookTargetValidationOptions } from "../SSRFProtection";
 import OpenStackProjectNotices, {
   toOpenStackNoticeRecipient,
 } from "./OpenStackProjectNotices";
@@ -62,6 +62,16 @@ const SENDING_FOR_TOO_LONG_MINUTES: number = 15;
 const NOTICES_AT_ONCE: number = 10;
 const WEBHOOK_TIMEOUT_IN_MS: number = 10000;
 const EMAIL_TIMEOUT_IN_MS: number = 30000;
+
+/*
+ * A notice's webhook is written by the project's operator, as a project
+ * webhook is, so it may reach a private address where the instance allows
+ * it - as when the notice is saved (OpenStackProjectNoticeService).
+ */
+export const OPENSTACK_NOTICE_WEBHOOK_VALIDATION: WebhookTargetValidationOptions =
+  {
+    allowPrivateNetworkTargets: true,
+  };
 
 export interface OpenStackNoticeSendOutcome {
   isSent: boolean;
@@ -694,10 +704,18 @@ export default class OpenStackProjectNoticeSender {
       };
     }
 
+    /*
+     * An operator wrote this webhook, so their own network is theirs to name
+     * (issue #3424). The post dials an address this check approved and no
+     * other (SafeWebhookRequest).
+     */
+    let target: WebhookTarget;
+
     try {
-      await SSRFProtection.validateWebhookTargetIsSafe(data.webhookUrl, {
-        allowPrivateNetworkTargets: true,
-      });
+      target = await SafeWebhookRequest.resolveTarget(
+        data.webhookUrl,
+        OPENSTACK_NOTICE_WEBHOOK_VALIDATION,
+      );
     } catch (error) {
       return {
         isSent: false,
@@ -709,18 +727,14 @@ export default class OpenStackProjectNoticeSender {
     const deliveryId: string = idOf(data.row);
 
     try {
+      // A public host could otherwise send this server on to an internal address: no redirect is followed.
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post({
-          url: data.webhookUrl,
+        await SafeWebhookRequest.send<JSONObject>(target, {
           // A stable id, for a receiver that wants to be sure it acts once.
           data: { ...data.message.webhook, id: deliveryId },
           headers: { "Idempotency-Key": deliveryId },
-          options: {
-            retries: 0,
-            timeout: WEBHOOK_TIMEOUT_IN_MS,
-            // A public host could otherwise send this server on to an internal address.
-            doNotFollowRedirects: true,
-          },
+          retries: 0,
+          timeout: WEBHOOK_TIMEOUT_IN_MS,
         });
 
       if (response instanceof HTTPErrorResponse) {
