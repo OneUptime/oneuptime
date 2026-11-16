@@ -54283,7 +54283,6 @@
   "Paging never started and was timed out.": "Larmningen startade aldrig och fick timeout.",
   "Paging started.": "Larmning startad.",
   "Paging timed out.": "Larmningen fick timeout.",
-  "Passed On": "Vidarebefordrad",
   "Playbook {{playbook}} on {{case}}": "Playbook {{playbook}} på {{case}}",
   "Profile attribute keys ({{count}} found)": "Attributnycklar för profiler ({{count}} hittade)",
   "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}": "Profiljämförelse, {{beforeStart}} till {{beforeEnd}} mot {{afterStart}} till {{afterEnd}}",

@@ -54283,7 +54283,6 @@
   "Paging never started and was timed out.": "Het oproepen is nooit begonnen en is verlopen.",
   "Paging started.": "Oproepen gestart.",
   "Paging timed out.": "Het oproepen is verlopen.",
-  "Passed On": "Doorgegeven",
   "Playbook {{playbook}} on {{case}}": "Playbook {{playbook}} bij {{case}}",
   "Profile attribute keys ({{count}} found)": "Attribuutsleutels van profielen ({{count}} gevonden)",
   "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}": "Profielvergelijking, {{beforeStart}} tot {{beforeEnd}} tegenover {{afterStart}} tot {{afterEnd}}",

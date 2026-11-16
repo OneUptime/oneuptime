@@ -26,6 +26,17 @@ import UserTotpAuth from "../../../Models/DatabaseModels/UserTotpAuth";
 import User from "../../../Models/DatabaseModels/User";
 import * as OTPAuth from "otpauth";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * A request the route sends that these tests leave unanswered: the email
+ * telling the account holder that backup codes were minted
+ * (TwoFactorBackupCodeNotification), which nobody waits for, sent to the
+ * notification service (MailService). Refused at once, as the network
+ * refused it, and logged as an email that could not be sent
+ * (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/notification/email/send"]);
 
 /*
  * POST /user-totp-auth/validate — the endpoint that turns a scanned QR code

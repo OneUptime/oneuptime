@@ -119,6 +119,7 @@ import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "00000000-0000-4000-8000-000000000001",
@@ -221,6 +222,8 @@ describe("Settings > Users page", () => {
     // The page counts SCIM configs on mount to decide whether to warn.
     jest.spyOn(ModelAPI, "count").mockResolvedValue(0);
     jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
+    // The server's global config, answered here rather than over the network.
+    standInForGlobalConfig();
 
     render(
       <MemoryRouter>

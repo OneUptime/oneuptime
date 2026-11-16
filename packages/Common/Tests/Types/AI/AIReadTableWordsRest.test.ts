@@ -33,6 +33,7 @@ import {
 } from "../../../Types/AI/AIReadTableWords";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
+import { getOnCallPageStatusLabel } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { DataStoreExposure } from "../../../Types/DataSecurity/DataStorePosture";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import SecuritySeverity from "../../../Types/SecuritySeverity";
@@ -140,8 +141,11 @@ describe("the words of a table's cells cover what OneUptime stores there (#8313)
       expect(AI_READ_ON_CALL_PAGE_STATUSES).toContain(status);
     }
 
+    // Each as people read it: "Passed On" is "Escalated".
     for (const status of Object.values(UserNotificationExecutionStatus)) {
-      expect(AI_READ_NOTIFICATION_STATUSES).toContain(status);
+      expect(AI_READ_NOTIFICATION_STATUSES).toContain(
+        getOnCallPageStatusLabel(status),
+      );
     }
   });
 

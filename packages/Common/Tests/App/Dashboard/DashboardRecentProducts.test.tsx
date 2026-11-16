@@ -33,6 +33,15 @@ import {
   routeFor,
   setViewportWidth,
 } from "./SideMenuHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * The products menu reads which products the project has on
+ * (/project-products). These tests leave that read unanswered: refused at
+ * once, as the network refused it, and the menu lists every product
+ * (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/project-products"]);
 
 /*
  * The Dashboard's products menu, with its real navbar, catalog and English

@@ -45,7 +45,7 @@ const scenario: BenchmarkScenario = {
     "Description: Consumer lag of group invoice-worker on topic invoices.created above 2,000 messages for 10 minutes (Invoice pipeline monitor).",
     "Severity: SEV-2",
     "Current state: Created",
-    "Declared at: Oct 05 2026, 08:41 GMT",
+    "Declared at: Oct 05 2026, 08:41 UTC",
     "Affected monitors: Invoice pipeline",
     "Labels: billing, kafka",
     "",

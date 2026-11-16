@@ -54283,7 +54283,6 @@
   "Paging never started and was timed out.": "Die Alarmierung hat nie begonnen und wurde wegen Zeitüberschreitung beendet.",
   "Paging started.": "Alarmierung gestartet.",
   "Paging timed out.": "Zeitüberschreitung bei der Alarmierung.",
-  "Passed On": "Weitergegeben",
   "Playbook {{playbook}} on {{case}}": "Playbook {{playbook}} für {{case}}",
   "Profile attribute keys ({{count}} found)": "Attributschlüssel von Profilen ({{count}} gefunden)",
   "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}": "Profilvergleich, {{beforeStart}} bis {{beforeEnd}} gegenüber {{afterStart}} bis {{afterEnd}}",

@@ -54283,7 +54283,6 @@
   "Paging never started and was timed out.": "Вызов так и не начался и был прерван по тайм-ауту.",
   "Paging started.": "Вызов начат.",
   "Paging timed out.": "Время вызова истекло.",
-  "Passed On": "Передано другому",
   "Playbook {{playbook}} on {{case}}": "Плейбук {{playbook}} для {{case}}",
   "Profile attribute keys ({{count}} found)": "Ключи атрибутов профилей (найдено: {{count}})",
   "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}": "Сравнение профилей, с {{beforeStart}} по {{beforeEnd}} против с {{afterStart}} по {{afterEnd}}",
