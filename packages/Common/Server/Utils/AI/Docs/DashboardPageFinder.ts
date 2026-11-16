@@ -106,11 +106,19 @@ export default class DashboardPageFinder {
    * The pages that fit `query` best, best first: a page named exactly so
    * first, then the ones whose name, other names and place hold the most
    * of its words. Where billing is off, no billing page.
+   *
+   * With `place`, only the pages that are there: where a page is, as a
+   * result said it ("Traces", "Project Settings > Advanced"), the same
+   * words in the same order. Two pages may share a name in one area -
+   * Traces > Insights, the explorer's tab, and Traces > AI > Insights,
+   * OneUptime AI's findings - and a name with its place finds both, so
+   * the place is how the model cites the one it means (#8829).
    */
   public static find(data: {
     query: string;
     limit: number;
     isBillingEnabled: boolean;
+    place?: string | undefined;
     pages?: ReadonlyArray<AIDashboardPage> | undefined;
   }): Array<AIDashboardPage> {
     const queryTerms: Array<string> = tokenizePageName(data.query);
@@ -122,9 +130,18 @@ export default class DashboardPageFinder {
     const pages: ReadonlyArray<AIDashboardPage> =
       data.pages || AI_DASHBOARD_PAGES;
     const scored: Array<{ page: AIDashboardPage; score: number }> = [];
+    const placeTerms: Array<string> | undefined =
+      data.place !== undefined ? tokenizePageName(data.place) : undefined;
 
     pages.forEach((page: AIDashboardPage, position: number) => {
       if (page.billing && !data.isBillingEnabled) {
+        return;
+      }
+
+      if (
+        placeTerms !== undefined &&
+        !sameWords(tokenizePageName(page.where.join(" ")), placeTerms)
+      ) {
         return;
       }
 

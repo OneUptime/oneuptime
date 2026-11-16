@@ -162,3 +162,119 @@ describe("DashboardPageFinder.find", () => {
     ).toBe("/dashboard/:projectId/settings/api-keys");
   });
 });
+
+/*
+ * A name and its place (#8829): two pages may share a name in one area -
+ * the Traces explorer's Insights tab and OneUptime AI's Traces > AI >
+ * Insights - and their name with the area finds both, OneUptime AI's
+ * first. With the place a result gave, only the pages there are found.
+ */
+describe("DashboardPageFinder.find with a place", () => {
+  const INSIGHTS: Array<AIDashboardPage> = [
+    {
+      title: "Insights",
+      where: ["Traces", "AI"],
+      path: "/dashboard/:projectId/traces/ai/insights",
+      kind: AIDashboardPageKind.Page,
+    },
+    {
+      title: "Insights",
+      titleKey: "Insights (explorer analytics)",
+      where: ["Traces"],
+      path: "/dashboard/:projectId/traces/insights",
+      kind: AIDashboardPageKind.Page,
+    },
+    {
+      title: "Insights",
+      where: ["Logs"],
+      path: "/dashboard/:projectId/logs/insights",
+      kind: AIDashboardPageKind.Page,
+    },
+  ];
+
+  const pathsFor: (query: string, place?: string) => Array<string> = (
+    query: string,
+    place?: string,
+  ): Array<string> => {
+    return DashboardPageFinder.find({
+      query,
+      place,
+      limit: 5,
+      isBillingEnabled: true,
+      pages: INSIGHTS,
+    }).map((page: AIDashboardPage): string => {
+      return page.path;
+    });
+  };
+
+  test("without one, a name with its area finds both pages of that name there, the first listed first", () => {
+    expect(pathsFor("Traces Insights").slice(0, 2)).toEqual([
+      "/dashboard/:projectId/traces/ai/insights",
+      "/dashboard/:projectId/traces/insights",
+    ]);
+  });
+
+  test("finds only the pages in that place, by its words in their order", () => {
+    expect(pathsFor("Insights", "Traces")).toEqual([
+      "/dashboard/:projectId/traces/insights",
+    ]);
+    expect(pathsFor("Traces Insights", "Traces")).toEqual([
+      "/dashboard/:projectId/traces/insights",
+    ]);
+    expect(pathsFor("Insights", "Traces > AI")).toEqual([
+      "/dashboard/:projectId/traces/ai/insights",
+    ]);
+    expect(pathsFor("Insights", "traces ai")).toEqual([
+      "/dashboard/:projectId/traces/ai/insights",
+    ]);
+  });
+
+  test("a place is the whole of where a page is: not a part of it, nor its words in another order", () => {
+    expect(pathsFor("Insights", "AI")).toEqual([]);
+    expect(pathsFor("Insights", "AI > Traces")).toEqual([]);
+    expect(pathsFor("Insights", "Traces > AI > More")).toEqual([]);
+  });
+
+  test("a place keeps to the name asked for, and to billing", () => {
+    expect(pathsFor("zzqx", "Traces")).toEqual([]);
+    expect(
+      DashboardPageFinder.find({
+        query: "Billing",
+        place: "Project Settings",
+        limit: 5,
+        isBillingEnabled: false,
+        pages: PAGES,
+      }),
+    ).toEqual([]);
+    expect(
+      DashboardPageFinder.find({
+        query: "Billing",
+        place: "Project Settings",
+        limit: 5,
+        isBillingEnabled: true,
+        pages: PAGES,
+      }).map((page: AIDashboardPage): string => {
+        return page.path;
+      }),
+    ).toEqual(["/dashboard/:projectId/settings/billing"]);
+  });
+
+  test("a common name in a place: the one said there", () => {
+    expect(
+      DashboardPageFinder.find({
+        query: "Custom Fields",
+        place: "Status Pages > Settings",
+        limit: 5,
+        isBillingEnabled: true,
+        pages: PAGES,
+      }).map((page: AIDashboardPage): string => {
+        return page.path;
+      }),
+    ).toEqual(["/dashboard/:projectId/status-pages/settings/custom-fields"]);
+  });
+
+  test("never reads a page's titleKey: the key's note finds nothing", () => {
+    expect(pathsFor("explorer analytics")).toEqual([]);
+    expect(pathsFor("explorer analytics", "Traces")).toEqual([]);
+  });
+});
