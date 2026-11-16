@@ -229,3 +229,46 @@ describe("MetricResultUnitConverter", () => {
     expect(out[0]!.data[0]!.value).toBe(123);
   });
 });
+
+/*
+ * A converted read keeps its own word on itself: whether it was cut at its
+ * row limit or to its top N series (truncated, totalGroups). The chart's
+ * "Showing top k of N" reads it, and a formula never reads a missing point
+ * of a cut read as 0 (MetricZeroFill, #6761).
+ */
+describe("MetricResultUnitConverter keeps what a read says of itself", () => {
+  test("a converted result is still cut, with as many groups as before", () => {
+    const out: Array<AggregatedResult> =
+      MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+        queryConfigs: [
+          buildQueryConfig({
+            variable: "a",
+            metricName: "process.memory.usage",
+            legendUnit: "MB",
+          }),
+        ],
+        results: [
+          {
+            ...buildResult([1_000_000]),
+            truncated: true,
+            totalGroups: 42,
+          },
+        ],
+        nativeUnitByMetricName: new Map([["process.memory.usage", "By"]]),
+      });
+
+    expect(out[0]!.data[0]!.value).toBe(1);
+    expect(out[0]!.truncated).toBe(true);
+    expect(out[0]!.totalGroups).toBe(42);
+  });
+
+  test("a converted result that was whole adds nothing", () => {
+    const out: AggregatedResult = MetricResultUnitConverter.convertResult({
+      result: buildResult([1_000_000]),
+      fromUnit: "By",
+      toUnit: "MB",
+    });
+
+    expect(Object.keys(out)).toEqual(["data"]);
+  });
+});

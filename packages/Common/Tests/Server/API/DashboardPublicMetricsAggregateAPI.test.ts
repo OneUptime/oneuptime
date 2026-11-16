@@ -1,3 +1,4 @@
+import { AggregationTemporality } from "../../../Models/AnalyticsModels/Metric";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import DashboardAPI from "../../../Server/API/DashboardAPI";
@@ -2768,6 +2769,71 @@ describe("DashboardAPI public metrics-aggregate", () => {
             },
           ),
         );
+      });
+
+      /*
+       * Issue #6761: a public dashboard's formulas read a count with no
+       * point in a step as 0 where the dashboard's own page does
+       * (MetricZeroFill), from each metric's counter semantics - so they
+       * come with its unit, for the drawn metrics only.
+       */
+      it("lists a drawn metric's counter semantics beside its unit, and null where the catalog does not know them", async () => {
+        dashboard.dashboardViewConfig = WIDGET_SHAPES[0]!.store([
+          buildWidget(DashboardComponentType.Chart, SPEC),
+          buildWidget(DashboardComponentType.Value, {
+            ...SPEC,
+            metricName: CHARTED_METRIC_NAME,
+          }),
+        ]) as DashboardViewConfig;
+
+        const counter: MetricType = new MetricType();
+        counter.name = WIDGET_METRIC;
+        counter.unit = "1";
+        counter.isMonotonic = true;
+        counter.aggregationTemporality = AggregationTemporality.Delta;
+
+        const gauge: MetricType = new MetricType();
+        gauge.name = CHARTED_METRIC_NAME;
+        gauge.unit = "By";
+
+        const foreign: MetricType = new MetricType();
+        foreign.name = FOREIGN_METRIC;
+        foreign.isMonotonic = true;
+        foreign.aggregationTemporality = AggregationTemporality.Cumulative;
+
+        const findBy: jest.SpiedFunction<typeof MetricTypeService.findBy> = jest
+          .spyOn(MetricTypeService, "findBy")
+          .mockResolvedValue([counter, gauge, foreign]);
+
+        await callMetricTypes();
+
+        const calls: Array<Array<unknown>> = (
+          Response.sendJsonObjectResponse as jest.Mock
+        ).mock.calls as Array<Array<unknown>>;
+
+        expect((calls[0]![2] as JSONObject)["metricTypes"]).toEqual([
+          {
+            name: WIDGET_METRIC,
+            unit: "1",
+            isMonotonic: true,
+            aggregationTemporality: AggregationTemporality.Delta,
+          },
+          {
+            name: CHARTED_METRIC_NAME,
+            unit: "By",
+            isMonotonic: null,
+            aggregationTemporality: null,
+          },
+        ]);
+
+        expect(
+          (findBy.mock.calls[0]![0] as { select: JSONObject }).select,
+        ).toEqual({
+          name: true,
+          unit: true,
+          isMonotonic: true,
+          aggregationTemporality: true,
+        });
       });
 
       describe.each(WIDGET_SHAPES)("stored $name", (shape: WidgetShape) => {
