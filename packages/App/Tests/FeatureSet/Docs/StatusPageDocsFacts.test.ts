@@ -621,20 +621,24 @@ describe("the Status Pages Overview: where everything lives", () => {
       menu.map((section: MenuSection): string => {
         return section.title;
       }),
-    ).toEqual(["Status Pages", "More", "Settings", "Advanced"]);
+    ).toEqual(["Status Pages", "Rules", "Settings", "Advanced"]);
 
     const statusPages: MenuSection = byTitle("Status Pages");
-    const more: MenuSection = byTitle("More");
+    const rules: MenuSection = byTitle("Rules");
     const settings: MenuSection = byTitle("Settings");
     const advanced: MenuSection = byTitle("Advanced");
 
-    expect([statusPages.collapsed, more.collapsed]).toEqual([false, false]);
-    expect([settings.collapsed, advanced.collapsed]).toEqual([true, true]);
+    expect(statusPages.collapsed).toEqual(false);
+    expect([rules.collapsed, settings.collapsed, advanced.collapsed]).toEqual([
+      true,
+      true,
+      true,
+    ]);
     expect(where).toContain(
-      `the **Status Pages** section itself lists ${boldList(statusPages.items)}, and a **More** section holds ${boldList(more.items)}.`,
+      `the **Status Pages** section itself lists ${boldList(statusPages.items)}.`,
     );
     expect(where).toContain(
-      `A collapsed **Settings** section holds ${boldList(settings.items)}, which are project-wide`,
+      `A collapsed **Rules** section holds ${boldList(rules.items)}, and a collapsed **Settings** section holds ${boldList(settings.items)}. All of them are project-wide`,
     );
     expect(where).toContain(
       `A collapsed **Advanced** section holds ${boldList(advanced.items)}:`,

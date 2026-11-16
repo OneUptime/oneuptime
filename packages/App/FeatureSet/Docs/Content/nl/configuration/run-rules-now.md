@@ -35,7 +35,7 @@ De regels van een netwerk vragen hetzelfde wanneer u ze uitvoert op de apparaten
 :::steps
 ### De lijst met regels openen
 
-Open de pagina met regels, bijvoorbeeld **Monitoren → Instellingen → Labelregels**.
+Open de pagina met regels, bijvoorbeeld **Monitoren → Regels → Labelregels**.
 
 ### Run Now kiezen
 

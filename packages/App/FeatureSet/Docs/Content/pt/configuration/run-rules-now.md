@@ -35,7 +35,7 @@ As regras de uma rede pedem o mesmo quando você as executa sobre os dispositivo
 :::steps
 ### Abrir a lista de regras
 
-Abra a página de regras, por exemplo **Monitores → Configurações → Regras de Rótulos**.
+Abra a página de regras, por exemplo **Monitores → Regras → Regras de Rótulos**.
 
 ### Selecionar Run Now
 

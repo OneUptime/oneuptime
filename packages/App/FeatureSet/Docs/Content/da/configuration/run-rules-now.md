@@ -35,7 +35,7 @@ Et netværks regler kræver det samme, når du kører dem på de enheder, du all
 :::steps
 ### Åbn listen over regler
 
-Åbn siden med regler, for eksempel **Monitorer → Indstillinger → Etiketregler**.
+Åbn siden med regler, for eksempel **Monitorer → Regler → Etiketregler**.
 
 ### Vælg Run Now
 
