@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#a-products-first-page
 import {
   afterEach,
   beforeEach,
