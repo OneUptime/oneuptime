@@ -183,6 +183,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getList: (...args: Array<unknown>): unknown => {
         return getListMock(...args);
       },
+      // The Subscribers page counts each channel for its tab.
+      count: async (): Promise<number> => {
+        return 0;
+      },
     },
   };
 });
@@ -218,16 +222,41 @@ import {
   setChips,
 } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
-import EmailSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/EmailSubscribers";
-import MicrosoftTeamsSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/MicrosoftTeamsSubscribers";
-import SMSSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SMSSubscribers";
-import SlackSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SlackSubscribers";
 import StatusPageSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/StatusPageSettings";
+import StatusPageSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Subscribers";
 import SubscriberSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SubscriberSettings";
-import WebhookSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/WebhookSubscribers";
+import StatusPageSubscriberChannel from "../../../Types/StatusPage/StatusPageSubscriberChannel";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
+
+/*
+ * The five subscriber lists are one Subscribers page since #9125, a tab per
+ * channel: each opens on its channel's tab by its address, as a link or an
+ * old per-channel address opens it.
+ */
+function subscribersTab(
+  channel: StatusPageSubscriberChannel,
+): (props: PageComponentProps) => ReactElement {
+  const SubscribersTab: React.FunctionComponent<PageComponentProps> = (
+    props: PageComponentProps,
+  ): ReactElement => {
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard/status-pages/subscribers?channel=${channel}`,
+    );
+
+    return <StatusPageSubscribers {...props} />;
+  };
+
+  SubscribersTab.displayName = `SubscribersTab(${channel})`;
+
+  return SubscribersTab;
+}
+
+const EmailSubscribers: (props: PageComponentProps) => ReactElement =
+  subscribersTab(StatusPageSubscriberChannel.Email);
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: new Route("/dashboard"),
@@ -850,28 +879,28 @@ interface ChannelPage {
 const CHANNEL_PAGES: Array<ChannelPage> = [
   {
     name: "Email Subscribers",
-    page: EmailSubscribers as unknown as ChannelPage["page"],
+    page: EmailSubscribers,
     method: StatusPageSubscriberNotificationMethod.Email,
     column: "enableEmailSubscribers",
     oldBanner: "Email subscribers are not enabled for this status page.",
   },
   {
     name: "SMS Subscribers",
-    page: SMSSubscribers as unknown as ChannelPage["page"],
+    page: subscribersTab(StatusPageSubscriberChannel.SMS),
     method: StatusPageSubscriberNotificationMethod.SMS,
     column: "enableSmsSubscribers",
     oldBanner: "SMS subscribers are not enabled for this status page.",
   },
   {
     name: "Slack Subscribers",
-    page: SlackSubscribers as unknown as ChannelPage["page"],
+    page: subscribersTab(StatusPageSubscriberChannel.Slack),
     method: StatusPageSubscriberNotificationMethod.Slack,
     column: "enableSlackSubscribers",
     oldBanner: "Slack subscribers are not enabled for this status page.",
   },
   {
     name: "Microsoft Teams Subscribers",
-    page: MicrosoftTeamsSubscribers as unknown as ChannelPage["page"],
+    page: subscribersTab(StatusPageSubscriberChannel.MicrosoftTeams),
     method: StatusPageSubscriberNotificationMethod.MicrosoftTeams,
     column: "enableMicrosoftTeamsSubscribers",
     oldBanner:
@@ -879,7 +908,7 @@ const CHANNEL_PAGES: Array<ChannelPage> = [
   },
   {
     name: "Webhook Subscribers",
-    page: WebhookSubscribers as unknown as ChannelPage["page"],
+    page: subscribersTab(StatusPageSubscriberChannel.Webhook),
     method: StatusPageSubscriberNotificationMethod.Webhook,
     column: "enableWebhookSubscribers",
     oldBanner: "Webhook subscribers are not enabled for this status page.",
@@ -1022,7 +1051,8 @@ describe("the email forms' shared-address advice", () => {
     const emails: Field<unknown> | undefined = (
       formProps["fields"] as Array<Field<unknown>>
     ).find((field: Field<unknown>): boolean => {
-      return fieldKey(field) === "emails";
+      // The pasted field, "entries" on every channel of the shared list.
+      return fieldKey(field) === "entries";
     });
 
     expect(emails).toBeDefined();

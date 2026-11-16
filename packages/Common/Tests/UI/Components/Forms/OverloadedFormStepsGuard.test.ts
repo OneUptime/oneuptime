@@ -540,24 +540,18 @@ describe("the project's stepped forms", () => {
         ["match-criteria", "labels"],
       ];
     }),
-    ...[
-      ["EmailSubscribers.tsx", "Email Subscribers"],
-      ["SMSSubscribers.tsx", "SMS Subscribers"],
-      ["SlackSubscribers.tsx", "Slack Subscribers"],
-      ["MicrosoftTeamsSubscribers.tsx", "Microsoft Teams Subscribers"],
-      ["WebhookSubscribers.tsx", "Webhook Subscribers"],
-    ].map(([file, name]: Array<string>): [string, string, Array<string>] => {
-      /*
-       * The scan reads the larger branch of the conditional step list: the
-       * one a page that lets subscribers choose gets. The internal note is
-       * no step of its own any more: it is folded under More fields.
-       */
-      return [
-        `${DASHBOARD}/Pages/StatusPages/View/${file}`,
-        `ModelTable: Status Page > ${name}`,
-        ["subscriber-info", "notifications"],
-      ];
-    }),
+    /*
+     * Every channel's subscriber list is one component since #9125, its
+     * table named per channel (SubscriberListChannels), so the scanner
+     * numbers it. The scan reads the larger branch of the conditional step
+     * list: the one a page that lets subscribers choose gets. The internal
+     * note is no step of its own any more: it is folded under More fields.
+     */
+    [
+      `${DASHBOARD}/Components/StatusPage/StatusPageSubscriberList.tsx`,
+      "ModelTable #1",
+      ["subscriber-info", "notifications"],
+    ],
   ])(
     "%s %s walks its split steps",
     (file: string, label: string, steps: Array<string>) => {
