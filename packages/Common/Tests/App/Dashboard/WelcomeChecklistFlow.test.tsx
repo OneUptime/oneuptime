@@ -23,8 +23,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * THE WELCOME CARD'S FLOW ON HOME (issue #6803), with the real component and
  * the server's answers stood in for:
  *
- *  - "What do you want to do first?" once, for a new project's owner: the
- *    seven goals, several ticked, Continue or Skip; the checklist that
+ *  - "What do you want to do first?" once, for a new project's owner: six
+ *    goals as cards, several ticked, what they bring said while picking,
+ *    then Continue - or "Just looking around", the way out, which keeps
+ *    that goal and hides the checklist (#8897); the checklist that
  *    follows; Change to answer again.
  *  - Hide is this person's own: the card goes, a line stays with Show it
  *    and How OneUptime works.
@@ -102,9 +104,12 @@ import GettingStarted, {
   WelcomeCardView,
   getStepAfter,
   getWelcomeCardView,
+  isQuickstartView,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
 import {
   WELCOME_GOALS,
+  WELCOME_GOAL_CARDS,
+  WELCOME_JUST_LOOKING_GOAL,
   WelcomeGoalEntry,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistCatalog";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
@@ -113,9 +118,11 @@ import ProjectGoal, {
   PROJECT_GOALS,
 } from "../../../Types/WelcomeChecklist/ProjectGoal";
 import {
+  WELCOME_STEP_MINUTES,
   WelcomeAudience,
   WelcomeChecklistStepState,
   WelcomeStep,
+  getWelcomeStepsMinutes,
 } from "../../../Types/WelcomeChecklist/WelcomeChecklist";
 import {
   WELCOME_CHECKLIST_GOALS_ROUTE,
@@ -124,11 +131,13 @@ import {
   WelcomeChecklistAnswer,
   getEmptyWelcomeChecklistAnswer,
 } from "../../../Types/WelcomeChecklist/WelcomeChecklistAnswer";
+import Name from "../../../Types/Name";
 import ChecklistEvents from "../../../UI/Utils/ChecklistEvents";
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
+import UserUtil from "../../../UI/Utils/User";
 import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
 
 /*
@@ -173,9 +182,19 @@ function answer(
 
 const NEW_PROJECT: WelcomeChecklistAnswer = answer({ shouldAskForGoals: true });
 
+// Every view the card said it drew, in order (Home draws the page by it).
+let views: Array<WelcomeCardView | null> = [];
+
 async function renderGettingStarted(): Promise<void> {
   await act(async () => {
-    render(<GettingStarted projectId={new ObjectID(PROJECT_ID)} />);
+    render(
+      <GettingStarted
+        projectId={new ObjectID(PROJECT_ID)}
+        onViewChange={(view: WelcomeCardView | null) => {
+          views.push(view);
+        }}
+      />,
+    );
   });
 }
 
@@ -194,9 +213,11 @@ function goalBox(goal: ProjectGoal): HTMLInputElement {
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
+  views = [];
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
+  jest.spyOn(UserUtil, "getName").mockReturnValue(new Name("Ada Lovelace"));
   legacyMock.mockResolvedValue(null);
   fetchMock.mockResolvedValue(NEW_PROJECT);
   jest
@@ -218,7 +239,7 @@ afterEach(() => {
 });
 
 describe("What do you want to do first?", () => {
-  test("asks a new project's owner, with the seven goals in the question's order, and no checklist yet", async () => {
+  test("asks a new project's owner, with six goals as cards in the question's order, Just looking around under them, and no checklist yet", async () => {
     await renderGettingStarted();
 
     const question: HTMLElement = screen.getByTestId("welcome-question");
@@ -232,10 +253,18 @@ describe("What do you want to do first?", () => {
             box.closest("label")?.getAttribute("data-testid") || ""
           ).replace("welcome-goal-", "");
         }),
-    ).toEqual([...PROJECT_GOALS]);
+    ).toEqual(
+      PROJECT_GOALS.filter((goal: ProjectGoal): boolean => {
+        return goal !== ProjectGoal.Explore;
+      }),
+    );
     expect(question).toHaveTextContent("Know when my website or API is down");
     expect(question).toHaveTextContent("I am moving from another tool");
-    expect(question).toHaveTextContent("Just looking around");
+    // The way out is a button under the cards, not one of them.
+    expect(screen.queryByTestId("welcome-goal-explore")).toBeNull();
+    expect(
+      screen.getByTestId("welcome-question-just-looking"),
+    ).toHaveTextContent("Just looking around");
     expect(screen.queryByTestId("getting-started")).toBeNull();
   });
 
@@ -245,6 +274,131 @@ describe("What do you want to do first?", () => {
         return entry.goal;
       }),
     ).toEqual([...PROJECT_GOALS]);
+    expect(WELCOME_JUST_LOOKING_GOAL).toBe(ProjectGoal.Explore);
+    expect(
+      WELCOME_GOAL_CARDS.map((entry: WelcomeGoalEntry): ProjectGoal => {
+        return entry.goal;
+      }),
+    ).toEqual(
+      PROJECT_GOALS.filter((goal: ProjectGoal): boolean => {
+        return goal !== WELCOME_JUST_LOOKING_GOAL;
+      }),
+    );
+  });
+
+  test("greets the person by their first name, as they wrote it", async () => {
+    await renderGettingStarted();
+
+    expect(screen.getByTestId("welcome-question-greeting")).toHaveTextContent(
+      "Welcome to OneUptime, Ada 👋",
+    );
+  });
+
+  test("with no name known, the greeting is the card's own welcome", async () => {
+    jest.spyOn(UserUtil, "getName").mockReturnValue(new Name(""));
+    await renderGettingStarted();
+
+    expect(screen.getByTestId("welcome-question-greeting")).toHaveTextContent(
+      /^Welcome to OneUptime 👋$/,
+    );
+  });
+
+  test("each card says what the goal brings, and a screen reader hears it with the choice", async () => {
+    await renderGettingStarted();
+
+    for (const entry of WELCOME_GOAL_CARDS) {
+      const card: HTMLElement = screen.getByTestId(
+        `welcome-goal-${entry.goal}`,
+      );
+      const box: HTMLElement = within(card).getByRole("checkbox");
+
+      expect(entry.outcome.length).toBeGreaterThan(20);
+      expect(card).toHaveTextContent(entry.outcome);
+      expect(box).toHaveAccessibleDescription(entry.outcome);
+      expect(box).toHaveAccessibleName(new RegExp(`^${entry.title}`));
+    }
+  });
+
+  test("a picked card is plainly marked, and unmarked again", async () => {
+    await renderGettingStarted();
+
+    const card: HTMLElement = screen.getByTestId(
+      `welcome-goal-${ProjectGoal.Uptime}`,
+    );
+
+    expect(card).toHaveAttribute("data-chosen", "false");
+    expect(
+      within(
+        screen.getByTestId(`welcome-goal-${ProjectGoal.Uptime}-mark`),
+      ).queryByRole("img", { hidden: true }),
+    ).toBeNull();
+
+    fireEvent.click(goalBox(ProjectGoal.Uptime));
+
+    expect(card).toHaveAttribute("data-chosen", "true");
+    expect(card.className).toContain("border-indigo-500");
+    expect(
+      screen.getByTestId(`welcome-goal-${ProjectGoal.Uptime}-mark`).className,
+    ).toContain("bg-indigo-600");
+
+    fireEvent.click(goalBox(ProjectGoal.Uptime));
+
+    expect(card).toHaveAttribute("data-chosen", "false");
+    expect(card.className).not.toContain("border-indigo-500");
+  });
+
+  test("while picking, says how many steps the goals bring and about how long they take", async () => {
+    await renderGettingStarted();
+
+    // Nothing picked: why Continue waits.
+    expect(screen.getByTestId("welcome-question-plan")).toHaveTextContent(
+      "Pick at least one to continue.",
+    );
+    expect(screen.queryByTestId("welcome-question-plan-steps")).toBeNull();
+
+    fireEvent.click(goalBox(ProjectGoal.Uptime));
+
+    // Uptime: a monitor and who is told.
+    expect(screen.getByTestId("welcome-question-plan-steps")).toHaveTextContent(
+      "2 steps to set up",
+    );
+    expect(
+      screen.getByTestId("welcome-question-plan-minutes"),
+    ).toHaveTextContent(
+      `About ${getWelcomeStepsMinutes([WelcomeStep.Monitor, WelcomeStep.OnCall])} minutes`,
+    );
+
+    // A status page adds one step; the monitor they share is counted once.
+    fireEvent.click(goalBox(ProjectGoal.StatusPage));
+
+    expect(screen.getByTestId("welcome-question-plan-steps")).toHaveTextContent(
+      "3 steps to set up",
+    );
+    expect(
+      screen.getByTestId("welcome-question-plan-minutes"),
+    ).toHaveTextContent(
+      `About ${getWelcomeStepsMinutes([
+        WelcomeStep.Monitor,
+        WelcomeStep.OnCall,
+        WelcomeStep.StatusPage,
+      ])} minutes`,
+    );
+    expect(screen.queryByTestId("welcome-question-pick-hint")).toBeNull();
+  });
+
+  test("one step is said in the singular", async () => {
+    await renderGettingStarted();
+
+    fireEvent.click(goalBox(ProjectGoal.Telemetry));
+
+    expect(screen.getByTestId("welcome-question-plan-steps")).toHaveTextContent(
+      /^1 step to set up$/,
+    );
+    expect(
+      screen.getByTestId("welcome-question-plan-minutes"),
+    ).toHaveTextContent(
+      `About ${WELCOME_STEP_MINUTES[WelcomeStep.Telemetry]} minutes`,
+    );
   });
 
   test("Continue waits for a goal; nothing is sent until then", async () => {
@@ -306,37 +460,101 @@ describe("What do you want to do first?", () => {
     });
   });
 
-  test("Skip sends no goals, and the four steps follow", async () => {
-    postMock.mockResolvedValue(answer({ goals: [] }));
+  /*
+   * The way out of the question (#8897): the goal of someone who has none
+   * yet is kept, and the checklist is hidden for them at once, so they land
+   * on the rest of Home with the line that shows it again. Skip used to
+   * keep them on the checklist's four steps.
+   */
+  test("Just looking around keeps the Explore goal and hides the checklist for this person, with nothing drawn in between", async () => {
+    const explore: WelcomeChecklistAnswer = answer({
+      goals: [ProjectGoal.Explore],
+      steps: [step(WelcomeStep.Monitor, { isNext: true })],
+    });
+
+    postMock.mockImplementation((route: unknown) => {
+      return Promise.resolve(
+        route === WELCOME_CHECKLIST_HIDE_ROUTE
+          ? { ...explore, isHiddenForMe: true }
+          : explore,
+      );
+    });
     await renderGettingStarted();
 
-    await press("welcome-question-skip");
+    await press("welcome-question-just-looking");
 
-    expect(postMock).toHaveBeenCalledWith(WELCOME_CHECKLIST_GOALS_ROUTE, {
-      goals: [],
-    });
-    expect(screen.getByTestId("getting-started")).toBeInTheDocument();
-    expect(
-      screen.getAllByTestId(/^getting-started-task-[a-z_]+$/),
-    ).toHaveLength(4);
+    expect(postMock.mock.calls).toEqual([
+      [WELCOME_CHECKLIST_GOALS_ROUTE, { goals: [ProjectGoal.Explore] }],
+      [WELCOME_CHECKLIST_HIDE_ROUTE, {}],
+    ]);
+    expect(screen.queryByTestId("welcome-question")).toBeNull();
+    expect(screen.getByTestId("welcome-checklist-hidden")).toHaveTextContent(
+      "You hid the Welcome checklist.",
+    );
+    // From the question straight to the line: the checklist never drew.
+    expect(views).not.toContain(WelcomeCardView.Checklist);
+    expect(views[views.length - 1]).toBe(WelcomeCardView.Hidden);
     expect(sendMock).toHaveBeenCalledWith(ProductEventName.GoalsChosen, {
-      goals: "",
-      goal_count: 0,
+      goals: "explore",
+      goal_count: 1,
       is_change: false,
     });
+    // Not a dismissal of a checklist the person never saw.
+    expect(sendMock).not.toHaveBeenCalledWith(
+      ProductEventName.ChecklistDismissed,
+      expect.anything(),
+    );
+  });
+
+  test("Just looking around whose goal does not save says so, and keeps the question", async () => {
+    postMock.mockResolvedValue(null);
+    await renderGettingStarted();
+
+    await press("welcome-question-just-looking");
+
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("welcome-question-error")).toHaveTextContent(
+      "That did not save.",
+    );
+    expect(sendMock).not.toHaveBeenCalledWith(
+      ProductEventName.GoalsChosen,
+      expect.anything(),
+    );
+  });
+
+  test("Just looking around whose hide does not save shows the checklist Explore brings, with its Hide", async () => {
+    postMock.mockImplementation((route: unknown) => {
+      return Promise.resolve(
+        route === WELCOME_CHECKLIST_HIDE_ROUTE
+          ? null
+          : answer({
+              goals: [ProjectGoal.Explore],
+              steps: [step(WelcomeStep.Monitor, { isNext: true })],
+            }),
+      );
+    });
+    await renderGettingStarted();
+
+    await press("welcome-question-just-looking");
+
+    expect(screen.getByTestId("getting-started")).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`getting-started-task-${WelcomeStep.Monitor}`),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("getting-started-dismiss")).toBeEnabled();
   });
 
   test("an answer that does not save says so, and keeps the question with what was ticked", async () => {
     postMock.mockResolvedValue(null);
     await renderGettingStarted();
 
-    fireEvent.click(goalBox(ProjectGoal.Explore));
+    fireEvent.click(goalBox(ProjectGoal.Uptime));
     await press("welcome-question-continue");
 
     expect(screen.getByTestId("welcome-question-error")).toHaveTextContent(
       "That did not save.",
     );
-    expect(goalBox(ProjectGoal.Explore).checked).toBe(true);
+    expect(goalBox(ProjectGoal.Uptime).checked).toBe(true);
     expect(sendMock).not.toHaveBeenCalledWith(
       ProductEventName.GoalsChosen,
       expect.anything(),
@@ -372,6 +590,9 @@ describe("changing the goals later, from Home", () => {
     expect(screen.getByTestId("welcome-question-continue")).toHaveTextContent(
       "Save",
     );
+    // Changing is not a first visit: no greeting, and no way out but Cancel.
+    expect(screen.queryByTestId("welcome-question-greeting")).toBeNull();
+    expect(screen.queryByTestId("welcome-question-just-looking")).toBeNull();
 
     await press("welcome-question-cancel");
 
@@ -408,6 +629,41 @@ describe("changing the goals later, from Home", () => {
     expect(
       screen.getAllByTestId(/^getting-started-task-[a-z_]+$/),
     ).toHaveLength(2);
+  });
+
+  test("a project that was just looking around changes its goals from no card picked, and saves real ones", async () => {
+    fetchMock.mockResolvedValue(
+      answer({
+        goals: [ProjectGoal.Explore],
+        steps: [step(WelcomeStep.Monitor, { isNext: true })],
+      }),
+    );
+    postMock.mockResolvedValue(
+      answer({
+        goals: [ProjectGoal.StatusPage],
+        steps: [
+          step(WelcomeStep.Monitor, { isNext: true }),
+          step(WelcomeStep.StatusPage),
+        ],
+      }),
+    );
+    await renderGettingStarted();
+
+    expect(
+      screen.getByTestId(`welcome-checklist-goal-${ProjectGoal.Explore}`),
+    ).toHaveTextContent("Just looking around");
+
+    await press("welcome-checklist-change-goals");
+
+    // Nothing is picked: the way out is no card, so Save waits for one.
+    expect(screen.getByTestId("welcome-question-continue")).toBeDisabled();
+
+    fireEvent.click(goalBox(ProjectGoal.StatusPage));
+    await press("welcome-question-continue");
+
+    expect(postMock).toHaveBeenCalledWith(WELCOME_CHECKLIST_GOALS_ROUTE, {
+      goals: [ProjectGoal.StatusPage],
+    });
   });
 
   test("a project that skipped is offered to choose goals", async () => {
@@ -574,6 +830,84 @@ describe("the events of a step seen done", () => {
     await renderGettingStarted();
 
     expect(note).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Home draws the rest of the page by the view this card says it draws
+ * (#8897): nothing until the answer is read, then the view - the question
+ * and the checklist are the quickstart, and Home is only them.
+ */
+describe("the view it says it draws, for Home", () => {
+  test("nothing until the answer is read, then the question", async () => {
+    let resolve: (value: WelcomeChecklistAnswer) => void = () => {};
+
+    fetchMock.mockImplementation(() => {
+      return new Promise((done: (value: WelcomeChecklistAnswer) => void) => {
+        resolve = done;
+      });
+    });
+
+    await renderGettingStarted();
+
+    expect(views).toEqual([null]);
+
+    await act(async () => {
+      resolve(NEW_PROJECT);
+    });
+
+    expect(views).toEqual([null, WelcomeCardView.Question]);
+  });
+
+  test("the checklist after Continue, and the line after Hide", async () => {
+    postMock.mockImplementation((route: unknown) => {
+      return Promise.resolve(
+        route === WELCOME_CHECKLIST_HIDE_ROUTE
+          ? answer({ goals: [ProjectGoal.Uptime], isHiddenForMe: true })
+          : answer({ goals: [ProjectGoal.Uptime] }),
+      );
+    });
+    await renderGettingStarted();
+
+    fireEvent.click(goalBox(ProjectGoal.Uptime));
+    await press("welcome-question-continue");
+
+    expect(views[views.length - 1]).toBe(WelcomeCardView.Checklist);
+
+    await press("getting-started-dismiss");
+
+    expect(views[views.length - 1]).toBe(WelcomeCardView.Hidden);
+  });
+
+  test("an answer that could not be read is no view at all: Home draws itself", async () => {
+    fetchMock.mockResolvedValue(null);
+    await renderGettingStarted();
+
+    expect(views).toEqual([null, WelcomeCardView.None]);
+  });
+
+  test("a read that throws is no view either, never a page left deciding", async () => {
+    fetchMock.mockRejectedValue(new Error("network"));
+    await renderGettingStarted();
+
+    expect(views[views.length - 1]).toBe(WelcomeCardView.None);
+  });
+
+  test("only the question and the checklist are the quickstart", () => {
+    expect(isQuickstartView(WelcomeCardView.Question)).toBe(true);
+    expect(isQuickstartView(WelcomeCardView.Checklist)).toBe(true);
+
+    for (const view of [
+      WelcomeCardView.None,
+      WelcomeCardView.Hidden,
+      WelcomeCardView.InvitedMember,
+      null,
+    ]) {
+      expect({ view, isQuickstart: isQuickstartView(view) }).toEqual({
+        view,
+        isQuickstart: false,
+      });
+    }
   });
 });
 
