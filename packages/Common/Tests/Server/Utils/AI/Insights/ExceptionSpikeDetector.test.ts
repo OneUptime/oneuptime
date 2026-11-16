@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import ExceptionSpikeDetector, {
   EXCEPTION_SPIKE_BASELINE_WINDOW_HOURS,
   EXCEPTION_SPIKE_CANDIDATE_LIMIT,
@@ -15,18 +22,20 @@ import TelemetryException from "../../../../../Models/DatabaseModels/TelemetryEx
 import Service from "../../../../../Models/DatabaseModels/Service";
 import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
 import AIInsightType from "../../../../../Types/AI/AIInsightType";
-import InBetween from "../../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
-import PositiveNumber from "../../../../../Types/PositiveNumber";
 import ObjectID from "../../../../../Types/ObjectID";
+import ExceptionOwnCode, {
+  ExceptionOwnCodeReading,
+} from "../../../../../Server/Utils/AI/SRE/Insights/Detectors/ExceptionOwnCode";
 
 /*
  * Invariant under test: the ExceptionSpike detector fires exactly when an
  * ESTABLISHED exception's last-hour count is >= 10 AND >= 5x its own
  * average hourly rate over the prior 24h (baseline floored at 1/hour, so
  * dormant awakening falls out of the same rule), escalating to High at a
- * 10x multiplier — and its two ClickHouse counts are root queries scoped
- * to (projectId, fingerprint, exact time windows). No LLM is ever
+ * 10x multiplier — and its counts come from ONE root ClickHouse statement a
+ * scan, scoped to (projectId, the candidates' fingerprints, exact time
+ * windows), that counts what two counts a candidate counted. No LLM is ever
  * involved.
  */
 
@@ -139,21 +148,150 @@ describe("ExceptionSpikeDetector.buildFingerprint (pure)", () => {
   });
 });
 
+/*
+ * ClickHouse, in memory: the occurrences a test puts there, counted as the
+ * detector's statement counts them (countPerValueInWindows) - per
+ * fingerprint, in each window, both ends in - and as the two counts a
+ * candidate it used to make counted them (countOfOccurrences): the query's
+ * fingerprint, its own or any of its group's.
+ */
+interface Occurrence {
+  projectId: ObjectID;
+  fingerprint: string;
+  time: Date;
+}
+
+let occurrences: Array<Occurrence> = [];
+
+function fingerprintMatches(fingerprint: string, query: unknown): boolean {
+  return query instanceof Includes
+    ? (query.values as Array<unknown>).includes(fingerprint)
+    : query === fingerprint;
+}
+
+function isIn(time: Date, startsAt: Date, endsAt: Date): boolean {
+  return (
+    time.getTime() >= startsAt.getTime() && time.getTime() <= endsAt.getTime()
+  );
+}
+
+function standInForClickHouse(): jest.SpyInstance {
+  return jest
+    .spyOn(ExceptionInstanceService, "countPerValueInWindows")
+    .mockImplementation((async (data: {
+      query: Record<string, unknown>;
+      windows: Array<{ startsAt: Date; endsAt: Date }>;
+    }): Promise<Map<string, Array<number>>> => {
+      const counts: Map<string, Array<number>> = new Map<
+        string,
+        Array<number>
+      >();
+
+      for (const occurrence of occurrences) {
+        if (
+          occurrence.projectId.toString() !==
+            (data.query["projectId"] as ObjectID).toString() ||
+          !fingerprintMatches(occurrence.fingerprint, data.query["fingerprint"])
+        ) {
+          continue;
+        }
+
+        const windowCounts: Array<number> = data.windows.map(
+          (window: { startsAt: Date; endsAt: Date }): number => {
+            return isIn(occurrence.time, window.startsAt, window.endsAt)
+              ? 1
+              : 0;
+          },
+        );
+
+        if (
+          windowCounts.every((count: number): boolean => {
+            return count === 0;
+          })
+        ) {
+          continue;
+        }
+
+        const kept: Array<number> = counts.get(occurrence.fingerprint) || [
+          ...data.windows.map((): number => {
+            return 0;
+          }),
+        ];
+
+        counts.set(
+          occurrence.fingerprint,
+          kept.map((count: number, index: number): number => {
+            return count + windowCounts[index]!;
+          }),
+        );
+      }
+
+      return counts;
+    }) as never);
+}
+
+// What one countBy of the old detector counted: the query, both ends in.
+function countOfOccurrences(
+  fingerprintQuery: string | Includes,
+  startsAt: Date,
+  endsAt: Date,
+): number {
+  return occurrences.filter((occurrence: Occurrence): boolean => {
+    return (
+      occurrence.projectId.toString() === projectId.toString() &&
+      fingerprintMatches(occurrence.fingerprint, fingerprintQuery) &&
+      isIn(occurrence.time, startsAt, endsAt)
+    );
+  }).length;
+}
+
+function at(date: Date, offsetMs: number): Date {
+  return new Date(date.getTime() + offsetMs);
+}
+
+function occurring(
+  fingerprint: string,
+  times: Array<Date>,
+  project: ObjectID = projectId,
+): Array<Occurrence> {
+  return times.map((time: Date): Occurrence => {
+    return { projectId: project, fingerprint, time };
+  });
+}
+
+function many(count: number, time: Date): Array<Date> {
+  return Array.from({ length: count }, (): Date => {
+    return time;
+  });
+}
+
 describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
+  beforeEach(() => {
+    occurrences = [];
+    jest
+      .spyOn(ExceptionOwnCode, "readMany")
+      .mockResolvedValue(new Map<string, ExceptionOwnCodeReading>());
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("counts recent vs prior windows per candidate with root ClickHouse queries", async () => {
+  test("counts every candidate's recent and prior windows in one root ClickHouse statement", async () => {
     const findBySpy: jest.SpyInstance = jest
       .spyOn(TelemetryExceptionService, "findBy")
       .mockResolvedValue([
         fakeCandidate(),
       ] as unknown as Array<TelemetryException>);
-    const countBySpy: jest.SpyInstance = jest
-      .spyOn(ExceptionInstanceService, "countBy")
-      .mockResolvedValueOnce(new PositiveNumber(50))
-      .mockResolvedValueOnce(new PositiveNumber(24));
+    occurrences = [
+      ...occurring("fp-1", many(50, at(oneHourAgo, 60 * 1000))),
+      ...occurring("fp-1", many(24, at(twentyFiveHoursAgo, 60 * 1000))),
+    ];
+    const countSpy: jest.SpyInstance = standInForClickHouse();
+    const countBySpy: jest.SpyInstance = jest.spyOn(
+      ExceptionInstanceService,
+      "countBy",
+    );
     jest
       .spyOn(ServiceService, "findOneById")
       .mockResolvedValue({ name: "payments" } as unknown as Service);
@@ -179,27 +317,25 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
       }),
     );
 
-    // Two counts: recent [now-1h, now] then prior [now-25h, now-1h].
-    expect(countBySpy).toHaveBeenCalledTimes(2);
-    const recentQuery: Record<string, unknown> = countBySpy.mock.calls[0]![0]!
-      .query as unknown as Record<string, unknown>;
-    expect(recentQuery["projectId"]).toBe(projectId);
-    expect(recentQuery["fingerprint"]).toBe("fp-1");
-    const recentWindow: InBetween<Date> = recentQuery[
-      "time"
-    ] as InBetween<Date>;
-    expect(recentWindow).toBeInstanceOf(InBetween);
-    expect(recentWindow.startValue).toEqual(oneHourAgo);
-    expect(recentWindow.endValue).toEqual(now);
-
-    const priorQuery: Record<string, unknown> = countBySpy.mock.calls[1]![0]!
-      .query as unknown as Record<string, unknown>;
-    const priorWindow: InBetween<Date> = priorQuery["time"] as InBetween<Date>;
-    expect(priorWindow.startValue).toEqual(twentyFiveHoursAgo);
-    expect(priorWindow.endValue).toEqual(oneHourAgo);
-    expect(countBySpy.mock.calls[0]![0]!.props).toEqual(
-      expect.objectContaining({ isRoot: true }),
-    );
+    // One statement: recent [now-1h, now] and prior [now-25h, now-1h], by fingerprint.
+    expect(countBySpy).not.toHaveBeenCalled();
+    expect(countSpy).toHaveBeenCalledTimes(1);
+    const statement: {
+      query: Record<string, unknown>;
+      valueColumnName: string;
+      timeColumnName: string;
+      windows: Array<{ startsAt: Date; endsAt: Date }>;
+      props: Record<string, unknown>;
+    } = countSpy.mock.calls[0]![0];
+    expect(statement.query["projectId"]).toBe(projectId);
+    expect(statement.query["fingerprint"]).toBe("fp-1");
+    expect(statement.valueColumnName).toBe("fingerprint");
+    expect(statement.timeColumnName).toBe("time");
+    expect(statement.windows).toEqual([
+      { startsAt: oneHourAgo, endsAt: now },
+      { startsAt: twentyFiveHoursAgo, endsAt: oneHourAgo },
+    ]);
+    expect(statement.props).toEqual(expect.objectContaining({ isRoot: true }));
 
     // 50 recent vs 1/hour baseline → 50x spike, High.
     expect(candidates).toHaveLength(1);
@@ -228,16 +364,51 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
     expect(candidate.detailMarkdown).toContain("Spike multiplier: 50.0x");
   });
 
+  test("an occurrence on a window's edge counts as the two counts counted it: in both windows at the spike window's start", async () => {
+    jest
+      .spyOn(TelemetryExceptionService, "findBy")
+      .mockResolvedValue([
+        fakeCandidate(),
+      ] as unknown as Array<TelemetryException>);
+    occurrences = [
+      // The edges: now, the spike window's start (in both), the baseline's start.
+      ...occurring("fp-1", many(10, now)),
+      ...occurring("fp-1", many(10, oneHourAgo)),
+      ...occurring("fp-1", many(4, twentyFiveHoursAgo)),
+      // Just outside: neither window.
+      ...occurring("fp-1", many(7, at(now, 1))),
+      ...occurring("fp-1", many(7, at(twentyFiveHoursAgo, -1))),
+    ];
+    standInForClickHouse();
+    jest
+      .spyOn(ServiceService, "findOneById")
+      .mockResolvedValue({ name: "payments" } as unknown as Service);
+
+    const candidates: Array<InsightCandidate> =
+      await new ExceptionSpikeDetector().detect({ projectId, now });
+
+    expect(countOfOccurrences("fp-1", oneHourAgo, now)).toBe(20);
+    expect(countOfOccurrences("fp-1", twentyFiveHoursAgo, oneHourAgo)).toBe(14);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]!.evidence.exception).toEqual(
+      expect.objectContaining({
+        recentOccurrenceCount: 20,
+        baselineHourlyAverage: 14 / EXCEPTION_SPIKE_BASELINE_WINDOW_HOURS,
+      }),
+    );
+  });
+
   test("a candidate whose counts do not spike produces no insight", async () => {
     jest
       .spyOn(TelemetryExceptionService, "findBy")
       .mockResolvedValue([
         fakeCandidate(),
       ] as unknown as Array<TelemetryException>);
-    jest
-      .spyOn(ExceptionInstanceService, "countBy")
-      .mockResolvedValueOnce(new PositiveNumber(5))
-      .mockResolvedValueOnce(new PositiveNumber(100));
+    occurrences = [
+      ...occurring("fp-1", many(5, at(oneHourAgo, 1000))),
+      ...occurring("fp-1", many(100, at(twentyFiveHoursAgo, 1000))),
+    ];
+    standInForClickHouse();
     const findOneByIdSpy: jest.SpyInstance = jest.spyOn(
       ServiceService,
       "findOneById",
@@ -260,6 +431,7 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
         fingerprint: undefined,
       } as unknown as TelemetryException,
     ]);
+    const countSpy: jest.SpyInstance = standInForClickHouse();
     const countBySpy: jest.SpyInstance = jest.spyOn(
       ExceptionInstanceService,
       "countBy",
@@ -272,7 +444,18 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
     });
 
     expect(candidates).toEqual([]);
+    expect(countSpy).not.toHaveBeenCalled();
     expect(countBySpy).not.toHaveBeenCalled();
+  });
+
+  test("no candidate: no ClickHouse statement at all", async () => {
+    jest.spyOn(TelemetryExceptionService, "findBy").mockResolvedValue([]);
+    const countSpy: jest.SpyInstance = standInForClickHouse();
+
+    expect(
+      await new ExceptionSpikeDetector().detect({ projectId, now }),
+    ).toEqual([]);
+    expect(countSpy).not.toHaveBeenCalled();
   });
 
   /*
@@ -320,20 +503,13 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
        * Its own fingerprint is quiet; the duplicate merged into it took 45
        * of the last hour's 50 occurrences.
        */
-      const countBySpy: jest.SpyInstance = jest
-        .spyOn(ExceptionInstanceService, "countBy")
-        .mockImplementation((async (data: {
-          query: Record<string, unknown>;
-        }) => {
-          const window: InBetween<Date> = data.query["time"] as InBetween<Date>;
-          const isRecent: boolean = window.endValue.getTime() === now.getTime();
-          const isGroup: boolean =
-            data.query["fingerprint"] instanceof Includes;
-
-          return new PositiveNumber(
-            isRecent ? (isGroup ? 50 : 5) : isGroup ? 24 : 20,
-          );
-        }) as never);
+      occurrences = [
+        ...occurring("fp-1", many(5, at(oneHourAgo, 1000))),
+        ...occurring("fp-merged", many(45, at(oneHourAgo, 2000))),
+        ...occurring("fp-1", many(20, at(twentyFiveHoursAgo, 1000))),
+        ...occurring("fp-merged", many(4, at(twentyFiveHoursAgo, 2000))),
+      ];
+      const countSpy: jest.SpyInstance = standInForClickHouse();
       jest
         .spyOn(ServiceService, "findOneById")
         .mockResolvedValue({ name: "payments" } as unknown as Service);
@@ -350,16 +526,15 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
         }),
       );
 
-      for (const call of countBySpy.mock.calls) {
-        const fingerprint: unknown = (
-          call[0] as { query: Record<string, unknown> }
-        ).query["fingerprint"];
-        expect(fingerprint).toBeInstanceOf(Includes);
-        expect((fingerprint as Includes).values).toEqual(["fp-1", "fp-merged"]);
-      }
+      expect(countSpy).toHaveBeenCalledTimes(1);
+      const fingerprint: unknown = (
+        countSpy.mock.calls[0]![0] as { query: Record<string, unknown> }
+      ).query["fingerprint"];
+      expect(fingerprint).toBeInstanceOf(Includes);
+      expect((fingerprint as Includes).values).toEqual(["fp-1", "fp-merged"]);
     });
 
-    test("what was merged into the candidates is read once for them all, in the project", async () => {
+    test("what was merged into the candidates is read once for them all, in the project, and all are counted in one statement", async () => {
       jest
         .spyOn(TelemetryExceptionService, "findBy")
         .mockResolvedValue([
@@ -367,9 +542,7 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
           { ...fakeCandidate(), id: otherId, fingerprint: "fp-other" },
           { id: ObjectID.generate(), fingerprint: undefined },
         ] as unknown as Array<TelemetryException>);
-      const countBySpy: jest.SpyInstance = jest
-        .spyOn(ExceptionInstanceService, "countBy")
-        .mockResolvedValue(new PositiveNumber(1));
+      const countSpy: jest.SpyInstance = standInForClickHouse();
 
       await new ExceptionSpikeDetector().detect({ projectId, now });
 
@@ -382,17 +555,160 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
         ],
       ]);
 
-      // Nothing merged into the other: its own fingerprint, as before any merge.
-      const fingerprints: Array<unknown> = countBySpy.mock.calls.map(
-        (call: Array<unknown>): unknown => {
-          return (call[0] as { query: Record<string, unknown> }).query[
-            "fingerprint"
-          ];
-        },
-      );
-      expect(fingerprints).toHaveLength(4);
-      expect(fingerprints.slice(2)).toEqual(["fp-other", "fp-other"]);
+      // Every candidate's group, the other's own fingerprint alone among them.
+      expect(countSpy).toHaveBeenCalledTimes(1);
+      const fingerprint: unknown = (
+        countSpy.mock.calls[0]![0] as { query: Record<string, unknown> }
+      ).query["fingerprint"];
+      expect((fingerprint as Includes).values).toEqual([
+        "fp-1",
+        "fp-merged",
+        "fp-other",
+      ]);
     });
+  });
+
+  /*
+   * EQUIVALENCE: what one statement counts and sums per candidate is what
+   * the two counts per candidate counted - for every candidate, over
+   * occurrences on and around every edge of both windows, of the
+   * candidates' own and merged fingerprints, of fingerprints no candidate
+   * has and of another project. So the same exceptions spike, at the same
+   * rates, as before.
+   */
+  test("the same spikes, at the same rates, as two counts per candidate found", async () => {
+    const otherProjectId: ObjectID = ObjectID.generate();
+    const edges: Array<Date> = [
+      now,
+      at(now, -1),
+      at(now, 1),
+      oneHourAgo,
+      at(oneHourAgo, -1),
+      at(oneHourAgo, 1),
+      at(oneHourAgo, -30 * 60 * 1000),
+      twentyFiveHoursAgo,
+      at(twentyFiveHoursAgo, -1),
+      at(twentyFiveHoursAgo, 1),
+      at(now, -10 * 60 * 1000),
+    ];
+    let seed: number = 7;
+    const random: (below: number) => number = (below: number): number => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed % below;
+    };
+
+    for (let round: number = 0; round < 40; round++) {
+      jest.restoreAllMocks();
+      TelemetryExceptionService.clearGroupFingerprints();
+      jest
+        .spyOn(ExceptionOwnCode, "readMany")
+        .mockResolvedValue(new Map<string, ExceptionOwnCodeReading>());
+      jest
+        .spyOn(ServiceService, "findOneById")
+        .mockResolvedValue({ name: "payments" } as unknown as Service);
+
+      // Up to five candidates, some with exceptions merged into them.
+      const groups: Array<{ id: ObjectID; fingerprints: Array<string> }> = [];
+      const candidateCount: number = 1 + random(5);
+
+      for (let index: number = 0; index < candidateCount; index++) {
+        const fingerprints: Array<string> = [`fp-${round}-${index}`];
+
+        for (let merged: number = random(3); merged > 0; merged--) {
+          fingerprints.push(`fp-${round}-${index}-merged-${merged}`);
+        }
+
+        groups.push({ id: ObjectID.generate(), fingerprints });
+      }
+
+      jest.spyOn(TelemetryExceptionService, "findBy").mockResolvedValue(
+        groups.map((group: { id: ObjectID; fingerprints: Array<string> }) => {
+          return {
+            ...fakeCandidate(),
+            id: group.id,
+            fingerprint: group.fingerprints[0],
+          };
+        }) as unknown as Array<TelemetryException>,
+      );
+      jest
+        .spyOn(TelemetryExceptionService, "getGroupFingerprints")
+        .mockResolvedValue(
+          new Map<string, Array<string>>(
+            groups.map(
+              (group: {
+                id: ObjectID;
+                fingerprints: Array<string>;
+              }): [string, Array<string>] => {
+                return [group.id.toString().toLowerCase(), group.fingerprints];
+              },
+            ),
+          ),
+        );
+
+      occurrences = [];
+
+      for (const group of groups) {
+        for (const fingerprint of group.fingerprints) {
+          for (const edge of edges) {
+            occurrences.push(
+              ...occurring(fingerprint, many(random(4) * random(9), edge)),
+            );
+          }
+
+          occurrences.push(
+            ...occurring(fingerprint, many(random(6), now), otherProjectId),
+          );
+        }
+      }
+
+      occurrences.push(...occurring(`fp-${round}-nobody`, many(30, now)));
+
+      standInForClickHouse();
+
+      const found: Array<InsightCandidate> =
+        await new ExceptionSpikeDetector().detect({ projectId, now });
+
+      // What two counts per candidate found.
+      const expected: Array<{ id: string; recent: number; baseline: number }> =
+        [];
+
+      for (const group of groups) {
+        const query: string | Includes =
+          group.fingerprints.length === 1
+            ? group.fingerprints[0]!
+            : new Includes([...group.fingerprints]);
+        const recent: number = countOfOccurrences(query, oneHourAgo, now);
+        const prior: number = countOfOccurrences(
+          query,
+          twentyFiveHoursAgo,
+          oneHourAgo,
+        );
+        const decision: ExceptionSpikeDecision =
+          ExceptionSpikeDetector.evaluateSpike(recent, prior);
+
+        if (decision.isSpike) {
+          expected.push({
+            id: group.id.toString(),
+            recent,
+            baseline: decision.baselineHourlyAverage,
+          });
+        }
+      }
+
+      expect({
+        round,
+        spikes: found.map((candidate: InsightCandidate) => {
+          const exception: Record<string, unknown> = candidate.evidence
+            .exception as Record<string, unknown>;
+
+          return {
+            id: candidate.telemetryExceptionId!.toString(),
+            recent: exception["recentOccurrenceCount"],
+            baseline: exception["baselineHourlyAverage"],
+          };
+        }),
+      }).toEqual({ round, spikes: expected });
+    }
   });
 
   test("detect propagates ClickHouse errors — the scanner isolates detectors", async () => {
@@ -402,7 +718,7 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
         fakeCandidate(),
       ] as unknown as Array<TelemetryException>);
     jest
-      .spyOn(ExceptionInstanceService, "countBy")
+      .spyOn(ExceptionInstanceService, "countPerValueInWindows")
       .mockRejectedValue(new Error("clickhouse down"));
 
     const detector: ExceptionSpikeDetector = new ExceptionSpikeDetector();
