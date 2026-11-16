@@ -31,13 +31,20 @@ import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import { DOCS_URL } from "../../../UI/Config";
+import {
+  HELP_MODAL_EXPAND_ALL_TEST_ID,
+  HELP_MODAL_SUMMARY_TEST_ID,
+  getHelpSectionBodyTestId,
+  getHelpSectionButtonTestId,
+} from "../../../UI/Components/Help/HelpModal";
 import LocalStorage from "../../../UI/Utils/LocalStorage";
 
 /*
  * The "how it works" card as a customer meets it: the pipeline and the
- * level mapping visible on the page, the full guide one click away in a
- * tabbed modal, and a Hide that sticks — per guide, and without ever
- * breaking when browser storage is unavailable.
+ * level mapping visible on the page, the full guide one click away in the
+ * help dialog every list's help opens (HelpModal: its summary in short,
+ * then one topic per section), and a Hide that sticks — per guide, and
+ * without ever breaking when browser storage is unavailable.
  *
  * What the guides SAY is pinned against the engine in
  * SecurityEventsGuideContent.test.ts; this suite pins how it is shown.
@@ -158,10 +165,21 @@ function openGuideButton(guide: SecurityEventsGuide = TEST_GUIDE): HTMLElement {
   return within(card(guide)).getByTestId("how-it-works-open-guide");
 }
 
-function tabFor(section: SecurityEventsGuideSection): HTMLElement {
-  return within(screen.getByTestId("modal")).getByRole("tab", {
-    name: section.title,
-  });
+// A section's topic heading in the guide's dialog: the button that opens it.
+function topicFor(section: SecurityEventsGuideSection): HTMLElement {
+  return within(screen.getByTestId("modal")).getByTestId(
+    getHelpSectionButtonTestId(section.id),
+  );
+}
+
+function topicBodyFor(section: SecurityEventsGuideSection): HTMLElement {
+  return within(screen.getByTestId("modal")).getByTestId(
+    getHelpSectionBodyTestId(section.id),
+  );
+}
+
+function isTopicOpen(section: SecurityEventsGuideSection): boolean {
+  return topicFor(section).getAttribute("aria-expanded") === "true";
 }
 
 describe("SecurityEventsHowItWorksCard", () => {
@@ -506,7 +524,7 @@ describe("SecurityEventsHowItWorksCard", () => {
   });
 
   describe("the full guide", () => {
-    test("opens on the first section, with the guide's title and description", () => {
+    test("opens at its start: its title, its line, its summary in short and its first section", () => {
       renderCard();
 
       fireEvent.click(openGuideButton());
@@ -517,27 +535,25 @@ describe("SecurityEventsHowItWorksCard", () => {
       expect(screen.getByTestId("modal-description")).toHaveTextContent(
         TEST_GUIDE.guideDescription,
       );
-      expect(tabFor(TEST_GUIDE.sections[0]!)).toHaveAttribute(
-        "aria-selected",
-        "true",
+      expect(screen.getByTestId(HELP_MODAL_SUMMARY_TEST_ID)).toHaveTextContent(
+        "A summary of the test feature.",
       );
-      expect(
-        screen.getByTestId("how-it-works-section-overview"),
-      ).toHaveTextContent("Overview body text.");
+      expect(isTopicOpen(TEST_GUIDE.sections[0]!)).toBe(true);
+      expect(isTopicOpen(TEST_GUIDE.sections[1]!)).toBe(false);
+      expect(isTopicOpen(TEST_GUIDE.sections[2]!)).toBe(false);
+      expect(topicBodyFor(TEST_GUIDE.sections[0]!)).toHaveTextContent(
+        "Overview body text.",
+      );
     });
 
-    test("has one tab per section, in order", () => {
+    test("has one topic per section, in order", () => {
       renderCard();
 
       fireEvent.click(openGuideButton());
 
-      const tabs: Array<HTMLElement> = within(
-        screen.getByTestId("modal"),
-      ).getAllByRole("tab");
-
       expect(
-        tabs.map((tab: HTMLElement) => {
-          return tab.textContent;
+        TEST_GUIDE.sections.map((section: SecurityEventsGuideSection) => {
+          return topicFor(section).textContent;
         }),
       ).toEqual(
         TEST_GUIDE.sections.map((section: SecurityEventsGuideSection) => {
@@ -546,22 +562,22 @@ describe("SecurityEventsHowItWorksCard", () => {
       );
     });
 
-    test("switching tabs shows that section instead", () => {
+    test("opening another section shows it too, and closing one hides it", () => {
       renderCard();
 
       fireEvent.click(openGuideButton());
-      fireEvent.click(tabFor(TEST_GUIDE.sections[2]!));
+      fireEvent.click(topicFor(TEST_GUIDE.sections[2]!));
 
-      expect(tabFor(TEST_GUIDE.sections[2]!)).toHaveAttribute(
-        "aria-selected",
-        "true",
+      expect(isTopicOpen(TEST_GUIDE.sections[2]!)).toBe(true);
+      expect(topicBodyFor(TEST_GUIDE.sections[2]!)).toHaveTextContent(
+        "Troubleshooting body text.",
       );
-      expect(
-        screen.getByTestId("how-it-works-section-troubleshooting"),
-      ).toHaveTextContent("Troubleshooting body text.");
-      expect(
-        screen.queryByTestId("how-it-works-section-overview"),
-      ).not.toBeInTheDocument();
+      expect(isTopicOpen(TEST_GUIDE.sections[0]!)).toBe(true);
+
+      fireEvent.click(topicFor(TEST_GUIDE.sections[0]!));
+
+      expect(isTopicOpen(TEST_GUIDE.sections[0]!)).toBe(false);
+      expect(topicBodyFor(TEST_GUIDE.sections[0]!)).not.toBeVisible();
     });
 
     test("the levels link opens straight onto the section that explains them", () => {
@@ -569,13 +585,11 @@ describe("SecurityEventsHowItWorksCard", () => {
 
       fireEvent.click(within(card()).getByTestId("how-it-works-levels-link"));
 
-      expect(tabFor(TEST_GUIDE.sections[1]!)).toHaveAttribute(
-        "aria-selected",
-        "true",
+      expect(isTopicOpen(TEST_GUIDE.sections[1]!)).toBe(true);
+      expect(isTopicOpen(TEST_GUIDE.sections[0]!)).toBe(false);
+      expect(topicBodyFor(TEST_GUIDE.sections[1]!)).toHaveTextContent(
+        "Levels body text.",
       );
-      expect(
-        screen.getByTestId("how-it-works-section-levels"),
-      ).toHaveTextContent("Levels body text.");
     });
 
     test("the levels link names the levels it explains", () => {
@@ -620,18 +634,17 @@ describe("SecurityEventsHowItWorksCard", () => {
       ).not.toBeInTheDocument();
     });
 
-    test("reopening after switching tabs starts from the first section again", () => {
+    test("reopening after opening other sections starts from the first section again", () => {
       renderCard();
 
       fireEvent.click(openGuideButton());
-      fireEvent.click(tabFor(TEST_GUIDE.sections[2]!));
+      fireEvent.click(topicFor(TEST_GUIDE.sections[2]!));
+      fireEvent.click(topicFor(TEST_GUIDE.sections[0]!));
       fireEvent.click(screen.getByTestId("close-button"));
       fireEvent.click(openGuideButton());
 
-      expect(tabFor(TEST_GUIDE.sections[0]!)).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
+      expect(isTopicOpen(TEST_GUIDE.sections[0]!)).toBe(true);
+      expect(isTopicOpen(TEST_GUIDE.sections[2]!)).toBe(false);
     });
 
     test("links to the full public documentation in a new tab", () => {
@@ -675,18 +688,15 @@ describe("SecurityEventsHowItWorksCard", () => {
         ).toHaveLength(guide.levels.items.length);
       });
 
-      test("every tab shows its section's full markdown", () => {
+      test("every topic shows its section's full markdown", () => {
         renderCard(guide);
 
         fireEvent.click(openGuideButton(guide));
+        fireEvent.click(screen.getByTestId(HELP_MODAL_EXPAND_ALL_TEST_ID));
 
         for (const section of guide.sections) {
-          fireEvent.click(tabFor(section));
-
-          expect(
-            screen.getByTestId(`how-it-works-section-${section.id}`)
-              .textContent,
-          ).toBe(section.markdown);
+          expect(isTopicOpen(section)).toBe(true);
+          expect(topicBodyFor(section).textContent).toBe(section.markdown);
         }
       });
 
@@ -697,9 +707,14 @@ describe("SecurityEventsHowItWorksCard", () => {
           within(card(guide)).getByTestId("how-it-works-levels-link"),
         );
 
-        expect(
-          screen.getByTestId(`how-it-works-section-${guide.levels.sectionId}`),
-        ).toBeInTheDocument();
+        const levels: SecurityEventsGuideSection = guide.sections.find(
+          (section: SecurityEventsGuideSection): boolean => {
+            return section.id === guide.levels.sectionId;
+          },
+        )!;
+
+        expect(isTopicOpen(levels)).toBe(true);
+        expect(topicBodyFor(levels).textContent).toBe(levels.markdown);
       });
     },
   );
