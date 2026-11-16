@@ -129,6 +129,7 @@ import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
 import ProjectUtil from "../../../../UI/Utils/Project";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../../Types/ObjectID";
@@ -249,9 +250,10 @@ const makeProps: (options?: TableOptions) => BaseModelTableProps<Incident> = (
     pluralName: "Incidents",
     userPreferencesKey: "incidents-live-table",
     urlStateKey: "incidents-live-table",
-    // A monitor is called by its name, an incident by its title.
+    // A monitor and a status page are called by their name, an incident by its title.
     columns:
-      options?.modelType === (Monitor as unknown as { new (): BaseModel })
+      options?.modelType === (Monitor as unknown as { new (): BaseModel }) ||
+      options?.modelType === (StatusPage as unknown as { new (): BaseModel })
         ? [{ field: { name: true }, title: "Name", type: FieldType.Text }]
         : [{ field: { title: true }, title: "Title", type: FieldType.Text }],
     filters: [],
@@ -645,12 +647,57 @@ describe("a row a live read brought in is marked for a moment", () => {
   });
 });
 
-describe("lists that stay as they were loaded", () => {
-  test("a Monitors list: monitors do not announce their changes", async () => {
+/*
+ * A monitor's status moves with its checks and its probes come and go, on
+ * their own: Not Operational, Probe Disconnected and the other Monitors
+ * lists follow them without Refresh (#6918).
+ */
+describe("a Monitors list keeps itself current", () => {
+  const renderMonitors: () => Promise<void> = async (): Promise<void> => {
     render(
       <BaseModelTable<Incident>
         {...makeProps({
           modelType: Monitor as unknown as { new (): BaseModel },
+        })}
+      />,
+    );
+    await waitFor(() => {
+      expect(listCalls).toBeGreaterThan(0);
+    });
+  };
+
+  test("it listens for the project's created, changed and deleted monitors", async () => {
+    await renderMonitors();
+
+    expect(
+      active().map((subscription: Subscription): string => {
+        return `${subscription.modelName} ${subscription.eventType} ${subscription.tenantId}`;
+      }),
+    ).toEqual([
+      `Monitor Create ${PROJECT_ID}`,
+      `Monitor Update ${PROJECT_ID}`,
+      `Monitor Delete ${PROJECT_ID}`,
+    ]);
+  });
+
+  test("a monitor going offline reads the page again", async () => {
+    await renderMonitors();
+    const readsBefore: number = listCalls;
+
+    announce("Update");
+
+    await waitFor(() => {
+      expect(listCalls).toBe(readsBefore + 1);
+    });
+  });
+});
+
+describe("lists that stay as they were loaded", () => {
+  test("a list of a kind whose changes are not announced: status pages", async () => {
+    render(
+      <BaseModelTable<Incident>
+        {...makeProps({
+          modelType: StatusPage as unknown as { new (): BaseModel },
         })}
       />,
     );

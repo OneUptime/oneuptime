@@ -69,6 +69,7 @@ import { LiveRowsHeard } from "../../../../UI/Components/ModelTable/LiveRows";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
+import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../../../Types/ObjectID";
 
@@ -226,8 +227,26 @@ describe("what a list listens for", () => {
     ).toEqual(["Update"]);
   });
 
-  test("a Monitors list hears nothing: monitors do not announce their changes", () => {
+  /*
+   * A monitor's status moves with its checks, and its probes come and go:
+   * Not Operational and the other Monitors lists follow them (#6918).
+   */
+  test("a Monitors list hears its project's created, changed and deleted monitors", () => {
     mount({ modelType: Monitor as unknown as { new (): BaseModel } });
+
+    expect(
+      active().map((subscription: Subscription): string => {
+        return `${subscription.modelName} ${subscription.eventType} ${subscription.tenantId}`;
+      }),
+    ).toEqual([
+      `Monitor Create ${PROJECT_ID}`,
+      `Monitor Update ${PROJECT_ID}`,
+      `Monitor Delete ${PROJECT_ID}`,
+    ]);
+  });
+
+  test("a list of a kind that announces nothing hears nothing", () => {
+    mount({ modelType: StatusPage as unknown as { new (): BaseModel } });
     expect(active()).toEqual([]);
   });
 
