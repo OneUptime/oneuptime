@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import { readFileSync } from "fs";
 import path from "path";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -591,12 +592,14 @@ test.describe("How OneUptime works, the whole product", () => {
     await page.getByTestId("home-how-oneuptime-works").click();
     await expect(sections(page).first()).toBeFocused();
 
-    const list: { x: number } | null = await dialog(page)
-      .getByRole("tablist")
-      .boundingBox();
-    const panel: { x: number } | null = await dialog(page)
-      .getByTestId("how-oneuptime-works-panel")
-      .boundingBox();
+    /*
+     * Read in one frame: the dialog is still growing in, and two reads one
+     * after the other would come from two moments of it.
+     */
+    const [list, panel] = await boxesInOneFrame([
+      dialog(page).getByRole("tablist"),
+      dialog(page).getByTestId("how-oneuptime-works-panel"),
+    ]);
 
     expect(list!.x).toBeGreaterThan(panel!.x);
 

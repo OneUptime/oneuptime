@@ -20,6 +20,9 @@ import ScrubNestedValuesUtil, {
 import ScrubJsonTextUtil, {
   ScrubJsonTexts,
 } from "Common/Utils/Telemetry/ScrubJsonText";
+import ScrubJsonKeysUtil, {
+  ScrubJsonKeysRule,
+} from "Common/Utils/Telemetry/ScrubJsonKeys";
 import { maskKeepingEnds } from "Common/Utils/Telemetry/ScrubMask";
 import { correlationIdAttributeKeys } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import { readOwnValue } from "Common/Utils/LookupTable";
@@ -277,14 +280,45 @@ export class LogScrubRuleService {
   }
 
   /*
+   * A Sensitive Attribute Keys rule as it reads one record: its key
+   * pattern, its action, and `allowance` - what it has left of the record's
+   * SCRUB_MAX_NESTED_VALUES_PER_RECORD for the JSON texts it reads, the
+   * body's and those the attributes hold, one after the other.
+   */
+  private static keysRuleOf(
+    compiled: CompiledRule,
+    allowance: ScrubNestedValuesAllowance,
+    jsonTexts: ScrubJsonTexts,
+  ): ScrubJsonKeysRule {
+    const action: string =
+      (compiled.rule.scrubAction as string) || LogScrubAction.Redact;
+
+    return {
+      isSensitiveKey: (key: string): boolean => {
+        return compiled.regex.test(key);
+      },
+      hideText: (text: string): string => {
+        return this.applyScrubAction(
+          text,
+          action,
+          LogScrubPatternType.SensitiveKeys,
+        );
+      },
+      allowance: allowance,
+      jsonTexts: jsonTexts,
+    };
+  }
+
+  /*
    * One rule over a log's attribute values, in place. A text value is
    * scrubbed as it is; a list or a map - OTLP's lists and key-value lists,
    * a scope's attributes - text by text, keeping its shape, with numbers
    * and true or false left alone (Common/Utils/Telemetry/ScrubNestedValues).
    * A sensitive-keys rule hides every text under a key that looks secret:
-   * the attribute's own key, or a key inside its value. `heldAsText`: the
-   * keys whose values were too deep or too large to read value by value,
-   * and are read as their JSON text.
+   * the attribute's own key, a key inside its value, or a key inside a JSON
+   * text it holds (`keysRule`: the rule as it reads this record). `heldAsText`:
+   * the keys whose values were too deep or too large to read value by
+   * value, and are read as their JSON text.
    */
   private static scrubAttributes(
     attributes: JSONObject,
@@ -292,32 +326,34 @@ export class LogScrubRuleService {
     heldAsText: ReadonlySet<string>,
     jsonTexts: ScrubJsonTexts,
     correlationIdKeys: ReadonlySet<string>,
+    keysRule: ScrubJsonKeysRule | undefined,
   ): void {
     const patternType: string = (compiled.rule.patternType as string) || "";
 
     if (patternType === LogScrubPatternType.SensitiveKeys) {
-      const action: string =
-        (compiled.rule.scrubAction as string) || LogScrubAction.Redact;
+      const rule: ScrubJsonKeysRule =
+        keysRule ||
+        this.keysRuleOf(
+          compiled,
+          ScrubNestedValuesUtil.newRecordAllowance(),
+          jsonTexts,
+        );
 
       /*
        * Key match → every text of the value gets the action - but for the
        * attribute that holds the log's own session id, which its sessionId
-       * column keeps (#8924).
+       * column keeps (#8924). A text under no such key is read as the JSON
+       * text it may be: `http.request.body` = {"password": ...} (#8993).
        */
       ScrubNestedValuesUtil.hideAttributeTextsUnderSensitiveKeys(
         attributes,
-        (key: string): boolean => {
-          return compiled.regex.test(key);
-        },
-        (text: string): string => {
-          return this.applyScrubAction(
-            text,
-            action,
-            LogScrubPatternType.SensitiveKeys,
-          );
-        },
+        rule.isSensitiveKey,
+        rule.hideText,
         heldAsText,
         correlationIdKeys,
+        (text: string): string => {
+          return ScrubJsonKeysUtil.hideUnderSensitiveKeys(text, rule);
+        },
       );
 
       return;
@@ -339,11 +375,13 @@ export class LogScrubRuleService {
    * ingest stores as its JSON text, or one written as JSON - read key by key
    * by each Sensitive Attribute Keys rule, as an attribute's list or map
    * is: every text under a key that looks secret is hidden, a password
-   * inside an OTLP {key, value} pair too (#6513). Pattern rules read the
-   * body as the text it is, as they always have.
+   * inside an OTLP {key, value} pair too (#6513), and so is one under a key
+   * inside a JSON text a string of the body holds - a Fluentd/docker `log`
+   * field holding the application's JSON line (#8993). Pattern rules read
+   * the body as the text it is, as they always have.
    *
-   * Within the record's bounds (Common/Utils/Telemetry/ScrubNestedValues):
-   * the body's values count against what the record's attributes left of
+   * Within the record's bounds (Common/Utils/Telemetry/ScrubJsonKeys): the
+   * body's values count against what the record's attributes left of
    * SCRUB_MAX_NESTED_VALUES_PER_RECORD, and a part of the body past the
    * bounds is read as its JSON text, hidden whole when that text names a
    * secret - it fails closed, as a held attribute value does - and kept as
@@ -351,64 +389,18 @@ export class LogScrubRuleService {
    * run past 32 levels, keeps the rest of its body.
    *
    * The body keeps the form it is stored in: the JSON text it came as, with
-   * only the hidden texts changed, and the very text it was when nothing
-   * is hidden.
+   * only the hidden texts changed - its numbers, spaces and escapes as they
+   * were written - and the very text it was when nothing is hidden.
    */
   private static hideSecretsInStructuredBody(
     body: string,
-    keyRules: Array<CompiledRule>,
-    allowance: ScrubNestedValuesAllowance,
-    jsonTexts: ScrubJsonTexts,
+    keysRules: Array<ScrubJsonKeysRule>,
   ): string {
-    /*
-     * A key is written in the JSON text as it is, but for an escape - JSON
-     * escapes none of the letters a secret key is named by - so a text with
-     * no escape that names no secret anywhere holds no such key, and is not
-     * read further: most bodies.
-     */
-    if (
-      body.indexOf("\\") === -1 &&
-      !keyRules.some((compiled: CompiledRule): boolean => {
-        return compiled.regex.test(body);
-      })
-    ) {
-      return body;
+    let scrubbed: string = body;
+
+    for (const rule of keysRules) {
+      scrubbed = ScrubJsonKeysUtil.hideUnderSensitiveKeys(scrubbed, rule);
     }
-
-    const parsed: unknown = ScrubNestedValuesUtil.readJsonListOrMap(body);
-
-    if (parsed === null) {
-      // Plain text, which only pattern rules read.
-      return body;
-    }
-
-    let value: unknown = parsed;
-
-    for (const compiled of keyRules) {
-      const action: string =
-        (compiled.rule.scrubAction as string) || LogScrubAction.Redact;
-
-      // Each rule reads the body within the same bounds.
-      value = ScrubNestedValuesUtil.hideTextsUnderSensitiveKeysWithinBounds(
-        value,
-        (key: string): boolean => {
-          return compiled.regex.test(key);
-        },
-        (text: string): string => {
-          return this.applyScrubAction(
-            text,
-            action,
-            LogScrubPatternType.SensitiveKeys,
-          );
-        },
-        { remaining: allowance.remaining },
-      );
-    }
-
-    const scrubbed: string = value === parsed ? body : JSON.stringify(value);
-
-    // The pattern rules after this read it as JSON without parsing it again.
-    jsonTexts.rememberJson(scrubbed);
 
     return scrubbed;
   }
@@ -473,12 +465,32 @@ export class LogScrubRuleService {
       },
     );
 
+    /*
+     * Each of them reads the record's JSON texts - its body, then the JSON
+     * texts its attributes hold (#8993) - within what the attributes' lists
+     * and maps left of the record's allowance: every rule within the same
+     * bounds.
+     */
+    const keysRulesOfRecord: Map<CompiledRule, ScrubJsonKeysRule> = new Map<
+      CompiledRule,
+      ScrubJsonKeysRule
+    >();
+
+    for (const compiled of keyRules) {
+      keysRulesOfRecord.set(
+        compiled,
+        this.keysRuleOf(
+          compiled,
+          { remaining: allowance.remaining },
+          jsonTexts,
+        ),
+      );
+    }
+
     if (keyRules.length > 0 && typeof logRow["body"] === "string") {
       logRow["body"] = this.hideSecretsInStructuredBody(
         logRow["body"] as string,
-        keyRules,
-        allowance,
-        jsonTexts,
+        Array.from(keysRulesOfRecord.values()),
       );
     }
 
@@ -536,6 +548,7 @@ export class LogScrubRuleService {
           heldAsText,
           jsonTexts,
           correlationIdKeys,
+          keysRulesOfRecord.get(compiled),
         );
       }
     }

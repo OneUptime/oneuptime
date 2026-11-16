@@ -1,5 +1,5 @@
 import RemediationApproval from "../../../../Server/Utils/AutoRemediation/RemediationApproval";
-import { getRemediationPlanFingerprint } from "../../../../Server/Utils/AutoRemediation/RemediationPlanFingerprint";
+import { getRemediationPlanFingerprint } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import WorkspaceRemediationActions from "../../../../Server/Utils/Workspace/WorkspaceRemediationActions";
 import {
   RUNBOOK_EXECUTE_PERMISSIONS,
@@ -106,6 +106,8 @@ function runbookRow(
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.Runbook,
     runbookId: RUNBOOK_ID,
     runbookNameSnapshot: "Restart checkout",

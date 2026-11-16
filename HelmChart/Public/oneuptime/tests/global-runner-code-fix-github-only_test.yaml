@@ -1,8 +1,9 @@
 # globalRunner.codeFixGitHubOnly is the Helm half of
-# GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY (#8915): it keeps GitLab, Forgejo, Gitea
-# and Git repositories off global Runners on a self-hosted install that serves
-# several tenants whose code must stay apart, as OneUptime Cloud does. Their AI
-# code fixes then need one of the project's own Runners
+# GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY (#8915): it keeps Forgejo, Gitea and Git
+# repositories - and, since #8912, only the GitLab ones GitLab makes no
+# short-lived token for - off global Runners on a self-hosted install that
+# serves several tenants whose code must stay apart, as OneUptime Cloud does.
+# Their AI code fixes then need one of the project's own Runners
 # (Common/Types/Runner/GlobalRunnerRepositoryTokens). GitHub repositories, and
 # every repository on a single-tenant install, are unchanged.
 #

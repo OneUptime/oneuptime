@@ -1,32 +1,35 @@
+import Crypto from "crypto";
 import {
   getRemediationPlanFingerprint,
   isRemediationPlanFingerprint,
   REMEDIATION_PLAN_FINGERPRINT_LENGTH,
-} from "../../../../Server/Utils/AutoRemediation/RemediationPlanFingerprint";
+  sha256Hex,
+  toUtf8Bytes,
+} from "../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import {
   AiRemediationCommand,
   AiRemediationCommandExecutionStatus,
   AiRemediationCommandPlanUtil,
   AiRemediationCommandPolicyVerdict,
   AiRemediationDryRunStatus,
-} from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
-import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
+} from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
+import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import {
   ExternalMcpToolCall,
   ExternalMcpToolCallPlanUtil,
   ExternalMcpToolCallStatus,
-} from "../../../../Types/AutoRemediation/ExternalMcpToolCallPlan";
-import { RemediationTrackRecordOutcome } from "../../../../Types/AutoRemediation/RemediationTrackRecord";
-import { JSONObject } from "../../../../Types/JSON";
-import ObjectID from "../../../../Types/ObjectID";
-import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
-import { ResourceCommandTier } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
-import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
+} from "../../../Types/AutoRemediation/ExternalMcpToolCallPlan";
+import { RemediationTrackRecordOutcome } from "../../../Types/AutoRemediation/RemediationTrackRecord";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
+import { ResourceCommandTier } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
+import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import { describe, expect, test } from "@jest/globals";
 
 /*
  * Contract under test - what a fix that waits for approval runs, in sixteen
- * hex digits (Server/Utils/AutoRemediation/RemediationPlanFingerprint), the
+ * hex digits (Types/AutoRemediation/RemediationPlanFingerprint), the
  * fingerprint a Slack or Teams press carries:
  *
  *  - two reads of the same fix give the same fingerprint, and it is
@@ -260,5 +263,82 @@ describe("what is a fingerprint", () => {
     ]) {
       expect(isRemediationPlanFingerprint(value)).toBe(false);
     }
+  });
+});
+
+/*
+ * The AI card works the fingerprint out in the browser, and a Slack or
+ * Microsoft Teams message posted before it did carries one Node's crypto
+ * made: the plain TypeScript SHA-256 over the text's UTF-8 must give that
+ * very digest, for every text a plan can hold.
+ */
+describe("the same digest wherever it is worked out", () => {
+  const textsByName: Array<[string, string]> = [
+    ["empty", ""],
+    ["one letter", "a"],
+    ["a command", "kubectl rollout restart deployment/web -n web"],
+    // Around SHA-256's 64-byte block and its 9 bytes of padding.
+    ["55 bytes", "x".repeat(55)],
+    ["56 bytes", "x".repeat(56)],
+    ["64 bytes", "x".repeat(64)],
+    ["1000 bytes", "x".repeat(1000)],
+    ["two-byte letters", "Größe ändern: café, naïve, ñ"],
+    ["three-byte letters", "重启服务 · サービスを再起動 · 서비스 재시작"],
+    ["right to left", "إعادة تشغيل الخدمة · راه‌اندازی دوباره"],
+    ["four-byte emoji", "emoji 🚀🔥 and a flag 🇩🇪"],
+    ["a lone surrogate", "a lone surrogate \ud800 here"],
+    [
+      "JSON with escapes",
+      JSON.stringify({ arguments: { note: "line\nbreak\ttab \u0001" } }),
+    ],
+  ];
+
+  test.each(textsByName)(
+    "sha256Hex of %s is Node's sha256",
+    (_name: string, text: string) => {
+      expect(sha256Hex(text)).toBe(
+        Crypto.createHash("sha256").update(text).digest("hex"),
+      );
+    },
+  );
+
+  test("toUtf8Bytes writes what Buffer writes", () => {
+    for (const [, text] of textsByName) {
+      expect(Array.from(toUtf8Bytes(text))).toEqual(
+        Array.from(Buffer.from(text, "utf8")),
+      );
+    }
+  });
+
+  test("a fix's fingerprint is the one the server's Node crypto made", () => {
+    const restart: string = `cloud restart-service ${ECS} --note "neu gestartet ✓"`;
+    const commands: Array<AiRemediationCommand> = [
+      command(),
+      command({ sequence: 2, command: restart }),
+    ];
+
+    // What the server wrote before the card could work it out too.
+    const parts: JSONObject = {
+      type: AutoRemediationSuggestionType.CommandPlan,
+      commands: commands.map((each: AiRemediationCommand): JSONObject => {
+        return {
+          sequence: each.sequence,
+          stepType: each.stepType,
+          runnerId: each.runnerId.toLowerCase(),
+          kubernetesClusterId: (each.kubernetesClusterId || "").toLowerCase(),
+          resourceType: each.resourceType || "",
+          resourceId: (each.resourceId || "").toLowerCase(),
+          command: each.command,
+          rollbackCommand: each.rollbackCommand || "",
+        };
+      }),
+    };
+
+    expect(ofPlan(commands)).toBe(
+      Crypto.createHash("sha256")
+        .update(JSON.stringify(parts))
+        .digest("hex")
+        .slice(0, REMEDIATION_PLAN_FINGERPRINT_LENGTH),
+    );
   });
 });

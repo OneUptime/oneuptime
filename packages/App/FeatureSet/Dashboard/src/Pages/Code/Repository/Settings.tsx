@@ -250,6 +250,15 @@ const CodeRepositorySettings: FunctionComponent<
   );
   const [readCount, setReadCount] = useState<number>(0);
 
+  /*
+   * When GitLab last refused to make the short-lived token AI pushes a fix
+   * with, as the Runner card reads it: the picker's amber line says so while
+   * the repository works on the Global Runner.
+   */
+  const [mintedTokenRefusedAt, setMintedTokenRefusedAt] = useState<Date | null>(
+    null,
+  );
+
   useEffect(() => {
     let isCurrent: boolean = true;
 
@@ -558,6 +567,7 @@ const CodeRepositorySettings: FunctionComponent<
                     }
                     ariaLabelledby={elementProps.ariaLabelledby}
                     provider={provider}
+                    mintedTokenRefusedAt={mintedTokenRefusedAt}
                     onChange={(picked: string): void => {
                       elementProps.onChange?.(picked);
                     }}
@@ -599,12 +609,14 @@ const CodeRepositorySettings: FunctionComponent<
             id: "model-detail-code-repository-runner",
             selectMoreFields: {
               isGlobalRunnerPicked: true,
+              mintedTokenRefusedAt: true,
             },
             onItemLoaded: (item: CodeRepository): void => {
               remember({
                 runnerId: getRepositoryRunnerId(item.runnerId),
                 isGlobalRunnerPicked: item.isGlobalRunnerPicked === true,
               });
+              setMintedTokenRefusedAt(item.mintedTokenRefusedAt || null);
             },
             fields: [
               /*
@@ -622,6 +634,7 @@ const CodeRepositorySettings: FunctionComponent<
                       runnerId={item.runnerId}
                       isGlobalRunnerPicked={item.isGlobalRunnerPicked}
                       provider={provider}
+                      mintedTokenRefusedAt={item.mintedTokenRefusedAt}
                       choices={runnerChoices}
                     />
                   );

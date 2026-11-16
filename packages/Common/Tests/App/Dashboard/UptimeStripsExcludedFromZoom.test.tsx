@@ -76,6 +76,19 @@ jest.mock(
   },
 );
 
+// No uptime summary (issue #6886): the graph is drawn from the group's rows.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupUptimeSummaryAPI",
+  () => {
+    return {
+      __esModule: true,
+      fetchMonitorGroupUptimeSummary: (): Promise<null> => {
+        return Promise.resolve(null);
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   return {
     __esModule: true,

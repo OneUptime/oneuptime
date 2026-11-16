@@ -161,6 +161,7 @@ interface Harness {
   context: TaskContext;
   recordPullRequest: jest.Mock;
   createPullRequest: jest.Mock;
+  openPullRequest: jest.Mock;
   prompts: Array<string>;
   logLines: Array<string>;
 }
@@ -170,6 +171,8 @@ function setUp(data: {
   details: CodeTaskAgentDetails;
   script: Script;
   taskId?: string;
+  // The token's answer says OneUptime opens the pull request (#8916).
+  serverOpensPullRequest?: boolean;
 }): Harness {
   const logLines: Array<string> = [];
   const prompts: Array<string> = [];
@@ -193,6 +196,14 @@ function setUp(data: {
     .fn()
     .mockResolvedValue({ success: true, pullRequestId: "pr-id" });
 
+  const openPullRequest: jest.Mock = jest.fn().mockResolvedValue({
+    id: 4243,
+    number: 8,
+    htmlUrl: "https://github.com/acme/users-api/pull/8",
+    title: "Add retries to the users API",
+    isNew: true,
+  });
+
   const backendAPI: BackendAPI = {
     getCodeTaskDetails: jest.fn().mockResolvedValue(data.details),
     getRepositoryToken: jest.fn().mockResolvedValue({
@@ -201,8 +212,12 @@ function setUp(data: {
       repositoryUrl: `file://${data.origin}`,
       organizationName: "acme",
       repositoryName: "users-api",
+      ...(data.serverOpensPullRequest
+        ? { opensPullRequestOnServer: true }
+        : {}),
     }),
     recordPullRequest,
+    openPullRequest,
   } as unknown as BackendAPI;
 
   const agent: CodeAgent = {
@@ -268,6 +283,7 @@ function setUp(data: {
     },
     recordPullRequest,
     createPullRequest,
+    openPullRequest,
     prompts,
     logLines,
   };
@@ -425,6 +441,74 @@ describe("a first request", () => {
  */
 // A "](" that is not escaped: the end of a link's words and its address.
 const UNESCAPED_LINK: RegExp = /[^\\]\]\(/u;
+
+/*
+ * #8916: a server of this release opens the pull request itself, with what
+ * the repository is connected with, and records it - the token this Runner
+ * pushed with may only push. The Runner asks it, with the branch it pushed.
+ */
+describe("a first request, where OneUptime opens the pull request", () => {
+  test("pushes the branch and asks OneUptime to open the pull request, which records it - the token opens nothing", async () => {
+    const origin: string = makeOrigin();
+    const harness: Harness = setUp({
+      origin,
+      details: details(),
+      script: ADD_RETRY,
+      serverOpensPullRequest: true,
+    });
+
+    const result: TaskResult = await new CodeRequestTaskHandler().execute(
+      harness.context,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.pullRequestsCreated).toBe(1);
+    expect(result.pullRequestUrls).toEqual([
+      "https://github.com/acme/users-api/pull/8",
+    ]);
+    expect(result.outcome?.pullRequestNumber).toBe(8);
+    expect(result.outcome?.openedPullRequest).toBe(true);
+
+    // The branch went to the origin before OneUptime was asked.
+    expect(branchesOf(origin)).toEqual(["main", NEW_BRANCH]);
+
+    expect(harness.openPullRequest).toHaveBeenCalledTimes(1);
+    expect(harness.openPullRequest.mock.calls[0]![0]).toMatchObject({
+      taskId: TASK_ID,
+      headRefName: NEW_BRANCH,
+      baseRefName: "main",
+      title: "Add retries to the users API",
+      runnerVerificationStatus: FixVerificationStatus.Skipped,
+    });
+
+    // Nothing opened or recorded with the token: OneUptime did both.
+    expect(harness.createPullRequest).not.toHaveBeenCalled();
+    expect(harness.recordPullRequest).not.toHaveBeenCalled();
+  });
+
+  test("a refusal from OneUptime fails the turn with its words, and nothing is recorded", async () => {
+    const origin: string = makeOrigin();
+    const harness: Harness = setUp({
+      origin,
+      details: details(),
+      script: ADD_RETRY,
+      serverOpensPullRequest: true,
+    });
+
+    harness.openPullRequest.mockRejectedValue(
+      new Error("OneUptime could not open the pull request: head invalid"),
+    );
+
+    const result: TaskResult = await new CodeRequestTaskHandler().execute(
+      harness.context,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("head invalid");
+    expect(harness.createPullRequest).not.toHaveBeenCalled();
+    expect(harness.recordPullRequest).not.toHaveBeenCalled();
+  });
+});
 
 describe("a task OneUptime started on its own", () => {
   const FINDING_URL: string =

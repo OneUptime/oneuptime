@@ -96,6 +96,7 @@ jest.mock("../../../UI/Config", () => {
 
 import IncomingRequestSecretNote from "../../../../App/FeatureSet/Dashboard/src/Components/IncomingRequestSecret/IncomingRequestSecretNote";
 import IncomingRequestSecretsCopy, {
+  CONFIRM_TURN_ON_REFUSED_MONITORS,
   INCOMING_REQUEST_SECRET_NOTE_TEST_ID,
   INCOMING_REQUEST_SECRET_PLACEHOLDER,
   INCOMING_REQUEST_WITHOUT_SECRET_NOTE_TEST_ID,
@@ -134,6 +135,11 @@ import {
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import EmptyStateOptions from "../../../UI/Components/ModelTable/EmptyStateOptions";
+import { ModelSwitchConfirmation } from "../../../UI/Components/ModelSwitch/ModelSwitchRow";
+import {
+  createTranslator,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
 import { MonitorOverviewSetupKind } from "../../../Utils/Monitor/MonitorOverviewFamily";
 
 const MONITOR_ID: ObjectID = new ObjectID(
@@ -494,6 +500,32 @@ describe("the list of requests without a secret", () => {
     expect(
       getWithoutSecretReasonLabel(IncomingRequestSecretProblem.WrongSecret),
     ).toBe(IncomingRequestSecretsCopy.reasonWrongSecret);
+    // One of the project's secrets, limited to other monitors (issue #8501).
+    expect(
+      getWithoutSecretReasonLabel(
+        IncomingRequestSecretProblem.SecretNotForMonitor,
+      ),
+    ).toBe(IncomingRequestSecretsCopy.reasonSecretNotForMonitor);
+    // A signature too old to accept (issue #8500).
+    expect(
+      getWithoutSecretReasonLabel(
+        IncomingRequestSecretProblem.ExpiredSignature,
+      ),
+    ).toBe(IncomingRequestSecretsCopy.reasonExpiredSignature);
+  });
+
+  test("names every reason the server stores in a words of its own", () => {
+    const labels: Set<string> = new Set(
+      Object.values(IncomingRequestSecretProblem).map(
+        (problem: IncomingRequestSecretProblem): string => {
+          return getWithoutSecretReasonLabel(problem);
+        },
+      ),
+    );
+
+    expect(labels.size).toBe(
+      Object.values(IncomingRequestSecretProblem).length,
+    );
   });
 
   test("reads a missing or unknown reason as none sent", () => {
@@ -647,16 +679,166 @@ describe("the list of requests without a secret", () => {
 });
 
 describe("turning the requirement on", () => {
+  const LOCALES_DIRECTORY: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src/Locales",
+  );
+
+  // The reader's translator, from the Dashboard's own locale file.
+  const translatorFor: (language: string) => Translator = (
+    language: string,
+  ): Translator => {
+    const table: Record<string, string> = JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIRECTORY, `${language}.json`), "utf8"),
+    ) as Record<string, string>;
+
+    return createTranslator((key: string): string => {
+      return table[key] || key;
+    }, language);
+  };
+
+  const NOW: Date = new Date("2026-11-16T12:00:00.000Z");
+  const TWO_DAYS_AGO: Date = new Date("2026-11-14T12:00:00.000Z");
+  const AN_HOUR_AGO: Date = new Date("2026-11-16T11:00:00.000Z");
+
+  const PLAIN: Record<string, string> = {
+    title: IncomingRequestSecretsCopy.confirmTurnOnTitle,
+    description: IncomingRequestSecretsCopy.confirmTurnOnDescription,
+    submitButtonText: IncomingRequestSecretsCopy.confirmTurnOnButton,
+  };
+
+  const confirmation: (data: {
+    count: number | null;
+    checkingSince?: Date | null;
+    language?: string;
+  }) => ModelSwitchConfirmation | undefined = (data: {
+    count: number | null;
+    checkingSince?: Date | null;
+    language?: string;
+  }): ModelSwitchConfirmation | undefined => {
+    return getRequireIncomingRequestSecretConfirmation(true, {
+      refusedMonitorCount: data.count,
+      checkingSince:
+        data.checkingSince === undefined ? TWO_DAYS_AGO : data.checkingSince,
+      translator: translatorFor(data.language || "en"),
+      now: NOW,
+    });
+  };
+
   test("asks first, saying senders without a secret are refused from then on", () => {
-    expect(getRequireIncomingRequestSecretConfirmation(true)).toEqual({
-      title: IncomingRequestSecretsCopy.confirmTurnOnTitle,
-      description: IncomingRequestSecretsCopy.confirmTurnOnDescription,
-      submitButtonText: IncomingRequestSecretsCopy.confirmTurnOnButton,
+    expect(getRequireIncomingRequestSecretConfirmation(true)).toEqual(PLAIN);
+  });
+
+  test("turning it off asks nothing, whatever the list holds", () => {
+    expect(getRequireIncomingRequestSecretConfirmation(false)).toBeUndefined();
+    expect(
+      getRequireIncomingRequestSecretConfirmation(false, {
+        refusedMonitorCount: 3,
+        checkingSince: TWO_DAYS_AGO,
+        translator: translatorFor("en"),
+        now: NOW,
+      }),
+    ).toBeUndefined();
+  });
+
+  // Issue #8564: the moment someone confirms is the moment that matters most.
+  test("names one monitor that would be refused", () => {
+    expect(confirmation({ count: 1 })).toEqual({
+      ...PLAIN,
+      warning:
+        "1 Incoming Request monitor got a request without a valid secret in the last 24 hours. Its senders are refused from now on.",
     });
   });
 
-  test("turning it off asks nothing", () => {
-    expect(getRequireIncomingRequestSecretConfirmation(false)).toBeUndefined();
+  test("names how many monitors would be refused", () => {
+    expect(confirmation({ count: 3 })).toEqual({
+      ...PLAIN,
+      warning:
+        "3 Incoming Request monitors got a request without a valid secret in the last 24 hours. Their senders are refused from now on.",
+    });
+    expect(confirmation({ count: 1250 })?.warning).toContain(
+      "1,250 Incoming Request monitors",
+    );
+  });
+
+  test("with none on the list, says nothing more once requests have been checked for a whole day", () => {
+    expect(confirmation({ count: 0 })).toEqual(PLAIN);
+  });
+
+  test("with none on the list yet, says a less frequent sender may not have shown up when requests have been checked for less than a day", () => {
+    expect(confirmation({ count: 0, checkingSince: AN_HOUR_AGO })).toEqual({
+      ...PLAIN,
+      warning: IncomingRequestSecretsCopy.confirmTurnOnCheckingLessThanADay,
+    });
+  });
+
+  test("a count that could not be read leaves the question as it always was: it never stops the switch", () => {
+    expect(confirmation({ count: null })).toEqual(PLAIN);
+    expect(confirmation({ count: null, checkingSince: AN_HOUR_AGO })).toEqual(
+      PLAIN,
+    );
+  });
+
+  test("a project with no secret yet gets the plain question: the server says why it cannot turn on", () => {
+    expect(confirmation({ count: 0, checkingSince: null })).toEqual(PLAIN);
+  });
+
+  test("in German, with the reader's plural", () => {
+    // The translator holds "24" to its unit with a no-break space.
+    const NO_BREAK_SPACE: string = String.fromCharCode(160);
+    const german: (count: number) => string | undefined = (
+      count: number,
+    ): string | undefined => {
+      return confirmation({ count, language: "de" })?.warning?.replace(
+        new RegExp(NO_BREAK_SPACE, "g"),
+        " ",
+      );
+    };
+
+    expect(german(1)).toBe(
+      "1 Monitor für eingehende Anfragen hat in den letzten 24 Stunden eine Anfrage ohne gültiges Geheimnis erhalten. Seine Absender werden ab sofort abgelehnt.",
+    );
+    expect(german(4)).toBe(
+      "4 Monitore für eingehende Anfragen haben in den letzten 24 Stunden eine Anfrage ohne gültiges Geheimnis erhalten. Ihre Absender werden ab sofort abgelehnt.",
+    );
+  });
+
+  test("in Persian, its count in Persian digits", () => {
+    const warning: string = confirmation({
+      count: 3,
+      language: "fa",
+    })!.warning!;
+
+    expect(warning).toContain("۳");
+    expect(warning).not.toMatch(/[0-9]/);
+  });
+
+  test("the dialog's own words fit it, and the count's sentence names nothing it cannot know", () => {
+    // ShortDescriptionsGuard holds a dialog's description to 150 characters.
+    expect(
+      IncomingRequestSecretsCopy.confirmTurnOnDescription.length,
+    ).toBeLessThanOrEqual(150);
+    expect(
+      IncomingRequestSecretsCopy.confirmTurnOnCheckingLessThanADay.length,
+    ).toBeLessThanOrEqual(150);
+    expect(CONFIRM_TURN_ON_REFUSED_MONITORS.other).toContain(
+      `in the last ${INCOMING_REQUEST_WITHOUT_SECRET_WINDOW_HOURS} hours`,
+    );
+  });
+
+  test("counts with the list's own query", () => {
+    const source: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Components/IncomingRequestSecret/RequireIncomingRequestSecretCard.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(source).toContain("ModelAPI.count<Monitor>");
+    expect(source).toContain(
+      "query: getRequestsWithoutSecretQuery({ projectId })",
+    );
   });
 });
 
@@ -759,6 +941,61 @@ describe("the words, in every Dashboard language", () => {
           expect(translated).toContain(INCOMING_REQUEST_SECRET_HEADER);
         }
       }
+    },
+  );
+
+  /*
+   * The count of monitors the requirement would refuse (issue #8564): its
+   * general form and its "one" form, in every language, the count's slot and
+   * the day's hours kept.
+   */
+  const PLURAL_KEYS: Array<string> = [
+    CONFIRM_TURN_ON_REFUSED_MONITORS.other,
+    `${CONFIRM_TURN_ON_REFUSED_MONITORS.other}_one`,
+  ];
+
+  test("the count's sentence is a plural of the English locale", () => {
+    const english: Record<string, unknown> = readLocale("en");
+
+    expect(english[CONFIRM_TURN_ON_REFUSED_MONITORS.other]).toBe(
+      CONFIRM_TURN_ON_REFUSED_MONITORS.other,
+    );
+    expect(english[`${CONFIRM_TURN_ON_REFUSED_MONITORS.other}_one`]).toBe(
+      CONFIRM_TURN_ON_REFUSED_MONITORS.one,
+    );
+  });
+
+  test.each(LANGUAGES)(
+    "the count's sentence is in %s, with its count and its day's hours",
+    (code: string) => {
+      const locale: Record<string, unknown> = readLocale(code);
+
+      for (const key of PLURAL_KEYS) {
+        const translated: unknown = locale[key];
+
+        expect({ key, present: typeof translated === "string" }).toEqual({
+          key,
+          present: true,
+        });
+        expect((translated as string).split("{{count}}").length).toBe(2);
+        expect(withLatinDigits(translated as string)).toContain(
+          `${INCOMING_REQUEST_WITHOUT_SECRET_WINDOW_HOURS}`,
+        );
+      }
+    },
+  );
+
+  test.each(["de", "es", "fr", "fa", "ar"])(
+    "the count's sentence is translated in %s, both forms",
+    (code: string) => {
+      const locale: Record<string, unknown> = readLocale(code);
+
+      expect(locale[CONFIRM_TURN_ON_REFUSED_MONITORS.other]).not.toBe(
+        CONFIRM_TURN_ON_REFUSED_MONITORS.other,
+      );
+      expect(locale[`${CONFIRM_TURN_ON_REFUSED_MONITORS.other}_one`]).not.toBe(
+        CONFIRM_TURN_ON_REFUSED_MONITORS.one,
+      );
     },
   );
 });

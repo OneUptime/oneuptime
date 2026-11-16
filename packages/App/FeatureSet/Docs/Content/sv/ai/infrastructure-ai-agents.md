@@ -325,7 +325,7 @@ En agent som redan har ett kommando när **Aktivera AI** stängs av får besked 
 - **Av**: AI utreder bara.
 - **Be om godkännande**: efter rotorsaksanalysen ställer OneUptime AI en diagnos med läskommandon och sätter ihop den minsta plan som angriper orsaken, till exempel `docker restart web`. Planen visas på incidenten eller larmet med motivering, förväntad effekt och återställning; en människa godkänner den med ett klick, och OneUptime kör exakt de kommandona.
 - **Automatiskt**: säkra ändringar (**SafeWrite**) körs av sig själva; en mer riskfylld ändring (**RiskyWrite**) föreslås för godkännande, om inte resursens lista över tillåtna kommandon anger dess exakta form.
-- **Hoppa över godkännande**: varje ändring som policyn tillåter, även de mer riskfyllda, körs av sig själv. Det som alltid behöver en människa väntar fortfarande på en.
+- **Hoppa över godkännande**: varje ändring som policyn tillåter, även de mer riskfyllda, körs av sig själv. Det som alltid behöver en människa väntar fortfarande på en. Begär projektet att två personer godkänner en riskablare åtgärd föreslås en riskablare ändring i stället för deras godkännande.
 
 När en åtgärd har körts bevakar OneUptime incidentens eller larmets monitorer. Om de inte återhämtar sig körs planens återställning, och OneUptime AI sätter ihop ytterligare en plan med det misslyckade försöket framför sig: högst två omgångar per incident eller larm. I läget **Automatiskt** ber den andra omgången om godkännande; med **Hoppa över godkännande** körs även den av sig själv. Obevakade åtgärder har en spärr på tre per resurs och timme: utöver det, eller medan en annan obevakad omgång från OneUptime AI fortfarande ändrar eller verifierar samma resurs, föreslår en omgång sin plan för godkännande i stället för att köra den.
 
@@ -342,7 +342,7 @@ En incident eller ett larm får ett enda AI-åtgärdsspår. När den är länkad
 
 Vissa mer riskfyllda ändringar **behöver alltid en människa** i alla lägen, även Hoppa över godkännande, och ingen post i listan över tillåtna kommandon ändrar det; de är markerade som sådana i tabellerna nedan.
 
-Ett projekt kan också begära att två personer godkänner en åtgärd som innehåller en riskablare ändring: se [Två personer godkänner en riskablare åtgärd](/docs/ai/ai-sre#två-personer-godkänner-en-riskablare-åtgärd).
+Ett projekt kan också begära att två personer godkänner en åtgärd som innehåller en riskablare ändring; då körs ingen riskablare ändring på egen hand, inte heller via listan över tillåtna kommandon eller Hoppa över godkännande: se [Två personer godkänner en riskablare åtgärd](/docs/ai/ai-sre#två-personer-godkänner-en-riskablare-åtgärd).
 
 ### Åtgärder på Docker- och Podman-värdar
 

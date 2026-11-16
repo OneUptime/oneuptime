@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import RemediationApproval from "../../../../Server/Utils/AutoRemediation/RemediationApproval";
 import CommandPlanExecutor from "../../../../Server/Utils/AutoRemediation/CommandPlanExecutor";
-import { getRemediationPlanFingerprint } from "../../../../Server/Utils/AutoRemediation/RemediationPlanFingerprint";
+import { getRemediationPlanFingerprint } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import RunbookRunAccess from "../../../../Server/Utils/Runbook/RunbookRunAccess";
 import McpRemediationRunner from "../../../../Server/Utils/AI/Remediation/McpRemediationRunner";
 import AlertFeedService from "../../../../Server/Services/AlertFeedService";
@@ -107,6 +107,8 @@ function base(): Record<string, unknown> {
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     verificationWindowMinutes: 15,
   };
 }

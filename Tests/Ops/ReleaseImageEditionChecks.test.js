@@ -50,6 +50,7 @@ const {
   instructions,
 } = require("./Utils/DockerfileTemplate");
 const { releaseTagImages } = require("./Utils/ReleaseWorkflow");
+const { runScript } = require("./Utils/NodeHeapRule");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const CHECK_SCRIPT = "Scripts/GHA/check_app_image_edition.sh";
@@ -563,12 +564,20 @@ describe("check_app_image_edition.sh's boot probe", () => {
 
   test("starts node the way `npm start` does", () => {
     const start = JSON.parse(read("packages/App/package.json")).scripts.start;
+    /*
+     * The heap npm start hands node in a container without a memory limit,
+     * which the probe's `docker run` is: the start script run against a
+     * cgroup v2 tree that sets none.
+     */
+    const { nodeOptions } = runScript(start, {
+      cgroups: { procSelfCgroup: "0::/", files: { "memory.max": "max" } },
+    });
 
     expect(start).toContain("--no-node-snapshot");
     expect(start).toContain("--require ts-node/register");
-    expect(start).toContain("--max-old-space-size=8096");
+    expect(nodeOptions).toBe("--max-old-space-size=8096");
     expect(check).toContain(
-      "--no-node-snapshot --max-old-space-size=8096 --require ts-node/register",
+      `--no-node-snapshot ${nodeOptions} --require ts-node/register`,
     );
     expect(check).toContain("-e TS_NODE_TRANSPILE_ONLY=1");
   });
