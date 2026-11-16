@@ -317,13 +317,37 @@ describe("every part of a private record", () => {
  * alert the alert - is as much a part of that one: its writes are held to
  * both (ALSO_PART_OF), and its service reads it through both privacy
  * filters.
+ *
+ * So is what is done ABOUT a private record, though it is read through
+ * something that is not private (#8913): a page of an on-call policy and its
+ * steps, about the incident, alert or episode they name; a runbook run
+ * linked to an incident or an alert; a fix OneUptime AI proposed for one.
+ * Their writes are held to the records they name, and their services read
+ * them only where the reader sees every record they name.
  */
+const PAGE_KEYS: Array<{ kind: string; key: string }> = [
+  { kind: "Incident", key: "triggeredByIncidentId" },
+  { kind: "Alert", key: "triggeredByAlertId" },
+  { kind: "IncidentEpisode", key: "triggeredByIncidentEpisodeId" },
+  { kind: "AlertEpisode", key: "triggeredByAlertEpisodeId" },
+];
+
 const ALSO_PARTS: Record<string, Array<{ kind: string; key: string }>> = {
   AlertEpisodeMember: [{ kind: "AlertEpisode", key: "alertEpisodeId" }],
   IncidentEpisodeMember: [
     { kind: "IncidentEpisode", key: "incidentEpisodeId" },
   ],
   IncidentAlert: [{ kind: "Alert", key: "alertId" }],
+  OnCallDutyPolicyExecutionLog: PAGE_KEYS,
+  OnCallDutyPolicyExecutionLogTimeline: PAGE_KEYS,
+  RunbookExecution: [
+    { kind: "Incident", key: "incidentId" },
+    { kind: "Alert", key: "alertId" },
+  ],
+  AutoRemediationSuggestion: [
+    { kind: "Incident", key: "incidentId" },
+    { kind: "Alert", key: "alertId" },
+  ],
 };
 
 /*
@@ -337,8 +361,6 @@ const NAMES_BUT_IS_NO_PART: Record<string, string> = {
   AIConversation: "a person's own conversation with OneUptime AI about it",
   Alert: "a private kind itself; its episode is OneUptime's to write",
   AutoRemediationDecision: "OneUptime AI's own decision, written by OneUptime",
-  AutoRemediationSuggestion:
-    "OneUptime AI's own suggestion, written by OneUptime",
   CallLog: "a log of a call OneUptime made",
   DataAlert:
     "what a data monitor's alert is about, written by OneUptime and read through its alerts' privacy filters",
@@ -347,12 +369,9 @@ const NAMES_BUT_IS_NO_PART: Record<string, string> = {
   FormSubmission: "a form's answer, which may have declared one",
   Incident: "a private kind itself; its episode is OneUptime's to write",
   LlmLog: "a log of a call OneUptime made to an AI provider",
-  OnCallDutyPolicyExecutionLog: "a page of an on-call policy, its own record",
-  OnCallDutyPolicyExecutionLogTimeline: "a step of a page, its own record",
   PushNotificationLog: "a log of a push notification OneUptime sent",
   RumSessionPin: "a session replay pinned to it, a record of RUM",
   RumSessionReplayView: "a session replay's view, a record of RUM",
-  RunbookExecution: "a run of a runbook, held to the runbook's permissions",
   SecurityCase: "a security case, which may point at one",
   SmsLog: "a log of an SMS OneUptime sent",
   TelegramLog: "a log of a Telegram message OneUptime sent",
@@ -388,9 +407,13 @@ describe("a part that names a second private record", () => {
   });
 
   test.each(
-    Object.keys(ALSO_PARTS).map((name: string) => {
-      return [name];
-    }),
+    Object.keys(ALSO_PARTS)
+      .filter((name: string): boolean => {
+        return Boolean(PARTS[name]);
+      })
+      .map((name: string) => {
+        return [name];
+      }),
   )(
     "%s's service reads it through both records' privacy filters",
     (name: string) => {
@@ -406,6 +429,61 @@ describe("a part that names a second private record", () => {
         }),
       ]) {
         expect(source).toContain(`apply${kind}RelatedRecordPrivacyFilter`);
+      }
+    },
+  );
+
+  /*
+   * One read through no private record names records that may be private
+   * by keys that may be empty (a page is about an incident OR an alert): its
+   * service reads it, and counts it, only where the reader sees each of
+   * them - every key at once (PrivateRecordReadFilter), or each kind's own
+   * filter that lets an empty key through.
+   */
+  test.each(
+    Object.keys(ALSO_PARTS)
+      .filter((name: string): boolean => {
+        return !PARTS[name];
+      })
+      .map((name: string) => {
+        return [name];
+      }),
+  )(
+    "%s's service reads it only where the reader sees every record it names",
+    (name: string) => {
+      const source: string = fs.readFileSync(
+        path.join(SERVICES_DIRECTORY, `${name}Service.ts`),
+        "utf8",
+      );
+
+      expect(source).toContain("onBeforeFind(");
+      expect(source).toContain("countBy(");
+
+      const findHook: string = source.slice(
+        source.indexOf("onBeforeFind("),
+        source.indexOf("onBeforeFind(") + 600,
+      );
+      const countHook: string = source.slice(
+        source.indexOf("countBy("),
+        source.indexOf("countBy(") + 600,
+      );
+
+      for (const hook of [findHook, countHook]) {
+        const readsEveryKey: boolean = hook.includes(
+          "PrivateRecordReadFilter.apply(",
+        );
+        const readsEachKind: boolean = ALSO_PARTS[name]!.every(
+          (part: { kind: string }): boolean => {
+            return hook.includes(
+              `applyOptional${part.kind}RelatedRecordPrivacyFilter`,
+            );
+          },
+        );
+
+        expect({ name, reads: readsEveryKey || readsEachKind }).toEqual({
+          name,
+          reads: true,
+        });
       }
     },
   );
@@ -426,7 +504,7 @@ describe("a part that names a second private record", () => {
           .sort(),
       ).toEqual(
         [
-          `${PARTS[name]!.kind}:${PARTS[name]!.key}`,
+          ...(PARTS[name] ? [`${PARTS[name]!.kind}:${PARTS[name]!.key}`] : []),
           ...ALSO_PARTS[name]!.map(
             (part: { kind: string; key: string }): string => {
               return `${part.kind}:${part.key}`;
@@ -434,6 +512,47 @@ describe("a part that names a second private record", () => {
           ),
         ].sort(),
       );
+    }
+  });
+
+  /*
+   * A key of a second record is a key a create names it by: one that names
+   * a private record is checked on every create
+   * (DatabaseService.checkNamedPrivateRecords), and it is never a list - a
+   * write cannot be held to the private ones of a list.
+   */
+  test("each key of a second record is a relation to one record of a private kind", () => {
+    for (const [name, parts] of Object.entries(ALSO_PARTS)) {
+      const modelType: { new (): BaseModel } = AllModelTypes.find(
+        (candidate: { new (): BaseModel }): boolean => {
+          return modelName(candidate) === name;
+        },
+      )!;
+      const model: BaseModel = new modelType();
+
+      for (const part of parts) {
+        const relation: string | undefined = model
+          .getTableColumns()
+          .columns.find((column: string): boolean => {
+            return (
+              model.getTableColumnMetadata(column)?.manyToOneRelationColumn ===
+              part.key
+            );
+          });
+
+        expect({ name, key: part.key, relation: Boolean(relation) }).toEqual({
+          name,
+          key: part.key,
+          relation: true,
+        });
+
+        const metadata: TableColumnMetadata = model.getTableColumnMetadata(
+          relation!,
+        );
+
+        expect(metadata.type).toBe(TableColumnType.Entity);
+        expect(new metadata.modelType!().tableName).toBe(part.kind);
+      }
     }
   });
 });

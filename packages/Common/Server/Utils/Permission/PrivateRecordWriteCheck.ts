@@ -2,6 +2,7 @@ import DatabaseBaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
 import DatabaseService from "../../Services/DatabaseService";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
@@ -88,6 +89,55 @@ export default class PrivateRecordWriteCheck {
       });
 
     return !unreachable;
+  }
+
+  /*
+   * reaches, refused: throws NotAuthorizedException, in the words of the
+   * API and the Dashboard, when `type` on `modelType` would not reach the
+   * private record `recordId` - for the routes that check their caller and
+   * then do something about the record as OneUptime (#8913): a page about
+   * it (Page now, a direct page), a runbook run linked to it, a fix
+   * OneUptime AI proposed for it approved, dry-run or dismissed. `action`
+   * completes "You do not have permission to ...": "page now", "approve
+   * this fix". Nothing is said of a record the caller may not read: the
+   * route reads it as the caller first, and answers that as missing.
+   */
+  @CaptureSpan()
+  public static async assertReaches(data: {
+    modelType: DatabaseBaseModelType;
+    type: DatabaseRequestType;
+    recordService: DatabaseService<DatabaseBaseModel>;
+    recordId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    action: string;
+    readRecord?: DatabaseBaseModel | undefined;
+  }): Promise<void> {
+    if (await PrivateRecordWriteCheck.reaches(data)) {
+      return;
+    }
+
+    throw new NotAuthorizedException(
+      PrivateRecordWriteCheck.getRefusal({
+        action: data.action,
+        recordModelType: data.recordService
+          .modelType as DatabaseBaseModelType,
+      }),
+    );
+  }
+
+  /*
+   * What assertReaches says: "You do not have permission to page now. This
+   * incident is private, so ..." - by the kind of record.
+   */
+  public static getRefusal(data: {
+    action: string;
+    recordModelType: DatabaseBaseModelType;
+  }): string {
+    const noun: string = (
+      new data.recordModelType().singularName || "record"
+    ).toLowerCase();
+
+    return `You do not have permission to ${data.action}. ${PrivateRecordPermission.getPrivateRecordWriteReason(noun)}`;
   }
 
   /*

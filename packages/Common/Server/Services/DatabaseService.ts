@@ -170,9 +170,17 @@ import {
 } from "../../Types/Database/BooleanColumnValue";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import {
+  getReferenceRefusalMessage,
   normalizeReferenceId,
   resolveReferenceIds,
+  UnreadableReferenceException,
 } from "../Utils/Database/ProjectScopedReferenceRefusal";
+import {
+  combineWithPrivacyClause,
+  shouldBypassRecordPrivacy,
+} from "../Utils/PrivacyFilterUtil";
+import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
+import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
 import ArchivedValueCheck, {
   ArchivableValueColumn,
   ArchivableValuePick,
@@ -6423,6 +6431,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       askedIds: DatabaseService.namedIdsAskedOn.get(data.createBy) || {},
     });
 
+    // A private record it is about, only through its owners. See the helper.
+    await this.checkNamedPrivateRecords({
+      record: data.record,
+      props: props,
+    });
+
     // A record the caller's create permission reaches. See the helper.
     await this.checkCreateScope({
       data: data.record,
@@ -6433,6 +6447,139 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await this.assertFileReferencesOwnedOnCreate(data.record);
 
     return props;
+  }
+
+  /*
+   * THE PRIVATE RECORDS A CREATE IS ABOUT BESIDE WHAT IT IS READ THROUGH
+   * (PrivateRecordParts.ALSO_PART_OF, #8913): the incident, alert or episode
+   * a page of an on-call policy is about, the incident or alert a runbook's
+   * run is linked to, the episode an episode's member row is a member of.
+   * A private one is acted on only with the permissions of the teams that
+   * own it and of the people named as its owners - the caller's
+   * permission to create this record, team by team
+   * (PrivateRecordPermission.getReach) - and by those who act on every
+   * private record. One the caller sees (they own it, or a team of theirs
+   * does) is refused saying why; one they do not see is refused like a
+   * record that does not exist, telling them nothing of it. Asked of the
+   * record as it will be written, once its hooks have run: a service that
+   * asks about its second record itself, in its own words (IncidentAlert,
+   * the episode members), has asked by then. Root, master admin and those
+   * who act on every private record of the project are not asked.
+   */
+  private async checkNamedPrivateRecords(data: {
+    record: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const props: DatabaseCommonInteractionProps = data.props;
+
+    if (
+      props.isRoot ||
+      props.isMasterAdmin ||
+      shouldBypassRecordPrivacy(props)
+    ) {
+      return;
+    }
+
+    const columns: Array<PrivateRecordColumn> =
+      PrivateRecordReadFilter.getNamedRecordColumns(this.modelType);
+
+    if (columns.length === 0) {
+      return;
+    }
+
+    const projectId: ObjectID | null = this.getRecordProjectId(
+      data.record,
+      props,
+    );
+
+    for (const column of columns) {
+      const value: unknown = data.record.getValue(column.column);
+      const recordId: string = value ? value.toString().trim() : "";
+
+      if (!recordId || !ObjectID.isValidUUID(recordId)) {
+        continue;
+      }
+
+      const unreachableQuery: Query<BaseModel> | null =
+        PrivateRecordPermission.getUnreachableRecordsQuery({
+          modelType: this.modelType,
+          recordModelType: column.recordModelType,
+          recordIds: [recordId],
+          props: props,
+          type: DatabaseRequestType.Create,
+        });
+
+      if (!unreachableQuery) {
+        continue;
+      }
+
+      const reader: DatabaseService<BaseModel> =
+        DatabaseService.getParentReader(column.recordModelType);
+
+      const unreachable: Array<BaseModel> = await reader.findBy({
+        query: DatabaseService.inProject(
+          column.recordModelType,
+          unreachableQuery,
+          projectId,
+        ),
+        select: { _id: true } as Select<BaseModel>,
+        skip: 0,
+        limit: 1,
+        props: { isRoot: true },
+      });
+
+      if (unreachable.length === 0) {
+        continue;
+      }
+
+      const noun: string = (
+        new column.recordModelType().singularName || "record"
+      ).toLowerCase();
+
+      // Whether the caller sees it: refused saying why, or as missing.
+      const seenRaw: FindWhereProperty<any> | undefined =
+        PrivateRecordReadFilter.getOptionalRecordReadRaw({
+          kind: column.kind,
+          props: props,
+        });
+
+      const seen: Array<BaseModel> = await reader.findBy({
+        query: DatabaseService.inProject(
+          column.recordModelType,
+          {
+            _id: seenRaw
+              ? combineWithPrivacyClause(recordId, seenRaw)
+              : recordId,
+          } as Query<BaseModel>,
+          projectId,
+        ),
+        select: { _id: true } as Select<BaseModel>,
+        skip: 0,
+        limit: 1,
+        props: { isRoot: true },
+      });
+
+      if (seen.length > 0) {
+        throw new NotAuthorizedException(
+          `You do not have permission to create ${
+            this.getModel().singularName || "this record"
+          }. ${PrivateRecordPermission.getPrivateParentWriteReason(noun)}`,
+        );
+      }
+
+      throw new UnreadableReferenceException(
+        getReferenceRefusalMessage({
+          subject: (this.getModel().singularName || "record").toLowerCase(),
+          described: [
+            `${
+              this.getModel().getTableColumnMetadata(column.column)?.title ||
+              new column.recordModelType().singularName ||
+              column.column
+            } "${recordId}"`,
+          ],
+        }),
+      );
+    }
   }
 
   /*

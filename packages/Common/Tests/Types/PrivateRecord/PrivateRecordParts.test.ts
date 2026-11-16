@@ -19,6 +19,13 @@ import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam"
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
+import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import OnCallDutyPolicyExecutionLogTimeline from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
+import RunbookExecution from "../../../Models/DatabaseModels/RunbookExecution";
+import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import Runbook from "../../../Models/DatabaseModels/Runbook";
+import UserOnCallLog from "../../../Models/DatabaseModels/UserOnCallLog";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceStateTimeline from "../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import Log from "../../../Models/AnalyticsModels/Log";
@@ -89,6 +96,29 @@ describe("PrivateRecordParts.getKindsOf", () => {
       ["Alert", "AlertEpisode"],
       new AlertEpisodeMember(),
     ],
+    /*
+     * What is done about a private record, though read through something
+     * else (#8913): a page about it, a step of that page, a runbook run
+     * linked to it, a fix OneUptime AI proposed for it.
+     */
+    [
+      "a page of an on-call policy",
+      // In the order the model declares them.
+      ["Incident", "Alert", "AlertEpisode", "IncidentEpisode"],
+      new OnCallDutyPolicyExecutionLog(),
+    ],
+    [
+      "a step of a page of an on-call policy",
+      // In the order the model declares them.
+      ["Incident", "Alert", "AlertEpisode", "IncidentEpisode"],
+      new OnCallDutyPolicyExecutionLogTimeline(),
+    ],
+    ["a runbook run", ["Incident", "Alert"], new RunbookExecution()],
+    [
+      "a fix OneUptime AI proposed",
+      ["Incident", "Alert"],
+      new AutoRemediationSuggestion(),
+    ],
   ])(
     "%s is a part of %j",
     (_name: string, kinds: Array<string>, model: PrivateRecordPartModel) => {
@@ -109,6 +139,11 @@ describe("PrivateRecordParts.getKindsOf", () => {
       new ScheduledMaintenanceStateTimeline(),
     ],
     ["a log line, an analytics model", new Log()],
+    // What the pages and runs above are read through is no part of one.
+    ["an on-call policy", new OnCallDutyPolicy()],
+    ["a runbook", new Runbook()],
+    // A person's own page: theirs to read, whatever it is about.
+    ["a person's page", new UserOnCallLog()],
   ])(
     "%s is a part of no private record",
     (_name: string, model: PrivateRecordPartModel) => {
@@ -166,6 +201,42 @@ describe("PrivateRecordParts.getKindsOf", () => {
       AlertEpisodeMember: ["alertEpisodeId"],
       IncidentEpisodeMember: ["incidentEpisodeId"],
       IncidentAlert: ["alertId"],
+      OnCallDutyPolicyExecutionLog: [
+        "triggeredByIncidentId",
+        "triggeredByAlertId",
+        "triggeredByIncidentEpisodeId",
+        "triggeredByAlertEpisodeId",
+      ],
+      OnCallDutyPolicyExecutionLogTimeline: [
+        "triggeredByIncidentId",
+        "triggeredByAlertId",
+        "triggeredByIncidentEpisodeId",
+        "triggeredByAlertEpisodeId",
+      ],
+      RunbookExecution: ["incidentId", "alertId"],
+      AutoRemediationSuggestion: ["incidentId", "alertId"],
     });
+  });
+
+  test("a page about an incident is a part of incidents only, and a run for an alert of alerts", () => {
+    expect(
+      PrivateRecordParts.isPartOf(
+        new OnCallDutyPolicyExecutionLog(),
+        "Incident",
+      ),
+    ).toBe(true);
+    expect(PrivateRecordParts.isPartOf(new RunbookExecution(), "Alert")).toBe(
+      true,
+    );
+    // A runbook run is never about an episode.
+    expect(
+      PrivateRecordParts.isPartOf(new RunbookExecution(), "IncidentEpisode"),
+    ).toBe(false);
+    expect(
+      PrivateRecordParts.isPartOf(
+        new AutoRemediationSuggestion(),
+        "AlertEpisode",
+      ),
+    ).toBe(false);
   });
 });

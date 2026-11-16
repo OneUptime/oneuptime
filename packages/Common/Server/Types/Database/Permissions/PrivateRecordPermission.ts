@@ -187,6 +187,16 @@ export default class PrivateRecordPermission {
     return `The ${parentNoun} it belongs to is private, so it is changed only with the permissions of the teams that own that ${parentNoun} and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.`;
   }
 
+  /*
+   * The same, naming the record, for something done about it rather than
+   * to it (#8913): after "You do not have permission to page now." or "...
+   * to approve this fix." - a page about a private incident, a runbook run
+   * linked to it, a fix OneUptime AI proposed for it.
+   */
+  public static getPrivateRecordWriteReason(noun: string): string {
+    return `This ${noun} is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.`;
+  }
+
   // The kind of private record a table holds, if any: "Incident".
   public static getKind(
     tableName: string | null | undefined,
