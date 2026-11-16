@@ -339,12 +339,18 @@ describe("a rule's Edit form", () => {
       },
     );
 
-    return criteria!.getCustomElement!(
+    const element: ReactElement | undefined = criteria!.getCustomElement!(
       values as FormValues<Rule>,
       {
         onChange: () => {},
       } as unknown as CustomElementProps,
     );
+
+    if (!element) {
+      throw new Error("The criteria field draws nothing.");
+    }
+
+    return element;
   };
 
   test("says above what the rule applies to that its monitors were deleted, and what to do", () => {

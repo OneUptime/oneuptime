@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import RuleEmptiedLimits from "Common/Server/Utils/Rules/RuleEmptiedLimits";
 import SwitchOffRulesLimitedOnlyToDeletedRecords from "../../../FeatureSet/Workers/DataMigrations/SwitchOffRulesLimitedOnlyToDeletedRecords";
 import fs from "fs";
@@ -77,7 +78,7 @@ describe("SwitchOffRulesLimitedOnlyToDeletedRecords", () => {
   });
 
   test("runs the repair once, and says how many rules it switched off", async () => {
-    const repair: jest.SpiedFunction<
+    const repair: SpyInstance<
       typeof RuleEmptiedLimits.switchOffRulesLimitedOnlyToDeletedRecords
     > = jest
       .spyOn(RuleEmptiedLimits, "switchOffRulesLimitedOnlyToDeletedRecords")
@@ -99,7 +100,7 @@ describe("SwitchOffRulesLimitedOnlyToDeletedRecords", () => {
   });
 
   test("its rollback switches nothing back on", async () => {
-    const repair: jest.SpiedFunction<
+    const repair: SpyInstance<
       typeof RuleEmptiedLimits.switchOffRulesLimitedOnlyToDeletedRecords
     > = jest.spyOn(
       RuleEmptiedLimits,
