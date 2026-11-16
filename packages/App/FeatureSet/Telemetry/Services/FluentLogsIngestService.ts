@@ -145,11 +145,28 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
         entries,
       } satisfies JSONObject;
 
-      Response.sendEmptySuccessResponse(req, res);
+      /*
+       * Acknowledge only after queue admission, as the OTLP endpoints do.
+       * This answered 200 first and queued after, so a batch the queue then
+       * refused was lost behind a success: Fluentd drops a chunk it was
+       * answered 200 for, and it retries a 503. The queue service logs the
+       * failure; the sender is told nothing of the backend or its payload.
+       */
+      try {
+        await FluentLogsQueueService.addFluentLogIngestJob(
+          req as TelemetryRequest,
+        );
+      } catch {
+        return Response.sendCustomResponse(
+          req,
+          res,
+          503,
+          { message: "Telemetry queue unavailable. Please retry." },
+          {},
+        );
+      }
 
-      await FluentLogsQueueService.addFluentLogIngestJob(
-        req as TelemetryRequest,
-      );
+      Response.sendEmptySuccessResponse(req, res);
 
       return;
     } catch (error) {
