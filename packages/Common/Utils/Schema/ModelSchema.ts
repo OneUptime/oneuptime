@@ -801,7 +801,9 @@ export class ModelSchema extends BaseSchema {
    * text, a number, a time or a flag, which the database orders as people
    * read them. Every number is one: a severity's place in its list is a
    * small number (IncidentSeverity.order), which
-   * { "incidentSeverity": { "order": "ASC" } } sorts incidents by. The API
+   * { "incidentSeverity": { "order": "ASC" } } sorts incidents by. A domain
+   * is a name: a status page's domains sort by theirs, A to Z, which the
+   * API's refusal of { "domain": "ASC" } tells a caller to send. The API
    * orders by any column (SortValidator); this is what the spec offers.
    */
   public static getSortableTypes(): Array<TableColumnType> {
@@ -811,6 +813,7 @@ export class ModelSchema extends BaseSchema {
       TableColumnType.ShortText,
       TableColumnType.LongText,
       TableColumnType.Name,
+      TableColumnType.Domain,
       TableColumnType.Number,
       TableColumnType.SmallNumber,
       TableColumnType.SmallPositiveNumber,

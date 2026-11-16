@@ -793,6 +793,50 @@ describe("a relation's sort", () => {
     );
   });
 
+  /*
+   * The API refuses a relation given only a direction, and names a field of
+   * its record to send instead (SortValidator). A client generated from the
+   * spec can send what it names.
+   */
+  test("offers the field the API's refusal of a relation given only a direction names", () => {
+    const problems: Array<string> = [];
+    let refusals: number = 0;
+
+    for (const modelType of SORTED_MODELS) {
+      for (const [key, property] of Object.entries(
+        propertiesOf(sortSchemaOf(modelType)),
+      )) {
+        const name: string = nameOfRef(property);
+
+        if (name === "SortFieldOrder") {
+          continue;
+        }
+
+        const message: string =
+          refusalOf(modelType, { [key]: SortOrder.Descending })?.message || "";
+        const named: RegExpMatchArray | null = message.match(
+          /Send (\{.+?\}) to sort by/,
+        );
+        const suggested: JSONObject | undefined = named
+          ? (JSON.parse(named[1]!) as JSONObject)
+          : undefined;
+
+        if (
+          !suggested ||
+          !allows(sortSchemaOf(modelType), suggested) ||
+          refusalOf(modelType, suggested)
+        ) {
+          problems.push(`${tableOf(modelType)}.${key}: ${message}`);
+        }
+
+        refusals++;
+      }
+    }
+
+    expect(problems).toEqual([]);
+    expect(refusals).toBeGreaterThan(1500);
+  });
+
   test("is built once per model, as its select is", () => {
     expect(ModelSchema.getRelationSortSchema(IncidentSeverity)).toBe(
       ModelSchema.getRelationSortSchema(IncidentSeverity),

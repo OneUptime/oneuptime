@@ -48,6 +48,7 @@ const SORTABLE_TYPES: Array<TableColumnType> = [
   TableColumnType.ShortText,
   TableColumnType.LongText,
   TableColumnType.Name,
+  TableColumnType.Domain,
   TableColumnType.Number,
   TableColumnType.SmallNumber,
   TableColumnType.SmallPositiveNumber,
