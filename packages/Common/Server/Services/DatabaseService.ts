@@ -9891,6 +9891,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     carryForward: any;
     relationSelect: RelationSelect<TBaseModel> | null;
     fileReader: RelatedFileReader | null;
+    asker: DatabaseCommonInteractionProps;
   }> {
     findBy.props = await this.checkCallerBeforeHooks(
       findBy.props,
@@ -9980,6 +9981,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       carryForward: onFind.carryForward,
       relationSelect: result.relationSelect,
       fileReader: fileReader,
+      asker: asker,
     };
   }
 
@@ -9995,6 +9997,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         carryForward: any;
         relationSelect: RelationSelect<TBaseModel> | null;
         fileReader: RelatedFileReader | null;
+        asker: DatabaseCommonInteractionProps;
       } = await this.narrowRead(findBy);
 
       const onBeforeFind: FindBy<TBaseModel> = narrowed.findBy;
@@ -10111,6 +10114,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         rows: decryptedItems,
         select: onBeforeFind.select,
         reader: fileReader,
+      });
+
+      /*
+       * A private incident, alert or episode, or a part of one, reached
+       * through a relation, only for someone who sees it - by who asked,
+       * as they asked; anyone else gets the row without it (#9102). See
+       * PrivateRecordReadFilter.keepSeenRelatedRecords.
+       */
+      await PrivateRecordReadFilter.keepSeenRelatedRecords({
+        modelType: this.modelType,
+        rows: decryptedItems,
+        select: onBeforeFind.select,
+        props: narrowed.asker,
       });
 
       for (const item of decryptedItems) {

@@ -6,6 +6,7 @@ import OwnedScopePermission from "./OwnedScopePermission";
 import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
 import QueryPermission from "./QueryPermission";
 import RelationListPermission from "./RelationListPermission";
+import PrivateRecordReadFilter from "../../../Utils/Permission/PrivateRecordReadFilter";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -191,7 +192,11 @@ export default class SortValidator {
    *     of the relation may read (canReadOnRelationQuery), or one the caller
    *     may read on the related model - never by a workflow's step when the
    *     related model holds credentials - as a filter through the relation
-   *     is (QueryPermission.checkRelationFilterPermission).
+   *     is (QueryPermission.checkRelationFilterPermission);
+   *   - through a relation to a private incident, alert or episode, or to a
+   *     part of one, no column but its id, unless the caller sees every
+   *     private record (#9102): an order cannot leave out the records they
+   *     do not see (PrivateRecordReadFilter.checkRelationSort).
    *
    * A column kept to its owners is refused by OwnedScopePermission
    * .checkSortOnColumnsKeptToOwners, before this. Asked of every read by
@@ -231,6 +236,12 @@ export default class SortValidator {
     if (named.length === 0) {
       return;
     }
+
+    PrivateRecordReadFilter.checkRelationSort({
+      modelType: data.modelType as { new (): BaseModel },
+      sort: data.sort,
+      props: data.props,
+    });
 
     const readable: Array<string> =
       ColumnPermissions.getModelColumnsByPermissions(
