@@ -75,7 +75,7 @@ import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
  * suppressing, adopting and resolving without disturbing the other.
  */
 
-type CronHandler = () => Promise<void>;
+type CronHandler = (deadline?: JobDeadline) => Promise<void>;
 
 /*
  * Captured cron handlers, keyed by job name. Must be declared before the
@@ -402,6 +402,7 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 import Semaphore, {
   SemaphoreMutex,
 } from "Common/Server/Infrastructure/Semaphore";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import IncidentService from "Common/Server/Services/IncidentService";
@@ -991,7 +992,7 @@ function historyRowsWritten(): Array<{ metricName: string; value: number }> {
   return rows;
 }
 
-async function runWorkerTick(): Promise<void> {
+async function runWorkerTick(deadline?: JobDeadline): Promise<void> {
   const handler: CronHandler | undefined = mockCapturedJobs["Slo:EvaluateSlos"];
 
   if (!handler) {
@@ -1000,7 +1001,7 @@ async function runWorkerTick(): Promise<void> {
     );
   }
 
-  await handler();
+  await handler(deadline);
 }
 
 describe("Slo:EvaluateSlos worker", () => {
@@ -5668,11 +5669,14 @@ describe("Slo:EvaluateSlos worker", () => {
      * getDueSlos() snapshots the whole due set and each SLO is stamped only when
      * the loop reaches it, so a sweep slower than the one-minute schedule still
      * has hundreds of unstamped SLOs in flight when the next tick re-selects
-     * them - and runJobWithTimeout is a Promise.race that never cancels the
-     * body. The result was duplicate owner notifications and duplicate
+     * them. The result was duplicate owner notifications and duplicate
      * burn-rate alerts. (An affected-row count on an updateBy cannot substitute:
      * DatabaseService._updateBy is a _findBy + per-row save() and returns the
-     * SELECT count, so two interleaved sweeps both see 1.)
+     * SELECT count, so two interleaved sweeps both see 1.) RunCron now runs one
+     * sweep at a time under its lease, and the mutex is kept beside it: the
+     * lease lapses half a minute past the time limit even while an evaluation
+     * of the run has not returned, and the mutex is held for as long as the
+     * run lasts (issue #8103).
      */
     test("the whole sweep runs under one mutex, acquired without retrying and released after", async () => {
       sloService.getDueSlos.mockResolvedValue([makeSlo()]);
@@ -5740,6 +5744,86 @@ describe("Slo:EvaluateSlos worker", () => {
       await runWorkerTick();
 
       expect(mockedLogger.error).toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * A sweep stops at its deadline (issue #8103): its time limit, or its lease
+   * lost (CronLock ends it then, as another run may hold the lock). Between
+   * SLOs, never inside one; the SLOs it did not reach are still due, so they
+   * lead the next tick.
+   */
+  describe("the sweep stops at its deadline", () => {
+    function cadenceStampedSloIds(): Array<string> {
+      return sloService.updateColumnsByIdWithoutHooks.mock.calls
+        .map((call: Array<unknown>) => {
+          return call[0] as { id: ObjectID; data: Record<string, unknown> };
+        })
+        .filter((write: { data: Record<string, unknown> }): boolean => {
+          return "lastEvaluatedAt" in write.data;
+        })
+        .map((write: { id: ObjectID }): string => {
+          return write.id.toString();
+        });
+    }
+
+    function twoDueSlos(): [ServiceLevelObjective, ServiceLevelObjective] {
+      const first: ServiceLevelObjective = makeSlo({ monitors: [] });
+      first.id = new ObjectID("slo-deadline-first");
+      const second: ServiceLevelObjective = makeSlo({ monitors: [] });
+      second.id = new ObjectID("slo-deadline-second");
+
+      sloService.getDueSlos.mockResolvedValue([first, second]);
+
+      return [first, second];
+    }
+
+    test("evaluates every due SLO while the deadline has not passed", async () => {
+      const [first, second] = twoDueSlos();
+
+      await runWorkerTick(new JobDeadline());
+
+      expect(cadenceStampedSloIds()).toEqual([
+        first.id!.toString(),
+        second.id!.toString(),
+      ]);
+    });
+
+    test("stops before the next SLO once the deadline has passed, and still releases its mutex", async () => {
+      const [first] = twoDueSlos();
+      const deadline: JobDeadline = new JobDeadline();
+
+      // The time limit runs out while the first SLO is being evaluated.
+      sloService.updateColumnsByIdWithoutHooks.mockImplementationOnce(
+        async (): Promise<void> => {
+          deadline.end();
+        },
+      );
+
+      await runWorkerTick(deadline);
+
+      expect(cadenceStampedSloIds()).toEqual([first.id!.toString()]);
+      expect(semaphore.release).toHaveBeenCalledWith(SWEEP_MUTEX);
+      expect(
+        (logger.debug as unknown as jest.Mock).mock.calls.some(
+          (call: Array<unknown>): boolean => {
+            return String(call[0]).includes("stopping after 1 of 2 due SLO(s)");
+          },
+        ),
+      ).toBe(true);
+    });
+
+    test("a deadline that passed before the sweep evaluates no SLO", async () => {
+      twoDueSlos();
+
+      const deadline: JobDeadline = new JobDeadline();
+      deadline.end(new Error("its lock lapsed"));
+
+      await runWorkerTick(deadline);
+
+      expect(cadenceStampedSloIds()).toEqual([]);
+      expect(historyService.insertHistoryRows).not.toHaveBeenCalled();
+      expect(semaphore.release).toHaveBeenCalledWith(SWEEP_MUTEX);
     });
   });
 
