@@ -1730,8 +1730,33 @@ runs), every group's suites to summing to at most 22, naming a group past it
 with its sum, its suites and the groups with the most room, and the run step's
 limit to 22 x 1.45. A new suite's minutes
 come from a local run (CI=1, its bundle built, nothing else running) until App
-Test's runs measure it. Re-measure from finished runs (each group job's log,
-from one `▶ npm run` to the next) when the groups are moved again.
+Test's runs measure it. Since 2026-11-16 a group runs two suites at a time
+(`RunUiSuites.test.js`), so a group's log no longer runs from one `▶ npm run`
+to the next: re-measure from each group's step summary, which lists every
+suite's minutes from its start to its end, taken beside another suite. The
+budget still holds a group's sum of one-at-a-time minutes, which two at a time
+stays far inside; planning the groups by what two lanes take waits for those
+measurements.
+
+### `RunUiSuites.test.js`
+
+`packages/E2E/Scripts/RunUiSuites.js` runs a Dashboard Offline UI group's
+suites two at a time (`UI_SUITE_LANES`), since one suite kept about one and a
+half of the runner's four CPUs busy and left the rest of a group's runner idle
+for twenty minutes. Two suites never run at once when they share a port, a
+fixture server or an output directory, each read from the suite's Playwright
+config (bundled with esbuild, as Playwright reads it); a config it cannot read
+runs alone. The slowest suites start first, by `DashboardOfflineUiMinutes.json`.
+The suite holds how the script reads a config, a URL's port, a suite's minutes'
+key and which suite starts next; runs the script against stub suites (a fake
+`playwright` that records when each ran) to hold that two run at once, two
+sharing a port never do, an unreadable config runs alone, every suite runs when
+one fails, an unknown name fails before anything runs, and each suite's lines
+reach the log (after its name), its own log file and the step summary; reads
+every suite App Test's groups run, none of which may run alone for want of a
+readable config; and holds App Test to running each group through the script,
+two at a time, after installing Common (whose esbuild reads the configs), with
+`output/playwright/ui-suite-logs` uploaded.
 
 ### `DashboardOfflineUiShards.test.js`
 

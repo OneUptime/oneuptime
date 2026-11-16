@@ -226,6 +226,16 @@ jobs:
   # adds a minute and a half. Each suite still runs exactly as before: same
   # config, same browsers, one worker.
   #
+  # Since 2026-11-16 a group runs two of its suites at a time
+  # (packages/E2E/Scripts/RunUiSuites.js, the run step below), never two
+  # that share a port, a fixture server or an output directory: one suite
+  # kept about one and a half of the runner's four CPUs busy, so a group's
+  # runner was mostly idle. A group now takes about half its suites'
+  # minutes. The budget below still holds each group's suites to a sum of
+  # 22 minutes run one at a time, which a group run two at a time stays far
+  # inside; planning groups by what two lanes take, so there are fewer of
+  # them, waits for App Test's runs to measure the suites side by side.
+  #
   # The same group has taken a third longer on one run than on the next with
   # nothing changed but the runner (group 1: about 18 and 24 minutes), and on
   # 14.0.100's second gate run (2026-11-01) group 14 took 1.45 times the
@@ -274,7 +284,9 @@ jobs:
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, its
   # minutes in Tests/Ops/DashboardOfflineUiMinutes.json, and its output
-  # paths in the upload step below.
+  # paths in the upload step below. Its config needs a port of its own unless
+  # it shares a fixture with another suite: RunUiSuites.js keeps two suites
+  # with one port apart, so a shared port only costs time.
   dashboard-offline-ui:
     name: Dashboard Offline UI (${{ matrix.group }})
     runs-on: ubuntu-latest
@@ -1874,49 +1886,34 @@ jobs:
           # Skip the preinstall hook that downloads every browser: the
           # image has them.
           args: --ignore-scripts
-      # Every suite in the group runs even if an earlier one failed, so one run
+      # Two suites at a time (Scripts/RunUiSuites.js says why): a suite keeps
+      # about one and a half of the runner's four CPUs busy, so one at a time
+      # left most of the runner idle. Never two that share a port, a fixture
+      # server or an output directory, each read from the suite's config, and
+      # each suite runs exactly as before (its own config, browser, worker and
+      # fixture server). The slowest start first. Each line of output starts
+      # with its suite's name, each suite's whole log is uploaded below, and
+      # the step summary lists every suite's result and minutes.
+      #
+      # Every suite in the group runs even if another failed, so one run
       # reports them all, and the step fails at the end if any did. A name that
       # is not a script in packages/E2E/package.json fails before anything
-      # runs, rather than quietly running nothing.
+      # runs, rather than quietly running nothing. UI_SUITE_LANES: "1" runs
+      # them one after another, as before (Tests/Ops/RunUiSuites.test.js).
       - name: Run this group's UI regressions
         working-directory: packages/E2E
         timeout-minutes: 35
         env:
           SUITES: ${{ matrix.suites }}
-        run: |
-          set -uo pipefail
-          read -ra suites <<<"$SUITES"
-          for suite in "${suites[@]}"; do
-            if ! node -e 'process.exit(require("./package.json").scripts[process.argv[1]] ? 0 : 1)' "$suite"; then
-              echo "::error title=Unknown UI suite::\"${suite}\" is not a script in packages/E2E/package.json."
-              exit 1
-            fi
-          done
-          failed=()
-          {
-            echo "| Suite | Result |"
-            echo "| --- | --- |"
-          } >>"$GITHUB_STEP_SUMMARY"
-          for suite in "${suites[@]}"; do
-            echo ""
-            echo "▶ npm run ${suite}"
-            if npm run "$suite"; then
-              echo "| ${suite} | passed |" >>"$GITHUB_STEP_SUMMARY"
-            else
-              failed+=("$suite")
-              echo "| ${suite} | **failed** |" >>"$GITHUB_STEP_SUMMARY"
-            fi
-          done
-          if ((${#failed[@]} > 0)); then
-            echo "::error title=UI regressions failed::${failed[*]}"
-            exit 1
-          fi
+          UI_SUITE_LANES: "2"
+        run: node Scripts/RunUiSuites.js
       - name: Upload browser screenshots and failure traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ github.job }}-${{ matrix.group }}-${{ github.run_attempt }}
           path: |
+            output/playwright/ui-suite-logs
             output/playwright/incoming-call-policies/*.png
             output/playwright/incoming-call-policies/test-results
             output/playwright/push-registration-ui/*.png
