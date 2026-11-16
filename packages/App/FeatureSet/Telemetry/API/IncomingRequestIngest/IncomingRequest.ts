@@ -141,10 +141,13 @@ const processIncomingRequest: RequestHandler = async (
       secretDecision.refusalKind ===
         IncomingRequestSecretRefusalKind.TooManyWrongSecrets
     ) {
-      res.setHeader(
-        "Retry-After",
-        String(secretDecision.retryAfterSeconds || 1),
-      );
+      if (typeof res.setHeader === "function") {
+        res.setHeader(
+          "Retry-After",
+          String(secretDecision.retryAfterSeconds || 1),
+        );
+      }
+
       throw new TooManyRequestsException(secretDecision.refusalMessage);
     }
 

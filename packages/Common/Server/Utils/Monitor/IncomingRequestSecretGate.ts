@@ -279,14 +279,20 @@ export default class IncomingRequestSecretGate {
             });
 
           if (refusal) {
-            await this.recordRefusal({ monitorId, decision });
+            await this.recordRefusal({
+              monitorId: monitorOfKey.monitorId,
+              decision,
+            });
 
             return this.tooManyWrongSecrets(refusal);
           }
         }
 
         // It never reaches the worker: the monitor learns of it here.
-        await this.recordRefusal({ monitorId, decision });
+        await this.recordRefusal({
+          monitorId: monitorOfKey.monitorId,
+          decision,
+        });
 
         return {
           mayRecordArrival: false,
@@ -518,7 +524,7 @@ export default class IncomingRequestSecretGate {
   }
 
   private static async recordRefusal(data: {
-    monitorId: string;
+    monitorId: ObjectID;
     decision: IncomingRequestSecretDecision;
   }): Promise<void> {
     if (data.decision.sentValidSecret === false) {
