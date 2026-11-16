@@ -728,9 +728,16 @@ work out, starts from a default for everything else, and folds what most people 
   (`withDurationWordsHeld`, #8823), and a unit's symbol a formatter writes beside a figure is held
   however short it is: a disk's "12.5 ms", "ops/s", a transceiver's "V" and "mA" (#8803). Enforced by
   [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
-  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
-  and
-  [NumbersKeepTheirUnitsInIntlGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInIntlGuard.test.ts).
+  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts),
+  [NumbersKeepTheirUnitsInIntlGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInIntlGuard.test.ts),
+  [DurationWordsHeldInSentences](../../packages/Common/Tests/App/DurationWordsHeldInSentences.test.ts)
+  (a sentence built in code, #8695),
+  [TranslatedDurationWordsHeld](../../packages/Common/Tests/App/TranslatedDurationWordsHeld.test.ts)
+  (a wording and a page's English, #8770),
+  [TranslationHoldsEnglishDurations](../../packages/Common/Tests/UI/Utils/TranslationHoldsEnglishDurations.test.tsx)
+  (an English key a page draws as written, #8811) and
+  [PageEnglishDurationsHeld](../../packages/App/Tests/Notification/PageEnglishDurationsHeld.test.ts)
+  (a module's own English fallback, and an email's English, #8811).
 - **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
   a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message

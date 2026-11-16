@@ -501,7 +501,10 @@ export const FindDashboardPageTool: ObservabilityTool = {
        * a turn's history, stays English (#8831).
        */
       ...citationSentence(AI_TOOL_CITATIONS.dashboardPage, {
-        path: aiActionMenuPath([...first.where, first.titleKey ?? first.title]),
+        path: aiActionMenuPath(
+          [...first.where, first.titleKey ?? first.title],
+          first.titleKey ? first.titleValues : undefined,
+        ),
       }),
       citationTarget: {
         type: AIChatCitationTargetType.DashboardPage,
@@ -510,6 +513,10 @@ export const FindDashboardPageTool: ObservabilityTool = {
           title: first.title,
           // The key its button draws, where it is not the title (#8817).
           ...(first.titleKey ? { titleKey: first.titleKey } : {}),
+          // What fills that key, where it is a template (#8834).
+          ...(first.titleKey && first.titleValues
+            ? { titleValues: JSON.stringify(first.titleValues) }
+            : {}),
         },
       },
       redactionCount: 0,

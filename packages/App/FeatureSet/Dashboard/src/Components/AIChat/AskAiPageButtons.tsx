@@ -48,7 +48,13 @@ const AskAiPageButtons: FunctionComponent<ComponentProps> = (
           >
             <span>
               {translator.translateTemplate("Go to {{page}}", {
-                page: translator.translateText(link.titleKey) || link.title,
+                // A template's values are another product's name, as written (#8834).
+                page: link.titleValues
+                  ? translator.translateTemplate(
+                      link.titleKey,
+                      link.titleValues,
+                    )
+                  : translator.translateText(link.titleKey) || link.title,
               })}
             </span>
             <Icon
