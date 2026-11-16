@@ -85,6 +85,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import fs from "fs";
 import { DataSource, Logger, QueryRunner } from "typeorm";
 import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
 
@@ -837,12 +838,31 @@ describePostgres("rules kept between creates (Postgres)", () => {
       expect(warmAgain.statements).toBe(0);
 
       if (PRINT) {
-        // What the fifteen reads cost this process, cold and warm.
+        /*
+         * What the fifteen reads cost this process, cold and warm - and
+         * Postgres, when RULE_SET_CACHE_PG_CPU_STAT names its cgroup's
+         * cpu.stat (a container's, e.g.
+         * /sys/fs/cgroup/system.slice/docker-<id>.scope/cpu.stat).
+         */
         const rounds: number = 30;
+        const cpuStat: string | undefined =
+          process.env["RULE_SET_CACHE_PG_CPU_STAT"];
+        const postgresCpuMs: () => number = (): number => {
+          if (!cpuStat) {
+            return 0;
+          }
+
+          const usage: RegExpMatchArray | null = fs
+            .readFileSync(cpuStat, "utf8")
+            .match(/usage_usec (\d+)/);
+
+          return usage ? Number(usage[1]) / 1000 : 0;
+        };
         const cost: (isCold: boolean) => Promise<string> = async (
           isCold: boolean,
         ): Promise<string> => {
           const cpuBefore: NodeJS.CpuUsage = process.cpuUsage();
+          const postgresBefore: number = postgresCpuMs();
           let ms: number = 0;
 
           for (let round: number = 0; round < rounds; round++) {
@@ -854,8 +874,9 @@ describePostgres("rules kept between creates (Postgres)", () => {
           }
 
           const cpu: NodeJS.CpuUsage = process.cpuUsage(cpuBefore);
+          const postgres: number = postgresCpuMs() - postgresBefore;
 
-          return `${((cpu.user + cpu.system) / 1000 / rounds).toFixed(2)} ms of this process's CPU, ${(ms / rounds).toFixed(2)} ms wall`;
+          return `${((cpu.user + cpu.system) / 1000 / rounds).toFixed(2)} ms of this process's CPU${cpuStat ? `, ${(postgres / rounds).toFixed(2)} ms of Postgres's` : ""}, ${(ms / rounds).toFixed(2)} ms wall`;
         };
 
         const coldCost: string = await cost(true);
