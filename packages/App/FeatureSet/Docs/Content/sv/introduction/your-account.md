@@ -63,7 +63,7 @@ Fäll ut **Säkerhet** i sidomenyn i **Användarprofil**. Avsnittet har tre sido
 | Sida | Vad den används till |
 | --- | --- |
 | **Lösenordshantering** | Ange ett nytt lösenord. |
-| **Passkeys** | Logga in utan lösenord, med ditt fingeravtryck, ditt ansikte, skärmlåset eller en säkerhetsnyckel. |
+| **Passnycklar** | Logga in utan lösenord, med ditt fingeravtryck, ditt ansikte, skärmlåset eller en säkerhetsnyckel. |
 | **Tvåfaktorsautentisering** | Kräv ett andra steg efter lösenordet eller en länk via e-post: en kod från en app, eller en säkerhetsnyckel. |
 
 ### Byt lösenord
@@ -79,8 +79,8 @@ Ett nytt lösenord loggar ut alla enheter från ditt konto, och varje återstäl
 ### Lägg till en passnyckel
 
 :::steps
-1. Öppna **Säkerhet → Passkeys** och klicka på **Add Passkey**.
-2. Ge den ett namn som du känner igen, till exempel din enhet eller din lösenordshanterare, och klicka på **Create Passkey**.
+1. Öppna **Säkerhet → Passnycklar** och klicka på **Lägg till passnyckel**.
+2. Ge den ett namn som du känner igen, till exempel din enhet eller din lösenordshanterare, och klicka på **Skapa passnyckel**.
 3. Följ webbläsarens uppmaning för att spara passnyckeln.
 :::
 
@@ -108,11 +108,11 @@ Tvåfaktorsautentisering gäller när du loggar in med ditt lösenord eller en l
 :::steps
 ### Lägg till en autentiseringsapp
 
-Öppna **Säkerhet → Tvåfaktorsautentisering**. Under **Authenticator apps** lägger du till en app och ger den ett namn. Skanna QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, ange den sexsiffriga koden som den visar och klicka på **Verify and finish**. Vill du hellre använda en USB- eller NFC-nyckel lägger du till den under **Security keys**.
+Öppna **Säkerhet → Tvåfaktorsautentisering**. Under **Autentiseringsappar** lägger du till en app och ger den ett namn. Skanna QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, ange den sexsiffriga koden som den visar och klicka på **Verifiera och slutför**. Vill du hellre använda en USB- eller NFC-nyckel lägger du till den under **Säkerhetsnycklar**.
 
 ### Spara dina reservkoder
 
-Första gången du lägger till en app, en nyckel eller en passnyckel visar OneUptime **Your backup codes**. Varje kod loggar in dig en gång om du tappar bort din app eller nyckel. Kopiera eller ladda ned dem, kryssa i rutan som säger att du har sparat dem och klicka på **Klar**.
+Första gången du lägger till en app, en nyckel eller en passnyckel visar OneUptime **Dina reservkoder**. Varje kod loggar in dig en gång om du tappar bort din app eller nyckel. Kopiera eller ladda ned dem, kryssa i rutan som säger att du har sparat dem och klicka på **Klar**.
 
 ### Slå på den
 
@@ -120,7 +120,7 @@ Klicka på **Aktivera tvåfaktorsautentisering** högst upp på sidan och bekrä
 :::
 
 > [!TIP]
-> Håller reservkoderna på att ta slut? **Regenerate codes** på samma sida ger dig en ny uppsättning, och de gamla koderna slutar fungera direkt.
+> Håller reservkoderna på att ta slut? **Generera nya koder** på samma sida ger dig en ny uppsättning, och de gamla koderna slutar fungera direkt.
 
 ## Dina projekt
 

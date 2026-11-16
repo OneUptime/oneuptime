@@ -8,8 +8,8 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
-import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * Adding a host in one command, and the collectors OneUptime manages on
@@ -1198,7 +1198,11 @@ test("a managed host: its collector's state, its config and the commands on the 
   // Nothing failed: nothing to try again.
   await expect(headerButton(collector, "Try again")).toHaveCount(0);
 
-  // When it last reported, in words, with the date and time on hover.
+  /*
+   * When it last reported, in words, with the date and time on hover. The
+   * number is held to its unit by a no-break space (#8456), which a
+   * pattern matches as written.
+   */
   const lastReport: Locator = page.getByTestId("host-collector-last-report");
   await expect(lastReport).toHaveText(
     new RegExp(`^\\d+${NO_BREAK_SPACE}minutes? ago$`),
@@ -1641,6 +1645,7 @@ test("in German, the Collector page and a config's versions are translated", asy
   await expect(page.getByTestId("host-collector-config-version")).toHaveText(
     "1, die letzte, die hier funktioniert hat",
   );
+  // Its number held to its unit, as in English (#8456).
   await expect(page.getByTestId("host-collector-last-report")).toHaveText(
     new RegExp(`^vor \\d+${NO_BREAK_SPACE}Minuten?$`),
   );

@@ -40,7 +40,7 @@ En APK uppdaterar sig inte själv: installera den senaste ovanpå då och då. D
 flowchart TB
     Address["Du anger adressen<br/>till ditt OneUptime"]
     Check["Appen kontrollerar att<br/>ditt OneUptime svarar"]
-    SignIn["Du loggar in: lösenord,<br/>passkey eller SSO"]
+    SignIn["Du loggar in: lösenord,<br/>passnyckel eller SSO"]
     Allow["Du tillåter aviseringar"]
     Register["Appen registrerar<br/>telefonen i vart och<br/>ett av dina projekt"]
     Rules["Varje projekt visar<br/>telefonen, med<br/>standardjourreglerna"]
@@ -56,7 +56,7 @@ Använd det sätt ditt konto loggar in på:
 
 - Din e-postadress och ditt lösenord, sedan **Sign In**. **Forgot password?** mejlar dig en länk för att välja ett nytt.
 - **Sign in with SSO**, om din organisation använder enkel inloggning. Välj din leverantör, eller ange din jobbmejladress och tryck på **Continue**. En säker webbläsare öppnas, och du är tillbaka i appen så snart du har loggat in.
-- **Sign in with a passkey**, när du har lagt till en i instrumentpanelen: se [Lägg till en passkey](/docs/introduction/your-account#lägg-till-en-passnyckel). Webbläsaren öppnas för att bekräfta den och skickar dig sedan tillbaka.
+- **Sign in with a passkey**, när du har lagt till en i instrumentpanelen: se [Lägg till en passnyckel](/docs/introduction/your-account#lägg-till-en-passnyckel). Webbläsaren öppnas för att bekräfta den och skickar dig sedan tillbaka.
 
 Med tvåfaktorsautentisering påslagen anger du den sexsiffriga koden från din autentiseringsapp, eller en av dina reservkoder. En säkerhetsnyckel kan inte användas i appen. Kräver din administratör tvåfaktorsautentisering och du inte har konfigurerat den ännu, konfigurerar appen först en autentiseringsapp tillsammans med dig.
 

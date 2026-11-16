@@ -128,6 +128,17 @@ const SENTENCES_NAMING_A_LABEL: ReadonlyArray<SentenceNamingALabel> = [
       "The broker metrics Broker health charts, and which of them offer Create monitor.",
     label: "Broker health",
   },
+  // The Queues setup guide's broker step, on the product page and a queue's tab.
+  {
+    sentence:
+      "They add the broker's view of each queue to its Overview, under Broker health.",
+    label: "Broker health",
+  },
+  {
+    sentence:
+      "They add the broker's view of this queue to its Overview, under Broker health.",
+    label: "Broker health",
+  },
   /*
    * The description under the criteria form's Evaluate dropdown, which
    * names its choices: "Alle Werte", never "All Values", above a German

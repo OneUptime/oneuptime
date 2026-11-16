@@ -717,12 +717,21 @@ async function skeletonWasSeen(page: Page): Promise<boolean> {
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * How long the monitor has been Operational, by its two largest units: each
+ * number held to its unit by a no-break space (#8669), which a pattern
+ * matches as written.
+ */
+const OPERATIONAL_FOR: RegExp = new RegExp(
+  `^Operational for ${withUnit(3, "days")}, ${withUnit(4, "hours")}`,
+);
+
 test.describe("probe checks", () => {
   test("api operational desktop", async ({ page }: { page: Page }) => {
     await openReady(page);
     await expectSettled(page);
 
-    await expect(headline(page)).toHaveText(/^Operational for 3 days, 4 hours/);
+    await expect(headline(page)).toHaveText(OPERATIONAL_FOR);
     await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
       "Operational",
     );
@@ -1292,7 +1301,7 @@ test.describe("probe checks", () => {
     await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
       "Operational",
     );
-    await expect(headline(page)).toHaveText(/^Operational for 3 days, 4 hours/);
+    await expect(headline(page)).toHaveText(OPERATIONAL_FOR);
     await expect(
       page.getByTestId("monitor-overview-secondary-badge"),
     ).toHaveCount(0);

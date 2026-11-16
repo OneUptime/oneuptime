@@ -509,6 +509,8 @@ export default class ExceptionAssignmentNotifications {
           apiKeyName: true,
           assigneeUserId: true,
           assigneeTeamId: true,
+          // What the entry is claimed at: see below.
+          version: true,
         },
         sort: { createdAt: SortOrder.Ascending },
         limit: MAX_ASSIGNMENTS_PER_RUN,
@@ -519,17 +521,25 @@ export default class ExceptionAssignmentNotifications {
     let taken: number = 0;
 
     for (const entry of entries) {
-      if (!entry.id) {
+      if (!entry.id || typeof entry.version !== "number") {
         continue;
       }
 
       try {
-        // Marked first: taken once, whatever happens next.
+        /*
+         * Marked first: taken once, whatever happens next. updateBy finds
+         * the rows its query names and then writes each by its id, asking
+         * the UPDATE again only for the version the query names; so the
+         * claim names the version the entry was read at. Of two runs that
+         * read it, only the first one's write lands, and the other is told
+         * no row was written (#8801).
+         */
         const marked: number = await TelemetryExceptionActivityService.updateBy(
           {
             query: {
               _id: entry.id.toString(),
               isAssigneeNotified: false,
+              version: entry.version,
             },
             data: { isAssigneeNotified: true },
             limit: 1,

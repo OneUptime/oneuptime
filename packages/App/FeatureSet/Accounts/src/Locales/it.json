@@ -53,7 +53,7 @@
       "signIn": "Accedi con una passkey",
       "inProgress": "Completa o annulla l’accesso con passkey prima di usare la password.",
       "helpTitle": "Non conosci le passkey?",
-      "help": "Una passkey ti permette di accedere con l’impronta digitale, il volto o il PIN del dispositivo invece che con una password. Per aggiungerne una, accedi con la password o l’SSO, poi apri Profilo utente → Sicurezza → Passkeys.",
+      "help": "Una passkey ti permette di accedere con l’impronta digitale, il volto o il PIN del dispositivo invece che con una password. Per aggiungerne una, accedi con la password o l’SSO, poi apri Profilo utente → Sicurezza → Passkey.",
       "preparing": "Preparazione della passkey…",
       "waiting": "Controlla il dispositivo",
       "waitingDescription": "Segui le indicazioni del browser o del gestore di password.",
@@ -255,7 +255,7 @@
     "complete": "La tua passkey è stata verificata. Torna all’app per completare l’accesso.",
     "returnToApp": "Torna all’app",
     "cancel": "Annulla e torna all’app",
-    "setup": "Crea una passkey nella dashboard web, in Profilo utente → Sicurezza → Passkeys."
+    "setup": "Crea una passkey nella dashboard web, in Profilo utente → Sicurezza → Passkey."
   },
   "mcpAuthorize": {
     "title": "Collega un client MCP",

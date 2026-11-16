@@ -56,13 +56,22 @@ const DASHBOARD_GUIDE: string = path.resolve(
   "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown.ts",
 );
 
+// The guide's words in each language (#8341), its code spans as written.
+const DASHBOARD_GUIDE_WORDS: string = path.resolve(
+  __dirname,
+  "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/DocumentationTranslations",
+);
+
 /*
- * The guide's words in each language (#8341), its code spans as written.
- * The Host guide carries the Kubernetes guide for cluster nodes, so its
- * words hold the Kubernetes guide's too: every setup guide's words are
- * its words.
+ * The Host guide's words in each language, which hold the Kubernetes
+ * guide's pieces, its values table among them, for the Host guide's
+ * Kubernetes nodes way (Components/Host/DocumentationCard hands the guide
+ * only these).
  */
-const GUIDE_WORDS_DIRECTORY: string = "DocumentationTranslations";
+const HOST_GUIDE_WORDS: string = path.resolve(
+  __dirname,
+  "../../../FeatureSet/Dashboard/src/Pages/Host/DocumentationTranslations",
+);
 
 const LANGUAGES: Array<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
 
@@ -380,8 +389,9 @@ describe("OneUptime reads the eBPF span-metrics families only as Metrics AI's re
   /*
    * The product's sources that name a span-metrics family or one of the
    * reader names, by path, with their text: each source is read once. The
-   * in-app guide is left out, and so are every setup guide's words in each
-   * language: they document the metrics, and read nothing.
+   * in-app guide is left out, and so are its words in each language and the
+   * Host guide's, which carry its pieces: they document the metrics, and
+   * read nothing.
    */
   function namingSources(): Map<string, string> {
     if (sources) {
@@ -393,7 +403,8 @@ describe("OneUptime reads the eBPF span-metrics families only as Metrics AI's re
     for (const file of SCAN_DIRS.flatMap(listSourceFiles)) {
       if (
         file === DASHBOARD_GUIDE ||
-        path.basename(path.dirname(file)) === GUIDE_WORDS_DIRECTORY
+        path.dirname(file) === DASHBOARD_GUIDE_WORDS ||
+        path.dirname(file) === HOST_GUIDE_WORDS
       ) {
         continue;
       }
@@ -459,6 +470,38 @@ describe("OneUptime reads the eBPF span-metrics families only as Metrics AI's re
     expect(sourcesMatching(SPAN_METRICS_NAME)).toEqual(
       repositoryPaths([METRIC_INSIGHT, COLLECTOR_STEP, STEP_PANEL]),
     );
+  });
+
+  test("are named by the guides' words left out above only in the spanMetrics row, under the new names", () => {
+    for (const directory of [DASHBOARD_GUIDE_WORDS, HOST_GUIDE_WORDS]) {
+      const files: Array<string> = listSourceFiles(directory);
+
+      expect(files.length).toBeGreaterThan(0);
+
+      for (const file of files) {
+        const lines: Array<string> = read(file)
+          .split("\n")
+          .filter((line: string): boolean => {
+            return SPAN_METRICS_NAME.test(line);
+          });
+
+        // The row's English, and the language's words for it.
+        expect({ file: relative(file), count: lines.length }).toEqual({
+          file: relative(file),
+          count: 2,
+        });
+
+        for (const line of lines) {
+          expect({ file: relative(file), line: line.trim() }).toEqual({
+            file: relative(file),
+            line: expect.stringMatching(
+              /^"\| `spanMetrics` \|.*`traces\.span\.metrics\.\*`/,
+            ),
+          });
+          expect(line).not.toMatch(/size/i);
+        }
+      }
+    }
   });
 
   test("are named in code only as request-metric prefixes and as the connector's namespace", () => {
