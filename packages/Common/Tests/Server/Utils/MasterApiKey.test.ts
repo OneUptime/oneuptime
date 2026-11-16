@@ -3,7 +3,7 @@ import MasterApiKey from "../../../Server/Utils/MasterApiKey";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import crypto from "crypto";
 
 /*
@@ -59,7 +59,7 @@ describe("generate", () => {
   });
 
   test("takes it from the server's own random source", () => {
-    const randomUUID: jest.SpiedFunction<typeof crypto.randomUUID> = jest
+    const randomUUID: jest.SpyInstance = jest
       .spyOn(crypto, "randomUUID")
       .mockReturnValue(OTHER_KEY as ReturnType<typeof crypto.randomUUID>);
 
@@ -237,10 +237,7 @@ describe("matches", () => {
   });
 
   test("compares the hash presented with the hash stored in constant time", () => {
-    const isEqual: jest.SpiedFunction<typeof HashedString.isEqual> = jest.spyOn(
-      HashedString,
-      "isEqual",
-    );
+    const isEqual: jest.SpyInstance = jest.spyOn(HashedString, "isEqual");
 
     MasterApiKey.matches({ presentedKey: OTHER_KEY, storedValue: STORED });
 
@@ -249,10 +246,7 @@ describe("matches", () => {
   });
 
   test("and a key stored as written with the key presented, the same way", () => {
-    const isEqual: jest.SpiedFunction<typeof HashedString.isEqual> = jest.spyOn(
-      HashedString,
-      "isEqual",
-    );
+    const isEqual: jest.SpyInstance = jest.spyOn(HashedString, "isEqual");
 
     MasterApiKey.matches({
       presentedKey: OTHER_KEY.toUpperCase(),
@@ -264,10 +258,7 @@ describe("matches", () => {
   });
 
   test("never compares a value that is no key: nothing to compare it with", () => {
-    const isEqual: jest.SpiedFunction<typeof HashedString.isEqual> = jest.spyOn(
-      HashedString,
-      "isEqual",
-    );
+    const isEqual: jest.SpyInstance = jest.spyOn(HashedString, "isEqual");
 
     MasterApiKey.matches({ presentedKey: "garbage", storedValue: STORED });
 
