@@ -42,7 +42,7 @@ import {
 import i18next from "i18next";
 import { getAdminDashboardPlugins } from "../../../App/FeatureSet/AdminDashboard/src/Enterprise/Plugins";
 import SettingsSideMenu from "../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/SideMenu";
-import "../../../App/FeatureSet/AdminDashboard/src/Utils/i18n";
+import { i18nReady } from "../../../App/FeatureSet/AdminDashboard/src/Utils/i18n";
 import BackupRun from "Common/Models/DatabaseModels/BackupRun";
 import BackupSetting from "Common/Models/DatabaseModels/BackupSetting";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -784,6 +784,15 @@ function Fixture() {
   );
 }
 
+/*
+ * As the Admin Dashboard's src/Index.tsx starts: every language but English
+ * is a chunk of its own (Utils/i18n.ts), so i18n first settles on the
+ * language it detects - the one the last page left in localStorage - and
+ * only then is this page's language set. Set before that, the detected
+ * language's chunk could arrive last and switch the page back to it, its
+ * <html lang> and dir with it: German, left to right, on a Persian page.
+ */
+await i18nReady.catch(() => {});
 await i18next.changeLanguage(language);
 document.documentElement.lang = language;
 document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
