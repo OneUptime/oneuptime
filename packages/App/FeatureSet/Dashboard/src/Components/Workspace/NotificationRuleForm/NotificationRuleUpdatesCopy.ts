@@ -274,9 +274,7 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
       },
       [NotificationRuleUpdateKind.Reminders]: {
         title: REMINDERS,
-        description: translationKey(
-          "Reminders that the alert is still open.",
-        ),
+        description: translationKey("Reminders that the alert is still open."),
       },
       [NotificationRuleUpdateKind.Other]: {
         title: EVERYTHING_ELSE,
