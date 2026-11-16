@@ -56021,5 +56021,17 @@
   "Every {{count}} seconds_one": "هر {{count}} ثانیه",
   "First Measured At": "زمان نخستین اندازه‌گیری",
   "Missing-email check": "بررسی ایمیل‌های نرسیده",
-  "Missing-request check": "بررسی درخواست‌های نرسیده"
+  "Missing-request check": "بررسی درخواست‌های نرسیده",
+  "Copy Your API Key": "کلید API خود را کپی کنید",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "همین حالا آن را کپی کنید و در جای امنی، مانند یک مدیر رازها، نگه دارید. فقط همین یک بار نمایش داده می‌شود: OneUptime فقط هش آن را نگه می‌دارد.",
+  "Ends in {{hint}}": "به {{hint}} ختم می‌شود",
+  "Shown only once, when it was made. Reset it to get a new one.": "فقط یک بار، هنگام ساختن، نمایش داده شد. برای گرفتن کلیدی تازه، آن را بازنشانی کنید.",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "کلیدی تازه می‌سازد و یک بار نمایش می‌دهد. کلید فعلی در کمتر از یک دقیقه از کار می‌افتد.",
+  "Reset API Key?": "کلید API بازنشانی شود؟",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "کلید فعلی در کمتر از یک دقیقه برای هر اسکریپت و ابزاری که از آن استفاده می‌کند از کار می‌افتد. کلید جدید یک بار نمایش داده می‌شود.",
+  "The server did not answer with the new API key. Try again.": "سرور کلید API جدید را برنگرداند. دوباره تلاش کنید.",
+  "API Key Hint": "راهنمای کلید API",
+  "Master API Key Created At": "تاریخ ساخت کلید API ارشد",
+  "Master API Key Created By User ID": "شناسه کاربر سازنده کلید API ارشد",
+  "Master API Key Hint": "راهنمای کلید API ارشد"
 }

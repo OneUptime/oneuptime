@@ -35,7 +35,7 @@ Alle API-forespørsler autentiseres med en API-nøkkel. En nøkkel hører til et
 
 ### Kopier nøkkelen
 
-Nøkkelens side åpnes. Kopier **API-nøkkel** fra kortet **API-nøkkeldetaljer**, og hold den unna koden din:
+OneUptime viser nøkkelen én gang, i dialogen **Kopier API-nøkkelen din**: kopier den før du trykker på **Ferdig**, for ingen side viser den igjen. Hold den unna koden din:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -341,7 +341,7 @@ Hver ressurs, hvert endepunkt og hvert felt står i [OneUptime API-referansen](/
 ## Feilsøking
 
 :::details Hver forespørsel svarer 400 Invalid API Key
-Headeren `ApiKey` er tom, er ikke en nøkkel, eller nevner en nøkkel som har utløpt eller er tilbakestilt. Kopier nøkkelen på nytt fra siden dens under **Prosjektinnstillinger → Avansert → API-nøkler**, der datoen under **Utløper** også står.
+Headeren `ApiKey` er tom, er ikke en nøkkel, eller nevner en nøkkel som har utløpt eller er tilbakestilt. Finn nøkkelen under **Prosjektinnstillinger → Avansert → API-nøkler** på hvordan den slutter, og sjekk datoen under **Utløper**. En nøkkel du ikke lenger har, kan ikke vises igjen: tilbakestill den på siden dens for å få en ny.
 :::
 
 :::details Hver forespørsel svarer 402 Payment Required

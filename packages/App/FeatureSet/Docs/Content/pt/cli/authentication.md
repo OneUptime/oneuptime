@@ -199,7 +199,7 @@ Os formatos de saída e os tamanhos de lista não são salvos aqui: passe `-o` e
 :::
 
 :::details A mensagem "API error (400): Invalid API Key"
-A chave não é uma chave de API do OneUptime, expirou ou foi redefinida. Copie-a de novo da página dela em **Configurações do projeto → Avançado → Chaves de API**, onde também está a data dela em **Expira**, e faça login de novo com o mesmo nome de contexto. O comando termina com o código `2`.
+A chave não é uma chave de API do OneUptime, expirou ou foi redefinida. Encontre-a em **Configurações do projeto → Avançado → Chaves de API** pelo jeito como ela termina, e confira a data dela em **Expira**. Uma chave que você não tem mais não pode ser mostrada de novo: redefina-a na página dela, e faça login de novo com a nova com o mesmo nome de contexto. O comando termina com o código `2`.
 :::
 
 :::details A mensagem "API error (402): API keys need the Growth plan"

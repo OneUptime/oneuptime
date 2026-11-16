@@ -56021,5 +56021,17 @@
   "Every {{count}} seconds_one": "Hvert {{count}}. sekund",
   "First Measured At": "Først målt",
   "Missing-email check": "Sjekk for manglende e-post",
-  "Missing-request check": "Sjekk for manglende forespørsler"
+  "Missing-request check": "Sjekk for manglende forespørsler",
+  "Copy Your API Key": "Kopier API-nøkkelen din",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Kopier den nå, og oppbevar den et trygt sted, for eksempel i en secret manager. Den vises bare denne ene gangen: OneUptime lagrer bare en hash av den.",
+  "Ends in {{hint}}": "Slutter på {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "Vises bare én gang, da den ble opprettet. Tilbakestill den for å få en ny.",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "Oppretter en ny nøkkel og viser den én gang. Den nåværende nøkkelen slutter å virke innen ett minutt.",
+  "Reset API Key?": "Tilbakestille API-nøkkelen?",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "Den nåværende nøkkelen slutter å virke innen ett minutt, for alle skript og verktøy som bruker den. Den nye nøkkelen vises én gang.",
+  "The server did not answer with the new API key. Try again.": "Serveren svarte ikke med den nye API-nøkkelen. Prøv igjen.",
+  "API Key Hint": "Hint for API-nøkkel",
+  "Master API Key Created At": "Hoved-API-nøkkel opprettet den",
+  "Master API Key Created By User ID": "ID for bruker som opprettet hoved-API-nøkkelen",
+  "Master API Key Hint": "Hint for hoved-API-nøkkel"
 }

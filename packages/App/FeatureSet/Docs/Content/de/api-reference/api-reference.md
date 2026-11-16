@@ -35,7 +35,7 @@ Alle API-Anfragen werden mit einem API-Schlüssel authentifiziert. Ein Schlüsse
 
 ### Den Schlüssel kopieren
 
-Die Seite des Schlüssels öffnet sich. Kopieren Sie den **API-Schlüssel** aus der Karte **API-Schlüssel-Details** und halten Sie ihn aus Ihrem Code heraus:
+OneUptime zeigt den Schlüssel einmal an, im Dialog **Kopieren Sie Ihren API-Schlüssel**: Kopieren Sie ihn, bevor Sie auf **Fertig** klicken, denn keine Seite zeigt ihn wieder. Halten Sie ihn aus Ihrem Code heraus:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -341,7 +341,7 @@ Jede Ressource, jeder Endpunkt und jedes Feld steht in der [OneUptime-API-Refere
 ## Fehlerbehebung
 
 :::details Jede Anfrage antwortet mit 400 Invalid API Key
-Der Header `ApiKey` ist leer, ist kein Schlüssel oder nennt einen Schlüssel, der abgelaufen ist oder zurückgesetzt wurde. Kopieren Sie den Schlüssel erneut von seiner Seite unter **Projekteinstellungen → Erweitert → API-Schlüssel**, wo auch sein Datum unter **Läuft ab** steht.
+Der Header `ApiKey` ist leer, ist kein Schlüssel oder nennt einen Schlüssel, der abgelaufen ist oder zurückgesetzt wurde. Suchen Sie den Schlüssel unter **Projekteinstellungen → Erweitert → API-Schlüssel** daran, wie er endet, und prüfen Sie sein Datum unter **Läuft ab**. Ein Schlüssel, den Sie nicht mehr haben, kann nicht erneut angezeigt werden: Setzen Sie ihn auf seiner Seite zurück, um einen neuen zu erhalten.
 :::
 
 :::details Jede Anfrage antwortet mit 402 Payment Required

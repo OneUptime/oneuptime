@@ -56021,5 +56021,17 @@
   "Every {{count}} seconds_one": "每 {{count}} 秒",
   "First Measured At": "首次測量時間",
   "Missing-email check": "缺少郵件檢查",
-  "Missing-request check": "缺少要求檢查"
+  "Missing-request check": "缺少要求檢查",
+  "Copy Your API Key": "複製你的 API 金鑰",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "請立即複製，並將其保存在安全的地方，例如密鑰管理工具。它只會顯示這一次：OneUptime 只保存它的雜湊值。",
+  "Ends in {{hint}}": "結尾為 {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "只在建立時顯示過一次。如需新的金鑰，請重設它。",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "建立一個新金鑰並只顯示一次。目前的金鑰會在一分鐘內失效。",
+  "Reset API Key?": "要重設 API 金鑰嗎？",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "目前的金鑰會在一分鐘內對使用它的每個指令碼和工具失效。新金鑰只會顯示一次。",
+  "The server did not answer with the new API key. Try again.": "伺服器沒有傳回新的 API 金鑰。請重試。",
+  "API Key Hint": "API 金鑰提示",
+  "Master API Key Created At": "主 API 金鑰建立於",
+  "Master API Key Created By User ID": "主 API 金鑰建立者使用者 ID",
+  "Master API Key Hint": "主 API 金鑰提示"
 }

@@ -4113,5 +4113,8 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "SSO 없이 로그인한 사용자가 아직 {{count}}명 있습니다. 이들은 SSO로 로그인할 때까지 어떤 프로젝트도 열 수 없습니다.",
   "Sign them out": "로그아웃시키기",
   "Sign out everyone signed in without SSO?": "SSO 없이 로그인한 모든 사용자를 로그아웃하시겠습니까?",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "모든 기기에서 세션이 즉시 끝나며, SSO로 다시 로그인해야 합니다. 마스터 관리자는 로그인 상태가 유지됩니다."
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "모든 기기에서 세션이 즉시 끝나며, SSO로 다시 로그인해야 합니다. 마스터 관리자는 로그인 상태가 유지됩니다.",
+  "Made by {{name}} on {{date}}": "{{name}}님이 {{date}}에 생성",
+  "Made on {{date}}": "{{date}}에 생성",
+  "Ends in {{hint}}": "끝자리 {{hint}}"
 }

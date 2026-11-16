@@ -280,7 +280,7 @@ Les clés d'API reçoivent leurs autorisations directement, sur la clé elle-mê
 :::steps
 1. Ouvrez **Paramètres du projet > Avancé > Clés API** et cliquez sur **Créer : Clé API**. Sur OneUptime Cloud, les clés d'API demandent l'offre Growth.
 2. Saisissez le **Nom** de la clé et choisissez son **Accès**. La description et la date d'expiration se trouvent sous **Plus de champs** ; une clé expire un an après le jour de sa création, sauf si vous choisissez une autre date, et la section repliée l'indique.
-3. Créez la clé. Elle s'ouvre sur sa page, où vous la copiez.
+3. Créez la clé. OneUptime ne l'affiche qu'une seule fois, dans une boîte de dialogue : copiez-la là. Ensuite, sa page s'ouvre.
 :::
 
 Le rôle que vous choisissez devient la première autorisation de la clé dès que la clé existe, exactement comme si vous l'aviez ajouté sur la page de la clé. Seuls les rôles que vous détenez vous-même vous sont proposés — une clé ne peut jamais recevoir plus que ce que détient la personne qui la donne — et une personne qui peut créer des clés sans pouvoir changer ce qu'elles peuvent faire n'est pas interrogée.

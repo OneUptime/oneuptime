@@ -56021,5 +56021,17 @@
   "Every {{count}} seconds_one": "Alle {{count}} Sekunden",
   "First Measured At": "Erstmals gemessen am",
   "Missing-email check": "Prüfung auf fehlende E-Mails",
-  "Missing-request check": "Prüfung auf fehlende Anfragen"
+  "Missing-request check": "Prüfung auf fehlende Anfragen",
+  "Copy Your API Key": "Kopieren Sie Ihren API-Schlüssel",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Kopieren Sie ihn jetzt und bewahren Sie ihn an einem sicheren Ort auf, etwa in einem Secret Manager. Er wird nur dieses eine Mal angezeigt: OneUptime speichert nur einen Hash davon.",
+  "Ends in {{hint}}": "Endet auf {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "Nur einmal angezeigt, als er erstellt wurde. Setzen Sie ihn zurück, um einen neuen zu erhalten.",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "Erstellt einen neuen Schlüssel und zeigt ihn einmal an. Der aktuelle Schlüssel funktioniert innerhalb einer Minute nicht mehr.",
+  "Reset API Key?": "API-Schlüssel zurücksetzen?",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "Der aktuelle Schlüssel funktioniert innerhalb einer Minute nicht mehr, für jedes Skript und jedes Tool, das ihn verwendet. Der neue Schlüssel wird einmal angezeigt.",
+  "The server did not answer with the new API key. Try again.": "Der Server hat nicht mit dem neuen API-Schlüssel geantwortet. Versuchen Sie es erneut.",
+  "API Key Hint": "API-Schlüssel-Hinweis",
+  "Master API Key Created At": "Master-API-Schlüssel erstellt am",
+  "Master API Key Created By User ID": "Master-API-Schlüssel erstellt von Benutzer-ID",
+  "Master API Key Hint": "Master-API-Schlüssel-Hinweis"
 }

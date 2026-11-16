@@ -110,6 +110,7 @@ const SETTINGS_MENU: string = `${DASHBOARD_APP}/Pages/Settings/SideMenu.tsx`;
 const API_KEYS_PAGE: string = `${DASHBOARD_APP}/Pages/Settings/APIKeys.tsx`;
 const API_KEY_PAGE: string = `${DASHBOARD_APP}/Pages/Settings/APIKeyView.tsx`;
 const API_KEY_FORM: string = `${DASHBOARD_APP}/Components/ApiKey/ApiKeyCreateForm.ts`;
+const API_KEY_SHOWN_ONCE: string = `${DASHBOARD_APP}/Components/ApiKey/ApiKeyShownOnceCopy.ts`;
 const API_KEY_PERMISSIONS: string = `${DASHBOARD_APP}/Components/ApiKey/ApiKeyPermissionTable.tsx`;
 const ROLE_ACCESS: string = `${DASHBOARD_APP}/Components/Permission/RoleAccess.ts`;
 
@@ -818,20 +819,34 @@ describe("OneUptime API Reference: an API key", () => {
     );
   });
 
-  it("opens the key's page on its API Key Details card, where the key and its expiry are", () => {
+  /*
+   * A key is stored as its hash (#8902): the create shows it once, in a
+   * dialog that Done closes, and no page shows it again. The key's page
+   * says how it ends (#8903) and when it expires, which is how the
+   * troubleshooting finds it.
+   */
+  it("shows the new key once, in the Copy Your API Key dialog, and finds it by how it ends", () => {
     const keys: string = readRepoFile(API_KEYS_PAGE);
     const view: string = readRepoFile(API_KEY_PAGE);
+    const shownOnce: string = readRepoFile(API_KEY_SHOWN_ONCE);
 
-    expect(keys).toContain(
-      "Navigation.navigate(getApiKeyRoute(createdApiKey.id));",
+    expect(keys).toContain("<ShownOnceSecretModal");
+    expect(keys).toContain("title={ApiKeyShownOnceCopy.shownOnceTitle}");
+    expect(keys).toContain("doneButtonText={ApiKeyShownOnceCopy.done}");
+    expect(shownOnce).toContain(
+      'shownOnceTitle: translationKey("Copy Your API Key")',
     );
+    expect(shownOnce).toContain('done: translationKey("Done")');
     expect(view).toContain('title: "API Key Details"');
     expect(view).toContain('title: "API Key",');
+    expect(view).toContain("<ApiKeyHint hint={item.apiKeyHint} />");
     expect(view).toContain('title: "Expires",');
     expect(firstRequest()).toContain(
-      "The key's page opens. Copy the **API Key** from the **API Key Details** card",
+      "OneUptime shows the key once, in the **Copy Your API Key** dialog: copy it before you press **Done**, as no page shows it again.",
     );
-    expect(page).toContain("where its **Expires** date is too.");
+    expect(page).toContain(
+      "Find the key under **Project Settings → Advanced → API Keys** by how it ends, and check its **Expires** date. A key you no longer have cannot be shown again: reset it on its page for a new one.",
+    );
   });
 
   it("adds a role or a single permission from the key's Permissions card", () => {

@@ -35,7 +35,7 @@ Abra **Configurações do projeto → Avançado → Chaves de API** e clique em 
 
 ### Copiar a chave
 
-A página da chave se abre. Copie a **Chave de API** do cartão **Detalhes da chave de API** e mantenha-a fora do seu código:
+O OneUptime mostra a chave uma única vez, na caixa de diálogo **Copie sua chave de API**: copie-a antes de clicar em **Concluído**, pois nenhuma página a mostra de novo. Mantenha-a fora do seu código:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -341,7 +341,7 @@ Cada recurso, endpoint e campo está na [referência da API OneUptime](/referenc
 ## Solução de problemas
 
 :::details Toda requisição responde 400 Invalid API Key
-O cabeçalho `ApiKey` está vazio, não é uma chave ou cita uma chave que expirou ou foi redefinida. Copie a chave de novo da página dela em **Configurações do projeto → Avançado → Chaves de API**, onde também fica a data em **Expira**.
+O cabeçalho `ApiKey` está vazio, não é uma chave ou cita uma chave que expirou ou foi redefinida. Encontre a chave em **Configurações do projeto → Avançado → Chaves de API** pelo jeito como ela termina, e confira a data dela em **Expira**. Uma chave que você não tem mais não pode ser mostrada de novo: redefina-a na página dela para obter uma nova.
 :::
 
 :::details Toda requisição responde 402 Payment Required

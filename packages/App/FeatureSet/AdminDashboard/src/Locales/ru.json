@@ -4113,5 +4113,8 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} пользователь всё ещё вошёл без SSO. Он не сможет открыть ни один проект, пока не войдёт через SSO.",
   "Sign them out": "Завершить их сеансы",
   "Sign out everyone signed in without SSO?": "Завершить сеансы всех, кто вошёл без SSO?",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Их сеансы завершатся сейчас на всех устройствах, и они снова войдут через SSO. Главные администраторы останутся в системе."
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Их сеансы завершатся сейчас на всех устройствах, и они снова войдут через SSO. Главные администраторы останутся в системе.",
+  "Made by {{name}} on {{date}}": "Создан {{date}}, автор: {{name}}",
+  "Made on {{date}}": "Создан {{date}}",
+  "Ends in {{hint}}": "Заканчивается на {{hint}}"
 }

@@ -35,7 +35,7 @@ Ouvrez **Paramètres du projet → Avancé → Clés API** et cliquez sur **Cré
 
 ### Copier la clé
 
-La page de la clé s'ouvre. Copiez la **Clé API** depuis la carte **Détails de la clé API**, et gardez-la hors de votre code :
+OneUptime n'affiche la clé qu'une seule fois, dans la boîte de dialogue **Copiez votre clé API** : copiez-la avant d'appuyer sur **Terminé**, car aucune page ne l'affiche de nouveau. Gardez-la hors de votre code :
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -341,7 +341,7 @@ Chaque ressource, point de terminaison et champ figure dans la [référence de l
 ## Dépannage
 
 :::details Chaque requête répond 400 Invalid API Key
-L'en-tête `ApiKey` est vide, n'est pas une clé, ou nomme une clé qui a expiré ou a été réinitialisée. Copiez à nouveau la clé depuis sa page sous **Paramètres du projet → Avancé → Clés API**, où figure aussi sa date **Expire**.
+L'en-tête `ApiKey` est vide, n'est pas une clé, ou nomme une clé qui a expiré ou a été réinitialisée. Retrouvez la clé sous **Paramètres du projet → Avancé → Clés API** à la façon dont elle se termine, et vérifiez sa date **Expire**. Une clé que vous n'avez plus ne peut pas être affichée de nouveau : réinitialisez-la sur sa page pour en obtenir une nouvelle.
 :::
 
 :::details Chaque requête répond 402 Payment Required

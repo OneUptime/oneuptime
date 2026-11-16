@@ -35,7 +35,7 @@ Open **Projectinstellingen → Geavanceerd → API-sleutels** en klik op **API-s
 
 ### De sleutel kopiëren
 
-De pagina van de sleutel opent. Kopieer de **API-sleutel** van de kaart **API-sleuteldetails** en houd hem buiten je code:
+OneUptime toont de sleutel één keer, in het dialoogvenster **Kopieer uw API-sleutel**: kopieer hem voordat je op **Klaar** drukt, want geen enkele pagina toont hem opnieuw. Houd hem buiten je code:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -341,7 +341,7 @@ Elke resource, elk endpoint en elk veld staat in de [OneUptime API-referentie](/
 ## Problemen oplossen
 
 :::details Elk verzoek antwoordt 400 Invalid API Key
-De header `ApiKey` is leeg, is geen sleutel, of noemt een sleutel die is verlopen of opnieuw is ingesteld. Kopieer de sleutel opnieuw van zijn pagina onder **Projectinstellingen → Geavanceerd → API-sleutels**, waar ook zijn datum bij **Verloopt** staat.
+De header `ApiKey` is leeg, is geen sleutel, of noemt een sleutel die is verlopen of opnieuw is ingesteld. Zoek de sleutel onder **Projectinstellingen → Geavanceerd → API-sleutels** op hoe hij eindigt, en controleer zijn datum bij **Verloopt**. Een sleutel die je niet meer hebt, kan niet opnieuw worden getoond: stel hem op zijn pagina opnieuw in voor een nieuwe.
 :::
 
 :::details Elk verzoek antwoordt 402 Payment Required
