@@ -888,13 +888,13 @@ export default class PassOnWorld {
 
     for (const run of this.runs) {
       if (sameKey(run.lastExecutedEscalationRuleId, ruleKey)) {
-        run.lastExecutedEscalationRuleId = undefined;
+        delete run.lastExecutedEscalationRuleId;
       }
     }
 
     for (const row of [...this.steps, ...this.logs, ...this.deliveries]) {
       if (sameKey(row.onCallDutyPolicyEscalationRuleId, ruleKey)) {
-        row.onCallDutyPolicyEscalationRuleId = undefined;
+        delete row.onCallDutyPolicyEscalationRuleId;
       }
     }
   }

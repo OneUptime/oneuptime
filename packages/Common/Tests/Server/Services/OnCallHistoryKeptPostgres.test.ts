@@ -30,6 +30,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import { DataSource, QueryRunner } from "typeorm";
 
 /*
@@ -73,7 +74,7 @@ import { DataSource, QueryRunner } from "typeorm";
  * or DATABASE_NAME, endpoint from ON_CALL_HISTORY_KEPT_TEST_DATABASE_HOST /
  * _PORT (default localhost:5400).
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_ON_CALL_HISTORY_KEPT_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -543,7 +544,7 @@ describePostgres(
       }
     });
 
-    let loggedErrors: jest.Mock<(...args: Array<unknown>) => unknown>;
+    let loggedErrors: Mock<(...args: Array<unknown>) => unknown>;
 
     beforeEach(() => {
       for (const level of ["debug", "info", "warn"] as const) {
@@ -552,7 +553,7 @@ describePostgres(
         });
       }
 
-      loggedErrors = jest.fn();
+      loggedErrors = jest.fn<(...args: Array<unknown>) => unknown>();
       jest.spyOn(logger, "error").mockImplementation(((
         ...args: Array<unknown>
       ) => {

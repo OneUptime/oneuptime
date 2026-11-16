@@ -19,6 +19,7 @@ import {
 import RunCron from "../../../../FeatureSet/Workers/Utils/Cron";
 import "../../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
 import PolicyRunFailureWorld, { FailurePoint } from "./PolicyRunFailureWorld";
+import type { SpyInstance } from "jest-mock";
 import {
   afterEach,
   beforeEach,
@@ -203,7 +204,7 @@ describe("a deleted level whose paging stopped part way", () => {
 
 describe("a page again whose rule was recorded, and deleted since", () => {
   test("is not started again from its start: it goes on from its place, and pages nobody twice", async () => {
-    const pageAgainStart: jest.SpiedFunction<
+    const pageAgainStart: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.startHandedOverPageAgain
     > = jest.spyOn(
       OnCallDutyPolicyExecutionLogService,

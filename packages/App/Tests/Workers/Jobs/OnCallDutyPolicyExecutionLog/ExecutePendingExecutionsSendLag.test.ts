@@ -234,8 +234,10 @@ function runOnLevel(data: {
   log.lastExecutedEscalationRuleOrder = data.order;
 
   // A run on a level names its rule (one with none was deleted, issue #9036).
-  if (RULE_IDS[data.order]) {
-    log.lastExecutedEscalationRuleId = RULE_IDS[data.order];
+  const ruleId: ObjectID | undefined = RULE_IDS[data.order];
+
+  if (ruleId) {
+    log.lastExecutedEscalationRuleId = ruleId;
   }
 
   log.createdAt =

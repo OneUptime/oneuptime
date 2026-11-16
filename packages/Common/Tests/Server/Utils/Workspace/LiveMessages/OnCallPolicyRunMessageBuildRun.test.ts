@@ -1210,7 +1210,7 @@ describe("OnCallPolicyRunMessage.buildRun - where the escalation is", () => {
         userId: NITIN,
         userName: "Nitin",
       });
-      line.onCallDutyPolicyEscalationRuleId = undefined;
+      delete line.onCallDutyPolicyEscalationRuleId;
       line.escalationRuleOrder = 3;
       line.escalationRuleName = name;
       return line;
