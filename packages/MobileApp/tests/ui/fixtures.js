@@ -281,6 +281,16 @@ async function installFixtures(page, { signedIn = true, loginMode = "normal", re
     if (url.pathname === "/identity/global-sso/service-provider-login") { return reply({ data: [{ _id: "global-saml", name: "Company single sign-on", description: "Use your work account" }] }); }
     if (url.pathname === "/identity/service-provider-login") { return reply({ data: [{ _id: "aurora-sso", name: "Aurora SSO", projectId: "project-aurora", project: { name: "Aurora Production" } }] }); }
     if (url.pathname === "/identity/verify-backup-code") { return reply({ ...user, _miscData: { ...tokens, hasBackupCodes: true } }); }
+    /*
+     * A renewal, answered as the server answers it (Identity/API/
+     * Authentication.ts): the session's tokens, here the fixture's own,
+     * which never run out. The app renews as soon as it is used, to tell
+     * the server its person is active (src/api/client.ts,
+     * isActivityReportDue): answered as any other identity route, with
+     * { data: [] }, it stored empty tokens and stopped at "Loading
+     * project...".
+     */
+    if (url.pathname === "/identity/refresh-token") { return reply({ ...tokens }); }
     if (url.pathname.startsWith("/identity/")) { return reply({ data: [] }); }
     if (url.pathname === "/api/project/get-list") {
       const memberships = projects.map((project) => ({ ...project, requireSsoForLogin: requireProjectSso && project._id === "project-atlas" }));
