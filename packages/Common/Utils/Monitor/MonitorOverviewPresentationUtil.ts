@@ -36,6 +36,9 @@ import {
   MonitorOverviewProbeSummary,
 } from "./MonitorOverviewProbeUtil";
 import MonitorStatusHistoryUtil from "./MonitorStatusHistoryUtil";
+import HeartbeatSweepSchedule, {
+  HEARTBEAT_SWEEP_EVERY_SECONDS,
+} from "./HeartbeatSweepSchedule";
 import ProbeStatusMonitorUtil from "./ProbeStatusMonitorUtil";
 import MonitorOverviewTargetUtil, {
   MonitorOverviewTarget,
@@ -236,6 +239,16 @@ export interface MonitorOverviewPresentationInput {
   monitorSteps?: MonitorSteps | undefined;
   monitoringInterval?: string | undefined;
   createdAt?: Date | undefined;
+  /*
+   * Monitor.firstMeasuredAt as read with the monitor (issue #8899): when a
+   * probe result, heartbeat, email, agent report or evaluation first reached
+   * it. NULL says nothing ever has - what the Monitors list, the Monitor
+   * List widget and status pages go by (Utils/Monitor/MonitorFirstCheck) -
+   * so the hero says so too, even while the probes or the evaluation log
+   * cannot be read. Undefined when it was not read: the hero then goes by
+   * what it can read, as it always has.
+   */
+  firstMeasuredAt?: Date | null | undefined;
   currentStatus?: MonitorOverviewStatusRef | undefined;
   statusSince?: Date | undefined;
   pause: {
@@ -977,6 +990,20 @@ export default class MonitorOverviewPresentationUtil {
   }
 
   /*
+   * The families whose measurements leave a trace only in the evaluation
+   * log: telemetry and infrastructure, network devices, Probe Status.
+   */
+  private static isEvaluatedOnTheServer(
+    family: MonitorOverviewFamily,
+  ): boolean {
+    return (
+      MonitorOverviewPresentationUtil.isTelemetryFamily(family) ||
+      family === MonitorOverviewFamily.NetworkDevice ||
+      family === MonitorOverviewFamily.ProbeStatus
+    );
+  }
+
+  /*
    * An empty log means "never evaluated" only while it would still hold
    * every evaluation the monitor could have had. Past that, its rows may
    * simply have expired.
@@ -988,12 +1015,25 @@ export default class MonitorOverviewPresentationUtil {
   }): MonitorOverviewEvaluationLog {
     const input: MonitorOverviewPresentationInput = data.input;
 
-    if (data.evaluationStatus !== "loaded") {
-      return "unread";
+    if (data.evaluationStatus === "loaded" && input.latestEvaluationAt) {
+      return "evaluated";
     }
 
-    if (input.latestEvaluationAt) {
-      return "evaluated";
+    /*
+     * The monitor's row says nothing has ever measured it: no evaluation
+     * has completed, however old the monitor and whether or not the log
+     * could be read - as the lists, which read the row alone, say. A row
+     * in the log wins: the stamp is written once, by the first result.
+     */
+    if (
+      input.firstMeasuredAt === null &&
+      MonitorOverviewPresentationUtil.isEvaluatedOnTheServer(data.family)
+    ) {
+      return "never";
+    }
+
+    if (data.evaluationStatus !== "loaded") {
+      return "unread";
     }
 
     const isYoungerThanLog: boolean =
@@ -1841,6 +1881,15 @@ export default class MonitorOverviewPresentationUtil {
     input: MonitorOverviewPresentationInput,
     context: MonitorOverviewContext,
   ): boolean {
+    /*
+     * The row says something has measured the monitor (issue #8899): its
+     * status was recorded, whatever the probe rows or the log still hold -
+     * a probe taken off since, a log that has dropped the row.
+     */
+    if (input.firstMeasuredAt) {
+      return false;
+    }
+
     if (
       context.runState === MonitorOverviewRunState.AwaitingFirstData ||
       MonitorOverviewPresentationUtil.isNeverReported(context)
@@ -1852,10 +1901,15 @@ export default class MonitorOverviewPresentationUtil {
       case MonitorOverviewFamily.ProbeCheck:
         /*
          * lastResultAt counts the enabled probes only; a probe switched off
-         * since keeps the result it last returned on its row.
+         * since keeps the result it last returned on its row. Probes that
+         * could not be read say nothing, unless the row says nothing has
+         * ever come back.
          */
+        if (input.probes === null) {
+          return input.firstMeasuredAt === null;
+        }
+
         return (
-          input.probes !== null &&
           !input.probes.lastResultAt &&
           input.probes.rows.every((row: MonitorOverviewProbeRow): boolean => {
             return !row.latestResult?.monitoredAt;
@@ -2185,6 +2239,38 @@ export default class MonitorOverviewPresentationUtil {
                 secondary: t.translateTemplate("From this monitor's criteria"),
               },
         );
+
+        /*
+         * The sweep visits the monitor every 30 seconds but stamps the
+         * check only every few minutes (HeartbeatSweepSchedule, issue
+         * #8123): while the stamp is as recent as that leaves it, the fact
+         * says the schedule, not a stamp that reads minutes old. Older than
+         * that, the sweeps have stopped reaching it, and when they last
+         * did is the fact. A paused monitor is not swept: its stamp says
+         * when it last was.
+         */
+        if (
+          !context.isPaused &&
+          HeartbeatSweepSchedule.isStampOnSchedule({
+            checkedAt: lastCheckedAt,
+            now: input.now,
+          })
+        ) {
+          facts.push({
+            key: "heartbeat-check",
+            label: isEmail
+              ? t.translateTemplate("Missing-email check")
+              : t.translateTemplate("Missing-request check"),
+            value: t.translatePlural(
+              {
+                one: "Every {{count}} second",
+                other: "Every {{count}} seconds",
+              },
+              HEARTBEAT_SWEEP_EVERY_SECONDS,
+            ),
+          });
+          break;
+        }
 
         facts.push(
           lastCheckedAt

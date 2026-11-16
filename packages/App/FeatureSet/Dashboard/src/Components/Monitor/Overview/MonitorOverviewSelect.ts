@@ -17,6 +17,11 @@ export const MONITOR_OVERVIEW_BASE_SELECT: Select<Monitor> = {
   _id: true,
   monitorType: true,
   createdAt: true,
+  /*
+   * Whether anything has measured it yet: what the Monitors list and status
+   * pages go by, so the hero says what they say (issue #8899).
+   */
+  firstMeasuredAt: true,
   currentMonitorStatusId: true,
   currentMonitorStatus: {
     _id: true,

@@ -14,7 +14,7 @@ Terraform이 출력한 메시지나 겪은 일을 아래 표에서 찾으세요.
 | 메시지 또는 증상 | 해야 할 일 |
 | --- | --- |
 | `Missing API Key` | 프로바이더에 키를 전달하세요: [`Missing API Key` 또는 `Invalid API Key`](#missing-api-key-또는-invalid-api-key) 참고 |
-| `Invalid API Key` | 키를 다시 복사하거나 새로 만드세요: [`Missing API Key` 또는 `Invalid API Key`](#missing-api-key-또는-invalid-api-key) 참고 |
+| `Invalid API Key` | 키를 확인하거나, 재설정해 새 키를 받으세요: [`Missing API Key` 또는 `Invalid API Key`](#missing-api-key-또는-invalid-api-key) 참고 |
 | `ProjectId required` | 마스터 키가 아닌 프로젝트의 API 키를 사용하세요: [`ProjectId required`](#projectid-required) 참고 |
 | `You do not have permissions to create Monitor` | 메시지에 나온 권한을 키에 부여하세요: [키에 권한이 없음](#키에-권한이-없음) 참고 |
 | `API keys need the Growth plan` | 프로젝트를 Growth 플랜으로 되돌리세요: [결제 필요](#결제-필요) 참고 |
@@ -60,7 +60,7 @@ flowchart TB
 
 `Missing API Key`는 프로바이더가 요청을 보내기 전에 멈추게 합니다. 프로바이더 블록의 `api_key`도, 환경 변수 `ONEUPTIME_API_KEY`도 설정되어 있지 않습니다. Terraform을 실행하는 셸에서 변수를 내보내거나, `sensitive`로 표시한 변수로 키를 전달하세요.
 
-`Invalid API Key`는 OneUptime이 모르는 키에 대한 응답입니다. 잘못 입력했거나, 만료되었거나, 삭제된 키이거나, `oneuptime_url`이 가리키는 것과 다른 OneUptime의 키입니다. **프로젝트 설정 → 고급 → API 키**에 있는 키 페이지에서 키를 다시 복사하거나 새 키를 만드세요.
+`Invalid API Key`는 OneUptime이 모르는 키에 대한 응답입니다. 잘못 입력했거나, 만료되었거나, 삭제된 키이거나, `oneuptime_url`이 가리키는 것과 다른 OneUptime의 키입니다. **프로젝트 설정 → 고급 → API 키**에 있는 키 페이지에 표시되는 키의 끝 문자와 맞춰 보거나, 그곳에서 재설정해 새 키를 받으세요.
 
 ### `ProjectId required`
 

@@ -7,6 +7,7 @@ import EgressGuardException, {
   EgressFailureReason,
 } from "../../../Types/Exception/EgressGuardException";
 import logger from "../Logger";
+import OutboundProxy from "../OutboundProxy";
 
 /*
  * SSRF egress guard for outbound connections whose target is chosen by a
@@ -131,6 +132,27 @@ export interface PinnedAgents {
   httpAgent: http.Agent;
   httpsAgent: https.Agent;
 }
+
+/*
+ * The agents of a client sent with Node's own http client that learns its
+ * hosts as it goes (createGuardedAgentsForNodeHttp).
+ */
+export interface GuardedNodeHttpAgents {
+  // The agent a request to `url` goes out on, through a proxy or directly.
+  agentFor(url: URL): http.Agent;
+  destroy(): void;
+}
+
+/*
+ * http.Agent's createSocket, which every new socket of an agent is made
+ * by, the request's options in hand. Not in @types/node; agent-base, which
+ * https-proxy-agent is built on, takes the same hook.
+ */
+type AgentCreateSocket = (
+  request: http.ClientRequest,
+  options: http.ClientRequestArgs,
+  callback: (error: Error | null, socket?: net.Socket) => void,
+) => void;
 
 /*
  * What an HTTP request's agents are pinned to: the URL that was checked,
@@ -1035,6 +1057,216 @@ export default class DataSourceEgressGuard {
       httpAgent: new http.Agent({ lookup: lookup as never }),
       httpsAgent: new https.Agent({ lookup: lookup as never }),
     };
+  }
+
+  /*
+   * The agents of createPinnedAgents, for a request sent with Node's own
+   * http client (http.request), which reads no proxy setting by itself
+   * (#8932). Axios goes through the outbound proxy on agents like these; a
+   * request on these goes through it too, decided as axios decides
+   * (OutboundProxy.getProxyFor):
+   *
+   *   - through a proxy, the agent of the URL's scheme hands the request to
+   *     Node's own proxy support: a CONNECT tunnel for https, naming the
+   *     host the URL names, and for http the whole URL to the proxy. The
+   *     proxy's own name is looked up as usual, and never checked against
+   *     the egress policy (a proxy on 10.x is the operator's, whatever the
+   *     policy says of 10.x); it is the proxy that looks the target's name
+   *     up and connects;
+   *   - with no proxy, or NO_PROXY naming the host, the agents dial the
+   *     approved addresses only, as createPinnedAgents' do.
+   *
+   * Destroy both once the request is over.
+   */
+  public static createPinnedAgentsForNodeHttp(
+    target: PinnedTarget,
+  ): PinnedAgents {
+    const lookup: EgressLookupFunction =
+      this.createPinnedLookupForTarget(target);
+    const proxy: URL | null = this.getOutboundProxyForNodeHttp(target.url);
+    const isHttps: boolean = target.url.protocol === "https:";
+
+    return {
+      httpAgent: new http.Agent({
+        lookup: lookup as never,
+        ...(proxy && !isHttps ? { proxyEnv: { http_proxy: proxy.href } } : {}),
+      }),
+      httpsAgent: new https.Agent({
+        lookup: lookup as never,
+        ...(proxy && isHttps ? { proxyEnv: { https_proxy: proxy.href } } : {}),
+      }),
+    };
+  }
+
+  /*
+   * assertUrlAllowedAndPin, for a request sent with Node's own http client:
+   * the agents go through the outbound proxy as axios's would
+   * (createPinnedAgentsForNodeHttp).
+   */
+  public static async assertUrlAllowedAndPinForNodeHttp(
+    urlString: string,
+    options?: EgressGuardOptions,
+  ): Promise<{ url: URL; addresses: Array<ResolvedAddress> } & PinnedAgents> {
+    const { url, addresses } = await this.assertUrlAllowed(urlString, options);
+
+    return {
+      url,
+      addresses,
+      ...this.createPinnedAgentsForNodeHttp({ url, addresses }),
+    };
+  }
+
+  /*
+   * Agents for a client that learns its hosts as it goes and sends with
+   * Node's own http client: openid-client, which adopts the token, userinfo
+   * and JWKS URLs a discovery document names, and the backup storage
+   * clients. agentFor(url) answers the agent a request to `url` goes out on:
+   *
+   *   - with no outbound proxy for it (OutboundProxy.getProxyFor, as axios
+   *     decides), a direct agent whose lookup checks every name it is asked
+   *     for and dials the addresses it approved (createGuardedLookup). An
+   *     IP address, which Node never looks up, is checked before its socket
+   *     opens;
+   *   - through a proxy, an agent of that proxy that checks the host -
+   *     looked up, every address it has held to the policy - before it hands
+   *     the request to the proxy, as an axios request is checked before it
+   *     goes through one. The proxy's own name is looked up as usual and
+   *     never held to the policy.
+   *
+   * keepAlive keeps a connection open between requests to one host.
+   */
+  public static createGuardedAgentsForNodeHttp(
+    options: EgressGuardOptions,
+    agentOptions?: { keepAlive?: boolean | undefined },
+  ): GuardedNodeHttpAgents {
+    const keepAlive: boolean = agentOptions?.keepAlive === true;
+    const lookup: EgressLookupFunction = this.createGuardedLookup(options);
+
+    const checkAddressOnly: (host: string) => Promise<void> = async (
+      host: string,
+    ): Promise<void> => {
+      if (net.isIP(this.normalizeHostname(host)) !== 0) {
+        await this.assertHostnameAllowed(host, options);
+      }
+    };
+
+    const checkHost: (host: string) => Promise<void> = async (
+      host: string,
+    ): Promise<void> => {
+      await this.assertHostnameAllowed(host, options);
+    };
+
+    const directHttp: http.Agent = this.checkingEachSocket(
+      new http.Agent({ keepAlive, lookup: lookup as never }),
+      checkAddressOnly,
+    );
+    const directHttps: https.Agent = this.checkingEachSocket(
+      new https.Agent({ keepAlive, lookup: lookup as never }),
+      checkAddressOnly,
+    );
+    const proxied: Map<string, http.Agent> = new Map<string, http.Agent>();
+
+    return {
+      agentFor: (url: URL): http.Agent => {
+        const isHttps: boolean = url.protocol === "https:";
+        const proxy: URL | null = this.getOutboundProxyForNodeHttp(url);
+
+        if (!proxy) {
+          return isHttps ? directHttps : directHttp;
+        }
+
+        const key: string = `${url.protocol}${proxy.href}`;
+        let agent: http.Agent | undefined = proxied.get(key);
+
+        if (!agent) {
+          agent = this.checkingEachSocket(
+            isHttps
+              ? new https.Agent({
+                  keepAlive,
+                  proxyEnv: { https_proxy: proxy.href },
+                })
+              : new http.Agent({
+                  keepAlive,
+                  proxyEnv: { http_proxy: proxy.href },
+                }),
+            checkHost,
+          );
+          proxied.set(key, agent);
+        }
+
+        return agent;
+      },
+      destroy: (): void => {
+        directHttp.destroy();
+        directHttps.destroy();
+
+        for (const agent of proxied.values()) {
+          agent.destroy();
+        }
+
+        proxied.clear();
+      },
+    };
+  }
+
+  /*
+   * The outbound proxy a request to `url`, sent with Node's own http client,
+   * goes through: axios's choice (OutboundProxy.getProxyFor). Node's proxy
+   * support speaks to an http or https proxy only, and would go direct past
+   * any other, so another is refused, as axios fails a request to one. The
+   * refusal names no proxy: its URL may hold its password.
+   */
+  private static getOutboundProxyForNodeHttp(url: URL): URL | null {
+    let proxy: URL | null;
+
+    try {
+      proxy = OutboundProxy.getProxyFor(url);
+    } catch {
+      throw new BadDataException(
+        "The outbound proxy set in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY is not a URL.",
+      );
+    }
+
+    if (proxy && proxy.protocol !== "http:" && proxy.protocol !== "https:") {
+      throw new BadDataException(
+        "The outbound proxy set in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY is not an http or https proxy.",
+      );
+    }
+
+    return proxy;
+  }
+
+  /*
+   * `agent`, with `check` run on the host of every socket it opens before
+   * the socket is made; a refusal fails the request with the guard's error.
+   * A socket kept alive for a host is reused unchecked, as it was checked
+   * when it opened.
+   */
+  private static checkingEachSocket<T extends http.Agent>(
+    agent: T,
+    check: (host: string) => Promise<void>,
+  ): T {
+    const hooks: { createSocket: AgentCreateSocket } = agent as unknown as {
+      createSocket: AgentCreateSocket;
+    };
+    const createSocket: AgentCreateSocket = hooks.createSocket.bind(agent);
+
+    hooks.createSocket = (
+      request: http.ClientRequest,
+      options: http.ClientRequestArgs,
+      callback: (error: Error | null, socket?: net.Socket) => void,
+    ): void => {
+      check(String(options.host || options.hostname || "")).then(
+        () => {
+          createSocket(request, options, callback);
+        },
+        (error: Error) => {
+          callback(error);
+        },
+      );
+    };
+
+    return agent;
   }
 
   /*

@@ -87,10 +87,16 @@ npm run compile
 
 ### فقط فایل‌های خودتان را lint کنید
 
-از ریشهٔ مخزن، فایل‌هایی را که تغییر داده‌اید بدهید:
+از ریشهٔ مخزن، فایل‌هایی را که شاخهٔ شما تغییر داده lint کنید و آنچه را ESLint می‌تواند اصلاح کند اصلاح کنید:
 
 ```bash
-npx eslint --fix packages/App/path/to/File.ts
+npm run fix-lint:changed
+```
+
+این دستور هر فایلی را که با `origin/main` فرق دارد، چه commit شده باشد چه نه، برمی‌دارد و ESLint را برای هر پروژهٔ TypeScript که آن فایل‌ها به آن تعلق دارند یک بار اجرا می‌کند: یک `npx eslint` روی فایل‌های چند بسته حافظه کم می‌آورد. برای lint کردن فایل‌های دیگر به همین شیوه، آن‌ها را پس از `--` بیاورید:
+
+```bash
+node Scripts/Lint/LintByProject.js --fix -- packages/App/path/to/File.ts
 ```
 
 از `npm run lint` و `npm run fix-lint` پرهیز کنید: این دو کل مخزن را lint می‌کنند.

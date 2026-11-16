@@ -5,7 +5,31 @@ import MonitorProbe from "../../../Models/DatabaseModels/MonitorProbe";
 import ObjectID from "../../../Types/ObjectID";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
+import NotOperationalMonitorQuery from "../../../Utils/Monitor/NotOperationalMonitorQuery";
 import { describe, expect, test, afterEach } from "@jest/globals";
+
+/*
+ * The Monitor columns the hot paths stamp without hooks: a heartbeat's
+ * check (CheckHeartbeat, CheckOnlineStatus), a telemetry sweep
+ * (MonitorTelemetryMonitor), a server's report and an incoming request
+ * (MonitorResource), an incoming email (ProcessProbeIngest) and whether a
+ * request sent its secret (IncomingRequestSecretActivity).
+ */
+const FAST_PATH_MONITOR_COLUMNS: Array<string> = [
+  "incomingRequestMonitorHeartbeatCheckedAt",
+  "incomingEmailMonitorHeartbeatCheckedAt",
+  "telemetryMonitorLastMonitorAt",
+  "telemetryMonitorNextMonitorAt",
+  "serverMonitorRequestReceivedAt",
+  "serverMonitorResponse",
+  "incomingMonitorRequest",
+  "incomingMonitorRequestAsReceived",
+  "incomingEmailMonitorLastEmailReceivedAt",
+  "incomingEmailMonitorRequest",
+  "incomingRequestWithSecretAt",
+  "incomingRequestWithoutSecretAt",
+  "incomingRequestWithoutSecretReason",
+];
 
 /*
  * Four hot bookkeeping writes were moved off the full updateOneById/
@@ -91,14 +115,41 @@ describe("heartbeat write fast-path safety preconditions", () => {
     });
 
     /*
-     * Nothing ELSE was dropped: Monitor has no realtime events, so
-     * workflow + audit are the only hooks the fast path bypasses. If this
-     * starts failing, realtime updates on Monitor rows would silently never
-     * fire for the heartbeat writes — revisit the worker-job call sites.
+     * Monitor announces its changes (#6918): the Monitors menu's counts and
+     * lists follow a status change, a probe's flags, an edit. The
+     * heartbeat/scheduler stamps DELIBERATELY announce nothing either - an
+     * announcement per monitor per 30s/60s tick would make every open
+     * Monitors page read its counts and rows again for a change none of
+     * them shows. That holds only while no live count reads a stamped
+     * column, which the next test pins: if one ever does, these writes must
+     * announce (go back to the hooked path) or the count goes stale.
      */
-    test("has no realtime events (so only workflow+audit are skipped)", () => {
+    test("announces its changes (so the realtime skip is deliberate too)", () => {
       const monitor: Monitor = new Monitor();
-      expect(monitor.enableRealtimeEventsOn).toBeFalsy();
+      expect(monitor.enableRealtimeEventsOn).toEqual({
+        create: true,
+        update: true,
+        delete: true,
+      });
+    });
+
+    test("no count of the Monitors menu reads a column the fast path stamps", () => {
+      const projectId: ObjectID = ObjectID.generate();
+      // What the Monitors menu counts (Pages/Monitor/SideMenu.tsx).
+      const countedColumns: Set<string> = new Set<string>([
+        ...Object.keys(NotOperationalMonitorQuery.getQuery(projectId)),
+        "isArchived",
+        "disableActiveMonitoring",
+        "isAllProbesDisconnectedFromThisMonitor",
+        "isNoProbeEnabledOnThisMonitor",
+      ]);
+
+      // The query is read, not assumed: it names the status it counts by.
+      expect(countedColumns.has("currentMonitorStatus")).toBe(true);
+
+      for (const column of FAST_PATH_MONITOR_COLUMNS) {
+        expect([column, countedColumns.has(column)]).toEqual([column, false]);
+      }
     });
   });
 
@@ -111,14 +162,8 @@ describe("heartbeat write fast-path safety preconditions", () => {
      */
     test("Monitor has every column the worker jobs stamp", () => {
       const monitor: Monitor = new Monitor();
-      const fastPathColumns: Array<string> = [
-        "incomingRequestMonitorHeartbeatCheckedAt",
-        "incomingEmailMonitorHeartbeatCheckedAt",
-        "telemetryMonitorLastMonitorAt",
-        "telemetryMonitorNextMonitorAt",
-      ];
-      for (const column of fastPathColumns) {
-        expect(monitor.isTableColumn(column)).toBe(true);
+      for (const column of FAST_PATH_MONITOR_COLUMNS) {
+        expect([column, monitor.isTableColumn(column)]).toEqual([column, true]);
       }
       // Negative control: isTableColumn actually discriminates.
       expect(monitor.isTableColumn("notARealColumn")).toBe(false);

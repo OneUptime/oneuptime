@@ -14,7 +14,7 @@ Look up the message Terraform printed, or what you saw happen, in the table belo
 | Message or symptom | What to do |
 | --- | --- |
 | `Missing API Key` | Give the provider its key: see [`Missing API Key` or `Invalid API Key`](#missing-api-key-or-invalid-api-key) |
-| `Invalid API Key` | Copy the key again, or create a new one: see [`Missing API Key` or `Invalid API Key`](#missing-api-key-or-invalid-api-key) |
+| `Invalid API Key` | Check the key, or reset it for a new one: see [`Missing API Key` or `Invalid API Key`](#missing-api-key-or-invalid-api-key) |
 | `ProjectId required` | Use an API key of the project, not a master key: see [`ProjectId required`](#projectid-required) |
 | `You do not have permissions to create Monitor` | Give the key the permission the message names: see [The key lacks a permission](#the-key-lacks-a-permission) |
 | `API keys need the Growth plan` | Move the project back to the Growth plan: see [Payment required](#payment-required) |
@@ -60,7 +60,7 @@ The provider names what it was doing: `Unable to create monitor` and `Unable to 
 
 `Missing API Key` stops the provider before it makes any request: neither `api_key` in the provider block nor the `ONEUPTIME_API_KEY` environment variable is set. Export the variable in the shell you run Terraform in, or pass the key in a variable marked `sensitive`.
 
-`Invalid API Key` is OneUptime's answer to a key it does not know: one that is mistyped, expired or deleted, or one of another OneUptime than the one `oneuptime_url` points at. Copy the key again from its page under **Project Settings → Advanced → API Keys**, or create a new one.
+`Invalid API Key` is OneUptime's answer to a key it does not know: one that is mistyped, expired or deleted, or one of another OneUptime than the one `oneuptime_url` points at. Check it against how the key ends on its page under **Project Settings → Advanced → API Keys**, or reset it there for a new one.
 
 ### `ProjectId required`
 

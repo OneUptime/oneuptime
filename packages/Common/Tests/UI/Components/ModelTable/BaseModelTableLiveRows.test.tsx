@@ -129,6 +129,7 @@ import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
 import ProjectUtil from "../../../../UI/Utils/Project";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../../Types/ObjectID";
@@ -178,6 +179,8 @@ const announce: (eventType: string) => void = (eventType: string): void => {
 type TableOptions = {
   modelType?: { new (): BaseModel } | undefined;
   isLive?: boolean | undefined;
+  // A list across projects: the projects it reads.
+  liveProjectIds?: Array<ObjectID> | undefined;
   // The reader's own narrowing: the server answers with the login incident.
   isNarrowedToLogin?: boolean | undefined;
 };
@@ -249,9 +252,10 @@ const makeProps: (options?: TableOptions) => BaseModelTableProps<Incident> = (
     pluralName: "Incidents",
     userPreferencesKey: "incidents-live-table",
     urlStateKey: "incidents-live-table",
-    // A monitor is called by its name, an incident by its title.
+    // A monitor and a status page are called by their name, an incident by its title.
     columns:
-      options?.modelType === (Monitor as unknown as { new (): BaseModel })
+      options?.modelType === (Monitor as unknown as { new (): BaseModel }) ||
+      options?.modelType === (StatusPage as unknown as { new (): BaseModel })
         ? [{ field: { name: true }, title: "Name", type: FieldType.Text }]
         : [{ field: { title: true }, title: "Title", type: FieldType.Text }],
     filters: [],
@@ -273,6 +277,12 @@ const makeProps: (options?: TableOptions) => BaseModelTableProps<Incident> = (
       ],
     },
     ...(options?.isLive !== undefined ? { isLive: options.isLive } : {}),
+    ...(options?.liveProjectIds
+      ? {
+          liveProjectIds: options.liveProjectIds,
+          fetchRequestOptions: { isMultiTenantRequest: true },
+        }
+      : {}),
     ...(options?.isNarrowedToLogin ? { query: { title: "Login" } } : {}),
   } as unknown as BaseModelTableProps<Incident>;
 };
@@ -645,12 +655,110 @@ describe("a row a live read brought in is marked for a moment", () => {
   });
 });
 
-describe("lists that stay as they were loaded", () => {
-  test("a Monitors list: monitors do not announce their changes", async () => {
+/*
+ * Active Incidents lists every project the person belongs to, and a change
+ * is announced in its own project: the list hears each project it reads,
+ * so an incident opened in another project shows up too (#6917).
+ */
+describe("a list across projects keeps itself current", () => {
+  const OTHER_PROJECT_ID: string = "11111111-2222-4333-8444-555555555555";
+
+  test("it listens in every project it reads, not only the open one", async () => {
+    await renderTable({
+      liveProjectIds: [
+        new ObjectID(PROJECT_ID),
+        new ObjectID(OTHER_PROJECT_ID),
+      ],
+    });
+
+    expect(
+      Array.from(
+        new Set(
+          active().map((subscription: Subscription): string => {
+            return subscription.tenantId;
+          }),
+        ),
+      ).sort(),
+    ).toEqual([PROJECT_ID, OTHER_PROJECT_ID].sort());
+    expect(active()).toHaveLength(6);
+  });
+
+  test("an incident opened in another project shows up without Refresh", async () => {
+    await renderTable({
+      liveProjectIds: [
+        new ObjectID(PROJECT_ID),
+        new ObjectID(OTHER_PROJECT_ID),
+      ],
+    });
+
+    serverRows = [LOGIN, CHECKOUT, STOREFRONT];
+
+    act((): void => {
+      for (const subscription of active()) {
+        if (
+          subscription.tenantId === OTHER_PROJECT_ID &&
+          subscription.eventType === "Create"
+        ) {
+          subscription.onEvent(LOGIN._id);
+        }
+      }
+    });
+
+    expect(await screen.findByText(LOGIN.title)).toBeInTheDocument();
+  });
+});
+
+/*
+ * A monitor's status moves with its checks and its probes come and go, on
+ * their own: Not Operational, Probe Disconnected and the other Monitors
+ * lists follow them without Refresh (#6918).
+ */
+describe("a Monitors list keeps itself current", () => {
+  const renderMonitors: () => Promise<void> = async (): Promise<void> => {
     render(
       <BaseModelTable<Incident>
         {...makeProps({
           modelType: Monitor as unknown as { new (): BaseModel },
+        })}
+      />,
+    );
+    await waitFor(() => {
+      expect(listCalls).toBeGreaterThan(0);
+    });
+  };
+
+  test("it listens for the project's created, changed and deleted monitors", async () => {
+    await renderMonitors();
+
+    expect(
+      active().map((subscription: Subscription): string => {
+        return `${subscription.modelName} ${subscription.eventType} ${subscription.tenantId}`;
+      }),
+    ).toEqual([
+      `Monitor Create ${PROJECT_ID}`,
+      `Monitor Update ${PROJECT_ID}`,
+      `Monitor Delete ${PROJECT_ID}`,
+    ]);
+  });
+
+  test("a monitor going offline reads the page again", async () => {
+    await renderMonitors();
+    const readsBefore: number = listCalls;
+
+    announce("Update");
+
+    await waitFor(() => {
+      expect(listCalls).toBe(readsBefore + 1);
+    });
+  });
+});
+
+describe("lists that stay as they were loaded", () => {
+  test("a list of a kind whose changes are not announced: status pages", async () => {
+    render(
+      <BaseModelTable<Incident>
+        {...makeProps({
+          modelType: StatusPage as unknown as { new (): BaseModel },
         })}
       />,
     );

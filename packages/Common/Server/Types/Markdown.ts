@@ -224,6 +224,18 @@ const MAX_EMAIL_FIT_ATTEMPTS: number = 5;
 const EMAIL_FIT_MARGIN: number = 0.9;
 
 /*
+ * A field cut to fit keeps this share of its weight at least while it cuts
+ * its kept part shorter so that every definition its references need fits
+ * as an empty one (cutEmailMarkdown, #7602), and cuts it at most this many
+ * times more for that. A reference is never shorter than a third of its
+ * empty definition and line break - "[a]" against "[a]: <>" - so a quarter
+ * of the weight is room enough for every one of them, unless definitions
+ * write their labels longer than the references do ("[a     b]" for "[a b]").
+ */
+const EMAIL_CUT_FLOOR_FOR_EMPTY_DEFINITIONS: number = 1 / 4;
+const MAX_EMAIL_CUTS_FOR_EMPTY_DEFINITIONS: number = 4;
+
+/*
  * Where an image is in Markdown: "![", its address and where its data ends
  * (after any "=" padding), and after its ")".
  */
@@ -1776,7 +1788,10 @@ export default class Markdown {
    * references show their text or alt text: never Markdown. Room is made
    * for every one as an empty one before any is written whole, and goes to
    * the lightest first - a screenshot's, before a long title's or
-   * address's. A definition whose empty one does not fit either goes
+   * address's. While even the empty ones do not all fit, the kept part is
+   * cut shorter again, by the weight they need, down to a quarter of
+   * `weight` (#7602): it keeps fewer references, which need fewer
+   * definitions. A definition whose empty one does not fit even then goes
    * without, so the cut text never weighs more than `weight`.
    *
    * "\r\n" and "\r" are read as "\n", as marked reads them, whenever the
@@ -1838,6 +1853,58 @@ export default class Markdown {
         runs,
         definitions,
       );
+      needed = Markdown.getDefinitionsNeeded(markdown, cut, definitions);
+    }
+
+    /*
+     * And shorter again while even their empty forms do not all fit
+     * (#7602): a reference whose definition goes without shows as Markdown.
+     * A kept part of many references - shortcut ones above all, which are
+     * shorter than their empty definitions - needs more room for them than
+     * it takes itself. Cut by the weight the empty forms need, as by the
+     * whole forms' above, it keeps fewer references and needs fewer
+     * definitions: one cut most often makes room, and each reads the kept
+     * part once. Down to EMAIL_CUT_FLOOR_FOR_EMPTY_DEFINITIONS of `weight`;
+     * past it, what fits is kept.
+     */
+    for (
+      let attempt: number = 0;
+      attempt < MAX_EMAIL_CUTS_FOR_EMPTY_DEFINITIONS && needed.length > 0;
+      attempt++
+    ) {
+      const emptyWeight: number = Markdown.getEmptyDefinitionsWeight(
+        markdown,
+        needed,
+      );
+
+      if (
+        Markdown.getEmailWeightBetween(
+          runs,
+          0,
+          markdown.slice(0, cut).trimEnd().length,
+        ) +
+          emptyWeight <=
+        weight
+      ) {
+        break;
+      }
+
+      const shorter: number = Markdown.getEmailCut(
+        markdown,
+        Math.max(
+          weight - emptyWeight,
+          Math.ceil(weight * EMAIL_CUT_FLOOR_FOR_EMPTY_DEFINITIONS),
+        ),
+        runs,
+        definitions,
+      );
+
+      // The floor reached: no shorter cut makes room.
+      if (shorter >= cut) {
+        break;
+      }
+
+      cut = shorter;
       needed = Markdown.getDefinitionsNeeded(markdown, cut, definitions);
     }
 
@@ -1926,6 +1993,7 @@ export default class Markdown {
     definition: LinkReferenceDefinition,
   ): CutDefinitionLines {
     const nested: NestedLinkReferenceDefinition | undefined = definition.nested;
+    const empty: string = Markdown.getEmptyDefinitionLine(markdown, definition);
 
     if (!nested) {
       return {
@@ -1944,7 +2012,7 @@ export default class Markdown {
           definition.start,
           definition.destinationEnd,
         ),
-        empty: `[${markdown.slice(definition.labelStart, definition.labelEnd)}]: <>`,
+        empty: empty,
       };
     }
 
@@ -1965,8 +2033,43 @@ export default class Markdown {
       wholeWeight: nested.text.length - from - addressData,
       withoutTitle: nested.text.slice(from, nested.destinationEnd),
       withoutTitleWeight: nested.destinationEnd - from - addressData,
-      empty: `[${nested.text.slice(nested.labelStart, nested.labelEnd)}]: <>`,
+      empty: empty,
     };
+  }
+
+  /*
+   * A definition's empty form, "[label]: <>" (getCutDefinitionLines): its
+   * label as marked reads it - in a block quote or a list item, without the
+   * markers and indentation of the lines it runs over.
+   */
+  private static getEmptyDefinitionLine(
+    markdown: string,
+    definition: LinkReferenceDefinition,
+  ): string {
+    const nested: NestedLinkReferenceDefinition | undefined = definition.nested;
+    const label: string = nested
+      ? nested.text.slice(nested.labelStart, nested.labelEnd)
+      : markdown.slice(definition.labelStart, definition.labelEnd);
+
+    return `[${label}]: <>`;
+  }
+
+  /*
+   * What `needed` weigh as empty definitions, each on a line of its own,
+   * and the blank line after them (cutEmailMarkdown).
+   */
+  private static getEmptyDefinitionsWeight(
+    markdown: string,
+    needed: Array<LinkReferenceDefinition>,
+  ): number {
+    return needed.reduce(
+      (sum: number, definition: LinkReferenceDefinition): number => {
+        return (
+          sum + Markdown.getEmptyDefinitionLine(markdown, definition).length + 1
+        );
+      },
+      1,
+    );
   }
 
   /*

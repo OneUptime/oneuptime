@@ -135,7 +135,8 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `resourceGroups` | 群組；巢狀群組帶有 `parentStatusPageGroupId`。 |
 | `monitorStatuses` | 專案的所有監測器狀態，依優先順序由低到高排列。 |
 | `monitorGroupCurrentStatuses`、`monitorsInGroup` | 頁面上每個監測器群組的目前狀態，以及其中的監測器。 |
-| `notMonitoredResourceIds` | 頁面顯示為 **未監控** 的資源的 ID：監測已關閉的監測器，或所有監測器的監測都已關閉的監測器群組。它們不決定任何狀態，這樣的群組在 `monitorGroupCurrentStatuses` 中沒有項目。 |
+| `notMonitoredResourceIds` | 頁面顯示為 **未監控** 的資源的 ID：監測已關閉的監測器，或所有監測器的監測都已關閉的監測器群組。`notMonitoredYetResourceIds` 中的資源也列在這裡。它們不決定任何狀態，這樣的群組在 `monitorGroupCurrentStatuses` 中沒有項目。 |
+| `notMonitoredYetResourceIds` | 頁面顯示為 **尚未監控** 的資源的 ID：尚未被檢查過、仍處於每個監測器開始時的正常運作狀態的監測器，或其中沒有任何監測器被檢查過的監測器群組。 |
 | `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 繪製運作率長條所用的資料，以及頁面的長條顏色規則。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | 頁面顯示的未解決事件、它們的公開備註與狀態變化，以及專案的事件狀態。 |
 | `timelineIncidents` | 運作率長條時間範圍內的事件（包括已解決的），用於長條的提示說明。 |
@@ -197,7 +198,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | `activeIncidents` | 頁面顯示的未解決事件，每個都帶有它所影響資源的 `affectedResourceIds`。 |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 進行中與即將到來的維護事件，每個都帶有它的 `affectedResourceIds`。 |
 
-頁面不顯示資源的狀態時，以及 `isMonitored` 為 `false` 時，該資源的 `currentStatus` 為 `null`：後者表示沒有任何東西檢查該資源，因為其監測器的監測已關閉，或其監測器群組中每個監測器的監測都已關閉，所以頁面將其顯示為 **未監控**。只要進行中的事件指定了該資源的某個監測器，或其監測器群組中的某個監測器，無論這些監測器處於什麼狀態，`isUnderMaintenance` 都為 `true`。
+頁面不顯示資源的狀態時，以及 `isMonitored` 為 `false` 時，該資源的 `currentStatus` 為 `null`：後者表示沒有任何東西檢查該資源，因為其監測器的監測已關閉，或其監測器群組中每個監測器的監測都已關閉，所以頁面將其顯示為 **未監控**；或者還沒有任何東西檢查過該資源，所以頁面將其顯示為 **尚未監控**。只要進行中的事件指定了該資源的某個監測器，或其監測器群組中的某個監測器，無論這些監測器處於什麼狀態，`isUnderMaintenance` 都為 `true`。
 
 ## 指定日期範圍的運作率
 

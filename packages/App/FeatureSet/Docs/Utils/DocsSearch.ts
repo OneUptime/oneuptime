@@ -7,6 +7,15 @@ import DocsAIReader, {
   tokenizeForDocs,
 } from "./AIDocsReader";
 import {
+  DocsTermReader,
+  IN_PAGE_GROUP,
+  IN_PAGE_HEADINGS,
+  IN_PAGE_SUMMARY,
+  IN_PAGE_TITLE,
+  IN_SECTION_TITLE,
+  docsPhraseOf,
+} from "./DocsIndex";
+import {
   DocsSearchSynonym,
   DocsVocabularyMatch,
   foldDocsSearchWord,
@@ -50,6 +59,11 @@ import { localizeDocsUrl } from "./I18n";
  * This reads the index Ask AI already keeps per language (AIDocsReader),
  * so there is one index in memory, not two. Every installation serves its
  * own docs, an air-gapped one too, so nothing leaves it.
+ *
+ * A search reads only the entries of the words it looks for, page by page
+ * (DocsTermReader, Utils/DocsIndex.ts): each way a typed word may be found
+ * is resolved to its words' readers once, and every page and section asks
+ * them, in order.
  */
 
 export const DOCS_SEARCH_QUERY_MAX_LENGTH: number = 100;
@@ -133,11 +147,9 @@ const QUESTION_HEADING_LEAST_SHARE: number = 0.5;
 // A question mark, wherever it is typed: Latin, full-width, Arabic script's, and Spanish's opening one.
 const QUESTION_MARK: RegExp = /[?？؟¿]/u;
 
-// Worked out once per section and per index, the first time a search needs it.
-const sectionLengths: WeakMap<AIDocsIndexedSection, number> = new WeakMap();
+// Worked out once per index, the first time a search needs it.
 const averageSectionLengths: WeakMap<AIDocsLanguageIndex, number> =
   new WeakMap();
-const sectionPhrases: WeakMap<AIDocsIndexedSection, string> = new WeakMap();
 // The last phrase each index was asked whether it says, and its answer.
 const lastPhrases: WeakMap<
   AIDocsLanguageIndex,
@@ -207,6 +219,18 @@ interface UnitScore {
   // How many of the typed words it holds.
   matched: number;
   terms: Set<string>;
+}
+
+/*
+ * One way a typed word may be found (DocsQueryAlternative), with a reader
+ * of each of its words' entries and how much each word says (rank's
+ * weight).
+ */
+interface ResolvedAlternative {
+  terms: Array<string>;
+  readers: Array<DocsTermReader>;
+  weights: Array<number>;
+  weight: number;
 }
 
 const isUnspaced: (word: string) => boolean = (word: string): boolean => {
@@ -570,36 +594,24 @@ export default class DocsSearch {
     }
   }
 
+  // How much a word found on a page counts, by the best place the page holds it.
   private static pageFieldWeight(
     page: AIDocsIndexedPage,
-    term: string,
+    reader: DocsTermReader,
   ): number {
-    const count: number = page.bodyTerms.get(term) || 0;
+    const fields: number = reader.pageFields(page.number);
+    const count: number = reader.bodyCount(page.number);
 
     return Math.max(
-      page.titleTerms.has(term) ? PAGE_TITLE_WEIGHT : 0,
-      page.summaryTerms.has(term) ? SUMMARY_WEIGHT : 0,
-      page.headingTerms.has(term) ? HEADINGS_WEIGHT : 0,
-      page.groupTerms.has(term) ? GROUP_WEIGHT : 0,
+      fields & IN_PAGE_TITLE ? PAGE_TITLE_WEIGHT : 0,
+      fields & IN_PAGE_SUMMARY ? SUMMARY_WEIGHT : 0,
+      fields & IN_PAGE_HEADINGS ? HEADINGS_WEIGHT : 0,
+      fields & IN_PAGE_GROUP ? GROUP_WEIGHT : 0,
       count > 0 ? (PAGE_TEXT_WEIGHT * count) / (count + 2) : 0,
     );
   }
 
-  // How many words a section holds, and a language's sections on average.
-  private static sectionLength(section: AIDocsIndexedSection): number {
-    let length: number | undefined = sectionLengths.get(section);
-
-    if (length === undefined) {
-      length = 0;
-      for (const count of section.terms.values()) {
-        length += count;
-      }
-      sectionLengths.set(section, length);
-    }
-
-    return length;
-  }
-
+  // How many words a language's sections hold, on average.
   private static averageSectionLength(index: AIDocsLanguageIndex): number {
     let average: number | undefined = averageSectionLengths.get(index);
 
@@ -608,7 +620,7 @@ export default class DocsSearch {
       let sections: number = 0;
       for (const page of index.pages) {
         for (const section of page.sections) {
-          total += DocsSearch.sectionLength(section);
+          total += section.wordCount;
           sections++;
         }
       }
@@ -627,35 +639,30 @@ export default class DocsSearch {
   private static sectionFieldWeight(
     page: AIDocsIndexedPage,
     section: AIDocsIndexedSection,
-    term: string,
+    reader: DocsTermReader,
     averageLength: number,
   ): number {
-    const count: number = section.terms.get(term) || 0;
-    const lengthRatio: number =
-      DocsSearch.sectionLength(section) / averageLength;
+    const count: number = reader.sectionCount(section.number);
+    const lengthRatio: number = section.wordCount / averageLength;
 
     return Math.max(
-      section.titleTerms.has(term) ? SECTION_TITLE_WEIGHT : 0,
+      reader.sectionFields(section.number) & IN_SECTION_TITLE
+        ? SECTION_TITLE_WEIGHT
+        : 0,
       count > 0
         ? (SECTION_TEXT_WEIGHT * count) /
             (count + 1.5 * (0.25 + 0.75 * lengthRatio))
         : 0,
-      !section.isOtherName && page.titleTerms.has(term)
+      !section.isOtherName &&
+        (reader.pageFields(page.number) & IN_PAGE_TITLE) !== 0
         ? PAGE_TITLE_FOR_SECTION_WEIGHT
         : 0,
     );
   }
 
-  // Text as a phrase is compared: lower case, one space between words.
+  // Text as a phrase is compared: lower case, one space between words (docsPhraseOf).
   private static asPhrase(text: string): string {
-    return ` ${text
-      .normalize("NFKC")
-      .toLowerCase()
-      .split(/[^\p{L}\p{M}\p{N}]+/u)
-      .filter((word: string): boolean => {
-        return word.length > 0;
-      })
-      .join(" ")} `;
+    return docsPhraseOf(text);
   }
 
   // A page's name, or what was typed, as the words it is written with: NAME_BOOST compares the two.
@@ -696,7 +703,7 @@ export default class DocsSearch {
     const isPhrase: boolean = index.pages.some(
       (page: AIDocsIndexedPage): boolean => {
         return page.sections.some((section: AIDocsIndexedSection): boolean => {
-          return DocsSearch.sectionPhrase(section).includes(phrase);
+          return section.phrase.includes(phrase);
         });
       },
     );
@@ -725,17 +732,6 @@ export default class DocsSearch {
     return splitDocsWords(query).some((word: string): boolean => {
       return isDocsSearchAskingWord(word, index.language);
     });
-  }
-
-  private static sectionPhrase(section: AIDocsIndexedSection): string {
-    let phrase: string | undefined = sectionPhrases.get(section);
-
-    if (phrase === undefined) {
-      phrase = DocsSearch.asPhrase(`${section.title} ${section.text}`);
-      sectionPhrases.set(section, phrase);
-    }
-
-    return phrase;
   }
 
   /*
@@ -769,6 +765,34 @@ export default class DocsSearch {
         1 + pageCount / (1 + index.vocabulary.pagesHolding(term)),
       );
     };
+    // Each docs word a typed word may be found by, read page by page: one reader a word.
+    const readers: Map<string, DocsTermReader> = new Map();
+    const readerOf: (term: string) => DocsTermReader = (
+      term: string,
+    ): DocsTermReader => {
+      let reader: DocsTermReader | undefined = readers.get(term);
+
+      if (!reader) {
+        reader = new DocsTermReader(index.postings, term);
+        readers.set(term, reader);
+      }
+
+      return reader;
+    };
+    const ways: Array<Array<ResolvedAlternative>> = words.map(
+      (word: DocsQueryWord): Array<ResolvedAlternative> => {
+        return word.alternatives.map(
+          (alternative: DocsQueryAlternative): ResolvedAlternative => {
+            return {
+              terms: alternative.terms,
+              readers: alternative.terms.map(readerOf),
+              weights: alternative.terms.map(weight),
+              weight: alternative.weight,
+            };
+          },
+        );
+      },
+    );
     const averageLength: number = DocsSearch.averageSectionLength(index);
     const phrase: string | null = DocsSearch.phraseOf(trimmed);
     const typedName: string = DocsSearch.asName(trimmed);
@@ -787,11 +811,11 @@ export default class DocsSearch {
     const isQuestion: boolean =
       words.length >= 2 && DocsSearch.isQuestion(index, trimmed);
     const scoreUnit: (
-      fieldWeight: (term: string) => number,
-      isNamed: (term: string) => boolean,
+      fieldWeight: (reader: DocsTermReader) => number,
+      isNamed: (reader: DocsTermReader) => boolean,
     ) => UnitScore = (
-      fieldWeight: (term: string) => number,
-      isNamed: (term: string) => boolean,
+      fieldWeight: (reader: DocsTermReader) => number,
+      isNamed: (reader: DocsTermReader) => boolean,
     ): UnitScore => {
       let score: number = 0;
       let named: number = 0;
@@ -799,44 +823,43 @@ export default class DocsSearch {
       let matched: number = 0;
       const terms: Set<string> = new Set<string>();
 
-      for (const word of words) {
+      for (const word of ways) {
         let best: number = 0;
-        let bestTerms: Array<string> = [];
+        let bestWay: ResolvedAlternative | null = null;
 
-        for (const alternative of word.alternatives) {
+        for (const way of word) {
           let total: number = 0;
           let isEvery: boolean = true;
 
-          for (const term of alternative.terms) {
-            const found: number = fieldWeight(term);
+          for (let at: number = 0; at < way.readers.length; at++) {
+            const found: number = fieldWeight(way.readers[at]!);
             if (found === 0) {
               isEvery = false;
               break;
             }
-            total += found * weight(term);
+            total += found * way.weights[at]!;
           }
 
           if (!isEvery) {
             continue;
           }
 
-          const value: number =
-            (total / alternative.terms.length) * alternative.weight;
+          const value: number = (total / way.terms.length) * way.weight;
 
           if (value > best) {
             best = value;
-            bestTerms = alternative.terms;
+            bestWay = way;
           }
         }
 
-        if (best > 0) {
+        if (best > 0 && bestWay) {
           matched++;
           score += best;
-          if (bestTerms.every(isNamed)) {
+          if (bestWay.readers.every(isNamed)) {
             named += best;
             namedWords++;
           }
-          for (const term of bestTerms) {
+          for (const term of bestWay.terms) {
             terms.add(term);
           }
         }
@@ -872,11 +895,7 @@ export default class DocsSearch {
       };
 
       if (share === 1) {
-        if (
-          phrase &&
-          section &&
-          DocsSearch.sectionPhrase(section).includes(phrase)
-        ) {
+        if (phrase && section && section.phrase.includes(phrase)) {
           unit.score *= PHRASE_BOOST;
         }
         if (
@@ -917,11 +936,11 @@ export default class DocsSearch {
         page,
         null,
         scoreUnit(
-          (term: string): number => {
-            return DocsSearch.pageFieldWeight(page, term);
+          (reader: DocsTermReader): number => {
+            return DocsSearch.pageFieldWeight(page, reader);
           },
-          (term: string): boolean => {
-            return page.titleTerms.has(term);
+          (reader: DocsTermReader): boolean => {
+            return (reader.pageFields(page.number) & IN_PAGE_TITLE) !== 0;
           },
         ),
       );
@@ -931,16 +950,18 @@ export default class DocsSearch {
           page,
           section,
           scoreUnit(
-            (term: string): number => {
+            (reader: DocsTermReader): number => {
               return DocsSearch.sectionFieldWeight(
                 page,
                 section,
-                term,
+                reader,
                 averageLength,
               );
             },
-            (term: string): boolean => {
-              return section.titleTerms.has(term);
+            (reader: DocsTermReader): boolean => {
+              return (
+                (reader.sectionFields(section.number) & IN_SECTION_TITLE) !== 0
+              );
             },
           ),
         );

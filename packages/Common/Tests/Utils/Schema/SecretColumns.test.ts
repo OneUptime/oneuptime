@@ -172,7 +172,6 @@ describe("secret columns", () => {
     const unmarked: Array<string> = [];
 
     for (const [modelType, column] of [
-      [ApiKey, "apiKey"],
       [Probe, "key"],
       [TelemetryIngestionKey, "secretKey"],
     ] as Array<[ModelType, string]>) {
@@ -213,12 +212,37 @@ describe("secret columns", () => {
     }
   });
 
-  test("a secret keeps its own format: an API key is still a uuid", () => {
+  /*
+   * A project's API key is stored as its hash and shown once (#8902): the
+   * create's answer holds it, marked a secret answered once, and no read
+   * schema names it - nor its hash.
+   */
+  test("an API key is a secret in the create's answer alone, shown once", () => {
     const apiKey: Record<string, unknown> | undefined = getSchemaProperty(
-      ModelSchema.getReadModelSchema({ modelType: ApiKey }),
+      ModelSchema.getCreatedModelSchema({ modelType: ApiKey }),
       "apiKey",
     );
 
+    expect(apiKey?.["x-oneuptime-secret"]).toBe(true);
+    expect(apiKey?.["x-oneuptime-shown-once"]).toBe(true);
+    expect(apiKey?.["readOnly"]).toBe(true);
+
+    for (const schema of [
+      ModelSchema.getReadModelSchema({ modelType: ApiKey }),
+      ModelSchema.getModelSchema({ modelType: ApiKey }),
+    ]) {
+      expect(getSchemaProperty(schema, "apiKey")).toBeUndefined();
+    }
+  });
+
+  test("a secret keeps its own format: an API key is still a uuid", () => {
+    const apiKey: Record<string, unknown> | undefined = getSchemaProperty(
+      ModelSchema.getCreatedModelSchema({ modelType: ApiKey }),
+      "apiKey",
+    );
+
+    // The key the create made, not the hash stored: a uuid.
+    expect(apiKey?.["type"]).toBe("string");
     expect(apiKey?.["format"]).toBe("uuid");
     expect(apiKey?.["x-oneuptime-secret"]).toBe(true);
   });

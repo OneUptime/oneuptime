@@ -204,12 +204,13 @@ interface DeletedCaptureFile {
 
 /*
  * The hand-written writes below - the probe's capability, its heartbeat, its
- * failure and completion reports, Stop from the dashboard and the stale
- * capture sweep - are each one self-committing statement, whose own WHERE
- * is its guard (OneUptime issue #8870). They ran inside transactions, which
- * added a BEGIN and a COMMIT round trip to each, and held the connection
- * between them, for nothing that had to commit together. The retention
- * sweep's batches are the exception: see deleteExpiredCaptures.
+ * failure and completion reports, Stop from the dashboard, the stale capture
+ * sweep and each batch of the retention sweep - are each one self-committing
+ * statement, whose own WHERE is its guard (OneUptime issues #8870 and
+ * #8929). They ran inside transactions, which added a BEGIN and a COMMIT
+ * round trip to each, and held the connection between them. A retention
+ * batch's two deletes must commit together, and do: they are one statement
+ * (see deleteExpiredCaptures).
  */
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -1135,9 +1136,20 @@ export class Service extends ProjectReferencesService<Model> {
    * once they are older than the retention period, a batch at a time.
    * Returns how many captures it deleted.
    *
-   * Each batch stays a transaction: its captures and their files are two
-   * statements that must commit together, or a file outlives the capture
-   * that was the only way to find it.
+   * A batch's captures and their files must go together, or a file outlives
+   * the capture that was the only way to find it. Each batch is one
+   * self-committing statement (OneUptime issue #8929): the captures are
+   * deleted by a data-modifying WITH, and their files by a second one that
+   * reads what the first returned, so the two commit together or not at all.
+   * It was a transaction - START TRANSACTION, the two DELETEs, COMMIT - so
+   * three round trips an hour with nothing expired, four a batch with files,
+   * the connection held between them.
+   *
+   * A capture's foreign key to its file (ON DELETE SET NULL) is checked at
+   * the end of the statement, when the captures it would set to NULL are
+   * already gone: it sets nothing. A file that something else still holds
+   * refuses its delete, and the whole batch with it (PacketCaptureSqlPostgres
+   * shows both on real Postgres).
    */
   @CaptureSpan()
   public async deleteExpiredCaptures(): Promise<number> {
@@ -1149,42 +1161,29 @@ export class Service extends ProjectReferencesService<Model> {
     let deletedCount: number = 0;
 
     for (;;) {
-      const deletedInBatch: number = await this.executeTransaction(
-        async (transactionalEntityManager: EntityManager): Promise<number> => {
-          const result: unknown = await transactionalEntityManager.query(
-            `
-              DELETE FROM "PacketCapture"
-              WHERE "_id" IN (
-                SELECT "_id" FROM "PacketCapture"
-                WHERE "createdAt" < $1
-                ORDER BY "createdAt" ASC
-                LIMIT $2
-              )
-              RETURNING "_id", "fileId"
-            `,
-            [cutoff, RETENTION_BATCH_SIZE],
-          );
-
-          const rows: Array<Record<string, unknown>> = readReturnedRows(result);
-
-          const fileIds: Array<string> = rows
-            .map((row: Record<string, unknown>): string => {
-              return String(row["fileId"] || "");
-            })
-            .filter((fileId: string): boolean => {
-              return ObjectID.isValidUUID(fileId);
-            });
-
-          if (fileIds.length > 0) {
-            await transactionalEntityManager.query(
-              `DELETE FROM "File" WHERE "_id" = ANY($1::uuid[])`,
-              [fileIds],
-            );
-          }
-
-          return rows.length;
-        },
+      const result: unknown = await this.getRepository().manager.query(
+        `
+          WITH "expired" AS (
+            DELETE FROM "PacketCapture"
+            WHERE "_id" IN (
+              SELECT "_id" FROM "PacketCapture"
+              WHERE "createdAt" < $1
+              ORDER BY "createdAt" ASC
+              LIMIT $2
+            )
+            RETURNING "_id", "fileId"
+          ), "files" AS (
+            DELETE FROM "File"
+            WHERE "_id" IN (
+              SELECT "fileId" FROM "expired" WHERE "fileId" IS NOT NULL
+            )
+          )
+          SELECT "_id" FROM "expired"
+        `,
+        [cutoff, RETENTION_BATCH_SIZE],
       );
+
+      const deletedInBatch: number = readReturnedRows(result).length;
 
       deletedCount += deletedInBatch;
 

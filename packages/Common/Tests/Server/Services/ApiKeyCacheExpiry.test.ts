@@ -51,6 +51,11 @@ beforeEach(() => {
   (
     ApiKeyService as unknown as { apiKeyCache: { clear: () => void } }
   ).apiKeyCache.clear();
+
+  // Every key is stored as its hash (#8902): none is looked up as written.
+  jest
+    .spyOn(ApiKeyService, "mayHoldKeysStoredAsWritten")
+    .mockResolvedValue(false);
 });
 
 afterEach(() => {
