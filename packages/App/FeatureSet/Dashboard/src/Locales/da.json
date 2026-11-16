@@ -54284,7 +54284,6 @@
   "Paging never started and was timed out.": "Kaldet startede aldrig og fik timeout.",
   "Paging started.": "Kald startet.",
   "Paging timed out.": "Kaldet fik timeout.",
-  "Passed On": "Givet videre",
   "Playbook {{playbook}} on {{case}}": "Playbook {{playbook}} på {{case}}",
   "Profile attribute keys ({{count}} found)": "Attributnøgler for profiler ({{count}} fundet)",
   "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}": "Profilsammenligning, {{beforeStart}} til {{beforeEnd}} mod {{afterStart}} til {{afterEnd}}",

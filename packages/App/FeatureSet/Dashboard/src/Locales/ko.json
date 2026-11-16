@@ -54284,7 +54284,6 @@
   "Paging never started and was timed out.": "호출이 시작되지 않아 시간 초과되었습니다.",
   "Paging started.": "호출이 시작되었습니다.",
   "Paging timed out.": "호출 시간이 초과되었습니다.",
-  "Passed On": "다른 사람에게 넘김",
   "Playbook {{playbook}} on {{case}}": "{{case}}의 플레이북 {{playbook}}",
   "Profile attribute keys ({{count}} found)": "프로파일 속성 키({{count}}개 찾음)",
   "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}": "프로파일 비교, {{beforeStart}}부터 {{beforeEnd}}까지 대 {{afterStart}}부터 {{afterEnd}}까지",

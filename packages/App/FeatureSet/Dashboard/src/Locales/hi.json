@@ -54284,7 +54284,6 @@
   "Paging never started and was timed out.": "पेजिंग कभी शुरू नहीं हुई और उसका समय समाप्त हो गया।",
   "Paging started.": "पेजिंग शुरू हुई।",
   "Paging timed out.": "पेजिंग का समय समाप्त हो गया।",
-  "Passed On": "आगे भेजा गया",
   "Playbook {{playbook}} on {{case}}": "{{case}} पर प्लेबुक {{playbook}}",
   "Profile attribute keys ({{count}} found)": "प्रोफ़ाइल की एट्रिब्यूट कुंजियां ({{count}} मिलीं)",
   "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}": "प्रोफ़ाइल तुलना, {{beforeStart}} से {{beforeEnd}} तक बनाम {{afterStart}} से {{afterEnd}} तक",

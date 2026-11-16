@@ -54284,7 +54284,6 @@
   "Paging never started and was timed out.": "فراخوانی هرگز آغاز نشد و مهلتش تمام شد.",
   "Paging started.": "فراخوانی آغاز شد.",
   "Paging timed out.": "مهلت فراخوانی تمام شد.",
-  "Passed On": "به دیگری سپرده شد",
   "Playbook {{playbook}} on {{case}}": "پلی‌بوک {{playbook}} روی {{case}}",
   "Profile attribute keys ({{count}} found)": "کلیدهای ویژگی پروفایل‌ها ({{count}} مورد یافت شد)",
   "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}": "مقایسهٔ پروفایل، از {{beforeStart}} تا {{beforeEnd}} در برابر از {{afterStart}} تا {{afterEnd}}",

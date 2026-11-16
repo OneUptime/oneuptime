@@ -54284,7 +54284,6 @@
   "Paging never started and was timed out.": "L'appel n'a jamais démarré et a expiré.",
   "Paging started.": "Appel démarré.",
   "Paging timed out.": "L'appel a expiré.",
-  "Passed On": "Transmis",
   "Playbook {{playbook}} on {{case}}": "Playbook {{playbook}} sur {{case}}",
   "Profile attribute keys ({{count}} found)": "Clés d'attribut des profils ({{count}} trouvées)",
   "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}": "Comparaison de profils, de {{beforeStart}} à {{beforeEnd}} contre de {{afterStart}} à {{afterEnd}}",

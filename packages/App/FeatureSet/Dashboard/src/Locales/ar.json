@@ -54284,7 +54284,6 @@
   "Paging never started and was timed out.": "لم يبدأ الاستدعاء قط وانتهت مهلته.",
   "Paging started.": "بدأ الاستدعاء.",
   "Paging timed out.": "انتهت مهلة الاستدعاء.",
-  "Passed On": "تم التمرير",
   "Playbook {{playbook}} on {{case}}": "دليل التشغيل الأمني {{playbook}} على {{case}}",
   "Profile attribute keys ({{count}} found)": "مفاتيح سمات ملفات التعريف (العدد: {{count}})",
   "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}": "مقارنة ملفات التعريف، من {{beforeStart}} إلى {{beforeEnd}} مقابل من {{afterStart}} إلى {{afterEnd}}",

@@ -54284,7 +54284,6 @@
   "Paging never started and was timed out.": "呼叫從未開始，已逾時。",
   "Paging started.": "呼叫已開始。",
   "Paging timed out.": "呼叫已逾時。",
-  "Passed On": "已轉交",
   "Playbook {{playbook}} on {{case}}": "{{case}} 上的劇本 {{playbook}}",
   "Profile attribute keys ({{count}} found)": "效能剖析屬性鍵（找到 {{count}} 個）",
   "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}": "效能剖析比較，{{beforeStart}} 至 {{beforeEnd}} 對比 {{afterStart}} 至 {{afterEnd}}",

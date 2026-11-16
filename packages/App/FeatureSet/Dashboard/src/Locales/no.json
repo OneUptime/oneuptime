@@ -54284,7 +54284,6 @@
   "Paging never started and was timed out.": "Oppkallet startet aldri og fikk tidsavbrudd.",
   "Paging started.": "Oppkall startet.",
   "Paging timed out.": "Oppkallet fikk tidsavbrudd.",
-  "Passed On": "Gitt videre",
   "Playbook {{playbook}} on {{case}}": "Playbook {{playbook}} på {{case}}",
   "Profile attribute keys ({{count}} found)": "Attributtnøkler for profiler ({{count}} funnet)",
   "Profile comparison, {{beforeStart}} to {{beforeEnd}} vs {{afterStart}} to {{afterEnd}}": "Profilsammenligning, {{beforeStart}} til {{beforeEnd}} mot {{afterStart}} til {{afterEnd}}",
