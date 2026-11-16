@@ -4,6 +4,7 @@ import {
   isAIResourceType,
 } from "Common/Types/AI/AIResourceContext";
 import OneUptimeDate from "Common/Types/Date";
+import { withDurationWordsHeld } from "Common/Types/NoBreakSpaces";
 import IconProp from "Common/Types/Icon/IconProp";
 import { EXPLAIN_NO_FIX_TOOL_NAME } from "Common/Types/AutoRemediation/RemediationRound";
 import { JSONObject } from "Common/Types/JSON";
@@ -1541,8 +1542,11 @@ export function toTitleCaseLabel(key: string): string {
     .join(" ");
 }
 
+// "7 days": a duration's figure held to its word, as a page draws it (#8823).
 function pluralize(count: number, singular: string): string {
-  return `${formatNumber(count)} ${singular}${count === 1 ? "" : "s"}`;
+  return withDurationWordsHeld(
+    `${formatNumber(count)} ${singular}${count === 1 ? "" : "s"}`,
+  );
 }
 
 // "24 hours", but "90 days" rather than "2,160 hours" for whole days.

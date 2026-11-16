@@ -102,6 +102,7 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
+import { withPlainSpaces } from "../../../Types/NoBreakSpaces";
 
 jest.mock("react-i18next", () => {
   return {
@@ -801,8 +802,9 @@ describe("the agent card", () => {
     openAgentPage();
 
     expect(await findTestId("ai-agent-status")).toHaveTextContent("Offline");
+    // toHaveTextContent reads the sentence's held "5 minutes" with a plain space.
     expect(screen.getByTestId("ai-agent-sentence")).toHaveTextContent(
-      getResourceAiAgentSilentText(DOCKER),
+      withPlainSpaces(getResourceAiAgentSilentText(DOCKER)),
     );
     expect(codeIn(screen.getByTestId("ai-agent-logs-command"))).toBe(
       getResourceAiAgentLogsCommand(AiResourceType.DockerHost),

@@ -1,4 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
+import { Translator } from "../../../Types/Translator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import VMwareResourceModel from "../../../Models/DatabaseModels/VMwareResource";
 import AggregateBy from "../../../Types/BaseDatabase/AggregateBy";
 import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
@@ -949,12 +952,50 @@ describe("how numbers are written", () => {
     expect(formatVMwarePerSecond(3400000)).toBe("3.4M/s");
   });
 
-  test("milliseconds", () => {
+  /*
+   * A disk's latency, on the Overview's tile, in its chart and in the
+   * device tables: its figure held to "ms" by a no-break space, so a narrow
+   * cell never ends a line with "44.8" and starts the next with "ms"
+   * (#8803).
+   */
+  test("milliseconds, each figure held to its unit", () => {
     expect(formatVMwareMilliseconds(null)).toBe("—");
     expect(formatVMwareMilliseconds(Infinity)).toBe("—");
-    expect(formatVMwareMilliseconds(0.4)).toBe("0.4 ms");
-    expect(formatVMwareMilliseconds(44.83)).toBe("44.8 ms");
-    expect(formatVMwareMilliseconds(31)).toBe("31 ms");
-    expect(formatVMwareMilliseconds(250.6)).toBe("251 ms");
+    expect(formatVMwareMilliseconds(0.4)).toBe("0.4\u00A0ms");
+    expect(formatVMwareMilliseconds(44.83)).toBe("44.8\u00A0ms");
+    expect(formatVMwareMilliseconds(12.04)).toBe("12\u00A0ms");
+    expect(formatVMwareMilliseconds(31)).toBe("31\u00A0ms");
+    expect(formatVMwareMilliseconds(250.6)).toBe("251\u00A0ms");
+    expect(formatVMwareMilliseconds(1234.4)).toBe("1,234\u00A0ms");
+  });
+
+  test("negative control: no figure is joined to its unit with a space a line breaks at", () => {
+    for (const value of [0, 0.4, 12.5, 44.83, 99.96, 100, 250.6, 1234.4]) {
+      expect(formatVMwareMilliseconds(value)).not.toMatch(/\d ms$/);
+      expect(formatVMwareMilliseconds(value)).toMatch(/\d\u00A0ms$/u);
+    }
+  });
+
+  test("in the reader's digits and their own unit, with the page's translator", () => {
+    const english: Translator = dashboardTranslator("en");
+    const german: Translator = dashboardTranslator("de");
+    const persian: Translator = dashboardTranslator("fa");
+
+    expect(formatVMwareMilliseconds(44.83, english)).toBe("44.8\u00A0ms");
+    expect(formatVMwareMilliseconds(44.83, german)).toBe(
+      formatMilliseconds(german, 44.8),
+    );
+    expect(formatVMwareMilliseconds(44.83, german)).toContain("44,8");
+    expect(formatVMwareMilliseconds(250.6, persian)).toBe(
+      formatMilliseconds(persian, 251),
+    );
+    expect(formatVMwareMilliseconds(250.6, persian)).toContain("۲۵۱");
+
+    for (const translator of [english, german, persian]) {
+      // Whatever the language's unit, its figure is never left to wrap from it.
+      expect(formatVMwareMilliseconds(12.5, translator)).not.toMatch(
+        /[\p{Nd}] \S/u,
+      );
+    }
   });
 });

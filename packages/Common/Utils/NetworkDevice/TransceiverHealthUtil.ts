@@ -867,9 +867,9 @@ export default class TransceiverHealthUtil {
       case TransceiverReadingKind.Temperature:
         return `${value.toFixed(1)}\u00A0°C`;
       case TransceiverReadingKind.Voltage:
-        return `${value.toFixed(2)} V`;
+        return `${value.toFixed(2)}\u00A0V`;
       case TransceiverReadingKind.BiasCurrent:
-        return `${value.toFixed(2)} mA`;
+        return `${value.toFixed(2)}\u00A0mA`;
       case TransceiverReadingKind.TxPower:
       case TransceiverReadingKind.RxPower:
         return value <= TRANSCEIVER_MIN_POWER_DBM

@@ -114,8 +114,6 @@ const OWNED_ELSEWHERE: Readonly<Record<string, string>> = {
     "#7301",
   "packages/App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/StorageArrayHealth.ts":
     "#7301",
-  "packages/App/FeatureSet/Dashboard/src/Pages/VMware/Utils/VMwareHostData.ts":
-    "#7301",
   // The request story's durations, in the Dashboard's duration words.
   "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventRequestStory.ts":
     "#6889",
