@@ -208,7 +208,7 @@ function FixRow(props: {
 }): ReactElement {
   const translator: Translator = useTranslator();
   const look: ResourceAiStatusLook | null = props.fix.status
-    ? getResourceFixStatusLook(props.fix.status)
+    ? getResourceFixStatusLook(props.fix.status, props.fix.firstApprovedAt)
     : null;
   const type: string | null = describeResourceFixType(props.fix.suggestionType);
   const target: { route: Route; label: string } | null = props.fix.incidentId

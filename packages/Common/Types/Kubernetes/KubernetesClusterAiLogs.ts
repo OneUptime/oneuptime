@@ -77,6 +77,13 @@ export interface KubernetesClusterAiLogFix {
   rationale?: string | undefined;
   createdAt?: string | undefined;
   approvedAt?: string | undefined;
+  /*
+   * A fix that waits for approval, and was approved once already: when the
+   * first of the two approvals a riskier fix needs was given, so the page
+   * says it waits for a second (Project.requireTwoApprovalsForRiskierFixes).
+   * Absent on every other fix.
+   */
+  firstApprovedAt?: string | undefined;
   incidentId?: string | undefined;
   alertId?: string | undefined;
 }

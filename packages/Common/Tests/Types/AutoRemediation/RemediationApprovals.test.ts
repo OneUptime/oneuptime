@@ -4,6 +4,7 @@ import {
   AiRemediationCommandPlan,
   AiRemediationCommandPolicyVerdict,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
+import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import {
   ALREADY_APPROVED_FIRST_MESSAGE,
@@ -13,6 +14,7 @@ import {
   getApprovalStepChangedMessage,
   getRemediationApprovalsNeeded,
   getRemediationApprovalStep,
+  getWaitingFirstApprovedAt,
   getRiskierRemediationCommands,
   isRiskierRemediationCommand,
   isRiskierWhateverItChanges,
@@ -283,6 +285,39 @@ describe("why a first approver's second press does nothing", () => {
     expect(ALREADY_APPROVED_FIRST_MESSAGE).toBe(
       "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.",
     );
+  });
+});
+
+describe("when a fix that still waits was approved first", () => {
+  const at: Date = new Date("2026-11-06T09:02:00.000Z");
+
+  test("a waiting fix approved once waits for its second approval", () => {
+    expect(
+      getWaitingFirstApprovedAt({
+        status: AutoRemediationSuggestionStatus.Suggested,
+        firstApprovedAt: at,
+      }),
+    ).toBe(at);
+  });
+
+  test("nobody approved it yet, or it no longer waits: no first approval to name", () => {
+    expect(
+      getWaitingFirstApprovedAt({
+        status: AutoRemediationSuggestionStatus.Suggested,
+      }),
+    ).toBeUndefined();
+
+    for (const status of [
+      AutoRemediationSuggestionStatus.Approved,
+      AutoRemediationSuggestionStatus.Dismissed,
+      AutoRemediationSuggestionStatus.Planning,
+      AutoRemediationSuggestionStatus.AutoExecuted,
+      AutoRemediationSuggestionStatus.NoneApplicable,
+    ]) {
+      expect(
+        getWaitingFirstApprovedAt({ status, firstApprovedAt: at }),
+      ).toBeUndefined();
+    }
   });
 });
 

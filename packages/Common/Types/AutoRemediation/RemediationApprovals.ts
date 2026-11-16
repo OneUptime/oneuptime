@@ -5,6 +5,7 @@ import {
   AiRemediationCommand,
   AiRemediationCommandPlan,
 } from "./AiRemediationCommandPlan";
+import AutoRemediationSuggestionStatus from "./AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "./AutoRemediationSuggestionType";
 
 /*
@@ -144,6 +145,23 @@ export function isSameApprover(
   const secondId: string = second.toString().trim().toLowerCase();
 
   return Boolean(firstId) && firstId === secondId;
+}
+
+/*
+ * When a fix that still waits for approval was approved first: it waits for
+ * the second of the two approvals a riskier fix needs. Undefined for a fix
+ * nobody approved yet, and for one that no longer waits (approved, dismissed
+ * or settled) - what its first approval was is history then. The AI Logs
+ * pages say "Waiting for a second approval" by it.
+ */
+export function getWaitingFirstApprovedAt(suggestion: {
+  status?: AutoRemediationSuggestionStatus | string | undefined;
+  firstApprovedAt?: Date | undefined;
+}): Date | undefined {
+  return suggestion.status === AutoRemediationSuggestionStatus.Suggested &&
+    suggestion.firstApprovedAt
+    ? suggestion.firstApprovedAt
+    : undefined;
 }
 
 /*
