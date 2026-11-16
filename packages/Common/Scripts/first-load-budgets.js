@@ -9,8 +9,10 @@
  * metafile), follows the frontend's entry and the page's own chunk through
  * every chunk they import statically (a lazily loaded chunk waits for a
  * visit), and gzips each file as Nginx serves it (gzip_comp_level 5,
- * packages/Nginx/default.conf.template). A page over its ceiling fails the
- * run, naming the packages and folders that weigh the most in it.
+ * packages/Nginx/default.conf.template). Each page's line says how much is
+ * left under its ceiling. A page over its ceiling fails the run, naming the
+ * packages and folders that weigh the most in it, and one with less than 1%
+ * of it left warns (WARNING_HEADROOM_SHARE).
  *
  * The Compile workflow's compile-frontends job runs it once the three
  * frontends' dependencies are installed (issue #5608). It measures bytes,
@@ -38,6 +40,15 @@ const GZIP_LEVEL = 5;
 // How many of a page's heaviest packages and folders a failure names.
 const HEAVIEST_NAMED = 8;
 
+/*
+ * A page with less than this share of its ceiling left still passes, and
+ * warns (a GitHub annotation, on the run and on the pull request): the
+ * pages crept up to their ceilings through merges no one of which failed,
+ * until the next small change to the sign-up page would have (issue
+ * #7615). Warned, the creep shows before a pull request fails on it.
+ */
+const WARNING_HEADROOM_SHARE = 0.01;
+
 const KIB = 1024;
 
 /*
@@ -60,7 +71,8 @@ const PAGES = [
     // 2026-11-04: 883,196 bytes, loading browser telemetry only where it is configured (#5619).
     // 2026-11-04: 786,737 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
     // 2026-11-11: 773,606 bytes, hashing with crypto-js's SHA-256 alone, and loading the rules that set code apart in Arabic and Persian sentences only for those languages.
-    ceiling: 770 * KIB,
+    // 2026-11-16: 727,932 bytes (783,588 on main that day, 4.8 KiB under 770 KiB), reading JSON and the Monitor model without every monitor type (#8821), and loading a rule's condition builder only for a rule's form (#7615).
+    ceiling: 725 * KIB,
   },
   {
     frontend: "Accounts",
@@ -72,7 +84,8 @@ const PAGES = [
     // 2026-11-04: 887,494 bytes, loading browser telemetry only where it is configured (#5619).
     // 2026-11-04: 791,036 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
     // 2026-11-11: 775,116 bytes, hashing with crypto-js's SHA-256 alone, and loading the rules that set code apart in Arabic and Persian sentences only for those languages.
-    ceiling: 770 * KIB,
+    // 2026-11-16: 725,918 bytes (787,368 on main that day, 1.1 KiB under 770 KiB), reading JSON without every monitor type (#8821), loading a rule's condition builder only for a rule's form, and reading billing and the daily check-in from the page's configuration rather than the server's (#7615).
+    ceiling: 725 * KIB,
   },
   {
     frontend: "StatusPage",
@@ -83,7 +96,8 @@ const PAGES = [
     // 2026-11-03: 1,101,030 bytes, loading what it does not draw with where it is used (#5619).
     // 2026-11-04: 1,059,516 bytes, loading browser telemetry only where it is configured (#5619).
     // 2026-11-04: 967,395 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
-    ceiling: 960 * KIB,
+    // 2026-11-16: 927,460 bytes (982,809 on main that day, 0.2 KiB under 960 KiB), reading JSON and the Monitor model without every monitor type (#8821), and loading a rule's condition builder only for a rule's form (#7615).
+    ceiling: 925 * KIB,
   },
   {
     frontend: "PublicDashboard",
@@ -95,7 +109,8 @@ const PAGES = [
     // 2026-11-04: 1,720,563 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
     // 2026-11-10: 1,535,455 bytes, loading the investigation drawer only when a chart opens it - a public dashboard never does - and the people picker only for a form that has one.
     // 2026-11-15: 1,497,302 bytes, loading a widget's settings only when they open - a public dashboard, which has no edit mode, never does - and the API client and a form's default names without the probe's and the lists' code.
-    ceiling: 1490 * KIB,
+    // 2026-11-16: 1,455,800 bytes (1,503,403 on main that day), reading JSON and the Monitor model without every monitor type (#8821), and loading a rule's condition builder only for a rule's form (#7615).
+    ceiling: 1450 * KIB,
   },
 ];
 
@@ -213,12 +228,18 @@ function measurePage(metafile, page, readOutput) {
     return sum + gzipBytes(readOutput(file));
   }, 0);
 
+  const over = bytes > page.ceiling;
+
   return {
     ...page,
     outputs,
     bytes,
-    over: bytes > page.ceiling,
-    heaviest: bytes > page.ceiling ? heaviest(metafile, outputs) : [],
+    over,
+    // What is left under the ceiling: below zero when over it.
+    headroom: page.ceiling - bytes,
+    nearCeiling:
+      !over && page.ceiling - bytes < page.ceiling * WARNING_HEADROOM_SHARE,
+    heaviest: over ? heaviest(metafile, outputs) : [],
   };
 }
 
@@ -230,7 +251,7 @@ function describe(result) {
   const line = `${result.frontend} ${result.page}: ${kib(result.bytes)} gzipped in ${result.outputs.length} files, ceiling ${kib(result.ceiling)}`;
 
   if (!result.over) {
-    return line;
+    return `${line}, ${kib(result.headroom)} under it`;
   }
 
   return [
@@ -241,6 +262,47 @@ function describe(result) {
     }),
     "  Keep what this page does not need out of its static imports (import() it where it is used), or raise the ceiling in packages/Common/Scripts/first-load-budgets.js, saying when and why.",
   ].join("\n");
+}
+
+/*
+ * A GitHub Actions workflow command's message, as the runner reads it: a
+ * per cent sign and a line break are escaped, or "1%" would be read as an
+ * escape of its own.
+ */
+function escapeAnnotation(message) {
+  return message
+    .replace(/%/g, "%25")
+    .replace(/\r/g, "%0D")
+    .replace(/\n/g, "%0A");
+}
+
+// The warning a page close to its ceiling gives (WARNING_HEADROOM_SHARE).
+function warnNearCeiling(result) {
+  const share = `${Math.round(WARNING_HEADROOM_SHARE * 100)}%`;
+
+  return `::warning title=First-load budget::${escapeAnnotation(
+    `${result.frontend} ${result.page} is ${kib(result.headroom)} under its ceiling of ${kib(result.ceiling)}, less than ${share} of it: the next change that adds to what it loads first fails the Compile workflow. Keep what the page does not draw out of its static imports (import() it where it is used), as packages/Common/Scripts/first-load-budgets.js says beside its ceiling.`,
+  )}`;
+}
+
+/*
+ * What the run prints for the pages it measured, and whether it fails: a
+ * line for each page, and a warning for each that is close to its ceiling.
+ */
+function report(results) {
+  return {
+    lines: [
+      ...results.map(describe),
+      ...results
+        .filter((result) => {
+          return result.nearCeiling;
+        })
+        .map(warnNearCeiling),
+    ],
+    failed: results.some((result) => {
+      return result.over;
+    }),
+  };
 }
 
 // Builds a frontend as its image does, with esbuild's metafile.
@@ -286,15 +348,13 @@ function main() {
     );
   }
 
-  for (const result of results) {
-    console.log(describe(result));
+  const { lines, failed } = report(results);
+
+  for (const line of lines) {
+    console.log(line);
   }
 
-  if (
-    results.some((result) => {
-      return result.over;
-    })
-  ) {
+  if (failed) {
     process.exitCode = 1;
   }
 }
@@ -306,10 +366,14 @@ if (require.main === module) {
 module.exports = {
   GZIP_LEVEL,
   PAGES,
+  WARNING_HEADROOM_SHARE,
   describe,
+  escapeAnnotation,
   firstLoadOutputs,
   heaviest,
   measurePage,
   outputFor,
+  report,
+  warnNearCeiling,
   weightKey,
 };

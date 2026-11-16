@@ -22,7 +22,7 @@ import {
 import {
   getLegacyRuleCriteriaFields,
   RULE_CRITERIA_FIELD_NAME,
-} from "./RuleCriteriaModelForm";
+} from "./RuleCriteriaLegacyFields";
 import RuleCriteriaSummary, {
   getRuleCriteriaSummaryText,
 } from "./RuleCriteriaSummary";
