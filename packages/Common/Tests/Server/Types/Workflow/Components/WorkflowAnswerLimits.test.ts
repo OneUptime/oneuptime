@@ -319,7 +319,7 @@ describe.each(API_STEPS)(
       const send: SpyInstance<typeof SafeWebhookRequest.send> = jest.spyOn(
         SafeWebhookRequest,
         "send",
-      );
+      ) as unknown as SpyInstance<typeof SafeWebhookRequest.send>;
 
       await createStep().run(
         argsFor(`http://127.0.0.1:${port}/items`),
@@ -433,7 +433,7 @@ describe("Update Zabbix Problem", () => {
     const send: SpyInstance<typeof SafeWebhookRequest.send> = jest.spyOn(
       SafeWebhookRequest,
       "send",
-    );
+    ) as unknown as SpyInstance<typeof SafeWebhookRequest.send>;
 
     const result: RunReturnType = await run();
 

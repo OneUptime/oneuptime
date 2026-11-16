@@ -222,7 +222,7 @@ describe("a call to a Mattermost server", () => {
     const send: SpyInstance<typeof SafeWebhookRequest.send> = jest.spyOn(
       SafeWebhookRequest,
       "send",
-    );
+    ) as unknown as SpyInstance<typeof SafeWebhookRequest.send>;
 
     await callServer();
 
