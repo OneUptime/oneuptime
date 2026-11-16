@@ -261,6 +261,13 @@ interface GuideContext {
    * Documentation tab's own title says.
    */
   displayName: string;
+  /*
+   * The system as the guide's sentences write it: its name for a catalog
+   * system, or the raw value as inline code for one the catalog does not
+   * know, so a sentence about any unknown system reads the same around it
+   * and each language's words for it fit every one (#8798).
+   */
+  proseName: string;
   source: MessagingBrokerMetricsSource;
   queue: QueueContext | null;
 }
@@ -279,6 +286,10 @@ function buildContext(
     system,
     descriptor,
     displayName: getMessageQueueSystemLabel(system),
+    proseName:
+      descriptor || !system
+        ? getMessageQueueSystemLabel(system)
+        : markdownInlineCode(system),
     source: getMessagingBrokerMetricsSource(system),
     queue,
   };
@@ -1138,7 +1149,7 @@ function introMarkdown(context: GuideContext): string {
 
   if (context.queue) {
     lines.push(
-      `This is the ${context.displayName} queue ${markdownInlineCode(
+      `This is the ${context.proseName} queue ${markdownInlineCode(
         context.queue.destination,
       )}${
         context.queue.brokerScope
@@ -1152,7 +1163,7 @@ function introMarkdown(context: GuideContext): string {
     );
   } else {
     lines.push(
-      `${context.displayName} queues appear in OneUptime on their own, from ${
+      `${context.proseName} queues appear in OneUptime on their own, from ${
         brokerMetricsReach
           ? "two sources: the messaging spans of the applications that publish to and consume from them, and the broker's own metrics"
           : "the messaging spans of the applications that publish to and consume from them"
@@ -1738,8 +1749,8 @@ function chartedMetricsTopic(context: GuideContext): SetupGuideTopic {
      */
     lines.push(
       context.source.kind === "none"
-        ? `OneUptime charts no broker metrics for ${context.displayName} under **Broker health**. Everything a collector sends is in the **Metrics** explorer, and a metric that carries \`messaging.system\` and \`messaging.destination.name\` on each datapoint shows on the queue's **Metrics** tab.`
-        : `OneUptime charts no broker metrics for ${context.displayName} under **Broker health**: what the collector above sends arrives only in the **Metrics** explorer. A metric that carries \`messaging.system\` and \`messaging.destination.name\` on each datapoint shows on the queue's **Metrics** tab.`,
+        ? `OneUptime charts no broker metrics for ${context.proseName} under **Broker health**. Everything a collector sends is in the **Metrics** explorer, and a metric that carries \`messaging.system\` and \`messaging.destination.name\` on each datapoint shows on the queue's **Metrics** tab.`
+        : `OneUptime charts no broker metrics for ${context.proseName} under **Broker health**: what the collector above sends arrives only in the **Metrics** explorer. A metric that carries \`messaging.system\` and \`messaging.destination.name\` on each datapoint shows on the queue's **Metrics** tab.`,
     );
     if (context.system === "jms") {
       /*
@@ -1886,7 +1897,7 @@ function brokerHealthEmptyCauses(
         { system: context.displayName },
       ),
       reasons: [
-        `${context.displayName} has no charted metrics. Its metrics are in the **Metrics** explorer.`,
+        `${context.proseName} has no charted metrics. Its metrics are in the **Metrics** explorer.`,
       ],
     };
   }

@@ -503,7 +503,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 ### روشن کردن پایش Control Plane
 
-صفحه **Control Plane** خوشه نمودارهای etcd، سرور API، زمان‌بند و مدیر کنترلرها را می‌کشد. `controlPlane.enabled` را روشن کنید تا عامل، سرور API را همان‌جا که درون هر خوشه‌ای پاسخ می‌دهد، یعنی `https://kubernetes.default.svc:443/metrics`، با توکن حساب سرویس خودش بخواند:
+**صفحه کنترل** خوشه نمودارهای etcd، سرور API، زمان‌بند و مدیر کنترلرها را می‌کشد. `controlPlane.enabled` را روشن کنید تا عامل، سرور API را همان‌جا که درون هر خوشه‌ای پاسخ می‌دهد، یعنی `https://kubernetes.default.svc:443/metrics`، با توکن حساب سرویس خودش بخواند:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -559,11 +559,11 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 این کپی چرخش آن گواهی توسط OpenShift را دنبال نمی‌کند، پس وقتی متریک‌های etcd متوقف شدند این فرمان‌ها را دوباره اجرا کنید. یک control plane میزبانی‌شده (ROSA با HCP، HyperShift) این مؤلفه‌ها را بیرون از خوشه اجرا می‌کند: عامل هیچ‌کدام را پیدا نمی‌کند و آن زبانه‌ها آنجا خالی می‌مانند.
 
-سرویس‌های مدیریت‌شده Kubernetes (EKS، GKE، AKS) etcd، زمان‌بند یا مدیر کنترلرها را در دسترس نمی‌گذارند، پس آن زبانه‌ها آنجا خالی می‌مانند. تا متریک‌های یک زبانه برسند، صفحه **Control Plane** به‌جای نمودارهایش نشان می‌دهد چه چیزی باید تنظیم شود، همراه با فرمانی برای کپی.
+سرویس‌های مدیریت‌شده Kubernetes (EKS، GKE، AKS) etcd، زمان‌بند یا مدیر کنترلرها را در دسترس نمی‌گذارند، پس آن زبانه‌ها آنجا خالی می‌مانند. تا متریک‌های یک زبانه برسند، **صفحه کنترل** به‌جای نمودارهایش نشان می‌دهد چه چیزی باید تنظیم شود، همراه با فرمانی برای کپی.
 
 ### روشن کردن متریک‌های CoreDNS
 
-زبانه **CoreDNS** در صفحه **Control Plane** نمودارهای پرس‌وجوهای DNS، تأخیر، حافظه نهان و ارسال را می‌کشد. گردآوری آن‌ها به‌طور پیش‌فرض خاموش است:
+زبانه **CoreDNS** در **صفحه کنترل** نمودارهای پرس‌وجوهای DNS، تأخیر، حافظه نهان و ارسال را می‌کشد. گردآوری آن‌ها به‌طور پیش‌فرض خاموش است:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -586,11 +586,11 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set serviceMesh.provider=istio
 ```
 
-برای Istio آمار Envoy هر sidecar از نوع `istio-proxy` (پورت `15090`) را می‌خواند؛ برای Linkerd، پورت مدیریت هر `linkerd-proxy` را. control plane هیچ‌کدام از meshها برداشت نمی‌شود: istiod (کارت **Pilot**) و مؤلفه‌های identity، destination و proxy-injector در Linkerd (کارت **Control Plane**) متریک‌هایشان را روی پورت‌های مدیریتی خودشان ارائه می‌کنند، پس آن کارت‌ها به‌جای نمودارهایشان همین را می‌گویند.
+برای Istio آمار Envoy هر sidecar از نوع `istio-proxy` (پورت `15090`) را می‌خواند؛ برای Linkerd، پورت مدیریت هر `linkerd-proxy` را. control plane هیچ‌کدام از meshها برداشت نمی‌شود: istiod (کارت **Pilot**) و مؤلفه‌های identity، destination و proxy-injector در Linkerd (کارت **صفحه کنترل**) متریک‌هایشان را روی پورت‌های مدیریتی خودشان ارائه می‌کنند، پس آن کارت‌ها به‌جای نمودارهایشان همین را می‌گویند.
 
 ### متریک‌هایی که عامل گردآوری نمی‌کند
 
-برخی نمودارها متریک‌هایی را نشان می‌دهند که عامل برداشتی برایشان ندارد: **kube-proxy** در صفحه **Control Plane**؛ **Cilium** (با Hubble) در صفحه **Service Mesh**؛ و در زبانه‌های Istio و Linkerd، control plane خود meshها (**istiod**، و مؤلفه‌های identity، destination و proxy-injector در Linkerd). این نمودارها وقتی پر می‌شوند که آن متریک‌ها از راه دیگری به OneUptime برسند، برای نمونه از [OpenTelemetry Collector](/docs/telemetry/open-telemetry) خودتان که آن‌ها را برداشت می‌کند، با ویژگی منبع `k8s.cluster.name` که روی نام خوشه (`clusterName` عامل) تنظیم شده باشد. خوشه‌هایی که بدون kube-proxy اجرا می‌شوند اصلاً متریک kube-proxy ندارند.
+برخی نمودارها متریک‌هایی را نشان می‌دهند که عامل برداشتی برایشان ندارد: **kube-proxy** در **صفحه کنترل**؛ **Cilium** (با Hubble) در صفحه **Service Mesh**؛ و در زبانه‌های Istio و Linkerd، control plane خود meshها (**istiod**، و مؤلفه‌های identity، destination و proxy-injector در Linkerd). این نمودارها وقتی پر می‌شوند که آن متریک‌ها از راه دیگری به OneUptime برسند، برای نمونه از [OpenTelemetry Collector](/docs/telemetry/open-telemetry) خودتان که آن‌ها را برداشت می‌کند، با ویژگی منبع `k8s.cluster.name` که روی نام خوشه (`clusterName` عامل) تنظیم شده باشد. خوشه‌هایی که بدون kube-proxy اجرا می‌شوند اصلاً متریک kube-proxy ندارند.
 
 ### روشن کردن مشاهده‌پذیری هزینه
 
@@ -661,7 +661,7 @@ eBPF فراخوانی‌های شبکه را می‌بیند، نه کد شما 
 
 هر فرایند زیر سرویسی گزارش می‌شود که نامش، به این ترتیب، از یک `OTEL_SERVICE_NAME` در کانتینرش، یک حاشیه‌نویسی پاد `resource.opentelemetry.io/service.name`، برچسب `app.kubernetes.io/instance` پادش، برچسب `app.kubernetes.io/name` آن، یا Deployment، StatefulSet یا DaemonSet آن گرفته می‌شود. Helm روی هر پاد از یک انتشار، از جمله پادهای زیرچارت‌هایش، `app.kubernetes.io/instance` را برابر نام انتشار قرار می‌دهد، پس همه مؤلفه‌های یک انتشار umbrella می‌توانند یک سرویس را مشترکاً داشته باشند. `ebpf.serviceNameLabels` را روی `["app.kubernetes.io/name", "app.kubernetes.io/instance"]` تنظیم کنید تا به‌جای آن بر پایه مؤلفه نام‌گذاری شوند؛ سرویس‌هایی که این برای آن‌ها اعمال می‌شود تغییر نام می‌دهند.
 
-روی یک OneUptime خودمیزبان، سرور را پیش از عامل به‌روز کنید: ردیاب eBPF که این چارت اجرا می‌کند (OBI v0.14)، سرویس‌های فراخوانده را نام‌گذاری می‌کند و اسپن‌های خود کارگزاران پیام را به شیوه‌هایی گزارش می‌کند که سرورهای قدیمی‌تر OneUptime نمی‌خوانند.
+روی یک OneUptime خودمیزبان، سرور را پیش از عامل به‌روز کنید: ردیاب eBPF که این چارت اجرا می‌کند (OBI v0.14)، سرویس‌های فراخوانده را نام‌گذاری می‌کند و اسپن‌های خود بروکرهای پیام را به شیوه‌هایی گزارش می‌کند که سرورهای قدیمی‌تر OneUptime نمی‌خوانند.
 
 نام‌ها از ترافیک می‌آیند. اسپن‌های HTTP وقتی OBI بتواند الگوی مسیر برنامه را بخواند از آن استفاده می‌کنند، و در غیر این صورت از الگویی ساخته‌شده از URL که بخش‌های شناسه‌مانندش با `*` جایگزین شده‌اند؛ برای نام‌گذاری خودتان `ebpf.routes.patterns` را تنظیم کنید. OBI الگوهای مسیر برنامه‌های Go (net/http، Gorilla mux، Gin)، Java (Spring، JAX-RS)، Node.js (Express، Fastify، Koa، NestJS، Next.js)، Python (Django، FastAPI، Flask)، Ruby (Rails)، .NET (مسیرهای attribute در ASP.NET Core) و PHP (Symfony، Laravel، Slim) را می‌خواند. نام‌های سطح برنامه مانند `OrderService.charge` فقط در کد وجود دارند و به یک OpenTelemetry SDK نیاز دارند.
 

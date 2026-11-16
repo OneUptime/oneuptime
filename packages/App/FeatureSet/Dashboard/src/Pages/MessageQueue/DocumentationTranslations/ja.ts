@@ -374,6 +374,84 @@ const TRANSLATION: SetupGuideTranslation = {
     "- メトリクスがスパンとは別の名前でキューを示しています。RabbitMQ のスパンは通常 exchange を示し、ブローカーのメトリクスはキューを表します。両者は、デフォルトの exchange を通して送られたメッセージでは一致します。その routing key がキューの名前だからです。",
   "- RabbitMQ reports only the queues of virtual hosts its user has access to, and logs no error for the rest. RabbitMQ's counters appear with the first activity.":
     "- RabbitMQ は、そのユーザーがアクセスできる仮想ホストのキューだけを報告し、それ以外についてはエラーを記録しません。RabbitMQ のカウンターは最初のアクティビティで現れます。",
+  "This is the Amazon SNS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "これは Amazon SNS のキュー `orders`です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、ブローカー自身のメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "- `delay` waits for CloudWatch to publish a period, so with this configuration this queue's broker metrics arrive 11 to 17 minutes late: a monitor over them needs a longer window (see **Late metrics** under [Alerting](/docs/telemetry/queues#alerting)).":
+    "- `delay` は CloudWatch が期間を公開するのを待つため、この設定ではこのキューのブローカーメトリクスが 11〜17 分遅れて届きます。それを対象にするモニターには長めのウィンドウが必要です（[アラート](/docs/telemetry/queues#alerting) の **遅れて届くメトリクス** を参照）。",
+  "Send a few messages through `orders`. Every span that names this queue is tagged with it as OneUptime ingests it: the spans fill in the **Overview** — messages published and consumed, errors and processing time, and the services under **Producers** and **Consumers** — and the **Traces** tab.":
+    "`orders` にいくつかメッセージを流してください。このキューを示すスパンは、OneUptime が取り込むときにこのキューでタグ付けされます。スパンは **概要**（発行・消費されたメッセージ、エラーと処理時間、**プロデューサー** と **コンシューマー** の下のサービス）と **トレース** タブを埋めます。",
+  "**Broker health** on the Overview fills in from the broker's metrics as they arrive: with the configuration in step 3, CloudWatch's arrive 11 to 17 minutes late.":
+    "概要の **ブローカーのヘルス** は、ブローカーのメトリクスが届くにつれて埋まります。手順 3 の設定では、CloudWatch のメトリクスは 11〜17 分遅れて届きます。",
+  "The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry, and over the last 60 minutes of cloud monitoring metrics, which arrive late.":
+    "ディスカバリーがこのキューを示すスパンかブローカーメトリクスを見つけると、ヘッダーに **最近確認** と表示されます。ディスカバリーは 10 分ごとに直近 15 分のテレメトリーを対象に実行されます。クラウドの監視メトリクスは遅れて届くため、直近 60 分も対象にします。",
+  "Names are compared without regard to case.":
+    "名前は大文字と小文字を区別せずに比較されます。",
+  "- **Spans**: `messaging.system` = `aws.sns` (or `aws_sns`, `amazonsns` or `sns`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **スパン**: `messaging.system` = `aws.sns`（または `aws_sns`、`amazonsns`、`sns`）と宛先 `orders`（`messaging.destination.name`、または `messaging.destination` などの古いキー）。",
+  "- **Broker metrics**: `Dimensions.TopicName` or `TopicName` = `orders`.":
+    "- **ブローカーメトリクス**: `Dimensions.TopicName` または `TopicName` = `orders`。",
+  "This is the Amazon SQS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "これは Amazon SQS のキュー `orders`です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、ブローカー自身のメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "This is the Apache ActiveMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "これは Apache ActiveMQ のキュー `orders`です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、ブローカー自身のメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "**Broker health** on the Overview fills in from the broker's metrics as they arrive.":
+    "概要の **ブローカーのヘルス** は、ブローカーのメトリクスが届くにつれて埋まります。",
+  "The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry.":
+    "ディスカバリーがこのキューを示すスパンかブローカーメトリクスを見つけると、ヘッダーに **最近確認** と表示されます。ディスカバリーは 10 分ごとに直近 15 分のテレメトリーを対象に実行されます。",
+  "- JMS clients' spans say `jms` whichever broker is behind them, so they and the Apache ActiveMQ broker's metrics land on this one queue.":
+    "- JMS クライアントのスパンは、背後にどのブローカーがあっても `jms` を示すため、それらと Apache ActiveMQ ブローカーのメトリクスはこの 1 つのキューに届きます。",
+  "The JMX host is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`).":
+    "JMX ホストは、このキューのテレメトリーが報告するブローカーアドレス（`broker-1.example.com:9092`）から入力済みです。",
+  "This is the Apache Kafka queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "これは Apache Kafka のキュー `orders`です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、ブローカー自身のメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "- **Spans**: `messaging.system` = `kafka` and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **スパン**: `messaging.system` = `kafka` と宛先 `orders`（`messaging.destination.name`、または `messaging.destination` などの古いキー）。",
+  "- **Broker metrics**: `topic` = `orders`.":
+    "- **ブローカーメトリクス**: `topic` = `orders`。",
+  "For a cluster with SASL or TLS, uncomment `auth` and `tls`. The bootstrap broker is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`); change it if the collector reaches the broker another way. The receiver names each topic in `topic`, which is how the metrics find the topic's queue. It reports a consumer group's lag and committed offsets only on topics the group has committed an offset to, and skips topics whose names start with `_`.":
+    "SASL や TLS を使うクラスターでは、`auth` と `tls` のコメントを外してください。ブートストラップブローカーは、このキューのテレメトリーが報告するブローカーアドレス（`broker-1.example.com:9092`）から入力済みです。Collector が別の経路でブローカーに届く場合は変更してください。レシーバーは各トピックを `topic` で示し、メトリクスはそれでトピックのキューを見つけます。コンシューマーグループのラグとコミット済みオフセットは、グループがオフセットをコミットしたトピックについてだけ報告し、名前が `_` で始まるトピックはスキップします。",
+  "This is the Apache Pulsar queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "これは Apache Pulsar のキュー `orders`です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、ブローカー自身のメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "- **Spans**: `messaging.system` = `pulsar` (or `apache_pulsar`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **スパン**: `messaging.system` = `pulsar`（または `apache_pulsar`）と宛先 `orders`（`messaging.destination.name`、または `messaging.destination` などの古いキー）。",
+  "This is the Apache RocketMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "これは Apache RocketMQ のキュー `orders`です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、ブローカー自身のメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "This is the Azure Event Grid queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "これは Azure Event Grid のキュー `orders`です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、このキューの `messaging.system` と `messaging.destination.name` を持つメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "Metrics that carry its `messaging.system` and `messaging.destination.name` on each datapoint show on its **Metrics** tab.":
+    "各データポイントにこのキューの `messaging.system` と `messaging.destination.name` を持つメトリクスは、このキューの **メトリクス** タブに表示されます。",
+  "The header reads **Seen recently** once discovery finds spans or messaging client metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry.":
+    "ディスカバリーがこのキューを示すスパンかメッセージングクライアントのメトリクスを見つけると、ヘッダーに **最近確認** と表示されます。ディスカバリーは 10 分ごとに直近 15 分のテレメトリーを対象に実行されます。",
+  "This is the Azure Event Hubs queue `orders` in the `orders-ns` namespace. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "これは Azure Event Hubs のキュー `orders`（名前空間 `orders-ns`）です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、ブローカー自身のメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "- **Spans**: `messaging.system` = `eventhubs` (or `azure_eventhubs`, `azure.eventhubs` or `microsoft.eventhub`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`, from an SDK connected to `orders-ns.servicebus.windows.net`.":
+    "- **スパン**: `messaging.system` = `eventhubs`（または `azure_eventhubs`、`azure.eventhubs`、`microsoft.eventhub`）と宛先 `orders`（`messaging.destination.name`、または `messaging.destination` などの古いキー）。`orders-ns.servicebus.windows.net` に接続した SDK からのものです。",
+  "- **Broker metrics**: `metadata_entityname` = `orders`, on the namespace whose `name` is `orders-ns`.":
+    "- **ブローカーメトリクス**: `metadata_entityname` = `orders`、`name` が `orders-ns` の名前空間上。",
+  "This is the Azure Service Bus queue `orders` in the `orders-ns` namespace. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "これは Azure Service Bus のキュー `orders`（名前空間 `orders-ns`）です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、ブローカー自身のメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "This is the BullMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "これは BullMQ のキュー `orders`です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、このキューの `messaging.system` と `messaging.destination.name` を持つメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "This is the Google Cloud Pub/Sub queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "これは Google Cloud Pub/Sub のキュー `orders`です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、ブローカー自身のメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "This is the JMS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "これは JMS のキュー `orders`です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、このキューの `messaging.system` と `messaging.destination.name` を持つメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "Its metrics join this queue, which from then on shows as an Apache ActiveMQ queue.":
+    "そのメトリクスはこのキューに加わり、以後このキューは Apache ActiveMQ のキューとして表示されます。",
+  "This is the NATS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "これは NATS のキュー `orders`です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、このキューの `messaging.system` と `messaging.destination.name` を持つメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "This is the RabbitMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "これは RabbitMQ のキュー `orders`です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、ブローカー自身のメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "Set `RABBITMQ_USERNAME` and `RABBITMQ_PASSWORD` in the collector's environment. The management endpoint's host is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`); change it if the collector reaches the broker another way. The receiver reports each queue under its RabbitMQ name, while most instrumentations' spans name the exchange a message went through: the two meet for messages sent through the default exchange, whose routing key is the queue's name.":
+    "Collector の環境に `RABBITMQ_USERNAME` と `RABBITMQ_PASSWORD` を設定します。管理エンドポイントのホストは、このキューのテレメトリーが報告するブローカーアドレス（`broker-1.example.com:9092`）から入力済みです。Collector が別の経路でブローカーに届く場合は変更してください。レシーバーは各キューを RabbitMQ での名前で報告しますが、ほとんどの計装のスパンはメッセージが通った exchange を示します。両者は、デフォルトの exchange を通して送られたメッセージでは一致します。その routing key がキューの名前だからです。",
+  "This is the `acme-bus` queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "これは `acme-bus` のキュー `orders`です。このキューに発行し、ここから消費するアプリケーションのメッセージングスパンと、このキューの `messaging.system` と `messaging.destination.name` を持つメトリクスから情報が入ります。以下はすべてこのキュー用に入力済みです。",
+  "OneUptime does not know this messaging system, so it has no ready-made way to read the broker's metrics; send them with `messaging.system` and `messaging.destination.name` on each datapoint and they attach to the queue.":
+    "OneUptime はこのメッセージングシステムを知らないため、ブローカーのメトリクスを読む既成の方法がありません。各データポイントに `messaging.system` と `messaging.destination.name` を付けて送れば、キューに関連付けられます。",
+  "OneUptime charts no broker metrics for `acme-bus` under **Broker health**. Everything a collector sends is in the **Metrics** explorer, and a metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
+    "OneUptime は `acme-bus` のブローカーメトリクスを **ブローカーのヘルス** にグラフ表示しません。Collector が送るものはすべて **メトリクス** エクスプローラーにあり、各データポイントに `messaging.system` と `messaging.destination.name` を持つメトリクスは、キューの **メトリクス** タブに表示されます。",
+  "- Only the broker's own metrics need a system OneUptime knows (see [Supported messaging systems](/docs/telemetry/queues#supported-messaging-systems)). Its metrics are in the **Metrics** explorer.":
+    "- OneUptime が知っているシステムが必要なのは、ブローカー自身のメトリクスだけです（[サポートされているメッセージングシステム](/docs/telemetry/queues#supported-messaging-systems) を参照）。そのメトリクスは **メトリクス** エクスプローラーにあります。",
 };
 
 export default TRANSLATION;

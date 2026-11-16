@@ -374,6 +374,84 @@ const TRANSLATION: SetupGuideTranslation = {
     "- 메트릭이 스팬과 다른 이름으로 큐를 나타냅니다. RabbitMQ 스팬은 보통 exchange를 나타내고, 브로커의 메트릭은 큐를 설명합니다. 둘은 기본 exchange로 보낸 메시지에서는 일치합니다. 그 routing key가 큐의 이름이기 때문입니다.",
   "- RabbitMQ reports only the queues of virtual hosts its user has access to, and logs no error for the rest. RabbitMQ's counters appear with the first activity.":
     "- RabbitMQ는 그 사용자가 접근할 수 있는 가상 호스트의 큐만 보고하며, 나머지에 대해서는 오류를 기록하지 않습니다. RabbitMQ의 카운터는 첫 활동과 함께 나타납니다.",
+  "This is the Amazon SNS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "이것은 Amazon SNS 큐 `orders`입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과 브로커 자체의 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "- `delay` waits for CloudWatch to publish a period, so with this configuration this queue's broker metrics arrive 11 to 17 minutes late: a monitor over them needs a longer window (see **Late metrics** under [Alerting](/docs/telemetry/queues#alerting)).":
+    "- `delay`는 CloudWatch가 기간을 게시할 때까지 기다리므로, 이 구성에서는 이 큐의 브로커 메트릭이 11~17분 늦게 도착합니다. 이를 대상으로 하는 모니터에는 더 긴 기간이 필요합니다([경고](/docs/telemetry/queues#alerting)의 **늦게 도착하는 메트릭** 참조).",
+  "Send a few messages through `orders`. Every span that names this queue is tagged with it as OneUptime ingests it: the spans fill in the **Overview** — messages published and consumed, errors and processing time, and the services under **Producers** and **Consumers** — and the **Traces** tab.":
+    "`orders`로 메시지를 몇 개 보내세요. 이 큐를 나타내는 모든 스팬은 OneUptime이 수집할 때 이 큐로 태그됩니다. 스팬은 **개요**(게시되고 소비된 메시지, 오류와 처리 시간, **프로듀서** 및 **컨슈머** 아래의 서비스)와 **트레이스** 탭을 채웁니다.",
+  "**Broker health** on the Overview fills in from the broker's metrics as they arrive: with the configuration in step 3, CloudWatch's arrive 11 to 17 minutes late.":
+    "개요의 **브로커 상태**는 브로커의 메트릭이 도착하는 대로 채워집니다. 3단계의 구성에서는 CloudWatch의 메트릭이 11~17분 늦게 도착합니다.",
+  "The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry, and over the last 60 minutes of cloud monitoring metrics, which arrive late.":
+    "검색이 이 큐를 나타내는 스팬이나 브로커 메트릭을 찾으면 헤더에 **최근 확인됨**이 표시됩니다. 검색은 10분마다 최근 15분의 텔레메트리를 대상으로 실행됩니다. 클라우드 모니터링 메트릭은 늦게 도착하므로 최근 60분도 대상으로 합니다.",
+  "Names are compared without regard to case.":
+    "이름은 대소문자를 구분하지 않고 비교합니다.",
+  "- **Spans**: `messaging.system` = `aws.sns` (or `aws_sns`, `amazonsns` or `sns`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **스팬**: `messaging.system` = `aws.sns`(또는 `aws_sns`, `amazonsns`, `sns`)와 대상 `orders`(`messaging.destination.name` 또는 `messaging.destination` 같은 이전 키).",
+  "- **Broker metrics**: `Dimensions.TopicName` or `TopicName` = `orders`.":
+    "- **브로커 메트릭**: `Dimensions.TopicName` 또는 `TopicName` = `orders`.",
+  "This is the Amazon SQS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "이것은 Amazon SQS 큐 `orders`입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과 브로커 자체의 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "This is the Apache ActiveMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "이것은 Apache ActiveMQ 큐 `orders`입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과 브로커 자체의 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "**Broker health** on the Overview fills in from the broker's metrics as they arrive.":
+    "개요의 **브로커 상태**는 브로커의 메트릭이 도착하는 대로 채워집니다.",
+  "The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry.":
+    "검색이 이 큐를 나타내는 스팬이나 브로커 메트릭을 찾으면 헤더에 **최근 확인됨**이 표시됩니다. 검색은 10분마다 최근 15분의 텔레메트리를 대상으로 실행됩니다.",
+  "- JMS clients' spans say `jms` whichever broker is behind them, so they and the Apache ActiveMQ broker's metrics land on this one queue.":
+    "- JMS 클라이언트의 스팬은 뒤에 어떤 브로커가 있든 `jms`를 나타내므로, 그 스팬과 Apache ActiveMQ 브로커의 메트릭이 이 하나의 큐에 모입니다.",
+  "The JMX host is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`).":
+    "JMX 호스트는 이 큐의 텔레메트리가 보고한 브로커 주소(`broker-1.example.com:9092`)로 미리 채워져 있습니다.",
+  "This is the Apache Kafka queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "이것은 Apache Kafka 큐 `orders`입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과 브로커 자체의 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "- **Spans**: `messaging.system` = `kafka` and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **스팬**: `messaging.system` = `kafka`와 대상 `orders`(`messaging.destination.name` 또는 `messaging.destination` 같은 이전 키).",
+  "- **Broker metrics**: `topic` = `orders`.":
+    "- **브로커 메트릭**: `topic` = `orders`.",
+  "For a cluster with SASL or TLS, uncomment `auth` and `tls`. The bootstrap broker is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`); change it if the collector reaches the broker another way. The receiver names each topic in `topic`, which is how the metrics find the topic's queue. It reports a consumer group's lag and committed offsets only on topics the group has committed an offset to, and skips topics whose names start with `_`.":
+    "SASL 또는 TLS를 쓰는 클러스터라면 `auth`와 `tls`의 주석을 해제하세요. 부트스트랩 브로커는 이 큐의 텔레메트리가 보고한 브로커 주소(`broker-1.example.com:9092`)로 미리 채워져 있습니다. 컬렉터가 다른 경로로 브로커에 닿는다면 바꾸세요. 리시버는 각 토픽을 `topic`에 나타내며, 메트릭은 이것으로 토픽의 큐를 찾습니다. 소비자 그룹의 지연과 커밋된 오프셋은 그룹이 오프셋을 커밋한 토픽에 대해서만 보고하며, 이름이 `_`로 시작하는 토픽은 건너뜁니다.",
+  "This is the Apache Pulsar queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "이것은 Apache Pulsar 큐 `orders`입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과 브로커 자체의 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "- **Spans**: `messaging.system` = `pulsar` (or `apache_pulsar`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`.":
+    "- **스팬**: `messaging.system` = `pulsar`(또는 `apache_pulsar`)와 대상 `orders`(`messaging.destination.name` 또는 `messaging.destination` 같은 이전 키).",
+  "This is the Apache RocketMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "이것은 Apache RocketMQ 큐 `orders`입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과 브로커 자체의 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "This is the Azure Event Grid queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "이것은 Azure Event Grid 큐 `orders`입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과, 이 큐의 `messaging.system` 및 `messaging.destination.name`을 담은 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "Metrics that carry its `messaging.system` and `messaging.destination.name` on each datapoint show on its **Metrics** tab.":
+    "모든 데이터 포인트에 이 큐의 `messaging.system`과 `messaging.destination.name`을 담은 메트릭은 이 큐의 **메트릭** 탭에 표시됩니다.",
+  "The header reads **Seen recently** once discovery finds spans or messaging client metrics naming this queue. It runs every 10 minutes over the last 15 minutes of telemetry.":
+    "검색이 이 큐를 나타내는 스팬이나 메시징 클라이언트 메트릭을 찾으면 헤더에 **최근 확인됨**이 표시됩니다. 검색은 10분마다 최근 15분의 텔레메트리를 대상으로 실행됩니다.",
+  "This is the Azure Event Hubs queue `orders` in the `orders-ns` namespace. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "이것은 Azure Event Hubs 큐 `orders`(네임스페이스 `orders-ns`)입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과 브로커 자체의 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "- **Spans**: `messaging.system` = `eventhubs` (or `azure_eventhubs`, `azure.eventhubs` or `microsoft.eventhub`) and the destination `orders` — in `messaging.destination.name`, or an older key such as `messaging.destination`, from an SDK connected to `orders-ns.servicebus.windows.net`.":
+    "- **스팬**: `messaging.system` = `eventhubs`(또는 `azure_eventhubs`, `azure.eventhubs`, `microsoft.eventhub`)와 대상 `orders`(`messaging.destination.name` 또는 `messaging.destination` 같은 이전 키), `orders-ns.servicebus.windows.net`에 연결된 SDK에서.",
+  "- **Broker metrics**: `metadata_entityname` = `orders`, on the namespace whose `name` is `orders-ns`.":
+    "- **브로커 메트릭**: `metadata_entityname` = `orders`, `name`이 `orders-ns`인 네임스페이스에서.",
+  "This is the Azure Service Bus queue `orders` in the `orders-ns` namespace. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "이것은 Azure Service Bus 큐 `orders`(네임스페이스 `orders-ns`)입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과 브로커 자체의 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "This is the BullMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "이것은 BullMQ 큐 `orders`입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과, 이 큐의 `messaging.system` 및 `messaging.destination.name`을 담은 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "This is the Google Cloud Pub/Sub queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "이것은 Google Cloud Pub/Sub 큐 `orders`입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과 브로커 자체의 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "This is the JMS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "이것은 JMS 큐 `orders`입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과, 이 큐의 `messaging.system` 및 `messaging.destination.name`을 담은 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "Its metrics join this queue, which from then on shows as an Apache ActiveMQ queue.":
+    "그 메트릭은 이 큐에 합쳐지며, 그때부터 이 큐는 Apache ActiveMQ 큐로 표시됩니다.",
+  "This is the NATS queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "이것은 NATS 큐 `orders`입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과, 이 큐의 `messaging.system` 및 `messaging.destination.name`을 담은 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "This is the RabbitMQ queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from the broker's own metrics. Everything below is prefilled for this queue.":
+    "이것은 RabbitMQ 큐 `orders`입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과 브로커 자체의 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "Set `RABBITMQ_USERNAME` and `RABBITMQ_PASSWORD` in the collector's environment. The management endpoint's host is prefilled from the broker address this queue's telemetry reports (`broker-1.example.com:9092`); change it if the collector reaches the broker another way. The receiver reports each queue under its RabbitMQ name, while most instrumentations' spans name the exchange a message went through: the two meet for messages sent through the default exchange, whose routing key is the queue's name.":
+    "컬렉터의 환경에 `RABBITMQ_USERNAME`과 `RABBITMQ_PASSWORD`를 설정하세요. 관리 엔드포인트의 호스트는 이 큐의 텔레메트리가 보고한 브로커 주소(`broker-1.example.com:9092`)로 미리 채워져 있습니다. 컬렉터가 다른 경로로 브로커에 닿는다면 바꾸세요. 리시버는 각 큐를 RabbitMQ 이름으로 보고하지만, 대부분의 계측 스팬은 메시지가 거쳐 간 exchange를 나타냅니다. 둘은 기본 exchange로 보낸 메시지에서는 일치합니다. 그 routing key가 큐의 이름이기 때문입니다.",
+  "This is the `acme-bus` queue `orders`. It fills in from the messaging spans of the applications that publish to and consume from it, and from metrics that carry its `messaging.system` and `messaging.destination.name`. Everything below is prefilled for this queue.":
+    "이것은 `acme-bus` 큐 `orders`입니다. 이 큐에 게시하고 이 큐에서 소비하는 애플리케이션의 메시징 스팬과, 이 큐의 `messaging.system` 및 `messaging.destination.name`을 담은 메트릭으로 채워집니다. 아래 내용은 모두 이 큐에 맞게 미리 채워져 있습니다.",
+  "OneUptime does not know this messaging system, so it has no ready-made way to read the broker's metrics; send them with `messaging.system` and `messaging.destination.name` on each datapoint and they attach to the queue.":
+    "OneUptime은 이 메시징 시스템을 모르므로 브로커의 메트릭을 읽을 준비된 방법이 없습니다. 모든 데이터 포인트에 `messaging.system`과 `messaging.destination.name`을 붙여 보내면 큐에 연결됩니다.",
+  "OneUptime charts no broker metrics for `acme-bus` under **Broker health**. Everything a collector sends is in the **Metrics** explorer, and a metric that carries `messaging.system` and `messaging.destination.name` on each datapoint shows on the queue's **Metrics** tab.":
+    "OneUptime은 `acme-bus`의 브로커 메트릭을 **브로커 상태**에 차트로 표시하지 않습니다. 컬렉터가 보내는 모든 것은 **메트릭** 탐색기에 있으며, 모든 데이터 포인트에 `messaging.system`과 `messaging.destination.name`을 담은 메트릭은 큐의 **메트릭** 탭에 표시됩니다.",
+  "- Only the broker's own metrics need a system OneUptime knows (see [Supported messaging systems](/docs/telemetry/queues#supported-messaging-systems)). Its metrics are in the **Metrics** explorer.":
+    "- OneUptime이 아는 시스템이 필요한 것은 브로커 자체의 메트릭뿐입니다([지원되는 메시징 시스템](/docs/telemetry/queues#supported-messaging-systems) 참조). 그 메트릭은 **메트릭** 탐색기에 있습니다.",
 };
 
 export default TRANSLATION;
