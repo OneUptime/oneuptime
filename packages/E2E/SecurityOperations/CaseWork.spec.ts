@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
@@ -1400,9 +1401,8 @@ test.describe("response targets", () => {
     // A time is never split across two lines: "48" here, "min" under it.
     for (const time of await lines.all()) {
       const text: string = (await time.textContent()) || "";
-      const noBreak: string = String.fromCharCode(0xa0);
       expect(text).not.toContain("48 min");
-      expect(text.includes(`48${noBreak}min`) || !text.includes("48")).toBe(
+      expect(text.includes(withUnit(48, "min")) || !text.includes("48")).toBe(
         true,
       );
     }

@@ -3,7 +3,11 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
-import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
+import {
+  dashboardWord,
+  describePageLanguages,
+} from "../SuiteHelpers/LocaleChunks";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * A resource's Overview drawn with ResourceOverview - a service's, a
@@ -1485,6 +1489,12 @@ test.describe("the services tables fit their cards", () => {
     }
   });
 
+  // Persian's own unit for milliseconds, as its locale writes "{{value}} ms".
+  const PERSIAN_MILLISECONDS: string = dashboardWord(
+    "fa",
+    "{{value}} ms",
+  ).replace("{{value}} ", "");
+
   test("Persian, right to left: every figure reads the way it is written - a duration's unit after its number, at the end of its column", async ({
     page,
   }: {
@@ -1529,12 +1539,28 @@ test.describe("the services tables fit their cards", () => {
                   range.setEnd(node, text.length);
                   const last: DOMRect = range.getBoundingClientRect();
                   const cellBox: DOMRect = cell.getBoundingClientRect();
+                  /*
+                   * The way the figure itself is written: "7.5 ms" left to
+                   * right, "۷٫۵ میلی‌ثانیه" right to left (#8748).
+                   */
+                  const isRightToLeft: boolean =
+                    getComputedStyle(node.parentElement || cell).direction ===
+                    "rtl";
                   return {
                     text,
-                    // Its first character, a digit, is drawn left of its last.
-                    numberFirst: first.left < last.left,
+                    /*
+                     * Its first character, a digit, is drawn where the
+                     * figure starts: left of its last in "7.5 ms", right of
+                     * it in "۷٫۵ میلی‌ثانیه".
+                     */
+                    numberFirst: isRightToLeft
+                      ? first.right > last.right
+                      : first.left < last.left,
                     // Right to left, a column's end is its left edge.
-                    atEnd: Math.abs(first.left - cellBox.left) <= 1,
+                    atEnd:
+                      Math.abs(
+                        Math.min(first.left, last.left) - cellBox.left,
+                      ) <= 1,
                   };
                 },
               )
@@ -1559,12 +1585,15 @@ test.describe("the services tables fit their cards", () => {
           atEnd: true,
         });
       }
-      // What a person reads: "7.5 ms", not "ms 7.5".
+      /*
+       * What a person reads: the duration in Persian, its unit after its
+       * number and held to it (#8348, #8302), never "ms 7.5".
+       */
       expect(
-        figures.some((figure: { text: string }): boolean => {
-          return figure.text === "7.5 ms";
+        figures.map((figure: { text: string }): string => {
+          return figure.text;
         }),
-      ).toBe(true);
+      ).toContain(withUnit("۷٫۵", PERSIAN_MILLISECONDS));
     }
     await screenshot(page, "resource-overview-queue-services-phone-rtl");
   });

@@ -1739,6 +1739,28 @@ evaluate. The suite fails any spec under packages/E2E with two or more
 statements in a row that each await one locator's `boundingBox()`; a box read
 alone, or after an action, is left alone.
 
+### `E2EConfigsPinTheirZone.test.js`
+
+A browser that Playwright isn't told a zone for reads dates in the zone of the
+machine running it, so a spec that pins "09:30 AM UTC" passes on a runner and
+fails on a laptop in another zone. Each `packages/E2E/playwright*.config.ts`
+sets `timezoneId` in its top-level `use` to a zone that exists, written out as
+a string: Europe/London where a suite reads GMT, UTC elsewhere. A project that
+sets its own must name a zone that exists too. The configs whose suites open no
+browser through `use` are listed with why: Sharding opens none, and Lighthouse
+launches its own (#8724).
+
+### `E2ENoBreakSpacesFromHelper.test.js`
+
+The product holds a number to its unit with a no-break space (U+00A0): "182
+ms". A spec that writes that space by hand (as the character, its escape, or
+`String.fromCharCode(0xa0)`) reads like one with a plain space, and specs with
+a plain space went red without anyone seeing why. Specs under packages/E2E write
+it through `SuiteHelpers/NoBreakSpaces.ts` (`withUnit(182, "ms")`,
+`NO_BREAK_SPACE`). The suite fails a spec that writes it by hand, except inside
+a function the page runs (the callback of `evaluate`, `evaluateAll`,
+`waitForFunction` and the like), which cannot import a module (#8725).
+
 ### `CompileWorkflow.test.js`
 
 `.github/workflows/compile.yml` compiles the core packages in four jobs rather

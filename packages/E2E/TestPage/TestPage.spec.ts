@@ -8,6 +8,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * Sending a test page (#6811), in a browser, against the offline fixture
@@ -95,9 +96,6 @@ function worded(
 async function wordsOf(locator: Locator): Promise<string> {
   return ((await locator.textContent()) || "").replace(/[\u2066-\u2069]/g, "");
 }
-
-// Between a German amount and its sign, as Intl writes it ("0,35 $").
-const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
 
 interface Box {
   x: number;
@@ -495,7 +493,7 @@ test("a server from before the codes and the walk: its English, and a walk price
       "This test sends {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
       {
         items: worded(GERMAN, "{{count}} SMS_one", { count: "1" }),
-        amount: `0,10${NO_BREAK_SPACE}$`,
+        amount: withUnit("0,10", "$"),
       },
     ),
   );
@@ -646,7 +644,7 @@ test("in German, the policy's preview, its levels and the walk's cost are worded
           items: worded(GERMAN, "{{count}} SMS_one", { count: "1" }),
           last: worded(GERMAN, "{{count}} phone calls_one", { count: "1" }),
         }),
-        amount: `0,35${NO_BREAK_SPACE}$`,
+        amount: withUnit("0,35", "$"),
       },
     ),
   );

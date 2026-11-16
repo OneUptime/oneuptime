@@ -19,6 +19,9 @@ export default defineConfig({
    */
   outputDir: "./test-results/label-rule-transfer",
   use: {
+    // One zone whatever the machine's (Tests/Ops/E2EConfigsPinTheirZone.test.js).
+    timezoneId: "UTC",
+    locale: "en-US",
     ...devices["Desktop Chrome"],
     viewport: { width: 1600, height: 1100 },
     screenshot: "only-on-failure",
