@@ -86,6 +86,8 @@ import WorkspaceIncidentFromAlert, {
 } from "../../WorkspaceIncidentFromAlert";
 import SlackAffectedResources from "../SlackAffectedResources";
 import NewIncidentSubscriberNotificationDefaultReader from "../../../StatusPage/NewIncidentSubscriberNotificationDefaultReader";
+import { OnCallPageRecordType } from "../../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { getExecuteOnCallPolicyFormDescription } from "../../WorkspaceExecuteOnCallPolicyForm";
 
 export default class SlackIncidentActions {
   @CaptureSpan()
@@ -1239,6 +1241,10 @@ export default class SlackIncidentActions {
       label: "On-Call Policy",
       blockId: "onCallPolicy",
       placeholder: "Select On-Call Policy",
+      // How long the policy pages, as the Dashboard's form says (#9006).
+      description: getExecuteOnCallPolicyFormDescription(
+        OnCallPageRecordType.Incident,
+      ),
       options: dropdownOption,
     };
 

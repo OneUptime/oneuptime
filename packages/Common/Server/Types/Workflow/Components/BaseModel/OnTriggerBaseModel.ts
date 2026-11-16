@@ -35,7 +35,10 @@ import {
   getCustomFieldName,
 } from "../../../../../Types/Workflow/CustomFieldsColumn";
 import { DatabaseOperation } from "../../../../../Types/Workflow/DatabaseOperation";
-import { getWatchedColumns } from "../../../../../Types/Workflow/WatchedFields";
+import {
+  HEARD_ONLY_WHERE_WATCHED_KEY,
+  getWatchedColumns,
+} from "../../../../../Types/Workflow/WatchedFields";
 import Workflow from "../../../../../Models/DatabaseModels/Workflow";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { normalizeModelKeys } from "./ModelArguments";
@@ -357,7 +360,10 @@ export default class OnTriggerBaseModel<
    * Whether an update reaches a workflow through its Fields to watch
    * (stored as "listen-on"): yes with nothing watched, and yes when the
    * update says it changed one of the watched fields. An update that says
-   * nothing of what it changed skips the check, as it always has.
+   * nothing of what it changed skips the check, as it always has. An update
+   * OneUptime makes for its own bookkeeping - a reminder moved on - reaches
+   * only a workflow that watches a field it changed
+   * (HEARD_ONLY_WHERE_WATCHED_KEY, issue #9019).
    */
   private isUpdateWatched(data: {
     workflow: Workflow;
@@ -366,15 +372,20 @@ export default class OnTriggerBaseModel<
   }): boolean {
     const workflow: Workflow = data.workflow;
 
+    const miscData: JSONObject =
+      (data.requestData?.["miscData"] as JSONObject) || {};
+
+    // What a workflow that watches nothing hears of the update.
+    const isHeardUnwatched: boolean =
+      miscData[HEARD_ONLY_WHERE_WATCHED_KEY] !== true;
+
     if (!workflow.triggerArguments?.["listen-on"]) {
-      return true;
+      return isHeardUnwatched;
     }
 
     let listenOn: JSONObject = workflow.triggerArguments?.[
       "listen-on"
     ] as JSONObject;
-    const miscData: JSONObject =
-      (data.requestData?.["miscData"] as JSONObject) || {};
 
     if (
       !listenOn ||
@@ -382,7 +393,7 @@ export default class OnTriggerBaseModel<
       !miscData ||
       Object.keys(miscData).length === 0
     ) {
-      return true;
+      return isHeardUnwatched;
     }
 
     try {
@@ -400,7 +411,7 @@ export default class OnTriggerBaseModel<
     const updatedFields: JSONObject = miscData["updatedFields"] as JSONObject;
 
     if (!updatedFields || Object.keys(updatedFields).length === 0) {
-      return true;
+      return isHeardUnwatched;
     }
 
     /*

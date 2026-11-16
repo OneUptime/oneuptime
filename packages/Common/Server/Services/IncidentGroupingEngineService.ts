@@ -32,8 +32,10 @@ import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import { Green500 } from "../../Types/BrandColors";
-import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleSetCache from "../Utils/Rules/RuleSetCache";
+import Select from "../Types/Database/Select";
+import Sort from "../Types/Database/Sort";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import { GroupingOptions } from "../../Utils/StartingStage";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
@@ -101,6 +103,76 @@ interface EpisodeTemplateValues {
   incidentSeverity: string | undefined;
 }
 
+// What grouping an incident needs of each of the project's grouping rules.
+const GROUPING_RULE_SELECT: Select<IncidentGroupingRule> = {
+  _id: true,
+  name: true,
+  priority: true,
+  criteria: true,
+  // Match criteria fields
+  monitors: {
+    _id: true,
+  },
+  incidentSeverities: {
+    _id: true,
+  },
+  incidentLabels: {
+    _id: true,
+  },
+  monitorLabels: {
+    _id: true,
+  },
+  incidentTitlePattern: true,
+  incidentDescriptionPattern: true,
+  monitorNamePattern: true,
+  monitorDescriptionPattern: true,
+  // Group by fields
+  groupByMonitor: true,
+  groupBySeverity: true,
+  groupByIncidentTitle: true,
+  groupByIncidentLabels: true,
+  groupByMonitorLabels: true,
+  groupByConnectedServices: true,
+  // Time settings
+  enableTimeWindow: true,
+  timeWindowMinutes: true,
+  // How many matching incidents it waits for
+  enableMinimumIncidentCount: true,
+  minimumIncidentCount: true,
+  episodeTitleTemplate: true,
+  episodeDescriptionTemplate: true,
+  enableResolveDelay: true,
+  resolveDelayMinutes: true,
+  enableReopenWindow: true,
+  reopenWindowMinutes: true,
+  enableInactivityTimeout: true,
+  inactivityTimeoutMinutes: true,
+  defaultAssignToUserId: true,
+  defaultAssignToTeamId: true,
+  onCallDutyPolicies: {
+    _id: true,
+  },
+  // Episode configuration fields
+  episodeLabels: {
+    _id: true,
+  },
+  episodeOwnerUsers: {
+    _id: true,
+  },
+  episodeOwnerTeams: {
+    _id: true,
+  },
+  episodeMemberRoles: {
+    _id: true,
+  },
+  episodeMemberRoleAssignments: true,
+};
+
+// The first rule an incident matches wins: by priority.
+const GROUPING_RULE_SORT: Sort<IncidentGroupingRule> = {
+  priority: SortOrder.Ascending,
+};
+
 class IncidentGroupingEngineServiceClass {
   @CaptureSpan()
   @RuleEvaluation()
@@ -125,84 +197,16 @@ class IncidentGroupingEngineServiceClass {
         return { grouped: true, episodeId: incident.incidentEpisodeId };
       }
 
-      // Get enabled rules sorted by priority
+      /*
+       * Enabled rules sorted by priority: kept until any of the project's
+       * rules changes (RuleSetCache).
+       */
       const rules: Array<IncidentGroupingRule> =
-        await IncidentGroupingRuleService.findBy({
-          query: {
-            projectId: incident.projectId,
-            isEnabled: true,
-          },
-          sort: {
-            priority: SortOrder.Ascending,
-          },
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-            name: true,
-            priority: true,
-            criteria: true,
-            // Match criteria fields
-            monitors: {
-              _id: true,
-            },
-            incidentSeverities: {
-              _id: true,
-            },
-            incidentLabels: {
-              _id: true,
-            },
-            monitorLabels: {
-              _id: true,
-            },
-            incidentTitlePattern: true,
-            incidentDescriptionPattern: true,
-            monitorNamePattern: true,
-            monitorDescriptionPattern: true,
-            // Group by fields
-            groupByMonitor: true,
-            groupBySeverity: true,
-            groupByIncidentTitle: true,
-            groupByIncidentLabels: true,
-            groupByMonitorLabels: true,
-            groupByConnectedServices: true,
-            // Time settings
-            enableTimeWindow: true,
-            timeWindowMinutes: true,
-            // How many matching incidents it waits for
-            enableMinimumIncidentCount: true,
-            minimumIncidentCount: true,
-            episodeTitleTemplate: true,
-            episodeDescriptionTemplate: true,
-            enableResolveDelay: true,
-            resolveDelayMinutes: true,
-            enableReopenWindow: true,
-            reopenWindowMinutes: true,
-            enableInactivityTimeout: true,
-            inactivityTimeoutMinutes: true,
-            defaultAssignToUserId: true,
-            defaultAssignToTeamId: true,
-            onCallDutyPolicies: {
-              _id: true,
-            },
-            // Episode configuration fields
-            episodeLabels: {
-              _id: true,
-            },
-            episodeOwnerUsers: {
-              _id: true,
-            },
-            episodeOwnerTeams: {
-              _id: true,
-            },
-            episodeMemberRoles: {
-              _id: true,
-            },
-            episodeMemberRoleAssignments: true,
-          },
-          limit: MAX_RULES_EVALUATED_PER_PROJECT,
-          skip: 0,
+        await RuleSetCache.findEnabledRules<IncidentGroupingRule>({
+          service: IncidentGroupingRuleService,
+          projectId: incident.projectId,
+          select: GROUPING_RULE_SELECT,
+          sort: GROUPING_RULE_SORT,
         });
 
       logIfRuleReadWasTruncated({

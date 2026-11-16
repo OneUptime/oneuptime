@@ -144,6 +144,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "JSON held in a string is read too.",
     "A value too large to read item by item is read as text.",
     "Exceptions come from the scrubbed record.",
+    // What a syslog line's raw copies keep of its parts (issue #9039).
+    "A syslog line's raw copies hide what the rules hid in its parts.",
     // Why a record's session id is not hidden (issue #8924).
     "A record's session id is kept.",
     "Session replays are scrubbed too.",

@@ -66,6 +66,7 @@ import MonitorStatusEventDelete, {
   StatusEventDeleteDecision,
 } from "../../Utils/Monitor/MonitorStatusEventDelete";
 import StateChangeLogScreenshots from "../../Utils/Monitor/StateChangeLogScreenshots";
+import { FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME } from "../Utils/Monitor/UptimeHistoryMigration";
 
 /*
  * Thrown by onBeforeCreate when the incoming status is the same as the status of
@@ -90,11 +91,11 @@ export const MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE: string =
  * uptime history (issue #8960; App's
  * BackfillMonitorFirstMeasuredAtForUptimeHistory). The uptime statements
  * leave a monitor's time before its first check out only once its
- * DataMigrations row is there (getMeasuredFromCte). Never rename it: the
- * row's name is what an install that has run it holds.
+ * DataMigrations row is there (getMeasuredFromCte). Its name lives in
+ * Utils/Monitor/UptimeHistoryMigration, which an SLO reads it from too, and
+ * is exported here as well, where the migration and its tests import it.
  */
-export const FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME: string =
-  "BackfillMonitorFirstMeasuredAtForUptimeHistory";
+export { FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME };
 
 /*
  * THE STATUS EVENTS THAT ONLY MARK MONITORING TURNED OFF OR BACK ON.

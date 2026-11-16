@@ -20,6 +20,8 @@
  *     group and the page from the time at least one of their monitors was
  *     down - an outage two monitors share counted once, and never cut short
  *     the way the old row merge cut it,
+ *   - a resource nothing was measured for in the window (issue #9030): no
+ *     figure, the status page's words for it, and out of every average,
  *   - and the empty-status-page case.
  */
 
@@ -28,6 +30,10 @@ import { MergedDowntimeTotals } from "../../../Server/Services/MonitorStatusTime
 import StatusPageGroupService from "../../../Server/Services/StatusPageGroupService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import MonitorGroupService from "../../../Server/Services/MonitorGroupService";
+import MonitorService from "../../../Server/Services/MonitorService";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import { EMPTY_VALUE_MARK } from "../../../Types/EmptyValueMark";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -175,6 +181,21 @@ function makeTimelineItem(data: {
   }
 
   return item;
+}
+
+/*
+ * A monitor's first check, as the Monitor table holds it: null while nothing
+ * has checked it (MonitorFirstCheck).
+ */
+function monitorFirstChecked(
+  monitorId: ObjectID,
+  firstMeasuredAt: Date | null,
+): Monitor {
+  const monitor: Monitor = new Monitor(monitorId);
+  monitor.monitorType = MonitorType.Website;
+  (monitor as unknown as { firstMeasuredAt: Date | null }).firstMeasuredAt =
+    firstMeasuredAt;
+  return monitor;
 }
 
 /*
@@ -477,6 +498,12 @@ function mockReads(data: {
   timeline: Array<MonitorStatusTimeline>;
   rowCap?: number | undefined;
   monitorsInGroup?: Dictionary<Array<ObjectID>> | undefined;
+  /*
+   * The monitors as the Monitor table holds them, read for what the report
+   * says of a resource nothing was measured for (issue #9030): none found
+   * unless a test says so.
+   */
+  monitors?: Array<Monitor> | undefined;
 }): void {
   const statusPage: StatusPage = new StatusPage();
   statusPage._id = STATUS_PAGE_ID.toString();
@@ -499,6 +526,10 @@ function mockReads(data: {
   jest
     .spyOn(MonitorGroupService, "getMonitorIdsInMonitorGroups")
     .mockResolvedValue((data.monitorsInGroup || {}) as never);
+
+  jest
+    .spyOn(MonitorService, "findBy")
+    .mockResolvedValue((data.monitors || []) as never);
 
   jest
     .spyOn(StatusPageService, "getMonitorStatusTimelineForStatusPage")
@@ -786,6 +817,121 @@ describe("StatusPageService.getReportByStatusPage", () => {
       // (85.71 + 100 + 100) / 3
       expect(report.averageUptimePercent).toBe("95.24%");
       expect(report.reportDates).toContain("14 days");
+    });
+  });
+
+  /*
+   * Issue #9030: Switch 01 has not been checked yet - nothing of it is
+   * measured in the window - so it has no figure, and its group's and the
+   * page's averages are the measured resources'. It used to read 100%, and
+   * the page was a 92.85% made of a 100% nothing stood behind.
+   */
+  describe("a resource nothing was measured for, in a group", () => {
+    beforeEach(() => {
+      jest.restoreAllMocks();
+      mockReads({
+        statusPageResources: nestedResources(),
+        statusPageGroups: nestedGroups(),
+        timeline: makeTimeline().filter(
+          (row: MonitorStatusTimeline): boolean => {
+            return row.monitorId!.toString() !== SWITCH_MONITOR.toString();
+          },
+        ),
+        monitors: [monitorFirstChecked(SWITCH_MONITOR, null)],
+      });
+    });
+
+    test("prints a dash for its uptime and downtime, and the status page's words for it", async () => {
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: reportPeriod(),
+        });
+
+      const switchItem: StatusPageReportItem = report.resources.find(
+        (item: StatusPageReportItem): boolean => {
+          return item.resourceName === "Switch 01";
+        },
+      )!;
+
+      expect(switchItem.uptimePercent).toBeNull();
+      expect(switchItem.uptimePercentAsString).toBe(EMPTY_VALUE_MARK);
+      expect(switchItem.downtimeInHoursAndMinutes).toBe(EMPTY_VALUE_MARK);
+      expect(switchItem.notMonitoredText).toBe("Not monitored yet");
+    });
+
+    test("leaves it out of every level's average: the group is its measured resource's", async () => {
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: reportPeriod(),
+        });
+
+      const corporate: StatusPageReportGroup = report.groups[0]!;
+      const unit: StatusPageReportGroup =
+        corporate.subGroups[0]!.subGroups[0]!.subGroups[0]!;
+
+      // Router alone, where (85.71 + 100) / 2 = 92.85% used to stand.
+      expect(unit.uptimePercent).toBe(85.71);
+      expect(unit.uptimePercentAsString).toBe("85.71%");
+      expect(corporate.uptimePercentAsString).toBe("85.71%");
+      // Its downtime is still the group's: nothing measured is no downtime.
+      expect(unit.downtimeInHoursAndMinutes).toContain("2\u00A0days");
+    });
+
+    test("leaves it out of the page's average", async () => {
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: reportPeriod(),
+        });
+
+      // (85.71 + 100) / 2 of Router and the website, where three made 95.24%.
+      expect(report.averageUptimePercent).toBe(
+        ((85.71 + 100) / 2).toFixed(2) + "%",
+      );
+      expect(report.hasUptime).toBe(true);
+      expect(report.totalDowntimeInHoursAndMinutes).toContain("2\u00A0days");
+    });
+
+    test("a group nothing beneath which was measured has no figure: a dash, never 0% or 100%", async () => {
+      jest.restoreAllMocks();
+      mockReads({
+        statusPageResources: nestedResources(),
+        statusPageGroups: nestedGroups(),
+        // Only the ungrouped website was measured.
+        timeline: makeTimeline().filter(
+          (row: MonitorStatusTimeline): boolean => {
+            return row.monitorId!.toString() === WEBSITE_MONITOR.toString();
+          },
+        ),
+        monitors: [
+          monitorFirstChecked(SWITCH_MONITOR, null),
+          monitorFirstChecked(ROUTER_MONITOR, null),
+        ],
+      });
+
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: reportPeriod(),
+        });
+
+      for (const row of report.rows) {
+        if (row.isGroup) {
+          expect([row.name, row.uptimePercentAsString]).toEqual([
+            row.name,
+            EMPTY_VALUE_MARK,
+          ]);
+          expect([row.name, row.downtimeInHoursAndMinutes]).toEqual([
+            row.name,
+            EMPTY_VALUE_MARK,
+          ]);
+        }
+      }
+
+      expect(report.groups[0]!.uptimePercent).toBeNull();
+      expect(report.averageUptimePercent).toBe("100.00%");
     });
   });
 
@@ -1375,10 +1521,11 @@ describe("StatusPageService.getReportByStatusPage", () => {
         });
 
       /*
-       * (99.67 + 98.33 + 99.58 for Edge + 100 for the new monitor) / 4. Edge
-       * read 0% from the capped rows, which made this 74.50%.
+       * (99.67 + 98.33 + 99.58 for Edge) / 3. Edge read 0% from the capped
+       * rows, which made this 74.50%; and the new monitor, which nothing
+       * measured, read 100% and made it 99.39% (issue #9030).
        */
-      expect(report.averageUptimePercent).toBe("99.39%");
+      expect(report.averageUptimePercent).toBe("99.19%");
     });
 
     test("asks for the day aggregate of single monitors, over the report window, cut in UTC", async () => {
@@ -1636,7 +1783,13 @@ describe("StatusPageService.getReportByStatusPage", () => {
       );
     });
 
-    test("prints 100% and no downtime for a monitor with nothing recorded, rather than null", async () => {
+    test("prints no figure for a monitor nothing measured, and says Not monitored yet as the status page does, never 100% (#9030)", async () => {
+      jest
+        .spyOn(MonitorService, "findBy")
+        .mockResolvedValue([
+          monitorFirstChecked(UNRECORDED_MONITOR, null),
+        ] as never);
+
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
@@ -1646,12 +1799,93 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const unrecorded: StatusPageReportItem =
         itemsByName(report)["New monitor"]!;
 
-      expect(unrecorded.uptimePercent).toBe(100);
-      expect(unrecorded.uptimePercentAsString).toBe("100%");
-      expect(unrecorded.downtimeInHoursAndMinutes).toBe("0\u00A0minutes");
+      expect(unrecorded.uptimePercent).toBeNull();
+      expect(unrecorded.uptimePercentAsString).toBe(EMPTY_VALUE_MARK);
+      expect(unrecorded.downtimeInHoursAndMinutes).toBe(EMPTY_VALUE_MARK);
+      expect(unrecorded.downtimeInMinutes).toBeUndefined();
+      expect(unrecorded.notMonitoredText).toBe("Not monitored yet");
+
+      // Its row says so too; the measured resources' rows say nothing more.
+      const rows: Array<StatusPageReportRow> = report.rows;
+
+      expect(
+        rows.find((row: StatusPageReportRow): boolean => {
+          return row.name === "New monitor";
+        })!.notMonitoredText,
+      ).toBe("Not monitored yet");
+      expect(
+        rows.filter((row: StatusPageReportRow): boolean => {
+          return Boolean(row.notMonitoredText);
+        }),
+      ).toHaveLength(1);
+
+      // The page measured the rest: it has an average.
+      expect(report.hasUptime).toBe(true);
     });
 
-    test("prints the same for a monitor group with nothing recorded", async () => {
+    test("reads the monitors of only the resources nothing was measured for, once", async () => {
+      const monitorReads: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        MonitorService,
+        "findBy",
+      ) as ReturnType<typeof jest.spyOn>;
+
+      await StatusPageService.getReportByStatusPage({
+        statusPageId: STATUS_PAGE_ID,
+        reportPeriod: sixtyDayPeriod(),
+      });
+
+      expect(monitorReads).toHaveBeenCalledTimes(1);
+
+      const query: Record<string, unknown> = (
+        monitorReads.mock.calls[0]![0] as { query: Record<string, unknown> }
+      ).query;
+
+      expect(query["projectId"]).toEqual(PROJECT_ID);
+      expect(JSON.stringify(query["_id"])).toContain(
+        UNRECORDED_MONITOR.toString(),
+      );
+      expect(JSON.stringify(query["_id"])).not.toContain(
+        FLAPPING_MONITOR.toString(),
+      );
+    });
+
+    test("a monitor checked before the window, and nothing measured in it, is Not monitored: its monitoring was off", async () => {
+      jest
+        .spyOn(MonitorService, "findBy")
+        .mockResolvedValue([
+          monitorFirstChecked(UNRECORDED_MONITOR, at(-40 * DAY)),
+        ] as never);
+
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: sixtyDayPeriod(),
+        });
+
+      expect(itemsByName(report)["New monitor"]!.notMonitoredText).toBe(
+        "Not monitored",
+      );
+    });
+
+    test("a monitor first checked after the window was not monitored yet in it", async () => {
+      jest
+        .spyOn(MonitorService, "findBy")
+        .mockResolvedValue([
+          monitorFirstChecked(UNRECORDED_MONITOR, at(61 * DAY)),
+        ] as never);
+
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: sixtyDayPeriod(),
+        });
+
+      expect(itemsByName(report)["New monitor"]!.notMonitoredText).toBe(
+        "Not monitored yet",
+      );
+    });
+
+    test("a monitor group nothing was measured for prints no figure either, and a page nothing on which was measured has none", async () => {
       const EMPTY_MONITOR_GROUP: ObjectID = new ObjectID(
         "cc000000-0000-4000-8000-000000000002",
       );
@@ -1670,6 +1904,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
         monitorsInGroup: {
           [EMPTY_MONITOR_GROUP.toString()]: [UNRECORDED_MONITOR],
         },
+        monitors: [monitorFirstChecked(UNRECORDED_MONITOR, null)],
       });
 
       const report: StatusPageReport =
@@ -1680,10 +1915,59 @@ describe("StatusPageService.getReportByStatusPage", () => {
 
       const item: StatusPageReportItem = itemsByName(report)["Empty group"]!;
 
-      expect(item.uptimePercent).toBe(100);
-      expect(item.uptimePercentAsString).toBe("100%");
-      expect(item.downtimeInHoursAndMinutes).toBe("0\u00A0minutes");
-      expect(report.totalDowntimeInHoursAndMinutes).toBe("0\u00A0minutes");
+      expect(item.uptimePercent).toBeNull();
+      expect(item.uptimePercentAsString).toBe(EMPTY_VALUE_MARK);
+      expect(item.downtimeInHoursAndMinutes).toBe(EMPTY_VALUE_MARK);
+      // None of its monitors had been checked: the status page's words for it.
+      expect(item.notMonitoredText).toBe("Not monitored yet");
+
+      // The page: no average, no downtime figure - never 100% and 0 minutes.
+      expect(report.hasUptime).toBe(false);
+      expect(report.averageUptimePercent).toBe(EMPTY_VALUE_MARK);
+      expect(report.totalDowntimeInHoursAndMinutes).toBe(EMPTY_VALUE_MARK);
+      expect(report.totalDowntimeInMinutes).toBeUndefined();
+    });
+
+    test("a monitor group one of whose monitors had been checked is Not monitored, not Not monitored yet", async () => {
+      const EMPTY_MONITOR_GROUP: ObjectID = new ObjectID(
+        "cc000000-0000-4000-8000-000000000002",
+      );
+      const CHECKED_BUT_OFF: ObjectID = new ObjectID(
+        "aa000000-0000-4000-8000-000000000015",
+      );
+
+      const empty: StatusPageResource = new StatusPageResource();
+      empty.displayName = "Empty group";
+      empty.monitorGroupId = EMPTY_MONITOR_GROUP;
+      empty.order = 1;
+
+      jest.restoreAllMocks();
+      mockReads({
+        statusPageResources: [empty],
+        statusPageGroups: [],
+        timeline: timeline(),
+        rowCap: ROW_CAP,
+        monitorsInGroup: {
+          [EMPTY_MONITOR_GROUP.toString()]: [
+            UNRECORDED_MONITOR,
+            CHECKED_BUT_OFF,
+          ],
+        },
+        monitors: [
+          monitorFirstChecked(UNRECORDED_MONITOR, null),
+          monitorFirstChecked(CHECKED_BUT_OFF, at(-5 * DAY)),
+        ],
+      });
+
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: sixtyDayPeriod(),
+        });
+
+      expect(itemsByName(report)["Empty group"]!.notMonitoredText).toBe(
+        "Not monitored",
+      );
     });
   });
 

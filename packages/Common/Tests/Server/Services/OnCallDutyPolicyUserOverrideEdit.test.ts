@@ -1,5 +1,10 @@
 import { OnCallDutyPolicyFeedEventType } from "../../../Models/DatabaseModels/OnCallDutyPolicyFeed";
+import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import OnCallDutyPolicyEscalationRuleScheduleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyFeedService from "../../../Server/Services/OnCallDutyPolicyFeedService";
+import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
+import WorkspaceUtil from "../../../Server/Utils/Workspace/Workspace";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import OnCallDutyPolicyUserOverrideService from "../../../Server/Services/OnCallDutyPolicyUserOverrideService";
@@ -661,6 +666,126 @@ describe("the line the policy's chat channels get", () => {
     await edit(GLOBAL, { routeAlertsToUserId: new ObjectID(BOB) });
 
     expect(chatLines()).toEqual([]);
+  });
+
+  /*
+   * EACH WORKSPACE'S LINE NAMES ITS PEOPLE AS THAT WORKSPACE KNOWS THEM
+   * (#7967), as a hand-off's line does: "@jane.doe" in Slack, where Jane
+   * connected her account, and her OneUptime name in Microsoft Teams, where
+   * she did not. Mattermost reads the times in words on the policy's clock
+   * (#7970). The policy's feed keeps OneUptime's names.
+   */
+  describe("in each workspace, its people as it knows them (#7967)", () => {
+    const byWorkspace: () => Array<
+      Partial<Record<WorkspaceType, string>> | undefined
+    > = (): Array<Partial<Record<WorkspaceType, string>> | undefined> => {
+      return (
+        OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem as unknown as jest.Mock
+      ).mock.calls.map((call: Array<unknown>) => {
+        return (
+          call[0] as {
+            chatInfoByWorkspaceType?: Partial<Record<WorkspaceType, string>>;
+          }
+        ).chatInfoByWorkspaceType;
+      });
+    };
+
+    beforeEach(() => {
+      jest
+        .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuths")
+        .mockResolvedValue(
+          [
+            WorkspaceType.Slack,
+            WorkspaceType.MicrosoftTeams,
+            WorkspaceType.Mattermost,
+          ].map((workspaceType: WorkspaceType): WorkspaceProjectAuthToken => {
+            const auth: WorkspaceProjectAuthToken =
+              new WorkspaceProjectAuthToken();
+            auth.workspaceType = workspaceType;
+            auth.authToken = "token";
+            return auth;
+          }),
+        );
+
+      // Jane and Carol connected Slack and Mattermost; nobody connected Teams.
+      jest
+        .spyOn(WorkspaceUtil, "getUserStringForWorkspace")
+        .mockImplementation((async (data: {
+          userId: ObjectID;
+          workspaceType: WorkspaceType;
+        }): Promise<string> => {
+          const name: string =
+            NAMES[data.userId.toString().toLowerCase()] || "somebody";
+
+          if (
+            data.workspaceType === WorkspaceType.MicrosoftTeams ||
+            name === "Bob Lee"
+          ) {
+            return `${name} `;
+          }
+
+          return `@${name.toLowerCase().replace(" ", ".")} `;
+        }) as never);
+
+      // The policy pages one schedule, set in New York.
+      jest
+        .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy")
+        .mockResolvedValue([
+          {
+            onCallDutyPolicySchedule: { timezone: "America/New_York" },
+          },
+        ] as never);
+    });
+
+    test("a new cover: Slack and Mattermost name them by the accounts they connected, Teams by their OneUptime names", async () => {
+      await edit(UPCOMING, { routeAlertsToUserId: new ObjectID(CAROL) });
+
+      const lines: Partial<Record<WorkspaceType, string>> =
+        byWorkspace()[0] || {};
+
+      expect(lines[WorkspaceType.Slack]).toBe(
+        `✏️ Changed an override on [Payments](https://oneuptime.example/policy): @carol.ng covers for @jane.doe from ${moment(UPCOMING_STARTS)} to ${moment(UPCOMING_ENDS)}.`,
+      );
+      expect(lines[WorkspaceType.MicrosoftTeams]).toBe(
+        `✏️ Changed an override on [Payments](https://oneuptime.example/policy): Carol Ng covers for Jane Doe from ${moment(UPCOMING_STARTS)} to ${moment(UPCOMING_ENDS)}.`,
+      );
+    });
+
+    test("Mattermost reads the override's times in words, on its policy's clock (#7970)", async () => {
+      await edit(UPCOMING, { routeAlertsToUserId: new ObjectID(CAROL) });
+
+      expect(byWorkspace()[0]?.[WorkspaceType.Mattermost]).toBe(
+        "✏️ Changed an override on [Payments](https://oneuptime.example/policy): @carol.ng covers for @jane.doe from Sat, Nov 14 at 4:00 AM EST to Sat, Nov 14 at 12:00 PM EST.",
+      );
+    });
+
+    test("a cover taken off: the person, as each workspace knows them", async () => {
+      await edit(UPCOMING, { routeAlertsToUserId: null });
+
+      expect(byWorkspace()[0]?.[WorkspaceType.Slack]).toContain(
+        ": @jane.doe is away from ",
+      );
+      expect(byWorkspace()[0]?.[WorkspaceType.MicrosoftTeams]).toContain(
+        ": Jane Doe is away from ",
+      );
+    });
+
+    test("the policy's feed, and the line for a workspace with none of its own, keep OneUptime's names", async () => {
+      await edit(UPCOMING, { routeAlertsToUserId: new ObjectID(CAROL) });
+
+      expect(feedEntries()[0]!.text).toContain(
+        "for user **Jane Doe** for the [On-Call Policy Payments]",
+      );
+      expect(feedEntries()[0]!.text).not.toContain("@");
+      expect(chatLines()[0]).toContain("Carol Ng covers for Jane Doe");
+    });
+
+    test("an edit that posts no line names nobody anywhere", async () => {
+      await edit(GLOBAL, { routeAlertsToUserId: new ObjectID(BOB) });
+
+      expect(byWorkspace()).toEqual([]);
+      expect(WorkspaceUtil.getUserStringForWorkspace).not.toHaveBeenCalled();
+    });
   });
 });
 

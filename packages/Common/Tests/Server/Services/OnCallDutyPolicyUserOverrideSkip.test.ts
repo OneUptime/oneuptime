@@ -6,7 +6,11 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLogTimeline from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import OnCallDutyPolicyUserOverride from "../../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
+import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
+import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
+import WorkspaceUtil from "../../../Server/Utils/Workspace/Workspace";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import OnCallDutyPolicyEscalationRuleService, {
   AwayOverride,
   OnCallRuleExecutionOutcome,
@@ -589,6 +593,77 @@ describe("Booking time away with nobody picked to cover", () => {
       `🔁 Added an override on [Payments](https://oneuptime.example/policy): user-${RIA} covers for user-${ALEX} from `,
     );
     expect(chat).not.toMatch(/GMT|UTC|routed/);
+  });
+
+  /*
+   * In each connected workspace the line names Alex and her cover as that
+   * workspace knows them, as a hand-off's does (#7967): "@alex" in Slack,
+   * where she connected her account, OneUptime's name in Teams.
+   */
+  test("each workspace's line names who is away and who covers as it knows them (#7967)", async () => {
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuths")
+      .mockResolvedValue(
+        [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams].map(
+          (workspaceType: WorkspaceType): WorkspaceProjectAuthToken => {
+            const auth: WorkspaceProjectAuthToken =
+              new WorkspaceProjectAuthToken();
+            auth.workspaceType = workspaceType;
+            auth.authToken = "token";
+            return auth;
+          },
+        ),
+      );
+    jest
+      .spyOn(WorkspaceUtil, "getUserStringForWorkspace")
+      .mockImplementation((async (data: {
+        userId: ObjectID;
+        workspaceType: WorkspaceType;
+      }): Promise<string> => {
+        return data.workspaceType === WorkspaceType.Slack
+          ? `@slack-${data.userId.toString()} `
+          : `user-${data.userId.toString()} `;
+      }) as never);
+
+    await bookTimeAway({
+      signedInAs: ALEX,
+      whoCovers: RIA,
+      ends: BACK_ON_FRIDAY,
+      policy: POLICY,
+    });
+
+    const item: {
+      feedInfoInMarkdown: string;
+      chatInfoInMarkdown?: string;
+      chatInfoByWorkspaceType?: Partial<Record<WorkspaceType, string>>;
+    } = (
+      OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem as unknown as {
+        mock: {
+          calls: Array<
+            Array<{
+              feedInfoInMarkdown: string;
+              chatInfoInMarkdown?: string;
+              chatInfoByWorkspaceType?: Partial<Record<WorkspaceType, string>>;
+            }>
+          >;
+        };
+      }
+    ).mock.calls[0]![0]!;
+
+    expect(item.chatInfoByWorkspaceType?.[WorkspaceType.Slack]).toContain(
+      `🔁 Added an override on [Payments](https://oneuptime.example/policy): @slack-${RIA} covers for @slack-${ALEX} from {{DATE(`,
+    );
+    expect(
+      item.chatInfoByWorkspaceType?.[WorkspaceType.MicrosoftTeams],
+    ).toContain(`: user-${RIA} covers for user-${ALEX} from {{DATE(`);
+    expect(Object.keys(item.chatInfoByWorkspaceType || {})).toEqual([
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+    ]);
+
+    // The feed, and the line for any other workspace, keep OneUptime's names.
+    expect(item.feedInfoInMarkdown).not.toContain("@slack-");
+    expect(item.chatInfoInMarkdown).not.toContain("@slack-");
   });
 });
 

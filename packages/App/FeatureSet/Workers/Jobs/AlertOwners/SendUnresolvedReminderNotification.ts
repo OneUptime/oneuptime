@@ -1,5 +1,8 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerReminderBacklog, {
+  DueReminder,
+} from "../../Utils/OwnerReminderBacklog";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -21,8 +24,8 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -39,6 +42,9 @@ import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+import { NotificationRuleUpdateKind } from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
+
+const JOB_NAME: string = "AlertOwner:SendUnresolvedReminderNotification";
 
 // What a reminder is made of, read for each alert.
 const ALERT_SELECT: Select<Alert> = {
@@ -70,13 +76,14 @@ const ALERT_SELECT: Select<Alert> = {
   alertNumber: true,
   alertNumberWithPrefix: true,
   enableReminders: true,
+  nextReminderNotificationAt: true,
   reminderNotificationSentCount: true,
 };
 
 RunCron(
-  "AlertOwner:SendUnresolvedReminderNotification",
+  JOB_NAME,
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between moving the reminder on and the last owner (#8199) - told
@@ -116,31 +123,24 @@ RunCron(
       },
     });
 
-    // get all alerts where the next reminder notification is due.
-
-    const alerts: Array<Alert> = await AlertService.findAllBy({
-      query: {
-        nextReminderNotificationAt: QueryHelper.lessThan(
-          OneUptimeDate.getCurrentDate(),
-        ),
-      },
-      props: {
-        isRoot: true,
-      },
-      skip: 0,
+    /*
+     * Every alert whose reminder is due, a page at a time, the longest due
+     * first, each moved on by one run alone, which tells of it; the run stops
+     * at its deadline and the next carries on (OwnerReminderBacklog, issue
+     * #9019).
+     */
+    await OwnerReminderBacklog.forEachDue<Alert>({
+      jobName: JOB_NAME,
+      service: AlertService,
       select: ALERT_SELECT,
+      deadline: deadline,
+      remind: async (input: {
+        record: Alert;
+        reminder: DueReminder<Alert>;
+      }): Promise<void> => {
+        await sendReminderForAlert(input.record, input.reminder);
+      },
     });
-
-    for (const alert of alerts) {
-      try {
-        await sendReminderForAlert(alert);
-      } catch (error) {
-        logger.error(`Error sending reminder for alert ${alert.id}: ${error}`, {
-          projectId: alert.projectId?.toString(),
-          alertId: alert.id?.toString(),
-        });
-      }
-    }
   },
 );
 
@@ -201,32 +201,21 @@ async function getReminderIntervalFor(alert: Alert): Promise<number | null> {
   return intervalInMinutes;
 }
 
-type SendReminderForAlertFunction = (alert: Alert) => Promise<void>;
+type SendReminderForAlertFunction = (
+  alert: Alert,
+  reminder: DueReminder<Alert>,
+) => Promise<void>;
 
 const sendReminderForAlert: SendReminderForAlertFunction = async (
   alert: Alert,
+  reminder: DueReminder<Alert>,
 ): Promise<void> => {
-  const alertId: ObjectID = alert.id!;
-
-  const stopReminders: () => Promise<void> = async (): Promise<void> => {
-    await AlertService.updateOneById({
-      id: alertId,
-      data: {
-        nextReminderNotificationAt: null,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-  };
-
   const intervalInMinutes: number | null = await getReminderIntervalFor(alert);
 
   if (intervalInMinutes === null) {
-    return await stopReminders();
+    await reminder.stop();
+    return;
   }
-
-  const reminderNumber: number = (alert.reminderNotificationSentCount || 0) + 1;
 
   /*
    * Whom this reminder is to tell, written before the reminder is moved
@@ -235,26 +224,17 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
    */
   const delivery: OwnerNotificationDelivery = await planOwnersOfReminder({
     alert: alert,
-    reminderNumber: reminderNumber,
+    reminderNumber: reminder.number,
   });
 
   /*
-   * Advance the next reminder time BEFORE sending notifications so a
-   * failure mid-send does not cause duplicate reminders on the next run.
+   * Moved on before anybody is told, so a failure mid-send does not send
+   * the reminder again on the next run - and by one compare-and-set, so of
+   * two runs at once only the one that moved it tells of it.
    */
-  await AlertService.updateOneById({
-    id: alertId,
-    data: {
-      nextReminderNotificationAt: OneUptimeDate.addRemoveMinutes(
-        OneUptimeDate.getCurrentDate(),
-        intervalInMinutes,
-      ),
-      reminderNotificationSentCount: reminderNumber,
-    },
-    props: {
-      isRoot: true,
-    },
-  });
+  if (!(await reminder.send(intervalInMinutes))) {
+    return;
+  }
 
   await notifyOwnersOfReminder(alert, delivery);
 };
@@ -498,8 +478,14 @@ async function notifyOwnersOfReminder(
     feedInfoInMarkdown:
       mdText`🔔 **Reminder sent to owners of [Alert ${alertNumberDisplayValue}](${alertViewLink})**: This alert is still **${currentStateName}** and has been open for **${openDuration}**.`.toString(),
     moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
+    /*
+     * Posted to the alert's channels as a reminder, a box of its own on a
+     * rule's Updates step (issue #7938): named here, so no other owner
+     * notice is ever posted as one.
+     */
     workspaceNotification: {
       sendWorkspaceNotification: true,
+      updateKinds: [NotificationRuleUpdateKind.Reminders],
     },
   });
 

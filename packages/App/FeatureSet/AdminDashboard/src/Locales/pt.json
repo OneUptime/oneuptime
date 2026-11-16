@@ -69,10 +69,6 @@
     "ingestionBudgets": "Orçamentos de ingestão",
     "products": "Produtos"
   },
-  "topAlert": {
-    "title": "Painel do administrador do OneUptime",
-    "description": "Você pode executar suas tarefas relacionadas ao servidor OneUptime neste painel."
-  },
   "header": {
     "exitAdmin": "Sair do admin",
     "help": "Ajuda",

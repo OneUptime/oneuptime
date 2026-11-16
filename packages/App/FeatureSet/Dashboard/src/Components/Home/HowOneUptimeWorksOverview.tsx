@@ -848,7 +848,7 @@ const HowOneUptimeWorksOverview: FunctionComponent<ComponentProps> = (
                 {index === 1 ? (
                   <span
                     aria-hidden="true"
-                    className="hidden px-3 pb-1 pt-5 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:block"
+                    className="max-lg:hidden px-3 pb-1 pt-5 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:block"
                   >
                     {tx(HOW_IT_WORKS_PRODUCTS_LABEL)}
                   </span>

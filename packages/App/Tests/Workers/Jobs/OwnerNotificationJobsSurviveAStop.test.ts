@@ -53,10 +53,11 @@ import {
  * posted, owner added and still-open reminder - and the 23 of episodes,
  * monitors, scheduled maintenance events, status pages, SLOs and network
  * devices each take (mark) the record
- * they tell of before they tell its owners. Every one but the reminders
- * reads what it has to tell a page at a time and takes each record by one
- * hook-free compare-and-set (OwnerNotificationBacklog, #7974, #8862): its
- * services answer that read and that take here. A worker stopped hard in between
+ * they tell of before they tell its owners. Every one reads what it has to
+ * tell a page at a time and takes each record by one hook-free
+ * compare-and-set (OwnerNotificationBacklog, #7974, #8862) - a reminder job
+ * moves the reminder on with it (OwnerReminderBacklog, #9019): its services
+ * answer that read and that take here. A worker stopped hard in between
  * (an out-of-memory kill, a node lost) used to leave every owner not reached
  * yet untold for good. Now each writes whom it is about to tell before the
  * take, tells each owner through a claim only one run can win, and starts
@@ -136,6 +137,8 @@ jest.mock("Common/Server/Services/IncidentService", () => {
       getIncidentLinkInDashboard: jest.fn(),
       getIncidentIdentifiedDate: jest.fn(),
       updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+      onTriggerWorkflow: jest.fn(),
       isIncidentResolved: jest.fn(),
       isIncidentAcknowledged: jest.fn(),
     },
@@ -156,6 +159,8 @@ jest.mock("Common/Server/Services/AlertService", () => {
       getAlertIdentifiedDate: jest.fn(),
       countBy: jest.fn(),
       updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+      onTriggerWorkflow: jest.fn(),
       isAlertResolved: jest.fn(),
       isAlertAcknowledged: jest.fn(),
     },
@@ -187,6 +192,7 @@ function mockAnyService(): unknown {
       findOneBy: jest.fn(),
       updateOneById: jest.fn(),
       compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+      onTriggerWorkflow: jest.fn(),
       findOwners: jest.fn(),
       getEpisodeLinkInDashboard: jest.fn(),
       getMonitorLinkInDashboard: jest.fn(),
@@ -818,15 +824,17 @@ function readWhileThere<T>(record: () => T): () => Promise<Array<T>> {
   };
 }
 
-async function takeOrStop(): Promise<void> {
-  if (world.takeStops) {
-    world.takeStops = false;
-    world.stoppedAt.push("take");
-    await NEVER;
+/*
+ * A reminder job's move (OwnerReminderBacklog, #9019): sending the reminder -
+ * the next one later, counted - is the take, one compare-and-set only one
+ * run wins; taking the reminders away is not.
+ */
+async function reminderMove(data: { data: JSONObject }): Promise<boolean> {
+  if (data.data["nextReminderNotificationAt"] === null) {
+    return true;
   }
 
-  world.isTaken = true;
-  world.takes++;
+  return await compareAndSetTake();
 }
 
 // A take that matches only the record as it was read, as the Created jobs' does.
@@ -1219,17 +1227,17 @@ const CASES: Array<JobCase> = [
     feedService: IncidentFeedService.createIncidentFeedItem,
     arrange: (): void => {
       arrangeIncident();
-      asMock(IncidentService.findAllBy).mockImplementation(
+      // Due a page at a time until a run moves it on (#9019).
+      asMock(IncidentService.findBy).mockImplementation(
         dueWhileNotTaken(incident),
       );
-      asMock(IncidentService.updateOneById).mockImplementation(
-        async (data: { data: JSONObject }) => {
-          // Moving the reminder on is the take; stopping it is not.
-          if (data.data["nextReminderNotificationAt"] !== null) {
-            await takeOrStop();
-          }
-        },
+      // Its affected resources, read while it is there.
+      asMock(IncidentService.findAllBy).mockImplementation(
+        readWhileThere(incident),
       );
+      asMock(
+        IncidentService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(reminderMove);
       asMock(IncidentReminderRuleService.findMatchingRule).mockResolvedValue({
         reminderIntervalInMinutes: 30,
       });
@@ -1247,16 +1255,11 @@ const CASES: Array<JobCase> = [
     feedService: AlertFeedService.createAlertFeedItem,
     arrange: (): void => {
       arrangeAlert();
-      asMock(AlertService.findAllBy).mockImplementation(
-        dueWhileNotTaken(alert),
-      );
-      asMock(AlertService.updateOneById).mockImplementation(
-        async (data: { data: JSONObject }) => {
-          if (data.data["nextReminderNotificationAt"] !== null) {
-            await takeOrStop();
-          }
-        },
-      );
+      asMock(AlertService.findBy).mockImplementation(dueWhileNotTaken(alert));
+      asMock(AlertService.findAllBy).mockImplementation(readWhileThere(alert));
+      asMock(
+        AlertService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(reminderMove);
       asMock(AlertReminderRuleService.findMatchingRule).mockResolvedValue({
         reminderIntervalInMinutes: 30,
       });
@@ -1910,18 +1913,16 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
     feedService:
       ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem,
     arrange: (): void => {
-      asMock(ScheduledMaintenanceService.findAllBy).mockImplementation(
+      asMock(ScheduledMaintenanceService.findBy).mockImplementation(
         dueWhileNotTaken(scheduledMaintenance),
       );
-      arrangeRecord(ScheduledMaintenanceService, scheduledMaintenance);
-      asMock(ScheduledMaintenanceService.updateOneById).mockImplementation(
-        async (data: { data: JSONObject }) => {
-          // Moving the reminder on is the take; stopping it is not.
-          if (data.data["nextReminderNotificationAt"] !== null) {
-            await takeOrStop();
-          }
-        },
+      asMock(ScheduledMaintenanceService.findAllBy).mockImplementation(
+        readWhileThere(scheduledMaintenance),
       );
+      arrangeRecord(ScheduledMaintenanceService, scheduledMaintenance);
+      asMock(
+        ScheduledMaintenanceService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(reminderMove);
       asMock(
         ScheduledMaintenanceReminderRuleService.findMatchingRule,
       ).mockResolvedValue({
@@ -2954,16 +2955,13 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
     }
 
     /*
-     * THE RUN'S DEADLINE (#8862). Every job but the reminders goes through
+     * THE RUN'S DEADLINE (#8862, #9019). Every job goes through
      * OwnerNotificationBacklog and stops at its run's deadline - its time
      * limit, or its lease lost: what it did not reach is left as it was, and
-     * the next run tells each owner once.
+     * the next run tells each owner once. The reminder jobs too: a reminder
+     * not reached is still due.
      */
-    if (
-      jobCase.kind !== OwnerNotificationKind.IncidentReminder &&
-      jobCase.kind !== OwnerNotificationKind.AlertReminder &&
-      jobCase.kind !== OwnerNotificationKind.ScheduledMaintenanceReminder
-    ) {
+    {
       test("a run whose deadline passed takes nothing and tells nobody; the next run tells each owner once", async () => {
         const deadline: JobDeadline = new JobDeadline();
         deadline.end();
@@ -3094,12 +3092,12 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
         world.isTaken = false;
         now = new Date(now.getTime() + 30 * 60 * 1000);
 
-        const findAllBy: unknown =
+        const findBy: unknown =
           jobCase.kind === OwnerNotificationKind.IncidentReminder
-            ? IncidentService.findAllBy
-            : AlertService.findAllBy;
+            ? IncidentService.findBy
+            : AlertService.findBy;
 
-        asMock(findAllBy).mockImplementation(async () => {
+        asMock(findBy).mockImplementation(async () => {
           if (world.isTaken) {
             return [];
           }

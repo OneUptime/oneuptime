@@ -69,10 +69,6 @@
     "ingestionBudgets": "Inntaksbudsjetter",
     "products": "Produkter"
   },
-  "topAlert": {
-    "title": "OneUptime admin-dashbord",
-    "description": "Du kan utføre dine OneUptime-serverrelaterte oppgaver på dette dashbordet."
-  },
   "header": {
     "exitAdmin": "Avslutt admin",
     "help": "Hjelp",

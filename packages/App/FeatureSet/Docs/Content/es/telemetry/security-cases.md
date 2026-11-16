@@ -246,6 +246,8 @@ Para publicar en un canal, añade una regla en **Productos → Eventos de seguri
 
 Cada notificación, salvo la de una tarea, se publica en los canales de todas las reglas con las que coincide el caso en ese momento. Una regla en la que **Prioridad del caso de seguridad** contiene cualquiera de **Crítico** y **Alta** publica los casos de prioridad Alta y Crítico en cuanto se abren, y un caso Medium cuando sube a Alta. Un caso de seguridad nunca tiene un canal propio.
 
+El paso **Actualizaciones** de una regla elige cuáles de estos avisos publica: **Casos nuevos y de mayor prioridad**, **Asignaciones**, **Aprobaciones pendientes** y **Objetivos de respuesta**, una casilla cada uno en **Elegir actualizaciones**. **Solo actualizaciones clave** publica todos salvo las asignaciones, para un canal que solo debe enterarse de lo que alguien tiene que atender. Una regla guardada antes de que existiera el paso, y una regla nueva, publica todos los avisos.
+
 ## Playbooks
 
 Un playbook es una lista de pasos que se ejecutan sobre un caso. Crea uno en **Productos → Eventos de seguridad → Playbooks**, a partir de una plantilla o desde cero, y añade sus pasos en su página. Un proyecto sin playbooks ve las plantillas en lugar de una lista vacía; en cuanto hay playbooks, **Crear desde plantilla** en la lista las abre, con **Añadido** en las que el proyecto ya tiene.

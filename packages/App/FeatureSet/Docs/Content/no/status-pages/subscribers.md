@@ -391,7 +391,7 @@ For en hendelse som er begrenset til bestemte statussider, gjelder regelen om é
 
 ## E-postrapporter
 
-En statusside kan sende abonnentene sine en rapport via e-post etter en tidsplan: for hver ressurs på siden oppetiden, nedetiden og hendelsene over en periode. Det angis på kortet **E-postrapporter** under **Statussider → siden din → Avansert → Rapporter**.
+En statusside kan sende abonnentene sine en rapport via e-post etter en tidsplan: for hver ressurs på siden oppetiden, nedetiden og hendelsene over en periode. En ressurs som ingenting ble målt for i den tiden, fordi ingenting hadde sjekket den ennå eller overvåkingen var slått av, har ingen oppetid eller nedetid i rapporten: begge vises som en tankestrek, med Ikke overvåket ennå eller Ikke overvåket under navnet som på statussiden, og den holdes utenfor den gjennomsnittlige oppetiden til gruppen og siden. Det angis på kortet **E-postrapporter** under **Statussider → siden din → Avansert → Rapporter**.
 
 - **Send e-postrapporter** slår rapporter på og av, og lagres så snart du slår den om. Det er ingenting å fylle ut i noen av tilfellene.
 - **Første gang rapporter slås på**, får siden en tidsplan: en rapport den 1. hver måned kl. 09:00, med start den neste 1. i måneden, hver om hele den foregående kalendermåneden, så rapporten som sendes 1. november, dekker oktober. 09:00 er i rapportens tidssone, som er UTC med mindre du endrer den.

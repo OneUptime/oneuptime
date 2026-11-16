@@ -372,6 +372,11 @@ work out, starts from a default for everything else, and folds what most people 
 - **On a narrow screen, columns fold under another column** the page names (`foldInto`): an
   incident's severity under its state. Enforced by
   [TableFoldIntoGuard](../../packages/App/Tests/Dashboard/TableFoldIntoGuard.test.ts).
+- **A phone's card keeps what the list is read for.** A phone draws each row as a card and leaves
+  out the columns marked `hideOnMobile`: labels, owners, a second date. Never the fact people open
+  the list for: an incident's card had no severity, beside an alert's that has one, and a maintenance
+  event's card never said when it starts (#9011). Enforced by
+  [PhoneCardsKeepTriageFactsGuard](../../packages/App/Tests/Dashboard/PhoneCardsKeepTriageFactsGuard.test.ts).
 - **A column sorts the whole list by what it shows.** A column that shows one related record sorts by
   it: a severity, a state or a monitor status by its place in the project's list, worst first
   descending, where its first click goes (as the dashboard's list widgets sort it); anything else by

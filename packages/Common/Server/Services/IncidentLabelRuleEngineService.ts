@@ -34,8 +34,8 @@ import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
-import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleSetCache from "../Utils/Rules/RuleSetCache";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import {
@@ -112,16 +112,12 @@ class IncidentLabelRuleEngineServiceClass
     }
 
     try {
+      // Kept until any of the project's rules changes (RuleSetCache).
       const rules: Array<IncidentLabelRule> =
-        await IncidentLabelRuleService.findBy({
-          query: {
-            projectId: incident.projectId,
-            isEnabled: true,
-          },
-          props: { isRoot: true },
+        await RuleSetCache.findEnabledRules<IncidentLabelRule>({
+          service: IncidentLabelRuleService,
+          projectId: incident.projectId,
           select: this.ruleSelect,
-          limit: MAX_RULES_EVALUATED_PER_PROJECT,
-          skip: 0,
         });
 
       logIfRuleReadWasTruncated({

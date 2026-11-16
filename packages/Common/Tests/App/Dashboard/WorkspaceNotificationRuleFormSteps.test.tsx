@@ -1261,6 +1261,9 @@ describe("Choose which updates a rule posts (#7581)", () => {
       "Postmortem",
       "AI analysis and fixes",
       "Other edits",
+      // Boxes of their own, out of Other edits and Everything else (#7937, #7938).
+      "Custom field changes",
+      "Reminders",
       "Everything else",
     ]);
     // From Every update: every box ticked, so nothing changed yet.
@@ -1290,6 +1293,8 @@ describe("Choose which updates a rule posts (#7581)", () => {
       "Postmortem",
       "AI",
       "Edits",
+      "CustomFields",
+      "Reminders",
       "Other",
     ]);
   });
@@ -2194,11 +2199,19 @@ describe("Create a notification rule for security cases", () => {
     cleanup();
   });
 
-  // Nothing the rule creates or starts: no Video Call step.
-  test("walks Basic, Conditions, then Destination, the last step", async () => {
+  /*
+   * Nothing the rule creates or starts: no Video Call step. Which notices it
+   * posts is a step of its own (#7936).
+   */
+  test("walks Basic, Conditions, Destination, then Updates, the last step", async () => {
     await renderForm(NotificationRuleEventType.SecurityCase);
 
-    expect(stepTitles()).toEqual(["Basic", "Conditions", "Destination"]);
+    expect(stepTitles()).toEqual([
+      "Basic",
+      "Conditions",
+      "Destination",
+      "Updates",
+    ]);
   });
 
   test("asks which security cases, with the six fields of a case to match", async () => {
@@ -2221,7 +2234,7 @@ describe("Create a notification rule for security cases", () => {
 
     expect(
       within(dialog()).getByText(
-        "Conditions are checked each time there is something to post about a security case: when it opens or rises to a higher priority, is assigned, or has a playbook step waiting for approval.",
+        "Conditions are checked each time there is something to post about a security case: when it opens or rises to a higher priority, is assigned, has a playbook step waiting for approval, or is about to miss a response target.",
       ),
     ).toBeVisible();
 
@@ -2336,7 +2349,7 @@ describe("Create a notification rule for security cases", () => {
     ).toHaveTextContent("Name the channels this rule posts in.");
 
     // The channels are asked for, not assumed.
-    await submit(user);
+    await next(user);
 
     expect(
       await within(dialog()).findByText(
@@ -2352,6 +2365,13 @@ describe("Create a notification rule for security cases", () => {
     await settle();
 
     expect(summary()).toEqual(["Posts updates in #security and #soc."]);
+
+    // Then which notices it posts (#7936): every one, as rules always did.
+    await toUpdates(user);
+
+    expect(
+      within(dialog()).getByRole("radio", { name: "Every update" }),
+    ).toBeChecked();
 
     await submit(user);
 
@@ -2408,7 +2428,7 @@ describe("Create a notification rule for security cases", () => {
       "Pick where this rule posts: existing channels, chats, or both.",
     );
 
-    await submit(user);
+    await next(user);
 
     expect(
       await within(dialog()).findByText(
@@ -2416,5 +2436,73 @@ describe("Create a notification rule for security cases", () => {
       ),
     ).toBeVisible();
     expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A channel meant for approvals got every assignment too (#7936): the
+   * Updates step picks the notices, and Key updates only leaves the
+   * assignments out.
+   */
+  test("its Updates step picks the notices it posts, and saves them", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.SecurityCase,
+    );
+
+    await toDestination(user);
+    fireEvent.change(
+      within(dialog()).getByPlaceholderText("#incidents, #ops"),
+      { target: { value: "#security-approvals" } },
+    );
+    await settle();
+    await toUpdates(user);
+
+    await user.click(
+      within(dialog()).getByRole("radio", { name: "Choose updates" }),
+    );
+    await settle();
+
+    const boxes: Array<HTMLElement> = within(
+      within(dialog()).getByRole("group", { name: "Choose updates" }),
+    ).getAllByRole("checkbox");
+
+    expect(
+      boxes.map((updateBox: HTMLElement): string => {
+        return (
+          document.querySelector(`label[for="${updateBox.id}"]`)?.textContent ||
+          ""
+        );
+      }),
+    ).toEqual([
+      "New and raised cases",
+      "Assignments",
+      "Approvals needed",
+      "Response targets",
+    ]);
+
+    // Only the approvals.
+    for (const name of [
+      "New and raised cases",
+      "Assignments",
+      "Response targets",
+    ]) {
+      await user.click(
+        within(dialog()).getByRole("checkbox", {
+          name: new RegExp(`^${name}`),
+        }),
+      );
+    }
+    await settle();
+
+    await submit(user);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const rule: JSONObject = createCall().model
+      .notificationRule as unknown as JSONObject;
+
+    expect(rule["updatesToPost"]).toEqual(["ApprovalRequested"]);
+    expect(rule["existingChannelNames"]).toBe("#security-approvals");
   });
 });
