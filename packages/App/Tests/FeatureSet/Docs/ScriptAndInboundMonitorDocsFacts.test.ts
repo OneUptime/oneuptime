@@ -123,6 +123,8 @@ const SYNTHETIC_BROKER_FILE: string =
 const SYNTHETIC_RPC_FILE: string =
   "Probe/Utils/Monitors/SyntheticRuntime/RpcProtocol.ts";
 const VM_RUNNER_FILE: string = "Common/Server/Utils/VM/VMRunner.ts";
+// The sandbox's HTTP, as the host makes it: VMRunner runs one per run.
+const VM_HTTP_BRIDGE_FILE: string = "Common/Server/Utils/VM/VMHttpBridge.ts";
 const METRIC_UTIL_FILE: string =
   "Common/Server/Utils/Monitor/MonitorMetricUtil.ts";
 const ATTRIBUTE_UTIL_FILE: string =
@@ -588,6 +590,7 @@ describe("the type picker, on every page that names it", () => {
 describe("Custom Code Monitor", () => {
   const page: string = englishPage(CUSTOM_CODE_PAGE);
   const vmRunner: string = readRepoFile(VM_RUNNER_FILE);
+  const vmHttpBridge: string = readRepoFile(VM_HTTP_BRIDGE_FILE);
 
   it("lists the criteria filters the form offers a custom code monitor", () => {
     const criteria: string = section(page, "## Criteria");
@@ -719,10 +722,10 @@ describe("Custom Code Monitor", () => {
     expect(numberConstant(vmRunner, "MAX_LOG_MESSAGES")).toBe(1000);
     expect(page).toContain("The **Log Messages**, up to 1,000 per run.");
 
-    expect(numberConstant(vmRunner, "MAX_HTTP_RESPONSE_BYTES")).toBe(
+    expect(numberConstant(vmHttpBridge, "MAX_HTTP_RESPONSE_BYTES")).toBe(
       10 * 1024 * 1024,
     );
-    expect(numberConstant(vmRunner, "MAX_HTTP_REQUEST_BYTES")).toBe(
+    expect(numberConstant(vmHttpBridge, "MAX_HTTP_REQUEST_BYTES")).toBe(
       10 * 1024 * 1024,
     );
     expect(page).toContain(
@@ -731,8 +734,8 @@ describe("Custom Code Monitor", () => {
   });
 
   it("says axios follows no redirect and uses no proxy, as the bridge forces", () => {
-    expect(vmRunner).toContain('safeConfig["maxRedirects"] = 0;');
-    expect(vmRunner).toContain('safeConfig["proxy"] = false;');
+    expect(vmHttpBridge).toContain('safeConfig["maxRedirects"] = 0;');
+    expect(vmHttpBridge).toContain('safeConfig["proxy"] = false;');
     expect(page).toContain(
       "`axios` in this sandbox does not follow redirects, and its requests do not go through a proxy configured on the probe.",
     );
