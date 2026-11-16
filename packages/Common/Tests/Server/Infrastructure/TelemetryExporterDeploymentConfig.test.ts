@@ -2,6 +2,11 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
+import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-proto";
+import {
+  AggregationTemporality,
+  InstrumentType,
+} from "@opentelemetry/sdk-metrics";
 import { CAPTURE_MESSAGE_CONTENT_ENV_VAR } from "../../../Server/Utils/LLM/LLMCallTelemetry";
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -179,4 +184,145 @@ describe("OneUptime AI's prompts and answers stay out of its telemetry unless tu
       ].join("\n"),
     );
   });
+});
+
+/*
+ * How OneUptime's own metrics are sent (#6760): running totals, the
+ * OpenTelemetry default, unless the operator asks for deltas, which a
+ * OneUptime project reads exactly. One setting next to the exporter's
+ * endpoint and headers - OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY in
+ * config.env, openTelemetryExporter.metricsTemporality in the Helm chart -
+ * reaches every service as OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE,
+ * which the OTLP metric exporter reads itself.
+ */
+describe("OneUptime's own metrics temporality", () => {
+  const SETTING: string = "OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY";
+  const SDK_VARIABLE: string =
+    "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE";
+  const FROM_CONFIG: string = `\${${SETTING}:-}`;
+
+  interface ComposeService {
+    environment?: Record<string, string>;
+  }
+
+  interface ComposeFile {
+    "x-common-variables": Record<string, string>;
+    services: Record<string, ComposeService>;
+  }
+
+  const readCompose: () => ComposeFile = (): ComposeFile => {
+    return yaml.load(fs.readFileSync(COMPOSE_PATH, "utf8")) as ComposeFile;
+  };
+
+  test("the example configuration ships it empty, which keeps the exporter's default", () => {
+    expect(readExampleEnvValue(SETTING)).toBe("");
+
+    const source: string = fs.readFileSync(EXAMPLE_ENV_PATH, "utf8");
+
+    // Beside the exporter's endpoint and headers, in the server-side part.
+    expect(source.indexOf(`\n${SETTING}=`)).toBeGreaterThan(
+      source.indexOf("\nOPENTELEMETRY_EXPORTER_OTLP_HEADERS="),
+    );
+    expect(source.indexOf(`\n${SETTING}=`)).toBeLessThan(
+      source.indexOf("# Optional browser RUM exporter configuration."),
+    );
+  });
+
+  test("Docker Compose hands it to the SDK's own variable, empty when config.env has no line for it", () => {
+    expect(readCompose()["x-common-variables"][SDK_VARIABLE]).toBe(FROM_CONFIG);
+  });
+
+  test("every Compose service that exports OneUptime's own telemetry gets it, from the same setting", () => {
+    const services: Record<string, ComposeService> = readCompose().services;
+    const exporting: Array<string> = Object.keys(services).filter(
+      (name: string): boolean => {
+        return Boolean(
+          services[name]?.environment?.["OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT"],
+        );
+      },
+    );
+
+    // The app, the probes, the global Runner and the rest, merged anchors included.
+    expect(exporting).toEqual(
+      expect.arrayContaining(["app", "probe-1", "probe-2", "global-runner"]),
+    );
+
+    for (const name of exporting) {
+      expect({
+        name,
+        value: services[name]?.environment?.[SDK_VARIABLE],
+      }).toEqual({ name, value: FROM_CONFIG });
+    }
+  });
+
+  test("Helm sets the SDK's variable only when the value is set", () => {
+    const source: string = fs.readFileSync(HELM_HELPERS_PATH, "utf8");
+
+    expect(source).toContain(
+      [
+        "{{- if $.Values.openTelemetryExporter.metricsTemporality }}",
+        `- name: ${SDK_VARIABLE}`,
+        '  value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.metricsTemporality }}',
+        "{{- end }}",
+      ].join("\n"),
+    );
+
+    const values: Record<string, Record<string, unknown>> = yaml.load(
+      fs.readFileSync(HELM_VALUES_PATH, "utf8"),
+    ) as Record<string, Record<string, unknown>>;
+
+    expect(values["openTelemetryExporter"]).toHaveProperty(
+      "metricsTemporality",
+    );
+    expect(values["openTelemetryExporter"]!["metricsTemporality"]).toBeNull();
+  });
+
+  /*
+   * The exporter OneUptime builds is given no temporality, so the variable
+   * decides: an empty one - what Compose passes for an empty setting - is the
+   * exporter's default, cumulative, and delta turns counters and histograms
+   * into deltas.
+   */
+  test.each([
+    [undefined, "CUMULATIVE"],
+    ["", "CUMULATIVE"],
+    ["cumulative", "CUMULATIVE"],
+    ["delta", "DELTA"],
+  ])(
+    "the OTLP metric exporter reads %p as %s",
+    (value: string | undefined, expected: string) => {
+      const saved: string | undefined = process.env[SDK_VARIABLE];
+
+      try {
+        if (value === undefined) {
+          delete process.env[SDK_VARIABLE];
+        } else {
+          process.env[SDK_VARIABLE] = value;
+        }
+
+        const exporter: OTLPMetricExporter = new OTLPMetricExporter({
+          url: "http://localhost/v1/metrics",
+        });
+
+        expect(
+          [InstrumentType.COUNTER, InstrumentType.HISTOGRAM].map(
+            (instrumentType: InstrumentType): AggregationTemporality => {
+              return exporter.selectAggregationTemporality(instrumentType);
+            },
+          ),
+        ).toEqual([
+          AggregationTemporality[expected as "CUMULATIVE" | "DELTA"],
+          AggregationTemporality[expected as "CUMULATIVE" | "DELTA"],
+        ]);
+
+        void exporter.shutdown();
+      } finally {
+        if (saved === undefined) {
+          delete process.env[SDK_VARIABLE];
+        } else {
+          process.env[SDK_VARIABLE] = saved;
+        }
+      }
+    },
+  );
 });
