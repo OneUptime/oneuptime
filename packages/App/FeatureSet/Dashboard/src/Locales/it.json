@@ -56376,7 +56376,11 @@
   "Incomplete:": "Non soddisfatto:",
   "Special character included (optional)": "Carattere speciale incluso (facoltativo)",
   "Special characters are optional. Try !, @, # or $.": "I caratteri speciali sono facoltativi. Prova !, @, # o $.",
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.": "Codice compilato senza simboli: il profiler ha registrato solo dove è stato eseguito, non come si chiama.",
+  "How to add symbols": "Come aggiungere i simboli",
   "Lineage Map": "Mappa di derivazione",
+  "No symbols": "Nessun simbolo",
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.": "Questo intervallo ha più stack di chiamate di quanti un grafico ne possa contenere, quindi mostra i più attivi, e le quote sono calcolate su questi.",
   "Which services, pipelines, tables and dashboards write and read your data, and where it flows. Select a card to follow its lineage.": "Quali servizi, pipeline, tabelle e dashboard scrivono e leggono i tuoi dati, e dove fluiscono. Seleziona un riquadro per seguirne la derivazione.",
   "How the Lineage Map Works": "Come funziona la mappa di derivazione",
   "Who writes and reads your data, and where it flows.": "Chi scrive e legge i tuoi dati, e dove fluiscono.",
@@ -56406,6 +56410,8 @@
   "Nothing on the map reads it or is built from it.": "Nulla sulla mappa la legge o è costruito a partire da essa.",
   "Show Only Its Lineage": "Mostra solo la sua derivazione",
   "Show the Whole Map": "Mostra tutta la mappa",
+  "{{count}} addresses grouped here.": "{{count}} indirizzi raggruppati qui.",
+  "{{count}} addresses grouped here._one": "{{count}} indirizzo raggruppato qui.",
   "{{count}} pipelines": "{{count}} pipeline",
   "{{count}} pipelines_one": "{{count}} pipeline",
   "Showing {{shown}} of {{count}} flows. Search to narrow them.": "Mostrati {{shown}} flussi su {{count}}. Cerca per restringerli.",
@@ -56413,5 +56419,6 @@
   "{{count}} more further upstream": "Altri {{count}} più a monte",
   "{{count}} more further upstream_one": "Un altro {{count}} più a monte",
   "{{count}} more further downstream": "Altri {{count}} più a valle",
-  "{{count}} more further downstream_one": "Un altro {{count}} più a valle"
+  "{{count}} more further downstream_one": "Un altro {{count}} più a valle",
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "Il {{share}} di questo grafico è codice senza simboli, quindi le sue funzioni non hanno nome."
 }

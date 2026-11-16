@@ -56376,7 +56376,11 @@
   "Incomplete:": "未满足：",
   "Special character included (optional)": "已包含特殊字符（可选）",
   "Special characters are optional. Try !, @, # or $.": "特殊字符为可选项。可以尝试 !、@、# 或 $。",
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.": "未带符号构建的代码：性能分析器只记录了它运行的位置，没有记录它的名称。",
+  "How to add symbols": "如何添加符号",
   "Lineage Map": "血缘地图",
+  "No symbols": "无符号",
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.": "此时间段的调用栈多于一张图能容纳的数量，因此只绘制最繁忙的调用栈，占比也以它们为基准。",
   "Which services, pipelines, tables and dashboards write and read your data, and where it flows. Select a card to follow its lineage.": "哪些服务、管道、表和仪表板写入和读取你的数据，以及数据流向哪里。选择一张卡片即可追踪其血缘。",
   "How the Lineage Map Works": "血缘地图的工作方式",
   "Who writes and reads your data, and where it flows.": "谁写入和读取你的数据，以及数据流向哪里。",
@@ -56406,6 +56410,8 @@
   "Nothing on the map reads it or is built from it.": "地图上没有任何内容读取它，也没有任何内容基于它构建。",
   "Show Only Its Lineage": "仅显示其血缘",
   "Show the Whole Map": "显示整张地图",
+  "{{count}} addresses grouped here.": "此处合并了 {{count}} 个地址。",
+  "{{count}} addresses grouped here._one": "此处合并了 {{count}} 个地址。",
   "{{count}} pipelines": "{{count}} 个管道",
   "{{count}} pipelines_one": "{{count}} 个管道",
   "Showing {{shown}} of {{count}} flows. Search to narrow them.": "显示 {{count}} 条数据流中的 {{shown}} 条。请搜索以缩小范围。",
@@ -56413,5 +56419,6 @@
   "{{count}} more further upstream": "更上游还有 {{count}} 个",
   "{{count}} more further upstream_one": "更上游还有 {{count}} 个",
   "{{count}} more further downstream": "更下游还有 {{count}} 个",
-  "{{count}} more further downstream_one": "更下游还有 {{count}} 个"
+  "{{count}} more further downstream_one": "更下游还有 {{count}} 个",
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "此图中 {{share}} 是没有符号的代码，因此其函数没有名称。"
 }

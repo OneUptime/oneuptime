@@ -56376,7 +56376,11 @@
   "Incomplete:": "Nicht erfüllt:",
   "Special character included (optional)": "Sonderzeichen enthalten (optional)",
   "Special characters are optional. Try !, @, # or $.": "Sonderzeichen sind optional. Probiere !, @, # oder $.",
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.": "Ohne Symbole gebauter Code: Der Profiler hat nur festgehalten, wo er lief, nicht wie er heißt.",
+  "How to add symbols": "So fügen Sie Symbole hinzu",
   "Lineage Map": "Datenherkunftskarte",
+  "No symbols": "Keine Symbole",
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.": "Dieses Zeitfenster hat mehr Aufrufstapel, als ein Diagramm fassen kann. Es zeigt daher die häufigsten, und die Anteile beziehen sich auf diese.",
   "Which services, pipelines, tables and dashboards write and read your data, and where it flows. Select a card to follow its lineage.": "Welche Dienste, Pipelines, Tabellen und Dashboards Ihre Daten schreiben und lesen und wohin sie fließen. Wählen Sie eine Karte aus, um ihrer Datenherkunft zu folgen.",
   "How the Lineage Map Works": "So funktioniert die Datenherkunftskarte",
   "Who writes and reads your data, and where it flows.": "Wer Ihre Daten schreibt und liest und wohin sie fließen.",
@@ -56406,6 +56410,8 @@
   "Nothing on the map reads it or is built from it.": "Nichts auf der Karte liest sie oder baut auf ihr auf.",
   "Show Only Its Lineage": "Nur die zugehörige Datenherkunft anzeigen",
   "Show the Whole Map": "Ganze Karte anzeigen",
+  "{{count}} addresses grouped here.": "{{count}} Adressen hier zusammengefasst.",
+  "{{count}} addresses grouped here._one": "{{count}} Adresse hier zusammengefasst.",
   "{{count}} pipelines": "{{count}} Pipelines",
   "{{count}} pipelines_one": "{{count}} Pipeline",
   "Showing {{shown}} of {{count}} flows. Search to narrow them.": "{{shown}} von {{count}} Datenflüssen werden angezeigt. Suchen Sie, um sie einzugrenzen.",
@@ -56413,5 +56419,6 @@
   "{{count}} more further upstream": "{{count}} weitere weiter stromaufwärts",
   "{{count}} more further upstream_one": "{{count}} weitere weiter stromaufwärts",
   "{{count}} more further downstream": "{{count}} weitere weiter stromabwärts",
-  "{{count}} more further downstream_one": "{{count}} weitere weiter stromabwärts"
+  "{{count}} more further downstream_one": "{{count}} weitere weiter stromabwärts",
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} dieses Diagramms ist Code ohne Symbole, daher haben seine Funktionen keine Namen."
 }

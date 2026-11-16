@@ -56376,7 +56376,11 @@
   "Incomplete:": "Ikke oppfylt:",
   "Special character included (optional)": "Spesialtegn inkludert (valgfritt)",
   "Special characters are optional. Try !, @, # or $.": "Spesialtegn er valgfrie. Prøv !, @, # eller $.",
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.": "Kode bygget uten symboler: profilereren registrerte bare hvor den kjørte, ikke hva den heter.",
+  "How to add symbols": "Slik legger du til symboler",
   "Lineage Map": "Opphavskart",
+  "No symbols": "Ingen symboler",
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.": "Dette vinduet har flere kallstabler enn én graf kan romme, så den viser de travleste, og andelene er av dem.",
   "Which services, pipelines, tables and dashboards write and read your data, and where it flows. Select a card to follow its lineage.": "Hvilke tjenester, pipelines, tabeller og dashbord som skriver og leser dataene dine, og hvor de flyter. Velg et kort for å følge opphavet.",
   "How the Lineage Map Works": "Slik fungerer opphavskartet",
   "Who writes and reads your data, and where it flows.": "Hvem som skriver og leser dataene dine, og hvor de flyter.",
@@ -56406,6 +56410,8 @@
   "Nothing on the map reads it or is built from it.": "Ingenting på kartet leser den eller er bygget på den.",
   "Show Only Its Lineage": "Vis bare opphavet",
   "Show the Whole Map": "Vis hele kartet",
+  "{{count}} addresses grouped here.": "{{count}} adresser samlet her.",
+  "{{count}} addresses grouped here._one": "{{count}} adresse samlet her.",
   "{{count}} pipelines": "{{count}} pipelines",
   "{{count}} pipelines_one": "{{count}} pipeline",
   "Showing {{shown}} of {{count}} flows. Search to narrow them.": "Viser {{shown}} av {{count}} flyter. Søk for å snevre dem inn.",
@@ -56413,5 +56419,6 @@
   "{{count}} more further upstream": "{{count}} til lenger oppstrøms",
   "{{count}} more further upstream_one": "{{count}} til lenger oppstrøms",
   "{{count}} more further downstream": "{{count}} til lenger nedstrøms",
-  "{{count}} more further downstream_one": "{{count}} til lenger nedstrøms"
+  "{{count}} more further downstream_one": "{{count}} til lenger nedstrøms",
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} av denne grafen er kode uten symboler, så funksjonene har ingen navn."
 }

@@ -56376,7 +56376,11 @@
   "Incomplete:": "رعایت نشده:",
   "Special character included (optional)": "نویسهٔ ویژه دارد (اختیاری)",
   "Special characters are optional. Try !, @, # or $.": "نویسه‌های ویژه اختیاری هستند. از !، @، # یا $ استفاده کنید.",
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.": "کدی که بدون نماد ساخته شده است: پروفایلر فقط محل اجرای آن را ثبت کرده، نه نامش را.",
+  "How to add symbols": "چگونه نماد اضافه کنیم",
   "Lineage Map": "نقشهٔ تبار",
+  "No symbols": "بدون نماد",
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.": "این بازه بیش از آنچه یک نمودار جا دارد پشتهٔ فراخوانی دارد، پس پرکارترین‌ها را نشان می‌دهد و سهم‌ها از همان‌هاست.",
   "Which services, pipelines, tables and dashboards write and read your data, and where it flows. Select a card to follow its lineage.": "کدام سرویس‌ها، پایپ‌لاین‌ها، جدول‌ها و داشبوردها داده‌های شما را می‌نویسند و می‌خوانند و داده به کجا جریان می‌یابد. برای دنبال کردن تبار یک کارت، آن را انتخاب کنید.",
   "How the Lineage Map Works": "نقشهٔ تبار چگونه کار می‌کند",
   "Who writes and reads your data, and where it flows.": "چه کسی داده‌های شما را می‌نویسد و می‌خواند و داده به کجا جریان می‌یابد.",
@@ -56406,6 +56410,8 @@
   "Nothing on the map reads it or is built from it.": "هیچ چیز روی نقشه آن را نمی‌خواند یا از آن ساخته نشده است.",
   "Show Only Its Lineage": "نمایش فقط تبار آن",
   "Show the Whole Map": "نمایش کل نقشه",
+  "{{count}} addresses grouped here.": "{{count}} نشانی در اینجا گروه شده‌اند.",
+  "{{count}} addresses grouped here._one": "{{count}} نشانی در اینجا گروه شده است.",
   "{{count}} pipelines": "{{count}} پایپ‌لاین",
   "{{count}} pipelines_one": "{{count}} پایپ‌لاین",
   "Showing {{shown}} of {{count}} flows. Search to narrow them.": "نمایش {{shown}} از {{count}} جریان. برای محدود کردن آن‌ها جستجو کنید.",
@@ -56413,5 +56419,6 @@
   "{{count}} more further upstream": "{{count}} مورد دیگر دورتر در بالادست",
   "{{count}} more further upstream_one": "{{count}} مورد دیگر دورتر در بالادست",
   "{{count}} more further downstream": "{{count}} مورد دیگر دورتر در پایین‌دست",
-  "{{count}} more further downstream_one": "{{count}} مورد دیگر دورتر در پایین‌دست"
+  "{{count}} more further downstream_one": "{{count}} مورد دیگر دورتر در پایین‌دست",
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} از این نمودار کدِ بدون نماد است، پس تابع‌های آن نامی ندارند."
 }

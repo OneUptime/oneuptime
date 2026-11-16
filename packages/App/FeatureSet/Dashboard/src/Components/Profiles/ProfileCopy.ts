@@ -17,7 +17,7 @@ export const PROFILE_ORIGIN_LABELS: Record<ProfileFrameOrigin, string> = {
   [ProfileFrameOrigin.Dependency]: translationKey("Library"),
   [ProfileFrameOrigin.Runtime]: translationKey("Runtime"),
   [ProfileFrameOrigin.Native]: translationKey("System"),
-  [ProfileFrameOrigin.Unknown]: translationKey("Unknown"),
+  [ProfileFrameOrigin.Unknown]: translationKey("No symbols"),
 };
 
 /*
@@ -138,6 +138,31 @@ export const FLAME_DESCRIPTION: string = translationKey(
 );
 // Its legend says what the colours mean, so the card adds no sentence.
 export const FLAME_COMPARE_TITLE: string = translationKey("What changed");
+
+/*
+ * The flame graph's own words. Code without symbols: native code the
+ * profiler could name only by its address, grouped into one frame.
+ */
+export const FLAME_UNNAMED_FRAME: string = translationKey("No symbols");
+export const FLAME_UNNAMED_EXPLAINED: string = translationKey(
+  "Code built without symbols: the profiler recorded only where it ran, not what it is called.",
+);
+export const FLAME_UNNAMED_FRAMES: PluralTemplate = {
+  one: "{{count}} address grouped here.",
+  other: "{{count}} addresses grouped here.",
+};
+export const FLAME_UNNAMED_SHARE: string = translationKey(
+  "{{share}} of this graph is code without symbols, so its functions have no names.",
+);
+export const FLAME_UNNAMED_DOCS_LINK: string =
+  translationKey("How to add symbols");
+export const FLAME_TRUNCATED: string = translationKey(
+  "This window has more call stacks than one graph can hold, so it draws the busiest, and shares are of those.",
+);
+// A frame's tooltip: whose code it is, and that a click zooms into it.
+export const FLAME_CLICK_TO_ZOOM: string = translationKey(
+  "{{category}} · click to zoom in",
+);
 
 // The functions card.
 export const FUNCTIONS_TITLE: string = translationKey("Functions");
