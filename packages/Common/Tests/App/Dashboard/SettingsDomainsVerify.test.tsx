@@ -111,6 +111,7 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import Route from "../../../Types/API/Route";
@@ -156,7 +157,7 @@ async function verify(domain: string = "acme.com"): Promise<HTMLElement> {
   return dialog;
 }
 
-function answerCheckTxt(record: Record<string, unknown> | null): void {
+function answerCheckTxt(record: JSONObject | null): void {
   getJestSpyOn(API, "get").mockResolvedValue(
     new HTTPResponse(
       200,
@@ -168,7 +169,7 @@ function answerCheckTxt(record: Record<string, unknown> | null): void {
   );
 }
 
-const TXT_WRONG_VALUE: Record<string, unknown> = {
+const TXT_WRONG_VALUE: JSONObject = {
   type: "TXT",
   name: "acme.com",
   expectedValue: "oneuptime-verification-abc",
@@ -323,7 +324,7 @@ describe("Project Settings -> Domains: Verify Domain", () => {
     "%s: the status and the words DNS Setup uses for it",
     async (
       outcome: string,
-      extra: Record<string, unknown>,
+      extra: JSONObject,
       statusText: string,
       words: string,
     ) => {
