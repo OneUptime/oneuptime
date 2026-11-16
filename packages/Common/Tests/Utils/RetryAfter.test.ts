@@ -11,6 +11,11 @@ import {
 } from "../Helpers/SeededRandom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { AxiosHeaders } from "axios";
+import { spawnSync, SpawnSyncReturns } from "child_process";
+import fs from "fs";
+import os from "os";
+import path from "path";
+import ts from "typescript";
 
 /*
  * Retry-After as RFC 9110 writes it (issue #8928): delay-seconds is digits
@@ -363,7 +368,7 @@ describe("the obsolete RFC 850 shape", () => {
 });
 
 describe("the obsolete asctime shape", () => {
-  test("is read as UTC, never in the local time zone", () => {
+  test("is read", () => {
     expect(RetryAfter.parseHttpDate("Sun Nov  6 08:49:37 1994")).toBe(
       RFC_EXAMPLE_MS,
     );
@@ -373,6 +378,68 @@ describe("the obsolete asctime shape", () => {
     expect(
       RetryAfter.parseMs("Mon Nov 16 10:00:07 2026", { nowMs: NOW_MS }),
     ).toBe(7000);
+  });
+
+  test("is read as UTC, never in the local time zone", () => {
+    /*
+     * Jest's process.env is a copy of its own, so a zone set there never
+     * reaches the clock. This file runs instead in a Node whose zone is
+     * New York, where Date.parse reads asctime five hours off.
+     */
+    const scratch: string = fs.mkdtempSync(
+      path.join(os.tmpdir(), "retry-after-"),
+    );
+
+    try {
+      fs.writeFileSync(
+        path.join(scratch, "RetryAfter.js"),
+        ts.transpileModule(
+          fs.readFileSync(
+            path.join(__dirname, "..", "..", "Utils", "RetryAfter.ts"),
+            "utf8",
+          ),
+          {
+            compilerOptions: {
+              module: ts.ModuleKind.CommonJS,
+              target: ts.ScriptTarget.ES2018,
+            },
+          },
+        ).outputText,
+      );
+
+      const run: SpawnSyncReturns<string> = spawnSync(
+        process.execPath,
+        [
+          "-e",
+          [
+            'const RetryAfter = require("./RetryAfter.js").default;',
+            'const value = "Sun Nov  6 08:49:37 1994";',
+            "process.stdout.write(JSON.stringify({",
+            "  byDateParse: Date.parse(value),",
+            "  read: RetryAfter.parseHttpDate(value),",
+            "  waitMs: RetryAfter.parseMs(value, {",
+            `    nowMs: ${RFC_EXAMPLE_MS - 7000},`,
+            "  }),",
+            "}));",
+          ].join("\n"),
+        ],
+        {
+          cwd: scratch,
+          encoding: "utf8",
+          env: { ...process.env, TZ: "America/New_York" },
+        },
+      );
+
+      expect(run.stderr).toBe("");
+      expect(JSON.parse(run.stdout)).toEqual({
+        // The zone took: Date.parse is five hours off.
+        byDateParse: RFC_EXAMPLE_MS + 5 * 60 * 60 * 1000,
+        read: RFC_EXAMPLE_MS,
+        waitMs: 7000,
+      });
+    } finally {
+      fs.rmSync(scratch, { recursive: true, force: true });
+    }
   });
 
   test("a day the month does not have is no date", () => {
