@@ -385,7 +385,7 @@ Il `docker-compose.yml` dell'agent esegue anche l'**Agente IA Proxmox**, `oneupt
 - Come l'exporter, non verifica il certificato autofirmato dell'API a meno che tu non imposti `PVE_VERIFY_SSL=true` o punti `PVE_CA_FILE` alla CA del cluster (`/etc/pve/pve-root-ca.pem`, montata nel container).
 - Gira come UID 1000 senza capability e con un file system radice in sola lettura, e non legge mai `/access`, non apre mai una console e non modifica mai la configurazione. Elimina il servizio `oneuptime-proxmox-ai-agent` da `docker-compose.yml` se non usi OneUptime AI.
 
-Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure Agenti IA](/docs/ai/infrastructure-ai-agents#cluster-proxmox). Il README dell'agent riporta i comandi `pveum` esatti per un token per le correzioni.
+Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents#cluster-proxmox). Il README dell'agent riporta i comandi `pveum` esatti per un token per le correzioni.
 
 ## Risoluzione dei problemi
 
@@ -446,6 +446,6 @@ Il push nativo non invia lo stato HA, l'avvio al boot, la copertura dei backup n
 :::cards
 - [Monitor Proxmox](/docs/monitor/proxmox-monitor): Ricevere avvisi su nodi, guest, storage, HA, backup e replica.
 - [Agent Ceph](/docs/telemetry/ceph): Monitorare lo storage Ceph sotto il tuo cluster Proxmox.
-- [Infrastructure Agenti IA](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA Proxmox e come funzionano le correzioni.
+- [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA Proxmox e come funzionano le correzioni.
 - [Collector OpenTelemetry sull'host](/docs/telemetry/host-otel-collector): La vista a livello di sistema operativo di ogni nodo.
 :::

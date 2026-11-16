@@ -623,7 +623,7 @@ I cluster Kubernetes usano l'agente IA di Kubernetes. Un agente IA cloud serve u
 ## Passaggi successivi
 
 :::cards
-- [IA SRE](/docs/ai/ai-sre): Cosa fa OneUptime AI con un incidente e come si decidono le correzioni.
+- [AI SRE](/docs/ai/ai-sre): Cosa fa OneUptime AI con un incidente e come si decidono le correzioni.
 - [Agent Docker](/docs/telemetry/docker-host): Installa il collector accanto a cui gira l'agente IA Docker.
 - [Collector OpenTelemetry sull'host](/docs/telemetry/host-otel-collector): Fai inviare i dati a un host Linux, poi aggiungi l'agente IA dell'host.
 - [Collegare un account cloud](/docs/telemetry/cloud-accounts): Collega l'account servito da un agente IA cloud, poi consenti all'IA di correggervi i problemi.

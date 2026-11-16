@@ -19,7 +19,7 @@ Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni 
 | Inviare un'email tramite il tuo server di posta               | [Email](#email)                                                   |
 | Chiamare una persona, un team o chi è reperibile | [Paging](#paging) |
 | Chiamare qualsiasi altra API o un tuo servizio                | [API](#api)                                                       |
-| Riassumere, classificare o scrivere testo                     | [Genera testo con l'IA](#genera-testo-con-lia)                   |
+| Riassumere, classificare o scrivere testo                     | [Generate Text with AI](#generate-text-with-ai)                   |
 | Prendere un percorso o un altro in base a un valore           | [Conditions](#conditions)                                         |
 | Prendere uno di più percorsi in base a un valore              | [Switch / Case](#switch-case)                                     |
 | Proseguire solo quando poche righe di JavaScript lo dicono | [Check With JavaScript](#check-with-javascript) |
@@ -71,9 +71,9 @@ I reindirizzamenti non vengono seguiti, quindi punta il blocco all'indirizzo che
 
 **Chiamata API GET per ID (JSON)** legge un elemento tramite un ID arrivato da altrove, come la chiave del ticket inviata da un webhook. Metti `{id}` nel suo **URL** dove va l'ID, come in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, e l'ID in **ID**. Il blocco inserisce l'ID solo quando è un ID semplice, al massimo 200 lettere, cifre, trattini e trattini bassi, e lo codifica comunque in percentuale: qualsiasi altra cosa, come `x/../users`, prende **Errore** prima che parta qualsiasi richiesta, così un testo arrivato da fuori non può indirizzare la richiesta altrove. Per il resto funziona come **Chiamata API GET (JSON)** e restituisce gli stessi valori.
 
-## IA
+## AI
 
-### Genera testo con l'IA
+### Generate Text with AI
 
 Genera una risposta testuale da un prompt e da un contesto JSON facoltativo. Il blocco usa il provider LLM predefinito del progetto, o il provider globale dell'installazione quando il progetto non ne ha uno. I provider si configurano in modo centralizzato in **Impostazioni del progetto → IA → Provider LLM**; le loro chiavi e i loro endpoint non sono mai impostazioni del blocco.
 

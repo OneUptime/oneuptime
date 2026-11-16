@@ -137,7 +137,7 @@ export OTEL_SERVICE_NAME="my-ai-agent"
 ```
 :::
 
-Ognuno traccia allo stesso modo le chiamate a OpenAI, Azure OpenAI e Microsoft Foundry. Su .NET e Java, imposta anche le variabili della scheda OpenTelemetry SDK: le librerie OpenAI e Azure.IA.OpenAI tracciano le loro chiamate una volta attivato il loro interruttore, e l'agente Java traccia l'SDK Java di OpenAI.
+Ognuno traccia allo stesso modo le chiamate a OpenAI, Azure OpenAI e Microsoft Foundry. Su .NET e Java, imposta anche le variabili della scheda OpenTelemetry SDK: le librerie OpenAI e Azure.AI.OpenAI tracciano le loro chiamate una volta attivato il loro interruttore, e l'agente Java traccia l'SDK Java di OpenAI.
 
 Ospiti OneUptime in proprio? Usa `https://YOUR-ONEUPTIME-HOST/otlp` al posto di `https://oneuptime.com/otlp`. Chiama il tuo modello una volta, e la chiamata compare in **Chiamate**.
 
@@ -151,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Le strumentazioni OpenTelemetry più recenti accettano `span_only`, `event_only` o `span_and_event` al posto di `true`. Senza contenuto registrato, una conversazione mostra comunque i suoi tempi, il suo costo e i suoi problemi. I prompt possono contenere dati sensibili: [Privacy e oscuramento](#privacy-e-oscuramento) mostra come mascherarli prima che vengano salvati.
 
-Le conversazioni leggono ciò che è registrato sullo span della chiamata, e gli eventi di log che l'app invia con gli id di traccia e di span della chiamata. La strumentazione OpenTelemetry per Python lo registra sullo span con `span_only`; le strumentazioni per JavaScript e Java, e quella per Python con `true` o `event_only`, lo inviano come eventi di log, che arrivano a OneUptime con i log dell'app. L'SDK AI Inference di Azure lo registra sullo span con `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.IA con `EnableSensitiveData`; la libreria OpenAI per .NET non registra nulla.
+Le conversazioni leggono ciò che è registrato sullo span della chiamata, e gli eventi di log che l'app invia con gli id di traccia e di span della chiamata. La strumentazione OpenTelemetry per Python lo registra sullo span con `span_only`; le strumentazioni per JavaScript e Java, e quella per Python con `true` o `event_only`, lo inviano come eventi di log, che arrivano a OneUptime con i log dell'app. L'SDK AI Inference di Azure lo registra sullo span con `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI con `EnableSensitiveData`; la libreria OpenAI per .NET non registra nulla.
 
 ### Raggruppa le chiamate in conversazioni
 

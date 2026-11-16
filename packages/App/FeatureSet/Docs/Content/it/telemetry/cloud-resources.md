@@ -487,7 +487,7 @@ Ogni punto dati porta l'ID risorsa Azure della sua risorsa (`azuremonitor.resour
 | `Microsoft.Kusto/clusters` | Data Explorer Cluster | PaaS |
 | `Microsoft.StreamAnalytics/streamingjobs` | Stream Analytics Job | PaaS |
 | `Microsoft.CognitiveServices/accounts` | Azure AI Services or OpenAI | PaaS |
-| `Microsoft.Search/searchServices` | IA Search Service | PaaS |
+| `Microsoft.Search/searchServices` | AI Search Service | PaaS |
 | `Microsoft.MachineLearningServices/workspaces` | Machine Learning Workspace | PaaS |
 | `Microsoft.KeyVault/vaults` | Key Vault | PaaS |
 | `Microsoft.Insights/components` | Application Insights | PaaS |

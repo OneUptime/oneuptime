@@ -211,7 +211,7 @@ Il `docker-compose.yml` dello swarm (e `install.sh`) esegue anche l'**Agente IA 
 - Gira come root con il socket Docker montato, perché il socket appartiene a root — e su un manager chi può usare il socket controlla l'intero swarm, `:ro` o no. La policy dei comandi dell'agent è il limite: non crea né rimuove mai servizi o stack, non tocca mai secret o config, e non modifica mai sé stesso, il collector, il poller dell'inventario o qualsiasi cosa in `ONEUPTIME_AI_PROTECTED_TARGETS` (glob di nomi di servizi e nodi).
 - `install.sh --no-ai-agent` lo omette; in alternativa, elimina il servizio `oneuptime-docker-swarm-ai-agent` da `docker-compose.yml`.
 
-Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure Agenti IA](/docs/ai/infrastructure-ai-agents#cluster-docker-swarm).
+Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents#cluster-docker-swarm).
 
 ## Risoluzione dei problemi
 
@@ -272,6 +272,6 @@ I file dell'agente precedenti alla versione 0.161.3 iniziavano ogni snapshot con
 
 :::cards
 - [Monitor Docker Swarm](/docs/monitor/docker-swarm-monitor): Avvisi su nodi, servizi, task e container.
-- [Infrastructure Agenti IA](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA Docker Swarm e come funzionano le correzioni.
+- [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA Docker Swarm e come funzionano le correzioni.
 - [Agent Docker](/docs/telemetry/docker-host): Monitora invece un singolo host Docker.
 :::

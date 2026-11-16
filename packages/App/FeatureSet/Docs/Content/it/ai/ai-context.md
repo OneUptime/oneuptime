@@ -60,7 +60,7 @@ Una regola IA può avere note proprie sugli incidenti o sugli avvisi a cui corri
 
 | Funzione | Cosa legge |
 | --- | --- |
-| Le indagini di IA SRE, e i loro nuovi controlli quando si apre un nuovo avviso | Le note del progetto, e quelle delle regole IA che corrispondono |
+| Le indagini di AI SRE, e i loro nuovi controlli quando si apre un nuovo avviso | Le note del progetto, e quelle delle regole IA che corrispondono |
 | Le correzioni che una regola IA avvia: i loro piani, comandi e server MCP | Le note del progetto, e quelle della regola |
 | Chiedi all'IA, e la conversazione su un incidente o un avviso | Le note del progetto; su un incidente o un avviso, anche quelle delle regole IA che corrispondono |
 | Le risposte in Slack e Microsoft Teams | Le note del progetto |
@@ -96,7 +96,7 @@ Tramite l'API o Terraform, le note del progetto sono il campo `aiContext` del pr
 ## Prossimi passi
 
 :::cards
-- [IA SRE](/docs/ai/ai-sre): Lascia che OneUptime AI indaghi su ogni nuovo incidente e avviso.
+- [AI SRE](/docs/ai/ai-sre): Lascia che OneUptime AI indaghi su ogni nuovo incidente e avviso.
 - [Chiedi all'IA](/docs/ai/ask-ai): Fai domande sui dati del tuo progetto in una conversazione.
 - [Provider LLM](/docs/ai/llm-provider): Scegli il modello che legge le note.
 :::

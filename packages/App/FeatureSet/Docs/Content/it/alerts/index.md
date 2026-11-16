@@ -102,7 +102,7 @@ Nel momento in cui un avviso viene creato, OneUptime esegue questi passaggi, in 
 5. **Le regole di reperibilità aggiungono le loro policy**, poi le regole di runbook avviano i runbook corrispondenti.
 6. **Le policy di reperibilità vengono eseguite.** Ogni policy dell'avviso chiama le sue persone in parallelo; se una fallisce, le altre non si fermano. Poi la prima regola degli incidenti che corrisponde dichiara un incidente dall'avviso, subito o allo scadere della sua attesa.
 7. **Le regole di raggruppamento lo mettono in un episodio**, quando una corrisponde. Vedere [Episodi di avvisi e regole di raggruppamento](/docs/alerts/episodes).
-8. **I promemoria vengono pianificati**, quando corrisponde una regola di promemoria, e **OneUptime AI** indaga sull'avviso quando **Indaga sui nuovi avvisi** è attivo in **Avvisi → IA → Impostazioni**, e lo corregge quando **Correggi automaticamente i nuovi avvisi** è attivo. Vedere [IA SRE](/docs/ai/ai-sre).
+8. **I promemoria vengono pianificati**, quando corrisponde una regola di promemoria, e **OneUptime AI** indaga sull'avviso quando **Indaga sui nuovi avvisi** è attivo in **Avvisi → IA → Impostazioni**, e lo corregge quando **Correggi automaticamente i nuovi avvisi** è attivo. Vedere [AI SRE](/docs/ai/ai-sre).
 
 Un job in background informa i proprietari dell'avviso circa un minuto dopo la sua creazione, tutti quelli che ha a quel punto, e il trigger del flusso di lavoro **Alla creazione: Avviso** avvia ogni flusso di lavoro costruito su di esso.
 

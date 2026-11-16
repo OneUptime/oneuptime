@@ -357,6 +357,6 @@ La quota di token al minuto della distribuzione è esaurita. Le funzionalità di
 
 :::cards
 - [Provider LLM](/docs/ai/llm-provider): Tutti i tipi di provider e come un progetto ne sceglie uno.
-- [IA SRE](/docs/ai/ai-sre): Indagini che girano su questo provider.
-- [Chiedi all'IA](/docs/ai/ask-ai): Domande sul tuo sistema, con la risposta nella dashboard.
+- [AI SRE](/docs/ai/ai-sre): Indagini che girano su questo provider.
+- [Ask AI](/docs/ai/ask-ai): Domande sul tuo sistema, con la risposta nella dashboard.
 :::

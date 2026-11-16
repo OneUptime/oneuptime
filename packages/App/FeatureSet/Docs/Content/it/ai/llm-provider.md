@@ -11,7 +11,7 @@ Un provider LLM è il modello dietro ogni funzionalità di IA di OneUptime: inda
 
 ## Cosa alimenta un provider
 
-- **Indagini**: OneUptime AI indaga sui nuovi incidenti e avvisi e pubblica nella timeline un'analisi della causa principale con le fonti. Vedi [IA SRE](/docs/ai/ai-sre).
+- **Indagini**: OneUptime AI indaga sui nuovi incidenti e avvisi e pubblica nella timeline un'analisi della causa principale con le fonti. Vedi [AI SRE](/docs/ai/ai-sre).
 - **Domande**: **Chiedi all'IA** risponde a partire dai dati del tuo progetto, con una fonte per ogni affermazione. Vedi [Chiedi all'IA](/docs/ai/ask-ai).
 - **Bozze**: **Bozza con IA** nelle note di incidenti, avvisi e manutenzioni programmate, e i postmortem, scritti su richiesta o quando un incidente si risolve.
 - **Codice**: pull request che correggono eccezioni, tracce lente e le cause trovate dalle indagini, da OneUptime o da GitHub. Vedi [Codice](/docs/ai/ai-agent).
@@ -194,7 +194,7 @@ OneUptime unisce questo oggetto `options` alle opzioni che invia a Ollama, quind
 - `llama3.1` - Il modello Llama 3.1 di Meta, il Llama più vecchio che supporta il tool calling
 - `llama3.3` - Il modello Llama 3.3 di Meta
 - `qwen2.5` - Il modello Qwen 2.5 di Alibaba
-- `mistral-nemo` - Il modello Nemo di Mistral IA
+- `mistral-nemo` - Il modello Nemo di Mistral AI
 
 > [!NOTE]
 > Le funzionalità di IA di OneUptime sono agenti: si affidano molto al tool calling. Usa `llama3.1` o più recente, oppure un altro modello che chiama strumenti. Un modello piccolo, o uno senza tool calling (come `llama2` o il `llama3` originale), risponde male: non può interrogare i tuoi monitor, i tuoi incidenti o la telemetria, così le indagini tornano vuote o inventate.
@@ -308,6 +308,6 @@ Sei ancora bloccato? Cerca il tuo errore nelle [issue GitHub di OneUptime](https
 
 :::cards
 - [Codice](/docs/ai/ai-agent): Le pull request che scrive il tuo provider, e dove partono.
-- [IA SRE](/docs/ai/ai-sre): Cosa fa OneUptime AI con il provider una volta che ne ha uno.
+- [AI SRE](/docs/ai/ai-sre): Cosa fa OneUptime AI con il provider una volta che ne ha uno.
 - [Chiedi all'IA](/docs/ai/ask-ai): Fai una domanda al tuo progetto, e cambia il provider di una conversazione.
 :::

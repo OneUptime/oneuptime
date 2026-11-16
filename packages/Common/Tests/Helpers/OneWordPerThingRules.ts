@@ -220,11 +220,14 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
   /*
    * Italian spelled the abbreviation two ways: IA, as its AI key and the
    * AI agent's pages do, and AI (Agente AI di OneUptime). It says IA. Names
-   * stay as written: the product's, OneUptime AI; other products' (Vertex
-   * AI, Vercel AI SDK, Azure AI Inference, Zoom AI Companion, JetBrains AI);
-   * and the permissions', which every language keeps in English (Edit AI
-   * Rule, Read AI Agent Task), as are the labels the Italian Dashboard still
-   * draws in English (Generate with AI) (#8768).
+   * stay as written: the product's, OneUptime AI and AI SRE, and Ask AI and
+   * the AI Agent, which every language's docs name in English; other
+   * products' (Vertex AI, Vercel AI SDK, Azure AI Inference, Azure's AI
+   * Search, Zoom AI Companion, JetBrains AI, Mistral AI) and code's
+   * (Microsoft.Extensions.AI); and the permissions', which every language
+   * keeps in English (Edit AI Rule, Read AI Agent Task), as are the labels
+   * the Italian Dashboard still draws in English (Generate with AI) and a
+   * runbook's AI step, which its editor draws in English (#8768).
    */
   {
     language: "it",
@@ -232,7 +235,9 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     english: /\bAI\b/,
     word: /\bIA\b/,
     dropped:
-      /(?<!OneUptime |Vertex |Vercel |Azure |JetBrains |with )\bAI\b(?! (?:SDK|Companion|Inference|Agent|Rule))/,
+      /(?<!OneUptime |Vertex |Vercel |Azure |JetBrains |Mistral |Acme |Ask |with |\.)\bAI\b(?! (?:SDK|Companion|Inference|Agent|Rule|SRE|Search))(?!\.\w)/,
+    // A runbook's AI step and the workflow builder's AI section: their headings, their links, their table rows, the list of step types.
+    docsExcept: /^#{1,6} AI$|^AI$|^\| AI \||kubectl,? (?:and|or) AI\b/,
   },
   /*
    * An alert, as the Dashboard says it in most strings (#8769): Simplified

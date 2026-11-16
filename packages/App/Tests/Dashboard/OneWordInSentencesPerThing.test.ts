@@ -139,6 +139,113 @@ describe("the check of the sentences", () => {
     ).toBe(false);
   });
 
+  const ruleOf: (language: string, thing: string) => SentenceRule = (
+    language: string,
+    thing: string,
+  ): SentenceRule => {
+    return RULES.find((rule: SentenceRule) => {
+      return rule.language === language && rule.thing === thing;
+    })!;
+  };
+
+  test("lets Italian say IA and keep the names that say AI as written (#8768)", () => {
+    const italian: SentenceRule = ruleOf("it", "AI");
+
+    expect(italian.dropped.test("Avvia un'indagine AI")).toBe(true);
+    expect(italian.dropped.test("le correzioni di codice AI")).toBe(true);
+    expect(italian.dropped.test("Avvia un'indagine IA")).toBe(false);
+    // Names: the product's, other products', code's, the permissions', and labels drawn in English.
+    for (const name of [
+      "Chiedi a OneUptime AI",
+      "AI SRE",
+      "Se Ask AI ha letto il file",
+      "il vecchio AI Agent",
+      "Google Vertex AI",
+      "Vercel AI SDK",
+      "Azure AI Inference",
+      "AI Search Service",
+      "Zoom AI Companion",
+      "JetBrains AI",
+      "Il modello Nemo di Mistral AI",
+      "Azure.AI.OpenAI",
+      "Microsoft.Extensions.AI",
+      "Edit AI Rule",
+      "Generate with AI",
+    ]) {
+      expect({ name, dropped: italian.dropped.test(name) }).toEqual({
+        name,
+        dropped: false,
+      });
+    }
+    // A runbook's AI step and the workflow builder's AI section, which every Dashboard draws in English.
+    for (const english of [
+      "### AI",
+      "## AI",
+      "AI",
+      "| AI | The OneUptime Worker | A call to the project's LLM provider. |",
+      "Manual, JavaScript, HTTP request, Bash, SSH, kubectl and AI.",
+      "Bash, SSH, kubectl or AI), a title",
+    ]) {
+      expect({ english, except: italian.docsExcept!.test(english) }).toEqual({
+        english,
+        except: true,
+      });
+    }
+    expect(italian.docsExcept!.test("Start an AI investigation.")).toBe(false);
+  });
+
+  test("lets Chinese, German and Swedish say an alert one way, and keep the words that name something else (#8769)", () => {
+    const chinese: SentenceRule = ruleOf("zh-CN", "Alerts");
+    const german: SentenceRule = ruleOf("de", "Alerts");
+    const swedish: SentenceRule = ruleOf("sv", "Alerts");
+
+    expect(chinese.dropped.test("新告警")).toBe(true);
+    expect(chinese.dropped.test("新警报")).toBe(false);
+    // A warning alert, 警告警报, holds 告警 across its two words.
+    expect(chinese.dropped.test("警告警报")).toBe(false);
+
+    expect(german.dropped.test("Ein offener Alarm")).toBe(true);
+    expect(german.dropped.test("Alarmvorlagen")).toBe(true);
+    expect(german.dropped.test("Eine offene Warnung")).toBe(false);
+    // Paging, alarmieren and its Alarmierung, stays.
+    expect(german.dropped.test("Niemand wird alarmiert")).toBe(false);
+    expect(german.dropped.test("Alarmierung")).toBe(false);
+    // An English that names an alarm too keeps the German Alarm for it.
+    expect(german.except!.test("Alarm sound for critical alerts")).toBe(true);
+    expect(german.except!.test("Alertmanager alerts")).toBe(true);
+    expect(german.except!.test("Create Alert")).toBe(false);
+
+    expect(swedish.dropped.test("Nya aviseringar")).toBe(true);
+    expect(swedish.dropped.test("Nya larm")).toBe(false);
+    // A notification is avisering, so a text that names one too keeps it.
+    expect(swedish.except!.test("Alert notification settings")).toBe(true);
+    expect(swedish.except!.test("Turn on critical alerts")).toBe(true);
+    expect(swedish.except!.test("Create Alert")).toBe(false);
+  });
+
+  test("lets Norwegian and Arabic give Offline, Disconnected and Not connected each its own word (#8767, #8781)", () => {
+    const norwegian: SentenceRule = ruleOf("no", "Offline");
+    const disconnected: SentenceRule = ruleOf("ar", "Disconnected");
+    const notConnected: SentenceRule = ruleOf("ar", "Not connected");
+
+    expect(norwegian.dropped.test("Noden er frakoblet")).toBe(true);
+    expect(norwegian.dropped.test("Noden er offline")).toBe(false);
+    // A text that names Disconnected too keeps Frakoblet for it.
+    expect(norwegian.except!.test("Offline or disconnected nodes")).toBe(true);
+    expect(norwegian.except!.test("Offline nodes")).toBe(false);
+
+    expect(disconnected.dropped.test("الوكيل غير متصل")).toBe(true);
+    expect(disconnected.word.test("الوكيل منقطع الاتصال")).toBe(true);
+    expect(notConnected.dropped.test("Slack غير متصل")).toBe(true);
+    expect(notConnected.word.test("Slack غير مرتبط")).toBe(true);
+    // Each reads only its own state: a text naming two of them is worded by hand.
+    expect(disconnected.except!.test("Offline or disconnected")).toBe(true);
+    expect(notConnected.except!.test("Not connected or disconnected")).toBe(
+      true,
+    );
+    expect(disconnected.english.test("Not connected")).toBe(false);
+  });
+
   test("reads a plural form's key by its English", () => {
     expect(englishOf("Sync Criteria to {{count}} Linked Monitors_one")).toBe(
       "Sync Criteria to {{count}} Linked Monitors",
@@ -305,7 +412,11 @@ function docsLinesStillDropped(rule: SentenceRule): Array<string> {
         );
       };
 
-      if (inFence) {
+      /*
+       * A line still the English line word for word (a table row of names)
+       * is not translated yet: the translations' ratchet holds it.
+       */
+      if (inFence || line === englishLine) {
         return;
       }
 

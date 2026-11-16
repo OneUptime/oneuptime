@@ -267,5 +267,5 @@ Solo un post-mortem in **Non iniziato**, o in uno stato vostro sopra **Bozza**, 
 - [Panoramica degli incidenti](/docs/incidents/index): Le altre pagine dell'incidente, dalla dichiarazione alla risoluzione.
 - [Impostazioni e automazione degli incidenti](/docs/incidents/settings): I modelli di post-mortem e la misura del tempo fino al post-mortem.
 - [Iscritti e annunci](/docs/status-pages/subscribers): Tutto ciò che una pagina di stato comunica ai suoi iscritti.
-- [IA SRE](/docs/ai/ai-sre): Cosa fa OneUptime AI da solo dopo un incidente.
+- [AI SRE](/docs/ai/ai-sre): Cosa fa OneUptime AI da solo dopo un incidente.
 :::

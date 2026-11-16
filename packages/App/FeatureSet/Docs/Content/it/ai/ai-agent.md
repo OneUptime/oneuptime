@@ -311,7 +311,7 @@ Qualsiasi modo di eseguire il container funziona (Docker Compose, Kubernetes e c
 | `ONEUPTIME_URL` | L'indirizzo della tua istanza OneUptime (`https://oneuptime.com` su OneUptime Cloud). |
 
 > [!NOTE]
-> Prima di OneUptime 12, le correzioni di codice IA giravano su un componente Agente IA separato (l'immagine `oneuptime/ai-agent` con variabili `AI_AGENT_*`). È confluito nel Runner: se ne esegui ancora uno, la [guida all'aggiornamento da v11 a v12](/docs/installation/upgrading) spiega come sostituirlo.
+> Prima di OneUptime 12, le correzioni di codice IA giravano su un componente AI Agent separato (l'immagine `oneuptime/ai-agent` con variabili `AI_AGENT_*`). È confluito nel Runner: se ne esegui ancora uno, la [guida all'aggiornamento da v11 a v12](/docs/installation/upgrading) spiega come sostituirlo.
 
 ## Correzioni di codice automatiche dalle indagini
 
@@ -352,6 +352,6 @@ Il clone del tuo repository vive in uno spazio di lavoro dentro il container del
 
 :::cards
 - [GitHub App](/docs/ai/github-app): Chiedi una modifica, una revisione o una review direttamente da GitHub.
-- [IA SRE](/docs/ai/ai-sre): Le indagini le cui analisi le attività di correzione possono trasformare in pull request.
+- [AI SRE](/docs/ai/ai-sre): Le indagini le cui analisi le attività di correzione possono trasformare in pull request.
 - [Agenti di runbook](/docs/runbooks/agents): Il worker che svolge ogni esecuzione di correzione.
 :::

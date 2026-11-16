@@ -309,7 +309,7 @@ Jedes Ereignis ist auch ein Log. Eine Warnung wird mit dem Schweregrad **Warnung
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Durchsuchen Sie sie unter **Protokolle**, oder verwerfen Sie unerwünschte mit einem Drop-Filter. Um benachrichtigt zu werden, wenn eines eintritt, schalten Sie **Warning Events** auf der Seite **Empfehlungen** des Clusters ein, oder wählen Sie **Warnung bei Warnungen einschalten** unten auf seiner Seite **Ereignisse**: ein [Logs-Monitor](/docs/monitor/logs-monitor) über die Warnungen des Clusters, die einen Warnung pro Objekt und Grund auslöst und ihn auflöst, sobald 5 Minuten ohne neue Warnung dazu vergangen sind. Um nur über einige Gründe benachrichtigt zu werden, fügen Sie seinem Filter `k8s.event.reason` hinzu.
+Durchsuchen Sie sie unter **Protokolle**, oder verwerfen Sie unerwünschte mit einem Drop-Filter. Um benachrichtigt zu werden, wenn eines eintritt, schalten Sie **Warning Events** auf der Seite **Empfehlungen** des Clusters ein, oder wählen Sie **Warnungen für Warning-Ereignisse einschalten** unten auf seiner Seite **Ereignisse**: ein [Logs-Monitor](/docs/monitor/logs-monitor) über die Warnungen des Clusters, die einen Warnung pro Objekt und Grund auslöst und ihn auflöst, sobald 5 Minuten ohne neue Warnung dazu vergangen sind. Um nur über einige Gründe benachrichtigt zu werden, fügen Sie seinem Filter `k8s.event.reason` hinzu.
 
 ## Konfigurationsoptionen
 

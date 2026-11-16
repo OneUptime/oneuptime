@@ -267,7 +267,7 @@ const ESCALATION_SENTENCES: Record<string, string> = {
   ru: "Инцидент, оповещение или эпизод, созданные уже подтверждёнными или устранёнными, — то есть записанные задним числом, — не запускают ни одной своей политики: никого не оповещают, а их Feed сообщает об этом и называет эти политики.",
   sv: "En incident, ett larm eller en episod som skapas redan bekräftad eller löst — registrerad i efterhand — kör ingen av sina policyer: ingen larmas, och dess feed säger det och nämner dem vid namn.",
   "zh-CN":
-    "以已确认或已解决状态创建的事件、告警或片段（即事后补录的）不会执行任何策略：不会呼叫任何人，其 Feed 会记录这一点并列出这些策略。",
+    "以已确认或已解决状态创建的事件、警报或片段（即事后补录的）不会执行任何策略：不会呼叫任何人，其 Feed 会记录这一点并列出这些策略。",
   "zh-TW":
     "以已確認或已解決狀態建立的事件、警示或片段（即事後補登的）不會執行任何策略：不會呼叫任何人，其 Feed 會記下這一點並列出這些策略。",
 };

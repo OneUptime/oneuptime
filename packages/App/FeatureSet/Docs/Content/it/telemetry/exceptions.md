@@ -114,7 +114,7 @@ Per cambiarne diverse insieme, spuntate le loro righe nell'elenco, o la casella 
 
 ## Classi di errore
 
-Ogni eccezione ha una classe di errore, che dice di chi è il problema. OneUptime AI la imposta quando smista un insight sull'eccezione, come un'eccezione nuova o in forte aumento: vedere [IA SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo). Un'eccezione che non ha smistato resta `unknown`.
+Ogni eccezione ha una classe di errore, che dice di chi è il problema. OneUptime AI la imposta quando smista un insight sull'eccezione, come un'eccezione nuova o in forte aumento: vedere [AI SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo). Un'eccezione che non ha smistato resta `unknown`.
 
 | Classe | Che cosa significa | In **Problemi** |
 | --- | --- | --- |
@@ -138,7 +138,7 @@ In cima alla **Panoramica** di un'eccezione, **Spiega con OneUptime AI** chiede 
 | **Dove guardare** | I frame dello stack trace da aprire per primi. |
 | **Prossimi passi** | Al massimo tre passi per confermarla o correggerla. |
 
-La spiegazione resta sull'eccezione, così la persona successiva che la apre la legge subito, e **Spiega di nuovo** ne chiede una nuova. **Correggi con l'IA** apre la pagina **Correggi con l'IA** dell'eccezione, e **Fai una domanda di approfondimento** apre Chiedi all'IA sull'eccezione.
+La spiegazione resta sull'eccezione, così la persona successiva che la apre la legge subito, e **Spiega di nuovo** ne chiede una nuova. **Correggi con l'IA** apre la pagina **Correggi con l'IA** dell'eccezione, e **Fai una domanda di approfondimento** apre Ask AI sull'eccezione.
 
 ID, indirizzi email e IP e token vengono tolti da tutto ciò che viene inviato, e degli attributi di uno span ne vengono inviati solo alcuni, come la route e il codice di stato. La spiegazione usa il provider LLM e i crediti IA del progetto, e non viene offerta finché **Abilita IA** è disattivato. Chiunque possa leggere l'eccezione può chiederne una.
 
@@ -183,7 +183,7 @@ OneUptime AI ne apre una da solo solo per un'eccezione sollevata nel vostro codi
 
 ### Attivarlo
 
-**Eccezioni → IA → Impostazioni** contiene l'interruttore **Trova e correggi le eccezioni nuove e in aumento**, attivo per i nuovi progetti. Finché è disattivato, le eccezioni nuove e in aumento restano agli insight IA, come prima: vedere [IA SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo). Con **Abilita IA** disattivato, vengono ancora trovate, ma OneUptime AI non ne fa nulla. Per aprire pull request, OneUptime AI ha bisogno di un repository collegato in [Codice](/docs/ai/ai-agent): la pagina dice prima cosa manca. Il codice di ogni repository viene modificato sul Runner che il repository sceglie in Codice.
+**Eccezioni → IA → Impostazioni** contiene l'interruttore **Trova e correggi le eccezioni nuove e in aumento**, attivo per i nuovi progetti. Finché è disattivato, le eccezioni nuove e in aumento restano agli insight IA, come prima: vedere [AI SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo). Con **Abilita IA** disattivato, vengono ancora trovate, ma OneUptime AI non ne fa nulla. Per aprire pull request, OneUptime AI ha bisogno di un repository collegato in [Codice](/docs/ai/ai-agent): la pagina dice prima cosa manca. Il codice di ogni repository viene modificato sul Runner che il repository sceglie in Codice.
 
 OneUptime AI apre da solo al massimo 5 pull request al giorno (UTC), una per rilevamento, e mai più del limite di pull request IA aperte di un repository.
 
