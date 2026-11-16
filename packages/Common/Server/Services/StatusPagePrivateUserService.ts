@@ -7,6 +7,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import NewPasswordRule from "../Utils/NewPasswordRule";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ProjectReferencesService from "./ProjectReferencesService";
 import MailService from "./MailService";
@@ -61,6 +62,9 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
+
+    // The one password rule, for a password a new private user starts with.
+    NewPasswordRule.assertMet(createBy.data.password);
 
     /*
      * The status page under either of its names, kept in the ID column for
@@ -216,6 +220,12 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    /*
+     * The one password rule, for a new password however it came: the status
+     * page's reset link or the API (Utils/NewPasswordRule).
+     */
+    NewPasswordRule.assertMet(updateBy.data.password);
 
     if (updateBy.data.email) {
       const newEmail: string = (updateBy.data.email as Email)

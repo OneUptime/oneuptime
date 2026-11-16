@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "Reset uw wachtwoord",
     "subtitle": "Voer uw nieuwe wachtwoord in en we werken het bij.",
-    "successMessage": "Uw wachtwoord is bijgewerkt. Log in alstublieft.",
     "submitButton": "Wachtwoord resetten",
     "knowPasswordPrompt": "Kent u uw wachtwoord?",
-    "loginLink": "Inloggen."
+    "loginLink": "Inloggen.",
+    "successTitle": "Je wachtwoord is opnieuw ingesteld",
+    "successDescription": "Meld je aan met je nieuwe wachtwoord.",
+    "signInButton": "Aanmelden",
+    "linkExpiredTitle": "Deze herstellink is verlopen",
+    "linkExpiredDescription": "Herstellinks werken één dag. Vraag een nieuwe link aan, dan mailen we die naar je.",
+    "linkInvalidTitle": "Deze herstellink werkt niet meer",
+    "linkInvalidDescription": "Hij is misschien al gebruikt, of maar voor een deel gekopieerd. Vraag een nieuwe link aan, dan mailen we die naar je.",
+    "requestNewLinkButton": "Nieuwe link aanvragen"
   },
   "sso": {
     "title": "Inloggen met SSO",

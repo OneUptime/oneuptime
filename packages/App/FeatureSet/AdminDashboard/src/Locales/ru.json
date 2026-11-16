@@ -4127,5 +4127,22 @@
   "Something's broken": "Что-то не работает",
   "Confusing": "Непонятно",
   "Idea": "Идея",
-  "Other": "Другое"
+  "Other": "Другое",
+  "Use at least {{minimum}} characters.": "Используйте не менее {{minimum}} символов.",
+  "Try a few unrelated words.": "Попробуйте несколько не связанных между собой слов.",
+  "Password meets requirements": "Пароль соответствует требованиям",
+  "Password must be at least 15 characters.": "Пароль должен содержать не менее 15 символов.",
+  "Password cannot be more than 100 characters.": "Пароль не может содержать более 100 символов.",
+  "Choose a less predictable password. Try a few unrelated words.": "Выберите менее предсказуемый пароль. Попробуйте несколько не связанных между собой слов.",
+  "Password cannot be blank.": "Пароль не может состоять только из пробелов.",
+  "Password is required.": "Необходимо указать пароль.",
+  "Password must be a string.": "Пароль должен быть строкой.",
+  "Between {{minimum}} and {{maximum}} characters": "От {{minimum}} до {{maximum}} символов",
+  "Avoid common or repeated patterns": "Избегайте распространённых или повторяющихся последовательностей",
+  "Password length": "Длина пароля",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / минимум {{minimum}} символов",
+  "Complete:": "Выполнено:",
+  "Incomplete:": "Не выполнено:",
+  "Special character included (optional)": "Специальный символ добавлен (необязательно)",
+  "Special characters are optional. Try !, @, # or $.": "Специальные символы необязательны. Попробуйте !, @, # или $."
 }

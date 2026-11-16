@@ -47,11 +47,13 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
+import FormsCopy from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import MovedFormPageRedirect from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/MovedFormPageRedirect";
 import {
   FormSubmissionCreatedLink,
   getFormSubmissionCreatedLink,
   getFormSubmissionSubmitter,
+  isFormSubmissionIncidentHidden,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Submissions/FormSubmissionPresentation";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { MOVED_INCIDENT_FORM_PATHS } from "../../../../App/FeatureSet/Dashboard/src/Routes/MovedPagePaths";
@@ -265,6 +267,47 @@ describe("what a submission created", () => {
       submission.targetType = targetType;
 
       expect(getFormSubmissionCreatedLink(submission)).toBeNull();
+      expect(isFormSubmissionIncidentHidden(submission)).toBe(false);
     },
   );
+});
+
+/*
+ * The submissions table reads each submission with its incident selected.
+ * A private incident the reader may not see comes back without it, the
+ * submission still naming it (#9102): the Created column says it is a
+ * private incident, and links nowhere.
+ */
+describe("an incident the reader may not see", () => {
+  let submission: FormSubmission;
+
+  beforeEach(() => {
+    submission = new FormSubmission();
+    submission.targetType = FormTargetType.Incident;
+  });
+
+  test("is one the submission names, read back without it", () => {
+    submission.incidentId = new ObjectID(INCIDENT_ID);
+
+    expect(isFormSubmissionIncidentHidden(submission)).toBe(true);
+    expect(FormsCopy.createdPrivate).toBe("Private Incident");
+  });
+
+  test("not one read back with it", () => {
+    const incident: Incident = new Incident();
+    incident._id = INCIDENT_ID;
+    incident.incidentNumberWithPrefix = "INC-42";
+    submission.incidentId = new ObjectID(INCIDENT_ID);
+    submission.incident = incident;
+
+    expect(isFormSubmissionIncidentHidden(submission)).toBe(false);
+  });
+
+  test("never a maintenance event, which cannot be private", () => {
+    submission.targetType = FormTargetType.ScheduledMaintenance;
+    submission.scheduledMaintenanceId = new ObjectID(EVENT_ID);
+    submission.incidentId = new ObjectID(INCIDENT_ID);
+
+    expect(isFormSubmissionIncidentHidden(submission)).toBe(false);
+  });
 });

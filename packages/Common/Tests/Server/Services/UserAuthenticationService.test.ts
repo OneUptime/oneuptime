@@ -733,9 +733,21 @@ describe("UserService -- master-admin authentication management", () => {
        */
       resolveUser(buildUser({ id: userId, email: "user@example.com" }));
 
-      await UserService.setPassword({ userId: userId, password: "abcdef" });
+      await UserService.setPassword({
+        userId: userId,
+        password: "violet river la",
+      });
 
       expect(updateOneByIdSpy).toHaveBeenCalledTimes(1);
+    });
+
+    // One rule (#9123): Set Password took six characters, sign-up fifteen.
+    test("rejects the six characters it used to take, before touching the database", async () => {
+      await expectRejectedBeforeAnyQuery("abcdef");
+    });
+
+    test("rejects a predictable password of any length, before touching the database", async () => {
+      await expectRejectedBeforeAnyQuery("password123456789");
     });
 
     test("throws NotFoundException for a user that does not exist, and updates nothing", async () => {

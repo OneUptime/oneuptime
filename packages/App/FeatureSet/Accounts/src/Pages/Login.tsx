@@ -503,9 +503,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
       },
       title: t("common.password"),
       required: true,
-      validation: {
-        minLength: 6,
-      },
+      // No length check: a password set before the rule (#9123) still signs in.
       fieldType: FormFieldSchemaType.Password,
       // The sign-in password: password managers fill it.
       autoComplete: "current-password",

@@ -255,6 +255,8 @@ export const FormsCopy: {
   anonymous: string;
   created: string;
   createdDeleted: string;
+  // A private incident the reader may not see: named, never linked (#9102).
+  createdPrivate: string;
   viewAnswers: string;
   answersTitle: string;
   noAnswers: string;
@@ -565,6 +567,7 @@ export const FormsCopy: {
   anonymous: "Anonymous",
   created: "Created",
   createdDeleted: "Deleted since",
+  createdPrivate: "Private Incident",
   viewAnswers: "View Answers",
   answersTitle: "Answers",
   noAnswers: "This submission has no answers.",

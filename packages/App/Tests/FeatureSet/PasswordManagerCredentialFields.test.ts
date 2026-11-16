@@ -277,31 +277,70 @@ describe("password fields across the frontends", () => {
   test("exactly the sign-in, sign-up and own-password fields are left to password managers, each with the right autocomplete", () => {
     expect(ownCredentialAutoCompletesByFile(SCAN.fields)).toEqual({
       "App/FeatureSet/Accounts/src/Pages/Login.tsx": ["current-password"],
-      "App/FeatureSet/Accounts/src/Pages/Register.tsx": [
-        "new-password",
-        "new-password",
-      ],
-      "App/FeatureSet/Accounts/src/Pages/ResetPassword.tsx": [
-        "new-password",
-        "new-password",
-      ],
       "App/FeatureSet/StatusPage/src/Pages/Accounts/Login.tsx": [
         "current-password",
       ],
       "App/FeatureSet/StatusPage/src/Pages/Accounts/MasterPassword.tsx": [
         "current-password",
       ],
-      "App/FeatureSet/StatusPage/src/Pages/Accounts/ResetPassword.tsx": [
-        "new-password",
-        "new-password",
-      ],
       "App/FeatureSet/PublicDashboard/src/Pages/MasterPassword/MasterPassword.tsx":
         ["current-password"],
-      "App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/Password.tsx": [
-        "new-password",
-        "new-password",
-      ],
     });
+  });
+
+  /*
+   * A new password is drawn by the shared fields of the one password rule
+   * (Common/UI/Components/PasswordRequirements/NewPasswordFields, #9123):
+   * "new-password", and the person's own unless the page says it is
+   * somebody else's. The pages that set the person's own password leave it
+   * to password managers; Admin Dashboard's Create User and Set Password,
+   * which set somebody else's, do not.
+   */
+  test("the shared new-password fields: the person's own on their pages, never on a master admin's", () => {
+    const helper: string = fs.readFileSync(
+      path.join(
+        PACKAGES_DIR,
+        "Common/UI/Components/PasswordRequirements/NewPasswordFields.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(helper.split('autoComplete: "new-password"').length - 1).toBe(2);
+    expect(
+      helper.split("isOwnCredential: options.isOwnPassword !== false").length -
+        1,
+    ).toBe(2);
+
+    const pageCode: (relative: string) => string = (
+      relative: string,
+    ): string => {
+      return fs.readFileSync(path.join(FEATURE_SET_DIR, relative), "utf8");
+    };
+
+    for (const ownPasswordPage of [
+      "Accounts/src/Pages/Register.tsx",
+      "Accounts/src/Pages/ResetPassword.tsx",
+      "StatusPage/src/Pages/Accounts/ResetPassword.tsx",
+      "Dashboard/src/Pages/Global/UserProfile/Password.tsx",
+    ]) {
+      const code: string = pageCode(ownPasswordPage);
+
+      expect({
+        page: ownPasswordPage,
+        ok: code.includes("getNewPasswordFields<"),
+      }).toEqual({
+        page: ownPasswordPage,
+        ok: true,
+      });
+      expect(code).not.toContain("isOwnPassword: false");
+    }
+
+    for (const adminPage of [
+      "AdminDashboard/src/Pages/Users/Index.tsx",
+      "AdminDashboard/src/Pages/Users/View/Authentication.tsx",
+    ]) {
+      expect(pageCode(adminPage)).toContain("isOwnPassword: false");
+    }
   });
 
   test("no field claims to be the password someone signs in with unless it is their own", () => {

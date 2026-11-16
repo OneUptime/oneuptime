@@ -343,9 +343,16 @@
     "resetPassword": {
       "description": "{{statusPageName}} 계정의 새 비밀번호를 만들어주세요.",
       "instructions": "새 비밀번호를 입력하시면 업데이트해드립니다.",
-      "success": "비밀번호가 업데이트되었습니다. 로그인해주세요.",
       "submit": "비밀번호 재설정",
-      "knowPassword": "비밀번호를 알고 계신가요?"
+      "knowPassword": "비밀번호를 알고 계신가요?",
+      "successTitle": "비밀번호가 재설정되었습니다",
+      "successDescription": "새 비밀번호로 로그인하세요.",
+      "loginButton": "로그인",
+      "linkExpiredTitle": "이 재설정 링크는 만료되었습니다",
+      "linkExpiredDescription": "재설정 링크는 하루 동안 유효합니다. 새 링크를 요청하시면 이메일로 보내 드립니다.",
+      "linkInvalidTitle": "이 재설정 링크는 더 이상 작동하지 않습니다",
+      "linkInvalidDescription": "이미 사용되었거나 일부만 복사되었을 수 있습니다. 새 링크를 요청하시면 이메일로 보내 드립니다.",
+      "requestNewLinkButton": "새 링크 요청"
     },
     "magicLink": {
       "title": "링크로 로그인",
@@ -482,5 +489,22 @@
   },
   "No options available": "사용 가능한 옵션 없음",
   "No matches found": "일치하는 항목이 없습니다",
-  "{{eventType}} state changed to {{state}}": "{{eventType}} 상태가 {{state}}(으)로 변경됨"
+  "{{eventType}} state changed to {{state}}": "{{eventType}} 상태가 {{state}}(으)로 변경됨",
+  "Use at least {{minimum}} characters.": "{{minimum}}자 이상 사용하세요.",
+  "Try a few unrelated words.": "서로 관련 없는 단어 몇 개를 조합해 보세요.",
+  "Password meets requirements": "비밀번호가 요구 사항을 충족합니다",
+  "Password must be at least 15 characters.": "비밀번호는 15자 이상이어야 합니다.",
+  "Password cannot be more than 100 characters.": "비밀번호는 100자를 초과할 수 없습니다.",
+  "Choose a less predictable password. Try a few unrelated words.": "추측하기 어려운 비밀번호를 선택하세요. 서로 관련 없는 단어 몇 개를 조합해 보세요.",
+  "Password cannot be blank.": "비밀번호는 공백으로만 구성할 수 없습니다.",
+  "Password is required.": "비밀번호는 필수입니다.",
+  "Password must be a string.": "비밀번호는 문자열이어야 합니다.",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}}자 이상 {{maximum}}자 이하",
+  "Avoid common or repeated patterns": "흔하거나 반복되는 패턴 피하기",
+  "Password length": "비밀번호 길이",
+  "{{length}} / {{minimum}} characters minimum": "{{length}}자 / 최소 {{minimum}}자",
+  "Complete:": "충족:",
+  "Incomplete:": "미충족:",
+  "Special character included (optional)": "특수 문자 포함됨 (선택 사항)",
+  "Special characters are optional. Try !, @, # or $.": "특수 문자는 선택 사항입니다. !, @, # 또는 $를 사용해 보세요."
 }

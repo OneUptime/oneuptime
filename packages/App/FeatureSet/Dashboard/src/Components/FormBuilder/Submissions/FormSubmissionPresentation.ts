@@ -26,6 +26,28 @@ export const getFormSubmissionSubmitter: GetFormSubmissionSubmitterFunction = (
   };
 };
 
+/*
+ * Whether the incident a submission created is one the reader may not see,
+ * for a submission read with its incident selected (as the submissions
+ * table reads it): the submission still names it, but the server read it
+ * back without the incident - a private one, which only its owners, Project
+ * Owners and Project Admins see (#9102). Shown as a private incident, with
+ * no link to a page they cannot open. A maintenance event is never private.
+ */
+export const isFormSubmissionIncidentHidden: (
+  submission: FormSubmission,
+) => boolean = (submission: FormSubmission): boolean => {
+  const isMaintenance: boolean =
+    submission.targetType === FormTargetType.ScheduledMaintenance ||
+    Boolean(
+      submission.scheduledMaintenanceId || submission.scheduledMaintenance,
+    );
+
+  return (
+    !isMaintenance && Boolean(submission.incidentId) && !submission.incident
+  );
+};
+
 export interface FormSubmissionCreatedLink {
   id: ObjectID;
   // "INC-42", "#7".
