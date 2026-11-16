@@ -147,6 +147,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "(module) Monitor": Why.Migration,
     },
+  /*
+   * And the ones a result stamped with the upgrade's time before that
+   * backfill finished, given their creation (#8960).
+   */
+  "packages/App/FeatureSet/Workers/DataMigrations/BackfillMonitorFirstMeasuredAtForUptimeHistory.ts":
+    {
+      "(module) Monitor": Why.Migration,
+    },
   "packages/App/FeatureSet/Workers/DataMigrations/BackfillNetworkSiteTypes.ts":
     {
       "BackfillNetworkSiteTypes.backfillProject NetworkSite": Why.Migration,
