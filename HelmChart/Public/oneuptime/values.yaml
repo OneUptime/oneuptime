@@ -1973,9 +1973,13 @@ openTelemetryExporter:
   # never serialized into a frontend env.js response.
   endpoint:
   # This can be for example: x-oneuptime-token=<YOUR_ONEUPTIME_TELEMETRY_INGEST_TOKEN>
-  # Write each header as name=value and separate headers with ';'. A value may
-  # hold '=', as a Basic Authorization value does. Nothing is exported without
-  # a header; one OneUptime cannot read is logged as a warning at startup.
+  # Write each header as name=value and separate headers with ';', or with ','
+  # as OTEL_EXPORTER_OTLP_HEADERS does, so a backend's example works as it is.
+  # A value may hold '=', as a Basic Authorization value does. Without a ';',
+  # values are percent-decoded as that standard says (%20 is a space); end the
+  # setting with ';' to send a value exactly as written, or one that holds ','.
+  # Nothing is exported without a header; one OneUptime cannot read is logged
+  # as a warning at startup.
   # The chart hands the value to every pod exactly as set. In a values file,
   # put a value that holds ': ' or ' #' in quotes: YAML reads those itself
   # before the chart sees the value.

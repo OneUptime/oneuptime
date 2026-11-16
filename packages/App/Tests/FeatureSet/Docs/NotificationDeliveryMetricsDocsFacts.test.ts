@@ -1546,11 +1546,11 @@ describe("turning them on", () => {
     expect(Telemetry.getHeaders()).toEqual({});
   });
 
-  it("writes each header as name=value, several separated by ';', a value holding '=' as the exporter reads them", () => {
+  it("writes each header as name=value, several separated by ';' or ',', a value holding '=' as the exporter reads them", () => {
     const turnOn: string = section("## Turn them on");
 
     expect(turnOn).toContain(
-      "Write each header as `name=value`, and separate several with `;`. A value may hold `=`.",
+      "Write each header as `name=value`, and separate several with `;`, or with `,` as in `OTEL_EXPORTER_OTLP_HEADERS`. A value may hold `=`. Without a `;`, a value is read as that standard writes it, a space as `%20`: end the setting with `;` to send it exactly as written.",
     );
 
     /*
@@ -1564,6 +1564,26 @@ describe("turning them on", () => {
     expect(Telemetry.getHeaders()).toEqual({
       Authorization: "Basic dXNlcjpwYXNzd29yZA==",
       "x-oneuptime-token": "key",
+    });
+
+    /*
+     * The same two headers as OTEL_EXPORTER_OTLP_HEADERS writes them (issue
+     * #7162): ',' between them, the space in the value written %20.
+     */
+    process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"] =
+      "Authorization=Basic%20dXNlcjpwYXNzd29yZA==,x-oneuptime-token=key";
+
+    expect(Telemetry.getHeaders()).toEqual({
+      Authorization: "Basic dXNlcjpwYXNzd29yZA==",
+      "x-oneuptime-token": "key",
+    });
+
+    // With a ';' at its end, a value is sent exactly as written.
+    process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"] =
+      "x-signature=abc%2Bdef%3D;";
+
+    expect(Telemetry.getHeaders()).toEqual({
+      "x-signature": "abc%2Bdef%3D",
     });
 
     delete process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"];
