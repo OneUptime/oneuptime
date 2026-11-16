@@ -1,5 +1,6 @@
 import { DocsVocabulary } from "./DocsSearchWords";
 import { AIDocsSection } from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
+import zlib from "zlib";
 
 /*
  * A DOCS LANGUAGE'S INDEX, LAID OUT TO HOLD LITTLE (issue #8818).
@@ -11,7 +12,10 @@ import { AIDocsSection } from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
  * first phrase search made, and, without meaning to, the whole Markdown of
  * every page: a section's heading was cut from the page, and V8 keeps a
  * string cut from another as a view that keeps the other alive (ownCopy).
- * That was 62 to 101 MB a language once searched, 1.3 GB for all seventeen.
+ * That was 62 to 103 MB a language once searched - five to thirteen times
+ * its pages' Markdown - and 1.3 GB for all seventeen. Laid out as below, it
+ * is 14 to 25 MB a language, 315 MB for all seventeen (measured on the 14.3
+ * docs, the JS heap and the typed arrays and Buffer outside it).
  *
  * Here every word the index holds is one entry of one sorted list
  * (DocsVocabulary), its number in the index is its place in that list, and
@@ -24,10 +28,22 @@ import { AIDocsSection } from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
  * section's words are still asked about by name (DocsTermSet), for the
  * tests and for whoever reads an index by hand.
  *
+ * What a section says is read only for the line a result shows, so each
+ * page's sections' text is kept deflated, one run of one Buffer, and
+ * inflated when a result needs it - a twentieth of a millisecond a page,
+ * the last few kept (RECENT_PAGE_TEXTS). The phrase form of each section,
+ * which every search of three words or more reads through, is kept as it
+ * is.
+ *
  * Both ways of building an index - the docs on disk (AIDocsReader.build) and
  * the small hand-made ones the tests rank (DocsSearchHelpers) - hand their
  * pages, words already read, to DocsIndexBuilder.
  */
+
+// How many pages' text is kept inflated: a search's results share pages, and so do the searches made as someone types.
+const RECENT_PAGE_TEXTS: number = 8;
+// A lone surrogate: UTF-8 cannot carry it as it is, so a page's text holding one is not deflated.
+const LONE_SURROGATE: RegExp = /\p{Cs}/u;
 
 // Where a page holds a word besides its body: the bits of the page's entry for the word.
 export const IN_PAGE_TITLE: number = 1;
@@ -554,11 +570,26 @@ class PagesHoldingEachWord implements DocsTermCounts {
 }
 
 /*
- * The index's entries, once it is built: pages and sections are made
- * while their entries are still being gathered, and read them after.
+ * Where one page's sections' text is: a run of the index's deflated text
+ * (DocsIndexEntries.texts), or the text itself for one UTF-8 cannot carry
+ * as it is - a lone surrogate - which is kept as written.
+ */
+interface DocsPageText {
+  from: number;
+  to: number;
+  plain: string | null;
+}
+
+/*
+ * The index's entries and its text, once it is built: pages and sections
+ * are made while both are still being gathered, and read them after.
  */
 class DocsIndexEntries {
   public postings: DocsIndexPostings | null = null;
+  // Every page's sections' text, deflated, one page after another (DocsPageText).
+  public texts: Buffer = Buffer.alloc(0);
+  // The pages whose text was read last, newest last: a search's results share pages.
+  private readonly recentTexts: Map<DocsPageText, string> = new Map();
 
   public get(): DocsIndexPostings {
     if (!this.postings) {
@@ -566,6 +597,34 @@ class DocsIndexEntries {
     }
 
     return this.postings;
+  }
+
+  // What a page's sections say, one after another.
+  public textOf(page: DocsPageText): string {
+    if (page.plain !== null) {
+      return page.plain;
+    }
+
+    const recent: string | undefined = this.recentTexts.get(page);
+
+    if (recent !== undefined) {
+      this.recentTexts.delete(page);
+      this.recentTexts.set(page, recent);
+
+      return recent;
+    }
+
+    const text: string = zlib
+      .inflateRawSync(this.texts.subarray(page.from, page.to))
+      .toString("utf8");
+
+    this.recentTexts.set(page, text);
+
+    if (this.recentTexts.size > RECENT_PAGE_TEXTS) {
+      this.recentTexts.delete(this.recentTexts.keys().next().value!);
+    }
+
+    return text;
   }
 }
 
@@ -575,11 +634,20 @@ class DocsIndexedSection implements AIDocsIndexedSection {
     public readonly number: number,
     public readonly title: string,
     public readonly anchor: string,
-    public readonly text: string,
+    // Where its text is: from textStart, textLength long, in its page's text.
+    private readonly pageText: DocsPageText,
+    private readonly textStart: number,
+    private readonly textLength: number,
     public readonly phrase: string,
     public readonly wordCount: number,
     public readonly isOtherName: boolean,
   ) {}
+
+  public get text(): string {
+    return this.entries
+      .textOf(this.pageText)
+      .slice(this.textStart, this.textStart + this.textLength);
+  }
 
   public get terms(): DocsTermCounts {
     return new SectionTextTerms(this.entries.get(), this.number);
@@ -652,6 +720,9 @@ export class DocsIndexBuilder {
   // [word met, section, count in the text, IN_SECTION_TITLE] for each section's each word.
   private readonly sectionEntries: GrowingUints = new GrowingUints();
   private largestCount: number = 0;
+  // Each page's sections' text, deflated, as it was added (addPageText).
+  private readonly textChunks: Array<Buffer> = [];
+  private textBytes: number = 0;
 
   public constructor(language: string) {
     this.language = language;
@@ -714,9 +785,26 @@ export class DocsIndexBuilder {
       this.pagesHolding[this.meet(term)]!++;
     }
 
+    // What the page's sections say, one after another: each section's text is a stretch of it.
+    const pageText: DocsPageText = this.addPageText(
+      input.sections
+        .map((section: DocsIndexSectionInput): string => {
+          return section.text;
+        })
+        .join(""),
+    );
+    let textStart: number = 0;
     const sections: Array<AIDocsIndexedSection> = input.sections.map(
       (section: DocsIndexSectionInput): AIDocsIndexedSection => {
-        return this.addSection(section);
+        const indexed: AIDocsIndexedSection = this.addSection(
+          section,
+          pageText,
+          textStart,
+        );
+
+        textStart += section.text.length;
+
+        return indexed;
       },
     );
 
@@ -790,6 +878,8 @@ export class DocsIndexBuilder {
     });
 
     this.entries.postings = postings;
+    this.entries.texts = Buffer.concat(this.textChunks, this.textBytes);
+    this.textChunks.length = 0;
 
     return {
       language: this.language,
@@ -801,7 +891,34 @@ export class DocsIndexBuilder {
     };
   }
 
-  private addSection(section: DocsIndexSectionInput): AIDocsIndexedSection {
+  /*
+   * A page's sections' text, deflated as the page is added: a third of its
+   * size, or less. Each run is copied out of the 64 KB zlib writes into, so
+   * a page's few KB do not keep a whole one until the build is done.
+   */
+  private addPageText(text: string): DocsPageText {
+    if (text.length === 0 || LONE_SURROGATE.test(text)) {
+      return { from: 0, to: 0, plain: ownCopy(text) };
+    }
+
+    const deflated: Buffer = Buffer.from(
+      zlib.deflateRawSync(Buffer.from(text, "utf8"), {
+        level: zlib.constants.Z_BEST_SPEED,
+      }),
+    );
+    const from: number = this.textBytes;
+
+    this.textChunks.push(deflated);
+    this.textBytes += deflated.length;
+
+    return { from, to: this.textBytes, plain: null };
+  }
+
+  private addSection(
+    section: DocsIndexSectionInput,
+    pageText: DocsPageText,
+    textStart: number,
+  ): AIDocsIndexedSection {
     const number: number = this.sectionCount++;
     const fields: Map<string, number> = new Map();
     let wordCount: number = 0;
@@ -833,7 +950,9 @@ export class DocsIndexBuilder {
       number,
       ownCopy(section.title),
       ownCopy(section.anchor),
-      ownCopy(section.text),
+      pageText,
+      textStart,
+      section.text.length,
       ownCopy(docsPhraseOf(`${section.title} ${section.text}`)),
       wordCount,
       section.isOtherName === true,
