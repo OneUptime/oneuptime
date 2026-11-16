@@ -1,3 +1,7 @@
+import SubscribeConfirmation, {
+  SubscribeConfirmationTone,
+} from "../../Components/Subscribe/SubscribeConfirmation";
+import IconProp from "Common/Types/Icon/IconProp";
 import Page from "../../Components/Page/Page";
 import API from "../../Utils/API";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
@@ -273,17 +277,20 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
              * opened.
              */}
             {isSuccess && (
-              <p className="text-center text-gray-400 mb-20 mt-20">
-                {" "}
-                {t("subscribe.sms.confirmationSent")}
-              </p>
+              <SubscribeConfirmation
+                title={t("subscribe.checkPhoneTitle")}
+                message={t("subscribe.sms.confirmationSent")}
+                icon={IconProp.DevicePhoneMobile}
+                tone={SubscribeConfirmationTone.NextStep}
+              />
             )}
 
             {isManageLinkRequested && (
-              <p className="text-center text-gray-400 mb-20 mt-20">
-                {" "}
-                {t("subscribe.manageLinkSent")}
-              </p>
+              <SubscribeConfirmation
+                message={t("subscribe.manageLinkSent")}
+                icon={IconProp.Link}
+                tone={SubscribeConfirmationTone.NextStep}
+              />
             )}
 
             {!isSuccess && !isManageLinkRequested ? (
