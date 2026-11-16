@@ -66,7 +66,7 @@ Globala Runners är de Runners som OneUptime kör för alla projekt. Ett JavaScr
 
 En global Runner kör stegen från många projekt, så varje steg hålls åtskilt från alla andra:
 
-- Varje steg körs i en egen `isolated-vm`-sandlåda, skapad för det steget och slängd efteråt: inga filer, inga processer, inga miljövariabler och ingenting som sparas från ett steg till nästa.
+- Varje steg körs i en egen `isolated-vm`-sandlåda, skapad för det steget och slängd efteråt: inga filer, inga processer, inga miljövariabler och ingenting som sparas från ett steg till nästa. Själva sandlådan körs i en process som startas bara för det steget, som en egen användare: processen har inget av Runnerns nyckel, inställningar eller filer och avslutas med steget.
 - Dess HTTP-förfrågningar når bara offentliga internetadresser, aldrig en privat adress, en loopback- eller link-local-adress eller en slutpunkt för molnmetadata, så en global Runner når aldrig ditt nätverk.
 - Den får en hemlig variabel bara när variabelns brytare **Globala Runners får använda den** är påslagen, och bara för ett steg i variabelns eget projekt.
 - Ett projekt kör högst tre steg åt gången på globala Runners, så inget projekt håller dem för sig själv.
@@ -81,7 +81,7 @@ Välj en av dina egna Runners för ett steg som måste nå ditt nätverk, eller 
 
 I OneUptime Cloud kör OneUptime dem. En egenhostad installation kör som standard en egen, precis som den kör sina egna globala sonder: tjänsten `global-runner` i Docker Compose och distributionen `globalRunner` i Helm-diagrammet. Den har sin egen nyckel, `GLOBAL_RUNNER_KEY`, och inget annat från servern.
 
-En huvudadministratör kan lägga till fler för att köra steg och kodkorrigeringar från andra värdar: öppna **Inställningar** och sedan **Globala Runners** i administratörspanelen, skapa en och kör det kommando som dess **Visa ID och nyckel** ger på en värd som når internet.
+En huvudadministratör kan lägga till fler för att köra steg och kodkorrigeringar från andra värdar: öppna **Inställningar** och sedan **Globala Runners** i administratörspanelen, skapa en och kör det kommando som dess **Visa ID och nyckel** ger på en värd som når internet. Behåll standardinställningarna för den containern: en container som startas med `no-new-privileges`, eller utan förmågorna `SETUID` och `SETGID`, kan inte köra varje steg som en egen användare, så dess steg körs som Runnerns egen användare, fortfarande vart och ett i en egen process, och dess logg säger det.
 
 För att stänga av den medföljande anger du `GLOBAL_RUNNER_REPLICAS=0` i Docker Composes `config.env`, eller `globalRunner.enabled` till `false` i Helm-diagrammet. Helt utan global Runner listar **Runbooks → Runbook-agenter** bara dina egna Runners, och varje JavaScript-steg och varje kodrepository väljer en av dem.
 

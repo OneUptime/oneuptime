@@ -66,7 +66,7 @@ Globale Runner sind die Runner, die OneUptime für jedes Projekt betreibt. Ein J
 
 Ein globaler Runner führt die Schritte vieler Projekte aus, daher wird jeder Schritt von allen anderen getrennt gehalten:
 
-- Jeder Schritt läuft in einer eigenen `isolated-vm`-Sandbox, die für diesen Schritt erstellt und danach verworfen wird: keine Dateien, keine Prozesse, keine Umgebungsvariablen und nichts, was von einem Schritt zum nächsten erhalten bleibt.
+- Jeder Schritt läuft in einer eigenen `isolated-vm`-Sandbox, die für diesen Schritt erstellt und danach verworfen wird: keine Dateien, keine Prozesse, keine Umgebungsvariablen und nichts, was von einem Schritt zum nächsten erhalten bleibt. Die Sandbox selbst läuft in einem Prozess, der nur für diesen einen Schritt gestartet wird, als eigener Benutzer: Der Prozess hat nichts vom Schlüssel, von den Einstellungen oder den Dateien des Runners und endet mit dem Schritt.
 - Seine HTTP-Anfragen erreichen nur öffentliche Internetadressen, nie eine private, Loopback- oder Link-Local-Adresse oder einen Cloud-Metadaten-Endpunkt, sodass ein globaler Runner nie Ihr Netzwerk erreicht.
 - Er erhält eine geheime Variable nur, wenn ihr Schalter **Globale Runner dürfen es nutzen** eingeschaltet ist, und nur für einen Schritt aus dem eigenen Projekt der Variable.
 - Ein Projekt führt höchstens drei Schritte gleichzeitig auf globalen Runnern aus, sodass kein Projekt sie für sich allein belegt.
@@ -81,7 +81,7 @@ Wählen Sie einen Ihrer eigenen Runner für einen Schritt, der Ihr Netzwerk erre
 
 In OneUptime Cloud betreibt OneUptime sie. Eine selbst gehostete Installation betreibt standardmäßig einen eigenen, so wie sie ihre eigenen globalen Sonden betreibt: den Dienst `global-runner` in Docker Compose und das Deployment `globalRunner` im Helm-Chart. Er besitzt seinen eigenen Schlüssel, `GLOBAL_RUNNER_KEY`, und sonst nichts vom Server.
 
-Ein Master-Admin kann weitere hinzufügen, um Schritte und Codekorrekturen von anderen Hosts aus auszuführen: Öffnen Sie im Admin-Dashboard **Einstellungen**, dann **Globale Runner**, legen Sie einen an und führen Sie den Befehl, den sein **ID und Schlüssel anzeigen** liefert, auf einem Host aus, der das Internet erreicht.
+Ein Master-Admin kann weitere hinzufügen, um Schritte und Codekorrekturen von anderen Hosts aus auszuführen: Öffnen Sie im Admin-Dashboard **Einstellungen**, dann **Globale Runner**, legen Sie einen an und führen Sie den Befehl, den sein **ID und Schlüssel anzeigen** liefert, auf einem Host aus, der das Internet erreicht. Behalten Sie die Standardeinstellungen dieses Containers bei: Ein Container, der mit `no-new-privileges` oder ohne die Capabilities `SETUID` und `SETGID` gestartet wird, kann nicht jeden Schritt als eigenen Benutzer ausführen; seine Schritte laufen dann als Benutzer des Runners, weiterhin jeder in einem eigenen Prozess, und sein Log sagt das.
 
 Um den mitgelieferten auszuschalten, setzen Sie `GLOBAL_RUNNER_REPLICAS=0` in der `config.env` von Docker Compose oder `globalRunner.enabled` auf `false` im Helm-Chart. Ganz ohne globalen Runner listet **Runbooks → Runbook-Agents** nur Ihre eigenen Runner auf, und jeder JavaScript-Schritt und jedes Code-Repository wählt einen davon.
 

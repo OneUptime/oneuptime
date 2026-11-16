@@ -66,7 +66,7 @@ Runners globais são os Runners que o OneUptime executa para todos os projetos. 
 
 Um Runner global executa as etapas de muitos projetos, então cada etapa fica separada de todas as outras:
 
-- Cada etapa roda em um sandbox `isolated-vm` próprio, criado para essa etapa e descartado depois dela: sem arquivos, sem processos, sem variáveis de ambiente e nada guardado de uma etapa para a seguinte.
+- Cada etapa roda em um sandbox `isolated-vm` próprio, criado para essa etapa e descartado depois dela: sem arquivos, sem processos, sem variáveis de ambiente e nada guardado de uma etapa para a seguinte. O próprio sandbox roda em um processo iniciado só para essa etapa, como um usuário próprio: o processo não tem nada da chave, das configurações ou dos arquivos do Runner e termina junto com a etapa.
 - As requisições HTTP dela alcançam apenas endereços públicos da internet, nunca um endereço privado, de loopback ou link-local nem um endpoint de metadados de nuvem, então um Runner global nunca alcança a sua rede.
 - Ele só recebe uma variável secreta quando o interruptor **Runners globais podem usá-lo** dela está ligado, e só para uma etapa do próprio projeto da variável.
 - Um projeto roda no máximo três etapas por vez nos Runners globais, então nenhum projeto fica com eles só para si.
@@ -81,7 +81,7 @@ Escolha um dos seus próprios Runners para uma etapa que precisa alcançar a sua
 
 No OneUptime Cloud, o OneUptime os executa. Uma instalação auto-hospedada executa um próprio por padrão, assim como executa as próprias sondas globais: o serviço `global-runner` no Docker Compose e o deployment `globalRunner` no chart Helm. Ele tem a própria chave, `GLOBAL_RUNNER_KEY`, e nada mais do servidor.
 
-Um administrador principal pode adicionar mais, para rodar etapas e correções de código a partir de outros hosts: no Painel de administração, abra **Configurações**, depois **Runners globais**, crie um e rode o comando que o **Mostrar ID e chave** dele fornece em um host que alcance a internet.
+Um administrador principal pode adicionar mais, para rodar etapas e correções de código a partir de outros hosts: no Painel de administração, abra **Configurações**, depois **Runners globais**, crie um e rode o comando que o **Mostrar ID e chave** dele fornece em um host que alcance a internet. Mantenha os padrões desse contêiner: um contêiner iniciado com `no-new-privileges`, ou sem as capacidades `SETUID` e `SETGID`, não consegue rodar cada etapa como um usuário próprio, então as etapas rodam como o próprio usuário do Runner, ainda cada uma em um processo próprio, e o log dele avisa isso.
 
 Para desligar o incluído, defina `GLOBAL_RUNNER_REPLICAS=0` no `config.env` do Docker Compose, ou `globalRunner.enabled` como `false` no chart Helm. Sem nenhum Runner global, **Runbooks → Agentes de runbook** lista apenas os seus próprios Runners, e toda etapa JavaScript e todo repositório de código escolhe um deles.
 

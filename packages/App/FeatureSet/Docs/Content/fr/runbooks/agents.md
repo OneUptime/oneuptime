@@ -66,7 +66,7 @@ Les agents Runbook globaux sont les agents qu'OneUptime fait tourner pour chaque
 
 Un agent Runbook global exécute les étapes de nombreux projets, c'est pourquoi chaque étape est tenue à l'écart de toutes les autres :
 
-- Chaque étape s'exécute dans son propre bac à sable `isolated-vm`, créé pour cette étape et jeté après elle : pas de fichiers, pas de processus, pas de variables d'environnement, et rien de conservé d'une étape à l'autre.
+- Chaque étape s'exécute dans son propre bac à sable `isolated-vm`, créé pour cette étape et jeté après elle : pas de fichiers, pas de processus, pas de variables d'environnement, et rien de conservé d'une étape à l'autre. Le bac à sable lui-même s'exécute dans un processus lancé pour cette seule étape, sous un utilisateur qui lui est propre : ce processus ne détient rien de la clé, des réglages ni des fichiers du Runner, et se termine avec l'étape.
 - Ses requêtes HTTP n'atteignent que les adresses publiques d'Internet, jamais une adresse privée, de bouclage ou de lien local ni un point de terminaison de métadonnées cloud, si bien qu'un agent global n'atteint jamais votre réseau.
 - Il ne reçoit une variable secrète que lorsque son réglage **Les agents Runbook globaux peuvent l'utiliser** est activé, et seulement pour une étape du propre projet de la variable.
 - Un projet exécute au plus trois étapes à la fois sur les agents globaux, si bien qu'aucun projet ne les garde pour lui seul.
@@ -81,7 +81,7 @@ Choisissez l'un de vos propres agents pour une étape qui doit atteindre votre r
 
 Sur OneUptime Cloud, c'est OneUptime qui les fait tourner. Une installation auto-hébergée en fait tourner un à elle par défaut, comme elle fait tourner ses propres sondes globales : le service `global-runner` dans Docker Compose et le déploiement `globalRunner` dans le chart Helm. Il détient sa propre clé, `GLOBAL_RUNNER_KEY`, et rien d'autre du serveur.
 
-Un administrateur principal peut en ajouter d'autres, pour exécuter des étapes et des corrections de code depuis d'autres hôtes : dans le tableau de bord d'administration, ouvrez **Paramètres**, puis **Agents Runbook globaux**, créez-en un, puis exécutez la commande que donne son **Afficher l'ID et la clé** sur un hôte qui atteint Internet.
+Un administrateur principal peut en ajouter d'autres, pour exécuter des étapes et des corrections de code depuis d'autres hôtes : dans le tableau de bord d'administration, ouvrez **Paramètres**, puis **Agents Runbook globaux**, créez-en un, puis exécutez la commande que donne son **Afficher l'ID et la clé** sur un hôte qui atteint Internet. Gardez les réglages par défaut de ce conteneur : un conteneur lancé avec `no-new-privileges`, ou sans les capacités `SETUID` et `SETGID`, ne peut pas exécuter chaque étape sous un utilisateur qui lui est propre ; ses étapes s'exécutent alors sous l'utilisateur du Runner, chacune toujours dans son propre processus, et son journal le signale.
 
 Pour désactiver celui qui est fourni, définissez `GLOBAL_RUNNER_REPLICAS=0` dans le `config.env` de Docker Compose, ou `globalRunner.enabled` à `false` dans le chart Helm. Sans aucun agent global, **Runbooks → Agents de runbook** ne liste que vos propres agents, et chaque étape JavaScript et chaque dépôt de code en choisit un.
 

@@ -66,7 +66,7 @@ Globale Runnere er de Runnere, OneUptime kører for alle projekter. Et JavaScrip
 
 En global Runner kører trinnene fra mange projekter, så hvert trin holdes adskilt fra alle andre:
 
-- Hvert trin kører i sin egen `isolated-vm`-sandkasse, oprettet til det trin og smidt væk bagefter: ingen filer, ingen processer, ingen miljøvariabler og intet, der gemmes fra ét trin til det næste.
+- Hvert trin kører i sin egen `isolated-vm`-sandkasse, oprettet til det trin og smidt væk bagefter: ingen filer, ingen processer, ingen miljøvariabler og intet, der gemmes fra ét trin til det næste. Selve sandkassen kører i en proces, der startes til netop det trin, som en bruger for sig: processen har intet af Runnerens nøgle, indstillinger eller filer og slutter med trinnet.
 - Dens HTTP-forespørgsler når kun offentlige internetadresser, aldrig en privat, loopback- eller link-local-adresse eller et cloud-metadata-endpoint, så en global Runner når aldrig dit netværk.
 - Den får kun en hemmelig variabel, når variablens kontakt **Globale Runnere må bruge den** er slået til, og kun for et trin i variablens eget projekt.
 - Et projekt kører højst tre trin ad gangen på globale Runnere, så intet projekt holder dem for sig selv.
@@ -81,7 +81,7 @@ Vælg en af dine egne Runnere til et trin, der skal nå dit netværk, eller for 
 
 I OneUptime Cloud kører OneUptime dem. En selvhostet installation kører som standard sin egen, ligesom den kører sine egne globale sonder: tjenesten `global-runner` i Docker Compose og deploymentet `globalRunner` i Helm-chartet. Den har sin egen nøgle, `GLOBAL_RUNNER_KEY`, og intet andet fra serveren.
 
-En masteradministrator kan tilføje flere for at køre trin og koderettelser fra andre værter: Åbn **Indstillinger** og derefter **Globale Runnere** i Admin-dashboardet, opret en, og kør den kommando, dens **Vis ID og nøgle** giver, på en vært, der kan nå internettet.
+En masteradministrator kan tilføje flere for at køre trin og koderettelser fra andre værter: Åbn **Indstillinger** og derefter **Globale Runnere** i Admin-dashboardet, opret en, og kør den kommando, dens **Vis ID og nøgle** giver, på en vært, der kan nå internettet. Behold containerens standarder: en container, der startes med `no-new-privileges` eller uden kapabiliteterne `SETUID` og `SETGID`, kan ikke køre hvert trin som en bruger for sig, så dens trin kører som Runnerens egen bruger, stadig hvert i sin egen proces, og dens log siger det.
 
 For at slå den medfølgende fra skal du sætte `GLOBAL_RUNNER_REPLICAS=0` i Docker Composes `config.env` eller `globalRunner.enabled` til `false` i Helm-chartet. Helt uden global Runner viser **Runbooks → Runbook-agenter** kun dine egne Runnere, og hvert JavaScript-trin og hvert koderepositorie vælger en af dem.
 

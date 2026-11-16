@@ -66,7 +66,7 @@ Globale Runners zijn de Runners die OneUptime voor elk project draait. Een JavaS
 
 Een globale Runner voert de stappen van veel projecten uit, dus elke stap wordt gescheiden gehouden van alle andere:
 
-- Elke stap loopt in een eigen `isolated-vm`-sandbox, gemaakt voor die stap en daarna weggegooid: geen bestanden, geen processen, geen omgevingsvariabelen en niets dat van de ene stap naar de volgende bewaard blijft.
+- Elke stap loopt in een eigen `isolated-vm`-sandbox, gemaakt voor die stap en daarna weggegooid: geen bestanden, geen processen, geen omgevingsvariabelen en niets dat van de ene stap naar de volgende bewaard blijft. De sandbox zelf loopt in een proces dat alleen voor die ene stap wordt gestart, als een eigen gebruiker: dat proces heeft niets van de sleutel, de instellingen of de bestanden van de Runner en eindigt met de stap.
 - Zijn HTTP-verzoeken bereiken alleen openbare internetadressen, nooit een privé-, loopback- of link-local-adres of een cloudmetadata-endpoint, zodat een globale Runner nooit uw netwerk bereikt.
 - Hij krijgt een geheime variabele alleen als haar schakelaar **Globale Runners mogen het gebruiken** aan staat, en alleen voor een stap van het eigen project van de variabele.
 - Een project voert hooguit drie stappen tegelijk uit op globale Runners, zodat geen project ze voor zichzelf houdt.
@@ -81,7 +81,7 @@ Kies een van uw eigen Runners voor een stap die uw netwerk moet bereiken, of om 
 
 Op OneUptime Cloud draait OneUptime ze. Een zelf gehoste installatie draait standaard een eigen exemplaar, zoals ze haar eigen globale sondes draait: de service `global-runner` in Docker Compose en de deployment `globalRunner` in de Helm-chart. Die heeft een eigen sleutel, `GLOBAL_RUNNER_KEY`, en verder niets van de server.
 
-Een hoofdbeheerder kan er meer toevoegen, om stappen en codecorrecties vanaf andere hosts uit te voeren: open in het beheerdashboard **Instellingen** en daarna **Globale Runners**, maak er een aan en voer de opdracht die zijn **ID en sleutel tonen** geeft uit op een host die het internet bereikt.
+Een hoofdbeheerder kan er meer toevoegen, om stappen en codecorrecties vanaf andere hosts uit te voeren: open in het beheerdashboard **Instellingen** en daarna **Globale Runners**, maak er een aan en voer de opdracht die zijn **ID en sleutel tonen** geeft uit op een host die het internet bereikt. Houd de standaardinstellingen van die container aan: een container die met `no-new-privileges` of zonder de capabilities `SETUID` en `SETGID` wordt gestart, kan niet elke stap als een eigen gebruiker uitvoeren, dus zijn stappen lopen als de eigen gebruiker van de Runner, nog steeds elk in een eigen proces, en zijn log zegt dat.
 
 Om de meegeleverde uit te zetten, stelt u `GLOBAL_RUNNER_REPLICAS=0` in de `config.env` van Docker Compose in, of `globalRunner.enabled` op `false` in de Helm-chart. Zonder enige globale Runner toont **Runbooks → Runbook-agenten** alleen uw eigen Runners, en kiezen elke JavaScript-stap en elke coderepository een daarvan.
 
