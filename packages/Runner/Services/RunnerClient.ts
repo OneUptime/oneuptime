@@ -97,6 +97,34 @@ export function isRetryableIngestStatus(statusCode: number): boolean {
   return statusCode >= 500 || statusCode === 408 || statusCode === 429;
 }
 
+// What a job's stop says when it gives no reason of its own.
+export const JOB_STOP_WITHOUT_REASON: string =
+  "OneUptime said to stop this step.";
+
+/*
+ * Why a job heartbeat that renewed the lease says to stop the job - its
+ * body is { status: "ok", stop: true, reason } - or null when it does not.
+ * Only a literal true stops; the reason is the server's words, trimmed and
+ * kept short, since the Runner reports it back as the step's error.
+ */
+export function readJobStopReason(body: unknown): string | null {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return null;
+  }
+
+  const answer: JSONObject = body as JSONObject;
+
+  if (answer["stop"] !== true) {
+    return null;
+  }
+
+  const reason: unknown = answer["reason"];
+
+  return typeof reason === "string" && reason.trim()
+    ? reason.trim().slice(0, 500)
+    : JOB_STOP_WITHOUT_REASON;
+}
+
 /*
  * A job heartbeat or result the server could not take right now (see
  * isRetryableIngestStatus). It may not have reached the server, so what it
@@ -317,12 +345,23 @@ export default class AgentClient {
    * isRetryableIngestStatus accepts); whether the lease was renewed is then
    * unknown.
    *
+   * A renewal may also say the job must stop ({ status: "ok", stop: true,
+   * reason }: OneUptime AI was turned off for the project after this Runner
+   * claimed the AI command). `onStop` is then told why, before this
+   * resolves true - the lease was still renewed. A server that predates the
+   * stop never says it.
+   *
    * `timeoutInMs` bounds this one request, for a caller that must not wait
    * the client's default 30 s on a server that does not answer.
    */
   public static async jobHeartbeat(
     jobId: string,
-    options?: { timeoutInMs?: number | undefined } | undefined,
+    options?:
+      | {
+          timeoutInMs?: number | undefined;
+          onStop?: ((reason: string) => void) | undefined;
+        }
+      | undefined,
   ): Promise<boolean> {
     const requestConfig: AxiosRequestConfig | undefined = options?.timeoutInMs
       ? { timeout: options.timeoutInMs }
@@ -335,6 +374,12 @@ export default class AgentClient {
     );
 
     if (res.status >= 200 && res.status < 300) {
+      const stopReason: string | null = readJobStopReason(res.data);
+
+      if (stopReason && options?.onStop) {
+        options.onStop(stopReason);
+      }
+
       return true;
     }
 

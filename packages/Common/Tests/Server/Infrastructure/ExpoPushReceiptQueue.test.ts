@@ -330,6 +330,74 @@ describe("a pending receipt as stored (serialize, parse)", () => {
       }),
     );
   });
+
+  /*
+   * A receipt read and counted, whose news could not be written down - the
+   * database failed - is kept to be read again, saying it was counted, so
+   * its delivery metric is not counted twice (issue #6874).
+   */
+  test("a receipt kept counted is read back as counted, the flag written last", () => {
+    const counted: PendingExpoPushReceipt = receipt({
+      userOnCallLogTimelineId: "7f000000-0000-4000-8000-000000000103",
+      isOnCallPage: true,
+      isDeliveryCounted: true,
+    });
+
+    const member: string = ExpoPushReceiptQueue.serialize(counted);
+
+    expect(ExpoPushReceiptQueue.parse(member)).toEqual(counted);
+    expect(Object.keys(JSON.parse(member) as Record<string, unknown>)).toEqual([
+      "receiptId",
+      "deviceToken",
+      "via",
+      "sentAt",
+      "attempts",
+      "userOnCallLogTimelineId",
+      "isOnCallPage",
+      "isDeliveryCounted",
+    ]);
+  });
+
+  test("a receipt not counted yet writes nothing of it: the member is as it always was", () => {
+    expect(
+      ExpoPushReceiptQueue.serialize(receipt({ isDeliveryCounted: false })),
+    ).toBe(ExpoPushReceiptQueue.serialize(receipt()));
+    expect(
+      ExpoPushReceiptQueue.serialize(receipt({ isDeliveryCounted: undefined })),
+    ).toBe(ExpoPushReceiptQueue.serialize(receipt()));
+  });
+
+  test.each([
+    ["false", false],
+    ["text", "true"],
+    ["a number", 1],
+    ["null", null],
+  ])(
+    "a counted flag that is %s is not counted, and the receipt is still read",
+    (_name: string, flag: unknown) => {
+      expect(
+        ExpoPushReceiptQueue.parse(
+          JSON.stringify({ ...receipt(), isDeliveryCounted: flag }),
+        ),
+      ).toEqual(receipt());
+    },
+  );
+
+  test("a receipt looked for again keeps saying it was counted", async () => {
+    const counted: PendingExpoPushReceipt = receipt({
+      isDeliveryCounted: true,
+    });
+
+    expect(
+      await queue.checkAgainLater([counted], SENT_AT + 20 * MINUTE),
+    ).toEqual({ rescheduled: 1, expired: 0 });
+
+    const taken: Array<PendingExpoPushReceipt> = (
+      await queue.claimDue({ now: SENT_AT + HOUR, limit: 10 })
+    ).receipts;
+
+    expect(taken).toEqual([{ ...counted, attempts: 1 }]);
+  });
 });
 
 describe("keeping a send's receipts to read (add)", () => {

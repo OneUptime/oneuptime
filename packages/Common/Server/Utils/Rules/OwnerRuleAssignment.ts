@@ -17,6 +17,7 @@ import {
   resolveReferenceIds,
   UnreadableReferenceException,
 } from "../Database/ProjectScopedReferenceRefusal";
+import ServerSetColumns from "../Database/ServerSetColumns";
 import logger from "../Logger";
 
 /*
@@ -596,8 +597,18 @@ export default class OwnerRuleAssignment {
     owner.setColumnValue("projectId", data.projectId);
     owner.setColumnValue(data.ownerColumn, data.ownerId);
 
-    if (data.isOwnerNotified !== undefined) {
+    /*
+     * Whether the owner is told is OneUptime's to say, also on a row it
+     * adds as the person who picked the owner: most owner tables let nobody
+     * create the column, so the value is marked as OneUptime's on the row
+     * (ServerSetColumns).
+     */
+    if (
+      data.isOwnerNotified !== undefined &&
+      owner.isTableColumn("isOwnerNotified")
+    ) {
       owner.setColumnValue("isOwnerNotified", data.isOwnerNotified);
+      ServerSetColumns.mark(owner, ["isOwnerNotified"]);
     }
 
     if (data.createdByUserId) {

@@ -9,7 +9,6 @@ import {
 import logger from "../Logger";
 import applyPublicPageNotFound from "../PublicPageNotFound";
 import Response from "../Response";
-import SampleProjectStatusPages from "./SampleProjectStatusPages";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../Types/ObjectID";
@@ -219,23 +218,8 @@ export default class BlockedProjectStatusPages {
         statusPageId,
       ))
     ) {
-      /*
-       * A sample project's page (issue #6808) is never public: only a
-       * signed-in member of the sample gets through, and anyone else is
-       * answered as for a page that does not exist
-       * (SampleProjectStatusPages).
-       */
-      const sampleReadAccess: boolean | null = statusPageId
-        ? await SampleProjectStatusPages.getReadAccess({
-            req: data.req,
-            statusPageId: statusPageId,
-          })
-        : null;
-
-      if (sampleReadAccess !== false) {
-        data.next();
-        return;
-      }
+      data.next();
+      return;
     }
 
     applyPublicPageNotFound(data.res);

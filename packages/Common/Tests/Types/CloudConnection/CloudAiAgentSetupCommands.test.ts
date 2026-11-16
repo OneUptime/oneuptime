@@ -10,7 +10,12 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   AWS_CLOUD_AI_AGENT_LOG_RETENTION_DAYS,
   AWS_CLOUD_AI_AGENT_TEMPLATE_FILE,
+  AZURE_CLOUD_AI_AGENT_CLOUD_INIT,
+  AZURE_CLOUD_AI_AGENT_KEY_READER,
+  AZURE_CLOUD_AI_AGENT_RUN_DIRECTORY,
   AZURE_CLOUD_AI_AGENT_SECRET_NAME,
+  AZURE_CLOUD_AI_AGENT_START_FILE,
+  AZURE_CLOUD_AI_AGENT_VM_REFUSED_MESSAGE,
   AzureCloudAiAgentRoleDefinition,
   CLOUD_AI_AGENT_DEFAULT_FIXES_MODE,
   CLOUD_AI_AGENT_DEFAULT_REGIONS,
@@ -54,6 +59,7 @@ import {
   getAzureCloudAiAgentRoleDefinition,
   getAzureCloudAiAgentRoleName,
   getAzureCloudAiAgentSetupCommand,
+  getAzureCloudAiAgentStartScript,
   getCloudAiAgentChangeOperations,
   getCloudAiAgentEnvironment,
   getCloudAiAgentImage,
@@ -83,6 +89,9 @@ import {
   AZURE_CLOUD_AI_AGENT_READER_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
   AZURE_CLOUD_AI_AGENT_ROLE_NAME,
+  AZURE_CLOUD_AI_AGENT_DEFAULT_HOST,
+  AZURE_CLOUD_AI_AGENT_NETWORK_NAME,
+  AZURE_CLOUD_AI_AGENT_VM_NAME,
   AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
   CLOUD_AI_AGENT_NAME,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
@@ -94,6 +103,7 @@ import {
   GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
   GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+  getAzureCloudAiAgentKeyVaultName,
   getAzureCloudAiAgentWriteIdentityId,
   getCloudAiAgentOwnTargets,
 } from "../../../Types/ResourceAiAgent/CloudAiAgentNames";
@@ -108,7 +118,9 @@ import {
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV,
+  RESOURCE_AI_AZURE_HOST_ENV,
   RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
+  RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV,
   RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
@@ -181,12 +193,18 @@ const GCP: CloudAiAgentSetupOptions = {
 };
 // Google Cloud's other host: Cloud Run with CPU always allocated.
 const GCP_RUN: CloudAiAgentSetupOptions = { ...GCP, gcpHost: "cloud-run" };
+// Azure's other host: a small VM of its own.
+const AZURE_VM: CloudAiAgentSetupOptions = {
+  ...AZURE,
+  azureHost: "virtual-machine",
+};
 
 const ALL_CLOUDS: Array<CloudAiAgentSetupOptions> = [AWS, AZURE, GCP];
 // Every command a person may be given: each cloud's, and Google Cloud's on both hosts.
 const ALL_COMMANDS: Array<CloudAiAgentSetupOptions> = [
   AWS,
   AZURE,
+  AZURE_VM,
   GCP,
   GCP_RUN,
 ];
@@ -264,6 +282,21 @@ function startupEnvironmentOf(startup: string): Record<string, string> {
   for (const line of heredocBody(
     startup,
     `cat > ${GCP_CLOUD_AI_AGENT_RUN_DIRECTORY}/agent.env <<'ENV'`,
+  )) {
+    const equals: number = line.indexOf("=");
+    environment[line.substring(0, equals)] = line.substring(equals + 1);
+  }
+
+  return environment;
+}
+
+// The variables Azure's VM start script gives the agent, as Docker reads them.
+function azureStartEnvironmentOf(start: string): Record<string, string> {
+  const environment: Record<string, string> = {};
+
+  for (const line of heredocBody(
+    start,
+    `cat > ${AZURE_CLOUD_AI_AGENT_RUN_DIRECTORY}/agent.env <<'ENV'`,
   )) {
     const equals: number = line.indexOf("=");
     environment[line.substring(0, equals)] = line.substring(equals + 1);
@@ -391,8 +424,33 @@ az() {
       echo "$FAKE_WRITE_PRINCIPAL" ;;
     "containerapp env")
       if [ "$3" = show ] && [ "$FAKE_EXISTS" != 1 ]; then return 3; fi ;;
-    "containerapp show") echo "$FAKE_PRINCIPAL" ;;
-    "containerapp create") return "$FAKE_DEPLOY_EXIT" ;;
+    "containerapp show")
+      if [ "$FAKE_NO_APP" = 1 ] && [ ! -f "$CAPTURED/app" ]; then return 3; fi
+      echo "$FAKE_PRINCIPAL" ;;
+    "containerapp create")
+      [ "$FAKE_DEPLOY_EXIT" = 0 ] && : > "$CAPTURED/app"
+      return "$FAKE_DEPLOY_EXIT" ;;
+    "vm show")
+      { [ "$FAKE_AZURE_VM" = 1 ] || [ -f "$CAPTURED/vm" ]; } || { echo "ResourceNotFound" >&2; return 3; }
+      echo "$FAKE_VM_PRINCIPAL" ;;
+    "vm create")
+      cp "$(flag_value --custom-data "$@")" "$CAPTURED/custom-data.yaml"
+      cp "$(flag_value --user-data "$@")" "$CAPTURED/user-data.sh"
+      cp "$(flag_value --ssh-key-values "$@")" "$CAPTURED/ssh.pub"
+      [ "$FAKE_VM_EXIT" = 0 ] && : > "$CAPTURED/vm"
+      return "$FAKE_VM_EXIT" ;;
+    "vm update")
+      cp "$(flag_value --user-data "$@")" "$CAPTURED/user-data.sh" ;;
+    "keyvault show") [ "$FAKE_EXISTS" = 1 ] || return 3 ;;
+    "keyvault secret")
+      case "$3" in
+        set)
+          cp "$(flag_value --file "$@")" "$CAPTURED/vault-secret.txt"
+          [ "$FAKE_SECRET_SET_EXIT" = 0 ] || return "$FAKE_SECRET_SET_EXIT"
+          echo "$FAKE_KEY_VERSION_ID" ;;
+        list-versions)
+          for version in $FAKE_VAULT_VERSIONS; do echo "$version"; done ;;
+      esac ;;
     "role assignment")
       if [ "$3" = delete ]; then return "$FAKE_ASSIGNMENT_DELETE_EXIT"; fi ;;
   esac
@@ -466,6 +524,13 @@ gcloud() {
 sleep() {
   record sleep "$@"
 }
+# A key pair nobody keeps: the files ssh-keygen would write.
+ssh-keygen() {
+  record ssh-keygen "$@"
+  file=$(flag_value -f "$@")
+  echo "PRIVATE KEY" > "$file"
+  echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOneUptimeTest oneuptime-ai-agent" > "$file.pub"
+}
 `;
 
 interface Scenario {
@@ -497,6 +562,12 @@ interface Scenario {
   secretVersions?: Array<string> | undefined;
   newVersion?: string | undefined;
   versionAddExit?: number | undefined;
+  // Azure: the VM an earlier run made, and no Container App unless the command makes one.
+  azureVm?: boolean | undefined;
+  noApp?: boolean | undefined;
+  // Azure: how storing the key in the vault ends, and the versions the vault then holds.
+  secretSetExit?: number | undefined;
+  vaultVersions?: Array<string> | undefined;
 }
 
 interface ShellRun {
@@ -513,6 +584,10 @@ interface ShellRun {
   secret: string | null;
   // The VM's startup script, as the VM was given it.
   startup: string | null;
+  // Azure's VM: its first boot, its start script (created or updated) and its key's secret.
+  vmCustomData: string | null;
+  vmUserData: string | null;
+  vaultSecret: string | null;
 }
 
 const ROLE_ID: string = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
@@ -520,6 +595,10 @@ const ROLE_ID: string = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 const READER_ROLE_ID: string = "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff";
 const PRINCIPAL: string = "99999999-8888-4777-8666-555555555555";
 const WRITE_PRINCIPAL: string = "77777777-6666-4555-8444-333333333333";
+// Azure's VM: its own identity's object id, and the vault's new version of the key.
+const VM_PRINCIPAL: string = "55555555-4444-4333-8222-111111111111";
+const KEY_VERSION_ID: string =
+  "https://ouai-0b1f64711bf04ddaaec.vault.azure.net/secrets/agent-key/00000000000000000000000000000002";
 
 const SHELL_DIRECTORIES: Array<string> = [];
 
@@ -577,6 +656,14 @@ function run(command: string, scenario: Scenario = {}): ShellRun {
         FAKE_SECRET_VERSIONS: (scenario.secretVersions || ["1"]).join(" "),
         FAKE_NEW_VERSION: scenario.newVersion ?? "1",
         FAKE_VERSION_ADD_EXIT: String(scenario.versionAddExit ?? 0),
+        FAKE_AZURE_VM: scenario.azureVm ? "1" : "0",
+        FAKE_NO_APP: scenario.noApp ? "1" : "0",
+        FAKE_VM_PRINCIPAL: VM_PRINCIPAL,
+        FAKE_SECRET_SET_EXIT: String(scenario.secretSetExit ?? 0),
+        FAKE_KEY_VERSION_ID: KEY_VERSION_ID,
+        FAKE_VAULT_VERSIONS: (scenario.vaultVersions || [KEY_VERSION_ID]).join(
+          " ",
+        ),
       },
     },
   );
@@ -608,6 +695,9 @@ function run(command: string, scenario: Scenario = {}): ShellRun {
     envFile: read(path.join(captured, "env.yaml")),
     secret: read(path.join(captured, "secret.txt")),
     startup: read(path.join(captured, "startup.sh")),
+    vmCustomData: read(path.join(captured, "custom-data.yaml")),
+    vmUserData: read(path.join(captured, "user-data.sh")),
+    vaultSecret: read(path.join(captured, "vault-secret.txt")),
   };
 }
 
@@ -2209,6 +2299,8 @@ describe("Azure: the command", () => {
       "az role assignment create",
       "az role assignment create",
       "az role assignment delete",
+      // One agent per subscription: is there a VM an earlier run made?
+      "az vm show --subscription",
     ]);
 
     expect(flag(callsTo(shell, "az", "group", "create")[0]!, "--name")).toBe(
@@ -2271,15 +2363,90 @@ describe("Azure: the command", () => {
     expect(flagWords(app, "--secrets")).toEqual([
       `${AZURE_CLOUD_AI_AGENT_SECRET_NAME}=${KEY}`,
     ]);
-    expect(flagWords(app, "--env-vars")).toEqual(
-      getCloudAiAgentEnvironment(options).map(
+    expect(flagWords(app, "--env-vars")).toEqual([
+      ...getCloudAiAgentEnvironment(options).map(
         (variable: CloudAiAgentEnvironmentVariable): string => {
           return variable.isSecret
             ? `${variable.name}=secretref:${AZURE_CLOUD_AI_AGENT_SECRET_NAME}`
             : `${variable.name}=${variable.value}`;
         },
       ),
+      // The write identity's object id, as Azure answered for it.
+      `${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}=${WRITE_PRINCIPAL}`,
+    ]);
+  });
+
+  /*
+   * The write identity's object id, as Azure answers for the identity the
+   * command makes or finds: what the Activity Log names as the caller of
+   * the agent's changes. Passed to the agent so its posture names it from
+   * the start, and the Changes page marks its changes before its first
+   * change or Test connection, and after a restart (#6212).
+   */
+  test("the app is given the write identity's object id, as Azure answered for it: on a first run and on a run again", () => {
+    for (const exists of [false, true]) {
+      const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE), {
+        exists,
+      });
+      const app: Array<string> = callsTo(
+        shell,
+        "az",
+        "containerapp",
+        "create",
+      )[0]!;
+      const identity: Array<string> = callsTo(
+        shell,
+        "az",
+        "identity",
+        exists ? "show" : "create",
+      )[0]!;
+
+      // The id Azure answered with: the identity's principalId, read as text.
+      expect(flag(identity, "--query")).toBe("principalId");
+      expect(flag(identity, "--output")).toBe("tsv");
+      expect(
+        flagWords(app, "--env-vars").filter((word: string): boolean => {
+          return word.startsWith(
+            `${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}=`,
+          );
+        }),
+      ).toEqual([
+        `${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}=${WRITE_PRINCIPAL}`,
+      ]);
+    }
+  });
+
+  test("written as the shell's value of WRITE_PRINCIPAL, never as a value of the dialog's: Azure makes the id", () => {
+    const command: string = getAzureCloudAiAgentSetupCommand(AZURE);
+
+    expect(command).toContain(
+      ` ${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}="$WRITE_PRINCIPAL" `,
     );
+    // Only from the identity's own answer, set before the app is written.
+    expect(command.indexOf("WRITE_PRINCIPAL=$(az identity show")).toBeLessThan(
+      command.indexOf(`${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV}=`),
+    );
+    expect(command).toContain(
+      '[ -n "$WRITE_PRINCIPAL" ] && az containerapp create',
+    );
+  });
+
+  test("not among the variables for running the agent elsewhere, which Azure has made no id for: the agent learns it from the identity's first token", () => {
+    expect(
+      getCloudAiAgentEnvironment(AZURE).map(
+        (variable: CloudAiAgentEnvironmentVariable): string => {
+          return variable.name;
+        },
+      ),
+    ).not.toContain(RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV);
+  });
+
+  test("only Azure's command carries it", () => {
+    for (const options of [AWS, GCP]) {
+      expect(getCloudAiAgentSetupCommand(options)).not.toContain(
+        RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV,
+      );
+    }
   });
 
   test("running it again updates both roles, keeps the group, the write identity and the environment, and writes the app whole again", () => {
@@ -2308,6 +2475,7 @@ describe("Azure: the command", () => {
       "az role assignment create",
       "az role assignment create",
       "az role assignment delete",
+      "az vm show --subscription",
     ]);
 
     const definitionsOf: (shell: ShellRun, verb: string) => Array<string> = (
@@ -2406,6 +2574,788 @@ describe("Azure: the command", () => {
     expect(callsTo(shell, "az", "containerapp", "show")).toEqual([]);
     expect(callsTo(shell, "az", "role", "assignment")).toEqual([]);
     expect(shell.output).toEqual([]);
+  });
+});
+
+// ---- Azure on its own VM -------------------------------------------------------
+
+/*
+ * Azure's other host (#6212), for a subscription that cannot use
+ * Container Apps: one small VM in a network of its own that lets nothing
+ * in, whose own identity only reads, with the write identity attached to it
+ * alone, and the key in a Key Vault of its own that only that identity may
+ * read. Pinned against the fake az; it has not run against a real
+ * subscription.
+ */
+describe("Azure on its own VM: the command", () => {
+  test("a first run: the roles, the providers, the group, the write identity, the vault and its key, the VM, then each identity's access", () => {
+    const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE_VM), {
+      noApp: true,
+    });
+
+    expect(
+      shell.calls.map((call: Array<string>): string => {
+        return call.slice(0, 4).join(" ");
+      }),
+    ).toEqual([
+      "az role definition create",
+      "az role definition create",
+      "az provider register --subscription",
+      "az provider register --subscription",
+      "az provider register --subscription",
+      "az provider register --subscription",
+      "az group show --subscription",
+      "az group create --subscription",
+      "az identity show --subscription",
+      "az identity create --subscription",
+      "az keyvault show --subscription",
+      "az keyvault create --subscription",
+      "az keyvault secret set",
+      "az keyvault secret list-versions",
+      "az vm show --subscription",
+      `ssh-keygen -q -t ed25519`,
+      "az vm create --subscription",
+      "az vm show --subscription",
+      "az keyvault set-policy --subscription",
+      "az role assignment create",
+      "az role assignment create",
+      "az containerapp show --subscription",
+    ]);
+    expect(
+      callsTo(shell, "az", "provider", "register").map(
+        (call: Array<string>): string | undefined => {
+          return flag(call, "--namespace");
+        },
+      ),
+    ).toEqual([
+      "Microsoft.Compute",
+      "Microsoft.Network",
+      "Microsoft.KeyVault",
+      "Microsoft.ManagedIdentity",
+    ]);
+    // No Container Apps extension: nothing of Container Apps is made.
+    expect(callsTo(shell, "az", "extension")).toEqual([]);
+    expect(callsTo(shell, "az", "containerapp", "create")).toEqual([]);
+    expect(shell.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
+    // Every call names the subscription the command was written for.
+    for (const call of shell.calls) {
+      if (call[0] === "az" && call[1] !== "keyvault" && call[2] !== "secret") {
+        expect({
+          call: call.slice(0, 3),
+          subscription: flag(call, "--subscription"),
+        }).toEqual({
+          call: call.slice(0, 3),
+          subscription: AZURE_SUBSCRIPTION,
+        });
+      }
+    }
+  });
+
+  test("the VM: Standard_B1s on Ubuntu, Trusted Launch, its own identity and the write identity, in a network of its own that lets nothing in, with a key nobody keeps", () => {
+    const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE_VM), {
+      noApp: true,
+    });
+    const vm: Array<string> = callsTo(shell, "az", "vm", "create")[0]!;
+
+    expect(flag(vm, "--name")).toBe(AZURE_CLOUD_AI_AGENT_VM_NAME);
+    expect(flag(vm, "--resource-group")).toBe(
+      AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+    );
+    expect(flag(vm, "--location")).toBe("eastus");
+    expect(flag(vm, "--size")).toBe("Standard_B1s");
+    expect(flag(vm, "--image")).toBe("Ubuntu2404");
+    expect(flag(vm, "--os-disk-size-gb")).toBe("30");
+    expect(flag(vm, "--storage-sku")).toBe("Standard_LRS");
+    // Its disk and network card go with it.
+    expect(flag(vm, "--os-disk-delete-option")).toBe("Delete");
+    expect(flag(vm, "--nic-delete-option")).toBe("Delete");
+    expect(flag(vm, "--security-type")).toBe("TrustedLaunch");
+    expect(flag(vm, "--enable-secure-boot")).toBe("true");
+    expect(flag(vm, "--enable-vtpm")).toBe("true");
+    // Its own identity, and the write identity attached to it alone.
+    expect(flagWords(vm, "--assign-identity")).toEqual([
+      "[system]",
+      getAzureCloudAiAgentWriteIdentityId(AZURE_SUBSCRIPTION),
+    ]);
+    // A network of its own, whose security group allows nothing in.
+    expect(flag(vm, "--vnet-name")).toBe(AZURE_CLOUD_AI_AGENT_NETWORK_NAME);
+    expect(flag(vm, "--subnet")).toBe(AZURE_CLOUD_AI_AGENT_NETWORK_NAME);
+    expect(flag(vm, "--nsg")).toBe(AZURE_CLOUD_AI_AGENT_NETWORK_NAME);
+    expect(flag(vm, "--nsg-rule")).toBe("NONE");
+    // An address for its way out; a Standard one takes nothing in that no rule allows.
+    expect(flag(vm, "--public-ip-sku")).toBe("Standard");
+    // SSH keys only, and a pair the command throws away: nobody can sign in.
+    expect(flag(vm, "--authentication-type")).toBe("ssh");
+    expect(vm).not.toContain("--generate-ssh-keys");
+    expect(vm).not.toContain("--admin-password");
+    expect(shell.files).toEqual([]);
+    expect(flag(callsTo(shell, "ssh-keygen")[0]!, "-N")).toBe("");
+    // Nothing comes in, so no port is opened and no other identity is attached.
+    expect(vm).not.toContain("--ports");
+    expect(vm.join(" ")).not.toMatch(/Managed Identity Operator|--role/);
+  });
+
+  test("least privilege: the VM's identity gets the reads' role and the vault's get on secrets, the write identity the changes' role, and nothing else", () => {
+    const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE_VM), {
+      noApp: true,
+    });
+    const policy: Array<string> = callsTo(
+      shell,
+      "az",
+      "keyvault",
+      "set-policy",
+    )[0]!;
+    const assignments: Array<Array<string>> = callsTo(
+      shell,
+      "az",
+      "role",
+      "assignment",
+    );
+
+    expect(flag(policy, "--object-id")).toBe(VM_PRINCIPAL);
+    expect(flagWords(policy, "--secret-permissions")).toEqual(["get"]);
+    for (const other of [
+      "--key-permissions",
+      "--certificate-permissions",
+      "--storage-permissions",
+    ]) {
+      expect(policy).not.toContain(other);
+    }
+    expect(
+      assignments.map((call: Array<string>): Array<string | undefined> => {
+        return [
+          call[3],
+          flag(call, "--assignee-object-id"),
+          flag(call, "--role"),
+          flag(call, "--scope"),
+        ];
+      }),
+    ).toEqual([
+      [
+        "create",
+        VM_PRINCIPAL,
+        READER_ROLE_ID,
+        `/subscriptions/${AZURE_SUBSCRIPTION}`,
+      ],
+      [
+        "create",
+        WRITE_PRINCIPAL,
+        ROLE_ID,
+        `/subscriptions/${AZURE_SUBSCRIPTION}`,
+      ],
+    ]);
+    // The vault: the agent's resource group, its access policies its own.
+    const vault: Array<string> = callsTo(shell, "az", "keyvault", "create")[0]!;
+
+    expect(flag(vault, "--name")).toBe(
+      getAzureCloudAiAgentKeyVaultName(AZURE_SUBSCRIPTION),
+    );
+    expect(flag(vault, "--resource-group")).toBe(
+      AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+    );
+    expect(flag(vault, "--enable-rbac-authorization")).toBe("false");
+  });
+
+  test("the key: in the vault from a file the command removes, never on a command line, and its older versions disabled", () => {
+    const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE_VM), {
+      noApp: true,
+      vaultVersions: [
+        "https://vault/secrets/agent-key/1",
+        KEY_VERSION_ID,
+        "https://vault/secrets/agent-key/0",
+      ],
+    });
+
+    expect(shell.vaultSecret).toBe(`${KEY}\n`);
+    for (const call of shell.calls) {
+      expect(call.join(" ")).not.toContain(KEY);
+    }
+    expect(shell.files).toEqual([]);
+    expect(
+      callsTo(shell, "az", "keyvault", "secret", "set-attributes").map(
+        (call: Array<string>): Array<string | undefined> => {
+          return [flag(call, "--id"), flag(call, "--enabled")];
+        },
+      ),
+    ).toEqual([
+      ["https://vault/secrets/agent-key/1", "false"],
+      ["https://vault/secrets/agent-key/0", "false"],
+    ]);
+    // Only the vault's enabled versions are asked for.
+    expect(
+      flag(
+        callsTo(shell, "az", "keyvault", "secret", "list-versions")[0]!,
+        "--query",
+      ),
+    ).toBe("[?attributes.enabled].id");
+  });
+
+  test("a key the vault would not take: nothing disabled, no VM, and it says the VM did not start", () => {
+    const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE_VM), {
+      noApp: true,
+      secretSetExit: 1,
+    });
+
+    expect(
+      callsTo(shell, "az", "keyvault", "secret", "set-attributes"),
+    ).toEqual([]);
+    expect(callsTo(shell, "az", "vm", "create")).toEqual([]);
+    expect(callsTo(shell, "az", "role", "assignment")).toEqual([]);
+    expect(shell.output).toEqual([AZURE_CLOUD_AI_AGENT_VM_REFUSED_MESSAGE]);
+  });
+
+  test("a VM Azure would not create: no access, no role, and what to do instead", () => {
+    const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE_VM), {
+      noApp: true,
+      vmExit: 1,
+    });
+
+    expect(callsTo(shell, "az", "keyvault", "set-policy")).toEqual([]);
+    expect(callsTo(shell, "az", "role", "assignment")).toEqual([]);
+    expect(callsTo(shell, "az", "containerapp", "delete")).toEqual([]);
+    expect(shell.output).toEqual([AZURE_CLOUD_AI_AGENT_VM_REFUSED_MESSAGE]);
+    expect(AZURE_CLOUD_AI_AGENT_VM_REFUSED_MESSAGE).toContain(
+      "choose Container Apps under More fields",
+    );
+    // No key pair left behind either.
+    expect(shell.files).toEqual([]);
+  });
+
+  test("a write identity that could not be made: no VM", () => {
+    const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE_VM), {
+      noApp: true,
+      identityExit: 1,
+    });
+
+    expect(callsTo(shell, "az", "vm", "create")).toEqual([]);
+    expect(callsTo(shell, "ssh-keygen")).toEqual([]);
+    expect(shell.output).toEqual([AZURE_CLOUD_AI_AGENT_VM_REFUSED_MESSAGE]);
+  });
+
+  test("run again: the VM an earlier run made gets both identities, its start script anew and a restart - no new VM", () => {
+    const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE_VM), {
+      exists: true,
+      azureVm: true,
+      noApp: true,
+    });
+
+    expect(callsTo(shell, "az", "vm", "create")).toEqual([]);
+    expect(callsTo(shell, "ssh-keygen")).toEqual([]);
+    expect(
+      flagWords(
+        callsTo(shell, "az", "vm", "identity", "assign")[0]!,
+        "--identities",
+      ),
+    ).toEqual([
+      "[system]",
+      getAzureCloudAiAgentWriteIdentityId(AZURE_SUBSCRIPTION),
+    ]);
+    expect(callsTo(shell, "az", "vm", "update")).toHaveLength(1);
+    expect(callsTo(shell, "az", "vm", "restart")).toHaveLength(1);
+    // The file the VM is given, as a here-document writes it: with its last line ended.
+    expect(shell.vmUserData).toBe(
+      `${getAzureCloudAiAgentStartScript(AZURE_VM, WRITE_PRINCIPAL)}\n`,
+    );
+    expect(callsTo(shell, "az", "keyvault", "create")).toEqual([]);
+    expect(callsTo(shell, "az", "role", "assignment")).toHaveLength(2);
+    expect(shell.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
+  });
+
+  test("one agent per subscription: the VM's run removes the Container App an earlier run made, once the VM started", () => {
+    const moved: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE_VM));
+
+    expect(
+      callsTo(moved, "az", "containerapp", "delete").map(
+        (call: Array<string>): string | undefined => {
+          return flag(call, "--name");
+        },
+      ),
+    ).toEqual([AZURE_CLOUD_AI_AGENT_APP_NAME]);
+
+    // Not when the VM did not start.
+    expect(
+      callsTo(
+        run(getAzureCloudAiAgentSetupCommand(AZURE_VM), { vmExit: 1 }),
+        "az",
+        "containerapp",
+        "delete",
+      ),
+    ).toEqual([]);
+  });
+
+  test("and the Container App's run removes the VM an earlier run made, and its address, once the app started", () => {
+    const moved: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE), {
+      azureVm: true,
+    });
+
+    expect(
+      callsTo(moved, "az", "vm", "delete").map(
+        (call: Array<string>): string | undefined => {
+          return flag(call, "--name");
+        },
+      ),
+    ).toEqual([AZURE_CLOUD_AI_AGENT_VM_NAME]);
+    expect(callsTo(moved, "az", "vm", "delete")[0]).toContain("--yes");
+    expect(callsTo(moved, "az", "network", "public-ip", "delete")).toHaveLength(
+      1,
+    );
+    expect(moved.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
+
+    // Not when the app could not be written.
+    expect(
+      callsTo(
+        run(getAzureCloudAiAgentSetupCommand(AZURE), {
+          azureVm: true,
+          deployExit: 1,
+        }),
+        "az",
+        "vm",
+        "delete",
+      ),
+    ).toEqual([]);
+    // Nor when there is none.
+    expect(
+      callsTo(
+        run(getAzureCloudAiAgentSetupCommand(AZURE)),
+        "az",
+        "vm",
+        "delete",
+      ),
+    ).toEqual([]);
+  });
+
+  test("the start script is written in two parts around the write identity's object id, as Azure answered for it", () => {
+    const command: string = getAzureCloudAiAgentSetupCommand(AZURE_VM);
+    const shell: ShellRun = run(command, { noApp: true });
+
+    expect(command).toContain(
+      `printf '%s=%s\\n' ${RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV} "$WRITE_PRINCIPAL" >> ${AZURE_CLOUD_AI_AGENT_START_FILE}`,
+    );
+    // The file the VM is given, as a here-document writes it: with its last line ended.
+    expect(shell.vmUserData).toBe(
+      `${getAzureCloudAiAgentStartScript(AZURE_VM, WRITE_PRINCIPAL)}\n`,
+    );
+    expect(azureStartEnvironmentOf(shell.vmUserData as string)).toEqual({
+      ...plainEnvironmentOf(AZURE_VM),
+      [RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV]: WRITE_PRINCIPAL,
+    });
+    // It says where it runs, which Change reads back.
+    expect(environmentOf(AZURE_VM)[RESOURCE_AI_AZURE_HOST_ENV]).toBe(
+      "virtual-machine",
+    );
+    expect(environmentOf(AZURE)[RESOURCE_AI_AZURE_HOST_ENV]).toBeUndefined();
+    // No key in it: anyone who may read the VM reads its user data.
+    expect(shell.vmUserData).not.toContain(KEY);
+    expect(shell.vmCustomData).toBe(`${AZURE_CLOUD_AI_AGENT_CLOUD_INIT}\n`);
+  });
+
+  test("its first boot: Docker, and a service that runs the VM's user data at every boot", () => {
+    const config: Json = yaml.load(AZURE_CLOUD_AI_AGENT_CLOUD_INIT) as Json;
+    const files: Record<string, Json> = {};
+
+    for (const file of config.write_files) {
+      files[file.path] = file;
+    }
+
+    expect(AZURE_CLOUD_AI_AGENT_CLOUD_INIT.split("\n")[0]).toBe(
+      "#cloud-config",
+    );
+    expect(config.packages).toEqual(["docker.io"]);
+
+    const unit: string = files[
+      `/etc/systemd/system/${CLOUD_AI_AGENT_NAME}.service`
+    ].content as string;
+
+    expect(unit).toContain(
+      `ExecStart=/bin/bash /usr/local/lib/${CLOUD_AI_AGENT_NAME}/boot.sh`,
+    );
+    expect(unit).toContain("After=network-online.target docker.service");
+    expect(unit).toContain("WantedBy=multi-user.target");
+    expect(config.runcmd).toEqual([
+      ["systemctl", "daemon-reload"],
+      ["systemctl", "enable", "--now", `${CLOUD_AI_AGENT_NAME}.service`],
+    ]);
+
+    const boot: Json = files[`/usr/local/lib/${CLOUD_AI_AGENT_NAME}/boot.sh`];
+
+    expect(boot.permissions).toBe("0700");
+    expect(boot.content).toContain(
+      'curl -sf -H Metadata:true "http://169.254.169.254/metadata/instance/compute/userData?api-version=2021-01-01&format=text"',
+    );
+    expect(boot.content).toContain(
+      `bash ${AZURE_CLOUD_AI_AGENT_RUN_DIRECTORY}/start.sh`,
+    );
+    // Nothing of one setup, and nothing secret.
+    expect(AZURE_CLOUD_AI_AGENT_CLOUD_INIT).not.toContain(KEY);
+    expect(AZURE_CLOUD_AI_AGENT_CLOUD_INIT).not.toContain(AZURE_SUBSCRIPTION);
+  });
+
+  test("its Key Vault's name: the subscription's own, 24 characters a vault's name may hold", () => {
+    const name: string = getAzureCloudAiAgentKeyVaultName(AZURE_SUBSCRIPTION);
+
+    expect(name).toBe("ouai-0b1f64711bf04ddaaec");
+    expect(name).toMatch(/^[a-z][a-z0-9-]{1,22}[a-z0-9]$/);
+    expect(name).not.toContain("--");
+    expect(name).toHaveLength(24);
+    expect(
+      getAzureCloudAiAgentKeyVaultName(AZURE_SUBSCRIPTION.toUpperCase()),
+    ).toBe(name);
+    expect(
+      getAzureCloudAiAgentKeyVaultName("1b1f6471-1bf0-4dda-aec3-111122223333"),
+    ).not.toBe(name);
+    // In the agent's resource group, which the agent never changes.
+    expect(
+      getCloudAiAgentOwnTargets({
+        provider: "azure",
+        accountId: AZURE_SUBSCRIPTION,
+      }),
+    ).toEqual([
+      `/subscriptions/${AZURE_SUBSCRIPTION}/resourcegroups/${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP}/*`,
+    ]);
+  });
+
+  test("where the Azure agent runs is checked: anything but the two hosts is refused; another cloud's command ignores it", () => {
+    expect(
+      describeCloudAiAgentSetupProblem({
+        ...AZURE,
+        azureHost: "kubernetes" as unknown as "virtual-machine",
+      }),
+    ).toBe("Pick where the Azure agent runs: Container Apps, or a small VM.");
+    expect(describeCloudAiAgentSetupProblem(AZURE_VM)).toBeNull();
+    expect(
+      describeCloudAiAgentSetupProblem({
+        ...GCP,
+        azureHost: "virtual-machine",
+      }),
+    ).toBeNull();
+    // The default is Container Apps, as before.
+    expect(AZURE_CLOUD_AI_AGENT_DEFAULT_HOST).toBe("container-apps");
+    expect(getAzureCloudAiAgentSetupCommand(AZURE)).toContain(
+      "az containerapp create",
+    );
+    expect(getAzureCloudAiAgentSetupCommand(AZURE)).not.toContain(
+      "az vm create",
+    );
+  });
+});
+
+/*
+ * The VM's start script, run as root at every boot, against a fake docker:
+ * the image pulled until the network answers, the key read from the vault
+ * in the image itself - again for a few minutes while the VM's new identity
+ * waits for its access - the agent started on the VM's own network,
+ * read-only, and the file that held the key gone once Docker read it.
+ */
+describe("Azure on its own VM: the start script", () => {
+  const FAKE_DOCKER: string = String.raw`
+record() {
+  for arg in "$@"; do printf '%s\037' "$arg"; done >> "$CALLS"
+  printf '\036' >> "$CALLS"
+}
+docker() {
+  record docker "$@"
+  case "$1" in
+    pull) return 0 ;;
+    run)
+      case " $* " in
+        *" --entrypoint node "*)
+          READS=$(( $(cat "$CAPTURED/reads" 2> /dev/null || echo 0) + 1 ))
+          echo "$READS" > "$CAPTURED/reads"
+          [ "$READS" -gt "$FAKE_KEY_FAILURES" ] || return 1
+          printf '%s' "$FAKE_KEY"; return 0 ;;
+        *" -d "*) cp "$RUN_DIRECTORY/agent.env" "$CAPTURED/agent.env"; return 0 ;;
+      esac ;;
+  esac
+  return 0
+}
+sleep() {
+  record sleep "$@"
+}
+`;
+
+  interface BootRun {
+    calls: Array<Array<string>>;
+    agentEnv: string | null;
+    left: Array<string>;
+    status: number;
+  }
+
+  function boot(script: string, keyFailures: number = 0): BootRun {
+    const directory: string = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cloud-ai-agent-azure-boot-"),
+    );
+    const runDirectory: string = path.join(directory, "run");
+    const captured: string = path.join(directory, "captured");
+    const calls: string = path.join(directory, "calls");
+
+    SHELL_DIRECTORIES.push(directory);
+    fs.mkdirSync(captured);
+    fs.writeFileSync(calls, "");
+
+    const shell: SpawnSyncReturns<string> = spawnSync(
+      "bash",
+      [
+        "-c",
+        `${FAKE_DOCKER}\n${script.split(AZURE_CLOUD_AI_AGENT_RUN_DIRECTORY).join(runDirectory)}`,
+      ],
+      {
+        cwd: directory,
+        encoding: "utf8",
+        env: {
+          PATH: process.env["PATH"] || "/usr/bin:/bin",
+          CALLS: calls,
+          CAPTURED: captured,
+          RUN_DIRECTORY: runDirectory,
+          FAKE_KEY_FAILURES: String(keyFailures),
+          FAKE_KEY: KEY,
+        },
+      },
+    );
+
+    expect(shell.error).toBeUndefined();
+
+    const envFile: string = path.join(captured, "agent.env");
+
+    return {
+      calls: fs
+        .readFileSync(calls, "utf8")
+        .split("\u001e")
+        .filter((call: string): boolean => {
+          return call.length > 0;
+        })
+        .map((call: string): Array<string> => {
+          return call.split("\u001f").slice(0, -1);
+        }),
+      agentEnv: fs.existsSync(envFile)
+        ? fs.readFileSync(envFile, "utf8")
+        : null,
+      left: fs.existsSync(runDirectory)
+        ? fs.readdirSync(runDirectory).sort()
+        : [],
+      status: shell.status ?? -1,
+    };
+  }
+
+  function dockerCalls(booted: BootRun, verb: string): Array<Array<string>> {
+    return booted.calls.filter((call: Array<string>): boolean => {
+      return call[0] === "docker" && call[1] === verb;
+    });
+  }
+
+  const script: string = getAzureCloudAiAgentStartScript(
+    AZURE_VM,
+    WRITE_PRINCIPAL,
+  );
+  const vault: string = `https://${getAzureCloudAiAgentKeyVaultName(AZURE_SUBSCRIPTION)}.vault.azure.net`;
+
+  test("pulls the image, reads the key in it from the vault, and starts the agent with it - read-only, on the VM's network", () => {
+    const booted: BootRun = boot(script);
+    const runs: Array<Array<string>> = dockerCalls(booted, "run");
+    const reader: Array<string> = runs[0]!;
+    const agent: Array<string> = runs[1]!;
+
+    expect(booted.status).toBe(0);
+    expect(dockerCalls(booted, "pull")).toEqual([
+      ["docker", "pull", getCloudAiAgentImage()],
+    ]);
+    expect(flag(reader, "--network")).toBe("host");
+    expect(flag(reader, "--entrypoint")).toBe("node");
+    expect(reader.slice(-3)).toEqual([
+      getCloudAiAgentImage(),
+      "/key.js",
+      vault,
+    ]);
+    expect(agent).toContain("-d");
+    expect(flag(agent, "--name")).toBe(AZURE_CLOUD_AI_AGENT_VM_NAME);
+    expect(flag(agent, "--restart")).toBe("unless-stopped");
+    expect(flag(agent, "--network")).toBe("host");
+    expect(agent).toContain("--read-only");
+    expect(flag(agent, "--tmpfs")).toBe("/tmp");
+    expect(agent[agent.length - 1]).toBe(getCloudAiAgentImage());
+  });
+
+  test("the agent gets every variable, the write identity's object id and the key - and the file is gone once Docker read it", () => {
+    const booted: BootRun = boot(script);
+    const environment: Record<string, string> = {};
+
+    for (const line of (booted.agentEnv as string).split("\n")) {
+      if (line) {
+        const equals: number = line.indexOf("=");
+        environment[line.substring(0, equals)] = line.substring(equals + 1);
+      }
+    }
+
+    expect(environment).toEqual({
+      ...environmentOf(AZURE_VM),
+      [RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV]: WRITE_PRINCIPAL,
+    });
+    for (const call of booted.calls) {
+      expect(call.join(" ")).not.toContain(KEY);
+    }
+    expect(booted.left).toEqual(["key.js"]);
+  });
+
+  test("a vault the VM may not read yet: the key is read again, 15 seconds apart, until it may", () => {
+    const booted: BootRun = boot(script, 3);
+
+    expect(
+      dockerCalls(booted, "run").filter((call: Array<string>): boolean => {
+        return call.includes("node");
+      }),
+    ).toHaveLength(4);
+    expect(
+      booted.calls.filter((call: Array<string>): boolean => {
+        return call[0] === "sleep";
+      }),
+    ).toEqual([
+      ["sleep", "15"],
+      ["sleep", "15"],
+      ["sleep", "15"],
+    ]);
+    expect(booted.status).toBe(0);
+    expect(booted.agentEnv).toContain(`${CLOUD_AI_AGENT_KEY_ENV}=${KEY}`);
+  });
+
+  test("one it never may: no agent, and no file with the variables left", () => {
+    const booted: BootRun = boot(script, 1000);
+
+    expect(booted.status).toBe(1);
+    expect(
+      dockerCalls(booted, "run").filter((call: Array<string>): boolean => {
+        return call.includes("node");
+      }),
+    ).toHaveLength(40);
+    expect(booted.agentEnv).toBeNull();
+    expect(booted.left).toEqual(["key.js"]);
+  });
+});
+
+/*
+ * The vault's key reader, run as the start script runs it (node, in the
+ * agent's image) against a fake IMDS and Key Vault: the VM's own
+ * identity's token for Key Vault, then the secret, trimmed, printed - and
+ * nothing printed, but a reason, when either answer fails.
+ */
+describe("Azure on its own VM: the key reader", () => {
+  const VAULT: string = "https://ouai-0b1f64711bf04ddaaec.vault.azure.net";
+
+  interface Read {
+    printed: string;
+    errors: Array<string>;
+    exitCode: number | null;
+    requests: Array<{ url: string; headers: Record<string, string> }>;
+  }
+
+  async function readKey(answers: {
+    secret?: { status: number; body: unknown };
+  }): Promise<Read> {
+    const read: Read = {
+      printed: "",
+      errors: [],
+      exitCode: null,
+      requests: [],
+    };
+    const fakeFetch: (
+      url: string,
+      init: { headers: Record<string, string> },
+    ) => Promise<unknown> = async (
+      url: string,
+      init: { headers: Record<string, string> },
+    ): Promise<unknown> => {
+      read.requests.push({ url, headers: init.headers });
+      const answer: { status: number; body: unknown } = url.startsWith(
+        "http://169.254.169.254/",
+      )
+        ? { status: 200, body: { access_token: "vault-token" } }
+        : answers.secret || { status: 200, body: { value: `${KEY}\n` } };
+
+      return {
+        ok: answer.status >= 200 && answer.status < 300,
+        status: answer.status,
+        json: async (): Promise<unknown> => {
+          return answer.body;
+        },
+      };
+    };
+    const fakeProcess: unknown = {
+      argv: ["node", "/key.js", VAULT],
+      stdout: {
+        write: (value: string): void => {
+          read.printed += value;
+        },
+      },
+      exit: (code: number): void => {
+        read.exitCode = code;
+      },
+    };
+    const fakeConsole: unknown = {
+      error: (value: string): void => {
+        read.errors.push(value);
+      },
+    };
+
+    // eslint-disable-next-line no-new-func
+    new Function(
+      "fetch",
+      "process",
+      "console",
+      AZURE_CLOUD_AI_AGENT_KEY_READER,
+    )(fakeFetch, fakeProcess, fakeConsole);
+
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 20);
+    });
+
+    return read;
+  }
+
+  test("asks IMDS for the VM's own Key Vault token, then the vault for the key's secret, and prints the key alone", async () => {
+    const read: Read = await readKey({});
+
+    expect(read.printed).toBe(KEY);
+    expect(read.errors).toEqual([]);
+    expect(read.exitCode).toBeNull();
+    expect(read.requests).toEqual([
+      {
+        url: "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fvault.azure.net",
+        headers: { Metadata: "true" },
+      },
+      {
+        url: `${VAULT}/secrets/${AZURE_CLOUD_AI_AGENT_SECRET_NAME}?api-version=7.4`,
+        headers: { Authorization: "Bearer vault-token" },
+      },
+    ]);
+    // The VM's own identity: no client_id or msi_res_id, never the write identity.
+    expect(read.requests[0]!.url).not.toMatch(/client_id|msi_res_id|mi_res_id/);
+  });
+
+  test("a vault it may not read prints no key, says why, and fails", async () => {
+    const read: Read = await readKey({
+      secret: { status: 403, body: { error: { code: "Forbidden" } } },
+    });
+
+    expect(read.printed).toBe("");
+    expect(read.exitCode).toBe(1);
+    expect(read.errors.join(" ")).toContain("Key Vault answered HTTP 403");
+  });
+
+  test("an empty secret is no key", async () => {
+    const read: Read = await readKey({
+      secret: { status: 200, body: { value: "  \n" } },
+    });
+
+    expect(read.printed).toBe("");
+    expect(read.exitCode).toBe(1);
+    expect(read.errors.join(" ")).toContain("holds no key");
+  });
+
+  test("holds nothing the shell it is pasted into would read: no $, no backtick, no !", () => {
+    for (const character of ["$", "`", "!"]) {
+      expect(AZURE_CLOUD_AI_AGENT_KEY_READER).not.toContain(character);
+      expect(AZURE_CLOUD_AI_AGENT_CLOUD_INIT).not.toContain(
+        character === "$" ? "$(" : character,
+      );
+    }
   });
 });
 
@@ -4357,7 +5307,14 @@ describe("quoting", () => {
         ).toContain(`AgentKey=${HOSTILE.agentKey}`);
       }
 
-      if (options.provider === CloudProvider.Azure) {
+      if (options.azureHost === "virtual-machine") {
+        // Its start script, as the VM was given it, and the vault's secret.
+        expect(azureStartEnvironmentOf(shell.vmUserData as string)).toEqual({
+          ...plainEnvironmentOf(hostile),
+          [RESOURCE_AI_AZURE_WRITE_PRINCIPAL_ID_ENV]: WRITE_PRINCIPAL,
+        });
+        expect((shell.vaultSecret as string).trim()).toBe(HOSTILE.agentKey);
+      } else if (options.provider === CloudProvider.Azure) {
         const app: Array<string> = callsTo(
           shell,
           "az",

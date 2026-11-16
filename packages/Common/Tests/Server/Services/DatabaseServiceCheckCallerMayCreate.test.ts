@@ -12,6 +12,7 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import Query from "../../../Server/Types/Database/Query";
 import PublishedImages from "../../../Server/Utils/File/PublishedImages";
+import ServerSetColumns from "../../../Server/Utils/Database/ServerSetColumns";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../../Types/ObjectID";
@@ -512,12 +513,36 @@ describe("DatabaseService.checkCallerMayCreate", () => {
       expected: "BadDataException",
     },
     {
-      // A computed column is let through on create, by both.
+      /*
+       * A computed column nobody may create is OneUptime's to fill in: a
+       * value a member who may read it sends is dropped, by both, before any
+       * hook runs, and the row is written without it (#6541).
+       */
       name: "a project member sending a column OneUptime computes (isOwnerNotified)",
       permissions: [{ permission: Permission.ProjectMember }],
       alertId: ALERT_A,
       row: (row: AlertStateTimeline): void => {
         row.isOwnerNotified = true;
+      },
+      expected: "allowed",
+    },
+    {
+      // One a member may not read is no value they could have read: refused, by both.
+      name: "a member who may create state changes but not read them, sending a column OneUptime computes (isOwnerNotified)",
+      permissions: [{ permission: Permission.CreateAlertStateTimeline }],
+      alertId: ALERT_A,
+      row: (row: AlertStateTimeline): void => {
+        row.isOwnerNotified = true;
+      },
+      expected: "ColumnWriteRefusedException",
+    },
+    {
+      // The same value OneUptime's own code marked on the row passes both.
+      name: "a row OneUptime's own code marked isOwnerNotified on, written as a project member",
+      permissions: [{ permission: Permission.ProjectMember }],
+      alertId: ALERT_A,
+      row: (row: AlertStateTimeline): void => {
+        ServerSetColumns.set(row, { isOwnerNotified: true });
       },
       expected: "allowed",
     },
@@ -563,6 +588,28 @@ describe("DatabaseService.checkCallerMayCreate", () => {
       }
     },
   );
+
+  /*
+   * The value a member who may read the column sends is dropped before the
+   * hooks run: the row is written as if it had not been sent, and OneUptime
+   * fills the column in (#6541).
+   */
+  test("a value in a column OneUptime computes, sent by a member who may read it, is not what the row is written with", async () => {
+    const row: AlertStateTimeline = stateChange(
+      ALERT_A,
+      (sent: AlertStateTimeline): void => {
+        sent.isOwnerNotified = true;
+      },
+    );
+
+    await service.create({
+      data: row,
+      props: propsWith([{ permission: Permission.ProjectMember }]),
+    });
+
+    expect(saves).toHaveLength(1);
+    expect(saves[0]!.isOwnerNotified).toBeUndefined();
+  });
 
   test("a caller with no credentials is answered with the 401 a create gives, and nothing is read", async () => {
     const viaCheck: Outcome = await outcomeOf(

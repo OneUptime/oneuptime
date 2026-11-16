@@ -145,6 +145,24 @@ describe("the check of the sentences", () => {
     expect(
       russian.docsEnglish!.test("Add it to every CI runner's trust store."),
     ).toBe(false);
+    /*
+     * The AI agent is a thing of its own, which a sentence may name beside
+     * the Runner, as the Dashboard names it: ИИ-агент, агенты ИИ, AI 代理.
+     */
+    expect(russian.dropped.test("зонды, Runner и агенты ИИ")).toBe(false);
+    expect(russian.dropped.test("Агенты ИИ")).toBe(false);
+    expect(russian.dropped.test("ИИ-агент проекта")).toBe(false);
+    expect(russian.dropped.test("агент сценария и агенты ИИ")).toBe(true);
+
+    const traditionalChinese: SentenceRule = RULES.find(
+      (rule: SentenceRule) => {
+        return rule.language === "zh-TW" && rule.thing === "Runners";
+      },
+    )!;
+
+    expect(traditionalChinese.dropped.test("Runner 和 AI 代理")).toBe(false);
+    expect(traditionalChinese.dropped.test("Runbook 代理")).toBe(true);
+    expect(traditionalChinese.dropped.test("執行器")).toBe(true);
   });
 
   const ruleOf: (language: string, thing: string) => SentenceRule = (

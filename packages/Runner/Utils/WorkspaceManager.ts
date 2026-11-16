@@ -1,5 +1,6 @@
 import LocalFile from "Common/Server/Utils/LocalFile";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
+import { ensurePrivateDirectory } from "./PrivateDirectory";
 import ObjectID from "Common/Types/ObjectID";
 import path from "path";
 import os from "os";
@@ -40,8 +41,13 @@ export default class WorkspaceManager {
       taskId,
     } as LogAttributes);
 
-    // Create the workspace directory
-    await LocalFile.makeDirectory(workspacePath);
+    /*
+     * Under a base only this Runner's user may enter (PrivateDirectory), and
+     * private itself: a fix's clone is a repository's code, and a global
+     * Runner's JavaScript steps run beside it as users of their own.
+     */
+    await ensurePrivateDirectory(this.BASE_TEMP_DIR);
+    await ensurePrivateDirectory(workspacePath);
 
     return {
       workspacePath,
@@ -253,10 +259,14 @@ export default class WorkspaceManager {
     return Number.isFinite(timestamp) ? timestamp : null;
   }
 
-  // Initialize workspace manager (create base directory if needed)
+  /*
+   * Initialize workspace manager: the base directory, private and this
+   * Runner's own, made at start-up before any step runs, so no step's user
+   * can make it first (PrivateDirectory).
+   */
   public static async initialize(): Promise<void> {
     try {
-      await LocalFile.makeDirectory(this.BASE_TEMP_DIR);
+      await ensurePrivateDirectory(this.BASE_TEMP_DIR);
       logger.debug(
         `Workspace base directory initialized: ${this.BASE_TEMP_DIR}`,
         {} as LogAttributes,

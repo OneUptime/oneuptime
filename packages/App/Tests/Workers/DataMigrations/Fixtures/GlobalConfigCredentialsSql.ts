@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 /*
  * The server's settings table as the EncryptGlobalConfigCredentials data
  * migration reads and writes it, in memory: the two statements it sends,
@@ -9,7 +11,11 @@
  *     WHERE "_id" = $2 AND "<column>" = $3
  *     the one column of the one row, only while the column still holds $3
  *     (a NULL equals nothing), as [rows, count changed]; without the
- *     AND, whatever the column holds.
+ *     AND, whatever the column holds;
+ *   UPDATE "GlobalConfig" SET "<column>" = $1 WHERE "_id" = $2
+ *     AND encode(sha256(convert_to("<column>", 'UTF8')), 'hex') = $3
+ *     the same, compared by the SHA-256 of what the column holds, which is
+ *     how HashMasterApiKey keeps the key out of its parameters.
  *
  * Any other statement, or one that sets a column other than the one it
  * compares, fails the test. A test may run code before a SELECT answers or
@@ -51,6 +57,17 @@ const UPDATE_ONE_COLUMN: RegExp =
 // The same write without the compare: answered too, so a test sees what it would do.
 const UPDATE_ONE_COLUMN_BLINDLY: RegExp =
   /^UPDATE "GlobalConfig" SET "(\w+)" = \$1 WHERE "_id" = \$2$/;
+// The same write, compared by the SHA-256 of what the column holds.
+const UPDATE_ONE_COLUMN_BY_DIGEST: RegExp =
+  /^UPDATE "GlobalConfig" SET "(\w+)" = \$1 WHERE "_id" = \$2 AND encode\(sha256\(convert_to\("(\w+)", 'UTF8'\)\), 'hex'\) = \$3$/;
+
+// SHA-256 of a text, as Postgres's encode(sha256(convert_to(text, 'UTF8')), 'hex').
+function sha256Of(value: unknown): string {
+  return crypto
+    .createHash("sha256")
+    .update(String(value), "utf8")
+    .digest("hex");
+}
 
 function isNull(value: unknown): boolean {
   return value === null || value === undefined;
@@ -101,7 +118,11 @@ export function answerGlobalConfigSql(
         });
       }
 
-      const compared: RegExpMatchArray | null = text.match(UPDATE_ONE_COLUMN);
+      const byDigest: RegExpMatchArray | null = text.match(
+        UPDATE_ONE_COLUMN_BY_DIGEST,
+      );
+      const compared: RegExpMatchArray | null =
+        text.match(UPDATE_ONE_COLUMN) || byDigest;
       const update: RegExpMatchArray | null =
         compared || text.match(UPDATE_ONE_COLUMN_BLINDLY);
 
@@ -134,7 +155,9 @@ export function answerGlobalConfigSql(
             (!compared ||
               (!isNull(row[column]) &&
                 !isNull(expected) &&
-                row[column] === expected))
+                (byDigest
+                  ? sha256Of(row[column]) === expected
+                  : row[column] === expected)))
           ) {
             row[column] = value;
             sql.writes.push({

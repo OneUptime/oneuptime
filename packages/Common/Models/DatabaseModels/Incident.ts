@@ -3623,10 +3623,12 @@ export default class Incident extends BaseModel {
    * so it is hidden everywhere rather than widened to every page its monitors
    * reach.
    *
-   * Computed, so a client cannot set it on create. Its update access control
-   * matches statusPages all the same: the service writes it into the caller's
-   * own update, and the column check that runs after the hook exempts computed
-   * columns only on create.
+   * Computed, so a client cannot set it on create: the value the service
+   * writes is the create's own, which the column check takes as such. Its
+   * update access control matches statusPages all the same: the service
+   * writes it into the caller's own update, and the column check that runs
+   * after the hook takes a computed column as the create's own only on
+   * create.
    *
    * Not indexed. It is false on nearly every row, so an index cannot help the
    * unscoped half of those queries, and the scoped half reaches its incidents

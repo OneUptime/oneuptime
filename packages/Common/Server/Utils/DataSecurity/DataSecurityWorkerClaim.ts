@@ -23,8 +23,8 @@ import {
  * (DataSecurityFindingWriter).
  *
  * The workers' claim read far less than this (OneUptime issue #8325): it
- * never read the project, so a suspended, blocked or sample project's
- * stores had their content sampled, and it never read the project's
+ * never read the project, so a suspended or blocked project's stores
+ * had their content sampled, and it never read the project's
  * content switch, so every store of a project that turned content
  * scanning off was claimed, held for an hour and dropped, forever. It had
  * no order, so with more due stores than one run takes the ones claimed

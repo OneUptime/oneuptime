@@ -126,6 +126,23 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
             }}
             icon={IconProp.CreditCard}
           />
+          {/*
+           * The invoices the payment provider raised for the project, which
+           * staff may void when they waive a charge.
+           */}
+          <SideMenuItem
+            link={{
+              title: t("sideMenu.invoices"),
+              isTitleTranslated: true,
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.PROJECT_INVOICES] as Route,
+                {
+                  modelId: props.modelId,
+                },
+              ),
+            }}
+            icon={IconProp.Invoice}
+          />
         </SideMenuSection>
       ) : (
         <></>

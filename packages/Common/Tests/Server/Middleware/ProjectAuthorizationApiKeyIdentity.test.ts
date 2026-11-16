@@ -6,6 +6,7 @@ import ApiKeyService from "../../../Server/Services/ApiKeyService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
+import MasterApiKey from "../../../Server/Utils/MasterApiKey";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -15,6 +16,7 @@ import {
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
+import HashedString from "../../../Types/HashedString";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -152,8 +154,14 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware - API key identi
   };
 
   const mockMasterKey: () => void = (): void => {
+    // The server's settings row: the master key on, stored as its hash (#7901).
     const globalConfig: GlobalConfig = new GlobalConfig();
     globalConfig._id = ObjectID.getZeroObjectID().toString();
+    globalConfig.isMasterApiKeyEnabled = true;
+    globalConfig.masterApiKey = new HashedString(
+      MasterApiKey.hash(masterApiKeyValue),
+      true,
+    );
     spyGlobalConfigFindOneBy.mockResolvedValue(globalConfig);
 
     const masterAdmin: User = new User();

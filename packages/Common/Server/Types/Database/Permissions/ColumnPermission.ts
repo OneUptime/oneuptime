@@ -29,8 +29,10 @@ import TablePermission from "./TablePermission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import logger from "../../../Utils/Logger";
 import CallerPlan from "../../../Utils/Billing/CallerPlan";
+import ServerSetColumns from "../../../Utils/Database/ServerSetColumns";
 import PlanGates from "./PlanGates";
 import ColumnWriteRefusedException from "./ColumnWriteRefusedException";
+import ComputedColumnsReplacedOnCreate from "./ComputedColumnsReplacedOnCreate";
 
 export default class ColumnPermissions {
   @CaptureSpan()
@@ -145,12 +147,179 @@ export default class ColumnPermissions {
     return new Columns(columns);
   }
 
+  /*
+   * The server-set columns of `model` that `data` holds a value in - the
+   * columns marked computed, which OneUptime fills in - as a create's column
+   * check weighs them: not the columns it never asks about (the excluded
+   * columns, a slug), nor one whose default is forced on every create
+   * (forceGetDefaultValueOnCreate), which takes no value from anyone.
+   */
+  public static getComputedColumnsWithValue(
+    model: BaseModel,
+    data: BaseModel,
+  ): Array<string> {
+    const excludedColumnNames: Array<string> = this.getExcludedColumnNames();
+    const columns: Array<string> = [];
+
+    for (const column of model.getTableColumns().columns) {
+      if ((data as unknown as Dictionary<unknown>)[column] === undefined) {
+        continue;
+      }
+
+      if (excludedColumnNames.includes(column)) {
+        continue;
+      }
+
+      const metadata: TableColumnMetadata | undefined =
+        model.getTableColumnMetadata(column);
+
+      if (
+        !metadata?.computed ||
+        metadata.type === TableColumnType.Slug ||
+        metadata.forceGetDefaultValueOnCreate
+      ) {
+        continue;
+      }
+
+      columns.push(column);
+    }
+
+    return columns;
+  }
+
+  /*
+   * A SERVER-SET COLUMN IS OURS TO FILL IN ON A CREATE: ASKED OF WHAT THE
+   * CALLER SENT, BEFORE ANY HOOK RUNS (DatabaseService
+   * .checkCreateBeforeHooks).
+   *
+   * A column marked computed is one OneUptime fills in: a number, a token, a
+   * salt, whether a record's owners were told. A value a create gives one is
+   * held to the column's create list, as every other column's is, and never
+   * reaches the record unless the caller is on it. It is asked here, while
+   * the record is still what the caller sent: the record the check after the
+   * hooks reads holds what the hooks, the defaults and the hashing wrote too
+   * - a salt, an incident's number - which are OneUptime's
+   * (checkDataColumnPermissions, columnsSetByServer).
+   *
+   * A value the caller may not create is:
+   *
+   *   - dropped, when the caller may read the column: a record read and sent
+   *     back whole - a copy, a record a workflow step passes on, a client that
+   *     posts back what it got - carries every column its reader may read, so
+   *     the create goes on as if the value had not been sent, and the
+   *     column's service fills it in;
+   *   - refused with the column's name, as an update is
+   *     (ColumnWriteRefusedException), when the caller may not even read it -
+   *     a salt, a token, a verification code's expiry: no record they could
+   *     read carries it, so the value is one they made up - before a hook
+   *     acts on the write.
+   *
+   * Two kinds of value pass as they are. One OneUptime's own code put there
+   * for the person it writes as is marked on the record (ServerSetColumns).
+   * And a column whose own declaration has always said that a value a
+   * create sends is replaced (ComputedColumnsReplacedOnCreate) has the value
+   * dropped whoever sends it.
+   *
+   * OneUptime itself and a server admin are not asked, as no column check
+   * asks them. Returns the server-set columns the caller gave a value and
+   * may create: the ones the check after the hooks holds to their lists.
+   */
+  @CaptureSpan()
+  public static checkComputedColumnsSentOnCreate<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    data: TBaseModel,
+    props: DatabaseCommonInteractionProps,
+  ): Array<string> {
+    if (props.isRoot || props.isMasterAdmin) {
+      return [];
+    }
+
+    const model: BaseModel = new modelType();
+    const columnsWithValue: Array<string> = this.getComputedColumnsWithValue(
+      model,
+      data,
+    );
+
+    if (columnsWithValue.length === 0) {
+      return [];
+    }
+
+    const rows: Array<UserPermission> =
+      ColumnPermissions.getColumnCheckRows(props);
+
+    const permissionColumns: Columns = this.getModelColumnsByPermissions(
+      modelType,
+      rows,
+      DatabaseRequestType.Create,
+    );
+
+    // The columns the caller may read, read once and only when it is asked.
+    let readableColumns: Columns | null = null;
+
+    const sentByCaller: Array<string> = [];
+
+    for (const column of columnsWithValue) {
+      // OneUptime's own code filled it in for the person it writes as.
+      if (ServerSetColumns.isMarked(data, column)) {
+        continue;
+      }
+
+      if (permissionColumns.columns.includes(column)) {
+        sentByCaller.push(column);
+        continue;
+      }
+
+      if (!readableColumns) {
+        readableColumns = this.getModelColumnsByPermissions(
+          modelType,
+          rows,
+          DatabaseRequestType.Read,
+        );
+      }
+
+      if (
+        ComputedColumnsReplacedOnCreate.isReplaced(model.tableName, column) ||
+        readableColumns.columns.includes(column)
+      ) {
+        // Cleared, not deleted: `data` is the caller's model instance.
+        (data as unknown as Dictionary<unknown>)[column] = undefined;
+        continue;
+      }
+
+      throw new ColumnWriteRefusedException({
+        requestType: DatabaseRequestType.Create,
+        columnName: column,
+        modelName: model.singularName,
+        // Who may, for the refusal to say so - or that nobody may.
+        permissions: ColumnPermissions.getColumnWriteList(
+          model,
+          column,
+          DatabaseRequestType.Create,
+        ),
+      });
+    }
+
+    return sentByCaller;
+  }
+
+  /*
+   * The columns a write's caller may not write are refused, each with its
+   * name. On a create, a server-set column (computed) the caller may not
+   * create passes only when OneUptime set it: one of `columnsSetByServer` -
+   * the columns the create's own steps wrote, its hooks, the defaults and the
+   * hashing (DatabaseService hands them over) - or one its own code marked on
+   * this record for the person it writes as (ServerSetColumns). A value the
+   * caller sent there was dropped or refused before the hooks ran
+   * (checkComputedColumnsSentOnCreate); called without a list, as on a record
+   * the caller built, every such value is the caller's and is refused here.
+   */
   @CaptureSpan()
   public static checkDataColumnPermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
     requestType: DatabaseRequestType,
+    columnsSetByServer: Array<string> = [],
   ): void {
     const model: BaseModel = new modelType();
 
@@ -201,11 +370,14 @@ export default class ColumnPermissions {
           continue; // this is a special case where we want to force the default value on create.
         }
 
+        // A server-set column holding OneUptime's value. See above.
         if (
           requestType === DatabaseRequestType.Create &&
-          tableColumnMetadata.computed
+          tableColumnMetadata.computed &&
+          (columnsSetByServer.includes(key) ||
+            ServerSetColumns.isMarked(data, key))
         ) {
-          continue; // computed columns are not allowed to be updated.
+          continue;
         }
 
         throw new ColumnWriteRefusedException({

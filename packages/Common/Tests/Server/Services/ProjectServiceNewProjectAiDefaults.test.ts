@@ -17,6 +17,7 @@ import Permission from "../../../Types/Permission";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { getJestSpyOn } from "../../Spy";
+import { columnsTheCreateWrote } from "../TestingUtils/ColumnsSetByServer";
 
 /*
  * New projects start with every AI feature on - but fixing, and the pull
@@ -447,6 +448,8 @@ describe("ProjectService.onBeforeCreate: AI defaults for a new project", () => {
         created,
         userProps(),
         DatabaseRequestType.Create,
+        // Who created it is the hook's stamp: the create's own write.
+        columnsTheCreateWrote(created),
       );
     }).not.toThrow();
   });
