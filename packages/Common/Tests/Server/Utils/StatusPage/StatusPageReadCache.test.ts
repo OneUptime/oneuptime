@@ -45,6 +45,8 @@ let cacheNumber: number = 0;
 function newCache(options?: {
   keepOnlyWhileShared?: boolean;
   shared?: boolean;
+  maxBytes?: number;
+  maxValueBytes?: number;
 }): StatusPageReadCache<JSONObject | null> {
   cacheNumber++;
 
@@ -52,6 +54,11 @@ function newCache(options?: {
     kind: `test-${cacheNumber}`,
     ttlMs: TTL_MS,
     maxEntries: 100,
+    maxBytes: options?.maxBytes,
+    maxValueBytes: options?.maxValueBytes,
+    sizeOf: (value: JSONObject | null): number => {
+      return JSON.stringify(value).length;
+    },
     keepOnlyWhileShared: options?.keepOnlyWhileShared,
     shared: options?.shared
       ? {
@@ -397,5 +404,41 @@ describe("StatusPageReadCache.getOrRead", () => {
     await readFrom(cache, read);
 
     expect(read).toHaveBeenCalledTimes(2);
+  });
+
+  test("a read bigger than maxValueBytes is served as it was read, and read again every time", async () => {
+    const cache: StatusPageReadCache<JSONObject | null> = newCache({
+      maxValueBytes: 16,
+    });
+    const big: Mock<() => Promise<JSONObject>> = jest.fn(async () => {
+      return { text: "a page's settings, with its images" };
+    });
+
+    expect(await readFrom(cache, big)).toEqual({
+      text: "a page's settings, with its images",
+    });
+    await readFrom(cache, big);
+
+    expect(big).toHaveBeenCalledTimes(2);
+  });
+
+  test("keeps at most maxBytes of every page's reads: the least recently used page goes first", async () => {
+    const cache: StatusPageReadCache<JSONObject | null> = newCache({
+      maxBytes: 30,
+    });
+    const firstPage: Mock<() => Promise<JSONObject>> = jest.fn(async () => {
+      return { page: "first page" };
+    });
+    const secondPage: Mock<() => Promise<JSONObject>> = jest.fn(async () => {
+      return { page: "second page" };
+    });
+
+    await readFrom(cache, firstPage);
+    await readFrom(cache, secondPage, { statusPageId: OTHER_PAGE_ID });
+    await readFrom(cache, firstPage);
+
+    // Each read is 20 bytes or more: the two never fit together.
+    expect(firstPage).toHaveBeenCalledTimes(2);
+    expect(secondPage).toHaveBeenCalledTimes(1);
   });
 });

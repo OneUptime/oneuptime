@@ -1,6 +1,5 @@
-import { EXPIRED_ENTRY_SWEEP_INTERVAL_MS } from "../../Infrastructure/InMemoryTTLCache";
+import InMemoryLruCache from "../../Infrastructure/InMemoryLruCache";
 import ObjectID from "../../../Types/ObjectID";
-import OldestKeyMap from "../../../Utils/OldestKeyMap";
 import StatusPageOverviewCache, {
   StatusPageCacheKey,
 } from "./StatusPageOverviewCache";
@@ -18,9 +17,9 @@ import { createHash } from "crypto";
  * page's settings, which starts a new generation in every process at once.
  * Anything else is seen when the entry runs out, within TTL_MS.
  *
- * The bytes are bounded: at most MAX_BYTES across every page, the image used
- * least recently let go first, and no image over MAX_IMAGE_BYTES is kept at
- * all (it is served as it is read). A page with no such image is kept as
+ * The bytes are bounded (InMemoryLruCache): at most MAX_BYTES across every
+ * page, the image used least recently let go first, and no image over
+ * MAX_IMAGE_BYTES is kept at all (it is served as it is read). A page with no such image is kept as
  * having none, so a page without a favicon does not read Postgres either. A
  * page that does not exist is never kept: ids nobody has cannot fill it.
  *
@@ -53,13 +52,6 @@ export interface StatusPageImage extends StatusPageImageFile {
   etag: string;
 }
 
-interface Entry {
-  // null: the page has no such image.
-  image: StatusPageImage | null;
-  bytes: number;
-  expiresAt: number;
-}
-
 // What a page with no such image counts for against MAX_BYTES.
 const EMPTY_ENTRY_BYTES: number = 64;
 
@@ -76,16 +68,18 @@ export default class StatusPageImageCache {
   // At most how many images - or pages with none - this process keeps.
   public static MAX_ENTRIES: number = 10_000;
 
-  // Least recently used first.
-  private static entries: OldestKeyMap<string, Entry> = new OldestKeyMap<
-    string,
-    Entry
-  >();
-
-  private static keptBytes: number = 0;
-
-  // When expired images were last let go of (see set).
-  private static lastSweepAt: number = Number.NEGATIVE_INFINITY;
+  // Each page's images, least recently used first; null for a page with none.
+  private static entries: InMemoryLruCache<StatusPageImage | null> =
+    new InMemoryLruCache<StatusPageImage | null>(() => {
+      return {
+        maxEntries: StatusPageImageCache.MAX_ENTRIES,
+        maxBytes: StatusPageImageCache.MAX_BYTES,
+        maxEntryBytes: StatusPageImageCache.MAX_IMAGE_BYTES,
+        sizeOf: (image: StatusPageImage | null): number => {
+          return image ? image.bytes.length : EMPTY_ENTRY_BYTES;
+        },
+      };
+    });
 
   // Reads under way, so requests that miss together share one.
   private static inFlight: Map<string, Promise<StatusPageImage | null>> =
@@ -117,10 +111,10 @@ export default class StatusPageImageCache {
 
     const key: string = `${data.image}|${pageKey.key}`;
 
-    const kept: Entry | undefined = this.get(key);
+    const kept: StatusPageImage | null | undefined = this.entries.get(key);
 
-    if (kept) {
-      return kept.image;
+    if (kept !== undefined) {
+      return kept;
     }
 
     let reading: Promise<StatusPageImage | null> | undefined =
@@ -134,7 +128,7 @@ export default class StatusPageImageCache {
         .then((file: StatusPageImageFile | null): StatusPageImage | null => {
           const image: StatusPageImage | null = this.toImage(file);
 
-          this.set(key, image, startedAt + this.TTL_MS);
+          this.entries.set(key, image, startedAt + this.TTL_MS - Date.now());
 
           return image;
         });
@@ -166,15 +160,13 @@ export default class StatusPageImageCache {
 
   // How many images, and bytes of them, this process keeps. For tests.
   public static getSize(): { entries: number; bytes: number } {
-    return { entries: this.entries.size, bytes: this.keptBytes };
+    return this.entries.size();
   }
 
   // Drops everything this process keeps. For tests.
   public static clear(): void {
     this.entries.clear();
-    this.keptBytes = 0;
     this.inFlight.clear();
-    this.lastSweepAt = Number.NEGATIVE_INFINITY;
   }
 
   private static toImage(
@@ -185,101 +177,5 @@ export default class StatusPageImageCache {
     }
 
     return { ...file, etag: this.getETag(file.bytes) };
-  }
-
-  // An entry while it is within its life, made the most recently used.
-  private static get(key: string): Entry | undefined {
-    const entry: Entry | undefined = this.entries.get(key);
-
-    if (!entry) {
-      return undefined;
-    }
-
-    this.remove(key);
-
-    if (Date.now() >= entry.expiresAt) {
-      return undefined;
-    }
-
-    this.entries.set(key, entry);
-    this.keptBytes += entry.bytes;
-
-    return entry;
-  }
-
-  /*
-   * Keeps an image until expiresAt, letting go of the least recently used
-   * ones for room - unless it is too big to keep at all.
-   */
-  private static set(
-    key: string,
-    image: StatusPageImage | null,
-    expiresAt: number,
-  ): void {
-    this.remove(key);
-    this.sweepExpiredWhenDue();
-
-    const bytes: number = image ? image.bytes.length : EMPTY_ENTRY_BYTES;
-
-    if (
-      bytes > this.MAX_IMAGE_BYTES ||
-      bytes > this.MAX_BYTES ||
-      expiresAt <= Date.now()
-    ) {
-      return;
-    }
-
-    while (
-      this.entries.size > 0 &&
-      (this.entries.size >= this.MAX_ENTRIES ||
-        this.keptBytes + bytes > this.MAX_BYTES)
-    ) {
-      const oldest: string | undefined = this.entries.oldestKey();
-
-      if (oldest === undefined) {
-        break;
-      }
-
-      this.remove(oldest);
-    }
-
-    this.entries.set(key, { image: image, bytes: bytes, expiresAt: expiresAt });
-    this.keptBytes += bytes;
-  }
-
-  /*
-   * Lets go of every image whose life is over - which no request can be
-   * served again - at most once per EXPIRED_ENTRY_SWEEP_INTERVAL_MS, so
-   * images of pages nobody views any more do not hold their bytes until
-   * newer ones push them out.
-   */
-  private static sweepExpiredWhenDue(): void {
-    const now: number = Date.now();
-
-    if (
-      now - this.lastSweepAt < EXPIRED_ENTRY_SWEEP_INTERVAL_MS &&
-      now >= this.lastSweepAt
-    ) {
-      return;
-    }
-
-    this.lastSweepAt = now;
-
-    for (const [key, entry] of Array.from(this.entries.entries())) {
-      if (now >= entry.expiresAt) {
-        this.remove(key);
-      }
-    }
-  }
-
-  private static remove(key: string): void {
-    const entry: Entry | undefined = this.entries.get(key);
-
-    if (!entry) {
-      return;
-    }
-
-    this.entries.delete(key);
-    this.keptBytes -= entry.bytes;
   }
 }

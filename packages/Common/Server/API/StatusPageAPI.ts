@@ -336,6 +336,20 @@ const STATUS_PAGE_LIST_FORM: SharedForm<JSONObject> = {
   },
 };
 
+/*
+ * What a page's settings or a list takes in memory: the bytes of the JSON it
+ * is sent as. Asked once per build, to keep the caches of them within their
+ * bytes (StatusPageReadCache).
+ */
+const jsonBytesOf: (value: JSONObject) => number = (
+  value: JSONObject,
+): number => {
+  return Buffer.byteLength(JSON.stringify(value), "utf8");
+};
+
+// The most one page's settings, or one list, is kept at: a bigger one is read every time.
+const MAX_KEPT_RESPONSE_BYTES: number = 4 * 1024 * 1024;
+
 type KeepOwnStatusPageImagesFunction = (statusPage: StatusPage) => void;
 
 /*
@@ -407,12 +421,16 @@ export default class StatusPageAPI extends BaseAPI<
    * A page's settings (/master-page): the same for every visitor on the same
    * kind of host - its own domain, where its custom code is served with
    * them, or OneUptime's, where it never is - so the two are kept apart.
+   * They carry the page's images, so they are bounded by their bytes too.
    */
   private static masterPageCache: StatusPageReadCache<JSONObject> =
     new StatusPageReadCache<JSONObject>({
       kind: "master-page",
       ttlMs: StatusPageAPI.SETTINGS_TTL_MS,
       maxEntries: 2_000,
+      maxBytes: 64 * 1024 * 1024,
+      maxValueBytes: MAX_KEPT_RESPONSE_BYTES,
+      sizeOf: jsonBytesOf,
     });
 
   /*
@@ -427,6 +445,9 @@ export default class StatusPageAPI extends BaseAPI<
       kind: "incidents",
       ttlMs: StatusPageOverviewCache.TTL_MS,
       maxEntries: 2_000,
+      maxBytes: 32 * 1024 * 1024,
+      maxValueBytes: MAX_KEPT_RESPONSE_BYTES,
+      sizeOf: jsonBytesOf,
       shared: STATUS_PAGE_LIST_FORM,
     });
 
@@ -435,6 +456,9 @@ export default class StatusPageAPI extends BaseAPI<
       kind: "episodes",
       ttlMs: StatusPageOverviewCache.TTL_MS,
       maxEntries: 2_000,
+      maxBytes: 32 * 1024 * 1024,
+      maxValueBytes: MAX_KEPT_RESPONSE_BYTES,
+      sizeOf: jsonBytesOf,
       shared: STATUS_PAGE_LIST_FORM,
     });
 
@@ -443,6 +467,9 @@ export default class StatusPageAPI extends BaseAPI<
       kind: "scheduled-maintenance-events",
       ttlMs: StatusPageOverviewCache.TTL_MS,
       maxEntries: 2_000,
+      maxBytes: 32 * 1024 * 1024,
+      maxValueBytes: MAX_KEPT_RESPONSE_BYTES,
+      sizeOf: jsonBytesOf,
       shared: STATUS_PAGE_LIST_FORM,
     });
 
@@ -451,6 +478,9 @@ export default class StatusPageAPI extends BaseAPI<
       kind: "announcements",
       ttlMs: StatusPageOverviewCache.TTL_MS,
       maxEntries: 2_000,
+      maxBytes: 32 * 1024 * 1024,
+      maxValueBytes: MAX_KEPT_RESPONSE_BYTES,
+      sizeOf: jsonBytesOf,
       shared: STATUS_PAGE_LIST_FORM,
     });
 

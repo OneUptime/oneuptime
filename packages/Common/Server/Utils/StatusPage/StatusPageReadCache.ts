@@ -1,4 +1,4 @@
-import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
+import InMemoryLruCache from "../../Infrastructure/InMemoryLruCache";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageOverviewCache, {
   SharedForm,
@@ -39,6 +39,16 @@ export interface StatusPageReadCacheOptions<T> {
   // At most how many this process keeps.
   maxEntries: number;
   /*
+   * For reads that can be large - a page's settings carry its images, a
+   * list its incidents and notes: at most how many bytes (sizeOf) this
+   * process keeps of them together, and the most one may take - a bigger
+   * one is served as it was read, never kept. Left out, only maxEntries
+   * bounds the cache.
+   */
+  maxBytes?: number | undefined;
+  maxValueBytes?: number | undefined;
+  sizeOf?: ((value: T) => number) | undefined;
+  /*
    * How a read is written to Redis and read back, so one process makes it
    * for every process (StatusPageSharedReads). Left out, each process makes
    * its own.
@@ -63,14 +73,23 @@ export default class StatusPageReadCache<T> {
   private static caches: Array<StatusPageReadCache<unknown>> = [];
 
   private readonly options: StatusPageReadCacheOptions<T>;
-  private kept: InMemoryTTLCache<Kept<T>>;
+  private kept: InMemoryLruCache<Kept<T>>;
 
   // Reads under way, so requests that miss together share one.
   private inFlight: Map<string, Promise<T>> = new Map();
 
   public constructor(options: StatusPageReadCacheOptions<T>) {
     this.options = options;
-    this.kept = new InMemoryTTLCache<Kept<T>>(options.maxEntries);
+    this.kept = new InMemoryLruCache<Kept<T>>(() => {
+      return {
+        maxEntries: options.maxEntries,
+        maxBytes: options.maxBytes ?? Number.POSITIVE_INFINITY,
+        maxEntryBytes: options.maxValueBytes ?? Number.POSITIVE_INFINITY,
+        sizeOf: (kept: Kept<T>): number => {
+          return options.sizeOf ? options.sizeOf(kept.value) : 0;
+        },
+      };
+    });
     StatusPageReadCache.caches.push(this as StatusPageReadCache<unknown>);
   }
 
