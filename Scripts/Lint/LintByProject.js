@@ -142,9 +142,10 @@ function parseArguments(argv) {
       parsed.changedSince = DEFAULT_BASE;
     } else if (arg.startsWith("--changed=")) {
       const base = arg.slice("--changed=".length);
-      if (!base) {
+      if (!base || base.startsWith("-")) {
+        // A ref git would take for an option is not one.
         throw new UsageError(
-          "--changed= needs the branch to compare with, e.g. --changed=origin/main",
+          `--changed= needs the branch to compare with, e.g. --changed=origin/main, not "${base}"`,
         );
       }
       parsed.changedSince = base;

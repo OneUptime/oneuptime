@@ -106,12 +106,14 @@ test.describe("parseArguments", () => {
   });
 
   test.it(
-    "refuses --changed with paths, -- with no path, and --changed= with no ref",
+    "refuses --changed with paths, -- with no path, and --changed= with no ref or one git would read as an option",
     () => {
       for (const argv of [
         ["--changed", "--", "a.ts"],
         ["--"],
         ["--changed="],
+        ["--changed=--output=/tmp/x"],
+        ["--changed=-p"],
       ]) {
         assert.throws(
           () => {
@@ -613,34 +615,43 @@ test.describe("the root's npm scripts", () => {
     },
   );
 
-  test.it("lint and fix-lint still lint the whole repository, with the same heap", () => {
-    for (const name of ["lint", "fix-lint"]) {
-      assert.match(scripts[name], /node \.\/Scripts\/Lint\/LintByProject\.js /);
-      assert.match(scripts[name], /--max-old-space-size=12288\b/);
-      assert.doesNotMatch(scripts[name], /--changed/);
-    }
-  });
+  test.it(
+    "lint and fix-lint still lint the whole repository, with the same heap",
+    () => {
+      for (const name of ["lint", "fix-lint"]) {
+        assert.match(
+          scripts[name],
+          /node \.\/Scripts\/Lint\/LintByProject\.js /,
+        );
+        assert.match(scripts[name], /--max-old-space-size=12288\b/);
+        assert.doesNotMatch(scripts[name], /--changed/);
+      }
+    },
+  );
 
-  test.it("a later --max-old-space-size wins, so the caller's NODE_OPTIONS can change the heap", () => {
-    const heapOf = (nodeOptions) => {
-      const run = spawnSync(
-        process.execPath,
-        [
-          "-e",
-          "process.stdout.write(String(require('v8').getHeapStatistics().heap_size_limit))",
-        ],
-        {
-          encoding: "utf8",
-          env: { ...process.env, NODE_OPTIONS: nodeOptions },
-        },
+  test.it(
+    "a later --max-old-space-size wins, so the caller's NODE_OPTIONS can change the heap",
+    () => {
+      const heapOf = (nodeOptions) => {
+        const run = spawnSync(
+          process.execPath,
+          [
+            "-e",
+            "process.stdout.write(String(require('v8').getHeapStatistics().heap_size_limit))",
+          ],
+          {
+            encoding: "utf8",
+            env: { ...process.env, NODE_OPTIONS: nodeOptions },
+          },
+        );
+        assert.equal(run.status, 0, run.stderr);
+        return Number(run.stdout);
+      };
+
+      assert.ok(
+        heapOf("--max-old-space-size=12288 --max-old-space-size=2048") <
+          heapOf("--max-old-space-size=12288"),
       );
-      assert.equal(run.status, 0, run.stderr);
-      return Number(run.stdout);
-    };
-
-    assert.ok(
-      heapOf("--max-old-space-size=12288 --max-old-space-size=2048") <
-        heapOf("--max-old-space-size=12288"),
-    );
-  });
+    },
+  );
 });
