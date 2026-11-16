@@ -991,7 +991,7 @@ const askHttpMiddleware: AskHttpMiddlewareFunction = async (
   const res: EventEmitter & Record<string, unknown> = Object.assign(
     new EventEmitter(),
     { statusCode: 200 },
-  ) as EventEmitter & Record<string, unknown>;
+  ) as unknown as EventEmitter & Record<string, unknown>;
   res["status"] = (code: number): Record<string, unknown> => {
     verdict.status = code;
     res["statusCode"] = code;
