@@ -508,15 +508,24 @@ describe("the list from the keyboard", () => {
     ]);
   });
 
-  test("a search that lists nothing but Create New Project still opens it on Enter", () => {
+  test("a search that finds no project lists no row, not even Create New Project, and Enter opens nothing", () => {
+    /*
+     * A search that finds nothing never offers Create
+     * (Docs/ux/README.md#empty-states-and-suggestions): it says nothing
+     * matched (ProjectPickerSearchResults).
+     */
     render(picker());
     openWithEnter();
     fireEvent.change(searchBox(), { target: { value: "zzz" } });
 
-    expect(optionIds()).toHaveLength(1);
+    expect(within(listbox()).queryAllByRole("option")).toHaveLength(0);
+    expect(activeOptionId()).toBeNull();
     press("ArrowDown");
     press("Enter");
-    expect(calls).toEqual(["create"]);
+    expect(calls).toEqual([]);
+    expect(screen.getByTestId("project-picker-no-matches")).toHaveTextContent(
+      "No matches for “zzz”",
+    );
   });
 
   test("Tab moves the focus on and puts the list away behind it, after the focus has moved", async () => {
