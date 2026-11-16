@@ -1015,9 +1015,11 @@ describe("an on-call policy rule's step", () => {
 
       expect(
         screen.getByRole("switch", {
-          name: german[MENTION_WHO_IS_ON_CALL_TITLE],
+          name: german[MENTION_WHO_IS_ON_CALL_TITLE]!,
         }),
-      ).toHaveAccessibleDescription(german[MENTION_WHO_IS_ON_CALL_DESCRIPTION]);
+      ).toHaveAccessibleDescription(
+        german[MENTION_WHO_IS_ON_CALL_DESCRIPTION]!,
+      );
       expect(german[MENTION_WHO_IS_ON_CALL_TITLE]).not.toBe(
         MENTION_WHO_IS_ON_CALL_TITLE,
       );
