@@ -115,8 +115,14 @@ export const getDocsPageAddress: (
 
 export interface AskAiAnswerPageLink {
   citationId: string;
-  // The page's English title, as Search names it; translated where it is drawn.
+  // The page's English title, as Search names it.
   title: string;
+  /*
+   * The locale key the button draws its title by, in the reader's
+   * language: the citation's titleKey, where the page's key names its
+   * meaning ("Insights (explorer analytics)", #8817), or its title.
+   */
+  titleKey: string;
   target: AIChatCitationTarget;
 }
 
@@ -151,9 +157,13 @@ export const getAnswerPageLinks: (
     }
 
     seenPaths.add(path);
+
+    const title: string = citation.target?.params?.["title"] || citation.label;
+
     links.push({
       citationId: citation.id,
-      title: citation.target?.params?.["title"] || citation.label,
+      title,
+      titleKey: citation.target?.params?.["titleKey"] || title,
       target: citation.target!,
     });
   }
