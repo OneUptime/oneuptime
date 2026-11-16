@@ -158,10 +158,13 @@ const HELPERS: Array<{
       ProductEventName.ChecklistFinished,
     ],
   },
-  // Every answer a person gives (#6832) is kept, then sent as feedback/given.
+  /*
+   * Every answer a person gives (#6832) is kept, then sent as
+   * feedback/given - Give feedback's too (giveFeedback, #8893).
+   */
   {
     file: "packages/Common/UI/Utils/ProductFeedback.ts",
-    entryPoints: ["ProductFeedback.submit("],
+    entryPoints: ["ProductFeedback.submit(", "ProductFeedback.giveFeedback("],
     events: [ProductEventName.FeedbackGiven],
   },
 ];

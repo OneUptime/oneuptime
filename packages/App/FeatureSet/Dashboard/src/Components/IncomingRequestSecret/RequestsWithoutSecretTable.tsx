@@ -58,17 +58,27 @@ export const getRequestsWithoutSecretQuery: (data: {
 
 /*
  * Why a request had no valid secret, as the list words it (in English: the
- * cell translates it). A monitor stamped before the reason was kept, or with
- * a reason this Dashboard does not know, reads as none sent.
+ * cell translates it): none sent, a wrong one (or a signature none of the
+ * project's secrets made), one of the project's that does not cover the
+ * monitor (issue #8501), or a signature too old to accept (issue #8500). A
+ * monitor stamped before the reason was kept, or with a reason this
+ * Dashboard does not know, reads as none sent.
  */
 export const getWithoutSecretReasonLabel: (
   reason: IncomingRequestSecretProblem | string | undefined | null,
 ) => string = (
   reason: IncomingRequestSecretProblem | string | undefined | null,
 ): string => {
-  return reason === IncomingRequestSecretProblem.WrongSecret
-    ? IncomingRequestSecretsCopy.reasonWrongSecret
-    : IncomingRequestSecretsCopy.reasonNoSecret;
+  switch (reason) {
+    case IncomingRequestSecretProblem.WrongSecret:
+      return IncomingRequestSecretsCopy.reasonWrongSecret;
+    case IncomingRequestSecretProblem.SecretNotForMonitor:
+      return IncomingRequestSecretsCopy.reasonSecretNotForMonitor;
+    case IncomingRequestSecretProblem.ExpiredSignature:
+      return IncomingRequestSecretsCopy.reasonExpiredSignature;
+    default:
+      return IncomingRequestSecretsCopy.reasonNoSecret;
+  }
 };
 
 /*

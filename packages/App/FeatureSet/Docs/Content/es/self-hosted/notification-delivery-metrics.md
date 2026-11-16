@@ -6,7 +6,7 @@ OneUptime registra cómo les va a las notificaciones que envía: cuántos incide
 - [Activarlas](#activarlas): Dos ajustes, y sin ellos no se registra nada.
 - [Las métricas](#las-métricas): Siete métricas, del disparador al teléfono.
 - [Cómo se mide un aviso](#cómo-se-mide-un-aviso): Desde dónde cuentan el tiempo de envío y el retraso de envío.
-- [SLO para empezar](#slo-para-empezar): Cuatro objetivos, consulta a consulta.
+- [SLO para empezar](#slo-para-empezar): Cinco objetivos, consulta a consulta.
 :::
 
 ## Cómo funciona
@@ -151,7 +151,7 @@ Los estados solo llegan donde el proveedor puede informarlos:
 | --- | --- |
 | `monitor_data_received` | Cuando OneUptime recibió los datos que dispararon el monitor: una solicitud entrante, el informe de un agente de servidor, un correo entrante, la comprobación de una sonda, un trap SNMP o el sondeo de un dispositivo de red. Incluye el tiempo que los datos esperaron en la cola para ser evaluados. |
 | `record_created` | Cuando se creó el incidente, la alerta o el episodio: por un monitor de telemetría, una regla o una persona, y en una comprobación de ausencia, como un heartbeat que se detuvo. |
-| `page_started` | Cuando un aviso empezó más tarde: lo inició una persona, un flujo de trabajo o una regla que ahora coincide, o es un aviso directo. Para un aviso que retuvo su regla de guardia o OneUptime AI, cuando terminó su retención, o cuando empezó si fue antes. Para un nuevo aviso, cuando venció el tiempo límite tras el reconocimiento. Así, un worker que llegó tarde a cualquiera de ellos se refleja en el tiempo. |
+| `page_started` | Cuando un aviso empezó más tarde: lo inició una persona, un flujo de trabajo o una regla que ahora coincide, o es un aviso directo. Para un aviso que retuvo su regla de guardia o OneUptime AI, cuando terminó su retención, o cuando empezó si fue antes. Para un nuevo aviso, cuando venció el tiempo límite tras el reconocimiento, o cuando se cambió su política por última vez, si fue después: un tiempo límite acortado tanto que ya había vencido se mide desde el cambio. Así, un worker que llegó tarde a cualquiera de ellos se refleja en el tiempo. |
 
 En una solicitud entrante, el tiempo cuenta desde la última solicitud que recibió el endpoint, así que puede salir algo corto.
 
@@ -183,7 +183,7 @@ Un percentil se calcula a partir de las cubetas, y se dibuja como el centro de l
 
 ## SLO para empezar
 
-Cuatro objetivos que la mayoría de las instalaciones pueden prometer, cada uno construido con una o dos consultas en el explorador de métricas del proyecto que recibe las métricas. Leen un intervalo de tiempo con exactitud una vez que las métricas llegan como deltas: consulta [Enviar deltas a un proyecto de OneUptime](#enviar-deltas-a-un-proyecto-de-oneuptime).
+Cinco objetivos que la mayoría de las instalaciones pueden prometer, cada uno construido con una o dos consultas en el explorador de métricas del proyecto que recibe las métricas. Leen un intervalo de tiempo con exactitud una vez que las métricas llegan como deltas: consulta [Enviar deltas a un proyecto de OneUptime](#enviar-deltas-a-un-proyecto-de-oneuptime).
 
 ### Crear uno en el explorador de métricas
 
@@ -216,7 +216,17 @@ El 95 % de los avisos de guardia llega a su proveedor en los 30 segundos siguien
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-El objetivo se cumple mientras `a` se mantenga igual o por debajo de 30000. Los avisos iniciados más tarde se miden desde que empezaron o vencieron, no desde un disparador, así que quedan fuera. Agrupa por `notification.page.start` para ver la cola de los monitores (`monitor_data_received`) aparte del resto, o por `notification.channel` para encontrar un canal lento.
+El objetivo se cumple mientras `a` se mantenga igual o por debajo de 30000. Los avisos iniciados más tarde se miden desde que empezaron o vencieron, no desde un disparador, así que quedan fuera: el siguiente objetivo los cubre. Agrupa por `notification.page.start` para ver la cola de los monitores (`monitor_data_received`) aparte del resto, o por `notification.channel` para encontrar un canal lento.
+
+### Los avisos iniciados más tarde salen en menos de 2 minutos
+
+El 95 % de los avisos iniciados más tarde llega a su proveedor en los 2 minutos siguientes a su vencimiento: un aviso retenido, un nuevo aviso y un aviso que inició una persona, un flujo de trabajo o una regla.
+
+| Consulta | Métrica | Agregación | Condiciones |
+| --- | --- | --- | --- |
+| `a` | `notification.time_to_send` | **P95** | `notification.page.start = page_started` |
+
+El objetivo se cumple mientras `a` se mantenga igual o por debajo de 120000. Un aviso retenido o un nuevo aviso espera a la siguiente ejecución de un worker que se ejecuta una vez por minuto, así que hasta un minuto de su tiempo se va en esa espera, y un worker que se quedó atrás añade más.
 
 ### Las notificaciones enviadas más tarde salen en menos de 90 segundos
 

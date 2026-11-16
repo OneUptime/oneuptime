@@ -10,7 +10,28 @@ import { JSONObject } from "Common/Types/JSON";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Link from "Common/UI/Components/Link/Link";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import UserSettingsPageIntro, {
+  USER_SETTINGS_PAGE_LINK_CLASS_NAME,
+} from "../../Components/UserSettings/UserSettingsPageIntro";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+
+/*
+ * The page's first line (#8887): how much email, as opposed to which
+ * updates, which Notification Settings decides - one of the four pages of
+ * Alerts & Notifications whose names sound alike, each saying which it is.
+ */
+export const EMAIL_PREFERENCES_INTRO: string = translationKey(
+  "How much email your updates add up to in this project. {{notificationSettings}} decides which updates you get.",
+);
+
+export const EMAIL_PREFERENCES_INTRO_TEST_ID: string =
+  "email-preferences-intro";
 
 /*
  * User Settings > Email Preferences: how much email this project sends one
@@ -43,6 +64,11 @@ const UserSettingsEmailPreferences: FunctionComponent<
    * with the mail actually being sent.
    */
   const projectId: string = ProjectUtil.getCurrentProjectId()?.toString() || "";
+  const translator: Translator = useTranslator();
+
+  const notificationSettingsRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS] as Route,
+  );
 
   /*
    * The preset is a server-side bulk edit, not a model write: it rewrites up
@@ -68,6 +94,24 @@ const UserSettingsEmailPreferences: FunctionComponent<
 
   return (
     <Fragment key={projectId}>
+      <UserSettingsPageIntro
+        docsPath="/docs/emails/notification-rollup"
+        dataTestId={EMAIL_PREFERENCES_INTRO_TEST_ID}
+      >
+        <TranslatedSentence
+          template={EMAIL_PREFERENCES_INTRO}
+          slots={{
+            notificationSettings: (
+              <Link
+                to={notificationSettingsRoute}
+                className={USER_SETTINGS_PAGE_LINK_CLASS_NAME}
+              >
+                {translator.translateText("Notification Settings")}
+              </Link>
+            ),
+          }}
+        />
+      </UserSettingsPageIntro>
       <EmailNoiseCard onApply={reduceRoutineEmails} />
       <EmailRollupCard />
     </Fragment>

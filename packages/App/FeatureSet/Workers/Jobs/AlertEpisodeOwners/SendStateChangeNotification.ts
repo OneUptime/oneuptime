@@ -1,5 +1,8 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import PreviousTimelineEntries, {
+  TimelineOf,
+} from "../../Utils/PreviousTimelineEntries";
 import OwnerNotificationBacklog, {
   OwnerNotificationPage,
 } from "../../Utils/OwnerNotificationBacklog";
@@ -28,7 +31,6 @@ import AlertEpisodeFeedService from "Common/Server/Services/AlertEpisodeFeedServ
 import { AlertEpisodeFeedEventType } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import UserService from "Common/Server/Services/UserService";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
@@ -71,6 +73,20 @@ const EPISODE_SELECT: Select<AlertEpisode> = {
   alertSeverity: {
     name: true,
     color: true,
+  },
+};
+
+/*
+ * The entries a state change's previous one is read from, and what it is read
+ * with: for "Was ... for ..." in its email (PreviousTimelineEntries).
+ */
+const TIMELINE: TimelineOf<AlertEpisodeStateTimeline> = {
+  service: AlertEpisodeStateTimelineService,
+  recordIdColumn: "alertEpisodeId",
+  select: {
+    alertStateId: true,
+    startsAt: true,
+    createdAt: true,
   },
 };
 
@@ -133,7 +149,7 @@ RunCron(
       },
       select: STATE_TIMELINE_SELECT,
       deadline: deadline,
-      readPage: readEpisodesOfPage,
+      readPage: readPageOfStateChanges,
       notify: async (input: {
         record: AlertEpisodeStateTimeline;
         page: OwnerNotificationPage;
@@ -241,6 +257,25 @@ function episodeKey(episodeId: ObjectID): string {
 }
 
 /*
+ * What every state change of a page needs, read once for the page: the
+ * episodes they are of (readEpisodesOfPage), and the entry before each
+ * (PreviousTimelineEntries: two reads per episode with more than one of
+ * them on the page, instead of one per state change).
+ */
+async function readPageOfStateChanges(
+  entries: Array<AlertEpisodeStateTimeline>,
+  page: OwnerNotificationPage,
+): Promise<void> {
+  await readEpisodesOfPage(entries, page);
+
+  await PreviousTimelineEntries.readForPage({
+    ...TIMELINE,
+    entries: entries,
+    page: page,
+  });
+}
+
+/*
  * The episodes of a page's state changes, in one query: each is read once
  * however many of its state changes the page has.
  */
@@ -325,22 +360,11 @@ async function notifyOwnersOfStateChange(data: {
 
   if (episodeStateTimeline.alertEpisodeId && episodeStateTimeline.startsAt) {
     const previousTimeline: AlertEpisodeStateTimeline | null =
-      await AlertEpisodeStateTimelineService.findOneBy({
-        query: {
-          alertEpisodeId: episodeStateTimeline.alertEpisodeId,
-          startsAt: QueryHelper.lessThan(episodeStateTimeline.startsAt),
-        },
-        sort: {
-          startsAt: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          alertStateId: true,
-          startsAt: true,
-          createdAt: true,
-        },
+      // Read with the page's other state changes of the episode, or on its own (#8863).
+      await PreviousTimelineEntries.of({
+        ...TIMELINE,
+        entry: episodeStateTimeline,
+        page: data.page,
       });
 
     if (previousTimeline?.alertStateId) {

@@ -276,6 +276,7 @@ import "./Jobs/PacketCapture/SweepPacketCaptures";
 import "./Jobs/AIAgent/SendOwnerAddedNotification";
 import "./Jobs/AIAgent/UpdateConnectionStatus";
 import "./Jobs/AIAgent/FailOrphanedQueuedCodeFixRuns";
+import "./Jobs/AIAgent/RevokeMintedRepositoryTokens";
 import "./Jobs/AIAgent/SyncPullRequestStates";
 import "./Jobs/AIAgent/VerifyFixesInProduction";
 import "./Jobs/AIAgent/ReportGitHubRunOutcomes";
@@ -455,6 +456,7 @@ import "./Jobs/TelemetryIngestionBudget/PublishTelemetryIngestionBudgetMetrics";
  */
 
 import "./Jobs/OnCallDutySchedule/RefreshHandoffTime";
+import "./Jobs/OnCallDutySchedule/TellLayerChanges";
 
 /*
  * On-call shift reminders ("your shift starts in 1 hour") and the ledger

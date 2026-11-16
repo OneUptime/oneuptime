@@ -21,6 +21,18 @@ export type { FindOperator };
 const LIST_VALUE_SPACES: RegExp = /\s+/g;
 
 /*
+ * The table a many-to-many relation's join table links to (a monitor's
+ * labels: Label), the column of it the join table names, and the column
+ * that marks its rows deleted, or null when none does
+ * (QueryUtil.getManyToManyRelatedTable).
+ */
+export interface ManyToManyRelatedTable {
+  tableName: string;
+  columnName: string;
+  deleteDateColumnName: string | null;
+}
+
+/*
  * One of the two tables a kind's owners are kept in (MonitorOwnerUser,
  * MonitorOwnerTeam): its name, its column naming the record owned
  * (monitorId) and its column naming the owner (userId or teamId).
@@ -1096,12 +1108,20 @@ export default class QueryHelper {
    * provided related entity ids through a many-to-many join table. The
    * returned FindOperator is intended to be applied to the primary id column
    * of the owner entity. An empty values array matches nothing (fail closed).
+   *
+   * With `relatedTable` - the table the join table links to, with the
+   * column that marks its rows deleted - a link counts only to a related row
+   * that is there and not deleted: the records a filter through the
+   * relation itself matches (`labels: { _id: In(...) }` joins only labels
+   * not marked deleted), with no join in the read. The subquery is
+   * uncorrelated, so it reads the same in a SELECT, an UPDATE and a DELETE.
    */
   public static anyOfEntitiesInManyToMany(data: {
     values: Array<string | ObjectID>;
     joinTableName: string;
     ownerColumnName: string;
     relationColumnName: string;
+    relatedTable?: ManyToManyRelatedTable | null | undefined;
   }): FindWhereProperty<any> {
     const values: Array<string> = data.values.map(
       (value: string | ObjectID) => {
@@ -1121,9 +1141,26 @@ export default class QueryHelper {
     const ownerCol: string = data.ownerColumnName.replace(/"/g, '""');
     const relationCol: string = data.relationColumnName.replace(/"/g, '""');
 
+    // The related rows named, those not deleted when they can be.
+    let relatedIds: string = `:...${valuesRid}`;
+
+    if (data.relatedTable?.deleteDateColumnName) {
+      const relatedTable: string = QueryHelper.escapeIdentifier(
+        data.relatedTable.tableName,
+      );
+      const relatedColumn: string = QueryHelper.escapeIdentifier(
+        data.relatedTable.columnName,
+      );
+      const deleteDateColumn: string = QueryHelper.escapeIdentifier(
+        data.relatedTable.deleteDateColumnName,
+      );
+
+      relatedIds = `SELECT "${relatedTable}"."${relatedColumn}" FROM "${relatedTable}" WHERE "${relatedTable}"."${relatedColumn}" IN (:...${valuesRid}) AND "${relatedTable}"."${deleteDateColumn}" IS NULL`;
+    }
+
     return Raw(
       (alias: string) => {
-        return `(${alias} IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid})))`;
+        return `(${alias} IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (${relatedIds})))`;
       },
       {
         [valuesRid]: values,

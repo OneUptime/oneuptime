@@ -110,6 +110,7 @@ Le pianificazioni di reperibilità sono la risorsa `/api/on-call-duty-policy-sch
 - Creare una pianificazione con `firstLayerUsers` (un elenco di ID utente, nell'ordine in cui si alternano) nei suoi `miscDataProps` le dà il suo primo livello, come fa la dashboard: **Layer 1**, reperibile da adesso, 24 ore su 24. `firstLayerRotation` indica quanto dura ogni turno, come una rotazione del tipo `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; senza, una settimana. Ogni utente deve essere membro del progetto e il chiamante deve poter creare livelli, altrimenti la pianificazione non viene creata.
 - Una pianificazione creata senza di essi non ha livelli, come prima; la risorsa Terraform delle pianificazioni non li invia.
 - Un livello creato senza `rotation` passa il turno ogni giorno, come sempre.
+- Una modifica ai livelli di una pianificazione e alle persone che vi appartengono, fatta con l'API o Terraform, viene comunicata come un'unica modifica: chi è reperibile viene calcolato quando i livelli sono rimasti per mezzo minuto senza modifiche, e chi entra o esce dal turno, o è il prossimo, lo viene a sapere una volta, non una volta per ogni livello o persona scritti. Gli avvisi arrivano a chi i livelli rendono reperibile non appena ogni modifica è salvata.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \

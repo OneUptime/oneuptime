@@ -14,6 +14,7 @@ import CustomDomainDnsSetupModal from "./CustomDomainDnsSetupModal";
 import AddCustomDomainModal from "./AddCustomDomainModal";
 import CustomDomainName from "./CustomDomainName";
 import CustomDomainStatus from "./CustomDomainStatus";
+import { getCustomDomainCertificateFields } from "./CustomDomainCertificateFields";
 import CustomDomainCertificates, {
   CustomDomainCertificate,
 } from "Common/Types/CustomDomain/CustomDomainCertificates";
@@ -29,8 +30,6 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -71,7 +70,10 @@ import React, {
  *     Nobody leaves the page to verify a domain in Project Settings.
  *   - Editing a domain can change only its certificate, so Edit shows the
  *     certificate options at once: folded, they left an Edit dialog with
- *     nothing in it but a fold.
+ *     nothing in it but a fold. The private key is never shown again: a
+ *     domain moving to its own certificate is asked for it, and one that
+ *     serves its own already keeps it when it is left blank
+ *     (CustomDomainCertificateFields).
  *   - DNS Setup shows the record to add, and its Check now verifies it and
  *     orders the free certificate on the spot. Nothing asks for an order.
  *     Whenever a row offers it, it is the row's button: on a domain whose
@@ -403,65 +405,15 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
           // Read by the reissue modal to show the cooldown before it is hit.
           certificateReissueRequestedAt: true,
         }}
-        formFields={[
-          /*
-           * Adding a domain is AddCustomDomainModal's: the table's form is
-           * Edit's alone.
-           */
-          /*
-           * The same options, on Edit: the certificate is all an edit can
-           * change - the name is fixed once the domain is added - so they
-           * are the dialog, not a fold in it.
-           */
-          {
-            field: {
-              isCustomCertificate: true,
-            },
-            title: "Upload Custom Certificate",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            defaultValue: false,
-            description:
-              "If you have a custom certificate, you can upload it here. If you do not have a certificate, we will order a free SSL certificate for you.",
-            doNotShowWhenCreating: true,
-          },
-          {
-            field: {
-              customCertificate: true,
-            },
-            title: "Certificate",
-            fieldType: FormFieldSchemaType.LongText,
-            required: (item: FormValues<CustomDomainModel>): boolean => {
-              return Boolean(item.isCustomCertificate);
-            },
-            placeholder:
-              "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
-            disableSpellCheck: true,
-            hideColumnDescription: true,
-            showIf: (item: FormValues<CustomDomainModel>): boolean => {
-              return Boolean(item.isCustomCertificate);
-            },
-            doNotShowWhenCreating: true,
-          },
-          {
-            field: {
-              customCertificateKey: true,
-            },
-            title: "Certificate Private Key",
-            fieldType: FormFieldSchemaType.LongText,
-            required: (item: FormValues<CustomDomainModel>): boolean => {
-              return Boolean(item.isCustomCertificate);
-            },
-            placeholder:
-              "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
-            disableSpellCheck: true,
-            hideColumnDescription: true,
-            showIf: (item: FormValues<CustomDomainModel>): boolean => {
-              return Boolean(item.isCustomCertificate);
-            },
-            doNotShowWhenCreating: true,
-          },
-        ]}
+        /*
+         * Adding a domain is AddCustomDomainModal's: the table's form is
+         * Edit's alone. The certificate is all an edit can change - the name
+         * is fixed once the domain is added - so its options are the dialog,
+         * not a fold in it. Its private key is asked for when the domain
+         * moves to its own certificate, and kept when it serves one already
+         * (CustomDomainCertificateFields).
+         */
+        formFields={getCustomDomainCertificateFields()}
         showRefreshButton={true}
         filters={[
           {

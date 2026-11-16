@@ -11,17 +11,50 @@
  * ---------------------------------------------------------------------------
  */
 
-import RunnerAPIRequest from "../../Utils/RunnerAPIRequest";
+import RunnerAPIRequest, {
+  RUNNER_CODE_FIX_CAPABILITIES,
+} from "../../Utils/RunnerAPIRequest";
 import RunnerIdentity from "../../Utils/RunnerIdentity";
 import { RUNNER_KEY } from "../../Config";
 import { JSONObject } from "Common/Types/JSON";
 import { RequestOptions } from "Common/Utils/API";
+import RunnerCodeFixCapability, {
+  RUNNER_CODE_FIX_CAPABILITIES_FIELD,
+} from "Common/Types/Runner/RunnerCodeFixCapability";
 
 describe("RunnerAPIRequest.getDefaultRequestBody", () => {
-  test("carries the credentials under the legacy aiAgent* wire field names", () => {
+  test("carries the credentials under the legacy aiAgent* wire field names, and what this build can do", () => {
     const body: JSONObject = RunnerAPIRequest.getDefaultRequestBody();
 
-    expect(Object.keys(body).sort()).toEqual(["aiAgentId", "aiAgentKey"]);
+    expect(Object.keys(body).sort()).toEqual([
+      "aiAgentId",
+      "aiAgentKey",
+      RUNNER_CODE_FIX_CAPABILITIES_FIELD,
+    ]);
+  });
+
+  /*
+   * #8916: this build asks OneUptime to open a fix's pull request when the
+   * token's answer says so, so a server of this release hands it a token
+   * that only pushes. Declared on every code-fix request - the claim, the
+   * queue count, the token - as a probe declares its capabilities.
+   */
+  test("declares that it has OneUptime open its pull requests", () => {
+    const body: JSONObject = RunnerAPIRequest.getDefaultRequestBody();
+
+    expect(body[RUNNER_CODE_FIX_CAPABILITIES_FIELD]).toEqual([
+      RunnerCodeFixCapability.ServerOpensPullRequests,
+    ]);
+    expect(RUNNER_CODE_FIX_CAPABILITIES).toEqual([
+      RunnerCodeFixCapability.ServerOpensPullRequests,
+    ]);
+    // A copy each time: a caller cannot change what later requests declare.
+    (body[RUNNER_CODE_FIX_CAPABILITIES_FIELD] as Array<string>).push("x");
+    expect(
+      RunnerAPIRequest.getDefaultRequestBody()[
+        RUNNER_CODE_FIX_CAPABILITIES_FIELD
+      ],
+    ).toEqual([RunnerCodeFixCapability.ServerOpensPullRequests]);
   });
 
   test("sends the Runner key as aiAgentKey", () => {

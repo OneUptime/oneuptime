@@ -3,24 +3,27 @@ import logger from "../Logger";
 import { normalizeFileId } from "./FileOwnership";
 
 /*
- * THE FILES ATTACHED TO WHAT A DELETE TAKES (OneUptime issue #6944).
+ * THE FILES ATTACHED TO WHAT A DELETE TAKES (OneUptime issues #6944, #8895).
  *
- * A note's attachments, and an incident's postmortem attachments, are rows of
- * File - their bytes in Postgres - listed in a join table. Deleting the
- * incident, the alert or the episode takes its notes with it (ON DELETE
- * CASCADE), and each note its join rows, but never the File rows: they
- * stayed, unreachable, outliving the incident that was "deleted and can't be
- * brought back", and taking the database space the incident retention
- * (issue #6903) exists to give back.
+ * A note's attachments, an incident's postmortem attachments and a status
+ * page announcement's attachments are rows of File - their bytes in
+ * Postgres - listed in a join table. Deleting the incident, the alert, the
+ * episode or the scheduled maintenance event takes its notes with it (ON
+ * DELETE CASCADE), and each note - and each announcement - its join rows,
+ * but never the File rows: they stayed, unreachable, outliving the record
+ * that was "deleted and can't be brought back", and taking the database
+ * space the retention (issue #6903) exists to give back.
  *
- * So a delete of these records - by a person, through the API, or by the
- * retention's purge: OneUptime's deletes all remove the row at once - reads
+ * So a delete of these records - by a person, through the API, or by a
+ * retention purge: OneUptime's deletes all remove the row at once - reads
  * the files attached to the rows it removes and to the notes they take with
  * them (ATTACHMENT_SOURCES), before the DELETE; once it is done, each file
  * goes unless something still holds it (CustomFieldFiles.deleteUnheldFiles:
  * any column or join table that points at a File - another note, a
  * template, a status page's logo - or a custom field of a record of its
  * project). Only a file of the project it was uploaded in is deleted.
+ * Every join table of the models that lists Files is one of the sources
+ * (AttachedFiles.test holds the list to the models).
  *
  * What stays: an image written into a note's or a description's markdown.
  * It is addressed by its token, and copied along with the markdown it sits
@@ -110,19 +113,38 @@ const NOTE_ATTACHMENTS: ReadonlyArray<NoteAttachments> = [
     recordTable: "AlertEpisode",
     recordColumn: "alertEpisodeId",
   },
+  {
+    noteTable: "ScheduledMaintenanceInternalNote",
+    joinTable: "ScheduledMaintenanceInternalNoteFile",
+    joinColumn: "scheduledMaintenanceInternalNoteId",
+    recordTable: "ScheduledMaintenance",
+    recordColumn: "scheduledMaintenanceId",
+  },
+  {
+    noteTable: "ScheduledMaintenancePublicNote",
+    joinTable: "ScheduledMaintenancePublicNoteFile",
+    joinColumn: "scheduledMaintenancePublicNoteId",
+    recordTable: "ScheduledMaintenance",
+    recordColumn: "scheduledMaintenanceId",
+  },
 ];
 
 /*
  * Every source, held to the models' own join tables and cascades by a test
  * (AttachedFiles.test): a note deleted on its own releases its files, and
  * its record's delete releases them through it; an incident releases its
- * postmortem's attachments too.
+ * postmortem's attachments too, and an announcement its own.
  */
 export const ATTACHMENT_SOURCES: ReadonlyArray<AttachmentSource> = [
   {
     parentTable: "Incident",
     joinTable: "IncidentPostmortemAttachmentFile",
     joinColumn: "incidentId",
+  },
+  {
+    parentTable: "StatusPageAnnouncement",
+    joinTable: "StatusPageAnnouncementFile",
+    joinColumn: "statusPageAnnouncementId",
   },
   ...NOTE_ATTACHMENTS.flatMap(
     (note: NoteAttachments): Array<AttachmentSource> => {

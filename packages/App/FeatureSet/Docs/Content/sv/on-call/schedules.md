@@ -110,6 +110,7 @@ Jourscheman är resursen `/api/on-call-duty-policy-schedule`; deras lager och pe
 - Att skapa ett schema med `firstLayerUsers` (en lista med användar-id:n, i den ordning de turas om) i dess `miscDataProps` ger det dess första lager, som instrumentpanelen gör: **Layer 1**, med jour från och med nu, dygnet runt. `firstLayerRotation` anger hur länge varje pass varar, som en rotation som `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; utan den en vecka. Varje användare måste vara medlem i projektet och anroparen måste få skapa lager, annars skapas inte schemat.
 - Ett schema som skapas utan dem har inga lager, som tidigare; Terraforms resurs för scheman skickar dem inte.
 - Ett lager som skapas utan `rotation` lämnar över dagligen, som det alltid har gjort.
+- En ändring av ett schemas lager och personerna i dem, gjord med API:et eller Terraform, meddelas som en ändring: vem som har jour räknas ut när lagren har varit oförändrade i en halv minut, och den som går på eller av jour, eller är näst på tur, får veta det en gång, inte en gång per lager eller person som skrivs. Larm går till den som lagren sätter i jour så snart varje ändring är sparad.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \

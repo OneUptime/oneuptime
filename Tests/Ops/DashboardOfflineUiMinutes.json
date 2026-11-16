@@ -53,6 +53,7 @@
     "test-exceptions-ai-ui": 2.0,
     "test-external-mcp-servers-ui": 0.9,
     "test-first-on-call-policy-ui": 0.7,
+    "test-give-feedback-ui": 0.5,
     "test-global-runners-ui": 2.2,
     "test-home-overview-ui": 4.2,
     "test-host-collectors-ui": 1.2,

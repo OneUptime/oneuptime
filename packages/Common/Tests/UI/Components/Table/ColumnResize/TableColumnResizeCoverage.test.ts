@@ -168,7 +168,7 @@ const LEFT_OUT: Record<string, LeftOut> = {
       tables: 1,
       why: "A retention heatmap, a cohort a row and a period a column, read across and down: every period cell one width.",
     },
-  "packages/App/FeatureSet/Dashboard/src/Pages/UserSettings/NotificationSettings.tsx":
+  "packages/App/FeatureSet/Dashboard/src/Components/NotificationSettings/NotificationMatrix.tsx":
     {
       tables: 1,
       why: "A grid of switches, an event a row and a channel a column.",

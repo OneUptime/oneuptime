@@ -185,6 +185,12 @@ export interface CodeRepositoryRunnerPickerProps {
    * request.
    */
   provider?: string | null | undefined;
+  /*
+   * When GitLab last refused to make the short-lived token AI pushes a fix
+   * with (CodeRepository.mintedTokenRefusedAt): a GitLab repository works
+   * on global Runners until it does.
+   */
+  mintedTokenRefusedAt?: Date | string | null | undefined;
 }
 
 export const CODE_REPOSITORY_RUNNER_LOADING_TEST_ID: string =
@@ -192,8 +198,9 @@ export const CODE_REPOSITORY_RUNNER_LOADING_TEST_ID: string =
 
 /*
  * Under the repository's Runner while it works on the Global Runner, where
- * global Runners never get its token (OneUptime Cloud, a repository not on
- * GitHub): one amber line, the same sentence as Code's notice for it.
+ * global Runners never get its token (OneUptime Cloud: a Forgejo, Gitea or
+ * Git repository, or a GitLab one GitLab made no short-lived token for): one
+ * amber line, the same sentence as Code's notice for it.
  */
 export const CODE_REPOSITORY_RUNNER_KEPT_OFF_TEST_ID: string =
   "code-repository-runner-global-kept-off";
@@ -220,6 +227,7 @@ export const CodeRepositoryRunnerPicker: FunctionComponent<
   const keptOffText: string | null = getGlobalRunnerKeptOffText(
     props.provider,
     GLOBAL_RUNNERS_KEEP_CONNECTION_TOKENS_OFF,
+    props.mintedTokenRefusedAt,
   );
 
   const isOnGlobalRunner: boolean =
@@ -270,6 +278,8 @@ export interface CodeRepositoryRunnerValueProps {
   isGlobalRunnerPicked?: unknown;
   // Where the repository is hosted, as the picker's `provider`.
   provider?: string | null | undefined;
+  // As the picker's `mintedTokenRefusedAt`.
+  mintedTokenRefusedAt?: Date | string | null | undefined;
 }
 
 /*
@@ -286,6 +296,7 @@ export const CodeRepositoryRunnerValue: FunctionComponent<
       runnerId={props.runnerId}
       isGlobalRunnerPicked={props.isGlobalRunnerPicked}
       provider={props.provider}
+      mintedTokenRefusedAt={props.mintedTokenRefusedAt}
       choices={choices}
     />
   );
@@ -300,6 +311,8 @@ export interface CodeRepositoryRunnerValueViewProps {
    * under Global Runner says what AI's work becomes there.
    */
   provider?: string | null | undefined;
+  // As the picker's `mintedTokenRefusedAt`.
+  mintedTokenRefusedAt?: Date | string | null | undefined;
   /*
    * The choices, as a page read them (useCodeRepositoryRunnerChoices) - the
    * Settings page reads them once for this value and for what More settings
@@ -498,8 +511,9 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
   }
 
   /*
-   * On OneUptime Cloud, a repository that is not on GitHub: no global
-   * Runner is handed its token, said under the Global Runner in amber.
+   * On OneUptime Cloud, a Forgejo, Gitea or Git repository - or a GitLab
+   * one GitLab made no short-lived token for: no global Runner is handed its
+   * token, said under the Global Runner in amber.
    */
   return withStatus(
     <span>{translator.translateText(GLOBAL_RUNNER_CHOICE_LABEL)}</span>,
@@ -507,6 +521,7 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
     getGlobalRunnerKeptOffText(
       props.provider,
       GLOBAL_RUNNERS_KEEP_CONNECTION_TOKENS_OFF,
+      props.mintedTokenRefusedAt,
     ),
   );
 };

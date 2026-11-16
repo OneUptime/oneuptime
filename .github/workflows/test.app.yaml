@@ -53,8 +53,12 @@ jobs:
       # its files: the same 846 files as before took a third longer on that
       # runner, no one of them the cause, while the other two shards took 17
       # and 23 minutes.
+      #
+      # Six since 2026-11-16, of two workers each where four shards had
+      # jest's three (the test step below says why): the same twelve workers,
+      # so each shard keeps about the time it had.
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       BILLING_PRIVATE_KEY: ${{secrets.TEST_BILLING_PRIVATE_KEY}}
@@ -119,6 +123,20 @@ jobs:
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/App
+      # Two jest workers at 4 GB of heap each (App's test script:
+      # NODE_OPTIONS=--max-old-space-size=4096 and --maxWorkers=2). The heap
+      # flag is a ceiling per process - jest-worker hands it to every worker
+      # it forks - and a worker grows into it: V8 keeps finished test files'
+      # contexts while it has room, so by a shard's middle each worker holds
+      # 3.5 to 4 GB. Jest's default of three workers on this four-CPU, 16 GB
+      # runner made that a 12 GB ceiling beside ClickHouse (about 3 GB),
+      # Postgres and Valkey, and on the 14.3.0 release branch shard 1 of 4
+      # reached it after 433 of its 722 suites, twice: every worker stopped at
+      # once, the job printed nothing more, and the cap cut it off. A smaller
+      # heap for three workers is no way out: at 2560 MB workers of shards 2
+      # and 3 ran out of it ("Ineffective mark-compacts near heap limit"). Two
+      # at 4 GB keep the ceiling at 8 GB, as Common Test's pool is held
+      # (test.common.yaml).
       - run: cd packages/App && npm run test -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
   session-replay-ui:
@@ -1648,11 +1666,18 @@ jobs:
           # group 8, at the planned line itself: about 21. Ask AI (4.5) moved to
           # group 22 on 2026-11-12, when its setup plans (#6829) took it past
           # this group's room: about 17.7.
-          # Owner Filters (1.2, Chromium only) came from group 5 on 2026-11-16,
+          # Give Feedback (#8893: the dialog from Help over a Dashboard page -
+          # what is sent and to whom on a self-hosted server and on Cloud, what
+          # it says once sent, where it starts, each kind's name on one line at
+          # 1280 and 390 pixels, a long address on a phone, dark, German and
+          # Persian; 9 tests, 26 seconds locally with its bundle, planned as
+          # 0.5, Chromium only) joined it on 2026-11-16, the group with the
+          # most room: about 18.2.
+          # Owner Filters (1.2, Chromium only) came from group 5 the same day,
           # when a schedule's own Overview and its Used by card (#7438: the
           # policies that page it and their escalation rules, at 1280 and 390
           # pixels, light and dark, German and Persian - 4 tests, about 10
-          # seconds locally) took group 5 past its 22: about 18.9.
+          # seconds locally) took group 5 past its 22: about 19.4.
           - group: 18
             suites: >-
               test-diagrams-ui
@@ -1660,6 +1685,7 @@ jobs:
               test-asset-details-ui
               test-dashboard-table-thresholds-ui
               test-value-picker-ui
+              test-give-feedback-ui
               test-owner-filters-ui
           # Added on 2026-11-04 for an OpenStack cloud's pages: its Overview, its
           # lists and the pages of its parts, on what real clouds' exporters
@@ -2106,4 +2132,6 @@ jobs:
             output/playwright/product-onboarding-ui/test-results
             output/playwright/security-page-ui/*.png
             output/playwright/security-page-ui/test-results
+            output/playwright/give-feedback-ui/*.png
+            output/playwright/give-feedback-ui/test-results
           retention-days: 7

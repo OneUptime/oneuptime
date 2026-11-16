@@ -325,7 +325,7 @@ Rettelser har de samme fire modusene som på en Kubernetes-klynge; `ONEUPTIME_AI
 - **Av**: KI-en undersøker bare.
 - **Be om godkjenning**: etter rotårsaksanalysen stiller OneUptime AI en diagnose med lesekommandoer og setter sammen den minste planen som tar tak i årsaken, for eksempel `docker restart web`. Planen vises på hendelsen eller varselet med begrunnelse, forventet effekt og tilbakerulling; et menneske godkjenner den med ett klikk, og OneUptime kjører nøyaktig de kommandoene.
 - **Automatisk**: sikre endringer (**SafeWrite**) kjører av seg selv; en mer risikabel endring (**RiskyWrite**) foreslås for godkjenning, med mindre ressursens liste over tillatte kommandoer nevner den nøyaktige formen.
-- **Hopp over godkjenning**: hver endring policyen tillater, også de mer risikable, kjører av seg selv. Det som alltid trenger et menneske, venter fortsatt på et.
+- **Hopp over godkjenning**: hver endring policyen tillater, også de mer risikable, kjører av seg selv. Det som alltid trenger et menneske, venter fortsatt på et. Ber prosjektet om at to personer godkjenner en mer risikabel retting, foreslås en mer risikabel endring i stedet til deres godkjenning.
 
 Etter at en rettelse har kjørt, følger OneUptime med på monitorene til hendelsen eller varselet. Hvis de ikke kommer seg, kjører planens tilbakerulling, og OneUptime AI setter sammen én plan til, med det mislykkede forsøket foran seg: høyst to runder per hendelse eller varsel. I modusen **Automatisk** ber den andre runden om godkjenning; med **Hopp over godkjenning** kjører også den av seg selv. Uovervåkede rettelser har en sikring på tre per ressurs per time: utover det, eller mens en annen uovervåket runde fra OneUptime AI fortsatt endrer eller verifiserer den samme ressursen, foreslår en runde planen sin for godkjenning i stedet for å kjøre den.
 
@@ -342,7 +342,7 @@ En hendelse eller et varsel får ett KI-rettelsesspor. Når det er koblet til en
 
 Noen mer risikable endringer **trenger alltid et menneske** i alle moduser, også Hopp over godkjenning, og ingen oppføring på listen over tillatte kommandoer endrer det; de er merket som det i tabellene nedenfor.
 
-Et prosjekt kan også be om at to personer godkjenner en retting som inneholder en mer risikabel endring: se [To personer godkjenner en mer risikabel retting](/docs/ai/ai-sre#to-personer-godkjenner-en-mer-risikabel-retting).
+Et prosjekt kan også be om at to personer godkjenner en retting som inneholder en mer risikabel endring; da kjører ingen mer risikabel endring av seg selv, heller ikke via listen over tillatte kommandoer eller Hopp over godkjenning: se [To personer godkjenner en mer risikabel retting](/docs/ai/ai-sre#to-personer-godkjenner-en-mer-risikabel-retting).
 
 ### Rettelser på Docker- og Podman-verter
 

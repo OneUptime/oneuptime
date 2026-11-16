@@ -110,6 +110,7 @@ flowchart TB
 - 在 `miscDataProps` 中带 `firstLayerUsers` （按轮换顺序排列的用户 ID 列表）创建计划，会像仪表板一样为它创建第一层：从现在开始全天候值班的 **Layer 1** 。 `firstLayerRotation` 以 `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}` 这样的轮换指定每次值班时长；不提供时为一周。每个用户都必须是项目成员，调用方必须有权创建层，否则不会创建计划。
 - 不带它们创建的计划和以前一样没有层；Terraform 的计划资源不会发送它们。
 - 不带 `rotation` 创建的层和以往一样每天交接。
+- 通过 API 或 Terraform 对计划的层和层中人员所做的更改会作为一次更改通知：在层半分钟内没有再更改后才计算谁在值班，开始值班、结束值班或下一个值班的人只会收到一次通知，而不是每写入一个层或一个人就通知一次。每项更改一保存，呼叫就会发给层所安排的值班人员。
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \

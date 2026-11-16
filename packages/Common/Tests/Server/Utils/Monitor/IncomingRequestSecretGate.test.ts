@@ -1,23 +1,38 @@
 import MonitorService from "../../../../Server/Services/MonitorService";
 import IncomingRequestReceivedAtStore from "../../../../Server/Utils/Monitor/IncomingRequestReceivedAtStore";
 import IncomingRequestSecretActivity from "../../../../Server/Utils/Monitor/IncomingRequestSecretActivity";
+import IncomingRequestMonitorLabels from "../../../../Server/Utils/Monitor/IncomingRequestMonitorLabels";
 import IncomingRequestSecretGate, {
   IncomingRequestSecretEdgeDecision,
+  IncomingRequestSecretRefusalKind,
   IncomingRequestSecretWorkerDecision,
 } from "../../../../Server/Utils/Monitor/IncomingRequestSecretGate";
 import IncomingRequestSecretPolicy, {
   INCOMING_REQUEST_SECRET_MISSING_MESSAGE,
   INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE,
+  INCOMING_REQUEST_SIGNATURE_EXPIRED_MESSAGE,
+  INCOMING_REQUEST_SIGNATURE_REPLAYED_MESSAGE,
   IncomingRequestSecretPolicyValue,
   IncomingRequestSecretVerdict,
 } from "../../../../Server/Utils/Monitor/IncomingRequestSecretPolicy";
 import IncomingRequestSecretRequest from "../../../../Server/Utils/Monitor/IncomingRequestSecretRequest";
+import IncomingRequestSecretValues from "../../../../Server/Utils/Monitor/IncomingRequestSecretValues";
+import IncomingRequestSignature from "../../../../Server/Utils/Monitor/IncomingRequestSignature";
 import MonitorSecretKeyCache, {
   MonitorOfSecretKey,
 } from "../../../../Server/Utils/Monitor/MonitorSecretKeyCache";
 import { REDACTED } from "../../../../Server/Utils/LogRedaction";
+import { ExpressRequest } from "../../../../Server/Utils/Express";
+import WrongIncomingRequestSecretLimit, {
+  WRONG_INCOMING_REQUEST_SECRETS_MESSAGE,
+} from "../../../../Server/Utils/RateLimit/WrongIncomingRequestSecretLimit";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
-import { IncomingRequestSecretProblem } from "../../../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
+import Dictionary from "../../../../Types/Dictionary";
+import {
+  IncomingRequestSecretProblem,
+  IncomingRequestSignatureScheme,
+} from "../../../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
+import MonitorSecretAccess from "../../../../Types/Monitor/MonitorSecretAccess";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   afterEach,
@@ -67,6 +82,10 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const MONITOR_ID: ObjectID = new ObjectID(
   "b0b0b0b0-0000-4000-8000-0000000000b0",
 );
+const OTHER_MONITOR_ID: ObjectID = new ObjectID(
+  "c0c0c0c0-0000-4000-8000-0000000000c0",
+);
+const LABEL_ID: string = "1abe1000-0000-4000-8000-00000000000a";
 const SECRET_ID: string = "5ec2e700-0000-4000-8000-000000000001";
 const SECRET: string = "4f1c2a9be0d34c6f8a7b5e3d2c1b0a99";
 
@@ -220,6 +239,7 @@ describe("decideAtEdge", () => {
     expect(await decide([])).toEqual({
       mayRecordArrival: false,
       refusalMessage: INCOMING_REQUEST_SECRET_MISSING_MESSAGE,
+      refusalKind: IncomingRequestSecretRefusalKind.NotAuthenticated,
     });
   });
 
@@ -227,6 +247,7 @@ describe("decideAtEdge", () => {
     expect(await decide([hash("a-guess-at-the-secret")])).toEqual({
       mayRecordArrival: false,
       refusalMessage: INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE,
+      refusalKind: IncomingRequestSecretRefusalKind.NotAuthenticated,
     });
   });
 
@@ -260,6 +281,7 @@ describe("decideAtEdge", () => {
     expect(await decide([])).toEqual({
       mayRecordArrival: false,
       refusalMessage: INCOMING_REQUEST_SECRET_MISSING_MESSAGE,
+      refusalKind: IncomingRequestSecretRefusalKind.NotAuthenticated,
     });
 
     expect(findOneBy).toHaveBeenCalledTimes(1);
@@ -338,6 +360,7 @@ describe("decideAtEdge", () => {
       expect(await decideHandshake([])).toEqual({
         mayRecordArrival: false,
         refusalMessage: INCOMING_REQUEST_SECRET_MISSING_MESSAGE,
+        refusalKind: IncomingRequestSecretRefusalKind.NotAuthenticated,
       });
       expect(recorded()).toEqual([
         {
@@ -708,5 +731,614 @@ describe("decideInWorker", () => {
         requestHeaders: {},
       }),
     ).rejects.toThrow("Postgres is down");
+  });
+
+  test("refuses a secret limited to another monitor, and tells the monitor so (issue #8501)", async () => {
+    policy = {
+      isRequired: true,
+      secrets: [
+        {
+          secretId: SECRET_ID,
+          secretHash: hash(SECRET),
+          monitorAccess: MonitorSecretAccess.SpecificMonitors,
+          monitorIds: [OTHER_MONITOR_ID.toString()],
+          labelIds: [],
+        },
+      ],
+    };
+
+    const decision: IncomingRequestSecretWorkerDecision =
+      await IncomingRequestSecretGate.decideInWorker({
+        projectId: PROJECT_ID,
+        monitorId: MONITOR_ID,
+        presentedSecretHashes: [hash(SECRET)],
+        requestHeaders: {},
+      });
+
+    expect(decision.isRefused).toBe(true);
+    expect(decision.verdict).toBe(IncomingRequestSecretVerdict.NotRecognized);
+    expect(recordUse).not.toHaveBeenCalled();
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.SecretNotForMonitor,
+      },
+    ]);
+
+    // The monitor it covers accepts it.
+    expect(
+      (
+        await IncomingRequestSecretGate.decideInWorker({
+          projectId: PROJECT_ID,
+          monitorId: OTHER_MONITOR_ID,
+          presentedSecretHashes: [hash(SECRET)],
+          requestHeaders: {},
+        })
+      ).isRefused,
+    ).toBe(false);
+  });
+
+  test("reads the monitor's labels for a label-scoped secret, and only then", async () => {
+    const getLabelIds: SpyInstance<
+      typeof IncomingRequestMonitorLabels.getLabelIds
+    > = jest
+      .spyOn(IncomingRequestMonitorLabels, "getLabelIds")
+      .mockResolvedValue([LABEL_ID]);
+
+    await IncomingRequestSecretGate.decideInWorker({
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+      presentedSecretHashes: [hash(SECRET)],
+      requestHeaders: {},
+    });
+
+    expect(getLabelIds).not.toHaveBeenCalled();
+
+    policy = {
+      isRequired: true,
+      secrets: [
+        {
+          secretId: SECRET_ID,
+          secretHash: hash(SECRET),
+          monitorAccess: MonitorSecretAccess.MonitorsWithLabels,
+          monitorIds: [],
+          labelIds: [LABEL_ID],
+        },
+      ],
+    };
+
+    const decision: IncomingRequestSecretWorkerDecision =
+      await IncomingRequestSecretGate.decideInWorker({
+        projectId: PROJECT_ID,
+        monitorId: MONITOR_ID,
+        presentedSecretHashes: [hash(SECRET)],
+        requestHeaders: {},
+      });
+
+    expect(getLabelIds).toHaveBeenCalledWith(MONITOR_ID.toString());
+    expect(decision.isRefused).toBe(false);
+
+    // A monitor without the label is refused it.
+    getLabelIds.mockResolvedValueOnce([]);
+
+    expect(
+      (
+        await IncomingRequestSecretGate.decideInWorker({
+          projectId: PROJECT_ID,
+          monitorId: MONITOR_ID,
+          presentedSecretHashes: [hash(SECRET)],
+          requestHeaders: {},
+        })
+      ).isRefused,
+    ).toBe(true);
+  });
+
+  test("a failed read of the monitor's labels fails the job, so it is retried, rather than refusing", async () => {
+    policy = {
+      isRequired: true,
+      secrets: [
+        {
+          secretId: SECRET_ID,
+          secretHash: hash(SECRET),
+          monitorAccess: MonitorSecretAccess.MonitorsWithLabels,
+          monitorIds: [],
+          labelIds: [LABEL_ID],
+        },
+      ],
+    };
+
+    jest
+      .spyOn(IncomingRequestMonitorLabels, "getLabelIds")
+      .mockRejectedValue(new Error("Postgres is down"));
+
+    await expect(
+      IncomingRequestSecretGate.decideInWorker({
+        projectId: PROJECT_ID,
+        monitorId: MONITOR_ID,
+        presentedSecretHashes: [hash(SECRET)],
+        requestHeaders: {},
+      }),
+    ).rejects.toThrow("Postgres is down");
+  });
+});
+
+/*
+ * A secret limited to some monitors (issue #8501), at the edge: refused by
+ * every other monitor with the 401 a wrong secret gets.
+ */
+describe("decideAtEdge, for a secret limited to some monitors", () => {
+  test("is accepted by the monitor it names, and refused by another as if wrong", async () => {
+    policy = {
+      isRequired: true,
+      secrets: [
+        {
+          secretId: SECRET_ID,
+          secretHash: hash(SECRET),
+          monitorAccess: MonitorSecretAccess.SpecificMonitors,
+          monitorIds: [MONITOR_ID.toString()],
+          labelIds: [],
+        },
+      ],
+    };
+
+    expect(
+      await IncomingRequestSecretGate.decideAtEdge({
+        secretKey: SECRET_KEY,
+        presentedSecretHashes: [hash(SECRET)],
+      }),
+    ).toEqual({ mayRecordArrival: true });
+
+    keptMonitor = { monitorId: OTHER_MONITOR_ID, projectId: PROJECT_ID };
+
+    expect(
+      await IncomingRequestSecretGate.decideAtEdge({
+        secretKey: SECRET_KEY,
+        presentedSecretHashes: [hash(SECRET)],
+      }),
+    ).toEqual({
+      mayRecordArrival: false,
+      refusalMessage: INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE,
+      refusalKind: IncomingRequestSecretRefusalKind.NotAuthenticated,
+    });
+
+    expect(recorded()).toEqual([
+      {
+        monitorId: OTHER_MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.SecretNotForMonitor,
+      },
+    ]);
+  });
+});
+
+/*
+ * A client that sends too many different wrong secrets to one monitor
+ * (issue #8499) is refused with 429. The limit itself is
+ * WrongIncomingRequestSecretLimit's (its own suite); here, when the edge asks
+ * it, and what it does with the answer.
+ */
+describe("decideAtEdge, for a client guessing a monitor's secret", () => {
+  const CLIENT_REQUEST: ExpressRequest = {
+    headers: { "x-forwarded-for": "203.0.113.7" },
+    socket: { remoteAddress: "10.0.0.2" },
+  } as unknown as ExpressRequest;
+
+  const REFUSAL: { retryAfterSeconds: number } = { retryAfterSeconds: 321 };
+
+  let checkBeforeComparing: SpyInstance<
+    typeof WrongIncomingRequestSecretLimit.checkBeforeComparing
+  >;
+  let countWrong: SpyInstance<
+    typeof WrongIncomingRequestSecretLimit.countWrong
+  >;
+
+  beforeEach(() => {
+    checkBeforeComparing = jest
+      .spyOn(WrongIncomingRequestSecretLimit, "checkBeforeComparing")
+      .mockResolvedValue(null);
+    countWrong = jest
+      .spyOn(WrongIncomingRequestSecretLimit, "countWrong")
+      .mockResolvedValue(null);
+  });
+
+  const decide: (
+    presented: Array<string>,
+  ) => Promise<IncomingRequestSecretEdgeDecision> = (
+    presented: Array<string>,
+  ): Promise<IncomingRequestSecretEdgeDecision> => {
+    return IncomingRequestSecretGate.decideAtEdge({
+      secretKey: SECRET_KEY,
+      presentedSecretHashes: presented,
+      req: CLIENT_REQUEST,
+    });
+  };
+
+  test("a wrong secret is counted for the client and the monitor, and still answered 401 within the limit", async () => {
+    expect(await decide([hash("a-guess-at-the-secret")])).toEqual({
+      mayRecordArrival: false,
+      refusalMessage: INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE,
+      refusalKind: IncomingRequestSecretRefusalKind.NotAuthenticated,
+    });
+
+    expect(checkBeforeComparing).toHaveBeenCalledTimes(1);
+    expect(countWrong).toHaveBeenCalledTimes(1);
+    expect(countWrong.mock.calls[0]![0]).toEqual({
+      req: CLIENT_REQUEST,
+      monitorId: MONITOR_ID.toString(),
+      wrongValues: [hash("a-guess-at-the-secret")],
+    });
+  });
+
+  test("the wrong secret that takes it over the limit is answered 429, with when to try again", async () => {
+    countWrong.mockResolvedValueOnce(REFUSAL);
+
+    expect(await decide([hash("the-eleventh-guess")])).toEqual({
+      mayRecordArrival: false,
+      refusalMessage: WRONG_INCOMING_REQUEST_SECRETS_MESSAGE,
+      refusalKind: IncomingRequestSecretRefusalKind.TooManyWrongSecrets,
+      retryAfterSeconds: 321,
+    });
+
+    // The monitor still learns its request had a wrong secret.
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.WrongSecret,
+      },
+    ]);
+  });
+
+  test("a client over the limit is refused 429 before its secret is compared, the right one too", async () => {
+    checkBeforeComparing.mockResolvedValue(REFUSAL);
+
+    for (const presented of [[hash(SECRET)], [hash("another-guess")]]) {
+      expect(await decide(presented)).toEqual({
+        mayRecordArrival: false,
+        refusalMessage: WRONG_INCOMING_REQUEST_SECRETS_MESSAGE,
+        refusalKind: IncomingRequestSecretRefusalKind.TooManyWrongSecrets,
+        retryAfterSeconds: 321,
+      });
+    }
+
+    expect(countWrong).not.toHaveBeenCalled();
+    expect(recordUse).not.toHaveBeenCalled();
+  });
+
+  test("the right secret is never counted", async () => {
+    expect(await decide([hash(SECRET)])).toEqual({ mayRecordArrival: true });
+    expect(countWrong).not.toHaveBeenCalled();
+  });
+
+  test("a request with no secret guesses nothing: neither checked nor counted", async () => {
+    expect(await decide([])).toEqual({
+      mayRecordArrival: false,
+      refusalMessage: INCOMING_REQUEST_SECRET_MISSING_MESSAGE,
+      refusalKind: IncomingRequestSecretRefusalKind.NotAuthenticated,
+    });
+    expect(checkBeforeComparing).not.toHaveBeenCalled();
+    expect(countWrong).not.toHaveBeenCalled();
+  });
+
+  test("a project that does not require a secret refuses nothing, so nothing can be guessed or counted", async () => {
+    policy = NOT_REQUIRED_YET;
+
+    expect(await decide([hash("a-guess-at-the-secret")])).toEqual({
+      mayRecordArrival: true,
+    });
+    expect(checkBeforeComparing).not.toHaveBeenCalled();
+    expect(countWrong).not.toHaveBeenCalled();
+  });
+
+  test("a caller with no request counts nothing", async () => {
+    await IncomingRequestSecretGate.decideAtEdge({
+      secretKey: SECRET_KEY,
+      presentedSecretHashes: [hash("a-guess-at-the-secret")],
+    });
+
+    expect(checkBeforeComparing).not.toHaveBeenCalled();
+    expect(countWrong).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A signed request (issue #8500): its signature is checked with the values
+ * of the project's secrets, at the edge, where the body is as it came.
+ */
+describe("decideAtEdge, for a signed request", () => {
+  const NOW: Date = new Date("2026-11-16T12:00:00.000Z");
+  const NOW_SECONDS: number = Math.floor(NOW.getTime() / 1000);
+  const BODY: Buffer = Buffer.from('{"status":"healthy"}', "utf8");
+
+  let getSigningSecrets: SpyInstance<
+    typeof IncomingRequestSecretValues.getSigningSecrets
+  >;
+  let rememberAccepted: SpyInstance<
+    typeof IncomingRequestSignature.rememberAccepted
+  >;
+  let countWrong: SpyInstance<
+    typeof WrongIncomingRequestSecretLimit.countWrong
+  >;
+
+  const CLIENT_REQUEST: ExpressRequest = {
+    headers: { "x-forwarded-for": "203.0.113.7" },
+    socket: { remoteAddress: "10.0.0.2" },
+  } as unknown as ExpressRequest;
+
+  beforeEach(() => {
+    getSigningSecrets = jest
+      .spyOn(IncomingRequestSecretValues, "getSigningSecrets")
+      .mockResolvedValue([{ secretId: SECRET_ID, value: SECRET }]);
+    rememberAccepted = jest
+      .spyOn(IncomingRequestSignature, "rememberAccepted")
+      .mockResolvedValue(true);
+    jest
+      .spyOn(WrongIncomingRequestSecretLimit, "checkBeforeComparing")
+      .mockResolvedValue(null);
+    countWrong = jest
+      .spyOn(WrongIncomingRequestSecretLimit, "countWrong")
+      .mockResolvedValue(null);
+  });
+
+  const signed: (data?: {
+    secret?: string;
+    timestampSeconds?: number;
+    scheme?: IncomingRequestSignatureScheme;
+  }) => Dictionary<string> = (data?: {
+    secret?: string;
+    timestampSeconds?: number;
+    scheme?: IncomingRequestSignatureScheme;
+  }): Dictionary<string> => {
+    const scheme: IncomingRequestSignatureScheme =
+      data?.scheme || IncomingRequestSignatureScheme.OneUptime;
+    const timestampSeconds: number = data?.timestampSeconds ?? NOW_SECONDS;
+
+    const headers: Dictionary<string> = {
+      [IncomingRequestSignature.formatOf(scheme).header]:
+        IncomingRequestSignature.sign({
+          scheme,
+          secret: data?.secret || SECRET,
+          body: BODY,
+          timestampSeconds,
+        }),
+    };
+
+    // Slack sends the time in a header of its own.
+    const timestampHeader: string | undefined =
+      IncomingRequestSignature.formatOf(scheme).timestampHeader;
+
+    if (timestampHeader) {
+      headers[timestampHeader] = String(timestampSeconds);
+    }
+
+    return headers;
+  };
+
+  const decideSigned: (
+    headers: Dictionary<string>,
+    presented?: Array<string>,
+  ) => Promise<IncomingRequestSecretEdgeDecision> = (
+    headers: Dictionary<string>,
+    presented?: Array<string>,
+  ): Promise<IncomingRequestSecretEdgeDecision> => {
+    return IncomingRequestSecretGate.decideAtEdge({
+      secretKey: SECRET_KEY,
+      presentedSecretHashes: presented || [],
+      requestHeaders: headers,
+      signedBody: BODY,
+      req: CLIENT_REQUEST,
+      now: NOW,
+    });
+  };
+
+  test("a signature made with the project's secret is accepted, and presents that secret to the worker", async () => {
+    for (const scheme of Object.values(IncomingRequestSignatureScheme)) {
+      expect(await decideSigned(signed({ scheme }))).toEqual({
+        mayRecordArrival: true,
+        signedWithSecretHash: hash(SECRET),
+      });
+    }
+
+    expect(getSigningSecrets).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      policy: REQUIRED,
+    });
+    expect(rememberAccepted).toHaveBeenCalled();
+  });
+
+  test("the same signed request sent again is refused as a replay, and is no wrong guess", async () => {
+    rememberAccepted.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+
+    expect(await decideSigned(signed())).toEqual({
+      mayRecordArrival: true,
+      signedWithSecretHash: hash(SECRET),
+    });
+
+    expect(await decideSigned(signed())).toEqual({
+      mayRecordArrival: false,
+      refusalMessage: INCOMING_REQUEST_SIGNATURE_REPLAYED_MESSAGE,
+      refusalKind: IncomingRequestSecretRefusalKind.NotAuthenticated,
+    });
+
+    expect(countWrong).not.toHaveBeenCalled();
+    // The first one was recorded as a valid request by the worker; the replay is not news.
+    expect(recordActivity).not.toHaveBeenCalled();
+  });
+
+  test("a signature made with a wrong secret is refused as not recognized, and counted as a guess", async () => {
+    const headers: Dictionary<string> = signed({
+      secret: "a-secret-that-is-not-the-projects",
+    });
+
+    expect(await decideSigned(headers)).toEqual({
+      mayRecordArrival: false,
+      refusalMessage: INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE,
+      refusalKind: IncomingRequestSecretRefusalKind.NotAuthenticated,
+    });
+
+    expect(countWrong).toHaveBeenCalledTimes(1);
+    expect(countWrong.mock.calls[0]![0].wrongValues).toEqual([
+      IncomingRequestSignature.readPresentedSignatures(headers)[0]!.digests[0],
+    ]);
+    expect(rememberAccepted).not.toHaveBeenCalled();
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.WrongSecret,
+      },
+    ]);
+  });
+
+  test("a signature more than five minutes old is refused as expired, recorded as such, and not counted", async () => {
+    expect(
+      await decideSigned(signed({ timestampSeconds: NOW_SECONDS - 3600 })),
+    ).toEqual({
+      mayRecordArrival: false,
+      refusalMessage: INCOMING_REQUEST_SIGNATURE_EXPIRED_MESSAGE,
+      refusalKind: IncomingRequestSecretRefusalKind.NotAuthenticated,
+    });
+
+    expect(countWrong).not.toHaveBeenCalled();
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.ExpiredSignature,
+      },
+    ]);
+  });
+
+  test("a signature made with a secret limited to another monitor is refused, as not for this monitor", async () => {
+    policy = {
+      isRequired: true,
+      secrets: [
+        {
+          secretId: SECRET_ID,
+          secretHash: hash(SECRET),
+          monitorAccess: MonitorSecretAccess.SpecificMonitors,
+          monitorIds: [OTHER_MONITOR_ID.toString()],
+          labelIds: [],
+        },
+      ],
+    };
+
+    expect(await decideSigned(signed())).toEqual({
+      mayRecordArrival: false,
+      refusalMessage: INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE,
+      refusalKind: IncomingRequestSecretRefusalKind.NotAuthenticated,
+    });
+    expect(rememberAccepted).not.toHaveBeenCalled();
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.SecretNotForMonitor,
+      },
+    ]);
+  });
+
+  test("a signed request for a key no trusted caller registered is looked up: a signature is checked only here", async () => {
+    keptMonitor = null;
+    isTracked = false;
+
+    expect(await decideSigned(signed())).toEqual({
+      mayRecordArrival: true,
+      signedWithSecretHash: hash(SECRET),
+    });
+    expect(isTrackedSpy).not.toHaveBeenCalled();
+    expect(findOneBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a header that only looks like a signature places no untracked key", async () => {
+    keptMonitor = null;
+    isTracked = false;
+
+    expect(
+      await decideSigned({ "x-hub-signature-256": "sha256=not-a-signature" }),
+    ).toEqual({ mayRecordArrival: false });
+    expect(findOneBy).not.toHaveBeenCalled();
+  });
+
+  test("before the project requires a secret, a good signature counts, is presented to the worker, and nothing is remembered", async () => {
+    policy = NOT_REQUIRED_YET;
+
+    expect(await decideSigned(signed())).toEqual({
+      mayRecordArrival: true,
+      signedWithSecretHash: hash(SECRET),
+    });
+    expect(rememberAccepted).not.toHaveBeenCalled();
+  });
+
+  test("before the project requires a secret, a signature no secret made is let through, and the worker is told it was wrong", async () => {
+    policy = NOT_REQUIRED_YET;
+
+    expect(
+      await decideSigned(signed({ secret: "not-the-projects-secret-at-all" })),
+    ).toEqual({
+      mayRecordArrival: true,
+      signatureProblem: IncomingRequestSecretProblem.WrongSecret,
+    });
+
+    expect(
+      await decideSigned(signed({ timestampSeconds: NOW_SECONDS - 3600 })),
+    ).toEqual({
+      mayRecordArrival: true,
+      signatureProblem: IncomingRequestSecretProblem.ExpiredSignature,
+    });
+
+    // The worker records it as such, as nothing else was sent.
+    await IncomingRequestSecretGate.decideInWorker({
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+      presentedSecretHashes: [],
+      requestHeaders: {},
+      signatureProblem: IncomingRequestSecretProblem.WrongSecret,
+    });
+
+    expect(recorded()).toEqual([
+      {
+        monitorId: MONITOR_ID.toString(),
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.WrongSecret,
+      },
+    ]);
+  });
+
+  test("the worker reads only a signature problem it knows from a job", async () => {
+    await IncomingRequestSecretGate.decideInWorker({
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+      presentedSecretHashes: [],
+      requestHeaders: {},
+      signatureProblem:
+        "Something Else" as unknown as IncomingRequestSecretProblem,
+    });
+
+    expect(recorded()[0]!.problem).toBe(IncomingRequestSecretProblem.NoSecret);
+  });
+
+  test("a request let in by a secret in a header is not refused for a signature it sent again", async () => {
+    rememberAccepted.mockResolvedValue(false);
+
+    expect(await decideSigned(signed(), [hash(SECRET)])).toEqual({
+      mayRecordArrival: true,
+      signedWithSecretHash: hash(SECRET),
+    });
+    expect(rememberAccepted).not.toHaveBeenCalled();
+  });
+
+  test("a project with no secret reads no value and checks nothing", async () => {
+    policy = NOT_REQUIRED;
+
+    expect(await decideSigned(signed())).toEqual({ mayRecordArrival: true });
+    expect(getSigningSecrets).not.toHaveBeenCalled();
+  });
+
+  test("values that cannot be read decide nothing: the worker decides", async () => {
+    getSigningSecrets.mockRejectedValueOnce(new Error("Postgres is down"));
+
+    expect(await decideSigned(signed())).toEqual({ mayRecordArrival: false });
   });
 });

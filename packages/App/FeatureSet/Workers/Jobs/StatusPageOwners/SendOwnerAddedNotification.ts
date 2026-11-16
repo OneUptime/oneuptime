@@ -1,5 +1,7 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import Select from "Common/Server/Types/Database/Select";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -12,31 +14,33 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import StatusPageOwnerTeamService from "Common/Server/Services/StatusPageOwnerTeamService";
 import StatusPageOwnerUserService from "Common/Server/Services/StatusPageOwnerUserService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
-import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
-import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
-import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
-import User from "Common/Models/DatabaseModels/User";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import logger from "Common/Server/Utils/Logger";
 import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
-import {
-  OwnerRowAdded,
-  ownersToTell,
-  planOwnersAdded,
-} from "../../Utils/OwnersAdded";
+import { ownersToTell, tellOwnersAdded } from "../../Utils/OwnersAdded";
+
+// What the statusPage the owners were added to is read with.
+const STATUS_PAGE_SELECT: Select<StatusPage> = {
+  _id: true,
+  name: true,
+  description: true,
+  projectId: true,
+  project: {
+    name: true,
+  },
+};
 
 RunCron(
   "StatusPageOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -61,160 +65,31 @@ RunCron(
       },
     });
 
-    const statusPageOwnerTeams: Array<StatusPageOwnerTeam> =
-      await StatusPageOwnerTeamService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: {
-          _id: true,
-          statusPageId: true,
-          teamId: true,
-        },
-      });
-
-    const statusPageOwnersMap: Dictionary<Array<OwnerRowAdded>> = {};
-
-    for (const statusPageOwnerTeam of statusPageOwnerTeams) {
-      const statusPageId: ObjectID = statusPageOwnerTeam.statusPageId!;
-      const teamId: ObjectID = statusPageOwnerTeam.teamId!;
-
-      const users: Array<User> = await TeamMemberService.getUsersInTeams([
-        teamId,
-      ]);
-
-      if (statusPageOwnersMap[statusPageId.toString()] === undefined) {
-        statusPageOwnersMap[statusPageId.toString()] = [];
-      }
-
-      (
-        statusPageOwnersMap[statusPageId.toString()] as Array<OwnerRowAdded>
-      ).push({
-        ownerRowId: statusPageOwnerTeam.id!,
-        isTeam: true,
-        users: users,
-      });
-    }
-
-    const statusPageOwnerUsers: Array<StatusPageOwnerUser> =
-      await StatusPageOwnerUserService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: {
-          _id: true,
-          statusPageId: true,
-          userId: true,
-          user: {
-            email: true,
-            name: true,
-          },
-        },
-      });
-
-    for (const statusPageOwnerUser of statusPageOwnerUsers) {
-      const statusPageId: ObjectID = statusPageOwnerUser.statusPageId!;
-      const user: User = statusPageOwnerUser.user!;
-
-      if (statusPageOwnersMap[statusPageId.toString()] === undefined) {
-        statusPageOwnersMap[statusPageId.toString()] = [];
-      }
-
-      (
-        statusPageOwnersMap[statusPageId.toString()] as Array<OwnerRowAdded>
-      ).push({
-        ownerRowId: statusPageOwnerUser.id!,
-        isTeam: false,
-        users: [user],
-      });
-    }
-
-    // send email to all of these users.
-
-    for (const statusPageId in statusPageOwnersMap) {
-      const ownerRows: Array<OwnerRowAdded> =
-        statusPageOwnersMap[statusPageId] || [];
-
-      if (ownerRows.length === 0) {
-        continue;
-      }
-
-      const statusPage: StatusPage | null = await readStatusPage(
-        new ObjectID(statusPageId),
-      );
-
-      /*
-       * Whom each owner row is to tell, written before the rows are taken:
-       * a worker stopped from here on leaves them to be told by a later
-       * run, and one stopped before the take leaves the rows to be read
-       * again.
-       */
-      const deliveries: Array<OwnerNotificationDelivery> = statusPage
-        ? await planOwnersAdded({
-            kind: OwnerNotificationKind.StatusPageOwnerAdded,
-            projectId: statusPage.projectId!,
-            resourceId: statusPage.id!,
-            ownerRows: ownerRows,
-          })
-        : [];
-
-      /*
-       * Marked as notified before the owners are told, so an owner row
-       * whose notification keeps failing is never read again on every run -
-       * one whose status page is gone too.
-       */
-      for (const ownerRow of ownerRows) {
-        if (ownerRow.isTeam) {
-          await StatusPageOwnerTeamService.updateOneById({
-            id: ownerRow.ownerRowId,
-            data: {
-              isOwnerNotified: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        } else {
-          await StatusPageOwnerUserService.updateOneById({
-            id: ownerRow.ownerRowId,
-            data: {
-              isOwnerNotified: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-      }
-
-      if (!statusPage) {
-        continue;
-      }
-
-      try {
+    /*
+     * Every record's new owner rows, a page at a time, oldest first: its
+     * team rows and user rows told of together, each person once, each row
+     * taken by one run alone; the run stops between records at its deadline
+     * and the next carries on (OwnersAdded, issue #8862).
+     */
+    await tellOwnersAdded<StatusPage>({
+      jobName: "StatusPageOwner:SendOwnerAddedEmail",
+      kind: OwnerNotificationKind.StatusPageOwnerAdded,
+      recordIdColumn: "statusPageId",
+      teamService: StatusPageOwnerTeamService,
+      userService: StatusPageOwnerUserService,
+      recordService: StatusPageService,
+      recordSelect: STATUS_PAGE_SELECT,
+      deadline: deadline,
+      tell: async (
+        record: StatusPage,
+        deliveries: Array<OwnerNotificationDelivery>,
+      ): Promise<void> => {
         await notifyOwnersAdded({
-          statusPage: statusPage,
+          statusPage: record,
           deliveries: deliveries,
         });
-      } catch (e) {
-        logger.error("Error in sending status page owner added notification", {
-          projectId: statusPage.projectId?.toString(),
-          statusPageId: statusPage.id?.toString(),
-        });
-        logger.error(e, {
-          projectId: statusPage.projectId?.toString(),
-          statusPageId: statusPage.id?.toString(),
-        });
-      }
-    }
+      },
+    });
   },
 );
 
@@ -226,15 +101,7 @@ async function readStatusPage(
     props: {
       isRoot: true,
     },
-    select: {
-      _id: true,
-      name: true,
-      description: true,
-      projectId: true,
-      project: {
-        name: true,
-      },
-    },
+    select: STATUS_PAGE_SELECT,
   });
 }
 

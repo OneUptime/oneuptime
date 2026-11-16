@@ -1,4 +1,6 @@
 import ObjectID from "../../../../Types/ObjectID";
+import Project from "../../../../Models/DatabaseModels/Project";
+import ProjectService from "../../../Services/ProjectService";
 import OneUptimeDate from "../../../../Types/Date";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
@@ -434,16 +436,47 @@ export default class McpRemediationRunner {
       },
     );
 
+    /*
+     * Where the project asks two people to approve a riskier fix, a change
+     * through an MCP server is one (no policy of OneUptime's tiers what an
+     * MCP tool does): it is never made without asking, but proposed, for
+     * two approvals - the rule's Approval included.
+     */
     const mayMakeChanges: boolean =
       suggestion.executionMode === AutoRemediationExecutionMode.FullAuto &&
       rule.executionMode === AutoRemediationExecutionMode.FullAuto &&
       namesServers &&
+      !(await this.asksTwoPeopleToApprove(rule.projectId!)) &&
       (await this.hasBreakerHeadroom(rule.id!));
 
     return {
       allowance,
       mode: mayMakeChanges ? "MakeChanges" : "Propose",
     };
+  }
+
+  /*
+   * Whether the project asks two people to approve a riskier fix
+   * (Project.requireTwoApprovalsForRiskierFixes), read now. A read that
+   * fails asks: the fix is proposed.
+   */
+  public static async asksTwoPeopleToApprove(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: { _id: true, requireTwoApprovalsForRiskierFixes: true },
+        props: { isRoot: true },
+      });
+
+      return project?.requireTwoApprovalsForRiskierFixes !== false;
+    } catch (error) {
+      logger.error(
+        `McpRemediationRunner: could not read whether project ${projectId.toString()} asks two people to approve a riskier fix; proposing instead: ${error}`,
+      );
+      return true;
+    }
   }
 
   /*
@@ -1121,9 +1154,11 @@ export default class McpRemediationRunner {
           feedInfoInMarkdown: data.markdown,
           workspaceNotification: {
             sendWorkspaceNotification: data.pingWorkspace,
-            ...(data.appendMessageBlocks && data.appendMessageBlocks.length > 0
-              ? { appendMessageBlocks: data.appendMessageBlocks }
-              : {}),
+            // Kept where they are posted: approving the fix edits them there.
+            ...RemediationChatMessage.withFixMessage({
+              suggestionId: data.suggestion.id,
+              appendMessageBlocks: data.appendMessageBlocks,
+            }),
           },
         });
       } else if (data.suggestion.alertId && data.suggestion.projectId) {
@@ -1135,9 +1170,11 @@ export default class McpRemediationRunner {
           feedInfoInMarkdown: data.markdown,
           workspaceNotification: {
             sendWorkspaceNotification: data.pingWorkspace,
-            ...(data.appendMessageBlocks && data.appendMessageBlocks.length > 0
-              ? { appendMessageBlocks: data.appendMessageBlocks }
-              : {}),
+            // Kept where they are posted: approving the fix edits them there.
+            ...RemediationChatMessage.withFixMessage({
+              suggestionId: data.suggestion.id,
+              appendMessageBlocks: data.appendMessageBlocks,
+            }),
           },
         });
       }

@@ -4,7 +4,10 @@ import {
 } from "Common/Types/CodeRepository/CodeHost";
 import RunnerLiveStatus from "Common/Types/Runner/RunnerLiveStatus";
 import { canGlobalRunnersRunStepType } from "Common/Types/Runner/GlobalRunnerWork";
-import { isRepositoryKeptOffGlobalRunners } from "Common/Types/Runner/GlobalRunnerRepositoryTokens";
+import {
+  GlobalRunnerKeptOffReason,
+  getGlobalRunnerKeptOffReason,
+} from "Common/Types/Runner/GlobalRunnerRepositoryTokens";
 import {
   ChosenRunnerKind,
   GLOBAL_RUNNER_CHOICE_ID,
@@ -252,15 +255,27 @@ export const CODE_OWN_RUNNER_HELPER_TEXT_BRANCH: string = translationKey(
  * Under a code repository's Runner, where it is picked and on its settings
  * card, while it works on the Global Runner: where global Runners keep
  * connection tokens off (OneUptime Cloud, or a self-hosted multi-tenant
- * install with GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY on), a repository that is
- * not on GitHub never has its access token handed to a global Runner, which
- * is its connection's own (Common/Types/Runner/GlobalRunnerRepositoryTokens),
+ * install with GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY on), a Forgejo, Gitea or
+ * Git repository never has its access token handed to a global Runner,
+ * which is its connection's own (Common/Types/Runner/GlobalRunnerRepositoryTokens),
  * so AI works in it on a Runner of the project's own. The same sentence as
  * Code's notice for it.
  */
 export const CODE_GLOBAL_RUNNER_KEPT_OFF_TEXT: string = translationKey(
-  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.",
+  "AI works in a Forgejo, Gitea or Git repository on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.",
 );
+
+/*
+ * The same line for a GitLab repository GitLab made no short-lived token
+ * for (CodeRepository.mintedTokenRefusedAt): a global Runner pushes to
+ * GitLab only with a project access token OneUptime makes for each fix,
+ * which GitLab makes only for a Maintainer's token with the api scope, on
+ * GitLab self-managed or GitLab.com Premium or Ultimate.
+ */
+export const CODE_GLOBAL_RUNNER_GITLAB_TOKEN_NOT_MINTED_TEXT: string =
+  translationKey(
+    "GitLab did not let OneUptime make a short-lived token for this repository, so AI works in it on one of your own Runners. Give its connection a Maintainer's token with the api scope, or pick one of your Runners.",
+  );
 
 // That line for a repository on its host, or null where it does not apply.
 export function getGlobalRunnerKeptOffText(
@@ -270,13 +285,27 @@ export function getGlobalRunnerKeptOffText(
    * GLOBAL_RUNNERS_KEEP_CONNECTION_TOKENS_OFF).
    */
   keepConnectionTokensOffGlobalRunners: boolean,
+  /*
+   * When GitLab last refused to make the short-lived token a fix pushes
+   * with (CodeRepository.mintedTokenRefusedAt); left out, it has not.
+   */
+  mintedTokenRefusedAt?: Date | string | null | undefined,
 ): string | null {
-  return isRepositoryKeptOffGlobalRunners({
-    repositoryHostedAt: provider,
-    keepConnectionTokensOffGlobalRunners,
-  })
-    ? CODE_GLOBAL_RUNNER_KEPT_OFF_TEXT
-    : null;
+  const reason: GlobalRunnerKeptOffReason | null = getGlobalRunnerKeptOffReason(
+    {
+      repositoryHostedAt: provider,
+      keepConnectionTokensOffGlobalRunners,
+      mintedTokenRefusedAt,
+    },
+  );
+
+  if (!reason) {
+    return null;
+  }
+
+  return reason === GlobalRunnerKeptOffReason.TokenNotMinted
+    ? CODE_GLOBAL_RUNNER_GITLAB_TOKEN_NOT_MINTED_TEXT
+    : CODE_GLOBAL_RUNNER_KEPT_OFF_TEXT;
 }
 
 /*

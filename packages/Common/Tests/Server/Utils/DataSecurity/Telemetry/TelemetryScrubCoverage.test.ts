@@ -506,8 +506,19 @@ describe("a sensitive-keys rule", () => {
       true,
     ],
     ["log", DataStoreKind.TelemetryLogs, "attributes.user.email", false],
-    // Bodies have no keys.
+    /*
+     * A body, and an attribute holding a JSON text, have keys the rule
+     * reads (#6513, #8993), but a finding names the whole field, of which
+     * the rule hides only what is under a secret key.
+     */
     ["log", DataStoreKind.TelemetryLogs, "body", false],
+    ["log", DataStoreKind.TelemetryLogs, "attributes.http.request.body", false],
+    [
+      "trace",
+      DataStoreKind.TelemetryTraces,
+      "attributes.http.request.body",
+      false,
+    ],
     ["trace", DataStoreKind.TelemetryLogs, "attributes.db.password", false],
     ["trace", DataStoreKind.TelemetryTraces, "attributes.auth_token", true],
     ["trace", DataStoreKind.TelemetryTraces, "events.login.api_key", true],
@@ -520,6 +531,32 @@ describe("a sensitive-keys rule", () => {
     ["trace", DataStoreKind.TelemetryTraces, "name", false],
     ["trace", DataStoreKind.TelemetryExceptions, "attributes.session_id", true],
     ["trace", DataStoreKind.TelemetryExceptions, "message", false],
+    /*
+     * #8924: a record's own session or conversation id, which the rule
+     * keeps when the attribute holds it, as the record's column does. An
+     * event's attributes, and any other session key, are hidden as before.
+     */
+    ["log", DataStoreKind.TelemetryLogs, "attributes.session.id", false],
+    [
+      "log",
+      DataStoreKind.TelemetryLogs,
+      "attributes.resource.session.id",
+      false,
+    ],
+    ["trace", DataStoreKind.TelemetryTraces, "attributes.session.id", false],
+    [
+      "trace",
+      DataStoreKind.TelemetryAiConversations,
+      "attributes.langfuse.session.id",
+      false,
+    ],
+    [
+      "trace",
+      DataStoreKind.TelemetryTraces,
+      "events.checkout.session_id",
+      true,
+    ],
+    ["trace", DataStoreKind.TelemetryTraces, "attributes.app.session.id", true],
     [
       "trace",
       DataStoreKind.TelemetryAiConversations,
@@ -980,6 +1017,23 @@ describe("Scrub It", () => {
     expect(saved.patternType).toBe("sensitiveKeys");
     expect(saved.customRegex).toBeUndefined();
     expect(saved.fieldsToScrub).toBe("attributes");
+    // What it hides, a JSON text held in a string included (#8993).
+    expect(saved.description).toContain(
+      "and every value under such a key inside a list, a map, a log body or a JSON text",
+    );
+    expect(saved.description!.length).toBeLessThanOrEqual(500);
+  });
+
+  test("a secret in a record's session.id: not a sensitive-keys rule, which keeps the record's own session id (#8924)", async () => {
+    await createScrubRuleForFinding({
+      projectId: PROJECT_ID,
+      kind: DataStoreKind.TelemetryLogs,
+      dataTypeId: "github-token",
+      location: "attributes.session.id",
+    });
+
+    // A pattern for the token's shape: it reads the value whatever its key.
+    expect(createdLogRule().patternType).toBe("custom");
   });
 
   test("a token in an exception message: a trace rule on events", async () => {

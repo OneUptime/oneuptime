@@ -54,14 +54,23 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * The teams the user is a member of in any of the projects: one read
+   * however many projects (OnCallDutyPolicyService's on-duty answer asks it
+   * for every project My On-Call Policies shows, #8124).
+   */
   public async getTeamsUserIsAPartOf(data: {
     userId: ObjectID;
-    projectId: ObjectID;
+    projectIds: Array<ObjectID>;
   }): Promise<Array<Model>> {
+    if (data.projectIds.length === 0) {
+      return [];
+    }
+
     const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
       query: {
         userId: data.userId,
-        projectId: data.projectId,
+        projectId: QueryHelper.any(data.projectIds),
       },
       select: {
         team: {

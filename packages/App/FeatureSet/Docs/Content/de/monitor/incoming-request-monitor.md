@@ -194,6 +194,8 @@ Invoke-RestMethod -Method Post `
 
 Wer die URL eines Monitors hat, kann ihm Anfragen senden. Ein Projektinhaber oder Projektadministrator kann jeden Monitor für eingehende Anfragen im Projekt zusätzlich eines der eigenen Geheimnisse des Projekts verlangen lassen, egal wer den Monitor eingerichtet hat: Aktivieren Sie **Bei jeder Anfrage ein Geheimnis verlangen**. Eine Anfrage ohne Geheimnis wird mit `401` und dem Grund abgelehnt, bevor sie als Heartbeat zählt, als letzte Anfrage des Monitors gespeichert wird oder Kriterien erreicht. Eine Anfrage mit Geheimnis geht wie bisher an die eigenen Kriterien des Monitors.
 
+Projektinhaber und Projektadministratoren verwalten die Geheimnisse und den Schalter, ebenso eine benutzerdefinierte Rolle mit den Berechtigungen Create, Read, Edit und Delete Incoming Request Secret: Read zeigt die Werte der Geheimnisse, und Edit schaltet zudem den Schalter ein und aus.
+
 :::steps
 ### Ein Geheimnis erstellen
 
@@ -201,7 +203,7 @@ Gehen Sie zu **Monitore → Einstellungen → Geheimnisse für eingehende Anfrag
 
 ### Es von jedem Absender senden
 
-Senden Sie das Geheimnis im Header `X-OneUptime-Secret` oder als Bearer-Token im Header `Authorization`, je nachdem, was Ihr Absender setzen kann.
+Senden Sie das Geheimnis im Header `X-OneUptime-Secret` oder als Bearer-Token im Header `Authorization`, je nachdem, was Ihr Absender setzen kann. Ein Absender, der keinen eigenen Header setzen kann, kann stattdessen jede Anfrage mit dem Geheimnis signieren: siehe [Anfragen mit dem Geheimnis signieren](#anfragen-mit-dem-geheimnis-signieren).
 
 ### Die vergessenen Absender finden
 
@@ -209,7 +211,7 @@ Sobald das Projekt ein Geheimnis hat, prüft OneUptime jede Anfrage darauf, ohne
 
 ### Die Anforderung aktivieren
 
-Aktivieren Sie **Bei jeder Anfrage ein Geheimnis verlangen**. Solange das Projekt kein Geheimnis hat, lässt sich die Anforderung nicht aktivieren, sodass kein Absender versehentlich abgelehnt wird.
+Aktivieren Sie **Bei jeder Anfrage ein Geheimnis verlangen**. Solange das Projekt kein Geheimnis hat, lässt sich die Anforderung nicht aktivieren, sodass kein Absender versehentlich abgelehnt wird. Bevor sie aktiviert wird, nennt OneUptime, wie viele Monitore für eingehende Anfragen in den letzten 24 Stunden eine Anfrage ohne gültiges Geheimnis erhalten haben, falls es welche gibt: Deren Absender werden ab dann abgelehnt.
 :::
 
 ```bash
@@ -223,8 +225,40 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 OneUptime speichert das Geheimnis nie: Es entfernt den Header aus der Anfrage und maskiert ein Bearer-Token, das eines der Geheimnisse des Projekts ist, bevor es etwas speichert.
 
+Eine Adresse, die einem Monitor in 15 Minuten mehr als 10 verschiedene falsche Geheimnisse sendet, wird danach bei jedem Geheimnis, das sie sendet, ob richtig oder falsch, mit `429` abgelehnt, bis zu der Zeit, die ihr Header `Retry-After` nennt, höchstens 15 Minuten. Absender an anderen Adressen sind nicht betroffen, und ein Absender, der immer wieder ein altes Geheimnis sendet, bekommt weiterhin die `401`, die sagt, was falsch ist.
+
 > [!TIP]
-> Um ein Geheimnis zu ersetzen, ohne jemanden abzulehnen, erstellen Sie ein zweites, stellen Ihre Absender darauf um und löschen das alte, sobald sich sein Wert unter **Zuletzt verwendet** nicht mehr ändert. Jedes Geheimnis des Projekts wird angenommen, und das letzte lässt sich nicht löschen, solange die Anforderung aktiv ist.
+> Um ein Geheimnis zu ersetzen, ohne jemanden abzulehnen, erstellen Sie ein zweites, stellen Ihre Absender darauf um und löschen das alte, sobald sich sein Wert unter **Zuletzt verwendet** nicht mehr ändert. Jedes Geheimnis des Projekts wird angenommen, sofern es nicht auf andere Monitore beschränkt ist, und das letzte, das einen Monitor abdeckt, lässt sich nicht löschen, solange die Anforderung aktiv ist.
+
+### Anfragen mit dem Geheimnis signieren
+
+Ein Absender kann jede Anfrage mit dem Geheimnis signieren, statt es zu senden, und das ist sicherer: Nichts Geheimes wird übertragen, und eine abgefangene Anfrage lässt sich später nicht erneut senden. Ziehen Sie es überall vor, wo ein Absender signieren kann. OneUptime prüft diese Signaturen, jeweils ein HMAC-SHA256 in Hex mit dem Geheimnis als Schlüssel:
+
+| Absender | Header | Was signiert wird |
+| --- | --- | --- |
+| Ihr eigener Code | `X-OneUptime-Signature: t=<time>,v1=<signature>` | `<time>.<body>` |
+| GitHub-Webhooks | `X-Hub-Signature-256` | Der Body |
+| Slack | `X-Slack-Signature`, mit `X-Slack-Request-Timestamp` | `v0:<time>:<body>` |
+| Stripe | `Stripe-Signature` | `<time>.<body>` |
+
+`<time>` ist der Zeitpunkt, zu dem die Anfrage signiert wurde, in Sekunden seit 1970. Eine Signatur, die mehr als 5 Minuten von der Uhr von OneUptime abweicht, wird abgelehnt, ebenso eine signierte Anfrage, die ein zweites Mal gesendet wird; die Signatur von GitHub enthält keine Zeit, daher merkt sich OneUptime jede einen Tag lang. Geben Sie bei GitHub dem Webhook eines der Geheimnisse des Projekts als Secret. Slack und Stripe erzeugen ihr eigenes Signaturgeheimnis: Erstellen Sie das Geheimnis des Projekts mit diesem Wert, unter **Weitere Felder**.
+
+```bash
+body='{"status":"healthy"}'
+t=$(date +%s)
+sig=$(printf '%s.%s' "$t" "$body" | openssl dgst -sha256 -hmac "YOUR_PROJECT_SECRET" | sed 's/^.* //')
+
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Content-Type: application/json" \
+  -H "X-OneUptime-Signature: t=$t,v1=$sig" \
+  -d "$body"
+```
+
+Ein Geheimnis im Query-String der URL wird nicht angenommen: Proxys und Zugriffsprotokolle speichern ganze URLs, neben dem eigenen Schlüssel des Monitors. Der Eingehende-Anfrage-Ingress einer Sonde leitet den Body einer signierten Anfrage so weiter, wie er kam, sodass ihre Signatur auch dort gilt.
+
+### Ein Geheimnis auf einige Monitore beschränken
+
+Ein Geheimnis wird von jedem Monitor für eingehende Anfragen des Projekts angenommen, es sei denn, Sie beschränken es, wie es ein Projekt tut, dessen Mandanten jeweils ihr eigenes Geheimnis senden: Wählen Sie dafür unter **Weitere Felder** entweder **Bestimmte Monitore** oder **Monitore mit Beschriftungen**. Jeder andere Monitor lehnt es mit `401` ab, wie er ein falsches Geheimnis ablehnt, und **Anfragen ohne Geheimnis** nennt als Grund **Geheimnis nicht für diesen Monitor**. Solange die Anforderung aktiv ist, behält das Projekt mindestens ein Geheimnis, das einen Monitor abdeckt.
 
 ## Überwachungskriterien
 
@@ -449,7 +483,11 @@ Die `200` wird gesendet, bevor die Anfrage geprüft wird, sie beweist also nicht
 :::
 
 :::details Mein Absender bekommt 401
-Das Projekt verlangt bei jeder Anfrage ein Geheimnis, und die Anfrage hat keines gesendet oder eines, das nicht zum Projekt gehört: Die Antwort sagt, was davon zutrifft. Senden Sie eines der Geheimnisse des Projekts im Header `X-OneUptime-Secret` oder als Bearer-Token, wie [Bei jeder Anfrage ein Geheimnis verlangen](#bei-jeder-anfrage-ein-geheimnis-verlangen) zeigt. Eine abgelehnte Anfrage erreicht den Monitor nie.
+Das Projekt verlangt bei jeder Anfrage ein Geheimnis, und die Anfrage hat keines gesendet oder eines, das nicht zum Projekt gehört: Die Antwort sagt, was davon zutrifft. Senden Sie eines der Geheimnisse des Projekts im Header `X-OneUptime-Secret` oder als Bearer-Token, wie [Bei jeder Anfrage ein Geheimnis verlangen](#bei-jeder-anfrage-ein-geheimnis-verlangen) zeigt. Eine abgelehnte Anfrage erreicht den Monitor nie. Eine `401` bekommt sie auch mit einem Geheimnis des Projekts, das auf andere Monitore beschränkt ist, und für eine signierte Anfrage, deren Signatur älter als 5 Minuten ist, schon einmal gesendet wurde oder mit einem anderen Geheimnis oder über einen unterwegs veränderten Body erstellt wurde.
+:::
+
+:::details Mein Absender bekommt eine 429
+Seine Adresse hat einem Monitor in 15 Minuten mehr als 10 verschiedene falsche Geheimnisse oder Signaturen gesendet, daher wird jede Anfrage mit einem Geheimnis, die sie diesem Monitor sendet, bis zu der Zeit in ihrem Header `Retry-After` abgelehnt. Ein Absender, der mit einem falschen Geheimnis signiert, erzeugt jedes Mal eine neue falsche Signatur und landet schnell hier: Geben Sie ihm ein Geheimnis, das der Monitor annimmt, wie [Bei jeder Anfrage ein Geheimnis verlangen](#bei-jeder-anfrage-ein-geheimnis-verlangen) zeigt, und seine Anfragen werden angenommen, sobald die Zeit abgelaufen ist.
 :::
 
 :::details Der Monitor bekommt keine Anfragen mehr, seit ein Geheimnis verlangt wird

@@ -30,25 +30,35 @@ import path from "path";
  * a function given its arguments, with its step swapped for a few lines that
  * call its readers.
  *
- * The Teams reader is also held to time. It took the spaces before each line
- * break out with /[ \t]+\n/g and attachment elements with
+ * The Teams reader is also held to its time. It took the spaces before each
+ * line break out with /[ \t]+\n/g and attachment elements with
  * /<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi, which start again from
  * every place a match could start: in this state, two seconds for 28 KB of
- * spaces (a Teams message's largest) and half a minute for 100 KB. Each
- * shape below is read, and written as a note, inside a second - a megabyte
- * is some forty times a Teams message's largest. In the note every
- * "<" is text, written "\<": a "<" that starts markup is one no backslash
- * escapes.
+ * spaces (a Teams message's largest) and half a minute for 100 KB - time
+ * that grows with the square of the text. So each shape is read, and written
+ * as a note, at 4 KB, 64 KB and a megabyte (some forty times a Teams
+ * message's largest), and a character must not cost much more to read in
+ * the longer texts than in the shortest: at most seven times as much, where
+ * those patterns cost 12 to 16 times as much at 64 KB and hundreds at a
+ * megabyte. The cost is the CPU time of the thread that reads, which a busy
+ * runner gives the process less of every second without making the work any
+ * larger - a wall-clock budget it can miss is what this was (a second, which
+ * a load average of 61 took a shape past). In the note every "<" is text,
+ * written "\<": a "<" that starts markup is one no backslash escapes.
  */
 
 const COMMON_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
 /*
- * Each shape is read and written in under half a second on a developer
- * machine; the fastest of up to three attempts counts. The patterns this
- * replaced took minutes on a megabyte of the slow ones.
+ * How much more a character may cost to read in a longer text than in a
+ * 4 KB one. A reader that reads each character a few times costs about the
+ * same per character at every length: 0.6 to 2.6 times here at 64 KB and a
+ * megabyte (a line of backticks the most, 3.8 once), measured at load
+ * averages of 47 to 65. The patterns it replaced cost 12 to 16 times as much
+ * at 64 KB, and stop the check there: at a megabyte they would take the
+ * better part of an hour.
  */
-const TEAMS_READ_LIMIT_IN_MS: number = 1000;
+const TEAMS_GROWTH_LIMIT: number = 7;
 
 interface Attempt {
   ok: boolean;
@@ -62,7 +72,11 @@ interface ProcessReport {
   answers: Array<{ shape: string; read: Attempt }>;
   notes: Array<{ shape: string; read: Attempt }>;
   descriptions: Array<{ shape: string; read: Attempt }>;
-  teamsMessages: Array<{ shape: string; read: Attempt; ms: number }>;
+  teamsMessages: Array<{
+    shape: string;
+    read: Attempt | null;
+    growth: number;
+  }>;
   sites: Array<{ shape: string; site?: string; error?: string }>;
   settings: Array<{ shape: string; link?: string; error?: string }>;
 }
@@ -114,7 +128,7 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
         } = bundle.exports;
 
         const MEGABYTE = 1024 * 1024;
-        const repeatTo = (unit) => unit.repeat(Math.floor(MEGABYTE / unit.length));
+        const repeatTo = (unit, size) => unit.repeat(Math.floor((size || MEGABYTE) / unit.length));
         const MARKUP_START = new RegExp("<[A-Za-z/!?]");
 
         const attempt = (work) => {
@@ -139,18 +153,20 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           return String(new RegExp("^[A-Za-z0-9+/]+={0,2}$").test(screenshot));
         });
 
-        const SHAPES = [
-          ["spaces", repeatTo(" ") + "x"],
-          ["tabs and line breaks", repeatTo("\t\n") + "x"],
-          ["control characters", repeatTo("\u0001") + "x"],
-          ["line breaks", "<p>a" + repeatTo("\n") + "b</p>"],
-          ["tags that never close", repeatTo("<a") + "&amp;"],
-          ["a run of '<' before an unclosed value", repeatTo("<") + 'a="&amp;'],
-          ["script elements that never close", repeatTo("<script ")],
-          ["a line of backticks", "<p>" + repeatTo(String.fromCharCode(96)) + "</p>"],
-          ["one long line break", "<p>a<br" + repeatTo(" ") + ">b</p>"],
-          ["entities", repeatTo("&amp;&lt;")],
+        // Each shape as a text of any size: a megabyte unless told otherwise.
+        const SHAPE_MAKERS = [
+          ["spaces", (size) => repeatTo(" ", size) + "x"],
+          ["tabs and line breaks", (size) => repeatTo("\t\n", size) + "x"],
+          ["control characters", (size) => repeatTo("\u0001", size) + "x"],
+          ["line breaks", (size) => "<p>a" + repeatTo("\n", size) + "b</p>"],
+          ["tags that never close", (size) => repeatTo("<a", size) + "&amp;"],
+          ["a run of '<' before an unclosed value", (size) => repeatTo("<", size) + 'a="&amp;'],
+          ["script elements that never close", (size) => repeatTo("<script ", size)],
+          ["a line of backticks", (size) => "<p>" + repeatTo(String.fromCharCode(96), size) + "</p>"],
+          ["one long line break", (size) => "<p>a<br" + repeatTo(" ", size) + ">b</p>"],
+          ["entities", (size) => repeatTo("&amp;&lt;", size)],
         ];
+        const SHAPES = SHAPE_MAKERS.map(([shape, make]) => [shape, make(MEGABYTE)]);
 
         const answers = SHAPES.map(([shape, text]) => {
           return {
@@ -229,17 +245,17 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
 
         // A Teams message body as Graph hands it over: HTML, its attachments as elements.
         const TEAMS_SHAPES = [
-          ...SHAPES,
-          ["spaces with no line break after them", "<p>" + repeatTo(" ") + "x</p>"],
-          ["non-breaking spaces", "<p>" + repeatTo("&nbsp;") + "x</p>"],
-          ["attachment elements that never close", repeatTo('<attachment id="1">')],
-          ["attachment start tags with no '>'", repeatTo("<attachment ")],
-          ["attachment elements", repeatTo('<attachment id="1"></attachment>')],
-          ["a numeric reference's digits", "<p>&#" + repeatTo("1") + "</p>"],
-          ["a hexadecimal reference's digits", "<p>&#x" + repeatTo("a") + "</p>"],
-          ["one numeric reference a megabyte long", "<p>&#" + repeatTo("1") + ";</p>"],
-          ["numeric references", "<p>" + repeatTo("&#65;") + "</p>"],
-          ["hexadecimal references", "<p>" + repeatTo("&#x41;") + "</p>"],
+          ...SHAPE_MAKERS,
+          ["spaces with no line break after them", (size) => "<p>" + repeatTo(" ", size) + "x</p>"],
+          ["non-breaking spaces", (size) => "<p>" + repeatTo("&nbsp;", size) + "x</p>"],
+          ["attachment elements that never close", (size) => repeatTo('<attachment id="1">', size)],
+          ["attachment start tags with no '>'", (size) => repeatTo("<attachment ", size)],
+          ["attachment elements", (size) => repeatTo('<attachment id="1"></attachment>', size)],
+          ["a numeric reference's digits", (size) => "<p>&#" + repeatTo("1", size) + "</p>"],
+          ["a hexadecimal reference's digits", (size) => "<p>&#x" + repeatTo("a", size) + "</p>"],
+          ["one numeric reference a megabyte long", (size) => "<p>&#" + repeatTo("1", size) + ";</p>"],
+          ["numeric references", (size) => "<p>" + repeatTo("&#65;", size) + "</p>"],
+          ["hexadecimal references", (size) => "<p>" + repeatTo("&#x41;", size) + "</p>"],
         ];
 
         /*
@@ -265,38 +281,75 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
         };
 
         /*
-         * The fastest of up to three attempts counts, as Tests/Helpers/FastestRun
-         * has it: one attempt can stall in a busy test run.
+         * A Teams message read, and written as a note: whether that held, and
+         * whether the note holds a "<" that starts markup.
          */
-        const teamsMessages = TEAMS_SHAPES.map(([shape, text]) => {
-          let fastest = null;
+        const readAsNote = (text) => {
+          try {
+            const note = ChatMessageMarkdown.toMarkdown({
+              blocks: MicrosoftTeamsMessageReader.readHtml(text, null),
+            }).toString();
 
-          for (let attempt = 0; attempt < 3; attempt++) {
-            const started = Date.now();
-            let read;
+            return { ok: true, markup: holdsMarkup(note) };
+          } catch (error) {
+            return { ok: false, error: String((error && error.message) || error).split("\n")[0] };
+          }
+        };
 
-            try {
-              const note = ChatMessageMarkdown.toMarkdown({
-                blocks: MicrosoftTeamsMessageReader.readHtml(text, null),
-              }).toString();
+        // The CPU time this thread has used, in microseconds.
+        const cpuMicroseconds = () => {
+          const usage =
+            typeof process.threadCpuUsage === "function" ? process.threadCpuUsage() : process.cpuUsage();
+          return usage.user + usage.system;
+        };
 
-              read = { ok: true, markup: holdsMarkup(note) };
-            } catch (error) {
-              read = { ok: false, error: String((error && error.message) || error).split("\n")[0] };
-            }
+        /*
+         * What a character of a shape costs to read at a size, in CPU time: the
+         * text read once to warm up (that reading is the one reported), then
+         * again until the readings add up to 20 ms or four megabytes. The
+         * cheapest of three such rounds counts, as Tests/Helpers/FastestRun
+         * has it: a busy runner can slow one down.
+         */
+        const costPerCharacter = (make, size) => {
+          const text = make(size);
+          const read = readAsNote(text);
+          let cheapest = Infinity;
 
-            const ms = Date.now() - started;
+          for (let round = 0; round < 3; round++) {
+            const started = cpuMicroseconds();
+            let characters = 0;
 
-            if (fastest === null || ms < fastest.ms) {
-              fastest = { shape, read, ms };
-            }
+            do {
+              readAsNote(text);
+              characters += text.length;
+            } while (cpuMicroseconds() - started < 20000 && characters < 4 * MEGABYTE);
 
-            if (!read.ok || ms < ${TEAMS_READ_LIMIT_IN_MS}) {
-              break;
-            }
+            cheapest = Math.min(cheapest, (cpuMicroseconds() - started) / characters);
           }
 
-          return fastest;
+          return { read, cost: cheapest };
+        };
+
+        /*
+         * Each shape at 4 KB, 64 KB and a megabyte. A shape whose characters
+         * already cost too much more at 64 KB is not read at a megabyte, which
+         * at that growth would take minutes.
+         */
+        const teamsMessages = TEAMS_SHAPES.map(([shape, make]) => {
+          const shortest = costPerCharacter(make, 4 * 1024).cost;
+          const longer = costPerCharacter(make, 64 * 1024).cost;
+
+          if (longer / shortest > ${TEAMS_GROWTH_LIMIT}) {
+            return { shape, read: null, growth: longer / shortest };
+          }
+
+          const megabyte = costPerCharacter(make, MEGABYTE);
+
+          return {
+            shape,
+            read: megabyte.read,
+            growth: Math.max(longer, megabyte.cost) / shortest,
+          };
         });
 
         /*
@@ -441,15 +494,22 @@ describe("Markup read out of megabyte-long text, where V8 compiles regular expre
     ]);
   });
 
-  test("the Teams reader of a pinned message reads every shape, and writes it as a note, each inside a second", () => {
+  test("the Teams reader of a pinned message reads every shape, and writes it as a note, at a cost per character that does not grow with the text", () => {
     // A megabyte of each shape: the ten above, and ten a Teams message can take.
     expect(report.teamsMessages).toHaveLength(20);
 
-    for (const { shape, read, ms } of report.teamsMessages) {
-      expect({ shape, read, fast: ms < TEAMS_READ_LIMIT_IN_MS }).toEqual({
+    for (const { shape, read, growth } of report.teamsMessages) {
+      expect(Number.isFinite(growth) && growth > 0).toBe(true);
+      expect({
+        shape,
+        read,
+        growth: Math.round(growth * 10) / 10,
+        linear: growth <= TEAMS_GROWTH_LIMIT,
+      }).toEqual({
         shape,
         read: { ok: true, markup: false },
-        fast: true,
+        growth: expect.any(Number),
+        linear: true,
       });
     }
   });

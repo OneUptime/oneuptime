@@ -31,6 +31,27 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  /*
+   * A create hands back the row it saved, with the signing secret on it as
+   * it was stored: encrypted. BaseAPI serializes the row whole into the
+   * answer of POST /user-webhook, and a workflow step's create returns it to
+   * the workflow's logs - a ciphertext nobody typed. So it is taken off
+   * first: the method's owner reads the secret itself back with a read, and
+   * WebhookService signs with it, read decrypted, when it sends.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    const created: Model = await super.create(createBy);
+
+    /*
+     * Cleared rather than deleted, as BaseAPI.createItem clears a model's
+     * `_id`: an unset column holds undefined, which serializes as nothing.
+     */
+    (created as unknown as Record<string, unknown>)["secret"] = undefined;
+
+    return created;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,

@@ -42,11 +42,14 @@ import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryT
  * only way into a repository, is then given only to the worker the
  * repository picks.
  *
- * On OneUptime Cloud a global Runner never takes the run of a repository
- * that is not on GitHub (Types/Runner/GlobalRunnerRepositoryTokens): such a
+ * On OneUptime Cloud a global Runner never takes the run of a Forgejo, Gitea
+ * or Git repository (Types/Runner/GlobalRunnerRepositoryTokens): such a
  * repository's token is its connection's own, and it is never handed to a
- * host that runs every customer's JavaScript steps. A run whose repository
- * is not known yet is still taken, and its token refused if it finds one.
+ * host that runs every customer's JavaScript steps. It takes a GitLab
+ * repository's run only when it pushes with the token OneUptime makes for
+ * each run (pushesWithRunTokens), and while GitLab has not refused to make
+ * the repository one. A run whose repository is not known yet is still
+ * taken, and its token refused if it finds one.
  */
 
 export interface CodeFixClaimQueryFacts {
@@ -56,11 +59,20 @@ export interface CodeFixClaimQueryFacts {
   // The recipes the worker has handlers for (a null recipe is FixException).
   claimableTaskTypes: Array<CodeFixTaskType>;
   /*
-   * Whether a global Runner stays out of repositories that are not on
-   * GitHub: OneUptime Cloud (GlobalRunnerRepositoryTokens). Read for a
-   * global Runner only.
+   * Whether a global Runner stays out of repositories whose token is their
+   * connection's own: OneUptime Cloud (GlobalRunnerRepositoryTokens). Read
+   * for a global Runner only.
    */
   keepsConnectionRepositoriesOff?: boolean | undefined;
+  /*
+   * Whether the worker pushes with a token OneUptime makes for its run and
+   * has OneUptime open its pull requests
+   * (RunnerCodeFixCapability.ServerOpensPullRequests): where global Runners
+   * stay out of connections' tokens, such a global Runner takes a GitLab
+   * repository's runs while GitLab has not refused to make it one
+   * (CodeRepository.mintedTokenRefusedAt). Read for a global Runner only.
+   */
+  pushesWithRunTokens?: boolean | undefined;
 }
 
 export interface CodeFixClaimCondition {
@@ -191,13 +203,19 @@ export default class CodeFixClaimQuery {
 
         /*
          * On OneUptime Cloud, only a GitHub repository (an empty host is
-         * GitHub, as CodeHost.readType reads it), or one not known yet.
+         * GitHub, as CodeHost.readType reads it), or one not known yet - and,
+         * for a Runner that pushes with a token made for its run, a GitLab
+         * repository GitLab has not refused to make one for.
          */
         if (facts.keepsConnectionRepositoriesOff) {
+          const gitHub: string = addParameter(CodeRepositoryType.GitHub);
+
           conditions.push(
-            `("repository"."_id" IS NULL OR "repository"."repositoryHostedAt" IS NULL OR "repository"."repositoryHostedAt" = ${addParameter(
-              CodeRepositoryType.GitHub,
-            )})`,
+            facts.pushesWithRunTokens
+              ? `("repository"."_id" IS NULL OR "repository"."repositoryHostedAt" IS NULL OR "repository"."repositoryHostedAt" = ${gitHub} OR ("repository"."repositoryHostedAt" = ${addParameter(
+                  CodeRepositoryType.GitLab,
+                )} AND "repository"."mintedTokenRefusedAt" IS NULL))`
+              : `("repository"."_id" IS NULL OR "repository"."repositoryHostedAt" IS NULL OR "repository"."repositoryHostedAt" = ${gitHub})`,
           );
         }
         break;

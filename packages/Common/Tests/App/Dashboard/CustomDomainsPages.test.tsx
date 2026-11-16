@@ -1468,7 +1468,9 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
      * A form domain's columns describe the certificate and its key for the
      * API reference ("... while isCustomCertificate is on"), in English; the
      * form would draw that under the field. The title and the PEM
-     * placeholder say what goes there, on every kind.
+     * placeholder say what goes there, on every kind, and the key says, in
+     * the product's words, why it is needed and that it is never shown
+     * again.
      */
     test("the certificate and its key show none of the API reference's words", () => {
       renderPage();
@@ -1483,10 +1485,21 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
 
       expect(certificateFields).toHaveLength(2);
 
+      const model: CustomDomainModel = new page.modelType();
+
       for (const field of certificateFields) {
+        const column: string = Object.keys(field.field || {})[0] || "";
+
         expect(field.hideColumnDescription).toBe(true);
-        expect(field.description).toBeUndefined();
+        expect(field.description).not.toBe(
+          model.getTableColumnMetadata(column).description,
+        );
       }
+
+      expect(certificateFields[0]!.description).toBeUndefined();
+      expect(certificateFields[1]!.description).toBe(
+        "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.",
+      );
     });
 
     test("Add's certificate options are one folded Advanced section, which says which certificate the domain will use", () => {

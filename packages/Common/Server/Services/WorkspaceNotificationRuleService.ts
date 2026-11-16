@@ -33,6 +33,7 @@ import WorkspaceBase, {
 } from "../Utils/Workspace/WorkspaceBase";
 import WorkspaceChannelNotFound from "../Utils/Workspace/WorkspaceChannelNotFound";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
+import WorkspaceLiveMessages from "../Utils/Workspace/LiveMessages/WorkspaceLiveMessages";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import Dictionary from "../../Types/Dictionary";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
@@ -1834,6 +1835,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       authorApiKeyName?: string | undefined;
       sendWorkspaceNotification: boolean;
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+      /*
+       * The key the posts are kept under (WorkspaceLiveMessageKey), each
+       * with its lead blocks - the entry's own, before the appended ones -
+       * so a later change edits them in place (WorkspaceLiveMessages).
+       */
+      keepPostsAs?: string | undefined;
       // Not posted in this channel (WorkspaceChannelToSkip).
       exceptChannel?: WorkspaceChannelToSkip | undefined;
       /*
@@ -1902,6 +1909,22 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         markdownByWorkspaceType: data.markdownByWorkspaceType,
         projectId: data.projectId,
       });
+
+    // The entry's own blocks, before anything is appended: what a kept post keeps.
+    const leadBlocksByWorkspaceType: Map<
+      WorkspaceType,
+      Array<WorkspaceMessageBlock>
+    > | null = data.workspaceNotification.keepPostsAs
+      ? new Map<WorkspaceType, Array<WorkspaceMessageBlock>>(
+          messageBlocksByWorkspaceTypes.map(
+            (
+              blocks: MessageBlocksByWorkspaceType,
+            ): [WorkspaceType, Array<WorkspaceMessageBlock>] => {
+              return [blocks.workspaceType, [...blocks.messageBlocks]];
+            },
+          ),
+        )
+      : null;
 
     if (data.workspaceNotification.appendMessageBlocks) {
       for (const messageBlocksByWorkspaceType of data.workspaceNotification
@@ -1996,6 +2019,29 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       messageBlocksByWorkspaceTypes: messageBlocksByWorkspaceTypes,
       authorUserId: data.workspaceNotification.authorUserId,
     });
+
+    /*
+     * Kept where they were posted, so a later change edits them there:
+     * best effort - a post OneUptime could not remember is still posted.
+     */
+    if (data.workspaceNotification.keepPostsAs && leadBlocksByWorkspaceType) {
+      try {
+        await WorkspaceLiveMessages.keepPosts({
+          projectId: data.projectId,
+          messageKey: data.workspaceNotification.keepPostsAs,
+          payloads: workspaceNotificationPaylaods,
+          responses,
+          leadBlocksByWorkspaceType,
+        });
+      } catch (err) {
+        logger.error("Could not keep a workspace message to update it.", {
+          projectId: data.projectId?.toString(),
+        } as LogAttributes);
+        logger.error(err, {
+          projectId: data.projectId?.toString(),
+        } as LogAttributes);
+      }
+    }
   }
 
   /*

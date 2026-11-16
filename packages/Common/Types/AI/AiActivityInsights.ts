@@ -460,6 +460,12 @@ export interface AiActivityInsight {
   evidenceCount?: number | undefined;
   // FixedAutomatically, ReadyForAutomaticFixes: how many were checked and held.
   verifiedCount?: number | undefined;
+  /*
+   * FixesAwaitingApproval: how many of them the reader gave the first of
+   * the two approvals a riskier fix needs - each waits for someone else's
+   * approval, not theirs. Absent when none.
+   */
+  approvedFirstByReaderCount?: number | undefined;
   // RiskSpotted.
   insightId?: string | undefined;
   insightSeverity?: string | undefined;
