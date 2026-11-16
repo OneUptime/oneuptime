@@ -52,6 +52,8 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import SmsStatus from "Common/Types/SmsStatus";
 import WhatsAppStatus from "Common/Types/WhatsAppStatus";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import MetricZeroFill from "Common/Utils/Metrics/MetricZeroFill";
+import { AggregationTemporality } from "Common/Models/AnalyticsModels/Metric";
 import {
   afterAll,
   afterEach,
@@ -1909,7 +1911,14 @@ describe("the objectives", () => {
     );
   });
 
-  it("write a failure share the formula evaluator reads, which draws no point for a step with no failures", () => {
+  /*
+   * Issue #6761: `b` has no point in a step with no failure - a delta
+   * counter sends nothing for an attribute set that saw nothing - and a
+   * formula reads a counter's Sum with no point as 0 (MetricZeroFill), from
+   * what the metric catalog says of it: a counter, with the temporality the
+   * page has OneUptime send, or the running totals it sends by default.
+   */
+  it("write a failure share the formula evaluator reads, which draws 0 for a step with no failures", () => {
     const formula: string = "$b / $a * 100";
     const queryConfig: (variable: string) => MetricQueryConfigData = (
       variable: string,
@@ -1939,25 +1948,43 @@ describe("the objectives", () => {
         }),
       };
     };
-    const shares: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
-      formula: formula,
-      queryConfigs: [queryConfig("a"), queryConfig("b")],
-      formulaConfigs: [],
-      results: [
-        result([
-          ["2026-11-01T00:00:00Z", 200],
-          ["2026-11-01T00:01:00Z", 100],
-        ]),
-        // No failure in the first step: b has no point there.
-        result([["2026-11-01T00:01:00Z", 2]]),
-      ],
-    });
+    // notification.send.count is a counter: an OpenTelemetry monotonic Sum.
+    expect(instrument("notification.send.count").kind).toBe("Counter");
 
-    expect(
-      shares.data.map((point: { value: number }): number => {
-        return point.value;
-      }),
-    ).toEqual([2]);
+    for (const aggregationTemporality of [
+      AggregationTemporality.Delta,
+      AggregationTemporality.Cumulative,
+    ]) {
+      const shares: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
+        formula: formula,
+        queryConfigs: [queryConfig("a"), queryConfig("b")],
+        formulaConfigs: [],
+        results: [
+          result([
+            ["2026-11-01T00:00:00Z", 200],
+            ["2026-11-01T00:01:00Z", 100],
+          ]),
+          // No failure in the first step: b has no point there.
+          result([["2026-11-01T00:01:00Z", 2]]),
+        ],
+        zeroFill: {
+          semanticsByMetricName: MetricZeroFill.getSemanticsByMetricName([
+            {
+              name: "notification.send.count",
+              isMonotonic: true,
+              aggregationTemporality: aggregationTemporality,
+            },
+          ]),
+        },
+      });
+
+      expect({
+        aggregationTemporality,
+        shares: shares.data.map((point: { value: number }): number => {
+          return point.value;
+        }),
+      }).toEqual({ aggregationTemporality, shares: [0, 2] });
+    }
 
     for (const heading of [
       "### On-call SMS reach Twilio",
@@ -1967,8 +1994,9 @@ describe("the objectives", () => {
     }
 
     expect(section("### On-call SMS reach Twilio")).toContain(
-      "A step with no failure draws no point, as `b` has none.",
+      "A step with no failure draws 0, as `b` counted nothing in it.",
     );
+    expect(PAGE).not.toContain("draws no point");
   });
 
   it("name channels and statuses that exist when they say what to change", () => {
