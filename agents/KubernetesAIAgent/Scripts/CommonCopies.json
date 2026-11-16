@@ -6,7 +6,8 @@
     "Types/Runbook/RunnerJobOrigin.ts",
     "Utils/AiRemediation/CommandPolicy.ts",
     "Utils/AiRemediation/KubectlPolicy.ts",
-    "Utils/AiRemediation/KubectlWriteScope.ts"
+    "Utils/AiRemediation/KubectlWriteScope.ts",
+    "Utils/RetryAfter.ts"
   ],
   "otherCopies": [
     {

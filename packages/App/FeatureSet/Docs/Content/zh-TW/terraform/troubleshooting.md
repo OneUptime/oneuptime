@@ -14,7 +14,7 @@
 | 訊息或現象 | 該怎麼做 |
 | --- | --- |
 | `Missing API Key` | 為提供者提供金鑰：請參閱 [`Missing API Key` 或 `Invalid API Key`](#missing-api-key-或-invalid-api-key) |
-| `Invalid API Key` | 重新複製金鑰，或建立一個新金鑰：請參閱 [`Missing API Key` 或 `Invalid API Key`](#missing-api-key-或-invalid-api-key) |
+| `Invalid API Key` | 檢查金鑰，或重設它以取得一個新金鑰：請參閱 [`Missing API Key` 或 `Invalid API Key`](#missing-api-key-或-invalid-api-key) |
 | `ProjectId required` | 使用專案的 API 金鑰，而不是主金鑰：請參閱 [`ProjectId required`](#projectid-required) |
 | `You do not have permissions to create Monitor` | 為金鑰授予訊息中提到的權限：請參閱[金鑰缺少權限](#金鑰缺少權限) |
 | `API keys need the Growth plan` | 把專案改回 Growth 方案：請參閱[需要付款](#需要付款) |
@@ -60,7 +60,7 @@ flowchart TB
 
 `Missing API Key` 會讓提供者在送出任何請求之前就停止：提供者區塊中的 `api_key` 和環境變數 `ONEUPTIME_API_KEY` 都沒有設定。請在你執行 Terraform 的 shell 中匯出該變數，或透過標記為 `sensitive` 的變數傳入金鑰。
 
-`Invalid API Key` 是 OneUptime 對它不認得的金鑰的回應：金鑰輸入有誤、已過期或已刪除，或者屬於另一個 OneUptime，而不是 `oneuptime_url` 指向的那個。請從 **專案設定 → 進階 → API 金鑰** 下的金鑰頁面重新複製金鑰，或建立一個新金鑰。
+`Invalid API Key` 是 OneUptime 對它不認得的金鑰的回應：金鑰輸入有誤、已過期或已刪除，或者屬於另一個 OneUptime，而不是 `oneuptime_url` 指向的那個。請將它與 **專案設定 → 進階 → API 金鑰** 下金鑰頁面上顯示的結尾字元核對，或在那裡重設它以取得一個新金鑰。
 
 ### `ProjectId required`
 

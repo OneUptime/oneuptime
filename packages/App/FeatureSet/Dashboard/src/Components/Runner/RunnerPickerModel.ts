@@ -250,25 +250,30 @@ export const CODE_OWN_RUNNER_HELPER_TEXT_BRANCH: string = translationKey(
 
 /*
  * Under a code repository's Runner, where it is picked and on its settings
- * card, while it works on the Global Runner: on OneUptime Cloud, a
- * repository that is not on GitHub never has its access token handed to a
- * global Runner, which is its connection's own (Common/Types/Runner/
- * GlobalRunnerRepositoryTokens), so AI works in it on a Runner of the
- * project's own. The same sentence as Code's notice for it.
+ * card, while it works on the Global Runner: where global Runners keep
+ * connection tokens off (OneUptime Cloud, or a self-hosted multi-tenant
+ * install with GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY on), a repository that is
+ * not on GitHub never has its access token handed to a global Runner, which
+ * is its connection's own (Common/Types/Runner/GlobalRunnerRepositoryTokens),
+ * so AI works in it on a Runner of the project's own. The same sentence as
+ * Code's notice for it.
  */
 export const CODE_GLOBAL_RUNNER_KEPT_OFF_TEXT: string = translationKey(
-  "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.",
+  "AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.",
 );
 
 // That line for a repository on its host, or null where it does not apply.
 export function getGlobalRunnerKeptOffText(
   provider: string | null | undefined,
-  // OneUptime Cloud: billing on (Common/UI/Config BILLING_ENABLED).
-  isOneUptimeCloud: boolean,
+  /*
+   * Whether global Runners keep connection tokens off (Common/UI/Config
+   * GLOBAL_RUNNERS_KEEP_CONNECTION_TOKENS_OFF).
+   */
+  keepConnectionTokensOffGlobalRunners: boolean,
 ): string | null {
   return isRepositoryKeptOffGlobalRunners({
     repositoryHostedAt: provider,
-    isOneUptimeCloud,
+    keepConnectionTokensOffGlobalRunners,
   })
     ? CODE_GLOBAL_RUNNER_KEPT_OFF_TEXT
     : null;

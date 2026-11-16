@@ -100,7 +100,7 @@
       "title": "身份验证",
       "intro": "您需要对请求进行身份验证才能访问 OneUptime API 中的任何端点。在本指南中,我们将了解身份验证的工作原理。OneUptime 提供一种对您的 API 请求进行身份验证的方式 - 使用 API 密钥。",
       "generateApiKey": "生成 API 密钥",
-      "generateApiKeyBody": "请前往 <strong>项目设置</strong> > <strong>高级</strong> > <strong>API 密钥</strong>。创建一个新的 API 密钥。请注意:新的 API 密钥未分配任何权限,因此您必须先分配权限才能使用它。",
+      "generateApiKeyBody": "请前往 <strong>项目设置</strong> > <strong>高级</strong> > <strong>API 密钥</strong>，创建一个 API 密钥。OneUptime 只在创建密钥时显示一次：请在那时复制它，因为之后没有任何页面会再显示它。密钥只能做其权限允许的事：请在创建时选择它的访问权限，或在它的页面上添加权限。",
       "readMorePermissions": "阅读更多关于权限的内容",
       "projectId": "项目 ID",
       "projectIdBody": "请前往 <strong>项目设置</strong> > <strong>项目</strong>。您应该能在那里看到您的项目 ID。",

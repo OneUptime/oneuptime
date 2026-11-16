@@ -504,15 +504,24 @@ export default class ScrubNestedValuesUtil {
    * JSON text (`heldAsText`: the keys holdOversizedValuesAsText returned)
    * cannot be read key by key, so it is hidden whole when its text names a
    * secret anywhere - rather than let a key inside it go unread.
+   * `keptKeys`: the map's own keys whose values are kept although their key
+   * names a secret - a record's own session or conversation id, which its
+   * column keeps (Utils/Telemetry/CorrelationIdAttributes). Only the map's
+   * own: the same key inside a list or a map value is read as any other.
    */
   public static hideAttributeTextsUnderSensitiveKeys(
     attributes: Record<string, unknown>,
     isSensitiveKey: (key: string) => boolean,
     hideText: (text: string) => string,
     heldAsText: ReadonlySet<string>,
+    keptKeys?: ReadonlySet<string> | undefined,
   ): void {
     for (const key of Object.keys(attributes)) {
       const value: unknown = attributes[key];
+
+      if (keptKeys !== undefined && keptKeys.has(key)) {
+        continue;
+      }
 
       if (isSensitiveKey(key)) {
         if (typeof value === "string" || isNested(value)) {

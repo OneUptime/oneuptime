@@ -73,6 +73,9 @@ import {
 import HashedString from "../../Types/HashedString";
 import { MasterApiKeyState } from "../../Types/MasterApiKey/MasterApiKeyAnswer";
 import MasterApiKey from "../Utils/MasterApiKey";
+import UserService from "./UserService";
+import User from "../../Models/DatabaseModels/User";
+import OneUptimeDate from "../../Types/Date";
 import crypto from "crypto";
 
 // The server's two limits for each kind of resolved record (issue #6941).
@@ -273,17 +276,22 @@ export const ROOT_ONLY_SERVER_PRODUCTS_COLUMNS: ReadonlyArray<keyof Model> = [
 
 /*
  * The server's master API key (#7901): the SHA-256 of the key, never the
- * key itself (Utils/MasterApiKey). It is made only by createMasterApiKey,
- * as OneUptime itself, on Admin Dashboard > Settings > API Key, which shows
- * the new key once. The generic API neither writes it
- * (assertMasterApiKeyWrittenByRootOnly) - through it a master admin, or the
- * master API key itself, could set a key of their own choosing, stored as
- * it was sent - nor reads it back (onBeforeFind drops it): not even the
- * hash leaves the server. The page reads whether there is one
+ * key itself (Utils/MasterApiKey), and which key it is (#8903): when it was
+ * made, by whom, and its hint, its last four characters. They are made only
+ * by createMasterApiKey, as OneUptime itself, on Admin Dashboard >
+ * Settings > API Key, which shows the new key once. The generic API neither
+ * writes them (assertMasterApiKeyWrittenByRootOnly) - through it a master
+ * admin, or the master API key itself, could set a key of their own
+ * choosing, stored as it was sent, or say a key was made by someone else -
+ * nor reads them back (onBeforeFind drops them): not even the hash leaves
+ * the server. The page reads whether there is one, and which
  * (getMasterApiKeyState).
  */
 export const ROOT_ONLY_MASTER_API_KEY_COLUMNS: ReadonlyArray<keyof Model> = [
   "masterApiKey",
+  "masterApiKeyCreatedAt",
+  "masterApiKeyCreatedByUserId",
+  "masterApiKeyHint",
 ];
 
 // What a write of the master API key through the API is told.
@@ -1174,11 +1182,17 @@ export class Service extends DatabaseService<Model> {
     data: unknown,
     props: DatabaseCommonInteractionProps,
   ): void {
-    const value: unknown = (data as Record<string, unknown> | undefined)?.[
-      "masterApiKey"
-    ];
+    const record: Record<string, unknown> | undefined = data as
+      | Record<string, unknown>
+      | undefined;
 
-    if (value === undefined) {
+    const isWritten: boolean = ROOT_ONLY_MASTER_API_KEY_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return record?.[column as string] !== undefined;
+      },
+    );
+
+    if (!isWritten) {
       return;
     }
 
@@ -1186,7 +1200,9 @@ export class Service extends DatabaseService<Model> {
       throw new NotAuthorizedException(MASTER_API_KEY_WRITTEN_HERE_MESSAGE);
     }
 
-    if (value === null) {
+    const value: unknown = record?.["masterApiKey"];
+
+    if (value === undefined || value === null) {
       return;
     }
 
@@ -1206,12 +1222,16 @@ export class Service extends DatabaseService<Model> {
    * POST /global-config/master-api-key): a new random key in place of the
    * one before, which stops working at once, stored as its hash and turned
    * on - a key is made to be used, and the switch beside it turns it off.
+   * Which key it is is written with it (#8903): now, the master admin who
+   * made it - nobody, when OneUptime makes it for no one - and its hint.
    *
    * Answers the key. It is never stored, logged or sent again: the caller
    * shows it once.
    */
   @CaptureSpan()
-  public async createMasterApiKey(): Promise<string> {
+  public async createMasterApiKey(data?: {
+    createdByUserId?: ObjectID | null | undefined;
+  }): Promise<string> {
     const masterApiKey: string = MasterApiKey.generate();
 
     const updated: number = await this.updateOneById({
@@ -1219,6 +1239,11 @@ export class Service extends DatabaseService<Model> {
       data: {
         masterApiKey: new HashedString(MasterApiKey.hash(masterApiKey), true),
         isMasterApiKeyEnabled: true,
+        masterApiKeyCreatedAt: OneUptimeDate.getCurrentDate(),
+        // The key before's maker made no part of this one.
+        masterApiKeyCreatedByUserId: (data?.createdByUserId ||
+          null) as ObjectID,
+        masterApiKeyHint: MasterApiKey.getHint(masterApiKey),
       },
       props: {
         isRoot: true,
@@ -1235,9 +1260,10 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Whether the server has a master API key, and whether it is on: what
-   * Admin Dashboard > Settings > API Key shows in place of the key, which
-   * nothing can read back.
+   * Whether the server has a master API key, whether it is on, and which
+   * key it is - when it was made, by whom, how it ends (#8903): what Admin
+   * Dashboard > Settings > API Key shows in place of the key, which nothing
+   * can read back. Never the key, nor its hash.
    */
   @CaptureSpan()
   public async getMasterApiKeyState(): Promise<MasterApiKeyState> {
@@ -1246,16 +1272,59 @@ export class Service extends DatabaseService<Model> {
       select: {
         masterApiKey: true,
         isMasterApiKeyEnabled: true,
+        masterApiKeyCreatedAt: true,
+        masterApiKeyCreatedByUserId: true,
+        masterApiKeyHint: true,
       },
       props: {
         isRoot: true,
       },
     });
 
+    const isSet: boolean = Boolean(config?.masterApiKey?.toString());
+
     return {
-      isSet: Boolean(config?.masterApiKey?.toString()),
+      isSet: isSet,
       isEnabled: Boolean(config?.isMasterApiKeyEnabled),
+      createdAt:
+        isSet && config?.masterApiKeyCreatedAt
+          ? OneUptimeDate.fromString(config.masterApiKeyCreatedAt)
+          : null,
+      createdByName: isSet
+        ? await this.getMasterApiKeyMakerName(
+            config?.masterApiKeyCreatedByUserId,
+          )
+        : null,
+      hint: (isSet && config?.masterApiKeyHint?.toString()) || null,
     };
+  }
+
+  /*
+   * Who made the master API key, as the page names them: their name, or
+   * their email when they have none. Null for nobody, and for a user who
+   * was since deleted.
+   */
+  private async getMasterApiKeyMakerName(
+    userId: ObjectID | null | undefined,
+  ): Promise<string | null> {
+    if (!userId) {
+      return null;
+    }
+
+    const user: User | null = await UserService.findOneById({
+      id: userId,
+      select: {
+        name: true,
+        email: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return (
+      user?.name?.toString().trim() || user?.email?.toString().trim() || null
+    );
   }
 
   /*

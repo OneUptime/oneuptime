@@ -14,7 +14,7 @@ Slå upp meddelandet som Terraform skrev ut, eller det du såg hända, i tabelle
 | Meddelande eller symtom | Vad du gör |
 | --- | --- |
 | `Missing API Key` | Ge providern dess nyckel: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
-| `Invalid API Key` | Kopiera nyckeln igen, eller skapa en ny: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
+| `Invalid API Key` | Kontrollera nyckeln, eller återställ den för att få en ny: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
 | `ProjectId required` | Använd en API-nyckel för projektet, inte en huvudnyckel: se [`ProjectId required`](#projectid-required) |
 | `You do not have permissions to create Monitor` | Ge nyckeln den behörighet som meddelandet nämner: se [Nyckeln saknar en behörighet](#nyckeln-saknar-en-behörighet) |
 | `API keys need the Growth plan` | Flytta tillbaka projektet till abonnemanget Growth: se [Betalning krävs](#betalning-krävs) |
@@ -60,7 +60,7 @@ Providern nämner vad den höll på med: `Unable to create monitor` och `Unable 
 
 `Missing API Key` stoppar providern innan den skickar någon begäran: varken `api_key` i provider-blocket eller miljövariabeln `ONEUPTIME_API_KEY` är angiven. Exportera variabeln i det skal där du kör Terraform, eller skicka nyckeln i en variabel märkt `sensitive`.
 
-`Invalid API Key` är OneUptimes svar på en nyckel som det inte känner till: en som är felskriven, har gått ut eller har tagits bort, eller en från ett annat OneUptime än det som `oneuptime_url` pekar på. Kopiera nyckeln igen från dess sida under **Projektinställningar → Avancerad → API-nycklar**, eller skapa en ny.
+`Invalid API Key` är OneUptimes svar på en nyckel som det inte känner till: en som är felskriven, har gått ut eller har tagits bort, eller en från ett annat OneUptime än det som `oneuptime_url` pekar på. Jämför den med hur nyckeln slutar på dess sida under **Projektinställningar → Avancerad → API-nycklar**, eller återställ den där för att få en ny.
 
 ### `ProjectId required`
 

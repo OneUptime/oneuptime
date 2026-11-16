@@ -12,6 +12,7 @@ import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import ObjectID from "../../../Types/ObjectID";
 import Typeof from "../../../Types/Typeof";
 import logger from "../Logger";
+import { HEARTBEAT_CHECK_STAMP_WRITE_EVERY_SECONDS } from "../../../Utils/Monitor/HeartbeatSweepSchedule";
 import { createHash } from "crypto";
 
 /*
@@ -117,7 +118,13 @@ export default class MonitorHeartbeatState {
   // However short a monitor's window, a write is fenced at least this long.
   public static readonly SHORTEST_WRITE_EVERY_SECONDS: number = 15;
 
-  public static readonly CHECK_STAMP_WRITE_EVERY_SECONDS: number = 300;
+  /*
+   * Shared with the monitor page, which reads the stamp by it
+   * (Utils/Monitor/HeartbeatSweepSchedule): it says "Every 30 seconds"
+   * while the stamp is as recent as this fence leaves it.
+   */
+  public static readonly CHECK_STAMP_WRITE_EVERY_SECONDS: number =
+    HEARTBEAT_CHECK_STAMP_WRITE_EVERY_SECONDS;
 
   public static readonly RECEIPT_EXPIRES_IN_SECONDS: number = 24 * 60 * 60;
 
@@ -209,16 +216,103 @@ export default class MonitorHeartbeatState {
         this.NAMESPACE,
         this.getKey(["server-report", monitorId.toString()]),
       );
-      const receivedAtInMs: number = Number(value);
 
-      return value && Number.isFinite(receivedAtInMs) && receivedAtInMs > 0
-        ? new Date(receivedAtInMs)
-        : null;
+      return this.toArrival(value);
     } catch (err) {
       logger.debug("Could not read a server report's arrival.");
       logger.debug(err);
       return null;
     }
+  }
+
+  /*
+   * Keeps an incoming request's arrival, by its monitor, the latest of all
+   * (issue #8123). The heartbeat sweep judges arrivals by the monitor's
+   * secret key (IncomingRequestReceivedAtStore); this copy is for a reader
+   * of the monitor, who may not read its key, so the monitor page shows the
+   * latest request although the row is written only every so often. Never
+   * throws.
+   */
+  public static async recordIncomingRequest(input: {
+    monitorId: ObjectID;
+    receivedAt: Date | string | undefined;
+  }): Promise<void> {
+    const receivedAtInMs: number | null = this.toEpochMs(input.receivedAt);
+
+    if (receivedAtInMs === null) {
+      return;
+    }
+
+    try {
+      await GlobalCache.setNumberIfGreater(
+        this.NAMESPACE,
+        this.getKey(["incoming-request", input.monitorId.toString()]),
+        receivedAtInMs,
+        { expiresInSeconds: this.RECEIPT_EXPIRES_IN_SECONDS },
+      );
+    } catch (err) {
+      logger.debug("Could not keep an incoming request's arrival.");
+      logger.debug(err);
+    }
+  }
+
+  /*
+   * The latest arrival kept for each of these monitors, of the kind given:
+   * one round trip for them all. A monitor with none kept is left out, and
+   * so is every one when Redis cannot be reached - their rows say what they
+   * say. Never throws.
+   */
+  public static async getLatestArrivals(input: {
+    kind: "server-report" | "incoming-request";
+    monitorIds: Array<ObjectID | string>;
+  }): Promise<Map<string, Date>> {
+    const arrivals: Map<string, Date> = new Map<string, Date>();
+    const monitorIds: Array<string> = Array.from(
+      new Set(
+        input.monitorIds
+          .map((monitorId: ObjectID | string): string => {
+            return monitorId.toString().toLowerCase();
+          })
+          .filter((monitorId: string): boolean => {
+            return Boolean(monitorId);
+          }),
+      ),
+    );
+
+    if (monitorIds.length === 0) {
+      return arrivals;
+    }
+
+    try {
+      const values: Array<string | null> = await GlobalCache.getStrings(
+        this.NAMESPACE,
+        monitorIds.map((monitorId: string): string => {
+          return this.getKey([input.kind, monitorId]);
+        }),
+      );
+
+      monitorIds.forEach((monitorId: string, index: number): void => {
+        const arrival: Date | null = this.toArrival(values[index] ?? null);
+
+        if (arrival) {
+          arrivals.set(monitorId, arrival);
+        }
+      });
+    } catch (err) {
+      logger.debug("Could not read the latest heartbeat arrivals.");
+      logger.debug(err);
+    }
+
+    return arrivals;
+  }
+
+  // A kept arrival (epoch milliseconds) as a time; null when it is not one.
+  private static toArrival(value: string | null): Date | null {
+    const receivedAtInMs: number = Number(value);
+
+    return value && Number.isFinite(receivedAtInMs) && receivedAtInMs > 0
+      ? new Date(receivedAtInMs)
+      : null;
   }
 
   // Records what an evaluation of a heartbeat judged. Never throws.

@@ -1,6 +1,7 @@
 import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
 import { LlmConnectionFailureKind } from "../../../../Types/LlmObservability/LlmConnectionTest";
+import RetryAfter from "../../../../Utils/RetryAfter";
 import {
   MERAKI_API_BASE_PATH,
   MerakiRegionDefinition,
@@ -115,31 +116,16 @@ export function buildMerakiQuery(
 }
 
 /*
- * Seconds a Retry-After asks for: a number of seconds, or an HTTP date.
- * Null when it says neither.
+ * Seconds a Retry-After asks for, as RFC 9110 writes it: a whole number of
+ * seconds, or an HTTP date (Common's RetryAfter); at least one, so "0" or a
+ * date gone by is not a retry at once. Null when it says neither: "-5" was
+ * read as no wait at all, and "1.5" as a second and a half.
  */
 export function readRetryAfterSeconds(
   value: string | undefined,
   now: Date,
 ): number | null {
-  if (!value) {
-    return null;
-  }
-
-  const trimmed: string = value.trim();
-  const seconds: number = Number(trimmed);
-
-  if (trimmed !== "" && Number.isFinite(seconds)) {
-    return Math.max(0, seconds);
-  }
-
-  const date: number = Date.parse(trimmed);
-
-  if (Number.isFinite(date)) {
-    return Math.max(0, Math.ceil((date - now.getTime()) / 1000));
-  }
-
-  return null;
+  return RetryAfter.parseSeconds(value, { nowMs: now.getTime() }) ?? null;
 }
 
 /*

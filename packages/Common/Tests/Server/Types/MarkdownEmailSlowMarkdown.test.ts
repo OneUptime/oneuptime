@@ -439,3 +439,99 @@ describe("Markdown email renderer - generated texts no longer held back render a
     expect(heldBefore).toBeGreaterThan(30);
   });
 });
+
+/*
+ * LINKS AND REFERENCES GLUED INTO ONE WORD (#7599).
+ *
+ * A row of badges, or a template that writes "[a](b)" with no space, is a
+ * word of links. Each link's brackets were counted as the punctuation of
+ * that word, times its length, and the email showed their Markdown from
+ * 4 KB on, where marked reads 64 KB of them in a tenth of a second, about
+ * as fast as spaced ones. Now they render as marked alone renders them -
+ * held back, as spaced ones are, only once their copies of the paragraph
+ * add up - while what marked reads slowly is still written as text.
+ */
+describe("Markdown email renderer - links and references glued into one word render (#7599)", () => {
+  const BADGE: string = "[![b](https://e.com/b.svg)](https://e.com)";
+  const LINE_SEPARATOR: string = String.fromCharCode(0x2028);
+
+  // A shape: a piece of it, repeated; what follows; what its email shows of each piece.
+  const SHAPES: ReadonlyArray<[string, string, string, string]> = [
+    ["links", "[a](b)", "", '<a href="b">a</a>'],
+    // "[a][a]" is a full reference: a link for each.
+    ["references", "[a][a]", "\n\n[a]: /a", '<a href="/a">a</a>'],
+    [
+      "image references",
+      "![Run][s]",
+      "\n\n[s]: /s.png",
+      '<img src="/s.png" alt="Run"',
+    ],
+    [
+      "badges",
+      BADGE,
+      "",
+      '<a href="https://e.com"><img src="https://e.com/b.svg" alt="b"',
+    ],
+  ];
+
+  test.each(
+    SHAPES.flatMap(
+      ([name, piece, after, shown]: [string, string, string, string]): Array<
+        [string, number, string, string, string]
+      > => {
+        return [4, 8, 16].map(
+          (kilobytes: number): [string, number, string, string, string] => {
+            return [name, kilobytes, piece, after, shown];
+          },
+        );
+      },
+    ),
+  )(
+    "%s glued, %i KB: nothing held back, rendered as marked alone renders them",
+    async (
+      _name: string,
+      kilobytes: number,
+      piece: string,
+      after: string,
+      shown: string,
+    ) => {
+      const count: number = Math.ceil((kilobytes * 1024) / piece.length);
+      const markdown: string = `${piece.repeat(count)}${after}`;
+      const html: string = await render(markdown);
+
+      expect(heldBack(markdown, EMAIL_SLOW_MARKDOWN_LIMITS)).toEqual([]);
+      expect(countOf(html, shown)).toBe(count);
+      expect(html).toBe(await renderWithMarkedAlone(markdown));
+    },
+  );
+
+  test("they were held back from 4 KB before: the email showed their Markdown", () => {
+    for (const [, piece, after] of SHAPES) {
+      const markdown: string = `${piece.repeat(Math.ceil(4096 / piece.length))}${after}`;
+
+      expect([piece, heldBack(markdown, LIMITS_BEFORE).length > 0]).toEqual([
+        piece,
+        true,
+      ]);
+    }
+  });
+
+  test.each([
+    ["a word of punctuation", "a!".repeat(2048)],
+    ["link openers glued", "[a](".repeat(1024)],
+    ["brackets that never close, glued", "[a".repeat(2048)],
+    // Their copies of the paragraph add up past what marked is given.
+    ["links glued, 36 KB", "[a](b)".repeat(6000)],
+    [
+      "a link whose label escapes a separator, before a word of punctuation",
+      `[a\\${LINE_SEPARATOR}](${"a!".repeat(2048)})`,
+    ],
+  ])("still written as text: %s", async (_name: string, shape: string) => {
+    const markdown: string = `${shape} **held**`;
+    const html: string = await render(markdown);
+
+    expect(heldBack(markdown, EMAIL_SLOW_MARKDOWN_LIMITS).length).toBe(1);
+    expect(html.includes("**held**")).toBe(true);
+    expect(html.includes("<strong>held</strong>")).toBe(false);
+  });
+});

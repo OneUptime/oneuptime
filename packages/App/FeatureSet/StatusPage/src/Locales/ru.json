@@ -45,6 +45,7 @@
     "uptimePercent": "Время работы: {{percent}}",
     "operational": "Работает",
     "notMonitored": "Не отслеживается",
+    "notMonitoredYet": "Ещё не отслеживается",
     "noResourcesInGroup": "В эту группу не добавлены ресурсы.",
     "activeIncidents": "Активные инциденты",
     "scheduledMaintenanceEvents": "Плановое обслуживание",
@@ -55,6 +56,7 @@
     "someResourcesAre": "Некоторые ресурсы — {{status}}",
     "someResourcesAreUnder": "Некоторые ресурсы находятся в состоянии {{status}}",
     "noResourcesAreMonitored": "Сейчас ни один ресурс не отслеживается",
+    "noResourcesAreMonitoredYet": "Пока ни один ресурс не отслеживается",
     "oneSubGroup": "1 группа",
     "subGroupCount": "групп: {{total}}"
   },

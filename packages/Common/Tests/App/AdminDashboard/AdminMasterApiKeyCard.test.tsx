@@ -32,7 +32,10 @@ import { getJestSpyOn } from "../../Spy";
  *     it closes the key is gone from the page;
  *   - the Enabled switch saves when it is flipped, and shows a new key on;
  *   - a read or a make that fails says why;
- *   - the breadcrumbs end on this page (they pointed at another one).
+ *   - the breadcrumbs end on this page (they pointed at another one);
+ *   - which key is set (#8903): when it was made, by whom and how it ends,
+ *     the date in the reader's language and time zone, and nothing that is
+ *     not known - for a key the data migration hashed, its hint alone.
  *
  * The real page, card, switch and dialogs are rendered with the Admin
  * Dashboard's locales. Only the network (API, AdminModelAPI), the page
@@ -96,6 +99,7 @@ import SettingsAPIKey from "../../../../App/FeatureSet/AdminDashboard/src/Pages/
 import {
   getMasterApiKeySwitchDescription,
   MASTER_API_KEY_CARD_TEST_ID,
+  MASTER_API_KEY_FACTS_TEST_ID,
   MASTER_API_KEY_SHOWN_ONCE_TEST_ID,
   MASTER_API_KEY_STATE_TEST_ID,
   MASTER_API_KEY_SWITCH_TEST_ID,
@@ -108,6 +112,7 @@ import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import { MASTER_API_KEY_ROUTE } from "../../../Types/MasterApiKey/MasterApiKeyAnswer";
 import ObjectID from "../../../Types/ObjectID";
@@ -149,8 +154,20 @@ const WAY_OUT_BUTTON: RegExp = /Cancel|Close/;
 const NEW_KEY: string = "5f3b9c1e-7a2d-4e8f-b6c0-1d2e3f4a5b6c";
 const NEXT_KEY: string = "0b9c8d7e-6f5a-4b3c-9d2e-1f0a9b8c7d6e";
 
+// When the keys the server makes here were made, and by whom.
+const MADE_AT: string = "2026-11-16T09:30:00.000Z";
+const MADE_BY: string = "Ada Lovelace";
+
+// The day a key was made, as the page writes it: the reader's language and zone.
+function madeOn(iso: string): string {
+  return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+    new Date(iso),
+    true,
+  );
+}
+
 // What the server says of its key: never the key.
-let serverState: { isSet: boolean; isEnabled: boolean } = {
+let serverState: JSONObject = {
   isSet: false,
   isEnabled: false,
 };
@@ -217,6 +234,10 @@ function stateLine(): HTMLElement {
   return screen.getByTestId(MASTER_API_KEY_STATE_TEST_ID);
 }
 
+function factsLine(): HTMLElement | null {
+  return screen.queryByTestId(MASTER_API_KEY_FACTS_TEST_ID);
+}
+
 async function press(control: HTMLElement): Promise<void> {
   await act(async () => {
     fireEvent.click(control);
@@ -261,9 +282,17 @@ beforeEach(() => {
       throw new Error(`Unexpected request: ${String(options.url)}`);
     }
 
-    serverState = { isSet: true, isEnabled: true };
+    const masterApiKey: string = keysToMake.shift()!;
 
-    return answer({ ...serverState, masterApiKey: keysToMake.shift()! });
+    serverState = {
+      isSet: true,
+      isEnabled: true,
+      createdAt: MADE_AT,
+      createdByName: MADE_BY,
+      hint: masterApiKey.slice(-4),
+    };
+
+    return answer({ ...serverState, masterApiKey: masterApiKey });
   }) as never);
 
   mockGetItem.mockReset();
@@ -635,6 +664,167 @@ describe("Settings > API Key", () => {
     );
 
     expect(stateLine()).toHaveTextContent(MasterApiKeyCopy.noKey);
+  });
+
+  describe("which key is set (#8903)", () => {
+    test("says when the key was made, by whom, and how it ends", async () => {
+      serverState = {
+        isSet: true,
+        isEnabled: true,
+        createdAt: MADE_AT,
+        createdByName: MADE_BY,
+        hint: "2b34",
+      };
+
+      await renderPage();
+
+      expect(factsLine()).toHaveTextContent(
+        `Made by Ada Lovelace on ${madeOn(MADE_AT)} · Ends in 2b34`,
+      );
+      expect(madeOn(MADE_AT)).toContain("2026");
+      // Still never the key: the hint is all it says of it.
+      expect(document.body.textContent).not.toContain(NEW_KEY);
+    });
+
+    test("a maker nobody knows any more is left out: when it was made, and how it ends", async () => {
+      serverState = {
+        isSet: true,
+        isEnabled: true,
+        createdAt: MADE_AT,
+        createdByName: null,
+        hint: "2b34",
+      };
+
+      await renderPage();
+
+      expect(factsLine()).toHaveTextContent(
+        `Made on ${madeOn(MADE_AT)} · Ends in 2b34`,
+      );
+      expect(factsLine()).not.toHaveTextContent("Made by");
+    });
+
+    test("a key the upgrade hashed says how it ends, and nothing it does not know", async () => {
+      serverState = {
+        isSet: true,
+        isEnabled: true,
+        createdAt: null,
+        createdByName: null,
+        hint: "2b34",
+      };
+
+      await renderPage();
+
+      expect(factsLine()).toHaveTextContent(/^Ends in 2b34$/);
+    });
+
+    test("a key nothing is known of says nothing about it, only that it is set", async () => {
+      serverState = { isSet: true, isEnabled: true };
+
+      await renderPage();
+
+      expect(factsLine()).toBeNull();
+      expect(stateLine()).toHaveTextContent(MasterApiKeyCopy.keySet);
+    });
+
+    test("with no key there is nothing to say of one", async () => {
+      serverState = {
+        isSet: false,
+        isEnabled: false,
+        createdAt: MADE_AT,
+        createdByName: MADE_BY,
+        hint: "2b34",
+      };
+
+      await renderPage();
+
+      expect(factsLine()).toBeNull();
+      expect(stateLine()).toHaveTextContent(MasterApiKeyCopy.noKey);
+    });
+
+    test("a key made here says, once Done is pressed, that its maker made it just now, and how it ends", async () => {
+      await renderPage();
+
+      await press(button("Create Key"));
+      await press(within(dialog()).getByRole("button", { name: "Done" }));
+
+      expect(factsLine()).toHaveTextContent(
+        `Made by Ada Lovelace on ${madeOn(MADE_AT)} · Ends in ${NEW_KEY.slice(-4)}`,
+      );
+      expect(document.body.textContent).not.toContain(NEW_KEY);
+    });
+
+    test("flipping the switch keeps what the card says of the key", async () => {
+      serverState = {
+        isSet: true,
+        isEnabled: true,
+        createdAt: MADE_AT,
+        createdByName: MADE_BY,
+        hint: "2b34",
+      };
+
+      await renderPage();
+
+      await press(screen.getByTestId(MASTER_API_KEY_SWITCH_TEST_ID));
+
+      expect(factsLine()).toHaveTextContent("Ends in 2b34");
+      expect(factsLine()).toHaveTextContent("Made by Ada Lovelace");
+    });
+
+    test("reads in the reader's language, the date too", async () => {
+      serverState = {
+        isSet: true,
+        isEnabled: true,
+        createdAt: MADE_AT,
+        createdByName: MADE_BY,
+        hint: "2b34",
+      };
+
+      await renderPage(GERMAN, "de");
+
+      expect(GERMAN[MasterApiKeyCopy.madeByOn]).toBe(
+        "Erstellt von {{name}} am {{date}}",
+      );
+      expect(factsLine()).toHaveTextContent(
+        /^Erstellt von Ada Lovelace am .+ · Endet auf 2b34$/,
+      );
+    });
+
+    test("every Admin Dashboard language words the facts, around their values", () => {
+      const localeFiles: Array<string> = fs
+        .readdirSync(LOCALES_DIR)
+        .filter((file: string): boolean => {
+          return file.endsWith(".json");
+        });
+
+      expect(localeFiles.length).toBeGreaterThanOrEqual(18);
+
+      for (const file of localeFiles) {
+        const locale: Locale = readLocale(file.replace(".json", ""));
+
+        for (const [key, values] of [
+          [MasterApiKeyCopy.madeByOn, ["{{name}}", "{{date}}"]],
+          [MasterApiKeyCopy.madeOn, ["{{date}}"]],
+          [MasterApiKeyCopy.endsIn, ["{{hint}}"]],
+        ] as Array<[string, Array<string>]>) {
+          const worded: unknown = locale[key];
+
+          expect([file, key, typeof worded]).toEqual([file, key, "string"]);
+
+          for (const value of values) {
+            expect([file, key, (worded as string).includes(value)]).toEqual([
+              file,
+              key,
+              true,
+            ]);
+          }
+
+          // Worded in the language, not left in English.
+          if (file !== "en.json") {
+            expect([file, worded]).not.toEqual([file, key]);
+          }
+        }
+      }
+    });
   });
 
   test("reads in the reader's language", async () => {

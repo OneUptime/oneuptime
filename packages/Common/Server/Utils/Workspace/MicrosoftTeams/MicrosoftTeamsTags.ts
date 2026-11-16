@@ -12,6 +12,7 @@ import {
   WorkspaceUserGroupProblem,
 } from "../../../../Types/Workspace/WorkspaceUserGroup";
 import API from "../../../../Utils/API";
+import RetryAfter from "../../../../Utils/RetryAfter";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -156,22 +157,15 @@ export default class MicrosoftTeamsTags {
     const code: string =
       typeof error["code"] === "string" ? (error["code"] as string) : "";
 
-    const headers: Record<string, unknown> = (response.headers || {}) as Record<
-      string,
-      unknown
-    >;
-    const retryAfter: number = Number(
-      headers["retry-after"] ?? headers["Retry-After"],
-    );
-
     if (status === 429 || status >= 500) {
       return new WorkspaceUserGroupError({
         problem: WorkspaceUserGroupProblem.Unavailable,
         detail: code || `HTTP ${status}`,
-        retryAfterSeconds:
-          Number.isFinite(retryAfter) && retryAfter > 0
-            ? retryAfter
-            : undefined,
+        /*
+         * As RFC 9110 writes it (Common's RetryAfter): whole seconds or an
+         * HTTP-date, at least one second and at most an hour.
+         */
+        retryAfterSeconds: RetryAfter.secondsFromHeaders(response.headers),
       });
     }
 

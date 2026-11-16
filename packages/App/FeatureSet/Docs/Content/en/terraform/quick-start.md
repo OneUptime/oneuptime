@@ -32,7 +32,7 @@ flowchart TB
 
 In the OneUptime dashboard, open **Project Settings → Advanced → API Keys** and click **Create API Key**. Give it a **Name**, such as `terraform`, and under **Access** pick **Project Admin**: Terraform creates, reads, changes and deletes every kind of record it manages, and **Project Admin** may do all of that. For a narrower key, pick **Choose permissions later** and add only the permissions you need on the key's page.
 
-The key expires a year from today. To pick another date, open **More fields** before you create it, or change the date on the key's page later. Once the key is created, its page opens: copy the **API Key** from the **API Key Details** card.
+The key expires a year from today. To pick another date, open **More fields** before you create it, or change the date on the key's page later. Once the key is created, OneUptime shows it once, in the **Copy Your API Key** dialog: copy it before you press **Done**.
 
 ### Make the key available to Terraform
 
@@ -218,7 +218,7 @@ The provider found no API key. Export `ONEUPTIME_API_KEY` in the shell you run T
 :::
 
 :::details The OneUptime API returned status 400: Invalid API Key
-The key is mistyped, expired or deleted, or it belongs to another OneUptime than the one `oneuptime_url` points at. Copy the key again from its page, or create a new one.
+The key is mistyped, expired or deleted, or it belongs to another OneUptime than the one `oneuptime_url` points at. Check it against how the key ends on its page, or reset it there for a new one.
 :::
 
 :::details The OneUptime API returned status 402: API keys need the Growth plan

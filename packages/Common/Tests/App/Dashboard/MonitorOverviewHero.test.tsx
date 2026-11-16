@@ -1031,7 +1031,33 @@ describe("MonitorOverviewHero layout", () => {
     );
   });
 
-  test("a heartbeat's last check is a relative time, not text", () => {
+  test("a heartbeat's last check is a relative time, not text, once the sweeps are late", () => {
+    renderHero({
+      monitorType: MonitorType.IncomingRequest,
+      presentation: presentationFor(MonitorType.IncomingRequest, {
+        heartbeat: {
+          lastReceivedAt: secondsAgo(120),
+          lastCheckedAt: secondsAgo(20 * 60),
+          requestMethod: "POST",
+        },
+      }),
+    });
+
+    const fact: HTMLElement = screen.getByTestId(
+      "monitor-overview-fact-heartbeat-check",
+    );
+    expect(fact.querySelector("time")).toHaveAttribute(
+      "dateTime",
+      secondsAgo(20 * 60).toISOString(),
+    );
+  });
+
+  /*
+   * The sweep stamps its check only every five minutes (#8123): while the
+   * stamp is as recent as a running sweep leaves it, the fact says the
+   * schedule, not a stamp minutes old.
+   */
+  test("a heartbeat checked on its schedule says how often, not a stamp", () => {
     renderHero({
       monitorType: MonitorType.IncomingRequest,
       presentation: presentationFor(MonitorType.IncomingRequest),
@@ -1040,10 +1066,9 @@ describe("MonitorOverviewHero layout", () => {
     const fact: HTMLElement = screen.getByTestId(
       "monitor-overview-fact-heartbeat-check",
     );
-    expect(fact.querySelector("time")).toHaveAttribute(
-      "dateTime",
-      secondsAgo(30).toISOString(),
-    );
+    expect(fact).toHaveTextContent("Missing-request check");
+    expect(fact).toHaveTextContent("Every 30 seconds");
+    expect(fact.querySelector("time")).toBeNull();
   });
 
   describe("owners", () => {

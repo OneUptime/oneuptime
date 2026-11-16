@@ -87,10 +87,16 @@ npm run compile
 
 ### Lint bare filene dine
 
-Fra roten av repositoriet gir du filene du har endret:
+Fra roten av repositoriet linter du filene grenen din har endret, og retter det ESLint kan rette:
 
 ```bash
-npx eslint --fix packages/App/path/to/File.ts
+npm run fix-lint:changed
+```
+
+Det tar hver fil som skiller seg fra `origin/main`, committet eller ikke, og kjører ESLint én gang for hvert TypeScript-prosjekt de hører til: Én enkelt `npx eslint` over filene i flere pakker går tom for minne. Oppgi andre filer etter `--` for å linte dem på samme måte:
+
+```bash
+node Scripts/Lint/LintByProject.js --fix -- packages/App/path/to/File.ts
 ```
 
 Unngå `npm run lint` og `npm run fix-lint`: De linter hele repositoriet.

@@ -87,10 +87,16 @@ npm run compile
 
 ### 只對您的檔案執行 lint
 
-在存放庫根目錄傳入您修改過的檔案：
+在存放庫根目錄對您的分支修改過的檔案執行 lint，並修正 ESLint 能修正的問題：
 
 ```bash
-npx eslint --fix packages/App/path/to/File.ts
+npm run fix-lint:changed
+```
+
+它會取出與 `origin/main` 不同的每個檔案，無論是否已提交，並依這些檔案所屬的 TypeScript 專案分別執行一次 ESLint：對多個套件的檔案只執行一次 `npx eslint` 會耗盡記憶體。要以同樣的方式對其他檔案執行 lint，請在 `--` 之後列出它們：
+
+```bash
+node Scripts/Lint/LintByProject.js --fix -- packages/App/path/to/File.ts
 ```
 
 不要使用 `npm run lint` 和 `npm run fix-lint`：它們會對整個存放庫執行 lint。

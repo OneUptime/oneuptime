@@ -158,6 +158,11 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "llms.txt.",
     "MCP.",
     "The REST API.",
+    /*
+     * A status page's word, not the Dashboard's: each language names it as
+     * its status page draws it (LogShipperAndPublicApiDocsFacts).
+     */
+    "Not monitored yet",
   ],
 };
 

@@ -144,7 +144,7 @@ Under **Access**, pick **Viewer** for an agent that only reads, or **Project Adm
 
 ### Copy the key
 
-Click **Create API Key**: the key's page opens. Copy the key from there.
+Click **Create API Key**. OneUptime shows the key once, in the **Copy Your API Key** dialog: copy it before you press **Done**.
 :::
 
 API keys belong to one project: the MCP server takes the project from the key, so create tools never need a `projectId` argument.

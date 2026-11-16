@@ -2488,7 +2488,100 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       ]),
     ).toBe('{"user":"jane","password":"[REDACTED]"}');
     expect(page).toContain(
-      "A log body sent as a map or a list is stored as its JSON text: a pattern rule scrubs it like any other text, and a **Sensitive Attribute Keys** rule reads the keys inside it, as it does in a body written as JSON.",
+      "A log body sent as a map or a list is stored as its JSON text, and a **Sensitive Attribute Keys** rule reads the keys inside it, as it does in a body written as JSON.",
+    );
+
+    /*
+     * Issue #8923: the body stays JSON. An address right after a line
+     * break - written `\n` in the JSON text - is found after it, not with
+     * the escape's letter; a card number at the start of a line is found
+     * at all; and a number a rule matches becomes a string.
+     */
+    const lines: string = JSON.stringify({
+      message: "line one\njane@example.com",
+      paid: "with\n4111 1111 1111 1111",
+      phone: 5551234567,
+    });
+
+    expect(
+      JSON.parse(
+        scrubbedBody(lines, [
+          scrubRule(LogScrubPatternType.Email, LogScrubAction.Redact),
+          scrubRule(LogScrubPatternType.CreditCard, LogScrubAction.Redact),
+          scrubRule(LogScrubPatternType.PhoneNumber, LogScrubAction.Redact),
+        ]),
+      ),
+    ).toEqual({
+      message: "line one\n[REDACTED]",
+      paid: "with\n[REDACTED]",
+      phone: "[REDACTED]",
+    });
+
+    // So does an attribute written as JSON.
+    const messages: string = JSON.stringify([
+      { role: "user", content: "mail me\njane@example.com" },
+    ]);
+
+    expect(
+      JSON.parse(
+        scrubbedAttributes(
+          { "gen_ai.input.messages": messages } as JSONObject,
+          LogScrubPatternType.Email,
+        )["gen_ai.input.messages"] as string,
+      ),
+    ).toEqual([{ role: "user", content: "mail me\n[REDACTED]" }]);
+    expect(page).toContain(
+      "A pattern rule keeps such a body JSON, and an attribute written as JSON too, such as an AI call's messages: it reads the text as your application wrote it, an escape such as `\\n` read as the line break it stands for, and replaces what it finds only inside its texts and numbers.",
+    );
+  });
+
+  // Issue #8924: a record's own session id, which its column keeps.
+  it("keeps the session.id that holds a record's session, and hides a login session", () => {
+    const row: JSONObject = LogScrubRuleService.scrubLog(
+      {
+        body: "",
+        sessionId: "5f2c9e1a7b3d4c6e8f0a1b2c3d4e5f60",
+        attributes: {
+          "resource.session.id": "5f2c9e1a7b3d4c6e8f0a1b2c3d4e5f60",
+          session_id: "login-1",
+          sessionid: "login-2",
+          "http.request.header.cookie": "theme=dark",
+        },
+      },
+      [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      ] as never,
+    );
+
+    expect(row["attributes"]).toEqual({
+      "resource.session.id": "5f2c9e1a7b3d4c6e8f0a1b2c3d4e5f60",
+      session_id: "[REDACTED]",
+      sessionid: "[REDACTED]",
+      "http.request.header.cookie": "[REDACTED]",
+    });
+
+    // An AI call's conversation id the same way.
+    const span: JSONObject = TraceScrubRuleService.scrubSpan(
+      {
+        name: "chat",
+        llmConversationId: "chat-1",
+        attributes: { "langfuse.session.id": "chat-1" },
+        events: [],
+        links: [],
+      },
+      [
+        traceScrubRule(
+          TraceScrubPatternType.SensitiveKeys,
+          TraceScrubField.All,
+        ),
+      ] as never,
+    );
+
+    expect((span["attributes"] as JSONObject)["langfuse.session.id"]).toBe(
+      "chat-1",
+    );
+    expect(page).toContain(
+      "- **A record's session id is kept.** A **Sensitive Attribute Keys** rule hides a login session, such as a `session_id`, a `sessionid` or a cookie, but keeps `session.id` when it holds the session the log or span belongs to: the random id [Session Replay](/docs/telemetry/session-replay) files the record under, which the record keeps as its session either way. An AI call's conversation id is kept the same way. Don't send a login session's secret as `session.id`.",
     );
   });
 

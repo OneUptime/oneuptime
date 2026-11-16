@@ -63,7 +63,7 @@ flowchart TB
 
 ### 复制密钥
 
-从密钥的页面复制 **API 密钥**，并让你的作业可以使用它：
+使用你创建密钥时 OneUptime 只显示过一次的那个密钥，并让你的作业可以使用它：
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"

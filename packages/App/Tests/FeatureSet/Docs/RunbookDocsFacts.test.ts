@@ -220,6 +220,10 @@ const RUNNER_JOB_SERVICE: string = readSource(
   "Common/Server/Services/RunnerJobService.ts",
 );
 const VM_RUNNER: string = readSource("Common/Server/Utils/VM/VMRunner.ts");
+// The isolate's HTTP, as the host makes it (VMRunner's, and a global Runner's).
+const VM_HTTP_BRIDGE: string = readSource(
+  "Common/Server/Utils/VM/VMHttpBridge.ts",
+);
 const RUNNER_CONFIG: string = readSource("Runner/Config.ts");
 const RUNNER_INDEX: string = readSource("Runner/Index.ts");
 const RUNNER_DOCKERFILE: string = readSource("Runner/Dockerfile.tpl");
@@ -780,8 +784,11 @@ describe("what a step's output and network are held to", () => {
     expect(VM_RUNNER).toContain("new ivm.Isolate({ memoryLimit: 128 })");
 
     // The axios bridge lets a script reach private addresses only when asked to ...
+    expect(VM_HTTP_BRIDGE).toContain(
+      "allowPrivateNetworkTargets:\n        this.policy.allowPrivateNetworkRequests === true,",
+    );
     expect(VM_RUNNER).toContain(
-      "allowPrivateNetworkTargets:\n            options.allowPrivateNetworkRequests === true,",
+      "allowPrivateNetworkRequests: options.allowPrivateNetworkRequests,",
     );
 
     // ... and the Runner never asks.
