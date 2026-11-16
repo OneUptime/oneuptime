@@ -452,7 +452,7 @@ export default function describeFlowBandwidthAxis(
           formatBitsPerSecond(
             getPeakBitsPerSecond(drawn.filled, bucketSeconds),
           ),
-        ).toBe("900 Mbps");
+        ).toBe("900\u00A0Mbps");
         const plotted: Array<number> = plottedMbps(drawn.rows);
         expect(Math.max(...plotted)).toBe(900);
         // Drawn at the burst's own time: its row is the burst's bucket.
