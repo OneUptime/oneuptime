@@ -1360,8 +1360,8 @@ export class Service extends DatabaseService<Model> {
    * with it at once, on every server (RealtimeAccessChanges), and its end
    * goes into the audit log (issue #6762). Every revocation is an update
    * through this service (revokeSessionById, revokeAllSessionsByUserId,
-   * endSessionsPastLengths, endSessionsThatRanOut), so this is where they
-   * all pass.
+   * endSessionsPastLengths, endSessionsThatRanOut,
+   * endSessionsSignedInWithoutSso), so this is where they all pass.
    */
   @CaptureSpan()
   protected override async onUpdateSuccess(
