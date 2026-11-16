@@ -3871,7 +3871,7 @@ jobs:
       # Monitor, MonitorProbe and MonitorStatusTimeline tables into an
       # isolated schema.
       - name: Test when something first measured a monitor on migrated Postgres
-        if: matrix.shard == 1
+        if: matrix.shard == 3
         working-directory: packages/App
         env:
           RUN_POSTGRES_MONITOR_FIRST_MEASURED_TESTS: "true"
