@@ -6,11 +6,12 @@ import WebhookLogService from "Common/Server/Services/WebhookLogService";
 import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import WebhookLog from "Common/Models/DatabaseModels/WebhookLog";
-import API from "Common/Utils/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import URL from "Common/Types/API/URL";
-import SSRFProtection from "Common/Server/Utils/SSRFProtection";
+import SafeWebhookRequest, {
+  WebhookTarget,
+} from "Common/Server/Utils/SafeWebhookRequest";
+import { WebhookTargetValidationOptions } from "Common/Server/Utils/SSRFProtection";
 import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
   NotificationDeliveryProvider,
@@ -19,9 +20,18 @@ import NotificationDeliveryMetrics, {
 } from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import crypto from "crypto";
 
-const WEBHOOK_REQUEST_TIMEOUT_MS: number = 10_000;
+export const WEBHOOK_REQUEST_TIMEOUT_MS: number = 10_000;
 const MAX_LOGGED_BODY_LENGTH: number = 2_000;
 const MAX_REQUEST_BODY_LENGTH: number = 200_000;
+
+/*
+ * Project webhook URLs are configured by members of the project, so a
+ * self-hosted instance may allow them to reach internal services (issue
+ * #3424). Off unless the operator configured it.
+ */
+export const WEBHOOK_TARGET_VALIDATION: WebhookTargetValidationOptions = {
+  allowPrivateNetworkTargets: true,
+};
 
 export interface WebhookSendInput {
   url: string;
@@ -123,13 +133,14 @@ export default class WebhookService {
       }
 
       /*
-       * Project webhook URLs are configured by members of the project, so a
-       * self-hosted instance may allow them to reach internal services
-       * (issue #3424). Off unless the operator configured it.
+       * The post below dials an address this check approved and no other
+       * (SafeWebhookRequest), so the name cannot resolve somewhere else in
+       * between, and no redirect is followed.
        */
-      await SSRFProtection.validateWebhookTargetIsSafe(message.url, {
-        allowPrivateNetworkTargets: true,
-      });
+      const target: WebhookTarget = await SafeWebhookRequest.resolveTarget(
+        message.url,
+        WEBHOOK_TARGET_VALIDATION,
+      );
 
       const bodyString: string = JSON.stringify(message.payload || {});
 
@@ -155,17 +166,11 @@ export default class WebhookService {
         headers["X-OneUptime-Signature"] = `sha256=${signature}`;
       }
 
-      const targetUrl: URL = URL.fromString(message.url);
-
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post<JSONObject>({
-          url: targetUrl,
+        await SafeWebhookRequest.send<JSONObject>(target, {
           data: message.payload || {},
           headers,
-          options: {
-            timeout: WEBHOOK_REQUEST_TIMEOUT_MS,
-            doNotFollowRedirects: true,
-          },
+          timeout: WEBHOOK_REQUEST_TIMEOUT_MS,
         });
 
       const statusCode: number =

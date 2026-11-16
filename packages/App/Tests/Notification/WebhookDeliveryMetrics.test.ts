@@ -2,6 +2,7 @@ import WebhookService from "../../FeatureSet/Notification/Services/WebhookServic
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import WebhookLogService from "Common/Server/Services/WebhookLogService";
 import SSRFProtection from "Common/Server/Utils/SSRFProtection";
+import { approveEveryWebhookAddress } from "Common/Tests/Server/TestingUtils/WebhookAddressCheck";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
@@ -110,9 +111,8 @@ beforeEach(() => {
   sendCounterCalls.length = 0;
   sendDurationCalls.length = 0;
 
-  jest
-    .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-    .mockResolvedValue(undefined as never);
+  // The check every webhook runs, approving each URL (WebhookAddressCheck).
+  approveEveryWebhookAddress();
   // API.post is generic, so its spy is typed by a cast.
   post = jest
     .spyOn(API, "post")
@@ -171,7 +171,7 @@ describe("a webhook", () => {
 
   test("its URL was refused: a failure that throws", async () => {
     (
-      SSRFProtection.validateWebhookTargetIsSafe as unknown as jest.Mock
+      SSRFProtection.validateAndResolveWebhookTarget as unknown as jest.Mock
     ).mockRejectedValue(new Error("Private network target") as never);
 
     await expect(send()).rejects.toThrow("Private network target");
