@@ -56420,8 +56420,13 @@
   "{{count}} more further downstream": "{{count}} weitere weiter stromabwärts",
   "{{count}} more further downstream_one": "{{count}} weitere weiter stromabwärts",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} dieses Diagramms ist Code ohne Symbole, daher haben seine Funktionen keine Namen.",
+  "Busiest: {{function}} · {{share}}": "Am aktivsten: {{function}} · {{share}}",
   "Couldn't pin {{product}}.": "{{product}} konnte nicht fixiert werden.",
   "Couldn't unpin {{product}}.": "{{product}} konnte nicht gelöst werden.",
+  "How to read a flame graph": "So lesen Sie ein Flame-Diagramm",
+  "How to read this": "So lesen Sie das",
+  "Where the time goes, what to fix first, and what the colours mean.": "Wohin die Zeit geht, was zuerst zu beheben ist und was die Farben bedeuten.",
+  "Your code: {{function}} · {{share}}": "Ihr Code: {{function}} · {{share}}",
   "{{itemName}} added": "{{itemName}} hinzugefügt",
   "{{itemName}} attached": "{{itemName}} angehängt",
   "{{itemName}} connected": "{{itemName}} verbunden",
@@ -56432,6 +56437,9 @@
   "{{itemName}} linked": "{{itemName}} verknüpft",
   "{{itemName}} removed": "{{itemName}} entfernt",
   "{{itemName}} started": "{{itemName}} gestartet",
+  "No commands you can see.": "Keine Befehle, die Sie sehen können.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} Befehle, die hier ausgeführt wurden, werden nicht aufgeführt: Sie wurden für KI-Chats, Vorfälle oder Warnungen ausgeführt, die Sie nicht öffnen können.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} Befehl, der hier ausgeführt wurde, wird nicht aufgeführt: Er wurde für einen KI-Chat, einen Vorfall oder eine Warnung ausgeführt, die Sie nicht öffnen können.",
   "Test email report not sent": "Testbericht per E-Mail nicht gesendet",
   "Test message not sent": "Testnachricht nicht gesendet"
 }

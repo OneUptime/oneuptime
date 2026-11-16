@@ -75,7 +75,9 @@ import {
 import ResourceCommandPolicy from "../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
 import { ResourceCommandPolicyResult } from "../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import { redactResourceCommandOutput } from "../../Utils/AiRemediation/Resource/ResourceOutputRedactor";
+import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import RunbookExecutionService from "./RunbookExecutionService";
 import RunbookExecution from "../../Models/DatabaseModels/RunbookExecution";
 import RunbookVariableResolver, {
@@ -225,6 +227,7 @@ import CountBy from "../Types/Database/CountBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnFind } from "../Types/Database/Hooks";
 import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
+import AIRunOutputReadFilter from "../Utils/AI/AIRunOutputReadFilter";
 
 /*
  * What a Runner job is read through: the runbook run it is a step of, and
@@ -243,6 +246,14 @@ export const RUNNER_JOB_READ_THROUGH: Array<{
     partModelType: AutoRemediationSuggestion,
   },
 ];
+
+/*
+ * The AI run a job ran a command for: a chat's, an investigation's, a fix's
+ * or a CodeFix run's. The job holds what the run ran and printed, so it is
+ * read only by those who may read the run, and the private incident or
+ * alert it is about (AIRunOutputReadFilter, #9155).
+ */
+export const RUNNER_JOB_AI_RUN_KEY: string = "aiRunId";
 
 /*
  * Lease the Worker grants on each successful claim. While the lease is fresh
@@ -532,19 +543,27 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * A job of a runbook run or of a fix about a private incident or alert,
-   * only for those who see that record (RUNNER_JOB_READ_THROUGH). Every read
-   * OneUptime makes itself - the Runners' claims, the AI pages' summaries -
-   * is made as OneUptime and is not narrowed.
+   * only for those who see that record (RUNNER_JOB_READ_THROUGH); a job of
+   * an AI run only for those who may read the run, and the private
+   * incident or alert it is about (RUNNER_JOB_AI_RUN_KEY): a chat's only
+   * for the person who asked. Every read OneUptime makes itself - the
+   * Runners' claims, the AI pages' summaries - is made as OneUptime and is
+   * not narrowed.
    */
   public static applyPrivacyFilters<T>(
     query: T,
     props: DatabaseCommonInteractionProps,
   ): T {
-    return PrivateRecordReadFilter.applyToPartKeys(
-      query,
-      props,
-      RUNNER_JOB_READ_THROUGH,
-    );
+    return AIRunOutputReadFilter.applyToRunKey({
+      query: PrivateRecordReadFilter.applyToPartKeys(
+        query,
+        props,
+        RUNNER_JOB_READ_THROUGH,
+      ),
+      props: props,
+      modelType: Model,
+      column: RUNNER_JOB_AI_RUN_KEY,
+    });
   }
 
   @CaptureSpan()
@@ -565,11 +584,52 @@ export class Service extends DatabaseService<Model> {
     return super.countBy(countBy);
   }
 
-  // The read hooks narrow by the run and the fix a job names. See DatabaseService.
+  /*
+   * How many of the jobs `query` matches the caller may not read
+   * (applyPrivacyFilters): another person's chat's, those about a private
+   * incident or alert they don't see, those of a run or a fix that is gone.
+   * Counted as OneUptime and then as the caller, so only the number leaves,
+   * never anything of those jobs: what a page says it leaves out (the AI
+   * Logs pages' commands). Null when the caller may not read Runner jobs
+   * at all, which a page says on its own (CommandJobsNoAccess).
+   */
+  @CaptureSpan()
+  public async countJobsHiddenFrom(data: {
+    query: Query<Model>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<number | null> {
+    let readable: number;
+
+    try {
+      readable = (
+        await this.countBy({ query: { ...data.query }, props: data.props })
+      ).toNumber();
+    } catch (error) {
+      if (error instanceof NotAuthorizedException) {
+        return null;
+      }
+
+      throw error;
+    }
+
+    const every: number = (
+      await this.countBy({ query: { ...data.query }, props: { isRoot: true } })
+    ).toNumber();
+
+    return Math.max(0, every - readable);
+  }
+
+  /*
+   * The read hooks narrow by the run, the fix and the AI run a job names.
+   * See DatabaseService.
+   */
   public override getColumnsReadHooksNarrowBy(): Array<string> {
-    return RUNNER_JOB_READ_THROUGH.map((key: { column: string }): string => {
-      return key.column;
-    });
+    return [
+      ...RUNNER_JOB_READ_THROUGH.map((key: { column: string }): string => {
+        return key.column;
+      }),
+      RUNNER_JOB_AI_RUN_KEY,
+    ];
   }
 
   /*

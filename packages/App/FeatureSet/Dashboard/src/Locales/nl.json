@@ -56420,8 +56420,13 @@
   "{{count}} more further downstream": "{{count}} meer verder stroomafwaarts",
   "{{count}} more further downstream_one": "{{count}} meer verder stroomafwaarts",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} van deze grafiek is code zonder symbolen, dus de functies hebben geen naam.",
+  "Busiest: {{function}} · {{share}}": "Drukst: {{function}} · {{share}}",
   "Couldn't pin {{product}}.": "{{product}} kon niet worden vastgezet.",
   "Couldn't unpin {{product}}.": "{{product}} kon niet worden losgemaakt.",
+  "How to read a flame graph": "Zo lees je een flame graph",
+  "How to read this": "Zo lees je dit",
+  "Where the time goes, what to fix first, and what the colours mean.": "Waar de tijd naartoe gaat, wat je eerst oplost en wat de kleuren betekenen.",
+  "Your code: {{function}} · {{share}}": "Uw code: {{function}} · {{share}}",
   "{{itemName}} added": "{{itemName}} toegevoegd",
   "{{itemName}} attached": "{{itemName}} bijgevoegd",
   "{{itemName}} connected": "{{itemName}} gekoppeld",
@@ -56432,6 +56437,9 @@
   "{{itemName}} linked": "{{itemName}} gekoppeld",
   "{{itemName}} removed": "{{itemName}} weggehaald",
   "{{itemName}} started": "{{itemName}} gestart",
+  "No commands you can see.": "Geen opdrachten die u kunt zien.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} opdrachten die hier zijn uitgevoerd, staan niet in de lijst: ze zijn uitgevoerd voor AI-chats, incidenten of waarschuwingen die u niet kunt openen.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} opdracht die hier is uitgevoerd, staat niet in de lijst: die is uitgevoerd voor een AI-chat, een incident of een waarschuwing die u niet kunt openen.",
   "Test email report not sent": "Testrapport per e-mail niet verzonden",
   "Test message not sent": "Testbericht niet verzonden"
 }

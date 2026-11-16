@@ -56420,8 +56420,13 @@
   "{{count}} more further downstream": "{{count}} أخرى أبعد في المصب",
   "{{count}} more further downstream_one": "{{count}} أخرى أبعد في المصب",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} من هذا الرسم تعليمات برمجية بلا رموز، لذا لا أسماء لدوالّها.",
+  "Busiest: {{function}} · {{share}}": "الأكثر انشغالًا: {{function}} · {{share}}",
   "Couldn't pin {{product}}.": "تعذّر تثبيت {{product}}.",
   "Couldn't unpin {{product}}.": "تعذّر إلغاء تثبيت {{product}}.",
+  "How to read a flame graph": "كيف تقرأ مخطط اللهب",
+  "How to read this": "كيف تقرأ هذا",
+  "Where the time goes, what to fix first, and what the colours mean.": "أين يذهب الوقت، وما الذي تصلحه أولًا، وماذا تعني الألوان.",
+  "Your code: {{function}} · {{share}}": "التعليمات البرمجية الخاصة بك: {{function}} · {{share}}",
   "{{itemName}} added": "تمت إضافة {{itemName}}",
   "{{itemName}} attached": "تم إرفاق {{itemName}}",
   "{{itemName}} connected": "تم توصيل {{itemName}}",
@@ -56432,6 +56437,9 @@
   "{{itemName}} linked": "تم ربط {{itemName}}",
   "{{itemName}} removed": "تمت إزالة {{itemName}}",
   "{{itemName}} started": "تم بدء {{itemName}}",
+  "No commands you can see.": "لا توجد أوامر يمكنك رؤيتها.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "الأوامر التي شُغّلت هنا ولا تظهر في القائمة: {{count}}. شُغّلت لدردشات ذكاء اصطناعي أو حوادث أو تنبيهات لا يمكنك فتحها.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} أمر شُغّل هنا لا يظهر في القائمة: شُغّل لدردشة ذكاء اصطناعي أو حادث أو تنبيه لا يمكنك فتحه.",
   "Test email report not sent": "لم يُرسَل تقرير البريد الإلكتروني التجريبي",
   "Test message not sent": "لم تُرسَل الرسالة التجريبية"
 }

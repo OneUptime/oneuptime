@@ -56420,8 +56420,13 @@
   "{{count}} more further downstream": "さらに下流に {{count}} 件",
   "{{count}} more further downstream_one": "さらに下流に {{count}} 件",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "このグラフの {{share}} はシンボルのないコードのため、その関数には名前がありません。",
+  "Busiest: {{function}} · {{share}}": "最も多い: {{function}} · {{share}}",
   "Couldn't pin {{product}}.": "{{product}}を固定できませんでした。",
   "Couldn't unpin {{product}}.": "{{product}}の固定を解除できませんでした。",
+  "How to read a flame graph": "フレームグラフの読み方",
+  "How to read this": "読み方",
+  "Where the time goes, what to fix first, and what the colours mean.": "時間の使われ方、最初に直すべき箇所、色の意味。",
+  "Your code: {{function}} · {{share}}": "自分のコード: {{function}} · {{share}}",
   "{{itemName}} added": "{{itemName}}を追加しました",
   "{{itemName}} attached": "{{itemName}}を添付しました",
   "{{itemName}} connected": "{{itemName}}を接続しました",
@@ -56432,6 +56437,9 @@
   "{{itemName}} linked": "{{itemName}}をリンクしました",
   "{{itemName}} removed": "{{itemName}}を外しました",
   "{{itemName}} started": "{{itemName}}を開始しました",
+  "No commands you can see.": "表示できるコマンドはありません。",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "ここで実行されたコマンドのうち {{count}} 件は一覧に表示されていません。開くことのできない AI チャット、インシデント、またはアラートのために実行されたものです。",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "ここで実行されたコマンドのうち {{count}} 件は一覧に表示されていません。開くことのできない AI チャット、インシデント、またはアラートのために実行されたものです。",
   "Test email report not sent": "テストレポートのメールを送信できませんでした",
   "Test message not sent": "テストメッセージを送信できませんでした"
 }

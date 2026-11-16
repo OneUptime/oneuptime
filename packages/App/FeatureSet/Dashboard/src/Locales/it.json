@@ -56420,8 +56420,13 @@
   "{{count}} more further downstream": "Altri {{count}} più a valle",
   "{{count}} more further downstream_one": "Un altro {{count}} più a valle",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "Il {{share}} di questo grafico è codice senza simboli, quindi le sue funzioni non hanno nome.",
+  "Busiest: {{function}} · {{share}}": "Più attiva: {{function}} · {{share}}",
   "Couldn't pin {{product}}.": "Impossibile fissare {{product}}.",
   "Couldn't unpin {{product}}.": "Impossibile sbloccare {{product}}.",
+  "How to read a flame graph": "Come leggere un flame graph",
+  "How to read this": "Come leggerlo",
+  "Where the time goes, what to fix first, and what the colours mean.": "Dove va il tempo, cosa correggere per primo e cosa significano i colori.",
+  "Your code: {{function}} · {{share}}": "Il tuo codice: {{function}} · {{share}}",
   "{{itemName}} added": "Aggiunto: {{itemName}}",
   "{{itemName}} attached": "Allegato: {{itemName}}",
   "{{itemName}} connected": "Collegato: {{itemName}}",
@@ -56432,6 +56437,9 @@
   "{{itemName}} linked": "Collegato: {{itemName}}",
   "{{itemName}} removed": "Rimosso: {{itemName}}",
   "{{itemName}} started": "Avviato: {{itemName}}",
+  "No commands you can see.": "Nessun comando che puoi vedere.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} comandi eseguiti qui non sono elencati: sono stati eseguiti per chat IA, incidenti o avvisi che non puoi aprire.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} comando eseguito qui non è elencato: è stato eseguito per una chat IA, un incidente o un avviso che non puoi aprire.",
   "Test email report not sent": "Report di prova via email non inviato",
   "Test message not sent": "Messaggio di prova non inviato"
 }

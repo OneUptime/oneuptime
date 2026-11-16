@@ -56420,8 +56420,13 @@
   "{{count}} more further downstream": "Ещё {{count}} дальше вниз по потоку",
   "{{count}} more further downstream_one": "Ещё {{count}} дальше вниз по потоку",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} этого графа — код без символов, поэтому у его функций нет имён.",
+  "Busiest: {{function}} · {{share}}": "Самая загруженная: {{function}} · {{share}}",
   "Couldn't pin {{product}}.": "Не удалось закрепить {{product}}.",
   "Couldn't unpin {{product}}.": "Не удалось открепить {{product}}.",
+  "How to read a flame graph": "Как читать флейм-граф",
+  "How to read this": "Как это читать",
+  "Where the time goes, what to fix first, and what the colours mean.": "Куда уходит время, что исправить в первую очередь и что означают цвета.",
+  "Your code: {{function}} · {{share}}": "Ваш код: {{function}} · {{share}}",
   "{{itemName}} added": "Добавлено: {{itemName}}",
   "{{itemName}} attached": "Прикреплено: {{itemName}}",
   "{{itemName}} connected": "Подключено: {{itemName}}",
@@ -56432,6 +56437,9 @@
   "{{itemName}} linked": "Связано: {{itemName}}",
   "{{itemName}} removed": "Убрано: {{itemName}}",
   "{{itemName}} started": "Запущено: {{itemName}}",
+  "No commands you can see.": "Нет команд, доступных вам.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "Команд, выполненных здесь и не показанных в списке: {{count}}. Они выполнялись для чатов с ИИ, инцидентов или оповещений, которые вы не можете открыть.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} команда, выполненная здесь, не показана в списке: она выполнялась для чата с ИИ, инцидента или оповещения, которые вы не можете открыть.",
   "Test email report not sent": "Тестовый отчёт по email не отправлен",
   "Test message not sent": "Тестовое сообщение не отправлено"
 }

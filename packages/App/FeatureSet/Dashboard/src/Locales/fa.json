@@ -56420,8 +56420,13 @@
   "{{count}} more further downstream": "{{count}} مورد دیگر دورتر در پایین‌دست",
   "{{count}} more further downstream_one": "{{count}} مورد دیگر دورتر در پایین‌دست",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} از این نمودار کدِ بدون نماد است، پس تابع‌های آن نامی ندارند.",
+  "Busiest: {{function}} · {{share}}": "پرکارترین: {{function}} · {{share}}",
   "Couldn't pin {{product}}.": "سنجاق کردن {{product}} انجام نشد.",
   "Couldn't unpin {{product}}.": "برداشتن سنجاق {{product}} انجام نشد.",
+  "How to read a flame graph": "چگونه یک نمودار شعله را بخوانیم",
+  "How to read this": "چگونه این را بخوانیم",
+  "Where the time goes, what to fix first, and what the colours mean.": "زمان کجا صرف می‌شود، اول چه چیزی را درست کنیم و رنگ‌ها چه معنایی دارند.",
+  "Your code: {{function}} · {{share}}": "کد شما: {{function}} · {{share}}",
   "{{itemName}} added": "{{itemName}} افزوده شد",
   "{{itemName}} attached": "{{itemName}} پیوست شد",
   "{{itemName}} connected": "{{itemName}} متصل شد",
@@ -56432,6 +56437,9 @@
   "{{itemName}} linked": "{{itemName}} پیوند داده شد",
   "{{itemName}} removed": "{{itemName}} برداشته شد",
   "{{itemName}} started": "{{itemName}} آغاز شد",
+  "No commands you can see.": "دستوری که بتوانید ببینید وجود ندارد.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} دستوری که اینجا اجرا شده‌اند در فهرست نیستند: برای گفتگوهای هوش مصنوعی، حادثه‌ها یا هشدارهایی اجرا شده‌اند که نمی‌توانید باز کنید.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} دستوری که اینجا اجرا شده است در فهرست نیست: برای گفتگوی هوش مصنوعی، حادثه یا هشداری اجرا شده است که نمی‌توانید باز کنید.",
   "Test email report not sent": "گزارش آزمایشی ایمیل ارسال نشد",
   "Test message not sent": "پیام آزمایشی ارسال نشد"
 }

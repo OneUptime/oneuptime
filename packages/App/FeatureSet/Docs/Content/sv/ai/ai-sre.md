@@ -280,7 +280,7 @@ Allt på sidan kommer från det som OneUptime redan har registrerat (incidentern
 
 ### Allt som AI har gjort i ett kluster
 
-Klustrets sida **AI-loggar** (AI → Loggar) är förteckningen över allt som OneUptime AI har gjort där, nyast först: varje utredning med dess incident eller larm och dess sammanfattning, varje åtgärd som den föreslog eller körde med dess status, och varje kubectl-kommando (för utredning eller åtgärd) med kommandot, dess status och när det kördes. En utrednings sammanfattning är dess TL;DR eller, när ingen TL;DR kunde skrivas, den sammanfattning som dess rapport börjar med. Den här sidan hette tidigare AI Insights; ett bokmärke till dess gamla adress öppnar nu sidan AI Insights, som länkar hit.
+Klustrets sida **AI-loggar** (AI → Loggar) är förteckningen över allt som OneUptime AI har gjort där, nyast först: varje utredning med dess incident eller larm och dess sammanfattning, varje åtgärd som den föreslog eller körde med dess status, och varje kubectl-kommando (för utredning eller åtgärd) med kommandot, dess status och när det kördes. En utrednings sammanfattning är dess TL;DR eller, när ingen TL;DR kunde skrivas, den sammanfattning som dess rapport börjar med. Den här sidan hette tidigare AI Insights; ett bokmärke till dess gamla adress öppnar nu sidan AI Insights, som länkar hit. Den listar de kubectl-kommandon du får läsa: de som OneUptime AI körde för någon annans AI-chatt, eller om en privat incident eller ett privat larm du inte får läsa, utelämnas, och sidan säger hur många det är.
 
 ### Via den tidigare Runnern i klustret
 

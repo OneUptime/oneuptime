@@ -56420,8 +56420,13 @@
   "{{count}} more further downstream": "更下游還有 {{count}} 個",
   "{{count}} more further downstream_one": "更下游還有 {{count}} 個",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "此圖中 {{share}} 是沒有符號的程式碼，因此其函式沒有名稱。",
+  "Busiest: {{function}} · {{share}}": "最繁忙：{{function}} · {{share}}",
   "Couldn't pin {{product}}.": "無法釘選{{product}}。",
   "Couldn't unpin {{product}}.": "無法取消釘選{{product}}。",
+  "How to read a flame graph": "如何閱讀火焰圖",
+  "How to read this": "如何閱讀",
+  "Where the time goes, what to fix first, and what the colours mean.": "時間花在哪裡、先修正什麼，以及顏色的含義。",
+  "Your code: {{function}} · {{share}}": "您的程式碼：{{function}} · {{share}}",
   "{{itemName}} added": "已新增{{itemName}}",
   "{{itemName}} attached": "已附加{{itemName}}",
   "{{itemName}} connected": "已連線{{itemName}}",
@@ -56432,6 +56437,9 @@
   "{{itemName}} linked": "已連結{{itemName}}",
   "{{itemName}} removed": "已移除{{itemName}}",
   "{{itemName}} started": "已開始{{itemName}}",
+  "No commands you can see.": "沒有你可以檢視的指令。",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "此處執行的 {{count}} 個指令未列出：它們是為你無法開啟的 AI 聊天、事件或警示執行的。",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "此處執行的 {{count}} 個指令未列出：它是為你無法開啟的 AI 聊天、事件或警示執行的。",
   "Test email report not sent": "測試報告郵件未寄出",
   "Test message not sent": "測試訊息未傳送"
 }

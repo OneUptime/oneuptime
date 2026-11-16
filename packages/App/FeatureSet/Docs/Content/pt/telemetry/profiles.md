@@ -289,7 +289,20 @@ No profiler .NET, defina `DD_TRACE_DEBUG=1` na aplicação por um minuto: ele pa
 | --- | --- |
 | **Para onde vai o tempo de CPU** | Todos os perfis do intervalo, combinados em um único gráfico de chama. Quanto mais largo um quadro, maior a sua participação. Clique em um quadro para ampliar. |
 | **Funções** | As funções que mais ocupam, ordenadas por **Próprio** (o tempo no próprio código da função), **Total** (com tudo o que ela chama) ou **Seu código** (suas próprias funções, cada uma com o código de bibliotecas e de runtime que chama: o tempo que uma mudança nela pode recuperar). |
-| **Serviços perfilados** | Cada serviço perfilado, os mais ocupados primeiro. As threads do kernel que o profiler eBPF amostra ficam ocultas. |
+| **Serviços perfilados** | Cada serviço perfilado, os mais ocupados primeiro, cada um com para onde vai o seu próprio tempo: o código próprio que mais ocupa. Com vários serviços e nenhum escolhido, este cartão aparece primeiro. As threads do kernel que o profiler eBPF amostra ficam ocultas. |
+
+### Como ler um gráfico de chama
+
+Um gráfico de chama combina todos os perfis do intervalo numa única imagem. Cada barra é uma função: quanto mais larga, maior a sua parte do tempo, e as barras abaixo são as funções que ela chama. **Como ler isto**, ao lado do título do gráfico, explica-o na própria página.
+
+- **Próprio** é o tempo no próprio código de uma função, e **Total** soma tudo o que ela chama. Uma barra larga com pouco por baixo faz o trabalho ela mesma: comece por aí.
+- As cores dizem de quem é o código de uma barra: **Seu código** (laranja), **Biblioteca** (azul), **Tempo de execução** (cinza), **Sistema** (roxo) e **Sem símbolos** (cinza claro). A lista ao lado do gráfico usa as mesmas palavras.
+- Uma barra mostra o nome curto de uma função, como `aggregate.(*Builder).Sum`. Passe o ponteiro sobre ela para ver o nome completo, o arquivo e as partes própria e total.
+- Clique numa barra para ampliar e pressione Esc para voltar.
+
+### Código sem símbolos
+
+O código nativo compilado sem símbolos chega ao profiler apenas como endereços, como `0x270675`. O gráfico de chama agrupa-os numa única barra **Sem símbolos** sob a função que os chamou, e diz abaixo do gráfico quanto dele não tem símbolos. Para ver essas funções pelo nome, mantenha os símbolos do binário: não os remova (em Go, retire `-ldflags="-s -w"`; em C, C++ e Rust, compile com informações de depuração), ou instale o pacote de símbolos de depuração onde o profiler é executado.
 
 ### Comparar dois intervalos
 

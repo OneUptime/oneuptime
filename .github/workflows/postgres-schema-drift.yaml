@@ -512,6 +512,29 @@ jobs:
           Tests/Server/Services/PrivateRecordDeletionPostgres.test.ts
           --forceExit
 
+      # Clones the migrated Runner jobs, AI runs, runbook runs, fixes,
+      # incidents, alerts and their owners into an isolated schema and reads
+      # what an AI run ran and printed as every kind of reader - the person
+      # who asked, another member, a private record's owner team and named
+      # owner, Project Owners and Admins, API keys, a workflow's step and
+      # someone outside the project - through the service, the API's list
+      # and the count of what the AI Logs pages leave out: a chat's only for
+      # who asked it, an investigation's or a CodeFix run's for everyone,
+      # and one about a private incident or alert only for those who see it
+      # (#9155).
+      - name: Test that what an AI run ran and printed follows the run on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_AI_RUN_OUTPUT_TESTS: "true"
+          AI_RUN_OUTPUT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          AI_RUN_OUTPUT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          AI_RUN_OUTPUT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/AiRunOutputReadPostgres.test.ts
+          --forceExit
+
       # Runs CascadeRunsAndFixesWithTheirRecord and
       # DeleteRunsAndFixesOfDeletedRecords on clones of the migrated runbook
       # runs, fixes, Runner jobs, incidents and alerts with their keys as
