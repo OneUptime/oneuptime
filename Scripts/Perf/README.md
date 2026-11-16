@@ -110,6 +110,28 @@ The baseline links this checkout's `node_modules`, so compare commits with
 the same lock files. Rounds alternate so that slow drift (data growing, the
 machine's other work) favours neither side; `ab-summary.py` prints them.
 
+## Telemetry ingest: throughput and CPU
+
+```sh
+bash make-baseline.sh                     # the merge base with origin/main
+bash ab-ingest.sh /tmp/oneuptime-perf/seed.json 2 4
+                                          # both sides twice, about 50 minutes
+node ingest-queue.js 120 10               # the telemetry queue now, every 10 s
+```
+
+`ab-ingest.sh` runs the baseline and this checkout in turn, round after
+round, with the Probe stopped: 4 minutes of the kit's OTLP load (after 2 of
+warm-up) sampled by `cpu-sample.py` for CPU, then a burst - the same 20
+collectors every second, 60 batches a second, for 90 seconds - to see how
+many batches a second one App finishes, and how long what was left takes to
+work off. `ingest-queue.js` reads the telemetry queue as the App works it:
+how many jobs wait, how many completed in each window (from the queue's own
+event stream) and how long the OTLP jobs ran and waited to start - a job
+waits for its rows' insert, so a job's run time is mostly how long the
+fan-in writer holds its rows. `ab-ingest-summary.py` prints the rounds side
+by side with the load average at each window's start and end: on a shared
+machine read the rounds, not only the means.
+
 ## What each job costs
 
 ```sh
