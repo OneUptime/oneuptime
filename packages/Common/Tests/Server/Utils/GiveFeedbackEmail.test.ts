@@ -26,6 +26,7 @@ import {
 import logger from "../../../Server/Utils/Logger";
 import Project from "../../../Models/DatabaseModels/Project";
 import User from "../../../Models/DatabaseModels/User";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import Email from "../../../Types/Email";
 import EmailMessage from "../../../Types/Email/EmailMessage";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
@@ -357,6 +358,21 @@ describe("it never throws", () => {
       email.send((await prepare(email)) as GiveFeedbackDelivery),
     ).resolves.toBeUndefined();
     expect(logger.error).toHaveBeenCalled();
+  });
+
+  test("a send the notification service answers with an error, rather than throws, is logged too", async () => {
+    sendMail.mockResolvedValue(
+      new HTTPErrorResponse(500, { message: "No mail server is set up." }, {}),
+    );
+
+    const email: GiveFeedbackEmail = cloud();
+
+    await expect(
+      email.send((await prepare(email)) as GiveFeedbackDelivery),
+    ).resolves.toBeUndefined();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining("its email was not sent"),
+    );
   });
 
   test("a failing read of the project is logged, and the send resolves", async () => {

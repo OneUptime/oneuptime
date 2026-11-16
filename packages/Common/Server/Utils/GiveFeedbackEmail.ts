@@ -9,6 +9,9 @@ import logger from "./Logger";
 import { ProductFeedbackRateLimit } from "./ProductFeedbackRateLimit";
 import Project from "../../Models/DatabaseModels/Project";
 import User from "../../Models/DatabaseModels/User";
+import EmptyResponseData from "../../Types/API/EmptyResponse";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
 import Email from "../../Types/Email";
 import EmailMessage from "../../Types/Email/EmailMessage";
 import { toMailboxAddress } from "../../Types/Email/EmailRecipients";
@@ -353,12 +356,20 @@ export class GiveFeedbackEmail {
         };
       }
 
-      await MailService.sendMail(
-        buildGiveFeedbackEmail({
-          to: delivery.to,
-          email: { ...delivery.email, project: project },
-        }),
-      );
+      // The notification service answers a send it could not make, rather than throw.
+      const sent: HTTPResponse<EmptyResponseData> | HTTPErrorResponse =
+        await MailService.sendMail(
+          buildGiveFeedbackEmail({
+            to: delivery.to,
+            email: { ...delivery.email, project: project },
+          }),
+        );
+
+      if (sent instanceof HTTPErrorResponse) {
+        logger.error(
+          `Give feedback was kept, but its email was not sent: ${sent.message}`,
+        );
+      }
     } catch (err) {
       logger.error("Give feedback was kept, but its email was not sent:");
       logger.error(err);
