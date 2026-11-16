@@ -49,6 +49,7 @@
     "projectTeam": "टीम",
     "projectSubscription": "सदस्यता",
     "projectSupport": "सहायता",
+    "projectInvoices": "चालान",
     "settings": "सेटिंग्स",
     "authentication": "प्रमाणीकरण",
     "singleSignOn": "सिंगल साइन-ऑन",
@@ -110,6 +111,7 @@
     "teams": "टीमें",
     "billing": "बिलिंग",
     "subscription": "सदस्यता",
+    "invoices": "चालान",
     "support": "सहायता",
     "customerSupportAccess": "ग्राहक सहायता पहुँच",
     "advanced": "उन्नत",
@@ -415,6 +417,28 @@
       "noUserLimit": "कोई सीमा नहीं",
       "overUserLimit": "सीमा से {{over}} अधिक",
       "atUserLimit": "सीमा पर"
+    },
+    "projectInvoices": {
+      "title": "चालान",
+      "cardTitle": "चालान",
+      "cardDescription": "इस प्रोजेक्ट के लिए भुगतान प्रदाता द्वारा जारी किए गए सभी चालान, सबसे नए पहले। जिस चालान का भुगतान ग्राहक को अब नहीं करना है, उसे रद्द करें।",
+      "billingDisabled": "इस सर्वर पर बिलिंग सक्षम नहीं है, इसलिए प्रोजेक्ट के कोई चालान नहीं हैं।",
+      "emptyTitle": "अभी तक कोई चालान नहीं",
+      "emptyDescription": "भुगतान प्रदाता ने इस प्रोजेक्ट के लिए अभी तक कोई चालान जारी नहीं किया है। जारी होते ही चालान यहाँ दिखेंगे।",
+      "billedForPlan": "योजना",
+      "billedForUsage": "उपयोग",
+      "statusPaid": "भुगतान किया गया",
+      "statusOpen": "भुगतान बाकी",
+      "statusVoid": "रद्द",
+      "statusUncollectible": "वसूली योग्य नहीं",
+      "statusDraft": "ड्राफ़्ट",
+      "statusDeleted": "हटाया गया",
+      "statusOther": "अज्ञात",
+      "downloadButton": "डाउनलोड करें",
+      "voidButton": "चालान रद्द करें",
+      "voidTitle": "चालान रद्द करें",
+      "voidDescription": "{{amount}} का चालान {{number}} रद्द करें? ग्राहक पर यह राशि बकाया नहीं रहेगी, और भुगतान प्रदाता इसे वसूलने की कोशिश बंद कर देगा। इसे पूर्ववत नहीं किया जा सकता।",
+      "voidSuccess": "चालान {{number}} रद्द कर दिया गया। ग्राहक पर अब यह बकाया नहीं है।"
     },
     "projectSupport": {
       "title": "ग्राहक सहायता पहुँच",
@@ -4022,5 +4046,11 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "मौजूदा कुंजी इसका उपयोग करने वाली हर स्क्रिप्ट और टूल के लिए तुरंत काम करना बंद कर देती है। नई कुंजी एक बार दिखाई जाती है।",
   "Copy Your Master API Key": "अपनी मास्टर API कुंजी कॉपी करें",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "इसे अभी कॉपी करें और किसी सुरक्षित जगह रखें, जैसे सीक्रेट मैनेजर में। यह केवल इसी बार दिखाई जाती है: OneUptime इसका केवल हैश रखता है।",
-  "The server did not answer with the master API key. Try again.": "सर्वर ने मास्टर API कुंजी के साथ जवाब नहीं दिया। फिर से प्रयास करें।"
+  "The server did not answer with the master API key. Try again.": "सर्वर ने मास्टर API कुंजी के साथ जवाब नहीं दिया। फिर से प्रयास करें।",
+  "Invoice Number": "इनवॉइस संख्या",
+  "Invoice Date": "इनवॉइस तिथि",
+  "Billed For": "बिल किसके लिए",
+  "Amount": "राशि",
+  "Invoice": "चालान",
+  "Invoices": "चालान सूची"
 }

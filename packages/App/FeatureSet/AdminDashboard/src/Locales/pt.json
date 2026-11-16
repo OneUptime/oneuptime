@@ -49,6 +49,7 @@
     "projectTeam": "Equipe",
     "projectSubscription": "Assinatura",
     "projectSupport": "Suporte",
+    "projectInvoices": "Faturas",
     "settings": "Configurações",
     "authentication": "Autenticação",
     "singleSignOn": "Login único",
@@ -110,6 +111,7 @@
     "teams": "Equipes",
     "billing": "Cobrança",
     "subscription": "Assinatura",
+    "invoices": "Faturas",
     "support": "Suporte",
     "customerSupportAccess": "Acesso do suporte ao cliente",
     "advanced": "Avançado",
@@ -415,6 +417,28 @@
       "noUserLimit": "Sem limite",
       "overUserLimit": "{{over}} acima do limite",
       "atUserLimit": "No limite"
+    },
+    "projectInvoices": {
+      "title": "Faturas",
+      "cardTitle": "Faturas",
+      "cardDescription": "Todas as faturas que o provedor de pagamento emitiu para este projeto, da mais recente para a mais antiga. Anule a que o cliente não deve mais pagar.",
+      "billingDisabled": "O faturamento não está ativado neste servidor, então os projetos não têm faturas.",
+      "emptyTitle": "Ainda não há faturas",
+      "emptyDescription": "O provedor de pagamento ainda não emitiu nenhuma fatura para este projeto. As faturas aparecerão aqui assim que isso acontecer.",
+      "billedForPlan": "Plano",
+      "billedForUsage": "Uso",
+      "statusPaid": "Paga",
+      "statusOpen": "Em aberto",
+      "statusVoid": "Anulada",
+      "statusUncollectible": "Incobrável",
+      "statusDraft": "Rascunho",
+      "statusDeleted": "Excluída",
+      "statusOther": "Desconhecida",
+      "downloadButton": "Baixar",
+      "voidButton": "Anular fatura",
+      "voidTitle": "Anular fatura",
+      "voidDescription": "Anular a fatura {{number}} de {{amount}}? O cliente deixará de devê-la e o provedor de pagamento deixará de tentar cobrá-la. Esta ação não pode ser desfeita.",
+      "voidSuccess": "Fatura {{number}} anulada. O cliente não a deve mais."
     },
     "projectSupport": {
       "title": "Acesso do suporte ao cliente",
@@ -4022,5 +4046,11 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "A chave atual deixa de funcionar na hora, para todo script e ferramenta que a usa. A nova chave é mostrada uma vez.",
   "Copy Your Master API Key": "Copie sua chave de API mestra",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Copie-a agora e guarde-a em um lugar seguro, como um gerenciador de segredos. Ela só é mostrada desta vez: o OneUptime guarda apenas um hash dela.",
-  "The server did not answer with the master API key. Try again.": "O servidor não respondeu com a chave de API mestra. Tente novamente."
+  "The server did not answer with the master API key. Try again.": "O servidor não respondeu com a chave de API mestra. Tente novamente.",
+  "Invoice Number": "Número da Fatura",
+  "Invoice Date": "Data da Fatura",
+  "Billed For": "Referente a",
+  "Amount": "Valor",
+  "Invoice": "Fatura",
+  "Invoices": "Faturas"
 }

@@ -49,6 +49,7 @@
     "projectTeam": "Équipe",
     "projectSubscription": "Abonnement",
     "projectSupport": "Assistance",
+    "projectInvoices": "Factures",
     "settings": "Paramètres",
     "authentication": "Authentification",
     "singleSignOn": "Authentification unique",
@@ -110,6 +111,7 @@
     "teams": "Équipes",
     "billing": "Facturation",
     "subscription": "Abonnement",
+    "invoices": "Factures",
     "support": "Assistance",
     "customerSupportAccess": "Accès du support client",
     "advanced": "Avancé",
@@ -415,6 +417,28 @@
       "noUserLimit": "Aucune limite",
       "overUserLimit": "{{over}} au-delà de la limite",
       "atUserLimit": "Limite atteinte"
+    },
+    "projectInvoices": {
+      "title": "Factures",
+      "cardTitle": "Factures",
+      "cardDescription": "Toutes les factures émises par le fournisseur de paiement pour ce projet, de la plus récente à la plus ancienne. Annulez celle que le client ne doit plus payer.",
+      "billingDisabled": "La facturation n'est pas activée sur ce serveur : les projets n'ont donc pas de factures.",
+      "emptyTitle": "Aucune facture pour l'instant",
+      "emptyDescription": "Le fournisseur de paiement n'a encore émis aucune facture pour ce projet. Ses factures apparaîtront ici dès qu'il en émettra.",
+      "billedForPlan": "Forfait",
+      "billedForUsage": "Utilisation",
+      "statusPaid": "Payée",
+      "statusOpen": "À payer",
+      "statusVoid": "Annulée",
+      "statusUncollectible": "Irrécouvrable",
+      "statusDraft": "Brouillon",
+      "statusDeleted": "Supprimée",
+      "statusOther": "Inconnue",
+      "downloadButton": "Télécharger",
+      "voidButton": "Annuler la facture",
+      "voidTitle": "Annuler la facture",
+      "voidDescription": "Annuler la facture {{number}} d'un montant de {{amount}} ? Le client ne la devra plus et le fournisseur de paiement cessera d'essayer de l'encaisser. Cette action est irréversible.",
+      "voidSuccess": "Facture {{number}} annulée. Le client ne la doit plus."
     },
     "projectSupport": {
       "title": "Accès du support client",
@@ -4022,5 +4046,11 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "La clé actuelle cesse aussitôt de fonctionner, pour chaque script et chaque outil qui l'utilise. La nouvelle clé est affichée une seule fois.",
   "Copy Your Master API Key": "Copiez votre clé API principale",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Copiez-la maintenant et conservez-la en lieu sûr, par exemple dans un gestionnaire de secrets. Elle n'est affichée que cette fois : OneUptime n'en conserve qu'un hachage.",
-  "The server did not answer with the master API key. Try again.": "Le serveur n'a pas répondu avec la clé API principale. Réessayez."
+  "The server did not answer with the master API key. Try again.": "Le serveur n'a pas répondu avec la clé API principale. Réessayez.",
+  "Invoice Number": "Numéro de facture",
+  "Invoice Date": "Date de la facture",
+  "Billed For": "Facturé pour",
+  "Amount": "Montant",
+  "Invoice": "Facture",
+  "Invoices": "Factures"
 }
