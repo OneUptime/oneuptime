@@ -88,9 +88,37 @@ function readRuleEngineSources(): Array<RuleEngineSource> {
  * lint fight between `wrap-regex`, which wants parentheses, and prettier,
  * which takes them straight back off.
  */
-const RULE_FETCH_CALL: RegExp = /RuleService\.findBy\(|this\.findBy\(/;
+const RULE_FETCH_CALL: RegExp =
+  /RuleService\.findBy\(|this\.findBy\(|RuleSetCache\.findEnabledRules[<(]/;
 const WHOLE_PROJECT_LIMIT: RegExp =
   /limit:\s*(MAX_RULES_EVALUATED_PER_PROJECT|LIMIT_PER_PROJECT|LIMIT_MAX)/;
+
+/*
+ * A read of the project's rules kept between creates (RuleSetCache, #6085):
+ * the cache reads them with the whole-project limit itself (held below), so
+ * a read through it is one with that limit.
+ */
+const READS_THROUGH_RULE_SET_CACHE: RegExp =
+  /RuleSetCache\.findEnabledRules[<(]/;
+
+const RULE_SET_CACHE_FILE: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "Server",
+  "Utils",
+  "Rules",
+  "RuleSetCache.ts",
+);
+
+// Whether a file's rule reads are whole-project ones, either way.
+function readsWholeProject(contents: string): boolean {
+  return (
+    WHOLE_PROJECT_LIMIT.test(contents) ||
+    READS_THROUGH_RULE_SET_CACHE.test(contents)
+  );
+}
 /*
  * A read that advances an offset rather than always starting at zero, i.e.
  * one that pages. Such a read cannot truncate, so it needs no ceiling report.
@@ -170,9 +198,18 @@ describe("rule engines read every enabled rule in the project", () => {
   )(
     "%s fetches its rules with a whole-project limit",
     (_name: string, source: RuleEngineSource) => {
-      expect(WHOLE_PROJECT_LIMIT.test(source.contents)).toBe(true);
+      expect(readsWholeProject(source.contents)).toBe(true);
     },
   );
+
+  it("RuleSetCache reads the rules it keeps with the whole-project limit, from the first", () => {
+    const contents: string = fs.readFileSync(RULE_SET_CACHE_FILE, "utf8");
+
+    expect(contents).toMatch(
+      /limit:\s*MAX_RULES_EVALUATED_PER_PROJECT,\s*skip:\s*0,/,
+    );
+    expect(numericLimits(contents)).toEqual([]);
+  });
 
   /*
    * The half that turns a cliff into a ceiling. `limit: <cap>, skip: 0`
@@ -232,7 +269,7 @@ describe("project rule reads outside the *RuleEngineService.ts naming", () => {
       });
 
       expect(suspiciousLimits).toEqual([]);
-      expect(WHOLE_PROJECT_LIMIT.test(source.contents)).toBe(true);
+      expect(readsWholeProject(source.contents)).toBe(true);
       expect(source.contents).toContain("logIfRuleReadWasTruncated({");
     },
   );

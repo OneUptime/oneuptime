@@ -1,6 +1,7 @@
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import Dictionary from "../../Types/Dictionary";
+import { EMPTY_VALUE_MARK } from "../../Types/EmptyValueMark";
 import {
   StatusPageReportGroup,
   StatusPageReportGroupMetrics,
@@ -209,13 +210,17 @@ export default class StatusPageReportTreeUtil {
     const ownResources: Array<StatusPageReportItem> =
       data.resourcesByGroupId[groupId] || [];
 
+    /*
+     * A group with no numbers is still drawn - a missing number beats a
+     * missing level - with no figures rather than a 0% it never measured
+     * (issue #9030).
+     */
     const metrics: StatusPageReportGroupMetrics = data.groupMetricsByGroupId[
       groupId
     ] || {
-      uptimePercent: 0,
-      uptimePercentAsString: "0%",
-      downtimeInHoursAndMinutes: "0",
-      downtimeInMinutes: 0,
+      uptimePercent: null,
+      uptimePercentAsString: EMPTY_VALUE_MARK,
+      downtimeInHoursAndMinutes: EMPTY_VALUE_MARK,
       totalIncidentCount: 0,
     };
 
@@ -301,6 +306,9 @@ export default class StatusPageReportTreeUtil {
       downtimeInHoursAndMinutes: data.resource.downtimeInHoursAndMinutes,
       totalIncidentCount: data.resource.totalIncidentCount,
       totalResources: 0,
+      ...(data.resource.notMonitoredText
+        ? { notMonitoredText: data.resource.notMonitoredText }
+        : {}),
     };
   }
 }

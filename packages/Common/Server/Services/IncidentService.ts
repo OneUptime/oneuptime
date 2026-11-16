@@ -6082,6 +6082,9 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
          * from the Custom Fields card, Slack, Microsoft Teams or the API -
          * each with its new value, so the feed and the incident's channels
          * hear of it. Writing back the bag the incident holds adds none.
+         * A box of its own on a rule's Updates step (issue #7937): an edit
+         * of the custom fields alone is CustomFields, and one that changed
+         * the title with them is an edit too.
          */
         const customFieldsMarkdown: MarkdownText =
           await this.getCustomFieldsFeedMarkdown({
@@ -6097,7 +6100,7 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         if (!customFieldsMarkdown.isEmpty()) {
           feedInfoInMarkdown += customFieldsMarkdown.toString();
           shouldAddIncidentFeed = true;
-          updateKinds.push(NotificationRuleUpdateKind.Edits);
+          updateKinds.push(NotificationRuleUpdateKind.CustomFields);
         }
 
         /*

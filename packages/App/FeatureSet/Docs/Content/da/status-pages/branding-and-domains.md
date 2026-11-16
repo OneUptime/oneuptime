@@ -208,14 +208,14 @@ I **Domæne** (pladsholder `status.example.com`) skriver du hele den adresse, fo
 
 #### Behold det gratis certifikat, eller upload dit eget
 
-**Flere felter** er foldet sammen, og dets overskrift siger, hvilket certifikat domænet vil bruge: "Vi udsteder et gratis SSL-certifikat til dette domæne og fornyer det automatisk." Åbn det kun for at bruge dit eget certifikat: slå **Upload brugerdefineret certifikat** til, og indsæt derefter **Certifikat** og **Privat certifikatnøgle** i PEM-format. Begge er så påkrævede.
+**Flere felter** er foldet sammen, og dets overskrift siger, hvilket certifikat domænet vil bruge: "Vi udsteder et gratis SSL-certifikat til dette domæne og fornyer det automatisk." Åbn det kun for at bruge dit eget certifikat: slå **Upload brugerdefineret certifikat** til, og indsæt derefter **Certifikat** og **Privat certifikatnøgle** i PEM-format. Begge er så påkrævede. Nøglen gemmes krypteret og vises aldrig igen. Et certifikat og en nøgle, der ikke hører sammen, afvises, med årsagen under det felt, der er forkert.
 
 #### Fortsæt
 
 Klik på **Fortsæt**. Hvis projektet har bekræftet det domæne, adressen ligger på, tilføjes domænet, og dets **DNS-opsætning** åbner med den CNAME-post, der skal tilføjes. Hvis ikke, tilføjer OneUptime det domæne under **Projektindstillinger → Avanceret → Domæner**, og **DNS-opsætning** åbner med begge poster, så du bekræfter domænet lige dér uden at forlade siden.
 :::
 
-Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge en anden adresse tilføjer du den og sletter den gamle. Et navn, som et dashboard eller en formular allerede bruger, i et hvilket som helst projekt, afvises: ét domæne viser én statusside, ét dashboard eller én formular.
+Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. På et domæne, der serverer dit eget certifikat, er **Privat certifikatnøgle** tom i dialogen **Rediger**: lad den stå tom for at beholde den gemte nøgle, hvilket er alt, hvad et certifikat fornyet med samme nøgle har brug for, eller indsæt en ny nøgle. På et domæne med det gratis certifikat beder **Upload brugerdefineret certifikat** om nøglen, når du slår det til. For at bruge en anden adresse tilføjer du den og sletter den gamle. Et navn, som et dashboard eller en formular allerede bruger, i et hvilket som helst projekt, afvises: ét domæne viser én statusside, ét dashboard eller én formular.
 
 At tilføje et domæne til projektet kræver tilladelse til at oprette projektdomæner (**Create Domain**, eller Projektejer eller Projektadministrator), og at bekræfte det kræver **Edit Domain**. Uden dem siger dialogen, hvem der kan gøre det.
 

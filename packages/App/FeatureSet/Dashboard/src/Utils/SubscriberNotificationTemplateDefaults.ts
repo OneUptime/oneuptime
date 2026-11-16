@@ -1084,7 +1084,7 @@ const reportDefaults: EventDefaults = {
       </tr>
       {{else}}
       <tr>
-        <td align="left" style="padding: 12px 8px; border-top: 1px solid #e2e8f0; font-size: 13px; line-height: 20px; color: #475569; font-weight: 500;"><div class="st-ReportIndent" style="margin-left: {{this.indentInPixels}}px;">{{this.name}}</div></td>
+        <td align="left" style="padding: 12px 8px; border-top: 1px solid #e2e8f0; font-size: 13px; line-height: 20px; color: #475569; font-weight: 500;"><div class="st-ReportIndent" style="margin-left: {{this.indentInPixels}}px;">{{this.name}}{{#if this.notMonitoredText}}<div style="margin-top: 2px; font-size: 12px; line-height: 18px; color: #64748b;">{{this.notMonitoredText}}</div>{{/if}}</div></td>
         <td align="right" style="padding: 12px 8px; border-top: 1px solid #e2e8f0; font-size: 13px; line-height: 20px; color: #0f172a; font-weight: 600;">{{this.uptimePercentAsString}}</td>
         <td align="right" style="padding: 12px 8px; border-top: 1px solid #e2e8f0; font-size: 13px; line-height: 20px; color: #475569;">{{this.downtimeInHoursAndMinutes}}</td>
         <td align="right" style="padding: 12px 8px; border-top: 1px solid #e2e8f0; font-size: 13px; line-height: 20px; color: #0f172a; font-weight: 600;">{{this.totalIncidentCount}}</td>

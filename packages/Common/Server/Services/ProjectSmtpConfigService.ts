@@ -1,4 +1,9 @@
 import DatabaseService from "./DatabaseService";
+import CreateBy from "../Types/Database/CreateBy";
+import { OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import WriteOnlyCredentialChanges from "../Utils/AuditLog/WriteOnlyCredentialChanges";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { isAwsRegion } from "../../Types/Cloud/AwsRegionCode";
 import EmailServer from "../../Types/Email/EmailServer";
 import { isMailgunDomain } from "../../Types/Email/MailgunDomain";
@@ -11,9 +16,73 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import URL from "../../Types/API/URL";
 import Model from "../../Models/DatabaseModels/ProjectSmtpConfig";
 
+/*
+ * The columns of a config that sign in to its mail account: the SMTP
+ * password, the OAuth client secret and each HTTP API provider's key.
+ * Write-only and kept encrypted at rest (ProjectSmtpConfig).
+ */
+export const PROJECT_SMTP_CONFIG_CREDENTIAL_COLUMNS: ReadonlyArray<string> = [
+  "password",
+  "clientSecret",
+  "amazonSesSecretAccessKey",
+  "sendgridApiKey",
+  "mailgunApiKey",
+  "postmarkServerToken",
+  "resendApiKey",
+];
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A create hands back the row it saved, and each credential is on that
+   * row as it was stored: encrypted. BaseAPI serializes the row whole into
+   * the answer of POST /smtp-config, without a column read check, and a
+   * workflow's Create SMTP Config step returns it, to be kept in the
+   * workflow's logs - a ciphertext of a credential nobody may read back
+   * (read: []), which with the server's ENCRYPTION_SECRET is as good as the
+   * credential. So the credentials are taken off it first. The mail service
+   * reads them from the database, decrypted, when it sends.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    const created: Model = await super.create(createBy);
+
+    /*
+     * Cleared rather than deleted, as BaseAPI.createItem clears a model's
+     * `_id`: an unset column holds undefined, which serializes as nothing.
+     */
+    const row: Record<string, unknown> = created as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const column of PROJECT_SMTP_CONFIG_CREDENTIAL_COLUMNS) {
+      row[column] = undefined;
+    }
+
+    return created;
+  }
+
+  /*
+   * Nobody reads a credential back, so the audit log leaves its value out
+   * of every entry; an update that changes one is still recorded, as
+   * changed - by whom, when - never with its value
+   * (WriteOnlyCredentialChanges). A password rotated alone would leave no
+   * entry otherwise.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    WriteOnlyCredentialChanges.recordInAuditLog(
+      updateBy,
+      PROJECT_SMTP_CONFIG_CREDENTIAL_COLUMNS,
+    );
+
+    return { updateBy, carryForward: null };
   }
 
   public toEmailServer(

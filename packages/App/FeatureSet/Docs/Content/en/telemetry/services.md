@@ -71,6 +71,8 @@ Beside its name, a service's **Overview** says whether its telemetry is arriving
 
 Owners matter beyond the page: a role whose scope is Owned reads the telemetry of the services you or your teams own. See [Telemetry](/docs/permissions/index#telemetry).
 
+A service's **Overview** has a **Used by** card: the monitors watching the service, and the SLOs that measure them. Archiving or deleting the service, on its pages or from the list, says these first. What you may not open is counted, not named.
+
 ## Change a service
 
 :::steps

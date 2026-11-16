@@ -1,8 +1,11 @@
+import DataMigration from "../../../../Models/DatabaseModels/DataMigration";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStatusTimeline";
 import Service from "../../../../Models/DatabaseModels/Service";
 import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
+import DataMigrationService from "../../../../Server/Services/DataMigrationService";
+import MonitorService from "../../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../../Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "../../../../Server/Services/MonitorStatusTimelineService";
 import SloMonthlyReportMeasurement, {
@@ -11,6 +14,7 @@ import SloMonthlyReportMeasurement, {
 import SloRequestCounting from "../../../../Server/Utils/Slo/SloRequestCounting";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import SliType from "../../../../Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "../../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
@@ -33,6 +37,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
+// jest-mock's own spy type, what spyOn from @jest/globals returns (#8598).
+import { SpyInstance } from "jest-mock";
 
 /*
  * An SLO's monthly report, measured when it is asked for: a Monitor Uptime
@@ -77,6 +83,7 @@ const offline: MonitorStatus = new MonitorStatus(
 );
 offline.name = "Offline";
 offline.isOperationalState = false;
+offline.isOfflineState = true;
 offline.priority = 2;
 
 const operational: MonitorStatus = new MonitorStatus(
@@ -84,6 +91,7 @@ const operational: MonitorStatus = new MonitorStatus(
 );
 operational.name = "Operational";
 operational.isOperationalState = true;
+operational.isOfflineState = false;
 operational.priority = 1;
 
 function row(
@@ -160,13 +168,20 @@ async function measure(
 }
 
 describe("SloMonthlyReportMeasurement", () => {
-  let timelineReads: jest.SpiedFunction<
+  let timelineReads: SpyInstance<
     typeof MonitorStatusTimelineService.findAllBy
   >;
 
   beforeEach(() => {
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
     jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([offline]);
+
+    /*
+     * The upgrade has not put Monitor.firstMeasuredAt right for history yet
+     * (issue #9031): every monitor counts from the start, as it always did.
+     * The tests of the time before a first check below say otherwise.
+     */
+    jest.spyOn(DataMigrationService, "findOneBy").mockResolvedValue(null);
 
     timelineReads = jest
       .spyOn(MonitorStatusTimelineService, "findAllBy")
@@ -324,6 +339,109 @@ describe("SloMonthlyReportMeasurement", () => {
       expect(report.sliType).toBe(SliType.MonitorUptime);
       expect(report.months).toHaveLength(3);
     });
+
+    /*
+     * The time before a monitor's first check (issue #9031), once the
+     * upgrade has put Monitor.firstMeasuredAt right for history: a month
+     * nothing had checked a monitor in is no data for it, not a month up.
+     */
+    describe("once the upgrade has put first checks right", () => {
+      function monitorRow(id: ObjectID, firstMeasuredAt: Date | null): Monitor {
+        const monitor: Monitor = new Monitor(id);
+        monitor.monitorType = MonitorType.Website;
+        (
+          monitor as unknown as { firstMeasuredAt: Date | null }
+        ).firstMeasuredAt = firstMeasuredAt;
+        return monitor;
+      }
+
+      beforeEach(() => {
+        jest
+          .spyOn(DataMigrationService, "findOneBy")
+          .mockResolvedValue(new DataMigration());
+      });
+
+      test("monitors checked when they were created read exactly as before", async () => {
+        const before: SloMonthlyReport = await (async () => {
+          jest.spyOn(DataMigrationService, "findOneBy").mockResolvedValue(null);
+          return await measure(makeSlo({}));
+        })();
+
+        jest
+          .spyOn(DataMigrationService, "findOneBy")
+          .mockResolvedValue(new DataMigration());
+        jest
+          .spyOn(MonitorService, "findBy")
+          .mockResolvedValue([
+            monitorRow(MONITOR_A, new Date("2026-08-31T23:59:59.900Z")),
+            monitorRow(MONITOR_B, new Date("2026-09-30T23:59:59.900Z")),
+          ]);
+
+        expect(await measure(makeSlo({}))).toEqual(before);
+      });
+
+      test("a monitor nothing has checked yet adds no month: the SLO's months are its checked monitor's", async () => {
+        jest
+          .spyOn(MonitorService, "findBy")
+          .mockResolvedValue([
+            monitorRow(MONITOR_A, new Date("2026-08-31T23:59:59.900Z")),
+            monitorRow(MONITOR_B, null),
+          ]);
+
+        const report: SloMonthlyReport = await measure(
+          makeSlo({
+            multiMonitorMode: SloMultiMonitorMode.MonitorSecondsAverage,
+          }),
+          async (): Promise<Map<string, string>> => {
+            return new Map<string, string>([
+              [MONITOR_A.toString(), "Payments"],
+              [MONITOR_B.toString(), "Search"],
+            ]);
+          },
+        );
+
+        // October: A alone, 31 days with its hour down; B used to add 31 good days.
+        expect(report.months[1]!.total).toBe(31 * DAY);
+        expect(report.months[1]!.bad).toBe(HOUR);
+
+        const search: { months: Array<{ verdict: SloMonthVerdict }> } =
+          report.monitors.find((monitor: { name: string }): boolean => {
+            return monitor.name === "Search";
+          })!;
+
+        expect(
+          search.months.map((month: { verdict: SloMonthVerdict }) => {
+            return month.verdict;
+          }),
+        ).toEqual([
+          SloMonthVerdict.NoData,
+          SloMonthVerdict.NoData,
+          SloMonthVerdict.NoData,
+        ]);
+      });
+
+      test("a monitor first checked mid-month is measured from its check", async () => {
+        jest
+          .spyOn(MonitorService, "findBy")
+          .mockResolvedValue([
+            monitorRow(MONITOR_A, new Date("2026-10-11T00:00:00.000Z")),
+            monitorRow(MONITOR_B, new Date("2026-09-30T23:59:59.900Z")),
+          ]);
+
+        const report: SloMonthlyReport = await measure(
+          makeSlo({ monitors: [new Monitor(MONITOR_A)] }),
+        );
+
+        /*
+         * September: nothing had checked A. October: its hour down on the
+         * 10th, a status recorded before the check, counts as it is; its up
+         * time counts from the check on the 11th.
+         */
+        expect(report.months[0]!.verdict).toBe(SloMonthVerdict.NoData);
+        expect(report.months[1]!.total).toBe(21 * DAY + HOUR);
+        expect(report.months[1]!.bad).toBe(HOUR);
+      });
+    });
   });
 
   describe("a request SLO", () => {
@@ -343,7 +461,7 @@ describe("SloMonthlyReportMeasurement", () => {
     };
 
     test("sums its counted requests month by month, inside what its counting covers", async () => {
-      const sums: jest.SpiedFunction<typeof SloRequestCounting.readRangeSums> =
+      const sums: SpyInstance<typeof SloRequestCounting.readRangeSums> =
         jest.spyOn(SloRequestCounting, "readRangeSums").mockResolvedValue([
           { goodCount: 0, totalCount: 0 },
           { goodCount: 9990, totalCount: 10000 },
@@ -377,7 +495,7 @@ describe("SloMonthlyReportMeasurement", () => {
     });
 
     test("an SLO whose requests were never counted reads as no data in every month", async () => {
-      const sums: jest.SpiedFunction<typeof SloRequestCounting.readRangeSums> =
+      const sums: SpyInstance<typeof SloRequestCounting.readRangeSums> =
         jest.spyOn(SloRequestCounting, "readRangeSums").mockResolvedValue([
           { goodCount: 0, totalCount: 0 },
           { goodCount: 0, totalCount: 0 },
@@ -423,7 +541,7 @@ describe("SloMonthlyReportMeasurement", () => {
 
   describe("a Metric SLO", () => {
     test("sums its metric's counted events month by month, in events", async () => {
-      const sums: jest.SpiedFunction<typeof SloRequestCounting.readRangeSums> =
+      const sums: SpyInstance<typeof SloRequestCounting.readRangeSums> =
         jest.spyOn(SloRequestCounting, "readRangeSums").mockResolvedValue([
           { goodCount: 0, totalCount: 0 },
           { goodCount: 998, totalCount: 1000 },
@@ -521,7 +639,7 @@ describe("SloMonthlyReportMeasurement", () => {
         fields: Partial<ServiceLevelObjective>,
         reason: SloMonthlyReportUnavailableReason,
       ) => {
-        const sums: jest.SpiedFunction<
+        const sums: SpyInstance<
           typeof SloRequestCounting.readRangeSums
         > = jest.spyOn(SloRequestCounting, "readRangeSums");
 

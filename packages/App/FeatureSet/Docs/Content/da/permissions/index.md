@@ -103,6 +103,8 @@ Den rolle, du vælger, bliver teamets første tilladelse, for alle ressourcer i 
 
 Hvor du finder det: åbn et team under **Teams** for at komme til **Medlemmer** og **Tilladelser**; dets brugerdefinerede roller og **Bloker tilladelser** ligger under **Yderligere indstillinger** nederst på siden Tilladelser, hvis sammenklappede overskrift viser, hvor mange af hver teamet har.
 
+Et teams side har et kort **Bruges af**: de vagtpolitikker, hvis eskaleringsregler tilkalder teamet, og alt det, teamet ejer, fra monitorer og statussider til SLOs, dashboards, infrastruktur og hændelser. Når du sletter et team, på dets side eller fra listen, siges dette først: dets politikker holder op med at tilkalde dets medlemmer, og det ejer dem ikke længere. Det, du ikke må åbne, tælles, men nævnes ikke.
+
 ## Tilladelser
 
 En tilladelse er én evne. Der er to måder at give dem på, og begge ligger på teamets fane **Tilladelser**.

@@ -80,7 +80,7 @@ Med två eller fler villkor väljer du **Matcha alla**, där vart och ett måste
 :::steps
 ### Välj larmen
 
-Klicka på **Skapa Alert On-Call Rule**. I **Matcha** matchar **Alla larm**, som en ny regel börjar på, varje nytt larm. För att snäva in regeln väljer du **Endast larm som uppfyller villkoren** och lägger till de villkor som ett larm måste uppfylla.
+Klicka på **Skapa Jourregel för larm**. I **Matcha** matchar **Alla larm**, som en ny regel börjar på, varje nytt larm. För att snäva in regeln väljer du **Endast larm som uppfyller villkoren** och lägger till de villkor som ett larm måste uppfylla.
 
 ### Välj policyerna
 

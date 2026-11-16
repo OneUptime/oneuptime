@@ -12,7 +12,7 @@ Ett service level objective (SLO) är ett tillförlitlighetsmål för det du dri
 
 ## Så fungerar det
 
-Ett SLO mäter en av två saker. Ett SLO för monitorernas drifttid läser statustidslinjerna för de monitorer som är kopplade till det: samma data som dina statussidor visar. Ett SLO för begäranden räknar de begäranden som dess tjänster besvarar, utifrån deras spår: se [SLO:er för begäranden och latens](/docs/slo/request-slos). Resten av den här sidan beskriver SLO:er för monitorernas drifttid, och SLO:er för begäranden fungerar på samma sätt om inget annat anges. Utifrån dem beräknar OneUptime hur stor del av efterlevnadsfönstret som var bra tid, hur mycket av felbudgeten som finns kvar och hur snabbt den förbrukas. Tid då en monitors övervakning är avstängd utelämnas: ingenting kontrollerar monitorn då, så den tiden varken förbrukar felbudgeten eller räknas som bra tid.
+Ett SLO mäter en av två saker. Ett SLO för monitorernas drifttid läser statustidslinjerna för de monitorer som är kopplade till det: samma data som dina statussidor visar. Ett SLO för begäranden räknar de begäranden som dess tjänster besvarar, utifrån deras spår: se [SLO:er för begäranden och latens](/docs/slo/request-slos). Resten av den här sidan beskriver SLO:er för monitorernas drifttid, och SLO:er för begäranden fungerar på samma sätt om inget annat anges. Utifrån dem beräknar OneUptime hur stor del av efterlevnadsfönstret som var bra tid, hur mycket av felbudgeten som finns kvar och hur snabbt den förbrukas. Tid då en monitors övervakning är avstängd utelämnas: ingenting kontrollerar monitorn då, så den tiden varken förbrukar felbudgeten eller räknas som bra tid. Detsamma gäller tiden före en monitors första kontroll: tills något har kontrollerat en monitor är dess status bara den fungerande som varje monitor skapas med, så ett SLO mäts från dess monitorers första kontroller, och ett SLO vars monitorer ingenting har kontrollerat än har ingenting att mäta förrän de kontrolleras.
 
 ```mermaid title="Från monitorkontroller till ett SLO:s status"
 flowchart TB
@@ -139,7 +139,7 @@ OneUptime ger varje utvärderat SLO en status:
 | **Felfri** | Mer budget finns kvar än tröskeln för riskzon. |
 | **I riskzonen** | Den återstående budgeten har sjunkit till tröskeln för riskzon eller lägre: 20 % som standard. |
 | **Budget förbrukad** | Budgeten är helt förbrukad, eller överskriden. |
-| **Felkonfigurerad** | SLO:et kan inte mätas: det har inga monitorer, dess monitorer finns inte längre eller har ännu inte registrerat någon status i fönstret, eller dess mål ligger utanför intervallet. Ett SLO för begäranden är felkonfigurerat utan tjänster, utan latensgräns eller innan dess tjänster har besvarat en begäran i fönstret. |
+| **Felkonfigurerad** | SLO:et kan inte mätas: det har inga monitorer, dess monitorer finns inte längre, ingenting har kontrollerat dem än eller de har ännu inte registrerat någon status i fönstret, eller dess mål ligger utanför intervallet. Ett SLO för begäranden är felkonfigurerat utan tjänster, utan latensgräns eller innan dess tjänster har besvarat en begäran i fönstret. |
 | **Pausad** | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd, för hand, av en manuell incident eller av schemalagt underhåll. Det fortsätter av sig självt så snart någon av dem övervakas igen. |
 
 Ett inaktiverat eller arkiverat SLO utvärderas inte, så dess status står kvar som den var; SLO-listan visar i stället en etikett **Inaktiverad** eller **Arkiverad**. Ett SLO:s ägare får en avisering när statusen ändras till **I riskzonen** eller **Budget förbrukad**: se [Felbudgetar](/docs/slo/error-budget).
@@ -195,6 +195,8 @@ När något hindrar ett SLO från att mäta talar en banner högst upp på var o
 - **Burn rate rules**: tröskeln för varje aktiverad regel bredvid den aktuella förbrukningstakten, för regler som ser högst 6 timmar bakåt, och vad regeln deklarerar.
 
 När SLO:et är i en nivå i sin felbudgetpolicy visar **Översikt** också den nivån och vad teamet har kommit överens om att göra i den: se [Felbudgetpolicy](/docs/slo/error-budget-policy).
+
+Kortet **Används av** listar förbrukningstaktsreglerna och nivåerna i felbudgetpolicyn som verkar på SLO:n, och instrumentpanelerna som visar den. När du arkiverar eller tar bort SLO:n sägs de först: dess regler och nivåer försvinner med den.
 
 ### Inställningar
 

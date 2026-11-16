@@ -41,6 +41,7 @@ import UpdateScopePermission from "../Types/Database/Permissions/UpdateScopePerm
 import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
 import SortValidator from "../Types/Database/Permissions/SortValidator";
 import RuleOwningTeams from "../Utils/Rules/RuleOwningTeams";
+import RuleSetCache from "../Utils/Rules/RuleSetCache";
 import TeamOwnedRulePermission, {
   TeamOwnedRuleColumn,
 } from "../Types/Database/Permissions/TeamOwnedRulePermission";
@@ -6858,6 +6859,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      */
     let finishCreate: (() => void) | null = null;
 
+    // Whether the row was written: a rule's then changes its project's rules.
+    let isRowWritten: boolean = false;
+
     try {
       /*
        * The INSERT itself, in save()'s own transaction - or, held to a
@@ -6876,6 +6880,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           return await this.getRepository().save(createBy.data);
         },
       );
+
+      isRowWritten = true;
 
       if (createBy.data?.id && this.getModel().tableName) {
         finishCreate = RecordsBeingCreated.start({
@@ -7008,6 +7014,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       throw this.getException(error as Exception);
     } finally {
       finishCreate?.();
+
+      /*
+       * A rule created - with its lists, and whatever its hooks wrote - is
+       * read again by every process (RuleSetCache): last, once nothing
+       * more of it is written, so no read can keep what came before.
+       */
+      if (isRowWritten) {
+        await RuleSetCache.afterCreate({
+          tableName: this.model.tableName,
+          row: createBy.data,
+        });
+      }
     }
   }
 
@@ -8294,6 +8312,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // Whether a failure came from the DELETE itself (see WriteProgress).
     const progress: WriteProgress = new WriteProgress();
 
+    // The rows the delete removes, once read (see RuleSetCache below).
+    let rowsOfDelete: Array<TBaseModel> = [];
+
     // A hook's read of the rows it removes reads rows deleted before too.
     hardDeletes.add(deleteBy);
 
@@ -8376,6 +8397,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         },
         true,
       );
+
+      rowsOfDelete = items;
 
       let numberOfDocsAffected: number = 0;
 
@@ -8485,6 +8508,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         progress.getFailedStatement(),
       );
       throw this.getException(error as Exception);
+    } finally {
+      /*
+       * A rule deleted, or a record a rule names (the database takes it out
+       * of the rule's lists): every process reads the rules again
+       * (RuleSetCache) - last, and also when the delete failed part way.
+       */
+      await RuleSetCache.afterDelete({
+        tableName: this.model.tableName,
+        rows: rowsOfDelete,
+      });
     }
   }
 
@@ -8643,6 +8676,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // Whether a failure came from the DELETE itself (see WriteProgress).
     const progress: WriteProgress = new WriteProgress();
 
+    // The rows the delete removes, once read (see RuleSetCache below).
+    let rowsOfDelete: Array<TBaseModel> = [];
+
     try {
       this.setTelemetryContextFromProps(deleteBy.props);
 
@@ -8740,6 +8776,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           ignoreHooks: true,
         },
       });
+
+      rowsOfDelete = items;
 
       /*
        * We are hard deleting anyway. So, this does not make sense. Please uncomment if
@@ -8923,6 +8961,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         progress.getFailedStatement(),
       );
       throw this.getException(error as Exception);
+    } finally {
+      // As in hardDeleteBy: every process reads the rules again (RuleSetCache).
+      await RuleSetCache.afterDelete({
+        tableName: this.model.tableName,
+        rows: rowsOfDelete,
+      });
     }
   }
 
@@ -10366,6 +10410,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // Whether a failure came from a row's UPDATE itself (see WriteProgress).
     const progress: WriteProgress = new WriteProgress();
 
+    /*
+     * The rows the update writes and what it writes to them, once read: a
+     * rule's change changes its project's rules (RuleSetCache).
+     */
+    let rowsOfWrite: Array<TBaseModel> = [];
+    let writtenData: unknown = undefined;
+
     try {
       this.setTelemetryContextFromProps(updateBy.props);
 
@@ -10699,6 +10750,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             props: { isRoot: true, ignoreHooks: true },
           })
         : [];
+
+      rowsOfWrite = items;
+      writtenData = data;
 
       /*
        * Only each record's own files, checked on the very rows this write
@@ -11215,6 +11269,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         progress.getFailedStatement(),
       );
       throw this.getException(error as Exception);
+    } finally {
+      /*
+       * Every process reads the rules the update changed again
+       * (RuleSetCache): last, once its hooks wrote what they write too, so
+       * no read can keep what came before - and also when it failed part
+       * way, after a row was written.
+       */
+      await RuleSetCache.afterUpdate({
+        tableName: this.model.tableName,
+        rows: rowsOfWrite,
+        written: writtenData,
+      });
     }
   }
 
@@ -12087,6 +12153,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const sql: string = `UPDATE "${statement.tableName}" SET ${statement.setSql} WHERE ${statement.whereSql}`;
 
     await this.getRepository().manager.query(sql, statement.params);
+
+    await this.afterWriteWithoutHooks(input.data);
+  }
+
+  /*
+   * After a hook-free write: one that changes what a read of the projects'
+   * rules returns has every process read them again (RuleSetCache).
+   */
+  private async afterWriteWithoutHooks(written: unknown): Promise<void> {
+    await RuleSetCache.afterWriteWithoutHooks({
+      tableName: this.model.tableName,
+      written: written,
+    });
   }
 
   /*
@@ -12128,6 +12207,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       sql,
       statement.params,
     );
+
+    await this.afterWriteWithoutHooks(input.data);
 
     return Array.isArray(result) && result.length > 0;
   }
@@ -12374,6 +12455,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       statement.params,
     );
 
+    await this.afterWriteWithoutHooks(input.data);
+
     return Array.isArray(result) && result.length > 0;
   }
 
@@ -12453,6 +12536,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const sql: string = `UPDATE "${statement.tableName}" SET ${statement.setSql} WHERE "${statement.primaryColumnName}" = $${statement.params.length}`;
 
     await this.getRepository().manager.query(sql, statement.params);
+
+    await this.afterWriteWithoutHooks({ ...input.add, ...(input.set || {}) });
   }
 
   /*
@@ -12500,6 +12585,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       sql,
       statement.params,
     );
+
+    await this.afterWriteWithoutHooks({ ...input.add, ...(input.set || {}) });
 
     const row: unknown = Array.isArray(result) ? result[0] : undefined;
 
@@ -12686,6 +12773,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data.id.toString(),
     ]);
 
+    await this.afterWriteWithoutHooks({ [data.columnName as string]: 1 });
+
     /*
      * TypeORM's Postgres driver returns `[rows, affectedCount]` for an UPDATE
      * and a bare row array for everything else, so both shapes are unwrapped
@@ -12738,6 +12827,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data.columnName as string,
       1,
     );
+
+    await this.afterWriteWithoutHooks({ [data.columnName as string]: 1 });
   }
 
   /*
@@ -12757,6 +12848,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data.columnName as string,
       data.value,
     );
+
+    await this.afterWriteWithoutHooks({
+      [data.columnName as string]: data.value,
+    });
   }
 
   @CaptureSpan()

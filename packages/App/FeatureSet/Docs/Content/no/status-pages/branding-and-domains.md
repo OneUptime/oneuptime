@@ -208,14 +208,14 @@ I **Domene** (plassholder `status.example.com`) skriver du hele adressen folk sk
 
 #### Behold det gratis sertifikatet, eller last opp ditt eget
 
-**Flere felt** er slått sammen, og overskriften sier hvilket sertifikat domenet skal bruke: «Vi utsteder et gratis SSL-sertifikat for dette domenet og fornyer det automatisk.» Åpne det bare for å bruke ditt eget sertifikat: slå på **Last opp tilpasset sertifikat**, og lim deretter inn **Sertifikat** og **Sertifikatets private nøkkel** i PEM-format. Begge er da påkrevd.
+**Flere felt** er slått sammen, og overskriften sier hvilket sertifikat domenet skal bruke: «Vi utsteder et gratis SSL-sertifikat for dette domenet og fornyer det automatisk.» Åpne det bare for å bruke ditt eget sertifikat: slå på **Last opp tilpasset sertifikat**, og lim deretter inn **Sertifikat** og **Sertifikatets private nøkkel** i PEM-format. Begge er da påkrevd. Nøkkelen lagres kryptert og vises aldri igjen. Et sertifikat og en nøkkel som ikke hører sammen, avvises, med årsaken under feltet som er feil.
 
 #### Fortsett
 
 Klikk på **Fortsett**. Hvis prosjektet har verifisert domenet adressen ligger på, legges domenet til, og **DNS-oppsett** for det åpnes, med CNAME-posten som skal legges til. Hvis ikke, legger OneUptime til det domenet under **Prosjektinnstillinger → Avansert → Domener**, og **DNS-oppsett** åpnes med begge postene, så du verifiserer domenet der og da, uten å forlate siden.
 :::
 
-Et domenes fulle navn ligger fast når du legger det til, så **Rediger** endrer bare sertifikatet. For å bruke en annen adresse legger du til den og sletter den gamle. Et navn som et dashbord eller et skjema allerede bruker, i hvilket som helst prosjekt, avvises: ett domene viser én statusside, ett dashbord eller ett skjema.
+Et domenes fulle navn ligger fast når du legger det til, så **Rediger** endrer bare sertifikatet. På et domene som serverer ditt eget sertifikat, er **Sertifikatets private nøkkel** tom i dialogen **Rediger**: la den stå tom for å beholde den lagrede nøkkelen, som er alt et sertifikat fornyet med samme nøkkel trenger, eller lim inn en ny nøkkel. På et domene med det gratis sertifikatet ber **Last opp tilpasset sertifikat** om nøkkelen når du slår det på. For å bruke en annen adresse legger du til den og sletter den gamle. Et navn som et dashbord eller et skjema allerede bruker, i hvilket som helst prosjekt, avvises: ett domene viser én statusside, ett dashbord eller ett skjema.
 
 Å legge til et domene i prosjektet krever tillatelse til å opprette prosjektdomener (**Create Domain**, eller Prosjekteier eller Prosjektadministrator), og å verifisere det krever **Edit Domain**. Uten dem sier dialogen hvem som kan gjøre det.
 

@@ -92,9 +92,11 @@ Um einen Monitor aus der Gruppe zu nehmen, klicken Sie in **Monitore in der Grup
 
 Die Verfügbarkeit in der **Übersicht** zählt jeden Status außer dem betriebsbereiten als Ausfallzeit. Eine Statusseite zählt nur die Status in ihrer eigenen Liste **Zählt als Ausfallzeit**: siehe [Auswählen, was auf der Seite angezeigt wird](/docs/status-pages/index#auswählen-was-auf-der-seite-erscheint).
 
-Jeder Balken des Verfügbarkeits-Diagramms, hier und auf einer Statusseite, zeigt, wie lange die Gruppe selbst an diesem Tag in jedem Status war: In jedem Moment hat sie den schlechtesten Status ihrer Monitore, sodass eine Stunde, in der zwei von ihnen gleichzeitig offline sind, eine Stunde der Gruppe ist und ein Tag nie mehr als einen Tag ergibt. Die Tage sind Ihre eigenen: Das Dashboard zeichnet sie in der Zeitzone Ihrer Benutzereinstellungen, eine Statusseite in der jedes Besuchers.
+Jeder Balken des Verfügbarkeits-Diagramms, hier und auf einer Statusseite, zeigt, wie lange die Gruppe selbst an diesem Tag in jedem Status war: In jedem Moment hat sie den schlechtesten Status ihrer Monitore, sodass eine Stunde, in der zwei von ihnen gleichzeitig offline sind, eine Stunde der Gruppe ist und ein Tag nie mehr als einen Tag ergibt. Die Tage sind Ihre eigenen: Das Dashboard zeichnet sie in der Zeitzone Ihrer Benutzereinstellungen, eine Statusseite in der jedes Besuchers. Die Zeit eines Monitors vor seiner ersten Prüfung ist nicht darin enthalten: Bis etwas einen Monitor geprüft hat, ist sein Status nur der betriebsbereite, in dem jeder Monitor angelegt wird, daher lassen die Balken und die Verfügbarkeit der Gruppe diese Zeit aus. Das Dashboard misst sie aus jeder Statusänderung der Monitore der Gruppe, wie viele es auch sind, so wie eine Statusseite.
 
 Die Liste **Monitor-Gruppen** kann Gruppen nach Eigentümer und Label filtern, Labels und Eigentümer für viele Gruppen auf einmal setzen und Gruppen als JSON exportieren oder importieren.
+
+Die **Übersicht** hat außerdem eine Karte **Verwendet von**: die Statusseiten, die die Gruppe zeigen, und die SLOs, die ihre Monitore messen. Zeigt keine Statusseite sie, sagt die Karte es und verlinkt zu den Statusseiten. Wer die Gruppe löscht, auf ihrer Seite oder aus der Liste, sieht zuerst, welche Statusseiten sie zeigen.
 
 ## Überwachung für eine ganze Gruppe ausschalten
 

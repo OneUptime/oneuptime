@@ -103,6 +103,8 @@ Le rôle que vous choisissez devient la première autorisation de l'équipe, pou
 
 Où le trouver : ouvrez une équipe depuis **Équipes** pour accéder à **Membres** et **Autorisations** ; ses rôles personnalisés et **Bloquer les autorisations** se trouvent sous **Plus de paramètres**, en bas de la page Autorisations, dont l'en-tête replié indique combien l'équipe en a de chaque.
 
+La page d'une équipe a une carte **Utilisé par** : les politiques d'astreinte dont les règles d'escalade appellent l'équipe, et tout ce qu'elle possède, des moniteurs et pages de statut aux SLOs, tableaux de bord, infrastructure et incidents. Supprimer une équipe, sur sa page ou depuis la liste, le dit d'abord : ses politiques n'appellent plus ses membres, et elle ne les possède plus. Ce que vous ne pouvez pas ouvrir est compté, pas nommé.
+
 ## Autorisations
 
 Une autorisation est une capacité unique. Il y a deux façons de les distribuer, toutes deux dans l'onglet **Autorisations** de l'équipe.

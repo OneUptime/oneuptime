@@ -416,7 +416,7 @@ describe("StatusPageReportTreeUtil", () => {
       expect(unitRow.totalResources).toBe(2);
     });
 
-    test("still renders a group whose metrics are missing, as zeroes", () => {
+    test("still renders a group whose metrics are missing, with no figures rather than a 0% it never measured", () => {
       const structure: StatusPageReportStructure =
         StatusPageReportTreeUtil.build({
           entries: makeNestedEntries(),
@@ -426,9 +426,10 @@ describe("StatusPageReportTreeUtil", () => {
 
       const corporate: StatusPageReportGroup = structure.groups[0]!;
 
-      expect(corporate.uptimePercent).toBe(0);
-      expect(corporate.uptimePercentAsString).toBe("0%");
-      expect(corporate.downtimeInHoursAndMinutes).toBe("0");
+      // Issue #9030: no number is a dash, as the status page writes it.
+      expect(corporate.uptimePercent).toBeNull();
+      expect(corporate.uptimePercentAsString).toBe("\u2014");
+      expect(corporate.downtimeInHoursAndMinutes).toBe("\u2014");
       expect(corporate.totalIncidentCount).toBe(0);
       // the level is still on the report - a missing number beats a missing level.
       expect(rowNames(structure.rows)).toContain("Corporate Unit's");

@@ -391,7 +391,7 @@ För en incident som är begränsad till vissa statussidor gäller regeln om ett
 
 ## E-postrapporter
 
-En statussida kan skicka sina prenumeranter en rapport via e-post enligt ett schema: för varje resurs på sidan dess upptid, dess driftstopp och dess incidenter under en period. Det anges på kortet **E-postrapporter** under **Statussidor → din sida → Avancerad → Rapporter**.
+En statussida kan skicka sina prenumeranter en rapport via e-post enligt ett schema: för varje resurs på sidan dess upptid, dess driftstopp och dess incidenter under en period. En resurs som ingenting mättes för under den tiden, eftersom ingenting hade kontrollerat den än eller dess övervakning var avstängd, har ingen upptid och inget driftstopp i rapporten: båda visas som ett tankstreck, med Inte övervakad än eller Inte övervakad under dess namn som på statussidan, och den räknas inte in i gruppens och sidans genomsnittliga upptid. Det anges på kortet **E-postrapporter** under **Statussidor → din sida → Avancerad → Rapporter**.
 
 - **Skicka e-postrapporter** slår på och av rapporter och sparas så fort du slår om det. Det finns inget att fylla i i något av fallen.
 - **Första gången rapporter slås på** får sidan ett schema: en rapport den 1:a varje månad kl. 09:00, med start nästa 1:a i månaden, var och en om hela den föregående kalendermånaden, så rapporten som skickas den 1 november täcker oktober. 09:00 är i rapportens tidszon, som är UTC om du inte ändrar den.

@@ -582,8 +582,19 @@ export function getWhoIsToldBreakMessage(
           brk.problem || WhoIsToldPersonProblem.NoVerifiedMethod
         ]
       }, so a page won't reach them.`;
-    case WhoIsToldBreakKind.ChannelOff:
-      return `${brk.channel ? getOnCallPageChannelName(brk.channel as OnCallPageChannel) : "A channel"} is off in this project, so pages that use it are not sent. A Project Owner or Project Admin turns it on in Notification Channels.`;
+    case WhoIsToldBreakKind.ChannelOff: {
+      /*
+       * A channel costs money, so its switch is billing: a Project Owner, a
+       * Billing Admin or someone with Manage Billing flips it, never a
+       * Project Admin (Utils/Project/NotificationChannels, whose words
+       * these are). "phone call" starts the sentence: "Phone call is off".
+       */
+      const channel: string = brk.channel
+        ? getOnCallPageChannelName(brk.channel as OnCallPageChannel)
+        : "a channel";
+
+      return `${channel.charAt(0).toUpperCase()}${channel.slice(1)} is off in this project, so pages that use it are not sent. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.`;
+    }
     case WhoIsToldBreakKind.NoBalance:
       return "This project has no balance left for SMS and calls, so they are not sent. Add balance, or turn on auto-recharge, in Billing.";
     case WhoIsToldBreakKind.ServerCannotSend:

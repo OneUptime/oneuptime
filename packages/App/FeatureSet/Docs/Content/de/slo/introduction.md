@@ -12,7 +12,7 @@ Ein Service Level Objective (SLO) ist ein Zuverlässigkeitsziel für das, was Si
 
 ## So funktioniert es
 
-Ein SLO misst eines von zwei Dingen. Ein SLO der Monitor-Verfügbarkeit liest die Status-Zeitleisten der Monitore, die ihm zugeordnet sind: dieselben Daten, die Ihre Statusseiten zeigen. Ein Anfrage-SLO zählt die Anfragen, die seine Dienste beantworten, aus ihren Traces: siehe [Anfrage- und Latenz-SLOs](/docs/slo/request-slos). Der Rest dieser Seite beschreibt SLOs der Monitor-Verfügbarkeit, und Anfrage-SLOs funktionieren genauso, sofern nicht anders angegeben. Daraus berechnet OneUptime, welcher Anteil des Compliance-Zeitfensters gute Zeit war, wie viel Fehlerbudget übrig ist und wie schnell es verbraucht wird. Zeit, in der die Überwachung eines Monitors ausgeschaltet ist, bleibt außen vor: Nichts prüft den Monitor dann, also verbraucht diese Zeit weder Fehlerbudget, noch zählt sie als gute Zeit.
+Ein SLO misst eines von zwei Dingen. Ein SLO der Monitor-Verfügbarkeit liest die Status-Zeitleisten der Monitore, die ihm zugeordnet sind: dieselben Daten, die Ihre Statusseiten zeigen. Ein Anfrage-SLO zählt die Anfragen, die seine Dienste beantworten, aus ihren Traces: siehe [Anfrage- und Latenz-SLOs](/docs/slo/request-slos). Der Rest dieser Seite beschreibt SLOs der Monitor-Verfügbarkeit, und Anfrage-SLOs funktionieren genauso, sofern nicht anders angegeben. Daraus berechnet OneUptime, welcher Anteil des Compliance-Zeitfensters gute Zeit war, wie viel Fehlerbudget übrig ist und wie schnell es verbraucht wird. Zeit, in der die Überwachung eines Monitors ausgeschaltet ist, bleibt außen vor: Nichts prüft den Monitor dann, also verbraucht diese Zeit weder Fehlerbudget, noch zählt sie als gute Zeit. Ebenso die Zeit vor der ersten Prüfung eines Monitors: Bis etwas einen Monitor geprüft hat, ist sein Status nur der betriebsbereite, in dem jeder Monitor angelegt wird, daher wird ein SLO ab den ersten Prüfungen seiner Monitore gemessen, und ein SLO, dessen Monitore noch nicht geprüft wurden, hat nichts zu messen, bis sie geprüft werden.
 
 ```mermaid title="Von Monitorprüfungen zum Status eines SLO"
 flowchart TB
@@ -139,7 +139,7 @@ OneUptime gibt jedem ausgewerteten SLO einen Status:
 | **Fehlerfrei** | Es ist mehr als die Risikoschwelle des Budgets übrig. |
 | **Gefährdet** | Das verbleibende Budget ist auf die Risikoschwelle oder darunter gefallen: standardmäßig 20 %. |
 | **Budget ausgeschöpft** | Das Budget ist vollständig oder mehr als vollständig verbraucht. |
-| **Falsch konfiguriert** | Das SLO kann nicht gemessen werden: Es hat keine Monitore, seine Monitore existieren nicht mehr oder haben in seinem Zeitfenster noch keinen Status erfasst, oder sein Ziel liegt außerhalb des zulässigen Bereichs. Ein Anfrage-SLO ist falsch konfiguriert, wenn es keine Dienste oder keine Latenzschwelle hat, oder solange seine Dienste in seinem Zeitfenster noch keine Anfrage beantwortet haben. |
+| **Falsch konfiguriert** | Das SLO kann nicht gemessen werden: Es hat keine Monitore, seine Monitore existieren nicht mehr, wurden noch nicht geprüft, oder sie haben in seinem Zeitfenster noch keinen Status erfasst, oder sein Ziel liegt außerhalb des zulässigen Bereichs. Ein Anfrage-SLO ist falsch konfiguriert, wenn es keine Dienste oder keine Latenzschwelle hat, oder solange seine Dienste in seinem Zeitfenster noch keine Anfrage beantwortet haben. |
 | **Pausiert** | Jeder Monitor, den es misst, ist archiviert oder hat die aktive Überwachung abgeschaltet, von Hand, durch einen manuellen Vorfall oder durch geplante Wartung. Es läuft von selbst weiter, sobald einer davon wieder überwacht wird. |
 
 Ein abgeschaltetes oder archiviertes SLO wird nicht ausgewertet, sein Status bleibt also, wo er war; die SLO-Liste zeigt stattdessen eine Kennzeichnung **Deaktiviert** oder **Archiviert**. Die Eigentümer eines SLO werden benachrichtigt, wenn sich der Status zu **Gefährdet** oder **Budget ausgeschöpft** ändert: siehe [Fehlerbudgets](/docs/slo/error-budget).
@@ -195,6 +195,8 @@ Die **Übersicht** beantwortet „Sind wir im Budget?“, von oben nach unten:
 - **Burn-Rate-Regeln**: der Schwellenwert jeder aktivierten Regel neben der aktuellen Burn-Rate, für Regeln, die 6 Stunden oder weniger zurückblicken, und was die Regel meldet.
 
 Ist das SLO in einer Stufe seiner Fehlerbudget-Richtlinie, zeigt die **Übersicht** auch diese Stufe und was das Team in ihr vereinbart hat: siehe [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy).
+
+Die Karte **Verwendet von** listet die Burn-Rate-Regeln und die Stufen der Fehlerbudget-Richtlinie, die auf das SLO wirken, und die Dashboards, die es zeigen. Wer das SLO archiviert oder löscht, sieht sie zuerst: Seine Regeln und Stufen werden mit ihm gelöscht.
 
 ### Einstellungen
 

@@ -103,6 +103,8 @@ Die gewählte Rolle wird zur ersten Berechtigung des Teams, für alle Ressourcen
 
 Wo Sie es finden: Öffnen Sie ein Team unter **Teams**, um zu **Mitglieder** und **Berechtigungen** zu gelangen; seine benutzerdefinierten Rollen und **Berechtigungen blockieren** liegen unter **Weitere Einstellungen** unten auf der Seite Berechtigungen, deren eingeklappte Überschrift zeigt, wie viele von beiden das Team hat.
 
+Die Seite eines Teams hat eine Karte **Verwendet von**: die Bereitschaftsrichtlinien, deren Eskalationsregeln das Team alarmieren, und alles, was das Team besitzt, von Monitoren und Statusseiten bis zu SLOs, Dashboards, Infrastruktur und Vorfällen. Wer ein Team löscht, auf seiner Seite oder aus der Liste, sieht das zuerst: Seine Richtlinien alarmieren seine Mitglieder nicht mehr, und es besitzt nichts mehr davon. Was Sie nicht öffnen dürfen, wird gezählt, aber nicht genannt.
+
 ## Berechtigungen
 
 Eine Berechtigung ist eine einzelne Fähigkeit. Es gibt zwei Wege, sie zu vergeben, und beide liegen auf dem Tab **Berechtigungen** des Teams.

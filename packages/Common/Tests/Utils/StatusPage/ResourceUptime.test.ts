@@ -1217,13 +1217,79 @@ describe("StatusPageResourceUptimeUtil", () => {
         ).toBe(100);
       });
 
+      test("a monitor whose buckets cover nothing has no uptime, whatever its rows say (issue #8960)", () => {
+        /*
+         * The aggregate measured it - a bucket for every day of the window -
+         * and found nothing to count: no check has come back yet, or its
+         * monitoring was off. Its rows still hold that time, in the status
+         * the monitor was created in, and would read it as up; an average of
+         * the page's resources would be lifted by it.
+         */
+        const resource: StatusPageResource = monitorResource({
+          monitorId: MONITOR_A,
+        });
+
+        for (const rows of [
+          sixDaysOfflineRows(MONITOR_A),
+          operationalTail(MONITOR_A),
+        ]) {
+          expect(
+            StatusPageResourceUptimeUtil.calculateUptimePercentOfResource({
+              statusPageResource: resource,
+              monitorStatusTimelines: rows,
+              precision: UptimePrecision.THREE_DECIMAL,
+              downtimeMonitorStatuses: downtimeStatuses(),
+              monitorsInGroup: {},
+              uptimeWindow: WINDOW,
+              uptimeDailyAggregate: aggregateOf([[MONITOR_A, noDataDays(60)]]),
+            }),
+          ).toBeNull();
+        }
+      });
+
+      test("a status page group's average leaves a resource with no uptime out, rather than counting it as up (issue #8960)", () => {
+        const group: StatusPageGroup = new StatusPageGroup();
+        group._id = ObjectID.generate().toString();
+        group.showUptimePercent = true;
+        group.uptimePercentPrecision = UptimePrecision.THREE_DECIMAL;
+
+        const measured: StatusPageResource = monitorResource({
+          monitorId: MONITOR_A,
+        });
+        measured.statusPageGroupId = new ObjectID(group._id);
+
+        const notCheckedYet: StatusPageResource = monitorResource({
+          monitorId: MONITOR_B,
+        });
+        notCheckedYet.statusPageGroupId = new ObjectID(group._id);
+
+        const aggregate: UptimeDailyAggregate = aggregateOf([
+          [MONITOR_A, chainflipBuckets()],
+          [MONITOR_B, noDataDays(60)],
+        ]);
+
+        const average: number | null =
+          StatusPageResourceUptimeUtil.calculateAvgUptimePercentOfStatusPageGroup(
+            {
+              statusPageGroup: group,
+              monitorStatusTimelines: [
+                ...operationalTail(MONITOR_A),
+                ...operationalTail(MONITOR_B),
+              ],
+              precision: UptimePrecision.THREE_DECIMAL,
+              downtimeMonitorStatuses: downtimeStatuses(),
+              statusPageResources: [measured, notCheckedYet],
+              monitorsInGroup: {},
+              uptimeWindow: WINDOW,
+              uptimeDailyAggregate: aggregate,
+            },
+          );
+
+        // The measured monitor's alone, not halfway to 100%.
+        expect(average).toBe(CHAINFLIP_UPTIME_THREE_DECIMAL);
+      });
+
       test.each([
-        [
-          "its buckets cover nothing",
-          (): UptimeDailyAggregate => {
-            return aggregateOf([[MONITOR_A, noDataDays(60)]]);
-          },
-        ],
         [
           "it is missing from the aggregate",
           (): UptimeDailyAggregate => {
@@ -1769,15 +1835,32 @@ describe("StatusPageResourceUptimeUtil", () => {
           ).toBe(90);
         });
 
-        test.each([
-          [
-            "nothing was recorded for it",
-            (): Dictionary<MergedDowntimeTotals> => {
-              return mergedFor([
+        test("a monitor group the server merged and found nothing recorded for has no uptime, not its rows' (issue #8960)", () => {
+          /*
+           * Its monitors not checked yet, or off the whole window: the rows
+           * hold that time in the status a monitor is created in.
+           */
+          const rows: Array<MonitorStatusTimeline> = [
+            ...sixDaysOfflineRows(MONITOR_A),
+            makeRow({
+              monitorId: MONITOR_B,
+              status: operational(),
+              startsAt: new Date(WINDOW.startDate.getTime() + 6 * DAY_MS),
+            }),
+          ];
+
+          expect(groupUptime({ rows: rows })).toBe(90);
+          expect(
+            groupUptime({
+              rows: rows,
+              monitorGroupMergedDowntime: mergedFor([
                 [MONITOR_GROUP, { coveredSeconds: 0, downtimeSeconds: 0 }],
-              ]);
-            },
-          ],
+              ]),
+            }),
+          ).toBeNull();
+        });
+
+        test.each([
           [
             "only another monitor group has a figure",
             (): Dictionary<MergedDowntimeTotals> => {

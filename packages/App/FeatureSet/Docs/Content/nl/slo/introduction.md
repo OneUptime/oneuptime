@@ -12,7 +12,7 @@ Een service level objective (SLO) is een betrouwbaarheidsdoel voor wat u draait,
 
 ## Zo werkt het
 
-Een SLO meet een van twee dingen. Een SLO voor monitorbeschikbaarheid leest de statustijdlijnen van de monitoren die eraan gekoppeld zijn: dezelfde gegevens die uw statuspagina's tonen. Een SLO voor aanvragen telt de aanvragen die zijn services afhandelen, uit hun traces: zie [SLO's voor aanvragen en latentie](/docs/slo/request-slos). De rest van deze pagina beschrijft SLO's voor monitorbeschikbaarheid, en SLO's voor aanvragen werken op dezelfde manier, tenzij er iets anders staat. Daaruit berekent OneUptime welk deel van het compliancevenster goede tijd was, hoeveel van het foutbudget over is en hoe snel het opraakt. Tijd waarin de bewaking van een monitor uit staat, telt niet mee: niets controleert de monitor dan, dus die tijd verbruikt geen foutbudget en telt ook niet als goede tijd.
+Een SLO meet een van twee dingen. Een SLO voor monitorbeschikbaarheid leest de statustijdlijnen van de monitoren die eraan gekoppeld zijn: dezelfde gegevens die uw statuspagina's tonen. Een SLO voor aanvragen telt de aanvragen die zijn services afhandelen, uit hun traces: zie [SLO's voor aanvragen en latentie](/docs/slo/request-slos). De rest van deze pagina beschrijft SLO's voor monitorbeschikbaarheid, en SLO's voor aanvragen werken op dezelfde manier, tenzij er iets anders staat. Daaruit berekent OneUptime welk deel van het compliancevenster goede tijd was, hoeveel van het foutbudget over is en hoe snel het opraakt. Tijd waarin de bewaking van een monitor uit staat, telt niet mee: niets controleert de monitor dan, dus die tijd verbruikt geen foutbudget en telt ook niet als goede tijd. Hetzelfde geldt voor de tijd vóór de eerste controle van een monitor: zolang niets een monitor heeft gecontroleerd, is zijn status alleen de operationele status waarmee elke monitor wordt aangemaakt, dus een SLO wordt gemeten vanaf de eerste controles van zijn monitoren, en een SLO waarvan nog niets de monitoren heeft gecontroleerd, heeft niets te meten tot ze worden gecontroleerd.
 
 ```mermaid title="Van monitorcontroles naar de status van een SLO"
 flowchart TB
@@ -139,7 +139,7 @@ OneUptime geeft elke geëvalueerde SLO een status:
 | **Gezond** | Er is meer budget over dan de risicodrempel. |
 | **Risico** | Het resterende budget is gedaald tot de risicodrempel of lager: standaard 20%. |
 | **Budget uitgeput** | Het budget is helemaal op, of overschreden. |
-| **Verkeerd geconfigureerd** | De SLO kan niet worden gemeten: hij heeft geen monitoren, zijn monitoren bestaan niet meer of hebben in zijn venster nog geen status geregistreerd, of zijn doel valt buiten het bereik. Een SLO voor aanvragen is verkeerd geconfigureerd zonder services, zonder latentiedrempel, of zolang zijn services in zijn venster nog geen aanvraag hebben afgehandeld. |
+| **Verkeerd geconfigureerd** | De SLO kan niet worden gemeten: hij heeft geen monitoren, zijn monitoren bestaan niet meer, zijn nog door niets gecontroleerd of hebben in zijn venster nog geen status geregistreerd, of zijn doel valt buiten het bereik. Een SLO voor aanvragen is verkeerd geconfigureerd zonder services, zonder latentiedrempel, of zolang zijn services in zijn venster nog geen aanvraag hebben afgehandeld. |
 | **Gepauzeerd** | Alle monitoren die hij meet, zijn gearchiveerd of hebben actieve bewaking uitgeschakeld, met de hand, door een handmatig incident of door gepland onderhoud. Hij gaat vanzelf verder zodra een van die monitoren weer wordt bewaakt. |
 
 Een uitgeschakelde of gearchiveerde SLO wordt niet geëvalueerd, dus zijn status blijft zoals hij was; de SLO-lijst toont in plaats daarvan een badge **Uitgeschakeld** of **Gearchiveerd**. De eigenaren van een SLO krijgen een melding als de status verandert in **Risico** of **Budget uitgeput**: zie [Foutbudgetten](/docs/slo/error-budget).
@@ -195,6 +195,8 @@ Het **Overzicht** beantwoordt "zitten we binnen het budget?", van boven naar ben
 - **Burn rate rules**: de drempel van elke ingeschakelde regel naast de huidige verbruikssnelheid, voor regels die 6 uur of minder terugkijken, en wat de regel meldt.
 
 Als de SLO in een niveau van zijn foutbudgetbeleid zit, toont het **Overzicht** ook dat niveau en wat het team daarin heeft afgesproken: zie [Foutbudgetbeleid](/docs/slo/error-budget-policy).
+
+De kaart **Gebruikt door** toont de verbruikssnelheidsregels en de niveaus van het foutbudgetbeleid die op de SLO werken, en de dashboards die haar tonen. De SLO archiveren of verwijderen zegt deze eerst: haar regels en niveaus verdwijnen met haar.
 
 ### Instellingen
 

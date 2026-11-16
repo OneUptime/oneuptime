@@ -94,6 +94,17 @@ export interface FirstCheckScheduleFields {
 }
 
 /*
+ * When a monitor's time starts to count for its uptime and its SLOs (issues
+ * #8960 and #9031), for code that measures a monitor's status timeline rows
+ * itself (Utils/Uptime/TimeBeforeFirstCheck):
+ *
+ *   - undefined: from the start, so nothing is left out;
+ *   - null: never, as nothing has checked the monitor yet;
+ *   - a date: its first check.
+ */
+export type MeasuredFrom = Date | null | undefined;
+
+/*
  * The families whose first result has a time it is due by: run on a
  * schedule the page can see (getCheckFreshness). A pushed or event-driven
  * monitor waits for its first signal however long it takes.
@@ -122,6 +133,50 @@ export default class MonitorFirstCheck {
     }
 
     return monitor.monitorType !== MonitorType.Manual;
+  }
+
+  /*
+   * When the monitor's time starts to count (MeasuredFrom): what
+   * MonitorStatusTimelineService.getMeasuredFromCte works out in SQL for
+   * the status pages and the Dashboard, so an SLO measures a monitor over
+   * the same time they do.
+   *
+   * From the start for a manual monitor (its status is the one a person
+   * sets), for one of no known type and for one read without the column,
+   * which counts as measured, as everywhere else. And from the start for
+   * every monitor until the upgrade has put the column right for history
+   * (isUptimeHistoryReady, the DataMigrations row of
+   * BackfillMonitorFirstMeasuredAtForUptimeHistory): a result that came
+   * back during the upgrade stamped the monitor with the upgrade's time, so
+   * its history would read as never checked until that has run. Never while
+   * nothing has checked it, and from its first check otherwise. A date that
+   * cannot be read counts from the start.
+   */
+  public static getMeasuredFrom(data: {
+    monitor: MonitorFirstCheckFields | null | undefined;
+    isUptimeHistoryReady: boolean;
+  }): MeasuredFrom {
+    const monitor: MonitorFirstCheckFields | null | undefined = data.monitor;
+
+    if (
+      !data.isUptimeHistoryReady ||
+      !monitor ||
+      !monitor.monitorType ||
+      monitor.monitorType === MonitorType.Manual ||
+      monitor.firstMeasuredAt === undefined
+    ) {
+      return undefined;
+    }
+
+    if (monitor.firstMeasuredAt === null) {
+      return null;
+    }
+
+    const firstMeasuredAt: Date = new Date(monitor.firstMeasuredAt);
+
+    return Number.isNaN(firstMeasuredAt.getTime())
+      ? undefined
+      : firstMeasuredAt;
   }
 
   /*

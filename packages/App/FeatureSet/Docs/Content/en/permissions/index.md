@@ -103,6 +103,8 @@ The role you pick becomes the team's first permission, for all resources in the 
 
 Where to find it: open a team from **Teams** to reach **Members** and **Permissions**; its custom roles and **Block Permissions** are under **More settings** at the bottom of the Permissions page, whose folded header shows how many of each the team has.
 
+A team's page has a **Used by** card: the on-call policies whose escalation rules page the team, and everything the team owns, from monitors and status pages to SLOs, dashboards, infrastructure and incidents. Deleting a team, on its page or from the list, says these first: its policies stop paging its members, and it stops owning them. What you may not open is counted, not named.
+
 ## Permissions
 
 A permission is one capability. There are two ways to hand them out, and both live on the team's **Permissions** tab.

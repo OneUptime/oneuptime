@@ -18,6 +18,7 @@ import CustomDomainDnsSetupModal, {
   CustomDomainDnsSetupProjectDomain,
 } from "./CustomDomainDnsSetupModal";
 import CustomDomainServerReadinessNotice from "./CustomDomainServerReadinessNotice";
+import CustomDomainEvents from "./CustomDomainEvents";
 import {
   isUploadedCertificateRefusal,
   isUploadedKeyRefusal,
@@ -42,7 +43,12 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Domain from "Common/Models/DatabaseModels/Domain";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 /*
  * Add Custom Domain, for a status page, a dashboard or a form: one field,
@@ -77,6 +83,10 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  *
  * On a self-hosted server, what the server still needs before any custom
  * domain can work is said above the field (CustomDomainServerReadiness).
+ *
+ * Opening it, and adding the address's domain to the project, are product
+ * events (CustomDomainEvents, #7024): with DNS Setup's, they say where
+ * people stop on the way to a verified domain.
  */
 
 export interface ComponentProps {
@@ -258,6 +268,10 @@ const AddCustomDomainModal: FunctionComponent<ComponentProps> = (
     isCustomCertificate: false,
   });
 
+  useEffect(() => {
+    CustomDomainEvents.addStarted(props.kind);
+  }, []);
+
   // Checking a domain's TXT record verifies it: an update of the domain.
   const verifyDomainGate: PermissionGateResult = PermissionGate.check(
     new Domain(),
@@ -423,6 +437,8 @@ const AddCustomDomainModal: FunctionComponent<ComponentProps> = (
           modelType: Domain,
         });
 
+        CustomDomainEvents.projectDomainAdded(props.kind);
+
         // Read back for its verification text, which the server writes.
         projectDomain = findProjectDomainForAddress(
           parsed.fullDomain,
@@ -517,7 +533,10 @@ const AddCustomDomainModal: FunctionComponent<ComponentProps> = (
       submitButtonText={CustomDomainCopy.addSubmit}
       onClose={props.onClose}
       beforeFormElement={
-        <CustomDomainServerReadinessNotice kind={props.kind} />
+        <CustomDomainServerReadinessNotice
+          kind={props.kind}
+          eventSource="add"
+        />
       }
       onSubmit={(values: AddValues): void => {
         void onSubmit(values);

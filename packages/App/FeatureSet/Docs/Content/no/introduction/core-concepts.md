@@ -26,6 +26,8 @@ flowchart TB
     statuspage --> subscribers["Abonnenter"]
 ```
 
+Siden til hver post sier også hva som bruker den. Kortet **Brukes av** for en monitor viser statussidene som viser den, monitorgruppene den er i, SLO-ene som måler den, kommende vedlikehold som nevner den, monitorene som er avhengige av den, reglene og malene som nevner den, og arbeidsflytene og dashbordene som bruker den. Det du ikke kan åpne, telles, men navngis ikke. Når du sletter eller arkiverer en post, sies det samme først, på dens egne sider og i listene.
+
 ## Prosjekter og personer
 
 Et **prosjekt** inneholder alt: monitorer, hendelser, vaktpolicyer, statussider, telemetri og innstillinger. De fleste bedrifter trenger ett, og noen har ett per miljø eller forretningsområde. Ingenting du oppretter i ett prosjekt, er synlig i et annet.

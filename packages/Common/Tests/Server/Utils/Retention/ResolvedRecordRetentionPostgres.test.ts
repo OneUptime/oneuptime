@@ -1851,5 +1851,129 @@ WHERE c.contype = 'f' AND c.confrelid = '"File"'::regclass`);
         expect(await exists("File", writtenUpFile)).toBe(true);
       });
     });
+
+    /*
+     * ISSUE #8896: a run starts after the project the last run stopped at
+     * and wraps around to the first. The two legs of a pass are bounded by
+     * Postgres' own order of ids, so they are read here from the database:
+     * between them every project is read once, the one the last run stopped
+     * at last.
+     */
+    describe("where a run starts (issue #8896)", () => {
+      // Three projects of this suite that keep incidents 90 days, in the database's order of ids.
+      async function threeProjectsInIdOrder(): Promise<Array<string>> {
+        const seeded: Array<string> = [];
+
+        for (let index: number = 0; index < 3; index++) {
+          seeded.push(
+            (
+              await seedProject({
+                incidentRetentionInDays: 90,
+                alertRetentionInDays: 0,
+                keepIncidentsWithCompletedPostmortem: true,
+              })
+            ).projectId,
+          );
+        }
+
+        const rows: Array<{ projectId: string }> = await database.query(
+          `SELECT "_id"::text AS "projectId" FROM "Project" WHERE "_id" = ANY($1::uuid[]) ORDER BY "_id" ASC`,
+          [seeded],
+        );
+
+        return rows.map((row: { projectId: string }): string => {
+          return row.projectId;
+        });
+      }
+
+      // Every page of one leg, this suite's three projects alone, in the order read.
+      async function legOfOurs(data: {
+        ours: Array<string>;
+        afterProjectId?: string | undefined;
+        throughProjectId?: string | undefined;
+      }): Promise<Array<string>> {
+        const read: Array<string> = [];
+        let afterProjectId: string | undefined = data.afterProjectId;
+
+        do {
+          const page: DueRetentionProjectsPage =
+            await ResolvedRecordRetention.findDueProjects({
+              kind: ResolvedRecordKind.Incident,
+              afterProjectId,
+              throughProjectId: data.throughProjectId,
+            });
+
+          for (const project of page.projects) {
+            if (data.ours.includes(project.projectId)) {
+              read.push(project.projectId);
+            }
+          }
+
+          afterProjectId = page.nextAfterProjectId;
+        } while (afterProjectId);
+
+        return read;
+      }
+
+      test("after the place, then from the first project up to it: each project once, the place last", async () => {
+        const [first, middle, last] = await threeProjectsInIdOrder();
+        const ours: Array<string> = [first!, middle!, last!];
+
+        expect(await legOfOurs({ ours, afterProjectId: middle })).toEqual([
+          last,
+        ]);
+        expect(await legOfOurs({ ours, throughProjectId: middle })).toEqual([
+          first,
+          middle,
+        ]);
+        expect(await legOfOurs({ ours, throughProjectId: first })).toEqual([
+          first,
+        ]);
+        expect(await legOfOurs({ ours, afterProjectId: last })).toEqual([]);
+      });
+
+      test("a run with a place kept works on every project once, in that order, and ends at the place", async () => {
+        const [first, middle, last] = await threeProjectsInIdOrder();
+        const started: Array<string> = [];
+        let place: string | undefined = middle;
+
+        // The place, kept in memory: there is no cache here.
+        const readCursor: jest.SpyInstance = jest
+          .spyOn(ResolvedRecordRetention, "readCursor")
+          .mockImplementation(async (): Promise<string | undefined> => {
+            return place;
+          });
+        const saveCursor: jest.SpyInstance = jest
+          .spyOn(ResolvedRecordRetention, "saveCursor")
+          .mockImplementation(
+            async (_kind: ResolvedRecordKind, projectId: string) => {
+              started.push(projectId);
+              place = projectId;
+            },
+          );
+
+        try {
+          const summary: ResolvedRecordRetentionSummary =
+            await ResolvedRecordRetention.run({
+              kind: ResolvedRecordKind.Incident,
+            });
+
+          expect(summary.isCutShort).toBe(false);
+          // No project is started twice in a pass.
+          expect(new Set(started).size).toBe(started.length);
+          expect(
+            started.filter((projectId: string): boolean => {
+              return [first, middle, last].includes(projectId);
+            }),
+          ).toEqual([last, first, middle]);
+          // The pass ends at the place it started from, and the next starts after it.
+          expect(started[started.length - 1]).toBe(middle);
+          expect(place).toBe(middle);
+        } finally {
+          readCursor.mockRestore();
+          saveCursor.mockRestore();
+        }
+      });
+    });
   },
 );

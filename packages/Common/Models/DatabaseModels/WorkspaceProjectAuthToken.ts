@@ -350,13 +350,26 @@ class WorkspaceProjectAuthToken extends BaseModel {
     read: [],
     update: [],
   })
+  /*
+   * The project's bot credential in the chat: the Slack bot token, the
+   * tenant's Microsoft Graph app token, or the Mattermost bot's access
+   * token with the server and team it works in (MattermostConnection). With
+   * it, anyone posts and reads as OneUptime's bot in the project's
+   * workspace. Server-only: nobody reads it through the API (read: []), and
+   * it is kept encrypted at rest (`encrypted: true`) - DatabaseService
+   * encrypts it on every write and decrypts it on every read, so every
+   * sender gets the token as the connect flow stored it. The
+   * EncryptProjectCredentials data migration encrypts the tokens stored
+   * before. Never read through a relation (EncryptedColumnsStayOffRelations):
+   * no model names this one.
+   */
   @TableColumn({
     secret: true,
+    encrypted: true,
     title: "Auth Token",
     required: true,
     unique: false,
     type: TableColumnType.VeryLongText,
-    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.VeryLongText,
