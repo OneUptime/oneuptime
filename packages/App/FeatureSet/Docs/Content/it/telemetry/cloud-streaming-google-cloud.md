@@ -27,7 +27,7 @@ flowchart TB
 ## Prima di iniziare
 
 - **Un progetto Google Cloud connesso.** Connettilo prima in **Cloud → Collega**: vedi [Collegare un account cloud](/docs/telemetry/cloud-accounts).
-- **Un proprietario o un amministratore del progetto.** Solo loro possono creare una chiave del flusso e interrompere la trasmissione.
+- **Un Proprietario del progetto o un Amministratore del progetto.** Solo loro possono creare una chiave del flusso e interrompere la trasmissione.
 - **Google Cloud Shell**, con l'accesso come **Owner** dei progetti, o come qualcuno che può crearvi account di servizio, argomenti Pub/Sub e sink di log.
 - **Un indirizzo HTTPS, per un OneUptime self-hosted.** Pub/Sub invia solo a indirizzi `https://`, con un certificato di cui Google si fida, e l'indirizzo deve essere raggiungibile da Google Cloud.
 
@@ -67,11 +67,11 @@ La finestra chiede ogni pochi secondi cosa è arrivato. Pub/Sub invia una voce e
 | Cosa | Dove arriva |
 | --- | --- |
 | Log | In Esplora log, sotto il servizio di telemetria della connessione, con il progetto, l'area e il nome del log come attributi |
-| Log di una risorsa che OneUptime conosce | Anche su quella risorsa: la sua pagina in Cloud ottiene una scheda **Registri** |
+| Log di una risorsa che OneUptime conosce | Anche su quella risorsa: la sua pagina in Cloud ottiene una scheda **Log** |
 
 Ogni log conserva l'ora della sua voce al nanosecondo, la sua gravità, la sua traccia e il suo span, e la sua richiesta HTTP con i nomi delle convenzioni semantiche di OpenTelemetry. Viene archiviato sotto una risorsa quando la sua risorsa monitorata è di un tipo di cui OneUptime legge le metriche, come una VM (`gce_instance`), un servizio Cloud Run (`cloud_run_revision`) o un'istanza Cloud SQL (`cloudsql_database`), e porta l'ID della risorsa come `cloud.resource_id`. I log delle richieste di un bilanciatore del carico esterno, scritti sotto `http_load_balancer`, vengono archiviati sotto la sua mappa URL, la `https_lb_rule` su cui arrivano le sue metriche.
 
-I log di un gruppo di istanze sono quelli delle sue VM, quindi la sua pagina non ha la scheda **Registri**. Una voce di un altro tipo viene trasmessa comunque, sotto il suo progetto.
+I log di un gruppo di istanze sono quelli delle sue VM, quindi la sua pagina non ha la scheda **Log**. Una voce di un altro tipo viene trasmessa comunque, sotto il suo progetto.
 
 ## Cosa crea il comando
 

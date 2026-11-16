@@ -16,7 +16,7 @@ Ogni integrazione sposta dati in una direzione o in entrambe. **In entrata**: un
 ```mermaid title="In entrata e in uscita"
 flowchart TB
     tool["Strumento di allerta<br/>o di sicurezza"] -->|"in entrata"| record["Incidente o avviso,<br/>reperibile chiamato"]
-    record -->|"in uscita"| workflow["Flusso di lavoro,<br/>ad esempio<br/>On Create Incident"]
+    record -->|"in uscita"| workflow["Flusso di lavoro,<br/>ad esempio<br/>Alla creazione:<br/>Incidente"]
     workflow -->|"chiamata API<br/>o messaggio"| other["Strumento di ticket,<br/>chiamata o chat"]
     other -.->|"webhook di ritorno"| record
 ```
@@ -118,8 +118,8 @@ Per uno strumento di allerta, parti da un [monitor di richieste in arrivo](/docs
 1. Apri **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Parti da zero**. Dai un nome al flusso di lavoro e fai clic su **Crea flusso di lavoro**.
 2. Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **Webhook**. Fai clic sul trigger, poi su **Copia URL**.
 3. Nell'altro strumento, invia il suo webhook a quell'URL come `POST` con `Content-Type: application/json`.
-4. Aggiungi i blocchi che agiscono su di esso. Leggono la richiesta con riferimenti come `{{local.components.webhook-1.returnValues.request-body.status}}`: un blocco **If / Else** per controllare un campo, poi **Create One Incident** per dichiarare un incidente.
-5. Attiva **Abilitato** in cima al **Costruttore**, invia una prova dall'altro strumento e apri **Registri → Esecuzioni** per vedere cosa è arrivato.
+4. Aggiungi i blocchi che agiscono su di esso. Leggono la richiesta con riferimenti come `{{local.components.webhook-1.returnValues.request-body.status}}`: un blocco **Se / Altrimenti** per controllare un campo, poi **Crea: Incidente (un record)** per dichiarare un incidente.
+5. Attiva **Abilitato** in cima al **Costruttore**, invia una prova dall'altro strumento e apri **Log → Esecuzioni** per vedere cosa è arrivato.
 :::
 
 L'URL è l'unica credenziale, quindi trattalo come una password. Vedi [Webhook](/docs/workflows/triggers#webhook).
@@ -128,8 +128,8 @@ L'URL è l'unica credenziale, quindi trattalo come una password. Vedi [Webhook](
 
 :::steps
 1. Salva la chiave API dello strumento come variabile globale segreta, come mostrato [più sotto](#proteggere-le-credenziali).
-2. Crea un flusso di lavoro, fai clic sul blocco tratteggiato e scegli un trigger di evento, come **On Create Incident**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli gli altri campi da inviare, come **Descrizione**.
-3. Fai clic su **Aggiungi componente** e aggiungi un blocco **API Post (JSON)**. Collegagli il punto **Successo** del trigger.
+2. Crea un flusso di lavoro, fai clic sul blocco tratteggiato e scegli un trigger di evento, come **Alla creazione: Incidente**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli gli altri campi da inviare, come **Descrizione**.
+3. Fai clic su **Aggiungi componente** e aggiungi un blocco **Chiamata API POST (JSON)**. Collegagli il punto **Successo** del trigger.
 4. Compila il suo **URL**, i suoi **Intestazioni della richiesta** con l'intestazione `Authorization` e il suo **Corpo della Richiesta** con i campi dell'incidente, come `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Fai clic su **Esegui flusso di lavoro**, scegli un incidente sotto **Incidente** ed eseguilo. Un'esecuzione di prova invia davvero la richiesta. Poi attiva **Abilitato**.
 :::

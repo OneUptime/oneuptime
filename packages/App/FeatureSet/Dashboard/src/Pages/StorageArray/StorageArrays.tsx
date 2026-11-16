@@ -50,7 +50,9 @@ import StorageArrayResourceUtils from "./Utils/StorageArrayResourceUtils";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Pure raises its own capacity alerts at 80% and 90% used, so the bar
@@ -380,11 +382,13 @@ const StorageArrays: FunctionComponent<
             getElement: (item: StorageArray): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
-                  {StorageArrayResourceUtils.formatRatio(
-                    item.dataReductionRatio === null ||
-                      item.dataReductionRatio === undefined
-                      ? null
-                      : Number(item.dataReductionRatio),
+                  {getValueOrQuietDash(
+                    StorageArrayResourceUtils.formatRatio(
+                      item.dataReductionRatio === null ||
+                        item.dataReductionRatio === undefined
+                        ? null
+                        : Number(item.dataReductionRatio),
+                    ),
                   )}
                 </span>
               );

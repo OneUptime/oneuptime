@@ -679,7 +679,7 @@ describe("PlanPickerCopy: in every Dashboard language", () => {
       "Individueller Preis",
     );
     expect(terms(GROWTH, BillingPeriod.Yearly, german)).toEqual({
-      headline: "14 Tage kostenlos, zum Start ist keine Karte nötig.",
+      headline: "14\u00A0Tage kostenlos, zum Start ist keine Karte nötig.",
       details: [
         "Danach $240 pro Benutzer, jährlich abgerechnet.",
         "Aktive Monitore und Telemetrie werden nutzungsbasiert abgerechnet.",

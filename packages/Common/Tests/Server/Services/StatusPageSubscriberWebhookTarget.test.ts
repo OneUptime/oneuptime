@@ -28,6 +28,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import dns from "dns";
 
 jest.mock("../../../Server/Utils/Logger");
@@ -125,7 +126,7 @@ const DNS_ANSWERS: Record<string, string> = {
 
 // The rows an update writes, as the database has them.
 let subscriberRows: Array<StatusPageSubscriber> = [];
-let lookupSpy: jest.SpiedFunction<typeof dns.promises.lookup>;
+let lookupSpy: SpyInstance<typeof dns.promises.lookup>;
 const savedEnv: Record<string, string | undefined> = {};
 
 function setInstance(settings: {
@@ -178,7 +179,7 @@ beforeEach(() => {
     }
 
     return [{ address: address, family: 4 }];
-  }) as never) as unknown as jest.SpiedFunction<typeof dns.promises.lookup>;
+  }) as never) as unknown as SpyInstance<typeof dns.promises.lookup>;
 
   getJestSpyOn(
     StatusPagePrivateUserService,

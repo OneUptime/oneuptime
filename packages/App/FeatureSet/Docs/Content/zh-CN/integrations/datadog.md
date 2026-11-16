@@ -1,13 +1,13 @@
 # Datadog
 
-把 [Datadog](https://www.datadoghq.com) 监视器的告警发送到 OneUptime，让每个告警都成为一个事件或警报，紧急时呼叫你的值班团队，并在 Datadog 监视器恢复时解决。Datadog 通过它的 [Webhooks 集成](https://docs.datadoghq.com/integrations/webhooks/) 发送告警，因此两边都无需安装任何东西。
+把 [Datadog](https://www.datadoghq.com) 监视器的警报发送到 OneUptime，让每个警报都成为一个事件或警报，紧急时呼叫你的值班团队，并在 Datadog 监视器恢复时解决。Datadog 通过它的 [Webhooks 集成](https://docs.datadoghq.com/integrations/webhooks/) 发送警报，因此两边都无需安装任何东西。
 
 :::cards
-- [选择 OneUptime 接收告警的方式](#选择-oneuptime-接收告警的方式): 工作流模板，或入站请求监视器。
-- [从模板开始](#从模板开始): 选择要呼叫的人，复制 URL，并查看每个告警会做什么。
-- [用监视器接收告警](#用监视器接收告警): 每个告警一个事件，恢复时自动解决。
+- [选择 OneUptime 接收警报的方式](#选择-oneuptime-接收警报的方式): 工作流模板，或入站请求监视器。
+- [从模板开始](#从模板开始): 选择要呼叫的人，复制 URL，并查看每个警报会做什么。
+- [用监视器接收警报](#用监视器接收警报): 每个警报一个事件，恢复时自动解决。
 - [配置 Datadog](#配置-datadog): 一个 Webhook，以及通知它的监视器。
-- [故障排除](#故障排除): 告警没有到达，或事件一直未关闭时。
+- [故障排除](#故障排除): 警报没有到达，或事件一直未关闭时。
 :::
 
 ## 工作方式
@@ -22,20 +22,20 @@ flowchart TB
     transition -->|"Warn, No Data"| note["事件上的<br/>私密备注"]
 ```
 
-Datadog 监视器在状态改变时，也就是触发、警告、恢复或没有数据时，会通知其消息中提到的 Webhook。Webhook 的 JSON 主体由你自己用 Datadog 的 [模板变量](https://docs.datadoghq.com/integrations/webhooks/#usage) 编写，所以本指南给出一个能为每个告警命名、并说明它发生了什么的主体。
+Datadog 监视器在状态改变时，也就是触发、警告、恢复或没有数据时，会通知其消息中提到的 Webhook。Webhook 的 JSON 主体由你自己用 Datadog 的 [模板变量](https://docs.datadoghq.com/integrations/webhooks/#usage) 编写，所以本指南给出一个能为每个警报命名、并说明它发生了什么的主体。
 
 ## 开始之前
 
 - 一个可以配置集成并编辑监视器的 Datadog 账户。
 - 在 OneUptime 中创建工作流的权限；如果选择监视器方式，则需要创建监视器的权限。在 OneUptime Cloud 上，工作流需要 **Growth** 或更高的套餐。
 
-## 选择 OneUptime 接收告警的方式
+## 选择 OneUptime 接收警报的方式
 
 先设置 OneUptime：它会给你 Datadog 要发送到的 URL。
 
 | 方式 | 适用情况 |
 | --- | --- |
-| 工作流模板（推荐） | 你希望每个告警都成为一个事件或警报，其严重程度来自监视器的优先级，P1 和 P2 时呼叫值班人员，警告记录在上面，并在恢复时解决。无需构建任何东西。 |
+| 工作流模板（推荐） | 你希望每个警报都成为一个事件或警报，其严重程度来自监视器的优先级，P1 和 P2 时呼叫值班人员，警告记录在上面，并在恢复时解决。无需构建任何东西。 |
 | 入站请求监视器 | 你希望不用工作流、在任何套餐上都能创建事件，并有一个状态跟随 Datadog 的监视器。 |
 
 两者从同一个 Webhook 收到相同的 JSON，所以你可以先用其中一种，之后只需修改 Datadog 中的一个 URL 就能切换。
@@ -51,20 +51,20 @@ Datadog 监视器在状态改变时，也就是触发、警告、恢复或没有
 4. 在 **生成器** 顶部打开 **已启用**。处于关闭状态的工作流会以 `400` 回应 Datadog。
 :::
 
-然后 [配置 Datadog](#配置-datadog)，让它把告警发送到这个 URL。工作流的 `read-event-1` 步骤打开时就是同样的设置，方便你回到 **生成器** 时查看。
+然后 [配置 Datadog](#配置-datadog)，让它把警报发送到这个 URL。工作流的 `read-event-1` 步骤打开时就是同样的设置，方便你回到 **生成器** 时查看。
 
 ### 工作流做什么
 
-在 **Webhook** 触发器之后， **Check With JavaScript** 步骤 `read-event-1` 读取 Datadog 发送的 `transition`，再由 **Incident From Another Tool**（警报模板中为 **Alert From Another Tool** ）按告警的周期键执行它所代表的操作。Datadog 从告警触发的那一刻起到恢复为止保留这个键，下次触发时键是新的，所以每一次都有自己的事件。事件把该键保存在自定义字段 `datadogAlertCycleKey` 中。
+在 **Webhook** 触发器之后， **用 JavaScript 检查** 步骤 `read-event-1` 读取 Datadog 发送的 `transition`，再由 **来自其他工具的事件**（警报模板中为 **来自其他工具的警报** ）按警报的周期键执行它所代表的操作。Datadog 从警报触发的那一刻起到恢复为止保留这个键，下次触发时键是新的，所以每一次都有自己的事件。事件把该键保存在自定义字段 `datadogAlertCycleKey` 中。
 
 | 转换 | 工作流做什么 |
 | --- | --- |
-| `Triggered`, `Re-Triggered` | 声明一个标题为 `Datadog: <monitor>` 的事件，其严重程度为监视器优先级所对应的严重程度，并且不显示在你的状态页上。它的描述链接到 Datadog 中的告警，并列出优先级、主机、范围和监视器的消息。对于已有事件的告警，再来的通知不会打开第二个事件，也不会再次呼叫任何人。 |
-| `Recovered` | 解决该告警的事件，除非它已经解决。原因记录在它的时间线上。 |
-| `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | 向该告警的事件添加一条私密备注，说明监视器现在的状态。 |
-| `Renotify` | 什么也不做：告警仍然是打开的。 |
+| `Triggered`, `Re-Triggered` | 声明一个标题为 `Datadog: <monitor>` 的事件，其严重程度为监视器优先级所对应的严重程度，并且不显示在你的状态页上。它的描述链接到 Datadog 中的警报，并列出优先级、主机、范围和监视器的消息。对于已有事件的警报，再来的通知不会打开第二个事件，也不会再次呼叫任何人。 |
+| `Recovered` | 解决该警报的事件，除非它已经解决。原因记录在它的时间线上。 |
+| `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | 向该警报的事件添加一条私密备注，说明监视器现在的状态。 |
+| `Renotify` | 什么也不做：警报仍然是打开的。 |
 
-对于没有事件的告警，警告或恢复不会改变任何东西。其他任何内容，例如来自其他工具的请求，都会原样保留： `read-event-1` 走 **否**，运行的 **步骤** 会说明原因。不会有任何内容回到 Datadog：它会在信号恢复时自行解决其告警，而这正是解决事件的依据。
+对于没有事件的警报，警告或恢复不会改变任何东西。其他任何内容，例如来自其他工具的请求，都会原样保留： `read-event-1` 走 **否**，运行的 **步骤** 会说明原因。不会有任何内容回到 Datadog：它会在信号恢复时自行解决其警报，而这正是解决事件的依据。
 
 ### 优先级与呼叫
 
@@ -82,30 +82,30 @@ Datadog 监视器在状态改变时，也就是触发、警告、恢复或没有
 使用你自己的严重程度时，P1、P2 和无优先级对应最严重的一个，P3 对应中间的一个，P4 和 P5 对应最轻的一个。
 
 - 要按名称把某个优先级映射到你的某个严重程度，请编辑 `read-event-1` 步骤中的 `SEVERITY_BY_NAME`，例如 `{ P3: 'Minor Incident' }`。
-- 要让 P3 也呼叫值班人员，请把 `if-page-1` **If / Else** 步骤的 **比较对象** 设为 `3`。
+- 要让 P3 也呼叫值班人员，请把 `if-page-1` **如果 / 否则** 步骤的 **比较对象** 设为 `3`。
 
-## 用监视器接收告警
+## 用监视器接收警报
 
-[入站请求监视器](/docs/monitor/incoming-request-monitor) 会给你一个 URL，它的条件决定每个告警做什么。
+[入站请求监视器](/docs/monitor/incoming-request-monitor) 会给你一个 URL，它的条件决定每个警报做什么。
 
 :::steps
 ### 创建监视器
 
 前往 **监视器**，点击 **创建监视器**。在 **监视器类型** 下选择 **传入请求**，将其命名为 `Datadog`，然后点击 **下一步**。
 
-### 为每个告警声明事件
+### 为每个警报声明事件
 
 在 **标准** 步骤中，打开第一个条件，也就是把监视器标记为离线的那个。把它的过滤器设为 **请求主体**、**包含**、`"transition":"Triggered"`。这个条件在过滤器匹配时已经会声明事件。填写事件信息：
 
 - **事件标题**：`{{requestBody.title}}`。
 - **描述** 下的 **事件描述**：`{{requestBody.body}}`，然后在单独一行写上 `Datadog: {{requestBody.link}}`。
-- **严重程度**：这些告警应有的事件严重程度。
+- **严重程度**：这些警报应有的事件严重程度。
 - **值班** 下的 **值班策略**：要呼叫的策略。
 - **更多字段** 下的 **自动解决事件**：保持开启，它默认就是开启的。关闭后会忽略恢复，事件将一直保持打开。
 
-### 每个告警一个事件
+### 每个警报一个事件
 
-在同一个条件中，打开 **设置** 并开启 **Group incidents and alerts by a payload field**。按下表填写，让每个告警都有自己的事件，并由它的恢复来解决：
+在同一个条件中，打开 **设置** 并开启 **Group incidents and alerts by a payload field**。按下表填写，让每个警报都有自己的事件，并由它的恢复来解决：
 
 | 字段 | 值 |
 | --- | --- |
@@ -128,7 +128,7 @@ https://oneuptime.com/heartbeat/<secret key>
 自托管安装使用自己的主机来代替 `oneuptime.com`。
 :::
 
-下面的负载把 `alert_key` 设为 Datadog 监视器的 ID 加上发出告警的分组的标签，因此多告警监视器的每个分组都有自己的事件，并由该分组的恢复来解决。在事件打开期间再次触发或重新通知的监视器不会再打开第二个事件。每项设置的作用请参见 [接收来自其他系统的告警](/docs/monitor/incoming-request-monitor#接收来自其他系统的告警)。
+下面的负载把 `alert_key` 设为 Datadog 监视器的 ID 加上发出警报的分组的标签，因此多警报监视器的每个分组都有自己的事件，并由该分组的恢复来解决。在事件打开期间再次触发或重新通知的监视器不会再打开第二个事件。每项设置的作用请参见 [接收来自其他系统的警报](/docs/monitor/incoming-request-monitor#接收来自其他系统的警报)。
 
 > [!NOTE]
 > 使用这些过滤器时，**Warn** 或 **No Data** 通知不会打开事件。如果也想在警告时被呼叫，请点击 **添加条件**，为新条件设置过滤器 **请求主体**、**包含**、`"transition":"Warn"`，一个带有自己 **严重程度** 的事件，以及相同的分组设置，然后把它拖到第一个条件上方。条件从上往下检查，第一个匹配的条件起决定作用。
@@ -161,14 +161,14 @@ https://oneuptime.com/heartbeat/<secret key>
 
 ### 在监视器中提到该 Webhook
 
-在每个应通过 OneUptime 呼叫的 Datadog 监视器中，把 `@webhook-oneuptime` 添加到监视器的通知消息里，然后保存监视器。之后 Datadog 会把该监视器的告警和恢复发送到 OneUptime。
+在每个应通过 OneUptime 呼叫的 Datadog 监视器中，把 `@webhook-oneuptime` 添加到监视器的通知消息里，然后保存监视器。之后 Datadog 会把该监视器的警报和恢复发送到 OneUptime。
 :::
 
 | 变量 | Datadog 填入的内容 |
 | --- | --- |
-| `$ALERT_ID` | 发出告警的 Datadog 监视器的 ID。 |
-| `$ALERT_SCOPE` | 发出告警的分组的标签，例如 `host:web-1`。 |
-| `$ALERT_CYCLE_KEY` | 一个 ID，从告警触发的那一刻起到恢复为止保持不变。 |
+| `$ALERT_ID` | 发出警报的 Datadog 监视器的 ID。 |
+| `$ALERT_SCOPE` | 发出警报的分组的标签，例如 `host:web-1`。 |
+| `$ALERT_CYCLE_KEY` | 一个 ID，从警报触发的那一刻起到恢复为止保持不变。 |
 | `$ALERT_TRANSITION` | 发生了什么：`Triggered`、`Re-Triggered`、`Warn`、`Recovered`、`No Data` 或 `Renotify` 等。 |
 | `$ALERT_PRIORITY` | Datadog 监视器的优先级，`P1` 到 `P5`；没有优先级的监视器则为空。 |
 | `$EVENT_TITLE` | 事件的标题，例如 `[Triggered] High CPU`。 |
@@ -179,7 +179,7 @@ https://oneuptime.com/heartbeat/<secret key>
 
 ## 测试
 
-像 Datadog 那样，向你复制的 URL 发送一个告警：
+像 Datadog 那样，向你复制的 URL 发送一个警报：
 
 ```bash
 curl -X POST "<url>" \
@@ -206,7 +206,7 @@ curl -X POST "<url>" \
 
 :::details OneUptime 没有收到任何内容
 - 检查 Datadog 监视器的消息是否提到了 `@webhook-oneuptime`，拼写与 Webhook 的名称一致。
-- 监视器会在检查任何内容之前立即回应 `200`，即使密钥错误也是如此。请查看监视器的时间线，确认告警是否到达。
+- 监视器会在检查任何内容之前立即回应 `200`，即使密钥错误也是如此。请查看监视器的时间线，确认警报是否到达。
 - 处于关闭状态的工作流会回应 `400`。在它的 **生成器** 顶部打开 **已启用**。
 :::
 
@@ -219,37 +219,37 @@ curl -X POST "<url>" \
 
 :::details 没有呼叫值班人员
 - 只有 P1 和 P2 监视器以及没有优先级的监视器会呼叫。请参见 [优先级与呼叫](#优先级与呼叫)。
-- 对于已有事件的告警，再来的通知不会再次呼叫任何人。
+- 对于已有事件的警报，再来的通知不会再次呼叫任何人。
 - 如果在 **创建工作流** 对话框中没有选择任何人，工作流就没有呼叫的步骤。
 :::
 
 :::details 事件被创建但从未被解决
-- Datadog 监视器也必须把恢复通知给该 Webhook。如果消息只在条件块中针对告警提到该 Webhook，就不会发送恢复。
-- 使用模板时，在 **日志 → 运行记录** 中打开恢复的运行：它的最后一步会说明原因。恢复的 `alert_cycle_key` 必须与告警的相同，所以保持负载中的 `$ALERT_CYCLE_KEY` 不变。
+- Datadog 监视器也必须把恢复通知给该 Webhook。如果消息只在条件块中针对警报提到该 Webhook，就不会发送恢复。
+- 使用模板时，在 **日志 → 运行记录** 中打开恢复的运行：它的最后一步会说明原因。恢复的 `alert_cycle_key` 必须与警报的相同，所以保持负载中的 `$ALERT_CYCLE_KEY` 不变。
 - 使用监视器时，条件中的事件需要开启 **更多字段** 下的 **自动解决事件**。
 - **Value that means recovered** 必须恰好是 `Recovered`。比较区分大小写。
-- 恢复的 `alert_key` 必须与告警的相同：保持负载中的 `$ALERT_ID $ALERT_SCOPE` 不变。
+- 恢复的 `alert_key` 必须与警报的相同：保持负载中的 `$ALERT_ID $ALERT_SCOPE` 不变。
 :::
 
 :::details 字段显示的是变量名，或者什么都没有
 Datadog 只会填入适用于该事件的变量。发送一个测试通知，然后查看到达的内容：在监视器的时间线中，或者对于工作流，在 **日志 → 运行记录** 中查看。
 :::
 
-:::details 监视器的所有告警合并成了一个事件
+:::details 监视器的所有警报合并成了一个事件
 使用监视器时，每个分组都需要自己的 `alert_key`。检查负载是否同时用 `$ALERT_ID` 和 `$ALERT_SCOPE` 来设置它，以及分组路径是否为 `requestBody.alert_key`。
 :::
 
 ## 安全
 
 - **像对待密码一样对待 URL。** 任何拥有它的人都可以创建事件。如果泄露，请重置它：在工作流的 **Webhook** 触发器中使用 **重置 URL**，或在监视器的 **设置** 页面使用 **重置传入请求密钥**。然后在 Datadog 中更新该 Webhook 的 **URL**。
-- **链接指向 Datadog。** 无论请求中写了什么，模板只会链接 Datadog 站点上的告警，并把 Datadog 发送的内容作为文本写入。
+- **链接指向 Datadog。** 无论请求中写了什么，模板只会链接 Datadog 站点上的警报，并把 Datadog 发送的内容作为文本写入。
 - **自托管？** Datadog 从互联网发送 Webhook，所以你的 OneUptime 必须能从互联网通过 HTTPS 访问。
 
 ## 后续步骤
 
 :::cards
 - [工作流模板](/docs/workflows/authoring): 从模板创建工作流，并在生成器中修改它。
-- [入站请求监控](/docs/monitor/incoming-request-monitor): 接收告警的监视器的所有设置。
+- [入站请求监控](/docs/monitor/incoming-request-monitor): 接收警报的监视器的所有设置。
 - [New Relic](/docs/integrations/new-relic): 相同的模板，适用于 New Relic 问题。
 - [升级规则](/docs/on-call/escalation-rules): 决定值班策略呼叫谁、何时呼叫。
 - [集成概述](/docs/integrations/index): 你可以连接的其他工具。

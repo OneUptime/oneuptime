@@ -1250,7 +1250,7 @@ describe("UI review: an empty tab's detail is in the reader's language too", () 
     expect(shown(screen.getByTestId("rail-empty-detail"))).toBe(
       worded(
         DE,
-        'Your role lacks "{{permission}}". Ask a project admin for that permission to see these rows.',
+        'Your role lacks "{{permission}}". Ask a Project Admin for that permission to see these rows.',
         { permission: permission },
       ),
     );
@@ -1452,13 +1452,13 @@ describe("the page's own pause in the reader's language", () => {
 
     // The length in German too, not the English "23m" (#7318).
     expect(shown(screen.getByTestId("rail-detail"))).toContain(
-      worded(DE, PAGE_PAUSE_KEYS[1] as string, { duration: "23 Min." }),
+      worded(DE, PAGE_PAUSE_KEYS[1] as string, { duration: "23\u00A0Min." }),
     );
     expect(shown(screen.getByTestId("rail-detail"))).not.toContain(
       worded(
         DE,
         "Input came back after {{duration}} and the recorder started again here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
-        { duration: "23 Min." },
+        { duration: "23\u00A0Min." },
       ),
     );
   });
@@ -1484,6 +1484,8 @@ describe("the page's own pause in the reader's language", () => {
         },
         translatorFor(DE, "de"),
       ),
-    ).toBe(worded(DE, PAGE_PAUSE_KEYS[4] as string, { duration: "1 Min." }));
+    ).toBe(
+      worded(DE, PAGE_PAUSE_KEYS[4] as string, { duration: "1\u00A0Min." }),
+    );
   });
 });

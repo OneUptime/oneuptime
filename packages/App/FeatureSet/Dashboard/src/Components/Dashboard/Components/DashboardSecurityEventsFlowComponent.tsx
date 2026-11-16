@@ -35,10 +35,14 @@ import WidgetPlaceholder from "./WidgetPlaceholder";
 import {
   SecurityEventFlowRecord,
   SecurityEventsFlowData,
+  SecurityEventsFlowNode,
   buildSecurityEventsFlow,
   getSecurityEventSeverityColor,
+  getSecurityEventsFlowInLanguage,
   resolveSecurityEventsFlowMaxEvents,
 } from "./SecurityEventsWidgetData";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/Types/Translator";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardSecurityEventsFlowComponent;
@@ -63,8 +67,14 @@ const renderSankeyNode: RenderSankeyNodeFunction = (
   const { x, y, width, height, payload } = nodeProps;
 
   const isSeverityLayer: boolean = payload.depth === SEVERITY_LAYER_DEPTH;
+  /*
+   * A severity's colour comes from OCSF's stored word; its label is the
+   * reader's word for it (getSecurityEventsFlowInLanguage).
+   */
   const fill: string = isSeverityLayer
-    ? getSecurityEventSeverityColor(payload.name)
+    ? getSecurityEventSeverityColor(
+        (payload as SecurityEventsFlowNode).severityName || payload.name,
+      )
     : NEUTRAL_NODE_COLOR;
 
   const labelOnLeft: boolean = isSeverityLayer;
@@ -97,6 +107,7 @@ const renderSankeyNode: RenderSankeyNodeFunction = (
 const DashboardSecurityEventsFlowComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [flowRecords, setFlowRecords] = useState<
     Array<SecurityEventFlowRecord>
   >([]);
@@ -209,9 +220,16 @@ const DashboardSecurityEventsFlowComponentElement: FunctionComponent<
     void fetchData();
   }, [fetchData, props.refreshTick]);
 
+  /*
+   * The severity layer in the reader's words, as the Security Events page
+   * draws a severity (#8295): its labels and the chart's tooltip.
+   */
   const flowData: SecurityEventsFlowData = useMemo(() => {
-    return buildSecurityEventsFlow(flowRecords);
-  }, [flowRecords]);
+    return getSecurityEventsFlowInLanguage(
+      buildSecurityEventsFlow(flowRecords),
+      translator,
+    );
+  }, [flowRecords, translator.language]);
 
   return (
     <div className="flex h-full w-full flex-col">

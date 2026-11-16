@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import OpenStackProjectNotice from "../../../../Models/DatabaseModels/OpenStackProjectNotice";
 import OpenStackProjectNoticeDelivery from "../../../../Models/DatabaseModels/OpenStackProjectNoticeDelivery";
@@ -22,7 +23,7 @@ import {
   OpenStackProjectNoticeEvent,
 } from "../../../../Types/OpenStack/OpenStackProjectNotice";
 import { OpenStackResourceKind } from "../../../../Types/OpenStack/OpenStackResourceKind";
-import API from "../../../../Utils/API";
+import API, { RequestOptions } from "../../../../Utils/API";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import MailService from "../../../../Server/Services/MailService";
 import OpenStackProjectNoticeDeliveryService, {
@@ -32,8 +33,14 @@ import OpenStackProjectNoticeService from "../../../../Server/Services/OpenStack
 import OpenStackResourceService from "../../../../Server/Services/OpenStackResourceService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
-import OpenStackProjectNoticeSender from "../../../../Server/Utils/OpenStack/OpenStackProjectNoticeSender";
+import OpenStackProjectNoticeSender, {
+  OPENSTACK_NOTICE_WEBHOOK_VALIDATION,
+} from "../../../../Server/Utils/OpenStack/OpenStackProjectNoticeSender";
+import SafeWebhookRequest, {
+  WEBHOOK_MAX_RESPONSE_BYTES,
+} from "../../../../Server/Utils/SafeWebhookRequest";
 import SSRFProtection from "../../../../Server/Utils/SSRFProtection";
+import { approveEveryWebhookAddress } from "../../TestingUtils/WebhookAddressCheck";
 import IncidentStateService from "../../../../Server/Services/IncidentStateService";
 import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
 
@@ -175,9 +182,8 @@ function arrange(data: {
       return [];
     }) as never);
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
-  jest
-    .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-    .mockResolvedValue(undefined);
+  // The check every webhook runs, approving each URL (WebhookAddressCheck).
+  approveEveryWebhookAddress();
 
   return {
     deliveries,
@@ -241,6 +247,36 @@ describe("sending what is waiting", () => {
     expect(call.options.retries).toBe(0);
     expect(call.data["kind"]).toBe("openstack.project.notice");
     expect(sent.emails).not.toHaveBeenCalled();
+  });
+
+  test("a webhook is checked with the operator's own rule, and dials only what that check approved (issue #6611)", async () => {
+    const sent: Sent = arrange({ pending: [rowOf()], notice: webhookNotice() });
+    const resolve: SpyInstance<typeof SafeWebhookRequest.resolveTarget> =
+      jest.spyOn(SafeWebhookRequest, "resolveTarget");
+
+    await OpenStackProjectNoticeSender.sendWhatIsDue();
+
+    expect(resolve).toHaveBeenCalledTimes(1);
+    expect(resolve.mock.calls[0]![0].toString()).toBe(
+      "https://example.com/hook",
+    );
+    expect(resolve.mock.calls[0]![1]).toBe(OPENSTACK_NOTICE_WEBHOOK_VALIDATION);
+    // The project's own operator wrote it, as a project's webhook is.
+    expect(OPENSTACK_NOTICE_WEBHOOK_VALIDATION).toEqual({
+      allowPrivateNetworkTargets: true,
+    });
+
+    const call: { options: RequestOptions } = (
+      sent.webhooks.mock.calls[0] as Array<never>
+    )[0]!;
+
+    expect(call.options.dispatchUrl).toBe("https://example.com/hook");
+    expect(call.options.httpAgent).toBeDefined();
+    expect(call.options.httpsAgent).toBeDefined();
+    expect(call.options.useNodeHttpAdapter).toBe(true);
+    expect(call.options.timeout).toBe(10000);
+    // Only the status is read, and an endless answer is not.
+    expect(call.options.maxContentLength).toBe(WEBHOOK_MAX_RESPONSE_BYTES);
   });
 
   test.each<[string, Parameters<typeof arrange>[0], string]>([
@@ -381,7 +417,7 @@ describe("sending what is waiting", () => {
   test("a webhook this server may not reach is never asked", async () => {
     const sent: Sent = arrange({ pending: [rowOf()], notice: webhookNotice() });
     jest
-      .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
+      .spyOn(SSRFProtection, "validateAndResolveWebhookTarget")
       .mockRejectedValue(new Error("not allowed"));
 
     await OpenStackProjectNoticeSender.sendWhatIsDue();

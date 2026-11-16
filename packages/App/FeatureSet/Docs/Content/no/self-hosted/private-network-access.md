@@ -12,7 +12,7 @@ Denne siden forklarer hvordan du tillater det, bevisst og snevert. Tre brytere a
 | --- | --- | --- |
 | Arbeidsflyter, prosjekt-webhooks, bruker-webhooks for vakt | Miljøet til **API-serveren** | Private adresser avvist |
 | Datakilder, LLM-leverandører, SMTP-servere, OIDC-discovery og andre tilkoblinger | Miljøet til **API-serveren** | Private adresser tillatt |
-| **Monitorer** av typen API, Website, External Status Page og Custom JavaScript Code | **Sondens** eget miljø | Private adresser avvist |
+| **Monitorer** av typen API, Website, Ekstern statusside og Egendefinert JavaScript-kode | **Sondens** eget miljø | Private adresser avvist |
 
 ```mermaid title="Tre brytere, hver for sin type tilkobling"
 flowchart LR
@@ -30,7 +30,7 @@ flowchart LR
     Monitors -->|"av som<br/>standard"| Private
 ```
 
-Nettverksnære monitortyper som Ping, Port, SSL-sertifikat, DNS, DNSSEC, SNMP / Nettverksenhet, SQL-spørring, Databasehelse, Synthetic og Network Path bruker sine egne transporter. Innstillingen på denne siden styrer HTTP-transportene som returnerer vilkårlig svarinnhold til et prosjekt: monitorer av typen API, Website, External Status Page og Custom JavaScript Code.
+Nettverksnære monitortyper som Ping, Port, SSL-sertifikat, DNS, DNSSEC, SNMP / Nettverksenhet, SQL-spørring, Databasehelse, Synthetic og Network Path bruker sine egne transporter. Innstillingen på denne siden styrer HTTP-transportene som returnerer vilkårlig svarinnhold til et prosjekt: monitorer av typen API, Website, Ekstern statusside og Egendefinert JavaScript-kode.
 
 :::cards
 - [Webhooks og arbeidsflyter](#webhooks-og-arbeidsflyter): La en webhook poste inn i nettverket ditt.
@@ -144,7 +144,7 @@ Når den er på, rapporteres et avvist vertsnavn uten å si hva det ble slått o
 
 ## Sonder og monitorer
 
-Fire monitortyper berøres: **API**, **Nettsted**, **Ekstern statusside** og **Egendefinert JavaScript-kode**. På en standardsonde kan de nå offentlige HTTP(S)-mål, men avviser privat adresserom. Monitorer av typen API, Website og External Status Page validerer og fester DNS-resultater for hver tilkobling og validerer hver omdirigering på nytt; Custom JavaScript Code bruker den samme adressepolicyen i broen til sandkassen sin.
+Fire monitortyper berøres: **API**, **Nettsted**, **Ekstern statusside** og **Egendefinert JavaScript-kode**. På en standardsonde kan de nå offentlige HTTP(S)-mål, men avviser privat adresserom. Monitorer av typen API, Website og Ekstern statusside validerer og fester DNS-resultater for hver tilkobling og validerer hver omdirigering på nytt; Egendefinert JavaScript-kode bruker den samme adressepolicyen i broen til sandkassen sin.
 
 Bryteren leses av **sondeprosessen fra dens eget miljø**, ikke fra API-serverens, og hver sonde leser den: de som følger med Docker Compose, de Helm-chartet ruller ut, og enhver [egen sonde](/docs/probe/custom-probe) du kjører selv. Den som ruller ut en sonde, styrer miljøet dens og vet hvilket nettverk sonden kan se – en egen sonde er som regel en annen maskin, ofte drevet av en annen person, og den leser aldri konfigurasjonen til API-serveren.
 
@@ -187,7 +187,7 @@ Kjør arbeidsflyten eller monitoren på nytt. Hvis den fortsatt avvises, nevner 
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – en privat (egen) sonde kjørte monitoren, og bryteren dens er av. Merk at den settes på sonden, ikke på API-serveren.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – en medfølgende (global) sonde kjørte monitoren, og bryteren dens er av. Slå den på for den sonden som beskrevet ovenfor hvis alle prosjekter på instansen kan nå det nettverket; velg ellers en privat sonde på monitoren.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – en global sonde med `BILLING_ENABLED=true` i miljøet sitt kjørte monitoren. Automatisk registrerte globale sonder forblir bare offentlige der, uansett hva bryteren deres sier; rull ut en privat sonde inne i målets nettverk og velg den på monitoren.
-- _"Monitor target host ... could not be reached."_ – en monitor av typen API, Website eller External Status Page der målet er et **vertsnavn**, rapporterer dette både når navnet slås opp til en avvist adresse og når DNS feiler, slik at en monitor ikke kan brukes til å kartlegge hvilke interne navn som finnes. Feildetaljene som vises med den, nevner `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` i begge tilfeller; de sier ikke hvilket tilfelle det gjaldt. Hvis navnet peker på en privat adresse, sjekker du sondens policy for private nettverk i oppstartsloggen dens; er den av, er løsningen den samme som for meldingene ovenfor. Med `LOG_LEVEL=DEBUG` logger sonden også den nøyaktige årsaken for hvert avvist navn.
+- _"Monitor target host ... could not be reached."_ – en monitor av typen API, Website eller Ekstern statusside der målet er et **vertsnavn**, rapporterer dette både når navnet slås opp til en avvist adresse og når DNS feiler, slik at en monitor ikke kan brukes til å kartlegge hvilke interne navn som finnes. Feildetaljene som vises med den, nevner `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` i begge tilfeller; de sier ikke hvilket tilfelle det gjaldt. Hvis navnet peker på en privat adresse, sjekker du sondens policy for private nettverk i oppstartsloggen dens; er den av, er løsningen den samme som for meldingene ovenfor. Med `LOG_LEVEL=DEBUG` logger sonden også den nøyaktige årsaken for hvert avvist navn.
 - _"Request URL could not be reached."_ – den samme regelen for en monitor av typen **Egendefinert JavaScript-kode**: Et skript som ber om et **vertsnavn**, får dette både når navnet slås opp til en avvist adresse og når DNS feiler. Med `LOG_LEVEL=DEBUG` logger sonden den nøyaktige årsaken.
 - _"Webhook URL could not be reached."_ eller, fra en arbeidsflyt, _"Request URL could not be reached."_ – instansen kjører med `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (eller `BILLING_ENABLED=true`), så et avvist **vertsnavn** forklares ikke: Det ble enten slått opp til en avvist adresse eller ikke slått opp i det hele tatt. Med `LOG_LEVEL=DEBUG` logger appen eller workeren hvilket av de to, og adressen.
 - _"...points to a private, loopback, or link-local address and is not allowed."_ – målet ligger i det forbudte nivået. For en webhook nevner du den nøyaktige verten eller CIDR-en i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` hvis du virkelig trenger det. For en monitor finnes det intet unntak.
@@ -201,6 +201,8 @@ Kjør arbeidsflyten eller monitoren på nytt. Hvis den fortsatt avvises, nevner 
 - **Alle som kan opprette en arbeidsflyt eller en monitor av typen API, Website, External Status Page eller Custom JavaScript Code, eller legge til en abonnent på en statusside, kan nå alt du har tillatt.** Behandle medlemskap i de prosjektene deretter.
 - **Svarinnholdet kommer tilbake.** En API-komponent i en arbeidsflyt returnerer status, hoder og body i arbeidsflytloggen, så en tillatt vert kan leses, ikke bare skrives til.
 - **Omdirigeringer følges aldri** for webhook-forespørsler, så en tillatt offentlig vert kan ikke sende serveren videre til en intern vert i et nytt hopp.
+- **OneUptime kobler til adressen den kontrollerte.** Vertsnavnet til en webhook slås opp én gang, når URL-en kontrolleres, og forespørselen går til en adresse det oppslaget godkjente, så et navn som svarer annerledes et øyeblikk senere (DNS-rebinding), får aldri forbindelsen. TLS kontrollerer fortsatt sertifikatet mot navnet i URL-en.
+- **Gjennom en utgående proxy er det proxyen som kobler til.** Hvis API-serveren sender gjennom en proxy satt i `HTTPS_PROXY`, `HTTP_PROXY` eller `ALL_PROXY` (unntatt vertene i `NO_PROXY`), går webhooks fortsatt gjennom den: OneUptime kontrollerer fortsatt adressen først og følger aldri en omdirigering, men det er proxyen som slår opp navnet og kobler til. Avvis private og link-local-mål på selve proxyen, særlig `169.254.169.254`.
 - **Avgrens per sonde i stedet for for hele instansen der du kan.** En sonde rullet ut inne i ett nettverk er en smalere tillatelse enn å åpne den utgående trafikken til API-serveren.
 
 ## Neste steg

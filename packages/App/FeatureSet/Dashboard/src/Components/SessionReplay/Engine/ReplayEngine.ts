@@ -205,7 +205,9 @@ function formatOffset(ms: number): string {
  * language by whoever draws it. Never React, never the reader's language
  * here.
  */
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 function wordedError(
   wording: ComposedValue,

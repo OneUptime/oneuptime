@@ -51,6 +51,7 @@ import {
   routeFor,
   setViewportWidth,
 } from "./SideMenuHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
 
 /*
  * The frame of every page, on a phone and at its top left (#6816).
@@ -65,6 +66,14 @@ import {
  *    products menu does. From 768 up the header draws Search and Help
  *    itself (#7037, DashboardHelpAtTabletWidths).
  */
+
+/*
+ * The products menu reads which products the project has on
+ * (/project-products). These tests are about the rows Search, Help and the
+ * products visited last add to it, so that read is left unanswered: refused
+ * at once, and the menu lists every product (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/project-products"]);
 
 const translation: i18n = createInstance();
 const ORIGINAL_WIDTH: number = window.innerWidth;

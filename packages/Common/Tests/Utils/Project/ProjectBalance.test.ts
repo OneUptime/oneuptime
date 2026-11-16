@@ -16,6 +16,7 @@ import {
   PROJECT_BALANCE_SETTINGS_PAGE,
   PROJECT_BALANCE_SETTINGS_PATH,
   ProjectBalanceType,
+  readProjectBalanceMessageNotSentReason,
   WHO_CAN_ADD_PROJECT_BALANCE,
 } from "../../../Utils/Project/ProjectBalance";
 import {
@@ -85,7 +86,7 @@ const SENTENCES_FOR_EVERYONE: Array<string> = [
 ];
 
 describe("who may add balance", () => {
-  test("is a project owner, or someone with Manage Billing", () => {
+  test("is a Project Owner, or someone with Manage Billing", () => {
     expect([...PROJECT_BALANCE_RECHARGE_PERMISSIONS]).toEqual([
       Permission.ProjectOwner,
       Permission.ManageProjectBilling,
@@ -113,7 +114,7 @@ describe("who may add balance", () => {
     }
   });
 
-  test("never a project admin, nor the Billing Admin role: neither may recharge", () => {
+  test("never a Project Admin, nor the Billing Admin role: neither may recharge", () => {
     expect(PROJECT_BALANCE_RECHARGE_PERMISSIONS).not.toContain(
       Permission.ProjectAdmin,
     );
@@ -128,13 +129,13 @@ describe("who may add balance", () => {
       ...PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS,
     ]);
     expect(WHO_CAN_ADD_PROJECT_BALANCE).toBe(
-      "a project owner or someone with Manage Billing",
+      "a Project Owner or someone with Manage Billing",
     );
     expect(WHO_CAN_ADD_PROJECT_BALANCE).toBe(
       WHO_CAN_CHANGE_PROJECT_AI_DAILY_LIMITS,
     );
     expect(ProjectAiDailyLimits.getWhoCanChangeSentence()).toContain(
-      "A project owner or someone with Manage Billing can",
+      "A Project Owner or someone with Manage Billing can",
     );
   });
 
@@ -157,7 +158,7 @@ describe("who may add balance", () => {
       ),
     ).toEqual([...PROJECT_BALANCE_RECHARGE_PERMISSIONS]);
     expect(getWhoCanTurnOnSentence("it")).toContain(
-      "A project owner, a Billing Admin or someone with Manage Billing can",
+      "A Project Owner, a Billing Admin or someone with Manage Billing can",
     );
   });
 
@@ -213,13 +214,13 @@ describe("who can add balance, as a sentence", () => {
     expect(
       getProjectBalanceWhoCanAddSentence(ProjectBalanceType.SmsOrCall),
     ).toBe(
-      "A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+      "A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
   });
 
   test("names the people and the page, for AI credits", () => {
     expect(getProjectBalanceWhoCanAddSentence(ProjectBalanceType.AI)).toBe(
-      "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
+      "A Project Owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
     );
   });
 
@@ -236,19 +237,19 @@ describe("what the server says when a method's code cannot be paid for", () => {
   test.each([
     [
       ProjectNotificationChannel.SMS,
-      "This project's balance is too low to send SMS. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+      "This project's balance is too low to send SMS. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     ],
     [
       ProjectNotificationChannel.Call,
-      "This project's balance is too low to make phone calls. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+      "This project's balance is too low to make phone calls. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     ],
     [
       ProjectNotificationChannel.WhatsApp,
-      "This project's balance is too low to send WhatsApp messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+      "This project's balance is too low to send WhatsApp messages. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     ],
     [
       ProjectNotificationChannel.Telegram,
-      "This project's balance is too low to send Telegram messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+      "This project's balance is too low to send Telegram messages. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     ],
   ])("%s", (channel: ProjectNotificationChannel, expected: string) => {
     expect(getProjectBalanceTooLowMessage(channel)).toBe(expected);
@@ -262,20 +263,20 @@ describe("what the server says when a method's code cannot be paid for", () => {
 
   test("numbers for incoming calls say they are verified by SMS", () => {
     expect(INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE).toBe(
-      "Numbers for incoming calls are verified by SMS, and this project's balance is too low to send SMS. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+      "Numbers for incoming calls are verified by SMS, and this project's balance is too low to send SMS. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
   });
 });
 
 describe("amounts", () => {
   test.each([
-    [0, "0.00 USD"],
-    [5, "0.05 USD"],
-    [10, "0.10 USD"],
-    [100, "1.00 USD"],
-    [1234, "12.34 USD"],
-    [Number.NaN, "0.00 USD"],
-    [Number.POSITIVE_INFINITY, "0.00 USD"],
+    [0, "0.00\u00A0USD"],
+    [5, "0.05\u00A0USD"],
+    [10, "0.10\u00A0USD"],
+    [100, "1.00\u00A0USD"],
+    [1234, "12.34\u00A0USD"],
+    [Number.NaN, "0.00\u00A0USD"],
+    [Number.POSITIVE_INFINITY, "0.00\u00A0USD"],
   ])("%s cents reads %s", (cents: number, expected: string) => {
     expect(formatProjectBalanceAmount(cents)).toBe(expected);
   });
@@ -297,7 +298,7 @@ describe("why one message was not sent", () => {
           costInUSDCents: 10,
         }),
       ).toBe(
-        `This project's balance (0.05 USD) is less than ${message} costs (0.10 USD).`,
+        `This project's balance (0.05\u00A0USD) is less than ${message} costs (0.10\u00A0USD).`,
       );
     },
   );
@@ -323,7 +324,7 @@ describe("why one message was not sent", () => {
         costInUSDCents: 35,
       }),
     ).toBe(
-      "This project's balance (0.20 USD) is less than this call costs (0.35 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+      "This project's balance (0.20\u00A0USD) is less than this call costs (0.35\u00A0USD). A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
     expect(
       getProjectBalanceMessageNotSentReason({
@@ -332,7 +333,7 @@ describe("why one message was not sent", () => {
         costInUSDCents: 1,
       }),
     ).toBe(
-      "This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+      "This project's balance is used up. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
   });
 });
@@ -391,7 +392,7 @@ describe("the owners' email when the AI credits run out", () => {
 
   test("says how often it comes", () => {
     expect(PROJECT_AI_CREDITS_USED_UP_OWNER_FREQUENCY_SENTENCE).toBe(
-      "Project owners get this email once each time the AI credits run out.",
+      "Project Owners get this email once each time the AI credits run out.",
     );
   });
 
@@ -411,7 +412,7 @@ describe("the owners' email when the AI credits run out", () => {
 describe("the AI call refusal", () => {
   test("says the credits are used up, and who can add them", () => {
     expect(PROJECT_AI_CREDITS_USED_UP_MESSAGE).toBe(
-      "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
+      "This project's AI credits are used up. A Project Owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
     );
   });
 });
@@ -425,7 +426,7 @@ describe("every sentence said to whoever asked", () => {
     "names who can and never tells the reader to recharge: %s",
     (sentence: string) => {
       expect(sentence).toContain(
-        "A project owner or someone with Manage Billing can add",
+        "A Project Owner or someone with Manage Billing can add",
       );
       expect(sentence).not.toMatch(/please/i);
       expect(sentence).not.toMatch(/\brecharge\b/i);
@@ -434,4 +435,56 @@ describe("every sentence said to whoever asked", () => {
       expect(sentence).toMatch(/\.$/);
     },
   );
+});
+
+/*
+ * A message's log keeps why it was not sent, and a test page reads it back
+ * for its amounts (OnCallTestPageLine). Written now, each amount is held to
+ * "USD" by a no-break space, as the page draws it (#8826); a row stored
+ * before still reads back, its amounts as it wrote them.
+ */
+describe("a not-sent reason read back from a message's log", () => {
+  const whoCanAdd: string = getProjectBalanceWhoCanAddSentence(
+    ProjectBalanceType.SmsOrCall,
+  );
+
+  test("written now: its amounts held", () => {
+    const written: string = getProjectBalanceMessageNotSentReason({
+      channel: ProjectNotificationChannel.SMS,
+      balanceInUSDCents: 5,
+      costInUSDCents: 10,
+    });
+
+    expect(written).toBe(
+      `This project's balance (0.05\u00A0USD) is less than this SMS costs (0.10\u00A0USD). ${whoCanAdd}`,
+    );
+    expect(
+      readProjectBalanceMessageNotSentReason({
+        statusMessage: written,
+        channel: ProjectNotificationChannel.SMS,
+      }),
+    ).toEqual({
+      isUsedUp: false,
+      balance: "0.05\u00A0USD",
+      cost: "0.10\u00A0USD",
+    });
+  });
+
+  test("stored before the amounts were held: still read, as it was written", () => {
+    expect(
+      readProjectBalanceMessageNotSentReason({
+        statusMessage: `This project's balance (0.05 USD) is less than this SMS costs (0.10 USD). ${whoCanAdd}`,
+        channel: ProjectNotificationChannel.SMS,
+      }),
+    ).toEqual({ isUsedUp: false, balance: "0.05 USD", cost: "0.10 USD" });
+  });
+
+  test("negative control: another line is no reason", () => {
+    expect(
+      readProjectBalanceMessageNotSentReason({
+        statusMessage: "This project's balance (0.05 USD) is fine.",
+        channel: ProjectNotificationChannel.SMS,
+      }),
+    ).toBeNull();
+  });
 });

@@ -8,13 +8,14 @@ import OwnerNotificationDeliveryService, {
 import { JSONObject } from "../../Types/JSON";
 import {
   OwnerNotificationDeliveryStatus,
+  OwnerNotificationFeedStatus,
   OwnerNotificationKind,
 } from "../../Types/Notification/OwnerNotificationDelivery";
 import ObjectID from "../../Types/ObjectID";
 
 /*
  * THE OWNERNOTIFICATIONDELIVERY TABLE, IN MEMORY, FOR SUITES THAT RUN THE
- * OWNER NOTIFICATION JOBS (issue #8199).
+ * OWNER NOTIFICATION JOBS (issues #8199, #8509, #8510).
  *
  * The jobs write who they are about to tell before they take a record, and
  * tell each owner through one statement that only one run can win
@@ -22,8 +23,9 @@ import ObjectID from "../../Types/ObjectID";
  * database put this table in their place: each of the service's statements
  * is answered from rows held here, with what Postgres guarantees of it - one
  * row per notification and owner, an owner moved from to be told to being
- * told by one run alone, what a stopped run left taken up by one run alone.
- * OwnerNotificationDeliveryPostgres holds the real statements to the same.
+ * told by one run alone, what a stopped run left - owners, or a feed item
+ * still to write - taken up by one run alone. OwnerNotificationDeliveryPostgres
+ * holds the real statements to the same.
  *
  * And it stops a run where a suite says, as a worker killed there would
  * stop: the statement never answers, so nothing after it in that run ever
@@ -45,6 +47,7 @@ export interface InMemoryDeliveryRow {
   status: OwnerNotificationDeliveryStatus;
   attempts: number;
   attemptedAt: Date;
+  feedStatus: OwnerNotificationFeedStatus | null;
   // The order the rows were written in.
   written: number;
 }
@@ -56,7 +59,10 @@ export type DeliveryStatement =
   | "finishTelling"
   | "giveUpTelling"
   | "findLeftPartWay"
-  | "takeUpLeftPartWay";
+  | "takeUpLeftPartWay"
+  | "settleFeedItem"
+  | "findFeedItemsLeftUnwritten"
+  | "takeUpFeedItemLeftUnwritten";
 
 export interface DeliveryStopPoint {
   statement: DeliveryStatement;
@@ -77,6 +83,11 @@ export interface InMemoryOwnerNotificationDeliveries {
     eventId: ObjectID | string,
     occurrence?: number,
   ) => Record<string, OwnerNotificationDeliveryStatus>;
+  // The feed status of the notification whose record this is, as its rows say.
+  feedStatusOf: (
+    eventId: ObjectID | string,
+    occurrence?: number,
+  ) => OwnerNotificationFeedStatus | null | undefined;
   /*
    * The next run to send the statement stops there for good: it is never
    * answered, as a worker killed then never hears back. Once.
@@ -123,7 +134,52 @@ function toRow(row: InMemoryDeliveryRow): OwnerNotificationDeliveryRow {
     status: row.status,
     attempts: row.attempts,
     attemptedAt: new Date(row.attemptedAt.getTime()),
+    feedStatus: row.feedStatus,
   };
+}
+
+function toEvent(row: InMemoryDeliveryRow): OwnerNotificationEvent {
+  return {
+    kind: row.kind,
+    projectId: new ObjectID(row.projectId),
+    resourceId: new ObjectID(row.resourceId),
+    eventId: new ObjectID(row.eventId),
+    occurrence: row.occurrence,
+  };
+}
+
+// The notifications of `matching` rows, the longest waiting first.
+function eventsOf(
+  matching: Array<InMemoryDeliveryRow>,
+  limit: number,
+): Array<OwnerNotificationEvent> {
+  const groups: Map<string, { event: OwnerNotificationEvent; since: number }> =
+    new Map();
+
+  for (const row of matching) {
+    const groupKey: string = `${row.kind}|${row.eventId}|${row.occurrence}`;
+    const group: { event: OwnerNotificationEvent; since: number } | undefined =
+      groups.get(groupKey);
+
+    if (group) {
+      group.since = Math.min(group.since, row.attemptedAt.getTime());
+      continue;
+    }
+
+    groups.set(groupKey, {
+      event: toEvent(row),
+      since: row.attemptedAt.getTime(),
+    });
+  }
+
+  return [...groups.values()]
+    .sort((a: { since: number }, b: { since: number }): number => {
+      return a.since - b.since;
+    })
+    .slice(0, limit)
+    .map((group: { event: OwnerNotificationEvent }) => {
+      return group.event;
+    });
 }
 
 export function useInMemoryOwnerNotificationDeliveries(): InMemoryOwnerNotificationDeliveries {
@@ -220,6 +276,7 @@ export function useInMemoryOwnerNotificationDeliveries(): InMemoryOwnerNotificat
         event: OwnerNotificationEvent;
         owners: Array<OwnerToTell>;
         at: Date;
+        writesFeedItem: boolean;
       }): Promise<Array<OwnerNotificationDeliveryRow>> => {
         return await send("writeOwnersToTell", undefined, () => {
           for (const owner of data.owners) {
@@ -249,6 +306,9 @@ export function useInMemoryOwnerNotificationDeliveries(): InMemoryOwnerNotificat
               status: OwnerNotificationDeliveryStatus.Pending,
               attempts: 1,
               attemptedAt: new Date(data.at.getTime()),
+              feedStatus: data.writesFeedItem
+                ? OwnerNotificationFeedStatus.Pending
+                : null,
               written: written++,
             });
           }
@@ -272,7 +332,7 @@ export function useInMemoryOwnerNotificationDeliveries(): InMemoryOwnerNotificat
 
   jest
     .spyOn(OwnerNotificationDeliveryService, "startTelling")
-    .mockImplementation(async (id: ObjectID): Promise<boolean> => {
+    .mockImplementation(async (id: ObjectID, at: Date): Promise<boolean> => {
       return await send("startTelling", userOfRow(id), () => {
         const row: InMemoryDeliveryRow | undefined = rows.find(
           (each: InMemoryDeliveryRow): boolean => {
@@ -288,6 +348,7 @@ export function useInMemoryOwnerNotificationDeliveries(): InMemoryOwnerNotificat
         }
 
         row.status = OwnerNotificationDeliveryStatus.Sending;
+        row.attemptedAt = new Date(at.getTime());
         return true;
       });
     });
@@ -300,6 +361,7 @@ export function useInMemoryOwnerNotificationDeliveries(): InMemoryOwnerNotificat
         status:
           | OwnerNotificationDeliveryStatus.Sent
           | OwnerNotificationDeliveryStatus.Failed;
+        at: Date;
       }): Promise<boolean> => {
         return await send("finishTelling", userOfRow(data.id), () => {
           const row: InMemoryDeliveryRow | undefined = rows.find(
@@ -316,6 +378,7 @@ export function useInMemoryOwnerNotificationDeliveries(): InMemoryOwnerNotificat
           }
 
           row.status = data.status;
+          row.attemptedAt = new Date(data.at.getTime());
           return true;
         });
       },
@@ -326,6 +389,7 @@ export function useInMemoryOwnerNotificationDeliveries(): InMemoryOwnerNotificat
     .mockImplementation(
       async (
         ids: Array<ObjectID>,
+        at: Date,
       ): Promise<Array<OwnerNotificationDeliveryRow>> => {
         return await send("giveUpTelling", undefined, () => {
           const given: Array<string> = ids.map(key);
@@ -340,6 +404,7 @@ export function useInMemoryOwnerNotificationDeliveries(): InMemoryOwnerNotificat
 
           for (const row of marked) {
             row.status = OwnerNotificationDeliveryStatus.Failed;
+            row.attemptedAt = new Date(at.getTime());
           }
 
           return marked.map(toRow);
@@ -356,50 +421,16 @@ export function useInMemoryOwnerNotificationDeliveries(): InMemoryOwnerNotificat
         limit: number;
       }): Promise<Array<OwnerNotificationEvent>> => {
         return await send("findLeftPartWay", undefined, () => {
-          const groups: Map<
-            string,
-            { event: OwnerNotificationEvent; since: number }
-          > = new Map();
-
-          for (const row of rows) {
-            if (
-              row.status !== OwnerNotificationDeliveryStatus.Pending ||
-              !data.kinds.includes(row.kind) ||
-              row.attemptedAt.getTime() > data.attemptedBefore.getTime()
-            ) {
-              continue;
-            }
-
-            const groupKey: string = `${row.kind}|${row.eventId}|${row.occurrence}`;
-            const group:
-              | { event: OwnerNotificationEvent; since: number }
-              | undefined = groups.get(groupKey);
-
-            if (group) {
-              group.since = Math.min(group.since, row.attemptedAt.getTime());
-              continue;
-            }
-
-            groups.set(groupKey, {
-              event: {
-                kind: row.kind,
-                projectId: new ObjectID(row.projectId),
-                resourceId: new ObjectID(row.resourceId),
-                eventId: new ObjectID(row.eventId),
-                occurrence: row.occurrence,
-              },
-              since: row.attemptedAt.getTime(),
-            });
-          }
-
-          return [...groups.values()]
-            .sort((a: { since: number }, b: { since: number }): number => {
-              return a.since - b.since;
-            })
-            .slice(0, data.limit)
-            .map((group: { event: OwnerNotificationEvent }) => {
-              return group.event;
-            });
+          return eventsOf(
+            rows.filter((row: InMemoryDeliveryRow): boolean => {
+              return (
+                row.status === OwnerNotificationDeliveryStatus.Pending &&
+                data.kinds.includes(row.kind) &&
+                row.attemptedAt.getTime() <= data.attemptedBefore.getTime()
+              );
+            }),
+            data.limit,
+          );
         });
       },
     );
@@ -437,8 +468,127 @@ export function useInMemoryOwnerNotificationDeliveries(): InMemoryOwnerNotificat
       },
     );
 
+  // A row of the notification says a run may still be at it (stillMovingSql).
+  const isStillMoving: (
+    event: OwnerNotificationEvent,
+    attemptedBefore: Date,
+  ) => boolean = (
+    event: OwnerNotificationEvent,
+    attemptedBefore: Date,
+  ): boolean => {
+    return rows.some((row: InMemoryDeliveryRow): boolean => {
+      return (
+        sameNotification(row, event) &&
+        (row.status === OwnerNotificationDeliveryStatus.Pending ||
+          row.attemptedAt.getTime() > attemptedBefore.getTime())
+      );
+    });
+  };
+
+  jest
+    .spyOn(OwnerNotificationDeliveryService, "settleFeedItem")
+    .mockImplementation(
+      async (data: {
+        event: OwnerNotificationEvent;
+        feedStatus:
+          | OwnerNotificationFeedStatus.Written
+          | OwnerNotificationFeedStatus.NotWritten;
+        at: Date;
+      }): Promise<Array<OwnerNotificationDeliveryRow>> => {
+        return await send("settleFeedItem", undefined, () => {
+          const marked: Array<InMemoryDeliveryRow> = rows.filter(
+            (row: InMemoryDeliveryRow): boolean => {
+              return (
+                sameNotification(row, data.event) &&
+                row.feedStatus === OwnerNotificationFeedStatus.Pending
+              );
+            },
+          );
+
+          for (const row of marked) {
+            row.feedStatus = data.feedStatus;
+            row.attemptedAt = new Date(data.at.getTime());
+          }
+
+          return marked.map(toRow);
+        });
+      },
+    );
+
+  jest
+    .spyOn(OwnerNotificationDeliveryService, "findFeedItemsLeftUnwritten")
+    .mockImplementation(
+      async (data: {
+        kinds: Array<OwnerNotificationKind>;
+        attemptedBefore: Date;
+        limit: number;
+      }): Promise<Array<OwnerNotificationEvent>> => {
+        return await send("findFeedItemsLeftUnwritten", undefined, () => {
+          return eventsOf(
+            rows.filter((row: InMemoryDeliveryRow): boolean => {
+              return (
+                row.feedStatus === OwnerNotificationFeedStatus.Pending &&
+                data.kinds.includes(row.kind) &&
+                row.attemptedAt.getTime() <= data.attemptedBefore.getTime() &&
+                !isStillMoving(toEvent(row), data.attemptedBefore)
+              );
+            }),
+            data.limit,
+          );
+        });
+      },
+    );
+
+  jest
+    .spyOn(OwnerNotificationDeliveryService, "takeUpFeedItemLeftUnwritten")
+    .mockImplementation(
+      async (data: {
+        event: OwnerNotificationEvent;
+        attemptedBefore: Date;
+        at: Date;
+      }): Promise<Array<OwnerNotificationDeliveryRow>> => {
+        return await send("takeUpFeedItemLeftUnwritten", undefined, () => {
+          if (isStillMoving(data.event, data.attemptedBefore)) {
+            return [];
+          }
+
+          const takenUp: Array<InMemoryDeliveryRow> = rows.filter(
+            (row: InMemoryDeliveryRow): boolean => {
+              return (
+                sameNotification(row, data.event) &&
+                row.feedStatus === OwnerNotificationFeedStatus.Pending &&
+                row.attemptedAt.getTime() <= data.attemptedBefore.getTime()
+              );
+            },
+          );
+
+          for (const row of takenUp) {
+            row.attempts++;
+            row.attemptedAt = new Date(data.at.getTime());
+          }
+
+          return takenUp
+            .sort((a: InMemoryDeliveryRow, b: InMemoryDeliveryRow): number => {
+              return a.written - b.written;
+            })
+            .map(toRow);
+        });
+      },
+    );
+
   return {
     rows: rows,
+    feedStatusOf: (
+      eventId: ObjectID | string,
+      occurrence?: number,
+    ): OwnerNotificationFeedStatus | null | undefined => {
+      return rows.find((row: InMemoryDeliveryRow): boolean => {
+        return (
+          row.eventId === key(eventId) &&
+          (occurrence === undefined || row.occurrence === occurrence)
+        );
+      })?.feedStatus;
+    },
     statusesOf: (
       eventId: ObjectID | string,
       occurrence?: number,

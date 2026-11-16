@@ -334,7 +334,7 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
             language: getDateDisplayLanguage(),
           });
         }
-        return `${formatReaderFigure(Math.round(value), { decimals: 0 })} ops/s`;
+        return `${formatReaderFigure(Math.round(value), { decimals: 0 })}\u00A0ops/s`;
       },
     },
   };

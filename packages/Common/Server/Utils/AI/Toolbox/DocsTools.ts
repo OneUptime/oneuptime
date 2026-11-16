@@ -23,6 +23,7 @@ import {
 } from "./ToolTypes";
 
 import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { aiActionMenuPath } from "../../../../Types/AI/AIActionWords";
 import { citationSentence, ToolCitation } from "./ReadTableWords";
 /*
  * "HOW DO I...?" ANSWERED FROM OneUptime's OWN DOCS (issue #6828).
@@ -408,7 +409,7 @@ export const ReadDocsTool: ObservabilityTool = {
 export const FindDashboardPageTool: ObservabilityTool = {
   name: FIND_DASHBOARD_PAGE_TOOL_NAME,
   description:
-    'Find the page of this project in the OneUptime Dashboard where something is done or set - by the page\'s or the setting\'s English name as the docs and the menus give it ("Create Monitor", "Notification Methods", "API Keys", "Incidents Custom Fields"). Returns the best pages with where each is. The citation of this result opens its first page for the person: cite it at the end of a how-do-I answer. To send them to another of the pages returned, call again with that page\'s name and place.',
+    'Find the page of this project in the OneUptime Dashboard where something is done or set - by the page\'s or the setting\'s English name as the docs and the menus give it ("Create Monitor", "Notification Methods", "API Keys", "Incidents Custom Fields"). Returns the best pages with where each is. The citation of this result opens its first page for the person: cite it at the end of a how-do-I answer. Two pages can share a name ("Insights" is the Traces explorer\'s tab, where "Traces", and OneUptime AI\'s findings, where "Traces > AI"): to send them to another of the pages returned, call again with that page\'s title as query and its where as place, and cite that result.',
   inputSchema: {
     type: "object",
     properties: {
@@ -416,6 +417,11 @@ export const FindDashboardPageTool: ObservabilityTool = {
         type: "string",
         description:
           'The page\'s or setting\'s name in English, with where it is when the name is common: "Phone Numbers for SMS Notifications", "Status Pages Custom Fields".',
+      },
+      place: {
+        type: "string",
+        description:
+          'Optional: where the page is, exactly as a result of this tool gave it ("Traces", "Traces > AI", "Project Settings > Advanced"). Only the pages there are found, so the citation opens the one you mean.',
       },
     },
     required: ["query"],
@@ -429,6 +435,10 @@ export const FindDashboardPageTool: ObservabilityTool = {
       0,
       200,
     );
+    // Where the page is, as a result said it: only the pages there (#8829).
+    const place: string | undefined =
+      (ToolArgs.getString(args, "place") || "").slice(0, 200).trim() ||
+      undefined;
     const citation: ToolCitation = citationSentence(
       AI_TOOL_CITATIONS.dashboardPageSearch,
       { query },
@@ -438,9 +448,20 @@ export const FindDashboardPageTool: ObservabilityTool = {
           query,
           limit: DASHBOARD_PAGE_LIMIT,
           isBillingEnabled: IsBillingEnabled,
+          place,
         })
       : [];
     const first: AIDashboardPage | undefined = pages[0];
+
+    if (!first && place) {
+      return {
+        dataForLlm: `No page of the Dashboard named like "${query}" is in "${place}". Call again without place to see where the pages of that name are.`,
+        rowCount: 0,
+        ...citation,
+        redactionCount: 0,
+        isTruncated: false,
+      };
+    }
 
     if (!first) {
       return {
@@ -463,17 +484,40 @@ export const FindDashboardPageTool: ObservabilityTool = {
             };
           }),
           citationOpens: `${first.where.join(" > ")} > ${first.title}`,
+          ...(pages.length > 1
+            ? {
+                toCiteAnother:
+                  "Call again with its title as query and its where as place.",
+              }
+            : {}),
         },
         null,
         1,
       ),
       rowCount: pages.length,
+      /*
+       * The chip names the page where the Dashboard's menus put it, each
+       * name in the reader's language; its label, which the model reads in
+       * a turn's history, stays English (#8831).
+       */
       ...citationSentence(AI_TOOL_CITATIONS.dashboardPage, {
-        path: [...first.where, first.title].join(" > "),
+        path: aiActionMenuPath(
+          [...first.where, first.titleKey ?? first.title],
+          first.titleKey ? first.titleValues : undefined,
+        ),
       }),
       citationTarget: {
         type: AIChatCitationTargetType.DashboardPage,
-        params: { path: first.path, title: first.title },
+        params: {
+          path: first.path,
+          title: first.title,
+          // The key its button draws, where it is not the title (#8817).
+          ...(first.titleKey ? { titleKey: first.titleKey } : {}),
+          // What fills that key, where it is a template (#8834).
+          ...(first.titleKey && first.titleValues
+            ? { titleValues: JSON.stringify(first.titleValues) }
+            : {}),
+        },
       },
       redactionCount: 0,
       isTruncated: false,

@@ -19,6 +19,9 @@ import { formatReaderFigure } from "../DateLanguage";
  * drawn as a value that reads its own way (IsolatedText), so a page read
  * from the right draws "۴۷ KB", never "KB ۴۷".
  *
+ * The figure is held to its unit by a no-break space, so a narrow list never
+ * ends a line with "1.5" and starts the next with "MB" (#8457).
+ *
  * Pure, with no React imports.
  */
 
@@ -43,14 +46,14 @@ export const formatFileSize: FormatFileSizeFunction = (
   const language: string | undefined = options?.language;
 
   if (bytes < 1024) {
-    return `${formatReaderFigure(Math.floor(bytes), { decimals: 0, language })} B`;
+    return `${formatReaderFigure(Math.floor(bytes), { decimals: 0, language })}\u00A0B`;
   }
 
   if (bytes < 1024 * 1024) {
     return `${formatReaderFigure(Math.max(1, Math.round(bytes / 1024)), {
       decimals: 0,
       language,
-    })} KB`;
+    })}\u00A0KB`;
   }
 
   /*
@@ -63,7 +66,7 @@ export const formatFileSize: FormatFileSizeFunction = (
     decimals: 1,
     dropTrailingZeros: true,
     language,
-  })} MB`;
+  })}\u00A0MB`;
 };
 
 export default formatFileSize;

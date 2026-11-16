@@ -64,7 +64,7 @@ export const NOT_UX_GUARDS: Record<string, string> = {
   "packages/Common/Tests/UI/Components/EditionLabelLicenseWritesGuard.test.tsx":
     "Licensing: the Apache-2.0 edition dialog only reads the license.",
   "packages/Common/Tests/UI/Components/Forms/BasicFormTypeArgumentGuard.test.ts":
-    "The build: no test draws <BasicForm<...>>, the TS2558 that turns compile-tests red.",
+    "The build: no test draws BasicForm with a type argument, the TS2558 that turns compile-tests red.",
   "packages/Common/Tests/UI/Components/PeoplePicker/AvatarInitialsGuard.test.ts":
     "Code health: a name's initials are worked out by one helper.",
   "packages/Common/Tests/UI/Components/ShortcutDialogGuard.test.tsx":

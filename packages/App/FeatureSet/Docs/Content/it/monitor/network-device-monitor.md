@@ -256,14 +256,14 @@ Un [sito di rete](/docs/monitor/network-sites#valori-predefiniti-di-monitoraggio
 
 ## L'override con monitor associato
 
-Alcuni apparati nessuna sonda può raggiungerli o interrogarli utilmente con il ping: un dispositivo dietro un NAT, un'appliance la cui salute si giudica meglio con un controllo HTTP, un servizio il cui segnale reale è un controllo di porta. Per questi, **Modifica impostazioni** nella pagina **Impostazioni** del dispositivo ha un **Monitoring Method**:
+Alcuni apparati nessuna sonda può raggiungerli o interrogarli utilmente con il ping: un dispositivo dietro un NAT, un'appliance la cui salute si giudica meglio con un controllo HTTP, un servizio il cui segnale reale è un controllo di porta. Per questi, **Modifica impostazioni** nella pagina **Impostazioni** del dispositivo ha un **Metodo di monitoraggio**:
 
 | Metodo | Cosa significa |
 | --- | --- |
 | **Sonda** | Il predefinito. Riceve il ping dalla sonda assegnata secondo la sua pianificazione, e il walk SNMP quando ha le credenziali. |
-| **Bound monitor** | Lo stato di un monitor esistente è lo stato di questo dispositivo. |
+| **Monitor associato** | Lo stato di un monitor esistente è lo stato di questo dispositivo. |
 
-Passare un dispositivo a **Bound monitor** ne interrompe il polling. La sonda, l'intervallo e l'interruttore del polling lasciano la scheda **Polling & Data Collection**, i vecchi risultati di polling del dispositivo vengono cancellati e il suo stato viene dal monitor che associ. Associarne uno è facoltativo: finché non lo fai, il dispositivo risulta **In sospeso**, contrassegnato da **Nessun monitor**.
+Passare un dispositivo a **Monitor associato** ne interrompe il polling. La sonda, l'intervallo e l'interruttore del polling lasciano la scheda **Polling & Data Collection**, i vecchi risultati di polling del dispositivo vengono cancellati e il suo stato viene dal monitor che associ. Associarne uno è facoltativo: finché non lo fai, il dispositivo risulta **In sospeso**, contrassegnato da **Nessun monitor**.
 
 Tornare a **Sonda** ripristina il polling e chiede una sonda. Un monitor che era associato resta associato e continua a inviare avvisi; semplicemente non decide più lo stato del dispositivo.
 
@@ -519,7 +519,7 @@ Un'ottica che manca da una porta abilitata compare subito come **Non rilevato** 
 
 Ogni lettura è anche una metrica del dispositivo, una serie per porta e corsia, nelle unità che mostra la pagina: `oneuptime.monitor.snmp.transceiver.temperature` (°C), `oneuptime.monitor.snmp.transceiver.voltage` (V), `oneuptime.monitor.snmp.transceiver.bias.current` (mA), `oneuptime.monitor.snmp.transceiver.tx.power` e `oneuptime.monitor.snmp.transceiver.rx.power` (dBm), con gli attributi `interfaceName`, `interfaceIndex` e `lane`. Una dashboard può tracciare la luce di un collegamento nell'arco di mesi, e un monitor di metriche può generare avvisi su di essa.
 
-Un'indagine di OneUptime AI su un incidente o un avviso di un monitor del dispositivo di rete parte dalle ottiche delle porte interessate: se sono ancora rilevate o no, ogni lettura rispetto alle soglie del dispositivo e la potenza ricevuta delle ultime settimane. L'AI può anche leggere le ottiche di qualsiasi dispositivo quando gliele chiedi.
+Un'indagine di OneUptime AI su un incidente o un avviso di un monitor del dispositivo di rete parte dalle ottiche delle porte interessate: se sono ancora rilevate o no, ogni lettura rispetto alle soglie del dispositivo e la potenza ricevuta delle ultime settimane. L'IA può anche leggere le ottiche di qualsiasi dispositivo quando gliele chiedi.
 
 ### Identità del dispositivo
 
@@ -655,13 +655,13 @@ Un host rilevato prende il primo di questi nomi che possiede:
 3. Il suo nome DNS inverso, il record PTR che la sonda cerca dopo la scansione.
 4. Il suo indirizzo IP.
 
-I nomi propri del dispositivo vengono prima perché sono quelli usati dai suoi responsabili: un host Windows chiamato `WB0024KDS03` mantiene quel nome anche quando la sua zona inversa lo chiama `wb-0024-kds03.wbhq.com`. Anche il nome DNS inverso viene conservato: **Esamina i risultati** lo mostra accanto all'indirizzo, e il dispositivo lo conserva come suo **DNS Name**. NetBIOS tronca il nome di un computer a 15 caratteri, quindi un nome NetBIOS che è l'inizio di un nome DNS inverso più lungo (`WB-0024-KITCHEN` per `wb-0024-kitchen-display-03.wbhq.com`) cede il passo al nome DNS inverso.
+I nomi propri del dispositivo vengono prima perché sono quelli usati dai suoi responsabili: un host Windows chiamato `WB0024KDS03` mantiene quel nome anche quando la sua zona inversa lo chiama `wb-0024-kds03.wbhq.com`. Anche il nome DNS inverso viene conservato: **Esamina i risultati** lo mostra accanto all'indirizzo, e il dispositivo lo conserva come suo **Nome DNS**. NetBIOS tronca il nome di un computer a 15 caratteri, quindi un nome NetBIOS che è l'inizio di un nome DNS inverso più lungo (`WB-0024-KITCHEN` per `wb-0024-kitchen-display-03.wbhq.com`) cede il passo al nome DNS inverso.
 
 **Esamina i risultati** mostra il nome che riceverà un dispositivo, e riceve lo stesso nome sia che tu lo importi da lì, sia che lo importi una [regola di importazione automatica](#importare-automaticamente-con-le-regole-di-importazione-automatica). L'hostname del dispositivo è sempre il suo indirizzo IP. Finché il nome di un dispositivo è ancora quello datogli dal rilevamento, la sua panoramica mostra da dove viene il nome come **Origine del nome**.
 
 **Dai ai dispositivi il nome breve dell'host** tronca un nome completo alla sua prima etichetta: `core-sw-01.corp.example.com` viene importato come `core-sw-01`. Si applica a un nome DNS inverso e a un `sysName` che è un hostname completo; tutto il resto (`Core Switch`, `ubuntu-22.04`, un indirizzo IP) resta com'è. Cambia solo come si chiamano i dispositivi, quindi non serve una nuova scansione: **Esamina i risultati** e le regole di importazione automatica lo usano la prossima volta che danno un nome a un host, e i dispositivi già importati mantengono i loro nomi.
 
-Un dispositivo importato da un host con un nome DNS inverso conserva il nome completo come suo **DNS Name**, che la scansione usi i nomi brevi o no. Viene mostrato nella panoramica del dispositivo, la ricerca dell'elenco **Dispositivi** lo trova, e le regole di assegnazione dei siti confrontano con esso i modelli di hostname, così una regola `*.store-0660.corp.example.com` continua a collocare un dispositivo il cui nome ha perso il dominio. Un nome NetBIOS non viene mai salvato come DNS Name: l'host lo riporta su di sé, e non è un record DNS.
+Un dispositivo importato da un host con un nome DNS inverso conserva il nome completo come suo **Nome DNS**, che la scansione usi i nomi brevi o no. Viene mostrato nella panoramica del dispositivo, la ricerca dell'elenco **Dispositivi** lo trova, e le regole di assegnazione dei siti confrontano con esso i modelli di hostname, così una regola `*.store-0660.corp.example.com` continua a collocare un dispositivo il cui nome ha perso il dominio. Un nome NetBIOS non viene mai salvato come DNS Name: l'host lo riporta su di sé, e non è un record DNS.
 
 > [!WARNING]
 > Le regole delle etichette e dei proprietari confrontano il nome del dispositivo. Un modello scritto per i nomi DNS (`*.wbhq.com`) o per i nomi completi (`*.corp.example.com`) non corrisponde a un dispositivo chiamato con il suo nome proprio o con il suo nome breve. Le regole di assegnazione dei siti provano anche il DNS Name, quindi continuano a corrispondere.
@@ -795,7 +795,7 @@ Finché non ci sono policy, la pagina offre **Create the recommended policy**: u
 
 ### Un dispositivo alla volta
 
-Apri la pagina del dispositivo e fai clic su **Crea monitor** nella scheda **Monitors alerting on this device**. Il modulo del monitor si apre con il tipo Network Device e il dispositivo già scelti, e con il [pacchetto di avvisi consigliato](#pacchetto-di-avvisi-consigliato) compilato: controllalo, imposta le gravità e le policy di reperibilità e salva.
+Apri la pagina del dispositivo e fai clic su **Crea monitor** nella scheda **Monitors alerting on this device**. Il modulo del monitor si apre con il tipo Dispositivo di rete e il dispositivo già scelti, e con il [pacchetto di avvisi consigliato](#pacchetto-di-avvisi-consigliato) compilato: controllalo, imposta le gravità e le policy di reperibilità e salva.
 
 La maggior parte di switch, router, firewall e stampanti offre anche un'interfaccia web al proprio indirizzo. **Monitora l'interfaccia web**, nella stessa scheda, apre un monitor **Sito web** per essa: `https://` all'indirizzo del dispositivo, con **Consenti certificati autofirmati** attivo, perché l'interfaccia web di un dispositivo ne ha quasi sempre uno, controllato dalla sonda del dispositivo stesso e con il nome del dispositivo. Cambia l'URL se l'interfaccia risponde in `http`, su un'altra porta o sotto un percorso, poi salva. La scheda elenca il monitor finché il suo nome contiene il nome del dispositivo e il suo URL è all'indirizzo del dispositivo; non cambia lo stato del dispositivo.
 

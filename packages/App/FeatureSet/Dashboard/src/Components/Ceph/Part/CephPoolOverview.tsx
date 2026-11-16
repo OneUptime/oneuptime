@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import CephResource from "Common/Models/DatabaseModels/CephResource";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -67,7 +68,7 @@ export interface ComponentProps {
 }
 
 function formatShare(percent: number | null): string {
-  return percent === null ? "—" : `${percent.toFixed(1)}%`;
+  return percent === null ? EMPTY_VALUE_MARK : `${percent.toFixed(1)}%`;
 }
 
 /*
@@ -268,7 +269,9 @@ const CephPoolOverview: FunctionComponent<ComponentProps> = (
             title="Placement Groups"
             icon={IconProp.SquareStack}
             iconColor="violet"
-            value={pgSummary ? translator.formatNumber(pgSummary.total) : "—"}
+            value={
+              pgSummary ? translator.formatNumber(pgSummary.total) : undefined
+            }
             sublabel={
               pgSummary
                 ? pgSummary.clean >= pgSummary.total
@@ -294,7 +297,7 @@ const CephPoolOverview: FunctionComponent<ComponentProps> = (
             iconColor="sky"
             value={
               readings.objects === null
-                ? "—"
+                ? undefined
                 : translator.formatNumber(Math.round(readings.objects))
             }
             sublabel="RADOS objects"

@@ -9,6 +9,8 @@ import React, {
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
@@ -656,7 +658,9 @@ export interface SessionReplayBadgeParts {
  * English, word for word, for a caller that hands in no translator: the
  * node tests, and anything that reads a badge's words outside the list.
  */
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 // A fixed line in the translator's language.
 function translateLine(text: string, translator: Translator): string {
@@ -1393,7 +1397,7 @@ function getSessionReplayCells(
     }),
     translator.language,
   );
-  const sessionIdText: string = row.sessionId.slice(0, 8) || "—";
+  const sessionIdText: string = row.sessionId.slice(0, 8) || EMPTY_VALUE_MARK;
 
   return [
     <div key="0" className="grid grid-cols-1">
@@ -1495,7 +1499,7 @@ function getSessionReplayCells(
               className="font-mono text-[11px] text-gray-500"
               title={row.sessionId}
             >
-              {sessionIdText}
+              {getValueOrQuietDash(sessionIdText, { isSmall: true })}
             </span>
           </span>
         </div>
@@ -1526,7 +1530,7 @@ function getSessionReplayCells(
     </div>,
     <div key="2" className="grid grid-cols-1">
       <div className="font-mono text-sm font-medium tabular-nums text-gray-900">
-        {formatSessionDuration(row.durationMs)}
+        {getValueOrQuietDash(formatSessionDuration(row.durationMs, translator))}
       </div>
       <div
         className={`mt-0.5 text-xs text-gray-500 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
@@ -2557,9 +2561,13 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               triggerReason: SessionReplayTriggerReason.Performance,
             }
           : advancedFilters,
-        { hideIdentity: isIdentityFilterIgnored, hideSearch: true },
+        {
+          hideIdentity: isIdentityFilterIgnored,
+          hideSearch: true,
+          translator: translator,
+        },
       );
-    }, [advancedFilters, isIdentityFilterIgnored, signal]);
+    }, [advancedFilters, isIdentityFilterIgnored, signal, translator]);
 
   const removeChip: (field: keyof SessionReplayAdvancedFilters) => void =
     useCallback(
@@ -2829,7 +2837,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                 dataTestId="identity-filter-ignored"
                 strongTitle="User filter ignored"
                 title={translator.translateTemplate(
-                  'Your role cannot read end-user identity, so the server dropped the user filter "{{user}}" and this list is NOT narrowed to that user. Ask a project admin for the "{{permission}}" permission, or filter by URL, tag or device instead.',
+                  'Your role cannot read end-user identity, so the server dropped the user filter "{{user}}" and this list is NOT narrowed to that user. Ask a Project Admin for the "{{permission}}" permission, or filter by URL, tag or device instead.',
                   {
                     user: advancedFilters.identifiedUserRef.trim(),
                     // End-user identity is read with the watch permission.

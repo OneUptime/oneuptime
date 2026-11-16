@@ -69,8 +69,16 @@ import {
   SESSION_AUDIT_LOG_ACTIONS,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
 import {
+  AUDIT_LOG_SIGN_IN_ATTEMPT_RESOURCE_TYPE,
+  FAILED_SIGN_IN_WINDOW_IN_MINUTES,
+  FAILED_SIGN_INS_RECORDED_PER_WINDOW,
+} from "Common/Types/AuditLog/AuditLogSignInFailure";
+import { AUDIT_LOG_STATUS_PAGE_SESSION_ROOT_RESOURCE_TYPE } from "Common/Types/AuditLog/AuditLogStatusPageSession";
+import {
+  ACTIVITY_REPORTED_WITHIN_IN_MINUTES,
   DEFAULT_SESSION_IDLE_DAYS,
   IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
 } from "Common/Types/UserSession/SessionLength";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import {
@@ -2390,6 +2398,7 @@ describe("Audit Logs", () => {
         "Delete",
         "Download",
         "SignIn",
+        "SignInFailed",
         "SignOut",
         "SessionTimeout",
         "SessionRevoked",
@@ -2466,12 +2475,96 @@ describe("Audit Logs", () => {
   });
 
   /*
+   * Issue #6788: a failed sign-in on an existing account is in its person's
+   * projects' audit logs, about the attempt, with the account as its actor,
+   * never with what was typed, recorded after the sign-in page has
+   * answered, and held to so many an hour for an account. The page says
+   * each, by the numbers the bound keeps.
+   */
+  it("says failed sign-ins are recorded, how many, and that the sign-in page answers as before", () => {
+    const sessions: string = section(page, "## Sign-ins and sessions");
+    const bound: string = readCommonSource(
+      "Server/Utils/AuditLog/FailedSignInAuditLog.ts",
+    );
+    const authentication: string = fs.readFileSync(
+      path.join(
+        PACKAGES_DIR,
+        "App",
+        "FeatureSet",
+        "Identity",
+        "API",
+        "Authentication.ts",
+      ),
+      "utf8",
+    );
+
+    expect(FAILED_SIGN_INS_RECORDED_PER_WINDOW).toBe(10);
+    expect(FAILED_SIGN_IN_WINDOW_IN_MINUTES).toBe(60);
+    expect(AUDIT_LOG_SIGN_IN_ATTEMPT_RESOURCE_TYPE).toBe("Sign-In Attempt");
+    expect(sessions).toContain(
+      "| `Sign-In Failed` | Someone tries to sign in to an existing account and fails: a wrong password, authenticator code, backup code or security key, a blocked or unverified account, or a single sign-on OneUptime refused. |",
+    );
+    expect(sessions).toContain(
+      "A `Sign-In Failed` entry is about the attempt, named by the device it came from. Its **Actor** is the account the attempt was made on: whoever made it did not prove they are that person.",
+    );
+    expect(sessions).toContain(
+      "An attempt on an email address that no account has is not recorded, and recording an attempt changes neither what the sign-in page answers nor how fast.",
+    );
+    expect(sessions).toContain(
+      `So that a flood of attempts cannot fill the audit log, the first ${FAILED_SIGN_INS_RECORDED_PER_WINDOW} failed attempts on an account in an hour are recorded one by one. The rest are counted, and the account's next entry says how many attempts it stands for and when the first of them was made.`,
+    );
+
+    // After the answer, never awaited by the route: a timer, then the count.
+    expect(bound).toContain("setTimeout((): void => {");
+    expect(bound).toContain("await FailedSignInAuditLog.countAttempt({");
+    expect(authentication).toContain(
+      "recordFailedSignIn(SignInFailureReason.WrongPassword);",
+    );
+    expect(authentication).not.toContain("await FailedSignInAuditLog");
+  });
+
+  /*
+   * Issue #6790: a private status page's readers' sign-ins, sign-outs and
+   * revoked sessions are in the status page's project, and on its own
+   * Audit Logs page: each entry rolls up to the status page.
+   */
+  it("says a private status page's readers' sessions are recorded, in the status page's project", () => {
+    const sessions: string = section(page, "## Sign-ins and sessions");
+    const readerSessions: string = readCommonSource(
+      "Server/Services/StatusPagePrivateUserSessionService.ts",
+    );
+
+    expect(AUDIT_LOG_STATUS_PAGE_SESSION_ROOT_RESOURCE_TYPE).toBe(
+      "Status Page",
+    );
+    expect(sessions).toContain(
+      "The readers of a private status page are recorded too, in the status page's project only: each sign-in with a password, a sign-in link or the status page's single sign-on, each sign-out, and each session OneUptime ends because the reader's password changed or the status page no longer accepts how it signed in. Their entries are also on the status page's own **Audit Logs** page.",
+    );
+    expect(readerSessions).toContain(
+      "await AuditLogService.recordStatusPageSessionEvents(events);",
+    );
+    expect(readerSessions).toContain(
+      "protected override async onBeforeUpdate(",
+    );
+
+    // No longer listed as working state the audit log leaves out.
+    expect(section(page, "## What is recorded")).not.toContain(
+      "Status page readers' sessions",
+    );
+  });
+
+  /*
    * Issue #8188: an idle timeout was recorded only when the browser came
    * back, and for one that never did, 30 days later as "Not used for 30
    * days". The five-minute sweep records it once the idle timeout and the
    * margin have passed with nothing heard of the browser, so the page says
-   * within how long: the margin and one sweep. The mobile app's is still
-   * recorded when the app next reaches OneUptime.
+   * within how long: the margin and one sweep.
+   *
+   * Issue #8458: the mobile app after 1.6.0 renews while in use and says so
+   * with every renewal (reportsActivityWhileInUse), so its sessions are
+   * swept the same way; 1.6.0, the latest store release when it changed
+   * (packages/MobileApp/app.json), and earlier say nothing, and theirs are
+   * still recorded when the app next reaches OneUptime.
    */
   it("says how soon an idle timeout is recorded, as the sweep's margin and its schedule make it", () => {
     const sessions: string = section(page, "## Sign-ins and sessions");
@@ -2479,29 +2572,54 @@ describe("Audit Logs", () => {
 
     expect(EVERY_FIVE_MINUTE).toBe(`*/${sweepEveryMinutes} * * * *`);
     expect(sessions).toContain(
-      `An idle timeout in the browser is recorded within ${
+      `An idle timeout in the browser, or in a version of the mobile app newer than 1.6.0, is recorded within ${
         IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES + sweepEveryMinutes
-      } minutes of running out, whether or not the person comes back. In the mobile app, it is recorded the next time the app reaches OneUptime.`,
+      } minutes of running out, whether or not the person comes back. In version 1.6.0 and earlier of the mobile app, it is recorded the next time the app reaches OneUptime.`,
     );
     expect(sessions).not.toContain("from a tab left open");
 
-    const sweepJob: string = fs.readFileSync(
-      path.join(
-        PACKAGES_DIR,
-        "..",
-        "ee",
-        "Server",
-        "AuditLog",
-        "Jobs",
-        "EndSessionsThatRanOut.ts",
-      ),
+    // What makes it so: every renewal of the app says it renews while in use.
+    const mobileClient: string = fs.readFileSync(
+      path.join(PACKAGES_DIR, "MobileApp", "src", "api", "client.ts"),
+      "utf8",
+    );
+    const mobileActivity: string = fs.readFileSync(
+      path.join(PACKAGES_DIR, "MobileApp", "src", "auth", "userActivity.ts"),
       "utf8",
     );
 
-    expect(sweepJob).toContain("schedule: EVERY_FIVE_MINUTE,");
+    expect(mobileClient).toContain(
+      "[REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: true,",
+    );
+    expect(mobileActivity).toContain(
+      `export const REPORTS_ACTIVITY_WHILE_IN_USE_FIELD: string =\n  "${REPORTS_ACTIVITY_WHILE_IN_USE_FIELD}";`,
+    );
+    expect(mobileActivity).toContain(
+      `export const ACTIVITY_REPORT_INTERVAL_MS: number = ${ACTIVITY_REPORTED_WITHIN_IN_MINUTES} * 60 * 1000;`,
+    );
+
     expect(readCommonSource("Server/Services/UserSessionService.ts")).toContain(
       "ended += await this.endSessionsPastIdleTimeout(condition);",
     );
+
+    /*
+     * The sweep is the Enterprise Edition's audit log job. Core CI runs
+     * without ee/: its schedule is held to the page wherever ee/ is present.
+     */
+    if (fs.existsSync(EE_DIR)) {
+      const sweepJob: string = fs.readFileSync(
+        path.join(
+          EE_DIR,
+          "Server",
+          "AuditLog",
+          "Jobs",
+          "EndSessionsThatRanOut.ts",
+        ),
+        "utf8",
+      );
+
+      expect(sweepJob).toContain("schedule: EVERY_FIVE_MINUTE,");
+    }
   });
 
   it("says an administrator's changes to someone else's notification setup are recorded", () => {

@@ -153,7 +153,7 @@ describe("the sentences", () => {
 
     values["pipeline"] = "changed";
 
-    expect(worded.titleWords.values).toEqual({ pipeline: "nightly_orders" });
+    expect(worded.titleWords?.values).toEqual({ pipeline: "nightly_orders" });
     expect(worded.title).toBe("nightly_orders failed");
   });
 });

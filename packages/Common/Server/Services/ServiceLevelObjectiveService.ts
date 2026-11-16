@@ -19,6 +19,17 @@ import {
   SloRecommendedBurnRateRule,
   getSloRecommendedBurnRateRules,
 } from "../../Utils/Slo/SloRecommendedBurnRateRules";
+import {
+  getSloRequestFilterError,
+  normalizeSloRequestFilter,
+} from "../../Utils/Slo/SloRequestFilter";
+import {
+  getSloMetricQueryError,
+  normalizeSloMetricQueryConfig,
+  SLO_METRIC_QUERY_NOT_AN_OBJECT_ERROR,
+  SloMetricQueryConfig,
+} from "../../Utils/Slo/SloMetricSli";
+import { JSONObject } from "../../Types/JSON";
 import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -218,6 +229,28 @@ export class Service extends ProjectReferencesService<Model> {
         createBy.data.latencyThresholdInMilliseconds === null)
     ) {
       throw new BadDataException(SLO_LATENCY_THRESHOLD_REQUIRED_ERROR_MESSAGE);
+    }
+
+    // Which of its services' requests a request SLO counts (#8444).
+    if (createBy.data.requestFilter !== undefined) {
+      createBy.data.requestFilter = this.validateRequestFilter(
+        createBy.data.requestFilter,
+      ) as string;
+    }
+
+    /*
+     * What a Metric SLO counts (#8445): stored as the counting reads it,
+     * and a Metric SLO is never created with a metric it cannot count -
+     * it would only ever read Misconfigured.
+     */
+    if (createBy.data.metricQueryConfig !== undefined) {
+      createBy.data.metricQueryConfig = this.normalizeMetricQueryConfig(
+        createBy.data.metricQueryConfig,
+      ) as JSONObject;
+    }
+
+    if (createBy.data.sliType === SliType.Metric) {
+      this.assertMetricQueryConfigCounts(createBy.data.metricQueryConfig);
     }
 
     /*
@@ -440,6 +473,24 @@ export class Service extends ProjectReferencesService<Model> {
 
     await this.assertRequestLatencySloKeepsThreshold(updateBy);
 
+    if (updateBy.data.requestFilter !== undefined) {
+      updateBy.data.requestFilter = this.validateRequestFilter(
+        updateBy.data.requestFilter as unknown,
+      ) as string;
+    }
+
+    // A JSON column's deep-partial type is too deep to assign to as written.
+    const updateData: Record<string, unknown> =
+      updateBy.data as unknown as Record<string, unknown>;
+
+    if (updateData["metricQueryConfig"] !== undefined) {
+      updateData["metricQueryConfig"] = this.normalizeMetricQueryConfig(
+        updateData["metricQueryConfig"],
+      );
+    }
+
+    await this.assertMetricSloKeepsMetric(updateBy);
+
     await this.assertMonitorEditRespectsMonitorRules(updateBy);
 
     /*
@@ -624,6 +675,9 @@ export class Service extends ProjectReferencesService<Model> {
       onUpdate.updateBy.data.sliType !== undefined ||
       onUpdate.updateBy.data.services !== undefined ||
       onUpdate.updateBy.data.latencyThresholdInMilliseconds !== undefined ||
+      onUpdate.updateBy.data.requestFilter !== undefined ||
+      // What a Metric SLO counts (#8445).
+      onUpdate.updateBy.data.metricQueryConfig !== undefined ||
       /*
        * Unarchived: the worker stopped looking at this SLO while it was
        * archived, so its status and budget are frozen at archive time. Its
@@ -1011,6 +1065,8 @@ export class Service extends ProjectReferencesService<Model> {
           _id: true,
         },
         latencyThresholdInMilliseconds: true,
+        // Which of the services' requests count (#8444).
+        requestFilter: true,
         goodEventCount: true,
         totalEventCount: true,
         errorBudgetTotalEvents: true,
@@ -2190,6 +2246,109 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return windowDays;
+  }
+
+  /*
+   * A request filter is a traces search of span attributes and the span's
+   * name (Common/Utils/Slo/SloRequestFilter), stored trimmed; empty is no
+   * filter, so null. One the counting cannot read is refused here, with
+   * what to write instead, rather than counted as every request.
+   */
+  private validateRequestFilter(value: unknown): string | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    if (typeof value !== "string") {
+      throw new BadDataException(
+        "The request filter must be text: a traces search such as @http.route:/checkout*.",
+      );
+    }
+
+    const error: string | null = getSloRequestFilterError(value);
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+
+    return normalizeSloRequestFilter(value);
+  }
+
+  /*
+   * A Metric SLO's configuration (Common/Utils/Slo/SloMetricSli) as the
+   * counting reads it: its strings trimmed, its value a number, only the
+   * parts its kind reads. Null clears it. Anything but an object is
+   * refused, with what one looks like; an object is kept even when it is
+   * incomplete, since only a Metric SLO needs it to count (an SLO switched
+   * away from Metric may keep what it had).
+   */
+  private normalizeMetricQueryConfig(value: unknown): JSONObject | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    const config: SloMetricQueryConfig | null =
+      normalizeSloMetricQueryConfig(value);
+
+    if (!config) {
+      throw new BadDataException(SLO_METRIC_QUERY_NOT_AN_OBJECT_ERROR);
+    }
+
+    return config as unknown as JSONObject;
+  }
+
+  // A Metric SLO's configuration must be one OneUptime can count with.
+  private assertMetricQueryConfigCounts(value: unknown): void {
+    const error: string | null = getSloMetricQueryError(value ?? null);
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+  }
+
+  /*
+   * An update that would leave a Metric SLO with a metric it cannot count -
+   * switching an SLO to Metric without one, or changing or clearing the
+   * configuration of one that is - is refused, as a create is. Only those
+   * payloads read anything: every other update, the worker's included,
+   * passes straight through.
+   */
+  private async assertMetricSloKeepsMetric(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const nextSliType: unknown = updateBy.data.sliType as unknown;
+    const nextConfig: unknown = updateBy.data.metricQueryConfig as unknown;
+
+    if (nextSliType !== SliType.Metric && nextConfig === undefined) {
+      return;
+    }
+
+    if (nextSliType === SliType.Metric && nextConfig !== undefined) {
+      this.assertMetricQueryConfigCounts(nextConfig);
+      return;
+    }
+
+    const slos: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        sliType: true,
+        metricQueryConfig: true,
+      },
+    );
+
+    for (const slo of slos) {
+      const sliTypeAfter: unknown =
+        nextSliType !== undefined ? nextSliType : slo.sliType;
+
+      if (sliTypeAfter !== SliType.Metric) {
+        continue;
+      }
+
+      this.assertMetricQueryConfigCounts(
+        nextConfig !== undefined ? nextConfig : slo.metricQueryConfig,
+      );
+    }
   }
 
   private validateLatencyThresholdInMilliseconds(value: unknown): number {

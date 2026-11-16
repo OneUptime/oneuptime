@@ -114,7 +114,7 @@ describe("when a rule declares, as the rules table says it", () => {
 
     expect(describeAlertIncidentRuleWhen(0, german)).toBe("Sofort");
     expect(describeAlertIncidentRuleWhen(15, german)).toBe(
-      "Wenn nach 15 Minuten noch nicht behoben",
+      "Wenn nach 15\u00A0Minuten noch nicht behoben",
     );
   });
 

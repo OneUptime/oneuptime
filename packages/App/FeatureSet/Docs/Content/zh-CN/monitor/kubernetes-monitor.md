@@ -38,11 +38,11 @@ flowchart TB
 
 ### 选择要监控的内容
 
-新监视器从 **告警内容** 下的 **Cluster Stopped Reporting** 开始；**更改** 可选择另一个模板。**Custom Metric** 和 **高级** 位于 **更多字段** 下：
+新监视器从 **警报内容** 下的 **Cluster Stopped Reporting** 开始；**更改** 可选择另一个模板。**Custom Metric** 和 **高级** 位于 **更多字段** 下：
 
 | 位置 | 你要选择的内容 |
 | --- | --- |
-| **告警内容** | 一个 [现成的警报模板](#现成的警报模板)。它会填好指标、范围、时间范围和条件；你仍然可以更改 **时间范围**。 |
+| **警报内容** | 一个 [现成的警报模板](#现成的警报模板)。它会填好指标、范围、时间范围和条件；你仍然可以更改 **时间范围**。 |
 | **Custom Metric** | [指标目录](#指标目录) 中的一个指标，然后是它的 **资源范围**、过滤器、**聚合**（平均值、最大值、最小值、总和或计数）和 **时间范围**。 |
 | **高级** | **资源范围**、过滤器和 **时间范围**，以及在 **选择指标** 下编写的你自己的指标查询和公式，并附带结果的实时图表。 |
 
@@ -85,15 +85,15 @@ flowchart TB
 
 | 类别 | 指标 |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| 节点 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| 容器 | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| 工作负载 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| 控制平面 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| Pod | Pod CPU 使用量, Pod 内存使用, Pod 阶段（代码）, Pod 文件系统使用量, Pod 内存限制使用率, Pod CPU 限制使用率, Pod 网络 I/O（累计，双向） |
+| 节点 | 节点 CPU 使用量, 节点可分配 CPU, 节点内存使用率, 节点内存工作集, 节点文件系统使用率, 节点可分配内存, 节点 Ready 状况, 节点 MemoryPressure 状况, 节点 DiskPressure 状况, 节点 PIDPressure 状况, 节点文件系统可用空间 |
+| 容器 | 容器重启次数, 容器重启次数（增量）, 容器 CPU 限制, 容器 CPU 请求, 容器内存限制, 容器内存请求, 容器就绪 |
+| 工作负载 | Deployment 可用副本数, Deployment 期望副本数, DaemonSet 期望节点数, DaemonSet 错误调度的节点数, DaemonSet 就绪节点数, StatefulSet 期望副本数, StatefulSet 就绪副本数, Job 失败的 Pod 数, Job 失败的 Pod 数（增量）, Job 成功的 Pod 数 |
+| HPA | HPA 当前副本数, HPA 期望副本数, HPA 最大副本数, HPA 最小副本数 |
+| 控制平面 | etcd 有领导者, API 服务器进行中的请求, 调度器待处理的 Pod |
 
 > [!NOTE]
-> **Pod CPU Usage** 和 **Node CPU Usage** 的单位是核心而不是百分比：`0.18` 表示 0.18 个核心。**Pod Phase (Code)** 指标是一个代码（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），请用最大值或最小值聚合，切勿使用总和。只有在代理的控制平面抓取开启时，才会收到控制平面指标。**Node Ready Condition** 在 Ready 时为 1，NotReady 时为 0，Unknown 时为 -1，宕机的节点报告的正是 Unknown：请在小于 1 时告警。 **Container Restarts** 是容器的累计重启计数；**Container Restarts (Increase)** 是代理随每个样本发送的值，即自它上一次采样该容器以来的重启次数，所以它在一个窗口内的总和就是该窗口内的重启次数。它带有 **Container Restarts** 带有的属性，包括容器所在 Pod 的工作负载名称，但不包括每次重启都会变化的容器 ID。**Job Failed Pods** 是 Job 的累计失败 Pod 计数；**Job Failed Pods (Increase)** 是代理随每个样本发送的值，即自它上一次采样该 Job 以来失败的 Pod 数，所以它在一个窗口内的总和就是该窗口内的失败次数。它和 **Job Failed Pods** 一样，带有 Job 的名称和命名空间。
+> **Pod CPU 使用量** 和 **节点 CPU 使用量** 的单位是核心而不是百分比：`0.18` 表示 0.18 个核心。**Pod 阶段（代码）** 指标是一个代码（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），请用最大值或最小值聚合，切勿使用总和。只有在代理的控制平面抓取开启时，才会收到控制平面指标。**节点 Ready 状况** 在 Ready 时为 1，NotReady 时为 0，Unknown 时为 -1，宕机的节点报告的正是 Unknown：请在小于 1 时警报。 **容器重启次数** 是容器的累计重启计数；**容器重启次数（增量）** 是代理随每个样本发送的值，即自它上一次采样该容器以来的重启次数，所以它在一个窗口内的总和就是该窗口内的重启次数。它带有 **容器重启次数** 带有的属性，包括容器所在 Pod 的工作负载名称，但不包括每次重启都会变化的容器 ID。**Job 失败的 Pod 数** 是 Job 的累计失败 Pod 计数；**Job 失败的 Pod 数（增量）** 是代理随每个样本发送的值，即自它上一次采样该 Job 以来失败的 Pod 数，所以它在一个窗口内的总和就是该窗口内的失败次数。它和 **Job 失败的 Pod 数** 一样，带有 Job 的名称和命名空间。
 
 ## 监控条件
 
@@ -130,7 +130,7 @@ flowchart TB
 
 ## 现成的警报模板
 
-**告警内容** 列表按类别列出这些模板。每个模板会填写两个条件：一个在条件成立时把监视器标记为离线并打开事件和警报，另一个在条件消除后让监视器恢复在线。
+**警报内容** 列表按类别列出这些模板。每个模板会填写两个条件：一个在条件成立时把监视器标记为离线并打开事件和警报，另一个在条件消除后让监视器恢复在线。
 
 | 模板 | 类别 | 触发时机 | 严重程度 |
 | --- | --- | --- | --- |
@@ -191,7 +191,7 @@ flowchart TB
 :::
 
 :::details CPU 阈值从不触发
-**Pod CPU Usage** 和 **Node CPU Usage** 的单位是核心而不是百分比，所以阈值 `80` 表示 80 个核心。请以核心为单位设置阈值，或者从比较百分比的 **High Node CPU Utilization** 或 **Pod CPU Saturating Container Limit** 开始。
+**Pod CPU 使用量** 和 **节点 CPU 使用量** 的单位是核心而不是百分比，所以阈值 `80` 表示 80 个核心。请以核心为单位设置阈值，或者从比较百分比的 **High Node CPU Utilization** 或 **Pod CPU Saturating Container Limit** 开始。
 :::
 
 :::details CrashLoopBackOff Detection 没有因一次重启而触发
@@ -208,5 +208,5 @@ flowchart TB
 - [Kubernetes 代理(Helm 安装)](/docs/monitor/kubernetes-agent): 使用 Helm 安装、升级和调优代理。
 - [Kubernetes 代理](/docs/telemetry/kubernetes-agent): 命名空间过滤器、控制平面指标、日志严重程度过滤器和 AI 代理。
 - [指标监控](/docs/monitor/metrics-monitor): 对任何指标发出警报，包括代理的自定义指标和 eBPF 指标。
-- [事件与告警模板](/docs/monitor/incident-alert-templating): 把超出阈值的 Pod 或节点写进事件标题。
+- [事件与警报模板](/docs/monitor/incident-alert-templating): 把超出阈值的 Pod 或节点写进事件标题。
 :::

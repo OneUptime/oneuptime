@@ -254,10 +254,10 @@ describe("words beside the value", () => {
       "34.6\u00A0°C",
     );
     expect(formatReadingValue(TransceiverReadingKind.Voltage, 3.3)).toBe(
-      "3.30 V",
+      "3.30\u00A0V",
     );
     expect(formatReadingValue(TransceiverReadingKind.BiasCurrent, 6.1)).toBe(
-      "6.10 mA",
+      "6.10\u00A0mA",
     );
   });
 

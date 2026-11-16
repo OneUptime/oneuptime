@@ -775,7 +775,7 @@ describe("a SCIM connection a Scale trial left behind, on Free and on Growth", (
     expect(deletes).toBe(1);
   });
 
-  test("its bearer token stays readable by project owners only", async () => {
+  test("its bearer token stays readable by Project Owners only", async () => {
     for (const plan of PLANS_BELOW_SCALE) {
       currentPlan = plan;
 

@@ -13,6 +13,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * LocalStorage.clearExcept: everything the browser keeps for this address
@@ -169,19 +170,19 @@ describe("how", () => {
   test("nothing is cleared and written back: a key that stays is not touched", () => {
     fill({ theme: "dark", language: "de", token: "secret", user: "ada" });
 
-    const clear: jest.SpiedFunction<Storage["clear"]> = jest.spyOn(
+    const clear: SpyInstance<Storage["clear"]> = jest.spyOn(
       Storage.prototype,
       "clear",
     );
-    const setItem: jest.SpiedFunction<Storage["setItem"]> = jest.spyOn(
+    const setItem: SpyInstance<Storage["setItem"]> = jest.spyOn(
       Storage.prototype,
       "setItem",
     );
-    const getItem: jest.SpiedFunction<Storage["getItem"]> = jest.spyOn(
+    const getItem: SpyInstance<Storage["getItem"]> = jest.spyOn(
       Storage.prototype,
       "getItem",
     );
-    const removeItem: jest.SpiedFunction<Storage["removeItem"]> = jest.spyOn(
+    const removeItem: SpyInstance<Storage["removeItem"]> = jest.spyOn(
       Storage.prototype,
       "removeItem",
     );

@@ -140,24 +140,27 @@ function oldEmptyLooks(file: string, source: string): Array<Finding> {
 }
 
 /*
- * Each sentence a source hands DashboardWidgetEmpty as written:
- * message="..." or message={"..."}. One held in a constant or a prop - a
- * list widget's emptyMessage, which the list base hands on - is read where
- * it is written.
+ * Each sentence a source hands an element's `attribute` as written:
+ * attribute="..." or attribute={"..."}, on the elements `isElement` picks.
  */
-function emptySentences(file: string, source: string): Array<string> {
+function attributeSentences(
+  file: string,
+  source: string,
+  attribute: string,
+  isElement: (tagName: string) => boolean,
+): Array<string> {
   const sourceFile: ts.SourceFile = parse(file, source);
   const sentences: Array<string> = [];
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     if (
       (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
-      node.tagName.getText(sourceFile) === "DashboardWidgetEmpty"
+      isElement(node.tagName.getText(sourceFile))
     ) {
       for (const property of node.attributes.properties) {
         if (
           !ts.isJsxAttribute(property) ||
-          property.name.getText(sourceFile) !== "message" ||
+          property.name.getText(sourceFile) !== attribute ||
           !property.initializer
         ) {
           continue;
@@ -184,6 +187,33 @@ function emptySentences(file: string, source: string): Array<string> {
   visit(sourceFile);
 
   return sentences;
+}
+
+/*
+ * Each sentence a source hands DashboardWidgetEmpty as written:
+ * message="..." or message={"..."}. One held in a constant or a prop - a
+ * list widget's emptyMessage, which the list base hands on - is read where
+ * it is written (listEmptySentences).
+ */
+function emptySentences(file: string, source: string): Array<string> {
+  return attributeSentences(file, source, "message", (tagName: string) => {
+    return tagName === "DashboardWidgetEmpty";
+  });
+}
+
+/*
+ * Each sentence a list widget hands its list base as its no-data line,
+ * as written: emptyMessage="..." or emptyMessage={"..."}, on whatever
+ * element takes it (DashboardResourceListBase,
+ * DashboardModelResourceListBase and the lists built on them). The base
+ * looks it up and draws it under the column headers, or under the list's
+ * icon in honeycomb view: about 26 of them read English in 11 languages
+ * until #8273, because this guard read only message="..." (#8273).
+ */
+function listEmptySentences(file: string, source: string): Array<string> {
+  return attributeSentences(file, source, "emptyMessage", () => {
+    return true;
+  });
 }
 
 function sourceFiles(): Array<string> {
@@ -260,6 +290,22 @@ describe("the reader of a widget's no-data line", () => {
         ].join("\n"),
       ),
     ).toEqual(["No logs found", "No rows returned.", "No data"]);
+  });
+
+  test("finds each no-data line a list hands its list base as written, and no other", () => {
+    expect(
+      listEmptySentences(
+        "Snippet.tsx",
+        [
+          'const a = <DashboardResourceListBase emptyMessage="No pods found" emptyIcon={IconProp.Cube} />;',
+          'const b = <DashboardModelResourceListBase emptyMessage={"No hosts found"} />;',
+          "const c = <DashboardResourceListBase emptyMessage={`No nodes found`} />;",
+          "const d = <DashboardResourceListBase emptyMessage={props.emptyMessage} />;",
+          'const e = <DashboardWidgetEmpty icon={IconProp.Logs} message="Not a list\'s" />;',
+          'const f = <DashboardResourceListBase title="Not its no-data line" />;',
+        ].join("\n"),
+      ),
+    ).toEqual(["No pods found", "No hosts found", "No nodes found"]);
   });
 
   test("the shared no-data line is the setup and error lines' readable look", () => {
@@ -394,7 +440,10 @@ describe("every widget draws its no-data line in the shared look", () => {
     const sentences: Set<string> = new Set<string>();
 
     for (const file of sourceFiles()) {
-      for (const sentence of emptySentences(relative(file), readSource(file))) {
+      for (const sentence of [
+        ...emptySentences(relative(file), readSource(file)),
+        ...listEmptySentences(relative(file), readSource(file)),
+      ]) {
         sentences.add(sentence);
       }
     }
@@ -407,6 +456,11 @@ describe("every widget draws its no-data line in the shared look", () => {
         "No security events for the selected time range and filters",
         "No rows returned.",
         "No logs found",
+        // The list widgets' own (#8273).
+        "No pods found",
+        "No monitors found",
+        "No Docker hosts found",
+        "No storage array volumes found",
       ]),
     );
 

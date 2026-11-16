@@ -359,7 +359,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "Requests",
-      value: m ? formatCompact(m.total, translator) : "—",
+      value: m ? formatCompact(m.total, translator) : undefined,
       icon: IconProp.Workflow,
       iconColor: "sky",
       loading: metricsLoading,
@@ -369,7 +369,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     },
     {
       title: "Error rate",
-      value: m ? formatPercent(m.errorRatePercent, translator) : "—",
+      value: m ? formatPercent(m.errorRatePercent, translator) : undefined,
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: metricsLoading,
@@ -380,7 +380,9 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     },
     {
       title: "Latency (p95)",
-      value: m ? formatDurationMsInLanguage(m.p95DurationMs, translator) : "—",
+      value: m
+        ? formatDurationMsInLanguage(m.p95DurationMs, translator)
+        : undefined,
       icon: IconProp.Clock,
       iconColor: "amber",
       loading: metricsLoading,

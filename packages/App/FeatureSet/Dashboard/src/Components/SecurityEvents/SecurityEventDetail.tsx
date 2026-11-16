@@ -153,6 +153,7 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
         translator.translateText("Details of the selected security event.") ||
         ""
       }
+      isDescriptionTranslated={true}
       onClose={props.onClose}
       size={SideOverSize.Large}
     >

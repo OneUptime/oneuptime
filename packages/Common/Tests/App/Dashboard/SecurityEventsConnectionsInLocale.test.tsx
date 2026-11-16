@@ -121,13 +121,18 @@ function pieces(locale: Record<string, string>, key: string): Array<string> {
     });
 }
 
-// A text without the isolates a right-to-left sentence sets its values in.
+/*
+ * A text without the isolates a right-to-left sentence sets its values in.
+ * The page's words: no isolates, and a held figure's space a plain one (#8770).
+ */
 function plain(text: string | null | undefined): string {
   return (text || "")
     .split(FIRST_STRONG_ISOLATE)
     .join("")
     .split(POP_DIRECTIONAL_ISOLATE)
-    .join("");
+    .join("")
+    .split("\u00A0")
+    .join(" ");
 }
 
 function expectSentence(

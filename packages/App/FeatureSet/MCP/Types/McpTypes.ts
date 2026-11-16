@@ -2,11 +2,17 @@ import OneUptimeOperation from "./OneUptimeOperation";
 import ModelType from "./ModelType";
 import { JSONObject } from "Common/Types/JSON";
 
-// JSON Schema type for MCP tool input schemas
+/*
+ * JSON Schema type for MCP tool input schemas. A value of one of several
+ * shapes says each in anyOf, and one of a few values names them in enum,
+ * with no type of its own: a sort field's order is "ASC" or "DESC", or an
+ * object (ToolGenerator's buildRecordSortProperty).
+ */
 export interface JSONSchemaProperty {
-  type: string;
+  type?: string;
   description?: string;
   enum?: Array<string | number | boolean>;
+  anyOf?: Array<JSONSchemaProperty>;
   items?: JSONSchemaProperty;
   properties?: Record<string, JSONSchemaProperty>;
   additionalProperties?: boolean | JSONSchemaProperty;

@@ -35,7 +35,7 @@ flowchart TB
 
 ## Antes de começar
 
-- **Um proprietário ou administrador do projeto.** Só eles podem conectar, testar e editar contas de nuvem.
+- **Um Proprietário do projeto ou um Administrador do projeto.** Só eles podem conectar, testar e editar contas de nuvem.
 - **O terminal da sua nuvem** (AWS CloudShell, Azure Cloud Shell ou Google Cloud Shell), com login de alguém que possa criar uma função ou um usuário do IAM, um registro de aplicativo ou uma conta de serviço.
 
 ## Amazon Web Services

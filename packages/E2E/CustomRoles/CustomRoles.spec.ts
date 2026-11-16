@@ -13,6 +13,7 @@ import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Custom roles on the real Teams pages, in a browser, against the offline
@@ -1679,4 +1680,18 @@ test.describe("on a phone and in dark mode", () => {
     await openRole(page, ROLE_IDS["responder"]!, "?theme=dark");
     await screenshot(page, "dark-role-page");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Japanese whole, parsed on every page load of every test.
+ * English is in the bundle now, and each other language a chunk of its own,
+ * loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built
+ * as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja"],
+  address: (language: string): string => {
+    return language === "en" ? ROLES_ROUTE : `${ROLES_ROUTE}?lang=${language}`;
+  },
 });

@@ -165,7 +165,7 @@ Et tilkald, der ikke sendes, siger hvorfor i personens **Vagtlogs** (Brugerindst
 - projektets saldo kunne ikke betale for det, og hvem der kan tilføje saldo;
 - kanalen er slået fra i projektet, og hvem der kan slå den til.
 
-Projektets ejere får én e-mail om det, indtil saldoen er fyldt op, eller kanalen er slået til igen.
+Projektejerne får én e-mail om det, indtil saldoen er fyldt op, eller kanalen er slået til igen.
 
 Et tilkald, der ikke kunne nå OneUptimes notifikationstjeneste, siger `Could not reach the Notification service to send this (ECONNREFUSED).`, med netværksfejlens kode i parentesen. Et tilkald, hvis afsendelse aldrig blev færdig, for eksempel fordi en server genstartede under afsendelsen, siger `Sending did not finish within 15 minutes, so this notification may not have been sent.` Bliver afsendelsen alligevel færdig, erstatter resultatet den besked.
 

@@ -1042,7 +1042,7 @@ describe("the words for each kind of failure", () => {
         },
         translator,
       ),
-    ).toBe("The LLM provider did not answer within 1 second.");
+    ).toBe("The LLM provider did not answer within 1\u00A0second.");
     expect(
       describeAiRunFailureCause(
         { failureKind: AIRunFailureKind.ProviderTimeout },
@@ -1088,7 +1088,7 @@ describe("the words for each kind of failure", () => {
       whatHappened:
         "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.",
       whatToDo:
-        "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.",
+        "A Project Owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.",
     });
   });
 
@@ -1175,7 +1175,7 @@ describe("describeAttemptEnd: how an attempt ended, as a line of the activity", 
         translator,
       ),
     ).toBe(
-      "Did not finish: The LLM provider did not answer within 90 seconds. Trying again.",
+      "Did not finish: The LLM provider did not answer within 90\u00A0seconds. Trying again.",
     );
   });
 

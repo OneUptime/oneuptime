@@ -111,23 +111,42 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array and a range's two ends, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab and an SLO month's missed target, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
         "Change (schema change)",
         "Created (import result)",
+        "Deleted (invoice status)",
+        "Expired (rule exception)",
+        "Expired (threat indicator)",
         "From (range start)",
+        "Insights (explorer analytics)",
+        "Missed (target)",
+        "Not fetched yet (OAuth token)",
+        "Not fetched yet (calendar feed)",
         "Open (invoice status)",
         "Open (status)",
         "Table (database object)",
         "Test (dbt test)",
         "Test (environment)",
         "To (range end)",
+        "Undefined (invoice status)",
+        "Upcoming (rule exception)",
+        "Valid (OAuth token)",
         "View (database object)",
       ].sort(),
     );
     expect(getWordOfMeaningKey(VIEW)).toBe("View");
+    // #8629: the explorers' tab, apart from OneUptime AI's findings.
+    expect(getWordOfMeaningKey("Insights (explorer analytics)")).toBe(
+      "Insights",
+    );
+    expect(getWordOfMeaningKey("Insights")).toBeUndefined();
+    // #8181: an invoice's Deleted and Undefined, worded for the invoice.
+    expect(getWordOfMeaningKey("Deleted (invoice status)")).toBe("Deleted");
+    expect(getWordOfMeaningKey("Undefined (invoice status)")).toBe("Undefined");
+    expect(getWordOfMeaningKey("Deleted")).toBeUndefined();
     expect(getWordOfMeaningKey("Table (database object)")).toBe("Table");
     expect(getWordOfMeaningKey(CHANGE)).toBe("Change");
     expect(getWordOfMeaningKey("Open (invoice status)")).toBe("Open");
@@ -142,7 +161,24 @@ describe("the keys that name their meaning", () => {
     // #8201: a range's two ends, never a message's sender and recipient.
     expect(getWordOfMeaningKey("From (range start)")).toBe("From");
     expect(getWordOfMeaningKey("To (range end)")).toBe("To");
+    // #5476: a month that missed its SLO's target, never a missed SLA deadline.
+    expect(getWordOfMeaningKey("Missed (target)")).toBe("Missed");
     expect(getWordOfMeaningKey("To")).toBeUndefined();
+    /*
+     * #8659: a state a page words to agree with its other states, where the
+     * shared word takes another gender: English reads the bare word.
+     */
+    expect(getWordOfMeaningKey("Expired (threat indicator)")).toBe("Expired");
+    expect(getWordOfMeaningKey("Expired (rule exception)")).toBe("Expired");
+    expect(getWordOfMeaningKey("Upcoming (rule exception)")).toBe("Upcoming");
+    expect(getWordOfMeaningKey("Not fetched yet (OAuth token)")).toBe(
+      "Not fetched yet",
+    );
+    expect(getWordOfMeaningKey("Valid (OAuth token)")).toBe("Valid");
+    expect(getWordOfMeaningKey("Not fetched yet (calendar feed)")).toBe(
+      "Not fetched yet",
+    );
+    expect(getWordOfMeaningKey("Expired")).toBeUndefined();
   });
 
   test("are no other text, not even one shaped like them: it reads as it is written", () => {

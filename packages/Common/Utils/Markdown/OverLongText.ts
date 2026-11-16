@@ -31,7 +31,11 @@ import { isWhiteSpaceCode } from "../RegExpCharacterClasses";
  *     into the kept end: its "[" and "](" stay in view - and a link whose
  *     text crosses a cut keeps its "[" and "](" in view too, and a bare
  *     address from the middle into the kept end its scheme and domain
- *     (#7600).
+ *     (#7600). The cut moves a little where it would stand inside a link's
+ *     text as the parser reads it - in brackets nested in it, a code span,
+ *     an escape - or inside a reference's label, so the link stays a link
+ *     (#8238). The brackets the middle leaves unmatched that pair with
+ *     brackets in view stay in view too (#8668).
  *   - in every run of lines with no blank line between them that is longer
  *     than OVER_LONG_RUN_LENGTH characters, each group of consecutive lines
  *     that only continue the block they are in (isContinuationLine: plain
@@ -596,7 +600,7 @@ const isInLink: (reading: LinkReading) => boolean = (
 };
 
 /*
- * A LINK'S TEXT ACROSS A CUT (#7600).
+ * A LINK'S TEXT ACROSS A CUT (#7600, #8238).
  *
  * A link's text can be longer than what a line keeps on its side of a cut
  * - a run's name, an error's first line. Where its "[" is in the middle and
@@ -606,110 +610,607 @@ const isInLink: (reading: LinkReading) => boolean = (
  * middle, the "](" and the address went into the token, and it showed
  * "[run run ..." as text. So such a link keeps its "[" and its "](" in
  * view, and the part of its text the middle holds is held back as a piece
- * of its own, read as plain text between them.
+ * of its own, read as plain text between them. A full reference,
+ * "[text][label]", keeps its "[" and its "][label]" in view the same way.
  *
- * Which "[" opens the link is read as marked reads a link's text (its
- * `_inlineLabel`, readLinkText): brackets nested one deep, a backslash
- * escaping the character after it, a code span in single backticks hiding
- * brackets - and only where the text is in none of those at the cut, so
- * the token in its place reads as the text it stands for. The first "["
- * whose text closes with "](" across the cut opens it, as marked takes the
- * first, of the last MAX_CROSSING_LINK_TEXTS labels left open there.
+ * The token stands for text, so it must stand where the link's text reads
+ * plainly - in no brackets nested in it, no code span, and not between a
+ * backslash and the character it escapes - or the parser reads what is
+ * around it differently: "[run [42 <token> run] x](...)" closes the nested
+ * brackets with nothing open, and the link with them. So the piece's edge
+ * moves to where the text reads plainly nearest the cut, on the kept side
+ * (#8238): past the cut, into the kept end, to where what is open there
+ * closes - before the link's "](", which is in the kept end too - and back
+ * from the cut, into the kept start, to where it opened. A backslash right
+ * before the end's cut stays in view with what it escapes.
+ *
+ * marked and remark read a link's text each in a way of its own, so it is
+ * read as the parser that reads the text reads it (OverLongTextParser):
+ *
+ *   - marked (its `_inlineLabel`): brackets nested one deep - a "[" in
+ *     them reads no link - a backslash escaping any character but a line
+ *     break, and a code span between two single backticks, outside nested
+ *     brackets; then the text found is read again as a code span closes
+ *     (see "Code spans" below), within the text.
+ *   - remark (micromark): brackets nested as deep as they go, a code span
+ *     as it closes, in the whole line - a "]" in it closes nothing - and no
+ *     link inside the text: a "](" in nested brackets is a link of its own,
+ *     and remark reads none around it.
+ *
+ * The first "[" whose text closes with "](" or "][label]" across the cut
+ * opens the link, as marked takes the first, of the last
+ * MAX_CROSSING_LINK_TEXTS labels left open there - the one remark closes
+ * last - and at most MAX_CROSSING_LINK_TEXTS are read past the cut, so a
+ * line is read in time in line with its length.
+ *
+ * A collapsed reference, "[label][]", and a shortcut one, "[label]", are
+ * looked up by their text: a token in it would name no definition. So a
+ * label of at most MAX_LABEL_LENGTH characters the cut is inside of stays
+ * in view whole: the middle ends before it, or the kept start after it.
  */
+
+/*
+ * The parser that reads a text once it is held back: marked, which
+ * renders the emails, or remark - micromark and its GitHub extensions -
+ * which renders the dashboard's viewer (see "A link's text across a cut").
+ */
+export type OverLongTextParser = "marked" | "remark";
 
 // The most labels open at a cut that are read to see whether they close across it.
 const MAX_CROSSING_LINK_TEXTS: number = 4;
 
-const BACKTICK: number = 0x60;
-
-// Where a link's text being read is (readLinkText).
-type LinkTextPart = "text" | "nested" | "code";
+/*
+ * The longest label a reference has (CommonMark's, which remark keeps to):
+ * a longer one names no definition there.
+ */
+const MAX_LABEL_LENGTH: number = 999;
 
 /*
- * Reads a link's text - what follows its "[", from `from` - as marked reads
- * one (see "A link's text across a cut" above), and returns where the "]"
- * that closes it is. -1 when it closes before `cut`, cannot close (a "["
- * in brackets nested in it, a backslash before a line break), is in nested
- * brackets, code or an escape at the cut, or reads past the cut to `end`
- * without closing - or when `isRead` says, at the cut, not to read on.
+ * How far from a cut the places where a link's text reads plainly are
+ * noted for marked (readLinkTextAsMarked): as far as a kept side and the
+ * space a cut looks for reach.
  */
-const readLinkTextAcross: (data: {
+const PLAIN_WINDOW_LENGTH: number =
+  OVER_LONG_LINE_KEPT_LENGTH + CUT_SEARCH_LENGTH;
+
+const BACKTICK: number = 0x60;
+
+// The characters JavaScript's "." matches none of: what marked's "\\." escapes no more than.
+const isLineTerminator: (code: number) => boolean = (code: number): boolean => {
+  return (
+    code === 0x0a ||
+    code === CARRIAGE_RETURN ||
+    code === 0x2028 ||
+    code === 0x2029
+  );
+};
+
+// Where the character at `index` ends: past both halves of a surrogate pair.
+const getCharacterEnd: (text: string, index: number) => number = (
+  text: string,
+  index: number,
+): number => {
+  return isHighSurrogate(text.charCodeAt(index)) &&
+    isLowSurrogate(text.charCodeAt(index + 1))
+    ? index + 2
+    : index + 1;
+};
+
+/*
+ * CODE SPANS.
+ *
+ * marked and remark close a code span as CommonMark does: a run of
+ * backticks opens one where a later run of exactly as many closes it, and
+ * is text where none does; what is in it - brackets, backslashes - is
+ * text. marked reads a paragraph so, and the text of a link once it has
+ * found where the text ends; remark reads a link's text so too.
+ *
+ * A line can hold a run of every length, none of them closed, and a search
+ * for what closes each would read on to the line's end every time. So the
+ * first search that finds nothing notes, as it reads on to the end, where
+ * the last run of each length starts (as markdown-it does): every later
+ * search knows at once that nothing closes its run, or finds the run that
+ * does - and is read on from past it, so no two searches read the same
+ * characters, and a line is read in time in line with its length.
+ */
+interface CodeSpanSearch {
   text: string;
-  from: number;
-  cut: number;
+  // Where a code span may close at the latest: the end of its line, or of a link's text.
   end: number;
-  isRead: () => boolean;
-}) => number = (data: {
-  text: string;
-  from: number;
-  cut: number;
-  end: number;
-  isRead: () => boolean;
-}): number => {
-  const text: string = data.text;
-  let part: LinkTextPart = "text";
-  let index: number = data.from;
+  /*
+   * Once a search has read on to `end` and found nothing, where the last
+   * run of each length after the run it was for starts, and where that run
+   * is: later searches are for runs after it.
+   */
+  lastRunStarts: Map<number, number> | null;
+  searchedFrom: number;
+}
 
-  while (index < data.end) {
-    if (index === data.cut && (part !== "text" || !data.isRead())) {
-      return -1;
-    }
+const newCodeSpanSearch: (text: string, end: number) => CodeSpanSearch = (
+  text: string,
+  end: number,
+): CodeSpanSearch => {
+  return { text: text, end: end, lastRunStarts: null, searchedFrom: -1 };
+};
 
-    const code: number = text.charCodeAt(index);
+// Where the run of backticks that starts at `index` ends.
+const getBacktickRunEnd: (
+  text: string,
+  index: number,
+  end: number,
+) => number = (text: string, index: number, end: number): number => {
+  let runEnd: number = index;
 
-    if (part === "code") {
-      if (code === BACKTICK) {
-        part = "text";
-      }
+  while (runEnd < end && text.charCodeAt(runEnd) === BACKTICK) {
+    runEnd++;
+  }
 
-      index++;
+  return runEnd;
+};
+
+/*
+ * Where the code span that the run of backticks starting at `index` opens
+ * ends - just past the run that closes it - or -1 when no run closes it
+ * before the search's end: the run is then text. A loop, not indexOf: that
+ * would read on past the line's end.
+ */
+const getCodeSpanEnd: (search: CodeSpanSearch, index: number) => number = (
+  search: CodeSpanSearch,
+  index: number,
+): number => {
+  const text: string = search.text;
+  const runEnd: number = getBacktickRunEnd(text, index, search.end);
+  const length: number = runEnd - index;
+  const isKnown: boolean =
+    search.lastRunStarts !== null && index >= search.searchedFrom;
+
+  if (isKnown && !((search.lastRunStarts!.get(length) ?? -1) > index)) {
+    return -1;
+  }
+
+  const lastRunStarts: Map<number, number> = new Map<number, number>();
+  let at: number = runEnd;
+
+  while (at < search.end) {
+    if (text.charCodeAt(at) !== BACKTICK) {
+      at++;
       continue;
     }
 
-    if (code === BACKSLASH) {
-      const escaped: number = text.charCodeAt(index + 1);
+    const nextRunEnd: number = getBacktickRunEnd(text, at, search.end);
 
-      if (
-        index + 1 >= data.end ||
-        index + 1 === data.cut ||
-        escaped === 0x0a ||
-        escaped === CARRIAGE_RETURN
-      ) {
-        return -1;
-      }
-
-      index += 2;
-      continue;
+    if (nextRunEnd - at === length) {
+      return nextRunEnd;
     }
 
-    if (code === OPEN_BRACKET) {
-      if (part === "nested") {
-        return -1;
-      }
-
-      part = "nested";
-    } else if (code === CLOSE_BRACKET) {
-      if (part === "text") {
-        return index >= data.cut ? index : -1;
-      }
-
-      part = "text";
-    } else if (code === BACKTICK && part === "text") {
-      part = "code";
+    if (!isKnown) {
+      lastRunStarts.set(nextRunEnd - at, at);
     }
 
-    index++;
+    at = nextRunEnd;
+  }
+
+  if (!isKnown) {
+    search.lastRunStarts = lastRunStarts;
+    search.searchedFrom = index;
   }
 
   return -1;
 };
 
 /*
+ * Where the code span a backtick at `index` opens ends, or - where nothing
+ * closes it - where its run ends, as text: what a reader reads on from.
+ */
+const getPastBackticks: (search: CodeSpanSearch, index: number) => number = (
+  search: CodeSpanSearch,
+  index: number,
+): number => {
+  const spanEnd: number = getCodeSpanEnd(search, index);
+
+  return spanEnd !== -1
+    ? spanEnd
+    : getBacktickRunEnd(search.text, index, search.end);
+};
+
+// Whether text[index] is the "[" of an image's "![": the token may not part them.
+const isImageBracket: (text: string, index: number) => boolean = (
+  text: string,
+  index: number,
+): boolean => {
+  return (
+    text.charCodeAt(index) === OPEN_BRACKET &&
+    text.charCodeAt(index - 1) === EXCLAMATION_MARK
+  );
+};
+
+/*
+ * A link's text read past a cut: where the "]" that closes it is, and the
+ * last place at or before the cut and the first at or after it where the
+ * text reads plainly, as the parser reads it - where the token may stand.
+ */
+interface LinkTextAcross {
+  close: number;
+  plainBefore: number;
+  plainAfter: number;
+}
+
+interface LinkTextReading {
+  text: string;
+  // Where the text starts: just after its "[".
+  from: number;
+  cut: number;
+  // Where the text is read to at most, and where its line ends.
+  end: number;
+  lineEnd: number;
+  // Asked once, when the reading reaches the cut: whether to read on past it.
+  isRead: () => boolean;
+}
+
+/*
+ * Reads a link's text as remark does (see "A link's text across a cut"):
+ * null when it closes before the cut, cannot close - a link inside it -
+ * or reads on to `end` without closing, or when `isRead` says, at the cut,
+ * not to read on.
+ */
+const readLinkTextAsRemark: (
+  reading: LinkTextReading,
+) => LinkTextAcross | null = (
+  reading: LinkTextReading,
+): LinkTextAcross | null => {
+  const text: string = reading.text;
+  // A code span in a link's text can close past the text - and hide its "]".
+  const codeSpans: CodeSpanSearch = newCodeSpanSearch(text, reading.lineEnd);
+  let depth: number = 0;
+  let plainBefore: number = reading.from;
+  let plainAfter: number = -1;
+  let isPastCut: boolean = false;
+  let index: number = reading.from;
+
+  while (index < reading.end) {
+    if (!isPastCut && index >= reading.cut) {
+      if (!reading.isRead()) {
+        return null;
+      }
+
+      isPastCut = true;
+    }
+
+    if (depth === 0 && !isImageBracket(text, index)) {
+      if (index <= reading.cut) {
+        plainBefore = index;
+      }
+
+      if (index >= reading.cut && plainAfter === -1) {
+        plainAfter = index;
+      }
+    }
+
+    const code: number = text.charCodeAt(index);
+
+    if (code === BACKSLASH) {
+      index = getEscapeEnd(text, index);
+      continue;
+    }
+
+    if (code === BACKTICK) {
+      index = getPastBackticks(codeSpans, index);
+      continue;
+    }
+
+    if (code === OPEN_BRACKET) {
+      depth++;
+    } else if (code === CLOSE_BRACKET) {
+      if (depth === 0) {
+        return index >= reading.cut
+          ? { close: index, plainBefore: plainBefore, plainAfter: plainAfter }
+          : null;
+      }
+
+      // A link inside the text: remark reads no link around it.
+      if (text.charCodeAt(index + 1) === OPEN_PARENTHESIS) {
+        return null;
+      }
+
+      depth--;
+    }
+
+    index = getCharacterEnd(text, index);
+  }
+
+  return null;
+};
+
+/*
+ * Reads a link's text as marked does (see "A link's text across a cut"):
+ * first as its link rule reads it, to where it closes, then that text as
+ * marked reads it once found, for its code spans. A place reads plainly
+ * where it does both ways. Null as readLinkTextAsRemark returns it - and
+ * when the text has a "[" in brackets nested in it, or a backslash before
+ * a line break, or a single backtick that nothing closes.
+ */
+const readLinkTextAsMarked: (
+  reading: LinkTextReading,
+) => LinkTextAcross | null = (
+  reading: LinkTextReading,
+): LinkTextAcross | null => {
+  const text: string = reading.text;
+  // Where the text reads plainly near the cut: 1 as the rule reads it, 2 as its code spans do.
+  const windowStart: number = Math.max(
+    reading.from,
+    reading.cut - PLAIN_WINDOW_LENGTH,
+  );
+  const windowEnd: number = reading.cut + PLAIN_WINDOW_LENGTH;
+  const plain: Uint8Array = new Uint8Array(windowEnd - windowStart + 1);
+
+  const notePlain: (index: number, way: number) => void = (
+    index: number,
+    way: number,
+  ): void => {
+    if (index >= windowStart && index <= windowEnd) {
+      plain[index - windowStart] = plain[index - windowStart]! | way;
+    }
+  };
+
+  let isNested: boolean = false;
+  let isPastCut: boolean = false;
+  let close: number = -1;
+  let index: number = reading.from;
+
+  while (index < reading.end) {
+    if (!isPastCut && index >= reading.cut) {
+      if (!reading.isRead()) {
+        return null;
+      }
+
+      isPastCut = true;
+    }
+
+    if (!isNested && !isImageBracket(text, index)) {
+      notePlain(index, 1);
+    }
+
+    const code: number = text.charCodeAt(index);
+
+    if (code === BACKSLASH) {
+      if (
+        index + 1 >= reading.end ||
+        isLineTerminator(text.charCodeAt(index + 1))
+      ) {
+        return null;
+      }
+
+      index = getEscapeEnd(text, index);
+      continue;
+    }
+
+    if (code === BACKTICK && !isNested) {
+      // The rule's code: a single backtick, then all but one, then one.
+      let closing: number = index + 1;
+
+      while (closing < reading.end && text.charCodeAt(closing) !== BACKTICK) {
+        closing++;
+      }
+
+      if (closing >= reading.end) {
+        return null;
+      }
+
+      index = closing + 1;
+      continue;
+    }
+
+    if (code === OPEN_BRACKET) {
+      if (isNested) {
+        return null;
+      }
+
+      isNested = true;
+    } else if (code === CLOSE_BRACKET) {
+      if (!isNested) {
+        close = index;
+        break;
+      }
+
+      isNested = false;
+    }
+
+    index = getCharacterEnd(text, index);
+  }
+
+  if (close === -1 || close < reading.cut) {
+    return null;
+  }
+
+  // The text as marked then reads it: its code spans close within it.
+  const codeSpans: CodeSpanSearch = newCodeSpanSearch(text, close);
+
+  index = reading.from;
+
+  while (index < close) {
+    notePlain(index, 2);
+
+    const code: number = text.charCodeAt(index);
+
+    if (code === BACKSLASH) {
+      index = getEscapeEnd(text, index);
+    } else if (code === BACKTICK) {
+      index = getPastBackticks(codeSpans, index);
+    } else {
+      index = getCharacterEnd(text, index);
+    }
+  }
+
+  notePlain(close, 2);
+
+  // The text's start and its "]" read plainly both ways: where nothing nearer does.
+  let plainBefore: number = reading.from;
+  let plainAfter: number = close;
+
+  for (
+    let at: number = Math.min(reading.cut, windowEnd);
+    at >= windowStart;
+    at--
+  ) {
+    if (plain[at - windowStart] === 3) {
+      plainBefore = at;
+      break;
+    }
+  }
+
+  for (let at: number = reading.cut; at <= Math.min(close, windowEnd); at++) {
+    if (plain[at - windowStart] === 3) {
+      plainAfter = at;
+      break;
+    }
+  }
+
+  return { close: close, plainBefore: plainBefore, plainAfter: plainAfter };
+};
+
+const readLinkText: (
+  reading: LinkTextReading,
+  parser: OverLongTextParser,
+) => LinkTextAcross | null = (
+  reading: LinkTextReading,
+  parser: OverLongTextParser,
+): LinkTextAcross | null => {
+  return parser === "remark"
+    ? readLinkTextAsRemark(reading)
+    : readLinkTextAsMarked(reading);
+};
+
+/*
+ * Whether text[from, close) - just after a "[" - reads as a link's text
+ * that the "]" at `close` closes, as the parser reads one.
+ */
+const readsAsLinkText: (data: {
+  text: string;
+  from: number;
+  close: number;
+  lineEnd: number;
+  parser: OverLongTextParser;
+}) => boolean = (data: {
+  text: string;
+  from: number;
+  close: number;
+  lineEnd: number;
+  parser: OverLongTextParser;
+}): boolean => {
+  const read: LinkTextAcross | null = readLinkText(
+    {
+      text: data.text,
+      from: data.from,
+      cut: data.close,
+      end: data.close + 1,
+      lineEnd: data.lineEnd,
+      isRead: (): boolean => {
+        return true;
+      },
+    },
+    data.parser,
+  );
+
+  return read !== null && read.close === data.close;
+};
+
+/*
+ * Where the "]" that closes a reference's label - read from `from`, just
+ * after its "[" - is: at most MAX_LABEL_LENGTH characters, with no bracket
+ * in them but an escaped one, and not white space alone, as both parsers
+ * read a label; `from` itself for "[]". -1 when there is none before
+ * `end`.
+ */
+const readLabelClose: (text: string, from: number, end: number) => number = (
+  text: string,
+  from: number,
+  end: number,
+): number => {
+  const limit: number = Math.min(end, from + MAX_LABEL_LENGTH + 1);
+  let isBlank: boolean = true;
+
+  for (let index: number = from; index < limit; index++) {
+    const code: number = text.charCodeAt(index);
+
+    if (code === BACKSLASH) {
+      if (isLineTerminator(text.charCodeAt(index + 1))) {
+        return -1;
+      }
+
+      isBlank = false;
+      index++;
+    } else if (code === OPEN_BRACKET) {
+      return -1;
+    } else if (code === CLOSE_BRACKET) {
+      return isBlank && index > from ? -1 : index;
+    } else if (!isWhiteSpaceCode(code)) {
+      isBlank = false;
+    }
+  }
+
+  return -1;
+};
+
+/*
+ * Where what makes a link of a text whose "]" is at `close` ends: past
+ * its "](" (an inline link: its address and title follow) or its
+ * "][label]" (a full reference). -1 when neither follows: a collapsed
+ * reference, "[label][]", or a shortcut one, or no link - or a label with
+ * a backtick in it, which stays in view: a code span it opens could close
+ * past it, where the closing backticks are held back.
+ */
+const getLinkTextSuffixEnd: (
+  text: string,
+  close: number,
+  lineEnd: number,
+) => number = (text: string, close: number, lineEnd: number): number => {
+  const next: number = text.charCodeAt(close + 1);
+
+  if (next === OPEN_PARENTHESIS) {
+    return close + 2;
+  }
+
+  if (next !== OPEN_BRACKET) {
+    return -1;
+  }
+
+  const labelClose: number = readLabelClose(text, close + 2, lineEnd);
+
+  if (labelClose === -1 || labelClose === close + 2) {
+    return -1;
+  }
+
+  for (let index: number = close + 2; index < labelClose; index++) {
+    if (text.charCodeAt(index) === BACKTICK) {
+      return -1;
+    }
+  }
+
+  return labelClose + 1;
+};
+
+// Where the "[" of the label that starts at `start` - its "[", or the "!" of an image's "![" - is.
+const getLabelOpen: (text: string, start: number) => number = (
+  text: string,
+  start: number,
+): number => {
+  return text.charCodeAt(start) === OPEN_BRACKET ? start : start + 1;
+};
+
+// A link's text across a cut (findLinkTextAcross).
+interface LinkAcross extends LinkTextAcross {
+  // Where the link starts: its "[", or the "!" of an image's "![".
+  start: number;
+  // Where its "](" or "][label]" ends (getLinkTextSuffixEnd).
+  suffixEnd: number;
+}
+
+/*
  * Of the labels `opens` - where each "[" or "![" is, the first first -
- * whose "[" is at or after `from`, the first whose text closes with "](" at
- * or past `cut` (reading on to `end`), reading plainly at the cut: where it
- * starts and where its "]" is. Null when none does. At most
- * MAX_CROSSING_LINK_TEXTS of them are read past the cut.
+ * whose "[" is at or after `from`, the first whose text closes with "](" or
+ * "][label]" at or past `cut` (reading on to `end`), as the parser reads
+ * it. Null when none does. At most MAX_CROSSING_LINK_TEXTS of them are read
+ * past the cut.
  */
 const findLinkTextAcross: (data: {
   text: string;
@@ -717,13 +1218,17 @@ const findLinkTextAcross: (data: {
   from: number;
   cut: number;
   end: number;
-}) => { start: number; close: number } | null = (data: {
+  lineEnd: number;
+  parser: OverLongTextParser;
+}) => LinkAcross | null = (data: {
   text: string;
   opens: ReadonlyArray<number>;
   from: number;
   cut: number;
   end: number;
-}): { start: number; close: number } | null => {
+  lineEnd: number;
+  parser: OverLongTextParser;
+}): LinkAcross | null => {
   let readPastCut: number = 0;
 
   const isRead: () => boolean = (): boolean => {
@@ -736,22 +1241,182 @@ const findLinkTextAcross: (data: {
       continue;
     }
 
-    const labelOpen: number =
-      data.text.charCodeAt(start) === OPEN_BRACKET ? start : start + 1;
-    const close: number = readLinkTextAcross({
-      text: data.text,
-      from: labelOpen + 1,
-      cut: data.cut,
-      end: data.end,
-      isRead: isRead,
-    });
+    const read: LinkTextAcross | null = readLinkText(
+      {
+        text: data.text,
+        from: getLabelOpen(data.text, start) + 1,
+        cut: data.cut,
+        end: data.end,
+        lineEnd: data.lineEnd,
+        isRead: isRead,
+      },
+      data.parser,
+    );
 
-    if (close !== -1 && data.text.charCodeAt(close + 1) === OPEN_PARENTHESIS) {
-      return { start: start, close: close };
+    if (read !== null) {
+      const suffixEnd: number = getLinkTextSuffixEnd(
+        data.text,
+        read.close,
+        data.lineEnd,
+      );
+
+      if (suffixEnd !== -1) {
+        return { ...read, start: start, suffixEnd: suffixEnd };
+      }
     }
 
     if (readPastCut >= MAX_CROSSING_LINK_TEXTS) {
       return null;
+    }
+  }
+
+  return null;
+};
+
+/*
+ * Where the kept start ends, past the cut, so that a reference the cut is
+ * inside of stays in view whole: a label whose "[" is the last the kept
+ * start opens - a collapsed or shortcut reference's, or a full one's - or
+ * one that starts right at the cut after a "]", a full or collapsed
+ * reference's. Past its "]", and the "[]" or "[label]" after it. -1 when
+ * there is none, or it ends past `middleEnd`.
+ */
+const getReferenceEndAcrossStart: (data: {
+  text: string;
+  opens: ReadonlyArray<number>;
+  middleStart: number;
+  middleEnd: number;
+  lineEnd: number;
+}) => number = (data: {
+  text: string;
+  opens: ReadonlyArray<number>;
+  middleStart: number;
+  middleEnd: number;
+  lineEnd: number;
+}): number => {
+  const text: string = data.text;
+  let open: number = -1;
+
+  if (
+    text.charCodeAt(data.middleStart) === OPEN_BRACKET &&
+    text.charCodeAt(data.middleStart - 1) === CLOSE_BRACKET
+  ) {
+    open = data.middleStart;
+  } else if (data.opens.length > 0) {
+    open = data.opens[data.opens.length - 1]!;
+  }
+
+  if (open === -1) {
+    return -1;
+  }
+
+  const close: number = readLabelClose(text, open + 1, data.lineEnd);
+
+  if (close < data.middleStart) {
+    return -1;
+  }
+
+  let end: number = close + 1;
+
+  if (text.charCodeAt(end) === OPEN_BRACKET) {
+    const labelClose: number = readLabelClose(text, end + 1, data.lineEnd);
+
+    if (labelClose !== -1) {
+      end = labelClose + 1;
+    }
+  }
+
+  return end <= data.middleEnd ? end : -1;
+};
+
+/*
+ * A reference that goes on from a line's middle into its kept end
+ * (getReferenceAcrossEnd): either the middle ends at `keepFrom`, before the
+ * reference, which stays in view whole, or - a full reference - its
+ * text's "[" stays in view, its text is held back as a piece of its own up
+ * to its "]", at `textClose`, and the middle ends there.
+ */
+type ReferenceAcrossEnd =
+  | { keepFrom: number }
+  | { textStart: number; textClose: number };
+
+/*
+ * The reference the end of a line's middle is inside of, as it stays in
+ * view (ReferenceAcrossEnd). `top` is the innermost label open at the cut
+ * (-1 when none or not known), and `lastClosedStart` and `lastClosedEnd`
+ * where the label the last "]" closed starts, and that "]". A label part,
+ * "[label]" or "[]", across the cut - or right at it - after a text the
+ * "]" just before it closes is a full or a collapsed reference's; else a
+ * label across the cut is a shortcut reference's. Null when there is none.
+ */
+const getReferenceAcrossEnd: (data: {
+  text: string;
+  top: number;
+  lastClosedStart: number;
+  lastClosedEnd: number;
+  position: number;
+  middleEnd: number;
+  lineEnd: number;
+  parser: OverLongTextParser;
+}) => ReferenceAcrossEnd | null = (data: {
+  text: string;
+  top: number;
+  lastClosedStart: number;
+  lastClosedEnd: number;
+  position: number;
+  middleEnd: number;
+  lineEnd: number;
+  parser: OverLongTextParser;
+}): ReferenceAcrossEnd | null => {
+  const text: string = data.text;
+
+  // The label part right at the cut, or the innermost label across it.
+  for (const labelPart of [data.middleEnd, data.top]) {
+    if (
+      labelPart === -1 ||
+      text.charCodeAt(labelPart) !== OPEN_BRACKET ||
+      data.lastClosedEnd !== labelPart - 1 ||
+      data.lastClosedStart < data.position
+    ) {
+      continue;
+    }
+
+    const labelClose: number = readLabelClose(
+      text,
+      labelPart + 1,
+      data.lineEnd,
+    );
+    const textOpen: number = getLabelOpen(text, data.lastClosedStart);
+
+    if (labelClose === labelPart + 1) {
+      // "[label][]": its text is its label, read whole.
+      if (readLabelClose(text, textOpen + 1, labelPart) === labelPart - 1) {
+        return { keepFrom: data.lastClosedStart };
+      }
+    } else if (
+      labelClose !== -1 &&
+      readsAsLinkText({
+        text: text,
+        from: textOpen + 1,
+        close: labelPart - 1,
+        lineEnd: data.lineEnd,
+        parser: data.parser,
+      })
+    ) {
+      // "[text][label]": its text is a link's.
+      return { textStart: data.lastClosedStart, textClose: labelPart - 1 };
+    }
+  }
+
+  if (data.top !== -1 && data.top >= data.position) {
+    const close: number = readLabelClose(
+      text,
+      getLabelOpen(text, data.top) + 1,
+      data.lineEnd,
+    );
+
+    if (close >= data.middleEnd) {
+      return { keepFrom: data.top };
     }
   }
 
@@ -960,33 +1625,120 @@ const readDefinitionStart: (
 };
 
 /*
+ * BRACKETS THE MIDDLE LEAVES UNMATCHED (#8668).
+ *
+ * The middle's brackets pair with brackets in view: a "]" in it closes a
+ * label the kept start left open, and a "[" in it that nothing in it
+ * closes is closed by a "]" in the kept end. Held back, they are gone: the
+ * kept start's label read on, past the token, to a "](" in the kept end - a
+ * link across the whole middle that no parser reads in the whole line - and
+ * a "]" in the kept end closed a label of the kept start instead, so a link
+ * there was lost, or read from the wrong "[".
+ *
+ * Reduced to what pairs with brackets outside it, the middle's brackets
+ * are some "]" and then some "[": the "]"s that close labels opened before
+ * it, then the "["s it leaves open. So the first of those "]"s - as many as
+ * the kept start leaves labels open - stay in view, each between two
+ * pieces of the middle, and so do the last of those "["s, as many as the
+ * kept end has "]"s that close nothing of its own: each parser pairs them
+ * with what is in view as it pairs them in the whole line. A "]" kept so is
+ * followed by a token, so it closes no link; a "[" is kept for marked only
+ * where marked reads its label in the whole line, so it opens none that
+ * marked does not read there. At most MAX_KEPT_BRACKETS of each are kept,
+ * found as the middle is read (each character once) and counted in the
+ * kept end.
+ */
+
+// The most unmatched brackets of a line's middle kept in view, at each end.
+const MAX_KEPT_BRACKETS: number = 8;
+
+/*
+ * How many "]" text[from, end) has that close no "[" of its own - outside
+ * code spans, and not escaped.
+ */
+const countUnmatchedClosers: (data: {
+  text: string;
+  from: number;
+  end: number;
+  lineEnd: number;
+}) => number = (data: {
+  text: string;
+  from: number;
+  end: number;
+  lineEnd: number;
+}): number => {
+  const text: string = data.text;
+  const codeSpans: CodeSpanSearch = newCodeSpanSearch(text, data.lineEnd);
+  let open: number = 0;
+  let unmatched: number = 0;
+  let index: number = data.from;
+
+  while (index < data.end) {
+    const code: number = text.charCodeAt(index);
+
+    if (code === BACKSLASH) {
+      index = getEscapeEnd(text, index);
+      continue;
+    }
+
+    if (code === BACKTICK) {
+      index = getPastBackticks(codeSpans, index);
+      continue;
+    }
+
+    if (code === OPEN_BRACKET) {
+      open++;
+    } else if (code === CLOSE_BRACKET) {
+      if (open > 0) {
+        open--;
+      } else {
+        unmatched++;
+      }
+    }
+
+    index++;
+  }
+
+  return unmatched;
+};
+
+/*
  * Holds back the middle text[middleStart, middleEnd) of the over-long line
  * that starts at `lineStart` - in pieces where a link, or a word, goes on
  * into it from the line's kept start, or a link goes on from it into the
  * kept end (see "A link across the start of a line's middle" and "A link
- * across the end of a line's middle" above) - and adds what stands for it
- * to `pieces`.
+ * across the end of a line's middle" above) - and adds to `pieces` what is
+ * in view from `keptFrom` on, then what stands for the middle. Returns
+ * where the kept end starts: the middle can end a little past middleEnd,
+ * or before it, so that the token never stands inside a link's text where
+ * it reads otherwise, or inside a reference's label (see "A link's text
+ * across a cut"), and the kept start can end a little before middleStart
+ * or past it for the same reasons.
  */
 const holdBackMiddle: (data: {
   text: string;
   lineStart: number;
+  keptFrom: number;
   middleStart: number;
   middleEnd: number;
   lineEnd: number;
   hold: HoldBackFunction;
   pieces: Array<string>;
-}) => void = (data: {
+  parser: OverLongTextParser;
+}) => number = (data: {
   text: string;
   lineStart: number;
+  keptFrom: number;
   middleStart: number;
   middleEnd: number;
   lineEnd: number;
   hold: HoldBackFunction;
   pieces: Array<string>;
-}): void => {
+  parser: OverLongTextParser;
+}): number => {
   const text: string = data.text;
   const middleEnd: number = data.middleEnd;
-  let position: number = data.middleStart;
+  let position: number = data.keptFrom;
 
   const holdTo: (end: number) => void = (end: number): void => {
     if (end > position) {
@@ -1064,12 +1816,28 @@ const holdBackMiddle: (data: {
   };
 
   /*
+   * How many labels the kept start leaves open in view: the "]"s of the
+   * middle that close them stay in view (see "Brackets the middle leaves
+   * unmatched"). Set once the kept start is read.
+   */
+  let labelsOpenInView: number = 0;
+
+  /*
    * Reads the rest of the middle, on from `from` - where `reading` is - and
    * holds it back, keeping in view what a link or an autolink that goes on
    * into the kept end needs there (see "A link across the end of a line's
-   * middle" above).
+   * middle" above), and the brackets it leaves unmatched that pair with
+   * brackets in view (see "Brackets the middle leaves unmatched"). Returns
+   * where the middle ends.
    */
-  const holdBackToEnd: (from: number) => void = (from: number): void => {
+  const holdBackToEnd: (from: number) => number = (from: number): number => {
+    if (from >= middleEnd) {
+      // The kept start's last code span, or link, runs on past the middle.
+      holdTo(middleEnd);
+
+      return middleEnd;
+    }
+
     /*
      * Where each label the reading is in starts - its "[", or the "!" of
      * an image's "![" - the innermost last; and how many more were opened
@@ -1085,10 +1853,35 @@ const holdBackMiddle: (data: {
     // The last "!" read as text: an "[" right after it opens an image.
     let exclamationMark: number = -1;
     /*
-     * Whether a backtick has opened code a later one closes: as in a link's
-     * text (readLinkTextAcross), a bracket in it opens and closes no label.
+     * Where the label the last "]" closed starts - not a link's text, which
+     * "](" closes - and that "]": a reference's label may follow it.
      */
-    let isInCode: boolean = false;
+    let lastClosedStart: number = -1;
+    let lastClosedEnd: number = -1;
+    /*
+     * Where the code span - or the run of backticks - the middle's end is
+     * inside of ends, or -1; and whether the middle ends between a
+     * backslash and the character it escapes.
+     */
+    let codeEndPastCut: number = -1;
+    let isEscapeAtCut: boolean = false;
+    /*
+     * A bracket in a code span opens and closes no label, and a "](" in
+     * one starts no link: a code span is read past (see "Code spans").
+     */
+    const codeSpans: CodeSpanSearch = newCodeSpanSearch(text, data.lineEnd);
+    // Where the first "]"s that close no label of the middle's own are.
+    const unmatchedClosers: Array<number> = [];
+
+    const noteUnmatchedCloser: (at: number) => void = (at: number): void => {
+      if (
+        labelsLeftOut === 0 &&
+        labelStarts.length === 0 &&
+        unmatchedClosers.length < MAX_KEPT_BRACKETS
+      ) {
+        unmatchedClosers.push(at);
+      }
+    };
 
     // The start of the label a "]" closes, or -1 when it is not known.
     const closeLabel: () => number = (): number => {
@@ -1106,12 +1899,18 @@ const holdBackMiddle: (data: {
     while (at < middleEnd) {
       const part: LinkPart = reading.part;
 
-      if (part === "text" && text.charCodeAt(at) === BACKTICK) {
-        isInCode = !isInCode;
-      }
-
-      if (part === "text" && !isInCode) {
+      if (part === "text") {
         const code: number = text.charCodeAt(at);
+
+        if (code === BACKTICK) {
+          at = getPastBackticks(codeSpans, at);
+
+          if (at > middleEnd) {
+            codeEndPastCut = at;
+          }
+
+          continue;
+        }
 
         if (code === OPEN_BRACKET) {
           if (labelStarts.length < MAX_OPEN_LABELS) {
@@ -1119,13 +1918,17 @@ const holdBackMiddle: (data: {
           } else {
             labelsLeftOut++;
           }
-        } else if (
-          code === CLOSE_BRACKET &&
-          text.charCodeAt(at + 1) !== OPEN_PARENTHESIS
-        ) {
-          closeLabel();
+        } else if (code === CLOSE_BRACKET) {
+          noteUnmatchedCloser(at);
+
+          if (text.charCodeAt(at + 1) !== OPEN_PARENTHESIS) {
+            lastClosedStart = closeLabel();
+            lastClosedEnd = at;
+          }
         } else if (code === EXCLAMATION_MARK) {
           exclamationMark = at;
+        } else if (code === BACKSLASH && getEscapeEnd(text, at) > middleEnd) {
+          isEscapeAtCut = true;
         }
       }
 
@@ -1145,6 +1948,82 @@ const holdBackMiddle: (data: {
       at = next;
     }
 
+    // The "]"s that close labels the kept start left open stay in view.
+    for (const closer of unmatchedClosers.slice(0, labelsOpenInView)) {
+      if (closer >= position) {
+        holdTo(closer);
+        keepTo(closer + 1);
+      }
+    }
+
+    /*
+     * The "["s the middle leaves open that the kept end's "]"s close stay
+     * in view - the innermost last - before `limit`, where the kept end
+     * starts at `keptEnd`.
+     */
+    const keepOpenLabels: (keptEnd: number, limit: number) => void = (
+      keptEnd: number,
+      limit: number,
+    ): void => {
+      if (labelsLeftOut > 0) {
+        return;
+      }
+
+      const count: number = Math.min(
+        labelStarts.length,
+        MAX_KEPT_BRACKETS,
+        countUnmatchedClosers({
+          text: text,
+          from: keptEnd,
+          end: data.lineEnd,
+          lineEnd: data.lineEnd,
+        }),
+      );
+
+      if (count === 0) {
+        return;
+      }
+
+      const labelOpens: Array<number> = labelStarts
+        .slice(-count)
+        .map((start: number): number => {
+          return getLabelOpen(text, start);
+        });
+
+      if (
+        labelOpens[0]! < position ||
+        labelOpens[labelOpens.length - 1]! >= limit
+      ) {
+        return;
+      }
+
+      // marked reads a label from each "[": only one it reads in the whole line.
+      if (
+        data.parser === "marked" &&
+        !labelOpens.every((labelOpen: number): boolean => {
+          return (
+            readLinkTextAsMarked({
+              text: text,
+              from: labelOpen + 1,
+              cut: middleEnd,
+              end: data.lineEnd,
+              lineEnd: data.lineEnd,
+              isRead: (): boolean => {
+                return true;
+              },
+            }) !== null
+          );
+        })
+      ) {
+        return;
+      }
+
+      for (const labelOpen of labelOpens) {
+        holdTo(labelOpen);
+        keepTo(labelOpen + 1);
+      }
+    };
+
     if (reading.part === "autolink" && autolinkStart >= position) {
       // Its "<", its scheme and the ":" after it stay in view.
       holdTo(autolinkStart);
@@ -1159,8 +2038,7 @@ const holdBackMiddle: (data: {
        * them as written - or, when it is longer than
        * MAX_KEPT_LINK_TEXT_LENGTH, held back.
        */
-      const labelOpen: number =
-        text.charCodeAt(linkStart) === OPEN_BRACKET ? linkStart : linkStart + 1;
+      const labelOpen: number = getLabelOpen(text, linkStart);
 
       holdTo(linkStart);
 
@@ -1182,15 +2060,15 @@ const holdBackMiddle: (data: {
       );
     } else if (reading.part === "text") {
       /*
-       * A link whose text the middle ends inside of, with its "](" in the
-       * kept end: its "[" or "![" stays in view, and what the middle holds
-       * of its text is a piece of its own (see "A link's text across a
-       * cut"). Not when more labels were open than are remembered: which
-       * are open then is not known. Else a bare address the middle ends
-       * inside of keeps its start in view (see "A bare address across the
-       * end of a line's middle").
+       * A link whose text the middle ends inside of, with its "](" or
+       * "][label]" in the kept end: its "[" or "![" stays in view, and what
+       * the middle holds of its text is a piece of its own, to where the
+       * text reads plainly past the cut - or to the backslash right before
+       * the cut whose escape it parts (see "A link's text across a cut").
+       * Not when more labels were open than are remembered: which are open
+       * then is not known.
        */
-      const across: { start: number; close: number } | null =
+      const across: LinkAcross | null =
         labelsLeftOut === 0
           ? findLinkTextAcross({
               text: text,
@@ -1198,28 +2076,95 @@ const holdBackMiddle: (data: {
               from: position,
               cut: middleEnd,
               end: data.lineEnd,
+              lineEnd: data.lineEnd,
+              parser: data.parser,
             })
           : null;
 
       if (across !== null) {
-        holdTo(across.start);
-        keepTo(
-          text.charCodeAt(across.start) === OPEN_BRACKET
-            ? across.start + 1
-            : across.start + 2,
-        );
-      } else {
-        const address: { start: number; keepEnd: number } | null =
-          findAddressAcrossEnd(text, position, middleEnd);
+        const end: number =
+          across.plainBefore === middleEnd - 1 &&
+          text.charCodeAt(middleEnd - 1) === BACKSLASH
+            ? middleEnd - 1
+            : across.plainAfter;
 
-        if (address !== null) {
-          holdTo(address.start);
-          keepTo(address.keepEnd);
-        }
+        holdTo(across.start);
+        keepTo(getLabelOpen(text, across.start) + 1);
+        holdTo(end);
+
+        return end;
       }
+
+      // A reference the middle ends inside of stays in view whole, or keeps its text's "[" in view.
+      const reference: ReferenceAcrossEnd | null =
+        labelsLeftOut === 0
+          ? getReferenceAcrossEnd({
+              text: text,
+              top:
+                labelStarts.length > 0
+                  ? labelStarts[labelStarts.length - 1]!
+                  : -1,
+              lastClosedStart: lastClosedStart,
+              lastClosedEnd: lastClosedEnd,
+              position: position,
+              middleEnd: middleEnd,
+              lineEnd: data.lineEnd,
+              parser: data.parser,
+            })
+          : null;
+
+      if (reference !== null && "keepFrom" in reference) {
+        holdTo(reference.keepFrom);
+
+        return reference.keepFrom;
+      }
+
+      if (reference !== null) {
+        holdTo(reference.textStart);
+        keepTo(getLabelOpen(text, reference.textStart) + 1);
+        holdTo(reference.textClose);
+
+        return reference.textClose;
+      }
+
+      /*
+       * A code span the middle opened and its end is inside of is held
+       * back to its end: its closing backticks, in view alone, would open
+       * another with the next. A backslash right before the cut stays in
+       * view with what it escapes.
+       */
+      if (codeEndPastCut !== -1) {
+        keepOpenLabels(codeEndPastCut, codeEndPastCut);
+        holdTo(codeEndPastCut);
+
+        return codeEndPastCut;
+      }
+
+      const cut: number =
+        isEscapeAtCut && middleEnd - 1 >= position ? middleEnd - 1 : middleEnd;
+
+      /*
+       * Else a bare address the middle ends inside of keeps its start in
+       * view (see "A bare address across the end of a line's middle").
+       */
+      const address: { start: number; keepEnd: number } | null =
+        findAddressAcrossEnd(text, position, cut);
+
+      keepOpenLabels(cut, address !== null ? address.start : cut);
+
+      if (address !== null) {
+        holdTo(address.start);
+        keepTo(address.keepEnd);
+      }
+
+      holdTo(cut);
+
+      return cut;
     }
 
     holdTo(middleEnd);
+
+    return middleEnd;
   };
 
   // Where the kept start leaves the line: read from the line's start.
@@ -1242,22 +2187,36 @@ const holdBackMiddle: (data: {
     reading.part = "beforeDestination";
   }
 
-  // The "[" the kept start opens as text - in no code - the first first.
+  // The "[" the kept start opens as text - in no code span - the first first.
   const opens: Array<number> = [];
-  let isInCode: boolean = false;
+  // Where each label the kept start leaves open starts: each "]" closes the last.
+  const openLabels: Array<number> = [];
+  const codeSpans: CodeSpanSearch = newCodeSpanSearch(text, data.lineEnd);
+  // Where the last character read - or the backslash before it - starts.
+  let lastRead: number = index;
+  // Where the last run of backticks read as text starts.
+  let lastBackticks: number = -1;
 
   while (index < data.middleStart) {
+    lastRead = index;
+
     if (reading.part === "text") {
       const code: number = text.charCodeAt(index);
 
       if (code === BACKTICK) {
-        isInCode = !isInCode;
-      } else if (
-        code === OPEN_BRACKET &&
-        !isInCode &&
-        opens.length < MAX_OPEN_LABELS
-      ) {
-        opens.push(index);
+        lastBackticks = index;
+        index = getPastBackticks(codeSpans, index);
+        continue;
+      }
+
+      if (code === OPEN_BRACKET) {
+        if (opens.length < MAX_OPEN_LABELS) {
+          opens.push(index);
+        }
+
+        openLabels.push(index);
+      } else if (code === CLOSE_BRACKET) {
+        openLabels.pop();
       }
     }
 
@@ -1265,12 +2224,14 @@ const holdBackMiddle: (data: {
   }
 
   /*
-   * A link whose text the kept start ends inside of, with its "](" in the
-   * middle: what the middle holds of its text is a piece of its own, and
-   * its "](" stays in view (see "A link's text across a cut"). Its address
-   * and title are then read as a link's across the start.
+   * A link whose text the kept start ends inside of, with its "](" or
+   * "][label]" in the middle: what the middle holds of its text is a
+   * piece of its own, from where the text reads plainly before the cut,
+   * and its "](" or "][label]" stays in view (see "A link's text across a
+   * cut"). An inline link's address and title are then read as a link's
+   * across the start.
    */
-  const across: { start: number; close: number } | null = isInLink(reading)
+  const across: LinkAcross | null = isInLink(reading)
     ? null
     : findLinkTextAcross({
         text: text,
@@ -1278,24 +2239,109 @@ const holdBackMiddle: (data: {
         from: data.lineStart,
         cut: data.middleStart,
         end: middleEnd,
+        lineEnd: data.lineEnd,
+        parser: data.parser,
       });
 
-  if (across !== null && across.close + 2 > middleEnd) {
-    // Its "(" is the kept end's first character.
-    holdTo(across.close);
-    keepTo(middleEnd);
-
-    return;
-  }
-
   if (across !== null) {
+    // The labels opened before the link's: its own and those in it close in it.
+    const linkOpen: number = getLabelOpen(text, across.start);
+
+    labelsOpenInView = openLabels.filter((labelOpen: number): boolean => {
+      return labelOpen < linkOpen;
+    }).length;
+    keepTo(across.plainBefore);
     holdTo(across.close);
-    keepTo(across.close + 2);
-    index = across.close + 2;
-    reading.part = "beforeDestination";
-    reading.isInline = true;
-    reading.depth = 0;
-    reading.spaced = false;
+
+    if (across.suffixEnd > middleEnd) {
+      // Its "(" or "[label]" runs on into the kept end.
+      keepTo(middleEnd);
+
+      return middleEnd;
+    }
+
+    keepTo(across.suffixEnd);
+    index = across.suffixEnd;
+
+    if (text.charCodeAt(across.close + 1) === OPEN_PARENTHESIS) {
+      reading.part = "beforeDestination";
+      reading.isInline = true;
+      reading.depth = 0;
+      reading.spaced = false;
+    } else {
+      // A full reference: its "][label]" ends it.
+      reading.part = "text";
+
+      return holdBackToEnd(index);
+    }
+  } else {
+    let keptStartEnd: number = data.middleStart;
+
+    if (!isInLink(reading)) {
+      /*
+       * A reference the cut is inside of stays in view whole: the kept
+       * start ends past it. A backslash at the kept start's end keeps
+       * what it escapes in view.
+       */
+      const referenceEnd: number = getReferenceEndAcrossStart({
+        text: text,
+        opens: opens,
+        middleStart: data.middleStart,
+        middleEnd: middleEnd,
+        lineEnd: data.lineEnd,
+      });
+
+      if (referenceEnd > index) {
+        /*
+         * Read on to it as the kept start was read: it stays in view only
+         * where it ends as text - in no link, and in no code span, whose
+         * closing backticks would be held back.
+         */
+        const advanced: LinkReading = { ...reading };
+        const advancedLabels: Array<number> = [...openLabels];
+        let at: number = index;
+
+        while (at < referenceEnd) {
+          const code: number = text.charCodeAt(at);
+
+          if (advanced.part === "text" && code === BACKTICK) {
+            at = getPastBackticks(codeSpans, at);
+            continue;
+          }
+
+          if (advanced.part === "text" && code === OPEN_BRACKET) {
+            advancedLabels.push(at);
+          } else if (advanced.part === "text" && code === CLOSE_BRACKET) {
+            advancedLabels.pop();
+          }
+
+          at = readLinkUnit(text, at, advanced);
+        }
+
+        if (at === referenceEnd && advanced.part === "text") {
+          Object.assign(reading, advanced);
+          openLabels.splice(0, openLabels.length, ...advancedLabels);
+          index = referenceEnd;
+          keptStartEnd = referenceEnd;
+        }
+      }
+
+      if (keptStartEnd === data.middleStart && index > data.middleStart) {
+        if (lastRead === lastBackticks && index <= middleEnd) {
+          /*
+           * A code span the cut is inside of that the middle closes - or a
+           * run of backticks the cut parts - is held back whole: its
+           * opening backticks, in view alone, would close at another run.
+           */
+          keptStartEnd = lastBackticks;
+        } else if (text.charCodeAt(lastRead) === BACKSLASH) {
+          keptStartEnd = index;
+        }
+      }
+    }
+
+    keepTo(keptStartEnd);
+    labelsOpenInView = openLabels.length;
   }
 
   if (!isInLink(reading)) {
@@ -1328,14 +2374,38 @@ const holdBackMiddle: (data: {
           heldEnd--;
         }
 
-        holdTo(heldEnd);
-        keepTo(wordEnd + 1);
+        /*
+         * A "]" in the word that closes a label the kept start leaves open
+         * ends the word's piece: it stays in view (see "Brackets the middle
+         * leaves unmatched"), and the rest is held back with the middle.
+         */
+        let closer: number = -1;
+
+        for (
+          let at: number = position;
+          labelsOpenInView > 0 && at < heldEnd;
+          at++
+        ) {
+          const code: number = text.charCodeAt(at);
+
+          if (code === BACKSLASH) {
+            at++;
+          } else if (code === CLOSE_BRACKET) {
+            closer = at;
+            break;
+          }
+        }
+
+        if (closer !== -1) {
+          holdTo(closer);
+        } else {
+          holdTo(heldEnd);
+          keepTo(wordEnd + 1);
+        }
       }
     }
 
-    holdBackToEnd(index);
-
-    return;
+    return holdBackToEnd(index);
   }
 
   /*
@@ -1379,24 +2449,31 @@ const holdBackMiddle: (data: {
    */
   if (isInLink(reading)) {
     holdTo(middleEnd);
-  } else {
-    holdBackToEnd(index);
+
+    return middleEnd;
   }
+
+  return holdBackToEnd(index);
 };
 
 /*
  * `text` with the middle of every line longer than OVER_LONG_LINE_LENGTH
- * held back (see the top of this file). The middle starts and ends right
- * after a space where there is one near (getCut), and never between the two
- * halves of a surrogate pair, such as an emoji. A link, or a word, that
- * goes on from the line's kept start into its middle is held back in pieces
- * (holdBackMiddle), and so is a link that goes on from the middle into the
- * line's kept end.
+ * held back (see the top of this file), for `parser` to read. The middle
+ * starts and ends right after a space where there is one near (getCut),
+ * and never between the two halves of a surrogate pair, such as an emoji.
+ * A link, or a word, that goes on from the line's kept start into its
+ * middle is held back in pieces (holdBackMiddle), and so is a link that
+ * goes on from the middle into the line's kept end.
  */
 export const holdBackOverLongLines: (
   text: string,
   hold: HoldBackFunction,
-) => string = (text: string, hold: HoldBackFunction): string => {
+  parser?: OverLongTextParser,
+) => string = (
+  text: string,
+  hold: HoldBackFunction,
+  parser: OverLongTextParser = "marked",
+): string => {
   if (!mayHoldBack(text)) {
     return text;
   }
@@ -1413,26 +2490,17 @@ export const holdBackOverLongLines: (
     }
 
     if (lineEnd - lineStart > OVER_LONG_LINE_LENGTH) {
-      const middleStart: number = getCut(
-        text,
-        lineStart + OVER_LONG_LINE_KEPT_LENGTH,
-      );
-      const middleEnd: number = getCut(
-        text,
-        lineEnd - OVER_LONG_LINE_KEPT_LENGTH,
-      );
-
-      pieces.push(text.slice(copiedUpTo, middleStart));
-      holdBackMiddle({
+      copiedUpTo = holdBackMiddle({
         text: text,
         lineStart: lineStart,
-        middleStart: middleStart,
-        middleEnd: middleEnd,
+        keptFrom: copiedUpTo,
+        middleStart: getCut(text, lineStart + OVER_LONG_LINE_KEPT_LENGTH),
+        middleEnd: getCut(text, lineEnd - OVER_LONG_LINE_KEPT_LENGTH),
         lineEnd: lineEnd,
         hold: hold,
         pieces: pieces,
+        parser: parser,
       });
-      copiedUpTo = middleEnd;
     }
 
     lineStart = lineEnd + 1;
@@ -1639,15 +2707,21 @@ export const holdBackOverLongRuns: (
 };
 
 /*
- * `text` with everything too long for a parser held back: the middles of
- * its over-long lines, then the continuation lines of its over-long runs.
- * The same as `text` when it is no longer than OVER_LONG_RUN_LENGTH.
+ * `text` with everything too long for a parser held back, for `parser` to
+ * read: the middles of its over-long lines, then the continuation lines of
+ * its over-long runs. The same as `text` when it is no longer than
+ * OVER_LONG_RUN_LENGTH.
  */
 export const holdBackOverLongText: (
   text: string,
   hold: HoldBackFunction,
-) => string = (text: string, hold: HoldBackFunction): string => {
-  return holdBackOverLongRuns(holdBackOverLongLines(text, hold), hold);
+  parser?: OverLongTextParser,
+) => string = (
+  text: string,
+  hold: HoldBackFunction,
+  parser: OverLongTextParser = "marked",
+): string => {
+  return holdBackOverLongRuns(holdBackOverLongLines(text, hold, parser), hold);
 };
 
 /*

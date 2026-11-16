@@ -15,10 +15,10 @@ flowchart TB
     OU["OneUptime"] -->|"지금 수집, 몇 분마다"| P["내 프로브"]
     P -->|"HTTPS 443, 읽기 전용 vSphere API"| VC["vCenter Server 또는 ESXi 호스트"]
     P -->|"메트릭, VMware 에이전트가 보내는 형식 그대로"| OU
-    OU --> V["VMware 페이지, 모니터, 알림, AI"]
+    OU --> V["VMware 페이지, 모니터, 경고, AI"]
 ```
 
-프로브는 몇 분마다 저장된 계정으로 vCenter에 로그인하여 인벤토리, 성능 카운터, vSAN 통계를 읽고 OneUptime으로 보냅니다. 데이터는 VMware 에이전트가 보내는 것과 똑같이 도착하므로, 모든 VMware 페이지, [VMware 모니터](/docs/monitor/vmware-monitor), 알림 템플릿, OneUptime AI가 같은 방식으로 읽습니다. 프로브는 수집 사이에도 vCenter 세션을 유지하므로 vCenter의 이벤트 로그가 로그인 기록으로 가득 차지 않습니다.
+프로브는 몇 분마다 저장된 계정으로 vCenter에 로그인하여 인벤토리, 성능 카운터, vSAN 통계를 읽고 OneUptime으로 보냅니다. 데이터는 VMware 에이전트가 보내는 것과 똑같이 도착하므로, 모든 VMware 페이지, [VMware 모니터](/docs/monitor/vmware-monitor), 경고 템플릿, OneUptime AI가 같은 방식으로 읽습니다. 프로브는 수집 사이에도 vCenter 세션을 유지하므로 vCenter의 이벤트 로그가 로그인 기록으로 가득 차지 않습니다.
 
 ## 프로브와 에이전트 비교
 
@@ -125,7 +125,7 @@ vCenter가 자체 기관의 인증서를 제시합니다. 표시된 지문을 vC
 ## 다음 단계
 
 :::cards
-- [VMware 모니터](/docs/monitor/vmware-monitor): 호스트, 가상 머신, 데이터스토어, 클러스터에 대한 알림.
+- [VMware 모니터](/docs/monitor/vmware-monitor): 호스트, 가상 머신, 데이터스토어, 클러스터에 대한 경고.
 - [사용자 지정 프로브](/docs/probe/custom-probe): vCenter 네트워크에서 프로브를 실행하세요.
 - [VMware 에이전트](/docs/telemetry/vmware): 대신 에이전트로 vCenter를 수집하세요.
 :::

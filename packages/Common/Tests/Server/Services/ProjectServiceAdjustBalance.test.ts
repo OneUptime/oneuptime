@@ -206,7 +206,9 @@ describe("ProjectService.adjustBalance", () => {
             amountInUSDCents: 5001,
           }),
         ),
-      ).rejects.toThrow("Cannot deduct 50.01 USD - the balance is only 50 USD");
+      ).rejects.toThrow(
+        "Cannot deduct 50.01\u00A0USD - the balance is only 50\u00A0USD",
+      );
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();
     });
@@ -226,7 +228,9 @@ describe("ProjectService.adjustBalance", () => {
             amountInUSDCents: 4000,
           }),
         ),
-      ).rejects.toThrow("Cannot deduct 40 USD - the balance is only 25 USD");
+      ).rejects.toThrow(
+        "Cannot deduct 40\u00A0USD - the balance is only 25\u00A0USD",
+      );
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();
     });
@@ -455,7 +459,7 @@ describe("ProjectService.adjustBalance", () => {
           }),
         ),
       ).rejects.toThrow(
-        "Adjustment amount cannot be more than 10000 USD in a single adjustment",
+        "Adjustment amount cannot be more than 10000\u00A0USD in a single adjustment",
       );
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();
@@ -481,7 +485,7 @@ describe("ProjectService.adjustBalance", () => {
             amountInUSDCents: MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS + 1,
           }),
         ),
-      ).rejects.toThrow("cannot be more than 10000 USD");
+      ).rejects.toThrow("cannot be more than 10000\u00A0USD");
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();
     });

@@ -395,6 +395,7 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
           title={t("Send test: {{name}}", {
             name: testedChannel.name || t("Custom channel"),
           })}
+          isTitleTranslated={true}
           error={testError}
           description={
             isTesting ? (

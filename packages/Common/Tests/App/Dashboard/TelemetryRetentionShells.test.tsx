@@ -1083,7 +1083,7 @@ describe.each(RESOURCE_PAGES)(
       });
 
       expect(setChips(fold)).toEqual([
-        `${TELEMETRY_DATA_RETENTION_TITLE}: 30 days`,
+        `${TELEMETRY_DATA_RETENTION_TITLE}: 30\u00A0days`,
       ]);
 
       // Its retention by type, read: how many types it overrides.
@@ -1092,7 +1092,7 @@ describe.each(RESOURCE_PAGES)(
       });
 
       expect(setChips(fold)).toEqual([
-        `${TELEMETRY_DATA_RETENTION_TITLE}: 30 days`,
+        `${TELEMETRY_DATA_RETENTION_TITLE}: 30\u00A0days`,
         `${RETENTION_BY_TELEMETRY_TYPE_TITLE}: 3`,
       ]);
 
@@ -1102,7 +1102,7 @@ describe.each(RESOURCE_PAGES)(
       });
 
       expect(setChips(fold)[0]).toBe(
-        `${TELEMETRY_DATA_RETENTION_TITLE}: 1 day`,
+        `${TELEMETRY_DATA_RETENTION_TITLE}: 1\u00A0day`,
       );
 
       // Cleared: back to the project's retention, named but not set.

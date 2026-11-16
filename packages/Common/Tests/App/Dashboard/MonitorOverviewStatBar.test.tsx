@@ -280,7 +280,13 @@ describe("MonitorOverviewStatBar", () => {
       "monitor-uptime-30d",
     ]) {
       const cell: HTMLElement = tile(id);
-      expect(within(cell).getByText("—")).toHaveClass("text-gray-400");
+      // The figure's quiet dash, read out as "Not set" (#8264).
+      expect(within(cell).getByTestId("empty-figure")).toHaveClass(
+        "text-gray-400",
+      );
+      expect(within(cell).getByTestId("empty-figure")).toHaveTextContent(
+        "—Not set",
+      );
       expect(cell).toHaveTextContent("No access to status history");
       expect(cell).not.toHaveTextContent("%");
       expect(cell).not.toHaveTextContent("No data");
@@ -297,7 +303,9 @@ describe("MonitorOverviewStatBar", () => {
     });
 
     const cell: HTMLElement = tile("monitor-uptime-24h");
-    expect(cell).toHaveTextContent("—");
+    expect(within(cell).getByTestId("empty-figure")).toHaveTextContent(
+      "—Not set",
+    );
     expect(cell).toHaveTextContent("Uptime is unavailable");
     expect(cell).not.toHaveTextContent("No data");
   });

@@ -686,7 +686,7 @@ describe("PlanPicker for a plan change", () => {
     render(<Controlled initialValue="price_growth_year" />);
 
     expect(row("Growth").textContent || "").toContain("14-day free trial");
-    expect(termsText()).toContain("Free for 14 days");
+    expect(termsText()).toContain("Free for 14\u00A0days");
     expect(screen.queryByTestId("plan-picker-current-plan")).toBeNull();
   });
 });

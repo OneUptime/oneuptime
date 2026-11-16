@@ -2,6 +2,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const ENTERPRISE_OVERVIEW_URL: string =
@@ -31,6 +33,14 @@ export interface ComponentProps {
 const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * Each benefit's words in the reader's language: drawn in a tile of the
+   * card's own, not a shared component that looks them up (#8227).
+   */
+  const translator: Translator = useTranslator();
+  const featureName: string =
+    translator.translateText(props.featureName) || props.featureName;
+
   return (
     <Card
       title={props.title}
@@ -63,7 +73,7 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold text-gray-900">
-                {props.featureName}
+                {featureName}
               </h3>
               <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
                 <Icon
@@ -72,19 +82,23 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
                   thick={ThickProp.Thick}
                   className="h-2.5 w-2.5"
                 />
-                Enterprise
+                {translator.translateText("Enterprise")}
               </span>
             </div>
             {props.featureDescription ? (
               <p className="text-xs text-gray-500 mt-0.5">
-                {props.featureDescription}
+                {translator.translateText(props.featureDescription)}
               </p>
             ) : null}
           </div>
         </div>
 
         <p className="text-sm text-gray-700">
-          {`${props.featureName} is a OneUptime Enterprise Edition feature. Switch to the Enterprise Edition build to enable it.`}
+          {translator.translateTemplate(
+            "{{feature}} is a OneUptime Enterprise Edition feature. Switch to the Enterprise Edition build to enable it.",
+            { feature: featureName },
+            { setsValuesApart: true },
+          )}
         </p>
 
         <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
@@ -104,10 +118,11 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs font-semibold text-gray-900">
-                    {benefit.title}
+                    {translator.translateText(benefit.title) || benefit.title}
                   </div>
                   <div className="text-[11px] leading-snug text-gray-500 mt-0.5">
-                    {benefit.subtitle}
+                    {translator.translateText(benefit.subtitle) ||
+                      benefit.subtitle}
                   </div>
                 </div>
               </div>

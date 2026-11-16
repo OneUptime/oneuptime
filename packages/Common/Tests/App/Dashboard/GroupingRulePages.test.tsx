@@ -438,7 +438,7 @@ describe.each(PAGES)(
         "One episode per title",
       );
       expect(column.getExportValue!(rule)).toBe(
-        `One episode per title. New ${pageCase.ruleNoun} join while they arrive within 1 hour of the last one`,
+        `One episode per title. New ${pageCase.ruleNoun} join while they arrive within 1\u00A0hour of the last one`,
       );
     });
 
@@ -886,19 +886,19 @@ describe.each(PAGES)(
           "reopenWindowSetting",
           "enableReopenWindow",
           "reopenWindowMinutes",
-          "45 minutes",
+          "45\u00A0minutes",
         ],
         [
           "resolveDelaySetting",
           "enableResolveDelay",
           "resolveDelayMinutes",
-          "45 minutes",
+          "45\u00A0minutes",
         ],
         [
           "inactivityTimeoutSetting",
           "enableInactivityTimeout",
           "inactivityTimeoutMinutes",
-          "45 minutes",
+          "45\u00A0minutes",
         ],
       ];
 
@@ -914,7 +914,7 @@ describe.each(PAGES)(
             [enabledColumn]: true,
             [minutesColumn]: 180,
           }),
-        ).toBe("3 hours");
+        ).toBe("3\u00A0hours");
         // Off, or on with 0 minutes the engines ignore: not set.
         expect(
           field.getFoldedValue!({

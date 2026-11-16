@@ -35,11 +35,11 @@ Sie brauchen einen Telemetrie-Ingestion-Schlüssel vom Typ **Server**. Falls Sie
 
 Gehen Sie zu **Produkte → Projekteinstellungen**, öffnen Sie im Seitenmenü **Telemetrie & APM** und wählen Sie **Ingestion-Schlüssel**.
 
-![Die Liste „Ingestion-Schlüssel“, „Aufnahmeschlüssel erstellen“ ist markiert](screen:ingestion-keys)
+![Die Liste „Ingestion-Schlüssel“, „Ingestion-Schlüssel erstellen“ ist markiert](screen:ingestion-keys)
 
 ### Einen Schlüssel erstellen
 
-Klicken Sie auf **Aufnahmeschlüssel erstellen**. Im Dialog ist der Name des Schlüssels bereits ausgefüllt und **Server** gewählt – die Art Schlüssel, mit der eine Anwendung oder ein Collector sendet –; klicken Sie also auf **Aufnahmeschlüssel erstellen**, um ihn anzulegen, oder benennen Sie ihn vorher um.
+Klicken Sie auf **Ingestion-Schlüssel erstellen**. Im Dialog ist der Name des Schlüssels bereits ausgefüllt und **Server** gewählt – die Art Schlüssel, mit der eine Anwendung oder ein Collector sendet –; klicken Sie also auf **Ingestion-Schlüssel erstellen**, um ihn anzulegen, oder benennen Sie ihn vorher um.
 
 ### Das Geheimnis kopieren
 
@@ -309,7 +309,7 @@ Wenn eine Funktion Ihres eigenen Codes mindestens 5 % der Zeit oder des Speicher
 | --- | --- |
 | **Flame-Graph** | Jeder Balken ist eine Funktion im Aufrufstapel, und seine Breite entspricht der verbrauchten Zeit oder den Ressourcen. Klicken Sie auf eine Funktion, um hineinzuzoomen und ihre Aufrufer und Aufgerufenen zu sehen. |
 | **Top-Funktionen** | Die Funktionen des Profils, sortiert nach eigener oder gesamter Zeit. **Nur mein Code** blendet Bibliotheks-Frames aus. |
-| **Diff vs. baseline** | Das Profil im Vergleich mit einem früheren Zeitraum – **vs. vor 1 Stunde**, **vs. gestern** oder **vs. letzte Woche** – mit den Funktionen unter **Am stärksten verschlechtert** und **Am stärksten verbessert**. |
+| **Vergleich mit der Baseline** | Das Profil im Vergleich mit einem früheren Zeitraum – **vs. vor 1 Stunde**, **vs. gestern** oder **vs. letzte Woche** – mit den Funktionen unter **Am stärksten verschlechtert** und **Am stärksten verbessert**. |
 
 **pprof herunterladen** speichert das Profil für lokale Werkzeuge wie `go tool pprof`.
 

@@ -26,6 +26,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * What a cloud's parent monitor really speaks for: its own region, and for a few minutes after
@@ -76,12 +77,12 @@ function incidentAbout(labels: JSONObject | undefined): Incident {
 }
 
 describe("for a parent that is down now", () => {
-  let incidents: jest.SpiedFunction<never>;
+  let incidents: SpyInstance<never>;
 
   beforeEach(() => {
     incidents = jest
       .spyOn(IncidentService, "findBy")
-      .mockResolvedValue([] as never) as unknown as jest.SpiedFunction<never>;
+      .mockResolvedValue([] as never) as unknown as SpyInstance<never>;
     jest
       .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
       .mockResolvedValue([ObjectID.generate()] as never);
@@ -319,7 +320,7 @@ describe("for a parent that is down now", () => {
 });
 
 describe("for a parent that has just come back", () => {
-  let timelines: jest.SpiedFunction<never>;
+  let timelines: SpyInstance<never>;
 
   function timelineOf(data: {
     isOfflineState: boolean;
@@ -342,7 +343,7 @@ describe("for a parent that has just come back", () => {
   beforeEach(() => {
     timelines = jest
       .spyOn(MonitorStatusTimelineService, "findBy")
-      .mockResolvedValue([] as never) as unknown as jest.SpiedFunction<never>;
+      .mockResolvedValue([] as never) as unknown as SpyInstance<never>;
   });
 
   afterEach(() => {
@@ -439,16 +440,16 @@ describe("for a parent that has just come back", () => {
 });
 
 describe("any other monitor", () => {
-  let incidents: jest.SpiedFunction<never>;
-  let timelines: jest.SpiedFunction<never>;
+  let incidents: SpyInstance<never>;
+  let timelines: SpyInstance<never>;
 
   beforeEach(() => {
     incidents = jest
       .spyOn(IncidentService, "findBy")
-      .mockResolvedValue([] as never) as unknown as jest.SpiedFunction<never>;
+      .mockResolvedValue([] as never) as unknown as SpyInstance<never>;
     timelines = jest
       .spyOn(MonitorStatusTimelineService, "findBy")
-      .mockResolvedValue([] as never) as unknown as jest.SpiedFunction<never>;
+      .mockResolvedValue([] as never) as unknown as SpyInstance<never>;
   });
 
   afterEach(() => {

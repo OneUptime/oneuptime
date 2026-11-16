@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Impostale in `config.env`, poi esegui `npm start`. `DISABLE_TELEMETRY_FOR_APP` è `true` per impostazione predefinita, e in quel caso non viene inviato nulla.
 :::
 
-OneUptime ha bisogno sia dell'endpoint sia delle intestazioni: senza un'intestazione non invia nulla. Scrivi ogni intestazione come `name=value` e separane più d'una con `;`. Un valore può contenere `=`. OneUptime aggiunge da sé `/v1/metrics` all'endpoint, e le stesse impostazioni inviano anche le sue tracce e i suoi log. Ogni metrica compare non appena OneUptime la registra per la prima volta: `notification.send.count` con il primo messaggio inviato.
+OneUptime ha bisogno sia dell'endpoint sia delle intestazioni: senza un'intestazione non invia nulla. Scrivi ogni intestazione come `name=value` e separane più d'una con `;`, oppure con `,` come in `OTEL_EXPORTER_OTLP_HEADERS`. Un valore può contenere `=`. Senza un `;`, un valore viene letto come lo scrive quello standard, con uno spazio come `%20`: termina l'impostazione con `;` per inviarlo esattamente come è scritto. OneUptime aggiunge da sé `/v1/metrics` all'endpoint, e le stesse impostazioni inviano anche le sue tracce e i suoi log. Ogni metrica compare non appena OneUptime la registra per la prima volta: `notification.send.count` con il primo messaggio inviato.
 
 ### Inviare delta a un progetto OneUptime
 
@@ -193,7 +193,7 @@ Quattro obiettivi che la maggior parte delle installazioni può promettere, cias
 
 :::steps
 1. Apri l'[Esploratore metriche](/docs/telemetry/metrics-explorer) del progetto, e fai clic sulla prima metrica dell'obiettivo. La sua query è `a`.
-2. Scegli la sua aggregazione in **Aggregate by**. Poi apri **Filters & grouping**, e aggiungi ciascuna delle sue condizioni in **Filter by attributes**.
+2. Scegli la sua aggregazione in **Aggrega per**. Poi apri **Filtri e raggruppamento**, e aggiungi ciascuna delle sue condizioni in **Filtra per attributi**.
 3. Per una seconda query, fai clic su **Aggiungi metrica**, e configura `b` allo stesso modo.
 4. Per una formula, fai clic su **Aggiungi formula**, e scrivila in **Formula**.
 5. Per essere avvisato quando l'obiettivo non viene rispettato, fai clic su **Azioni → Crea monitor da questa vista**, e invia un avviso quando il valore supera l'obiettivo: vedi [Monitor metriche](/docs/monitor/metrics-monitor).

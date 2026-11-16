@@ -294,7 +294,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 
 在宽度小于 1024 像素的屏幕上，**事件** 列还会显示 **计数** 和 **最近出现**，它们在那里没有单独的列。
 
-### 搜索事件并设置告警
+### 搜索事件并设置警报
 
 每个事件也是一条日志。警告以严重程度 **警告** 存储，事件的内容在其属性中：
 
@@ -309,7 +309,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-可以在 **日志** 中搜索它们，或用丢弃过滤器丢弃不需要的事件。要在事件发生时收到通知，请在集群的 **建议** 页面开启 **Warning Events**，或在其 **事件** 页面底部选择 **开启警告警报**：这是一个针对集群警告的 [日志监视器](/docs/monitor/logs-monitor)，每个对象和原因一条告警，5 分钟内没有新的相关警告即自动解决。只想收到部分原因的通知时，请在其过滤器中加入 `k8s.event.reason`。
+可以在 **日志** 中搜索它们，或用丢弃过滤器丢弃不需要的事件。要在事件发生时收到通知，请在集群的 **建议** 页面开启 **Warning Events**，或在其 **事件** 页面底部选择 **开启警告警报**：这是一个针对集群警告的 [日志监视器](/docs/monitor/logs-monitor)，每个对象和原因一条警报，5 分钟内没有新的相关警告即自动解决。只想收到部分原因的通知时，请在其过滤器中加入 `k8s.event.reason`。
 
 ## 配置选项
 
@@ -397,7 +397,7 @@ Kubernetes 事件不会在代理端按命名空间过滤：代理会发送所有
 
 所以 `api` 模式有意比 `daemonset` 模式丢弃得更少：Python traceback 或 `npm ERR!` 不带严重性关键字，悄悄删除它们正是阈值应当避免的失败。在混合模式（`logs.windowsPods.enabled`）下，两行规则都按节点操作系统适用：Linux Pod 遵循 `daemonset`，Windows Pod 遵循 `api`。
 
-两种模式在过滤之前都会把多行事件重新拼合，因此 Java 堆栈跟踪按其第一行判断，整体保留或整体丢弃。
+两种模式在过滤之前都会把多行事件重新拼合，因此 Java 堆栈追踪按其第一行判断，整体保留或整体丢弃。
 
 > [!IMPORTANT]
 > Kubernetes 事件和资源规格永远不会被它过滤。它们来自 Kubernetes API，没有自己的严重性，因此阈值会删除整个数据流，包括你最需要的 `FailedScheduling`、`BackOff` 和 `OOMKilling` 警告。它们数量少而价值高，所以代理总是发送它们；要精简它们，请在 OneUptime 中使用 **日志 → 设置 → 丢弃过滤器**。

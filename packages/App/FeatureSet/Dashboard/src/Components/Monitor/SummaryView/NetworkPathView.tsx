@@ -9,6 +9,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import { getProbeMessageText } from "Common/Utils/Monitor/ProbeFailureReading";
 
 export interface ComponentProps {
   networkPathTrace: NetworkPathTrace;
@@ -138,9 +139,12 @@ const NetworkPathView: FunctionComponent<ComponentProps> = (
       )}
 
       {/*
-       * The trace's own message is the probe's, as it wrote it (English):
-       * set apart from the verdict, so on an Arabic or Persian page it
-       * reads left to right with its full stop at its end.
+       * The trace's own message is the probe's: OneUptime's own sentence
+       * ("Traceroute could not run: ...") in the reader's language, its
+       * values kept as written (getProbeMessageText, #8656); any other
+       * message as the probe wrote it. Set apart from the verdict, so on an
+       * Arabic or Persian page an English one reads left to right with its
+       * full stop at its end.
        */}
       {trace.traceRoute && (
         <div
@@ -151,7 +155,12 @@ const NetworkPathView: FunctionComponent<ComponentProps> = (
           {trace.traceRoute.failureMessage ? (
             <>
               {" "}
-              <IsolatedText text={trace.traceRoute.failureMessage} />
+              <IsolatedText
+                text={getProbeMessageText({
+                  translator: translator,
+                  message: trace.traceRoute.failureMessage,
+                })}
+              />
             </>
           ) : (
             <></>

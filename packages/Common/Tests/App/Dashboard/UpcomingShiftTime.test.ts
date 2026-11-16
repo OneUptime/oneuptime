@@ -436,25 +436,25 @@ describe("a length as it is said", () => {
 
   test("in English", () => {
     expect(formatShiftLength({ days: 30, hours: 0, minutes: 0 }, "en")).toBe(
-      "30 days",
+      "30\u00A0days",
     );
     expect(formatShiftLength({ days: 0, hours: 8, minutes: 0 }, "en")).toBe(
-      "8 hours",
+      "8\u00A0hours",
     );
     expect(formatShiftLength({ days: 1, hours: 6, minutes: 0 }, "en")).toBe(
-      "1 day, 6 hours",
+      "1\u00A0day, 6\u00A0hours",
     );
     expect(formatShiftLength({ days: 0, hours: 7, minutes: 30 }, "en")).toBe(
-      "7 hours, 30 minutes",
+      "7\u00A0hours, 30\u00A0minutes",
     );
     expect(formatShiftLength({ days: 0, hours: 0, minutes: 45 }, "en")).toBe(
-      "45 minutes",
+      "45\u00A0minutes",
     );
     expect(formatShiftLength({ days: 0, hours: 1, minutes: 0 }, "en")).toBe(
-      "1 hour",
+      "1\u00A0hour",
     );
     expect(formatShiftLength({ days: 0, hours: 0, minutes: 0 }, "en")).toBe(
-      "1 minute",
+      "1\u00A0minute",
     );
   });
 
@@ -487,7 +487,7 @@ describe("a length as it is said", () => {
   test("a language Intl does not know reads in English", () => {
     expect(
       formatShiftLength({ days: 2, hours: 0, minutes: 0 }, "xx-not-a-language"),
-    ).toBe("2 days");
+    ).toBe("2\u00A0days");
   });
 });
 
@@ -534,10 +534,10 @@ describe("an engine without the unit and list formats", () => {
 
         expect(
           isolated.formatShiftLength({ days: 1, hours: 6, minutes: 0 }, "de"),
-        ).toBe("1 day, 6 hours");
+        ).toBe("1\u00A0day, 6\u00A0hours");
         expect(
           isolated.formatShiftLength({ days: 0, hours: 1, minutes: 0 }, "en"),
-        ).toBe("1 hour");
+        ).toBe("1\u00A0hour");
       } finally {
         Object.defineProperty(Intl, "NumberFormat", {
           value: realNumberFormat,

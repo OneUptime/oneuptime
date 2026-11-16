@@ -7,6 +7,7 @@
 - [Argo Rollouts](#argo-rollouts): 會中止推出的分析。
 - [Flagger](#flagger): 會暫停金絲雀版本的 webhook。
 - [GitHub Actions](#github-actions): 在部署之後回滾的步驟。
+- [關閉功能旗標](#關閉功能旗標): 在 SLO 的預算消耗過快時關閉功能旗標的工作流程。
 :::
 
 ## 運作方式
@@ -42,6 +43,7 @@ sequenceDiagram
 檢查讀取的內容取決於 SLO 的衡量對象：
 
 - [請求 SLO](/docs/slo/request-slos) 依據其服務在時間窗內的請求來評判，這些請求在 span 到達時即從中讀取。加上 `serviceVersion` 即可只評判新版本的請求：OneUptime 會將它與 span 的 `service.version` 資源屬性比對，OpenTelemetry SDK 會從 `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2` 設定這個屬性。如此一來，金絲雀版本只依據它自己的請求評判，不會被舊版本的請求稀釋。
+- [基於指標的 SLO](/docs/slo/request-slos#基於指標的-slo) 依據其指標在時間窗內的事件來評判，這些事件以其 SLI 的方式計數，因此 `minimumRequestCount`、`goodRequestCount` 和 `totalRequestCount` 都是事件數。加上 `serviceVersion` 時，只計入 `service.version` 資源屬性為該值的指標資料點：OpenTelemetry SDK 會像在 span 上一樣，在其指標上設定這個屬性。
 - 監測器可用率 SLO 依據其監測器在時間窗內的狀態時間軸來評判。`minimumRequestCount` 不適用於它，帶有 `serviceVersion` 的檢查則會被拒絕：監測器沒有版本。
 
 ## 開始之前
@@ -126,7 +128,7 @@ curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/release-che
 | `deploymentsAllowed` 和 `errorBudgetPolicyTier` | SLO 的錯誤預算策略是否允許部署，以及它所處的級別。 |
 | `checkedAt` | 檢查進行測量的時間。 |
 
-無法測量的 SLO（沒有服務的請求 SLO、沒有臨界值的延遲 SLO、沒有監測器的監測器可用率 SLO）會得到 HTTP 400 回應，並說明要修正什麼，讓推出停在明確的錯誤上，而不是憑猜測繼續。在自行託管的安裝上，請改用它自己的位址，而不是 oneuptime.com。
+無法測量的 SLO（沒有服務的請求 SLO、沒有臨界值的延遲 SLO、沒有可計數指標的基於指標的 SLO、沒有監測器的監測器可用率 SLO）會得到 HTTP 400 回應，並說明要修正什麼，讓推出停在明確的錯誤上，而不是憑猜測繼續。在自行託管的安裝上，請改用它自己的位址，而不是 oneuptime.com。
 
 ## Argo Rollouts
 
@@ -256,6 +258,37 @@ jobs:
 ```
 
 遇到「否」時，以及遇到任何不含 `isSafeToContinue: true` 的回答（ID 錯誤、金鑰無法讀取 SLO、完全沒有回答）時，該步驟都會失敗，因此管線絕不會依據它沒有取得的回答繼續進行。請在服務啟動時把 `service.version` 設為該次提交（`${{ github.sha }}`），讓檢查只評判新版本。
+
+## 關閉功能旗標
+
+由功能旗標控制的版本，只要關閉旗標就能回滾。工作流程可以替您完成這件事：當 SLO 的某條 [消耗率規則](/docs/slo/burn-rate-alerts) 觸發警示或宣告事件時，工作流程會在 LaunchDarkly 或 Unleash 中關閉該旗標。如此一來，有問題的推出幾分鐘內就會被撤銷，不必等人處理。
+
+:::steps
+### 複製消耗率規則的 ID
+
+開啟 SLO，前往 **消耗速率規則**。開啟要用來關閉旗標的那條規則的選單，選擇 **顯示 ID**。快速消耗規則最適合這個用途，因為有問題的推出開始後幾分鐘內它就會觸發。
+
+### 從範本建立工作流程
+
+開啟 **工作流程**，點選 **建立工作流程**。在 **或從範本開始** 下選擇 **SLOs** 類別，再選擇您所用功能旗標服務的範本：
+
+| 範本 | 需要提供的內容 |
+| --- | --- |
+| **Turn a LaunchDarkly flag off when an SLO burns too fast** | 一個能更新該旗標的 API 存取權杖，以及旗標所屬專案、旗標本身和環境各自的鍵。 |
+| **Turn an Unleash flag off when an SLO burns too fast** | 您的 Unleash 位址、一個服務帳戶權杖或個人存取權杖，以及旗標所屬的專案、它的名稱和環境。 |
+
+將規則的 ID 貼到 **Burn Rate Rule ID** 中，填寫其餘內容，然後建立工作流程。
+
+### 開啟工作流程
+
+工作流程建立時處於關閉狀態。準備好之後，在工作流程的 **建構器** 頂端開啟 **已啟用** 開關。
+:::
+
+每當專案中的某條消耗率規則觸發警示或宣告事件時，工作流程就會啟動。它的 **如果 / 否則** 只會讓您貼上 ID 的那條規則繼續往下，下一個步驟會呼叫功能旗標服務：在 LaunchDarkly 中是 `turnFlagOff` 指令，並附上一則寫明規則和 SLO 的備註；在 Unleash 中則是針對該環境的 `off`。無論目標設定為何，兩者都會為該環境中的所有人關閉旗標。如果功能旗標服務拒絕這次呼叫，該次執行就會失敗，其日誌會說明原因。規則的警示仍會照常呼叫人員。
+
+**建構器** 上的 **執行工作流程** 會把工作流程當作您選擇的規則剛剛觸發一樣執行，因此它會真的關閉旗標。請先用測試環境中的旗標試試看。
+
+若要使用其他功能旗標服務，或使用有自己位址的 LaunchDarkly 執行個體，請從任一範本開始，並把它的 API 步驟改為在該環境中為所有人關閉旗標的呼叫。請像這兩個範本一樣，選擇連使用者區隔和目標設定規則也能覆寫的呼叫，否則漸進式推出仍會繼續提供該旗標。
 
 ## 後續步驟
 

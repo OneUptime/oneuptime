@@ -273,7 +273,7 @@ L'elenco **Host** mostra lo stato di ogni host, con sotto il motivo per cui rich
 - **Panoramica**: **Richiede attenzione** per l'host e le VM che esegue; CPU, memoria, latenza del disco più lento e throughput di rete nell'intervallo di tempo che scegli, come riquadri e grafici (trascina su un grafico per ingrandire); gli incidenti e gli avvisi aperti sull'host; le sue macchine virtuali più cariche, con segnalate quelle in attesa di una CPU fisica; le sue schede di rete fisiche e i dispositivi di archiviazione, con segnalati gli errori dei pacchetti e i dischi lenti; quali avvisi dell'host sono attivi; e i dettagli dell'host.
 - **Macchine virtuali**: le VM e i modelli sull'host, con stato, pool di risorse, CPU ready, CPU e memoria.
 - **Metriche**: le serie di CPU, memoria, rete e disco dell'host come grafici, per scheda di rete e dispositivo di archiviazione, ciascuno apribile nell'explorer delle metriche.
-- **Registri**: il syslog dell'host stesso, non appena lo invia (vedi [Inviare il syslog di ESXi](#facoltativo-inviare-il-syslog-di-esxi)). Fino ad allora la scheda mostra i comandi che indirizzano questo host, o il suo intero cluster, all'agente. Un vCenter raccolto da una sonda non ha syslog, perché una sonda non lo riceve.
+- **Log**: il syslog dell'host stesso, non appena lo invia (vedi [Inviare il syslog di ESXi](#facoltativo-inviare-il-syslog-di-esxi)). Fino ad allora la scheda mostra i comandi che indirizzano questo host, o il suo intero cluster, all'agente. Un vCenter raccolto da una sonda non ha syslog, perché una sonda non lo riceve.
 
 Quando vCenter smette di riportare un host, la pagina lo dice sopra le sue schede, con il momento in cui vCenter l'ha riportato l'ultima volta. Dopo 15 minuti senza rapporti l'host esce dall'inventario: la sua pagina allora lo dice, e mostra ancora le sue metriche precedenti.
 
@@ -301,7 +301,7 @@ Una pagina i cui dati non si possono leggere lo dice, con **Riprova**, e un elen
 
 ## Facoltativo — Inviare il syslog di ESXi
 
-Per impostazione predefinita l'agent invia solo metriche, quindi la pagina **Registri** del vCenter resta vuota. Gli host ESXi (e vCenter stesso) possono inoltrare il loro syslog a qualsiasi listener, e l'`otel-collector-config.yaml` fornito contiene una coppia di receiver `syslog` commentati (TCP e UDP sulla porta 5514, RFC 3164: il formato proprio di ESXi), collegati a una pipeline `logs` commentata che applica `vmware.vcenter.name` così che i log arrivino al tuo vCenter.
+Per impostazione predefinita l'agent invia solo metriche, quindi la pagina **Log** del vCenter resta vuota. Gli host ESXi (e vCenter stesso) possono inoltrare il loro syslog a qualsiasi listener, e l'`otel-collector-config.yaml` fornito contiene una coppia di receiver `syslog` commentati (TCP e UDP sulla porta 5514, RFC 3164: il formato proprio di ESXi), collegati a una pipeline `logs` commentata che applica `vmware.vcenter.name` così che i log arrivino al tuo vCenter.
 
 :::steps
 ### Attivare i receiver
@@ -433,7 +433,7 @@ Il `docker-compose.yml` dell'agent esegue anche l'**Agente IA VMware**, `oneupti
 - Gira come UID 1000 senza capabilities e non esegue mai operazioni guest, snapshot, `esxcli` o qualsiasi cosa crei o distrugga una VM. Elimina il servizio `oneuptime-vmware-ai-agent` da `docker-compose.yml` se non usi OneUptime AI.
 - L'installazione senza Docker non ha un agente IA: viene distribuito solo come immagine container. Per aggiungerne uno, eseguilo con Docker su una qualsiasi macchina che raggiunga vCenter — scarica `docker-compose.yml`, scrivi accanto un `.env` con le impostazioni di `/opt/oneuptime-vmware-agent/.env`, tra virgolette singole come le vuole Docker Compose, e avvia l'agente IA da solo con `docker compose up -d oneuptime-vmware-ai-agent` (non il collector, che è già in esecuzione).
 
-Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#vmware-vcenter). Il README dell'agent contiene i comandi esatti per il ruolo delle correzioni.
+Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents#vmware-vcenter). Il README dell'agent contiene i comandi esatti per il ruolo delle correzioni.
 
 ## Risoluzione dei problemi
 
@@ -518,6 +518,6 @@ vSphere non ha un push OpenTelemetry proprio, quindi l'agent (o qualsiasi OpenTe
 :::cards
 - [Monitor VMware](/docs/monitor/vmware-monitor): Avvisi su host, VM, datastore, cluster, datacenter e vSAN.
 - [VMware senza agent](/docs/telemetry/vmware-agentless): Lascia invece che una sonda raccolga il vCenter.
-- [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA VMware e come funzionano le correzioni.
+- [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA VMware e come funzionano le correzioni.
 - [Collector OpenTelemetry sull'host](/docs/telemetry/host-otel-collector): La vista del sistema operativo all'interno delle VM, o della macchina dell'agent.
 :::

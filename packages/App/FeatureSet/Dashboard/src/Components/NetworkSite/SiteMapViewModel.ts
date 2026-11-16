@@ -1,4 +1,5 @@
 import { ProjectedPoint, projectRobinson } from "./Geo/GeoProjection";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { MapViewport, screenLengthToViewportLength } from "./Geo/GeoViewport";
 import {
   GeoCluster,
@@ -257,7 +258,7 @@ export const formatUptimePercent: (
     uptimePercent === undefined ||
     !Number.isFinite(uptimePercent)
   ) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${uptimePercent.toFixed(1)}%`;
 };

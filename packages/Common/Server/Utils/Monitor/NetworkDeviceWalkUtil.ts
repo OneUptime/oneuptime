@@ -5,13 +5,13 @@ import MonitorPauseState, {
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import MonitorService from "../../Services/MonitorService";
 import MonitorNetworkDeviceService from "../../Services/MonitorNetworkDeviceService";
-import MonitorNetworkDevice from "../../../Models/DatabaseModels/MonitorNetworkDevice";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkDeviceOidTemplateService from "../../Services/NetworkDeviceOidTemplateService";
 import NetworkDeviceOidTemplate from "../../../Models/DatabaseModels/NetworkDeviceOidTemplate";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import MonitorResourceUtil from "./MonitorResource";
+import { logMonitorEvaluationError } from "./NonActionableIngestError";
 import { NetworkDevicePollMode } from "./NetworkDeviceHydrationUtil";
 import NetworkDeviceMetricUtil from "./NetworkDeviceMetricUtil";
 import NetworkInventoryUtil from "./NetworkInventoryUtil";
@@ -21,7 +21,6 @@ import SnmpOidRateUtil, {
   SnmpOidCounterBaseline,
 } from "./SnmpOidRateUtil";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
@@ -235,52 +234,36 @@ export default class NetworkDeviceWalkUtil {
       });
 
     /*
-     * Persist this walk as the next delta baseline — but only when it
-     * actually walked interfaces or read counter OIDs. Keeping the last GOOD
-     * counters across failed polls (and across ping-only polls, which walk
-     * nothing) means rates resume with a correct (longer-window) delta
-     * instead of losing a cycle.
+     * This walk as the next delta baseline - but only when it actually
+     * walked interfaces or read counter OIDs. Keeping the last GOOD counters
+     * across failed polls (and across ping-only polls, which walk nothing)
+     * means rates resume with a correct (longer-window) delta instead of
+     * losing a cycle.
      *
-     * Hook-free single-statement write, deliberately. A 48-interface walk
-     * log is ~28 KB of jsonb, stored out of line: the full updateOneById
-     * pipeline SELECTs the row before writing it (the column is in the
-     * payload), so every poll detoasted the PREVIOUS log a second time —
-     * it was already read above — only to overwrite it. Measured against
-     * the seeded 80,000-device fleet, that pre-read costs 8 buffer hits and
-     * ~0.6 ms where the same lookup without the column costs 4 and
-     * ~0.06 ms; at 267 walks/sec it is pure waste on the product's hottest
-     * table. It does NOT shrink the ~12 KB of WAL the rewrite itself emits
-     * (a plain one-column update is 144 B) — that is what storing less
-     * would fix, and it is a separate change.
+     * Written with the poll's verdict, in its one hook-free compare-and-set
+     * statement (NetworkDeviceService.writePollVerdict, OneUptime issue
+     * #7393), not in a write of its own: a poll wrote the device row three
+     * or four times, and the baseline was one of them. A 48-interface walk
+     * log is ~28 KB of jsonb, stored out of line, and a hook-free statement
+     * does not read the row before writing it, so the PREVIOUS log - read
+     * above - is not detoasted a second time only to be overwritten. It does
+     * NOT shrink the WAL the rewrite itself emits; storing less would.
      *
-     * Nothing rides on the hooks for THIS write. NetworkDevice declares
-     * neither @EnableWorkflow nor @EnableAuditLog, so _updateBy's workflow,
-     * realtime and audit branches are inert for the model, and the payload
-     * carries exactly one column: no site-rule identity column
-     * (hostname/name/sysName), no siteId, no monitor binding, no
-     * monitoringMethod. Both of NetworkDeviceService's real update hooks —
-     * site-assignment re-evaluation and the monitor-status stamp — are
-     * therefore no-ops here. The inventory sync below still writes those
-     * columns through the hooked path, which is where they have to stay.
-     * Do not add a column to this payload: anything that lands here stops
-     * firing hooks silently.
-     *
-     * One thing IS lost, deliberately: `updateColumnsByIdWithoutHooks` does
-     * not bump the @VersionColumn, so this write leaves `version` alone where
-     * `updateOneById` incremented it. Nothing in the product reads
-     * NetworkDevice.version, and `sanitizeUpdateData` strips it from client
-     * payloads. Note this is the opposite call from the one the interface
-     * upsert makes a file away — NetworkInterfaceService hand-writes
-     * `version + 1` in its raw statements — and the difference is intended: a
-     * batched write REPLACES a path that bumped it and is the row's normal
-     * update path, whereas this is a delta-baseline cache write that happens
-     * every five minutes and would otherwise be the only thing moving the
-     * counter at all.
+     * Nothing rides on the hooks for it: the verdict statement writes no
+     * column a NetworkDeviceService update hook reads (site-rule identity,
+     * site, monitor binding, monitoring method), and the inventory sync
+     * still writes those through the hooked path, which is where they have
+     * to stay. Nor does it bump the @VersionColumn: nothing in the product
+     * reads NetworkDevice.version, and the poll would otherwise be the only
+     * thing moving it at all.
      *
      * A poll received BEFORE the one the baseline already holds - it waited
      * longer in the queue than the poll after it, a retried job, say - is
      * not put back over it: the newer reading stays the baseline, and this
-     * one, older than it, has no rate either (a negative window).
+     * one, older than it, has no rate either (a negative window). Nor is one
+     * received before the poll whose verdict the device holds: the verdict's
+     * guard keeps the whole statement, and the next poll's rates are then
+     * worked out against the baseline before, over the longer window.
      */
     const hasWalkedInterfaces: boolean = Boolean(
       data.snmpResponse &&
@@ -304,6 +287,9 @@ export default class NetworkDeviceWalkUtil {
         receivedAt,
         previousCounters?.readAt,
       );
+
+    // The baseline the verdict's statement writes; undefined leaves it.
+    let walkBaseline: JSONObject | undefined = undefined;
 
     if (data.snmpResponse && (replacesInterfaces || replacesCounters)) {
       /*
@@ -351,10 +337,7 @@ export default class NetworkDeviceWalkUtil {
           keptCounters as unknown as JSONObject;
       }
 
-      await NetworkDeviceWalkUtil.writeWalkBaseline({
-        deviceId: device.id,
-        lastWalkLog: lastWalkLog,
-      });
+      walkBaseline = lastWalkLog;
     }
 
     /*
@@ -408,7 +391,8 @@ export default class NetworkDeviceWalkUtil {
      * monitored ports, so the metrics and criteria below only see ports the
      * user cares about. It stamps what the poll saw with the same receipt
      * time, and writes nothing a newer poll of the device has written
-     * already (OneUptime issue #7389).
+     * already (OneUptime issue #7389). It writes the rate baseline and the
+     * snapshots with the poll's verdict, in one statement (#7393).
      */
     await NetworkInventoryUtil.updateFromWalk({
       projectId: device.projectId,
@@ -418,6 +402,7 @@ export default class NetworkDeviceWalkUtil {
       pollMode: pollMode,
       snmpTableSnapshot: snmpTableSnapshot,
       transceiverSnapshot: transceiverSnapshot,
+      lastWalkLog: walkBaseline,
       probeId: data.probeId,
       receivedAt: receivedAt,
       dnsResolution: data.pingResponse
@@ -529,13 +514,19 @@ export default class NetworkDeviceWalkUtil {
             : {}),
         };
 
+        /*
+         * A monitor paused, archived or disabled since it was read above is
+         * refused, as expected: logged at debug, and the walk goes on to
+         * the next monitor (logMonitorEvaluationError, issue #8069).
+         */
         try {
           await MonitorResourceUtil.monitorResource(walkResponse);
         } catch (err) {
-          logger.error(
-            `Error evaluating device poll for monitor ${monitor.id.toString()}:`,
-          );
-          logger.error(err);
+          logMonitorEvaluationError({
+            error: err,
+            message: `Error evaluating device poll for monitor ${monitor.id.toString()}`,
+            attributes: { projectId: monitor.projectId.toString() },
+          });
         }
       }
     }
@@ -820,68 +811,6 @@ export default class NetworkDeviceWalkUtil {
   }
 
   /*
-   * Writes a poll's rate baseline (NetworkDevice.lastWalkLog) - and never
-   * waits for the row, and never fails the poll (OneUptime issue #7194).
-   *
-   * This write used to queue for the device's row lock like any UPDATE, and
-   * it was the one write of the walk pipeline without a try/catch: whenever
-   * another writer held the device - the probe's claim of it, the inventory
-   * of a poll still in flight, a router's ARP table merging readings into
-   * hundreds of devices - for longer than lock_timeout, it failed with
-   * "canceling statement due to lock timeout" and took the whole job with
-   * it. The queue retried the job from the start, twice, so a busy database
-   * got up to three times the work for each such poll, and the telemetry
-   * queue fell further behind.
-   *
-   * A baseline that is not written loses nothing: the next poll's rates are
-   * worked out against the one before, over a window that much longer, and
-   * are just as right. So the write yields - FOR UPDATE SKIP LOCKED,
-   * updateColumnsByIdIfUnlockedWithoutHooks - instead of queueing, and
-   * anything else that goes wrong with it is logged rather than thrown. The
-   * same guard as before: never onto a device deleted while the poll was
-   * in flight.
-   */
-  public static async writeWalkBaseline(data: {
-    deviceId: ObjectID;
-    lastWalkLog: JSONObject;
-  }): Promise<boolean> {
-    try {
-      const written: boolean =
-        await NetworkDeviceService.updateColumnsByIdIfUnlockedWithoutHooks({
-          id: data.deviceId,
-          data: {
-            lastWalkLog: data.lastWalkLog,
-          } as any,
-          /*
-           * The hooked path finds rows with `withDeleted: false`, so a
-           * device deleted between the read at the top of this walk and
-           * here was never written to. The raw path matches on `_id` alone,
-           * so keep that guard explicitly — a walk still in flight must not
-           * push a fresh log back onto a row the user just deleted.
-           */
-          expectedData: {
-            deletedAt: null,
-          } as any,
-        });
-
-      if (!written) {
-        logger.debug(
-          `Network device ${data.deviceId.toString()}: rate baseline not written - another writer held the device, or it was deleted. The next poll's rates use the baseline before.`,
-        );
-      }
-
-      return written;
-    } catch (err) {
-      logger.warn(
-        `Network device ${data.deviceId.toString()}: rate baseline not written; the next poll's rates use the baseline before. ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-      return false;
-    }
-  }
-
-  /*
    * The probe's ping result in the shape the criteria pipeline already
    * speaks (ProbeMonitorResponse.pingResponse, as Ping monitors report it),
    * so packet-loss criteria, metrics and evidence read it without a special
@@ -926,8 +855,10 @@ export default class NetworkDeviceWalkUtil {
    * another device.
    *
    * Read through MonitorNetworkDevice, which Postgres keeps from every
-   * monitor's steps (see the model): one index lookup by device, then the
-   * monitors found, by id. The work is the device's, not the project's.
+   * monitor's steps (see the model): one index lookup by device
+   * (MonitorNetworkDeviceService.findMonitorIdsWatching, which the device
+   * page's Monitors card asks too), then the monitors found, by id. The
+   * work is the device's, not the project's.
    *
    * It used to read the steps of every hand-made Network Device monitor in
    * the project (a monitor no template, rule or policy provisioned, which
@@ -963,7 +894,7 @@ export default class NetworkDeviceWalkUtil {
     const monitorIds: Set<string> = new Set();
 
     for (const chunk of NetworkDeviceWalkUtil.toChunks(deviceIds)) {
-      for (const monitorId of await NetworkDeviceWalkUtil.findMonitorIdsWatching(
+      for (const monitorId of await MonitorNetworkDeviceService.findMonitorIdsWatching(
         {
           projectId: data.projectId,
           deviceIds: chunk,
@@ -1010,56 +941,6 @@ export default class NetworkDeviceWalkUtil {
     }
 
     return monitors;
-  }
-
-  /*
-   * The ids of the monitors whose steps name one of the devices (at most
-   * FAN_OUT_ID_CHUNK_SIZE of them), in pages by row id - a device has a
-   * handful of monitors, so one page nearly always holds them all.
-   */
-  private static async findMonitorIdsWatching(data: {
-    projectId: ObjectID;
-    deviceIds: Array<string>;
-  }): Promise<Array<string>> {
-    const monitorIds: Array<string> = [];
-    let cursor: ObjectID | undefined = undefined;
-
-    for (;;) {
-      const page: Array<MonitorNetworkDevice> =
-        await MonitorNetworkDeviceService.findBy({
-          query: {
-            projectId: data.projectId,
-            networkDeviceId: QueryHelper.any(data.deviceIds),
-            ...(cursor ? { _id: QueryHelper.greaterThan(cursor) } : {}),
-          },
-          select: {
-            _id: true,
-            monitorId: true,
-          },
-          sort: {
-            _id: SortOrder.Ascending,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      for (const row of page) {
-        if (row.monitorId) {
-          monitorIds.push(row.monitorId.toString());
-        }
-      }
-
-      const last: ObjectID | null | undefined = page[page.length - 1]?.id;
-
-      if (page.length < LIMIT_MAX || !last) {
-        return monitorIds;
-      }
-
-      cursor = last;
-    }
   }
 
   private static toChunks(ids: Array<string>): Array<Array<string>> {

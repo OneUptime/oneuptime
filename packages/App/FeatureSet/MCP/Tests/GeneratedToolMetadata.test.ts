@@ -133,7 +133,11 @@ describe("Generated tool metadata", () => {
       expect(select?.type).toBe("array");
     });
 
-    it("takes any field in sort, and only ASC or DESC for it", () => {
+    /*
+     * As the API reads a sort (SortValidator) and the spec publishes it
+     * (#8840): a direction, { direction, nulls }, or a relation's field.
+     */
+    it("takes any field in sort, with a direction, { direction, nulls }, or a related record's field", () => {
       const sort: JSONSchemaProperty | undefined = findTool(
         tools,
         "list_incidents",
@@ -141,9 +145,25 @@ describe("Generated tool metadata", () => {
 
       expect(sort?.type).toBe("object");
       expect(sort?.properties).toBeUndefined();
+      expect(sort?.description).toBe(
+        'For example {"createdAt":"DESC"}, or a related record\'s field: {"<relation>":{"<field>":"ASC"}}.',
+      );
       expect(sort?.additionalProperties).toEqual({
-        type: "string",
-        enum: ["ASC", "DESC"],
+        anyOf: [
+          { enum: ["ASC", "DESC"] },
+          {
+            type: "object",
+            properties: {
+              direction: { enum: ["ASC", "DESC"] },
+              nulls: { enum: ["FIRST", "LAST"] },
+            },
+            additionalProperties: false,
+          },
+          {
+            type: "object",
+            additionalProperties: { enum: ["ASC", "DESC"] },
+          },
+        ],
       });
     });
 

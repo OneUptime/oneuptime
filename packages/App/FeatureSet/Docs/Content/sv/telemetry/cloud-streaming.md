@@ -30,7 +30,7 @@ flowchart TB
 ## Innan du börjar
 
 - **Ett anslutet AWS-konto.** Anslut det först under **Moln → Anslut**: se [Anslut ett molnkonto](/docs/telemetry/cloud-accounts).
-- **En projektägare eller administratör.** Bara de kan skapa en strömnyckel och sluta strömma.
+- **En Projektägare eller Projektadministratör.** Bara de kan skapa en strömnyckel och sluta strömma.
 - **AWS CloudShell i det kontot**, inloggat som någon som får skapa CloudFormation-stackar och IAM-roller.
 - **En HTTPS-adress, på en egen driftad OneUptime.** Firehose levererar bara till `https://`-adresser på port 443, med ett certifikat som AWS litar på, och adressen måste nås från AWS.
 

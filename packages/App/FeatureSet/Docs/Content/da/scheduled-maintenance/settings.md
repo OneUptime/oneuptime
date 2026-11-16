@@ -47,8 +47,8 @@ En ny regel starter aktiveret; slå **Aktiveret** fra i dens redigeringsformular
 
 | Betingelse                                                         | Matcher                                                                    |
 | ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| **Monitorer**, **Begivenhedsetiketter**, **Overvågningsetiketter** | Begivenheder med en af de monitorer eller etiketter, du vælger.            |
-| **Begivenhedstitel**, **Hændelsesbeskrivelse**, **Overvågningsnavn**, **Overvågningsbeskrivelse** | Et mønster, som et regulært udtryk, uden forskel på store og små bogstaver. |
+| **Monitorer**, **Begivenhedsetiketter**, **Monitoretiketter** | Begivenheder med en af de monitorer eller etiketter, du vælger.            |
+| **Begivenhedstitel**, **Hændelsesbeskrivelse**, **Monitornavn**, **Monitorbeskrivelse** | Et mønster, som et regulært udtryk, uden forskel på store og små bogstaver. |
 
 En regel matcher kun, når hver betingelse, du udfylder, holder; en betingelse, der står tom, springes over.
 
@@ -117,7 +117,7 @@ Kortet **Næste nummer** nedenunder sætter det nummer, den næste begivenhed f�
 
 ## Arbejdsgange
 
-Hver vedligeholdelsesmodel har arbejdsgangsudløsere og -handlinger, opkaldt efter den: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** og **On Delete Maintenance Event**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Create One Maintenance Event** og **Update One Maintenance Event**. Definitioner af brugerdefinerede felter og måleværdier er undtagelserne: de har ingen arbejdsgangstrin. Se [Arbejdsgange – Oversigt](/docs/workflows/index).
+Hver vedligeholdelsesmodel har arbejdsgangsudløsere og -handlinger, opkaldt efter den: **Ved oprettelse: Vedligeholdelseshændelse**, **Ved opdatering: Vedligeholdelseshændelse**, **Ved oprettelse eller opdatering: Vedligeholdelseshændelse** og **Ved sletning: Vedligeholdelseshændelse**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Opret Vedligeholdelseshændelse (én post)** og **Opdater Vedligeholdelseshændelse (én post)**. Definitioner af brugerdefinerede felter og måleværdier er undtagelserne: de har ingen arbejdsgangstrin. Se [Arbejdsgange – Oversigt](/docs/workflows/index).
 
 ## Hvem der kan ændre dem
 

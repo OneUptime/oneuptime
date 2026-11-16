@@ -101,6 +101,7 @@ import {
 } from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
 import SnmpTableListUtil from "../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import SnmpVendorTemplateUtil from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const AI_AP: string = "1.3.6.1.4.1.14823.2.3.3.1.2.1.1";
 const AI_RADIO: string = "1.3.6.1.4.1.14823.2.3.3.1.2.2.1";
@@ -733,7 +734,8 @@ describe("the Wi-Fi tab's SSIDs card and layout (#4730 UI review)", () => {
       NONE_REPORTED_LINE,
     );
     expect(tileValue("SSIDs")).toBe("0");
-    expect(tileValue("Clients")).toBe("—");
+    // The figure's quiet dash: "—" for the eye, "Not set" read out (#8679).
+    expect(tileValue("Clients")).toBe(QUIET_DASH_TEXT);
   });
 
   test("claims nothing about SSIDs while the SSID walk fails, even after one that read only UniFi's own networks", async () => {
@@ -759,7 +761,8 @@ describe("the Wi-Fi tab's SSIDs card and layout (#4730 UI review)", () => {
     });
 
     expect(screen.queryByTestId("wifi-no-ssids")).not.toBeInTheDocument();
-    expect(tileValue("Clients")).toBe("—");
+    // The figure's quiet dash: "—" for the eye, "Not set" read out (#8679).
+    expect(tileValue("Clients")).toBe(QUIET_DASH_TEXT);
   });
 
   test("says nothing of SSIDs when the SSID table's last walk failed and nothing earlier was read", async () => {

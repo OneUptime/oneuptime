@@ -95,7 +95,7 @@ Si vous voulez atteindre des champs du corps — `{{requestBody.status}}` dans u
 | `application/json` | Le JSON analysé. |
 | `application/x-www-form-urlencoded` | Le formulaire analysé. Les clés entre crochets s'imbriquent (`alerts[0][status]=firing`), et chaque valeur est une chaîne. |
 | `text/plain` | Le JSON analysé, quand le texte est un objet ou un tableau JSON : c'est ainsi qu'Amazon SNS envoie ses messages. Tout autre texte donne un corps vide. |
-| Tout autre, ou aucun | Un corps vide (`{}`) : chaque référence à `requestBody` ne donne donc rien. |
+| Tout autre, ou aucun | Un corps vide (`{}`) : aucune référence à `requestBody` ne se résout donc, et un modèle la laisse telle quelle. |
 
 Les corps jusqu'à 50 Mo sont acceptés ; un corps plus grand est refusé avec un `413`. Ne compressez pas le corps avec `Content-Encoding: gzip` : il ne serait pas stocké comme JSON, et les chemins vers son contenu ne se résoudraient pas.
 
@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Exiger un secret à chaque requête
 
-Toute personne qui possède l'URL d'un moniteur peut lui envoyer des requêtes. Un propriétaire ou un administrateur du projet peut faire exiger en plus, par chaque moniteur de requêtes entrantes du projet, l'un des secrets propres au projet, quelle que soit la personne qui a configuré le moniteur : activez **Exiger un secret à chaque requête**. Une requête sans secret est refusée avec `401` et le motif, avant de compter comme heartbeat, d'être conservée comme dernière requête du moniteur ou d'atteindre des critères. Une requête avec un secret poursuit vers les critères propres au moniteur, comme avant.
+Toute personne qui possède l'URL d'un moniteur peut lui envoyer des requêtes. Un Propriétaire du projet ou un Administrateur du projet peut faire exiger en plus, par chaque moniteur de requêtes entrantes du projet, l'un des secrets propres au projet, quelle que soit la personne qui a configuré le moniteur : activez **Exiger un secret à chaque requête**. Une requête sans secret est refusée avec `401` et le motif, avant de compter comme heartbeat, d'être conservée comme dernière requête du moniteur ou d'atteindre des critères. Une requête avec un secret poursuit vers les critères propres au moniteur, comme avant.
 
 :::steps
 ### Créer un secret
@@ -201,6 +201,10 @@ Allez dans **Moniteurs → Paramètres → Secrets de requête entrante** et cr�
 ### L'envoyer depuis chaque expéditeur
 
 Envoyez le secret dans l'en-tête `X-OneUptime-Secret`, ou comme jeton Bearer dans l'en-tête `Authorization`, selon ce que votre expéditeur sait définir.
+
+### Retrouver les expéditeurs oubliés
+
+Dès que le projet a un secret, OneUptime vérifie chaque requête, sans encore en refuser aucune. **Requêtes sans secret**, sur la même page, liste chaque moniteur de requêtes entrantes qui a reçu une requête sans secret valide au cours des dernières 24 heures, et pourquoi : aucun secret n'a été envoyé, ou un mauvais. Corrigez ces expéditeurs. Un moniteur dont les expéditeurs sont corrigés affiche sous **Dernière avec secret** une heure postérieure à celle de **Dernière sans secret**, et quitte la liste dans les 24 heures.
 
 ### Activer l'exigence
 
@@ -429,6 +433,10 @@ Le `200` est envoyé avant la validation de la requête : il ne prouve donc pas 
 
 :::details Mon expéditeur reçoit un 401
 Le projet exige un secret à chaque requête, et la requête n'en a envoyé aucun, ou un qui n'est pas celui du projet : la réponse précise lequel des deux. Envoyez l'un des secrets du projet dans l'en-tête `X-OneUptime-Secret` ou comme jeton Bearer, comme l'indique [Exiger un secret à chaque requête](#exiger-un-secret-à-chaque-requête). Une requête refusée n'atteint jamais le moniteur.
+:::
+
+:::details Le moniteur ne reçoit plus de requêtes depuis qu'un secret est exigé
+Ses expéditeurs n'envoient aucun secret, ou un mauvais, donc chacune de leurs requêtes est refusée. Une ligne sous l'**URL de heartbeat** du moniteur indique quand la dernière requête refusée est arrivée, et **Requêtes sans secret** liste chaque moniteur qui en a reçu une au cours des dernières 24 heures, et pourquoi. Envoyez l'un des secrets du projet depuis ces expéditeurs, comme l'indique [Exiger un secret à chaque requête](#exiger-un-secret-à-chaque-requête).
 :::
 
 :::details Le moniteur ne passe jamais hors ligne quand les heartbeats cessent

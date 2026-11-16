@@ -92,6 +92,12 @@ export interface BadgeTextSite {
 // The property a badge is told its hover tip is drawn as written by.
 export const TOOLTIP_AS_WRITTEN_PROPERTY: string = "isTooltipUserContent";
 
+/*
+ * The property a menu item is told its hover tip is in the reader's words
+ * already by (MoreMenuItem, #8586): drawn as given, as the property above.
+ */
+export const TOOLTIP_TRANSLATED_PROPERTY: string = "isTooltipTranslated";
+
 // The calls that look a text up in the reader's language.
 const LOOKUPS: ReadonlyArray<string> = [
   "t",
@@ -512,8 +518,12 @@ function attributesOf(element: ts.JsxOpeningLikeElement): BadgeAttributes {
       found.isMarkedAsWritten = isPlainlyTrue(value);
     }
 
-    if (name === TOOLTIP_AS_WRITTEN_PROPERTY) {
-      found.isTooltipMarkedAsWritten = isPlainlyTrue(value);
+    if (
+      name === TOOLTIP_AS_WRITTEN_PROPERTY ||
+      name === TOOLTIP_TRANSLATED_PROPERTY
+    ) {
+      found.isTooltipMarkedAsWritten =
+        found.isTooltipMarkedAsWritten || isPlainlyTrue(value);
     }
 
     const expression: ts.Expression | undefined =

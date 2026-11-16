@@ -100,9 +100,7 @@ const OpenStackCloudAmphoraDetail: FunctionComponent<
             >
               <bdi>{loadBalancerId}</bdi>
             </Link>
-          ) : (
-            "—"
-          ),
+          ) : undefined,
           description:
             "The load balancer it carries. A spare amphora waiting in the pool has none.",
         });
@@ -119,9 +117,7 @@ const OpenStackCloudAmphoraDetail: FunctionComponent<
             >
               <bdi>{computeId}</bdi>
             </Link>
-          ) : (
-            "—"
-          ),
+          ) : undefined,
           description:
             "The Nova instance it runs in. It sits in Octavia's own project, and the host it is on is that instance's page.",
         });
@@ -203,7 +199,7 @@ const OpenStackCloudAmphoraDetail: FunctionComponent<
                   }
                   value={
                     days === null
-                      ? "—"
+                      ? undefined
                       : days < 0
                         ? `-${Math.ceil(-days)}\u00A0d`
                         : `${Math.floor(days)}\u00A0d`
@@ -214,7 +210,7 @@ const OpenStackCloudAmphoraDetail: FunctionComponent<
                   title="Role"
                   icon={IconProp.Server}
                   iconColor="slate"
-                  value={role || "—"}
+                  value={role}
                   description="MASTER and BACKUP for an active-standby pair, STANDALONE for a load balancer on one amphora."
                 />
               </>

@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React from "react";
@@ -273,7 +274,7 @@ describe("a value typed while the filter was text, under a dropdown", () => {
   });
 
   test("Clear Filters clears it", () => {
-    const onFilterChanged: jest.Mock<(filterData: FilterData<Row>) => void> =
+    const onFilterChanged: Mock<(filterData: FilterData<Row>) => void> =
       jest.fn<(filterData: FilterData<Row>) => void>();
 
     renderViewer(
@@ -290,7 +291,9 @@ describe("a value typed while the filter was text, under a dropdown", () => {
 
 describe("what a dropdown drew before is drawn as before", () => {
   test("a picked value reads as its option, one or several", () => {
-    renderViewer("en", { resourceType: ["Monitor"] } as FilterData<Row>);
+    renderViewer("en", {
+      resourceType: ["Monitor"],
+    } as unknown as FilterData<Row>);
     expect(chipTexts()).toEqual(["Resource Type is Monitor"]);
 
     cleanup();
@@ -302,7 +305,9 @@ describe("what a dropdown drew before is drawn as before", () => {
   });
 
   test("an entity's id reads as its option's label", () => {
-    renderViewer("en", { monitor: ["monitor-1"] } as FilterData<Row>);
+    renderViewer("en", {
+      monitor: ["monitor-1"],
+    } as unknown as FilterData<Row>);
 
     expect(chipTexts()).toEqual(["Monitor is API"]);
   });

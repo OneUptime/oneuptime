@@ -57,7 +57,7 @@ Gå till **Projektinställningar → Telemetri och APM → Intagningsnycklar**. 
 
 ### Namnge nyckeln och välj dess typ
 
-Klicka på **Skapa ingestion-nyckel**. Dialogrutan börjar med namnet **Servernyckel** och typen **Server**. Välj **Nyckeltyp** och byt namn på nyckeln efter det som ska använda den, till exempel `checkout-collector`. En **Beskrivning** finns under **Avancerad**.
+Klicka på **Skapa intagningsnyckel**. Dialogrutan börjar med namnet **Servernyckel** och typen **Server**. Välj **Nyckeltyp** och byt namn på nyckeln efter det som ska använda den, till exempel `checkout-collector`. En **Beskrivning** finns under **Avancerad**.
 
 ### Lägg till en webbläsarnyckels ursprung
 
@@ -65,10 +65,10 @@ En **Webbläsare**-nyckel ber om sina **Tillåtna ursprung** i nästa steg, **We
 
 ### Skapa nyckeln och kopiera dess hemlighet
 
-Klicka på **Skapa ingestion-nyckel**. Nyckelns egen sida öppnas: kopiera dess **Hemlig nyckel** och ge den till dina avsändare.
+Klicka på **Skapa intagningsnyckel**. Nyckelns egen sida öppnas: kopiera dess **Hemlig nyckel** och ge den till dina avsändare.
 :::
 
-Varje produkts **Installationsguide** börjar med **Välj en ingestion-nyckel**, som listar de nycklar guiden kan använda och skapar en på plats. Kodsnuttarna i guiden innehåller sedan den nyckeln.
+Varje produkts **Installationsguide** börjar med **Välj en intagningsnyckel**, som listar de nycklar guiden kan använda och skapar en på plats. Kodsnuttarna i guiden innehåller sedan den nyckeln.
 
 ## Skicka telemetri med nyckeln
 
@@ -108,7 +108,7 @@ Ett ursprung är ett schema, en värd och en valfri port: `https://app.example.c
 
 ## Byt ut, stäng av eller ta bort en nyckel
 
-En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Klicka för att visa** och dess **Last Used At**: senaste gången OneUptime tog emot data som skickades med den.
+En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Klicka för att visa** och dess **Senast använd den**: senaste gången OneUptime tog emot data som skickades med den.
 
 | För att | Gör så här | Vad avsändare ser |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Klicka fö
 | Ersätta en läckt hemlighet | Klicka på **Återställ hemlig nyckel** och bekräfta. Nyckeln behåller sina inställningar och får en ny hemlighet. | `401` tills de skickar den nya hemligheten |
 | Stoppa en nyckel för gott | Klicka på **Ta bort Intagningsnyckel** längst ned på dess sida. | `401` |
 
-För att byta en hemlighet utan att förlora data skapar du en andra nyckel, flyttar dina avsändare till den och tar bort den gamla nyckeln när dess **Last Used At** slutar ändras. **Last Used At** uppdateras med några minuters mellanrum, inte vid varje begäran.
+För att byta en hemlighet utan att förlora data skapar du en andra nyckel, flyttar dina avsändare till den och tar bort den gamla nyckeln när dess **Senast använd den** slutar ändras. **Senast använd den** uppdateras med några minuters mellanrum, inte vid varje begäran.
 
 ## Felsökning
 

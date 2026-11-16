@@ -6,6 +6,7 @@ import Select from "../Select";
 import AccessControlPermission, { LabelGrant } from "./AccessControlPermission";
 import OwnedScopePermission from "./OwnedScopePermission";
 import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
+import SortValidator from "./SortValidator";
 import PermissionUtil from "./PermissionsUtil";
 import PrivateRecordPermission from "./PrivateRecordPermission";
 import TeamOwnedRulePermission from "./TeamOwnedRulePermission";
@@ -41,6 +42,8 @@ export default class BasePermission {
    * `updateData` is what an update writes, handed on to the table-level
    * plan check: below a table's update plan only an update that switches
    * records off passes, and only the data shows that (BillingPermission).
+   * `sort` is the order a read asked for, held to the caller's read of each
+   * column it names, beside the select (SortValidator.checkSortPermission).
    */
   @CaptureSpan()
   public static async checkPermissions<TBaseModel extends BaseModel>(
@@ -50,6 +53,7 @@ export default class BasePermission {
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
     updateData?: unknown,
+    sort?: unknown,
   ): Promise<CheckPermissionBaseInterface<TBaseModel>> {
     /*
      * Permission checks add predicates and QueryUtil serializes values in
@@ -78,6 +82,7 @@ export default class BasePermission {
         props,
         type,
         updateData,
+        sort,
       );
 
       // add user scope if any
@@ -141,6 +146,20 @@ export default class BasePermission {
             select,
             props,
           );
+        }
+
+        /*
+         * A sort reads the columns it orders by, so it is held to their read
+         * as the select is - with the same query and the same caller, in a
+         * read across projects once for each project (#8839).
+         */
+        if (sort) {
+          SortValidator.checkSortPermission({
+            modelType: modelType,
+            query: query as Query<BaseModel>,
+            sort: sort,
+            props: props,
+          });
         }
       }
     }

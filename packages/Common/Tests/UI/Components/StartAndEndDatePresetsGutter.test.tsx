@@ -46,7 +46,7 @@ describe("the quick ranges under a date picker", () => {
       );
 
       const row: HTMLElement | null = screen.getByRole("button", {
-        name: "1 day",
+        name: "1\u00A0day",
       }).parentElement;
       const classes: Array<string> = classesOf(row);
 
@@ -55,7 +55,7 @@ describe("the quick ranges under a date picker", () => {
 
       // The buttons it holds carry the margin it takes back, from md up.
       const button: HTMLElement = screen.getByRole("button", {
-        name: "1 day",
+        name: "1\u00A0day",
       });
       expect(classesOf(button)).toContain("md:ml-3");
       expect(classesOf(button)).not.toContain("ml-3");

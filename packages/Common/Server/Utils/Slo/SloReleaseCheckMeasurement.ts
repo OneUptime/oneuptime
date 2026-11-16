@@ -15,7 +15,7 @@ import {
   SloRequestCounts,
   computeEventBurnRate,
   computeEventSli,
-  isRequestSliType,
+  isEventSliType,
 } from "../../../Utils/Slo/SloRequestSli";
 import SloUtil, {
   MonitorTimelineSet,
@@ -53,6 +53,8 @@ export const SLO_RELEASE_CHECK_SELECT: {
   deploymentsAllowed: true;
   currentErrorBudgetPolicyTierName: true;
   latencyThresholdInMilliseconds: true;
+  requestFilter: true;
+  metricQueryConfig: true;
   multiMonitorMode: true;
   services: { _id: true };
   monitors: { _id: true };
@@ -67,6 +69,10 @@ export const SLO_RELEASE_CHECK_SELECT: {
   deploymentsAllowed: true,
   currentErrorBudgetPolicyTierName: true,
   latencyThresholdInMilliseconds: true,
+  // The same requests the SLO counts (#8444).
+  requestFilter: true,
+  // The same events a Metric SLO counts (#8445).
+  metricQueryConfig: true,
   multiMonitorMode: true,
   services: { _id: true },
   monitors: { _id: true },
@@ -77,6 +83,7 @@ export const SLO_RELEASE_CHECK_MEASUREMENT_ERRORS: {
   target: string;
   notMeasured: string;
   noServices: string;
+  noServicesForMetric: string;
   noLatencyThreshold: string;
   noMonitors: string;
   versionForMonitors: string;
@@ -84,15 +91,17 @@ export const SLO_RELEASE_CHECK_MEASUREMENT_ERRORS: {
   target:
     "This SLO's target is outside the valid range - it must be greater than 0 and below 100 - so its burn rate cannot be measured. Set a target such as 99.9 first.",
   notMeasured:
-    "This SLO's SLI type is not one OneUptime measures, so there is nothing to check. Choose Monitor Uptime, Request Success or Request Latency.",
+    "This SLO's SLI type is not one OneUptime measures, so there is nothing to check. Choose Monitor Uptime, Request Success, Request Latency or Metric.",
   noServices:
     "This SLO measures requests, but no services are chosen, so there are no requests to check. Choose the services whose requests it measures first.",
+  noServicesForMetric:
+    "This SLO measures a metric, but no services are chosen, so there are no events to check. Choose the services whose metric it measures first.",
   noLatencyThreshold:
     "This Request Latency SLO has no latency threshold, so no request can be checked as fast enough. Set its latency threshold first.",
   noMonitors:
     "No monitors are attached to this SLO, so there is nothing to check. Attach monitors, or add a monitor rule, first.",
   versionForMonitors:
-    "serviceVersion picks out one release's requests, and this SLO measures monitor uptime, not requests. Leave serviceVersion out, or check a Request Success or Request Latency SLO.",
+    "serviceVersion picks out one release's requests, and this SLO measures monitor uptime, not requests. Leave serviceVersion out, or check a Request Success, Request Latency or Metric SLO.",
 };
 
 type IdsOfFunction = (
@@ -132,7 +141,7 @@ export default class SloReleaseCheckMeasurement {
       now.getTime() - options.windowInMinutes * 60 * 1000,
     );
 
-    if (isRequestSliType(slo.sliType)) {
+    if (isEventSliType(slo.sliType)) {
       return await SloReleaseCheckMeasurement.measureRequests({
         slo: slo,
         options: options,
@@ -173,9 +182,13 @@ export default class SloReleaseCheckMeasurement {
       data.slo.services as Array<Service> | undefined,
     );
 
+    const isMetricSlo: boolean = data.slo.sliType === SliType.Metric;
+
     if (serviceIds.length === 0) {
       throw new BadDataException(
-        SLO_RELEASE_CHECK_MEASUREMENT_ERRORS.noServices,
+        isMetricSlo
+          ? SLO_RELEASE_CHECK_MEASUREMENT_ERRORS.noServicesForMetric
+          : SLO_RELEASE_CHECK_MEASUREMENT_ERRORS.noServices,
       );
     }
 
@@ -198,6 +211,12 @@ export default class SloReleaseCheckMeasurement {
           serviceIds: serviceIds,
           latencyThresholdInMilliseconds:
             data.slo.sliType === SliType.RequestLatency ? threshold : null,
+          // The release is judged on the requests the SLO counts (#8444).
+          requestFilter: isMetricSlo ? null : data.slo.requestFilter,
+          // Or on the events of a Metric SLO's metric (#8445).
+          ...(isMetricSlo
+            ? { metricQueryConfig: data.slo.metricQueryConfig || null }
+            : {}),
         },
         range: { from: data.from, to: data.to },
         serviceVersion: data.options.serviceVersion,

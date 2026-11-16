@@ -51,7 +51,7 @@ Aanzetten haalt geen enkel incident uit een episode: een incident dat al in meer
 
 ## Wie mag toevoegen
 
-Toevoegen vereist de machtiging om incidenten aan een episode toe te voegen. De rollen Projecteigenaar, Projectbeheerder, Projectlid, Incidentbeheerder en Incidentlid hebben die, net als een eigen rol met Create Incident Episode Member. U kunt alleen incidenten toevoegen die u kunt zien: een privé-incident kan alleen worden toegevoegd door zijn eigenaren en door de eigenaren en beheerders van het project. Aan nieuwe episode toevoegen vereist ook de machtiging om een episode aan te maken. Als u een actie niet kunt gebruiken, is ze vergrendeld en noemt haar tooltip de machtiging die ontbreekt.
+Toevoegen vereist de machtiging om incidenten aan een episode toe te voegen. De rollen Projecteigenaar, Projectbeheerder, Projectlid, Incidentbeheerder en Incidentlid hebben die, net als een eigen rol met Create Incident Episode Member. U kunt alleen incidenten toevoegen die u kunt zien: een privé-incident kan alleen worden toegevoegd door zijn eigenaren en door de Projecteigenaren en Projectbeheerders. Aan nieuwe episode toevoegen vereist ook de machtiging om een episode aan te maken. Als u een actie niet kunt gebruiken, is ze vergrendeld en noemt haar tooltip de machtiging die ontbreekt.
 
 ## Met de API
 

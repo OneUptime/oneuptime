@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ResourceTable, {
@@ -103,7 +104,10 @@ const VMwareVCenterResourcePools: FunctionComponent<
           title: "Inventory Path",
           key: "resourcePoolPath",
           getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["resourcePoolPath"] || "-";
+            return (
+              resource.additionalAttributes["resourcePoolPath"] ||
+              EMPTY_VALUE_MARK
+            );
           },
         },
         {
@@ -146,7 +150,7 @@ const VMwareVCenterResourcePools: FunctionComponent<
               "memorySwappedBytes",
             );
             if (ballooned === null && swapped === null) {
-              return "-";
+              return EMPTY_VALUE_MARK;
             }
             return `${formatBytes(ballooned ?? 0)} / ${formatBytes(swapped ?? 0)}`;
           },

@@ -15,8 +15,8 @@ import {
   MULTI_DEVICE_SNMP_WALK_OID_PARAM,
   parseMultiDeviceSnmpWalkQuery,
 } from "../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/MultiDeviceSnmpWalkViewModel";
-import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
-import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import EN from "../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../SuiteHelpers/FixtureLocales";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "Common/Models/DatabaseModels/Label";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -74,14 +74,30 @@ if (params.get("theme") === "dark") {
   document.documentElement.classList.add("dark");
 }
 
+/*
+ * English, the fallback, is in the bundle; Japanese and German are each a
+ * chunk of its own, loaded only by a page drawn in that language, as the
+ * Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as the
+ * Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  ja: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/ja.json");
+  },
+  de: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: language,
-  fallbackLng: language,
-  resources: {
-    en: { translation: {} },
-    ja: { translation: JA },
-    de: { translation: DE },
-  },
+  fallbackLng: "en",
+  resources: await localeResources({
+    language: language,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,
@@ -198,7 +214,9 @@ function readDevice(entry) {
     probeId: entry.answers === "noProbe" ? undefined : new ObjectID(PROBE_ID),
     probe: entry.answers === "noProbe" ? undefined : probe,
     snmpOids: entry.snmpOids.slice(),
-    oidTemplateId: entry.templateId ? new ObjectID(entry.templateId) : undefined,
+    oidTemplateId: entry.templateId
+      ? new ObjectID(entry.templateId)
+      : undefined,
     oidTemplate: entry.templateId
       ? { name: template.name, oids: template.oids.slice() }
       : undefined,
@@ -294,11 +312,9 @@ const WALKS_KEY = "multi-device-snmp-walk-fixture-walks";
 
 function loadWalks() {
   try {
-    return JSON.parse(sessionStorage.getItem(WALKS_KEY) || "[]").map(
-      (item) => {
-        return { ...item, createdAt: new Date(item.createdAt) };
-      },
-    );
+    return JSON.parse(sessionStorage.getItem(WALKS_KEY) || "[]").map((item) => {
+      return { ...item, createdAt: new Date(item.createdAt) };
+    });
   } catch {
     return [];
   }
@@ -346,7 +362,11 @@ if (scenario === "walked") {
       return candidate.id === id;
     });
 
-    if (!entry || entry.answers === "noProbe" || entry.answers === "noCredentials") {
+    if (
+      !entry ||
+      entry.answers === "noProbe" ||
+      entry.answers === "noCredentials"
+    ) {
       continue;
     }
 

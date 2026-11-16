@@ -1,6 +1,6 @@
 # Serilog (.NET)
 
-[Serilog](https://serilog.net) è la libreria di logging strutturato più diffusa per .NET. Con il sink ufficiale [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry), ogni evento che la tua applicazione registra tramite Serilog viene inviato a OneUptime con l'OpenTelemetry Protocol (OTLP) e diventa ricercabile in **Prodotti → Registri** con le sue proprietà strutturate, la gravità e la correlazione con le tracce.
+[Serilog](https://serilog.net) è la libreria di logging strutturato più diffusa per .NET. Con il sink ufficiale [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry), ogni evento che la tua applicazione registra tramite Serilog viene inviato a OneUptime con l'OpenTelemetry Protocol (OTLP) e diventa ricercabile in **Prodotti → Log** con le sue proprietà strutturate, la gravità e la correlazione con le tracce.
 
 Non c'è alcun pacchetto specifico di OneUptime da installare: il sink parla con lo stesso endpoint OTLP che OneUptime espone per tutti i dati OpenTelemetry. Funziona con applicazioni console, worker service, applicazioni ASP.NET Core e qualunque altra cosa giri su .NET.
 
@@ -33,11 +33,11 @@ Il sink raggruppa gli eventi di log e li invia in background. Ogni proprietà co
 
 Vai a **Prodotti → Impostazioni del progetto**, apri **Telemetria e APM** nel menu laterale e seleziona **Chiavi di acquisizione**.
 
-![L'elenco «Chiavi di acquisizione», con «Crea chiave di ingestione» evidenziato](screen:ingestion-keys)
+![L'elenco «Chiavi di acquisizione», con «Crea chiave di acquisizione» evidenziato](screen:ingestion-keys)
 
 ### Creare una chiave
 
-Fai clic su **Crea chiave di ingestione**. La finestra ha già il nome della chiave compilato e **Server** scelto (il tipo di chiave con cui invia un'applicazione o un collector), quindi fai clic su **Crea chiave di ingestione** per crearla, oppure rinominala prima.
+Fai clic su **Crea chiave di acquisizione**. La finestra ha già il nome della chiave compilato e **Server** scelto (il tipo di chiave con cui invia un'applicazione o un collector), quindi fai clic su **Crea chiave di acquisizione** per crearla, oppure rinominala prima.
 
 ### Copiare il segreto
 
@@ -222,16 +222,16 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-Ogni proprietà con nome (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) viene inviata come attributo del log, così puoi filtrarle e cercarle nell'explorer **Prodotti → Registri**.
+Ogni proprietà con nome (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) viene inviata come attributo del log, così puoi filtrarle e cercarle nell'explorer **Prodotti → Log**.
 
 ### Verificare che i log arrivino
 
-Avvia la tua applicazione e scrivi qualche evento di log. In pochi secondi compaiono in **Prodotti → Registri** e nella pagina del tuo servizio in **Prodotti → Servizi**: il servizio prende il nome dal `service.name` che hai impostato (`my-service`). Le loro proprietà strutturate sono disponibili come filtri.
+Avvia la tua applicazione e scrivi qualche evento di log. In pochi secondi compaiono in **Prodotti → Log** e nella pagina del tuo servizio in **Prodotti → Servizi**: il servizio prende il nome dal `service.name` che hai impostato (`my-service`). Le loro proprietà strutturate sono disponibili come filtri.
 :::
 
 ## Eccezioni
 
-Quando registri un'eccezione con Serilog, il sink aggiunge al log gli attributi OpenTelemetry `exception.type`, `exception.message` e `exception.stacktrace`:
+Quando log un'eccezione con Serilog, il sink aggiunge al log gli attributi OpenTelemetry `exception.type`, `exception.message` e `exception.stacktrace`:
 
 ```csharp
 try

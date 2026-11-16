@@ -158,6 +158,7 @@ import Probe from "../../../Models/DatabaseModels/Probe";
 import { Green } from "../../../Types/BrandColors";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 const DESCRIPTIONS: Record<NetworkDeviceMetric, string> =
   NETWORK_DEVICE_METRIC_DESCRIPTIONS;
@@ -209,11 +210,12 @@ async function expectExplained(label: string, text: string): Promise<void> {
     jest.advanceTimersByTime(200);
   });
 
+  // Drawn, its durations held to their figures (#8811).
   expect(
     screen.getAllByRole("tooltip").map((tooltip: HTMLElement): string => {
       return tooltip.textContent || "";
     }),
-  ).toContain(text);
+  ).toContain(withDurationWordsHeld(text));
 
   fireEvent.mouseLeave(button);
   await act(async () => {
@@ -770,8 +772,13 @@ describe("the Inventory card's Uptime value", () => {
       </div>,
     );
 
-    // Fake timers hold the clock, so both read the same instant.
-    expect(screen.getAllByText(expected)).toHaveLength(2);
+    /*
+     * Fake timers hold the clock, so both read the same instant; read as
+     * written, its numbers held to their units (#8669).
+     */
+    expect(
+      screen.getAllByText(expected, { collapseWhitespace: false }),
+    ).toHaveLength(2);
     await expectExplained("Hardware Uptime", DESCRIPTIONS.hardwareUptime);
     await expectExplained("Uptime", DESCRIPTIONS.hardwareUptime);
   });

@@ -118,7 +118,7 @@ inboundEmail:
 
 Anvend dem derefter: Kør `npm run start` på Docker Compose, hvilket genskaber containerne med de nye værdier, eller opgrader Helm-releasen på Kubernetes.
 
-### Opret en Incoming Email-monitor
+### Opret en Indgående e-mail-monitor
 
 [Opret en Incoming Email-monitor](/docs/monitor/incoming-email-monitor#opret-en-monitor-for-indgående-e-mail). Dens side **Oversigt** viser dens adresse, f.eks. `monitor-abc123def456@inbound.yourdomain.com`, og dens kriterier afgør, hvilke e-mails der opretter en alarm, og hvilke der løser den.
 
@@ -137,7 +137,7 @@ Send en e-mail til monitorens adresse med et emne, der matcher dens kriterier. M
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | Det underdomæne, der er sat op til indgående e-mail. Indgående e-mail er slået fra, indtil det er sat. | Ja | Tom |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Hemmelighed, som det sidste segment af webhook-URL'en skal matche: `/incoming-email/sendgrid/YOUR_SECRET`. Hver e-mail afvises, så længe den er tom eller en pladsholder. | Ja | Tom |
 
-Hvad en Incoming Email-monitor kan matche på – emnet, afsenderen, brødteksten, modtageren og om en e-mail kom frem til tiden – står i [Tilgængelige filtertyper](/docs/monitor/incoming-email-monitor#tilgængelige-filtertyper).
+Hvad en Indgående e-mail-monitor kan matche på – emnet, afsenderen, brødteksten, modtageren og om en e-mail kom frem til tiden – står i [Tilgængelige filtertyper](/docs/monitor/incoming-email-monitor#tilgængelige-filtertyper).
 
 ## Fejlfinding
 

@@ -104,7 +104,7 @@ Les modèles pour les alertes font les mêmes travaux pour les alertes. Il y en 
 
 Aucun des modèles de OneUptime vers Dynamics 365 n'envoie à Dynamics 365 un incident marqué **Incident privé**, ni une alerte marquée **Alerte privée** : ni l'enregistrement, ni son état, ni ses notes, sauf si vous l'activez. Voir [Changer ce que fait un modèle](#changer-ce-que-fait-un-modèle).
 
-**Les moniteurs lèvent des alertes d'eux-mêmes, et parfois beaucoup.** **Create a Dynamics 365 case when an alert is created** ouvre un dossier pour chacune. Sauf si chaque alerte mérite un dossier, placez un bloc **If / Else** entre le déclencheur et le reste du flux de travail, par exemple sur `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, et ne reliez que son côté **Oui** à la suite.
+**Les moniteurs lèvent des alertes d'eux-mêmes, et parfois beaucoup.** **Create a Dynamics 365 case when an alert is created** ouvre un dossier pour chacune. Sauf si chaque alerte mérite un dossier, placez un bloc **Si / Sinon** entre le déclencheur et le reste du flux de travail, par exemple sur `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, et ne reliez que son côté **Oui** à la suite.
 
 ### Ce que demandent les modèles
 
@@ -184,7 +184,7 @@ Avant de vous fier à l'un ou à l'autre :
 Les **Étapes** de chaque exécution disent ce qu'a fait le modèle : ouvrez donc l'exécution dans **Journaux → Exécutions** et regardez comment elle s'est terminée :
 
 - **Exécuté** : il a fait son travail, et sa dernière étape nomme le dossier, l'incident ou l'alerte.
-- **Exécuté**, avec son étape **Check With JavaScript** sur **Non** : il a ignoré l'événement exprès, et l'étape dit pourquoi : le dossier n'est lié à aucun enregistrement de ce genre, la note vient de l'autre côté, l'enregistrement est privé, ou le nouvel état ne ferme pas le dossier.
+- **Exécuté**, avec son étape **Vérifier avec JavaScript** sur **Non** : il a ignoré l'événement exprès, et l'étape dit pourquoi : le dossier n'est lié à aucun enregistrement de ce genre, la note vient de l'autre côté, l'enregistrement est privé, ou le nouvel état ne ferme pas le dossier.
 - **Erreur** : une étape a échoué, et son entrée dans **Étapes** dit pourquoi. Pour un appel à Dynamics 365, elle inclut la réponse de Dynamics 365.
 - **Erreur** à `link-case-1` : un modèle qui crée un enregistrement à partir d'un dossier l'a créé, mais Dynamics 365 n'a pas accepté le lien, donc les autres modèles ne peuvent pas encore le trouver. Saisissez le lien à la main dans la colonne du dossier.
 
@@ -221,7 +221,7 @@ Gardez les marqueurs quand vous modifiez les modèles. Ce sont les constantes `F
 
 ### Changer ce que fait un modèle
 
-Ouvrez le **Constructeur** du flux de travail et cliquez sur le bloc à changer. Les réglages que vous voudrez le plus probablement changer sont des constantes en haut d'un script, le **Code JavaScript** d'un bloc **Check With JavaScript**, juste sous le bloc d'aide commun. Les versions pour les incidents et pour les alertes gardent les mêmes constantes dans les mêmes blocs.
+Ouvrez le **Constructeur** du flux de travail et cliquez sur le bloc à changer. Les réglages que vous voudrez le plus probablement changer sont des constantes en haut d'un script, le **Code JavaScript** d'un bloc **Vérifier avec JavaScript**, juste sous le bloc d'aide commun. Les versions pour les incidents et pour les alertes gardent les mêmes constantes dans les mêmes blocs.
 
 | Constante | Modèle, et bloc | Ce qu'elle règle |
 | --- | --- | --- |
@@ -269,8 +269,8 @@ La portée doit être l'URL de votre environnement suivie de `/.default`. Une UR
 ### Ouvrir un dossier pour chaque incident
 
 :::steps
-1. Créez à partir de zéro un flux de travail nommé `Incidents to Dynamics 365`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **On Create Incident**. Ses **Fields to pass on** commencent par **Titre** : cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident**. L'ID est toujours transmis.
-2. Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **Identifiant** sur `create-case`, et son **URL** sur `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
+1. Créez à partir de zéro un flux de travail nommé `Incidents to Dynamics 365`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **À la création : Incident**. Ses **Champs à transmettre** commencent par **Titre** : cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident**. L'ID est toujours transmis.
+2. Cliquez sur **Ajouter un composant**, ajoutez un bloc **Appel d'API POST (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **Identifiant** sur `create-case`, et son **URL** sur `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
    ```json
@@ -306,7 +306,7 @@ Chaque dossier a besoin d'un client, donc `customerid` est obligatoire. Il peut 
 
 ### Faire correspondre priorité et statut
 
-Dynamics 365 livre `severitycode` avec une seule option, réglez donc plutôt `prioritycode`, et créez une branche sur la gravité de l'incident avec un bloc **If / Else** pour avoir une priorité par gravité. Envoyez ces colonnes sous forme de nombres :
+Dynamics 365 livre `severitycode` avec une seule option, réglez donc plutôt `prioritycode`, et créez une branche sur la gravité de l'incident avec un bloc **Si / Sinon** pour avoir une priorité par gravité. Envoyez ces colonnes sous forme de nombres :
 
 | Colonne | Valeurs |
 | --- | --- |
@@ -323,15 +323,15 @@ Dynamics 365 livre `severitycode` avec une seule option, réglez donc plutôt `p
 Construisez cela dans un second flux de travail, pour qu'un échec ici n'empêche jamais l'ouverture des dossiers.
 
 :::steps
-1. Créez un flux de travail nommé `Close Dynamics 365 cases`, avec le déclencheur **On Update Incident**. Dans **Fields to watch**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**. Dans **Fields to pass on**, cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**.
-2. Ajoutez un bloc **If / Else** : **Valeur à vérifier** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparaison** **est vrai**.
-3. Après son côté **Oui**, ajoutez un bloc **API Get (JSON)** avec l'**Identifiant** `find-case`, les mêmes en-têtes sans `Prefer`, et cette **URL** :
+1. Créez un flux de travail nommé `Close Dynamics 365 cases`, avec le déclencheur **À la mise à jour : Incident**. Dans **Champs à surveiller**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**. Dans **Champs à transmettre**, cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**.
+2. Ajoutez un bloc **Si / Sinon** : **Valeur à vérifier** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparaison** **est vrai**.
+3. Après son côté **Oui**, ajoutez un bloc **Appel d'API GET (JSON)** avec l'**Identifiant** `find-case`, les mêmes en-têtes sans `Prefer`, et cette **URL** :
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
    ```
 
-4. Ajoutez après lui un bloc **API Post (JSON)** vers `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident`, avec les mêmes en-têtes et ce corps :
+4. Ajoutez après lui un bloc **Appel d'API POST (JSON)** vers `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident`, avec les mêmes en-têtes et ce corps :
 
    ```json
    {
@@ -347,7 +347,7 @@ Construisez cela dans un second flux de travail, pour qu'un échec ici n'empêch
 
 L'URL est envoyée exactement comme elle est écrite, donc les espaces de `$filter` sont écrits `%20`. Une requête répond avec une liste `value`, et `value[0]` est son premier dossier. `Status` est un `statuscode` de l'état Resolved : `5` correspond à Problem Solved.
 
-Utilisez `CloseIncident` pour résoudre, plutôt qu'un `PATCH` de `statecode` : il enregistre la Case Resolution qu'un dossier résolu est censé avoir, et un `PATCH` est refusé là où un administrateur a configuré des transitions de statut. Pour tout le reste, comme une priorité ou un titre, envoyez un bloc **API Patch (JSON)** vers `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)` avec un en-tête `If-Match: *`, qui l'empêche de créer un nouveau dossier, et seulement les colonnes que vous changez.
+Utilisez `CloseIncident` pour résoudre, plutôt qu'un `PATCH` de `statecode` : il enregistre la Case Resolution qu'un dossier résolu est censé avoir, et un `PATCH` est refusé là où un administrateur a configuré des transitions de statut. Pour tout le reste, comme une priorité ou un titre, envoyez un bloc **Appel d'API PATCH (JSON)** vers `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)` avec un en-tête `If-Match: *`, qui l'empêche de créer un nouveau dossier, et seulement les colonnes que vous changez.
 
 ### Recevoir les changements de Dynamics 365
 
@@ -362,8 +362,8 @@ Construisez d'abord le flux de travail qui reçoit :
 
    Sur une installation autogérée, l'URL porte votre propre hôte. Traitez l'URL comme un mot de passe : quiconque l'a peut démarrer le flux de travail. Si elle fuite, cliquez sur **Réinitialiser l'URL** au même endroit, et l'ancienne URL cesse aussitôt de fonctionner.
 
-3. Ajoutez un bloc **If / Else** qui vérifie un secret partagé avant toute autre chose : **Valeur à vérifier** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparaison** **est égal à**, **Comparer avec** une valeur que vous inventez, gardée dans une variable globale secrète.
-4. Après son côté **Oui**, ajoutez un bloc **Update One Incident**. Réglez sa **Requête** sur `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, et son **Data (JSON Object)** sur le changement, par exemple un nouveau `currentIncidentStateId`. Un bloc **Find One Incident State** avec la requête `{"name": "Resolved"}` vous donne cet ID avec `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Ajoutez un bloc **Si / Sinon** qui vérifie un secret partagé avant toute autre chose : **Valeur à vérifier** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparaison** **est égal à**, **Comparer avec** une valeur que vous inventez, gardée dans une variable globale secrète.
+4. Après son côté **Oui**, ajoutez un bloc **Mettre à jour : Incident (un seul)**. Réglez sa **Requête** sur `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, et son **Données (objet JSON)** sur le changement, par exemple un nouveau `currentIncidentStateId`. Un bloc **Trouver : État de l'incident (un seul)** avec la requête `{"name": "Resolved"}` vous donne cet ID avec `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Activez-le, puis faites-le appeler par Dynamics 365 :
 
@@ -378,7 +378,7 @@ Le connecteur Microsoft Dataverse est premium : le propriétaire du flux a besoi
 @tab Dataverse webhook
 1. Enregistrez l'URL du flux de travail avec le [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook) : **Register New WebHook**, avec l'authentification **HttpHeader** et l'en-tête `X-OneUptime-Secret`.
 2. Enregistrez une étape pour le message **Update** sur `incident`, avec **Filtering Attributes** limité aux colonnes dont vous avez besoin, **PostOperation** et **Asynchronous**.
-3. Dans le flux de travail, lisez la charge utile : c'est le contexte d'exécution du plug-in, dans lequel `InputParameters` est une liste de paires `{key, value}` et la ligne modifiée se trouve sous `Target`. Un bloc **Run Custom JavaScript** est le moyen le plus simple de la lire.
+3. Dans le flux de travail, lisez la charge utile : c'est le contexte d'exécution du plug-in, dans lequel `InputParameters` est une liste de paires `{key, value}` et la ligne modifiée se trouve sous `Target`. Un bloc **Exécuter du JavaScript personnalisé** est le moyen le plus simple de la lire.
 
 Dataverse n'appelle que les ports 80 et 443, attend une réponse 60 secondes, et retente une fois, seulement sur `502`, `503` et `504`. Une mise à jour ne porte que les colonnes qui ont changé, enregistrez donc une post-image pour les autres.
 :::
@@ -389,13 +389,13 @@ Les alertes fonctionnent de la même façon. Changez le type d'enregistrement, e
 
 | Incident | Alerte |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **À la création : Incident** (`incident-on-create-1`) | **À la création : Alerte** (`alert-on-create-1`) |
+| **À la mise à jour : Incident** (`incident-on-update-1`) | **À la mise à jour : Alerte** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Trouver : État de l'incident (un seul)** | **Trouver : État de l'alerte (un seul)** |
+| **Mettre à jour : Incident (un seul)** | **Mettre à jour : Alerte (un seul)** |
 
-Un flux de travail a exactement un déclencheur, donc les incidents et les alertes ont chacun besoin de leur flux de travail. Pour faire le même travail Dynamics 365 pour les deux, construisez-le une fois dans un flux de travail avec un déclencheur **Manuel**, et démarrez-le depuis les deux avec un bloc **Execute Workflow**.
+Un flux de travail a exactement un déclencheur, donc les incidents et les alertes ont chacun besoin de leur flux de travail. Pour faire le même travail Dynamics 365 pour les deux, construisez-le une fois dans un flux de travail avec un déclencheur **Manuel**, et démarrez-le depuis les deux avec un bloc **Exécuter un autre flux de travail**.
 
 ## Dépannage
 
@@ -430,7 +430,7 @@ Une règle de détection des doublons a trouvé une correspondance. Restreignez 
 :::
 
 :::details 429 Too Many Requests
-Les limites de protection du service de Dataverse permettent environ 6 000 requêtes, et 20 minutes de temps d'exécution, par utilisateur sur toute période de cinq minutes. La réponse porte `Retry-After`, en secondes. Placez un bloc **Sleep** dans un flux de travail qui envoie des rafales, ou déplacez le travail dans un flux de travail planifié.
+Les limites de protection du service de Dataverse permettent environ 6 000 requêtes, et 20 minutes de temps d'exécution, par utilisateur sur toute période de cinq minutes. La réponse porte `Retry-After`, en secondes. Placez un bloc **Pause** dans un flux de travail qui envoie des rafales, ou déplacez le travail dans un flux de travail planifié.
 :::
 
 :::details Rien n'arrive dans OneUptime
@@ -438,7 +438,7 @@ Envoyez vous-même une requête à l'URL du webhook avec `curl`, et cherchez-la 
 :::
 
 :::details Le flux de travail s'exécute, mais l'incident ne change pas
-Un bloc **Update One Incident** indique `Items Updated: 0` quand sa requête n'a rien trouvé, et c'est un succès, pas une erreur. Vérifiez que l'ID de la requête est bien celui de l'incident OneUptime, et que vous interrogez `_id`.
+Un bloc **Mettre à jour : Incident (un seul)** indique `Items Updated: 0` quand sa requête n'a rien trouvé, et c'est un succès, pas une erreur. Vérifiez que l'ID de la requête est bien celui de l'incident OneUptime, et que vous interrogez `_id`.
 :::
 
 ## Étapes suivantes

@@ -346,6 +346,15 @@ import {
   expectReadableDescriptionRecord,
   expectTitleExplained,
 } from "./MetricDescriptionRules";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/resource-ai-access/status"]);
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -715,7 +724,7 @@ async function tooltipTextOf(button: HTMLElement): Promise<string> {
 
 async function expectExplained(title: string, key: CephMetric): Promise<void> {
   expect(await tooltipTextOf(infoButton(title))).toBe(
-    CEPH_METRIC_DESCRIPTIONS[key],
+    withDurationWordsHeld(CEPH_METRIC_DESCRIPTIONS[key]),
   );
 }
 
@@ -871,7 +880,10 @@ describe("CEPH_METRIC_DESCRIPTIONS", () => {
       ...POOL_DETAIL_TITLES,
       ...CLUSTER_LIST_TITLES,
     ]) {
-      expectTitleExplained(title, CEPH_METRIC_DESCRIPTIONS[key]);
+      expectTitleExplained(
+        title,
+        withDurationWordsHeld(CEPH_METRIC_DESCRIPTIONS[key]),
+      );
     }
   });
 
@@ -1755,7 +1767,7 @@ describe("Clusters list", () => {
     for (const [title, key] of CLUSTER_LIST_TITLES) {
       expect({ title, tooltip: tooltips[title] }).toEqual({
         title,
-        tooltip: CEPH_METRIC_DESCRIPTIONS[key],
+        tooltip: withDurationWordsHeld(CEPH_METRIC_DESCRIPTIONS[key]),
       });
     }
     for (const title of [

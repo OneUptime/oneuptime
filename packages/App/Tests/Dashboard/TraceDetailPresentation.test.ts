@@ -140,17 +140,17 @@ describe("services", () => {
 
 describe("formatting", () => {
   test("durations use the humanised nanosecond format", () => {
-    expect(formatDurationNano(1284 * MS)).toBe("1.28 s");
-    expect(formatDurationNano(716 * MS)).toBe("716 ms");
-    expect(formatDurationNano(2.4 * MS)).toBe("2.4 ms");
-    expect(formatDurationNano(350_000)).toBe("350 μs");
-    expect(formatDurationNano(0)).toBe("0 ms");
-    expect(formatDurationNano(-5)).toBe("0 ms");
+    expect(formatDurationNano(1284 * MS)).toBe("1.28\u00A0s");
+    expect(formatDurationNano(716 * MS)).toBe("716\u00A0ms");
+    expect(formatDurationNano(2.4 * MS)).toBe("2.4\u00A0ms");
+    expect(formatDurationNano(350_000)).toBe("350\u00A0μs");
+    expect(formatDurationNano(0)).toBe("0\u00A0ms");
+    expect(formatDurationNano(-5)).toBe("0\u00A0ms");
   });
 
   test("offsets are signed from the trace start", () => {
-    expect(formatOffsetNano(183 * MS)).toBe("+183 ms");
-    expect(formatOffsetNano(0)).toBe("+0 ms");
+    expect(formatOffsetNano(183 * MS)).toBe("+183\u00A0ms");
+    expect(formatOffsetNano(0)).toBe("+0\u00A0ms");
   });
 
   test("percentages", () => {

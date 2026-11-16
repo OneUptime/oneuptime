@@ -163,6 +163,6 @@ Spørringen ber om mer enn en lesing kan romme. Legg til etikettfiltre, forkort 
 
 :::cards
 - [Målingsutforsker](/docs/telemetry/metrics-explorer): Vis målinger i diagrammer uten å skrive en spørring.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Få varsel når en måling krysser en grense.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Få varsel når en måling krysser en grense.
 - [Eksterne datakilder](/docs/dashboards/data-sources): Vis en ekstern Prometheus på dashbordene dine.
 :::

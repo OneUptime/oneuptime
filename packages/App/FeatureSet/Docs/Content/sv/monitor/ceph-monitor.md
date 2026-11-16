@@ -65,7 +65,7 @@ En ny monitor börjar med **Cluster Stopped Reporting** under **Vad som ska larm
 
 - **Ändra** — välj en annan [mall](#färdiga-larmmallar). Den ställer in mätvärden, filter, aggregering, tidsintervall och tröskelvärden och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
 - **Custom Metric** (under **Fler fält**) — välj ett mätvärde i **Ceph Metric** och ställ sedan in **Aggregering** och **Tidsintervall**. **OSD** och **Pool-ID** begränsar det till en daemon eller pool. Ett mätvärde som förs per pool eller per daemon bedöms pool för pool eller daemon för daemon, med en incident var.
-- **Avancerad** (under **Fler fält**) — bygg frågor och formler själv under **Välj mått**, till exempel en kvot för använd kapacitet från `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Använd **Gruppera efter** `ceph_daemon` eller `pool_id` för att bedöma varje daemon eller pool för sig.
+- **Avancerad** (under **Fler fält**) — bygg frågor och formler själv under **Välj mätvärden**, till exempel en kvot för använd kapacitet från `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Använd **Gruppera efter** `ceph_daemon` eller `pool_id` för att bedöma varje daemon eller pool för sig.
 
 ### Kontrollera kriterierna
 
@@ -89,7 +89,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **Ceph Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Custom Metric | Hur mätpunkter kombineras: **Genomsnitt**, **Maximum** eller **Minimum**. Börjar med mätvärdets vanliga aggregering. En summa eller ett antal skulle lägga ihop varje skrapning under en minut, så de lämnas till **Avancerad**. |
 | **Tidsintervall** | Alla | Det glidande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar sätter sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mätvärden** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 Poolernas dataserier har bara etiketten `pool_id`: Poolens namn finns bara i `ceph_pool_metadata`. Filtrera och gruppera poolserier efter `pool_id`, och slå upp namnet i `ceph_pool_metadata` när du behöver det.
 
@@ -244,11 +244,11 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 
 | Ordning | Kriterium | Matchar när | Sedan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitornamn_ is offline | Den första frågan har inga data under hela fönstret | Sätter monitorn till **Offline** och deklarerar incidenten "_monitornamn_ is offline", som löser sig själv när monitorn återhämtar sig. |
-| 2 | Check if _monitornamn_ is online | Den första frågan har data | Sätter monitorn till **Fungerar**. |
+| 1 | Kontrollera om _monitornamn_ är offline | Den första frågan har inga data under hela fönstret | Sätter monitorn till **Offline** och deklarerar incidenten "_monitornamn_ är offline", som löser sig själv när monitorn återhämtar sig. |
+| 2 | Kontrollera om _monitornamn_ är online | Den första frågan har data | Sätter monitorn till **Fungerar**. |
 
 > [!IMPORTANT]
-> Ett värde på `0` är data, så ett mått som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+> Ett värde på `0` är data, så ett mätvärde som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Felsökning
 
@@ -275,7 +275,7 @@ En hälsokontroll som aldrig har utlösts har ingen serie, `ceph_daemon_health_m
 :::
 
 :::details Räknare som ceph_pool_wr_bytes växer bara
-Poolernas I/O-serier är räknare över hela livslängden, och kriterier jämför råa värden: Det finns ingen rate-operator, och **Convert to per-second rate** i frågebyggaren ändrar bara diagrammet. Visa dem som rate, eller larma på deras tillväxt med en formel, till exempel en **Maximum**-fråga minus en **Minimum**-fråga för samma räknare.
+Poolernas I/O-serier är räknare över hela livslängden, och kriterier jämför råa värden: Det finns ingen rate-operator, och **Räkna om till takt per sekund** i frågebyggaren ändrar bara diagrammet. Visa dem som rate, eller larma på deras tillväxt med en formel, till exempel en **Maximum**-fråga minus en **Minimum**-fråga för samma räknare.
 :::
 
 ## Nästa steg

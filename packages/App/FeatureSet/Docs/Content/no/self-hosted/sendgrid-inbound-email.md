@@ -53,7 +53,7 @@ Sett `INBOUND_EMAIL_WEBHOOK_SECRET` til en sterk tilfeldig verdi, og erstatt `YO
 
 SendGrid tilbyr ikke en pålitelig liste over statiske kilde-IP-er for Inbound Parse. SendGrids IP-er for sending av e-post og adressene som slås opp for `mx.sendgrid.net`, er ikke en tillatelsesliste for webhooks. Følg [SendGrids veiledning om brannmurer](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs) i stedet for å låse et gjeldende DNS-resultat.
 
-Inbound Parse er atskilt fra sending av utgående e-post. For å motta monitor-e-poster trenger ikke OneUptime å kalle SendGrid-API-et. Velger du også SendGrid til å sende varsler, tillater du DNS-oppslag og utgående HTTPS til `api.sendgrid.com`; [Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) trenger ingen innkommende tilbakekalling for innsending. Bruker du SMTP i stedet, tillater du SMTP-serveren og porten som er satt opp i OneUptime.
+Inbound Parse er atskilt fra sending av utgående e-post. For å motta monitor-e-poster trenger ikke OneUptime å kalle SendGrid-API-et. Velger du også SendGrid til å sende varslinger, tillater du DNS-oppslag og utgående HTTPS til `api.sendgrid.com`; [Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) trenger ingen innkommende tilbakekalling for innsending. Bruker du SMTP i stedet, tillater du SMTP-serveren og porten som er satt opp i OneUptime.
 
 ## Oppsettsveiledning
 
@@ -118,7 +118,7 @@ inboundEmail:
 
 Ta dem deretter i bruk: Kjør `npm run start` på Docker Compose, som gjenoppretter containerne med de nye verdiene, eller oppgrader Helm-releasen på Kubernetes.
 
-### Opprett en Incoming Email-monitor
+### Opprett en Innkommende e-post-monitor
 
 [Opprett en Incoming Email-monitor](/docs/monitor/incoming-email-monitor#opprett-en-monitor-for-innkommende-e-post). Siden **Oversikt** viser adressen, for eksempel `monitor-abc123def456@inbound.yourdomain.com`, og kriteriene avgjør hvilke e-poster som oppretter et varsel og hvilke som løser det.
 
@@ -137,7 +137,7 @@ Send en e-post til monitorens adresse, med et emne som samsvarer med kriteriene.
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | Underdomenet som er satt opp for innkommende e-post. Innkommende e-post er av til det er satt. | Ja | Tom |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Hemmelighet som det siste segmentet i webhook-URL-en må samsvare med: `/incoming-email/sendgrid/YOUR_SECRET`. Hver e-post avvises så lenge den er tom eller en plassholder. | Ja | Tom |
 
-Hva en Incoming Email-monitor kan se etter – emnet, avsenderen, innholdet, mottakeren og om en e-post kom frem i tide – står i [Tilgjengelige filtertyper](/docs/monitor/incoming-email-monitor#tilgjengelige-filtertyper).
+Hva en Innkommende e-post-monitor kan se etter – emnet, avsenderen, innholdet, mottakeren og om en e-post kom frem i tide – står i [Tilgjengelige filtertyper](/docs/monitor/incoming-email-monitor#tilgjengelige-filtertyper).
 
 ## Feilsøking
 

@@ -84,7 +84,7 @@ flowchart TB
 
 ## Key=Value Parser
 
-방화벽과 다른 네트워크 장비는 각 이벤트를 `key=value` 쌍으로 이루어진 한 줄로 기록합니다. 줄에 어떤 필드가 어떤 순서로 들어 있는지는 이벤트마다 다르므로, 하나의 grok 패턴으로는 설명할 수 없습니다. Key=Value Parser에는 패턴이 필요 없습니다. 줄을 따라가며 찾은 쌍을 순서와 관계없이 모두 로그 속성으로 바꿉니다. 속성이 되면 검색하고 필터링할 수 있고, [로그 모니터](/docs/monitor/logs-monitor) 에서 쓸 수 있으며, [그룹화 기준](/docs/monitor/logs-monitor#그룹별-알림group-by) 으로 터널, 인터페이스, 사용자마다 한 번씩 알림을 보낼 수 있습니다.
+방화벽과 다른 네트워크 장비는 각 이벤트를 `key=value` 쌍으로 이루어진 한 줄로 기록합니다. 줄에 어떤 필드가 어떤 순서로 들어 있는지는 이벤트마다 다르므로, 하나의 grok 패턴으로는 설명할 수 없습니다. Key=Value Parser에는 패턴이 필요 없습니다. 줄을 따라가며 찾은 쌍을 순서와 관계없이 모두 로그 속성으로 바꿉니다. 속성이 되면 검색하고 필터링할 수 있고, [로그 모니터](/docs/monitor/logs-monitor) 에서 쓸 수 있으며, [그룹화 기준](/docs/monitor/logs-monitor#그룹별-경고group-by) 으로 터널, 인터페이스, 사용자마다 한 번씩 경고를 보낼 수 있습니다.
 
 ### 구성
 
@@ -162,9 +162,9 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 
 기본 설정과 `fortigate` 접두사를 쓰면 `fortigate.devname = FG100`, `fortigate.subtype = vpn`, `fortigate.action = tunnel-down`, `fortigate.vpntunnel = HQ-to-Branch2`, `fortigate.time = 10:00:00` 을 얻습니다. 시간 값의 콜론은 값의 일부이며 구분자가 아닙니다.
 
-### 터널마다 한 번씩 알림 보내기
+### 터널마다 한 번씩 경고 보내기
 
-필드를 파싱하면 [로그 모니터](/docs/monitor/logs-monitor) 가 장애 횟수를 세고 터널마다 별도의 알림을 보낼 수 있습니다. `sophos.log_component` = `IPSec` 이고 본문에 `terminated` 가 들어 있는 로그로 필터링하고, `sophos.con_name` 으로 그룹화하세요. [그룹별 알림](/docs/monitor/logs-monitor#그룹별-알림group-by) 을 참고하세요.
+필드를 파싱하면 [로그 모니터](/docs/monitor/logs-monitor) 가 장애 횟수를 세고 터널마다 별도의 경고를 보낼 수 있습니다. `sophos.log_component` = `IPSec` 이고 본문에 `terminated` 가 들어 있는 로그로 필터링하고, `sophos.con_name` 으로 그룹화하세요. [그룹별 경고](/docs/monitor/logs-monitor#그룹별-경고group-by) 을 참고하세요.
 
 ## Grok Parser
 
@@ -206,7 +206,7 @@ Grok 패턴은 어떻게 쓰든 읽는 줄의 길이에 비례해서만 늘어�
 ## 다음 단계
 
 :::cards
-- [로그 모니터](/docs/monitor/logs-monitor): 파이프라인이 추출한 속성으로 알림을 보냅니다.
+- [로그 모니터](/docs/monitor/logs-monitor): 파이프라인이 추출한 속성으로 경고를 보냅니다.
 - [로그 기록 규칙](/docs/telemetry/log-recording-rules): 파싱한 로그 필드를 메트릭으로 바꿉니다.
 - [Syslog](/docs/telemetry/syslog): 방화벽과 서버의 syslog를 OneUptime으로 보냅니다.
 - [검색 구문](/docs/telemetry/search-syntax): 로그 탐색기에서 새 속성으로 검색합니다.

@@ -230,10 +230,50 @@ describe("English (#8302)", () => {
     );
   });
 
-  test("a word after a number, a value, and an untranslated text are left as they are", () => {
+  /*
+   * A duration's word is held to its number as a unit's symbol is (#8770):
+   * "Every 5 minutes" broke as "Every 5" over "minutes".
+   */
+  test("a duration's word after a number is held on a page, as a unit's symbol is", () => {
+    const page: Translator = createTranslator(undefined, "en", {
+      drawsOnPage: true,
+    });
+
+    expect(page.translateTemplate("{{count}} minutes", { count: 5 })).toBe(
+      `5${NB}minutes`,
+    );
+    expect(
+      page.translatePlural(
+        { one: "Every {{count}} hour", other: "Every {{count}} hours" },
+        6,
+      ),
+    ).toBe(`Every 6${NB}hours`);
+    expect(
+      page.translatePlural(
+        { one: "Every {{count}} hour", other: "Every {{count}} hours" },
+        1,
+      ),
+    ).toBe(`Every 1${NB}hour`);
+    // Negative control: English that may become a record's text holds symbols only.
     expect(english.translateTemplate("{{count}} minutes", { count: 5 })).toBe(
       "5 minutes",
     );
+    expect(
+      english.translateTemplate("Every {{minutes}} min", { minutes: 5 }),
+    ).toBe(`Every 5${NB}min`);
+  });
+
+  test("a word after a number, a value, and an untranslated text are left as they are", () => {
+    expect(english.translateTemplate("{{count}} monitors", { count: 5 })).toBe(
+      "5 monitors",
+    );
+    // A value goes in as written: a monitor named "Every 5 minutes".
+    expect(
+      english.translateTemplate("Monitor {{name}}", {
+        name: "Every 5 minutes",
+      }),
+    ).toBe("Monitor Every 5 minutes");
+    expect(english.translateText("Every 5 minutes")).toBe("Every 5 minutes");
     // A value goes in as written: a monitor named "Every 5 min".
     expect(
       english.translateTemplate("Monitor {{name}}", { name: "Every 5 min" }),

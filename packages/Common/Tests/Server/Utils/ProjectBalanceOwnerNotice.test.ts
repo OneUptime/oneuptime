@@ -166,7 +166,7 @@ describe("the notice", () => {
       });
 
       expect(html).toMatch(/^Add /);
-      expect(html).not.toContain("A project owner or someone with");
+      expect(html).not.toContain("A Project Owner or someone with");
     }
   });
 

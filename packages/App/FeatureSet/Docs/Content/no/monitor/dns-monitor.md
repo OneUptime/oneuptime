@@ -1,4 +1,4 @@
-# DNS-overvåking
+# DNS-monitor
 
 En DNS-monitor slår opp en DNS-post etter en tidsplan og sjekker svaret: at navnet kan slås opp, hvor raskt, og hva postene sier. Bruk den til å fange opp et DNS-brudd, en post som er endret eller forsvunnet, eller en treg løser, før brukerne merker det.
 
@@ -24,7 +24,7 @@ flowchart TB
     offline --> criteria
 ```
 
-En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke DNS-en din som frakoblet.
+En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke DNS-en din som offline.
 
 ## Før du starter
 
@@ -48,11 +48,11 @@ Angi **Domenenavn** som skal slås opp, som `example.com`, og velg **Posttype**.
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser postene sonden fikk tilbake.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser postene sonden fikk tilbake.
 
 ### Gå gjennom kriteriene
 
-**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når navnet ikke kan slås opp, tilkoblet når det kan. For å sjekke hva postene sier, legger du til et filter **Verdi for DNS-post**, og klikker så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): offline når navnet ikke kan slås opp, tilkoblet når det kan. For å sjekke hva postene sier, legger du til et filter **Verdi for DNS-post**, og klikker så på **Neste**.
 
 ### Velg sonder og opprett
 
@@ -91,7 +91,7 @@ En `TXT`-post som er delt opp i flere strenger, slås sammen til én verdi.
 
 ## Overvåkingskriterier
 
-Kriterier avgjør når navnet regnes som tilkoblet, redusert eller frakoblet, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
+Kriterier avgjør når navnet regnes som tilkoblet, redusert eller offline, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
@@ -111,7 +111,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny DNS-monitor starter med to kriterier:
 
-- **Frakoblet** — navnet kan ikke slås opp, eller har ingen post av typen, etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitor name_ is offline". Hendelsen løser seg selv når navnet kan slås opp igjen.
+- **Offline** — navnet kan ikke slås opp, eller har ingen post av typen, etter alle nye forsøk. Monitoren merkes som **Offline**, og det opprettes en hendelse med navnet "_monitornavn_ er offline". Hendelsen løser seg selv når navnet kan slås opp igjen.
 - **Oppe** — navnet kan slås opp. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -140,7 +140,7 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
-| Frakoblet når navnet slutter å kunne slås opp | **DNS er tilkoblet** | **Usann** | — |
+| Offline når navnet slutter å kunne slås opp | **DNS er tilkoblet** | **Usann** | — |
 | Varsle når et navns eneste `A`-post endres | **Verdi for DNS-post** | **Ikke lik** | `93.184.216.34` |
 | Varsle når en `MX`-post peker utenfor domenet ditt | **Verdi for DNS-post** | **Inneholder ikke** | `example.com` |
 | Merk DNS som redusert når det er tregt | **DNS-svartid (i ms)** | **Større enn** | `500` |
@@ -148,7 +148,7 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 
 ## Feilsøking
 
-:::details Monitoren sier frakoblet, men navnet kan slås opp hos meg
+:::details Monitoren sier offline, men navnet kan slås opp hos meg
 Sonden spurte en annen server, eller etter en annen posttype. Sjekk **Posttype**: et navn med bare en `CNAME`, eller bare `AAAA`-poster, har ingen `A`-post. Sammenlign med `dig` mot den samme serveren:
 
 ```bash
@@ -159,9 +159,9 @@ dig @8.8.8.8 example.com A
 :::details Et kriterium med Ikke lik utløses selv om riktig adresse er der
 **Verdi for DNS-post** samsvarer når én enkelt post samsvarer. Med flere poster utløses **Ikke lik** så snart én av dem avviker. For å sjekke at én bestemt verdi er blant postene, støtter du deg på rekkefølgen av kriteriene, siden det første som samsvarer, vinner:
 
-1. Behold standardkriteriet for frakoblet øverst: **DNS er tilkoblet** / **Usann**.
+1. Behold standardkriteriet for offline øverst: **DNS er tilkoblet** / **Usann**.
 2. Under det legger du til et kriterium med **Verdi for DNS-post** / **Lik** / verdien du forventer, som merker monitoren som **I drift**.
-3. Under det igjen legger du til et kriterium med **DNS er tilkoblet** / **Sann**, som merker monitoren som **Frakoblet** og erklærer en hendelse. Det samsvarer bare med svar som ikke har verdien.
+3. Under det igjen legger du til et kriterium med **DNS er tilkoblet** / **Sann**, som merker monitoren som **Offline** og erklærer en hendelse. Det samsvarer bare med svar som ikke har verdien.
 :::
 
 :::details DNSSEC er gyldig samsvarer aldri
@@ -171,8 +171,8 @@ Serveren i **DNS-server (valgfritt)** validerer ikke DNSSEC og setter derfor ald
 ## Neste steg
 
 :::cards
-- [DNSSEC-overvåking](/docs/monitor/dnssec-monitor): Valider tillitskjeden til en signert sone.
-- [Domene-overvåking](/docs/monitor/domain-monitor): Følg med på domenets registrering og utløp.
+- [DNSSEC-monitor](/docs/monitor/dnssec-monitor): Valider tillitskjeden til en signert sone.
+- [Domene-monitor](/docs/monitor/domain-monitor): Følg med på domenets registrering og utløp.
 - [Egendefinerte sonder](/docs/probe/custom-probe): Spør interne DNS-servere fra ditt eget nettverk.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

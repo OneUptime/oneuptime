@@ -1,6 +1,6 @@
 # مانیتور Kubernetes
 
-مانیتور Kubernetes بر پایه متریک‌هایی هشدار می‌دهد که عامل Kubernetes در OneUptime از یک خوشه می‌فرستد: گره‌ها، پادها، کانتینرها، بارهای کاری، مقیاس‌دهنده‌های خودکار و Control Plane. از یک الگوی هشدار آماده شروع کنید، یک متریک را برگزینید یا پرس‌وجوی خودتان را بنویسید، و سپس آستانه‌ای را تعیین کنید که هشدار یا حادثه باز می‌کند.
+مانیتور Kubernetes بر پایه متریک‌هایی هشدار می‌دهد که عامل Kubernetes در OneUptime از یک خوشه می‌فرستد: گره‌ها، پادها، کانتینرها، بارهای کاری، مقیاس‌دهنده‌های خودکار و صفحه کنترل. از یک الگوی هشدار آماده شروع کنید، یک متریک را برگزینید یا پرس‌وجوی خودتان را بنویسید، و سپس آستانه‌ای را تعیین کنید که هشدار یا حادثه باز می‌کند.
 
 :::cards
 - [نصب عامل](/docs/monitor/kubernetes-agent): یک فرمان Helm خوشه را به OneUptime می‌آورد.
@@ -23,7 +23,7 @@ flowchart TB
 ## پیش از شروع
 
 - عامل Kubernetes در OneUptime در خوشه اجرا شود. [عامل Kubernetes (نصب با Helm)](/docs/monitor/kubernetes-agent) را ببینید؛ چند دقیقه پس از نصب، خوشه زیر **Kubernetes** پدیدار می‌شود.
-- برای الگوهای Control Plane (**etcd No Leader**، **API Server Request Saturation**، **Scheduler Backlog**): جمع‌آوری Control Plane توسط عامل، یعنی `controlPlane.enabled`، که سرور API را بی‌درنگ می‌خواند؛ etcd و زمان‌بند به فهرست شدن نقطه‌های پایانی‌شان هم نیاز دارند (نگاه کنید به [روشن کردن پایش Control Plane](/docs/telemetry/kubernetes-agent#روشن-کردن-پایش-control-plane)). خوشه‌های مدیریت‌شده (EKS، GKE، AKS) این نقطه‌های پایانی را در دسترس نمی‌گذارند، پس آنجا این مانیتورها هرگز داده‌ای نمی‌گیرند.
+- برای الگوهای صفحه کنترل (**etcd No Leader**، **API Server Request Saturation**، **Scheduler Backlog**): جمع‌آوری صفحه کنترل توسط عامل، یعنی `controlPlane.enabled`، که سرور API را بی‌درنگ می‌خواند؛ etcd و زمان‌بند به فهرست شدن نقطه‌های پایانی‌شان هم نیاز دارند (نگاه کنید به [روشن کردن پایش صفحه کنترل](/docs/telemetry/kubernetes-agent#روشن-کردن-پایش-صفحه-کنترل)). خوشه‌های مدیریت‌شده (EKS، GKE، AKS) این نقطه‌های پایانی را در دسترس نمی‌گذارند، پس آنجا این مانیتورها هرگز داده‌ای نمی‌گیرند.
 
 ## ساخت یک مانیتور Kubernetes
 
@@ -85,15 +85,15 @@ flowchart TB
 
 | دسته | متریک‌ها |
 | --- | --- |
-| پاد | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| گره | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| کانتینر | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| بار کاری | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| Control Plane | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| پاد | مصرف CPU پاد, مصرف حافظه پاد, فاز پاد (کد), مصرف سامانه فایل پاد, میزان استفاده از سقف حافظه پاد, میزان استفاده از سقف CPU پاد, I/O شبکه پاد (انباشته، هر دو جهت) |
+| گره | مصرف CPU گره, CPU قابل تخصیص گره, مصرف حافظه گره, مجموعه کاری حافظه گره, مصرف سامانه فایل گره, حافظه قابل تخصیص گره, شرط Ready گره, شرط MemoryPressure گره, شرط DiskPressure گره, شرط PIDPressure گره, فضای آزاد سامانه فایل گره |
+| کانتینر | راه‌اندازی‌های مجدد کانتینر, راه‌اندازی‌های مجدد کانتینر (افزایش), سقف CPU کانتینر, درخواست CPU کانتینر, سقف حافظه کانتینر, درخواست حافظه کانتینر, کانتینر آماده |
+| بار کاری | رونوشت‌های در دسترس Deployment, رونوشت‌های مطلوب Deployment, گره‌های مطلوب DaemonSet, گره‌های نادرست زمان‌بندی‌شده DaemonSet, گره‌های آماده DaemonSet, رونوشت‌های مطلوب StatefulSet, رونوشت‌های آماده StatefulSet, پادهای ناموفق Job, پادهای ناموفق Job (افزایش), پادهای موفق Job |
+| HPA | رونوشت‌های فعلی HPA, رونوشت‌های مطلوب HPA, بیشینه رونوشت‌های HPA, کمینه رونوشت‌های HPA |
+| صفحه کنترل | etcd رهبر دارد, درخواست‌های در جریان سرور API, پادهای در انتظار زمان‌بند |
 
 > [!NOTE]
-> **Pod CPU Usage** و **Node CPU Usage** بر حسب هسته‌اند، نه درصد: `0.18` یعنی ۰٫۱۸ هسته. **Pod Phase (Code)** یک کد است (۱ Pending، ۲ Running، ۳ Succeeded، ۴ Failed، ۵ Unknown) – آن را با بیشینه یا کمینه تجمیع کنید، هرگز با جمع. متریک‌های Control Plane فقط وقتی می‌رسند که جمع‌آوری Control Plane توسط عامل روشن باشد. **Node Ready Condition** در حالت Ready برابر ۱، در NotReady برابر ۰ و در Unknown برابر ‎-۱ است و Unknown همان چیزی است که گرهِ ازکارافتاده گزارش می‌دهد: برای کمتر از ۱ هشدار دهید. **Container Restarts** شمارندهٔ پیوستهٔ راه‌اندازی‌های دوبارهٔ کانتینر است؛ **Container Restarts (Increase)** همان چیزی است که عامل با هر نمونه می‌فرستد: راه‌اندازی‌های دوباره از نمونهٔ قبلی‌اش از کانتینر، پس جمع آن در یک پنجره همان راه‌اندازی‌های دوبارهٔ آن پنجره است. این متریک همان چیزی را دارد که **Container Restarts** دارد، از جمله نام بارهای کاری پادِ کانتینر، اما نه شناسهٔ کانتینر را که با هر راه‌اندازی دوباره عوض می‌شود. **Job Failed Pods** شمارندهٔ پیوستهٔ پادهای ناموفق یک Job است؛ **Job Failed Pods (Increase)** همان چیزی است که عامل با هر نمونه می‌فرستد: پادهای Job که از نمونهٔ قبلی‌اش از آن Job ناموفق شده‌اند، پس جمع آن در یک پنجره همان شکست‌های آن پنجره است. این متریک همان چیزی را دارد که **Job Failed Pods** دارد: نام و Namespace آن Job.
+> **مصرف CPU پاد** و **مصرف CPU گره** بر حسب هسته‌اند، نه درصد: `0.18` یعنی ۰٫۱۸ هسته. **فاز پاد (کد)** یک کد است (۱ Pending، ۲ Running، ۳ Succeeded، ۴ Failed، ۵ Unknown) – آن را با بیشینه یا کمینه تجمیع کنید، هرگز با جمع. متریک‌های صفحه کنترل فقط وقتی می‌رسند که جمع‌آوری صفحه کنترل توسط عامل روشن باشد. **شرط Ready گره** در حالت Ready برابر ۱، در NotReady برابر ۰ و در Unknown برابر ‎-۱ است و Unknown همان چیزی است که گرهِ ازکارافتاده گزارش می‌دهد: برای کمتر از ۱ هشدار دهید. **راه‌اندازی‌های مجدد کانتینر** شمارندهٔ پیوستهٔ راه‌اندازی‌های دوبارهٔ کانتینر است؛ **راه‌اندازی‌های مجدد کانتینر (افزایش)** همان چیزی است که عامل با هر نمونه می‌فرستد: راه‌اندازی‌های دوباره از نمونهٔ قبلی‌اش از کانتینر، پس جمع آن در یک پنجره همان راه‌اندازی‌های دوبارهٔ آن پنجره است. این متریک همان چیزی را دارد که **راه‌اندازی‌های مجدد کانتینر** دارد، از جمله نام بارهای کاری پادِ کانتینر، اما نه شناسهٔ کانتینر را که با هر راه‌اندازی دوباره عوض می‌شود. **پادهای ناموفق Job** شمارندهٔ پیوستهٔ پادهای ناموفق یک Job است؛ **پادهای ناموفق Job (افزایش)** همان چیزی است که عامل با هر نمونه می‌فرستد: پادهای Job که از نمونهٔ قبلی‌اش از آن Job ناموفق شده‌اند، پس جمع آن در یک پنجره همان شکست‌های آن پنجره است. این متریک همان چیزی را دارد که **پادهای ناموفق Job** دارد: نام و Namespace آن Job.
 
 ## معیارهای مانیتورینگ
 
@@ -144,8 +144,8 @@ flowchart TB
 | Deployment Replica Mismatch | بار کاری | یک deployment به مدت ۱۵ دقیقه کمتر از تعداد مطلوب، رپلیکای در دسترس دارد | هشدار |
 | StatefulSet Replica Mismatch | بار کاری | یک StatefulSet به مدت ۱۵ دقیقه کمتر از تعداد مطلوب، رپلیکای آماده دارد | هشدار |
 | Job Failures | بار کاری | یک پادِ یک job در ۱۵ دقیقه ناموفق شده است | هشدار |
-| etcd No Leader | Control Plane | etcd رهبر برگزیده‌ای ندارد | بحرانی |
-| API Server Request Saturation | Control Plane | سرور API در تمام پنجره ۲۰۰ درخواست در جریان یا بیشتر دارد | بحرانی |
+| etcd No Leader | صفحه کنترل | etcd رهبر برگزیده‌ای ندارد | بحرانی |
+| API Server Request Saturation | صفحه کنترل | سرور API در تمام پنجره ۲۰۰ درخواست در جریان یا بیشتر دارد | بحرانی |
 | Scheduler Backlog | در حال زمان‌بندی | صف پادهای در انتظار زمان‌بند به مدت ۵ دقیقه خالی نمی‌شود | هشدار |
 | High Node Disk Usage | ذخیره‌سازی | سامانه فایل یک گره بیش از ۹۰٪ پر است | هشدار |
 | DaemonSet Pods Not Ready | بار کاری | یک DaemonSet به مدت ۱۵ دقیقه گره‌هایی دارد که هیچ پاد آماده‌ای از آن رویشان نیست | هشدار |
@@ -186,12 +186,12 @@ flowchart TB
 خوشه‌ها خودشان از روی داده‌های عامل ثبت می‌شوند، با همان `clusterName`ی که عامل با آن نصب شده است. بررسی کنید پادهای عامل در حال اجرا باشند و خوشه زیر **محصولات ← زیرساخت ← Kubernetes ← همه خوشه‌ها** فهرست شده باشد. [عامل Kubernetes (نصب با Helm)](/docs/monitor/kubernetes-agent) نصب و آنچه را هنگام نرسیدن داده باید بررسی کرد توضیح می‌دهد.
 :::
 
-:::details یک الگوی Control Plane هرگز فعال نمی‌شود
-**etcd No Leader**، **API Server Request Saturation** و **Scheduler Backlog** متریک‌هایی را می‌خوانند که فقط جمع‌آوری Control Plane توسط عامل گرد می‌آورد. `controlPlane.enabled` را در مقدارهای Helm عامل روشن کنید؛ به‌طور پیش‌فرض خاموش است. این کار سرور API را می‌خواند. etcd و زمان‌بند روی گره‌های control plane اجرا می‌شوند، پس **etcd No Leader** و **Scheduler Backlog** به `controlPlane.etcd.endpoints` و `controlPlane.scheduler.endpoints` هم نیاز دارند که روی نشانی‌هایی تنظیم شده باشند که پاد عامل بتواند به آن‌ها برسد (نگاه کنید به [روشن کردن پایش Control Plane](/docs/telemetry/kubernetes-agent#روشن-کردن-پایش-control-plane)). خوشه‌های مدیریت‌شده (EKS، GKE، AKS) این نقطه‌های پایانی را در دسترس نمی‌گذارند، پس روی آن‌ها این مانیتورها هرگز داده‌ای نمی‌گیرند.
+:::details یک الگوی صفحه کنترل هرگز فعال نمی‌شود
+**etcd No Leader**، **API Server Request Saturation** و **Scheduler Backlog** متریک‌هایی را می‌خوانند که فقط جمع‌آوری صفحه کنترل توسط عامل گرد می‌آورد. `controlPlane.enabled` را در مقدارهای Helm عامل روشن کنید؛ به‌طور پیش‌فرض خاموش است. این کار سرور API را می‌خواند. etcd و زمان‌بند روی گره‌های صفحه کنترل اجرا می‌شوند، پس **etcd No Leader** و **Scheduler Backlog** به `controlPlane.etcd.endpoints` و `controlPlane.scheduler.endpoints` هم نیاز دارند که روی نشانی‌هایی تنظیم شده باشند که پاد عامل بتواند به آن‌ها برسد (نگاه کنید به [روشن کردن پایش صفحه کنترل](/docs/telemetry/kubernetes-agent#روشن-کردن-پایش-صفحه-کنترل)). خوشه‌های مدیریت‌شده (EKS، GKE، AKS) این نقطه‌های پایانی را در دسترس نمی‌گذارند، پس روی آن‌ها این مانیتورها هرگز داده‌ای نمی‌گیرند.
 :::
 
 :::details یک آستانه CPU هرگز فعال نمی‌شود
-**Pod CPU Usage** و **Node CPU Usage** بر حسب هسته‌اند، نه درصد، پس آستانه `80` یعنی ۸۰ هسته. آستانه را بر حسب هسته تعیین کنید، یا از **High Node CPU Utilization** یا **Pod CPU Saturating Container Limit** شروع کنید که درصد را مقایسه می‌کنند.
+**مصرف CPU پاد** و **مصرف CPU گره** بر حسب هسته‌اند، نه درصد، پس آستانه `80` یعنی ۸۰ هسته. آستانه را بر حسب هسته تعیین کنید، یا از **High Node CPU Utilization** یا **Pod CPU Saturating Container Limit** شروع کنید که درصد را مقایسه می‌کنند.
 :::
 
 :::details CrashLoopBackOff Detection برای یک راه‌اندازی دوباره فعال نشد
@@ -206,7 +206,7 @@ flowchart TB
 
 :::cards
 - [عامل Kubernetes (نصب با Helm)](/docs/monitor/kubernetes-agent): عامل را با Helm نصب، ارتقا و تنظیم کنید.
-- [عامل Kubernetes](/docs/telemetry/kubernetes-agent): فیلترهای Namespace، متریک‌های Control Plane، فیلترهای شدت لاگ و عامل هوش مصنوعی.
+- [عامل Kubernetes](/docs/telemetry/kubernetes-agent): فیلترهای Namespace، متریک‌های صفحه کنترل، فیلترهای شدت لاگ و عامل هوش مصنوعی.
 - [مانیتور متریک‌ها](/docs/monitor/metrics-monitor): بر پایه هر متریکی هشدار دهید، از جمله متریک‌های سفارشی و eBPF عامل.
 - [قالب‌بندی حادثه و هشدار](/docs/monitor/incident-alert-templating): پاد یا گره‌ای را که از حد گذشته در عنوان حادثه‌ها بیاورید.
 :::

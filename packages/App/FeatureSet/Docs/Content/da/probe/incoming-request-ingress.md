@@ -1,9 +1,9 @@
 # Indgående anmodning ingress
 
-En tjeneste uden internetadgang kan stadig sende heartbeats til en [overvågning af indgående anmodninger](/docs/monitor/incoming-request-monitor). Den sender dem i stedet til en [brugerdefineret sonde](/docs/probe/custom-probe) i sit eget netværk, og sonden sender dem videre til OneUptime.
+En tjeneste uden internetadgang kan stadig sende heartbeats til en [monitor af indgående anmodninger](/docs/monitor/incoming-request-monitor). Den sender dem i stedet til en [brugerdefineret sonde](/docs/probe/custom-probe) i sit eget netværk, og sonden sender dem videre til OneUptime.
 
 :::cards
-- [Sådan virker det](#sådan-virker-det): Fra din tjeneste, gennem sonden, til overvågningen.
+- [Sådan virker det](#sådan-virker-det): Fra din tjeneste, gennem sonden, til monitoren.
 - [Slå lytteren til](#slå-lytteren-til): Én indstilling på sonden, til Docker, Docker Compose eller Kubernetes.
 - [Send anmodninger til sonden](#send-anmodninger-til-sonden): Skift den URL, din tjeneste sender til, og intet andet.
 - [Fejlfinding](#fejlfinding): Hvad sonden logger, når en anmodning ikke kommer igennem.
@@ -24,7 +24,7 @@ flowchart TB
 1. **Din tjeneste sender anmodningen til sonden.** Den samme `GET` eller `POST`, med den samme hemmelige nøgle, som den ville sende til OneUptime, til en port, sonden lytter på.
 2. **Sonden svarer med det samme.** Den svarer `200`, før den sender anmodningen videre, så din tjeneste aldrig venter på OneUptime.
 3. **Sonden sender den videre.** Den sender anmodningen videre til OneUptime med metode, headere og body og tilføjer en header `OneUptime-Probe-Id`, der nævner sonden.
-4. **OneUptime læser den som sædvanligt.** Overvågningens kriterier ser anmodningen, som om tjenesten havde sendt den direkte.
+4. **OneUptime læser den som sædvanligt.** Monitorens kriterier ser anmodningen, som om tjenesten havde sendt den direkte.
 
 Lytteren kører på sin egen port, adskilt fra sondens sundhedstjek, så du kan åbne den for dit private netværk uden at åbne noget andet.
 
@@ -163,7 +163,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | Svaret | `200` med et tomt JSON-objekt (`{}`), sendt før anmodningen sendes videre. Som hos OneUptime sendes det, uanset hvad der sker bagefter: også en forkert hemmelig nøgle får det. |
 | Metoder | `POST` sendes videre som `POST`. `GET` og `HEAD` sendes videre som `GET`. Andre metoder får et `404` fra sonden. |
 | Headere | Alle undtagen hop-by-hop-headerne (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) og `Content-Encoding`, da sonden videresender bodyen ukomprimeret. Sonden tilføjer `OneUptime-Probe-Id`. |
-| Body | JSON- og formular-bodies på op til 50 MB samt JSON sendt som almindelig tekst (sådan som Amazon SNS sender den), som når du sender direkte til OneUptime. Ligesom dér når enhver anden body frem til overvågningen tom. |
+| Body | JSON- og formular-bodies på op til 50 MB samt JSON sendt som almindelig tekst (sådan som Amazon SNS sender den), som når du sender direkte til OneUptime. Ligesom dér når enhver anden body frem til monitoren tom. |
 | Nye forsøg | Når en videresendelse fejler, prøver sonden igen op til `PROBE_INGRESS_FORWARD_RETRY_LIMIT` gange og venter 2 s, så 4 s, så 8 s, og aldrig mere end 15 s. Derefter logger den fejlen og dropper anmodningen. |
 | Proxyer | Videresendelsen går gennem sondens proxy, når `HTTP_PROXY_URL` eller `HTTPS_PROXY_URL` er sat. |
 | Hvor den går hen | `ONEUPTIME_URL` efterfulgt af `/incoming-request-ingest/incoming-request/<secret-key>`. |
@@ -196,14 +196,14 @@ Sonden kunne ikke nå OneUptime, heller ikke efter sine nye forsøg. Tjek sonden
 :::
 
 :::details Sonden logger `Probe ingress: probe ID not available, forwarding without it`
-Sonden er endnu ikke færdig med at forbinde til OneUptime, så den sender anmodningen videre uden headeren `OneUptime-Probe-Id`. Anmodningen når stadig frem til overvågningen.
+Sonden er endnu ikke færdig med at forbinde til OneUptime, så den sender anmodningen videre uden headeren `OneUptime-Probe-Id`. Anmodningen når stadig frem til monitoren.
 :::
 
-:::details Overvågningen får anmodningerne, men ikke gennem sonden
+:::details Monitoren får anmodningerne, men ikke gennem sonden
 Din tjeneste sender stadig til den offentlige URL. Tjek, at den sender til `http://<probe-host>:<port>/...`: et DNS-navn eller en post i `/etc/hosts`, der peger et andet sted hen, er den sædvanlige årsag.
 :::
 
-:::details Overvågningen får intet, og sonden logger intet
+:::details Monitoren får intet, og sonden logger intet
 Anmodningen nåede aldrig frem til sonden. Tjek, at tjenesten kan nå sondens vært på porten: en firewallregel, en port, der ikke er publiceret, eller en Kubernetes-Service, der ikke vælger sondens pod.
 :::
 

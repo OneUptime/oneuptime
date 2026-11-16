@@ -33,26 +33,31 @@ export const ALERT_PAGES: ReadonlyArray<AlertDocsPageEntry> = [
 export const ALERTS_NAV_GROUP: string = "Alerts";
 export const ALERTS_NAV_GROUP_AFTER: string = "Incidents";
 
-/*
- * Bold words every language writes as the English does: the names of the
- * workflow components (the builder names them in English, from the model's
- * name), the alert roles (named in English in the Dashboard), and the "⋯"
- * that opens a menu.
- */
+// Bold words every language writes as the English does: the "⋯" that opens a menu.
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [ALERTS_OVERVIEW]: ["Create One Alert", "On Create Alert", "⋯"],
+    [ALERTS_OVERVIEW]: ["⋯"],
     [ALERT_STATES]: ["⋯"],
     [ALERT_EPISODES]: ["⋯"],
-    [ALERT_SETTINGS]: [
-      "On Create Alert",
-      "On Update Alert",
-      "On Create or Update Alert",
-      "On Delete Alert",
-      "Create One Alert",
-      "Update One Alert",
-    ],
   };
+
+/*
+ * The workflow's record steps a page names, built from the model's name:
+ * the builder draws each as the sentence it was built from, in the
+ * reader's words (#8642), and every language names it so (drawnStepName,
+ * #8708).
+ */
+export const RECORD_STEPS: Readonly<Record<string, ReadonlyArray<string>>> = {
+  [ALERTS_OVERVIEW]: ["Create One Alert", "On Create Alert"],
+  [ALERT_SETTINGS]: [
+    "On Create Alert",
+    "On Update Alert",
+    "On Create or Update Alert",
+    "On Delete Alert",
+    "Create One Alert",
+    "Update One Alert",
+  ],
+};
 
 /*
  * Text every translation keeps in English, word for word, because the

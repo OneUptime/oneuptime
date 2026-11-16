@@ -48,7 +48,7 @@ Genera una alerta cuando tu equipo deba mirar antes de que nadie de fuera lo not
 - **La tasa de consumo de un SLO.** Una regla de tasa de consumo puede crear una alerta cuando un SLO gasta su presupuesto de errores demasiado rápido. Consulta [Alertas e incidentes de tasa de consumo](/docs/slo/burn-rate-alerts).
 - **Sitios de red y eventos de seguridad.** Un sitio de red configurado para alertar cuando no está sano abre una alerta cuando su resumen deja de estar operativo, y tus reglas de detección de eventos de seguridad también abren alertas. Consulta [Sitios de red (resumen de salud y tiempo de actividad)](/docs/monitor/network-sites) y [Eventos de seguridad (SIEM)](/docs/telemetry/security-events).
 - **Un aviso.** `/oneuptime page` en Slack o Microsoft Teams, en cualquier lugar salvo el canal propio de un incidente o de una alerta, abre una alerta cuyo título es tu mensaje y avisa a las personas que nombres. Los bloques de aviso de un flujo de trabajo hacen lo mismo con el título y el mensaje que les des. Consulta [Avisar a alguien desde Slack](/docs/workspace-connections/slack#avisar-a-alguien-desde-slack) y [Paging](/docs/workflows/components#paging).
-- **La API, Terraform y los flujos de trabajo.** Las alertas son un recurso como cualquier otro: `/api/alert`, el recurso de Terraform `oneuptime_alert` y el paso **Create One Alert** de un flujo de trabajo.
+- **La API, Terraform y los flujos de trabajo.** Las alertas son un recurso como cualquier otro: `/api/alert`, el recurso de Terraform `oneuptime_alert` y el paso **Crear Alerta (individual)** de un flujo de trabajo.
 
 ## Dónde están las alertas en el panel
 
@@ -58,7 +58,7 @@ Abre **Alertas** desde el menú **Productos** de la barra superior. La lista de 
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Alertas**            | **Todas las alertas** y **Alertas activas**, cuya insignia roja cuenta las alertas que aún no se han resuelto.              |
 | **Episodios** | **Todos los episodios** y **Episodios activos**: alertas relacionadas, agrupadas en un solo problema en el que trabajar. |
-| **IA**                 | **Análisis**, **Registros** y **Ajustes**: lo que OneUptime AI ha aprendido de tus alertas, todo lo que ha hecho y lo que puede hacer. |
+| **IA**                 | **Hallazgos**, **Registros** y **Ajustes**: lo que OneUptime AI ha aprendido de tus alertas, todo lo que ha hecho y lo que puede hacer. |
 | **Espacio de trabajo** | **Slack**, **Microsoft Teams** y **Mattermost**, según lo que haya conectado el proyecto, o **Conectar un espacio de trabajo** si no tiene ninguno. |
 | **Reglas**             | **Reglas de agrupación**, **Reglas de guardia**, **Reglas de incidentes**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de recordatorio**. |
 | **Ajustes**            | **Estado de la alerta**, **Gravedad de la alerta**, **Plantillas de notas**, **Campos personalizados**, **Mediciones**, **Pertenencia a episodios**, **Numeración**, **Retención de datos**. |
@@ -104,9 +104,9 @@ En cuanto se crea una alerta, OneUptime recorre estos pasos, en este orden:
 7. **Las reglas de agrupación la meten en un episodio**, cuando alguna coincide. Consulta [Episodios de alertas y reglas de agrupación](/docs/alerts/episodes).
 8. **Se programan los recordatorios**, cuando coincide una regla de recordatorio, y **OneUptime AI** investiga la alerta cuando **Investigar las alertas nuevas** está activado en **Alertas → IA → Ajustes**, y la corrige cuando **Corregir automáticamente las alertas nuevas** está activado. Consulta [AI SRE](/docs/ai/ai-sre).
 
-Un trabajo en segundo plano avisa a los propietarios de la alerta alrededor de un minuto después de crearse, a todos los que tenga para entonces, y el disparador de flujo de trabajo **On Create Alert** inicia cualquier flujo de trabajo basado en él.
+Un trabajo en segundo plano avisa a los propietarios de la alerta alrededor de un minuto después de crearse, a todos los que tenga para entonces, y el disparador de flujo de trabajo **Al crear Alerta** inicia cualquier flujo de trabajo basado en él.
 
-Para que personas y equipos sean propietarios de la alerta desde que se crea, de modo que este aviso les llegue a ellos y no a los propietarios del proyecto, entrégalos con la creación: por la API, envía sus ids en `miscDataProps`, como `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, con `POST /api/alert`; en un flujo de trabajo, elígelos en **Usuarios propietarios** y **Equipos propietarios** de **Create One Alert**; por MCP, pasa `ownerUsers` y `ownerTeams` a `create_alert`. Una solicitud cuyo autor no puede añadir esos propietarios se rechaza antes de guardar nada. Los propietarios que una solicitud aparte añade después de la creación solo se enteran si se añaden dentro de ese minuto.
+Para que personas y equipos sean propietarios de la alerta desde que se crea, de modo que este aviso les llegue a ellos y no a los Propietarios del proyecto, entrégalos con la creación: por la API, envía sus ids en `miscDataProps`, como `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, con `POST /api/alert`; en un flujo de trabajo, elígelos en **Usuarios propietarios** y **Equipos propietarios** de **Crear Alerta (individual)**; por MCP, pasa `ownerUsers` y `ownerTeams` a `create_alert`. Una solicitud cuyo autor no puede añadir esos propietarios se rechaza antes de guardar nada. Los propietarios que una solicitud aparte añade después de la creación solo se enteran si se añaden dentro de ese minuto.
 
 ### Creada ya reconocida o resuelta
 
@@ -152,7 +152,7 @@ Mientras trabajas en ella, anota lo que vayas aprendiendo como **Notas privadas*
 
 ## Alertas privadas
 
-Una alerta privada solo la ven sus propietarios, es decir, los usuarios propietarios y los miembros de sus equipos propietarios, y los administradores y propietarios de tu proyecto. Nadie más en el proyecto puede abrirla.
+Una alerta privada solo la ven sus propietarios, es decir, los usuarios propietarios y los miembros de sus equipos propietarios, y los Administradores del proyecto y Propietarios del proyecto. Nadie más en el proyecto puede abrirla.
 
 Haz privada una alerta con **Alerta privada** en **Más campos** del formulario de creación o en los criterios de un monitor, con **Alertas → Reglas → Reglas de privacidad**, o más tarde en su página **Ajustes**, que pregunta **¿Hacer privada esta alerta?** antes de ocultarla. Si no eres ninguna de esas personas, también pierdes el acceso.
 
@@ -161,7 +161,7 @@ Un episodio que abre una alerta privada no es privado, así que nunca muestra el
 ## Quién se entera de una alerta
 
 - **La guardia.** Las políticas de guardia de la alerta avisan a sus personas, cada una como lo haya configurado en **Ajustes de usuario → Cómo contactarme**, en la pestaña **Alertas**. Responder al aviso reconoce la alerta y los avisos se detienen.
-- **Sus propietarios.** Por correo electrónico, salvo que hayan elegido otros canales en **Ajustes de usuario → Ajustes de notificaciones**, en la pestaña **Alertas**: **Alerta creada**, **El estado de la alerta ha cambiado** y **Recordatorio de alerta** están activados por defecto, y **Nota de alerta publicada** y **Añadido como propietario de la alerta** están desactivados hasta que alguien los active. Una alerta sin propietarios notifica en su lugar a los propietarios del proyecto. Si OneUptime se detiene mientras envía una notificación, las personas a las que aún no había llegado la reciben cuando OneUptime vuelve, unos minutos tarde, y nadie la recibe dos veces.
+- **Sus propietarios.** Por correo electrónico, salvo que hayan elegido otros canales en **Ajustes de usuario → Ajustes de notificaciones**, en la pestaña **Alertas**: **Alerta creada**, **El estado de la alerta ha cambiado** y **Recordatorio de alerta** están activados por defecto, y **Nota de alerta publicada** y **Añadido como propietario de la alerta** están desactivados hasta que alguien los active. Una alerta sin propietarios notifica en su lugar a los Propietarios del proyecto. A quien ya le haya llegado el aviso de guardia de la alerta no se le vuelve a notificar que se creó. Si OneUptime se detiene mientras envía una notificación, las personas a las que aún no había llegado la reciben cuando OneUptime vuelve, unos minutos tarde, y nadie la recibe dos veces.
 - **Tus herramientas de chat.** **Alertas → Espacio de trabajo** contiene las reglas de Slack y Microsoft Teams que publican alertas y episodios en canales. Consulta [Slack](/docs/workspace-connections/slack) y [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Solución de problemas

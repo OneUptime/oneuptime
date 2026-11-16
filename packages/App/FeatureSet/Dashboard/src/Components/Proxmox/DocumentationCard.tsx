@@ -10,6 +10,7 @@ import {
   getProxmoxSetupGuide,
   resolveProxmoxConnectMethod,
 } from "../../Pages/Proxmox/Utils/DocumentationMarkdown";
+import { PROXMOX_DOCUMENTATION_TRANSLATIONS } from "../../Pages/Proxmox/Utils/DocumentationTranslations";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends SetupGuideFrameProps {
@@ -45,6 +46,7 @@ const ProxmoxDocumentationCard: FunctionComponent<ComponentProps> = (
           clusterName: props.clusterName,
         });
       }}
+      translations={PROXMOX_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

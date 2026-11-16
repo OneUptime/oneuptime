@@ -796,6 +796,13 @@ services:
       # false / 0 / no in config.env to opt out; anything else keeps logging.
       NGINX_INGEST_ACCESS_LOG: ${NGINX_INGEST_ACCESS_LOG:-on}
       DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INGRESS}
+      # The App applies the schema migrations at boot. The ingress's Node
+      # sidecar connects to Postgres too, and applied them as well: on a first
+      # boot the two migrated the same database at once, with deadlocks and
+      # "already exists" failures only the retries got past (#8417). Off, it
+      # waits until the App has applied them (SchemaMigrationWait), as the
+      # Helm chart's runtime pods wait for its migrate Job.
+      RUN_DATABASE_MIGRATIONS_ON_BOOT: "false"
     ports:
       - "${ONEUPTIME_HTTP_PORT}:7849"
       - "${STATUS_PAGE_HTTPS_PORT}:7850"

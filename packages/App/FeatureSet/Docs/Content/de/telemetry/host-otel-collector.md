@@ -513,7 +513,7 @@ Jede Konfiguration folgt derselben Form: Receiver für das, was gelesen wird, di
 
 ### Host-Metriken
 
-`hostmetrics` funktioniert auf jedem Betriebssystem. Er liest CPU, Speicher, Datenträger, Dateisysteme, Netzwerk, Last, Paging und Prozesse aus dem Kernel, jeweils im Abstand von `collection_interval`. Die Metriken `*.utilization` und `system.cpu.logical.count` sind im Receiver standardmäßig aus, die Diagramme des Hosts und die Host-Alarmvorlagen lesen sie aber, also lassen Sie sie wie in den Konfigurationen oben aktiviert. Der Scraper `process` speist die Seite **Prozesse**; er ist zugleich die größte Quelle von Serien (siehe [Weniger senden](#die-erfasste-datenmenge-verringern)).
+`hostmetrics` funktioniert auf jedem Betriebssystem. Er liest CPU, Speicher, Datenträger, Dateisysteme, Netzwerk, Last, Paging und Prozesse aus dem Kernel, jeweils im Abstand von `collection_interval`. Die Metriken `*.utilization` und `system.cpu.logical.count` sind im Receiver standardmäßig aus, die Diagramme des Hosts und die Host-Warnungsvorlagen lesen sie aber, also lassen Sie sie wie in den Konfigurationen oben aktiviert. Der Scraper `process` speist die Seite **Prozesse**; er ist zugleich die größte Quelle von Serien (siehe [Weniger senden](#die-erfasste-datenmenge-verringern)).
 
 Unter Linux liest der Collector `/proc` und `/sys`. Ein Collector in einem Container muss die des Hosts einhängen und `HOST_PROC` und `HOST_SYS` setzen (siehe [In einem Docker-Container](#in-einem-docker-container)); eine native Installation braucht nichts davon.
 
@@ -981,7 +981,7 @@ receivers:
           match_type: strict
 ```
 
-Damit fällt der Receiver auf seine Standardmetriken zurück: Setzen Sie die Blöcke `metrics:` der Konfigurationen oben wieder unter `cpu`, `memory`, `filesystem` und `process` ein, wenn Sie die Diagramme des Hosts und die Host-Alarmvorlagen nutzen.
+Damit fällt der Receiver auf seine Standardmetriken zurück: Setzen Sie die Blöcke `metrics:` der Konfigurationen oben wieder unter `cpu`, `memory`, `filesystem` und `process` ein, wenn Sie die Diagramme des Hosts und die Host-Warnungsvorlagen nutzen.
 
 ### Die systemd-Units einschränken
 
@@ -1178,7 +1178,7 @@ service:
 Fügen Sie eine Pipeline `logs` mit einem engen Receiver `filelog` oder `journald` wieder hinzu, wenn Sie sie brauchen.
 
 > [!CAUTION]
-> Achten Sie darauf, was Sie kürzen. Ein Log-Monitor braucht seine Logs; wer einen Schweregrad oder einen Kanal herausfiltert, bringt die Monitore zum Schweigen, die ihn beobachten, und die Host-Alarmvorlagen brauchen die Metriken `*.utilization`. Kürzen Sie die Daten, nach denen Sie nicht handeln, nicht die Daten, die ein Monitor beobachtet, und prüfen Sie den Rückgang ein, zwei Tage später unter **Projekteinstellungen → Telemetrie & APM → Nutzung** (die Nutzung wird pro Tag gezählt), bevor Sie den nächsten Hebel ziehen.
+> Achten Sie darauf, was Sie kürzen. Ein Log-Monitor braucht seine Logs; wer einen Schweregrad oder einen Kanal herausfiltert, bringt die Monitore zum Schweigen, die ihn beobachten, und die Host-Warnungsvorlagen brauchen die Metriken `*.utilization`. Kürzen Sie die Daten, nach denen Sie nicht handeln, nicht die Daten, die ein Monitor beobachtet, und prüfen Sie den Rückgang ein, zwei Tage später unter **Projekteinstellungen → Telemetrie & APM → Nutzung** (die Nutzung wird pro Tag gezählt), bevor Sie den nächsten Hebel ziehen.
 
 ## Selbst gehostetes OneUptime und Proxys
 
@@ -1200,7 +1200,7 @@ Hinter einem Proxy verwendet der Collector die Standardvariablen `HTTPS_PROXY`, 
 
 ## KI-Agent
 
-Der Collector sendet, was ein Host meldet; der **Host-KI-Agent** lässt OneUptime AI den Host selbst befragen, während sie dort einen Vorfall oder Alarm untersucht. Er führt lesende Befehle aus — `systemctl status nginx --no-pager -n 50`, `journalctl -u nginx -n 200 --no-pager`, `df -h`, `free -m`, `ps aux --sort=-%cpu`, `ss -tulpn` — und wendet nur mit Ihrer Erlaubnis Korrekturen an, etwa den Neustart einer benannten systemd-Unit. Er ist ein Linux-Container (Image `oneuptime/resource-ai-agent:release`) mit eigenem Installer, der Docker (die System-Engine, nicht rootless Docker) und das Docker-Compose-Plugin braucht:
+Der Collector sendet, was ein Host meldet; der **Host-KI-Agent** lässt OneUptime AI den Host selbst befragen, während sie dort einen Vorfall oder eine Warnung untersucht. Er führt lesende Befehle aus — `systemctl status nginx --no-pager -n 50`, `journalctl -u nginx -n 200 --no-pager`, `df -h`, `free -m`, `ps aux --sort=-%cpu`, `ss -tulpn` — und wendet nur mit Ihrer Erlaubnis Korrekturen an, etwa den Neustart einer benannten systemd-Unit. Er ist ein Linux-Container (Image `oneuptime/resource-ai-agent:release`) mit eigenem Installer, der Docker (die System-Engine, nicht rootless Docker) und das Docker-Compose-Plugin braucht:
 
 ```bash
 curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
@@ -1209,7 +1209,7 @@ sudo bash install.sh
 
 Jede OneUptime-Instanz stellt diesen Installer für ihr eigenes Release bereit: Laden Sie ihn bei einer selbst gehosteten Instanz von Ihrer URL statt von `https://oneuptime.com` herunter. Er wird zuerst als `install.sh` gespeichert, sodass Sie ihn lesen können, bevor Sie ihn ausführen.
 
-- **KI-Untersuchungen sind standardmäßig aktiviert.** Sobald der Agent verbunden ist, untersucht OneUptime AI Vorfälle und Alarme auf diesem Host mit ihm, und die **Übersicht** des Hosts zeigt den Status des Agents an. Zum Beenden setzen Sie `ONEUPTIME_AI_INVESTIGATION=false` dort, wo der Agent läuft (**Ändern** unter **Was die KI tun darf** auf der Seite des KI-Agents zeigt, wie), oder entfernen den Agent.
+- **KI-Untersuchungen sind standardmäßig aktiviert.** Sobald der Agent verbunden ist, untersucht OneUptime AI Vorfälle und Warnungen auf diesem Host mit ihm, und die **Übersicht** des Hosts zeigt den Status des Agents an. Zum Beenden setzen Sie `ONEUPTIME_AI_INVESTIGATION=false` dort, wo der Agent läuft (**Ändern** unter **Was die KI tun darf** auf der Seite des KI-Agents zeigt, wie), oder entfernen den Agent.
 - Er registriert sich unter `HOST_NAME`; lassen Sie ihn leer, um den eigenen Hostnamen des Hosts zu verwenden, den dieser Collector als `host.name` meldet, sofern Sie keinen anderen Namen setzen. Beide müssen übereinstimmen, damit der Agent den Host bedient, den dieser Collector angelegt hat. Er erscheint in OneUptime auf der Seite **KI-Agent** des Hosts.
 - Er führt die eigenen Programme des Hosts aus und betritt dazu mit `nsenter` die Namespaces des Hosts; deshalb läuft er privilegiert, als root, mit `pid: host`: Er ist root auf dem Host. Die Grenze ist die Befehlsrichtlinie des Agents: lesende Befehle, solange Sie nicht `ONEUPTIME_AI_ALLOW_WRITES=true` setzen, nie eine Shell, `sudo` oder ein Programm außerhalb seiner Liste und nie er selbst, die Unit dieses Collectors oder etwas in `ONEUPTIME_AI_PROTECTED_TARGETS`.
 - Mit `ONEUPTIME_AI_ALLOW_WRITES=true` beschränkt `ONEUPTIME_AI_WRITE_TARGETS` (vollständige Unit-Namen wie `nginx.service,app-*`), welche Units eine Korrektur berühren darf. `ONEUPTIME_AI_FIXES` legt fest, wie Korrekturen laufen — `ask-for-approval` (eine Person genehmigt jede), `automatic` oder `bypass-approval` —, und die Seite des KI-Agents zeigt es schreibgeschützt an; der Installer schreibt beide aus seiner Umgebung in die `.env` des Agents ([Was die KI tun darf, vom Agent festgelegt](/docs/ai/infrastructure-ai-agents#was-die-ki-tun-darf-vom-agenten-festgelegt)).
@@ -1252,7 +1252,7 @@ Dem Dienst fehlen die Rechte. Führen Sie ihn als `LocalSystem` aus (der Standar
 - Ein Scrape-Fehler pro Unit oder ein Collector, der wegen einer unbekannten Metrik nicht startet, ist ein Versionsunterschied: v0.142.0 liest cgroup-Statistiken auf jeder Unit und nennt seine CPU-Metrik `systemd.unit.cpu.time`; v0.143.0 und neuer lesen nur Dienste und nennen sie `systemd.service.cpu.time`. Verwenden Sie v0.143.0 oder neuer und nennen Sie in jeder Überschreibung `metrics:` den Schlüssel, den Ihr Build hat.
 :::
 
-:::details Die CPU- und Speicherdiagramme oder die Host-Alarmvorlagen zeigen keine Daten
+:::details Die CPU- und Speicherdiagramme oder die Host-Warnungsvorlagen zeigen keine Daten
 Sie lesen `system.cpu.utilization`, `system.memory.utilization` und `system.filesystem.utilization`, die `hostmetrics` ausgeschaltet lässt, solange Sie sie nicht aktivieren. Kopieren Sie die Blöcke `metrics:` unter `cpu`, `memory` und `filesystem` aus den Konfigurationen oben in Ihre und starten Sie den Collector neu.
 :::
 

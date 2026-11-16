@@ -132,6 +132,13 @@ jobs:
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/MobileApp
+      # The repository's own lint rules (Scripts/Lint, wired in by
+      # eslint.config.js), on planted snippets that must and must not be
+      # reported, before the lint they take part in: a rule that stopped
+      # reporting would leave the lint green and the code scanning guards to
+      # find the copy on main. Seconds; it needs only the root install above.
+      - name: Test the repository's own lint rules
+        run: npm run test-lint-rules
       - run: npm run lint
       - name: Validate locale files (key parity + placeholders)
         run: npm run i18n:validate

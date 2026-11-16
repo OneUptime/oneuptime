@@ -35,7 +35,7 @@ flowchart TB
 
 ## Antes de empezar
 
-- **Un propietario o administrador del proyecto.** Solo ellos pueden conectar, probar y editar cuentas en la nube.
+- **Un Propietario del proyecto o un Administrador del proyecto.** Solo ellos pueden conectar, probar y editar cuentas en la nube.
 - **El terminal de tu nube** (AWS CloudShell, Azure Cloud Shell o Google Cloud Shell), con una sesión iniciada por alguien que pueda crear un rol o usuario de IAM, un registro de aplicación o una cuenta de servicio.
 
 ## Amazon Web Services

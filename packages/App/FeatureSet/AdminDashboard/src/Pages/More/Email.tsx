@@ -182,6 +182,7 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
             <div className="flex w-full justify-end mt-3 space-x-3">
               <Button
                 title={t("pages.moreEmail.sendTestButton")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.NORMAL}
                 onClick={() => {
                   const subject: string = String(
@@ -207,6 +208,7 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
               />
               <Button
                 title={t("pages.moreEmail.sendAllButton")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.PRIMARY}
                 isLoading={isSendingAll}
                 onClick={() => {
@@ -237,6 +239,7 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
       {showTestModal ? (
         <Modal
           title={t("pages.moreEmail.testModalTitle")}
+          isTitleTranslated={true}
           description={t("pages.moreEmail.testModalDescription")}
           onClose={() => {
             setShowTestModal(false);
@@ -287,6 +290,7 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
       {showConfirmModal ? (
         <ConfirmModal
           title={t("pages.moreEmail.confirmTitle")}
+          isTitleTranslated={true}
           description={t("pages.moreEmail.confirmDescription")}
           submitButtonText={t("pages.moreEmail.confirmButton")}
           onSubmit={async () => {

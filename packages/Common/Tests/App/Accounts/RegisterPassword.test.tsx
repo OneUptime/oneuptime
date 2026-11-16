@@ -31,6 +31,14 @@ import Navigation from "../../../UI/Utils/Navigation";
 import UserUtil from "../../../UI/Utils/User";
 import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/first-account"]);
 
 /*
  * The server does not require single sign-on here, and says so at once: the

@@ -3,6 +3,10 @@
  */
 import "@testing-library/jest-dom";
 import {
+  NO_BREAK_SPACE,
+  withNumbersKeptWithUnits,
+} from "../../../Types/NoBreakSpaces";
+import {
   afterEach,
   beforeAll,
   beforeEach,
@@ -75,9 +79,15 @@ function worded(
     translated: true,
   });
 
-  return Object.keys(values).reduce((sentence: string, name: string) => {
-    return sentence.split(`{{${name}}}`).join(values[name] as string);
-  }, text as string);
+  // As the page's Translator sets it: a duration's figure held (#8770).
+  return Object.keys(values).reduce(
+    (sentence: string, name: string) => {
+      return sentence.split(`{{${name}}}`).join(values[name] as string);
+    },
+    withNumbersKeptWithUnits(text as string, key.replace(/_one$/, ""), {
+      durationWords: true,
+    }),
+  );
 }
 
 function translatorFor(
@@ -191,7 +201,7 @@ describe("the telemetry overviews' refresh control in German and Arabic", () => 
     expect(options[0]).toBe(worded(DE, "Off"));
     // The interval is German too, not English's short "30s" (issue #7303).
     expect(options).toContain(
-      worded(DE, "Every {{interval}}", { interval: "30 Sek." }),
+      worded(DE, "Every {{interval}}", { interval: `30${NO_BREAK_SPACE}Sek.` }),
     );
     expect(options.join(" ")).not.toContain("Every");
     expect(options.join(" ")).not.toContain("30s");

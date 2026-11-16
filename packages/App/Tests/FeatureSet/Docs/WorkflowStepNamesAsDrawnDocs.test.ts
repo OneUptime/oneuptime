@@ -146,10 +146,26 @@ function edgeOutputs(code: string): Array<string> {
   );
 }
 
+// A diagram's line break (<br/>), which keeps a long label inside the docs column.
+const LABEL_BREAK: RegExp = /<br\/>/g;
+
+/*
+ * A diagram's node labels, each also as one line: a title broken to fit
+ * the column is still the title (" " where the break stands for a space,
+ * nothing where a Chinese or Japanese line breaks between characters).
+ */
 function nodeTitles(code: string): Array<string> {
-  return Array.from(code.matchAll(NODE_LABEL)).map(
-    (match: RegExpMatchArray): string => {
-      return match[1] as string;
+  return Array.from(code.matchAll(NODE_LABEL)).flatMap(
+    (match: RegExpMatchArray): Array<string> => {
+      const label: string = match[1] as string;
+
+      return label.includes("<br/>")
+        ? [
+            label,
+            label.replace(LABEL_BREAK, " "),
+            label.replace(LABEL_BREAK, ""),
+          ]
+        : [label];
     },
   );
 }
@@ -251,7 +267,13 @@ describe("the names a step defines", () => {
     expect(WORKFLOW_STEP_OUTPUTS.has("Success")).toBe(true);
     expect(WORKFLOW_STEP_TITLES.has("Log")).toBe(true);
     expect(isLookedUp("Success")).toBe(true);
-    expect(isLookedUp("Send Message to Slack")).toBe(false);
+    // Every name of the step catalogue is a key since #8359.
+    expect(isLookedUp("Send Message to Slack")).toBe(true);
+    expect(
+      Array.from(WORKFLOW_STEP_NAMES).filter((name: string): boolean => {
+        return !isLookedUp(name);
+      }),
+    ).toEqual([]);
   });
 
   it("are drawn in German and Persian as the locales word them", () => {
@@ -262,12 +284,59 @@ describe("the names a step defines", () => {
     expect(drawnStepName("fa", "Success")).toBe("موفق");
     expect(drawnStepName("fa", "Incident Template")).toBe("قالب حادثه");
     expect(drawnStepName("de", "Response Body")).toBe("Antworttext");
-    // No key: drawn in English in every language.
+    // Drawn in English in every language until #8359 gave them keys.
     expect(drawnStepName("de", "Send Message to Slack")).toBe(
-      "Send Message to Slack",
+      "Nachricht an Slack senden",
     );
-    expect(isDrawnOtherwise("de", "Send Message to Slack")).toBe(false);
+    expect(drawnStepName("de", "Response Status")).toBe("Antwortstatus");
+    expect(drawnStepName("fa", "IRC Server")).toBe("سرور IRC");
+    expect(isDrawnOtherwise("de", "Send Message to Slack")).toBe(true);
     expect(isDrawnOtherwise("de", "Success")).toBe(true);
+    /*
+     * A record step's title is built from its model's name, from a sentence
+     * every language words (#8642): drawn as that sentence, the model by
+     * the language's word for it.
+     */
+    expect(dashboardLocale("en")["On Create Incident"]).toBeUndefined();
+    expect(isLookedUp("On Create Incident")).toBe(true);
+    expect(drawnStepName("de", "On Create Incident")).toBe(
+      "Bei Erstellung: Vorfall",
+    );
+    expect(drawnStepName("de", "Find One Incident")).toBe(
+      "Vorfall finden (einzeln)",
+    );
+    expect(drawnStepName("fa", "On Create Incident")).toBe("هنگام ساخت حادثه");
+    expect(drawnStepName("ar", "Update One Alert")).toBe(
+      "تحديث تنبيه (سجل واحد)",
+    );
+    expect(drawnStepName("en", "On Create Incident")).toBe(
+      "On Create Incident",
+    );
+    expect(isDrawnOtherwise("de", "On Create Incident")).toBe(true);
+    // The docs' trigger of any model reads as the same sentence, X its name.
+    expect(drawnStepName("de", "On Create X")).toBe("Bei Erstellung: X");
+    expect(drawnStepName("fr", "On Create or Update X")).toBe(
+      "À la création ou à la mise à jour : X",
+    );
+    // A product's name is kept as written, on the same-as-English list.
+    expect(isDrawnOtherwise("de", "Zabbix 6.0")).toBe(false);
+  });
+
+  it("are quoted as drawn on a translated page: the IRC step's settings in German, #8359's example", () => {
+    const page: string = readPage("de", "integrations/irc");
+
+    for (const name of [
+      "Nachricht an IRC senden",
+      "IRC-Server",
+      "SASL-Benutzername",
+      "Ohne Beitritt senden",
+    ]) {
+      expect(boldNames(page)).toContain(name);
+    }
+
+    for (const name of ["Send Message to IRC", "IRC Server", "SASL Username"]) {
+      expect(boldNames(page)).not.toContain(name);
+    }
   });
 });
 
@@ -417,6 +486,25 @@ describe("the guard itself", () => {
     expect(isDrawnOtherwise("de", "Success")).toBe(true);
   });
 
+  it("finds a record step's title put back in English on a German page (#8708)", () => {
+    const page: string = readPage("de", "integrations/irc");
+    const reverted: string = page
+      .split("**Bei Erstellung: Vorfall**")
+      .join("**On Create Incident**");
+
+    expect(reverted).not.toBe(page);
+    expect(boldNames(page)).not.toContain("On Create Incident");
+    expect(boldNames(reverted)).toContain("On Create Incident");
+    expect(isStepNameOnPage("integrations/irc", "On Create Incident")).toBe(
+      true,
+    );
+    expect(isDrawnOtherwise("de", "On Create Incident")).toBe(true);
+    // Every model's record steps are named, X standing for any model's.
+    expect(WORKFLOW_STEP_TITLES.has("On Create Alert")).toBe(true);
+    expect(WORKFLOW_STEP_TITLES.has("Find Many Monitors")).toBe(true);
+    expect(WORKFLOW_STEP_TITLES.has("On Create X")).toBe(true);
+  });
+
   it("reads a page's bold names, a path whole, and a diagram's outputs", () => {
     expect(
       boldNames("**Users → User roles**, **Erfolg** and **Erfolg**"),
@@ -428,6 +516,11 @@ describe("the guard itself", () => {
       "Log",
       "If / Else",
     ]);
+    // A title broken to fit the column is still the title.
+    expect(nodeTitles('t["Bei Erstellung:<br/>Vorfall"]')).toContain(
+      "Bei Erstellung: Vorfall",
+    );
+    expect(nodeTitles('t["创建<br/>事件时"]')).toContain("创建事件时");
     expect(scanMarkdown("```mermaid\nflowchart TB\n```\n").fences.length).toBe(
       1,
     );

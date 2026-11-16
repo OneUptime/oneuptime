@@ -68,8 +68,9 @@ export const ROLE_NAMES: ReadonlyArray<string> = [
 
 /*
  * The workflow builder's components for the maintenance models: their
- * titles are made from each model's name (BaseModelComponent), in English,
- * so every language writes them as the English does.
+ * titles are made from each model's name (BaseModelComponent). The builder
+ * draws them in the reader's words (#8708), so a translation names each as
+ * its builder draws it (drawnStepName), and the English as written.
  */
 export const WORKFLOW_COMPONENTS: ReadonlyArray<string> = [
   "On Create Maintenance Event",
@@ -82,9 +83,11 @@ export const WORKFLOW_COMPONENTS: ReadonlyArray<string> = [
 
 /*
  * Bold words every language writes as the English does, by page: the
- * permissions' titles, the workflow components and the model a component is
- * named after, and the "⋯" that opens a menu. (A built-in role's name reads
- * in the page's language, as its Dashboard draws it.)
+ * permissions' titles, the model a workflow component is named after, and
+ * the "⋯" that opens a menu. The workflow components are listed here too,
+ * and a translation writes them as its builder draws them (keptWords). (A
+ * built-in role's name reads in the page's language, as its Dashboard draws
+ * it.)
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {

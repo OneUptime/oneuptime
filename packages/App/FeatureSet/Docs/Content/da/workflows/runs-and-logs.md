@@ -13,7 +13,7 @@ Hver gang en arbejdsgang kører, gemmer OneUptime en registrering af, hvad der s
 | Side                                                 | Hvad du ser                                                                                        |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | **Arbejdsgange → Protokoller → Kørsler**             | Hver kørsel af hver arbejdsgang i projektet. Filtrer på arbejdsgangsnavn, status og tid.                 |
-| **Arbejdsgang → Protokoller → Kørsler**              | Kun dette ene arbejdsgange kørsler. Her er der et filter **Kørsels-ID** i stedet for et arbejdsgangsfilter. |
+| **Arbejdsgang → Protokoller → Kørsler**              | Kun denne ene arbejdsgangs kørsler. Her er der et filter **Kørsels-ID** i stedet for et arbejdsgangsfilter. |
 | **En enkelt kørsel**                                 | Åbnes med knappen **Vis logge** på en kørsels række — selve rækkerne kan ikke klikkes.             |
 
 Starter du en kørsel fra **Bygger**, åbner den samme visning **Arbejdsgangskørsel**, som allerede følger kørslen, så du kan se den ske i stedet for at skulle lede efter den bagefter.
@@ -47,9 +47,9 @@ stateDiagram-v2
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Planlagt**                        | Triggeren blev udløst, og kørslen står i kø til en afvikler. Som regel en brøkdel af et sekund. En kørsel, der stadig er planlagt efter 5 minutter, mislykkes: intet tog den.                                                                                         |
 | **Kører**                           | Arbejdsgangen er i gang.                                                                                                                                                                                                                                                 |
-| **Venter**                          | Kørslen holder ved en **Sleep**-blok og fortsætter af sig selv. Den optager ingen worker, mens den venter.                                                                                                                                                           |
+| **Venter**                          | Kørslen holder ved en **Pause**-blok og fortsætter af sig selv. Den optager ingen worker, mens den venter.                                                                                                                                                           |
 | **Udført**                        | Kørslen nåede slutningen uden at mislykkes. Det er successtatussen: pillen siger **Udført**, ikke «Lykkedes».                                                                                                                                                       |
-| **Fejl**                            | En blok stoppede kørslen eller mislykkedes uden noget forbundet til sin udgang **Fejl**. Bruges også, når en kørsel i kø aldrig bliver taget, når genoptagelsen af en sovende kørsel går tabt, når et tidsplanudtryk ikke kan opløses, og når arbejdsgangen blev slået fra eller arkiveret, mens kørslen ventede ved en **Sleep**-blok. |
+| **Fejl**                            | En blok stoppede kørslen eller mislykkedes uden noget forbundet til sin udgang **Fejl**. Bruges også, når en kørsel i kø aldrig bliver taget, når genoptagelsen af en sovende kørsel går tabt, når et tidsplanudtryk ikke kan opløses, og når arbejdsgangen blev slået fra eller arkiveret, mens kørslen ventede ved en **Pause**-blok. |
 | **Tidsgrænse overskredet**          | Kørslen tog længere tid end tilladt: 2 minutter som standard. Se [Hvor længe en kørsel må tage](/docs/workflows/configuration#hvor-længe-en-kørsel-må-tage).                                                                                                             |
 | **Udførelse overskred aktuel plan** | Projektet har brugt sine arbejdsgangskørsler for de seneste 30 dage, eller abonnementet er ubetalt. Kørslen registreres, men udføres ikke. Kun OneUptime Cloud.                                                                                                         |
 
@@ -81,7 +81,7 @@ Nogle få kørsler læses anderledes:
 - **En testkørsel.** En kørsel, som nogen startede med **Kør arbejdsgang** eller **Run just this step**, mens arbejdsgangen var slået fra, siger **Testkørsel** øverst, med hvem der startede den, og begge lister over kørsler markerer den som **Testkørsel** ved siden af dens status. Dens blokke kørte for alvor; kun arbejdsgangens trigger var sat på pause. Filtrér på **Testkørsel** for kun at vise testkørslerne, eller kun de andre.
 - **En test af ét trin.** En kørsel, der blev startet med **Run just this step**, siger **Only this step ran** øverst. Trinnene før det kørte ikke, så værdier, det læser fra dem, mangler (forvent en advarsel **Did not resolve** for dem), og trinnene efter det siger **(not run in this test)**. Brug **Kør arbejdsgang** til at prøve hele vejen.
 - **En kørsel, der stoppede mellem trin.** Stoppede kørslen af en grund, som intet trin forklarer — den løb tør for tid mellem to trin, eller den mislykkedes før sit første trin —, slutter vejen med **The run stopped here** og årsagen.
-- **En sovende kørsel.** En kørsel, der venter ved en **Sleep**-blok, slutter med **Sleeping** og det tidspunkt, hvor den fortsætter af sig selv; trinnene efter Sleep siger **(not run yet)**.
+- **En sovende kørsel.** En kørsel, der venter ved en **Pause**-blok, slutter med **Sleeping** og det tidspunkt, hvor den fortsætter af sig selv; trinnene efter Sleep siger **(not run yet)**.
 
 ID'et under hvert trins titel er præcis det, der skal stå i en `{{local.components.<id>.returnValues.…}}`-reference, hvilket gør dette til den hurtigste måde at få en reference rigtig på.
 
@@ -109,8 +109,8 @@ En download indeholder intet, du ikke allerede kunne læse i kørslen. Hemmeligh
 ## Fejlfinding
 
 :::details Min arbejdsgang kørte ikke
-1. Sørg for, at arbejdsgangen er **Aktiveret**: kontakten sidder øverst i dens **Bygger**, som siger det over lærredet, når arbejdsgangen er slået fra. Nye arbejdsgange starter deaktiveret, og mens en arbejdsgang er slået fra, starter dens trigger den ikke: kun **Kør arbejdsgang** og **Run just this step** gør, som testkørsler. Et webhook-kald til det får HTTP 400 med en meddelelse om, hvordan du slår det til.
-2. For en OneUptime-begivenhedstrigger skal du bekræfte, at begivenheden faktisk skete: åbn posten, og tjek dens historik. En **On Update**-trigger med **Fields to watch** udløses kun, når et af de felter ændrede sig.
+1. Sørg for, at arbejdsgangen er **Aktiveret**: kontakten sidder øverst i dens **Bygger**, som siger det over lærredet, når arbejdsgangen er slået fra. Nye arbejdsgange starter deaktiveret, og mens en arbejdsgang er slået fra, starter dens trigger den ikke: kun **Kør arbejdsgang** og **Run just this step** gør, som testkørsler. Et webhook-kald til den får HTTP 400 med en meddelelse om, hvordan du slår den til.
+2. For en OneUptime-begivenhedstrigger skal du bekræfte, at begivenheden faktisk skete: åbn posten, og tjek dens historik. En **On Update**-trigger med **Felter, der holdes øje med** udløses kun, når et af de felter ændrede sig.
 3. For en webhook-trigger skal du bekræfte, at det andet system sender til den rigtige URL. De fleste værktøjer logger, når de sender en webhook — tjek dér.
 4. For en tidsplantrigger skal du bekræfte, at cron-udtrykket svarer til det tidspunkt, du forventer. Tidsplaner kører i UTC.
 

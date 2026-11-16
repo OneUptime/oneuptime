@@ -16,7 +16,9 @@ export interface ComponentProps {
  * "Go to Notification Methods": the pages of this project an answer to
  * "how do I...?" sends the reader to, as buttons under it (issue #6828).
  * Only pages the answer cites, each a route of the Dashboard's own
- * (AskAiPageLinks). Named as Search names them, in the reader's language.
+ * (AskAiPageLinks). Named as Search names them, in the reader's language:
+ * by the page's own key, so an explorer's Insights tab reads the tab's
+ * word ("Análisis"), not OneUptime AI's findings' ("Hallazgos", #8817).
  */
 const AskAiPageButtons: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -46,7 +48,13 @@ const AskAiPageButtons: FunctionComponent<ComponentProps> = (
           >
             <span>
               {translator.translateTemplate("Go to {{page}}", {
-                page: translator.translateText(link.title) || link.title,
+                // A template's values are another product's name, as written (#8834).
+                page: link.titleValues
+                  ? translator.translateTemplate(
+                      link.titleKey,
+                      link.titleValues,
+                    )
+                  : translator.translateText(link.titleKey) || link.title,
               })}
             </span>
             <Icon

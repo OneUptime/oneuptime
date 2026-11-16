@@ -96,7 +96,15 @@ const KNOWN_FILES: Record<string, KnownFile> = {
   },
   "Common/Server/Utils/Monitor/NetworkInventoryUtil.ts": {
     role: "store",
-    why: "writes the snapshot the walk hands it",
+    why: "hands the snapshot the walk gives it to the poll's verdict statement",
+  },
+  /*
+   * Since issue #7393 the snapshot rides in the poll's one compare-and-set
+   * statement with the verdict: it writes the column, and reads no row.
+   */
+  "Common/Server/Services/NetworkDeviceService.ts": {
+    role: "store",
+    why: "writes the snapshot with the poll's verdict (writePollVerdict)",
   },
   "Common/Models/DatabaseModels/NetworkDevice.ts": {
     role: "other",

@@ -16,7 +16,9 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { IOT_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/IoTMetricDescriptions";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Devices in a single fleet. Reads the IoTDevice Postgres inventory
@@ -154,7 +156,7 @@ const IoTFleetDevices: FunctionComponent<
                     isLow ? "text-red-700" : "text-gray-700"
                   }`}
                 >
-                  {formatPercent(battery)}
+                  {getValueOrQuietDash(formatPercent(battery))}
                 </span>
               );
             },
@@ -176,7 +178,7 @@ const IoTFleetDevices: FunctionComponent<
               }
               return (
                 <span className="text-sm text-gray-700">
-                  {Number(item.latestSignalStrengthDbm).toFixed(0)} dBm
+                  {`${Number(item.latestSignalStrengthDbm).toFixed(0)}\u00A0dBm`}
                 </span>
               );
             },
@@ -198,7 +200,7 @@ const IoTFleetDevices: FunctionComponent<
               }
               return (
                 <span className="text-sm text-gray-700">
-                  {Number(item.latestTemperatureCelsius).toFixed(1)} °C
+                  {`${Number(item.latestTemperatureCelsius).toFixed(1)}\u00A0°C`}
                 </span>
               );
             },

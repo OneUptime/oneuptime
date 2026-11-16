@@ -1,6 +1,7 @@
 import { expect, Locator, Page, Route, test, TestInfo } from "@playwright/test";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * A dashboard's default time range and auto-refresh, and each viewer's own
@@ -1422,11 +1423,14 @@ test.describe("the dashboard inside OneUptime at any width", () => {
   });
 
   /*
-   * A chart half of a 600px window's board is about 250px wide, and its
-   * legend's chip has less room than its series' name and value need. The
-   * value kept its whole width and the name shrank to nothing; now the
-   * name gives way first but keeps its first letters, and then the value
-   * is cut, inside the chip, never under its Investigate button.
+   * A chart half of a 600px window's board is about 250px wide. Its legend's
+   * chip had less room than its series' name and value needed ("93.9 req per
+   * Second"): the value kept its whole width and the name shrank to nothing.
+   * Since 402952d7b03 the value reads "93.9 req/s" and the chip holds both
+   * whole there. On a chip with less room still - its row narrowed, as a
+   * narrower chart's would be - the name gives way first but keeps its first
+   * letters, and then the value is cut, inside the chip, never under its
+   * Investigate button.
    */
   test("on a narrow chart the legend's chip keeps its series' name and stays inside its frame", async ({
     page,
@@ -1437,43 +1441,74 @@ test.describe("the dashboard inside OneUptime at any width", () => {
     await openApp(page, "wall", "Past 1 Day");
     await settledBoard(page);
 
-    const chip: {
+    interface Chip {
       row: number;
       chip: number;
       name: number;
+      nameCut: boolean;
       valueRight: number;
       investigateLeft: number;
       valueCut: boolean;
-    } = await page.evaluate(() => {
-      const button: HTMLElement = document.querySelector(
-        '[id^="dashboard-component-"] button[aria-pressed]',
-      ) as HTMLElement;
-      const frame: HTMLElement = button.parentElement as HTMLElement;
-      // The colour's dot, the series' name, its value.
-      const parts: Array<Element> = Array.from(button.children);
-      const name: HTMLElement = parts[1] as HTMLElement;
-      const value: HTMLElement = parts[2] as HTMLElement;
-      const investigate: HTMLElement = frame.children[1] as HTMLElement;
+    }
 
-      return {
-        row: (frame.parentElement as HTMLElement).getBoundingClientRect().right,
-        chip: frame.getBoundingClientRect().right,
-        name: name.getBoundingClientRect().width,
-        valueRight: value.getBoundingClientRect().right,
-        investigateLeft: investigate.getBoundingClientRect().left,
-        valueCut: value.scrollWidth > value.clientWidth,
-      };
-    });
+    // The first chip, its row given `rowWidth` px when set.
+    const measure: (rowWidth: number | null) => Promise<Chip> = (
+      rowWidth: number | null,
+    ): Promise<Chip> => {
+      return page.evaluate((width: number | null): Chip => {
+        const button: HTMLElement = document.querySelector(
+          '[id^="dashboard-component-"] button[aria-pressed]',
+        ) as HTMLElement;
+        const frame: HTMLElement = button.parentElement as HTMLElement;
+        const row: HTMLElement = frame.parentElement as HTMLElement;
 
-    // The first letters of "Requests", not nothing.
-    expect(chip.name).toBeGreaterThanOrEqual(24);
-    // The value, cut, ends before the chip's Investigate button.
-    expect(chip.valueCut).toBe(true);
-    expect(chip.valueRight).toBeLessThanOrEqual(chip.investigateLeft + 0.5);
-    // And the chip inside its row.
-    expect(chip.chip).toBeLessThanOrEqual(chip.row + 0.5);
+        if (width !== null) {
+          row.style.width = `${width}px`;
+        }
+
+        // The colour's dot, the series' name, its value.
+        const parts: Array<Element> = Array.from(button.children);
+        const name: HTMLElement = parts[1] as HTMLElement;
+        const value: HTMLElement = parts[2] as HTMLElement;
+        const investigate: HTMLElement = frame.children[1] as HTMLElement;
+
+        return {
+          row: row.getBoundingClientRect().right,
+          chip: frame.getBoundingClientRect().right,
+          name: name.getBoundingClientRect().width,
+          nameCut: name.scrollWidth > name.clientWidth,
+          valueRight: value.getBoundingClientRect().right,
+          investigateLeft: investigate.getBoundingClientRect().left,
+          valueCut: value.scrollWidth > value.clientWidth,
+        };
+      }, rowWidth);
+    };
+
+    const expectInsideItsFrame: (chip: Chip) => void = (chip: Chip): void => {
+      // The value ends before the chip's Investigate button...
+      expect(chip.valueRight).toBeLessThanOrEqual(chip.investigateLeft + 0.5);
+      // ...and the chip inside its row.
+      expect(chip.chip).toBeLessThanOrEqual(chip.row + 0.5);
+    };
+
+    // In the 600px window: the whole name and the whole value.
+    const roomy: Chip = await measure(null);
+    expect(roomy.nameCut).toBe(false);
+    expect(roomy.valueCut).toBe(false);
+    expectInsideItsFrame(roomy);
 
     await shoot(page, testInfo, "app-board-600-legend");
+
+    /*
+     * A 120px row: less room than the chip's dot, the first letters of its
+     * name, its whole value and its Investigate button need.
+     */
+    const squeezed: Chip = await measure(120);
+    // The first letters of "Requests", not nothing.
+    expect(squeezed.name).toBeGreaterThanOrEqual(24);
+    // The value, cut.
+    expect(squeezed.valueCut).toBe(true);
+    expectInsideItsFrame(squeezed);
   });
 });
 
@@ -1687,4 +1722,18 @@ test.describe("the public dashboard", () => {
     await expectWidgetsRead(page, 0, 1);
     await expect(publicAutoRefresh(page)).toHaveText("");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Japanese and Persian whole, parsed on every page load of every
+ * test. English is in the bundle now, and each other language a chunk of its
+ * own, loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js),
+ * built as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja", "fa"],
+  address: (language: string): string => {
+    return appPath("wall", language === "en" ? "" : `?lang=${language}`);
+  },
 });

@@ -123,7 +123,7 @@ const CARD_DESCRIPTION: string =
 const CREATE_DENIED_MESSAGE: string =
   "You do not have permission to create this Monitor.";
 const CREATE_NOT_ALLOWED_NOTE: string =
-  "You don't have permission to create these. Ask a project admin for access.";
+  "You don't have permission to create these. Ask a Project Admin for access.";
 
 const ROWS: Array<JSONObject> = [
   { _id: "monitor-1", name: "Checkout API", description: "Payments" },
@@ -991,7 +991,7 @@ describe("a viewer who may read none of the columns", () => {
      * permissions that may read monitors.
      */
     expect(block).toHaveTextContent(
-      "You need this permission: Read Monitor. Ask a project admin for access.",
+      "You need this permission: Read Monitor. Ask a Project Admin for access.",
     );
     expect(block).not.toHaveTextContent("Project Owner");
     expect(screen.queryByTestId(NO_ITEMS_TEST_ID)).toBeNull();
@@ -1021,7 +1021,7 @@ describe("a viewer who may read none of the columns", () => {
     });
 
     expect(screen.getByTestId(`${TABLE_ID}-no-access`)).toHaveTextContent(
-      "You need this permission: Read Monitor. Ask a project admin for access.",
+      "You need this permission: Read Monitor. Ask a Project Admin for access.",
     );
     // Give the rows' read its chance to land: still no table under the state.
     await new Promise<void>((resolve: () => void) => {

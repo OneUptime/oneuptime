@@ -1897,7 +1897,7 @@ describe("what the page says", () => {
       ),
     ).toEqual({
       template: "Last read {{time}}: the traffic below stops there.",
-      values: { time: "2 minutes ago" },
+      values: { time: "2\u00A0minutes ago" },
     });
   });
 
@@ -1905,39 +1905,39 @@ describe("what the page says", () => {
     const now: Date = new Date("2026-10-24T12:00:00.000Z");
 
     expect(getMerakiReadTime("2026-10-24T11:58:00.000Z", { now })).toBe(
-      "2 minutes ago",
+      "2\u00A0minutes ago",
     );
     expect(
       getMerakiReadTime("2026-10-24T11:58:00.000Z", { now, language: "de" }),
-    ).toBe("vor 2 Minuten");
+    ).toBe("vor 2\u00A0Minuten");
     expect(
       getMerakiReadTime("2026-10-24T09:00:00.000Z", { now, language: "fr" }),
-    ).toBe("il y a 3 heures");
+    ).toBe("il y a 3\u00A0heures");
     expect(
       getMerakiConnectionSentence(connection(), { now, language: "de" }),
     ).toEqual({
       template: "Read {{time}}.",
-      values: { time: "vor 2 Minuten" },
+      values: { time: "vor 2\u00A0Minuten" },
     });
     expect(
       getMerakiConnectionSentence(
         connection({ status: NetworkControllerConnectionStatus.Failing }),
         { now, language: "ja" },
       ).values,
-    ).toEqual({ time: "2 分前" });
+    ).toEqual({ time: "2\u00A0分前" });
   });
 
   test("a read under a minute ago gives its seconds - never now, which reads as the Read now button", () => {
     const now: Date = new Date("2026-10-24T12:00:00.000Z");
 
     expect(getMerakiReadTime("2026-10-24T11:59:48.000Z", { now })).toBe(
-      "12 seconds ago",
+      "12\u00A0seconds ago",
     );
     expect(
       getMerakiReadTime("2026-10-24T11:59:48.000Z", { now, language: "de" }),
-    ).toBe("vor 12 Sekunden");
+    ).toBe("vor 12\u00A0Sekunden");
     expect(getMerakiReadTime("2026-10-24T12:00:00.000Z", { now })).toBe(
-      "1 second ago",
+      "1\u00A0second ago",
     );
   });
 
@@ -1945,7 +1945,7 @@ describe("what the page says", () => {
     const now: Date = new Date("2026-10-24T12:00:00.000Z");
 
     expect(getMerakiReadTime("2026-10-24T12:03:00.000Z", { now })).toBe(
-      "1 second ago",
+      "1\u00A0second ago",
     );
   });
 
@@ -1960,13 +1960,13 @@ describe("what the page says", () => {
         now,
         language: "not a language!",
       }),
-    ).toBe("2 minutes ago");
+    ).toBe("2\u00A0minutes ago");
     expect(
       getMerakiReadTime("2026-10-24T11:59:48.000Z", {
         now,
         language: "not a language!",
       }),
-    ).toBe("12 seconds ago");
+    ).toBe("12\u00A0seconds ago");
   });
 
   test("how often it reads", () => {

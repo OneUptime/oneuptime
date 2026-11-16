@@ -141,11 +141,17 @@ const RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
   },
 };
 
-// The statuses of a person's page that is still going out to them.
+/*
+ * The statuses of a person's page that is still going out to them - itself,
+ * or through their open page from another policy's run that it was merged
+ * into (OnCallPageMerge), which it takes over should that one end without
+ * their answer: escalating from the Dashboard or the app escalates it too.
+ */
 const SENDING_PAGE_STATUSES: Array<UserNotificationExecutionStatus> = [
   UserNotificationExecutionStatus.Scheduled,
   UserNotificationExecutionStatus.Started,
   UserNotificationExecutionStatus.Executing,
+  UserNotificationExecutionStatus.AlreadyPaged,
 ];
 
 // The statuses of a run that is still paging.
@@ -157,13 +163,16 @@ const PAGING_RUN_STATUSES: Array<OnCallDutyPolicyStatus> = [
 
 /*
  * A run's timeline line that says its person was reached and may still take
- * the page: being paged, or paged.
+ * the page: being paged, or paged - by this run, or by their open page from
+ * another policy's run that this run's page of them was merged into
+ * (OnCallPageMerge).
  */
 const STILL_ON_THE_PAGE_LINE_STATUSES: Array<OnCallDutyExecutionLogTimelineStatus> =
   [
     OnCallDutyExecutionLogTimelineStatus.Started,
     OnCallDutyExecutionLogTimelineStatus.Executing,
     OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+    OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
   ];
 
 // Where a person's page about a record stands, read before passing it on.

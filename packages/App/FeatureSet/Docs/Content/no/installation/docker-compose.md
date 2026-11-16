@@ -117,7 +117,7 @@ cp config.example.env config.env
 
 ### Angi vertsnavnet
 
-Åpne `config.env` og sett `HOST` til domenenavnet eller IP-adressen folk skal bruke for å nå OneUptime, uten `http://`. Behold `localhost` bare for å prøve OneUptime på din egen datamaskin.
+Åpne `config.env` og sett `HOST` til domenenavnet eller IP-adressen folk skal bruke for å nå OneUptime, uten `http://`. Behold `localhost` bare for å prøve OneUptime på din egen datamaskin. En IPv6-adresse skrives i hakeparenteser, som i en nettadresse, med en eventuell port etter dem: `HOST=[2001:db8::1]:8080`.
 
 ```ini title="config.env"
 HOST=oneuptime.example.com
@@ -378,7 +378,7 @@ Docker Compose kjører én kopi av hver tjeneste på én server, noe som passer 
 | **Brannmur** | Bare port 80 og 443 (og SSH) er åpne mot internett. OneUptime publiserer PostgreSQLs port 5400 bare på `127.0.0.1`. Lukk alle andre porter du publiserer, med skyleverandørens brannmur: `ufw`-regler gjelder ikke porter som Docker publiserer. |
 | **Besøkendes adresser** | Siden **OneUptime-tilstand** i Admin Dashboard sier ikke fra om at flere personer logger på fra den samme adressen. Se [Besøkendes adresser](#besøkendes-adresser). |
 | **Sikkerhetskopier** | PostgreSQL sikkerhetskopieres hver dag, og kopiene forlater serveren. Se [Sikkerhetskopiering og gjenoppretting](#sikkerhetskopiering-og-gjenoppretting). |
-| **E-post** | En e-postserver er satt opp under **Innstillinger > Varsler > E-poster** i Admin Dashboard, slik at OneUptime kan sende invitasjoner og varsler. Se [SMTP](/docs/emails/smtp). |
+| **E-post** | En e-postserver er satt opp under **Innstillinger > Varslinger > E-poster** i Admin Dashboard, slik at OneUptime kan sende invitasjoner og varslinger. Se [SMTP](/docs/emails/smtp). |
 | **Disk** | Ledig plass overvåkes. ClickHouse vokser med telemetrien du beholder (se [Dimensjonering og kapasitetsplanlegging](/docs/installation/sizing)); loggen til hver container er begrenset til 1000 MB. |
 | **Oppdateringer** | OneUptime oppdateres minst én gang i uken. Det kommer ofte nye releaser. Se [Oppdater OneUptime](#oppdater-oneuptime). |
 | **Høy tilgjengelighet** | Hvis du trenger det, går du over til [Helm-chartet](https://artifacthub.io/packages/helm/oneuptime/oneuptime) på Kubernetes. |

@@ -418,6 +418,23 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess - re-evaluation on what a
       label: "the latency threshold",
       data: { latencyThresholdInMilliseconds: 450 },
     },
+    // Which of the services' requests count (#8444).
+    {
+      label: "the request filter",
+      data: { requestFilter: "@http.route:/checkout*" },
+    },
+    { label: "the request filter cleared", data: { requestFilter: null } },
+    // What a Metric SLO counts (#8445).
+    {
+      label: "the metric",
+      data: {
+        metricQueryConfig: {
+          metricName: "http.server.request.duration",
+          kind: "Histogram",
+          goodAtOrUnder: 0.3,
+        },
+      },
+    },
   ];
 
   for (const change of changes) {
@@ -446,5 +463,327 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess - re-evaluation on what a
     await callHook("onUpdateSuccess", onUpdate, [SLO_ID]);
 
     expect(stamps()).toHaveLength(0);
+  });
+});
+
+/*
+ * A request SLO's request filter (#8444): a traces search of span
+ * attributes and the span's name. Stored trimmed, empty as no filter, and
+ * refused with what to write instead when the counting could not read it -
+ * from the dashboard, the API, Terraform or a workflow alike.
+ */
+describe("ServiceLevelObjectiveService - a request filter", () => {
+  beforeEach(() => {
+    jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([]);
+    stubProjectDirectory({});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("keeps a filter on create, trimmed", async () => {
+    const createBy: CreateBy<ServiceLevelObjective> = makeCreateBy({
+      sliType: SliType.RequestSuccess,
+      requestFilter: "  @http.route:/checkout* -@http.route:/health  ",
+    });
+
+    await callHook("onBeforeCreate", createBy);
+
+    expect(createBy.data.requestFilter).toBe(
+      "@http.route:/checkout* -@http.route:/health",
+    );
+  });
+
+  it("stores an empty filter as no filter", async () => {
+    const createBy: CreateBy<ServiceLevelObjective> = makeCreateBy({
+      sliType: SliType.RequestSuccess,
+      requestFilter: "   ",
+    });
+
+    await callHook("onBeforeCreate", createBy);
+
+    expect(createBy.data.requestFilter).toBeNull();
+  });
+
+  it("refuses free text on create, saying what a filter is", async () => {
+    await expectBadData(
+      callHook(
+        "onBeforeCreate",
+        makeCreateBy({
+          sliType: SliType.RequestSuccess,
+          requestFilter: "checkout",
+        }),
+      ),
+      '"checkout" is neither',
+    );
+  });
+
+  it("refuses the Traces explorer's status field, which would match no span's attributes", async () => {
+    await expectBadData(
+      callHook(
+        "onBeforeCreate",
+        makeCreateBy({
+          sliType: SliType.RequestSuccess,
+          requestFilter: "@http.route:/checkout* status:error",
+        }),
+      ),
+      '"status:error" is neither',
+    );
+  });
+
+  it("refuses a filter that is not text", async () => {
+    await expectBadData(
+      callHook(
+        "onBeforeCreate",
+        makeCreateBy({
+          sliType: SliType.RequestSuccess,
+          requestFilter: 42,
+        }),
+      ),
+      "The request filter must be text",
+    );
+  });
+
+  it("validates a filter on update, and clears one to null", async () => {
+    stubStoredRows([{ sliType: SliType.RequestSuccess }]);
+
+    const updateBy: UpdateBy<ServiceLevelObjective> = makeUpdateBy({
+      requestFilter: ' name:"POST /checkout" ',
+    });
+
+    await callHook("onBeforeUpdate", updateBy);
+
+    expect(updateBy.data.requestFilter).toBe('name:"POST /checkout"');
+
+    const cleared: UpdateBy<ServiceLevelObjective> = makeUpdateBy({
+      requestFilter: "",
+    });
+
+    await callHook("onBeforeUpdate", cleared);
+
+    expect(cleared.data.requestFilter).toBeNull();
+  });
+
+  it("refuses a filter too long to count with on update", async () => {
+    stubStoredRows([{ sliType: SliType.RequestSuccess }]);
+
+    await expectBadData(
+      callHook(
+        "onBeforeUpdate",
+        makeUpdateBy({ requestFilter: `@k:${"a".repeat(600)}` }),
+      ),
+      "at most 500 characters",
+    );
+  });
+
+  it("leaves an update that names no filter alone", async () => {
+    stubStoredRows([{ sliType: SliType.RequestSuccess }]);
+
+    const updateBy: UpdateBy<ServiceLevelObjective> = makeUpdateBy({
+      name: "Checkout",
+    });
+
+    await callHook("onBeforeUpdate", updateBy);
+
+    expect("requestFilter" in (updateBy.data as Record<string, unknown>)).toBe(
+      false,
+    );
+  });
+});
+
+/*
+ * A Metric SLO's metric (#8445): a counter whose good events match a
+ * condition, or a histogram whose good observations are at or under a
+ * value. Stored as the counting reads it, and a Metric SLO is never left
+ * with one it cannot count with - from the dashboard, the API, Terraform
+ * or a workflow alike.
+ */
+describe("ServiceLevelObjectiveService - a Metric SLO's metric", () => {
+  /*
+   * Whether a read made to judge the update asked for the stored metric.
+   * The feed's snapshot reads it too, so the SLO's feed can say what the
+   * metric was (readFeedSnapshotBeforeUpdate). It is told apart by the name
+   * it always reads with it.
+   */
+  function isFeedSnapshotRead(call: Array<unknown>): boolean {
+    return Boolean((call[1] as Record<string, unknown>)?.["name"]);
+  }
+
+  function readTheStoredMetric(stored: jest.SpyInstance): boolean {
+    return stored.mock.calls.some((call: Array<unknown>): boolean => {
+      return (
+        !isFeedSnapshotRead(call) &&
+        Boolean((call[1] as Record<string, unknown>)?.["metricQueryConfig"])
+      );
+    });
+  }
+
+  const COUNTER: SloFields = {
+    metricName: "http_requests_total",
+    kind: "Counter",
+    goodFilter: "@http.response.status_code:<500",
+  };
+
+  beforeEach(() => {
+    jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([]);
+    stubProjectDirectory({});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("keeps a metric on create, as the counting reads it", async () => {
+    const createBy: CreateBy<ServiceLevelObjective> = makeCreateBy({
+      sliType: SliType.Metric,
+      metricQueryConfig: {
+        metricName: "  http_requests_total ",
+        kind: "Counter",
+        goodFilter: " @http.response.status_code:<500 ",
+        goodAtOrUnder: 0.3,
+      },
+    });
+
+    await callHook("onBeforeCreate", createBy);
+
+    expect(createBy.data.metricQueryConfig).toEqual(COUNTER);
+  });
+
+  it("refuses a Metric SLO with no metric, saying what to choose", async () => {
+    await expectBadData(
+      callHook("onBeforeCreate", makeCreateBy({ sliType: SliType.Metric })),
+      "Choose the metric this SLO counts",
+    );
+  });
+
+  it("refuses a counter with no good condition, and a histogram with no value", async () => {
+    await expectBadData(
+      callHook(
+        "onBeforeCreate",
+        makeCreateBy({
+          sliType: SliType.Metric,
+          metricQueryConfig: { metricName: "m", kind: "Counter" },
+        }),
+      ),
+      "Say which of the counter's events are good",
+    );
+    await expectBadData(
+      callHook(
+        "onBeforeCreate",
+        makeCreateBy({
+          sliType: SliType.Metric,
+          metricQueryConfig: {
+            metricName: "http.server.request.duration",
+            kind: "Histogram",
+            goodAtOrUnder: -1,
+          },
+        }),
+      ),
+      "Enter the value a good observation stays at or under",
+    );
+  });
+
+  it("refuses a metric that is not an object, saying what one looks like", async () => {
+    await expectBadData(
+      callHook(
+        "onBeforeCreate",
+        makeCreateBy({
+          sliType: SliType.Metric,
+          metricQueryConfig: "http_requests_total",
+        }),
+      ),
+      "The metric query must be an object",
+    );
+  });
+
+  it("leaves another SLI type's half-filled metric alone", async () => {
+    const createBy: CreateBy<ServiceLevelObjective> = makeCreateBy({
+      sliType: SliType.RequestSuccess,
+      metricQueryConfig: { metricName: "m" },
+    });
+
+    await expect(callHook("onBeforeCreate", createBy)).resolves.toBeDefined();
+  });
+
+  it("refuses switching an SLO to Metric while it has no metric it can count", async () => {
+    stubStoredRows([{ sliType: SliType.RequestSuccess }]);
+
+    await expectBadData(
+      callHook("onBeforeUpdate", makeUpdateBy({ sliType: SliType.Metric })),
+      "Choose the metric this SLO counts",
+    );
+  });
+
+  it("switches an SLO to Metric with a metric it can count, without reading the stored one", async () => {
+    const stored: jest.SpyInstance = stubStoredRows([]);
+    const updateBy: UpdateBy<ServiceLevelObjective> = makeUpdateBy({
+      sliType: SliType.Metric,
+      metricQueryConfig: COUNTER,
+    });
+
+    await expect(callHook("onBeforeUpdate", updateBy)).resolves.toBeDefined();
+    expect(readTheStoredMetric(stored)).toBe(false);
+  });
+
+  it("reads the metric it replaces only for the feed, to say what it was", async () => {
+    const stored: jest.SpyInstance = stubStoredRows([
+      { sliType: SliType.Metric, metricQueryConfig: COUNTER },
+    ]);
+
+    await callHook(
+      "onBeforeUpdate",
+      makeUpdateBy({
+        sliType: SliType.Metric,
+        metricQueryConfig: { ...COUNTER, metricName: "rpc_requests_total" },
+      }),
+    );
+
+    const feedReads: Array<Array<unknown>> =
+      stored.mock.calls.filter(isFeedSnapshotRead);
+
+    expect(feedReads).toHaveLength(1);
+    expect(
+      (feedReads[0]![1] as Record<string, unknown>)["metricQueryConfig"],
+    ).toBe(true);
+    expect(readTheStoredMetric(stored)).toBe(false);
+  });
+
+  it("refuses clearing a Metric SLO's metric, and changing it to one it cannot count", async () => {
+    stubStoredRows([{ sliType: SliType.Metric, metricQueryConfig: COUNTER }]);
+
+    await expectBadData(
+      callHook("onBeforeUpdate", makeUpdateBy({ metricQueryConfig: null })),
+      "Choose the metric this SLO counts",
+    );
+    await expectBadData(
+      callHook(
+        "onBeforeUpdate",
+        makeUpdateBy({ metricQueryConfig: { ...COUNTER, goodFilter: "ok" } }),
+      ),
+      '"ok" is not one',
+    );
+  });
+
+  it("stores an edited metric as the counting reads it", async () => {
+    stubStoredRows([{ sliType: SliType.Metric, metricQueryConfig: COUNTER }]);
+
+    const updateBy: UpdateBy<ServiceLevelObjective> = makeUpdateBy({
+      metricQueryConfig: { ...COUNTER, filter: "  @http.route:/checkout*  " },
+    });
+
+    await callHook("onBeforeUpdate", updateBy);
+
+    expect(
+      (updateBy.data as Record<string, unknown>)["metricQueryConfig"],
+    ).toEqual({ ...COUNTER, filter: "@http.route:/checkout*" });
+  });
+
+  it("an update that touches neither the SLI type nor the metric never reads the stored metric", async () => {
+    const stored: jest.SpyInstance = stubStoredRows([]);
+
+    await callHook("onBeforeUpdate", makeUpdateBy({ name: "Checkout" }));
+
+    expect(readTheStoredMetric(stored)).toBe(false);
   });
 });

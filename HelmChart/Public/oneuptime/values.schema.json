@@ -28,7 +28,7 @@
         },
         "host": {
             "type": "string",
-            "description": "Domain name or IP where OneUptime server is hosted"
+            "description": "Domain name or IP where OneUptime server is hosted, with :port when people open it on one. An IPv6 address goes in brackets, quoted in a values file: \"[2001:db8::1]\" or \"[2001:db8::1]:8080\"."
         },
         "httpProtocol": {
             "type": "string",
@@ -3136,7 +3136,7 @@
                         "string",
                         "null"
                     ],
-                    "description": "Headers OneUptime's own telemetry is exported with: name=value, several separated by ';'. A value may hold '='."
+                    "description": "Headers OneUptime's own telemetry is exported with: name=value, several separated by ';', or by ',' with percent-encoded values as in OTEL_EXPORTER_OTLP_HEADERS. A value may hold '='."
                 },
                 "kubernetesClusterName": {
                     "type": [

@@ -44,8 +44,8 @@ const COLUMNS: Array<ResourceListColumn> = [
 function renderRow(r: KubernetesResource): ReactElement {
   const id: string = (r._id as string) || "";
   const name: string = (r.name as string) || getUnnamedText();
-  const namespace: string = (r.namespaceKey as string) || "—";
-  const clusterName: string = (r.kubernetesCluster?.name as string) || "—";
+  const namespace: string | undefined = r.namespaceKey as string;
+  const clusterName: string | undefined = r.kubernetesCluster?.name as string;
   const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
 
   let detailLink: ReactElement = <span>{name}</span>;

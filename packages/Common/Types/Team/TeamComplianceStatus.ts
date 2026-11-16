@@ -18,6 +18,56 @@ export interface TeamComplianceSeverityJSON {
   color?: string | undefined;
 }
 
+/*
+ * What is wrong with a rule itself, as data the Dashboard words in the
+ * reader's language (TeamComplianceFindings, #8632). The English sentence
+ * the server always sent stays beside it, in `warnings`.
+ */
+export enum TeamComplianceWarningKind {
+  UnknownRuleType = "unknownRuleType",
+  SeveritiesDeleted = "severitiesDeleted",
+  CustomChannelsNotActive = "customChannelsNotActive",
+  NoCustomChannelOn = "noCustomChannelOn",
+  // WhatsApp is off: members cannot add a number.
+  WhatsAppSwitchedOff = "whatsAppSwitchedOff",
+  // Call, SMS or Telegram is off: pages on it are never sent.
+  ChannelsSwitchedOff = "channelsSwitchedOff",
+}
+
+export interface TeamComplianceWarningJSON {
+  kind: TeamComplianceWarningKind;
+  // The channels switched off, in catalog order (ChannelsSwitchedOff only).
+  channels?: Array<ComplianceNotificationChannel> | undefined;
+}
+
+/*
+ * Why a member fails a rule, as data (TeamComplianceFindings, #8632): one
+ * finding per sentence of the English `reason` the server always sent.
+ */
+export enum TeamComplianceFindingKind {
+  // No verified method on the rule's channel.
+  MethodMissing = "methodMissing",
+  // No readiness could be read for the member: not checked.
+  CouldNotCheck = "couldNotCheck",
+  // No notification rule for these severities.
+  MissingRules = "missingRules",
+  // No rule on the channel for these severities.
+  NoChannelRule = "noChannelRule",
+  // A rule on the channel points at an unverified method, or an off custom channel.
+  UnusableChannelRule = "unusableChannelRule",
+  // A rule on the channel is never sent: another method on it is someone else's.
+  RefusedChannelRule = "refusedChannelRule",
+  // Opted out of these severities.
+  OptedOut = "optedOut",
+}
+
+export interface TeamComplianceFindingJSON {
+  kind: TeamComplianceFindingKind;
+  channel?: ComplianceNotificationChannel | undefined;
+  // The severities it is about, in the rule's order; a name may be empty.
+  severities?: Array<TeamComplianceSeverityJSON> | undefined;
+}
+
 export interface TeamComplianceRuleJSON {
   // TeamComplianceSetting._id. A team may hold several rules of one type.
   settingId: string;
@@ -61,14 +111,26 @@ export interface TeamComplianceRuleJSON {
    * project has the rule's channel switched off, so nobody can pass it.
    */
   warnings: Array<string>;
+  /*
+   * The same warnings as data, one for each of `warnings`, in order, for
+   * the Dashboard to word in the reader's language. Absent from a server
+   * from before #8632, which sent only the English.
+   */
+  warningDetails?: Array<TeamComplianceWarningJSON> | undefined;
 }
 
 export interface TeamComplianceIssueJSON {
   // The rule this member fails.
   settingId: string;
   ruleType: ComplianceRuleType;
-  // What is wrong, as a sentence an admin can act on.
+  // What is wrong, as a sentence an admin can act on - in English.
   reason: string;
+  /*
+   * The same as data, for the Dashboard to word in the reader's language:
+   * one finding for each sentence of `reason`. Absent from a server from
+   * before #8632.
+   */
+  findings?: Array<TeamComplianceFindingJSON> | undefined;
 }
 
 export interface TeamMemberComplianceJSON {

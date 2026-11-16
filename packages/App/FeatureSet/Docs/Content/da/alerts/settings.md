@@ -64,12 +64,12 @@ De fleste regler handler på advarsler og episoder, der oprettes, efter at du ha
 
 ### Betingelser
 
-En regels betingelser afgør, hvilke advarsler den handler på, og læses som sætninger: "Hvis **Advarselstitel** indeholder `database`", "Og **Overvågningsetiketter** har en af *Production*". En regel uden betingelser matcher hver advarsel.
+En regels betingelser afgør, hvilke advarsler den handler på, og læses som sætninger: "Hvis **Advarselstitel** indeholder `database`", "Og **Monitoretiketter** har en af *Production*". En regel uden betingelser matcher hver advarsel.
 
 | Betingelse                                                    | Sammenligner med                                                                                               |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Monitorer**, **Alvorlighedsgrader for advarsler**, **Advarselsmærkater**, **Overvågningsetiketter** | **Har en af**, **Har alle** eller **Har ingen af** de værdier, du vælger.                    |
-| **Advarselstitel**, **Beskrivelse af advarsel**, **Overvågningsnavn**, **Overvågningsbeskrivelse** | **Indeholder**, **Indeholder ikke**, **Er lig med**, **Er ikke lig med**, **Starter med**, **Slutter med**, uden hensyn til store og små bogstaver, eller **Matcher mønster** og **Matcher ikke mønster** for et regulært udtryk eller et `*`-jokertegn. |
+| **Monitorer**, **Alvorlighedsgrader for advarsler**, **Advarselsmærkater**, **Monitoretiketter** | **Har en af**, **Har alle** eller **Har ingen af** de værdier, du vælger.                    |
+| **Advarselstitel**, **Beskrivelse af advarsel**, **Monitornavn**, **Monitorbeskrivelse** | **Indeholder**, **Indeholder ikke**, **Er lig med**, **Er ikke lig med**, **Starter med**, **Slutter med**, uden hensyn til store og små bogstaver, eller **Matcher mønster** og **Matcher ikke mønster** for et regulært udtryk eller et `*`-jokertegn. |
 
 Med to eller flere betingelser vælger du **Alle skal matche**, hvor hver skal holde, eller **Én skal matche**, hvor én er nok. Episoderegler matcher i stedet en episodes alvorsgrad, etiketter, titel og beskrivelse.
 
@@ -123,7 +123,7 @@ Hændelsen får advarslens titel, beskrivelse, monitor, berørte ressourcer og e
 
 ## Privatlivs- og runbook-regler
 
-**Privatlivsregler** gør nye advarsler, der matcher, private, før noget andet kører: Kun deres ejere og projektets administratorer og ejere kan se dem. En regel har to trin: **Match**, de advarsler, den gør private, og derefter **Navn**, allerede udfyldt som "Gør advarsler private". Se [Private advarsler](/docs/alerts/index#private-advarsler).
+**Privatlivsregler** gør nye advarsler, der matcher, private, før noget andet kører: Kun deres ejere og Projektadministratorer og Projektejere kan se dem. En regel har to trin: **Match**, de advarsler, den gør private, og derefter **Navn**, allerede udfyldt som "Gør advarsler private". Se [Private advarsler](/docs/alerts/index#private-advarsler).
 
 **Runbook-regler** starter en runbook, når en ny advarsel matcher, medmindre advarslen blev oprettet løst. Se [Runbook-regler](/docs/runbooks/rules).
 
@@ -178,7 +178,7 @@ Kortet **Næste nummer** nedenunder sætter det nummer, den næste advarsel og d
 
 ## Arbejdsgange
 
-Hver advarselsmodel har arbejdsgangsudløsere og -handlinger, opkaldt efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Advarselsepisode**, **Tilstandstidslinje for advarsel** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definitionerne af brugerdefinerede felter for advarsler er den eneste undtagelse: De har ingen arbejdsgangsudløsere. Se [Arbejdsgange – Oversigt](/docs/workflows/index).
+Hver advarselsmodel har arbejdsgangsudløsere og -handlinger, opkaldt efter den: **Ved oprettelse: Advarsel**, **Ved opdatering: Advarsel**, **Ved oprettelse eller opdatering: Advarsel** og **Ved sletning: Advarsel**, det samme for **Advarselsepisode**, **Tilstandstidslinje for advarsel** og de andre, og handlinger som **Opret Advarsel (én post)** og **Opdater Advarsel (én post)**. Definitionerne af brugerdefinerede felter for advarsler er den eneste undtagelse: De har ingen arbejdsgangsudløsere. Se [Arbejdsgange – Oversigt](/docs/workflows/index).
 
 ## Hvem der kan ændre dem
 

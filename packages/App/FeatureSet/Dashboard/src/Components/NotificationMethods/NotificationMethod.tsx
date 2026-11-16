@@ -993,6 +993,8 @@ export interface DeletionImpactModalProps {
   userId: ObjectID | null;
   projectId: ObjectID | null;
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   submitButtonText: string;
   isDeleting?: boolean | undefined;
   /* The delete itself failing. Shown without taking the counts away. */
@@ -1106,6 +1108,7 @@ export const DeletionImpactModal: FunctionComponent<
   return (
     <ConfirmModal
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       description={getDescription()}
       submitButtonText={props.submitButtonText}
       submitButtonType={ButtonStyleType.DANGER}
@@ -1354,6 +1357,7 @@ export function useNotificationMethodDeleteGuard<TBaseModel extends BaseModel>(
         template: "Delete {{itemName}}",
         itemName: params.singularName,
       })}
+      isTitleTranslated={true}
       submitButtonText="Delete"
       isDeleting={isDeleting}
       error={deleteError}

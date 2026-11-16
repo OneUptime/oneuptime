@@ -12,6 +12,13 @@ export enum AlertBannerType {
 
 export interface ComponentProps {
   title: string;
+  /*
+   * The title is in the reader's words already - a sentence the page built
+   * around a count ("3 Regeln haben Probleme ...") - and is drawn as given,
+   * never looked up again: a translation looked up a second time can come
+   * back as another word (#8070, #8431).
+   */
+  isTitleTranslated?: boolean | undefined;
   type: AlertBannerType;
   children?: ReactElement | undefined;
   rightElement?: ReactElement | undefined;
@@ -85,7 +92,9 @@ const AlertBanner: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const translatedTitle: string = translateString(props.title) ?? props.title;
+  const translatedTitle: string = props.isTitleTranslated
+    ? props.title
+    : translateString(props.title) ?? props.title;
   const styles: BannerStyle = bannerStyles[props.type];
 
   return (

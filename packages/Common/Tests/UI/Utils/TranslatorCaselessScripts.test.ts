@@ -543,3 +543,120 @@ describe("a type that starts a translated sentence", () => {
     ).toBe("Под Kubernetes не имеет своих.");
   });
 });
+
+/*
+ * A TERM THAT STARTS A SENTENCE IN A LANGUAGE WITHOUT LETTER CASE KEEPS ITS
+ * TRANSLATOR'S LOWER CASE (#8252).
+ *
+ * An inSentence term takes a capital where it starts a sentence (toLabelTerm
+ * through toSentenceValue): French "Pod Kubernetes n'a pas les siens.". In a
+ * language whose script has no letter case that capital is one the
+ * translator did not write: Persian words a plural "persistent volume
+ * claimها", Arabic "cron مخصص" and "deployment", and none of their sentences
+ * starts with a capital. There the term starts the sentence as its
+ * translation writes it, as it reads in the middle of one.
+ */
+describe("a lower-case term that starts a sentence in a language without letter case", () => {
+  test.each([
+    [
+      "fa",
+      "persistent volume claimها",
+      "persistent volume claimها موارد خودش را ندارد.",
+    ],
+    ["fa", "pod", "pod موارد خودش را ندارد."],
+    ["ar", "cron مخصص", "cron مخصص لا يحمل ما يخصه."],
+    ["ar", "deployment", "deployment لا يحمل ما يخصه."],
+    ["hi", "namespace", "namespace का अपना कुछ नहीं है।"],
+    ["ko", "pod", "pod에는 자체 항목이 없습니다."],
+    ["ja", "pod", "podには独自のものはありません。"],
+    ["zh-CN", "namespace", "namespace没有自己的。"],
+    ["zh-TW", "namespace", "namespace沒有自己的。"],
+    ["he", "deployment", "deployment אין משלו."],
+  ])(
+    "%s starts with %s as written",
+    (language: string, type: string, expected: string) => {
+      expect(typeIn(translatorIn(language), SENTENCE_START, type)).toBe(
+        expected,
+      );
+    },
+  );
+
+  test.each(PRODUCT_CASELESS_LANGUAGES)(
+    "%s writes the term the same at the start of a sentence as in its middle",
+    (language: string) => {
+      const start: string = typeIn(
+        translatorIn(language),
+        SENTENCE_START,
+        "deployment",
+      );
+      const middle: string = typeIn(
+        translatorIn(language),
+        SENTENCE,
+        "deployment",
+      );
+
+      expect(start).toContain("deployment");
+      expect(middle).toContain("deployment");
+      expect(start).not.toContain("Deployment");
+    },
+  );
+
+  test.each(["ja-JP", "zh_TW", "fa-IR", "AR"])(
+    "a region or a script in the code (%s) keeps it too",
+    (language: string) => {
+      expect(
+        withoutIsolateMarks(
+          createTranslator(
+            lookupFrom({ [SENTENCE_START]: "{{type}} ..." }),
+            language,
+          ).translateTemplate(SENTENCE_START, {
+            type: translatableTerm("deployment", { inSentence: true }),
+          }),
+        ),
+      ).toBe("deployment ...");
+    },
+  );
+
+  test("a capital the translator wrote stays", () => {
+    expect(typeIn(translatorIn("ar"), SENTENCE_START, "Deployment")).toBe(
+      "Deployment لا يحمل ما يخصه.",
+    );
+  });
+
+  test("a language with letter case still starts the sentence with a capital", () => {
+    expect(
+      typeIn(
+        translatorIn("fr", { "Kubernetes Pod": "pod Kubernetes" }),
+        SENTENCE_START,
+        "Kubernetes Pod",
+      ),
+    ).toBe("Pod Kubernetes n'a pas les siens.");
+    expect(
+      typeIn(
+        translatorIn("ru", { "Kubernetes Pod": "под Kubernetes" }),
+        SENTENCE_START,
+        "Kubernetes Pod",
+      ),
+    ).toBe("Под Kubernetes не имеет своих.");
+  });
+
+  test("a name written in lower case starts a sentence in lower case, in English too", () => {
+    expect(typeIn(translatorIn("en"), SENTENCE_START, "kubectl command")).toBe(
+      "kubectl command does not carry its own.",
+    );
+    expect(
+      typeIn(
+        translatorIn("fr", { "kubectl command": "commande kubectl" }),
+        SENTENCE_START,
+        "kubectl command",
+      ),
+    ).toBe("Commande kubectl n'a pas les siens.");
+    expect(
+      typeIn(
+        translatorIn("de", { "systemd unit": "systemd-Unit" }),
+        SENTENCE_START,
+        "systemd unit",
+      ),
+    ).toBe("systemd-Unit hat keine eigenen.");
+  });
+});

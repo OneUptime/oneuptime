@@ -423,7 +423,7 @@ describe("the email language helpers", () => {
         { emailLanguage: "fr" },
       ),
     ).toBe(
-      "Ce lien expire dans 24 heures. Si vous ne vous êtes pas abonné, ignorez cet e-mail\u00A0: vous ne serez pas abonné.",
+      "Ce lien expire dans 24\u00A0heures. Si vous ne vous êtes pas abonné, ignorez cet e-mail\u00A0: vous ne serez pas abonné.",
     );
     expect(render('{{{tHtml "It\'s <b>"}}}', {})).toBe("It&#x27;s &lt;b&gt;");
   });

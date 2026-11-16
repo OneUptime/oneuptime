@@ -1,4 +1,5 @@
 import MetricSparkline from "../Metrics/MetricSparkline";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import MetricUtil from "../Metrics/Utils/Metrics";
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import PageMap from "../../Utils/PageMap";
@@ -255,7 +256,9 @@ const DeviceLatencyTrend: FunctionComponent<ComponentProps> = (
             <WordsWithInfoTooltip
               text={translator.translateTemplate("{{label}}: {{value}}", {
                 label: lossTitle,
-                value: lossSummary ? formatPercent(lossSummary.max) : "—",
+                value: lossSummary
+                  ? formatPercent(lossSummary.max)
+                  : EMPTY_VALUE_MARK,
               })}
               label={lossTitle}
               description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.packetLossPeak}

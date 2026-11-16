@@ -3134,12 +3134,16 @@ describe("External Data Sources, against the connectors and their limits", () =>
   });
 
   it("shows a value's unit as the widget formats it", () => {
+    /*
+     * The widget holds a figure to its unit with a no-break space (#8457);
+     * the page writes them with the plain one prose has.
+     */
     const bytes: string = ValueFormatter.formatValueCompact(1500000, "Bytes", {
       metricName: "",
-    }).formatted;
+    }).formatted.replace(/\u00A0/g, " ");
     const milliseconds: string = ValueFormatter.formatValueCompact(2400, "ms", {
       metricName: "",
-    }).formatted;
+    }).formatted.replace(/\u00A0/g, " ");
 
     expect(page).toContain(
       `\`Bytes\` reads as ${bytes}, \`ms\` as ${milliseconds}.`,
@@ -3596,7 +3600,7 @@ describe("Dashboard Playlists, against the playlist model and the player", () =>
         dashboardCount: 3,
         intervalInSeconds: DASHBOARD_PLAYLIST_DEFAULT_INTERVAL_IN_SECONDS,
       }),
-    ).toBe("3 dashboards, 1 minute each");
+    ).toBe("3 dashboards, 1\u00A0minute each");
 
     expect(list).toContain('title: "Play",');
     expect(createSection).toContain(

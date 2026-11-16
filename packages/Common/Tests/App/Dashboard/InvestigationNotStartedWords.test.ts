@@ -343,36 +343,36 @@ const INCIDENT_ENGLISH: Record<
     recorded: [
       "The AI token limit could not be checked",
       "OneUptime AI could not check the daily AI token limit, so it started no investigation that might go over it.",
-      "Ask a project administrator to check the service's health and the AI settings. Nothing is tried again automatically.",
+      "Ask a Project Admin to check the service's health and the AI settings. Nothing is tried again automatically.",
     ],
     current_configuration: [
       "The AI token limit cannot be checked right now",
       "OneUptime AI cannot check the daily AI token limit right now, so it cannot tell whether a new investigation could start.",
-      "Ask a project administrator to check the service's health and the AI settings. Nothing is tried again automatically.",
+      "Ask a Project Admin to check the service's health and the AI settings. Nothing is tried again automatically.",
     ],
   },
   enqueue_failed: {
     recorded: [
       "The investigation could not be queued",
       "OneUptime AI could not save the investigation to its queue, so none started.",
-      "Ask a project administrator to check the service's health and the server logs. Nothing is tried again automatically.",
+      "Ask a Project Admin to check the service's health and the server logs. Nothing is tried again automatically.",
     ],
     current_configuration: [
       "The investigation queue cannot be checked right now",
       "OneUptime AI cannot tell right now whether a new investigation could be queued.",
-      "Ask a project administrator to check the service's health and the server logs. Nothing is tried again automatically.",
+      "Ask a Project Admin to check the service's health and the server logs. Nothing is tried again automatically.",
     ],
   },
   eligibility_check_failed: {
     recorded: [
       "The AI checks could not be finished",
       "OneUptime AI could not finish the checks it runs before an automatic investigation, so none started.",
-      "Ask a project administrator to check the service's health and the AI settings. Nothing is tried again automatically.",
+      "Ask a Project Admin to check the service's health and the AI settings. Nothing is tried again automatically.",
     ],
     current_configuration: [
       "The AI checks cannot be finished right now",
       "OneUptime AI cannot finish the checks it runs before an automatic investigation right now.",
-      "Ask a project administrator to check the service's health and the AI settings. Nothing is tried again automatically.",
+      "Ask a Project Admin to check the service's health and the AI settings. Nothing is tried again automatically.",
     ],
   },
   no_run_recorded: {
@@ -689,8 +689,8 @@ describe("the facts a reason carries", () => {
         german,
       )[1];
 
-      expect(one).toContain("von 1 Minute untersucht");
-      expect(many).toContain("von 30 Minuten untersucht");
+      expect(one).toContain("von 1\u00A0Minute untersucht");
+      expect(many).toContain("von 30\u00A0Minuten untersucht");
     });
 
     /*
@@ -698,11 +698,11 @@ describe("the facts a reason carries", () => {
      * (ARABIC.md): the short unit, the same for every count.
      */
     test.each([
-      [1, "(1 دقيقة)"],
-      [2, "(2 د)"],
-      [5, "(5 د)"],
-      [11, "(11 د)"],
-      [100, "(100 د)"],
+      [1, "(1\u00A0دقيقة)"],
+      [2, "(2\u00A0د)"],
+      [5, "(5\u00A0د)"],
+      [11, "(11\u00A0د)"],
+      [100, "(100\u00A0د)"],
     ])("Arabic says %i minutes as %s", (minutes: number, phrase: string) => {
       expect(
         read(
@@ -724,7 +724,7 @@ describe("the facts a reason carries", () => {
             { facts: { cooldownWindowMinutes: minutes } },
             dashboardTranslator("ru"),
           )[1],
-        ).toContain(`(${minutes} мин.)`);
+        ).toContain(`(${minutes}\u00A0мин.)`);
       },
     );
 

@@ -1,0 +1,558 @@
+import { SetupGuideTranslation } from "../../../Components/SetupGuide/SetupGuideTranslation";
+
+/*
+ * The OpenStack setup guide in Italian (#8341): each piece of the English
+ * guide's markdown (Pages/OpenStack/Utils/DocumentationMarkdown.ts) and its
+ * Italian. Code, field names and product names are as the English writes
+ * them, and what the Dashboard draws is named as its Italian words it.
+ * Change it with the English, in the same pull request
+ * (SetupGuideDocumentationInLocale).
+ */
+const TRANSLATION: SetupGuideTranslation = {
+  "With `enable_prometheus` on in `/etc/kolla/globals.yml`, which Kolla-Ansible leaves off until you set it, it runs Prometheus, Alertmanager and an exporter for each thing under the cloud, and ships no alert rules. This guide reads what those run rather than starting a second copy.":
+    "Con `enable_prometheus` attivo in `/etc/kolla/globals.yml`, che Kolla-Ansible lascia disattivato finché non lo imposti, esegue Prometheus, Alertmanager e un exporter per ogni componente sotto il cloud, e non fornisce regole di avviso. Questa guida legge ciò che questi eseguono invece di avviarne una seconda copia.",
+  "**How far this guide has been tested:** Its paths and ports were read from Kolla-Ansible's own source. Its commands were then run on a real all-in-one at stable/2026.1 with Open vSwitch, with a stand-in for OneUptime that kept what the agent sent: the agent on the Full view credential, without Docker, on Kolla-Ansible's own exporter and on your own at the pinned version and at 1.7.0, the agent's exporter on the Infrastructure only credential, the targets read from its real prometheus.yml, and the logs profile. With Memcached really stopped there, its Alertmanager posted a firing webhook and then a resolved one, and what it posted, sent to a running OneUptime, opened one incident on the right cloud and on no other, and resolved it. The agent and a probe have each taken a real DevStack all the way into a running OneUptime, through a stopped nova-compute and back, but not from this tool.":
+    "**Fin dove è stata testata questa guida:** i suoi percorsi e le sue porte sono stati letti dal codice sorgente di Kolla-Ansible. I suoi comandi sono poi stati eseguiti su un vero all-in-one in stable/2026.1 con Open vSwitch, con un sostituto di OneUptime che conservava ciò che l'agente inviava: l'agente con la credenziale Vista completa, senza Docker, sull'exporter di Kolla-Ansible e sul tuo alla versione fissata e alla 1.7.0, l'exporter dell'agente con la credenziale Solo infrastruttura, i target letti dal suo vero prometheus.yml, e il profilo dei log. Con Memcached davvero fermato, il suo Alertmanager ha inviato un webhook di attivazione e poi uno di risoluzione, e ciò che ha inviato, mandato a un OneUptime in esecuzione, ha aperto un incidente sul cloud giusto e su nessun altro, e lo ha risolto. L'agente e una sonda hanno portato ciascuno un vero DevStack fino a un OneUptime in esecuzione, passando per un nova-compute fermato e ripartito, ma non da questo strumento.",
+  "Docker Engine 20.10+ with the Docker Compose v2 plugin, on the machine that will run the agent (or `bash install.sh --without-docker`, under Advanced)":
+    "Docker Engine 20.10 o successivo con il plugin Docker Compose v2, sulla macchina che eseguirà l'agente (oppure `bash install.sh --without-docker`, in Avanzato)",
+  "A machine outside the cloud it watches: an agent inside a failed cloud goes quiet with it":
+    "Una macchina fuori dal cloud che sorveglia: un agente dentro un cloud guasto tace insieme a lui",
+  "That machine can reach Keystone and every service's API":
+    "Quella macchina raggiunge Keystone e l'API di ogni servizio",
+  "The `openstack` command line, as someone who can create the credential below":
+    "La riga di comando `openstack`, come qualcuno che può creare la credenziale qui sotto",
+  "An alert that fires becomes an incident, with on-call and status pages from the first hour, and it resolves when the alert does. There is nothing to install.":
+    "Un avviso che scatta diventa un incidente, con reperibilità e pagine di stato dalla prima ora, e si risolve quando si risolve l'avviso. Non c'è nulla da installare.",
+  "1. In OneUptime, make an Incoming Request monitor as [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#receive-alerts-with-a-monitor) says, and copy its **Heartbeat URL**. That is the `<secret key>` address below.":
+    "1. In OneUptime, crea un monitor Richiesta in arrivo come spiega [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#receive-alerts-with-a-monitor), e copia il suo **Heartbeat URL**. È l'indirizzo con `<secret key>` qui sotto.",
+  "2. Open the monitor's **Overview → Linked Resources** and add the OpenStack cloud `my-openstack-cloud`. Each incident is then on that cloud's **Incidents** page, so each cloud's Alertmanager needs a monitor of its own. The cloud shows up in that list once its first data arrives, so do this after the steps below, or add the cloud under **OpenStack → All Clouds** first.":
+    "2. Apri **Panoramica → Risorse collegate** del monitor e aggiungi il cloud OpenStack `my-openstack-cloud`. Ogni incidente compare allora nella pagina **Incidenti** di quel cloud, quindi l'Alertmanager di ogni cloud ha bisogno di un monitor tutto suo. Il cloud compare in quell'elenco appena arrivano i suoi primi dati, quindi fallo dopo i passaggi qui sotto, oppure aggiungi prima il cloud in **OpenStack → Tutti i cloud**.",
+  "Then, on the host you deploy from, write `/etc/kolla/config/prometheus/prometheus-alertmanager.yml`, which Kolla-Ansible reads in place of its own, and apply it:":
+    "Poi, sull'host da cui esegui il deployment, scrivi `/etc/kolla/config/prometheus/prometheus-alertmanager.yml`, che Kolla-Ansible legge al posto del proprio, e applicalo:",
+  "- Log in as an admin with `source /etc/kolla/admin-openrc.sh`, which `kolla-ansible post-deploy` writes.":
+    "- Accedi come amministratore con `source /etc/kolla/admin-openrc.sh`, che `kolla-ansible post-deploy` scrive.",
+  "- **Full view** needs one change, to Cinder. Kolla-Ansible's templates already set `service_type` under `[keystone_authtoken]` on Nova, Neutron, Glance and Placement, but its Cinder says `volume` and its catalog says `block-storage`, and keystonemiddleware refuses a credential limited by access rules with a `401` unless the two agree. Add `service_type = block-storage` under `[keystone_authtoken]` in `/etc/kolla/config/cinder.conf`, then run `kolla-ansible reconfigure -i <inventory> --tags cinder`.":
+    "- **Vista completa** richiede una modifica, a Cinder. I template di Kolla-Ansible impostano già `service_type` in `[keystone_authtoken]` su Nova, Neutron, Glance e Placement, ma il suo Cinder dice `volume` e il suo catalogo dice `block-storage`, e keystonemiddleware rifiuta una credenziale limitata da regole di accesso con un `401` se i due non coincidono. Aggiungi `service_type = block-storage` in `[keystone_authtoken]` in `/etc/kolla/config/cinder.conf`, poi esegui `kolla-ansible reconfigure -i <inventory> --tags cinder`.",
+  "- **Infrastructure only** takes its overrides at `/etc/kolla/config/nova/policy.yaml`, and the same for `neutron`, `keystone` and `placement`, merged with anything already there. Apply them with `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`.":
+    "- **Solo infrastruttura** prende i suoi override in `/etc/kolla/config/nova/policy.yaml`, e lo stesso per `neutron`, `keystone` e `placement`, uniti a ciò che c'è già. Applicali con `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`.",
+  "**Recommended.** The agent sees everything it reads: services, hypervisors, every project's instances, volumes, networks and routers, and `cinder-volume` and `cinder-scheduler` state and storage pools, which only this level sees. It leaves out Keystone's users and groups, on purpose.":
+    "**Consigliato.** L'agente vede tutto ciò che legge: servizi, hypervisor, istanze, volumi, reti e router di ogni progetto, e lo stato di `cinder-volume` e `cinder-scheduler` e i pool di storage, che solo questo livello vede. Lascia fuori di proposito gli utenti e i gruppi di Keystone.",
+  "This is an application credential on an account with `admin` on a project of its own, limited by access rules to the exact `GET` calls the agent makes, so it cannot write: on every release we record, every read answered `200` and every write `401`. As an admin, make the project and the account:":
+    "È un'application credential su un account con `admin` su un progetto tutto suo, limitata da regole di accesso alle esatte chiamate `GET` che fa l'agente, quindi non può scrivere: su ogni release che registriamo, ogni lettura ha risposto `200` e ogni scrittura `401`. Come amministratore, crea il progetto e l'account:",
+  "Then, logged in as that account on that project, make the credential. An access rule is matched against the path the service sees, and a service behind a path prefix refuses the shipped rules with a `401`, so these commands fit them to this cloud from its catalog first:":
+    "Poi, con l'accesso come quell'account su quel progetto, crea la credenziale. Una regola di accesso viene confrontata con il percorso che vede il servizio, e un servizio dietro un prefisso di percorso rifiuta le regole fornite con un `401`, quindi questi comandi prima le adattano a questo cloud a partire dal suo catalogo:",
+  "- Copy the `id` and the `secret` it prints: the secret is shown only once.":
+    "- Copia l'`id` e il `secret` che stampa: il secret viene mostrato una sola volta.",
+  "- Never add `--unrestricted`, which would let it make more credentials.":
+    "- Non aggiungere mai `--unrestricted`, che le permetterebbe di creare altre credenziali.",
+  "- Access rules work only where each service sets `service_type` in its `[keystone_authtoken]` section and has been restarted since: `compute`, `network`, `block-storage` (the rules also carry `volume` and `volumev3`, for a Cinder configured that way), `image` and `placement`. Keystone needs nothing. Without that, the services refuse the credential with a `401`.":
+    "- Le regole di accesso funzionano solo dove ogni servizio imposta `service_type` nella sua sezione `[keystone_authtoken]` ed è stato riavviato da allora: `compute`, `network`, `block-storage` (le regole includono anche `volume` e `volumev3`, per un Cinder configurato così), `image` e `placement`. Keystone non ha bisogno di nulla. Senza questo, i servizi rifiutano la credenziale con un `401`.",
+  "- If you won't change that, leave out `--access-rules`. That makes a plain admin application credential, which can write as well as read, so keep it as safe as an admin password.":
+    "- Se non vuoi cambiarlo, ometti `--access-rules`. Ottieni così una semplice application credential da amministratore, che può scrivere oltre che leggere: custodiscila quindi come una password da amministratore.",
+  "- It stops working when it expires. To replace it, make the second credential before you delete the first.":
+    "- Smette di funzionare quando scade. Per sostituirla, crea la seconda credenziale prima di eliminare la prima.",
+  "No admin. The agent sees all of Keystone's projects, domains, services and endpoints, all of Nova including every project's instances, all of Placement, and Neutron's agents and address pools. Volumes, snapshots, networks, subnets, routers, floating IPs and ports appear only for the projects the role is assigned on, so on a project that holds nothing just the shared and external ones, and OneUptime can't see the others.":
+    "Nessun amministratore. L'agente vede tutti i progetti, domini, servizi ed endpoint di Keystone, tutto Nova incluse le istanze di ogni progetto, tutto Placement, e gli agenti e i pool di indirizzi di Neutron. Volumi, snapshot, reti, subnet, router, IP floating e porte compaiono solo per i progetti su cui è assegnato il ruolo, quindi su un progetto vuoto solo quelli condivisi ed esterni, e OneUptime non può vedere gli altri.",
+  "It does not see `cinder-volume` or `cinder-scheduler` state or storage pools: Cinder's own code asks for an admin there, after policy has already passed, so no override opens them, and only **Full view** sees them.":
+    "Non vede lo stato di `cinder-volume` o di `cinder-scheduler` né i pool di storage: il codice stesso di Cinder richiede lì un amministratore, dopo che la policy ha già dato il via libera, quindi nessun override li apre, e solo **Vista completa** li vede.",
+  "This is a role of its own, `oneuptime_monitoring`, with the policy overrides the agent ships, on a project of its own that holds nothing and has zero quota. Where Cinder has `enforce_new_defaults` off, which is Cinder's own default, any role on a project can create that project's volumes. With nothing to touch and no quota to make anything with, there is nothing for it to write: on every release we record, every write answered `403`, or `409` and `413` from quota. As an admin, make the role, the project and an account:":
+    "È un ruolo a sé, `oneuptime_monitoring`, con gli override di policy che l'agente fornisce, su un progetto tutto suo che non contiene nulla e ha quota zero. Dove Cinder ha `enforce_new_defaults` disattivato, che è l'impostazione predefinita di Cinder, qualsiasi ruolo su un progetto può creare i volumi di quel progetto. Senza nulla da toccare e senza quota con cui creare qualcosa, non ha nulla da scrivere: su ogni release che registriamo, ogni scrittura ha risposto `403`, oppure `409` e `413` per la quota. Come amministratore, crea il ruolo, il progetto e un account:",
+  "Download the overrides, and merge each, on every controller, into the file named by `[oslo_policy] policy_file` in that service's config. That is `/etc/nova/policy.yaml` and so on, unless your deployment says otherwise. Each override keeps the service's default and adds the role. oslo.policy notices a changed file on its own, so nothing restarts:":
+    "Scarica gli override e unisci ciascuno, su ogni controller, al file indicato da `[oslo_policy] policy_file` nella configurazione di quel servizio. È `/etc/nova/policy.yaml` e così via, a meno che il tuo deployment non dica altrimenti. Ogni override mantiene il valore predefinito del servizio e aggiunge il ruolo. oslo.policy si accorge da solo di un file cambiato, quindi non si riavvia nulla:",
+  "**To take the overrides off again, empty the file (`{}`) and never delete it.** On Flamingo (2025.2) and Epoxy (2025.1), oslo.policy raises on every check once a policy file it has read is gone, so that service fails every request. When the service is Keystone, it stops validating tokens and the whole cloud answers `503`. If it has already happened, restart the service.":
+    "**Per togliere gli override, svuota il file (`{}`) e non eliminarlo mai.** Su Flamingo (2025.2) ed Epoxy (2025.1), oslo.policy solleva un errore a ogni controllo appena un file di policy che ha letto non c'è più, e quel servizio fallisce ogni richiesta. Quando il servizio è Keystone, smette di validare i token e tutto il cloud risponde `503`. Se è già successo, riavvia il servizio.",
+  "Then, logged in as that account on that project, make the credential and copy the `id` and the `secret` it prints:":
+    "Poi, con l'accesso come quell'account su quel progetto, crea la credenziale e copia l'`id` e il `secret` che stampa:",
+  "Putting the role on a real project to see its volumes and routers also lets the account write there, on a cloud where Cinder has `enforce_new_defaults` off. `troubleshoot.sh` warns when the credential's project holds things.":
+    "Assegnare il ruolo su un progetto reale per vederne volumi e router permette anche all'account di scriverci, su un cloud dove Cinder ha `enforce_new_defaults` disattivato. `troubleshoot.sh` avvisa quando il progetto della credenziale contiene qualcosa.",
+  "For a team watching its own part of a cloud someone else runs. The agent sees one project's volumes, networks and routers, and no infrastructure: no hypervisors, services or storage pools.":
+    "Per un team che sorveglia la propria parte di un cloud gestito da qualcun altro. L'agente vede volumi, reti e router di un progetto, e nessuna infrastruttura: né hypervisor, né servizi, né pool di storage.",
+  "Through the agent it shows no instances at all: the exporter asks Nova for all projects' servers, Nova refuses a plain reader, and that read fails whole. Only a OneUptime probe, collecting without this agent, can list one project's instances.":
+    "Tramite l'agente non mostra alcuna istanza: l'exporter chiede a Nova i server di tutti i progetti, Nova rifiuta un semplice lettore, e quella lettura fallisce per intero. Solo una sonda OneUptime, che raccoglie senza questo agente, può elencare le istanze di un progetto.",
+  "This is the plain `reader` role. Give an account the role on the project:":
+    "È il semplice ruolo `reader`. Dai a un account il ruolo sul progetto:",
+  "Neutron and Cinder answer a reader with its own project and no error, so these lists look complete, and hold only that project.":
+    "Neutron e Cinder rispondono a un lettore con il suo progetto e senza errori, quindi questi elenchi sembrano completi, e contengono solo quel progetto.",
+  "It may be able to write. On a cloud where Cinder has `enforce_new_defaults` off, which is Cinder's own default, plain `reader` can create volumes in its project too. On Epoxy, Flamingo and Gazpacho it did, and on Hibiscus it was refused, because DevStack only turns `enforce_new_defaults` on there.":
+    "Potrebbe riuscire a scrivere. Su un cloud dove Cinder ha `enforce_new_defaults` disattivato, che è l'impostazione predefinita di Cinder, anche il semplice `reader` può creare volumi nel suo progetto. Su Epoxy, Flamingo e Gazpacho l'ha fatto, e su Hibiscus è stato rifiutato, perché DevStack attiva `enforce_new_defaults` solo lì.",
+  "No credential and nothing new to run: the agent reads the exporter Kolla-Ansible already runs, through its internal VIP on `9198`. Skip the install's credential questions by giving it the address:":
+    "Nessuna credenziale e niente di nuovo da eseguire: l'agente legge l'exporter che Kolla-Ansible esegue già, tramite il suo VIP interno su `9198`. Salta le domande sulla credenziale dell'installazione passandole l'indirizzo:",
+  "Kolla-Ansible pins exporter 1.7.0 and runs it without `--multi-cloud`, so it has no `/probe`: the agent asks it for everything at once, every 2 minutes, on top of Kolla-Ansible's own Prometheus asking every minute. Its answer also says less. On five real clouds, the pages went without:":
+    "Kolla-Ansible fissa l'exporter 1.7.0 e lo esegue senza `--multi-cloud`, quindi non ha `/probe`: l'agente gli chiede tutto in una volta, ogni 2 minuti, oltre al Prometheus di Kolla-Ansible che chiede ogni minuto. Anche la sua risposta dice meno. Su cinque cloud reali, alle pagine è mancato:",
+  "| Goes without | Because | What it costs |":
+    "| Manca | Perché | Cosa costa |",
+  "| Everything of Cinder's | It asks the catalog for `volumev3`, and finds no such thing where Cinder registers as `block-storage` | **Volumes** and **Storage pools** stay empty, and **Services** has no Block Storage API, `cinder-volume` or `cinder-scheduler`. **Block Storage API Down**, **Block Storage Service Down**, **Storage Pool Warning**, **Storage Pool Critical**, **Volumes in Error** and **Volume Stuck** stay quiet |":
+    "| Tutto ciò che riguarda Cinder | Chiede `volumev3` al catalogo, e non trova nulla del genere dove Cinder si registra come `block-storage` | **Volumi** e **Pool di storage** restano vuoti, e **Servizi** non ha Block Storage API, né `cinder-volume`, né `cinder-scheduler`. **Block Storage API Down**, **Block Storage Service Down**, **Storage Pool Warning**, **Storage Pool Critical**, **Volumes in Error** e **Volume Stuck** restano in silenzio |",
+  "| How many instances a hypervisor holds, and its aggregates | Nova's list of hypervisors fails at the newest microversion, which Kolla-Ansible asks for | Those two on **Hypervisors**, and what a lost host says it takes with it. Its vCPUs, memory and disk are still there: they come from Placement |":
+    "| Quante istanze ospita un hypervisor, e i suoi aggregati | L'elenco degli hypervisor di Nova fallisce alla microversione più recente, che Kolla-Ansible richiede | Questi due su **Hypervisor**, e ciò che un host perso dice di portare con sé. Le sue vCPU, la memoria e il disco ci sono ancora: vengono da Placement |",
+  "| Domains | It has no such series | **Domains** stays empty |":
+    "| Domini | Non ha una serie del genere | **Domini** resta vuoto |",
+  "| An image's status, visibility and creation date | It has no such labels | Those columns on **Images**. **Image Stuck** stays quiet, so an image stuck on its way to `active` goes unnoticed |":
+    "| Stato, visibilità e data di creazione di un'immagine | Non ha etichette del genere | Quelle colonne su **Immagini**. **Image Stuck** resta in silenzio, quindi un'immagine bloccata sulla strada verso `active` passa inosservata |",
+  "| A network's MTU | It has no such label | That line on a network's page |":
+    "| L'MTU di una rete | Non ha un'etichetta del genere | Quella riga nella pagina di una rete |",
+  "If you need those, use one of the other tabs and the agent's own exporter. You can change your mind later: a cloud keeps its name whichever reads it.":
+    "Se ti servono, usa una delle altre schede e l'exporter dell'agente. Puoi cambiare idea in seguito: un cloud mantiene il suo nome chiunque lo legga.",
+  "The script asks for:": "Lo script chiede:",
+  "- **OneUptime URL and ingestion key**, both shown in step 1. Pick a key there to have them filled in here.":
+    "- **URL di OneUptime e chiave di acquisizione**, entrambe mostrate nel passaggio 1. Scegli lì una chiave per averle compilate qui.",
+  "- **Cloud name**: how the cloud appears in OneUptime. Keep it stable: a new name registers a new cloud.":
+    "- **Nome del cloud**: come il cloud compare in OneUptime. Mantienilo stabile: un nuovo nome registra un nuovo cloud.",
+  "- **Keystone auth URL**, such as `https://keystone.example.com:5000/v3`.":
+    "- **URL di autenticazione di Keystone**, come `https://keystone.example.com:5000/v3`.",
+  "- **Region names**, comma-separated (`RegionOne` if you have one).":
+    "- **Nomi delle regioni**, separati da virgole (`RegionOne` se ne hai una).",
+  "- **Application credential**: the ID and secret from the previous step. Neither is echoed to the screen, and neither goes on a command line.":
+    "- **Application credential**: l'ID e il secret del passaggio precedente. Nessuno dei due viene mostrato a schermo, e nessuno finisce su una riga di comando.",
+  "- **Private CA file**, only if the cloud's certificate comes from its own certificate authority.":
+    "- **File della CA privata**, solo se il certificato del cloud proviene da una sua autorità di certificazione.",
+  "It checks the credential with Keystone before it installs anything, installs to `/opt/oneuptime-openstack-agent` (or to `oneuptime-openstack-agent` in your home folder if you have no rights on `/opt`, and it says which), writes a `.env` file and a `clouds.yaml` only their owner can read, and starts everything with Docker Compose. Running it again reuses all of that instead of asking again, so it is also how you upgrade.":
+    "Verifica la credenziale con Keystone prima di installare qualsiasi cosa, installa in `/opt/oneuptime-openstack-agent` (oppure in `oneuptime-openstack-agent` nella tua cartella home se non hai i permessi su `/opt`, e dice quale), scrive un file `.env` e un `clouds.yaml` che solo il loro proprietario può leggere, e avvia tutto con Docker Compose. Eseguirlo di nuovo riusa tutto questo invece di chiedere di nuovo, quindi è anche il modo per aggiornare.",
+  "`docker compose ps` lists the collector (`oneuptime-openstack-agent`), the bundled exporter (`oneuptime-openstack-exporter`) and the OneUptime AI agent (`oneuptime-openstack-ai-agent`). In the collector's logs, look for `Everything is ready. Begin running and processing data.` The cloud then appears in the **OpenStack** section by itself. Give it about five minutes to fill in: compute, network, volume and Placement are read every 2 minutes, identity and images every 5.":
+    "`docker compose ps` elenca il collector (`oneuptime-openstack-agent`), l'exporter incluso (`oneuptime-openstack-exporter`) e l'agente IA di OneUptime (`oneuptime-openstack-ai-agent`). Nei log del collector, cerca `Everything is ready. Begin running and processing data.` Il cloud compare poi da solo nella sezione **OpenStack**. Dagli circa cinque minuti per riempirsi: compute, rete, volumi e Placement vengono letti ogni 2 minuti, identità e immagini ogni 5.",
+  "On the host that runs Kolla-Ansible's Prometheus, this reads its targets from the file Kolla-Ansible rendered, and prints them as settings for the agent:":
+    "Sull'host che esegue il Prometheus di Kolla-Ansible, questo legge i suoi target dal file generato da Kolla-Ansible, e li stampa come impostazioni per l'agente:",
+  "Add what it prints to the agent's `.env`, then run `docker compose up -d` in the agent's folder. Each exporter listens on the API network, so the agent's machine needs a route there. The cloud's **Control Plane** card then says how each one is, and says plainly which ones are not watched.":
+    "Aggiungi ciò che stampa al `.env` dell'agente, poi esegui `docker compose up -d` nella cartella dell'agente. Ogni exporter è in ascolto sulla rete delle API, quindi la macchina dell'agente ha bisogno di una route fin lì. La scheda **Piano di controllo** del cloud dice allora come sta ciascuno, e dice chiaramente quali non sono sorvegliati.",
+  "| Reads | Port | Setting |": "| Legge | Porta | Impostazione |",
+  "| RabbitMQ's Prometheus plugin | `15692` | `OPENSTACK_RABBITMQ_TARGETS` |":
+    "| Il plugin Prometheus di RabbitMQ | `15692` | `OPENSTACK_RABBITMQ_TARGETS` |",
+  "| mysqld_exporter | `9104` | `OPENSTACK_MARIADB_TARGETS` |":
+    "| mysqld_exporter, per MariaDB | `9104` | `OPENSTACK_MARIADB_TARGETS` |",
+  "| memcached_exporter | `9150` | `OPENSTACK_MEMCACHED_TARGETS` |":
+    "| memcached_exporter, per Memcached | `9150` | `OPENSTACK_MEMCACHED_TARGETS` |",
+  "| HAProxy's own exporter | `9101` | `OPENSTACK_HAPROXY_TARGETS` |":
+    "| L'exporter di HAProxy stesso | `9101` | `OPENSTACK_HAPROXY_TARGETS` |",
+  "| openstack-network-exporter, for OVN and Open vSwitch | `1981` | `OPENSTACK_NETWORK_EXPORTER_TARGETS` |":
+    "| openstack-network-exporter, per OVN e Open vSwitch | `1981` | `OPENSTACK_NETWORK_EXPORTER_TARGETS` |",
+  "| prometheus-libvirt-exporter | `9177` | `OPENSTACK_LIBVIRT_HEALTH_TARGETS` |":
+    "| prometheus-libvirt-exporter, per libvirt | `9177` | `OPENSTACK_LIBVIRT_HEALTH_TARGETS` |",
+  "- **OVN's databases:** Kolla-Ansible runs openstack-network-exporter from 2026.1, on compute and network nodes only, and an OVN database is read from the host it runs on. If your control nodes are neither, add them under `[prometheus-openstack-network-exporter:children]` in your inventory and reconfigure, or the Northbound and Southbound databases read as not watched.":
+    "- **I database di OVN:** Kolla-Ansible esegue openstack-network-exporter dalla 2026.1, solo sui nodi di calcolo e di rete, e un database OVN viene letto dall'host su cui gira. Se i tuoi nodi di controllo non sono né l'uno né l'altro, aggiungili in `[prometheus-openstack-network-exporter:children]` nel tuo inventario e riconfigura, altrimenti i database Northbound e Southbound risultano non sorvegliati.",
+  "- **Before 2026.1** there is no network exporter, so OVN and Open vSwitch read as not watched.":
+    "- **Prima della 2026.1** non c'è un exporter di rete, quindi OVN e Open vSwitch risultano non sorvegliati.",
+  "The agent's logs profile runs on each node, and reads Kolla-Ansible's files. It is what joins a line to the cloud's pages:":
+    "Il profilo dei log dell'agente gira su ogni nodo e legge i file di Kolla-Ansible. È ciò che collega una riga alle pagine del cloud:",
+  "Kolla's own Fluentd can forward too, with an output in `/etc/kolla/config/fluentd/output/*.conf` as [Fluentd](/docs/telemetry/fluentd) describes, but those records reach **Logs** under a service's name, and not the cloud's pages.":
+    "Anche il Fluentd di Kolla può inoltrare, con un output in `/etc/kolla/config/fluentd/output/*.conf` come descrive [Fluentd](/docs/telemetry/fluentd), ma quei record arrivano in **Log** con il nome di un servizio, e non nelle pagine del cloud.",
+  "Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**. The agent's logs profile reads both from `/var/log/kolla`.":
+    "Ciascuno scrive nel log del servizio stesso, senza alcun consumer sul bus. OneUptime li legge da lì non appena **Trova eventi di sicurezza nei tuoi log** è attivo, in **Eventi di sicurezza → Connessioni**. Il profilo dei log dell'agente li legge entrambi da `/var/log/kolla`.",
+  "This sends a line for each login, which **OpenStack admin credential used from a new address** reads. To send failed logins only, add `identity.authenticate.success` to `notification_opt_out`, and that detection then reads what the audit filter saw.":
+    "Questo invia una riga per ogni accesso, che **OpenStack admin credential used from a new address** legge. Per inviare solo gli accessi falliti, aggiungi `identity.authenticate.success` a `notification_opt_out`, e quel rilevamento leggerà allora ciò che ha visto il filtro di audit.",
+  "For who did what through Nova, Neutron, Cinder and Glance, the audit filter needs a setting, which goes in every service's config at once:":
+    "Per sapere chi ha fatto cosa tramite Nova, Neutron, Cinder e Glance, il filtro di audit ha bisogno di un'impostazione, che va nella configurazione di tutti i servizi insieme:",
+  "It also needs a paste file, and Kolla-Ansible's config tasks copy no paste file for these services. Put yours on each API host, and mount it over the one in the image with `nova_api_extra_volumes`, `neutron_server_extra_volumes`, `cinder_api_extra_volumes` and `glance_api_extra_volumes` in `globals.yml`. pyCADF's map files are in `/var/lib/kolla/venv/etc/pycadf` in the image. [Who did what](/docs/telemetry/openstack#who-did-what) has the filter's lines.":
+    "Ha bisogno anche di un file paste, e i task di configurazione di Kolla-Ansible non copiano alcun file paste per questi servizi. Metti il tuo su ogni host delle API, e montalo sopra quello dell'immagine con `nova_api_extra_volumes`, `neutron_server_extra_volumes`, `cinder_api_extra_volumes` e `glance_api_extra_volumes` in `globals.yml`. I file di mappa di pyCADF sono in `/var/lib/kolla/venv/etc/pycadf` nell'immagine. [Chi ha fatto cosa](/docs/telemetry/openstack#who-did-what) riporta le righe del filtro.",
+  "OpenStack's `reader` role is scoped to a project everywhere except Keystone and Ironic, and hypervisors, services, agents, pools and Placement default to admin. A policy override can't open all-project lists in Cinder or Neutron, because they scope those lists in code, and Cinder's own code keeps its services and storage pools for an admin. So what a credential can read depends on which level you choose. This is what five real clouds answered, on Epoxy, Flamingo, Gazpacho (OVN and OVS) and Hibiscus:":
+    "Il ruolo `reader` di OpenStack è limitato a un progetto ovunque tranne in Keystone e Ironic, e hypervisor, servizi, agenti, pool e Placement sono riservati per impostazione predefinita all'amministratore. Un override di policy non può aprire gli elenchi di tutti i progetti in Cinder o Neutron, perché limitano quegli elenchi nel codice, e il codice stesso di Cinder riserva i suoi servizi e i pool di storage a un amministratore. Quindi ciò che una credenziale può leggere dipende dal livello che scegli. Ecco cosa hanno risposto cinque cloud reali, su Epoxy, Flamingo, Gazpacho (OVN e OVS) e Hibiscus:",
+  "| Read | Level 1: Full view | Level 2: Infrastructure only | Level 3: Project view |":
+    "| Lettura | Livello 1: Vista completa | Livello 2: Solo infrastruttura | Livello 3: Vista progetto |",
+  "| Keystone: projects | all | all | refused |":
+    "| Keystone: progetti | tutto | tutto | rifiutato |",
+  "| Keystone: domains | all | all | refused |":
+    "| Keystone: domini | tutto | tutto | rifiutato |",
+  "| Keystone: regions | all | what anyone sees | what anyone sees |":
+    "| Keystone: regioni | tutto | ciò che vede chiunque | ciò che vede chiunque |",
+  "| Keystone: services | all | all | refused |":
+    "| Keystone: servizi | tutto | tutto | rifiutato |",
+  "| Keystone: endpoints | all | all | refused |":
+    "| Keystone: endpoint | tutto | tutto | rifiutato |",
+  "| Nova: servers, all projects | all | all | refused |":
+    "| Nova: server, tutti i progetti | tutto | tutto | rifiutato |",
+  "| Nova: services | all | all | refused |":
+    "| Nova: servizi | tutto | tutto | rifiutato |",
+  "| Nova: hypervisors | all | all | refused |":
+    "| Nova: hypervisor | tutto | tutto | rifiutato |",
+  "| Nova: aggregates | all | all | refused |":
+    "| Nova: aggregati | tutto | tutto | rifiutato |",
+  "| Nova: availability zones, detail | all | all | refused |":
+    "| Nova: zone di disponibilità, dettaglio | tutto | tutto | rifiutato |",
+  "| Nova: flavors | all | what anyone sees | what anyone sees |":
+    "| Nova: flavor | tutto | ciò che vede chiunque | ciò che vede chiunque |",
+  "| Nova: usage per project | all | all | refused |":
+    "| Nova: utilizzo per progetto | tutto | tutto | rifiutato |",
+  "| Placement: resource providers | all | all | refused |":
+    "| Placement: provider di risorse | tutto | tutto | rifiutato |",
+  "| Neutron: agents | all | all | nothing |":
+    "| Neutron: agenti | tutto | tutto | niente |",
+  "| Neutron: networks | all | own project only | own project only |":
+    "| Neutron: reti | tutto | solo il proprio progetto | solo il proprio progetto |",
+  "| Neutron: subnets | all | own project only | own project only |":
+    "| Neutron: subnet | tutto | solo il proprio progetto | solo il proprio progetto |",
+  "| Neutron: routers | all | own project only | own project only |":
+    "| Neutron: router | tutto | solo il proprio progetto | solo il proprio progetto |",
+  "| Neutron: floating IPs | all | own project only | own project only |":
+    "| Neutron: IP floating | tutto | solo il proprio progetto | solo il proprio progetto |",
+  "| Neutron: IP availabilities | all | all | nothing |":
+    "| Neutron: disponibilità di IP | tutto | tutto | niente |",
+  "| Neutron: security groups | all | 409, expected | own project only |":
+    "| Neutron: gruppi di sicurezza | tutto | 409, previsto | solo il proprio progetto |",
+  "| Neutron: ports | all | own project only | own project only |":
+    "| Neutron: porte | tutto | solo il proprio progetto | solo il proprio progetto |",
+  "| Neutron: quotas | all | refused | refused |":
+    "| Neutron: quote | tutto | rifiutato | rifiutato |",
+  "| Cinder: volumes, all projects | all | own project only | own project only |":
+    "| Cinder: volumi, tutti i progetti | tutto | solo il proprio progetto | solo il proprio progetto |",
+  "| Cinder: services | all | refused | refused |":
+    "| Cinder: servizi | tutto | rifiutato | rifiutato |",
+  "| Cinder: pools | all | refused | refused |":
+    "| Cinder: pool | tutto | rifiutato | rifiutato |",
+  "| Cinder: snapshots, all projects | all | own project only | own project only |":
+    "| Cinder: snapshot, tutti i progetti | tutto | solo il proprio progetto | solo il proprio progetto |",
+  "| Cinder: backups, all projects | all | none recorded | none recorded |":
+    "| Cinder: backup, tutti i progetti | tutto | nessuno registrato | nessuno registrato |",
+  "| Cinder: volume types | all | what anyone sees | what anyone sees |":
+    "| Cinder: tipi di volume | tutto | ciò che vede chiunque | ciò che vede chiunque |",
+  "| Glance: images | all | what anyone sees | what anyone sees |":
+    "| Glance: immagini | tutto | ciò che vede chiunque | ciò che vede chiunque |",
+  "- **all**: the same rows an admin saw.":
+    "- **tutto**: le stesse righe che vedeva un amministratore.",
+  "- **own project only**: that project's rows, and anything shared or external. On a project that holds nothing, that is just the shared and external ones.":
+    "- **solo il proprio progetto**: le righe di quel progetto, e tutto ciò che è condiviso o esterno. Su un progetto vuoto, sono solo quelli condivisi ed esterni.",
+  "- **refused**: a `401` or a `403`.": "- **rifiutato**: un `401` o un `403`.",
+  "- **what anyone sees**: every credential saw every row, on clouds that hold only public flavors, volume types and images. A private one in another project takes **Full view**.":
+    "- **ciò che vede chiunque**: ogni credenziale ha visto ogni riga, su cloud che hanno solo flavor, tipi di volume e immagini pubblici. Uno privato in un altro progetto richiede **Vista completa**.",
+  "- **nothing**: a `200` with no rows, on a project that has networks too. It looks like it worked, and it did not.":
+    "- **niente**: un `200` senza righe, su un progetto che ha anche delle reti. Sembra che abbia funzionato, e non è così.",
+  "- **none recorded**: a `200` with no rows where an admin saw none either, so there was nothing to tell by.":
+    "- **nessuno registrato**: un `200` senza righe dove anche un amministratore non ne vedeva nessuna, quindi non c'era nulla da cui capirlo.",
+  "- **409, expected**: Neutron tries to create the project's default security group when it lists them, and zero quota does not let it, so it answers `409 Quota exceeded`. That is harmless, and nothing to fix.":
+    "- **409, previsto**: Neutron prova a creare il gruppo di sicurezza predefinito del progetto quando li elenca, e la quota zero non glielo permette, quindi risponde `409 Quota exceeded`. È innocuo, e non c'è nulla da correggere.",
+  "A list a credential can't read looks empty here: `troubleshoot.sh` says what this credential can read, and what each gap costs.":
+    "Un elenco che una credenziale non può leggere qui sembra vuoto: `troubleshoot.sh` dice cosa può leggere questa credenziale e quanto costa ogni lacuna.",
+  "Monitoring must never be what takes a cloud down, so the agent is gentle by default:":
+    "Il monitoraggio non deve mai essere ciò che manda giù un cloud, quindi l'agente è delicato per impostazione predefinita:",
+  "| Reads | Every | Gives |": "| Legge | Ogni | Fornisce |",
+  "| **Compute (Nova)** | 2 minutes | Services, hypervisors, instances and flavors |":
+    "| **Calcolo (Nova)** | 2 minuti | Servizi, hypervisor, istanze e flavor |",
+  "| **Placement** | 2 minutes | What each hypervisor can promise, and has promised |":
+    "| **Placement** | 2 minuti | Ciò che ogni hypervisor può promettere, e ha promesso |",
+  "| **Networking (Neutron)** | 2 minutes | Agents, networks, subnets, address use, routers and floating IPs |":
+    "| **Rete (Neutron)** | 2 minuti | Agenti, reti, subnet, uso degli indirizzi, router e IP floating |",
+  "| **Block Storage (Cinder)** | 2 minutes | Services, volumes, snapshots and storage pools |":
+    "| **Storage a blocchi (Cinder)** | 2 minuti | Servizi, volumi, snapshot e pool di storage |",
+  "| **Identity (Keystone)** | 5 minutes | Projects and domains |":
+    "| **Identità (Keystone)** | 5 minuti | Progetti e domini |",
+  "| **Images (Glance)** | 5 minutes | Images |":
+    "| **Immagini (Glance)** | 5 minuti | Immagini |",
+  "- Each service is read on its own, so a failing Nova costs only Nova's numbers, and the rest keep reporting.":
+    "- Ogni servizio viene letto per conto suo, quindi un Nova in errore costa solo i numeri di Nova, e il resto continua a riportare.",
+  "- A read never outlasts its interval, so a slow one never stacks on the next.":
+    "- Una lettura non dura mai più del suo intervallo, quindi una lenta non si accumula mai sulla successiva.",
+  "- Each project's quotas are off. To turn them on, run the installer again with `OPENSTACK_COLLECT_QUOTAS=true`: a second exporter reads them once an hour, at four calls per project per region. Neutron's quotas answer only **Full view**.":
+    "- Le quote di ogni progetto sono disattivate. Per attivarle, esegui di nuovo l'installer con `OPENSTACK_COLLECT_QUOTAS=true`: un secondo exporter le legge una volta all'ora, con quattro chiamate per progetto e per regione. Le quote di Neutron rispondono solo a **Vista completa**.",
+  "- Nova's own quota lists and usage per server are off. To turn one on, delete its `--disable-metric` line from the exporter's `command` in `docker-compose.yml`. The cost is one call per project per scrape.":
+    "- Gli elenchi delle quote di Nova e l'utilizzo per server sono disattivati. Per attivarne uno, elimina la sua riga `--disable-metric` dal `command` dell'exporter in `docker-compose.yml`. Il costo è una chiamata per progetto a ogni raccolta.",
+  "- The per-port series are off: listing every port with an admin credential can saturate Neutron on a large cloud.":
+    "- Le serie per porta sono disattivate: elencare ogni porta con una credenziale da amministratore può saturare Neutron su un cloud grande.",
+  "A cloud is one Keystone, however many regions it has, and one agent reads them all. Give the install script every region's name. It writes one `clouds.yaml` entry for each. Each entry must be named for its region: the collector stamps that name on the exporter's series as `openstack.region.name`, because the series do not say which region they are from. Every list in OneUptime then filters by region.":
+    "Un cloud è un Keystone, per quante regioni abbia, e un solo agente le legge tutte. Dai allo script di installazione il nome di ogni regione. Scrive una voce di `clouds.yaml` per ciascuna. Ogni voce deve portare il nome della sua regione: il collector applica quel nome alle serie dell'exporter come `openstack.region.name`, perché le serie non dicono da quale regione provengono. Ogni elenco di OneUptime si filtra allora per regione.",
+  "Regions with a Keystone of their own are separate clouds to OneUptime: run one agent for each.":
+    "Le regioni con un Keystone proprio sono cloud separati per OneUptime: esegui un agente per ciascuna.",
+  "**[Very Large OpenStack Clouds](/docs/telemetry/openstack-very-large-clouds)** has what each size costs and how each of these works.":
+    "**[Cloud OpenStack molto grandi](/docs/telemetry/openstack-very-large-clouds)** spiega quanto costa ogni dimensione e come funziona ciascuna di queste opzioni.",
+  "**Past 5,000 instances, summary mode.** The cloud keeps a row for every part and counts per hypervisor, project and status, and its series per instance and per volume stop. It gives up the history of each settled instance's and volume's status, and a chart or a monitor over those series. An instance or volume in a state an alert watches keeps its series, so every alert template goes on working. To keep them for some, choose their projects under **Real usage per instance** on the cloud's **Settings** page.":
+    "**Oltre 5.000 istanze, la modalità di riepilogo.** Il cloud mantiene una riga per ogni componente e conteggi per hypervisor, progetto e stato, e le sue serie per istanza e per volume si fermano. Rinuncia alla cronologia dello stato di ogni istanza e di ogni volume stabili, e a qualsiasi grafico o monitor su quelle serie. Un'istanza o un volume in uno stato sorvegliato da un avviso mantiene le sue serie, quindi ogni modello di avviso continua a funzionare. Per mantenerle per alcuni, scegli i loro progetti in **Utilizzo reale per istanza** nella pagina **Impostazioni** del cloud.",
+  "**Sharing a cloud between agents.** Run one agent per region, or per service for the largest clouds, each with the same `OPENSTACK_CLOUD_NAME`. A region and a service belong to one agent, and Keystone to one agent for the whole cloud, or their series arrive twice. List an agent's regions in `OPENSTACK_EXPORTER_CLOUDS`, and its services in `OPENSTACK_AGENT_SERVICES`, such as `compute|placement`.":
+    "**Dividere un cloud tra più agenti.** Esegui un agente per regione, o per servizio nei cloud più grandi, ciascuno con lo stesso `OPENSTACK_CLOUD_NAME`. Una regione e un servizio appartengono a un solo agente, e Keystone a un solo agente per tutto il cloud, altrimenti le loro serie arrivano due volte. Elenca le regioni di un agente in `OPENSTACK_EXPORTER_CLOUDS`, e i suoi servizi in `OPENSTACK_AGENT_SERVICES`, come `compute|placement`.",
+  "**Past 1,500 hypervisors or 100,000 instances, the database path.** The agent can read the cloud's databases rather than its APIs, which at that size cannot be read in a scrape's time. It asks for a read-only account on each service's database, a route to them from this machine, and one exporter per region and Nova cell. It reads the same series, but for whether each Nova worker is alive and how full each storage pool is, which it still reads from the API, and it cannot say whether an API answers. It has not yet been run against a real database.":
+    "**Oltre 1.500 hypervisor o 100.000 istanze, la via dei database.** L'agente può leggere i database del cloud invece delle sue API, che a quella dimensione non si riescono a leggere nel tempo di una raccolta. Richiede un account in sola lettura sul database di ogni servizio, una route verso di essi da questa macchina, e un exporter per regione e per cella di Nova. Legge le stesse serie, tranne se ogni worker di Nova è vivo e quanto è pieno ogni pool di storage, che legge ancora dall'API, e non può dire se un'API risponde. Non è ancora stato eseguito su un database reale.",
+  "The install script writes these to `/opt/oneuptime-openstack-agent/.env`. After changing one, apply it with `docker compose up -d` in `/opt/oneuptime-openstack-agent`.":
+    "Lo script di installazione le scrive in `/opt/oneuptime-openstack-agent/.env`. Dopo averne modificata una, applicala con `docker compose up -d` in `/opt/oneuptime-openstack-agent`.",
+  "| Variable | Required | Description |":
+    "| Variabile | Obbligatoria | Descrizione |",
+  "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
+    "| `ONEUPTIME_URL` | Sì | L'URL della tua istanza OneUptime (ad es. `<YOUR_ONEUPTIME_URL>`) |",
+  "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key: the one picked in step 1 |":
+    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sì | Chiave di acquisizione della telemetria: quella scelta nel passaggio 1 |",
+  "| `OPENSTACK_CLOUD_NAME` | Yes | The cloud's name in OneUptime, stamped on every metric as the `openstack.cloud.name` resource attribute. Keep it stable: changing it registers a new cloud |":
+    "| `OPENSTACK_CLOUD_NAME` | Sì | Il nome del cloud in OneUptime, applicato a ogni metrica come attributo di risorsa `openstack.cloud.name`. Mantienilo stabile: cambiarlo registra un nuovo cloud |",
+  "| `OPENSTACK_EXPORTER_CLOUDS` | Yes | The `clouds.yaml` entries to read, one per region and named for the region, in square brackets: `[RegionOne,RegionTwo]` |":
+    "| `OPENSTACK_EXPORTER_CLOUDS` | Sì | Le voci di `clouds.yaml` da leggere, una per regione e con il nome della regione, tra parentesi quadre: `[RegionOne,RegionTwo]` |",
+  "| `OPENSTACK_AUTH_URL` | Bundled exporter | The Keystone auth URL. `/v3` is added if it is missing |":
+    "| `OPENSTACK_AUTH_URL` | Exporter incluso | L'URL di autenticazione di Keystone. `/v3` viene aggiunto se manca |",
+  "| `OPENSTACK_EXPORTER_ADDRESS` | No | `host:port` of your own exporter, with no scheme. Leave it out for the bundled one |":
+    "| `OPENSTACK_EXPORTER_ADDRESS` | No | `host:port` del tuo exporter, senza schema. Omettila per quello incluso |",
+  "| `OPENSTACK_QUOTA_CLOUDS` | No | The `clouds.yaml` entries to read each project's quotas from, once an hour. The install script sets it when run with `OPENSTACK_COLLECT_QUOTAS=true` |":
+    "| `OPENSTACK_QUOTA_CLOUDS` | No | Le voci di `clouds.yaml` da cui leggere le quote di ogni progetto, una volta all'ora. Lo script di installazione la imposta quando viene eseguito con `OPENSTACK_COLLECT_QUOTAS=true` |",
+  "| `OPENSTACK_QUOTA_EXPORTER_ADDRESS` | No | `host:port` of the exporter that reads those. Leave it out for the bundled one |":
+    "| `OPENSTACK_QUOTA_EXPORTER_ADDRESS` | No | `host:port` dell'exporter che le legge. Omettila per quello incluso |",
+  "| `OPENSTACK_EXPORTER_USER` | No | The `uid:gid` the exporter's container runs as, which must own `clouds.yaml` (default: `65532:65532`) |":
+    "| `OPENSTACK_EXPORTER_USER` | No | L'`uid:gid` con cui gira il container dell'exporter, che deve essere proprietario di `clouds.yaml` (predefinito: `65532:65532`) |",
+  "| `OPENSTACK_CA_FILE` | No | A PEM file with the certificate authority of a cloud that has its own |":
+    "| `OPENSTACK_CA_FILE` | No | Un file PEM con l'autorità di certificazione di un cloud che ne ha una propria |",
+  "| `COMPOSE_PROFILES` | Bundled exporter | `openstack-exporter` starts the bundled exporter, and `openstack-ai-agent` the OneUptime AI agent |":
+    "| `COMPOSE_PROFILES` | Exporter incluso | `openstack-exporter` avvia l'exporter incluso, e `openstack-ai-agent` l'agente IA di OneUptime |",
+  "| `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` | No | An exporter already running without `--multi-cloud`, such as Kolla-Ansible's: `[10.0.0.254:9198]`. Set `OPENSTACK_EXPORTER_CLOUDS=[]` with it |":
+    "| `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` | No | Un exporter già in esecuzione senza `--multi-cloud`, come quello di Kolla-Ansible: `[10.0.0.254:9198]`. Imposta `OPENSTACK_EXPORTER_CLOUDS=[]` insieme a essa |",
+  "| `OPENSTACK_RABBITMQ_TARGETS` | No | RabbitMQ's Prometheus plugin on each node: `[10.0.0.11:15692,10.0.0.12:15692]` |":
+    "| `OPENSTACK_RABBITMQ_TARGETS` | No | Il plugin Prometheus di RabbitMQ su ogni nodo: `[10.0.0.11:15692,10.0.0.12:15692]` |",
+  "| `OPENSTACK_MARIADB_TARGETS` | No | mysqld_exporter beside each MariaDB node, usually on `9104` |":
+    "| `OPENSTACK_MARIADB_TARGETS` | No | mysqld_exporter accanto a ogni nodo MariaDB, di solito su `9104` |",
+  "| `OPENSTACK_MEMCACHED_TARGETS` | No | memcached_exporter beside each Memcached, usually on `9150` |":
+    "| `OPENSTACK_MEMCACHED_TARGETS` | No | memcached_exporter accanto a ogni Memcached, di solito su `9150` |",
+  "| `OPENSTACK_HAPROXY_TARGETS` | No | HAProxy's own Prometheus exporter |":
+    "| `OPENSTACK_HAPROXY_TARGETS` | No | L'exporter Prometheus di HAProxy stesso |",
+  "| `OPENSTACK_NETWORK_EXPORTER_TARGETS` | No | openstack-network-exporter on each node, for OVN and Open vSwitch, usually on `1981` |":
+    "| `OPENSTACK_NETWORK_EXPORTER_TARGETS` | No | openstack-network-exporter su ogni nodo, per OVN e Open vSwitch, di solito su `1981` |",
+  "| `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | No | prometheus-libvirt-exporter on each compute node, usually on `9177`, for whether libvirt answers and nothing per instance |":
+    "| `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | No | prometheus-libvirt-exporter su ogni nodo di calcolo, di solito su `9177`, per sapere se libvirt risponde e niente per istanza |",
+  "| `OPENSTACK_CONTROL_PLANE_REGION` | No | The region of a target above that does not say its own. A target can: `RegionTwo@10.1.0.11:15692` |":
+    "| `OPENSTACK_CONTROL_PLANE_REGION` | No | La regione di un target qui sopra che non indica la propria. Un target può farlo: `RegionTwo@10.1.0.11:15692` |",
+  "| `OPENSTACK_LIBVIRT_EXPORTER_TARGETS` | No | The same exporter, for what each instance is really doing. Per-instance series multiply fast |":
+    "| `OPENSTACK_LIBVIRT_EXPORTER_TARGETS` | No | Lo stesso exporter, per ciò che ogni istanza sta davvero facendo. Le serie per istanza si moltiplicano in fretta |",
+  "| `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` | No | Ceilometer's exporter on each compute node, usually on `9101`, for the same |":
+    "| `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` | No | L'exporter di Ceilometer su ogni nodo di calcolo, di solito su `9101`, per la stessa cosa |",
+  "`clouds.yaml` alone holds the credential.":
+    "Solo `clouds.yaml` contiene la credenziale.",
+  "Only the largest clouds need these, and none is asked for:":
+    "Solo i cloud più grandi ne hanno bisogno, e nessuna viene chiesta:",
+  "| Variable | Description |": "| Variabile | Descrizione |",
+  "| `OPENSTACK_AGENT_SERVICES` | Which services this agent reads, as a pattern: `compute\\|placement` here and the rest on a second agent. Every service by default. No two agents should read one service of one region |":
+    "| `OPENSTACK_AGENT_SERVICES` | Quali servizi legge questo agente, come pattern: `compute\\|placement` qui e il resto su un secondo agente. Tutti i servizi per impostazione predefinita. Due agenti non devono mai leggere lo stesso servizio di una stessa regione |",
+  "| `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` | The memory the collector may use, in MiB (default: `512`). It holds a whole scrape, so raise this past tens of thousands of instances |":
+    "| `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` | La memoria che il collector può usare, in MiB (predefinito: `512`). Contiene un'intera raccolta, quindi alzala oltre le decine di migliaia di istanze |",
+  "| `OPENSTACK_DATABASE_EXPORTER_TARGETS` | Reading each service's database rather than its API, with a read-only account: where that exporter answers. Set `OPENSTACK_EXPORTER_CLOUDS=[]` with it, or every series arrives twice |":
+    "| `OPENSTACK_DATABASE_EXPORTER_TARGETS` | Leggere il database di ogni servizio invece della sua API, con un account in sola lettura: dove risponde quell'exporter. Imposta `OPENSTACK_EXPORTER_CLOUDS=[]` insieme a essa, altrimenti ogni serie arriva due volte |",
+  "| `NOVA_DATABASE_URL`, `NOVA_API_DATABASE_URL`, `PLACEMENT_DATABASE_URL`, `NEUTRON_DATABASE_URL`, `CINDER_DATABASE_URL`, `GLANCE_DATABASE_URL`, `KEYSTONE_DATABASE_URL` | The database of each service it reads, as `mysql+pymysql://oneuptime:secret@db.example:3306/nova`. One left empty is a service it leaves alone. Each holds a password, and `.env` is readable by its owner alone |":
+    "| `NOVA_DATABASE_URL`, `NOVA_API_DATABASE_URL`, `PLACEMENT_DATABASE_URL`, `NEUTRON_DATABASE_URL`, `CINDER_DATABASE_URL`, `GLANCE_DATABASE_URL`, `KEYSTONE_DATABASE_URL` | Il database di ogni servizio che legge, come `mysql+pymysql://oneuptime:secret@db.example:3306/nova`. Una lasciata vuota è un servizio che lascia stare. Ognuna contiene una password, e `.env` è leggibile solo dal suo proprietario |",
+  "| `OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX` | What Nova adds to a host's name to make a hypervisor's, such as `.example.org`, so an instance finds the hypervisor it runs on |":
+    "| `OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX` | Ciò che Nova aggiunge al nome di un host per formare quello di un hypervisor, come `.example.org`, così che un'istanza trovi l'hypervisor su cui gira |",
+  "| `OPENSTACK_WORKER_STATE_CLOUDS` | The `clouds.yaml` entries to read from Nova's and Cinder's APIs what their databases cannot say: whether each worker is alive, and how full each pool is |":
+    "| `OPENSTACK_WORKER_STATE_CLOUDS` | Le voci di `clouds.yaml` con cui leggere dalle API di Nova e Cinder ciò che i loro database non possono dire: se ogni worker è vivo, e quanto è pieno ogni pool |",
+  "| `OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS` | `host:port` of the exporter that reads those. Leave it out for the bundled one |":
+    "| `OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS` | `host:port` dell'exporter che le legge. Omettila per quello incluso |",
+  "| `OPENSTACK_QUOTA_CLOUDS` | The `clouds.yaml` entries to read each project's quotas from, once an hour. Empty reads none, and `OPENSTACK_COLLECT_QUOTAS=true` in the install script fills it in |":
+    "| `OPENSTACK_QUOTA_CLOUDS` | Le voci di `clouds.yaml` da cui leggere le quote di ogni progetto, una volta all'ora. Vuota non ne legge nessuna, e `OPENSTACK_COLLECT_QUOTAS=true` nello script di installazione la compila |",
+  "The OneUptime AI agent reads the credential in `clouds.yaml` unless these say otherwise, and none is asked for:":
+    "L'agente IA di OneUptime legge la credenziale in `clouds.yaml` a meno che queste non dicano altrimenti, e nessuna viene chiesta:",
+  "| `ONEUPTIME_AI_INVESTIGATION` | `false` stops OneUptime AI investigating this cloud with the agent |":
+    "| `ONEUPTIME_AI_INVESTIGATION` | `false` impedisce a OneUptime AI di indagare su questo cloud con l'agente |",
+  "| `OPENSTACK_AI_CLOUDS_FILE` | The `clouds.yaml` it mounts. `/dev/null` when it has a credential of its own and there is no such file beside it |":
+    "| `OPENSTACK_AI_CLOUDS_FILE` | Il `clouds.yaml` che monta. `/dev/null` quando ha una credenziale propria e accanto non c'è un file del genere |",
+  "| `ONEUPTIME_AI_OPENSTACK_CLOUD` | The entry of `clouds.yaml` to use, when it is not the first of `OPENSTACK_EXPORTER_CLOUDS` |":
+    "| `ONEUPTIME_AI_OPENSTACK_CLOUD` | La voce di `clouds.yaml` da usare, quando non è la prima di `OPENSTACK_EXPORTER_CLOUDS` |",
+  "| `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID`, `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` | A credential of its own, used instead of `clouds.yaml`'s. Set both, with `OPENSTACK_AUTH_URL` |":
+    "| `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID`, `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` | Una credenziale propria, usata al posto di quella di `clouds.yaml`. Imposta entrambe, con `OPENSTACK_AUTH_URL` |",
+  "| `OPENSTACK_AUTH_URL` | The Keystone a credential of its own logs in to |":
+    "| `OPENSTACK_AUTH_URL` | Il Keystone a cui accede una credenziale propria |",
+  "| `ONEUPTIME_AI_OPENSTACK_REGION`, `ONEUPTIME_AI_OPENSTACK_INTERFACE`, `ONEUPTIME_AI_OPENSTACK_CA_FILE` | The region a command reads when it names none, which endpoints it uses (`public`, `internal` or `admin`), and a certificate authority. `clouds.yaml` says these unless they do |":
+    "| `ONEUPTIME_AI_OPENSTACK_REGION`, `ONEUPTIME_AI_OPENSTACK_INTERFACE`, `ONEUPTIME_AI_OPENSTACK_CA_FILE` | La regione che legge un comando quando non ne nomina nessuna, quali endpoint usa (`public`, `internal` o `admin`), e un'autorità di certificazione. `clouds.yaml` li indica a meno che non lo facciano queste |",
+  "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | The name it registers under, when it is not `OPENSTACK_CLOUD_NAME` |":
+    "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | Il nome con cui si registra, quando non è `OPENSTACK_CLOUD_NAME` |",
+  "| `LOG_LEVEL` | How much it logs |":
+    "| `LOG_LEVEL` | Quanto scrive nei log |",
+  "| `ONEUPTIME_AI_ALLOW_WRITES`, `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID`, `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET` | Off until set: let it make changes, through a credential of their own. The OpenStack guide says how to make it with the least it needs |":
+    "| `ONEUPTIME_AI_ALLOW_WRITES`, `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID`, `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET` | Disattivate finché non vengono impostate: gli permettono di apportare modifiche, tramite una credenziale propria. La guida di OpenStack spiega come crearla con il minimo indispensabile |",
+  "| `ONEUPTIME_AI_FIXES` | How AI may apply a fix: off, ask-for-approval, automatic or bypass-approval. Empty: fixes stay off until someone chooses on this page |":
+    "| `ONEUPTIME_AI_FIXES` | Come l'IA può applicare una correzione: off, ask-for-approval, automatic o bypass-approval. Vuota: le correzioni restano disattivate finché qualcuno non sceglie in questa pagina |",
+  "| `ONEUPTIME_AI_PROTECTED_TARGETS` | What is never touched, whatever else is set and whoever approves it: `project:ID`, `host:NAME` or `instance:ID`, separated by commas |":
+    "| `ONEUPTIME_AI_PROTECTED_TARGETS` | Ciò che non viene mai toccato, qualunque altra cosa sia impostata e chiunque la approvi: `project:ID`, `host:NAME` o `instance:ID`, separati da virgole |",
+  "| `ONEUPTIME_AI_WRITE_TARGETS` | Where changes may land, written the same way. Empty: anywhere that is not protected |":
+    "| `ONEUPTIME_AI_WRITE_TARGETS` | Dove possono arrivare le modifiche, scritto allo stesso modo. Vuota: ovunque non sia protetto |",
+  "Set `OPENSTACK_EXPORTER_ADDRESS` as you run the install script, such as `OPENSTACK_EXPORTER_ADDRESS=10.0.0.5:9180 bash install.sh`. The bundled exporter then never starts, and no Keystone URL or credential is asked for.":
+    "Imposta `OPENSTACK_EXPORTER_ADDRESS` quando esegui lo script di installazione, come `OPENSTACK_EXPORTER_ADDRESS=10.0.0.5:9180 bash install.sh`. L'exporter incluso non si avvia mai, e non vengono chiesti né un URL di Keystone né una credenziale.",
+  "Your exporter must run with `--multi-cloud`, and its `clouds.yaml` needs an entry named for each region. Turn off what the bundled one turns off: see **What the agent collects, and what it costs your cloud**. Use an address the agent's container can reach: `localhost` inside the container is the container itself.":
+    "Il tuo exporter deve girare con `--multi-cloud`, e il suo `clouds.yaml` ha bisogno di una voce con il nome di ogni regione. Disattiva ciò che disattiva quello incluso: vedi **Cosa raccoglie l'agente e quanto costa al tuo cloud**. Usa un indirizzo che il container dell'agente possa raggiungere: `localhost` dentro il container è il container stesso.",
+  "**Started without `--multi-cloud`?** Kolla-Ansible's is, and Canonical's charm. It has no `/probe`, so set `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` instead of the address above, with `OPENSTACK_EXPORTER_CLOUDS=[]` and `OPENSTACK_CONTROL_PLANE_REGION`. It is then asked for everything at once, every 2 minutes.":
+    "**Avviato senza `--multi-cloud`?** Quello di Kolla-Ansible lo è, come il charm di Canonical. Non ha `/probe`, quindi imposta `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` al posto dell'indirizzo qui sopra, con `OPENSTACK_EXPORTER_CLOUDS=[]` e `OPENSTACK_CONTROL_PLANE_REGION`. Gli viene allora chiesto tutto in una volta, ogni 2 minuti.",
+  "**On exporter 1.7.0,** which Kolla-Ansible pins, it answers either way, and the pages go without what it does not say. On five real clouds that was:":
+    "**Con l'exporter 1.7.0,** che Kolla-Ansible fissa, risponde in entrambi i casi, e alle pagine manca ciò che non dice. Su cinque cloud reali è stato questo:",
+  "Give the install script the file when it asks for a private CA file. It copies it to `ca.pem`, and names it in `clouds.yaml`.":
+    "Dai il file allo script di installazione quando chiede un file della CA privata. Lo copia in `ca.pem` e lo indica in `clouds.yaml`.",
+  "On Linux (x86_64 or arm64) with systemd 235 or later and glibc 2.34 or later (not RHEL 8), the install script can run the same collector and exporter releases as systemd services instead:":
+    "Su Linux (x86_64 o arm64) con systemd 235 o successivo e glibc 2.34 o successivo (non RHEL 8), lo script di installazione può eseguire le stesse release del collector e dell'exporter come servizi systemd:",
+  "Moving off a Docker install? Run `docker compose down` first, or every metric arrives twice. Running the script again stays whichever it was, so `sudo bash install.sh` is the upgrade.":
+    "Lasci un'installazione Docker? Esegui prima `docker compose down`, altrimenti ogni metrica arriva due volte. Eseguire di nuovo lo script resta sulla modalità già in uso, quindi `sudo bash install.sh` è l'aggiornamento.",
+  "The `resource` processor in `otel-collector-config.yaml` stamps every metric with the cloud's name. OneUptime registers the cloud from that attribute, and every page and monitor scopes on it. The two deletes keep OneUptime from registering a Service named after the scrape job, so keep them if you customize the file:":
+    "Il processor `resource` in `otel-collector-config.yaml` applica a ogni metrica il nome del cloud. OneUptime registra il cloud da quell'attributo, e ogni pagina e monitor si limita a esso. Le due eliminazioni impediscono a OneUptime di registrare un servizio con il nome del job di raccolta, quindi mantienile se personalizzi il file:",
+  "The whole file is on this OneUptime:":
+    "L'intero file è su questo OneUptime:",
+  "Any resource attribute prefixed with `oneuptime.label.` becomes a project label on the cloud: `oneuptime.label.<dimension>=<value>` is the label `<dimension>:<value>`. Add them to the `resource` processor in `otel-collector-config.yaml`, next to `openstack.cloud.name`:":
+    "Qualsiasi attributo di risorsa con il prefisso `oneuptime.label.` diventa un'etichetta di progetto sul cloud: `oneuptime.label.<dimension>=<value>` è l'etichetta `<dimension>:<value>`. Aggiungili al processor `resource` in `otel-collector-config.yaml`, accanto a `openstack.cloud.name`:",
+  "Then restart the collector so it reads the new config:":
+    "Poi riavvia il collector perché legga la nuova configurazione:",
+  "The cloud shows up tagged `team:platform` and `env:production`. Labels are matched case-insensitively, so an existing `Production` label is reused; labels added in the OneUptime UI are never removed by the agent.":
+    "Il cloud compare con le etichette `team:platform` e `env:production`. Le etichette vengono confrontate senza distinzione tra maiuscole e minuscole, quindi un'etichetta `Production` esistente viene riusata; le etichette aggiunte nell'interfaccia di OneUptime non vengono mai rimosse dall'agente.",
+  "**Upgrade.** The images are pinned in `docker-compose.yml` and its config is a file beside it, so pulling alone does not move the agent forward. Run the install script again. It reuses every value in your existing `.env` and `clouds.yaml` (nothing is asked again), downloads the latest files (a file you edited is kept next to the new one as `<file>.bak.<timestamp>`), pulls the images and recreates the agent with them:":
+    "**Aggiornamento.** Le immagini sono fissate in `docker-compose.yml` e la sua configurazione è un file accanto, quindi il solo pull non fa avanzare l'agente. Esegui di nuovo lo script di installazione. Riusa ogni valore del tuo `.env` e del tuo `clouds.yaml` esistenti (non viene chiesto nulla di nuovo), scarica i file più recenti (un file che hai modificato viene conservato accanto al nuovo come `<file>.bak.<timestamp>`), scarica le immagini e ricrea l'agente con esse:",
+  "The config reports the collector version it pins as the cloud's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.":
+    "La configurazione riporta la versione del collector che fissa come **Versione dell'agente** del cloud. Quando questo OneUptime ne fissa una più recente, un segnale di avviso accanto apre questi comandi.",
+  "**Uninstall** the agent:": "**Disinstalla** l'agente:",
+  "Then delete `/opt/oneuptime-openstack-agent`, which holds the credential, and the application credential itself: `openstack application credential delete oneuptime-agent`.":
+    "Poi elimina `/opt/oneuptime-openstack-agent`, che contiene la credenziale, e l'application credential stessa: `openstack application credential delete oneuptime-agent`.",
+  "`troubleshoot.sh` checks the whole chain, from DNS and TLS to Keystone, each service in the catalog and your ingestion key, and says what this credential can read and what each gap costs.":
+    "`troubleshoot.sh` controlla l'intera catena, da DNS e TLS fino a Keystone, ogni servizio nel catalogo e la tua chiave di acquisizione, e dice cosa può leggere questa credenziale e quanto costa ogni lacuna.",
+  "It needs `sudo` to read `clouds.yaml`, or it skips the credential checks. It ends with a verdict naming the most likely cause.":
+    "Ha bisogno di `sudo` per leggere `clouds.yaml`, altrimenti salta i controlli sulla credenziale. Termina con un verdetto che indica la causa più probabile.",
+  "1. Check that the agent is running (in `/opt/oneuptime-openstack-agent`): `docker compose ps`":
+    "1. Verifica che l'agente sia in esecuzione (in `/opt/oneuptime-openstack-agent`): `docker compose ps`",
+  "2. Check the agent logs for errors: `docker compose logs oneuptime-openstack-agent | grep -i error`":
+    "2. Controlla gli errori nei log dell'agente: `docker compose logs oneuptime-openstack-agent | grep -i error`",
+  "3. Verify your OneUptime URL and ingestion key are correct.":
+    "3. Verifica che l'URL di OneUptime e la chiave di acquisizione siano corretti.",
+  "4. Ensure the agent machine can reach the OneUptime instance over the network.":
+    "4. Assicurati che la macchina dell'agente possa raggiungere l'istanza OneUptime in rete.",
+  "A **Project view** credential can't read them, and neither can a role without the policy overrides: Nova, Neutron and Placement keep them for admins by default. Use **Full view**, or **Infrastructure only** with the files in `access/policy` merged into the file each service's `[oslo_policy] policy_file` names. `troubleshoot.sh` says which reads were refused.":
+    "Una credenziale **Vista progetto** non può leggerli, e nemmeno un ruolo senza gli override di policy: Nova, Neutron e Placement li riservano per impostazione predefinita agli amministratori. Usa **Vista completa**, oppure **Solo infrastruttura** con i file di `access/policy` uniti al file che `[oslo_policy] policy_file` di ogni servizio indica. `troubleshoot.sh` dice quali letture sono state rifiutate.",
+  "Only **Full view** sees `cinder-volume` and `cinder-scheduler` state and storage pools. Cinder's own code answers anything else with `403 User does not have admin privileges`, after policy has already passed, so no override opens them.":
+    "Solo **Vista completa** vede lo stato di `cinder-volume` e `cinder-scheduler` e i pool di storage. Il codice stesso di Cinder risponde a qualunque altra con `403 User does not have admin privileges`, dopo che la policy ha già dato il via libera, quindi nessun override li apre.",
+  "Neutron and Cinder answer anything but an admin with `200` and only its own project, which looks like it worked. Seeing every project takes **Full view**. With **Infrastructure only**, they appear for the projects the role is assigned on, and a role on a real project can also write there on many clouds.":
+    "Neutron e Cinder rispondono a chiunque non sia amministratore con `200` e solo il suo progetto, il che sembra aver funzionato. Vedere ogni progetto richiede **Vista completa**. Con **Solo infrastruttura**, compaiono per i progetti su cui è assegnato il ruolo, e un ruolo su un progetto reale può anche scriverci su molti cloud.",
+  "A **Project view** credential shows no instances through the agent: the exporter asks Nova for all projects' servers, Nova refuses a plain reader, and that read fails whole. **Full view** and **Infrastructure only** both see every project's instances.":
+    "Una credenziale **Vista progetto** non mostra alcuna istanza tramite l'agente: l'exporter chiede a Nova i server di tutti i progetti, Nova rifiuta un semplice lettore, e quella lettura fallisce per intero. **Vista completa** e **Solo infrastruttura** vedono entrambe le istanze di ogni progetto.",
+  "That is expected with **Infrastructure only**, and harmless. Neutron tries to create a project's default security group when it lists them, and a project with zero quota cannot hold one. There is nothing to fix.":
+    "È previsto con **Solo infrastruttura**, ed è innocuo. Neutron prova a creare il gruppo di sicurezza predefinito di un progetto quando li elenca, e un progetto con quota zero non può averne uno. Non c'è nulla da correggere.",
+  "On Flamingo and Epoxy, oslo.policy raises on every check once a policy file it has read is gone, and when the service is Keystone the whole cloud answers `503`. Restart the service. To take the overrides off, empty the file (`{}`) and never delete it.":
+    "Su Flamingo ed Epoxy, oslo.policy solleva un errore a ogni controllo appena un file di policy che ha letto non c'è più, e quando il servizio è Keystone tutto il cloud risponde `503`. Riavvia il servizio. Per togliere gli override, svuota il file (`{}`) e non eliminarlo mai.",
+  "The agent reads each service on its own, so a failing service costs only its own numbers. Look at why the exporter can't read it (in `/opt/oneuptime-openstack-agent`): `docker compose logs oneuptime-openstack-exporter`. The **Services** page shows that API as `down`. An access-rule credential made from an older copy of the rules also does this on Swift, and on Octavia behind a path: make a new one, as **Full view** does.":
+    "L'agente legge ogni servizio per conto suo, quindi un servizio in errore costa solo i suoi numeri. Guarda perché l'exporter non riesce a leggerlo (in `/opt/oneuptime-openstack-agent`): `docker compose logs oneuptime-openstack-exporter`. La pagina **Servizi** mostra quell'API come `down`. Una credenziale con regole di accesso creata da una copia più vecchia delle regole fa lo stesso su Swift, e su Octavia dietro un percorso: creane una nuova, come fa **Vista completa**.",
+  "The services are refusing a credential limited by access rules. A service behind a path prefix refuses the shipped rules: fit them to this cloud with `access-rules-for-cloud.py`, as **Full view** does. And each service needs `service_type` set for keystonemiddleware, and a restart:":
+    "I servizi rifiutano una credenziale limitata da regole di accesso. Un servizio dietro un prefisso di percorso rifiuta le regole fornite: adattale a questo cloud con `access-rules-for-cloud.py`, come fa **Vista completa**. E ogni servizio ha bisogno di `service_type` impostato per keystonemiddleware, e di un riavvio:",
+  "If you won't change that, create the credential without `--access-rules`, knowing it can write.":
+    "Se non vuoi cambiarlo, crea la credenziale senza `--access-rules`, sapendo che può scrivere.",
+  "The exporter runs as uid 65532, and `clouds.yaml` is readable by its owner alone. Give the file to that user, or set `OPENSTACK_EXPORTER_USER` in `.env` to the file owner's `uid:gid`, and apply it with `docker compose up -d`.":
+    "L'exporter gira come uid 65532, e `clouds.yaml` è leggibile solo dal suo proprietario. Dai il file a quell'utente, oppure imposta `OPENSTACK_EXPORTER_USER` in `.env` sull'`uid:gid` del proprietario del file, e applicalo con `docker compose up -d`.",
+  "The cloud's identity comes from `OPENSTACK_CLOUD_NAME`, stamped on every metric as `openstack.cloud.name`. Fix it in `.env` and apply it with `docker compose up -d` in `/opt/oneuptime-openstack-agent`. A new name registers a new cloud.":
+    "L'identità del cloud viene da `OPENSTACK_CLOUD_NAME`, applicato a ogni metrica come `openstack.cloud.name`. Correggilo in `.env` e applicalo con `docker compose up -d` in `/opt/oneuptime-openstack-agent`. Un nuovo nome registra un nuovo cloud.",
+  "The cloud's identity comes from `OPENSTACK_CLOUD_NAME`, stamped on every metric as `openstack.cloud.name`. This cloud is **`cloud-1`**. Fix it in `.env` and apply it with `docker compose up -d` in `/opt/oneuptime-openstack-agent`. A new name registers a new cloud.":
+    "L'identità del cloud viene da `OPENSTACK_CLOUD_NAME`, applicato a ogni metrica come `openstack.cloud.name`. Questo cloud è **`cloud-1`**. Correggilo in `.env` e applicalo con `docker compose up -d` in `/opt/oneuptime-openstack-agent`. Un nuovo nome registra un nuovo cloud.",
+  "Docker Engine 20.10+ with the Docker Compose v2 plugin, on the machine that will run the agent":
+    "Docker Engine 20.10 o successivo con il plugin Docker Compose v2, sulla macchina che eseguirà l'agente",
+  "Download `docker-compose.yml` and `otel-collector-config.yaml` from this OneUptime into a new folder:":
+    "Scarica `docker-compose.yml` e `otel-collector-config.yaml` da questo OneUptime in una nuova cartella:",
+  "Create a `clouds.yaml` file next to them, with the credential from the previous step. It needs one entry per region, each named for its region, because the exporter's series do not say which region they are from:":
+    "Crea accanto a essi un file `clouds.yaml`, con la credenziale del passaggio precedente. Ha bisogno di una voce per regione, ciascuna con il nome della sua regione, perché le serie dell'exporter non dicono da quale regione provengono:",
+  "Create a `.env` file next to them too:":
+    "Crea accanto a essi anche un file `.env`:",
+  "- Replace `my-openstack-cloud` with a name for this cloud, such as `prod-eu`. It is how the cloud appears in OneUptime, so keep it stable: a new name registers a new cloud.":
+    "- Sostituisci `my-openstack-cloud` con un nome per questo cloud, come `prod-eu`. È così che il cloud compare in OneUptime, quindi mantienilo stabile: un nuovo nome registra un nuovo cloud.",
+  "- List every region in `OPENSTACK_EXPORTER_CLOUDS`, in square brackets, such as `[RegionOne,RegionTwo]`.":
+    "- Elenca ogni regione in `OPENSTACK_EXPORTER_CLOUDS`, tra parentesi quadre, come `[RegionOne,RegionTwo]`.",
+  "- `COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent` starts the bundled exporter, which reads the cloud with `clouds.yaml`, and the OneUptime AI agent, which reads it with the same file while OneUptime AI investigates.":
+    "- `COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent` avvia l'exporter incluso, che legge il cloud con `clouds.yaml`, e l'agente IA di OneUptime, che lo legge con lo stesso file mentre OneUptime AI indaga.",
+  "Both files hold secrets, so keep them to their owner. The exporter runs as uid 65532, and must be the one account that can read `clouds.yaml`. Then start the agent:":
+    "Entrambi i file contengono segreti, quindi riservali al loro proprietario. L'exporter gira come uid 65532, e deve essere l'unico account in grado di leggere `clouds.yaml`. Poi avvia l'agente:",
+  "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
+    "Scegli una chiave di acquisizione nel passaggio 1 per compilare `<YOUR_API_KEY>`.",
+  "A cloud is one Keystone, however many regions it has, and one agent reads them all. Add one `clouds.yaml` entry per region, and list them all in `OPENSTACK_EXPORTER_CLOUDS`. Each entry must be named for its region: the collector stamps that name on the exporter's series as `openstack.region.name`, because the series do not say which region they are from. Every list in OneUptime then filters by region.":
+    "Un cloud è un Keystone, per quante regioni abbia, e un solo agente le legge tutte. Aggiungi una voce di `clouds.yaml` per regione, ed elencale tutte in `OPENSTACK_EXPORTER_CLOUDS`. Ogni voce deve portare il nome della sua regione: il collector applica quel nome alle serie dell'exporter come `openstack.region.name`, perché le serie non dicono da quale regione provengono. Ogni elenco di OneUptime si filtra allora per regione.",
+  "The agent reads these from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the folder with `docker-compose.yml`.":
+    "L'agente le legge dal file `.env` accanto a `docker-compose.yml`. Dopo averne modificata una, applicala con `docker compose up -d` nella cartella con `docker-compose.yml`.",
+  "Leave `COMPOSE_PROFILES` out of `.env` and point the agent at your exporter, as `host:port` with no scheme: `OPENSTACK_EXPORTER_ADDRESS=10.0.0.5:9180`. The bundled exporter then never starts.":
+    "Togli `COMPOSE_PROFILES` da `.env` e indirizza l'agente al tuo exporter, come `host:port` senza schema: `OPENSTACK_EXPORTER_ADDRESS=10.0.0.5:9180`. L'exporter incluso non si avvia mai.",
+  "Put the file next to `docker-compose.yml` as `ca.pem`, set `OPENSTACK_CA_FILE=./ca.pem` in `.env`, and add `cacert: /etc/openstack/ca.pem` to each entry of `clouds.yaml`.":
+    "Metti il file accanto a `docker-compose.yml` come `ca.pem`, imposta `OPENSTACK_CA_FILE=./ca.pem` in `.env`, e aggiungi `cacert: /etc/openstack/ca.pem` a ogni voce di `clouds.yaml`.",
+  "Run these in the agent's folder, the one with `docker-compose.yml`.":
+    "Eseguili nella cartella dell'agente, quella con `docker-compose.yml`.",
+  "**Upgrade.** The images are pinned in `docker-compose.yml` and its config is a file beside it, so pulling alone does not move the agent forward. Download both files again; your `.env` and `clouds.yaml` stay, and a change you made to either file has to be made again:":
+    "**Aggiornamento.** Le immagini sono fissate in `docker-compose.yml` e la sua configurazione è un file accanto, quindi il solo pull non fa avanzare l'agente. Scarica di nuovo entrambi i file; il tuo `.env` e il tuo `clouds.yaml` restano, e una modifica che avevi fatto a uno dei due file scaricati va rifatta:",
+  "Then pull the images and recreate the agent, so the collector reads its new config:":
+    "Poi scarica le immagini e ricrea l'agente, così che il collector legga la sua nuova configurazione:",
+  "Then delete the folder with `docker-compose.yml`, which holds the credential, and the application credential itself: `openstack application credential delete oneuptime-agent`.":
+    "Poi elimina la cartella con `docker-compose.yml`, che contiene la credenziale, e l'application credential stessa: `openstack application credential delete oneuptime-agent`.",
+  "1. Check that the agent is running (in the agent's folder): `docker compose ps`":
+    "1. Verifica che l'agente sia in esecuzione (nella cartella dell'agente): `docker compose ps`",
+  "The agent reads each service on its own, so a failing service costs only its own numbers. Look at why the exporter can't read it (in the agent's folder): `docker compose logs oneuptime-openstack-exporter`. The **Services** page shows that API as `down`. An access-rule credential made from an older copy of the rules also does this on Swift, and on Octavia behind a path: make a new one, as **Full view** does.":
+    "L'agente legge ogni servizio per conto suo, quindi un servizio in errore costa solo i suoi numeri. Guarda perché l'exporter non riesce a leggerlo (nella cartella dell'agente): `docker compose logs oneuptime-openstack-exporter`. La pagina **Servizi** mostra quell'API come `down`. Una credenziale con regole di accesso creata da una copia più vecchia delle regole fa lo stesso su Swift, e su Octavia dietro un percorso: creane una nuova, come fa **Vista completa**.",
+  "The cloud's identity comes from `OPENSTACK_CLOUD_NAME`, stamped on every metric as `openstack.cloud.name`. Fix it in `.env` and apply it with `docker compose up -d` in the folder with `docker-compose.yml`. A new name registers a new cloud.":
+    "L'identità del cloud viene da `OPENSTACK_CLOUD_NAME`, applicato a ogni metrica come `openstack.cloud.name`. Correggilo in `.env` e applicalo con `docker compose up -d` nella cartella con `docker-compose.yml`. Un nuovo nome registra un nuovo cloud.",
+  "- This installs the agent for **`cloud-1`**. Keep `OPENSTACK_CLOUD_NAME` exactly as it is, or the data registers as a new cloud.":
+    "- Questo installa l'agente per **`cloud-1`**. Lascia `OPENSTACK_CLOUD_NAME` esattamente com'è, altrimenti i dati si registrano come un nuovo cloud.",
+  "The cloud's identity comes from `OPENSTACK_CLOUD_NAME`, stamped on every metric as `openstack.cloud.name`. This cloud is **`cloud-1`**. Fix it in `.env` and apply it with `docker compose up -d` in the folder with `docker-compose.yml`. A new name registers a new cloud.":
+    "L'identità del cloud viene da `OPENSTACK_CLOUD_NAME`, applicato a ogni metrica come `openstack.cloud.name`. Questo cloud è **`cloud-1`**. Correggilo in `.env` e applicalo con `docker compose up -d` nella cartella con `docker-compose.yml`. Un nuovo nome registra un nuovo cloud.",
+  "OpenStack-Ansible keeps its services' logs in journald and runs no Prometheus of its own, so the agent is the way in, and the logs have a path of their own.":
+    "OpenStack-Ansible tiene i log dei suoi servizi in journald e non esegue un Prometheus proprio, quindi l'agente è la via d'accesso, e i log hanno un percorso tutto loro.",
+  "**How far this guide has been tested:** Its paths and variables were read from OpenStack-Ansible's own source and docs. Its commands were then run on a real all-in-one at stable/2026.1, in LXC containers, with a stand-in for OneUptime that kept what the agent sent: the agent on the Full view credential, the agent's exporter on the Infrastructure only credential with its policy overrides, the RabbitMQ and HAProxy settings with the agent reading each, and the logs profile on the journal. The agent and a probe have each taken a real DevStack all the way into a running OneUptime, through a stopped nova-compute and back, but not from this tool.":
+    "**Fin dove è stata testata questa guida:** i suoi percorsi e le sue variabili sono stati letti dal codice sorgente e dalla documentazione di OpenStack-Ansible. I suoi comandi sono poi stati eseguiti su un vero all-in-one in stable/2026.1, in container LXC, con un sostituto di OneUptime che conservava ciò che l'agente inviava: l'agente con la credenziale Vista completa, l'exporter dell'agente con la credenziale Solo infrastruttura e i suoi override di policy, le impostazioni di RabbitMQ e HAProxy con l'agente che leggeva ciascuno, e il profilo dei log sul journal. L'agente e una sonda hanno portato ciascuno un vero DevStack fino a un OneUptime in esecuzione, passando per un nova-compute fermato e ripartito, ma non da questo strumento.",
+  "- Log in as an admin from the utility container: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, then `. ~/openrc`. It has no `curl`, which the commands below use, so run `apt-get install -y curl` there first.":
+    "- Accedi come amministratore dal container utility: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, poi `. ~/openrc`. Non ha `curl`, che i comandi qui sotto usano, quindi esegui prima `apt-get install -y curl` lì.",
+  "- **Full view** needs one change, to Cinder. OpenStack-Ansible's roles already set `service_type` under `[keystone_authtoken]`, but its Cinder says `volumev3` and its catalog says `block-storage`, and keystonemiddleware refuses a credential limited by access rules with a `401` unless the two agree. Set `service_type: block-storage` under `keystone_authtoken` in `cinder_cinder_conf_overrides` in `/etc/openstack_deploy/user_variables.yml`, then run `openstack-ansible openstack.osa.cinder --tags cinder-config`.":
+    "- **Vista completa** richiede una modifica, a Cinder. I ruoli di OpenStack-Ansible impostano già `service_type` in `[keystone_authtoken]`, ma il suo Cinder dice `volumev3` e il suo catalogo dice `block-storage`, e keystonemiddleware rifiuta una credenziale limitata da regole di accesso con un `401` se i due non coincidono. Imposta `service_type: block-storage` in `keystone_authtoken` dentro `cinder_cinder_conf_overrides` in `/etc/openstack_deploy/user_variables.yml`, poi esegui `openstack-ansible openstack.osa.cinder --tags cinder-config`.",
+  "- **Infrastructure only** takes its overrides as `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` and `placement_policy_overrides` in `/etc/openstack_deploy/user_variables.yml`. Apply each with its own playbook and tag, such as `openstack-ansible openstack.osa.nova --tags nova-policy-override`. Taking one out later leaves an empty file behind rather than none, so nothing fails.":
+    "- **Solo infrastruttura** prende i suoi override come `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` e `placement_policy_overrides` in `/etc/openstack_deploy/user_variables.yml`. Applica ciascuno con il suo playbook e il suo tag, come `openstack-ansible openstack.osa.nova --tags nova-policy-override`. Toglierne uno in seguito lascia un file vuoto anziché nessun file, quindi nulla fallisce.",
+  "- **RabbitMQ:** turn on its Prometheus plugin, then name each container's address on `15692` as `OPENSTACK_RABBITMQ_TARGETS` in the agent's `.env`:":
+    "- **RabbitMQ:** attiva il suo plugin Prometheus, poi indica l'indirizzo di ogni container su `15692` come `OPENSTACK_RABBITMQ_TARGETS` nel `.env` dell'agente:",
+  "- **HAProxy:** its exporter is off, and its stats listener is on `127.0.0.1` with TLS, which the agent cannot read. Turn it on where the agent can, then name that address on `1936` as `OPENSTACK_HAPROXY_TARGETS`:":
+    "- **HAProxy:** il suo exporter è disattivato, e il suo listener delle statistiche è su `127.0.0.1` con TLS, che l'agente non può leggere. Attivalo dove l'agente può leggerlo, poi indica quell'indirizzo su `1936` come `OPENSTACK_HAPROXY_TARGETS`:",
+  "- **MariaDB and Memcached:** OpenStack-Ansible ships no exporter for either. Run [mysqld_exporter](https://github.com/prometheus/mysqld_exporter) and [memcached_exporter](https://github.com/prometheus/memcached_exporter) yourself and name them as `OPENSTACK_MARIADB_TARGETS` and `OPENSTACK_MEMCACHED_TARGETS`, or leave them out: the cloud's **Control Plane** card then says they are not watched, rather than that they are fine.":
+    "- **MariaDB e Memcached:** OpenStack-Ansible non fornisce un exporter per nessuno dei due. Esegui tu [mysqld_exporter](https://github.com/prometheus/mysqld_exporter) e [memcached_exporter](https://github.com/prometheus/memcached_exporter) e indicali come `OPENSTACK_MARIADB_TARGETS` e `OPENSTACK_MEMCACHED_TARGETS`, oppure lasciali fuori: la scheda **Piano di controllo** del cloud dirà allora che non sono sorvegliati, anziché che stanno bene.",
+  "This runs the agent's logs profile as a systemd service, and reads `/var/log/journal/`, where OpenStack-Ansible's containers' journals arrive.":
+    "Questo esegue il profilo dei log dell'agente come servizio systemd, e legge `/var/log/journal/`, dove arrivano i journal dei container di OpenStack-Ansible.",
+  "Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**. The agent's logs profile reads both from the journal.":
+    "Ciascuno scrive nel log del servizio stesso, senza alcun consumer sul bus. OneUptime li legge da lì non appena **Trova eventi di sicurezza nei tuoi log** è attivo, in **Eventi di sicurezza → Connessioni**. Il profilo dei log dell'agente li legge entrambi dal journal.",
+  "This sends a line for each login, which **OpenStack admin credential used from a new address** reads. To send failed logins only, add `identity.authenticate.success` to `notification_opt_out`, and that detection then reads what the audit filter saw. A second value of `notification_opt_out` goes in as a YAML set, as [its config_template](https://docs.openstack.org/ansible-config_template/latest/) writes a repeated key.":
+    "Questo invia una riga per ogni accesso, che **OpenStack admin credential used from a new address** legge. Per inviare solo gli accessi falliti, aggiungi `identity.authenticate.success` a `notification_opt_out`, e quel rilevamento leggerà allora ciò che ha visto il filtro di audit. Un secondo valore di `notification_opt_out` si scrive come set YAML, così come [il suo config_template](https://docs.openstack.org/ansible-config_template/latest/) scrive una chiave ripetuta.",
+  "For who did what through Nova, Neutron, Cinder and Glance, each API takes the filter's setting in its conf overrides, and the filter in its paste overrides, with `audit` right after `authtoken` and the context filter that follows it in each pipeline. Nova's, and the same in `neutron_neutron_conf_overrides` and `neutron_api_paste_ini_overrides`, `cinder_cinder_conf_overrides` and `cinder_api_paste_ini_overrides`, and `glance_glance_api_conf_overrides` and `glance_glance_api_paste_ini_overrides`:":
+    "Per sapere chi ha fatto cosa tramite Nova, Neutron, Cinder e Glance, ogni API prende l'impostazione del filtro nei suoi override di conf, e il filtro nei suoi override di paste, con `audit` subito dopo `authtoken` e il filtro di contesto che lo segue in ogni pipeline. Ecco quelli di Nova, e lo stesso in `neutron_neutron_conf_overrides` e `neutron_api_paste_ini_overrides`, `cinder_cinder_conf_overrides` e `cinder_api_paste_ini_overrides`, e `glance_glance_api_conf_overrides` e `glance_glance_api_paste_ini_overrides`:",
+  "OpenStack-Helm offers charts for Prometheus, Alertmanager and exporters, and whether they are running is up to you. Its control plane runs in Kubernetes, so a probe reads the APIs and the Kubernetes agent sees the pods.":
+    "OpenStack-Helm offre chart per Prometheus, Alertmanager ed exporter, e se sono in esecuzione dipende da te. Il suo piano di controllo gira in Kubernetes, quindi una sonda legge le API e l'agente Kubernetes vede i pod.",
+  "**How far this guide has been tested:** Its chart values were read from OpenStack-Helm's own source. It has not been followed end to end on a real deployment of this tool. The agent and a probe have each taken a real DevStack all the way into a running OneUptime, through a stopped nova-compute and back, but not from this tool. The probe and the Kubernetes agent were each tested on their own, not together on this tool.":
+    "**Fin dove è stata testata questa guida:** i suoi valori dei chart sono stati letti dal codice sorgente di OpenStack-Helm. Non è stata seguita dall'inizio alla fine su un vero deployment di questo strumento. L'agente e una sonda hanno portato ciascuno un vero DevStack fino a un OneUptime in esecuzione, passando per un nova-compute fermato e ripartito, ma non da questo strumento. La sonda e l'agente Kubernetes sono stati testati ciascuno per conto suo, non insieme su questo strumento.",
+  "Then add the receiver under `conf.alertmanager` in the chart's values, and send your route to it:":
+    "Poi aggiungi il receiver in `conf.alertmanager` nei valori del chart, e manda la tua route verso di esso:",
+  "Open **OpenStack → All Clouds**, click **Connect Cloud**, and give it Keystone's address, an application credential and the probe to use. A probe only speaks HTTPS to a cloud. [OpenStack Without an Agent](/docs/telemetry/openstack-agentless) says what each level of access reads, and the connection test says what yours can. The agent also works from any machine with a route to the APIs: choose **Not sure, or something else** above for its steps.":
+    "Apri **OpenStack → Tutti i cloud**, fai clic su **Connetti cloud**, e indica l'indirizzo di Keystone, un'application credential e la sonda da usare. Una sonda parla con un cloud solo in HTTPS. [OpenStack senza agente](/docs/telemetry/openstack-agentless) dice cosa legge ogni livello di accesso, e il test di connessione dice cosa può leggere il tuo. L'agente funziona anche da qualsiasi macchina con una route verso le API: scegli **Non so, o altro** qui sopra per i suoi passaggi.",
+  "Follow **Kubernetes → Documentation** for this cluster. Its pods, their logs and their nodes then reach the Kubernetes pages, and the OpenStack services among them are watched there.":
+    "Segui **Kubernetes → Documentazione** per questo cluster. I suoi pod, i loro log e i loro nodi arrivano allora nelle pagine Kubernetes, e i servizi OpenStack tra di essi vengono sorvegliati lì.",
+  "To have those services' logs on this cloud's **Logs** page as well, each stack trace one record, name the cloud in the agent's values, with the namespaces its services run in:":
+    "Per avere i log di quei servizi anche nella pagina **Log** di questo cloud, ogni stack trace come un solo record, indica il cloud nei valori dell'agente, con i namespace in cui girano i suoi servizi:",
+  "Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**. The Kubernetes agent reads both from the pods' logs, with the cloud named in its values.":
+    "Ciascuno scrive nel log del servizio stesso, senza alcun consumer sul bus. OneUptime li legge da lì non appena **Trova eventi di sicurezza nei tuoi log** è attivo, in **Eventi di sicurezza → Connessioni**. L'agente Kubernetes li legge entrambi dai log dei pod, con il cloud indicato nei suoi valori.",
+  "A chart's `logging.conf` keeps the root logger at `WARNING`, and the log driver writes under a logger of its own, so without one for it nothing is written. A list in values replaces the chart's, so `keys` holds what the chart's has, plus this:":
+    "Il `logging.conf` di un chart tiene il logger root a `WARNING`, e il driver dei log scrive sotto un logger proprio, quindi senza un logger per esso non viene scritto nulla. Un elenco nei valori sostituisce quello del chart, quindi `keys` contiene ciò che ha quello del chart, più questo:",
+  "For who did what through Nova, Neutron and Cinder, their charts' `conf.paste` already has the audit filter in each pipeline, and it needs telling where to write. Each needs the same logger, in `conf.logging`. Glance's chart has the map, and neither the filter nor a place for it in its pipelines: add both to its `conf.paste`.":
+    "Per sapere chi ha fatto cosa tramite Nova, Neutron e Cinder, il `conf.paste` dei loro chart ha già il filtro di audit in ogni pipeline, e bisogna dirgli dove scrivere. Ognuno ha bisogno dello stesso logger, in `conf.logging`. Il chart di Glance ha la mappa, ma né il filtro né un posto per esso nelle sue pipeline: aggiungi entrambi al suo `conf.paste`.",
+  "Atmosphere runs kube-prometheus-stack with its own alert rules, and Loki with Vector for logs. Forward its alerts first, then a probe reads the APIs and the Kubernetes agent sees the pods.":
+    "Atmosphere esegue kube-prometheus-stack con le sue regole di avviso, e Loki con Vector per i log. Inoltra prima i suoi avvisi, poi una sonda legge le API e l'agente Kubernetes vede i pod.",
+  "**How far this guide has been tested:** Its configuration was read from Atmosphere's own docs and source. It has not been followed end to end on a real deployment of this tool. The agent and a probe have each taken a real DevStack all the way into a running OneUptime, through a stopped nova-compute and back, but not from this tool. The probe and the Kubernetes agent were each tested on their own, not together on this tool.":
+    "**Fin dove è stata testata questa guida:** la sua configurazione è stata letta dalla documentazione e dal codice sorgente di Atmosphere. Non è stata seguita dall'inizio alla fine su un vero deployment di questo strumento. L'agente e una sonda hanno portato ciascuno un vero DevStack fino a un OneUptime in esecuzione, passando per un nova-compute fermato e ripartito, ma non da questo strumento. La sonda e l'agente Kubernetes sono stati testati ciascuno per conto suo, non insieme su questo strumento.",
+  "Then add the receiver to your Atmosphere configuration, beside whichever receivers you already have, and deploy it:":
+    "Poi aggiungi il receiver alla tua configurazione di Atmosphere, accanto ai receiver che hai già, ed eseguine il deployment:",
+  "For who did what through Nova, Neutron and Cinder, the charts Atmosphere deploys already have the audit filter in each pipeline, and it needs telling where to write, in `nova_helm_values`, `neutron_helm_values` and `cinder_helm_values`. Glance's chart has neither the filter nor a place for it in its pipelines: add both to its `conf.paste`, in `glance_helm_values`.":
+    "Per sapere chi ha fatto cosa tramite Nova, Neutron e Cinder, i chart che Atmosphere distribuisce hanno già il filtro di audit in ogni pipeline, e bisogna dirgli dove scrivere, in `nova_helm_values`, `neutron_helm_values` e `cinder_helm_values`. Il chart di Glance non ha né il filtro né un posto per esso nelle sue pipeline: aggiungi entrambi al suo `conf.paste`, in `glance_helm_values`.",
+  "Sunbeam can deploy the Canonical Observability Stack, with `sunbeam enable observability embedded`. Canonical also has an `openstack-exporter` charm, which the agent can read if you run it.":
+    "Sunbeam può distribuire il Canonical Observability Stack, con `sunbeam enable observability embedded`. Canonical ha anche un charm `openstack-exporter`, che l'agente può leggere se lo esegui.",
+  "**How far this guide has been tested:** Its commands were read from Canonical's docs and its charms' source. It has not been followed end to end on a real deployment of this tool. The agent and a probe have each taken a real DevStack all the way into a running OneUptime, through a stopped nova-compute and back, but not from this tool. Nothing here has been run on Sunbeam, and Sunbeam's own docs do not mention the exporter charm.":
+    "**Fin dove è stata testata questa guida:** i suoi comandi sono stati letti dalla documentazione di Canonical e dal codice sorgente dei suoi charm. Non è stata seguita dall'inizio alla fine su un vero deployment di questo strumento. L'agente e una sonda hanno portato ciascuno un vero DevStack fino a un OneUptime in esecuzione, passando per un nova-compute fermato e ripartito, ma non da questo strumento. Nulla di questo è stato eseguito su Sunbeam, e la documentazione di Sunbeam non menziona il charm dell'exporter.",
+  "Then give the stack's Alertmanager a configuration with the receiver in it:":
+    "Poi dai all'Alertmanager dello stack una configurazione che contenga il receiver:",
+  "If you run Canonical's `openstack-exporter` charm, the agent can read it with no credential of its own. It answers one cloud on `/metrics`, on port `9180` unless you changed its `port` setting. Find its address with `juju status openstack-exporter`:":
+    "Se esegui il charm `openstack-exporter` di Canonical, l'agente può leggerlo senza una credenziale propria. Risponde per un cloud su `/metrics`, sulla porta `9180` a meno che tu non abbia cambiato la sua impostazione `port`. Trova il suo indirizzo con `juju status openstack-exporter`:",
+  "Which series it says depends on the exporter release in its snap, which was not recorded here: `bash troubleshoot.sh` says whether it reads the cloud.":
+    "Quali serie fornisce dipende dalla release dell'exporter nel suo snap, che qui non è stata registrata: `bash troubleshoot.sh` dice se legge il cloud.",
+  "With observability on, the stack's Loki holds the services' logs. OneUptime has no way to read Loki, and the agent's logs profile has not been tried on Sunbeam's charms, so nothing here collects them yet.":
+    "Con l'osservabilità attiva, il Loki dello stack contiene i log dei servizi. OneUptime non ha modo di leggere Loki, e il profilo dei log dell'agente non è stato provato sui charm di Sunbeam, quindi qui nulla li raccoglie ancora.",
+  "Sunbeam's charms write each service's configuration from their own templates, and its Keystone charm has no setting for where notifications go. So neither Keystone's audit trail nor the audit filter can be turned on from outside the charm, and nothing here reaches Security Events.":
+    "I charm di Sunbeam scrivono la configurazione di ogni servizio dai propri template, e il suo charm Keystone non ha un'impostazione per dove vanno le notifiche. Quindi né l'audit trail di Keystone né il filtro di audit si possono attivare dall'esterno del charm, e nulla di questo arriva negli Eventi di sicurezza.",
+  "Its Telemetry Operator runs Ceilometer's Prometheus exporter and a monitoring stack with Alertmanager on OpenShift. The Kubernetes agent's OpenShift preset watches the control plane, and Ceilometer's exporter says what the compute nodes are doing.":
+    "Il suo Telemetry Operator esegue l'exporter Prometheus di Ceilometer e uno stack di monitoraggio con Alertmanager su OpenShift. Il preset OpenShift dell'agente Kubernetes sorveglia il piano di controllo, e l'exporter di Ceilometer dice cosa stanno facendo i nodi di calcolo.",
+  "**How far this guide has been tested:** Its resources were read from the Telemetry Operator's own source. It has not been followed end to end on a real deployment of this tool. The agent and a probe have each taken a real DevStack all the way into a running OneUptime, through a stopped nova-compute and back, but not from this tool. The OpenShift preset and Ceilometer's exporter were each tested on their own, not together on this tool.":
+    "**Fin dove è stata testata questa guida:** le sue risorse sono state lette dal codice sorgente del Telemetry Operator. Non è stata seguita dall'inizio alla fine su un vero deployment di questo strumento. L'agente e una sonda hanno portato ciascuno un vero DevStack fino a un OneUptime in esecuzione, passando per un nova-compute fermato e ripartito, ma non da questo strumento. Il preset OpenShift e l'exporter di Ceilometer sono stati testati ciascuno per conto suo, non insieme su questo strumento.",
+  "Then apply a receiver the monitoring stack picks up:":
+    "Poi applica un receiver che lo stack di monitoraggio prenda in carico:",
+  "Follow **Kubernetes → Documentation** for this cluster, with **Red Hat OpenShift** picked, which sets `preset=openshift`. Its pods, their logs and their nodes then reach the Kubernetes pages, and the OpenStack services among them are watched there.":
+    "Segui **Kubernetes → Documentazione** per questo cluster, con **Red Hat OpenShift** scelto, che imposta `preset=openshift`. I suoi pod, i loro log e i loro nodi arrivano allora nelle pagine Kubernetes, e i servizi OpenStack tra di essi vengono sorvegliati lì.",
+  "A probe says what is allocated, not what is busy. To read real usage, run the agent on a machine that can reach the compute nodes, with `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` naming each node on Ceilometer's port, `9101`.":
+    "Una sonda dice cosa è allocato, non cosa è occupato. Per leggere l'utilizzo reale, esegui l'agente su una macchina che possa raggiungere i nodi di calcolo, con `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` che indica ogni nodo sulla porta di Ceilometer, `9101`.",
+  "For who did what through Nova and Neutron, each takes the filter's setting in its `customServiceConfig`, and its paste file in `defaultConfigOverwrite`. Cinder's and Glance's operators take no paste file, so nothing here reaches them.":
+    "Per sapere chi ha fatto cosa tramite Nova e Neutron, ognuno prende l'impostazione del filtro nella sua `customServiceConfig`, e il suo file paste in `defaultConfigOverwrite`. Gli operator di Cinder e Glance non accettano alcun file paste, quindi nulla di questo li raggiunge.",
+  "StackLight already watches OpenStack's services, MariaDB, Memcached, RabbitMQ and libvirt, with its own alert rules. Forward its alerts first, then a probe reads the APIs.":
+    "StackLight sorveglia già i servizi di OpenStack, MariaDB, Memcached, RabbitMQ e libvirt, con le sue regole di avviso. Inoltra prima i suoi avvisi, poi una sonda legge le API.",
+  "**How far this guide has been tested:** Its settings were read from Mirantis's docs, whose examples show other receivers rather than a webhook. It has not been followed end to end on a real deployment of this tool. The agent and a probe have each taken a real DevStack all the way into a running OneUptime, through a stopped nova-compute and back, but not from this tool.":
+    "**Fin dove è stata testata questa guida:** le sue impostazioni sono state lette dalla documentazione di Mirantis, i cui esempi mostrano altri receiver anziché un webhook. Non è stata seguita dall'inizio alla fine su un vero deployment di questo strumento. L'agente e una sonda hanno portato ciascuno un vero DevStack fino a un OneUptime in esecuzione, passando per un nova-compute fermato e ripartito, ma non da questo strumento.",
+  "Then add the receiver and its route to your StackLight values:":
+    "Poi aggiungi il receiver e la sua route ai tuoi valori di StackLight:",
+  "For who did what through Nova, Neutron, Cinder and Glance, MOSK has a setting of its own, with the audit filter already in place. With the log driver, each service writes to its standard output, and the Kubernetes agent reads that from the pods' logs, with the cloud named in its values. Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**.":
+    "Per sapere chi ha fatto cosa tramite Nova, Neutron, Cinder e Glance, MOSK ha un'impostazione propria, con il filtro di audit già al suo posto. Con il driver dei log, ogni servizio scrive sul suo standard output, e l'agente Kubernetes lo legge dai log dei pod, con il cloud indicato nei suoi valori. Ciascuno scrive nel log del servizio stesso, senza alcun consumer sul bus. OneUptime li legge da lì non appena **Trova eventi di sicurezza nei tuoi log** è attivo, in **Eventi di sicurezza → Connessioni**.",
+  "That setting does not cover Keystone. Its own audit trail takes `spec:services`, which Mirantis does not validate and takes no responsibility for, so weigh this with your support contract:":
+    "Quell'impostazione non copre Keystone. Il suo audit trail richiede `spec:services`, che Mirantis non convalida e di cui non si assume alcuna responsabilità, quindi valutalo insieme al tuo contratto di supporto:",
+  "Keystone's audit trail says who signed in and who changed what in Keystone, and the audit filter says who did what through Nova, Neutron, Cinder and Glance. Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**.":
+    "L'audit trail di Keystone dice chi ha effettuato l'accesso e chi ha cambiato cosa in Keystone, e il filtro di audit dice chi ha fatto cosa tramite Nova, Neutron, Cinder e Glance. Ciascuno scrive nel log del servizio stesso, senza alcun consumer sul bus. OneUptime li legge da lì non appena **Trova eventi di sicurezza nei tuoi log** è attivo, in **Eventi di sicurezza → Connessioni**.",
+  "The audit filter goes in each API's paste file, right after `authtoken` and the context filter that follows it in each pipeline, with the map file pyCADF ships for that service, in `etc/pycadf` under the Python environment the service runs in. Not at the end of a pipeline: Neutron's `extensions` filter answers its routers and security groups, and the filter would never see them.":
+    "Il filtro di audit va nel file paste di ogni API, subito dopo `authtoken` e il filtro di contesto che lo segue in ogni pipeline, con il file di mappa che pyCADF fornisce per quel servizio, in `etc/pycadf` sotto l'ambiente Python in cui gira il servizio. Non alla fine di una pipeline: il filtro `extensions` di Neutron risponde per i suoi router e gruppi di sicurezza, e il filtro di audit non li vedrebbe mai.",
+  "[Who did what](/docs/telemetry/openstack#who-did-what) says what reaches Security Events, and [each tool's guide](/docs/telemetry/openstack-deployment-tools) says where these go on it.":
+    "[Chi ha fatto cosa](/docs/telemetry/openstack#who-did-what) dice cosa arriva negli Eventi di sicurezza, e [la guida di ogni strumento](/docs/telemetry/openstack-deployment-tools) dice dove vanno queste impostazioni su di esso.",
+};
+
+export default TRANSLATION;

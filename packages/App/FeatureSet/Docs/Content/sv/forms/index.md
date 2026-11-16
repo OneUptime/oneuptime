@@ -134,7 +134,7 @@ Formulär låter personer utanför ditt team skapa incidenter och underhållshä
 | **Create Form** | Skapa formulär och duplicera dem. | Projektägare, Projektadministratör |
 | **Edit Form** | Ändra ett formulär: dess frågor, varumärke, mallar, inställningar under Vid inlämning, **Tar emot inlämningar**, dess länk och **IP-tillåtelselista**. | Projektägare, Projektadministratör |
 | **Delete Form** | Ta bort ett formulär, och därmed dess inlämningar. | Projektägare, Projektadministratör |
-| **Read Form** | Se formulär, deras frågor, inställningar och länkar. | De ovanstående, plus Projektmedlem, Tittare och rollerna för incidenter och planerat underhåll |
+| **Read Form** | Se formulär, deras frågor, inställningar och länkar. | De ovanstående, plus Projektmedlem, Tittare och rollerna för incidenter och schemalagt underhåll |
 | **Read Form Submission** | Se inlämningarna och deras svar. | Projektägare, Projektadministratör |
 | **Delete Form Submission** | Ta bort inlämningar. | Projektägare, Projektadministratör |
 | **Create Form Domain** | Lägga till en [anpassad domän](/docs/forms/sharing-and-security#anpassade-domäner) i ett formulär. | Projektägare, Projektadministratör och **Edit Form** |
@@ -257,7 +257,7 @@ Svaret på en filfråga är filerna så som de sparades, var och en med sin `fil
 
 ### Arbetsflöden
 
-Formulär har de genererade arbetsflödeskomponenterna: **On Create Form**, **On Update Form** och så vidare. Använd **On Create Incident** eller **On Create Maintenance Event** för att agera på det som ett formulär har skapat.
+Formulär har de genererade arbetsflödeskomponenterna: **Vid skapande: Formulär**, **Vid uppdatering: Formulär** och så vidare. Använd **Vid skapande: Incident** eller **Vid skapande: Underhållshändelse** för att agera på det som ett formulär har skapat.
 
 ### Den offentliga sidans egna slutpunkter
 

@@ -4,6 +4,7 @@ import {
   getNumberLocale,
   isEnglishDateLanguage,
 } from "../../Types/DateLanguage";
+import { withDurationWordsHeld } from "../../Types/NoBreakSpaces";
 import { isRightToLeftLanguage } from "../../Types/ReadingDirection";
 import SliType from "../../Types/ServiceLevelObjective/SliType";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
@@ -14,7 +15,7 @@ import {
   translationKey,
   Translator,
 } from "../../Types/Translator";
-import { isRequestSliType } from "./SloRequestSli";
+import { isEventSliType } from "./SloRequestSli";
 
 /**
  * Pure value/label derivation for the dashboard SLO widget.
@@ -382,9 +383,10 @@ export const formatErrorBudgetRemainingSeconds: FormatErrorBudgetRemainingSecond
         ? UNDER_A_MINUTE_OVER_BUDGET
         : UNDER_A_MINUTE_REMAINING;
 
+      // Its "1 min" held, as the count's own "44 min" is (#8811).
       return translator
         ? translator.translateText(underAMinute) || underAMinute
-        : underAMinute;
+        : withDurationWordsHeld(underAMinute);
     }
 
     if (!translator) {
@@ -430,6 +432,17 @@ const SLOW_REQUESTS_OVER_BUDGET: PluralTemplate = {
   other: translationKey("{{count}} slow requests over budget"),
 };
 
+// A Metric SLO's events are whatever its metric counts (#8445).
+const BAD_EVENTS_REMAINING: PluralTemplate = {
+  one: translationKey("{{count}} bad event remaining"),
+  other: translationKey("{{count}} bad events remaining"),
+};
+
+const BAD_EVENTS_OVER_BUDGET: PluralTemplate = {
+  one: translationKey("{{count}} bad event over budget"),
+  other: translationKey("{{count}} bad events over budget"),
+};
+
 // A decimal column as a number: Postgres numerics reach the page as text.
 const toFiniteCount: (
   value: number | string | undefined | null,
@@ -472,6 +485,7 @@ export const formatErrorBudgetRemainingRequests: FormatErrorBudgetRemainingReque
     const isOverBudget: boolean = rounded < 0;
     const count: number = Math.abs(rounded);
     const isLatency: boolean = data.sliType === SliType.RequestLatency;
+    const isMetric: boolean = data.sliType === SliType.Metric;
 
     let template: PluralTemplate = isLatency
       ? SLOW_REQUESTS_REMAINING
@@ -481,6 +495,10 @@ export const formatErrorBudgetRemainingRequests: FormatErrorBudgetRemainingReque
       template = isLatency
         ? SLOW_REQUESTS_OVER_BUDGET
         : FAILED_REQUESTS_OVER_BUDGET;
+    }
+
+    if (isMetric) {
+      template = isOverBudget ? BAD_EVENTS_OVER_BUDGET : BAD_EVENTS_REMAINING;
     }
 
     if (!translator) {
@@ -509,7 +527,7 @@ export const formatSloErrorBudgetSubline: FormatSloErrorBudgetSublineFunction =
     slo: SloWidgetStateData,
     translator?: Translator | undefined,
   ): string | null => {
-    if (isRequestSliType(slo.sliType)) {
+    if (isEventSliType(slo.sliType)) {
       return formatErrorBudgetRemainingRequests(
         {
           sliType: slo.sliType,

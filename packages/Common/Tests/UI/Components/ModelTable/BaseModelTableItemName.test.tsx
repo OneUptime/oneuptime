@@ -428,10 +428,14 @@ describe("a row named by getItemName", () => {
 
     const row: HTMLElement = await rowOf("Timed out");
 
-    // A status event has no name column: the kind of row, then its id.
+    /*
+     * A status event has no name column: the kind of row, then its id, as
+     * one key with the reader's colon, as a name is (ROW_KIND_AND_NAME,
+     * #8290).
+     */
     expect(
       row.querySelector('input[type="checkbox"]')!.getAttribute("aria-label"),
-    ).toBe(`Select Monitor-Statusereignis ${ROWS[1]!._id}`);
+    ).toBe(`Select Monitor-Statusereignis: ${ROWS[1]!._id}`);
   });
 });
 
@@ -443,6 +447,6 @@ describe("a table without getItemName", () => {
 
     expect(
       row.querySelector('input[type="checkbox"]')!.getAttribute("aria-label"),
-    ).toBe(`Select Monitor-Statusereignis ${OLDEST_ID}`);
+    ).toBe(`Select Monitor-Statusereignis: ${OLDEST_ID}`);
   });
 });

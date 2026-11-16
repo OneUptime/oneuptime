@@ -25,7 +25,7 @@ const TracesNavTabs: FunctionComponent<Props> = (
     },
     {
       key: "insights",
-      label: "Insights",
+      label: "Insights (explorer analytics)",
       icon: IconProp.ChartBar,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.TRACES_INSIGHTS] as Route,

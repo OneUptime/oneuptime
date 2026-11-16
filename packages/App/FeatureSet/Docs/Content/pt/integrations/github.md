@@ -15,7 +15,7 @@ O OneUptime trabalha com o [GitHub](https://github.com) de duas formas. Conecte 
 flowchart TB
     app["A GitHub App"] --> repos["Os seus repositórios,<br/>importados"]
     repos --> pr["Pull requests de<br/>correção da IA<br/>do OneUptime"]
-    declared["Incidente declarado"] --> workflow["Workflow:<br/>On Create Incident"]
+    declared["Incidente declarado"] --> workflow["Workflow:<br/>Ao criar: Incidente"]
     workflow -->|"POST issues"| issue["Issue do GitHub"]
 ```
 
@@ -62,11 +62,11 @@ Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois em
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident**. Clique no gatilho: os seus **Fields to pass on** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição** e **Incident Number With Prefix**.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **Ao criar: Incidente**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição** e **Incident Number With Prefix**.
 
 ### Abrir a issue
 
-Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e conecte a ele o ponto **Sucesso** do gatilho. Defina a **URL** dele como `https://api.github.com/repos/your-org/your-repo/issues`, com o dono e o nome do seu repositório. Em **Mais campos**, defina os **Cabeçalhos da Requisição** dele como:
+Clique em **Adicionar componente**, adicione um bloco **Chamada de API POST (JSON)** e conecte a ele o ponto **Sucesso** do gatilho. Defina a **URL** dele como `https://api.github.com/repos/your-org/your-repo/issues`, com o dono e o nome do seu repositório. Em **Mais campos**, defina os **Cabeçalhos da Requisição** dele como:
 
 ```json
 {
@@ -88,7 +88,7 @@ E o **Corpo da Requisição** como:
 
 ### Testar e depois ativar
 
-Clique em **Executar fluxo de trabalho**, escolha um incidente de teste em **Incidente** e execute. A etapa **API Post (JSON)** mostra uma resposta `201` com a nova issue, com o `number` e o `html_url` dela. Depois ative **Habilitado** no topo do **Construtor**.
+Clique em **Executar fluxo de trabalho**, escolha um incidente de teste em **Incidente** e execute. A etapa **Chamada de API POST (JSON)** mostra uma resposta `201` com a nova issue, com o `number` e o `html_url` dela. Depois ative **Habilitado** no topo do **Construtor**.
 :::
 
 A issue continua aberta quando o incidente é resolvido, já que o trabalho de acompanhamento costuma durar mais que o incidente. Para tickets que acompanham o incidente nos dois sentidos, veja [Jira](/docs/integrations/jira).
@@ -97,11 +97,11 @@ A issue continua aberta quando o incidente é resolvido, já que o trabalho de a
 
 - **GitHub Enterprise Server.** Envie a requisição para o seu servidor em vez disso: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. Um servidor em um endereço de rede privado precisa de um OneUptime auto-hospedado cujo administrador o permita: veja [Acesso de rede para fora](/docs/workflows/configuration#acesso-de-rede-para-fora).
 - **Atribua.** Adicione `"assignees": ["octocat"]` ou `"milestone": 3` ao corpo. O GitHub descarta sem aviso rótulos, responsáveis e marcos quando o token não pode fazer push no repositório.
-- **Só alguns incidentes.** Coloque um bloco **If / Else** entre o gatilho e o bloco de API, e abra issues só no lado **Sim** dele, por exemplo para uma gravidade.
+- **Só alguns incidentes.** Coloque um bloco **Se / Senão** entre o gatilho e o bloco de API, e abra issues só no lado **Sim** dele, por exemplo para uma gravidade.
 
 ## Solução de problemas
 
-A etapa **API Post (JSON)** segue por **Erro** quando o GitHub recusa a requisição. O **Response Status** e o **Corpo da Resposta** dela na execução dizem por quê.
+A etapa **Chamada de API POST (JSON)** segue por **Erro** quando o GitHub recusa a requisição. O **Status da resposta** e o **Corpo da Resposta** dela na execução dizem por quê.
 
 :::details O GitHub responde 401
 O token está errado, expirou ou foi revogado. Crie um novo e substitua o conteúdo de `GITHUB_TOKEN`.

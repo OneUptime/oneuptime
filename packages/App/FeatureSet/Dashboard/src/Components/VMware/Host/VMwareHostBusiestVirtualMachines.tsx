@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import Route from "Common/Types/API/Route";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
@@ -207,7 +208,9 @@ const VMwareHostBusiestVirtualMachines: FunctionComponent<ComponentProps> = (
                         </div>
                         <span className="w-12 text-right text-xs tabular-nums text-gray-700">
                           <span className="sr-only">{`${tx("CPU")} `}</span>
-                          {formatPercent(vm.cpuPercent)}
+                          {getValueOrQuietDash(formatPercent(vm.cpuPercent), {
+                            isSmall: true,
+                          })}
                         </span>
                       </div>
                     </li>

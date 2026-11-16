@@ -3,6 +3,7 @@ import EmptyValue, {
   EMPTY_VALUE_MARK,
   isDashPlaceholder,
   isDashText,
+  isNoValue,
 } from "../Detail/EmptyValue";
 import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -19,9 +20,16 @@ import React, { FunctionComponent, ReactElement } from "react";
  *
  * On the row's 24px line, in the grey a missing value is drawn in, so it
  * sits level with the values in the cells beside it.
+ *
+ * `relative`: the words a screen reader hears are sr-only, which is
+ * position: absolute. Without a positioned box of their own, they were
+ * placed against the page, past a table that scrolls sideways inside its
+ * card (overflow: auto, which clips only what it is the containing block
+ * of), and a phone's page scrolled sideways as far as the table's last
+ * empty cell.
  */
 export const TABLE_EMPTY_VALUE_CLASS_NAME: string =
-  "text-sm leading-6 text-gray-400";
+  "relative text-sm leading-6 text-gray-400";
 
 export const TABLE_EMPTY_VALUE_TEST_ID: string = "table-empty-value";
 
@@ -32,7 +40,7 @@ export const TABLE_EMPTY_VALUE_TEST_ID: string = "table-empty-value";
  * empty value.
  */
 export const TABLE_EMPTY_VALUE_SMALL_CLASS_NAME: string =
-  "text-xs text-gray-400";
+  "relative text-xs text-gray-400";
 
 /*
  * The marks pages draw for "nothing here" in a cell of their own, and
@@ -124,6 +132,45 @@ export const getTableNoValue: (
   }
 
   return <TableNoValueMessage text={noValueMessage} />;
+};
+
+/*
+ * A value as a page draws it in an element of its own: the value, or the
+ * quiet dash for one it does not have - nothing, blank, or a formatter's
+ * plain-text mark for nothing (EMPTY_VALUE_MARK: isNoValue) (#8262).
+ *
+ * A formatter writes text, which a chart's label or an export shows as it
+ * is: for nothing, the em dash. Drawn straight into a cell
+ * (`<td>{formatBytes(n)}</td>`) that dash had nothing for a screen reader,
+ * and in a phone's card it was a field the card could not tell was empty.
+ * `<td>{getValueOrQuietDash(formatBytes(n), { isSmall: true })}</td>`
+ * draws TableEmptyValue instead, which a phone's card leaves out
+ * (isEmptyValueElement).
+ */
+export interface QuietValueOptions {
+  // In a line of small text (TABLE_EMPTY_VALUE_SMALL_CLASS_NAME).
+  isSmall?: boolean | undefined;
+  // What a screen reader hears for nothing, as TableEmptyValue's.
+  screenReaderText?: string | undefined;
+}
+
+export const getValueOrQuietDash: (
+  value: React.ReactNode,
+  options?: QuietValueOptions | undefined,
+) => React.ReactNode = (
+  value: React.ReactNode,
+  options?: QuietValueOptions | undefined,
+): React.ReactNode => {
+  if (isNoValue(value)) {
+    return (
+      <TableEmptyValue
+        isSmall={options?.isSmall}
+        screenReaderText={options?.screenReaderText}
+      />
+    );
+  }
+
+  return value;
 };
 
 /*

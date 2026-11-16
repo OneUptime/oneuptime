@@ -694,6 +694,7 @@ const useArchivableValues: <T extends BaseModel>(
               model.singularName ||
               "",
           })}
+          isTitleTranslated={true}
           description={
             <div data-testid="archivable-value-archive-confirmation">
               <p>{translator.translateText(copy.archiveMessage)}</p>

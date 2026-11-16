@@ -4,7 +4,7 @@ Een domeinmonitor leest volgens een schema de registratie van uw domein, om de v
 
 :::cards
 - [De monitor maken](#een-domeinmonitor-maken): Zes stappen in het dashboard.
-- [Opzoekmethoden](#opzoekmethoden): RDAP, WHOIS, en waarom **Auto** de standaard is.
+- [Opzoekmethoden](#opzoekmethoden): RDAP, WHOIS, en waarom **Automatisch** de standaard is.
 - [Standaardcriteria](#standaardcriteria): Een waarschuwing 30 dagen voor het verlopen, zonder instellen.
 - [Problemen oplossen](#problemen-oplossen): Buiten gebruik gestelde WHOIS-servers, proxy's en ontbrekende data.
 :::
@@ -41,7 +41,7 @@ Geïnternationaliseerde domeinnamen worden in beide vormen geaccepteerd: `münch
 | De RDAP-servers van de registries | HTTPS, poort 443 | RDAP-opzoekingen. |
 | WHOIS-servers | TCP, poort 43 | WHOIS-opzoekingen. |
 
-RDAP-verzoeken volgen de instellingen `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` van de sonde. WHOIS loopt via een ruwe socket en doet dat niet. Als een sonde `data.iana.org` niet kan bereiken, valt **Auto** terug op WHOIS en probeert het IANA na vijf minuten opnieuw.
+RDAP-verzoeken volgen de instellingen `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` van de sonde. WHOIS loopt via een ruwe socket en doet dat niet. Als een sonde `data.iana.org` niet kan bereiken, valt **Automatisch** terug op WHOIS en probeert het IANA na vijf minuten opnieuw.
 
 ## Een domeinmonitor maken
 
@@ -56,7 +56,7 @@ Voer een **Naam** in, zoals `example.com registration`, en klik op **Volgende**.
 
 ### Het domein invoeren
 
-Voer de **Domeinnaam** in, zoals `example.com`. Laat **Opzoekmethode** op **Auto** staan, tenzij u een reden hebt om dat niet te doen (zie [Opzoekmethoden](#opzoekmethoden)).
+Voer de **Domeinnaam** in, zoals `example.com`. Laat **Opzoekmethode** op **Automatisch** staan, tenzij u een reden hebt om dat niet te doen (zie [Opzoekmethoden](#opzoekmethoden)).
 
 ### Hem testen
 
@@ -76,13 +76,13 @@ Behoud of wijzig de **Sondes** en het **Bewakingsinterval** (het begint bij **El
 | Veld | Standaard | Wat u invult |
 | --- | --- | --- |
 | **Domeinnaam** | Geen | Het geregistreerde domein, zoals `example.com`. Een geplakt adres werkt ook: `https://example.com/pricing` wordt gelezen als `example.com`. |
-| **Opzoekmethode** | **Auto** | **Auto**, **RDAP** of **WHOIS**. Zie [Opzoekmethoden](#opzoekmethoden). |
+| **Opzoekmethode** | **Automatisch** | **Automatisch**, **RDAP** of **WHOIS**. Zie [Opzoekmethoden](#opzoekmethoden). |
 | **Time-out (ms)** (onder **Meer velden**) | `10000` | Hoe lang op elke registratie-opzoeking wordt gewacht, in milliseconden. |
 | **Nieuwe pogingen** (onder **Meer velden**) | `3` | Nieuwe pogingen nadat de eerste mislukt. `0` betekent één enkele poging. |
 
 Elke mislukte opzoeking wordt opnieuw geprobeerd, met een pauze van een seconde tussen de pogingen. Dat geldt ook voor een registry die antwoordt dat het domein niet is geregistreerd, of dat ze geen registratiedienst heeft, voor het geval het antwoord een tijdelijke storing was. Alleen een ongeldige domeinnaam wordt meteen gemeld, zonder opzoeking.
 
-De time-out geldt per verzoek, niet voor de hele controle: een controle met **Auto** die RDAP probeert en dan op WHOIS terugvalt, kan twee keer zo lang duren, of langer.
+De time-out geldt per verzoek, niet voor de hele controle: een controle met **Automatisch** die RDAP probeert en dan op WHOIS terugvalt, kan twee keer zo lang duren, of langer.
 
 ### Opzoekmethoden
 
@@ -90,11 +90,11 @@ Registratiegegevens kunnen via twee protocollen worden gelezen, en welk protocol
 
 | Methode | Gedrag |
 | --- | --- |
-| **Auto** | Standaard. Gebruikt RDAP wanneer het TLD een RDAP-dienst publiceert, en valt terug op WHOIS wanneer dat niet zo is, of wanneer de RDAP-opzoeking mislukt. |
+| **Automatisch** | Standaard. Gebruikt RDAP wanneer het TLD een RDAP-dienst publiceert, en valt terug op WHOIS wanneer dat niet zo is, of wanneer de RDAP-opzoeking mislukt. |
 | **RDAP** | Alleen RDAP. Mislukt met een duidelijke fout als het TLD geen RDAP-dienst publiceert. |
 | **WHOIS** | Alleen WHOIS. |
 
-**RDAP** ([RFC 9083](https://www.rfc-editor.org/rfc/rfc9083)) is de door ICANN verplichte opvolger van WHOIS. De gezaghebbende server van elk TLD wordt gevonden via het [bootstrapregister van IANA](https://www.rfc-editor.org/rfc/rfc9224), zodat hij klopt als registries verhuizen. Elk gTLD publiceert er een. Wanneer de RDAP-server van het TLD zegt dat het domein niet is geregistreerd, neemt **Auto** dat als antwoord en vraagt het WHOIS niet.
+**RDAP** ([RFC 9083](https://www.rfc-editor.org/rfc/rfc9083)) is de door ICANN verplichte opvolger van WHOIS. De gezaghebbende server van elk TLD wordt gevonden via het [bootstrapregister van IANA](https://www.rfc-editor.org/rfc/rfc9224), zodat hij klopt als registries verhuizen. Elk gTLD publiceert er een. Wanneer de RDAP-server van het TLD zegt dat het domein niet is geregistreerd, neemt **Automatisch** dat als antwoord en vraagt het WHOIS niet.
 
 **WHOIS** heeft geen vergelijkbaar ontdekkingsmechanisme — clients leveren een vaste koppeling van TLD naar WHOIS-host mee, en die koppelingen verouderen. Elk TLD van Identity Digital (`.digital`, `.email`, `.life`, `.today`, `.zone` en zo'n 290 andere) is nog gekoppeld aan een buiten gebruik gestelde host die nu elke query beantwoordt met de letterlijke tekst `TLD is not supported.` in plaats van een registratie. WHOIS blijft de enige optie voor de vele ccTLD's die helemaal geen RDAP-dienst publiceren, zoals `.io`, `.co`, `.de`, `.ch` en `.jp`.
 
@@ -112,7 +112,7 @@ Criteria bepalen wanneer het domein telt als in orde of kapot, en of dat een inc
 | **Nameserver van domein** | **Bevat**, **Bevat niet**, **Begint met**, **Eindigt op**, **Gelijk aan**, **Niet gelijk aan** | De naamservers van het domein. Komt overeen wanneer een ervan overeenkomt. |
 | **Domeinstatuscode** | **Bevat**, **Bevat niet**, **Begint met**, **Eindigt op**, **Gelijk aan**, **Niet gelijk aan** | De EPP-statuscodes van het domein. Komt overeen wanneer een ervan overeenkomt. |
 
-Statuscodes worden genormaliseerd naar hun EPP-namen (`clientTransferProhibited`), welk protocol ook antwoordde, zodat een criterium blijft overeenkomen wanneer **Auto** tussen RDAP en WHOIS wisselt. De _namen_ van registrars zijn wat de antwoordende dienst publiceert en kunnen tussen de twee protocollen iets verschillen, dus gebruik voor een criterium met **Domeinregistrar** liever **Bevat** dan **Gelijk aan**.
+Statuscodes worden genormaliseerd naar hun EPP-namen (`clientTransferProhibited`), welk protocol ook antwoordde, zodat een criterium blijft overeenkomen wanneer **Automatisch** tussen RDAP en WHOIS wisselt. De _namen_ van registrars zijn wat de antwoordende dienst publiceert en kunnen tussen de twee protocollen iets verschillen, dus gebruik voor een criterium met **Domeinregistrar** liever **Bevat** dan **Gelijk aan**.
 
 Data worden genormaliseerd naar ISO 8601. Een datum die een registry publiceert in een vorm die niet kan worden ingelezen, wordt weggelaten in plaats van opgeslagen, zodat een vervalcriterium niet kan beslissen en niet overeenkomt, in plaats van stilzwijgend voor altijd "niet verlopen" te antwoorden.
 
@@ -122,8 +122,8 @@ Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters 
 
 Een nieuwe domeinmonitor begint met drie criteria, zodat hij u zonder instellen waarschuwt voordat een registratie verloopt:
 
-1. **Domeincontrole mislukt** — de registratie is verlopen, of de registratiegegevens konden niet worden gelezen. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitor name_ domain check failed" gemaakt. Het incident lost zichzelf op zodra de registratie weer wordt gelezen en actueel is.
-2. **Domein verloopt binnenkort** — de registratie is niet verlopen, maar verloopt binnen 30 dagen. Er wordt een **waarschuwing** met de naam "_monitor name_ domain expires soon" aangemaakt.
+1. **Domeincontrole mislukt** — de registratie is verlopen, of de registratiegegevens konden niet worden gelezen. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "Domeincontrole van _monitornaam_ mislukt" gemaakt. Het incident lost zichzelf op zodra de registratie weer wordt gelezen en actueel is.
+2. **Domein verloopt binnenkort** — de registratie is niet verlopen, maar verloopt binnen 30 dagen. Er wordt een **waarschuwing** met de naam "Domein _monitornaam_ verloopt binnenkort" aangemaakt.
 3. **Domein is niet verlopen** — de monitor wordt als **Operationeel** gemarkeerd.
 
 De waarschuwing "verloopt binnenkort" is een waarschuwing, geen incident: ze verschijnt niet op uw statuspagina's, ze roept niemand op tenzij u er een bereikbaarheidsbeleid aan toevoegt, en ze wijzigt de status van de monitor niet. Ze gebruikt de tweede waarschuwingsernst van uw project, **Laag** in een nieuw project. Zodra de verlenging in de registratie verschijnt, lost de waarschuwing zichzelf op. Een registry die geen vervaldatum publiceert, geeft de waarschuwing niets om op af te gaan, dus die blijft stil.
@@ -163,11 +163,11 @@ Monitoren die zijn gemaakt voordat OneUptime deze waarschuwing toevoegde, hebben
 ## Problemen oplossen
 
 :::details De WHOIS-server "answered without any registration data"
-De WHOIS-host van het TLD is buiten gebruik, remt de sonde af, of heeft een korte storing. Een buiten gebruik gestelde host, zoals de host die nog voor de TLD's van Identity Digital is ingesteld, antwoordt elke keer `TLD is not supported.`. Blijft de fout bestaan met **Opzoekmethode** op **WHOIS**, schakel dan over naar **Auto**, zodat de sonde de RDAP-dienst van het TLD leest waar die bestaat.
+De WHOIS-host van het TLD is buiten gebruik, remt de sonde af, of heeft een korte storing. Een buiten gebruik gestelde host, zoals de host die nog voor de TLD's van Identity Digital is ingesteld, antwoordt elke keer `TLD is not supported.`. Blijft de fout bestaan met **Opzoekmethode** op **WHOIS**, schakel dan over naar **Automatisch**, zodat de sonde de RDAP-dienst van het TLD leest waar die bestaat.
 :::
 
 :::details De controle mislukt met "No RDAP service is published"
-De monitor gebruikt **RDAP**, en het TLD publiceert geen RDAP-dienst, zoals veel ccTLD's. Zet **Opzoekmethode** op **Auto**, dat op WHOIS terugvalt.
+De monitor gebruikt **RDAP**, en het TLD publiceert geen RDAP-dienst, zoals veel ccTLD's. Zet **Opzoekmethode** op **Automatisch**, dat op WHOIS terugvalt.
 :::
 
 :::details Het domein wordt als niet geregistreerd gemeld
@@ -175,7 +175,7 @@ De registry antwoordde dat het domein beschikbaar is. Controleer de spelling, en
 :::
 
 :::details Opzoekingen mislukken op een sonde achter een proxy
-RDAP loopt via de proxy-instellingen van de sonde, WHOIS niet. Sta uitgaande TCP-poort 43 toe voor WHOIS, of gebruik **Auto** of **RDAP** voor TLD's die een RDAP-dienst publiceren.
+RDAP loopt via de proxy-instellingen van de sonde, WHOIS niet. Sta uitgaande TCP-poort 43 toe voor WHOIS, of gebruik **Automatisch** of **RDAP** voor TLD's die een RDAP-dienst publiceren.
 :::
 
 :::details De vervaldatum is leeg, en de vervalcriteria gaan nooit af

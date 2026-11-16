@@ -203,7 +203,7 @@ describe("SloOverviewHero", () => {
     // A reader whose permissions are not known yet is offered nothing to add.
     expect(getFactValues()).toEqual([
       "99.9%",
-      "Rolling 30 days",
+      "Rolling 30\u00A0days",
       "3 monitors",
       "No owners",
     ]);
@@ -695,7 +695,7 @@ describe("SloOverviewHero - a request SLO", () => {
     expect(getFactValues()).toEqual([
       "99.9%",
       "Within 300\u00A0ms",
-      "Rolling 30 days",
+      "Rolling 30\u00A0days",
       "2 services",
       "No owners",
     ]);
@@ -747,7 +747,7 @@ describe("SloOverviewHero - a request SLO", () => {
     ).toBeNull();
     expect(getFactValues()).toEqual([
       "99.9%",
-      "Rolling 30 days",
+      "Rolling 30\u00A0days",
       "1 service",
       "No owners",
     ]);
@@ -800,5 +800,88 @@ describe("SloOverviewHero - a request SLO", () => {
     expect(screen.getByTestId("slo-overview-headline")).not.toHaveTextContent(
       /monitor/i,
     );
+  });
+
+  // Only some of the services' requests count (#8444): the summary says so.
+  test("says under its services which requests count, with the whole filter on hover", () => {
+    renderHero({
+      slo: buildRequestSlo({
+        requestFilter: "  @http.route:/checkout* -@http.route:/health  ",
+      }),
+      serviceCount: 2,
+    });
+
+    const line: HTMLElement = screen.getByTestId(
+      "slo-overview-chip-request-filter",
+    );
+
+    expect(line).toHaveTextContent(
+      "Matching @http.route:/checkout* -@http.route:/health",
+    );
+    expect(line).toHaveAttribute(
+      "title",
+      "@http.route:/checkout* -@http.route:/health",
+    );
+    expect(screen.getByTestId("slo-overview-chip-services")).toContainElement(
+      line,
+    );
+  });
+
+  test("a request SLO with no filter, and a monitor uptime SLO, have no such line", () => {
+    renderHero({
+      slo: buildRequestSlo({ requestFilter: "  " }),
+      serviceCount: 2,
+    });
+    expect(screen.queryByTestId("slo-overview-chip-request-filter")).toBeNull();
+    cleanup();
+
+    renderHero({
+      slo: buildSlo({ requestFilter: "@http.route:/checkout*" }),
+      monitorCount: 2,
+    });
+    expect(screen.queryByTestId("slo-overview-chip-request-filter")).toBeNull();
+  });
+
+  /*
+   * A Metric SLO (#8445) is counted from its services as a request SLO is,
+   * so it shows their chip, and under it the metric it counts - never a
+   * request filter, which reads spans.
+   */
+  test("a Metric SLO shows its services, and under them the metric it counts", () => {
+    renderHero({
+      slo: buildRequestSlo({
+        sliType: SliType.Metric,
+        latencyThresholdInMilliseconds: undefined,
+        requestFilter: "@http.route:/checkout*",
+        metricQueryConfig: {
+          metricName: "http.server.request.duration",
+          kind: "Histogram",
+          goodAtOrUnder: 0.3,
+        },
+      }),
+      serviceCount: 2,
+    });
+
+    const line: HTMLElement = screen.getByTestId("slo-overview-chip-metric");
+
+    expect(line).toHaveTextContent("From http.server.request.duration");
+    expect(line).toHaveAttribute("title", "http.server.request.duration");
+    expect(screen.getByTestId("slo-overview-chip-services")).toContainElement(
+      line,
+    );
+    expect(screen.queryByTestId("slo-overview-chip-request-filter")).toBeNull();
+    expect(screen.queryByTestId("slo-overview-chip-monitors")).toBeNull();
+  });
+
+  test("a Metric SLO with no metric yet, and a request SLO, have no metric line", () => {
+    renderHero({
+      slo: buildRequestSlo({ sliType: SliType.Metric }),
+      serviceCount: 2,
+    });
+    expect(screen.queryByTestId("slo-overview-chip-metric")).toBeNull();
+    cleanup();
+
+    renderHero({ slo: buildRequestSlo({}), serviceCount: 2 });
+    expect(screen.queryByTestId("slo-overview-chip-metric")).toBeNull();
   });
 });

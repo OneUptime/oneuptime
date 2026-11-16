@@ -46,7 +46,7 @@ flowchart TB
 在 **值** 步骤中填写：
 
 - **内容** —— 值本身。这是一个长文本输入框，所以多行的值也可以。
-- **密钥** —— 开启后，值会从运行日志和步骤跟踪中去除。
+- **密钥** —— 开启后，值会从运行日志和步骤追踪中去除。
 
 点击 **创建工作流变量**。在此之前要更改名称或描述，点击表单旁步骤列表（在宽屏上显示）中的 **变量**；你在两个步骤中输入的内容都会保留。
 :::
@@ -170,7 +170,7 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 
 ### 安全
 
-- OAuth 2.0 变量总是密钥。访问令牌在运行日志和步骤跟踪中会被替换为 `[REDACTED]`，包括在运行中途被替换的令牌。
+- OAuth 2.0 变量总是密钥。访问令牌在运行日志和步骤追踪中会被替换为 `[REDACTED]`，包括在运行中途被替换的令牌。
 - 客户端密钥、refresh token 和访问令牌在数据库中加密，永远无法通过 API 或仪表板读回。**立即刷新** 会告诉你新令牌何时过期，但从不显示令牌本身。
 - 令牌 URL 必须是 `http` 或 `https`。发往回环地址、链路本地地址和云元数据地址的请求会被拒绝。在 OneUptime Cloud 上，私有网络地址也会被拒绝。自托管安装可以连接到它们自己网络中的身份提供商。OneUptime 在令牌请求中不跟随重定向，所以请把令牌 URL 指向端点实际应答的地址。令牌请求在 20 秒后放弃。
 
@@ -195,8 +195,8 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 | 在这样的块之后……                                          | 读取                                                                                   |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ID 为 `lookup-user` 的 **API** 块                         | 它的状态码：`{{local.components.lookup-user.returnValues.response-status}}`。它的正文：`{{local.components.lookup-user.returnValues.response-body}}`。 |
-| ID 为 `transform` 的 **Run Custom JavaScript** 块         | 它返回的内容：`{{local.components.transform.returnValues.returnValue}}`。              |
-| ID 为 `incident-on-create-1` 的 **On Create Incident** 触发器 | 事件的标题：`{{local.components.incident-on-create-1.returnValues.model.title}}`。记录触发器以 `model` 返回记录，你深入其中读取。 |
+| ID 为 `transform` 的 **运行自定义 JavaScript** 块         | 它返回的内容：`{{local.components.transform.returnValues.returnValue}}`。              |
+| ID 为 `incident-on-create-1` 的 **创建事件时** 触发器 | 事件的标题：`{{local.components.incident-on-create-1.returnValues.model.title}}`。记录触发器以 `model` 返回记录，你深入其中读取。 |
 
 块的值只在当前运行期间存在。每次新的运行都从头开始。
 
@@ -208,22 +208,22 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 - Slack、Teams、Discord、Telegram、IRC、Mattermost、Email 上的消息文本。
 - 邮件的主题和正文。
 - 标头和正文字段（在字符串值内）。
-- **If / Else** 块的两侧。
+- **如果 / 否则** 块的两侧。
 
-在 JSON 输入框中——记录组件上的 **Data (JSON Object)** 和 **查询**，API 块的 **请求主体**，**Run Custom JavaScript** 上的 **Arguments**——引用会按它所在的位置被填入：
+在 JSON 输入框中——记录组件上的 **数据（JSON 对象）** 和 **查询**，API 块的 **请求主体**，**运行自定义 JavaScript** 上的 **参数**——引用会按它所在的位置被填入：
 
 - **在引号内，它是文本。** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` 会把值放进字符串里。值中的引号、反斜杠和换行会被转义，所以 JSON 仍然有效，值仍是一个字符串。
 - **单独出现时，它就是值本身。** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` 会插入整个对象，列表仍是列表，数字仍是数字。本身就是 JSON 的文本——`5`、`true`，或者块以 JSON 文本返回的对象——会作为那个值插入。其他任何文本都作为字符串插入。
 
-位于键的引号内的引用也是文本。如果需要动态构建结构，就用 **Run Custom JavaScript** 块构建，再把它的输出传给下一个块。
+位于键的引号内的引用也是文本。如果需要动态构建结构，就用 **运行自定义 JavaScript** 块构建，再把它的输出传给下一个块。
 
-**Run Custom JavaScript** 块不会自动获得变量——沙箱中什么都不会被注入。把 `{{global.variables.NAME}}`（或任何组件引用）放进块的 JSON 输入框 **Arguments**；这些值会在脚本运行前填好，并以 `args` 形式到达。
+**运行自定义 JavaScript** 块不会自动获得变量——沙箱中什么都不会被注入。把 `{{global.variables.NAME}}`（或任何组件引用）放进块的 JSON 输入框 **参数**；这些值会在脚本运行前填好，并以 `args` 形式到达。
 
 ## 遍历数组
 
 在文本输入框中，可以用 `{{#each path}}…{{/each}}` 为列表中的每一项重复一段文本。在块内部，`{{property}}` 从当前项中读取，`{{@index}}` 是它从 0 开始的位置，`{{this}}` 在简单值的列表中是该项本身。`{{#each}}` 块内的名称会去除首尾空白，所以多余的空格在那里没有影响——与其他所有地方不同。
 
-例如，这段 **Message Text** 会列出 Webhook 发送的每条警报：
+例如，这段 **消息文本** 会列出 Webhook 发送的每条警报：
 
 ```text title="Message Text"
 {{#each local.components.ci-webhook.returnValues.request-body.alerts}}
@@ -238,8 +238,8 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 一个 Webhook 带着类似 `{ "service": "checkout", "status": "failed" }` 的正文到达。要把它变成一个 OneUptime 事件：
 
 1. 一个 ID 为 `ci-webhook` 的 **Webhook** 触发器。
-2. 一个 **If / Else** 块：**要检查的值** 是 Webhook 的 Request Body 中的 `status` 字段（`{{local.components.ci-webhook.returnValues.request-body.status}}`），**比较** 是 **等于**，**比较对象** 是 `failed`。
-3. 从 **是** 分支接一个 **Create One Incident** 块，其中：
+2. 一个 **如果 / 否则** 块：**要检查的值** 是 Webhook 的 Request Body 中的 `status` 字段（`{{local.components.ci-webhook.returnValues.request-body.status}}`），**比较** 是 **等于**，**比较对象** 是 `failed`。
+3. 从 **是** 分支接一个 **创建单个事件** 块，其中：
    - 标题：`CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - 描述：`See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
@@ -284,14 +284,14 @@ API 密钥需要 **Edit Workflow Variables**。不需要读取权限——更新
 需要注意两件事：
 
 - **不要重命名你正在引用的变量。** `name` 是 `{{local.variables.NAME}}` 的一部分。更改它会让所有现有引用无法解析，而无法解析的引用会作为字面文本传下去——参见 [陷阱](#陷阱)。
-- **变量可以这样写入，但永远无法读回。** 通过 API，所有变量的 `content` 都是只写的，无论是否为密钥。正是这一点让变量成为存放轮换令牌的安全位置。把它标记为密钥，还会让它的值不出现在运行日志和步骤跟踪中。
+- **变量可以这样写入，但永远无法读回。** 通过 API，所有变量的 `content` 都是只写的，无论是否为密钥。正是这一点让变量成为存放轮换令牌的安全位置。把它标记为密钥，还会让它的值不出现在运行日志和步骤追踪中。
 
 ## 陷阱
 
 - **使用 { }（或输入 `{{`）。** 它会插入运行器期望的确切组件、返回值和变量 ID，并且只提供块运行时会存在的值。
 - **变量名区分大小写。** `{{global.variables.MyKey}}` 和 `{{global.variables.mykey}}` 是不同的。
 - **无法解析的引用会原样保留，而不是变为空。** 引用不存在的东西不是错误，也不会得到空字符串：花括号会原样传下去，所以步骤 ID 拼错的 `{{local.components.api-get-1.returnValues.body}}` 会一字不差地出现在你的 Slack 消息、URL 或请求正文中，而运行仍然报告 **已执行**。运行的 **步骤** 选项卡会在该步骤上显示一条警告，列出每个漏过去的引用，并把它所在的设置标记为 **Did not resolve**；运行的日志中也有同样的警告行。例外是数据组件读取或写入的 ID，例如其 **查询** 中的 `_id`：这时该步骤会在读取或写入任何内容之前停止，走 **错误** 输出，并说明哪个引用没有解析以及要检查什么。
-- **没有内容的字段到达时为空。** 并非每条记录都有每个字段。不是由监视器产生的警报（例如来自 SLO 或手动创建的警报）没有监视器，所以 `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` 没有值可给：在消息中那里什么也没有，单独作为 JSON 值时是 `null`。没人写的描述、记录没有的自定义字段、没有找到记录的 **Find One**、没有该项的列表，以及块没有传下去的字段也是如此；对于块没有传下去的字段，步骤上还会显示警告，说明要往 **Fields to pass on** 添加什么。URL 和读写记录的块是例外，因为空值会改变块所作用的对象：那里的引用会原样保留，而 ID 会使块停止。要走另一条路径，请在 **If / Else** 中用 **为空** 检查该值。要写出警报背后的 SLO，请传下它的名称并使用 `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`。
+- **没有内容的字段到达时为空。** 并非每条记录都有每个字段。不是由监视器产生的警报（例如来自 SLO 或手动创建的警报）没有监视器，所以 `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` 没有值可给：在消息中那里什么也没有，单独作为 JSON 值时是 `null`。没人写的描述、记录没有的自定义字段、没有找到记录的 **Find One**、没有该项的列表，以及块没有传下去的字段也是如此；对于块没有传下去的字段，步骤上还会显示警告，说明要往 **要传递的字段** 添加什么。URL 和读写记录的块是例外，因为空值会改变块所作用的对象：那里的引用会原样保留，而 ID 会使块停止。要走另一条路径，请在 **如果 / 否则** 中用 **为空** 检查该值。要写出警报背后的 SLO，请传下它的名称并使用 `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`。
 - **问题面板无法检查变量名。** 它会在你保存前标出它无法匹配的组件引用——未知的步骤 ID、未知的返回值、无效的根——但看不出变量是否存在。块的设置可以：对缺失变量的引用会在那里显示为橙色标签。除此之外，改了名的变量只有运行的日志才能发现。
 - **花括号内的空格不会被去除。** `{{ local.variables.NAME }}` 与 `{{local.variables.NAME}}` 是不同的查找，永远不会被解析。唯一的例外是在 `{{#each}}` 块内，那里的名称会去除首尾空白。
 

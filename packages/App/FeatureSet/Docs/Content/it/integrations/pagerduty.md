@@ -16,9 +16,9 @@ Invia gli incidenti di OneUptime a [PagerDuty](https://www.pagerduty.com). Un fl
 
 ```mermaid title="Due flussi di lavoro, un incidente PagerDuty"
 flowchart TB
-    declared["Incidente dichiarato"] --> create["Flusso di lavoro 1:<br/>On Create Incident"]
+    declared["Incidente dichiarato"] --> create["Flusso di lavoro 1:<br/>Alla creazione:<br/>Incidente"]
     create -->|"trigger"| pd["Incidente PagerDuty"]
-    resolved["Incidente risolto"] --> update["Flusso di lavoro 2:<br/>On Update Incident"]
+    resolved["Incidente risolto"] --> update["Flusso di lavoro 2:<br/>All'aggiornamento:<br/>Incidente"]
     update -->|"resolve"| pd
 ```
 
@@ -48,11 +48,11 @@ Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Par
 
 ### Aggiungere il trigger
 
-Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Incident**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione**.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **Alla creazione: Incidente**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione**.
 
 ### Inviare l'evento di attivazione
 
-Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://events.pagerduty.com/v2/enqueue` e il suo **Corpo della Richiesta** su:
+Fai clic su **Aggiungi componente**, aggiungi un blocco **Chiamata API POST (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://events.pagerduty.com/v2/enqueue` e il suo **Corpo della Richiesta** su:
 
 ```json
 {
@@ -72,7 +72,7 @@ Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e co
 
 ### Provarlo, poi attivarlo
 
-Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passaggio **API Post (JSON)** mostra una risposta `202` con `"status": "success"`, e PagerDuty apre un incidente. Poi attiva **Abilitato** in cima al **Costruttore**.
+Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passaggio **Chiamata API POST (JSON)** mostra una risposta `202` con `"status": "success"`, e PagerDuty apre un incidente. Poi attiva **Abilitato** in cima al **Costruttore**.
 :::
 
 Il blocco invia JSON, quindi non serve un'intestazione `Content-Type`. La `severity` di PagerDuty è una tra `critical`, `error`, `warning` e `info`: per inviare quella di ogni incidente, vedi [Mappare le gravità](#mappare-le-gravità).
@@ -82,9 +82,9 @@ Il blocco invia JSON, quindi non serve un'intestazione `Content-Type`. La `sever
 Un flusso di lavoro ha un solo trigger, quindi per risolvere serve un secondo flusso di lavoro, avviato quando cambia lo stato di un incidente.
 
 :::steps
-### Aggiungere il trigger On Update Incident
+### Aggiungere il trigger «All'aggiornamento: Incidente»
 
-Crea un flusso di lavoro chiamato `Resolve PagerDuty incidents` e scegli **On Update Incident** come trigger. In **Fields to watch**, fai clic su **Aggiungi campo** e scegli **Current Incident State**, così viene eseguito solo quando cambia lo stato. In **Fields to pass on**, chiedi se il nuovo stato è uno stato risolto: fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**. Oppure fai clic su **Modifica come JSON** e sostituisci il JSON con:
+Crea un flusso di lavoro chiamato `Resolve PagerDuty incidents` e scegli **All'aggiornamento: Incidente** come trigger. In **Campi da osservare**, fai clic su **Aggiungi campo** e scegli **Current Incident State**, così viene eseguito solo quando cambia lo stato. In **Campi da passare**, chiedi se il nuovo stato è uno stato risolto: fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**. Oppure fai clic su **Modifica come JSON** e sostituisci il JSON con:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -92,11 +92,11 @@ Crea un flusso di lavoro chiamato `Resolve PagerDuty incidents` e scegli **On Up
 
 ### Controllare che l'incidente sia risolto
 
-Aggiungi un blocco **If / Else** dopo il trigger. Imposta **Valore da verificare** su `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Confronto** su **è vero**.
+Aggiungi un blocco **Se / Altrimenti** dopo il trigger. Imposta **Valore da verificare** su `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Confronto** su **è vero**.
 
 ### Inviare l'evento di risoluzione
 
-Aggiungi un blocco **API Post (JSON)** dopo il lato **Sì**, con lo stesso **URL** e questo **Corpo della Richiesta**:
+Aggiungi un blocco **Chiamata API POST (JSON)** dopo il lato **Sì**, con lo stesso **URL** e questo **Corpo della Richiesta**:
 
 ```json
 {
@@ -115,10 +115,10 @@ Controllare `isResolvedState` invece del nome di uno stato continua a funzionare
 
 ## Mappare le gravità
 
-Per inviare la gravità di ogni incidente, aggiungi un blocco **Run Custom JavaScript** tra il trigger e il blocco **API Post (JSON)**, e leggi la sua risposta nel corpo.
+Per inviare la gravità di ogni incidente, aggiungi un blocco **Esegui JavaScript personalizzato** tra il trigger e il blocco **Chiamata API POST (JSON)**, e leggi la sua risposta nel corpo.
 
-1. Nei **Fields to pass on** del trigger, fai clic su **Aggiungi campo**, apri **Gravità incidente** e scegli **Nome**.
-2. Imposta gli **Arguments** del blocco su `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e il suo **Codice JavaScript** su:
+1. Nei **Campi da passare** del trigger, fai clic su **Aggiungi campo**, apri **Gravità incidente** e scegli **Nome**.
+2. Imposta gli **Argomenti** del blocco su `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e il suo **Codice JavaScript** su:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -138,7 +138,7 @@ I nomi qui sopra sono le tre gravità con cui parte un nuovo progetto. Usa i tuo
 ## Risoluzione dei problemi
 
 :::details PagerDuty risponde 400
-Il corpo della risposta dice cosa ha rifiutato PagerDuty, e il passaggio **API Post (JSON)** dell'esecuzione lo mostra. Di solito la routing key non è una chiave di integrazione Events API v2: copiala di nuovo dalle **Integrations** del servizio. Viene rifiutato anche un evento senza `summary`, `source` o `severity`.
+Il corpo della risposta dice cosa ha rifiutato PagerDuty, e il passaggio **Chiamata API POST (JSON)** dell'esecuzione lo mostra. Di solito la routing key non è una chiave di integrazione Events API v2: copiala di nuovo dalle **Integrations** del servizio. Viene rifiutato anche un evento senza `summary`, `source` o `severity`.
 :::
 
 :::details L'evento di risoluzione non chiude nulla
@@ -146,7 +146,7 @@ Entrambi gli eventi devono portare esattamente la stessa `dedup_key`. Verifica c
 :::
 
 :::details Il flusso di lavoro non viene mai eseguito
-Verifica che sia attivo: **Abilitato**, in cima al suo **Costruttore**. Poi apri **Registri → Esecuzioni**: un'esecuzione che ha preso il lato **No** del blocco **If / Else** è un aggiornamento che non era una risoluzione.
+Verifica che sia attivo: **Abilitato**, in cima al suo **Costruttore**. Poi apri **Log → Esecuzioni**: un'esecuzione che ha preso il lato **No** del blocco **Se / Altrimenti** è un aggiornamento che non era una risoluzione.
 :::
 
 :::details PagerDuty mostra un riferimento invece di un valore

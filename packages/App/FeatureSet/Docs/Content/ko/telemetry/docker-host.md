@@ -1,6 +1,6 @@
 # Docker 에이전트
 
-OneUptime Docker 에이전트는 Docker 호스트에서 실행하는 컨테이너 하나입니다. 호스트의 모든 컨테이너의 통계와 로그 파일을 읽어 OneUptime으로 보내며, OneUptime에서는 호스트가 컨테이너, 메트릭, 로그와 함께 나타납니다. 두 번째 컨테이너인 Docker AI 에이전트는 OneUptime AI가 호스트를 조사할 수 있게 합니다. [Docker 모니터](/docs/monitor/docker-monitor)는 에이전트가 보낸 데이터를 기준으로 알림을 보냅니다.
+OneUptime Docker 에이전트는 Docker 호스트에서 실행하는 컨테이너 하나입니다. 호스트의 모든 컨테이너의 통계와 로그 파일을 읽어 OneUptime으로 보내며, OneUptime에서는 호스트가 컨테이너, 메트릭, 로그와 함께 나타납니다. 두 번째 컨테이너인 Docker AI 에이전트는 OneUptime AI가 호스트를 조사할 수 있게 합니다. [Docker 모니터](/docs/monitor/docker-monitor)는 에이전트가 보낸 데이터를 기준으로 경고를 보냅니다.
 
 :::cards
 - [에이전트 설치](#에이전트-설치): `docker run` 또는 Docker Compose로 컨테이너 두 개.
@@ -17,7 +17,7 @@ OneUptime Docker 에이전트는 Docker 호스트에서 실행하는 컨테이�
 flowchart TB
     containers["내 컨테이너"] -->|"통계와<br/>로그 파일"| agent["Docker 에이전트"]
     agent -->|"HTTPS를 통한 OTLP"| oneuptime["OneUptime"]
-    oneuptime -->|"인시던트나 알림을<br/>조사"| ai["Docker AI 에이전트"]
+    oneuptime -->|"인시던트나 경고를<br/>조사"| ai["Docker AI 에이전트"]
     ai -->|"읽기 전용<br/>docker 명령"| containers
 ```
 
@@ -53,7 +53,7 @@ docker run -d \
   oneuptime/docker-agent:release
 ```
 
-그런 다음 같은 값으로 그 옆에서 [AI 에이전트](#ai-에이전트)를 시작하세요. **AI 조사는 기본적으로 켜져 있습니다.** OneUptime AI가 이 호스트의 인시던트나 알림을 조사하는 동안 AI 에이전트를 통해 읽기 전용 `docker` 명령을 실행하며, 수정을 허용하지 않는 한 아무것도 변경하지 않습니다. AI 조사 없이 설치하려면 이 명령을 건너뛰세요.
+그런 다음 같은 값으로 그 옆에서 [AI 에이전트](#ai-에이전트)를 시작하세요. **AI 조사는 기본적으로 켜져 있습니다.** OneUptime AI가 이 호스트의 인시던트나 경고를 조사하는 동안 AI 에이전트를 통해 읽기 전용 `docker` 명령을 실행하며, 수정을 허용하지 않는 한 아무것도 변경하지 않습니다. AI 조사 없이 설치하려면 이 명령을 건너뛰세요.
 
 ```bash
 docker run -d \
@@ -160,7 +160,7 @@ Everything is ready. Begin running and processing data.
 
 - **개요**: 연결 상태 옆에 호스트 상태를, **확인 필요**에는 고장 났거나 확인이 필요한 컨테이너를 가장 급한 것부터 이유와 함께 보여 줍니다. 재시작 정책이 15분 동안 3번 넘게 재시작한 컨테이너는 재시작 루프입니다. 재시작했거나, 메모리를 85% 넘게 쓰거나, 10분 이상 실행된 뒤 보고가 중단된 컨테이너는 확인이 필요합니다.
 - **컨테이너**: 각 컨테이너의 상태를 같은 말과 색으로 이유와 함께 보여 주며, 지난 15분 동안의 재시작 횟수와 마지막으로 시작한 시점도 보여 줍니다. 중지된 컨테이너는 마지막 측정 후 15분 동안 목록에 남습니다. 10분 이상 실행된 컨테이너는 **보고 중단됨**, 끝난 작업이나 일회성 실행은 회색의 **보고 없음**입니다.
-- 컨테이너 자체 페이지: 확인이 필요한 부분, CPU, 메모리, 재시작 횟수, 열린 항목, 한 번에 켤 수 있는 컨테이너 알림, 에이전트가 보고하는 내용을 보여 줍니다.
+- 컨테이너 자체 페이지: 확인이 필요한 부분, CPU, 메모리, 재시작 횟수, 열린 항목, 한 번에 켤 수 있는 컨테이너 경고, 에이전트가 보고하는 내용을 보여 줍니다.
 
 에이전트는 실행 중인 컨테이너만 읽으므로, 에이전트가 시작될 때 이미 중지되어 있던 컨테이너, 종료 코드, 상태 검사의 판정은 표시되지 않습니다.
 
@@ -243,9 +243,9 @@ docker compose down
 
 ## AI 에이전트
 
-위의 명령과 Compose 파일, Docker 에이전트의 [`install.sh`](https://oneuptime.com/install/docker-agent), 그리고 [`docker-compose.yml`](https://oneuptime.com/install/docker-agent/docker-compose.yml)은 모두 **Docker AI 에이전트**를 실행합니다. 두 번째 컨테이너인 `oneuptime-docker-ai-agent`(이미지 `oneuptime/resource-ai-agent:release`)로, OneUptime AI가 이 호스트의 인시던트나 알림을 조사하는 동안 요청하는 읽기 전용 `docker` 명령(`docker ps -a`, `docker logs --tail 200 web`, `docker container inspect web`, `docker stats --no-stream`)을 실행하고, 허용한 경우에만 지정한 컨테이너 재시작 같은 수정을 적용합니다. Collector와 같은 `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, `DOCKER_HOST_NAME`을 읽으므로 정확히 이 호스트를 담당하며, OneUptime에서 호스트의 **AI 에이전트** 페이지에 나타납니다.
+위의 명령과 Compose 파일, Docker 에이전트의 [`install.sh`](https://oneuptime.com/install/docker-agent), 그리고 [`docker-compose.yml`](https://oneuptime.com/install/docker-agent/docker-compose.yml)은 모두 **Docker AI 에이전트**를 실행합니다. 두 번째 컨테이너인 `oneuptime-docker-ai-agent`(이미지 `oneuptime/resource-ai-agent:release`)로, OneUptime AI가 이 호스트의 인시던트나 경고를 조사하는 동안 요청하는 읽기 전용 `docker` 명령(`docker ps -a`, `docker logs --tail 200 web`, `docker container inspect web`, `docker stats --no-stream`)을 실행하고, 허용한 경우에만 지정한 컨테이너 재시작 같은 수정을 적용합니다. Collector와 같은 `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, `DOCKER_HOST_NAME`을 읽으므로 정확히 이 호스트를 담당하며, OneUptime에서 호스트의 **AI 에이전트** 페이지에 나타납니다.
 
-- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 호스트의 인시던트와 알림을 조사하며, 호스트의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
+- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 호스트의 인시던트와 경고를 조사하며, 호스트의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
 - `ONEUPTIME_AI_ALLOW_WRITES=true`로 시작하지 않는 한 읽기 전용입니다. `ONEUPTIME_AI_WRITE_TARGETS`(예: `web-*,api-*`)가 수정이 건드릴 수 있는 컨테이너를 제한합니다. 수정 실행 방식을 정하려면 `ONEUPTIME_AI_FIXES`도 지정해 시작하세요. `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나이며, AI 에이전트 페이지에는 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)).
 - 소켓을 root가 소유하므로 Docker 소켓을 마운트한 채 root로 실행됩니다. 그리고 `:ro`이든 아니든 소켓을 사용할 수 있는 사람은 이 호스트의 root입니다. 한계는 에이전트의 명령 정책입니다. `exec`, `run`, `rm`, `prune`은 절대 실행하지 않으며, 자기 자신, Collector, `ONEUPTIME_AI_PROTECTED_TARGETS`(컨테이너 이름 glob)에 있는 것은 절대 변경하지 않습니다. `docker inspect` 출력의 환경 변수 값은 호스트를 떠나기 전에 마스킹됩니다.
 - `install.sh --no-ai-agent`는 이를 빼고, `docker rm -f oneuptime-docker-ai-agent`는 제거합니다. 업그레이드는 Collector와 같습니다. `docker pull oneuptime/resource-ai-agent:release`를 실행하고, 제거한 다음, 다시 시작하세요.
@@ -321,7 +321,7 @@ docker inspect oneuptime-docker-agent --format '{{range .Config.Env}}{{println .
 ## 다음 단계
 
 :::cards
-- [Docker 모니터](/docs/monitor/docker-monitor): 컨테이너 CPU, 메모리, 재시작에 대해 알림을 보냅니다.
+- [Docker 모니터](/docs/monitor/docker-monitor): 컨테이너 CPU, 메모리, 재시작에 대해 경고를 보냅니다.
 - [데이터베이스](/docs/telemetry/databases): 호스트의 데이터베이스 컨테이너가 발견되어 전용 페이지가 생깁니다.
 - [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent): 대신 Kubernetes 클러스터를 모니터링합니다.
 - [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector): 머신 자체(CPU, 디스크, 프로세스, 로그)를 모니터링합니다.

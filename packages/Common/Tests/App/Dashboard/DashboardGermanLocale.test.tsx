@@ -33,6 +33,7 @@ import {
   goTo,
   setViewportWidth,
 } from "./SideMenuHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
 
 /*
  * The Dashboard in German, read from the real locale files.
@@ -158,6 +159,13 @@ afterEach(() => {
 afterAll(() => {
   setViewportWidth(ORIGINAL_WIDTH);
 });
+
+/*
+ * The products menu reads which products the project has on
+ * (/project-products). These tests are about its words, so that read is
+ * left unanswered: refused at once, and the menu lists every product.
+ */
+refuseRequestsTo(["/project-products"]);
 
 describe("the products menu in German", () => {
   test("names and describes the products in German", () => {

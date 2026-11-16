@@ -184,9 +184,29 @@ describe("private status page access requires a live session", () => {
     expect(getOne).not.toHaveBeenCalled();
   });
 
+  /*
+   * The page's sign-out cookie names this page, its reader and its session,
+   * for the page's sign-out only (issue #8671): put in the page's access
+   * cookie, it reads nothing.
+   */
+  test("rejects the page's own sign-out cookie in the page's cookie, before reading sessions", async () => {
+    const signOutCookie: string =
+      JSONWebToken.signStatusPageSessionSignOutToken({
+        statusPageId: statusPageId,
+        userId: userId,
+        sessionId: sessionId,
+        expiresInSeconds: 30 * 24 * 60 * 60,
+      });
+
+    expect(await hasAccess(withPageCookie(signOutCookie))).toBe(false);
+    expect(getOne).not.toHaveBeenCalled();
+  });
+
   test.each([
     JsonWebTokenPurpose.UserSession,
     JsonWebTokenPurpose.SsoSignIn,
+    JsonWebTokenPurpose.UserSessionSignOut,
+    JsonWebTokenPurpose.StatusPageSessionSignOut,
     "on-call-page",
   ])(
     "rejects a token naming this page and a session that says it is a %s, before reading sessions",

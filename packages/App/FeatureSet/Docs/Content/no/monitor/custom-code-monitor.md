@@ -1,17 +1,17 @@
-# Egendefinert kode-overvåking
+# Egendefinert kode-monitor
 
 En monitor med egendefinert kode kjører et JavaScript-skript du skriver selv, fra en sonde, etter en tidsplan. Bruk den til kontroller som de andre monitortypene ikke kan uttrykke — en pålogging etterfulgt av et autentisert API-kall, en transaksjon i flere trinn eller en verdi du regner ut fra flere svar. Hvis skriptet kaster en feil, mislykkes kontrollen; det skriptet returnerer, er tilgjengelig for kriteriene og hendelsesmalene dine.
 
 :::cards
 - [Opprett monitoren](#opprett-en-monitor-med-egendefinert-kode): Skriv et skript, og velg sondene som kjører det.
 - [Skriv skriptet](#skriv-skriptet): En kjørbar API-kontroll i flere trinn å starte fra.
-- [Bruk hemmeligheter](#bruk-av-overvåkingshemmeligheter): Hold passord og tokener utenfor skriptet.
+- [Bruk hemmeligheter](#bruk-av-monitorhemmeligheter): Hold passord og tokener utenfor skriptet.
 - [Samle egendefinerte målinger](#egendefinerte-målinger): Vis ethvert tall skriptet ditt regner ut, i en graf.
 :::
 
 ## Slik fungerer det
 
-Ved hver kontroll kjører en sonde skriptet ditt i en isolert JavaScript-sandkasse, med overvåkingshemmelighetene dine allerede fylt inn. Skriptet kaller det det trenger, og returnerer deretter et resultat eller kaster en feil. Sonden rapporterer resultatet, skriptets loggmeldinger, hvor lenge det kjørte og målingene det samlet inn, og OneUptime evaluerer kriteriene dine mot dem.
+Ved hver kontroll kjører en sonde skriptet ditt i en isolert JavaScript-sandkasse, med monitorhemmelighetene dine allerede fylt inn. Skriptet kaller det det trenger, og returnerer deretter et resultat eller kaster en feil. Sonden rapporterer resultatet, skriptets loggmeldinger, hvor lenge det kjørte og målingene det samlet inn, og OneUptime evaluerer kriteriene dine mot dem.
 
 ```mermaid title="Én kjøring av en monitor med egendefinert kode"
 sequenceDiagram
@@ -31,7 +31,7 @@ Sandkassen er ikke Node.js: det finnes ingen `require`, `process`, `fetch` eller
 
 - En **sonde** som når alle endepunktene skriptet kaller. Bruk en [egendefinert sonde](/docs/probe/custom-probe) for endepunkter inne i nettverket ditt.
 - For å kalle en privat adresse (som `10.0.0.5`) må sonden tillate det: sett `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` på den sonden. Loopback-, link-local- og skymetadata-adresser avvises alltid. Se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access).
-- Alle passord, API-nøkler og tokener skriptet trenger, lagret som [overvåkingshemmeligheter](/docs/monitor/monitor-secrets).
+- Alle passord, API-nøkler og tokener skriptet trenger, lagret som [monitorhemmeligheter](/docs/monitor/monitor-secrets).
 
 ## Opprett en monitor med egendefinert kode
 
@@ -50,7 +50,7 @@ Klikk på **Test monitor** for å kjøre skriptet én gang fra en sonde, og sjek
 
 ### Gå gjennom kriteriene
 
-Monitoren starter med to kriterier: den er frakoblet og erklærer en hendelse når skriptet mislykkes, og online når det ikke gjør det. Endre dem, eller legg til dine egne — se [Kriterier](#kriterier) — og klikk deretter på **Neste**.
+Monitoren starter med to kriterier: den er offline og erklærer en hendelse når skriptet mislykkes, og online når det ikke gjør det. Endre dem, eller legg til dine egne — se [Kriterier](#kriterier) — og klikk deretter på **Neste**.
 
 ### Velg sonder, og opprett
 
@@ -98,7 +98,7 @@ For å se en kjøring åpner du monitorens **Oversikt**: kortet **Monitor-sammen
 > [!NOTE]
 > `axios` i denne sandkassen følger ikke omdirigeringer, og forespørslene går ikke gjennom en proxy som er konfigurert på sonden. Be om den endelige URL-en.
 
-## Bruk av overvåkingshemmeligheter
+## Bruk av monitorhemmeligheter
 
 Henvis til en hemmelighet som `{{monitorSecrets.NAME}}` hvor som helst i skriptet. OneUptime erstatter henvisningen med verdien til hemmeligheten, som ren tekst, før skriptet når sonden. Sett derfor en hemmelighet i anførselstegn for å bruke den som en streng, og la den stå uten anførselstegn for å bruke den som et tall eller en boolsk verdi:
 
@@ -114,7 +114,7 @@ const verbose = {{monitorSecrets.Verbose}};
 console.log(apiKey.length > 0);
 ```
 
-En hemmelig verdi som inneholder et anførselstegn, ødelegger strengen rundt den. En henvisning som monitoren ikke kan bruke, blir stående i skriptet slik den er skrevet. Se [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets) for å opprette en hemmelighet og velge hvilke monitorer som kan bruke den.
+En hemmelig verdi som inneholder et anførselstegn, ødelegger strengen rundt den. En henvisning som monitoren ikke kan bruke, blir stående i skriptet slik den er skrevet. Se [Monitorhemmeligheter](/docs/monitor/monitor-secrets) for å opprette en hemmelighet og velge hvilke monitorer som kan bruke den.
 
 ## Egendefinerte målinger
 
@@ -181,7 +181,7 @@ Kriteriene til en monitor med egendefinert kode kan sjekke:
 | **Resultatverdi** | `data` som skriptet returnerte. Sammenlignes som et tall når det er et. | De samme, pluss Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik, Sann og Usann |
 | **Kjøretid (i ms)** | Hvor lenge skriptet kjørte. | Numeriske sammenligninger |
 
-Standardkriteriene markerer monitoren som online når **Feil** er tom, og som frakoblet — med en hendelse som løser seg selv når skriptet lykkes igjen — når den ikke er det. I hendelses- og varslingsmaler er kjøringen tilgjengelig som `{{result}}`, `{{scriptError}}`, `{{logMessages}}` og `{{executionTimeInMs}}`: se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating).
+Standardkriteriene markerer monitoren som online når **Feil** er tom, og som offline — med en hendelse som løser seg selv når skriptet lykkes igjen — når den ikke er det. I hendelses- og varslingsmaler er kjøringen tilgjengelig som `{{result}}`, `{{scriptError}}`, `{{logMessages}}` og `{{executionTimeInMs}}`: se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating).
 
 ### Varsling på de returnerte dataene
 
@@ -249,13 +249,13 @@ Sonden tillater ikke adresser i private nettverk. Sett `PROBE_ALLOW_PRIVATE_NETW
 :::
 
 :::details En hemmelighet fylles ikke inn
-Monitoren kan ikke bruke hemmeligheten, eller navnet i henvisningen samsvarer ikke nøyaktig med navnet på hemmeligheten. Se [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets).
+Monitoren kan ikke bruke hemmeligheten, eller navnet i henvisningen samsvarer ikke nøyaktig med navnet på hemmeligheten. Se [Monitorhemmeligheter](/docs/monitor/monitor-secrets).
 :::
 
 ## Neste trinn
 
 :::cards
-- [Syntetisk overvåking](/docs/monitor/synthetic-monitor): Styr en ekte nettleser i stedet for å kalle API-er.
-- [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Lagre påloggingsinformasjonen skriptet ditt bruker.
+- [Syntetisk monitor](/docs/monitor/synthetic-monitor): Styr en ekte nettleser i stedet for å kalle API-er.
+- [Monitorhemmeligheter](/docs/monitor/monitor-secrets): Lagre påloggingsinformasjonen skriptet ditt bruker.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett skriptets resultat og logger inn i hendelser.
 :::

@@ -98,6 +98,25 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+/*
+ * The license the screens read (GET /global-config/license), answered here
+ * as one that lets audit logs be edited: this suite is about the plugin's
+ * screens, not the license notices (AuditLogsLicenseNotice.test.tsx), and
+ * the network is refused to every suite (Common/Tests/Helpers/
+ * RealNetworkRequests).
+ */
+jest.mock(
+  "../../../Dashboard/Identity/License/UseEnterpriseLicenseMode",
+  () => {
+    return {
+      __esModule: true,
+      default: (): string => {
+        return "editable";
+      },
+    };
+  },
+);
+
 import AuditLogsPlugins from "../../../Dashboard/AuditLogs/Plugins";
 import EnterpriseDashboardPlugins from "../../../Dashboard/Index";
 import AuditLogsSettings from "../../../Dashboard/AuditLogs/AuditLogsSettings";

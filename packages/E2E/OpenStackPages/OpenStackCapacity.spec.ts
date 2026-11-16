@@ -12,6 +12,7 @@ import {
   test,
 } from "./Helpers";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * "Can we fit this?": the Capacity page, in a real browser. On a recording, what a real cloud's
@@ -457,14 +458,14 @@ test.describe("in Persian and in Arabic", () => {
           return size.text;
         }),
       ).toEqual([
-        "674 GiB",
-        "762 GiB",
-        "2.6 TiB",
-        "5.9 TiB",
-        "195 GiB",
-        "508 GiB",
-        "1.8 TiB",
-        "3.9 TiB",
+        withUnit(674, "GiB"),
+        withUnit(762, "GiB"),
+        withUnit(2.6, "TiB"),
+        withUnit(5.9, "TiB"),
+        withUnit(195, "GiB"),
+        withUnit(508, "GiB"),
+        withUnit(1.8, "TiB"),
+        withUnit(3.9, "TiB"),
       ]);
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(page, `capacity-ar-${width}`);

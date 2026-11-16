@@ -23,7 +23,7 @@ Varje väg normaliserar det som kommer in till [OCSF](https://schema.ocsf.io/), 
 ## Innan du börjar
 
 - För den hanterade anslutningen, i OneUptime, rollen Projektägare, Projektadministratör eller Säkerhetsadministratör. Säkerhetsmedlem och Säkerhetstittare kan läsa anslutningar, men inte skapa dem.
-- För webhooken och UDM-vidarebefordran en intagningsnyckel: öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa ingestion-nyckel**.
+- För webhooken och UDM-vidarebefordran en intagningsnyckel: öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa intagningsnyckel**.
 - För den hanterade anslutningen behörighet att skapa ett tjänstkonto i Google Cloud i det projekt som din SecOps-instans är kopplad till.
 
 ## Skicka larm från en SOAR-playbook

@@ -73,6 +73,21 @@ import {
 } from "Common/Utils/Slo/SloHealth";
 import { getSloBudgetRemainingText } from "Common/Utils/Slo/SloOverviewText";
 import {
+  parseSloMetricSearch,
+  SloMetricQueryPart,
+} from "Common/Utils/Slo/SloMetricSli";
+import {
+  SLO_METRIC_FIELD_TITLES,
+  SLO_METRIC_KIND_CHOICES,
+} from "../../../FeatureSet/Dashboard/src/Pages/Slo/SloMetricQueryFields";
+import { SLO_SLI_TYPE_NAMES } from "../../../FeatureSet/Dashboard/src/Pages/Slo/SloFormFields";
+import {
+  SLO_REQUEST_FILTER_EXPLORER_FIELDS,
+  SLO_REQUEST_FILTER_MAX_LENGTH,
+  SLO_REQUEST_FILTER_MAX_TERMS,
+  parseSloRequestFilter,
+} from "Common/Utils/Slo/SloRequestFilter";
+import {
   SloBudgetRunway,
   SloBudgetRunwayKind,
   SloProjectionTone,
@@ -133,6 +148,13 @@ import {
   parseSloReleaseCheckOptions,
 } from "Common/Utils/Slo/SloReleaseCheck";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  WorkflowTemplate,
+  WorkflowTemplateCategory,
+  getTemplateGraphSpec,
+  getWorkflowTemplateCategoryInfo,
+  getWorkflowTemplates,
+} from "Common/Types/Workflow/Templates";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -179,6 +201,7 @@ const SOURCES: Record<string, string> = {
     "Common/Server/Utils/Slo/SloWorkspaceNotifications.ts",
   sloHistory: "Common/Models/AnalyticsModels/SloHistory.ts",
   requestCounting: "Common/Server/Utils/Slo/SloRequestCounting.ts",
+  metricCounting: "Common/Server/Utils/Slo/SloMetricCounting.ts",
   releaseCheckApi: "Common/Server/API/ServiceLevelObjectiveAPI.ts",
   releaseCheckMeasurement:
     "Common/Server/Utils/Slo/SloReleaseCheckMeasurement.ts",
@@ -516,16 +539,18 @@ describe("SLOs Overview, against the product", () => {
      * What it measures (with a request SLO's services and threshold), the
      * open fields, then the folded ones, then the shared Labels field.
      */
-    expect(titles.slice(0, 5)).toEqual([
+    expect(titles.slice(0, 6)).toEqual([
       "What It Measures",
       "Services",
       "Latency Threshold (ms)",
+      // Which of the services' requests count (#8444).
+      "Request Filter",
       "Name",
       "Target (%)",
     ]);
     expect(fields).toContain("getLabelsFormField<ServiceLevelObjective>({");
 
-    const folded: Array<string> = [...titles.slice(5), "Labels"];
+    const folded: Array<string> = [...titles.slice(6), "Labels"];
     const table: string = page.slice(
       page.indexOf("The fields under **More fields**:"),
     );
@@ -933,9 +958,9 @@ describe("SLOs Overview, against the product", () => {
       "Edit Period",
       "Edit Downtime Calculation",
     ]);
-    // What It Measures edits the create form's own three fields.
+    // What It Measures edits the create form's own four fields.
     expect(settings).toContain(
-      '"sliType",\n  "services",\n  "latencyThresholdInMilliseconds",',
+      '"sliType",\n  "services",\n  "latencyThresholdInMilliseconds",\n  // Which of the services\' requests count (#8444).\n  "requestFilter",\n  // A Metric SLO\'s metric, and which of its events are good (#8445).\n  "metricQueryConfig",\n];',
     );
     expect(settings).toContain(
       "return pickSloFormFields(SLO_MEASURES_COLUMNS);",
@@ -973,7 +998,7 @@ describe("SLOs Overview, against the product", () => {
       "**Archive SLO**",
     ]);
     expect(table).toContain(
-      "**What It Measures**, **Services** and **Latency Threshold (ms)**, with **Edit What It Measures**",
+      "**What It Measures**, **Services**, **Latency Threshold (ms)**, **Request Filter** and **Metric**, with **Edit What It Measures**",
     );
     expect(table).toContain(
       "**Target (%)** and **At-Risk Threshold (%)**, with **Edit Objective**",
@@ -1042,6 +1067,26 @@ describe("SLOs Overview, against the product", () => {
         serviceCount: 1,
         sloStatus: SloStatus.Misconfigured,
       }),
+      // A Metric SLO's own banners (#8445).
+      getSloNotice({
+        ...base,
+        sliType: SliType.Metric,
+        monitorCount: 0,
+        serviceCount: 1,
+        sloStatus: SloStatus.Misconfigured,
+      }),
+      getSloNotice({
+        ...base,
+        sliType: SliType.Metric,
+        monitorCount: 0,
+        serviceCount: 1,
+        metricQueryConfig: {
+          metricName: "http_requests_total",
+          kind: "Counter",
+          goodFilter: "@http.response.status_code:<500",
+        },
+        sloStatus: SloStatus.Misconfigured,
+      }),
     ];
 
     const titles: Array<string> = notices.map(
@@ -1057,13 +1102,13 @@ describe("SLOs Overview, against the product", () => {
     );
 
     /*
-     * The one notice the table leaves out: an SLI type other than monitor
-     * uptime, which nothing in the product can set.
+     * The one notice the table leaves out: an SLI type OneUptime does not
+     * measure, which nothing in the product can set.
      */
     expect(
       getSloNotice({
         ...base,
-        sliType: SliType.Metric,
+        sliType: "Availability" as SliType,
         sloStatus: SloStatus.Misconfigured,
       })?.title,
     ).toBe("This SLO cannot be evaluated");
@@ -2054,6 +2099,8 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
       "Long Window (Minutes)",
       "Short Window (Minutes)",
       "Re-fire Suppression (Minutes)",
+      // A request SLO's rule only (#8442).
+      "Minimum Requests",
       "Add SLO Owners as Owners",
     ]) {
       expect({ field, onForm: form.includes(`title: "${field}",`) }).toEqual({
@@ -2135,7 +2182,68 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
         "**Re-fire Suppression (Minutes)**",
         "0 or more. Empty means the length of the long window.",
       ],
+      [
+        "**Minimum Requests**",
+        "A whole number, 0 or more. Empty means no minimum.",
+      ],
+      // A Metric SLO's rule's, in its metric's events (#8445).
+      [
+        "**Minimum Events**",
+        "A whole number, 0 or more. Empty means no minimum.",
+      ],
     ]);
+
+    // Minimum Requests is checked whole by the form and the API alike (#8442).
+    expect(service).toContain(
+      '"Minimum sample count must be a whole number greater than or equal to 0."',
+    );
+    expect(readSource("burnRuleForm")).toContain(
+      '"Minimum Requests must be a whole number of requests, 0 or more."',
+    );
+    expect(readSource("burnRuleForm")).toContain(
+      '"Minimum Events must be a whole number of events, 0 or more."',
+    );
+  });
+
+  it("asks a request SLO's rule for its minimum, and only a request SLO's (#8442)", () => {
+    const form: string = readSource("burnRuleForm");
+    const rulesPage: string = readSource("burnRulesPage");
+    const worker: string = readSource("worker");
+
+    // The form asks for it on Burn Window, the page builds it per SLO.
+    expect(
+      blockFrom(
+        form,
+        "export const BURN_RATE_RULE_MINIMUM_REQUESTS_FIELD",
+        "};",
+      ),
+    ).toContain('stepId: "burn-window",');
+    expect(rulesPage).toMatch(
+      /formFields=\{getBurnRateRuleFormFields\(\{\s*isRequestSlo: isRequestSlo,\s*isMetricSlo: isMetricSlo,\s*\}\)\}/,
+    );
+    // The worker skips a long window with fewer requests than the minimum.
+    expect(worker).toContain("return data.sampleCount >= minimumSampleCount;");
+
+    const create: string = section(page, "Create or edit a rule");
+
+    expect(create).toContain(
+      "A request SLO's rule also takes **Minimum Requests**, for example `100`: the rule skips a long window that holds fewer requests than that.",
+    );
+    // A Metric SLO's rule's, as its form names it (#8445).
+    expect(form).toContain('title: "Minimum Events",');
+    expect(create).toContain(
+      "A Metric SLO's rule takes **Minimum Events** the same way, in its metric's events.",
+    );
+    expect(form).toContain('placeholder: "100",');
+    expect(page).toContain(
+      "For a request SLO, it also says each rule's minimum under its windows.",
+    );
+    expect(rulesPage).toContain(
+      'data-testid="burn-rate-rule-minimum-requests"',
+    );
+    expect(page).toContain(
+      "A request SLO's rule has one: set its **Minimum Requests**, and the rule skips a long window with fewer requests than that",
+    );
   });
 
   it("states each output's defaults as the model sets them", () => {
@@ -3864,15 +3972,150 @@ describe("Request and Latency SLOs, against the product", () => {
     expect(readSource("worker")).toContain("ErrorBudgetRemainingSeconds");
   });
 
-  it("names the burn rate rule's minimum sample count by its API field", () => {
+  it("names the burn rate rule's minimum as the rule form draws it (#8442)", () => {
     const rule: string = readSource("burnRuleModel");
 
     expect(rule).toContain("public minimumSampleCount?: number");
     expect(rule).toContain(
       "skip this rule when the long window has fewer than this many total events",
     );
+    expect(readSource("burnRuleForm")).toContain('title: "Minimum Requests",');
+    expect(page).toContain("set the rule's **Minimum Requests**");
+    expect(page).not.toContain("minimumSampleCount");
+  });
+
+  /*
+   * A request filter (#8444): every example the page gives is one the
+   * create form and the API take, and counts what the page says it does;
+   * the limits and the fields it refuses are the reader's own.
+   */
+  it("gives request filters the form and the API take, with their limits", () => {
+    const filters: string = section(page, "Count only some requests");
+    const examples: Array<string> = firstCells(filters).map(
+      (cell: string): string => {
+        return cell.replace(/^`|`$/g, "");
+      },
+    );
+
+    expect(examples).toEqual([
+      "@http.route:/checkout*",
+      "-@http.route:/health",
+      "@http.request.method:[POST, PUT]",
+      'name:"POST /checkout"',
+    ]);
+
+    for (const example of [
+      ...examples,
+      "@http.route:/checkout* -@http.route:/checkout/health",
+    ]) {
+      expect({ example, error: parseSloRequestFilter(example).error }).toEqual({
+        example,
+        error: null,
+      });
+      expect(filters).toContain(`\`${example}\``);
+    }
+
+    // What each one reads as.
+    expect(
+      parseSloRequestFilter("-@http.route:/health").terms[0],
+    ).toMatchObject({ key: "http.route", isAttribute: true });
+    expect(
+      parseSloRequestFilter('name:"POST /checkout"').terms[0],
+    ).toMatchObject({ key: "name", isAttribute: false });
+
+    // The explorer's fields it names are refused.
+    for (const field of ["status", "duration"]) {
+      expect(SLO_REQUEST_FILTER_EXPLORER_FIELDS).toContain(field);
+      expect(filters).toContain(`\`${field}:\``);
+      expect(parseSloRequestFilter(`${field}:x`).error).not.toBeNull();
+    }
+
+    expect(filters).toContain(
+      `A filter holds up to ${SLO_REQUEST_FILTER_MAX_TERMS} terms in ${SLO_REQUEST_FILTER_MAX_LENGTH} characters.`,
+    );
+    expect(ColumnLength.LongText).toBe(SLO_REQUEST_FILTER_MAX_LENGTH);
+  });
+
+  /*
+   * A Metric SLO (#8445): the section names each field as the form asks
+   * it, offers the kinds as the form does, and gives a good condition the
+   * form takes.
+   */
+  it("walks the Metric step's fields as the form asks them", () => {
+    const metric: string = section(page, "SLOs from a metric");
+
+    expect(firstCells(metric)).toEqual(
+      [
+        SloMetricQueryPart.MetricName,
+        SloMetricQueryPart.Kind,
+        SloMetricQueryPart.GoodFilter,
+        SloMetricQueryPart.GoodAtOrUnder,
+        SloMetricQueryPart.Filter,
+      ].map((part: SloMetricQueryPart): string => {
+        return `**${SLO_METRIC_FIELD_TITLES[part]}**`;
+      }),
+    );
+
+    for (const choice of SLO_METRIC_KIND_CHOICES) {
+      expect(metric).toContain(`**${choice.title}**`);
+    }
+
+    expect(SLO_SLI_TYPE_NAMES[SliType.Metric]).toBe("Metric");
+    expect(metric).toContain("pick **Metric** and the **Services**");
+    expect(metric).toContain("on the **Metric** step");
+
+    for (const search of [
+      "@http.response.status_code:<500",
+      "-@http.route:/health",
+    ]) {
+      expect(metric).toContain(`\`${search}\``);
+      expect(parseSloMetricSearch(search).problem).toBeNull();
+    }
+  });
+
+  it("says how a Metric SLO counts, as the counting does", () => {
+    const metric: string = section(page, "SLOs from a metric");
+    const counting: string = readSource("metricCounting");
+
+    expect(SLO_REQUEST_STEP_MINUTES).toBe(5);
+    expect(metric).toContain("what it grew by in each 5-minute step");
+    // A step down is a restart from zero; a delta point is its own growth.
+    expect(counting).toContain(
+      "(current.1, greatest(current.2, 0), greatest(current.3, 0))",
+    );
+    expect(metric).toContain("cumulative and delta counters both count");
+    // Only the metric's own type, of the SLO's services.
+    expect(counting).toContain("AND metricPointType = ");
+    expect(metric).toContain("a gauge of the same name counts nothing");
+    // The fingerprint holds the metric, so a new one counts anew.
+    expect(readSource("requestCounting")).toContain(
+      "{ metric: getSloMetricQueryFingerprintParts(metric) }",
+    );
+    expect(metric).toContain(
+      "Changing the metric counts its events again from the start.",
+    );
+  });
+
+  it("says where a filter shows, and that changing it counts again (#8444)", () => {
+    const filters: string = section(page, "Count only some requests");
+
+    expect(readSource("hero")).toContain(
+      'data-testid="slo-overview-chip-request-filter"',
+    );
+    expect(readSource("settings")).toContain('"requestFilter",');
+    expect(filters).toContain(
+      "The **Overview** shows the filter under the SLO's services, and **Settings** shows it under **What It Measures**.",
+    );
+
+    // The counting's fingerprint holds the filter, so a new one counts anew.
+    expect(readSource("requestCounting")).toContain(
+      "...(requestFilter ? { requestFilter: requestFilter } : {}),",
+    );
+    expect(filters).toContain(
+      "Changing it counts the SLO's requests again from the start.",
+    );
     expect(page).toContain(
-      "set the rule's `minimumSampleCount` through the API",
+      "Changing what the SLO measures, its services, its latency threshold or its request filter counts its requests again from the start.",
     );
   });
 
@@ -4003,6 +4246,45 @@ describe("Release Checks, against the product", () => {
     );
   });
 
+  it("judges a Metric SLO on its metric's events, matching the version its points carry", () => {
+    const counting: string = readSource("metricCounting");
+
+    expect(page).toContain(
+      "- A [Metric SLO](/docs/slo/request-slos#slos-from-a-metric) is judged from its metric's events in the window, counted as its SLI counts them, so `minimumRequestCount`, `goodRequestCount` and `totalRequestCount` are events.",
+    );
+    expect(page).toContain(
+      "With `serviceVersion`, only the metric's points with that `service.version` resource attribute count",
+    );
+
+    // The measurement asks a Metric SLO's counting as it asks a request SLO's.
+    expect(readSource("releaseCheckMeasurement")).toContain(
+      "if (isEventSliType(slo.sliType)) {",
+    );
+    // The metric's recent count matches the version on the attribute the spans' does.
+    expect(counting).toMatch(
+      /if \(data\.serviceVersion\) \{[\s\S]{0,200}SLO_RELEASE_CHECK_VERSION_ATTRIBUTE/,
+    );
+
+    // Too few events is too little to judge, and the reason counts events.
+    const decision: SloReleaseCheckDecision = decideSloReleaseCheck({
+      sliType: SliType.Metric,
+      targetPercentage: 99.9,
+      options: parseSloReleaseCheckOptions({ windowInMinutes: "10" }),
+      measurement: {
+        burnRate: 0,
+        sliPercentage: 100,
+        goodRequestCount: 0,
+        totalRequestCount: 0,
+      },
+      deploymentsAllowed: true,
+    });
+
+    expect(decision.verdict).toBe(SloReleaseCheckVerdict.NotEnoughData);
+    expect(decision.reason).toBe(
+      "Only 0 events in the last 10 minutes, and this check needs at least 1 event to judge.",
+    );
+  });
+
   it("shows the answer the API builds, with the reason it writes", () => {
     const json: string = page.split("```json")[1]!.split("```")[0]!;
     const example: JSONObject = JSON.parse(
@@ -4063,8 +4345,105 @@ describe("Release Checks, against the product", () => {
       );
     }
 
-    expect(page).toContain(
-      "a request SLO with no services, a latency SLO with no threshold, a monitor uptime SLO with no monitors - is answered with HTTP 400",
+    // A Metric SLO with no metric it can count is refused by its counting (#8445).
+    expect(readSource("metricCounting")).toMatch(
+      /public static getCountableConfig\([\s\S]{0,400}throw new BadDataException\(/,
     );
+
+    expect(page).toContain(
+      "a request SLO with no services, a latency SLO with no threshold, a Metric SLO with no metric it can count, a monitor uptime SLO with no monitors - is answered with HTTP 400",
+    );
+  });
+
+  /*
+   * Turn a feature flag off (#8447): the templates by the names the picker
+   * shows, in the category the page names, asking for the rule's ID by the
+   * title the wizard shows it under, which Show ID on the rules page gives.
+   */
+  describe("Turn a feature flag off", () => {
+    const flagSection: string = section(page, "Turn a feature flag off");
+    const templates: Array<WorkflowTemplate> = getWorkflowTemplates().filter(
+      (template: WorkflowTemplate): boolean => {
+        return template.category === WorkflowTemplateCategory.Slos;
+      },
+    );
+
+    type StepArgsFunction = (templateId: string, index: number) => JSONObject;
+
+    const stepArgs: StepArgsFunction = (
+      templateId: string,
+      index: number,
+    ): JSONObject => {
+      const nodes: Array<{ args?: JSONObject }> = (getTemplateGraphSpec(
+        templateId,
+      )?.nodes || []) as Array<{ args?: JSONObject }>;
+
+      return nodes[index]?.args || {};
+    };
+
+    it("lists each SLOs template by the name the picker shows, in a table of its own", () => {
+      expect(templates.length).toBe(2);
+      expect(firstCells(flagSection)).toEqual(
+        templates.map((template: WorkflowTemplate): string => {
+          return `**${template.name}**`;
+        }),
+      );
+    });
+
+    it("names the category by the label the picker shows", () => {
+      expect(flagSection).toContain(
+        `choose the **${getWorkflowTemplateCategoryInfo(WorkflowTemplateCategory.Slos).label}** category`,
+      );
+    });
+
+    it("has the rule's ID pasted where the wizard asks for it, from Show ID in the rule's menu", () => {
+      for (const template of templates) {
+        expect(template.variables[0]?.title).toBe("Burn Rate Rule ID");
+      }
+
+      expect(flagSection).toContain(
+        "Paste the rule's ID into **Burn Rate Rule ID**",
+      );
+      expect(flagSection).toContain("pick **Show ID**");
+      expect(readSource("burnRulesPage")).toContain("showViewIdButton={true}");
+    });
+
+    it("starts each time a rule fires: the two stamps of a fire are what the trigger watches", () => {
+      for (const template of templates) {
+        expect(
+          Object.keys(
+            (stepArgs(template.id, 0)["listen-on"] as JSONObject) || {},
+          ).sort(),
+        ).toEqual(["lastAlertCreatedAt", "lastIncidentCreatedAt"]);
+      }
+
+      expect(
+        new ServiceLevelObjectiveBurnRateRule().getTableColumnMetadata(
+          "lastAlertCreatedAt",
+        ).title,
+      ).toBe("Last Alert Created At");
+      expect(flagSection).toContain(
+        "The workflow starts each time a burn rate rule in the project raises an alert or declares an incident.",
+      );
+    });
+
+    it("says what each template's call does, as its API step makes it", () => {
+      const launchDarklyBody: JSONObject = JSON.parse(
+        stepArgs("slo-burn-launchdarkly-flag-off", 2)["request-body"] as string,
+      ) as JSONObject;
+
+      expect(launchDarklyBody["instructions"]).toEqual([
+        { kind: "turnFlagOff" },
+      ]);
+      expect(String(launchDarklyBody["comment"])).toContain("burn rate rule");
+      expect(flagSection).toContain(
+        "LaunchDarkly's `turnFlagOff` instruction, with a comment that names the rule and the SLO",
+      );
+
+      expect(String(stepArgs("slo-burn-unleash-flag-off", 2)["url"])).toMatch(
+        /\/environments\/\{\{local\.variables\.unleashEnvironment\}\}\/off$/,
+      );
+      expect(flagSection).toContain("Unleash's `off` for the environment");
+    });
   });
 });

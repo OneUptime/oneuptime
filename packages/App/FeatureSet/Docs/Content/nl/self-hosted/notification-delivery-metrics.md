@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Stel ze in `config.env` in en voer daarna `npm start` uit. `DISABLE_TELEMETRY_FOR_APP` is standaard `true`, en dan wordt er niets verstuurd.
 :::
 
-OneUptime heeft zowel het endpoint als de headers nodig: zonder header verstuurt het niets. Schrijf elke header als `name=value` en scheid meerdere met `;`. Een waarde mag `=` bevatten. OneUptime voegt zelf `/v1/metrics` aan het endpoint toe, en dezelfde instellingen versturen ook de eigen traces en logs. Elke metric verschijnt zodra OneUptime hem voor het eerst vastlegt: `notification.send.count` bij het eerste verstuurde bericht.
+OneUptime heeft zowel het endpoint als de headers nodig: zonder header verstuurt het niets. Schrijf elke header als `name=value` en scheid meerdere met `;`, of met `,` zoals in `OTEL_EXPORTER_OTLP_HEADERS`. Een waarde mag `=` bevatten. Zonder `;` wordt een waarde gelezen zoals die standaard haar schrijft, een spatie als `%20`: eindig de instelling met `;` om een waarde precies zo te versturen als ze geschreven is. OneUptime voegt zelf `/v1/metrics` aan het endpoint toe, en dezelfde instellingen versturen ook de eigen traces en logs. Elke metric verschijnt zodra OneUptime hem voor het eerst vastlegt: `notification.send.count` bij het eerste verstuurde bericht.
 
 ### Delta's naar een OneUptime-project sturen
 
@@ -193,7 +193,7 @@ Vier doelen die de meeste installaties kunnen beloven, elk opgebouwd uit een of 
 
 :::steps
 1. Open de [Metriekverkenner](/docs/telemetry/metrics-explorer) van het project, en klik op de eerste metric van het doel. De query daarvan is `a`.
-2. Kies de aggregatie onder **Aggregate by**. Open daarna **Filters & grouping**, en voeg elk van de voorwaarden toe onder **Filter by attributes**.
+2. Kies de aggregatie onder **Aggregeren op**. Open daarna **Filters en groepering**, en voeg elk van de voorwaarden toe onder **Filteren op attributen**.
 3. Voor een tweede query klikt u op **Metriek toevoegen**, en stelt u `b` op dezelfde manier in.
 4. Voor een formule klikt u op **Formule toevoegen**, en schrijft u die in **Formule**.
 5. Om te horen wanneer het doel wordt gemist, klikt u op **Acties → Monitor maken vanuit deze weergave**, en laat u waarschuwen als de waarde het doel overschrijdt: zie [Metrics-monitor](/docs/monitor/metrics-monitor).

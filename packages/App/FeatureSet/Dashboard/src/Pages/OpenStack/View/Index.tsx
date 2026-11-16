@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
@@ -456,7 +457,7 @@ function getCountChips(
 
 function formatPercent(percent: number | null, translator: Translator): string {
   return percent === null
-    ? "—"
+    ? EMPTY_VALUE_MARK
     : `${translator.formatNumber(Math.round(percent))}%`;
 }
 
@@ -1389,7 +1390,7 @@ const OpenStackCloudOverview: FunctionComponent<
           value={
             isCurrent && apisInScope.length > 0
               ? `${translator.formatNumber(apisUp)}/${translator.formatNumber(apisInScope.length)}`
-              : "—"
+              : undefined
           }
           sublabel={
             !isConnected
@@ -1415,7 +1416,7 @@ const OpenStackCloudOverview: FunctionComponent<
           value={
             isCurrent && hypervisorCounts.total > 0
               ? `${translator.formatNumber(hypervisorCounts.up)}/${translator.formatNumber(hypervisorCounts.total)}`
-              : "—"
+              : undefined
           }
           sublabel={
             !isConnected
@@ -1440,7 +1441,9 @@ const OpenStackCloudOverview: FunctionComponent<
           title="vCPUs allocated"
           icon={IconProp.ChartBar}
           iconColor="blue"
-          value={isConnected ? formatPercent(vcpuPercent, translator) : "—"}
+          value={
+            isConnected ? formatPercent(vcpuPercent, translator) : undefined
+          }
           sublabel={
             !isConnected
               ? nothingCurrent
@@ -1467,7 +1470,9 @@ const OpenStackCloudOverview: FunctionComponent<
           title="Memory allocated"
           icon={IconProp.SquareStack}
           iconColor="violet"
-          value={isConnected ? formatPercent(memoryPercent, translator) : "—"}
+          value={
+            isConnected ? formatPercent(memoryPercent, translator) : undefined
+          }
           sublabel={
             !isConnected
               ? nothingCurrent
@@ -1490,7 +1495,9 @@ const OpenStackCloudOverview: FunctionComponent<
           title="Storage used"
           icon={IconProp.Database}
           iconColor="amber"
-          value={isConnected ? formatPercent(storagePercent, translator) : "—"}
+          value={
+            isConnected ? formatPercent(storagePercent, translator) : undefined
+          }
           sublabel={
             !isConnected
               ? nothingCurrent

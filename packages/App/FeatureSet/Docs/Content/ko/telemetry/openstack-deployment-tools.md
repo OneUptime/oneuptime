@@ -10,7 +10,7 @@
 - [OpenStack-Helm](#openstack-helm): Atmosphere도 같은 방식으로, 프로브와 Kubernetes 에이전트.
 - [Canonical Sunbeam](#canonical-sunbeam): Canonical Observability Stack.
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): OpenShift 프리셋과 Ceilometer.
-- [Mirantis MOSK](#mirantis-mosk): StackLight의 알림.
+- [Mirantis MOSK](#mirantis-mosk): StackLight의 경고.
 - [이미 실행 중인 익스포터 사용](#이미-실행-중인-익스포터-사용): 1.7.0에서 페이지에 나타나지 않는 항목.
 :::
 
@@ -20,8 +20,8 @@
 
 | 도구 | 읽은 것 | 실제로 실행한 것 |
 | --- | --- | --- |
-| Kolla-Ansible | master와 `stable/2026.1`의 소스 | `stable/2026.1`에서 Open vSwitch를 사용하는 실제 올인원 환경에서 이 가이드의 명령을 실행했습니다. Docker 없이 Full view 자격 증명으로 에이전트를, Kolla-Ansible 자체 익스포터와 고정 버전 및 1.7.0의 사용자 익스포터에서, Infrastructure only 자격 증명으로 에이전트의 익스포터를, 실제 `prometheus.yml`에서 읽은 대상을, 그리고 로그 프로필을 실행했습니다. 그곳에서 Memcached를 실제로 중지하자 Alertmanager는 firing 웹훅을 전송한 뒤 resolved 웹훅을 전송했고, 전송된 내용을 실행 중인 OneUptime에 보내자 올바른 클라우드에서만 인시던트가 하나 열렸고 다른 클라우드에서는 열리지 않았으며, 그 인시던트는 해결되었습니다 |
-| OpenStack-Ansible | 소스와 문서 | `stable/2026.1`의 실제 올인원 환경에서 LXC 컨테이너로 이 가이드의 명령을 실행했습니다. Full view 자격 증명으로 에이전트를, Infrastructure only 자격 증명으로 정책 재정의를 적용한 에이전트의 익스포터를, 에이전트가 각각을 읽는 RabbitMQ 및 HAProxy 설정을, 저널의 로그 프로필을 실행했습니다 |
+| Kolla-Ansible | master와 `stable/2026.1`의 소스 | `stable/2026.1`에서 Open vSwitch를 사용하는 실제 올인원 환경에서 이 가이드의 명령을 실행했습니다. Docker 없이 전체 보기 자격 증명으로 에이전트를, Kolla-Ansible 자체 익스포터와 고정 버전 및 1.7.0의 사용자 익스포터에서, 인프라 전용 자격 증명으로 에이전트의 익스포터를, 실제 `prometheus.yml`에서 읽은 대상을, 그리고 로그 프로필을 실행했습니다. 그곳에서 Memcached를 실제로 중지하자 Alertmanager는 firing 웹훅을 전송한 뒤 resolved 웹훅을 전송했고, 전송된 내용을 실행 중인 OneUptime에 보내자 올바른 클라우드에서만 인시던트가 하나 열렸고 다른 클라우드에서는 열리지 않았으며, 그 인시던트는 해결되었습니다 |
+| OpenStack-Ansible | 소스와 문서 | `stable/2026.1`의 실제 올인원 환경에서 LXC 컨테이너로 이 가이드의 명령을 실행했습니다. 전체 보기 자격 증명으로 에이전트를, 인프라 전용 자격 증명으로 정책 재정의를 적용한 에이전트의 익스포터를, 에이전트가 각각을 읽는 RabbitMQ 및 HAProxy 설정을, 저널의 로그 프로필을 실행했습니다 |
 | OpenStack-Helm | 차트 값 | OpenStack-Helm에서는 테스트하지 않았습니다. 프로브와 Kubernetes 에이전트는 각각 따로 테스트했습니다 |
 | Atmosphere | 문서와 소스 | Atmosphere에서는 테스트하지 않았습니다. 프로브와 Kubernetes 에이전트는 각각 따로 테스트했습니다 |
 | Canonical Sunbeam | Canonical의 문서와 charm의 소스 | Sunbeam에서는 아무것도 실행하지 않았습니다. Sunbeam 자체 문서에는 익스포터 charm이 언급되지 않습니다 |
@@ -36,23 +36,23 @@
 
 ## 이미 발생 중인 알림 전달
 
-Alertmanager가 있는 도구라면 지금 바로 인시던트를 받을 수 있습니다. 발생한 알림이 인시던트가 되어 첫 한 시간부터 온콜과 상태 페이지를 사용할 수 있고, 알림이 해결되면 인시던트도 해결됩니다. 설치할 것이 없으며 이 페이지의 다른 모든 것과 함께 작동합니다.
+Alertmanager가 있는 도구라면 지금 바로 인시던트를 받을 수 있습니다. 발생한 경고가 인시던트가 되어 첫 한 시간부터 온콜과 상태 페이지를 사용할 수 있고, 경고가 해결되면 인시던트도 해결됩니다. 설치할 것이 없으며 이 페이지의 다른 모든 것과 함께 작동합니다.
 
 :::steps
 ### 모니터 만들기
 
-[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#모니터로-알림-받기)의 안내대로 Incoming Request 모니터를 만들고 **Heartbeat URL**을 복사합니다. 이것이 아래 각 도구의 리시버에 있는 `<secret key>` 주소입니다.
+[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#모니터로-경고-받기)의 안내대로 수신 요청 모니터를 만들고 **Heartbeat URL**을 복사합니다. 이것이 아래 각 도구의 리시버에 있는 `<secret key>` 주소입니다.
 
 ### 클라우드에 연결하기
 
-모니터의 **개요 → 연결된 리소스**를 열고 OpenStack 클라우드를 추가합니다. 그러면 각 인시던트가 해당 클라우드의 **인시던트** 페이지에 표시됩니다. Incoming Request 모니터 자체의 설정에는 클라우드가 지정되지 않으므로, 클라우드마다 Alertmanager용 모니터가 따로 필요합니다. 클라우드는 첫 데이터가 도착하면 그 목록에 나타나므로, 아래 단계를 마친 뒤에 하거나 **OpenStack → All Clouds**에서 먼저 클라우드를 추가하세요.
+모니터의 **개요 → 연결된 리소스**를 열고 OpenStack 클라우드를 추가합니다. 그러면 각 인시던트가 해당 클라우드의 **인시던트** 페이지에 표시됩니다. 수신 요청 모니터 자체의 설정에는 클라우드가 지정되지 않으므로, 클라우드마다 Alertmanager용 모니터가 따로 필요합니다. 클라우드는 첫 데이터가 도착하면 그 목록에 나타나므로, 아래 단계를 마친 뒤에 하거나 **OpenStack → All Clouds**에서 먼저 클라우드를 추가하세요.
 :::
 
 Kolla-Ansible가 고정한 버전의 Alertmanager가 정확히 이 형태로 전송하는 것을 기록했으며, 전송된 내용은 실행 중인 OneUptime에서 인시던트를 하나 열었고 Alertmanager 자체의 `resolved` 상태가 이를 해결했습니다.
 
 ## Kolla-Ansible
 
-`/etc/kolla/globals.yml`에서 `enable_prometheus`를 켜면(설정하기 전에는 Kolla-Ansible가 꺼 둡니다) Prometheus, Alertmanager, 클라우드 아래 각 구성 요소의 익스포터가 실행되며 알림 규칙은 제공되지 않습니다. 이 가이드는 두 번째 사본을 시작하는 대신 이미 실행 중인 것을 읽습니다.
+`/etc/kolla/globals.yml`에서 `enable_prometheus`를 켜면(설정하기 전에는 Kolla-Ansible가 꺼 둡니다) Prometheus, Alertmanager, 클라우드 아래 각 구성 요소의 익스포터가 실행되며 경고 규칙은 제공되지 않습니다. 이 가이드는 두 번째 사본을 시작하는 대신 이미 실행 중인 것을 읽습니다.
 
 ### Kolla-Ansible에서 발생 중인 알림 전달
 
@@ -84,8 +84,8 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 `kolla-ansible post-deploy`가 작성하는 `source /etc/kolla/admin-openrc.sh`로 admin으로 로그인합니다.
 
-- **Full view**는 Cinder에 한 가지 변경이 필요합니다. Kolla-Ansible의 템플릿이 이미 Nova, Neutron, Glance, Placement의 `[keystone_authtoken]`에 `service_type`을 설정하지만, Cinder는 `volume`으로 설정하는 반면 카탈로그는 `block-storage`라고 하며, 둘이 일치하지 않으면 keystonemiddleware는 액세스 규칙으로 제한된 자격 증명을 `401`로 거부합니다. `/etc/kolla/config/cinder.conf`의 `[keystone_authtoken]`에 `service_type = block-storage`를 추가한 다음 `kolla-ansible reconfigure -i <inventory> --tags cinder`를 실행하세요.
-- **Infrastructure only**는 `/etc/kolla/config/nova/policy.yaml`에 오버라이드를 넣으며, `neutron`, `keystone`, `placement`도 마찬가지로 이미 있는 내용과 병합됩니다. `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`로 적용하세요.
+- **전체 보기**는 Cinder에 한 가지 변경이 필요합니다. Kolla-Ansible의 템플릿이 이미 Nova, Neutron, Glance, Placement의 `[keystone_authtoken]`에 `service_type`을 설정하지만, Cinder는 `volume`으로 설정하는 반면 카탈로그는 `block-storage`라고 하며, 둘이 일치하지 않으면 keystonemiddleware는 액세스 규칙으로 제한된 자격 증명을 `401`로 거부합니다. `/etc/kolla/config/cinder.conf`의 `[keystone_authtoken]`에 `service_type = block-storage`를 추가한 다음 `kolla-ansible reconfigure -i <inventory> --tags cinder`를 실행하세요.
+- **인프라 전용**은 `/etc/kolla/config/nova/policy.yaml`에 오버라이드를 넣으며, `neutron`, `keystone`, `placement`도 마찬가지로 이미 있는 내용과 병합됩니다. `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`로 적용하세요.
 
 ### Kolla-Ansible의 클라우드가 의존하는 것 감시
 
@@ -161,8 +161,8 @@ OpenStack-Ansible는 서비스 로그를 journald에 보관하고 자체 Prometh
 
 유틸리티 컨테이너에서 admin으로 로그인합니다. `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`를 실행한 뒤 `. ~/openrc`를 실행하세요. 이 컨테이너에는 아래 명령이 사용하는 `curl`이 없으므로 먼저 `apt-get install -y curl`을 실행하세요.
 
-- **Full view**는 Cinder에 한 가지 변경이 필요합니다. OpenStack-Ansible의 롤이 이미 `[keystone_authtoken]`에 `service_type`을 설정하지만, Cinder는 `volumev3`으로 설정하는 반면 카탈로그는 `block-storage`라고 하며, 둘이 일치하지 않으면 keystonemiddleware는 액세스 규칙으로 제한된 자격 증명을 `401`로 거부합니다. `/etc/openstack_deploy/user_variables.yml`의 `cinder_cinder_conf_overrides`에서 `keystone_authtoken` 아래에 `service_type: block-storage`를 설정한 다음 `openstack-ansible openstack.osa.cinder --tags cinder-config`를 실행하세요.
-- **Infrastructure only**는 `/etc/openstack_deploy/user_variables.yml`의 `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides`, `placement_policy_overrides`로 오버라이드를 지정합니다. 각각 해당 플레이북과 태그로 적용하세요. 예: `openstack-ansible openstack.osa.nova --tags nova-policy-override`. 나중에 하나를 제거하면 파일이 없어지는 대신 빈 파일이 남으므로 아무것도 실패하지 않습니다.
+- **전체 보기**는 Cinder에 한 가지 변경이 필요합니다. OpenStack-Ansible의 롤이 이미 `[keystone_authtoken]`에 `service_type`을 설정하지만, Cinder는 `volumev3`으로 설정하는 반면 카탈로그는 `block-storage`라고 하며, 둘이 일치하지 않으면 keystonemiddleware는 액세스 규칙으로 제한된 자격 증명을 `401`로 거부합니다. `/etc/openstack_deploy/user_variables.yml`의 `cinder_cinder_conf_overrides`에서 `keystone_authtoken` 아래에 `service_type: block-storage`를 설정한 다음 `openstack-ansible openstack.osa.cinder --tags cinder-config`를 실행하세요.
+- **인프라 전용**은 `/etc/openstack_deploy/user_variables.yml`의 `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides`, `placement_policy_overrides`로 오버라이드를 지정합니다. 각각 해당 플레이북과 태그로 적용하세요. 예: `openstack-ansible openstack.osa.nova --tags nova-policy-override`. 나중에 하나를 제거하면 파일이 없어지는 대신 빈 파일이 남으므로 아무것도 실패하지 않습니다.
 
 ### OpenStack-Ansible의 클라우드가 의존하는 것 감시
 
@@ -323,11 +323,11 @@ conf:
 
 ## Atmosphere
 
-Atmosphere는 자체 알림 규칙이 있는 kube-prometheus-stack을 실행하고, 로그에는 Vector가 있는 Loki를 사용합니다. 먼저 알림을 전달하고, 이어서 프로브가 API를 읽고 Kubernetes 에이전트가 파드를 봅니다.
+Atmosphere는 자체 경고 규칙이 있는 kube-prometheus-stack을 실행하고, 로그에는 Vector가 있는 Loki를 사용합니다. 먼저 경고를 전달하고, 이어서 프로브가 API를 읽고 Kubernetes 에이전트가 파드를 봅니다.
 
 ### Atmosphere에서 발생 중인 알림 전달
 
-Atmosphere는 실제 사람을 호출해 본 알림 규칙을 제공하므로 첫 한 시간부터 작동합니다. 이미 사용 중인 리시버 옆에 Atmosphere 설정에 리시버를 추가하고 배포하세요.
+Atmosphere는 실제 사람을 호출해 본 경고 규칙을 제공하므로 첫 한 시간부터 작동합니다. 이미 사용 중인 리시버 옆에 Atmosphere 설정에 리시버를 추가하고 배포하세요.
 
 ```yaml title="Atmosphere configuration"
 kube_prometheus_stack_helm_values:
@@ -503,11 +503,11 @@ spec:
 
 ## Mirantis MOSK
 
-StackLight는 이미 자체 알림 규칙으로 OpenStack 서비스, MariaDB, Memcached, RabbitMQ, libvirt를 감시합니다. 먼저 알림을 전달하고, 이어서 프로브가 API를 읽습니다.
+StackLight는 이미 자체 경고 규칙으로 OpenStack 서비스, MariaDB, Memcached, RabbitMQ, libvirt를 감시합니다. 먼저 경고를 전달하고, 이어서 프로브가 API를 읽습니다.
 
 ### Mirantis MOSK에서 발생 중인 알림 전달
 
-StackLight는 알림 규칙을 제공하므로 첫 한 시간부터 작동합니다. StackLight values에 리시버와 라우트를 추가하세요. Mirantis의 문서는 웹훅이 아니라 다른 리시버를 보여 주며, 이 설정은 MOSK에서 실행해 보지 않았습니다.
+StackLight는 경고 규칙을 제공하므로 첫 한 시간부터 작동합니다. StackLight values에 리시버와 라우트를 추가하세요. Mirantis의 문서는 웹훅이 아니라 다른 리시버를 보여 주며, 이 설정은 MOSK에서 실행해 보지 않았습니다.
 
 ```yaml title="StackLight values"
 alertmanagerSimpleConfig:

@@ -47,6 +47,7 @@ import {
 import Semaphore, {
   SemaphoreMutex,
 } from "Common/Server/Infrastructure/Semaphore";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import IncidentService from "Common/Server/Services/IncidentService";
@@ -98,8 +99,10 @@ import {
   formatRequestBudget,
   getEventErrorBudget,
   getSettledRequestStepEnd,
-  isRequestSliType,
+  isEventSliType,
 } from "Common/Utils/Slo/SloRequestSli";
+import { getSloRequestFilterError } from "Common/Utils/Slo/SloRequestFilter";
+import { getSloMetricQueryError } from "Common/Utils/Slo/SloMetricSli";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
 import SloMetricTypeUtil from "Common/Utils/Slo/SloMetricType";
 import SloUtil, {
@@ -191,28 +194,30 @@ const DEFAULT_ROLLING_WINDOW_DAYS: number = 30;
 const SWEEP_TIMEOUT_MINUTES: number = 10;
 
 /*
- * Redis mutex that serializes the whole sweep across every worker replica.
+ * One sweep at a time (issue #8103).
  *
  * The per-SLO cadence columns are NOT an overlap guard: getDueSlos() snapshots
  * the entire due set up front and each SLO is only stamped once the loop
  * reaches it, so a sweep that takes longer than the one-minute schedule (a few
  * hundred SLOs is enough) still has hundreds of unstamped SLOs in flight when
- * the next tick starts — and that next tick re-selects every one of them.
- * runJobWithTimeout is a Promise.race with no cancellation, and the worker
- * concurrency defaults to 100, so the overlapping sweeps really do run the same
- * SLOs side by side: duplicate owner notifications and duplicate burn-rate
- * alerts (both dedupes are read-then-write, so they interleave).
- *
- * An affected-row count on an `updateBy` cannot be used instead:
+ * the next tick starts — and that next tick re-selects every one of them. Two
+ * sweeps running the same SLOs side by side send duplicate owner notifications
+ * and duplicate burn-rate alerts (both dedupes are read-then-write, so they
+ * interleave). An affected-row count on an `updateBy` cannot be used instead:
  * DatabaseService._updateBy is a _findBy followed by a per-row
  * repository.save() and returns the SELECT count, so two interleaved sweeps
  * both see 1 and both proceed.
  *
- * The lock timeout deliberately outlives the job's own 10-minute timeout, so a
- * sweep that overruns (Promise.race does not stop the body) keeps holding the
- * lock rather than letting a second sweep in behind it. redis-semaphore's Mutex
- * auto-refreshes while it is held, so this value only bounds how long a CRASHED
- * worker's lock lingers before another replica may take over.
+ * RunCron runs one copy of this job at a time across every worker replica
+ * (CronLock), and the sweep stops between SLOs once its deadline has passed
+ * - its time limit, or its lease lost - leaving the SLOs it did not reach due
+ * for the next tick. This Redis mutex is kept beside the lease for what the
+ * lease cannot cover: the lease lapses half a minute past the time limit even
+ * while an evaluation of the run has not returned, and a second sweep beside
+ * it would send those duplicates. redis-semaphore refreshes a held mutex for
+ * as long as the run lasts, so the lock timeout - longer than the job's own
+ * 10-minute limit - only bounds how long a CRASHED worker's lock lingers
+ * before another replica may take over.
  */
 const SWEEP_LOCK_KEY: string = "Slo:EvaluateSlos";
 const SWEEP_LOCK_NAMESPACE: string = "Workers.Cron";
@@ -241,7 +246,7 @@ RunCron(
       SWEEP_TIMEOUT_MINUTES,
     ),
   },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * acquireAttemptsLimit: 1 — never queue behind the in-flight sweep. This
      * job re-runs every minute anyway, so waiting would only stack ticks up
@@ -272,7 +277,22 @@ RunCron(
       const dueSlos: Array<ServiceLevelObjective> =
         await ServiceLevelObjectiveService.getDueSlos();
 
+      let evaluated: number = 0;
+
       for (const slo of dueSlos) {
+        /*
+         * Between SLOs, never inside one: an evaluation in flight finishes,
+         * and the SLOs not reached are still due, so they lead the next tick.
+         */
+        if (deadline.hasPassed()) {
+          logger.debug(
+            `Slo:EvaluateSlos - the run's deadline has passed; stopping after ${evaluated} of ${dueSlos.length} due SLO(s). The rest are still due and lead the next tick.`,
+          );
+          break;
+        }
+
+        evaluated++;
+
         try {
           await evaluateSlo(slo);
         } catch (err) {
@@ -358,8 +378,8 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   /*
    * Stamp the cadence columns FIRST so that even if this evaluation throws
    * below, the SLO is not retried on every one-minute tick. (Concurrency
-   * between two overlapping sweeps is handled by the sweep-wide Redis mutex,
-   * NOT by these columns — see SWEEP_LOCK_KEY above.)
+   * between two overlapping sweeps is handled by the run's lease and the
+   * sweep-wide Redis mutex, NOT by these columns — see SWEEP_LOCK_KEY above.)
    *
    * These two columns are pure worker bookkeeping: nothing user-facing reads
    * them and no workflow can meaningfully trigger on them, so they go through
@@ -404,12 +424,13 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
 
   /*
    * Measure, from whatever the SLO measures: its monitors' status timelines,
-   * or the requests its services served. Null when a guard (Misconfigured,
+   * or the events its services sent - the requests in their traces, or
+   * their metric's events (#8445). Null when a guard (Misconfigured,
    * Paused, no data) has already set the status and said why. Everything
    * after the measurement - status, error budget policy, history, metrics,
    * owners, burn rate rules - is the same for both.
    */
-  const evaluation: SloMeasuredEvaluation | null = isRequestSliType(slo.sliType)
+  const evaluation: SloMeasuredEvaluation | null = isEventSliType(slo.sliType)
     ? await measureRequestSlo({
         slo: slo,
         sloId: sloId,
@@ -870,11 +891,20 @@ async function measureRequestSlo(data: {
   const latencyThresholdInMilliseconds: number | null =
     readLatencyThresholdInMilliseconds(slo.latencyThresholdInMilliseconds);
 
+  const isMetricSlo: boolean = sliType === SliType.Metric;
+
   const misconfiguredReason: string | null = getRequestSloMisconfiguredReason({
     sliType: sliType,
     serviceCount: serviceIds.length,
     latencyThresholdInMilliseconds: latencyThresholdInMilliseconds,
     targetPercentage: targetPercentage,
+    // A request filter reads spans: a Metric SLO has none to read.
+    requestFilterError: isMetricSlo
+      ? null
+      : getSloRequestFilterError(slo.requestFilter),
+    metricQueryError: isMetricSlo
+      ? getSloMetricQueryError(slo.metricQueryConfig || null)
+      : null,
   });
 
   if (misconfiguredReason) {
@@ -934,6 +964,12 @@ async function measureRequestSlo(data: {
       sliType: sliType,
       serviceIds: serviceIds,
       latencyThresholdInMilliseconds: latencyThresholdInMilliseconds,
+      // Which of the services' requests count (#8444).
+      requestFilter: isMetricSlo ? null : slo.requestFilter,
+      // A Metric SLO's metric, whose events it counts instead (#8445).
+      ...(isMetricSlo
+        ? { metricQueryConfig: slo.metricQueryConfig || null }
+        : {}),
     },
     now: now,
     neededFrom: OneUptimeDate.getLesserDate(
@@ -999,8 +1035,9 @@ async function measureRequestSlo(data: {
       status: SloStatus.Misconfigured,
       now: now,
       isSloStillEvaluated: data.isSloStillEvaluated,
-      reason:
-        "The services this SLO measures have not served a request in its window yet. It is measured automatically once their traces reach OneUptime.",
+      reason: isMetricSlo
+        ? "The services this SLO measures have not sent an event of its metric in its window yet. It is measured automatically once the metric reaches OneUptime."
+        : "The services this SLO measures have not served a request in its window yet. It is measured automatically once their traces reach OneUptime.",
     });
     return null;
   }
@@ -1099,9 +1136,33 @@ function getRequestSloMisconfiguredReason(data: {
   serviceCount: number;
   latencyThresholdInMilliseconds: number | null;
   targetPercentage: number;
+  // What is wrong with the SLO's request filter, or null (#8444).
+  requestFilterError?: string | null | undefined;
+  // What is wrong with a Metric SLO's metric, or null (#8445).
+  metricQueryError?: string | null | undefined;
 }): string | null {
   if (data.serviceCount === 0) {
-    return "No services are chosen for this SLO, so there are no requests to measure. Choose the services whose requests it measures.";
+    return data.sliType === SliType.Metric
+      ? "No services are chosen for this SLO, so there is no metric to measure. Choose the services whose metric it measures."
+      : "No services are chosen for this SLO, so there are no requests to measure. Choose the services whose requests it measures.";
+  }
+
+  /*
+   * The service refuses a metric it cannot count with, so this one was
+   * stored before a rule tightened, or straight into the database:
+   * counting nothing instead would read as no traffic.
+   */
+  if (data.metricQueryError) {
+    return `This SLO's metric cannot be counted: ${data.metricQueryError} Fix it in Settings, What It Measures.`;
+  }
+
+  /*
+   * The service refuses a filter it cannot read, so this is a filter
+   * written before a rule tightened, or straight into the database:
+   * counting every request instead would be a wrong SLI.
+   */
+  if (data.requestFilterError) {
+    return `This SLO's request filter cannot be read: ${data.requestFilterError} Fix it in Settings, What It Measures.`;
   }
 
   if (
@@ -2288,7 +2349,7 @@ function getMisconfiguredGuardReason(data: {
   monitorCount: number;
 }): string {
   if (data.sliType !== SliType.MonitorUptime) {
-    return "This SLO's SLI type is not one OneUptime measures. Choose Monitor Uptime, Request Success or Request Latency.";
+    return "This SLO's SLI type is not one OneUptime measures. Choose Monitor Uptime, Request Success, Request Latency or Metric.";
   }
 
   if (data.monitorCount === 0) {
@@ -4650,7 +4711,7 @@ async function postSloRecordRaisedFeedItem(data: {
           feedInfoInMarkdown:
             mdText`${source.words.feedNoun} **${source.name}** ${isAlert ? "raised a private alert" : "declared a private incident"}.`.toString(),
           moreInformationInMarkdown: FeedMarkdown.bulletList([
-            mdText`**Visibility:** Private - only its owners and project admins can see this ${isAlert ? "alert" : "incident"}.`,
+            mdText`**Visibility:** Private - only its owners and Project Admins can see this ${isAlert ? "alert" : "incident"}.`,
             ...source.getFeedMeasurementLines(variables),
           ]).toString(),
           displayColor: Red500,

@@ -123,7 +123,7 @@ describe("setCustomFieldFilePicker", () => {
 
     expect(field.maxFiles).toBe(3);
     expect(hintOf(field)).toBe(
-      "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+      "Up to 3 files of 10\u00A0MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
     );
   });
 
@@ -133,7 +133,7 @@ describe("setCustomFieldFilePicker", () => {
     setCustomFieldFilePicker({ field: field, isMultiple: true, maxFiles: 1 });
 
     expect(hintOf(field)).toBe(
-      "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+      "One file of up to 10\u00A0MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
     );
   });
 

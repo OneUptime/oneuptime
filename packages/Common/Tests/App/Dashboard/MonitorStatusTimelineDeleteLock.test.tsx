@@ -163,6 +163,7 @@ import {
   forgetStatusTimelineView,
   showStatusTimelinesAsTable,
 } from "../../Helpers/StatusTimelineViewChoice";
+import { withNumbersKeptWithUnits } from "../../../Types/NoBreakSpaces";
 
 const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
@@ -181,7 +182,12 @@ const NEWEST: string = "cccccccc-0000-4000-8000-000000000003";
 
 // The tooltip is the server's refusal, word for word.
 const ONLY_EVENT_REASON: string = ONLY_STATUS_EVENT_MESSAGE;
-const OLDEST_EVENT_REASON: string = OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE;
+// As the page draws it: its days held to their word (#8770).
+const OLDEST_EVENT_REASON: string = withNumbersKeptWithUnits(
+  OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE,
+  OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE,
+  { durationWords: true },
+);
 
 const daysAgo: (days: number) => Date = (days: number): Date => {
   return new Date(NOW.getTime() - days * DAY_IN_MS);
@@ -333,7 +339,7 @@ describe("the monitor's Status Timeline locks the Delete the server refuses", ()
     expect(reasonFor(OLDEST)).toBe(ONLY_EVENT_REASON);
   });
 
-  test("locks Delete on the oldest event while it covers part of the last 90 days, and on no other", async () => {
+  test("locks Delete on the oldest event while it covers part of the last 90\u00A0days, and on no other", async () => {
     lockAnswer = {
       data: [
         event(OLDEST, daysAgo(365), daysAgo(20)),
@@ -618,7 +624,7 @@ describe("the Delete dialog says what deleting the event does", () => {
     ).rejects.toThrow(ONLY_EVENT_REASON);
   });
 
-  test("the oldest event, still in the last 90 days, says why it can't go", async () => {
+  test("the oldest event, still in the last 90\u00A0days, says why it can't go", async () => {
     await renderPage();
 
     beforeAnswer = { data: [], count: 0 };

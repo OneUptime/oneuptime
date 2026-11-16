@@ -15,6 +15,7 @@ import GroupBy from "../../Types/AnalyticsDatabase/GroupBy";
 import Query from "../../Types/AnalyticsDatabase/Query";
 import Select from "../../Types/AnalyticsDatabase/Select";
 import Sort from "../../Types/AnalyticsDatabase/Sort";
+import SortValidator from "../../Types/Database/Permissions/SortValidator";
 import UpdateBy from "../../Types/AnalyticsDatabase/UpdateBy";
 import logger from "../Logger";
 import {
@@ -2307,7 +2308,22 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     let first: boolean = true;
     for (const key in sort) {
       if (!this.model.getTableColumn(key)) {
-        throw new BadDataException(`Unknown column: ${key}`);
+        throw new BadDataException(
+          `${this.model.pluralName} have no column ${SortValidator.quote(key)} to sort by. Sort by one of their columns, as in { ${JSON.stringify(this.model.defaultSortColumn)}: "DESC" }.`,
+        );
+      }
+
+      const value: unknown = sort[key];
+
+      /*
+       * ASC or DESC, and nothing else: any other value was written into the
+       * ORDER BY as "undefined", and ClickHouse failed the read as a server
+       * fault (#8141).
+       */
+      if (value !== SortOrder.Ascending && value !== SortOrder.Descending) {
+        throw new BadDataException(
+          `${this.model.pluralName} cannot be sorted by ${SortValidator.quote(key)} with ${SortValidator.describe(value)}. Sort it "ASC" or "DESC".`,
+        );
       }
 
       if (first) {
@@ -2316,7 +2332,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         sortStatement.append(SQL`, `);
       }
 
-      const value: SortOrder = sort[key]!;
       sortStatement.append(SQL`${key} `).append(
         {
           [SortOrder.Ascending]: SQL`ASC`,

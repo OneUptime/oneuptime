@@ -85,7 +85,7 @@ export const TEAMS_WITHOUT_PROJECT_MESSAGE: string =
   "Teams can only be picked for a provider that belongs to a project.";
 
 export const SCIM_SAVE_REFUSAL_MESSAGE: string =
-  "You can't save this SCIM connection, because your identity provider can add people to any team in this project through SCIM, including Owners. Ask a project owner to save it.";
+  "You can't save this SCIM connection, because your identity provider can add people to any team in this project through SCIM, including Owners. Ask a Project Owner to save it.";
 
 // "Owners", "Owners and Members", "Owners, Members and Admin", capped.
 export const joinTeamNames: (names: Array<string>) => string = (
@@ -121,7 +121,7 @@ export const getProviderTeamsRefusalMessage: (data: {
 
   return `You can't save this ${PROVIDER_NAMES[data.kind]} while it adds people to ${names}, because ${
     isOneTeam ? `${names} gives` : "those teams give"
-  } more access than you have. Choose teams you could invite someone to, or ask a project owner to save it.`;
+  } more access than you have. Choose teams you could invite someone to, or ask a Project Owner to save it.`;
 };
 
 export const getProviderOutsideProjectMessage: (

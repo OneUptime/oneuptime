@@ -8,10 +8,11 @@ import path from "path";
  * path through the Dashboard's menus, in each docs language.
  *
  * The Products menu draws each product's title from its own key
- * (navbar.items.<product>Title), which some languages word differently from
- * the flat key of the same English text: the Danish menu reads
- * "Overvågninger" where a Monitors tab reads "Monitorer", and the Italian
- * menu "AI / LLM" where the product's own pages read "IA / LLM". So a page
+ * (navbar.items.<product>Title), which languages once worded differently
+ * from the flat key of the same English text: the Danish menu read
+ * "Overvågninger" over pages titled "Monitorer", and the Italian menu "AI /
+ * LLM" over "IA / LLM". Since #8229 every menu title is its page's
+ * (OneNamePerThingGuard), but Chat's page draws no title. So a page
  * that opens a product from the menu names it as the menu draws it, and
  * every other segment of a path as a label (drawnDashboardLabel).
  *

@@ -37,6 +37,14 @@ import {
   tableRow,
   tile,
 } from "./OpenStackPartHarness";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/security-events/get-list"]);
 
 /*
  * The storage pages, rendered for real over the real tables and part cards, with only the
@@ -326,7 +334,10 @@ describe("the Volumes list", () => {
       return type.textContent || "";
     });
     expect(types).toEqual(
-      expect.arrayContaining(["ceph2 volumes30 GiB", "ssd1 volume10 GiB"]),
+      expect.arrayContaining([
+        "ceph2 volumes30\u00A0GiB",
+        "ssd1 volume10\u00A0GiB",
+      ]),
     );
   });
 
@@ -358,7 +369,7 @@ describe("the Volumes list", () => {
           return type.textContent;
         },
       ),
-    ).toEqual([expect.stringMatching(/1 volume.*20 GiB/)]);
+    ).toEqual([expect.stringMatching(/1 volume.*20\u00A0GiB/)]);
   });
 
   test("no volumes and a read of the types that failed leave the card out", async () => {

@@ -195,7 +195,7 @@ describe("who sees the card", () => {
     },
   );
 
-  test("a project owner does", async () => {
+  test("a Project Owner does", async () => {
     holds([Permission.ProjectOwner]);
     renderCard();
 

@@ -16,7 +16,6 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -101,7 +100,7 @@ export interface ReplayCardFailure {
  * it).
  */
 export const REPLAY_CARD_PERMISSION_COPY: string = translationKey(
-  'A recording of this error may exist, but your role cannot list session replays. Ask a project admin for the "{{permission}}" permission.',
+  'A recording of this error may exist, but your role cannot list session replays. Ask a Project Admin for the "{{permission}}" permission.',
 );
 
 export const REPLAY_CARD_PLAN_COPY: string = translationKey(
@@ -318,18 +317,7 @@ export function describeReplayDuration(
   durationMs: number,
   translator: Translator,
 ): string {
-  if (
-    !Number.isFinite(durationMs) ||
-    durationMs <= 0 ||
-    translator.language.toLowerCase().startsWith("en")
-  ) {
-    return formatSessionDuration(durationMs);
-  }
-
-  return formatDurationCompactInLanguage(
-    Math.round(durationMs / 1000),
-    translator.language,
-  );
+  return formatSessionDuration(durationMs, translator);
 }
 
 /*
@@ -836,6 +824,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
                             ),
                           })
                     }
+                    isTitleTranslated={true}
                     buttonStyle={ButtonStyleType.SECONDARY_LINK}
                     buttonSize={ButtonSize.ExtraSmall}
                     ariaExpanded={showAllSessions}

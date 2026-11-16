@@ -50,9 +50,9 @@ flowchart TB
 
 1. Gå till **Produkter → Projektinställningar**.
 2. Öppna **Telemetri och APM** i sidomenyn och välj **Intagningsnycklar**.
-3. Klicka på **Skapa ingestion-nyckel**. Dialogen fyller i ett namn och väljer nyckeltypen **Server**, som en applikation eller en collector skickar med. Byt namn om du vill och klicka sedan på **Skapa ingestion-nyckel**.
+3. Klicka på **Skapa intagningsnyckel**. Dialogen fyller i ett namn och väljer nyckeltypen **Server**, som en applikation eller en collector skickar med. Byt namn om du vill och klicka sedan på **Skapa intagningsnyckel**.
 
-![Listan ”Intagningsnycklar”, med ”Skapa ingestion-nyckel” markerad](screen:ingestion-keys)
+![Listan ”Intagningsnycklar”, med ”Skapa intagningsnyckel” markerad](screen:ingestion-keys)
 
 Den nya nyckeln öppnas på en egen sida. Kopiera dess **Hemlig nyckel** — det är den token du skickar som `x-oneuptime-token`.
 
@@ -410,7 +410,7 @@ Varje nyckels sida, under **Projektinställningar → Telemetri och APM → Inta
 | **Aktiverad** | Stäng av den för att genast sluta acceptera data som skickas med nyckeln, utan att radera den. |
 | **Upphör** | Efter detta datum nekas nyckeln. Tomt betyder att den aldrig går ut. |
 | **Requests Per Minute Limit** | Det högsta antalet OTLP/HTTP-begäranden per minut som accepteras med nyckeln, sammanlagt för alla klienter som använder den. Tomt betyder ingen gräns på en servernyckel och 6 000 på en webbläsarnyckel. |
-| **Last Used At** | När data senast accepterades med nyckeln. Använd den för att hitta nycklar som säkert kan roteras eller raderas. |
+| **Senast använd den** | När data senast accepterades med nyckeln. Använd den för att hitta nycklar som säkert kan roteras eller raderas. |
 
 **Återställ hemlig nyckel** på nyckelns sida ersätter hemligheten. Varje applikation och collector som skickar med den gamla nekas tills du uppdaterar den. Om webbläsarnycklar, säkert byte av en nyckel och vad varje avvisning betyder, se [Intagningsnycklar](/docs/telemetry/ingestion-keys).
 

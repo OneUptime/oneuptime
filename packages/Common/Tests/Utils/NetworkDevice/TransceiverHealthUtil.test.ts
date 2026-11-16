@@ -1089,13 +1089,13 @@ describe("words", () => {
     ).toBe("34.6\u00A0°C");
     expect(
       TransceiverHealthUtil.formatReading(TransceiverReadingKind.Voltage, 3.3),
-    ).toBe("3.30 V");
+    ).toBe("3.30\u00A0V");
     expect(
       TransceiverHealthUtil.formatReading(
         TransceiverReadingKind.BiasCurrent,
         6.1,
       ),
-    ).toBe("6.10 mA");
+    ).toBe("6.10\u00A0mA");
   });
 
   test("describePort and describeOptic", () => {

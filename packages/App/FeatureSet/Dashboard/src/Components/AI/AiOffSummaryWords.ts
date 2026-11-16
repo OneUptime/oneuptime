@@ -203,18 +203,18 @@ export const AI_OFF_WHO_CAN_CHANGE: {
   aiSwitch: EnableAiCopy.whoCanTurnOn,
   settings: {
     incident: translationKey(
-      "A project owner or admin can make these changes in Incidents → AI → Settings.",
+      "A Project Owner or Project Admin can make these changes in Incidents → AI → Settings.",
     ),
     alert: translationKey(
-      "A project owner or admin can make these changes in Alerts → AI → Settings.",
+      "A Project Owner or Project Admin can make these changes in Alerts → AI → Settings.",
     ),
   },
   rules: {
     incident: translationKey(
-      "A project owner or admin, or someone who may edit AI rules, can change them in Incidents → AI → Settings.",
+      "A Project Owner or Project Admin, or someone who may edit AI rules, can change them in Incidents → AI → Settings.",
     ),
     alert: translationKey(
-      "A project owner or admin, or someone who may edit AI rules, can change them in Alerts → AI → Settings.",
+      "A Project Owner or Project Admin, or someone who may edit AI rules, can change them in Alerts → AI → Settings.",
     ),
   },
 };

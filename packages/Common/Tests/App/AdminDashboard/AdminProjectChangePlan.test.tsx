@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,
@@ -200,7 +201,7 @@ interface PutRequest {
   data: JSONObject;
 }
 
-let putSpy: jest.SpiedFunction<typeof BaseAPI.put>;
+let putSpy: SpyInstance<typeof BaseAPI.put>;
 
 function onProject(values: StoredProject): void {
   storedProject = { ...values };
@@ -210,7 +211,8 @@ function onProject(values: StoredProject): void {
     project._id = PROJECT_ID;
     project.name = "Acme Production";
     project.paymentProviderPlanId = storedProject.planId;
-    project.planName = PLAN_NAMES[storedProject.planId];
+    // Every plan the suite stores is one of PLAN_NAMES'.
+    project.planName = PLAN_NAMES[storedProject.planId]!;
 
     if (storedProject.marketplace) {
       project.billingMarketplace = storedProject.marketplace;
@@ -323,7 +325,10 @@ describe("Admin > Project > Subscription > Change Plan", () => {
     );
     mockGetItem.mockReset();
     getJestSpyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
-    putSpy = jest.spyOn(BaseAPI, "put");
+    // put is generic; its spy is the one instantiation the suite reads.
+    putSpy = jest.spyOn(BaseAPI, "put") as unknown as SpyInstance<
+      typeof BaseAPI.put
+    >;
     changesGoThrough();
   });
 
@@ -486,7 +491,7 @@ describe("Admin > Project > Subscription > Change Plan", () => {
 
   test("a refused change keeps the dialog open, with the plan picked and why", async () => {
     const why: string =
-      "This project has no payment method, and its plan cannot change without one. Ask the project's owner to add one under Project Settings > Billing and Invoices > Billing, then try again.";
+      "This project has no payment method, and its plan cannot change without one. Ask a Project Owner to add one under Project Settings > Billing and Invoices > Billing, then try again.";
 
     onProject({ planId: "price_free_month" });
     changesAreRefused(why);

@@ -241,7 +241,7 @@ const ALL_KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     file: "packages/Common/Server/API/CloudConnectionAPI.ts",
     path: "/test",
     rule: "check",
-    why: "Signs in to an AWS account, Azure subscription or Google Cloud project with read-only access and counts a few of its resources, as a project owner or admin; imports nothing and sends nobody a message.",
+    why: "Signs in to an AWS account, Azure subscription or Google Cloud project with read-only access and counts a few of its resources, as a Project Owner or Project Admin; imports nothing and sends nobody a message.",
   },
   {
     file: "packages/Common/Server/API/ExternalMcpServerAPI.ts",

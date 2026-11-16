@@ -998,29 +998,6 @@ describePostgres(
           ))!.getTime(),
         ).toBeGreaterThan(Date.now());
       });
-
-      test("an unarchived cloud's checks, both kinds, by their cloud", async () => {
-        const check: ObjectID = await insertCheck({
-          kind: "api",
-          claimable: true,
-          due: minutesFromNow(17),
-        });
-        const cloud: Array<{ openStackCloudId: string }> = await database.query(
-          `SELECT "openStackCloudId" FROM "${schema}"."OpenStackCloudCheck" WHERE "_id" = $1`,
-          [check.toString()],
-        );
-
-        await OpenStackCheckStore.makeDueNow(OpenStackCloudService, {
-          ids: [new ObjectID(cloud[0]!.openStackCloudId)],
-          byCloud: true,
-        });
-
-        for (const column of ["nextApiCheckAt", "nextLifecycleCheckAt"]) {
-          expect(
-            (await readDue("OpenStackCloudCheck", column, check))!.getTime(),
-          ).toBeLessThanOrEqual(Date.now());
-        }
-      });
     });
 
     /*
@@ -1063,7 +1040,76 @@ describePostgres(
         );
       });
 
-      test("an archived cloud's checks are still set aside until it is unarchived", async () => {
+      /*
+       * OneUptime issue #8449: and so are its checks. The checks' claim set an archived cloud's
+       * checks aside, the sweep after a lifecycle run among them.
+       */
+      async function archiveCloudOf(check: ObjectID): Promise<void> {
+        await database.query(
+          `UPDATE "${schema}"."OpenStackCloud" SET "isArchived" = true
+           WHERE "_id" = (SELECT "openStackCloudId" FROM "${schema}"."OpenStackCloudCheck" WHERE "_id" = $1)`,
+          [check.toString()],
+        );
+      }
+
+      test("an archived cloud's API checks are handed to its probe, and moved on by their interval only", async () => {
+        const check: ObjectID = await insertCheck({
+          kind: "api",
+          claimable: true,
+          due: minutesFromNow(-10),
+        });
+
+        await archiveCloudOf(check);
+
+        expect(await claimChecks("api", 10)).toEqual([check.toString()]);
+
+        // Claimed for its one-minute interval, not set aside a quarter of an hour.
+        expect(
+          (await readDue(
+            "OpenStackCloudCheck",
+            "nextApiCheckAt",
+            check,
+          ))!.getTime(),
+        ).toBeLessThanOrEqual(Date.now() + 60 * 1000 + 1000);
+      });
+
+      test("an archived cloud's lifecycle check is handed out too", async () => {
+        const check: ObjectID = await insertCheck({
+          kind: "lifecycle",
+          claimable: true,
+          due: minutesFromNow(-10),
+        });
+
+        await archiveCloudOf(check);
+
+        expect(await claimChecks("lifecycle", 10)).toEqual([check.toString()]);
+        expect(
+          (await readDue(
+            "OpenStackCloudCheck",
+            "nextLifecycleCheckAt",
+            check,
+          ))!.getTime(),
+        ).toBeLessThanOrEqual(Date.now() + 30 * 60 * 1000 + 1000);
+      });
+
+      test("the sweep after a lifecycle check turned off runs on an archived cloud: what a run left is cleared up", async () => {
+        // Turned off with a run behind it: only the sweep is pending.
+        const check: ObjectID = await insertCheck({
+          kind: "lifecycle",
+          claimable: false,
+          due: minutesFromNow(-10),
+        });
+
+        await database.query(
+          `UPDATE "${schema}"."OpenStackCloudCheck" SET "isSweepPending" = true, "nextLifecycleCheckAt" = $2 WHERE "_id" = $1`,
+          [check.toString(), minutesFromNow(-10)],
+        );
+        await archiveCloudOf(check);
+
+        expect(await claimChecks("lifecycle", 10)).toEqual([check.toString()]);
+      });
+
+      test("a deleted cloud's checks still stop: deleting is not archiving", async () => {
         const check: ObjectID = await insertCheck({
           kind: "api",
           claimable: true,
@@ -1071,19 +1117,20 @@ describePostgres(
         });
 
         await database.query(
-          `UPDATE "${schema}"."OpenStackCloud" SET "isArchived" = true
+          `UPDATE "${schema}"."OpenStackCloud" SET "deletedAt" = now(), "isArchived" = true
            WHERE "_id" = (SELECT "openStackCloudId" FROM "${schema}"."OpenStackCloudCheck" WHERE "_id" = $1)`,
           [check.toString()],
         );
 
         expect(await claimChecks("api", 10)).toEqual([]);
+        // Set aside a quarter of an hour, as any check nothing may run.
         expect(
           (await readDue(
             "OpenStackCloudCheck",
             "nextApiCheckAt",
             check,
           ))!.getTime(),
-        ).toBeGreaterThan(Date.now());
+        ).toBeGreaterThan(Date.now() + 5 * 60 * 1000);
       });
     });
 

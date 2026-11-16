@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { expectQuietDash } from "../SuiteHelpers/QuietDash";
 
 /*
  * Usage > Your AI calls, in a browser on the real page (LlmConnect/
@@ -246,7 +247,7 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
 
     // What is left out and the one next step, beside a lock.
     await expect(page.getByTestId("llm-usage-metrics-left-out")).toHaveText(
-      "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.",
+      "Usage metrics are left out: your role cannot read metrics. Ask a Project Admin for access.",
     );
     await expect(
       page.getByTestId("llm-usage-metrics-left-out").locator("svg"),
@@ -267,12 +268,9 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
   }) => {
     await open(page, "state=done&usage=fail");
 
-    await expect(page.getByTestId("llm-usage-totals-cost-value")).toHaveText(
-      "—",
-    );
-    await expect(page.getByTestId("llm-usage-totals-input-value")).toHaveText(
-      "—",
-    );
+    // Each tile's quiet dash, heard as "Not set" (#8789).
+    await expectQuietDash(page.getByTestId("llm-usage-totals-cost-value"));
+    await expectQuietDash(page.getByTestId("llm-usage-totals-input-value"));
     // A tile says it could not be loaded, never where a figure came from.
     await expect(page.getByTestId("llm-usage-totals-cost-hint")).toHaveText(
       "Could not be loaded",
@@ -364,14 +362,14 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
   }) => {
     await open(page, "state=done&usage=no-cost");
 
-    await expect(page.getByTestId("llm-usage-totals-cost-value")).toHaveText(
-      "—",
-    );
+    // The tile's quiet dash, heard as "Not set" (#8789).
+    await expectQuietDash(page.getByTestId("llm-usage-totals-cost-value"));
     await expect(page.getByTestId("llm-usage-totals-cost-hint")).toHaveText(
       "No cost reported",
     );
+    // The cell's quiet dash, with the words a screen reader hears (d8279c590b1).
     await expect(row(page, "bob@sysnetix.com").locator("td").nth(6)).toHaveText(
-      "—",
+      "—Not set",
     );
     await expect(page.getByText("$0.00")).toHaveCount(0);
     await shoot(page, "usage-no-cost");

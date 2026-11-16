@@ -85,6 +85,11 @@ import {
   useParams,
 } from "react-router-dom";
 import i18next from "i18next";
+/*
+ * English, the fallback, as the Dashboard ships it (#8645): what another
+ * language's chunk leaves out because English reads the same.
+ */
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { initReactI18next } from "react-i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
@@ -1051,7 +1056,7 @@ API.fetch = async (options) => {
   return handleApi(options.method || "GET", options);
 };
 
-const resources = { en: { translation: {} } };
+const resources = { en: { translation: EN } };
 
 if (language !== "en") {
   resources[language] = {

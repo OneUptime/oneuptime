@@ -421,7 +421,7 @@ output "nightly_backup_heartbeat_key" {
 }
 ```
 
-Jobben sender forespørselen sin til `https://oneuptime.com/heartbeat/YOUR_SECRET_KEY`, med nøkkelen som `terraform output -raw nightly_backup_heartbeat_key` skriver ut: se [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor). Agenten til en servermonitor melder seg på samme måte, med `server_monitor_secret_key`.
+Jobben sender forespørselen sin til `https://oneuptime.com/heartbeat/YOUR_SECRET_KEY`, med nøkkelen som `terraform output -raw nightly_backup_heartbeat_key` skriver ut: se [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor). Agenten til en servermonitor melder seg på samme måte, med `server_monitor_secret_key`.
 
 ### Monitorgruppe
 

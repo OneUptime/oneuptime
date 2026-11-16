@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -16,6 +17,12 @@ import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import { APP_API_URL } from "Common/UI/Config";
+import {
+  formatInline,
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -53,10 +60,10 @@ export const formatBytes: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value === 0) {
-    return "0 B";
+    return "0\u00A0B";
   }
 
   const units: Array<string> = ["B", "KB", "MB", "GB", "TB", "PB"];
@@ -67,7 +74,8 @@ export const formatBytes: (value: number | null) => string = (
   const scaled: number = value / Math.pow(1024, exponent);
   const decimals: number = scaled >= 10 || exponent === 0 ? 0 : 1;
 
-  return `${scaled.toFixed(decimals)} ${units[exponent]}`;
+  // The figure held to its unit by a no-break space (#8720).
+  return `${scaled.toFixed(decimals)}\u00A0${units[exponent]}`;
 };
 
 const toDiskUsage: (
@@ -105,9 +113,14 @@ const toDiskUsage: (
  */
 export const summarizeClickhouseCapacity: (
   data: JSONObject | null,
+  translator?: Translator,
 ) => ClickhouseCapacitySummaryData = (
   data: JSONObject | null,
+  translator: Translator = getGlobalTranslator(),
 ): ClickhouseCapacitySummaryData => {
+  const diskTitle: string = translator.translateText(
+    "ClickHouse disk",
+  ) as string;
   const nodes: JSONArray = (data?.["diskByNode"] || []) as JSONArray;
   let fullestDisk: ClickhouseDiskUsage | null = null;
   let diskCount: number = 0;
@@ -118,7 +131,11 @@ export const summarizeClickhouseCapacity: (
     const shard: number | null = toNumberOrNull(node["shardNum"]);
 
     if (shard !== null) {
-      labels.push(`Shard ${shard}`);
+      labels.push(
+        translator.translateTemplate("Shard {{shard}}", {
+          shard: translator.formatNumber(shard),
+        }),
+      );
     }
     if (node["host"]) {
       labels.push(String(node["host"]));
@@ -128,7 +145,7 @@ export const summarizeClickhouseCapacity: (
     }
 
     const usage: ClickhouseDiskUsage | null = toDiskUsage(
-      labels.length > 0 ? labels.join(" · ") : "ClickHouse disk",
+      labels.length > 0 ? formatInline(labels, translator) : diskTitle,
       node["totalInBytes"],
       node["freeInBytes"],
     );
@@ -146,7 +163,7 @@ export const summarizeClickhouseCapacity: (
 
   if (!fullestDisk) {
     fullestDisk = toDiskUsage(
-      "ClickHouse disk",
+      diskTitle,
       data?.["diskTotalInBytes"],
       data?.["diskFreeInBytes"],
     );
@@ -168,6 +185,7 @@ export const summarizeClickhouseCapacity: (
  * The full per-node breakdown and the settings are on the ClickHouse page.
  */
 const ClickhouseCapacitySummary: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [data, setData] = useState<JSONObject | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -199,8 +217,10 @@ const ClickhouseCapacitySummary: FunctionComponent = (): ReactElement => {
     });
   }, []);
 
-  const summary: ClickhouseCapacitySummaryData =
-    summarizeClickhouseCapacity(data);
+  const summary: ClickhouseCapacitySummaryData = summarizeClickhouseCapacity(
+    data,
+    translator,
+  );
 
   const renderBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
@@ -215,8 +235,13 @@ const ClickhouseCapacitySummary: FunctionComponent = (): ReactElement => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            ClickHouse is {summary.connected ? "reachable" : "not reachable"}{" "}
-            from this instance.
+            {summary.connected
+              ? translator.translateText(
+                  "ClickHouse is reachable from this instance.",
+                )
+              : translator.translateText(
+                  "ClickHouse is not reachable from this instance.",
+                )}
           </div>
           <Statusbubble
             text={summary.connected ? "Connected" : "Unreachable"}
@@ -229,7 +254,19 @@ const ClickhouseCapacitySummary: FunctionComponent = (): ReactElement => {
           <ResourceUsageBar
             label={
               summary.diskCount > 1
-                ? `Fullest of ${summary.diskCount} disks · ${summary.fullestDisk.label}`
+                ? formatInline(
+                    [
+                      translator.translatePlural(
+                        {
+                          one: "Fullest of {{count}} disk",
+                          other: "Fullest of {{count}} disks",
+                        },
+                        summary.diskCount,
+                      ),
+                      summary.fullestDisk.label,
+                    ],
+                    translator,
+                  )
                 : summary.fullestDisk.label
             }
             value={summary.fullestDisk.percent}
@@ -242,7 +279,11 @@ const ClickhouseCapacitySummary: FunctionComponent = (): ReactElement => {
 
         {summary.connected ? (
           <div className="text-xs text-gray-500">
-            ClickHouse data: {formatBytes(summary.dataSizeInBytes)}
+            {translator.translateTemplate(
+              "ClickHouse data: {{size}}",
+              { size: formatBytes(summary.dataSizeInBytes) },
+              { setsValuesApart: true },
+            )}
           </div>
         ) : (
           <></>

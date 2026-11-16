@@ -6,7 +6,7 @@
 - [匹配方式](#匹配方式): 服务名称、版本和 bundle 文件。
 - [上传源代码映射](#上传源代码映射): 在 CI 中发送一个 `curl` 请求。
 - [限制](#限制): 大小、数量和自托管设置。
-- [查看解析后的堆栈跟踪](#查看解析后的堆栈跟踪): 解析后的栈帧是什么样子。
+- [查看解析后的堆栈追踪](#查看解析后的堆栈追踪): 解析后的栈帧是什么样子。
 :::
 
 ## 概述
@@ -123,7 +123,7 @@ done
 
 如果你的构建超出默认值，需要调高的是 `maxMapsPerRelease`；它只是对存储形态的限制，因为解析的开销由 `maxBytesPerResolve` 限定，而不是由一个版本保存了多少映射决定。`maxFilesPerRequest` 和 `maxFileSizeBytes` 只能 **调低**：multipart 正文在请求认证之前就会被解析，因此未认证的调用方受其上方的共享上限约束，更大的值会被收窄到上限，而不会被采用。
 
-## 查看解析后的堆栈跟踪
+## 查看解析后的堆栈追踪
 
 在仪表板的 **异常** 下打开任意异常。通过源代码映射解析的栈帧会显示 **Source mapped** 徽章，并显示原始函数名和文件位置；展开栈帧会在压缩位置旁边显示原始源代码片段（当映射包含 `sourcesContent` 时）。
 
@@ -153,6 +153,6 @@ done
 
 :::cards
 - [浏览器端设置](/docs/rum/browser-setup): 使用 OpenTelemetry Web SDK 发送浏览器追踪和异常。
-- [异常监控](/docs/monitor/exceptions-monitor): 出现新异常时发出告警。
+- [异常监控](/docs/monitor/exceptions-monitor): 出现新异常时发出警报。
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 所有遥测数据的端点、密钥和限制。
 :::

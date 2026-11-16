@@ -1,4 +1,4 @@
-# Ceph-overvåking
+# Ceph-monitor
 
 En Ceph-monitor følger med på én Ceph-klynge — helsen, health checks, monitorenes quorum, OSD-er, pooler og placement groups — og gir deg beskjed i det øyeblikket helsen blir dårligere, en OSD går ned eller kapasiteten blir knapp. Den leser `ceph_*`-målingene som Ceph-mgr-ens `prometheus`-modul eksporterer, og som OneUptime Ceph Agent samler inn, så ingenting blir sjekket utenfra.
 
@@ -89,7 +89,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **Ceph Metric** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). |
 | **Aggregering** | Custom Metric | Hvordan målinger slås sammen: **Gjennomsnitt**, **Maksimum** eller **Minimum**. Starter med målingens vanlige aggregering. En sum eller en telling ville legge sammen hver skraping i et minutt, så de er overlatt til **Avansert**. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler setter sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggreger etter**, **Filtrer etter attributter**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
 Pooldataserier har bare etiketten `pool_id`: Poolens navn finnes bare på `ceph_pool_metadata`. Filtrer og grupper poolserier etter `pool_id`, og slå opp navnet i `ceph_pool_metadata` når du trenger det.
 
@@ -244,11 +244,11 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Treffer når | Deretter |
 | --- | --- | --- | --- |
-| 1 | Check if _monitornavn_ is offline | Den første spørringen har ingen data i hele vinduet | Setter monitoren til **Frakoblet** og erklærer hendelsen "_monitornavn_ is offline", som løser seg selv når monitoren kommer seg. |
-| 2 | Check if _monitornavn_ is online | Den første spørringen har data | Setter monitoren til **I drift**. |
+| 1 | Sjekk om _monitornavn_ er offline | Den første spørringen har ingen data i hele vinduet | Setter monitoren til **Offline** og erklærer hendelsen "_monitornavn_ er offline", som løser seg selv når monitoren kommer seg. |
+| 2 | Sjekk om _monitornavn_ er tilkoblet | Den første spørringen har data | Setter monitoren til **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren offline. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Feilsøking
 
@@ -275,14 +275,14 @@ En helsesjekk som aldri har slått til, har ingen serie, `ceph_daemon_health_met
 :::
 
 :::details Tellere som ceph_pool_wr_bytes bare vokser
-Poolenes I/O-serier er tellere over hele levetiden, og kriterier sammenligner råverdier: Det finnes ingen rate-operator, og **Convert to per-second rate** i spørringsbyggeren endrer bare diagrammet. Vis dem som rate, eller varsle på veksten deres med en formel, for eksempel en **Maksimum**-spørring minus en **Minimum**-spørring av samme teller.
+Poolenes I/O-serier er tellere over hele levetiden, og kriterier sammenligner råverdier: Det finnes ingen rate-operator, og **Gjør om til rate per sekund** i spørringsbyggeren endrer bare diagrammet. Vis dem som rate, eller varsle på veksten deres med en formel, for eksempel en **Maksimum**-spørring minus en **Minimum**-spørring av samme teller.
 :::
 
 ## Neste steg
 
 :::cards
 - [Ceph Agent](/docs/telemetry/ceph): Installer og oppgrader agenten denne monitoren leser.
-- [Proxmox-overvåking](/docs/monitor/proxmox-monitor): Overvåk Proxmox VE-klyngen som bruker lagringen.
-- [Lagringsmatrise-overvåking](/docs/monitor/storage-array-monitor): Samme type monitor for Pure Storage-matriser.
+- [Proxmox-monitor](/docs/monitor/proxmox-monitor): Overvåk Proxmox VE-klyngen som bruker lagringen.
+- [Lagringsmatrise-monitor](/docs/monitor/storage-array-monitor): Samme type monitor for Pure Storage-matriser.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 :::

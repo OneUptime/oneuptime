@@ -1332,6 +1332,8 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
       expect(result.outcome).not.toBe(
         FallbackNotificationOutcome.NoUsableNotificationMethod,
       );
+      // Told apart from a send that failed: the run holding it owns the log.
+      expect(result.isHeldByAnotherRun).toBe(true);
     });
 
     test("of two concurrent fallbacks for one log, only the winner delivers", async () => {
@@ -1354,6 +1356,8 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
       expect(results[1]!.outcome).toBe(
         FallbackNotificationOutcome.DeliveryFailed,
       );
+      expect(results[0]!.isHeldByAnotherRun).toBeFalsy();
+      expect(results[1]!.isHeldByAnotherRun).toBe(true);
     });
   });
 
@@ -1934,6 +1938,39 @@ describe("UserOnCallLogService.handleNoMatchingNotificationRule", () => {
       const alerted: UndeliverableAlertCall = alertOwnersSpy.mock
         .calls[0]![0] as UndeliverableAlertCall;
       expect(alerted.fallbackChannelsUsed).toEqual([]);
+    });
+  });
+
+  describe("another run holds the fallback's claim", () => {
+    /*
+     * It fell back for the log at the same moment and is sending: it owns
+     * the log's status, its line and any alert. While every claim read as
+     * won, this branch was never reached and both runs sent the fallback;
+     * now it is, and an Error written here would say a page that is going
+     * out reached nobody - and stop the try again that run may ask for.
+     */
+    beforeEach(() => {
+      fallbackSpy.mockResolvedValue({
+        outcome: FallbackNotificationOutcome.DeliveryFailed,
+        notified: false,
+        channelsUsed: [],
+        isHeldByAnotherRun: true,
+      } as never);
+    });
+
+    test("REGRESSION: nothing is written over the other run's page: no status, no line", async () => {
+      await callHandleNoMatchingNotificationRule();
+
+      expect(fallbackSpy).toHaveBeenCalledTimes(1);
+      expect(logUpdateSpy).not.toHaveBeenCalled();
+      expect(timelineUpdateSpy).not.toHaveBeenCalled();
+    });
+
+    test("REGRESSION: the owners are not told the responder was not reached", async () => {
+      await callHandleNoMatchingNotificationRule();
+
+      expect(alertOwnersSpy).not.toHaveBeenCalled();
+      expect(loggerErrorSpy).not.toHaveBeenCalled();
     });
   });
 

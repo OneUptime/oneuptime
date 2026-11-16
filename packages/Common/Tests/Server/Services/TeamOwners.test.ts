@@ -28,6 +28,7 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import { BUILT_IN_TEAM_OWNERS_MESSAGE } from "../../../Types/Team/BuiltInTeam";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * A TEAM HAS OWNERS, AND THE TEAM PERMISSIONS SCOPED TO OWNED REACH THE
@@ -150,9 +151,9 @@ afterEach(() => {
 });
 
 describe("Owners and Admin take no owners", () => {
-  const withTeam: (team: Team | null) => jest.SpiedFunction<never> = (
+  const withTeam: (team: Team | null) => SpyInstance<never> = (
     team: Team | null,
-  ): jest.SpiedFunction<never> => {
+  ): SpyInstance<never> => {
     return jest
       .spyOn(TeamService, "findOneById")
       .mockResolvedValue(team as never) as never;
@@ -178,7 +179,7 @@ describe("Owners and Admin take no owners", () => {
   });
 
   test("every other team may have owners, read as OneUptime whoever asks", async () => {
-    const lookup: jest.SpiedFunction<never> = withTeam(team(true));
+    const lookup: SpyInstance<never> = withTeam(team(true));
 
     await expect(
       TeamService.assertTeamCanHaveOwners(TEAM_T.toString()),
@@ -191,7 +192,7 @@ describe("Owners and Admin take no owners", () => {
   });
 
   test("a team that is not there, and no team at all, are the reference check's to answer", async () => {
-    const lookup: jest.SpiedFunction<never> = withTeam(null);
+    const lookup: SpyInstance<never> = withTeam(null);
 
     await expect(
       TeamService.assertTeamCanHaveOwners(TEAM_T),
@@ -221,7 +222,7 @@ describe("Owners and Admin take no owners", () => {
           return { createBy: createBy, carryForward: null };
         }) as never);
 
-      const assertion: jest.SpiedFunction<never> = jest
+      const assertion: SpyInstance<never> = jest
         .spyOn(TeamService, "assertTeamCanHaveOwners")
         .mockImplementation((async () => {
           order.push("team");
@@ -257,7 +258,7 @@ describe("whoever creates a team with Create Team scoped to Owned becomes its fi
   const teamService: CreatorOwnership =
     TeamService as unknown as CreatorOwnership;
 
-  test("scoped to Owned, the create relies on ownership; over the whole project, or as a project admin, it does not", () => {
+  test("scoped to Owned, the create relies on ownership; over the whole project, or as a Project Admin, it does not", () => {
     expect(
       teamService.createReliesOnOwnership(
         propsHolding([
@@ -478,14 +479,14 @@ describe("Remove from Project takes someone off every team of the project, or of
    * hands back): counted as OneUptime, as the delete reads them.
    */
   function memberships(data: { all: number; reached: number }): {
-    countSpy: jest.SpiedFunction<never>;
-    narrowSpy: jest.SpiedFunction<never>;
+    countSpy: SpyInstance<never>;
+    narrowSpy: SpyInstance<never>;
   } {
-    const narrowSpy: jest.SpiedFunction<never> = jest
+    const narrowSpy: SpyInstance<never> = jest
       .spyOn(ModelPermission, "checkDeleteQueryPermission")
       .mockResolvedValue(REACHED as never) as never;
 
-    const countSpy: jest.SpiedFunction<never> = jest
+    const countSpy: SpyInstance<never> = jest
       .spyOn(TeamMemberService, "countBy")
       .mockImplementation((async (args: { query: unknown }) => {
         return new PositiveNumber(
@@ -646,7 +647,7 @@ describe("a custom role is changed only with Edit Team Permissions over the whol
     ["the role", CustomRole],
     ["what it holds", CustomRolePermission],
   ])(
-    "%s: left to the usual checks with a grant over the whole project, a project admin's, or no grant at all",
+    "%s: left to the usual checks with a grant over the whole project, a Project Admin's, or no grant at all",
     (
       _what: string,
       modelType: { new (): CustomRole | CustomRolePermission },

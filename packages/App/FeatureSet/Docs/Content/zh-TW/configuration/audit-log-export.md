@@ -1,6 +1,6 @@
 # 稽核日誌匯出
 
-在稽核日誌記錄時，將其傳送到你選擇的儲存空間或服務：Amazon S3 或 S3 相容儲存空間、Google Cloud Storage、Azure Blob Storage、Webhook 或 syslog。條目可以在那裡保存到法規遵循審查所需的時間，並在你的 SIEM 中搜尋。專案的擁有者和管理員在專案設定中匯出該專案的稽核日誌，主管理員在 Admin Dashboard 中匯出所有專案的稽核日誌。在 OneUptime Cloud 上它屬於 Enterprise 方案，自行託管時屬於 Enterprise Edition。
+在稽核日誌記錄時，將其傳送到你選擇的儲存空間或服務：Amazon S3 或 S3 相容儲存空間、Google Cloud Storage、Azure Blob Storage、Webhook 或 syslog。條目可以在那裡保存到法規遵循審查所需的時間，並在你的 SIEM 中搜尋。專案擁有者和專案管理員在專案設定中匯出該專案的稽核日誌，主管理員在 Admin Dashboard 中匯出所有專案的稽核日誌。在 OneUptime Cloud 上它屬於 Enterprise 方案，自行託管時屬於 Enterprise Edition。
 
 :::cards
 - [設定匯出](#設定匯出): 選擇目標，測試，然後儲存。
@@ -140,7 +140,7 @@ OneUptime 將每個批次以 POST 方式傳送到 **URL**，依照**內文格式
 | `id` | 條目的 ID。同一條目傳送兩次時 ID 相同。 |
 | `createdAt` | 變更被記錄的時間，採用 UTC。 |
 | `projectId` | 進行變更的專案。 |
-| `action` | `Create`、`Update`、`Delete` 或 `Download`，對於工作階段則為 `SignIn`、`SignOut`、`SessionTimeout` 或 `SessionRevoked`。 |
+| `action` | `Create`、`Update`、`Delete` 或 `Download`，對於登入或工作階段則為 `SignIn`、`SignInFailed`、`SignOut`、`SessionTimeout` 或 `SessionRevoked`。 |
 | `resourceType`, `resourceId`, `resourceName` | 被變更的內容。 |
 | `rootResourceType`, `rootResourceId` | 它所屬的資源，例如規則所屬的 SLO。 |
 | `userId`, `userName`, `userEmail`, `userType` | 進行變更的人。 |
@@ -173,7 +173,7 @@ OneUptime 將每個批次以 POST 方式傳送到 **URL**，依照**內文格式
 
 ## 目標失敗時
 
-一個批次會嘗試三次，每次間隔幾秒，之後匯出會等待一段時間再重試：先是一分鐘，然後兩分鐘、四分鐘，依此類推，最長一小時。其所在列顯示**失敗**，**檢視錯誤**會顯示目標的回應以及下次嘗試的時間。
+一個批次會嘗試三次，每次間隔幾秒，之後匯出會等待一段時間再重試：先是一分鐘，然後兩分鐘、四分鐘，依此類推，最長一小時。其所在列顯示**失敗**，**檢視錯誤**會顯示目標的回應、下次嘗試的時間，以及等待傳送的條目從何時開始被刪除；那一刻過去之後，則顯示它們自何時起正在被刪除。
 
 不會略過任何條目：條目在稽核日誌中等待，下一次成功的送達會從最舊的條目開始追趕。但無論是否已傳送，每個條目一旦早於記錄時的保留期就會被刪除，因此請在該期限內修正失敗的匯出。延長保留期只會讓變更之後記錄的條目保存得更久。
 

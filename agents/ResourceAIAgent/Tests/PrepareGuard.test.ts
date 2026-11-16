@@ -245,7 +245,7 @@ describe("refusals", () => {
         }),
         request: request({ resourceType: "Host", program: "uptime", args: [] }),
       }),
-      /^Refused by the Host AI agent: it does not know which Host it serves/,
+      /^Refused by the Host AI agent: it does not know which host it serves/,
     );
   });
 
@@ -294,11 +294,11 @@ describe("refusals", () => {
   test("another resource type", () => {
     expectRefused(
       check({ request: request({ resourceType: "PodmanHost" }) }),
-      /this command is for a "PodmanHost" resource, and this agent serves a Docker host/,
+      /this command is for another kind of resource \("PodmanHost"\), and this agent serves only its own Docker host/,
     );
     expectRefused(
       check({ request: request({ resourceType: undefined }) }),
-      /"\(not specified\)" resource/,
+      /another kind of resource \("\(not specified\)"\)/,
     );
   });
 

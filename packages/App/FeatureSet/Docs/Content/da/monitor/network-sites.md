@@ -141,7 +141,7 @@ Begge politikker er enige her, og det betyder mere, end det lyder:
 - Enheder, der aldrig har rapporteret noget, stemmer aldrig. En enhed, der venter på sin første polling, er ikke bevis på et nedbrud, så den holdes uden for begge sider af andelen, og en region, der er halvvejs gennem onboarding, vurderes på den halvdel, der har svaret.
 - En sonde-pollet enhed, den normale slags, stemmer med udfaldet af sin seneste polling: tilgængelig via ping eller SNMP, ikke hvor længe siden den sidst lykkedes. En enhed, der svarer på ping, mens dens SNMP-walk fejler, er tilgængelig og stemmer derefter; lokationen siger, at den er oppe, og enhedens række siger **SNMP failing**, så nogen retter loginoplysningerne.
 - En enhed med bundet monitor, en der er skiftet til tilsidesættelsen med bundet monitor på sin side Indstillinger, stemmer med status på den monitor, der er bundet til den, fordi intet poller den. Uden noget bundet har den aldrig rapporteret, så den stemmer slet ikke.
-- En enhed med bundet monitor, hvis monitor ikke kontrolleres, fordi dens overvågning er slået fra, eller den er arkiveret, stemmer heller ikke: den status, monitoren har, er kun det, dens seneste kontrol så. Enheden står som **Afventer**, med **Overvågning slået fra** eller **Overvågning arkiveret** ved siden af, indtil monitorens overvågning slås til igen, eller den fjernes fra arkivet.
+- En enhed med bundet monitor, hvis monitor ikke kontrolleres, fordi dens overvågning er slået fra, eller den er arkiveret, stemmer heller ikke: den status, monitoren har, er kun det, dens seneste kontrol så. Enheden står som **Afventer**, med **Overvågning slået fra** eller **Monitor arkiveret** ved siden af, indtil monitorens overvågning slås til igen, eller den fjernes fra arkivet.
 
 En netværksenheds-monitor på en sonde-pollet enhed ændrer ikke, hvordan enheden stemmer. En monitor med et kriterie "interface nede, altså Offline" ville stemple Offline på en switch, der svarer på hvert ping, og én mørk port ville gøre en hel lokation rød, mens hver enhedsrække under den viser Up: lokationen ville være uenig med den liste, den opsummerer. For en pollet enhed er pollingen kilden til dens tilstand; monitoren er der for at oprette hændelser.
 
@@ -228,7 +228,7 @@ Der har aldrig kørt en opsummering for lokationen, så den har ingen tidslinjer
 :::
 
 :::details En enhed tæller ikke med i sin lokation
-Arkiverede enheder, og enheder, der endnu ikke har rapporteret, stemmer aldrig. En enhed med bundet monitor uden nogen monitor bundet har heller aldrig rapporteret. Tjek enhedens status: en enhed, der står som **Afventer**, begynder at stemme efter sin første polling. En enhed med **Overvågning slået fra** eller **Overvågning arkiveret** ved siden af stemmer igen, så snart dens monitors overvågning slås til igen, eller monitoren fjernes fra arkivet.
+Arkiverede enheder, og enheder, der endnu ikke har rapporteret, stemmer aldrig. En enhed med bundet monitor uden nogen monitor bundet har heller aldrig rapporteret. Tjek enhedens status: en enhed, der står som **Afventer**, begynder at stemme efter sin første polling. En enhed med **Overvågning slået fra** eller **Monitor arkiveret** ved siden af stemmer igen, så snart dens monitors overvågning slås til igen, eller monitoren fjernes fra arkivet.
 :::
 
 :::details En lokation har ikke længere en status

@@ -121,7 +121,7 @@ describe("RuleRunPermission.assertCanRun", () => {
     }
   });
 
-  it("lets a project admin run any rule", () => {
+  it("lets a Project Admin run any rule", () => {
     for (const ruleType of [
       RuleRunType.MonitorLabelRule,
       RuleRunType.MonitorOwnerRule,
@@ -281,7 +281,7 @@ describe("RuleRunPermission.assertCanRun", () => {
     }).toThrow(NotAuthorizedException);
   });
 
-  it("lets master admins and project admins re-sync an SLO's monitors", () => {
+  it("lets master admins and Project Admins re-sync an SLO's monitors", () => {
     expect(() => {
       assertCanRun(
         RuleRunType.ServiceLevelObjectiveMonitorRule,
@@ -525,7 +525,7 @@ describe("RuleRunPermission.assertCanRun - SLO label and owner rules", () => {
     }).toThrow(/permission block list/);
   });
 
-  it("lets a project admin run both", () => {
+  it("lets a Project Admin run both", () => {
     for (const ruleType of [
       RuleRunType.ServiceLevelObjectiveLabelRule,
       RuleRunType.ServiceLevelObjectiveOwnerRule,
@@ -549,7 +549,7 @@ describe("RuleRunPermission.assertCanRun - SLO label and owner rules", () => {
  * anywhere, and is not here either.
  */
 describe("RuleRunPermission.assertCanRun - blocks on some labels", () => {
-  it("refuses a project admin whose team blocks monitor edit for some labels", () => {
+  it("refuses a Project Admin whose team blocks monitor edit for some labels", () => {
     expect(() => {
       assertCanRun(
         RuleRunType.MonitorLabelRule,

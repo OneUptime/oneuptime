@@ -55,7 +55,7 @@ Deretter [konfigurerer du Datadog](#konfigurer-datadog) til å sende varslene si
 
 ### Hva arbeidsflyten gjør
 
-Etter triggeren **Webhook** leser steget **Check With JavaScript** `read-event-1` den `transition` Datadog sender, og **Incident From Another Tool**, eller **Alert From Another Tool** i varselmalen, gjør det den betyr, ut fra varselets syklusnøkkel. Datadog beholder nøkkelen fra et varsel utløses til det gjenopprettes, og neste gang det utløses, er nøkkelen ny, så hver gang får en egen hendelse. Hendelsen tar vare på nøkkelen i det egendefinerte feltet `datadogAlertCycleKey`.
+Etter triggeren **Webhook** leser steget **Sjekk med JavaScript** `read-event-1` den `transition` Datadog sender, og **Hendelse fra et annet verktøy**, eller **Varsel fra et annet verktøy** i varselmalen, gjør det den betyr, ut fra varselets syklusnøkkel. Datadog beholder nøkkelen fra et varsel utløses til det gjenopprettes, og neste gang det utløses, er nøkkelen ny, så hver gang får en egen hendelse. Hendelsen tar vare på nøkkelen i det egendefinerte feltet `datadogAlertCycleKey`.
 
 | Transition | Hva arbeidsflyten gjør |
 | --- | --- |
@@ -68,7 +68,7 @@ En advarsel eller en gjenoppretting for et varsel uten hendelse endrer ingenting
 
 ### Prioriteter og varsling
 
-En ny hendelse varsler vaktretningslinjene du valgte når monitoren er P1 eller P2, eller ikke har noen prioritet. P3, P4 og P5 åpner en hendelse og varsler ingen. I et nytt prosjekt knytter prioritetene seg til disse alvorlighetsgradene for hendelser og varsler:
+En ny hendelse varsler vaktpolicyene du valgte når monitoren er P1 eller P2, eller ikke har noen prioritet. P3, P4 og P5 åpner en hendelse og varsler ingen. I et nytt prosjekt knytter prioritetene seg til disse alvorlighetsgradene for hendelser og varsler:
 
 | Datadog-prioritet | Hendelse | Varsel | Vakt |
 | --- | --- | --- | --- |
@@ -82,7 +82,7 @@ En ny hendelse varsler vaktretningslinjene du valgte når monitoren er P1 eller 
 Med egne alvorlighetsgrader går P1, P2 og ingen prioritet til den mest alvorlige, P3 til den midterste, og P4 og P5 til den minst alvorlige.
 
 - For å knytte en prioritet til en av dine etter navn, rediger `SEVERITY_BY_NAME` i steget `read-event-1`, for eksempel `{ P3: 'Minor Incident' }`.
-- For å varsle også for P3, sett **Sammenlign med** i steget `if-page-1` **If / Else** til `3`.
+- For å varsle også for P3, sett **Sammenlign med** i steget `if-page-1` **Hvis / Ellers** til `3`.
 
 ## Motta varsler med en monitor
 
@@ -95,12 +95,12 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende fore
 
 ### Erklær en hendelse for hvert varsel
 
-Åpne det første kriteriet i trinnet **Kriterier**, det som markerer monitoren som frakoblet. Sett filteret til **Forespørselstekst**, **Inneholder**, `"transition":"Triggered"`. Dette kriteriet erklærer allerede en hendelse når filteret samsvarer. Fyll ut hendelsen:
+Åpne det første kriteriet i trinnet **Kriterier**, det som markerer monitoren som offline. Sett filteret til **Forespørselstekst**, **Inneholder**, `"transition":"Triggered"`. Dette kriteriet erklærer allerede en hendelse når filteret samsvarer. Fyll ut hendelsen:
 
 - **Hendelsestittel**: `{{requestBody.title}}`.
 - **Hendelsesbeskrivelse**, under **Beskrivelse**: `{{requestBody.body}}`, deretter `Datadog: {{requestBody.link}}` på en egen linje.
 - **Alvorlighetsgrad**: hendelsesalvorlighetsgraden disse varslene skal ha.
-- **Vaktretningslinjer**, under **Vakt**: retningslinjene som skal varsles.
+- **Vaktpolicyer**, under **Vakt**: policyene som skal varsles.
 - **Løs hendelse automatisk**, under **Flere felt**: la den være slått på, slik den starter. Uten den ignoreres gjenopprettinger, og hendelser blir stående åpne.
 
 ### Åpne én hendelse per varsel
@@ -131,7 +131,7 @@ En selvdriftet installasjon har sin egen vert i stedet for `oneuptime.com`.
 Nyttelasten nedenfor setter `alert_key` til Datadog-monitorens ID og taggene til gruppen som varslet, slik at hver gruppe i en multi-alert-monitor får sin egen hendelse, og gjenopprettingen til den gruppen løser den. En monitor som utløses på nytt eller varsler på nytt mens hendelsen er åpen, åpner ikke en hendelse til. Se [Motta varsler fra et annet system](/docs/monitor/incoming-request-monitor#motta-varsler-fra-et-annet-system) for hva hver innstilling gjør.
 
 > [!NOTE]
-> En varsling **Warn** eller **No Data** åpner ingen hendelse med disse filtrene. For også å bli varslet ved advarsler klikker du på **Legg til kriterier**, gir det nye kriteriet filteret **Forespørselstekst**, **Inneholder**, `"transition":"Warn"`, en hendelse med sin egen **Alvorlighetsgrad** og de samme grupperingsinnstillingene, og drar det deretter over det første kriteriet. Kriterier kontrolleres ovenfra, og det første som samsvarer, bestemmer.
+> En varsling **Warn** eller **No Data** åpner ingen hendelse med disse filtrene. For også å bli varslet ved advarslinger klikker du på **Legg til kriterier**, gir det nye kriteriet filteret **Forespørselstekst**, **Inneholder**, `"transition":"Warn"`, en hendelse med sin egen **Alvorlighetsgrad** og de samme grupperingsinnstillingene, og drar det deretter over det første kriteriet. Kriterier kontrolleres ovenfra, og det første som samsvarer, bestemmer.
 
 ## Konfigurer Datadog
 
@@ -249,8 +249,8 @@ Med monitoren trenger hver gruppe sin egen `alert_key`. Kontroller at nyttelaste
 
 :::cards
 - [Arbeidsflytmaler](/docs/workflows/authoring): Opprett en arbeidsflyt fra en mal, og endre den i Bygger.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
 - [New Relic](/docs/integrations/new-relic): Den samme malen, for New Relic-saker.
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktretningslinje varsler, og når.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktpolicy varsler, og når.
 - [Oversikt over integrasjoner](/docs/integrations/index): De andre verktøyene du kan koble til.
 :::

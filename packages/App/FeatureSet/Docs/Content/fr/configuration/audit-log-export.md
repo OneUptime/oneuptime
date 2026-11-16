@@ -1,6 +1,6 @@
 # Export du journal d'audit
 
-Envoyez le journal d'audit, au fil de son enregistrement, vers le stockage ou le service de votre choix : Amazon S3 ou un stockage compatible S3, Google Cloud Storage, Azure Blob Storage, un webhook ou syslog. Gardez-y les entrées aussi longtemps que vos contrôles de conformité l'exigent, et recherchez-les dans votre SIEM. Les propriétaires et les administrateurs d'un projet exportent son journal d'audit depuis les paramètres du projet, et les administrateurs principaux exportent celui de tous les projets depuis l'Admin Dashboard. Il fait partie du forfait Enterprise sur OneUptime Cloud, et de l'Enterprise Edition quand vous hébergez vous-même.
+Envoyez le journal d'audit, au fil de son enregistrement, vers le stockage ou le service de votre choix : Amazon S3 ou un stockage compatible S3, Google Cloud Storage, Azure Blob Storage, un webhook ou syslog. Gardez-y les entrées aussi longtemps que vos contrôles de conformité l'exigent, et recherchez-les dans votre SIEM. Les Propriétaires du projet et les Administrateurs du projet exportent le journal d'audit d'un projet depuis ses paramètres, et les administrateurs principaux exportent celui de tous les projets depuis l'Admin Dashboard. Il fait partie du forfait Enterprise sur OneUptime Cloud, et de l'Enterprise Edition quand vous hébergez vous-même.
 
 :::cards
 - [Configurer un export](#configurer-un-export): Choisir une destination, la tester, l'enregistrer.
@@ -140,7 +140,7 @@ Chaque entrée est un objet JSON, dont les clés sont toujours dans cet ordre :
 | `id` | L'id de l'entrée. La même entrée envoyée deux fois a le même id. |
 | `createdAt` | Quand la modification a été enregistrée, en UTC. |
 | `projectId` | Le projet dans lequel la modification a été faite. |
-| `action` | `Create`, `Update`, `Delete` ou `Download`, ou pour une session `SignIn`, `SignOut`, `SessionTimeout` ou `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` ou `Download`, ou pour une connexion ou une session `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` ou `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Ce qui a été modifié. |
 | `rootResourceType`, `rootResourceId` | La ressource à laquelle elle appartient, comme un SLO pour sa règle. |
 | `userId`, `userName`, `userEmail`, `userType` | Qui a fait la modification. |
@@ -173,11 +173,11 @@ Un nouvel export envoie la version 2. Un export enregistré avant la version 2 c
 
 ## Quand une destination échoue
 
-Un lot est tenté trois fois, à quelques secondes d'intervalle, puis l'export attend avant de réessayer : une minute, puis deux, quatre et ainsi de suite, jusqu'à une heure. Sa ligne indique **En échec**, et **Voir l'erreur** montre ce que la destination a répondu et quand aura lieu la prochaine tentative.
+Un lot est tenté trois fois, à quelques secondes d'intervalle, puis l'export attend avant de réessayer : une minute, puis deux, quatre et ainsi de suite, jusqu'à une heure. Sa ligne indique **En échec**, et **Voir l'erreur** montre ce que la destination a répondu, quand aura lieu la prochaine tentative, et à partir de quand les entrées en attente d'envoi commencent à être supprimées ou, une fois ce moment passé, depuis quand elles sont supprimées.
 
 Rien n'est sauté : les entrées attendent dans le journal d'audit, et la prochaine livraison qui réussit rattrape le retard depuis la plus ancienne. Chaque entrée est tout de même supprimée dès qu'elle est plus ancienne que la rétention avec laquelle elle a été enregistrée, envoyée ou non : corrigez donc un export en échec dans ce délai. Une rétention plus longue ne garde plus longtemps que les entrées enregistrées après sa modification.
 
-Un export en échec envoie un e-mail à ceux qui peuvent le corriger : aux propriétaires du projet pour l'export d'un projet, et à tous les administrateurs principaux pour celui de l'instance. Le premier e-mail part après 30 minutes d'échecs, avec ce que la destination a répondu. Un second part un jour avant la suppression de la première des entrées que l'export n'a pas envoyées, avec le moment où des entrées commencent à être perdues. Si ce moment est déjà passé, par exemple quand **Exporter à partir du** remonte plus loin que la rétention, le second e-mail part à la place du premier, après 30 minutes, et indique que des entrées sont en train d'être perdues. Chacun part une fois tant que les échecs durent, et une livraison qui réussit les remet tous deux à zéro.
+Un export en échec envoie un e-mail à ceux qui peuvent le corriger : aux Propriétaires du projet pour l'export d'un projet, et à tous les administrateurs principaux pour celui de l'instance. Le premier e-mail part après 30 minutes d'échecs, avec ce que la destination a répondu. Un second part un jour avant la suppression de la première des entrées que l'export n'a pas envoyées, avec le moment où des entrées commencent à être perdues. Si ce moment est déjà passé, par exemple quand **Exporter à partir du** remonte plus loin que la rétention, le second e-mail part à la place du premier, après 30 minutes, et indique que des entrées sont en train d'être perdues. Chacun part une fois tant que les échecs durent, et une livraison qui réussit les remet tous deux à zéro.
 
 Pour mettre un export en pause, choisissez **Désactiver** dans le menu de sa ligne : il garde sa place, et **Activer** envoie ce qui a été enregistré entre-temps. Sur OneUptime Cloud, un projet qui quitte le forfait Enterprise cesse d'exporter, et ses exports attendent sous la carte de mise à niveau, où ils peuvent être désactivés ou supprimés. Quand vous hébergez vous-même, l'export s'arrête tant que la licence n'inclut pas les journaux d'audit, et reprend là où il s'était arrêté dès qu'une licence les inclut.
 

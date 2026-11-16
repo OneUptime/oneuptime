@@ -996,7 +996,7 @@ describe("A grouped Any criteria over two aliases keeps one unit per rank", () =
         "**Affected Resources** (2 total)",
         "",
         "1. **Node** `node-hot` — **88.82%**",
-        "2. **Node** `node-big` — **210 GB** (`used_mem`)",
+        "2. **Node** `node-big` — **210\u00A0GB** (`used_mem`)",
       ].join("\n"),
     );
 
@@ -1014,7 +1014,7 @@ describe("A grouped Any criteria over two aliases keeps one unit per rank", () =
     expect(rootCause).toContain(
       "Node `node-hot` memory usage is at **88.82%**.",
     );
-    expect(rootCause).not.toContain("memory usage is at **210 GB**");
+    expect(rootCause).not.toContain("memory usage is at **210\u00A0GB**");
     expect(rootCause).not.toMatch(/memory usage is at \*\*[\d.]+ GB/);
   });
 
@@ -1036,8 +1036,8 @@ describe("A grouped Any criteria over two aliases keeps one unit per rank", () =
     expect(entryHeads(listSection(rootCause, "Affected Resources"))).toEqual([
       "1. **Node** `node-hot-2` — **92.00%**",
       "2. **Node** `node-hot` — **88.82%**",
-      "3. **Node** `node-big` — **210 GB** (`used_mem`)",
-      "4. **Node** `node-big-2` — **230 GB** (`used_mem`)",
+      "3. **Node** `node-big` — **210\u00A0GB** (`used_mem`)",
+      "4. **Node** `node-big-2` — **230\u00A0GB** (`used_mem`)",
     ]);
     expect(listSection(rootCause, "Affected Resources")).toContain(
       "**Affected Resources** (4 total)",
@@ -1276,10 +1276,10 @@ describe("A threshold saved as a string reads like the number", () => {
         [
           "**Affected Tasks** (2 total)",
           "",
-          "1. **Task** `web.1.aaa` — **5 sec**",
+          "1. **Task** `web.1.aaa` — **5\u00A0sec**",
           "   - Service: `web`",
           "   - Node: `n1`",
-          "2. **Task** `web.2.bbb` — **40 sec**",
+          "2. **Task** `web.2.bbb` — **40\u00A0sec**",
           "   - Service: `web`",
           "   - Node: `n2`",
         ].join("\n"),
@@ -1514,7 +1514,7 @@ describe("The raw scan is judged in the unit the threshold was written in", () =
       [
         "**Affected Tasks** (1 total)",
         "",
-        "1. **Task** `web.1.restarted` — **30 sec**",
+        "1. **Task** `web.1.restarted` — **30\u00A0sec**",
         "   - Service: `web`",
         "   - Node: `n1`",
       ].join("\n"),
@@ -1688,8 +1688,8 @@ describe("A monitor grouped by a key that names no platform object titles each s
       [
         "**Affected Resources** (2 total)",
         "",
-        "1. **Series** `k8s.persistentvolumeclaim.name=data-redis-0` — **300 MB**",
-        "2. **Series** `k8s.persistentvolumeclaim.name=data-postgres-0` — **500 MB**",
+        "1. **Series** `k8s.persistentvolumeclaim.name=data-redis-0` — **300\u00A0MB**",
+        "2. **Series** `k8s.persistentvolumeclaim.name=data-postgres-0` — **500\u00A0MB**",
       ].join("\n"),
     );
 

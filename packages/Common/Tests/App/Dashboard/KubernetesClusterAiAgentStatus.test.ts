@@ -77,6 +77,7 @@ import {
   createTranslator,
   fillTemplate,
 } from "../../../UI/Utils/TranslateTemplate";
+import { withPlainSpaces } from "../../../Types/NoBreakSpaces";
 
 /*
  * The pure reading of the server's access status behind the cluster's AI
@@ -97,7 +98,7 @@ const NOW: Date = new Date();
 
 // AI_AGENT_SILENT_TEXT with the server's alive window in it.
 const SILENT_SENTENCE: string =
-  "The AI agent has not checked in for over 5 minutes. Check its pod:";
+  "The AI agent has not checked in for over 5\u00A0minutes. Check its pod:";
 
 function minutesAgo(minutes: number): string {
   return new Date(NOW.getTime() - minutes * 60 * 1000).toISOString();
@@ -501,7 +502,7 @@ describe("the pill and the sentence", () => {
       "The AI agent is running in this cluster.",
     );
     expect(getAiAgentStateSentence(agentStatus({}, silentAgent()))).toBe(
-      "The AI agent has not checked in for over 5 minutes. Check its pod:",
+      "The AI agent has not checked in for over 5\u00A0minutes. Check its pod:",
     );
     expect(getAiAgentStateSentence(agentStatus({}, signedOffAgent()))).toBe(
       "The AI agent signed off or was reset. It reconnects on its own within a few minutes. If it does not, check its pod:",
@@ -711,13 +712,14 @@ describe("why the agent is offline", () => {
     expect(AI_AGENT_SILENT_TEXT).toBe(
       "The AI agent has not checked in for over {{minutes}} minutes. Check its pod:",
     );
+    // The template filled as written; the page holds its figure to its word (#8770).
     expect(
       fillTemplate(AI_AGENT_SILENT_TEXT, {
         minutes: KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
       }),
-    ).toBe(SILENT_SENTENCE);
+    ).toBe(withPlainSpaces(SILENT_SENTENCE));
     expect(SILENT_SENTENCE).toBe(
-      "The AI agent has not checked in for over 5 minutes. Check its pod:",
+      "The AI agent has not checked in for over 5\u00A0minutes. Check its pod:",
     );
   });
 
@@ -887,7 +889,7 @@ describe("the meta line", () => {
 
   test("the previous Runner has no agent version but the same scope reading", () => {
     expect(getAiAgentMetaParts(legacyStatus())).toEqual([
-      "last seen 2 minutes ago",
+      "last seen 2\u00A0minutes ago",
       "kubectl v1.30.0",
       "Read-only",
     ]);
@@ -1181,7 +1183,9 @@ describe("the Needs attention card", () => {
   });
 
   test("tells a user without permission who to ask", () => {
-    expect(ASK_PROJECT_ADMIN_TEXT).toBe("Ask a project owner or admin.");
+    expect(ASK_PROJECT_ADMIN_TEXT).toBe(
+      "Ask a Project Owner or Project Admin.",
+    );
   });
 });
 
@@ -2347,7 +2351,7 @@ describe("in the reader's language", () => {
 
     // The window goes in as a value.
     expect(getAiAgentStateSentence(agentStatus({}, silentAgent()), NOW)).toBe(
-      "‹The AI agent has not checked in for over 5 minutes. Check its pod:›",
+      "‹The AI agent has not checked in for over 5\u00A0minutes. Check its pod:›",
     );
   });
 

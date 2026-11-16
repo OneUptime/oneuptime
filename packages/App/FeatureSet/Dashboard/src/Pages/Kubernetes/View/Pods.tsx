@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
@@ -78,7 +79,8 @@ const KubernetesClusterPods: FunctionComponent<
               status: row.status,
               spec: row.spec,
             });
-            resource.additionalAttributes["ready"] = facts.ready || "-";
+            resource.additionalAttributes["ready"] =
+              facts.ready || EMPTY_VALUE_MARK;
             resource.additionalAttributes["restarts"] = String(facts.restarts);
 
             const containers: Array<Record<string, unknown>> =

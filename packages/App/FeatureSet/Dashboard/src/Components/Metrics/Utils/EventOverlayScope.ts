@@ -10,6 +10,7 @@ import {
   DictionaryFilterOperator,
   detectOperatorFromValue,
 } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import { readOwnValue, writeOwnValue } from "Common/Utils/LookupTable";
 
 /** Query fragments; [] suppresses a source, whereas [{}] is project-wide. */
 export interface EventOverlayScope {
@@ -370,18 +371,23 @@ function exactValues(
   return Array.from(new Set(values)).sort();
 }
 
+// The same query, its keys in order - each written as the copy's own, as addPredicate writes them.
 function sortedQuery(query: ScopeQuery): ScopeQuery {
   const result: ScopeQuery = {};
   for (const key of Object.keys(query).sort()) {
     const value: ScopeValue = query[key]!;
     if (typeof value === "string") {
-      result[key] = value;
+      writeOwnValue<ScopeValue>(result, key, value);
     } else if (Array.isArray(value)) {
-      result[key] = value.map((item: ScopeQuery): ScopeQuery => {
-        return sortedQuery(item);
-      });
+      writeOwnValue<ScopeValue>(
+        result,
+        key,
+        value.map((item: ScopeQuery): ScopeQuery => {
+          return sortedQuery(item);
+        }),
+      );
     } else {
-      result[key] = sortedQuery(value);
+      writeOwnValue<ScopeValue>(result, key, sortedQuery(value));
     }
   }
   return result;
@@ -407,7 +413,12 @@ function dedupeQueries(queries: Array<ScopeQuery>): Array<ScopeQuery> {
     });
 }
 
-function addPredicate(
+/*
+ * Each query with `path` set to each value: one query per value, or none
+ * for a query that already sets the path to another. Exported for its
+ * tests.
+ */
+export function addPredicate(
   queries: Array<ScopeQuery>,
   path: Array<string>,
   values: Array<string>,
@@ -415,22 +426,32 @@ function addPredicate(
   if (queries.length * values.length > EVENT_OVERLAY_SCOPE_QUERY_LIMIT) {
     return [];
   }
+  /*
+   * Each step of the path is read and written as the query's own key
+   * (issue #8488). Every path is OneUptime's own today - a column, a
+   * relation, or an attribute this file names - but the walk is a deep
+   * set's: by plain reads, a path of "constructor" then "prototype" walked
+   * from the copy into the Object function and on to Object.prototype, and
+   * wrote the value there. Read as own keys, a missing step is a new
+   * object of the copy's own, whatever it is named.
+   */
   const next: Array<ScopeQuery> = [];
   for (const query of queries) {
     for (const value of values) {
       const copy: ScopeQuery = JSON.parse(JSON.stringify(query)) as ScopeQuery;
       let cursor: ScopeQuery = copy;
       for (const key of path.slice(0, -1)) {
-        if (!cursor[key]) {
-          cursor[key] = {};
+        if (!readOwnValue(cursor, key)) {
+          writeOwnValue<ScopeValue>(cursor, key, {});
         }
-        cursor = cursor[key] as ScopeQuery;
+        cursor = readOwnValue(cursor, key) as ScopeQuery;
       }
       const leaf: string = path[path.length - 1]!;
-      if (cursor[leaf] !== undefined && cursor[leaf] !== value) {
+      const current: ScopeValue | undefined = readOwnValue(cursor, leaf);
+      if (current !== undefined && current !== value) {
         continue;
       }
-      cursor[leaf] = value;
+      writeOwnValue<ScopeValue>(cursor, leaf, value);
       next.push(copy);
     }
   }

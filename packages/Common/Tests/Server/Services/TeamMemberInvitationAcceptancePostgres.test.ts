@@ -14,7 +14,6 @@ import Errors from "../../../Server/Utils/Errors";
 import logger from "../../../Server/Utils/Logger";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import EmailMessage from "../../../Types/Email/EmailMessage";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -481,7 +480,7 @@ describePostgres(
     });
 
     describe("adding somebody who is already in the project", () => {
-      test("a project admin adds a member to another team, and they are on it at once", async () => {
+      test("a Project Admin adds a member to another team, and they are on it at once", async () => {
         await insertMembership({
           userId: ALICE_ID,
           teamId: OPERATIONS_TEAM_ID,
@@ -520,7 +519,7 @@ describePostgres(
         );
       });
 
-      test("added by email, they are told they were added rather than invited", async () => {
+      test("added by email, a member who has signed up is on the team at once and is not emailed (#8568)", async () => {
         await insertMembership({
           userId: ALICE_ID,
           teamId: OPERATIONS_TEAM_ID,
@@ -536,10 +535,12 @@ describePostgres(
         });
         expect(added.hasAcceptedInvitation).toBe(true);
 
-        expect(sendMailSpy).toHaveBeenCalledTimes(1);
-        const mail: EmailMessage = sendMailSpy.mock.calls[0]![0];
-        expect(mail.subject).toBe(`You have been added to ${PROJECT_NAME}`);
-        expect(mail.vars["isInvitationAccepted"]).toBe("true");
+        /*
+         * They were sent "You've Been Added to <project>" for every team,
+         * though they were in it, and a person picked by id for the same
+         * team was sent nothing.
+         */
+        expect(sendMailSpy).not.toHaveBeenCalled();
       });
 
       test("adding them to a team they are already on is refused, and writes and sends nothing", async () => {
@@ -595,7 +596,7 @@ describePostgres(
         ).toBe(false);
       });
 
-      test("a project admin who asks for the invitation to be accepted is refused that", async () => {
+      test("a Project Admin who asks for the invitation to be accepted is refused that", async () => {
         await addToTeam({
           teamId: DATABASE_TEAM_ID,
           userId: ALICE_ID,

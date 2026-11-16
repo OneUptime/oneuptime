@@ -69,7 +69,7 @@ Een banner zegt daarna hoeveel herinneringen zijn verstuurd, overgeslagen of mis
 
 ## De wekelijkse e-mail over gereedheid
 
-Eén keer per week controleert OneUptime elk project dat een bereikbaarheidsbeleid heeft. Is iemand daarin **Onbereikbaar** of **Moet worden ingesteld**, dan krijgen de eigenaren van het project één e-mail die deze mensen in twee groepen toont, wie helemaal niet kan worden opgeroepen en wie met gaten bereikbaar is, tot 20 namen per groep, met een link naar de pagina Gereedheid.
+Eén keer per week controleert OneUptime elk project dat een bereikbaarheidsbeleid heeft. Is iemand daarin **Onbereikbaar** of **Moet worden ingesteld**, dan krijgen de Projecteigenaren één e-mail die deze mensen in twee groepen toont, wie helemaal niet kan worden opgeroepen en wie met gaten bereikbaar is, tot 20 namen per groep, met een link naar de pagina Gereedheid.
 
 Een week waarin iedereen gereed is, verstuurt niets, dus de e-mail betekent altijd dat er iets moet worden opgelost. Kan iemand helemaal niet worden opgeroepen, dan begint het onderwerp met `[Action Required]`.
 
@@ -100,7 +100,7 @@ De lijst bevat alleen mensen die een bereikbaarheidsbeleid kan oproepen. Een tea
 :::
 
 :::details De eigenaren krijgen de wekelijkse e-mail nooit
-Die wordt alleen verstuurd in een week waarin iemand **Onbereikbaar** of **Moet worden ingesteld** is, en alleen naar de eigenaren van het project.
+Die wordt alleen verstuurd in een week waarin iemand **Onbereikbaar** of **Moet worden ingesteld** is, en alleen naar de Projecteigenaren.
 :::
 
 ## Volgende stappen

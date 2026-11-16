@@ -1,6 +1,6 @@
 # Elastic Security
 
-把你的 [Elastic Security](https://www.elastic.co/security) 规则产生的检测警报导入 OneUptime 的安全事件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的警报呼叫值班人员。OneUptime 使用你创建的 API 密钥，通过 Kibana 的检测引擎 API 读取它们，不会在 Elastic 中更改任何内容。
+把你的 [Elastic Security](https://www.elastic.co/security) 规则产生的检测警报导入 OneUptime 的安全事件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的警报呼叫值班人员。OneUptime 使用你创建的 API 密钥，通过 Kibana 的检测引擎 API 读取它们，不会在 Elastic 中更改任何内容。
 
 :::cards
 - [设置连接](#设置连接): 一个 API 密钥、它的权限，以及连接的表单。

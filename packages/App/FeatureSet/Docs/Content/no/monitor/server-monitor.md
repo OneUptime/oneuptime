@@ -1,6 +1,6 @@
-# Server- / VM-overvåking
+# Server- / VM-monitor
 
-En Server- / VM-monitor overvåker én maskin gjennom OneUptimes infrastrukturagent (`oneuptime-infrastructure-agent`), en liten tjeneste som hvert 30. sekund rapporterer CPU, minne, disker, belastning, nettverk og kjørende prosesser til OneUptime. Denne siden viser hvordan du kobler agenten til en Server- / VM-monitor, hva agenten rapporterer, og hvordan du skriver kriteriene som avgjør når serveren er tilkoblet eller frakoblet.
+En Server- / VM-monitor overvåker én maskin gjennom OneUptimes infrastrukturagent (`oneuptime-infrastructure-agent`), en liten tjeneste som hvert 30. sekund rapporterer CPU, minne, disker, belastning, nettverk og kjørende prosesser til OneUptime. Denne siden viser hvordan du kobler agenten til en Server- / VM-monitor, hva agenten rapporterer, og hvordan du skriver kriteriene som avgjør når serveren er tilkoblet eller offline.
 
 > [!IMPORTANT]
 > **Opprett monitor** tilbyr ikke lenger **Server / VM**. Server- / VM-monitorer du allerede har, fortsetter å virke, og alt på denne siden gjelder for dem. For å overvåke en ny server oppretter du i stedet en [vertsmonitor](/docs/monitor/host-monitor): den varsler på vertsmålingene som [OpenTelemetry-collectoren på verten](/docs/telemetry/host-otel-collector) sender.
@@ -8,15 +8,15 @@ En Server- / VM-monitor overvåker én maskin gjennom OneUptimes infrastrukturag
 :::cards
 - [Koble til agenten](#koble-til-agenten): Installer den, gi den monitorens hemmelige nøkkel og start den.
 - [Hva agenten rapporterer](#hva-agenten-rapporterer): CPU, minne, disker, belastning, nettverk og prosesser.
-- [Overvåkingskriterier](#overvåkingskriterier): Avgjør når serveren regnes som tilkoblet eller frakoblet.
-- [Feilsøking](#feilsøking): Agenten rapporterer ikke, eller monitoren blir aldri frakoblet.
+- [Overvåkingskriterier](#overvåkingskriterier): Avgjør når serveren regnes som tilkoblet eller offline.
+- [Feilsøking](#feilsøking): Agenten rapporterer ikke, eller monitoren blir aldri offline.
 :::
 
 ## Slik fungerer det
 
 Agenten kjører som en systemtjeneste. Hvert 30. sekund samler den en rapport og sender den til OneUptime-URL-en din, signert med monitorens hemmelige nøkkel. OneUptime lagrer tallene som monitorens målinger og holder rapporten opp mot monitorens kriterier.
 
-Stillhet kontrolleres for seg. Hvert minutt evaluerer OneUptime på nytt **Er tilkoblet**-kriteriene for hver Server- / VM-monitor som ikke har rapportert på 3 minutter eller mer, og en server som er stille lenger enn kriteriene tillater (3 minutter som standard), regnes som frakoblet. En monitor uten **Er tilkoblet**-kriterium blir aldri markert som frakoblet bare fordi agenten ble stille. Bare tid der OneUptime mottok data, teller med i den stillheten: tid der OneUptime selv startet på nytt, ble oppgradert eller tok igjen et etterslep, teller ikke, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+Stillhet kontrolleres for seg. Hvert minutt evaluerer OneUptime på nytt **Er tilkoblet**-kriteriene for hver Server- / VM-monitor som ikke har rapportert på 3 minutter eller mer, og en server som er stille lenger enn kriteriene tillater (3 minutter som standard), regnes som offline. En monitor uten **Er tilkoblet**-kriterium blir aldri markert som offline bare fordi agenten ble stille. Bare tid der OneUptime mottok data, teller med i den stillheten: tid der OneUptime selv startet på nytt, ble oppgradert eller tok igjen et etterslep, teller ikke, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ```mermaid title="Slik får en Server- / VM-monitor dataene sine"
 flowchart TB
@@ -211,7 +211,7 @@ Verdier som operativsystemet ikke leverer, utelates, og et kriterium for en verd
 
 ## Overvåkingskriterier
 
-Kriterier avgjør når monitoren er tilkoblet, redusert eller frakoblet, og når den åpner et varsel eller en hendelse. Hvert filter i et kriterium har en **Filtertype**, et **Filtervilkår** og for de fleste typer en verdi.
+Kriterier avgjør når monitoren er tilkoblet, redusert eller offline, og når den åpner et varsel eller en hendelse. Hvert filter i et kriterium har en **Filtertype**, et **Filtervilkår** og for de fleste typer en verdi.
 
 | Filtertype | Hva den kontrollerer | Filtervilkår |
 | --- | --- | --- |
@@ -232,7 +232,7 @@ Kriterier avgjør når monitoren er tilkoblet, redusert eller frakoblet, og når
 
 ### Evaluer over en tidsperiode
 
-**Evaluer disse kriteriene over en tidsperiode** er en egen avmerkingsboks i kriterieskjemaet og ikke et filtervilkår. Den finnes for **Er tilkoblet** og for hver numerisk filtertype. Slå den på for å sammenligne en aggregert verdi – valgt under **Evaluer** (Gjennomsnitt, Sum, Maksimumsverdi, Minimumsverdi, Alle verdier, Minst én verdi) over vinduet som **For de siste (i minutter)** angir – i stedet for verdien fra den siste kontrollen. På et **Er tilkoblet**-filter er vinduet hvor lenge agenten kan være stille før serveren regnes som frakoblet.
+**Evaluer disse kriteriene over en tidsperiode** er en egen avmerkingsboks i kriterieskjemaet og ikke et filtervilkår. Den finnes for **Er tilkoblet** og for hver numerisk filtertype. Slå den på for å sammenligne en aggregert verdi – valgt under **Evaluer** (Gjennomsnitt, Sum, Maksimumsverdi, Minimumsverdi, Alle verdier, Minst én verdi) over vinduet som **For de siste (i minutter)** angir – i stedet for verdien fra den siste kontrollen. På et **Er tilkoblet**-filter er vinduet hvor lenge agenten kan være stille før serveren regnes som offline.
 
 **Alle verdier** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der kontrollene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Minst én verdi** er innstillingen for «si fra så snart én enkelt kontroll overskrider grensen», og den utløses fortsatt umiddelbart.
 
@@ -251,7 +251,7 @@ Kriterier avgjør når monitoren er tilkoblet, redusert eller frakoblet, og når
 
 | Mål | Filtertype | Filtervilkår | Verdi |
 | --- | --- | --- | --- |
-| Marker serveren som frakoblet når agenten slutter å rapportere | Er tilkoblet | Usann | — |
+| Marker serveren som offline når agenten slutter å rapportere | Er tilkoblet | Usann | — |
 | Varsle når CPU-bruken er over 90 % | CPU-bruk (i %) | Større enn | `90` |
 | Varsle når rotdisken er mer enn 85 % full | Diskbruk (i %), **Diskbane** `/` | Større enn | `85` |
 | Varsle om enhver disk som er mer enn 85 % full, ett varsel per disk | Diskbruk (i %), **Diskbane** `*` | Større enn | `85` |
@@ -263,7 +263,7 @@ Kriterier avgjør når monitoren er tilkoblet, redusert eller frakoblet, og når
 :::details Agenten rapporterer ikke
 - Kontroller at tjenesten kjører: `sudo oneuptime-infrastructure-agent status`.
 - Les loggen: `sudo oneuptime-infrastructure-agent logs -n 50`. En linje `Metrics successfully pushed to OneUptime server` betyr at OneUptime har mottatt en rapport, ikke at det har godtatt den: OneUptime svarer før det kontrollerer den hemmelige nøkkelen. At monitorens fane **Målinger** viser diagrammer over serveren, viser at det har godtatt dem.
-- Agenten kontrollerer den hemmelige nøkkelen når den starter, og avslutter hvis OneUptime avviser den, med loggmeldingen `Secret key is invalid`. Sammenlign nøkkelen med den på monitorens side **Innstillinger**, under **Tilbakestill hemmelig nøkkel for serverovervåking**. Så lenge OneUptime ikke kan nås, logger agenten `The secret key could not be verified with OneUptime yet` og prøver igjen.
+- Agenten kontrollerer den hemmelige nøkkelen når den starter, og avslutter hvis OneUptime avviser den, med loggmeldingen `Secret key is invalid`. Sammenlign nøkkelen med den på monitorens side **Innstillinger**, under **Tilbakestill hemmelig nøkkel for servermonitor**. Så lenge OneUptime ikke kan nås, logger agenten `The secret key could not be verified with OneUptime yet` og prøver igjen.
 - Sørg for at serveren kan nå OneUptime-URL-en din over HTTPS, og at ingen brannmur blokkerer utgående tilkoblinger.
 :::
 
@@ -279,8 +279,8 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 `configure` er ikke kjørt, eller `uninstall` har fjernet konfigurasjonen. Kjør `configure` med den hemmelige nøkkelen og URL-en, og deretter `start`.
 :::
 
-:::details Monitoren blir aldri frakoblet når serveren er nede
-Bare et **Er tilkoblet**-kriterium markerer en stille server som frakoblet. Legg til et med **Filtervilkår** satt til **Usann**, og angi monitorstatusen det endrer til.
+:::details Monitoren blir aldri offline når serveren er nede
+Bare et **Er tilkoblet**-kriterium markerer en stille server som offline. Legg til et med **Filtervilkår** satt til **Usann**, og angi monitorstatusen det endrer til.
 :::
 
 :::details Rapportene kommer ikke gjennom proxyen
@@ -292,7 +292,7 @@ Bare et **Er tilkoblet**-kriterium markerer en stille server som frakoblet. Legg
 ## Neste trinn
 
 :::cards
-- [Verts-overvåking](/docs/monitor/host-monitor): Monitoren for nye servere, bygget på OpenTelemetry-vertsmålinger.
+- [Verts-monitor](/docs/monitor/host-monitor): Monitoren for nye servere, bygget på OpenTelemetry-vertsmålinger.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Send vertsmålinger og logger fra Linux, macOS og Windows.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett CPU-, minne-, disk- og prosessdetaljer i hendelsestitler.
 :::

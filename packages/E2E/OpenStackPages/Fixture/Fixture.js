@@ -72,10 +72,8 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
-import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
-import ar from "../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 import CloudLayout from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Layout";
 import CloudOverview from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Index";
 import CloudAiInsights from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AI/Insights";
@@ -2586,15 +2584,33 @@ function subscribe() {
 Realtime.listenToAnalyticsModelEvent = subscribe;
 Realtime.listenToModelEvent = subscribe;
 
+/*
+ * English, the fallback, is in the bundle; German, Persian and Arabic are
+ * each a chunk of its own, loaded only by a page drawn in that language, as
+ * the Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as
+ * the Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+  ar: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/ar.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: LANGUAGE,
   fallbackLng: "en",
-  resources: {
-    en: { translation: en },
-    de: { translation: de },
-    fa: { translation: fa },
-    ar: { translation: ar },
-  },
+  resources: await localeResources({
+    language: LANGUAGE,
+    english: en,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
 });
 followLanguageForDates(i18next);

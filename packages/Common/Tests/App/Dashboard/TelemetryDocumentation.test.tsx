@@ -369,15 +369,31 @@ describe("TelemetryDocumentation", () => {
           return tab.textContent || "";
         }),
       ).toEqual(["On the host", "Docker Compose"]);
-      expect(container.textContent).toContain("fluent-bit -c fluent-bit.conf");
+      // The package's service, which runs as root and keeps its state (#8580).
+      expect(container.textContent).toContain(
+        "sudo cp fluent-bit.conf /etc/fluent-bit/fluent-bit.conf",
+      );
+      expect(container.textContent).toContain(
+        "sudo systemctl restart fluent-bit",
+      );
+      expect(container.textContent).not.toContain(
+        "fluent-bit -c fluent-bit.conf",
+      );
       expect(container.textContent).not.toContain("image: fluent/fluent-bit");
+      // The one file, with its place and its chunks kept, and its retries.
+      expect(container.textContent).toContain(
+        "DB           /var/lib/fluent-bit/tail.db",
+      );
+      expect(container.textContent).toContain("Retry_Limit  8640");
 
       fireEvent.click(tabs[1]!);
 
       expect(container.textContent).toContain("image: fluent/fluent-bit");
-      expect(container.textContent).not.toContain(
-        "fluent-bit -c fluent-bit.conf",
+      expect(container.textContent).toContain("restart: unless-stopped");
+      expect(container.textContent).toContain(
+        "fluent-bit-state:/var/lib/fluent-bit",
       );
+      expect(container.textContent).not.toContain("systemctl");
     });
 
     /*
@@ -415,6 +431,11 @@ describe("TelemetryDocumentation", () => {
         expect(container.textContent).toContain(
           "sudo systemctl restart fluentd",
         );
+        // This host alone sends to it, and its batches stay on disk (#8243, #8242).
+        expect(container.textContent).toContain("bind 127.0.0.1");
+        expect(container.textContent).toContain(
+          "path /var/log/fluent/buffer/oneuptime",
+        );
         expect(container.textContent).not.toContain("/fluentd/log/fluentd.pos");
         expect(container.textContent).not.toContain("image: fluent/fluentd");
       };
@@ -424,6 +445,15 @@ describe("TelemetryDocumentation", () => {
         );
         expect(container.textContent).toContain("image: fluent/fluentd");
         expect(container.textContent).toContain("user: root");
+        // Published to this host alone, root with one capability, and the batches in the volume.
+        expect(container.textContent).toContain('"127.0.0.1:24224:24224"');
+        expect(container.textContent).toContain("- DAC_OVERRIDE");
+        expect(container.textContent).toContain(
+          "path /fluentd/log/buffer/oneuptime",
+        );
+        expect(container.textContent).toContain("fluentd-state:/fluentd/log");
+        expect(container.textContent).toContain("restart: unless-stopped");
+        expect(container.textContent).not.toContain("bind 127.0.0.1");
         expect(container.textContent).not.toContain(
           "/var/log/fluent/fluentd.pos",
         );

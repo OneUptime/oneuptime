@@ -97,7 +97,7 @@ Fill in **Directory (tenant) ID**, **Application (client) ID** and **Client secr
 
 | Setting | What it does |
 | --- | --- |
-| **Who can read conversations** | **Project owners and admins**, the default: nobody else in the project sees these conversations, or the AI calls they are made of, anywhere in OneUptime. **Everyone who can read AI calls**: everyone who may read the project's traces. |
+| **Who can read conversations** | **Project Owners and Project Admins**, the default: nobody else in the project sees these conversations, or the AI calls they are made of, anywhere in OneUptime. **Everyone who can read AI calls**: everyone who may read the project's traces. |
 | **Keep what was written** | On, the default: the questions and answers are kept. Off: OneUptime keeps who asked, when, which model and in which app, but not the words. |
 
 A change to who can read applies within a minute. Turning **Keep what was written** off applies to the chats read after it; what was kept before stays until its retention ends.
@@ -139,7 +139,7 @@ For Copilot, grant admin consent for the app's Graph permissions, and `GroupMemb
 :::
 
 :::details Someone cannot see the conversations
-**Who can read conversations** is **Project owners and admins**. An owner or admin can change it with **Edit** in the connection's row.
+**Who can read conversations** is **Project Owners and Project Admins**. A Project Owner or Project Admin can change it with **Edit** in the connection's row.
 :::
 
 :::details The conversations show who asked, but no words

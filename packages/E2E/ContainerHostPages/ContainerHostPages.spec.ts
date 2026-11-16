@@ -4,6 +4,7 @@ import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { FrameBox, boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * A Docker and a Podman host's pages, in a browser, against the offline
@@ -776,4 +777,18 @@ test("the hero's name keeps its room beside the controls at 1280", async ({
   const controls: Box = await boxOf(page.getByTestId("resource-hero-controls"));
   expect(identity.width).toBeGreaterThan(0);
   expect(controls.width).toBeGreaterThan(0);
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? DOCKER_PATH : `${DOCKER_PATH}?lang=${language}`;
+  },
 });

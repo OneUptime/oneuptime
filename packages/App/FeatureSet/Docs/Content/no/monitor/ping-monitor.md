@@ -1,4 +1,4 @@
-# Ping-overvåking
+# Ping-monitor
 
 En ping-monitor sjekker at en vert svarer på ping (ICMP-ekkoforespørsler), og måler tur-retur-tiden, pakketapet og jitteren. Bruk den for servere, rutere, brannmurer og andre enheter du når via vertsnavn eller IP-adresse.
 
@@ -6,7 +6,7 @@ En ping-monitor sjekker at en vert svarer på ping (ICMP-ekkoforespørsler), og 
 - [Opprett monitoren](#opprett-en-ping-monitor): Seks trinn i dashbordet.
 - [Konfigurasjonsalternativer](#konfigurasjonsalternativer): Verten, tidsavbruddet og nye forsøk.
 - [Overvåkingskriterier](#overvåkingskriterier): Tilgjengelighet, forsinkelse, pakketap og jitter.
-- [Feilsøking](#feilsøking): Når verten er oppe, men monitoren sier frakoblet.
+- [Feilsøking](#feilsøking): Når verten er oppe, men monitoren sier offline.
 :::
 
 ## Slik fungerer det
@@ -28,7 +28,7 @@ Når en sjekk feiler, sporer sonden også ruten til verten og slår opp navnet, 
 > [!NOTE]
 > Noen vertsleverandører blokkerer ICMP på maskinene en sonde kjører på. En sonde som ikke kan sende ping i det hele tatt, sjekker i stedet TCP-port `80` på verten, så monitoren fortsatt sier om verten kan nås. Pakketap og jitter måles da ikke.
 
-En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke verten din som frakoblet.
+En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke verten din som offline.
 
 ## Før du starter
 
@@ -52,11 +52,11 @@ Angi under **Vertsnavn eller IP-adresse** vertsnavnet eller IPv4- eller IPv6-adr
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser tur-retur-tidene og pakketapet sonden så.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser tur-retur-tidene og pakketapet sonden så.
 
 ### Gå gjennom kriteriene
 
-**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når verten ikke svarer, tilkoblet når den gjør det. Endre dem ved behov, og klikk så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): offline når verten ikke svarer, tilkoblet når den gjør det. Endre dem ved behov, og klikk så på **Neste**.
 
 ### Velg sonder og opprett
 
@@ -77,7 +77,7 @@ For å overvåke en fast IP-adresse og aldri et vertsnavn kan du heller bruke en
 
 ## Overvåkingskriterier
 
-Kriterier avgjør når verten regnes som tilkoblet, redusert eller frakoblet, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
+Kriterier avgjør når verten regnes som tilkoblet, redusert eller offline, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
@@ -93,7 +93,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny ping-monitor starter med to kriterier:
 
-- **Frakoblet** — verten svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitor name_ is offline" opprettes. Hendelsen løser seg selv når verten svarer igjen.
+- **Offline** — verten svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Offline**, og en hendelse kalt "_monitornavn_ er offline" opprettes. Hendelsen løser seg selv når verten svarer igjen.
 - **Oppe** — verten svarer. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -126,7 +126,7 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
-| Frakoblet når verten ikke kan nås | **Er tilkoblet** | **Usann** | — |
+| Offline når verten ikke kan nås | **Er tilkoblet** | **Usann** | — |
 | Varsle når forsinkelsen er høy | **Svartid (i ms)** | **Større enn** | `200` |
 | Merk verten som redusert på en forbindelse med tap | **Pakketap (i %)** | **Større enn** | `20` |
 | Varsle ved en ustabil forbindelse | **Jitter (i ms)** | **Større enn** | `30` |
@@ -135,7 +135,7 @@ For bare å varsle når forsinkelsen holder seg høy, slår du på **Evaluer dis
 
 ## Feilsøking
 
-:::details Verten er oppe, men monitoren sier frakoblet
+:::details Verten er oppe, men monitoren sier offline
 Verten, eller en brannmur foran den, svarer ikke på ICMP-ekkoforespørsler fra sonden. Mange servere og skynettverk dropper ping som standard. Tillat ICMP-ekkoforespørsler fra sondene, eller overvåk heller en tjeneste på verten med en [port-monitor](/docs/monitor/port-monitor). **Nettverksbane på feiltidspunktet** på den mislykkede sjekken viser hvor langt ruten kom.
 :::
 
@@ -150,8 +150,8 @@ Sonden som kjørte sjekken, kan ikke sende ping, så den sjekket i stedet TCP-po
 ## Neste steg
 
 :::cards
-- [IP-overvåking](/docs/monitor/ip-monitor): Overvåk en fast IPv4- eller IPv6-adresse.
-- [Port-overvåking](/docs/monitor/port-monitor): Sjekk en tjeneste på verten, ikke bare verten.
+- [IP-monitor](/docs/monitor/ip-monitor): Overvåk en fast IPv4- eller IPv6-adresse.
+- [Port-monitor](/docs/monitor/port-monitor): Sjekk en tjeneste på verten, ikke bare verten.
 - [Egendefinerte sonder](/docs/probe/custom-probe): Ping verter på ditt eget nettverk.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

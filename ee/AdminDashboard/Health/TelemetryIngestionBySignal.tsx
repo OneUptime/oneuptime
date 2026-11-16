@@ -10,6 +10,8 @@ import {
   TelemetrySignalRow,
 } from "./TelemetryIngestionUtils";
 import URL from "Common/Types/API/URL";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Green, Gray500 } from "Common/Types/BrandColors";
@@ -31,6 +33,8 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -56,6 +60,7 @@ const SignalTile: FunctionComponent<{
   lastHour: number | null;
   sharePercent: number;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const barClass: string = SIGNAL_STYLES[props.telemetryType] || "bg-gray-400";
 
   return (
@@ -70,10 +75,18 @@ const SignalTile: FunctionComponent<{
         </div>
       </div>
       <div className="mt-1 text-xl font-semibold tabular-nums text-gray-900">
-        {formatCompactCount(props.lastDay)}
+        {getFigure(formatCompactCount(props.lastDay))}
       </div>
       <div className="text-xs text-gray-500">
-        rows / 24h · {formatCompactCount(props.lastHour)} in the last hour
+        {formatInline(
+          [
+            translator.translateText("rows / 24h") as string,
+            translator.translateTemplate("{{count}} in the last hour", {
+              count: formatCompactCount(props.lastHour),
+            }),
+          ],
+          translator,
+        )}
       </div>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
         <div
@@ -92,6 +105,7 @@ const SignalTile: FunctionComponent<{
  * view; the by-project card beside it answers "who is filling it".
  */
 const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [data, setData] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -184,19 +198,21 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
           </span>
         </td>
         <td className="px-4 py-2 text-right text-sm tabular-nums">
-          {formatBytes(data.counts.uncompressedBytes)}
+          {getValueOrQuietDash(formatBytes(data.counts.uncompressedBytes))}
         </td>
         <td className="px-4 py-2 text-right text-sm tabular-nums">
-          {formatCount(data.counts.lastMinute)}
+          {getValueOrQuietDash(formatCount(data.counts.lastMinute))}
         </td>
         <td className="px-4 py-2 text-right text-sm tabular-nums">
-          {formatCount(data.counts.lastHour)}
+          {getValueOrQuietDash(formatCount(data.counts.lastHour))}
         </td>
         <td className="px-4 py-2 text-right text-sm tabular-nums">
-          {formatCount(data.counts.lastDay)}
+          {getValueOrQuietDash(formatCount(data.counts.lastDay))}
         </td>
         <td className="py-2 pl-4 text-right text-sm tabular-nums">
-          {formatCount(averagePerHour(data.counts.lastDay))}
+          {getValueOrQuietDash(
+            formatCount(averagePerHour(data.counts.lastDay)),
+          )}
         </td>
       </tr>
     );
@@ -212,7 +228,9 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
     if (!view.connected) {
       return (
         <div className="text-sm text-gray-500">
-          ClickHouse is not reachable from this instance.
+          {translator.translateText(
+            "ClickHouse is not reachable from this instance.",
+          )}
         </div>
       );
     }
@@ -220,7 +238,9 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
     if (view.signals.length === 0) {
       return (
         <div className="text-sm text-gray-500">
-          No telemetry tables reported on this instance.
+          {translator.translateText(
+            "No telemetry tables reported on this instance.",
+          )}
         </div>
       );
     }
@@ -253,11 +273,23 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm text-gray-600">
-            {formatCount(totalLastHour)} telemetry rows ingested in the last
-            hour
-            {totalUncompressedBytes === null
-              ? ""
-              : ` · ${formatBytes(totalUncompressedBytes)} total (actual size)`}
+            {formatInline(
+              [
+                translator.translateTemplate(
+                  "{{count}} telemetry rows ingested in the last hour",
+                  { count: formatCount(totalLastHour) },
+                ),
+                ...(totalUncompressedBytes === null
+                  ? []
+                  : [
+                      translator.translateTemplate(
+                        "{{size}} total (actual size)",
+                        { size: formatBytes(totalUncompressedBytes) },
+                      ),
+                    ]),
+              ],
+              translator,
+            )}
           </div>
           <Statusbubble
             text={isIngesting ? "Ingesting" : "Idle"}
@@ -292,61 +324,61 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
                   className="py-2 pr-4 text-left font-medium"
                   resize={signalColumns.getResize(
                     "signal",
-                    "Signal",
+                    translator.translateText("Signal") as string,
                     ColumnWidthKind.Name,
                   )}
                 >
-                  <span>Signal</span>
+                  <span>{translator.translateText("Signal")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="px-4 py-2 text-right font-medium"
                   resize={signalColumns.getResize(
                     "actualSize",
-                    "Actual size",
+                    translator.translateText("Actual size") as string,
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>Actual size</span>
+                  <span>{translator.translateText("Actual size")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="px-4 py-2 text-right font-medium"
                   resize={signalColumns.getResize(
                     "lastMinute",
-                    "Last minute",
+                    translator.translateText("Last minute") as string,
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>Last minute</span>
+                  <span>{translator.translateText("Last minute")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="px-4 py-2 text-right font-medium"
                   resize={signalColumns.getResize(
                     "lastHour",
-                    "Last hour",
+                    translator.translateText("Last hour") as string,
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>Last hour</span>
+                  <span>{translator.translateText("Last hour")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="px-4 py-2 text-right font-medium"
                   resize={signalColumns.getResize(
                     "lastDay",
-                    "Last 24 hours",
+                    translator.translateText("Last 24 hours") as string,
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>Last 24 hours</span>
+                  <span>{translator.translateText("Last 24 hours")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="py-2 pl-4 text-right font-medium"
                   resize={signalColumns.getResize(
                     "averagePerHour",
-                    "Avg / hour",
+                    translator.translateText("Avg / hour") as string,
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>Avg / hour</span>
+                  <span>{translator.translateText("Avg / hour")}</span>
                 </ResizableHeaderCell>
               </tr>
             </thead>
@@ -375,12 +407,9 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
         </div>
 
         <div className="text-xs text-gray-500">
-          Counts use each signal&apos;s telemetry timestamp (event time), which
-          tracks live ingestion. &quot;Avg / hour&quot; is the last 24 hours
-          divided by 24; &quot;Last hour&quot; is the current hourly rate. The
-          bar under each signal is its share of the last 24 hours&apos; rows.
-          &quot;Actual size&quot; is the uncompressed data volume, not the
-          compressed on-disk size.
+          {translator.translateText(
+            'Counts use each signal\'s telemetry timestamp (event time), which tracks live ingestion. "Avg / hour" is the last 24 hours divided by 24; "Last hour" is the current hourly rate. The bar under each signal is its share of the last 24 hours\' rows. "Actual size" is the uncompressed data volume, not the compressed on-disk size.',
+          )}
         </div>
       </div>
     );

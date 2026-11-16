@@ -86,9 +86,9 @@ Hver mal for varsler er bygget som tvillingen sin for hendelser, trinn for trinn
 
 **Monitorer utløser varsler av seg selv, og det kan bli mange.** **Create a Jira issue when an alert is created** oppretter en sak for hvert eneste ett. Med mindre hvert varsel fortjener en sak, setter du en betingelse foran Jira-trinnet. For bare å opprette saker for varsler med High:
 
-1. Åpne arbeidsflytens **Bygger**, og legg til en **If / Else**-blokk.
+1. Åpne arbeidsflytens **Bygger**, og legg til en **Hvis / Ellers**-blokk.
 2. Sett **Verdi som skal sjekkes** til `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Sammenligning** til **er lik** og **Sammenlign med** til `High`.
-3. Fjern linjen fra `alert-on-create-1` til `prepare-issue-1` ved å dra enden av den bort fra punktet (se [Rydde opp](/docs/workflows/authoring#rydd-opp)). Koble triggerens **Suksess** til **If / Else**-blokken, og dens **Ja** til `prepare-issue-1`.
+3. Fjern linjen fra `alert-on-create-1` til `prepare-issue-1` ved å dra enden av den bort fra punktet (se [Rydde opp](/docs/workflows/authoring#rydd-opp)). Koble triggerens **Suksess** til **Hvis / Ellers**-blokken, og dens **Ja** til `prepare-issue-1`.
 
 Et varsel som tar **Nei**-siden, avslutter kjøringen der, og det opprettes ingen sak for det.
 
@@ -183,7 +183,7 @@ Før du stoler på det:
 Hver kjørings **Trinn** sier hva malen gjorde, så åpne kjøringen i **Logger → Kjøringer** og se hvordan den endte:
 
 - **Utført**: den gjorde jobben sin, og det siste trinnet nevner saken, hendelsen eller varselet.
-- **Utført**, med trinnet **Check With JavaScript** på **Nei**: den hoppet over hendelsen med vilje, og trinnet sier hvorfor: saken er ikke koblet til en post av dette slaget, notatet kom fra Jira, posten er privat, eller den nye tilstanden har ingen Jira-status knyttet til seg.
+- **Utført**, med trinnet **Sjekk med JavaScript** på **Nei**: den hoppet over hendelsen med vilje, og trinnet sier hvorfor: saken er ikke koblet til en post av dette slaget, notatet kom fra Jira, posten er privat, eller den nye tilstanden har ingen Jira-status knyttet til seg.
 - **Feil**: et trinn mislyktes, og oppføringen under **Trinn** sier hvorfor. Ved et Jira-kall inneholder den Jiras svar.
 - **Feil** ved `link-issue-1`: en mal som oppretter en post fra en Jira-sak, opprettet den, men Jira tok ikke imot koblingsetikettene, så de andre malene finner den ikke ennå. Legg til etikettene for hånd.
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Endre hva en mal gjør
 
-Åpne arbeidsflytens **Bygger**, og klikk på blokken du vil endre. Innstillingene du mest sannsynlig vil endre, er konstanter øverst i et skript, **JavaScript-kode** i en **Check With JavaScript**-blokk, rett under den delte hjelpeblokken. Versjonene for hendelser og for varsler av en mal har de samme konstantene i de samme blokkene:
+Åpne arbeidsflytens **Bygger**, og klikk på blokken du vil endre. Innstillingene du mest sannsynlig vil endre, er konstanter øverst i et skript, **JavaScript-kode** i en **Sjekk med JavaScript**-blokk, rett under den delte hjelpeblokken. Versjonene for hendelser og for varsler av en mal har de samme konstantene i de samme blokkene:
 
 | Konstant | Mal og blokk | Hva den styrer |
 | --- | --- | --- |
@@ -271,7 +271,7 @@ Private notater og redigeringskommentarer merkes som interne av `properties`-opp
 ### Begrensninger
 
 - **Bare Jira Cloud.** Malene kaller Jira Clouds REST API v3 med Basic-autentisering. Data Center har ingen v3 og tar et personlig tilgangstoken som `Bearer`, så hver API-blokk trenger endringene i [Jira Data Center](#jira-data-center): stier som `/rest/api/2/...`, vanlige strenger i stedet for innhold i Atlassian Document Format, og overskriften. Blokkene `find-issue-1` endres mest: Data Center har ingen `/search/jql`, så de må gjøre en `POST` til `/rest/api/2/search` i stedet.
-- **Hendelser erklært fra Jira er stille.** De opprettes skjult fra statussidene dine, uten å varsle abonnentene på statussidene, fordi teksten i en sak ikke ble skrevet for kunder. For å vise en slår du på **Synlig på statussiden** på hendelsens side **Innstillinger** (se [Holde en hendelse unna statussiden](/docs/incidents/states-and-severities#hold-en-hendelse-borte-fra-statussiden)), eller slår på **Show On Status Pages** under **Flere felt** i malens `incident-from-another-tool-1`-blokk.
+- **Hendelser erklært fra Jira er stille.** De opprettes skjult fra statussidene dine, uten å varsle abonnentene på statussidene, fordi teksten i en sak ikke ble skrevet for kunder. For å vise en slår du på **Synlig på statussiden** på hendelsens side **Innstillinger** (se [Holde en hendelse unna statussiden](/docs/incidents/states-and-severities#hold-en-hendelse-borte-fra-statussiden)), eller slår på **Vis på statussider** under **Flere felt** i malens `incident-from-another-tool-1`-blokk.
 - **Private hendelser og varsler blir i OneUptime.** Malene OneUptime → Jira hopper over dem, og hver overhopping står i **Logger → Kjøringer**. For å sende dem likevel setter du `SYNC_PRIVATE_INCIDENTS` eller `SYNC_PRIVATE_ALERTS` til `true`. Å gjøre en post privat senere stopper synkroniseringen fra da av, men tar ikke tilbake det Jira allerede har. Malene Jira → OneUptime sjekker ikke dette, så kommentarer, redigeringer og statusendringer på en koblet sak når fortsatt en privat post.
 - **Ingenting går bakover.** Å gjenåpne en Jira-sak endrer ingenting i OneUptime, og en status i kategorien To Do svarer ikke til noen tilstand. Se [Rekkefølgen er en reell begrensning](/docs/incidents/states-and-severities#rekkefølgen-er-en-reell-begrensning-ikke-en-visningspreferanse). Overgangsmalene flytter heller aldri en sak til en tidligere statuskategori.
 - **Hvert varsel får en sak.** Bortsett fra private varsler oppretter malen for varsler som oppretter saker, en sak for hvert varsel, også hvert varsel en monitor utløser. [Hva som er annerledes for varsler](#hva-som-er-annerledes-for-varsler) viser hvordan du legger til en betingelse.
@@ -306,8 +306,8 @@ Tokener utløper som standard etter ett år og fornyes ikke. For å slippe å by
 ### Opprett en Jira-sak for hver hendelse
 
 :::steps
-1. Opprett en arbeidsflyt fra bunnen som heter `Incidents to Jira`. Klikk på den stiplede blokken, og legg til triggeren **On Create Incident**. **Fields to pass on** starter med **Tittel**: klikk på **Legg til felt**, og velg **Beskrivelse** og **Hendelsesnummer**. ID-en sendes alltid videre. La **Identifier** stå som `incident-on-create-1`.
-2. Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og koble triggerens **Suksess**-punkt til den. Sett **Identifier** til `create-issue`, **URL** til `{{global.variables.JIRA_URL}}/rest/api/3/issue` og, under **Flere felt**, **Forespørselshoder** til `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
+1. Opprett en arbeidsflyt fra bunnen som heter `Incidents to Jira`. Klikk på den stiplede blokken, og legg til triggeren **Ved oppretting: Hendelse**. **Felt som sendes videre** starter med **Tittel**: klikk på **Legg til felt**, og velg **Beskrivelse** og **Hendelsesnummer**. ID-en sendes alltid videre. La **Identifier** stå som `incident-on-create-1`.
+2. Klikk på **Legg til komponent**, legg til en **API-kall POST (JSON)**-blokk, og koble triggerens **Suksess**-punkt til den. Sett **Identifier** til `create-issue`, **URL** til `{{global.variables.JIRA_URL}}/rest/api/3/issue` og, under **Flere felt**, **Forespørselshoder** til `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Sett **Forespørselstekst** til saken, og erstatt `OPS` og `Bug` med prosjektnøkkelen din og en sakstype i det prosjektet:
 
    ```json
@@ -371,7 +371,7 @@ Hver halvdel av en toveissynkronisering trenger at ett system tar vare på det a
 
 En Jira-administrator kan i stedet legge til et kort egendefinert tekstfelt, for eksempel med navnet OneUptime Incident ID, som du setter som `"customfield_10050": "{{local.components.incident-on-create-1.returnValues.model._id}}"`. Det er enklere å lese tilbake enn en etikett.
 
-For å gi alle i Jira en vei tilbake legger du til en **API Post (JSON)**-blokk etter `create-issue` som legger ut en ekstern lenke på `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink`:
+For å gi alle i Jira en vei tilbake legger du til en **API-kall POST (JSON)**-blokk etter `create-issue` som legger ut en ekstern lenke på `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink`:
 
 ```json
 {
@@ -383,16 +383,16 @@ For å gi alle i Jira en vei tilbake legger du til en **API Post (JSON)**-blokk 
 }
 ```
 
-Klikk for dette på **Legg til felt** i triggerens **Fields to pass on**, velg **Prosjekt-ID**, og behold `.value`: en kolonne som inneholder en annen posts ID, kommer frem som `{"_type": "ObjectID", "value": "..."}`. `globalId` gjør kallet trygt å gjenta: Jira oppdaterer lenken som har den, i stedet for å legge til en ny.
+Klikk for dette på **Legg til felt** i triggerens **Felt som sendes videre**, velg **Prosjekt-ID**, og behold `.value`: en kolonne som inneholder en annen posts ID, kommer frem som `{"_type": "ObjectID", "value": "..."}`. `globalId` gjør kallet trygt å gjenta: Jira oppdaterer lenken som har den, i stedet for å legge til en ny.
 
 ### Kommenter og gjør overganger etter hvert som hendelsen går fremover
 
 Bygg dette som en egen arbeidsflyt, slik at en feil her aldri hindrer at saker opprettes.
 
 :::steps
-1. Opprett en arbeidsflyt som heter `Incident updates to Jira`, med triggeren **On Update Incident**. Klikk på **Legg til felt** i **Fields to watch**, og velg **Current Incident State**. Klikk på **Legg til felt** i **Fields to pass on**, åpne **Current Incident State**, og velg **Navn**.
-2. Legg til en **If / Else**-blokk: **Verdi som skal sjekkes** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Sammenligning** **er lik**, **Sammenlign med** `Resolved`, eller navnet på den løste tilstanden din.
-3. Finn saken etter **Ja**-siden med en **API Post (JSON)**-blokk der **Identifier** er `find-issue`, som sender til `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
+1. Opprett en arbeidsflyt som heter `Incident updates to Jira`, med triggeren **Ved oppdatering: Hendelse**. Klikk på **Legg til felt** i **Felt som overvåkes**, og velg **Current Incident State**. Klikk på **Legg til felt** i **Felt som sendes videre**, åpne **Current Incident State**, og velg **Navn**.
+2. Legg til en **Hvis / Ellers**-blokk: **Verdi som skal sjekkes** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Sammenligning** **er lik**, **Sammenlign med** `Resolved`, eller navnet på den løste tilstanden din.
+3. Finn saken etter **Ja**-siden med en **API-kall POST (JSON)**-blokk der **Identifier** er `find-issue`, som sender til `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
    ```json
    {
@@ -407,8 +407,8 @@ Bygg dette som en egen arbeidsflyt, slik at en feil her aldri hindrer at saker o
 
 Send JQL-en i innholdet i stedet for å legge den i URL-en: en URL sendes nøyaktig slik den er skrevet, uten å bli kodet for deg, og JQL er full av mellomrom, anførselstegn og `=`-tegn. En spørring må være avgrenset, og det er derfor `project =`-delen er med. På Cloud er endepunktet `/rest/api/3/search/jql`; det eldre `/rest/api/3/search` finnes ikke lenger.
 
-- **Kommentar**: en **API Post (JSON)**-blokk til `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, med et dokument som `body`: `{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`.
-- **Overgang**: en **API Get (JSON)**-blokk på `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` viser overgangene som er åpne fra sakens status, hver med en `id`, et `name` og statusen den fører til, `to`. En **API Post (JSON)**-blokk til samme URL med `{"transition": {"id": "31"}}` utfører en og svarer `204`.
+- **Kommentar**: en **API-kall POST (JSON)**-blokk til `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, med et dokument som `body`: `{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`.
+- **Overgang**: en **API-kall GET (JSON)**-blokk på `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` viser overgangene som er åpne fra sakens status, hver med en `id`, et `name` og statusen den fører til, `to`. En **API-kall POST (JSON)**-blokk til samme URL med `{"transition": {"id": "31"}}` utfører en og svarer `204`.
 
 En overgangs-ID hører til sakens Jira-arbeidsflyt, så en Jira-administrator som redigerer den arbeidsflyten, kan ødelegge en ID som er skrevet inn fast. Å lese listen når arbeidsflyten kjører, slik malene gjør, unngår det.
 
@@ -425,7 +425,7 @@ Bygg først den mottakende arbeidsflyten:
 
    En selvhostet installasjon bruker sin egen vert. Behandle URL-en som et passord: alle som har den, kan starte arbeidsflyten. Hvis den lekker, klikker du på **Tilbakestill URL** på samme sted, og den gamle URL-en slutter å virke med en gang.
 
-3. Legg til en **Update One Incident**-blokk fra triggeren. Sett **Spørring** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, og **Data (JSON Object)** til endringen, f.eks. en ny `currentIncidentStateId`. En **Find One Incident State**-blokk med spørringen `{"name": "Resolved"}` gir deg den ID-en som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Legg til en **Oppdater Hendelse (én post)**-blokk fra triggeren. Sett **Spørring** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, og **Data (JSON-objekt)** til endringen, f.eks. en ny `currentIncidentStateId`. En **Finn Hendelsesstatus (én post)**-blokk med spørringen `{"name": "Resolved"}` gir deg den ID-en som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Slå den på, og få deretter Jira til å kalle den, fra en automatiseringsregel eller fra en webhook:
 
@@ -443,17 +443,17 @@ Slå den på, og få deretter Jira til å kalle den, fra en automatiseringsregel
    }
    ```
 
-   Med en etikett i stedet for et egendefinert felt sender du `"labels": "{{issue.labels}}"` og henter ut ID-en med en **Run Custom JavaScript**-blokk.
+   Med en etikett i stedet for et egendefinert felt sender du `"labels": "{{issue.labels}}"` og henter ut ID-en med en **Kjør egen JavaScript**-blokk.
 
 4. Slå på regelen, og flytt en testsak til Done. Sjekk regelens revisjonslogg i Jira, og **Logger → Kjøringer** i OneUptime.
 
-For å være sikker på at en forespørsel kommer fra regelen din, legger du til en ekstra overskrift, `X-OneUptime-Secret`, med en verdi du finner på selv, og bruker handlingens alternativ **Hide** på den. Sett en **If / Else**-blokk før oppdateringen i arbeidsflyten: **Verdi som skal sjekkes** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Sammenligning** **er lik** og **Sammenlign med** den samme verdien, lagret i en hemmelig global variabel.
+For å være sikker på at en forespørsel kommer fra regelen din, legger du til en ekstra overskrift, `X-OneUptime-Secret`, med en verdi du finner på selv, og bruker handlingens alternativ **Hide** på den. Sett en **Hvis / Ellers**-blokk før oppdateringen i arbeidsflyten: **Verdi som skal sjekkes** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Sammenligning** **er lik** og **Sammenlign med** den samme verdien, lagret i en hemmelig global variabel.
 
 Send web request kaller bare portene 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900 og 9900. Jira Cloud trekker regelkjøringer fra en månedlig kvote som avhenger av abonnementet ditt, så en regel på hver overgang i et travelt prosjekt blir fort mye.
 @tab Jira webhook
 1. Gå som Jira-administrator til **Settings → System → WebHooks** (under **Advanced**), og klikk på **Create a WebHook**.
 2. Lim inn arbeidsflytens URL, kryss av for **Issue updated**, og skriv inn et JQL-filter, f.eks. `project = OPS AND labels = oneuptime`.
-3. Les Jiras egen payload i arbeidsflyten: `issue` inneholder saken, og `changelog.items` inneholder hvert endret felt, før og etter. For en statusendring tar du elementet der `field` er `status`. En **Run Custom JavaScript**-blokk er den enkleste måten å lese det på.
+3. Les Jiras egen payload i arbeidsflyten: `issue` inneholder saken, og `changelog.items` inneholder hvert endret felt, før og etter. For en statusendring tar du elementet der `field` er `status`. En **Kjør egen JavaScript**-blokk er den enkleste måten å lese det på.
 
 En webhook kan ha en hemmelighet, og da signerer Jira innholdet i en `X-Hub-Signature`-overskrift. En arbeidsflyt kan ikke sjekke den, fordi Webhook-triggeren sender videre et innhold som allerede er lest som JSON. Jira prøver en mislykket levering på nytt opptil fem ganger, så arbeidsflyten må tåle å få den samme hendelsen to ganger.
 :::
@@ -466,17 +466,17 @@ Start med malene for varsler i [Start fra en mal](#start-fra-en-mal). For å byg
 
 | Hendelse | Varsel |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | Ingen: varsler har ingen offentlige notater |
+| **Ved oppretting: Hendelse** (`incident-on-create-1`) | **Ved oppretting: Varsel** (`alert-on-create-1`) |
+| **Ved oppdatering: Hendelse** (`incident-on-update-1`) | **Ved oppdatering: Varsel** (`alert-on-update-1`) |
+| **Ved oppretting: Internt hendelsesnotat** | **Ved oppretting: Internt notat for varsel** |
+| **Ved oppretting: Offentlig hendelsesnotat** | Ingen: varsler har ingen offentlige notater |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Finn Hendelsesstatus (én post)** | **Finn Varselsstatus (én post)** |
+| **Oppdater Hendelse (én post)** | **Oppdater Varsel (én post)** |
 | Etikett `oneuptime-incident-<incident id>` | Etikett `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
-En arbeidsflyt har nøyaktig én trigger, så hendelser og varsler trenger én arbeidsflyt hver. For å gjøre det samme Jira-arbeidet for begge bygger du det én gang i en arbeidsflyt med en **Manuell**-trigger og starter den fra begge med en **Execute Workflow**-blokk.
+En arbeidsflyt har nøyaktig én trigger, så hendelser og varsler trenger én arbeidsflyt hver. For å gjøre det samme Jira-arbeidet for begge bygger du det én gang i en arbeidsflyt med en **Manuell**-trigger og starter den fra begge med en **Kjør en annen arbeidsflyt**-blokk.
 
 ## Jira Data Center
 
@@ -532,7 +532,7 @@ Sjekk basis-URL-en og API-versjonen: `/rest/api/3/...` på Cloud, `/rest/api/2/.
 :::
 
 :::details 429 Too Many Requests
-Jira begrenser hvor fort du kaller den. Svaret inneholder `Retry-After`, i sekunder. Skrivinger til én sak er strengt begrenset, så en arbeidsflyt som kommenterer og gjør en overgang rett etter hverandre, kan treffe grensen. Sett en **Sleep**-blokk mellom kallene, eller flytt massearbeid til en planlagt arbeidsflyt.
+Jira begrenser hvor fort du kaller den. Svaret inneholder `Retry-After`, i sekunder. Skrivinger til én sak er strengt begrenset, så en arbeidsflyt som kommenterer og gjør en overgang rett etter hverandre, kan treffe grensen. Sett en **Pause**-blokk mellom kallene, eller flytt massearbeid til en planlagt arbeidsflyt.
 :::
 
 :::details Overgangskallet svarer 400
@@ -544,7 +544,7 @@ Sjekk porten først: Jira kaller bare de tillatte portene. Send deretter en fore
 :::
 
 :::details Arbeidsflyten kjører, men hendelsen endres ikke
-En **Update One Incident**-blokk rapporterer `Items Updated: 0` når spørringen ikke samsvarte med noe, og det er en suksess, ikke en feil. Sjekk at ID-en i forespørselen virkelig er OneUptime-hendelsens, og at du spør på `_id`.
+En **Oppdater Hendelse (én post)**-blokk rapporterer `Items Updated: 0` når spørringen ikke samsvarte med noe, og det er en suksess, ikke en feil. Sjekk at ID-en i forespørselen virkelig er OneUptime-hendelsens, og at du spør på `_id`.
 :::
 
 :::details En referanse vises slik den er skrevet i en Jira-sak

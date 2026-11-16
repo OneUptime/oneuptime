@@ -1,5 +1,6 @@
 import { anchorsOf, readPage } from "./DocsContentSupport";
 import { drawnActionLabel } from "./DocsDashboardLabels";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import {
@@ -201,8 +202,9 @@ describe("the Paging section of the Components guide", () => {
         rows: rowNames(sectionOf(language)).slice(0, titles.length),
       }).toEqual({
         language,
+        // As the Add Component panel and the canvas title them (#8359).
         rows: titles.map((title: string): string => {
-          return `**${title}**`;
+          return `**${drawnActionLabel(language, title)}**`;
         }),
       });
     }
@@ -302,14 +304,17 @@ describe("the Paging section of the Components guide", () => {
       const row: string = sectionOf(language)
         .split("\n")
         .find((line: string): boolean => {
-          return line.startsWith("| **Page About**");
+          return line.startsWith(
+            `| **${drawnActionLabel(language, "Page About")}**`,
+          );
         }) as string;
 
+      // As the setting's choices are drawn (#8359).
       for (const choice of choices) {
         expect({
           language,
           choice,
-          named: row.includes(`**${choice}**`),
+          named: row.includes(`**${drawnActionLabel(language, choice)}**`),
         }).toEqual({ language, choice, named: true });
       }
     }
@@ -421,14 +426,30 @@ describe("the Paging section of the Components guide", () => {
     ]);
 
     for (const language of LANGUAGES) {
-      // The steps' titles have no word in any locale; their outputs do (#7511).
+      /*
+       * The outputs read as the canvas draws them (#7511), and so do the
+       * built-in steps' titles (#8359), and a record step's (On Create
+       * Incident), as the sentence it was built from (#8708).
+       */
       const drawn: Array<string> = english.map((line: string): string => {
         return line
           .replace(
             '|"Success"|',
             `|"${drawnActionLabel(language, "Success")}"|`,
           )
-          .replace('|"Yes"|', `|"${drawnActionLabel(language, "Yes")}"|`);
+          .replace('|"Yes"|', `|"${drawnActionLabel(language, "Yes")}"|`)
+          .replace(
+            '["On Create Incident"]',
+            `["${drawnStepName(language, "On Create Incident")}"]`,
+          )
+          .replace(
+            '["If / Else"]',
+            `["${drawnActionLabel(language, "If / Else")}"]`,
+          )
+          .replace(
+            '["Page Whoever Is On Call"]',
+            `["${drawnActionLabel(language, "Page Whoever Is On Call")}"]`,
+          );
       });
 
       expect({ language, diagram: diagramOf(sectionOf(language)) }).toEqual({

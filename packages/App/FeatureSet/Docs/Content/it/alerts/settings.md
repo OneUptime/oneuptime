@@ -123,7 +123,7 @@ Le **Regole del proprietario** aggiungono utenti e team proprietari ai nuovi avv
 
 ## Regole di privacy e di runbook
 
-Le **Regole di privacy** rendono privati i nuovi avvisi corrispondenti, prima che giri qualsiasi altra cosa: solo i loro proprietari e gli amministratori e proprietari del progetto possono vederli. Una regola ha due passaggi: **Corrispondenza**, gli avvisi che rende privati, poi **Nome**, già compilato come «Rendi privati gli avvisi». Vedere [Avvisi privati](/docs/alerts/index#avvisi-privati).
+Le **Regole di privacy** rendono privati i nuovi avvisi corrispondenti, prima che giri qualsiasi altra cosa: solo i loro proprietari e gli Amministratori del progetto e Proprietari del progetto possono vederli. Una regola ha due passaggi: **Corrispondenza**, gli avvisi che rende privati, poi **Nome**, già compilato come «Rendi privati gli avvisi». Vedere [Avvisi privati](/docs/alerts/index#avvisi-privati).
 
 Le **Regole di runbook** avviano un runbook quando un nuovo avviso corrisponde, a meno che l'avviso non sia stato creato risolto. Vedere [Regole di runbook](/docs/runbooks/rules).
 
@@ -178,7 +178,7 @@ La scheda **Numero successivo** sotto imposta il numero che ricevono il prossimo
 
 ## Flussi di lavoro
 
-Ogni modello di avviso ha trigger e azioni dei flussi di lavoro che portano il suo nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, lo stesso per **Episodio di avvisi**, **Cronologia stati dell'avviso** e gli altri, e azioni come **Create One Alert** e **Update One Alert**. Le definizioni dei campi personalizzati degli avvisi sono l'unica eccezione: non hanno trigger del flusso di lavoro. Vedere [Panoramica dei flussi di lavoro](/docs/workflows/index).
+Ogni modello di avviso ha trigger e azioni dei flussi di lavoro che portano il suo nome: **Alla creazione: Avviso**, **All'aggiornamento: Avviso**, **Alla creazione o all'aggiornamento: Avviso** e **All'eliminazione: Avviso**, lo stesso per **Episodio di avvisi**, **Cronologia stati dell'avviso** e gli altri, e azioni come **Crea: Avviso (un record)** e **Aggiorna: Avviso (un record)**. Le definizioni dei campi personalizzati degli avvisi sono l'unica eccezione: non hanno trigger del flusso di lavoro. Vedere [Panoramica dei flussi di lavoro](/docs/workflows/index).
 
 ## Chi può modificarle
 

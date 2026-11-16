@@ -60,7 +60,7 @@ Dans l'application, ouvrez **Paramètres utilisateur → Méthodes de notificati
 Cliquez sur **Enregistrer l'appareil**, gardez la valeur proposée dans **Nom de l'appareil**, par exemple `Chrome on Linux`, ou modifiez-la, puis cliquez de nouveau sur **Enregistrer l'appareil**. Quand le navigateur demande si OneUptime peut afficher des notifications, choisissez **Autoriser**.
 
 ### Envoyer un test
-Dans la boîte de dialogue **Browser Registered**, cliquez sur **Send Test Notification**. Votre bureau l'affiche par son service de notifications ; si rien n'apparaît, voir [Dépannage](#dépannage).
+Dans la boîte de dialogue **Navigateur enregistré**, cliquez sur **Envoyer une notification de test**. Votre bureau l'affiche par son service de notifications ; si rien n'apparaît, voir [Dépannage](#dépannage).
 :::
 
 Un navigateur ne peut pas sonner malgré le Ne pas déranger de votre bureau. Pour les alertes qui doivent vous réveiller, utilisez l'application mobile avec les alertes critiques : voir [Installation Android](/docs/mobile-desktop-apps/android-installation#sonner-malgré-le-mode-silencieux).

@@ -69,7 +69,6 @@ const SAME_AS_ENGLISH: Array<string> = [
   "subscribe.microsoftTeams.workspaceNamePlaceholder",
   "subscribe.slack.webhookUrlPlaceholder",
   "subscribe.slack.workspaceNamePlaceholder",
-  "subscribe.sms.placeholder",
   "subscribe.webhook.webhookUrlPlaceholder",
 ];
 
@@ -207,11 +206,15 @@ describe("a status page read in Arabic", () => {
   });
 
   test("nothing is left in English but product names and examples", () => {
+    // A text of placeholders and punctuation alone ("{{channel}}:") has no words to translate.
+    const WITH_WORDS: RegExp = /\p{L}/u;
     const sameAsEnglish: Array<string> = Object.keys(ENGLISH)
       .filter((path: string): boolean => {
         return (
           ENGLISH[path] === ARABIC[path] &&
-          (ENGLISH[path] as string).trim() !== ""
+          WITH_WORDS.test(
+            (ENGLISH[path] as string).replace(/\{\{[^{}]*\}\}/g, ""),
+          )
         );
       })
       .sort();

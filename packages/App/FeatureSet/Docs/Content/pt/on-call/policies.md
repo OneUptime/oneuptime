@@ -20,7 +20,7 @@ Uma política de plantão decide quem é acionado por um incidente ou alerta, e 
 
 **Quem é acionado primeiro?** é opcional, e só é perguntado a quem pode adicionar regras de escalonamento: se ficar vazio, a política não aciona ninguém até ter uma regra. **Descrição** e **Rótulos** ficam em **Mais campos**. Para adicionar os próximos níveis, veja [Regras de escalonamento](/docs/on-call/escalation-rules).
 
-Na primeira política de um projeto, o formulário também pergunta **Dispará-la a cada novo incidente e a cada novo alerta**, que começa ativado. Ele adiciona uma regra em **Incidentes → Regras → Regras de Plantão** e outra em **Alertas → Regras → Regras de Plantão**, cada uma correspondendo a tudo e executando esta política. Só é perguntado a quem pode adicionar regras de plantão, enquanto o projeto não tiver nenhuma política de plantão nem regra de plantão.
+Na primeira política de um projeto, o formulário também pergunta **Dispará-la a cada novo incidente e a cada novo alerta**, que começa ativado. Ele adiciona uma regra em **Incidentes → Regras → Regras de plantão** e outra em **Alertas → Regras → Regras de plantão**, cada uma correspondendo a tudo e executando esta política. Só é perguntado a quem pode adicionar regras de plantão, enquanto o projeto não tiver nenhuma política de plantão nem regra de plantão.
 
 A lista **Políticas de plantão** mostra de cada política o **Nome**, a **Descrição**, os **Rótulos** e os **Proprietários**. Selecione políticas para **Adicionar rótulos**, **Remover rótulos**, **Adicionar proprietário**, **Remover proprietário**, **Arquivar**, **Exportar JSON** ou excluí-las. **Importar JSON** cria políticas a partir de uma exportação: uma exportação contém as configurações próprias de uma política, não suas regras de escalonamento nem seus proprietários.
 
@@ -31,7 +31,7 @@ Uma política não aciona ninguém até que algo a execute. Cada incidente, aler
 | O quê | Como adiciona a política | Saiba mais |
 | --- | --- | --- |
 | O próprio registro | O campo **Política de plantão** ao criar um incidente ou alerta, um modelo de incidente, ou a seção recolhida **Plantão** dos critérios de um monitor | [Declarar um incidente](/docs/incidents/declaring-incidents) |
-| Regras de plantão | **Incidentes → Regras → Regras de Plantão** e **Alertas → Regras → Regras de Plantão** adicionam as políticas de cada regra que corresponde | [Regras de plantão de incidente](/docs/incidents/settings#regras-de-plantão-de-incidente) |
+| Regras de plantão | **Incidentes → Regras → Regras de plantão** e **Alertas → Regras → Regras de plantão** adicionam as políticas de cada regra que corresponde | [Regras de plantão de incidente](/docs/incidents/settings#regras-de-plantão-de-incidente) |
 | Regras de agrupamento | Uma regra de agrupamento executa suas políticas quando abre um episódio | [Episódios de alertas e regras de agrupamento](/docs/alerts/episodes) |
 | À mão | **Executar política de plantão**, no menu **Ações** de um feed, ou em uma mensagem do Slack ou do Microsoft Teams | [O feed do incidente](/docs/incidents/notes-owners-and-feed#o-feed-do-incidente) |
 | Chat e workflows | `/oneuptime page` no Slack ou no Microsoft Teams, e a etapa **Page an On-Call Policy** de um workflow | [Paging](/docs/workflows/components#paging) |
@@ -51,8 +51,8 @@ Abra uma política a partir da lista. O menu lateral dela reúne tudo sobre ela:
 
 **Básico** fica aberta; as outras seções começam recolhidas até você clicar nelas.
 
-- **Visão geral** mostra os **Detalhes da política de Plantão** e depois **Política em resumo**: quantos níveis e destinatários a política tem, quanto tempo falta até o último nível e quantas vezes ela se repete. **Prontidão dos destinatários** diz se cada pessoa que ela pode acionar pode ser contatada agora, e **Feed da política de plantão** lista o que mudou: pessoas, equipes e agendamentos adicionados ou removidos, substituições e passagens de turno. As regras dela para Slack, Microsoft Teams e Mattermost as publicam nos seus canais, uma passagem de turno em uma linha: veja [Mensagens de plantão](/docs/workspace-connections/slack#mensagens-de-plantão).
-- Os **Proprietários** são as pessoas e as equipes responsáveis pela política. Quando um acionamento que ela envia não encontra regra para alguém, ou não pode ser entregue, eles recebem um e-mail; uma política sem proprietários escreve aos proprietários do projeto.
+- **Visão geral** mostra os **Detalhes da política de plantão** e depois **Política em resumo**: quantos níveis e destinatários a política tem, quanto tempo falta até o último nível e quantas vezes ela se repete. **Prontidão dos destinatários** diz se cada pessoa que ela pode acionar pode ser contatada agora, e **Feed da política de plantão** lista o que mudou: pessoas, equipes e agendamentos adicionados ou removidos, substituições e passagens de turno. As regras dela para Slack, Microsoft Teams e Mattermost as publicam nos seus canais, uma passagem de turno em uma linha: veja [Mensagens de plantão](/docs/workspace-connections/slack#mensagens-de-plantão).
+- Os **Proprietários** são as pessoas e as equipes responsáveis pela política. Quando um acionamento que ela envia não encontra regra para alguém, ou não pode ser entregue, eles recebem um e-mail; uma política sem proprietários escreve aos Proprietários do projeto.
 - **Logs de notificação** lista cada mensagem que a política enviou, com uma aba por canal.
 - **Substituições de usuário** cobre pessoas só nesta política. Veja [Substituições de usuário](/docs/on-call/user-overrides).
 - **Configurações** tem **Exportar: Política de plantão** e o cartão que arquiva a política.
@@ -85,8 +85,10 @@ Quem é acionado de novo confirma pela mensagem, ou com **Confirmar de novo** na
 
 Um incidente, alerta ou episódio executa cada uma das suas políticas por conta própria, ao mesmo tempo.
 
-- Quem está de plantão em duas delas é acionado pelas duas, uma vez por cada uma: o OneUptime não junta os acionamentos de políticas diferentes. Dentro de uma política, alguém que um nível cita duas vezes, pessoalmente e por meio de uma equipe ou de um agendamento, é acionado uma só vez.
+- Quem está de plantão em duas delas é acionado uma só vez. Quando o nível de uma política chega a alguém que outra política já está acionando sobre isso, ele não aciona essa pessoa de novo: o registro de execução da política mostra a pessoa como **Já chamado**, e o feed do incidente e a mensagem da política no Slack e no Microsoft Teams citam a política que está acionando a pessoa. Mesmo assim, o nível espera os seus minutos antes do próximo nível, como faz com qualquer pessoa que acionou. Responder a esse único acionamento vale para as duas políticas. Dentro de uma política, alguém que um nível cita duas vezes, pessoalmente e por meio de uma equipe ou de um agendamento, é acionado uma só vez.
 - Confirmar o incidente ou alerta encerra em até um minuto todas as políticas em execução para ele, onde quer que seja confirmado: em qualquer acionamento sobre ele, na sua própria página, no aplicativo móvel ou no Slack ou no Microsoft Teams. Nenhum próximo nível é acionado, e nenhuma ligação ou SMS que ainda esperava para sair é enviado. As notificações já enviadas continuam enviadas.
+
+Ninguém perde um acionamento por ser acionado uma só vez. Esse único acionamento pode terminar sem resposta: a pessoa o escalona por uma das mensagens dele, o que só escalona essa política, o acionamento não pode ser enviado, ou a política dele termina. Então a outra política aciona a pessoa por conta própria em até um minuto, sem enviar de novo o que já chegou a ela. **Escalonar** na página do incidente ou no aplicativo móvel escalona as duas. Um novo acionamento, uma política iniciada à mão e um acionamento que alguém enviou pelo Slack ou pelo Microsoft Teams sempre acionam as suas pessoas por conta própria, mesmo alguém que outra política está acionando. O acionamento de um observador e o de um destinatário nunca são juntados.
 
 Alguns acionamentos continuam depois da confirmação, até que alguém que eles acionaram responda ou que seja resolvido: um novo acionamento, um acionamento a observadores, um acionamento que alguém enviou a pessoas pelo Slack ou pelo Microsoft Teams, e uma política iniciada à mão.
 
@@ -123,7 +125,7 @@ Você encontra registros de execução em três lugares:
 - em **Plantão → Avançado → Registros de execução**, para todas as políticas, onde os acionamentos diretos de workflows e do chat aparecem como **Acionamento direto**;
 - na página **Execuções de plantão** de um incidente ou de um alerta.
 
-Cada linha mostra o que disparou a execução, quando, seu **Status** e quem a confirmou. **Ver linha do tempo** abre a **Linha do tempo de execução** dela: cada regra de escalonamento, quem ela acionou, por qual agendamento e como cada acionamento terminou. **Notificado por** mostra como cada acionamento chegou à pessoa: chamada telefônica, SMS, e-mail, notificação push e assim por diante. Um agendamento sem ninguém de plantão mostra **Ninguém estava de plantão** no lugar de uma pessoa. Um nível que não acionou ninguém diz por quê, com **Seguiu sem esperar** embaixo: a política não esperou por ele. No OneUptime Cloud, os registros de execução precisam do plano **Growth**.
+Cada linha mostra o que disparou a execução, quando, seu **Status** e quem a confirmou. **Ver linha do tempo** abre a **Linha do tempo de execução** dela: cada regra de escalonamento, quem ela acionou, por qual agendamento e como cada acionamento terminou. **Notificado por** mostra como cada acionamento chegou à pessoa: chamada telefônica, SMS, e-mail, notificação push e assim por diante. Um agendamento sem ninguém de plantão mostra **Ninguém estava de plantão** no lugar de uma pessoa. Um nível que não acionou ninguém diz por quê, com **Seguiu sem esperar** embaixo: a política não esperou por ele. Alguém que outra política já estava acionando mostra **Já chamado**: veja [Quando várias políticas acionam](#quando-várias-políticas-acionam). No OneUptime Cloud, os registros de execução precisam do plano **Growth**.
 
 ## Arquivar ou excluir uma política
 
@@ -176,7 +178,7 @@ A política está arquivada: uma política arquivada continua nos incidentes e a
 :::
 
 :::details Alguém foi acionado duas vezes pelo mesmo incidente
-A pessoa está de plantão em duas das políticas que o incidente executa, e cada política aciona as suas próprias pessoas. Confirmar o incidente por qualquer um dos dois acionamentos encerra os dois. Para que a pessoa seja acionada uma só vez, coloque as duas equipes ou agendamentos no mesmo nível de uma política.
+Quem está de plantão em duas das políticas que o incidente executa é acionado uma só vez, pela primeira política que chega até essa pessoa. A segunda também aciona a pessoa quando se trata de um novo acionamento, de uma política iniciada à mão, de um acionamento enviado pelo Slack ou pelo Microsoft Teams ou de um acionamento a observadores, que acionam as suas pessoas por conta própria, ou quando o primeiro acionamento dela já tinha terminado antes de a segunda chegar até ela: a pessoa o tinha escalonado, ou a política dele tinha sido encerrada. **Ver linha do tempo** da segunda política mostra **Já chamado** para quem ela não acionou de novo.
 :::
 
 :::details Uma política continuou acionando depois que o incidente foi confirmado

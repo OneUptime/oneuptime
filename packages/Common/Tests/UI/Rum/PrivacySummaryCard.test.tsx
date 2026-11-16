@@ -81,7 +81,7 @@ describe("buildPrivacySummary", () => {
       "Only a country code is stored",
     );
     expect(sentence(sentences, "retention").text).toContain(
-      "deleted after 7 days",
+      "deleted after 7\u00A0days",
     );
     expect(sentence(sentences, "consent").text).toContain(
       "does not wait for consent",
@@ -244,7 +244,7 @@ describe("buildPrivacySummary", () => {
   it("retention quotes the days and flags long retention", () => {
     expect(
       sentence(buildPrivacySummary({ retentionInDays: 1 }), "retention").text,
-    ).toContain("deleted after 1 day");
+    ).toContain("deleted after 1\u00A0day");
     expect(
       sentence(buildPrivacySummary({ retentionInDays: 90 }), "retention")
         .isSensitive,

@@ -41,7 +41,15 @@ type GetTimezoneOptionsFunction = () => Array<DropdownOption>;
 const getTimezoneOptions: GetTimezoneOptionsFunction =
   (): Array<DropdownOption> => {
     if (!cachedTimezoneOptions) {
-      cachedTimezoneOptions = TimezoneUtil.getTimezoneDropdownOptions();
+      /*
+       * A zone's name and offset ("GMT+5:30 Asia/Kolkata") are data, drawn
+       * as written: never looked up in the reader's words (#8479).
+       */
+      cachedTimezoneOptions = TimezoneUtil.getTimezoneDropdownOptions().map(
+        (option: DropdownOption): DropdownOption => {
+          return { ...option, isUserContent: true };
+        },
+      );
     }
 
     return cachedTimezoneOptions;
@@ -160,7 +168,7 @@ export default class DashboardClockComponentUtil extends DashboardBaseComponentU
     componentArguments.push({
       name: "Show Date",
       description:
-        "Show the day and date under the time — worth keeping on when the zone is a day ahead or behind.",
+        "Show the day and date under the time — worth keeping on when the time zone is a day ahead or behind.",
       required: false,
       type: ComponentInputType.Boolean,
       id: "showDate",
@@ -170,7 +178,7 @@ export default class DashboardClockComponentUtil extends DashboardBaseComponentU
     componentArguments.push({
       name: "Show Timezone",
       description:
-        "Show the zone abbreviation (EDT, GMT+05:30) so the time is never ambiguous.",
+        "Show the time zone abbreviation (EDT, GMT+05:30) so the time is never ambiguous.",
       required: false,
       type: ComponentInputType.Boolean,
       id: "showTimezoneAbbreviation",

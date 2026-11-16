@@ -122,8 +122,8 @@ Com dois ou mais filtros, **Condição de correspondência** decide se **Todos**
 
 Um monitor de domínio novo começa com três critérios, então ele avisa você antes que um registro vença sem configurar nada:
 
-1. **A verificação do domínio falhou** — o registro venceu, ou os dados de registro dele não puderam ser lidos. O monitor é marcado como **Offline** e um incidente chamado "_monitor name_ domain check failed" é criado. O incidente se resolve sozinho assim que o registro volta a ser lido e está em dia.
-2. **O domínio vence em breve** — o registro não venceu, mas vence em 30 dias ou menos. Um **alerta** chamado "_monitor name_ domain expires soon" é criado.
+1. **A verificação do domínio falhou** — o registro venceu, ou os dados de registro dele não puderam ser lidos. O monitor é marcado como **Offline** e um incidente chamado "A verificação do domínio _nome do monitor_ falhou" é criado. O incidente se resolve sozinho assim que o registro volta a ser lido e está em dia.
+2. **O domínio vence em breve** — o registro não venceu, mas vence em 30 dias ou menos. Um **alerta** chamado "O domínio _nome do monitor_ expira em breve" é criado.
 3. **O domínio não venceu** — o monitor é marcado como **Operacional**.
 
 O aviso de "vence em breve" é um alerta, não um incidente: ele não aparece nas suas páginas de status, não aciona ninguém a menos que você adicione uma política de plantão a ele, e não muda o status do monitor. Ele usa a segunda severidade de alerta do seu projeto, **Baixo** em um projeto novo. Assim que a renovação aparece no registro, o alerta se resolve sozinho. Um registro que não publica data de vencimento não dá nada ao aviso, então ele fica quieto.

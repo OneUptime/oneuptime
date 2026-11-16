@@ -249,7 +249,7 @@ I comandi e il file Compose qui sopra, l'[`install.sh`](https://oneuptime.com/in
 - Richiede lo stesso socket del collector e viene eseguito come root con il socket montato, perché il socket appartiene a root — e per Podman in modalità rootful chi può usare il socket è root su questo host, `:ro` o no. Il limite è la policy dei comandi dell'agent: non esegue mai `exec`, `run`, `rm` o `prune`, e non modifica mai sé stesso, il collector o qualsiasi cosa in `ONEUPTIME_AI_PROTECTED_TARGETS` (glob di nomi di container).
 - `install.sh --no-ai-agent` lo omette; `podman rm -f oneuptime-podman-ai-agent` lo rimuove. Aggiornalo come il collector: `podman pull oneuptime/resource-ai-agent:release`, rimuovilo e avvialo di nuovo.
 
-Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#host-docker-e-podman).
+Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents#host-docker-e-podman).
 
 ## Risoluzione dei problemi
 

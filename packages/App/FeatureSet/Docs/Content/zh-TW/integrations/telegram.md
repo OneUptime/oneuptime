@@ -1,6 +1,6 @@
 # Telegram
 
-在警示觸發或事件開啟時，向 [Telegram](https://telegram.org) 聊天、群組或頻道傳送一條訊息。OneUptime 的工作流程步驟 **Send Message to Telegram** 以你建立的機器人身分傳送訊息，現成的範本會為警示建置工作流程。此整合屬於 **出站** 模式：機器人只發送訊息，不讀取聊天中的內容。
+在警示觸發或事件開啟時，向 [Telegram](https://telegram.org) 聊天、群組或頻道傳送一條訊息。OneUptime 的工作流程步驟 **傳送訊息到 Telegram** 以你建立的機器人身分傳送訊息，現成的範本會為警示建置工作流程。此整合屬於 **出站** 模式：機器人只發送訊息，不讀取聊天中的內容。
 
 :::cards
 - [運作方式](#運作方式): 警示觸發時工作流程會做什麼。
@@ -13,13 +13,13 @@
 
 ```mermaid title="從警示到 Telegram 訊息"
 flowchart TB
-    fired["警示已觸發"] --> trigger["On Create Alert"]
-    trigger --> step["Send Message<br/>to Telegram"]
+    fired["警示已觸發"] --> trigger["建立警示時"]
+    trigger --> step["傳送訊息到<br/>Telegram"]
     step -->|"成功"| chat["你的聊天中<br/>的訊息"]
     step -->|"錯誤"| failed["執行失敗，<br/>並說明原因"]
 ```
 
-該步驟以你的機器人身分，透過 Telegram 的 Bot API 把 **Message Text** 傳送到聊天。Telegram 接受訊息時，它走 **成功** 輸出；Telegram 拒絕時，它帶著 Telegram 給出的原因走 **錯誤** 輸出。像範本中那樣 **錯誤** 上沒有連接任何東西時，未能傳送的執行會失敗，其 **步驟** 會說明原因。
+該步驟以你的機器人身分，透過 Telegram 的 Bot API 把 **訊息文字** 傳送到聊天。Telegram 接受訊息時，它走 **成功** 輸出；Telegram 拒絕時，它帶著 Telegram 給出的原因走 **錯誤** 輸出。像範本中那樣 **錯誤** 上沒有連接任何東西時，未能傳送的執行會失敗，其 **步驟** 會說明原因。
 
 ## 開始之前
 
@@ -51,15 +51,15 @@ flowchart TB
 1. 開啟 **工作流程**，然後點選 **建立工作流程**。
 2. 在 **搜尋範本…** 中輸入 `Telegram`，點選 **Tell Telegram when an alert fires**，然後點選 **使用此範本**。
 3. 保留名稱 **Notify Telegram on new alert** 或更改它，然後點選 **下一步**。
-4. 把權杖貼上到 **Telegram Bot Token** 中，把 ID 貼上到 **Telegram Chat ID** 中，然後點選 **建立工作流程**。
+4. 把權杖貼上到 **Telegram 機器人權杖** 中，把 ID 貼上到 **Telegram Chat ID** 中，然後點選 **建立工作流程**。
 
-工作流程會在 **建構器** 中開啟，包含兩個步驟： **On Create Alert**，以及傳送警示編號、標題、嚴重程度和狀態的 **Send Message to Telegram**。權杖會儲存為工作流程的機密變數 `telegramBotToken`，ID 儲存為 `telegramChatId`。
+工作流程會在 **建構器** 中開啟，包含兩個步驟： **建立警示時**，以及傳送警示編號、標題、嚴重程度和狀態的 **傳送訊息到 Telegram**。權杖會儲存為工作流程的機密變數 `telegramBotToken`，ID 儲存為 `telegramChatId`。
 @tab 從零開始
 1. 把權杖儲存為機密的全域變數：前往 **工作流程 → 全域變數**，點選 **建立工作流程變數**，將其命名為 `TELEGRAM_BOT_TOKEN`，然後點選 **下一步**。把權杖貼上到 **內容** 中，開啟 **密鑰**，然後點選 **建立工作流程變數**。
 2. 前往 **工作流程**，點選 **建立工作流程**，選擇 **從零開始**，為工作流程命名，然後點選 **建立工作流程**。
-3. 在 **建構器** 中，點選 **選擇啟動此工作流程的方式**，然後在 **熱門** 下選擇 **On Create Alert**。點選觸發器：它的 **Fields to pass on** 已經包含 **標題**，所以點選 **新增欄位**，再選擇訊息要顯示的其他欄位，例如 **Alert Number With Prefix**。
-4. 點選 **新增元件**，搜尋 `telegram`，然後點選 **Send Message to Telegram**。把觸發器的 **成功** 輸出連接到它。
-5. 點選新步驟。在 **Telegram Bot Token** 中點選 **{ }**，然後在 **Global variables** 下選擇 `TELEGRAM_BOT_TOKEN`。在 **Chat ID** 中輸入聊天的 ID，在 **Message Text** 中寫下訊息，並用 **{ }** 插入警示的欄位。
+3. 在 **建構器** 中，點選 **選擇啟動此工作流程的方式**，然後在 **熱門** 下選擇 **建立警示時**。點選觸發器：它的 **要傳遞的欄位** 已經包含 **標題**，所以點選 **新增欄位**，再選擇訊息要顯示的其他欄位，例如 **Alert Number With Prefix**。
+4. 點選 **新增元件**，搜尋 `telegram`，然後點選 **傳送訊息到 Telegram**。把觸發器的 **成功** 輸出連接到它。
+5. 點選新步驟。在 **Telegram 機器人權杖** 中點選 **{ }**，然後在 **Global variables** 下選擇 `TELEGRAM_BOT_TOKEN`。在 **聊天 ID** 中輸入聊天的 ID，在 **訊息文字** 中寫下訊息，並用 **{ }** 插入警示的欄位。
 :::
 
 從零開始編寫的訊息透過如下引用讀取警示的欄位：
@@ -80,7 +80,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 - **純文字。** 該步驟按輸入的原樣傳送文字，不使用 Telegram 的格式，所以 `*` 和 `_` 會原樣顯示。
 - **注意 4,096 個字元的限制。** Telegram 接受最多 4,096 個字元的訊息。更長的訊息會被截斷，並以 "… (truncated — see OneUptime for the full text)" 結尾，而不是被拒絕。
-- **事件也可以。** 基於 **On Create Incident** 建置同樣的工作流程，或者基於 **On Update Incident** 傳送狀態變更。要只發送部分警示，請在該步驟之前放一個 **If / Else** 區塊。
+- **事件也可以。** 基於 **建立事件時** 建置同樣的工作流程，或者基於 **更新事件時** 傳送狀態變更。要只發送部分警示，請在該步驟之前放一個 **如果 / 否則** 區塊。
 - **會檢查權杖的格式。** 格式不像 `123456789:ABCdef…` 的權杖會在傳送任何內容之前讓執行停止，並且權杖永遠不會寫入日誌。
 
 ## 疑難排解
@@ -88,7 +88,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 當該步驟走 **錯誤** 時，執行會失敗，執行的 **步驟** 中該步驟的項目會給出 Telegram 的原因。機器人必須在聊天中，所以請先檢查這一點。
 
 :::details Telegram 傳回 "Bad Request: chat not found"
-**Chat ID** 錯誤，或者機器人看不到該聊天：請把機器人新增到群組，讓它成為頻道的管理員，或者請對方與機器人開始聊天。群組的 ID 以 `-` 開頭。
+**聊天 ID** 錯誤，或者機器人看不到該聊天：請把機器人新增到群組，讓它成為頻道的管理員，或者請對方與機器人開始聊天。群組的 ID 以 `-` 開頭。
 :::
 
 :::details Telegram 傳回 "Forbidden: bot was blocked by the user" 或 "bot is not a member"

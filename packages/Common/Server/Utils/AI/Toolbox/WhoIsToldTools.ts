@@ -127,7 +127,7 @@ async function findMonitor(
 const OWNERS_WORDS: Readonly<Record<WhoIsToldOwnersSource, string>> = {
   [WhoIsToldOwnersSource.Named]: "its owners",
   [WhoIsToldOwnersSource.OwnerRules]: "the owners added by owner rules",
-  [WhoIsToldOwnersSource.ProjectOwners]: "the project's owners",
+  [WhoIsToldOwnersSource.ProjectOwners]: "the Project Owners",
   [WhoIsToldOwnersSource.MonitorOwners]: "the monitor's owners",
 };
 

@@ -456,10 +456,10 @@ export default class WorkspaceUtil {
     const workspace: string = getWorkspaceTypeDisplayName(data.workspaceType);
 
     if (!data.isConnected) {
-      return `This project is not connected to ${workspace}. Please ask a project admin to connect ${workspace} in Project Settings > Workspace > ${workspace}.`;
+      return `This project is not connected to ${workspace}. Please ask a Project Admin to connect ${workspace} in Project Settings > Workspace > ${workspace}.`;
     }
 
-    return `${ProductBrandingText.getProductName()} cannot post in ${workspace} with this project's connection. Please ask a project admin to reconnect ${workspace} in Project Settings > Workspace > ${workspace}.`;
+    return `${ProductBrandingText.getProductName()} cannot post in ${workspace} with this project's connection. Please ask a Project Admin to reconnect ${workspace} in Project Settings > Workspace > ${workspace}.`;
   }
 
   // The destination a payload was addressed to, for error logs.

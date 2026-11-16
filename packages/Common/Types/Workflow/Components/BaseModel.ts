@@ -21,14 +21,16 @@ import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
 } from "./../Component";
+import { composeWords } from "../../ComposedWords";
+import { translationKey } from "../../Translator";
 
 /*
  * What the record triggers' and Find steps' field lists are called, wherever
  * they are named: the settings dialog, the step's help, the run log, and the
  * value picker's note on a field a step does not pass on.
  */
-export const SELECT_FIELDS_NAME: string = "Fields to pass on";
-export const WATCHED_FIELDS_NAME: string = "Fields to watch";
+export const SELECT_FIELDS_NAME: string = translationKey("Fields to pass on");
+export const WATCHED_FIELDS_NAME: string = translationKey("Fields to watch");
 
 export default class BaseModelComponent {
   public static getComponents(model: BaseModel): Array<ComponentMetadata> {
@@ -37,6 +39,30 @@ export default class BaseModelComponent {
     if (!model.enableWorkflowOn) {
       return [];
     }
+
+    /*
+     * Each of a record step's words is a sentence with the model's name in
+     * it ("Find One {{itemName}}"), built as the English it always was and
+     * remembered as built from that sentence, so the builder words it in
+     * the reader's language (ComposedWords, #8642). A title or a setting's
+     * name keeps the name's case; a sentence lowers it where the reader's
+     * language does.
+     */
+    type WordsFunction = (template: string, inSentence: boolean) => string;
+
+    const words: WordsFunction = (
+      template: string,
+      inSentence: boolean,
+    ): string => {
+      return composeWords(
+        template,
+        {
+          itemName: model.singularName || "",
+          itemsName: model.pluralName || "",
+        },
+        { inSentence: inSentence },
+      );
+    };
 
     /*
      * Every one of these arguments is keyed on column names, and the single
@@ -51,9 +77,12 @@ export default class BaseModelComponent {
      * because it is still the only thing explaining the two spellings. The
      * field lists say it in their own JSON view instead (ModelFieldPicker).
      */
-    const columnHint: string = `Keys are column names on ${model.singularName}. The ID column is "_id" (the "id" spelling is accepted too).`;
-
-    const queryDescription: string = `Query that selects which ${model.pluralName} this component acts on. ${columnHint}`;
+    const queryDescription: string = words(
+      translationKey(
+        'Query that selects which {{itemsName}} this component acts on. Keys are column names on {{itemName}}. The ID column is "_id" (the "id" spelling is accepted too).',
+      ),
+      true,
+    );
 
     const queryPlaceholder: string =
       'Example: {"_id": "00000000-0000-0000-0000-000000000000"}';
@@ -70,15 +99,30 @@ export default class BaseModelComponent {
      * itself (ModelFieldPicker); the finer points of a change are in the
      * step's How to use (DatabaseDocumentation).
      */
-    const selectDescription: string = `The ${model.singularName} fields the next steps can use. A field you leave out is empty in later steps.`;
+    const selectDescription: string = words(
+      translationKey(
+        "The {{itemName}} fields the next steps can use. A field you leave out is empty in later steps.",
+      ),
+      true,
+    );
 
-    const listenOnDescription: string = `Run only when an update changes one of these fields. Leave it empty to run on every change to the ${model.singularName}.`;
+    const listenOnDescription: string = words(
+      translationKey(
+        "Run only when an update changes one of these fields. Leave it empty to run on every change to the {{itemName}}.",
+      ),
+      true,
+    );
 
     /*
      * The same list on On Create or Update, which a create always runs:
      * Fields to watch is about updates only.
      */
-    const createOrUpdateListenOnDescription: string = `Run on an update only when it changes one of these fields. A new ${model.singularName} always runs this workflow. Leave it empty to run on every change.`;
+    const createOrUpdateListenOnDescription: string = words(
+      translationKey(
+        "Run on an update only when it changes one of these fields. A new {{itemName}} always runs this workflow. Leave it empty to run on every change.",
+      ),
+      true,
+    );
 
     /*
      * What every record trigger asks Run Workflow for: the record to run
@@ -91,15 +135,25 @@ export default class BaseModelComponent {
     const runRecordArgument: RunRecordArgumentFunction = (): Argument => {
       return {
         type: ComponentInputType.Text,
-        name: `${model.singularName} ID`,
-        description: `Please provide the ID of the ${model.singularName}, if you wish to run this workflow manually.`,
+        name: words(translationKey("{{itemName}} ID"), false),
+        description: words(
+          translationKey(
+            "Please provide the ID of the {{itemName}}, if you wish to run this workflow manually.",
+          ),
+          true,
+        ),
         required: true,
         id: "_id",
-        placeholder: `ID of the ${model.singularName}`,
+        placeholder: words(translationKey("ID of the {{itemName}}"), true),
       };
     };
 
-    const dataDescription: string = `${model.singularName} fields to write, as a JSON object. ${columnHint}`;
+    const dataDescription: string = words(
+      translationKey(
+        '{{itemName}} fields to write, as a JSON object. Keys are column names on {{itemName}}. The ID column is "_id" (the "id" spelling is accepted too).',
+      ),
+      true,
+    );
 
     /*
      * Skip and Limit are the same on every component that has them, and they
@@ -112,9 +166,19 @@ export default class BaseModelComponent {
      * UpdateManyBaseModel), so a query matching five hundred records still only
      * touches ten.
      */
-    const skipDescription: string = `Skip the first X ${model.pluralName} the query matched. Defaults to 0.`;
+    const skipDescription: string = words(
+      translationKey(
+        "Skip the first X {{itemsName}} the query matched. Defaults to 0.",
+      ),
+      true,
+    );
 
-    const limitDescription: string = `The most ${model.pluralName} this step will touch. Defaults to 10, so a query that matches 500 records still only affects 10. Raise this if you mean all of them.`;
+    const limitDescription: string = words(
+      translationKey(
+        "The most {{itemsName}} this step will touch. Defaults to 10, so a query that matches 500 records still only affects 10. Raise this if you mean all of them.",
+      ),
+      true,
+    );
 
     /*
      * Each of these steps has "How to use" help of its own, written for its
@@ -127,16 +191,19 @@ export default class BaseModelComponent {
     if (model.enableWorkflowOn.read) {
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-find-one`,
-        title: `Find One ${model.singularName}`,
+        title: words(translationKey("Find One {{itemName}}"), false),
         category: `${model.singularName}`,
-        description: `Database query to find one ${model.singularName}`,
+        description: words(
+          translationKey("Database query to find one {{itemName}}"),
+          true,
+        ),
         iconProp: IconProp.ArrowCircleDown,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Query",
+            name: translationKey("Query"),
             description: queryDescription,
             required: true,
             id: "query",
@@ -155,30 +222,36 @@ export default class BaseModelComponent {
           {
             id: "model",
             name: `${model.singularName}`,
-            description: `${model.singularName} fetched from the database`,
+            description: words(
+              translationKey("{{itemName}} fetched from the database"),
+              true,
+            ),
             type: ComponentInputType.BaseModel,
             required: false,
           },
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error fetching data from the database",
+            ),
             id: "error",
           },
         ],
@@ -186,16 +259,19 @@ export default class BaseModelComponent {
 
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-find-many`,
-        title: `Find Many ${model.pluralName}`,
+        title: words(translationKey("Find Many {{itemsName}}"), false),
         category: `${model.singularName}`,
-        description: `Database query to find many ${model.pluralName}`,
+        description: words(
+          translationKey("Database query to find many {{itemsName}}"),
+          true,
+        ),
         iconProp: IconProp.ArrowCircleDown,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Query",
+            name: translationKey("Query"),
             description: queryDescription,
             required: true,
             id: "query",
@@ -211,7 +287,7 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Number,
-            name: "Skip",
+            name: translationKey("Skip"),
             description: skipDescription,
             required: false,
             id: "skip",
@@ -219,7 +295,7 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Number,
-            name: "Limit",
+            name: translationKey("Limit"),
             description: limitDescription,
             required: false,
             id: "limit",
@@ -230,30 +306,36 @@ export default class BaseModelComponent {
           {
             id: "models",
             name: `${model.singularName}`,
-            description: `${model.singularName} array fetched from the database`,
+            description: words(
+              translationKey("{{itemName}} array fetched from the database"),
+              true,
+            ),
             type: ComponentInputType.BaseModelArray,
             required: false,
           },
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error fetching data from the database",
+            ),
             id: "error",
           },
         ],
@@ -263,9 +345,12 @@ export default class BaseModelComponent {
     if (model.enableWorkflowOn.delete) {
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-on-delete`,
-        title: `On Delete ${model.singularName}`,
+        title: words(translationKey("On Delete {{itemName}}"), false),
         category: `${model.singularName}`,
-        description: `When the ${model.singularName} is deleted...`,
+        description: words(
+          translationKey("When the {{itemName}} is deleted..."),
+          true,
+        ),
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
@@ -275,7 +360,10 @@ export default class BaseModelComponent {
           {
             id: "model",
             name: `${model.singularName}`,
-            description: `${model.singularName} deleted in the database`,
+            description: words(
+              translationKey("{{itemName}} deleted in the database"),
+              true,
+            ),
             type: ComponentInputType.BaseModel,
             required: false,
           },
@@ -283,9 +371,14 @@ export default class BaseModelComponent {
         inPorts: [],
         outPorts: [
           {
-            title: "Success",
+            title: translationKey("Success"),
             // A trigger runs no query of its own; this fired on a delete.
-            description: `This is executed when the ${model.singularName} is deleted.`,
+            description: words(
+              translationKey(
+                "This is executed when the {{itemName}} is deleted.",
+              ),
+              true,
+            ),
             id: "success",
           },
         ],
@@ -293,16 +386,19 @@ export default class BaseModelComponent {
 
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-delete-one`,
-        title: `Delete One ${model.singularName}`,
+        title: words(translationKey("Delete One {{itemName}}"), false),
         category: `${model.singularName}`,
-        description: `Database query to delete one ${model.singularName}`,
+        description: words(
+          translationKey("Database query to delete one {{itemName}}"),
+          true,
+        ),
         iconProp: IconProp.Trash,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Query",
+            name: translationKey("Query"),
             description: queryDescription,
             required: true,
             id: "query",
@@ -312,31 +408,39 @@ export default class BaseModelComponent {
         returnValues: [
           {
             id: "items-deleted",
-            name: "Items Deleted",
-            description: `How many ${model.pluralName} the query matched and deleted. Zero is not an error - it means nothing matched.`,
+            name: translationKey("Items Deleted"),
+            description: words(
+              translationKey(
+                "How many {{itemsName}} the query matched and deleted. Zero is not an error - it means nothing matched.",
+              ),
+              true,
+            ),
             type: ComponentInputType.Number,
             required: false,
           },
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error deleting data from the database",
+            ),
             id: "error",
           },
         ],
@@ -344,16 +448,19 @@ export default class BaseModelComponent {
 
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-delete-many`,
-        title: `Delete Many ${model.pluralName}`,
+        title: words(translationKey("Delete Many {{itemsName}}"), false),
         category: `${model.singularName}`,
-        description: `Delete many ${model.pluralName} that match a query.`,
+        description: words(
+          translationKey("Delete many {{itemsName}} that match a query."),
+          true,
+        ),
         iconProp: IconProp.Trash,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Query",
+            name: translationKey("Query"),
             description: queryDescription,
             required: true,
             id: "query",
@@ -361,7 +468,7 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Number,
-            name: "Skip",
+            name: translationKey("Skip"),
             description: skipDescription,
             required: false,
             id: "skip",
@@ -369,7 +476,7 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Number,
-            name: "Limit",
+            name: translationKey("Limit"),
             description: limitDescription,
             required: false,
             id: "limit",
@@ -379,31 +486,39 @@ export default class BaseModelComponent {
         returnValues: [
           {
             id: "items-deleted",
-            name: "Items Deleted",
-            description: `How many ${model.pluralName} the query matched and deleted. Zero is not an error - it means nothing matched.`,
+            name: translationKey("Items Deleted"),
+            description: words(
+              translationKey(
+                "How many {{itemsName}} the query matched and deleted. Zero is not an error - it means nothing matched.",
+              ),
+              true,
+            ),
             type: ComponentInputType.Number,
             required: false,
           },
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error deleting data from the database",
+            ),
             id: "error",
           },
         ],
@@ -413,9 +528,12 @@ export default class BaseModelComponent {
     if (model.enableWorkflowOn.create) {
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-on-create`,
-        title: `On Create ${model.singularName}`,
+        title: words(translationKey("On Create {{itemName}}"), false),
         category: `${model.singularName}`,
-        description: `When the ${model.singularName} is created...`,
+        description: words(
+          translationKey("When the {{itemName}} is created..."),
+          true,
+        ),
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
@@ -434,7 +552,10 @@ export default class BaseModelComponent {
           {
             id: "model",
             name: `${model.singularName}`,
-            description: `${model.singularName} created in the database`,
+            description: words(
+              translationKey("{{itemName}} created in the database"),
+              true,
+            ),
             type: ComponentInputType.BaseModel,
             required: false,
           },
@@ -442,9 +563,10 @@ export default class BaseModelComponent {
         inPorts: [],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the model is created successfully.",
+            ),
             id: "success",
           },
         ],
@@ -464,10 +586,20 @@ export default class BaseModelComponent {
       const jsonArgument: Argument = {
         id: "json",
         placeholder: 'Example: {"columnName": "value", ...}',
-        name: "JSON Object",
+        name: translationKey("JSON Object"),
         description: templateArgument
-          ? `${model.singularName} represented as JSON. With a template picked, only what should differ from it. ${columnHint}`
-          : `${model.singularName} represented as JSON. ${columnHint}`,
+          ? words(
+              translationKey(
+                '{{itemName}} represented as JSON. With a template picked, only what should differ from it. Keys are column names on {{itemName}}. The ID column is "_id" (the "id" spelling is accepted too).',
+              ),
+              true,
+            )
+          : words(
+              translationKey(
+                '{{itemName}} represented as JSON. Keys are column names on {{itemName}}. The ID column is "_id" (the "id" spelling is accepted too).',
+              ),
+              true,
+            ),
         type: ComponentInputType.JSON,
         required: true,
       };
@@ -504,9 +636,12 @@ export default class BaseModelComponent {
 
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-create-one`,
-        title: `Create One ${model.singularName}`,
+        title: words(translationKey("Create One {{itemName}}"), false),
         category: `${model.singularName}`,
-        description: `Database query to create one ${model.singularName}`,
+        description: words(
+          translationKey("Database query to create one {{itemName}}"),
+          true,
+        ),
         iconProp: IconProp.Database,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
@@ -515,30 +650,38 @@ export default class BaseModelComponent {
           {
             id: "model",
             name: `${model.singularName}`,
-            description: `${model.singularName} created in the database, including its new "_id"`,
+            description: words(
+              translationKey(
+                '{{itemName}} created in the database, including its new "_id"',
+              ),
+              true,
+            ),
             type: ComponentInputType.BaseModel,
             required: false,
           },
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error creating data from the database",
+            ),
             id: "error",
           },
         ],
@@ -546,18 +689,26 @@ export default class BaseModelComponent {
 
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-create-many`,
-        title: `Create Many ${model.pluralName}`,
+        title: words(translationKey("Create Many {{itemsName}}"), false),
         category: `${model.singularName}`,
-        description: `Database query to create many ${model.pluralName}`,
+        description: words(
+          translationKey("Database query to create many {{itemsName}}"),
+          true,
+        ),
         iconProp: IconProp.Database,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
         arguments: [
           {
             id: "json-array",
-            name: "JSON Array",
+            name: translationKey("JSON Array"),
             placeholder: 'Example: [{"columnName": "value", ...}, {...}]',
-            description: `List of ${model.pluralName} represented as a JSON array. ${columnHint}`,
+            description: words(
+              translationKey(
+                'List of {{itemsName}} represented as a JSON array. Keys are column names on {{itemName}}. The ID column is "_id" (the "id" spelling is accepted too).',
+              ),
+              true,
+            ),
             type: ComponentInputType.JSONArray,
             required: true,
           },
@@ -566,30 +717,36 @@ export default class BaseModelComponent {
           {
             id: "models",
             name: `${model.pluralName}`,
-            description: `${model.pluralName} created in the database`,
+            description: words(
+              translationKey("{{itemsName}} created in the database"),
+              true,
+            ),
             type: ComponentInputType.BaseModelArray,
             required: false,
           },
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error creating data from the database",
+            ),
             id: "error",
           },
         ],
@@ -599,9 +756,12 @@ export default class BaseModelComponent {
     if (model.enableWorkflowOn.update) {
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-on-update`,
-        title: `On Update ${model.singularName}`,
+        title: words(translationKey("On Update {{itemName}}"), false),
         category: `${model.singularName}`,
-        description: `When the ${model.singularName} is updated...`,
+        description: words(
+          translationKey("When the {{itemName}} is updated..."),
+          true,
+        ),
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
@@ -628,7 +788,7 @@ export default class BaseModelComponent {
           {
             id: "model",
             name: `${model.singularName}`,
-            description: `Updated ${model.singularName}`,
+            description: words(translationKey("Updated {{itemName}}"), true),
             type: ComponentInputType.BaseModel,
             required: true,
           },
@@ -636,8 +796,13 @@ export default class BaseModelComponent {
         inPorts: [],
         outPorts: [
           {
-            title: "Success",
-            description: `This is executed when the ${model.singularName} is updated successfully.`,
+            title: translationKey("Success"),
+            description: words(
+              translationKey(
+                "This is executed when the {{itemName}} is updated successfully.",
+              ),
+              true,
+            ),
             id: "success",
           },
         ],
@@ -645,16 +810,19 @@ export default class BaseModelComponent {
 
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-update-one`,
-        title: `Update One ${model.singularName}`,
+        title: words(translationKey("Update One {{itemName}}"), false),
         category: `${model.singularName}`,
-        description: `Database query to update one ${model.singularName}`,
+        description: words(
+          translationKey("Database query to update one {{itemName}}"),
+          true,
+        ),
         iconProp: IconProp.ArrowCircleUp,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Query",
+            name: translationKey("Query"),
             description: queryDescription,
             required: true,
             id: "query",
@@ -663,7 +831,7 @@ export default class BaseModelComponent {
           {
             id: "data",
             placeholder: 'Example: {"columnName": "value", ...}',
-            name: "Data (JSON Object)",
+            name: translationKey("Data (JSON Object)"),
             description: dataDescription,
             type: ComponentInputType.JSON,
             required: true,
@@ -672,31 +840,39 @@ export default class BaseModelComponent {
         returnValues: [
           {
             id: "items-updated",
-            name: "Items Updated",
-            description: `How many ${model.pluralName} the query matched and updated. Zero is not an error - it means nothing matched.`,
+            name: translationKey("Items Updated"),
+            description: words(
+              translationKey(
+                "How many {{itemsName}} the query matched and updated. Zero is not an error - it means nothing matched.",
+              ),
+              true,
+            ),
             type: ComponentInputType.Number,
             required: false,
           },
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error updating data from the database",
+            ),
             id: "error",
           },
         ],
@@ -704,16 +880,19 @@ export default class BaseModelComponent {
 
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-update-many`,
-        title: `Update Many ${model.pluralName}`,
+        title: words(translationKey("Update Many {{itemsName}}"), false),
         category: `${model.singularName}`,
-        description: `Database query to update many ${model.pluralName}`,
+        description: words(
+          translationKey("Database query to update many {{itemsName}}"),
+          true,
+        ),
         iconProp: IconProp.ArrowCircleUp,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Query",
+            name: translationKey("Query"),
             description: queryDescription,
             required: true,
             id: "query",
@@ -721,7 +900,7 @@ export default class BaseModelComponent {
           },
           {
             id: "data",
-            name: "Data (JSON Object)",
+            name: translationKey("Data (JSON Object)"),
             placeholder: 'Example: {"columnName": "value", ...}',
             description: dataDescription,
             type: ComponentInputType.JSON,
@@ -729,7 +908,7 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Number,
-            name: "Skip",
+            name: translationKey("Skip"),
             description: skipDescription,
             required: false,
             id: "skip",
@@ -737,7 +916,7 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Number,
-            name: "Limit",
+            name: translationKey("Limit"),
             description: limitDescription,
             required: false,
             id: "limit",
@@ -747,31 +926,39 @@ export default class BaseModelComponent {
         returnValues: [
           {
             id: "items-updated",
-            name: "Items Updated",
-            description: `How many ${model.pluralName} the query matched and updated. Zero is not an error - it means nothing matched.`,
+            name: translationKey("Items Updated"),
+            description: words(
+              translationKey(
+                "How many {{itemsName}} the query matched and updated. Zero is not an error - it means nothing matched.",
+              ),
+              true,
+            ),
             type: ComponentInputType.Number,
             required: false,
           },
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error updating data from the database",
+            ),
             id: "error",
           },
         ],
@@ -789,9 +976,12 @@ export default class BaseModelComponent {
     if (hasCreateOrUpdateTrigger(model.enableWorkflowOn)) {
       components.push({
         id: getCreateOrUpdateTriggerId(model.tableName!),
-        title: `On Create or Update ${model.singularName}`,
+        title: words(translationKey("On Create or Update {{itemName}}"), false),
         category: `${model.singularName}`,
-        description: `When the ${model.singularName} is created or updated...`,
+        description: words(
+          translationKey("When the {{itemName}} is created or updated..."),
+          true,
+        ),
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
@@ -804,13 +994,24 @@ export default class BaseModelComponent {
           {
             type: ComponentInputType.Choice,
             name: WHAT_HAPPENED_NAME,
-            description: `Run as if the ${model.singularName} had just been created, or just been updated.`,
+            description: words(
+              translationKey(
+                "Run as if the {{itemName}} had just been created, or just been updated.",
+              ),
+              true,
+            ),
             required: false,
             id: WHAT_HAPPENED_ID,
             // As Run Workflow words them (RunForm).
             choices: [
-              { value: WhatHappened.Created, label: "Just created" },
-              { value: WhatHappened.Updated, label: "Just updated" },
+              {
+                value: WhatHappened.Created,
+                label: translationKey("Just created"),
+              },
+              {
+                value: WhatHappened.Updated,
+                label: translationKey("Just updated"),
+              },
             ],
           },
           runRecordArgument(),
@@ -837,15 +1038,26 @@ export default class BaseModelComponent {
           {
             id: "model",
             name: `${model.singularName}`,
-            description: `The ${model.singularName} that was created or updated`,
+            description: words(
+              translationKey("The {{itemName}} that was created or updated"),
+              true,
+            ),
             type: ComponentInputType.BaseModel,
             required: true,
           },
           {
             id: WHAT_HAPPENED_ID,
             name: WHAT_HAPPENED_NAME,
-            // Short enough for one line of the value list.
-            description: `"${WhatHappened.Created}" for a new ${model.singularName}, "${WhatHappened.Updated}" for a change to one.`,
+            /*
+             * Short enough for one line of the value list.
+             * Written out so the locales can word it; a test holds it to WhatHappened.
+             */
+            description: words(
+              translationKey(
+                '"created" for a new {{itemName}}, "updated" for a change to one.',
+              ),
+              true,
+            ),
             type: ComponentInputType.Text,
             required: true,
           },
@@ -853,8 +1065,13 @@ export default class BaseModelComponent {
         inPorts: [],
         outPorts: [
           {
-            title: "Success",
-            description: `This is executed when the ${model.singularName} is created, and when it is updated.`,
+            title: translationKey("Success"),
+            description: words(
+              translationKey(
+                "This is executed when the {{itemName}} is created, and when it is updated.",
+              ),
+              true,
+            ),
             id: "success",
           },
         ],

@@ -39,8 +39,8 @@ Un bloque se ejecuta cuando el bloque anterior toma la salida conectada a él. L
 
 ```mermaid title="Un bloque toma una de sus salidas"
 flowchart TB
-    trigger["On Create Incident"] -->|"Éxito"| post["API Post (JSON)"]
-    post -->|"Éxito: una respuesta 2xx"| slack["Send Message to Slack"]
+    trigger["Al crear Incidente"] -->|"Éxito"| post["Llamada a API POST (JSON)"]
+    post -->|"Éxito: una respuesta 2xx"| slack["Enviar mensaje a Slack"]
     post -->|"Error: sin respuesta, o no 2xx"| log["Registro"]
 ```
 
@@ -52,7 +52,7 @@ Un bloque que toma **Error** pasa el fallo a los bloques conectados a **Error**,
 
 ## API
 
-Haz una solicitud HTTP a cualquier URL. Hay un bloque por método: **API Get (JSON)**, **API Post (JSON)**, **API Put (JSON)**, **API Patch (JSON)** y **API Delete (JSON)**.
+Haz una solicitud HTTP a cualquier URL. Hay un bloque por método: **Llamada a API GET (JSON)**, **Llamada a API POST (JSON)**, **Llamada a API PUT (JSON)**, **Llamada a API PATCH (JSON)** y **Llamada a API DELETE (JSON)**.
 
 | Ajuste              | Qué hace                                                                                                                             |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
@@ -65,11 +65,11 @@ Haz una solicitud HTTP a cualquier URL. Hay un bloque por método: **API Get (JS
 | **Éxito** | El servidor respondió con un estado 2xx.                                                       |
 | **Error**   | La solicitud falló: no se pudo llegar al servidor, o respondió con cualquier otro estado.      |
 
-En ambos casos, el bloque devuelve **Response Status**, **Encabezados de respuesta** y **Cuerpo de la respuesta**, además de **Error** con el motivo cuando falló. Lee un campo de una respuesta JSON añadiendo su nombre a la referencia, como en `{{local.components.api-get-1.returnValues.response-body.id}}`.
+En ambos casos, el bloque devuelve **Estado de la respuesta**, **Encabezados de respuesta** y **Cuerpo de la respuesta**, además de **Error** con el motivo cuando falló. Lee un campo de una respuesta JSON añadiendo su nombre a la referencia, como en `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
 Las redirecciones no se siguen, así que apunta el bloque a la dirección que responde. Las solicitudes salen de OneUptime: una URL que se resuelve a una dirección de red privada se rechaza a menos que un administrador autoalojado la permita, y la ejecución se detiene con el motivo. Consulta [Acceso de red saliente](/docs/workflows/configuration#acceso-de-red-saliente).
 
-**API Get By ID (JSON)** lee un elemento por un ID que llegó de otra parte, como la clave de incidencia que envió un webhook. Pon `{id}` en su **URL** donde va el ID, como en `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, y el ID en **ID**. El bloque solo coloca el ID cuando es un ID simple, de como mucho 200 letras, dígitos, guiones y guiones bajos, y aun así lo codifica con porcentajes: cualquier otra cosa, como `x/../users`, toma **Error** antes de enviar ninguna solicitud, de modo que un texto de fuera no puede llevar la solicitud a otro sitio. Por lo demás funciona como **API Get (JSON)** y devuelve los mismos valores.
+**Llamada a API GET por ID (JSON)** lee un elemento por un ID que llegó de otra parte, como la clave de incidencia que envió un webhook. Pon `{id}` en su **URL** donde va el ID, como en `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, y el ID en **ID**. El bloque solo coloca el ID cuando es un ID simple, de como mucho 200 letras, dígitos, guiones y guiones bajos, y aun así lo codifica con porcentajes: cualquier otra cosa, como `x/../users`, toma **Error** antes de enviar ninguna solicitud, de modo que un texto de fuera no puede llevar la solicitud a otro sitio. Por lo demás funciona como **Llamada a API GET (JSON)** y devuelve los mismos valores.
 
 ## AI
 
@@ -79,15 +79,15 @@ Genera una respuesta de texto a partir de un prompt y un contexto JSON opcional.
 
 | Ajuste                    | Qué hace                                                                                                                                                          |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **System Instructions**   | Indicaciones opcionales sobre el papel, el tono y las restricciones del modelo.                                                                                  |
+| **Instrucciones del sistema**   | Indicaciones opcionales sobre el papel, el tono y las restricciones del modelo.                                                                                  |
 | **Indicación**                | La tarea. Se envía exactamente como la escribes, así que el Markdown sirve, y puede incluir variables y valores de bloques anteriores.                           |
 | **Contexto**               | JSON opcional que envías deliberadamente. Se añade después de un marcador explícito de fin de mensaje y se trata como datos no fiables.                          |
 | **Temperatura**           | En **Más campos**. La variación, de `0` a `1`; el valor predeterminado es `0.2`, para una automatización predecible. Los modelos actuales de Claude, Opus 4.7 y posteriores y todos los modelos Claude 5, eligen su propio muestreo: OneUptime omite **Temperatura** en sus solicitudes, así que no tiene ningún efecto en ellos. |
-| **Maximum Output Tokens** | En **Más campos**. De `1` a `4096`; el valor predeterminado es `1024`.                                                                                           |
+| **Máximo de tokens de salida** | En **Más campos**. De `1` a `4096`; el valor predeterminado es `1024`.                                                                                           |
 
 System Instructions, Prompt y el Context serializado están limitados en conjunto a 50.000 caracteres. Una imagen incrustada en ellos en base64, como la captura de pantalla de un monitor sintético en la descripción de un incidente, se sustituye por una nota breve como `[image omitted: PNG, 340 KB]` antes de medirlos, porque el modelo lee texto, no imágenes. El registro de la ejecución dice qué se omitió. La solicitud al proveedor dura como máximo 60 segundos y se intenta una sola vez. Como máximo pueden ejecutarse a la vez tres solicitudes de IA de flujos de trabajo por proyecto.
 
-Devuelve **Respuesta** (el texto generado), **Proveedor** y **Modelo** (lo que respondió), **Total de tokens** y **Tokens de finalización** (el uso que informó el proveedor), **LLM Log ID** (la entrada de la llamada en los registros de IA) y **Error**.
+Devuelve **Respuesta** (el texto generado), **Proveedor** y **Modelo** (lo que respondió), **Total de tokens** y **Tokens de finalización** (el uso que informó el proveedor), **ID del registro de LLM** (la entrada de la llamada en los registros de IA) y **Error**.
 
 Conecta **Éxito** a los bloques que usan la respuesta, y **Error** a una alternativa: los fallos de validación, acceso, proveedor, presupuesto, facturación y tiempo de espera lo toman todos. El bloque no envía herramientas, así que el modelo no puede consultar OneUptime, llamar a API ni cambiar datos por su cuenta.
 
@@ -107,11 +107,11 @@ Publica un mensaje en un canal de Slack a través de un webhook entrante.
 
 ## Microsoft Teams
 
-Publica un mensaje en un canal de Microsoft Teams. El bloque se llama **Send Message to Teams**.
+Publica un mensaje en un canal de Microsoft Teams. El bloque se llama **Enviar mensaje a Teams**.
 
 | Ajuste                         | Qué hace                                                                                                                                                                                                                                       |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Teams Incoming Webhook URL** | El webhook del canal en el que publicar, una URL `https` en `office.com`, `office365.com`, `logic.azure.com` o `environment.api.powerplatform.com`. La guía de Microsoft muestra cómo [crear uno con Workflows de Teams](https://support.microsoft.com/en-us/teams/apps-service/create-incoming-webhooks-with-workflows-for-microsoft-teams). |
+| **URL del webhook entrante de Teams** | El webhook del canal en el que publicar, una URL `https` en `office.com`, `office365.com`, `logic.azure.com` o `environment.api.powerplatform.com`. La guía de Microsoft muestra cómo [crear uno con Workflows de Teams](https://support.microsoft.com/en-us/teams/apps-service/create-incoming-webhooks-with-workflows-for-microsoft-teams). |
 | **Texto del mensaje**               | El texto que enviar. Un mensaje más grande de lo que admite un webhook entrante (unos 12.000 caracteres, medidos tal como se envían) se corta y termina con "… (truncated — see OneUptime for the full text)".                                    |
 
 ## Discord
@@ -120,7 +120,7 @@ Publica un mensaje en un canal de Discord a través de un webhook entrante.
 
 | Ajuste                           | Qué hace                                                                                                                                           |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Discord Incoming Webhook URL** | El webhook del canal, una URL `https` en `discord.com` o `discordapp.com`.                                                                         |
+| **URL del webhook entrante de Discord** | El webhook del canal, una URL `https` en `discord.com` o `discordapp.com`.                                                                         |
 | **Texto del mensaje**                 | El texto que enviar. Un mensaje de más de 2.000 caracteres, el límite de Discord, se corta y termina con "… (truncated — see OneUptime for the full text)". |
 
 ## Telegram
@@ -130,7 +130,7 @@ Envía un mensaje a un chat de Telegram con un bot.
 | Ajuste                 | Qué hace                                                                                                                                           |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Token del bot de Telegram** | El token que BotFather dio a tu bot, como `123456789:ABCdef…`. Un token con cualquier otra forma detiene la ejecución, sin que el token se escriba en el registro. |
-| **Chat ID**            | El chat en el que publicar: su ID, o el `@username` de un canal. Añade primero el bot al grupo o al canal. Para escribir a una persona, esta debe haber iniciado un chat con el bot. |
+| **ID del chat**            | El chat en el que publicar: su ID, o el `@username` de un canal. Añade primero el bot al grupo o al canal. Para escribir a una persona, esta debe haber iniciado un chat con el bot. |
 | **Texto del mensaje**       | El texto que enviar. Un mensaje de más de 4.096 caracteres, el límite de Telegram, se corta y termina con "… (truncated — see OneUptime for the full text)". |
 
 Cuando Telegram rechaza el mensaje, **Error** salta con el motivo de Telegram.
@@ -141,7 +141,7 @@ Publica un mensaje en un canal de IRC de cualquier red de IRC: Libera.Chat, OFTC
 
 | Ajuste           | Qué hace                                                                                                                                                                                                                                           |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **IRC Server**   | El nombre de host del servidor, como `irc.libera.chat`. Solo el nombre: sin `ircs://` y sin puerto.                                                                                                                                                |
+| **Servidor IRC**   | El nombre de host del servidor, como `irc.libera.chat`. Solo el nombre: sin `ircs://` y sin puerto.                                                                                                                                                |
 | **Canal**      | El canal en el que publicar, como `#ops`. Tiene que ser un canal: un apodo escrito aquí se rechaza en lugar de recibir un mensaje privado.                                                                                                          |
 | **Texto del mensaje** | El texto que enviar. Cada línea sale como un mensaje de IRC propio, y una línea larga se divide para que quepa. Un mensaje se envía como máximo en 15 líneas de IRC: uno más largo se recorta, y su última línea lo indica. IRC no tiene Markdown, así que el texto se envía tal cual; los códigos de formato propios de IRC, como la negrita y los colores, funcionan. |
 
@@ -149,17 +149,17 @@ En **Más campos**:
 
 | Ajuste                                   | Qué hace                                                                                                                                                                                                           |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Nickname**                             | Quién envía el mensaje. Por defecto `OneUptime`. Si el apodo está ocupado, el bloque lo prueba con un guion bajo o un número añadido, y después con uno en lugar de sus últimos caracteres, para un servidor que no admite un apodo más largo. |
-| **Puerto**                                 | El puerto del servidor. Por defecto `6697`, o `6667` con **Disable TLS** activado.                                                                                                                                 |
-| **Disable TLS**                          | El bloque se conecta por TLS y comprueba el certificado del servidor. Actívalo solo para un servidor que no ofrezca TLS; cualquier contraseña se envía entonces sin cifrar. Para confiar en un certificado de tu propia autoridad de certificación, una instalación autoalojada define `NODE_EXTRA_CA_CERTS` en su lugar. |
-| **Channel Key**                          | La clave de un canal que la tenga (modo `+k`).                                                                                                                                                                     |
-| **Send Without Joining**                 | Publica sin entrar en el canal, para que el canal no vea al bloque llegar e irse. Solo funciona donde el canal acepta mensajes de fuera (sin modo `+n`).                                                           |
-| **Server Password**                      | Una contraseña que el servidor o tu bouncer piden al conectar.                                                                                                                                                    |
-| **SASL Username** y **SASL Password**    | Inicia sesión en tu cuenta en las redes que usan SASL, como Libera.Chat, que lo exige para las conexiones desde algunas direcciones de nube y de VPN. Rellena los dos o ninguno.                                     |
+| **Apodo**                             | Quién envía el mensaje. Por defecto `OneUptime`. Si el apodo está ocupado, el bloque lo prueba con un guion bajo o un número añadido, y después con uno en lugar de sus últimos caracteres, para un servidor que no admite un apodo más largo. |
+| **Puerto**                                 | El puerto del servidor. Por defecto `6697`, o `6667` con **Desactivar TLS** activado.                                                                                                                                 |
+| **Desactivar TLS**                          | El bloque se conecta por TLS y comprueba el certificado del servidor. Actívalo solo para un servidor que no ofrezca TLS; cualquier contraseña se envía entonces sin cifrar. Para confiar en un certificado de tu propia autoridad de certificación, una instalación autoalojada define `NODE_EXTRA_CA_CERTS` en su lugar. |
+| **Clave del canal**                          | La clave de un canal que la tenga (modo `+k`).                                                                                                                                                                     |
+| **Enviar sin unirse**                 | Publica sin entrar en el canal, para que el canal no vea al bloque llegar e irse. Solo funciona donde el canal acepta mensajes de fuera (sin modo `+n`).                                                           |
+| **Contraseña del servidor**                      | Una contraseña que el servidor o tu bouncer piden al conectar.                                                                                                                                                    |
+| **Usuario SASL** y **Contraseña SASL**    | Inicia sesión en tu cuenta en las redes que usan SASL, como Libera.Chat, que lo exige para las conexiones desde algunas direcciones de nube y de VPN. Rellena los dos o ninguno.                                     |
 
 **Éxito** salta cuando el servidor ha aceptado todas las líneas. El bloque lo comprueba pidiendo al servidor que responda a un ping después de la última línea: un servidor responde en orden, así que cualquier rechazo del mensaje llega antes. Un bouncer como ZNC responde él mismo al ping, así que el bloque escucha un segundo más para recibir la respuesta de la red que hay detrás.
 
-**Error** salta cuando no se puede llegar al servidor, o este rechaza la conexión, el apodo, una contraseña o el canal, o rechaza el mensaje. Transmite el motivo, con las propias palabras del servidor cuando las dio. En cambio, un **IRC Server**, un **Canal** o un **Texto del mensaje** que falte, o un ajuste que nunca podría funcionar, detiene la ejecución.
+**Error** salta cuando no se puede llegar al servidor, o este rechaza la conexión, el apodo, una contraseña o el canal, o rechaza el mensaje. Transmite el motivo, con las propias palabras del servidor cuando las dio. En cambio, un **Servidor IRC**, un **Canal** o un **Texto del mensaje** que falte, o un ajuste que nunca podría funcionar, detiene la ejecución.
 
 Cada ejecución del bloque es una conexión propia, y las redes de IRC limitan la frecuencia con que una misma dirección puede conectarse: una ráfaga de mensajes puede rechazarse con un motivo como "Reconnecting too fast", y toma **Error** como cualquier otro rechazo. Para un flujo de trabajo que puede saltar muchas veces por minuto, reúne lo que tenga que decir en un solo mensaje, o envíalo a través de un servidor propio.
 
@@ -171,7 +171,7 @@ Publica un mensaje en un canal de Mattermost a través de un webhook entrante, e
 
 | Ajuste                              | Qué hace                                                                                                                                                                                                                                                                           |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Mattermost Incoming Webhook URL** | El webhook por el que publicar, tal como lo muestra Mattermost en Integrations, Incoming Webhooks: la dirección del servidor, después `/hooks/` y el ID del webhook. La guía de Mattermost muestra cómo [crear uno](https://docs.mattermost.com/developers/integrate/webhooks/incoming). |
+| **URL del webhook entrante de Mattermost** | El webhook por el que publicar, tal como lo muestra Mattermost en Integrations, Incoming Webhooks: la dirección del servidor, después `/hooks/` y el ID del webhook. La guía de Mattermost muestra cómo [crear uno](https://docs.mattermost.com/developers/integrate/webhooks/incoming). |
 | **Texto del mensaje**                    | El texto que enviar. Se envía exactamente como lo escribes, y Mattermost interpreta Markdown: `**bold**`, `_italic_`, enlaces, tablas y emojis como `:rotating_light:`. Una publicación de Mattermost admite 16.383 caracteres: un mensaje más largo se corta para que quepa y termina con "… (truncated — see OneUptime for the full text)". |
 
 En **Más campos**:
@@ -180,15 +180,15 @@ En **Más campos**:
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Canal**  | Publica en otro sitio que no sea el canal del propio webhook: el nombre del canal tal como aparece en su URL, como `town-square`, o `@` y un nombre de usuario para un mensaje directo. Un webhook fijado a su canal rechaza cualquier otro. |
 | **Nombre de usuario** | El nombre con el que publicar. Mattermost solo lo usa donde un administrador del sistema permite a las integraciones cambiar los nombres de usuario.                                                          |
-| **Icon URL** | La imagen con la que publicar, una dirección `https`. Mattermost solo la usa donde un administrador del sistema permite a las integraciones cambiar los iconos de la imagen de perfil.                        |
+| **URL del icono** | La imagen con la que publicar, una dirección `https`. Mattermost solo la usa donde un administrador del sistema permite a las integraciones cambiar los iconos de la imagen de perfil.                        |
 
-**Éxito** salta cuando Mattermost aceptó el mensaje. **Error** salta cuando no se puede llegar al servidor o Mattermost rechaza el mensaje, y transmite el motivo de Mattermost. En cambio, un **Mattermost Incoming Webhook URL** o un **Texto del mensaje** que falte, una URL que no sea la de un webhook entrante, o un ajuste que nunca podría funcionar, detiene la ejecución.
+**Éxito** salta cuando Mattermost aceptó el mensaje. **Error** salta cuando no se puede llegar al servidor o Mattermost rechaza el mensaje, y transmite el motivo de Mattermost. En cambio, un **URL del webhook entrante de Mattermost** o un **Texto del mensaje** que falte, una URL que no sea la de un webhook entrante, o un ajuste que nunca podría funcionar, detiene la ejecución.
 
 Guarda la URL del webhook en una [variable global secreta](/docs/workflows/variables#variables-globales): cualquiera que la tenga puede publicar en el canal. Se oculta en los registros de ejecución en cualquier caso. El mensaje sale de OneUptime y las redirecciones no se siguen. Un webhook en una dirección de loopback (`localhost`, `127.0.0.1`), de enlace local o de metadatos de la nube se rechaza, y también uno en una dirección de red privada, a menos que un administrador autoalojado lo permita con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Consulta [Acceso a red privada](/docs/self-hosted/private-network-access).
 
 ## Email
 
-Envía un correo a través de un servidor SMTP que indicas en el bloque. El bloque se llama **Send Email**.
+Envía un correo a través de un servidor SMTP que indicas en el bloque. El bloque se llama **Enviar correo**.
 
 | Ajuste                                  | Qué hace                                                                                              |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -196,11 +196,11 @@ Envía un correo a través de un servidor SMTP que indicas en el bloque. El bloq
 | **Correo del destinatario**                            | La dirección del destinatario. Separa varias direcciones con comas o puntos y comas.                  |
 | **Asunto**                             | El asunto.                                                                                            |
 | **Cuerpo del correo electrónico**                          | El mensaje, enviado como HTML.                                                                        |
-| **SMTP HOST** y **Puerto SMTP**           | El servidor de correo al que conectarse.                                                              |
+| **Host SMTP** y **Puerto SMTP**           | El servidor de correo al que conectarse.                                                              |
 | **Usuario SMTP** y **Contraseña SMTP**   | Opcionales. Rellena los dos o ninguno.                                                                |
-| **Use Implicit TLS**                    | Actívalo para TLS implícito, normalmente en el puerto 465. Déjalo desactivado para STARTTLS, normalmente en el puerto 587. |
+| **Usar TLS implícito**                    | Actívalo para TLS implícito, normalmente en el puerto 465. Déjalo desactivado para STARTTLS, normalmente en el puerto 587. |
 
-**Éxito** salta cuando el servidor SMTP aceptó el mensaje. **Error** salta cuando se rechaza el host SMTP, no se puede llegar al servidor o este rechaza el mensaje, y transmite el mensaje de error. En cambio, un **Correo del destinatario**, un **Correo del remitente**, un **SMTP HOST** o un **Puerto SMTP** que falte detiene la ejecución.
+**Éxito** salta cuando el servidor SMTP aceptó el mensaje. **Error** salta cuando se rechaza el host SMTP, no se puede llegar al servidor o este rechaza el mensaje, y transmite el mensaje de error. En cambio, un **Correo del destinatario**, un **Correo del remitente**, un **Host SMTP** o un **Puerto SMTP** que falte detiene la ejecución.
 
 El bloque se conecta directamente al servidor de sus ajustes. No usa los ajustes de [SMTP](/docs/emails/smtp) de tu proyecto ni el propio servidor de correo de OneUptime, y los correos que envía no aparecen en los registros de notificaciones. Para comprobar lo que hizo, mira las [Ejecuciones](/docs/workflows/runs-and-logs) del flujo de trabajo.
 
@@ -212,35 +212,35 @@ Avisa a personas desde un flujo de trabajo: cada una recibe una llamada, un SMS,
 
 | Bloque                      | A quién avisa |
 | --------------------------- | ------------- |
-| **Page Users**              | A las personas que nombras. |
-| **Page a Team**             | A todos los miembros de un equipo. |
-| **Page Whoever Is On Call** | A quien esté de guardia en una programación de guardia cuando se ejecuta el bloque. |
-| **Page an On-Call Policy**  | A una política de guardia, que avisa siguiendo sus reglas de escalado y se repite como esté configurada. |
+| **Avisar a usuarios**              | A las personas que nombras. |
+| **Avisar a un equipo**             | A todos los miembros de un equipo. |
+| **Avisar a quien está de guardia** | A quien esté de guardia en una programación de guardia cuando se ejecuta el bloque. |
+| **Iniciar una política de guardia**  | A una política de guardia, que avisa siguiendo sus reglas de escalado y se repite como esté configurada. |
 
-Los tres primeros avisan a la vez a todos los que nombran, y a nadie más después. Para un escalado, usa **Page an On-Call Policy**.
+Los tres primeros avisan a la vez a todos los que nombran, y a nadie más después. Para un escalado, usa **Iniciar una política de guardia**.
 
 Para avisar solo cuando algo se cumple, pon [If / Else](#conditions) delante del bloque y conéctale la salida que debe avisar. Con más de dos caminos, [Switch / Case](#switch-case) toma un camino para cada valor, y cada camino puede avisar a otra persona.
 
 ```mermaid title="Avisar a quien esté de guardia, pero solo en incidentes críticos"
 flowchart TB
-    trigger["On Create Incident"] -->|"Éxito"| check["If / Else"]
-    check -->|"Sí"| page["Page Whoever Is On Call"]
+    trigger["Al crear Incidente"] -->|"Éxito"| check["Si / Si no"]
+    check -->|"Sí"| page["Avisar a quien está de guardia"]
 ```
 
-Al crear un flujo de trabajo, las plantillas de **Guardia** tienen este ya preparado, y otro que avisa según la gravedad con **Switch / Case**. El diálogo **Crear un flujo de trabajo** pregunta a quién avisa cada bloque de aviso de una plantilla, así que el flujo de trabajo se abre con eso ya elegido. Un bloque de aviso que añades en el Constructor dice **Haz clic para configurar** hasta que eliges a quién avisa.
+Al crear un flujo de trabajo, las plantillas de **Guardia** tienen este ya preparado, y otro que avisa según la gravedad con **Según / Caso**. El diálogo **Crear un flujo de trabajo** pregunta a quién avisa cada bloque de aviso de una plantilla, así que el flujo de trabajo se abre con eso ya elegido. Un bloque de aviso que añades en el Constructor dice **Haz clic para configurar** hasta que eliges a quién avisa.
 
 | Ajuste | Qué hace |
 | ------ | -------- |
 | **Usuarios**, **Equipos**, **Programaciones de guardia** o **Políticas de guardia** | A quién avisar: cada bloque tiene el que corresponde a su nombre. Elige por nombre, o pulsa **{ }** al final de la fila para añadir un valor de un bloque anterior. Un valor puede contener un ID o varios y, en **Usuarios**, una dirección de correo. |
-| **Page About** | De qué trata el aviso: **A new alert**, **An incident** o **An alert**. Reconocer el aviso también lo reconoce. |
+| **Motivo del aviso** | De qué trata el aviso: **Una alerta nueva**, **Un incidente** o **Una alerta**. Reconocer el aviso también lo reconoce. |
 | **Título** y **Mensaje** | Para una alerta nueva. OneUptime crea una alerta con ellos, y se queda entre tus alertas como cualquier otra. |
 | **ID del incidente** o **ID de la alerta** | Para un incidente o una alerta que ya existe, normalmente aquel con el que empezó el flujo de trabajo: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
-| **Page As** | Para un incidente o una alerta que ya existe, en **Más campos**. Los **Respondedores** se hacen cargo. Los **Observadores** se mantienen informados mientras otros responden: confirmar su aviso solo indica que lo han visto, y el incidente o la alerta no se confirma. |
+| **Avisar como** | Para un incidente o una alerta que ya existe, en **Más campos**. Los **Respondedores** se hacen cargo. Los **Observadores** se mantienen informados mientras otros responden: confirmar su aviso solo indica que lo han visto, y el incidente o la alerta no se confirma. |
 | **Gravedad** | Para una alerta nueva, en **Más campos**. Decide cuáles de las reglas de guardia de cada persona le avisan. Si se deja vacía, es la más grave del proyecto. |
 
 Un bloque añadido a un flujo de trabajo que empieza con un incidente o una alerta ya está configurado para avisar sobre ese registro, así que solo pregunta a quién avisar.
 
-**Éxito** se ejecuta en cuanto se avisa al menos a una persona, o se ha iniciado una política. **Error** se ejecuta cuando no se avisó a nadie, y el valor **Error** del bloque dice por qué, por ejemplo que no hay nadie de guardia en la programación. **Resumen** dice en una frase a quién se avisó y a quién se dejó fuera, lista para publicarla en un canal, y **Paged Users** enumera a las personas avisadas.
+**Éxito** se ejecuta en cuanto se avisa al menos a una persona, o se ha iniciado una política. **Error** se ejecuta cuando no se avisó a nadie, y el valor **Error** del bloque dice por qué, por ejemplo que no hay nadie de guardia en la programación. **Resumen** dice en una frase a quién se avisó y a quién se dejó fuera, lista para publicarla en un canal, y **Usuarios avisados** enumera a las personas avisadas.
 
 A quien está ausente no se le avisa: se avisa en su lugar a quien su sustitución de usuario nombra para cubrirle. Un aviso nombra como máximo 100 personas, equipos y programaciones. Consulta [Cómo se localiza a cada persona](/docs/on-call/escalation-rules#cómo-se-localiza-a-cada-persona).
 
@@ -251,12 +251,12 @@ Un aviso sin política de guardia detrás aparece junto a las ejecuciones de las
 
 ## Custom Code
 
-Ejecuta unas pocas líneas de JavaScript cuando los demás bloques no pueden hacer lo que necesitas. El bloque se llama **Run Custom JavaScript**.
+Ejecuta unas pocas líneas de JavaScript cuando los demás bloques no pueden hacer lo que necesitas. El bloque se llama **Ejecutar JavaScript personalizado**.
 
 | Ajuste              | Qué hace                                                                                                                             |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **Código JavaScript** | Tu código. Lo que devuelva con `return` se convierte en el **Valor** del bloque. Puede usar `await`.                                |
-| **Arguments**       | Un objeto JSON de valores que pasar al código, que los lee como `args`. Pon aquí las variables y los valores de bloques anteriores; el propio código no puede leerlos. |
+| **Argumentos**       | Un objeto JSON de valores que pasar al código, que los lee como `args`. Pon aquí las variables y los valores de bloques anteriores; el propio código no puede leerlos. |
 
 ```json title="Arguments"
 { "title": "{{local.components.incident-on-create-1.returnValues.model.title}}" }
@@ -284,7 +284,7 @@ Ejecuta unas líneas de JavaScript y toma **Sí** o **No** según lo que devuelv
 | Ajuste              | Qué hace |
 | ------------------- | -------- |
 | **Código JavaScript** | Tu código. `return true` toma **Sí**. Para pasar también valores, devuelve un objeto con `proceed: true`, los valores y un `reason`. |
-| **Arguments**       | Un objeto JSON de valores que pasar al código, que los lee como `args`, igual que en **Run Custom JavaScript**. |
+| **Argumentos**       | Un objeto JSON de valores que pasar al código, que los lee como `args`, igual que en **Ejecutar JavaScript personalizado**. |
 
 ```javascript title="JavaScript Code"
 if (args.environment !== "production") {
@@ -296,7 +296,7 @@ return { proceed: true, title: args.title.toUpperCase() };
 
 Solo `true`, o un objeto cuyo `proceed` sea `true`, toma **Sí**: cualquier otra cosa toma **No**, incluso un número o un texto. El bloque devuelve **Valor**, lo que devolvió el código, que un bloque posterior lee como `{{local.components.javascript-check-1.returnValues.returnValue.title}}`, y **Motivo**, el `reason` del código o lo que devolvió, en una frase, que la pestaña **Pasos** de la ejecución muestra junto a la salida tomada.
 
-El código se ejecuta como lo ejecuta **Run Custom JavaScript**: en el mismo sandbox, con los mismos `args`, `console.log` y `axios`, y con el mismo límite de tiempo. Cuando lanza una excepción o se queda sin tiempo, el bloque toma **Error**.
+El código se ejecuta como lo ejecuta **Ejecutar JavaScript personalizado**: en el mismo sandbox, con los mismos `args`, `console.log` y `axios`, y con el mismo límite de tiempo. Cuando lanza una excepción o se queda sin tiempo, el bloque toma **Error**.
 
 ## JSON
 
@@ -304,15 +304,15 @@ Convierte entre texto y JSON, o combina dos objetos JSON.
 
 | Bloque           | Recibe                                   | Devuelve                                                                                                   |
 | ---------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **JSON to Text** | **JSON**, un objeto                      | **Texto**: el objeto como cadena. Útil cuando el bloque siguiente espera texto.                             |
-| **Text to JSON** | **Texto**, que puede ocupar varias líneas | **JSON**: el objeto analizado, para que puedas leer sus campos. Úsalo con JSON que llegó como texto.      |
-| **Merge JSON**   | **JSON 1** y **JSON 2**                  | **JSON**: un objeto con las claves de ambos. Cuando los dos tienen una clave, gana **JSON 2**.             |
+| **JSON a texto** | **JSON**, un objeto                      | **Texto**: el objeto como cadena. Útil cuando el bloque siguiente espera texto.                             |
+| **Texto a JSON** | **Texto**, que puede ocupar varias líneas | **JSON**: el objeto analizado, para que puedas leer sus campos. Úsalo con JSON que llegó como texto.      |
+| **Combinar JSON**   | **JSON 1** y **JSON 2**                  | **JSON**: un objeto con las claves de ambos. Cuando los dos tienen una clave, gana **JSON 2**.             |
 
-**Text to JSON** toma **Error** cuando el texto no es JSON. Una entrada que falte, o una entrada de **Merge JSON** que no sea un objeto, detiene la ejecución.
+**Texto a JSON** toma **Error** cuando el texto no es JSON. Una entrada que falte, o una entrada de **Combinar JSON** que no sea un objeto, detiene la ejecución.
 
 ## Conditions
 
-Ramifica según una comparación. En el panel **Añadir componente**, este bloque se llama **If / Else**, en **Populares**. Para elegir entre más de dos caminos, usa [Switch / Case](#switch-case).
+Ramifica según una comparación. En el panel **Añadir componente**, este bloque se llama **Si / Si no**, en **Populares**. Para elegir entre más de dos caminos, usa [Switch / Case](#switch-case).
 
 Sus ajustes se leen como una frase: **Si** *valor que comprobar* *comparación* *valor con el que comparar*, continúa por **Sí**, si no, por **No**. Debajo de los ajustes, la condición se lee en palabras, para que veas que dice lo que quieres. En el lienzo, el bloque también muestra su condición, por ejemplo *Si environment is equal to “production”*.
 
@@ -342,7 +342,7 @@ Las comparaciones de números comparan números y las de texto comparan texto, a
 
 ## Switch / Case
 
-Toma uno de varios caminos según un valor. En el panel **Añadir componente**, este bloque se llama **Switch / Case**, en **Populares**.
+Toma uno de varios caminos según un valor. En el panel **Añadir componente**, este bloque se llama **Según / Caso**, en **Populares**.
 
 Compara un valor con cada uno de sus casos por turno, desde arriba, y continúa por el primer caso que coincide, o por **Predeterminado** si ninguno coincide. Solo se ejecuta un camino: un valor que coincide con dos casos toma el primero.
 
@@ -380,7 +380,7 @@ Inicia otro flujo de trabajo del mismo proyecto. Tu flujo de trabajo continúa s
 | Ajuste        | Qué hace                                                                                                                                  |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | **Flujo de trabajo**  | El flujo de trabajo que iniciar. Debe estar habilitado y, para recibir argumentos, tener un disparador **Manual**.                        |
-| **Arguments** | El JSON que pasar. El disparador Manual del otro flujo de trabajo pasa cada clave como un valor propio: con `{"customerId": "42"}`, lee `{{local.components.manual-1.returnValues.customerId}}`. |
+| **Argumentos** | El JSON que pasar. El disparador Manual del otro flujo de trabajo pasa cada clave como un valor propio: con `{"customerId": "42"}`, lee `{{local.components.manual-1.returnValues.customerId}}`. |
 
 **Salida** salta en cuanto el otro flujo de trabajo queda en cola. **Error** salta cuando no puede: no se encuentra, está desactivado o archivado, o iniciarlo crearía un bucle.
 
@@ -388,9 +388,9 @@ Inicia otro flujo de trabajo del mismo proyecto. Tu flujo de trabajo continúa s
 
 ## Incidentes y alertas de otras herramientas
 
-Mantén un incidente, o una alerta, por cada problema del que te avisa otra herramienta, emparejado por el ID propio que esa herramienta le da. **Incident From Another Tool** y **Alert From Another Tool** son la base de las plantillas de Zabbix, Huntress, Jira y Dynamics 365, y funcionan con cualquier herramienta que pueda llamar al [disparador Webhook](/docs/workflows/triggers#webhook) de un flujo de trabajo. En el panel **Añadir componente**, están en **From Other Tools**.
+Mantén un incidente, o una alerta, por cada problema del que te avisa otra herramienta, emparejado por el ID propio que esa herramienta le da. **Incidente desde otra herramienta** y **Alerta desde otra herramienta** son la base de las plantillas de Zabbix, Huntress, Jira y Dynamics 365, y funcionan con cualquier herramienta que pueda llamar al [disparador Webhook](/docs/workflows/triggers#webhook) de un flujo de trabajo. En el panel **Añadir componente**, están en **Desde otras herramientas**.
 
-Cada ejecución le pasa al bloque un evento: **Qué ocurrió**, y **Outside ID**, el ID del problema en la herramienta. El bloque busca el registro que guarda ese ID y hace lo que dice **Qué ocurrió**:
+Cada ejecución le pasa al bloque un evento: **Qué ocurrió**, y **ID externo**, el ID del problema en la herramienta. El bloque busca el registro que guarda ese ID y hace lo que dice **Qué ocurrió**:
 
 | What Happened | Qué hace el bloque |
 | ------------- | ------------------ |
@@ -407,22 +407,22 @@ Cada ejecución le pasa al bloque un evento: **Qué ocurrió**, y **Outside ID**
 | **Sin cambios** | No había nada que hacer: ningún registro guarda el ID, el registro ya está en ese estado o más allá, o **Qué ocurrió** está vacío. |
 | **Error** | No pudo leer ni cambiar el registro. Si no hay nada conectado aquí, la ejecución falla. |
 
-Un registro solo avanza, y uno resuelto ya no se mueve, así que cuando las dos herramientas lo cambian, ninguna deshace lo que hizo la otra. Guarda el ID en un campo personalizado, `externalId` salvo que **Outside ID Field** nombre otro, y solo se escribe ese campo, así que los demás campos personalizados del registro conservan su valor. Un ID que guarda un registro nunca se vuelve a abrir, aunque ese registro ya esté resuelto: usa un ID nuevo para cada problema, como lo es un ID de evento de Zabbix o un número de informe de Huntress. Para actuar en cambio sobre un registro por su propio ID, como hacen las plantillas de Jira con el ID que llevan las etiquetas de una incidencia, ponlo en **ID del incidente** o **ID de la alerta**.
+Un registro solo avanza, y uno resuelto ya no se mueve, así que cuando las dos herramientas lo cambian, ninguna deshace lo que hizo la otra. Guarda el ID en un campo personalizado, `externalId` salvo que **Campo del ID externo** nombre otro, y solo se escribe ese campo, así que los demás campos personalizados del registro conservan su valor. Un ID que guarda un registro nunca se vuelve a abrir, aunque ese registro ya esté resuelto: usa un ID nuevo para cada problema, como lo es un ID de evento de Zabbix o un número de informe de Huntress. Para actuar en cambio sobre un registro por su propio ID, como hacen las plantillas de Jira con el ID que llevan las etiquetas de una incidencia, ponlo en **ID del incidente** o **ID de la alerta**.
 
-**Gravedad** nombra una de tus gravedades por su nombre o su ID, sin distinguir mayúsculas, o por el lugar que ocupa entre ellas: `most severe`, `middle` o `least severe`. Así se reparten los niveles propios de una herramienta entre las gravedades que tú mismo nombraste. Si se deja vacío, o no nombra ninguna, es tu gravedad más alta, y el registro de la ejecución lo dice. Un incidente nuevo se mantiene fuera de tus páginas de estado, y sus suscriptores no reciben aviso, porque el texto de otra herramienta está escrito para los usuarios de esa herramienta: activa **Show On Status Pages** para mostrarlo.
+**Gravedad** nombra una de tus gravedades por su nombre o su ID, sin distinguir mayúsculas, o por el lugar que ocupa entre ellas: `most severe`, `middle` o `least severe`. Así se reparten los niveles propios de una herramienta entre las gravedades que tú mismo nombraste. Si se deja vacío, o no nombra ninguna, es tu gravedad más alta, y el registro de la ejecución lo dice. Un incidente nuevo se mantiene fuera de tus páginas de estado, y sus suscriptores no reciben aviso, porque el texto de otra herramienta está escrito para los usuarios de esa herramienta: activa **Mostrar en páginas de estado** para mostrarlo.
 
-En **Más campos**, **Motivo** es el motivo en el historial del registro cuando cambia de estado, y **Nota** se añade entonces a su lado como nota privada, para una herramienta que dice algo al reconocer o resolver. **Campos personalizados** da a un registro nuevo más campos personalizados, como un objeto JSON, **Etiquetas** los ID de sus etiquetas, separados por comas, y **Recursos afectados** los recursos de los que trata, como en **Create One Incident**. **Note Instead Of Resolving** añade la nota y deja que tu equipo resuelva el registro. El bloque devuelve **Resumen**, lo que hizo en una frase, y el registro, así que un bloque posterior lee su ID como `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+En **Más campos**, **Motivo** es el motivo en el historial del registro cuando cambia de estado, y **Nota** se añade entonces a su lado como nota privada, para una herramienta que dice algo al reconocer o resolver. **Campos personalizados** da a un registro nuevo más campos personalizados, como un objeto JSON, **Etiquetas** los ID de sus etiquetas, separados por comas, y **Recursos afectados** los recursos de los que trata, como en **Crear Incidente (individual)**. **Nota en lugar de resolver** añade la nota y deja que tu equipo resuelva el registro. El bloque devuelve **Resumen**, lo que hizo en una frase, y el registro, así que un bloque posterior lee su ID como `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
 
 ## Zabbix
 
-Reconoce o cierra un problema en Zabbix, o añádele un mensaje, a través de la API de Zabbix. El bloque se llama **Update Zabbix Problem**, y las [plantillas de Zabbix](/docs/integrations/zabbix) lo usan para devolver a Zabbix lo que pasa en OneUptime.
+Reconoce o cierra un problema en Zabbix, o añádele un mensaje, a través de la API de Zabbix. El bloque se llama **Actualizar problema de Zabbix**, y las [plantillas de Zabbix](/docs/integrations/zabbix) lo usan para devolver a Zabbix lo que pasa en OneUptime.
 
 | Ajuste | Qué hace |
 | ------ | -------- |
-| **Zabbix URL** | La dirección en la que abres Zabbix, como `https://zabbix.example.com`. Las solicitudes van a su `api_jsonrpc.php`. |
+| **URL de Zabbix** | La dirección en la que abres Zabbix, como `https://zabbix.example.com`. Las solicitudes van a su `api_jsonrpc.php`. |
 | **Token de API** | Un token de API de un usuario de Zabbix que pueda reconocer, comentar y cerrar problemas. Guárdalo en una variable secreta. |
 | **ID del evento** | El ID de evento del problema, normalmente el que un incidente o una alerta guarda en sus campos personalizados. |
-| **What To Do** | `acknowledge`, `close` o `message`. Si se deja vacío, Zabbix no se actualiza. |
+| **Qué hacer** | `acknowledge`, `close` o `message`. Si se deja vacío, Zabbix no se actualiza. |
 | **Mensaje** | Lo que Zabbix guarda en el problema, como mucho 2048 caracteres: un mensaje más largo se recorta. |
 | **Zabbix 6.0** | En **Más campos**. Zabbix 6.0 lee el token del cuerpo de la solicitud, no de su cabecera `Authorization`: actívalo para esa versión, y desactívalo al actualizar, porque Zabbix 7.2 y posteriores rechazan un token en el cuerpo. |
 
@@ -444,9 +444,9 @@ No necesita ningún modelo de IA, y pasa por las mismas reglas que una correcci�
 | **ID del incidente** | El incidente para el que es la corrección, normalmente el ID que devolvió tu disparador. Rellena este o **ID de la alerta**. |
 | **Comando** | El cambio que se propone, con la única grafía que acepta OneUptime. Consulta [los cambios que puede hacer una corrección](/docs/telemetry/openstack#correcciones). Puede usar valores de bloques anteriores, y se lee después de rellenarlos. |
 | **Por qué** | Lo que lee primero la persona que lo aprueba. Si se deja vacío, indica qué flujo de trabajo lo pidió. |
-| **OpenStack Cloud ID** | En **Más campos**. Solo para un registro vinculado a más de una nube, o a ninguna. |
+| **ID de la nube OpenStack** | En **Más campos**. Solo para un registro vinculado a más de una nube, o a ninguna. |
 
-Devuelve **Suggestion ID** (la corrección que espera aprobación), **Tier** (Safe o Riskier, según lee OneUptime el comando) y **Already Waiting** (verdadero cuando el mismo cambio en esa nube ya estaba esperando, así que no se añadió un segundo).
+Devuelve **ID de la sugerencia** (la corrección que espera aprobación), **Nivel** (Safe o Riskier, según lee OneUptime el comando) y **Ya en espera** (verdadero cuando el mismo cambio en esa nube ya estaba esperando, así que no se añadió un segundo).
 
 **Éxito** salta cuando ya se ha preguntado a una persona, sin esperar su respuesta. **Error** salta cuando no se propuso nada, con el motivo en **Error**: el comando se rechaza, todavía no se permiten correcciones en esa nube, o los flujos de trabajo de un proyecto han propuesto 20 correcciones en la última hora.
 
@@ -458,38 +458,38 @@ Para cada tipo de registro de OneUptime (monitores, incidentes, alertas, página
 
 | Componente               | Qué hace                                                                       |
 | ------------------------ | ------------------------------------------------------------------------------ |
-| **Find One Monitor**     | Lee un registro que coincide con la consulta.                                  |
-| **Find Many Monitors**   | Lee una lista de registros que coinciden con la consulta.                      |
-| **Create One Monitor**   | Añade un registro a partir de un objeto JSON.                                  |
-| **Create Many Monitors** | Añade varios registros a partir de un array JSON.                              |
-| **Update One Monitor**   | Aplica los datos que escribir a un registro coincidente.                       |
-| **Update Many Monitors** | Aplica los datos que escribir a los registros coincidentes, hasta **Limit**.   |
-| **Delete One Monitor**   | Elimina un registro coincidente.                                               |
-| **Delete Many Monitors** | Elimina los registros coincidentes, hasta **Limit**.                           |
+| **Buscar Monitor (individual)**     | Lee un registro que coincide con la consulta.                                  |
+| **Buscar Monitores (múltiples)**   | Lee una lista de registros que coinciden con la consulta.                      |
+| **Crear Monitor (individual)**   | Añade un registro a partir de un objeto JSON.                                  |
+| **Crear Monitores (múltiples)** | Añade varios registros a partir de un array JSON.                              |
+| **Actualizar Monitor (individual)**   | Aplica los datos que escribir a un registro coincidente.                       |
+| **Actualizar Monitores (múltiples)** | Aplica los datos que escribir a los registros coincidentes, hasta **Límite**.   |
+| **Eliminar Monitor (individual)**   | Elimina un registro coincidente.                                               |
+| **Eliminar Monitores (múltiples)** | Elimina los registros coincidentes, hasta **Límite**.                           |
 
-El mismo conjunto te da cuatro disparadores: **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** y **On Delete Monitor**. Consulta [Disparadores](/docs/workflows/triggers#disparadores-de-eventos-de-oneuptime).
+El mismo conjunto te da cuatro disparadores: **Al crear Monitor**, **Al actualizar Monitor**, **Al crear o actualizar Monitor** y **Al eliminar Monitor**. Consulta [Disparadores](/docs/workflows/triggers#disparadores-de-eventos-de-oneuptime).
 
-Un tipo solo ofrece los componentes que permite su modelo. Un tipo de solo lectura tiene los dos componentes Find y nada más, así que, si no encuentras **Delete One Monitor** en el panel, ese tipo no lo permite.
+Un tipo solo ofrece los componentes que permite su modelo. Un tipo de solo lectura tiene los dos componentes Find y nada más, así que, si no encuentras **Eliminar Monitor (individual)** en el panel, ese tipo no lo permite.
 
-Así es como un flujo de trabajo lee y cambia los datos de OneUptime. Por ejemplo, un webhook de tu herramienta de CI puede usar **Create One Incident** para abrir un incidente con los detalles del fallo.
+Así es como un flujo de trabajo lee y cambia los datos de OneUptime. Por ejemplo, un webhook de tu herramienta de CI puede usar **Crear Incidente (individual)** para abrir un incidente con los detalles del fallo.
 
 Estos componentes actúan como Administrador del proyecto en el proyecto del flujo de trabajo: lo que un Administrador del proyecto no puede hacer, o lo que tu plan no incluye, se rechaza, y el registro de la ejecución dice por qué. Consulta [Qué pueden hacer los pasos de un flujo de trabajo](/docs/workflows/configuration#qué-pueden-hacer-los-pasos-de-un-flujo-de-trabajo).
 
 ### Declarar un incidente a partir de una plantilla
 
-**Create One Incident** puede declarar el incidente a partir de una de tus [plantillas de incidente](/docs/incidents/settings#plantillas-de-incidente): elígela en **Plantilla de incidente**, el primer ajuste del paso. La plantilla rellena todos los campos que **JSON Object** deja fuera — el título, la descripción, la gravedad, el estado inicial, los monitores y otros recursos, las políticas de guardia, las etiquetas, las páginas de estado y los campos personalizados — y sus propietarios pasan a ser los propietarios del incidente. Todo lo que definas en **JSON Object** prevalece sobre la plantilla, estado incluido, así que con una plantilla elegida **JSON Object** solo necesita lo que deba ser distinto, y puede quedar vacío.
+**Crear Incidente (individual)** puede declarar el incidente a partir de una de tus [plantillas de incidente](/docs/incidents/settings#plantillas-de-incidente): elígela en **Plantilla de incidente**, el primer ajuste del paso. La plantilla rellena todos los campos que **Objeto JSON** deja fuera — el título, la descripción, la gravedad, el estado inicial, los monitores y otros recursos, las políticas de guardia, las etiquetas, las páginas de estado y los campos personalizados — y sus propietarios pasan a ser los propietarios del incidente. Todo lo que definas en **Objeto JSON** prevalece sobre la plantilla, estado incluido, así que con una plantilla elegida **Objeto JSON** solo necesita lo que deba ser distinto, y puede quedar vacío.
 
-El incidente guarda la plantilla de la que se declaró en `createdIncidentTemplateId`. Esa columna la define OneUptime: un paso que la envía en **JSON Object** se rechaza, y su registro de ejecución te remite a **Plantilla de incidente**. Una plantilla de otro proyecto, o una que se eliminó, hace que el paso tome su salida **Error**, y en un plan que no incluye plantillas de incidente el paso se rechaza indicando el plan que necesita. Consulta [Cómo se aplica una plantilla](/docs/incidents/settings#cómo-se-aplica-una-plantilla).
+El incidente guarda la plantilla de la que se declaró en `createdIncidentTemplateId`. Esa columna la define OneUptime: un paso que la envía en **Objeto JSON** se rechaza, y su registro de ejecución te remite a **Plantilla de incidente**. Una plantilla de otro proyecto, o una que se eliminó, hace que el paso tome su salida **Error**, y en un plan que no incluye plantillas de incidente el paso se rechaza indicando el plan que necesita. Consulta [Cómo se aplica una plantilla](/docs/incidents/settings#cómo-se-aplica-una-plantilla).
 
 ### Vincular los recursos de los que trata
 
-**Create One Incident** y **Create One Alert** tienen un ajuste **Recursos afectados**: los hosts, dispositivos de red, clústeres, bases de datos o servicios de los que trata el registro, por nombre, dirección o ID, separados por comas — escritos a mano o tomados de un paso anterior, como el host que nombra una alerta llegada de otra herramienta. Cada entrada se busca en todos los tipos de recurso que puede contener el registro, como valor completo y sin distinguir mayúsculas: por nombre, un dispositivo de red también por la dirección en la que se sondea o por su nombre DNS, un host por el nombre que informa su agente o por una de sus direcciones IP, y un recurso en la nube por el ID de su proveedor. Cada recurso con el que coincide una entrada se vincula, junto a lo que ya vinculan **JSON Object** y la plantilla, hasta 50 a partir de las 25 primeras entradas.
+**Crear Incidente (individual)** y **Crear Alerta (individual)** tienen un ajuste **Recursos afectados**: los hosts, dispositivos de red, clústeres, bases de datos o servicios de los que trata el registro, por nombre, dirección o ID, separados por comas — escritos a mano o tomados de un paso anterior, como el host que nombra una alerta llegada de otra herramienta. Cada entrada se busca en todos los tipos de recurso que puede contener el registro, como valor completo y sin distinguir mayúsculas: por nombre, un dispositivo de red también por la dirección en la que se sondea o por su nombre DNS, un host por el nombre que informa su agente o por una de sus direcciones IP, y un recurso en la nube por el ID de su proveedor. Cada recurso con el que coincide una entrada se vincula, junto a lo que ya vinculan **Objeto JSON** y la plantilla, hasta 50 a partir de las 25 primeras entradas.
 
-Una entrada que no coincide con nada no detiene el paso: el registro se crea igualmente, y el registro de la ejecución indica qué vinculó cada entrada y cuáles no coincidieron con nada. Los recursos archivados no se vinculan. Los monitores no se buscan: nómbralos en **JSON Object** (`monitors` en un incidente, `monitorId` en una alerta), porque vincular un monitor a un incidente pausa su supervisión.
+Una entrada que no coincide con nada no detiene el paso: el registro se crea igualmente, y el registro de la ejecución indica qué vinculó cada entrada y cuáles no coincidieron con nada. Los recursos archivados no se vinculan. Los monitores no se buscan: nómbralos en **Objeto JSON** (`monitors` en un incidente, `monitorId` en una alerta), porque vincular un monitor a un incidente pausa su supervisión.
 
 ### Quién lo posee desde el principio
 
-**Create One Incident** y **Create One Alert** tienen los ajustes **Usuarios propietarios** y **Equipos propietarios**: las personas y los equipos que poseen el registro desde que se crea. Elígelos, o tómalos de un paso anterior: el ID o la dirección de correo de un usuario, el ID de un equipo, varios separados por comas o una lista. Los propietarios del registro se enteran de que se creó alrededor de un minuto después de la creación, todos los que tenga para entonces: los elegidos aquí siempre están entre ellos, mientras que los que añade un paso posterior se lo pierden cuando ese paso se ejecuta más de un minuto después, y en su lugar se avisa a los propietarios del proyecto.
+**Crear Incidente (individual)** y **Crear Alerta (individual)** tienen los ajustes **Usuarios propietarios** y **Equipos propietarios**: las personas y los equipos que poseen el registro desde que se crea. Elígelos, o tómalos de un paso anterior: el ID o la dirección de correo de un usuario, el ID de un equipo, varios separados por comas o una lista. Los propietarios del registro se enteran de que se creó alrededor de un minuto después de la creación, todos los que tenga para entonces: los elegidos aquí siempre están entre ellos, mientras que los que añade un paso posterior se lo pierden cuando ese paso se ejecuta más de un minuto después, y en su lugar se avisa a los Propietarios del proyecto.
 
 El paso pregunta si puede añadirlos, como Administrador del proyecto en el proyecto del flujo de trabajo, antes de guardar el registro: los propietarios que no puede añadir hacen que se rechace la creación. Quien no es miembro del proyecto, o un equipo que no es del proyecto, se deja fuera, y el registro de la ejecución lo dice: el registro se crea igualmente. Los propietarios añadidos así no reciben el aviso de que los añadieron: el aviso de que se creó el registro es el que reciben.
 
@@ -509,13 +509,13 @@ Cada campo de un componente de datos se basa en los nombres de **columna** del p
 
 Una consulta siempre se limita al proyecto en el que se ejecuta el flujo de trabajo. No puedes llegar a los registros de otro proyecto, y no necesitas añadir tú mismo el proyecto a la consulta.
 
-**JSON Object** en Create One, **JSON Array** en Create Many y **Data (JSON Object)** en los componentes Update llevan los campos que escribir, con las mismas claves:
+**Objeto JSON** en Create One, **Matriz JSON** en Create Many y **Datos (objeto JSON)** en los componentes Update llevan los campos que escribir, con las mismas claves:
 
 ```json
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Una clave que no es una columna se ignora en lugar de rechazarse — el registro de la ejecución nombra las que descartó, así que míralo cuando un campo no llegue. **Fields to pass on**, en los componentes Find y en los disparadores, se elige de una lista; su **Editar como JSON** muestra las mismas claves de columna con valores `true`: `{"_id": true, "name": true}`. Los campos de un registro relacionado van bajo su clave, como en `{"monitor": {"name": true}}`: `{"monitor": true}` solo transmite su ID.
+Una clave que no es una columna se ignora en lugar de rechazarse — el registro de la ejecución nombra las que descartó, así que míralo cuando un campo no llegue. **Campos que pasar**, en los componentes Find y en los disparadores, se elige de una lista; su **Editar como JSON** muestra las mismas claves de columna con valores `true`: `{"_id": true, "name": true}`. Los campos de un registro relacionado van bajo su clave, como en `{"monitor": {"name": true}}`: `{"monitor": true}` solo transmite su ID.
 
 Los **Campos personalizados** son una sola columna, `customFields`, que guarda el valor de cada campo personalizado con el nombre del campo. Los componentes Update solo cambian los campos personalizados que nombras, y todos los demás conservan su valor:
 
@@ -533,11 +533,11 @@ Un campo que apunta a otro registro, como la gravedad de un incidente, muestra l
 
 Los campos que OneUptime rellena por sí mismo no se ofrecen al escribir un registro: el `_id` del registro, **Creado en**, **Actualizado en**, **Creado por el usuario**, los slugs, los números de registro y los estados de notificación. Quién creó, archivó o resolvió un registro, y cuándo, nunca lo define un flujo de trabajo: un registro que crea un flujo de trabajo no tiene creador, un valor que un flujo de trabajo envía para uno de esos campos junto a otros campos se ignora, y un Update que no envía nada más falla con un mensaje que los nombra. Una actualización solo ofrece los campos que pueden cambiar después de que exista un registro. Una consulta sí ofrece el ID, las marcas de tiempo y **Creado por el usuario**, porque son útiles para filtrar. **Eliminado el** no se ofrece en ningún sitio: los registros se eliminan del todo, así que siempre está vacío.
 
-**Omitir** y **Limit** son dos campos numéricos de Find Many, Update Many y Delete Many, en **Más campos**: `Skip: 0` con `Limit: 100` toma las cien primeras coincidencias. **Limit** vale `10` por defecto, y en Update Many y Delete Many limita cuántos registros se escriben de verdad, no solo cuántos se devuelven. Así que `Items Deleted: 10` significa que se eliminaron diez registros, no que coincidieran diez. Sube **Limit** cuando quieras cambiar más de diez.
+**Omitir** y **Límite** son dos campos numéricos de Find Many, Update Many y Delete Many, en **Más campos**: `Skip: 0` con `Limit: 100` toma las cien primeras coincidencias. **Límite** vale `10` por defecto, y en Update Many y Delete Many limita cuántos registros se escriben de verdad, no solo cuántos se devuelven. Así que `Items Deleted: 10` significa que se eliminaron diez registros, no que coincidieran diez. Sube **Límite** cuando quieras cambiar más de diez.
 
 Delete One y Delete Many por consulta nunca vacían un historial. En los eventos de estado de un monitor, y en los historiales de estados de incidentes, alertas, eventos de mantenimiento y episodios, nunca eliminan el estado actual de un registro, y conservan cada evento de estado de un monitor que cubre parte de los últimos 90 días, para que una página de estado nunca muestre un monitor en gris. El registro de la ejecución dice cuántos se conservaron. Para eliminar un evento concreto, consúltalo por su `_id`.
 
-**Éxito** y **Error** indican si la consulta se ejecutó, no lo que encontró. Una consulta que no coincide con nada devuelve `0` y sale igualmente por **Éxito**: eso no es un fallo. Para ramificar según si algo coincidió, lee el recuento devuelto en un bloque **If / Else**.
+**Éxito** y **Error** indican si la consulta se ejecutó, no lo que encontró. Una consulta que no coincide con nada devuelve `0` y sale igualmente por **Éxito**: eso no es un fallo. Para ramificar según si algo coincidió, lee el recuento devuelto en un bloque **Si / Si no**.
 
 ## Siguientes pasos
 

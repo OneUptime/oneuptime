@@ -265,12 +265,12 @@ describe("how long each dashboard is shown, in words", () => {
   });
 
   test("in English, as the form offers them", () => {
-    expect(formatPlaylistInterval(15)).toBe("15 seconds");
-    expect(formatPlaylistInterval(60)).toBe("1 minute");
-    expect(formatPlaylistInterval(120, "en")).toBe("2 minutes");
-    expect(formatPlaylistInterval(3600, "en-GB")).toBe("1 hour");
-    expect(formatPlaylistInterval(90)).toBe("1 minute, 30 seconds");
-    expect(formatPlaylistInterval(1)).toBe("1 second");
+    expect(formatPlaylistInterval(15)).toBe("15\u00A0seconds");
+    expect(formatPlaylistInterval(60)).toBe("1\u00A0minute");
+    expect(formatPlaylistInterval(120, "en")).toBe("2\u00A0minutes");
+    expect(formatPlaylistInterval(3600, "en-GB")).toBe("1\u00A0hour");
+    expect(formatPlaylistInterval(90)).toBe("1\u00A0minute, 30\u00A0seconds");
+    expect(formatPlaylistInterval(1)).toBe("1\u00A0second");
   });
 
   test("in the reader's language, with its own unit names", () => {
@@ -334,21 +334,21 @@ describe("a playlist's row in the list, in one phrase", () => {
         dashboardCount: 3,
         intervalInSeconds: 60,
       }),
-    ).toBe("3 dashboards, 1 minute each");
+    ).toBe("3 dashboards, 1\u00A0minute each");
     expect(
       getPlaylistSummary({
         translator: english,
         dashboardCount: 1,
         intervalInSeconds: 15,
       }),
-    ).toBe("1 dashboard, 15 seconds each");
+    ).toBe("1 dashboard, 15\u00A0seconds each");
     expect(
       getPlaylistSummary({
         translator: english,
         dashboardCount: 12,
         intervalInSeconds: 90,
       }),
-    ).toBe("12 dashboards, 1 minute, 30 seconds each");
+    ).toBe("12 dashboards, 1\u00A0minute, 30\u00A0seconds each");
   });
 
   test("a playlist with none yet says so, without a time nobody sees", () => {
@@ -413,7 +413,7 @@ describe("a playlist's row in the list, in one phrase", () => {
         dashboardCount: 3,
         intervalInSeconds: 120,
       }),
-    ).toBe("3 dashboards, 2 minutes each");
+    ).toBe("3 dashboards, 2\u00A0minutes each");
   });
 
   test("every language words the phrase, keeps both of its slots, and words a playlist with none", () => {

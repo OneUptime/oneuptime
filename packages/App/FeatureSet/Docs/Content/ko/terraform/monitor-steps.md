@@ -1,6 +1,6 @@
 # 모니터 단계
 
-`monitor_steps`는 모니터가 무엇을 확인하고 각 결과를 어떻게 판정하는지 나타내는 `oneuptime_monitor`의 속성입니다. 확인할 주소, 보낼 요청, 그리고 결과를 모니터 상태, 인시던트 또는 알림으로 바꾸는 기준입니다. 이 페이지는 그 모든 부분을 설명합니다. 대시보드는 단계의 기준을 모니터의 **기준** 페이지에 표시하며, 자세한 내용은 [기준 및 상태](/docs/monitor/criteria-and-statuses)에 설명되어 있습니다.
+`monitor_steps`는 모니터가 무엇을 확인하고 각 결과를 어떻게 판정하는지 나타내는 `oneuptime_monitor`의 속성입니다. 확인할 주소, 보낼 요청, 그리고 결과를 모니터 상태, 인시던트 또는 경고로 바꾸는 기준입니다. 이 페이지는 그 모든 부분을 설명합니다. 대시보드는 단계의 기준을 모니터의 **기준** 페이지에 표시하며, 자세한 내용은 [기준 및 상태](/docs/monitor/criteria-and-statuses)에 설명되어 있습니다.
 
 :::cards
 - [확인을 판정하는 방식](#확인을-판정하는-방식): 순서대로 놓인 기준과, 처음 일치하는 기준.
@@ -11,22 +11,22 @@
 
 ## 확인을 판정하는 방식
 
-각 확인은 결과를 냅니다. 프로브의 응답, 스크립트의 반환 값, 또는 확인이 읽는 텔레메트리입니다. 그런 다음 단계의 기준이 순서대로 결과를 판정합니다. 필터가 처음 일치한 기준이 무엇이 일어날지 정합니다. 모니터의 상태를 바꾸고, 인시던트를 열고, 알림을 열 수 있습니다. 그 확인에서는 그 뒤의 기준을 보지 않습니다.
+각 확인은 결과를 냅니다. 프로브의 응답, 스크립트의 반환 값, 또는 확인이 읽는 텔레메트리입니다. 그런 다음 단계의 기준이 순서대로 결과를 판정합니다. 필터가 처음 일치한 기준이 무엇이 일어날지 정합니다. 모니터의 상태를 바꾸고, 인시던트를 열고, 경고를 열 수 있습니다. 그 확인에서는 그 뒤의 기준을 보지 않습니다.
 
 ```mermaid title="각 확인을 판정하는 방식"
 flowchart TB
     R["확인 결과"] --> C1{"기준 1:<br/>필터가<br/>일치하는가?"}
-    C1 -->|"예"| A["그 기준이 동작:<br/>상태, 인시던트, 알림"]
+    C1 -->|"예"| A["그 기준이 동작:<br/>상태, 인시던트, 경고"]
     C1 -->|"아니요"| C2{"기준 2:<br/>필터가<br/>일치하는가?"}
     C2 -->|"예"| A
     C2 -->|"아니요"| D["일치하는 기준 없음:<br/>기본 상태"]
 ```
 
-그래서 기준의 순서가 중요합니다. 알림을 보내는 기준을 먼저, 가장 심각한 것을 가장 먼저 두고, 정상 상태 기준을 마지막에 두세요. 그 이유와 단 하나의 예외는 [기준 속성](#기준-속성)에서 설명합니다.
+그래서 기준의 순서가 중요합니다. 경고를 보내는 기준을 먼저, 가장 심각한 것을 가장 먼저 두고, 정상 상태 기준을 마지막에 두세요. 그 이유와 단 하나의 예외는 [기준 속성](#기준-속성)에서 설명합니다.
 
 ## 단계 작성하기
 
-`monitor_steps`는 HCL로 바로 쓰는, 타입이 있는 객체의 목록입니다. `jsonencode()`도, `{_type, value}` 래퍼도, camelCase 키도, 써야 할 ID도 없습니다. 프로바이더가 HCL을 API 형식으로 바꾸고, 서버가 모든 단계, 기준, 인시던트 템플릿, 알림 템플릿에 ID를 부여합니다. 서버는 모든 apply에서 이 ID를 유지합니다. 각 기준과 템플릿을 대체하는 대상과 이름으로, 이름이 없으면 위치로 맞추므로, 프로브 결과는 해당 단계에 남고 인시던트는 자신을 연 기준을 계속 가리킵니다.
+`monitor_steps`는 HCL로 바로 쓰는, 타입이 있는 객체의 목록입니다. `jsonencode()`도, `{_type, value}` 래퍼도, camelCase 키도, 써야 할 ID도 없습니다. 프로바이더가 HCL을 API 형식으로 바꾸고, 서버가 모든 단계, 기준, 인시던트 템플릿, 경고 템플릿에 ID를 부여합니다. 서버는 모든 apply에서 이 ID를 유지합니다. 각 기준과 템플릿을 대체하는 대상과 이름으로, 이름이 없으면 위치로 맞추므로, 프로브 결과는 해당 단계에 남고 인시던트는 자신을 연 기준을 계속 가리킵니다.
 
 ```mermaid title="monitor_steps의 구성 요소"
 flowchart TB
@@ -172,7 +172,7 @@ resource "oneuptime_monitor" "website" {
 | `tls_client_key_passphrase` | string (민감) | 웹사이트, API | 개인 키의 암호 문구. |
 | `request_timeout_in_ms` | number | 프로브가 하는 확인 | 시도 한 번에 걸릴 수 있는 시간(밀리초). 프로브는 60000을 넘는 값을 60000으로 낮춥니다. |
 | `retry_count` | number | 프로브가 하는 확인 | 첫 시도가 실패한 뒤의 재시도 횟수. `0`이면 한 번만, `3`이면 최대 네 번 확인합니다. 프로브는 3을 넘는 값을 3으로 낮춥니다. |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | 단계가 실행하는 스크립트. |
+| `custom_code` | string | 사용자 지정 JavaScript 코드, Synthetic | 단계가 실행하는 스크립트. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet`, `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium`과 `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | 스크립트가 실패할 때의 재시도 횟수. `0`이면 한 번만 실행합니다. |
@@ -227,9 +227,9 @@ resource "oneuptime_monitor" "checkout_errors" {
 
 `criteria`의 각 항목은 규칙 하나입니다. 필터가 일치하면 규칙이 말하는 대로 합니다.
 
-기준은 위에서부터 판정되며 처음 일치한 기준이 결정합니다. 그러니 알림을 보내는 기준을 먼저, 가장 심각한 것을 가장 먼저(심각, 그다음 경고), 정상 상태 기준을 마지막에 두세요. 정상 상태 기준을 맨 위에 두는 것은 절대 알림을 보내지 않는 모니터를 만드는 가장 흔한 실수입니다. `Is Online`이 `True`이거나 메트릭 값이 `Greater Than` `0` 같은 넓은 규칙은 거의 모든 확인과 일치하므로, 그 아래 기준은 결코 판정되지 않습니다. 마지막에 두면 위의 어떤 기준도 일치하지 않을 때만 일치하며, 이것이 원하는 동작입니다.
+기준은 위에서부터 판정되며 처음 일치한 기준이 결정합니다. 그러니 경고를 보내는 기준을 먼저, 가장 심각한 것을 가장 먼저(심각, 그다음 경고), 정상 상태 기준을 마지막에 두세요. 정상 상태 기준을 맨 위에 두는 것은 절대 경고를 보내지 않는 모니터를 만드는 가장 흔한 실수입니다. `Is Online`이 `True`이거나 메트릭 값이 `Greater Than` `0` 같은 넓은 규칙은 거의 모든 확인과 일치하므로, 그 아래 기준은 결코 판정되지 않습니다. 마지막에 두면 위의 어떤 기준도 일치하지 않을 때만 일치하며, 이것이 원하는 동작입니다.
 
-그룹화된 메트릭 모니터만 예외입니다. 메트릭 모니터의 쿼리가 그룹화되어 있으면(`metric_monitor`의 JSON에서 `metricViewConfig.queryConfigs[].metricQueryData.groupByAttributeKeys`에 `groupByAttributeKeys`가 설정됨), 모니터는 그룹(호스트, 컨테이너, 마운트 지점)마다 알림이나 인시던트를 하나씩 열고 모든 기준을 판정합니다. 그래서 같은 확인에서 심각 기준과 경고 기준이 서로 다른 호스트에 대해 발동할 수 있습니다. 둘 다 위반한 호스트도 처음 일치한 기준에 의해 한 번만 호출되므로, 가장 심각한 기준을 먼저 두는 것은 여전히 중요합니다. [메트릭 모니터](/docs/monitor/metrics-monitor)를 참조하세요.
+그룹화된 메트릭 모니터만 예외입니다. 메트릭 모니터의 쿼리가 그룹화되어 있으면(`metric_monitor`의 JSON에서 `metricViewConfig.queryConfigs[].metricQueryData.groupByAttributeKeys`에 `groupByAttributeKeys`가 설정됨), 모니터는 그룹(호스트, 컨테이너, 마운트 지점)마다 경고나 인시던트를 하나씩 열고 모든 기준을 판정합니다. 그래서 같은 확인에서 심각 기준과 경고 기준이 서로 다른 호스트에 대해 발동할 수 있습니다. 둘 다 위반한 호스트도 처음 일치한 기준에 의해 한 번만 호출되므로, 가장 심각한 기준을 먼저 두는 것은 여전히 중요합니다. [메트릭 모니터](/docs/monitor/metrics-monitor)를 참조하세요.
 
 | 속성 | 타입 | 설명 |
 | --- | --- | --- |
@@ -241,13 +241,13 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `monitor_status_id` | string | 바꿀 대상 `oneuptime_monitor_status`의 ID. `change_monitor_status`가 `true`일 때 설정하세요. |
 | `create_incidents` | bool | 일치하면 인시던트를 열지 여부. |
 | `incidents` | list | 열 인시던트. `create_incidents = true`가 아니면 빼세요. |
-| `create_alerts` | bool | 일치하면 알림을 열지 여부. |
-| `alerts` | list | 열 알림. `create_alerts = true`가 아니면 빼세요. |
+| `create_alerts` | bool | 일치하면 경고를 열지 여부. |
+| `alerts` | list | 열 경고. `create_alerts = true`가 아니면 빼세요. |
 | `is_enabled` | bool | 설정하지 않으면 서버에서 `true`. 기준을 남겨 두되 판정에 쓰지 않으려면 `false`로 설정하세요. |
 | `incident_grouping` | string (JSON) | 수신 요청 모니터 전용: 요청에서 찾은 값마다 인시던트 하나(예: `jsonencode({ groupByJSONPath = "..." })`). |
-| `open_for_every_email` | bool | 수신 이메일 모니터 전용: `true`이면 한 번에 하나씩이 아니라 일치하는 이메일마다 인시던트(와 알림)를 엽니다. |
+| `open_for_every_email` | bool | 수신 이메일 모니터 전용: `true`이면 한 번에 하나씩이 아니라 일치하는 이메일마다 인시던트(와 경고)를 엽니다. |
 
-### 인시던트와 알림
+### 인시던트와 경고
 
 `incidents`의 항목은 `title`과 `description`(둘 다 필수), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `show_incident_on_status_page`, `is_private`를 받습니다. `alerts`의 항목도 같은 것을 받지만, `alert_severity_id`와 `auto_resolve_alert`가 있고 `show_incident_on_status_page`는 없습니다.
 
@@ -384,7 +384,7 @@ monitor_steps = [{
 }]
 ```
 
-`Greater Than`과 다른 숫자 조건은 숫자인 필드에만 일치하고, 반환된 데이터에 없는 필드는 `Is Empty`에만 일치합니다. 경로와 조건이 작동하는 방식은 [반환된 데이터로 알림 받기](/docs/monitor/custom-code-monitor#반환된-데이터로-알림-받기)를 참조하세요.
+`Greater Than`과 다른 숫자 조건은 숫자인 필드에만 일치하고, 반환된 데이터에 없는 필드는 `Is Empty`에만 일치합니다. 경로와 조건이 작동하는 방식은 [반환된 데이터로 경고 받기](/docs/monitor/custom-code-monitor#반환된-데이터로-경고-받기)를 참조하세요.
 
 ## 흔한 실수
 

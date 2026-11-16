@@ -1,4 +1,5 @@
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import {
   createTranslator,
@@ -317,7 +318,7 @@ export function formatErrorRate(
   translator?: Translator | undefined,
 ): string {
   if (!callCount || callCount <= 0) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const percent: number = ((errorCount || 0) / callCount) * 100;
   // Without a translator, as English writes it whatever the page's language.
@@ -356,7 +357,7 @@ export function formatDurationMs(
   translator: Translator = ENGLISH,
 ): string {
   if (avgDurationMs === undefined || avgDurationMs === null) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (avgDurationMs >= 1000) {
     return formatDurationInUnit(translator, avgDurationMs / 1000, "second", {

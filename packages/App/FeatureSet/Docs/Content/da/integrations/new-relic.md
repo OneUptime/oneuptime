@@ -43,7 +43,7 @@ Derefter [konfigurerer du New Relic](#konfigurer-new-relic) til at sende sine sa
 
 ### Hvad arbejdsgangen gør
 
-Efter triggeren **Webhook** læser trinnet **Check With JavaScript** `read-event-1` den `state`, New Relic sender, og **Incident From Another Tool**, eller **Alert From Another Tool** i advarselsskabelonen, gør det, den betyder, ud fra sagens ID. Hændelsen gemmer ID'et i sit brugerdefinerede felt `newRelicIssueId`.
+Efter triggeren **Webhook** læser trinnet **Tjek med JavaScript** `read-event-1` den `state`, New Relic sender, og **Hændelse fra et andet værktøj**, eller **Advarsel fra et andet værktøj** i advarselsskabelonen, gør det, den betyder, ud fra sagens ID. Hændelsen gemmer ID'et i sit brugerdefinerede felt `newRelicIssueId`.
 
 | Hvad New Relic sender | Hvad arbejdsgangen gør |
 | --- | --- |
@@ -158,7 +158,7 @@ Test derefter fra New Relic: åbn New Relic-workflowets webhook-besked, og klik 
 :::details Intet kommer frem til OneUptime
 - Kontrollér, at workflowet i New Relic er aktivt, og at dets filter lader sagen igennem.
 - Kontrollér, at destinationens **Endpoint URL** er URL'en for triggeren **Webhook**.
-- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dets **Bygger**.
+- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
 :::details Arbejdsgangen kører, men åbner intet

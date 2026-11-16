@@ -17,6 +17,7 @@ import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import ProductKey from "Common/Types/Product/ProductKey";
 import Icon from "Common/UI/Components/Icon/Icon";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -24,6 +25,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
+import ProjectProducts from "../../Utils/ProjectProducts/ProjectProductsStore";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   RESOURCE_CONNECTION_CONNECTED,
@@ -59,6 +61,13 @@ import {
  * key's first data finishes the step instead, linking to the product's
  * explorer (`dataPage`). A service that registers after that still takes
  * over, with its own link.
+ *
+ * Either moment tells the products menu (#8204), so it does not say
+ * "Logs - Not set up" beside a guide that says the data is in: the record
+ * that arrived marks its product in use at once (noteRecordFound), and the
+ * store asks the server again until the products the guide set up
+ * (`products`) are in use - the server keeps the first logs a few seconds
+ * after the guide sees them sent (expectProductsInUse).
  */
 
 export interface ExistingRecordSnapshot {
@@ -98,6 +107,11 @@ export interface ComponentProps {
   dataPage?: PageMap | undefined;
   // The key's first data arrived; a service may still connect after it.
   onDataArrived?: (() => void) | undefined;
+  /*
+   * The products the guide sets up (Logs for the Logs guide): once its data
+   * arrives, the products menu asks until they are in use.
+   */
+  products?: ReadonlyArray<ProductKey> | undefined;
   /*
    * A link here was followed: a dialog drawn over the page it links to (the
    * explorer the dialog was opened from) closes, as it would not by itself.
@@ -181,6 +195,32 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
     string | undefined
   >(props.ingestionKey?.name);
   keyNameRef.current = props.ingestionKey?.name;
+  const productsRef: MutableRefObject<ReadonlyArray<ProductKey>> = useRef<
+    ReadonlyArray<ProductKey>
+  >(props.products || []);
+  productsRef.current = props.products || [];
+
+  /*
+   * The products menu hears the moment (#8204): the record that arrived is
+   * there, so its product is in use; the products the guide set up are
+   * about to be.
+   */
+  const tellProducts: (record: BaseModel | null) => void = (
+    record: BaseModel | null,
+  ): void => {
+    try {
+      if (record?.tableName) {
+        ProjectProducts.noteRecordFound({
+          tableName: record.tableName,
+          projectId: null,
+        });
+      }
+
+      ProjectProducts.expectProductsInUse({ products: productsRef.current });
+    } catch {
+      // The menu catches up on its next look; the guide goes on.
+    }
+  };
   /*
    * Kept across the checks, and across a new name or a new existing record:
    * what the project had when the step first looked.
@@ -223,6 +263,7 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
       if (!isMounted) {
         return;
       }
+      tellProducts(record);
       setConnected({
         id: new ObjectID(record._id as string),
         name:
@@ -429,6 +470,7 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
             lastUsedAtNow: key.lastUsedAt,
           })
         ) {
+          tellProducts(null);
           setArrived({ keyName: key.name || keyNameRef.current || "" });
           onDataArrivedRef.current?.();
         }

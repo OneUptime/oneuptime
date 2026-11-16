@@ -14,7 +14,7 @@ import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceN
 import WorkspaceNotificationSummaryService from "../../../Server/Services/WorkspaceNotificationSummaryService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import BlockedProjectNotifications from "../../../Server/Utils/Notification/BlockedProjectNotifications";
-import SSRFProtection from "../../../Server/Utils/SSRFProtection";
+import { approveEveryWebhookAddress } from "../TestingUtils/WebhookAddressCheck";
 import MattermostConnection from "../../../Server/Utils/Workspace/Mattermost/MattermostConnection";
 import API from "../../../Utils/API";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -208,9 +208,8 @@ beforeEach(() => {
   jest.spyOn(API, "put").mockImplementation(answer("PUT") as never);
   jest.spyOn(API, "delete").mockImplementation(answer("DELETE") as never);
 
-  jest
-    .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-    .mockResolvedValue(undefined);
+  // The check every call to the server runs, approving each URL (WebhookAddressCheck).
+  approveEveryWebhookAddress();
   jest
     .spyOn(BlockedProjectNotifications, "isBlocked")
     .mockResolvedValue(false as never);

@@ -7,7 +7,7 @@ Esegui l'OpenTelemetry Collector su una macchina Linux, macOS o Windows per invi
 
 :::cards
 - [Installa il collector](#installa-il-collector): Tre passaggi su Linux, macOS o Windows.
-- [Scegli cosa raccogliere](#scegli-cosa-raccogliere): Metriche, log da file, il journal, i registri eventi e lo stato dei servizi.
+- [Scegli cosa raccogliere](#scegli-cosa-raccogliere): Metriche, log da file, il journal, i log eventi e lo stato dei servizi.
 - [Attributi di inventario](#attributi-di-inventario-ip-mac-numero-di-serie-produttore-modello-firmware): IP, MAC, numero di serie, produttore, modello e firmware per il tuo CMDB.
 - [Invia meno](#ridurre-il-volume-dei-dati-raccolti): Meno righe di log, intervalli più lunghi, meno serie.
 :::
@@ -33,7 +33,7 @@ flowchart TB
 | --- | --- |
 | **Panoramica** e **Metriche** | Il receiver `hostmetrics`: CPU, memoria, dischi, file system, rete, carico, paginazione, tempo di attività. |
 | **Processi** | Lo scraper `process` di `hostmetrics`: un insieme di serie per processo. |
-| **Registri** | I receiver `filelog`, `journald` e `windowseventlog`. |
+| **Log** | I receiver `filelog`, `journald` e `windowseventlog`. |
 | **Unità systemd** (Linux) | Il receiver `systemd`. |
 | **Servizi** (Windows) | Il receiver `windows_service`. |
 | L'elemento di inventario | Il processor `resourcedetection`, più gli [attributi che applichi](#attributi-di-inventario-ip-mac-numero-di-serie-produttore-modello-firmware). |
@@ -480,14 +480,14 @@ sc.exe start "otelcol-contrib"
 sc.exe query "otelcol-contrib"
 ```
 
-Il servizio viene eseguito come `LocalSystem`, che può leggere il registro eventi `Security` e ogni servizio Windows. Su Windows lo scraper `load` si limita a emulare un carico medio dal contatore *Processor Queue Length*, partendo da 0.
+Il servizio viene eseguito come `LocalSystem`, che può leggere il log eventi `Security` e ogni servizio Windows. Su Windows lo scraper `load` si limita a emulare un carico medio dal contatore *Processor Queue Length*, partendo da 0.
 
 Il nome dell'asset deve iniziare con `otelcol-contrib_`. L'archivio core `otelcol_<version>_windows_amd64.tar.gz` estrae `otelcol.exe`, che non ha i receiver `windowseventlog` né `windows_service`; rinominarlo in `otelcol-contrib.exe` non li aggiunge. Preferisci un programma di installazione? La stessa [pagina delle release](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) offre un `otelcol-contrib_<version>_windows_x64.msi` firmato, che registra il servizio per te: puntalo a questo `config.yaml` e mantieni il servizio su `LocalSystem`.
 :::
 
 ### Verifica che l'host compaia
 
-Apri **Prodotti → Infrastruttura → Host → Tutti gli host**. L'host compare con il suo nome host non appena arrivano le prime metriche, di solito entro 30 secondi, e le sue pagine **Panoramica**, **Metriche**, **Processi** e **Registri** si riempiono. Se non compare, leggi i log del collector stesso:
+Apri **Prodotti → Infrastruttura → Host → Tutti gli host**. L'host compare con il suo nome host non appena arrivano le prime metriche, di solito entro 30 secondi, e le sue pagine **Panoramica**, **Metriche**, **Processi** e **Log** si riempiono. Se non compare, leggi i log del collector stesso:
 
 :::tabs
 @tab Linux
@@ -505,7 +505,7 @@ Get-WinEvent -LogName Application -MaxEvents 20 | Where-Object ProviderName -eq 
 :::
 :::
 
-Per generare una riga di log di prova, esegui `logger "hello from oneuptime"` (Linux, macOS) o `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` (Windows, con privilegi elevati), poi guarda la pagina **Registri** dell'host.
+Per generare una riga di log di prova, esegui `logger "hello from oneuptime"` (Linux, macOS) o `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` (Windows, con privilegi elevati), poi guarda la pagina **Log** dell'host.
 
 ## Scegli cosa raccogliere
 
@@ -627,7 +627,7 @@ receivers:
 
 Molti parchi di Mac se la cavano bene con le metriche dell'host e qualche log da file, senza il log unificato.
 
-### Registri eventi di Windows
+### Log eventi di Windows
 
 La configurazione Windows qui sopra si abbona ai canali `System`, `Application` e `Security`. Per limitare il canale `Security`, ad alto volume, ad alcuni ID evento:
 
@@ -935,7 +935,7 @@ receivers:
     priority: warning # info and debug are dropped before export
 ```
 
-- Limita il canale di eventi `Security`, ad alto volume, agli ID evento che controlli con una `query:` (come in [Registri eventi di Windows](#registri-eventi-di-windows)), oppure scarta il canale.
+- Limita il canale di eventi `Security`, ad alto volume, agli ID evento che controlli con una `query:` (come in [Log eventi di Windows](#log-eventi-di-windows)), oppure scarta il canale.
 
 ### Raccogli le metriche meno spesso
 
@@ -1214,7 +1214,7 @@ Ogni istanza di OneUptime serve questo programma di installazione per la propria
 - Esegue i programmi dell'host stesso entrando nei namespace dell'host con `nsenter`, quindi viene eseguito con privilegi, come root, con `pid: host`: è root sull'host. Il limite è la policy dei comandi dell'agent: comandi in sola lettura a meno che tu non imposti `ONEUPTIME_AI_ALLOW_WRITES=true`, mai una shell, `sudo` o un programma fuori dal suo elenco, e mai sé stesso, l'unità di questo collector o qualsiasi cosa in `ONEUPTIME_AI_PROTECTED_TARGETS`.
 - Con `ONEUPTIME_AI_ALLOW_WRITES=true`, `ONEUPTIME_AI_WRITE_TARGETS` (nomi di unità completi come `nginx.service,app-*`) limita le unità che una correzione può toccare. `ONEUPTIME_AI_FIXES` indica come vengono eseguite le correzioni — `ask-for-approval` (una persona approva ciascuna), `automatic` o `bypass-approval` — e la pagina dell'agente IA lo mostra in sola lettura; il programma di installazione scrive entrambi, dal suo ambiente, nel `.env` dell'agent ([Cosa può fare l'IA, impostato dall'agent](/docs/ai/infrastructure-ai-agents#cosa-può-fare-lia-deciso-dallagente)).
 
-Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#host).
+Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents#host).
 
 ## Risoluzione dei problemi
 
@@ -1242,7 +1242,7 @@ Il gestore dei servizi ha avviato il programma, ma il collector è terminato dur
 - *Event Viewer → Windows Logs → Application*, origine `otelcol-contrib`, registra l'errore di avvio che il gestore dei servizi ha nascosto.
 :::
 
-:::details Il registro eventi Security restituisce accesso negato
+:::details Il log eventi Security restituisce accesso negato
 Al servizio mancano i diritti. Eseguilo come `LocalSystem` (il valore predefinito di `sc.exe create`), oppure concedi al suo account il diritto utente *Manage auditing and security log*.
 :::
 

@@ -19,18 +19,18 @@ const TRANSLATION: SetupGuideTranslation = {
   "Replace `my-podman-host` with a name for this host, such as `prod-podman-01`. It is how the host appears in OneUptime, so keep it stable: a new name registers a new host.":
     "Erstatt `my-podman-host` med et navn på denne verten, for eksempel `prod-podman-01`. Det er slik verten vises i OneUptime, så hold det stabilt: et nytt navn registrerer en ny vert.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Velg en ingestion-nøkkel i trinn 1 for å fylle inn `<YOUR_API_KEY>`.",
+    "Velg en inntaksnøkkel i trinn 1 for å fylle inn `<YOUR_API_KEY>`.",
   "Look for this line in the logs:": "Se etter denne linjen i loggene:",
   "Once the agent connects, the host appears automatically in the **Podman** section — usually within a minute or so. The OneUptime AI agent shows as Connected on the host's **AI → AI agent** page, and at the bottom of its **Overview**.":
     "Så snart agenten kobler til, vises verten automatisk i delen **Podman**, vanligvis innen et minutt eller så. OneUptime KI-agenten vises som Tilkoblet på vertens side **KI → AI-agent** og nederst i dens **Oversikt**.",
   "**Metrics but no logs?** Rootful Podman writes container logs to `journald` by default, which the agent cannot read. Run your containers with `--log-driver k8s-file` — see **Collect logs from every container (k8s-file log driver)** under Advanced.":
-    "**Metrikker, men ingen logger?** Rootful Podman skriver som standard containerlogger til `journald`, som agenten ikke kan lese. Kjør containerne dine med `--log-driver k8s-file`; se **Samle inn logger fra alle containere (loggdriver k8s-file)** under Avansert.",
+    "**Målinger, men ingen logger?** Rootful Podman skriver som standard containerlogger til `journald`, som agenten ikke kan lese. Kjør containerne dine med `--log-driver k8s-file`; se **Samle inn logger fra alle containere (loggdriver k8s-file)** under Avansert.",
   "| Variable | Required | Description |":
     "| Variabel | Påkrevd | Beskrivelse |",
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Ja | URL-en til OneUptime-instansen din (f.eks. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_SERVICE_TOKEN` | Yes | The telemetry ingestion key from step 1 |":
-    "| `ONEUPTIME_SERVICE_TOKEN` | Ja | Telemetri-ingestion-nøkkelen fra trinn 1 |",
+    "| `ONEUPTIME_SERVICE_TOKEN` | Ja | Telemetri-inntaksnøkkelen fra trinn 1 |",
   "| `PODMAN_HOST_NAME` | No | Friendly name for this host. Defaults to `podman-host` |":
     "| `PODMAN_HOST_NAME` | Nei | Et gjenkjennelig navn på denne verten. Standard er `podman-host` |",
   "| `DOCKER_API_VERSION` | No | Docker API version the agent speaks to the Podman socket. Empty by default: the agent negotiates it with the socket. Set it only to pin a version (see Troubleshooting) |":
@@ -48,7 +48,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Or change the default for every container created afterwards, in `containers.conf` (`/etc/containers/containers.conf` rootful, `~/.config/containers/containers.conf` rootless):":
     "Eller endre standarden for alle containere som opprettes etterpå, i `containers.conf` (`/etc/containers/containers.conf` for rootful, `~/.config/containers/containers.conf` for rootless):",
   "Then **recreate** (not just restart) the affected containers: a container keeps the log driver it was created with. Must keep `journald`? The agent still collects metrics through the socket; only container logs need the file-based driver.":
-    "**Opprett** deretter de berørte containerne på nytt (en omstart er ikke nok): en container beholder loggdriveren den ble opprettet med. Må du beholde `journald`? Agenten samler fortsatt inn metrikker gjennom socketen; bare containerlogger trenger den filbaserte driveren.",
+    "**Opprett** deretter de berørte containerne på nytt (en omstart er ikke nok): en container beholder loggdriveren den ble opprettet med. Må du beholde `journald`? Agenten samler fortsatt inn målinger gjennom socketen; bare containerlogger trenger den filbaserte driveren.",
   "`oneuptime-podman-ai-agent`, the second container step 2 starts, runs the `docker` commands OneUptime AI asks for — through Podman's Docker-compatible socket — while it investigates an incident or alert on this host. **AI investigations are on by default**: once it connects, OneUptime AI investigates with it, and the host's **AI → AI agent** page and **Overview** show its status. To turn investigation off, use **What AI may do** on that page; to run the collector without the AI agent, remove it with `podman rm -f oneuptime-podman-ai-agent`.":
     "`oneuptime-podman-ai-agent`, den andre containeren som trinn 2 starter, kjører `docker`-kommandoene OneUptime AI ber om (gjennom Podmans Docker-kompatible socket) mens den undersøker en hendelse eller et varsel på denne verten. **KI-undersøkelser er slått på som standard**: så snart den kobler til, undersøker OneUptime AI med den, og vertens side **KI → AI-agent** og dens **Oversikt** viser statusen dens. Bruk **Hva AI kan gjøre** på den siden for å slå av undersøkelser; for å kjøre innsamleren uten KI-agenten fjerner du den med `podman rm -f oneuptime-podman-ai-agent`.",
   "- **Read-only by default.** It runs commands such as `docker ps`, `docker logs --tail 200 NAME`, `docker inspect` and `docker stats --no-stream` — never `exec`, `run`, `rm` or `prune`. Environment values in `docker inspect` output are masked before anything leaves the host.":
@@ -77,19 +77,19 @@ const TRANSLATION: SetupGuideTranslation = {
   "**Uninstall:**": "**Avinstaller:**",
   "| Category | Data |": "| Kategori | Data |",
   "| **CPU Metrics** | Usage total, usage percentage, throttling time (per container) |":
-    "| **CPU-metrikker** | Totalt forbruk, forbruk i prosent, strupetid (per container) |",
+    "| **CPU-målinger** | Totalt forbruk, forbruk i prosent, strupetid (per container) |",
   "| **Memory Metrics** | Usage, limit, percentage, RSS, cache (per container) |":
-    "| **Minnemetrikker** | Forbruk, grense, prosent, RSS, hurtigbuffer (per container) |",
+    "| **Minnemålinger** | Forbruk, grense, prosent, RSS, hurtigbuffer (per container) |",
   "| **Network Metrics** | Bytes and packets received/transmitted (per container) |":
-    "| **Nettverksmetrikker** | Mottatte/sendte byte og pakker (per container) |",
+    "| **Nettverksmålinger** | Mottatte/sendte byte og pakker (per container) |",
   "| **Block I/O Metrics** | Read/write bytes and operations (per container) |":
-    "| **Blokk-I/O-metrikker** | Leste/skrevne byte og operasjoner (per container) |",
+    "| **Blokk-I/O-målinger** | Leste/skrevne byte og operasjoner (per container) |",
   "| **Container Info** | Uptime, restart count, process count |":
     "| **Containerinfo** | Oppetid, antall omstarter, antall prosesser |",
   "| **Container Logs** | stdout/stderr logs from all containers that use the `k8s-file` log driver |":
     "| **Containerlogger** | stdout/stderr-logger fra alle containere som bruker loggdriveren `k8s-file` |",
   'The metrics come from the collector\'s `docker_stats` receiver, through Podman\'s Docker-compatible socket, so their names are the same as the Docker agent\'s. Each log line gets a severity from the level it names (`[ERROR]`, `level=warn`, `{"level":"info"}`); a line without one falls back to its stream — stderr is `ERROR`, stdout is `INFO`.':
-    'Metrikkene kommer fra innsamlerens receiver `docker_stats` gjennom Podmans Docker-kompatible socket, så navnene deres er de samme som Docker-agentens. Hver logglinje får en alvorlighetsgrad fra nivået den nevner (`[ERROR]`, `level=warn`, `{"level":"info"}`); en linje uten nivå faller tilbake på strømmen sin: stderr er `ERROR`, stdout er `INFO`.',
+    'Målingene kommer fra innsamlerens receiver `docker_stats` gjennom Podmans Docker-kompatible socket, så navnene deres er de samme som Docker-agentens. Hver logglinje får en alvorlighetsgrad fra nivået den nevner (`[ERROR]`, `level=warn`, `{"level":"info"}`); en linje uten nivå faller tilbake på strømmen sin: stderr er `ERROR`, stdout er `INFO`.',
   "The agent must run as root to read `/run/podman/podman.sock`. Make sure the `--user 0:0` flag is in your `podman run` command, and that the socket is on:":
     "Agenten må kjøre som root for å lese `/run/podman/podman.sock`. Sørg for at flagget `--user 0:0` står i `podman run`-kommandoen din, og at socketen er slått på:",
   "That is rootful Podman's socket, the one the agent reads. Running Podman rootless? Its socket is `/run/user/<uid>/podman/podman.sock` (turn it on with `systemctl --user enable --now podman.socket`) and its storage `~/.local/share/containers/storage`: mount those at `/run/podman/podman.sock` and `/var/lib/containers/storage` in the agent's container instead — see the Podman agent documentation.":
@@ -106,15 +106,15 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent's logs for errors: `podman logs oneuptime-podman-agent 2>&1 | grep -i error`":
     "2. Sjekk agentens logger for feil: `podman logs oneuptime-podman-agent 2>&1 | grep -i error`",
   "3. Verify the OneUptime URL and ingestion key in the `podman run` command are correct.":
-    "3. Sjekk at OneUptime-URL-en og ingestion-nøkkelen i `podman run`-kommandoen er riktige.",
+    "3. Sjekk at OneUptime-URL-en og inntaksnøkkelen i `podman run`-kommandoen er riktige.",
   "4. Make sure the host can reach your OneUptime instance over the network.":
     "4. Sørg for at verten kan nå OneUptime-instansen din over nettverket.",
   "Check that the Podman socket is mounted into the agent. Its image has no shell, so look from a throwaway container that shares its mounts:":
     "Sjekk at Podman-socketen er montert i agenten. Imaget har ikke noe skall, så se etter fra en engangscontainer som deler monteringene dens:",
   "Then look for export errors in the agent's logs — `podman logs oneuptime-podman-agent 2>&1 | grep -i error` — and make sure the ingestion key is valid and has not expired.":
-    "Se deretter etter eksportfeil i agentens logger (`podman logs oneuptime-podman-agent 2>&1 | grep -i error`), og sørg for at ingestion-nøkkelen er gyldig og ikke har utløpt.",
+    "Se deretter etter eksportfeil i agentens logger (`podman logs oneuptime-podman-agent 2>&1 | grep -i error`), og sørg for at inntaksnøkkelen er gyldig og ikke har utløpt.",
   "Metrics arrive but the **Logs** tab is empty, or shows only the agent's own logs? Your containers are most likely not using a file-based log driver (`k8s-file` or `json-file`) — rootful Podman defaults to `journald`, which the agent cannot read.":
-    "Kommer det metrikker, men fanen **Logger** er tom eller viser bare agentens egne logger? Containerne dine bruker mest sannsynlig ikke en filbasert loggdriver (`k8s-file` eller `json-file`): rootful Podman bruker som standard `journald`, som agenten ikke kan lese.",
+    "Kommer det målinger, men fanen **Logger** er tom eller viser bare agentens egne logger? Containerne dine bruker mest sannsynlig ikke en filbasert loggdriver (`k8s-file` eller `json-file`): rootful Podman bruker som standard `journald`, som agenten ikke kan lese.",
   "If step 1 shows `no files match the configured criteria`, or step 3 lists no files for your containers, they are not using `k8s-file`. Switch them (see **Collect logs from every container (k8s-file log driver)** under Advanced), then recreate each one — a container keeps the log driver it was created with:":
     "Hvis trinn 1 viser `no files match the configured criteria`, eller trinn 3 ikke viser noen filer for containerne dine, bruker de ikke `k8s-file`. Bytt dem (se **Samle inn logger fra alle containere (loggdriver k8s-file)** under Avansert), og opprett deretter hver enkelt på nytt: en container beholder loggdriveren den ble opprettet med:",
   "A host's page shows the data whose host name is that host's identifier, which the agent takes from `PODMAN_HOST_NAME`. Change `PODMAN_HOST_NAME` after the host registered, and OneUptime registers a second host under the new name — the logs are on that one. Check the name the agent reports:":
@@ -146,7 +146,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Add it to the agent's `environment:` list, e.g. `- DOCKER_API_VERSION=1.41`, and run `podman compose up -d`. Newer servers still serve older API versions, so a pinned version keeps working after an upgrade.":
     "Legg den til i agentens liste `environment:`, f.eks. `- DOCKER_API_VERSION=1.41`, og kjør `podman compose up -d`. Nyere servere betjener fortsatt eldre API-versjoner, så en låst versjon fortsetter å fungere etter en oppgradering.",
   "3. Verify the OneUptime URL and ingestion key in docker-compose.yml are correct.":
-    "3. Sjekk at OneUptime-URL-en og ingestion-nøkkelen i docker-compose.yml er riktige.",
+    "3. Sjekk at OneUptime-URL-en og inntaksnøkkelen i docker-compose.yml er riktige.",
   "The host's name comes from `PODMAN_HOST_NAME`. An agent started without it reports `podman-host`, so every host set up that way looks like the same host. Set `PODMAN_HOST_NAME` to a name of its own on each host and run `podman compose up -d` to recreate the agent with it.":
     "Vertens navn kommer fra `PODMAN_HOST_NAME`. En agent som er startet uten den, rapporterer `podman-host`, så alle verter som er satt opp slik, ser ut som den samme verten. Sett `PODMAN_HOST_NAME` til et eget navn på hver vert, og kjør `podman compose up -d` for å opprette agenten på nytt med den.",
 };

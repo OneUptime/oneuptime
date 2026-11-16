@@ -12,7 +12,7 @@ import SnmpTrapPendingStore, {
   MAX_ATTEMPTS_PER_TRAP,
   PendingSnmpTrap,
 } from "../../Utils/SnmpTrapPendingStore";
-import { isNonActionableIngestError } from "../../Utils/NonActionableIngestError";
+import { isNonActionableIngestError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 import logger from "Common/Server/Utils/Logger";
 import BadDataException from "Common/Types/Exception/BadDataException";
 

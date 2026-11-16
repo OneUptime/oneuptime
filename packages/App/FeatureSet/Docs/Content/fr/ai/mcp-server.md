@@ -361,6 +361,8 @@ Les opérateurs sont `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`
 
 Les outils `list_` et `count_` acceptent n'importe quel champ, ce qui garde la liste des outils assez petite pour qu'un client la charge d'un seul coup. Pour voir les champs d'une ressource, ce que chacun signifie et quels opérateurs il accepte, un agent appelle `oneuptime_describe_resource` avec la ressource ou l'un de ses outils, comme `Incident` ou `list_incidents`.
 
+Les autres outils `list_`, des incidents, des moniteurs et de tout autre type d'enregistrement, trient comme le fait l'API : un champ prend une direction, ou `{ "direction": "DESC", "nulls": "LAST" }` pour placer en dernier les enregistrements sans valeur dans ce champ, et une relation vers un enregistrement trie selon un champ de l'enregistrement qu'elle nomme, comme dans `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` marque chacune de ces relations avec `sort` et nomme les champs selon lesquels elle trie sous `sortBy`.
+
 ## Sélection des champs et pagination
 
 Les outils `get_` et `list_` prennent un tableau `select` facultatif de noms de champs. Par défaut, tous les champs lisibles reviennent sauf les plus lourds (colonnes JSON, texte très long et HTML), qu'il faut demander dans `select`.

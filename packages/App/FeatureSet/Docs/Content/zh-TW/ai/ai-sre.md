@@ -138,7 +138,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 AI 代理程式頁面上代理程式狀態旁的 **⋯** 選單中的 **測試連線** 會透過代理程式執行 `kubectl version` 和 `kubectl auth can-i --list` 並顯示結果：它能存取什麼，以及它被允許做什麼。如果頁面顯示代理程式未連線，請使用 `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100` 讀取它的日誌。設定了 **固定的服務名稱** 的金鑰無法註冊代理程式——請給 chart 一個沒有該設定的金鑰。當伺服器拒絕註冊時，日誌會說明這一拒絕是否會自行解除（先前的代理程式 Pod 仍在回報，或舊的叢集內 Runner 在升級期間仍在關閉），或者需要變更什麼。同一選單中的 **重設代理程式** 會在您確認後讓伺服器忘記代理程式的金鑰；Pod 會在幾分鐘內自動重新連線。
 
-Kubernetes AI 代理程式不是 Runner，也永遠不會出現在 運行手冊 → Runbook 代理程式 下。它只使用自己的 ServiceAccount，因此 OneUptime 永遠不會提供它任何憑證，它永遠不會被用作運行手冊的 Bash/SSH 主機，也永遠不會被接受為 AI 規則的指令 Runner。
+Kubernetes AI 代理程式不是 Runner，也永遠不會出現在 運行手冊 → Runner 下。它只使用自己的 ServiceAccount，因此 OneUptime 永遠不會提供它任何憑證，它永遠不會被用作運行手冊的 Bash/SSH 主機，也永遠不會被接受為 AI 規則的指令 Runner。
 
 ### AI 可以執行的操作——由代理程式設定
 
@@ -453,7 +453,7 @@ OneUptime AI 在規劃之前會讀取同一份記錄：當證據與以前在此�
 
 ### 將奏效的修正儲存為運行手冊
 
-當 OneUptime AI 自行執行的修正獲得驗證時（Runner 上的指令、透過叢集或資源的 AI 代理程式進行的變更，或對 MCP 伺服器的呼叫），它的卡片會提供 **儲存為操作手冊**。OneUptime 會把已執行且奏效的步驟依執行順序寫成一個運行手冊：
+當 OneUptime AI 自行執行的修正獲得驗證時（Runner 上的指令、透過叢集或資源的 AI 代理程式進行的變更，或對 MCP 伺服器的呼叫），它的卡片會提供 **儲存為運行手冊**。OneUptime 會把已執行且奏效的步驟依執行順序寫成一個運行手冊：
 
 - Runner 上的指令會原樣成為該 Runner 上的 Bash 步驟，時間上限相同；需要核准的指令在運行手冊中也會等待核准；
 - 透過 AI 代理程式或 MCP 伺服器進行的變更會成為一個 Manual 步驟，其中包含確切的指令或呼叫，因為運行手冊自身的步驟無法觸及這些代理程式。
@@ -533,7 +533,7 @@ AI 日誌（**專案設定 → 人工智慧 → AI 日誌**）列出每次呼叫
 
 未設定（預設）表示 **沒有限制**。限制是至少為 1 的整數；若要關閉 AI，請使用 **啟用 AI**。一天指一個 UTC 日，與事件和警示的限制相同：用量從 UTC 午夜開始計算，並在下一個 UTC 午夜重新計數。摺疊時，該區段會說明適用的限制以及 AI 今天的用量，例如「每天最多 200,000 個 token。今天已用：45,210 個 token。」只有專案擁有者或擁有 **Manage Billing** 的人可以變更這些限制：也就是可以關閉 AI 的那些人。
 
-一旦達到限制，新的 AI 工作會停止到 UTC 午夜。已在執行的呼叫會完成，之後的每次呼叫都會被拒絕，並附上一句話，說明達到了哪項限制、用了多少，以及誰可以在哪裡變更：「A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.」詢問 AI、**Generate with AI** 按鈕、工作流程、運行手冊步驟，以及 Slack 和 Microsoft Teams 都會用這句話回答，每次被拒絕的呼叫都會以 **Budget Exceeded** 狀態列在 AI 日誌（**專案設定 → 人工智慧 → AI 日誌**）中。自動調查、事後分析草稿和洞察分流根本不會啟動。在此期間建立的事件或警示會在其 AI 調查卡片中說明這一點，並為可以變更限制的人附上指向限制的連結。事件和警示的每日 token 限制在專案自身的限制之下仍然適用：AI 會在先達到的那一項限制處停止。
+一旦達到限制，新的 AI 工作會停止到 UTC 午夜。已在執行的呼叫會完成，之後的每次呼叫都會被拒絕，並附上一句話，說明達到了哪項限制、用了多少，以及誰可以在哪裡變更：「A Project Owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.」詢問 AI、**Generate with AI** 按鈕、工作流程、運行手冊步驟，以及 Slack 和 Microsoft Teams 都會用這句話回答，每次被拒絕的呼叫都會以 **Budget Exceeded** 狀態列在 AI 日誌（**專案設定 → 人工智慧 → AI 日誌**）中。自動調查、事後分析草稿和洞察分流根本不會啟動。在此期間建立的事件或警示會在其 AI 調查卡片中說明這一點，並為可以變更限制的人附上指向限制的連結。事件和警示的每日 token 限制在專案自身的限制之下仍然適用：AI 會在先達到的那一項限制處停止。
 
 #### 達到限制時
 
@@ -552,7 +552,7 @@ OneUptime AI 的一次執行——一次調查、詢問 AI、Slack 或 Microsoft
 在 OneUptime Cloud 上，使用全域提供商的 OneUptime AI 由專案的 AI 點數支付，位於 **專案設定 → 人工智慧 → AI 點數**。點數用完時會發生什麼，取決於同一頁面上的 **自動儲值**：
 
 - **自動儲值開啟**：第一個發現點數已用完的 AI 呼叫會新增自動儲值所設定的金額，從專案的卡片扣款，然後執行。在同一時刻到達的呼叫只會扣款一次。在點數低於其門檻時開啟自動儲值，會立即新增點數，就像簡訊和通話餘額的自動儲值那樣。
-- **自動儲值關閉**：OneUptime AI 停止。每次 AI 呼叫都會被拒絕，並說明誰可以在哪裡新增點數：「A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.」每次被拒絕的呼叫都會以 **Insufficient Balance** 狀態列在 AI 日誌（**專案設定 → 人工智慧 → AI 日誌**）中。自動調查和事後分析草稿不會啟動，AI 代理程式頁面和程式碼會顯示專案的 AI 點數已用完。
+- **自動儲值關閉**：OneUptime AI 停止。每次 AI 呼叫都會被拒絕，並說明誰可以在哪裡新增點數：「A Project Owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.」每次被拒絕的呼叫都會以 **Insufficient Balance** 狀態列在 AI 日誌（**專案設定 → 人工智慧 → AI 日誌**）中。自動調查和事後分析草稿不會啟動，AI 代理程式頁面和程式碼會顯示專案的 AI 點數已用完。
 - **自動儲值無法從卡片扣款** （沒有付款方式，或卡片被拒絕）：OneUptime AI 以同樣的方式停止，擁有者會收到說明儲值失敗的電子郵件。自動儲值會在一小時後再次嘗試扣款。手動新增點數或再次儲存自動儲值會立即重試。在此之前，**AI 點數** 會在頂端向開啟它的每個人說明這一點：會請專案擁有者或擁有 **Manage Billing** 的人檢查付款方式或新增點數，其他人則會被告知誰可以處理。
 
 **專案擁有者會收到電子郵件** ，在 OneUptime AI 第一次因點數不足而停止時：當花掉最後點數的呼叫完成時，或者當某次 AI 呼叫被拒絕或某次調查被略過時。郵件會說明該怎麼做，並連結到 **AI 點數**。每次點數用完時寄送一次；新增點數後，下一次用完時會再寄送一封。

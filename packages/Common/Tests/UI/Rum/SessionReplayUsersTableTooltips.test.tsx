@@ -68,6 +68,7 @@ import {
   RumReplayUsersMetric,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/RumMetricDescriptions";
 import { expectReadableDescriptionRecord } from "../../App/Dashboard/MetricDescriptionRules";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
 const USER_KEY: string =
@@ -178,8 +179,9 @@ async function expectExplained(
 
   expect(button.closest("thead")).not.toBeNull();
   expect(button.parentElement?.closest("button, a")).toBeNull();
+  // Drawn, its durations held to their figures (#8811).
   expect(await tooltipTextOf(button)).toBe(
-    RUM_REPLAY_USERS_METRIC_DESCRIPTIONS[key],
+    withDurationWordsHeld(RUM_REPLAY_USERS_METRIC_DESCRIPTIONS[key]),
   );
 }
 

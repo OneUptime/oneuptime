@@ -18,6 +18,7 @@ import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { NO_BREAK_SPACE, withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
@@ -2364,8 +2365,6 @@ test.describe("the case queue", () => {
   }: {
     page: Page;
   }) => {
-    const NBSP: string = String.fromCharCode(0xa0);
-
     await open(page, CASES_PATH, { width: 1344, lang: "de" });
     const apiKey: Locator = page
       .locator("table tbody tr")
@@ -2380,7 +2379,7 @@ test.describe("the case queue", () => {
         .evaluate((element: Element): string => {
           return element.textContent || "";
         }),
-    ).toBe(`1 Erkennung, vor${NBSP}5${NBSP}Stunden`);
+    ).toBe(`1 Erkennung, vor${NO_BREAK_SPACE}${withUnit(5, "Stunden")}`);
 
     for (const caseNumber of ["CASE-142", "CASE-137"]) {
       const row: Locator = page
@@ -9095,9 +9094,10 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
       role: "viewer",
       width: 1280,
     });
+    // The role named as the role picker draws it (#8520).
     await expect(
       card.getByTestId("security-case-ai-reason-who-can"),
-    ).toHaveText("A project administrator can review these settings.", {
+    ).toHaveText("A Project Admin can review these settings.", {
       timeout: 30000,
     });
     await expect(
@@ -9129,7 +9129,7 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
     await expect(
       card.getByTestId("security-case-ai-reason-who-can"),
     ).toHaveText(
-      "A project owner or someone with Manage Billing can add AI credits.",
+      "A Project Owner or someone with Manage Billing can add AI credits.",
       { timeout: 30000 },
     );
   });

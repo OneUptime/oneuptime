@@ -1181,7 +1181,7 @@ describe("MonitorOverviewPresentationUtil hero", () => {
     expect(probeCheck.tone).toBe("info");
     expect(probeCheck.headline.text).toBe("Waiting for the first check");
     expect(probeCheck.explanation).toBe(
-      "2 probes check this every 5 minutes. The first result usually arrives within a few minutes.",
+      "2 probes check this every 5\u00A0minutes. The first result usually arrives within a few minutes.",
     );
     expect(probeCheck.callToAction).toBeUndefined();
     expect(probeCheck.lastKnownStatus).toBe(
@@ -1253,7 +1253,7 @@ describe("MonitorOverviewPresentationUtil hero", () => {
     );
 
     expect(probeCheck.explanation).toBe(
-      "No result for 2h 5m, but this monitor checks every 5 minutes. A probe may be overloaded or offline.",
+      "No result for 2h 5m, but this monitor checks every 5\u00A0minutes. A probe may be overloaded or offline.",
     );
     expect(probeCheck.callToAction).toEqual({
       text: "Check probes",
@@ -1782,7 +1782,7 @@ describe("MonitorOverviewPresentationUtil pulse", () => {
       label: "Last checked",
       at: secondsAgo(60),
       emptyText: "Not checked yet",
-      cadenceText: "Every 5 minutes",
+      cadenceText: "Every 5\u00A0minutes",
       nextAt: secondsAgo(-240),
       overdueSeconds: undefined,
       isUnavailable: false,

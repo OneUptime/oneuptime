@@ -2101,6 +2101,7 @@ import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDisc
 import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
+import NetworkDeviceWatchingMonitorsAPI from "Common/Server/API/NetworkDeviceWatchingMonitorsAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import ScheduledMaintenanceCalendarAPI from "Common/Server/API/ScheduledMaintenanceCalendarAPI";
 import ScheduledMaintenanceExternalCalendarAPI from "Common/Server/API/ScheduledMaintenanceExternalCalendarAPI";
@@ -6703,6 +6704,17 @@ const BaseAPIFeatureSet: FeatureSet = {
      * Meraki connection that describes it (NetworkDeviceRefreshAPI).
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, NetworkDeviceRefreshAPI);
+
+    /*
+     * The Network Device monitors watching a device, for its Overview and
+     * Monitors pages (NetworkDeviceWatchingMonitorsAPI, issue #8101): read
+     * by the device through MonitorNetworkDevice, not by listing every
+     * Network Device monitor of the project in the browser.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      NetworkDeviceWatchingMonitorsAPI,
+    );
 
     /*
      * On-call calendar feeds. The custom router carries the public

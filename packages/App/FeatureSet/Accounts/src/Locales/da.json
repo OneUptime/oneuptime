@@ -53,7 +53,7 @@
       "signIn": "Log ind med en adgangsnøgle",
       "inProgress": "Fuldfør eller annuller login med adgangsnøgle, før du bruger din adgangskode.",
       "helpTitle": "Er adgangsnøgler nyt for dig?",
-      "help": "Med en adgangsnøgle logger du ind med dit fingeraftryk, dit ansigt eller enhedens pinkode i stedet for en adgangskode. For at tilføje en skal du logge ind med din adgangskode eller SSO og derefter åbne Brugerprofil → Sikkerhed → Passkeys.",
+      "help": "Med en adgangsnøgle logger du ind med dit fingeraftryk, dit ansigt eller enhedens pinkode i stedet for en adgangskode. For at tilføje en skal du logge ind med din adgangskode eller SSO og derefter åbne Brugerprofil → Sikkerhed → Adgangsnøgler.",
       "preparing": "Gør din adgangsnøgle klar…",
       "waiting": "Se på din enhed",
       "waitingDescription": "Følg anvisningerne fra din browser eller adgangskodeadministrator.",
@@ -255,7 +255,7 @@
     "complete": "Din adgangsnøgle er bekræftet. Vend tilbage til appen for at fuldføre login.",
     "returnToApp": "Tilbage til appen",
     "cancel": "Annuller og vend tilbage til appen",
-    "setup": "Opret en adgangsnøgle i webdashboardet under Brugerprofil → Sikkerhed → Passkeys."
+    "setup": "Opret en adgangsnøgle i webdashboardet under Brugerprofil → Sikkerhed → Adgangsnøgler."
   },
   "mcpAuthorize": {
     "title": "Forbind en MCP-klient",
@@ -284,7 +284,7 @@
     "accessWriteTitle": "Læse- og skriveadgang",
     "accessWriteDescription": "Se data og foretage ændringer: bekræfte og løse hændelser og advarsler, tilføje noter samt oprette, opdatere eller slette ressourcer.",
     "accessReadTitle": "Kun læseadgang",
-    "accessReadDescription": "Se hændelser, advarsler, overvågninger, statussider og telemetri. Kan ikke ændre noget.",
+    "accessReadDescription": "Se hændelser, advarsler, monitorer, statussider og telemetri. Kan ikke ændre noget.",
     "permissionsNote": "Klienten handler i dit navn og kan aldrig gøre mere, end dine egne tilladelser i dette projekt tillader. Du kan til enhver tid frakoble den under Projektindstillinger > AI > MCP-server.",
     "authorizeButton": "Godkend",
     "denyButton": "Annuller",
@@ -556,6 +556,12 @@
   "Try again in a moment.": "Prøv igen om et øjeblik.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Prøv igen. Hvis det bliver ved med at fejle, så kontakt OneUptime-support, og giv dem denne reference:",
   "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Prøv igen. Hvis det bliver ved med at fejle, så giv denne reference til den, der driver jeres OneUptime-server:",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det, så handlingen blev ikke fuldført. Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Det, der blev sendt, er større end de 50 MB, OneUptime tager imod i én forespørgsel, så handlingen blev ikke fuldført. Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
+  "What was sent was too large for the server to accept.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Det, der blev sendt, er større end de 50 MB, OneUptime tager imod i én forespørgsel.",
+  "Try again with less at once, such as a smaller file.": "Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime afviste det, så hæv proxyens grænse for en forespørgsels størrelse til 50 MB, lige så meget som OneUptime selv tager imod (i nginx, client_max_body_size 50M).",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Denne formular er ikke tilgængelig. Den kan være slået fra, eller linket kan være forældet.",
   "This form can only be opened from an allowed network.": "Denne formular kan kun åbnes fra et tilladt netværk.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "For mange indsendelser fra dit netværk. Vent et par minutter, og prøv igen.",
@@ -631,9 +637,5 @@
     "note": "Bemærk",
     "tip": "Tip",
     "warning": "Advarsel"
-  },
-  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det, så handlingen blev ikke fuldført. Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
-  "What was sent was too large for the server to accept.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det.",
-  "Try again with less at once, such as a smaller file.": "Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
-  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime afviste det, så hæv proxyens grænse for en forespørgsels størrelse til 50 MB, lige så meget som OneUptime selv tager imod (i nginx, client_max_body_size 50M)."
+  }
 }

@@ -11,6 +11,7 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { cardBodyMisfits } from "../SuiteHelpers/CardBodyFit";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * How a product explains itself (Components/ProductOnboarding, #6430), in a
@@ -256,6 +257,17 @@ function startButton(scope: Page | Locator): Locator {
 
 function aboutButton(page: Page): Locator {
   return page.getByTestId("product-about-button");
+}
+
+/*
+ * How it works beside a product page's title: a quiet "?" icon (#8377),
+ * named `name` for a screen reader and in its tooltip, with no words drawn.
+ */
+async function expectHowItWorks(button: Locator, name: string): Promise<void> {
+  await expect(button).toHaveAccessibleName(name);
+  await expect(button).toHaveAttribute("title", name);
+  await expect(button).toHaveText("");
+  await expect(button.locator("svg")).toHaveCount(1);
 }
 
 function aboutDialog(page: Page): Locator {
@@ -730,7 +742,7 @@ test("a read-only member reads the explanation without its button, under the tab
   // The table keeps its own button, locked, and says why in words a phone shows.
   await expect(page.getByTestId("empty-table-create-button")).toBeDisabled();
   await expect(page.getByTestId("table-empty-state-note")).toHaveText(
-    "You don't have permission to create these. Ask a project admin for access.",
+    "You don't have permission to create these. Ask a Project Admin for access.",
   );
 
   await screenshot(page, "monitors-first-run-viewer-1440");
@@ -770,9 +782,7 @@ test("a project with monitors sees its list alone, and How it works beside the t
     level: 1,
     name: "Monitors",
   });
-  await expect(row.getByTestId("product-about-button")).toHaveText(
-    HOW_IT_WORKS,
-  );
+  await expectHowItWorks(row.getByTestId("product-about-button"), HOW_IT_WORKS);
   const [titleBox, aboutBox]: Array<FrameBox> = await boxesInOneFrame([
     title,
     aboutButton(page),
@@ -880,7 +890,7 @@ test("Data Observability with no database: the explanation with Connect a Databa
   expect(await isBelow(showcase(page), suggestion)).toBe(true);
 
   // How it works stays beside the title for later.
-  await expect(aboutButton(page)).toHaveText(HOW_IT_WORKS);
+  await expectHowItWorks(aboutButton(page), HOW_IT_WORKS);
   await expectNoSidewaysScroll(page, {
     message: "Data Observability at 1440px",
   });
@@ -916,7 +926,7 @@ test("a busy project's Overview says what is wrong now: the step left to do, the
 
   // The project has databases: its state, not the product's explanation.
   await expect(showcase(page)).toHaveCount(0);
-  await expect(aboutButton(page)).toHaveText(HOW_IT_WORKS);
+  await expectHowItWorks(aboutButton(page), HOW_IT_WORKS);
 
   // First, the one step left: turning on the warehouse's alerts.
   await expect(setupSteps(page).getByRole("heading", { level: 2 })).toHaveText(
@@ -1694,7 +1704,7 @@ test("in German: the explanation and How it works in the Dashboard's German", as
       return GERMAN[step]!;
     }),
   );
-  await expect(aboutButton(page)).toHaveText(GERMAN[HOW_IT_WORKS]!);
+  await expectHowItWorks(aboutButton(page), GERMAN[HOW_IT_WORKS]!);
   await expectNoSidewaysScroll(page, { message: "Monitors in German" });
 
   await screenshot(page, "monitors-first-run-de");
@@ -1721,7 +1731,7 @@ test("in Persian, dark: right to left, How it works before the title's end, the 
   await expect(showcase(page).getByRole("heading", { level: 2 })).toHaveText(
     PERSIAN[MONITORS_TITLE]!,
   );
-  await expect(aboutButton(page)).toHaveText(PERSIAN[HOW_IT_WORKS]!);
+  await expectHowItWorks(aboutButton(page), PERSIAN[HOW_IT_WORKS]!);
 
   // Right to left, How it works follows the title: to its left.
   const [titleBox, aboutBox]: Array<FrameBox> = await boxesInOneFrame([
@@ -2159,3 +2169,17 @@ for (const reader of [
     await shootEveryExplanation(page, `390-${reader.lang}-${reader.theme}`);
   });
 }
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? MONITORS : `${MONITORS}?lang=${language}`;
+  },
+});

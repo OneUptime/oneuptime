@@ -656,6 +656,31 @@ describe("Create a workflow's strings", () => {
   );
 
   /*
+   * The SLOs category (#8447), whose templates turn a feature flag off when
+   * an SLO burns its error budget too fast: named by the menu's own SLOs,
+   * and its line naming the SLO as every language writes it.
+   */
+  test.each(LOCALE_FILES)(
+    "%s carries the SLOs category's name and its line, naming the SLO",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
+      const info: { label: string; description: string } =
+        getWorkflowTemplateCategoryInfo(WorkflowTemplateCategory.Slos);
+
+      expect(info.label).toBe("SLOs");
+      expect(STRINGS).toContain("SLOs");
+      expect({ file, line: locale[info.description] }).toEqual({
+        file,
+        line: expect.stringContaining("SLO"),
+      });
+
+      if (file !== "en.json") {
+        expect(locale[info.description]).not.toBe(info.description);
+      }
+    },
+  );
+
+  /*
    * "Basics" is a form step's key, and reads "basic information" in several
    * locales ("Datos básicos", "基本信息"). The category of first workflows
    * has a key of its own.

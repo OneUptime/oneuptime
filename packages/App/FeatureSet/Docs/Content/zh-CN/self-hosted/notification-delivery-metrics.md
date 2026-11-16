@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 在 `config.env` 中设置它们，然后运行 `npm start`。`DISABLE_TELEMETRY_FOR_APP` 默认为 `true`，此时不会发送任何内容。
 :::
 
-OneUptime 需要同时设置端点和请求头：没有请求头时它什么都不发送。每个请求头写成 `name=value`，多个请求头之间用 `;` 分隔。值中可以包含 `=`。OneUptime 会自行在端点后加上 `/v1/metrics`，同样的设置也会发送它自己的追踪和日志。每个指标在 OneUptime 首次记录它时出现：`notification.send.count` 在发送第一条消息时出现。
+OneUptime 需要同时设置端点和请求头：没有请求头时它什么都不发送。每个请求头写成 `name=value`，多个请求头之间用 `;` 分隔，也可以像 `OTEL_EXPORTER_OTLP_HEADERS` 那样用 `,` 分隔。值中可以包含 `=`。没有 `;` 时，值按该标准的写法读取，空格写作 `%20`：要按原样发送值，请在设置末尾加上 `;`。OneUptime 会自行在端点后加上 `/v1/metrics`，同样的设置也会发送它自己的追踪和日志。每个指标在 OneUptime 首次记录它时出现：`notification.send.count` 在发送第一条消息时出现。
 
 ### 向 OneUptime 项目发送增量
 
@@ -193,7 +193,7 @@ services:
 
 :::steps
 1. 打开项目的[指标浏览器](/docs/telemetry/metrics-explorer)，点击目标的第一个指标。它的查询是 `a`。
-2. 在 **Aggregate by** 下选择其聚合方式。然后打开 **Filters & grouping**，在 **Filter by attributes** 下添加它的每个条件。
+2. 在 **聚合方式** 下选择其聚合方式。然后打开 **过滤与分组**，在 **按属性过滤** 下添加它的每个条件。
 3. 对于第二个查询，点击 **添加指标**，并以同样方式设置 `b`。
 4. 对于公式，点击 **添加公式**，并在 **公式** 中写入它。
 5. 要在目标未达成时收到通知，点击 **操作 → 从此视图创建监视器**，并在值越过目标时发出警报：参见[指标监控](/docs/monitor/metrics-monitor)。

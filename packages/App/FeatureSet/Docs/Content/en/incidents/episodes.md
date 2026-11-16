@@ -51,7 +51,7 @@ Turning it on takes no incident out of an episode: an incident that is in severa
 
 ## Who can add
 
-Adding needs permission to add incidents to an episode, which the Project Owner, Project Admin, Project Member, Incident Admin and Incident Member roles have, as does a custom role with Create Incident Episode Member. You can only add incidents you can see: a private incident can be added only by its owners and by the project's owners and admins. Add to New Episode also needs permission to create an episode. When you cannot use an action, it is locked, and its tooltip names the permission that is missing.
+Adding needs permission to add incidents to an episode, which the Project Owner, Project Admin, Project Member, Incident Admin and Incident Member roles have, as does a custom role with Create Incident Episode Member. You can only add incidents you can see: a private incident can be added only by its owners and by Project Owners and Project Admins. Add to New Episode also needs permission to create an episode. When you cannot use an action, it is locked, and its tooltip names the permission that is missing.
 
 ## With the API
 

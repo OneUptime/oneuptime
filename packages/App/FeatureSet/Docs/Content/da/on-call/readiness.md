@@ -69,7 +69,7 @@ Et banner viser derefter, hvor mange påmindelser der blev sendt, sprunget over 
 
 ## Den ugentlige e-mail om parathed
 
-Én gang om ugen tjekker OneUptime hvert projekt, der har en vagtpolitik. Er nogen i det **Utilgængelig** eller **Kræver opsætning**, får projektets ejere én e-mail, der viser dem i to grupper, hvem der slet ikke kan tilkaldes, og hvem der kan nås med huller, op til 20 navne i hver, med et link til siden Parathed.
+Én gang om ugen tjekker OneUptime hvert projekt, der har en vagtpolitik. Er nogen i det **Utilgængelig** eller **Kræver opsætning**, får Projektejere én e-mail, der viser dem i to grupper, hvem der slet ikke kan tilkaldes, og hvem der kan nås med huller, op til 20 navne i hver, med et link til siden Parathed.
 
 En uge, hvor alle er klar, sender intet, så e-mailen betyder altid, at noget skal rettes. Når nogen slet ikke kan tilkaldes, starter emnet med `[Action Required]`.
 
@@ -100,7 +100,7 @@ Listen rummer kun folk, en vagtpolitik kan tilkalde. Et teammedlem, der ikke har
 :::
 
 :::details Ejerne får aldrig den ugentlige e-mail
-Den sendes kun i en uge, hvor nogen er **Utilgængelig** eller **Kræver opsætning**, og kun til projektets ejere.
+Den sendes kun i en uge, hvor nogen er **Utilgængelig** eller **Kræver opsætning**, og kun til Projektejere.
 :::
 
 ## Næste trin

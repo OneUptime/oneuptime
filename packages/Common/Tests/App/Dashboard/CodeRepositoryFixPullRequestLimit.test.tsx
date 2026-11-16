@@ -59,6 +59,18 @@ import ObjectID from "../../../Types/ObjectID";
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import Navigation from "../../../UI/Utils/Navigation";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: the repository as
+ * the code-task API sees it, for whether it is connected (CodeApi
+ * getRepository), and the project's LLM providers, for the production
+ * review's LLM Provider field (RuleLlmProviderField). Both are beside the
+ * Pull Requests card.
+ * Refused at once, as the network refused them, and taken as reads the page
+ * could not make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/code-task/repository/*", "/ai-chat/providers"]);
 
 type FormField = ModelField<CodeRepository>;
 

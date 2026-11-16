@@ -114,6 +114,28 @@ export default class API extends BaseAPI {
     );
   }
 
+  /*
+   * A private status page's renewal (StatusPageAuthentication's
+   * /refresh-token/:statuspageid) answers its reader's entity, with the
+   * new access token under _miscData.token beside the cookies it sets. A
+   * 200 without it is not that answer (issue #8838).
+   */
+  protected static override isSessionRenewalAnswer(data: unknown): boolean {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return false;
+    }
+
+    const misc: unknown = (data as Record<string, unknown>)["_miscData"];
+
+    if (!misc || typeof misc !== "object" || Array.isArray(misc)) {
+      return false;
+    }
+
+    const token: unknown = (misc as Record<string, unknown>)["token"];
+
+    return typeof token === "string" && token.trim().length > 0;
+  }
+
   protected static override getSessionName(): string {
     return `status-page-${StatusPageUtil.getStatusPageId()?.toString() || ""}`;
   }

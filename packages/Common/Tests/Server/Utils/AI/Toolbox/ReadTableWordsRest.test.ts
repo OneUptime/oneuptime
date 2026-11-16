@@ -132,7 +132,8 @@ describe("a widget's heading, as words (#8312)", () => {
         { hours: countFigure(24) },
       );
       const widget: AIChatWidget = build({
-        words: { title, description },
+        // The sentences as the widget's words carry them: plain JSON.
+        words: { title, description } as unknown as JSONObject,
       });
 
       expect(widget.title).toBe("Active incidents (3)");
@@ -273,7 +274,8 @@ describe("a widget's heading, as words (#8312)", () => {
       aiActionSentence(AI_READ_WIDGET_LINES.traceDuration, {
         duration: { figure: 1234 },
       }),
-      "1234 ms total",
+      // A figure and its unit stay on one line (Types/NoBreakSpaces).
+      "1234\u00A0ms total",
     ],
     [
       aiActionSentence(AI_READ_WIDGET_LINES.baselineWindow, {
@@ -387,7 +389,19 @@ describe("an escalation chain, as words (#8313)", () => {
   const NOTE: string =
     "next in rotation: the person after whoever is on call, passing over anyone away";
 
-  test.each<[string, Parameters<typeof getEscalationRuleWords>, string]>([
+  /*
+   * A rule as the model reads it back: any of its columns may be unset,
+   * which the Pick of the model's own types cannot say with
+   * exactOptionalPropertyTypes.
+   */
+  type RuleAsRead = {
+    order?: number | undefined;
+    name?: string | undefined;
+    escalateAfterInMinutes?: number | undefined;
+  };
+  type RuleTargets = Parameters<typeof getEscalationRuleWords>[1];
+
+  test.each<[string, [RuleAsRead, RuleTargets], string]>([
     [
       "users and teams, and when it escalates",
       [
@@ -424,12 +438,11 @@ describe("an escalation chain, as words (#8313)", () => {
     ],
   ])(
     "%s: the English the model always read",
-    (
-      _name: string,
-      args: Parameters<typeof getEscalationRuleWords>,
-      english: string,
-    ) => {
-      const words: AIActionSentence = getEscalationRuleWords(...args);
+    (_name: string, args: [RuleAsRead, RuleTargets], english: string) => {
+      const words: AIActionSentence = getEscalationRuleWords(
+        args[0] as Parameters<typeof getEscalationRuleWords>[0],
+        args[1],
+      );
 
       expect(isKnownAIActionSentence(words)).toBe(true);
       expect(describeAIActionSentence(words)).toBe(english);
@@ -438,7 +451,7 @@ describe("an escalation chain, as words (#8313)", () => {
 
   test("a schedule named like the note, but not paged next in rotation, is its name as written", () => {
     const words: AIActionSentence = getEscalationRuleWords(
-      { order: 1, name: "R", escalateAfterInMinutes: undefined },
+      { order: 1, name: "R" },
       { users: [], teams: [], schedules: [`Odd (${NOTE})`] },
     );
 
@@ -493,8 +506,9 @@ describe("an escalation chain, as words (#8313)", () => {
       true,
     ],
     [
+      // Stored "Passed On": escalated, as the logs say it.
       { name: "Bo", status: "Passed On", isAcknowledged: false },
-      "Bo: Passed On",
+      "Bo: Escalated",
       true,
     ],
     [

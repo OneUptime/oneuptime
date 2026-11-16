@@ -117,7 +117,7 @@ API 和 Terraform 會拒絕等事件開始又在開始時停止的規則：這�
 
 ## 工作流程
 
-每個維護模型都有以其命名的工作流程觸發器和操作： **On Create Maintenance Event** 、 **On Update Maintenance Event** 、 **On Create or Update Maintenance Event** 和 **On Delete Maintenance Event** ， **Scheduled Maintenance State Timeline** 及其他模型也有同樣的觸發器，還有 **Create One Maintenance Event** 和 **Update One Maintenance Event** 等操作。自訂欄位定義和測量值是例外：它們沒有工作流程步驟。請參閱 [工作流程概觀](/docs/workflows/index)。
+每個維護模型都有以其命名的工作流程觸發器和操作： **建立維護事件時** 、 **更新維護事件時** 、 **建立或更新維護事件時** 和 **刪除維護事件時** ， **Scheduled Maintenance State Timeline** 及其他模型也有同樣的觸發器，還有 **建立單個維護事件** 和 **更新單個維護事件** 等操作。自訂欄位定義和測量值是例外：它們沒有工作流程步驟。請參閱 [工作流程概觀](/docs/workflows/index)。
 
 ## 誰可以變更這些內容
 
@@ -127,7 +127,7 @@ API 和 Terraform 會拒絕等事件開始又在開始時停止的規則：這�
 | **排定維護成員**  | 建立、變更和刪除事件及其備註、狀態時間軸和擁有者，以及兩類範本。                                     |
 | **排定維護管理員**   | 成員能做的一切，另外還能建立、變更和刪除維護狀態。                                                   |
 
-規則、自訂欄位和測量需要 **專案擁有者** 或 **專案管理員** ，或擁有該頁面專屬權限（例如 **Create Scheduled Maintenance Owner Rule** ）的自訂角色。 Runbook 規則也可以由 **操作手冊管理員** 管理。 **專案成員** 與 **排定維護成員** 一樣可以處理事件和範本。請參閱 [使用者、團隊與權限](/docs/permissions/index)。
+規則、自訂欄位和測量需要 **專案擁有者** 或 **專案管理員** ，或擁有該頁面專屬權限（例如 **Create Scheduled Maintenance Owner Rule** ）的自訂角色。 Runbook 規則也可以由 **運行手冊管理員** 管理。 **專案成員** 與 **排定維護成員** 一樣可以處理事件和範本。請參閱 [使用者、團隊與權限](/docs/permissions/index)。
 
 ## 疑難排解
 

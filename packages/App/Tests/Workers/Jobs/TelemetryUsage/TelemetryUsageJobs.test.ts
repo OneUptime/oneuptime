@@ -19,7 +19,7 @@ import { EVERY_DAY } from "Common/Utils/CronTime";
  * timeout, and a handler that never throws.
  */
 
-type CronHandler = () => Promise<void>;
+type CronHandler = (deadline?: JobDeadline) => Promise<void>;
 
 interface CronOptions {
   schedule: string;
@@ -108,6 +108,7 @@ import Semaphore, {
   SemaphoreLockTimeoutError,
 } from "Common/Server/Infrastructure/Semaphore";
 import TelemetryUsageBillingService from "Common/Server/Services/TelemetryUsageBillingService";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import TelemetryUsageMeter from "Common/Server/Utils/TelemetryUsage/TelemetryUsageMeter";
 import logger from "Common/Server/Utils/Logger";
 
@@ -137,14 +138,14 @@ const deleteMock: jest.Mock =
 
 let mutex: MockMutex;
 
-async function run(jobName: string): Promise<void> {
+async function run(jobName: string, deadline?: JobDeadline): Promise<void> {
   const handler: CronHandler | undefined = mockCapturedJobs[jobName];
 
   if (!handler) {
     throw new Error(`Cron handler ${jobName} was not registered.`);
   }
 
-  await handler();
+  await handler(deadline);
 }
 
 function meterOptions(): {
@@ -310,6 +311,31 @@ describe("metering", () => {
     expect(shouldContinue()).toBe(true);
     mutex.isAcquired = false;
     expect(shouldContinue()).toBe(false);
+  });
+
+  /*
+   * RunCron hands the run its deadline (issue #8103): it passes at the job's
+   * time limit and as soon as the run's lease is lost. The loop stops at its
+   * next signal then, as it does when the run's own lock is lost.
+   */
+  test("lets the loop stop once the run's deadline has passed, the lock still held", async () => {
+    const deadline: JobDeadline = new JobDeadline();
+
+    await run(METER_JOB, deadline);
+
+    const shouldContinue: () => boolean = meterOptions().shouldContinue;
+
+    expect(shouldContinue()).toBe(true);
+    deadline.end(new Error("its lease lapsed"));
+    expect(mutex.isAcquired).toBe(true);
+    expect(shouldContinue()).toBe(false);
+  });
+
+  test("still takes its own lock beside the run's lease: two runs could stage a day twice", async () => {
+    await run(METER_JOB, new JobDeadline());
+
+    expect(lockMock).toHaveBeenCalledTimes(1);
+    expect(releaseMock).toHaveBeenCalledWith(mutex);
   });
 
   test("releases its lock once the run is done", async () => {

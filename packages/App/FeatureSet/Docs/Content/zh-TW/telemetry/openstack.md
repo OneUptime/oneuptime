@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+封存雲端不會關閉其中任何一項。已封存的雲端只是不會顯示在清單中：它仍會被收集，其 API 檢查和生命週期檢查也會繼續執行。要停止某項檢查，請將其關閉。
+
 ## AI 代理程式
 
 代理程式的 `docker-compose.yml` 也會執行 **OpenStack AI 代理程式**，`oneuptime-openstack-ai-agent`（映像檔 `oneuptime/resource-ai-agent:release`）。當 OneUptime AI 調查這個雲端上的事件或警示時，它會透過它執行唯讀的 `openstack` 命令 —— `openstack compute service list --host compute-01`、`openstack server list --all-projects --limit 50 --host compute-01`、`openstack server event list ID`、`openstack network agent list`、`openstack volume service list` —— 並引用它執行過的內容。代理程式中沒有 `openstack` 執行檔，也沒有 shell：每個命令都會變成對能回答它的服務的一次 `GET`，使用代理程式自己的憑證。代理程式會以收集器所回報的同一個 `OPENSTACK_CLOUD_NAME` 註冊，所以它服務的就是這個雲端。
@@ -1641,7 +1643,7 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 ### 來自工作流程的修正
 
-工作流程可以從 OpenStack 警示開始並提出修正：**Propose an OpenStack fix** 步驟接收警示或事件，以及命令。它與 OneUptime AI 提出的修正走同樣的政策、同樣的寫入範圍，以及同樣對變更所碰觸對象的讀取，它不需要 AI 模型，並且由人在警示上核准。無論雲端的修正模式為何，工作流程都無法自行進行變更，也無法核准它所提出的內容。**Propose taking a failing OpenStack compute service out of scheduling** 範本是一個起點。
+工作流程可以從 OpenStack 警示開始並提出修正：**提出 OpenStack 修正** 步驟接收警示或事件，以及命令。它與 OneUptime AI 提出的修正走同樣的政策、同樣的寫入範圍，以及同樣對變更所碰觸對象的讀取，它不需要 AI 模型，並且由人在警示上核准。無論雲端的修正模式為何，工作流程都無法自行進行變更，也無法核准它所提出的內容。**Propose taking a failing OpenStack compute service out of scheduling** 範本是一個起點。
 
 ## 以 systemd 服務執行
 

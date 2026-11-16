@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import Route from "Common/Types/API/Route";
 import VMwareResourceModel from "Common/Models/DatabaseModels/VMwareResource";
 import Card from "Common/UI/Components/Card/Card";
@@ -221,7 +222,7 @@ const VMwareHostDetailsCard: FunctionComponent<ComponentProps> = (
                     <div
                       className={`min-w-0 break-all${row.mono ? " font-mono" : ""}`}
                     >
-                      {row.value}
+                      {getValueOrQuietDash(row.value)}
                     </div>
                     {/*
                      * Beside the value and always in view, as on every

@@ -21,9 +21,14 @@ import {
   writeProbeTimeoutFailureCause,
 } from "./ProbeFailureReading";
 import {
+  readProbeFailureCause,
+  wordProbeFailureCause,
+} from "./ProbeFailureCauses";
+import {
   getRequestFailureDescriptionText,
   readRequestFailureDescription,
 } from "./RequestFailureDescriptions";
+import { wordForecastLine, wordRootCauseFact } from "./RootCauseFacts";
 
 /*
  * THE ROOT CAUSE A MONITOR WROTE, IN THE READER'S LANGUAGE (issue #6542).
@@ -56,7 +61,13 @@ import {
  * timed out.", ProbeFailureReading), the phase after "- Failed Phase:"
  * (DNS Resolution, TLS Handshake), and what the failed request means after
  * "- Error Description:" ("DNS resolution failed. ...",
- * RequestFailureDescriptions).
+ * RequestFailureDescriptions). So do the probe's causes with values after
+ * **Cause** ("No NTP reply from ... within 5 seconds. Tried 3 times.",
+ * ProbeFailureCauses, #8267), their values as the probe found them; and
+ * the figures the engine writes from a number - a response time, a count
+ * of attempts, an NTP server's stratum, offset, dispersion and leap
+ * indicator - read in the reader's digits and units (RootCauseFacts,
+ * #8268). A status code is a code, and stays as written.
  *
  * On a page read from the right, a line OneUptime words is its words with
  * a stored value after them - "**نام معیار**: Website is down", "- کد
@@ -126,6 +137,7 @@ const FACT_LABELS: ReadonlyArray<string> = [
   translationKey("Unit"),
   translationKey("Aggregation"),
   translationKey("Time Window"),
+  translationKey("Data Arrives"),
   translationKey("Filters"),
   translationKey("Grouped By"),
   translationKey("Formula"),
@@ -171,6 +183,17 @@ const BOLD_LABEL_LINE: RegExp = /^\*\*([^*\n]{1,80})\*\*(:?)(.*)$/;
 
 // "- Label: value", with a label of letters and spaces.
 const FACT_LINE: RegExp = /^- ([A-Z][A-Za-z ]{0,40}): (.*)$/;
+
+/*
+ * A forecast's line whose label holds a number or a comma: its value in
+ * bold ("- In 7 days: **91.5%**"), or what reaching the threshold takes
+ * ("- Reaches 90%: in about 5 days"). Each part bounded, so the match is
+ * linear in the line.
+ */
+const FORECAST_BOLD_LINE: RegExp =
+  /^- (Now, on its trend|In [0-9]{1,9} (?:hours?|days?)): \*\*(.{1,80})\*\*$/;
+const FORECAST_REACHES_LINE: RegExp =
+  /^- (Reaches [^:\n]{1,80}): (in about [^:\n]{1,40}|already (?:above|below) it)$/;
 
 // One finding the root cause may quote: a filter's message and its sentence.
 export interface RootCauseFinding {
@@ -283,13 +306,22 @@ export default class MonitorRootCauseWording {
           // What follows the label: as stored, unless this language words it.
           let rest: MarkdownText = storedValue(label, stored);
 
-          // "**Cause**: <the probe's timeout sentence>", worded with its count.
+          /*
+           * "**Cause**: <the probe's timeout sentence>", worded with its
+           * count, or one of its causes with values, its values as found.
+           */
           if (label === CAUSE && stored.startsWith(" ")) {
             const worded: string | null =
               MonitorRootCauseWording.wordProbeTimeout(
                 stored.slice(1),
                 translator,
-              );
+              ) ??
+              MonitorRootCauseWording.wordFailureCause({
+                line: line,
+                stored: stored.slice(1),
+                translator: translator,
+                setsValuesApart: setsValuesApart,
+              });
 
             if (worded !== null) {
               rest = mdText` ${worded}`;
@@ -326,6 +358,18 @@ export default class MonitorRootCauseWording {
           ).toString();
         }
 
+        // A forecast's line whose label holds a number: "- In 7 days: **93.2%**".
+        const forecastLine: string | null =
+          MonitorRootCauseWording.wordForecastLine({
+            line: line,
+            translator: translator,
+            setsValuesApart: setsValuesApart,
+          });
+
+        if (forecastLine !== null) {
+          return forecastLine;
+        }
+
         const fact: RegExpExecArray | null = FACT_LINE.exec(line);
 
         if (fact && FACT_LABEL_SET.has(fact[1]!)) {
@@ -355,6 +399,16 @@ export default class MonitorRootCauseWording {
                 translator: translator,
                 setsValuesApart: setsValuesApart,
               }) || value;
+          } else {
+            // A figure the engine wrote from a number, in the reader's digits.
+            value =
+              MonitorRootCauseWording.wordFigure({
+                line: line,
+                label: label,
+                stored: stored,
+                translator: translator,
+                setsValuesApart: setsValuesApart,
+              }) ?? value;
           }
 
           return mdText`- ${MonitorRootCauseWording.word(label, translator)}: ${value}`.toString();
@@ -408,6 +462,128 @@ export default class MonitorRootCauseWording {
     }
 
     return translator.translatePlural(PROBE_TIMEOUT_FAILURE_CAUSE, triedCount);
+  }
+
+  /*
+   * One of the probe's causes with values (ProbeFailureCauses), as the
+   * engine placed it after **Cause** (written with mdText): in the reader's
+   * language, its values as the probe found them - set apart from the
+   * reader's words when asked. Null for any other cause, and when the
+   * reader's language does not word it.
+   *
+   * The stored cause is Markdown: it is read back to its text, which is
+   * only taken for the cause when mdText writes it back to the very line
+   * the engine stored.
+   */
+  private static wordFailureCause(data: {
+    line: string;
+    stored: string;
+    translator: Translator;
+    setsValuesApart: boolean;
+  }): string | null {
+    const text: string = data.stored.replace(MARKDOWN_ESCAPE, "$1");
+
+    if (
+      !readProbeFailureCause(text) ||
+      mdText`**${CAUSE}**: ${text}`.toString() !== data.line
+    ) {
+      return null;
+    }
+
+    return wordProbeFailureCause({
+      translator: data.translator,
+      failureCause: text,
+      options: { setsValuesApart: data.setsValuesApart },
+    });
+  }
+
+  /*
+   * A figure under a fact OneUptime lists - a response time, a count of
+   * attempts, an NTP server's stratum, clock offset, root dispersion or
+   * leap indicator - in the reader's digits and units, when the engine
+   * wrote exactly that figure (RootCauseFacts). Null for any other value,
+   * which stays as stored.
+   *
+   * Read back from the stored Markdown as the Error Description is: only
+   * when mdText writes the text back to the very line the engine stored.
+   */
+  private static wordFigure(data: {
+    line: string;
+    label: string;
+    stored: string;
+    translator: Translator;
+    setsValuesApart: boolean;
+  }): string | null {
+    const text: string = data.stored.replace(MARKDOWN_ESCAPE, "$1");
+
+    if (mdText`- ${data.label}: ${text}`.toString() !== data.line) {
+      return null;
+    }
+
+    return wordRootCauseFact({
+      label: data.label,
+      value: text,
+      translator: data.translator,
+      options: { setsValuesApart: data.setsValuesApart },
+    });
+  }
+
+  /*
+   * A forecast's line whose label holds a number or a comma, as the engine
+   * writes it (MonitorCriteriaEvaluator.formatForecastSection):
+   *
+   *   - Now, on its trend: **84.5%**
+   *   - In 7 days: **91.5%**
+   *   - Reaches 90%: in about 5 days
+   *   - Reaches 90%: already above it
+   *
+   * in the reader's words, the metric's values as written (RootCauseFacts).
+   * Read back from the stored Markdown, and only taken for the engine's
+   * when mdText writes it back to the very line. Null for any other line.
+   */
+  private static wordForecastLine(data: {
+    line: string;
+    translator: Translator;
+    setsValuesApart: boolean;
+  }): string | null {
+    const line: string = data.line;
+    const bold: RegExpExecArray | null = FORECAST_BOLD_LINE.exec(line);
+    const reaches: RegExpExecArray | null = bold
+      ? null
+      : FORECAST_REACHES_LINE.exec(line);
+
+    if (!bold && !reaches) {
+      return null;
+    }
+
+    const label: string = (bold ? bold[1] : reaches![1]) as string;
+    const value: string = ((bold ? bold[2] : reaches![2]) as string).replace(
+      MARKDOWN_ESCAPE,
+      "$1",
+    );
+    const labelText: string = label.replace(MARKDOWN_ESCAPE, "$1");
+    const writtenBack: string = bold
+      ? mdText`- ${labelText}: **${value}**`.toString()
+      : mdText`- ${labelText}: ${value}`.toString();
+
+    if (writtenBack !== line) {
+      return null;
+    }
+
+    const worded: { label: string; value: string } | null = wordForecastLine({
+      label: labelText,
+      value: value,
+      translator: data.translator,
+      options: { setsValuesApart: data.setsValuesApart },
+    });
+
+    if (!worded) {
+      return null;
+    }
+
+    return bold
+      ? mdText`- ${worded.label}: **${worded.value}**`.toString()
+      : mdText`- ${worded.label}: ${worded.value}`.toString();
   }
 
   /*

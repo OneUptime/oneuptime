@@ -1673,7 +1673,7 @@ describe("AI Logs page", () => {
         expect(note).toHaveAttribute("data-empty-state-kind", "no-access");
         expect(note).toHaveTextContent(
           "You don't have access to this list" +
-            "You need this permission: Read Runbook Execution. Ask a project admin for access.",
+            "You need this permission: Read Runbook Execution. Ask a Project Admin for access.",
         );
         expect(note).not.toHaveTextContent("Runbook Viewer");
         expect(note).not.toHaveTextContent("Runner job");

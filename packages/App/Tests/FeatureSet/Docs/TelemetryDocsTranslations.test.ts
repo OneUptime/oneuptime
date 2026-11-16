@@ -138,8 +138,11 @@ const ALSO_A_BUTTON: Record<string, Array<string>> = {
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [PROFILES]: [
-    // The profile page's third tab, which has no locale key.
-    "Diff vs. baseline",
+    /*
+     * The profile page's third tab, Diff vs. baseline, is not here: every
+     * locale words it now, and the translated pages name it as their
+     * Dashboard draws it.
+     */
     /*
      * The page's own tab ("the **.NET** tab"): a product, named as its
      * maker names it. Grafana Alloy, the other tab the page names in bold,

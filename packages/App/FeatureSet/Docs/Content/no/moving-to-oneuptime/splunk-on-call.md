@@ -1,6 +1,6 @@
 # Bytt fra Splunk On-Call
 
-**Importer fra et annet verktøy** henter Splunk On-Call-oppsettet ditt (tidligere VictorOps) over til OneUptime på noen minutter. Med API-ID-en din og en skrivebeskyttet API-nøkkel leser OneUptime brukerne, teamene, rotasjonene og eskaleringsretningslinjene dine, viser deg hva det fant, og oppretter det du krysser av for. Ingenting endres i Splunk On-Call.
+**Importer fra et annet verktøy** henter Splunk On-Call-oppsettet ditt (tidligere VictorOps) over til OneUptime på noen minutter. Med API-ID-en din og en skrivebeskyttet API-nøkkel leser OneUptime brukerne, teamene, rotasjonene og eskaleringspolicyene dine, viser deg hva det fant, og oppretter det du krysser av for. Ingenting endres i Splunk On-Call.
 
 :::cards
 - [Importer kontoen din](#importer-splunk-on-call-kontoen-din): Opprett en nøkkel, les kontoen din og kryss av for det som skal overføres.
@@ -41,7 +41,7 @@ Gå til **Prosjektinnstillinger** > **Avansert** > **Importer fra et annet verkt
 Lim inn API-ID-en i **Splunk On-Call-API-ID** og nøkkelen i **Splunk On-Call-API-nøkkel**, og velg **Les Splunk On-Call-kontoen min**. En stor konto tar noen minutter, og du kan forlate siden mens den leses.
 
 ### Kryss av for det som skal overføres
-Forhåndsvisningen viser hva som ble funnet, med én del per type. Alt som ville blitt opprettet, er avkrysset fra start, unntatt personer som ikke er i noe team, noen rotasjon eller eskaleringsretningslinje. Under hvert element forteller OneUptime hva som ikke overføres akkurat som det var. Når et avkrysset element bruker noe du ikke har krysset av for, sier det fra, og **Kryss av for dem også** krysser det av.
+Forhåndsvisningen viser hva som ble funnet, med én del per type. Alt som ville blitt opprettet, er avkrysset fra start, unntatt personer som ikke er i noe team, noen rotasjon eller eskaleringspolicy. Under hvert element forteller OneUptime hva som ikke overføres akkurat som det var. Når et avkrysset element bruker noe du ikke har krysset av for, sier det fra, og **Kryss av for dem også** krysser det av.
 
 ### Start importen
 Hvis personer skal inviteres, velger du under **Inviter nye personer til** teamet de blir med i. Velg deretter **Start import**. Importen kjører i bakgrunnen: Du kan forlate siden, og rapporten venter på deg der.
@@ -56,21 +56,21 @@ Rapporten teller hva som ble opprettet, invitert og ikke overført, og viser hve
 | Brukere | Prosjektmedlemmer | Kobles på e-postadresse. Alle som ikke er i prosjektet ennå, inviteres til teamet du velger. |
 | Team | Team | Opprettes med medlemmene sine. Et team som prosjektet allerede har navnet på, brukes som det er, og medlemmene røres ikke. |
 | Rotasjoner | Vaktplaner | Hver rotasjon blir en vaktplan eid av teamet sitt, og hver av vaktene i den et lag med de samme personene, samme start, samme overlevering og de samme vaktdagene og -timene. Den som har vakt i Splunk On-Call nå, har også vakt i OneUptime. |
-| Eskaleringsretningslinjer | Vaktretningslinjer | Eid av retningslinjens team. Hvert trinn blir en eskaleringsregel som varsler de samme rotasjonene og brukerne. Et trinns tidsavbrudd blir ventetiden før det, og trinn uten tidsavbrudd imellom varsler sammen. |
+| Eskaleringspolicyer | Vaktpolicyer | Eid av policyens team. Hvert trinn blir en eskaleringsregel som varsler de samme rotasjonene og brukerne. Et trinns tidsavbrudd blir ventetiden før det, og trinn uten tidsavbrudd imellom varsler sammen. |
 
-Vakter i én rotasjon som har vakt samtidig, blir hver sin OneUptime-vaktplan, fordi en OneUptime-vaktplan har én person på vakt om gangen. Hver vaktretningslinje som varslet rotasjonen, varsler alle. Vaktplanen beholder tidssonen til rotasjonens første vakt, og en vakt i en annen tidssone får timene sine regnet om til den.
+Vakter i én rotasjon som har vakt samtidig, blir hver sin OneUptime-vaktplan, fordi en OneUptime-vaktplan har én person på vakt om gangen. Hver vaktpolicy som varslet rotasjonen, varsler alle. Vaktplanen beholder tidssonen til rotasjonens første vakt, og en vakt i en annen tidssone får timene sine regnet om til den.
 
 ## Hva som ikke overføres
 
 - **Hendelser, varsler og historikken deres.** OneUptime starter med oppsettet ditt, ikke med tidligere hendelser.
 - **Integrasjoner, routing keys og alert rules.** Pek i stedet monitorene og varselkildene dine mot OneUptime, som beskrevet i [Fullfør byttet](#fullfør-byttet).
 - **Planlagte overstyringer.** Legg til overstyringene du fortsatt trenger, i OneUptime etter importen.
-- **Hver persons varslingsretningslinje.** Hver person velger hvordan de varsles, i sine egne **Brukerinnstillinger** når de har godtatt invitasjonen.
-- **Trinn som OneUptime ikke har en eksakt motsvarighet til.** Et trinn som kaller en webhook eller sender videre til en annen eskaleringsretningslinje, utelates, og det samme gjør et trinn som sender e-post til en adresse som ingen av personene som overføres, har. Et trinn som varsler den som har vakt neste gang eller hadde vakt før, varsler den som har vakt nå, og forhåndsvisningen sier hva som endres.
+- **Hver persons varslingspolicy.** Hver person velger hvordan de varsles, i sine egne **Brukerinnstillinger** når de har godtatt invitasjonen.
+- **Trinn som OneUptime ikke har en eksakt motsvarighet til.** Et trinn som kaller en webhook eller sender videre til en annen eskaleringspolicy, utelates, og det samme gjør et trinn som sender e-post til en adresse som ingen av personene som overføres, har. Et trinn som varsler den som har vakt neste gang eller hadde vakt før, varsler den som har vakt nå, og forhåndsvisningen sier hva som endres.
 
 ## Grenser
 
-Én import oppretter høyst 2 000 poster: høyst 500 personer, 200 team, 200 vaktplaner og 200 vaktretningslinjer. Alt over en grense vises som ikke overført. Kjør importen på nytt for å overføre resten.
+Én import oppretter høyst 2 000 poster: høyst 500 personer, 200 team, 200 vaktplaner og 200 vaktpolicyer. Alt over en grense vises som ikke overført. Kjør importen på nytt for å overføre resten.
 
 I OneUptime Cloud vises poster som abonnementet ditt ikke inkluderer, som ikke overført, med abonnementet de trenger.
 
@@ -92,7 +92,7 @@ Hvis teamet ditt omtaler hendelser med nummer, la numrene i OneUptime starte ett
 Pek monitorene dine og verktøyene som utløser varsler, mot OneUptime, og varsle deg selv én gang for å teste det.
 
 ### Slå av varsling i Splunk On-Call
-Når OneUptime varsler de riktige personene, slår du av varslene i Splunk On-Call, så ingen varsles to ganger.
+Når OneUptime varsler de riktige personene, slår du av varslingene i Splunk On-Call, så ingen varsles to ganger.
 :::
 
 ## Feilsøking
@@ -113,6 +113,6 @@ Ved hvert står det hvorfor: et navn prosjektet allerede har, noe en tidligere i
 
 :::cards
 - [Vaktplaner](/docs/on-call/schedules): Lag, begrensninger og overleveringer.
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan vaktretningslinjer varsler personer.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan vaktpolicyer varsler personer.
 - [Bytt fra PagerDuty](/docs/moving-to-oneuptime/pagerduty): Hent et team over fra PagerDuty.
 :::

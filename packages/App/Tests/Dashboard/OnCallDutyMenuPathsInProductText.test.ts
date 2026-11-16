@@ -254,7 +254,7 @@ describe("a written On-Call path, as a reader follows it", () => {
       ["On-Call > Advanced > User Overrides"],
     ],
     [
-      "Add one in the OneUptime Dashboard under On-Call > Policies, or ask a project admin for access to one.",
+      "Add one in the OneUptime Dashboard under On-Call > Policies, or ask a Project Admin for access to one.",
       ["On-Call > Policies"],
     ],
     [

@@ -12,7 +12,14 @@
  * still the form's own while it is empty, or one the form filled in itself -
  * the last one it filled in, or the name of what was picked before (an Edit
  * form that never filled anything in, holding a name nobody changed).
+ *
+ * A name is a value, not a line a page draws: the name filled in is written
+ * with plain spaces, and names are compared so, whether a sentence held its
+ * figure to its unit ("Remind every 15 minutes") or a saved name did not
+ * (withPlainSpaces, #8770).
  */
+
+import { withPlainSpaces } from "../../../../Types/NoBreakSpaces";
 
 export type GetNameAfterPickFunction = (data: {
   // The name the form holds now.
@@ -40,13 +47,14 @@ export const getNameAfterPick: GetNameAfterPickFunction = (data: {
     return null;
   }
 
-  const name: string = typeof data.name === "string" ? data.name : "";
+  const name: string =
+    typeof data.name === "string" ? withPlainSpaces(data.name) : "";
 
   const isTheFormsOwn: boolean =
     name.trim().length === 0 ||
     data.filledInNames.some((filledIn: unknown): boolean => {
-      return typeof filledIn === "string" && filledIn === name;
+      return typeof filledIn === "string" && withPlainSpaces(filledIn) === name;
     });
 
-  return isTheFormsOwn ? data.pickedName : null;
+  return isTheFormsOwn ? withPlainSpaces(data.pickedName) : null;
 };

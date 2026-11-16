@@ -186,6 +186,81 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     return count.toNumber() > 0;
   }
 
+  /*
+   * WHO IS EMAILED ABOUT A MEMBERSHIP MADE FOR A USER ID (#8421): the
+   * person's account - with its address, and its password column, which
+   * says which link the invitation carries - or null when nobody is.
+   *
+   * A membership made for a person picked by id, not named by address, sent
+   * no email: the invitation email was sent only for an address
+   * (miscDataProps["email"]). Now the person is sent the same InviteMember
+   * email an invitation by address sends - "You're Invited to ..." while it
+   * waits for them, "You've Been Added to ..." when it was accepted for them,
+   * with the sign-up link (and its token) when they have no password yet -
+   * except:
+   *
+   *   - when OneUptime itself makes it (isRoot). Its own writes decide whom
+   *     they email: SCIM names the address with a person's first invitation
+   *     into a project; a first sign-in through SSO or a marketplace and the
+   *     owner of a new project are emailed nothing;
+   *   - when the person makes it for themselves: they know;
+   *   - when the person has a membership in this project already, pending or
+   *     accepted. A pending one has their invitation, and its email, waiting
+   *     already, and accepting it accepts every team of the project
+   *     (acceptPendingInvitationsInProject); an accepted one is in the
+   *     project. A person's Teams > Invite on the Dashboard, a project user's
+   *     Add to Team in the Admin Dashboard and an import that fills the teams
+   *     it made only ever add such a person to another team, and one email
+   *     per team, for the same project, would tell them nothing new. Someone
+   *     named by address is still emailed as before: that form says it
+   *     emails them, and it is how an invitation is sent again.
+   */
+  @CaptureSpan()
+  public async getInviteeToEmailById(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    userId: ObjectID | null;
+  }): Promise<User | null> {
+    if (!data.userId || data.props.isRoot) {
+      return null;
+    }
+
+    if (
+      data.props.userId &&
+      data.props.userId.toString().toLowerCase() ===
+        data.userId.toString().toLowerCase()
+    ) {
+      return null;
+    }
+
+    if (
+      await this.hasMembershipInProject({
+        projectId: data.projectId,
+        userId: data.userId,
+      })
+    ) {
+      return null;
+    }
+
+    const user: User | null = await UserService.findOneById({
+      id: data.userId,
+      select: {
+        _id: true,
+        email: true,
+        password: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user?.id || !user.email) {
+      return null;
+    }
+
+    return user;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<TeamMember>,
@@ -385,6 +460,27 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     }
 
     /*
+     * A person picked by id rather than named by address - a user's Add to
+     * Project in the Admin Dashboard and its bulk twin on the Users list, a
+     * membership made through the API - is emailed the invitation too, once:
+     * with the membership that first brings them into the project (#8421).
+     * They were never told before, so they found out only if they happened
+     * to sign in, and someone with no account was never sent their link.
+     * getInviteeToEmailById says who is not emailed, and why.
+     */
+    const inviteeNamedById: User | null = invitedEmail
+      ? null
+      : await this.getInviteeToEmailById({
+          props: createBy.props,
+          projectId: projectId,
+          userId: namedUserId,
+        });
+
+    // Where the invitation goes, whichever way the person was named.
+    const invitationAddress: Email | null =
+      invitedEmail || inviteeNamedById?.email || null;
+
+    /*
      * An invitation by email to someone who is not in the project yet is a
      * message to an address the team names, from this installation's mail
      * server. Each address is counted (PublicMessageRateLimit.assertTeamMaySend),
@@ -395,10 +491,11 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
      * the invitee, so a refused invitation leaves nothing behind, and given
      * back when the invitation fails before its email is sent. Someone who
      * has joined the project already, added to another of its teams, is told
-     * so rather than invited, and is not counted.
+     * so rather than invited, and is not counted. A person picked by id is
+     * counted by their account's address, the same way.
      */
     const invitationPermit: PublicMessageSendPermit | null =
-      invitedEmail &&
+      invitationAddress &&
       !createBy.data.hasAcceptedInvitation &&
       !(
         userWithInvitedEmail?.id &&
@@ -409,17 +506,18 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       )
         ? await PublicMessageRateLimit.assertTeamMaySend({
             kind: TeamMessageKind.Invitation,
-            contacts: [PublicMessageRateLimit.forEmail(invitedEmail)],
+            contacts: [PublicMessageRateLimit.forEmail(invitationAddress)],
           })
         : null;
 
     try {
       /*
        * Set when the member is invited by email: the account the address belongs
-       * to, and whether this invite just created it. The invitation email is sent
-       * once everything below has decided what this membership is.
+       * to, and whether this invite just created it - or, for a person picked by
+       * id, their account. The invitation email is sent once everything below
+       * has decided what this membership is.
        */
-      let invitedUser: User | null = null;
+      let invitedUser: User | null = inviteeNamedById;
       let isNewUser: boolean = false;
 
       if (invitedEmail) {
@@ -542,9 +640,31 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         delete createBy.data.invitationAcceptedAt;
       }
 
-      if (invitedUser && invitedEmail) {
+      /*
+       * A member of the project who has signed up, named by address for
+       * another of its teams, is not emailed (#8568). They are in the
+       * project and sign in as ever, with nothing to accept or claim, and
+       * "You've Been Added to <project>" for every team told them only what
+       * they knew; a person picked by id is not emailed either
+       * (getInviteeToEmailById). A member who has not signed up yet is: the
+       * email carries a new sign-up link, and theirs lasts 7 days. So is a
+       * pending invitee, reminded of the invitation the form says it emails.
+       */
+      const isSignedUpMemberAlready: boolean = Boolean(
+        invitedEmail &&
+          invitedUser &&
+          !isNewUser &&
+          invitedUser.password &&
+          isInvitationAcceptedOnCreate &&
+          (await this.isUserMemberOfProject({
+            projectId: projectId,
+            userId: invitedUser.id!,
+          })),
+      );
+
+      if (invitedUser && invitationAddress && !isSignedUpMemberAlready) {
         const user: User = invitedUser;
-        const email: Email = invitedEmail;
+        const email: Email = invitationAddress;
 
         const project: Project | null = await ProjectService.findOneById({
           id: createBy.data.projectId!,

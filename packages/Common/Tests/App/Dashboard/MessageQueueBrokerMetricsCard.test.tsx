@@ -219,7 +219,7 @@ describe("the card's head", () => {
     const last: HTMLElement = within(card).getByTestId(
       "message-queue-broker-metrics-last-received",
     );
-    expect(last).toHaveTextContent(
+    expect(last.textContent).toContain(
       `Last received ${OneUptimeDate.fromNow(ago(5 * MINUTE_MS), NOW)}`,
     );
     expect(last).toHaveAttribute(
@@ -553,7 +553,7 @@ describe("what the card asks the reader to do", () => {
         return finding.getAttribute("data-kind");
       }),
     ).toEqual(["stopped"]);
-    expect(findings[0]).toHaveTextContent(
+    expect(findings[0]!.textContent).toContain(
       `Broker metrics stopped arriving ${OneUptimeDate.fromNow(ago(2 * DAY_MS), NOW)}`,
     );
     expect(findings[0]).toHaveTextContent(
@@ -862,7 +862,7 @@ describe("the supported metrics", () => {
     const arrived: HTMLElement = within(active).getByTestId(
       "message-queue-broker-metric-last-arrived",
     );
-    expect(arrived).toHaveTextContent(
+    expect(arrived.textContent).toContain(
       `Last arrived ${OneUptimeDate.fromNow(ago(5 * MINUTE_MS), NOW)}`,
     );
     expect(arrived).toHaveAttribute(

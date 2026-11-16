@@ -32,6 +32,7 @@ import {
 } from "../../../Types/Workflow/CreateFromTemplate";
 import Text from "../../../Types/Text";
 import { getAffectedResourcesArgument } from "../../../Types/Workflow/AffectedResourcesSetting";
+import { getOwnersOnCreateArguments } from "../../../Types/Workflow/OwnersOnCreateSetting";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -147,20 +148,25 @@ describe("a template setting has a service that applies it", () => {
       const setting: Argument = getCreateFromTemplateArgument(tableName)!;
       const affectedResources: Argument | null =
         getAffectedResourcesArgument(tableName);
+      const owners: Array<Argument> = getOwnersOnCreateArguments(tableName);
 
       /*
        * The template, then JSON Object - and, for a record that holds
-       * resources, Affected Resources after them (issue #5341).
+       * resources, Affected Resources after them (issue #5341), and for an
+       * incident or an alert the owners it starts with, last.
        */
       expect(
         (createOne?.arguments || []).map((argument: Argument): string => {
           return argument.id;
         }),
-      ).toEqual(
-        affectedResources
-          ? [setting.id, "json", affectedResources.id]
-          : [setting.id, "json"],
-      );
+      ).toEqual([
+        setting.id,
+        "json",
+        ...(affectedResources ? [affectedResources.id] : []),
+        ...owners.map((argument: Argument): string => {
+          return argument.id;
+        }),
+      ]);
       expect(createOne?.arguments?.[0]).toEqual(setting);
       expect(createOne?.arguments?.[1]?.notRequiredWhen).toEqual({
         argumentId: setting.id,

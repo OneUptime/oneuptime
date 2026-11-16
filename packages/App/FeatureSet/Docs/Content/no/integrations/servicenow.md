@@ -13,9 +13,9 @@ Opprett en hendelse i [ServiceNow](https://www.servicenow.com) for hver OneUptim
 
 ```mermaid title="To arbeidsflyter, én hendelse i ServiceNow"
 flowchart TB
-    declared["Hendelse erklært"] --> create["Arbeidsflyt 1:<br/>On Create Incident"]
+    declared["Hendelse erklært"] --> create["Arbeidsflyt 1:<br/>Ved oppretting: Hendelse"]
     create -->|"POST incident"| sn["Hendelse i ServiceNow"]
-    resolved["Hendelse løst"] --> update["Arbeidsflyt 2:<br/>On Update Incident"]
+    resolved["Hendelse løst"] --> update["Arbeidsflyt 2:<br/>Ved oppdatering:<br/>Hendelse"]
     update --> find["Finn posten<br/>via correlation_id"]
     find -->|"PATCH state 6"| sn
 ```
@@ -54,11 +54,11 @@ Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt** og deretter på **S
 
 ### Legg til triggeren
 
-Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **On Create Incident**. Klikk på triggeren: **Fields to pass on** starter med **Tittel**, så klikk på **Legg til felt**, og velg **Beskrivelse**.
+Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **Ved oppretting: Hendelse**. Klikk på triggeren: **Felt som sendes videre** starter med **Tittel**, så klikk på **Legg til felt**, og velg **Beskrivelse**.
 
 ### Opprett posten
 
-Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og koble triggerens **Suksess**-punkt til den. Sett **URL** til `https://your-instance.service-now.com/api/now/table/incident`. Sett **Forespørselshoder** under **Flere felt** til:
+Klikk på **Legg til komponent**, legg til en **API-kall POST (JSON)**-blokk, og koble triggerens **Suksess**-punkt til den. Sett **URL** til `https://your-instance.service-now.com/api/now/table/incident`. Sett **Forespørselshoder** under **Flere felt** til:
 
 ```json
 {
@@ -81,7 +81,7 @@ Og **Forespørselstekst** til:
 
 ### Test den, og slå den deretter på
 
-Klikk på **Kjør arbeidsflyt**, velg en testhendelse under **Hendelse**, og kjør den. Trinnet **API Post (JSON)** viser et `201`-svar med den nye posten, med `sys_id` og `number`, f.eks. `INC0012345`. Slå deretter på **Aktivert** øverst i **Bygger**.
+Klikk på **Kjør arbeidsflyt**, velg en testhendelse under **Hendelse**, og kjør den. Trinnet **API-kall POST (JSON)** viser et `201`-svar med den nye posten, med `sys_id` og `number`, f.eks. `INC0012345`. Slå deretter på **Aktivert** øverst i **Bygger**.
 :::
 
 `urgency` og `impact` tar `1` for høy, `2` for middels og `3` for lav, og ServiceNow regner ut prioriteten fra de to. Enhver annen kolonne i tabellen `incident` kan legges i innholdet under kolonnenavnet sitt.
@@ -91,9 +91,9 @@ Klikk på **Kjør arbeidsflyt**, velg en testhendelse under **Hendelse**, og kj�
 En arbeidsflyt har én trigger, så det trengs en annen arbeidsflyt for å løse den, startet når en hendelses tilstand endres.
 
 :::steps
-### Legg til triggeren On Update Incident
+### Legg til triggeren «Ved oppdatering: Hendelse»
 
-Opprett en arbeidsflyt som heter `Resolve ServiceNow incidents`, og velg **On Update Incident** som trigger. Klikk på **Legg til felt** i **Fields to watch**, og velg **Current Incident State**, slik at den bare kjører når tilstanden endres. Spør i **Fields to pass on** om den nye tilstanden er en løst tilstand: klikk på **Legg til felt**, åpne **Current Incident State**, og velg **Is Resolved State**. Eller klikk på **Rediger som JSON**, og erstatt JSON-en med:
+Opprett en arbeidsflyt som heter `Resolve ServiceNow incidents`, og velg **Ved oppdatering: Hendelse** som trigger. Klikk på **Legg til felt** i **Felt som overvåkes**, og velg **Current Incident State**, slik at den bare kjører når tilstanden endres. Spør i **Felt som sendes videre** om den nye tilstanden er en løst tilstand: klikk på **Legg til felt**, åpne **Current Incident State**, og velg **Is Resolved State**. Eller klikk på **Rediger som JSON**, og erstatt JSON-en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -101,11 +101,11 @@ Opprett en arbeidsflyt som heter `Resolve ServiceNow incidents`, og velg **On Up
 
 ### Sjekk at hendelsen er løst
 
-Legg til en **If / Else**-blokk etter triggeren. Sett **Verdi som skal sjekkes** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Sammenligning** til **er sann**.
+Legg til en **Hvis / Ellers**-blokk etter triggeren. Sett **Verdi som skal sjekkes** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Sammenligning** til **er sann**.
 
 ### Finn posten
 
-Legg til en **API Get (JSON)**-blokk etter **Ja**-siden, med de samme **Forespørselshoder** og denne **URL**:
+Legg til en **API-kall GET (JSON)**-blokk etter **Ja**-siden, med de samme **Forespørselshoder** og denne **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,7 +113,7 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Løs posten
 
-Legg til en **API Patch (JSON)**-blokk etter søkeblokkens **Suksess**, med de samme **Forespørselshoder** og denne **URL**:
+Legg til en **API-kall PATCH (JSON)**-blokk etter søkeblokkens **Suksess**, med de samme **Forespørselshoder** og denne **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}

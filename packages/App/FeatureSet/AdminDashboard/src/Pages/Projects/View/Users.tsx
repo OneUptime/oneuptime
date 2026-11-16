@@ -347,10 +347,10 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                 const name: string =
                   item.user.name?.toString() ||
                   item.user.email?.toString() ||
-                  "-";
+                  "";
                 return (
                   <div>
-                    <p className="font-medium">{name}</p>
+                    <p className="font-medium">{name || <TableEmptyValue />}</p>
                     {item.user.email ? (
                       <p className="text-xs text-gray-500">
                         {item.user.email.toString()}
@@ -419,6 +419,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
             modelAPI={AdminModelAPI}
             name="Invite New User"
             title={t("pages.projectUsers.inviteUserTitle")}
+            isTitleTranslated={true}
             description={t("pages.projectUsers.inviteUserDescription")}
             onClose={() => {
               setShowInviteUserModal(false);

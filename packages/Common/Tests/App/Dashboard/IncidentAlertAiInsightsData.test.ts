@@ -442,7 +442,7 @@ describe("a problem's line on these pages", () => {
     };
 
     expect(describeProblemCount(problem)).toBe(
-      "12 times · 4 in the last 7 days · investigated 5 times",
+      "12 times · 4 in the last 7\u00A0days · investigated 5 times",
     );
   });
 });
@@ -483,7 +483,7 @@ describe.each(
           contextOf(kind),
         ).join(" "),
       ).toBe(
-        `It happened 12 times in the last 30 days. 4 of them were in the last 7 days, up from 1 the 7 days before. That is 12 of the 20 ${plural} created in the last 30 days.`,
+        `It happened 12 times in the last 30\u00A0days. 4 of them were in the last 7\u00A0days, up from 1 the 7\u00A0days before. That is 12 of the 20 ${plural} created in the last 30\u00A0days.`,
       );
     });
 
@@ -494,7 +494,7 @@ describe.each(
           contextOf(kind),
         ).join(" "),
       ).toBe(
-        `There is no LLM provider OneUptime AI can use. That is 8 of the 20 ${plural} created in the last 30 days.`,
+        `There is no LLM provider OneUptime AI can use. That is 8 of the 20 ${plural} created in the last 30\u00A0days.`,
       );
     });
 
@@ -505,7 +505,7 @@ describe.each(
           contextOf(kind),
         ).join(" "),
       ).toBe(
-        `It was part of 7 of the 20 ${plural} created in the last 30 days. Problems that share one place often share one cause: look there first.`,
+        `It was part of 7 of the 20 ${plural} created in the last 30\u00A0days. Problems that share one place often share one cause: look there first.`,
       );
     });
 
@@ -516,7 +516,7 @@ describe.each(
           contextOf(kind),
         ).join(" "),
       ).toBe(
-        "That is 4 fixes in the last 30 days, and none dismissed. 3 of them were checked afterwards and solved the problem. Let OneUptime AI apply fixes like these on its own, and they run the moment the problem starts.",
+        "That is 4 fixes in the last 30\u00A0days, and none dismissed. 3 of them were checked afterwards and solved the problem. Let OneUptime AI apply fixes like these on its own, and they run the moment the problem starts.",
       );
     });
 
@@ -676,25 +676,25 @@ describe("the monitors, services, coverage and fix pull requests", () => {
       "incident",
       20,
       12,
-      "OneUptime AI investigated 12 of the 20 incidents created in the last 30 days.",
+      "OneUptime AI investigated 12 of the 20 incidents created in the last 30\u00A0days.",
     ],
     [
       "incident",
       1,
       0,
-      "OneUptime AI investigated 0 of the 1 incident created in the last 30 days.",
+      "OneUptime AI investigated 0 of the 1 incident created in the last 30\u00A0days.",
     ],
     [
       "alert",
       20,
       12,
-      "OneUptime AI investigated 12 of the 20 alerts created in the last 30 days.",
+      "OneUptime AI investigated 12 of the 20 alerts created in the last 30\u00A0days.",
     ],
     [
       "alert",
       1,
       1,
-      "OneUptime AI investigated 1 of the 1 alert created in the last 30 days.",
+      "OneUptime AI investigated 1 of the 1 alert created in the last 30\u00A0days.",
     ],
   ] as Array<[IncidentAlertAiSubjectKind, number, number, string]>)(
     "coverage of %s: %s created, %s investigated",

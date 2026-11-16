@@ -13,7 +13,7 @@ En Podman-monitor övervakar containrarna på en Podman-värd och säger till n�
 
 OneUptimes Podman-agent körs som en container på värden. Var 30:e sekund läser den containerstatistik via Podmans Docker-kompatibla API-socket, följer containrarnas loggfiler och skickar båda till OneUptime över OTLP. De första data från en värd registrerar den i OneUptime.
 
-En Podman-monitor är knuten till en värd. Varje minut kör den sin fråga över värdens containermått och jämför resultatet med sina kriterier.
+En Podman-monitor är knuten till en värd. Varje minut kör den sin fråga över värdens containermätvärden och jämför resultatet med sina kriterier.
 
 ```mermaid title="Från en Podman-värd till en incident"
 flowchart TB
@@ -42,7 +42,7 @@ flowchart TB
 
 Gå till **Monitorer** och klicka på **Skapa monitor**.
 
-### Välj Podman Container
+### Välj Podman-container
 
 Klicka på **Fler monitortyper** under **Monitortyp** och välj **Podman-container** under **Infrastruktur**, eller skriv `podman` i sökrutan. Ange ett **Namn** – det används i titlar på incidenter och larm – och klicka på **Nästa**.
 
@@ -56,7 +56,7 @@ En ny monitor börjar med **Host Stopped Reporting** under **Vad som ska larmas 
 
 - **Ändra** – välj en annan [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
 - **Custom Metric** (under **Fler fält**) – välj ett mätvärde i **Podman Metric** och ange sedan **Aggregering** och **Tidsintervall**. **Containernamn** och **Container-avbildning** begränsar det till vissa containrar.
-- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mått**. Använd **Gruppera efter** `resource.container.name` för att bedöma varje container för sig.
+- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mätvärden**. Använd **Gruppera efter** `resource.container.name` för att bedöma varje container för sig.
 
 ### Kontrollera kriterierna
 
@@ -80,7 +80,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **Container-avbildning** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `resource.container.image.name`, till exempel `nginx:latest`. |
 | **Aggregering** | Custom Metric | Hur mätningar kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar anger sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mätvärden** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 ## Färdiga larmmallar
 
@@ -112,7 +112,7 @@ De två procentmallarna använder **Genomsnitt**: deras mätvärden är redan pr
 > [!CAUTION]
 > `container.uptime` finns bara för körande containrar. En container som stannar och förblir stoppad skickar inga data, så **Container Restarted (Low Uptime)** fångar omstarter och nya driftsättningar, inte en permanent avstängning. En container som är tänkt att köras i mindre än två minuter förblir i larmläge hela sin livstid.
 
-Det finns ingen mall för CPU-strypning. Strypningsmåtten som agenten samlar in bara växer, och ett larm om "överhuvudtaget strypt" skulle utlösas en gång och aldrig upphöra. Båda samlas fortfarande in, så du kan visa dem i diagram.
+Det finns ingen mall för CPU-strypning. Strypningsmätvärdena som agenten samlar in bara växer, och ett larm om "överhuvudtaget strypt" skulle utlösas en gång och aldrig upphöra. Båda samlas fortfarande in, så du kan visa dem i diagram.
 
 ## Insamlade mätvärden
 
@@ -183,11 +183,11 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 
 | Ordning | Kriterium | Matchar när | Sedan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den första frågan har inga data under hela fönstret | Markerar monitorn som **Offline** och deklarerar incidenten "_monitor name_ is offline", som löser sig själv när monitorn återhämtar sig. |
-| 2 | Check if _monitor name_ is online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
+| 1 | Kontrollera om _monitornamn_ är offline | Den första frågan har inga data under hela fönstret | Markerar monitorn som **Offline** och deklarerar incidenten "_monitornamn_ är offline", som löser sig själv när monitorn återhämtar sig. |
+| 2 | Kontrollera om _monitornamn_ är online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
 
 > [!IMPORTANT]
-> Ett värde på `0` är data, så ett mått som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+> Ett värde på `0` är data, så ett mätvärde som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Insamlade loggar
 

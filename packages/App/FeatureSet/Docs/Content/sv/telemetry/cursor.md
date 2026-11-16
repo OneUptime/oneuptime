@@ -43,7 +43,7 @@ flowchart TB
 :::steps
 ### Skapa en intagningsnyckel
 
-I OneUptime öppnar du **Projektinställningar → Telemetri och APM → Intagningsnycklar**, klickar på **Skapa ingestion-nyckel** och kopierar nyckeln. Din OTLP-bas-URL är `https://oneuptime.com/otlp`, eller `https://YOUR-ONEUPTIME-HOST/otlp` om du driftar OneUptime själv.
+I OneUptime öppnar du **Projektinställningar → Telemetri och APM → Intagningsnycklar**, klickar på **Skapa intagningsnyckel** och kopierar nyckeln. Din OTLP-bas-URL är `https://oneuptime.com/otlp`, eller `https://YOUR-ONEUPTIME-HOST/otlp` om du driftar OneUptime själv.
 
 ### Skapa destinationen i Cursor
 
@@ -113,7 +113,7 @@ Varje post bär de här resursattributen:
 
 | Attribut | Vad det är |
 | --- | --- |
-| `service.name` | Alltid `cursor`: filtrera utforskarna för **Loggar** och **Mått** på det |
+| `service.name` | Alltid `cursor`: filtrera utforskarna för **Loggar** och **Mätvärden** på det |
 | `cursor.team.id` | Ditt team, ett heltal; finns alltid |
 | `cursor.user.id` | Personen, ett heltal inom teamet; valfritt |
 | `cursor.surface` | Var aktiviteten kom ifrån, som `desktop`, `cli`, `cloud_agent` eller `bugbot` |
@@ -176,7 +176,7 @@ Cursor ansluter från sina egna servrar: din OTLP-endpoint måste gå att nå fr
 :::
 
 :::details Loggar kommer in, men fliken Användning visar inga kostnader från Cursor
-Cursors kostnader kommer från dess mätvärden, inte från dess loggar: kontrollera att Cursors signal för mätvärden är påslagen och leta efter `cursor.cost.usage` under **Mått**. Om din roll inte får läsa mätvärden utelämnar fliken Användning dem och säger det.
+Cursors kostnader kommer från dess mätvärden, inte från dess loggar: kontrollera att Cursors signal för mätvärden är påslagen och leta efter `cursor.cost.usage` under **Mätvärden**. Om din roll inte får läsa mätvärden utelämnar fliken Användning dem och säger det.
 :::
 
 :::details Personer visas som siffror

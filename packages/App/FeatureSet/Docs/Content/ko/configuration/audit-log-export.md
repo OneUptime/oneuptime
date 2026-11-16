@@ -1,6 +1,6 @@
 # 감사 로그 내보내기
 
-감사 로그를 기록되는 대로 원하는 스토리지나 서비스로 보냅니다. 대상은 Amazon S3 또는 S3 호환 스토리지, Google Cloud Storage, Azure Blob Storage, 웹훅, syslog입니다. 규정 준수 검토에 필요한 만큼 항목을 그곳에 보관하고 SIEM에서 검색하세요. 프로젝트의 소유자와 관리자는 프로젝트 설정에서 그 프로젝트의 감사 로그를 내보내고, 마스터 관리자는 Admin Dashboard에서 모든 프로젝트의 감사 로그를 내보냅니다. OneUptime Cloud에서는 Enterprise 요금제에, 자체 호스팅에서는 Enterprise Edition에 포함됩니다.
+감사 로그를 기록되는 대로 원하는 스토리지나 서비스로 보냅니다. 대상은 Amazon S3 또는 S3 호환 스토리지, Google Cloud Storage, Azure Blob Storage, 웹훅, syslog입니다. 규정 준수 검토에 필요한 만큼 항목을 그곳에 보관하고 SIEM에서 검색하세요. 프로젝트 소유자와 프로젝트 관리자는 프로젝트 설정에서 그 프로젝트의 감사 로그를 내보내고, 마스터 관리자는 Admin Dashboard에서 모든 프로젝트의 감사 로그를 내보냅니다. OneUptime Cloud에서는 Enterprise 요금제에, 자체 호스팅에서는 Enterprise Edition에 포함됩니다.
 
 :::cards
 - [내보내기 설정](#내보내기-설정): 대상을 고르고, 테스트하고, 저장합니다.
@@ -140,7 +140,7 @@ UDP에서 메시지는 최대 **최대 메시지 크기** 바이트입니다. **
 | `id` | 항목의 ID입니다. 같은 항목을 두 번 보내도 ID는 같습니다. |
 | `createdAt` | 변경이 기록된 시각(UTC)입니다. |
 | `projectId` | 변경이 일어난 프로젝트입니다. |
-| `action` | `Create`, `Update`, `Delete` 또는 `Download`이고, 세션의 경우 `SignIn`, `SignOut`, `SessionTimeout` 또는 `SessionRevoked`입니다. |
+| `action` | `Create`, `Update`, `Delete` 또는 `Download`이고, 로그인이나 세션의 경우 `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` 또는 `SessionRevoked`입니다. |
 | `resourceType`, `resourceId`, `resourceName` | 변경된 대상입니다. |
 | `rootResourceType`, `rootResourceId` | 그것이 속한 리소스입니다. 예를 들어 규칙에 대한 SLO입니다. |
 | `userId`, `userName`, `userEmail`, `userType` | 변경한 사람입니다. |
@@ -173,7 +173,7 @@ UDP에서 메시지는 최대 **최대 메시지 크기** 바이트입니다. **
 
 ## 대상이 실패할 때
 
-배치는 몇 초 간격으로 세 번 시도하고, 그 뒤에는 기다렸다가 다시 시도합니다. 처음에는 일 분, 다음에는 이 분, 사 분처럼 늘어나며 최대 한 시간입니다. 행에는 **실패 중**이 표시되고, **오류 보기**에서 대상의 응답과 다음 시도 시각을 볼 수 있습니다.
+배치는 몇 초 간격으로 세 번 시도하고, 그 뒤에는 기다렸다가 다시 시도합니다. 처음에는 일 분, 다음에는 이 분, 사 분처럼 늘어나며 최대 한 시간입니다. 행에는 **실패 중**이 표시되고, **오류 보기**에서 대상의 응답, 다음 시도 시각, 그리고 전송 대기 중인 항목이 삭제되기 시작하는 시각을 볼 수 있으며, 그 시각이 지난 뒤에는 언제부터 삭제되고 있는지를 볼 수 있습니다.
 
 건너뛰는 항목은 없습니다. 항목은 감사 로그에서 기다리고, 다음에 성공한 전달이 가장 오래된 것부터 따라잡습니다. 다만 각 항목은 보냈든 보내지 않았든 기록될 때의 보존 기간보다 오래되면 삭제되므로, 실패하는 내보내기는 그 기간 안에 고치세요. 보존 기간을 늘려도 더 오래 보관되는 것은 변경한 뒤에 기록된 항목뿐입니다.
 

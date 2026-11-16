@@ -91,7 +91,9 @@ export const REPLAY_POLICY_ANCHOR_ID: string = "replay-policy";
  * What the read view's helpers say without a translator: English, word for
  * word, as a test reads them. The page hands its reader's translator in.
  */
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 /*
  * settings-setup-4: the pill used to say "On" from the application's own

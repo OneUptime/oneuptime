@@ -19,6 +19,7 @@ import {
   isDataStoreContentScannableByProbe,
 } from "../../../Server/Utils/DataSecurity/DataSecurityProbeClaim";
 import {
+  CLAIM_DUE_DATA_STORES_FOR_WORKERS_STATEMENT,
   DATA_SECURITY_WORKER_CLAIM_IN_HOURS,
   claimDueDataStoresForWorkers,
   isDataStoreContentScannableByWorkers,
@@ -37,7 +38,9 @@ import {
   SET_ASIDE_FOR_MINUTES,
   SET_ASIDE_SPREAD_IN_MINUTES,
 } from "../../../Server/Utils/Probe/ClaimSetAside";
-import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
+import SubscriptionStatus, {
+  SubscriptionStatusUtil,
+} from "../../../Types/Billing/SubscriptionStatus";
 import {
   DataStoreKind,
   DataStoreProvider,
@@ -1268,6 +1271,206 @@ describePostgres("Data store probe claims against Postgres", () => {
       await insertSetting({ project: projectId, isContentScanEnabled: false });
 
       expect(await mayScan(scannable)).toBe(false);
+    });
+
+    /*
+     * OneUptime issue #8450: most of DataStore is telemetry and cloud kinds no worker samples,
+     * and the claim read all of it, every five minutes. Through the ("kind",
+     * "nextContentScanAt") index of the stores no probe scans, it reads only the due stores of
+     * the kinds a worker samples.
+     */
+    describe("on a table of mostly kinds no worker samples", () => {
+      // Stores of kinds no worker samples, all due: never claimed, never moved on.
+      async function seedUnsampled(count: number): Promise<void> {
+        await database.query(
+          `INSERT INTO "${schema}"."DataStore"
+            ("_id", "projectId", "name", "storeKey", "kind", "provider", "isContentScanEnabled",
+             "isTableHealthEnabled", "isArchived", "nextContentScanAt", "createdAt", "updatedAt", "version")
+           SELECT gen_random_uuid(), $1, 'Telemetry ' || n, 'telemetry:' || n,
+                  (ARRAY[$3, $4, $5])[1 + n % 3], $6, true, true, false,
+                  CASE WHEN n % 4 = 0 THEN NULL ELSE now() - (n || ' seconds')::interval END,
+                  now(), now(), 1
+           FROM generate_series(1, $2) AS n`,
+          [
+            projectId.toString(),
+            count,
+            DataStoreKind.TelemetryLogs,
+            DataStoreKind.TelemetryTraces,
+            DataStoreKind.AwsDynamoDbTable,
+            DataStoreProvider.OneUptime,
+          ],
+        );
+      }
+
+      async function analyze(): Promise<void> {
+        for (const table of ["Project", "DataSecuritySetting", "DataStore"]) {
+          await database.query(`VACUUM ANALYZE "${schema}"."${table}"`);
+        }
+      }
+
+      interface PlanNode {
+        "Node Type": string;
+        "Relation Name"?: string;
+        "Index Name"?: string;
+        Plans?: Array<PlanNode>;
+      }
+
+      function nodesOf(node: PlanNode): Array<PlanNode> {
+        return [
+          node,
+          ...(node.Plans || []).flatMap((child: PlanNode): Array<PlanNode> => {
+            return nodesOf(child);
+          }),
+        ];
+      }
+
+      // The claim's plan, as the planner chooses it with the claim's own parameters, not run.
+      async function claimPlan(): Promise<PlanNode> {
+        const now: Date = new Date();
+        const explained: Array<{ "QUERY PLAN": Array<{ Plan: PlanNode }> }> =
+          await database.query(
+            `EXPLAIN (FORMAT JSON) ${CLAIM_DUE_DATA_STORES_FOR_WORKERS_STATEMENT}`,
+            [
+              now,
+              [...WORKER_CLAIMED_DATA_STORE_KINDS],
+              SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+              50,
+              new Date(now.getTime() + 3_600_000),
+            ],
+          );
+
+        return explained[0]!["QUERY PLAN"][0]!.Plan;
+      }
+
+      async function definitionOf(indexName: string): Promise<string> {
+        const rows: Array<{ indexdef: string }> = await database.query(
+          `SELECT indexdef FROM pg_indexes WHERE schemaname = $1 AND indexname = $2`,
+          [schema, indexName],
+        );
+
+        expect(rows).toHaveLength(1);
+
+        return rows[0]!.indexdef;
+      }
+
+      test("the table has the index: each kind's due time, of the stores no probe scans", async () => {
+        const rows: Array<{ indexdef: string }> = await database.query(
+          `SELECT indexdef FROM pg_indexes WHERE schemaname = $1 AND tablename = 'DataStore'`,
+          [schema],
+        );
+
+        expect(
+          rows.filter((row: { indexdef: string }): boolean => {
+            return row.indexdef.includes(
+              `(kind, "nextContentScanAt") WHERE ("scanProbeId" IS NULL)`,
+            );
+          }),
+        ).toHaveLength(1);
+      });
+
+      test("EXPLAIN: the claim reads DataStore only through that index, never the whole table", async () => {
+        await seedUnsampled(20_000);
+
+        for (let index: number = 0; index < 30; index++) {
+          await workerStore({
+            times: { nextContentScanAt: minutesFromNow(-index - 1) },
+          });
+          await workerStore({
+            contentScan: false,
+            times: { nextContentScanAt: minutesFromNow(-index - 1) },
+          });
+          await workerStore({
+            times: { nextContentScanAt: minutesFromNow(index + 5) },
+          });
+        }
+
+        await analyze();
+
+        const nodes: Array<PlanNode> = nodesOf(await claimPlan());
+
+        expect(
+          nodes.some((node: PlanNode): boolean => {
+            return (
+              node["Node Type"] === "Seq Scan" &&
+              node["Relation Name"] === "DataStore"
+            );
+          }),
+        ).toBe(false);
+
+        const read: Array<string> = nodes
+          .filter((node: PlanNode): boolean => {
+            return (
+              (node["Node Type"] === "Bitmap Index Scan" ||
+                node["Node Type"] === "Index Scan") &&
+              Boolean(node["Index Name"])
+            );
+          })
+          .map((node: PlanNode): string => {
+            return node["Index Name"]!;
+          });
+        const definitions: Array<string> = await Promise.all(
+          read.map(definitionOf),
+        );
+
+        expect(
+          definitions.some((definition: string): boolean => {
+            return definition.includes(
+              `(kind, "nextContentScanAt") WHERE ("scanProbeId" IS NULL)`,
+            );
+          }),
+        ).toBe(true);
+      });
+
+      test("and hands out what it always did: the sampled kinds' due stores, never scanned first, then the longest overdue", async () => {
+        await seedUnsampled(5_000);
+
+        const neverScanned: ObjectID = await workerStore({
+          times: { nextContentScanAt: null },
+        });
+        const due: Array<ObjectID> = [];
+
+        for (let index: number = 0; index < 5; index++) {
+          due.push(
+            await workerStore({
+              kind:
+                index % 2 === 0
+                  ? DataStoreKind.PostgreSql
+                  : DataStoreKind.AwsS3Bucket,
+              provider:
+                index % 2 === 0
+                  ? DataStoreProvider.SelfManaged
+                  : DataStoreProvider.Aws,
+              times: { nextContentScanAt: minutesFromNow(-50 + index) },
+            }),
+          );
+        }
+
+        await workerStore({ contentScan: false });
+        await workerStore({
+          times: { nextContentScanAt: minutesFromNow(30) },
+        });
+        await analyze();
+
+        expect(await claimForWorkers(50)).toEqual(
+          [neverScanned, ...due].map((id: ObjectID): string => {
+            return id.toString();
+          }),
+        );
+        // None of the telemetry is touched: still due, as it was.
+        const moved: Array<{ count: string }> = await database.query(
+          `SELECT count(*) AS count FROM "${schema}"."DataStore"
+           WHERE "kind" = ANY($1::text[]) AND "nextContentScanAt" > now()`,
+          [
+            [
+              DataStoreKind.TelemetryLogs,
+              DataStoreKind.TelemetryTraces,
+              DataStoreKind.AwsDynamoDbTable,
+            ],
+          ],
+        );
+
+        expect(Number(moved[0]!.count)).toBe(0);
+      });
     });
   });
 

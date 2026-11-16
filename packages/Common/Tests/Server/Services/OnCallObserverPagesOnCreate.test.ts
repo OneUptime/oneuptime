@@ -25,6 +25,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -185,11 +186,9 @@ const KINDS: Array<RecordKind> = [
   },
 ];
 
-let executePolicy: jest.SpiedFunction<
-  typeof OnCallDutyPolicyService.executePolicy
->;
-let pageObservers: jest.SpiedFunction<typeof OnCallObserverPaging.pagePolicies>;
-let notRun: jest.SpiedFunction<typeof OnCallNotRunOnCreate.createFeedItem>;
+let executePolicy: SpyInstance<typeof OnCallDutyPolicyService.executePolicy>;
+let pageObservers: SpyInstance<typeof OnCallObserverPaging.pagePolicies>;
+let notRun: SpyInstance<typeof OnCallNotRunOnCreate.createFeedItem>;
 
 beforeEach(() => {
   executePolicy = jest

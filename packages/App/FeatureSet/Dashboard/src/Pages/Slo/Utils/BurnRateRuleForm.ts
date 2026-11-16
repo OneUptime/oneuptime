@@ -438,11 +438,11 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     stepId: "burn-window",
   },
   /*
-   * Minimum Sample Count is intentionally absent. It only guards
-   * event-based (Metric) SLIs, which OneUptime does not evaluate
-   * yet — the worker never reads the column, so offering the knob
-   * promised a noise guard that does nothing. The column and its
-   * server-side validation remain for that later phase.
+   * Minimum Requests (the minimumSampleCount column) is not here: it
+   * guards only a request SLO's rules - the worker skips a long window
+   * with fewer requests than it - so getBurnRateRuleFormFields adds it to
+   * this step for a request SLO, and a monitor uptime SLO's form never
+   * offers a knob that would do nothing.
    */
   {
     field: {
@@ -574,3 +574,118 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     ),
   }),
 ];
+
+export type ValidateMinimumRequestsFunction = (
+  value: FormValues<ServiceLevelObjectiveBurnRateRule>,
+) => string | null;
+
+export const BURN_RATE_RULE_MINIMUM_REQUESTS_ERROR: string = translationKey(
+  "Minimum Requests must be a whole number of requests, 0 or more.",
+);
+
+// Empty is no minimum; otherwise a whole count of requests (#8442).
+export const validateMinimumRequests: ValidateMinimumRequestsFunction = (
+  value: FormValues<ServiceLevelObjectiveBurnRateRule>,
+): string | null => {
+  const raw: unknown = value.minimumSampleCount;
+
+  if (raw === undefined || raw === null || raw === "") {
+    return null;
+  }
+
+  const count: number = Number(raw);
+
+  if (!Number.isInteger(count) || count < 0) {
+    return BURN_RATE_RULE_MINIMUM_REQUESTS_ERROR;
+  }
+
+  return null;
+};
+
+/*
+ * A request SLO's quiet hour can burn its budget at hundreds of times the
+ * sustainable rate on one failed request out of five: Minimum Requests
+ * keeps a rule from firing on a long window that holds fewer requests than
+ * this (#8442). The worker honours it for request SLOs only, so only their
+ * form asks for it, on the Burn Window step beside the windows it counts.
+ */
+export const BURN_RATE_RULE_MINIMUM_REQUESTS_FIELD: ModelField<ServiceLevelObjectiveBurnRateRule> =
+  {
+    field: {
+      minimumSampleCount: true,
+    },
+    title: "Minimum Requests",
+    description:
+      "Skip the rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.",
+    fieldType: FormFieldSchemaType.Number,
+    required: false,
+    placeholder: "100",
+    customValidation: validateMinimumRequests,
+    stepId: "burn-window",
+  };
+
+export const BURN_RATE_RULE_MINIMUM_EVENTS_ERROR: string = translationKey(
+  "Minimum Events must be a whole number of events, 0 or more.",
+);
+
+// The same minimum, for a Metric SLO, whose events are its metric's (#8445).
+export const validateMinimumEvents: ValidateMinimumRequestsFunction = (
+  value: FormValues<ServiceLevelObjectiveBurnRateRule>,
+): string | null => {
+  return validateMinimumRequests(value)
+    ? BURN_RATE_RULE_MINIMUM_EVENTS_ERROR
+    : null;
+};
+
+/*
+ * A Metric SLO's quiet hour burns its budget as a request SLO's does, so
+ * its rule asks for the same minimum, counted in its metric's events.
+ */
+export const BURN_RATE_RULE_MINIMUM_EVENTS_FIELD: ModelField<ServiceLevelObjectiveBurnRateRule> =
+  {
+    ...BURN_RATE_RULE_MINIMUM_REQUESTS_FIELD,
+    title: "Minimum Events",
+    description:
+      "Skip this rule while its long window holds fewer of its metric's events than this, so a quiet hour with one bad event does not page anyone. Leave empty for no minimum.",
+    customValidation: validateMinimumEvents,
+  };
+
+export type GetBurnRateRuleFormFieldsFunction = (data: {
+  // Counted in events: a request SLO, or a Metric SLO (#8445).
+  isRequestSlo: boolean;
+  isMetricSlo?: boolean | undefined;
+}) => Array<ModelField<ServiceLevelObjectiveBurnRateRule>>;
+
+/*
+ * The rule form's fields for the SLO they belong to: every SLO's, and for
+ * an SLO counted in events, its minimum just before Re-fire Suppression -
+ * Minimum Requests for a request SLO, Minimum Events for a Metric SLO.
+ */
+export const getBurnRateRuleFormFields: GetBurnRateRuleFormFieldsFunction =
+  (data: {
+    isRequestSlo: boolean;
+    isMetricSlo?: boolean | undefined;
+  }): Array<ModelField<ServiceLevelObjectiveBurnRateRule>> => {
+    if (!data.isRequestSlo && !data.isMetricSlo) {
+      return BURN_RATE_RULE_FORM_FIELDS;
+    }
+
+    const fields: Array<ModelField<ServiceLevelObjectiveBurnRateRule>> = [
+      ...BURN_RATE_RULE_FORM_FIELDS,
+    ];
+    const suppressionIndex: number = fields.findIndex(
+      (field: ModelField<ServiceLevelObjectiveBurnRateRule>): boolean => {
+        return Object.keys(field.field || {})[0] === "refireSuppressionMinutes";
+      },
+    );
+
+    fields.splice(
+      suppressionIndex < 0 ? fields.length : suppressionIndex,
+      0,
+      data.isMetricSlo
+        ? BURN_RATE_RULE_MINIMUM_EVENTS_FIELD
+        : BURN_RATE_RULE_MINIMUM_REQUESTS_FIELD,
+    );
+
+    return fields;
+  };

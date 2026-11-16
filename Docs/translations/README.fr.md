@@ -55,7 +55,7 @@ Tout le reste se trouve dans la [documentation](https://oneuptime.com/docs/fr/in
 
 ### OneUptime Cloud
 
-[Inscrivez-vous](https://oneuptime.com/accounts/register) et créez un projet. Le forfait gratuit ne demande pas de carte bancaire.
+[Inscrivez-vous](https://oneuptime.com/accounts/register) et créez un projet. Un projet ne nécessite aucune carte. Avec le forfait Free, surveiller un site web nécessite un moyen de paiement.
 
 ### Auto-héberger avec Docker Compose
 

@@ -53,7 +53,7 @@
       "signIn": "Logg inn med en passnøkkel",
       "inProgress": "Fullfør eller avbryt innloggingen med passnøkkel før du bruker passordet.",
       "helpTitle": "Er passnøkler nytt for deg?",
-      "help": "Med en passnøkkel logger du inn med fingeravtrykket, ansiktet eller enhetens PIN-kode i stedet for et passord. For å legge til en, logg inn med passord eller SSO, og åpne deretter Brukerprofil → Sikkerhet → Passkeys.",
+      "help": "Med en passnøkkel logger du inn med fingeravtrykket, ansiktet eller enhetens PIN-kode i stedet for et passord. For å legge til en, logg inn med passord eller SSO, og åpne deretter Brukerprofil → Sikkerhet → Passnøkler.",
       "preparing": "Gjør passnøkkelen klar…",
       "waiting": "Se på enheten din",
       "waitingDescription": "Følg instruksjonene fra nettleseren eller passordbehandleren.",
@@ -255,7 +255,7 @@
     "complete": "Passnøkkelen din er bekreftet. Gå tilbake til appen for å fullføre innloggingen.",
     "returnToApp": "Tilbake til appen",
     "cancel": "Avbryt og gå tilbake til appen",
-    "setup": "Opprett en passnøkkel i nettdashbordet under Brukerprofil → Sikkerhet → Passkeys."
+    "setup": "Opprett en passnøkkel i nettdashbordet under Brukerprofil → Sikkerhet → Passnøkler."
   },
   "mcpAuthorize": {
     "title": "Koble til en MCP-klient",
@@ -284,7 +284,7 @@
     "accessWriteTitle": "Lese- og skrivetilgang",
     "accessWriteDescription": "Se data og gjøre endringer: bekrefte og løse hendelser og varsler, legge til notater samt opprette, oppdatere eller slette ressurser.",
     "accessReadTitle": "Kun lesetilgang",
-    "accessReadDescription": "Se hendelser, varsler, overvåkere, statussider og telemetri. Kan ikke endre noe.",
+    "accessReadDescription": "Se hendelser, varsler, monitorer, statussider og telemetri. Kan ikke endre noe.",
     "permissionsNote": "Klienten handler i ditt navn og kan aldri gjøre mer enn det dine egne tillatelser i dette prosjektet tillater. Du kan når som helst koble den fra under Prosjektinnstillinger > KI > MCP-server.",
     "authorizeButton": "Godkjenn",
     "denyButton": "Avbryt",
@@ -365,7 +365,7 @@
   "Special characters are optional. Try !, @, # or $.": "Spesialtegn er valgfrie. Prøv !, @, # eller $.",
   "Updating to the new version": "Oppdaterer til den nye versjonen",
   "OneUptime was updated while you had it open. This page will open in the new version in a moment.": "OneUptime ble oppdatert mens du hadde det åpent. Denne siden åpnes i den nye versjonen om et øyeblikk.",
-  "You're offline": "Du er frakoblet",
+  "You're offline": "Du er offline",
   "This page needs an internet connection to load. It will load as soon as you're back online.": "Denne siden trenger en internettforbindelse for å lastes inn. Den lastes inn så snart du er på nett igjen.",
   "Can't reach the server": "Får ikke kontakt med serveren",
   "It may be restarting after an update. This page will load as soon as the server is back.": "Den starter kanskje på nytt etter en oppdatering. Denne siden lastes inn så snart serveren er tilbake.",
@@ -556,6 +556,12 @@
   "Try again in a moment.": "Prøv igjen om et øyeblikk.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Prøv igjen. Hvis det fortsetter å feile, kontakt OneUptime-support og gi dem denne referansen:",
   "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Prøv igjen. Hvis det fortsetter å feile, gi denne referansen til den som drifter OneUptime-serveren deres:",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det som ble sendt, var for stort til at serveren kunne ta imot det, så handlingen ble ikke fullført. Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Det som ble sendt, er større enn de 50 MB OneUptime tar imot i én forespørsel, så handlingen ble ikke fullført. Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "What was sent was too large for the server to accept.": "Det som ble sendt, var for stort til at serveren kunne ta imot det.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Det som ble sendt, er større enn de 50 MB OneUptime tar imot i én forespørsel.",
+  "Try again with less at once, such as a smaller file.": "Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime avviste det, øk proxyens grense for størrelsen på en forespørsel til 50 MB, like mye som OneUptime selv tar imot (i nginx, client_max_body_size 50M).",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Dette skjemaet er ikke tilgjengelig. Det kan være slått av, eller lenken kan være utdatert.",
   "This form can only be opened from an allowed network.": "Dette skjemaet kan bare åpnes fra et tillatt nettverk.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "For mange innsendinger fra nettverket ditt. Vent noen minutter, og prøv igjen.",
@@ -631,9 +637,5 @@
     "note": "Merk",
     "tip": "Tips",
     "warning": "Advarsel"
-  },
-  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det som ble sendt, var for stort til at serveren kunne ta imot det, så handlingen ble ikke fullført. Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
-  "What was sent was too large for the server to accept.": "Det som ble sendt, var for stort til at serveren kunne ta imot det.",
-  "Try again with less at once, such as a smaller file.": "Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
-  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime avviste det, øk proxyens grense for størrelsen på en forespørsel til 50 MB, like mye som OneUptime selv tar imot (i nginx, client_max_body_size 50M)."
+  }
 }

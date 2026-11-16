@@ -42,7 +42,7 @@ Folk er med i et prosjekt gjennom **team**, og et teams tillatelser avgjør hva 
 
 En **monitor** sjekker én ting du kjører, og avgjør om den virker. De fleste monitorer sjekkes av **sonder**: maskiner som kjører sjekken etter en tidsplan, for eksempel ved å hente en side, kalle et API, pinge en vert eller spørre en database. OneUptime Cloud kjører sonder i flere regioner, en selvhostet installasjon kjører sine egne, og du kan legge til egendefinerte sonder i nettverket ditt. Andre monitorer leser i stedet det du sender: telemetrien fra appene dine, eller dataene en agent rapporterer fra serverne, Kubernetes-klyngene og resten av infrastrukturen din.
 
-En monitors **kriterier** avgjør hva hvert resultat betyr. De sjekkes i rekkefølge, og det første som treffer, kan endre monitorens status, erklære en hendelse, opprette et varsel eller alle tre. Hvert nytt prosjekt har tre monitorstatuser: **I drift**, **Redusert** og **Frakoblet**.
+En monitors **kriterier** avgjør hva hvert resultat betyr. De sjekkes i rekkefølge, og det første som treffer, kan endre monitorens status, erklære en hendelse, opprette et varsel eller alle tre. Hvert nytt prosjekt har tre monitorstatuser: **I drift**, **Redusert** og **Offline**.
 
 :::cards
 - [Opprett en monitor](/docs/monitor/create-monitor): Velg en type, si hva som skal sjekkes, og hvor ofte.
@@ -109,7 +109,7 @@ En **episode** samler relaterte hendelser, eller relaterte varsler, slik at team
 
 En **vaktpolicy** avgjør hvem som varsles om en hendelse eller et varsel, og hvem som er neste hvis ingen svarer. **Eskaleringsreglene** er nivåene: hvert nivå varsler sine personer og venter så på at noen bekrefter før neste nivå varsles. Et nivå kan varsle personer, team eller en **vaktplan**, en rotasjon som til enhver tid vet hvem som har vakt.
 
-Hvordan hver person nås, bestemmer de selv. I **Brukerinnstillinger** lagrer hver person måtene OneUptime kan nå dem på, som e-post, SMS, anrop, push-varsler, Slack eller Microsoft Teams, og hvilke som brukes når de varsles.
+Hvordan hver person nås, bestemmer de selv. I **Brukerinnstillinger** lagrer hver person måtene OneUptime kan nå dem på, som e-post, SMS, anrop, push-varslinger, Slack eller Microsoft Teams, og hvilke som brukes når de varsles.
 
 :::cards
 - [Vakt – Oversikt](/docs/on-call/index): Hvordan et varsel når frem, og hvor hver del finnes.
@@ -136,7 +136,7 @@ En **statusside** viser kundene dine om tjenestene virker. Du velger hvilke moni
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send logger, målinger og spor fra appene dine.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Få beskjed når et mønster dukker opp i loggene dine.
+- [Logg-monitor](/docs/monitor/logs-monitor): Få beskjed når et mønster dukker opp i loggene dine.
 :::
 
 ## Sikkerhet

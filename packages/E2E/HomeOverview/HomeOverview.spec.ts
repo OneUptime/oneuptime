@@ -10,6 +10,7 @@ import path from "path";
 import { expectCardsFit } from "../SuiteHelpers/CardBodyFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Renders the real dashboard Home (Pages/Home/Layout and Home, with every
@@ -933,7 +934,7 @@ test.describe("the verdicts", () => {
  *
  * The first thing someone new asks of a monitoring product: when it breaks,
  * will I be told? The checklist's on-call step answers it - an incident or
- * alert nobody owns is emailed to the project's owners until a policy pages
+ * alert nobody owns is emailed to the Project Owners until a policy pages
  * someone - on a phone as on a desktop, and in the reader's language.
  */
 
@@ -948,7 +949,7 @@ const NEWCOMER_STEPS: Array<string> = [
 const ON_CALL_STEP_TITLE: string = "Set up an on-call policy";
 
 const ON_CALL_STEP_SENTENCE: string =
-  "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the project's owners get an email.";
+  "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the Project Owners get an email.";
 
 async function checklistSteps(page: Page): Promise<Array<string>> {
   return page
@@ -1028,7 +1029,7 @@ test.describe("a newcomer's first steps", () => {
 
     await expect(onCall).toContainText("Bereitschaftsrichtlinie einrichten");
     await expect(onCall).toContainText(
-      "Bis dahin erhalten die Projekteigentümer eine E-Mail.",
+      "Bis dahin erhalten die Projektinhaber eine E-Mail.",
     );
     await expect(onCall).not.toContainText(ON_CALL_STEP_SENTENCE);
 
@@ -2411,4 +2412,18 @@ test.describe("setup health", () => {
     await expect(page.getByTestId("setup-health-finding")).toHaveCount(0);
     await screenshot(page, "setup-health-nothing");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? HOME : `${HOME}?lang=${language}`;
+  },
 });

@@ -76,7 +76,7 @@ export function getNumberingReadPermissions(): Array<Permission> {
  * acting on the project from the Admin Dashboard.
  */
 export const ADMIN_CHANGE_PLAN_NO_PAYMENT_METHOD_MESSAGE: string =
-  "This project has no payment method, and its plan cannot change without one. Ask the project's owner to add one under Project Settings > Billing and Invoices > Billing, then try again.";
+  "This project has no payment method, and its plan cannot change without one. Ask a Project Owner to add one under Project Settings > Billing and Invoices > Billing, then try again.";
 
 /*
  * The master admin a request comes from, for the audit line a master-admin

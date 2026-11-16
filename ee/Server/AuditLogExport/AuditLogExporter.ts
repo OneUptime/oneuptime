@@ -851,9 +851,11 @@ export default class AuditLogExporter {
   /*
    * The entries the export has not sent yet, as both of its reads ask for
    * them: from its Export From to now, after its cursor, its project's only
-   * (every project's for the instance's export).
+   * (every project's for the instance's export). The export's page asks
+   * for the same entries when it says when they start to be deleted
+   * (AuditLogExportEntriesLostAt, #7186).
    */
-  private static unsentWindow(
+  public static unsentWindow(
     item: AuditLogExport,
     now: Date,
   ): {

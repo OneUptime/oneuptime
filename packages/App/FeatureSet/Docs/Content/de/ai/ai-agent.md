@@ -48,7 +48,7 @@ Klicken Sie auf **Aufgabe starten** oder drücken Sie die Eingabetaste. Die Seit
 | **Link** | Eine Webadresse als Referenz. |
 | **Vorfall** oder **Warnung** | Status, Beschreibung und Grundursache, so wie sie beim Senden der Anfrage sind. |
 | **Ausnahme** | Meldung und Stacktrace. |
-| **Überwachung** | Typ, Status und Beschreibung. |
+| **Monitor** | Typ, Status und Beschreibung. |
 | **Trace** | Die Spans: ihre Namen, Zeiten und Fehler. |
 | **Protokolle** | Die neuesten 20 Protokollzeilen, die Ihren Suchbegriff enthalten, aus der letzten Stunde, dem letzten Tag oder der letzten Woche. |
 | **Leistungsprofil** | Wohin die Zeit einer Funktion in den Profilen ihres Dienstes geht: wer sie aufruft, was sie aufruft und ihre heißesten Zeilen. |

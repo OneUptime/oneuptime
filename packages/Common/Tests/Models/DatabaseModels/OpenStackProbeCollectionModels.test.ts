@@ -520,14 +520,24 @@ describe("what the hand-written SQL names", () => {
       "OpenStackConnectionTestStore.ts",
     );
 
-    expect(statements.length).toBeGreaterThanOrEqual(4);
+    // The claim, one statement (OneUptime issue #7392), and the two expiries.
+    expect(statements.length).toBeGreaterThanOrEqual(3);
 
+    /*
+     * The test table's names: the ones its alias t qualifies, and the
+     * unqualified ones an UPDATE sets or compares. The claim reads and
+     * writes in one statement and joins Probe as pr, whose names - and its
+     * CTEs', "pending"."_id" - are qualified by another name, so they are
+     * left out.
+     */
     const named: Array<string> = statements.flatMap(
       (statement: string): Array<string> => {
-        // A SELECT here says FOR UPDATE too, so this looks for the table's name.
-        return statement.includes('UPDATE "')
-          ? namesIn(statement, /"(\w+)"\s*(?:=|<|IS\b)/g)
-          : namesIn(statement, /\bt\."(\w+)"/g);
+        return [
+          ...namesIn(statement, /\bt\."(\w+)"/g),
+          ...(statement.includes('UPDATE "')
+            ? namesIn(statement, /(?<![.\w])"(\w+)"\s*(?:=|<|IS\b)/g)
+            : []),
+        ];
       },
     );
 

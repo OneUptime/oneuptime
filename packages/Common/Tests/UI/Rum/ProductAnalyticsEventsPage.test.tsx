@@ -112,6 +112,8 @@ import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { createTranslator } from "../../../Types/Translator";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
+import { ResourceOverviewTile } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
 
 const PROJECT_ID: string = "0193a1b2-3c4d-4e5f-8a9b-0c1d2e3f4a5b";
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
@@ -497,34 +499,34 @@ describe("ProductAnalyticsEvents: the event", () => {
       undefined,
       "en",
     );
-    const empty: Array<{ value: string; sublabel?: string | undefined }> =
-      buildProductAnalyticsEventTiles({
-        trend: {
-          timeZone: "UTC",
-          days: [],
-          totalEvents: 0,
-          totalUsers: 0,
-          totalSessions: 0,
-        },
-        isLoading: false,
-        translator: english,
-      });
+    const empty: Array<ResourceOverviewTile> = buildProductAnalyticsEventTiles({
+      trend: {
+        timeZone: "UTC",
+        days: [],
+        totalEvents: 0,
+        totalUsers: 0,
+        totalSessions: 0,
+      },
+      isLoading: false,
+      translator: english,
+    });
 
     expect(empty[0]!.value).toBe("0");
     expect(empty[0]!.sublabel).toBeUndefined();
 
-    const unread: Array<{ value: string; loading?: boolean | undefined }> =
-      buildProductAnalyticsEventTiles({
+    const unread: Array<ResourceOverviewTile> = buildProductAnalyticsEventTiles(
+      {
         trend: null,
         isLoading: true,
         translator: english,
-      });
+      },
+    );
 
     expect(
-      unread.map((tile: { value: string }): string => {
+      unread.map((tile: ResourceOverviewTile): string | undefined => {
         return tile.value;
       }),
-    ).toEqual(["-", "-", "-"]);
+    ).toEqual([EMPTY_VALUE_MARK, EMPTY_VALUE_MARK, EMPTY_VALUE_MARK]);
     expect(unread[0]!.loading).toBe(true);
   });
 

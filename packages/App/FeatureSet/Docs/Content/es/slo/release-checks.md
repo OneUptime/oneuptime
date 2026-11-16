@@ -7,6 +7,7 @@ Una comprobación de lanzamiento le pregunta a un SLO «¿es seguro seguir despl
 - [Argo Rollouts](#argo-rollouts): Un análisis que aborta el despliegue.
 - [Flagger](#flagger): Un webhook que detiene el canary.
 - [GitHub Actions](#github-actions): Un paso que revierte el lanzamiento después de desplegar.
+- [Desactivar un feature flag](#desactivar-un-feature-flag): Un flujo de trabajo que desactiva un flag cuando el SLO consume su presupuesto de errores demasiado rápido.
 :::
 
 ## Cómo funciona
@@ -42,6 +43,7 @@ Con una tasa de consumo de 1, la ventana cumplió exactamente el objetivo del SL
 Lo que lee la comprobación depende de lo que mide el SLO:
 
 - Un [SLO de solicitudes](/docs/slo/request-slos) se juzga por las solicitudes de sus servicios en la ventana, leídas de sus spans a medida que llegan. Añade `serviceVersion` para juzgar solo las solicitudes de la nueva versión: OneUptime lo compara con el atributo de recurso `service.version` de los spans, que un SDK de OpenTelemetry fija a partir de `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2`. Así el canary se juzga por sus propias solicitudes, sin que las de la versión anterior lo diluyan.
+- Un [SLO de métrica](/docs/slo/request-slos#slo-a-partir-de-una-métrica) se juzga por los eventos de su métrica en la ventana, contados como los cuenta su SLI, así que `minimumRequestCount`, `goodRequestCount` y `totalRequestCount` son eventos. Con `serviceVersion`, solo cuentan los puntos de la métrica cuyo atributo de recurso `service.version` tenga ese valor: un SDK de OpenTelemetry lo fija en sus métricas igual que en sus spans.
 - Un SLO de disponibilidad de monitores se juzga por las líneas de tiempo de estado de sus monitores en la ventana. `minimumRequestCount` no se le aplica, y una comprobación con `serviceVersion` se rechaza: los monitores no tienen versiones.
 
 ## Antes de empezar
@@ -126,7 +128,7 @@ Los campos de la respuesta:
 | `deploymentsAllowed` y `errorBudgetPolicyTier` | Si la política de presupuesto de errores del SLO permite los despliegues, y el nivel en el que está. |
 | `checkedAt` | Cuándo se midió la comprobación. |
 
-Un SLO que no se puede medir (un SLO de solicitudes sin servicios, un SLO de latencia sin umbral, un SLO de disponibilidad de monitores sin monitores) recibe como respuesta un HTTP 400 y lo que hay que corregir, así que un despliegue se detiene con un error claro en lugar de con una suposición. En una instalación autoalojada, usa su propia dirección en lugar de oneuptime.com.
+Un SLO que no se puede medir (un SLO de solicitudes sin servicios, un SLO de latencia sin umbral, un SLO de métrica sin una métrica que se pueda contar, un SLO de disponibilidad de monitores sin monitores) recibe como respuesta un HTTP 400 y lo que hay que corregir, así que un despliegue se detiene con un error claro en lugar de con una suposición. En una instalación autoalojada, usa su propia dirección en lugar de oneuptime.com.
 
 ## Argo Rollouts
 
@@ -256,6 +258,37 @@ jobs:
 ```
 
 El paso falla con un no, y con cualquier respuesta sin `isSafeToContinue: true` (un ID incorrecto, una clave que no puede leer el SLO, ninguna respuesta en absoluto), así que el pipeline nunca sigue adelante con una respuesta que no ha recibido. Fija `service.version` al commit (`${{ github.sha }}`) cuando arranca el servicio, para que la comprobación juzgue solo la nueva versión.
+
+## Desactivar un feature flag
+
+Para revertir un lanzamiento protegido por un feature flag, basta con desactivar el flag. Un flujo de trabajo puede hacerlo por ti: cuando una [regla de tasa de consumo](/docs/slo/burn-rate-alerts) del SLO genera su alerta o declara su incidente, el flujo de trabajo desactiva el flag en LaunchDarkly o Unleash. Así, un mal despliegue se deshace en minutos, sin esperar a que intervenga nadie.
+
+:::steps
+### Copiar el ID de la regla de tasa de consumo
+
+Abre el SLO y ve a **Reglas de tasa de consumo**. Abre el menú de la regla que debe desactivar el flag y elige **Mostrar ID**. Lo más adecuado es una regla de consumo rápido, porque se activa a los pocos minutos de un mal despliegue.
+
+### Crear el flujo de trabajo a partir de una plantilla
+
+Abre **Flujos de trabajo** y haz clic en **Crear flujo de trabajo**. En **O empieza con una plantilla**, elige la categoría **SLO** y, después, la plantilla de tu servicio de feature flags:
+
+| Plantilla | Qué pide |
+| --- | --- |
+| **Turn a LaunchDarkly flag off when an SLO burns too fast** | Un token de acceso a la API que pueda modificar el flag, y las claves del flag, de su proyecto y del entorno. |
+| **Turn an Unleash flag off when an SLO burns too fast** | La dirección de tu Unleash, un token de cuenta de servicio o un token de acceso personal, y el proyecto del flag, su nombre y el entorno. |
+
+Pega el ID de la regla en **Burn Rate Rule ID**, rellena el resto y crea el flujo de trabajo.
+
+### Activarlo
+
+Los flujos de trabajo se crean desactivados. Cuando estés listo, activa **Habilitado** en la parte superior del **Constructor** del flujo de trabajo.
+:::
+
+El flujo de trabajo se inicia cada vez que una regla de tasa de consumo del proyecto genera una alerta o declara un incidente. Su bloque **Si / Si no** solo deja seguir la ejecución para la regla cuyo ID pegaste, y el paso siguiente llama al servicio de feature flags: la instrucción `turnFlagOff` de LaunchDarkly, con un comentario que nombra la regla y el SLO, o el `off` de Unleash para el entorno. Ambas llamadas desactivan el flag para todo el mundo en ese entorno, sea cual sea su segmentación. Si el servicio de feature flags rechaza la llamada, la ejecución falla y su registro dice por qué. La alerta de la regla sigue avisando a la guardia como siempre.
+
+En el **Constructor**, **Ejecutar flujo de trabajo** ejecuta el flujo de trabajo como si la regla que elijas acabara de activarse, así que el flag se desactiva de verdad. Pruébalo primero con un flag de un entorno de pruebas.
+
+Para otro servicio de feature flags, o para una instancia de LaunchDarkly con una dirección propia, empieza con cualquiera de las dos plantillas y cambia su paso de API por la llamada que desactiva el flag para todo el mundo en el entorno. Elige una llamada que también se imponga a los segmentos y a las reglas de segmentación, como hacen estas dos, o un despliegue gradual seguirá sirviendo el flag.
 
 ## Próximos pasos
 

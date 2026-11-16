@@ -43,7 +43,7 @@ New Relic 工作流用它的过滤器挑选要发送的问题，并在问题被�
 
 ### 工作流做什么
 
-在 **Webhook** 触发器之后， **Check With JavaScript** 步骤 `read-event-1` 读取 New Relic 发送的 `state`，再由 **Incident From Another Tool**（警报模板中为 **Alert From Another Tool** ）按问题的 ID 执行它所代表的操作。事件把该 ID 保存在自定义字段 `newRelicIssueId` 中。
+在 **Webhook** 触发器之后， **用 JavaScript 检查** 步骤 `read-event-1` 读取 New Relic 发送的 `state`，再由 **来自其他工具的事件**（警报模板中为 **来自其他工具的警报** ）按问题的 ID 执行它所代表的操作。事件把该 ID 保存在自定义字段 `newRelicIssueId` 中。
 
 | New Relic 发送的内容 | 工作流做什么 |
 | --- | --- |

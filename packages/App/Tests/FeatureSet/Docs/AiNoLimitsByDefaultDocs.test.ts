@@ -107,7 +107,7 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   es: {
     ai: "IA",
-    insights: "Análisis",
+    insights: "Hallazgos",
     logs: "Registros",
     settings: "Ajustes",
     rules: "Reglas",
@@ -148,8 +148,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   it: {
     ai: "IA",
-    insights: "Informazioni",
-    logs: "Registri",
+    insights: "Insight",
+    logs: "Log",
     settings: "Impostazioni",
     rules: "Regole",
     runbookRules: "Regole di runbook",

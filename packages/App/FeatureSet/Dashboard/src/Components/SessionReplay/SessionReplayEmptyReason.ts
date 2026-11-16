@@ -150,7 +150,9 @@ const RANGE_LABELS: Partial<Record<TimeRange, string>> = {
 const CUSTOM_RANGE_LABEL: string = translationKey("this window");
 
 // English, word for word, for a caller that hands in no translator.
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 // A fixed sentence in the translator's language.
 function translateLine(text: string, translator: Translator): string {
@@ -552,7 +554,7 @@ export function describeSessionReplayListError(
       detail:
         text ||
         translator.translateTemplate(
-          'Your role lacks the "{{permission}}" permission. Ask a project admin for it.',
+          'Your role lacks the "{{permission}}" permission. Ask a Project Admin for it.',
           {
             permission: getSessionReplayPermissionTitle(
               Permission.ReadRumSessionReplay,

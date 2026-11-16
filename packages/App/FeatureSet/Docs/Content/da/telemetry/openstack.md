@@ -39,7 +39,7 @@ Clouden registrerer sig selv med sine første data, under det navn, agenten stem
 - Docker Engine 20.10 eller nyere med Docker Compose v2-pluginet, eller, hvis du vil køre uden Docker, en Linux-maskine (x86_64 eller arm64) med systemd 235 eller nyere, glibc 2.34 eller nyere (RHEL 9, Ubuntu 22.04, Debian 12) og root.
 - En rute fra den maskine til Keystone og til hver tjenestes offentlige endpoint.
 - Kommandolinjen `openstack`, som en person der kan oprette legitimationen nedenfor.
-- En indlæsningsnøgle. Opret en under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** og kopiér dens værdi.
+- En indtagelsesnøgle. Opret en under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** og kopiér dens værdi.
 - Udgående HTTPS fra den maskine til din OneUptime-URL.
 
 ### Hvor agenten skal køre
@@ -260,7 +260,7 @@ curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh
 bash install.sh
 ```
 
-Scriptet spørger efter din OneUptime-URL, indlæsningsnøglen, et stabilt navn til clouden, Keystones auth-URL, regionsnavnene, applikationslegitimationen (et brugernavn og en adgangskode, hvis du svarer nej til den) og en privat CA-fil, hvis clouden har sin egen certifikatudsteder. Intet hemmeligt gentages på skærmen eller havner på en kommandolinje. Det tjekker legitimationen hos Keystone, før det skriver eller starter noget, installerer i `/opt/oneuptime-openstack-agent`, eller i `oneuptime-openstack-agent` i din hjemmemappe, hvis du ikke har rettigheder på `/opt` (det kræver kun gruppen `docker`), skriver `.env` og `clouds.yaml` med tilstand `0600` og starter agenten med Docker Compose. Hvert svar virker også som en miljøvariabel, og når scriptet køres igen, genbruger det dem i stedet for at spørge igen, og sådan [opgraderer du agenten](#opgradering-af-agenten).
+Scriptet spørger efter din OneUptime-URL, indtagelsesnøglen, et stabilt navn til clouden, Keystones auth-URL, regionsnavnene, applikationslegitimationen (et brugernavn og en adgangskode, hvis du svarer nej til den) og en privat CA-fil, hvis clouden har sin egen certifikatudsteder. Intet hemmeligt gentages på skærmen eller havner på en kommandolinje. Det tjekker legitimationen hos Keystone, før det skriver eller starter noget, installerer i `/opt/oneuptime-openstack-agent`, eller i `oneuptime-openstack-agent` i din hjemmemappe, hvis du ikke har rettigheder på `/opt` (det kræver kun gruppen `docker`), skriver `.env` og `clouds.yaml` med tilstand `0600` og starter agenten med Docker Compose. Hvert svar virker også som en miljøvariabel, og når scriptet køres igen, genbruger det dem i stedet for at spørge igen, og sådan [opgraderer du agenten](#opgradering-af-agenten).
 @tab Docker Compose
 Download `docker-compose.yml` og `otel-collector-config.yaml` fra din OneUptime ned i en ny mappe:
 
@@ -359,7 +359,7 @@ Installationsscriptet skriver dem til `/opt/oneuptime-openstack-agent/.env`; en 
 | Variabel | Påkrævet | Beskrivelse |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | Din OneUptime-URL, såsom `https://oneuptime.com` eller din selvhostede instans. |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Indlæsningsnøglen fra **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Indtagelsesnøglen fra **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. |
 | `OPENSTACK_CLOUD_NAME` | Ja | Cloudens navn i OneUptime, stemplet på hver metrik som ressourceattributten `openstack.cloud.name`. Hold det stabilt: en ændring registrerer en ny cloud. Er som standard `openstack`. |
 | `OPENSTACK_AUTH_URL` | Medfølgende exporter | Et svar til installationsscriptet: Keystones auth-URL. `/v3` tilføjes, hvis det mangler. |
 | `OPENSTACK_EXPORTER_CLOUDS` | Ja | Regionerne, i firkantede parenteser, såsom `[RegionOne,RegionTwo]`, hver navnet på en post i `clouds.yaml`. Er som standard `[RegionOne]`. |
@@ -946,14 +946,14 @@ Intet er optaget om en database, der nåede `ACTIVE`, fordi Nova afviste gæsten
 
 ## Gnocchi
 
-En cloud, der kører Gnocchi, får dens API på **Tjenester** af sig selv, og en, der ikke gør, viser intet spor af det. Gnocchi har ingen dele, nogen åbner én ad gangen, så det, den siger, står på det API's egen side: hvor mange målinger og metrikker der venter, og hvor mange processorer den har.
+En cloud, der kører Gnocchi, får dens API på **Tjenester** af sig selv, og en, der ikke gør, viser intet spor af det. Gnocchi har ingen dele, nogen åbner én ad gangen, så det, den siger, står på det API's egen side: hvor mange metrikker og metrikker der venter, og hvor mange processorer den har.
 
 Ingen processorer når **Kræver opmærksomhed**, og det gør også en bagstand over 10.000 målinger. Gnocchis API bliver ved med at svare og tage imod målinger med `gnocchi-metricd` stoppet, optaget, så dens processorer er det eneste sted, der viser det. Intet går tabt, så længe det varer, men intet nyere kan læses.
 
 | Hvad | Agent, Fuld visning | Sonde, Fuld visning | Alt mindre |
 | --- | --- | --- | --- |
 | Om dens API svarer | Ja | Ja | Intet: se nedenfor |
-| Hvor mange målinger og metrikker der venter, og hvor mange processorer den har | Ja | Ja | Nej |
+| Hvor mange metrikker og metrikker der venter, og hvor mange processorer den har | Ja | Ja | Nej |
 
 Exporteren læser Gnocchis status, som kun en admin må. Gnocchi afviser alt mindre, og exporteren læser en afvisning på samme måde som en stoppet Gnocchi: `openstack_gnocchi_up` læses 0. Så en legitimation, der aldrig én gang har læst Gnocchi, får det at vide frem for, at Gnocchi er nede, og tilbydes ikke dens advarsler. En sonde skelner de to: Gnocchi svarede, så dens API læses oppe, og forbindelsestesten siger, at den blev afvist.
 
@@ -1016,7 +1016,7 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/install-logs.sh
 sudo bash install-logs.sh
 ```
 
-Uden argument kigger scriptet på maskinen og spørger, hvis det ikke kan se det. Det spørger efter din OneUptime-URL, indlæsningsnøglen, cloudens navn, som skal være det navn, clouden har i OneUptime, og den region, denne maskine betjener. Hvert svar virker også som en miljøvariabel, så en kørsel på tværs af en flåde spørger ikke om noget: `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `OPENSTACK_CLOUD_NAME`, `OPENSTACK_REGION_NAME`, `OPENSTACK_NODE_NAME` og `OPENSTACK_LOGS_PROFILE`. At køre det igen er opgraderingen og beholder hvert svar.
+Uden argument kigger scriptet på maskinen og spørger, hvis det ikke kan se det. Det spørger efter din OneUptime-URL, indtagelsesnøglen, cloudens navn, som skal være det navn, clouden har i OneUptime, og den region, denne maskine betjener. Hvert svar virker også som en miljøvariabel, så en kørsel på tværs af en flåde spørger ikke om noget: `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `OPENSTACK_CLOUD_NAME`, `OPENSTACK_REGION_NAME`, `OPENSTACK_NODE_NAME` og `OPENSTACK_LOGS_PROFILE`. At køre det igen er opgraderingen og beholder hvert svar.
 
 | Variabel | Hvad den er til |
 | --- | --- |
@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+At arkivere clouden slår intet af dette fra. En arkiveret cloud er kun skjult i listerne: den indsamles stadig, og dens API-tjek og livscyklustjekket bliver ved med at køre. Slå et tjek fra for at stoppe det.
+
 ## AI-agent
 
 Agentens `docker-compose.yml` kører også **OpenStack AI-agent**, `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`). Mens OneUptime AI undersøger en hændelse eller advarsel på denne cloud, kører den skrivebeskyttede `openstack`-kommandoer gennem den — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — og angiver, hvad den kørte. Der er ingen `openstack`-binær i agenten og intet shell: hver kommando bliver til ét `GET` til den tjeneste, der besvarer den, med agentens egen legitimation. Agenten registrerer sig med det samme `OPENSTACK_CLOUD_NAME`, collectoren rapporterer, så den betjener denne cloud.
@@ -1641,7 +1643,7 @@ Cloudens side **AI-agent** tilbyder en runbook for hver af disse, som du kan til
 
 ### Rettelser fra en arbejdsgang
 
-En arbejdsgang kan starte fra en OpenStack-advarsel og foreslå en rettelse: trinnet **Propose an OpenStack fix** tager advarslen eller hændelsen og kommandoen. Det går gennem den samme policy, det samme skriveomfang og den samme læsning af, hvad en ændring rører, som en rettelse OneUptime AI foreslår, det kræver ingen AI-model, og en person godkender det på advarslen. En arbejdsgang kan ikke selv foretage ændringen eller godkende det, den foreslår, uanset cloudens rettelsestilstand. Skabelonen **Propose taking a failing OpenStack compute service out of scheduling** er et sted at begynde.
+En arbejdsgang kan starte fra en OpenStack-advarsel og foreslå en rettelse: trinnet **Foreslå en OpenStack-rettelse** tager advarslen eller hændelsen og kommandoen. Det går gennem den samme policy, det samme skriveomfang og den samme læsning af, hvad en ændring rører, som en rettelse OneUptime AI foreslår, det kræver ingen AI-model, og en person godkender det på advarslen. En arbejdsgang kan ikke selv foretage ændringen eller godkende det, den foreslår, uanset cloudens rettelsestilstand. Skabelonen **Propose taking a failing OpenStack compute service out of scheduling** er et sted at begynde.
 
 ## Kør som en systemd-tjeneste
 
@@ -1734,7 +1736,7 @@ OneUptimes egne images krydser gabet på en anden måde: [Installation i et air-
 ## Fejlfinding
 
 :::details Kør først diagnosescriptet
-Agenten leveres med et script, [`troubleshoot.sh`](https://oneuptime.com/install/openstack-agent/troubleshoot.sh), der tjekker hele kæden på den netværkssti, agenten bruger: containerne eller tjenesterne, `clouds.yaml`, exporteren, DNS, TLS, Keystone, hver tjeneste i kataloget, cloudens navn, og om OneUptime accepterer indlæsningsnøglen. OneUptime afviser en dårlig nøgle med `401` (`422` for en deaktiveret nøgle eller en browsernøgle), og collectoren dropper hver afvist batch med en enkelt logglinje, `Exporting failed`, som er let at overse.
+Agenten leveres med et script, [`troubleshoot.sh`](https://oneuptime.com/install/openstack-agent/troubleshoot.sh), der tjekker hele kæden på den netværkssti, agenten bruger: containerne eller tjenesterne, `clouds.yaml`, exporteren, DNS, TLS, Keystone, hver tjeneste i kataloget, cloudens navn, og om OneUptime accepterer indtagelsesnøglen. OneUptime afviser en dårlig nøgle med `401` (`422` for en deaktiveret nøgle eller en browsernøgle), og collectoren dropper hver afvist batch med en enkelt logglinje, `Exporting failed`, som er let at overse.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent/troubleshoot.sh -o troubleshoot.sh
@@ -1745,7 +1747,7 @@ Det læser hver sti, agenten har brug for, med den rigtige legitimation, én lil
 :::
 
 :::details Ingen cloud vises i OneUptime
-1. Læs collectorens logs: `docker logs oneuptime-openstack-agent`, eller `journalctl -u oneuptime-openstack-agent` uden Docker. En `401` ved eksport betyder en dårlig indlæsningsnøgle; connection refused betyder en forkert `ONEUPTIME_URL`.
+1. Læs collectorens logs: `docker logs oneuptime-openstack-agent`, eller `journalctl -u oneuptime-openstack-agent` uden Docker. En `401` ved eksport betyder en dårlig indtagelsesnøgle; connection refused betyder en forkert `ONEUPTIME_URL`.
 2. Tjek, at exporteren svarer. Den medfølgende exporter udgiver ikke sin port på værten, så spørg inde fra dens netværk: `docker run --rm --network container:oneuptime-openstack-exporter curlimages/curl -s "http://localhost:9180/probe?cloud=RegionOne&include_services=identity" | head` bør udskrive `openstack_identity_*`-linjer.
 3. Giv det ét scrape-interval: 2 minutter for compute, 5 for identity.
 :::
@@ -1791,7 +1793,7 @@ På Flamingo og Epoxy rejser oslo.policy en fejl ved hvert tjek, når en policy-
 :::
 
 :::details En clouds tjenestelogs ankommer ikke
-Læs collectorens log: `docker logs oneuptime-openstack-logs` for filprofilen, eller `journalctl -u oneuptime-openstack-logs` for journalens. En `401` betyder en dårlig indlæsningsnøgle. Hvis linjer ankommer under ingen cloud, er `OPENSTACK_CLOUD_NAME` ikke det navn, clouden har i OneUptime: kør `install-logs.sh` igen med det rigtige.
+Læs collectorens log: `docker logs oneuptime-openstack-logs` for filprofilen, eller `journalctl -u oneuptime-openstack-logs` for journalens. En `401` betyder en dårlig indtagelsesnøgle. Hvis linjer ankommer under ingen cloud, er `OPENSTACK_CLOUD_NAME` ikke det navn, clouden har i OneUptime: kør `install-logs.sh` igen med det rigtige.
 :::
 
 :::details Linjer ankommer uden niveau, forespørgsel eller tjeneste

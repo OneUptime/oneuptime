@@ -361,6 +361,8 @@ Operatorene er `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `Gre
 
 Verktøyene `list_` og `count_` tar et hvilket som helst felt, slik at listen over verktøy er liten nok til at en klient kan laste den inn på én gang. For å se feltene til en ressurs, hva hvert felt betyr og hvilke operatorer det tar, kaller en agent `oneuptime_describe_resource` med ressursen eller ett av verktøyene dens, for eksempel `Incident` eller `list_incidents`.
 
+De andre `list_`-verktøyene, for hendelser, monitorer og alle andre slags poster, sorterer slik API-et gjør: et felt tar en retning, eller `{ "direction": "DESC", "nulls": "LAST" }` for å sette postene uten en verdi i det sist, og en relasjon til én post sorterer etter et felt i posten den nevner, som i `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` merker hver slik relasjon med `sort` og nevner feltene den sorterer etter under `sortBy`.
+
 ## Feltvalg og paginering
 
 Verktøyene `get_` og `list_` tar en valgfri `select`-matrise med feltnavn. Som standard kommer alle lesbare felt tilbake unntatt de tunge (JSON, svært lang tekst og HTML-kolonner), som må bes om i `select`.

@@ -176,6 +176,8 @@ import Column from "../../../UI/Components/Table/Types/Column";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import GenericObject from "../../../Types/GenericObject";
+// A tooltip draws a duration's figure held to its word (#8811).
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -567,8 +569,8 @@ describe("the list's (i)s as a customer meets them", () => {
 
       const info: HTMLElement = infoButtonsFor(title)[0]!;
 
-      expect(await explanationOnHover(info)).toBe(text);
-      expect(await explanationOnFocus(info)).toBe(text);
+      expect(await explanationOnHover(info)).toBe(withDurationWordsHeld(text));
+      expect(await explanationOnFocus(info)).toBe(withDurationWordsHeld(text));
     },
   );
 

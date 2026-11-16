@@ -18,7 +18,11 @@ import { useIsDashboardWidgetPreview } from "./DashboardWidgetPreview";
 
 export interface HoneycombTileDetail {
   label: string;
-  value: string;
+  /*
+   * None - a host or a cluster the tile's resource has not reported - and
+   * the tooltip draws the quiet dash beside the label (#8262).
+   */
+  value?: string | null | undefined;
 }
 
 export interface HoneycombTile {
@@ -306,13 +310,25 @@ const Hex: FunctionComponent<HexProps> = (props: HexProps): ReactElement => {
          * on an Arabic or Persian board is cut at its own end, so tiles
          * whose names share an end still differ. Words that read the
          * board's way are drawn as they were.
+         *
+         * Most tiles draw no words, and their line stays empty: not the
+         * quiet dash a widget line draws for a value that is missing
+         * (#8262), which on a tile's colour was a grey mark nobody could
+         * read.
          */}
-        <DashboardWidgetLine
-          as="span"
-          text={tile.label || ""}
-          className="truncate text-center"
-          style={{ maxWidth: `${width * 0.8}px`, pointerEvents: "none" }}
-        />
+        {tile.label ? (
+          <DashboardWidgetLine
+            as="span"
+            text={tile.label}
+            className="truncate text-center"
+            style={{ maxWidth: `${width * 0.8}px`, pointerEvents: "none" }}
+          />
+        ) : (
+          <span
+            className="truncate text-center"
+            style={{ maxWidth: `${width * 0.8}px`, pointerEvents: "none" }}
+          />
+        )}
       </div>
       {hasKeyboardFocus && (
         <svg
@@ -464,7 +480,7 @@ const HoneycombTooltip: FunctionComponent<{
               </span>
               <DashboardWidgetLine
                 as="span"
-                text={d.value}
+                text={d.value || undefined}
                 className="font-medium text-gray-700 truncate"
               />
             </div>

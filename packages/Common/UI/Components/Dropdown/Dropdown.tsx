@@ -997,6 +997,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             ...removeProps.innerProps,
             "aria-label": createTranslator(
               translateStringRef.current,
+              undefined,
+              { drawsOnPage: true },
             ).translateTemplate("Remove {{option}}", { option: optionLabel }),
           }}
         />

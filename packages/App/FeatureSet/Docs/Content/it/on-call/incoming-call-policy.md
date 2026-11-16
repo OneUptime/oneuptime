@@ -68,14 +68,14 @@ Ogni persona che una regola può far squillare aggiunge e verifica il proprio nu
 
 ### Chiama il numero
 
-Quando i tre passaggi sono completati, la scheda diventa **Numeri di telefono e configurazione Twilio**. Chiama il numero da un telefono qualsiasi, poi apri i **Registri chiamate** della policy per vedere chi ha squillato.
+Quando i tre passaggi sono completati, la scheda diventa **Numeri di telefono e configurazione Twilio**. Chiama il numero da un telefono qualsiasi, poi apri i **Log chiamate** della policy per vedere chi ha squillato.
 :::
 
 ## Come viene instradata una chiamata
 
 1. Twilio invia la chiamata a OneUptime, che legge il **Messaggio di benvenuto** della policy.
 2. OneUptime fa squillare la persona indicata dalla prima regola di escalation: quella persona, oppure chi è reperibile in quel momento nella pianificazione di reperibilità della regola, sostituzioni utente comprese. Il suo telefono mostra il numero della policy come chiamante.
-3. Se risponde entro la **Durata dello squillo** della regola, chi chiama viene messo in contatto, e il registro chiamate annota chi ha risposto.
+3. Se risponde entro la **Durata dello squillo** della regola, chi chiama viene messo in contatto, e il log chiamate annota chi ha risposto.
 4. Altrimenti chi chiama sente «Connecting you to the next available engineer.» e squilla la persona della regola successiva.
 5. Dopo l'ultima regola decide il **Criterio di ripetizione** della policy: **Squilla di nuovo dalla prima regola** fa squillare di nuovo ogni regola, tante altre volte quante indica, e **Termina la chiamata** no. Poi chi chiama sente il **Messaggio di mancata risposta**, e la chiamata termina.
 
@@ -166,7 +166,7 @@ I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS
 
 Apri la policy e scegli **Impostazioni** in **Avanzato** nel suo menu laterale. Ha tre schede:
 
-- **Rispondi alle chiamate**: **Rispondi alle chiamate ai numeri di questa policy** si salva appena lo cambi. Disattivato, chi chiama sente che la linea non è disponibile e nessuno viene chiamato; i suoi numeri, le regole e i registri chiamate vengono conservati. Prima di disattivarlo viene chiesta conferma, con **Smetti di rispondere alle chiamate**. Finché è disattivato, la **Panoramica** della policy lo indica, con **Riprendi a rispondere alle chiamate** per riattivarlo.
+- **Rispondi alle chiamate**: **Rispondi alle chiamate ai numeri di questa policy** si salva appena lo cambi. Disattivato, chi chiama sente che la linea non è disponibile e nessuno viene chiamato; i suoi numeri, le regole e i log chiamate vengono conservati. Prima di disattivarlo viene chiesta conferma, con **Smetti di rispondere alle chiamate**. Finché è disattivato, la **Panoramica** della policy lo indica, con **Riprendi a rispondere alle chiamate** per riattivarlo.
 - **Criterio di ripetizione**: cosa succede quando nessuno risponde dopo l'ultima regola. **Modifica** chiede **Se nessuno risponde dopo l'ultima regola**: **Termina la chiamata**, oppure **Squilla di nuovo dalla prima regola** e **Quante volte ancora?**.
 - **Messaggi vocali**: cosa sente chi chiama. **Modifica messaggi** li cambia.
 
@@ -180,9 +180,9 @@ Apri la policy e scegli **Impostazioni** in **Avanzato** nel suo menu laterale. 
 
 Twilio legge i messaggi con una voce sintetica, quindi scrivili come vuoi che suonino. Un messaggio lasciato vuoto viene letto con le parole di OneUptime, che la scheda mostra al suo posto.
 
-## Registri chiamate
+## Log chiamate
 
-Ogni chiamata compare nella pagina **Registri chiamate** della policy, in **Registri** nel suo menu laterale: il **Chiamante**, il **Numero chiamato**, il suo **Stato**, chi ha risposto (**Risposto da**), la **Durata** e quando è iniziata (**Iniziato il**). Fai clic su **Visualizza cronologia** su una chiamata per vedere la sua **Cronologia chiamata**: ogni persona che ha squillato, su quale numero e come è finito ogni tentativo.
+Ogni chiamata compare nella pagina **Log chiamate** della policy, in **Log** nel suo menu laterale: il **Chiamante**, il **Numero chiamato**, il suo **Stato**, chi ha risposto (**Risposto da**), la **Durata** e quando è iniziata (**Iniziato il**). Fai clic su **Visualizza cronologia** su una chiamata per vedere la sua **Cronologia chiamata**: ogni persona che ha squillato, su quale numero e come è finito ogni tentativo.
 
 | Stato | Che cosa è successo |
 | --- | --- |
@@ -200,26 +200,26 @@ Una chiamata è persa quando termina senza raggiungere nessuno: il suo stato è 
 
 Quando una chiamata viene persa, OneUptime avvisa i proprietari della policy: gli utenti e i membri dei team aggiunti nella pagina **Proprietari** della policy. Se la policy non ha proprietari, vengono avvisati invece i Proprietari del progetto.
 
-L'avviso dice chi ha chiamato, quale numero ha composto, perché nessuno ha risposto, chi ha squillato e come è finito ogni tentativo. Collega la chiamata nel registro chiamate.
+L'avviso dice chi ha chiamato, quale numero ha composto, perché nessuno ha risposto, chi ha squillato e come è finito ogni tentativo. Collega la chiamata nel log chiamate.
 
 I proprietari ricevono un'email per impostazione predefinita. Ognuno può scegliere altri canali (SMS, chiamata, push e altro) o disattivarlo in **Impostazioni utente** > **Impostazioni notifiche**, in **Reperibilità** > **Policy chiamate in entrata** > **Chiamata persa**. Vedi [Impostazioni notifiche](/docs/notifications/notification-settings).
 
 ### Reagire alle chiamate perse in un flusso di lavoro
 
-I registri delle chiamate in entrata sono disponibili come trigger dei flussi di lavoro:
+I log delle chiamate in entrata sono disponibili come trigger dei flussi di lavoro:
 
-- **On Create Incoming Call Log** si attiva quando arriva una chiamata.
-- **On Update Incoming Call Log** si attiva mentre la chiamata procede. L'aggiornamento che imposta **Ended At** è la fine della chiamata.
+- **Alla creazione: Log chiamata in entrata** si attiva quando arriva una chiamata.
+- **All'aggiornamento: Log chiamata in entrata** si attiva mentre la chiamata procede. L'aggiornamento che imposta **Ended At** è la fine della chiamata.
 
 Per agire solo sulle chiamate perse, ad esempio per pubblicarle in Slack o Microsoft Teams o aprire un ticket:
 
 :::steps
-1. Aggiungi il trigger **On Update Incoming Call Log**. Imposta **Fields to watch** su **Ended At** e seleziona i campi da usare, come **Status**, **Caller Phone Number** e **Routing Phone Number**.
-2. Aggiungi un passaggio **If / Else**. Controlla lo **Status** del trigger, con il confronto **è diverso da** e `Completed`.
+1. Aggiungi il trigger **All'aggiornamento: Log chiamata in entrata**. Imposta **Campi da osservare** su **Ended At** e seleziona i campi da usare, come **Status**, **Caller Phone Number** e **Routing Phone Number**.
+2. Aggiungi un passaggio **Se / Altrimenti**. Controlla lo **Status** del trigger, con il confronto **è diverso da** e `Completed`.
 3. Collega i tuoi passaggi alla porta **Sì**.
 :::
 
-Un flusso di lavoro può leggere i registri chiamate con **Find One** e **Find Many**, ma non può crearli né modificarli.
+Un flusso di lavoro può leggere i log chiamate con **Find One** e **Find Many**, ma non può crearli né modificarli.
 
 ## Chi può aggiungere e rilasciare numeri di telefono
 
@@ -237,7 +237,7 @@ Un blocco di team senza etichette su uno di questi permessi lo toglie. Per chiun
 | Policy chiamate in entrata | `/api/incoming-call-policy` |
 | Le loro regole di escalation | `/api/incoming-call-policy-escalation-rule` |
 | I loro numeri di telefono, sola lettura | `/api/incoming-call-policy-phone-number` |
-| Registri chiamate, sola lettura | `/api/incoming-call-log` |
+| Log chiamate, sola lettura | `/api/incoming-call-log` |
 
 Una regola creata tramite l'API senza `escalateAfterSeconds` squilla per 20 secondi, come una che Terraform crea senza `escalate_after_seconds`.
 
@@ -259,7 +259,7 @@ Una regola creata tramite l'API senza `escalateAfterSeconds` squilla per 20 seco
 :::
 
 :::details La chiamata viene presa, ma non squilla nessuno
-Il registro chiamate indica **Non riuscito**. Verifica che **Rispondi alle chiamate** sia attivo nelle **Impostazioni** della policy, che la pianificazione di reperibilità di ogni regola abbia qualcuno reperibile in questo momento e che le persone che le regole fanno squillare abbiano un numero verificato in **Impostazioni utente** > **Policy chiamate in entrata** > **Numeri di telefono in entrata**, in questo progetto. Le regole fanno squillare solo membri del progetto.
+Il log chiamate indica **Non riuscito**. Verifica che **Rispondi alle chiamate** sia attivo nelle **Impostazioni** della policy, che la pianificazione di reperibilità di ogni regola abbia qualcuno reperibile in questo momento e che le persone che le regole fanno squillare abbiano un numero verificato in **Impostazioni utente** > **Policy chiamate in entrata** > **Numeri di telefono in entrata**, in questo progetto. Le regole fanno squillare solo membri del progetto.
 :::
 
 :::details Le chiamate finiscono in segreteria
@@ -275,7 +275,7 @@ L'account può cambiare solo finché la policy non ha numeri di telefono: la pag
 :::
 
 :::details Il codice per il numero di una persona non arriva
-Gli SMS devono essere attivi per il progetto. Su OneUptime Cloud, un progetto senza una propria configurazione Twilio predefinita paga gli SMS con il suo saldo, che deve superare 1 USD. I codici possono impiegare un minuto ad arrivare; fai clic su **Invia un nuovo codice** per inviarne un altro, e **Impostazioni del progetto** > **Notifiche** > **Registri di notifica** mostra che cosa gli è successo.
+Gli SMS devono essere attivi per il progetto. Su OneUptime Cloud, un progetto senza una propria configurazione Twilio predefinita paga gli SMS con il suo saldo, che deve superare 1 USD. I codici possono impiegare un minuto ad arrivare; fai clic su **Invia un nuovo codice** per inviarne un altro, e **Impostazioni del progetto** > **Notifiche** > **Log di notifica** mostra che cosa gli è successo.
 :::
 
 ## Passaggi successivi

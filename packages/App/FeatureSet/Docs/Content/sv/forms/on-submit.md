@@ -73,10 +73,10 @@ En incident som deklareras via ett formulär är en vanlig incident, med några 
 
 - **Dold från statussidor.** **Synlig på statussidan** är avstängt, och det är **Meddela statussideprenumeranter** också. Tills en responder publicerar den når inget om incidenten en statussida eller en prenumerant — förutom en malls ändring av monitorstatus, ovan.
 - **Deklarerad av ingen.** Inlämnaren är inte en OneUptime-användare, så ingen användare registreras som den som deklarerade incidenten.
-- **Dess ägare får veta.** De ägare som inställningarna och mallen anger läggs till så snart incidentens Slack- och Microsoft Teams-kanaler finns, och aviseras — incidentens avisering **Incident skapad** väntar tills de är dess ägare, så att den går till dem i stället för till projektets ägare.
+- **Dess ägare får veta.** De ägare som inställningarna och mallen anger läggs till så snart incidentens Slack- och Microsoft Teams-kanaler finns, och aviseras — incidentens avisering **Incident skapad** väntar tills de är dess ägare, så att den går till dem i stället för till Projektägare.
 - **En privat anteckning registrerar inlämningen** — se [Den privata anteckningen](#den-privata-anteckningen).
 
-Allt som körs för en ny incident körs även för dessa: integritets-, ägar-, etikett-, jour- och runbook-regler, jourpolicyer och arbetsflöden med **On Create Incident**. Jourregler matchar ett formulärs incidenter som alla andra — även på deras titel och beskrivning, som inlämnaren skrev.
+Allt som körs för en ny incident körs även för dessa: integritets-, ägar-, etikett-, jour- och runbook-regler, jourpolicyer och arbetsflöden med **Vid skapande: Incident**. Jourregler matchar ett formulärs incidenter som alla andra — även på deras titel och beskrivning, som inlämnaren skrev.
 
 :::steps
 #### Läs vad inlämnaren skrev

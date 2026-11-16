@@ -76,6 +76,7 @@ const AppliedFilters: FunctionComponent<ComponentProps> = (
           icon={IconProp.Filter}
           onClick={props.onEditFilters}
           title={tx("Edit Filters")}
+          isTitleTranslated={true}
           iconSize={SizeProp.Smaller}
           buttonStyle={ButtonStyleType.SECONDARY_LINK}
         />
@@ -86,6 +87,7 @@ const AppliedFilters: FunctionComponent<ComponentProps> = (
           className="font-medium text-gray-900"
           icon={IconProp.Close}
           title={tx("Clear Filters")}
+          isTitleTranslated={true}
           buttonStyle={ButtonStyleType.SECONDARY_LINK}
         />
       </div>

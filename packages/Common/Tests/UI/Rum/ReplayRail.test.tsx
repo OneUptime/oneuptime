@@ -1272,7 +1272,7 @@ describe("ReplayRail filtering", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Scope: within 30 seconds of the playhead",
+        name: "Scope: within 30\u00A0seconds of the playhead",
       }),
     );
 
@@ -1815,7 +1815,7 @@ describe("ReplayRail empty copy", () => {
     });
 
     expect(locked.detail).toBe(
-      'Your role lacks "{{permission}}". Ask a project admin for that permission to see these rows.',
+      'Your role lacks "{{permission}}". Ask a Project Admin for that permission to see these rows.',
     );
     expect(locked.detailValues).toEqual({ permission: "Read Logs" });
     expect(locked.isDetailAsWritten).toBeFalsy();
@@ -2564,7 +2564,7 @@ describe("ReplayRail compact chrome", () => {
       name: "Scope: whole session",
     });
     const around: HTMLElement = screen.getByRole("button", {
-      name: "Scope: within 30 seconds of the playhead",
+      name: "Scope: within 30\u00A0seconds of the playhead",
     });
 
     expect(whole).toHaveAttribute("aria-pressed", "true");

@@ -66,7 +66,9 @@ const SESSION_REPLAY_LIST_ROUTE: string = "/telemetry/rum/session-replay/list";
  * What the live checks say without a translator: English, word for word,
  * as a unit test reads them. The guide hands its reader's translator in.
  */
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 export interface ComponentProps {
   rumApplicationId: ObjectID;

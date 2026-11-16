@@ -139,10 +139,10 @@ describe("a big team's members", () => {
     }
 
     expect(lines["en"]).toBe(
-      "1,031 of 1,248 members active in the last 7 days",
+      "1,031 of 1,248 members active in the last 7\u00A0days",
     );
     expect(lines["de"]).toBe(
-      "1.031 von 1.248 Mitgliedern in den letzten 7 Tagen aktiv",
+      "1.031 von 1.248 Mitgliedern in den letzten 7\u00A0Tagen aktiv",
     );
     // Persian digits for both, never "1031" beside "۱٬۲۴۸".
     expect(lines["fa"]).toContain("۱٬۰۳۱");

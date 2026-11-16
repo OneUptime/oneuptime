@@ -224,10 +224,10 @@ describePostgres("episode members' privacy against a migrated Postgres", () => {
      * dashboards; EpisodeMemberDeletePostgres covers that. Here only whether
      * the row goes matters.
      */
+    jest
+      .spyOn(DatabaseService.prototype, "onTriggerWorkflow")
+      .mockResolvedValue(undefined);
     for (const kind of KINDS) {
-      jest
-        .spyOn(kind.service, "onTriggerWorkflow")
-        .mockResolvedValue(undefined);
       jest
         .spyOn(kind.service, "onTriggerRealtime")
         .mockResolvedValue(undefined);

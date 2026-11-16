@@ -64,14 +64,14 @@ Det nya talet gäller för varje post som kommer in från och med då och som in
 
 ### För hela projektet
 
-Under standarden, hopfällt under **Fler inställningar**, anger kortet **Lagring efter telemetrityp** dagar för varje typ av telemetri. Klicka på **Edit Overrides**, fyll i de fält du behöver och lämna resten tomma:
+Under standarden, hopfällt under **Fler inställningar**, anger kortet **Lagring efter telemetrityp** dagar för varje typ av telemetri. Klicka på **Redigera åsidosättningar**, fyll i de fält du behöver och lämna resten tomma:
 
 | Typ | Fält |
 | --- | --- |
-| Loggar | **Logs default (days)**, och ett fält för varje loggallvarlighetsgrad |
-| Spår | **Traces default (days)**, och ett fält för varje span-status: Fel, Ok och Ej angiven |
-| Mätvärden | **Metrics default (days)** |
-| Profiler | **Profiles default (days)** |
+| Loggar | **Standard för loggar (dagar)**, och ett fält för varje loggallvarlighetsgrad |
+| Spår | **Standard för traces (dagar)**, och ett fält för varje span-status: Fel, Ok och Ej angiven |
+| Mätvärden | **Standard för mätvärden (dagar)** |
+| Profiler | **Standard för profiler (dagar)** |
 
 Ett fält som lämnas tomt faller tillbaka på nästa inställning i ordningen ovan, så en allvarlighetsgrad utan egna dagar sparar sina loggar enligt standarden för loggar.
 
@@ -92,7 +92,7 @@ Tjänster, värdar, Kubernetes-kluster, Docker- och Podman-värdar, Docker Swarm
 | --- | --- | --- |
 | Session Replays | 7 dagar om det inte ändras | RUM-applikationens replay-policy: se [Hantera applikationer](/docs/rum/applications#lagring-av-sessionsuppspelningar). |
 | Övervakningsloggar, en rad per kontroll | 1 dag om det inte ändras | På en installation i egen drift, **Lagringstid för övervakningsloggar (dagar)** i Admin Dashboard |
-| Övervakningsmätvärden, och de mätvärden som SLO:er registrerar | 30 dagar om det inte ändras | På en installation i egen drift, **Lagringstid för övervakningsmått (dagar)** i Admin Dashboard |
+| Övervakningsmätvärden, och de mätvärden som SLO:er registrerar | 30 dagar om det inte ändras | På en installation i egen drift, **Lagringstid för övervakningsmätvärden (dagar)** i Admin Dashboard |
 | [Telemetrianvändning](/docs/telemetry/usage), en summa per resurs, signal och dag | 120 dagar om det inte ändras | På en installation i egen drift, **Lagringstid för telemetrianvändning (dagar)** i Admin Dashboard |
 
 ## Vad lagring kostar

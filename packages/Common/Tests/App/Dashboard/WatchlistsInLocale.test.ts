@@ -305,6 +305,12 @@ const SENTENCES: Array<string> = Array.from(
 const MAY_STAY_AS_WRITTEN: Array<string> = [
   "vip_users",
   "https://example.com/vip-users.csv",
+  /*
+   * A left-out line's values in order (IMPORT_PROBLEM_ITEM, 81ec8bd1666):
+   * only its placeholders, a colon and a dash, which most languages write
+   * as English does and French with its spaced colon.
+   */
+  "{{line}}: {{value}} - {{problem}}",
 ];
 
 // A word some languages write as English does.
@@ -314,7 +320,7 @@ const SAME_WORD_IN: Record<string, Array<string>> = {
   // A word every language's Dashboard keeps: an address on the web.
   URL: [...DASHBOARD_LANGUAGES],
   // As each of these languages names a monitor and a hunt everywhere else.
-  Monitor: ["es", "it", "pt", "nl"],
+  Monitor: ["es", "it", "pt", "nl", "de", "da", "no", "sv"],
   Hunt: ["nl", "da", "no", "sv"],
   Match: ["da"],
   Name: ["de"],

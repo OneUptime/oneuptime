@@ -212,7 +212,7 @@ export const WEBSITE_DOWN_COPY: {
   ),
   // The same, for someone who may not add a payment method.
   paymentNeededAskOwner: translationKey(
-    "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at {{price}} per monitor per month. Ask a project owner to add a payment method before you start checking.",
+    "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at {{price}} per monitor per month. Ask a Project Owner to add a payment method before you start checking.",
   ),
   // The billing page's own button, which this link opens it at.
   addPaymentMethod: translationKey("Add Payment Method"),
@@ -226,7 +226,7 @@ export const WEBSITE_DOWN_COPY: {
   ),
   continueButton: translationKey("Continue"),
   cannotCreateMonitor: translationKey(
-    "Creating a monitor needs permission you do not have in this project. Ask a project admin to give it to you, or to set this up.",
+    "Creating a monitor needs permission you do not have in this project. Ask a Project Admin to give it to you, or to set this up.",
   ),
   whoTitle: translationKey("Who should be told?"),
   whoCreateHelp: translationKey(
@@ -283,10 +283,10 @@ export const WEBSITE_DOWN_COPY: {
    * whoCannotCreate does.
    */
   whoOwnerOnlyHelp: translationKey(
-    "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.",
+    "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a Project Owner or Project Admin to set one up.",
   ),
   whoOwnerOnlyHelpNotOwner: translationKey(
-    "You do not own this monitor, so you are not emailed when it goes down: add yourself on its Owners page. Paging a team needs an on-call policy: ask a project owner or admin to set one up.",
+    "You do not own this monitor, so you are not emailed when it goes down: add yourself on its Owners page. Paging a team needs an on-call policy: ask a Project Owner or Project Admin to set one up.",
   ),
   whoOnCallRulesLink: translationKey("See the on-call rules"),
   noEmail: translationKey(
@@ -909,7 +909,7 @@ export const getWhoIsToldDoneLine: (data: {
         "You are emailed as the monitor's owner.",
       ) || ""
     : data.translator.translateText(
-        "The project's owners are emailed about incidents nobody owns.",
+        "Project Owners are emailed about incidents nobody owns.",
       ) || "";
 };
 
@@ -1107,7 +1107,7 @@ export const getWebsiteDownSummaryRows: (
     text:
       told.join(" ") ||
       translator.translateText(
-        "The project's owners are emailed about incidents nobody owns.",
+        "Project Owners are emailed about incidents nobody owns.",
       ) ||
       "",
   });

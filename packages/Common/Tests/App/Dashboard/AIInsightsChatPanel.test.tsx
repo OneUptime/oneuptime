@@ -338,7 +338,7 @@ describe("module insights in Ask AI", () => {
     expect(sentRequests()[0]!.data).toEqual(
       expect.objectContaining({
         content:
-          "Chart this RUM application's LCP, INP and CLS over the last 24 hours. Which web vitals need attention?",
+          "Chart this RUM application's LCP, INP and CLS over the last 24\u00A0hours. Which web vitals need attention?",
         pageContext: {
           type: AIChatPageContextType.RumApplication,
           entityId: ENTITY_ID,
@@ -396,7 +396,7 @@ describe("module insights in Ask AI", () => {
     expect(sentRequests()[0]!.data).toEqual(
       expect.objectContaining({
         content:
-          "Give me a health overview of this service — errors, latency and log volume over the last 24 hours.",
+          "Give me a health overview of this service — errors, latency and log volume over the last 24\u00A0hours.",
         pageContext: {
           type: AIChatPageContextType.TelemetryService,
           entityId: ENTITY_ID,

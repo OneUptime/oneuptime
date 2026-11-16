@@ -31,11 +31,11 @@ Fluentd sender poster i batches som JSON med din indtagelsesnøgle i headeren `x
 
 Gå til **Produkter → Projektindstillinger**, åbn **Telemetri og APM** i sidemenuen, og vælg **Indtagelsesnøgler**.
 
-![Listen »Indtagelsesnøgler«, med »Opret ingestion-nøgle« fremhævet](screen:ingestion-keys)
+![Listen »Indtagelsesnøgler«, med »Opret indtagelsesnøgle« fremhævet](screen:ingestion-keys)
 
 ### Opret en nøgle
 
-Klik på **Opret ingestion-nøgle**. Dialogen har allerede udfyldt nøglens navn og valgt **Server** – den slags nøgle, en applikation eller en collector sender med – så klik på **Opret ingestion-nøgle** for at oprette den, eller omdøb den først.
+Klik på **Opret indtagelsesnøgle**. Dialogen har allerede udfyldt nøglens navn og valgt **Server** – den slags nøgle, en applikation eller en collector sender med – så klik på **Opret indtagelsesnøgle** for at oprette den, eller omdøb den først.
 
 ### Kopiér hemmeligheden
 
@@ -82,6 +82,10 @@ Tilføj en `<match>`-sektion, der sender poster til OneUptime. Erstat `YOUR_SERV
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -100,6 +104,8 @@ Tilføj en `<match>`-sektion, der sender poster til OneUptime. Erstat `YOUR_SERV
 
 `json_array true` sender hver chunk i bufferen som ét JSON-array, og `flush_interval 10s` sender bufferen hvert 10. sekund. `chunk_limit_size 900k` holder hver request under 1 MB, det højeste OneUptime tager imod på dette endpoint.
 
+`@type file` gemmer de batches, der endnu skal sendes, i den mappe, `path` angiver, så en genstart af Fluentd ikke mister nogen af dem; en buffer i hukommelsen, Fluentds standard, mister det, den rummer. Fluentds bruger skal kunne skrive i mappen: `/var/log/fluent` er fluent-packages, `/var/log/td-agent` td-agents, og `/fluentd/log` er den i imaget `fluent/fluentd`. `total_limit_size 512m` gemmer højst 512 MB der; når den er fuld, tager Fluentd ikke imod flere poster, før en batch er sendt.
+
 `retryable_response_codes 429,502,503,504` sender en batch igen, når OneUptime har travlt (`429`) eller genstarter (`502`, `503`, `504`); uden den smider Fluentd en batch væk ved ethvert svar undtagen `503`. `retry_max_interval 30s` venter højst 30 sekunder mellem forsøgene, og `retry_timeout 72h` smider en batch væk, som stadig ikke kan sendes efter 72 timer. Filteret `record_transformer` tilføjer det tidspunkt, Fluentd gav hver post, som `fluentd_time`: HTTP-outputtet sender kun posten, og OneUptime læser en logs tidspunkt fra den.
 
 ### Genstart Fluentd
@@ -113,7 +119,7 @@ Få sekunder efter næste tømning vises loggene under **Produkter → Protokoll
 
 ## Komplet eksempel
 
-Denne konfiguration modtager poster over Fluentds forward-protokol på port `24224` og sender dem alle til OneUptime:
+Denne konfiguration modtager poster over Fluentds forward-protokol på port `24224`, kun fra denne vært, og sender dem alle til OneUptime:
 
 ```text title="fluentd.conf"
 ####
@@ -125,7 +131,8 @@ Denne konfiguration modtager poster over Fluentds forward-protokol på port `242
 <source>
   @type forward
   port 24224
-  bind 0.0.0.0
+  # This host alone: see "Take records from other hosts" to open it
+  bind 127.0.0.1
 </source>
 
 # Send the time Fluentd gave each event: the HTTP output sends only the record
@@ -155,6 +162,10 @@ Denne konfiguration modtager poster over Fluentds forward-protokol på port `242
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -171,7 +182,61 @@ Denne konfiguration modtager poster over Fluentds forward-protokol på port `242
 </label>
 ```
 
-Vil du sende forskellige kilder som forskellige tjenester, så brug én `<match>`-sektion pr. tag, hver med sit eget `x-oneuptime-service-name`.
+`bind 127.0.0.1` tager kun imod poster fra denne vært, som dem fra Dockers logdriver `fluentd`, der sender til `localhost:24224`. Vil du sende forskellige kilder som forskellige tjenester, så brug én `<match>`-sektion pr. tag, hver med sit eget `x-oneuptime-service-name` og sin egen buffer-`path`: Fluentd starter ikke med to buffere på samme sti.
+
+## Modtag poster fra andre værter
+
+Med `bind 0.0.0.0` og ingen `<security>`-sektion kan alle, der kan nå port `24224`, sende logs til OneUptime under din indtagelsesnøgle. For at modtage poster fra Fluentd eller Fluent Bit på andre værter skal du lytte på alle adresser, kræve en delt nøgle af hver afsender og bruge TLS. Erstat `<source>`-sektionen i det komplette eksempel med:
+
+```text title="fluentd.conf on this host"
+<source>
+  @type forward
+  port 24224
+  bind 0.0.0.0
+  <transport tls>
+    cert_path /etc/fluent/certs/fluentd.crt
+    private_key_path /etc/fluent/certs/fluentd.key
+  </transport>
+  <security>
+    self_hostname fluentd.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+</source>
+```
+
+`cert_path` og `private_key_path` er et certifikat til denne værts navn, her `fluentd.example.com`, og dets nøgle, som Fluentds bruger skal kunne læse. Fluentd advarer, når nøglen ikke har nogen adgangsfrase; `private_key_passphrase` sætter en. Erstat `YOUR_SHARED_KEY` med en lang tilfældig hemmelighed, for eksempel en fra `openssl rand -base64 32`, og giv hver afsender den samme:
+
+```text title="fluentd.conf on each sender"
+<match **>
+  @type forward
+  transport tls
+  # The certificate of the authority that signed this host's; not needed for a public one
+  tls_cert_path /etc/fluent/certs/ca.crt
+  <security>
+    self_hostname app-1.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+  <server>
+    host fluentd.example.com
+    port 24224
+  </server>
+  <buffer>
+    @type file
+    path /var/log/fluent/buffer/forward
+  </buffer>
+</match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
+```
+
+Fluent Bits `forward`-output tager de samme indstillinger: `Shared_Key`, `Self_Hostname`, `tls On` og `tls.ca_file`.
+
+En afsender uden nøglen eller uden TLS bliver afvist. Selve nøglen krydser aldrig netværket: hver side beviser, at den har den. Uden TLS kan alle på netværket mellem værterne læse posterne. Åbn kun port `24224` i værtens firewall for de værter, der sender. Kører Fluentd fra logvejledningens Docker Compose-fil, så udgiv også porten på alle adresser der, `"24224:24224"`, og montér certifikatets mappe i containeren.
 
 ## Sådan læses poster
 
@@ -209,11 +274,15 @@ Requesten er over 1 MB, det højeste OneUptime tager imod på dette endpoint. S�
 :::
 
 :::details Fluentd logger `429`, `502`, `503` eller `504`
-OneUptime har travlt eller genstarter. Med `retryable_response_codes 429,502,503,504` i `<match>`-sektionen, som i konfigurationen ovenfor, beholder Fluentd batchen og sender den igen; uden den smider Fluentd batchen væk.
+OneUptime har travlt eller genstarter. Med `retryable_response_codes 429,502,503,504` i `<match>`-sektionen, som i konfigurationen ovenfor, beholder Fluentd batchen og sender den igen; uden den smider Fluentd batchen væk. Med `@type file` i `<buffer>`-sektionen beholder Fluentd også batchen, når den genstarter.
 :::
 
 :::details Logs viser det tidspunkt, OneUptime modtog dem, ikke deres eget
-OneUptime læser en logs tidspunkt fra dens post, og Fluentds HTTP-output sender kun posten. En `<parse>`-sektion tager feltet `time` ud af posten: tilføj `keep_time_key true` til den. Tilføj også filteret `record_transformer` fra konfigurationen ovenfor: det tilføjer det tidspunkt, Fluentd gav hver post, som `fluentd_time`.
+OneUptime læser en logs tidspunkt fra dens post, og Fluentds HTTP-output sender kun posten. En `<parse>`-sektion tager feltet `time` ud af posten som hændelsens tidspunkt: tilføj `time_key fluentd_time` til den, så den ikke læser nogen posts tidspunkt og lader `time` være, som det er. Tilføj også filteret `record_transformer` fra konfigurationen ovenfor: det tilføjer det tidspunkt, Fluentd gav hver post, som `fluentd_time`.
+:::
+
+:::details En JSON-linje, hvis `time` er `null`, `true`, en liste eller et objekt, kommer aldrig frem
+Fluentds `json`-parser læser en linjes felt `time` som hændelsens tidspunkt og smider uden advarsel en linje væk, hvis `time` hverken er tekst eller et tal. Tilføj `time_key fluentd_time` til dens `<parse>`-sektion, som ovenfor: så lader Fluentd `time` stå i posten, som det er. Med filteret `record_transformer` ovenfor gemmer OneUptime loggen på det tidspunkt, Fluentd læste den, `fluentd_time`; uden det på det tidspunkt, OneUptime modtager den.
 :::
 
 :::details Logs ankommer under tjenesten `Fluentd`

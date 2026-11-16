@@ -95,6 +95,8 @@ En resurs med ägare - en monitor, en incident, en jourpolicy och varje annan me
 
 `select` namnger fälten som ska returneras, och `_id` kommer alltid med. `sort` ordnar dem, `ASC` eller `DESC`; utan sortering kommer de nyaste först. En lista returnerar 10 poster om du inte anger `limit`, upp till 10 000, och `skip` hoppar först över så många: fortsätt att öka `skip` med `limit` tills du har `count` av dem. Lägg till `?output-type=csv` i en listbegäran för CSV i stället för JSON.
 
+Ett fälts ordning kan också säga var posterna utan värde i det hamnar: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` sätter de senaste först och de utan värde sist, och `FIRST` sätter dem först. En relation till en post sorterar efter ett fält i posten den namnger: `{ "incidentSeverity": { "order": "ASC" } }` listar incidenter i ordningen för deras allvarlighetsgrader. En relation som bara får en riktning, som i `{ "incidentSeverity": "DESC" }`, avvisas med en `400` som i stället namnger ett fält att sortera efter, och detsamma gäller en relation till många poster, som en incidents `labels`: varje incident har en lista av dem, och en lista har inget enda värde att ordna incidenter efter. Att sortera efter ett fält kräver också behörighet att läsa det, genom en relation som på själva resursen: en sortering efter ett fält du inte får läsa avvisas med en `422`.
+
 Till exempel de monitorer vars namn innehåller ”checkout”, skapade sedan början av 2026, de nyaste först:
 
 ```bash
@@ -156,9 +158,9 @@ I OneUptime Cloud fungerar ett projekts API-nycklar bara medan projektet har **G
 
 Inget raderas eller slås av. Nycklarna och anslutningarna behålls, och de fungerar fullt ut igen, som de är, så snart projektet är tillbaka på planen: inga nya nycklar att skapa, inget att konfigurera om i din identitetsleverantör. En planändring får effekt inom en minut.
 
-Under **Growth** listar **Projektinställningar** > **Avancerad** > **API-nycklar** de nycklar som projektet fortfarande har och säger att de har stoppats, så att vilken som helst av dem kan raderas (återkallas) på alla planer. Att skapa eller ändra nycklar kräver **Growth**. **Projektinställningar** > **Fakturering och fakturor** > **Fakturering** anger hur många API-nycklar en lägre plan stoppar och hur många SCIM-anslutningar den begränsar, för varje plan du kan välja, och vad projektets plan har stoppat; projektets ägare får ett e-postmeddelande när en planändring stoppar dem. Ägarna till projekt som redan låg under de här planerna när detta började får ett e-postmeddelande som säger vad som stoppades och hur det slås på igen.
+Under **Growth** listar **Projektinställningar** > **Avancerad** > **API-nycklar** de nycklar som projektet fortfarande har och säger att de har stoppats, så att vilken som helst av dem kan raderas (återkallas) på alla planer. Att skapa eller ändra nycklar kräver **Growth**. **Projektinställningar** > **Fakturering och fakturor** > **Fakturering** anger hur många API-nycklar en lägre plan stoppar och hur många SCIM-anslutningar den begränsar, för varje plan du kan välja, och vad projektets plan har stoppat; Projektägare får ett e-postmeddelande när en planändring stoppar dem. Ägarna till projekt som redan låg under de här planerna när detta började får ett e-postmeddelande som säger vad som stoppades och hur det slås på igen.
 
-Bara ett projekts API-nycklar och SCIM-anslutningar påverkas. Personer påverkas inte: inloggning i instrumentpanelen, och MCP-klienter som är anslutna genom inloggning, fungerar som förut. Inmatningsnycklar för telemetri, sondnycklar och agentnycklar är inte API-nycklar och fortsätter att fungera. Egendrivna installationer har inga planer, så för dem ändras ingenting.
+Bara ett projekts API-nycklar och SCIM-anslutningar påverkas. Personer påverkas inte: inloggning i instrumentpanelen, och MCP-klienter som är anslutna genom inloggning, fungerar som förut. Intagningsnycklar för telemetri, sondnycklar och agentnycklar är inte API-nycklar och fortsätter att fungera. Egendrivna installationer har inga planer, så för dem ändras ingenting.
 
 ## Namnge och skriva poster
 
@@ -252,7 +254,7 @@ Ett fält som är på eller av - `isEnabled`, `isVisibleOnStatusPage`, `isArchiv
 isVisibleOnStatusPage must be true or false.
 ```
 
-En uppdatering som skriver en posts värden som de redan är ändrar ingenting: den startar inte postens **On Update**-arbetsflöden, skickar inga liveuppdateringar och lägger inte till någon rad i granskningsloggen. `false` skrivet över `false` räknas som samma värde, och det gör även `"false"` skrivet över `false`, ett tal skrivet som sin text, en tid skriven som samma ögonblick i ett annat format, och etiketter skrivna som samma etiketter i valfri ordning. När en uppdatering ändrar några värden och skriver tillbaka andra som de är listar dess rad i granskningsloggen bara de värden som ändrades, och ett arbetsflödes **Fields to watch** hör bara dem.
+En uppdatering som skriver en posts värden som de redan är ändrar ingenting: den startar inte postens **On Update**-arbetsflöden, skickar inga liveuppdateringar och lägger inte till någon rad i granskningsloggen. `false` skrivet över `false` räknas som samma värde, och det gör även `"false"` skrivet över `false`, ett tal skrivet som sin text, en tid skriven som samma ögonblick i ett annat format, och etiketter skrivna som samma etiketter i valfri ordning. När en uppdatering ändrar några värden och skriver tillbaka andra som de är listar dess rad i granskningsloggen bara de värden som ändrades, och ett arbetsflödes **Fält att bevaka** hör bara dem.
 
 ### Var ett projekt köptes
 

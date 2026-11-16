@@ -123,6 +123,10 @@ import {
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { Translator, createTranslator } from "../../../Types/Translator";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import {
+  withNumbersKeptWithUnits,
+  withPlainSpaces,
+} from "../../../Types/NoBreakSpaces";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -159,7 +163,12 @@ function worded(
   key: string,
   values: Record<string, string> = {},
 ): string {
-  let sentence: string = LOCALES[language]![key]!;
+  // As the page's Translator sets it: a duration's figure held (#8770).
+  let sentence: string = withNumbersKeptWithUnits(
+    LOCALES[language]![key]!,
+    key.replace(/_one$/, ""),
+    { durationWords: true },
+  );
 
   expect(sentence).toBeTruthy();
 
@@ -817,8 +826,8 @@ describe("a policy's test that walks every level (#7016)", () => {
 
     expect(headingsOf(walk)).toEqual([
       "Level 1, right away",
-      "Level 2, after 2 minutes",
-      "Level 3, after 4 minutes",
+      "Level 2, after 2\u00A0minutes",
+      "Level 3, after 4\u00A0minutes",
     ]);
     /*
      * A timeline: each level's number on its marker, a line down to the next
@@ -873,7 +882,7 @@ describe("a policy's test that walks every level (#7016)", () => {
     walkEveryLevel();
 
     expect(textOf(await screen.findByTestId("test-page-walk-unreached"))).toBe(
-      "The test ends after 15 minutes, before it reaches 2 more levels.",
+      "The test ends after 15\u00A0minutes, before it reaches 2 more levels.",
     );
 
     const levels: Array<HTMLElement> = screen.getAllByTestId(
@@ -895,7 +904,7 @@ describe("a policy's test that walks every level (#7016)", () => {
     walkEveryLevel();
 
     expect(textOf(await screen.findByTestId("test-page-walk-unreached"))).toBe(
-      "The test ends after 15 minutes, before it reaches 1 more level.",
+      "The test ends after 15\u00A0minutes, before it reaches 1 more level.",
     );
   });
 
@@ -965,7 +974,7 @@ describe("a policy's test that walks every level (#7016)", () => {
         count: "4",
       }),
     ]);
-    expect(headings[1]).toBe("Stufe 2, nach 2 Minuten");
+    expect(headings[1]).toBe("Stufe 2, nach 2\u00A0Minuten");
 
     const costLine: string = textOf(screen.getByTestId("test-page-cost"));
 
@@ -996,13 +1005,18 @@ describe("a policy's test that walks every level (#7016)", () => {
     await readIn("fa");
     await openPolicyDialog();
 
-    // "up to 2 minutes apart", in Persian digits.
+    /*
+     * "up to 2 minutes apart", in Persian digits.
+     * A text matcher folds the page's held space (#8770): find it by its words.
+     */
     const walkChoice: string = textOf(
       screen.getByText(
-        worded(
-          "fa",
-          "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.",
-          { minutes: "۲" },
+        withPlainSpaces(
+          worded(
+            "fa",
+            "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.",
+            { minutes: "۲" },
+          ),
         ),
       ),
     );
@@ -1045,7 +1059,7 @@ describe("a policy's test that walks every level (#7016)", () => {
     ).toBe("Level 2, after 1 minute");
     expect(
       getWalkLevelHeading(german, { order: 2, startsAfterMinutes: 1 }),
-    ).toBe("Stufe 2, nach 1 Minute");
+    ).toBe("Stufe 2, nach 1\u00A0Minute");
     expect(
       getWalkLevelHeading(russian, { order: 4, startsAfterMinutes: 21 }),
     ).toBe(

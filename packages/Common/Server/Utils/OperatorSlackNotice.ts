@@ -176,7 +176,9 @@ export default class OperatorSlackNotice {
 
   /*
    * An amount in USD as the messages show it: "$20 USD", "$20.50 USD", and
-   * "-$1.50 USD" for a balance that messages sent together took below zero.
+   * "-$1.50 USD" for a balance that messages sent together took below zero,
+   * the figure held to its unit by a no-break space, as a page holds it
+   * (#8826): a person reads the notice in Slack.
    */
   public static formatUsd(amountInUSD: number): string {
     if (typeof amountInUSD !== "number" || !Number.isFinite(amountInUSD)) {
@@ -189,7 +191,7 @@ export default class OperatorSlackNotice {
       ? absoluteAmount.toString()
       : absoluteAmount.toFixed(2);
 
-    return `${sign}$${digits} USD`;
+    return `${sign}$${digits}\u00A0USD`;
   }
 
   /*

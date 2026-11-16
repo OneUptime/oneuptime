@@ -1,6 +1,7 @@
 import moment from "moment-timezone";
 import OneUptimeDate from "../../../Types/Date";
 import {
+  formatRelativeAmount,
   getHourOption,
   getNumberLocale,
   getDateLocale,
@@ -8,6 +9,7 @@ import {
   rememberEnglishOf,
   writeDigitsInLocale,
 } from "../../../Types/DateLanguage";
+import { NO_BREAK_SPACE } from "../../../Types/NoBreakSpaces";
 import Timezone from "../../../Types/Timezone";
 
 /*
@@ -88,11 +90,7 @@ const rememberedWithEnglish: (data: {
   return data.text;
 };
 
-/*
- * The parts of Intl.RelativeTimeFormat used here. Typed structurally: Common
- * compiles against the ES2017 library, which does not declare it, while
- * every browser the Dashboard supports has it.
- */
+// The units a feed says how long ago in.
 export type RelativeTimeUnit =
   | "second"
   | "minute"
@@ -100,25 +98,6 @@ export type RelativeTimeUnit =
   | "day"
   | "month"
   | "year";
-
-interface RelativeTimeFormatter {
-  format: (value: number, unit: RelativeTimeUnit) => string;
-}
-
-type RelativeTimeFormatConstructor = new (
-  locale: string,
-  options: { numeric: "auto" | "always"; style: "long" | "short" | "narrow" },
-) => RelativeTimeFormatter;
-
-const getRelativeTimeFormatConstructor: () =>
-  | RelativeTimeFormatConstructor
-  | undefined = (): RelativeTimeFormatConstructor | undefined => {
-  return (
-    Intl as unknown as {
-      RelativeTimeFormat?: RelativeTimeFormatConstructor | undefined;
-    }
-  ).RelativeTimeFormat;
-};
 
 /*
  * The Intl locale for a Dashboard language: its own words, order and
@@ -371,47 +350,36 @@ const capitalizeFirst: (text: string, locale: string) => string = (
   }
 };
 
-const relativeFormatterCache: Map<string, RelativeTimeFormatter | null> =
-  new Map<string, RelativeTimeFormatter | null>();
-
 /*
- * `numeric: "auto"` says "now" and "yesterday" where it can, which a day
- * heading and the last hour's hint want; "always" says "1 day ago", which a
- * sentence that already has its own words around the value wants.
+ * A relative time in `locale`, `value` units from now (negative for the
+ * past): Intl's words through DateLanguage's formatRelativeAmount, the
+ * number held to its unit ("12\u00A0min. ago", #8456). `numeric: "auto"`
+ * says "now" and "yesterday" where it can, which a day heading and the
+ * last hour's hint want; "always" says "1 day ago", which a sentence that
+ * already has its own words around the value wants. Null when the browser
+ * has no Intl.RelativeTimeFormat.
  */
-const getRelativeTimeFormatter: (
-  locale: string,
-  style: "long" | "short",
-  numeric?: "auto" | "always",
-) => RelativeTimeFormatter | null = (
-  locale: string,
-  style: "long" | "short",
-  numeric: "auto" | "always" = "auto",
-): RelativeTimeFormatter | null => {
-  const cacheKey: string = `${locale}|${style}|${numeric}`;
-
-  if (relativeFormatterCache.has(cacheKey)) {
-    return relativeFormatterCache.get(cacheKey) || null;
-  }
-
-  let formatter: RelativeTimeFormatter | null = null;
-
-  try {
-    const RelativeTimeFormat: RelativeTimeFormatConstructor | undefined =
-      getRelativeTimeFormatConstructor();
-
-    if (RelativeTimeFormat) {
-      formatter = new RelativeTimeFormat(locale, {
-        numeric: numeric,
-        style: style,
-      });
-    }
-  } catch {
-    formatter = null;
-  }
-
-  relativeFormatterCache.set(cacheKey, formatter);
-  return formatter;
+const writeRelativeTime: (data: {
+  value: number;
+  unit: RelativeTimeUnit;
+  locale: string;
+  style: "long" | "short";
+  numeric?: "auto" | "always" | undefined;
+}) => string | null = (data: {
+  value: number;
+  unit: RelativeTimeUnit;
+  locale: string;
+  style: "long" | "short";
+  numeric?: "auto" | "always" | undefined;
+}): string | null => {
+  return formatRelativeAmount({
+    count: Math.abs(data.value),
+    unit: data.unit,
+    isFuture: data.value > 0,
+    locale: data.locale,
+    style: data.style,
+    numeric: data.numeric || "auto",
+  });
 };
 
 /*
@@ -450,16 +418,18 @@ export const getFeedRelativeDay: (
   }
 
   const locale: string = getFeedLocale(clock.language);
-  const formatter: RelativeTimeFormatter | null = getRelativeTimeFormatter(
-    locale,
-    "long",
-  );
+  const relativeDay: string | null = writeRelativeTime({
+    value: offsetInDays,
+    unit: "day",
+    locale: locale,
+    style: "long",
+  });
 
-  if (!formatter) {
+  if (!relativeDay) {
     return offsetInDays === 0 ? "Today" : "Yesterday";
   }
 
-  return capitalizeFirst(formatter.format(offsetInDays, "day"), locale);
+  return capitalizeFirst(relativeDay, locale);
 };
 
 /*
@@ -489,13 +459,12 @@ export const getFeedRelativeHint: (
   }
 
   const locale: string = getFeedLocale(clock.language);
-  const formatter: RelativeTimeFormatter | null = getRelativeTimeFormatter(
-    locale,
-    "short",
-  );
 
   if (ageInSeconds < JUST_NOW_IN_SECONDS) {
-    return formatter ? formatter.format(0, "second") : "now";
+    return (
+      writeRelativeTime({ value: 0, unit: "second", locale, style: "short" }) ||
+      "now"
+    );
   }
 
   // 45 s to 1 min 29 s is "1 min ago", as a person would round it.
@@ -505,9 +474,14 @@ export const getFeedRelativeHint: (
     return undefined;
   }
 
-  return formatter
-    ? formatter.format(-minutes, "minute")
-    : `${minutes}\u00A0min ago`;
+  return (
+    writeRelativeTime({
+      value: -minutes,
+      unit: "minute",
+      locale,
+      style: "short",
+    }) || `${minutes}\u00A0min ago`
+  );
 };
 
 /*
@@ -607,19 +581,21 @@ const writeFeedTimeAgo: (date: Date, clock: FeedClock) => string | undefined = (
   }
 
   const distance: TimeAgoDistance = getFeedTimeAgoDistance(ageInSeconds);
-  const formatter: RelativeTimeFormatter | null = getRelativeTimeFormatter(
-    getFeedLocale(clock.language),
-    "long",
-    "always",
-  );
+  const ago: string | null = writeRelativeTime({
+    value: -distance.count,
+    unit: distance.unit,
+    locale: getFeedLocale(clock.language),
+    style: "long",
+    numeric: "always",
+  });
 
-  if (formatter) {
-    return formatter.format(-distance.count, distance.unit);
+  if (ago) {
+    return ago;
   }
 
   const names: [string, string] = ENGLISH_UNIT_NAMES[distance.unit];
 
-  return `${distance.count} ${distance.count === 1 ? names[0] : names[1]} ago`;
+  return `${distance.count}${NO_BREAK_SPACE}${distance.count === 1 ? names[0] : names[1]} ago`;
 };
 
 /*

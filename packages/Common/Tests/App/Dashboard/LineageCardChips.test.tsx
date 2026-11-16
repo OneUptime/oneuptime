@@ -480,7 +480,10 @@ describe("an alert's own card", () => {
     await renderAlert(anAnswer({ isAlertOpen: true }));
 
     expect(chips(`table:${CALLBACKS}`)).toEqual(["1 open alert", "Fresh"]);
-    expect(chips(`table:${MART}`)).toEqual(["1 open alert", "Late by 2 hours"]);
+    expect(chips(`table:${MART}`)).toEqual([
+      "1 open alert",
+      "Late by 2\u00A0hours",
+    ]);
     // A dropped table says so, whatever it counted.
     expect(chips(`table:${OLD}`)).toEqual(["Dropped"]);
   });
@@ -896,7 +899,7 @@ describe("a second chip left too little room (#6957)", () => {
 
     expect(chips(`table:${LEDGER}`).map(withoutIsolateMarks)).toEqual([
       "Diese Warnung",
-      "1 offener Alarm",
+      "1 offene Warnung",
     ]);
 
     const row: HTMLElement = drawChips(`table:${LEDGER}`, false);
@@ -915,7 +918,7 @@ describe("a second chip left too little room (#6957)", () => {
     fireEvent.mouseEnter(words);
 
     expect(withoutIsolateMarks(words.getAttribute("title") || "")).toBe(
-      "1 offener Alarm",
+      "1 offene Warnung",
     );
     expect(row).not.toHaveAttribute("title");
   });

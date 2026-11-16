@@ -534,7 +534,8 @@ describe("describeReplayUserSession", () => {
       );
 
     expect(described.duration).toBe("4m 12s");
-    expect(described.deviceHint).toBe("Safari · mobile");
+    // The kind of device as the Device filter names it, in the reader's words.
+    expect(described.deviceHint).toBe("Safari · Mobile");
     expect(
       userSessions.describeReplayUserSession(
         item("b", NOW, { browserName: "", deviceType: "" }),
@@ -559,12 +560,12 @@ describe("describeReplayUserSession", () => {
 
     expect(at(10 * 1000)).toBe("just now");
     expect(at(60 * 1000)).toBe("a minute ago");
-    expect(at(5 * 60 * 1000)).toBe("5 minutes ago");
+    expect(at(5 * 60 * 1000)).toBe("5\u00A0minutes ago");
     expect(at(60 * 60 * 1000)).toBe("an hour ago");
-    expect(at(3 * 60 * 60 * 1000)).toBe("3 hours ago");
+    expect(at(3 * 60 * 60 * 1000)).toBe("3\u00A0hours ago");
     expect(at(DAY_MS)).toBe("a day ago");
-    expect(at(6 * DAY_MS)).toBe("6 days ago");
-    expect(at(21 * DAY_MS)).toBe("3 weeks ago");
+    expect(at(6 * DAY_MS)).toBe("6\u00A0days ago");
+    expect(at(21 * DAY_MS)).toBe("3\u00A0weeks ago");
     /* A device clock ahead of the server's. */
     expect(at(-5 * 60 * 1000)).toBe("just now");
   });

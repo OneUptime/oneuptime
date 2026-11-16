@@ -1,6 +1,6 @@
 # 外部状态页监控
 
-外部状态页监视器会关注你所依赖的服务（AWS、GCP、Azure、GitHub、OpenAI、Anthropic 等众多服务）的公开状态页，并在该服务商报告故障或性能下降时向你告警。用它在服务商报告上游问题的第一时间得知，并把这些问题与你自己的问题区分开。
+外部状态页监视器会关注你所依赖的服务（AWS、GCP、Azure、GitHub、OpenAI、Anthropic 等众多服务）的公开状态页，并在该服务商报告故障或性能下降时向你警报。用它在服务商报告上游问题的第一时间得知，并把这些问题与你自己的问题区分开。
 
 它也能逐个资源读取用 OneUptime 制作的状态页，并区分计划维护与故障：监视另一个团队的项目，或状态页运行在 OneUptime 上的服务商。
 
@@ -29,7 +29,7 @@ flowchart TB
 可以用它来：
 
 - 监控你的应用所依赖的第三方服务的可用性
-- 在上游服务商发生故障时收到告警
+- 在上游服务商发生故障时收到警报
 - 跟踪各个组件的状态
 - 只关注你依赖的组件（例如 GitHub 的 Git Operations 和 Pull Requests，或 OpenAI 的 "APIs" 组），这样页面上其他无关的事件就不会触发你的监视器
 - 在性能下降影响用户之前发现它
@@ -39,7 +39,7 @@ flowchart TB
 
 | 服务商 | 说明 |
 | ------------------------ | ---------------------------------------------------------------------- |
-| **Auto**（默认） | 自动识别状态页格式 |
+| **自动**（默认） | 自动识别状态页格式 |
 | **Atlassian Statuspage** | 由 Atlassian Statuspage 提供的状态页（JSON API） |
 | **incident.io** | 由 incident.io 提供的状态页（例如 `https://status.openai.com`） |
 | **OneUptime Status Page** | 用 OneUptime 制作的状态页：每个资源的状态，以及哪些正在维护 |
@@ -48,7 +48,7 @@ flowchart TB
 
 ### 自动识别
 
-设置为 **Auto** 时，OneUptime 会按以下顺序自动识别状态页格式：
+设置为 **自动** 时，OneUptime 会按以下顺序自动识别状态页格式：
 
 1. 首先尝试 incident.io 状态页 API（`/proxy/<host>`）。
 2. 接着尝试 Atlassian Statuspage JSON API（`/api/v2/status.json`、`/api/v2/components.json` 和 `/api/v2/incidents/unresolved.json`）。
@@ -70,7 +70,7 @@ flowchart TB
 
 ### 输入状态页 URL
 
-输入 **状态页 URL**。除非你知道格式，否则请把 **提供商** 保留为 **Auto**。
+输入 **状态页 URL**。除非你知道格式，否则请把 **提供商** 保留为 **自动**。
 
 ### 如有需要，选择组件
 
@@ -94,7 +94,7 @@ flowchart TB
 | 选项 | 填写内容 | 默认值 |
 | --- | --- | --- |
 | **状态页 URL** | 状态页的 URL。对于由 Atlassian Statuspage 和 incident.io 提供的站点，通常是根 URL（例如 `https://status.example.com`）。对于 RSS/Atom 订阅源，请直接输入订阅源的 URL。 | — |
-| **提供商** | **Auto** 表示自动识别格式；如果你知道格式，可选择 **Atlassian Statuspage**、**incident.io**、**OneUptime Status Page**、**RSS** 或 **Atom**。 | **Auto** |
+| **提供商** | **自动** 表示自动识别格式；如果你知道格式，可选择 **Atlassian Statuspage**、**incident.io**、**OneUptime Status Page**、**RSS** 或 **Atom**。 | **自动** |
 | **组件** | 要关注的组件，从页面自己的列表中选择或直接输入。 | 整个页面 |
 | **组件组过滤器** | 监视器限定到的组。位于 **更多字段** 下。 | 所有组 |
 | **超时（ms）** | 等待状态页的最长时间。位于 **更多字段** 下。 | `10000`（10 秒） |
@@ -135,7 +135,7 @@ flowchart TB
 | **外部状态页活动事件数** | 状态页上当前进行中的事件数（选择了组件或组时，只计算影响范围内组件的事件） | 等于、不等于以及数值比较 |
 | **外部状态页响应时间（毫秒）** | 获取状态页数据所花的时间 | 大于、小于、大于或等于、小于或等于 |
 
-整体状态就是页面上写的内容，因此其取值因服务商而异：Atlassian Statuspage 报告它自己的描述，例如 `All Systems Operational`；OneUptime 状态页报告范围内组件中最差的状态，例如 `under_maintenance`；订阅源报告 `operational` 或 `degraded_performance`；可达性检查报告 `reachable` 或 `unreachable`。选择了组件或组时，无论是哪种页面，它都是其中最差的状态。这些比较区分大小写。监视器摘要会像显示每个组件的状态一样，用文字和颜色显示整体状态（`under_maintenance` 显示为 **维护中**），而条件比较的是页面报告的值。要针对故障告警，**外部状态页活动事件数** 和 **外部状态页组件状态** 通常更可靠。
+整体状态就是页面上写的内容，因此其取值因服务商而异：Atlassian Statuspage 报告它自己的描述，例如 `All Systems Operational`；OneUptime 状态页报告范围内组件中最差的状态，例如 `under_maintenance`；订阅源报告 `operational` 或 `degraded_performance`；可达性检查报告 `reachable` 或 `unreachable`。选择了组件或组时，无论是哪种页面，它都是其中最差的状态。这些比较区分大小写。监视器摘要会像显示每个组件的状态一样，用文字和颜色显示整体状态（`under_maintenance` 显示为 **维护中**），而条件比较的是页面报告的值。要针对故障警报，**外部状态页活动事件数** 和 **外部状态页组件状态** 通常更可靠。
 
 对于 RSS 或 Atom 订阅源，最近 24 小时内的条目算作进行中的事件：RSS 条目按发布日期，Atom 条目按更新日期。日期在未来的条目要到该日期才计入。
 
@@ -152,7 +152,7 @@ flowchart TB
 
 ## OneUptime 状态页
 
-要监视用 OneUptime 制作的状态页（另一个团队的项目，或者服务商在 OneUptime Cloud 或自托管 OneUptime 上的页面），把提供商选为 **OneUptime Status Page** ，或保留 **Auto** 。在 **状态页 URL** 中输入页面自己的地址：有域名就输入域名，例如 `https://status.example.com`，没有就输入 `https://oneuptime.com/status-page/<status-page-id>`。
+要监视用 OneUptime 制作的状态页（另一个团队的项目，或者服务商在 OneUptime Cloud 或自托管 OneUptime 上的页面），把提供商选为 **OneUptime Status Page** ，或保留 **自动** 。在 **状态页 URL** 中输入页面自己的地址：有域名就输入域名，例如 `https://status.example.com`，没有就输入 `https://oneuptime.com/status-page/<status-page-id>`。
 
 监视器读取页面的摘要 `/status-page-api/summary/<page>`（参见 [读取摘要](/docs/status-pages/public-api#读取摘要)）：只读取页面向访客展示的内容，不读取另一个项目的其他任何内容。页面上的每个资源（一个监视器或一个监视器组）都是一个组件，使用页面为它起的名称，位于页面的分组中；一个分组中的分组写作 `Core / Databases`。在 **组件** 中选择资源，或用 **组件组过滤器** 监视一个分组。
 
@@ -198,7 +198,7 @@ flowchart TB
 
 ## 模板变量
 
-从外部状态页监视器创建事件或告警时，你可以在标题、描述和修复说明中使用这些变量（参见 [事件与告警模板](/docs/monitor/incident-alert-templating)）：
+从外部状态页监视器创建事件或警报时，你可以在标题、描述和修复说明中使用这些变量（参见 [事件与警报模板](/docs/monitor/incident-alert-templating)）：
 
 | 变量 | 说明 |
 | ------------------------- | ------------------------------------------------------------------------------- |
@@ -215,7 +215,7 @@ flowchart TB
 
 ## 常用状态页 URL
 
-下面列出了一些常用服务的状态页。其中许多使用 Atlassian Statuspage 或 incident.io，因此 **Auto** 服务商会自动识别它们。既不基于这两者、也不是订阅源的页面只会进行可达性检查；对于这类页面，如果服务商发布了 RSS 或 Atom 订阅源，请改为监控该订阅源。
+下面列出了一些常用服务的状态页。其中许多使用 Atlassian Statuspage 或 incident.io，因此 **自动** 服务商会自动识别它们。既不基于这两者、也不是订阅源的页面只会进行可达性检查；对于这类页面，如果服务商发布了 RSS 或 Atom 订阅源，请改为监控该订阅源。
 
 | 服务 | 状态页 URL |
 | ---------------------------- | --------------------------------------------- |
@@ -278,7 +278,7 @@ flowchart TB
 ## 后续步骤
 
 :::cards
-- [事件与告警模板](/docs/monitor/incident-alert-templating): 把服务商的状态放进事件标题。
+- [事件与警报模板](/docs/monitor/incident-alert-templating): 把服务商的状态放进事件标题。
 - [API 监控](/docs/monitor/api-monitor): 在服务商状态之外检查你自己的端点。
 - [创建监视器](/docs/monitor/create-monitor): 所有监视器类型共有的步骤。
 :::

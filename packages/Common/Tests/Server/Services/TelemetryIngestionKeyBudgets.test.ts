@@ -207,7 +207,7 @@ describe("TelemetryIngestionKeyService.onBeforeCreate - a key's own budgets", ()
 
     await expect(
       internals.onBeforeCreate(createBy({ logsDailyIngestionBudgetInGB: 51 })),
-    ).rejects.toThrow("is more than the project's (50 GB)");
+    ).rejects.toThrow("is more than the project's (50\u00A0GB)");
   });
 
   test("refuses 0: a key with no budget of its own leaves the field empty", async () => {
@@ -269,7 +269,7 @@ describe("TelemetryIngestionKeyService.onBeforeUpdate - a key's own budgets", ()
       internals.onBeforeUpdate(
         updateBy({ logsIngestionRateLimitInMBPerSecond: 3 }),
       ),
-    ).rejects.toThrow("is more than the project's (2 MB per second)");
+    ).rejects.toThrow("is more than the project's (2\u00A0MB per second)");
   });
 
   test("clearing a key's budget is always allowed, and is saved as null", async () => {

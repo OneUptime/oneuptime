@@ -45,11 +45,11 @@ Du trenger en rolle som kan opprette SLO-er: Prosjekteier, Prosjektadministrator
 :::steps
 ### Åpne SLO-er
 
-Åpne **SLOs** fra menyen **Produkter** i topplinjen. Den ligger i den første gruppen, ved siden av monitorer og hendelser. Klikk på **Opprett Service Level Objective**.
+Åpne **SLOs** fra menyen **Produkter** i topplinjen. Den ligger i den første gruppen, ved siden av monitorer og hendelser. Klikk på **Opprett Tjenestenivåmål**.
 
 ### Velg hva SLO-et måler
 
-Under **Hva den måler** beholder du **Monitoroppetid** for å måle andelen av tiden monitorene er tilgjengelige. Velg **Vellykkede forespørsler** eller **Forespørselslatens** for heller å måle forespørslene til tjenester, og velg dem under **Tjenester**: se [SLO-er for forespørsler og latens](/docs/slo/request-slos). Klikk på **Neste**.
+Under **Hva den måler** beholder du **Monitoroppetid** for å måle andelen av tiden monitorene er tilgjengelige. Velg **Vellykkede forespørsler** eller **Forespørselslatens** for heller å måle forespørslene til tjenester, og velg dem under **Tjenester**: se [SLO-er for forespørsler og latens](/docs/slo/request-slos). Velg **Måling** for å telle de gode hendelsene i en teller eller et histogram som tjenestene dine sender: se [SLO-er ut fra en måling](/docs/slo/request-slos#slo-er-ut-fra-en-måling). Klikk på **Neste**.
 
 ### Gi det et navn og et mål
 
@@ -61,7 +61,7 @@ Skriv inn et **Navn**, for eksempel «API Availability», og et **Mål (%)**: hv
 
 ### Lagre SLO-et
 
-Klikk på **Opprett Service Level Objective**. OneUptime åpner det nye SLO-et. **Oversikt** for et SLO for monitoroppetid viser **Choose what this SLO measures**, fordi det ennå ikke har noen monitorer.
+Klikk på **Opprett Tjenestenivåmål**. OneUptime åpner det nye SLO-et. **Oversikt** for et SLO for monitoroppetid viser **Choose what this SLO measures**, fordi det ennå ikke har noen monitorer.
 
 ### Knytt til monitorer
 
@@ -161,6 +161,7 @@ Siden **SLOs** viser hvert SLO som ikke er arkivert, med status, SLI, gjenværen
 | --- | --- |
 | **Oversikt** | Statusen, nøkkeltallene, forbruket av feilbudsjettet, nylig aktivitet, åpne varsler og hendelser og forbruksratereglene. |
 | **Målinger** | `oneuptime.slo.*`-målingene til SLO-et, den langsiktige historikken for feilbudsjettet og målingene for hendelsene og varslene som påvirker det. Se [SLO-målinger og -dashbord](/docs/slo/metrics). |
+| **Månedsrapport** | Hvordan SLO-et gjorde det hver kalendermåned og over hele perioden. Se [Månedsrapporten](#månedsrapporten). |
 | **Hendelser** | Hendelsene som forbruksratereglene og feilbudsjettpolicyen har erklært. Merket teller de åpne. |
 | **Varsler** | Varslene som forbruksratereglene og feilbudsjettpolicyen har utløst. Merket teller de åpne. |
 | **Feed** | Hva som har skjedd med SLO-et, som en tidslinje. Se [SLO-feed og revisjonslogger](/docs/slo/feed-and-audit-logs). |
@@ -201,14 +202,39 @@ Siden **Innstillinger** samler hvordan et SLO måler, med ett kort for hver ting
 
 | Kort | Det du endrer | Greit å vite |
 | --- | --- | --- |
-| **Hva den måler** | **Hva den måler**, **Tjenester** og **Latensgrense (ms)**, med **Rediger hva den måler**. | Et forespørsels-SLO teller forespørslene sine på nytt fra starten etter en endring. |
+| **Hva den måler** | **Hva den måler**, **Tjenester**, **Latensgrense (ms)**, **Forespørselsfilter** og **Måling**, med **Rediger hva den måler**. | Et forespørsels-SLO teller forespørslene sine på nytt fra starten etter en endring. |
 | **Mål** | **Mål (%)** og **Risikoterskel (%)**, med **Rediger mål**. | Viser nedetiden målet tillater, for eksempel «43 min, 12 sek nedetid per vindu på 30 dager». |
 | **Samsvarsperiode** | **Vindustype**, **Vindu (dager)** og **Tidssone**, med **Rediger periode**. | Forbruksrateregler beholder tersklene sine når vinduet endres, så gå gjennom dem etterpå. |
-| **Beregning av nedetid** | **Modus for flere monitorer** og **Overvåkerstatuser for nedetid**, med **Rediger beregning av nedetid**. | Bare SLO-er for monitoroppetid. Uten statuser teller alle ikke-operative statuser, også dem som legges til senere. |
+| **Beregning av nedetid** | **Modus for flere monitorer** og **Monitorstatuser for nedetid**, med **Rediger beregning av nedetid**. | Bare SLO-er for monitoroppetid. Uten statuser teller alle ikke-operative statuser, også dem som legges til senere. |
 | **Evaluering** | Bryteren **Evaluer dette SLO-et**, som lagrer så snart du slår den om. | Å slå den av ber om bekreftelse, fordi det også løser de åpne forbruksratevarslene og -hendelsene til SLO-et. |
 | **Arkiver SLO** | **Arkiver** eller **Fjern fra arkivet**. | Se [Arkivere et SLO](#arkivere-et-slo). |
 
 Etter en endring av hva det måler, målet, perioden eller nedetidsberegningen evaluerer OneUptime SLO-et på nytt ved neste kjøring.
+
+### Månedsrapporten
+
+**Månedsrapport** viser hvordan SLO-et gjorde det i hver kalendermåned de siste **3 måneder**, **6 måneder**, **9 måneder** eller **12 måneder**, eller i et kalenderår. Hver måned viser sin SLI, sin nedetid (for et forespørsels-SLO de mislykkede eller trege forespørslene, for et målings-SLO de dårlige hendelsene), andelen av feilbudsjettet den brukte, og resultatet:
+
+| Resultat | Hva det betyr |
+| --- | --- |
+| Oppfylt | Måneden er over, og SLI-en nådde målet. |
+| Ikke nådd | Måneden er over og nådde ikke målet, eller måneden pågår fortsatt og har allerede mer nedetid enn hele måneden tillater. |
+| I rute | Måneden pågår fortsatt, og SLI-en så langt når målet. |
+| Under målet | Måneden pågår fortsatt, og SLI-en så langt er under målet. |
+| Ingen data | Ingenting ble målt den måneden. |
+
+Raden **Totalt** måler hele perioden som én. Et SLO med flere monitorer får også en tabell **Per monitor**: hver monitors egen SLI i hver måned, med monitoren som kostet SLO-et mest, først. **Last ned CSV** lagrer rapporten som en fil til et regneark.
+
+Ingenting ekstra lagres for rapporten. Hver måned regnes ut fra statushistorikken til monitorene når du åpner den, med monitorene, nedetidsstatusene og målet til SLO-et slik de er nå, så den går tilbake til før SLO-et ble opprettet. Månedene til et forespørsels-SLO kommer fra forespørslene OneUptime har telt for det, og månedene til et målings-SLO fra hendelsene fra målingen, som lagres i 400 dager. Månedene følger tidssonen til SLO-et, eller UTC når det ikke har noen.
+
+API-et svarer med den samme rapporten:
+
+```bash
+curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/monthly-report?months=12" \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Be med `months` om 1 til 24 måneder som slutter med inneværende måned, eller om et kalenderår med `year`, for eksempel `year=2025`.
 
 ## Arkivere et SLO
 
@@ -265,6 +291,8 @@ Et banner øverst på sidene til SLO-et forteller hva som hindrer det i å måle
 | **Ingen tjenester valgt** | Et forespørsels-SLO har ingen tjenester, så det har ingen forespørsler å telle. | Velg tjenestene under **Innstillinger** → **Hva den måler**. |
 | **Ingen latensgrense** | Et latens-SLO har ingen grense, så ingen forespørsel kan telle som rask nok. | Angi **Latensgrense (ms)** under **Innstillinger** → **Hva den måler**. |
 | **Venter på forespørsler** | Ingen av tjenestene til et forespørsels-SLO har besvart en forespørsel i vinduet ennå. | Sjekk at tjenestene sender spor til OneUptime. Tallene vises etter neste evaluering som teller en forespørsel. |
+| **Ingen måling å telle** | Et målings-SLO har ingen måling det kan telle: ingen er valgt, eller det er ikke angitt hvordan de gode hendelsene skilles fra de andre. | Velg målingen, og betingelsen eller verdien for de gode hendelsene, under **Innstillinger** → **Hva den måler**. |
+| **Venter på målingen** | Ingen av tjenestene til et målings-SLO har sendt en hendelse av målingen i vinduet ennå. | Sjekk at tjenestene sender målingen til OneUptime, under navnet SLO-et teller. Tallene vises etter neste evaluering som teller en hendelse. |
 
 ## Neste steg
 

@@ -29,7 +29,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- En ingestion-nyckel: öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa ingestion-nyckel**.
+- En intagningsnyckel: öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa intagningsnyckel**.
 - Din OTLP-bas-URL: `https://oneuptime.com/otlp`, eller `https://YOUR-ONEUPTIME-HOST/otlp` om du hostar OneUptime själv.
 - Nyckeln följer med i huvudet `x-oneuptime-token` i varje exportbegäran.
 

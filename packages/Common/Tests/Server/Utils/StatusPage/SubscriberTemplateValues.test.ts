@@ -316,7 +316,7 @@ describe("SubscriberTemplateValues.inPageLanguage", () => {
     SubscriberTemplateValues.inPageLanguage(GERMAN_PAGE, values());
 
     expect(OneUptimeDate.convertMinutesToDaysHoursAndMinutes(5)).toBe(
-      "5 minutes",
+      "5\u00A0minutes",
     );
   });
 

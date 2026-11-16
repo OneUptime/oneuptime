@@ -1486,7 +1486,7 @@ describe("privacy: link rows are narrowed to incidents AND alerts the caller can
     expectBothFilters(findBy.mock.calls[0]![0].query);
   });
 
-  test("project admins, and root, are not narrowed", async () => {
+  test("Project Admins, and root, are not narrowed", async () => {
     for (const props of [
       userProps(Permission.ProjectAdmin),
       { isRoot: true },

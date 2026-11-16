@@ -1,6 +1,6 @@
 # 管理应用程序
 
-当你的应用的遥测数据首次到达时，OneUptime 会创建一个 RUM 应用程序。本页介绍此后由你管理的内容：应用程序的名称、标签和所有者、数据保留多久、归档、谁能看到它，以及告警。
+当你的应用的遥测数据首次到达时，OneUptime 会创建一个 RUM 应用程序。本页介绍此后由你管理的内容：应用程序的名称、标签和所有者、数据保留多久、归档、谁能看到它，以及警报。
 
 :::cards
 - [应用程序是如何创建的](#应用程序是如何创建的): 按 `service.name` 匹配，随第一批数据创建。
@@ -161,7 +161,7 @@ const resource = defaultResource().merge(
 
 一种实用的分工：给支持工程师 `ReadRumApplication` 和 `ReadRumSessionReplay` 。他们可以看到哪些会话出现了错误，而无需观看任何人的屏幕，也不会得知用户是谁。只把 `ReadRumSessionReplayPayload` 授予需要的人；这样，拥有 `ReadRumSessionReplayAudit` 的成员就能在应用程序的 **回放访问日志** 页面上看到每一次观看。 [谁可以观看录制](/docs/telemetry/session-replay#谁可以观看录制) 说明了每项权限在会话列表和播放器中解锁了什么。
 
-## 针对 RUM 数据设置告警
+## 针对 RUM 数据设置警报
 
 RUM 遥测就是普通的日志、指标和追踪，因此没有单独的 RUM 监视器：常规监视器都适用于它。最快的入门方式是应用程序的 **建议** 页面，它会提供已限定到该应用程序的监视器：
 
@@ -169,12 +169,12 @@ RUM 遥测就是普通的日志、指标和追踪，因此没有单独的 RUM �
 | --- | --- |
 | Core Web Vitals | Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint 和 Slow Time to First Byte。参见 [核心 Web 指标](/docs/rum/web-vitals) 。 |
 | 错误 | Failed User Operations 和 Unhandled Browser Exceptions。 |
-| 会话回放 | 四个 [存储预算告警](/docs/telemetry/session-replay#存储预算告警) ，会在项目的每日上限或应用程序的每月预算用尽之前发出警告。应用程序录制过回放后就会提供它们，月度那一对则在应用程序还设置了每月预算后提供。 |
+| 会话回放 | 四个 [存储预算警报](/docs/telemetry/session-replay#存储预算警报) ，会在项目的每日上限或应用程序的每月预算用尽之前发出警告。应用程序录制过回放后就会提供它们，月度那一对则在应用程序还设置了每月预算后提供。 |
 
 要自己构建监视器，请选择读取相应信号的那种：
 
 - [指标监控](/docs/monitor/metrics-monitor) ：某个核心 Web 指标，或你的应用发送的任何指标。
-- [跟踪监控](/docs/monitor/traces-monitor) ：客户端错误率或延迟。
+- [追踪监控](/docs/monitor/traces-monitor) ：客户端错误率或延迟。
 - [日志监控](/docs/monitor/logs-monitor) ：浏览器日志中的某种模式。
 - [异常监控](/docs/monitor/exceptions-monitor) ：新出现或激增的客户端异常。
 

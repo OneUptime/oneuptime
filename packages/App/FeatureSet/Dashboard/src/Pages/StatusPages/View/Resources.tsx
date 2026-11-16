@@ -1419,6 +1419,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
                   })
                 : translator.translateTemplate("Delete Group")
             }
+            isTitleTranslated={true}
             description={getDeleteDescription()}
             submitButtonText="Delete"
             submitButtonType={ButtonStyleType.DANGER}

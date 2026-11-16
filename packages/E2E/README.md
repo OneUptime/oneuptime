@@ -302,6 +302,25 @@ when its words fit one line, and balances its lines when they wrap. See
 `SignInOptions/README.md`. Failure traces and review screenshots are written to
 `output/playwright/sign-in-options-ui/test-results/` at the repository root.
 
+## Security page UI regression tests
+
+Run the User Profile > Security checks without starting the app or database:
+
+```bash
+cd packages/E2E
+npm run test-security-page-ui
+```
+
+The fixture (`SecurityPage/Fixture`, port 4493) renders the Dashboard's real
+Two-factor authentication and Passkeys pages in their User Profile layout, with
+the data boundary stubbed, the production Tailwind and the Inter font. In
+English, German, Arabic and Persian it checks that every card, row, status and
+button reads in the page's language, that the page fits its window and reads
+right to left in Arabic and Persian, a new account's empty states (Persian,
+dark), the regenerate dialog (German) and the Arabic page on a phone (#8796).
+See `SecurityPage/README.md`. Screenshots of each are written to
+`output/playwright/security-page-ui/` at the repository root.
+
 ## Helpers the focused suites share
 
 `SuiteHelpers/` holds what more than one focused suite needs:
@@ -349,6 +368,24 @@ when its words fit one line, and balances its lines when they wrap. See
   `E2E_REQUIRE_ENTERPRISE` is set, as the Enterprise Edition Test workflow's
   Enterprise UI job sets it, so a fixture that stops finding `ee/` cannot pass
   there by skipping.
+- `FixtureLocalesBuild.js`, `FixtureLocales.js` and `LocaleChunks.ts`: a
+  fixture's Dashboard locales, built and loaded as the Dashboard ships them
+  (#8366). Each locale file is 6 to 10 MB of JSON, and a fixture that
+  imported the languages it draws whole parsed every one of them on every
+  page load of every test (MonitorOverview's entry was 30 MB, CloudConnect's
+  47 MB). A fixture's `server.js` passes `dashboardLocalesPlugin()` to
+  `createConfig`'s `additionalPlugins`, and its page imports `en.json`
+  (about 11 KB once built) and hands i18next
+  `await localeResources({ language, english: EN, loaders: LOCALE_LOADERS })`,
+  where each other language is a loader that `import()`s its file by a
+  literal, a chunk of its own that only a page drawn in that language loads
+  (`fallbackLng: "en"`). `changeToLanguage(i18n, language, loaders)` serves
+  a page that switches language while open. In a spec,
+  `expectPageLoadsOnlyItsLanguage(page, check, language)` holds a page to
+  its own locale and a script budget, and `dashboardWord(language, english)`
+  reads the words it should show, and `describePageLanguages(block)` gives a
+  suite those checks in one call. `Tests/Ops/E2EFixtureLocalesAsShipped`
+  holds every fixture to this (#8645 moved the last ones).
 
 A fixture navigates as the frontend it draws: one that draws Dashboard pages
 mounts `<BrowserRouter useTransitions={false}>`, as the Dashboard's

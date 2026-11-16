@@ -31,7 +31,7 @@ Utforskaren har fem flikar:
 | **Tittare** | Sök i, filtrera och läs loggar. Den öppnas på den senaste timmen, nyaste först, 100 loggar per sida. |
 | **Insikter** | Vad dina tjänster har loggat i ett tidsintervall, och vad som gick fel. |
 | **AI** | De felloggar, den saknade loggning och de brusiga loggar som OneUptime hittar i dina loggar, och vad OneUptime AI gjorde åt dem. Se [Hitta och åtgärda felloggar, saknade och brusiga loggar med AI](#hitta-och-åtgärda-felloggar-saknade-och-brusiga-loggar-med-ai). |
-| **Installationsguide** | Hur du skickar loggar med OpenTelemetry, Fluent Bit eller Fluentd med en av dina [inmatningsnycklar](/docs/telemetry/ingestion-keys). |
+| **Installationsguide** | Hur du skickar loggar med OpenTelemetry, Fluent Bit eller Fluentd med en av dina [intagningsnycklar](/docs/telemetry/ingestion-keys). |
 | **Inställningar** | Vad som händer med loggar när de kommer in: **Pipelines**, **Drop-filter**, **Scrub-regler** och **Inspelningsregler**. |
 
 ## Innan du börjar
@@ -118,7 +118,7 @@ Klicka på **Lista** för att gå tillbaka till själva raderna.
 
 ## Öppna tillhörande spår och mätvärden
 
-Knapparna **Spår** och **Mätvärden** bredvid **Sparade vyer** öppnar [Spårutforskare](/docs/telemetry/traces-explorer) eller [Måttutforskare](/docs/telemetry/metrics-explorer) för samma tidsfönster, med så mycket av din filtrering som den utforskaren kan använda. Peka på en knapp för att se vad den inte kan ta med sig.
+Knapparna **Spår** och **Mätvärden** bredvid **Sparade vyer** öppnar [Spårutforskare](/docs/telemetry/traces-explorer) eller [Mätvärdesutforskare](/docs/telemetry/metrics-explorer) för samma tidsfönster, med så mycket av din filtrering som den utforskaren kan använda. Peka på en knapp för att se vad den inte kan ta med sig.
 
 ## Insikter i loggar
 
@@ -215,7 +215,7 @@ Live-läget följer bara de nyaste loggarna, så en ändring av sökningen, ett 
 
 :::cards
 - [Söksyntax](/docs/telemetry/search-syntax): Varje filter som sökrutan förstår.
-- [Loggövervakning](/docs/monitor/logs-monitor): Få en avisering när loggarna du söker efter dyker upp.
+- [Loggövervakning](/docs/monitor/logs-monitor): Få ett larm när loggarna du söker efter dyker upp.
 - [Loggpipelines](/docs/telemetry/log-pipelines): Gör delar av en loggrad till attribut du kan filtrera på.
 - [Spårutforskare](/docs/telemetry/traces-explorer): Följ en loggs förfrågan genom dina tjänster.
 :::

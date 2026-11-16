@@ -3,6 +3,8 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * A runbook's Triggers page in a browser, against the offline fixture
@@ -94,9 +96,12 @@ function preview(page: Page): Locator {
 const GERMAN_WEEKDAY: RegExp = /(Mo|Di|Mi|Do|Fr)\., \d+\. /;
 /*
  * "in 2 Stunden", "in 1 Tag", "in 4 Tagen", "in 25 Minuten". "in 1 Tag" is
- * what a Sunday before 09:00 says of Monday's run.
+ * what a Sunday before 09:00 says of Monday's run. The number is held to
+ * its unit by a no-break space (#8456), which a pattern matches as written.
  */
-const GERMAN_HOW_FAR: RegExp = /in \d+ (Minuten?|Stunden?|Tag(?:en)?)/;
+const GERMAN_HOW_FAR: RegExp = new RegExp(
+  `in \\d+${NO_BREAK_SPACE}(Minuten?|Stunden?|Tag(?:en)?)`,
+);
 
 async function pick(page: Page, menu: string, option: string): Promise<void> {
   await dialog(page).getByRole("combobox", { name: menu }).click();
@@ -580,4 +585,18 @@ test.describe("what started a run", () => {
     await expect(inputs).toContainText('"severity": "critical"');
     await expect(inputs.locator("pre code")).toHaveCount(1);
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Japanese whole, parsed on every page load of every test.
+ * English is in the bundle now, and each other language a chunk of its own,
+ * loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built
+ * as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja"],
+  address: (language: string): string => {
+    return language === "en" ? TRIGGERS : `${TRIGGERS}?lang=${language}`;
+  },
 });

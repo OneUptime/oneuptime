@@ -3769,3 +3769,39 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Capacity",
   ];
 }
+
+/*
+ * Each group's heading in the metric picker, a key: a category is the value
+ * the catalog's metrics name, so the picker looks its heading up here, once
+ * (#8653).
+ */
+const categoryLabels: Record<OpenStackMetricCategory, string> = {
+  Availability: translationKey("Availability"),
+  "Control Plane": translationKey("Control Plane"),
+  RabbitMQ: translationKey("RabbitMQ"),
+  "MariaDB and Galera": translationKey("MariaDB and Galera"),
+  Memcached: translationKey("Memcached"),
+  HAProxy: translationKey("HAProxy"),
+  "OVN and Open vSwitch": translationKey("OVN and Open vSwitch"),
+  libvirt: translationKey("libvirt"),
+  Compute: translationKey("Compute"),
+  Network: translationKey("Network"),
+  Storage: translationKey("Storage"),
+  Images: translationKey("Images"),
+  Identity: translationKey("Identity"),
+  Orchestration: translationKey("Orchestration"),
+  "Bare Metal": translationKey("Bare Metal"),
+  "Load Balancers": translationKey("Load Balancers"),
+  Databases: translationKey("Databases"),
+  Metrics: translationKey("Metrics"),
+  "Key Manager": translationKey("Key Manager"),
+  Projects: translationKey("Projects"),
+  Checks: translationKey("Checks"),
+  Capacity: translationKey("Capacity"),
+};
+
+export function getOpenStackMetricCategoryLabel(
+  category: OpenStackMetricCategory,
+): string {
+  return categoryLabels[category] || category;
+}

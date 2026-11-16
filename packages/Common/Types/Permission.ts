@@ -3913,7 +3913,7 @@ export class PermissionHelper {
         permission: Permission.CreateWorkspaceNotificationRuleOwningTeam,
         title: "Create Workspace Notification Rule Owning Team",
         description:
-          "This permission can make teams owners of Workspace Notification Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+          "This permission can make teams owners of Workspace Notification Rules of this project. Only an owning team's members, and Project Admins, can change or delete a rule with owning teams.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -4617,9 +4617,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateScheduledMaintenanceFeed,
-        title: "Create Scheduled Maintenance Log",
+        title: "Create Scheduled Maintenance Feed",
         description:
-          "This permission can create log of a scheduled maintenance in this project.",
+          "This permission can add entries to the feed of a maintenance event in this project: the log of what happened to it (once called Scheduled Maintenance Log).",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -4628,7 +4628,7 @@ export class PermissionHelper {
       // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditScheduledMaintenanceFeed,
-        title: "Edit Scheduled Maintenance Log",
+        title: "Edit Scheduled Maintenance Feed",
         description:
           "Grants nothing: the feed of a maintenance event only records what happened, so no entry of it can be edited.",
         isAssignableToTenant: false,
@@ -4638,9 +4638,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadScheduledMaintenanceFeed,
-        title: "Read Scheduled Maintenance Log",
+        title: "Read Scheduled Maintenance Feed",
         description:
-          "This permission can read log of an scheduled maintenance in this project.",
+          "This permission can read the feed of a maintenance event in this project: the log of what happened to it (once called Scheduled Maintenance Log).",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -17116,7 +17116,7 @@ export class PermissionHelper {
         permission: Permission.CreateScheduledMaintenanceStateTimeline,
         title: "Create Scheduled Maintenance State Timeline",
         description:
-          "This permission can create Scheduled Maintenance state history of an Scheduled Maintenance in this project.",
+          "This permission can create the state history of a maintenance event in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -17126,7 +17126,7 @@ export class PermissionHelper {
         permission: Permission.DeleteScheduledMaintenanceStateTimeline,
         title: "Delete Scheduled Maintenance State Timeline",
         description:
-          "This permission can delete Scheduled Maintenance state history of an Scheduled Maintenance in this project.",
+          "This permission can delete the state history of a maintenance event in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -17136,7 +17136,7 @@ export class PermissionHelper {
         permission: Permission.EditScheduledMaintenanceStateTimeline,
         title: "Edit Scheduled Maintenance State Timeline",
         description:
-          "This permission can edit Scheduled Maintenance state history of an Scheduled Maintenance in this project.",
+          "This permission can edit the state history of a maintenance event in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -17146,7 +17146,7 @@ export class PermissionHelper {
         permission: Permission.ReadScheduledMaintenanceStateTimeline,
         title: "Read Scheduled Maintenance State Timeline",
         description:
-          "This permission can read Scheduled Maintenance state history of an Scheduled Maintenance in this project.",
+          "This permission can read the state history of a maintenance event in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -17572,7 +17572,7 @@ export class PermissionHelper {
         permission: Permission.CreateAlertOnCallRuleOwningTeam,
         title: "Create Alert On-Call Rule Owning Team",
         description:
-          "This permission can make teams owners of Alert On-Call Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+          "This permission can make teams owners of Alert On-Call Rules of this project. Only an owning team's members, and Project Admins, can change or delete a rule with owning teams.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -17780,7 +17780,7 @@ export class PermissionHelper {
         permission: Permission.CreateAlertEpisodeOnCallRuleOwningTeam,
         title: "Create Alert Episode On-Call Rule Owning Team",
         description:
-          "This permission can make teams owners of Alert Episode On-Call Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+          "This permission can make teams owners of Alert Episode On-Call Rules of this project. Only an owning team's members, and Project Admins, can change or delete a rule with owning teams.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -18747,7 +18747,7 @@ export class PermissionHelper {
         permission: Permission.CreateIncidentOnCallRuleOwningTeam,
         title: "Create Incident On-Call Rule Owning Team",
         description:
-          "This permission can make teams owners of Incident On-Call Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+          "This permission can make teams owners of Incident On-Call Rules of this project. Only an owning team's members, and Project Admins, can change or delete a rule with owning teams.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -18829,7 +18829,7 @@ export class PermissionHelper {
         permission: Permission.CreateIncidentOwnerRuleOwningTeam,
         title: "Create Incident Owner Rule Owning Team",
         description:
-          "This permission can make teams owners of Incident Owner Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+          "This permission can make teams owners of Incident Owner Rules of this project. Only an owning team's members, and Project Admins, can change or delete a rule with owning teams.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -18953,7 +18953,7 @@ export class PermissionHelper {
         permission: Permission.CreateIncidentEpisodeOnCallRuleOwningTeam,
         title: "Create Incident Episode On-Call Rule Owning Team",
         description:
-          "This permission can make teams owners of Incident Episode On-Call Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+          "This permission can make teams owners of Incident Episode On-Call Rules of this project. Only an owning team's members, and Project Admins, can change or delete a rule with owning teams.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

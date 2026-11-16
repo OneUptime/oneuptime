@@ -49,11 +49,11 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende fore
 
 ### Erklær en hendelse for hvert utløst varsel
 
-Åpne det første kriteriet i trinnet **Kriterier**, det som markerer monitoren som frakoblet. Sett filteret til **Forespørselstekst**, **Inneholder**, `"status":"firing"`. Dette kriteriet erklærer allerede en hendelse når filteret samsvarer. Fyll ut hendelsen:
+Åpne det første kriteriet i trinnet **Kriterier**, det som markerer monitoren som offline. Sett filteret til **Forespørselstekst**, **Inneholder**, `"status":"firing"`. Dette kriteriet erklærer allerede en hendelse når filteret samsvarer. Fyll ut hendelsen:
 
 - **Hendelsestittel**: `{{requestBody.commonLabels.alertname}} on {{requestBody.commonLabels.instance}}`.
 - **Alvorlighetsgrad**: hendelsesalvorlighetsgraden disse varslene skal ha.
-- **Vaktretningslinjer**, under **Vakt**: retningslinjene som skal varsles.
+- **Vaktpolicyer**, under **Vakt**: policyene som skal varsles.
 - **Løs hendelse automatisk**, under **Flere felt**: la den være slått på, slik den starter. Uten den ignoreres gjenopprettinger, og hendelser blir stående åpne.
 
 ### Åpne én hendelse per varsel
@@ -193,11 +193,11 @@ Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og 
 
 ### Kontroller at varslingen er utløst
 
-Klikk på **Legg til komponent**, legg til en blokk **If / Else**, og koble triggerens punkt **Ut** til den. Sett **Verdi som skal sjekkes** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Sammenligning** til **er lik** og **Sammenlign med** til `firing`.
+Klikk på **Legg til komponent**, legg til en blokk **Hvis / Ellers**, og koble triggerens punkt **Ut** til den. Sett **Verdi som skal sjekkes** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Sammenligning** til **er lik** og **Sammenlign med** til `firing`.
 
 ### Erklær hendelsen
 
-Legg til en blokk **Create One Incident**, og koble siden **Ja** av blokken **If / Else** til den. Velg en mal under **Hendelsesmal** som setter alvorlighetsgraden og vaktretningslinjene som skal varsles (se [Hendelsesmaler](/docs/incidents/settings#hendelsesmaler)). Angi under **JSON Object** hva som kommer fra Alertmanager:
+Legg til en blokk **Opprett Hendelse (én post)**, og koble siden **Ja** av blokken **Hvis / Ellers** til den. Velg en mal under **Hendelsesmal** som setter alvorlighetsgraden og vaktpolicyene som skal varsles (se [Hendelsesmaler](/docs/incidents/settings#hendelsesmaler)). Angi under **JSON-objekt** hva som kommer fra Alertmanager:
 
 ```json
 {
@@ -206,14 +206,14 @@ Legg til en blokk **Create One Incident**, og koble siden **Ja** av blokken **If
 }
 ```
 
-Uten en mal må **JSON Object** også inneholde `incidentSeverityId`, ID-en til en av prosjektets hendelsesalvorlighetsgrader.
+Uten en mal må **JSON-objekt** også inneholde `incidentSeverityId`, ID-en til en av prosjektets hendelsesalvorlighetsgrader.
 
 ### Slå på arbeidsflyten
 
 Slå på **Aktivert** øverst i **Bygger**. En arbeidsflyt som er slått av, svarer Alertmanager med `400`.
 :::
 
-En kjøring håndterer én varsling, så den erklærer én hendelse uansett hvor mange varsler varslingen inneholder. En varsling som er `resolved`, tar siden **Nei** av blokken **If / Else**, der ingenting er koblet til, så kjøringen slutter der. Bruk monitoren for én hendelse per varsel som løses ved gjenoppretting.
+En kjøring håndterer én varsling, så den erklærer én hendelse uansett hvor mange varsler varslingen inneholder. En varsling som er `resolved`, tar siden **Nei** av blokken **Hvis / Ellers**, der ingenting er koblet til, så kjøringen slutter der. Bruk monitoren for én hendelse per varsel som løses ved gjenoppretting.
 
 ## Overvåk selve Alertmanager
 
@@ -222,7 +222,7 @@ Ingen av veiene merker det når Prometheus eller Alertmanager slutter å virke: 
 :::steps
 ### Opprett watchdog-monitoren
 
-Opprett en andre monitor for innkommende forespørsler, kalt `Alertmanager watchdog`. Sett filteret for det første kriteriet, det som markerer monitoren som frakoblet, til **Innkommende forespørsel**, **Ikke mottatt innen (minutter)**, `10`, og filteret for det andre kriteriet til **Innkommende forespørsel**, **Mottatt innen (minutter)**, `10`. Dashbordet staver begge slik. Kopier **Heartbeat URL** for den nye monitoren.
+Opprett en andre monitor for innkommende forespørsler, kalt `Alertmanager watchdog`. Sett filteret for det første kriteriet, det som markerer monitoren som offline, til **Innkommende forespørsel**, **Ikke mottatt innen (minutter)**, `10`, og filteret for det andre kriteriet til **Innkommende forespørsel**, **Mottatt innen (minutter)**, `10`. Dashbordet staver begge slik. Kopier **Heartbeat URL** for den nye monitoren.
 
 ### Send watchdog-varselet dit
 
@@ -251,7 +251,7 @@ receivers:
 ```
 :::
 
-Når watchdog-varselet ikke har kommet på ti minutter, blir watchdog-monitoren frakoblet og erklærer en hendelse. Den neste watchdog-varslingen gjør monitoren tilkoblet igjen og løser hendelsen.
+Når watchdog-varselet ikke har kommet på ti minutter, blir watchdog-monitoren offline og erklærer en hendelse. Den neste watchdog-varslingen gjør monitoren tilkoblet igjen og løser hendelsen.
 
 ## Feilsøking
 
@@ -297,8 +297,8 @@ Når en nyere forespørsel når en monitor før en tidligere er evaluert, evalue
 ## Neste trinn
 
 :::cards
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
 - [Grafana](/docs/integrations/grafana): Det samme oppsettet, for Grafana-varsler.
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktretningslinje varsler, og når.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktpolicy varsler, og når.
 - [Oversikt over integrasjoner](/docs/integrations/index): De andre verktøyene du kan koble til.
 :::

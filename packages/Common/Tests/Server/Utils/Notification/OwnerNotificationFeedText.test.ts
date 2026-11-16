@@ -1,10 +1,13 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
+import { Token, Tokens, marked } from "marked";
 import path from "path";
 import OwnerNotificationFeedText, {
   OwnerNotificationRecordNoun,
 } from "../../../../Server/Utils/Notification/OwnerNotificationFeedText";
-import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The feed entry that says a record's owners were told something: one
@@ -167,6 +170,76 @@ describe("who was notified", () => {
 });
 
 /*
+ * ONE NOTIFICATION FOR A NEW ALERT, NOT TWO (#7987). A record's "created"
+ * notification leaves out the owners its on-call page reached already, and
+ * its entry says who they were after those it notified - never among them.
+ */
+describe("who was not notified again, as the on-call page reached them", () => {
+  const ANA: MarkdownText = OwnerNotificationFeedText.nameAndEmail({
+    name: "Ana Lopez",
+    email: "ana@example.com",
+  });
+  const BO: MarkdownText = OwnerNotificationFeedText.nameAndEmail({
+    name: "Bo Chen",
+    email: "bo@example.com",
+  });
+
+  test("nobody left out adds nothing", () => {
+    expect(OwnerNotificationFeedText.reachedByPageMarkdown([])).toBe("");
+  });
+
+  test("names each person left out, in one sentence", () => {
+    expect(OwnerNotificationFeedText.reachedByPageMarkdown([ANA])).toBe(
+      "\nNot notified again, as the on-call page reached them: Ana Lopez (ana@example.com).\n",
+    );
+    expect(OwnerNotificationFeedText.reachedByPageMarkdown([ANA, BO])).toBe(
+      "\nNot notified again, as the on-call page reached them: Ana Lopez (ana@example.com), Bo Chen (bo@example.com).\n",
+    );
+  });
+
+  test("after the list of who was notified, it is a paragraph of its own - not one more person on the list", () => {
+    const details: string =
+      OwnerNotificationFeedText.notifiedLineMarkdown(BO) +
+      OwnerNotificationFeedText.reachedByPageMarkdown([ANA]);
+
+    expect(details).toBe(
+      "- Bo Chen (bo@example.com)\n\nNot notified again, as the on-call page reached them: Ana Lopez (ana@example.com).\n",
+    );
+
+    const blocks: Array<Token> = marked
+      .lexer(details)
+      .filter((token: Token): boolean => {
+        return token.type !== "space";
+      });
+
+    expect(
+      blocks.map((token: Token): string => {
+        return token.type;
+      }),
+    ).toEqual(["list", "paragraph"]);
+    expect((blocks[0] as Tokens.List).items).toHaveLength(1);
+    expect((blocks[0] as Tokens.List).items[0]!.text).toBe(
+      "Bo Chen (bo@example.com)",
+    );
+  });
+
+  test("a name is text, not Markdown", () => {
+    const sentence: string = OwnerNotificationFeedText.reachedByPageMarkdown([
+      OwnerNotificationFeedText.nameAndEmail({
+        name: "[Ana](https://evil.example)",
+        email: "ana@example.com",
+      }),
+      "**Bo**",
+    ]);
+
+    expect(sentence).not.toContain("[Ana](https://evil.example)");
+    expect(sentence).toContain("\\[Ana\\]");
+    expect(sentence).not.toContain("**Bo**");
+    expect(sentence.split("\n").filter(Boolean)).toHaveLength(1);
+  });
+});
+
+/*
  * A record with no owners of its own is told to the project's owners
  * (ProjectService.getOwners) - which is how a new project's first incident
  * reaches the person who made the project. The entry says who, and why:
@@ -182,7 +255,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
     "this %s was created",
     (noun: OwnerNotificationRecordNoun) => {
       expect(OwnerNotificationFeedText.created(noun, PROJECT_OWNERS)).toBe(
-        `The project's owners were notified that this ${noun} was created, as it has no owners yet.`,
+        `The Project Owners were notified that this ${noun} was created, as it has no owners yet.`,
       );
     },
   );
@@ -197,7 +270,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
           ...PROJECT_OWNERS,
         }),
       ).toBe(
-        `The project's owners were notified that this ${noun} is now **Acknowledged**, as it has no owners yet.`,
+        `The Project Owners were notified that this ${noun} is now **Acknowledged**, as it has no owners yet.`,
       );
     },
   );
@@ -210,7 +283,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
         ...PROJECT_OWNERS,
       }),
     ).toBe(
-      "The project's owners were notified that this alert changed state, as it has no owners yet.",
+      "The Project Owners were notified that this alert changed state, as it has no owners yet.",
     );
   });
 
@@ -224,7 +297,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
           ...PROJECT_OWNERS,
         }),
       ).toBe(
-        `The project's owners were notified of the new private note, as this ${noun} has no owners yet.`,
+        `The Project Owners were notified of the new private note, as this ${noun} has no owners yet.`,
       );
     },
   );
@@ -236,7 +309,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
         ...PROJECT_OWNERS,
       }),
     ).toBe(
-      "The project's owners were notified of the new public note, as it has no owners yet.",
+      "The Project Owners were notified of the new public note, as it has no owners yet.",
     );
   });
 
@@ -249,7 +322,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
         ...PROJECT_OWNERS,
       }),
     ).toBe(
-      "The project's owners were reminded that this incident is still **Investigating**, open for **2 hours**, as it has no owners yet.",
+      "The Project Owners were reminded that this incident is still **Investigating**, open for **2 hours**, as it has no owners yet.",
     );
   });
 
@@ -261,7 +334,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
         ...PROJECT_OWNERS,
       }),
     ).toBe(
-      "The project's owners were notified that 3 incidents were added to this episode, as it has no owners yet.",
+      "The Project Owners were notified that 3 incidents were added to this episode, as it has no owners yet.",
     );
   });
 
@@ -343,11 +416,37 @@ describe("the jobs that write these entries", () => {
     expect(jobsWithCalls.length).toBeGreaterThanOrEqual(17);
   });
 
+  /*
+   * Since #8611 most jobs plan whom to tell through
+   * OwnerNotificationDeliveries.planForOwnersOf, which takes the fallback.
+   */
+  const DELIVERIES_SOURCE: string = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../../../Server/Utils/Notification/OwnerNotificationDeliveries.ts",
+    ),
+    "utf8",
+  );
+
+  test("planForOwnersOf falls back to the project's owners, and says so", () => {
+    const planForOwnersOf: string = DELIVERIES_SOURCE.slice(
+      DELIVERIES_SOURCE.indexOf("public static async planForOwnersOf("),
+    );
+
+    expect(planForOwnersOf).toContain("isProjectOwners = true;");
+    expect(planForOwnersOf).toContain("ProjectService.getOwners(");
+    expect(planForOwnersOf).toContain("isProjectOwners: isProjectOwners,");
+  });
+
   test.each(jobsWithCalls)("%s says who was told", (job: string) => {
     const source: string = fs.readFileSync(path.join(JOBS_DIR, job), "utf8");
 
-    // The job does fall back to the project's owners...
-    expect(source).toContain("ProjectService.getOwners(");
+    // The job does fall back to the project's owners, itself or through planForOwnersOf...
+    expect([
+      job,
+      source.includes("ProjectService.getOwners(") ||
+        source.includes("OwnerNotificationDeliveries.planForOwnersOf("),
+    ]).toEqual([job, true]);
 
     // ...and every entry it writes says whether they stood in.
     for (const call of callsOf(job)) {

@@ -1665,7 +1665,7 @@ describe("exception insights → Exceptions monitor", () => {
       stepOf(prefill).data!.exceptionMonitor!.lastXSecondsOfExceptions,
     ).toBe(86400);
     expect(onlyFilter(unhealthyOf(prefill)).value).toBe(3);
-    expect(String(prefill["description"])).toContain("within 24 hours");
+    expect(String(prefill["description"])).toContain("within 24\u00A0hours");
   });
 
   test("an exception with no known service is not scoped to one", () => {

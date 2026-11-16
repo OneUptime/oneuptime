@@ -1,4 +1,5 @@
 import Dictionary from "../Dictionary";
+import { translationKey } from "../Translator";
 import { Argument, ComponentInputType } from "./Component";
 
 /*
@@ -37,9 +38,22 @@ export const MAX_LINKED_AFFECTED_RESOURCES: number = 50;
 // The longest single reference: a name, an address or an ID.
 export const MAX_AFFECTED_RESOURCE_REFERENCE_LENGTH: number = 200;
 
-const SETTINGS: Dictionary<{ noun: string }> = {
-  Incident: { noun: "incident" },
-  Alert: { noun: "alert" },
+/*
+ * What the setting says it is for, written out for each table so the
+ * Dashboard's locales can word it (its extractor reads this file as a
+ * "keys" root): the settings form looks it up as it draws it.
+ */
+const SETTINGS: Dictionary<{ description: string }> = {
+  Incident: {
+    description: translationKey(
+      "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this incident is about, separated by commas. Each one found is linked. Monitors go in JSON Object.",
+    ),
+  },
+  Alert: {
+    description: translationKey(
+      "Names, addresses or IDs of the hosts, network devices, clusters, databases or services this alert is about, separated by commas. Each one found is linked. Monitors go in JSON Object.",
+    ),
+  },
 };
 
 type GetAffectedResourcesArgumentFunction = (
@@ -49,7 +63,7 @@ type GetAffectedResourcesArgumentFunction = (
 // The Affected Resources setting of this table's Create One step, if any.
 export const getAffectedResourcesArgument: GetAffectedResourcesArgumentFunction =
   (tableName: string | undefined): Argument | null => {
-    const setting: { noun: string } | undefined = tableName
+    const setting: { description: string } | undefined = tableName
       ? SETTINGS[tableName]
       : undefined;
 
@@ -59,10 +73,10 @@ export const getAffectedResourcesArgument: GetAffectedResourcesArgumentFunction 
 
     return {
       id: AFFECTED_RESOURCES_ARGUMENT_ID,
-      name: "Affected Resources",
+      name: translationKey("Affected Resources"),
       type: ComponentInputType.Text,
       required: false,
-      description: `Names, addresses or IDs of the hosts, network devices, clusters, databases or services this ${setting.noun} is about, separated by commas. Each one found is linked. Monitors go in JSON Object.`,
+      description: setting.description,
       placeholder: "Example: WAN-RTR-01, 10.0.4.1",
     };
   };

@@ -98,7 +98,8 @@ const fileResources: () => Resources = (): Resources => {
 
 /*
  * An instance with the options the Admin Dashboard's Utils/i18n.ts passes.
- * Its language detector is left out: the language is given here.
+ * Its language detector and lazy backend are left out: the language is
+ * given here, and its words as the backend would hand them over.
  */
 const createAdminInstance: (
   language: string,
@@ -117,6 +118,7 @@ const createAdminInstance: (
   await instance.init({
     lng: language,
     resources: bundles,
+    partialBundledLanguages: true,
     fallbackLng: ADMIN_DASHBOARD_ENGLISH,
     supportedLngs: [...ADMIN_DASHBOARD_CODES],
     load: "currentOnly",
@@ -185,7 +187,7 @@ describe("a one form a language words as English does is its own", () => {
 
   test("French counts 0 as one, and says 0 minute and 0 instance", () => {
     expect(getPluralCategory("fr", 0)).toBe("one");
-    expect(read("fr", MINUTES, 0)).toBe("0 minute");
+    expect(read("fr", MINUTES, 0)).toBe("0\u00A0minute");
     expect(read("fr", MINUTES, 1)).toBe("1 minute");
     expect(read("fr", MINUTES, 5)).toBe("5 minutes");
     expect(read("fr", INSTANCES, 0)).toBe("0 instance");
@@ -280,7 +282,7 @@ describe("the marks change what they should, and nothing else", () => {
     expect(changed.sort()).toEqual(
       [
         "fr 0: 0 instances -> 0 instance",
-        "fr 0: 0 minutes -> 0 minute",
+        "fr 0: 0 minutes -> 0\u00A0minute",
         "pt 0: 0 monitors -> 0 monitor",
       ].sort(),
     );
@@ -320,11 +322,11 @@ describe("the marks change what they should, and nothing else", () => {
 
     expect(marked).toEqual(listed);
     expect(marked).toEqual({
-      da: ["{{count}} monitor", "{{count}} person"],
+      da: ["{{count}} monitor", "{{count}} node", "{{count}} person"],
       es: ["{{count}} monitor"],
       fr: ["{{count}} instance", "{{count}} minute"],
-      nl: ["{{count}} product", "{{count}} project"],
-      no: ["{{count}} monitor", "{{count}} person"],
+      nl: ["{{count}} node", "{{count}} product", "{{count}} project"],
+      no: ["{{count}} monitor", "{{count}} node", "{{count}} person"],
       pt: ["{{count}} monitor"],
       sv: ["{{count}} monitor", "{{count}} person"],
     });
@@ -381,6 +383,6 @@ describe("drawn by the shared components", () => {
       return (value.textContent || "").trim();
     });
 
-    expect(values).toEqual(["0 minute", "5 minutes"]);
+    expect(values).toEqual(["0\u00A0minute", "5\u00A0minutes"]);
   });
 });

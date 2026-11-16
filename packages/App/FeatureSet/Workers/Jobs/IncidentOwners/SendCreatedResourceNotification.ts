@@ -17,6 +17,7 @@ import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import { MarkdownText } from "Common/Utils/Markdown/FeedMarkdown";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import logger from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -31,7 +32,9 @@ import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
+  OwnerNotificationOf,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import OwnersReachedByAPage from "Common/Server/Utils/Notification/OwnersReachedByAPage";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
 
 // What the "Incident Created" notification is made of, read for each incident.
@@ -150,13 +153,21 @@ RunCron(
 
 /*
  * Whom the incident's "Incident Created" notification tells - its owners,
- * or the project's when it has none - written down before the incident is
- * taken (OwnerNotificationDeliveries.plan). A failure to read them tells
- * nobody, as it did when it came after the take.
+ * or the project's when it has none, but for those its on-call page reached
+ * already - written down before the incident is taken
+ * (OwnerNotificationDeliveries.plan). A failure to read them tells nobody,
+ * as it did when it came after the take.
  */
 async function planOwnersOfIncident(
   incident: Incident,
 ): Promise<OwnerNotificationDelivery> {
+  const notification: OwnerNotificationOf = {
+    kind: OwnerNotificationKind.IncidentCreated,
+    projectId: incident.projectId!,
+    resourceId: incident.id!,
+    eventId: incident.id!,
+  };
+
   let owners: Array<User> = [];
   let isProjectOwners: boolean = false;
 
@@ -177,27 +188,33 @@ async function planOwnersOfIncident(
   }
 
   return await OwnerNotificationDeliveries.plan({
-    notification: {
-      kind: OwnerNotificationKind.IncidentCreated,
-      projectId: incident.projectId!,
-      resourceId: incident.id!,
-      eventId: incident.id!,
-    },
+    notification: notification,
     owners: owners,
     isProjectOwners: isProjectOwners,
+    writesFeedItem: true,
+    /*
+     * Not those the incident's on-call page reached already: someone who
+     * is on call and an owner is told of the incident once, not twice
+     * (#7987).
+     */
+    leaveOut: await OwnersReachedByAPage.findAmong({
+      notification: notification,
+      owners: owners,
+    }),
   });
 }
 
 /*
  * Tells the delivery's owners that the incident was created, each once
  * (OwnerNotificationDelivery.tell), and says in the incident's feed whom it
- * reached - those a stopped run told first among them.
+ * reached - those a stopped run told first among them - and whom it left
+ * out, as the incident's on-call page reached them already.
  */
 async function notifyOwnersOfIncident(
   incident: Incident,
   delivery: OwnerNotificationDelivery,
 ): Promise<void> {
-  if (delivery.owners.length === 0) {
+  if (!delivery.hasWorkToDo) {
     return;
   }
 
@@ -404,10 +421,25 @@ async function notifyOwnersOfIncident(
     }
   }
 
-  // Every owner was told already: the run that told them said so.
-  if (!delivery.hasSetOutToTellAnyone) {
+  /*
+   * Written by the run that set out to tell the owners, or by the one
+   * that took up the feed item a run that told them all left unwritten
+   * (#8510): a run that found every owner told already writes none.
+   */
+  if (!delivery.isFeedItemToWrite) {
     return;
   }
+
+  // Whom it left out, named apart from those notified (OwnersReachedByAPage).
+  moreIncidentFeedInformationInMarkdown +=
+    OwnerNotificationFeedText.reachedByPageMarkdown(
+      delivery.leftOut.map((user: User): MarkdownText => {
+        return OwnerNotificationFeedText.nameAndEmail({
+          name: user.name?.toString(),
+          email: user.email?.toString(),
+        });
+      }),
+    );
 
   await IncidentFeedService.createIncidentFeedItem({
     incidentId: incident.id!,
@@ -422,4 +454,6 @@ async function notifyOwnersOfIncident(
       sendWorkspaceNotification: false,
     },
   });
+
+  await delivery.feedItemWritten();
 }

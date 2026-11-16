@@ -95,6 +95,8 @@ A resource with owners - a monitor, an incident, an on-call policy and every oth
 
 `select` names the fields to return, and `_id` always comes back. `sort` orders them, `ASC` or `DESC`; without one, the newest come first. A list returns 10 records unless you set `limit`, up to 10,000, and `skip` passes over that many first: keep raising `skip` by `limit` until you have `count` of them. Add `?output-type=csv` to a list request for CSV instead of JSON.
 
+A field's order can also say where the records with no value in it go: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` puts the latest first and those with none last, and `FIRST` puts them first. A relation of one record sorts by a field of the record it names: `{ "incidentSeverity": { "order": "ASC" } }` lists incidents in the order of their severities. A relation given only a direction, as in `{ "incidentSeverity": "DESC" }`, is refused with a `400` that names a field to sort by instead, and so is a relation of many records, such as an incident's `labels`: each incident has a list of them, and a list has no one value to put incidents in order by. Sorting by a field needs permission to read it too, through a relation as on the resource itself: a sort by a field you may not read is refused with a `422`.
+
 For example, the monitors whose name contains "checkout", created since the start of 2026, newest first:
 
 ```bash
@@ -156,7 +158,7 @@ On OneUptime Cloud, a project's API keys work only while the project is on **Gro
 
 Nothing is deleted or switched off. The keys and connections are kept, and they work fully again, as they are, as soon as the project is back on the plan: no new keys to make, nothing to set up again in your identity provider. A plan change takes effect within a minute.
 
-Below **Growth**, **Project Settings** > **Advanced** > **API Keys** lists the keys the project still has and says they stopped, so any of them can be deleted (revoked) on every plan. Creating or changing keys needs **Growth**. **Project Settings** > **Billing and Invoices** > **Billing** names how many API keys a lower plan stops and how many SCIM connections it limits, on each plan you can pick, and what the project's plan has stopped; the project's owners get an email when a plan change stops them. The owners of projects that were already below these plans when this started get one email saying what stopped and how to turn it back on.
+Below **Growth**, **Project Settings** > **Advanced** > **API Keys** lists the keys the project still has and says they stopped, so any of them can be deleted (revoked) on every plan. Creating or changing keys needs **Growth**. **Project Settings** > **Billing and Invoices** > **Billing** names how many API keys a lower plan stops and how many SCIM connections it limits, on each plan you can pick, and what the project's plan has stopped; the Project Owners get an email when a plan change stops them. The owners of projects that were already below these plans when this started get one email saying what stopped and how to turn it back on.
 
 Only a project's API keys and SCIM connections are affected. People are not affected: signing in to the dashboard, and MCP clients connected by signing in, work as before. Telemetry ingestion keys, probe keys and agent keys are not API keys, and keep working. Self-hosted installs have no plans, so nothing changes for them.
 

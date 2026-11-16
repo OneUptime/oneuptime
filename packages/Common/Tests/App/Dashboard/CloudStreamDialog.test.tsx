@@ -731,7 +731,7 @@ describe("the dialog", () => {
 
   test("a key the server would not make says why, and the command keeps waiting", async () => {
     postSpy.mockRejectedValue(
-      new Error("Project owners and project administrators can connect."),
+      new Error("Project Owners and Project Admins can connect."),
     );
     const onChanged: MockFunction = getJestMockFunction();
     openDialog(connection(), onChanged);
@@ -739,7 +739,7 @@ describe("the dialog", () => {
     await makeKey();
 
     expect(part("key-error")).toHaveTextContent(
-      "Project owners and project administrators can connect.",
+      "Project Owners and Project Admins can connect.",
     );
     expect(part("key-error")).toHaveAttribute("role", "alert");
     expect(command()).toContain("<YOUR_STREAM_KEY>");

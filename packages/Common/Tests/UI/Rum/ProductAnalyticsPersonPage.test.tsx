@@ -372,6 +372,7 @@ describe("ProductAnalyticsPerson", () => {
     expect(
       within(kept).getByText(
         OneUptimeDate.fromNow(new Date(Date.UTC(2026, 8, 2, 18, 0))),
+        { collapseWhitespace: false },
       ),
     ).toHaveAttribute("dateTime", "2026-09-02T18:00:00.000Z");
     /* The page it entered on, written left to right whole, and how many it saw. */
@@ -455,7 +456,9 @@ describe("ProductAnalyticsPerson", () => {
     const lastSeen: Date = new Date(Date.UTC(2026, 8, 2, 18, 0));
 
     expect(
-      within(facts).getByText(OneUptimeDate.fromNow(lastSeen)),
+      within(facts).getByText(OneUptimeDate.fromNow(lastSeen), {
+        collapseWhitespace: false,
+      }),
     ).toHaveAttribute(
       "title",
       OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(lastSeen),

@@ -1,7 +1,13 @@
 import escapeRegExp from "../Utils/RegExpEscape";
+import OldestKeyMap from "../Utils/OldestKeyMap";
+import { ComposedWords, composedWordsOf } from "./ComposedWords";
 import { getEnglishOf, getNumberLocale } from "./DateLanguage";
 import { getWordOfMeaningKey, withMeaningKeyAsItsWord } from "./MeaningKeys";
-import { withNoBreakSpaces, withNumbersKeptWithUnits } from "./NoBreakSpaces";
+import {
+  withDurationWordsHeld,
+  withNoBreakSpaces,
+  withNumbersKeptWithUnits,
+} from "./NoBreakSpaces";
 import {
   FIRST_STRONG_ISOLATE,
   getReadingDirection,
@@ -274,6 +280,17 @@ const LANGUAGES_WITHOUT_LETTER_CASE: ReadonlyArray<string> = [
 ];
 
 /*
+ * Whether `language`'s script has no letter case (LANGUAGES_WITHOUT_LETTER_CASE):
+ * no word of its own takes a capital, so a capital at the start of one of
+ * its sentences is never the translator's.
+ */
+const hasNoLetterCase: (language: string | undefined) => boolean = (
+  language: string | undefined,
+): boolean => {
+  return LANGUAGES_WITHOUT_LETTER_CASE.includes(getBaseLanguage(language));
+};
+
+/*
  * Whether a term keeps the case its translation writes in the middle of a
  * sentence in `language`: in a language that capitalizes every noun, and in
  * one whose script has no letter case.
@@ -281,11 +298,9 @@ const LANGUAGES_WITHOUT_LETTER_CASE: ReadonlyArray<string> = [
 const keepsTermsAsWritten: (language: string | undefined) => boolean = (
   language: string | undefined,
 ): boolean => {
-  const base: string = getBaseLanguage(language);
-
   return (
-    LANGUAGES_THAT_CAPITALIZE_NOUNS.includes(base) ||
-    LANGUAGES_WITHOUT_LETTER_CASE.includes(base)
+    LANGUAGES_THAT_CAPITALIZE_NOUNS.includes(getBaseLanguage(language)) ||
+    hasNoLetterCase(language)
   );
 };
 
@@ -359,17 +374,41 @@ const PROPER_NOUN_PAIRS: Array<[string, string]> = [
   ["Tencent", "Cloud"],
 ];
 
+/*
+ * Names their makers write all in lower case, which keep it at the start of
+ * a label or a sentence too: "kubectl command", never "Kubectl command"
+ * (#8252). keepsItsCase keeps an acronym ("eBPF") and a capital inside a
+ * word ("vCenter"), but a name with no capital at all read as a word to
+ * raise. "gpt" is the start of a model id ("gpt-4o").
+ */
+const LOWER_CASE_NAMES: ReadonlyArray<string> = [
+  "containerd",
+  "curl",
+  "etcd",
+  "gpt",
+  "journald",
+  "kubectl",
+  "kubelet",
+  "npm",
+  "pnpm",
+  "systemd",
+];
+
 // "API", "SLOs": two capitals in a row.
 const ACRONYM_PATTERN: RegExp = /\p{Lu}{2,}/u;
 
 // "OneUptime", "GitHub", "iOS": a capital after the first letter.
 const INNER_CAPITAL_PATTERN: RegExp = /^.+\p{Lu}/u;
 
+// A word's letters and digits before anything else: "kubectl" of "kubectl's".
+const LEADING_WORD_PATTERN: RegExp = /^[\p{L}\p{N}]+/u;
+
 const keepsItsCase: (part: string) => boolean = (part: string): boolean => {
   return (
     ACRONYM_PATTERN.test(part) ||
     INNER_CAPITAL_PATTERN.test(part) ||
-    PROPER_NOUNS.includes(part)
+    PROPER_NOUNS.includes(part) ||
+    LOWER_CASE_NAMES.includes(LEADING_WORD_PATTERN.exec(part)?.[0] || "")
   );
 };
 
@@ -446,8 +485,9 @@ const LOWER_CASE_START: RegExp = /^\p{Ll}/u;
  * Unchanged when the text starts with anything but a lower-case letter - a
  * capital, a digit, a sign, a letter of a script without case (Chinese,
  * Japanese, Korean, Persian, Arabic, Hindi) - and when its first word keeps
- * its own case ("vCenter", "iOS", "eBPF"). For a label of words, never a
- * code or a name someone typed.
+ * its own case ("vCenter", "iOS", "eBPF", and the names written all in lower
+ * case: "kubectl", "systemd", LOWER_CASE_NAMES). For a label of words, never
+ * a code or a name someone typed.
  */
 export const toLabelTerm: (text: string, language?: string) => string = (
   text: string,
@@ -666,21 +706,88 @@ const startsASentence: (template: string, at: number) => boolean = (
 };
 
 /*
+ * WHICH ENDS OF A SENTENCE ARE ONEUPTIME'S OWN WORDS.
+ *
+ * A sentence can hold another as a value (composedValue): a criteria
+ * filter's summary is a comparison around "the average value of ..."
+ * around a check's name. In Chinese and Japanese a space the outer
+ * sentence puts beside such a value is dropped where both sides are their
+ * words (WHERE A TERM MEETS CHINESE OR JAPANESE WORDS), but only where the
+ * inner sentence's letter on that side is OneUptime's own - its words, or
+ * a term - and never a name someone typed: "过去 5 分钟内的磁盘使用率的平均值
+ * 大于 90%" read "... 的平均值 大于 ..." (#8532), while a typed name keeps the
+ * space the template wrote beside it.
+ *
+ * So each sentence filled in a language that writes no space between its
+ * words is remembered, by its text, with whether its first and its last
+ * piece are OneUptime's own words; a composed value with that text closes
+ * up on those sides. A composed value that is not one sentence (a list of
+ * names, facts set side by side) is never remembered, so its spaces stay.
+ * Kept for the most recent sentences only, as DateLanguage keeps the
+ * English of its texts.
+ */
+interface OwnWordsEdges {
+  // The first letter is OneUptime's own words, or a term's.
+  atStart: boolean;
+  // The last letter is.
+  atEnd: boolean;
+}
+
+export const MAX_REMEMBERED_SENTENCE_EDGES: number = 5000;
+
+const sentenceEdges: OldestKeyMap<string, OwnWordsEdges> = new OldestKeyMap<
+  string,
+  OwnWordsEdges
+>();
+
+const rememberSentenceEdges: (text: string, edges: OwnWordsEdges) => void = (
+  text: string,
+  edges: OwnWordsEdges,
+): void => {
+  if (!text || (!edges.atStart && !edges.atEnd)) {
+    return;
+  }
+
+  // The newest last, so the oldest is the first to go.
+  sentenceEdges.delete(text);
+  sentenceEdges.set(text, edges);
+
+  if (sentenceEdges.size > MAX_REMEMBERED_SENTENCE_EDGES) {
+    const oldest: string | undefined = sentenceEdges.oldestKey();
+
+    if (oldest !== undefined) {
+      sentenceEdges.delete(oldest);
+    }
+  }
+};
+
+// For tests: forget every remembered sentence.
+export const forgetRememberedSentenceEdges: () => void = (): void => {
+  sentenceEdges.clear();
+};
+
+/*
  * A value as text where it goes into a sentence: as the middle of one takes
- * it, and as it reads where it starts one (startsASentence); and whether it
- * is a term, OneUptime's own words (closeSpacesBesideTerms).
+ * it, and as it reads where it starts one (startsASentence); and whether its
+ * first and last letters are OneUptime's own words - a term's, or those of
+ * a sentence it was composed as (closeSpacesBesideTerms).
  */
 interface SentenceValue {
   text: string;
   atSentenceStart: string;
-  isTerm: boolean;
+  closesAtStart: boolean;
+  closesAtEnd: boolean;
 }
 
 /*
  * `text`, the value as the middle of a sentence in `language` takes it, with
  * its form where it starts one: an inSentence term takes a capital there
  * (toLabelTerm); anything else - a name, a number, a term as written, a
- * composed value - is the same wherever it goes.
+ * composed value - is the same wherever it goes. In a language whose script
+ * has no letter case the term starts a sentence as its translation writes
+ * it, as it reads in the middle of one (toSentenceTerm): Persian words a
+ * plural "persistent volume claimها" and Arabic "cron مخصص", and a capital
+ * there is one the translator did not write (#8252).
  */
 const toSentenceValue: (
   value: TemplateValue,
@@ -691,13 +798,21 @@ const toSentenceValue: (
   text: string,
   language: string,
 ): SentenceValue => {
+  const isTerm: boolean = isTranslatableTerm(value);
+  const edges: OwnWordsEdges | undefined = isComposedValue(value)
+    ? sentenceEdges.get(text)
+    : undefined;
+
   return {
     text,
     atSentenceStart:
-      isTranslatableTerm(value) && value.inSentence
+      isTranslatableTerm(value) &&
+      value.inSentence &&
+      !hasNoLetterCase(language)
         ? toLabelTerm(text, language)
         : text,
-    isTerm: isTranslatableTerm(value),
+    closesAtStart: isTerm || Boolean(edges?.atStart),
+    closesAtEnd: isTerm || Boolean(edges?.atEnd),
   };
 };
 
@@ -789,8 +904,13 @@ const countTrailingSpaces: (text: string) => number = (
 interface FilledPiece {
   text: string;
   isValue: boolean;
-  // A value that is a term (SentenceValue's isTerm).
-  isTerm: boolean;
+  /*
+   * A value whose first or last letter is OneUptime's own words - a term,
+   * or a sentence it was composed as (SentenceValue's closesAtStart and
+   * closesAtEnd); its own words always are.
+   */
+  closesAtStart: boolean;
+  closesAtEnd: boolean;
 }
 
 /*
@@ -798,7 +918,9 @@ interface FilledPiece {
  * writes no space between its words, each space its words put between a
  * term and a letter of Chinese or Japanese is dropped where the term's own
  * letter on that side is one too (WHERE A TERM MEETS CHINESE OR JAPANESE
- * WORDS). The words beside any other value keep their spaces.
+ * WORDS), and so is one beside a sentence composed of OneUptime's own
+ * words on that side (WHICH ENDS OF A SENTENCE ARE ONEUPTIME'S OWN WORDS).
+ * The words beside any other value keep their spaces.
  */
 const closeSpacesBesideTerms: (
   pieces: Array<FilledPiece>,
@@ -824,8 +946,8 @@ const closeSpacesBesideTerms: (
     // Spaces and nothing else, between two values: two terms meet.
     if (leading === piece.text.length) {
       const termsMeet: boolean = Boolean(
-        before?.isTerm &&
-          after?.isTerm &&
+        before?.closesAtEnd &&
+          after?.closesAtStart &&
           endsInChineseOrJapanese(before.text) &&
           startsInChineseOrJapanese(after.text),
       );
@@ -837,7 +959,7 @@ const closeSpacesBesideTerms: (
 
     if (
       leading > 0 &&
-      before?.isTerm &&
+      before?.closesAtEnd &&
       endsInChineseOrJapanese(before.text) &&
       startsInChineseOrJapanese(text.slice(leading))
     ) {
@@ -849,7 +971,7 @@ const closeSpacesBesideTerms: (
 
     if (
       trailing > 0 &&
-      after?.isTerm &&
+      after?.closesAtStart &&
       startsInChineseOrJapanese(after.text) &&
       endsInChineseOrJapanese(words)
     ) {
@@ -895,13 +1017,19 @@ const fillPieces: (
 
     const value: SentenceValue = values[name] as SentenceValue;
 
-    pieces.push({ text: words, isValue: false, isTerm: false });
+    pieces.push({
+      text: words,
+      isValue: false,
+      closesAtStart: false,
+      closesAtEnd: false,
+    });
     pieces.push({
       text: startsASentence(template, start)
         ? value.atSentenceStart
         : value.text,
       isValue: true,
-      isTerm: value.isTerm,
+      closesAtStart: value.closesAtStart,
+      closesAtEnd: value.closesAtEnd,
     });
     words = "";
   }
@@ -909,10 +1037,54 @@ const fillPieces: (
   pieces.push({
     text: words + template.slice(at),
     isValue: false,
-    isTerm: false,
+    closesAtStart: false,
+    closesAtEnd: false,
   });
 
   return closeSpacesBesideTerms(pieces, language);
+};
+
+/*
+ * Whether the filled sentence's first and last letters are OneUptime's own
+ * words: its own, or a value's that are (closesAtStart, closesAtEnd).
+ */
+const getOwnWordsEdges: (pieces: Array<FilledPiece>) => OwnWordsEdges = (
+  pieces: Array<FilledPiece>,
+): OwnWordsEdges => {
+  const drawn: Array<FilledPiece> = pieces.filter(
+    (piece: FilledPiece): boolean => {
+      return piece.text.length > 0;
+    },
+  );
+  const first: FilledPiece | undefined = drawn[0];
+  const last: FilledPiece | undefined = drawn[drawn.length - 1];
+
+  return {
+    atStart: Boolean(first && (!first.isValue || first.closesAtStart)),
+    atEnd: Boolean(last && (!last.isValue || last.closesAtEnd)),
+  };
+};
+
+/*
+ * The filled sentence's text, remembered with its ends in a language that
+ * writes no space between its words, so a sentence it goes into as a
+ * composed value closes up beside them.
+ */
+const joinPieces: (pieces: Array<FilledPiece>, language: string) => string = (
+  pieces: Array<FilledPiece>,
+  language: string,
+): string => {
+  const text: string = pieces
+    .map((piece: FilledPiece): string => {
+      return piece.text;
+    })
+    .join("");
+
+  if (LANGUAGES_WITHOUT_WORD_SPACES.includes(getBaseLanguage(language))) {
+    rememberSentenceEdges(text, getOwnWordsEdges(pieces));
+  }
+
+  return text;
 };
 
 /*
@@ -930,16 +1102,16 @@ const fillSentenceValues: (
   values: Record<string, SentenceValue>,
   language: string,
 ): string => {
-  return fillPieces(template, values, language)
-    .map((piece: FilledPiece): string => {
-      return piece.text;
-    })
-    .join("");
+  return joinPieces(fillPieces(template, values, language), language);
 };
 
-// A value as the English sentence shows it.
-const englishValue: (value: TemplateValue) => string = (
+/*
+ * A value as the English sentence shows it: a composed one composed in
+ * English, on a page as a page's English is (drawsOnPage, #8770).
+ */
+const englishValue: (value: TemplateValue, onPage?: boolean) => string = (
   value: TemplateValue,
+  onPage: boolean = false,
 ): string => {
   if (isTranslatableTerm(value)) {
     // A key that names its meaning goes in as its word (MeaningKeys).
@@ -951,7 +1123,9 @@ const englishValue: (value: TemplateValue) => string = (
   }
 
   if (isComposedValue(value)) {
-    return value.compose(getEnglishTranslator());
+    return value.compose(
+      onPage ? getEnglishPageTranslator() : getEnglishTranslator(),
+    );
   }
 
   return String(value);
@@ -982,8 +1156,10 @@ const englishDateValues: (values: TemplateValues) => TemplateValues = (
  */
 const englishTextValues: (
   values: TemplateValues,
+  onPage?: boolean,
 ) => Record<string, SentenceValue> = (
   values: TemplateValues,
+  onPage: boolean = false,
 ): Record<string, SentenceValue> => {
   const dated: TemplateValues = englishDateValues(values);
   const result: Record<string, SentenceValue> = {};
@@ -991,7 +1167,11 @@ const englishTextValues: (
   for (const key of Object.keys(dated)) {
     const value: TemplateValue = dated[key] as TemplateValue;
 
-    result[key] = toSentenceValue(value, englishValue(value), DEFAULT_LANGUAGE);
+    result[key] = toSentenceValue(
+      value,
+      englishValue(value, onPage),
+      DEFAULT_LANGUAGE,
+    );
   }
 
   return result;
@@ -1084,7 +1264,12 @@ const fillSettingValuesApart: (
 export const fillTemplate: (
   template: string,
   values?: TemplateValues,
-) => string = (template: string, values: TemplateValues = {}): string => {
+  onPage?: boolean,
+) => string = (
+  template: string,
+  values: TemplateValues = {},
+  onPage: boolean = false,
+): string => {
   return template.replace(
     PLACEHOLDER,
     (match: string, key: string, at: number): string => {
@@ -1093,7 +1278,7 @@ export const fillTemplate: (
       }
 
       const value: TemplateValue = values[key] as TemplateValue;
-      const text: string = englishValue(value);
+      const text: string = englishValue(value, onPage);
 
       return startsASentence(template, at)
         ? toSentenceValue(value, text, DEFAULT_LANGUAGE).atSentenceStart
@@ -1208,14 +1393,29 @@ const punctuateInLanguage: (words: string, language: string) => string = (
   return words.split(INLINE_SEPARATOR).join(DOT_ZERO_INLINE_SEPARATOR);
 };
 
+/*
+ * How a translator is used. drawsOnPage: what it words is a page's line,
+ * so English's own sentence holds a duration's figure to its word too
+ * ("Every 5\u00A0minutes", #8770), as a wording in any other language
+ * always does. Without it - English OneUptime writes into a record, a root
+ * cause, a status message the Dashboard reads back by its English - English
+ * holds a unit's symbol only, and what is stored still matches.
+ */
+export interface TranslatorOptions {
+  drawsOnPage?: boolean | undefined;
+}
+
 export const createTranslator: (
   lookup: TextLookup | undefined,
   language?: string | undefined,
+  options?: TranslatorOptions,
 ) => Translator = (
   lookup: TextLookup | undefined,
   language?: string | undefined,
+  options?: TranslatorOptions,
 ): Translator => {
   const activeLanguage: string = language || DEFAULT_LANGUAGE;
+  const holdsEnglishDurations: boolean = Boolean(options?.drawsOnPage);
 
   // OneUptime's words, punctuated as the reader's language punctuates a line.
   const punctuate: (words: string) => string = (words: string): string => {
@@ -1238,12 +1438,16 @@ export const createTranslator: (
   /*
    * An English sentence as it sets a line: punctuated, and each number it
    * writes beside a unit kept with it - "Every 5\u00A0min", "411\u00A0ms"
-   * (#8302). Only a template, OneUptime's own English, is set: an English
-   * text with no wording anywhere (translateText) may be a value, and goes
-   * out as written.
+   * (#8302), and beside a duration's word on a page ("Every 5\u00A0minutes",
+   * drawsOnPage, #8770). Only a template, OneUptime's own English, is set:
+   * an English text with no wording anywhere (translateText) may be a
+   * value, and goes out as written - on a page with its durations held
+   * (#8811), nothing else.
    */
   const setEnglish: (english: string) => string = (english: string): string => {
-    return withNumbersKeptWithUnits(punctuate(english), english);
+    return withNumbersKeptWithUnits(punctuate(english), english, {
+      durationWords: holdsEnglishDurations,
+    });
   };
 
   // The stored wording for `key`, or undefined when nothing has one.
@@ -1263,15 +1467,24 @@ export const createTranslator: (
        * already went back to the word (the front ends' translateString)
        * leaves the key as untranslated as one that did not.
        */
-      return typeof result === "string" &&
+      if (
+        typeof result === "string" &&
         result.length > 0 &&
         result !== key &&
         result !== getWordOfMeaningKey(key)
-        ? result
-        : undefined;
+      ) {
+        return result;
+      }
     } catch {
       return undefined;
     }
+
+    /*
+     * Words built in code from a name ("Find One Incident"), which no
+     * locale has a key for: the sentence they were built from, worded by
+     * the language, with the names as its terms (ComposedWords, #8642).
+     */
+    return composedWording(key);
   };
 
   const translateText: (text: string | undefined) => string | undefined = (
@@ -1281,15 +1494,23 @@ export const createTranslator: (
       return text;
     }
 
-    /*
-     * A text with no wording of its own may be a value: as it is. A key
-     * that names its meaning reads as its word (MeaningKeys).
-     */
     const stored: string | undefined = find(text);
 
-    return stored === undefined
-      ? withMeaningKeyAsItsWord(text)
-      : setWording(stored, text);
+    if (stored !== undefined) {
+      return setWording(stored, text);
+    }
+
+    /*
+     * A text with no wording of its own may be a value: as it is. A key
+     * that names its meaning reads as its word (MeaningKeys). On a page -
+     * an English key drawn as written, OneUptime's English where the
+     * reader's language has not worded it yet - each number is held to the
+     * duration's word after it, as a wording holds it ("usually within 15
+     * minutes", #8811); a value a page draws is drawn, not stored.
+     */
+    const asWritten: string = withMeaningKeyAsItsWord(text);
+
+    return holdsEnglishDurations ? withDurationWordsHeld(asWritten) : asWritten;
   };
 
   const hasTranslation: (text: string) => boolean = (text: string): boolean => {
@@ -1393,12 +1614,16 @@ export const createTranslator: (
         return setsValuesApart
           ? fillSettingValuesApart(
               setEnglish(english),
-              englishTextValues(values),
+              englishTextValues(values, holdsEnglishDurations),
               LEFT_TO_RIGHT,
               setsSlotsApart,
               DEFAULT_LANGUAGE,
             )
-          : fillTemplate(setEnglish(english), englishDateValues(values));
+          : fillTemplate(
+              setEnglish(english),
+              englishDateValues(values),
+              holdsEnglishDurations,
+            );
       }
 
       // No words of its own: the reader's words, as their sentence holds them.
@@ -1430,6 +1655,37 @@ export const createTranslator: (
           translatedValues(values),
           activeLanguage,
         );
+  };
+
+  /*
+   * The language's wording of words composeWords built ("Find One
+   * Incident"), or nothing while it has not worded the sentence they were
+   * built from, so they stay English, word for word.
+   */
+  const composedWording: (key: string) => string | undefined = (
+    key: string,
+  ): string | undefined => {
+    const composed: ComposedWords | undefined = composedWordsOf(key);
+
+    if (!composed) {
+      return undefined;
+    }
+
+    const wording: string | undefined = find(composed.template);
+
+    if (wording === undefined) {
+      return undefined;
+    }
+
+    const values: TemplateValues = {};
+
+    for (const name of Object.keys(composed.terms)) {
+      values[name] = translatableTerm(composed.terms[name] as string, {
+        inSentence: composed.inSentence,
+      });
+    }
+
+    return fill(wording, composed.template, values);
   };
 
   const translateTemplate: (
@@ -1601,6 +1857,19 @@ const getEnglishTranslator: () => Translator = (): Translator => {
   }
 
   return englishTranslator;
+};
+
+// The same, for an English sentence a page draws (drawsOnPage, #8770).
+let englishPageTranslator: Translator | null = null;
+
+const getEnglishPageTranslator: () => Translator = (): Translator => {
+  if (!englishPageTranslator) {
+    englishPageTranslator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+      drawsOnPage: true,
+    });
+  }
+
+  return englishPageTranslator;
 };
 
 // How a language separates a list's items, where it is not a comma.

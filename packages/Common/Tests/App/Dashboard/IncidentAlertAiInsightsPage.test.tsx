@@ -713,9 +713,7 @@ describe.each(
         ).not.toBeInTheDocument();
         expect(
           within(turnedOff).getByTestId("ai-insights-who-can-act"),
-        ).toHaveTextContent(
-          "A project administrator can review these settings.",
-        );
+        ).toHaveTextContent("A Project Admin can review these settings.");
 
         expect(unchecked).toHaveTextContent(
           "The daily AI token limit could not be checked.",
@@ -753,7 +751,7 @@ describe.each(
         ).toBeNull();
         expect(
           getInsightNote(skipped("no_investigation_rule_matched"), routes),
-        ).toBe("A project administrator can review these settings.");
+        ).toBe("A Project Admin can review these settings.");
 
         // A record created already resolved: no setting would have changed it.
         expect(
@@ -1011,7 +1009,7 @@ describe.each(
           }),
         ).toEqual([
           [
-            "2 investigations failed or timed out in the last 30 days.Open AI Logs",
+            "2 investigations failed or timed out in the last 30\u00A0days.Open AI Logs",
             `Open AI Logs → ${logsHref}`,
           ],
           [

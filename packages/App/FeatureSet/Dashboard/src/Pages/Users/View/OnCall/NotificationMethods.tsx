@@ -751,7 +751,7 @@ const UserViewNotificationMethods: FunctionComponent<
                   { name: firstName },
                 )
               : translator.translateTemplate(
-                  'Ask a project owner or admin for the "Manage User Notification Methods" permission, or send {{name}} the setup link.',
+                  'Ask a Project Owner or Project Admin for the "Manage User Notification Methods" permission, or send {{name}} the setup link.',
                   { name: firstName },
                 )}
           </p>
@@ -864,7 +864,7 @@ const UserViewNotificationMethods: FunctionComponent<
           />
         ) : (
           translator.translateText(
-            "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.",
+            "Channels that are off in this project are not offered. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.",
           )
         )}
       </span>
@@ -1099,6 +1099,7 @@ const UserViewNotificationMethods: FunctionComponent<
                   "Add a notification method for this user",
                 )
           }
+          isTitleTranslated={true}
           description={translator.translateTemplate(
             "A verification code is sent to the address or number you enter. {{name}} has to enter that code; you cannot verify it for them.",
             { name: firstName },
@@ -1200,6 +1201,7 @@ const UserViewNotificationMethods: FunctionComponent<
               ),
             },
           )}
+          isTitleTranslated={true}
           description={getDeletionDescription()}
           submitButtonText="Remove"
           submitButtonType={ButtonStyleType.DANGER}

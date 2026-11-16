@@ -11,7 +11,7 @@ En monitormal er en lagret monitorkonfigurasjon (en type, kriterier, et interval
 
 ## Slik fungerer maler
 
-En mal overvåker ingenting selv. Monitorer opprettes fra den eller kobles til den, og malens side viser dem som **Tilkoblede overvåkere**. Når du endrer malen, endres ingenting på de monitorene før du synkroniserer: hver synkroniseringsknapp kopierer én del av malen til hver tilkoblede monitor, og felt du beskytter, beholder hver monitors egen verdi.
+En mal overvåker ingenting selv. Monitorer opprettes fra den eller kobles til den, og malens side viser dem som **Tilkoblede monitorer**. Når du endrer malen, endres ingenting på de monitorene før du synkroniserer: hver synkroniseringsknapp kopierer én del av malen til hver tilkoblede monitor, og felt du beskytter, beholder hver monitors egen verdi.
 
 ```mermaid title="En mal og monitorene som er koblet til den"
 flowchart TB
@@ -43,34 +43,34 @@ Under **Malinformasjon** angir du et **Malnavn**, som `Production API Health`. E
 
 ### Angi monitorens standardverdier
 
-Under **Standardverdier for overvåking** velger du **Monitortype** med den samme velgeren som i Opprett monitor. Angi eventuelt et **Standard overvåkingsnavn**; står det tomt, får hver monitor navn etter ressursen den overvåker. **Standard overvåkingsbeskrivelse** og **Etiketter** venter under **Flere felt**. Klikk på **Neste**.
+Under **Standardverdier for monitor** velger du **Monitortype** med den samme velgeren som i Opprett monitor. Angi eventuelt et **Standard monitornavn**; står det tomt, får hver monitor navn etter ressursen den overvåker. **Standard monitorbeskrivelse** og **Etiketter** venter under **Flere felt**. Klikk på **Neste**.
 
 ### Angi kriteriene og intervallet
 
 Under **Kriterier** fyller du ut hva som skal sjekkes, og kriteriene, som i [Opprett monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Innstillinger for malsynkronisering** øverst kan du beskytte felt mot synkroniseringer (se [Behold verdier for hver monitor](#behold-verdier-for-hver-monitor)). For en monitortype som sonder sjekker, ber det siste trinnet, **Intervall**, om **Overvåkingsintervall**. Klikk på **Opprett Monitormal** på det siste trinnet.
 :::
 
-Malen legges til i listen. Åpne den for å se siden, med et kort for hver del: **Malinformasjon**, **Standardverdier for overvåking**, **Kriterier**, **Overvåkingsintervall** (med **Minimum sondeenighet**), **Etiketter**, **Standardverdier for egendefinerte felt** (når prosjektet har egendefinerte monitorfelt) og **Tilkoblede overvåkere**. Du endrer hver del på sitt eget kort, for eksempel med **Rediger kriterier** eller **Rediger intervall**.
+Malen legges til i listen. Åpne den for å se siden, med et kort for hver del: **Malinformasjon**, **Standardverdier for monitor**, **Kriterier**, **Overvåkingsintervall** (med **Minimum sondeenighet**), **Etiketter**, **Standardverdier for egendefinerte felt** (når prosjektet har egendefinerte monitorfelt) og **Tilkoblede monitorer**. Du endrer hver del på sitt eget kort, for eksempel med **Rediger kriterier** eller **Rediger intervall**.
 
 ## Opprett monitorer fra en mal
 
-- **Ny monitor.** Klikk på **Opprett monitor** i malens rad i listen, eller på **Opprett overvåking fra mal** på siden dens. **Opprett monitor** åpner med malens type og innstillinger fylt ut; endre det du trenger, og opprett den. Den nye monitoren er koblet til malen.
-- **Monitorer du allerede har.** Under **Tilkoblede overvåkere** klikker du på **Koble til eksisterende overvåkere** og velger dem. De beholder innstillingene sine til du synkroniserer.
+- **Ny monitor.** Klikk på **Opprett monitor** i malens rad i listen, eller på **Opprett monitor fra mal** på siden dens. **Opprett monitor** åpner med malens type og innstillinger fylt ut; endre det du trenger, og opprett den. Den nye monitoren er koblet til malen.
+- **Monitorer du allerede har.** Under **Tilkoblede monitorer** klikker du på **Koble til eksisterende monitorer** og velger dem. De beholder innstillingene sine til du synkroniserer.
 
 Verdier som er satt under **Standardverdier for egendefinerte felt**, skrives til hver monitor som opprettes fra malen, også monitorer som regler for automatisk import og varslingspolicyer oppretter fra den.
 
 ## Synkroniser endringer til tilkoblede monitorer
 
-Å redigere en mal endrer bare malen. For å kopiere en endring til de tilkoblede monitorene bruker du synkroniseringsknappen på kortet du endret. Hver knapp sier hvor mange monitorer den når, som **Synkroniser kriterier til 3 koblede overvåkere**, og er nedtonet så lenge ingenting er koblet til. En synkronisering kan ikke angres.
+Å redigere en mal endrer bare malen. For å kopiere en endring til de tilkoblede monitorene bruker du synkroniseringsknappen på kortet du endret. Hver knapp sier hvor mange monitorer den når, som **Synkroniser kriterier til 3 koblede monitorer**, og er nedtonet så lenge ingenting er koblet til. En synkronisering kan ikke angres.
 
 | Knapp | Kopierer til hver tilkoblede monitor | Lar være |
 | --- | --- | --- |
-| **Synkroniser kriterier til koblede overvåkere** | Kriteriene og trinninnstillingene, som mål og forespørselsalternativer, unntatt beskyttede felt | Overvåkingsintervallet, minimum sondeenighet, navnet, beskrivelsen, etikettene og verdiene i egendefinerte felt |
-| **Synkroniser intervall til koblede overvåkere** | Overvåkingsintervallet og minimum sondeenighet | Kriteriene, navnet, beskrivelsen, etikettene og verdiene i egendefinerte felt |
-| **Synkroniser etiketter til koblede overvåkere** | Etikettene, og ingenting annet | Alt annet |
+| **Synkroniser kriterier til koblede monitorer** | Kriteriene og trinninnstillingene, som mål og forespørselsalternativer, unntatt beskyttede felt | Overvåkingsintervallet, minimum sondeenighet, navnet, beskrivelsen, etikettene og verdiene i egendefinerte felt |
+| **Synkroniser intervall til koblede monitorer** | Overvåkingsintervallet og minimum sondeenighet | Kriteriene, navnet, beskrivelsen, etikettene og verdiene i egendefinerte felt |
+| **Synkroniser etiketter til koblede monitorer** | Etikettene, og ingenting annet | Alt annet |
 | **Synkroniser egendefinerte felt til tilknyttede monitorer** | De egendefinerte feltene malen har en standardverdi for, i stedet for det hver monitor hadde | Egendefinerte felt som malen lar stå tomme, og alt annet |
 
-For å synkronisere én monitor klikker du på **Synkroniser fra mal** i raden dens under **Tilkoblede overvåkere**. Det kopierer kriteriene og trinninnstillingene (unntatt beskyttede felt), overvåkingsintervallet, minimum sondeenighet og etikettene, og lar monitorens navn, beskrivelse og verdier i egendefinerte felt være. **Koble fra mal** kobler fra en monitor; den beholder innstillingene sine.
+For å synkronisere én monitor klikker du på **Synkroniser fra mal** i raden dens under **Tilkoblede monitorer**. Det kopierer kriteriene og trinninnstillingene (unntatt beskyttede felt), overvåkingsintervallet, minimum sondeenighet og etikettene, og lar monitorens navn, beskrivelse og verdier i egendefinerte felt være. **Koble fra mal** kobler fra en monitor; den beholder innstillingene sine.
 
 Etter en synkronisering sier et sammendrag hvor mange monitorer som ble oppdatert. **Delvis synkronisert** betyr at noen tilkoblede monitorer fortsatt har den forrige konfigurasjonen, som regel fordi tillatelsene dine ikke dekker dem.
 
@@ -97,7 +97,7 @@ Lagre endringene. Kortet **Kriterier**, og bekreftelsen av begge synkroniseringe
 
 ### Synkroniser
 
-Bruk **Synkroniser kriterier til koblede overvåkere**, eller **Synkroniser fra mal** på én tilkoblet monitor.
+Bruk **Synkroniser kriterier til koblede monitorer**, eller **Synkroniser fra mal** på én tilkoblet monitor.
 :::
 
 Beskytt for eksempel **Monitor-mål** og **Forespørselshoder** på en API-mal. Produksjons- og staging-monitorer beholder sine egne URL-er og hoder, mens begge får malens oppdaterte kriterier og de andre ubeskyttede innstillingene.
@@ -144,22 +144,22 @@ Utelat matrisen, eller sett den til `[]`, for å synkronisere alle støttede tri
 :::details Feltnavn for doNotSyncFields etter monitortype
 | Monitortype | Feltnavn |
 | --- | --- |
-| Nettsted, API, Ping, IP, Port, SSL Certificate, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
+| Nettsted, API, Ping, IP, Port, SSL-sertifikat, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
 | Bare API | `requestHeaders`, `requestType`, `requestBody` |
 | Nettsted og API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication` (klientsertifikatet, nøkkelen og passordfrasen sammen) |
 | Port, NTP | `monitorDestinationPort` |
-| Synthetic Monitor, Custom JavaScript Code | `customCode` |
-| Synthetic Monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
+| Syntetisk monitor, Egendefinert JavaScript-kode | `customCode` |
+| Syntetisk monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver` (DNS-serveren og porten sammen), `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | Domene | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
 | DNSSEC | `dnssecMonitor.domainName`, `dnssecMonitor.resolvers`, `dnssecMonitor.checkNameserverConsistency`, `dnssecMonitor.signatureExpiryWarningDays`, `dnssecMonitor.timeout`, `dnssecMonitor.retries` |
-| SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
-| Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
-| External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| Logger, Security Events, Spor, AI / LLM, Målinger, Unntak, Profiler | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (hele monitorens konfigurasjon) |
+| SQL-spørring | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
+| Databasehelse | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
+| Ekstern statusside | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
+| Logger, Sikkerhetshendelser, Spor, AI / LLM, Målinger, Unntak, Profiler | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (hele monitorens konfigurasjon) |
 | Sondestatus | `probeStatusMonitor.probeIds` |
 
-Infrastrukturmonitorer (Kubernetes, Docker Container, Vert, Podman Container, Proxmox, Docker Swarm, Ceph, Lagringsarray, IoT Device) tilbyr ressursvelgeren, filtre (alle unntatt Vert), målingsspørringer og spørringens tidsvindu. Navnene deres står under **Innstillinger for malsynkronisering** på en mal av den typen.
+Infrastrukturmonitorer (Kubernetes, Docker-container, Vert, Podman-container, Proxmox, Docker Swarm, Ceph, Lagringsarray, IoT-enhet) tilbyr ressursvelgeren, filtre (alle unntatt Vert), målingsspørringer og spørringens tidsvindu. Navnene deres står under **Innstillinger for malsynkronisering** på en mal av den typen.
 :::
 
 ## Feilsøking
@@ -173,7 +173,7 @@ Et beskyttet felt kunne ikke matches mot et trinn på en av monitorene, så synk
 :::
 
 :::details Synkroniseringsknappene er nedtonet
-Ingen monitor er koblet til malen ennå. Opprett en monitor fra den, eller klikk på **Koble til eksisterende overvåkere** under **Tilkoblede overvåkere**.
+Ingen monitor er koblet til malen ennå. Opprett en monitor fra den, eller klikk på **Koble til eksisterende monitorer** under **Tilkoblede monitorer**.
 :::
 
 :::details Lagring feiler med "Unsupported do not sync field"
@@ -184,7 +184,7 @@ Et navn i `doNotSyncFields` er ikke et felt for malens monitortype. Sjekk det mo
 
 :::cards
 - [Opprett en monitor](/docs/monitor/create-monitor): Skjemaet en mal fyller ut.
-- [API-overvåking](/docs/monitor/api-monitor): Innstillingene en API-mal tar med seg.
-- [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Del påloggingsdata mellom monitorer uten å kopiere dem.
+- [API-monitor](/docs/monitor/api-monitor): Innstillingene en API-mal tar med seg.
+- [Monitorhemmeligheter](/docs/monitor/monitor-secrets): Del påloggingsdata mellom monitorer uten å kopiere dem.
 - [Terraform-monitortrinn](/docs/terraform/monitor-steps): Administrer monitorer og trinnene deres som kode.
 :::

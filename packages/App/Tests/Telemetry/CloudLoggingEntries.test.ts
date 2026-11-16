@@ -4,9 +4,12 @@ import {
   resolveCloudMonitoredResource,
 } from "Common/Types/Cloud/CloudMonitoredResource";
 import { JSONObject } from "Common/Types/JSON";
+import { readOwnValue } from "Common/Utils/LookupTable";
+import { INHERITED_PROPERTY_NAMES } from "Common/Tests/Helpers/InheritedNames";
 import {
   CLOUD_LOGGING_SEVERITIES,
   CloudLoggingEntry,
+  GCP_LABEL_PREFIX,
   buildCloudLoggingResourceLogs,
   readCloudLoggingEntry,
   readLogId,
@@ -489,14 +492,96 @@ describe("what is no log entry", () => {
     }
   });
 
-  test("a label that would poison an object is not kept", () => {
+  test("a label holding an object, under __proto__ or constructor too, is not kept", () => {
     const entry: CloudLoggingEntry | null = readCloudLoggingEntry(
       JSON.parse(
-        '{"logName":"projects/p/logs/x","textPayload":"t","labels":{"__proto__":{"admin":true},"ok":"1"}}',
+        '{"logName":"projects/p/logs/x","textPayload":"t","labels":{"__proto__":{"admin":true},"constructor":{"prototype":{"admin":true}},"ok":"1"}}',
       ),
     );
 
     expect(entry?.labels).toEqual({ ok: "1" });
+    expect(Object.getPrototypeOf(entry?.labels)).toBe(Object.prototype);
     expect(({} as Record<string, unknown>)["admin"]).toBeUndefined();
   });
+});
+
+/*
+ * Issue #8487: a label is the labels' own key, so one named "constructor"
+ * (a valid label key in Google Cloud), "__proto__" or any other name every
+ * object inherits is kept like any other, on the entry and on its resource,
+ * and reaches the log as an attribute. Both were left out before.
+ */
+describe("labels named as what every object inherits", () => {
+  const PROTOTYPE_KEYS: Array<string> = Object.getOwnPropertyNames(
+    Object.prototype,
+  ).sort();
+
+  function attributePairs(
+    attributes: Array<JSONObject>,
+  ): Array<[string, unknown]> {
+    return attributes.map((attribute: JSONObject): [string, unknown] => {
+      return [
+        attribute["key"] as string,
+        (attribute["value"] as JSONObject)["stringValue"],
+      ];
+    });
+  }
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a label named %s is kept, and is the log's attribute",
+    (name: string) => {
+      const key: string = JSON.stringify(name);
+      const entry: CloudLoggingEntry | null = readCloudLoggingEntry(
+        JSON.parse(
+          `{"logName":"projects/p/logs/x","textPayload":"t","labels":{${key}:"the entry's","ok":"1"},"resource":{"type":"global","labels":{${key}:"the resource's","project_id":"p"}}}`,
+        ),
+      );
+
+      expect(Object.keys(entry!.labels)).toEqual([name, "ok"]);
+      expect(readOwnValue(entry!.labels, name)).toBe("the entry's");
+      expect(Object.keys(entry!.resourceLabels)).toEqual([name, "project_id"]);
+      expect(readOwnValue(entry!.resourceLabels, name)).toBe("the resource's");
+      expect(Object.getPrototypeOf(entry!.labels)).toBe(Object.prototype);
+      expect(Object.getPrototypeOf(entry!.resourceLabels)).toBe(
+        Object.prototype,
+      );
+
+      const resourceLogs: JSONObject = buildCloudLoggingResourceLogs({
+        entry: entry!,
+        serviceName: "Production Google Cloud",
+        connectionId: "33333333-3333-4333-8333-333333333333",
+        observedAtMs: Date.UTC(2026, 10, 6, 10, 0, 0),
+      }).resourceLogs;
+
+      expect(
+        attributePairs(
+          (resourceLogs["resource"] as JSONObject)[
+            "attributes"
+          ] as Array<JSONObject>,
+        ),
+      ).toContainEqual([name, "the resource's"]);
+      expect(
+        attributePairs(
+          recordOf(resourceLogs)["attributes"] as Array<JSONObject>,
+        ),
+      ).toContainEqual([`${GCP_LABEL_PREFIX}${name}`, "the entry's"]);
+      expect(Object.getOwnPropertyNames(Object.prototype).sort()).toEqual(
+        PROTOTYPE_KEYS,
+      );
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a label named %s with a number or a yes/no is kept as its text",
+    (name: string) => {
+      const entry: CloudLoggingEntry | null = readCloudLoggingEntry(
+        JSON.parse(
+          `{"logName":"projects/p/logs/x","textPayload":"t","labels":{${JSON.stringify(name)}:7,"flag":true}}`,
+        ),
+      );
+
+      expect(readOwnValue(entry!.labels, name)).toBe("7");
+      expect(readOwnValue(entry!.labels, "flag")).toBe("true");
+    },
+  );
 });

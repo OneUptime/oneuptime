@@ -1,6 +1,6 @@
 # Kubernetes 에이전트
 
-OneUptime Kubernetes 에이전트는 Helm 차트로, 클러스터의 메트릭, 이벤트, Pod 로그를 수집하고, eBPF로 모든 Pod의 트레이스, 요청 메트릭, 서비스 그래프, 네트워크 흐름을 코드 변경이나 SDK 없이 수집합니다. 또한 [Kubernetes AI 에이전트](#kubernetes-ai-에이전트)를 실행해 OneUptime AI가 인시던트나 알림을 조사하는 동안 읽기 전용 `kubectl`을 실행할 수 있게 합니다. `helm install` 한 번으로 설치되며, [Kubernetes 모니터](/docs/monitor/kubernetes-monitor)가 에이전트가 보낸 데이터를 기준으로 알림을 보냅니다.
+OneUptime Kubernetes 에이전트는 Helm 차트로, 클러스터의 메트릭, 이벤트, Pod 로그를 수집하고, eBPF로 모든 Pod의 트레이스, 요청 메트릭, 서비스 그래프, 네트워크 흐름을 코드 변경이나 SDK 없이 수집합니다. 또한 [Kubernetes AI 에이전트](#kubernetes-ai-에이전트)를 실행해 OneUptime AI가 인시던트나 경고를 조사하는 동안 읽기 전용 `kubectl`을 실행할 수 있게 합니다. `helm install` 한 번으로 설치되며, [Kubernetes 모니터](/docs/monitor/kubernetes-monitor)가 에이전트가 보낸 데이터를 기준으로 경고를 보냅니다.
 
 > [!NOTE]
 > 이 페이지는 에이전트의 전체 레퍼런스입니다. 처음 설치하시나요? 플랫폼에 맞는 프리셋으로 단계별로 설치하는 방법은 여기에 있습니다: [Kubernetes 에이전트(Helm 설치)](/docs/monitor/kubernetes-agent).
@@ -8,7 +8,7 @@ OneUptime Kubernetes 에이전트는 Helm 차트로, 클러스터의 메트릭, 
 :::cards
 - [에이전트 설치](#에이전트-설치): Helm으로 네 단계.
 - [Amazon EKS 추가 기능으로 설치](#amazon-eks-추가-기능으로-설치): Helm 없이 EKS 콘솔에서.
-- [OpenShift](#openshift): 프리셋, 프리셋이 만드는 보안 컨텍스트 제약 조건, OpenShift 자체 알림.
+- [OpenShift](#openshift): 프리셋, 프리셋이 만드는 보안 컨텍스트 제약 조건, OpenShift 자체 경고.
 - [구성 옵션](#구성-옵션): 필터, 샘플링, 컨트롤 플레인, 서비스 메시, 비용, 레이블.
 - [Kubernetes AI 에이전트](#kubernetes-ai-에이전트): OneUptime AI를 위한 읽기 전용 `kubectl`과, 허용할 때의 수정.
 - [전송량 줄이기](#수집하는-데이터양-줄이기): 효과가 큰 순서로 정리한 조정 수단.
@@ -30,7 +30,7 @@ flowchart TB
 | 클러스터 Collector | Deployment | Kubernetes API에서 가져온 클러스터 메트릭, Kubernetes 이벤트, Pod·노드·워크로드의 사양. | 항상 |
 | 노드 Collector | DaemonSet | `/var/log/pods`의 Pod 로그, kubelet 및 cAdvisor 메트릭, 노드의 OS 메트릭. | EKS Fargate를 제외한 모든 곳 |
 | eBPF 계측 (OBI) | DaemonSet | 모든 Pod의 HTTP, gRPC, SQL, Redis 트레이스와 요청 메트릭, 그리고 서비스 맵. | 기본값 (GKE Autopilot과 EKS Fargate 제외) |
-| Kubernetes AI 에이전트 | Deployment | OneUptime AI가 인시던트나 알림을 조사하는 동안 사용하는 읽기 전용 `kubectl`. | 기본값 |
+| Kubernetes AI 에이전트 | Deployment | OneUptime AI가 인시던트나 경고를 조사하는 동안 사용하는 읽기 전용 `kubectl`. | 기본값 |
 | 로그 테일러 | Deployment | 노드 Collector가 읽을 수 없는 경우 Kubernetes API를 통한 Pod 로그. | `gke-autopilot`, `eks-fargate` 및 `openshift-restricted` 프리셋 |
 | 비용 엔진과 폴러 | Deployments | 네임스페이스, 워크로드, Pod별 지출. | `cost.enabled=true`일 때 |
 
@@ -106,7 +106,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 ```
 :::
 
-**AI 조사는 기본적으로 켜져 있습니다.** `aiAgent.enabled=true`는 Collector 옆에서 [Kubernetes AI 에이전트](#kubernetes-ai-에이전트)를 실행합니다. 이 클러스터에서 인시던트나 알림이 발생하면 OneUptime AI가 읽기 전용 `kubectl`(`get`, `describe`, `logs`, `events`, `top`)로 조사하며 아무것도 변경하지 않습니다. 수정은 허용할 때까지 꺼져 있습니다. AI 없이 설치하려면 대신 `--set aiAgent.enabled=false`를 사용하세요.
+**AI 조사는 기본적으로 켜져 있습니다.** `aiAgent.enabled=true`는 Collector 옆에서 [Kubernetes AI 에이전트](#kubernetes-ai-에이전트)를 실행합니다. 이 클러스터에서 인시던트나 경고가 발생하면 OneUptime AI가 읽기 전용 `kubectl`(`get`, `describe`, `logs`, `events`, `top`)로 조사하며 아무것도 변경하지 않습니다. 수정은 허용할 때까지 꺼져 있습니다. AI 없이 설치하려면 대신 `--set aiAgent.enabled=false`를 사용하세요.
 
 ### Pod가 실행 중인지 확인
 
@@ -249,9 +249,9 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 - **네트워크** 아래의 **라우트**와 **서비스**: 각 Route가 응답하는 위치, TLS 종료 방식, 트래픽을 보내는 서비스와 그 비율, 라우터가 Route를 거부한 이유를 보여 줍니다. Route의 TLS 키는 클러스터 밖으로 나가지 않습니다. 에이전트가 Route를 보내기 전에 키를 교체합니다.
 - **워크로드** 아래의 **DeploymentConfigs**는 Deployment와 같은 방식으로 표시됩니다. 롤아웃, Pod의 CPU와 메모리, 실행하는 ReplicationController와 Pod의 이벤트를 보여 줍니다.
 
-**Operator 및 업데이트 알림.** OpenShift 클러스터의 **권장 사항** 페이지에서는 **Cluster Operator Unavailable**, **Cluster Operator Degraded**, **Cluster Update Failing**을 제공합니다. 각각은 에이전트가 `resourceSpecs.interval`마다 보내는 스냅샷을 대상으로 하는 로그 모니터입니다. 스냅샷 두 개가 문제를 보고하면 알림을 보내므로, 업데이트 중 Operator 상태가 잠깐 바뀌는 것만으로는 아무 일도 일어나지 않습니다. 또한 스냅샷이 문제가 끝났다고 보고할 때 해결되며, 에이전트가 전송을 멈췄다는 이유로 해결되는 일은 없습니다.
+**Operator 및 업데이트 경고.** OpenShift 클러스터의 **권장 사항** 페이지에서는 **Cluster Operator Unavailable**, **Cluster Operator Degraded**, **Cluster Update Failing**을 제공합니다. 각각은 에이전트가 `resourceSpecs.interval`마다 보내는 스냅샷을 대상으로 하는 로그 모니터입니다. 스냅샷 두 개가 문제를 보고하면 경고를 보내므로, 업데이트 중 Operator 상태가 잠깐 바뀌는 것만으로는 아무 일도 일어나지 않습니다. 또한 스냅샷이 문제가 끝났다고 보고할 때 해결되며, 에이전트가 전송을 멈췄다는 이유로 해결되는 일은 없습니다.
 
-**OpenShift 자체 알림.** OpenShift에는 Prometheus와 Alertmanager가 포함되어 있으며, Operator, etcd, 노드에 대한 알림이 함께 제공됩니다. 각 알림마다 OneUptime에서 인시던트를 열려면 웹 콘솔의 **Administration → Cluster Settings → Configuration → Alertmanager**에서 OneUptime용 웹훅 수신기를 추가하세요. 방법은 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)를 참고하세요.
+**OpenShift 자체 경고.** OpenShift에는 Prometheus와 Alertmanager가 포함되어 있으며, Operator, etcd, 노드에 대한 경고가 함께 제공됩니다. 각 경고마다 OneUptime에서 인시던트를 열려면 웹 콘솔의 **Administration → Cluster Settings → Configuration → Alertmanager**에서 OneUptime용 웹훅 수신기를 추가하세요. 방법은 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)를 참고하세요.
 
 **코드에서 보내는 트레이스.** eBPF 계측은 코드를 바꾸지 않고도 HTTP, gRPC, SQL을 트레이스합니다. OpenTelemetry SDK나 Red Hat build of OpenTelemetry에서 트레이스를 보내려면 해당 OTLP 익스포터가 OneUptime을 가리키도록 하세요. 방법은 [OpenTelemetry](/docs/telemetry/open-telemetry)를 참고하세요.
 
@@ -294,7 +294,7 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 
 너비가 1024픽셀보다 좁은 화면에서는 **이벤트** 열에 **개수**와 **마지막 확인**도 표시되며, 이 둘은 그곳에서 별도의 열이 없습니다.
 
-### 이벤트 검색과 알림
+### 이벤트 검색과 경고
 
 모든 이벤트는 로그이기도 합니다. 경고는 심각도 **경고**로 저장되며, 이벤트의 내용은 속성에 들어 있습니다.
 
@@ -309,7 +309,7 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-**로그**에서 검색하거나, 원하지 않는 것은 드롭 필터로 버릴 수 있습니다. 발생 시 알림을 받으려면 클러스터의 **권장 사항** 페이지에서 **Warning Events**를 켜거나, **이벤트** 페이지 아래쪽의 **경고 알림 켜기**를 선택하세요. 클러스터의 경고에 대한 [로그 모니터](/docs/monitor/logs-monitor)로, 객체와 사유마다 알림을 하나씩 보내고 그에 대한 새 경고 없이 5분이 지나면 해결합니다. 일부 사유만 알림을 받으려면 필터에 `k8s.event.reason`을 추가하세요.
+**로그**에서 검색하거나, 원하지 않는 것은 드롭 필터로 버릴 수 있습니다. 발생 시 경고를 받으려면 클러스터의 **권장 사항** 페이지에서 **Warning Events**를 켜거나, **이벤트** 페이지 아래쪽의 **Warning 이벤트 경고 켜기**를 선택하세요. 클러스터의 경고에 대한 [로그 모니터](/docs/monitor/logs-monitor)로, 객체와 사유마다 경고를 하나씩 보내고 그에 대한 새 경고 없이 5분이 지나면 해결합니다. 일부 사유만 경고를 받으려면 필터에 `k8s.event.reason`을 추가하세요.
 
 ## 구성 옵션
 
@@ -487,7 +487,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-메트릭에는 영향이 없습니다. 노드 Collector는 kubelet, cAdvisor, 호스트 메트릭을 위해 계속 실행되며 Pod 로그 읽기만 멈춥니다. 로그 기반 알림만 멈추고 다른 것은 그대로입니다.
+메트릭에는 영향이 없습니다. 노드 Collector는 kubelet, cAdvisor, 호스트 메트릭을 위해 계속 실행되며 Pod 로그 읽기만 멈춥니다. 로그 기반 경고만 멈추고 다른 것은 그대로입니다.
 
 ### 특정 로그 수집 모드 강제
 
@@ -704,7 +704,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 ## Kubernetes AI 에이전트
 
-이 클러스터에서 인시던트나 알림이 발생하면 OneUptime AI가 조사합니다. 차트의 **Kubernetes AI 에이전트**는 AI에게 터미널을 줍니다. 온콜 엔지니어처럼 읽기 전용 `kubectl`을 실행하고(실패하는 Pod를 describe하고, 이벤트를 읽고, 크래시하는 컨테이너의 로그를 tail하고, 노드 용량을 확인), 실행한 모든 명령을 인시던트 페이지에 인용합니다.
+이 클러스터에서 인시던트나 경고가 발생하면 OneUptime AI가 조사합니다. 차트의 **Kubernetes AI 에이전트**는 AI에게 터미널을 줍니다. 온콜 엔지니어처럼 읽기 전용 `kubectl`을 실행하고(실패하는 Pod를 describe하고, 이벤트를 읽고, 크래시하는 컨테이너의 로그를 tail하고, 노드 용량을 확인), 실행한 모든 명령을 인시던트 페이지에 인용합니다.
 
 에이전트는 **기본적으로 켜져** 있고 **읽기 전용**입니다. 작은 Deployment 하나(`kubernetes-agent-ai-agent`, Pod 레이블 `component=ai-agent`, 이미지 `oneuptime/kubernetes-ai-agent`)이며, 그 ServiceAccount는 읽기만 할 수 있습니다. Collector와 같은 `oneuptime.apiKey`와 `clusterName`으로 스스로 등록하므로 대시보드에서 설정할 것이 없습니다. 클러스터의 **AI 에이전트** 페이지(Kubernetes → 클러스터 → AI → 에이전트)에 1분 안에 연결됨으로 표시되며, 그 상태 옆 **⋯** 메뉴의 **연결 테스트**는 에이전트를 통해 `kubectl version`과 `kubectl auth can-i --list`를 실행합니다. AI가 에이전트로 한 모든 작업은 클러스터의 **AI 로그** 페이지(AI → 로그)에 있고, 클러스터에 대해 알아 둘 만한 것(계속 반복되는 문제와 그 이유, 그 대부분의 원인인 노드나 워크로드, AI가 고친 것)은 **AI 인사이트** 페이지(AI → Insights)에 있습니다. 에이전트에는 고정된 kubectl(v1.36.6)이 포함되어 있습니다. Runner가 아니며 Runbooks → Runners 아래에 나타나지 않습니다. OneUptime은 에이전트에 자격 증명을 넘기지 않고, 런북을 실행하지 않으며, AI 규칙의 명령 Runner로도 받아들이지 않습니다.
 
@@ -723,7 +723,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 OneUptime AI가 클러스터에서 할 수 있는 작업은 차트에서 두 값으로 설정되며, 클러스터의 AI 에이전트 페이지는 이를 **AI가 할 수 있는 작업** 아래에 보여 주지만 그곳에서 바꿀 수는 없습니다:
 
-- `aiAgent.investigation` — `true`: AI가 클러스터의 인시던트나 알림을 조사하는 동안 읽기 전용 `kubectl`을 실행합니다. `false`: OneUptime이 이미 가진 데이터로 여전히 조사합니다.
+- `aiAgent.investigation` — `true`: AI가 클러스터의 인시던트나 경고를 조사하는 동안 읽기 전용 `kubectl`을 실행합니다. `false`: OneUptime이 이미 가진 데이터로 여전히 조사합니다.
 - `aiAgent.fixes` — `off`, `ask-for-approval`, `automatic`, `bypass-approval`(아래 참조). `off`를 제외한 모든 수준은 AI 에이전트에 쓰기 권한을 부여합니다. `off`는 아무 권한도 부여하지 않으며, 그러면 에이전트가 모든 쓰기를 스스로 거부합니다.
 
 AI 에이전트는 두 값을 OneUptime에 보고하고, OneUptime은 이를 클러스터에 적용하며 다른 곳(AI 에이전트 페이지, API, Terraform)에서 한 변경은 거부합니다. 그 페이지의 **변경**은 선택한 옵션에 맞는 명령을 보여 줍니다. 둘 다 `values.yaml`에서는 설정되어 있지 않습니다. 둘 다 설정하지 않은 릴리스에서는 에이전트가 자체 기본값(조사 켜짐, 수정 꺼짐)을 사용하며, OneUptime은 아무도 AI 에이전트 페이지에서 설정을 고르지 않은 클러스터에만 이를 적용합니다. 누군가 그곳에서 고른 설정은 그대로 유지되며, 페이지는 그 설정을 차트로 옮기는 방법을 보여 줍니다.
@@ -1058,7 +1058,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 필요에 따라 더 조이세요. `minSeverity`를 `ERROR`로 올리거나, 네임스페이스 규칙의 범위에 `metrics`를 추가하거나, 이미 OpenTelemetry SDK로 트레이스를 보내고 있다면 `ebpf.enabled=false`를 설정하세요.
 
 > [!CAUTION]
-> 무엇을 줄이는지 주의하세요. 일부 모니터는 특정 신호에 의존합니다. `kubeletstats.utilizationMetrics`를 끄면 Pod를 컨테이너 한도와 비교하는 두 템플릿이 멈추고, 로그를 끄면 로그 기반 알림이 없어지며, `cadvisor` 또는 `kubeletstats.volumeMetrics`를 끄면 직접 만든 차트와 메트릭 모니터가 읽을 수 있는 스로틀링, OOM kill, PVC 시리즈가 없어집니다. `sampling.traces.percentage`는 모니터를 없애지 않지만 스팬 기반 모니터(`Span Count`에 대한 **트레이스**, `Exception Count`에 대한 **예외**)의 값을 줄이므로 임계값을 다시 조정하세요. 대응에 쓰지 않는 신호를 줄이고, 모니터가 감시하는 신호는 줄이지 마세요.
+> 무엇을 줄이는지 주의하세요. 일부 모니터는 특정 신호에 의존합니다. `kubeletstats.utilizationMetrics`를 끄면 Pod를 컨테이너 한도와 비교하는 두 템플릿이 멈추고, 로그를 끄면 로그 기반 경고가 없어지며, `cadvisor` 또는 `kubeletstats.volumeMetrics`를 끄면 직접 만든 차트와 메트릭 모니터가 읽을 수 있는 스로틀링, OOM kill, PVC 시리즈가 없어집니다. `sampling.traces.percentage`는 모니터를 없애지 않지만 스팬 기반 모니터(`Span Count`에 대한 **트레이스**, `Exception Count`에 대한 **예외**)의 값을 줄이므로 임계값을 다시 조정하세요. 대응에 쓰지 않는 신호를 줄이고, 모니터가 감시하는 신호는 줄이지 마세요.
 
 ### 효과 측정
 
@@ -1156,7 +1156,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ## 다음 단계
 
 :::cards
-- [Kubernetes 모니터](/docs/monitor/kubernetes-monitor): 크래시 루프, 준비되지 않은 노드, 한도에 걸린 Pod, 가득 찬 노드 디스크에 대해 알림을 보냅니다.
+- [Kubernetes 모니터](/docs/monitor/kubernetes-monitor): 크래시 루프, 준비되지 않은 노드, 한도에 걸린 Pod, 가득 찬 노드 디스크에 대해 경고를 보냅니다.
 - [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost): 각 워크로드의 비용과 줄일 request를 확인합니다.
 - [데이터베이스](/docs/telemetry/databases): 클러스터의 데이터베이스 워크로드가 발견되어 전용 페이지가 생깁니다.
 - [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector): Kubernetes 밖의 Linux, macOS, Windows 머신을 모니터링합니다.

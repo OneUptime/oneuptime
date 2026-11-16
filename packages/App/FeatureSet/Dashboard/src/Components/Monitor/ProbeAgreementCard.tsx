@@ -235,7 +235,12 @@ const ProbeAgreementCard: FunctionComponent<ComponentProps> = (
                 count: updateGate.isAllowed ? (
                   box
                 ) : (
-                  <Tooltip text={updateGate.disabledReason}>{box}</Tooltip>
+                  <Tooltip
+                    text={updateGate.disabledReason}
+                    isTextTranslated={true}
+                  >
+                    {box}
+                  </Tooltip>
                 ),
               }}
               /*

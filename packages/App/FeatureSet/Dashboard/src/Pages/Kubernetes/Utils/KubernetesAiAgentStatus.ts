@@ -113,7 +113,7 @@ export const AI_AGENT_SILENT_TEXT: string = translationKey(
 );
 
 export const ASK_PROJECT_ADMIN_TEXT: string = translationKey(
-  "Ask a project owner or admin.",
+  "Ask a Project Owner or Project Admin.",
 );
 
 // Where the cluster's investigation and fixes are set, as its status says.

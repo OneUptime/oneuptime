@@ -889,7 +889,7 @@ describe("why am I receiving this email", () => {
       ["Checkout API"],
     ],
     [
-      "a project owner, for monitors with no owners",
+      "a Project Owner, for monitors with no owners",
       projectOwner,
       ProbeMonitorsRecipientOwnership.ProjectOwner,
       ["Search API"],

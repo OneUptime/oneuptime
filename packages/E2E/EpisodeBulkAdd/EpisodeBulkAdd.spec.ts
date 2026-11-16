@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Adding several alerts or incidents to an episode at once, in a browser,
@@ -1569,4 +1570,18 @@ test.describe("the Episode Membership settings page", () => {
       await screenshot(page, "one-episode-settings-phone-dark");
     });
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Japanese whole, parsed on every page load of every test.
+ * English is in the bundle now, and each other language a chunk of its own,
+ * loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built
+ * as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja"],
+  address: (language: string): string => {
+    return `${PROJECT}/incidents?page=incidents${language === "en" ? "" : `&lang=${language}`}`;
+  },
 });

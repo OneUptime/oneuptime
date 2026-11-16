@@ -15,6 +15,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import { sortLabelNames } from "../../../../Utils/LabelOrder";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
+import { getOnCallPageStatusLabel } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import UserNotificationEventType from "../../../../Types/UserNotification/UserNotificationEventType";
 import {
   AIChatCitationTargetType,
@@ -452,17 +453,19 @@ export function getEscalationChainCell(
 /*
  * Who a page notified, and how it went, as words (issue #8313): "Ana:
  * Completed (acknowledged)" - the status in the reader's language when it
- * is one of OneUptime's, else as stored.
+ * is one of OneUptime's, else as stored. One they escalated, stored
+ * "Passed On", reads "Escalated", as the logs say it.
  */
 export function getNotifiedPersonWords(data: {
   name: string;
   status: string;
   isAcknowledged: boolean;
 }): AIActionSentence {
+  const label: string = getOnCallPageStatusLabel(data.status);
   const status: AIActionSentenceValue = AI_READ_NOTIFICATION_STATUSES.includes(
-    data.status,
+    label,
   )
-    ? aiActionTerm(data.status)
+    ? aiActionTerm(label)
     : data.status;
 
   return aiActionSentence(

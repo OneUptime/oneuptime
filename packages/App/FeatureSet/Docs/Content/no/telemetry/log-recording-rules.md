@@ -164,7 +164,7 @@ Innen noen få minutter viser regellisten et tidspunkt under **Computed Until**,
 
 ### Få varsel når latensen til én gateway holder seg høy
 
-Opprett en monitor av typen **Målinger** (se [Målingsovervåking](/docs/monitor/metrics-monitor)):
+Opprett en monitor av typen **Målinger** (se [Målingsmonitor](/docs/monitor/metrics-monitor)):
 
 1. **Målingsspørring:** `sdwan.gateway.latency.ms`, aggregering **Gjennomsnitt**, **Grupper etter** `gw_name` og `profile_name`.
 2. **Rullerende tidsvindu:** Past 15 Minutes. Brannmuren rapporterer med noen minutters mellomrom, så vinduet inneholder flere punkter per gateway.
@@ -196,7 +196,7 @@ Prosjekteiere og Prosjektadministratorer kan gjøre alt dette. Prosjektmedlemmer
 ## Neste trinn
 
 :::cards
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Få varsel på målingene reglene dine skriver.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Få varsel på målingene reglene dine skriver.
 - [Loggpipelines](/docs/telemetry/log-pipelines): Trekk ut attributtene en regel aggregerer.
 - [Syslog](/docs/telemetry/syslog): Send logger fra brannmurer og servere til OneUptime.
 :::

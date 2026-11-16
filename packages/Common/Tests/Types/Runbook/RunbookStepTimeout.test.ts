@@ -311,7 +311,7 @@ describe("getTimeoutValidationError", () => {
 
   test("the minimum message is singular for a one-second floor", () => {
     expect(getTimeoutValidationError("0.5", bounds)).toBe(
-      "Minimum is 1 second.",
+      "Minimum is 1\u00A0second.",
     );
   });
 
@@ -322,7 +322,7 @@ describe("getTimeoutValidationError", () => {
         minInMs: 5_000,
         maxInMs: 60_000,
       }),
-    ).toBe("Minimum is 5 seconds.");
+    ).toBe("Minimum is 5\u00A0seconds.");
   });
 
   test("anything the validator accepts survives resolution unchanged", () => {

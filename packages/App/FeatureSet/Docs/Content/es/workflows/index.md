@@ -36,7 +36,7 @@ flowchart TB
     wired -->|"No"| saved["Ejecución guardada con sus pasos y su registro"]
 ```
 
-Todo esto lo construyes visualmente en un lienzo. La mayoría de los flujos de trabajo no necesitan código; cuando alguno lo necesita, un bloque **Run Custom JavaScript** ejecuta unas pocas líneas de JavaScript.
+Todo esto lo construyes visualmente en un lienzo. La mayoría de los flujos de trabajo no necesitan código; cuando alguno lo necesita, un bloque **Ejecutar JavaScript personalizado** ejecuta unas pocas líneas de JavaScript.
 
 ## Qué puedes hacer con los flujos de trabajo
 
@@ -44,7 +44,7 @@ Todo esto lo construyes visualmente en un lienzo. La mayoría de los flujos de t
 - **Reaccionar a lo que pasa en OneUptime** — cuando se crea un incidente, avisar al canal adecuado y abrir un ticket automáticamente.
 - **Ejecutar tareas de forma programada** — cada cinco minutos, cada noche, cada lunes por la mañana.
 - **Recibir datos desde fuera** — dejar que otros sistemas inicien un flujo de trabajo llamando a su URL o escribiendo a su dirección de correo.
-- **Reutilizar automatizaciones comunes** — constrúyela una vez e iníciala desde cualquier otro flujo de trabajo con un bloque **Execute Workflow**.
+- **Reutilizar automatizaciones comunes** — constrúyela una vez e iníciala desde cualquier otro flujo de trabajo con un bloque **Ejecutar otro flujo de trabajo**.
 
 ## Términos clave
 
@@ -107,7 +107,7 @@ Este flujo de trabajo envía un resumen JSON de cada incidente nuevo a una URL t
 
 ```mermaid title="El ejemplo terminado"
 flowchart TB
-    trigger["On Create Incident"] -->|"Éxito"| post["API Post (JSON)"]
+    trigger["Al crear Incidente"] -->|"Éxito"| post["Llamada a API POST (JSON)"]
     post -->|"Error"| log["Registro"]
     post -->|"Éxito"| done["La ejecución termina"]
 ```
@@ -124,19 +124,19 @@ El flujo de trabajo nuevo se abre en el **Constructor**, desactivado.
 
 ### Añadir el disparador
 
-Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y, luego, en **On Create Incident**, en **Populares**, dentro del panel **Añadir desencadenante**.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y, luego, en **Al crear Incidente**, en **Populares**, dentro del panel **Añadir desencadenante**.
 
 El disparador ocupa el lugar del bloque discontinuo. El ID que aparece en él, `incident-on-create-1`, es como los bloques posteriores se refieren a él.
 
 ### Elegir los campos del incidente
 
-Haz clic en el disparador. **Fields to pass on** empieza con el título: haz clic en **Añadir campo**, marca la descripción y cualquier otro campo que deba llevar la solicitud, y haz clic en **Guardar**.
+Haz clic en el disparador. **Campos que pasar** empieza con el título: haz clic en **Añadir campo**, marca la descripción y cualquier otro campo que deba llevar la solicitud, y haz clic en **Guardar**.
 
 El disparador pasa el incidente nuevo con esos campos. Un campo que no seleccionas llega vacío.
 
 ### Añadir el bloque de API
 
-Haz clic en **Añadir componente** y, luego, en **API Post (JSON)**, en **Populares**. Arrastra desde el punto **Éxito** del disparador hasta el punto superior del bloque nuevo.
+Haz clic en **Añadir componente** y, luego, en **Llamada a API POST (JSON)**, en **Populares**. Arrastra desde el punto **Éxito** del disparador hasta el punto superior del bloque nuevo.
 
 ### Rellenar la solicitud
 
@@ -162,7 +162,7 @@ Una solicitud que falla — una URL inaccesible o una respuesta que no es 2xx �
 
 Haz clic en **Ejecutar flujo de trabajo** y elige un incidente de este proyecto en **Incidente**: se muestran los más recientes, y al escribir su número o parte de su título encuentras otro. Haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El flujo de trabajo sigue desactivado, así que es una **Ejecución de prueba**, y la solicitud se envía de verdad.
 
-Se abre un panel **Ejecución del flujo de trabajo** que sigue la ejecución. Abre el paso **API Post (JSON)** para ver el cuerpo que envió y la respuesta que recibió.
+Se abre un panel **Ejecución del flujo de trabajo** que sigue la ejecución. Abre el paso **Llamada a API POST (JSON)** para ver el cuerpo que envió y la respuesta que recibió.
 
 ### Activarlo
 

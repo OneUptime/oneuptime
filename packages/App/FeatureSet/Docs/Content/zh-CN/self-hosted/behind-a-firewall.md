@@ -1,6 +1,6 @@
 # 位于 VPN 或防火墙之后
 
-自托管的 OneUptime 可以完全不暴露在公共互联网上：它通过出站连接发送每一条告警。不过，仍有几样东西需要从外部传回来：值班人员在消息中点按 **Acknowledge**，Twilio 报告通话中按下的按键，Slack 报告按钮点击。本页逐一列出这些情况，以及每种情况下由谁、通过哪条路径连接到你的服务器，让你只发布用到的部分，或者什么都不发布。
+自托管的 OneUptime 可以完全不暴露在公共互联网上：它通过出站连接发送每一条警报。不过，仍有几样东西需要从外部传回来：值班人员在消息中点按 **Acknowledge**，Twilio 报告通话中按下的按键，Slack 报告按钮点击。本页逐一列出这些情况，以及每种情况下由谁、通过哪条路径连接到你的服务器，让你只发布用到的部分，或者什么都不发布。
 
 :::cards
 - [谁会连接到你的服务器](#谁会连接到你的服务器): 值班人员的手机，以及发送回调的提供商。
@@ -60,13 +60,13 @@
 每个链接都带有一个随机 ID，短链接的长度为八个字母。限制每个地址可以发出的请求数，让任何人都无法快速地尝试 ID。
 :::
 
-值班人员确认后，页面会在仪表板中打开该告警，而仪表板只能在你的网络内加载。此时确认已经保存好了。
+值班人员确认后，页面会在仪表板中打开该警报，而仪表板只能在你的网络内加载。此时确认已经保存好了。
 
 ## 提供商回调
 
 ### Telegram
 
-发送告警只需要到 `api.telegram.org` 的出站 HTTPS。关联账户则需要你的服务器收到用户发给你的机器人的 `/start` 消息，有以下两种方式：
+发送警报只需要到 `api.telegram.org` 的出站 HTTPS。关联账户则需要你的服务器收到用户发给你的机器人的 `/start` 消息，有以下两种方式：
 
 - **轮询**：在 **Admin Dashboard > 设置 > Telegram** 中开启 **Poll Telegram for Messages**。OneUptime 每隔几秒通过出站 HTTPS 从 Telegram 拉取机器人的消息，因此不需要任何外部连接进入你的服务器。
 - **Webhook**：Telegram 把每条消息 POST 到 `POST /api/notification/telegram/webhook`。Telegram 从 `149.154.160.0/20` 和 `91.108.4.0/22` [发送 webhook](https://core.telegram.org/bots/webhooks)，因此你可以只允许这些地址。
@@ -77,7 +77,7 @@
 
 ### WhatsApp
 
-告警和确认都不需要任何入站访问。Meta 会把送达回执和已读回执 POST 到 `/api/notification/whatsapp/webhook`；没有这些回执，OneUptime 的 WhatsApp 日志就无法显示消息在被 Meta 接受之后是已送达、已读还是失败了。Meta 会为每个请求签名，并且不公布固定地址。
+警报和确认都不需要任何入站访问。Meta 会把送达回执和已读回执 POST 到 `/api/notification/whatsapp/webhook`；没有这些回执，OneUptime 的 WhatsApp 日志就无法显示消息在被 Meta 接受之后是已送达、已读还是失败了。Meta 会为每个请求签名，并且不公布固定地址。
 
 ### Slack 和 Microsoft Teams
 

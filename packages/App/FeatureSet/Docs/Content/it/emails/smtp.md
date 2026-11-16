@@ -279,7 +279,7 @@ Poi usa **Invia e-mail di prova** per verificarla.
 ### Altri problemi
 
 :::details "Cannot send email. Please check your SMTP config."
-**Invia e-mail di prova** mostra questo messaggio quando un server a cui si accede con nome utente e password, o senza accesso, non accetta la posta. Controlla **Nome host**, **Porta**, **Nome utente** e **Password**. Se il tuo server non offre TLS, o il suo certificato non è valido per il suo hostname, disattiva **Richiedi TLS** sotto **Altri campi** e riprova. La risposta del server viene conservata con la prova: apri la scheda **E-mail** di **Impostazioni del progetto > Notifiche > Registri di notifica** e seleziona **Visualizza messaggio di stato** sulla sua riga.
+**Invia e-mail di prova** mostra questo messaggio quando un server a cui si accede con nome utente e password, o senza accesso, non accetta la posta. Controlla **Nome host**, **Porta**, **Nome utente** e **Password**. Se il tuo server non offre TLS, o il suo certificato non è valido per il suo hostname, disattiva **Richiedi TLS** sotto **Altri campi** e riprova. La risposta del server viene conservata con la prova: apri la scheda **E-mail** di **Impostazioni del progetto > Notifiche > Log di notifica** e seleziona **Visualizza messaggio di stato** sulla sua riga.
 :::
 
 :::details "Cannot send email with OAuth authentication"
@@ -291,7 +291,7 @@ Una configurazione con **Trasporto** `Microsoft Graph` mostra questo messaggio q
 :::
 
 :::details "SMTP server host … could not be reached"
-OneUptime ha rifiutato di connettersi al server di posta del progetto. Su OneUptime Cloud, un hostname che non si risolve, o che si risolve in un indirizzo privato, di loopback o link-local, viene rifiutato con questo messaggio, che non dice mai quale dei casi si sia verificato: usa l'hostname pubblico del server di posta. In un'installazione self-hosted, e per un server di posta indicato con il suo indirizzo IP, il messaggio dice invece il motivo. **Invia e-mail di prova** lo mostra solo per una configurazione OAuth; per le altre, trovalo con **Visualizza messaggio di stato** nella scheda **E-mail** dei registri di notifica.
+OneUptime ha rifiutato di connettersi al server di posta del progetto. Su OneUptime Cloud, un hostname che non si risolve, o che si risolve in un indirizzo privato, di loopback o link-local, viene rifiutato con questo messaggio, che non dice mai quale dei casi si sia verificato: usa l'hostname pubblico del server di posta. In un'installazione self-hosted, e per un server di posta indicato con il suo indirizzo IP, il messaggio dice invece il motivo. **Invia e-mail di prova** lo mostra solo per una configurazione OAuth; per le altre, trovalo con **Visualizza messaggio di stato** nella scheda **E-mail** dei log di notifica.
 :::
 
 :::details L'e-mail di prova non arriva

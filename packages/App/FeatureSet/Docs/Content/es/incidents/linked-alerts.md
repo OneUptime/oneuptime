@@ -248,7 +248,7 @@ curl -X DELETE https://oneuptime.com/api/incident-alert/<link-id> \
 
 Ambos ids son obligatorios. Una solicitud de vínculo también se rechaza cuando la alerta o el incidente pertenecen a otro proyecto o son uno que no puedes ver. El error dice lo mismo tanto si la alerta o el incidente no existen como si solo están ocultos para ti, así que nunca revela que existe uno privado.
 
-El mismo recurso alimenta los componentes de flujo de trabajo generados —**On Create Incident Alert** se dispara cuando se vincula una alerta y **On Delete Incident Alert** cuando se desvincula— y las herramientas Incident Alert del servidor MCP. La [referencia de la API](/reference) tiene la forma completa de las solicitudes y las respuestas.
+El mismo recurso alimenta los componentes de flujo de trabajo generados —**Al crear Alerta del incidente** se dispara cuando se vincula una alerta y **Al eliminar Alerta del incidente** cuando se desvincula— y las herramientas Incident Alert del servidor MCP. La [referencia de la API](/reference) tiene la forma completa de las solicitudes y las respuestas.
 
 ## Desvincular
 

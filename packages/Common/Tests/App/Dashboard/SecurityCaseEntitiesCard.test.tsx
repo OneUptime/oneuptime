@@ -235,7 +235,10 @@ describe("the case's entities", () => {
     // What the count counts, on hover.
     expect(
       within(table).getByRole("columnheader", { name: "Events" }),
-    ).toHaveAttribute("title", "Security events naming it in the last 7 days");
+    ).toHaveAttribute(
+      "title",
+      "Security events naming it in the last 7\u00A0days",
+    );
   });
 
   test("lists each entity with its activity, matched however its value is cased", async () => {

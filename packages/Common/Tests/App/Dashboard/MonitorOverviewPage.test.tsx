@@ -622,6 +622,25 @@ function itemRequests(): Array<ItemRequest> {
   });
 }
 
+/*
+ * The page's reads of the monitor's row, without the one-off reads its cards
+ * make beside it: an Incoming Request monitor's connection and setup cards
+ * read whether the project requires a secret and when this monitor last got
+ * a request without one (useIncomingRequestSecretStatus, #8498).
+ */
+function rowRequests(): Array<ItemRequest> {
+  return itemRequests().filter((request: ItemRequest): boolean => {
+    return request.modelType === Monitor && "monitorType" in request.select;
+  });
+}
+
+// The cards' read of when this monitor last got a request without a secret.
+function withoutSecretRequests(): Array<ItemRequest> {
+  return itemRequests().filter((request: ItemRequest): boolean => {
+    return "incomingRequestWithoutSecretAt" in request.select;
+  });
+}
+
 function apiGetUrls(route: string): Array<string> {
   return apiGetSpy.mock.calls
     .map((call: Array<unknown>) => {
@@ -1637,7 +1656,7 @@ describe("Monitor overview page: roles", () => {
 
     const rendered: RenderResult = await renderPage();
 
-    expect(itemRequests().pop()!.select).toMatchObject({
+    expect(rowRequests().pop()!.select).toMatchObject({
       incomingRequestSecretKey: true,
     });
     expect(rendered.container.innerHTML).toContain(HEARTBEAT_SECRET);
@@ -2395,7 +2414,10 @@ describe("Monitor overview page: a history the page hides", () => {
     });
     await flush();
 
-    expect(itemRequests()).toHaveLength(7);
+    // The row on the first load, each of five polls and the Refresh.
+    expect(rowRequests()).toHaveLength(7);
+    // What the heartbeat URL says of secrets is read once for the page, not per poll.
+    expect(withoutSecretRequests()).toHaveLength(1);
     expect(apiGetUrls("/monitor/uptime-summary/")).toHaveLength(1);
 
     // The first heartbeat arrives: the history shows, and is read once.

@@ -60,7 +60,7 @@ Begge er heltall, som sammenlignes med **Større enn**, **Mindre enn**, **Lik** 
 
 | Kriterium | Filter | Hva det gjør |
 | --- | --- | --- |
-| Sjekk om en sonde er frakoblet | **Frakoblede sonder** større enn `0` | Setter monitoren offline og erklærer en hendelse med tittelen `Probe disconnected: {{disconnectedProbeNames}}`, som løser seg selv. |
+| Sjekk om en sonde er frakoblet | **Frakoblede sonder** større enn `0` | Setter monitoren offline og erklærer en hendelse med tittelen "Sonde frakoblet: {{disconnectedProbeNames}}", som løser seg selv. |
 | Sjekk om alle sonder er tilkoblet | **Frakoblede sonder** lik `0` | Setter monitoren til operasjonell. |
 
 Filteret **Tilkoblede sonder** passer for en monitor som overvåker flere sonder og kan klare seg uten én: **Tilkoblede sonder** mindre enn `2` erklærer en hendelse først når det er færre enn to igjen.

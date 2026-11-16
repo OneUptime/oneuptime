@@ -934,11 +934,11 @@ describe("AI Insights infrastructure suggestions and payload", () => {
           "Recent errors",
         ]);
         expect(suggestions[1]?.question).toContain("where available");
-        expect(suggestions[2]?.question).toContain("last 24 hours");
+        expect(suggestions[2]?.question).toContain("last 24\u00A0hours");
         expect(suggestions[3]?.question).toContain(
           "log severity, trace errors and operation latency",
         );
-        expect(suggestions[3]?.question).toContain("last 6 hours");
+        expect(suggestions[3]?.question).toContain("last 6\u00A0hours");
         expect(
           suggestions
             .map((suggestion: SuggestedQuestion): string => {

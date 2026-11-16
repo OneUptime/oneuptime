@@ -31,7 +31,7 @@ OneUptime heeft geen eigen gateway: die zou je providersleutels bewaren en een t
 
 ## Voordat je begint
 
-- Een ingestiesleutel: open **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** en klik op **Inname-sleutel aanmaken**.
+- Een ingestiesleutel: open **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** en klik op **Ingestiesleutel aanmaken**.
 - Je OTLP-basis-URL: `https://oneuptime.com/otlp`, of `https://YOUR-ONEUPTIME-HOST/otlp` als je OneUptime zelf host. OneUptime accepteert OTLP over HTTP, in protobuf en in JSON.
 - De sleutel reist mee in de header `x-oneuptime-token` van elk exportverzoek.
 

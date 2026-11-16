@@ -36,7 +36,7 @@ flowchart TB
     wired -->|"Nein"| saved["Ausführung mit Schritten und Protokoll gespeichert"]
 ```
 
-All das bauen Sie visuell auf einer Arbeitsfläche. Die meisten Workflows brauchen überhaupt keinen Code; braucht einer doch welchen, führt ein **Run Custom JavaScript**-Baustein ein paar Zeilen JavaScript aus.
+All das bauen Sie visuell auf einer Arbeitsfläche. Die meisten Workflows brauchen überhaupt keinen Code; braucht einer doch welchen, führt ein **Eigenes JavaScript ausführen**-Baustein ein paar Zeilen JavaScript aus.
 
 ## Was Sie mit Workflows tun können
 
@@ -44,7 +44,7 @@ All das bauen Sie visuell auf einer Arbeitsfläche. Die meisten Workflows brauch
 - **Auf das reagieren, was in OneUptime passiert** – wenn ein Vorfall angelegt wird, den richtigen Kanal informieren und automatisch ein Ticket eröffnen.
 - **Aufgaben nach Zeitplan ausführen** – alle fünf Minuten, jede Nacht, jeden Montagmorgen.
 - **Daten von außen empfangen** – andere Systeme einen Workflow starten lassen, indem sie seine URL aufrufen oder an seine Adresse mailen.
-- **Gemeinsame Automatisierung wiederverwenden** – einmal bauen und aus jedem anderen Workflow mit einem **Execute Workflow**-Baustein starten.
+- **Gemeinsame Automatisierung wiederverwenden** – einmal bauen und aus jedem anderen Workflow mit einem **Anderen Arbeitsablauf ausführen**-Baustein starten.
 
 ## Zentrale Begriffe
 
@@ -107,7 +107,7 @@ Dieser Workflow sendet eine JSON-Zusammenfassung jedes neuen Vorfalls an eine UR
 
 ```mermaid title="Das fertige Beispiel"
 flowchart TB
-    trigger["On Create Incident"] -->|"Erfolg"| post["API Post (JSON)"]
+    trigger["Bei Erstellung: Vorfall"] -->|"Erfolg"| post["API-Aufruf POST (JSON)"]
     post -->|"Fehler"| log["Protokoll"]
     post -->|"Erfolg"| done["Ausführung endet"]
 ```
@@ -124,19 +124,19 @@ Der neue Workflow öffnet sich im **Editor**, ausgeschaltet.
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und dann im Bereich **Auslöser hinzufügen** unter **Beliebt** auf **On Create Incident**.
+Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und dann im Bereich **Auslöser hinzufügen** unter **Beliebt** auf **Bei Erstellung: Vorfall**.
 
 Der Trigger nimmt den Platz des gestrichelten Bausteins ein. Die ID darauf, `incident-on-create-1`, ist der Name, mit dem spätere Bausteine auf ihn verweisen.
 
 ### Die Felder des Vorfalls wählen
 
-Klicken Sie auf den Trigger. **Fields to pass on** beginnt mit dem Titel: Klicken Sie auf **Feld hinzufügen**, haken Sie die Beschreibung und jedes weitere Feld an, das die Anfrage enthalten soll, und klicken Sie auf **Speichern**.
+Klicken Sie auf den Trigger. **Weiterzugebende Felder** beginnt mit dem Titel: Klicken Sie auf **Feld hinzufügen**, haken Sie die Beschreibung und jedes weitere Feld an, das die Anfrage enthalten soll, und klicken Sie auf **Speichern**.
 
 Der Trigger reicht den neuen Vorfall mit diesen Feldern weiter. Ein Feld, das Sie nicht auswählen, kommt leer an.
 
 ### Den API-Baustein hinzufügen
 
-Klicken Sie auf **Komponente hinzufügen** und dann unter **Beliebt** auf **API Post (JSON)**. Ziehen Sie vom Punkt **Erfolg** des Triggers nach unten zum oberen Punkt des neuen Bausteins.
+Klicken Sie auf **Komponente hinzufügen** und dann unter **Beliebt** auf **API-Aufruf POST (JSON)**. Ziehen Sie vom Punkt **Erfolg** des Triggers nach unten zum oberen Punkt des neuen Bausteins.
 
 ### Die Anfrage ausfüllen
 
@@ -162,7 +162,7 @@ Eine Anfrage, die fehlschlägt – eine nicht erreichbare URL oder eine Antwort,
 
 Klicken Sie auf **Arbeitsablauf ausführen** und wählen Sie unter **Vorfall** einen Vorfall in diesem Projekt aus: Die neuesten sind aufgelistet, und wenn Sie seine Nummer oder einen Teil seines Titels eintippen, finden Sie einen anderen. Klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Der Workflow ist noch aus, daher ist das ein **Testlauf**, und die Anfrage wird wirklich gesendet.
 
-Ein Bereich **Arbeitsablauf-Ausführung** öffnet sich und verfolgt die Ausführung. Öffnen Sie den Schritt **API Post (JSON)**, um den gesendeten Body und die erhaltene Antwort zu sehen.
+Ein Bereich **Arbeitsablauf-Ausführung** öffnet sich und verfolgt die Ausführung. Öffnen Sie den Schritt **API-Aufruf POST (JSON)**, um den gesendeten Body und die erhaltene Antwort zu sehen.
 
 ### Einschalten
 

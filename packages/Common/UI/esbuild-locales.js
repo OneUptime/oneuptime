@@ -49,12 +49,14 @@
  * reads as the language's own wording (SAME_AS_ENGLISH_MARK in
  * Common/Types/Translator.ts). The page never reads the lists themselves.
  *
- * A frontend that bundles every locale whole (the Admin Dashboard, whose
- * i18n.ts imports all eighteen statically) passes shipsWholeLocales: each
+ * A frontend that bundles every locale whole passes shipsWholeLocales: each
  * locale then ships every entry its file holds, and the build only adds the
  * marks (getMarkedLocale). The trimmed copies are safe only where every
  * lookup has been shown to read the same from them as from the full files,
- * which Tests/App/Dashboard/DashboardRuntimeLocales does for the Dashboard.
+ * which Tests/App/Dashboard/DashboardRuntimeLocales does for the Dashboard
+ * and Tests/App/AdminDashboard/AdminRuntimeLocales for the Admin Dashboard.
+ * Both ship trimmed copies, English in the entry chunk and every other
+ * language a lazy chunk of its own; no frontend ships whole locales today.
  *
  * CommonJS, like esbuild-config.js: the frontends' esbuild.config.js files
  * are plain node scripts. Types for TypeScript callers are in
@@ -468,6 +470,33 @@ function assertOptionalAbsolutePath(value, name) {
 }
 
 /**
+ * A shipped locale as the module the bundle carries: one default export, the
+ * locale's JSON text handed to JSON.parse (#8650).
+ *
+ * Handed to esbuild's json loader, a locale became a module with a named
+ * export for top-level keys, and a lazily loaded locale is reached through
+ * import(), which returns the whole namespace, so esbuild kept them: a
+ * variable for each, the default object, and the export list. Unminified,
+ * as the offline E2E fixtures build, it names every key, the Dashboard's
+ * whole English sentences, three times: German's chunk was 17.5 MB for
+ * 6.1 MB of words. Minified, only the keys that are names get an export,
+ * a few per cent. As one string, each key is written once, and JSON.parse
+ * reads it faster than the engine parses the same object literal.
+ *
+ * (Each letter outside ASCII written as a \u escape doubled Persian,
+ * Arabic, Russian and Hindi chunks in production too; createConfig's
+ * charset: "utf8" writes them as they are.)
+ *
+ * Every importer reads the default export: a static `import en from
+ * ".../en.json"`, and a lazy loader's `(await import(...)).default`.
+ * @param {Object} locale - The locale as it ships
+ * @returns {string} The module's source
+ */
+function getLocaleModule(locale) {
+  return `export default JSON.parse(${JSON.stringify(JSON.stringify(locale))});\n`;
+}
+
+/**
  * The esbuild plugin: every <code>.json directly in localesDirectory is
  * bundled as getRuntimeLocale() makes it - or, with shipsWholeLocales, as
  * getMarkedLocale() does - whether it is imported statically (en.json) or
@@ -614,7 +643,7 @@ function createRuntimeLocalesPlugin(options) {
         }
 
         const result = {
-          contents: JSON.stringify(
+          contents: getLocaleModule(
             shipLocale({
               language: language,
               fallbackLanguage: fallbackLanguage,
@@ -623,7 +652,7 @@ function createRuntimeLocalesPlugin(options) {
               sameAsEnglish: sameAsEnglish,
             }),
           ),
-          loader: "json",
+          loader: "js",
           watchFiles: watchFiles,
         };
 
@@ -646,5 +675,6 @@ module.exports = {
   getSameAsEnglishMarks,
   getRuntimeLocale,
   getMarkedLocale,
+  getLocaleModule,
   createRuntimeLocalesPlugin,
 };

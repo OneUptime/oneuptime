@@ -7,6 +7,7 @@ import { EVERY_THIRTY_SECONDS } from "Common/Utils/CronTime";
 import MonitorService from "Common/Server/Services/MonitorService";
 import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import { logMonitorEvaluationError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
 import LatestIncomingRequest from "Common/Server/Utils/Monitor/LatestIncomingRequest";
 import MonitorHeartbeatState, {
@@ -190,10 +191,16 @@ const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
       `Processed incoming request monitor: ${monitor.id?.toString()}`,
     );
   } catch (error) {
-    logger.error(
-      `Error while processing incoming request monitor: ${monitor.id?.toString()}`,
-    );
-    logger.error(error);
+    /*
+     * A monitor paused, archived or disabled since the sweep read it is
+     * refused, as expected: logged at debug, and the sweep goes on
+     * (logMonitorEvaluationError, issue #8069).
+     */
+    logMonitorEvaluationError({
+      error: error,
+      message: `Error while processing incoming request monitor: ${monitor.id?.toString()}`,
+      attributes: { projectId: monitor.projectId?.toString() },
+    });
   }
 };
 

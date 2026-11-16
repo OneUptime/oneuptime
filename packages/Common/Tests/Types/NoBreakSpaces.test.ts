@@ -22,6 +22,9 @@ import {
 const NB: string = NO_BREAK_SPACE;
 const NNB: string = NARROW_NO_BREAK_SPACE;
 
+// A wording a page draws: a duration's word is a unit too (#8770).
+const DURATIONS: { durationWords: boolean } = { durationWords: true };
+
 // What a pattern reads as whitespace.
 const WHITESPACE: RegExp = /\s/;
 
@@ -318,14 +321,113 @@ describe("withNumbersKeptWithUnits", () => {
     for (const english of [
       "{{count}} monitors",
       "{{count}} more",
-      "{{count}} days ago",
       "{{count}} hosts",
       "{{count}} services",
       "{{count}} Bytes",
+      // Longer words that start as a duration's word does.
+      "{{count}} daily checks",
+      "{{count}} dashboards",
+      "{{count}} minutely",
+      "{{count}} secondary",
+      // A duration's word run into its number: no space to hold.
+      "{{count}}minutes",
     ]) {
+      expect(withNumbersKeptWithUnits("{{count}} x", english, DURATIONS)).toBe(
+        "{{count}} x",
+      );
+    }
+  });
+
+  /*
+   * A duration's word is a unit too (#8770): "Every {{count}} minutes" holds
+   * its figure to whatever word each language names the unit with.
+   */
+  test("a duration's word after a number and a space is a unit", () => {
+    for (const english of [
+      "{{count}} second",
+      "{{count}} seconds",
+      "{{count}} minute",
+      "{{count}} minutes",
+      "{{count}} hour",
+      "{{count}} hours",
+      "{{count}} days ago",
+      "{{count}} week",
+      "{{count}} weeks",
+      "{{count}} month",
+      "{{count}} months",
+      "{{count}} year",
+      "{{count}} years",
+      "{{count}} day(s)",
+    ]) {
+      expect({
+        english,
+        held: withNumbersKeptWithUnits("{{count}} x", english, DURATIONS),
+      }).toEqual({ english, held: `{{count}}${NB}x` });
+      // Negative control: a text that may become a value holds symbols only.
       expect(withNumbersKeptWithUnits("{{count}} x", english)).toBe(
         "{{count}} x",
       );
+    }
+
+    expect(
+      withNumbersKeptWithUnits(
+        "Alle {{count}} Minuten",
+        "Every {{count}} minutes",
+        DURATIONS,
+      ),
+    ).toBe(`Alle {{count}}${NB}Minuten`);
+    expect(
+      withNumbersKeptWithUnits(
+        "Il y a {{count}} jours",
+        "{{count}} days ago",
+        DURATIONS,
+      ),
+    ).toBe(`Il y a {{count}}${NB}jours`);
+    // Written digits, in whichever digits the language writes.
+    expect(
+      withNumbersKeptWithUnits(
+        "Erinnerungen können zwischen 15 Minuten und 14 Tagen vor einer Schicht gesendet werden.",
+        "Reminders can be sent between 15 minutes and 14 days before a shift.",
+        DURATIONS,
+      ),
+    ).toBe(
+      `Erinnerungen können zwischen 15${NB}Minuten und 14${NB}Tagen vor einer Schicht gesendet werden.`,
+    );
+    expect(
+      withNumbersKeptWithUnits("هر ۵ دقیقه", "Every 5 minutes", DURATIONS),
+    ).toBe(`هر ۵${NB}دقیقه`);
+    // English itself, as the Translator sets its own sentences.
+    expect(
+      withNumbersKeptWithUnits(
+        "Every {{count}} hours at minute {{minute}}",
+        "Every {{count}} hours at minute {{minute}}",
+        DURATIONS,
+      ),
+    ).toBe(`Every {{count}}${NB}hours at minute {{minute}}`);
+  });
+
+  test("negative control: a duration's word with no number before it is left as it is", () => {
+    for (const english of [
+      "a few seconds ago",
+      "an hour ago",
+      "Every minute",
+      "{{name}} hours",
+      "Last day of {{month}}",
+    ]) {
+      expect({
+        english,
+        held: withNumbersKeptWithUnits(
+          "{{name}} x {{month}} y",
+          english,
+          DURATIONS,
+        ),
+      }).toEqual({
+        english,
+        held:
+          english === "{{name}} hours"
+            ? `{{name}}${NB}x {{month}} y`
+            : "{{name}} x {{month}} y",
+      });
     }
   });
 

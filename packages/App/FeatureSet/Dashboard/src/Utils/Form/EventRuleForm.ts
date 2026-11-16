@@ -64,6 +64,7 @@ import {
   describeWorkingHours,
 } from "../../Components/OnCallRule/WorkingHoursText";
 import { formatGroupingDuration } from "../GroupingRule/GroupingRuleSetup";
+import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 import {
   DEFAULT_MAINTENANCE_REMINDER_TIMING,
   MAINTENANCE_REMINDER_RULE_NAME_WORDING,
@@ -228,9 +229,12 @@ const formatMinutes: (minutes: number) => ComposedValue = (
   });
 };
 
-// The name, cut to what the rule's Name column holds.
+/*
+ * The name, cut to what the rule's Name column holds, with plain spaces: a
+ * stored value, not a line a page draws (withPlainSpaces, #8770).
+ */
 const fitName: (name: string) => string = (name: string): string => {
-  return name.slice(0, RULE_NAME_MAX_LENGTH);
+  return withPlainSpaces(name).slice(0, RULE_NAME_MAX_LENGTH);
 };
 
 /*
@@ -1098,16 +1102,16 @@ export const PRIVACY_RULE_NAMES: Record<PrivacyRuleRecord, string> = {
 export const PRIVACY_RULE_NAME_DESCRIPTIONS: Record<PrivacyRuleRecord, string> =
   {
     incident: translationKey(
-      "Incidents this rule matches become private: only their owners, project admins and project owners can see them.",
+      "Incidents this rule matches become private: only their owners, Project Admins and Project Owners can see them.",
     ),
     incidentEpisode: translationKey(
-      "Episodes this rule matches become private: only their owners, project admins and project owners can see them.",
+      "Episodes this rule matches become private: only their owners, Project Admins and Project Owners can see them.",
     ),
     alert: translationKey(
-      "Alerts this rule matches become private: only their owners, project admins and project owners can see them.",
+      "Alerts this rule matches become private: only their owners, Project Admins and Project Owners can see them.",
     ),
     alertEpisode: translationKey(
-      "Episodes this rule matches become private: only their owners, project admins and project owners can see them.",
+      "Episodes this rule matches become private: only their owners, Project Admins and Project Owners can see them.",
     ),
   };
 

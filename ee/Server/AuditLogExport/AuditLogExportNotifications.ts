@@ -534,7 +534,7 @@ export const auditLogExportEmailNotifier: AuditLogExportNotifier = {
           );
         } catch (error) {
           logger.error(
-            "AuditLogExport: could not email a project owner about a failing export.",
+            "AuditLogExport: could not email a Project Owner about a failing export.",
           );
           logger.error(error);
         }

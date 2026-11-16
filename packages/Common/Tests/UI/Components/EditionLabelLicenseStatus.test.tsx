@@ -413,7 +413,7 @@ describe("EditionLabel - an unlicensed installation's trial", () => {
 
     await waitFor(() => {
       expect(pill()).toHaveAccessibleName(
-        "Enterprise Edition (Trial, 10 days left), View details",
+        "Enterprise Edition (Trial, 10\u00A0days left), View details",
       );
     });
   });
@@ -481,7 +481,7 @@ describe("EditionLabel - an unlicensed installation's trial", () => {
 
     await waitFor(() => {
       expect(pill()).toHaveAccessibleName(
-        "Enterprise Edition (Trial, 1 day left), View details",
+        "Enterprise Edition (Trial, 1\u00A0day left), View details",
       );
     });
   });

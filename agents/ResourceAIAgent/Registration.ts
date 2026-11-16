@@ -157,9 +157,15 @@ function describeResourceTypes(): string {
   }).join(", ");
 }
 
+/*
+ * The kind of resource as the middle of a sentence names it: "this host's
+ * AI agent", never "this Host's" (sentenceName, #8250). Every message that
+ * says it puts "this" or "each" before it, so no article has to agree with
+ * the name ("a AWS account").
+ */
 function describeResource(context: RegistrationContext): string {
   return context.resourceType && isAiResourceType(context.resourceType)
-    ? AI_RESOURCE_TYPE_INFO[context.resourceType].displayName
+    ? AI_RESOURCE_TYPE_INFO[context.resourceType].sentenceName
     : "resource";
 }
 
@@ -199,7 +205,7 @@ function describeRefusal(
   }
 
   if (reason === "resource_not_found") {
-    return `OneUptime refused the registration: ${serverMessage} Check ${describeIdentityVariable(context)}: it must name a ${describeResource(context)} of the project this key belongs to.`;
+    return `OneUptime refused the registration: ${serverMessage} Check ${describeIdentityVariable(context)}: it must be the name of this ${describeResource(context)} in the project this key belongs to.`;
   }
 
   if (reason === "agent_cap_reached") {

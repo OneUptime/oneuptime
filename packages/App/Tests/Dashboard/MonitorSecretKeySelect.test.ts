@@ -97,7 +97,7 @@ describe("getReadableMonitorSecretKeySelect", () => {
     },
   );
 
-  it("asks for all three keys and the custom email address for a project owner", () => {
+  it("asks for all three keys and the custom email address for a Project Owner", () => {
     mockPermissions.all = [Permission.ProjectOwner];
 
     expect(selectedColumns().sort()).toEqual(

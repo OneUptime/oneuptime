@@ -145,7 +145,9 @@ const TONE_LABELS: Record<HealthTone, string> = {
   neutral: translationKey("neutral"),
 };
 
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 // A fixed line in the translator's language.
 function translateLine(text: string, translator: Translator): string {

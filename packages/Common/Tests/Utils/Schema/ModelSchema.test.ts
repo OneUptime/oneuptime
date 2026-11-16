@@ -47,7 +47,14 @@ const SORTABLE_TYPES: Array<TableColumnType> = [
   TableColumnType.Slug,
   TableColumnType.ShortText,
   TableColumnType.LongText,
+  TableColumnType.Name,
+  TableColumnType.Domain,
   TableColumnType.Number,
+  TableColumnType.SmallNumber,
+  TableColumnType.SmallPositiveNumber,
+  TableColumnType.PositiveNumber,
+  TableColumnType.BigNumber,
+  TableColumnType.BigPositiveNumber,
   TableColumnType.Date,
   TableColumnType.Boolean,
   TableColumnType.Description,
@@ -231,18 +238,36 @@ describe("ModelSchema (Postgres)", () => {
           (ALWAYS_READABLE_COLUMNS.includes(key) ||
             (model.getColumnAccessControlFor(key)?.read || []).length > 0);
 
-        if (isReadable && SORTABLE_TYPES.includes(column.type)) {
+        /*
+         * And a relation of one record somebody may read, by the fields of
+         * its record (#8840). Never a relation of many records.
+         */
+        const isSortableRelation: boolean =
+          column.type === TableColumnType.Entity &&
+          Boolean(column.modelType) &&
+          !column.hideColumnInDocumentation &&
+          (model.getColumnAccessControlFor(key)?.read || []).length > 0;
+
+        if (
+          isReadable &&
+          (SORTABLE_TYPES.includes(column.type) || isSortableRelation)
+        ) {
           expect(keys).toContain(key);
-        } else {
+        } else if (!isSortableRelation) {
           expect(keys).not.toContain(key);
         }
       }
+
+      // Label's relations of one record are sorted through.
+      expect(keys).toEqual(
+        expect.arrayContaining(["project", "createdByUser"]),
+      );
 
       // The version every model has is not documented.
       expect(keys).not.toContain("version");
     });
 
-    test("accepts only ASC/DESC values", () => {
+    test("takes ASC or DESC, or { direction, nulls }, and nothing else", () => {
       const schema: any = ModelSchema.getSortModelSchema({ modelType: Label });
       const key: string = shapeKeys(schema)[0]!;
 
@@ -253,7 +278,52 @@ describe("ModelSchema (Postgres)", () => {
       expect(schema.safeParse({ [key]: SortOrder.Descending }).success).toBe(
         true,
       );
+      expect(
+        schema.safeParse({
+          [key]: { direction: SortOrder.Descending, nulls: "LAST" },
+        }).success,
+      ).toBe(true);
+      expect(
+        schema.safeParse({ [key]: { direction: SortOrder.Ascending } }).success,
+      ).toBe(true);
       expect(schema.safeParse({ [key]: "RANDOM" }).success).toBe(false);
+      expect(schema.safeParse({ [key]: { direction: "RANDOM" } }).success).toBe(
+        false,
+      );
+      expect(
+        schema.safeParse({
+          [key]: { direction: SortOrder.Ascending, nulls: "NEVER" },
+        }).success,
+      ).toBe(false);
+      // The direction is what an order object is for.
+      expect(schema.safeParse({ [key]: { nulls: "LAST" } }).success).toBe(
+        false,
+      );
+    });
+
+    test("sorts through a relation of one record by a field of the related record", () => {
+      const schema: any = ModelSchema.getSortModelSchema({
+        modelType: Incident,
+      });
+
+      expect(
+        schema.safeParse({ incidentSeverity: { order: SortOrder.Ascending } })
+          .success,
+      ).toBe(true);
+      expect(
+        schema.safeParse({
+          incidentSeverity: {
+            order: { direction: SortOrder.Descending, nulls: "FIRST" },
+          },
+        }).success,
+      ).toBe(true);
+      // A relation given only a direction is no field of its record.
+      expect(
+        schema.safeParse({ incidentSeverity: SortOrder.Descending }).success,
+      ).toBe(false);
+      expect(
+        schema.safeParse({ incidentSeverity: { order: "UP" } }).success,
+      ).toBe(false);
     });
   });
 

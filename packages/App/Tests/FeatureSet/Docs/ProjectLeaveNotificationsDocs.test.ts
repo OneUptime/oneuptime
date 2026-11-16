@@ -29,7 +29,7 @@ const BULLET_STARTS: Record<string, string> = {
   pt: "- Quem sai de um projeto deixa de receber as notificações dele.",
   nl: "- Wie een project verlaat, krijgt er geen meldingen meer van.",
   da: "- Den, der forlader et projekt, får ikke længere dets notifikationer.",
-  no: "- Den som forlater et prosjekt, får ikke lenger varslene fra det.",
+  no: "- Den som forlater et prosjekt, får ikke lenger varslingene fra det.",
   sv: "- Den som lämnar ett projekt får inte längre dess aviseringar.",
   ru: "- Тот, кто покидает проект, перестаёт получать его уведомления.",
   ja: "- プロジェクトを離れた人には、そのプロジェクトの通知が届かなくなります。",

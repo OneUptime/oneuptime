@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -62,14 +63,17 @@ import { formatHostBytes } from "../Utils/HostFacts";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 // In the reader's digits: "۱۲٫۵٪" in Persian, "12,5 %" in German (#7106).
 const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatReaderFigure(value, { decimals: 1, isPercent: true });
 };
@@ -396,7 +400,7 @@ const HostProcesses: FunctionComponent<
                 />
               </div>
               <span className="text-sm font-mono tabular-nums text-gray-900 w-14 text-right">
-                {formatPercent(row.cpuPercent)}
+                {getValueOrQuietDash(formatPercent(row.cpuPercent))}
               </span>
             </div>
           );
@@ -428,10 +432,13 @@ const HostProcesses: FunctionComponent<
                 )}
               </div>
               <span className="text-xs font-mono tabular-nums text-gray-500 w-12 text-right">
-                {row.memoryPercent !== null ? (
-                  formatPercent(row.memoryPercent)
-                ) : (
-                  <TableEmptyValue isSmall={true} />
+                {getValueOrQuietDash(
+                  row.memoryPercent !== null ? (
+                    formatPercent(row.memoryPercent)
+                  ) : (
+                    <TableEmptyValue isSmall={true} />
+                  ),
+                  { isSmall: true },
                 )}
               </span>
             </div>
@@ -598,7 +605,7 @@ const HostProcesses: FunctionComponent<
    */
   const noItemsMessage: string =
     rows.length === 0
-      ? `No process metrics in the last ${PROCESS_LOOKBACK_MINUTES} minutes. Turn on the collector's "process" scraper: see the Documentation tab.`
+      ? `No process metrics in the last ${PROCESS_LOOKBACK_MINUTES}${NO_BREAK_SPACE}minutes. Turn on the collector's "process" scraper: see the Documentation tab.`
       : translationKey("No processes match your search.");
 
   /*

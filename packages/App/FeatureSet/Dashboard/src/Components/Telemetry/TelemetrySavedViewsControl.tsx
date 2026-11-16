@@ -491,6 +491,7 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
           modelType={modelType}
           name={saveViewTitle}
           title={saveViewTitle}
+          isTitleTranslated={true}
           description={translator.translateTemplate(
             "Save the current {{explorer}} explorer state as a reusable view.",
             { explorer: explorerTerm },
@@ -528,6 +529,7 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
           modelIdToEdit={viewToEdit.id!}
           name={editViewTitle}
           title={editViewTitle}
+          isTitleTranslated={true}
           description="Rename this saved view or change whether it loads by default."
           onClose={() => {
             setViewToEdit(undefined);

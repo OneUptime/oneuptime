@@ -87,7 +87,9 @@ import { getReplayAssetFailureDocsHref } from "./ReplayRecordedAssets";
  */
 
 import type { ReplaySessionDetails } from "./ReplaySessionDetails";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
 
 export type ReplayCorrelationPanelTabId = "session" | "provenance" | "fidelity";
 
@@ -627,7 +629,7 @@ const EnvironmentTile: FunctionComponent<EnvironmentTileProps> = (
 
 function formatBytes(bytes: number): string {
   if (!isFinite(bytes) || bytes <= 0) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const units: Array<string> = ["B", "KiB", "MiB", "GiB"];
@@ -1313,12 +1315,12 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
             />
             <DetailRow
               label="Consent"
-              value={getReplayConsentStateLabel(d.consentState)}
+              value={getReplayConsentStateLabel(d.consentState, translator)}
               testId="replay-details-consent"
             />
             <DetailRow
               label="Why recorded"
-              value={getReplayTriggerReasonLabel(d.triggerReason)}
+              value={getReplayTriggerReasonLabel(d.triggerReason, translator)}
               testId="replay-details-trigger"
             />
           </dl>
@@ -1376,7 +1378,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         <dl>
           <DetailRow
             label="Client clock skew"
-            value={formatReplayClockSkew(d.clockSkewMs)}
+            value={formatReplayClockSkew(d.clockSkewMs, translator)}
             testId="replay-details-skew"
           />
         </dl>

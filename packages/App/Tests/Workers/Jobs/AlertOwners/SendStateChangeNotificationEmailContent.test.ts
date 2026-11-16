@@ -91,6 +91,7 @@ jest.mock("Common/Server/Services/AlertService", () => {
     __esModule: true,
     default: {
       findOneById: jest.fn(),
+      findBy: jest.fn(),
       findAllBy: jest.fn(),
       findOwners: jest.fn(),
       getAlertLinkInDashboard: jest.fn(),
@@ -103,7 +104,9 @@ jest.mock("Common/Server/Services/AlertStateTimelineService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findBy: jest.fn(),
       updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
       findOneBy: jest.fn(),
     },
   };
@@ -170,15 +173,29 @@ import "../../../../FeatureSet/Workers/Jobs/AlertOwners/SendStateChangeNotificat
 
 const alertService: {
   findOneById: jest.Mock;
+  findBy: jest.Mock;
   findAllBy: jest.Mock;
   findOwners: jest.Mock;
   getAlertLinkInDashboard: jest.Mock;
 } = AlertService as never;
 const timelineService: {
   findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
+  compareAndSetColumnsByIdWithoutHooks: jest.Mock;
   findOneBy: jest.Mock;
 } = AlertStateTimelineService as never;
+
+/*
+ * The state changes the job's page read finds - those a test hands it -
+ * until the job takes each (OwnerNotificationBacklog).
+ */
+let dueTimelines: Array<AlertStateTimeline> = [];
+const takenTimelineIds: Set<string> = new Set<string>();
+
+function due(timelines: Array<AlertStateTimeline>): void {
+  dueTimelines = timelines;
+}
 const stateService: { findOneById: jest.Mock } = AlertStateService as never;
 const projectService: { getOwners: jest.Mock } = ProjectService as never;
 const notificationService: { sendUserNotification: jest.Mock } =
@@ -305,6 +322,28 @@ describe("AlertOwner:SendStateChangeEmail email content", () => {
       return Promise.resolve(`<p data-md>${markdown}</p>`);
     });
 
+    dueTimelines = [];
+    takenTimelineIds.clear();
+    timelineService.findBy.mockImplementation(async () => {
+      return dueTimelines.filter((timeline: AlertStateTimeline) => {
+        return !takenTimelineIds.has(timeline.id!.toString());
+      });
+    });
+    timelineService.compareAndSetColumnsByIdWithoutHooks.mockImplementation(
+      async (data: { id: ObjectID }): Promise<boolean> => {
+        if (takenTimelineIds.has(data.id.toString())) {
+          return false;
+        }
+
+        takenTimelineIds.add(data.id.toString());
+        return true;
+      },
+    );
+    /*
+     * The page's read of its alerts finds none here, so each is read on its
+     * own (findOneById), as each test stubs it.
+     */
+    alertService.findBy.mockResolvedValue([]);
     timelineService.findAllBy.mockResolvedValue([]);
     timelineService.updateOneById.mockResolvedValue(undefined);
     timelineService.findOneBy.mockResolvedValue(null);
@@ -325,9 +364,7 @@ describe("AlertOwner:SendStateChangeEmail email content", () => {
 
   describe("the recovery reading reaches the email", () => {
     test("a timeline row's rootCause is converted and shipped", async () => {
-      timelineService.findAllBy.mockResolvedValue([
-        makeTimeline({ rootCause: RECOVERY_ROOT_CAUSE }),
-      ]);
+      due([makeTimeline({ rootCause: RECOVERY_ROOT_CAUSE })]);
       alertService.findOneById.mockResolvedValue(makeAlert({}));
 
       await runWorkerTick();
@@ -351,7 +388,7 @@ describe("AlertOwner:SendStateChangeEmail email content", () => {
      * suppresses the whole row instead of rendering a bordered blank.
      */
     test("a row with no rootCause yields a present, empty var", async () => {
-      timelineService.findAllBy.mockResolvedValue([makeTimeline({})]);
+      due([makeTimeline({})]);
       alertService.findOneById.mockResolvedValue(makeAlert({}));
 
       await runWorkerTick();
@@ -365,7 +402,7 @@ describe("AlertOwner:SendStateChangeEmail email content", () => {
       await runWorkerTick();
 
       const select: Record<string, unknown> = (
-        timelineService.findAllBy.mock.calls[0]![0] as {
+        timelineService.findBy.mock.calls[0]![0] as {
           select: Record<string, unknown>;
         }
       ).select;
@@ -375,9 +412,7 @@ describe("AlertOwner:SendStateChangeEmail email content", () => {
 
     // Once per ROW, not once per owner - three owners, still two conversions.
     test("the conversion is per row, not per owner", async () => {
-      timelineService.findAllBy.mockResolvedValue([
-        makeTimeline({ rootCause: RECOVERY_ROOT_CAUSE }),
-      ]);
+      due([makeTimeline({ rootCause: RECOVERY_ROOT_CAUSE })]);
       alertService.findOneById.mockResolvedValue(makeAlert({}));
       /*
        * Three different people: the same person named three times is told
@@ -398,7 +433,7 @@ describe("AlertOwner:SendStateChangeEmail email content", () => {
 
   describe("the resolution names the same thing the firing named", () => {
     test("a grouped alert names the pod, not the monitor", async () => {
-      timelineService.findAllBy.mockResolvedValue([makeTimeline({})]);
+      due([makeTimeline({})]);
       alertService.findOneById.mockResolvedValue(
         makeAlert({
           seriesLabels: {
@@ -419,7 +454,7 @@ describe("AlertOwner:SendStateChangeEmail email content", () => {
     });
 
     test("an ungrouped alert still falls back to the monitor name", async () => {
-      timelineService.findAllBy.mockResolvedValue([makeTimeline({})]);
+      due([makeTimeline({})]);
       alertService.findOneById.mockResolvedValue(makeAlert({}));
 
       await runWorkerTick();
@@ -430,7 +465,7 @@ describe("AlertOwner:SendStateChangeEmail email content", () => {
     });
 
     test("the worker asks the alert query for seriesLabels", async () => {
-      timelineService.findAllBy.mockResolvedValue([makeTimeline({})]);
+      due([makeTimeline({})]);
       alertService.findOneById.mockResolvedValue(makeAlert({}));
 
       await runWorkerTick();
@@ -442,12 +477,21 @@ describe("AlertOwner:SendStateChangeEmail email content", () => {
       ).select;
 
       expect(select["seriesLabels"]).toBe(true);
+
+      // And so does the read of the page's alerts, the one that finds them.
+      const pageSelect: Record<string, unknown> = (
+        alertService.findBy.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      expect(pageSelect["seriesLabels"]).toBe(true);
     });
   });
 
   describe("the inbox preview line", () => {
     test("names the new state and the resource instead of boilerplate", async () => {
-      timelineService.findAllBy.mockResolvedValue([makeTimeline({})]);
+      due([makeTimeline({})]);
       alertService.findOneById.mockResolvedValue(
         makeAlert({
           seriesLabels: {

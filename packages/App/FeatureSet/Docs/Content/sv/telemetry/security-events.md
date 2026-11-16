@@ -54,7 +54,7 @@ flowchart TB
 | **Skyddade entiteter** | Playbooks | De användare och värdar som ingen playbook begränsar |
 | **Inställningar** | AI | Om OneUptime AI bedömer varje nytt ärende |
 | **Anslutningar** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
-| **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
+| **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din intagningsnyckel |
 | **Ärendeprioriteter** | Inställningar | Hur brådskande ett ärende är: projektets egna prioriteter, den mest brådskande först |
 | **Svarsmål** | Inställningar | Hur snabbt ett ärende med varje prioritet måste tas om hand och begränsas |
 | **Ärendestatusar** | Inställningar | Stegen ett ärende går igenom, och vad ett ärende i varje steg räknas som |
@@ -67,7 +67,7 @@ flowchart TB
 
 ## Innan du börjar
 
-Säkerhetsdata kan bara läsas av rollerna Projektägare och Projektadministratör och av de tre Security-rollerna; andra roller ser ingenting i Security Events. Se [Roller](/docs/permissions/reference#roller).
+Säkerhetsdata kan bara läsas av rollerna Projektägare och Projektadministratör och av de tre Security-rollerna; andra roller ser ingenting i Säkerhetshändelser. Se [Roller](/docs/permissions/reference#roller).
 
 | Roll | Vad den kan göra |
 | --- | --- |
@@ -78,9 +78,9 @@ Säkerhetsdata kan bara läsas av rollerna Projektägare och Projektadministrat�
 ## Skicka säkerhetshändelser
 
 :::steps
-### Skapa en ingestion-nyckel
+### Skapa en intagningsnyckel
 
-Öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa ingestion-nyckel**. Säkerhetshändelser använder samma nycklar som resten av din telemetri.
+Öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa intagningsnyckel**. Säkerhetshändelser använder samma nycklar som resten av din telemetri.
 
 ### Skicka dina händelser
 
@@ -571,10 +571,10 @@ level: high
 - **Exportera värden** hämtar en listas värden som en CSV-fil med kolumnerna `value`, `note` och `expires`, som **Importera värden** läser in igen. En fil vars första rad nämner dessa kolumner ger varje värde dess anteckning och när det upphör: ett datum som `2026-12-31`, eller ett datum och en tid i UTC.
 - En lista kan i stället läsas från en fil på en https-adress, igen **Varje timme**, **Var 6:e timme** eller **Varje dag**: välj **En fil på en adress** under **Fler fält** när du skapar den. Varje läsning gör listan till det filen innehåller, läst som en import läser den. En misslyckad läsning ändrar inga värden och listans sida säger varför, och **Läs nu** läser den direkt.
 - I stället för att underhålla värden kan en lista med IP-adresser, filhashar, domäner eller URL:er följa ett flöde med hotinformation: Dess värden är då flödets aktiva indikatorer av listans typ, som hålls uppdaterade när flödet läses.
-- `expand` används ensamt, eftersom listans värden avgör hur de träffar. Ett fält med flera värden, som `observables`, träffar när något av dem finns på listan. **Läses av** nämner reglerna, Security Events-monitorerna och de hunts som läser varje lista, och under en regels YAML nämner dess formulär listorna som regeln läser.
+- `expand` används ensamt, eftersom listans värden avgör hur de träffar. Ett fält med flera värden, som `observables`, träffar när något av dem finns på listan. **Läses av** nämner reglerna, Säkerhetshändelser-monitorerna och de hunts som läser varje lista, och under en regels YAML nämner dess formulär listorna som regeln läser.
 - En regel nämner en lista oavsett versaler och gemener. En regel, en monitor eller en hunt som nämner en lista som projektet inte har avvisas när du sparar den, och en lista som någon av dem läser kan inte byta namn eller tas bort förrän inget läser den.
 - En ändring i en lista når varje regel som läser den vid regelns nästa körning. Korrelationsregler och **Kör på tidigare händelser** läser också listor.
-- En Security Events-monitor läser listor i sin **Filtrera efter bevakningslistor**, och en sökning under **Händelser** eller i en hunt läser en som `user:%vip_users%`. Ett minus framför, som i `-ip:%admin_addresses%`, behåller händelserna vars fält inte finns på listan.
+- En Säkerhetshändelser-monitor läser listor i sin **Filtrera efter bevakningslistor**, och en sökning under **Händelser** eller i en hunt läser en som `user:%vip_users%`. Ett minus framför, som i `-ip:%admin_addresses%`, behåller händelserna vars fält inte finns på listan.
 - En lista innehåller högst 5 000 värden, varav högst 100 med `*` och 100 intervall, och ett projekt har högst 200 listor: Följ ett flöde med hotinformation för en längre lista. Den som får skapa, redigera eller ta bort detektionsregler får göra detsamma med listor, och den som får redigera detektionsregler lägger till, ändrar och tar bort deras värden. Alla Security-roller kan läsa dem, och varje ändring sparas i projektets granskningslogg.
 
 ### Kör på tidigare händelser

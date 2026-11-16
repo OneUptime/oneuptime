@@ -7,6 +7,10 @@ import {
   ExtractedString,
   scanSourceText,
 } from "../../FeatureSet/Dashboard/scripts/i18n/ExtractStrings";
+import {
+  BROWSER_DETAIL_LABEL,
+  DETAIL_LABELS,
+} from "../../FeatureSet/Dashboard/src/Components/Topology/ServiceMapViewModel";
 
 /*
  * THE SERVICE MAP AND THE INFRASTRUCTURE EXPLORER SAY NOTHING IN ENGLISH
@@ -58,6 +62,14 @@ const GUARDED_FILES: ReadonlyArray<string> = [
   "Components/Topology/ServiceMapGraph.tsx",
   "Components/Topology/TopologyNodeCard.tsx",
   "Components/Topology/InfrastructureExplorer.tsx",
+  /*
+   * The model the explorer draws a resource's name from, the service map's
+   * view model (a node's detail label), and the entity drawer: each held a
+   * word the screens drew in English (#8260).
+   */
+  "Components/Topology/InfrastructureTopologyModel.ts",
+  "Components/Topology/ServiceMapViewModel.ts",
+  "Components/Topology/EntityDetailPanel.tsx",
 ];
 
 /*
@@ -69,6 +81,30 @@ const ALLOWED: Record<string, Record<string, string>> = {
   "Components/Topology/ServiceMapGraph.tsx": {},
   "Components/Topology/TopologyNodeCard.tsx": {},
   "Components/Topology/InfrastructureExplorer.tsx": {},
+  "Components/Topology/InfrastructureTopologyModel.ts": {
+    "group:${}:${}": "A group node's id, never drawn.",
+    Empty:
+      "describeInfrastructureNode's words, which the infrastructure map card draws: #6690's, not this guard's yet.",
+  },
+  "Components/Topology/ServiceMapViewModel.ts": {},
+  "Components/Topology/EntityDetailPanel.tsx": {},
+};
+
+/*
+ * The service map's detail labels are products' names - Node.js,
+ * PostgreSQL, Azure Service Bus - drawn as written in every language: a
+ * lookup of them all would turn "Go" into German "Los". The browser's
+ * runtime is the one that is a word, a key the map draws in the reader's
+ * language (#8260), so it is not among them.
+ */
+const PRODUCT_NAMES: ReadonlySet<string> = new Set<string>(
+  Object.values(DETAIL_LABELS).filter((label: string): boolean => {
+    return label !== BROWSER_DETAIL_LABEL;
+  }),
+);
+
+const KEPT_AS_WRITTEN: Record<string, ReadonlySet<string>> = {
+  "Components/Topology/ServiceMapViewModel.ts": PRODUCT_NAMES,
 };
 
 // A call whose first argument is a key: t("..."), translator.translateText("...").
@@ -112,6 +148,7 @@ const CODE_ATTRIBUTES: ReadonlySet<string> = new Set<string>([
   "aria-controls",
   "aria-haspopup",
   "aria-orientation",
+  "dir",
 ]);
 
 // Object properties that never hold words a person reads.
@@ -188,9 +225,15 @@ const JOINED_BY_HAND: RegExp = /\$\{\}\s*[·•]\s*\$\{\}/;
 // Reads as words: "Hosts", "Unnamed resource", "in this view".
 const READS_AS_WORDS: RegExp = /^\s*\p{Lu}\p{Ll}|\p{L}{2,}\s+\p{L}/u;
 
-// One class of a class list: "flex", "mt-3", "hover:bg-gray-50", "w-[10rem]".
+/*
+ * One class of a class list: "flex", "mt-3", "hover:bg-gray-50", "w-[10rem]".
+ * After its first letters, a separator and then any run of letters, digits
+ * and separators. One run, not a repeated group: the separator and the
+ * characters after it overlap, and a repeated group of them backtracked
+ * exponentially on a long run that does not match (CodeQL js/redos, #2684).
+ */
 const CLASS_TOKEN: RegExp =
-  /^!?-?[a-z][a-z0-9]*([-:/.[\]#()%_][a-z0-9%.[\]#()_-]*)*$/;
+  /^!?-?[a-z][a-z0-9]*(?:[-:/.[\]#()%_][-a-z0-9:/.[\]#()%_]*)?$/;
 
 // What only a class has: "mt-3", "hover:bg-gray-50".
 const CLASS_PUNCTUATION: RegExp = /[-:]/;
@@ -539,10 +582,14 @@ describe("the service map and the infrastructure explorer route every word throu
     "%s has no English string a person reads, but the listed ones",
     (file: string) => {
       const allowed: Record<string, string> = ALLOWED[file] || {};
+      const keptAsWritten: ReadonlySet<string> =
+        KEPT_AS_WRITTEN[file] || new Set<string>();
       const found: Array<FoundString> = findUntranslatedStrings(
         file,
         readSource(file),
-      );
+      ).filter((entry: FoundString): boolean => {
+        return !keptAsWritten.has(entry.text);
+      });
 
       expect(
         found

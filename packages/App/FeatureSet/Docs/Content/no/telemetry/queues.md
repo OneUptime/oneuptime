@@ -263,8 +263,8 @@ Et topic navngis likt fra begge sider: spanene rapporterer ARN-et eller navnet, 
 | Måling | Vises som | Type |
 | --- | --- | --- |
 | `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-strøm: `numberofmessagespublished`) | Publiserte meldinger | Antall per periode |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON-strøm: `numberofnotificationsdelivered`) | Leverte varsler | Antall per periode |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON-strøm: `numberofnotificationsfailed`) | Mislykkede varsler | Antall per periode |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON-strøm: `numberofnotificationsdelivered`) | Leverte varslinger | Antall per periode |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON-strøm: `numberofnotificationsfailed`) | Mislykkede varslinger | Antall per periode |
 | `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON-strøm: `numberofnotificationsredriventodlq`) | Omdirigert til dead-letter-kø | Antall per periode |
 
 ### Amazon SQS
@@ -965,7 +965,7 @@ service:
 
 ## Varsling
 
-Køer overvåkes med **Målinger**-monitorer over brokermålingene sine (se [Målingsovervåking](/docs/monitor/metrics-monitor)).
+Køer overvåkes med **Målinger**-monitorer over brokermålingene sine (se [Målingsmonitor](/docs/monitor/metrics-monitor)).
 
 **Fra køens side.** Hver gauge og hvert antall per periode under **Brokerhelse** har **Opprett monitor**: den åpner en ny målingsmonitor over den målingen, filtrert på nøyaktig de attributtverdiene som navngir denne køen i den, med en startterskel der målingen måler noe med en åpenbar dårlig retning: etterslep, dead letters, consumer-lag, alderen på den eldste meldingen, struping eller feil. Fire av dem starter uten terskel, fordi en fast terskel på dem villeder: partisjons-lag i Kafka (`kafka.consumer_group.lag`), som lag-en til consumergruppen allerede dekker; gjennomsnittlig tid i køen i ActiveMQ (`activemq.message.enqueue.average_duration`, `activemq.message.wait_time.avg`), et gjennomsnitt siden brokeren startet som forblir høyt lenge etter en stans; og alderen på etterslepet i Pulsar (`pulsar_storage_backlog_age_seconds`), som viser `-1` så lenge brokeren ikke kan si det. Tellere får ingen monitor: grafen deres viser en rate, og en monitor har ingen ratefunksjon.
 
@@ -1086,7 +1086,7 @@ En destinasjon som navngis per forespørsel eller per konsument, og som OneUptim
 ## Neste trinn
 
 :::cards
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på etterslepet, lag-en eller dead letters for en kø.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle på etterslepet, lag-en eller dead letters for en kø.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send sporene fra applikasjonene dine, slik at køene deres dukker opp.
 - [Serverløse funksjoner](/docs/telemetry/serverless-functions#azure-functions): Azure Functions som utløses av Service Bus eller Event Hubs.
 :::

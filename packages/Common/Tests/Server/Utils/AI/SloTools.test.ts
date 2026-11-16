@@ -1740,8 +1740,8 @@ describe("query_slos — a request SLO", () => {
     const slo: ServiceLevelObjective = buildSlo({ monitors: [] });
     slo.sliType = SliType.RequestLatency;
     slo.latencyThresholdInMilliseconds = 300;
-    slo.errorBudgetRemainingSeconds = undefined;
-    slo.errorBudgetTotalSeconds = undefined;
+    slo.errorBudgetRemainingSeconds = undefined as unknown as number;
+    slo.errorBudgetTotalSeconds = undefined as unknown as number;
     // Decimal columns: Postgres hands them over as text.
     slo.goodEventCount = "998800" as unknown as number;
     slo.totalEventCount = "1000000" as unknown as number;
@@ -1788,8 +1788,33 @@ describe("query_slos — a request SLO", () => {
       goodEventCount: true,
       totalEventCount: true,
       latencyThresholdInMilliseconds: true,
+      requestFilter: true,
       services: { _id: true, name: true },
     });
+
+    // No filter: every request of its services counts, and nothing is said.
+    expect(result.dataForLlm).not.toContain("requestFilter");
+  });
+
+  test("reads which of its services' requests it counts (#8444)", async () => {
+    const slo: ServiceLevelObjective = buildRequestSlo();
+    slo.requestFilter = "@http.route:/checkout* -@http.route:/health";
+
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(slo as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain(
+      "@http.route:/checkout* -@http.route:/health",
+    );
   });
 
   test("a monitor uptime SLO reads as it did, with no request fields", async () => {
@@ -1851,6 +1876,27 @@ describe("formatRequestBudgetForAssistant", () => {
           total: 1000,
         }),
       ).toBe("");
+    },
+  );
+});
+
+// A Metric SLO's budget, in its metric's events (#8445).
+describe("formatRequestBudgetForAssistant - a Metric SLO", () => {
+  test.each([
+    [120, 1000, "120 of 1,000 bad events left"],
+    [1, 1, "1 of 1 bad event left"],
+    [-3, 1000, "3 bad events over budget"],
+    [-1, 1000, "1 bad event over budget"],
+  ])(
+    "%s of %s reads %s",
+    (remaining: number, total: number, expected: string) => {
+      expect(
+        formatRequestBudgetForAssistant({
+          sliType: SliType.Metric,
+          remaining: remaining,
+          total: total,
+        }),
+      ).toBe(expected);
     },
   );
 });

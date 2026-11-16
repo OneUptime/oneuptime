@@ -261,7 +261,7 @@ describe("the Edit dialog", () => {
     expect(new Set(values).size).toBe(values.length);
 
     for (const option of options) {
-      expect(option.label).toBe(`${option.value} USD`);
+      expect(option.label).toBe(`${option.value}\u00A0USD`);
     }
   });
 });
