@@ -573,7 +573,7 @@ describe("find_dashboard_page and a page whose key names its meaning", () => {
     expect(result.dataForLlm).not.toContain("explorer analytics");
   });
 
-  test('"Traces Insights": OneUptime AI\'s Insights first, then the Traces explorer\'s tab, both named Insights', async () => {
+  test("\"Traces Insights\": OneUptime AI's Insights first, then the Traces explorer's tab, both named Insights", async () => {
     const result: ToolExecutionResult = await FindDashboardPageTool.execute(
       { query: "Traces Insights" },
       MEMBER,
@@ -606,9 +606,7 @@ describe("find_dashboard_page and a page whose key names its meaning", () => {
       });
       expect(result.dataForLlm).not.toContain(TAB_KEY);
       expect(result.citationLabel).not.toContain(TAB_KEY);
-      expect(JSON.stringify(result.citationWords || {})).not.toContain(
-        TAB_KEY,
-      );
+      expect(JSON.stringify(result.citationWords || {})).not.toContain(TAB_KEY);
     },
   );
 });

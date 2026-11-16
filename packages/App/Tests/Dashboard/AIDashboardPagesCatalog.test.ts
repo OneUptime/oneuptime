@@ -465,9 +465,7 @@ const pathsFoundFor: (query: string, limit: number) => Array<string> = (
 
 describe("what the model reads of the catalog is the English the Dashboard draws (#8817)", () => {
   test("no title, place or other name of a page is a locale key English draws as other words", () => {
-    expect(findTextsNotAsEnglishDraws(AI_DASHBOARD_PAGES, ENGLISH)).toEqual(
-      [],
-    );
+    expect(findTextsNotAsEnglishDraws(AI_DASHBOARD_PAGES, ENGLISH)).toEqual([]);
   });
 
   test("nor is any text the generator writes, so writing the file again keeps it so", () => {
@@ -601,7 +599,7 @@ describe("what the model reads of the catalog is the English the Dashboard draws
   );
 
   test.each(EXPLORER_INSIGHTS)(
-    '"$area Insights" finds its section\'s AI Insights page, then the explorer\'s tab, second, as before #8629',
+    "\"$area Insights\" finds its section's AI Insights page, then the explorer's tab, second, as before #8629",
     (explorer: ExplorerInsights) => {
       expect(pathsFoundFor(`${explorer.area} Insights`, 2)).toEqual([
         explorer.aiInsights,
@@ -610,7 +608,7 @@ describe("what the model reads of the catalog is the English the Dashboard draws
     },
   );
 
-  test('"Traces Insights" ranks the Traces explorer\'s tab second again, not third behind Exceptions\' AI Insights', () => {
+  test("\"Traces Insights\" ranks the Traces explorer's tab second again, not third behind Exceptions' AI Insights", () => {
     const found: Array<string> = pathsFoundFor("Traces Insights", 5);
 
     expect(found.indexOf("/dashboard/:projectId/traces/insights")).toBe(1);
