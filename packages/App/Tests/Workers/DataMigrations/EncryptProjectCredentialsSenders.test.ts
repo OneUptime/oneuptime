@@ -630,7 +630,9 @@ describe("a send that fails says why, without the credential", () => {
 
     sendMail.mockRejectedValue(
       Object.assign(
-        new Error("Invalid login: 535 5.7.8 Authentication credentials invalid"),
+        new Error(
+          "Invalid login: 535 5.7.8 Authentication credentials invalid",
+        ),
         { code: "EAUTH", responseCode: 535 },
       ),
     );
@@ -872,13 +874,11 @@ describe("a project's chat connections", () => {
 describe("a member's webhook notification method", () => {
   test("is signed with the secret as written, before and after", async () => {
     const send: () => Promise<void> = async (): Promise<void> => {
-      const webhook: UserWebhook | null = await UserWebhookService.findOneById(
-        {
-          id: new ObjectID(WEBHOOK_ID),
-          select: { webhookUrl: true, secret: true },
-          props: { isRoot: true },
-        },
-      );
+      const webhook: UserWebhook | null = await UserWebhookService.findOneById({
+        id: new ObjectID(WEBHOOK_ID),
+        select: { webhookUrl: true, secret: true },
+        props: { isRoot: true },
+      });
 
       await WebhookService.sendWebhook({
         url: webhook!.webhookUrl!,

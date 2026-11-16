@@ -37,7 +37,8 @@ export const SMTP_PASSWORD_CONFIG_ID: string =
   "89890000-0000-4000-8000-000000000011";
 export const SMTP_OAUTH_CONFIG_ID: string =
   "89890000-0000-4000-8000-000000000012";
-export const SMTP_JWT_CONFIG_ID: string = "89890000-0000-4000-8000-000000000013";
+export const SMTP_JWT_CONFIG_ID: string =
+  "89890000-0000-4000-8000-000000000013";
 export const GRAPH_CONFIG_ID: string = "89890000-0000-4000-8000-000000000014";
 
 export const SLACK_CONNECTION_ID: string =
@@ -46,7 +47,8 @@ export const TEAMS_CONNECTION_ID: string =
   "89890000-0000-4000-8000-000000000022";
 export const MATTERMOST_CONNECTION_ID: string =
   "89890000-0000-4000-8000-000000000023";
-export const SLACK_USER_LINK_ID: string = "89890000-0000-4000-8000-000000000031";
+export const SLACK_USER_LINK_ID: string =
+  "89890000-0000-4000-8000-000000000031";
 export const WEBHOOK_ID: string = "89890000-0000-4000-8000-000000000041";
 export const REPOSITORY_ID: string = "89890000-0000-4000-8000-000000000051";
 
@@ -66,10 +68,12 @@ export const MATTERMOST_BOT_USER_ID: string = "zyxwvutsrqponmlkjihgfedcba";
 export const SMTP_PASSWORD: string = " an SMTP password, spaces & all ";
 export const SMTP_CLIENT_SECRET: string = `client~secret.${String.fromCodePoint(0xe9, 0x4e2d)}`;
 export const GRAPH_CLIENT_SECRET: string = "graph-client-secret-value~0123";
-export const SLACK_BOT_TOKEN: string = "xoxb-0000000001-0000000002-slackbottoken";
+export const SLACK_BOT_TOKEN: string =
+  "xoxb-0000000001-0000000002-slackbottoken";
 export const TEAMS_GRAPH_TOKEN: string = `eyJ0eXAiOiJKV1QifQ.${"graph".repeat(80)}.signature`;
 export const MATTERMOST_ACCESS_TOKEN: string = "mattermostbotaccesstoken0123";
-export const SLACK_USER_TOKEN: string = "xoxp-0000000003-0000000004-slackusertoken";
+export const SLACK_USER_TOKEN: string =
+  "xoxp-0000000003-0000000004-slackusertoken";
 export const SIGNING_SECRET: string = "a webhook signing secret";
 export const REPOSITORY_SECRET: string = "a repository webhook secret";
 
@@ -161,7 +165,11 @@ export function useProjectCredentialTables(data: {
         workspaceType: WorkspaceType.Slack,
         workspaceProjectId: "T0000000001",
         authToken: SLACK_BOT_TOKEN,
-        miscData: { teamId: "T0000000001", teamName: "Example", botUserId: "B1" },
+        miscData: {
+          teamId: "T0000000001",
+          teamName: "Example",
+          botUserId: "B1",
+        },
       },
       {
         _id: TEAMS_CONNECTION_ID,
@@ -274,7 +282,9 @@ export function answerEncryptColumnSql(
         });
     }
 
-    const update: RegExpMatchArray | null = sql.match(UPDATE_HELD_TO_VALUE_READ);
+    const update: RegExpMatchArray | null = sql.match(
+      UPDATE_HELD_TO_VALUE_READ,
+    );
 
     if (update) {
       const column: string = update[2]!;

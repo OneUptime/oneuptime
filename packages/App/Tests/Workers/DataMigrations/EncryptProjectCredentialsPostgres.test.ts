@@ -92,45 +92,49 @@ const SIGNING_SECRET: string = `s${"e".repeat(98)}t`;
 const REPOSITORY_SECRET: string = "a repository webhook secret";
 
 // Where each credential is, and what it holds as written.
-const STORED: Array<{ table: string; id: string; column: string; written: string }> =
-  [
-    {
-      table: "ProjectSMTPConfig",
-      id: PASSWORD_CONFIG_ID,
-      column: "password",
-      written: PASSWORD,
-    },
-    {
-      table: "ProjectSMTPConfig",
-      id: OAUTH_CONFIG_ID,
-      column: "clientSecret",
-      written: CLIENT_SECRET,
-    },
-    {
-      table: "WorkspaceProjectAuthToken",
-      id: SLACK_ID,
-      column: "authToken",
-      written: SLACK_TOKEN,
-    },
-    {
-      table: "WorkspaceUserAuthToken",
-      id: USER_LINK_ID,
-      column: "authToken",
-      written: SLACK_USER_TOKEN,
-    },
-    {
-      table: "UserWebhook",
-      id: WEBHOOK_ID,
-      column: "secret",
-      written: SIGNING_SECRET,
-    },
-    {
-      table: "CodeRepository",
-      id: REPOSITORY_ID,
-      column: "secretToken",
-      written: REPOSITORY_SECRET,
-    },
-  ];
+const STORED: Array<{
+  table: string;
+  id: string;
+  column: string;
+  written: string;
+}> = [
+  {
+    table: "ProjectSMTPConfig",
+    id: PASSWORD_CONFIG_ID,
+    column: "password",
+    written: PASSWORD,
+  },
+  {
+    table: "ProjectSMTPConfig",
+    id: OAUTH_CONFIG_ID,
+    column: "clientSecret",
+    written: CLIENT_SECRET,
+  },
+  {
+    table: "WorkspaceProjectAuthToken",
+    id: SLACK_ID,
+    column: "authToken",
+    written: SLACK_TOKEN,
+  },
+  {
+    table: "WorkspaceUserAuthToken",
+    id: USER_LINK_ID,
+    column: "authToken",
+    written: SLACK_USER_TOKEN,
+  },
+  {
+    table: "UserWebhook",
+    id: WEBHOOK_ID,
+    column: "secret",
+    written: SIGNING_SECRET,
+  },
+  {
+    table: "CodeRepository",
+    id: REPOSITORY_ID,
+    column: "secretToken",
+    written: REPOSITORY_SECRET,
+  },
+];
 
 interface ReadThroughServices {
   password: string | undefined;
@@ -244,13 +248,11 @@ describePostgres(
           userId: new ObjectID(USER_ID),
           workspaceType: WorkspaceType.Slack,
         });
-      const webhook: UserWebhook | null = await UserWebhookService.findOneById(
-        {
-          id: new ObjectID(WEBHOOK_ID),
-          select: { secret: true },
-          props: { isRoot: true },
-        },
-      );
+      const webhook: UserWebhook | null = await UserWebhookService.findOneById({
+        id: new ObjectID(WEBHOOK_ID),
+        select: { secret: true },
+        props: { isRoot: true },
+      });
       const repository: CodeRepository | null =
         await CodeRepositoryService.findOneById({
           id: new ObjectID(REPOSITORY_ID),
@@ -296,15 +298,30 @@ describePostgres(
 
       await database.query(
         `INSERT INTO "${schema}"."ProjectSMTPConfig" ("_id", "version", "projectId", "name", "slug", "hostname", "port", "username", "password", "fromEmail", "fromName", "transportType", "authType") VALUES ($1, 1, $2, 'Mail server', $3, 'smtp.example.com', 587, 'alerts@example.com', $4, 'alerts@example.com', 'Alerts', 'SMTP', 'Username and Password')`,
-        [PASSWORD_CONFIG_ID, PROJECT_ID, `mail-${PASSWORD_CONFIG_ID}`, PASSWORD],
+        [
+          PASSWORD_CONFIG_ID,
+          PROJECT_ID,
+          `mail-${PASSWORD_CONFIG_ID}`,
+          PASSWORD,
+        ],
       );
       await database.query(
         `INSERT INTO "${schema}"."ProjectSMTPConfig" ("_id", "version", "projectId", "name", "slug", "hostname", "port", "username", "fromEmail", "fromName", "transportType", "authType", "oauthProviderType", "clientId", "clientSecret", "tokenUrl", "scope") VALUES ($1, 1, $2, 'Google Workspace', $3, 'smtp.gmail.com', 587, 'alerts@example.com', 'alerts@example.com', 'Alerts', 'SMTP', 'OAuth', 'JWT Bearer', 'alerts@example.iam.example.com', $4, 'https://oauth2.googleapis.com/token', 'https://mail.google.com/')`,
-        [OAUTH_CONFIG_ID, PROJECT_ID, `google-${OAUTH_CONFIG_ID}`, CLIENT_SECRET],
+        [
+          OAUTH_CONFIG_ID,
+          PROJECT_ID,
+          `google-${OAUTH_CONFIG_ID}`,
+          CLIENT_SECRET,
+        ],
       );
       await database.query(
         `INSERT INTO "${schema}"."StatusPage" ("_id", "version", "projectId", "name", "slug", "smtpConfigId") VALUES ($1, 1, $2, 'Status', $3, $4)`,
-        [STATUS_PAGE_ID, PROJECT_ID, `status-${STATUS_PAGE_ID}`, PASSWORD_CONFIG_ID],
+        [
+          STATUS_PAGE_ID,
+          PROJECT_ID,
+          `status-${STATUS_PAGE_ID}`,
+          PASSWORD_CONFIG_ID,
+        ],
       );
       await database.query(
         `INSERT INTO "${schema}"."WorkspaceProjectAuthToken" ("_id", "version", "projectId", "authToken", "workspaceType", "workspaceProjectId", "miscData") VALUES ($1, 1, $2, $3, 'Slack', 'T0000000001', '{"teamId":"T0000000001","teamName":"Example","botUserId":"B1"}')`,
@@ -320,7 +337,12 @@ describePostgres(
       );
       await database.query(
         `INSERT INTO "${schema}"."CodeRepository" ("_id", "version", "projectId", "name", "slug", "repositoryHostedAt", "organizationName", "repositoryName", "secretToken") VALUES ($1, 1, $2, 'example/service', $3, 'GitHub', 'example', 'service', $4)`,
-        [REPOSITORY_ID, PROJECT_ID, `repository-${REPOSITORY_ID}`, REPOSITORY_SECRET],
+        [
+          REPOSITORY_ID,
+          PROJECT_ID,
+          `repository-${REPOSITORY_ID}`,
+          REPOSITORY_SECRET,
+        ],
       );
     }
 
@@ -432,8 +454,10 @@ describePostgres(
           credential.column,
         );
 
-        expect([credential.column, Encryption.looksEncrypted(String(value))])
-          .toEqual([credential.column, true]);
+        expect([
+          credential.column,
+          Encryption.looksEncrypted(String(value)),
+        ]).toEqual([credential.column, true]);
         expect(await Encryption.decrypt(String(value))).toBe(
           credential.written,
         );
@@ -441,8 +465,9 @@ describePostgres(
 
       // A 500-character password, stored as 704 characters: only text holds it.
       expect(
-        String(await stored("ProjectSMTPConfig", PASSWORD_CONFIG_ID, "password"))
-          .length,
+        String(
+          await stored("ProjectSMTPConfig", PASSWORD_CONFIG_ID, "password"),
+        ).length,
       ).toBe(704);
 
       expect(await readThroughServices()).toEqual(AS_WRITTEN);

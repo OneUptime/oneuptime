@@ -279,7 +279,10 @@ describe.each(CASES)("$name", (testCase: Case) => {
       props: { isRoot: true },
     });
 
-    expectNoCredentials(BaseModel.toJSON(created, testCase.modelType), testCase);
+    expectNoCredentials(
+      BaseModel.toJSON(created, testCase.modelType),
+      testCase,
+    );
   });
 
   test("a workflow's Create step, where a workflow has one, returns it without the credential", async () => {

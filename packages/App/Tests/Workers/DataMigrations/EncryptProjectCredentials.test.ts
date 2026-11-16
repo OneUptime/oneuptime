@@ -132,7 +132,9 @@ function stubTables(
             }
 
             // Each column is read for itself: only the rows that hold one.
-            const column: string = sql.match(/SELECT "_id", "([A-Za-z]+)"/)![1]!;
+            const column: string = sql.match(
+              /SELECT "_id", "([A-Za-z]+)"/,
+            )![1]!;
 
             return stub.rows.filter((row: StoredRow): boolean => {
               return typeof row[column] === "string" && row[column] !== "";
@@ -281,8 +283,11 @@ describe("EncryptProjectCredentials", () => {
     ];
 
     for (const [model, column] of expected) {
-      expect([model.tableName, column, model.getEncryptedColumns().columns])
-        .toEqual([model.tableName, column, expect.arrayContaining([column])]);
+      expect([
+        model.tableName,
+        column,
+        model.getEncryptedColumns().columns,
+      ]).toEqual([model.tableName, column, expect.arrayContaining([column])]);
     }
   });
 

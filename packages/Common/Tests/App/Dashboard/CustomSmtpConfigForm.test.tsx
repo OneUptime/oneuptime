@@ -1151,7 +1151,9 @@ describe("editing a project's mail server", () => {
     expectNoCredentialAskedFor();
     expect(queryInput("password")).toBeNull();
     expect(credentialInput().value).toBe("");
-    expect(within(dialog()).getByText(KEEP_HINT, { exact: false })).toBeVisible();
+    expect(
+      within(dialog()).getByText(KEEP_HINT, { exact: false }),
+    ).toBeVisible();
 
     expect(
       within(dialog()).getByTestId("collapsible-section-summary"),
@@ -1233,7 +1235,9 @@ describe("editing a project's mail server", () => {
     expectNoCredentialAskedFor();
     expect(queryInput("clientSecret")).toBeNull();
     expect(credentialInput().value).toBe("");
-    expect(within(dialog()).getByText(KEEP_HINT, { exact: false })).toBeVisible();
+    expect(
+      within(dialog()).getByText(KEEP_HINT, { exact: false }),
+    ).toBeVisible();
 
     await saveFromTheLastStep();
 
@@ -1455,7 +1459,9 @@ describe("editing a project's mail server", () => {
 
     expectNoCredentialAskedFor();
     expect(credentialInput().value).toBe("");
-    expect(within(dialog()).getByText(KEEP_HINT, { exact: false })).toBeVisible();
+    expect(
+      within(dialog()).getByText(KEEP_HINT, { exact: false }),
+    ).toBeVisible();
 
     await saveFromTheLastStep();
 

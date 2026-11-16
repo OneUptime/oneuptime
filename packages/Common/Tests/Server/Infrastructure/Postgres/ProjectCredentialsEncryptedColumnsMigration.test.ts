@@ -36,6 +36,7 @@ const MIGRATION_DIRECTORY: string = path.join(
 );
 
 const CLASS_TIMESTAMP: RegExp = /(\d{13})$/;
+const MIGRATION_SOURCE_FILE: RegExp = /^\d{13}-.*\.ts$/;
 const ALTER_TYPE: RegExp =
   /^ALTER TABLE "([A-Za-z]+)" ALTER COLUMN "([A-Za-z]+)" TYPE (.+)$/;
 
@@ -93,7 +94,7 @@ function earlierMigrationSources(): string {
     .readdirSync(MIGRATION_DIRECTORY)
     .filter((file: string): boolean => {
       return (
-        /^\d{13}-.*\.ts$/.test(file) &&
+        MIGRATION_SOURCE_FILE.test(file) &&
         Number(file.slice(0, 13)) < Number(MIGRATION_TIMESTAMP)
       );
     })

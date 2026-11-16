@@ -243,83 +243,80 @@ describe.each(CREDENTIALS)("$name", (credential: Credential) => {
   });
 });
 
-describe.each(WRITE_ONLY)(
-  "$name is write-only",
-  (credential: Credential) => {
-    test("a select of it is refused to every role, a Project Owner's included", () => {
-      for (const permission of EVERY_ROLE) {
-        const error: Error | null = errorOf(() => {
-          SelectPermission.checkSelectPermission(
-            credential.modelType,
-            { [credential.column]: true } as never,
-            propsWith([permission]),
-          );
-        });
-
-        expect([permission, error]).toEqual([
-          permission,
-          expect.any(NotAuthorizedException),
-        ]);
-        expect(error!.message).toContain(
-          `You do not have permissions to select on - ${credential.column}. No permission allows it: the column is not readable through the API.`,
+describe.each(WRITE_ONLY)("$name is write-only", (credential: Credential) => {
+  test("a select of it is refused to every role, a Project Owner's included", () => {
+    for (const permission of EVERY_ROLE) {
+      const error: Error | null = errorOf(() => {
+        SelectPermission.checkSelectPermission(
+          credential.modelType,
+          { [credential.column]: true } as never,
+          propsWith([permission]),
         );
-      }
-    });
+      });
 
-    test("a filter on it is refused too, so it cannot be guessed one value at a time", () => {
-      for (const permission of [
-        Permission.ProjectOwner,
-        Permission.ProjectAdmin,
-        Permission.ProjectMember,
-      ]) {
-        const error: Error | null = errorOf(() => {
-          QueryPermission.checkQueryPermission(
-            credential.modelType,
-            { [credential.column]: "a-guess" } as never,
-            propsWith([permission]),
-          );
-        });
+      expect([permission, error]).toEqual([
+        permission,
+        expect.any(NotAuthorizedException),
+      ]);
+      expect(error!.message).toContain(
+        `You do not have permissions to select on - ${credential.column}. No permission allows it: the column is not readable through the API.`,
+      );
+    }
+  });
 
-        expect([permission, error]).toEqual([
-          permission,
-          expect.any(NotAuthorizedException),
-        ]);
-      }
-    });
+  test("a filter on it is refused too, so it cannot be guessed one value at a time", () => {
+    for (const permission of [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ]) {
+      const error: Error | null = errorOf(() => {
+        QueryPermission.checkQueryPermission(
+          credential.modelType,
+          { [credential.column]: "a-guess" } as never,
+          propsWith([permission]),
+        );
+      });
 
-    test("the API's spec never returns it", () => {
-      for (const schema of [
-        ModelSchema.getReadModelSchema({ modelType: credential.modelType }),
-        ModelSchema.getModelSchema({ modelType: credential.modelType }),
-      ]) {
-        expect(shapeOf(schema)).not.toContain(credential.column);
-      }
-    });
+      expect([permission, error]).toEqual([
+        permission,
+        expect.any(NotAuthorizedException),
+      ]);
+    }
+  });
 
-    test("the API takes it on a create and an update where its writers write it", () => {
-      const access: ColumnAccessControl = accessOf(credential);
+  test("the API's spec never returns it", () => {
+    for (const schema of [
+      ModelSchema.getReadModelSchema({ modelType: credential.modelType }),
+      ModelSchema.getModelSchema({ modelType: credential.modelType }),
+    ]) {
+      expect(shapeOf(schema)).not.toContain(credential.column);
+    }
+  });
 
-      if (!credential.isWrittenThroughTheApi) {
-        // The connect flows and sign-ins write it, as OneUptime.
-        expect(access.update).toEqual([]);
-        return;
-      }
+  test("the API takes it on a create and an update where its writers write it", () => {
+    const access: ColumnAccessControl = accessOf(credential);
 
-      expect(access.create.length).toBeGreaterThan(0);
-      expect(access.update.length).toBeGreaterThan(0);
-      expect(
-        shapeOf(
-          ModelSchema.getCreateModelSchema({ modelType: credential.modelType }),
-        ),
-      ).toContain(credential.column);
-      expect(
-        shapeOf(
-          ModelSchema.getUpdateModelSchema({ modelType: credential.modelType }),
-        ),
-      ).toContain(credential.column);
-    });
-  },
-);
+    if (!credential.isWrittenThroughTheApi) {
+      // The connect flows and sign-ins write it, as OneUptime.
+      expect(access.update).toEqual([]);
+      return;
+    }
+
+    expect(access.create.length).toBeGreaterThan(0);
+    expect(access.update.length).toBeGreaterThan(0);
+    expect(
+      shapeOf(
+        ModelSchema.getCreateModelSchema({ modelType: credential.modelType }),
+      ),
+    ).toContain(credential.column);
+    expect(
+      shapeOf(
+        ModelSchema.getUpdateModelSchema({ modelType: credential.modelType }),
+      ),
+    ).toContain(credential.column);
+  });
+});
 
 describe("a project's SMTP config", () => {
   test("its writers still write every credential: the config's own create and edit permissions", () => {
@@ -355,9 +352,9 @@ describe("a project's SMTP config", () => {
     expect([...PROJECT_SMTP_CONFIG_CREDENTIAL_COLUMNS].sort()).toEqual(
       encrypted,
     );
-    expect(Object.keys(PROJECT_SMTP_CONFIG_CREDENTIAL_IS_KEPT_BY).sort()).toEqual(
-      encrypted,
-    );
+    expect(
+      Object.keys(PROJECT_SMTP_CONFIG_CREDENTIAL_IS_KEPT_BY).sort(),
+    ).toEqual(encrypted);
   });
 
   test("what tells configs apart stays readable to every reader of the config", () => {
