@@ -391,7 +391,7 @@ Pour un incident limité à des pages de statut précises, un e-mail ou un SMS p
 
 ## Rapports par e-mail
 
-Une page de statut peut envoyer à ses abonnés un rapport par e-mail selon une planification : pour chaque ressource de la page, sa disponibilité, son indisponibilité et ses incidents sur une période. Cela se règle dans la carte **Rapports par e-mail** sur **Pages de statut → votre page → Avancé → Rapports**.
+Une page de statut peut envoyer à ses abonnés un rapport par e-mail selon une planification : pour chaque ressource de la page, sa disponibilité, son indisponibilité et ses incidents sur une période. Une ressource pour laquelle rien n'a été mesuré sur cette période, parce que rien ne l'avait encore vérifiée ou que sa surveillance était désactivée, n'a ni disponibilité ni indisponibilité dans le rapport : les deux s'affichent comme un tiret, avec Pas encore surveillé ou Non surveillé sous son nom comme sur la page de statut, et elle est écartée de la disponibilité moyenne de son groupe et de la page. Cela se règle dans la carte **Rapports par e-mail** sur **Pages de statut → votre page → Avancé → Rapports**.
 
 - **Envoyer des rapports par e-mail** active et désactive les rapports, et enregistre dès que vous le basculez. Il n'y a rien à remplir dans un cas comme dans l'autre.
 - **La première fois que les rapports sont activés**, la page reçoit une planification : un rapport le 1er de chaque mois à 09:00, à partir du prochain 1er du mois, chacun couvrant le mois civil entier qui le précède, si bien que le rapport envoyé le 1er novembre couvre octobre. 09:00 s'entend dans le fuseau horaire du rapport, qui est UTC sauf si vous le changez.

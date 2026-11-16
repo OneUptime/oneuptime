@@ -391,7 +391,7 @@ Voor een incident dat tot specifieke statuspagina's is beperkt, geldt de regel v
 
 ## E-mailrapporten
 
-Een statuspagina kan haar abonnees volgens een schema een rapport mailen: voor elke resource op de pagina de uptime, de downtime en de incidenten over een bepaalde periode. Dat stelt u in op de kaart **E-mailrapporten** onder **Statuspagina's → uw pagina → Geavanceerd → Rapporten**.
+Een statuspagina kan haar abonnees volgens een schema een rapport mailen: voor elke resource op de pagina de uptime, de downtime en de incidenten over een bepaalde periode. Een resource waarvoor in die tijd niets is gemeten, omdat nog niets hem had gecontroleerd of zijn bewaking uit stond, heeft in het rapport geen uptime en geen downtime: beide staan er als een streepje, met Nog niet bewaakt of Niet bewaakt onder zijn naam zoals op de statuspagina, en hij telt niet mee voor de gemiddelde uptime van zijn groep en van de pagina. Dat stelt u in op de kaart **E-mailrapporten** onder **Statuspagina's → uw pagina → Geavanceerd → Rapporten**.
 
 - **E-mailrapporten versturen** zet rapporten aan en uit, en wordt opgeslagen zodra u het omzet. Er hoeft in geen van beide gevallen iets te worden ingevuld.
 - **De eerste keer dat rapporten worden aangezet**, krijgt de pagina een schema: een rapport op de 1e van elke maand om 09:00, vanaf de eerstvolgende 1e van de maand, elk over de hele voorgaande kalendermaand, dus het rapport van 1 november dekt oktober. 09:00 is in de tijdzone van het rapport, die UTC is tenzij u haar wijzigt.

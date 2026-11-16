@@ -391,7 +391,7 @@ For an incident limited to specific status pages, one email or text message per 
 
 ## Email reports
 
-A status page can email its subscribers a report on a schedule: for each resource on the page, its uptime, its downtime and its incidents over a stretch of time. It is set in the **Email Reports** card at **Status Pages → your page → Advanced → Reports**.
+A status page can email its subscribers a report on a schedule: for each resource on the page, its uptime, its downtime and its incidents over a stretch of time. A resource nothing was measured for in that time, because nothing had checked it yet or its monitoring was off, has no uptime or downtime in the report: both read as a dash, with Not monitored yet or Not monitored under its name as on the status page, and it is left out of its group's and the page's average uptime. It is set in the **Email Reports** card at **Status Pages → your page → Advanced → Reports**.
 
 - **Send email reports** turns reports on and off, and saves as soon as you flip it. There is nothing to fill in either way.
 - **The first time reports are turned on**, the page gets a schedule: a report on the 1st of every month at 09:00, starting on the next 1st of the month, each covering the whole calendar month before it, so the report sent on 1 November covers October. 09:00 is in the report time zone, which is UTC unless you change it.
