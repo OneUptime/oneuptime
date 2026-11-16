@@ -195,23 +195,36 @@ const narrowest: (length: number, largest: number) => DocsUints = (
   return largest <= 0xffff ? new Uint16Array(length) : new Uint32Array(length);
 };
 
-// Numbers added one by one, kept four bytes each while an index is built.
+// How many numbers one block of GrowingUints holds: 64 KB.
+const GROWING_BLOCK_BITS: number = 14;
+const GROWING_BLOCK: number = 1 << GROWING_BLOCK_BITS;
+
+/*
+ * Numbers added one by one while an index is built, four bytes each, in
+ * blocks of GROWING_BLOCK: none is copied as more come, so a build holds
+ * its entries once - 32 MB for Japanese's two million - and not, as an
+ * array that doubles holds it while it grows, its old array beside one
+ * twice the size.
+ */
 class GrowingUints {
-  private data: Uint32Array = new Uint32Array(4096);
+  private readonly blocks: Array<Uint32Array> = [];
   public length: number = 0;
 
   public push(value: number): void {
-    if (this.length === this.data.length) {
-      const larger: Uint32Array = new Uint32Array(this.data.length * 2);
-      larger.set(this.data);
-      this.data = larger;
+    const offset: number = this.length & (GROWING_BLOCK - 1);
+
+    if (offset === 0) {
+      this.blocks.push(new Uint32Array(GROWING_BLOCK));
     }
 
-    this.data[this.length++] = value;
+    this.blocks[this.blocks.length - 1]![offset] = value;
+    this.length++;
   }
 
   public at(position: number): number {
-    return this.data[position]!;
+    return this.blocks[position >>> GROWING_BLOCK_BITS]![
+      position & (GROWING_BLOCK - 1)
+    ]!;
   }
 }
 
