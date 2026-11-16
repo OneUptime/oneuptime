@@ -1,10 +1,20 @@
 import ExploreProducts from "../../Components/Home/ExploreProducts";
-import GettingStarted from "../../Components/Home/GettingStarted";
+import GettingStarted, {
+  WelcomeCardView,
+  isQuickstartView,
+} from "../../Components/Home/GettingStarted";
 import HomeCommandBar, {
   getCurrentCreateActionGates,
 } from "../../Components/Home/HomeCommandBar";
-import { getHomeCounts } from "../../Components/Home/HomeOverviewData";
+import {
+  HomeCounts,
+  getHomeCounts,
+} from "../../Components/Home/HomeOverviewData";
 import NeedsAttention from "../../Components/Home/NeedsAttention";
+import {
+  ProjectHealthKind,
+  getProjectHealth,
+} from "../../Components/Home/ProjectHealth";
 import ProjectHealthCard from "../../Components/Home/ProjectHealthCard";
 import ProjectResources from "../../Components/Home/ProjectResources";
 import HiddenProductsWithData from "../../Components/ProjectProducts/HiddenProductsWithData";
@@ -47,10 +57,20 @@ import React, {
  *                                            coming up.
  *   6. What else can OneUptime do?           The product directory.
  *
+ * Except while a new project's quickstart shows (#8897): the question
+ * "What do you want to do first?", then the steps its goals bring. Then
+ * Home is the quickstart and nothing else - no search bar, no row of
+ * zeros, no empty lists - so a new person meets one thing to do, not
+ * eight. Only what cannot wait shows above it: an incident or anything
+ * else that needs someone (the health card), and a server that is not set
+ * up, to its admin. Hiding the quickstart, or finishing it, brings the
+ * rest of Home back, and the line left behind shows it again.
+ *
  * The headline, the strip and the open-work list are drawn from ONE parallel
  * batch (UseHomeOverview / HomeOverviewData), so they always agree and the
  * page asks the database each question once. The other cards fetch their
- * own small reads beside it, never behind it.
+ * own small reads beside it, never behind it: while the quickstart's answer
+ * is read, they are drawn out of sight, already reading.
  */
 
 /*
@@ -78,6 +98,49 @@ export const HOME_ROW_MAIN_COLUMN_CLASS_NAME: string = `${HOME_ROW_COLUMN_CLASS_
 
 export const HOME_ROW_SIDE_COLUMN_CLASS_NAME: string =
   HOME_ROW_COLUMN_CLASS_NAME;
+
+// What Home is drawing.
+export enum HomeMode {
+  // The quickstart's answer is not read yet: nothing is decided.
+  Deciding = "deciding",
+  // A new project's quickstart, the question or its steps: Home is that.
+  Quickstart = "quickstart",
+  // Everything else: the overview, top to bottom.
+  Overview = "overview",
+}
+
+export const getHomeMode: (view: WelcomeCardView | null) => HomeMode = (
+  view: WelcomeCardView | null,
+): HomeMode => {
+  if (view === null) {
+    return HomeMode.Deciding;
+  }
+
+  return isQuickstartView(view) ? HomeMode.Quickstart : HomeMode.Overview;
+};
+
+/*
+ * Whether the quickstart makes room for the health card above it: an open
+ * incident, or anything else that needs someone - an alert, a monitor that
+ * is not operational, an SLO at risk. A first monitor that goes down while
+ * its project is still being set up is said at the top, as on any Home.
+ * Nothing open, maintenance in progress or nothing monitored yet is the
+ * quickstart's to say.
+ */
+export const needsSomeoneDuringQuickstart: (
+  counts: HomeCounts | null,
+) => boolean = (counts: HomeCounts | null): boolean => {
+  if (!counts) {
+    return false;
+  }
+
+  const kind: ProjectHealthKind = getProjectHealth(counts).kind;
+
+  return (
+    kind === ProjectHealthKind.Incidents ||
+    kind === ProjectHealthKind.NeedsAttention
+  );
+};
 
 export interface ComponentProps extends PageComponentProps {
   isLoadingProjects: boolean;
@@ -111,6 +174,12 @@ const Home: FunctionComponent<ComponentProps> = (
    * along with the batch.
    */
   const [refreshKey, setRefreshKey] = useState<number>(0);
+
+  /*
+   * What the quickstart draws (GettingStarted reads it, and says): null
+   * until its answer is read, for each project in turn.
+   */
+  const [welcomeView, setWelcomeView] = useState<WelcomeCardView | null>(null);
 
   /*
    * How many things in the setup need a look (Setup health, #6812): read
@@ -150,20 +219,60 @@ const Home: FunctionComponent<ComponentProps> = (
     });
   };
 
-  return (
-    <div data-testid="home-overview" className="space-y-5">
-      <HomeCommandBar projectId={currentProjectIdString} gates={gates} />
+  const mode: HomeMode = getHomeMode(welcomeView);
+  const counts: HomeCounts | null = overview.data
+    ? getHomeCounts(overview.data)
+    : null;
 
-      <ProjectHealthCard
-        counts={overview.data ? getHomeCounts(overview.data) : null}
-        isLoading={overview.isLoading}
-        isRefreshing={overview.isRefreshing}
-        error={overview.error}
-        loadedAt={overview.loadedAt}
-        now={now}
-        onRefresh={refresh}
-        canCreateMonitor={gates.canCreateMonitor}
-      />
+  const commandBar: ReactElement = (
+    <HomeCommandBar projectId={currentProjectIdString} gates={gates} />
+  );
+
+  const healthCard: ReactElement = (
+    <ProjectHealthCard
+      counts={counts}
+      isLoading={overview.isLoading}
+      isRefreshing={overview.isRefreshing}
+      error={overview.error}
+      loadedAt={overview.loadedAt}
+      now={now}
+      onRefresh={refresh}
+      canCreateMonitor={gates.canCreateMonitor}
+    />
+  );
+
+  return (
+    <div
+      data-testid="home-overview"
+      data-home-mode={mode}
+      className="space-y-5"
+    >
+      {mode === HomeMode.Deciding ? (
+        <div
+          data-testid="home-deciding"
+          aria-hidden="true"
+          className="h-64 animate-pulse rounded-2xl border border-gray-200 bg-white"
+        ></div>
+      ) : (
+        <></>
+      )}
+
+      {mode === HomeMode.Quickstart ? (
+        needsSomeoneDuringQuickstart(counts) ? (
+          healthCard
+        ) : (
+          <></>
+        )
+      ) : (
+        /*
+         * Drawn out of sight while Home decides, so its reads run beside
+         * the quickstart's instead of behind it.
+         */
+        <div hidden={mode === HomeMode.Deciding} className="space-y-5">
+          {commandBar}
+          {healthCard}
+        </div>
+      )}
 
       {/*
        * Is this server set up? For its master admins only, while email,
@@ -171,73 +280,89 @@ const Home: FunctionComponent<ComponentProps> = (
        */}
       <ServerSetupCard />
 
-      <GettingStarted projectId={currentProjectId} className="!mb-0" />
-
-      {/*
-       * Is OneUptime set up the way you wanted? Once, for the project's
-       * creator in its first weeks, never while something is open (#6832).
-       */}
-      <SetupCheckInCard
-        projectId={currentProjectIdString}
-        isInIncident={
-          overview.data
-            ? overview.data.activeIncidents.count +
-                overview.data.activeAlerts.count >
-              0
-            : null
-        }
-        setupHealthCount={setupHealthCount}
+      <GettingStarted
+        projectId={currentProjectId}
+        className="!mb-0"
+        onViewChange={setWelcomeView}
       />
 
-      {/*
-       * A product the project hides that started receiving data (#6814):
-       * one line, for whoever may choose the project's products.
-       */}
-      <HiddenProductsWithData />
+      {mode === HomeMode.Quickstart ? (
+        <></>
+      ) : (
+        <div hidden={mode === HomeMode.Deciding} className="space-y-5">
+          {/*
+           * Is OneUptime set up the way you wanted? Once, for the project's
+           * creator in its first weeks, never while something is open
+           * (#6832). It asks the server whether to ask, which counts as
+           * asked, so it waits until Home has decided to show it.
+           */}
+          {mode === HomeMode.Overview ? (
+            <SetupCheckInCard
+              projectId={currentProjectIdString}
+              isInIncident={
+                overview.data
+                  ? overview.data.activeIncidents.count +
+                      overview.data.activeAlerts.count >
+                    0
+                  : null
+              }
+              setupHealthCount={setupHealthCount}
+            />
+          ) : (
+            <></>
+          )}
 
-      <div data-testid="home-overview-row" className={HOME_ROW_CLASS_NAME}>
-        <div
-          data-testid="home-overview-row-main"
-          className={HOME_ROW_MAIN_COLUMN_CLASS_NAME}
-        >
-          <NeedsAttention
-            data={overview.data}
-            isLoading={overview.isLoading}
-            now={now}
-            setupHealthCount={setupHealthCount}
-          />
-        </div>
-        <div
-          data-testid="home-overview-row-side"
-          className={HOME_ROW_SIDE_COLUMN_CLASS_NAME}
-        >
-          <ProjectResources
-            projectId={currentProjectId}
-            totalMonitors={
-              overview.data
-                ? overview.data.totalMonitors
-                : overview.isLoading
-                  ? null
-                  : undefined
-            }
-            totalSlos={
-              overview.data
-                ? overview.data.totalSlos
-                : overview.isLoading
-                  ? null
-                  : undefined
-            }
-            refreshKey={refreshKey}
-          />
-          <UpcomingMaintenance
-            projectId={currentProjectId}
-            now={now}
-            refreshKey={refreshKey}
-          />
-        </div>
-      </div>
+          {/*
+           * A product the project hides that started receiving data (#6814):
+           * one line, for whoever may choose the project's products.
+           */}
+          <HiddenProductsWithData />
 
-      <ExploreProducts projectId={currentProjectIdString} />
+          <div data-testid="home-overview-row" className={HOME_ROW_CLASS_NAME}>
+            <div
+              data-testid="home-overview-row-main"
+              className={HOME_ROW_MAIN_COLUMN_CLASS_NAME}
+            >
+              <NeedsAttention
+                data={overview.data}
+                isLoading={overview.isLoading}
+                now={now}
+                setupHealthCount={setupHealthCount}
+              />
+            </div>
+            <div
+              data-testid="home-overview-row-side"
+              className={HOME_ROW_SIDE_COLUMN_CLASS_NAME}
+            >
+              <ProjectResources
+                projectId={currentProjectId}
+                totalMonitors={
+                  overview.data
+                    ? overview.data.totalMonitors
+                    : overview.isLoading
+                      ? null
+                      : undefined
+                }
+                totalSlos={
+                  overview.data
+                    ? overview.data.totalSlos
+                    : overview.isLoading
+                      ? null
+                      : undefined
+                }
+                refreshKey={refreshKey}
+              />
+              <UpcomingMaintenance
+                projectId={currentProjectId}
+                now={now}
+                refreshKey={refreshKey}
+              />
+            </div>
+          </div>
+
+          <ExploreProducts projectId={currentProjectIdString} />
+        </div>
+      )}
     </div>
   );
 };

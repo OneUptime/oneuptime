@@ -35,6 +35,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Refresh counts the other cards again too, a re-render asks nothing, a
  * project switch asks again for the new project, an empty account is sent
  * to Welcome, and what may be created follows the role.
+ *
+ * And, since #8897, that a new project's quickstart is the whole of Home
+ * while it shows - with only what cannot wait above it - and that hiding it
+ * brings the rest of Home back.
  */
 
 const LOCALES_DIR: string = path.join(
@@ -112,6 +116,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
  * do. It counts no records of its own.
  */
 const welcomeFetchMock: MockFunction = getJestMockFunction();
+const welcomePostMock: MockFunction = getJestMockFunction();
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistApi",
@@ -121,8 +126,8 @@ jest.mock(
       fetchWelcomeChecklist: (...args: Array<unknown>) => {
         return welcomeFetchMock(...args);
       },
-      postWelcomeChecklist: () => {
-        return Promise.resolve(null);
+      postWelcomeChecklist: (...args: Array<unknown>) => {
+        return welcomePostMock(...args);
       },
       sendLegacyBrowserState: () => {
         return Promise.resolve(null);
@@ -223,7 +228,12 @@ import Home, {
   HOME_ROW_CLASS_NAME,
   HOME_ROW_MAIN_COLUMN_CLASS_NAME,
   HOME_ROW_SIDE_COLUMN_CLASS_NAME,
+  HomeMode,
+  getHomeMode,
+  needsSomeoneDuringQuickstart,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/Home";
+import { WelcomeCardView } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
+import { HomeCounts } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeOverviewData";
 import { HOME_ROW_CARD_BODY_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeRowCard";
 import {
   describeHeightFill,
@@ -409,6 +419,12 @@ function newProject(): ProjectData {
 
 let projects: Map<string, ProjectData> = new Map();
 
+/*
+ * What the new project's Welcome answer adds, per test: hidden by the
+ * person, the question still to ask, an invited member...
+ */
+let newProjectWelcome: Record<string, unknown> = {};
+
 interface Recorded {
   type: "list" | "count" | "cache";
   modelType: unknown;
@@ -558,6 +574,51 @@ async function renderHome(): Promise<RenderResult> {
   return result!;
 }
 
+// Home, once it has decided to draw a new project's quickstart.
+async function renderQuickstart(): Promise<RenderResult> {
+  let result: RenderResult | null = null;
+  await act(async () => {
+    result = render(<Page />);
+  });
+  await waitFor(() => {
+    expect(screen.getByTestId("home-overview")).toHaveAttribute(
+      "data-home-mode",
+      HomeMode.Quickstart,
+    );
+  });
+  return result!;
+}
+
+function homeMode(): string | null {
+  return screen.getByTestId("home-overview").getAttribute("data-home-mode");
+}
+
+// What a new project's quickstart answers: its four steps, none done.
+function newProjectAnswer(): Record<string, unknown> {
+  return {
+    audience: "set_up",
+    goals: [],
+    shouldAskForGoals: false,
+    canChooseGoals: true,
+    isHiddenForMe: false,
+    isFinished: false,
+    canSendEmail: true,
+    steps: ["monitor", "on_call", "status_page", "team"].map(
+      (step: string, index: number) => {
+        return {
+          step: step,
+          isDone: false,
+          needsPlan: null,
+          isNext: index === 0,
+        };
+      },
+    ),
+    doneCount: 0,
+    totalCount: 4,
+    ...newProjectWelcome,
+  };
+}
+
 beforeEach(() => {
   window.localStorage.clear();
   currentProjectId = new ObjectID(PROJECT_ID);
@@ -567,9 +628,14 @@ beforeEach(() => {
     [OTHER_PROJECT_ID, newProject()],
   ]);
   recorded = [];
+  newProjectWelcome = {};
   answer();
   welcomeFetchMock.mockImplementation(() => {
     const isNew: boolean = currentProjectId?.toString() === OTHER_PROJECT_ID;
+
+    if (isNew) {
+      return Promise.resolve(newProjectAnswer());
+    }
 
     return Promise.resolve({
       audience: "set_up",
@@ -577,24 +643,14 @@ beforeEach(() => {
       shouldAskForGoals: false,
       canChooseGoals: true,
       isHiddenForMe: false,
-      isFinished: !isNew,
+      isFinished: true,
       canSendEmail: true,
-      steps: isNew
-        ? ["monitor", "on_call", "status_page", "team"].map(
-            (step: string, index: number) => {
-              return {
-                step: step,
-                isDone: false,
-                needsPlan: null,
-                isNext: index === 0,
-              };
-            },
-          )
-        : [],
+      steps: [],
       doneCount: 0,
-      totalCount: isNew ? 4 : 0,
+      totalCount: 0,
     });
   });
+  welcomePostMock.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -605,6 +661,7 @@ afterEach(() => {
   navigateMock.mockReset();
   analyticsMock.mockReset();
   welcomeFetchMock.mockReset();
+  welcomePostMock.mockReset();
 });
 
 describe("the page", () => {
@@ -867,8 +924,9 @@ describe("the row under the health card", () => {
     },
   );
 
-  test("a brand-new project: where problems will show, beside every resource to set up, both to the bottom of the row", async () => {
+  test("a brand-new project whose quickstart is hidden: where problems will show, beside every resource to set up, both to the bottom of the row", async () => {
     currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    newProjectWelcome = { isHiddenForMe: true };
     await renderHome();
 
     expect(screen.getByTestId("home-attention-empty")).toHaveAttribute(
@@ -1041,6 +1099,8 @@ describe("re-renders and project switches", () => {
     const result: RenderResult = await renderHome();
 
     currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    // Hidden by this person, so the other project's overview is drawn.
+    newProjectWelcome = { isHiddenForMe: true };
 
     await act(async () => {
       result.rerender(<Page projects={[PROJECT]} />);
@@ -1060,8 +1120,292 @@ describe("re-renders and project switches", () => {
   });
 });
 
-describe("a brand-new project", () => {
-  test("Getting Started under the headline, and every resource to set up", async () => {
+/*
+ * "If quickstart is shown on the home page we dont need to show anything
+ * else" (#8897). A new project's Home was a banner to create a monitor, five
+ * zeros, the Welcome card, an empty list of what needs attention and a list
+ * of things to set up, all asking for the same first click. While the
+ * quickstart shows, it is all of Home.
+ */
+describe("a brand-new project's quickstart", () => {
+  const OVERVIEW_CARDS: Array<string> = [
+    "home-command-bar",
+    "home-project-health",
+    "home-needs-attention",
+    "home-project-resources",
+    "home-upcoming-maintenance",
+    "home-explore-products",
+  ];
+
+  test("is the whole of Home: no search bar, no headline or zeros, no lists", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    await renderQuickstart();
+
+    expect(screen.getByTestId("getting-started")).toBeVisible();
+    for (const testId of OVERVIEW_CARDS) {
+      expect({ testId, drawn: screen.queryByTestId(testId) !== null }).toEqual({
+        testId,
+        drawn: false,
+      });
+    }
+    expect(screen.queryByTestId("home-overview-stats")).toBeNull();
+    expect(screen.queryByTestId("home-health-create-monitor")).toBeNull();
+    expect(screen.queryByTestId("home-deciding")).toBeNull();
+  });
+
+  test("the question is the whole of Home too", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    newProjectWelcome = { goals: null, shouldAskForGoals: true };
+    await renderQuickstart();
+
+    expect(screen.getByTestId("welcome-question")).toBeVisible();
+    for (const testId of OVERVIEW_CARDS) {
+      expect({ testId, drawn: screen.queryByTestId(testId) !== null }).toEqual({
+        testId,
+        drawn: false,
+      });
+    }
+  });
+
+  test("still reads what is open, once, so an incident can be said above it", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    await renderQuickstart();
+
+    await waitFor(() => {
+      expect(recordedOf("list", Incident)).toBe(1);
+    });
+    /*
+     * The cards the quickstart leaves out read at most once, out of sight,
+     * while Home decided - so a project that turns out to need them never
+     * waits on the quickstart's answer - and never again once it has.
+     */
+    expect(recordedOf("count", Workflow)).toBeLessThanOrEqual(1);
+    expect(recordedOf("count", Dashboard)).toBeLessThanOrEqual(1);
+    expect(screen.queryByTestId("home-project-resources")).toBeNull();
+  });
+
+  test("an incident that opens while the project is set up is said above it, by the health card", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    projects.set(OTHER_PROJECT_ID, {
+      ...newProject(),
+      incidents: busyProject().incidents,
+      totalMonitors: 1,
+    });
+    await renderQuickstart();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("home-health-headline")).toHaveTextContent(
+        "1 active incident",
+      );
+    });
+    expect(
+      screen
+        .getByTestId("home-project-health")
+        .compareDocumentPosition(screen.getByTestId("getting-started")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Only the health card: the rest of Home stays out.
+    expect(screen.queryByTestId("home-command-bar")).toBeNull();
+    expect(screen.queryByTestId("home-needs-attention")).toBeNull();
+  });
+
+  test("an alert that needs someone is said above it too", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    projects.set(OTHER_PROJECT_ID, {
+      ...newProject(),
+      alerts: busyProject().alerts,
+      totalMonitors: 1,
+    });
+    await renderQuickstart();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("home-project-health")).toHaveAttribute(
+        "data-health",
+        "needs-attention",
+      );
+    });
+  });
+
+  test("nothing open: no health card above it", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    await renderQuickstart();
+
+    await waitFor(() => {
+      expect(recordedOf("list", Incident)).toBe(1);
+    });
+    expect(screen.queryByTestId("home-project-health")).toBeNull();
+  });
+
+  test("Hide brings the rest of Home back, with the line that shows the quickstart again", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    await renderQuickstart();
+
+    welcomePostMock.mockResolvedValue({
+      ...newProjectAnswer(),
+      isHiddenForMe: true,
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("getting-started-dismiss"));
+    });
+
+    await waitFor(() => {
+      expect(homeMode()).toBe(HomeMode.Overview);
+    });
+    expect(screen.getByTestId("welcome-checklist-hidden")).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByTestId("home-health-headline")).toHaveTextContent(
+        "Nothing is being monitored yet",
+      );
+    });
+    expect(screen.getByTestId("home-command-bar")).toBeVisible();
+    expect(screen.getByTestId("home-needs-attention")).toBeVisible();
+    expect(screen.getByTestId("home-explore-products")).toBeVisible();
+  });
+
+  test("Show it, on that line, makes Home the quickstart again", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    newProjectWelcome = { isHiddenForMe: true };
+    await renderHome();
+
+    expect(homeMode()).toBe(HomeMode.Overview);
+
+    welcomePostMock.mockResolvedValue({
+      ...newProjectAnswer(),
+      isHiddenForMe: false,
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("welcome-checklist-show"));
+    });
+
+    await waitFor(() => {
+      expect(homeMode()).toBe(HomeMode.Quickstart);
+    });
+    expect(screen.getByTestId("getting-started")).toBeVisible();
+    expect(screen.queryByTestId("home-command-bar")).toBeNull();
+  });
+
+  test("an invited member's own first steps sit in the overview, beside what is open", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    newProjectWelcome = {
+      audience: "invited_member",
+      canChooseGoals: false,
+      steps: [],
+      totalCount: 0,
+    };
+    await renderHome();
+
+    expect(homeMode()).toBe(HomeMode.Overview);
+    expect(screen.getByTestId("home-needs-attention")).toBeVisible();
+  });
+
+  test("a quickstart that cannot be read leaves the overview", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    welcomeFetchMock.mockResolvedValue(null);
+    await renderHome();
+
+    expect(homeMode()).toBe(HomeMode.Overview);
+    expect(screen.queryByTestId("getting-started")).toBeNull();
+  });
+});
+
+/*
+ * Until the quickstart's answer is read, Home does not know which page it
+ * is: it draws neither, rather than one then the other, and the overview's
+ * cards are drawn out of sight, already reading - never behind the answer.
+ */
+describe("while Home decides", () => {
+  test("a quiet placeholder shows, the overview reads out of sight, and nothing flashes", async () => {
+    welcomeFetchMock.mockImplementation(() => {
+      return new Promise(() => {
+        // not answered yet
+      });
+    });
+
+    await act(async () => {
+      render(<Page />);
+    });
+
+    expect(homeMode()).toBe(HomeMode.Deciding);
+    expect(screen.getByTestId("home-deciding")).toBeInTheDocument();
+    // Drawn, so their reads start now - but not seen.
+    expect(screen.getByTestId("home-command-bar")).not.toBeVisible();
+    expect(screen.getByTestId("home-project-resources")).not.toBeVisible();
+    await waitFor(() => {
+      expect(recordedOf("list", Incident)).toBe(1);
+    });
+    await waitFor(() => {
+      expect(recordedOf("count", Workflow)).toBe(1);
+    });
+    expect(screen.queryByTestId("getting-started")).toBeNull();
+  });
+
+  test("a finished project's overview is the same overview once decided: nothing is read twice", async () => {
+    await renderHome();
+
+    expect(homeMode()).toBe(HomeMode.Overview);
+    expect(screen.queryByTestId("home-deciding")).toBeNull();
+    expect(screen.getByTestId("home-command-bar")).toBeVisible();
+    expect(recordedOf("list", Incident)).toBe(1);
+    expect(recordedOf("count", Workflow)).toBe(1);
+  });
+});
+
+describe("which page Home is", () => {
+  test.each([
+    [null, HomeMode.Deciding],
+    [WelcomeCardView.Question, HomeMode.Quickstart],
+    [WelcomeCardView.Checklist, HomeMode.Quickstart],
+    [WelcomeCardView.Hidden, HomeMode.Overview],
+    [WelcomeCardView.InvitedMember, HomeMode.Overview],
+    [WelcomeCardView.None, HomeMode.Overview],
+  ])("%s: %s", (view: WelcomeCardView | null, mode: HomeMode) => {
+    expect(getHomeMode(view)).toBe(mode);
+  });
+
+  const counts: (extra: Partial<HomeCounts>) => HomeCounts = (
+    extra: Partial<HomeCounts>,
+  ): HomeCounts => {
+    return {
+      activeIncidents: 0,
+      activeAlerts: 0,
+      notOperationalMonitors: 0,
+      ongoingMaintenance: 0,
+      slosNeedingAttention: 0,
+      totalMonitors: 0,
+      totalSlos: 0,
+      ...extra,
+    };
+  };
+
+  test.each([
+    ["nothing read yet", null, false],
+    ["nothing monitored yet", counts({}), false],
+    ["all operational", counts({ totalMonitors: 2 }), false],
+    ["maintenance in progress", counts({ ongoingMaintenance: 1 }), false],
+    ["an open incident", counts({ activeIncidents: 1 }), true],
+    ["an open alert", counts({ activeAlerts: 2 }), true],
+    [
+      "a monitor that is not operational",
+      counts({ totalMonitors: 1, notOperationalMonitors: 1 }),
+      true,
+    ],
+    ["an SLO at risk", counts({ slosNeedingAttention: 1 }), true],
+  ])(
+    "the quickstart makes room for the health card: %s",
+    (_name: string, value: HomeCounts | null, expected: boolean) => {
+      expect(needsSomeoneDuringQuickstart(value)).toBe(expected);
+    },
+  );
+});
+
+describe("a brand-new project whose quickstart is hidden", () => {
+  beforeEach(() => {
+    newProjectWelcome = { isHiddenForMe: true };
+  });
+
+  test("the line that shows it again under the headline, and every resource to set up", async () => {
     currentProjectId = new ObjectID(OTHER_PROJECT_ID);
     await renderHome();
 
@@ -1069,13 +1413,14 @@ describe("a brand-new project", () => {
       "Nothing is being monitored yet",
     );
     await waitFor(() => {
-      expect(screen.getByTestId("getting-started")).toBeInTheDocument();
+      expect(screen.getByTestId("welcome-checklist-hidden")).toBeVisible();
     });
     expect(
       screen
         .getByTestId("home-project-health")
-        .compareDocumentPosition(screen.getByTestId("getting-started")) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+        .compareDocumentPosition(
+          screen.getByTestId("welcome-checklist-hidden"),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(screen.getByTestId("home-attention-empty")).toHaveAttribute(
       "data-state",
