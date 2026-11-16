@@ -1,12 +1,14 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import AlertOnCallRuleService from "../../../Server/Services/AlertOnCallRuleService";
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import EscalationRuleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import EscalationRuleScheduleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
 import EscalationRuleTeamService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleTeamService";
 import EscalationRuleUserService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleUserService";
+import IncidentOnCallRuleService from "../../../Server/Services/IncidentOnCallRuleService";
 import OnCallDutyPolicyFeedService from "../../../Server/Services/OnCallDutyPolicyFeedService";
 import OnCallDutyPolicyLabelRuleEngineService from "../../../Server/Services/OnCallDutyPolicyLabelRuleEngineService";
 import OnCallDutyPolicyOwnerRuleEngineService from "../../../Server/Services/OnCallDutyPolicyOwnerRuleEngineService";
@@ -28,6 +30,10 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "../../../Types/OnCallDutyPolicy/EscalationRuleDefaults";
+import {
+  EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
+  PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
+} from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
 import Permission from "../../../Types/Permission";
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 import { customDomainCaller } from "../API/CustomDomainCallers";
@@ -102,6 +108,8 @@ let rules: InMemoryTable;
 let ruleUsers: InMemoryTable;
 let ruleTeams: InMemoryTable;
 let ruleSchedules: InMemoryTable;
+let incidentOnCallRules: InMemoryTable;
+let alertOnCallRules: InMemoryTable;
 let errors: Array<string>;
 
 // Every table in memory, by its model.
@@ -151,6 +159,8 @@ beforeEach(() => {
   ruleUsers = inMemory(EscalationRuleUserService, []);
   ruleTeams = inMemory(EscalationRuleTeamService, []);
   ruleSchedules = inMemory(EscalationRuleScheduleService, []);
+  incidentOnCallRules = inMemory(IncidentOnCallRuleService, []);
+  alertOnCallRules = inMemory(AlertOnCallRuleService, []);
   inMemory(OnCallDutyPolicyOwnerUserService, []);
   inMemory(OnCallDutyPolicyOwnerTeamService, []);
   inMemory(TeamService, [
@@ -485,4 +495,137 @@ describe("a rule's responder added through the API", () => {
     expect(id(saved["createdByUserId"])).toBe(id(props.userId));
     expect(errors).toEqual([]);
   });
+});
+
+/*
+ * WHAT THE GUIDED ON-CALL SETUP SENDS (Dashboard
+ * Components/GuidedSetup/OnCall/OnCallSetupApi), as each step builds it:
+ * the first policy with the people and teams picked as its first level -
+ * and, for someone who may add on-call rules, the two rules that run it for
+ * every new incident and alert - then people and teams added to that level,
+ * by a new rule when the policy has none and by join rows when it has one.
+ */
+describe("the guided on-call setup", () => {
+  // OnCallSetupApi.createPolicy: the people and teams picked, by id.
+  function setupPolicy(addRules: boolean): JSONObject {
+    const miscDataProps: JSONObject = {
+      users: [PERSON_ID],
+      teams: [TEAM_ID],
+    };
+
+    if (addRules) {
+      miscDataProps[PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY] = true;
+      miscDataProps[EVERY_NEW_EVENT_RULES_LANGUAGE_KEY] = "en";
+    }
+
+    return miscDataProps;
+  }
+
+  test.each([Permission.ProjectAdmin, Permission.ProjectOwner])(
+    "%s sets up the first policy: saved with its first level and the two on-call rules that run it",
+    async (permission: Permission) => {
+      const created: OnCallDutyPolicy = await createPolicy(
+        caller(permission),
+        setupPolicy(true),
+      );
+
+      expect(errors).toEqual([]);
+      expect(onlyRow(policies)["_id"]).toBeDefined();
+
+      const rule: StoredRow = onlyRow(rules);
+      expect(rule["name"]).toBe("Level 1");
+      expect(id(onlyRow(ruleUsers)["userId"])).toBe(id(PERSON_ID));
+      expect(id(onlyRow(ruleTeams)["teamId"])).toBe(id(TEAM_ID));
+      expect(ruleSchedules.inserts).toHaveLength(0);
+
+      // Every new incident and alert pages the new policy.
+      for (const table of [incidentOnCallRules, alertOnCallRules]) {
+        const onCallRule: StoredRow = onlyRow(table);
+        expect(onCallRule["isEnabled"]).toBe(true);
+        expect(id(onCallRule["projectId"])).toBe(id(PROJECT_ID));
+      }
+
+      expect(created.id).toBeDefined();
+    },
+  );
+
+  test.each([
+    Permission.OnCallMember,
+    Permission.OnCallAdmin,
+    Permission.ProjectMember,
+  ])(
+    "%s, who may not add on-call rules, sets up the first policy: saved with its first level",
+    async (permission: Permission) => {
+      await createPolicy(caller(permission), setupPolicy(false));
+
+      expect(errors).toEqual([]);
+      onlyRow(policies);
+      expect(onlyRow(rules)["name"]).toBe("Level 1");
+      expect(id(onlyRow(ruleUsers)["userId"])).toBe(id(PERSON_ID));
+      expect(id(onlyRow(ruleTeams)["teamId"])).toBe(id(TEAM_ID));
+    },
+  );
+
+  test.each(ROLES)(
+    "%s adds people and teams to a policy with no level yet: a first level is made paging them",
+    async (permission: Permission) => {
+      const props: DatabaseCommonInteractionProps = caller(permission);
+      const created: OnCallDutyPolicy = await createPolicy(props, {});
+
+      // OnCallSetupApi.addToFirstLevel, with no first level.
+      const rule: OnCallDutyPolicyEscalationRule =
+        new OnCallDutyPolicyEscalationRule();
+      rule.projectId = PROJECT_ID;
+      rule.onCallDutyPolicyId = created.id!;
+      rule.escalateAfterInMinutes = DEFAULT_ESCALATE_AFTER_IN_MINUTES;
+
+      await EscalationRuleService.create({
+        data: rule,
+        props: props,
+        miscDataProps: { users: [PERSON_ID], teams: [TEAM_ID] },
+      });
+
+      expect(errors).toEqual([]);
+      expect(onlyRow(rules)["name"]).toBe("Level 1");
+      expect(id(onlyRow(ruleUsers)["userId"])).toBe(id(PERSON_ID));
+      expect(id(onlyRow(ruleTeams)["teamId"])).toBe(id(TEAM_ID));
+    },
+  );
+
+  test.each(ROLES)(
+    "%s adds people and teams to the first level a policy has: each is saved on it",
+    async (permission: Permission) => {
+      const props: DatabaseCommonInteractionProps = caller(permission);
+      const created: OnCallDutyPolicy = await createPolicy(props, {
+        onCallSchedules: [SCHEDULE_ID],
+      });
+      const firstLevel: StoredRow = onlyRow(rules);
+
+      // OnCallSetupApi.addToFirstLevel, with a first level: a join row each.
+      for (const [service, column, responderId] of [
+        [EscalationRuleUserService, "userId", PERSON_ID],
+        [EscalationRuleTeamService, "teamId", TEAM_ID],
+      ] as Array<[DatabaseService<BaseModel>, string, string]>) {
+        const row: BaseModel = new service.modelType();
+        Object.assign(row as unknown as Record<string, unknown>, {
+          projectId: PROJECT_ID,
+          onCallDutyPolicyId: created.id,
+          onCallDutyPolicyEscalationRuleId: new ObjectID(
+            String(firstLevel["_id"]),
+          ),
+          [column]: new ObjectID(responderId),
+        });
+
+        await service.create({ data: row, props: props });
+      }
+
+      expect(errors).toEqual([]);
+      expect(id(onlyRow(ruleUsers)["onCallDutyPolicyEscalationRuleId"])).toBe(
+        id(firstLevel["_id"]),
+      );
+      expect(id(onlyRow(ruleTeams)["onCallDutyPolicyEscalationRuleId"])).toBe(
+        id(firstLevel["_id"]),
+      );
+    },
+  );
 });
